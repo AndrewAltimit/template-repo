@@ -151,6 +151,7 @@ Scenario-based projection reports analyzing potential futures involving advanced
 | **AgentCore Memory Integration** | Multi-provider AI memory system | [Download](https://github.com/AndrewAltimit/template-repo/releases/latest) | [LaTeX](docs/integrations/ai-services/AgentCore_Memory_Integration_Guide.tex) |
 | **Virtual Character System** | AI agent embodiment platform | [Download](https://github.com/AndrewAltimit/template-repo/releases/latest) | [LaTeX](docs/integrations/ai-services/Virtual_Character_System_Guide.tex) |
 | **BioForge CRISPR Automation** | Agent-driven biological automation platform | [Download](https://github.com/AndrewAltimit/template-repo/releases/latest) | [LaTeX](docs/hardware/latex/bioforge-crispr-automation.tex) |
+| **Secure Terminal Briefcase** | Tamper-responsive hardware security system with PQC recovery | [Download](https://github.com/AndrewAltimit/template-repo/releases/latest) | [LaTeX](docs/hardware/latex/secure-terminal-briefcase.tex) |
 
 ### Philosophy Papers
 
@@ -164,13 +165,14 @@ Philosophical explorations of minds, experience, and intelligence. See [Philosop
 
 ## Packages
 
-Three standalone packages addressing different aspects of AI agent development and safety:
+Standalone packages addressing different aspects of AI agent development, safety, and security:
 
 | Package | Purpose | Documentation |
 |---------|---------|---------------|
 | **[Sleeper Agents](packages/sleeper_agents/)** | Research-validated detection framework for hidden backdoors in LLMs, based on Anthropic's research on deceptive AI that persists through safety training | [README](packages/sleeper_agents/README.md) \| [PDF Guide](https://github.com/AndrewAltimit/template-repo/releases/latest) |
 | **[Economic Agents](packages/economic_agents/)** | Rust-based simulation framework demonstrating autonomous AI economic capability - agents that earn money, form companies, hire sub-agents, and seek investment. For governance research and policy development | [README](packages/economic_agents/README.md) |
 | **[Injection Toolkit](packages/injection_toolkit/)** | Cross-platform Rust framework for runtime integration - DLL injection (Windows), LD_PRELOAD (Linux), shared memory IPC, and overlay rendering. For game modding, debugging tools, and AI agent embodiment | [README](packages/injection_toolkit/README.md) \| [Architecture](packages/injection_toolkit/docs/ARCHITECTURE.md) |
+| **[Tamper Briefcase](packages/tamper_briefcase/)** | Tamper-responsive Raspberry Pi briefcase with dual-sensor detection, LUKS2 cryptographic wipe, and hybrid PQC recovery USB. For secure physical transport of field-deployable agent terminals | [README](packages/tamper_briefcase/README.md) \| [Hardware Docs](docs/hardware/secure-terminal-briefcase.md) |
 
 **Rust CLI Tools** (in `tools/rust/`):
 
@@ -200,7 +202,7 @@ cd tools/rust/board-manager && cargo build --release
 
 - **[18 MCP Servers](#mcp-servers)** - Code quality, content creation, AI assistance, 3D graphics, video editing, speech synthesis, and more
 - **[6 AI Agents](#ai-agents)** - Autonomous development workflow from issue to merge
-- **[3 Packages](#packages)** - Sleeper agent detection, economic agent simulation, runtime injection toolkit
+- **[4 Packages](#packages)** - Sleeper agent detection, economic agent simulation, runtime injection, tamper-responsive briefcase
 - **Container-First Architecture** - Maximum portability and consistency
 - **Self-Hosted CI/CD** - Zero-cost GitHub Actions infrastructure
 - **Company Integration** - Corporate proxy builds for enterprise AI APIs ([Docs](automation/corporate-proxy/shared/docs/ARCHITECTURE.md))
@@ -218,7 +220,8 @@ For enterprise environments requiring custom certificates, customize [`automatio
 ├── packages/                 # Installable packages
 │   ├── sleeper_agents/       # AI backdoor detection framework (Python)
 │   ├── economic_agents/      # Autonomous economic agents (Rust)
-│   └── injection_toolkit/    # Runtime injection framework (Rust)
+│   ├── injection_toolkit/    # Runtime injection framework (Rust)
+│   └── tamper_briefcase/     # Tamper-responsive briefcase system (Rust)
 ├── tools/
 │   ├── mcp/                  # 18 MCP servers (see MCP Servers section)
 │   ├── rust/                 # Rust CLI tools

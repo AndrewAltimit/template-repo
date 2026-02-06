@@ -595,6 +595,76 @@ case "$STAGE" in
     $0 bio-test
     ;;
 
+  # ============================================
+  # Tamper Briefcase CI Stages
+  # Note: tamper-sensor requires aarch64 (rppal), so clippy/test/build
+  # target only the crates that compile on x86_64.
+  # ============================================
+
+  tamper-fmt)
+    echo "=== Running Tamper Briefcase format checks ==="
+    echo "Building Rust CI image..."
+    docker compose -f "$COMPOSE_FILE" --profile ci build rust-ci
+    docker compose -f "$COMPOSE_FILE" --profile ci run --rm \
+      -w /app/packages/tamper_briefcase \
+      rust-ci cargo fmt --all -- --check
+    ;;
+
+  tamper-clippy)
+    echo "=== Running Tamper Briefcase clippy lints ==="
+    echo "Building Rust CI image..."
+    docker compose -f "$COMPOSE_FILE" --profile ci build rust-ci
+    # tamper-sensor excluded: requires rppal (aarch64 only)
+    for crate in tamper-common tamper-gate tamper-challenge tamper-recovery; do
+      echo "--- Linting: $crate ---"
+      docker compose -f "$COMPOSE_FILE" --profile ci run --rm \
+        -w /app/packages/tamper_briefcase \
+        rust-ci cargo clippy -p "$crate" --all-targets -- -D warnings
+    done
+    ;;
+
+  tamper-test)
+    echo "=== Running Tamper Briefcase tests ==="
+    echo "Building Rust CI image..."
+    docker compose -f "$COMPOSE_FILE" --profile ci build rust-ci
+    # tamper-sensor excluded: requires rppal (aarch64 only)
+    for crate in tamper-common tamper-gate tamper-challenge tamper-recovery; do
+      echo "--- Testing: $crate ---"
+      docker compose -f "$COMPOSE_FILE" --profile ci run --rm \
+        -w /app/packages/tamper_briefcase \
+        rust-ci cargo test -p "$crate" "${EXTRA_ARGS[@]}"
+    done
+    ;;
+
+  tamper-build)
+    echo "=== Building Tamper Briefcase workspace ==="
+    echo "Building Rust CI image..."
+    docker compose -f "$COMPOSE_FILE" --profile ci build rust-ci
+    # tamper-sensor excluded: requires rppal (aarch64 only)
+    for crate in tamper-common tamper-gate tamper-challenge tamper-recovery; do
+      echo "--- Building: $crate ---"
+      docker compose -f "$COMPOSE_FILE" --profile ci run --rm \
+        -w /app/packages/tamper_briefcase \
+        rust-ci cargo build -p "$crate" --all-targets
+    done
+    ;;
+
+  tamper-deny)
+    echo "=== Running Tamper Briefcase cargo-deny checks ==="
+    echo "Building Rust CI image..."
+    docker compose -f "$COMPOSE_FILE" --profile ci build rust-ci
+    docker compose -f "$COMPOSE_FILE" --profile ci run --rm \
+      -w /app/packages/tamper_briefcase \
+      rust-ci cargo deny check
+    ;;
+
+  tamper-full)
+    echo "=== Running full Tamper Briefcase CI checks ==="
+    $0 tamper-fmt
+    $0 tamper-clippy
+    $0 tamper-test
+    ;;
+
   full)
     echo "=== Running full CI checks ==="
     $0 format
@@ -661,6 +731,7 @@ case "$STAGE" in
     echo "  Rust (economic_agents):   econ-fmt, econ-clippy, econ-test, econ-build, econ-deny, econ-doc, econ-coverage, econ-full"
     echo "  Rust (mcp_core_rust):     mcp-fmt, mcp-clippy, mcp-test, mcp-build, mcp-deny, mcp-doc, mcp-full"
     echo "  Rust (bioforge+mcp):      bio-fmt, bio-clippy, bio-test, bio-build, bio-deny, bio-full"
+    echo "  Rust (tamper_briefcase):  tamper-fmt, tamper-clippy, tamper-test, tamper-build, tamper-deny, tamper-full"
     echo "  Rust (wrapper_guard):     wrapper-fmt, wrapper-clippy, wrapper-test, wrapper-full"
     exit 1
     ;;

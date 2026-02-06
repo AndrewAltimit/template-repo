@@ -19,3 +19,6 @@ anyhow = { workspace = true }
 clap = { workspace = true }
 rand = { workspace = true }
 secrecy = { workspace = true }
+
+[dev-dependencies]
+tempfile = { workspace = true }

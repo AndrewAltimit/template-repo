@@ -247,6 +247,130 @@ pub fn sign_image(image_path: &Path, private_key_file: &Path, output_path: &Path
 }
 
 /// Hex-encode a byte slice.
-fn hex_encode(bytes: &[u8]) -> String {
-    bytes.iter().map(|b| format!("{:02x}", b)).collect()
+pub(crate) fn hex_encode(bytes: &[u8]) -> String {
+    hex::encode(bytes)
+}
+
+// ---------------------------------------------------------------------------
+// Tests
+// ---------------------------------------------------------------------------
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn hex_encode_empty() {
+        assert_eq!(hex_encode(&[]), "");
+    }
+
+    #[test]
+    fn hex_encode_known_values() {
+        assert_eq!(hex_encode(&[0x00]), "00");
+        assert_eq!(hex_encode(&[0xFF]), "ff");
+        assert_eq!(hex_encode(&[0xDE, 0xAD, 0xBE, 0xEF]), "deadbeef");
+    }
+
+    #[test]
+    fn generate_creates_key_material() {
+        let dir = tempfile::tempdir().unwrap();
+
+        generate(dir.path(), "test_root_pass", "test_data_pass").unwrap();
+
+        // Verify output directory structure.
+        assert!(dir.path().join("public/recovery_public.json").exists());
+        assert!(dir.path().join("public/wrapped_secret.bin").exists());
+        assert!(dir.path().join("private/recovery_private.json").exists());
+        assert!(dir.path().join("private/recovery_secret.hex").exists());
+        assert!(
+            dir.path()
+                .join("encrypted/device_secrets.json.enc")
+                .exists()
+        );
+
+        // Verify public JSON structure.
+        let public_json: serde_json::Value = serde_json::from_str(
+            &fs::read_to_string(dir.path().join("public/recovery_public.json")).unwrap(),
+        )
+        .unwrap();
+
+        assert_eq!(public_json["version"], 1);
+        assert_eq!(public_json["classical_algorithm"], "X25519");
+        assert_eq!(public_json["pq_kem_algorithm"], "ML-KEM-1024");
+        assert_eq!(public_json["sig_algorithm"], "ML-DSA-87");
+        assert!(public_json["x25519_public_key"].is_string());
+        assert!(public_json["x25519_ephemeral_public"].is_string());
+        assert!(public_json["kem_public_key"].is_string());
+        assert!(public_json["kem_ciphertext"].is_string());
+        assert!(public_json["sig_public_key"].is_string());
+        assert!(public_json["wrap_salt"].is_string());
+        assert!(public_json["wrap_nonce"].is_string());
+        assert!(public_json["usb_salt"].is_string());
+
+        // Verify private JSON structure.
+        let private_json: serde_json::Value = serde_json::from_str(
+            &fs::read_to_string(dir.path().join("private/recovery_private.json")).unwrap(),
+        )
+        .unwrap();
+
+        assert!(private_json["x25519_private_key"].is_string());
+        assert!(private_json["kem_secret_key"].is_string());
+        assert!(private_json["sig_secret_key"].is_string());
+
+        // Verify recovery secret hex is 128 chars (64 bytes).
+        let secret_hex =
+            fs::read_to_string(dir.path().join("private/recovery_secret.hex")).unwrap();
+        assert_eq!(secret_hex.len(), 128);
+    }
+
+    #[test]
+    fn sign_and_verify_roundtrip() {
+        let dir = tempfile::tempdir().unwrap();
+
+        // Generate keys.
+        generate(dir.path(), "root", "data").unwrap();
+
+        // Create a dummy image.
+        let image_path = dir.path().join("test_image.bin");
+        fs::write(&image_path, b"this is a test disk image for signing").unwrap();
+
+        // Sign the image.
+        let sig_path = dir.path().join("test_image.bin.sig");
+        let private_key_file = dir.path().join("private/recovery_private.json");
+        sign_image(&image_path, &private_key_file, &sig_path).unwrap();
+
+        assert!(sig_path.exists());
+
+        // Verify the signature.
+        let public_meta_file = dir.path().join("public/recovery_public.json");
+        crate::unwrap::verify_image(&image_path, &sig_path, &public_meta_file).unwrap();
+    }
+
+    #[test]
+    fn verify_rejects_tampered_image() {
+        let dir = tempfile::tempdir().unwrap();
+
+        generate(dir.path(), "root", "data").unwrap();
+
+        let image_path = dir.path().join("test_image.bin");
+        fs::write(&image_path, b"original image content").unwrap();
+
+        let sig_path = dir.path().join("test_image.bin.sig");
+        sign_image(
+            &image_path,
+            &dir.path().join("private/recovery_private.json"),
+            &sig_path,
+        )
+        .unwrap();
+
+        // Tamper with the image.
+        fs::write(&image_path, b"TAMPERED image content").unwrap();
+
+        let result = crate::unwrap::verify_image(
+            &image_path,
+            &sig_path,
+            &dir.path().join("public/recovery_public.json"),
+        );
+        assert!(result.is_err());
+    }
 }
