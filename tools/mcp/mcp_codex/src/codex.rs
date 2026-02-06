@@ -35,7 +35,13 @@ impl CodexIntegration {
         context: &str,
         mode: ConsultMode,
         _comparison_mode: bool,
+        force: bool,
     ) -> ConsultResult {
+        // Check if enabled
+        if !self.config.enabled && !force {
+            return ConsultResult::disabled("Codex integration is disabled");
+        }
+
         self.stats.consultations += 1;
         self.stats.last_consultation = Some(Utc::now());
 
@@ -419,7 +425,13 @@ impl mcp_ai_consult::AiIntegration for CodexIntegration {
             .map(ConsultMode::from_str)
             .unwrap_or_default();
         let local = self
-            .consult_impl(&params.query, &params.context, mode, params.comparison_mode)
+            .consult_impl(
+                &params.query,
+                &params.context,
+                mode,
+                params.comparison_mode,
+                params.force,
+            )
             .await;
         match local.status {
             ConsultStatus::Success => {

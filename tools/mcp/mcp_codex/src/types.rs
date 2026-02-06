@@ -213,7 +213,6 @@ impl ConsultResult {
     }
 
     /// Create a disabled result
-    #[allow(dead_code)]
     pub fn disabled(message: impl Into<String>) -> Self {
         Self {
             status: ConsultStatus::Disabled,
