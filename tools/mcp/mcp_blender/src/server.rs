@@ -225,10 +225,10 @@ impl ServerRefs {
             match executor_clone.execute_script(&script, args, job_id).await {
                 Ok(result) => {
                     jobs_clone.complete_job(job_id, result, None).await;
-                }
+                },
                 Err(e) => {
                     jobs_clone.fail_job(job_id, &e.to_string()).await;
-                }
+                },
             }
         });
 
@@ -1239,11 +1239,11 @@ impl Tool for GetJobStatusTool {
                     "updated_at": j.updated_at.map(|t| t.to_rfc3339())
                 });
                 ToolResult::json(&response)
-            }
+            },
             None => {
                 let response = json!({ "error": format!("Job {} not found", job_id) });
                 ToolResult::json(&response)
-            }
+            },
         }
     }
 }
@@ -1305,11 +1305,11 @@ impl Tool for GetJobResultTool {
                     "output_path": j.output_path
                 });
                 ToolResult::json(&response)
-            }
+            },
             None => {
                 let response = json!({ "error": format!("Job {} not found", job_id) });
                 ToolResult::json(&response)
-            }
+            },
         }
     }
 }

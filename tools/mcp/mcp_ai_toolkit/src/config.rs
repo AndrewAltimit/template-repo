@@ -103,14 +103,14 @@ pub fn validate_path(
                         path_type
                     )));
                 }
-            }
+            },
             std::path::Component::CurDir | std::path::Component::ParentDir => {
                 return Err(ConfigError::PathTraversal(format!(
                     "Invalid {} path: relative directory reference not allowed",
                     path_type
                 )));
-            }
-            _ => {}
+            },
+            _ => {},
         }
     }
 

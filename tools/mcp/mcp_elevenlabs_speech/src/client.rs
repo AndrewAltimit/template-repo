@@ -102,7 +102,7 @@ impl ElevenLabsClient {
             Err(e) => {
                 error!("Request failed: {}", e);
                 return SynthesisResult::error(format!("Request failed: {}", e), config.text.len());
-            }
+            },
         };
 
         let status = response.status();
@@ -126,7 +126,7 @@ impl ElevenLabsClient {
                     format!("Failed to read audio data: {}", e),
                     config.text.len(),
                 );
-            }
+            },
         };
 
         // Save to file
@@ -141,7 +141,7 @@ impl ElevenLabsClient {
                     format!("Failed to save audio: {}", e),
                     config.text.len(),
                 );
-            }
+            },
         };
 
         info!(
@@ -195,7 +195,7 @@ impl ElevenLabsClient {
             Err(e) => {
                 error!("Sound effect request failed: {}", e);
                 return SynthesisResult::error(format!("Request failed: {}", e), prompt.len());
-            }
+            },
         };
 
         let status = response.status();
@@ -218,7 +218,7 @@ impl ElevenLabsClient {
                     format!("Failed to read audio data: {}", e),
                     prompt.len(),
                 );
-            }
+            },
         };
 
         // Save to file (sound effects are MP3)
@@ -232,7 +232,7 @@ impl ElevenLabsClient {
                     format!("Failed to save audio: {}", e),
                     prompt.len(),
                 );
-            }
+            },
         };
 
         info!("Generated sound effect, saved to {}", local_path);

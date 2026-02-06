@@ -144,10 +144,7 @@ impl Default for AudioPathValidator {
 impl AudioPathValidator {
     /// Create a new path validator with default allowed paths.
     pub fn new() -> Self {
-        let allowed_paths = ALLOWED_AUDIO_PATHS
-            .iter()
-            .map(PathBuf::from)
-            .collect();
+        let allowed_paths = ALLOWED_AUDIO_PATHS.iter().map(PathBuf::from).collect();
         Self { allowed_paths }
     }
 
@@ -172,7 +169,7 @@ impl AudioPathValidator {
                 } else {
                     return false;
                 }
-            }
+            },
         };
 
         for allowed in &self.allowed_paths {
@@ -184,7 +181,7 @@ impl AudioPathValidator {
                         return true;
                     }
                     continue;
-                }
+                },
             };
 
             if resolved.starts_with(&allowed_resolved) {
@@ -285,7 +282,10 @@ impl AudioDownloader {
         if let Some(content_type) = response.headers().get("content-type") {
             if let Ok(ct) = content_type.to_str() {
                 if ct.contains("text/html") {
-                    return (None, Some("Server returned HTML instead of audio".to_string()));
+                    return (
+                        None,
+                        Some("Server returned HTML instead of audio".to_string()),
+                    );
                 }
             }
         }
@@ -378,11 +378,7 @@ impl AudioPlayer {
         format: &AudioFormat,
     ) -> Result<PathBuf, std::io::Error> {
         let tmp_dir = std::env::temp_dir();
-        let filename = format!(
-            "vc_audio_{}.{}",
-            uuid::Uuid::new_v4(),
-            format.extension()
-        );
+        let filename = format!("vc_audio_{}.{}", uuid::Uuid::new_v4(), format.extension());
         let tmp_path = tmp_dir.join(filename);
 
         let mut file = fs::File::create(&tmp_path).await?;
@@ -433,7 +429,10 @@ impl AudioPlayer {
                 let _ = fs::remove_file(&wav_path).await;
 
                 if play_result.is_ok() {
-                    return (true, format!("Playing through default device (should be {})", device));
+                    return (
+                        true,
+                        format!("Playing through default device (should be {})", device),
+                    );
                 }
             }
         }
@@ -489,7 +488,7 @@ impl AudioPlayer {
             Ok(output) => {
                 let stdout = String::from_utf8_lossy(&output.stdout);
                 (true, format!("Playing via PowerShell: {}", stdout.trim()))
-            }
+            },
             Err(e) => (false, format!("All playback methods failed: {}", e)),
         }
     }
@@ -501,17 +500,16 @@ impl AudioPlayer {
         _audio_format: &AudioFormat,
         _device: &str,
     ) -> (bool, String) {
-        (false, "Windows playback not available on this platform".to_string())
+        (
+            false,
+            "Windows playback not available on this platform".to_string(),
+        )
     }
 
     async fn play_unix(&self, audio_path: &Path) -> (bool, String) {
         // Try ffplay
         let result = Command::new("ffplay")
-            .args([
-                "-nodisp",
-                "-autoexit",
-                audio_path.to_str().unwrap_or(""),
-            ])
+            .args(["-nodisp", "-autoexit", audio_path.to_str().unwrap_or("")])
             .stdout(Stdio::null())
             .stderr(Stdio::null())
             .spawn();
@@ -530,7 +528,7 @@ impl AudioPlayer {
                     Ok(_) => (true, format!("Playing via aplay: {:?}", audio_path)),
                     Err(e) => (false, format!("Playback failed: {}", e)),
                 }
-            }
+            },
         }
     }
 }
@@ -636,7 +634,7 @@ impl AudioHandler {
                     return (None, Some(msg));
                 }
                 (Some(data), None)
-            }
+            },
             Err(e) => (None, Some(format!("Error reading file: {}", e))),
         }
     }
@@ -649,7 +647,7 @@ impl AudioHandler {
                     return (None, Some(msg));
                 }
                 (Some(audio_bytes), None)
-            }
+            },
             Err(e) => (None, Some(format!("Invalid base64: {}", e))),
         }
     }

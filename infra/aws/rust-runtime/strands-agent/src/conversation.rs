@@ -175,8 +175,9 @@ impl ConversationManager {
 
     fn enforce_limits(&mut self) {
         if let Some(max) = self.max_messages {
-            while self.messages.len() > max {
-                self.messages.remove(0);
+            if self.messages.len() > max {
+                let excess = self.messages.len() - max;
+                self.messages.drain(..excess);
             }
         }
     }

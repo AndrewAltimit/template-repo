@@ -208,7 +208,11 @@ pub fn get_emotion_from_tag(tag: &str) -> Option<AudioTagMapping> {
 ///
 /// # Returns
 /// List of audio tags sorted by relevance to intensity
-pub fn get_audio_tags_for_emotion(emotion: EmotionType, intensity: f32, max_tags: usize) -> Vec<&'static str> {
+pub fn get_audio_tags_for_emotion(
+    emotion: EmotionType,
+    intensity: f32,
+    max_tags: usize,
+) -> Vec<&'static str> {
     let Some(candidates) = EMOTION_TO_AUDIO_TAGS.get(&emotion) else {
         return Vec::new();
     };
@@ -218,10 +222,16 @@ pub fn get_audio_tags_for_emotion(emotion: EmotionType, intensity: f32, max_tags
     sorted.sort_by(|a, b| {
         let dist_a = (a.1 - intensity).abs();
         let dist_b = (b.1 - intensity).abs();
-        dist_a.partial_cmp(&dist_b).unwrap_or(std::cmp::Ordering::Equal)
+        dist_a
+            .partial_cmp(&dist_b)
+            .unwrap_or(std::cmp::Ordering::Equal)
     });
 
-    sorted.into_iter().take(max_tags).map(|(tag, _)| *tag).collect()
+    sorted
+        .into_iter()
+        .take(max_tags)
+        .map(|(tag, _)| *tag)
+        .collect()
 }
 
 /// Get the dominant emotion from text with audio tags.
@@ -239,9 +249,9 @@ pub fn get_dominant_emotion(text: &str) -> Option<AudioTagMapping> {
     }
 
     // Return emotion with highest intensity
-    emotions.into_iter().max_by(|a, b| {
-        a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal)
-    })
+    emotions
+        .into_iter()
+        .max_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal))
 }
 
 #[cfg(test)]
@@ -359,7 +369,10 @@ mod tests {
         // Verify sorted by intensity descending
         let mut prev_intensity = f32::MAX;
         for (_, intensity) in tags {
-            assert!(*intensity <= prev_intensity, "Tags not sorted by descending intensity");
+            assert!(
+                *intensity <= prev_intensity,
+                "Tags not sorted by descending intensity"
+            );
             prev_intensity = *intensity;
         }
     }

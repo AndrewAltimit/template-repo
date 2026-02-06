@@ -93,3 +93,11 @@ version = "0.2"
 [workspace.dependencies.nix]
 version = "0.29"
 features = ["mman", "fs"]
+
+[workspace.lints.clippy]
+clone_on_ref_ptr = "warn"
+dbg_macro = "warn"
+todo = "warn"
+unimplemented = "warn"
+
+[workspace.lints.rust]

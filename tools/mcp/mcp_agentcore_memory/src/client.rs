@@ -20,7 +20,7 @@ fn flatten_metadata_value(value: Value) -> Value {
         // Arrays and objects get serialized to JSON strings
         Value::Array(_) | Value::Object(_) => {
             Value::String(serde_json::to_string(&value).unwrap_or_default())
-        }
+        },
     }
 }
 
@@ -121,7 +121,7 @@ impl ChromaDBClient {
     /// SHA-256 is stable across compiler versions and architectures, ensuring existing
     /// memories remain accessible after rebuilds.
     fn records_collection_name(&self, namespace: &str) -> String {
-        use sha2::{Sha256, Digest};
+        use sha2::{Digest, Sha256};
 
         // Use SHA-256 for stable hashing across compiler versions/architectures
         // This ensures "a/b", "a-b", "a_b" map to different collections
@@ -230,7 +230,7 @@ impl ChromaDBClient {
         // DoS from extremely large limit values. Sessions larger than 50k events may miss
         // some recent events - this is an acceptable tradeoff vs memory exhaustion.
         const MAX_FETCH_LIMIT: u32 = 50000;
-        let fetch_limit = std::cmp::min(std::cmp::max(limit, 10000), MAX_FETCH_LIMIT);
+        let fetch_limit = limit.clamp(10000, MAX_FETCH_LIMIT);
         let request = GetRequest {
             ids: None,
             limit: Some(fetch_limit),
@@ -570,11 +570,11 @@ impl ChromaDBClient {
                     warn!("ChromaDB health check failed: {}", response.status());
                     false
                 }
-            }
+            },
             Err(e) => {
                 warn!("ChromaDB health check error: {}", e);
                 false
-            }
+            },
         }
     }
 

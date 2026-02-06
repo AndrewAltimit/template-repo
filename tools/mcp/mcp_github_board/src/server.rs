@@ -140,16 +140,16 @@ impl ServerRefs {
                         *initialized = true;
 
                         return Ok(path);
-                    }
+                    },
                     Ok(output) => {
                         debug!(
                             "board-manager at {:?} failed version check: {:?}",
                             path, output.status
                         );
-                    }
+                    },
                     Err(e) => {
                         debug!("board-manager at {:?} not executable: {}", path, e);
-                    }
+                    },
                 }
             }
         }

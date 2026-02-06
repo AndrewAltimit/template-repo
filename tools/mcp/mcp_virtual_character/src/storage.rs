@@ -190,14 +190,14 @@ impl StorageService {
         }
 
         // Decode payload
-        let payload_json = match base64::engine::general_purpose::URL_SAFE_NO_PAD.decode(payload_b64)
-        {
-            Ok(bytes) => match String::from_utf8(bytes) {
-                Ok(s) => s,
+        let payload_json =
+            match base64::engine::general_purpose::URL_SAFE_NO_PAD.decode(payload_b64) {
+                Ok(bytes) => match String::from_utf8(bytes) {
+                    Ok(s) => s,
+                    Err(_) => return self.verify_legacy_token(token),
+                },
                 Err(_) => return self.verify_legacy_token(token),
-            },
-            Err(_) => return self.verify_legacy_token(token),
-        };
+            };
 
         let payload: TokenPayload = match serde_json::from_str(&payload_json) {
             Ok(p) => p,
@@ -254,7 +254,11 @@ impl StorageService {
     }
 
     /// Store a file with TTL.
-    pub async fn store_file(&self, content: &[u8], filename: &str) -> StorageResult<UploadResponse> {
+    pub async fn store_file(
+        &self,
+        content: &[u8],
+        filename: &str,
+    ) -> StorageResult<UploadResponse> {
         let file_id = Self::generate_file_id();
         let file_path = self.storage_path.join(&file_id);
 
@@ -282,10 +286,9 @@ impl StorageService {
         }
 
         let url = format!("{}/download/{}", self.base_url, file_id);
-        let expires_str =
-            chrono::DateTime::from_timestamp(expires_at as i64, 0)
-                .map(|dt| dt.to_rfc3339())
-                .unwrap_or_else(|| expires_at.to_string());
+        let expires_str = chrono::DateTime::from_timestamp(expires_at as i64, 0)
+            .map(|dt| dt.to_rfc3339())
+            .unwrap_or_else(|| expires_at.to_string());
 
         Ok(UploadResponse {
             file_id,
@@ -395,7 +398,10 @@ impl StorageService {
                 tokio::time::sleep(Duration::from_secs(300)).await;
                 let (files, nonces) = self.cleanup_expired().await;
                 if files > 0 || nonces > 0 {
-                    info!("Cleanup: {} expired files, {} expired nonces", files, nonces);
+                    info!(
+                        "Cleanup: {} expired files, {} expired nonces",
+                        files, nonces
+                    );
                 }
             }
         })
@@ -475,14 +481,14 @@ impl StorageService {
         }
 
         // Decode payload
-        let payload_json = match base64::engine::general_purpose::URL_SAFE_NO_PAD.decode(payload_b64)
-        {
-            Ok(bytes) => match String::from_utf8(bytes) {
-                Ok(s) => s,
+        let payload_json =
+            match base64::engine::general_purpose::URL_SAFE_NO_PAD.decode(payload_b64) {
+                Ok(bytes) => match String::from_utf8(bytes) {
+                    Ok(s) => s,
+                    Err(_) => return self.verify_legacy_token(token),
+                },
                 Err(_) => return self.verify_legacy_token(token),
-            },
-            Err(_) => return self.verify_legacy_token(token),
-        };
+            };
 
         let payload: TokenPayload = match serde_json::from_str(&payload_json) {
             Ok(p) => p,
@@ -523,7 +529,10 @@ impl StorageService {
     }
 
     /// Get file content and filename (for HTTP server).
-    pub async fn get_file_content(&self, file_id: &str) -> StorageResult<Option<(Vec<u8>, String)>> {
+    pub async fn get_file_content(
+        &self,
+        file_id: &str,
+    ) -> StorageResult<Option<(Vec<u8>, String)>> {
         let metadata = {
             let files = self.files.read().await;
             files.get(file_id).cloned()

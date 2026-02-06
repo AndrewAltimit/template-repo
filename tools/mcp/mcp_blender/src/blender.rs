@@ -157,16 +157,16 @@ impl BlenderExecutor {
                         self.setup_directories().await?;
 
                         return Ok(path);
-                    }
+                    },
                     Ok(output) => {
                         debug!(
                             "Blender at {:?} failed version check: {:?}",
                             path, output.status
                         );
-                    }
+                    },
                     Err(e) => {
                         debug!("Blender at {:?} not executable: {}", path, e);
-                    }
+                    },
                 }
             }
         }
@@ -258,19 +258,19 @@ impl BlenderExecutor {
             ScriptType::InlineJson => {
                 cmd.arg("--")
                     .arg(serde_json::to_string(&args).unwrap_or_default());
-            }
+            },
             ScriptType::FileWithJobId => {
                 if let Some(ref temp_path) = temp_file {
                     cmd.arg("--")
                         .arg(temp_path.to_string_lossy().as_ref())
                         .arg(job_id.to_string());
                 }
-            }
+            },
             ScriptType::ArgparseArgs => {
                 cmd.arg("--")
                     .arg("--args")
                     .arg(serde_json::to_string(&args).unwrap_or_default());
-            }
+            },
         }
 
         // Set environment variables
@@ -408,7 +408,7 @@ impl BlenderExecutor {
                     return Err(MCPError::InvalidParameters(
                         "Parent directory references not allowed".to_string(),
                     ));
-                }
+                },
                 Component::Normal(s) => {
                     let s_str = s.to_string_lossy();
                     if s_str.starts_with('.') {
@@ -417,8 +417,8 @@ impl BlenderExecutor {
                             s_str
                         )));
                     }
-                }
-                _ => {}
+                },
+                _ => {},
             }
         }
 

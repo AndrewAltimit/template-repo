@@ -76,7 +76,10 @@ impl IntoResponse for ErrorResponse {
 }
 
 /// Extract and verify authorization header.
-fn verify_auth(headers: &HeaderMap, storage: &StorageService) -> Result<(), (StatusCode, Json<ErrorResponse>)> {
+fn verify_auth(
+    headers: &HeaderMap,
+    storage: &StorageService,
+) -> Result<(), (StatusCode, Json<ErrorResponse>)> {
     let auth_header = headers
         .get(header::AUTHORIZATION)
         .and_then(|v| v.to_str().ok());
@@ -94,7 +97,7 @@ fn verify_auth(headers: &HeaderMap, storage: &StorageService) -> Result<(), (Sta
                     }),
                 ))
             }
-        }
+        },
         _ => Err((
             StatusCode::UNAUTHORIZED,
             Json(ErrorResponse {
@@ -156,7 +159,7 @@ async fn upload_file(
                 expires_at: response.expires_at,
                 size_bytes: body.len(),
             }))
-        }
+        },
         Err(e) => {
             error!("Failed to store file: {}", e);
             Err((
@@ -165,7 +168,7 @@ async fn upload_file(
                     error: format!("Failed to store file: {}", e),
                 }),
             ))
-        }
+        },
     }
 }
 
@@ -178,15 +181,18 @@ async fn upload_base64(
     let storage = storage.read().await;
     verify_auth(&headers, &storage)?;
 
-    let content = base64::Engine::decode(&base64::engine::general_purpose::STANDARD, &request.audio_data)
-        .map_err(|e| {
-            (
-                StatusCode::BAD_REQUEST,
-                Json(ErrorResponse {
-                    error: format!("Invalid base64: {}", e),
-                }),
-            )
-        })?;
+    let content = base64::Engine::decode(
+        &base64::engine::general_purpose::STANDARD,
+        &request.audio_data,
+    )
+    .map_err(|e| {
+        (
+            StatusCode::BAD_REQUEST,
+            Json(ErrorResponse {
+                error: format!("Invalid base64: {}", e),
+            }),
+        )
+    })?;
 
     match storage.store_file(&content, &request.filename).await {
         Ok(response) => {
@@ -201,7 +207,7 @@ async fn upload_base64(
                 expires_at: response.expires_at,
                 size_bytes: content.len(),
             }))
-        }
+        },
         Err(e) => {
             error!("Failed to store file: {}", e);
             Err((
@@ -210,7 +216,7 @@ async fn upload_base64(
                     error: format!("Failed to store file: {}", e),
                 }),
             ))
-        }
+        },
     }
 }
 
@@ -246,7 +252,7 @@ async fn download_file(
                 )
                 .body(Body::from(content))
                 .unwrap())
-        }
+        },
         Ok(None) => {
             warn!("File not found or expired: {}", file_id);
             Err((
@@ -255,7 +261,7 @@ async fn download_file(
                     error: "File not found or expired".to_string(),
                 }),
             ))
-        }
+        },
         Err(e) => {
             error!("Failed to get file: {}", e);
             Err((
@@ -264,7 +270,7 @@ async fn download_file(
                     error: format!("Failed to get file: {}", e),
                 }),
             ))
-        }
+        },
     }
 }
 
@@ -297,7 +303,8 @@ mod tests {
     #[tokio::test]
     async fn test_create_storage_router() {
         let storage = Arc::new(RwLock::new(
-            StorageService::new_with_secret("/tmp/test_storage_router", 1.0, "test_secret").unwrap(),
+            StorageService::new_with_secret("/tmp/test_storage_router", 1.0, "test_secret")
+                .unwrap(),
         ));
 
         // Just verify router creation doesn't panic
@@ -307,7 +314,8 @@ mod tests {
     #[test]
     fn test_verify_auth_missing_header() {
         let headers = HeaderMap::new();
-        let storage = StorageService::new_with_secret("/tmp/test_auth", 1.0, "test_secret").unwrap();
+        let storage =
+            StorageService::new_with_secret("/tmp/test_auth", 1.0, "test_secret").unwrap();
 
         let result = verify_auth(&headers, &storage);
         assert!(result.is_err());
@@ -316,8 +324,12 @@ mod tests {
     #[test]
     fn test_verify_auth_invalid_token() {
         let mut headers = HeaderMap::new();
-        headers.insert(header::AUTHORIZATION, "Bearer invalid_token".parse().unwrap());
-        let storage = StorageService::new_with_secret("/tmp/test_auth2", 1.0, "test_secret").unwrap();
+        headers.insert(
+            header::AUTHORIZATION,
+            "Bearer invalid_token".parse().unwrap(),
+        );
+        let storage =
+            StorageService::new_with_secret("/tmp/test_auth2", 1.0, "test_secret").unwrap();
 
         let result = verify_auth(&headers, &storage);
         assert!(result.is_err());
@@ -325,11 +337,15 @@ mod tests {
 
     #[test]
     fn test_verify_auth_valid_token() {
-        let storage = StorageService::new_with_secret("/tmp/test_auth3", 1.0, "test_secret").unwrap();
+        let storage =
+            StorageService::new_with_secret("/tmp/test_auth3", 1.0, "test_secret").unwrap();
         let token = storage.generate_token();
 
         let mut headers = HeaderMap::new();
-        headers.insert(header::AUTHORIZATION, format!("Bearer {}", token).parse().unwrap());
+        headers.insert(
+            header::AUTHORIZATION,
+            format!("Bearer {}", token).parse().unwrap(),
+        );
 
         let result = verify_auth(&headers, &storage);
         assert!(result.is_ok());

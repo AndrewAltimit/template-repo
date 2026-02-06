@@ -343,7 +343,7 @@ pub async fn create_proxy_tools(
     // Create proxy tools
     let proxy_tools: Vec<ProxyTool> = tool_infos
         .iter()
-        .map(|info| ProxyTool::new(info, client.clone()))
+        .map(|info| ProxyTool::new(info, Arc::clone(&client)))
         .collect();
 
     Ok((client, proxy_tools))

@@ -281,14 +281,14 @@ Returns the full details for a reaction including URL and markdown for embedding
                     "reaction": result
                 });
                 ToolResult::json(&response)
-            }
+            },
             None => {
                 let response = json!({
                     "success": false,
                     "error": format!("Reaction not found: {}", reaction_id)
                 });
                 ToolResult::json(&response)
-            }
+            },
         }
     }
 }

@@ -57,3 +57,6 @@ raw-window-handle = "0.6"
 
 # CLI
 clap = { version = "4", features = ["derive"] }
+
+[lints]
+workspace = true

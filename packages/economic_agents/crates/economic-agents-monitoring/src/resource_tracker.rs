@@ -1,6 +1,7 @@
 //! Resource consumption tracking.
 
 use chrono::{DateTime, Utc};
+use std::collections::VecDeque;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
@@ -24,7 +25,7 @@ pub enum ResourceType {
 
 /// Tracks resource consumption over time.
 pub struct ResourceTracker {
-    records: Arc<RwLock<Vec<ResourceRecord>>>,
+    records: Arc<RwLock<VecDeque<ResourceRecord>>>,
     max_records: usize,
 }
 
@@ -32,7 +33,7 @@ impl ResourceTracker {
     /// Create a new resource tracker.
     pub fn new() -> Self {
         Self {
-            records: Arc::new(RwLock::new(Vec::new())),
+            records: Arc::new(RwLock::new(VecDeque::new())),
             max_records: 10000,
         }
     }
@@ -52,9 +53,9 @@ impl ResourceTracker {
         };
 
         let mut records = self.records.write().await;
-        records.push(record);
+        records.push_back(record);
         if records.len() > self.max_records {
-            records.remove(0);
+            records.pop_front();
         }
     }
 
@@ -81,8 +82,7 @@ impl ResourceTracker {
     /// Get recent records.
     pub async fn recent(&self, count: usize) -> Vec<ResourceRecord> {
         let records = self.records.read().await;
-        let start = records.len().saturating_sub(count);
-        records[start..].to_vec()
+        records.iter().rev().take(count).rev().cloned().collect()
     }
 }
 

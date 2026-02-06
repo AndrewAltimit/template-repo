@@ -14,6 +14,7 @@ path = "src/main.rs"
 [dependencies]
 # MCP Core (path to sibling directory)
 mcp-core = { path = "../mcp_core_rust/crates/mcp-core" }
+mcp-ai-consult = { path = "../mcp_core_rust/crates/mcp-ai-consult" }
 
 # Async runtime
 tokio = { version = "1.40", features = ["full", "process"] }

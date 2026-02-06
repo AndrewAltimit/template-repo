@@ -7,7 +7,7 @@ use tracing::{debug, info};
 
 use crate::types::{
     ChatCompletionRequest, ChatCompletionResponse, ChatMessage, ConsultMode, ConsultResult,
-    HistoryEntry, OpenCodeConfig, OpenCodeStats,
+    ConsultStatus, HistoryEntry, OpenCodeConfig, OpenCodeStats,
 };
 
 const OPENROUTER_API_URL: &str = "https://openrouter.ai/api/v1/chat/completions";
@@ -38,8 +38,8 @@ impl OpenCodeIntegration {
         }
     }
 
-    /// Consult OpenCode for code assistance
-    pub async fn consult(&mut self, query: &str, mode: ConsultMode, force: bool) -> ConsultResult {
+    /// Consult OpenCode for code assistance (internal implementation).
+    async fn consult_impl(&mut self, query: &str, mode: ConsultMode, force: bool) -> ConsultResult {
         self.consultation_counter += 1;
         let consultation_id = format!(
             "opencode_{}_{}_{}",
@@ -91,7 +91,7 @@ impl OpenCodeIntegration {
                 }
 
                 ConsultResult::success(response, execution_time, consultation_id)
-            }
+            },
             Err(e) => {
                 self.stats.errors += 1;
 
@@ -100,7 +100,7 @@ impl OpenCodeIntegration {
                 } else {
                     ConsultResult::error(e, consultation_id)
                 }
-            }
+            },
         }
     }
 
@@ -222,21 +222,6 @@ impl OpenCodeIntegration {
         count
     }
 
-    /// Get current statistics
-    pub fn stats(&self) -> &OpenCodeStats {
-        &self.stats
-    }
-
-    /// Get history size
-    pub fn history_size(&self) -> usize {
-        self.history.len()
-    }
-
-    /// Get the configuration
-    pub fn config(&self) -> &OpenCodeConfig {
-        &self.config
-    }
-
     /// Toggle auto consultation
     pub fn toggle_auto_consult(&mut self, enable: Option<bool>) -> bool {
         match enable {
@@ -244,5 +229,68 @@ impl OpenCodeIntegration {
             None => self.config.auto_consult = !self.config.auto_consult,
         }
         self.config.auto_consult
+    }
+}
+
+// Bridge to the shared AiIntegration trait
+#[async_trait::async_trait]
+impl mcp_ai_consult::AiIntegration for OpenCodeIntegration {
+    fn name(&self) -> &str {
+        "OpenCode"
+    }
+
+    fn enabled(&self) -> bool {
+        self.config.enabled
+    }
+
+    fn auto_consult(&self) -> bool {
+        self.config.auto_consult
+    }
+
+    fn toggle_auto_consult(&mut self, enable: Option<bool>) -> bool {
+        OpenCodeIntegration::toggle_auto_consult(self, enable)
+    }
+
+    async fn consult(
+        &mut self,
+        params: mcp_ai_consult::ConsultParams,
+    ) -> mcp_ai_consult::ConsultResult {
+        let mode = params
+            .mode
+            .as_deref()
+            .map(ConsultMode::from_str)
+            .unwrap_or(ConsultMode::Quick);
+        let local = self.consult_impl(&params.query, mode, params.force).await;
+        let exec_time = local.execution_time.unwrap_or(0.0);
+        match local.status {
+            ConsultStatus::Success => mcp_ai_consult::ConsultResult::success(
+                local.response.unwrap_or_default(),
+                exec_time,
+            ),
+            ConsultStatus::Error => {
+                mcp_ai_consult::ConsultResult::error(local.error.unwrap_or_default(), exec_time)
+            },
+            ConsultStatus::Disabled => mcp_ai_consult::ConsultResult::disabled(),
+            ConsultStatus::Timeout => mcp_ai_consult::ConsultResult::timeout(exec_time),
+        }
+    }
+
+    fn clear_history(&mut self) -> usize {
+        OpenCodeIntegration::clear_history(self)
+    }
+
+    fn history_len(&self) -> usize {
+        self.history.len()
+    }
+
+    fn snapshot_stats(&self) -> mcp_ai_consult::IntegrationStats {
+        let s = &self.stats;
+        mcp_ai_consult::IntegrationStats {
+            consultations: s.consultations,
+            completed: s.completed,
+            errors: s.errors,
+            total_execution_time: s.total_execution_time,
+            last_consultation: s.last_consultation,
+        }
     }
 }

@@ -381,9 +381,18 @@ impl Tool for RunTestsTool {
             .unwrap_or("tests/");
 
         let pattern = args.get("pattern").and_then(|v| v.as_str());
-        let verbose = args.get("verbose").and_then(|v| v.as_bool()).unwrap_or(false);
-        let coverage = args.get("coverage").and_then(|v| v.as_bool()).unwrap_or(false);
-        let fail_fast = args.get("fail_fast").and_then(|v| v.as_bool()).unwrap_or(false);
+        let verbose = args
+            .get("verbose")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false);
+        let coverage = args
+            .get("coverage")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false);
+        let fail_fast = args
+            .get("fail_fast")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false);
         let markers = args.get("markers").and_then(|v| v.as_str());
 
         let guard = self.server.engine.read().await;

@@ -15,7 +15,7 @@ mod server;
 mod types;
 
 use clap::Parser;
-use mcp_core::{init_logging, server::MCPServerArgs, MCPServer};
+use mcp_core::{MCPServer, init_logging, server::MCPServerArgs};
 
 use server::CrushServer;
 use types::CrushConfig;

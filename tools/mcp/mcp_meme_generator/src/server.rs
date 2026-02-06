@@ -331,14 +331,14 @@ Returns the full configuration including text areas, usage rules, and examples."
                     "template": config
                 });
                 ToolResult::json(&response)
-            }
+            },
             None => {
                 let response = json!({
                     "success": false,
                     "error": format!("Template '{}' not found", template_id)
                 });
                 ToolResult::json(&response)
-            }
+            },
         }
     }
 }

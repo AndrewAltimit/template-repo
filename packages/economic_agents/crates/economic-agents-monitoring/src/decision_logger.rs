@@ -2,6 +2,7 @@
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use std::collections::VecDeque;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use uuid::Uuid;
@@ -29,7 +30,7 @@ pub struct LoggedDecision {
 
 /// Logs agent decisions for analysis.
 pub struct DecisionLogger {
-    decisions: Arc<RwLock<Vec<LoggedDecision>>>,
+    decisions: Arc<RwLock<VecDeque<LoggedDecision>>>,
     max_decisions: usize,
 }
 
@@ -37,7 +38,7 @@ impl DecisionLogger {
     /// Create a new decision logger.
     pub fn new() -> Self {
         Self {
-            decisions: Arc::new(RwLock::new(Vec::new())),
+            decisions: Arc::new(RwLock::new(VecDeque::new())),
             max_decisions: 10000,
         }
     }
@@ -65,9 +66,9 @@ impl DecisionLogger {
         let id = decision.id;
 
         let mut decisions = self.decisions.write().await;
-        decisions.push(decision);
+        decisions.push_back(decision);
         if decisions.len() > self.max_decisions {
-            decisions.remove(0);
+            decisions.pop_front();
         }
 
         id
@@ -94,8 +95,7 @@ impl DecisionLogger {
     /// Get recent decisions.
     pub async fn recent(&self, count: usize) -> Vec<LoggedDecision> {
         let decisions = self.decisions.read().await;
-        let start = decisions.len().saturating_sub(count);
-        decisions[start..].to_vec()
+        decisions.iter().rev().take(count).rev().cloned().collect()
     }
 }
 

@@ -20,3 +20,6 @@ rand.workspace = true
 
 [dev-dependencies]
 tokio-test.workspace = true
+
+[lints]
+workspace = true

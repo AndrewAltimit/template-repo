@@ -290,7 +290,7 @@ impl MCPServer {
                 name: tool_info.name.clone(),
                 description: tool_info.description.clone(),
                 input_schema: tool_info.input_schema.clone(),
-                client: client.clone(),
+                client: Arc::clone(&client),
             };
             tools.register(proxy);
             info!("  - {} (proxied)", tool_info.name);

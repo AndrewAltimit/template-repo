@@ -1,3 +1,12 @@
+// Allow pre-existing dead code in planned but unused type enums
+#![allow(
+    dead_code,
+    clippy::derivable_impls,
+    clippy::manual_map,
+    clippy::unnecessary_map_or,
+    clippy::len_zero
+)]
+
 //! MCP Blender Server
 //!
 //! Provides MCP tools for headless Blender 3D content creation, rendering,

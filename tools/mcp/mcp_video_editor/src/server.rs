@@ -288,7 +288,7 @@ Examples:
                     warn!("Failed to extract audio: {}", e);
                     results.insert(video_path.clone(), analysis);
                     continue;
-                }
+                },
             };
 
             // Transcription
@@ -299,7 +299,7 @@ Examples:
                     Ok(t) => {
                         transcript = Some(t.clone());
                         analysis.transcript = Some(t);
-                    }
+                    },
                     Err(e) => warn!("Transcription failed: {}", e),
                 }
             }
@@ -315,7 +315,7 @@ Examples:
                                 audio_processor.combine_transcript_with_speakers(t, &diarization);
                             analysis.segments_with_speakers = Some(combined.segments_with_speakers);
                         }
-                    }
+                    },
                     Err(e) => warn!("Speaker diarization failed: {}", e),
                 }
             }
@@ -325,7 +325,7 @@ Examples:
             match audio_processor.analyze_audio_levels(&audio_path).await {
                 Ok(audio_analysis) => {
                     analysis.audio_analysis = Some(audio_analysis);
-                }
+                },
                 Err(e) => warn!("Audio analysis failed: {}", e),
             }
 
@@ -335,7 +335,7 @@ Examples:
                 match video_processor.detect_scene_changes(video_path).await {
                     Ok(scenes) => {
                         analysis.scene_changes = Some(scenes);
-                    }
+                    },
                     Err(e) => warn!("Scene detection failed: {}", e),
                 }
             }
@@ -693,7 +693,7 @@ Returns a job ID for tracking long-running operations."#
                     "file_size": render_result.file_size,
                     "codec": render_result.codec
                 }))
-            }
+            },
             Err(e) => {
                 self.server
                     .job_manager
@@ -704,7 +704,7 @@ Returns a job ID for tracking long-running operations."#
                     "error": e.to_string(),
                     "job_id": job_id
                 }))
-            }
+            },
         }
     }
 }

@@ -49,3 +49,6 @@ ringbuf = { workspace = true }
 
 # FFmpeg (for audio decoder)
 ffmpeg-next = { workspace = true }
+
+[lints]
+workspace = true

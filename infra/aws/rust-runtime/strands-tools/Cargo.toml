@@ -31,3 +31,6 @@ mcp = ["rmcp"]
 
 [dev-dependencies]
 mockall = { workspace = true }
+
+[lints]
+workspace = true

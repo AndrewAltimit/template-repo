@@ -11,3 +11,6 @@ authors.workspace = true
 itk-protocol = { path = "../itk-protocol" }
 thiserror = { workspace = true }
 tracing = { workspace = true }
+
+[lints]
+workspace = true

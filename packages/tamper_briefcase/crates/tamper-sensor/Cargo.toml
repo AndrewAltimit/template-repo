@@ -23,3 +23,6 @@ nix = { workspace = true }
 
 [target.'cfg(target_arch = "aarch64")'.dependencies]
 rppal = { workspace = true }
+
+[lints]
+workspace = true

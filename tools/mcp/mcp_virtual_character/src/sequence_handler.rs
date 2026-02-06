@@ -438,7 +438,7 @@ impl SequenceHandler {
                         .await
                         .map_err(|e| SequenceError::BackendError(e.to_string()))?;
                 }
-            }
+            },
             EventType::Audio => {
                 if let Some(ref audio) = event.audio_data {
                     backend
@@ -446,13 +446,13 @@ impl SequenceHandler {
                         .await
                         .map_err(|e| SequenceError::BackendError(e.to_string()))?;
                 }
-            }
+            },
             EventType::Wait => {
                 // Wait is handled by timing logic
                 if let Some(wait_dur) = event.wait_duration {
                     sleep(Duration::from_secs_f64(wait_dur)).await;
                 }
-            }
+            },
             EventType::Expression => {
                 if let Some(emotion) = event.expression {
                     let animation = CanonicalAnimationData {
@@ -466,7 +466,7 @@ impl SequenceHandler {
                         .await
                         .map_err(|e| SequenceError::BackendError(e.to_string()))?;
                 }
-            }
+            },
             EventType::Movement => {
                 if let Some(ref params) = event.movement_params {
                     let animation = CanonicalAnimationData {
@@ -479,7 +479,7 @@ impl SequenceHandler {
                         .await
                         .map_err(|e| SequenceError::BackendError(e.to_string()))?;
                 }
-            }
+            },
             EventType::Parallel => {
                 if let Some(ref parallel_events) = event.parallel_events {
                     // Execute parallel events sequentially
@@ -488,11 +488,11 @@ impl SequenceHandler {
                         Box::pin(Self::execute_event(p_event, backend)).await?;
                     }
                 }
-            }
+            },
             EventType::LoopStart | EventType::LoopEnd => {
                 // Loop markers are handled by the sequence execution logic
                 // They don't execute any backend commands
-            }
+            },
         }
         Ok(())
     }
@@ -577,10 +577,7 @@ pub fn create_event_from_params(params: &HashMap<String, Value>) -> Result<Seque
 
         // Handle data URL or base64
         let audio_str = if audio_data_str.starts_with("data:") {
-            audio_data_str
-                .split(',')
-                .nth(1)
-                .unwrap_or(audio_data_str)
+            audio_data_str.split(',').nth(1).unwrap_or(audio_data_str)
         } else {
             audio_data_str
         };
@@ -680,10 +677,7 @@ mod tests {
             Value::String("expression".to_string()),
         );
         params.insert("timestamp".to_string(), Value::Number(1.into()));
-        params.insert(
-            "expression".to_string(),
-            Value::String("happy".to_string()),
-        );
+        params.insert("expression".to_string(), Value::String("happy".to_string()));
 
         let event = create_event_from_params(&params);
         assert!(event.is_ok());

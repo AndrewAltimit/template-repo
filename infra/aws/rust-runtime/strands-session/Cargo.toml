@@ -28,3 +28,6 @@ chrono = { workspace = true }
 
 [dev-dependencies]
 mockall = { workspace = true }
+
+[lints]
+workspace = true
