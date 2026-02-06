@@ -410,18 +410,16 @@ BH1750 light sensor & Secondary: confirms physical exposure, detects bypass & Se
 \subsection{Decision Matrix}
 
 \begin{center}
-\begin{tikzpicture}[font=\sffamily\small]
-  \matrix[matrix of nodes, row sep=0.2cm, column sep=0.3cm,
-    nodes={minimum width=3.5cm, minimum height=0.9cm, anchor=center, rounded corners=2pt},
-    row 1/.style={nodes={font=\sffamily\small\bfseries, fill=steelblue!15}},
-    ] (m) {
-    |[minimum width=3cm]| Hall State & |[minimum width=3cm]| Light Level & |[minimum width=5cm]| Result \\
-    |[fill=cryptogreen!10]| CLOSED & |[fill=cryptogreen!10]| LOW & |[fill=cryptogreen!10]| Normal (armed, sleeping) \\
-    |[fill=securityamber!15]| CLOSED & |[fill=securityamber!15]| HIGH & |[fill=securityamber!15]| Suspicious (log anomaly) \\
-    |[fill=alertred!12]| OPEN & |[fill=alertred!12]| HIGH & |[fill=alertred!12]| Confirmed tamper \\
-    |[fill=alertred!12]| OPEN & |[fill=alertred!12]| LOW & |[fill=alertred!12]| Tamper in dark (Hall is authoritative) \\
-  };
-\end{tikzpicture}
+\begin{tabular}{L{3cm} L{3cm} L{5.5cm}}
+\toprule
+\textbf{Hall State} & \textbf{Light Level} & \textbf{Result} \\
+\midrule
+\rowcolor{cryptogreen!15} CLOSED & LOW & Normal (armed, sleeping) \\
+\rowcolor{securityamber!20} CLOSED & HIGH & Suspicious (log anomaly) \\
+\rowcolor{alertred!15} OPEN & HIGH & Confirmed tamper \\
+\rowcolor{alertred!15} OPEN & LOW & Tamper in dark (Hall is authoritative) \\
+\bottomrule
+\end{tabular}
 \end{center}
 
 \begin{keybox}[Primary Sensor Authority]
@@ -436,7 +434,6 @@ Closing the briefcase does not instantly arm the system. The lid must remain con
 % ============================================================================
 % SECTION 3: HARDWARE DESIGN
 % ============================================================================
-\newpage
 \section{Hardware Design}
 
 All components are standard consumer and maker parts. Total estimated cost: \$280--\$400.
@@ -547,46 +544,49 @@ The gate orchestrator implements a five-state FSM:
 
 \begin{center}
 \begin{tikzpicture}[font=\sffamily\small, >=Stealth]
-    \tikzstyle{state} = [rectangle, rounded corners=8pt, minimum width=3.2cm, minimum height=1.3cm,
-      text centered, draw=deepnavy, line width=1pt, font=\sffamily\normalsize\bfseries]
-    \tikzstyle{elabel} = [font=\sffamily\footnotesize, fill=white, inner sep=2pt]
+    \tikzstyle{state} = [rectangle, rounded corners=8pt, minimum width=4.2cm, minimum height=1.5cm,
+      text centered, align=center, draw=deepnavy, line width=1pt, font=\sffamily\normalsize\bfseries]
+    \tikzstyle{elabel} = [font=\sffamily\footnotesize, fill=white, inner sep=3pt, rounded corners=1pt]
 
-    % Layout: top row spaced out, bottom column under ARMED
-    \node (disarmed)    [state, fill=cryptogreen!20] at (0, 0) {DISARMED};
-    \node (arming)      [state, fill=fsmgold!20]     at (5.5, 0) {ARMING};
-    \node (armed)       [state, fill=alertred!15]    at (11, 0) {ARMED};
-    \node (challenging) [state, fill=securityamber!20] at (11, -3.2) {CHALLENGING};
-    \node (wiping)      [state, fill=wipecrimson!20]   at (11, -6.4) {WIPING};
+    % Vertical spine layout (top to bottom = escalation)
+    \node (disarmed)    [state, fill=cryptogreen!20]    at (0, 0)
+      {DISARMED\\[-2pt]{\scriptsize\mdseries\color{softslate} lid open, system idle}};
+    \node (arming)      [state, fill=fsmgold!20]        at (0, -3)
+      {ARMING\\[-2pt]{\scriptsize\mdseries\color{softslate} lid closed, delay counting}};
+    \node (armed)       [state, fill=alertred!15]       at (0, -6)
+      {ARMED\\[-2pt]{\scriptsize\mdseries\color{softslate} monitoring for tamper}};
+    \node (challenging) [state, fill=securityamber!20]  at (0, -9)
+      {CHALLENGING\\[-2pt]{\scriptsize\mdseries\color{softslate} password prompt active}};
+    \node (wiping)      [state, fill=wipecrimson!20]    at (5, -11.8)
+      {WIPING\\[-2pt]{\scriptsize\mdseries\color{softslate} LUKS header destruction}};
 
-    % DISARMED -> ARMING
-    \draw [->, line width=1pt]
-      (disarmed.east) -- (arming.west)
-      node[midway, elabel, above=2pt] {LidClosed};
+    % Forward transitions (down the spine) -- solid arrows
+    \draw [->, line width=1.2pt, deepnavy]
+      (disarmed.south) -- (arming.north)
+      node[midway, elabel, right=6pt] {LidClosed};
 
-    % ARMING -> ARMED
-    \draw [->, line width=1pt]
-      (arming.east) -- (armed.west)
-      node[midway, elabel, above=2pt] {delay elapsed};
+    \draw [->, line width=1.2pt, deepnavy]
+      (arming.south) -- (armed.north)
+      node[midway, elabel, right=6pt] {delay elapsed};
 
-    % ARMING -> DISARMED (return on lid reopen)
-    \draw [->, line width=1pt]
-      (arming.south) -- ++(0,-0.7) -| (disarmed.south)
-      node[pos=0.25, elabel, below=2pt] {LidOpened};
-
-    % ARMED -> CHALLENGING
-    \draw [->, line width=1pt, alertred]
+    \draw [->, line width=1.2pt, alertred]
       (armed.south) -- (challenging.north)
-      node[midway, elabel, right=4pt, text=alertred] {tamper detected};
+      node[midway, elabel, right=6pt, text=alertred] {tamper detected};
 
-    % CHALLENGING -> DISARMED (pass)
-    \draw [->, line width=1pt, cryptogreen]
-      (challenging.west) -- ++(-2.5, 0) |- (disarmed.south)
-      node[pos=0.25, elabel, below=2pt, text=cryptogreen] {pass};
+    % Return: ARMING -> DISARMED (inner left, dashed gray)
+    \draw [->, line width=1pt, softslate, densely dashed]
+      (arming.west) -- ++(-1.8, 0) |- ([yshift=-3pt]disarmed.west)
+      node[pos=0.25, elabel, left=2pt] {LidOpened};
 
-    % CHALLENGING -> WIPING (fail)
-    \draw [->, line width=1pt, wipecrimson]
-      (challenging.south) -- (wiping.north)
-      node[midway, elabel, right=4pt, text=wipecrimson] {fail};
+    % Return: CHALLENGING -> DISARMED (outer left, green dashed)
+    \draw [->, line width=1.2pt, cryptogreen, densely dashed]
+      (challenging.west) -- ++(-3.5, 0) |- ([yshift=3pt]disarmed.west)
+      node[pos=0.13, elabel, left=2pt, text=cryptogreen] {pass};
+
+    % Terminal: CHALLENGING -> WIPING (right then down, solid crimson)
+    \draw [->, line width=1.5pt, wipecrimson]
+      (challenging.east) -| (wiping.north)
+      node[pos=0.25, elabel, above=2pt, text=wipecrimson] {fail / timeout};
 \end{tikzpicture}
 \end{center}
 
@@ -671,7 +671,6 @@ The wipe script executes in four phases, each designed to be individually suffic
 % ============================================================================
 % SECTION 6: RECOVERY USB
 % ============================================================================
-\newpage
 \section{Recovery USB --- Quantum-Safe Key Wrapping}
 
 \subsection{Threat Model}
@@ -749,7 +748,6 @@ Password hashing & scrypt & n=2\textsuperscript{17}, r=8, p=1, 64-byte output \\
 % ============================================================================
 % SECTION 7: SECURITY ANALYSIS
 % ============================================================================
-\newpage
 \section{Security Analysis}
 
 \subsection{Threat Model}
@@ -804,7 +802,6 @@ ProtectHome=true
 % ============================================================================
 % SECTION 8: DEPLOYMENT
 % ============================================================================
-\newpage
 \section{Deployment}
 
 \subsection{Quick Setup}
