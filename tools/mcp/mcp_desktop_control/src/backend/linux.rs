@@ -963,7 +963,7 @@ impl DesktopBackend for LinuxBackend {
                         "Unknown key in hotkey: {}",
                         key
                     )));
-                }
+                },
             }
         }
 

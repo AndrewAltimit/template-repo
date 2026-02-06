@@ -38,7 +38,7 @@ impl MemeUploader {
                     error: Some(format!("Failed to read file: {}", e)),
                     ..Default::default()
                 };
-            }
+            },
         };
 
         let part = multipart::Part::bytes(file_bytes)
@@ -79,7 +79,7 @@ impl MemeUploader {
                         ..Default::default()
                     }
                 }
-            }
+            },
             Ok(resp) => UploadResult {
                 success: false,
                 error: Some(format!("Upload failed with status {}", resp.status())),
@@ -99,7 +99,7 @@ impl MemeUploader {
                         ..Default::default()
                     }
                 }
-            }
+            },
         }
     }
 
@@ -129,7 +129,7 @@ impl MemeUploader {
                     error: Some(format!("Failed to read file: {}", e)),
                     ..Default::default()
                 };
-            }
+            },
         };
 
         let part = multipart::Part::bytes(file_bytes)
@@ -189,14 +189,14 @@ impl MemeUploader {
                                 ..Default::default()
                             }
                         }
-                    }
+                    },
                     Err(e) => UploadResult {
                         success: false,
                         error: Some(format!("Invalid JSON response: {}", e)),
                         ..Default::default()
                     },
                 }
-            }
+            },
             Ok(resp) => {
                 let status = resp.status();
                 if status.as_u16() == 403 {
@@ -215,7 +215,7 @@ impl MemeUploader {
                         ..Default::default()
                     }
                 }
-            }
+            },
             Err(e) => {
                 if e.is_timeout() {
                     UploadResult {
@@ -230,7 +230,7 @@ impl MemeUploader {
                         ..Default::default()
                     }
                 }
-            }
+            },
         }
     }
 
@@ -258,7 +258,7 @@ impl MemeUploader {
                     error: Some(format!("Failed to read file: {}", e)),
                     ..Default::default()
                 };
-            }
+            },
         };
 
         let part = multipart::Part::bytes(file_bytes)
@@ -309,14 +309,14 @@ impl MemeUploader {
                                 ..Default::default()
                             }
                         }
-                    }
+                    },
                     Err(e) => UploadResult {
                         success: false,
                         error: Some(format!("Invalid JSON response: {}", e)),
                         ..Default::default()
                     },
                 }
-            }
+            },
             Ok(resp) => UploadResult {
                 success: false,
                 error: Some(format!("Upload failed with status {}", resp.status())),
@@ -336,7 +336,7 @@ impl MemeUploader {
                         ..Default::default()
                     }
                 }
-            }
+            },
         }
     }
 
@@ -361,7 +361,7 @@ impl MemeUploader {
                     error: Some(format!("Failed to read file metadata: {}", e)),
                     ..Default::default()
                 };
-            }
+            },
         };
 
         let size_mb = metadata.len() as f64 / (1024.0 * 1024.0);
@@ -410,7 +410,7 @@ impl MemeUploader {
                     error: Some("All upload services failed".to_string()),
                     ..Default::default()
                 }
-            }
+            },
             _ => UploadResult {
                 success: false,
                 error: Some(format!(

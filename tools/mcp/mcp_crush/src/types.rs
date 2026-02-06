@@ -3,33 +3,6 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-/// Consultation mode for Crush
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
-#[serde(rename_all = "lowercase")]
-pub enum ConsultMode {
-    /// Generate new code from requirements
-    Generate,
-    /// Explain code functionality
-    Explain,
-    /// Convert code to another language
-    Convert,
-    /// Quick one-shot task
-    #[default]
-    Quick,
-}
-
-impl ConsultMode {
-    /// Parse from string
-    pub fn from_str(s: &str) -> Self {
-        match s.to_lowercase().as_str() {
-            "generate" => Self::Generate,
-            "explain" => Self::Explain,
-            "convert" => Self::Convert,
-            _ => Self::Quick,
-        }
-    }
-}
-
 /// Configuration for Crush integration
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CrushConfig {
@@ -143,17 +116,6 @@ pub struct CrushStats {
     pub total_execution_time: f64,
     /// Last consultation timestamp
     pub last_consultation: Option<DateTime<Utc>>,
-}
-
-impl CrushStats {
-    /// Get average execution time
-    pub fn average_execution_time(&self) -> f64 {
-        if self.completed == 0 {
-            0.0
-        } else {
-            self.total_execution_time / self.completed as f64
-        }
-    }
 }
 
 /// Status of a consultation

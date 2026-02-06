@@ -582,7 +582,7 @@ impl MemoryExplorer {
                 return Err(ExplorerError::InvalidAddress(
                     "Unsupported value type for search".to_string(),
                 ));
-            }
+            },
         };
 
         // Convert to pattern string
@@ -662,26 +662,26 @@ impl MemoryExplorer {
         let value: serde_json::Value = match watch.value_type {
             ValueType::Int32 if data.len() >= 4 => {
                 serde_json::json!(i32::from_le_bytes(data[0..4].try_into().unwrap()))
-            }
+            },
             ValueType::Int64 if data.len() >= 8 => {
                 serde_json::json!(i64::from_le_bytes(data[0..8].try_into().unwrap()))
-            }
+            },
             ValueType::Uint32 if data.len() >= 4 => {
                 serde_json::json!(u32::from_le_bytes(data[0..4].try_into().unwrap()))
-            }
+            },
             ValueType::Uint64 if data.len() >= 8 => {
                 serde_json::json!(u64::from_le_bytes(data[0..8].try_into().unwrap()))
-            }
+            },
             ValueType::Float if data.len() >= 4 => {
                 serde_json::json!(f32::from_le_bytes(data[0..4].try_into().unwrap()))
-            }
+            },
             ValueType::Double if data.len() >= 8 => {
                 serde_json::json!(f64::from_le_bytes(data[0..8].try_into().unwrap()))
-            }
+            },
             ValueType::String => {
                 let null_pos = data.iter().position(|&b| b == 0).unwrap_or(data.len());
                 serde_json::json!(String::from_utf8_lossy(&data[..null_pos]).to_string())
-            }
+            },
             _ => serde_json::json!(hex::encode(&data)),
         };
 

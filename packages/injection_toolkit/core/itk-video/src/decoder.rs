@@ -8,7 +8,7 @@ use crate::{DEFAULT_HEIGHT, DEFAULT_WIDTH};
 use ffmpeg_next::format::context::Input as FormatContext;
 use ffmpeg_next::media::Type as MediaType;
 use ffmpeg_next::util::frame::video::Video as VideoFrame;
-use ffmpeg_next::{codec, decoder, Codec, Packet, Rational};
+use ffmpeg_next::{Codec, Packet, Rational, codec, decoder};
 use std::sync::Once;
 use tracing::{debug, info, warn};
 

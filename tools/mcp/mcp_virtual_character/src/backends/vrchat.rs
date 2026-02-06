@@ -115,12 +115,13 @@ impl VRChatRemoteBackend {
         }
 
         // Create UDP socket for receiving
-        let receiver_socket = UdpSocket::bind(format!("0.0.0.0:{}", osc_out_port)).map_err(|e| {
-            BackendError::NetworkError(format!(
-                "Failed to bind OSC receiver to port {}: {}",
-                osc_out_port, e
-            ))
-        })?;
+        let receiver_socket =
+            UdpSocket::bind(format!("0.0.0.0:{}", osc_out_port)).map_err(|e| {
+                BackendError::NetworkError(format!(
+                    "Failed to bind OSC receiver to port {}: {}",
+                    osc_out_port, e
+                ))
+            })?;
 
         receiver_socket.set_nonblocking(true).map_err(|e| {
             BackendError::NetworkError(format!("Failed to set non-blocking: {}", e))
@@ -185,13 +186,27 @@ impl VRChatRemoteBackend {
     ) {
         match packet {
             OscPacket::Message(msg) => {
-                Self::handle_osc_message(msg, avatar_params, world_name, use_vrcemote, osc_messages_received).await;
-            }
+                Self::handle_osc_message(
+                    msg,
+                    avatar_params,
+                    world_name,
+                    use_vrcemote,
+                    osc_messages_received,
+                )
+                .await;
+            },
             OscPacket::Bundle(bundle) => {
                 for p in bundle.content {
-                    Box::pin(Self::handle_osc_packet(p, avatar_params, world_name, use_vrcemote, osc_messages_received)).await;
+                    Box::pin(Self::handle_osc_packet(
+                        p,
+                        avatar_params,
+                        world_name,
+                        use_vrcemote,
+                        osc_messages_received,
+                    ))
+                    .await;
                 }
-            }
+            },
         }
     }
 
@@ -211,14 +226,19 @@ impl VRChatRemoteBackend {
 
             if let Some(arg) = msg.args.first() {
                 let value = match arg {
-                    OscType::Float(f) => Value::Number(serde_json::Number::from_f64(*f as f64).unwrap_or(0.into())),
+                    OscType::Float(f) => {
+                        Value::Number(serde_json::Number::from_f64(*f as f64).unwrap_or(0.into()))
+                    },
                     OscType::Int(i) => Value::Number((*i).into()),
                     OscType::Bool(b) => Value::Bool(*b),
                     OscType::String(s) => Value::String(s.clone()),
                     _ => return,
                 };
 
-                avatar_params.write().await.insert(param_name.clone(), value);
+                avatar_params
+                    .write()
+                    .await
+                    .insert(param_name.clone(), value);
 
                 // Auto-detect VRCEmote system
                 if param_name == "VRCEmote" && !use_vrcemote.load(Ordering::SeqCst) {
@@ -657,8 +677,11 @@ impl BackendAdapter for VRChatRemoteBackend {
         match self.start_osc_receiver(osc_out_port).await {
             Ok(()) => info!("OSC receiver started on port {}", osc_out_port),
             Err(e) => {
-                warn!("Could not start OSC receiver: {} - continuing in send-only mode", e);
-            }
+                warn!(
+                    "Could not start OSC receiver: {} - continuing in send-only mode",
+                    e
+                );
+            },
         }
 
         self.connected.store(true, Ordering::SeqCst);
@@ -733,11 +756,11 @@ impl BackendAdapter for VRChatRemoteBackend {
                         } else if let Some(f) = n.as_f64() {
                             self.send_osc_float(&addr, f as f32).await?;
                         }
-                    }
+                    },
                     Value::Bool(b) => {
                         self.send_osc_int(&addr, if *b { 1 } else { 0 }).await?;
-                    }
-                    _ => {}
+                    },
+                    _ => {},
                 }
             }
         }
@@ -903,25 +926,25 @@ impl BackendAdapter for VRChatRemoteBackend {
             "greet" => {
                 self.set_gesture(GestureType::Wave, 1.0).await?;
                 self.set_emotion(EmotionType::Happy, 1.0).await?;
-            }
+            },
             "dance" => {
                 self.set_gesture(GestureType::Dance, 1.0).await?;
-            }
+            },
             "sit" => {
                 self.send_osc_int("/avatar/parameters/Sitting", 1).await?;
-            }
+            },
             "stand" => {
                 self.send_osc_int("/avatar/parameters/Sitting", 0).await?;
-            }
+            },
             "jump" => {
                 self.send_osc_int("/input/Jump", 1).await?;
-            }
+            },
             "crouch" => {
                 self.send_osc_int("/avatar/parameters/Crouching", 1).await?;
-            }
+            },
             _ => {
                 warn!("Unknown behavior: {}", behavior);
-            }
+            },
         }
 
         Ok(())

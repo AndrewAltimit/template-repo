@@ -1,6 +1,6 @@
 //! Dashboard shared state.
 
-use std::collections::HashMap;
+use std::collections::{HashMap, VecDeque};
 use std::sync::Arc;
 use std::time::Instant;
 
@@ -19,7 +19,7 @@ pub struct ManagedAgent {
     /// Whether the agent is currently running.
     pub is_running: bool,
     /// Cycle history.
-    pub cycle_history: Vec<CycleResult>,
+    pub cycle_history: VecDeque<CycleResult>,
     /// Last activity timestamp.
     pub last_activity: chrono::DateTime<Utc>,
 }
@@ -30,7 +30,7 @@ impl ManagedAgent {
         Self {
             agent,
             is_running: false,
-            cycle_history: Vec::new(),
+            cycle_history: VecDeque::new(),
             last_activity: Utc::now(),
         }
     }
@@ -71,18 +71,23 @@ impl ManagedAgent {
 
     /// Add a cycle result to history.
     pub fn add_cycle(&mut self, result: CycleResult) {
-        self.cycle_history.push(result);
+        self.cycle_history.push_back(result);
         self.last_activity = Utc::now();
         // Keep only last 1000 cycles
         if self.cycle_history.len() > 1000 {
-            self.cycle_history.remove(0);
+            self.cycle_history.pop_front();
         }
     }
 
     /// Get recent cycles.
     pub fn recent_cycles(&self, count: usize) -> Vec<CycleResult> {
-        let start = self.cycle_history.len().saturating_sub(count);
-        self.cycle_history[start..].to_vec()
+        self.cycle_history
+            .iter()
+            .rev()
+            .take(count)
+            .rev()
+            .cloned()
+            .collect()
     }
 }
 

@@ -34,10 +34,7 @@ impl CodeQualityEngine {
         audit_log_path: PathBuf,
         rate_limiting_enabled: bool,
     ) -> Self {
-        let allowed_paths: Vec<PathBuf> = allowed_paths
-            .into_iter()
-            .map(PathBuf::from)
-            .collect();
+        let allowed_paths: Vec<PathBuf> = allowed_paths.into_iter().map(PathBuf::from).collect();
 
         // Initialize rate limits
         let mut rate_limits = HashMap::new();
@@ -133,7 +130,7 @@ impl CodeQualityEngine {
                 } else {
                     return false;
                 }
-            }
+            },
         };
 
         for allowed in &self.allowed_paths {
@@ -156,11 +153,7 @@ impl CodeQualityEngine {
             return true;
         }
 
-        let config = self
-            .rate_limits
-            .get(operation)
-            .copied()
-            .unwrap_or_default();
+        let config = self.rate_limits.get(operation).copied().unwrap_or_default();
 
         let now = Instant::now();
         let window = Duration::from_secs(config.period_secs);
@@ -207,7 +200,11 @@ impl CodeQualityEngine {
     }
 
     /// Run a subprocess with timeout
-    async fn run_subprocess(&self, args: &[&str], cwd: Option<&str>) -> Result<(i32, String, String), String> {
+    async fn run_subprocess(
+        &self,
+        args: &[&str],
+        cwd: Option<&str>,
+    ) -> Result<(i32, String, String), String> {
         if args.is_empty() {
             return Err("Empty command".to_string());
         }
@@ -242,9 +239,20 @@ impl CodeQualityEngine {
         }
 
         if !self.validate_path(path) {
-            self.audit_log("format_check", path, false, json!({"reason": "path_not_allowed"}));
-            let mut result = ToolResult::error(format!("Path not allowed: {}", path), "path_validation");
-            result.allowed_paths = Some(self.allowed_paths.iter().map(|p| p.display().to_string()).collect());
+            self.audit_log(
+                "format_check",
+                path,
+                false,
+                json!({"reason": "path_not_allowed"}),
+            );
+            let mut result =
+                ToolResult::error(format!("Path not allowed: {}", path), "path_validation");
+            result.allowed_paths = Some(
+                self.allowed_paths
+                    .iter()
+                    .map(|p| p.display().to_string())
+                    .collect(),
+            );
             return result;
         }
 
@@ -272,7 +280,7 @@ impl CodeQualityEngine {
                 result.output = Some(if stdout.is_empty() { stderr } else { stdout });
                 result.command = Some(cmd.join(" "));
                 result
-            }
+            },
             Err(e) => {
                 if e.contains("timed out") {
                     self.audit_log("format_check", path, false, json!({"reason": "timeout"}));
@@ -284,12 +292,20 @@ impl CodeQualityEngine {
                         false,
                         json!({"reason": "tool_not_found", "tool": cmd[0]}),
                     );
-                    ToolResult::error(format!("{} not found. Please install it first.", cmd[0]), "tool_not_found")
+                    ToolResult::error(
+                        format!("{} not found. Please install it first.", cmd[0]),
+                        "tool_not_found",
+                    )
                 } else {
-                    self.audit_log("format_check", path, false, json!({"reason": "exception", "error": &e}));
+                    self.audit_log(
+                        "format_check",
+                        path,
+                        false,
+                        json!({"reason": "exception", "error": &e}),
+                    );
                     ToolResult::error(e, "exception")
                 }
-            }
+            },
         }
     }
 
@@ -301,20 +317,32 @@ impl CodeQualityEngine {
 
         if !self.validate_path(path) {
             self.audit_log("lint", path, false, json!({"reason": "path_not_allowed"}));
-            let mut result = ToolResult::error(format!("Path not allowed: {}", path), "path_validation");
-            result.allowed_paths = Some(self.allowed_paths.iter().map(|p| p.display().to_string()).collect());
+            let mut result =
+                ToolResult::error(format!("Path not allowed: {}", path), "path_validation");
+            result.allowed_paths = Some(
+                self.allowed_paths
+                    .iter()
+                    .map(|p| p.display().to_string())
+                    .collect(),
+            );
             return result;
         }
 
         if let Some(cfg) = config {
             if !self.validate_path(cfg) {
-                return ToolResult::error(format!("Config path not allowed: {}", cfg), "path_validation");
+                return ToolResult::error(
+                    format!("Config path not allowed: {}", cfg),
+                    "path_validation",
+                );
             }
         }
 
         let (cmd, cwd): (Vec<String>, Option<&str>) = match linter {
             Linter::Flake8 => (vec!["flake8".to_string(), path.to_string()], None),
-            Linter::Ruff => (vec!["ruff".to_string(), "check".to_string(), path.to_string()], None),
+            Linter::Ruff => (
+                vec!["ruff".to_string(), "check".to_string(), path.to_string()],
+                None,
+            ),
             Linter::Eslint => (vec!["eslint".to_string(), path.to_string()], None),
             Linter::Golint => (vec!["golint".to_string(), path.to_string()], None),
             // Clippy needs to run in the target directory where Cargo.toml is located
@@ -329,8 +357,8 @@ impl CodeQualityEngine {
                 Linter::Flake8 | Linter::Ruff | Linter::Eslint => {
                     cmd.push("--config".to_string());
                     cmd.push(cfg.to_string());
-                }
-                _ => {}
+                },
+                _ => {},
             }
         }
 
@@ -356,7 +384,7 @@ impl CodeQualityEngine {
                 result.issues = Some(issues);
                 result.command = Some(cmd.join(" "));
                 result
-            }
+            },
             Err(e) => {
                 if e.contains("timed out") {
                     self.audit_log("lint", path, false, json!({"reason": "timeout"}));
@@ -373,10 +401,15 @@ impl CodeQualityEngine {
                         "tool_not_found",
                     )
                 } else {
-                    self.audit_log("lint", path, false, json!({"reason": "exception", "error": &e}));
+                    self.audit_log(
+                        "lint",
+                        path,
+                        false,
+                        json!({"reason": "exception", "error": &e}),
+                    );
                     ToolResult::error(e, "exception")
                 }
-            }
+            },
         }
     }
 
@@ -387,9 +420,20 @@ impl CodeQualityEngine {
         }
 
         if !self.validate_path(path) {
-            self.audit_log("autoformat", path, false, json!({"reason": "path_not_allowed"}));
-            let mut result = ToolResult::error(format!("Path not allowed: {}", path), "path_validation");
-            result.allowed_paths = Some(self.allowed_paths.iter().map(|p| p.display().to_string()).collect());
+            self.audit_log(
+                "autoformat",
+                path,
+                false,
+                json!({"reason": "path_not_allowed"}),
+            );
+            let mut result =
+                ToolResult::error(format!("Path not allowed: {}", path), "path_validation");
+            result.allowed_paths = Some(
+                self.allowed_paths
+                    .iter()
+                    .map(|p| p.display().to_string())
+                    .collect(),
+            );
             return result;
         }
 
@@ -405,7 +449,12 @@ impl CodeQualityEngine {
         match self.run_subprocess(&cmd, None).await {
             Ok((code, stdout, stderr)) => {
                 let success = code == 0;
-                self.audit_log("autoformat", path, success, json!({"language": language.as_str()}));
+                self.audit_log(
+                    "autoformat",
+                    path,
+                    success,
+                    json!({"language": language.as_str()}),
+                );
 
                 let mut result = ToolResult::success();
                 result.success = success;
@@ -413,7 +462,7 @@ impl CodeQualityEngine {
                 result.output = Some(if stdout.is_empty() { stderr } else { stdout });
                 result.command = Some(cmd.join(" "));
                 result
-            }
+            },
             Err(e) => {
                 if e.contains("timed out") {
                     self.audit_log("autoformat", path, false, json!({"reason": "timeout"}));
@@ -425,12 +474,20 @@ impl CodeQualityEngine {
                         false,
                         json!({"reason": "tool_not_found", "tool": cmd[0]}),
                     );
-                    ToolResult::error(format!("{} not found. Please install it first.", cmd[0]), "tool_not_found")
+                    ToolResult::error(
+                        format!("{} not found. Please install it first.", cmd[0]),
+                        "tool_not_found",
+                    )
                 } else {
-                    self.audit_log("autoformat", path, false, json!({"reason": "exception", "error": &e}));
+                    self.audit_log(
+                        "autoformat",
+                        path,
+                        false,
+                        json!({"reason": "exception", "error": &e}),
+                    );
                     ToolResult::error(e, "exception")
                 }
-            }
+            },
         }
     }
 
@@ -450,9 +507,20 @@ impl CodeQualityEngine {
         }
 
         if !self.validate_path(path) {
-            self.audit_log("run_tests", path, false, json!({"reason": "path_not_allowed"}));
-            let mut result = ToolResult::error(format!("Path not allowed: {}", path), "path_validation");
-            result.allowed_paths = Some(self.allowed_paths.iter().map(|p| p.display().to_string()).collect());
+            self.audit_log(
+                "run_tests",
+                path,
+                false,
+                json!({"reason": "path_not_allowed"}),
+            );
+            let mut result =
+                ToolResult::error(format!("Path not allowed: {}", path), "path_validation");
+            result.allowed_paths = Some(
+                self.allowed_paths
+                    .iter()
+                    .map(|p| p.display().to_string())
+                    .collect(),
+            );
             return result;
         }
 
@@ -492,19 +560,32 @@ impl CodeQualityEngine {
                 result.output = Some(format!("{}{}", stdout, stderr));
                 result.command = Some(cmd.join(" "));
                 result
-            }
+            },
             Err(e) => {
                 if e.contains("timed out") {
                     self.audit_log("run_tests", path, false, json!({"reason": "timeout"}));
                     ToolResult::error(e, "timeout")
                 } else if e.contains("No such file") || e.contains("not found") {
-                    self.audit_log("run_tests", path, false, json!({"reason": "tool_not_found", "tool": "pytest"}));
-                    ToolResult::error("pytest not found. Please install it first.", "tool_not_found")
+                    self.audit_log(
+                        "run_tests",
+                        path,
+                        false,
+                        json!({"reason": "tool_not_found", "tool": "pytest"}),
+                    );
+                    ToolResult::error(
+                        "pytest not found. Please install it first.",
+                        "tool_not_found",
+                    )
                 } else {
-                    self.audit_log("run_tests", path, false, json!({"reason": "exception", "error": &e}));
+                    self.audit_log(
+                        "run_tests",
+                        path,
+                        false,
+                        json!({"reason": "exception", "error": &e}),
+                    );
                     ToolResult::error(e, "exception")
                 }
-            }
+            },
         }
     }
 
@@ -515,15 +596,29 @@ impl CodeQualityEngine {
         }
 
         if !self.validate_path(path) {
-            self.audit_log("type_check", path, false, json!({"reason": "path_not_allowed"}));
-            let mut result = ToolResult::error(format!("Path not allowed: {}", path), "path_validation");
-            result.allowed_paths = Some(self.allowed_paths.iter().map(|p| p.display().to_string()).collect());
+            self.audit_log(
+                "type_check",
+                path,
+                false,
+                json!({"reason": "path_not_allowed"}),
+            );
+            let mut result =
+                ToolResult::error(format!("Path not allowed: {}", path), "path_validation");
+            result.allowed_paths = Some(
+                self.allowed_paths
+                    .iter()
+                    .map(|p| p.display().to_string())
+                    .collect(),
+            );
             return result;
         }
 
         if let Some(cfg) = config {
             if !self.validate_path(cfg) {
-                return ToolResult::error(format!("Config path not allowed: {}", cfg), "path_validation");
+                return ToolResult::error(
+                    format!("Config path not allowed: {}", cfg),
+                    "path_validation",
+                );
             }
         }
 
@@ -543,7 +638,12 @@ impl CodeQualityEngine {
                 let issues: Vec<String> = stdout.lines().map(|s| s.to_string()).collect();
                 let passed = code == 0;
 
-                self.audit_log("type_check", path, passed, json!({"issue_count": issues.len()}));
+                self.audit_log(
+                    "type_check",
+                    path,
+                    passed,
+                    json!({"issue_count": issues.len()}),
+                );
 
                 let mut result = ToolResult::success();
                 result.passed = Some(passed);
@@ -551,32 +651,61 @@ impl CodeQualityEngine {
                 result.issues = Some(issues);
                 result.command = Some(cmd.join(" "));
                 result
-            }
+            },
             Err(e) => {
                 if e.contains("timed out") {
                     self.audit_log("type_check", path, false, json!({"reason": "timeout"}));
                     ToolResult::error(e, "timeout")
                 } else if e.contains("No such file") || e.contains("not found") {
-                    self.audit_log("type_check", path, false, json!({"reason": "tool_not_found", "tool": "ty"}));
-                    ToolResult::error("ty not found. Install with: pip install ty", "tool_not_found")
+                    self.audit_log(
+                        "type_check",
+                        path,
+                        false,
+                        json!({"reason": "tool_not_found", "tool": "ty"}),
+                    );
+                    ToolResult::error(
+                        "ty not found. Install with: pip install ty",
+                        "tool_not_found",
+                    )
                 } else {
-                    self.audit_log("type_check", path, false, json!({"reason": "exception", "error": &e}));
+                    self.audit_log(
+                        "type_check",
+                        path,
+                        false,
+                        json!({"reason": "exception", "error": &e}),
+                    );
                     ToolResult::error(e, "exception")
                 }
-            }
+            },
         }
     }
 
     /// Run security scanning with bandit
-    pub async fn security_scan(&self, path: &str, severity: Severity, confidence: Severity) -> ToolResult {
+    pub async fn security_scan(
+        &self,
+        path: &str,
+        severity: Severity,
+        confidence: Severity,
+    ) -> ToolResult {
         if !self.check_rate_limit("security_scan") {
             return ToolResult::error("Rate limit exceeded", "rate_limit");
         }
 
         if !self.validate_path(path) {
-            self.audit_log("security_scan", path, false, json!({"reason": "path_not_allowed"}));
-            let mut result = ToolResult::error(format!("Path not allowed: {}", path), "path_validation");
-            result.allowed_paths = Some(self.allowed_paths.iter().map(|p| p.display().to_string()).collect());
+            self.audit_log(
+                "security_scan",
+                path,
+                false,
+                json!({"reason": "path_not_allowed"}),
+            );
+            let mut result =
+                ToolResult::error(format!("Path not allowed: {}", path), "path_validation");
+            result.allowed_paths = Some(
+                self.allowed_paths
+                    .iter()
+                    .map(|p| p.display().to_string())
+                    .collect(),
+            );
             return result;
         }
 
@@ -596,17 +725,23 @@ impl CodeQualityEngine {
 
         match self.run_subprocess(&cmd, None).await {
             Ok((code, stdout, _stderr)) => {
-                let findings: Vec<serde_json::Value> = if let Ok(data) = serde_json::from_str::<serde_json::Value>(&stdout) {
-                    data.get("results")
-                        .and_then(|r| r.as_array())
-                        .cloned()
-                        .unwrap_or_default()
-                } else {
-                    Vec::new()
-                };
+                let findings: Vec<serde_json::Value> =
+                    if let Ok(data) = serde_json::from_str::<serde_json::Value>(&stdout) {
+                        data.get("results")
+                            .and_then(|r| r.as_array())
+                            .cloned()
+                            .unwrap_or_default()
+                    } else {
+                        Vec::new()
+                    };
 
                 let passed = code == 0;
-                self.audit_log("security_scan", path, passed, json!({"finding_count": findings.len()}));
+                self.audit_log(
+                    "security_scan",
+                    path,
+                    passed,
+                    json!({"finding_count": findings.len()}),
+                );
 
                 let mut result = ToolResult::success();
                 result.passed = Some(passed);
@@ -614,19 +749,32 @@ impl CodeQualityEngine {
                 result.findings = Some(findings);
                 result.command = Some(cmd.join(" "));
                 result
-            }
+            },
             Err(e) => {
                 if e.contains("timed out") {
                     self.audit_log("security_scan", path, false, json!({"reason": "timeout"}));
                     ToolResult::error(e, "timeout")
                 } else if e.contains("No such file") || e.contains("not found") {
-                    self.audit_log("security_scan", path, false, json!({"reason": "tool_not_found", "tool": "bandit"}));
-                    ToolResult::error("bandit not found. Please install it first.", "tool_not_found")
+                    self.audit_log(
+                        "security_scan",
+                        path,
+                        false,
+                        json!({"reason": "tool_not_found", "tool": "bandit"}),
+                    );
+                    ToolResult::error(
+                        "bandit not found. Please install it first.",
+                        "tool_not_found",
+                    )
                 } else {
-                    self.audit_log("security_scan", path, false, json!({"reason": "exception", "error": &e}));
+                    self.audit_log(
+                        "security_scan",
+                        path,
+                        false,
+                        json!({"reason": "exception", "error": &e}),
+                    );
                     ToolResult::error(e, "exception")
                 }
-            }
+            },
         }
     }
 
@@ -637,9 +785,22 @@ impl CodeQualityEngine {
         }
 
         if !self.validate_path(requirements_file) {
-            self.audit_log("audit_dependencies", requirements_file, false, json!({"reason": "path_not_allowed"}));
-            let mut result = ToolResult::error(format!("Path not allowed: {}", requirements_file), "path_validation");
-            result.allowed_paths = Some(self.allowed_paths.iter().map(|p| p.display().to_string()).collect());
+            self.audit_log(
+                "audit_dependencies",
+                requirements_file,
+                false,
+                json!({"reason": "path_not_allowed"}),
+            );
+            let mut result = ToolResult::error(
+                format!("Path not allowed: {}", requirements_file),
+                "path_validation",
+            );
+            result.allowed_paths = Some(
+                self.allowed_paths
+                    .iter()
+                    .map(|p| p.display().to_string())
+                    .collect(),
+            );
             return result;
         }
 
@@ -649,7 +810,8 @@ impl CodeQualityEngine {
 
         match self.run_subprocess(&cmd, None).await {
             Ok((code, stdout, _stderr)) => {
-                let vulnerabilities: Vec<serde_json::Value> = serde_json::from_str(&stdout).unwrap_or_default();
+                let vulnerabilities: Vec<serde_json::Value> =
+                    serde_json::from_str(&stdout).unwrap_or_default();
 
                 let passed = code == 0;
                 self.audit_log(
@@ -665,10 +827,15 @@ impl CodeQualityEngine {
                 result.vulnerabilities = Some(vulnerabilities);
                 result.command = Some(cmd.join(" "));
                 result
-            }
+            },
             Err(e) => {
                 if e.contains("timed out") {
-                    self.audit_log("audit_dependencies", requirements_file, false, json!({"reason": "timeout"}));
+                    self.audit_log(
+                        "audit_dependencies",
+                        requirements_file,
+                        false,
+                        json!({"reason": "timeout"}),
+                    );
                     ToolResult::error(e, "timeout")
                 } else if e.contains("No such file") || e.contains("not found") {
                     self.audit_log(
@@ -677,7 +844,10 @@ impl CodeQualityEngine {
                         false,
                         json!({"reason": "tool_not_found", "tool": "pip-audit"}),
                     );
-                    ToolResult::error("pip-audit not found. Please install it first.", "tool_not_found")
+                    ToolResult::error(
+                        "pip-audit not found. Please install it first.",
+                        "tool_not_found",
+                    )
                 } else {
                     self.audit_log(
                         "audit_dependencies",
@@ -687,7 +857,7 @@ impl CodeQualityEngine {
                     );
                     ToolResult::error(e, "exception")
                 }
-            }
+            },
         }
     }
 
@@ -706,9 +876,20 @@ impl CodeQualityEngine {
         }
 
         if !self.validate_path(path) {
-            self.audit_log("check_markdown_links", path, false, json!({"reason": "path_not_allowed"}));
-            let mut result = ToolResult::error(format!("Path not allowed: {}", path), "path_validation");
-            result.allowed_paths = Some(self.allowed_paths.iter().map(|p| p.display().to_string()).collect());
+            self.audit_log(
+                "check_markdown_links",
+                path,
+                false,
+                json!({"reason": "path_not_allowed"}),
+            );
+            let mut result =
+                ToolResult::error(format!("Path not allowed: {}", path), "path_validation");
+            result.allowed_paths = Some(
+                self.allowed_paths
+                    .iter()
+                    .map(|p| p.display().to_string())
+                    .collect(),
+            );
             return result;
         }
 
@@ -742,10 +923,22 @@ impl CodeQualityEngine {
                 // Try to parse JSON output
                 let (files_checked, total_links, broken_links, all_valid) =
                     if let Ok(json) = serde_json::from_str::<serde_json::Value>(&stdout) {
-                        let files = json.get("files_checked").and_then(|v| v.as_u64()).map(|v| v as usize);
-                        let total = json.get("total_links").and_then(|v| v.as_u64()).map(|v| v as usize);
-                        let broken = json.get("broken_links").and_then(|v| v.as_u64()).map(|v| v as usize);
-                        let valid = json.get("all_valid").and_then(|v| v.as_bool()).unwrap_or(code == 0);
+                        let files = json
+                            .get("files_checked")
+                            .and_then(|v| v.as_u64())
+                            .map(|v| v as usize);
+                        let total = json
+                            .get("total_links")
+                            .and_then(|v| v.as_u64())
+                            .map(|v| v as usize);
+                        let broken = json
+                            .get("broken_links")
+                            .and_then(|v| v.as_u64())
+                            .map(|v| v as usize);
+                        let valid = json
+                            .get("all_valid")
+                            .and_then(|v| v.as_bool())
+                            .unwrap_or(code == 0);
                         (files, total, broken, valid)
                     } else {
                         (None, None, None, code == 0)
@@ -770,10 +963,15 @@ impl CodeQualityEngine {
                 result.total_links = total_links;
                 result.broken_links = broken_links;
                 result
-            }
+            },
             Err(e) => {
                 if e.contains("timed out") {
-                    self.audit_log("check_markdown_links", path, false, json!({"reason": "timeout"}));
+                    self.audit_log(
+                        "check_markdown_links",
+                        path,
+                        false,
+                        json!({"reason": "timeout"}),
+                    );
                     ToolResult::error(e, "timeout")
                 } else if e.contains("No such file") || e.contains("not found") {
                     self.audit_log(
@@ -787,10 +985,15 @@ impl CodeQualityEngine {
                         "tool_not_found",
                     )
                 } else {
-                    self.audit_log("check_markdown_links", path, false, json!({"reason": "exception", "error": &e}));
+                    self.audit_log(
+                        "check_markdown_links",
+                        path,
+                        false,
+                        json!({"reason": "exception", "error": &e}),
+                    );
                     ToolResult::error(e, "exception")
                 }
-            }
+            },
         }
     }
 
@@ -824,7 +1027,7 @@ impl CodeQualityEngine {
                         version: Some(version),
                         reason: None,
                     }
-                }
+                },
                 Ok(Err(e)) => {
                     if e.contains("not found") || e.contains("No such file") {
                         ToolStatus {
@@ -839,7 +1042,7 @@ impl CodeQualityEngine {
                             reason: Some(e),
                         }
                     }
-                }
+                },
                 Err(_) => ToolStatus {
                     available: false,
                     version: None,
@@ -879,7 +1082,7 @@ impl CodeQualityEngine {
                 Err(e) => {
                     error!("Failed to read audit log: {}", e);
                     Vec::new()
-                }
+                },
             }
         } else {
             Vec::new()

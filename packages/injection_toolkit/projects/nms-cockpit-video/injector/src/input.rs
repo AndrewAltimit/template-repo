@@ -6,7 +6,7 @@
 use crate::log::vlog;
 use crate::{OVERLAY_VISIBLE, SHUTDOWN};
 use itk_ipc::IpcChannel;
-use itk_protocol::{encode, MessageType, VideoLoad, VideoPause, VideoPlay, VideoSeek};
+use itk_protocol::{MessageType, VideoLoad, VideoPause, VideoPlay, VideoSeek, encode};
 use std::sync::atomic::Ordering;
 use std::thread;
 use std::time::Duration;

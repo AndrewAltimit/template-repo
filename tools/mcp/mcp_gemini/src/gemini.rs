@@ -1,61 +1,13 @@
 //! Gemini CLI integration module.
 
 use chrono::Utc;
-use regex::Regex;
 use std::process::Stdio;
 use std::time::Instant;
 use tokio::process::Command;
-use tokio::time::{timeout, Duration};
+use tokio::time::{Duration, timeout};
 use tracing::{debug, info};
 
-use crate::types::{ConsultResult, GeminiConfig, GeminiStats, HistoryEntry};
-
-/// Uncertainty patterns that trigger automatic Gemini consultation
-#[allow(dead_code)]
-const UNCERTAINTY_PATTERNS: &[&str] = &[
-    r"\bI'm not sure\b",
-    r"\bI think\b",
-    r"\bpossibly\b",
-    r"\bprobably\b",
-    r"\bmight be\b",
-    r"\bcould be\b",
-    r"\bI believe\b",
-    r"\bIt seems\b",
-    r"\bappears to be\b",
-    r"\buncertain\b",
-    r"\bI would guess\b",
-    r"\blikely\b",
-    r"\bperhaps\b",
-    r"\bmaybe\b",
-    r"\bI assume\b",
-];
-
-/// Complex decision patterns that benefit from second opinions
-#[allow(dead_code)]
-const COMPLEX_DECISION_PATTERNS: &[&str] = &[
-    r"\bmultiple approaches\b",
-    r"\bseveral options\b",
-    r"\btrade-offs?\b",
-    r"\bconsider(?:ing)?\b",
-    r"\balternatives?\b",
-    r"\bpros and cons\b",
-    r"\bweigh(?:ing)? the options\b",
-    r"\bchoice between\b",
-    r"\bdecision\b",
-];
-
-/// Critical operations that should trigger consultation
-#[allow(dead_code)]
-const CRITICAL_OPERATION_PATTERNS: &[&str] = &[
-    r"\bproduction\b",
-    r"\bdatabase migration\b",
-    r"\bsecurity\b",
-    r"\bauthentication\b",
-    r"\bencryption\b",
-    r"\bAPI key\b",
-    r"\bcredentials?\b",
-    r"\bperformance\s+critical\b",
-];
+use crate::types::{ConsultResult, ConsultStatus, GeminiConfig, GeminiStats, HistoryEntry};
 
 /// Gemini CLI integration
 pub struct GeminiIntegration {
@@ -78,8 +30,8 @@ impl GeminiIntegration {
         }
     }
 
-    /// Consult Gemini for a second opinion
-    pub async fn consult(
+    /// Consult Gemini for a second opinion (internal implementation).
+    async fn consult_impl(
         &mut self,
         query: &str,
         context: &str,
@@ -131,7 +83,7 @@ impl GeminiIntegration {
                 }
 
                 ConsultResult::success(output, execution_time, consultation_id)
-            }
+            },
             Err(e) => {
                 self.stats.errors += 1;
 
@@ -140,7 +92,7 @@ impl GeminiIntegration {
                 } else {
                     ConsultResult::error(e, consultation_id)
                 }
-            }
+            },
         }
     }
 
@@ -236,7 +188,7 @@ impl GeminiIntegration {
                 }
 
                 Ok((stdout_str.to_string(), execution_time))
-            }
+            },
             Err(_) => Err(format!(
                 "Gemini CLI timed out after {} seconds",
                 self.config.timeout_secs
@@ -307,7 +259,7 @@ impl GeminiIntegration {
                 }
 
                 Ok((stdout_str.to_string(), execution_time))
-            }
+            },
             Err(_) => Err(format!(
                 "Gemini container execution timed out after {} seconds",
                 self.config.timeout_secs
@@ -377,7 +329,10 @@ impl GeminiIntegration {
             "-v".to_string(),
             format!("{}:/home/node/.gemini", temp_gemini_dir),
             "-v".to_string(),
-            format!("{}:/workspace", std::env::current_dir().unwrap_or_default().display()),
+            format!(
+                "{}:/workspace",
+                std::env::current_dir().unwrap_or_default().display()
+            ),
         ];
 
         if self.config.yolo_mode {
@@ -472,9 +427,7 @@ impl GeminiIntegration {
 
         if comparison_mode {
             parts.push(String::new());
-            parts.push(
-                "Please include analysis, recommendations, and any concerns.".to_string(),
-            );
+            parts.push("Please include analysis, recommendations, and any concerns.".to_string());
         }
 
         parts.join("\n")
@@ -506,73 +459,11 @@ impl GeminiIntegration {
         self.last_consultation_time = Some(Instant::now());
     }
 
-    /// Detect uncertainty patterns in text
-    #[allow(dead_code)]
-    pub fn detect_uncertainty(&self, text: &str) -> (bool, Vec<String>) {
-        let mut found_patterns = Vec::new();
-
-        // Check uncertainty patterns
-        for pattern in UNCERTAINTY_PATTERNS {
-            if let Ok(re) = Regex::new(&format!("(?i){}", pattern)) {
-                if re.is_match(text) {
-                    found_patterns.push(format!("uncertainty: {}", pattern));
-                }
-            }
-        }
-
-        // Check complex decision patterns
-        for pattern in COMPLEX_DECISION_PATTERNS {
-            if let Ok(re) = Regex::new(&format!("(?i){}", pattern)) {
-                if re.is_match(text) {
-                    found_patterns.push(format!("complex_decision: {}", pattern));
-                }
-            }
-        }
-
-        // Check critical operation patterns
-        for pattern in CRITICAL_OPERATION_PATTERNS {
-            if let Ok(re) = Regex::new(&format!("(?i){}", pattern)) {
-                if re.is_match(text) {
-                    found_patterns.push(format!("critical_operation: {}", pattern));
-                }
-            }
-        }
-
-        (!found_patterns.is_empty(), found_patterns)
-    }
-
     /// Clear conversation history
     pub fn clear_history(&mut self) -> usize {
         let count = self.history.len();
         self.history.clear();
         count
-    }
-
-    /// Check if Gemini CLI is available
-    pub async fn check_gemini_available(&self) -> bool {
-        match Command::new("which")
-            .arg(&self.config.cli_command)
-            .output()
-            .await
-        {
-            Ok(output) => output.status.success(),
-            Err(_) => false,
-        }
-    }
-
-    /// Get current statistics
-    pub fn stats(&self) -> &GeminiStats {
-        &self.stats
-    }
-
-    /// Get history size
-    pub fn history_size(&self) -> usize {
-        self.history.len()
-    }
-
-    /// Get the configuration
-    pub fn config(&self) -> &GeminiConfig {
-        &self.config
     }
 
     /// Toggle auto consultation
@@ -582,5 +473,70 @@ impl GeminiIntegration {
             None => self.config.auto_consult = !self.config.auto_consult,
         }
         self.config.auto_consult
+    }
+}
+
+// Bridge to the shared AiIntegration trait
+#[async_trait::async_trait]
+impl mcp_ai_consult::AiIntegration for GeminiIntegration {
+    fn name(&self) -> &str {
+        "Gemini"
+    }
+
+    fn enabled(&self) -> bool {
+        self.config.enabled
+    }
+
+    fn auto_consult(&self) -> bool {
+        self.config.auto_consult
+    }
+
+    fn toggle_auto_consult(&mut self, enable: Option<bool>) -> bool {
+        GeminiIntegration::toggle_auto_consult(self, enable)
+    }
+
+    async fn consult(
+        &mut self,
+        params: mcp_ai_consult::ConsultParams,
+    ) -> mcp_ai_consult::ConsultResult {
+        let local = self
+            .consult_impl(
+                &params.query,
+                &params.context,
+                params.comparison_mode,
+                params.force,
+            )
+            .await;
+        match local.status {
+            ConsultStatus::Success => mcp_ai_consult::ConsultResult::success(
+                local.response.unwrap_or_default(),
+                local.execution_time,
+            ),
+            ConsultStatus::Error => mcp_ai_consult::ConsultResult::error(
+                local.error.unwrap_or_default(),
+                local.execution_time,
+            ),
+            ConsultStatus::Disabled => mcp_ai_consult::ConsultResult::disabled(),
+            ConsultStatus::Timeout => mcp_ai_consult::ConsultResult::timeout(local.execution_time),
+        }
+    }
+
+    fn clear_history(&mut self) -> usize {
+        GeminiIntegration::clear_history(self)
+    }
+
+    fn history_len(&self) -> usize {
+        self.history.len()
+    }
+
+    fn snapshot_stats(&self) -> mcp_ai_consult::IntegrationStats {
+        let s = &self.stats;
+        mcp_ai_consult::IntegrationStats {
+            consultations: s.consultations,
+            completed: s.completed,
+            errors: s.errors,
+            total_execution_time: s.total_execution_time,
+            last_consultation: s.last_consultation,
+        }
     }
 }

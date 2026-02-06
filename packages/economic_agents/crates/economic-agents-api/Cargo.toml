@@ -26,3 +26,6 @@ tracing.workspace = true
 [dev-dependencies]
 tokio-test.workspace = true
 axum-test.workspace = true
+
+[lints]
+workspace = true

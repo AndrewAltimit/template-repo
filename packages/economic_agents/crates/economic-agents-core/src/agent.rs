@@ -1,5 +1,6 @@
 //! Main autonomous agent implementation.
 
+use std::collections::VecDeque;
 use std::sync::Arc;
 use std::time::Instant;
 
@@ -65,7 +66,7 @@ pub struct AutonomousAgent {
     /// Decision engine.
     decision_engine: Box<dyn DecisionEngine>,
     /// Cycle history (last N cycles).
-    cycle_history: Vec<CycleResult>,
+    cycle_history: VecDeque<CycleResult>,
     /// Maximum history to keep.
     max_history: usize,
     /// Company owned by this agent (if any).
@@ -97,7 +98,7 @@ impl AutonomousAgent {
             state: AgentState::default(),
             backends: None,
             decision_engine,
-            cycle_history: Vec::new(),
+            cycle_history: VecDeque::new(),
             max_history: 100,
             company: None,
             active_proposal: None,
@@ -856,9 +857,9 @@ impl AutonomousAgent {
         result.duration_ms = start_time.elapsed().as_millis() as u64;
 
         // Store in history
-        self.cycle_history.push(result.clone());
+        self.cycle_history.push_back(result.clone());
         if self.cycle_history.len() > self.max_history {
-            self.cycle_history.remove(0);
+            self.cycle_history.pop_front();
         }
 
         info!(
@@ -919,9 +920,14 @@ impl AutonomousAgent {
     }
 
     /// Get recent cycle history.
-    pub fn recent_cycles(&self, count: usize) -> &[CycleResult] {
-        let start = self.cycle_history.len().saturating_sub(count);
-        &self.cycle_history[start..]
+    pub fn recent_cycles(&self, count: usize) -> Vec<CycleResult> {
+        self.cycle_history
+            .iter()
+            .rev()
+            .take(count)
+            .rev()
+            .cloned()
+            .collect()
     }
 
     /// Get the agent's company (if any).

@@ -160,17 +160,6 @@ pub struct GeminiStats {
     pub last_consultation: Option<DateTime<Utc>>,
 }
 
-impl GeminiStats {
-    /// Get average execution time
-    pub fn average_execution_time(&self) -> f64 {
-        if self.completed == 0 {
-            0.0
-        } else {
-            self.total_execution_time / self.completed as f64
-        }
-    }
-}
-
 /// Status of a consultation
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]

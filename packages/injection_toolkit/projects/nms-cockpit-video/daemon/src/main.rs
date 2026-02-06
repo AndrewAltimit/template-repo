@@ -7,12 +7,12 @@
 //! generic daemon template in `packages/injection_toolkit/daemon/`.
 //! Future work: extract shared IPC/validation into `itk-daemon-core` library crate.
 
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 use clap::Parser;
 use itk_ipc::{IpcChannel, IpcServer};
 use itk_protocol::{
-    decode, encode, MessageType, ScreenRect, StateQuery, StateResponse, VideoLoad, VideoPause,
-    VideoPlay, VideoSeek,
+    MessageType, ScreenRect, StateQuery, StateResponse, VideoLoad, VideoPause, VideoPlay,
+    VideoSeek, decode, encode,
 };
 use std::sync::{Arc, RwLock};
 use std::thread;

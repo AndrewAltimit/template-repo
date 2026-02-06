@@ -2,6 +2,7 @@
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use std::collections::VecDeque;
 use std::sync::Arc;
 use tokio::sync::{RwLock, broadcast};
 use uuid::Uuid;
@@ -72,7 +73,7 @@ impl Event {
 /// Event bus for publishing and subscribing to events.
 pub struct EventBus {
     sender: broadcast::Sender<Event>,
-    history: Arc<RwLock<Vec<Event>>>,
+    history: Arc<RwLock<VecDeque<Event>>>,
     max_history: usize,
 }
 
@@ -82,7 +83,7 @@ impl EventBus {
         let (sender, _) = broadcast::channel(capacity);
         Self {
             sender,
-            history: Arc::new(RwLock::new(Vec::new())),
+            history: Arc::new(RwLock::new(VecDeque::new())),
             max_history: 1000,
         }
     }
@@ -91,9 +92,9 @@ impl EventBus {
     pub async fn publish(&self, event: Event) {
         // Store in history
         let mut history = self.history.write().await;
-        history.push(event.clone());
+        history.push_back(event.clone());
         if history.len() > self.max_history {
-            history.remove(0);
+            history.pop_front();
         }
         drop(history);
 
@@ -109,8 +110,7 @@ impl EventBus {
     /// Get recent events.
     pub async fn recent(&self, count: usize) -> Vec<Event> {
         let history = self.history.read().await;
-        let start = history.len().saturating_sub(count);
-        history[start..].to_vec()
+        history.iter().rev().take(count).rev().cloned().collect()
     }
 
     /// Get events by type.

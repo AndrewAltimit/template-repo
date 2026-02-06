@@ -342,14 +342,14 @@ impl Tool for ListVoicesTool {
                     "count": voices.len()
                 });
                 ToolResult::json(&response)
-            }
+            },
             Err(e) => {
                 let response = json!({
                     "success": false,
                     "error": e
                 });
                 ToolResult::json(&response)
-            }
+            },
         }
     }
 }
@@ -394,14 +394,14 @@ impl Tool for GetUserSubscriptionTool {
                     "character_limit": info.character_limit
                 });
                 ToolResult::json(&response)
-            }
+            },
             Err(e) => {
                 let response = json!({
                     "success": false,
                     "error": e
                 });
                 ToolResult::json(&response)
-            }
+            },
         }
     }
 }
@@ -457,14 +457,14 @@ impl Tool for GetModelsTool {
                     "count": models.len()
                 });
                 ToolResult::json(&response)
-            }
+            },
             Err(e) => {
                 let response = json!({
                     "success": false,
                     "error": e
                 });
                 ToolResult::json(&response)
-            }
+            },
         }
     }
 }
@@ -553,14 +553,14 @@ impl Tool for ClearCacheTool {
                     "message": format!("Cleared cache at {}", client.cache_dir().display())
                 });
                 ToolResult::json(&response)
-            }
+            },
             Err(e) => {
                 let response = json!({
                     "success": false,
                     "error": e
                 });
                 ToolResult::json(&response)
-            }
+            },
         }
     }
 }

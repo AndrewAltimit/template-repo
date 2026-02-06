@@ -10,6 +10,18 @@ use std::thread::{self, JoinHandle};
 use std::time::{Duration, Instant};
 use tracing::{debug, error, info, warn};
 
+/// Lock the player state mutex, recovering from poisoning.
+///
+/// A poisoned mutex means a thread panicked while holding the lock.
+/// We recover by taking the inner data since partial state is better
+/// than crashing the daemon.
+fn lock_state(mutex: &Mutex<PlayerState>) -> std::sync::MutexGuard<'_, PlayerState> {
+    mutex.lock().unwrap_or_else(|poisoned| {
+        warn!("Player state mutex was poisoned, recovering");
+        poisoned.into_inner()
+    })
+}
+
 /// Default output width for video frames.
 const DEFAULT_WIDTH: u32 = 1280;
 /// Default output height for video frames.
@@ -86,12 +98,12 @@ impl VideoPlayer {
     /// Get the current player state.
     #[allow(dead_code)]
     pub fn state(&self) -> PlayerState {
-        self.state.lock().unwrap().clone()
+        lock_state(&self.state).clone()
     }
 
     /// Get the current video state for protocol messages.
     pub fn get_video_state(&self) -> Option<VideoState> {
-        let state = self.state.lock().unwrap();
+        let state = lock_state(&self.state);
         match &*state {
             PlayerState::Playing { info, .. }
             | PlayerState::Paused { info, .. }
@@ -111,7 +123,7 @@ impl VideoPlayer {
     /// Get video metadata for protocol messages.
     #[allow(dead_code)]
     pub fn get_metadata(&self) -> Option<VideoMetadata> {
-        let state = self.state.lock().unwrap();
+        let state = lock_state(&self.state);
         state.video_info().map(|info| VideoMetadata {
             content_id: info.content_id.clone(),
             width: info.width,
@@ -233,7 +245,7 @@ fn decode_loop(state: Arc<Mutex<PlayerState>>, command_rx: Receiver<PlayerComman
     let mut ctx: Option<DecodeContext> = None;
 
     loop {
-        let is_playing = state.lock().unwrap().is_playing();
+        let is_playing = lock_state(&state).is_playing();
         let timeout = if is_playing {
             Duration::from_millis(1) // Fast polling during playback
         } else {
@@ -269,7 +281,7 @@ fn decode_loop(state: Arc<Mutex<PlayerState>>, command_rx: Receiver<PlayerComman
                     PlayerCommand::Stop => {
                         info!("Video decode thread stopping");
                         drop(ctx.take());
-                        *state.lock().unwrap() = PlayerState::Idle;
+                        *lock_state(&state) = PlayerState::Idle;
                         break;
                     },
                 }
@@ -277,7 +289,7 @@ fn decode_loop(state: Arc<Mutex<PlayerState>>, command_rx: Receiver<PlayerComman
             Err(mpsc::RecvTimeoutError::Timeout) => {
                 // Decode next frame if playing
                 if is_playing {
-                    if let Some(ref mut decode_ctx) = ctx {
+                    if let Some(decode_ctx) = &mut ctx {
                         decode_next_frame(decode_ctx, &state);
                     }
                 }
@@ -326,7 +338,7 @@ fn decode_next_frame(ctx: &mut DecodeContext, state: &Arc<Mutex<PlayerState>>) {
             match ctx.writer.write_frame(&frame) {
                 Ok(_written) => {
                     // Update position in state
-                    let mut s = state.lock().unwrap();
+                    let mut s = lock_state(state);
                     if let PlayerState::Playing { position_ms, .. } = &mut *s {
                         *position_ms = frame.pts_ms;
                     }
@@ -339,7 +351,7 @@ fn decode_next_frame(ctx: &mut DecodeContext, state: &Arc<Mutex<PlayerState>>) {
         Ok(None) => {
             // End of stream
             info!("Video playback complete (end of stream)");
-            let mut s = state.lock().unwrap();
+            let mut s = lock_state(state);
             if let PlayerState::Playing { info, .. } = s.clone() {
                 *s = PlayerState::Paused {
                     info,
@@ -349,7 +361,7 @@ fn decode_next_frame(ctx: &mut DecodeContext, state: &Arc<Mutex<PlayerState>>) {
         },
         Err(e) => {
             error!(?e, "Decode error");
-            *state.lock().unwrap() = PlayerState::Error {
+            *lock_state(state) = PlayerState::Error {
                 message: format!("Decode error: {e}"),
             };
         },
@@ -366,7 +378,7 @@ fn handle_load(
     info!(source = %source, start_ms = start_position_ms, autoplay, "Loading video");
 
     // Set loading state
-    *state.lock().unwrap() = PlayerState::Loading {
+    *lock_state(state) = PlayerState::Loading {
         source: source.to_string(),
     };
 
@@ -375,7 +387,7 @@ fn handle_load(
         Ok(s) => s,
         Err(e) => {
             error!(error = %e, "Failed to resolve video source");
-            *state.lock().unwrap() = PlayerState::Error {
+            *lock_state(state) = PlayerState::Error {
                 message: format!("Source resolution failed: {e}"),
             };
             return None;
@@ -394,7 +406,7 @@ fn handle_load(
         Ok(d) => d,
         Err(e) => {
             error!(?e, "Failed to create video decoder");
-            *state.lock().unwrap() = PlayerState::Error {
+            *lock_state(state) = PlayerState::Error {
                 message: format!("Decoder init failed: {e}"),
             };
             return None;
@@ -406,7 +418,7 @@ fn handle_load(
         Ok(w) => w,
         Err(e) => {
             error!(?e, "Failed to create frame writer");
-            *state.lock().unwrap() = PlayerState::Error {
+            *lock_state(state) = PlayerState::Error {
                 message: format!("Frame writer failed: {e}"),
             };
             return None;
@@ -447,7 +459,7 @@ fn handle_load(
                 "Failed to seek to start position, starting from beginning"
             );
         }
-        if let Some(ref audio_player) = audio {
+        if let Some(audio_player) = &audio {
             audio_player.seek(start_position_ms);
         }
     }
@@ -471,13 +483,13 @@ fn handle_load(
     };
 
     if autoplay {
-        *state.lock().unwrap() = PlayerState::Playing {
+        *lock_state(state) = PlayerState::Playing {
             info,
             position_ms: start_position_ms,
             started_at: Instant::now(),
         };
     } else {
-        *state.lock().unwrap() = PlayerState::Paused {
+        *lock_state(state) = PlayerState::Paused {
             info,
             position_ms: start_position_ms,
         };
@@ -488,17 +500,17 @@ fn handle_load(
 
 /// Handle a play command.
 fn handle_play(state: &Arc<Mutex<PlayerState>>, ctx: &mut Option<DecodeContext>) {
-    let mut s = state.lock().unwrap();
+    let mut s = lock_state(state);
     if let PlayerState::Paused { info, position_ms } = s.clone() {
         info!(position_ms, "Resuming playback");
 
         // Update decode context timing
-        if let Some(ref mut decode_ctx) = ctx {
+        if let Some(decode_ctx) = ctx {
             decode_ctx.base_pts_ms = position_ms;
             decode_ctx.playback_start = Instant::now();
 
             // Resume audio
-            if let Some(ref audio) = decode_ctx.audio {
+            if let Some(audio) = &decode_ctx.audio {
                 audio.play();
             }
         }
@@ -513,15 +525,15 @@ fn handle_play(state: &Arc<Mutex<PlayerState>>, ctx: &mut Option<DecodeContext>)
 
 /// Handle a pause command.
 fn handle_pause(state: &Arc<Mutex<PlayerState>>, ctx: &Option<DecodeContext>) {
-    let mut s = state.lock().unwrap();
+    let mut s = lock_state(state);
     if let PlayerState::Playing { info, .. } = s.clone() {
         // Use the frame writer's last PTS as the accurate position
         let current_pos = ctx.as_ref().map(|c| c.writer.last_pts_ms()).unwrap_or(0);
         info!(position_ms = current_pos, "Pausing playback");
 
         // Pause audio
-        if let Some(ref ctx) = ctx {
-            if let Some(ref audio) = ctx.audio {
+        if let Some(ctx) = ctx {
+            if let Some(audio) = &ctx.audio {
                 audio.pause();
             }
         }
@@ -536,7 +548,7 @@ fn handle_pause(state: &Arc<Mutex<PlayerState>>, ctx: &Option<DecodeContext>) {
 /// Handle a seek command.
 fn handle_seek(state: &Arc<Mutex<PlayerState>>, ctx: &mut Option<DecodeContext>, position_ms: u64) {
     // Seek the decoder
-    if let Some(ref mut decode_ctx) = ctx {
+    if let Some(decode_ctx) = ctx {
         if let Err(e) = decode_ctx.decoder.seek(position_ms) {
             warn!(?e, position_ms, "Seek failed");
             return;
@@ -547,12 +559,12 @@ fn handle_seek(state: &Arc<Mutex<PlayerState>>, ctx: &mut Option<DecodeContext>,
         decode_ctx.pending_frame = None; // Discard stale buffered frame
 
         // Seek audio
-        if let Some(ref audio) = decode_ctx.audio {
+        if let Some(audio) = &decode_ctx.audio {
             audio.seek(position_ms);
         }
     }
 
-    let mut s = state.lock().unwrap();
+    let mut s = lock_state(state);
     match s.clone() {
         PlayerState::Playing { info, .. } => {
             info!(position_ms, "Seeking (playing)");
@@ -574,7 +586,7 @@ fn handle_seek(state: &Arc<Mutex<PlayerState>>, ctx: &mut Option<DecodeContext>,
 
 /// Handle a set rate command.
 fn handle_set_rate(state: &Arc<Mutex<PlayerState>>, rate: f64) {
-    let mut state = state.lock().unwrap();
+    let mut state = lock_state(state);
     if let Some(info) = state.video_info().cloned() {
         let mut new_info = info;
         new_info.playback_rate = rate.clamp(0.25, 4.0);
@@ -596,13 +608,13 @@ fn handle_set_volume(state: &Arc<Mutex<PlayerState>>, ctx: &Option<DecodeContext
     let clamped = volume.clamp(0.0, 1.0);
 
     // Update audio player volume
-    if let Some(ref decode_ctx) = ctx {
-        if let Some(ref audio) = decode_ctx.audio {
+    if let Some(decode_ctx) = ctx {
+        if let Some(audio) = &decode_ctx.audio {
             audio.set_volume(clamped);
         }
     }
 
-    let mut state = state.lock().unwrap();
+    let mut state = lock_state(state);
     if let Some(info) = state.video_info().cloned() {
         let mut new_info = info;
         new_info.volume = clamped;

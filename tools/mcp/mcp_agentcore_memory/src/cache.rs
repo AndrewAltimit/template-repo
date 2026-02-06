@@ -95,7 +95,7 @@ impl MemoryCache {
                 self.cache.clear();
                 tracing::debug!("Invalidated entire cache ({} entries)", count);
                 count
-            }
+            },
             Some(ns) => {
                 let keys_to_remove: Vec<String> = self
                     .cache
@@ -115,7 +115,7 @@ impl MemoryCache {
                     tracing::debug!("Invalidated {} cache entries for namespace {}", count, ns);
                 }
                 count
-            }
+            },
         }
     }
 

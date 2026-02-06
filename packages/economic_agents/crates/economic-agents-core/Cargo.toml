@@ -28,3 +28,6 @@ tokio-test.workspace = true
 mockall.workspace = true
 proptest.workspace = true
 economic-agents-mock.workspace = true
+
+[lints]
+workspace = true

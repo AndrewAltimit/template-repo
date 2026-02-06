@@ -399,68 +399,68 @@ pub fn get_default_ports(node_type: &str) -> Vec<(&'static str, &'static str)> {
             ports.push(("Flow", "Out"));
             ports.push(("Wear", "Out"));
             ports.push(("Deposits", "Out"));
-        }
+        },
         "Rivers" => {
             ports.push(("Rivers", "Out"));
             ports.push(("Flow", "Out"));
             ports.push(("Depth", "Out"));
             ports.push(("Wear", "Out"));
-        }
+        },
         "Lake" | "Sea" => {
             ports.push(("Water", "Out"));
             ports.push(("Beach", "Out"));
             ports.push(("Depth", "Out"));
             ports.push(("Shore", "Out"));
-        }
+        },
         "Snow" | "Snowfield" => {
             ports.push(("Snow", "Out"));
-        }
+        },
         "Thermal" | "Thermal2" => {
             ports.push(("Talus", "Out"));
-        }
+        },
         "Sandstone" => {
             ports.push(("Layers", "Out"));
-        }
+        },
         "Canyon" => {
             ports.push(("Depth", "Out"));
-        }
+        },
         "FlowMap" | "FlowMapClassic" => {
             ports.push(("Flow", "Out"));
-        }
+        },
         "Height" | "Slope" | "HeightMask" | "SlopeMask" => {
             ports.push(("Mask", "In"));
-        }
+        },
         "Combine" | "Max" | "Min" | "Multiply" | "Blend" | "Compare" => {
             ports.push(("Input2", "In"));
             ports.push(("Mask", "In"));
-        }
+        },
         "Mixer" | "Mixer2" => {
             ports.push(("Terrain", "In"));
             // Mixer has up to 8 layer ports
-        }
+        },
         "SatMap" | "Satmaps" | "CLUTer" | "Colorize" | "QuickColor" => {
             // Colorize nodes output color instead of heightfield
-        }
+        },
         "WaterColor" => {
             ports.push(("Water", "In"));
-        }
+        },
         "Export" | "Unity" | "Unreal" => {
             // Output nodes have no outputs
             ports.retain(|(name, _)| *name != "Out");
-        }
+        },
         "PortalTransmit" => {
             ports.retain(|(name, _)| *name != "Out");
-        }
+        },
         "PortalReceive" => {
             ports.retain(|(name, _)| *name != "In");
-        }
+        },
         // Generators have no inputs
         "Mountain" | "MountainRange" | "MountainSide" | "Volcano" | "Island" | "Crater"
         | "CraterField" | "DuneSea" | "Perlin" | "Voronoi" | "Cellular" | "Noise"
         | "LinearGradient" | "RadialGradient" | "Constant" | "Shape" => {
             ports.retain(|(name, _)| *name != "In");
-        }
-        _ => {}
+        },
+        _ => {},
     }
 
     ports

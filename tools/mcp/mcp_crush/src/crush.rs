@@ -8,10 +8,10 @@ use std::path::Path;
 use std::process::Stdio;
 use std::time::Instant;
 use tokio::process::Command;
-use tokio::time::{timeout, Duration};
+use tokio::time::{Duration, timeout};
 use tracing::{debug, info};
 
-use crate::types::{ConsultResult, CrushConfig, CrushStats, HistoryEntry};
+use crate::types::{ConsultResult, ConsultStatus, CrushConfig, CrushStats, HistoryEntry};
 
 /// Crush CLI integration
 pub struct CrushIntegration {
@@ -32,8 +32,8 @@ impl CrushIntegration {
         }
     }
 
-    /// Consult Crush for code generation
-    pub async fn consult(&mut self, query: &str, force: bool) -> ConsultResult {
+    /// Consult Crush for code generation (internal implementation).
+    async fn consult_impl(&mut self, query: &str, context: &str, force: bool) -> ConsultResult {
         self.consultation_counter += 1;
         let consultation_id = format!(
             "crush_{}_{}_{}",
@@ -58,8 +58,13 @@ impl CrushIntegration {
             );
         }
 
-        // Prepare full query with history
-        let full_query = self.prepare_query(query);
+        // Prepare full query with context and history
+        let query_with_context = if context.is_empty() {
+            query.to_string()
+        } else {
+            format!("{}\n\nContext:\n{}", query, context)
+        };
+        let full_query = self.prepare_query(&query_with_context);
 
         // Execute Crush CLI
         let result = self.execute_crush(&full_query).await;
@@ -82,7 +87,7 @@ impl CrushIntegration {
                 }
 
                 ConsultResult::success(output, execution_time, consultation_id)
-            }
+            },
             Err(e) => {
                 self.stats.errors += 1;
 
@@ -91,7 +96,7 @@ impl CrushIntegration {
                 } else {
                     ConsultResult::error(e, consultation_id)
                 }
-            }
+            },
         }
     }
 
@@ -171,7 +176,7 @@ impl CrushIntegration {
 
                 let stdout = String::from_utf8_lossy(&output.stdout);
                 Ok((stdout.trim().to_string(), execution_time))
-            }
+            },
             Err(_) => Err(format!(
                 "Crush timed out after {} seconds",
                 self.config.timeout_secs
@@ -230,7 +235,7 @@ impl CrushIntegration {
 
                 let stdout = String::from_utf8_lossy(&output.stdout);
                 Ok((stdout.trim().to_string(), execution_time))
-            }
+            },
             Err(_) => Err(format!(
                 "Crush timed out after {} seconds",
                 self.config.timeout_secs
@@ -266,7 +271,8 @@ impl CrushIntegration {
 
         // Use docker compose (V2) instead of docker-compose (V1)
         let mut cmd = Command::new("docker");
-        cmd.arg("compose").args(&args)
+        cmd.arg("compose")
+            .args(&args)
             .stdin(Stdio::null())
             .stdout(Stdio::piped())
             .stderr(Stdio::piped());
@@ -297,7 +303,7 @@ impl CrushIntegration {
 
                 let stdout = String::from_utf8_lossy(&output.stdout);
                 Ok((stdout.trim().to_string(), execution_time))
-            }
+            },
             Err(_) => Err(format!(
                 "Crush timed out after {} seconds",
                 self.config.timeout_secs
@@ -401,21 +407,6 @@ impl CrushIntegration {
         count
     }
 
-    /// Get current statistics
-    pub fn stats(&self) -> &CrushStats {
-        &self.stats
-    }
-
-    /// Get history size
-    pub fn history_size(&self) -> usize {
-        self.history.len()
-    }
-
-    /// Get the configuration
-    pub fn config(&self) -> &CrushConfig {
-        &self.config
-    }
-
     /// Toggle auto consultation
     pub fn toggle_auto_consult(&mut self, enable: Option<bool>) -> bool {
         match enable {
@@ -423,5 +414,65 @@ impl CrushIntegration {
             None => self.config.auto_consult = !self.config.auto_consult,
         }
         self.config.auto_consult
+    }
+}
+
+// Bridge to the shared AiIntegration trait
+#[async_trait::async_trait]
+impl mcp_ai_consult::AiIntegration for CrushIntegration {
+    fn name(&self) -> &str {
+        "Crush"
+    }
+
+    fn enabled(&self) -> bool {
+        self.config.enabled
+    }
+
+    fn auto_consult(&self) -> bool {
+        self.config.auto_consult
+    }
+
+    fn toggle_auto_consult(&mut self, enable: Option<bool>) -> bool {
+        CrushIntegration::toggle_auto_consult(self, enable)
+    }
+
+    async fn consult(
+        &mut self,
+        params: mcp_ai_consult::ConsultParams,
+    ) -> mcp_ai_consult::ConsultResult {
+        let local = self
+            .consult_impl(&params.query, &params.context, params.force)
+            .await;
+        match local.status {
+            ConsultStatus::Success => mcp_ai_consult::ConsultResult::success(
+                local.response.unwrap_or_default(),
+                local.execution_time,
+            ),
+            ConsultStatus::Error => mcp_ai_consult::ConsultResult::error(
+                local.error.unwrap_or_default(),
+                local.execution_time,
+            ),
+            ConsultStatus::Disabled => mcp_ai_consult::ConsultResult::disabled(),
+            ConsultStatus::Timeout => mcp_ai_consult::ConsultResult::timeout(local.execution_time),
+        }
+    }
+
+    fn clear_history(&mut self) -> usize {
+        CrushIntegration::clear_history(self)
+    }
+
+    fn history_len(&self) -> usize {
+        self.history.len()
+    }
+
+    fn snapshot_stats(&self) -> mcp_ai_consult::IntegrationStats {
+        let s = &self.stats;
+        mcp_ai_consult::IntegrationStats {
+            consultations: s.consultations,
+            completed: s.completed,
+            errors: s.errors,
+            total_execution_time: s.total_execution_time,
+            last_consultation: s.last_consultation,
+        }
     }
 }

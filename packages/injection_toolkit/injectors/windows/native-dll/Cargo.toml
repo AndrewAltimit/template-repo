@@ -16,3 +16,6 @@ itk-ipc = { path = "../../../core/itk-ipc" }
 
 windows = { workspace = true, features = ["Win32_System_SystemServices"] }
 tracing = { workspace = true }
+
+[lints]
+workspace = true

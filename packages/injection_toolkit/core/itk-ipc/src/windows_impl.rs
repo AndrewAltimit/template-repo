@@ -4,28 +4,28 @@
 //! to the current user only, preventing other users on the system from
 //! connecting to or injecting commands into the daemon.
 
-use super::{read_message, IpcChannel, IpcError, IpcServer, Result};
+use super::{IpcChannel, IpcError, IpcServer, Result, read_message};
 use std::ffi::OsStr;
 use std::io::Read;
 use std::os::windows::ffi::OsStrExt;
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
-use windows::core::PCWSTR;
+use std::sync::atomic::{AtomicBool, Ordering};
 use windows::Win32::Foundation::{
-    CloseHandle, LocalFree, HANDLE, HLOCAL, INVALID_HANDLE_VALUE, WIN32_ERROR,
+    CloseHandle, HANDLE, HLOCAL, INVALID_HANDLE_VALUE, LocalFree, WIN32_ERROR,
 };
 use windows::Win32::Security::Authorization::{
     ConvertStringSecurityDescriptorToSecurityDescriptorW, SDDL_REVISION_1,
 };
 use windows::Win32::Security::{PSECURITY_DESCRIPTOR, SECURITY_ATTRIBUTES};
 use windows::Win32::Storage::FileSystem::{
-    CreateFileW, FlushFileBuffers, ReadFile, WriteFile, FILE_ATTRIBUTE_NORMAL, FILE_GENERIC_READ,
-    FILE_GENERIC_WRITE, FILE_SHARE_NONE, OPEN_EXISTING, PIPE_ACCESS_DUPLEX,
+    CreateFileW, FILE_ATTRIBUTE_NORMAL, FILE_GENERIC_READ, FILE_GENERIC_WRITE, FILE_SHARE_NONE,
+    FlushFileBuffers, OPEN_EXISTING, PIPE_ACCESS_DUPLEX, ReadFile, WriteFile,
 };
 use windows::Win32::System::Pipes::{
-    ConnectNamedPipe, CreateNamedPipeW, DisconnectNamedPipe, PeekNamedPipe, PIPE_READMODE_BYTE,
-    PIPE_TYPE_BYTE, PIPE_UNLIMITED_INSTANCES, PIPE_WAIT,
+    ConnectNamedPipe, CreateNamedPipeW, DisconnectNamedPipe, PIPE_READMODE_BYTE, PIPE_TYPE_BYTE,
+    PIPE_UNLIMITED_INSTANCES, PIPE_WAIT, PeekNamedPipe,
 };
+use windows::core::PCWSTR;
 
 const BUFFER_SIZE: u32 = 65536;
 

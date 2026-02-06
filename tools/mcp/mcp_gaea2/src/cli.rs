@@ -201,7 +201,7 @@ impl Gaea2CLI {
                         },
                     }
                 }
-            }
+            },
             Ok(Err(e)) => ExecutionResult {
                 success: false,
                 error: Some(format!("Failed to execute Gaea2: {}", e)),

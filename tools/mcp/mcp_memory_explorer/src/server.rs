@@ -270,7 +270,7 @@ impl Tool for GetModulesTool {
                     "count": formatted.len(),
                     "modules": formatted
                 }))
-            }
+            },
             Err(e) => ToolResult::json(&json!({
                 "success": false,
                 "error": e.to_string()
@@ -346,7 +346,7 @@ impl Tool for ReadMemoryTool {
                     "success": false,
                     "error": e.to_string()
                 }));
-            }
+            },
         };
 
         let result: std::result::Result<Value, String> = match read_type {
@@ -481,7 +481,7 @@ impl Tool for DumpMemoryTool {
                     "success": false,
                     "error": e.to_string()
                 }));
-            }
+            },
         };
 
         match explorer.dump_memory(address, size) {
@@ -581,7 +581,7 @@ Example: '48 8B 05 ?? ?? ?? ?? 48 85 C0'"#
                     "count": formatted.len(),
                     "results": formatted
                 }))
-            }
+            },
             Err(e) => ToolResult::json(&json!({
                 "success": false,
                 "error": e.to_string()
@@ -677,7 +677,7 @@ impl Tool for FindValueTool {
                     "count": formatted.len(),
                     "results": formatted
                 }))
-            }
+            },
             Err(e) => ToolResult::json(&json!({
                 "success": false,
                 "error": e.to_string()
@@ -745,7 +745,7 @@ impl Tool for ResolvePointerTool {
                     "success": false,
                     "error": e.to_string()
                 }));
-            }
+            },
         };
 
         match explorer.resolve_pointer_chain(base, &offsets) {
@@ -844,7 +844,7 @@ impl Tool for WatchAddressTool {
                     "success": false,
                     "error": e.to_string()
                 }));
-            }
+            },
         };
 
         match explorer.add_watch(label, address, size, value_type) {

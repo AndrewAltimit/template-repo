@@ -135,7 +135,7 @@ ChromaDB has no rate limits (unlike AWS AgentCore)."#
                     "timestamp": event.timestamp.to_rfc3339()
                 });
                 ToolResult::json(&response)
-            }
+            },
             Err(e) => {
                 error!("Failed to store event: {}", e);
                 let response = json!({
@@ -143,7 +143,7 @@ ChromaDB has no rate limits (unlike AWS AgentCore)."#
                     "error": e
                 });
                 ToolResult::json(&response)
-            }
+            },
         }
     }
 }
@@ -240,7 +240,7 @@ Use for:
                     "errors": if result.failed > 0 { Some(&result.errors) } else { None }
                 });
                 ToolResult::json(&response)
-            }
+            },
             Err(e) => {
                 error!("Failed to store facts: {}", e);
                 let response = json!({
@@ -248,7 +248,7 @@ Use for:
                     "error": e
                 });
                 ToolResult::json(&response)
-            }
+            },
         }
     }
 }
@@ -352,7 +352,7 @@ Returns relevant memories ranked by similarity."#
                     "memories": memories
                 });
                 ToolResult::json(&response)
-            }
+            },
             Err(e) => {
                 error!("Failed to search memories: {}", e);
                 let response = json!({
@@ -360,7 +360,7 @@ Returns relevant memories ranked by similarity."#
                     "error": e
                 });
                 ToolResult::json(&response)
-            }
+            },
         }
     }
 }
@@ -438,7 +438,7 @@ impl Tool for ListSessionEventsTool {
                     "events": event_list
                 });
                 ToolResult::json(&response)
-            }
+            },
             Err(e) => {
                 error!("Failed to list events: {}", e);
                 let response = json!({
@@ -446,7 +446,7 @@ impl Tool for ListSessionEventsTool {
                     "error": e
                 });
                 ToolResult::json(&response)
-            }
+            },
         }
     }
 }

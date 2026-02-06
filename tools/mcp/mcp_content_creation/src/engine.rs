@@ -143,7 +143,7 @@ impl ContentEngine {
                     }
                 }
                 0
-            }
+            },
             _ => 0,
         }
     }
@@ -240,17 +240,17 @@ impl ContentEngine {
                     if png_path.exists() {
                         png_paths.push(png_path);
                     }
-                }
+                },
                 Ok(out) => {
                     warn!(
                         "Failed to export page {}: {}",
                         page,
                         String::from_utf8_lossy(&out.stderr)
                     );
-                }
+                },
                 Err(e) => {
                     warn!("Failed to run pdftoppm for page {}: {}", page, e);
-                }
+                },
             }
         }
 
@@ -283,7 +283,7 @@ impl ContentEngine {
                 } else {
                     errors.join("\n")
                 }
-            }
+            },
             Err(_) => "Compilation failed".to_string(),
         }
     }
@@ -317,11 +317,11 @@ impl ContentEngine {
                             String::from_utf8_lossy(&out.stderr)
                         );
                     }
-                }
+                },
                 Err(e) => {
                     error!("Failed to run {}: {}", compiler, e);
                     return None;
-                }
+                },
             }
         }
 
@@ -378,7 +378,7 @@ impl ContentEngine {
                         String::from_utf8_lossy(&result.stderr)
                     ));
                 }
-            }
+            },
             OutputFormat::Svg => {
                 let result = Command::new("pdf2svg")
                     .arg(pdf_path)
@@ -393,13 +393,13 @@ impl ContentEngine {
                         String::from_utf8_lossy(&result.stderr)
                     ));
                 }
-            }
+            },
             _ => {
                 return Err(format!(
                     "Unsupported conversion format: {:?}",
                     output_format
                 ));
-            }
+            },
         }
 
         if output_path.exists() {
@@ -459,16 +459,16 @@ impl ContentEngine {
                                 error: Some(format!("Failed to read input file: {}", e)),
                                 ..Default::default()
                             };
-                        }
+                        },
                     }
-                }
+                },
                 Err(e) => {
                     return CompileResult {
                         success: false,
                         error: Some(e),
                         ..Default::default()
                     };
-                }
+                },
             }
         } else {
             (content.unwrap().to_string(), None)
@@ -492,7 +492,7 @@ impl ContentEngine {
                     error: Some(format!("Failed to create temp directory: {}", e)),
                     ..Default::default()
                 };
-            }
+            },
         };
 
         let tex_file = temp_dir.path().join("document.tex");
@@ -558,7 +558,7 @@ impl ContentEngine {
                     error: Some(self.extract_latex_error(&log_file)),
                     ..Default::default()
                 };
-            }
+            },
         };
 
         // Copy to output directory
@@ -691,7 +691,7 @@ impl ContentEngine {
                         result.format = Some(output_format.as_str().to_string());
                     }
                     result
-                }
+                },
                 Err(e) => CompileResult {
                     success: false,
                     error: Some(format!("Format conversion error: {}", e)),
@@ -732,7 +732,7 @@ impl ContentEngine {
                     error: Some(e),
                     ..Default::default()
                 };
-            }
+            },
         };
 
         if !resolved.exists() {
@@ -811,7 +811,7 @@ impl ContentEngine {
                     error: Some(format!("Failed to create temp directory: {}", e)),
                     ..Default::default()
                 };
-            }
+            },
         };
 
         let script_path = temp_dir.path().join("animation.py");
@@ -878,7 +878,7 @@ impl ContentEngine {
                     format: Some(ext.to_string()),
                     error: None,
                 }
-            }
+            },
             Err(e) => {
                 if e.kind() == std::io::ErrorKind::NotFound {
                     ManimResult {
@@ -893,7 +893,7 @@ impl ContentEngine {
                         ..Default::default()
                     }
                 }
-            }
+            },
         }
     }
 

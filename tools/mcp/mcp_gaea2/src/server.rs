@@ -276,11 +276,13 @@ impl Tool for CreateFromTemplateTool {
             .ok_or_else(|| MCPError::InvalidParameters("Missing 'project_name'".to_string()))?;
 
         let template = get_template(template_name).ok_or_else(|| {
-            let available: Vec<_> = list_templates().iter().map(|(name, _)| name.clone()).collect();
+            let available: Vec<_> = list_templates()
+                .iter()
+                .map(|(name, _)| name.clone())
+                .collect();
             MCPError::InvalidParameters(format!(
                 "Unknown template '{}'. Available: {:?}",
-                template_name,
-                available
+                template_name, available
             ))
         })?;
 
@@ -387,10 +389,7 @@ impl Tool for ValidateWorkflowTool {
         if runtime_check {
             if let Some(cli) = &self.refs.cli {
                 // Create a temp file for runtime validation
-                let temp_path = self
-                    .refs
-                    .config
-                    .generate_output_path("_validation_temp");
+                let temp_path = self.refs.config.generate_output_path("_validation_temp");
                 let temp_path_str = temp_path.to_string_lossy().to_string();
 
                 // Generate the project file
@@ -423,7 +422,9 @@ impl Tool for ValidateWorkflowTool {
                     result.valid = result.valid && cli_result.success;
                     if !cli_result.success {
                         if let Some(error) = cli_result.error {
-                            result.errors.push(format!("Runtime validation failed: {}", error));
+                            result
+                                .errors
+                                .push(format!("Runtime validation failed: {}", error));
                         }
                     }
 
@@ -573,7 +574,7 @@ impl Tool for OptimizePropertiesTool {
                             .insert("Strength".to_string(), json!(strength));
                         optimizations.push(format!("{}: Strength set to {}", node.name, strength));
                     }
-                }
+                },
                 "Mountain" => {
                     let scale = match mode {
                         OptimizationMode::Performance => 0.5,
@@ -584,8 +585,8 @@ impl Tool for OptimizePropertiesTool {
                         node.properties.insert("Scale".to_string(), json!(scale));
                         optimizations.push(format!("{}: Scale set to {}", node.name, scale));
                     }
-                }
-                _ => {}
+                },
+                _ => {},
             }
         }
 
@@ -711,10 +712,13 @@ impl Tool for AnalyzeWorkflowTool {
                 if !node_types.contains(&"Snow") && !node_types.contains(&"Snowfield") {
                     suggestions.push("Consider adding Snow for alpine terrain");
                 }
-                if !node_types.iter().any(|t| *t == "Rocks" || *t == "RockNoise") {
+                if !node_types
+                    .iter()
+                    .any(|t| *t == "Rocks" || *t == "RockNoise")
+                {
                     suggestions.push("Add rock detail with Rocks or RockNoise");
                 }
-            }
+            },
             "volcanic" => {
                 if !node_types.contains(&"Thermal") && !node_types.contains(&"Thermal2") {
                     suggestions.push("Add Thermal erosion for volcanic weathering");
@@ -722,7 +726,7 @@ impl Tool for AnalyzeWorkflowTool {
                 if !node_types.contains(&"Stratify") {
                     suggestions.push("Stratify can add rock layering typical of volcanic terrain");
                 }
-            }
+            },
             "canyon" => {
                 if !node_types.contains(&"Stratify") {
                     suggestions.push("Add Stratify for canyon rock layers");
@@ -730,7 +734,7 @@ impl Tool for AnalyzeWorkflowTool {
                 if !node_types.contains(&"FractalTerraces") && !node_types.contains(&"Terraces") {
                     suggestions.push("Consider FractalTerraces for canyon shelf formations");
                 }
-            }
+            },
             "coastal" => {
                 if !node_types.contains(&"Coast") && !node_types.contains(&"Sea") {
                     suggestions.push("Add Coast or Sea for water simulation");
@@ -738,7 +742,7 @@ impl Tool for AnalyzeWorkflowTool {
                 if !node_types.contains(&"Beach") {
                     suggestions.push("Beach node creates realistic shorelines");
                 }
-            }
+            },
             "arctic" => {
                 if !node_types.contains(&"Glacier") && !node_types.contains(&"IceFloe") {
                     suggestions.push("Add Glacier for ice features");
@@ -746,7 +750,7 @@ impl Tool for AnalyzeWorkflowTool {
                 if !node_types.contains(&"Snow") {
                     suggestions.push("Snow is essential for arctic terrain");
                 }
-            }
+            },
             "desert" => {
                 if !node_types.contains(&"Sand") && !node_types.contains(&"DuneSea") {
                     suggestions.push("Add Sand or DuneSea for desert terrain");
@@ -754,7 +758,7 @@ impl Tool for AnalyzeWorkflowTool {
                 if !node_types.contains(&"Sandstone") {
                     suggestions.push("Sandstone adds characteristic desert erosion");
                 }
-            }
+            },
             "river" => {
                 if !node_types.contains(&"Rivers") {
                     suggestions.push("Rivers node is essential for river terrain");
@@ -762,8 +766,8 @@ impl Tool for AnalyzeWorkflowTool {
                 if !node_types.contains(&"Fluvial") && !node_types.contains(&"Sediment") {
                     suggestions.push("Add Fluvial or Sediment for river deposits");
                 }
-            }
-            _ => {}
+            },
+            _ => {},
         }
 
         // Complexity score (simple heuristic)
@@ -878,16 +882,22 @@ impl Tool for RunProjectTool {
         let seed = args.get("seed").and_then(|v| v.as_i64());
         let region = args.get("region").and_then(|v| v.as_str());
         let target_node = args.get("target_node").and_then(|v| v.as_str());
-        let variables = args.get("variables").and_then(|v| v.as_object()).map(|obj| {
-            obj.iter()
-                .map(|(k, v)| (k.clone(), v.to_string()))
-                .collect::<std::collections::HashMap<_, _>>()
-        });
+        let variables = args
+            .get("variables")
+            .and_then(|v| v.as_object())
+            .map(|obj| {
+                obj.iter()
+                    .map(|(k, v)| (k.clone(), v.to_string()))
+                    .collect::<std::collections::HashMap<_, _>>()
+            });
         let ignore_cache = args
             .get("ignore_cache")
             .and_then(|v| v.as_bool())
             .unwrap_or(false);
-        let verbose = args.get("verbose").and_then(|v| v.as_bool()).unwrap_or(false);
+        let verbose = args
+            .get("verbose")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false);
         let timeout = args.get("timeout").and_then(|v| v.as_u64()).unwrap_or(300);
 
         let result = cli

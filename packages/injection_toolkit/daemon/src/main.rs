@@ -20,11 +20,11 @@
 //! A compromised or malicious injector could send crafted messages.
 //! All incoming data is validated before use.
 
-use anyhow::{bail, Context, Result};
+use anyhow::{Context, Result, bail};
 use itk_ipc::{IpcChannel, IpcServer};
 use itk_protocol::{
-    decode, encode, MessageType, ScreenRect, StateEvent, StateQuery, StateResponse, StateSnapshot,
-    VideoLoad, VideoPause, VideoPlay, VideoSeek,
+    MessageType, ScreenRect, StateEvent, StateQuery, StateResponse, StateSnapshot, VideoLoad,
+    VideoPause, VideoPlay, VideoSeek, decode, encode,
 };
 use std::collections::HashMap;
 use std::sync::{Arc, RwLock};

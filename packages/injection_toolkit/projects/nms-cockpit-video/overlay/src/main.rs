@@ -6,7 +6,7 @@
 use anyhow::{Context, Result};
 use clap::Parser;
 use itk_ipc::IpcChannel;
-use itk_protocol::{encode, MessageType, ScreenRect, VideoLoad, VideoPause, VideoPlay, VideoSeek};
+use itk_protocol::{MessageType, ScreenRect, VideoLoad, VideoPause, VideoPlay, VideoSeek, encode};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tracing::{debug, error, info, warn};

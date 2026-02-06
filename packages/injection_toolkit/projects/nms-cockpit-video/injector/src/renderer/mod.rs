@@ -8,7 +8,7 @@ pub mod texture;
 
 use crate::log::vlog;
 use ash::vk;
-use geometry::{Vertex, QUAD_VERTICES, QUAD_VERTICES_SIZE};
+use geometry::{QUAD_VERTICES, QUAD_VERTICES_SIZE, Vertex};
 use std::collections::HashMap;
 use texture::VideoTexture;
 

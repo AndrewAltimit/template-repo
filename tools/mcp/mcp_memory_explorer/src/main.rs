@@ -1,3 +1,6 @@
+// Allow pre-existing dead code in cross-platform stubs (Windows-only features)
+#![allow(dead_code, clippy::derivable_impls)]
+
 //! MCP Memory Explorer Server
 //!
 //! Provides memory exploration and game reverse engineering tools via MCP.

@@ -1,3 +1,19 @@
+// Allow pre-existing dead code and style issues in this in-development CLI
+#![allow(
+    dead_code,
+    unused_imports,
+    unused_variables,
+    clippy::derivable_impls,
+    clippy::collapsible_if,
+    clippy::redundant_closure,
+    clippy::unnecessary_lazy_evaluations,
+    clippy::double_ended_iterator_last,
+    clippy::manual_contains,
+    clippy::needless_borrow,
+    clippy::stable_sort_primitive,
+    clippy::unnecessary_sort_by
+)]
+
 //! github-agents: CLI for GitHub AI Agents
 //!
 //! This tool provides a fast Rust CLI interface for the GitHub AI Agents system.

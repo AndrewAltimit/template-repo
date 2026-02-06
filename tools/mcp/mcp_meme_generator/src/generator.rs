@@ -51,10 +51,10 @@ impl MemeGenerator {
                     info!("Loaded system font: {}", DEFAULT_FONT_PATH);
                     self.font_data = data;
                     return;
-                }
+                },
                 Err(e) => {
                     warn!("Failed to load system font: {}", e);
-                }
+                },
             }
         }
 
@@ -76,7 +76,7 @@ impl MemeGenerator {
             Err(e) => {
                 error!("Failed to read config directory: {}", e);
                 return;
-            }
+            },
         };
 
         for entry in entries.flatten() {
@@ -92,14 +92,14 @@ impl MemeGenerator {
                         Ok(config) => {
                             debug!("Loaded template: {}", filename);
                             self.templates.insert(filename.to_string(), config);
-                        }
+                        },
                         Err(e) => {
                             error!("Failed to parse template {}: {}", filename, e);
-                        }
+                        },
                     },
                     Err(e) => {
                         error!("Failed to read template file {}: {}", path.display(), e);
-                    }
+                    },
                 }
             }
         }
@@ -203,7 +203,7 @@ impl MemeGenerator {
                 } else {
                     Rgb([255, 255, 255]) // Default to white
                 }
-            }
+            },
         }
     }
 
@@ -252,7 +252,7 @@ impl MemeGenerator {
                     error: Some(format!("Template '{}' not found", template_id)),
                     ..Default::default()
                 };
-            }
+            },
         };
 
         // Load template image
@@ -276,7 +276,7 @@ impl MemeGenerator {
                     error: Some(format!("Failed to load template image: {}", e)),
                     ..Default::default()
                 };
-            }
+            },
         };
 
         let mut img = img.to_rgb8();
@@ -435,7 +435,7 @@ impl MemeGenerator {
                     error: Some("No image data generated".to_string()),
                     ..Default::default()
                 };
-            }
+            },
         };
 
         // Save to file

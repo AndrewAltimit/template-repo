@@ -2,13 +2,15 @@
 
 use chrono::Utc;
 use serde_json::Value;
-use std::path::Path;
 use std::process::Stdio;
+use std::time::Instant;
 use tokio::process::Command;
 use tokio::time::{Duration, timeout};
 use tracing::{debug, info, warn};
 
-use crate::types::{CodexConfig, CodexStats, ConsultMode, ConsultResult, HistoryEntry};
+use crate::types::{
+    CodexConfig, CodexStats, ConsultMode, ConsultResult, ConsultStatus, HistoryEntry,
+};
 
 /// Codex CLI integration
 pub struct CodexIntegration {
@@ -27,14 +29,20 @@ impl CodexIntegration {
         }
     }
 
-    /// Consult Codex for code generation or assistance
-    pub async fn consult(
+    /// Consult Codex for code generation or assistance (internal implementation).
+    async fn consult_impl(
         &mut self,
         query: &str,
         context: &str,
         mode: ConsultMode,
         _comparison_mode: bool,
+        force: bool,
     ) -> ConsultResult {
+        // Check if enabled
+        if !self.config.enabled && !force {
+            return ConsultResult::disabled("Codex integration is disabled");
+        }
+
         self.stats.consultations += 1;
         self.stats.last_consultation = Some(Utc::now());
 
@@ -47,12 +55,31 @@ impl CodexIntegration {
             );
         }
 
+        // Check if Codex authentication exists
+        if !self.check_auth_exists() {
+            self.stats.errors += 1;
+            return ConsultResult::error(
+                format!(
+                    "Codex authentication not configured. Auth file not found at: {}. \
+                     Please run 'codex' interactively to complete authentication.",
+                    self.config.auth_path
+                ),
+                mode,
+            );
+        }
+
         // Build the prompt
         let prompt = self.build_prompt(query, context, mode);
+
+        let start = Instant::now();
 
         // Execute Codex
         match self.execute_codex(&prompt, mode).await {
             Ok(output) => {
+                let execution_time = start.elapsed().as_secs_f64();
+                self.stats.completed += 1;
+                self.stats.total_execution_time += execution_time;
+
                 // Add to history
                 if self.config.include_history {
                     self.add_to_history(query, mode, true, Some(&output));
@@ -60,14 +87,15 @@ impl CodexIntegration {
 
                 if self.config.log_consultations {
                     info!(
-                        "Codex consultation: mode={:?}, query_length={}",
+                        "Codex consultation: mode={:?}, query_length={}, time={:.2}s",
                         mode,
-                        query.len()
+                        query.len(),
+                        execution_time
                     );
                 }
 
                 ConsultResult::success(output, mode)
-            }
+            },
             Err(e) => {
                 self.stats.errors += 1;
 
@@ -76,7 +104,7 @@ impl CodexIntegration {
                 }
 
                 ConsultResult::error(e, mode)
-            }
+            },
         }
     }
 
@@ -134,7 +162,7 @@ impl CodexIntegration {
                 }
 
                 Ok(self.parse_codex_output(&stdout, mode))
-            }
+            },
             Err(_) => Err(format!(
                 "Codex execution timed out after {} seconds",
                 self.config.timeout_secs
@@ -161,7 +189,7 @@ impl CodexIntegration {
                         &mut command_outputs,
                         &mut reasoning_texts,
                     );
-                }
+                },
                 Err(_) => {
                     // If not JSON, treat as plain text
                     if !line.starts_with('[') && !line.starts_with('{') {
@@ -169,7 +197,7 @@ impl CodexIntegration {
                     } else {
                         warn!("Could not parse JSON line from Codex output: {}", line);
                     }
-                }
+                },
             }
         }
 
@@ -230,7 +258,7 @@ impl CodexIntegration {
                                 }
                             }
                         }
-                    }
+                    },
                     "reasoning" => {
                         // Extract reasoning for context
                         if let Some(text) = item.get("text").and_then(|v| v.as_str()) {
@@ -238,7 +266,7 @@ impl CodexIntegration {
                                 reasoning_texts.push(text.to_string());
                             }
                         }
-                    }
+                    },
                     "command_execution" => {
                         // Extract command outputs
                         if item.get("status").and_then(|v| v.as_str()) == Some("completed") {
@@ -251,8 +279,8 @@ impl CodexIntegration {
                                 }
                             }
                         }
-                    }
-                    _ => {}
+                    },
+                    _ => {},
                 }
             }
         }
@@ -265,7 +293,7 @@ impl CodexIntegration {
                     if let Some(message) = msg.get("message").and_then(|v| v.as_str()) {
                         messages.push(message.to_string());
                     }
-                }
+                },
                 "exec_command_end" => {
                     if let Some(stdout) = msg.get("stdout").and_then(|v| v.as_str()) {
                         let trimmed = stdout.trim();
@@ -273,15 +301,15 @@ impl CodexIntegration {
                             command_outputs.push(trimmed.to_string());
                         }
                     }
-                }
+                },
                 "agent_reasoning" => {
                     if let Some(text) = msg.get("text").and_then(|v| v.as_str()) {
                         if !text.is_empty() {
                             reasoning_texts.push(text.to_string());
                         }
                     }
-                }
-                _ => {}
+                },
+                _ => {},
             }
         }
         // Handle direct message events
@@ -379,40 +407,10 @@ impl CodexIntegration {
         }
     }
 
-    /// Clear the conversation history
-    pub fn clear_history(&mut self) {
-        self.history.clear();
-    }
-
-    /// Get current statistics
-    pub fn stats(&self) -> &CodexStats {
-        &self.stats
-    }
-
-    /// Get history size
-    pub fn history_size(&self) -> usize {
-        self.history.len()
-    }
-
-    /// Check if auth file exists
-    pub fn auth_exists(&self) -> bool {
-        Path::new(&self.config.auth_path).exists()
-    }
-
-    /// Check if running in container
-    pub fn is_container(&self) -> bool {
-        Path::new("/.dockerenv").exists()
-    }
-
-    /// Get the configuration
-    pub fn config(&self) -> &CodexConfig {
-        &self.config
-    }
-
-    /// Get mutable configuration reference
-    #[allow(dead_code)]
-    pub fn config_mut(&mut self) -> &mut CodexConfig {
-        &mut self.config
+    /// Check if Codex authentication file exists
+    fn check_auth_exists(&self) -> bool {
+        let path = std::path::Path::new(&self.config.auth_path);
+        path.exists()
     }
 
     /// Toggle auto consultation
@@ -422,5 +420,74 @@ impl CodexIntegration {
             None => self.config.auto_consult = !self.config.auto_consult,
         }
         self.config.auto_consult
+    }
+}
+
+// Bridge to the shared AiIntegration trait
+#[async_trait::async_trait]
+impl mcp_ai_consult::AiIntegration for CodexIntegration {
+    fn name(&self) -> &str {
+        "Codex"
+    }
+
+    fn enabled(&self) -> bool {
+        self.config.enabled
+    }
+
+    fn auto_consult(&self) -> bool {
+        self.config.auto_consult
+    }
+
+    fn toggle_auto_consult(&mut self, enable: Option<bool>) -> bool {
+        CodexIntegration::toggle_auto_consult(self, enable)
+    }
+
+    async fn consult(
+        &mut self,
+        params: mcp_ai_consult::ConsultParams,
+    ) -> mcp_ai_consult::ConsultResult {
+        let mode = params
+            .mode
+            .as_deref()
+            .map(ConsultMode::from_str)
+            .unwrap_or_default();
+        let local = self
+            .consult_impl(
+                &params.query,
+                &params.context,
+                mode,
+                params.comparison_mode,
+                params.force,
+            )
+            .await;
+        match local.status {
+            ConsultStatus::Success => {
+                mcp_ai_consult::ConsultResult::success(local.output.unwrap_or_default(), 0.0)
+            },
+            ConsultStatus::Error => {
+                mcp_ai_consult::ConsultResult::error(local.error.unwrap_or_default(), 0.0)
+            },
+            ConsultStatus::Disabled => mcp_ai_consult::ConsultResult::disabled(),
+        }
+    }
+
+    fn clear_history(&mut self) -> usize {
+        let count = self.history.len();
+        self.history.clear();
+        count
+    }
+
+    fn history_len(&self) -> usize {
+        self.history.len()
+    }
+
+    fn snapshot_stats(&self) -> mcp_ai_consult::IntegrationStats {
+        mcp_ai_consult::IntegrationStats {
+            consultations: self.stats.consultations,
+            completed: self.stats.completed,
+            errors: self.stats.errors,
+            total_execution_time: self.stats.total_execution_time,
+            last_consultation: self.stats.last_consultation,
+        }
     }
 }

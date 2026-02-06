@@ -29,8 +29,10 @@ static BLOCKED_PATTERNS: LazyLock<Vec<(&'static str, Regex)>> = LazyLock::new(||
         // or as standalone high-entropy strings (handled by Layer 2 entropy check)
         (
             "aws_secret_key",
-            Regex::new(r"(?i)(?:aws_secret|secret_?key|secret_?access)\s*[:=]\s*[A-Za-z0-9/+=]{40}")
-                .unwrap(),
+            Regex::new(
+                r"(?i)(?:aws_secret|secret_?key|secret_?access)\s*[:=]\s*[A-Za-z0-9/+=]{40}",
+            )
+            .unwrap(),
         ),
         // GitHub tokens
         (

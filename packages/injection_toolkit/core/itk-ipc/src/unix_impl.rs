@@ -1,11 +1,11 @@
 //! Unix domain socket implementation
 
-use super::{read_message, IpcChannel, IpcError, IpcServer, Result};
+use super::{IpcChannel, IpcError, IpcServer, Result, read_message};
 use std::fs;
 use std::io::Write;
 use std::os::unix::net::{UnixListener, UnixStream};
-use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Mutex;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 /// Validate and create a socket path from a name.
 ///

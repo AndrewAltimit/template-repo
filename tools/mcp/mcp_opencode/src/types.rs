@@ -94,26 +94,26 @@ impl ConsultMode {
             Self::Generate => {
                 "You are an expert code generator. Generate clean, well-documented code \
                  based on the requirements provided. Include type hints and docstrings where appropriate."
-            }
+            },
             Self::Refactor => {
                 "You are an expert code refactoring assistant. Analyze the provided code \
                  and suggest improvements for readability, performance, and maintainability. \
                  Provide the refactored code with explanations for changes."
-            }
+            },
             Self::Review => {
                 "You are an expert code reviewer. Analyze the provided code for potential \
                  bugs, security issues, performance problems, and style violations. \
                  Provide specific, actionable feedback."
-            }
+            },
             Self::Explain => {
                 "You are an expert code explainer. Provide clear, detailed explanations \
                  of how the provided code works. Include information about the algorithms, \
                  data structures, and patterns used."
-            }
+            },
             Self::Quick => {
                 "You are a helpful coding assistant. Provide concise, accurate responses \
                  to coding questions. Focus on practical solutions."
-            }
+            },
         }
     }
 }
@@ -143,9 +143,9 @@ pub struct ConsultResult {
     /// Execution time in seconds
     pub execution_time: Option<f64>,
     /// Unique consultation ID
-    pub consultation_id: String,
+    pub _consultation_id: String,
     /// Timestamp of the consultation
-    pub timestamp: DateTime<Utc>,
+    pub _timestamp: DateTime<Utc>,
 }
 
 impl ConsultResult {
@@ -156,8 +156,8 @@ impl ConsultResult {
             response: Some(response),
             error: None,
             execution_time: Some(execution_time),
-            consultation_id,
-            timestamp: Utc::now(),
+            _consultation_id: consultation_id,
+            _timestamp: Utc::now(),
         }
     }
 
@@ -168,8 +168,8 @@ impl ConsultResult {
             response: None,
             error: Some(error.into()),
             execution_time: None,
-            consultation_id,
-            timestamp: Utc::now(),
+            _consultation_id: consultation_id,
+            _timestamp: Utc::now(),
         }
     }
 
@@ -180,8 +180,8 @@ impl ConsultResult {
             response: None,
             error: Some("OpenCode integration is disabled".to_string()),
             execution_time: None,
-            consultation_id,
-            timestamp: Utc::now(),
+            _consultation_id: consultation_id,
+            _timestamp: Utc::now(),
         }
     }
 
@@ -192,8 +192,8 @@ impl ConsultResult {
             response: None,
             error: Some(format!("OpenCode timed out after {} seconds", timeout_secs)),
             execution_time: None,
-            consultation_id,
-            timestamp: Utc::now(),
+            _consultation_id: consultation_id,
+            _timestamp: Utc::now(),
         }
     }
 }
@@ -220,17 +220,6 @@ pub struct OpenCodeStats {
     pub total_execution_time: f64,
     /// Last consultation timestamp
     pub last_consultation: Option<DateTime<Utc>>,
-}
-
-impl OpenCodeStats {
-    /// Calculate average execution time
-    pub fn average_execution_time(&self) -> f64 {
-        if self.completed > 0 {
-            self.total_execution_time / self.completed as f64
-        } else {
-            0.0
-        }
-    }
 }
 
 /// OpenRouter API request message

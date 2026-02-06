@@ -206,7 +206,7 @@ impl Tool for SetBackendTool {
                     "Unknown backend: {}",
                     backend_name
                 )));
-            }
+            },
         };
 
         // Connect
@@ -220,7 +220,7 @@ impl Tool for SetBackendTool {
                     "backend": backend_name,
                     "message": format!("Connected to {}", backend_name)
                 }))
-            }
+            },
             Err(e) => Ok(ToolResult::error(format!("Failed to connect: {}", e))),
         }
     }
@@ -306,7 +306,7 @@ impl Tool for SendAnimationTool {
                         .get("emotion_intensity")
                         .and_then(|v| v.as_f64())
                         .unwrap_or(1.0) as f32;
-                }
+                },
                 Err(e) => return Ok(ToolResult::error(format!("Invalid emotion: {}", e))),
             }
         }
@@ -320,7 +320,7 @@ impl Tool for SendAnimationTool {
                         .get("gesture_intensity")
                         .and_then(|v| v.as_f64())
                         .unwrap_or(1.0) as f32;
-                }
+                },
                 Err(e) => return Ok(ToolResult::error(format!("Invalid gesture: {}", e))),
             }
         }
@@ -579,7 +579,7 @@ impl Tool for PlayAudioTool {
                 return Ok(ToolResult::error(
                     error.unwrap_or_else(|| "Failed to process audio data".to_string()),
                 ));
-            }
+            },
         };
 
         // Detect format from data or use provided format
@@ -606,7 +606,9 @@ impl Tool for PlayAudioTool {
         let mut backend_guard = self.server.backend.write().await;
         if let Some(ref mut backend) = *backend_guard {
             match backend.send_audio_data(audio).await {
-                Ok(()) => ToolResult::json(&json!({"success": true, "message": "Audio sent to backend"})),
+                Ok(()) => {
+                    ToolResult::json(&json!({"success": true, "message": "Audio sent to backend"}))
+                },
                 Err(e) => Ok(ToolResult::error(format!("Failed to play audio: {}", e))),
             }
         } else {
@@ -1062,7 +1064,7 @@ impl Tool for SendVRCEmoteTool {
                         "gesture": gesture_name,
                         "message": format!("Sent VRCEmote {} ({})", emote_value, gesture_name)
                     }))
-                }
+                },
                 Err(e) => Ok(ToolResult::error(format!("Failed to send VRCEmote: {}", e))),
             }
         } else {
@@ -1143,7 +1145,10 @@ mod tests {
         let server = VirtualCharacterServer::new();
         let tools = server.tools();
 
-        let get_status = tools.iter().find(|t| t.name() == "get_backend_status").unwrap();
+        let get_status = tools
+            .iter()
+            .find(|t| t.name() == "get_backend_status")
+            .unwrap();
 
         let result = get_status.execute(json!({})).await.unwrap();
 
@@ -1174,7 +1179,10 @@ mod tests {
 
         // First connect
         let set_backend = tools.iter().find(|t| t.name() == "set_backend").unwrap();
-        set_backend.execute(json!({"backend": "mock"})).await.unwrap();
+        set_backend
+            .execute(json!({"backend": "mock"}))
+            .await
+            .unwrap();
 
         // Then send animation
         let send_animation = tools.iter().find(|t| t.name() == "send_animation").unwrap();
@@ -1206,7 +1214,10 @@ mod tests {
 
         // Connect first
         let set_backend = tools.iter().find(|t| t.name() == "set_backend").unwrap();
-        set_backend.execute(json!({"backend": "mock"})).await.unwrap();
+        set_backend
+            .execute(json!({"backend": "mock"}))
+            .await
+            .unwrap();
 
         // Then reset
         let reset = tools.iter().find(|t| t.name() == "reset").unwrap();
@@ -1221,10 +1232,15 @@ mod tests {
         let server = VirtualCharacterServer::new();
         let tools = server.tools();
 
-        let create_sequence = tools.iter().find(|t| t.name() == "create_sequence").unwrap();
+        let create_sequence = tools
+            .iter()
+            .find(|t| t.name() == "create_sequence")
+            .unwrap();
 
         let result = create_sequence
-            .execute(json!({"name": "greeting", "description": "A greeting sequence", "loop": false}))
+            .execute(
+                json!({"name": "greeting", "description": "A greeting sequence", "loop": false}),
+            )
             .await
             .unwrap();
 
@@ -1237,7 +1253,10 @@ mod tests {
         let server = VirtualCharacterServer::new();
         let tools = server.tools();
 
-        let add_event = tools.iter().find(|t| t.name() == "add_sequence_event").unwrap();
+        let add_event = tools
+            .iter()
+            .find(|t| t.name() == "add_sequence_event")
+            .unwrap();
 
         let result = add_event
             .execute(json!({"event_type": "expression", "timestamp": 0.0}))
@@ -1253,14 +1272,20 @@ mod tests {
         let tools = server.tools();
 
         // Create sequence
-        let create_sequence = tools.iter().find(|t| t.name() == "create_sequence").unwrap();
+        let create_sequence = tools
+            .iter()
+            .find(|t| t.name() == "create_sequence")
+            .unwrap();
         create_sequence
             .execute(json!({"name": "test_seq"}))
             .await
             .unwrap();
 
         // Add events
-        let add_event = tools.iter().find(|t| t.name() == "add_sequence_event").unwrap();
+        let add_event = tools
+            .iter()
+            .find(|t| t.name() == "add_sequence_event")
+            .unwrap();
         add_event
             .execute(json!({"event_type": "expression", "timestamp": 0.0, "expression": "happy"}))
             .await
@@ -1272,7 +1297,10 @@ mod tests {
             .unwrap();
 
         // Get status
-        let get_status = tools.iter().find(|t| t.name() == "get_sequence_status").unwrap();
+        let get_status = tools
+            .iter()
+            .find(|t| t.name() == "get_sequence_status")
+            .unwrap();
         let result = get_status.execute(json!({})).await.unwrap();
 
         let response = get_response_json(&result);
@@ -1288,11 +1316,20 @@ mod tests {
 
         // Connect first
         let set_backend = tools.iter().find(|t| t.name() == "set_backend").unwrap();
-        set_backend.execute(json!({"backend": "mock"})).await.unwrap();
+        set_backend
+            .execute(json!({"backend": "mock"}))
+            .await
+            .unwrap();
 
         // Create a sequence
-        let create_sequence = tools.iter().find(|t| t.name() == "create_sequence").unwrap();
-        create_sequence.execute(json!({"name": "test"})).await.unwrap();
+        let create_sequence = tools
+            .iter()
+            .find(|t| t.name() == "create_sequence")
+            .unwrap();
+        create_sequence
+            .execute(json!({"name": "test"}))
+            .await
+            .unwrap();
 
         // Panic reset
         let panic_reset = tools.iter().find(|t| t.name() == "panic_reset").unwrap();
@@ -1309,10 +1346,16 @@ mod tests {
 
         // Connect first
         let set_backend = tools.iter().find(|t| t.name() == "set_backend").unwrap();
-        set_backend.execute(json!({"backend": "mock"})).await.unwrap();
+        set_backend
+            .execute(json!({"backend": "mock"}))
+            .await
+            .unwrap();
 
         // Execute behavior
-        let execute_behavior = tools.iter().find(|t| t.name() == "execute_behavior").unwrap();
+        let execute_behavior = tools
+            .iter()
+            .find(|t| t.name() == "execute_behavior")
+            .unwrap();
         let result = execute_behavior
             .execute(json!({"behavior": "greet"}))
             .await
@@ -1329,7 +1372,10 @@ mod tests {
 
         // Connect with mock backend
         let set_backend = tools.iter().find(|t| t.name() == "set_backend").unwrap();
-        set_backend.execute(json!({"backend": "mock"})).await.unwrap();
+        set_backend
+            .execute(json!({"backend": "mock"}))
+            .await
+            .unwrap();
 
         // Try to send VRCEmote
         let send_vrcemote = tools.iter().find(|t| t.name() == "send_vrcemote").unwrap();
@@ -1383,7 +1429,11 @@ mod tests {
         for tool in &tools {
             let schema = tool.schema();
             // All schemas should be objects
-            assert!(schema.is_object(), "Tool {} schema is not an object", tool.name());
+            assert!(
+                schema.is_object(),
+                "Tool {} schema is not an object",
+                tool.name()
+            );
             assert!(
                 schema.get("type").is_some(),
                 "Tool {} schema missing type",

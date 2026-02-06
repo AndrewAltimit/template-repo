@@ -124,7 +124,9 @@ impl SharedMemory {
             });
         }
 
-        std::ptr::copy_nonoverlapping(self.ptr.add(offset), buf.as_mut_ptr(), buf.len());
+        unsafe {
+            std::ptr::copy_nonoverlapping(self.ptr.add(offset), buf.as_mut_ptr(), buf.len());
+        }
 
         Ok(())
     }
@@ -146,7 +148,9 @@ impl SharedMemory {
             });
         }
 
-        std::ptr::copy_nonoverlapping(buf.as_ptr(), self.ptr.add(offset), buf.len());
+        unsafe {
+            std::ptr::copy_nonoverlapping(buf.as_ptr(), self.ptr.add(offset), buf.len());
+        }
 
         Ok(())
     }
@@ -242,20 +246,22 @@ impl SeqlockHeader {
     pub unsafe fn init<'a>(ptr: *mut u8) -> &'a Self {
         let header = ptr as *mut SeqlockHeader;
 
-        // Zero-initialize
-        std::ptr::write_bytes(header, 0, 1);
+        unsafe {
+            // Zero-initialize
+            std::ptr::write_bytes(header, 0, 1);
 
-        // Set initial values
-        (*header).seq = AtomicU32::new(0);
-        (*header).read_idx = AtomicU32::new(0);
-        (*header).pts_ms = AtomicU64::new(0);
-        (*header).frame_width = AtomicU32::new(0);
-        (*header).frame_height = AtomicU32::new(0);
-        (*header).is_playing = AtomicU32::new(0);
-        (*header).content_id_hash = AtomicU64::new(0);
-        (*header).duration_ms = AtomicU64::new(0);
+            // Set initial values
+            (*header).seq = AtomicU32::new(0);
+            (*header).read_idx = AtomicU32::new(0);
+            (*header).pts_ms = AtomicU64::new(0);
+            (*header).frame_width = AtomicU32::new(0);
+            (*header).frame_height = AtomicU32::new(0);
+            (*header).is_playing = AtomicU32::new(0);
+            (*header).content_id_hash = AtomicU64::new(0);
+            (*header).duration_ms = AtomicU64::new(0);
 
-        &*header
+            &*header
+        }
     }
 
     /// Get a reference to an existing seqlock header
@@ -265,7 +271,7 @@ impl SeqlockHeader {
     /// - The returned reference is only valid while the underlying memory is valid.
     ///   Caller must ensure the memory outlives the returned reference.
     pub unsafe fn from_ptr<'a>(ptr: *mut u8) -> &'a Self {
-        &*(ptr as *const SeqlockHeader)
+        unsafe { &*(ptr as *const SeqlockHeader) }
     }
 
     /// Begin a write operation (marks sequence as odd)
@@ -530,7 +536,9 @@ impl FrameBuffer {
         // Write buffer data inside the seqlock critical section
         // This ensures proper ordering on weak memory models (ARM)
         let buf_ptr = self.buffer_ptr(write_idx);
-        std::ptr::copy_nonoverlapping(data.as_ptr(), buf_ptr, data.len());
+        unsafe {
+            std::ptr::copy_nonoverlapping(data.as_ptr(), buf_ptr, data.len());
+        }
 
         // Update header fields
         header.read_idx.store(write_idx, Ordering::Relaxed);
@@ -685,8 +693,8 @@ mod tests {
 /// Run with: RUSTFLAGS="--cfg loom" cargo test --lib loom_tests
 #[cfg(all(test, loom))]
 mod loom_tests {
-    use loom::sync::atomic::{AtomicU32, AtomicU64, Ordering};
     use loom::sync::Arc;
+    use loom::sync::atomic::{AtomicU32, AtomicU64, Ordering};
     use loom::thread;
 
     /// Simplified seqlock for loom testing

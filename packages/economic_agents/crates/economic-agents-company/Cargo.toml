@@ -22,3 +22,6 @@ rand.workspace = true
 [dev-dependencies]
 tokio-test.workspace = true
 mockall.workspace = true
+
+[lints]
+workspace = true

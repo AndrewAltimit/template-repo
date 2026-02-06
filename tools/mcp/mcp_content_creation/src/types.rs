@@ -116,25 +116,25 @@ impl LatexTemplate {
                     "\\documentclass{{article}}\n\\begin{{document}}\n{}\n\\end{{document}}",
                     content
                 )
-            }
+            },
             LatexTemplate::Report => {
                 format!(
                     "\\documentclass{{report}}\n\\begin{{document}}\n{}\n\\end{{document}}",
                     content
                 )
-            }
+            },
             LatexTemplate::Book => {
                 format!(
                     "\\documentclass{{book}}\n\\begin{{document}}\n{}\n\\end{{document}}",
                     content
                 )
-            }
+            },
             LatexTemplate::Beamer => {
                 format!(
                     "\\documentclass{{beamer}}\n\\begin{{document}}\n{}\n\\end{{document}}",
                     content
                 )
-            }
+            },
         }
     }
 }

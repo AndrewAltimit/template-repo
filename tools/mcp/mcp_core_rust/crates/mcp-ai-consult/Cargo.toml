@@ -1,0 +1,22 @@
+[package]
+name = "mcp-ai-consult"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "Shared framework for AI consultation MCP servers (gemini, codex, crush, opencode)"
+
+[dependencies]
+mcp-core.workspace = true
+async-trait.workspace = true
+tokio.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+chrono.workspace = true
+tracing.workspace = true
+uuid.workspace = true
+anyhow.workspace = true
+
+[lints]
+workspace = true

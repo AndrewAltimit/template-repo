@@ -43,6 +43,57 @@ mkdir -p ~/.cache/uv ~/.cache/pre-commit
 echo "🔨 Building CI image..."
 docker compose -f "$COMPOSE_FILE" build python-ci
 
+# ============================================
+# Rust CI Helper Functions
+# ============================================
+
+# Track whether Docker images have been built this invocation
+_RUST_CI_BUILT=0
+_RUST_CI_NIGHTLY_BUILT=0
+
+# Build the Rust CI Docker image (idempotent per invocation)
+build_rust_ci() {
+  if [ "$_RUST_CI_BUILT" -eq 0 ]; then
+    echo "Building Rust CI image..."
+    docker compose -f "$COMPOSE_FILE" --profile ci build rust-ci
+    _RUST_CI_BUILT=1
+  fi
+}
+
+# Build the Rust CI nightly Docker image (idempotent per invocation)
+build_rust_ci_nightly() {
+  if [ "$_RUST_CI_NIGHTLY_BUILT" -eq 0 ]; then
+    echo "Building Rust CI nightly image..."
+    docker compose -f "$COMPOSE_FILE" --profile ci build rust-ci-nightly
+    _RUST_CI_NIGHTLY_BUILT=1
+  fi
+}
+
+# Run a cargo command inside the Rust CI container
+# Usage: run_cargo <workspace_path> <cargo_args...>
+# Pass "." for workspace_path to use the container's default workdir
+run_cargo() {
+  local workspace_path="$1"
+  shift
+  build_rust_ci
+  if [ "$workspace_path" = "." ]; then
+    docker compose -f "$COMPOSE_FILE" --profile ci run --rm \
+      rust-ci cargo "$@"
+  else
+    docker compose -f "$COMPOSE_FILE" --profile ci run --rm \
+      -w "/app/$workspace_path" \
+      rust-ci cargo "$@"
+  fi
+}
+
+# Standard workspace CI stages
+# Usage: run_ws_fmt <workspace_path>
+run_ws_fmt()    { run_cargo "$1" fmt --all -- --check; }
+run_ws_clippy() { run_cargo "$1" clippy --workspace --all-targets -- -D warnings; }
+run_ws_test()   { run_cargo "$1" test --workspace "${EXTRA_ARGS[@]}"; }
+run_ws_build()  { run_cargo "$1" build --workspace --all-targets; }
+run_ws_deny()   { run_cargo "$1" deny check; }
+
 case "$STAGE" in
   format)
     echo "=== Running format checks ==="
@@ -274,22 +325,17 @@ case "$STAGE" in
 
   rust-fmt)
     echo "=== Running Rust format checks ==="
-    echo "Building Rust CI image..."
-    docker compose -f "$COMPOSE_FILE" --profile ci build rust-ci
-    docker compose -f "$COMPOSE_FILE" --profile ci run --rm rust-ci cargo fmt --all -- --check
+    run_cargo "." fmt --all -- --check
     ;;
 
   rust-clippy)
     echo "=== Running Rust clippy lints ==="
-    echo "Building Rust CI image..."
-    docker compose -f "$COMPOSE_FILE" --profile ci build rust-ci
     # Exclude Windows-only crates that can't compile in the Linux CI container:
     # itk-native-dll: Windows DLL injector (requires Windows SDK)
     # nms-cockpit-injector: Vulkan/OpenVR hooks (uses retour, Windows APIs)
     # nms-video-launcher: Process injection launcher (Windows APIs)
     # nms-video-overlay: Desktop overlay (wgpu/egui/winit with Windows features)
-    docker compose -f "$COMPOSE_FILE" --profile ci run --rm rust-ci cargo clippy \
-      --workspace --all-targets \
+    run_cargo "." clippy --workspace --all-targets \
       --exclude itk-native-dll \
       --exclude nms-cockpit-injector \
       --exclude nms-video-launcher \
@@ -299,11 +345,8 @@ case "$STAGE" in
 
   rust-test)
     echo "=== Running Rust tests ==="
-    echo "Building Rust CI image..."
-    docker compose -f "$COMPOSE_FILE" --profile ci build rust-ci
     # Exclude Windows-only crates (same list as rust-clippy)
-    docker compose -f "$COMPOSE_FILE" --profile ci run --rm rust-ci cargo test \
-      --workspace \
+    run_cargo "." test --workspace \
       --exclude itk-native-dll \
       --exclude nms-cockpit-injector \
       --exclude nms-video-launcher \
@@ -313,11 +356,8 @@ case "$STAGE" in
 
   rust-build)
     echo "=== Building Rust workspace ==="
-    echo "Building Rust CI image..."
-    docker compose -f "$COMPOSE_FILE" --profile ci build rust-ci
     # Exclude Windows-only crates (same list as rust-clippy)
-    docker compose -f "$COMPOSE_FILE" --profile ci run --rm rust-ci cargo build \
-      --workspace --all-targets \
+    run_cargo "." build --workspace --all-targets \
       --exclude itk-native-dll \
       --exclude nms-cockpit-injector \
       --exclude nms-video-launcher \
@@ -326,9 +366,7 @@ case "$STAGE" in
 
   rust-deny)
     echo "=== Running cargo-deny license/security checks ==="
-    echo "Building Rust CI image..."
-    docker compose -f "$COMPOSE_FILE" --profile ci build rust-ci
-    docker compose -f "$COMPOSE_FILE" --profile ci run --rm rust-ci cargo deny check || true
+    run_ws_deny "."
     ;;
 
   rust-full)
@@ -344,8 +382,7 @@ case "$STAGE" in
 
   rust-loom)
     echo "=== Running Loom concurrency tests ==="
-    echo "Building Rust CI nightly image..."
-    docker compose -f "$COMPOSE_FILE" --profile ci build rust-ci-nightly
+    build_rust_ci_nightly
     docker compose -f "$COMPOSE_FILE" --profile ci run --rm \
       -e RUSTFLAGS="--cfg loom" \
       rust-ci-nightly cargo test -p itk-shmem loom_tests -- --nocapture
@@ -353,8 +390,7 @@ case "$STAGE" in
 
   rust-miri)
     echo "=== Running Miri UB detection ==="
-    echo "Building Rust CI nightly image..."
-    docker compose -f "$COMPOSE_FILE" --profile ci build rust-ci-nightly
+    build_rust_ci_nightly
     docker compose -f "$COMPOSE_FILE" --profile ci run --rm rust-ci-nightly \
       cargo +nightly miri test -p itk-shmem -- seqlock
     docker compose -f "$COMPOSE_FILE" --profile ci run --rm rust-ci-nightly \
@@ -363,16 +399,14 @@ case "$STAGE" in
 
   rust-cross-linux)
     echo "=== Cross-compile check (x86_64 Linux) ==="
-    echo "Building Rust CI nightly image..."
-    docker compose -f "$COMPOSE_FILE" --profile ci build rust-ci-nightly
+    build_rust_ci_nightly
     docker compose -f "$COMPOSE_FILE" --profile ci run --rm rust-ci-nightly \
       cargo check --target x86_64-unknown-linux-gnu -p itk-protocol -p itk-shmem -p itk-ipc
     ;;
 
   rust-cross-windows)
     echo "=== Cross-compile check (Windows) ==="
-    echo "Building Rust CI nightly image..."
-    docker compose -f "$COMPOSE_FILE" --profile ci build rust-ci-nightly
+    build_rust_ci_nightly
     docker compose -f "$COMPOSE_FILE" --profile ci run --rm rust-ci-nightly \
       cargo check --target x86_64-pc-windows-gnu -p itk-protocol -p itk-shmem -p itk-ipc
     ;;
@@ -391,66 +425,38 @@ case "$STAGE" in
 
   econ-fmt)
     echo "=== Running Economic Agents format checks ==="
-    echo "Building Rust CI image..."
-    docker compose -f "$COMPOSE_FILE" --profile ci build rust-ci
-    docker compose -f "$COMPOSE_FILE" --profile ci run --rm \
-      -w /app/packages/economic_agents \
-      rust-ci cargo fmt --all -- --check
+    run_ws_fmt "packages/economic_agents"
     ;;
 
   econ-clippy)
     echo "=== Running Economic Agents clippy lints ==="
-    echo "Building Rust CI image..."
-    docker compose -f "$COMPOSE_FILE" --profile ci build rust-ci
-    docker compose -f "$COMPOSE_FILE" --profile ci run --rm \
-      -w /app/packages/economic_agents \
-      rust-ci cargo clippy --workspace --all-targets -- -D warnings
+    run_ws_clippy "packages/economic_agents"
     ;;
 
   econ-test)
     echo "=== Running Economic Agents tests ==="
-    echo "Building Rust CI image..."
-    docker compose -f "$COMPOSE_FILE" --profile ci build rust-ci
-    docker compose -f "$COMPOSE_FILE" --profile ci run --rm \
-      -w /app/packages/economic_agents \
-      rust-ci cargo test --workspace "${EXTRA_ARGS[@]}"
+    run_ws_test "packages/economic_agents"
     ;;
 
   econ-build)
     echo "=== Building Economic Agents workspace ==="
-    echo "Building Rust CI image..."
-    docker compose -f "$COMPOSE_FILE" --profile ci build rust-ci
-    docker compose -f "$COMPOSE_FILE" --profile ci run --rm \
-      -w /app/packages/economic_agents \
-      rust-ci cargo build --workspace --all-targets
+    run_ws_build "packages/economic_agents"
     ;;
 
   econ-deny)
     echo "=== Running Economic Agents cargo-deny checks ==="
-    echo "Building Rust CI image..."
-    docker compose -f "$COMPOSE_FILE" --profile ci build rust-ci
-    docker compose -f "$COMPOSE_FILE" --profile ci run --rm \
-      -w /app/packages/economic_agents \
-      rust-ci cargo deny check || true
+    run_ws_deny "packages/economic_agents"
     ;;
 
   econ-doc)
     echo "=== Generating Economic Agents documentation ==="
-    echo "Building Rust CI image..."
-    docker compose -f "$COMPOSE_FILE" --profile ci build rust-ci
-    docker compose -f "$COMPOSE_FILE" --profile ci run --rm \
-      -w /app/packages/economic_agents \
-      rust-ci cargo doc --workspace --no-deps --document-private-items
+    run_cargo "packages/economic_agents" doc --workspace --no-deps --document-private-items
     echo "Documentation generated at packages/economic_agents/target/doc/"
     ;;
 
   econ-coverage)
     echo "=== Running Economic Agents test coverage ==="
-    echo "Building Rust CI image..."
-    docker compose -f "$COMPOSE_FILE" --profile ci build rust-ci
-    docker compose -f "$COMPOSE_FILE" --profile ci run --rm \
-      -w /app/packages/economic_agents \
-      rust-ci cargo llvm-cov --workspace --lcov --output-path lcov.info "${EXTRA_ARGS[@]}"
+    run_cargo "packages/economic_agents" llvm-cov --workspace --lcov --output-path lcov.info "${EXTRA_ARGS[@]}"
     echo "Coverage report generated at packages/economic_agents/lcov.info"
     ;;
 
@@ -467,56 +473,32 @@ case "$STAGE" in
 
   mcp-fmt)
     echo "=== Running MCP Core Rust format checks ==="
-    echo "Building Rust CI image..."
-    docker compose -f "$COMPOSE_FILE" --profile ci build rust-ci
-    docker compose -f "$COMPOSE_FILE" --profile ci run --rm \
-      -w /app/tools/mcp/mcp_core_rust \
-      rust-ci cargo fmt --all -- --check
+    run_ws_fmt "tools/mcp/mcp_core_rust"
     ;;
 
   mcp-clippy)
     echo "=== Running MCP Core Rust clippy lints ==="
-    echo "Building Rust CI image..."
-    docker compose -f "$COMPOSE_FILE" --profile ci build rust-ci
-    docker compose -f "$COMPOSE_FILE" --profile ci run --rm \
-      -w /app/tools/mcp/mcp_core_rust \
-      rust-ci cargo clippy --workspace --all-targets -- -D warnings
+    run_ws_clippy "tools/mcp/mcp_core_rust"
     ;;
 
   mcp-test)
     echo "=== Running MCP Core Rust tests ==="
-    echo "Building Rust CI image..."
-    docker compose -f "$COMPOSE_FILE" --profile ci build rust-ci
-    docker compose -f "$COMPOSE_FILE" --profile ci run --rm \
-      -w /app/tools/mcp/mcp_core_rust \
-      rust-ci cargo test --workspace "${EXTRA_ARGS[@]}"
+    run_ws_test "tools/mcp/mcp_core_rust"
     ;;
 
   mcp-build)
     echo "=== Building MCP Core Rust workspace ==="
-    echo "Building Rust CI image..."
-    docker compose -f "$COMPOSE_FILE" --profile ci build rust-ci
-    docker compose -f "$COMPOSE_FILE" --profile ci run --rm \
-      -w /app/tools/mcp/mcp_core_rust \
-      rust-ci cargo build --workspace --all-targets --release
+    run_cargo "tools/mcp/mcp_core_rust" build --workspace --all-targets --release
     ;;
 
   mcp-deny)
     echo "=== Running MCP Core Rust cargo-deny checks ==="
-    echo "Building Rust CI image..."
-    docker compose -f "$COMPOSE_FILE" --profile ci build rust-ci
-    docker compose -f "$COMPOSE_FILE" --profile ci run --rm \
-      -w /app/tools/mcp/mcp_core_rust \
-      rust-ci cargo deny check || true
+    run_ws_deny "tools/mcp/mcp_core_rust"
     ;;
 
   mcp-doc)
     echo "=== Generating MCP Core Rust documentation ==="
-    echo "Building Rust CI image..."
-    docker compose -f "$COMPOSE_FILE" --profile ci build rust-ci
-    docker compose -f "$COMPOSE_FILE" --profile ci run --rm \
-      -w /app/tools/mcp/mcp_core_rust \
-      rust-ci cargo doc --workspace --no-deps --document-private-items
+    run_cargo "tools/mcp/mcp_core_rust" doc --workspace --no-deps --document-private-items
     echo "Documentation generated at tools/mcp/mcp_core_rust/target/doc/"
     ;;
 
@@ -533,59 +515,33 @@ case "$STAGE" in
 
   bio-fmt)
     echo "=== Running BioForge format checks ==="
-    echo "Building Rust CI image..."
-    docker compose -f "$COMPOSE_FILE" --profile ci build rust-ci
-    docker compose -f "$COMPOSE_FILE" --profile ci run --rm \
-      -w /app/packages/bioforge \
-      rust-ci cargo fmt --all -- --check
+    run_ws_fmt "packages/bioforge"
     echo "=== Running MCP BioForge format checks ==="
-    docker compose -f "$COMPOSE_FILE" --profile ci run --rm \
-      -w /app/tools/mcp/mcp_bioforge \
-      rust-ci cargo fmt --all -- --check
+    run_cargo "tools/mcp/mcp_bioforge" fmt --all -- --check
     ;;
 
   bio-clippy)
     echo "=== Running BioForge clippy lints ==="
-    echo "Building Rust CI image..."
-    docker compose -f "$COMPOSE_FILE" --profile ci build rust-ci
-    docker compose -f "$COMPOSE_FILE" --profile ci run --rm \
-      -w /app/packages/bioforge \
-      rust-ci cargo clippy --workspace --all-targets -- -D warnings
+    run_ws_clippy "packages/bioforge"
     echo "=== Running MCP BioForge clippy lints ==="
-    docker compose -f "$COMPOSE_FILE" --profile ci run --rm \
-      -w /app/tools/mcp/mcp_bioforge \
-      rust-ci cargo clippy --all-targets -- -D warnings
+    run_cargo "tools/mcp/mcp_bioforge" clippy --all-targets -- -D warnings
     ;;
 
   bio-test)
     echo "=== Running BioForge tests ==="
-    echo "Building Rust CI image..."
-    docker compose -f "$COMPOSE_FILE" --profile ci build rust-ci
-    docker compose -f "$COMPOSE_FILE" --profile ci run --rm \
-      -w /app/packages/bioforge \
-      rust-ci cargo test --workspace "${EXTRA_ARGS[@]}"
+    run_ws_test "packages/bioforge"
     ;;
 
   bio-build)
     echo "=== Building BioForge workspace ==="
-    echo "Building Rust CI image..."
-    docker compose -f "$COMPOSE_FILE" --profile ci build rust-ci
-    docker compose -f "$COMPOSE_FILE" --profile ci run --rm \
-      -w /app/packages/bioforge \
-      rust-ci cargo build --workspace --all-targets
+    run_ws_build "packages/bioforge"
     echo "=== Building MCP BioForge server ==="
-    docker compose -f "$COMPOSE_FILE" --profile ci run --rm \
-      -w /app/tools/mcp/mcp_bioforge \
-      rust-ci cargo build --all-targets
+    run_cargo "tools/mcp/mcp_bioforge" build --all-targets
     ;;
 
   bio-deny)
     echo "=== Running BioForge cargo-deny checks ==="
-    echo "Building Rust CI image..."
-    docker compose -f "$COMPOSE_FILE" --profile ci build rust-ci
-    docker compose -f "$COMPOSE_FILE" --profile ci run --rm \
-      -w /app/packages/bioforge \
-      rust-ci cargo deny check
+    run_ws_deny "packages/bioforge"
     ;;
 
   bio-full)
@@ -603,59 +559,39 @@ case "$STAGE" in
 
   tamper-fmt)
     echo "=== Running Tamper Briefcase format checks ==="
-    echo "Building Rust CI image..."
-    docker compose -f "$COMPOSE_FILE" --profile ci build rust-ci
-    docker compose -f "$COMPOSE_FILE" --profile ci run --rm \
-      -w /app/packages/tamper_briefcase \
-      rust-ci cargo fmt --all -- --check
+    run_ws_fmt "packages/tamper_briefcase"
     ;;
 
   tamper-clippy)
     echo "=== Running Tamper Briefcase clippy lints ==="
-    echo "Building Rust CI image..."
-    docker compose -f "$COMPOSE_FILE" --profile ci build rust-ci
     # tamper-sensor excluded: requires rppal (aarch64 only)
     for crate in tamper-common tamper-gate tamper-challenge tamper-recovery; do
       echo "--- Linting: $crate ---"
-      docker compose -f "$COMPOSE_FILE" --profile ci run --rm \
-        -w /app/packages/tamper_briefcase \
-        rust-ci cargo clippy -p "$crate" --all-targets -- -D warnings
+      run_cargo "packages/tamper_briefcase" clippy -p "$crate" --all-targets -- -D warnings
     done
     ;;
 
   tamper-test)
     echo "=== Running Tamper Briefcase tests ==="
-    echo "Building Rust CI image..."
-    docker compose -f "$COMPOSE_FILE" --profile ci build rust-ci
     # tamper-sensor excluded: requires rppal (aarch64 only)
     for crate in tamper-common tamper-gate tamper-challenge tamper-recovery; do
       echo "--- Testing: $crate ---"
-      docker compose -f "$COMPOSE_FILE" --profile ci run --rm \
-        -w /app/packages/tamper_briefcase \
-        rust-ci cargo test -p "$crate" "${EXTRA_ARGS[@]}"
+      run_cargo "packages/tamper_briefcase" test -p "$crate" "${EXTRA_ARGS[@]}"
     done
     ;;
 
   tamper-build)
     echo "=== Building Tamper Briefcase workspace ==="
-    echo "Building Rust CI image..."
-    docker compose -f "$COMPOSE_FILE" --profile ci build rust-ci
     # tamper-sensor excluded: requires rppal (aarch64 only)
     for crate in tamper-common tamper-gate tamper-challenge tamper-recovery; do
       echo "--- Building: $crate ---"
-      docker compose -f "$COMPOSE_FILE" --profile ci run --rm \
-        -w /app/packages/tamper_briefcase \
-        rust-ci cargo build -p "$crate" --all-targets
+      run_cargo "packages/tamper_briefcase" build -p "$crate" --all-targets
     done
     ;;
 
   tamper-deny)
     echo "=== Running Tamper Briefcase cargo-deny checks ==="
-    echo "Building Rust CI image..."
-    docker compose -f "$COMPOSE_FILE" --profile ci build rust-ci
-    docker compose -f "$COMPOSE_FILE" --profile ci run --rm \
-      -w /app/packages/tamper_briefcase \
-      rust-ci cargo deny check
+    run_ws_deny "packages/tamper_briefcase"
     ;;
 
   tamper-full)
@@ -681,37 +617,25 @@ case "$STAGE" in
 
   wrapper-fmt)
     echo "=== Running Wrapper format checks ==="
-    echo "Building Rust CI image..."
-    docker compose -f "$COMPOSE_FILE" --profile ci build rust-ci
     for crate in wrapper-common git-guard gh-validator; do
       echo "--- Checking format: $crate ---"
-      docker compose -f "$COMPOSE_FILE" --profile ci run --rm \
-        -w /app/tools/rust/$crate \
-        rust-ci cargo fmt --all -- --check
+      run_cargo "tools/rust/$crate" fmt --all -- --check
     done
     ;;
 
   wrapper-clippy)
     echo "=== Running Wrapper clippy lints ==="
-    echo "Building Rust CI image..."
-    docker compose -f "$COMPOSE_FILE" --profile ci build rust-ci
     for crate in wrapper-common git-guard gh-validator; do
       echo "--- Linting: $crate ---"
-      docker compose -f "$COMPOSE_FILE" --profile ci run --rm \
-        -w /app/tools/rust/$crate \
-        rust-ci cargo clippy --all-targets -- -D warnings
+      run_cargo "tools/rust/$crate" clippy --all-targets -- -D warnings
     done
     ;;
 
   wrapper-test)
     echo "=== Running Wrapper tests ==="
-    echo "Building Rust CI image..."
-    docker compose -f "$COMPOSE_FILE" --profile ci build rust-ci
     for crate in wrapper-common git-guard gh-validator; do
       echo "--- Testing: $crate ---"
-      docker compose -f "$COMPOSE_FILE" --profile ci run --rm \
-        -w /app/tools/rust/$crate \
-        rust-ci cargo test
+      run_cargo "tools/rust/$crate" test
     done
     ;;
 
@@ -720,6 +644,135 @@ case "$STAGE" in
     $0 wrapper-fmt
     $0 wrapper-clippy
     $0 wrapper-test
+    ;;
+
+  # ============================================
+  # Standalone MCP Server CI Stages
+  # Covers all MCP servers outside mcp_core_rust and mcp_bioforge
+  # ============================================
+
+  mcp-servers-fmt)
+    echo "=== Running standalone MCP server format checks ==="
+    FAILED=0
+    for server_dir in "$PROJECT_ROOT"/tools/mcp/mcp_*/; do
+      server_name=$(basename "$server_dir")
+      # Skip mcp_core_rust (has its own stages) and mcp_bioforge (covered by bio-*)
+      [ "$server_name" = "mcp_core_rust" ] && continue
+      [ "$server_name" = "mcp_bioforge" ] && continue
+      [ ! -f "$server_dir/Cargo.toml" ] && continue
+      echo "--- Checking format: $server_name ---"
+      run_cargo "tools/mcp/$server_name" fmt --all -- --check || FAILED=1
+    done
+    [ "$FAILED" -eq 0 ] || { echo "FAIL: One or more MCP servers have formatting issues"; exit 1; }
+    ;;
+
+  mcp-servers-clippy)
+    echo "=== Running standalone MCP server clippy lints ==="
+    FAILED=0
+    for server_dir in "$PROJECT_ROOT"/tools/mcp/mcp_*/; do
+      server_name=$(basename "$server_dir")
+      [ "$server_name" = "mcp_core_rust" ] && continue
+      [ "$server_name" = "mcp_bioforge" ] && continue
+      [ ! -f "$server_dir/Cargo.toml" ] && continue
+      echo "--- Linting: $server_name ---"
+      run_cargo "tools/mcp/$server_name" clippy --all-targets -- -D warnings || FAILED=1
+    done
+    [ "$FAILED" -eq 0 ] || { echo "FAIL: One or more MCP servers have clippy warnings"; exit 1; }
+    ;;
+
+  mcp-servers-test)
+    echo "=== Running standalone MCP server tests ==="
+    FAILED=0
+    for server_dir in "$PROJECT_ROOT"/tools/mcp/mcp_*/; do
+      server_name=$(basename "$server_dir")
+      [ "$server_name" = "mcp_core_rust" ] && continue
+      [ "$server_name" = "mcp_bioforge" ] && continue
+      [ ! -f "$server_dir/Cargo.toml" ] && continue
+      echo "--- Testing: $server_name ---"
+      run_cargo "tools/mcp/$server_name" test "${EXTRA_ARGS[@]}" || FAILED=1
+    done
+    [ "$FAILED" -eq 0 ] || { echo "FAIL: One or more MCP server tests failed"; exit 1; }
+    ;;
+
+  mcp-servers-full)
+    echo "=== Running full standalone MCP server CI checks ==="
+    $0 mcp-servers-fmt
+    $0 mcp-servers-clippy
+    $0 mcp-servers-test
+    ;;
+
+  # ============================================
+  # Standalone Rust Tools CI Stages
+  # Covers tools/rust/* not already in wrapper-* stages
+  # ============================================
+
+  tools-fmt)
+    echo "=== Running standalone Rust tools format checks ==="
+    FAILED=0
+    for tool_dir in "$PROJECT_ROOT"/tools/rust/*/; do
+      tool_name=$(basename "$tool_dir")
+      # Skip wrapper tools (covered by wrapper-* stages)
+      [ "$tool_name" = "wrapper-common" ] && continue
+      [ "$tool_name" = "git-guard" ] && continue
+      [ "$tool_name" = "gh-validator" ] && continue
+      [ ! -f "$tool_dir/Cargo.toml" ] && continue
+      echo "--- Checking format: $tool_name ---"
+      run_cargo "tools/rust/$tool_name" fmt --all -- --check || FAILED=1
+    done
+    [ "$FAILED" -eq 0 ] || { echo "FAIL: One or more Rust tools have formatting issues"; exit 1; }
+    ;;
+
+  tools-clippy)
+    echo "=== Running standalone Rust tools clippy lints ==="
+    FAILED=0
+    for tool_dir in "$PROJECT_ROOT"/tools/rust/*/; do
+      tool_name=$(basename "$tool_dir")
+      [ "$tool_name" = "wrapper-common" ] && continue
+      [ "$tool_name" = "git-guard" ] && continue
+      [ "$tool_name" = "gh-validator" ] && continue
+      [ ! -f "$tool_dir/Cargo.toml" ] && continue
+      echo "--- Linting: $tool_name ---"
+      run_cargo "tools/rust/$tool_name" clippy --all-targets -- -D warnings || FAILED=1
+    done
+    [ "$FAILED" -eq 0 ] || { echo "FAIL: One or more Rust tools have clippy warnings"; exit 1; }
+    ;;
+
+  tools-test)
+    echo "=== Running standalone Rust tools tests ==="
+    FAILED=0
+    for tool_dir in "$PROJECT_ROOT"/tools/rust/*/; do
+      tool_name=$(basename "$tool_dir")
+      [ "$tool_name" = "wrapper-common" ] && continue
+      [ "$tool_name" = "git-guard" ] && continue
+      [ "$tool_name" = "gh-validator" ] && continue
+      [ ! -f "$tool_dir/Cargo.toml" ] && continue
+      echo "--- Testing: $tool_name ---"
+      run_cargo "tools/rust/$tool_name" test "${EXTRA_ARGS[@]}" || FAILED=1
+    done
+    [ "$FAILED" -eq 0 ] || { echo "FAIL: One or more Rust tool tests failed"; exit 1; }
+    ;;
+
+  tools-full)
+    echo "=== Running full standalone Rust tools CI checks ==="
+    $0 tools-fmt
+    $0 tools-clippy
+    $0 tools-test
+    ;;
+
+  # ============================================
+  # Composite: All Rust CI
+  # ============================================
+
+  rust-all)
+    echo "=== Running ALL Rust CI checks ==="
+    $0 rust-full
+    $0 econ-full
+    $0 mcp-full
+    $0 bio-full
+    $0 tamper-full
+    $0 wrapper-full
+    $0 mcp-servers-full
+    $0 tools-full
     ;;
 
   *)
@@ -733,6 +786,9 @@ case "$STAGE" in
     echo "  Rust (bioforge+mcp):      bio-fmt, bio-clippy, bio-test, bio-build, bio-deny, bio-full"
     echo "  Rust (tamper_briefcase):  tamper-fmt, tamper-clippy, tamper-test, tamper-build, tamper-deny, tamper-full"
     echo "  Rust (wrapper_guard):     wrapper-fmt, wrapper-clippy, wrapper-test, wrapper-full"
+    echo "  Rust (mcp_servers):       mcp-servers-fmt, mcp-servers-clippy, mcp-servers-test, mcp-servers-full"
+    echo "  Rust (standalone tools):  tools-fmt, tools-clippy, tools-test, tools-full"
+    echo "  Rust (ALL):               rust-all"
     exit 1
     ;;
 esac

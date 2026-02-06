@@ -99,7 +99,7 @@ impl ConfigLoader {
                 Ok(meta) => {
                     let age = Self::now_timestamp() - meta.cached_at;
                     age < self.cache_ttl as f64
-                }
+                },
                 Err(_) => false,
             },
             Err(_) => false,
@@ -188,6 +188,7 @@ impl ConfigLoader {
     pub async fn load(&mut self, force_refresh: bool) -> Result<&ReactionConfig, ConfigError> {
         // Return cached if available and not forcing refresh
         if !force_refresh && self.config.is_some() {
+            #[allow(clippy::unnecessary_unwrap)]
             return Ok(self.config.as_ref().unwrap());
         }
 
@@ -202,10 +203,10 @@ impl ConfigLoader {
                     );
                     self.config = Some(config);
                     return Ok(self.config.as_ref().unwrap());
-                }
+                },
                 Err(e) => {
                     warn!("Cache load failed, will fetch: {}", e);
-                }
+                },
             }
         }
 
@@ -218,7 +219,7 @@ impl ConfigLoader {
                 }
                 self.config = Some(config);
                 Ok(self.config.as_ref().unwrap())
-            }
+            },
             Err(e) => {
                 // Try expired cache as fallback
                 warn!("GitHub fetch failed: {}", e);
@@ -228,13 +229,13 @@ impl ConfigLoader {
                         Ok(config) => {
                             self.config = Some(config);
                             Ok(self.config.as_ref().unwrap())
-                        }
+                        },
                         Err(_) => Err(ConfigError::NoConfig),
                     }
                 } else {
                     Err(ConfigError::NoConfig)
                 }
-            }
+            },
         }
     }
 

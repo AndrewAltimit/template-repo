@@ -166,7 +166,7 @@ mod tests {
         let session_id = Some(handler.sessions.create_session("test").await);
 
         // Spawn the processing loop
-        let handler_clone = handler.clone();
+        let handler_clone = Arc::clone(&handler);
         let session_clone = session_id.clone();
         let process_handle = tokio::spawn(async move {
             let mut reader = tokio::io::BufReader::new(stdin_read);

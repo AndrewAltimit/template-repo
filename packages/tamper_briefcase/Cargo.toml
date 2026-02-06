@@ -68,6 +68,15 @@ tamper-common = { path = "crates/tamper-common" }
 # Dev/test
 tempfile = "3.15"
 
+[workspace.lints.clippy]
+clone_on_ref_ptr = "warn"
+dbg_macro = "warn"
+todo = "warn"
+unimplemented = "warn"
+
+[workspace.lints.rust]
+unsafe_op_in_unsafe_fn = "warn"
+
 [profile.release]
 lto = true
 codegen-units = 1

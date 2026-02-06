@@ -260,7 +260,7 @@ impl Tool for GenerateImageTool {
                     "images": images
                 });
                 ToolResult::json(&response)
-            }
+            },
             Err(e) => {
                 let mut jobs = self.jobs.write().await;
                 if let Some(job) = jobs.get_mut(&job_id) {
@@ -273,7 +273,7 @@ impl Tool for GenerateImageTool {
                     "job_id": job_id
                 });
                 ToolResult::json(&response)
-            }
+            },
         }
     }
 }
@@ -415,14 +415,14 @@ impl Tool for ListModelsTool {
                     "count": models.len()
                 });
                 ToolResult::json(&response)
-            }
+            },
             Err(e) => {
                 let response = json!({
                     "success": false,
                     "error": e
                 });
                 ToolResult::json(&response)
-            }
+            },
         }
     }
 }
@@ -492,14 +492,14 @@ impl Tool for UploadLoraTool {
                     "size": data.len()
                 });
                 ToolResult::json(&response)
-            }
+            },
             Err(e) => {
                 let response = json!({
                     "success": false,
                     "error": e
                 });
                 ToolResult::json(&response)
-            }
+            },
         }
     }
 }
@@ -549,14 +549,14 @@ impl Tool for ListLorasTool {
                     "count": loras.len()
                 });
                 ToolResult::json(&response)
-            }
+            },
             Err(e) => {
                 let response = json!({
                     "success": false,
                     "error": e
                 });
                 ToolResult::json(&response)
-            }
+            },
         }
     }
 }
@@ -615,14 +615,14 @@ impl Tool for DownloadLoraTool {
                     "size": data.len()
                 });
                 ToolResult::json(&response)
-            }
+            },
             Err(e) => {
                 let response = json!({
                     "success": false,
                     "error": e
                 });
                 ToolResult::json(&response)
-            }
+            },
         }
     }
 }
@@ -661,7 +661,7 @@ impl Tool for GetObjectInfoTool {
                     "error": e
                 });
                 ToolResult::json(&response)
-            }
+            },
         }
     }
 }
@@ -700,14 +700,14 @@ impl Tool for GetSystemInfoTool {
                     "devices": stats.devices
                 });
                 ToolResult::json(&response)
-            }
+            },
             Err(e) => {
                 let response = json!({
                     "success": false,
                     "error": e
                 });
                 ToolResult::json(&response)
-            }
+            },
         }
     }
 }
@@ -773,14 +773,14 @@ impl Tool for ExecuteWorkflowTool {
                     "message": "Workflow queued for execution"
                 });
                 ToolResult::json(&response)
-            }
+            },
             Err(e) => {
                 let response = json!({
                     "success": false,
                     "error": e
                 });
                 ToolResult::json(&response)
-            }
+            },
         }
     }
 }

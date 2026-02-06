@@ -326,7 +326,7 @@ Use list_model_presets to see recommended settings for each model type."#
                 } else {
                     Resolution::Single(512)
                 }
-            }
+            },
         };
 
         // Smart defaults based on model type
@@ -397,7 +397,7 @@ Use list_model_presets to see recommended settings for each model type."#
             Resolution::Single(r) => (*r, *r),
             Resolution::Multiple(arr) => {
                 (*arr.last().unwrap_or(&1024), *arr.last().unwrap_or(&1024))
-            }
+            },
         };
 
         // Validate config name
@@ -707,7 +707,7 @@ impl Tool for UploadDatasetTool {
                 None => {
                     warn!("Missing filename in image data");
                     continue;
-                }
+                },
             };
 
             let data = match img_data.get("data").and_then(|v| v.as_str()) {
@@ -715,7 +715,7 @@ impl Tool for UploadDatasetTool {
                 None => {
                     warn!("Missing data in image: {}", filename);
                     continue;
-                }
+                },
             };
 
             let caption = match img_data.get("caption").and_then(|v| v.as_str()) {
@@ -723,7 +723,7 @@ impl Tool for UploadDatasetTool {
                 None => {
                     warn!("Missing caption in image: {}", filename);
                     continue;
-                }
+                },
             };
 
             // Validate filename
@@ -732,7 +732,7 @@ impl Tool for UploadDatasetTool {
                 Err(e) => {
                     error!("Invalid filename {}: {}", filename, e);
                     continue;
-                }
+                },
             };
 
             // Decode base64
@@ -741,7 +741,7 @@ impl Tool for UploadDatasetTool {
                 Err(e) => {
                     error!("Invalid base64 encoding for image {}: {}", filename, e);
                     continue;
-                }
+                },
             };
 
             // Ensure parent directory exists
@@ -999,7 +999,7 @@ impl Tool for GetTrainingStatusTool {
                     "status": "error",
                     "message": "Job not found"
                 }));
-            }
+            },
         };
 
         // Check if process is still running
@@ -1013,13 +1013,13 @@ impl Tool for GetTrainingStatusTool {
                     };
                     job.exit_code = exit_status.code();
                     processes.remove(job_id);
-                }
+                },
                 Ok(None) => {
                     job.status = JobStatus::Running;
-                }
+                },
                 Err(e) => {
                     error!("Failed to check process status: {}", e);
-                }
+                },
             }
         }
 
@@ -1257,7 +1257,7 @@ impl Tool for ExportModelTool {
                 return ToolResult::json(&json!({
                     "error": "Model not found"
                 }));
-            }
+            },
         };
 
         // Determine output path
@@ -1420,7 +1420,7 @@ impl Tool for DownloadModelTool {
                 return ToolResult::json(&json!({
                     "error": "Model not found"
                 }));
-            }
+            },
         };
 
         // Check file size before reading to prevent OOM
@@ -1591,7 +1591,7 @@ impl Tool for GetTrainingLogsTool {
                     "logs": [],
                     "lines": 0
                 }));
-            }
+            },
         };
 
         if let Some(log_file) = &job.log_file {
@@ -1974,7 +1974,7 @@ impl Tool for ValidateConfigTool {
                     "errors": [format!("Invalid YAML: {}", e)],
                     "warnings": []
                 }));
-            }
+            },
         };
 
         // Check required top-level keys

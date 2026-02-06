@@ -2,12 +2,8 @@
 # See https://embarkstudios.github.io/cargo-deny/
 
 [advisories]
-db-path = "~/.cargo/advisory-db"
-db-urls = ["https://github.com/rustsec/advisory-db"]
-vulnerability = "deny"
-unmaintained = "warn"
-yanked = "warn"
-notice = "warn"
+unmaintained = "workspace"
+ignore = []
 
 [licenses]
 # Allow common permissive licenses
@@ -22,7 +18,9 @@ allow = [
     "CC0-1.0",
     "Unlicense",
     "MPL-2.0",
+    "NCSA",
     "Unicode-DFS-2016",
+    "Unicode-3.0",
 ]
 confidence-threshold = 0.8
 

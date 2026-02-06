@@ -25,7 +25,9 @@ use server::CodeQualityServer;
 /// CLI arguments
 #[derive(Parser)]
 #[command(name = "mcp-code-quality")]
-#[command(about = "MCP server for code quality - format checking, linting, testing, and security scanning")]
+#[command(
+    about = "MCP server for code quality - format checking, linting, testing, and security scanning"
+)]
 #[command(version = "2.0.0")]
 struct Args {
     #[command(flatten)]
@@ -36,11 +38,19 @@ struct Args {
     timeout: u64,
 
     /// Comma-separated list of allowed paths
-    #[arg(long, default_value = "/workspace,/app,/home", env = "MCP_CODE_QUALITY_ALLOWED_PATHS")]
+    #[arg(
+        long,
+        default_value = "/workspace,/app,/home",
+        env = "MCP_CODE_QUALITY_ALLOWED_PATHS"
+    )]
     allowed_paths: String,
 
     /// Path to audit log file
-    #[arg(long, default_value = "/var/log/mcp-code-quality/audit.log", env = "MCP_CODE_QUALITY_AUDIT_LOG")]
+    #[arg(
+        long,
+        default_value = "/var/log/mcp-code-quality/audit.log",
+        env = "MCP_CODE_QUALITY_AUDIT_LOG"
+    )]
     audit_log: PathBuf,
 
     /// Enable rate limiting
@@ -63,12 +73,8 @@ async fn main() -> anyhow::Result<()> {
         .collect();
 
     // Create code quality server
-    let quality_server = CodeQualityServer::new(
-        args.timeout,
-        allowed_paths,
-        args.audit_log,
-        args.rate_limit,
-    );
+    let quality_server =
+        CodeQualityServer::new(args.timeout, allowed_paths, args.audit_log, args.rate_limit);
 
     // Build MCP server with all tools
     let mut builder = MCPServer::builder("code-quality", "2.0.0");
