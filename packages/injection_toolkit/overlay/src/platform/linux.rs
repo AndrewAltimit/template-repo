@@ -13,8 +13,8 @@ use winit::raw_window_handle::{HasWindowHandle, RawWindowHandle};
 use x11rb::connection::Connection;
 use x11rb::protocol::shape::{self, ConnectionExt as ShapeConnectionExt, SK};
 use x11rb::protocol::xproto::{
-    AtomEnum, ClientMessageData, ClientMessageEvent, ConnectionExt, EventMask, PropMode,
-    CLIENT_MESSAGE_EVENT,
+    AtomEnum, CLIENT_MESSAGE_EVENT, ClientMessageData, ClientMessageEvent, ConnectionExt,
+    EventMask, PropMode,
 };
 use x11rb::rust_connection::RustConnection;
 use x11rb::wrapper::ConnectionExt as WrapperConnectionExt;

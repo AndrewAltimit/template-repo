@@ -3,7 +3,7 @@
 //! Handles clock synchronization and playback sync across peers.
 
 use crate::peer::{NetMessage, PeerManager, VideoCommand};
-use crate::{Result, CLOCK_PING_INTERVAL_MS, SYNC_INTERVAL_MS};
+use crate::{CLOCK_PING_INTERVAL_MS, Result, SYNC_INTERVAL_MS};
 use itk_protocol::SyncState;
 use itk_sync::{ClockSync, DriftCorrector, PlaybackSync};
 use std::collections::HashMap;

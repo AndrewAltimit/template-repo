@@ -15,10 +15,10 @@
 
 use crate::log::vlog;
 use ash::vk::Handle;
-use std::ffi::{c_void, CString};
+use std::ffi::{CString, c_void};
 use std::sync::atomic::{AtomicBool, AtomicPtr, Ordering};
 use windows::Win32::System::LibraryLoader::{GetModuleHandleA, GetProcAddress};
-use windows::Win32::System::Memory::{VirtualProtect, PAGE_PROTECTION_FLAGS, PAGE_READWRITE};
+use windows::Win32::System::Memory::{PAGE_PROTECTION_FLAGS, PAGE_READWRITE, VirtualProtect};
 
 /// Whether VR hooks are active.
 static VR_ACTIVE: AtomicBool = AtomicBool::new(false);
@@ -321,11 +321,11 @@ unsafe extern "system" fn hooked_submit(
 /// Uses zero-copy frame passing: the SHMEM_READER lock is held across the render
 /// call so `poll_frame()` can return a direct `&[u8]` into shared memory.
 unsafe fn render_to_vr_eye(eye: EVREye, vk_data: &VRVulkanTextureData_t, frame: u64) {
-    use super::vulkan::{get_mvp, get_renderer, SHMEM_FAILED, SHMEM_READER};
+    use super::vulkan::{SHMEM_FAILED, SHMEM_READER, get_mvp, get_renderer};
     use crate::shmem_reader::ShmemFrameReader;
     use ash::vk;
-    use std::sync::atomic::Ordering;
     use std::sync::Mutex;
+    use std::sync::atomic::Ordering;
 
     // Get the renderer (shared with desktop rendering)
     let renderer_mutex = get_renderer();

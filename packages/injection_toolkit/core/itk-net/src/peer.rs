@@ -2,7 +2,7 @@
 //!
 //! Provides reliable and unreliable messaging between peers.
 
-use crate::{NetError, Result, DEFAULT_PORT};
+use crate::{DEFAULT_PORT, NetError, Result};
 use laminar::{Config, Packet, Socket, SocketEvent};
 use parking_lot::RwLock;
 use serde::{Deserialize, Serialize};

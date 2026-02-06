@@ -4,7 +4,7 @@
 
 use anyhow::Result;
 use itk_overlay::{
-    platform, render::Renderer, video::VideoFrameReader, OverlayConfig, OverlayState,
+    OverlayConfig, OverlayState, platform, render::Renderer, video::VideoFrameReader,
 };
 use itk_protocol::ScreenRect;
 use std::sync::Arc;

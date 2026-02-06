@@ -8,16 +8,16 @@
 //! so we hook the actual ICD implementation addresses after device creation.
 
 use crate::camera::projection::compute_cockpit_mvp;
-use crate::camera::{CameraReader, CAMERA_MODE_COCKPIT};
+use crate::camera::{CAMERA_MODE_COCKPIT, CameraReader};
 use crate::log::vlog;
 use crate::renderer::VulkanRenderer;
 use crate::shmem_reader::ShmemFrameReader;
 use ash::vk;
 use once_cell::sync::OnceCell;
-use retour::{static_detour, RawDetour};
-use std::ffi::{c_char, c_void, CString};
-use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
+use retour::{RawDetour, static_detour};
+use std::ffi::{CString, c_char, c_void};
 use std::sync::Mutex;
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use windows::Win32::System::LibraryLoader::{GetModuleHandleA, GetProcAddress};
 
 // --- Type aliases for ICD function pointers ---

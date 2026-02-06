@@ -12,7 +12,7 @@
 //! - **Windows**: Named pipes via `\\.\pipe\itk_*`
 //! - **Linux**: Unix domain sockets via `/tmp/itk_*.sock`
 
-use itk_protocol::{Header, HEADER_SIZE};
+use itk_protocol::{HEADER_SIZE, Header};
 use std::io;
 use thiserror::Error;
 
@@ -179,14 +179,14 @@ mod tests {
 #[allow(unused_imports, dead_code)]
 mod integration_tests {
     use super::*;
-    use itk_protocol::{decode, encode, MessageType};
+    use itk_protocol::{MessageType, decode, encode};
     use rand::Rng;
     use std::thread;
     use std::time::{Duration, Instant};
 
     /// Generate a unique channel name for testing
     fn test_channel_name() -> String {
-        let id: u32 = rand::thread_rng().gen();
+        let id: u32 = rand::thread_rng().r#gen();
         format!("itk_test_{}", id)
     }
 

@@ -2,8 +2,8 @@
 
 use super::{Result, SharedMemory, ShmemError};
 use nix::fcntl::OFlag;
-use nix::sys::mman::{mmap, munmap, shm_open, shm_unlink, MapFlags, ProtFlags};
-use nix::sys::stat::{fstat, Mode};
+use nix::sys::mman::{MapFlags, ProtFlags, mmap, munmap, shm_open, shm_unlink};
+use nix::sys::stat::{Mode, fstat};
 use nix::unistd::ftruncate;
 use std::ffi::CString;
 use std::num::NonZeroUsize;

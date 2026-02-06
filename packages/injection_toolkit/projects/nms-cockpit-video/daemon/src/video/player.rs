@@ -289,7 +289,7 @@ fn decode_loop(state: Arc<Mutex<PlayerState>>, command_rx: Receiver<PlayerComman
             Err(mpsc::RecvTimeoutError::Timeout) => {
                 // Decode next frame if playing
                 if is_playing {
-                    if let Some(ref mut decode_ctx) = ctx {
+                    if let Some(decode_ctx) = &mut ctx {
                         decode_next_frame(decode_ctx, &state);
                     }
                 }
@@ -459,7 +459,7 @@ fn handle_load(
                 "Failed to seek to start position, starting from beginning"
             );
         }
-        if let Some(ref audio_player) = audio {
+        if let Some(audio_player) = &audio {
             audio_player.seek(start_position_ms);
         }
     }
@@ -505,12 +505,12 @@ fn handle_play(state: &Arc<Mutex<PlayerState>>, ctx: &mut Option<DecodeContext>)
         info!(position_ms, "Resuming playback");
 
         // Update decode context timing
-        if let Some(ref mut decode_ctx) = ctx {
+        if let Some(decode_ctx) = ctx {
             decode_ctx.base_pts_ms = position_ms;
             decode_ctx.playback_start = Instant::now();
 
             // Resume audio
-            if let Some(ref audio) = decode_ctx.audio {
+            if let Some(audio) = &decode_ctx.audio {
                 audio.play();
             }
         }
@@ -532,8 +532,8 @@ fn handle_pause(state: &Arc<Mutex<PlayerState>>, ctx: &Option<DecodeContext>) {
         info!(position_ms = current_pos, "Pausing playback");
 
         // Pause audio
-        if let Some(ref ctx) = ctx {
-            if let Some(ref audio) = ctx.audio {
+        if let Some(ctx) = ctx {
+            if let Some(audio) = &ctx.audio {
                 audio.pause();
             }
         }
@@ -548,7 +548,7 @@ fn handle_pause(state: &Arc<Mutex<PlayerState>>, ctx: &Option<DecodeContext>) {
 /// Handle a seek command.
 fn handle_seek(state: &Arc<Mutex<PlayerState>>, ctx: &mut Option<DecodeContext>, position_ms: u64) {
     // Seek the decoder
-    if let Some(ref mut decode_ctx) = ctx {
+    if let Some(decode_ctx) = ctx {
         if let Err(e) = decode_ctx.decoder.seek(position_ms) {
             warn!(?e, position_ms, "Seek failed");
             return;
@@ -559,7 +559,7 @@ fn handle_seek(state: &Arc<Mutex<PlayerState>>, ctx: &mut Option<DecodeContext>,
         decode_ctx.pending_frame = None; // Discard stale buffered frame
 
         // Seek audio
-        if let Some(ref audio) = decode_ctx.audio {
+        if let Some(audio) = &decode_ctx.audio {
             audio.seek(position_ms);
         }
     }
@@ -608,8 +608,8 @@ fn handle_set_volume(state: &Arc<Mutex<PlayerState>>, ctx: &Option<DecodeContext
     let clamped = volume.clamp(0.0, 1.0);
 
     // Update audio player volume
-    if let Some(ref decode_ctx) = ctx {
-        if let Some(ref audio) = decode_ctx.audio {
+    if let Some(decode_ctx) = ctx {
+        if let Some(audio) = &decode_ctx.audio {
             audio.set_volume(clamped);
         }
     }

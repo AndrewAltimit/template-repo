@@ -58,7 +58,7 @@ impl HwDeviceContext {
     /// # Safety
     /// The caller must ensure `self` contains a valid device context pointer.
     pub unsafe fn new_ref(&self) -> *mut ffi::AVBufferRef {
-        ffi::av_buffer_ref(self.device_ctx)
+        unsafe { ffi::av_buffer_ref(self.device_ctx) }
     }
 
     /// Get the raw pixel format for D3D11 hardware frames.
@@ -93,42 +93,46 @@ pub unsafe fn transfer_hw_frame_if_needed(frame: *mut ffi::AVFrame) -> bool {
         return false;
     }
 
-    let format = (*frame).format;
-    let hw_fmt = HwDeviceContext::hw_pix_fmt() as i32;
+    // Safety: all operations below involve FFI calls and raw pointer derefs
+    // that require unsafe. The caller guarantees `frame` is valid and non-null.
+    unsafe {
+        let format = (*frame).format;
+        let hw_fmt = HwDeviceContext::hw_pix_fmt() as i32;
 
-    if format != hw_fmt {
-        // Frame is already in software format, nothing to do
-        return false;
-    }
+        if format != hw_fmt {
+            // Frame is already in software format, nothing to do
+            return false;
+        }
 
-    // Allocate a software frame to receive the transfer
-    let sw_frame = ffi::av_frame_alloc();
-    if sw_frame.is_null() {
-        warn!("Failed to allocate software frame for hw transfer");
-        return false;
-    }
+        // Allocate a software frame to receive the transfer
+        let sw_frame = ffi::av_frame_alloc();
+        if sw_frame.is_null() {
+            warn!("Failed to allocate software frame for hw transfer");
+            return false;
+        }
 
-    // Transfer from GPU to CPU memory
-    let ret = ffi::av_hwframe_transfer_data(sw_frame, frame, 0);
-    if ret < 0 {
-        warn!(
-            error_code = ret,
-            "Failed to transfer hardware frame to software"
-        );
+        // Transfer from GPU to CPU memory
+        let ret = ffi::av_hwframe_transfer_data(sw_frame, frame, 0);
+        if ret < 0 {
+            warn!(
+                error_code = ret,
+                "Failed to transfer hardware frame to software"
+            );
+            ffi::av_frame_free(&mut (sw_frame as *mut _));
+            return false;
+        }
+
+        // Copy metadata (pts, etc.) from the hw frame
+        (*sw_frame).pts = (*frame).pts;
+        (*sw_frame).pkt_dts = (*frame).pkt_dts;
+        (*sw_frame).duration = (*frame).duration;
+        (*sw_frame).best_effort_timestamp = (*frame).best_effort_timestamp;
+
+        // Move the software frame data into the original frame
+        ffi::av_frame_unref(frame);
+        ffi::av_frame_move_ref(frame, sw_frame);
         ffi::av_frame_free(&mut (sw_frame as *mut _));
-        return false;
     }
-
-    // Copy metadata (pts, etc.) from the hw frame
-    (*sw_frame).pts = (*frame).pts;
-    (*sw_frame).pkt_dts = (*frame).pkt_dts;
-    (*sw_frame).duration = (*frame).duration;
-    (*sw_frame).best_effort_timestamp = (*frame).best_effort_timestamp;
-
-    // Move the software frame data into the original frame
-    ffi::av_frame_unref(frame);
-    ffi::av_frame_move_ref(frame, sw_frame);
-    ffi::av_frame_free(&mut (sw_frame as *mut _));
 
     static FIRST_TRANSFER: AtomicBool = AtomicBool::new(true);
     if FIRST_TRANSFER.swap(false, Ordering::Relaxed) {

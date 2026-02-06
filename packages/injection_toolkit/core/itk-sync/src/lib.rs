@@ -326,19 +326,11 @@ impl DriftCorrector {
             0..=150 => 1.0, // Within tolerance, no correction
             151..=500 => {
                 // Gentle correction
-                if drift_ms > 0 {
-                    0.98
-                } else {
-                    1.02
-                }
+                if drift_ms > 0 { 0.98 } else { 1.02 }
             },
             501..=1500 => {
                 // Moderate correction
-                if drift_ms > 0 {
-                    0.95
-                } else {
-                    1.05
-                }
+                if drift_ms > 0 { 0.95 } else { 1.05 }
             },
             _ => {
                 // Large drift - recommend hard seek instead

@@ -6,7 +6,7 @@
 use crate::discovery::{DiscoveredPeer, Discovery};
 use crate::peer::{NetMessage, PeerEvent, PeerManager, VideoCommand};
 use crate::sync_manager::SyncManager;
-use crate::{NetError, Result, DEFAULT_PORT};
+use crate::{DEFAULT_PORT, NetError, Result};
 use std::net::SocketAddr;
 use std::time::{Duration, Instant};
 use tracing::{info, warn};

@@ -2,7 +2,7 @@
 //!
 //! Broadcasts presence on the local network to find other peers.
 
-use crate::{NetError, Result, DISCOVERY_PORT};
+use crate::{DISCOVERY_PORT, NetError, Result};
 use serde::{Deserialize, Serialize};
 use socket2::{Domain, Protocol, Socket, Type};
 use std::net::{SocketAddr, UdpSocket};
