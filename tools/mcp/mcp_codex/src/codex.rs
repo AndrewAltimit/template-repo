@@ -54,6 +54,19 @@ impl CodexIntegration {
             );
         }
 
+        // Check if Codex authentication exists
+        if !self.check_auth_exists() {
+            self.stats.errors += 1;
+            return ConsultResult::error(
+                format!(
+                    "Codex authentication not configured. Auth file not found at: {}. \
+                     Please run 'codex' interactively to complete authentication.",
+                    self.config.auth_path
+                ),
+                mode,
+            );
+        }
+
         // Build the prompt
         let prompt = self.build_prompt(query, context, mode);
 
@@ -384,6 +397,12 @@ impl CodexIntegration {
             Ok(output) => output.status.success(),
             Err(_) => false,
         }
+    }
+
+    /// Check if Codex authentication file exists
+    fn check_auth_exists(&self) -> bool {
+        let path = std::path::Path::new(&self.config.auth_path);
+        path.exists()
     }
 
     /// Toggle auto consultation

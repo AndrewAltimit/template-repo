@@ -653,6 +653,7 @@ case "$STAGE" in
 
   mcp-servers-fmt)
     echo "=== Running standalone MCP server format checks ==="
+    FAILED=0
     for server_dir in "$PROJECT_ROOT"/tools/mcp/mcp_*/; do
       server_name=$(basename "$server_dir")
       # Skip mcp_core_rust (has its own stages) and mcp_bioforge (covered by bio-*)
@@ -660,32 +661,37 @@ case "$STAGE" in
       [ "$server_name" = "mcp_bioforge" ] && continue
       [ ! -f "$server_dir/Cargo.toml" ] && continue
       echo "--- Checking format: $server_name ---"
-      run_cargo "tools/mcp/$server_name" fmt --all -- --check
+      run_cargo "tools/mcp/$server_name" fmt --all -- --check || FAILED=1
     done
+    [ "$FAILED" -eq 0 ] || { echo "FAIL: One or more MCP servers have formatting issues"; exit 1; }
     ;;
 
   mcp-servers-clippy)
     echo "=== Running standalone MCP server clippy lints ==="
+    FAILED=0
     for server_dir in "$PROJECT_ROOT"/tools/mcp/mcp_*/; do
       server_name=$(basename "$server_dir")
       [ "$server_name" = "mcp_core_rust" ] && continue
       [ "$server_name" = "mcp_bioforge" ] && continue
       [ ! -f "$server_dir/Cargo.toml" ] && continue
       echo "--- Linting: $server_name ---"
-      run_cargo "tools/mcp/$server_name" clippy --all-targets -- -D warnings
+      run_cargo "tools/mcp/$server_name" clippy --all-targets -- -D warnings || FAILED=1
     done
+    [ "$FAILED" -eq 0 ] || { echo "FAIL: One or more MCP servers have clippy warnings"; exit 1; }
     ;;
 
   mcp-servers-test)
     echo "=== Running standalone MCP server tests ==="
+    FAILED=0
     for server_dir in "$PROJECT_ROOT"/tools/mcp/mcp_*/; do
       server_name=$(basename "$server_dir")
       [ "$server_name" = "mcp_core_rust" ] && continue
       [ "$server_name" = "mcp_bioforge" ] && continue
       [ ! -f "$server_dir/Cargo.toml" ] && continue
       echo "--- Testing: $server_name ---"
-      run_cargo "tools/mcp/$server_name" test "${EXTRA_ARGS[@]}"
+      run_cargo "tools/mcp/$server_name" test "${EXTRA_ARGS[@]}" || FAILED=1
     done
+    [ "$FAILED" -eq 0 ] || { echo "FAIL: One or more MCP server tests failed"; exit 1; }
     ;;
 
   mcp-servers-full)
@@ -702,6 +708,7 @@ case "$STAGE" in
 
   tools-fmt)
     echo "=== Running standalone Rust tools format checks ==="
+    FAILED=0
     for tool_dir in "$PROJECT_ROOT"/tools/rust/*/; do
       tool_name=$(basename "$tool_dir")
       # Skip wrapper tools (covered by wrapper-* stages)
@@ -710,12 +717,14 @@ case "$STAGE" in
       [ "$tool_name" = "gh-validator" ] && continue
       [ ! -f "$tool_dir/Cargo.toml" ] && continue
       echo "--- Checking format: $tool_name ---"
-      run_cargo "tools/rust/$tool_name" fmt --all -- --check
+      run_cargo "tools/rust/$tool_name" fmt --all -- --check || FAILED=1
     done
+    [ "$FAILED" -eq 0 ] || { echo "FAIL: One or more Rust tools have formatting issues"; exit 1; }
     ;;
 
   tools-clippy)
     echo "=== Running standalone Rust tools clippy lints ==="
+    FAILED=0
     for tool_dir in "$PROJECT_ROOT"/tools/rust/*/; do
       tool_name=$(basename "$tool_dir")
       [ "$tool_name" = "wrapper-common" ] && continue
@@ -723,12 +732,14 @@ case "$STAGE" in
       [ "$tool_name" = "gh-validator" ] && continue
       [ ! -f "$tool_dir/Cargo.toml" ] && continue
       echo "--- Linting: $tool_name ---"
-      run_cargo "tools/rust/$tool_name" clippy --all-targets -- -D warnings
+      run_cargo "tools/rust/$tool_name" clippy --all-targets -- -D warnings || FAILED=1
     done
+    [ "$FAILED" -eq 0 ] || { echo "FAIL: One or more Rust tools have clippy warnings"; exit 1; }
     ;;
 
   tools-test)
     echo "=== Running standalone Rust tools tests ==="
+    FAILED=0
     for tool_dir in "$PROJECT_ROOT"/tools/rust/*/; do
       tool_name=$(basename "$tool_dir")
       [ "$tool_name" = "wrapper-common" ] && continue
@@ -736,8 +747,9 @@ case "$STAGE" in
       [ "$tool_name" = "gh-validator" ] && continue
       [ ! -f "$tool_dir/Cargo.toml" ] && continue
       echo "--- Testing: $tool_name ---"
-      run_cargo "tools/rust/$tool_name" test "${EXTRA_ARGS[@]}"
+      run_cargo "tools/rust/$tool_name" test "${EXTRA_ARGS[@]}" || FAILED=1
     done
+    [ "$FAILED" -eq 0 ] || { echo "FAIL: One or more Rust tool tests failed"; exit 1; }
     ;;
 
   tools-full)
