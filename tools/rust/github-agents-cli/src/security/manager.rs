@@ -152,15 +152,23 @@ impl SecurityManager {
     pub fn from_config_path(path: &Path) -> Result<Self, Error> {
         let content = std::fs::read_to_string(path).map_err(Error::Io)?;
 
-        // Try parsing as .agents.yaml (nested format) first, then flat.
-        // Only treat as nested when the `security` key is actually present,
-        // otherwise fall through to flat SecurityConfig parsing.
-        let config = if let Ok(agents_config) = serde_yaml::from_str::<AgentsYamlConfig>(&content) {
+        // Check if the YAML has a top-level `security` key to determine format.
+        // If it does, parse as nested `.agents.yaml` and propagate errors
+        // (don't silently fall back to flat format with defaults).
+        let has_security_key = serde_yaml::from_str::<serde_yaml::Value>(&content)
+            .ok()
+            .and_then(|v| v.as_mapping().cloned())
+            .map(|m| m.contains_key(serde_yaml::Value::String("security".to_string())))
+            .unwrap_or(false);
+
+        let config = if has_security_key {
+            let agents_config = serde_yaml::from_str::<AgentsYamlConfig>(&content)?;
             if let Some(security) = agents_config.security {
                 info!("Loaded security config from agents YAML (nested format)");
                 security
             } else {
-                serde_yaml::from_str::<SecurityConfig>(&content)?
+                // `security` key present but null/empty - use defaults
+                SecurityConfig::default()
             }
         } else {
             serde_yaml::from_str::<SecurityConfig>(&content)?
@@ -521,5 +529,28 @@ rate_limit_window_minutes: 15
             agents_config.security.is_none(),
             "flat config should not populate nested security field"
         );
+    }
+
+    #[test]
+    fn test_invalid_nested_security_does_not_silently_fallback() {
+        // If YAML has `security:` key with invalid shape, from_config_path
+        // should propagate the error, not silently fall back to defaults
+        let dir = std::env::temp_dir().join("test_invalid_nested");
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("invalid_nested.yaml");
+        std::fs::write(
+            &path,
+            r#"
+security:
+  agent_admins: "not_a_list"
+"#,
+        )
+        .unwrap();
+        let result = SecurityManager::from_config_path(&path);
+        assert!(
+            result.is_err(),
+            "invalid nested security config should return error, not silent defaults"
+        );
+        std::fs::remove_dir_all(&dir).ok();
     }
 }
