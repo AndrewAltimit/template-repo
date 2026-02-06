@@ -3,6 +3,7 @@
 use chrono::Utc;
 use serde_json::Value;
 use std::process::Stdio;
+use std::time::Instant;
 use tokio::process::Command;
 use tokio::time::{Duration, timeout};
 use tracing::{debug, info, warn};
@@ -70,9 +71,15 @@ impl CodexIntegration {
         // Build the prompt
         let prompt = self.build_prompt(query, context, mode);
 
+        let start = Instant::now();
+
         // Execute Codex
         match self.execute_codex(&prompt, mode).await {
             Ok(output) => {
+                let execution_time = start.elapsed().as_secs_f64();
+                self.stats.completed += 1;
+                self.stats.total_execution_time += execution_time;
+
                 // Add to history
                 if self.config.include_history {
                     self.add_to_history(query, mode, true, Some(&output));
@@ -80,9 +87,10 @@ impl CodexIntegration {
 
                 if self.config.log_consultations {
                     info!(
-                        "Codex consultation: mode={:?}, query_length={}",
+                        "Codex consultation: mode={:?}, query_length={}, time={:.2}s",
                         mode,
-                        query.len()
+                        query.len(),
+                        execution_time
                     );
                 }
 
@@ -476,9 +484,9 @@ impl mcp_ai_consult::AiIntegration for CodexIntegration {
     fn snapshot_stats(&self) -> mcp_ai_consult::IntegrationStats {
         mcp_ai_consult::IntegrationStats {
             consultations: self.stats.consultations,
-            completed: 0,
+            completed: self.stats.completed,
             errors: self.stats.errors,
-            total_execution_time: 0.0,
+            total_execution_time: self.stats.total_execution_time,
             last_consultation: self.stats.last_consultation,
         }
     }

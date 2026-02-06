@@ -33,7 +33,7 @@ impl CrushIntegration {
     }
 
     /// Consult Crush for code generation (internal implementation).
-    async fn consult_impl(&mut self, query: &str, force: bool) -> ConsultResult {
+    async fn consult_impl(&mut self, query: &str, context: &str, force: bool) -> ConsultResult {
         self.consultation_counter += 1;
         let consultation_id = format!(
             "crush_{}_{}_{}",
@@ -58,8 +58,13 @@ impl CrushIntegration {
             );
         }
 
-        // Prepare full query with history
-        let full_query = self.prepare_query(query);
+        // Prepare full query with context and history
+        let query_with_context = if context.is_empty() {
+            query.to_string()
+        } else {
+            format!("{}\n\nContext:\n{}", query, context)
+        };
+        let full_query = self.prepare_query(&query_with_context);
 
         // Execute Crush CLI
         let result = self.execute_crush(&full_query).await;
@@ -435,7 +440,9 @@ impl mcp_ai_consult::AiIntegration for CrushIntegration {
         &mut self,
         params: mcp_ai_consult::ConsultParams,
     ) -> mcp_ai_consult::ConsultResult {
-        let local = self.consult_impl(&params.query, params.force).await;
+        let local = self
+            .consult_impl(&params.query, &params.context, params.force)
+            .await;
         match local.status {
             ConsultStatus::Success => mcp_ai_consult::ConsultResult::success(
                 local.response.unwrap_or_default(),

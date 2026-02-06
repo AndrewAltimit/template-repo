@@ -39,7 +39,13 @@ impl OpenCodeIntegration {
     }
 
     /// Consult OpenCode for code assistance (internal implementation).
-    async fn consult_impl(&mut self, query: &str, mode: ConsultMode, force: bool) -> ConsultResult {
+    async fn consult_impl(
+        &mut self,
+        query: &str,
+        context: &str,
+        mode: ConsultMode,
+        force: bool,
+    ) -> ConsultResult {
         self.consultation_counter += 1;
         let consultation_id = format!(
             "opencode_{}_{}_{}",
@@ -66,8 +72,13 @@ impl OpenCodeIntegration {
 
         let start = Instant::now();
 
-        // Build messages with history
-        let messages = self.build_messages(query, mode);
+        // Build messages with context and history
+        let query_with_context = if context.is_empty() {
+            query.to_string()
+        } else {
+            format!("{}\n\nContext:\n{}", query, context)
+        };
+        let messages = self.build_messages(&query_with_context, mode);
 
         // Make API request
         let result = self.call_openrouter(&messages).await;
@@ -260,7 +271,9 @@ impl mcp_ai_consult::AiIntegration for OpenCodeIntegration {
             .as_deref()
             .map(ConsultMode::from_str)
             .unwrap_or(ConsultMode::Quick);
-        let local = self.consult_impl(&params.query, mode, params.force).await;
+        let local = self
+            .consult_impl(&params.query, &params.context, mode, params.force)
+            .await;
         let exec_time = local.execution_time.unwrap_or(0.0);
         match local.status {
             ConsultStatus::Success => mcp_ai_consult::ConsultResult::success(

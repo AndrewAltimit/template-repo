@@ -156,8 +156,12 @@ pub struct HistoryEntry {
 pub struct CodexStats {
     /// Total consultations
     pub consultations: u64,
+    /// Completed consultations
+    pub completed: u64,
     /// Total errors
     pub errors: u64,
+    /// Total execution time in seconds
+    pub total_execution_time: f64,
     /// Last consultation timestamp
     pub last_consultation: Option<DateTime<Utc>>,
 }
