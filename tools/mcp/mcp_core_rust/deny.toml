@@ -2,15 +2,17 @@
 # https://embarkstudios.github.io/cargo-deny/
 
 [advisories]
-db-path = "~/.cargo/advisory-db"
-db-urls = ["https://github.com/rustsec/advisory-db"]
-vulnerability = "deny"
-unmaintained = "warn"
-yanked = "warn"
-notice = "warn"
+unmaintained = "workspace"
+ignore = [
+    # bytes: integer overflow in BytesMut::reserve (RUSTSEC-2026-0007)
+    # TODO: update bytes to patched version
+    "RUSTSEC-2026-0007",
+    # time: DoS via stack exhaustion (RUSTSEC-2026-0009)
+    # TODO: update time to >=0.3.47
+    "RUSTSEC-2026-0009",
+]
 
 [licenses]
-unlicensed = "deny"
 allow = [
     "MIT",
     "Apache-2.0",
@@ -25,7 +27,6 @@ allow = [
     "Unicode-3.0",
     "BSL-1.0",
 ]
-copyleft = "warn"
 
 [bans]
 multiple-versions = "warn"

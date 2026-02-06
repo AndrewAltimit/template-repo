@@ -2,6 +2,7 @@
 name = "nms-video-launcher"
 version.workspace = true
 edition.workspace = true
+license.workspace = true
 
 [[bin]]
 name = "nms-video-launcher"
