@@ -103,11 +103,11 @@ impl Default for SecurityConfig {
 /// Top-level structure of `.agents.yaml` for extracting the nested `security` section.
 ///
 /// The `.agents.yaml` file stores security config under `security:`, not at the top level.
-/// Parsing the whole file as a flat `SecurityConfig` silently ignores custom settings.
+/// Uses `Option` instead of `#[serde(default)]` so we can distinguish "no security key"
+/// (flat format) from "has security key" (nested format).
 #[derive(Debug, Deserialize)]
 struct AgentsYamlConfig {
-    #[serde(default)]
-    security: SecurityConfig,
+    security: Option<SecurityConfig>,
 }
 
 /// Trigger information parsed from a comment.
@@ -152,10 +152,17 @@ impl SecurityManager {
     pub fn from_config_path(path: &Path) -> Result<Self, Error> {
         let content = std::fs::read_to_string(path).map_err(Error::Io)?;
 
-        // Try parsing as .agents.yaml (nested format) first, then flat
-        let config = if let Ok(agents_config) = serde_yaml::from_str::<AgentsYamlConfig>(&content) {
-            info!("Loaded security config from agents YAML (nested format)");
-            agents_config.security
+        // Try parsing as .agents.yaml (nested format) first, then flat.
+        // Only treat as nested when the `security` key is actually present,
+        // otherwise fall through to flat SecurityConfig parsing.
+        let config = if let Ok(agents_config) = serde_yaml::from_str::<AgentsYamlConfig>(&content)
+        {
+            if let Some(security) = agents_config.security {
+                info!("Loaded security config from agents YAML (nested format)");
+                security
+            } else {
+                serde_yaml::from_str::<SecurityConfig>(&content)?
+            }
         } else {
             serde_yaml::from_str::<SecurityConfig>(&content)?
         };
@@ -481,7 +488,37 @@ security:
   rate_limit_window_minutes: 30
 "#;
         let agents_config: AgentsYamlConfig = serde_yaml::from_str(yaml).unwrap();
-        assert_eq!(agents_config.security.agent_admins, vec!["TestAdmin"]);
-        assert_eq!(agents_config.security.rate_limit_window_minutes, 30);
+        let security = agents_config.security.expect("security key should be present");
+        assert_eq!(security.agent_admins, vec!["TestAdmin"]);
+        assert_eq!(security.rate_limit_window_minutes, 30);
+    }
+
+    #[test]
+    fn test_agents_yaml_without_security_key() {
+        // A YAML without `security:` key should parse but have security = None
+        let yaml = r#"
+enabled_agents:
+  - claude
+"#;
+        let agents_config: AgentsYamlConfig = serde_yaml::from_str(yaml).unwrap();
+        assert!(
+            agents_config.security.is_none(),
+            "security should be None when key is absent"
+        );
+    }
+
+    #[test]
+    fn test_flat_config_not_treated_as_nested() {
+        // A flat SecurityConfig should not be silently consumed as nested format
+        let yaml = r#"
+agent_admins:
+  - FlatAdmin
+rate_limit_window_minutes: 15
+"#;
+        let agents_config: AgentsYamlConfig = serde_yaml::from_str(yaml).unwrap();
+        assert!(
+            agents_config.security.is_none(),
+            "flat config should not populate nested security field"
+        );
     }
 }
