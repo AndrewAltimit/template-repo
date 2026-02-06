@@ -7,7 +7,7 @@
 //! Also provides a `--setup` mode for initial password configuration.
 
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process;
 
 use anyhow::{Context, Result, bail};
@@ -38,6 +38,10 @@ const MAX_ATTEMPTS: u32 = 3;
 #[command(name = "tamper-challenge")]
 #[command(about = "Tamper authentication challenge")]
 struct Cli {
+    /// Path to the password hash file (used in challenge mode).
+    #[arg(long, default_value = DEFAULT_HASH_FILE)]
+    hash_file: PathBuf,
+
     #[command(subcommand)]
     command: Option<Commands>,
 }
@@ -181,8 +185,8 @@ fn setup(hash_file: &PathBuf, salt_file: &PathBuf) -> Result<()> {
 // Challenge mode (default)
 // ---------------------------------------------------------------------------
 
-fn challenge() -> Result<bool> {
-    let hash_bytes = fs::read(DEFAULT_HASH_FILE)
+fn challenge(hash_file: &Path) -> Result<bool> {
+    let hash_bytes = fs::read(hash_file)
         .context("Password not configured. Run `tamper-challenge setup` first.")?;
 
     eprintln!();
@@ -231,7 +235,7 @@ fn main() {
                 process::exit(1);
             }
         },
-        None => match challenge() {
+        None => match challenge(&cli.hash_file) {
             Ok(true) => process::exit(0),
             Ok(false) => process::exit(1),
             Err(e) => {
@@ -239,5 +243,88 @@ fn main() {
                 process::exit(1);
             },
         },
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Tests
+// ---------------------------------------------------------------------------
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn hash_and_verify_correct_password() {
+        let password = "test_password_123";
+        let (hash_bytes, _salt_bytes) = hash_password(password).unwrap();
+
+        assert!(verify_password(password, &hash_bytes));
+    }
+
+    #[test]
+    fn verify_rejects_wrong_password() {
+        let password = "correct_password";
+        let (hash_bytes, _salt_bytes) = hash_password(password).unwrap();
+
+        assert!(!verify_password("wrong_password", &hash_bytes));
+    }
+
+    #[test]
+    fn verify_rejects_invalid_hash() {
+        assert!(!verify_password("anything", b"not a valid hash"));
+    }
+
+    #[test]
+    fn verify_rejects_non_utf8_hash() {
+        assert!(!verify_password("anything", &[0xFF, 0xFE, 0xFD]));
+    }
+
+    #[test]
+    fn hash_produces_different_salts() {
+        let password = "same_password";
+        let (hash1, salt1) = hash_password(password).unwrap();
+        let (hash2, salt2) = hash_password(password).unwrap();
+
+        // Same password, different salts -> different hashes.
+        assert_ne!(salt1, salt2);
+        assert_ne!(hash1, hash2);
+
+        // Both should still verify.
+        assert!(verify_password(password, &hash1));
+        assert!(verify_password(password, &hash2));
+    }
+
+    #[test]
+    fn hash_output_is_phc_format() {
+        let (hash_bytes, _) = hash_password("test12345678").unwrap();
+        let hash_str = std::str::from_utf8(&hash_bytes).unwrap();
+
+        // PHC string format: $scrypt$...
+        assert!(
+            hash_str.starts_with("$scrypt$"),
+            "Expected PHC format, got: {}",
+            hash_str
+        );
+    }
+
+    #[test]
+    fn setup_writes_credential_files() {
+        // We cannot test setup() directly because it reads from stdin via
+        // rpassword. Instead, test the file-writing portion by simulating
+        // what setup does after password entry.
+        let dir = tempfile::tempdir().unwrap();
+        let hash_file = dir.path().join("password.hash");
+        let salt_file = dir.path().join("salt");
+
+        let password = "integration_test_pw";
+        let (hash_bytes, salt_bytes) = hash_password(password).unwrap();
+
+        fs::write(&hash_file, &hash_bytes).unwrap();
+        fs::write(&salt_file, &salt_bytes).unwrap();
+
+        // Verify the written hash works.
+        let stored_hash = fs::read(&hash_file).unwrap();
+        assert!(verify_password(password, &stored_hash));
     }
 }

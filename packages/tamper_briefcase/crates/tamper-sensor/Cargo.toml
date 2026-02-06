@@ -13,7 +13,6 @@ path = "src/main.rs"
 
 [dependencies]
 tamper-common = { workspace = true }
-rppal = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 log = { workspace = true }
@@ -21,3 +20,6 @@ env_logger = { workspace = true }
 chrono = { workspace = true }
 anyhow = { workspace = true }
 nix = { workspace = true }
+
+[target.'cfg(target_arch = "aarch64")'.dependencies]
+rppal = { workspace = true }

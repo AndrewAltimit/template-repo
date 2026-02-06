@@ -132,8 +132,12 @@ pub fn unwrap_secrets(
     );
 
     // -- Step 6: Derive device secrets wrapping key --
-    if encrypted_blob.len() < 44 {
-        bail!("Encrypted device secrets blob too short");
+    // Layout: salt (32) + nonce (12) + ciphertext (>= AES-GCM tag 16) = min 60 bytes
+    if encrypted_blob.len() < 60 {
+        bail!(
+            "Encrypted device secrets blob too short (expected >= 60 bytes, got {})",
+            encrypted_blob.len()
+        );
     }
 
     let device_salt = &encrypted_blob[..32];

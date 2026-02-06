@@ -59,8 +59,14 @@ secrecy = { version = "0.10", features = ["serde"] }
 # Base64
 base64 = "0.22"
 
+# Hex encoding
+hex = "0.4"
+
 # Internal crates
 tamper-common = { path = "crates/tamper-common" }
+
+# Dev/test
+tempfile = "3.15"
 
 [profile.release]
 lto = true

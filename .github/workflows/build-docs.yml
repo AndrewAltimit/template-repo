@@ -100,6 +100,12 @@ jobs:
             docs_output \
             bioforge-crispr-automation
 
+          ./automation/ci-cd/build-latex-doc.sh \
+            secure-terminal-briefcase.tex \
+            docs/hardware/latex \
+            docs_output \
+            secure-terminal-briefcase
+
           # Handouts
           ./automation/ci-cd/build-latex-doc.sh \
             Agentic_Workflow_Handout.tex \

@@ -148,3 +148,73 @@ fn main() -> anyhow::Result<()> {
         } => unwrap::verify_image(&image, &signature, &public_meta_file),
     }
 }
+
+// ---------------------------------------------------------------------------
+// Tests
+// ---------------------------------------------------------------------------
+
+#[cfg(test)]
+mod tests {
+    use std::fs;
+
+    /// End-to-end test: generate key material -> unwrap device secrets.
+    ///
+    /// This exercises the full PQC key wrapping pipeline:
+    /// 1. Generate master secret + hybrid-wrapped keys
+    /// 2. Unwrap using the private keys
+    /// 3. Verify the decrypted device secrets match the originals
+    #[test]
+    fn generate_and_unwrap_roundtrip() {
+        let dir = tempfile::tempdir().unwrap();
+
+        let root_pass = "test_root_passphrase";
+        let data_pass = "test_data_passphrase";
+
+        // Generate all key material.
+        crate::keygen::generate(dir.path(), root_pass, data_pass).unwrap();
+
+        // Unwrap secrets using generated material.
+        let output = dir.path().join("decrypted_secrets.json");
+        crate::unwrap::unwrap_secrets(
+            &dir.path().join("private/recovery_private.json"),
+            &dir.path().join("public/recovery_public.json"),
+            &dir.path().join("public/wrapped_secret.bin"),
+            &dir.path().join("encrypted/device_secrets.json.enc"),
+            &output,
+        )
+        .unwrap();
+
+        // Verify the decrypted secrets contain the original passphrases.
+        let decrypted: serde_json::Value =
+            serde_json::from_str(&fs::read_to_string(&output).unwrap()).unwrap();
+
+        assert_eq!(decrypted["root_passphrase"], root_pass);
+        assert_eq!(decrypted["data_passphrase"], data_pass);
+    }
+
+    /// Verify that unwrap fails with wrong private keys.
+    #[test]
+    fn unwrap_fails_with_wrong_keys() {
+        let dir1 = tempfile::tempdir().unwrap();
+        let dir2 = tempfile::tempdir().unwrap();
+
+        // Generate two independent key sets.
+        crate::keygen::generate(dir1.path(), "pass1", "pass2").unwrap();
+        crate::keygen::generate(dir2.path(), "pass3", "pass4").unwrap();
+
+        // Try to unwrap dir1's secrets with dir2's private keys.
+        let output = dir1.path().join("decrypted.json");
+        let result = crate::unwrap::unwrap_secrets(
+            &dir2.path().join("private/recovery_private.json"),
+            &dir1.path().join("public/recovery_public.json"),
+            &dir1.path().join("public/wrapped_secret.bin"),
+            &dir1.path().join("encrypted/device_secrets.json.enc"),
+            &output,
+        );
+
+        assert!(
+            result.is_err(),
+            "Unwrap should fail with wrong private keys"
+        );
+    }
+}
