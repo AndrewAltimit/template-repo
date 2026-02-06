@@ -602,7 +602,7 @@ The gate orchestrator implements a five-state FSM:
 
 The sensor daemon emits JSON-serialized \texttt{TamperEvent} structures over a named FIFO, one per line:
 
-\begin{lstlisting}[language=json]
+\begin{lstlisting}
 {
   "timestamp": "2026-02-05T14:30:00Z",
   "event_type": "LidOpened",
@@ -701,24 +701,24 @@ Recovery USB (32GB+)
 
 \begin{center}
 \begin{tikzpicture}[font=\sffamily\small, node distance=1.8cm]
-    \tikzstyle{step} = [rectangle, rounded corners=4pt, minimum width=11cm, minimum height=1.2cm,
+    \tikzstyle{flowstep} = [rectangle, rounded corners=4pt, minimum width=11cm, minimum height=1.2cm,
       text centered, draw=deepnavy, line width=0.6pt, align=center, font=\sffamily\small]
 
-    \node (s1) [step, fill=steelblue!10] {
+    \node (s1) [flowstep, fill=steelblue!10] {
       \textbf{1. Generate} 64-byte random RECOVERY SECRET (master secret)};
-    \node (s2) [step, below of=s1, fill=steelblue!10] {
+    \node (s2) [flowstep, below of=s1, fill=steelblue!10] {
       \textbf{2. Derive} USB LUKS passphrase via HKDF-SHA512};
-    \node (s3) [step, below of=s2, fill=steelblue!10] {
+    \node (s3) [flowstep, below of=s2, fill=steelblue!10] {
       \textbf{3. Encrypt} device secrets (root + data passphrases) with AES-256-GCM};
-    \node (s4) [step, below of=s3, fill=cryptogreen!10] {
+    \node (s4) [flowstep, below of=s3, fill=cryptogreen!10] {
       \textbf{4. X25519} ECDH $\rightarrow$ classical shared secret};
-    \node (s5) [step, below of=s4, fill=cryptogreen!10] {
+    \node (s5) [flowstep, below of=s4, fill=cryptogreen!10] {
       \textbf{5. ML-KEM-1024} encapsulation $\rightarrow$ post-quantum shared secret};
-    \node (s6) [step, below of=s5, fill=securityamber!10] {
+    \node (s6) [flowstep, below of=s5, fill=securityamber!10] {
       \textbf{6. Combine}: SHA-512(classical\_ss $\|$ pq\_ss) $\rightarrow$ HKDF $\rightarrow$ wrapping key};
-    \node (s7) [step, below of=s6, fill=securityamber!10] {
+    \node (s7) [flowstep, below of=s6, fill=securityamber!10] {
       \textbf{7. Wrap} recovery secret with AES-256-GCM using wrapping key};
-    \node (s8) [step, below of=s7, fill=wipecrimson!10] {
+    \node (s8) [flowstep, below of=s7, fill=wipecrimson!10] {
       \textbf{8. Sign} disk image with ML-DSA-87};
 
     \foreach \i/\j in {s1/s2, s2/s3, s3/s4, s4/s5, s5/s6, s6/s7, s7/s8} {
