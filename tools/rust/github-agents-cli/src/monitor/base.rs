@@ -83,6 +83,9 @@ pub struct BaseMonitor {
 
 impl BaseMonitor {
     /// Create a new base monitor.
+    ///
+    /// Attempts to load security config from `.agents.yaml` in the current
+    /// directory (or `AGENTS_CONFIG_PATH` env var). Falls back to defaults.
     pub fn new(running: Arc<AtomicBool>) -> Result<Self, Error> {
         let config = MonitorConfig::default();
 
@@ -90,12 +93,40 @@ impl BaseMonitor {
             return Err(Error::EnvNotSet("GITHUB_REPOSITORY".to_string()));
         }
 
+        let security_manager = Self::load_security_manager();
+
         Ok(Self {
             config,
-            security_manager: SecurityManager::new(),
+            security_manager,
             running,
             agent_tag: "[AI Agent]".to_string(),
         })
+    }
+
+    /// Load security manager from `.agents.yaml` or fall back to defaults.
+    fn load_security_manager() -> SecurityManager {
+        // Check env var first, then current directory
+        let config_path = env::var("AGENTS_CONFIG_PATH")
+            .map(std::path::PathBuf::from)
+            .unwrap_or_else(|_| std::path::PathBuf::from(".agents.yaml"));
+
+        if config_path.exists() {
+            match SecurityManager::from_config_path(&config_path) {
+                Ok(manager) => {
+                    info!("Loaded security config from {}", config_path.display());
+                    return manager;
+                },
+                Err(e) => {
+                    warn!(
+                        "Failed to load security config from {}: {}, using defaults",
+                        config_path.display(),
+                        e
+                    );
+                },
+            }
+        }
+
+        SecurityManager::new()
     }
 
     /// Check if the monitor should continue running.

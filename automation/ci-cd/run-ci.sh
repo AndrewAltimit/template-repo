@@ -39,17 +39,23 @@ fi
 # Ensure cache directories exist (prevents Docker from creating them as root)
 mkdir -p ~/.cache/uv ~/.cache/pre-commit
 
-# Build the CI image if needed
-echo "🔨 Building CI image..."
-docker compose -f "$COMPOSE_FILE" build python-ci
-
 # ============================================
-# Rust CI Helper Functions
+# Docker Image Build Guards (idempotent per invocation)
 # ============================================
 
 # Track whether Docker images have been built this invocation
+_PYTHON_CI_BUILT=0
 _RUST_CI_BUILT=0
 _RUST_CI_NIGHTLY_BUILT=0
+
+# Build the Python CI Docker image (idempotent per invocation)
+build_python_ci() {
+  if [ "$_PYTHON_CI_BUILT" -eq 0 ]; then
+    echo "Building Python CI image..."
+    docker compose -f "$COMPOSE_FILE" build python-ci
+    _PYTHON_CI_BUILT=1
+  fi
+}
 
 # Build the Rust CI Docker image (idempotent per invocation)
 build_rust_ci() {
@@ -97,6 +103,7 @@ run_ws_deny()   { run_cargo "$1" deny check; }
 case "$STAGE" in
   format)
     echo "=== Running format checks ==="
+    build_python_ci
     # Use ruff format (replaces black, 10-100x faster)
     docker compose -f "$COMPOSE_FILE" run --rm python-ci ruff format --check --diff .
     # Check import sorting
@@ -105,46 +112,51 @@ case "$STAGE" in
 
   lint-basic)
     echo "=== Running basic linting ==="
+    build_python_ci
     # Format check (ruff format replaces black)
     docker compose -f "$COMPOSE_FILE" run --rm python-ci ruff format --check .
     # Import sorting check
     docker compose -f "$COMPOSE_FILE" run --rm python-ci ruff check --select=I .
     # Critical errors (ruff replaces flake8 for E9,F63,F7,F82)
     docker compose -f "$COMPOSE_FILE" run --rm python-ci ruff check --select=E9,F63,F7,F82 --output-format="$RUFF_OUTPUT_FORMAT" .
-    # Style check (informational)
-    docker compose -f "$COMPOSE_FILE" run --rm python-ci ruff check --select=E,W,C90 --exit-zero --output-format=grouped .
+    # Style check (errors and warnings fail the build)
+    docker compose -f "$COMPOSE_FILE" run --rm python-ci ruff check --select=E,W,C90 --output-format=grouped .
     ;;
 
   lint-full)
     echo "=== Running full linting suite ==="
+    build_python_ci
     # Format check (ruff format replaces black)
     docker compose -f "$COMPOSE_FILE" run --rm python-ci ruff format --check .
     # Import sorting check
     docker compose -f "$COMPOSE_FILE" run --rm python-ci ruff check --select=I .
-    # Full ruff check (replaces flake8 and pylint) - informational, doesn't fail
-    docker compose -f "$COMPOSE_FILE" run --rm python-ci ruff check --exit-zero --output-format="$RUFF_OUTPUT_FORMAT" .
+    # Full ruff check (replaces flake8 and pylint)
+    docker compose -f "$COMPOSE_FILE" run --rm python-ci ruff check --output-format="$RUFF_OUTPUT_FORMAT" .
     # Type checking with ty (Astral's fast type checker, replaces mypy)
-    # ty is 10-60x faster than mypy with millisecond incremental updates
-    docker compose -f "$COMPOSE_FILE" run --rm python-ci ty check . || true
+    docker compose -f "$COMPOSE_FILE" run --rm python-ci ty check .
     ;;
 
   ruff)
     echo "=== Running Ruff (fast linter) ==="
+    build_python_ci
     docker compose -f "$COMPOSE_FILE" run --rm python-ci ruff check . --output-format=github
     ;;
 
   ruff-fix)
     echo "=== Running Ruff with auto-fix ==="
+    build_python_ci
     docker compose -f "$COMPOSE_FILE" run --rm python-ci ruff check . --fix
     ;;
 
   bandit)
     echo "=== Running Bandit security scan ==="
+    build_python_ci
     docker compose -f "$COMPOSE_FILE" run --rm python-ci bandit -r . -c pyproject.toml -f txt
     ;;
 
   security)
     echo "=== Running security scans ==="
+    build_python_ci
     docker compose -f "$COMPOSE_FILE" run --rm python-ci bandit -r . -f json -o bandit-report.json || true
     # Dependency security check - try Safety with API key, fallback to pip-audit
     if [ -n "$SAFETY_API_KEY" ]; then
@@ -158,6 +170,7 @@ case "$STAGE" in
 
   test)
     echo "=== Running tests ==="
+    build_python_ci
     # Include corporate-proxy tests in the main test suite
     # Using pytest-xdist for parallel test execution (packages already installed in image)
     # Note: MCP server tests are now in Rust (run via 'cargo test' in each mcp_* directory)
@@ -174,6 +187,7 @@ case "$STAGE" in
 
   yaml-lint)
     echo "=== Validating YAML files ==="
+    build_python_ci
     # shellcheck disable=SC2016
     docker compose -f "$COMPOSE_FILE" run --rm python-ci bash -c '
       for file in $(find . -name "*.yml" -o -name "*.yaml"); do
@@ -186,6 +200,7 @@ case "$STAGE" in
 
   json-lint)
     echo "=== Validating JSON files ==="
+    build_python_ci
     # shellcheck disable=SC2016
     docker compose -f "$COMPOSE_FILE" run --rm python-ci bash -c '
       for file in $(find . -name "*.json"); do
@@ -197,6 +212,7 @@ case "$STAGE" in
 
   lint-shell)
     echo "=== Linting shell scripts with shellcheck ==="
+    build_python_ci
     # shellcheck disable=SC2016
     docker compose -f "$COMPOSE_FILE" run --rm python-ci bash -c '
       echo "Running shellcheck on all .sh files..."
@@ -225,6 +241,7 @@ case "$STAGE" in
 
   autoformat)
     echo "=== Running autoformatters ==="
+    build_python_ci
     # Python: Use ruff format (replaces black, 10-100x faster)
     docker compose -f "$COMPOSE_FILE" run --rm python-ci ruff format .
     # Fix import sorting
@@ -281,6 +298,7 @@ case "$STAGE" in
 
   test-gaea2)
     echo "=== Running Gaea2 tests ==="
+    build_python_ci
     # Check if Gaea2 server is available
     GAEA2_URL="${GAEA2_MCP_URL:-http://192.168.0.152:8007}"
     if curl -f -s --connect-timeout 5 --max-time 10 "${GAEA2_URL}/health" > /dev/null 2>&1; then
@@ -299,6 +317,7 @@ case "$STAGE" in
 
   test-all)
     echo "=== Running all tests (including Gaea2 if server available) ==="
+    build_python_ci
     # Using pytest-xdist for parallel execution (packages already installed in image)
     docker compose run --rm \
       -e PYTHONDONTWRITEBYTECODE=1 \
@@ -308,6 +327,7 @@ case "$STAGE" in
 
   test-corporate-proxy)
     echo "=== Running corporate proxy tests ==="
+    build_python_ci
     docker compose run --rm \
       -e PYTHONDONTWRITEBYTECODE=1 \
       -e PYTHONPYCACHEPREFIX=/tmp/pycache \
