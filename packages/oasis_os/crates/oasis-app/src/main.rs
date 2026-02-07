@@ -2,7 +2,7 @@
 //!
 //! Loads the Classic skin, discovers apps from a demo VFS, displays the
 //! icon grid dashboard, and handles cursor navigation with D-pad input.
-//! Press Enter to switch to terminal mode; press Escape/Cancel to quit.
+//! Press F1 to toggle terminal, F2 to toggle on-screen keyboard, Escape to quit.
 
 use anyhow::Result;
 
@@ -11,6 +11,8 @@ use oasis_core::backend::{Color, InputBackend, SdiBackend};
 use oasis_core::config::OasisConfig;
 use oasis_core::dashboard::{DashboardConfig, DashboardState, discover_apps};
 use oasis_core::input::{Button, InputEvent, Trigger};
+use oasis_core::osk::{OskConfig, OskState};
+use oasis_core::platform::DesktopPlatform;
 use oasis_core::sdi::SdiRegistry;
 use oasis_core::skin::Skin;
 use oasis_core::terminal::{CommandOutput, CommandRegistry, Environment, register_builtins};
@@ -19,11 +21,12 @@ use oasis_core::vfs::MemoryVfs;
 /// Maximum lines visible in the terminal output area.
 const MAX_OUTPUT_LINES: usize = 12;
 
-/// The two UI modes the demo supports.
+/// The UI modes the demo supports.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum Mode {
     Dashboard,
     Terminal,
+    Osk,
 }
 
 fn main() -> Result<()> {
@@ -55,6 +58,9 @@ fn main() -> Result<()> {
         skin.manifest.version
     );
 
+    // Set up platform services.
+    let platform = DesktopPlatform::new();
+
     // Set up VFS with demo content + apps.
     let mut vfs = MemoryVfs::new();
     populate_demo_vfs(&mut vfs);
@@ -80,9 +86,12 @@ fn main() -> Result<()> {
     let mut input_buf = String::new();
     let mut output_lines: Vec<String> = vec![
         "OASIS_OS v0.1.0 -- Type 'help' for commands".to_string(),
-        "Press F1 to return to dashboard".to_string(),
+        "F1=terminal  F2=on-screen keyboard  Escape=quit".to_string(),
         String::new(),
     ];
+
+    // On-screen keyboard state.
+    let mut osk: Option<OskState> = None;
 
     // Set up scene graph and apply skin layout.
     let mut sdi = SdiRegistry::new();
@@ -94,6 +103,31 @@ fn main() -> Result<()> {
     'running: loop {
         let events = backend.poll_events();
         for event in &events {
+            // OSK intercepts input when active.
+            if mode == Mode::Osk {
+                if let Some(ref mut osk_state) = osk {
+                    match event {
+                        InputEvent::Quit => break 'running,
+                        InputEvent::ButtonPress(btn) => {
+                            osk_state.handle_input(btn);
+                            if let Some(text) = osk_state.confirmed_text() {
+                                output_lines.push(format!("[OSK] Input: {text}"));
+                                osk_state.hide_sdi(&mut sdi);
+                                osk = None;
+                                mode = Mode::Dashboard;
+                            } else if osk_state.is_cancelled() {
+                                output_lines.push("[OSK] Cancelled".to_string());
+                                osk_state.hide_sdi(&mut sdi);
+                                osk = None;
+                                mode = Mode::Dashboard;
+                            }
+                        },
+                        _ => {},
+                    }
+                }
+                continue;
+            }
+
             match event {
                 InputEvent::Quit => break 'running,
                 InputEvent::ButtonPress(Button::Cancel) => break 'running,
@@ -109,7 +143,20 @@ fn main() -> Result<()> {
                     mode = match mode {
                         Mode::Dashboard => Mode::Terminal,
                         Mode::Terminal => Mode::Dashboard,
+                        Mode::Osk => Mode::Osk, // OSK handled above.
                     };
+                },
+                InputEvent::ButtonPress(Button::Select) => {
+                    // F2 opens the on-screen keyboard.
+                    if mode != Mode::Osk {
+                        let osk_cfg = OskConfig {
+                            title: "On-Screen Keyboard".to_string(),
+                            ..OskConfig::default()
+                        };
+                        osk = Some(OskState::new(osk_cfg, ""));
+                        mode = Mode::Osk;
+                        log::info!("OSK opened");
+                    }
                 },
 
                 // Dashboard input.
@@ -138,6 +185,9 @@ fn main() -> Result<()> {
                         let mut env = Environment {
                             cwd: cwd.clone(),
                             vfs: &mut vfs,
+                            power: Some(&platform),
+                            time: Some(&platform),
+                            usb: Some(&platform),
                         };
                         match cmd_reg.execute(&line, &mut env) {
                             Ok(CommandOutput::Text(text)) => {
@@ -172,14 +222,17 @@ fn main() -> Result<()> {
         // Update SDI based on active mode.
         match mode {
             Mode::Dashboard => {
-                // Show dashboard chrome, hide terminal objects.
                 set_terminal_visible(&mut sdi, false);
                 dashboard.update_sdi(&mut sdi);
             },
             Mode::Terminal => {
-                // Hide dashboard icons, show terminal.
                 hide_dashboard_objects(&mut sdi, &dashboard);
                 setup_terminal_objects(&mut sdi, &output_lines, &cwd, &input_buf);
+            },
+            Mode::Osk => {
+                if let Some(ref osk_state) = osk {
+                    osk_state.update_sdi(&mut sdi);
+                }
             },
         }
 

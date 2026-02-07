@@ -3,6 +3,7 @@
 use std::collections::HashMap;
 
 use crate::error::{OasisError, Result};
+use crate::platform::{PowerService, TimeService, UsbService};
 use crate::vfs::Vfs;
 
 /// Output produced by a command.
@@ -27,6 +28,12 @@ pub struct Environment<'a> {
     pub cwd: String,
     /// The virtual file system.
     pub vfs: &'a mut dyn Vfs,
+    /// Power service for battery/CPU queries.
+    pub power: Option<&'a dyn PowerService>,
+    /// Time service for clock/uptime queries.
+    pub time: Option<&'a dyn TimeService>,
+    /// USB service for status queries.
+    pub usb: Option<&'a dyn UsbService>,
 }
 
 /// A single executable command.
@@ -124,6 +131,9 @@ mod tests {
         let mut env = Environment {
             cwd: "/".to_string(),
             vfs: &mut vfs,
+            power: None,
+            time: None,
+            usb: None,
         };
         match reg.execute("echo hello world", &mut env).unwrap() {
             CommandOutput::Text(s) => assert_eq!(s, "hello world"),
@@ -138,6 +148,9 @@ mod tests {
         let mut env = Environment {
             cwd: "/".to_string(),
             vfs: &mut vfs,
+            power: None,
+            time: None,
+            usb: None,
         };
         assert!(reg.execute("nonexistent", &mut env).is_err());
     }
@@ -149,6 +162,9 @@ mod tests {
         let mut env = Environment {
             cwd: "/".to_string(),
             vfs: &mut vfs,
+            power: None,
+            time: None,
+            usb: None,
         };
         match reg.execute("", &mut env).unwrap() {
             CommandOutput::None => {},

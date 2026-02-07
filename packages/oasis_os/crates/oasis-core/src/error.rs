@@ -20,6 +20,9 @@ pub enum OasisError {
     #[error("command error: {0}")]
     Command(String),
 
+    #[error("platform error: {0}")]
+    Platform(String),
+
     #[error("I/O error: {0}")]
     Io(#[from] io::Error),
 

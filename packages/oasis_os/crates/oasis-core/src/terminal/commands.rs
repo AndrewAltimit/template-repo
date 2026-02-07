@@ -17,6 +17,15 @@ pub fn register_builtins(reg: &mut CommandRegistry) {
     reg.register(Box::new(ClearCmd));
     reg.register(Box::new(StatusCmd));
     reg.register(Box::new(TouchCmd));
+    // Phase 4: file browser commands.
+    reg.register(Box::new(CpCmd));
+    reg.register(Box::new(MvCmd));
+    reg.register(Box::new(FindCmd));
+    // Phase 4: system commands using platform services.
+    reg.register(Box::new(PowerCmd));
+    reg.register(Box::new(ClockCmd));
+    reg.register(Box::new(MemoryCmd));
+    reg.register(Box::new(UsbCmd));
 }
 
 // ---------------------------------------------------------------------------
@@ -305,6 +314,258 @@ impl Command for TouchCmd {
 }
 
 // ---------------------------------------------------------------------------
+// cp
+// ---------------------------------------------------------------------------
+
+struct CpCmd;
+impl Command for CpCmd {
+    fn name(&self) -> &str {
+        "cp"
+    }
+    fn description(&self) -> &str {
+        "Copy a file"
+    }
+    fn usage(&self) -> &str {
+        "cp <src> <dst>"
+    }
+    fn execute(&self, args: &[&str], env: &mut Environment<'_>) -> Result<CommandOutput> {
+        if args.len() < 2 {
+            return Err(OasisError::Command("usage: cp <src> <dst>".to_string()));
+        }
+        let src = resolve_path(&env.cwd, args[0]);
+        let dst = resolve_path(&env.cwd, args[1]);
+        let data = env.vfs.read(&src)?;
+        env.vfs.write(&dst, &data)?;
+        Ok(CommandOutput::None)
+    }
+}
+
+// ---------------------------------------------------------------------------
+// mv
+// ---------------------------------------------------------------------------
+
+struct MvCmd;
+impl Command for MvCmd {
+    fn name(&self) -> &str {
+        "mv"
+    }
+    fn description(&self) -> &str {
+        "Move/rename a file"
+    }
+    fn usage(&self) -> &str {
+        "mv <src> <dst>"
+    }
+    fn execute(&self, args: &[&str], env: &mut Environment<'_>) -> Result<CommandOutput> {
+        if args.len() < 2 {
+            return Err(OasisError::Command("usage: mv <src> <dst>".to_string()));
+        }
+        let src = resolve_path(&env.cwd, args[0]);
+        let dst = resolve_path(&env.cwd, args[1]);
+        let data = env.vfs.read(&src)?;
+        env.vfs.write(&dst, &data)?;
+        env.vfs.remove(&src)?;
+        Ok(CommandOutput::None)
+    }
+}
+
+// ---------------------------------------------------------------------------
+// find
+// ---------------------------------------------------------------------------
+
+struct FindCmd;
+impl Command for FindCmd {
+    fn name(&self) -> &str {
+        "find"
+    }
+    fn description(&self) -> &str {
+        "Find files by name pattern"
+    }
+    fn usage(&self) -> &str {
+        "find [path] <pattern>"
+    }
+    fn execute(&self, args: &[&str], env: &mut Environment<'_>) -> Result<CommandOutput> {
+        let (root, pattern) = match args.len() {
+            0 => {
+                return Err(OasisError::Command(
+                    "usage: find [path] <pattern>".to_string(),
+                ));
+            },
+            1 => (env.cwd.clone(), args[0]),
+            _ => (resolve_path(&env.cwd, args[0]), args[1]),
+        };
+        let mut results = Vec::new();
+        find_recursive(env.vfs, &root, pattern, &mut results)?;
+        if results.is_empty() {
+            Ok(CommandOutput::Text("(no matches)".to_string()))
+        } else {
+            Ok(CommandOutput::Text(results.join("\n")))
+        }
+    }
+}
+
+/// Recursively search for files matching a simple substring pattern.
+fn find_recursive(
+    vfs: &mut dyn crate::vfs::Vfs,
+    dir: &str,
+    pattern: &str,
+    results: &mut Vec<String>,
+) -> Result<()> {
+    let entries = vfs.readdir(dir)?;
+    for entry in &entries {
+        let full = if dir == "/" {
+            format!("/{}", entry.name)
+        } else {
+            format!("{}/{}", dir, entry.name)
+        };
+        if entry.name.contains(pattern) {
+            results.push(full.clone());
+        }
+        if entry.kind == EntryKind::Directory {
+            find_recursive(vfs, &full, pattern, results)?;
+        }
+    }
+    Ok(())
+}
+
+// ---------------------------------------------------------------------------
+// power
+// ---------------------------------------------------------------------------
+
+struct PowerCmd;
+impl Command for PowerCmd {
+    fn name(&self) -> &str {
+        "power"
+    }
+    fn description(&self) -> &str {
+        "Show power/battery status"
+    }
+    fn usage(&self) -> &str {
+        "power"
+    }
+    fn execute(&self, _args: &[&str], env: &mut Environment<'_>) -> Result<CommandOutput> {
+        let Some(power) = env.power else {
+            return Ok(CommandOutput::Text(
+                "power: no platform service available".to_string(),
+            ));
+        };
+        let info = power.power_info()?;
+        let mut lines = Vec::new();
+        lines.push(format!("State: {:?}", info.state));
+        match info.battery_percent {
+            Some(pct) => lines.push(format!("Battery: {pct}%")),
+            None => lines.push("Battery: N/A".to_string()),
+        }
+        if let Some(mins) = info.battery_minutes {
+            lines.push(format!("Remaining: {mins} min"));
+        }
+        if info.cpu.current_mhz > 0 {
+            lines.push(format!(
+                "CPU: {} MHz (max {} MHz)",
+                info.cpu.current_mhz, info.cpu.max_mhz
+            ));
+        }
+        Ok(CommandOutput::Text(lines.join("\n")))
+    }
+}
+
+// ---------------------------------------------------------------------------
+// clock
+// ---------------------------------------------------------------------------
+
+struct ClockCmd;
+impl Command for ClockCmd {
+    fn name(&self) -> &str {
+        "clock"
+    }
+    fn description(&self) -> &str {
+        "Show current time and uptime"
+    }
+    fn usage(&self) -> &str {
+        "clock"
+    }
+    fn execute(&self, _args: &[&str], env: &mut Environment<'_>) -> Result<CommandOutput> {
+        let Some(time) = env.time else {
+            return Ok(CommandOutput::Text(
+                "clock: no platform service available".to_string(),
+            ));
+        };
+        let now = time.now()?;
+        let uptime = time.uptime_secs()?;
+        let hours = uptime / 3600;
+        let mins = (uptime % 3600) / 60;
+        let secs = uptime % 60;
+        let mut lines = Vec::new();
+        lines.push(format!("Time: {now}"));
+        lines.push(format!("Uptime: {hours}h {mins}m {secs}s"));
+        Ok(CommandOutput::Text(lines.join("\n")))
+    }
+}
+
+// ---------------------------------------------------------------------------
+// memory
+// ---------------------------------------------------------------------------
+
+struct MemoryCmd;
+impl Command for MemoryCmd {
+    fn name(&self) -> &str {
+        "memory"
+    }
+    fn description(&self) -> &str {
+        "Show memory usage"
+    }
+    fn usage(&self) -> &str {
+        "memory"
+    }
+    fn execute(&self, _args: &[&str], _env: &mut Environment<'_>) -> Result<CommandOutput> {
+        // On desktop/Pi, report process RSS if /proc/self/status is readable.
+        // On PSP, this would query sceKernelTotalFreeMemSize().
+        let mut lines = Vec::new();
+        lines.push("OASIS_OS memory info".to_string());
+        #[cfg(target_os = "linux")]
+        {
+            if let Ok(status) = std::fs::read_to_string("/proc/self/status") {
+                for line in status.lines() {
+                    if line.starts_with("VmRSS:") || line.starts_with("VmSize:") {
+                        lines.push(line.trim().to_string());
+                    }
+                }
+            }
+        }
+        #[cfg(not(target_os = "linux"))]
+        {
+            lines.push("(detailed memory info not available on this platform)".to_string());
+        }
+        Ok(CommandOutput::Text(lines.join("\n")))
+    }
+}
+
+// ---------------------------------------------------------------------------
+// usb
+// ---------------------------------------------------------------------------
+
+struct UsbCmd;
+impl Command for UsbCmd {
+    fn name(&self) -> &str {
+        "usb"
+    }
+    fn description(&self) -> &str {
+        "Show USB status"
+    }
+    fn usage(&self) -> &str {
+        "usb"
+    }
+    fn execute(&self, _args: &[&str], env: &mut Environment<'_>) -> Result<CommandOutput> {
+        let Some(usb) = env.usb else {
+            return Ok(CommandOutput::Text(
+                "usb: no platform service available".to_string(),
+            ));
+        };
+        let state = usb.usb_state()?;
+        Ok(CommandOutput::Text(format!("USB: {state}")))
+    }
+}
+
+// ---------------------------------------------------------------------------
 // Path resolution helper
 // ---------------------------------------------------------------------------
 
@@ -363,6 +624,9 @@ mod tests {
         let mut env = Environment {
             cwd: cwd.clone(),
             vfs,
+            power: None,
+            time: None,
+            usb: None,
         };
         let result = reg.execute(line, &mut env);
         *cwd = env.cwd;
@@ -517,5 +781,177 @@ mod tests {
     #[test]
     fn resolve_path_root_relative() {
         assert_eq!(resolve_path("/", "foo"), "/foo");
+    }
+
+    // --- Phase 4: file browser commands ---
+
+    #[test]
+    fn cp_copies_file() {
+        let (reg, mut vfs) = setup();
+        let mut cwd = "/".to_string();
+        exec(
+            &reg,
+            &mut vfs,
+            &mut cwd,
+            "cp /home/user/readme.txt /home/user/copy.txt",
+        )
+        .unwrap();
+        assert!(vfs.exists("/home/user/copy.txt"));
+        assert_eq!(vfs.read("/home/user/copy.txt").unwrap(), b"Hello OASIS");
+        // Original still exists.
+        assert!(vfs.exists("/home/user/readme.txt"));
+    }
+
+    #[test]
+    fn cp_no_args() {
+        let (reg, mut vfs) = setup();
+        let mut cwd = "/".to_string();
+        assert!(exec(&reg, &mut vfs, &mut cwd, "cp").is_err());
+    }
+
+    #[test]
+    fn mv_moves_file() {
+        let (reg, mut vfs) = setup();
+        let mut cwd = "/".to_string();
+        exec(
+            &reg,
+            &mut vfs,
+            &mut cwd,
+            "mv /home/user/readme.txt /home/moved.txt",
+        )
+        .unwrap();
+        assert!(!vfs.exists("/home/user/readme.txt"));
+        assert!(vfs.exists("/home/moved.txt"));
+        assert_eq!(vfs.read("/home/moved.txt").unwrap(), b"Hello OASIS");
+    }
+
+    #[test]
+    fn mv_no_args() {
+        let (reg, mut vfs) = setup();
+        let mut cwd = "/".to_string();
+        assert!(exec(&reg, &mut vfs, &mut cwd, "mv").is_err());
+    }
+
+    #[test]
+    fn find_by_name() {
+        let (reg, mut vfs) = setup();
+        let mut cwd = "/".to_string();
+        match exec(&reg, &mut vfs, &mut cwd, "find / readme").unwrap() {
+            CommandOutput::Text(s) => assert!(s.contains("/home/user/readme.txt")),
+            _ => panic!("expected text"),
+        }
+    }
+
+    #[test]
+    fn find_no_matches() {
+        let (reg, mut vfs) = setup();
+        let mut cwd = "/".to_string();
+        match exec(&reg, &mut vfs, &mut cwd, "find / zzzzz").unwrap() {
+            CommandOutput::Text(s) => assert!(s.contains("no matches")),
+            _ => panic!("expected text"),
+        }
+    }
+
+    #[test]
+    fn find_no_args() {
+        let (reg, mut vfs) = setup();
+        let mut cwd = "/".to_string();
+        assert!(exec(&reg, &mut vfs, &mut cwd, "find").is_err());
+    }
+
+    // --- Phase 4: system commands ---
+
+    #[test]
+    fn power_no_platform() {
+        let (reg, mut vfs) = setup();
+        let mut cwd = "/".to_string();
+        match exec(&reg, &mut vfs, &mut cwd, "power").unwrap() {
+            CommandOutput::Text(s) => assert!(s.contains("no platform")),
+            _ => panic!("expected text"),
+        }
+    }
+
+    #[test]
+    fn power_with_platform() {
+        let (reg, mut vfs) = setup();
+        let platform = crate::platform::DesktopPlatform::new();
+        let mut env = Environment {
+            cwd: "/".to_string(),
+            vfs: &mut vfs,
+            power: Some(&platform),
+            time: None,
+            usb: None,
+        };
+        match reg.execute("power", &mut env).unwrap() {
+            CommandOutput::Text(s) => assert!(s.contains("NoBattery")),
+            _ => panic!("expected text"),
+        }
+    }
+
+    #[test]
+    fn clock_no_platform() {
+        let (reg, mut vfs) = setup();
+        let mut cwd = "/".to_string();
+        match exec(&reg, &mut vfs, &mut cwd, "clock").unwrap() {
+            CommandOutput::Text(s) => assert!(s.contains("no platform")),
+            _ => panic!("expected text"),
+        }
+    }
+
+    #[test]
+    fn clock_with_platform() {
+        let (reg, mut vfs) = setup();
+        let platform = crate::platform::DesktopPlatform::new();
+        let mut env = Environment {
+            cwd: "/".to_string(),
+            vfs: &mut vfs,
+            power: None,
+            time: Some(&platform),
+            usb: None,
+        };
+        match reg.execute("clock", &mut env).unwrap() {
+            CommandOutput::Text(s) => {
+                assert!(s.contains("Time:"));
+                assert!(s.contains("Uptime:"));
+            },
+            _ => panic!("expected text"),
+        }
+    }
+
+    #[test]
+    fn memory_shows_info() {
+        let (reg, mut vfs) = setup();
+        let mut cwd = "/".to_string();
+        match exec(&reg, &mut vfs, &mut cwd, "memory").unwrap() {
+            CommandOutput::Text(s) => assert!(s.contains("OASIS_OS memory")),
+            _ => panic!("expected text"),
+        }
+    }
+
+    #[test]
+    fn usb_no_platform() {
+        let (reg, mut vfs) = setup();
+        let mut cwd = "/".to_string();
+        match exec(&reg, &mut vfs, &mut cwd, "usb").unwrap() {
+            CommandOutput::Text(s) => assert!(s.contains("no platform")),
+            _ => panic!("expected text"),
+        }
+    }
+
+    #[test]
+    fn usb_with_platform() {
+        let (reg, mut vfs) = setup();
+        let platform = crate::platform::DesktopPlatform::new();
+        let mut env = Environment {
+            cwd: "/".to_string(),
+            vfs: &mut vfs,
+            power: None,
+            time: None,
+            usb: Some(&platform),
+        };
+        match reg.execute("usb", &mut env).unwrap() {
+            CommandOutput::Text(s) => assert!(s.contains("unsupported")),
+            _ => panic!("expected text"),
+        }
     }
 }
