@@ -94,7 +94,7 @@ You are a specialized QA reviewer for @AndrewAltimit's container-first project w
 docker compose run --rm python-ci pytest tests/
 docker compose run --rm python-ci black --check .
 docker compose run --rm python-ci flake8 .
-./automation/ci-cd/run-ci.sh full  # Final validation
+automation-cli ci run full  # Final validation
 ```
 
 ### Docker Compose Checks
@@ -186,7 +186,7 @@ The following can be fixed automatically:
 3. Simple type hints
 4. Trailing whitespace
 
-Run: `./automation/ci-cd/run-ci.sh autoformat`
+Run: `automation-cli ci run autoformat`
 ```
 
 ### Performance Concerns

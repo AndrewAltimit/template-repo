@@ -1,0 +1,57 @@
+[package]
+name = "automation-cli"
+version = "0.1.0"
+edition = "2024"
+description = "Unified CLI for CI/CD orchestration, service launching, and automation"
+license = "MIT"
+repository = "https://github.com/AndrewAltimit/template-repo"
+readme = "README.md"
+keywords = ["ci", "automation", "cli", "docker"]
+categories = ["command-line-utilities", "development-tools"]
+
+[[bin]]
+name = "automation-cli"
+path = "src/main.rs"
+
+[dependencies]
+# CLI parsing
+clap = { version = "4.5", features = ["derive"] }
+
+# Async runtime
+tokio = { version = "1.0", features = ["full"] }
+
+# HTTP client (for health checks) -- blocking used for wait/launch commands
+reqwest = { version = "0.12", features = ["json", "blocking"] }
+
+# Unix APIs (getuid/getgid)
+libc = "0.2"
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+serde_yaml = "0.9"
+
+# Error handling
+anyhow = "1.0"
+thiserror = "2.0"
+
+# Regex
+regex = "1.10"
+
+# Time
+chrono = { version = "0.4", features = ["serde"] }
+
+# Terminal colors
+owo-colors = "4.0"
+
+[dev-dependencies]
+tempfile = "3.10"
+assert_cmd = "2.0"
+predicates = "3.1"
+
+[profile.release]
+opt-level = "z"
+lto = true
+codegen-units = 1
+strip = true
+panic = "abort"

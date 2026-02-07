@@ -95,34 +95,42 @@ Key features:
 
 ## Usage
 
-### Using Helper Scripts (Recommended)
+### Using the Rust CLI (Recommended)
 
-The `run-ci.sh` script provides a simple interface:
+The `automation-cli` binary provides a unified interface to all CI stages:
 
 ```bash
+# Build once
+cargo build --release -p automation-cli
+
 # Format checking
-./automation/ci-cd/run-ci.sh format
+automation-cli ci run format
 
 # Linting
-./automation/ci-cd/run-ci.sh lint-basic
-./automation/ci-cd/run-ci.sh lint-full
+automation-cli ci run lint-basic
+automation-cli ci run lint-full
 
 # Testing
-./automation/ci-cd/run-ci.sh test
+automation-cli ci run test
 
 # Security scanning
-./automation/ci-cd/run-ci.sh security
+automation-cli ci run security
 
 # Auto-formatting
-./automation/ci-cd/run-ci.sh autoformat
+automation-cli ci run autoformat
 
 # Full CI pipeline (all checks)
-./automation/ci-cd/run-ci.sh full
+automation-cli ci run full
 
 # YAML/JSON validation
-./automation/ci-cd/run-ci.sh yaml-lint
-./automation/ci-cd/run-ci.sh json-lint
+automation-cli ci run yaml-lint
+automation-cli ci run json-lint
+
+# List all available stages
+automation-cli ci list
 ```
+
+See `tools/rust/automation-cli/README.md` for the full command reference.
 
 ### Direct Docker Compose Commands
 
@@ -161,11 +169,11 @@ GitHub Actions workflows use the containerized approach:
 ```yaml
 - name: Run Python Linting
   run: |
-    ./automation/ci-cd/run-ci.sh lint-basic
+    automation-cli ci run lint-basic
 
 - name: Run Tests with Coverage
   run: |
-    ./automation/ci-cd/run-ci.sh test
+    automation-cli ci run test
 ```
 
 This ensures:
@@ -185,13 +193,13 @@ To add a new Python tool:
    RUN pip install --no-cache-dir new-tool
    ```
 
-2. Add to `run-ci.sh` if needed:
+2. Add a new `Stage` variant in `tools/rust/automation-cli/src/commands/ci/stages.rs` and handle it in `ci/mod.rs`:
 
-   ```bash
-   new-stage)
-     echo "=== Running new tool ==="
-     docker compose run --rm python-ci new-tool .
-     ;;
+   ```rust
+   Stage::NewStage => {
+       output::header("Running new tool");
+       docker::run_python_ci(compose, &["new-tool", "."], &[])
+   },
    ```
 
 3. Rebuild the container:

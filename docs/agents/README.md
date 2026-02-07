@@ -276,6 +276,7 @@ cd tools/rust/board-manager && cargo build --release
 cd tools/rust/pr-monitor && cargo build --release
 cd tools/rust/markdown-link-checker && cargo build --release
 cd tools/rust/code-parser && cargo build --release
+cd tools/rust/automation-cli && cargo build --release
 
 # Run issue monitor
 github-agents issue-monitor
@@ -315,6 +316,7 @@ md-link-checker docs/        # Check all links in docs/
 | `gh-validator` | `tools/rust/gh-validator/` | GitHub CLI wrapper for secret masking |
 | `md-link-checker` | `tools/rust/markdown-link-checker/` | Fast concurrent link validation |
 | `code-parser` | `tools/rust/code-parser/` | Parse code blocks from AI responses |
+| `automation-cli` | `tools/rust/automation-cli/` | Unified CI/CD orchestration, service launching, automation |
 | `mcp-code-quality` | `tools/rust/mcp-code-quality/` | Rust MCP server for code quality |
 
 ### GitHub Actions Automation

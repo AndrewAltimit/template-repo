@@ -62,9 +62,9 @@ docker compose build python-ci
 docker compose run --rm python-ci pytest tests/ -v
 
 # Use helper scripts for CI/CD
-./automation/ci-cd/run-ci.sh test
-./automation/ci-cd/run-ci.sh format
-./automation/ci-cd/run-ci.sh lint-full
+automation-cli ci run test
+automation-cli ci run format
+automation-cli ci run lint-full
 ```
 
 ### Testing Requirements
@@ -217,7 +217,7 @@ Facts stored deliberately (e.g., new patterns discovered) are available to all a
 - Implement features completely (no drafts)
 - Use helper scripts in automation/
 - Test Gaea2 features against remote server
-- Run `./automation/ci-cd/run-ci.sh full` before completing
+- Run `automation-cli ci run full` before completing
 
 ### DON'T:
 - Install tools locally
@@ -230,9 +230,9 @@ Facts stored deliberately (e.g., new patterns discovered) are available to all a
 ## Implementation Checklist
 
 - [ ] Feature works in Docker container
-- [ ] All tests pass: `./automation/ci-cd/run-ci.sh test`
-- [ ] Code formatted: `./automation/ci-cd/run-ci.sh format`
-- [ ] Full lint passes: `./automation/ci-cd/run-ci.sh lint-full`
+- [ ] All tests pass: `automation-cli ci run test`
+- [ ] Code formatted: `automation-cli ci run format`
+- [ ] Full lint passes: `automation-cli ci run lint-full`
 - [ ] No hardcoded secrets or IPs (except Gaea2)
 - [ ] MCP server follows base class pattern
 - [ ] Helper scripts updated if needed

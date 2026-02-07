@@ -73,7 +73,7 @@ This project follows a **container-first approach**:
 
 5. **Run CI/CD operations**
    ```bash
-   ./automation/ci-cd/run-ci.sh full  # Full pipeline
+   automation-cli ci run full  # Full pipeline
    ```
 
 For detailed setup, see [CLAUDE.md](CLAUDE.md) and [Template Quickstart Guide](docs/QUICKSTART.md).
@@ -302,11 +302,11 @@ See `.env.example` for all available options.
 All Python operations run in Docker containers:
 
 ```bash
-# Run CI operations
-./automation/ci-cd/run-ci.sh format      # Check formatting
-./automation/ci-cd/run-ci.sh lint-basic  # Basic linting
-./automation/ci-cd/run-ci.sh test        # Run tests
-./automation/ci-cd/run-ci.sh full        # Full CI pipeline
+# Run CI operations via automation-cli
+automation-cli ci run format             # Check formatting
+automation-cli ci run lint-basic         # Basic linting
+automation-cli ci run test               # Run tests
+automation-cli ci run full               # Full CI pipeline
 
 # Run specific tests
 docker compose run --rm python-ci pytest tests/test_mcp_tools.py -v
