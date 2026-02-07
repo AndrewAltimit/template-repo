@@ -61,6 +61,13 @@ fn launch_docker_service(
         bail!("Docker not found. Install: https://docs.docker.com/engine/install/");
     }
 
+    // Set ARM64 ComfyUI Dockerfile if needed
+    if service == "mcp-comfyui" && std::env::consts::ARCH == "aarch64" {
+        // SAFETY: single-threaded at this point
+        unsafe { std::env::set_var("COMFYUI_DOCKERFILE", "docker/comfyui-arm64.Dockerfile") };
+        output::info("Detected ARM64 -- using comfyui-arm64.Dockerfile");
+    }
+
     // Build
     output::step(&format!("Building {service} container..."));
     process::run("docker", &["compose", "build", service])?;

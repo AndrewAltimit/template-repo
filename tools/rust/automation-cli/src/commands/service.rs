@@ -132,6 +132,13 @@ fn start_docker(profile: &str) -> Result<()> {
         }
     }
 
+    // Set ARM64 ComfyUI Dockerfile if needed
+    if std::env::consts::ARCH == "aarch64" {
+        // SAFETY: single-threaded at this point
+        unsafe { std::env::set_var("COMFYUI_DOCKERFILE", "docker/comfyui-arm64.Dockerfile") };
+        output::info("Detected ARM64 -- using comfyui-arm64.Dockerfile");
+    }
+
     output::step("Building containers...");
     process::run(
         "docker",
