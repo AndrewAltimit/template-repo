@@ -14,6 +14,12 @@ pub enum OasisError {
     #[error("config error: {0}")]
     Config(String),
 
+    #[error("VFS error: {0}")]
+    Vfs(String),
+
+    #[error("command error: {0}")]
+    Command(String),
+
     #[error("I/O error: {0}")]
     Io(#[from] io::Error),
 

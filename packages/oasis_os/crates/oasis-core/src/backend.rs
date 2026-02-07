@@ -49,6 +49,11 @@ pub trait SdiBackend {
     /// Draw a filled rectangle (used when no texture is assigned).
     fn fill_rect(&mut self, x: i32, y: i32, w: u32, h: u32, color: Color) -> Result<()>;
 
+    /// Draw text at the given position. The backend chooses its available font.
+    /// `font_size` is a hint in pixels; backends may approximate.
+    fn draw_text(&mut self, text: &str, x: i32, y: i32, font_size: u16, color: Color)
+    -> Result<()>;
+
     /// Present the current frame to the display.
     fn swap_buffers(&mut self) -> Result<()>;
 

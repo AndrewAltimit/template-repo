@@ -6,6 +6,8 @@
 
 use std::collections::HashMap;
 
+use serde::Deserialize;
+
 use crate::backend::{Color, SdiBackend};
 use crate::error::{OasisError, Result};
 use crate::sdi::object::SdiObject;
@@ -94,6 +96,79 @@ impl SdiRegistry {
         self.objects.contains_key(name)
     }
 
+    /// Load raw RGBA pixel data as a texture through the backend and assign it
+    /// to the named object. The object's dimensions are updated to match.
+    pub fn load_image(
+        &mut self,
+        name: &str,
+        width: u32,
+        height: u32,
+        rgba_data: &[u8],
+        backend: &mut dyn SdiBackend,
+    ) -> Result<()> {
+        let tex = backend.load_texture(width, height, rgba_data)?;
+        let obj = self.get_mut(name)?;
+        obj.texture = Some(tex);
+        obj.w = width;
+        obj.h = height;
+        Ok(())
+    }
+
+    /// Apply a theme from a TOML string. Each top-level key is an object name;
+    /// nested keys set properties (x, y, w, h, visible, alpha, color, text,
+    /// font_size). Objects that don't exist yet are created.
+    pub fn load_theme(&mut self, toml_str: &str) -> Result<()> {
+        let theme: HashMap<String, ThemeEntry> =
+            toml::from_str(toml_str).map_err(|e| OasisError::Config(format!("{e}")))?;
+
+        for (name, entry) in theme {
+            if !self.contains(&name) {
+                self.create(&name);
+            }
+            let obj = self.get_mut(&name)?;
+            if let Some(x) = entry.x {
+                obj.x = x;
+            }
+            if let Some(y) = entry.y {
+                obj.y = y;
+            }
+            if let Some(w) = entry.w {
+                obj.w = w;
+            }
+            if let Some(h) = entry.h {
+                obj.h = h;
+            }
+            if let Some(a) = entry.alpha {
+                obj.alpha = a;
+            }
+            if let Some(v) = entry.visible {
+                obj.visible = v;
+            }
+            if let Some(ref t) = entry.text {
+                obj.text = Some(t.clone());
+            }
+            if let Some(fs) = entry.font_size {
+                obj.font_size = fs;
+            }
+            if let Some(ref c) = entry.color {
+                if let Some(parsed) = parse_color(c) {
+                    obj.color = parsed;
+                }
+            }
+            if let Some(ref c) = entry.text_color {
+                if let Some(parsed) = parse_color(c) {
+                    obj.text_color = parsed;
+                }
+            }
+        }
+        Ok(())
+    }
+
+    /// Return an iterator over all object names in the registry.
+    pub fn names(&self) -> impl Iterator<Item = &str> {
+        self.objects.keys().map(String::as_str)
+    }
+
     /// Draw all visible objects to the backend, sorted by z-order (ascending).
     pub fn draw(&self, backend: &mut dyn SdiBackend) -> Result<()> {
         let mut sorted: Vec<&SdiObject> = self.objects.values().collect();
@@ -104,16 +179,59 @@ impl SdiRegistry {
                 continue;
             }
 
-            match obj.texture {
-                Some(tex) => backend.blit(tex, obj.x, obj.y, obj.w, obj.h)?,
-                None => {
-                    let color = Color::rgba(obj.color.r, obj.color.g, obj.color.b, obj.alpha);
-                    backend.fill_rect(obj.x, obj.y, obj.w, obj.h, color)?;
-                },
+            // Textured object -- blit the texture.
+            if let Some(tex) = obj.texture {
+                backend.blit(tex, obj.x, obj.y, obj.w, obj.h)?;
+                continue;
+            }
+
+            // If the object has a fill color with nonzero area, draw the rect.
+            if obj.w > 0 && obj.h > 0 {
+                let color = Color::rgba(obj.color.r, obj.color.g, obj.color.b, obj.alpha);
+                backend.fill_rect(obj.x, obj.y, obj.w, obj.h, color)?;
+            }
+
+            // If the object carries text, draw it on top.
+            if let Some(ref text) = obj.text {
+                backend.draw_text(text, obj.x, obj.y, obj.font_size, obj.text_color)?;
             }
         }
 
         Ok(())
+    }
+}
+
+/// Deserialization helper for theme TOML entries.
+#[derive(Debug, Deserialize)]
+struct ThemeEntry {
+    x: Option<i32>,
+    y: Option<i32>,
+    w: Option<u32>,
+    h: Option<u32>,
+    alpha: Option<u8>,
+    visible: Option<bool>,
+    text: Option<String>,
+    font_size: Option<u16>,
+    color: Option<String>,
+    text_color: Option<String>,
+}
+
+/// Parse a color string like "#RRGGBB" or "#RRGGBBAA".
+fn parse_color(s: &str) -> Option<Color> {
+    let s = s.strip_prefix('#')?;
+    if s.len() == 6 {
+        let r = u8::from_str_radix(&s[0..2], 16).ok()?;
+        let g = u8::from_str_radix(&s[2..4], 16).ok()?;
+        let b = u8::from_str_radix(&s[4..6], 16).ok()?;
+        Some(Color::rgb(r, g, b))
+    } else if s.len() == 8 {
+        let r = u8::from_str_radix(&s[0..2], 16).ok()?;
+        let g = u8::from_str_radix(&s[2..4], 16).ok()?;
+        let b = u8::from_str_radix(&s[4..6], 16).ok()?;
+        let a = u8::from_str_radix(&s[6..8], 16).ok()?;
+        Some(Color::rgba(r, g, b, a))
+    } else {
+        None
     }
 }
 
@@ -197,5 +315,77 @@ mod tests {
         reg.create("x");
         assert_eq!(reg.len(), 1);
         assert!(!reg.is_empty());
+    }
+
+    #[test]
+    fn load_theme_creates_and_updates() {
+        let mut reg = SdiRegistry::new();
+        reg.create("existing");
+        let theme = r##"
+[existing]
+x = 42
+y = 10
+
+[new_obj]
+x = 100
+w = 50
+h = 30
+color = "#FF0000"
+text = "hello"
+font_size = 16
+"##;
+        reg.load_theme(theme).unwrap();
+        let e = reg.get("existing").unwrap();
+        assert_eq!(e.x, 42);
+        assert_eq!(e.y, 10);
+
+        let n = reg.get("new_obj").unwrap();
+        assert_eq!(n.x, 100);
+        assert_eq!(n.w, 50);
+        assert_eq!(n.h, 30);
+        assert_eq!(n.color.r, 255);
+        assert_eq!(n.color.g, 0);
+        assert_eq!(n.text.as_deref(), Some("hello"));
+        assert_eq!(n.font_size, 16);
+    }
+
+    #[test]
+    fn parse_color_hex() {
+        let c = super::parse_color("#1A2B3C").unwrap();
+        assert_eq!(c.r, 0x1A);
+        assert_eq!(c.g, 0x2B);
+        assert_eq!(c.b, 0x3C);
+        assert_eq!(c.a, 255);
+
+        let c2 = super::parse_color("#1A2B3C80").unwrap();
+        assert_eq!(c2.a, 0x80);
+    }
+
+    #[test]
+    fn parse_color_invalid() {
+        assert!(super::parse_color("not-a-color").is_none());
+        assert!(super::parse_color("#GG0000").is_none());
+        assert!(super::parse_color("#12345").is_none());
+    }
+
+    #[test]
+    fn text_object_defaults() {
+        let mut reg = SdiRegistry::new();
+        let obj = reg.create("label");
+        obj.text = Some("test".into());
+        obj.font_size = 14;
+        let o = reg.get("label").unwrap();
+        assert_eq!(o.text.as_deref(), Some("test"));
+        assert_eq!(o.font_size, 14);
+    }
+
+    #[test]
+    fn names_iterator() {
+        let mut reg = SdiRegistry::new();
+        reg.create("a");
+        reg.create("b");
+        let mut names: Vec<&str> = reg.names().collect();
+        names.sort();
+        assert_eq!(names, vec!["a", "b"]);
     }
 }

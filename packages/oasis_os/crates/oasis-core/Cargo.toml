@@ -14,5 +14,8 @@ toml = { workspace = true }
 log = { workspace = true }
 thiserror = { workspace = true }
 
+[dev-dependencies]
+tempfile = "3"
+
 [lints]
 workspace = true

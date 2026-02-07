@@ -72,6 +72,20 @@ impl SdiBackend for SdlBackend {
         )))
     }
 
+    fn draw_text(
+        &mut self,
+        _text: &str,
+        _x: i32,
+        _y: i32,
+        _font_size: u16,
+        _color: Color,
+    ) -> Result<()> {
+        // Text rendering requires a font library (SDL2_ttf or custom bitmap font).
+        // For now, this is a no-op -- text objects are visible via their background
+        // fill rect. Real font rendering lands with the skin system (Phase 8).
+        Ok(())
+    }
+
     fn fill_rect(&mut self, x: i32, y: i32, w: u32, h: u32, color: Color) -> Result<()> {
         self.canvas.set_draw_color(sdl2::pixels::Color::RGBA(
             color.r, color.g, color.b, color.a,

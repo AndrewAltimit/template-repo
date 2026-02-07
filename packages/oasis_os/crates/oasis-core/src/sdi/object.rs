@@ -28,8 +28,15 @@ pub struct SdiObject {
     pub visible: bool,
     /// Optional texture handle. If `None`, the object draws as a solid `color`.
     pub texture: Option<TextureId>,
-    /// Solid fill color (used when `texture` is `None`).
+    /// Solid fill color (used when `texture` is `None` and `text` is `None`).
     pub color: Color,
+    /// Optional text content. When set, the object renders text instead of a
+    /// filled rectangle. The `color` field is used as the text color.
+    pub text: Option<String>,
+    /// Font size in pixels (used when `text` is `Some`).
+    pub font_size: u16,
+    /// Text color (separate from background fill color).
+    pub text_color: Color,
 }
 
 impl SdiObject {
@@ -46,6 +53,9 @@ impl SdiObject {
             visible: true,
             texture: None,
             color: Color::WHITE,
+            text: None,
+            font_size: 12,
+            text_color: Color::BLACK,
         }
     }
 }
