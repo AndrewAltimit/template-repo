@@ -185,6 +185,7 @@ pub fn run(args: FailureArgs) -> Result<()> {
         .collect::<Vec<_>>()
         .join("\n");
 
+    let display_iter = args.iteration + 1;
     let commit_msg = format!(
         "fix: resolve CI pipeline failures\n\n\
          Automated fix by Claude in response to pipeline failures.\n\n\
@@ -192,9 +193,9 @@ pub fn run(args: FailureArgs) -> Result<()> {
          Actions taken:\n\
          - Ran autoformat (ruff format, cargo fmt)\n\
          - Fixed remaining lint issues\n\n\
-         Iteration: {}/{}\n\n\
+         Iteration: {display_iter}/{}\n\n\
          Co-Authored-By: AI Pipeline Agent <noreply@anthropic.com>",
-        args.iteration, args.max_iterations
+        args.max_iterations
     );
     let msg_file = write_temp_file(&commit_msg)?;
     process::run("git", &["commit", "-F", &msg_file])?;
