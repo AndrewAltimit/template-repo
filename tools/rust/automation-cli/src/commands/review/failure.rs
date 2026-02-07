@@ -222,27 +222,47 @@ pub fn run(args: FailureArgs) -> Result<()> {
 fn capture_lint_errors(failures: &[&str]) -> Result<String> {
     let mut output = String::new();
 
-    if failures
+    let has_basic = failures
         .iter()
-        .any(|f| *f == "basic-lint" || *f == "lint" || *f == "format")
-    {
-        output::step("Capturing lint-basic errors...");
+        .any(|f| *f == "basic-lint" || *f == "lint" || *f == "format");
+    let has_full = failures.iter().any(|f| *f == "full-lint" || *f == "lint-full");
+
+    let stages: Vec<(&str, &str)> = if has_full && has_basic {
+        vec![("lint-basic", "lint-basic"), ("lint-full", "lint-full")]
+    } else if has_full {
+        vec![("lint-full", "lint-full")]
+    } else if has_basic {
+        vec![("lint-basic", "lint-basic")]
+    } else {
+        vec![]
+    };
+
+    for (label, arg) in stages {
+        output::step(&format!("Capturing {label} errors..."));
         if let Ok(raw) = std::process::Command::new("./automation/ci-cd/run-ci.sh")
-            .arg("lint-basic")
+            .arg(arg)
             .output()
         {
-            let text = String::from_utf8_lossy(&raw.stdout);
-            let errors: Vec<&str> = text
+            let stdout = String::from_utf8_lossy(&raw.stdout);
+            let stderr = String::from_utf8_lossy(&raw.stderr);
+            let combined = format!("{stdout}{stderr}");
+            let errors: Vec<&str> = combined
                 .lines()
                 .filter(|l| {
                     l.contains(": error")
                         || l.contains(": warning")
                         || l.contains("Error:")
                         || l.contains("FAILED")
+                        || l.contains("Found ")
                 })
                 .take(MAX_LINT_ERROR_LINES)
                 .collect();
-            output.push_str(&errors.join("\n"));
+            if !errors.is_empty() {
+                if !output.is_empty() {
+                    output.push('\n');
+                }
+                output.push_str(&errors.join("\n"));
+            }
         }
     }
     Ok(output)
@@ -254,8 +274,10 @@ fn capture_test_errors() -> Result<String> {
         .arg("test")
         .output()
     {
-        let text = String::from_utf8_lossy(&raw.stdout);
-        let errors: Vec<&str> = text
+        let stdout = String::from_utf8_lossy(&raw.stdout);
+        let stderr = String::from_utf8_lossy(&raw.stderr);
+        let combined = format!("{stdout}{stderr}");
+        let errors: Vec<&str> = combined
             .lines()
             .filter(|l| {
                 l.contains("FAILED")
