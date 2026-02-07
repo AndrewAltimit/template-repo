@@ -822,6 +822,62 @@ fn run_parsed_stage(
             run_parsed_stage(&Stage::TamperTest, compose, ruff_fmt, extra, root)
         },
 
+        // ===================== OASIS_OS (SDL2 crates excluded -- no libsdl2-dev in container) =====
+        Stage::OasisClippy => {
+            output::header("Running OASIS_OS clippy lints");
+            for krate in &["oasis-core"] {
+                output::subheader(&format!("Linting: {krate}"));
+                docker::run_cargo(
+                    compose,
+                    "packages/oasis_os",
+                    &[
+                        "clippy",
+                        "-p",
+                        krate,
+                        "--all-targets",
+                        "--",
+                        "-D",
+                        "warnings",
+                    ],
+                )?;
+            }
+            Ok(())
+        },
+        Stage::OasisTest => {
+            output::header("Running OASIS_OS tests");
+            for krate in &["oasis-core"] {
+                output::subheader(&format!("Testing: {krate}"));
+                let mut args = vec!["test", "-p", krate];
+                args.extend(extra.iter().copied());
+                docker::run_cargo(compose, "packages/oasis_os", &args)?;
+            }
+            Ok(())
+        },
+        Stage::OasisBuild => {
+            output::header("Building OASIS_OS workspace (core only)");
+            for krate in &["oasis-core"] {
+                output::subheader(&format!("Building: {krate}"));
+                docker::run_cargo(
+                    compose,
+                    "packages/oasis_os",
+                    &["build", "-p", krate, "--all-targets"],
+                )?;
+            }
+            Ok(())
+        },
+        Stage::OasisFull => {
+            output::header("Running full OASIS_OS CI checks");
+            run_parsed_stage(
+                &Stage::WorkspaceFmt(stages::Workspace::OasisOs),
+                compose,
+                ruff_fmt,
+                extra,
+                root,
+            )?;
+            run_parsed_stage(&Stage::OasisClippy, compose, ruff_fmt, extra, root)?;
+            run_parsed_stage(&Stage::OasisTest, compose, ruff_fmt, extra, root)
+        },
+
         // ===================== Iterator stages (wrapper, mcp-servers, tools) =====================
         Stage::IterFmt(iter) => run_iter_stage(compose, iter, "fmt", extra, root),
         Stage::IterClippy(iter) => run_iter_stage(compose, iter, "clippy", extra, root),
@@ -866,6 +922,7 @@ fn run_parsed_stage(
             )?;
             run_parsed_stage(&Stage::BioFull, compose, ruff_fmt, extra, root)?;
             run_parsed_stage(&Stage::TamperFull, compose, ruff_fmt, extra, root)?;
+            run_parsed_stage(&Stage::OasisFull, compose, ruff_fmt, extra, root)?;
             run_parsed_stage(
                 &Stage::IterFull(stages::IterGroup::Wrapper),
                 compose,
@@ -1032,6 +1089,9 @@ fn list_stages() {
     println!();
     println!("  Rust (tamper_briefcase):");
     println!("    tamper-fmt, tamper-clippy, tamper-test, tamper-build, tamper-deny, tamper-full");
+    println!();
+    println!("  Rust (oasis_os):");
+    println!("    oasis-fmt, oasis-clippy, oasis-test, oasis-build, oasis-deny, oasis-full");
     println!();
     println!("  Rust (wrapper_guard):");
     println!("    wrapper-fmt, wrapper-clippy, wrapper-test, wrapper-full");

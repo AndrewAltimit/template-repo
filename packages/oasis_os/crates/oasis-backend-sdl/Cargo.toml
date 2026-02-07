@@ -1,0 +1,16 @@
+[package]
+name = "oasis-backend-sdl"
+description = "SDL2 rendering and input backend for OASIS_OS (desktop and Raspberry Pi)"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+oasis-core = { workspace = true }
+sdl2 = { workspace = true }
+log = { workspace = true }
+
+[lints]
+workspace = true

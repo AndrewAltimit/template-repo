@@ -1,0 +1,53 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/oasis-core",
+    "crates/oasis-backend-sdl",
+    "crates/oasis-app",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+repository = "https://github.com/AndrewAltimit/template-repo"
+authors = ["AndrewAltimit"]
+
+[workspace.dependencies]
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+toml = "0.8"
+
+# Logging
+log = "0.4"
+env_logger = "0.11"
+
+# Error handling
+thiserror = "2.0"
+anyhow = "1.0"
+
+# Graphics (desktop / Pi)
+sdl2 = "0.37"
+
+# Internal crates
+oasis-core = { path = "crates/oasis-core" }
+
+[workspace.lints.clippy]
+clone_on_ref_ptr = "warn"
+dbg_macro = "warn"
+todo = "warn"
+unimplemented = "warn"
+
+[workspace.lints.rust]
+unsafe_op_in_unsafe_fn = "warn"
+
+[profile.release]
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
+
+[profile.dev]
+opt-level = 0
+debug = true

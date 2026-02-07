@@ -1,0 +1,189 @@
+//! SDL2 backend for OASIS_OS.
+//!
+//! Implements `SdiBackend` and `InputBackend` using SDL2. Used for desktop
+//! development and Raspberry Pi deployment (via SDL2's kmsdrm or X11 backend).
+
+use sdl2::EventPump;
+use sdl2::event::Event;
+use sdl2::keyboard::Keycode;
+use sdl2::rect::Rect;
+use sdl2::render::Canvas;
+use sdl2::video::Window;
+
+use oasis_core::backend::{Color, SdiBackend, TextureId};
+use oasis_core::error::{OasisError, Result};
+use oasis_core::input::{Button, InputEvent, Trigger};
+
+/// SDL2 rendering and input backend.
+///
+/// Phase 1: supports `fill_rect` and `clear` only. Texture loading (PNG, etc.)
+/// will be added in Phase 2 when SDI image support lands.
+pub struct SdlBackend {
+    canvas: Canvas<Window>,
+    event_pump: EventPump,
+}
+
+impl SdlBackend {
+    /// Create a new SDL2 backend with a window.
+    pub fn new(title: &str, width: u32, height: u32) -> Result<Self> {
+        let sdl = sdl2::init().map_err(|e| OasisError::Backend(e.to_string()))?;
+        let video = sdl
+            .video()
+            .map_err(|e| OasisError::Backend(e.to_string()))?;
+        let window = video
+            .window(title, width, height)
+            .position_centered()
+            .build()
+            .map_err(|e| OasisError::Backend(e.to_string()))?;
+        let canvas = window
+            .into_canvas()
+            .accelerated()
+            .present_vsync()
+            .build()
+            .map_err(|e| OasisError::Backend(e.to_string()))?;
+        let event_pump = sdl
+            .event_pump()
+            .map_err(|e| OasisError::Backend(e.to_string()))?;
+
+        log::info!("SDL2 backend initialized: {width}x{height}");
+
+        Ok(Self { canvas, event_pump })
+    }
+}
+
+impl SdiBackend for SdlBackend {
+    fn init(&mut self, _width: u32, _height: u32) -> Result<()> {
+        Ok(())
+    }
+
+    fn clear(&mut self, color: Color) -> Result<()> {
+        self.canvas.set_draw_color(sdl2::pixels::Color::RGBA(
+            color.r, color.g, color.b, color.a,
+        ));
+        self.canvas.clear();
+        Ok(())
+    }
+
+    fn blit(&mut self, tex: TextureId, _x: i32, _y: i32, _w: u32, _h: u32) -> Result<()> {
+        // Phase 1: texture blitting not yet implemented.
+        Err(OasisError::Backend(format!(
+            "texture blit not yet implemented (tex {})",
+            tex.0
+        )))
+    }
+
+    fn fill_rect(&mut self, x: i32, y: i32, w: u32, h: u32, color: Color) -> Result<()> {
+        self.canvas.set_draw_color(sdl2::pixels::Color::RGBA(
+            color.r, color.g, color.b, color.a,
+        ));
+        self.canvas
+            .fill_rect(Rect::new(x, y, w, h))
+            .map_err(|e| OasisError::Backend(e.to_string()))?;
+        Ok(())
+    }
+
+    fn swap_buffers(&mut self) -> Result<()> {
+        self.canvas.present();
+        Ok(())
+    }
+
+    fn load_texture(&mut self, _width: u32, _height: u32, _rgba_data: &[u8]) -> Result<TextureId> {
+        // Phase 1: texture loading not yet implemented.
+        Err(OasisError::Backend(
+            "texture loading not yet implemented".into(),
+        ))
+    }
+
+    fn destroy_texture(&mut self, _tex: TextureId) -> Result<()> {
+        Ok(())
+    }
+
+    fn set_clip_rect(&mut self, x: i32, y: i32, w: u32, h: u32) -> Result<()> {
+        self.canvas.set_clip_rect(Rect::new(x, y, w, h));
+        Ok(())
+    }
+
+    fn reset_clip_rect(&mut self) -> Result<()> {
+        self.canvas.set_clip_rect(None);
+        Ok(())
+    }
+
+    fn shutdown(&mut self) -> Result<()> {
+        log::info!("SDL2 backend shut down");
+        Ok(())
+    }
+}
+
+impl oasis_core::backend::InputBackend for SdlBackend {
+    fn poll_events(&mut self) -> Vec<InputEvent> {
+        let mut events = Vec::new();
+        for event in self.event_pump.poll_iter() {
+            if let Some(e) = map_sdl_event(event) {
+                events.push(e);
+            }
+        }
+        events
+    }
+}
+
+/// Map an SDL2 event to an OASIS_OS input event.
+fn map_sdl_event(event: Event) -> Option<InputEvent> {
+    match event {
+        Event::Quit { .. } => Some(InputEvent::Quit),
+        Event::KeyDown {
+            keycode: Some(key), ..
+        } => map_key_down(key),
+        Event::KeyUp {
+            keycode: Some(key), ..
+        } => map_key_up(key),
+        Event::MouseMotion { x, y, .. } => Some(InputEvent::CursorMove { x, y }),
+        Event::MouseButtonDown { x, y, .. } => Some(InputEvent::PointerClick { x, y }),
+        Event::MouseButtonUp { x, y, .. } => Some(InputEvent::PointerRelease { x, y }),
+        Event::Window {
+            win_event: sdl2::event::WindowEvent::FocusGained,
+            ..
+        } => Some(InputEvent::FocusGained),
+        Event::Window {
+            win_event: sdl2::event::WindowEvent::FocusLost,
+            ..
+        } => Some(InputEvent::FocusLost),
+        Event::TextInput { text, .. } => text.chars().next().map(InputEvent::TextInput),
+        _ => None,
+    }
+}
+
+fn map_key_down(key: Keycode) -> Option<InputEvent> {
+    match key {
+        Keycode::Up => Some(InputEvent::ButtonPress(Button::Up)),
+        Keycode::Down => Some(InputEvent::ButtonPress(Button::Down)),
+        Keycode::Left => Some(InputEvent::ButtonPress(Button::Left)),
+        Keycode::Right => Some(InputEvent::ButtonPress(Button::Right)),
+        Keycode::Return => Some(InputEvent::ButtonPress(Button::Confirm)),
+        Keycode::Escape => Some(InputEvent::ButtonPress(Button::Cancel)),
+        Keycode::Space => Some(InputEvent::ButtonPress(Button::Triangle)),
+        Keycode::Tab => Some(InputEvent::ButtonPress(Button::Square)),
+        Keycode::F1 => Some(InputEvent::ButtonPress(Button::Start)),
+        Keycode::F2 => Some(InputEvent::ButtonPress(Button::Select)),
+        Keycode::Q => Some(InputEvent::TriggerPress(Trigger::Left)),
+        Keycode::E => Some(InputEvent::TriggerPress(Trigger::Right)),
+        _ => None,
+    }
+}
+
+fn map_key_up(key: Keycode) -> Option<InputEvent> {
+    match key {
+        Keycode::Up => Some(InputEvent::ButtonRelease(Button::Up)),
+        Keycode::Down => Some(InputEvent::ButtonRelease(Button::Down)),
+        Keycode::Left => Some(InputEvent::ButtonRelease(Button::Left)),
+        Keycode::Right => Some(InputEvent::ButtonRelease(Button::Right)),
+        Keycode::Return => Some(InputEvent::ButtonRelease(Button::Confirm)),
+        Keycode::Escape => Some(InputEvent::ButtonRelease(Button::Cancel)),
+        Keycode::Space => Some(InputEvent::ButtonRelease(Button::Triangle)),
+        Keycode::Tab => Some(InputEvent::ButtonRelease(Button::Square)),
+        Keycode::F1 => Some(InputEvent::ButtonRelease(Button::Start)),
+        Keycode::F2 => Some(InputEvent::ButtonRelease(Button::Select)),
+        Keycode::Q => Some(InputEvent::TriggerRelease(Trigger::Left)),
+        Keycode::E => Some(InputEvent::TriggerRelease(Trigger::Right)),
+        _ => None,
+    }
+}

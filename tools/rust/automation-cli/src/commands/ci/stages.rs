@@ -9,6 +9,7 @@ pub enum Workspace {
     McpCore,
     Bioforge,
     TamperBriefcase,
+    OasisOs,
 }
 
 impl Workspace {
@@ -18,6 +19,7 @@ impl Workspace {
             Workspace::McpCore => "tools/mcp/mcp_core_rust",
             Workspace::Bioforge => "packages/bioforge",
             Workspace::TamperBriefcase => "packages/tamper_briefcase",
+            Workspace::OasisOs => "packages/oasis_os",
         }
     }
 }
@@ -29,6 +31,7 @@ impl fmt::Display for Workspace {
             Workspace::McpCore => write!(f, "MCP Core Rust"),
             Workspace::Bioforge => write!(f, "BioForge"),
             Workspace::TamperBriefcase => write!(f, "Tamper Briefcase"),
+            Workspace::OasisOs => write!(f, "OASIS_OS"),
         }
     }
 }
@@ -134,6 +137,12 @@ pub enum Stage {
     TamperBuild,
     TamperFull,
 
+    // OASIS_OS special (SDL2 not in CI container -- test/clippy/build only oasis-core)
+    OasisClippy,
+    OasisTest,
+    OasisBuild,
+    OasisFull,
+
     // Iterator group stages
     IterFmt(IterGroup),
     IterClippy(IterGroup),
@@ -214,6 +223,14 @@ impl Stage {
             "tamper-build" => Stage::TamperBuild,
             "tamper-deny" => Stage::WorkspaceDeny(Workspace::TamperBriefcase),
             "tamper-full" => Stage::TamperFull,
+
+            // OASIS_OS (SDL2 crates excluded from CI -- no libsdl2-dev in container)
+            "oasis-fmt" => Stage::WorkspaceFmt(Workspace::OasisOs),
+            "oasis-clippy" => Stage::OasisClippy,
+            "oasis-test" => Stage::OasisTest,
+            "oasis-build" => Stage::OasisBuild,
+            "oasis-deny" => Stage::WorkspaceDeny(Workspace::OasisOs),
+            "oasis-full" => Stage::OasisFull,
 
             // Wrapper
             "wrapper-fmt" => Stage::IterFmt(IterGroup::Wrapper),
