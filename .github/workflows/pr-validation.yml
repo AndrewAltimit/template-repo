@@ -263,7 +263,7 @@ jobs:
 
           # Check if all required binaries exist in cache
           CACHE_VALID=true
-          for binary in github-agents board-manager md-link-checker git-guard mcp-gemini code-review-processor; do
+          for binary in github-agents board-manager md-link-checker git-guard mcp-gemini code-review-processor automation-cli; do
             if [ ! -f "$RUST_CLI_CACHE/$binary" ]; then
               echo "Cache miss: $binary not found"
               CACHE_VALID=false
@@ -322,6 +322,14 @@ jobs:
           cp target/release/code-review-processor "$RUST_CLI_CACHE/"
           echo "Built and cached code-review-processor"
 
+      - name: Build automation-cli
+        if: steps.local-cache.outputs.cache_valid != 'true' || needs.detect-changes.outputs.rust_tools_changed == 'true'
+        run: |
+          cd tools/rust/automation-cli
+          cargo build --release
+          cp target/release/automation-cli "$RUST_CLI_CACHE/"
+          echo "Built and cached automation-cli"
+
       - name: Stage binaries for workflow
         run: |
           mkdir -p rust-binaries
@@ -332,6 +340,7 @@ jobs:
           cp "$RUST_CLI_CACHE/git-guard" rust-binaries/
           cp "$RUST_CLI_CACHE/mcp-gemini" rust-binaries/
           cp "$RUST_CLI_CACHE/code-review-processor" rust-binaries/
+          cp "$RUST_CLI_CACHE/automation-cli" rust-binaries/
           echo "Staged binaries from local cache:"
           ls -la rust-binaries/
 
@@ -370,6 +379,7 @@ jobs:
       pr_number: ${{ github.event.pull_request.number }}
       timeout_minutes: 15
       continue_on_error: true
+      start_reaction_server: true
     secrets: inherit
 
   # Stage 2c: AgentCore Code Review (Optional - triggered by label)
@@ -460,6 +470,15 @@ jobs:
           else
             echo "ERROR: github-agents binary not found in artifact!"
             exit 1
+          fi
+
+          if [ -f "rust-tools/automation-cli" ]; then
+            chmod +x rust-tools/automation-cli
+            mkdir -p tools/rust/automation-cli/target/release
+            cp rust-tools/automation-cli tools/rust/automation-cli/target/release/
+            echo "Installed automation-cli"
+          else
+            echo "WARNING: automation-cli binary not found in artifact"
           fi
 
       - name: Check iteration count
@@ -625,7 +644,7 @@ jobs:
   # Stage 5: Test execution (after AI review cycle and linting)
   test-suite:
     name: Test Suite
-    needs: [detect-changes, gemini-review, codex-review, agent-review-response, format-check, basic-lint, full-lint]
+    needs: [detect-changes, build-rust-tools, gemini-review, codex-review, agent-review-response, format-check, basic-lint, full-lint]
     if: |
       always() && !cancelled() &&
       needs.detect-changes.result == 'success' &&
@@ -651,6 +670,24 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           ref: ${{ github.head_ref }}
           lfs: true
+
+      - name: Download automation-cli
+        uses: actions/download-artifact@v4
+        with:
+          name: rust-cli-tools
+          path: rust-tools
+
+      - name: Setup automation-cli
+        run: |
+          if [ -f "rust-tools/automation-cli" ]; then
+            chmod +x rust-tools/automation-cli
+            mkdir -p tools/rust/automation-cli/target/release
+            cp rust-tools/automation-cli tools/rust/automation-cli/target/release/
+            echo "Installed automation-cli"
+          else
+            echo "ERROR: automation-cli not found in artifact"
+            exit 1
+          fi
 
       - name: Run tests
         env:
@@ -819,7 +856,7 @@ jobs:
   # Stage 8b: Injection Toolkit Tests (Rust) - after AI review cycle
   injection-toolkit-tests:
     name: Injection Toolkit Tests
-    needs: [detect-changes, gemini-review, codex-review, agent-review-response]
+    needs: [detect-changes, build-rust-tools, gemini-review, codex-review, agent-review-response]
     if: |
       always() && !cancelled() &&
       needs.detect-changes.result == 'success' &&
@@ -845,6 +882,24 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           ref: ${{ github.head_ref }}
           lfs: true
+
+      - name: Download automation-cli
+        uses: actions/download-artifact@v4
+        with:
+          name: rust-cli-tools
+          path: rust-tools
+
+      - name: Setup automation-cli
+        run: |
+          if [ -f "rust-tools/automation-cli" ]; then
+            chmod +x rust-tools/automation-cli
+            mkdir -p tools/rust/automation-cli/target/release
+            cp rust-tools/automation-cli tools/rust/automation-cli/target/release/
+            echo "Installed automation-cli"
+          else
+            echo "ERROR: automation-cli not found in artifact"
+            exit 1
+          fi
 
       - name: Check formatting (containerized)
         run: ./automation/ci-cd/run-ci.sh rust-fmt
@@ -905,7 +960,7 @@ jobs:
   # Stage 8c: Economic Agents Tests (Rust) - after AI review cycle
   economic-agents-tests:
     name: Economic Agents Tests
-    needs: [detect-changes, gemini-review, codex-review, agent-review-response]
+    needs: [detect-changes, build-rust-tools, gemini-review, codex-review, agent-review-response]
     if: |
       always() && !cancelled() &&
       needs.detect-changes.result == 'success' &&
@@ -931,6 +986,24 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           ref: ${{ github.head_ref }}
           lfs: true
+
+      - name: Download automation-cli
+        uses: actions/download-artifact@v4
+        with:
+          name: rust-cli-tools
+          path: rust-tools
+
+      - name: Setup automation-cli
+        run: |
+          if [ -f "rust-tools/automation-cli" ]; then
+            chmod +x rust-tools/automation-cli
+            mkdir -p tools/rust/automation-cli/target/release
+            cp rust-tools/automation-cli tools/rust/automation-cli/target/release/
+            echo "Installed automation-cli"
+          else
+            echo "ERROR: automation-cli not found in artifact"
+            exit 1
+          fi
 
       - name: Check formatting (containerized)
         run: ./automation/ci-cd/run-ci.sh econ-fmt

@@ -98,11 +98,22 @@ jobs:
             ./automation/setup/docker/init-output-dirs.sh
           fi
 
+      - name: Setup automation-cli
+        run: |
+          if [ -x "tools/rust/automation-cli/target/release/automation-cli" ]; then
+            echo "Using existing automation-cli build"
+          else
+            echo "Building automation-cli..."
+            cd tools/rust/automation-cli
+            cargo build --release
+            echo "Built automation-cli"
+          fi
+
       - name: Run tests
         env:
           MCP_GAEA2_URL: http://192.168.0.152:8007
         run: |
-          echo "🧪 Running test suite..."
+          echo "Running test suite..."
           ./automation/ci-cd/run-ci.sh test --cov-report=html --timeout=300 --junitxml=test-results.xml
 
       - name: Upload test results
@@ -178,6 +189,17 @@ jobs:
         run: |
           if [ -f "./automation/setup/docker/init-output-dirs.sh" ]; then
             ./automation/setup/docker/init-output-dirs.sh
+          fi
+
+      - name: Setup automation-cli
+        run: |
+          if [ -x "tools/rust/automation-cli/target/release/automation-cli" ]; then
+            echo "Using existing automation-cli build"
+          else
+            echo "Building automation-cli..."
+            cd tools/rust/automation-cli
+            cargo build --release
+            echo "Built automation-cli"
           fi
 
       - name: Run Rust CI (all workspaces)
@@ -327,9 +349,20 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
+      - name: Setup automation-cli
+        run: |
+          if [ -x "tools/rust/automation-cli/target/release/automation-cli" ]; then
+            echo "Using existing automation-cli build"
+          else
+            echo "Building automation-cli..."
+            cd tools/rust/automation-cli
+            cargo build --release
+            echo "Built automation-cli"
+          fi
+
       - name: Run security scans
         run: |
-          echo "🔒 Running security scans..."
+          echo "Running security scans..."
           ./automation/ci-cd/run-ci.sh security
 
           # Display summary

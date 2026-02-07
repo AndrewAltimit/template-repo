@@ -63,14 +63,29 @@ jobs:
             ./automation/setup/docker/init-output-dirs.sh
           fi
 
-      # Download Rust binary for link checking (only for links stage)
-      - name: Download Rust link checker
-        if: inputs.stage == 'links'
+      # Download Rust CLI tools (automation-cli for all stages, link checker for links)
+      - name: Download Rust CLI tools
         uses: actions/download-artifact@v4
-        continue-on-error: true  # Fall back to building if artifact not available
+        continue-on-error: true
         with:
           name: rust-cli-tools
           path: rust-tools
+
+      - name: Setup automation-cli
+        run: |
+          if [ -f "rust-tools/automation-cli" ]; then
+            chmod +x rust-tools/automation-cli
+            mkdir -p tools/rust/automation-cli/target/release
+            cp rust-tools/automation-cli tools/rust/automation-cli/target/release/
+            echo "Installed automation-cli from artifact"
+          elif [ -x "tools/rust/automation-cli/target/release/automation-cli" ]; then
+            echo "Using existing automation-cli build"
+          else
+            echo "Building automation-cli locally..."
+            cd tools/rust/automation-cli
+            cargo build --release
+            echo "Built automation-cli"
+          fi
 
       - name: Setup Rust link checker
         if: inputs.stage == 'links'
