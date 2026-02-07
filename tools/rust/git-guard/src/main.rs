@@ -275,6 +275,10 @@ fn run() -> Result<(), Error> {
     );
     wrapper_common::audit::log_event(&entry);
 
+    // Set recursion guard before exec so that if the resolved path is
+    // actually another wrapper copy, the next invocation will detect it.
+    wrapper_common::binary_finder::set_recursion_guard("git");
+
     // Safe operation - execute the real git
     wrapper_common::exec::exec_binary("git", &real_git, &args)?;
 

@@ -16,6 +16,12 @@ use std::sync::Mutex;
 /// Base directory for hardened (relocated) binaries
 const HARDENED_BASE_DIR: &str = "/usr/lib/wrapper-guard";
 
+/// Environment variable prefix used to detect exec() recursion between
+/// multiple wrapper copies. The full variable name includes the binary name
+/// (e.g., __WRAPPER_GUARD_RECURSION_GIT) so that git-guard and gh-validator
+/// don't interfere with each other (gh calls git internally).
+const RECURSION_GUARD_PREFIX: &str = "__WRAPPER_GUARD_RECURSION_";
+
 /// Platform-specific PATH separator
 #[cfg(windows)]
 const PATH_SEPARATOR: char = ';';
@@ -45,6 +51,24 @@ static BINARY_CACHE: Lazy<Mutex<HashMap<String, PathBuf>>> =
 /// * `Ok(PathBuf)` - Canonicalized path to the real binary
 /// * `Err(CommonError::BinaryNotFound)` - If no suitable binary was found
 pub fn find_real_binary(binary_name: &str) -> Result<PathBuf> {
+    // Recursion guard: if the binary-specific env var is already set, we are
+    // in an exec() loop between multiple wrapper copies. Abort immediately.
+    let guard_var = format!(
+        "{}{}",
+        RECURSION_GUARD_PREFIX,
+        binary_name.to_ascii_uppercase()
+    );
+    if std::env::var(&guard_var).is_ok() {
+        return Err(CommonError::BinaryNotFound {
+            binary_name: binary_name.to_string(),
+            searched_paths: format!(
+                "(recursion detected: {} already set -- \
+                 multiple wrapper copies on PATH are exec'ing to each other)",
+                guard_var,
+            ),
+        });
+    }
+
     // Check cache first
     if let Ok(cache) = BINARY_CACHE.lock() {
         if let Some(cached) = cache.get(binary_name) {
@@ -62,6 +86,28 @@ pub fn find_real_binary(binary_name: &str) -> Result<PathBuf> {
     Ok(result)
 }
 
+/// Set the recursion guard environment variable before exec'ing.
+///
+/// Call this just before `exec_binary()` so that if the resolved path
+/// turns out to be another wrapper copy, it will detect the recursion
+/// on the next invocation and abort instead of looping.
+///
+/// The variable is binary-specific (e.g., `__WRAPPER_GUARD_RECURSION_GIT`)
+/// so that gh-validator setting its guard doesn't prevent git-guard from
+/// running when the real `gh` binary internally calls `git`.
+pub fn set_recursion_guard(binary_name: &str) {
+    let var = format!(
+        "{}{}",
+        RECURSION_GUARD_PREFIX,
+        binary_name.to_ascii_uppercase()
+    );
+    // SAFETY: this is called single-threaded just before exec() replaces
+    // the process image, so no other threads are affected.
+    unsafe {
+        std::env::set_var(var, "1");
+    }
+}
+
 /// Internal implementation of binary discovery
 fn find_real_binary_internal(binary_name: &str) -> Result<PathBuf> {
     // 1. Check hardened location first (/usr/lib/wrapper-guard/{name}.real)
@@ -75,11 +121,15 @@ fn find_real_binary_internal(binary_name: &str) -> Result<PathBuf> {
         }
     }
 
-    // 2. Fall back to PATH scanning (original behavior)
+    // 2. Fall back to PATH scanning.
+    // This is expected when a non-setgid copy (e.g. ~/.local/bin/git) needs
+    // to delegate to the setgid copy (e.g. /usr/bin/git) which CAN access
+    // the hardened real binary. The file-size check in find_in_path prevents
+    // infinite loops between same-sized wrapper copies.
     find_in_path(binary_name)
 }
 
-/// Search PATH for the real binary, skipping ourselves
+/// Search PATH for the real binary, skipping ourselves and other wrapper copies
 fn find_in_path(binary_name: &str) -> Result<PathBuf> {
     let full_name = format!("{}{}", binary_name, EXE_SUFFIX);
 
@@ -88,8 +138,17 @@ fn find_in_path(binary_name: &str) -> Result<PathBuf> {
         .ok()
         .and_then(|p| p.canonicalize().ok());
 
+    // Get our own file size to detect other wrapper copies.
+    // Different copies of the same wrapper binary will have the same size
+    // (or very close), while the real git/gh binary will be much larger.
+    let self_size = self_path
+        .as_ref()
+        .and_then(|p| p.metadata().ok())
+        .map(|m| m.len());
+
     let path_var = std::env::var("PATH").unwrap_or_default();
     let mut searched_paths = Vec::new();
+    let mut skipped_wrappers = Vec::new();
 
     for path_dir in path_var.split(PATH_SEPARATOR) {
         if path_dir.is_empty() {
@@ -121,12 +180,35 @@ fn find_in_path(binary_name: &str) -> Result<PathBuf> {
             continue;
         }
 
+        // Skip candidates that look like another wrapper copy:
+        // same file size as ourselves AND no setgid bit.
+        // A setgid copy (e.g. /usr/bin/git installed by hardened setup)
+        // can access the real binary via group permissions even though
+        // we can't, so we must NOT skip it.
+        if let Some(our_size) = self_size {
+            if let Ok(meta) = canonical.metadata() {
+                if meta.len() == our_size && !is_setgid(&canonical) {
+                    skipped_wrappers.push(canonical.display().to_string());
+                    continue;
+                }
+            }
+        }
+
         return Ok(canonical);
+    }
+
+    // Build a helpful error message
+    let mut detail = searched_paths.join(", ");
+    if !skipped_wrappers.is_empty() {
+        detail.push_str(&format!(
+            " (skipped likely wrapper copies: {})",
+            skipped_wrappers.join(", ")
+        ));
     }
 
     Err(CommonError::BinaryNotFound {
         binary_name: binary_name.to_string(),
-        searched_paths: searched_paths.join(", "),
+        searched_paths: detail,
     })
 }
 
@@ -142,6 +224,22 @@ fn is_executable(path: &std::path::Path) -> bool {
 #[cfg(not(unix))]
 fn is_executable(_path: &std::path::Path) -> bool {
     true
+}
+
+/// Check if a file has the setgid bit set (Unix only; always false on Windows).
+/// Setgid binaries run with the file's group as effective GID, which lets
+/// the hardened wrapper at /usr/bin access /usr/lib/wrapper-guard/*.real.
+#[cfg(unix)]
+fn is_setgid(path: &std::path::Path) -> bool {
+    use std::os::unix::fs::PermissionsExt;
+    path.metadata()
+        .map(|m| m.permissions().mode() & 0o2000 != 0)
+        .unwrap_or(false)
+}
+
+#[cfg(not(unix))]
+fn is_setgid(_path: &std::path::Path) -> bool {
+    false
 }
 
 /// Get the PATH directories as a formatted string (for error messages)

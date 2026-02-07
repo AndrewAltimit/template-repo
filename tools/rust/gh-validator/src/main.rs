@@ -432,9 +432,12 @@ fn run() -> Result<(), Error> {
 /// Note: We use inherited stdout/stderr to preserve TTY for interactive prompts.
 /// After the command succeeds, we query the PR URL using `gh pr view`.
 fn spawn_gh_pr_create(gh_path: &std::path::Path, args: &[String]) -> Result<(), Error> {
-    // Run gh with inherited stdio to preserve TTY for interactive mode
+    // Run gh with inherited stdio to preserve TTY for interactive mode.
+    // Set recursion guard env for the child in case the resolved path
+    // is another wrapper copy.
     let status = Command::new(gh_path)
         .args(args)
+        .env("__WRAPPER_GUARD_RECURSION_GH", "1")
         .stdout(Stdio::inherit())
         .stderr(Stdio::inherit())
         .stdin(Stdio::inherit())
@@ -465,7 +468,11 @@ fn get_current_branch_pr(gh_path: &std::path::Path, repo: Option<&str>) -> Optio
         cmd_args.push(&repo_flag);
     }
 
-    let output = Command::new(gh_path).args(&cmd_args).output().ok()?;
+    let output = Command::new(gh_path)
+        .args(&cmd_args)
+        .env("__WRAPPER_GUARD_RECURSION_GH", "1")
+        .output()
+        .ok()?;
 
     if !output.status.success() {
         return None;
@@ -504,6 +511,10 @@ fn get_current_branch_pr(gh_path: &std::path::Path, repo: Option<&str>) -> Optio
 #[cfg(unix)]
 fn exec_gh(gh_path: &std::path::Path, args: &[String]) -> Result<(), Error> {
     use std::os::unix::process::CommandExt;
+
+    // Set recursion guard before exec so that if the resolved path is
+    // actually another wrapper copy, the next invocation will detect it.
+    wrapper_common::binary_finder::set_recursion_guard("gh");
 
     let err = Command::new(gh_path).args(args).exec();
 
