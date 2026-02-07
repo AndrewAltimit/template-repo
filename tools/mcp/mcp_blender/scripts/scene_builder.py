@@ -675,7 +675,7 @@ def create_curve(args, _job_id):
         return False
 
 
-def add_texture(args, _job_id):
+def add_texture(args, _job_id):  # noqa: C901
     """Add a texture to an object."""
     try:
         # Load project
@@ -1026,7 +1026,7 @@ def analyze_scene(args, job_id):
         return False
 
 
-def optimize_scene(args, _job_id):
+def optimize_scene(args, _job_id):  # noqa: C901
     """Optimize scene for better performance."""
     try:
         # Load project
@@ -1153,7 +1153,7 @@ def export_scene(args, _job_id):
         return False
 
 
-def main():
+def main():  # noqa: C901
     """Main entry point."""
     argv = sys.argv
 

@@ -10,7 +10,7 @@ import sys
 import bpy
 
 
-def add_constraint(args, _job_id):
+def add_constraint(args, _job_id):  # noqa: C901
     """Add constraint to an object.
 
     Parameters:
