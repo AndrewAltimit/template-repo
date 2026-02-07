@@ -912,6 +912,14 @@ jobs:
             docs_output \
             bioforge-crispr-automation
 
+      - name: Build Secure Terminal Briefcase
+        run: |
+          ./automation/ci-cd/build-latex-doc.sh \
+            secure-terminal-briefcase.tex \
+            docs/hardware/latex \
+            docs_output \
+            secure-terminal-briefcase
+
       - name: Build Agentic Workflow Handout
         run: |
           ./automation/ci-cd/build-latex-doc.sh \
@@ -1043,6 +1051,7 @@ jobs:
           - **AI Agents Espionage Operations Report** - Risk assessment for AI agents in espionage operations
           - **AI Agents Financial Integrity Report** - Risk assessment for AI agents in financial system integrity
           - **AI Agents Institutional Erosion Report** - Risk assessment for AI agents eroding intelligence community monopolies
+          - **Secure Terminal Briefcase** - Tamper-responsive briefcase system with PQC recovery
           - **Architectural Qualia Paper** - Philosophical exploration of LLM phenomenology
 
           ### Rust Binaries
