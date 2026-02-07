@@ -179,9 +179,9 @@ jobs:
 
           kill $GEMINI_PID || true
 
-      # Gemini-specific: Start reaction search server
+      # Start reaction search server for any agent that requests it
       - name: Start Reaction Search MCP Server
-        if: inputs.agent == 'gemini' && inputs.start_reaction_server
+        if: inputs.start_reaction_server
         run: |
           echo "Starting Reaction Search MCP server..."
           source ./automation/setup/docker/set-docker-user.sh 2>/dev/null || true
@@ -199,6 +199,24 @@ jobs:
             fi
             sleep 2
           done
+
+      # Configure Codex CLI to use reaction-search MCP server
+      - name: Configure Codex MCP servers
+        if: inputs.agent == 'codex' && inputs.start_reaction_server
+        shell: bash
+        run: |
+          export NVM_DIR="$HOME/.nvm"
+          [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+          nvm use 22.16.0 2>/dev/null || true
+
+          if command -v codex &>/dev/null; then
+            codex mcp add reaction-search --url http://localhost:8024/messages 2>&1 || \
+              echo "Warning: Could not configure Codex MCP server"
+            echo "Configured Codex MCP servers:"
+            codex mcp list 2>&1 || true
+          else
+            echo "Warning: Codex CLI not found, skipping MCP configuration"
+          fi
 
       - name: Run AI Code Review
         id: review
@@ -280,9 +298,9 @@ jobs:
           gh pr comment "${{ inputs.pr_number }}" --body-file /tmp/unavailable-notice.md || \
             echo "::warning::Failed to post unavailability notice to PR"
 
-      # Gemini-specific: Stop reaction search server
+      # Stop reaction search server
       - name: Stop Reaction Search MCP Server
-        if: always() && inputs.agent == 'gemini' && inputs.start_reaction_server
+        if: always() && inputs.start_reaction_server
         run: |
           echo "Stopping Reaction Search MCP server..."
           docker compose --profile services stop mcp-reaction-search || true

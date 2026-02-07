@@ -24,16 +24,16 @@ The project uses multiple AI agents for development. Key files:
 
 ```bash
 # Run full CI pipeline
-./automation/ci-cd/run-ci.sh full
+automation-cli ci run full
 
 # Format code
-./automation/ci-cd/run-ci.sh autoformat
+automation-cli ci run autoformat
 
 # Run tests
-./automation/ci-cd/run-ci.sh test
+automation-cli ci run test
 
 # Check linting
-./automation/ci-cd/run-ci.sh lint-full
+automation-cli ci run lint-full
 ```
 
 ### Container Development

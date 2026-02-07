@@ -270,7 +270,7 @@ The server uses the `board-manager` CLI which reads configuration from `.github/
 ## Related Documentation
 
 - [Board Manager CLI](../../../rust/board-manager/README.md)
-- [MCP Core Rust](../../mcp_core_rust/docs/README.md)
+- [MCP Core Rust](../../mcp_core_rust/README.md)
 - [GitHub Agents CLI](../../../rust/github-agents-cli/README.md)
 
 ## License

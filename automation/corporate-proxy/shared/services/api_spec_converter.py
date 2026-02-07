@@ -281,7 +281,7 @@ class APISpecConverter:
     # Message Conversion
     # =========================================================================
 
-    def convert_messages_to_openai(self, messages: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def convert_messages_to_openai(self, messages: List[Dict[str, Any]]) -> List[Dict[str, Any]]:  # noqa: C901
         """Convert messages to OpenAI format.
 
         Args:
@@ -359,7 +359,7 @@ class APISpecConverter:
 
         return converted
 
-    def convert_messages_to_anthropic(
+    def convert_messages_to_anthropic(  # noqa: C901
         self, messages: List[Dict[str, Any]], system: Optional[str] = None
     ) -> Tuple[Optional[str], List[Dict[str, Any]]]:
         """Convert messages to Anthropic format.

@@ -763,7 +763,7 @@ runs:
           "- Example: Read(file_path='/path/to/file', offset=0, limit=200) to read first 200 lines" \
           "- Use Grep to search for specific content instead of reading entire large files" \
           "- Focus on the specific files mentioned in the issue - do not explore the entire codebase" \
-          "- Run linting/tests after making changes: ./automation/ci-cd/run-ci.sh full" \
+          "- Run linting/tests after making changes: automation-cli ci run full" \
           "- DO NOT commit changes - the workflow handles commits automatically" \
           "" \
           "## PR Title Requirement" \

@@ -155,4 +155,4 @@ When running in standalone mode:
 
 ## License
 
-See [LICENSE](../../../LICENSE) in repository root.
+See [LICENSE](../../../../LICENSE) in repository root.

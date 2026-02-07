@@ -202,8 +202,8 @@ The template provides two MCP configuration files to optimize performance:
    docker compose up -d python-ci mcp-code-quality
 
    # Run code quality checks
-   ./automation/ci-cd/run-ci.sh format
-   ./automation/ci-cd/run-ci.sh lint-basic
+   automation-cli ci run format
+   automation-cli ci run lint-basic
    ```
 
 ### AI-Powered Setup
@@ -464,12 +464,15 @@ curl http://localhost:8011/health  # Content creation
 
 ### Run CI Pipeline
 ```bash
+# Build the automation CLI (one-time)
+cargo build --release -p automation-cli
+
 # Run full CI to verify setup
-./automation/ci-cd/run-ci.sh full
+automation-cli ci run full
 
 # Or test individually
-./automation/ci-cd/run-ci.sh format
-./automation/ci-cd/run-ci.sh test
+automation-cli ci run format
+automation-cli ci run test
 ```
 
 ## Troubleshooting

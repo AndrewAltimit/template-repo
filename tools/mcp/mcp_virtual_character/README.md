@@ -322,8 +322,8 @@ The audio playback system detects ElevenLabs expression tags in audio metadata:
 
 ## Related Documentation
 
-- [Virtual Character System Guide](../../../docs/integrations/ai-services/Virtual_Character_System_Guide.pdf)
-- [ElevenLabs Integration](../mcp_elevenlabs_speech/README.md)
+- [Virtual Character System Guide](../../../docs/integrations/ai-services/Virtual_Character_System_Guide.tex)
+- [ElevenLabs Integration](../mcp_elevenlabs_speech/docs/README.md)
 - [VRChat OSC Documentation](https://docs.vrchat.com/docs/osc-overview)
 
 ## License

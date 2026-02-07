@@ -227,12 +227,12 @@ docker compose --profile scenario run scenario
 
 ## CI/CD
 
-Run quality checks via the project's CI scripts:
+Run quality checks via the automation CLI:
 
 ```bash
-./automation/ci-cd/run-ci.sh econ-full      # fmt + clippy + test
-./automation/ci-cd/run-ci.sh econ-doc       # Generate API docs
-./automation/ci-cd/run-ci.sh econ-coverage  # Test coverage
+automation-cli ci run econ-full      # fmt + clippy + test
+automation-cli ci run econ-doc       # Generate API docs
+automation-cli ci run econ-coverage  # Test coverage
 ```
 
 ## License

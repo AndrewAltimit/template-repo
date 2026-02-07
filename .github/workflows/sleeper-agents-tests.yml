@@ -293,6 +293,16 @@ jobs:
             docker compose build sleeper-eval-cpu
           }
 
+      - name: Setup automation-cli
+        run: |
+          # automation-cli is required by wait-for-it.sh
+          if [ -x "tools/rust/automation-cli/target/release/automation-cli" ]; then
+            echo "Using existing automation-cli build"
+          else
+            echo "Building automation-cli locally..."
+            cd tools/rust/automation-cli && cargo build --release && cd -
+          fi
+
       - name: Start API server
         run: |
           echo "🚀 Starting sleeper agents API server..."

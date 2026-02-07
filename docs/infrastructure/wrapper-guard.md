@@ -333,16 +333,16 @@ The CI pipeline validates all wrapper code with four stages:
 
 ```bash
 # Format check
-./automation/ci-cd/run-ci.sh wrapper-fmt
+automation-cli ci run wrapper-fmt
 
 # Lint check (clippy -D warnings)
-./automation/ci-cd/run-ci.sh wrapper-clippy
+automation-cli ci run wrapper-clippy
 
 # Unit tests
-./automation/ci-cd/run-ci.sh wrapper-test
+automation-cli ci run wrapper-test
 
 # All three above in sequence
-./automation/ci-cd/run-ci.sh wrapper-full
+automation-cli ci run wrapper-full
 ```
 
 These stages check `wrapper-common`, `git-guard`, and `gh-validator` together.

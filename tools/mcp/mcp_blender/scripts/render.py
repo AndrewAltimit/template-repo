@@ -161,7 +161,7 @@ def batch_render(args, job_id):
         scene = bpy.context.scene
         frames = args.get("frames", [1])
         cameras = args.get("cameras", [])
-        layers = args.get("layers", [])
+        _layers = args.get("layers", [])
         settings = args.get("settings", {})
         output_dir = args.get("output_dir", f"/app/outputs/batch/{job_id}")
 

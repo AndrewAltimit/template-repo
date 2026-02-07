@@ -25,8 +25,8 @@ docker compose run --rm python-ci pytest tests/test_codex_pr_review.py -v
 # Run with coverage
 docker compose run --rm python-ci pytest tests/ -v --cov=. --cov-report=xml
 
-# Quick test via helper script
-./automation/ci-cd/run-ci.sh test
+# Quick test via automation CLI
+automation-cli ci run test
 ```
 
 ## Where Other Tests Live

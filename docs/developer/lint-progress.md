@@ -25,13 +25,13 @@ Lint checks are enforced in PR validation via the `lint-basic` and `lint-full` s
 
 ```bash
 # Run ruff linting
-./automation/ci-cd/run-ci.sh lint-basic
+automation-cli ci run lint-basic
 
 # Run full lint check
-./automation/ci-cd/run-ci.sh lint-full
+automation-cli ci run lint-full
 
 # Auto-fix issues
-./automation/ci-cd/run-ci.sh autoformat
+automation-cli ci run autoformat
 
 # Direct ruff commands
 docker compose run --rm python-ci ruff check .

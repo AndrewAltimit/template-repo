@@ -23,8 +23,8 @@ As the PR reviewer, focus on security, containers, and project standards.
 
 - **Everything runs in Docker containers** except Gemini CLI (needs Docker access)
 - **No local dependencies** required beyond Docker itself
-- **All Python CI/CD operations** are containerized (Black, isort, flake8, pytest, etc.)
-- Helper scripts (`run-ci.sh`) provide simple interfaces to containerized tools
+- **All Python CI/CD operations** are containerized (ruff, pytest, bandit, etc.)
+- The `automation-cli` Rust binary provides a unified interface to all CI stages
 
 ### 2. Self-Hosted Infrastructure
 
@@ -67,7 +67,7 @@ As the PR reviewer, focus on security, containers, and project standards.
 - Python code should handle async/await properly
 - No `chmod 777` or overly permissive operations
 - Helper scripts should be simple wrappers around docker compose
-- Use `./automation/ci-cd/run-ci.sh` for all CI operations
+- Use `automation-cli ci run` for all CI operations
 - Mock external dependencies in tests (subprocess, requests)
 - Clear Gemini history before PR reviews
 
@@ -108,7 +108,7 @@ This is NOT a bug or oversight - it's a deliberate architectural decision based 
 
 ## Key Patterns
 
-- Use `./automation/ci-cd/run-ci.sh` for all CI operations
+- Use `automation-cli ci run` for all CI operations
 - Docker Compose for service orchestration
 - Mock external services in tests
 - Clear separation of containerized vs host tools
@@ -120,7 +120,7 @@ This is NOT a bug or oversight - it's a deliberate architectural decision based 
 3. **.github/workflows/*.yml** - Must use self-hosted runners
 4. **automation/**/*.sh** - Shell script correctness and permissions
 5. **tools/mcp/mcp_server.py** - Core MCP functionality
-6. **automation/ci-cd/run-ci.sh** - Main CI/CD entry point
+6. **tools/rust/automation-cli/** - Main CI/CD entry point (Rust CLI)
 7. **.mcp.json** - Tool configuration and rate limits
 
 ## Code Review Examples
@@ -132,7 +132,7 @@ export USER_ID=$(id -u)
 export GROUP_ID=$(id -g)
 
 # Using helper scripts
-./automation/ci-cd/run-ci.sh format
+automation-cli ci run format
 
 # Container with user permissions
 docker compose run --rm --user "${USER_ID}:${GROUP_ID}" python-ci command

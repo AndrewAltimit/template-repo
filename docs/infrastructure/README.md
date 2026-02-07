@@ -56,7 +56,7 @@ sudo systemctl start github-runner
 
 ### Test containerized CI
 ```bash
-./automation/ci-cd/run-ci.sh full
+automation-cli ci run full
 ```
 
 ### Check Docker setup

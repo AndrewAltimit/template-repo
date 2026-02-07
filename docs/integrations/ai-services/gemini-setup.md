@@ -269,5 +269,5 @@ If Gemini reviews aren't working:
 
 ## References
 
-- [Gemini MCP Server Docs](../../../tools/mcp/mcp_gemini/docs/README.md)
+- [Gemini MCP Server Docs](../../../tools/mcp/mcp_gemini/README.md)
 - [Setup Guide](https://gist.github.com/AndrewAltimit/fc5ba068b73e7002cbe4e9721cebb0f5)

@@ -48,24 +48,31 @@ Six AI agents work together in this development ecosystem:
 ### CI/CD (Most Used)
 
 ```bash
-# Python
-./automation/ci-cd/run-ci.sh full        # All Python checks
-./automation/ci-cd/run-ci.sh format      # Check formatting
-./automation/ci-cd/run-ci.sh lint-full   # Full linting
+# Preferred: Rust CLI (build once with: cargo build --release -p automation-cli)
+automation-cli ci run full               # All Python checks
+automation-cli ci run format             # Check formatting
+automation-cli ci run lint-full          # Full linting
+automation-cli ci run rust-full          # All Rust checks
+automation-cli ci run econ-full          # Economic agents (fmt + clippy + test)
+automation-cli ci list                   # Show all available stages
 
-# Rust
+# Legacy shell (still works, wrappers delegate to Rust binary if built)
+./automation/ci-cd/run-ci.sh full        # All Python checks
 ./automation/ci-cd/run-ci.sh rust-full   # All Rust checks
-./automation/ci-cd/run-ci.sh econ-full   # Economic agents (fmt + clippy + test)
 
 # Context protection - ALWAYS use for verbose output
-./automation/ci-cd/run-ci.sh full > /tmp/ci-output.log 2>&1 && echo "CI passed" || (echo "CI failed"; exit 1)
+automation-cli ci run full > /tmp/ci-output.log 2>&1 && echo "CI passed" || (echo "CI failed"; exit 1)
 ```
 
 ### Running Tests
 
 ```bash
+automation-cli ci run test               # Python tests (excludes gaea2)
+automation-cli ci run test-gaea2         # Gaea2 tests only
+automation-cli ci run test-all           # All tests
+
+# Legacy equivalents
 ./automation/ci-cd/run-ci.sh test        # Python tests (excludes gaea2)
-./automation/ci-cd/run-ci.sh test-gaea2  # Gaea2 tests only
 ./automation/ci-cd/run-ci.sh test-all    # All tests
 ```
 

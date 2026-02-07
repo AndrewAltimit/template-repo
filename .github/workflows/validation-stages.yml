@@ -42,6 +42,29 @@ jobs:
           ref: ${{ github.head_ref }}
           lfs: true
 
+      - name: Download automation-cli
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: rust-cli-tools
+          path: rust-tools
+
+      - name: Setup automation-cli
+        run: |
+          if [ -f "rust-tools/automation-cli" ]; then
+            chmod +x rust-tools/automation-cli
+            mkdir -p tools/rust/automation-cli/target/release
+            cp rust-tools/automation-cli tools/rust/automation-cli/target/release/
+            echo "Installed automation-cli from artifact"
+          elif [ -x "tools/rust/automation-cli/target/release/automation-cli" ]; then
+            echo "Using existing automation-cli build"
+          else
+            echo "Building automation-cli locally..."
+            cd tools/rust/automation-cli
+            cargo build --release
+            echo "Built automation-cli"
+          fi
+
       # Config validation stage (YAML + JSON)
       - name: Validate YAML and JSON files
         if: inputs.stage == 'config'

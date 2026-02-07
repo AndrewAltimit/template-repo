@@ -204,21 +204,21 @@ Automatically format code files.
 
 ### Running CI/CD Pipeline
 
-While not a direct MCP tool, the full CI/CD pipeline can be executed via:
+While not a direct MCP tool, the full CI/CD pipeline can be executed via `automation-cli`:
 
 ```bash
 # Run complete CI pipeline
-./automation/ci-cd/run-ci.sh full
+automation-cli ci run full
 
 # Individual stages
-./automation/ci-cd/run-ci.sh format
-./automation/ci-cd/run-ci.sh lint-basic
-./automation/ci-cd/run-ci.sh lint-full
-./automation/ci-cd/run-ci.sh security
-./automation/ci-cd/run-ci.sh test
+automation-cli ci run format
+automation-cli ci run lint-basic
+automation-cli ci run lint-full
+automation-cli ci run security
+automation-cli ci run test
 ```
 
-These scripts leverage the containerized Python CI environment.
+The CLI orchestrates Docker containers for all Python and Rust CI operations.
 
 ## AI Integration Tools
 

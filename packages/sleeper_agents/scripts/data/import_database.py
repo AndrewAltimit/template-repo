@@ -362,7 +362,7 @@ def import_database(
                         continue
                     yield member
 
-            tar.extractall(temp_path, members=safe_members(tar))
+            tar.extractall(temp_path, members=safe_members(tar))  # nosec B202
 
         # Find the export directory (should be only subdirectory)
         export_dirs = [d for d in temp_path.iterdir() if d.is_dir()]
