@@ -1,6 +1,6 @@
 use std::path::Path;
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use clap::Subcommand;
 
 use crate::shared::{docker, output, project};
@@ -210,10 +210,55 @@ fn run_link_check(root: &Path, errors: &mut u32) -> Result<()> {
         )?;
     }
 
-    let binary_str = binary.to_string_lossy();
     let root_str = root.to_string_lossy();
-    if crate::shared::process::run(&binary_str, &[&root_str, "--internal-only"]).is_err() {
+    let cmd_output = std::process::Command::new(binary.as_os_str())
+        .args([root_str.as_ref(), "--internal-only"])
+        .stdin(std::process::Stdio::null())
+        .output()
+        .context("failed to execute md-link-checker")?;
+
+    let stdout = String::from_utf8_lossy(&cmd_output.stdout);
+    let stderr = String::from_utf8_lossy(&cmd_output.stderr);
+
+    // Print output so it's visible in CI logs
+    if !stdout.is_empty() {
+        print!("{stdout}");
+    }
+    if !stderr.is_empty() {
+        eprint!("{stderr}");
+    }
+
+    let success = cmd_output.status.success();
+    if !success {
         *errors += 1;
     }
+
+    // Generate summary file for the GitHub Actions PR comment step
+    let combined = format!("{stdout}{stderr}");
+    let summary = if success {
+        "## Link Check Results\n\nAll internal links are valid.".to_string()
+    } else {
+        let mut s = String::from("## Link Check Results\n\nBroken links found:\n\n```\n");
+        for line in combined.lines() {
+            if line.contains("ERROR")
+                || line.contains("broken")
+                || line.contains("not found")
+                || line.contains("-> ")
+            {
+                s.push_str(line);
+                s.push('\n');
+            }
+        }
+        if s.ends_with("```\n") {
+            // No matching lines, include full output
+            s.push_str(&combined);
+        }
+        s.push_str("```\n");
+        s
+    };
+
+    std::fs::write("link_check_summary.md", &summary)?;
+    output::info("Wrote link_check_summary.md");
+
     Ok(())
 }
