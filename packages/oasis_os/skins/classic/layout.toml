@@ -1,0 +1,24 @@
+# Classic skin layout -- PSP-style dashboard
+# SDI objects created by skin loading. The dashboard module dynamically
+# manages icon_N and cursor objects; these are the static chrome elements.
+
+[status_bar]
+x = 0
+y = 0
+w = 480
+h = 24
+color = "#283C5A"
+
+[content_bg]
+x = 0
+y = 24
+w = 480
+h = 248
+color = "#141422"
+
+[footer_bar]
+x = 0
+y = 256
+w = 480
+h = 16
+color = "#1E2D44"

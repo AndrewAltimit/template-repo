@@ -1,0 +1,6 @@
+name = "classic"
+version = "1.0"
+author = "AndrewAltimit"
+description = "PSP-style icon grid dashboard with virtual desktops, status bar, and cursor navigation"
+screen_width = 480
+screen_height = 272

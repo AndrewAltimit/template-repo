@@ -1,0 +1,9 @@
+# Classic skin features
+dashboard = true
+terminal = true
+file_browser = true
+window_manager = false
+dashboard_pages = 3
+icons_per_page = 6
+grid_cols = 3
+grid_rows = 2
