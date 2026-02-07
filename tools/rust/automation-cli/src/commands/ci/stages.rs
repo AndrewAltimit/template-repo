@@ -47,7 +47,16 @@ impl IterGroup {
         match self {
             IterGroup::Wrapper => (
                 "tools/rust",
-                vec![], // only includes wrapper-common, git-guard, gh-validator
+                vec![
+                    "automation-cli",
+                    "board-manager",
+                    "code-parser",
+                    "code-review-processor",
+                    "github-agents-cli",
+                    "markdown-link-checker",
+                    "mcp-code-quality",
+                    "pr-monitor",
+                ],
             ),
             IterGroup::McpServers => ("tools/mcp", vec!["mcp_core_rust", "mcp_bioforge"]),
             IterGroup::Tools => (

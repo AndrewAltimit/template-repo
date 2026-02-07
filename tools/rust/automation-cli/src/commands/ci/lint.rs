@@ -40,12 +40,14 @@ pub fn run(action: LintAction) -> Result<()> {
             if !docker::run_python_ci_check(
                 &compose,
                 &["ruff", "format", "--check", "--diff", "."],
+                &[],
             )? {
                 errors += 1;
             }
             if !docker::run_python_ci_check(
                 &compose,
                 &["ruff", "check", "--select=I", "--diff", "."],
+                &[],
             )? {
                 errors += 1;
             }
@@ -55,6 +57,7 @@ pub fn run(action: LintAction) -> Result<()> {
             if !docker::run_python_ci_check(
                 &compose,
                 &["ruff", "check", ".", "--output-format=grouped"],
+                &[],
             )? {
                 errors += 1;
             }
@@ -62,8 +65,8 @@ pub fn run(action: LintAction) -> Result<()> {
         LintAction::Basic => {
             output::header("Running basic linting");
             // Format checks
-            let _ = docker::run_python_ci_check(&compose, &["ruff", "format", "--check", "."]);
-            let _ = docker::run_python_ci_check(&compose, &["ruff", "check", "--select=I", "."]);
+            let _ = docker::run_python_ci_check(&compose, &["ruff", "format", "--check", "."], &[]);
+            let _ = docker::run_python_ci_check(&compose, &["ruff", "check", "--select=I", "."], &[]);
 
             // Critical errors
             if !docker::run_python_ci_check(
@@ -75,6 +78,7 @@ pub fn run(action: LintAction) -> Result<()> {
                     "--output-format=grouped",
                     ".",
                 ],
+                &[],
             )? {
                 errors += 1;
             }
@@ -90,21 +94,23 @@ pub fn run(action: LintAction) -> Result<()> {
                     "--output-format=grouped",
                     ".",
                 ],
+                &[],
             );
         },
         LintAction::Full => {
             output::header("Running full linting suite");
 
             // Format checks
-            if !docker::run_python_ci_check(&compose, &["ruff", "format", "--check", "."])? {
+            if !docker::run_python_ci_check(&compose, &["ruff", "format", "--check", "."], &[])? {
                 errors += 1;
             }
-            let _ = docker::run_python_ci_check(&compose, &["ruff", "check", "--select=I", "."]);
+            let _ = docker::run_python_ci_check(&compose, &["ruff", "check", "--select=I", "."], &[]);
 
             // Full ruff
             if !docker::run_python_ci_check(
                 &compose,
                 &["ruff", "check", "--output-format=grouped", "."],
+                &[],
             )? {
                 errors += 1;
             }
@@ -119,12 +125,13 @@ pub fn run(action: LintAction) -> Result<()> {
                     "--output-format=grouped",
                     ".",
                 ],
+                &[],
             )? {
                 errors += 1;
             }
 
             // Type checking with ty
-            if !docker::run_python_ci_check(&compose, &["ty", "check"])? {
+            if !docker::run_python_ci_check(&compose, &["ty", "check"], &[])? {
                 // ty errors are informational for now
                 output::info("ty found type errors (informational)");
             }
@@ -134,6 +141,7 @@ pub fn run(action: LintAction) -> Result<()> {
             if !docker::run_python_ci_check(
                 &compose,
                 &["bandit", "-r", ".", "-c", "pyproject.toml", "-f", "txt"],
+                &[],
             )? {
                 errors += 1;
                 output::warn("Bandit found security issues");
@@ -168,18 +176,19 @@ pub fn run(action: LintAction) -> Result<()> {
 
 fn run_dependency_check(compose: &Path, warnings: &mut u32) -> Result<()> {
     output::step("Checking dependency security...");
-    if std::env::var("SAFETY_API_KEY").is_ok() {
+    if let Ok(key) = std::env::var("SAFETY_API_KEY") {
         output::step("Using Safety with API key...");
         if !docker::run_python_ci_check(
             compose,
             &["safety", "scan", "--disable-optional-telemetry"],
+            &[("SAFETY_API_KEY", &key)],
         )? {
             *warnings += 1;
             output::warn("Safety found dependency vulnerabilities");
         }
     } else {
         output::step("No SAFETY_API_KEY found, using pip-audit...");
-        if !docker::run_python_ci_check(compose, &["python", "-m", "pip_audit"])? {
+        if !docker::run_python_ci_check(compose, &["python", "-m", "pip_audit"], &[])? {
             *warnings += 1;
             output::warn("pip-audit found dependency vulnerabilities");
         }

@@ -456,11 +456,17 @@ fn truncate_in_place(s: &mut String, max: usize) {
         return;
     }
     let original_len = s.len();
-    // Find last newline before max
-    if let Some(pos) = s[..max].rfind('\n') {
+    // Find a safe truncation point on a char boundary
+    let safe_max = if s.is_char_boundary(max) {
+        max
+    } else {
+        s.floor_char_boundary(max)
+    };
+    // Find last newline before safe_max
+    if let Some(pos) = s[..safe_max].rfind('\n') {
         s.truncate(pos);
     } else {
-        s.truncate(max);
+        s.truncate(safe_max);
     }
     s.push_str(&format!(
         "\n\n[... truncated from {original_len} to {} chars ...]",

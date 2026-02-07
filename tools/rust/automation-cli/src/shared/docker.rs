@@ -112,7 +112,11 @@ pub fn run_python_ci(
 }
 
 /// Run a command inside the Python CI container, returning Ok(true) if exit 0, Ok(false) if non-zero.
-pub fn run_python_ci_check(compose_file: &Path, cmd_args: &[&str]) -> Result<bool> {
+pub fn run_python_ci_check(
+    compose_file: &Path,
+    cmd_args: &[&str],
+    env_vars: &[(&str, &str)],
+) -> Result<bool> {
     build_python_ci(compose_file)?;
     let cf = compose_file.to_string_lossy();
 
@@ -122,8 +126,14 @@ pub fn run_python_ci_check(compose_file: &Path, cmd_args: &[&str]) -> Result<boo
         cf.to_string(),
         "run".into(),
         "--rm".into(),
-        "python-ci".into(),
     ];
+
+    for (k, v) in env_vars {
+        args.push("-e".into());
+        args.push(format!("{k}={v}"));
+    }
+
+    args.push("python-ci".into());
     for a in cmd_args {
         args.push((*a).to_string());
     }

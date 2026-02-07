@@ -1293,6 +1293,14 @@ jobs:
             echo "ERROR: github-agents binary not found in artifact!"
             exit 1
           fi
+          if [ -f "rust-tools/automation-cli" ]; then
+            chmod +x rust-tools/automation-cli
+            mkdir -p tools/rust/automation-cli/target/release
+            cp rust-tools/automation-cli tools/rust/automation-cli/target/release/
+            echo "Installed automation-cli"
+          else
+            echo "WARNING: automation-cli binary not found in artifact"
+          fi
 
       - name: Check iteration count
         id: iteration

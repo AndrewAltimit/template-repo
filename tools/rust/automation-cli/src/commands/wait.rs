@@ -79,13 +79,12 @@ pub fn run(args: WaitArgs) -> Result<()> {
 }
 
 fn check_tcp(host: &str, port: u16) -> bool {
-    TcpStream::connect_timeout(
-        &format!("{host}:{port}")
-            .parse()
-            .unwrap_or_else(|_| ([127, 0, 0, 1], port).into()),
-        Duration::from_secs(2),
-    )
-    .is_ok()
+    use std::net::ToSocketAddrs;
+    let addr = format!("{host}:{port}");
+    let Ok(mut addrs) = addr.to_socket_addrs() else {
+        return false;
+    };
+    addrs.any(|a| TcpStream::connect_timeout(&a, Duration::from_secs(2)).is_ok())
 }
 
 fn check_http(host: &str, port: u16, endpoint: &str) -> bool {

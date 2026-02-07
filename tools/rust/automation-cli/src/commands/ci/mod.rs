@@ -158,12 +158,12 @@ fn run_parsed_stage(
                 &[],
             )?;
             // Dependency check
-            if std::env::var("SAFETY_API_KEY").is_ok() {
+            if let Ok(key) = std::env::var("SAFETY_API_KEY") {
                 output::step("Using Safety with API key...");
                 docker::run_python_ci(
                     compose,
                     &["safety", "scan", "--disable-optional-telemetry"],
-                    &[],
+                    &[("SAFETY_API_KEY", &key)],
                 )?;
             } else {
                 output::step("No SAFETY_API_KEY found, using pip-audit...");
