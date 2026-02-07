@@ -395,11 +395,10 @@ fn post_decision_comment(
     commit_sha: &str,
     summary: &str,
 ) -> Result<()> {
-    let next_iter = iteration + 1;
     let body = if made_changes {
         format!(
-            "## Review Response Agent (Iteration {next_iter})\n\
-             <!-- agent-metadata:type=review-fix:iteration={next_iter} -->\n\n\
+            "## Review Response Agent (Iteration {iteration})\n\
+             <!-- agent-metadata:type=review-fix:iteration={iteration} -->\n\n\
              **Status:** Changes committed and pushed\n\n\
              **Commit:** `{commit_sha}`\n\n\
              {summary}\n\n---\n\
@@ -407,8 +406,8 @@ fn post_decision_comment(
         )
     } else {
         format!(
-            "## Review Response Agent (Iteration {next_iter})\n\
-             <!-- agent-metadata:type=review-fix:iteration={next_iter} -->\n\n\
+            "## Review Response Agent (Iteration {iteration})\n\
+             <!-- agent-metadata:type=review-fix:iteration={iteration} -->\n\n\
              **Status:** No changes needed\n\n\
              {summary}\n\n---\n\
              *The agent reviewed feedback but determined no code changes were required.*"
