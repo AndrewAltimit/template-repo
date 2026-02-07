@@ -11,7 +11,7 @@ These servers run as local processes on the same machine as the client:
 #### 1. Code Quality MCP Server
 **Location**: `tools/mcp/mcp_code_quality/`
 **Transport**: STDIO (local process)
-**Documentation**: [Code Quality MCP Documentation](../../tools/mcp/mcp_code_quality/docs/README.md)
+**Documentation**: [Code Quality MCP Documentation](../../tools/mcp/mcp_code_quality/README.md)
 
 Provides code formatting and linting tools for multiple languages:
 - Format checking (Python, JavaScript, TypeScript, Go, Rust)
@@ -21,7 +21,7 @@ Provides code formatting and linting tools for multiple languages:
 #### 2. Content Creation MCP Server
 **Location**: `tools/mcp/mcp_content_creation/`
 **Transport**: STDIO (local process)
-**Documentation**: [Content Creation MCP Documentation](../../tools/mcp/mcp_content_creation/docs/README.md)
+**Documentation**: [Content Creation MCP Documentation](../../tools/mcp/mcp_content_creation/README.md)
 
 Tools for creating mathematical animations and documents:
 - Manim animations (mathematical visualizations)
@@ -32,7 +32,7 @@ Tools for creating mathematical animations and documents:
 #### 3. Gemini AI Integration MCP Server
 **Location**: `tools/mcp/mcp_gemini/`
 **Transport**: STDIO (local process, host-only)
-**Documentation**: [Gemini MCP Documentation](../../tools/mcp/mcp_gemini/docs/README.md)
+**Documentation**: [Gemini MCP Documentation](../../tools/mcp/mcp_gemini/README.md)
 
 AI integration for second opinions and code validation:
 - Gemini AI consultations with comparison mode
@@ -68,7 +68,7 @@ Code generation using OpenRouter:
 #### 6. Meme Generator MCP Server
 **Location**: `tools/mcp/mcp_meme_generator/`
 **Transport**: STDIO (local process)
-**Documentation**: [Meme Generator MCP Documentation](../../tools/mcp/mcp_meme_generator/docs/README.md)
+**Documentation**: [Meme Generator MCP Documentation](../../tools/mcp/mcp_meme_generator/README.md)
 
 Generate memes with customizable text overlays:
 - Template-based meme generation
@@ -99,7 +99,7 @@ Advanced text-to-speech synthesis with emotional control:
 #### 8. Video Editor MCP Server
 **Location**: `tools/mcp/mcp_video_editor/`
 **Transport**: STDIO (local) or HTTP (Port 8019)
-**Documentation**: [Video Editor MCP Documentation](../../tools/mcp/mcp_video_editor/docs/README.md)
+**Documentation**: [Video Editor MCP Documentation](../../tools/mcp/mcp_video_editor/README.md)
 
 AI-powered video editing with intelligent automation:
 - Automatic transcription using Whisper
@@ -115,7 +115,7 @@ AI-powered video editing with intelligent automation:
 #### 9. Blender MCP Server
 **Location**: `tools/mcp/mcp_blender/`
 **Transport**: STDIO (local) or HTTP (Port 8016)
-**Documentation**: [Blender MCP Documentation](../../tools/mcp/mcp_blender/docs/README.md)
+**Documentation**: [Blender MCP Documentation](../../tools/mcp/mcp_blender/README.md)
 
 3D content creation and rendering:
 - Create and manipulate 3D scenes
@@ -146,7 +146,7 @@ AI agent embodiment in virtual worlds (Rust implementation):
 #### 11. Codex MCP Server
 **Location**: `tools/mcp/mcp_codex/`
 **Transport**: STDIO (local) or HTTP (Port 8021)
-**Documentation**: [Codex MCP Documentation](../../tools/mcp/mcp_codex/docs/README.md)
+**Documentation**: [Codex MCP Documentation](../../tools/mcp/mcp_codex/README.md)
 
 AI-powered code assistance via OpenAI Codex:
 - Code generation, completion, and refactoring
@@ -191,7 +191,7 @@ Semantic search for reaction images:
 #### 15. Desktop Control MCP Server
 **Location**: `tools/mcp/mcp_desktop_control/`
 **Transport**: STDIO (local) or HTTP (Port 8025)
-**Documentation**: [Desktop Control MCP Documentation](../../tools/mcp/mcp_desktop_control/docs/README.md)
+**Documentation**: [Desktop Control MCP Documentation](../../tools/mcp/mcp_desktop_control/README.md)
 
 Cross-platform desktop automation:
 - Window management (list, focus, move, resize, minimize, maximize)
@@ -239,7 +239,7 @@ GPU-accelerated LoRA training management:
 **Location**: `tools/mcp/mcp_comfyui/`
 **Transport**: HTTP (Port 8013)
 **Remote Location**: `192.168.0.222:8013`
-**Documentation**: [ComfyUI MCP Documentation](../../tools/mcp/mcp_comfyui/README.md)
+**Documentation**: [ComfyUI MCP Documentation](../../tools/mcp/mcp_comfyui/docs/README.md)
 
 GPU-accelerated AI image generation:
 - Image generation with workflows

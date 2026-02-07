@@ -185,7 +185,7 @@ Standalone packages addressing different aspects of AI agent development, safety
 | **[pr-monitor](tools/rust/pr-monitor/)** | Dedicated PR monitoring for admin/review feedback during development | [README](tools/rust/pr-monitor/README.md) |
 | **[markdown-link-checker](tools/rust/markdown-link-checker/)** | Fast concurrent markdown link validator for CI/CD pipelines | [README](tools/rust/markdown-link-checker/README.md) |
 | **[code-parser](tools/rust/code-parser/)** | Parse and apply code blocks from AI agent responses | [README](tools/rust/code-parser/README.md) |
-| **[mcp-code-quality](tools/rust/mcp-code-quality/)** | Rust MCP server for code quality tools (formatting, linting, testing) | [README](tools/rust/mcp-code-quality/README.md) |
+| **[mcp-code-quality](tools/mcp/mcp_code_quality/)** | Rust MCP server for code quality tools (formatting, linting, testing) | [README](tools/mcp/mcp_code_quality/README.md) |
 
 ```bash
 # Install Python packages
@@ -247,21 +247,21 @@ For enterprise environments requiring custom certificates, customize [`automatio
 1. **Code Quality** - Formatting, linting, auto-formatting
 2. **Content Creation** - Manim animations, LaTeX, TikZ diagrams
 3. **Gaea2** - Terrain generation ([Documentation](tools/mcp/mcp_gaea2/docs/README.md))
-4. **Blender** - 3D content creation, rendering, physics simulation ([Documentation](tools/mcp/mcp_blender/docs/README.md))
+4. **Blender** - 3D content creation, rendering, physics simulation ([Documentation](tools/mcp/mcp_blender/README.md))
 5. **Gemini** - AI consultation (containerized and host modes available)
 6. **Codex** - AI-powered code generation and completion
 7. **OpenCode** - Code generation via OpenRouter
 8. **Crush** - Code generation via OpenRouter
 9. **Meme Generator** - Create memes with templates
 10. **ElevenLabs Speech** - Advanced TTS with v3 model, 50+ audio tags, 74 languages ([Documentation](tools/mcp/mcp_elevenlabs_speech/docs/README.md))
-11. **Video Editor** - AI-powered video editing with transcription and scene detection ([Documentation](tools/mcp/mcp_video_editor/docs/README.md))
+11. **Video Editor** - AI-powered video editing with transcription and scene detection ([Documentation](tools/mcp/mcp_video_editor/README.md))
 12. **Virtual Character** - AI agent embodiment in virtual worlds (VRChat, Blender, Unity) ([Documentation](tools/mcp/mcp_virtual_character/README.md))
 13. **GitHub Board** - GitHub Projects v2 board management, work claiming, agent coordination ([Documentation](tools/mcp/mcp_github_board/docs/README.md))
 14. **AI Toolkit** - LoRA training interface (remote: 192.168.0.222:8012)
 15. **ComfyUI** - Image generation interface (remote: 192.168.0.222:8013)
 16. **AgentCore Memory** - Multi-provider AI memory (AWS AgentCore or ChromaDB) ([Documentation](tools/mcp/mcp_agentcore_memory/docs/README.md))
 17. **Reaction Search** - Semantic search for anime reaction images (Rust)
-18. **Desktop Control** - Cross-platform desktop automation for Linux and Windows ([Documentation](tools/mcp/mcp_desktop_control/docs/README.md))
+18. **Desktop Control** - Cross-platform desktop automation for Linux and Windows ([Documentation](tools/mcp/mcp_desktop_control/README.md))
 
 ### Usage Modes
 

@@ -266,7 +266,7 @@ codex "Write a function to validate emails"
 
 ## GitHub Workflow Integration
 
-The AI agents integrate with GitHub through a keyword trigger system. For complete security documentation including allow lists, rate limiting, and commit validation, see the [Agents Security Documentation](../../../packages/github_agents/docs/security.md).
+The AI agents integrate with GitHub through a keyword trigger system. For complete security documentation including allow lists, rate limiting, and commit validation, see the [Agents Security Documentation](../../agents/security.md).
 
 ### Trigger Format
 
@@ -536,5 +536,5 @@ curl http://localhost:8006/health  # Gemini
 
 - [MCP Architecture](../../mcp/README.md) - Overall MCP server design
 - [GitHub AI Agents](../../agents/README.md) - Complete agent system documentation
-- [Security Model](../../../packages/github_agents/docs/security.md) - Security implementation
+- [Security Model](../../agents/security.md) - Security implementation
 - [Gemini Setup](./gemini-setup.md) - Detailed Gemini configuration

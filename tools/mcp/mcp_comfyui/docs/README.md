@@ -261,8 +261,8 @@ The workflows use these default models (must be available in ComfyUI):
 
 ## Related Documentation
 
-- [MCP Core Rust](../../mcp_core_rust/docs/README.md)
-- [AI Toolkit Server](../../mcp_ai_toolkit/docs/README.md)
+- [MCP Core Rust](../../mcp_core_rust/README.md)
+- [AI Toolkit Server](../../mcp_ai_toolkit/README.md)
 
 ## License
 
