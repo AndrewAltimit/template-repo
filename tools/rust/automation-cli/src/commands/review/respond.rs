@@ -193,7 +193,8 @@ fn fetch_categorized_comments(pr_number: u64, root: &Path) -> Result<String> {
         }
 
         let body = if body.len() > 2000 {
-            format!("{}... (truncated)", &body[..2000])
+            let safe_end = body.floor_char_boundary(2000);
+            format!("{}... (truncated)", &body[..safe_end])
         } else {
             body
         };

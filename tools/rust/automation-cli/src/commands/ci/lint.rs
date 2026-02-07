@@ -66,7 +66,8 @@ pub fn run(action: LintAction) -> Result<()> {
             output::header("Running basic linting");
             // Format checks
             let _ = docker::run_python_ci_check(&compose, &["ruff", "format", "--check", "."], &[]);
-            let _ = docker::run_python_ci_check(&compose, &["ruff", "check", "--select=I", "."], &[]);
+            let _ =
+                docker::run_python_ci_check(&compose, &["ruff", "check", "--select=I", "."], &[]);
 
             // Critical errors
             if !docker::run_python_ci_check(
@@ -104,7 +105,8 @@ pub fn run(action: LintAction) -> Result<()> {
             if !docker::run_python_ci_check(&compose, &["ruff", "format", "--check", "."], &[])? {
                 errors += 1;
             }
-            let _ = docker::run_python_ci_check(&compose, &["ruff", "check", "--select=I", "."], &[]);
+            let _ =
+                docker::run_python_ci_check(&compose, &["ruff", "check", "--select=I", "."], &[]);
 
             // Full ruff
             if !docker::run_python_ci_check(
