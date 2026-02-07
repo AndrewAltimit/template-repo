@@ -158,12 +158,10 @@ impl IssueMonitor {
             trigger_info.username
         );
 
-        // Perform security check (use a mutable reference)
+        // Perform security check using the loaded security config
         let action = format!("issue_{}", trigger_info.action);
 
-        // Create a temporary mutable security manager for the check
-        let mut security_manager = crate::security::SecurityManager::new();
-        let (is_allowed, reason) = security_manager.perform_full_security_check(
+        let (is_allowed, reason) = self.base.security_manager.perform_full_security_check(
             &trigger_info.username,
             &action,
             &self.base.config.repository,

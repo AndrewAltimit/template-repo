@@ -157,11 +157,10 @@ impl PrMonitor {
             trigger_info.username
         );
 
-        // Perform security check
+        // Perform security check using the loaded security config
         let action = format!("pr_{}", trigger_info.action);
 
-        let mut security_manager = crate::security::SecurityManager::new();
-        let (is_allowed, reason) = security_manager.perform_full_security_check(
+        let (is_allowed, reason) = self.base.security_manager.perform_full_security_check(
             &trigger_info.username,
             &action,
             &self.base.config.repository,

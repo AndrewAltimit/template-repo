@@ -10,6 +10,7 @@ use chrono::Utc;
 use serde::Serialize;
 use std::io::Write;
 use std::path::PathBuf;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 /// Default log directory under $HOME
 const DEFAULT_LOG_SUBDIR: &str = ".local/share/wrapper-guard";
@@ -93,13 +94,23 @@ impl AuditEntry {
     }
 }
 
+/// Whether we have already warned about audit log failures this process.
+/// Prevents flooding stderr with repeated permission warnings on every git operation.
+static AUDIT_WARNED: AtomicBool = AtomicBool::new(false);
+
 /// Log an audit entry to the audit log file.
 ///
-/// This is best-effort: any errors are printed to stderr but do not
-/// prevent the wrapper from executing the command.
+/// This is best-effort: the first failure prints a warning to stderr,
+/// subsequent failures are silently ignored to avoid flooding output.
 pub fn log_event(entry: &AuditEntry) {
     if let Err(e) = try_log_event(entry) {
-        eprintln!("[wrapper-guard] Audit log warning: {}", e);
+        // Only warn once per process to avoid flooding stderr
+        if !AUDIT_WARNED.swap(true, Ordering::Relaxed) {
+            eprintln!(
+                "[wrapper-guard] Audit log warning: {} (further warnings suppressed)",
+                e
+            );
+        }
     }
 }
 

@@ -9,7 +9,8 @@ use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::env;
 use std::path::Path;
-use tracing::{debug, warn};
+use std::sync::Mutex;
+use tracing::{debug, info, warn};
 
 use crate::error::Error;
 
@@ -99,6 +100,16 @@ impl Default for SecurityConfig {
     }
 }
 
+/// Top-level structure of `.agents.yaml` for extracting the nested `security` section.
+///
+/// The `.agents.yaml` file stores security config under `security:`, not at the top level.
+/// Uses `Option` instead of `#[serde(default)]` so we can distinguish "no security key"
+/// (flat format) from "has security key" (nested format).
+#[derive(Debug, Deserialize)]
+struct AgentsYamlConfig {
+    security: Option<SecurityConfig>,
+}
+
 /// Trigger information parsed from a comment.
 #[derive(Debug, Clone)]
 pub struct TriggerInfo {
@@ -111,10 +122,13 @@ pub struct TriggerInfo {
 }
 
 /// Security manager for AI agent operations.
+///
+/// Uses interior mutability for the rate limiter so security checks can be
+/// performed from `&self` contexts (e.g., async monitor methods).
 pub struct SecurityManager {
     config: SecurityConfig,
     allowed_users: HashSet<String>,
-    rate_limit_tracker: HashMap<String, Vec<DateTime<Utc>>>,
+    rate_limit_tracker: Mutex<HashMap<String, Vec<DateTime<Utc>>>>,
 }
 
 impl SecurityManager {
@@ -126,20 +140,46 @@ impl SecurityManager {
         Self {
             config,
             allowed_users,
-            rate_limit_tracker: HashMap::new(),
+            rate_limit_tracker: Mutex::new(HashMap::new()),
         }
     }
 
     /// Create a security manager from a configuration file.
+    ///
+    /// Supports two formats:
+    /// - Flat `SecurityConfig` (standalone security config file)
+    /// - Nested `.agents.yaml` format where security lives under `security:` key
     pub fn from_config_path(path: &Path) -> Result<Self, Error> {
         let content = std::fs::read_to_string(path).map_err(Error::Io)?;
-        let config: SecurityConfig = serde_yaml::from_str(&content)?;
+
+        // Check if the YAML has a top-level `security` key to determine format.
+        // If it does, parse as nested `.agents.yaml` and propagate errors
+        // (don't silently fall back to flat format with defaults).
+        let has_security_key = serde_yaml::from_str::<serde_yaml::Value>(&content)
+            .ok()
+            .and_then(|v| v.as_mapping().cloned())
+            .map(|m| m.contains_key(serde_yaml::Value::String("security".to_string())))
+            .unwrap_or(false);
+
+        let config = if has_security_key {
+            let agents_config = serde_yaml::from_str::<AgentsYamlConfig>(&content)?;
+            if let Some(security) = agents_config.security {
+                info!("Loaded security config from agents YAML (nested format)");
+                security
+            } else {
+                // `security` key present but null/empty - use defaults
+                SecurityConfig::default()
+            }
+        } else {
+            serde_yaml::from_str::<SecurityConfig>(&content)?
+        };
+
         let allowed_users = Self::init_allowed_users(&config);
 
         Ok(Self {
             config,
             allowed_users,
-            rate_limit_tracker: HashMap::new(),
+            rate_limit_tracker: Mutex::new(HashMap::new()),
         })
     }
 
@@ -149,7 +189,7 @@ impl SecurityManager {
         Self {
             config,
             allowed_users,
-            rate_limit_tracker: HashMap::new(),
+            rate_limit_tracker: Mutex::new(HashMap::new()),
         }
     }
 
@@ -234,7 +274,7 @@ impl SecurityManager {
     }
 
     /// Check and update rate limit for a user/action combination.
-    pub fn check_rate_limit(&mut self, username: &str, action: &str) -> bool {
+    pub fn check_rate_limit(&self, username: &str, action: &str) -> bool {
         if !self.config.enabled {
             return true;
         }
@@ -244,8 +284,13 @@ impl SecurityManager {
         let window = Duration::minutes(self.config.rate_limit_window_minutes as i64);
         let cutoff = now - window;
 
+        let mut tracker = self
+            .rate_limit_tracker
+            .lock()
+            .unwrap_or_else(|e| e.into_inner());
+
         // Clean old entries
-        let requests = self.rate_limit_tracker.entry(key.clone()).or_default();
+        let requests = tracker.entry(key.clone()).or_default();
         requests.retain(|t| *t > cutoff);
 
         // Check limit
@@ -267,26 +312,17 @@ impl SecurityManager {
 
     /// Check for a valid trigger in issue/PR data.
     ///
-    /// Returns trigger info if found, None otherwise.
+    /// Iterates comments in reverse order so the **latest** matching trigger
+    /// wins, allowing newer directives to supersede older ones.
+    /// Falls back to checking the issue/PR body only if no comment triggers exist.
     pub fn check_trigger_comment(
         &self,
         body: &str,
         author: &str,
         comments: &[(String, String)], // (body, author) pairs
     ) -> Option<TriggerInfo> {
-        // Check body first
-        if let Some((action, agent)) = self.parse_trigger_comment(body) {
-            if self.is_user_allowed(author) {
-                return Some(TriggerInfo {
-                    action,
-                    agent,
-                    username: author.to_string(),
-                });
-            }
-        }
-
-        // Check comments
-        for (comment_body, comment_author) in comments {
+        // Check comments in reverse (latest first) so newer directives supersede older ones
+        for (comment_body, comment_author) in comments.iter().rev() {
             if let Some((action, agent)) = self.parse_trigger_comment(comment_body) {
                 if self.is_user_allowed(comment_author) {
                     return Some(TriggerInfo {
@@ -298,6 +334,17 @@ impl SecurityManager {
             }
         }
 
+        // Fall back to issue/PR body if no comment triggers found
+        if let Some((action, agent)) = self.parse_trigger_comment(body) {
+            if self.is_user_allowed(author) {
+                return Some(TriggerInfo {
+                    action,
+                    agent,
+                    username: author.to_string(),
+                });
+            }
+        }
+
         None
     }
 
@@ -305,7 +352,7 @@ impl SecurityManager {
     ///
     /// Returns (allowed, rejection_reason).
     pub fn perform_full_security_check(
-        &mut self,
+        &self,
         username: &str,
         action: &str,
         repository: &str,
@@ -406,7 +453,7 @@ mod tests {
 
     #[test]
     fn test_rate_limit() {
-        let mut manager = SecurityManager::from_config(SecurityConfig {
+        let manager = SecurityManager::from_config(SecurityConfig {
             rate_limit_max_requests: 2,
             ..Default::default()
         });
@@ -418,7 +465,7 @@ mod tests {
 
     #[test]
     fn test_full_security_check() {
-        let mut manager = SecurityManager::new();
+        let manager = SecurityManager::new();
         let (allowed, reason) = manager.perform_full_security_check(
             "AndrewAltimit",
             "issue_approved",
@@ -430,10 +477,80 @@ mod tests {
 
     #[test]
     fn test_unauthorized_user() {
-        let mut manager = SecurityManager::new();
+        let manager = SecurityManager::new();
         let (allowed, reason) =
             manager.perform_full_security_check("unknown_user", "issue_approved", "owner/repo");
         assert!(!allowed);
         assert!(reason.contains("not authorized"));
+    }
+
+    #[test]
+    fn test_agents_yaml_nested_parsing() {
+        let yaml = r#"
+enabled_agents:
+  - claude
+security:
+  agent_admins:
+    - TestAdmin
+  rate_limit_window_minutes: 30
+"#;
+        let agents_config: AgentsYamlConfig = serde_yaml::from_str(yaml).unwrap();
+        let security = agents_config
+            .security
+            .expect("security key should be present");
+        assert_eq!(security.agent_admins, vec!["TestAdmin"]);
+        assert_eq!(security.rate_limit_window_minutes, 30);
+    }
+
+    #[test]
+    fn test_agents_yaml_without_security_key() {
+        // A YAML without `security:` key should parse but have security = None
+        let yaml = r#"
+enabled_agents:
+  - claude
+"#;
+        let agents_config: AgentsYamlConfig = serde_yaml::from_str(yaml).unwrap();
+        assert!(
+            agents_config.security.is_none(),
+            "security should be None when key is absent"
+        );
+    }
+
+    #[test]
+    fn test_flat_config_not_treated_as_nested() {
+        // A flat SecurityConfig should not be silently consumed as nested format
+        let yaml = r#"
+agent_admins:
+  - FlatAdmin
+rate_limit_window_minutes: 15
+"#;
+        let agents_config: AgentsYamlConfig = serde_yaml::from_str(yaml).unwrap();
+        assert!(
+            agents_config.security.is_none(),
+            "flat config should not populate nested security field"
+        );
+    }
+
+    #[test]
+    fn test_invalid_nested_security_does_not_silently_fallback() {
+        // If YAML has `security:` key with invalid shape, from_config_path
+        // should propagate the error, not silently fall back to defaults
+        let dir = std::env::temp_dir().join("test_invalid_nested");
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("invalid_nested.yaml");
+        std::fs::write(
+            &path,
+            r#"
+security:
+  agent_admins: "not_a_list"
+"#,
+        )
+        .unwrap();
+        let result = SecurityManager::from_config_path(&path);
+        assert!(
+            result.is_err(),
+            "invalid nested security config should return error, not silent defaults"
+        );
+        std::fs::remove_dir_all(&dir).ok();
     }
 }

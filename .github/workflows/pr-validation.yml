@@ -35,9 +35,21 @@ env:
   COMPOSE_DOCKER_CLI_BUILD: 1
 
 jobs:
+  # Fork guard: block fork PRs from running on self-hosted runners with write perms.
+  # Fork PRs could execute arbitrary code on the runner. This job gates all others.
+  fork-guard:
+    name: Fork PR Guard
+    runs-on: ubuntu-latest
+    if: >-
+      github.event_name != 'pull_request' ||
+      github.event.pull_request.head.repo.full_name == github.repository
+    steps:
+      - run: echo "Not a fork PR - proceeding"
+
   # Stage 1: Quick validation and change detection
   detect-changes:
     name: Change Detection & Quick Validation
+    needs: fork-guard
     runs-on: self-hosted
     timeout-minutes: 5
     outputs:
