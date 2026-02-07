@@ -107,12 +107,13 @@ pub fn run(args: RespondArgs) -> Result<()> {
 
     // Commit
     output::step("Changes detected, creating commit...");
+    let display_iter = args.iteration + 1;
     let commit_msg = format!(
         "fix: address AI review feedback (iteration {})\n\n\
          Automated fix by Claude in response to Gemini/Codex review.\n\n\
          Iteration: {}/{}\n\n\
          Co-Authored-By: AI Review Agent <noreply@anthropic.com>",
-        args.iteration, args.iteration, args.max_iterations
+        display_iter, display_iter, args.max_iterations
     );
     let msg_file = write_temp_file(&commit_msg)?;
     process::run("git", &["commit", "-F", &msg_file])?;
@@ -395,10 +396,11 @@ fn post_decision_comment(
     commit_sha: &str,
     summary: &str,
 ) -> Result<()> {
+    let display_iter = iteration + 1;
     let body = if made_changes {
         format!(
-            "## Review Response Agent (Iteration {iteration})\n\
-             <!-- agent-metadata:type=review-fix:iteration={iteration} -->\n\n\
+            "## Review Response Agent (Iteration {display_iter})\n\
+             <!-- agent-metadata:type=review-fix:iteration={display_iter} -->\n\n\
              **Status:** Changes committed and pushed\n\n\
              **Commit:** `{commit_sha}`\n\n\
              {summary}\n\n---\n\
@@ -406,8 +408,8 @@ fn post_decision_comment(
         )
     } else {
         format!(
-            "## Review Response Agent (Iteration {iteration})\n\
-             <!-- agent-metadata:type=review-fix:iteration={iteration} -->\n\n\
+            "## Review Response Agent (Iteration {display_iter})\n\
+             <!-- agent-metadata:type=review-fix:iteration={display_iter} -->\n\n\
              **Status:** No changes needed\n\n\
              {summary}\n\n---\n\
              *The agent reviewed feedback but determined no code changes were required.*"
