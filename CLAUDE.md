@@ -74,6 +74,19 @@ docker compose logs -f <service>         # View logs
 docker compose down                      # Stop services
 ```
 
+### PSP Testing (PPSSPP)
+
+```bash
+# Build PPSSPP Docker image (first time only)
+docker compose --profile psp build ppsspp
+
+# Run OASIS_OS EBOOT headless (CI -- exits TIMEOUT on success)
+docker compose --profile psp run --rm -e PPSSPP_HEADLESS=1 ppsspp /roms/release/EBOOT.PBP --timeout=5
+
+# Run with GUI (requires X11 display)
+docker compose --profile psp run --rm ppsspp /roms/release/EBOOT.PBP
+```
+
 ## Architecture
 
 ### MCP Servers
