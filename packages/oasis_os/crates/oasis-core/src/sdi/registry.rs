@@ -207,8 +207,10 @@ impl SdiRegistry {
         }
 
         // If the object has a fill color with nonzero area, draw the rect.
+        // Use the color's own alpha, modulated by the object's alpha property.
         if obj.w > 0 && obj.h > 0 {
-            let color = Color::rgba(obj.color.r, obj.color.g, obj.color.b, obj.alpha);
+            let a = ((obj.color.a as u16) * (obj.alpha as u16) / 255) as u8;
+            let color = Color::rgba(obj.color.r, obj.color.g, obj.color.b, a);
             backend.fill_rect(obj.x, obj.y, obj.w, obj.h, color)?;
         }
 
@@ -502,6 +504,9 @@ font_size = 16
         }
         fn reset_clip_rect(&mut self) -> Result<()> {
             Ok(())
+        }
+        fn read_pixels(&self, _x: i32, _y: i32, w: u32, h: u32) -> Result<Vec<u8>> {
+            Ok(vec![0u8; (w * h * 4) as usize])
         }
         fn shutdown(&mut self) -> Result<()> {
             Ok(())

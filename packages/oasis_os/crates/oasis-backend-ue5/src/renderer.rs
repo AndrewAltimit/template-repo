@@ -264,6 +264,26 @@ impl SdiBackend for Ue5Backend {
         Ok(())
     }
 
+    fn read_pixels(&self, x: i32, y: i32, w: u32, h: u32) -> Result<Vec<u8>> {
+        let mut out = vec![0u8; (w * h * 4) as usize];
+        for row in 0..h {
+            let sy = (y as u32 + row) as usize;
+            if sy >= self.height as usize {
+                continue;
+            }
+            for col in 0..w {
+                let sx = (x as u32 + col) as usize;
+                if sx >= self.width as usize {
+                    continue;
+                }
+                let src_idx = (sy * self.width as usize + sx) * 4;
+                let dst_idx = (row as usize * w as usize + col as usize) * 4;
+                out[dst_idx..dst_idx + 4].copy_from_slice(&self.buffer[src_idx..src_idx + 4]);
+            }
+        }
+        Ok(out)
+    }
+
     fn shutdown(&mut self) -> Result<()> {
         self.buffer.clear();
         self.textures.clear();

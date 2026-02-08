@@ -69,6 +69,10 @@ pub trait SdiBackend {
     /// Reset clipping to the full screen.
     fn reset_clip_rect(&mut self) -> Result<()>;
 
+    /// Read the current framebuffer as RGBA pixel data.
+    /// Returns (width, height, rgba_bytes).
+    fn read_pixels(&self, x: i32, y: i32, w: u32, h: u32) -> Result<Vec<u8>>;
+
     /// Shut down the rendering subsystem and release resources.
     fn shutdown(&mut self) -> Result<()>;
 }

@@ -32,6 +32,9 @@ anyhow = "1.0"
 # Graphics (desktop / Pi)
 sdl2 = "0.37"
 
+# Image encoding (screenshots)
+png = "0.17"
+
 # Internal crates
 oasis-core = { path = "crates/oasis-core" }
 oasis-backend-ue5 = { path = "crates/oasis-backend-ue5" }

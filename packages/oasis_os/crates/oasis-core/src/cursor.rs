@@ -34,6 +34,12 @@ impl CursorState {
         }
     }
 
+    /// Set the cursor position directly (useful for tests/screenshots).
+    pub fn set_position(&mut self, x: i32, y: i32) {
+        self.x = x;
+        self.y = y;
+    }
+
     /// Handle an input event, updating cursor position on mouse move.
     pub fn handle_input(&mut self, event: &InputEvent) {
         if let InputEvent::CursorMove { x, y } = event {

@@ -137,10 +137,53 @@ impl BottomBar {
             MediaTab::TABS.len() as i32 * tab_w + (MediaTab::TABS.len() as i32 - 1) * tab_gap;
         let tab_x_start = SCREEN_W as i32 - total_tabs_w - 10;
 
+        let tab_h = 18i32;
         for (i, tab) in MediaTab::TABS.iter().enumerate() {
             let x = tab_x_start + (i as i32) * (tab_w + tab_gap);
+            let ty = BAR_Y + 3;
 
-            // Tab outline border (PSIX has visible outlined tab buttons).
+            let border_alpha: u8 = if *tab == self.active_tab { 180 } else { 60 };
+            let border_color = Color::rgba(255, 255, 255, border_alpha);
+
+            // Thin outlined border (top, bottom, left, right edges).
+            ensure_bar_border(
+                sdi,
+                &format!("bar_btab_bt_{i}"),
+                x,
+                ty,
+                tab_w as u32,
+                1,
+                border_color,
+            );
+            ensure_bar_border(
+                sdi,
+                &format!("bar_btab_bb_{i}"),
+                x,
+                ty + tab_h - 1,
+                tab_w as u32,
+                1,
+                border_color,
+            );
+            ensure_bar_border(
+                sdi,
+                &format!("bar_btab_bl_{i}"),
+                x,
+                ty,
+                1,
+                tab_h as u32,
+                border_color,
+            );
+            ensure_bar_border(
+                sdi,
+                &format!("bar_btab_br_{i}"),
+                x + tab_w - 1,
+                ty,
+                1,
+                tab_h as u32,
+                border_color,
+            );
+
+            // Subtle fill for active tab only.
             let bg_name = format!("bar_btab_bg_{i}");
             if !sdi.contains(&bg_name) {
                 let obj = sdi.create(&bg_name);
@@ -148,23 +191,26 @@ impl BottomBar {
                 obj.z = 901;
             }
             if let Ok(obj) = sdi.get_mut(&bg_name) {
-                obj.x = x;
-                obj.y = BAR_Y + 3;
-                obj.w = tab_w as u32;
-                obj.h = 18;
+                obj.x = x + 1;
+                obj.y = ty + 1;
+                obj.w = (tab_w - 2) as u32;
+                obj.h = (tab_h - 2) as u32;
                 obj.visible = true;
                 obj.color = if *tab == self.active_tab {
-                    Color::rgba(255, 255, 255, 60)
+                    Color::rgba(255, 255, 255, 25)
                 } else {
-                    Color::rgba(255, 255, 255, 20)
+                    Color::rgba(0, 0, 0, 0)
                 };
             }
 
-            // Tab text.
+            // Tab text (centered in the bordered area).
             let name = format!("bar_btab_{i}");
-            ensure_bottom_text(sdi, &name, x + 4, BAR_Y + 7, 8);
+            let label = tab.label();
+            let text_w = label.len() as i32 * 8;
+            let tx = x + (tab_w - text_w) / 2;
+            ensure_bottom_text(sdi, &name, tx.max(x + 2), BAR_Y + 7, 8);
             if let Ok(obj) = sdi.get_mut(&name) {
-                obj.text = Some(tab.label().to_string());
+                obj.text = Some(label.to_string());
                 obj.text_color = if *tab == self.active_tab {
                     Color::WHITE
                 } else {
@@ -226,7 +272,15 @@ impl BottomBar {
             }
         }
         for i in 0..4 {
-            for prefix in &["bar_btab_", "bar_btab_bg_", "bar_page_"] {
+            for prefix in &[
+                "bar_btab_",
+                "bar_btab_bg_",
+                "bar_page_",
+                "bar_btab_bt_",
+                "bar_btab_bb_",
+                "bar_btab_bl_",
+                "bar_btab_br_",
+            ] {
                 let name = format!("{prefix}{i}");
                 if let Ok(obj) = sdi.get_mut(&name) {
                     obj.visible = false;
@@ -239,6 +293,31 @@ impl BottomBar {
 impl Default for BottomBar {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+/// Helper: create a thin border SDI object for the bottom bar.
+fn ensure_bar_border(
+    sdi: &mut SdiRegistry,
+    name: &str,
+    x: i32,
+    y: i32,
+    w: u32,
+    h: u32,
+    color: Color,
+) {
+    if !sdi.contains(name) {
+        let obj = sdi.create(name);
+        obj.overlay = true;
+        obj.z = 901;
+    }
+    if let Ok(obj) = sdi.get_mut(name) {
+        obj.x = x;
+        obj.y = y;
+        obj.w = w;
+        obj.h = h;
+        obj.color = color;
+        obj.visible = true;
     }
 }
 

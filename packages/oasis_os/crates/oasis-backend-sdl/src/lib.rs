@@ -146,6 +146,11 @@ impl SdiBackend for SdlBackend {
     }
 
     fn fill_rect(&mut self, x: i32, y: i32, w: u32, h: u32, color: Color) -> Result<()> {
+        if color.a < 255 {
+            self.canvas.set_blend_mode(sdl2::render::BlendMode::Blend);
+        } else {
+            self.canvas.set_blend_mode(sdl2::render::BlendMode::None);
+        }
         self.canvas.set_draw_color(sdl2::pixels::Color::RGBA(
             color.r, color.g, color.b, color.a,
         ));
@@ -207,6 +212,13 @@ impl SdiBackend for SdlBackend {
     fn reset_clip_rect(&mut self) -> Result<()> {
         self.canvas.set_clip_rect(None);
         Ok(())
+    }
+
+    fn read_pixels(&self, x: i32, y: i32, w: u32, h: u32) -> Result<Vec<u8>> {
+        let rect = Rect::new(x, y, w, h);
+        self.canvas
+            .read_pixels(rect, PixelFormatEnum::ABGR8888)
+            .map_err(|e| OasisError::Backend(e.to_string()))
     }
 
     fn shutdown(&mut self) -> Result<()> {

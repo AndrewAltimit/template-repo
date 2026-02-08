@@ -178,15 +178,61 @@ impl StatusBar {
             obj.z = 901;
         }
 
-        // Tab row (below bar background -- PSIX shows outlined tab buttons).
+        // Tab row (PSIX-style thin outlined borders around each tab label).
         let tab_x_start = 6;
-        let tab_w = 45;
-        let tab_gap = 6;
+        let tab_w: i32 = 45;
+        let tab_h: i32 = 16;
+        let tab_gap = 4;
+        let tab_y = BAR_H as i32;
         for (i, tab) in TopTab::ALL.iter().enumerate() {
             let name = format!("bar_tab_{i}");
             let x = tab_x_start + (i as i32) * (tab_w + tab_gap);
 
-            // Tab outline border (PSIX-style white border around each tab).
+            let border_alpha: u8 = if *tab == self.active_tab { 180 } else { 60 };
+            let border_color = Color::rgba(255, 255, 255, border_alpha);
+
+            // Top edge.
+            ensure_border(
+                sdi,
+                &format!("bar_tab_bt_{i}"),
+                x,
+                tab_y,
+                tab_w as u32,
+                1,
+                border_color,
+            );
+            // Bottom edge.
+            ensure_border(
+                sdi,
+                &format!("bar_tab_bb_{i}"),
+                x,
+                tab_y + tab_h - 1,
+                tab_w as u32,
+                1,
+                border_color,
+            );
+            // Left edge.
+            ensure_border(
+                sdi,
+                &format!("bar_tab_bl_{i}"),
+                x,
+                tab_y,
+                1,
+                tab_h as u32,
+                border_color,
+            );
+            // Right edge.
+            ensure_border(
+                sdi,
+                &format!("bar_tab_br_{i}"),
+                x + tab_w - 1,
+                tab_y,
+                1,
+                tab_h as u32,
+                border_color,
+            );
+
+            // Fill for active tab only (very subtle).
             let bg_name = format!("bar_tab_bg_{i}");
             if !sdi.contains(&bg_name) {
                 let obj = sdi.create(&bg_name);
@@ -194,20 +240,21 @@ impl StatusBar {
                 obj.z = 901;
             }
             if let Ok(obj) = sdi.get_mut(&bg_name) {
-                obj.x = x;
-                obj.y = BAR_H as i32;
-                obj.w = tab_w as u32;
-                obj.h = 16;
+                obj.x = x + 1;
+                obj.y = tab_y + 1;
+                obj.w = (tab_w - 2) as u32;
+                obj.h = (tab_h - 2) as u32;
                 obj.visible = true;
                 obj.color = if *tab == self.active_tab {
-                    Color::rgba(255, 255, 255, 60)
+                    Color::rgba(255, 255, 255, 30)
                 } else {
-                    Color::rgba(0, 0, 0, 80)
+                    Color::rgba(0, 0, 0, 0)
                 };
             }
 
             // Tab text.
-            ensure_text_object(sdi, &name, x + 4, BAR_H as i32 + 3, 9, Color::WHITE);
+            let tx = x + (tab_w - (tab.label().len() as i32 * 8)) / 2;
+            ensure_text_object(sdi, &name, tx.max(x + 2), tab_y + 4, 8, Color::WHITE);
             if let Ok(obj) = sdi.get_mut(&name) {
                 obj.text = Some(tab.label().to_string());
                 obj.overlay = true;
@@ -241,7 +288,14 @@ impl StatusBar {
             }
         }
         for i in 0..TopTab::ALL.len() {
-            for prefix in &["bar_tab_", "bar_tab_bg_"] {
+            for prefix in &[
+                "bar_tab_",
+                "bar_tab_bg_",
+                "bar_tab_bt_",
+                "bar_tab_bb_",
+                "bar_tab_bl_",
+                "bar_tab_br_",
+            ] {
                 let name = format!("{prefix}{i}");
                 if let Ok(obj) = sdi.get_mut(&name) {
                     obj.visible = false;
@@ -254,6 +308,23 @@ impl StatusBar {
 impl Default for StatusBar {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+/// Helper: create a thin border SDI object (1px line segment).
+fn ensure_border(sdi: &mut SdiRegistry, name: &str, x: i32, y: i32, w: u32, h: u32, color: Color) {
+    if !sdi.contains(name) {
+        let obj = sdi.create(name);
+        obj.overlay = true;
+        obj.z = 901;
+    }
+    if let Ok(obj) = sdi.get_mut(name) {
+        obj.x = x;
+        obj.y = y;
+        obj.w = w;
+        obj.h = h;
+        obj.color = color;
+        obj.visible = true;
     }
 }
 
