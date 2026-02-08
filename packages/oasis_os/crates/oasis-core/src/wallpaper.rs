@@ -3,7 +3,7 @@
 //! Generates PSIX-style gradient wallpapers as raw RGBA pixel buffers.
 //! No external PNG files needed -- keeps CI clean and the binary self-contained.
 
-/// Generate a vibrant gradient wallpaper similar to PSIX's green/yellow/orange style.
+/// Generate a vibrant gradient wallpaper matching PSIX's orange->yellow->green style.
 ///
 /// Returns an RGBA pixel buffer of `w * h * 4` bytes.
 pub fn generate_gradient(w: u32, h: u32) -> Vec<u8> {
@@ -17,32 +17,35 @@ pub fn generate_gradient(w: u32, h: u32) -> Vec<u8> {
             let nx = x as f32 / w as f32;
             let ny = y as f32 / h as f32;
 
-            // PSIX-style gradient: blend from teal (top-left) through green
-            // (center) to warm orange (bottom-right) with a diagonal sweep.
-            let t = nx * 0.6 + ny * 0.4; // diagonal blend factor
+            // PSIX uses a strong left-to-right gradient:
+            // Left = warm orange/red, Center = golden yellow, Right = bright green/lime.
+            // Vertical component adds subtle variation.
+            let t = nx * 0.85 + ny * 0.15;
 
-            let (r, g, b) = if t < 0.33 {
-                // Teal -> green segment.
-                let s = t / 0.33;
-                lerp_rgb((20, 80, 100), (40, 120, 60), s)
-            } else if t < 0.66 {
-                // Green -> yellow-green segment.
-                let s = (t - 0.33) / 0.33;
-                lerp_rgb((40, 120, 60), (140, 160, 40), s)
+            let (r, g, b) = if t < 0.25 {
+                // Orange -> golden yellow.
+                let s = t / 0.25;
+                lerp_rgb((220, 120, 30), (240, 200, 40), s)
+            } else if t < 0.50 {
+                // Golden yellow -> yellow-green.
+                let s = (t - 0.25) / 0.25;
+                lerp_rgb((240, 200, 40), (180, 220, 50), s)
+            } else if t < 0.75 {
+                // Yellow-green -> bright green.
+                let s = (t - 0.50) / 0.25;
+                lerp_rgb((180, 220, 50), (100, 210, 60), s)
             } else {
-                // Yellow-green -> warm orange segment.
-                let s = (t - 0.66) / 0.34;
-                lerp_rgb((140, 160, 40), (200, 120, 30), s)
+                // Bright green -> lime/light green.
+                let s = (t - 0.75) / 0.25;
+                lerp_rgb((100, 210, 60), (140, 230, 100), s)
             };
 
-            // Add a subtle radial vignette to darken edges.
-            let cx = (nx - 0.5) * 2.0;
-            let cy = (ny - 0.5) * 2.0;
-            let vignette = 1.0 - (cx * cx + cy * cy).min(1.0) * 0.25;
+            // Subtle vertical brightness variation (lighter toward top).
+            let vert = 1.0 + (0.5 - ny) * 0.15;
 
-            buf[offset] = (r as f32 * vignette).min(255.0) as u8;
-            buf[offset + 1] = (g as f32 * vignette).min(255.0) as u8;
-            buf[offset + 2] = (b as f32 * vignette).min(255.0) as u8;
+            buf[offset] = (r as f32 * vert).clamp(0.0, 255.0) as u8;
+            buf[offset + 1] = (g as f32 * vert).clamp(0.0, 255.0) as u8;
+            buf[offset + 2] = (b as f32 * vert).clamp(0.0, 255.0) as u8;
             buf[offset + 3] = 255;
         }
     }

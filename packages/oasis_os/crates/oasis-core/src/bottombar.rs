@@ -95,14 +95,14 @@ impl BottomBar {
 
     /// Synchronize SDI objects to reflect current bottom bar state.
     pub fn update_sdi(&self, sdi: &mut SdiRegistry) {
-        // Background bar (green-tinted to match PSIX style).
+        // Semi-transparent background bar (PSIX uses thin dark bar).
         if !sdi.contains("bar_bottom") {
             let obj = sdi.create("bar_bottom");
             obj.x = 0;
             obj.y = BAR_Y;
             obj.w = SCREEN_W;
             obj.h = BAR_H;
-            obj.color = Color::rgba(20, 50, 40, 220);
+            obj.color = Color::rgba(0, 0, 0, 140);
             obj.overlay = true;
             obj.z = 900;
         }
@@ -110,75 +110,79 @@ impl BottomBar {
             obj.visible = true;
         }
 
-        // URL/label on the left (PSIX shows a URL-like identifier).
-        ensure_bottom_text(sdi, "bar_url", 6, BAR_Y + 6, 8);
+        // URL label on the left (PSIX: "HTTP://PSIXONLINE.COM").
+        ensure_bottom_text(sdi, "bar_url", 6, BAR_Y + 7, 8);
         if let Ok(obj) = sdi.get_mut("bar_url") {
-            obj.text = Some("OASIS://HOME".to_string());
-            obj.text_color = Color::rgb(120, 160, 140);
+            obj.text = Some("HTTP://OASIS.LOCAL".to_string());
+            obj.text_color = Color::rgb(180, 180, 180);
         }
 
-        // Shoulder button hints (positioned after URL).
-        ensure_bottom_text(sdi, "bar_shoulder_l", 110, BAR_Y + 5, 9);
+        // Shoulder button divider (center area).
+        ensure_bottom_text(sdi, "bar_shoulder_l", 180, BAR_Y + 7, 8);
         if let Ok(obj) = sdi.get_mut("bar_shoulder_l") {
-            obj.text = Some("L".to_string());
-            obj.text_color = if self.l_pressed {
-                Color::WHITE
-            } else {
-                Color::rgb(80, 120, 100)
-            };
+            obj.text = None;
+            obj.visible = false;
         }
 
-        ensure_bottom_text(sdi, "bar_shoulder_r", 126, BAR_Y + 5, 9);
+        ensure_bottom_text(sdi, "bar_shoulder_r", 196, BAR_Y + 7, 8);
         if let Ok(obj) = sdi.get_mut("bar_shoulder_r") {
-            obj.text = Some("R".to_string());
-            obj.text_color = if self.r_pressed {
-                Color::WHITE
-            } else {
-                Color::rgb(80, 120, 100)
-            };
+            obj.text = None;
+            obj.visible = false;
         }
 
-        // Media category tabs.
-        let tab_x_start = 150;
-        let tab_w = 55;
-        for (i, tab) in MediaTab::TABS.iter().enumerate() {
-            let x = tab_x_start + (i as i32) * (tab_w + 4);
+        // Media category tabs (right side, PSIX-style outlined buttons).
+        let tab_w = 50;
+        let tab_gap = 4;
+        let total_tabs_w =
+            MediaTab::TABS.len() as i32 * tab_w + (MediaTab::TABS.len() as i32 - 1) * tab_gap;
+        let tab_x_start = SCREEN_W as i32 - total_tabs_w - 10;
 
-            // Tab background (PSIX-style: active tab has white outline look).
+        for (i, tab) in MediaTab::TABS.iter().enumerate() {
+            let x = tab_x_start + (i as i32) * (tab_w + tab_gap);
+
+            // Tab outline border (PSIX has visible outlined tab buttons).
             let bg_name = format!("bar_btab_bg_{i}");
             if !sdi.contains(&bg_name) {
                 let obj = sdi.create(&bg_name);
-                obj.y = BAR_Y + 2;
-                obj.h = 20;
                 obj.overlay = true;
                 obj.z = 901;
             }
             if let Ok(obj) = sdi.get_mut(&bg_name) {
-                obj.x = x - 2;
-                obj.w = tab_w as u32 + 4;
+                obj.x = x;
+                obj.y = BAR_Y + 3;
+                obj.w = tab_w as u32;
+                obj.h = 18;
                 obj.visible = true;
                 obj.color = if *tab == self.active_tab {
-                    Color::rgba(60, 120, 80, 180)
+                    Color::rgba(255, 255, 255, 60)
                 } else {
-                    Color::rgba(0, 0, 0, 0)
+                    Color::rgba(255, 255, 255, 20)
                 };
             }
 
             // Tab text.
             let name = format!("bar_btab_{i}");
-            ensure_bottom_text(sdi, &name, x, BAR_Y + 6, 9);
+            ensure_bottom_text(sdi, &name, x + 4, BAR_Y + 7, 8);
             if let Ok(obj) = sdi.get_mut(&name) {
                 obj.text = Some(tab.label().to_string());
                 obj.text_color = if *tab == self.active_tab {
                     Color::WHITE
                 } else {
-                    Color::rgb(90, 130, 110)
+                    Color::rgb(180, 180, 180)
                 };
             }
         }
 
-        // Page dots (VDM indicator).
-        let dots_x = 410;
+        // USB / page indicator (center, between URL and tabs).
+        let indicator_x = 200;
+        ensure_bottom_text(sdi, "bar_usb", indicator_x, BAR_Y + 7, 8);
+        if let Ok(obj) = sdi.get_mut("bar_usb") {
+            obj.text = Some("USB".to_string());
+            obj.text_color = Color::rgb(120, 120, 120);
+        }
+
+        // Page dots (small squares near center).
+        let dots_x = indicator_x + 40;
         for i in 0..self.total_pages.min(4) {
             let name = format!("bar_page_{i}");
             if !sdi.contains(&name) {
@@ -187,19 +191,18 @@ impl BottomBar {
                 obj.z = 901;
             }
             if let Ok(obj) = sdi.get_mut(&name) {
-                obj.x = dots_x + (i as i32) * 14;
-                obj.y = BAR_Y + 7;
-                obj.w = 10;
-                obj.h = 10;
+                obj.x = dots_x + (i as i32) * 12;
+                obj.y = BAR_Y + 8;
+                obj.w = 8;
+                obj.h = 8;
                 obj.visible = true;
                 obj.color = if i == self.current_page {
-                    Color::rgb(100, 150, 220)
+                    Color::rgba(255, 255, 255, 200)
                 } else {
-                    Color::rgb(50, 60, 80)
+                    Color::rgba(255, 255, 255, 50)
                 };
             }
         }
-        // Hide unused dots.
         for i in self.total_pages.min(4)..4 {
             let name = format!("bar_page_{i}");
             if let Ok(obj) = sdi.get_mut(&name) {
@@ -210,7 +213,13 @@ impl BottomBar {
 
     /// Hide all bottom bar SDI objects.
     pub fn hide_sdi(sdi: &mut SdiRegistry) {
-        let names = ["bar_bottom", "bar_shoulder_l", "bar_shoulder_r", "bar_url"];
+        let names = [
+            "bar_bottom",
+            "bar_shoulder_l",
+            "bar_shoulder_r",
+            "bar_url",
+            "bar_usb",
+        ];
         for name in &names {
             if let Ok(obj) = sdi.get_mut(name) {
                 obj.visible = false;

@@ -30,20 +30,18 @@ pub struct DashboardConfig {
 
 impl DashboardConfig {
     /// Create a config from skin features and screen dimensions.
-    /// Uses PSIX-style layout: 24px status bar + 224px content + 24px bottom bar.
-    pub fn from_features(features: &SkinFeatures, screen_w: u32, _screen_h: u32) -> Self {
+    /// Uses PSIX-style layout: icons on the left side with generous spacing.
+    pub fn from_features(features: &SkinFeatures, _screen_w: u32, _screen_h: u32) -> Self {
         let cols = features.grid_cols;
         let rows = features.grid_rows;
         let status_bar_h = 24u32;
-        let bottom_bar_h = 24u32;
-        let grid_padding_x = 6u32;
-        let grid_padding_y = 4u32;
-        let grid_area_w = screen_w - 2 * grid_padding_x;
+        // PSIX places icons on the left ~half of the screen, sparsely.
+        let grid_padding_x = 16u32;
+        let grid_padding_y = 8u32;
         // Content area between status bar and bottom bar.
-        let content_h = 272u32 - status_bar_h - bottom_bar_h; // 224px
-        let grid_area_h = content_h - 2 * grid_padding_y;
-        let cell_w = grid_area_w / cols;
-        let cell_h = grid_area_h / rows;
+        let content_h = 272u32 - status_bar_h - 24;
+        let cell_w = 80u32; // Fixed cell width for consistent spacing.
+        let cell_h = (content_h - 2 * grid_padding_y) / rows;
         Self {
             grid_cols: cols,
             grid_rows: rows,
@@ -53,7 +51,7 @@ impl DashboardConfig {
             grid_y: (status_bar_h + grid_padding_y) as i32,
             cell_w,
             cell_h,
-            cursor_pad: 4,
+            cursor_pad: 3,
         }
     }
 }
@@ -166,99 +164,118 @@ impl DashboardState {
     }
 
     /// Synchronize SDI objects to reflect current dashboard state.
-    /// Creates/updates: icon grid cells (colored block with outline + label below),
-    /// cursor highlight overlay.
+    /// Creates/updates: PSIX-style document icons (white page with colored accent
+    /// and folded corner), text label below each, and cursor highlight overlay.
     pub fn update_sdi(&self, sdi: &mut SdiRegistry) {
         let cols = self.config.grid_cols as usize;
         let page_apps = self.current_page_apps();
 
-        // PSIX-style icon dimensions (icon block centered in cell).
-        let icon_w = 32u32;
-        let icon_h = 32u32;
-        let text_pad = 4i32;
+        // PSIX document icon: small white page with a colored stripe at top.
+        let icon_w = 28u32;
+        let icon_h = 34u32;
+        let stripe_h = 8u32;
+        let fold_size = 8u32;
+        let text_pad = 3i32;
 
-        // Icon grid cells: each has an outline + colored block + text label.
         let per_page = self.config.icons_per_page as usize;
         for i in 0..per_page {
             let outline_name = format!("icon_outline_{i}");
             let icon_name = format!("icon_{i}");
+            let stripe_name = format!("icon_stripe_{i}");
+            let fold_name = format!("icon_fold_{i}");
             let label_name = format!("icon_label_{i}");
 
-            if !sdi.contains(&outline_name) {
-                sdi.create(&outline_name);
-            }
-            if !sdi.contains(&icon_name) {
-                sdi.create(&icon_name);
-            }
-            if !sdi.contains(&label_name) {
-                sdi.create(&label_name);
+            for name in [
+                &outline_name,
+                &icon_name,
+                &stripe_name,
+                &fold_name,
+                &label_name,
+            ] {
+                if !sdi.contains(name) {
+                    sdi.create(name);
+                }
             }
 
             let col = (i % cols) as i32;
             let row = (i / cols) as i32;
             let cell_x = self.config.grid_x + col * self.config.cell_w as i32;
             let cell_y = self.config.grid_y + row * self.config.cell_h as i32;
-            // Center the icon block within the cell.
             let ix = cell_x + (self.config.cell_w as i32 - icon_w as i32) / 2;
-            let iy = cell_y + 6;
+            let iy = cell_y + 4;
 
-            // White outline behind icon (PSIX-style file/folder border look).
-            if let Ok(obj) = sdi.get_mut(&outline_name) {
-                if i < page_apps.len() {
-                    obj.x = ix - 1;
-                    obj.y = iy - 1;
-                    obj.w = icon_w + 2;
-                    obj.h = icon_h + 2;
+            if i < page_apps.len() {
+                // Shadow/outline behind the document page.
+                if let Ok(obj) = sdi.get_mut(&outline_name) {
+                    obj.x = ix + 1;
+                    obj.y = iy + 1;
+                    obj.w = icon_w;
+                    obj.h = icon_h;
                     obj.visible = true;
-                    obj.color = Color::rgba(200, 220, 200, 120);
+                    obj.color = Color::rgba(0, 0, 0, 80);
                     obj.text = None;
-                } else {
-                    obj.visible = false;
                 }
-            }
 
-            // Inner icon block.
-            if let Ok(obj) = sdi.get_mut(&icon_name) {
-                if i < page_apps.len() {
+                // White document page body.
+                if let Ok(obj) = sdi.get_mut(&icon_name) {
                     obj.x = ix;
                     obj.y = iy;
                     obj.w = icon_w;
                     obj.h = icon_h;
                     obj.visible = true;
-                    obj.color = page_apps[i].color;
-                    // Show first letter of app name as icon label.
-                    let first_char = page_apps[i]
-                        .title
-                        .chars()
-                        .next()
-                        .map(|c| c.to_string())
-                        .unwrap_or_default();
-                    obj.text = Some(first_char);
-                    obj.font_size = 16;
-                    obj.text_color = Color::WHITE;
-                } else {
-                    obj.visible = false;
+                    obj.color = Color::rgb(240, 240, 235);
+                    obj.text = None;
                 }
-            }
 
-            // Label below the icon.
-            if let Ok(obj) = sdi.get_mut(&label_name) {
-                if i < page_apps.len() {
-                    obj.x = cell_x + 2;
+                // Colored stripe at top of document (app accent color).
+                if let Ok(obj) = sdi.get_mut(&stripe_name) {
+                    obj.x = ix;
+                    obj.y = iy;
+                    obj.w = icon_w - fold_size;
+                    obj.h = stripe_h;
+                    obj.visible = true;
+                    obj.color = page_apps[i].color;
+                    obj.text = None;
+                }
+
+                // Folded corner (top-right) -- darker shade to simulate fold.
+                if let Ok(obj) = sdi.get_mut(&fold_name) {
+                    obj.x = ix + icon_w as i32 - fold_size as i32;
+                    obj.y = iy;
+                    obj.w = fold_size;
+                    obj.h = fold_size;
+                    obj.visible = true;
+                    obj.color = Color::rgb(200, 200, 195);
+                    obj.text = None;
+                }
+
+                // Label below the document icon.
+                if let Ok(obj) = sdi.get_mut(&label_name) {
+                    obj.x = cell_x;
                     obj.y = iy + icon_h as i32 + text_pad;
                     obj.w = 0;
                     obj.h = 0;
                     obj.font_size = 8;
                     obj.text = Some(page_apps[i].title.clone());
-                    obj.text_color = Color::rgb(200, 220, 200);
+                    obj.text_color = Color::rgba(255, 255, 255, 220);
                     obj.visible = true;
-                } else {
-                    obj.visible = false;
+                }
+            } else {
+                for name in [
+                    &outline_name,
+                    &icon_name,
+                    &stripe_name,
+                    &fold_name,
+                    &label_name,
+                ] {
+                    if let Ok(obj) = sdi.get_mut(name) {
+                        obj.visible = false;
+                    }
                 }
             }
         }
 
-        // Cursor highlight (translucent overlay around selected icon).
+        // Cursor highlight (translucent white glow around selected icon).
         let cursor_name = "cursor_highlight";
         if !sdi.contains(cursor_name) {
             sdi.create(cursor_name);
@@ -271,12 +288,12 @@ impl DashboardState {
                 let cell_x = self.config.grid_x + sel_col * self.config.cell_w as i32;
                 let cell_y = self.config.grid_y + sel_row * self.config.cell_h as i32;
                 let ix = cell_x + (self.config.cell_w as i32 - icon_w as i32) / 2;
-                let iy = cell_y + 6;
+                let iy = cell_y + 4;
                 cursor.x = ix - pad;
                 cursor.y = iy - pad;
                 cursor.w = icon_w + (pad * 2) as u32;
                 cursor.h = icon_h + (pad * 2) as u32;
-                cursor.color = Color::rgba(100, 200, 140, 60);
+                cursor.color = Color::rgba(255, 255, 255, 50);
                 cursor.visible = true;
                 cursor.overlay = true;
             } else {
@@ -289,7 +306,13 @@ impl DashboardState {
     pub fn hide_sdi(&self, sdi: &mut SdiRegistry) {
         let per_page = self.config.icons_per_page as usize;
         for i in 0..per_page {
-            for prefix in &["icon_", "icon_label_", "icon_outline_"] {
+            for prefix in &[
+                "icon_",
+                "icon_label_",
+                "icon_outline_",
+                "icon_stripe_",
+                "icon_fold_",
+            ] {
                 let name = format!("{prefix}{i}");
                 if let Ok(obj) = sdi.get_mut(&name) {
                     obj.visible = false;

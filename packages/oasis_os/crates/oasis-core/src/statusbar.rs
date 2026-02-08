@@ -131,14 +131,14 @@ impl StatusBar {
 
     /// Synchronize SDI objects to reflect current status bar state.
     pub fn update_sdi(&self, sdi: &mut SdiRegistry) {
-        // Background bar (green-tinted to match PSIX style).
+        // Semi-transparent background bar (PSIX uses very transparent black).
         if !sdi.contains("bar_top") {
             let obj = sdi.create("bar_top");
             obj.x = 0;
             obj.y = 0;
             obj.w = SCREEN_W;
             obj.h = BAR_H;
-            obj.color = Color::rgba(20, 50, 40, 220);
+            obj.color = Color::rgba(0, 0, 0, 140);
             obj.overlay = true;
             obj.z = 900;
         }
@@ -146,57 +146,28 @@ impl StatusBar {
             obj.visible = true;
         }
 
-        // Version label (left side).
-        ensure_text_object(sdi, "bar_version", 6, 5, 10, Color::rgb(120, 140, 170));
-        if let Ok(obj) = sdi.get_mut("bar_version") {
-            obj.text = Some("OASIS v0.1".to_string());
+        // Battery + CPU info (left side, PSIX style: "100% [icon] 265 MHz").
+        ensure_text_object(sdi, "bar_battery", 6, 6, 8, Color::rgb(180, 255, 180));
+        if let Ok(obj) = sdi.get_mut("bar_battery") {
+            let mut info = self.battery_text.clone();
+            if !self.cpu_text.is_empty() {
+                info = format!("{info}  {}", self.cpu_text);
+            }
+            obj.text = Some(info);
             obj.overlay = true;
             obj.z = 901;
         }
 
-        // Tab labels.
-        let tab_x_start = 110;
-        let tab_w = 50;
-        for (i, tab) in TopTab::ALL.iter().enumerate() {
-            let name = format!("bar_tab_{i}");
-            let x = tab_x_start + (i as i32) * (tab_w + 4);
-
-            // Tab background highlight.
-            let bg_name = format!("bar_tab_bg_{i}");
-            if !sdi.contains(&bg_name) {
-                let obj = sdi.create(&bg_name);
-                obj.y = 2;
-                obj.h = 20;
-                obj.overlay = true;
-                obj.z = 901;
-            }
-            if let Ok(obj) = sdi.get_mut(&bg_name) {
-                obj.x = x - 2;
-                obj.w = tab_w as u32 + 4;
-                obj.visible = true;
-                obj.color = if *tab == self.active_tab {
-                    Color::rgba(60, 90, 140, 200)
-                } else {
-                    Color::rgba(0, 0, 0, 0)
-                };
-            }
-
-            // Tab text.
-            ensure_text_object(sdi, &name, x, 6, 10, Color::WHITE);
-            if let Ok(obj) = sdi.get_mut(&name) {
-                obj.text = Some(tab.label().to_string());
-                obj.overlay = true;
-                obj.z = 902;
-                obj.text_color = if *tab == self.active_tab {
-                    Color::WHITE
-                } else {
-                    Color::rgb(100, 120, 150)
-                };
-            }
+        // Version label (center-left area).
+        ensure_text_object(sdi, "bar_version", 160, 6, 8, Color::rgb(200, 200, 200));
+        if let Ok(obj) = sdi.get_mut("bar_version") {
+            obj.text = Some("Version 0.1".to_string());
+            obj.overlay = true;
+            obj.z = 901;
         }
 
-        // Clock + date (right side, PSIX shows "HH:MM Month DD, YYYY").
-        ensure_text_object(sdi, "bar_clock", 280, 5, 10, Color::rgb(200, 220, 200));
+        // Clock + date (right side, PSIX: "11:20 November 23, 2024").
+        ensure_text_object(sdi, "bar_clock", 280, 6, 8, Color::rgb(255, 255, 255));
         if let Ok(obj) = sdi.get_mut("bar_clock") {
             if self.date_text.is_empty() {
                 obj.text = Some(self.clock_text.clone());
@@ -207,22 +178,51 @@ impl StatusBar {
             obj.z = 901;
         }
 
-        // Battery (far right).
-        ensure_text_object(sdi, "bar_battery", 440, 5, 9, Color::rgb(160, 200, 170));
-        if let Ok(obj) = sdi.get_mut("bar_battery") {
-            obj.text = Some(self.battery_text.clone());
-            obj.overlay = true;
-            obj.z = 901;
-        }
+        // Tab row (below bar background -- PSIX shows outlined tab buttons).
+        let tab_x_start = 6;
+        let tab_w = 45;
+        let tab_gap = 6;
+        for (i, tab) in TopTab::ALL.iter().enumerate() {
+            let name = format!("bar_tab_{i}");
+            let x = tab_x_start + (i as i32) * (tab_w + tab_gap);
 
-        // CPU frequency (left of clock).
-        if !self.cpu_text.is_empty() {
-            ensure_text_object(sdi, "bar_cpu", 240, 5, 9, Color::rgb(140, 180, 160));
-            if let Ok(obj) = sdi.get_mut("bar_cpu") {
-                obj.text = Some(self.cpu_text.clone());
+            // Tab outline border (PSIX-style white border around each tab).
+            let bg_name = format!("bar_tab_bg_{i}");
+            if !sdi.contains(&bg_name) {
+                let obj = sdi.create(&bg_name);
                 obj.overlay = true;
                 obj.z = 901;
             }
+            if let Ok(obj) = sdi.get_mut(&bg_name) {
+                obj.x = x;
+                obj.y = BAR_H as i32;
+                obj.w = tab_w as u32;
+                obj.h = 16;
+                obj.visible = true;
+                obj.color = if *tab == self.active_tab {
+                    Color::rgba(255, 255, 255, 60)
+                } else {
+                    Color::rgba(0, 0, 0, 80)
+                };
+            }
+
+            // Tab text.
+            ensure_text_object(sdi, &name, x + 4, BAR_H as i32 + 3, 9, Color::WHITE);
+            if let Ok(obj) = sdi.get_mut(&name) {
+                obj.text = Some(tab.label().to_string());
+                obj.overlay = true;
+                obj.z = 902;
+                obj.text_color = if *tab == self.active_tab {
+                    Color::WHITE
+                } else {
+                    Color::rgb(160, 160, 160)
+                };
+            }
+        }
+
+        // Hide CPU text object (merged into battery display).
+        if let Ok(obj) = sdi.get_mut("bar_cpu") {
+            obj.visible = false;
         }
     }
 
