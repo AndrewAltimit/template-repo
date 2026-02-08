@@ -288,10 +288,8 @@ fn decode_loop(state: Arc<Mutex<PlayerState>>, command_rx: Receiver<PlayerComman
             },
             Err(mpsc::RecvTimeoutError::Timeout) => {
                 // Decode next frame if playing
-                if is_playing {
-                    if let Some(decode_ctx) = &mut ctx {
-                        decode_next_frame(decode_ctx, &state);
-                    }
+                if is_playing && let Some(decode_ctx) = &mut ctx {
+                    decode_next_frame(decode_ctx, &state);
                 }
             },
             Err(mpsc::RecvTimeoutError::Disconnected) => {
@@ -532,10 +530,10 @@ fn handle_pause(state: &Arc<Mutex<PlayerState>>, ctx: &Option<DecodeContext>) {
         info!(position_ms = current_pos, "Pausing playback");
 
         // Pause audio
-        if let Some(ctx) = ctx {
-            if let Some(audio) = &ctx.audio {
-                audio.pause();
-            }
+        if let Some(ctx) = ctx
+            && let Some(audio) = &ctx.audio
+        {
+            audio.pause();
         }
 
         *s = PlayerState::Paused {
@@ -608,10 +606,10 @@ fn handle_set_volume(state: &Arc<Mutex<PlayerState>>, ctx: &Option<DecodeContext
     let clamped = volume.clamp(0.0, 1.0);
 
     // Update audio player volume
-    if let Some(decode_ctx) = ctx {
-        if let Some(audio) = &decode_ctx.audio {
-            audio.set_volume(clamped);
-        }
+    if let Some(decode_ctx) = ctx
+        && let Some(audio) = &decode_ctx.audio
+    {
+        audio.set_volume(clamped);
     }
 
     let mut state = lock_state(state);

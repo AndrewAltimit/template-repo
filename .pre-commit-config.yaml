@@ -121,6 +121,97 @@ repos:
         files: '^packages/injection_toolkit/.*\.rs$'
         pass_filenames: false
 
+      - id: rust-fmt-automation-cli
+        name: Rust format automation-cli
+        entry: bash -c 'source "$HOME/.cargo/env" 2>/dev/null || true; cd tools/rust/automation-cli && cargo fmt --all'
+        language: system
+        files: '^tools/rust/automation-cli/.*\.rs$'
+        pass_filenames: false
+
+      - id: rust-fmt-board-manager
+        name: Rust format board-manager
+        entry: bash -c 'source "$HOME/.cargo/env" 2>/dev/null || true; cd tools/rust/board-manager && cargo fmt --all'
+        language: system
+        files: '^tools/rust/board-manager/.*\.rs$'
+        pass_filenames: false
+
+      - id: rust-fmt-code-parser
+        name: Rust format code-parser
+        entry: bash -c 'source "$HOME/.cargo/env" 2>/dev/null || true; cd tools/rust/code-parser && cargo fmt --all'
+        language: system
+        files: '^tools/rust/code-parser/.*\.rs$'
+        pass_filenames: false
+
+      - id: rust-fmt-code-review-processor
+        name: Rust format code-review-processor
+        entry: bash -c 'source "$HOME/.cargo/env" 2>/dev/null || true; cd tools/rust/code-review-processor && cargo fmt --all'
+        language: system
+        files: '^tools/rust/code-review-processor/.*\.rs$'
+        pass_filenames: false
+
+      - id: rust-fmt-git-guard
+        name: Rust format git-guard
+        entry: bash -c 'source "$HOME/.cargo/env" 2>/dev/null || true; cd tools/rust/git-guard && cargo fmt --all'
+        language: system
+        files: '^tools/rust/git-guard/.*\.rs$'
+        pass_filenames: false
+
+      - id: rust-fmt-github-agents-cli
+        name: Rust format github-agents-cli
+        entry: bash -c 'source "$HOME/.cargo/env" 2>/dev/null || true; cd tools/rust/github-agents-cli && cargo fmt --all'
+        language: system
+        files: '^tools/rust/github-agents-cli/.*\.rs$'
+        pass_filenames: false
+
+      - id: rust-fmt-markdown-link-checker
+        name: Rust format markdown-link-checker
+        entry: bash -c 'source "$HOME/.cargo/env" 2>/dev/null || true; cd tools/rust/markdown-link-checker && cargo fmt --all'
+        language: system
+        files: '^tools/rust/markdown-link-checker/.*\.rs$'
+        pass_filenames: false
+
+      - id: rust-fmt-mcp-code-quality
+        name: Rust format mcp-code-quality
+        entry: bash -c 'source "$HOME/.cargo/env" 2>/dev/null || true; cd tools/rust/mcp-code-quality && cargo fmt --all'
+        language: system
+        files: '^tools/rust/mcp-code-quality/.*\.rs$'
+        pass_filenames: false
+
+      - id: rust-fmt-wrapper-common
+        name: Rust format wrapper-common
+        entry: bash -c 'source "$HOME/.cargo/env" 2>/dev/null || true; cd tools/rust/wrapper-common && cargo fmt --all'
+        language: system
+        files: '^tools/rust/wrapper-common/.*\.rs$'
+        pass_filenames: false
+
+      - id: rust-fmt-economic-agents
+        name: Rust format economic-agents
+        entry: bash -c 'source "$HOME/.cargo/env" 2>/dev/null || true; cd packages/economic_agents && cargo fmt --all'
+        language: system
+        files: '^packages/economic_agents/.*\.rs$'
+        pass_filenames: false
+
+      - id: rust-fmt-bioforge
+        name: Rust format bioforge
+        entry: bash -c 'source "$HOME/.cargo/env" 2>/dev/null || true; cd packages/bioforge && cargo fmt --all'
+        language: system
+        files: '^packages/bioforge/.*\.rs$'
+        pass_filenames: false
+
+      - id: rust-fmt-tamper-briefcase
+        name: Rust format tamper-briefcase
+        entry: bash -c 'source "$HOME/.cargo/env" 2>/dev/null || true; cd packages/tamper_briefcase && cargo fmt --all'
+        language: system
+        files: '^packages/tamper_briefcase/.*\.rs$'
+        pass_filenames: false
+
+      - id: rust-fmt-mcp-core-rust
+        name: Rust format mcp-core-rust
+        entry: bash -c 'source "$HOME/.cargo/env" 2>/dev/null || true; cd tools/mcp/mcp_core_rust && cargo fmt --all'
+        language: system
+        files: '^tools/mcp/mcp_core_rust/.*\.rs$'
+        pass_filenames: false
+
       - id: rust-clippy-gh-validator
         name: Rust lint gh-validator
         entry: bash -c 'source "$HOME/.cargo/env" 2>/dev/null || true; cd tools/rust/gh-validator && cargo clippy -- -D warnings'

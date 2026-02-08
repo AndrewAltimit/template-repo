@@ -257,10 +257,10 @@ impl Session {
         if let Some(ref mut discovery) = self.discovery {
             for peer in discovery.poll() {
                 // Auto-connect to peers in same session
-                if peer.session_id == self.session_id {
-                    if let Err(e) = self.peers.connect(peer.addr) {
-                        warn!(peer = %peer.addr, error = ?e, "Failed to connect to discovered peer");
-                    }
+                if peer.session_id == self.session_id
+                    && let Err(e) = self.peers.connect(peer.addr)
+                {
+                    warn!(peer = %peer.addr, error = ?e, "Failed to connect to discovered peer");
                 }
             }
         }
@@ -307,12 +307,11 @@ impl Session {
                 info!(peer = %peer_id, "Peer left session");
 
                 // Check if it was the leader
-                if self.role == SessionRole::Follower {
-                    if let Some(leader) = self.leader_addr {
-                        if peer_id == leader.to_string() {
-                            self.promote_to_leader();
-                        }
-                    }
+                if self.role == SessionRole::Follower
+                    && let Some(leader) = self.leader_addr
+                    && peer_id == leader.to_string()
+                {
+                    self.promote_to_leader();
                 }
 
                 self.events.push(SessionEvent::PeerLeft { name: peer_id });
@@ -370,11 +369,11 @@ impl Session {
 
         // If we haven't received sync state in a while, assume leader is gone
         // This is a simplified check - real implementation would track last sync time
-        if let Some(leader) = self.leader_addr {
-            if self.peers.get_peer(&leader.to_string()).is_none() {
-                info!("Leader disconnected, promoting self");
-                self.promote_to_leader();
-            }
+        if let Some(leader) = self.leader_addr
+            && self.peers.get_peer(&leader.to_string()).is_none()
+        {
+            info!("Leader disconnected, promoting self");
+            self.promote_to_leader();
         }
     }
 
