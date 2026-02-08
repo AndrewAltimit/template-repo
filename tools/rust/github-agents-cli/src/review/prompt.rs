@@ -261,17 +261,20 @@ If you're unsure about something:
 "#;
 
 /// Truncate text at a line boundary to avoid cutting mid-line.
-fn truncate_at_line_boundary(text: &str, max_chars: usize) -> &str {
-    if text.len() <= max_chars {
+fn truncate_at_line_boundary(text: &str, max_bytes: usize) -> &str {
+    if text.len() <= max_bytes {
         return text;
     }
 
-    // Find the last newline before max_chars
-    let slice = &text[..max_chars];
+    // Ensure we don't slice in the middle of a multi-byte UTF-8 character
+    let safe_boundary = text.floor_char_boundary(max_bytes);
+
+    // Find the last newline before the safe boundary
+    let slice = &text[..safe_boundary];
     if let Some(last_newline) = slice.rfind('\n') {
         &text[..last_newline]
     } else {
-        // No newline found, just truncate at max_chars
+        // No newline found, just truncate at the safe boundary
         slice
     }
 }
@@ -308,6 +311,13 @@ mod tests {
 
         // Truncate with no newline
         assert_eq!(truncate_at_line_boundary("noline", 3), "nol");
+
+        // Truncate at multi-byte UTF-8 boundary (should not panic)
+        let text_with_emoji = "hello\n🎉world\nend";
+        // byte 6 is the start of 🎉 (4-byte char), requesting truncation at byte 8
+        // should floor to byte 6 (before the emoji), then find newline at byte 5
+        let result = truncate_at_line_boundary(text_with_emoji, 8);
+        assert_eq!(result, "hello");
     }
 
     #[test]
