@@ -15,8 +15,8 @@ use alloc::vec;
 use alloc::vec::Vec;
 
 use oasis_backend_psp::{
-    Button, Color, InputEvent, PspBackend, StatusBarInfo, SystemInfo, TextureId, Trigger,
-    CURSOR_H, CURSOR_W, SCREEN_HEIGHT, SCREEN_WIDTH,
+    Button, Color, FileEntry, InputEvent, PspBackend, StatusBarInfo, SystemInfo, TextureId,
+    Trigger, CURSOR_H, CURSOR_W, SCREEN_HEIGHT, SCREEN_WIDTH,
 };
 
 psp::module_kernel!("OASIS_OS", 1, 0);
@@ -103,6 +103,11 @@ const HIGHLIGHT_CLR: Color = Color::rgba(255, 255, 255, 50);
 // Terminal.
 const MAX_OUTPUT_LINES: usize = 20;
 const TERM_INPUT_Y: i32 = BOTTOMBAR_Y - 14;
+
+// File manager.
+const FM_VISIBLE_ROWS: usize = 18;
+const FM_ROW_H: i32 = 11;
+const FM_START_Y: i32 = CONTENT_TOP as i32 + 14;
 
 // ---------------------------------------------------------------------------
 // App entries (matching oasis-core FALLBACK_COLORS)
@@ -191,6 +196,7 @@ impl MediaTab {
 enum Mode {
     Dashboard,
     Terminal,
+    FileManager,
 }
 
 // ---------------------------------------------------------------------------
@@ -241,23 +247,41 @@ fn psp_main() {
     };
 
     // Terminal state.
+    let vol_info = backend.volatile_mem_info();
     let mut term_lines: Vec<String> = vec![
         String::from("OASIS_OS v0.1.0 [PSP] (kernel mode)"),
         format!(
             "CPU: {}MHz  Bus: {}MHz  ME: {}MHz",
             sysinfo.cpu_mhz, sysinfo.bus_mhz, sysinfo.me_mhz,
         ),
-        if sysinfo.volatile_mem_available {
-            format!("Extra RAM: {} KB claimed", sysinfo.volatile_mem_size / 1024)
+        if let Some((total, _)) = vol_info {
+            format!("Texture cache: {} KB volatile RAM claimed", total / 1024)
         } else {
-            String::from("Extra RAM: not available (PSP-1000 or already locked)")
+            String::from("Texture cache: main heap only (PSP-1000)")
         },
         String::from("Type 'help' for commands. Start=toggle terminal."),
         String::new(),
     ];
     let mut term_input = String::new();
 
+    // File manager state.
+    let mut fm_path = String::from("ms0:/");
+    let mut fm_entries: Vec<FileEntry> = Vec::new();
+    let mut fm_selected: usize = 0;
+    let mut fm_scroll: usize = 0;
+    let mut fm_loaded = false;
+
+    // Register power callback for sleep/wake handling.
+    oasis_backend_psp::register_power_callback();
+
     loop {
+        // Prevent idle auto-suspend while running.
+        oasis_backend_psp::power_tick();
+
+        // Check if we resumed from sleep.
+        if oasis_backend_psp::check_power_resumed() {
+            term_lines.push(String::from("[Power] Resumed from sleep"));
+        }
         let events = backend.poll_events();
         for event in &events {
             match event {
@@ -267,6 +291,7 @@ fn psp_main() {
                     mode = match mode {
                         Mode::Dashboard => Mode::Terminal,
                         Mode::Terminal => Mode::Dashboard,
+                        Mode::FileManager => Mode::Dashboard,
                     };
                 }
 
@@ -304,10 +329,17 @@ fn psp_main() {
                     let idx = page * ICONS_PER_PAGE + selected;
                     if idx < APPS.len() {
                         let app = &APPS[idx];
-                        if app.title == "Terminal" {
-                            mode = Mode::Terminal;
-                        } else {
-                            term_lines.push(format!("Launched: {}", app.title));
+                        match app.title {
+                            "Terminal" => {
+                                mode = Mode::Terminal;
+                            }
+                            "File Manager" => {
+                                mode = Mode::FileManager;
+                                fm_loaded = false; // reload on entry
+                            }
+                            _ => {
+                                term_lines.push(format!("Launched: {}", app.title));
+                            }
                         }
                     }
                 }
@@ -357,6 +389,56 @@ fn psp_main() {
                     }
                 }
 
+                // -- File manager input --
+                InputEvent::ButtonPress(Button::Up) if mode == Mode::FileManager => {
+                    if fm_selected > 0 {
+                        fm_selected -= 1;
+                        if fm_selected < fm_scroll {
+                            fm_scroll = fm_selected;
+                        }
+                    }
+                }
+                InputEvent::ButtonPress(Button::Down) if mode == Mode::FileManager => {
+                    if fm_selected + 1 < fm_entries.len() {
+                        fm_selected += 1;
+                        let visible = FM_VISIBLE_ROWS;
+                        if fm_selected >= fm_scroll + visible {
+                            fm_scroll = fm_selected - visible + 1;
+                        }
+                    }
+                }
+                InputEvent::ButtonPress(Button::Confirm) if mode == Mode::FileManager => {
+                    // Enter directory.
+                    if fm_selected < fm_entries.len() && fm_entries[fm_selected].is_dir {
+                        let dir_name = fm_entries[fm_selected].name.clone();
+                        if fm_path.ends_with('/') {
+                            fm_path = format!("{}{}", fm_path, dir_name);
+                        } else {
+                            fm_path = format!("{}/{}", fm_path, dir_name);
+                        }
+                        fm_loaded = false;
+                    }
+                }
+                InputEvent::ButtonPress(Button::Cancel) if mode == Mode::FileManager => {
+                    // Go up one directory (pop last path segment).
+                    if let Some(pos) = fm_path.rfind('/') {
+                        if pos > 0 && !fm_path[..pos].ends_with(':') {
+                            fm_path.truncate(pos);
+                        } else if fm_path.len() > pos + 1 {
+                            fm_path.truncate(pos + 1);
+                        } else {
+                            // Already at root, go back to dashboard.
+                            mode = Mode::Dashboard;
+                        }
+                        fm_loaded = false;
+                    } else {
+                        mode = Mode::Dashboard;
+                    }
+                }
+                InputEvent::ButtonPress(Button::Triangle) if mode == Mode::FileManager => {
+                    mode = Mode::Dashboard;
+                }
+
                 _ => {}
             }
         }
@@ -369,12 +451,29 @@ fn psp_main() {
         // Wallpaper.
         backend.blit(wallpaper_tex, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 
+        // Lazy-load file manager entries.
+        if mode == Mode::FileManager && !fm_loaded {
+            fm_entries = oasis_backend_psp::list_directory(&fm_path);
+            fm_selected = 0;
+            fm_scroll = 0;
+            fm_loaded = true;
+        }
+
         match mode {
             Mode::Dashboard => {
                 draw_dashboard(&mut backend, selected, page);
             }
             Mode::Terminal => {
                 draw_terminal(&mut backend, &term_lines, &term_input);
+            }
+            Mode::FileManager => {
+                draw_file_manager(
+                    &mut backend,
+                    &fm_path,
+                    &fm_entries,
+                    fm_selected,
+                    fm_scroll,
+                );
             }
         }
 
@@ -686,6 +785,93 @@ fn draw_terminal(backend: &mut PspBackend, lines: &[String], input: &str) {
 }
 
 // ---------------------------------------------------------------------------
+// File manager rendering
+// ---------------------------------------------------------------------------
+
+fn draw_file_manager(
+    backend: &mut PspBackend,
+    path: &str,
+    entries: &[FileEntry],
+    selected: usize,
+    scroll: usize,
+) {
+    // Semi-transparent background over content area.
+    let bg = Color::rgba(0, 0, 0, 200);
+    backend.fill_rect(0, CONTENT_TOP as i32, SCREEN_WIDTH, CONTENT_H, bg);
+
+    // Path header.
+    backend.draw_text(path, 4, CONTENT_TOP as i32 + 3, 8, Color::rgb(100, 200, 255));
+
+    // Column headers.
+    let header_y = CONTENT_TOP as i32 + 3;
+    backend.draw_text("SIZE", 400, header_y, 8, Color::rgb(160, 160, 160));
+
+    // Separator.
+    backend.fill_rect(
+        0,
+        FM_START_Y - 2,
+        SCREEN_WIDTH,
+        1,
+        Color::rgba(255, 255, 255, 40),
+    );
+
+    if entries.is_empty() {
+        backend.draw_text("(empty directory)", 8, FM_START_Y, 8, Color::rgb(140, 140, 140));
+        return;
+    }
+
+    let end = (scroll + FM_VISIBLE_ROWS).min(entries.len());
+    for i in scroll..end {
+        let entry = &entries[i];
+        let row = (i - scroll) as i32;
+        let y = FM_START_Y + row * FM_ROW_H;
+
+        // Selection highlight.
+        if i == selected {
+            backend.fill_rect(0, y - 1, SCREEN_WIDTH, FM_ROW_H as u32, Color::rgba(80, 120, 200, 100));
+        }
+
+        // Icon prefix: [D] for dirs, [F] for files.
+        let (prefix, prefix_clr) = if entry.is_dir {
+            ("[D]", Color::rgb(255, 220, 80))
+        } else {
+            ("[F]", Color::rgb(180, 180, 180))
+        };
+        backend.draw_text(prefix, 4, y, 8, prefix_clr);
+
+        // Name (truncated to fit).
+        let name_color = if entry.is_dir {
+            Color::rgb(120, 220, 255)
+        } else {
+            Color::WHITE
+        };
+        let max_name_chars = 44;
+        let display_name = if entry.name.len() > max_name_chars {
+            let truncated: String = entry.name.chars().take(max_name_chars - 2).collect();
+            format!("{}..", truncated)
+        } else {
+            entry.name.clone()
+        };
+        backend.draw_text(&display_name, 32, y, 8, name_color);
+
+        // Size (right-aligned, files only).
+        if !entry.is_dir {
+            let size_str = oasis_backend_psp::format_size(entry.size);
+            let size_x = 480 - (size_str.len() as i32 * 8) - 4;
+            backend.draw_text(&size_str, size_x, y, 8, Color::rgb(180, 180, 180));
+        }
+    }
+
+    // Scroll indicator.
+    if entries.len() > FM_VISIBLE_ROWS {
+        let ratio = selected as f32 / (entries.len() - 1).max(1) as f32;
+        let track_h = CONTENT_H as i32 - 16;
+        let dot_y = FM_START_Y + (ratio * track_h as f32) as i32;
+        backend.fill_rect(SCREEN_WIDTH as i32 - 4, dot_y, 3, 8, Color::rgba(255, 255, 255, 120));
+    }
+}
+
+// ---------------------------------------------------------------------------
 // Simple command interpreter (no_std, no oasis-core)
 // ---------------------------------------------------------------------------
 
@@ -699,6 +885,7 @@ fn execute_command(cmd: &str) -> Vec<String> {
             String::from("Available commands:"),
             String::from("  help       - Show this message"),
             String::from("  status     - System status"),
+            String::from("  ls [path]  - List directory"),
             String::from("  clock      - Show/set CPU frequency"),
             String::from("  clock 333  - Set max (333/333/166)"),
             String::from("  clock 266  - Set balanced (266/266/133)"),
@@ -757,6 +944,27 @@ fn execute_command(cmd: &str) -> Vec<String> {
                 vec![String::from("Clock set: 222/222/111 (power save)")]
             } else {
                 vec![format!("Failed to set clock: {}", ret)]
+            }
+        }
+        _ if trimmed.starts_with("ls") => {
+            let path = trimmed.strip_prefix("ls").unwrap().trim();
+            let dir = if path.is_empty() { "ms0:/" } else { path };
+            let entries = oasis_backend_psp::list_directory(dir);
+            if entries.is_empty() {
+                vec![format!("(empty or cannot open: {})", dir)]
+            } else {
+                let mut out = vec![format!("{}  ({} entries)", dir, entries.len())];
+                for e in entries.iter().take(30) {
+                    if e.is_dir {
+                        out.push(format!("  [D] {}/", e.name));
+                    } else {
+                        out.push(format!("  [F] {}  {}", e.name, oasis_backend_psp::format_size(e.size)));
+                    }
+                }
+                if entries.len() > 30 {
+                    out.push(format!("  ... and {} more", entries.len() - 30));
+                }
+                out
             }
         }
         "version" => vec![String::from("OASIS_OS v0.1.0")],

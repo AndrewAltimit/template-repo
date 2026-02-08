@@ -18,6 +18,8 @@ extern crate alloc;
 pub mod font;
 
 use alloc::alloc::{alloc, dealloc, Layout};
+use alloc::format;
+use alloc::string::String;
 use alloc::vec;
 use alloc::vec::Vec;
 use core::ffi::c_void;
@@ -148,10 +150,12 @@ struct Texture {
     buf_w: u32,
     /// Power-of-2 buffer height for GU.
     buf_h: u32,
-    /// 16-byte aligned pixel data pointer (RAM).
+    /// 16-byte aligned pixel data pointer (RAM or volatile mem).
     data: *mut u8,
-    /// Layout used for deallocation.
+    /// Layout used for deallocation (only valid if `in_volatile` is false).
     layout: Layout,
+    /// True if data lives in volatile memory (not individually freeable).
+    in_volatile: bool,
 }
 
 // ---------------------------------------------------------------------------
@@ -186,6 +190,50 @@ static mut DISPLAY_LIST: Align16<[u8; DISPLAY_LIST_SIZE]> = Align16([0u8; DISPLA
 // Backend
 // ---------------------------------------------------------------------------
 
+// ---------------------------------------------------------------------------
+// Volatile memory bump allocator (PSP-2000+ extra 4MB RAM)
+// ---------------------------------------------------------------------------
+
+/// Simple bump allocator over the volatile memory region.
+///
+/// On PSP-2000 and later, `sceKernelVolatileMemTryLock` provides access to an
+/// extra 4MB of RAM. This allocator hands out 16-byte-aligned chunks from that
+/// region for texture storage, freeing main heap for application data.
+struct VolatileAllocator {
+    base: *mut u8,
+    size: usize,
+    offset: usize,
+}
+
+impl VolatileAllocator {
+    /// Create a new allocator over the given memory region.
+    fn new(base: *mut u8, size: usize) -> Self {
+        Self { base, size, offset: 0 }
+    }
+
+    /// Allocate `len` bytes with 16-byte alignment. Returns null on OOM.
+    fn alloc(&mut self, len: usize) -> *mut u8 {
+        let aligned = (self.offset + 15) & !15;
+        if aligned + len > self.size {
+            return ptr::null_mut();
+        }
+        let ptr = unsafe { self.base.add(aligned) };
+        self.offset = aligned + len;
+        ptr
+    }
+
+    /// Reset the allocator, freeing all allocations.
+    fn reset(&mut self) {
+        self.offset = 0;
+    }
+
+    /// Bytes remaining.
+    fn remaining(&self) -> usize {
+        let aligned = (self.offset + 15) & !15;
+        self.size.saturating_sub(aligned)
+    }
+}
+
 /// PSP rendering and input backend.
 ///
 /// Draws using the PSP Graphics Engine (GE) via sceGu. All rendering calls
@@ -202,6 +250,8 @@ pub struct PspBackend {
     cursor_y: i32,
     /// 16-byte aligned RAM pointer to the font atlas texture (128x64 RGBA).
     font_atlas_ptr: *mut u8,
+    /// Volatile memory bump allocator (PSP-2000+ extra 4MB).
+    volatile_alloc: Option<VolatileAllocator>,
 }
 
 impl PspBackend {
@@ -215,6 +265,7 @@ impl PspBackend {
             cursor_x: (SCREEN_WIDTH / 2) as i32,
             cursor_y: (SCREEN_HEIGHT / 2) as i32,
             font_atlas_ptr: ptr::null_mut(),
+            volatile_alloc: None,
         }
     }
 
@@ -310,6 +361,24 @@ impl PspBackend {
 
             // Build font atlas in RAM.
             self.build_font_atlas(atlas_ptr);
+
+            // Claim volatile memory (extra 4MB on PSP-2000+) for texture cache.
+            let mut vol_ptr: *mut c_void = ptr::null_mut();
+            let mut vol_size: i32 = 0;
+            let vol_ret = sys::sceKernelVolatileMemTryLock(
+                0,
+                &mut vol_ptr as *mut *mut c_void,
+                &mut vol_size,
+            );
+            if vol_ret == 0 && !vol_ptr.is_null() && vol_size > 0 {
+                self.volatile_alloc =
+                    Some(VolatileAllocator::new(vol_ptr as *mut u8, vol_size as usize));
+                psp::dprintln!(
+                    "OASIS_OS: Volatile mem claimed: {} KB at {:p}",
+                    vol_size / 1024,
+                    vol_ptr,
+                );
+            }
 
             // Open the first frame's display list.
             sys::sceGuStart(
@@ -556,6 +625,8 @@ impl PspBackend {
     /// Load raw RGBA pixel data as a texture.
     ///
     /// The data is copied into a power-of-2 aligned buffer suitable for the GU.
+    /// On PSP-2000+, textures are allocated from the extra 4MB volatile memory
+    /// when available, falling back to the main heap.
     pub fn load_texture(&mut self, width: u32, height: u32, rgba_data: &[u8]) -> Option<TextureId> {
         let expected = (width * height * 4) as usize;
         if rgba_data.len() != expected {
@@ -565,12 +636,29 @@ impl PspBackend {
         let buf_w = width.next_power_of_two();
         let buf_h = height.next_power_of_two();
         let buf_size = (buf_w * buf_h * 4) as usize;
-        let layout = Layout::from_size_align(buf_size, 16).ok()?;
 
-        let data = unsafe { alloc(layout) };
-        if data.is_null() {
-            return None;
-        }
+        // Try volatile memory first, fall back to main heap.
+        let (data, layout, in_volatile) =
+            if let Some(ref mut va) = self.volatile_alloc {
+                let p = va.alloc(buf_size);
+                if !p.is_null() {
+                    (p, Layout::new::<u8>(), true)
+                } else {
+                    let layout = Layout::from_size_align(buf_size, 16).ok()?;
+                    let p = unsafe { alloc(layout) };
+                    if p.is_null() {
+                        return None;
+                    }
+                    (p, layout, false)
+                }
+            } else {
+                let layout = Layout::from_size_align(buf_size, 16).ok()?;
+                let p = unsafe { alloc(layout) };
+                if p.is_null() {
+                    return None;
+                }
+                (p, layout, false)
+            };
 
         // Zero the buffer first (for padding areas).
         unsafe {
@@ -601,6 +689,7 @@ impl PspBackend {
             buf_h,
             data,
             layout,
+            in_volatile,
         };
 
         // Reuse free slot.
@@ -616,12 +705,17 @@ impl PspBackend {
     }
 
     /// Destroy a loaded texture, freeing its memory.
+    ///
+    /// Textures in volatile memory are not individually freed (the bump
+    /// allocator reclaims them all at once on reset).
     pub fn destroy_texture(&mut self, tex: TextureId) {
         let idx = tex.0 as usize;
         if idx < self.textures.len() {
             if let Some(texture) = self.textures[idx].take() {
-                unsafe {
-                    dealloc(texture.data, texture.layout);
+                if !texture.in_volatile {
+                    unsafe {
+                        dealloc(texture.data, texture.layout);
+                    }
                 }
             }
         }
@@ -772,6 +866,16 @@ impl PspBackend {
     /// Current cursor position (for rendering the cursor sprite).
     pub fn cursor_pos(&self) -> (i32, i32) {
         (self.cursor_x, self.cursor_y)
+    }
+
+    /// Query volatile memory cache status.
+    ///
+    /// Returns `(total_bytes, remaining_bytes)` if volatile memory was
+    /// claimed, or `None` on PSP-1000 / if already locked.
+    pub fn volatile_mem_info(&self) -> Option<(usize, usize)> {
+        self.volatile_alloc
+            .as_ref()
+            .map(|va| (va.size, va.remaining()))
     }
 
     // -- Private helpers ----------------------------------------------------
@@ -989,28 +1093,22 @@ impl SystemInfo {
     /// Query system info from PSP hardware.
     ///
     /// CPU and bus frequencies are available in user mode. ME frequency
-    /// and volatile memory require kernel mode (enabled via the `kernel`
-    /// feature flag).
+    /// requires kernel mode (enabled via the `kernel` feature flag).
+    ///
+    /// Volatile memory status is reported by `PspBackend` (which claims it
+    /// during `init()` for the texture cache).
     pub fn query() -> Self {
         unsafe {
             let cpu_mhz = sys::scePowerGetCpuClockFrequency();
             let bus_mhz = sys::scePowerGetBusClockFrequency();
             let me_mhz = sys::scePowerGetMeClockFrequency();
 
-            let mut vol_ptr: *mut core::ffi::c_void = core::ptr::null_mut();
-            let mut vol_size: i32 = 0;
-            let vol_ret = sys::sceKernelVolatileMemTryLock(
-                0,
-                &mut vol_ptr as *mut *mut core::ffi::c_void,
-                &mut vol_size,
-            );
-
             Self {
                 cpu_mhz,
                 bus_mhz,
                 me_mhz,
-                volatile_mem_available: vol_ret == 0,
-                volatile_mem_size: if vol_ret == 0 { vol_size } else { 0 },
+                volatile_mem_available: false,
+                volatile_mem_size: 0,
             }
         }
     }
@@ -1130,6 +1228,143 @@ unsafe extern "C" fn exception_handler(exception: u32, _context: *mut c_void) ->
 /// Returns 0 on success, < 0 on error.
 pub fn set_clock(pll: i32, cpu: i32, bus: i32) -> i32 {
     unsafe { sys::scePowerSetClockFrequency(pll, cpu, bus) }
+}
+
+// ---------------------------------------------------------------------------
+// File system browsing (sceIo*)
+// ---------------------------------------------------------------------------
+
+/// A single entry from a directory listing.
+pub struct FileEntry {
+    /// File or directory name (ASCII, up to 255 chars).
+    pub name: String,
+    /// File size in bytes (0 for directories).
+    pub size: i64,
+    /// True if this entry is a directory.
+    pub is_dir: bool,
+}
+
+/// List the contents of a directory path (e.g. `"ms0:/"`, `"ms0:/PSP/GAME"`).
+///
+/// Returns a sorted list of entries (directories first, then files,
+/// alphabetically within each group). Returns an empty vec on error.
+pub fn list_directory(path: &str) -> Vec<FileEntry> {
+    use alloc::string::ToString;
+
+    let mut entries = Vec::new();
+
+    // Build null-terminated path.
+    let mut path_buf = Vec::with_capacity(path.len() + 1);
+    path_buf.extend_from_slice(path.as_bytes());
+    path_buf.push(0);
+
+    unsafe {
+        let dfd = sys::sceIoDopen(path_buf.as_ptr());
+        if dfd.0 < 0 {
+            return entries;
+        }
+
+        let mut dirent: sys::SceIoDirent = core::mem::zeroed();
+        loop {
+            let ret = sys::sceIoDread(dfd, &mut dirent);
+            if ret <= 0 {
+                break;
+            }
+
+            // Extract name (null-terminated UTF-8 in d_name).
+            let name_bytes = &dirent.d_name;
+            let len = name_bytes.iter().position(|&b| b == 0).unwrap_or(name_bytes.len());
+            let name = core::str::from_utf8(&name_bytes[..len])
+                .unwrap_or("???")
+                .to_string();
+
+            // Skip . and ..
+            if name == "." || name == ".." {
+                continue;
+            }
+
+            let is_dir = dirent.d_stat.st_attr.contains(sys::IoStatAttr::IFDIR)
+                || dirent.d_stat.st_mode.contains(sys::IoStatMode::IFDIR);
+            let size = if is_dir { 0 } else { dirent.d_stat.st_size };
+
+            entries.push(FileEntry { name, size, is_dir });
+        }
+
+        sys::sceIoDclose(dfd);
+    }
+
+    // Sort: directories first, then alphabetically.
+    entries.sort_by(|a, b| {
+        b.is_dir
+            .cmp(&a.is_dir)
+            .then_with(|| a.name.cmp(&b.name))
+    });
+
+    entries
+}
+
+/// Format a file size as a human-readable string.
+pub fn format_size(bytes: i64) -> String {
+    if bytes < 1024 {
+        format!("{} B", bytes)
+    } else if bytes < 1024 * 1024 {
+        format!("{} KB", bytes / 1024)
+    } else {
+        format!("{}.{} MB", bytes / (1024 * 1024), (bytes / 102400) % 10)
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Power callbacks (sleep/wake)
+// ---------------------------------------------------------------------------
+
+/// Flags indicating power events. Matches `sys::PowerInfo` bits.
+static mut POWER_RESUMED: bool = false;
+
+/// Register a power callback for suspend/resume notification.
+///
+/// On suspend, the PSP saves state automatically. On resume, the callback
+/// sets a flag that can be polled from the main loop to re-init state.
+pub fn register_power_callback() {
+    unsafe {
+        let cbid = sys::sceKernelCreateCallback(
+            b"OasisPowerCB\0".as_ptr(),
+            power_callback,
+            ptr::null_mut(),
+        );
+        if cbid.0 >= 0 {
+            sys::scePowerRegisterCallback(-1, cbid);
+        }
+    }
+}
+
+/// Check and clear the "resumed from sleep" flag.
+pub fn check_power_resumed() -> bool {
+    unsafe {
+        let r = POWER_RESUMED;
+        POWER_RESUMED = false;
+        r
+    }
+}
+
+/// Prevent the PSP from auto-suspending due to idle timeout.
+/// Call once per frame during active use.
+pub fn power_tick() {
+    unsafe {
+        sys::scePowerTick(sys::PowerTick::All);
+    }
+}
+
+unsafe extern "C" fn power_callback(_arg1: i32, power_info: i32, _arg: *mut c_void) -> i32 {
+    let info = sys::PowerInfo::from_bits_truncate(power_info as u32);
+    if info.contains(sys::PowerInfo::RESUME_COMPLETE) {
+        psp::dprintln!("OASIS_OS: Resumed from sleep");
+        unsafe { POWER_RESUMED = true };
+    }
+    if info.contains(sys::PowerInfo::SUSPENDING) {
+        psp::dprintln!("OASIS_OS: Entering suspend");
+    }
+    0
 }
 
 // ---------------------------------------------------------------------------
