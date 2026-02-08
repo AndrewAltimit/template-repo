@@ -12,8 +12,8 @@ fn main() {
     }
 
     // Figure out whether to use the LTO libunwind, or the regular one.
-    let libunwind = if env::var("CARGO_ENCODED_RUSTFLAGS")
-        .unwrap()
+    let rustflags = env::var("CARGO_ENCODED_RUSTFLAGS").unwrap_or_default();
+    let libunwind = if rustflags
         .split('\x1f')
         .any(|flags| flags.starts_with("-Clinker-plugin-lto"))
     {
@@ -22,11 +22,15 @@ fn main() {
         "./libunwind.a"
     };
 
-    // TODO: Do we even need to copy the library over? Maybe we can just link
-    // directly from the current directory.
-    let out_dir = env::var("OUT_DIR").unwrap();
+    let out_dir = env::var("OUT_DIR").expect("OUT_DIR not set by cargo");
     let out_file = Path::new(&out_dir).join("libunwind.a");
-    std::fs::copy(libunwind, out_file).unwrap();
+    std::fs::copy(libunwind, &out_file).unwrap_or_else(|e| {
+        panic!(
+            "failed to copy {} to {}: {e}",
+            libunwind,
+            out_file.display()
+        )
+    });
 
     println!("cargo:rustc-link-lib=static=unwind");
     println!("cargo:rustc-link-search=native={}", out_dir);

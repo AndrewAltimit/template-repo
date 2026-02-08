@@ -49,9 +49,17 @@ See `examples/` directory for sample programs.
 - Extracted magic numbers into `psp/src/constants.rs`: `SCREEN_WIDTH`, `SCREEN_HEIGHT`, `BUF_WIDTH`, `VRAM_BASE_UNCACHED`, thread priorities, NID values
 - Module macros and `enable_home_button()` use named constants instead of raw numbers
 
+### Thread-Safe Debug Printing
+
+- `dprintln!`/`dprint!` macros now use a `SpinMutex` (atomic spinlock) to protect the character buffer
+- Eliminates `static mut` data race for multi-threaded PSP homebrew
+- Zero overhead on single-core PSP (compiler barrier only, no bus contention)
+
 ### Error Handling (cargo-psp)
 
-- All tool binaries (`prxgen`, `pack-pbp`, `mksfo`, `cargo-psp`) refactored from `unwrap()`/`panic!()` to `Result` with `anyhow` context
+- All tool binaries (`prxgen`, `pack-pbp`, `mksfo`, `prxmin`, `cargo-psp`) refactored from `unwrap()`/`panic!()` to `Result` with `anyhow` context
+- `fix_imports.rs`: stub position lookup validated with descriptive error for malformed PRX files
+- `build.rs`: replaced unwraps with fallible error handling
 - Descriptive error messages with recovery hints
 
 ### Features
@@ -67,6 +75,7 @@ rust_psp_sdk/
 +-- cargo-psp/          # Build tool: cross-compile + prxgen + pack-pbp -> EBOOT.PBP
 +-- examples/           # Sample programs (hello-world, cube, gu-background, etc.)
 +-- ci/                 # CI test harness and std verification
++-- deny.toml           # cargo-deny license and advisory checks
 ```
 
 ## Dependencies

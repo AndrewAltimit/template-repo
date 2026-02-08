@@ -112,8 +112,13 @@ pub fn fix<T: AsRef<Path>>(path: T) -> Result<()> {
         let mut stub: SceStubLibraryEntry =
             bincode::deserialize(stub_entry_buf).context("failed to deserialize stub entry")?;
 
+        let sorted_pos = stubs_nid_sorted
+            .iter()
+            .position(|&(j, _)| i == j)
+            .with_context(|| format!("stub entry {i} not found in NID-sorted list (malformed PRX?)"))?;
+
         let nid_end = stubs_nid_sorted
-            .get(1 + stubs_nid_sorted.iter().position(|&(j, _)| i == j).unwrap())
+            .get(1 + sorted_pos)
             .map(|(_, s)| s.nid_table)
             .unwrap_or(rodata_sce_nid.sh_addr as u32 + rodata_sce_nid.sh_size as u32);
 

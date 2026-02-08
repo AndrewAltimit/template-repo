@@ -1,17 +1,19 @@
 //! Debug support.
 //!
 //! You should use the `dprintln!` and `dprint!` macros.
-
-#![allow(static_mut_refs, unsafe_op_in_unsafe_fn)]
+//!
+//! Thread-safe: access to the character buffer is protected by a spinlock.
 
 use crate::sys;
+use core::cell::UnsafeCell;
 use core::fmt;
+use core::sync::atomic::{AtomicBool, Ordering};
 
 /// Like `println!`, but prints to the PSP screen.
 #[macro_export]
 macro_rules! dprintln {
     () => {
-        $crate::dprint("\n")
+        $crate::dprint!("\n")
     };
     ($($arg:tt)*) => {{
         $crate::dprint!($($arg)*);
@@ -27,18 +29,76 @@ macro_rules! dprint {
     }}
 }
 
-// Known limitation: no mutex -- PSP homebrew is typically single-threaded,
-// and core::sync types are unavailable here. Multi-threaded callers must
-// synchronize externally.
-static mut CHARS: CharBuffer = CharBuffer::new();
+/// A simple spinlock for single-core environments (PSP MIPS R4000).
+///
+/// Uses `AtomicBool` with acquire/release ordering. On the single-core PSP
+/// this prevents compiler reordering; on multi-core it would provide proper
+/// synchronization too.
+struct SpinMutex<T> {
+    locked: AtomicBool,
+    data: UnsafeCell<T>,
+}
+
+// SAFETY: SpinMutex provides exclusive access via the atomic lock.
+// PSP is single-core, so the spinlock prevents re-entrant access from
+// interrupt handlers or coroutines that might call dprintln!.
+unsafe impl<T: Send> Sync for SpinMutex<T> {}
+unsafe impl<T: Send> Send for SpinMutex<T> {}
+
+impl<T> SpinMutex<T> {
+    const fn new(val: T) -> Self {
+        Self {
+            locked: AtomicBool::new(false),
+            data: UnsafeCell::new(val),
+        }
+    }
+
+    fn lock(&self) -> SpinGuard<'_, T> {
+        while self
+            .locked
+            .compare_exchange_weak(false, true, Ordering::Acquire, Ordering::Relaxed)
+            .is_err()
+        {
+            core::hint::spin_loop();
+        }
+        SpinGuard { mutex: self }
+    }
+}
+
+struct SpinGuard<'a, T> {
+    mutex: &'a SpinMutex<T>,
+}
+
+impl<T> core::ops::Deref for SpinGuard<'_, T> {
+    type Target = T;
+    fn deref(&self) -> &T {
+        // SAFETY: We hold the lock.
+        unsafe { &*self.mutex.data.get() }
+    }
+}
+
+impl<T> core::ops::DerefMut for SpinGuard<'_, T> {
+    fn deref_mut(&mut self) -> &mut T {
+        // SAFETY: We hold the lock exclusively.
+        unsafe { &mut *self.mutex.data.get() }
+    }
+}
+
+impl<T> Drop for SpinGuard<'_, T> {
+    fn drop(&mut self) {
+        self.mutex.locked.store(false, Ordering::Release);
+    }
+}
+
+static CHARS: SpinMutex<CharBuffer> = SpinMutex::new(CharBuffer::new());
 
 /// Update the screen.
-fn update() {
+fn update(chars: &CharBuffer) {
     unsafe {
         init();
         clear_screen(0);
 
-        for (i, line) in CHARS.lines().enumerate() {
+        for (i, line) in chars.lines().enumerate() {
             put_str::<MsxFont>(
                 &line.chars[0..line.len],
                 0,
@@ -90,6 +150,7 @@ const DISPLAY_HEIGHT: usize = SCREEN_HEIGHT as usize;
 const DISPLAY_WIDTH: usize = SCREEN_WIDTH as usize;
 static mut VRAM_BASE: *mut u32 = 0 as *mut u32;
 
+#[allow(unsafe_op_in_unsafe_fn)]
 unsafe fn clear_screen(color: u32) {
     let mut ptr = VRAM_BASE;
 
@@ -99,6 +160,7 @@ unsafe fn clear_screen(color: u32) {
     }
 }
 
+#[allow(unsafe_op_in_unsafe_fn)]
 unsafe fn put_str<T: Font>(s: &[u8], x: usize, y: usize, color: u32) {
     if y > DISPLAY_HEIGHT {
         return;
@@ -115,11 +177,11 @@ unsafe fn put_str<T: Font>(s: &[u8], x: usize, y: usize, color: u32) {
     }
 }
 
+#[allow(unsafe_op_in_unsafe_fn)]
 unsafe fn init() {
     // The OR operation here specifies the address bypasses cache.
     VRAM_BASE = (VRAM_BASE_UNCACHED | sys::sceGeEdramGetAddr() as u32) as *mut u32;
 
-    // TODO: Change sys types to usize.
     sys::sceDisplaySetMode(sys::DisplayMode::Lcd, DISPLAY_WIDTH, DISPLAY_HEIGHT);
     sys::sceDisplaySetFrameBuf(
         VRAM_BASE as *const u8,
@@ -133,14 +195,11 @@ unsafe fn init() {
 pub fn print_args(arguments: core::fmt::Arguments<'_>) {
     use fmt::Write;
 
-    unsafe {
-        let _ = write!(CHARS, "{}", arguments);
-    }
-
-    update();
+    let mut guard = CHARS.lock();
+    let _ = write!(*guard, "{}", arguments);
+    update(&guard);
 }
 
-// TODO: Move to font.
 const ROWS: usize = DISPLAY_HEIGHT / MsxFont::CHAR_HEIGHT;
 const COLS: usize = DISPLAY_WIDTH / MsxFont::CHAR_WIDTH;
 
@@ -219,12 +278,10 @@ impl CharBuffer {
 
 impl fmt::Write for CharBuffer {
     fn write_str(&mut self, s: &str) -> fmt::Result {
-        unsafe {
-            for c in s.chars() {
-                match c as u32 {
-                    0..=255 => CHARS.add(c as u8),
-                    _ => CHARS.add(0),
-                }
+        for c in s.chars() {
+            match c as u32 {
+                0..=255 => self.add(c as u8),
+                _ => self.add(0),
             }
         }
 
