@@ -588,10 +588,11 @@ impl FrameBuffer {
             }
 
             // Verify consistency after copy
-            if let Some(state2) = self.header().try_read() {
-                if state2.read_idx == state.read_idx && state2.pts_ms == state.pts_ms {
-                    return Ok((state.pts_ms, true));
-                }
+            if let Some(state2) = self.header().try_read()
+                && state2.read_idx == state.read_idx
+                && state2.pts_ms == state.pts_ms
+            {
+                return Ok((state.pts_ms, true));
             }
 
             // State changed during read, retry

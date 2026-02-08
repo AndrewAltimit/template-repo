@@ -157,9 +157,9 @@ pub fn cleanup(shmem: &mut SharedMemory) {
     }
 
     // Unlink if owner
-    if shmem.owner {
-        if let Ok(c_name) = CString::new(shmem.name.clone()) {
-            let _ = shm_unlink(c_name.as_c_str());
-        }
+    if shmem.owner
+        && let Ok(c_name) = CString::new(shmem.name.clone())
+    {
+        let _ = shm_unlink(c_name.as_c_str());
     }
 }
