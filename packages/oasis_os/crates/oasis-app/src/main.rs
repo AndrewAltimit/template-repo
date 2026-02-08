@@ -473,35 +473,13 @@ fn populate_demo_vfs(vfs: &mut MemoryVfs) {
         vfs.mkdir(&format!("/apps/{name}")).unwrap();
     }
 
-    // Music library -- placeholder entries for the Music Player app.
+    // Music and photo directories for the Music Player and Photo Viewer apps.
     vfs.mkdir("/home/user/music").unwrap();
-    // If real samples exist on disk, the fetch-samples.sh script populates
-    // these paths. For the demo VFS we create small placeholder files so
-    // the Music Player has entries to list.
-    if !vfs.exists("/home/user/music/ambient_dawn.mp3") {
-        vfs.write(
-            "/home/user/music/ambient_dawn.mp3",
-            b"(placeholder -- run fetch-samples.sh for real audio)",
-        )
-        .unwrap();
-    }
-    if !vfs.exists("/home/user/music/nightfall_theme.mp3") {
-        vfs.write(
-            "/home/user/music/nightfall_theme.mp3",
-            b"(placeholder -- run fetch-samples.sh for real audio)",
-        )
-        .unwrap();
-    }
-
-    // Photo library -- placeholder entries for the Photo Viewer app.
     vfs.mkdir("/home/user/photos").unwrap();
-    if !vfs.exists("/home/user/photos/sample_landscape.png") {
-        vfs.write(
-            "/home/user/photos/sample_landscape.png",
-            b"(placeholder -- run fetch-samples.sh for real image)",
-        )
-        .unwrap();
-    }
+
+    // Try to load real sample files from the disk `samples/` directory.
+    // If not present, create small placeholder files so the apps have entries.
+    load_disk_samples(vfs);
 
     // Demo scripts for the scripting engine.
     vfs.mkdir("/home/user/scripts").unwrap();
@@ -514,6 +492,82 @@ fn populate_demo_vfs(vfs: &mut MemoryVfs) {
     // Audio subsystem directories.
     vfs.mkdir("/var").unwrap();
     vfs.mkdir("/var/audio").unwrap();
+}
+
+/// Try to load real sample files from the `samples/` directory on disk.
+/// Falls back to creating small placeholder files if not found.
+fn load_disk_samples(vfs: &mut MemoryVfs) {
+    use oasis_core::vfs::Vfs;
+    use std::path::Path;
+
+    let samples_dir = Path::new("samples");
+
+    // Music samples.
+    let music_files = ["ambient_dawn.mp3", "nightfall_theme.mp3"];
+    for name in &music_files {
+        let disk_path = samples_dir.join(name);
+        let vfs_path = format!("/home/user/music/{name}");
+        if disk_path.exists() {
+            if let Ok(data) = std::fs::read(&disk_path) {
+                log::info!("Loaded from disk: {vfs_path} ({} bytes)", data.len());
+                vfs.write(&vfs_path, &data).unwrap();
+                continue;
+            }
+        }
+        // Placeholder.
+        vfs.write(
+            &vfs_path,
+            format!("(placeholder: run samples/fetch-samples.sh for real audio)\nFile: {name}\n")
+                .as_bytes(),
+        )
+        .unwrap();
+    }
+
+    // Photo samples.
+    let photo_files = ["sample_landscape.png"];
+    for name in &photo_files {
+        let disk_path = samples_dir.join(name);
+        let vfs_path = format!("/home/user/photos/{name}");
+        if disk_path.exists() {
+            if let Ok(data) = std::fs::read(&disk_path) {
+                log::info!("Loaded from disk: {vfs_path} ({} bytes)", data.len());
+                vfs.write(&vfs_path, &data).unwrap();
+                continue;
+            }
+        }
+        // Placeholder.
+        vfs.write(
+            &vfs_path,
+            format!("(placeholder: run samples/fetch-samples.sh for real image)\nFile: {name}\n")
+                .as_bytes(),
+        )
+        .unwrap();
+    }
+
+    // Also load any extra files found in samples/ subdirectories.
+    load_disk_dir(vfs, &samples_dir.join("music"), "/home/user/music");
+    load_disk_dir(vfs, &samples_dir.join("photos"), "/home/user/photos");
+}
+
+/// Load all files from a real disk directory into the VFS.
+fn load_disk_dir(vfs: &mut MemoryVfs, disk_dir: &std::path::Path, vfs_dir: &str) {
+    use oasis_core::vfs::Vfs;
+
+    let Ok(entries) = std::fs::read_dir(disk_dir) else {
+        return;
+    };
+    for entry in entries.flatten() {
+        let path = entry.path();
+        if path.is_file() {
+            if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
+                if let Ok(data) = std::fs::read(&path) {
+                    let vfs_path = format!("{vfs_dir}/{name}");
+                    log::info!("Loaded from disk: {vfs_path} ({} bytes)", data.len());
+                    vfs.write(&vfs_path, &data).unwrap();
+                }
+            }
+        }
+    }
 }
 
 /// Hide dashboard-specific SDI objects.

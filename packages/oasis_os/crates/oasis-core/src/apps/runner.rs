@@ -94,11 +94,30 @@ impl AppRunner {
                 ];
             },
             "Music Player" => {
-                self.lines = build_music_player_content(vfs);
+                let dir = "/home/user/music";
+                self.browse_dir = Some(dir.to_string());
+                if vfs.exists(dir) {
+                    self.lines = list_directory(vfs, dir);
+                } else {
+                    self.lines = vec![
+                        "(Music directory not found)".to_string(),
+                        "".to_string(),
+                        "Create /home/user/music/ and add files.".to_string(),
+                    ];
+                }
             },
             "Photo Viewer" => {
-                self.browse_dir = Some("/home/user/photos".to_string());
-                self.lines = build_photo_viewer_content(vfs);
+                let dir = "/home/user/photos";
+                self.browse_dir = Some(dir.to_string());
+                if vfs.exists(dir) {
+                    self.lines = list_directory(vfs, dir);
+                } else {
+                    self.lines = vec![
+                        "(Photos directory not found)".to_string(),
+                        "".to_string(),
+                        "Create /home/user/photos/ and add files.".to_string(),
+                    ];
+                }
             },
             "Package Manager" => {
                 self.lines = vec![
@@ -147,11 +166,7 @@ impl AppRunner {
                     self.cursor = 0;
                     // Refresh directory listing.
                     if let Some(ref dir) = self.browse_dir {
-                        if self.title == "Photo Viewer" {
-                            self.lines = build_photo_viewer_content(vfs);
-                        } else {
-                            self.lines = list_directory(vfs, dir);
-                        }
+                        self.lines = list_directory(vfs, dir);
                     }
                     return AppAction::None;
                 }
@@ -249,6 +264,10 @@ impl AppRunner {
 
     /// Open a file and display its contents.
     fn open_file(&mut self, vfs: &dyn Vfs, path: &str) {
+        // Only open files that actually exist in the VFS.
+        if !vfs.exists(path) {
+            return;
+        }
         self.viewing_file = Some(path.to_string());
         self.scroll = 0;
         self.cursor = 0;
@@ -427,89 +446,6 @@ impl AppRunner {
             }
         }
     }
-}
-
-/// Build Music Player content by scanning /home/user/music/ in the VFS.
-fn build_music_player_content(vfs: &dyn Vfs) -> Vec<String> {
-    let mut lines = vec!["Music Player".to_string(), String::new()];
-
-    let music_dir = "/home/user/music";
-    let tracks = if vfs.exists(music_dir) {
-        match vfs.readdir(music_dir) {
-            Ok(entries) => {
-                let mut files: Vec<_> = entries
-                    .into_iter()
-                    .filter(|e| e.kind == EntryKind::File)
-                    .collect();
-                files.sort_by(|a, b| a.name.cmp(&b.name));
-                files
-            },
-            Err(_) => Vec::new(),
-        }
-    } else {
-        Vec::new()
-    };
-
-    if tracks.is_empty() {
-        lines.push("(No tracks found)".to_string());
-        lines.push(String::new());
-        lines.push("Place audio files in /home/user/music/".to_string());
-    } else {
-        lines.push(format!("{} track(s):", tracks.len()));
-        lines.push(String::new());
-        for (i, track) in tracks.iter().enumerate() {
-            let size_kb = track.size / 1024;
-            lines.push(format!("  {}. {}  ({size_kb} KB)", i + 1, track.name));
-        }
-    }
-
-    lines.push(String::new());
-    lines.push("Controls: music play/pause/next/prev".to_string());
-    lines.push("          music vol <0-100>".to_string());
-    lines
-}
-
-/// Build Photo Viewer content by scanning /home/user/photos/ in the VFS.
-fn build_photo_viewer_content(vfs: &dyn Vfs) -> Vec<String> {
-    let mut lines = Vec::new();
-
-    let photos_dir = "/home/user/photos";
-    let photos = if vfs.exists(photos_dir) {
-        match vfs.readdir(photos_dir) {
-            Ok(entries) => {
-                let mut files: Vec<_> = entries
-                    .into_iter()
-                    .filter(|e| e.kind == EntryKind::File)
-                    .collect();
-                files.sort_by(|a, b| a.name.cmp(&b.name));
-                files
-            },
-            Err(_) => Vec::new(),
-        }
-    } else {
-        Vec::new()
-    };
-
-    if photos.is_empty() {
-        lines.push("(No images found)".to_string());
-        lines.push(String::new());
-        lines.push("Place image files in /home/user/photos/".to_string());
-    } else {
-        lines.push(format!("{} image(s):", photos.len()));
-        lines.push(String::new());
-        for photo in &photos {
-            let size_kb = photo.size / 1024;
-            if size_kb > 0 {
-                lines.push(format!("{}  ({size_kb} KB)", photo.name));
-            } else {
-                lines.push(format!("{}  ({} B)", photo.name, photo.size));
-            }
-        }
-    }
-
-    lines.push(String::new());
-    lines.push("Confirm=view  Cancel=back".to_string());
-    lines
 }
 
 /// List a VFS directory, returning display lines.
@@ -845,9 +781,26 @@ mod tests {
     fn music_player_lists_tracks() {
         let vfs = setup_vfs();
         let runner = AppRunner::launch(&make_app("Music Player"), &vfs);
-        assert!(runner.lines.iter().any(|l| l.contains("2 track(s)")));
+        assert!(runner.browse_dir.is_some());
+        // Uses list_directory, so ".." is first, then files.
         assert!(runner.lines.iter().any(|l| l.contains("ambient_dawn")));
         assert!(runner.lines.iter().any(|l| l.contains("nightfall_theme")));
+    }
+
+    #[test]
+    fn music_player_open_track() {
+        let vfs = setup_vfs();
+        let mut runner = AppRunner::launch(&make_app("Music Player"), &vfs);
+        let track_idx = runner
+            .lines
+            .iter()
+            .position(|l| l.contains("ambient_dawn"))
+            .unwrap();
+        runner.cursor = track_idx;
+        runner.handle_input(&Button::Confirm, &vfs);
+        // Should open file viewer showing the track data.
+        assert!(runner.viewing_file.is_some());
+        assert!(runner.lines.iter().any(|l| l.contains("ambient_dawn")));
     }
 
     #[test]
@@ -856,15 +809,21 @@ mod tests {
         let mut vfs = MemoryVfs::new();
         vfs.mkdir("/home").unwrap();
         vfs.mkdir("/home/user").unwrap();
+        // Music dir doesn't exist.
         let runner = AppRunner::launch(&make_app("Music Player"), &vfs);
-        assert!(runner.lines.iter().any(|l| l.contains("No tracks found")));
+        assert!(
+            runner
+                .lines
+                .iter()
+                .any(|l| l.contains("Music directory not found"))
+        );
     }
 
     #[test]
     fn photo_viewer_lists_photos() {
         let vfs = setup_vfs();
         let runner = AppRunner::launch(&make_app("Photo Viewer"), &vfs);
-        assert!(runner.lines.iter().any(|l| l.contains("1 image(s)")));
+        assert!(runner.browse_dir.is_some());
         assert!(runner.lines.iter().any(|l| l.contains("sunset.png")));
     }
 
@@ -905,13 +864,23 @@ mod tests {
     }
 
     #[test]
-    fn photo_viewer_empty() {
+    fn photo_viewer_empty_dir() {
         use crate::vfs::Vfs;
         let mut vfs = MemoryVfs::new();
         vfs.mkdir("/home").unwrap();
         vfs.mkdir("/home/user").unwrap();
         vfs.mkdir("/home/user/photos").unwrap();
         let runner = AppRunner::launch(&make_app("Photo Viewer"), &vfs);
-        assert!(runner.lines.iter().any(|l| l.contains("No images found")));
+        // Empty dir shows "(empty directory)" via list_directory.
+        assert!(runner.lines.iter().any(|l| l.contains("empty directory")));
+    }
+
+    #[test]
+    fn open_file_skips_nonexistent() {
+        let vfs = setup_vfs();
+        let mut runner = AppRunner::launch(&make_app("File Manager"), &vfs);
+        runner.open_file(&vfs, "/does/not/exist.txt");
+        // Should not switch to viewer mode.
+        assert!(runner.viewing_file.is_none());
     }
 }
