@@ -148,6 +148,35 @@ The repository includes an **Economic Agents Simulation Framework** that demonst
 
 See the [Economic Agents Package](../../packages/economic_agents/README.md) for detailed documentation.
 
+### OASIS_OS Integration
+
+The repository includes **OASIS_OS**, an embeddable operating system framework in Rust that renders a skinnable shell interface on multiple targets:
+
+- **Multi-Platform**: PSP hardware (sceGu hardware acceleration), desktop/Raspberry Pi (SDL2), Unreal Engine 5 (render target via FFI)
+- **Framework Architecture**: Scene-graph UI (SDI), command interpreter, virtual file system, plugin system, remote terminal, window manager
+- **Skin System**: Data-driven visual personalities -- Classic skin (implemented) with PSIX-style document icons, tabbed bars, chrome bezels, and wave arc wallpaper
+- **PSP Backend**: Hardware-accelerated 2D rendering via sceGu `Sprites` primitives, matching the desktop PSIX-style UI layout
+- **Agent Terminal**: Planned skin for the tamper-responsive briefcase, providing agent status, MCP tool access, and remote session management
+- **Integration Points**:
+  - UE5 FFI boundary for in-game interactive computer props
+  - Remote terminal for headless operation and PSP-based agent control
+  - Containerized PPSSPP testing via Docker Compose
+  - Planned MCP-patched PPSSPP for agent-assisted PSP debugging
+
+See the [OASIS_OS Package](../../packages/oasis_os/README.md) and [Design Document](../../packages/oasis_os/docs/design.md) for detailed documentation.
+
+### rust_psp_sdk
+
+The repository includes a **vendored fork of the rust-psp SDK** (`packages/rust_psp_sdk/`), modernized and hardened for OASIS_OS:
+
+- **Edition 2024**: The only Rust PSP SDK on the latest edition (upstream is still on 2018)
+- **Safety Fixes**: C runtime intrinsics fix (infinite recursion), use-after-free, atomic panic counter, allocator overflow checks
+- **Kernel Mode**: Feature flag for kernel mode module support (requested upstream since 2020, never implemented)
+- **VRAM Allocator**: Panic-to-Result API with structured error types
+- **Error Handling**: All cargo-psp tools refactored from `unwrap()`/`panic!()` to `Result` with `anyhow`
+
+See the [rust_psp_sdk README](../../packages/rust_psp_sdk/README.md) for detailed documentation.
+
 ## How They Work Together
 
 ### Complete Automation Flow
