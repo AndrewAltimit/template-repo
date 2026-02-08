@@ -121,8 +121,20 @@ show up in your XMB menu.
             +-- EBOOT.PBP
 ```
 
-If you do not have a PSP, we recommend using the [PPSSPP emulator](http://ppsspp.org).
-Note that graphics code is very sensitive so if you're writing graphics code we
+If you do not have a PSP, use the containerized PPSSPP emulator included in this repo:
+
+```bash
+# Build the PPSSPP Docker image (first time only)
+docker compose --profile psp build ppsspp
+
+# Run headless (CI / no display)
+docker compose --profile psp run --rm -e PPSSPP_HEADLESS=1 ppsspp /roms/release/EBOOT.PBP --timeout=5
+
+# Run with GUI (requires X11 display)
+docker compose --profile psp run --rm ppsspp /roms/release/EBOOT.PBP
+```
+
+Note that graphics code is very sensitive -- if you're writing graphics code we
 recommend developing on real hardware. PPSSPP is more relaxed in some aspects.
 
 ## Usage

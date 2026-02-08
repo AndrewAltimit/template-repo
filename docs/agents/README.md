@@ -160,7 +160,7 @@ The repository includes **OASIS_OS**, an embeddable operating system framework i
 - **Integration Points**:
   - UE5 FFI boundary for in-game interactive computer props
   - Remote terminal for headless operation and PSP-based agent control
-  - Containerized PPSSPP testing via Docker Compose
+  - Containerized PPSSPP testing via Docker Compose (`--profile psp`) with NVIDIA GPU passthrough, headless and GUI modes
   - Planned MCP-patched PPSSPP for agent-assisted PSP debugging
 
 See the [OASIS_OS Package](../../packages/oasis_os/README.md) and [Design Document](../../packages/oasis_os/docs/design.md) for detailed documentation.
@@ -171,9 +171,11 @@ The repository includes a **vendored fork of the rust-psp SDK** (`packages/rust_
 
 - **Edition 2024**: The only Rust PSP SDK on the latest edition (upstream is still on 2018)
 - **Safety Fixes**: C runtime intrinsics fix (infinite recursion), use-after-free, atomic panic counter, allocator overflow checks
+- **Thread-Safe Debug Printing**: SpinMutex-protected `dprintln!`/`dprint!` macros (eliminates `static mut` data race)
 - **Kernel Mode**: Feature flag for kernel mode module support (requested upstream since 2020, never implemented)
 - **VRAM Allocator**: Panic-to-Result API with structured error types
 - **Error Handling**: All cargo-psp tools refactored from `unwrap()`/`panic!()` to `Result` with `anyhow`
+- **License/Advisory Checking**: `deny.toml` for cargo-deny integration
 
 See the [rust_psp_sdk README](../../packages/rust_psp_sdk/README.md) for detailed documentation.
 

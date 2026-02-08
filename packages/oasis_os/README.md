@@ -50,11 +50,27 @@ cargo +nightly psp --release
 # Output: target/mipsel-sony-psp/release/EBOOT.PBP
 ```
 
-Test in PPSSPP:
+### Testing in PPSSPP
+
+The repo includes a containerized PPSSPP emulator with NVIDIA GPU passthrough. Build the image once, then run against any EBOOT:
 
 ```bash
-docker compose run --rm ppsspp /eboot/EBOOT.PBP
+# Build the PPSSPP Docker image (first time only)
+docker compose --profile psp build ppsspp
+
+# Run with GUI (requires X11 display)
+docker compose --profile psp run --rm ppsspp /roms/release/EBOOT.PBP
+
+# Run headless (CI / no display)
+docker compose --profile psp run --rm -e PPSSPP_HEADLESS=1 ppsspp /roms/release/EBOOT.PBP --timeout=5
+
+# Run with interpreter (more stable for some MIPS code)
+docker compose --profile psp run --rm -e PPSSPP_HEADLESS=1 ppsspp /roms/release/EBOOT.PBP -i --timeout=5
 ```
+
+The `/roms/` mount maps to `crates/oasis-backend-psp/target/mipsel-sony-psp/` so both `release/` and `debug/` EBOOTs are available.
+
+Headless mode exits with `TIMEOUT` on success (OASIS_OS runs an infinite render loop). Any crash will produce a non-zero exit code.
 
 ### UE5 (FFI library)
 
