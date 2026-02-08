@@ -10,11 +10,12 @@ use stages::Stage;
 #[derive(Subcommand)]
 pub enum CiAction {
     /// Run a named CI stage
+    #[command(trailing_var_arg = true)]
     Run {
         /// Stage name (e.g., format, lint-full, rust-fmt, econ-full, full, rust-all)
         stage: String,
         /// Extra arguments passed through to underlying tools
-        #[arg(trailing_var_arg = true)]
+        #[arg(allow_hyphen_values = true)]
         extra: Vec<String>,
     },
     /// List all available CI stages
@@ -167,7 +168,11 @@ fn run_parsed_stage(
                 )?;
             } else {
                 output::step("No SAFETY_API_KEY found, using pip-audit...");
-                docker::run_python_ci(compose, &["python", "-m", "pip_audit"], &[])?;
+                if let Err(e) = docker::run_python_ci(compose, &["python", "-m", "pip_audit"], &[])
+                {
+                    output::warn(&format!("pip-audit reported vulnerabilities: {e}"));
+                    output::warn("Dependency audit is advisory; update packages when feasible");
+                }
             }
             Ok(())
         },

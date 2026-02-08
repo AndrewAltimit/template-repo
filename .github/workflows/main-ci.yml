@@ -114,7 +114,7 @@ jobs:
           MCP_GAEA2_URL: http://192.168.0.152:8007
         run: |
           echo "Running test suite..."
-          ./automation/ci-cd/run-ci.sh test --cov-report=html --timeout=300 --junitxml=test-results.xml
+          ./automation/ci-cd/run-ci.sh test -- --timeout=300 --junitxml=test-results.xml
 
       - name: Upload test results
         if: always()
