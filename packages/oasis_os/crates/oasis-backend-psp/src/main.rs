@@ -10,13 +10,13 @@
 extern crate alloc;
 
 use alloc::format;
-use alloc::string::String;
+use alloc::string::{String, ToString};
 use alloc::vec;
 use alloc::vec::Vec;
 
 use oasis_backend_psp::{
-    Button, Color, FileEntry, InputEvent, PspBackend, StatusBarInfo, SystemInfo, TextureId,
-    Trigger, CURSOR_H, CURSOR_W, SCREEN_HEIGHT, SCREEN_WIDTH,
+    AudioPlayer, Button, Color, FileEntry, InputEvent, PspBackend, StatusBarInfo, SystemInfo,
+    TextureId, Trigger, CURSOR_H, CURSOR_W, SCREEN_HEIGHT, SCREEN_WIDTH,
 };
 
 psp::module_kernel!("OASIS_OS", 1, 0);
@@ -197,6 +197,8 @@ enum Mode {
     Dashboard,
     Terminal,
     FileManager,
+    PhotoViewer,
+    MusicPlayer,
 }
 
 // ---------------------------------------------------------------------------
@@ -271,6 +273,27 @@ fn psp_main() {
     let mut fm_scroll: usize = 0;
     let mut fm_loaded = false;
 
+    // Photo viewer state.
+    let mut pv_path = String::from("ms0:/");
+    let mut pv_entries: Vec<FileEntry> = Vec::new();
+    let mut pv_selected: usize = 0;
+    let mut pv_scroll: usize = 0;
+    let mut pv_loaded = false;
+    let mut pv_viewing = false;
+    let mut pv_tex: Option<TextureId> = None;
+    let mut pv_img_w: u32 = 0;
+    let mut pv_img_h: u32 = 0;
+
+    // Music player state.
+    let mut mp_path = String::from("ms0:/");
+    let mut mp_entries: Vec<FileEntry> = Vec::new();
+    let mut mp_selected: usize = 0;
+    let mut mp_scroll: usize = 0;
+    let mut mp_loaded = false;
+    let mut mp_file_name = String::new();
+    let mut audio_player = AudioPlayer::new();
+    audio_player.init();
+
     // Register power callback for sleep/wake handling.
     oasis_backend_psp::register_power_callback();
 
@@ -292,6 +315,8 @@ fn psp_main() {
                         Mode::Dashboard => Mode::Terminal,
                         Mode::Terminal => Mode::Dashboard,
                         Mode::FileManager => Mode::Dashboard,
+                        Mode::PhotoViewer => Mode::Dashboard,
+                        Mode::MusicPlayer => Mode::Dashboard,
                     };
                 }
 
@@ -335,7 +360,16 @@ fn psp_main() {
                             }
                             "File Manager" => {
                                 mode = Mode::FileManager;
-                                fm_loaded = false; // reload on entry
+                                fm_loaded = false;
+                            }
+                            "Photo Viewer" => {
+                                mode = Mode::PhotoViewer;
+                                pv_viewing = false;
+                                pv_loaded = false;
+                            }
+                            "Music Player" => {
+                                mode = Mode::MusicPlayer;
+                                mp_loaded = false;
                             }
                             _ => {
                                 term_lines.push(format!("Launched: {}", app.title));
@@ -439,6 +473,157 @@ fn psp_main() {
                     mode = Mode::Dashboard;
                 }
 
+                // -- Photo viewer input --
+                InputEvent::ButtonPress(Button::Up) if mode == Mode::PhotoViewer && !pv_viewing => {
+                    if pv_selected > 0 {
+                        pv_selected -= 1;
+                        if pv_selected < pv_scroll {
+                            pv_scroll = pv_selected;
+                        }
+                    }
+                }
+                InputEvent::ButtonPress(Button::Down) if mode == Mode::PhotoViewer && !pv_viewing => {
+                    if pv_selected + 1 < pv_entries.len() {
+                        pv_selected += 1;
+                        if pv_selected >= pv_scroll + FM_VISIBLE_ROWS {
+                            pv_scroll = pv_selected - FM_VISIBLE_ROWS + 1;
+                        }
+                    }
+                }
+                InputEvent::ButtonPress(Button::Confirm) if mode == Mode::PhotoViewer && !pv_viewing => {
+                    if pv_selected < pv_entries.len() {
+                        let entry = &pv_entries[pv_selected];
+                        if entry.is_dir {
+                            let dir_name = entry.name.clone();
+                            if pv_path.ends_with('/') {
+                                pv_path = format!("{}{}", pv_path, dir_name);
+                            } else {
+                                pv_path = format!("{}/{}", pv_path, dir_name);
+                            }
+                            pv_loaded = false;
+                        } else {
+                            // Load and decode JPEG.
+                            let file_path = if pv_path.ends_with('/') {
+                                format!("{}{}", pv_path, entry.name)
+                            } else {
+                                format!("{}/{}", pv_path, entry.name)
+                            };
+                            if let Some((w, h, rgba)) = oasis_backend_psp::decode_jpeg(
+                                &oasis_backend_psp::read_file(&file_path).unwrap_or_default(),
+                                SCREEN_WIDTH as i32,
+                                SCREEN_HEIGHT as i32,
+                            ) {
+                                // Free previous texture if any.
+                                if let Some(old) = pv_tex.take() {
+                                    backend.destroy_texture(old);
+                                }
+                                pv_tex = backend.load_texture(w, h, &rgba);
+                                pv_img_w = w;
+                                pv_img_h = h;
+                                pv_viewing = true;
+                            } else {
+                                term_lines.push(format!("Failed to decode: {}", entry.name));
+                            }
+                        }
+                    }
+                }
+                InputEvent::ButtonPress(Button::Cancel) if mode == Mode::PhotoViewer => {
+                    if pv_viewing {
+                        pv_viewing = false;
+                    } else if let Some(pos) = pv_path.rfind('/') {
+                        if pos > 0 && !pv_path[..pos].ends_with(':') {
+                            pv_path.truncate(pos);
+                        } else if pv_path.len() > pos + 1 {
+                            pv_path.truncate(pos + 1);
+                        } else {
+                            mode = Mode::Dashboard;
+                        }
+                        pv_loaded = false;
+                    } else {
+                        mode = Mode::Dashboard;
+                    }
+                }
+                InputEvent::ButtonPress(Button::Triangle) if mode == Mode::PhotoViewer => {
+                    if pv_viewing {
+                        pv_viewing = false;
+                    } else {
+                        mode = Mode::Dashboard;
+                    }
+                }
+
+                // -- Music player input --
+                InputEvent::ButtonPress(Button::Up) if mode == Mode::MusicPlayer && !audio_player.is_playing() => {
+                    if mp_selected > 0 {
+                        mp_selected -= 1;
+                        if mp_selected < mp_scroll {
+                            mp_scroll = mp_selected;
+                        }
+                    }
+                }
+                InputEvent::ButtonPress(Button::Down) if mode == Mode::MusicPlayer && !audio_player.is_playing() => {
+                    if mp_selected + 1 < mp_entries.len() {
+                        mp_selected += 1;
+                        if mp_selected >= mp_scroll + FM_VISIBLE_ROWS {
+                            mp_scroll = mp_selected - FM_VISIBLE_ROWS + 1;
+                        }
+                    }
+                }
+                InputEvent::ButtonPress(Button::Confirm) if mode == Mode::MusicPlayer => {
+                    if audio_player.is_playing() {
+                        // Toggle pause.
+                        audio_player.toggle_pause();
+                    } else if mp_selected < mp_entries.len() {
+                        let entry = &mp_entries[mp_selected];
+                        if entry.is_dir {
+                            let dir_name = entry.name.clone();
+                            if mp_path.ends_with('/') {
+                                mp_path = format!("{}{}", mp_path, dir_name);
+                            } else {
+                                mp_path = format!("{}/{}", mp_path, dir_name);
+                            }
+                            mp_loaded = false;
+                        } else {
+                            // Load and play MP3.
+                            let file_path = if mp_path.ends_with('/') {
+                                format!("{}{}", mp_path, entry.name)
+                            } else {
+                                format!("{}/{}", mp_path, entry.name)
+                            };
+                            mp_file_name = entry.name.clone();
+                            if audio_player.load_and_play(&file_path) {
+                                term_lines.push(format!("Playing: {}", entry.name));
+                            } else {
+                                term_lines.push(format!("Failed to play: {}", entry.name));
+                            }
+                        }
+                    }
+                }
+                InputEvent::ButtonPress(Button::Square) if mode == Mode::MusicPlayer => {
+                    // Stop playback.
+                    audio_player.stop();
+                }
+                InputEvent::ButtonPress(Button::Cancel) if mode == Mode::MusicPlayer => {
+                    if audio_player.is_playing() {
+                        audio_player.stop();
+                    }
+                    if let Some(pos) = mp_path.rfind('/') {
+                        if pos > 0 && !mp_path[..pos].ends_with(':') {
+                            mp_path.truncate(pos);
+                        } else if mp_path.len() > pos + 1 {
+                            mp_path.truncate(pos + 1);
+                        } else {
+                            mode = Mode::Dashboard;
+                        }
+                        mp_loaded = false;
+                    } else {
+                        mode = Mode::Dashboard;
+                    }
+                }
+                InputEvent::ButtonPress(Button::Triangle) if mode == Mode::MusicPlayer => {
+                    mode = Mode::Dashboard;
+                    // Audio keeps playing in background.
+                }
+
                 _ => {}
             }
         }
@@ -451,13 +636,46 @@ fn psp_main() {
         // Wallpaper.
         backend.blit(wallpaper_tex, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 
-        // Lazy-load file manager entries.
+        // Lazy-load directory entries for browser modes.
         if mode == Mode::FileManager && !fm_loaded {
             fm_entries = oasis_backend_psp::list_directory(&fm_path);
             fm_selected = 0;
             fm_scroll = 0;
             fm_loaded = true;
         }
+        if mode == Mode::PhotoViewer && !pv_loaded && !pv_viewing {
+            let all = oasis_backend_psp::list_directory(&pv_path);
+            pv_entries = all
+                .into_iter()
+                .filter(|e| {
+                    e.is_dir || {
+                        let lower: String = e.name.chars().map(|c| c.to_ascii_lowercase()).collect();
+                        lower.ends_with(".jpg") || lower.ends_with(".jpeg")
+                    }
+                })
+                .collect();
+            pv_selected = 0;
+            pv_scroll = 0;
+            pv_loaded = true;
+        }
+        if mode == Mode::MusicPlayer && !mp_loaded && !audio_player.is_playing() {
+            let all = oasis_backend_psp::list_directory(&mp_path);
+            mp_entries = all
+                .into_iter()
+                .filter(|e| {
+                    e.is_dir || {
+                        let lower: String = e.name.chars().map(|c| c.to_ascii_lowercase()).collect();
+                        lower.ends_with(".mp3")
+                    }
+                })
+                .collect();
+            mp_selected = 0;
+            mp_scroll = 0;
+            mp_loaded = true;
+        }
+
+        // Pump audio decode each frame.
+        audio_player.update();
 
         match mode {
             Mode::Dashboard => {
@@ -474,6 +692,36 @@ fn psp_main() {
                     fm_selected,
                     fm_scroll,
                 );
+            }
+            Mode::PhotoViewer => {
+                if pv_viewing {
+                    draw_photo_view(&mut backend, pv_tex, pv_img_w, pv_img_h);
+                } else {
+                    draw_photo_browser(
+                        &mut backend,
+                        &pv_path,
+                        &pv_entries,
+                        pv_selected,
+                        pv_scroll,
+                    );
+                }
+            }
+            Mode::MusicPlayer => {
+                if audio_player.is_playing() {
+                    draw_music_player(
+                        &mut backend,
+                        &mp_file_name,
+                        &audio_player,
+                    );
+                } else {
+                    draw_music_browser(
+                        &mut backend,
+                        &mp_path,
+                        &mp_entries,
+                        mp_selected,
+                        mp_scroll,
+                    );
+                }
             }
         }
 
@@ -869,6 +1117,221 @@ fn draw_file_manager(
         let dot_y = FM_START_Y + (ratio * track_h as f32) as i32;
         backend.fill_rect(SCREEN_WIDTH as i32 - 4, dot_y, 3, 8, Color::rgba(255, 255, 255, 120));
     }
+}
+
+// ---------------------------------------------------------------------------
+// Photo viewer rendering
+// ---------------------------------------------------------------------------
+
+/// Draw the photo file browser (same layout as file manager, filtered for images).
+fn draw_photo_browser(
+    backend: &mut PspBackend,
+    path: &str,
+    entries: &[FileEntry],
+    selected: usize,
+    scroll: usize,
+) {
+    let bg = Color::rgba(0, 0, 0, 200);
+    backend.fill_rect(0, CONTENT_TOP as i32, SCREEN_WIDTH, CONTENT_H, bg);
+
+    // Title.
+    backend.draw_text("PHOTO VIEWER", 4, CONTENT_TOP as i32 + 3, 8, Color::rgb(100, 149, 237));
+    backend.draw_text(path, 110, CONTENT_TOP as i32 + 3, 8, Color::rgb(160, 160, 160));
+
+    backend.fill_rect(0, FM_START_Y - 2, SCREEN_WIDTH, 1, Color::rgba(255, 255, 255, 40));
+
+    if entries.is_empty() {
+        backend.draw_text("No images found (.jpg/.jpeg)", 8, FM_START_Y, 8, Color::rgb(140, 140, 140));
+        return;
+    }
+
+    let end = (scroll + FM_VISIBLE_ROWS).min(entries.len());
+    for i in scroll..end {
+        let entry = &entries[i];
+        let row = (i - scroll) as i32;
+        let y = FM_START_Y + row * FM_ROW_H;
+
+        if i == selected {
+            backend.fill_rect(0, y - 1, SCREEN_WIDTH, FM_ROW_H as u32, Color::rgba(80, 120, 200, 100));
+        }
+
+        let (prefix, prefix_clr) = if entry.is_dir {
+            ("[D]", Color::rgb(255, 220, 80))
+        } else {
+            ("[I]", Color::rgb(100, 200, 255))
+        };
+        backend.draw_text(prefix, 4, y, 8, prefix_clr);
+
+        let name_color = if entry.is_dir {
+            Color::rgb(120, 220, 255)
+        } else {
+            Color::WHITE
+        };
+        let max_name_chars = 44;
+        let display_name = if entry.name.len() > max_name_chars {
+            let truncated: String = entry.name.chars().take(max_name_chars - 2).collect();
+            format!("{}..", truncated)
+        } else {
+            entry.name.clone()
+        };
+        backend.draw_text(&display_name, 32, y, 8, name_color);
+
+        if !entry.is_dir {
+            let size_str = oasis_backend_psp::format_size(entry.size);
+            let size_x = 480 - (size_str.len() as i32 * 8) - 4;
+            backend.draw_text(&size_str, size_x, y, 8, Color::rgb(180, 180, 180));
+        }
+    }
+}
+
+/// Display a decoded photo scaled to fit the screen.
+fn draw_photo_view(
+    backend: &mut PspBackend,
+    tex: Option<TextureId>,
+    img_w: u32,
+    img_h: u32,
+) {
+    backend.fill_rect(0, CONTENT_TOP as i32, SCREEN_WIDTH, CONTENT_H, Color::BLACK);
+
+    if let Some(t) = tex {
+        // Scale to fit within content area, preserving aspect ratio.
+        let max_w = SCREEN_WIDTH;
+        let max_h = CONTENT_H;
+        let scale_w = max_w as f32 / img_w as f32;
+        let scale_h = max_h as f32 / img_h as f32;
+        let scale = if scale_w < scale_h { scale_w } else { scale_h };
+        let draw_w = (img_w as f32 * scale) as u32;
+        let draw_h = (img_h as f32 * scale) as u32;
+        let draw_x = ((max_w - draw_w) / 2) as i32;
+        let draw_y = CONTENT_TOP as i32 + ((max_h - draw_h) / 2) as i32;
+
+        backend.blit(t, draw_x, draw_y, draw_w, draw_h);
+    } else {
+        backend.draw_text("Failed to load image", 160, 130, 8, Color::rgb(255, 80, 80));
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Music player rendering
+// ---------------------------------------------------------------------------
+
+/// Draw the music file browser.
+fn draw_music_browser(
+    backend: &mut PspBackend,
+    path: &str,
+    entries: &[FileEntry],
+    selected: usize,
+    scroll: usize,
+) {
+    let bg = Color::rgba(0, 0, 0, 200);
+    backend.fill_rect(0, CONTENT_TOP as i32, SCREEN_WIDTH, CONTENT_H, bg);
+
+    // Title.
+    backend.draw_text("MUSIC PLAYER", 4, CONTENT_TOP as i32 + 3, 8, Color::rgb(205, 92, 92));
+    backend.draw_text(path, 110, CONTENT_TOP as i32 + 3, 8, Color::rgb(160, 160, 160));
+
+    backend.fill_rect(0, FM_START_Y - 2, SCREEN_WIDTH, 1, Color::rgba(255, 255, 255, 40));
+
+    if entries.is_empty() {
+        backend.draw_text("No MP3 files found", 8, FM_START_Y, 8, Color::rgb(140, 140, 140));
+        return;
+    }
+
+    let end = (scroll + FM_VISIBLE_ROWS).min(entries.len());
+    for i in scroll..end {
+        let entry = &entries[i];
+        let row = (i - scroll) as i32;
+        let y = FM_START_Y + row * FM_ROW_H;
+
+        if i == selected {
+            backend.fill_rect(0, y - 1, SCREEN_WIDTH, FM_ROW_H as u32, Color::rgba(200, 80, 80, 100));
+        }
+
+        let (prefix, prefix_clr) = if entry.is_dir {
+            ("[D]", Color::rgb(255, 220, 80))
+        } else {
+            ("[M]", Color::rgb(205, 92, 92))
+        };
+        backend.draw_text(prefix, 4, y, 8, prefix_clr);
+
+        let name_color = if entry.is_dir {
+            Color::rgb(120, 220, 255)
+        } else {
+            Color::WHITE
+        };
+        let max_name_chars = 44;
+        let display_name = if entry.name.len() > max_name_chars {
+            let truncated: String = entry.name.chars().take(max_name_chars - 2).collect();
+            format!("{}..", truncated)
+        } else {
+            entry.name.clone()
+        };
+        backend.draw_text(&display_name, 32, y, 8, name_color);
+
+        if !entry.is_dir {
+            let size_str = oasis_backend_psp::format_size(entry.size);
+            let size_x = 480 - (size_str.len() as i32 * 8) - 4;
+            backend.draw_text(&size_str, size_x, y, 8, Color::rgb(180, 180, 180));
+        }
+    }
+}
+
+/// Draw the now-playing music player UI.
+fn draw_music_player(
+    backend: &mut PspBackend,
+    file_name: &str,
+    player: &AudioPlayer,
+) {
+    let bg = Color::rgba(0, 0, 0, 210);
+    backend.fill_rect(0, CONTENT_TOP as i32, SCREEN_WIDTH, CONTENT_H, bg);
+
+    let cx = SCREEN_WIDTH as i32 / 2;
+    let title_color = Color::rgb(255, 200, 200);
+    let info_color = Color::rgb(180, 180, 180);
+
+    // Album art placeholder (colored rectangle).
+    let art_size: u32 = 80;
+    let art_x = cx - art_size as i32 / 2;
+    let art_y = CONTENT_TOP as i32 + 20;
+    backend.fill_rect(art_x, art_y, art_size, art_size, Color::rgb(205, 92, 92));
+    backend.fill_rect(art_x + 2, art_y + 2, art_size - 4, art_size - 4, Color::rgb(60, 30, 30));
+    backend.draw_text("MP3", art_x + 22, art_y + 34, 8, Color::rgb(205, 92, 92));
+
+    // Track name (centered, truncated).
+    let max_chars = 50;
+    let display_name = if file_name.len() > max_chars {
+        let truncated: String = file_name.chars().take(max_chars - 2).collect();
+        format!("{}..", truncated)
+    } else {
+        file_name.to_string()
+    };
+    let name_x = cx - (display_name.len() as i32 * 8) / 2;
+    backend.draw_text(&display_name, name_x, art_y + art_size as i32 + 12, 8, title_color);
+
+    // Format info.
+    let info = format!(
+        "{}Hz  {}kbps  {}ch",
+        player.sample_rate,
+        player.bitrate,
+        player.channels,
+    );
+    let info_x = cx - (info.len() as i32 * 8) / 2;
+    backend.draw_text(&info, info_x, art_y + art_size as i32 + 26, 8, info_color);
+
+    // Playback status.
+    let status = if player.is_paused() { "PAUSED" } else { "PLAYING" };
+    let status_clr = if player.is_paused() {
+        Color::rgb(255, 200, 80)
+    } else {
+        Color::rgb(120, 255, 120)
+    };
+    let status_x = cx - (status.len() as i32 * 8) / 2;
+    backend.draw_text(status, status_x, art_y + art_size as i32 + 44, 8, status_clr);
+
+    // Controls hint.
+    let hint = "X:Pause  []:Stop  O:Back";
+    let hint_x = cx - (hint.len() as i32 * 8) / 2;
+    backend.draw_text(hint, hint_x, BOTTOMBAR_Y - 16, 8, Color::rgb(140, 140, 140));
 }
 
 // ---------------------------------------------------------------------------

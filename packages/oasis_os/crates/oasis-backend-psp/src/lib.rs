@@ -1315,6 +1315,414 @@ pub fn format_size(bytes: i64) -> String {
 }
 
 // ---------------------------------------------------------------------------
+// File reading helper
+// ---------------------------------------------------------------------------
+
+/// Read an entire file into a byte vector.
+///
+/// Returns `None` if the file cannot be opened or read.
+pub fn read_file(path: &str) -> Option<Vec<u8>> {
+    let mut path_buf = Vec::with_capacity(path.len() + 1);
+    path_buf.extend_from_slice(path.as_bytes());
+    path_buf.push(0);
+
+    unsafe {
+        // Get file size first via stat.
+        let mut stat: sys::SceIoStat = core::mem::zeroed();
+        if sys::sceIoGetstat(path_buf.as_ptr(), &mut stat) < 0 {
+            return None;
+        }
+        let size = stat.st_size as usize;
+        if size == 0 {
+            return Some(Vec::new());
+        }
+
+        let fd = sys::sceIoOpen(path_buf.as_ptr(), sys::IoOpenFlags::RD_ONLY, 0);
+        if fd.0 < 0 {
+            return None;
+        }
+
+        let mut data = vec![0u8; size];
+        let mut total_read = 0usize;
+        while total_read < size {
+            let chunk = (size - total_read).min(65536) as u32;
+            let n = sys::sceIoRead(
+                fd,
+                data.as_mut_ptr().add(total_read) as *mut c_void,
+                chunk,
+            );
+            if n <= 0 {
+                break;
+            }
+            total_read += n as usize;
+        }
+        sys::sceIoClose(fd);
+
+        if total_read == size {
+            Some(data)
+        } else {
+            None
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Hardware JPEG decoding (sceJpeg)
+// ---------------------------------------------------------------------------
+
+/// Decode a JPEG image using the PSP's hardware MJPEG decoder.
+///
+/// Returns `(width, height, rgba_pixels)` on success. The output is RGBA8888.
+/// `max_w` and `max_h` set the maximum decode dimensions (use 480, 272 for
+/// screen-sized images).
+pub fn decode_jpeg(jpeg_data: &[u8], max_w: i32, max_h: i32) -> Option<(u32, u32, Vec<u8>)> {
+    unsafe {
+        if sys::sceJpegInitMJpeg() < 0 {
+            return None;
+        }
+        if sys::sceJpegCreateMJpeg(max_w, max_h) < 0 {
+            sys::sceJpegFinishMJpeg();
+            return None;
+        }
+
+        // Output buffer: max_w * max_h * 4, 64-byte aligned.
+        let out_size = (max_w as usize) * (max_h as usize) * 4;
+        let out_layout = Layout::from_size_align(out_size, 64).ok()?;
+        let out_buf = alloc(out_layout);
+        if out_buf.is_null() {
+            sys::sceJpegDeleteMJpeg();
+            sys::sceJpegFinishMJpeg();
+            return None;
+        }
+
+        // sceJpegDecodeMJpeg needs a mutable pointer to the JPEG data.
+        let mut jpeg_copy = Vec::from(jpeg_data);
+
+        let ret = sys::sceJpegDecodeMJpeg(
+            jpeg_copy.as_mut_ptr(),
+            jpeg_copy.len(),
+            out_buf as *mut c_void,
+            0,
+        );
+
+        sys::sceJpegDeleteMJpeg();
+        sys::sceJpegFinishMJpeg();
+
+        if ret < 0 {
+            dealloc(out_buf, out_layout);
+            return None;
+        }
+
+        // Return value encodes dimensions: (width << 16) | height.
+        let width = ((ret >> 16) & 0xFFFF) as u32;
+        let height = (ret & 0xFFFF) as u32;
+        let pixel_count = (width * height * 4) as usize;
+
+        let mut rgba = vec![0u8; pixel_count];
+        // Manual copy (see MEMORY.md footgun re: ptr intrinsics).
+        let src = core::slice::from_raw_parts(out_buf, pixel_count);
+        rgba.copy_from_slice(src);
+
+        dealloc(out_buf, out_layout);
+        Some((width, height, rgba))
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Audio player (MP3 via sceMp3 + sceAudio)
+// ---------------------------------------------------------------------------
+
+/// MP3 playback engine using the PSP's hardware MP3 decoder.
+///
+/// Call `init()` once, `load_mp3()` to load a file, then `update()` each
+/// frame to pump decoded audio to the hardware output channel.
+pub struct AudioPlayer {
+    /// Audio channel reserved for playback (-1 if none).
+    channel: i32,
+    /// MP3 decoder handle.
+    mp3_handle: i32,
+    /// MP3 stream buffer (>= 8192 bytes, 64-byte aligned).
+    mp3_buf: *mut u8,
+    mp3_buf_layout: Layout,
+    /// PCM output buffer (>= 9216 bytes, 64-byte aligned).
+    pcm_buf: *mut u8,
+    pcm_buf_layout: Layout,
+    /// The entire MP3 file loaded into RAM.
+    file_data: Vec<u8>,
+    /// Current read position in file_data for streaming.
+    file_pos: usize,
+    /// Whether the decoder is initialized and playing.
+    playing: bool,
+    paused: bool,
+    /// Cached MP3 info.
+    pub sample_rate: i32,
+    pub bitrate: i32,
+    pub channels: i32,
+}
+
+const MP3_BUF_SIZE: usize = 16384; // 16 KB stream buffer
+const PCM_BUF_SIZE: usize = 9216; // minimum for sceMp3
+
+impl AudioPlayer {
+    pub fn new() -> Self {
+        Self {
+            channel: -1,
+            mp3_handle: -1,
+            mp3_buf: ptr::null_mut(),
+            mp3_buf_layout: Layout::new::<u8>(),
+            pcm_buf: ptr::null_mut(),
+            pcm_buf_layout: Layout::new::<u8>(),
+            file_data: Vec::new(),
+            file_pos: 0,
+            playing: false,
+            paused: false,
+            sample_rate: 0,
+            bitrate: 0,
+            channels: 0,
+        }
+    }
+
+    /// Initialize the MP3 subsystem and allocate buffers.
+    pub fn init(&mut self) -> bool {
+        unsafe {
+            if sys::sceMp3InitResource() < 0 {
+                return false;
+            }
+        }
+
+        let mp3_layout = Layout::from_size_align(MP3_BUF_SIZE, 64).unwrap();
+        let pcm_layout = Layout::from_size_align(PCM_BUF_SIZE, 64).unwrap();
+        let mp3_buf = unsafe { alloc(mp3_layout) };
+        let pcm_buf = unsafe { alloc(pcm_layout) };
+        if mp3_buf.is_null() || pcm_buf.is_null() {
+            return false;
+        }
+
+        self.mp3_buf = mp3_buf;
+        self.mp3_buf_layout = mp3_layout;
+        self.pcm_buf = pcm_buf;
+        self.pcm_buf_layout = pcm_layout;
+        true
+    }
+
+    /// Load an MP3 file from a path on the Memory Stick and start playback.
+    pub fn load_and_play(&mut self, path: &str) -> bool {
+        // Stop any current playback.
+        self.stop();
+
+        // Read entire file into RAM.
+        let data = match read_file(path) {
+            Some(d) => d,
+            None => return false,
+        };
+        if data.is_empty() {
+            return false;
+        }
+
+        self.file_data = data;
+        self.file_pos = 0;
+
+        unsafe {
+            // Set up MP3 init args.
+            let mut init_arg = sys::SceMp3InitArg {
+                mp3_stream_start: 0,
+                unk1: 0,
+                mp3_stream_end: self.file_data.len() as u32,
+                unk2: 0,
+                mp3_buf: self.mp3_buf as *mut c_void,
+                mp3_buf_size: MP3_BUF_SIZE as i32,
+                pcm_buf: self.pcm_buf as *mut c_void,
+                pcm_buf_size: PCM_BUF_SIZE as i32,
+            };
+
+            let handle = sys::sceMp3ReserveMp3Handle(&mut init_arg);
+            if handle < 0 {
+                return false;
+            }
+            self.mp3_handle = handle;
+            let mp3h = sys::Mp3Handle(handle);
+
+            // Feed initial data.
+            if !self.feed_data() {
+                sys::sceMp3ReleaseMp3Handle(mp3h);
+                self.mp3_handle = -1;
+                return false;
+            }
+
+            // Initialize decoder (parses headers).
+            if sys::sceMp3Init(mp3h) < 0 {
+                sys::sceMp3ReleaseMp3Handle(mp3h);
+                self.mp3_handle = -1;
+                return false;
+            }
+
+            // Query format info.
+            self.sample_rate = sys::sceMp3GetSamplingRate(mp3h);
+            self.bitrate = sys::sceMp3GetBitRate(mp3h);
+            self.channels = sys::sceMp3GetMp3ChannelNum(mp3h);
+
+            // Get max samples per decode.
+            let max_samples = sys::sceMp3GetMaxOutputSample(mp3h);
+            if max_samples <= 0 {
+                sys::sceMp3ReleaseMp3Handle(mp3h);
+                self.mp3_handle = -1;
+                return false;
+            }
+
+            // Reserve audio channel.
+            let fmt = if self.channels == 1 {
+                sys::AudioFormat::Mono
+            } else {
+                sys::AudioFormat::Stereo
+            };
+            let ch = sys::sceAudioChReserve(-1, max_samples, fmt);
+            if ch < 0 {
+                sys::sceMp3ReleaseMp3Handle(mp3h);
+                self.mp3_handle = -1;
+                return false;
+            }
+            self.channel = ch;
+
+            // Set up sample rate conversion if needed (PSP audio is 44.1kHz native).
+            // sceAudioSRCChReserve handles resampling for non-44100 rates, but
+            // the channel-based API works fine for most MP3s.
+
+            self.playing = true;
+            self.paused = false;
+        }
+
+        psp::dprintln!(
+            "OASIS_OS: MP3 loaded - {}Hz, {}kbps, {}ch",
+            self.sample_rate,
+            self.bitrate,
+            self.channels,
+        );
+        true
+    }
+
+    /// Pump decoded audio to the output channel. Call each frame.
+    pub fn update(&mut self) {
+        if !self.playing || self.paused || self.mp3_handle < 0 {
+            return;
+        }
+
+        unsafe {
+            let mp3h = sys::Mp3Handle(self.mp3_handle);
+
+            // Feed more MP3 data if the decoder needs it.
+            if sys::sceMp3CheckStreamDataNeeded(mp3h) > 0 {
+                self.feed_data();
+            }
+
+            // Decode one frame.
+            let mut dst: *mut i16 = ptr::null_mut();
+            let decoded = sys::sceMp3Decode(mp3h, &mut dst);
+            if decoded > 0 && !dst.is_null() {
+                // Output decoded PCM. Blocking ensures proper pacing.
+                sys::sceAudioOutputBlocking(
+                    self.channel,
+                    sys::AUDIO_VOLUME_MAX as i32,
+                    dst as *mut c_void,
+                );
+            } else {
+                // End of stream or error.
+                self.playing = false;
+            }
+        }
+    }
+
+    /// Stop playback and release resources.
+    pub fn stop(&mut self) {
+        if self.mp3_handle >= 0 {
+            unsafe {
+                sys::sceMp3ReleaseMp3Handle(sys::Mp3Handle(self.mp3_handle));
+            }
+            self.mp3_handle = -1;
+        }
+        if self.channel >= 0 {
+            unsafe {
+                sys::sceAudioChRelease(self.channel);
+            }
+            self.channel = -1;
+        }
+        self.playing = false;
+        self.paused = false;
+        self.file_data = Vec::new();
+        self.file_pos = 0;
+    }
+
+    /// Toggle pause/resume.
+    pub fn toggle_pause(&mut self) {
+        self.paused = !self.paused;
+    }
+
+    pub fn is_playing(&self) -> bool {
+        self.playing
+    }
+
+    pub fn is_paused(&self) -> bool {
+        self.paused
+    }
+
+    /// Feed MP3 data from the file buffer into the decoder's stream buffer.
+    fn feed_data(&mut self) -> bool {
+        unsafe {
+            let mp3h = sys::Mp3Handle(self.mp3_handle);
+            let mut write_ptr: *mut u8 = ptr::null_mut();
+            let mut to_write: i32 = 0;
+            let mut src_pos: i32 = 0;
+
+            if sys::sceMp3GetInfoToAddStreamData(
+                mp3h,
+                &mut write_ptr,
+                &mut to_write,
+                &mut src_pos,
+            ) < 0
+            {
+                return false;
+            }
+
+            if to_write <= 0 || write_ptr.is_null() {
+                return true; // nothing to feed right now
+            }
+
+            let remaining = self.file_data.len() - self.file_pos;
+            let copy_len = (to_write as usize).min(remaining);
+            if copy_len == 0 {
+                // Signal end of stream by notifying with 0.
+                sys::sceMp3NotifyAddStreamData(mp3h, 0);
+                return true;
+            }
+
+            ptr::copy_nonoverlapping(
+                self.file_data.as_ptr().add(self.file_pos),
+                write_ptr,
+                copy_len,
+            );
+            self.file_pos += copy_len;
+
+            sys::sceMp3NotifyAddStreamData(mp3h, copy_len as i32);
+        }
+        true
+    }
+}
+
+impl Drop for AudioPlayer {
+    fn drop(&mut self) {
+        self.stop();
+        if !self.mp3_buf.is_null() {
+            unsafe { dealloc(self.mp3_buf, self.mp3_buf_layout) };
+        }
+        if !self.pcm_buf.is_null() {
+            unsafe { dealloc(self.pcm_buf, self.pcm_buf_layout) };
+        }
+        unsafe {
+            sys::sceMp3TermResource();
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
 // Power callbacks (sleep/wake)
 // ---------------------------------------------------------------------------
 
