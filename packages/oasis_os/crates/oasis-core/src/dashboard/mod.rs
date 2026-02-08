@@ -37,12 +37,12 @@ impl DashboardConfig {
         let status_bar_h = 24u32;
         let tab_row_h = 18u32;
         // PSIX places icons on the left ~half of the screen, sparsely.
-        let grid_padding_x = 12u32;
-        let grid_padding_y = 4u32;
+        let grid_padding_x = 16u32;
+        let grid_padding_y = 6u32;
         // Content area between tab row and bottom bar.
         let top_used = status_bar_h + tab_row_h;
         let content_h = 272u32 - top_used - 24;
-        let cell_w = 100u32; // Wide cells for label readability.
+        let cell_w = 110u32; // Wide cells for larger icons + labels.
         let cell_h = (content_h - 2 * grid_padding_y) / rows;
         Self {
             grid_cols: cols,
@@ -166,18 +166,22 @@ impl DashboardState {
     }
 
     /// Synchronize SDI objects to reflect current dashboard state.
-    /// Creates/updates: PSIX-style document icons (white page with colored accent
-    /// and folded corner), text label below each, and cursor highlight overlay.
+    /// Creates/updates: PSIX-style document icons (white page with colored accent,
+    /// folded corner, and app graphic), text label below each, and cursor highlight.
     pub fn update_sdi(&self, sdi: &mut SdiRegistry) {
         let cols = self.config.grid_cols as usize;
         let page_apps = self.current_page_apps();
 
-        // PSIX document icon: small white page with a colored stripe at top.
-        let icon_w = 28u32;
-        let icon_h = 34u32;
-        let stripe_h = 8u32;
-        let fold_size = 8u32;
-        let text_pad = 3i32;
+        // PSIX document icon: larger white page with colored stripe and app graphic.
+        let icon_w = 42u32;
+        let icon_h = 52u32;
+        let stripe_h = 12u32;
+        let fold_size = 10u32;
+        let text_pad = 4i32;
+        // Colored app graphic sits below the stripe on the document body.
+        let gfx_pad = 4u32;
+        let gfx_w = icon_w - 2 * gfx_pad;
+        let gfx_h = 22u32;
 
         let per_page = self.config.icons_per_page as usize;
         for i in 0..per_page {
@@ -185,14 +189,18 @@ impl DashboardState {
             let icon_name = format!("icon_{i}");
             let stripe_name = format!("icon_stripe_{i}");
             let fold_name = format!("icon_fold_{i}");
+            let gfx_name = format!("icon_gfx_{i}");
             let label_name = format!("icon_label_{i}");
+            let shadow_name = format!("icon_shadow_{i}");
 
             for name in [
                 &outline_name,
                 &icon_name,
                 &stripe_name,
                 &fold_name,
+                &gfx_name,
                 &label_name,
+                &shadow_name,
             ] {
                 if !sdi.contains(name) {
                     sdi.create(name);
@@ -207,25 +215,36 @@ impl DashboardState {
             let iy = cell_y + 4;
 
             if i < page_apps.len() {
-                // Shadow/outline behind the document page.
-                if let Ok(obj) = sdi.get_mut(&outline_name) {
-                    obj.x = ix + 1;
-                    obj.y = iy + 1;
-                    obj.w = icon_w;
-                    obj.h = icon_h;
+                // Drop shadow behind document (offset down-right).
+                if let Ok(obj) = sdi.get_mut(&shadow_name) {
+                    obj.x = ix + 2;
+                    obj.y = iy + 3;
+                    obj.w = icon_w + 2;
+                    obj.h = icon_h + 1;
                     obj.visible = true;
-                    obj.color = Color::rgba(0, 0, 0, 80);
+                    obj.color = Color::rgba(0, 0, 0, 70);
                     obj.text = None;
                 }
 
-                // White document page body.
+                // White border/outline (1px larger than icon on each side).
+                if let Ok(obj) = sdi.get_mut(&outline_name) {
+                    obj.x = ix - 1;
+                    obj.y = iy - 1;
+                    obj.w = icon_w + 2;
+                    obj.h = icon_h + 2;
+                    obj.visible = true;
+                    obj.color = Color::rgba(255, 255, 255, 180);
+                    obj.text = None;
+                }
+
+                // White document page body (bright, like paper).
                 if let Ok(obj) = sdi.get_mut(&icon_name) {
                     obj.x = ix;
                     obj.y = iy;
                     obj.w = icon_w;
                     obj.h = icon_h;
                     obj.visible = true;
-                    obj.color = Color::rgb(240, 240, 235);
+                    obj.color = Color::rgb(250, 250, 248);
                     obj.text = None;
                 }
 
@@ -240,14 +259,32 @@ impl DashboardState {
                     obj.text = None;
                 }
 
-                // Folded corner (top-right) -- darker shade to simulate fold.
+                // Folded corner (top-right) -- lighter crease to simulate fold.
                 if let Ok(obj) = sdi.get_mut(&fold_name) {
                     obj.x = ix + icon_w as i32 - fold_size as i32;
                     obj.y = iy;
                     obj.w = fold_size;
                     obj.h = fold_size;
                     obj.visible = true;
-                    obj.color = Color::rgb(200, 200, 195);
+                    obj.color = Color::rgb(210, 210, 205);
+                    obj.text = None;
+                }
+
+                // Colored app graphic on the document body (PSIX-style icon image).
+                if let Ok(obj) = sdi.get_mut(&gfx_name) {
+                    obj.x = ix + gfx_pad as i32;
+                    obj.y = iy + stripe_h as i32 + 3;
+                    obj.w = gfx_w;
+                    obj.h = gfx_h;
+                    obj.visible = true;
+                    // Vibrant version of the app accent color for the graphic.
+                    let c = page_apps[i].color;
+                    obj.color = Color::rgba(
+                        c.r.saturating_add(30),
+                        c.g.saturating_add(10),
+                        c.b.saturating_add(30),
+                        200,
+                    );
                     obj.text = None;
                 }
 
@@ -259,7 +296,7 @@ impl DashboardState {
                     obj.h = 0;
                     obj.font_size = 8;
                     obj.text = Some(page_apps[i].title.clone());
-                    obj.text_color = Color::rgba(255, 255, 255, 220);
+                    obj.text_color = Color::rgba(255, 255, 255, 230);
                     obj.visible = true;
                 }
             } else {
@@ -268,7 +305,9 @@ impl DashboardState {
                     &icon_name,
                     &stripe_name,
                     &fold_name,
+                    &gfx_name,
                     &label_name,
+                    &shadow_name,
                 ] {
                     if let Ok(obj) = sdi.get_mut(name) {
                         obj.visible = false;
@@ -314,6 +353,8 @@ impl DashboardState {
                 "icon_outline_",
                 "icon_stripe_",
                 "icon_fold_",
+                "icon_gfx_",
+                "icon_shadow_",
             ] {
                 let name = format!("{prefix}{i}");
                 if let Ok(obj) = sdi.get_mut(&name) {
@@ -333,14 +374,14 @@ mod tests {
 
     fn test_config() -> DashboardConfig {
         DashboardConfig {
-            grid_cols: 6,
-            grid_rows: 3,
-            icons_per_page: 18,
+            grid_cols: 2,
+            grid_rows: 2,
+            icons_per_page: 4,
             max_pages: 4,
-            grid_x: 6,
-            grid_y: 28,
-            cell_w: 78,
-            cell_h: 72,
+            grid_x: 16,
+            grid_y: 48,
+            cell_w: 110,
+            cell_h: 95,
             cursor_pad: 4,
         }
     }
@@ -364,13 +405,13 @@ mod tests {
 
     #[test]
     fn page_count_multiple() {
-        let dash = DashboardState::new(test_config(), test_apps(20));
+        let dash = DashboardState::new(test_config(), test_apps(6));
         assert_eq!(dash.page_count(), 2);
     }
 
     #[test]
     fn page_count_exact() {
-        let dash = DashboardState::new(test_config(), test_apps(18));
+        let dash = DashboardState::new(test_config(), test_apps(4));
         assert_eq!(dash.page_count(), 1);
     }
 
@@ -400,22 +441,22 @@ mod tests {
 
     #[test]
     fn navigate_down() {
-        let mut dash = DashboardState::new(test_config(), test_apps(12));
+        let mut dash = DashboardState::new(test_config(), test_apps(4));
         dash.handle_input(&Button::Down);
-        assert_eq!(dash.selected, 6); // Moved down one row (6 cols).
+        assert_eq!(dash.selected, 2); // Moved down one row (2 cols).
     }
 
     #[test]
     fn navigate_up() {
-        let mut dash = DashboardState::new(test_config(), test_apps(12));
-        dash.selected = 8;
+        let mut dash = DashboardState::new(test_config(), test_apps(4));
+        dash.selected = 3;
         dash.handle_input(&Button::Up);
-        assert_eq!(dash.selected, 2);
+        assert_eq!(dash.selected, 1);
     }
 
     #[test]
     fn next_page_wraps() {
-        let mut dash = DashboardState::new(test_config(), test_apps(20));
+        let mut dash = DashboardState::new(test_config(), test_apps(6));
         assert_eq!(dash.page, 0);
         dash.next_page();
         assert_eq!(dash.page, 1);
@@ -425,7 +466,7 @@ mod tests {
 
     #[test]
     fn prev_page_wraps() {
-        let mut dash = DashboardState::new(test_config(), test_apps(20));
+        let mut dash = DashboardState::new(test_config(), test_apps(6));
         dash.prev_page();
         assert_eq!(dash.page, 1); // Wraps to last.
     }
@@ -452,11 +493,11 @@ mod tests {
 
     #[test]
     fn selected_clamps_on_page_switch() {
-        let mut dash = DashboardState::new(test_config(), test_apps(20));
-        // 20 apps, 18 per page: page 0 has 18, page 1 has 2.
-        dash.selected = 17; // Last on page 0.
+        let mut dash = DashboardState::new(test_config(), test_apps(5));
+        // 5 apps, 4 per page: page 0 has 4, page 1 has 1.
+        dash.selected = 3; // Last on page 0.
         dash.next_page();
-        // Page 1 has only 2 apps, so selected should clamp to 1.
-        assert!(dash.selected <= 1);
+        // Page 1 has only 1 app, so selected should clamp to 0.
+        assert_eq!(dash.selected, 0);
     }
 }

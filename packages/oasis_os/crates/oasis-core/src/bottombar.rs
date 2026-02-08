@@ -102,7 +102,7 @@ impl BottomBar {
             obj.y = BAR_Y;
             obj.w = SCREEN_W;
             obj.h = BAR_H;
-            obj.color = Color::rgba(0, 0, 0, 80);
+            obj.color = Color::rgba(0, 0, 0, 90);
             obj.overlay = true;
             obj.z = 900;
         }
@@ -110,8 +110,19 @@ impl BottomBar {
             obj.visible = true;
         }
 
+        // Thin separator line at top of bottom bar (PSIX has a visible edge).
+        ensure_bar_border(
+            sdi,
+            "bar_bottom_line",
+            0,
+            BAR_Y,
+            SCREEN_W,
+            1,
+            Color::rgba(255, 255, 255, 50),
+        );
+
         // URL label on the left (PSIX: "HTTP://PSIXONLINE.COM").
-        ensure_bottom_text(sdi, "bar_url", 6, BAR_Y + 8, 8);
+        ensure_bottom_text(sdi, "bar_url", 8, BAR_Y + 8, 8);
         if let Ok(obj) = sdi.get_mut("bar_url") {
             obj.text = Some("HTTP://OASIS.LOCAL".to_string());
             obj.text_color = Color::rgb(200, 200, 200);
@@ -119,7 +130,7 @@ impl BottomBar {
 
         // PSIX-style metallic container around URL area (left bezel).
         let url_bx = 2i32;
-        let url_bw = 180u32;
+        let url_bw = 190u32;
         let bz_y = BAR_Y + 2;
         let bz_h = BAR_H - 4;
         ensure_bezel(sdi, "bar_url_bezel", url_bx, bz_y, url_bw, bz_h);
@@ -127,18 +138,21 @@ impl BottomBar {
         // PSIX-style pipe-separated media category tabs (right side).
         // Layout: "AUDIO | VIDEO | IMAGE | FILE" with thin pipe separators.
         let char_w = 8i32;
-        let pipe_gap = 6i32;
+        let pipe_gap = 5i32;
         let tab_labels: Vec<&str> = MediaTab::TABS.iter().map(|t| t.label()).collect();
 
         // Calculate total width of "LABEL | LABEL | LABEL | LABEL".
         let labels_w: i32 = tab_labels.iter().map(|l| l.len() as i32 * char_w).sum();
         let pipes_w = (tab_labels.len() as i32 - 1) * (pipe_gap * 2 + char_w);
         let total_w = labels_w + pipes_w;
-        let tabs_x = SCREEN_W as i32 - total_w - 12;
+
+        // "R >" indicator takes ~24px on far right.
+        let r_indicator_w = 28i32;
+        let tabs_x = SCREEN_W as i32 - total_w - r_indicator_w - 8;
 
         // Metallic container around tab group (right bezel).
-        let tab_bx = tabs_x - 8;
-        let tab_bw = (total_w + 16) as u32;
+        let tab_bx = tabs_x - 6;
+        let tab_bw = (total_w + r_indicator_w + 14) as u32;
         ensure_bezel(sdi, "bar_tab_bezel", tab_bx, bz_y, tab_bw, bz_h);
 
         let mut cx = tabs_x;
@@ -165,10 +179,17 @@ impl BottomBar {
                 ensure_bottom_text(sdi, &pipe_name, cx, BAR_Y + 8, 8);
                 if let Ok(obj) = sdi.get_mut(&pipe_name) {
                     obj.text = Some("|".to_string());
-                    obj.text_color = Color::rgba(255, 255, 255, 80);
+                    obj.text_color = Color::rgba(255, 255, 255, 60);
                 }
                 cx += char_w + pipe_gap;
             }
+        }
+
+        // "R >" indicator on far right (PSIX shows shoulder button hint).
+        ensure_bottom_text(sdi, "bar_r_hint", SCREEN_W as i32 - 28, BAR_Y + 8, 8);
+        if let Ok(obj) = sdi.get_mut("bar_r_hint") {
+            obj.text = Some("R>".to_string());
+            obj.text_color = Color::rgba(255, 255, 255, 140);
         }
 
         // Hide old outlined border objects (from previous style).
@@ -187,8 +208,8 @@ impl BottomBar {
             }
         }
 
-        // USB indicator (center-bottom area, PSIX style).
-        let usb_x = tabs_x - 50;
+        // USB indicator (center area between bezels).
+        let usb_x = url_bx + url_bw as i32 + 14;
         ensure_bottom_text(sdi, "bar_usb", usb_x, BAR_Y + 8, 8);
         if let Ok(obj) = sdi.get_mut("bar_usb") {
             obj.text = Some("USB".to_string());
@@ -196,7 +217,7 @@ impl BottomBar {
         }
 
         // Page dots (small squares near USB indicator).
-        let dots_x = usb_x - (self.total_pages.min(4) as i32) * 12 - 8;
+        let dots_x = usb_x + 36;
         for i in 0..self.total_pages.min(4) {
             let name = format!("bar_page_{i}");
             if !sdi.contains(&name) {
@@ -229,14 +250,20 @@ impl BottomBar {
     pub fn hide_sdi(sdi: &mut SdiRegistry) {
         let names = [
             "bar_bottom",
+            "bar_bottom_line",
             "bar_url",
             "bar_usb",
+            "bar_r_hint",
             "bar_url_bezel",
             "bar_url_bezel_t",
             "bar_url_bezel_b",
+            "bar_url_bezel_l",
+            "bar_url_bezel_r",
             "bar_tab_bezel",
             "bar_tab_bezel_t",
             "bar_tab_bezel_b",
+            "bar_tab_bezel_l",
+            "bar_tab_bezel_r",
         ];
         for name in &names {
             if let Ok(obj) = sdi.get_mut(name) {
@@ -269,9 +296,10 @@ impl Default for BottomBar {
     }
 }
 
-/// Helper: create a metallic bezel (dark fill + lighter top edge + darker bottom edge).
+/// Helper: create a silvery/chrome metallic bezel with all 4 edges.
+/// PSIX bezels are light silver, not dark -- they reflect light.
 fn ensure_bezel(sdi: &mut SdiRegistry, name: &str, x: i32, y: i32, w: u32, h: u32) {
-    // Main dark fill.
+    // Silver-tinted semi-transparent fill (chrome effect).
     if !sdi.contains(name) {
         let obj = sdi.create(name);
         obj.overlay = true;
@@ -282,10 +310,10 @@ fn ensure_bezel(sdi: &mut SdiRegistry, name: &str, x: i32, y: i32, w: u32, h: u3
         obj.y = y;
         obj.w = w;
         obj.h = h;
-        obj.color = Color::rgba(0, 0, 0, 60);
+        obj.color = Color::rgba(160, 170, 180, 80);
         obj.visible = true;
     }
-    // Top highlight edge.
+    // Top highlight edge (bright white for chrome reflection).
     let top_name = format!("{name}_t");
     if !sdi.contains(&top_name) {
         let obj = sdi.create(&top_name);
@@ -297,7 +325,7 @@ fn ensure_bezel(sdi: &mut SdiRegistry, name: &str, x: i32, y: i32, w: u32, h: u3
         obj.y = y;
         obj.w = w;
         obj.h = 1;
-        obj.color = Color::rgba(255, 255, 255, 50);
+        obj.color = Color::rgba(255, 255, 255, 120);
         obj.visible = true;
     }
     // Bottom shadow edge.
@@ -312,7 +340,62 @@ fn ensure_bezel(sdi: &mut SdiRegistry, name: &str, x: i32, y: i32, w: u32, h: u3
         obj.y = y + h as i32 - 1;
         obj.w = w;
         obj.h = 1;
-        obj.color = Color::rgba(0, 0, 0, 80);
+        obj.color = Color::rgba(60, 70, 80, 140);
+        obj.visible = true;
+    }
+    // Left edge (light chrome).
+    let left_name = format!("{name}_l");
+    if !sdi.contains(&left_name) {
+        let obj = sdi.create(&left_name);
+        obj.overlay = true;
+        obj.z = 901;
+    }
+    if let Ok(obj) = sdi.get_mut(&left_name) {
+        obj.x = x;
+        obj.y = y;
+        obj.w = 1;
+        obj.h = h;
+        obj.color = Color::rgba(255, 255, 255, 80);
+        obj.visible = true;
+    }
+    // Right edge (darker chrome shadow).
+    let right_name = format!("{name}_r");
+    if !sdi.contains(&right_name) {
+        let obj = sdi.create(&right_name);
+        obj.overlay = true;
+        obj.z = 901;
+    }
+    if let Ok(obj) = sdi.get_mut(&right_name) {
+        obj.x = x + w as i32 - 1;
+        obj.y = y;
+        obj.w = 1;
+        obj.h = h;
+        obj.color = Color::rgba(80, 90, 100, 120);
+        obj.visible = true;
+    }
+}
+
+/// Helper: create a thin border SDI object for the bottom bar.
+fn ensure_bar_border(
+    sdi: &mut SdiRegistry,
+    name: &str,
+    x: i32,
+    y: i32,
+    w: u32,
+    h: u32,
+    color: Color,
+) {
+    if !sdi.contains(name) {
+        let obj = sdi.create(name);
+        obj.overlay = true;
+        obj.z = 901;
+    }
+    if let Ok(obj) = sdi.get_mut(name) {
+        obj.x = x;
+        obj.y = y;
+        obj.w = w;
+        obj.h = h;
+        obj.color = color;
         obj.visible = true;
     }
 }

@@ -169,8 +169,8 @@ impl StatusBar {
             obj.z = 901;
         }
 
-        // Version label (center area).
-        ensure_text_object(sdi, "bar_version", 170, 7, 8, Color::rgb(220, 220, 220));
+        // Version label (center area, PSIX: "Version 1.1 Public").
+        ensure_text_object(sdi, "bar_version", 180, 7, 8, Color::WHITE);
         if let Ok(obj) = sdi.get_mut("bar_version") {
             obj.text = Some("Version 0.1".to_string());
             obj.overlay = true;
@@ -189,8 +189,23 @@ impl StatusBar {
             obj.z = 901;
         }
 
+        // "MSO"-style label before tabs (PSIX shows "MSO" as a category label).
+        ensure_text_object(
+            sdi,
+            "bar_mso",
+            6,
+            BAR_H as i32 + 3,
+            8,
+            Color::rgb(220, 220, 220),
+        );
+        if let Ok(obj) = sdi.get_mut("bar_mso") {
+            obj.text = Some("OSS".to_string());
+            obj.overlay = true;
+            obj.z = 902;
+        }
+
         // Tab row (PSIX-style thin outlined borders around each tab label).
-        let tab_x_start = 6;
+        let tab_x_start = 34;
         let tab_w: i32 = 45;
         let tab_h: i32 = 16;
         let tab_gap = 4;
@@ -293,6 +308,7 @@ impl StatusBar {
             "bar_clock",
             "bar_battery",
             "bar_cpu",
+            "bar_mso",
         ];
         for name in &names {
             if let Ok(obj) = sdi.get_mut(name) {
