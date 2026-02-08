@@ -162,11 +162,11 @@ fn start_docker(profile: &str) -> Result<()> {
     // Health check
     output::step("Waiting for services to become healthy...");
     for _ in 0..30 {
-        if let Ok(ps) = process::run_capture("docker", &["compose", "ps"]) {
-            if ps.contains("healthy") {
-                output::success("Services are healthy");
-                break;
-            }
+        if let Ok(ps) = process::run_capture("docker", &["compose", "ps"])
+            && ps.contains("healthy")
+        {
+            output::success("Services are healthy");
+            break;
         }
         eprint!(".");
         std::thread::sleep(std::time::Duration::from_secs(2));

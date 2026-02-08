@@ -349,11 +349,11 @@ fn extract_agent_summary(output: &str) -> String {
     let start_marker = "---AGENT-SUMMARY-START---";
     let end_marker = "---AGENT-SUMMARY-END---";
 
-    if let Some(start) = output.find(start_marker) {
-        if let Some(end) = output[start..].find(end_marker) {
-            let summary = &output[start + start_marker.len()..start + end];
-            return summary.trim().to_string();
-        }
+    if let Some(start) = output.find(start_marker)
+        && let Some(end) = output[start..].find(end_marker)
+    {
+        let summary = &output[start + start_marker.len()..start + end];
+        return summary.trim().to_string();
     }
 
     // Fallback: last 20 meaningful lines

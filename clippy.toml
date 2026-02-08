@@ -32,8 +32,8 @@ allowed-idents-below-min-chars = ["i", "j", "k", "n", "x", "y", "z", "e", "_"]
 
 # MSRV (Minimum Supported Rust Version)
 # This affects which lints suggest newer language features
-# Note: Edition 2024 requires Rust 1.85+, but codebase uses features from 1.87+
-msrv = "1.87.0"
+# Note: Edition 2024 requires Rust 1.85+, codebase uses str::floor_char_boundary (1.91+)
+msrv = "1.91.0"
 
 # Trivially copy-able types size threshold (bytes)
 trivial-copy-size-limit = 16
