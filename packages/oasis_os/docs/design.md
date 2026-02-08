@@ -3,7 +3,7 @@
 ## An Embeddable Operating System Framework in Rust
 
 **Technical Design Document**
-Version 2.2 -- February 2026
+Version 2.3 -- February 2026
 Author: Andrew
 Classification: Personal Project -- Open Source
 
@@ -40,7 +40,7 @@ OASIS_OS is an embeddable operating system framework written in Rust. It provide
 
 The project originated as a Rust port of a PSP homebrew shell OS written in C circa 2006-2008. The original source archive (`psixpsp.7z`) is preserved at the repository root. The original architecture -- a themed dashboard driven by a custom scene-graph engine called SDI (Simple Display Interface), with platform abstraction via compile-time guards -- turned out to be a natural foundation for something more general. The trait-based backend system designed for cross-platform PSP/SDL/framebuffer portability extends cleanly to a fourth target: rendering onto a texture inside Unreal Engine 5, where in-game computer props become fully interactive systems rather than scripted UI sequences.
 
-The framework supports multiple "skins" -- visual and behavioral personalities that determine what the OS looks like and what it exposes to the user. The Classic skin reproduces the original PSP-style icon grid dashboard. A cyberpunk terminal skin renders green-on-black CRT text. A military console skin exposes only the command line. A corrupted OS skin randomly permutes visual state. All skins share the same core: scene graph, command interpreter, virtual file system, networking, and plugin infrastructure. The skin defines layout, theme, feature gating, and visual style.
+The framework supports multiple "skins" -- visual and behavioral personalities that determine what the OS looks like and what it exposes to the user. The Classic skin (implemented) renders a PSIX-style icon grid dashboard with document icons, tabbed bars, and chrome bezels. Planned skins include: a cyberpunk terminal skin with green-on-black CRT text, a military console skin exposing only the command line, and a corrupted OS skin that randomly permutes visual state. All skins share the same core: scene graph, command interpreter, virtual file system, networking, and plugin infrastructure. The skin defines layout, theme, feature gating, and visual style.
 
 Primary deployment targets are: in-game computers in UE5 projects (rendered as interactive props), real PSP hardware running modern custom firmware (6.60/6.61 with ARK-4), and the tamper-responsive briefcase system (`packages/tamper_briefcase/`) where a Raspberry Pi 5 boots directly into OASIS_OS as the field-deployable agent terminal OS. On the briefcase, OASIS_OS is the operator-facing interface for managing AI agents in untrusted environments -- the tamper detection, LUKS encryption, and cryptographic wipe services run alongside it as systemd units. On a PSP connected to infrastructure WiFi, OASIS_OS's remote terminal enables direct command sessions to machines running AI agents, making a 2005 handheld a viable field controller for the agent ecosystem described in `docs/agents/README.md`. The original C codebase (~15,000 lines) provides the proven UI design; the Rust rewrite provides memory safety, cross-platform backends, and the extensibility to support all targets from a single codebase.
 
@@ -88,74 +88,80 @@ OASIS_OS follows a layered architecture with strict separation between the platf
 
 ### 3.2 Repository Structure
 
-The project is organized as a Cargo workspace under `packages/oasis_os/`, following the same conventions as other research packages in this repository (`tamper_briefcase`, `economic_agents`, `bioforge`, `injection_toolkit`). The core crate has zero platform dependencies and compiles under both `std` and `no_std`. Platform crates are gated behind Cargo feature flags and `cfg(target_arch)` conditionals. Skins are data-driven configurations loaded at runtime.
+The project is organized as a Cargo workspace under `packages/oasis_os/`, following the same conventions as other research packages in this repository (`tamper_briefcase`, `economic_agents`, `bioforge`, `injection_toolkit`). The core crate depends on `std`. Skins are data-driven configurations loaded at runtime.
+
+The rust-psp SDK lives as a sibling package at `packages/rust_psp_sdk/` rather than vendored inside oasis_os. The PSP backend crate is excluded from the workspace because it requires the `mipsel-sony-psp` target and is built separately with `cargo psp`.
 
 ```
 packages/oasis_os/
 +-- Cargo.toml                     # Workspace root (resolver="2", edition 2024)
-+-- deny.toml                      # cargo-deny license/advisory checks
 +-- crates/
-|   +-- oasis-core/                 # Platform-agnostic framework
+|   +-- oasis-core/                 # Platform-agnostic framework (requires std)
 |   |   +-- src/
 |   |       +-- sdi/               # Scene graph: named registry, z-order, alpha, layout, theming
 |   |       +-- terminal/          # Command interpreter, command trait, registry, remote listener
 |   |       +-- vfs/               # Virtual file system: trait-based I/O
-|   |       +-- config/            # Theme/settings parsing (TOML), skin loading, feature flags
-|   |       +-- plugins/           # Plugin loading interface, lifecycle, host API
-|   |       +-- input/             # Platform-agnostic InputEvent enum, mapping, cursor state
+|   |       +-- dashboard/         # Application grid discovery and state
+|   |       +-- skin/              # Skin loading and management
 |   |       +-- wm/                # Window manager: lifecycle, drag/resize, hit testing, clipping
-|   +-- oasis-backend-psp/          # GU rendering, PSP controller, pspnet sockets, ms0:/ VFS
+|   |       +-- plugin/            # Plugin loading interface, lifecycle, host API
+|   |       +-- agent/             # Agent terminal integration
+|   |       +-- audio/             # Audio subsystem with playlist support
+|   |       +-- apps/              # Application launcher and runner
+|   |       +-- platform/          # Platform services (time, power, USB)
+|   |       +-- (and more modules: bottombar, statusbar, cursor, osk, pbp, theme, wallpaper, ...)
 |   +-- oasis-backend-sdl/          # SDL2 rendering and input (desktop dev + Raspberry Pi)
-|   +-- oasis-backend-framebuffer/  # Direct Linux framebuffer rendering (headless Pi)
-|   +-- oasis-backend-ue5/          # UE5 render target, interaction input bridge, game asset VFS
-|   +-- oasis-platform-psp/         # PSP hardware: USB, UMD, power, Media Engine, kernel services
-|   +-- oasis-platform-linux/       # Pi-specific: GPIO (rppal), systemd integration, sysfs queries
+|   +-- oasis-backend-ue5/          # UE5 render target, software RGBA framebuffer, FFI input queue
+|   +-- oasis-backend-psp/          # [EXCLUDED] GU hardware rendering, PSP controller input (no_std, standalone)
 |   +-- oasis-ffi/                  # C FFI boundary for UE5: exported functions, opaque handles
-|   +-- oasis-app/                  # Binary entry points (PSP, Linux, desktop)
+|   +-- oasis-app/                  # Binary entry points: desktop app + screenshot tool
 +-- skins/
-|   +-- classic/              # Icon grid dashboard, PBP scanning, virtual desktops, status bar
-|   +-- terminal/                  # Full-screen CRT command line, monospace layout
-|   +-- tactical/                  # Military/tactical: stripped-down command interface, status displays
-|   +-- corrupted/                 # Glitched OS: randomized layouts, visual artifacts, repair puzzles
-|   +-- desktop/                   # Window-like panels, taskbar, start menu analog
-|   +-- agent-terminal/            # Briefcase-specific: agent status, MCP tool access, remote sessions
-+-- vendor/
-|   +-- rust-psp/                 # Vendored rust-psp SDK (MIT), extended with kernel mode support
-+-- ppsspp/
-|   +-- Dockerfile                # Builds PPSSPP from source with MCP patches applied
-|   +-- patches/                  # Patch files applied during Docker build
-|   |   +-- 0001-mcp-server.patch       # Embeds MCP server into PPSSPP (STDIO or TCP transport)
-|   |   +-- 0002-memory-tools.patch     # MCP tools: memory read/write/search, heap inspection
-|   |   +-- 0003-gpu-tools.patch        # MCP tools: GU state, VRAM dump, texture list, draw call trace
-|   |   +-- 0004-debug-tools.patch      # MCP tools: breakpoints, register read, step, thread list
-|   |   +-- 0005-network-tools.patch    # MCP tools: socket inspector, packet capture, latency injection
-|   |   +-- 0006-headless-mode.patch    # Headless rendering for CI (no X11/Wayland required)
-|   +-- mcp-schema/               # JSON schemas for the PPSSPP MCP tools (shared with agents)
-|   +-- scripts/
-|       +-- run-test.sh           # Launch container, load EBOOT, run MCP test sequence, exit
-|       +-- snapshot.sh           # Capture emulator state snapshot for reproducible debugging
-+-- asm/                           # Preserved MIPS assembly: me.S, audiolib.S, pspstub.s
+|   +-- classic/                    # Icon grid dashboard, status bar, PSIX-style chrome (implemented)
 +-- docs/
-|   +-- design.md                  # This document
-|   +-- governance-implications.md # AI governance analysis (per repo convention)
-+-- scripts/                       # Deployment, Pi setup, PSP packaging
+|   +-- design.md                   # This document
 ```
 
-**Workspace Cargo.toml** follows the established pattern:
+**Sibling packages used by OASIS_OS:**
+
+```
+packages/rust_psp_sdk/              # Vendored rust-psp SDK (MIT), modernized for edition 2024
++-- psp/                            # Core PSP crate (sceGu, sceCtrl, sys bindings, vram_alloc)
++-- cargo-psp/                      # Build tool: cross-compile + prxgen + pack-pbp -> EBOOT.PBP
+```
+
+**Planned directories (not yet created):**
+
+- `skins/terminal/` -- Full-screen CRT command line, monospace layout
+- `skins/tactical/` -- Military/tactical: stripped-down command interface
+- `skins/corrupted/` -- Glitched OS: randomized layouts, visual artifacts
+- `skins/desktop/` -- Window-like panels, taskbar, start menu analog
+- `skins/agent-terminal/` -- Briefcase-specific: agent status, MCP tool access
+- `ppsspp/` -- PPSSPP Docker container with MCP patches for agent-assisted debugging
+- `asm/` -- Preserved MIPS assembly (me.S, audiolib.S, pspstub.s) from original C codebase
+
+**Planned crates (not yet created):**
+
+- `oasis-backend-framebuffer` -- Direct Linux framebuffer rendering (headless Pi)
+- `oasis-platform-psp` -- PSP hardware services: USB, UMD, power, Media Engine, kernel services
+- `oasis-platform-linux` -- Pi-specific: GPIO (rppal), systemd integration, sysfs queries
+
+**Workspace Cargo.toml:**
 
 ```toml
 [workspace]
 resolver = "2"
 members = [
     "crates/oasis-core",
-    "crates/oasis-backend-psp",
     "crates/oasis-backend-sdl",
-    "crates/oasis-backend-framebuffer",
     "crates/oasis-backend-ue5",
-    "crates/oasis-platform-psp",
-    "crates/oasis-platform-linux",
     "crates/oasis-ffi",
     "crates/oasis-app",
+]
+# PSP crate excluded from workspace -- it requires mipsel-sony-psp target
+# and the rust_psp_sdk package. Build separately with cargo-psp:
+#   cd crates/oasis-backend-psp && cargo psp --release
+exclude = [
+    "crates/oasis-backend-psp",
 ]
 
 [workspace.package]
@@ -179,20 +185,15 @@ env_logger = "0.11"
 thiserror = "2.0"
 anyhow = "1.0"
 
-# Time
-chrono = { version = "0.4", features = ["serde"] }
+# Graphics (desktop / Pi)
+sdl2 = "0.37"
 
-# Hardware (Raspberry Pi)
-rppal = "0.19"
-
-# CLI
-clap = { version = "4.5", features = ["derive"] }
-
-# PSP (vendored rust-psp SDK, extended with kernel mode support)
-psp = { path = "vendor/rust-psp/psp" }
+# Image encoding (screenshots)
+png = "0.17"
 
 # Internal crates
 oasis-core = { path = "crates/oasis-core" }
+oasis-backend-ue5 = { path = "crates/oasis-backend-ue5" }
 
 [workspace.lints.clippy]
 clone_on_ref_ptr = "warn"
@@ -214,32 +215,32 @@ opt-level = 0
 debug = true
 ```
 
-Individual crates inherit from the workspace, with Pi-specific hardware gated behind `cfg(target_arch)`:
+The PSP backend crate has its own standalone `Cargo.toml` (not workspace-inherited) because it targets `mipsel-sony-psp` and depends on the sibling `rust_psp_sdk` package:
 
 ```toml
-# crates/oasis-platform-linux/Cargo.toml
+# crates/oasis-backend-psp/Cargo.toml
+[workspace]  # standalone workspace
+
 [package]
-name = "oasis-platform-linux"
-version.workspace = true
-edition.workspace = true
-license.workspace = true
+name = "oasis-backend-psp"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
 
-[target.'cfg(target_arch = "aarch64")'.dependencies]
-rppal = { workspace = true }
-
-[lints]
-workspace = true
+[dependencies]
+psp = { path = "../../../rust_psp_sdk/psp" }
 ```
 
 ### 3.3 Platform Targeting
 
-| Target | Cargo Command | Render Backend | Input Backend | VFS Backend |
-|--------|--------------|----------------|---------------|-------------|
-| UE5 (in-game) | `cargo build --features ue5` (static lib / cdylib) | UE5 render target | UE5 interaction | Game asset VFS |
-| PSP (real hardware) | `cargo build --features psp` | GU (rust-psp) | PSP controller | ms0:/ real FS |
-| PPSSPP (emulator) | `cargo build --features psp` | GU (rust-psp) | PSP controller | ms0:/ real FS |
-| Raspberry Pi (briefcase) | `cargo build --target aarch64-unknown-linux-gnu --features pi` | SDL2 or framebuffer | Keyboard/gamepad/GPIO | Real Linux FS |
-| Desktop (dev) | `cargo build --features desktop` | SDL2 | Keyboard/mouse | Real Linux FS |
+| Target | Cargo Command | Render Backend | Input Backend | VFS Backend | Status |
+|--------|--------------|----------------|---------------|-------------|--------|
+| Desktop (dev) | `cargo build --release -p oasis-app` | SDL2 | Keyboard/mouse | Real Linux FS | Implemented |
+| PSP / PPSSPP | `cd crates/oasis-backend-psp && cargo +nightly psp --release` | sceGu hardware (Sprites) | PSP controller | ms0:/ real FS | Implemented |
+| UE5 (in-game) | `cargo build --release -p oasis-ffi` (cdylib) | UE5 render target | UE5 interaction | Game asset VFS | Implemented (FFI ready) |
+| Raspberry Pi (briefcase) | `cargo build --release -p oasis-app --target aarch64-unknown-linux-gnu` | SDL2 | Keyboard/gamepad | Real Linux FS | Planned (SDL2 backend works, cross-compile not yet tested) |
+
+Note: The PSP backend is a standalone crate excluded from the workspace. It does not depend on `oasis-core` (which requires `std`) -- instead it duplicates minimal types (`Color`, `Button`, `Trigger`, `TextureId`) for `no_std` compatibility. The PSP backend uses sceGu hardware-accelerated 2D rendering with `Sprites` primitives and renders a PSIX-style UI (document icons, tabbed bars, chrome bezels, wave arc wallpaper) matching the desktop layout.
 
 ---
 
@@ -406,14 +407,14 @@ The corrupted skin demonstrates that the WM's behavioral hooks (position update,
 
 ### 5.1 Rendering Backend Trait
 
-Every rendering operation passes through `SdiBackend`. Four implementations cover all deployment targets.
+Every rendering operation passes through `SdiBackend`. Three implementations exist; a fourth (framebuffer) is planned.
 
-| Method | PSP (GU) | SDL2 | Framebuffer | UE5 Render Target |
+| Method | PSP (GU) | SDL2 | Framebuffer [PLANNED] | UE5 Render Target |
 |--------|---------|------|-------------|-------------------|
 | `init()` | sceGuInit + display list | SDL_CreateWindow + Renderer | open /dev/fb0 + mmap | Allocate RGBA buffer |
-| `blit(tex, x, y, w, h)` | sceGuDrawArray | SDL_RenderCopy | memcpy to mapped buf | memcpy to RGBA buffer |
+| `blit(tex, x, y, w, h)` | sceGuDrawArray (Sprites) | SDL_RenderCopy | memcpy to mapped buf | memcpy to RGBA buffer |
 | `swap_buffers()` | sceGuSwapBuffers + VBlank | SDL_RenderPresent | ioctl WAITFORVSYNC | Set dirty flag (UE5 reads) |
-| `load_texture(data)` | VRAM alloc + GU upload | SDL_CreateTexture | Decode to RGB buf | Decode to RGBA buf |
+| `load_texture(data)` | RAM alloc (16-byte aligned) | SDL_CreateTexture | Decode to RGB buf | Decode to RGBA buf |
 | `clear(color)` | sceGuClear | SDL_RenderClear | memset framebuffer | memset RGBA buffer |
 | `shutdown()` | sceGuTerm | SDL_Destroy* | munmap + close | Free buffer |
 | `get_buffer()` | N/A | N/A | N/A | Return raw RGBA ptr |
@@ -461,16 +462,16 @@ A skin is a data-driven configuration that defines the visual and behavioral per
 | VFS overlay | What the virtual file system root looks like -- which directories exist, what files are pre-populated | `filesystem.toml` + content directory |
 | Strings | All user-facing text: menu labels, command help text, error messages, boot sequence text | `strings.toml` |
 
-### 6.2 Planned Skins
+### 6.2 Skins
 
-| Skin | Description | Primary Target | Use Case |
-|------|-------------|---------------|----------|
-| Classic | Original PSP-style icon grid dashboard with virtual desktops, status bar, analog cursor, PBP scanning | PSP / Pi / Desktop | Homebrew shell OS, the original C codebase experience ported faithfully |
-| Terminal | Full-screen command line with CRT visual metadata (scanlines, phosphor glow, screen curvature -- applied by host shader) | UE5 / Desktop | In-game hacking terminals, retro computer props, SSH-style remote access |
-| Tactical | Stripped-down command interface with status displays, no visual chrome, monospace grid layout | UE5 | Military command consoles, security systems, restricted-access terminals |
-| Corrupted | Randomized SDI object positions/alpha, garbled command output, visual glitch artifacts, "repair" puzzle hooks | UE5 | Damaged terminals the player must fix, environmental storytelling |
-| Desktop | Window-like panels, taskbar, start menu analog, multiple "apps" visible simultaneously | UE5 / Pi | Civilian in-game computers, player home terminals |
-| Agent Terminal | Agent-focused dashboard: agent status panel, MCP tool browser, remote session manager, system health, tamper status indicator | Pi (briefcase) | Briefcase field terminal for AI agent management (see Section 10) |
+| Skin | Description | Primary Target | Use Case | Status |
+|------|-------------|---------------|----------|--------|
+| Classic | PSIX-style icon grid dashboard with document icons, tabbed status/bottom bars, chrome bezels, wave arc wallpaper | PSP / Pi / Desktop | Homebrew shell OS, the original C codebase experience modernized with PSIX styling | **Implemented** |
+| Terminal | Full-screen command line with CRT visual metadata (scanlines, phosphor glow, screen curvature -- applied by host shader) | UE5 / Desktop | In-game hacking terminals, retro computer props, SSH-style remote access | Planned |
+| Tactical | Stripped-down command interface with status displays, no visual chrome, monospace grid layout | UE5 | Military command consoles, security systems, restricted-access terminals | Planned |
+| Corrupted | Randomized SDI object positions/alpha, garbled command output, visual glitch artifacts, "repair" puzzle hooks | UE5 | Damaged terminals the player must fix, environmental storytelling | Planned |
+| Desktop | Window-like panels, taskbar, start menu analog, multiple "apps" visible simultaneously | UE5 / Pi | Civilian in-game computers, player home terminals | Planned |
+| Agent Terminal | Agent-focused dashboard: agent status panel, MCP tool browser, remote session manager, system health, tamper status indicator | Pi (briefcase) | Briefcase field terminal for AI agent management (see Section 10) | Planned |
 
 ### 6.3 Skin Loading and Switching
 
@@ -597,11 +598,13 @@ The PSP has 32MB of main RAM (64MB on PSP-2000+), a 333MHz MIPS R4000 CPU, and 2
 
 The original C codebase runs in kernel mode (`PSP_MODULE_INFO` flag `0x1000`), granting access to all hardware registers, the ability to load arbitrary PRX modules, and direct Memory Stick I/O.
 
-**Vendored PSP SDK:** OASIS_OS bundles the rust-psp SDK directly into the monorepo (at `packages/oasis_os/vendor/rust-psp/`) rather than depending on the upstream crate. The upstream project (`github.com/overdrivenpotato/rust-psp`, MIT license) is maintained at a low cadence (~3-4 commits/year) and lacks kernel mode support (issue #48, open since June 2020). By vendoring the SDK, OASIS_OS can extend it with kernel mode module support (`PSP_MODULE_INFO` flag `0x1000`), `#![no_std]` improvements, and additional syscall bindings as needed -- without waiting on upstream. The vendored copy tracks upstream for bug fixes but diverges for kernel-mode and feature additions.
+**Vendored PSP SDK:** The rust-psp SDK is vendored into the monorepo as a sibling package at `packages/rust_psp_sdk/` rather than depending on the upstream crate. The upstream project (`github.com/overdrivenpotato/rust-psp`, MIT license) is maintained at a low cadence (~3-4 commits/year) and lacks kernel mode support (issue #48, open since June 2020). By vendoring the SDK, OASIS_OS can extend it with kernel mode module support (`PSP_MODULE_INFO` flag `0x1000`), `#![no_std]` improvements, edition 2024 modernization, and additional syscall bindings as needed -- without waiting on upstream. The vendored copy tracks upstream for bug fixes but diverges for kernel-mode and feature additions. The PSP backend crate references the SDK via relative path: `psp = { path = "../../../rust_psp_sdk/psp" }`.
 
 OASIS_OS initially targets user mode, which is sufficient for rendering, input, networking, and file I/O on modern custom firmware. Kernel-mode features (Media Engine coprocessor, raw hardware register access) are the primary motivation for extending the vendored SDK. Until kernel mode is implemented in the vendored SDK, these features are accessed through pre-compiled PRX modules loaded at runtime. The `#![no_std]` + `#![no_main]` entry point uses `psp::module!()` macro with `psp_main()`.
 
-### 8.3 Assembly Preservation
+### 8.3 Assembly Preservation [PLANNED]
+
+> **Status:** The assembly files have not yet been extracted from the original C archive. The `asm/` directory does not yet exist.
 
 Three assembly files from the original C codebase must be preserved rather than ported:
 
@@ -690,7 +693,9 @@ On the Raspberry Pi, OASIS_OS operates as a kiosk-mode application booting direc
 
 ---
 
-## 10. Briefcase Agent Terminal
+## 10. Briefcase Agent Terminal [PLANNED]
+
+> **Status:** The agent-terminal skin and its integration with tamper services described in this section are planned but not yet implemented. The core framework supports the necessary abstractions (skin system, command interpreter, remote terminal), and the tamper_briefcase package exists, but the agent-terminal skin configuration and briefcase-specific commands have not been created.
 
 ### 10.1 Context
 
@@ -760,7 +765,9 @@ $
 
 ---
 
-## 11. PSP Remote Agent Control
+## 11. PSP Remote Agent Control [PLANNED]
+
+> **Status:** The outbound TCP remote session capability described here is planned. The core framework's remote terminal module supports inbound TCP listening, but the outbound `remote` command, VT100 emulation, saved hosts configuration, and PSP-specific input shortcuts are not yet implemented.
 
 ### 11.1 Concept
 
@@ -886,7 +893,9 @@ The VFS root, pre-populated content, and write permissions are all defined per-t
 | 2 -- PPSSPP (container) | PSP build running in MCP-patched PPSSPP container | GU rendering, PSP input, networking (infra mode), memory constraints, thread behavior, agent-assisted debugging via MCP | ~5 seconds (cross-compile + launch) |
 | 3 -- Hardware/UE5 | Real PSP + Raspberry Pi + UE5 editor | WiFi, USB, Media Engine, GPIO, boot-to-shell, in-game render target, interaction flow | ~30 seconds (deploy + reboot/PIE) |
 
-### 13.2 Containerized PPSSPP with MCP Integration
+### 13.2 Containerized PPSSPP with MCP Integration [PLANNED]
+
+> **Status:** This section describes planned infrastructure that has not yet been built. Currently, PPSSPP is used for testing via the project's existing `ppsspp` Docker Compose service (a stock PPSSPP build with X11 forwarding). The MCP-patched container, patch files, and MCP schema directory described below are future work.
 
 PPSSPP runs inside a Docker container built from source with a set of patches that embed an MCP server directly into the emulator. This gives AI agents deep introspection into the running PSP environment -- memory state, GPU pipeline, thread scheduling, network sockets -- through the same MCP tool interface used by every other tool in the repository. The container follows the project's container-first philosophy: no local PPSSPP installation required, reproducible builds, and CI-ready headless mode.
 
@@ -1156,25 +1165,19 @@ Plugins interact with OASIS_OS through a stable, versioned API providing access 
 
 ### 16.2 CI Pipeline Integration
 
-OASIS_OS integrates with the existing `automation-cli` CI system. Package stages follow the established convention:
+OASIS_OS integrates with the existing CI system via Docker-based execution (container-first philosophy):
 
 ```bash
-# All OASIS_OS checks
-automation-cli ci run oasis-full
-
-# Individual stages
-automation-cli ci run oasis-fmt       # cargo fmt --check
-automation-cli ci run oasis-clippy    # cargo clippy
-automation-cli ci run oasis-test      # cargo test (desktop target)
-automation-cli ci run oasis-build     # cargo build --release
-automation-cli ci run oasis-deny      # cargo deny check
-
-# Docker-based execution (container-first philosophy)
-docker compose run --rm -w /app/packages/oasis_os rust-ci cargo clippy --workspace
+# Docker-based execution (current approach)
+docker compose run --rm -w /app/packages/oasis_os rust-ci cargo fmt --check --all
+docker compose run --rm -w /app/packages/oasis_os rust-ci cargo clippy --workspace -- -D warnings
 docker compose run --rm -w /app/packages/oasis_os rust-ci cargo test --workspace
+docker compose run --rm -w /app/packages/oasis_os rust-ci cargo build --release --workspace
 ```
 
-The CI pipeline runs automatically on PR validation when files in `packages/oasis_os/` change:
+> **Status:** Dedicated `oasis-*` CI stages (e.g., `automation-cli ci run oasis-full`) are planned but not yet registered in `automation-cli` or `run-ci.sh`. Currently, CI checks for the oasis_os workspace are run manually via the Docker commands above. The PSP backend is built separately on the host with `cargo +nightly psp --release` (requires the nightly toolchain and `cargo-psp`).
+
+**Planned CI stages** (to be added to `automation-cli`):
 
 | Stage | Tool | Purpose |
 |-------|------|---------|
@@ -1183,9 +1186,8 @@ The CI pipeline runs automatically on PR validation when files in `packages/oasi
 | `oasis-test` | cargo test | Unit tests (desktop target, core + VFS + commands + skins) |
 | `oasis-build` | cargo build | Release build verification |
 | `oasis-deny` | cargo-deny | License and advisory audit |
-| Cross-compile PSP | cargo build --features psp | Verify EBOOT.PBP builds, check binary size |
-| PSP integration (PPSSPP) | docker compose up ppsspp-mcp + MCP test sequence | Boot EBOOT in container, verify screenshot, run command via remote terminal, check memory budget via MCP |
-| Cross-compile ARM | cargo build --target aarch64-unknown-linux-gnu | Verify Pi binary builds |
+| PSP build | cargo +nightly psp --release | Verify EBOOT.PBP builds |
+| PSP integration (PPSSPP) [PLANNED] | docker compose up ppsspp-mcp + MCP test sequence | Boot EBOOT in container, verify screenshot |
 
 ### 16.3 Context Protection
 
@@ -1203,22 +1205,25 @@ automation-cli ci run oasis-full > /tmp/ci-output.log 2>&1 \
 
 The original C source (`psixpsp.7z` at repository root) contains ~15,000 lines of C. The port follows a phased approach. Each phase produces a working, testable binary. The framework refactoring (core/backend/skin separation) happens in Phase 1-2, with original codebase features migrating in Phase 3-4 as the Classic skin.
 
-| Phase | Deliverable | Source | Estimated LOC |
-|-------|-----------|--------|---------------|
-| 1 -- Framework scaffold | SDI core + backend trait + blank screen on SDL2 + UE5 render target stub | `sdi/sdi.c`, `sdi/backends/psp/gu.c` (architecture only) | ~1,200 |
-| 2 -- SDI + VFS + Commands | Full scene graph, VFS trait + RealFS + MemoryVFS, command interpreter with basic commands | `sdi/sdi.c`, `sdi/png.c`, `font.c`, new VFS code | ~3,500 |
-| 3 -- Classic skin | Icon grid dashboard, virtual desktops, PBP scanning, app discovery, cursor navigation | `dashboard.c`, `pbp.c`, `image.c`, skin config | ~2,500 |
-| 4 -- PSP subsystems | Input, power, time, USB, file browser, on-screen keyboard, GU backend | `input.c`, `power.c`, `time.c`, `usb.c`, `file.c`, `osk.c` | ~2,000 |
-| 5 -- Remote terminal | TCP listener + outbound client, authentication, full command suite, remote access on all platforms | `net.c` (partial), new code | ~2,500 |
-| 6 -- UE5 integration | FFI boundary, UE5 render target backend, interaction input, GameAssetVFS | All new code | ~2,000 |
-| 7 -- Window manager | WM core: window lifecycle, grouping, drag/resize/focus, hit testing, clipping, window types | All new code | ~2,000 |
-| 8 -- Skin system | Skin loading, hot-swap, Terminal skin, Tactical skin, Corrupted skin, Desktop skin (uses WM) | All new code + skin configs | ~1,500 |
-| 9 -- Agent terminal skin | Agent status dashboard, MCP tool integration, remote session manager, tamper status display | All new code | ~1,500 |
-| 10 -- Plugins | Plugin system, host API, 2-3 example plugins | All new code | ~1,500 |
-| 11 -- Audio | MP3 playback with ME offloading (PSP) or rodio (Linux) | `audio.c`, `me.S`, `modules/audio/*` | ~1,200 |
-| 12 -- Polish | Transitions, update checker, scripting, FTP server | `transition.c`, `update.c` + new | ~2,100 |
+| Phase | Deliverable | Source | Status |
+|-------|-----------|--------|--------|
+| 1 -- Framework scaffold | SDI core + backend trait + blank screen on SDL2 + UE5 render target stub | `sdi/sdi.c`, `sdi/backends/psp/gu.c` (architecture only) | **Complete** |
+| 2 -- SDI + VFS + Commands | Full scene graph, VFS trait + RealFS + MemoryVFS, command interpreter with basic commands | `sdi/sdi.c`, `sdi/png.c`, `font.c`, new VFS code | **Complete** |
+| 3 -- Classic skin | Icon grid dashboard, PBP scanning, app discovery, cursor navigation | `dashboard.c`, `pbp.c`, `image.c`, skin config | **Complete** |
+| 4 -- PSP subsystems | Input, power, time, USB, file browser, on-screen keyboard, GU backend | `input.c`, `power.c`, `time.c`, `usb.c`, `file.c`, `osk.c` | **Complete** |
+| 5 -- Remote terminal | TCP listener + outbound client, authentication, full command suite, remote access on all platforms | `net.c` (partial), new code | **Complete** |
+| 6 -- UE5 integration | FFI boundary, UE5 render target backend, interaction input, GameAssetVFS | All new code | **Complete** |
+| 7 -- Window manager | WM core: window lifecycle, grouping, drag/resize/focus, hit testing, clipping, window types | All new code | **Complete** |
+| 8 -- Skin system | Skin loading, hot-swap (Classic skin implemented; Terminal/Tactical/Corrupted/Desktop skins planned) | All new code + skin configs | **Partial** |
+| 9 -- Agent terminal skin | Agent status dashboard, MCP tool integration, remote session manager, tamper status display | All new code | Planned |
+| 10 -- Plugins | Plugin system, host API, 2-3 example plugins | All new code | **Complete** (framework; example plugins planned) |
+| 11 -- Audio | MP3 playback with ME offloading (PSP) or rodio (Linux) | `audio.c`, `me.S`, `modules/audio/*` | **Complete** (framework) |
+| 12 -- Polish | Transitions, update checker, scripting, FTP server | `transition.c`, `update.c` + new | **Complete** |
+| 13 -- PSP GU backend | Hardware-accelerated sceGu rendering, PSIX-style UI matching desktop layout | New code | **Complete** |
 
-Total estimated Rust codebase: approximately 24,000 lines, exceeding the original C codebase by ~9,000 lines due to the framework abstraction, window manager, VFS, UE5 integration, agent terminal skin, and multiple skins. The vendored ffmpeg (~176,000 lines) is eliminated entirely.
+Phase 13 was added after the original plan. The PSP backend was initially software-rendered, then switched to sceGu hardware acceleration with `Sprites` primitives for all 2D drawing. The PSP UI now renders the full PSIX-style layout: document icons with 6 layers, tabbed status/bottom bars, chrome bezels, procedural wave arc wallpaper, and paginated grid navigation.
+
+Total estimated Rust codebase: approximately 24,000 lines, exceeding the original C codebase by ~9,000 lines due to the framework abstraction, window manager, VFS, UE5 integration, and multiple skins. The vendored ffmpeg (~176,000 lines) is eliminated entirely.
 
 ---
 
@@ -1279,10 +1284,10 @@ Total estimated Rust codebase: approximately 24,000 lines, exceeding the origina
 |----------|---------------|
 | Original C source (v1.90) | `psixpsp.7z` (repository root) |
 | rust-psp upstream (vendored) | github.com/overdrivenpotato/rust-psp |
-| Vendored rust-psp SDK | `packages/oasis_os/vendor/rust-psp/` |
+| Vendored rust-psp SDK | `packages/rust_psp_sdk/` (sibling package) |
 | PPSSPP emulator (GPL-2.0+) | github.com/hrydgard/ppsspp |
 | PPSSPP infrastructure networking PR | github.com/hrydgard/ppsspp/pull/19827 |
-| PPSSPP MCP patches | `packages/oasis_os/ppsspp/patches/` |
+| PPSSPP MCP patches [PLANNED] | `packages/oasis_os/ppsspp/patches/` (not yet created) |
 | MCP specification | modelcontextprotocol.io |
 | PSP SDK documentation | psp-archive.github.io/pspsdk-docs/ |
 | PSP homebrew wiki | pspdev.github.io/ |
@@ -1295,6 +1300,7 @@ Total estimated Rust codebase: approximately 24,000 lines, exceeding the origina
 | ARK-4 custom firmware | github.com/PSP-Archive/ARK-4 |
 | Infinity 2 persistent CFW | infinity.lolhax.org |
 | cargo-fuzz | github.com/rust-fuzz/cargo-fuzz |
+| This design document | `packages/oasis_os/docs/design.md` |
 | Tamper briefcase design | `docs/hardware/secure-terminal-briefcase.md` |
 | Tamper briefcase implementation | `packages/tamper_briefcase/` |
 | Agent ecosystem documentation | `docs/agents/README.md` |
