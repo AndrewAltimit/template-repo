@@ -1,3 +1,4 @@
+use anyhow::{bail, Context as _, Result};
 use clap::Parser;
 use std::io::prelude::*;
 use std::io::SeekFrom;
@@ -113,7 +114,7 @@ where
     Ok((s[..pos].parse()?, s[pos + 1..].parse()?))
 }
 
-fn main() {
+fn main() -> Result<()> {
     let args = Args::parse();
     // TODO this type is undocumented, unused in mksfoext
     //let mut binaries: HashMap<String, Vec<u8>> = HashMap::new();
@@ -198,34 +199,34 @@ fn main() {
 
     let category = strings.get("CATEGORY").unwrap();
 
-    let validate = |key: &str, entry_type: EntryType| {
-        if !valid.contains_key(key) {
-            panic!("Invalid option {}", key);
-        }
-        let (t, wg, ms, mg, ug) = valid.get(key).unwrap();
+    let validate = |key: &str, entry_type: EntryType| -> Result<()> {
+        let (t, wg, ms, mg, ug) = valid
+            .get(key)
+            .ok_or_else(|| anyhow::anyhow!("invalid option: {}", key))?;
         if *t != entry_type {
-            panic!("Key {} does not take a {:?} value", key, entry_type)
+            bail!("key {} does not take a {:?} value", key, entry_type);
         }
         if category == "WG" && !wg {
-            panic!("Key {} is not valid for category WG", key);
+            bail!("key {} is not valid for category WG", key);
         }
         if category == "MS" && !ms {
-            panic!("Key {} is not valid for category MS", key);
+            bail!("key {} is not valid for category MS", key);
         }
         if category == "MG" && !mg {
-            panic!("Key {} is not valid for category MG", key);
+            bail!("key {} is not valid for category MG", key);
         }
         if category == "UG" && !ug {
-            panic!("Key {} is not valid for category UG", key);
+            bail!("key {} is not valid for category UG", key);
         }
+        Ok(())
     };
 
     for key in strings.keys() {
-        validate(key, EntryType::String);
+        validate(key, EntryType::String)?;
     }
 
     for key in dwords.keys() {
-        validate(key, EntryType::Dword);
+        validate(key, EntryType::Dword)?;
     }
 
     let outpath = args.output;
@@ -240,9 +241,10 @@ fn main() {
 
     let num_options = dwords.len() + strings.len();
     if num_options > MAX_OPTIONS {
-        panic!(
-            "Maximum number of options is {}, you have {}",
-            MAX_OPTIONS, num_options
+        bail!(
+            "maximum number of options is {}, you have {}",
+            MAX_OPTIONS,
+            num_options
         );
     }
 
@@ -314,13 +316,15 @@ fn main() {
     let aligned_val_offset = (header.key_offset + key_offset as u32 + 3) & !3;
     header.val_offset = aligned_val_offset;
 
-    let mut file = File::create(outpath).unwrap();
-    file.write_all(&header.to_le_bytes()).unwrap();
+    let mut file = File::create(&outpath)
+        .with_context(|| format!("failed to create {}", outpath.display()))?;
+    file.write_all(&header.to_le_bytes())?;
     for sfo_entry in sfo_entries {
-        file.write_all(&sfo_entry.to_le_bytes()).unwrap();
+        file.write_all(&sfo_entry.to_le_bytes())?;
     }
-    file.write_all(&keys[0..key_offset as usize]).unwrap();
-    file.seek(SeekFrom::Start(aligned_val_offset as u64))
-        .unwrap();
-    file.write_all(&data[0..data_offset as usize]).unwrap();
+    file.write_all(&keys[0..key_offset as usize])?;
+    file.seek(SeekFrom::Start(aligned_val_offset as u64))?;
+    file.write_all(&data[0..data_offset as usize])?;
+
+    Ok(())
 }

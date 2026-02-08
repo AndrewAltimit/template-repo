@@ -1,3 +1,8 @@
+//! Video RAM bump allocator.
+//!
+//! Provides a simple bump allocator for PSP VRAM. Allocations are served
+//! sequentially from the start of VRAM; call `free_all()` to reset.
+
 use crate::sys::TexturePixelFormat;
 use crate::sys::{sceGeEdramGetAddr, sceGeEdramGetSize};
 use core::marker::PhantomData;
@@ -10,10 +15,21 @@ type VramAllocator = SimpleVramAllocator;
 #[derive(Debug)]
 pub struct VramAllocatorInUseError {}
 
+/// Errors returned by VRAM allocation operations.
+#[derive(Debug)]
+pub enum VramAllocError {
+    /// Not enough VRAM remaining for the requested allocation.
+    OutOfMemory { requested: u32, available: u32 },
+    /// The given texture pixel format is not supported by the allocator.
+    UnsupportedPixelFormat,
+}
+
+#[allow(static_mut_refs)]
 static mut VRAM_ALLOCATOR: VramAllocatorSingleton = VramAllocatorSingleton {
     alloc: Some(VramAllocator::new()),
 };
 
+#[allow(static_mut_refs)]
 pub fn get_vram_allocator() -> Result<VramAllocator, VramAllocatorInUseError> {
     let opt_alloc = unsafe { VRAM_ALLOCATOR.get_vram_alloc() };
     opt_alloc.ok_or(VramAllocatorInUseError {})
@@ -62,8 +78,7 @@ impl VramMemChunk<'_> {
     }
 }
 
-// A dead-simple VRAM bump allocator.
-// TODO: pin?
+/// A dead-simple VRAM bump allocator.
 #[derive(Debug)]
 pub struct SimpleVramAllocator {
     offset: AtomicU32,
@@ -86,48 +101,60 @@ impl SimpleVramAllocator {
         self.offset.store(0, Ordering::Relaxed);
     }
 
-    // TODO: return a Result instead of panicking
-    /// Allocates `size` bytes of VRAM
+    /// Allocates `size` bytes of VRAM.
     ///
-    /// The returned VRAM chunk has the same lifetime as the
-    /// `SimpleVramAllocator` borrow (i.e. `&self`) that allocated it.
-    pub fn alloc(&self, size: u32) -> VramMemChunk<'_> {
+    /// Returns `Err(VramAllocError::OutOfMemory)` if the allocation would
+    /// exceed total VRAM. The returned chunk has the same lifetime as the
+    /// `&self` borrow that allocated it.
+    pub fn alloc(&self, size: u32) -> Result<VramMemChunk<'_>, VramAllocError> {
         let old_offset = self.offset.load(Ordering::Relaxed);
         let new_offset = old_offset + size;
-        self.offset.store(new_offset, Ordering::Relaxed);
+        let total = self.total_mem();
 
-        if new_offset > self.total_mem() {
-            panic!("Total VRAM size exceeded!");
+        if new_offset > total {
+            return Err(VramAllocError::OutOfMemory {
+                requested: size,
+                available: total.saturating_sub(old_offset),
+            });
         }
 
-        VramMemChunk::new(old_offset, size)
+        self.offset.store(new_offset, Ordering::Relaxed);
+        Ok(VramMemChunk::new(old_offset, size))
     }
 
-    // TODO: ensure 16-bit alignment?
-    pub fn alloc_sized<T: Sized>(&self, count: u32) -> VramMemChunk<'_> {
+    /// Allocates space for `count` elements of type `T`.
+    pub fn alloc_sized<T: Sized>(&self, count: u32) -> Result<VramMemChunk<'_>, VramAllocError> {
         let size = size_of::<T>() as u32;
         self.alloc(count * size)
     }
 
+    /// Allocates space for a texture with the given dimensions and pixel format.
     pub fn alloc_texture_pixels(
         &self,
         width: u32,
         height: u32,
         psm: TexturePixelFormat,
-    ) -> VramMemChunk<'_> {
-        let size = get_memory_size(width, height, psm);
+    ) -> Result<VramMemChunk<'_>, VramAllocError> {
+        let size = get_memory_size(width, height, psm)?;
         self.alloc(size)
     }
 
-    // TODO: write, or write_volatile?
-    // TODO: result instead of unwrap?
-    // TODO: Keep track of the allocated chunk
-    // TODO: determine unsafety of this
-    pub unsafe fn move_to_vram<T: Sized>(&mut self, obj: T) -> &mut T {
-        let chunk = self.alloc_sized::<T>(1);
+    /// Moves `obj` into VRAM and returns a mutable reference to it.
+    ///
+    /// # Safety
+    ///
+    /// The caller must ensure the VRAM region is not concurrently accessed
+    /// and that the returned reference is not used after `free_all()`.
+    pub unsafe fn move_to_vram<T: Sized>(
+        &mut self,
+        obj: T,
+    ) -> Result<&mut T, VramAllocError> {
+        let chunk = self.alloc_sized::<T>(1)?;
         let ptr = chunk.as_mut_ptr_direct_to_vram() as *mut T;
-        ptr.write(obj);
-        ptr.as_mut().unwrap()
+        unsafe {
+            ptr.write(obj);
+            Ok(&mut *ptr)
+        }
     }
 
     fn total_mem(&self) -> u32 {
@@ -150,18 +177,22 @@ fn vram_start_addr_direct() -> *mut u8 {
     unsafe { sceGeEdramGetAddr() }
 }
 
-fn get_memory_size(width: u32, height: u32, psm: TexturePixelFormat) -> u32 {
+fn get_memory_size(
+    width: u32,
+    height: u32,
+    psm: TexturePixelFormat,
+) -> Result<u32, VramAllocError> {
     match psm {
-        TexturePixelFormat::PsmT4 => (width * height) >> 1,
-        TexturePixelFormat::PsmT8 => width * height,
+        TexturePixelFormat::PsmT4 => Ok((width * height) >> 1),
+        TexturePixelFormat::PsmT8 => Ok(width * height),
 
         TexturePixelFormat::Psm5650
         | TexturePixelFormat::Psm5551
         | TexturePixelFormat::Psm4444
-        | TexturePixelFormat::PsmT16 => 2 * width * height,
+        | TexturePixelFormat::PsmT16 => Ok(2 * width * height),
 
-        TexturePixelFormat::Psm8888 | TexturePixelFormat::PsmT32 => 4 * width * height,
+        TexturePixelFormat::Psm8888 | TexturePixelFormat::PsmT32 => Ok(4 * width * height),
 
-        _ => unimplemented!(),
+        _ => Err(VramAllocError::UnsupportedPixelFormat),
     }
 }

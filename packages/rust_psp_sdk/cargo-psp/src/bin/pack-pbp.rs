@@ -1,3 +1,4 @@
+use anyhow::{Context, Result};
 use clap::Parser;
 use std::{fs, mem, path::PathBuf};
 
@@ -60,44 +61,45 @@ struct Args {
     data_psar: PathBuf,
 }
 
-fn main() {
-    let args = Args::parse();
+fn read_pbp_input(value: PathBuf) -> Result<Option<Vec<u8>>> {
+    if value == PathBuf::from("NULL") {
+        Ok(None)
+    } else {
+        let data = fs::read(&value)
+            .with_context(|| format!("failed to read {}", value.display()))?;
+        Ok(Some(data))
+    }
+}
 
-    let read = |value: PathBuf| {
-        if value == PathBuf::from("NULL") {
-            None
-        } else {
-            match fs::read(&value) {
-                Ok(res) => Some(res),
-                Err(err) => panic!("failed to read {}: {}", value.display(), err),
-            }
-        }
-    };
+fn main() -> Result<()> {
+    let args = Args::parse();
 
     let output_path = args.output;
 
     let files = vec![
-        read(args.param),
-        read(args.icon0),
-        read(args.icon1),
-        read(args.pic0),
-        read(args.pic1),
-        read(args.snd0),
-        read(args.data_psp),
-        read(args.data_psar),
+        read_pbp_input(args.param)?,
+        read_pbp_input(args.icon0)?,
+        read_pbp_input(args.icon1)?,
+        read_pbp_input(args.pic0)?,
+        read_pbp_input(args.pic1)?,
+        read_pbp_input(args.snd0)?,
+        read_pbp_input(args.data_psp)?,
+        read_pbp_input(args.data_psar)?,
     ];
 
     let mut payload = Vec::new();
-    let mut offsets = [0; 8];
+    let mut offsets = [0u32; 8];
     let mut current_offset = mem::size_of::<PbpHeader>() as u32;
 
     for (i, bytes) in files.into_iter().enumerate() {
         offsets[i] = current_offset;
 
         if let Some(bytes) = bytes {
-            let len = bytes.len();
+            let len = bytes.len() as u32;
             payload.extend(bytes);
-            current_offset += len as u32;
+            current_offset = current_offset
+                .checked_add(len)
+                .context("PBP payload offset overflow")?;
         }
     }
 
@@ -111,9 +113,10 @@ fn main() {
     output.extend(&header.to_bytes()[..]);
     output.extend(payload);
 
-    if let Err(err) = fs::write(&output_path, output) {
-        panic!("couldn't write to {}: {}", output_path.display(), err);
-    }
+    fs::write(&output_path, output)
+        .with_context(|| format!("failed to write {}", output_path.display()))?;
 
     println!("Saved to {output_path:?}");
+
+    Ok(())
 }

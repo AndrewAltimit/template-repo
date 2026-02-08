@@ -21,6 +21,7 @@ name = "mksfo"
 name = "prxmin"
 
 [dependencies]
+anyhow = "1.0"
 clap = { version = "4.5", features = ["derive"] }
 goblin = "0.9"
 scroll = "0.12"

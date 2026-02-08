@@ -1,3 +1,5 @@
+#![allow(unsafe_op_in_unsafe_fn)]
+
 #[unsafe(no_mangle)]
 pub unsafe extern "C" fn fminf(x: f32, y: f32) -> f32 {
     let out: f32;

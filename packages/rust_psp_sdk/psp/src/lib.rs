@@ -6,11 +6,7 @@
 #![allow(
     stable_features,
     internal_features,
-    clippy::missing_safety_doc,
-    // Edition 2024 elevates these to deny, but this SDK is an FFI layer
-    // for a single-threaded embedded platform. Suppress globally.
-    unsafe_op_in_unsafe_fn,
-    static_mut_refs
+    clippy::missing_safety_doc
 )]
 // Nightly features still required for PSP target:
 #![feature(
@@ -274,8 +270,8 @@ macro_rules! __module_impl {
             #[used]
             static LIB_ENT_TABLE: $crate::sys::SceLibraryEntryTable =
                 $crate::sys::SceLibraryEntryTable {
-                    module_start_nid: 0xd632acdb, // module_start
-                    module_info_nid: 0xf01d73a7,  // SceModuleInfo
+                    module_start_nid: $crate::NID_MODULE_START,
+                    module_info_nid: $crate::NID_MODULE_INFO,
                     module_start: module_start,
                     module_info: &MODULE_INFO.0,
                 };
@@ -292,10 +288,8 @@ macro_rules! __module_impl {
                     let id = $crate::sys::sceKernelCreateThread(
                         b"main_thread\0".as_ptr(),
                         main_thread,
-                        // Default priority of 32.
-                        32,
-                        // 256KB stack.
-                        256 * 1024,
+                        $crate::DEFAULT_THREAD_PRIORITY,
+                        $crate::DEFAULT_MAIN_STACK_SIZE,
                         $crate::sys::ThreadAttributes::USER
                             | $crate::sys::ThreadAttributes::VFPU,
                         core::ptr::null_mut(),
@@ -350,8 +344,8 @@ pub fn enable_home_button() {
         let id = sys::sceKernelCreateThread(
             &b"exit_thread\0"[0],
             exit_thread,
-            32,
-            0x1000,
+            DEFAULT_THREAD_PRIORITY,
+            DEFAULT_EXIT_STACK_SIZE,
             ThreadAttributes::empty(),
             ptr::null_mut(),
         );

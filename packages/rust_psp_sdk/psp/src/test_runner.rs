@@ -1,3 +1,9 @@
+//! On-device test framework for PSP homebrew.
+//!
+//! Supports output via FIFO pipe, file, or on-screen debug print.
+//! The host-side test harness watches for `STARTING_TESTS`, `FINAL_SUCCESS`,
+//! and `FINAL_FAILURE` tokens to determine pass/fail.
+
 use crate::sys::{self, SceUid};
 use core::ffi::c_void;
 
@@ -194,9 +200,11 @@ impl<'a> TestRunner<'a> {
 }
 
 fn get_test_output_pipe() -> SceUid {
+    // Build the path buffer here so it lives across the sceIoOpen call.
+    let path = format!("host0:/{}\0", OUTPUT_FIFO);
     unsafe {
         let fd = sys::sceIoOpen(
-            psp_filename(OUTPUT_FIFO),
+            path.as_bytes().as_ptr(),
             sys::IoOpenFlags::APPEND | sys::IoOpenFlags::WR_ONLY,
             0o777,
         );
@@ -212,9 +220,11 @@ fn get_test_output_pipe() -> SceUid {
 }
 
 fn get_test_output_file() -> SceUid {
+    // Build the path buffer here so it lives across the sceIoOpen call.
+    let path = format!("host0:/{}\0", OUTPUT_FILENAME);
     unsafe {
         let fd = sys::sceIoOpen(
-            psp_filename(OUTPUT_FILENAME),
+            path.as_bytes().as_ptr(),
             sys::IoOpenFlags::TRUNC | sys::IoOpenFlags::CREAT | sys::IoOpenFlags::RD_WR,
             0o777,
         );
@@ -223,10 +233,6 @@ fn get_test_output_file() -> SceUid {
         }
         fd
     }
-}
-
-fn psp_filename(filename: &str) -> *const u8 {
-    format!("host0:/{}\0", filename).as_bytes().as_ptr()
 }
 
 fn write_to_psp_output_fd(fd: SceUid, msg: &str) {

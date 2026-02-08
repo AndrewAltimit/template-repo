@@ -1,3 +1,7 @@
+//! PSP system memory allocator and C runtime memory functions.
+
+#![allow(unsafe_op_in_unsafe_fn)]
+
 use crate::sys::{self, SceSysMemBlockTypes, SceSysMemPartitionId, SceUid};
 use alloc::alloc::{GlobalAlloc, Layout};
 use core::{mem, ptr};
@@ -7,14 +11,16 @@ struct SystemAlloc;
 
 unsafe impl GlobalAlloc for SystemAlloc {
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
-        let size = layout.size()
+        let Some(size) = layout.size()
             // We need to store the memory block ID.
-            + mem::size_of::<SceUid>()
-
+            .checked_add(mem::size_of::<SceUid>())
             // We also store padding bytes, in case the block returned from the
             // system is not aligned. The count of padding bytes is also stored
             // here, in the last byte.
-            + layout.align();
+            .and_then(|s| s.checked_add(layout.align()))
+        else {
+            return ptr::null_mut();
+        };
 
         let id = sys::sceKernelAllocPartitionMemory(
             SceSysMemPartitionId::SceKernelPrimaryUserPartition,
@@ -55,6 +61,7 @@ static ALLOC: SystemAlloc = SystemAlloc;
 #[cfg(not(feature = "std"))]
 #[alloc_error_handler]
 fn aeh(_: Layout) -> ! {
+    dprintln!("out of memory");
     loop {
         core::hint::spin_loop()
     }
@@ -63,26 +70,14 @@ fn aeh(_: Layout) -> ! {
 #[unsafe(no_mangle)]
 #[cfg(not(feature = "stub-only"))]
 unsafe extern "C" fn memset(ptr: *mut u8, value: u32, num: usize) -> *mut u8 {
-    let mut i = 0;
-
-    while i < num {
-        *((ptr as usize + i) as *mut u8) = value as u8;
-        i += 1;
-    }
-
+    core::ptr::write_bytes(ptr, value as u8, num);
     ptr
 }
 
 #[unsafe(no_mangle)]
 #[cfg(not(feature = "stub-only"))]
 unsafe extern "C" fn memcpy(dst: *mut u8, src: *const u8, num: isize) -> *mut u8 {
-    let mut i = 0;
-
-    while i < num {
-        *((dst as isize + i) as *mut u8) = *((src as isize + i) as *mut u8);
-        i += 1;
-    }
-
+    core::ptr::copy_nonoverlapping(src, dst, num as usize);
     dst
 }
 
@@ -90,41 +85,20 @@ unsafe extern "C" fn memcpy(dst: *mut u8, src: *const u8, num: isize) -> *mut u8
 #[cfg(not(feature = "stub-only"))]
 unsafe extern "C" fn memcmp(ptr1: *mut u8, ptr2: *mut u8, num: usize) -> i32 {
     let mut i = 0;
-
     while i < num {
-        let val1 = *((ptr1 as usize + i) as *mut u8);
-        let val2 = *((ptr2 as usize + i) as *mut u8);
-        let diff = val1 as i32 - val2 as i32;
-
+        let diff = *ptr1.add(i) as i32 - *ptr2.add(i) as i32;
         if diff != 0 {
             return diff;
         }
-
         i += 1;
     }
-
     0
 }
 
 #[unsafe(no_mangle)]
 #[cfg(not(feature = "stub-only"))]
 unsafe extern "C" fn memmove(dst: *mut u8, src: *mut u8, num: isize) -> *mut u8 {
-    if dst < src {
-        let mut i = 0;
-
-        while i < num {
-            *((dst as isize + i) as *mut u8) = *((src as isize + i) as *mut u8);
-            i += 1;
-        }
-    } else {
-        let mut i = num - 1;
-
-        while i >= 0 {
-            *((dst as isize + i) as *mut u8) = *((src as isize + i) as *mut u8);
-            i -= 1;
-        }
-    }
-
+    core::ptr::copy(src, dst, num as usize);
     dst
 }
 

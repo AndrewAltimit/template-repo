@@ -2,6 +2,8 @@
 //!
 //! You should use the `dprintln!` and `dprint!` macros.
 
+#![allow(static_mut_refs, unsafe_op_in_unsafe_fn)]
+
 use crate::sys;
 use core::fmt;
 
@@ -25,7 +27,9 @@ macro_rules! dprint {
     }}
 }
 
-// TODO: Wrap this in some kind of a mutex.
+// Known limitation: no mutex -- PSP homebrew is typically single-threaded,
+// and core::sync types are unavailable here. Multi-threaded callers must
+// synchronize externally.
 static mut CHARS: CharBuffer = CharBuffer::new();
 
 /// Update the screen.
@@ -77,9 +81,13 @@ impl Font for MsxFont {
     }
 }
 
-const BUFFER_WIDTH: usize = 512;
-const DISPLAY_HEIGHT: usize = 272;
-const DISPLAY_WIDTH: usize = 480;
+use crate::constants::{
+    SCREEN_HEIGHT, SCREEN_WIDTH, VRAM_BASE_UNCACHED, VRAM_BUFFER_WIDTH,
+};
+
+const BUFFER_WIDTH: usize = VRAM_BUFFER_WIDTH as usize;
+const DISPLAY_HEIGHT: usize = SCREEN_HEIGHT as usize;
+const DISPLAY_WIDTH: usize = SCREEN_WIDTH as usize;
 static mut VRAM_BASE: *mut u32 = 0 as *mut u32;
 
 unsafe fn clear_screen(color: u32) {
@@ -109,7 +117,7 @@ unsafe fn put_str<T: Font>(s: &[u8], x: usize, y: usize, color: u32) {
 
 unsafe fn init() {
     // The OR operation here specifies the address bypasses cache.
-    VRAM_BASE = (0x4000_0000u32 | sys::sceGeEdramGetAddr() as u32) as *mut u32;
+    VRAM_BASE = (VRAM_BASE_UNCACHED | sys::sceGeEdramGetAddr() as u32) as *mut u32;
 
     // TODO: Change sys types to usize.
     sys::sceDisplaySetMode(sys::DisplayMode::Lcd, DISPLAY_WIDTH, DISPLAY_HEIGHT);

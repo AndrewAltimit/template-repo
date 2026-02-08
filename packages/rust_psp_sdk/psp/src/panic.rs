@@ -126,12 +126,13 @@ fn rust_panic_with_hook(payload: &mut dyn BoxMeUp) -> ! {
 }
 
 fn update_panic_count(amt: isize) -> usize {
-    // TODO: Make this thread local
-    static mut PANIC_COUNT: usize = 0;
+    use core::sync::atomic::{AtomicUsize, Ordering};
+    static PANIC_COUNT: AtomicUsize = AtomicUsize::new(0);
 
-    unsafe {
-        PANIC_COUNT = (PANIC_COUNT as isize + amt) as usize;
-        PANIC_COUNT
+    if amt >= 0 {
+        PANIC_COUNT.fetch_add(amt as usize, Ordering::Relaxed) + amt as usize
+    } else {
+        PANIC_COUNT.fetch_sub((-amt) as usize, Ordering::Relaxed) - (-amt) as usize
     }
 }
 
@@ -150,6 +151,7 @@ unsafe extern "C-unwind" {
 #[inline(never)]
 #[unsafe(no_mangle)]
 #[cfg(not(feature = "std"))]
+#[allow(unsafe_op_in_unsafe_fn)]
 fn rust_panic(msg: &mut dyn BoxMeUp) -> ! {
     let code = unsafe {
         let obj = msg;
@@ -167,6 +169,7 @@ extern "C" fn __rust_drop_panic() -> ! {
 
 /// Invoke a closure, capturing the cause of an unwinding panic if one occurs.
 #[inline(never)]
+#[allow(unsafe_op_in_unsafe_fn)]
 pub fn catch_unwind<R, F: FnOnce() -> R>(f: F) -> Result<R, Box<dyn Any + Send>> {
     // This whole function is directly lifted out of rustc. See comments there
     // for an explanation of how this actually works.
@@ -230,6 +233,7 @@ unsafe extern "C" fn rust_eh_personality() {}
 /// however, requires them to be present so that it can link.
 // TODO: Patch these out of libunwind instead.
 #[cfg(all(target_os = "psp", not(feature = "stub-only")))]
+#[allow(unsafe_op_in_unsafe_fn)]
 mod libunwind_shims {
     #[unsafe(no_mangle)]
     unsafe extern "C" fn fprintf(_stream: *const u8, _format: *const u8, _: ...) -> isize {

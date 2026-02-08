@@ -1,3 +1,4 @@
+use anyhow::{bail, Context, Result};
 use cargo_metadata::{
     semver::{BuildMetadata, Prerelease},
     Message as CargoMessage, MetadataCommand,
@@ -7,7 +8,7 @@ use std::{
     collections::HashSet,
     env, fmt, fs,
     io::ErrorKind,
-    process::{self, Command, Stdio},
+    process::{Command, Stdio},
 };
 
 mod fix_imports;
@@ -152,16 +153,16 @@ const MINIMUM_RUSTC_VERSION: Version = Version {
     build: BuildMetadata::EMPTY,
 };
 
-fn main() {
-    let rustc_version = rustc_version::version_meta().unwrap();
+fn main() -> Result<()> {
+    let rustc_version =
+        rustc_version::version_meta().context("failed to query rustc version")?;
 
     if rustc_version.channel > Channel::Nightly {
-        println!("cargo-psp requires a nightly rustc version.");
-        println!(
-            "Please run `rustup override set nightly` to use nightly in the \
-            current directory."
+        bail!(
+            "cargo-psp requires a nightly rustc version.\n\
+             Please run `rustup override set nightly` to use nightly in the \
+             current directory."
         );
-        process::exit(1);
     }
 
     let old_version = MINIMUM_RUSTC_VERSION
@@ -175,13 +176,15 @@ fn main() {
         None => false,
         Some(date) => {
             MINIMUM_COMMIT_DATE
-                > CommitDate::parse(&date).expect("could not parse `rustc --version` commit date")
+                > CommitDate::parse(&date)
+                    .context("could not parse `rustc --version` commit date")?
         }
     };
 
     if old_version || old_commit {
-        println!(
-            "cargo-psp requires rustc nightly version >= {}",
+        bail!(
+            "cargo-psp requires rustc nightly version >= {}\n\
+             Please run `rustup update nightly` to upgrade your nightly version",
             MINIMUM_COMMIT_DATE
                 + CommitDate {
                     year: 0,
@@ -189,22 +192,13 @@ fn main() {
                     day: 1
                 },
         );
-        println!("Please run `rustup update nightly` to upgrade your nightly version");
-
-        process::exit(1);
     }
 
-    let config = match fs::read_to_string(CONFIG_NAME) {
-        Ok(value) => match toml::from_str(&value) {
-            Ok(config) => config,
-            Err(e) => {
-                println!("Failed to read Psp.toml: {}", e);
-                println!("Please ensure that it is formatted correctly.");
-                process::exit(1);
-            }
-        },
+    let config: PspConfig = match fs::read_to_string(CONFIG_NAME) {
+        Ok(value) => toml::from_str(&value)
+            .context("failed to parse Psp.toml -- please ensure it is formatted correctly")?,
         Err(e) if e.kind() == ErrorKind::NotFound => PspConfig::default(),
-        Err(e) => panic!("{}", e),
+        Err(e) => return Err(e).context("failed to read Psp.toml")?,
     };
 
     // Skip `cargo psp`
@@ -229,7 +223,7 @@ fn main() {
         .args(args)
         .stdout(Stdio::piped())
         .spawn()
-        .unwrap();
+        .context("failed to spawn `cargo build`")?;
 
     let lone = {
         let output = Command::new(cargo)
@@ -239,10 +233,10 @@ fn main() {
             .arg(build_std_flag)
             .stderr(Stdio::inherit())
             .output()
-            .unwrap();
+            .context("failed to run `cargo metadata`")?;
 
         if !output.status.success() {
-            panic!(
+            bail!(
                 "`cargo metadata` command exited with status: {:?}",
                 output.status
             );
@@ -250,9 +244,9 @@ fn main() {
 
         let metadata = MetadataCommand::parse(
             std::str::from_utf8(&output.stdout)
-                .expect("`cargo metadata` command returned non UTF-8 bytes"),
+                .context("`cargo metadata` returned non-UTF-8 bytes")?,
         )
-        .expect("failed to parse `cargo metadata` command's stdout");
+        .context("failed to parse `cargo metadata` stdout")?;
 
         let workspace_members: HashSet<_> = metadata.workspace_members.iter().collect();
         let total_executables = metadata
@@ -266,7 +260,12 @@ fn main() {
         total_executables == 1
     };
 
-    let reader = std::io::BufReader::new(build_process.stdout.take().unwrap());
+    let reader = std::io::BufReader::new(
+        build_process
+            .stdout
+            .take()
+            .context("failed to capture cargo build stdout")?,
+    );
     let built_executables: Vec<_> = CargoMessage::parse_stream(reader)
         .flat_map(|msg| match msg.unwrap() {
             CargoMessage::CompilerArtifact(art) => art.executable,
@@ -274,10 +273,14 @@ fn main() {
         })
         .collect();
 
-    let status = build_process.wait().unwrap();
+    let status = build_process
+        .wait()
+        .context("failed to wait for `cargo build`")?;
     if !status.success() {
-        eprintln!("`cargo build` command exited with status: {:?}", status);
-        process::exit(status.code().unwrap_or(1));
+        bail!(
+            "`cargo build` command exited with status: {:?}",
+            status
+        );
     }
 
     // TODO: Error if no bin is ever found.
@@ -292,15 +295,17 @@ fn main() {
             }
         });
 
-        fix_imports::fix(&elf_path);
+        fix_imports::fix(&elf_path).context("fix_imports failed")?;
 
         let status = Command::new("prxgen")
             .arg(&elf_path)
             .arg(&prx_path)
             .status()
-            .expect("failed to run prxgen");
+            .context("failed to run prxgen")?;
 
-        assert!(status.success(), "prxgen failed: {}", status);
+        if !status.success() {
+            bail!("prxgen failed: {}", status);
+        }
 
         let config_args = vec![
             ("-s", "DISC_ID", config.disc_id.clone()),
@@ -344,9 +349,11 @@ fn main() {
             )
             .arg(&sfo_path)
             .status()
-            .expect("failed to run mksfo");
+            .context("failed to run mksfo")?;
 
-        assert!(status.success(), "mksfo failed: {}", status);
+        if !status.success() {
+            bail!("mksfo failed: {}", status);
+        }
 
         let status = Command::new("pack-pbp")
             .arg(&pbp_path)
@@ -364,8 +371,12 @@ fn main() {
             .arg(&prx_path)
             .arg(config.psar.as_deref().unwrap_or("NULL"))
             .status()
-            .expect("failed to run pack-pbp");
+            .context("failed to run pack-pbp")?;
 
-        assert!(status.success(), "pack-pbp failed: {}", status);
+        if !status.success() {
+            bail!("pack-pbp failed: {}", status);
+        }
     }
+
+    Ok(())
 }

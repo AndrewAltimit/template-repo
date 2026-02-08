@@ -1,3 +1,4 @@
+use anyhow::{ensure, Context, Result};
 use clap::Parser;
 use goblin::elf32::{
     header::Header,
@@ -37,11 +38,11 @@ struct Args {
     minfo: String,
 }
 
-fn main() {
+fn main() -> Result<()> {
     let args = Args::parse();
-    PrxBuilder::new(args.in_file, &args.minfo)
-        .modify()
-        .save(args.out_file);
+    PrxBuilder::new(args.in_file, &args.minfo)?
+        .modify()?
+        .save(args.out_file)
 }
 
 struct PrxBuilder<'a> {
@@ -55,14 +56,30 @@ struct PrxBuilder<'a> {
 
 impl<'a> PrxBuilder<'a> {
     /// Load the input ELF file and parse important structures.
-    fn new(path: PathBuf, mod_info_sh_name: &'a str) -> Self {
-        let elf_bytes = fs::read(path).unwrap();
-        let header = Header::parse(&elf_bytes).unwrap();
+    fn new(path: PathBuf, mod_info_sh_name: &'a str) -> Result<Self> {
+        let elf_bytes =
+            fs::read(&path).with_context(|| format!("failed to read {}", path.display()))?;
+        let header = Header::parse(&elf_bytes).context("failed to parse ELF header")?;
 
         // Validate ELF header.
-        assert_eq!(header.e_type, ELF_EXEC_TYPE);
-        assert_eq!(header.e_machine, ELF_MACHINE_MIPS);
-        assert!(header.e_shstrndx < header.e_shnum);
+        ensure!(
+            header.e_type == ELF_EXEC_TYPE,
+            "expected ELF type {:#06x}, got {:#06x}",
+            ELF_EXEC_TYPE,
+            header.e_type
+        );
+        ensure!(
+            header.e_machine == ELF_MACHINE_MIPS,
+            "expected MIPS machine ({:#06x}), got {:#06x}",
+            ELF_MACHINE_MIPS,
+            header.e_machine
+        );
+        ensure!(
+            header.e_shstrndx < header.e_shnum,
+            "e_shstrndx ({}) >= e_shnum ({})",
+            header.e_shstrndx,
+            header.e_shnum
+        );
 
         let section_headers = SectionHeader::from_bytes(
             &elf_bytes[header.e_shoff as usize..],
@@ -89,26 +106,31 @@ impl<'a> PrxBuilder<'a> {
                 let end_idx = sh.sh_size as usize + start_idx;
                 let relocs = elf_bytes[start_idx..end_idx]
                     .chunks(SIZEOF_REL)
-                    .map(|rel_bytes| Rel::try_from_ctx(rel_bytes, Endian::Little).unwrap().0)
-                    .collect();
+                    .map(|rel_bytes| {
+                        Rel::try_from_ctx(rel_bytes, Endian::Little)
+                            .map(|(r, _)| r)
+                            .context("failed to parse relocation")
+                    })
+                    .collect::<Result<Vec<_>>>()?;
 
-                (i, relocs)
+                Ok((i, relocs))
             })
-            .collect();
-        assert!(!relocations.is_empty());
+            .collect::<Result<_>>()?;
 
-        Self {
+        ensure!(!relocations.is_empty(), "ELF has no relocations");
+
+        Ok(Self {
             mod_info_sh_name,
             elf_bytes,
             header,
             section_headers,
             program_headers,
             relocations,
-        }
+        })
     }
 
     /// Modify the inner structures to create a PRX format file.
-    fn modify(mut self) -> Self {
+    fn modify(mut self) -> Result<Self> {
         // Change ELF type, and program header count.
         self.header.e_type = PRX_EXEC_TYPE;
         self.header.e_phnum = 1;
@@ -135,8 +157,12 @@ impl<'a> PrxBuilder<'a> {
                 let end_idx = symbols_header.sh_size as usize + start_idx;
                 self.elf_bytes[start_idx..end_idx]
                     .chunks(SIZEOF_SYM)
-                    .map(|rel_bytes| Sym::try_from_ctx(rel_bytes, Endian::Little).unwrap().0)
-                    .collect::<Vec<Sym>>()
+                    .map(|rel_bytes| {
+                        Sym::try_from_ctx(rel_bytes, Endian::Little)
+                            .map(|(s, _)| s)
+                            .context("failed to parse symbol")
+                    })
+                    .collect::<Result<Vec<Sym>>>()?
             };
 
             // Remove weak relocations.
@@ -178,8 +204,9 @@ impl<'a> PrxBuilder<'a> {
                 CStr::from_bytes_until_nul(&section_names[sh.sh_name as usize..])
                     .is_ok_and(|n| n.to_str().is_ok_and(|n| n == section_name))
             })
-        }
-        .expect("failed to get module info");
+        };
+
+        let module_info = module_info.context("failed to find module info section")?;
 
         // Merge all `LOAD` segments, as the PSP seems to only be able to handle one.
         // This code assumes all segments appear sequentially, and start at zero.
@@ -190,13 +217,16 @@ impl<'a> PrxBuilder<'a> {
                     .filter(|ph| ph.p_type == PT_LOAD)
             };
 
-            let start_vaddr = load_segments()
+            let first_load = load_segments()
                 .next()
-                .expect("program had no LOAD segments")
-                .p_vaddr;
-            assert_eq!(start_vaddr, 0);
+                .context("program had no LOAD segments")?;
+            ensure!(
+                first_load.p_vaddr == 0,
+                "first LOAD segment vaddr is {:#x}, expected 0",
+                first_load.p_vaddr
+            );
 
-            let start_offset = load_segments().next().unwrap().p_offset;
+            let start_offset = first_load.p_offset;
 
             let mem_size = load_segments()
                 .map(|ph| ph.p_offset + ph.p_memsz - start_offset)
@@ -225,17 +255,17 @@ impl<'a> PrxBuilder<'a> {
             program_header.p_align = 0x10;
         }
 
-        self
+        Ok(self)
     }
 
     /// Write out the changes to a file.
-    fn save(self, output: PathBuf) {
+    fn save(self, output: PathBuf) -> Result<()> {
         let mut bytes = self.elf_bytes;
 
         // Write header to buffer.
         self.header
             .try_into_ctx(&mut bytes, Endian::Little)
-            .expect("failed to write header");
+            .context("failed to write header")?;
 
         // Write updated relocations to buffer.
         for (i, rels) in self.relocations {
@@ -243,7 +273,7 @@ impl<'a> PrxBuilder<'a> {
             for (j, rel) in rels.into_iter().enumerate() {
                 let offset = offset + j * SIZEOF_REL;
                 rel.try_into_ctx(&mut bytes[offset..], Endian::Little)
-                    .expect("failed to write relocation");
+                    .context("failed to write relocation")?;
             }
         }
 
@@ -252,7 +282,7 @@ impl<'a> PrxBuilder<'a> {
             let offset = self.header.e_shoff as usize + i * self.header.e_shentsize as usize;
             section_header
                 .try_into_ctx(&mut bytes[offset..], Endian::Little)
-                .expect("failed to write section header");
+                .context("failed to write section header")?;
         }
 
         // Write program headers to buffer.
@@ -260,9 +290,12 @@ impl<'a> PrxBuilder<'a> {
             let offset = self.header.e_phoff as usize + i * self.header.e_phentsize as usize;
             program_header
                 .try_into_ctx(&mut bytes[offset..], Endian::Little)
-                .expect("failed to write program headers");
+                .context("failed to write program headers")?;
         }
 
-        fs::write(output, bytes).expect("failed to write file");
+        fs::write(&output, bytes)
+            .with_context(|| format!("failed to write {}", output.display()))?;
+
+        Ok(())
     }
 }

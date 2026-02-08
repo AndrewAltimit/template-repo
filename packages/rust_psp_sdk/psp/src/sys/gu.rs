@@ -1,3 +1,5 @@
+#![allow(unsafe_op_in_unsafe_fn, static_mut_refs)]
+
 use crate::sys::{
     self,
     display::DisplayPixelFormat,
