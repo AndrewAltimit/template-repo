@@ -177,7 +177,7 @@ jobs:
     name: Rust CI
     needs: docker-network-cleanup
     runs-on: self-hosted
-    timeout-minutes: 30
+    timeout-minutes: 90
     steps:
       - name: Checkout code
         uses: actions/checkout@v6

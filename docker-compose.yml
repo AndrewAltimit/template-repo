@@ -752,8 +752,8 @@ services:
       - ci
 
   # Rust CI container for injection_toolkit and other Rust projects
-  # Note: Cargo cache is not persisted to avoid permission issues with named volumes
-  # Dependencies are downloaded fresh each CI run (acceptable for CI workloads)
+  # Cargo registry/git cache persisted via named volume to avoid re-downloading
+  # dependencies on every CI run (~30s saving per workspace invocation)
   rust-ci:
     build:
       context: .
@@ -761,6 +761,7 @@ services:
     user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
     volumes:
       - .:/app
+      - cargo-registry-cache:/tmp/cargo
     environment:
       - CARGO_HOME=/tmp/cargo  # World-writable, works with any USER_ID
       - RUSTUP_HOME=/usr/local/rustup  # Read-only, pre-installed in image
@@ -783,6 +784,7 @@ services:
     user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
     volumes:
       - .:/app
+      - cargo-registry-cache:/tmp/cargo
     environment:
       - CARGO_HOME=/tmp/cargo  # World-writable, works with any USER_ID
       - RUSTUP_HOME=/usr/local/rustup  # Read-only, pre-installed in image
@@ -1151,6 +1153,8 @@ volumes:
   sleeper-eval-db: {}
   # Reaction search cache (fastembed model + config)
   reaction-search-cache: {}
+  # Rust CI cargo registry/git cache (persisted across container runs)
+  cargo-registry-cache: {}
 
 # Secrets are managed at runtime by GitHub Actions or local setup script
 # Never commit actual secret files to the repository!
