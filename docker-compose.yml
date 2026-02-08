@@ -1071,6 +1071,7 @@ services:
         USER_ID: ${USER_ID:-1000}
         GROUP_ID: ${GROUP_ID:-1000}
     user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
+    runtime: nvidia
     volumes:
       - ./packages/oasis_os/crates/oasis-backend-psp/target/mipsel-sony-psp:/roms
       - /tmp/.X11-unix:/tmp/.X11-unix:ro
@@ -1079,6 +1080,10 @@ services:
       - DISPLAY=${DISPLAY:-:0}
       - XAUTHORITY=/home/ppsspp/.Xauthority
       - PPSSPP_HEADLESS=0
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=all
+    devices:
+      - /dev/dri:/dev/dri
     network_mode: host
     profiles:
       - psp

@@ -19,6 +19,7 @@ use alloc::vec::Vec;
 
 use psp::sys::{
     self, CtrlButtons, CtrlMode, DisplayMode, DisplayPixelFormat, DisplaySetBufSync, SceCtrlData,
+    sceGeEdramGetAddr,
 };
 
 // ---------------------------------------------------------------------------
@@ -114,10 +115,8 @@ pub const SCREEN_WIDTH: u32 = 480;
 pub const SCREEN_HEIGHT: u32 = 272;
 /// VRAM row stride in pixels (power-of-2 >= 480).
 const BUF_WIDTH: u32 = 512;
-/// Uncached VRAM base address for CPU writes.
-const VRAM_UNCACHED: usize = 0x4400_0000;
-/// Cached VRAM base for display controller.
-const VRAM_CACHED: usize = 0x0400_0000;
+/// Offset to convert cached VRAM address to uncached (bypasses CPU cache).
+const UNCACHED_OFFSET: usize = 0x4000_0000;
 
 // ---------------------------------------------------------------------------
 // Backend
@@ -292,7 +291,8 @@ impl PspBackend {
     /// to account for the stride difference.
     pub fn swap_buffers(&mut self) {
         unsafe {
-            let vram = VRAM_UNCACHED as *mut u8;
+            let vram_base = sceGeEdramGetAddr() as *mut u8;
+            let vram_uncached = (vram_base as usize + UNCACHED_OFFSET) as *mut u8;
             let src = self.buffer.as_ptr();
             let visible_row_bytes = (self.width * 4) as usize;
             let stride_bytes = (BUF_WIDTH * 4) as usize;
@@ -302,13 +302,13 @@ impl PspBackend {
                 let dst_offset = row * stride_bytes;
                 core::ptr::copy_nonoverlapping(
                     src.add(src_offset),
-                    vram.add(dst_offset),
+                    vram_uncached.add(dst_offset),
                     visible_row_bytes,
                 );
             }
 
             sys::sceDisplaySetFrameBuf(
-                VRAM_CACHED as *const u8,
+                vram_base as *const u8,
                 BUF_WIDTH as usize,
                 DisplayPixelFormat::Psm8888,
                 DisplaySetBufSync::NextFrame,

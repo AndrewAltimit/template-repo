@@ -67,17 +67,31 @@ fn aeh(_: Layout) -> ! {
     }
 }
 
+// NOTE: These C runtime functions MUST use manual byte loops, not
+// `core::ptr::write_bytes` / `copy_nonoverlapping` / `copy`. Those
+// intrinsics lower to calls to memset/memcpy/memmove respectively,
+// creating infinite recursion (which on MIPS manifests as a jump to
+// an invalid trampoline address).
+
 #[unsafe(no_mangle)]
 #[cfg(not(feature = "stub-only"))]
 unsafe extern "C" fn memset(ptr: *mut u8, value: u32, num: usize) -> *mut u8 {
-    core::ptr::write_bytes(ptr, value as u8, num);
+    let mut i = 0;
+    while i < num {
+        *ptr.add(i) = value as u8;
+        i += 1;
+    }
     ptr
 }
 
 #[unsafe(no_mangle)]
 #[cfg(not(feature = "stub-only"))]
 unsafe extern "C" fn memcpy(dst: *mut u8, src: *const u8, num: isize) -> *mut u8 {
-    core::ptr::copy_nonoverlapping(src, dst, num as usize);
+    let mut i = 0isize;
+    while i < num {
+        *dst.offset(i) = *src.offset(i);
+        i += 1;
+    }
     dst
 }
 
@@ -98,7 +112,19 @@ unsafe extern "C" fn memcmp(ptr1: *mut u8, ptr2: *mut u8, num: usize) -> i32 {
 #[unsafe(no_mangle)]
 #[cfg(not(feature = "stub-only"))]
 unsafe extern "C" fn memmove(dst: *mut u8, src: *mut u8, num: isize) -> *mut u8 {
-    core::ptr::copy(src, dst, num as usize);
+    if (dst as usize) < (src as usize) {
+        let mut i = 0isize;
+        while i < num {
+            *dst.offset(i) = *src.offset(i);
+            i += 1;
+        }
+    } else {
+        let mut i = num;
+        while i > 0 {
+            i -= 1;
+            *dst.offset(i) = *src.offset(i);
+        }
+    }
     dst
 }
 
