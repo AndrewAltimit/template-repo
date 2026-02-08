@@ -7,7 +7,9 @@
 pub mod agent_commands;
 mod commands;
 mod interpreter;
+pub mod plugin_commands;
 
 pub use agent_commands::register_agent_commands;
 pub use commands::register_builtins;
 pub use interpreter::{Command, CommandOutput, CommandRegistry, Environment};
+pub use plugin_commands::register_plugin_commands;

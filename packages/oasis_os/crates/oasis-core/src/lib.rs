@@ -14,6 +14,7 @@ pub mod net;
 pub mod osk;
 pub mod pbp;
 pub mod platform;
+pub mod plugin;
 pub mod sdi;
 pub mod skin;
 pub mod terminal;

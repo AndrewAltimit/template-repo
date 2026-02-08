@@ -26,6 +26,9 @@ pub enum OasisError {
     #[error("window manager error: {0}")]
     Wm(String),
 
+    #[error("plugin error: {0}")]
+    Plugin(String),
+
     #[error("I/O error: {0}")]
     Io(#[from] io::Error),
 
