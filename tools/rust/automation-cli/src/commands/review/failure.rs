@@ -225,7 +225,9 @@ fn capture_lint_errors(failures: &[&str]) -> Result<String> {
     let has_basic = failures
         .iter()
         .any(|f| *f == "basic-lint" || *f == "lint" || *f == "format");
-    let has_full = failures.iter().any(|f| *f == "full-lint" || *f == "lint-full");
+    let has_full = failures
+        .iter()
+        .any(|f| *f == "full-lint" || *f == "lint-full");
 
     let stages: Vec<(&str, &str)> = if has_full && has_basic {
         vec![("lint-basic", "lint-basic"), ("lint-full", "lint-full")]

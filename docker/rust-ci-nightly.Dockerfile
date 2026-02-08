@@ -35,7 +35,9 @@ RUN rustup target add x86_64-unknown-linux-gnu \
 WORKDIR /workspace
 
 # Create a non-root user that will be overridden by docker-compose
-RUN useradd -m -u 1000 ciuser
+# CARGO_HOME is set to /tmp/cargo at runtime for universal write access
+RUN useradd -m -u 1000 ciuser \
+    && mkdir -p /tmp/cargo && chmod 1777 /tmp/cargo
 
 # Default environment (CARGO_HOME set at runtime for write access)
 ENV RUSTUP_HOME=/usr/local/rustup
