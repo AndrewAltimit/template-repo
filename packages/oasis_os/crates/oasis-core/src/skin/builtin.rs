@@ -429,6 +429,175 @@ pub fn corrupted_skin() -> Result<Skin> {
     )
 }
 
+// ---------------------------------------------------------------------------
+// Agent Terminal skin: briefcase field terminal for AI agent management.
+// ---------------------------------------------------------------------------
+
+const AGENT_TERMINAL_MANIFEST: &str = r#"
+name = "agent-terminal"
+version = "1.0"
+author = "OASIS_OS"
+description = "Briefcase field terminal for AI agent management"
+screen_width = 480
+screen_height = 272
+"#;
+
+const AGENT_TERMINAL_LAYOUT: &str = r##"
+[status_bar]
+x = 0
+y = 0
+w = 480
+h = 18
+color = "#0A1A2A"
+text = "AGENT TERMINAL"
+font_size = 8
+text_color = "#00CCCC"
+
+[tamper_indicator]
+x = 380
+y = 1
+w = 96
+h = 16
+color = "#00000000"
+text = "[?]"
+font_size = 8
+text_color = "#808080"
+
+[separator_top]
+x = 0
+y = 18
+w = 480
+h = 1
+color = "#006666"
+
+[agent_panel]
+x = 0
+y = 19
+w = 240
+h = 80
+color = "#0D1F2D"
+text = "Agents: (loading...)"
+font_size = 8
+text_color = "#00AAAA"
+
+[session_panel]
+x = 240
+y = 19
+w = 240
+h = 80
+color = "#0D1F2D"
+text = "Sessions: (none)"
+font_size = 8
+text_color = "#00AAAA"
+
+[panel_divider]
+x = 239
+y = 19
+w = 1
+h = 80
+color = "#006666"
+
+[separator_mid]
+x = 0
+y = 99
+w = 480
+h = 1
+color = "#006666"
+
+[health_bar]
+x = 0
+y = 100
+w = 480
+h = 16
+color = "#0A1520"
+text = "CPU: -- | MEM: -- | NET: --"
+font_size = 8
+text_color = "#668888"
+
+[separator_term]
+x = 0
+y = 116
+w = 480
+h = 1
+color = "#006666"
+
+[terminal_bg]
+x = 0
+y = 117
+w = 480
+h = 143
+color = "#060D15"
+
+[terminal_output]
+x = 4
+y = 120
+w = 472
+h = 124
+color = "#00000000"
+text = ""
+font_size = 8
+text_color = "#00BBBB"
+
+[terminal_prompt]
+x = 4
+y = 256
+w = 472
+h = 12
+color = "#00000000"
+text = "agent> "
+font_size = 8
+text_color = "#00FFCC"
+"##;
+
+const AGENT_TERMINAL_FEATURES: &str = r#"
+dashboard = false
+terminal = true
+file_browser = true
+window_manager = false
+command_categories = ["agent", "mcp", "system", "file", "network"]
+"#;
+
+const AGENT_TERMINAL_THEME: &str = r##"
+background = "#060D15"
+primary = "#00CCCC"
+secondary = "#006666"
+text = "#00BBBB"
+dim_text = "#336666"
+status_bar = "#0A1A2A"
+prompt = "#00FFCC"
+output = "#00BBBB"
+error = "#FF4444"
+"##;
+
+const AGENT_TERMINAL_STRINGS: &str = r#"
+boot_text = [
+    "OASIS_OS v2.2 [agent-terminal]",
+    "Briefcase secure terminal initializing...",
+    "Loading agent registry...",
+    "MCP servers: scanning...",
+    "Tamper system: reading state...",
+    "Remote terminal: standby",
+    "Ready.",
+]
+prompt_format = "agent> "
+title = "Agent Terminal"
+home_label = "AGENTS"
+welcome_message = "Briefcase agent terminal online. Type 'help' for commands."
+error_prefix = "ERR: "
+shutdown_message = "Agent terminal session ended."
+"#;
+
+/// Load the Agent Terminal skin.
+pub fn agent_terminal_skin() -> Result<Skin> {
+    Skin::from_toml_full(
+        AGENT_TERMINAL_MANIFEST,
+        AGENT_TERMINAL_LAYOUT,
+        AGENT_TERMINAL_FEATURES,
+        AGENT_TERMINAL_THEME,
+        AGENT_TERMINAL_STRINGS,
+    )
+}
+
 /// Load the Desktop skin.
 pub fn desktop_skin() -> Result<Skin> {
     Skin::from_toml_full(
@@ -447,6 +616,7 @@ pub fn load_builtin(name: &str) -> Result<Skin> {
         "tactical" => tactical_skin(),
         "corrupted" => corrupted_skin(),
         "desktop" => desktop_skin(),
+        "agent-terminal" => agent_terminal_skin(),
         _ => Err(crate::error::OasisError::Config(format!(
             "unknown built-in skin: {name}"
         ))),
@@ -455,7 +625,13 @@ pub fn load_builtin(name: &str) -> Result<Skin> {
 
 /// List available built-in skin names.
 pub fn builtin_names() -> &'static [&'static str] {
-    &["terminal", "tactical", "corrupted", "desktop"]
+    &[
+        "terminal",
+        "tactical",
+        "corrupted",
+        "desktop",
+        "agent-terminal",
+    ]
 }
 
 #[cfg(test)]
@@ -603,5 +779,66 @@ mod tests {
                 "{name} skin should have prompt format"
             );
         }
+    }
+
+    #[test]
+    fn agent_terminal_skin_loads() {
+        let skin = agent_terminal_skin().unwrap();
+        assert_eq!(skin.manifest.name, "agent-terminal");
+        assert!(!skin.features.dashboard);
+        assert!(skin.features.terminal);
+        assert!(skin.features.file_browser);
+        assert!(!skin.features.window_manager);
+        assert!(!skin.features.command_categories.is_empty());
+        assert!(
+            skin.features
+                .command_categories
+                .contains(&"agent".to_string())
+        );
+        assert!(
+            skin.features
+                .command_categories
+                .contains(&"mcp".to_string())
+        );
+        assert_eq!(skin.strings.prompt_format, "agent> ");
+    }
+
+    #[test]
+    fn agent_terminal_skin_has_panels() {
+        let skin = agent_terminal_skin().unwrap();
+        let mut sdi = SdiRegistry::new();
+        skin.apply_layout(&mut sdi);
+        assert!(sdi.contains("status_bar"));
+        assert!(sdi.contains("agent_panel"));
+        assert!(sdi.contains("session_panel"));
+        assert!(sdi.contains("tamper_indicator"));
+        assert!(sdi.contains("health_bar"));
+        assert!(sdi.contains("terminal_output"));
+        assert!(sdi.contains("terminal_prompt"));
+    }
+
+    #[test]
+    fn agent_terminal_theme_colors() {
+        let skin = agent_terminal_skin().unwrap();
+        let bg = skin.theme.background_color();
+        // Teal-ish dark background.
+        assert_eq!(bg.r, 6);
+        assert_eq!(bg.g, 13);
+    }
+
+    #[test]
+    fn swap_terminal_to_agent_terminal() {
+        let terminal = terminal_skin().unwrap();
+        let agent = agent_terminal_skin().unwrap();
+
+        let mut sdi = SdiRegistry::new();
+        terminal.apply_layout(&mut sdi);
+        assert!(sdi.contains("terminal_bg"));
+
+        let _new = Skin::swap(&terminal, agent, &mut sdi);
+        // Agent terminal has its own terminal_bg plus dashboard panels.
+        assert!(sdi.contains("agent_panel"));
+        assert!(sdi.contains("tamper_indicator"));
+        assert!(sdi.contains("health_bar"));
     }
 }

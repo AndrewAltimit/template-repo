@@ -4,8 +4,10 @@
 //! `Command` trait and are registered by name. The interpreter parses input
 //! lines, resolves the command name, and dispatches `execute()`.
 
+pub mod agent_commands;
 mod commands;
 mod interpreter;
 
+pub use agent_commands::register_agent_commands;
 pub use commands::register_builtins;
 pub use interpreter::{Command, CommandOutput, CommandRegistry, Environment};
