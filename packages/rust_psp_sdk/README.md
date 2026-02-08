@@ -37,12 +37,16 @@ See `examples/` directory for sample programs.
 - **Allocator overflow checks:** Added `checked_add` for size + alignment calculations in `SystemAlloc::alloc` to prevent integer overflow.
 - **OOM diagnostic:** Added explicit "out of memory" message before spin loop in the allocation error handler.
 - **Global allow scoping:** Removed blanket `#![allow(unsafe_op_in_unsafe_fn)]` from crate root; scoped allows only where needed in `debug.rs`, `sys/mod.rs`, `panic.rs`.
+- **Screenshot BmpHeader:** Replaced `core::mem::transmute` with safe field-by-field LE byte serialization.
+- **libunwind malloc/free shims:** Overflow-safe `malloc` with `checked_add` and validated `Layout`; null-safe `free`; uses `size_of::<usize>()` instead of hardcoded `4` for pointer-width portability.
 
 ### VRAM Allocator
 
 - Changed `alloc()` from panicking to returning `Result<VramMemChunk, VramAllocError>`
-- Added structured error types: `OutOfMemory { requested, available }` and `UnsupportedPixelFormat`
+- Added structured error types: `OutOfMemory { requested, available }`, `UnsupportedPixelFormat`, and `Overflow`
 - VRAM base address now uses `sceGeEdramGetAddr()` instead of hardcoded constants
+- Replaced `static mut VRAM_ALLOCATOR` singleton with atomic take pattern (`AtomicBool` guard)
+- Added `checked_add` in `alloc()` and `checked_mul` in `alloc_sized()` to prevent integer overflow
 
 ### Hardware Constants
 
@@ -60,6 +64,7 @@ See `examples/` directory for sample programs.
 - All tool binaries (`prxgen`, `pack-pbp`, `mksfo`, `prxmin`, `cargo-psp`) refactored from `unwrap()`/`panic!()` to `Result` with `anyhow` context
 - `fix_imports.rs`: stub position lookup validated with descriptive error for malformed PRX files
 - `build.rs`: replaced unwraps with fallible error handling
+- `cargo-psp` main: cargo message parse errors handled gracefully; title fallback has descriptive error
 - Descriptive error messages with recovery hints
 
 ### Features

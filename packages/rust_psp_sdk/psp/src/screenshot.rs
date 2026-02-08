@@ -32,7 +32,47 @@ impl BmpHeader {
     const BYTES: usize = core::mem::size_of::<Self>();
 
     fn to_bytes(self) -> [u8; Self::BYTES] {
-        unsafe { core::mem::transmute(self) }
+        let mut buf = [0u8; Self::BYTES];
+        let mut off = 0;
+        macro_rules! put {
+            ($val:expr, u8x2) => {{
+                buf[off] = $val[0];
+                buf[off + 1] = $val[1];
+                off += 2;
+            }};
+            ($val:expr, u16) => {{
+                let b = ($val).to_le_bytes();
+                buf[off] = b[0];
+                buf[off + 1] = b[1];
+                off += 2;
+            }};
+            ($val:expr, u32) => {{
+                let b = ($val).to_le_bytes();
+                buf[off] = b[0];
+                buf[off + 1] = b[1];
+                buf[off + 2] = b[2];
+                buf[off + 3] = b[3];
+                off += 4;
+            }};
+        }
+        put!(self.file_type, u8x2);
+        put!(self.file_size, u32);
+        put!(self.reserved_1, u16);
+        put!(self.reserved_2, u16);
+        put!(self.image_data_start, u32);
+        put!(self.dib_header_size, u32);
+        put!(self.image_width, u32);
+        put!(self.image_height, u32);
+        put!(self.color_planes, u16);
+        put!(self.bpp, u16);
+        put!(self.compression, u32);
+        put!(self.image_data_len, u32);
+        put!(self.print_resolution_x, u32);
+        put!(self.print_resolution_y, u32);
+        put!(self.palette_color_count, u32);
+        put!(self.important_colors, u32);
+        let _ = off;
+        buf
     }
 }
 

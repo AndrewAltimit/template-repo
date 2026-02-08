@@ -8,7 +8,7 @@ use crate::sys::{sceGeEdramGetAddr, sceGeEdramGetSize};
 use core::marker::PhantomData;
 use core::mem::size_of;
 use core::ptr::null_mut;
-use core::sync::atomic::{AtomicU32, Ordering};
+use core::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 
 type VramAllocator = SimpleVramAllocator;
 
@@ -22,26 +22,22 @@ pub enum VramAllocError {
     OutOfMemory { requested: u32, available: u32 },
     /// The given texture pixel format is not supported by the allocator.
     UnsupportedPixelFormat,
+    /// Integer overflow computing allocation size.
+    Overflow,
 }
 
-#[allow(static_mut_refs)]
-static mut VRAM_ALLOCATOR: VramAllocatorSingleton = VramAllocatorSingleton {
-    alloc: Some(VramAllocator::new()),
-};
+/// Atomic guard ensuring only one VRAM allocator instance exists at a time.
+/// Replaces the previous `static mut` singleton with a safe atomic pattern.
+static VRAM_TAKEN: AtomicBool = AtomicBool::new(false);
 
-#[allow(static_mut_refs)]
 pub fn get_vram_allocator() -> Result<VramAllocator, VramAllocatorInUseError> {
-    let opt_alloc = unsafe { VRAM_ALLOCATOR.get_vram_alloc() };
-    opt_alloc.ok_or(VramAllocatorInUseError {})
-}
-
-pub struct VramAllocatorSingleton {
-    alloc: Option<VramAllocator>,
-}
-
-impl VramAllocatorSingleton {
-    pub fn get_vram_alloc(&mut self) -> Option<VramAllocator> {
-        self.alloc.take()
+    if VRAM_TAKEN
+        .compare_exchange(false, true, Ordering::Acquire, Ordering::Relaxed)
+        .is_ok()
+    {
+        Ok(VramAllocator::new())
+    } else {
+        Err(VramAllocatorInUseError {})
     }
 }
 
@@ -108,7 +104,9 @@ impl SimpleVramAllocator {
     /// `&self` borrow that allocated it.
     pub fn alloc(&self, size: u32) -> Result<VramMemChunk<'_>, VramAllocError> {
         let old_offset = self.offset.load(Ordering::Relaxed);
-        let new_offset = old_offset + size;
+        let new_offset = old_offset
+            .checked_add(size)
+            .ok_or(VramAllocError::Overflow)?;
         let total = self.total_mem();
 
         if new_offset > total {
@@ -124,8 +122,10 @@ impl SimpleVramAllocator {
 
     /// Allocates space for `count` elements of type `T`.
     pub fn alloc_sized<T: Sized>(&self, count: u32) -> Result<VramMemChunk<'_>, VramAllocError> {
-        let size = size_of::<T>() as u32;
-        self.alloc(count * size)
+        let size = (size_of::<T>() as u32)
+            .checked_mul(count)
+            .ok_or(VramAllocError::Overflow)?;
+        self.alloc(size)
     }
 
     /// Allocates space for a texture with the given dimensions and pixel format.

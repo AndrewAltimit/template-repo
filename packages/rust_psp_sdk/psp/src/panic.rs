@@ -257,22 +257,37 @@ mod libunwind_shims {
     unsafe extern "C" fn malloc(size: usize) -> *mut u8 {
         use alloc::alloc::{alloc, Layout};
 
-        let size = size + 4;
+        let Some(total) = size.checked_add(core::mem::size_of::<usize>()) else {
+            return core::ptr::null_mut();
+        };
+        let Ok(layout) = Layout::from_size_align(total, core::mem::align_of::<usize>()) else {
+            return core::ptr::null_mut();
+        };
 
-        let data = alloc(Layout::from_size_align_unchecked(size, 4));
-        *(data as *mut usize) = size;
+        let data = alloc(layout);
+        if data.is_null() {
+            return data;
+        }
+        *(data as *mut usize) = total;
 
-        data.offset(4)
+        data.add(core::mem::size_of::<usize>())
     }
 
     #[unsafe(no_mangle)]
     unsafe extern "C" fn free(data: *mut u8) {
         use alloc::alloc::{dealloc, Layout};
 
-        let base = data.sub(4);
+        if data.is_null() {
+            return;
+        }
+        let base = data.sub(core::mem::size_of::<usize>());
         let size = *(base as *mut usize);
 
-        dealloc(base, Layout::from_size_align_unchecked(size, 4));
+        // size was validated at allocation time, so from_size_align_unchecked is safe here.
+        dealloc(
+            base,
+            Layout::from_size_align_unchecked(size, core::mem::align_of::<usize>()),
+        );
     }
 
     #[unsafe(no_mangle)]

@@ -267,7 +267,8 @@ fn main() -> Result<()> {
             .context("failed to capture cargo build stdout")?,
     );
     let built_executables: Vec<_> = CargoMessage::parse_stream(reader)
-        .flat_map(|msg| match msg.unwrap() {
+        .filter_map(|msg| msg.ok())
+        .flat_map(|msg| match msg {
             CargoMessage::CompilerArtifact(art) => art.executable,
             _ => None,
         })
@@ -345,7 +346,7 @@ fn main() -> Result<()> {
                     .as_ref()
                     .map(|s| s.as_ref())
                     .or_else(|| elf_path.file_stem())
-                    .unwrap(),
+                    .context("could not determine title: no title in Psp.toml and ELF path has no file stem")?,
             )
             .arg(&sfo_path)
             .status()
