@@ -5,9 +5,11 @@
 //! lists real Linux directories. In UE5, it lists game-authored content.
 //! In tests, MemoryVfs provides a fully in-memory tree.
 
+mod game_asset;
 mod memory;
 mod real;
 
+pub use game_asset::GameAssetVfs;
 pub use memory::MemoryVfs;
 pub use real::RealVfs;
 

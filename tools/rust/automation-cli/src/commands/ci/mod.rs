@@ -825,7 +825,7 @@ fn run_parsed_stage(
         // ===================== OASIS_OS (SDL2 crates excluded -- no libsdl2-dev in container) =====
         Stage::OasisClippy => {
             output::header("Running OASIS_OS clippy lints");
-            for krate in &["oasis-core"] {
+            for krate in &["oasis-core", "oasis-backend-ue5", "oasis-ffi"] {
                 output::subheader(&format!("Linting: {krate}"));
                 docker::run_cargo(
                     compose,
@@ -845,7 +845,7 @@ fn run_parsed_stage(
         },
         Stage::OasisTest => {
             output::header("Running OASIS_OS tests");
-            for krate in &["oasis-core"] {
+            for krate in &["oasis-core", "oasis-backend-ue5", "oasis-ffi"] {
                 output::subheader(&format!("Testing: {krate}"));
                 let mut args = vec!["test", "-p", krate];
                 args.extend(extra.iter().copied());
@@ -854,8 +854,8 @@ fn run_parsed_stage(
             Ok(())
         },
         Stage::OasisBuild => {
-            output::header("Building OASIS_OS workspace (core only)");
-            for krate in &["oasis-core"] {
+            output::header("Building OASIS_OS workspace (core + UE5 + FFI)");
+            for krate in &["oasis-core", "oasis-backend-ue5", "oasis-ffi"] {
                 output::subheader(&format!("Building: {krate}"));
                 docker::run_cargo(
                     compose,

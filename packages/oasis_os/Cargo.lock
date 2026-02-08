@@ -251,6 +251,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "oasis-backend-ue5"
+version = "0.1.0"
+dependencies = [
+ "log",
+ "oasis-core",
+]
+
+[[package]]
 name = "oasis-core"
 version = "0.1.0"
 dependencies = [
@@ -260,6 +268,16 @@ dependencies = [
  "tempfile",
  "thiserror",
  "toml",
+]
+
+[[package]]
+name = "oasis-ffi"
+version = "0.1.0"
+dependencies = [
+ "env_logger",
+ "log",
+ "oasis-backend-ue5",
+ "oasis-core",
 ]
 
 [[package]]

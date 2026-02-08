@@ -1,0 +1,20 @@
+[package]
+name = "oasis-ffi"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+description = "OASIS_OS C-ABI FFI boundary for UE5 and external integrations"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+oasis-core.workspace = true
+oasis-backend-ue5.workspace = true
+log.workspace = true
+env_logger.workspace = true
+
+[lints]
+workspace = true
