@@ -1,5 +1,5 @@
 # Standalone crate -- excluded from the oasis_os workspace because it
-# requires the mipsel-sony-psp target and the vendored rust-psp SDK.
+# requires the mipsel-sony-psp target and the rust-psp SDK.
 # Build with: cargo psp --release
 
 [workspace]
@@ -14,7 +14,11 @@ repository = "https://github.com/AndrewAltimit/template-repo"
 authors = ["AndrewAltimit"]
 
 [dependencies]
-psp = { path = "../../../rust_psp_sdk/psp" }
+psp = { git = "https://github.com/AndrewAltimit/rust-psp", branch = "initial_release" }
+
+# unicode-width workaround for mips target panic.
+[patch.crates-io]
+unicode-width = { git = "https://git.sr.ht/~sajattack/unicode-width" }
 
 [profile.release]
 lto = true

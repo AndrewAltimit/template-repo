@@ -117,7 +117,6 @@ docker compose down                      # Stop services
 | `packages/tamper_briefcase/` | Rust | Tamper-responsive briefcase with PQC recovery |
 | `packages/bioforge/` | Rust | Agent-driven CRISPR automation platform |
 | `packages/oasis_os/` | Rust | Embeddable OS framework (PSP/SDL2/UE5) |
-| `packages/rust_psp_sdk/` | Rust | Modernized rust-psp SDK fork (edition 2024) |
 
 ## Development Reminders
 
@@ -205,4 +204,3 @@ This renders as:
 - `packages/bioforge/docs/governance-implications.md` - Biological agent governance analysis
 - `packages/oasis_os/README.md` - Embeddable OS framework (PSP/SDL2/UE5)
 - `packages/oasis_os/docs/design.md` - **OASIS_OS technical design document (v2.3)**
-- `packages/rust_psp_sdk/README.md` - Modernized rust-psp SDK fork

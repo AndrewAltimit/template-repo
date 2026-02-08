@@ -60,6 +60,7 @@ dependencies = [
 [[package]]
 name = "psp"
 version = "0.4.0"
+source = "git+https://github.com/AndrewAltimit/rust-psp?branch=initial_release#520ec51885fe7fde1d481fc957eb045959ba979f"
 dependencies = [
  "bitflags",
  "libm",
@@ -106,3 +107,8 @@ name = "unstringify"
 version = "0.1.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9612d66420ead229348915b911ad9689e79dfc347fe7a876a82551c8eab36b5e"
+
+[[patch.unused]]
+name = "unicode-width"
+version = "0.2.0"
+source = "git+https://git.sr.ht/~sajattack/unicode-width#114ac4742ac29a7b69be8e0e7b1e45af43ed6d83"

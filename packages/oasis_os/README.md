@@ -26,7 +26,7 @@ packages/oasis_os/
     +-- design.md                    # Technical design document (v2.3)
 ```
 
-The PSP backend is excluded from the workspace (requires `mipsel-sony-psp` target) and depends on the sibling `packages/rust_psp_sdk/` package.
+The PSP backend is excluded from the workspace (requires `mipsel-sony-psp` target) and depends on the standalone [rust-psp SDK](https://github.com/AndrewAltimit/rust-psp) via git dependency.
 
 ## Build
 

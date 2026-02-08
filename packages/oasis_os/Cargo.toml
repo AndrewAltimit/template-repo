@@ -8,7 +8,7 @@ members = [
     "crates/oasis-app",
 ]
 # PSP crate excluded from workspace -- it requires mipsel-sony-psp target
-# and the rust_psp_sdk package. Build separately with cargo-psp:
+# and the rust-psp SDK (github.com/AndrewAltimit/rust-psp). Build separately with cargo-psp:
 #   cd crates/oasis-backend-psp && cargo psp --release
 exclude = [
     "crates/oasis-backend-psp",

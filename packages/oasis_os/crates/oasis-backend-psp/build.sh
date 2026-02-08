@@ -13,12 +13,6 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-# Verify rust_psp_sdk package exists.
-if [ ! -d "../../../rust_psp_sdk/psp" ]; then
-    echo "ERROR: rust_psp_sdk package not found at packages/rust_psp_sdk/"
-    exit 1
-fi
-
 if [ "${1:-}" = "release" ]; then
     cargo psp --release
     echo ""

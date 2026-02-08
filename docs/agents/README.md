@@ -165,9 +165,9 @@ The repository includes **OASIS_OS**, an embeddable operating system framework i
 
 See the [OASIS_OS Package](../../packages/oasis_os/README.md) and [Design Document](../../packages/oasis_os/docs/design.md) for detailed documentation.
 
-### rust_psp_sdk
+### rust-psp SDK
 
-The repository includes a **vendored fork of the rust-psp SDK** (`packages/rust_psp_sdk/`), modernized and hardened for OASIS_OS:
+OASIS_OS depends on a **standalone fork of the rust-psp SDK** at [github.com/AndrewAltimit/rust-psp](https://github.com/AndrewAltimit/rust-psp), modernized and hardened:
 
 - **Edition 2024**: The only Rust PSP SDK on the latest edition (upstream is still on 2018)
 - **Safety Fixes**: C runtime intrinsics fix (infinite recursion), use-after-free, atomic panic counter, allocator overflow checks
@@ -175,9 +175,9 @@ The repository includes a **vendored fork of the rust-psp SDK** (`packages/rust_
 - **Kernel Mode**: Feature flag for kernel mode module support (requested upstream since 2020, never implemented)
 - **VRAM Allocator**: Panic-to-Result API with structured error types
 - **Error Handling**: All cargo-psp tools refactored from `unwrap()`/`panic!()` to `Result` with `anyhow`
-- **License/Advisory Checking**: `deny.toml` for cargo-deny integration
+- **CI/CD**: Containerized CI, Gemini/Codex AI PR reviews, GitHub Releases with pre-built binaries
 
-See the [rust_psp_sdk README](../../packages/rust_psp_sdk/README.md) for detailed documentation.
+See the [rust-psp README](https://github.com/AndrewAltimit/rust-psp) for detailed documentation.
 
 ## How They Work Together
 

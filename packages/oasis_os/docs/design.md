@@ -90,7 +90,7 @@ OASIS_OS follows a layered architecture with strict separation between the platf
 
 The project is organized as a Cargo workspace under `packages/oasis_os/`, following the same conventions as other research packages in this repository (`tamper_briefcase`, `economic_agents`, `bioforge`, `injection_toolkit`). The core crate depends on `std`. Skins are data-driven configurations loaded at runtime.
 
-The rust-psp SDK lives as a sibling package at `packages/rust_psp_sdk/` rather than vendored inside oasis_os. The PSP backend crate is excluded from the workspace because it requires the `mipsel-sony-psp` target and is built separately with `cargo psp`.
+The rust-psp SDK is an external dependency hosted at [github.com/AndrewAltimit/rust-psp](https://github.com/AndrewAltimit/rust-psp) and referenced as a git dependency. The PSP backend crate is excluded from the workspace because it requires the `mipsel-sony-psp` target and is built separately with `cargo psp`.
 
 ```
 packages/oasis_os/
@@ -121,13 +121,9 @@ packages/oasis_os/
 |   +-- design.md                   # This document
 ```
 
-**Sibling packages used by OASIS_OS:**
+**External dependencies:**
 
-```
-packages/rust_psp_sdk/              # Vendored rust-psp SDK (MIT), modernized for edition 2024
-+-- psp/                            # Core PSP crate (sceGu, sceCtrl, sys bindings, vram_alloc)
-+-- cargo-psp/                      # Build tool: cross-compile + prxgen + pack-pbp -> EBOOT.PBP
-```
+- [rust-psp SDK](https://github.com/AndrewAltimit/rust-psp) (MIT) -- modernized fork with edition 2024, safety fixes, kernel mode support. Referenced as a git dependency from `oasis-backend-psp/Cargo.toml`.
 
 **Planned directories (not yet created):**
 
@@ -158,7 +154,7 @@ members = [
     "crates/oasis-app",
 ]
 # PSP crate excluded from workspace -- it requires mipsel-sony-psp target
-# and the rust_psp_sdk package. Build separately with cargo-psp:
+# and the rust-psp SDK (github.com/AndrewAltimit/rust-psp). Build separately with cargo-psp:
 #   cd crates/oasis-backend-psp && cargo psp --release
 exclude = [
     "crates/oasis-backend-psp",
@@ -215,7 +211,7 @@ opt-level = 0
 debug = true
 ```
 
-The PSP backend crate has its own standalone `Cargo.toml` (not workspace-inherited) because it targets `mipsel-sony-psp` and depends on the sibling `rust_psp_sdk` package:
+The PSP backend crate has its own standalone `Cargo.toml` (not workspace-inherited) because it targets `mipsel-sony-psp` and depends on the standalone rust-psp SDK:
 
 ```toml
 # crates/oasis-backend-psp/Cargo.toml
@@ -228,7 +224,7 @@ edition = "2024"
 license = "MIT"
 
 [dependencies]
-psp = { path = "../../../rust_psp_sdk/psp" }
+psp = { git = "https://github.com/AndrewAltimit/rust-psp", branch = "initial_release" }
 ```
 
 ### 3.3 Platform Targeting
@@ -598,9 +594,9 @@ The PSP has 32MB of main RAM (64MB on PSP-2000+), a 333MHz MIPS R4000 CPU, and 2
 
 The original C codebase runs in kernel mode (`PSP_MODULE_INFO` flag `0x1000`), granting access to all hardware registers, the ability to load arbitrary PRX modules, and direct Memory Stick I/O.
 
-**Vendored PSP SDK:** The rust-psp SDK is vendored into the monorepo as a sibling package at `packages/rust_psp_sdk/` rather than depending on the upstream crate. The upstream project (`github.com/overdrivenpotato/rust-psp`, MIT license) is maintained at a low cadence (~3-4 commits/year) and lacks kernel mode support (issue #48, open since June 2020). By vendoring the SDK, OASIS_OS can extend it with kernel mode module support (`PSP_MODULE_INFO` flag `0x1000`), `#![no_std]` improvements, edition 2024 modernization, and additional syscall bindings as needed -- without waiting on upstream. The vendored copy tracks upstream for bug fixes but diverges for kernel-mode and feature additions. The PSP backend crate references the SDK via relative path: `psp = { path = "../../../rust_psp_sdk/psp" }`.
+**rust-psp SDK:** OASIS_OS depends on a standalone fork of the rust-psp SDK at [github.com/AndrewAltimit/rust-psp](https://github.com/AndrewAltimit/rust-psp), referenced as a git dependency. The upstream project (`github.com/overdrivenpotato/rust-psp`, MIT license) is maintained at a low cadence (~3-4 commits/year) and lacks kernel mode support (issue #48, open since June 2020). The fork extends the SDK with kernel mode module support (`PSP_MODULE_INFO` flag `0x1000`), `#![no_std]` improvements, edition 2024 modernization, safety fixes, and additional syscall bindings -- without waiting on upstream. The fork tracks upstream for bug fixes but diverges for kernel-mode and feature additions.
 
-OASIS_OS initially targets user mode, which is sufficient for rendering, input, networking, and file I/O on modern custom firmware. Kernel-mode features (Media Engine coprocessor, raw hardware register access) are the primary motivation for extending the vendored SDK. Until kernel mode is implemented in the vendored SDK, these features are accessed through pre-compiled PRX modules loaded at runtime. The `#![no_std]` + `#![no_main]` entry point uses `psp::module!()` macro with `psp_main()`.
+OASIS_OS initially targets user mode, which is sufficient for rendering, input, networking, and file I/O on modern custom firmware. Kernel-mode features (Media Engine coprocessor, raw hardware register access) are the primary motivation for extending the SDK fork. Until kernel mode is fully implemented, these features are accessed through pre-compiled PRX modules loaded at runtime. The `#![no_std]` + `#![no_main]` entry point uses `psp::module!()` macro with `psp_main()`.
 
 ### 8.3 Assembly Preservation [PLANNED]
 
@@ -1231,8 +1227,8 @@ Total estimated Rust codebase: approximately 24,000 lines, exceeding the origina
 
 | Risk | Likelihood | Impact | Mitigation |
 |------|-----------|--------|-----------|
-| Vendored rust-psp SDK lacks needed PSP syscall bindings | Medium | Medium | Add bindings directly to the vendored copy; contribute back upstream where appropriate; fallback to raw unsafe FFI via C headers |
-| Kernel mode support in vendored SDK not yet implemented | High | Medium | Design for user mode first; kernel-mode features (ME, raw hardware) accessed via pre-compiled PRX loaded at runtime; extend vendored SDK incrementally |
+| rust-psp SDK fork lacks needed PSP syscall bindings | Medium | Medium | Add bindings directly to the fork; fallback to raw unsafe FFI via C headers |
+| Kernel mode support in SDK fork not yet implemented | High | Medium | Design for user mode first; kernel-mode features (ME, raw hardware) accessed via pre-compiled PRX loaded at runtime; extend SDK fork incrementally |
 | PPSSPP infrastructure networking breaks on edge cases | Medium | Medium | Test on latest PPSSPP builds; report issues upstream; fallback to real hardware |
 | PPSSPP MCP patches break on upstream update | Medium | Low | Pin to specific PPSSPP commit in Dockerfile; re-apply and fix patches when bumping version; patches are small and isolated to new files |
 | PPSSPP internal APIs change (debugger, memory, GPU) | Medium | Medium | Patches primarily hook into stable internal APIs (Memory::Read, MIPSDebugInterface); GPU tools are more fragile -- pin to known-good PPSSPP version |
@@ -1283,8 +1279,8 @@ Total estimated Rust codebase: approximately 24,000 lines, exceeding the origina
 | Resource | URL / Location |
 |----------|---------------|
 | Original C source (v1.90) | `psixpsp.7z` (repository root) |
-| rust-psp upstream (vendored) | github.com/overdrivenpotato/rust-psp |
-| Vendored rust-psp SDK | `packages/rust_psp_sdk/` (sibling package) |
+| rust-psp upstream | github.com/overdrivenpotato/rust-psp |
+| rust-psp SDK fork | github.com/AndrewAltimit/rust-psp |
 | PPSSPP emulator (GPL-2.0+) | github.com/hrydgard/ppsspp |
 | PPSSPP infrastructure networking PR | github.com/hrydgard/ppsspp/pull/19827 |
 | PPSSPP MCP patches [PLANNED] | `packages/oasis_os/ppsspp/patches/` (not yet created) |
