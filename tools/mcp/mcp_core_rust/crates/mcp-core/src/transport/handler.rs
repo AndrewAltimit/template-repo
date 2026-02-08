@@ -108,18 +108,18 @@ impl MCPHandler {
         );
 
         // Update session with client info
-        if let Some(sid) = session_id {
-            if let Some(client) = &init_params.client_info {
-                self.sessions
-                    .update(sid, |s| {
-                        s.client_info = Some(ClientInfo {
-                            name: client.name.clone(),
-                            version: client.version.clone(),
-                        });
-                        s.mark_initialized();
-                    })
-                    .await;
-            }
+        if let Some(sid) = session_id
+            && let Some(client) = &init_params.client_info
+        {
+            self.sessions
+                .update(sid, |s| {
+                    s.client_info = Some(ClientInfo {
+                        name: client.name.clone(),
+                        version: client.version.clone(),
+                    });
+                    s.mark_initialized();
+                })
+                .await;
         }
 
         let result = InitializeResult {
