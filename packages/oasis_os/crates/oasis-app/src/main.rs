@@ -1,9 +1,9 @@
 //! OASIS_OS desktop entry point.
 //!
-//! PSIX-style UI with wallpaper, mouse cursor, windowed apps, status bar,
-//! 6x3 icon grid dashboard, and bottom bar with media category tabs.
+//! PSIX-style UI with wallpaper, mouse cursor, status bar, 6x3 icon grid
+//! dashboard, and bottom bar with media category tabs.
 //! L trigger cycles top tabs, R trigger cycles media categories,
-//! D-pad navigates the grid. Click to interact with windows.
+//! D-pad navigates the grid. Click to select/launch icons.
 //! Press F1 to toggle terminal, F2 to toggle on-screen keyboard, Escape to quit.
 
 use anyhow::Result;
@@ -27,7 +27,6 @@ use oasis_core::terminal::{CommandOutput, CommandRegistry, Environment, register
 use oasis_core::transition;
 use oasis_core::vfs::MemoryVfs;
 use oasis_core::wallpaper;
-use oasis_core::wm::{WindowConfig, WindowManager, WindowType, WmEvent};
 
 /// Maximum lines visible in the terminal output area.
 const MAX_OUTPUT_LINES: usize = 12;
@@ -148,9 +147,6 @@ fn main() -> Result<()> {
     }
     log::info!("Mouse cursor loaded");
 
-    // -- Window Manager --
-    let mut wm = WindowManager::new(config.screen_width, config.screen_height);
-
     let mut mode = Mode::Dashboard;
     let bg_color = Color::rgb(10, 10, 18);
 
@@ -206,59 +202,7 @@ fn main() -> Result<()> {
                 continue;
             }
 
-            // App mode: if we have windows open, route pointer events to WM.
-            if mode == Mode::App && wm.window_count() > 0 {
-                match event {
-                    InputEvent::Quit => break 'running,
-                    InputEvent::PointerClick { .. }
-                    | InputEvent::CursorMove { .. }
-                    | InputEvent::PointerRelease { .. } => {
-                        let wm_event = wm.handle_input(event, &mut sdi);
-                        match wm_event {
-                            WmEvent::WindowClosed(ref id) => {
-                                log::info!("Window closed: {id}");
-                                if wm.window_count() == 0 {
-                                    app_runner = None;
-                                    mode = Mode::Dashboard;
-                                }
-                            },
-                            WmEvent::DesktopClick(_, _) => {
-                                // Clicked outside windows -- go back to dashboard.
-                                // Close all windows first.
-                                close_all_windows(&mut wm, &mut sdi);
-                                app_runner = None;
-                                mode = Mode::Dashboard;
-                            },
-                            _ => {},
-                        }
-                        continue;
-                    },
-                    InputEvent::ButtonPress(btn) => {
-                        if let Some(ref mut runner) = app_runner {
-                            match runner.handle_input(btn, &vfs) {
-                                AppAction::Exit => {
-                                    close_all_windows(&mut wm, &mut sdi);
-                                    AppRunner::hide_sdi(&mut sdi);
-                                    app_runner = None;
-                                    mode = Mode::Dashboard;
-                                },
-                                AppAction::SwitchToTerminal => {
-                                    close_all_windows(&mut wm, &mut sdi);
-                                    AppRunner::hide_sdi(&mut sdi);
-                                    app_runner = None;
-                                    mode = Mode::Terminal;
-                                },
-                                AppAction::None => {},
-                            }
-                        }
-                        continue;
-                    },
-                    _ => {},
-                }
-                continue;
-            }
-
-            // App mode without windows (legacy fullscreen).
+            // App mode: fullscreen SDI rendering.
             if mode == Mode::App {
                 if let Some(ref mut runner) = app_runner {
                     match event {
@@ -288,7 +232,7 @@ fn main() -> Result<()> {
                     break 'running;
                 },
 
-                // Launch app from dashboard (opens in a window).
+                // Launch app from dashboard.
                 InputEvent::ButtonPress(Button::Confirm) if mode == Mode::Dashboard => {
                     if bottom_bar.active_tab == MediaTab::None {
                         if let Some(app) = dashboard.selected_app() {
@@ -296,23 +240,8 @@ fn main() -> Result<()> {
                             if app.title == "Terminal" {
                                 mode = Mode::Terminal;
                             } else {
-                                // Open the app in a WM window.
-                                let win_config = WindowConfig {
-                                    id: format!(
-                                        "app_{}",
-                                        app.title.to_lowercase().replace(' ', "_")
-                                    ),
-                                    title: app.title.clone(),
-                                    x: None,
-                                    y: None,
-                                    width: 300,
-                                    height: 180,
-                                    window_type: WindowType::AppWindow,
-                                };
-                                if let Ok(_id) = wm.create_window(&win_config, &mut sdi) {
-                                    app_runner = Some(AppRunner::launch(app, &vfs));
-                                    mode = Mode::App;
-                                }
+                                app_runner = Some(AppRunner::launch(app, &vfs));
+                                mode = Mode::App;
                             }
                             active_transition = Some(transition::fade_in(
                                 config.screen_width,
@@ -322,12 +251,39 @@ fn main() -> Result<()> {
                     }
                 },
 
-                // Pointer click on dashboard: route to WM if windows exist.
-                InputEvent::PointerClick { .. } if mode == Mode::Dashboard => {
-                    if wm.window_count() > 0 {
-                        let wm_event = wm.handle_input(event, &mut sdi);
-                        if let WmEvent::WindowClosed(ref id) = wm_event {
-                            log::info!("Window closed: {id}");
+                // Pointer click on dashboard: select icon at click position.
+                InputEvent::PointerClick { x, y } if mode == Mode::Dashboard => {
+                    if bottom_bar.active_tab == MediaTab::None {
+                        let cfg = &dashboard.config;
+                        let gx = *x - cfg.grid_x;
+                        let gy = *y - cfg.grid_y;
+                        if gx >= 0 && gy >= 0 {
+                            let col = gx as usize / cfg.cell_w as usize;
+                            let row = gy as usize / cfg.cell_h as usize;
+                            if col < cfg.grid_cols as usize && row < cfg.grid_rows as usize {
+                                let idx = row * cfg.grid_cols as usize + col;
+                                let page_apps = dashboard.current_page_apps().len();
+                                if idx < page_apps {
+                                    if dashboard.selected == idx {
+                                        // Double-click (already selected) -- launch.
+                                        if let Some(app) = dashboard.selected_app() {
+                                            log::info!("Click-launching app: {}", app.title);
+                                            if app.title == "Terminal" {
+                                                mode = Mode::Terminal;
+                                            } else {
+                                                app_runner = Some(AppRunner::launch(app, &vfs));
+                                                mode = Mode::App;
+                                            }
+                                            active_transition = Some(transition::fade_in(
+                                                config.screen_width,
+                                                config.screen_height,
+                                            ));
+                                        }
+                                    } else {
+                                        dashboard.selected = idx;
+                                    }
+                                }
+                            }
                         }
                     }
                 },
@@ -608,21 +564,7 @@ fn main() -> Result<()> {
 
         // -- Render --
         backend.clear(bg_color)?;
-
-        if wm.window_count() > 0 && mode == Mode::App {
-            // Use WM's clipped drawing when windows are open.
-            wm.draw_with_clips(&sdi, &mut backend, |_win_id, cx, cy, cw, ch, be| {
-                // Draw app content inside the window clip rect.
-                be.fill_rect(cx, cy, cw, ch, Color::rgb(30, 30, 30))?;
-                if let Some(ref runner) = app_runner {
-                    // Draw app-specific content text inside window.
-                    be.draw_text(&runner.title, cx + 4, cy + 4, 10, Color::rgb(180, 200, 180))?;
-                }
-                Ok(())
-            })?;
-        } else {
-            sdi.draw(&mut backend)?;
-        }
+        sdi.draw(&mut backend)?;
 
         // Draw transition overlay if active.
         if let Some(ref mut trans) = active_transition {
@@ -650,22 +592,6 @@ fn setup_wallpaper(sdi: &mut SdiRegistry, tex: TextureId, w: u32, h: u32) {
     obj.h = h;
     obj.texture = Some(tex);
     obj.z = -1000;
-}
-
-/// Close all WM windows.
-fn close_all_windows(wm: &mut WindowManager, sdi: &mut SdiRegistry) {
-    // Collect IDs first to avoid borrow issues.
-    let mut ids = Vec::new();
-    while wm.window_count() > 0 {
-        if let Some(id) = wm.active_window().map(String::from) {
-            ids.push(id);
-        } else {
-            break;
-        }
-        if let Some(id) = ids.last() {
-            let _ = wm.close_window(id, sdi);
-        }
-    }
 }
 
 /// Update SDI objects for the currently selected media category page.
