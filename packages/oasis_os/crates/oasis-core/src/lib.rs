@@ -24,6 +24,7 @@ pub mod sdi;
 pub mod skin;
 pub mod statusbar;
 pub mod terminal;
+pub mod theme;
 pub mod transfer;
 pub mod transition;
 pub mod update;

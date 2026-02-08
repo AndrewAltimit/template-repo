@@ -51,7 +51,7 @@ fn main() -> anyhow::Result<()> {
     populate_demo_vfs(&mut vfs);
 
     let apps = discover_apps(&vfs, "/apps", Some("OASISOS"))?;
-    let dash_config = DashboardConfig::from_features(&skin.features, w, h);
+    let dash_config = DashboardConfig::from_features(&skin.features);
     let dashboard = DashboardState::new(dash_config, apps);
     let mut status_bar = StatusBar::new();
     let mut bottom_bar = BottomBar::new();

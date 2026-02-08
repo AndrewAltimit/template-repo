@@ -81,11 +81,7 @@ fn main() -> Result<()> {
     log::info!("Discovered {} apps", apps.len());
 
     // Set up dashboard.
-    let dash_config = DashboardConfig::from_features(
-        &skin.features,
-        skin.manifest.screen_width,
-        skin.manifest.screen_height,
-    );
+    let dash_config = DashboardConfig::from_features(&skin.features);
     let mut dashboard = DashboardState::new(dash_config, apps);
 
     // Set up PSIX-style bars.

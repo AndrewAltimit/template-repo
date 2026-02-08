@@ -218,11 +218,7 @@ pub unsafe extern "C" fn oasis_create(
     let dashboard = if let Some(ref skin) = skin {
         skin.apply_layout(&mut sdi);
         let apps = discover_apps(&vfs, "/apps", None).unwrap_or_default();
-        let dash_config = DashboardConfig::from_features(
-            &skin.features,
-            skin.manifest.screen_width,
-            skin.manifest.screen_height,
-        );
+        let dash_config = DashboardConfig::from_features(&skin.features);
         Some(DashboardState::new(dash_config, apps))
     } else {
         None

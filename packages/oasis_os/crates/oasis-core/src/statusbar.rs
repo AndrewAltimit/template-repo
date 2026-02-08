@@ -6,11 +6,8 @@
 use crate::backend::Color;
 use crate::platform::{BatteryState, PowerInfo, SystemTime};
 use crate::sdi::SdiRegistry;
-
-/// Screen width for layout calculations.
-const SCREEN_W: u32 = 480;
-/// Status bar height.
-const BAR_H: u32 = 24;
+use crate::sdi::helpers::{ensure_border, ensure_text, hide_objects};
+use crate::theme;
 
 /// Top-level tabs (cycled with L trigger).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -131,14 +128,17 @@ impl StatusBar {
 
     /// Synchronize SDI objects to reflect current status bar state.
     pub fn update_sdi(&self, sdi: &mut SdiRegistry) {
-        // Semi-transparent background bar (PSIX uses very transparent black).
+        let bar_h = theme::STATUSBAR_H;
+        let screen_w = theme::SCREEN_W;
+
+        // Semi-transparent background bar.
         if !sdi.contains("bar_top") {
             let obj = sdi.create("bar_top");
             obj.x = 0;
             obj.y = 0;
-            obj.w = SCREEN_W;
-            obj.h = BAR_H;
-            obj.color = Color::rgba(0, 0, 0, 80);
+            obj.w = screen_w;
+            obj.h = bar_h;
+            obj.color = theme::STATUSBAR_BG;
             obj.overlay = true;
             obj.z = 900;
         }
@@ -146,119 +146,131 @@ impl StatusBar {
             obj.visible = true;
         }
 
-        // Thin line separator below status bar (PSIX has a visible edge).
+        // Thin line separator below status bar.
         ensure_border(
             sdi,
             "bar_top_line",
             0,
-            BAR_H as i32 - 1,
-            SCREEN_W,
+            bar_h as i32 - 1,
+            screen_w,
             1,
-            Color::rgba(255, 255, 255, 40),
+            theme::SEPARATOR_COLOR,
         );
 
-        // Battery + CPU info (left side, PSIX style: "100% [icon] 265 MHz").
-        ensure_text_object(sdi, "bar_battery", 6, 7, 8, Color::rgb(120, 255, 120));
+        // Battery + CPU info (left side).
+        ensure_text(
+            sdi,
+            "bar_battery",
+            6,
+            7,
+            theme::FONT_SMALL,
+            theme::BATTERY_COLOR,
+        );
         if let Ok(obj) = sdi.get_mut("bar_battery") {
             let mut info = self.battery_text.clone();
             if !self.cpu_text.is_empty() {
                 info = format!("{info}  {}", self.cpu_text);
             }
             obj.text = Some(info);
-            obj.overlay = true;
-            obj.z = 901;
         }
 
-        // Version label (center area, PSIX: "Version 1.1 Public").
-        ensure_text_object(sdi, "bar_version", 180, 7, 8, Color::WHITE);
+        // Version label (center area).
+        ensure_text(
+            sdi,
+            "bar_version",
+            180,
+            7,
+            theme::FONT_SMALL,
+            theme::VERSION_COLOR,
+        );
         if let Ok(obj) = sdi.get_mut("bar_version") {
             obj.text = Some("Version 0.1".to_string());
-            obj.overlay = true;
-            obj.z = 901;
         }
 
-        // Clock + date (right side, PSIX: "11:20 November 23, 2024").
-        ensure_text_object(sdi, "bar_clock", 290, 7, 8, Color::rgb(255, 255, 255));
+        // Clock + date (right side).
+        ensure_text(
+            sdi,
+            "bar_clock",
+            290,
+            7,
+            theme::FONT_SMALL,
+            theme::CLOCK_COLOR,
+        );
         if let Ok(obj) = sdi.get_mut("bar_clock") {
             if self.date_text.is_empty() {
                 obj.text = Some(self.clock_text.clone());
             } else {
                 obj.text = Some(format!("{} {}", self.clock_text, self.date_text));
             }
-            obj.overlay = true;
-            obj.z = 901;
         }
 
-        // "MSO"-style label before tabs (PSIX shows "MSO" as a category label).
-        ensure_text_object(
+        // Category label before tabs (PSIX: "MSO").
+        ensure_text(
             sdi,
             "bar_mso",
             6,
-            BAR_H as i32 + 3,
-            8,
-            Color::rgb(220, 220, 220),
+            bar_h as i32 + 3,
+            theme::FONT_SMALL,
+            theme::CATEGORY_LABEL_COLOR,
         );
         if let Ok(obj) = sdi.get_mut("bar_mso") {
             obj.text = Some("OSS".to_string());
-            obj.overlay = true;
-            obj.z = 902;
         }
 
-        // Tab row (PSIX-style thin outlined borders around each tab label).
-        let tab_x_start = 34;
-        let tab_w: i32 = 45;
-        let tab_h: i32 = 16;
-        let tab_gap = 4;
-        let tab_y = BAR_H as i32;
+        // Tab row with outlined borders.
+        let tab_y = bar_h as i32;
         for (i, tab) in TopTab::ALL.iter().enumerate() {
             let name = format!("bar_tab_{i}");
-            let x = tab_x_start + (i as i32) * (tab_w + tab_gap);
+            let x = theme::TAB_START_X + (i as i32) * (theme::TAB_W + theme::TAB_GAP);
 
-            let border_alpha: u8 = if *tab == self.active_tab { 180 } else { 60 };
-            let border_color = Color::rgba(255, 255, 255, border_alpha);
+            let alpha = if *tab == self.active_tab {
+                theme::TAB_ACTIVE_ALPHA
+            } else {
+                theme::TAB_INACTIVE_ALPHA
+            };
+            let border_color = Color::rgba(255, 255, 255, alpha);
 
-            // Top edge.
+            // Four border edges.
+            let tw = theme::TAB_W as u32;
+            let th = theme::TAB_H as u32;
             ensure_border(
                 sdi,
                 &format!("bar_tab_bt_{i}"),
                 x,
                 tab_y,
-                tab_w as u32,
+                tw,
                 1,
                 border_color,
             );
-            // Bottom edge.
             ensure_border(
                 sdi,
                 &format!("bar_tab_bb_{i}"),
                 x,
-                tab_y + tab_h - 1,
-                tab_w as u32,
+                tab_y + theme::TAB_H - 1,
+                tw,
                 1,
                 border_color,
             );
-            // Left edge.
             ensure_border(
                 sdi,
                 &format!("bar_tab_bl_{i}"),
                 x,
                 tab_y,
                 1,
-                tab_h as u32,
+                th,
                 border_color,
             );
-            // Right edge.
             ensure_border(
                 sdi,
                 &format!("bar_tab_br_{i}"),
-                x + tab_w - 1,
+                x + theme::TAB_W - 1,
                 tab_y,
                 1,
-                tab_h as u32,
+                th,
                 border_color,
             );
 
-            // Fill for active tab only (very subtle).
+            // Fill for active tab only.
             let bg_name = format!("bar_tab_bg_{i}");
             if !sdi.contains(&bg_name) {
                 let obj = sdi.create(&bg_name);
@@ -268,23 +280,28 @@ impl StatusBar {
             if let Ok(obj) = sdi.get_mut(&bg_name) {
                 obj.x = x + 1;
                 obj.y = tab_y + 1;
-                obj.w = (tab_w - 2) as u32;
-                obj.h = (tab_h - 2) as u32;
+                obj.w = (theme::TAB_W - 2) as u32;
+                obj.h = (theme::TAB_H - 2) as u32;
                 obj.visible = true;
                 obj.color = if *tab == self.active_tab {
-                    Color::rgba(255, 255, 255, 30)
+                    theme::TAB_ACTIVE_FILL
                 } else {
-                    Color::rgba(0, 0, 0, 0)
+                    theme::TAB_INACTIVE_FILL
                 };
             }
 
-            // Tab text.
-            let tx = x + (tab_w - (tab.label().len() as i32 * 8)) / 2;
-            ensure_text_object(sdi, &name, tx.max(x + 2), tab_y + 4, 8, Color::WHITE);
+            // Tab text (centered).
+            let tx = x + (theme::TAB_W - (tab.label().len() as i32 * theme::CHAR_W)) / 2;
+            ensure_text(
+                sdi,
+                &name,
+                tx.max(x + 2),
+                tab_y + 4,
+                theme::FONT_SMALL,
+                Color::WHITE,
+            );
             if let Ok(obj) = sdi.get_mut(&name) {
                 obj.text = Some(tab.label().to_string());
-                obj.overlay = true;
-                obj.z = 902;
                 obj.text_color = if *tab == self.active_tab {
                     Color::WHITE
                 } else {
@@ -293,7 +310,7 @@ impl StatusBar {
             }
         }
 
-        // Hide CPU text object (merged into battery display).
+        // Hide legacy CPU text object (merged into battery display).
         if let Ok(obj) = sdi.get_mut("bar_cpu") {
             obj.visible = false;
         }
@@ -301,20 +318,18 @@ impl StatusBar {
 
     /// Hide all status bar SDI objects.
     pub fn hide_sdi(sdi: &mut SdiRegistry) {
-        let names = [
-            "bar_top",
-            "bar_top_line",
-            "bar_version",
-            "bar_clock",
-            "bar_battery",
-            "bar_cpu",
-            "bar_mso",
-        ];
-        for name in &names {
-            if let Ok(obj) = sdi.get_mut(name) {
-                obj.visible = false;
-            }
-        }
+        hide_objects(
+            sdi,
+            &[
+                "bar_top",
+                "bar_top_line",
+                "bar_version",
+                "bar_clock",
+                "bar_battery",
+                "bar_cpu",
+                "bar_mso",
+            ],
+        );
         for i in 0..TopTab::ALL.len() {
             for prefix in &[
                 "bar_tab_",
@@ -336,39 +351,6 @@ impl StatusBar {
 impl Default for StatusBar {
     fn default() -> Self {
         Self::new()
-    }
-}
-
-/// Helper: create a thin border SDI object (1px line segment).
-fn ensure_border(sdi: &mut SdiRegistry, name: &str, x: i32, y: i32, w: u32, h: u32, color: Color) {
-    if !sdi.contains(name) {
-        let obj = sdi.create(name);
-        obj.overlay = true;
-        obj.z = 901;
-    }
-    if let Ok(obj) = sdi.get_mut(name) {
-        obj.x = x;
-        obj.y = y;
-        obj.w = w;
-        obj.h = h;
-        obj.color = color;
-        obj.visible = true;
-    }
-}
-
-/// Helper: create a text-only SDI object if it doesn't exist, and restore visibility.
-fn ensure_text_object(sdi: &mut SdiRegistry, name: &str, x: i32, y: i32, size: u16, color: Color) {
-    if !sdi.contains(name) {
-        let obj = sdi.create(name);
-        obj.x = x;
-        obj.y = y;
-        obj.font_size = size;
-        obj.text_color = color;
-        obj.w = 0;
-        obj.h = 0;
-    }
-    if let Ok(obj) = sdi.get_mut(name) {
-        obj.visible = true;
     }
 }
 

@@ -11,6 +11,7 @@ use crate::backend::Color;
 use crate::input::Button;
 use crate::sdi::SdiRegistry;
 use crate::skin::SkinFeatures;
+use crate::theme;
 
 /// Dashboard configuration derived from the skin's feature gates.
 #[derive(Debug, Clone)]
@@ -31,26 +32,21 @@ pub struct DashboardConfig {
 impl DashboardConfig {
     /// Create a config from skin features and screen dimensions.
     /// Uses PSIX-style layout: icons on the left side with generous spacing.
-    pub fn from_features(features: &SkinFeatures, _screen_w: u32, _screen_h: u32) -> Self {
+    pub fn from_features(features: &SkinFeatures) -> Self {
         let cols = features.grid_cols;
         let rows = features.grid_rows;
-        let status_bar_h = 24u32;
-        let tab_row_h = 18u32;
         // PSIX places icons on the left ~half of the screen, sparsely.
         let grid_padding_x = 16u32;
         let grid_padding_y = 6u32;
-        // Content area between tab row and bottom bar.
-        let top_used = status_bar_h + tab_row_h;
-        let content_h = 272u32 - top_used - 24;
         let cell_w = 110u32; // Wide cells for larger icons + labels.
-        let cell_h = (content_h - 2 * grid_padding_y) / rows;
+        let cell_h = (theme::CONTENT_H - 2 * grid_padding_y) / rows;
         Self {
             grid_cols: cols,
             grid_rows: rows,
             icons_per_page: features.icons_per_page,
             max_pages: features.dashboard_pages,
             grid_x: grid_padding_x as i32,
-            grid_y: (top_used + grid_padding_y) as i32,
+            grid_y: (theme::CONTENT_TOP + grid_padding_y) as i32,
             cell_w,
             cell_h,
             cursor_pad: 3,
@@ -172,16 +168,14 @@ impl DashboardState {
         let cols = self.config.grid_cols as usize;
         let page_apps = self.current_page_apps();
 
-        // PSIX document icon: larger white page with colored stripe and app graphic.
-        let icon_w = 42u32;
-        let icon_h = 52u32;
-        let stripe_h = 12u32;
-        let fold_size = 10u32;
-        let text_pad = 4i32;
-        // Colored app graphic sits below the stripe on the document body.
-        let gfx_pad = 4u32;
+        let icon_w = theme::ICON_W;
+        let icon_h = theme::ICON_H;
+        let stripe_h = theme::ICON_STRIPE_H;
+        let fold_size = theme::ICON_FOLD_SIZE;
+        let text_pad = theme::ICON_LABEL_PAD;
+        let gfx_pad = theme::ICON_GFX_PAD;
         let gfx_w = icon_w - 2 * gfx_pad;
-        let gfx_h = 22u32;
+        let gfx_h = theme::ICON_GFX_H;
 
         let per_page = self.config.icons_per_page as usize;
         for i in 0..per_page {
@@ -222,7 +216,7 @@ impl DashboardState {
                     obj.w = icon_w + 2;
                     obj.h = icon_h + 1;
                     obj.visible = true;
-                    obj.color = Color::rgba(0, 0, 0, 70);
+                    obj.color = theme::ICON_SHADOW_COLOR;
                     obj.text = None;
                 }
 
@@ -233,7 +227,7 @@ impl DashboardState {
                     obj.w = icon_w + 2;
                     obj.h = icon_h + 2;
                     obj.visible = true;
-                    obj.color = Color::rgba(255, 255, 255, 180);
+                    obj.color = theme::ICON_OUTLINE_COLOR;
                     obj.text = None;
                 }
 
@@ -244,7 +238,7 @@ impl DashboardState {
                     obj.w = icon_w;
                     obj.h = icon_h;
                     obj.visible = true;
-                    obj.color = Color::rgb(250, 250, 248);
+                    obj.color = theme::ICON_BODY_COLOR;
                     obj.text = None;
                 }
 
@@ -266,7 +260,7 @@ impl DashboardState {
                     obj.w = fold_size;
                     obj.h = fold_size;
                     obj.visible = true;
-                    obj.color = Color::rgb(210, 210, 205);
+                    obj.color = theme::ICON_FOLD_COLOR;
                     obj.text = None;
                 }
 
@@ -296,7 +290,7 @@ impl DashboardState {
                     obj.h = 0;
                     obj.font_size = 8;
                     obj.text = Some(page_apps[i].title.clone());
-                    obj.text_color = Color::rgba(255, 255, 255, 230);
+                    obj.text_color = theme::ICON_LABEL_COLOR;
                     obj.visible = true;
                 }
             } else {
@@ -334,7 +328,7 @@ impl DashboardState {
                 cursor.y = iy - pad;
                 cursor.w = icon_w + (pad * 2) as u32;
                 cursor.h = icon_h + (pad * 2) as u32;
-                cursor.color = Color::rgba(255, 255, 255, 50);
+                cursor.color = theme::CURSOR_COLOR;
                 cursor.visible = true;
                 cursor.overlay = true;
             } else {

@@ -6,6 +6,7 @@
 //! engine, no retained-mode GUI framework. Just a collection of named,
 //! positionable, blittable objects with z-ordering and alpha blending.
 
+pub mod helpers;
 pub mod object;
 pub mod registry;
 
