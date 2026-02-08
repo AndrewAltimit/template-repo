@@ -11,6 +11,7 @@ use oasis_core::backend::{Color, InputBackend, SdiBackend};
 use oasis_core::config::OasisConfig;
 use oasis_core::dashboard::{DashboardConfig, DashboardState, discover_apps};
 use oasis_core::input::{Button, InputEvent, Trigger};
+use oasis_core::net::{ListenerConfig, RemoteClient, RemoteListener, StdNetworkBackend};
 use oasis_core::osk::{OskConfig, OskState};
 use oasis_core::platform::DesktopPlatform;
 use oasis_core::sdi::SdiRegistry;
@@ -92,6 +93,11 @@ fn main() -> Result<()> {
 
     // On-screen keyboard state.
     let mut osk: Option<OskState> = None;
+
+    // Networking state.
+    let mut net_backend = StdNetworkBackend::new();
+    let mut listener: Option<RemoteListener> = None;
+    let mut remote_client: Option<RemoteClient> = None;
 
     // Set up scene graph and apply skin layout.
     let mut sdi = SdiRegistry::new();
@@ -203,6 +209,62 @@ fn main() -> Result<()> {
                             },
                             Ok(CommandOutput::Clear) => output_lines.clear(),
                             Ok(CommandOutput::None) => {},
+                            Ok(CommandOutput::ListenToggle { port }) => {
+                                if port == 0 {
+                                    // Stop listener.
+                                    if let Some(ref mut l) = listener {
+                                        l.stop();
+                                        listener = None;
+                                        output_lines.push("Remote listener stopped.".to_string());
+                                    } else {
+                                        output_lines.push("No listener running.".to_string());
+                                    }
+                                } else if listener.is_some() {
+                                    output_lines.push(
+                                        "Listener already running. Use 'listen stop' first."
+                                            .to_string(),
+                                    );
+                                } else {
+                                    let cfg = ListenerConfig {
+                                        port,
+                                        psk: String::new(),
+                                        max_connections: 4,
+                                    };
+                                    let mut l = RemoteListener::new(cfg);
+                                    match l.start(&mut net_backend) {
+                                        Ok(()) => {
+                                            output_lines.push(format!("Listening on port {port}."));
+                                            listener = Some(l);
+                                        },
+                                        Err(e) => {
+                                            output_lines.push(format!("Listen error: {e}"));
+                                        },
+                                    }
+                                }
+                            },
+                            Ok(CommandOutput::RemoteConnect { address, port, psk }) => {
+                                if remote_client.is_some() {
+                                    output_lines
+                                        .push("Already connected. Disconnect first.".to_string());
+                                } else {
+                                    let mut client = RemoteClient::new();
+                                    match client.connect(
+                                        &mut net_backend,
+                                        &address,
+                                        port,
+                                        psk.as_deref(),
+                                    ) {
+                                        Ok(()) => {
+                                            output_lines
+                                                .push(format!("Connected to {address}:{port}."));
+                                            remote_client = Some(client);
+                                        },
+                                        Err(e) => {
+                                            output_lines.push(format!("Connect error: {e}"));
+                                        },
+                                    }
+                                }
+                            },
                             Err(e) => output_lines.push(format!("error: {e}")),
                         }
                         cwd = env.cwd;
@@ -216,6 +278,56 @@ fn main() -> Result<()> {
                 },
 
                 _ => {},
+            }
+        }
+
+        // Poll remote listener for incoming commands.
+        if let Some(ref mut l) = listener {
+            let remote_cmds = l.poll(&mut net_backend);
+            for (cmd_line, conn_idx) in remote_cmds {
+                log::info!("Remote command from #{conn_idx}: {cmd_line}");
+                let mut env = Environment {
+                    cwd: cwd.clone(),
+                    vfs: &mut vfs,
+                    power: Some(&platform),
+                    time: Some(&platform),
+                    usb: Some(&platform),
+                };
+                let response = match cmd_reg.execute(&cmd_line, &mut env) {
+                    Ok(CommandOutput::Text(text)) => text,
+                    Ok(CommandOutput::Table { headers, rows }) => {
+                        let mut out = headers.join(" | ");
+                        for row in &rows {
+                            out.push('\n');
+                            out.push_str(&row.join(" | "));
+                        }
+                        out
+                    },
+                    Ok(CommandOutput::Clear) => "OK".to_string(),
+                    Ok(CommandOutput::None) => "OK".to_string(),
+                    Ok(CommandOutput::ListenToggle { .. })
+                    | Ok(CommandOutput::RemoteConnect { .. }) => {
+                        "Not available via remote.".to_string()
+                    },
+                    Err(e) => format!("error: {e}"),
+                };
+                cwd = env.cwd;
+                let _ = l.send_response(conn_idx, &response);
+            }
+        }
+
+        // Poll remote client for received data.
+        if let Some(ref mut client) = remote_client {
+            let lines = client.poll();
+            for line in lines {
+                output_lines.push(format!("[remote] {line}"));
+            }
+            if !client.is_connected() {
+                output_lines.push("[remote] Disconnected.".to_string());
+                remote_client = None;
+            }
+            while output_lines.len() > MAX_OUTPUT_LINES {
+                output_lines.remove(0);
             }
         }
 
@@ -261,6 +373,11 @@ fn populate_demo_vfs(vfs: &mut MemoryVfs) {
     .unwrap();
     vfs.write("/etc/hostname", b"oasis").unwrap();
     vfs.write("/etc/version", b"0.1.0").unwrap();
+    vfs.write(
+        "/etc/hosts.toml",
+        b"[[host]]\nname = \"briefcase\"\naddress = \"192.168.0.50\"\nport = 9000\nprotocol = \"oasis-terminal\"\n",
+    )
+    .unwrap();
 
     // Create demo app directories (no real PBP files -- discovery will use
     // directory names as titles, which is the fallback behavior).

@@ -9,6 +9,7 @@ pub mod config;
 pub mod dashboard;
 pub mod error;
 pub mod input;
+pub mod net;
 pub mod osk;
 pub mod pbp;
 pub mod platform;

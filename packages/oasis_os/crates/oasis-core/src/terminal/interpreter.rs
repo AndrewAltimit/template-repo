@@ -20,6 +20,17 @@ pub enum CommandOutput {
     None,
     /// Signal to clear the terminal output buffer.
     Clear,
+    /// Signal to the app to start/stop the remote terminal listener.
+    ListenToggle {
+        /// Port to listen on (0 = stop).
+        port: u16,
+    },
+    /// Signal to the app to connect to a remote host.
+    RemoteConnect {
+        address: String,
+        port: u16,
+        psk: Option<String>,
+    },
 }
 
 /// Shared mutable environment passed to every command.

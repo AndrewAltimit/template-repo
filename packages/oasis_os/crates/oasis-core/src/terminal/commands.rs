@@ -26,6 +26,10 @@ pub fn register_builtins(reg: &mut CommandRegistry) {
     reg.register(Box::new(ClockCmd));
     reg.register(Box::new(MemoryCmd));
     reg.register(Box::new(UsbCmd));
+    // Phase 5: remote terminal commands.
+    reg.register(Box::new(ListenCmd));
+    reg.register(Box::new(RemoteCmd));
+    reg.register(Box::new(HostsCmd));
 }
 
 // ---------------------------------------------------------------------------
@@ -566,6 +570,135 @@ impl Command for UsbCmd {
 }
 
 // ---------------------------------------------------------------------------
+// listen
+// ---------------------------------------------------------------------------
+
+struct ListenCmd;
+impl Command for ListenCmd {
+    fn name(&self) -> &str {
+        "listen"
+    }
+    fn description(&self) -> &str {
+        "Start/stop remote terminal listener"
+    }
+    fn usage(&self) -> &str {
+        "listen [port|stop]"
+    }
+    fn execute(&self, args: &[&str], _env: &mut Environment<'_>) -> Result<CommandOutput> {
+        if args.is_empty() {
+            return Ok(CommandOutput::ListenToggle { port: 9000 });
+        }
+        if args[0] == "stop" {
+            return Ok(CommandOutput::ListenToggle { port: 0 });
+        }
+        match args[0].parse::<u16>() {
+            Ok(port) => Ok(CommandOutput::ListenToggle { port }),
+            Err(_) => Err(OasisError::Command("usage: listen [port|stop]".to_string())),
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// remote
+// ---------------------------------------------------------------------------
+
+struct RemoteCmd;
+impl Command for RemoteCmd {
+    fn name(&self) -> &str {
+        "remote"
+    }
+    fn description(&self) -> &str {
+        "Connect to a remote host"
+    }
+    fn usage(&self) -> &str {
+        "remote <host|addr:port>"
+    }
+    fn execute(&self, args: &[&str], env: &mut Environment<'_>) -> Result<CommandOutput> {
+        if args.is_empty() {
+            return Err(OasisError::Command(
+                "usage: remote <host|addr:port>".to_string(),
+            ));
+        }
+        let target = args[0];
+
+        // Try addr:port format.
+        if let Some((addr, port_str)) = target.rsplit_once(':') {
+            if let Ok(port) = port_str.parse::<u16>() {
+                return Ok(CommandOutput::RemoteConnect {
+                    address: addr.to_string(),
+                    port,
+                    psk: None,
+                });
+            }
+        }
+
+        // Look up saved host from VFS config.
+        let hosts_path = "/etc/hosts.toml";
+        if env.vfs.exists(hosts_path) {
+            let data = env.vfs.read(hosts_path)?;
+            let toml_str = String::from_utf8_lossy(&data);
+            if let Ok(hosts) = crate::net::parse_hosts(&toml_str) {
+                for host in &hosts {
+                    if host.name == target {
+                        return Ok(CommandOutput::RemoteConnect {
+                            address: host.address.clone(),
+                            port: host.port,
+                            psk: host.psk.clone(),
+                        });
+                    }
+                }
+            }
+        }
+
+        Err(OasisError::Command(format!(
+            "unknown host: {target}  (use addr:port or configure in /etc/hosts.toml)"
+        )))
+    }
+}
+
+// ---------------------------------------------------------------------------
+// hosts
+// ---------------------------------------------------------------------------
+
+struct HostsCmd;
+impl Command for HostsCmd {
+    fn name(&self) -> &str {
+        "hosts"
+    }
+    fn description(&self) -> &str {
+        "List saved remote hosts"
+    }
+    fn usage(&self) -> &str {
+        "hosts"
+    }
+    fn execute(&self, _args: &[&str], env: &mut Environment<'_>) -> Result<CommandOutput> {
+        let hosts_path = "/etc/hosts.toml";
+        if !env.vfs.exists(hosts_path) {
+            return Ok(CommandOutput::Text(
+                "(no hosts configured -- create /etc/hosts.toml)".to_string(),
+            ));
+        }
+        let data = env.vfs.read(hosts_path)?;
+        let toml_str = String::from_utf8_lossy(&data);
+        let hosts = crate::net::parse_hosts(&toml_str)?;
+        if hosts.is_empty() {
+            return Ok(CommandOutput::Text("(no hosts defined)".to_string()));
+        }
+        let mut lines = Vec::new();
+        for h in &hosts {
+            lines.push(format!(
+                "  {} -> {}:{} ({})",
+                h.name, h.address, h.port, h.protocol
+            ));
+        }
+        Ok(CommandOutput::Text(format!(
+            "Saved hosts:\n{}",
+            lines.join("\n")
+        )))
+    }
+}
+
+// ---------------------------------------------------------------------------
 // Path resolution helper
 // ---------------------------------------------------------------------------
 
@@ -951,6 +1084,135 @@ mod tests {
         };
         match reg.execute("usb", &mut env).unwrap() {
             CommandOutput::Text(s) => assert!(s.contains("unsupported")),
+            _ => panic!("expected text"),
+        }
+    }
+
+    // --- Phase 5: remote terminal commands ---
+
+    #[test]
+    fn listen_default_port() {
+        let (reg, mut vfs) = setup();
+        let mut cwd = "/".to_string();
+        match exec(&reg, &mut vfs, &mut cwd, "listen").unwrap() {
+            CommandOutput::ListenToggle { port } => assert_eq!(port, 9000),
+            _ => panic!("expected ListenToggle"),
+        }
+    }
+
+    #[test]
+    fn listen_custom_port() {
+        let (reg, mut vfs) = setup();
+        let mut cwd = "/".to_string();
+        match exec(&reg, &mut vfs, &mut cwd, "listen 8080").unwrap() {
+            CommandOutput::ListenToggle { port } => assert_eq!(port, 8080),
+            _ => panic!("expected ListenToggle"),
+        }
+    }
+
+    #[test]
+    fn listen_stop() {
+        let (reg, mut vfs) = setup();
+        let mut cwd = "/".to_string();
+        match exec(&reg, &mut vfs, &mut cwd, "listen stop").unwrap() {
+            CommandOutput::ListenToggle { port } => assert_eq!(port, 0),
+            _ => panic!("expected ListenToggle"),
+        }
+    }
+
+    #[test]
+    fn remote_addr_port() {
+        let (reg, mut vfs) = setup();
+        let mut cwd = "/".to_string();
+        match exec(&reg, &mut vfs, &mut cwd, "remote 192.168.0.50:9000").unwrap() {
+            CommandOutput::RemoteConnect { address, port, psk } => {
+                assert_eq!(address, "192.168.0.50");
+                assert_eq!(port, 9000);
+                assert!(psk.is_none());
+            },
+            _ => panic!("expected RemoteConnect"),
+        }
+    }
+
+    #[test]
+    fn remote_saved_host() {
+        let (reg, mut vfs) = setup();
+        use crate::vfs::Vfs;
+        vfs.mkdir("/etc").unwrap();
+        vfs.write(
+            "/etc/hosts.toml",
+            br#"
+[[host]]
+name = "myserver"
+address = "10.0.0.1"
+port = 8080
+psk = "secret"
+"#,
+        )
+        .unwrap();
+        let mut cwd = "/".to_string();
+        match exec(&reg, &mut vfs, &mut cwd, "remote myserver").unwrap() {
+            CommandOutput::RemoteConnect { address, port, psk } => {
+                assert_eq!(address, "10.0.0.1");
+                assert_eq!(port, 8080);
+                assert_eq!(psk, Some("secret".to_string()));
+            },
+            _ => panic!("expected RemoteConnect"),
+        }
+    }
+
+    #[test]
+    fn remote_unknown_host() {
+        let (reg, mut vfs) = setup();
+        let mut cwd = "/".to_string();
+        assert!(exec(&reg, &mut vfs, &mut cwd, "remote unknown").is_err());
+    }
+
+    #[test]
+    fn remote_no_args() {
+        let (reg, mut vfs) = setup();
+        let mut cwd = "/".to_string();
+        assert!(exec(&reg, &mut vfs, &mut cwd, "remote").is_err());
+    }
+
+    #[test]
+    fn hosts_no_config() {
+        let (reg, mut vfs) = setup();
+        let mut cwd = "/".to_string();
+        match exec(&reg, &mut vfs, &mut cwd, "hosts").unwrap() {
+            CommandOutput::Text(s) => assert!(s.contains("no hosts configured")),
+            _ => panic!("expected text"),
+        }
+    }
+
+    #[test]
+    fn hosts_with_config() {
+        let (reg, mut vfs) = setup();
+        use crate::vfs::Vfs;
+        vfs.mkdir("/etc").unwrap();
+        vfs.write(
+            "/etc/hosts.toml",
+            br#"
+[[host]]
+name = "server1"
+address = "1.2.3.4"
+port = 9000
+
+[[host]]
+name = "server2"
+address = "5.6.7.8"
+port = 22
+protocol = "raw-tcp"
+"#,
+        )
+        .unwrap();
+        let mut cwd = "/".to_string();
+        match exec(&reg, &mut vfs, &mut cwd, "hosts").unwrap() {
+            CommandOutput::Text(s) => {
+                assert!(s.contains("server1"));
+                assert!(s.contains("server2"));
+                assert!(s.contains("1.2.3.4"));
+            },
             _ => panic!("expected text"),
         }
     }
