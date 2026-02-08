@@ -42,7 +42,7 @@ The project originated as a Rust port of a PSP homebrew shell OS written in C ci
 
 The framework supports multiple "skins" -- visual and behavioral personalities that determine what the OS looks like and what it exposes to the user. The Classic skin reproduces the original PSP-style icon grid dashboard. A cyberpunk terminal skin renders green-on-black CRT text. A military console skin exposes only the command line. A corrupted OS skin randomly permutes visual state. All skins share the same core: scene graph, command interpreter, virtual file system, networking, and plugin infrastructure. The skin defines layout, theme, feature gating, and visual style.
 
-Primary deployment targets are: in-game computers in Catalyst (a UE5 trading card game), real PSP hardware running modern custom firmware (6.60/6.61 with ARK-4), and the tamper-responsive briefcase system (`packages/tamper_briefcase/`) where a Raspberry Pi 5 boots directly into OASIS_OS as the field-deployable agent terminal OS. On the briefcase, OASIS_OS is the operator-facing interface for managing AI agents in untrusted environments -- the tamper detection, LUKS encryption, and cryptographic wipe services run alongside it as systemd units. On a PSP connected to infrastructure WiFi, OASIS_OS's remote terminal enables direct command sessions to machines running AI agents, making a 2005 handheld a viable field controller for the agent ecosystem described in `docs/agents/README.md`. The original C codebase (~15,000 lines) provides the proven UI design; the Rust rewrite provides memory safety, cross-platform backends, and the extensibility to support all targets from a single codebase.
+Primary deployment targets are: in-game computers in UE5 projects (rendered as interactive props), real PSP hardware running modern custom firmware (6.60/6.61 with ARK-4), and the tamper-responsive briefcase system (`packages/tamper_briefcase/`) where a Raspberry Pi 5 boots directly into OASIS_OS as the field-deployable agent terminal OS. On the briefcase, OASIS_OS is the operator-facing interface for managing AI agents in untrusted environments -- the tamper detection, LUKS encryption, and cryptographic wipe services run alongside it as systemd units. On a PSP connected to infrastructure WiFi, OASIS_OS's remote terminal enables direct command sessions to machines running AI agents, making a 2005 handheld a viable field controller for the agent ecosystem described in `docs/agents/README.md`. The original C codebase (~15,000 lines) provides the proven UI design; the Rust rewrite provides memory safety, cross-platform backends, and the extensibility to support all targets from a single codebase.
 
 ---
 
@@ -52,7 +52,7 @@ Primary deployment targets are: in-game computers in Catalyst (a UE5 trading car
 
 - Build an embeddable OS framework in Rust that renders to any pixel buffer and consumes any input stream
 - Implement a skin system that separates visual/behavioral personality from core OS logic
-- Integrate as a native library in Unreal Engine 5 for interactive in-game computer props in Catalyst
+- Integrate as a native library in Unreal Engine 5 for interactive in-game computer props
 - Port the original C shell OS as the Classic skin, preserving its icon-grid dashboard and theming
 - Achieve cross-platform execution on PSP hardware (via rust-psp), PPSSPP emulator, Raspberry Pi (via SDL2/framebuffer), and UE5 (via render target)
 - Provide a virtual file system abstraction backed by real files, game assets, or procedural content depending on platform
@@ -235,7 +235,7 @@ workspace = true
 
 | Target | Cargo Command | Render Backend | Input Backend | VFS Backend |
 |--------|--------------|----------------|---------------|-------------|
-| UE5 (Catalyst) | `cargo build --features ue5` (static lib / cdylib) | UE5 render target | UE5 interaction | Game asset VFS |
+| UE5 (in-game) | `cargo build --features ue5` (static lib / cdylib) | UE5 render target | UE5 interaction | Game asset VFS |
 | PSP (real hardware) | `cargo build --features psp` | GU (rust-psp) | PSP controller | ms0:/ real FS |
 | PPSSPP (emulator) | `cargo build --features psp` | GU (rust-psp) | PSP controller | ms0:/ real FS |
 | Raspberry Pi (briefcase) | `cargo build --target aarch64-unknown-linux-gnu --features pi` | SDL2 or framebuffer | Keyboard/gamepad/GPIO | Real Linux FS |
@@ -276,7 +276,7 @@ The command interpreter is a registry-based dispatch system. Commands implement 
 | Plugin | plugin list, plugin load \<n\>, plugin unload | Plugin lifecycle management |
 | Script | run \<script\>, cron, startup | Script execution and scheduling |
 | Transfer | ftp start, http start, push, pull | File transfer services (real-network platforms only) |
-| Game | query, trade, deck, inbox | Catalyst-specific commands (UE5 skin only) |
+| Game | query, trade, deck, inbox | Game-specific commands (UE5 skin only) |
 | Agent | agent list, agent status, remote \<host\>, mcp \<tool\> | AI agent interaction (agent-terminal and terminal skins) |
 
 ### 4.3 Input Pipeline
@@ -382,8 +382,8 @@ Not every platform needs or benefits from the window manager. The skin's feature
 |----------|-----------|-----------|
 | PSP | No | 480x272 at 30-60fps. Screen too small for overlapping windows. Classic skin uses fixed-position SDI objects for its icon grid. |
 | Raspberry Pi (briefcase) | Optional | Depends on display. Pi 5 with HDMI to a monitor inside or attached to the briefcase lid can run the Desktop or Agent Terminal skin with windowing. Headless operation uses Terminal skin via remote terminal. |
-| Desktop (dev) | Yes | Full resolution display. Desktop and Catalyst Trade skins use windowed interfaces. Also useful for debugging -- inspect multiple OS subsystems simultaneously. |
-| UE5 (in-game) | Yes | In-game computers with Desktop or Catalyst Trade skins present windowed interfaces on the virtual monitor. The WM resolution matches the virtual screen texture (e.g., 1024x768 for a high-res in-game monitor, 480x272 for a handheld prop). |
+| Desktop (dev) | Yes | Full resolution display. Desktop skin uses windowed interface. Also useful for debugging -- inspect multiple OS subsystems simultaneously. |
+| UE5 (in-game) | Yes | In-game computers with Desktop skin present windowed interfaces on the virtual monitor. The WM resolution matches the virtual screen texture (e.g., 1024x768 for a high-res in-game monitor, 480x272 for a handheld prop). |
 
 #### 4.5.8 Skin-Driven Appearance
 
@@ -469,8 +469,7 @@ A skin is a data-driven configuration that defines the visual and behavioral per
 | Terminal | Full-screen command line with CRT visual metadata (scanlines, phosphor glow, screen curvature -- applied by host shader) | UE5 / Desktop | In-game hacking terminals, retro computer props, SSH-style remote access |
 | Tactical | Stripped-down command interface with status displays, no visual chrome, monospace grid layout | UE5 | Military command consoles, security systems, restricted-access terminals |
 | Corrupted | Randomized SDI object positions/alpha, garbled command output, visual glitch artifacts, "repair" puzzle hooks | UE5 | Damaged terminals the player must fix, environmental storytelling |
-| Desktop | Window-like panels, taskbar, start menu analog, multiple "apps" visible simultaneously | UE5 / Pi | Civilian in-game computers, player home terminals, Catalyst trade desk |
-| Catalyst Trade | Specialized trading interface: card database, deck builder, market feeds, messaging | UE5 | Catalyst-specific in-game computer at trade stations |
+| Desktop | Window-like panels, taskbar, start menu analog, multiple "apps" visible simultaneously | UE5 / Pi | Civilian in-game computers, player home terminals |
 | Agent Terminal | Agent-focused dashboard: agent status panel, MCP tool browser, remote session manager, system health, tamper status indicator | Pi (briefcase) | Briefcase field terminal for AI agent management (see Section 10) |
 
 ### 6.3 Skin Loading and Switching
@@ -569,7 +568,7 @@ The `oasis_register_callback` function lets UE5 react to OS-level events. This e
 |---------------|---------|-----------------|
 | `ON_FILE_ACCESS` | Player opens a file via `cat` or file browser | Unlock a lore entry, trigger a quest objective |
 | `ON_COMMAND_EXEC` | Player executes a terminal command | Hacking puzzle: execute the right sequence of commands to bypass "security" |
-| `ON_APP_LAUNCH` | Player launches an "app" from the dashboard | Open the Catalyst trade interface, launch a mini-game |
+| `ON_APP_LAUNCH` | Player launches an "app" from the dashboard | Open a game-specific interface, launch a mini-game |
 | `ON_LOGIN` | Player enters the correct pre-shared key | Gain access to a restricted terminal with new commands |
 | `ON_NETWORK_SEND` | Player sends a message via in-game email | Deliver message to another player's in-game computer, NPC responds |
 | `ON_PLUGIN_LOAD` | Player installs a "plugin" found elsewhere in the game world | Unlock new terminal capabilities as a progression mechanic |
@@ -857,7 +856,7 @@ The virtual file system is the abstraction that makes the same command interpret
 | Backend | Backing Store | Use Case |
 |---------|--------------|----------|
 | RealFS | Native filesystem (ms0:/, Linux paths) | PSP, Pi, desktop |
-| GameAssetVFS | UE5 data assets + save game data | In-game computers in Catalyst |
+| GameAssetVFS | UE5 data assets + save game data | In-game computers in UE5 projects |
 | OverlayVFS | Layered: read-only base (skin defaults) + writable layer (user changes) | All platforms -- skin-provided files with user modifications |
 | MemoryVFS | In-memory tree, no persistence | Unit tests, ephemeral terminals |
 
@@ -869,7 +868,7 @@ Examples of in-game file content:
 
 - `/home/user/inbox/message_from_rival.txt` -- lore-delivering text file, triggers `ON_FILE_ACCESS` callback when read
 - `/var/log/system.log` -- procedurally generated log file with clues for a puzzle
-- `/opt/trading/deck_analyzer` -- "executable" that, when launched, opens the Catalyst deck builder UI
+- `/opt/trading/deck_analyzer` -- "executable" that, when launched, opens a game-specific UI
 - `/etc/security/access.conf` -- file the player must edit (via a `nano`-like command or `echo >>`) to solve a hacking puzzle
 - `/tmp/upload/card_data.json` -- file deposited by another player via the in-game network
 
@@ -1217,7 +1216,7 @@ The original C source (`psixpsp.7z` at repository root) contains ~15,000 lines o
 | 9 -- Agent terminal skin | Agent status dashboard, MCP tool integration, remote session manager, tamper status display | All new code | ~1,500 |
 | 10 -- Plugins | Plugin system, host API, 2-3 example plugins | All new code | ~1,500 |
 | 11 -- Audio | MP3 playback with ME offloading (PSP) or rodio (Linux) | `audio.c`, `me.S`, `modules/audio/*` | ~1,200 |
-| 12 -- Polish | Transitions, update checker, scripting, FTP server, Catalyst trade skin | `transition.c`, `update.c` + new | ~2,100 |
+| 12 -- Polish | Transitions, update checker, scripting, FTP server | `transition.c`, `update.c` + new | ~2,100 |
 
 Total estimated Rust codebase: approximately 24,000 lines, exceeding the original C codebase by ~9,000 lines due to the framework abstraction, window manager, VFS, UE5 integration, agent terminal skin, and multiple skins. The vendored ffmpeg (~176,000 lines) is eliminated entirely.
 
