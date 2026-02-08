@@ -3,6 +3,8 @@
 //! Implements `SdiBackend` and `InputBackend` using SDL2. Used for desktop
 //! development and Raspberry Pi deployment (via SDL2's kmsdrm or X11 backend).
 
+mod sdl_audio;
+
 use sdl2::EventPump;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
@@ -13,6 +15,8 @@ use sdl2::video::Window;
 use oasis_core::backend::{Color, SdiBackend, TextureId};
 use oasis_core::error::{OasisError, Result};
 use oasis_core::input::{Button, InputEvent, Trigger};
+
+pub use sdl_audio::SdlAudioBackend;
 
 /// SDL2 rendering and input backend.
 ///

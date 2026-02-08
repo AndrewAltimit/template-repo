@@ -101,3 +101,54 @@ pub trait NetworkStream: Send {
     fn write(&mut self, data: &[u8]) -> Result<usize>;
     fn close(&mut self) -> Result<()>;
 }
+
+/// Opaque handle to a loaded audio track in the backend.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub struct AudioTrackId(pub u64);
+
+/// Audio playback backend trait.
+///
+/// Two implementations cover all deployment targets: rodio/SDL2_mixer (desktop/Pi)
+/// and Media Engine offloading (PSP via PRX stubs).
+pub trait AudioBackend {
+    /// Initialize the audio subsystem (open device, set sample rate).
+    fn init(&mut self) -> Result<()>;
+
+    /// Load an audio file from raw bytes (MP3, WAV, OGG).
+    /// Returns a handle for playback control.
+    fn load_track(&mut self, data: &[u8]) -> Result<AudioTrackId>;
+
+    /// Start playing a loaded track from the beginning.
+    fn play(&mut self, track: AudioTrackId) -> Result<()>;
+
+    /// Pause the currently playing track.
+    fn pause(&mut self) -> Result<()>;
+
+    /// Resume a paused track.
+    fn resume(&mut self) -> Result<()>;
+
+    /// Stop playback and reset position to the beginning.
+    fn stop(&mut self) -> Result<()>;
+
+    /// Set volume (0 = silent, 100 = full).
+    fn set_volume(&mut self, volume: u8) -> Result<()>;
+
+    /// Get the current volume (0-100).
+    fn get_volume(&self) -> u8;
+
+    /// Return `true` if audio is currently playing.
+    fn is_playing(&self) -> bool;
+
+    /// Get the current playback position in milliseconds.
+    fn position_ms(&self) -> u64;
+
+    /// Get the total duration of the current track in milliseconds.
+    /// Returns 0 if no track is loaded.
+    fn duration_ms(&self) -> u64;
+
+    /// Unload a previously loaded track and free its resources.
+    fn unload_track(&mut self, track: AudioTrackId) -> Result<()>;
+
+    /// Shut down the audio subsystem and release all resources.
+    fn shutdown(&mut self) -> Result<()>;
+}
