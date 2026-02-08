@@ -37,6 +37,9 @@ pub struct SdiObject {
     pub font_size: u16,
     /// Text color (separate from background fill color).
     pub text_color: Color,
+    /// When true, this object is drawn in the overlay pass (on top of all
+    /// base-layer objects). Matches PSIX's two-layer rendering model.
+    pub overlay: bool,
 }
 
 impl SdiObject {
@@ -56,6 +59,7 @@ impl SdiObject {
             text: None,
             font_size: 12,
             text_color: Color::BLACK,
+            overlay: false,
         }
     }
 }

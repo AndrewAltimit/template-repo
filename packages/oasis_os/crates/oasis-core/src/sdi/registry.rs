@@ -160,6 +160,9 @@ impl SdiRegistry {
                     obj.text_color = parsed;
                 }
             }
+            if let Some(o) = entry.overlay {
+                obj.overlay = o;
+            }
         }
         Ok(())
     }
@@ -170,31 +173,48 @@ impl SdiRegistry {
     }
 
     /// Draw all visible objects to the backend, sorted by z-order (ascending).
+    /// Uses PSIX-style two-pass rendering: base-layer objects first, then
+    /// overlay objects on top.
     pub fn draw(&self, backend: &mut dyn SdiBackend) -> Result<()> {
         let mut sorted: Vec<&SdiObject> = self.objects.values().collect();
         sorted.sort_by_key(|o| o.z);
 
-        for obj in sorted {
-            if !obj.visible || obj.alpha == 0 {
+        // Pass 1: base layer (overlay == false).
+        for obj in &sorted {
+            if obj.overlay || !obj.visible || obj.alpha == 0 {
                 continue;
             }
+            Self::draw_object(obj, backend)?;
+        }
 
-            // Textured object -- blit the texture.
-            if let Some(tex) = obj.texture {
-                backend.blit(tex, obj.x, obj.y, obj.w, obj.h)?;
+        // Pass 2: overlay layer (overlay == true).
+        for obj in &sorted {
+            if !obj.overlay || !obj.visible || obj.alpha == 0 {
                 continue;
             }
+            Self::draw_object(obj, backend)?;
+        }
 
-            // If the object has a fill color with nonzero area, draw the rect.
-            if obj.w > 0 && obj.h > 0 {
-                let color = Color::rgba(obj.color.r, obj.color.g, obj.color.b, obj.alpha);
-                backend.fill_rect(obj.x, obj.y, obj.w, obj.h, color)?;
-            }
+        Ok(())
+    }
 
-            // If the object carries text, draw it on top.
-            if let Some(ref text) = obj.text {
-                backend.draw_text(text, obj.x, obj.y, obj.font_size, obj.text_color)?;
-            }
+    /// Render a single SDI object to the backend.
+    fn draw_object(obj: &SdiObject, backend: &mut dyn SdiBackend) -> Result<()> {
+        // Textured object -- blit the texture.
+        if let Some(tex) = obj.texture {
+            backend.blit(tex, obj.x, obj.y, obj.w, obj.h)?;
+            return Ok(());
+        }
+
+        // If the object has a fill color with nonzero area, draw the rect.
+        if obj.w > 0 && obj.h > 0 {
+            let color = Color::rgba(obj.color.r, obj.color.g, obj.color.b, obj.alpha);
+            backend.fill_rect(obj.x, obj.y, obj.w, obj.h, color)?;
+        }
+
+        // If the object carries text, draw it on top.
+        if let Some(ref text) = obj.text {
+            backend.draw_text(text, obj.x, obj.y, obj.font_size, obj.text_color)?;
         }
 
         Ok(())
@@ -214,6 +234,7 @@ struct ThemeEntry {
     font_size: Option<u16>,
     color: Option<String>,
     text_color: Option<String>,
+    overlay: Option<bool>,
 }
 
 /// Parse a color string like "#RRGGBB" or "#RRGGBBAA".

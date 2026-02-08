@@ -1,7 +1,8 @@
 //! OASIS_OS desktop entry point.
 //!
-//! Loads the Classic skin, discovers apps from a demo VFS, displays the
-//! icon grid dashboard, and handles cursor navigation with D-pad input.
+//! PSIX-style UI: status bar (top), 6x3 icon grid dashboard (center),
+//! bottom bar with media category tabs (footer). L trigger cycles top tabs,
+//! R trigger cycles media categories, D-pad navigates the grid.
 //! Press F1 to toggle terminal, F2 to toggle on-screen keyboard, Escape to quit.
 
 use anyhow::Result;
@@ -9,14 +10,17 @@ use anyhow::Result;
 use oasis_backend_sdl::SdlBackend;
 use oasis_core::apps::{AppAction, AppRunner};
 use oasis_core::backend::{Color, InputBackend, SdiBackend};
+use oasis_core::bottombar::{BottomBar, MediaTab};
 use oasis_core::config::OasisConfig;
 use oasis_core::dashboard::{DashboardConfig, DashboardState, discover_apps};
 use oasis_core::input::{Button, InputEvent, Trigger};
 use oasis_core::net::{ListenerConfig, RemoteClient, RemoteListener, StdNetworkBackend};
 use oasis_core::osk::{OskConfig, OskState};
 use oasis_core::platform::DesktopPlatform;
+use oasis_core::platform::{PowerService, TimeService};
 use oasis_core::sdi::SdiRegistry;
 use oasis_core::skin::Skin;
+use oasis_core::statusbar::StatusBar;
 use oasis_core::terminal::{CommandOutput, CommandRegistry, Environment, register_builtins};
 use oasis_core::transition;
 use oasis_core::vfs::MemoryVfs;
@@ -81,6 +85,11 @@ fn main() -> Result<()> {
     );
     let mut dashboard = DashboardState::new(dash_config, apps);
 
+    // Set up PSIX-style bars.
+    let mut status_bar = StatusBar::new();
+    let mut bottom_bar = BottomBar::new();
+    bottom_bar.total_pages = dashboard.page_count();
+
     // Set up command interpreter.
     let mut cmd_reg = CommandRegistry::new();
     register_builtins(&mut cmd_reg);
@@ -118,7 +127,19 @@ fn main() -> Result<()> {
         config.screen_height,
     ));
 
+    // Frame counter for periodic updates (clock, battery).
+    let mut frame_counter: u64 = 0;
+
     'running: loop {
+        frame_counter += 1;
+
+        // Update system info every ~60 frames (~1s at 60fps).
+        if frame_counter.is_multiple_of(60) {
+            let time = platform.now().ok();
+            let power = platform.power_info().ok();
+            status_bar.update_info(time.as_ref(), power.as_ref());
+        }
+
         let events = backend.poll_events();
         for event in &events {
             // OSK intercepts input when active.
@@ -181,27 +202,31 @@ fn main() -> Result<()> {
 
                 // Launch app from dashboard.
                 InputEvent::ButtonPress(Button::Confirm) if mode == Mode::Dashboard => {
-                    if let Some(app) = dashboard.selected_app() {
-                        log::info!("Launching app: {}", app.title);
-                        if app.title == "Terminal" {
-                            mode = Mode::Terminal;
-                        } else {
-                            app_runner = Some(AppRunner::launch(app, &vfs));
-                            mode = Mode::App;
+                    if bottom_bar.active_tab == MediaTab::None {
+                        // Dashboard mode: launch selected app.
+                        if let Some(app) = dashboard.selected_app() {
+                            log::info!("Launching app: {}", app.title);
+                            if app.title == "Terminal" {
+                                mode = Mode::Terminal;
+                            } else {
+                                app_runner = Some(AppRunner::launch(app, &vfs));
+                                mode = Mode::App;
+                            }
+                            active_transition = Some(transition::fade_in(
+                                config.screen_width,
+                                config.screen_height,
+                            ));
                         }
-                        active_transition = Some(transition::fade_in(
-                            config.screen_width,
-                            config.screen_height,
-                        ));
                     }
                 },
+
                 InputEvent::ButtonPress(Button::Start) => {
                     // F1 toggles between dashboard and terminal.
                     mode = match mode {
                         Mode::Dashboard => Mode::Terminal,
                         Mode::Terminal => Mode::Dashboard,
-                        Mode::App => Mode::App, // App mode exit via Cancel only.
-                        Mode::Osk => Mode::Osk, // OSK handled above.
+                        Mode::App => Mode::App,
+                        Mode::Osk => Mode::Osk,
                     };
                 },
                 InputEvent::ButtonPress(Button::Select) => {
@@ -217,18 +242,51 @@ fn main() -> Result<()> {
                     }
                 },
 
-                // Dashboard input.
+                // L trigger: cycle top tabs (status bar).
+                InputEvent::TriggerPress(Trigger::Left) if mode == Mode::Dashboard => {
+                    status_bar.next_tab();
+                    bottom_bar.l_pressed = true;
+                },
+                InputEvent::TriggerRelease(Trigger::Left) => {
+                    bottom_bar.l_pressed = false;
+                },
+
+                // R trigger: cycle media category tabs (bottom bar).
+                InputEvent::TriggerPress(Trigger::Right) if mode == Mode::Dashboard => {
+                    bottom_bar.next_tab();
+                    bottom_bar.r_pressed = true;
+                    // Start a page slide transition when switching categories.
+                    active_transition = Some(transition::fade_in(
+                        config.screen_width,
+                        config.screen_height,
+                    ));
+                },
+                InputEvent::TriggerRelease(Trigger::Right) => {
+                    bottom_bar.r_pressed = false;
+                },
+
+                // Dashboard input: D-pad navigation.
                 InputEvent::ButtonPress(btn) if mode == Mode::Dashboard => match btn {
                     Button::Up | Button::Down | Button::Left | Button::Right => {
-                        dashboard.handle_input(btn);
+                        if bottom_bar.active_tab == MediaTab::None {
+                            dashboard.handle_input(btn);
+                        }
+                    },
+                    Button::Triangle => {
+                        // Triangle: next dashboard page.
+                        if bottom_bar.active_tab == MediaTab::None {
+                            dashboard.next_page();
+                            bottom_bar.current_page = dashboard.page;
+                        }
+                    },
+                    Button::Square => {
+                        // Square: prev dashboard page.
+                        if bottom_bar.active_tab == MediaTab::None {
+                            dashboard.prev_page();
+                            bottom_bar.current_page = dashboard.page;
+                        }
                     },
                     _ => {},
-                },
-                InputEvent::TriggerPress(Trigger::Right) if mode == Mode::Dashboard => {
-                    dashboard.next_page();
-                },
-                InputEvent::TriggerPress(Trigger::Left) if mode == Mode::Dashboard => {
-                    dashboard.prev_page();
                 },
 
                 // Terminal input.
@@ -266,7 +324,6 @@ fn main() -> Result<()> {
                             Ok(CommandOutput::None) => {},
                             Ok(CommandOutput::ListenToggle { port }) => {
                                 if port == 0 {
-                                    // Stop listener.
                                     if let Some(ref mut l) = listener {
                                         l.stop();
                                         listener = None;
@@ -395,16 +452,35 @@ fn main() -> Result<()> {
             Mode::Dashboard => {
                 set_terminal_visible(&mut sdi, false);
                 AppRunner::hide_sdi(&mut sdi);
-                dashboard.update_sdi(&mut sdi);
+
+                if bottom_bar.active_tab == MediaTab::None {
+                    // Show dashboard icon grid.
+                    dashboard.update_sdi(&mut sdi);
+                } else {
+                    // Hide dashboard when a media tab is selected.
+                    dashboard.hide_sdi(&mut sdi);
+                    // Show the media page content.
+                    update_media_page(&mut sdi, &bottom_bar);
+                }
+
+                // Always show status bar and bottom bar in dashboard mode.
+                status_bar.update_sdi(&mut sdi);
+                bottom_bar.update_sdi(&mut sdi);
             },
             Mode::Terminal => {
-                hide_dashboard_objects(&mut sdi, &dashboard);
+                dashboard.hide_sdi(&mut sdi);
                 AppRunner::hide_sdi(&mut sdi);
+                StatusBar::hide_sdi(&mut sdi);
+                BottomBar::hide_sdi(&mut sdi);
+                hide_media_page(&mut sdi);
                 setup_terminal_objects(&mut sdi, &output_lines, &cwd, &input_buf);
             },
             Mode::App => {
-                hide_dashboard_objects(&mut sdi, &dashboard);
+                dashboard.hide_sdi(&mut sdi);
                 set_terminal_visible(&mut sdi, false);
+                StatusBar::hide_sdi(&mut sdi);
+                BottomBar::hide_sdi(&mut sdi);
+                hide_media_page(&mut sdi);
                 if let Some(ref runner) = app_runner {
                     runner.update_sdi(&mut sdi);
                 }
@@ -434,6 +510,49 @@ fn main() -> Result<()> {
     backend.shutdown()?;
     log::info!("OASIS_OS shut down cleanly");
     Ok(())
+}
+
+/// Update SDI objects for the currently selected media category page.
+fn update_media_page(sdi: &mut SdiRegistry, bottom_bar: &BottomBar) {
+    let page_name = "media_page_text";
+    if !sdi.contains(page_name) {
+        let obj = sdi.create(page_name);
+        obj.font_size = 14;
+        obj.text_color = Color::rgb(160, 180, 210);
+        obj.w = 0;
+        obj.h = 0;
+    }
+    if let Ok(obj) = sdi.get_mut(page_name) {
+        obj.x = 160;
+        obj.y = 120;
+        obj.visible = true;
+        obj.text = Some(format!("[ {} Page ]", bottom_bar.active_tab.label()));
+    }
+
+    // Subtitle hint.
+    let hint_name = "media_page_hint";
+    if !sdi.contains(hint_name) {
+        let obj = sdi.create(hint_name);
+        obj.font_size = 10;
+        obj.text_color = Color::rgb(100, 110, 130);
+        obj.w = 0;
+        obj.h = 0;
+    }
+    if let Ok(obj) = sdi.get_mut(hint_name) {
+        obj.x = 130;
+        obj.y = 145;
+        obj.visible = true;
+        obj.text = Some("Press R to cycle categories".to_string());
+    }
+}
+
+/// Hide media page SDI objects.
+fn hide_media_page(sdi: &mut SdiRegistry) {
+    for name in &["media_page_text", "media_page_hint"] {
+        if let Ok(obj) = sdi.get_mut(name) {
+            obj.visible = false;
+        }
+    }
 }
 
 /// Create demo VFS content including fake apps.
@@ -567,26 +686,6 @@ fn load_disk_dir(vfs: &mut MemoryVfs, disk_dir: &std::path::Path, vfs_dir: &str)
                 }
             }
         }
-    }
-}
-
-/// Hide dashboard-specific SDI objects.
-fn hide_dashboard_objects(sdi: &mut SdiRegistry, dashboard: &DashboardState) {
-    let per_page = dashboard.config.icons_per_page as usize;
-    for i in 0..per_page {
-        let name = format!("icon_{i}");
-        if let Ok(obj) = sdi.get_mut(&name) {
-            obj.visible = false;
-        }
-    }
-    if let Ok(obj) = sdi.get_mut("cursor_highlight") {
-        obj.visible = false;
-    }
-    if let Ok(obj) = sdi.get_mut("page_indicator") {
-        obj.visible = false;
-    }
-    if let Ok(obj) = sdi.get_mut("status_title") {
-        obj.visible = false;
     }
 }
 

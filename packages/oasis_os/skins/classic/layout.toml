@@ -1,24 +1,11 @@
-# Classic skin layout -- PSP-style dashboard
-# SDI objects created by skin loading. The dashboard module dynamically
-# manages icon_N and cursor objects; these are the static chrome elements.
-
-[status_bar]
-x = 0
-y = 0
-w = 480
-h = 24
-color = "#283C5A"
+# Classic skin layout -- PSIX-style dashboard
+# Top status bar (24px) + content area (224px) + bottom bar (24px) = 272px.
+# The status bar and bottom bar modules manage their own SDI objects as
+# overlays. This layout defines the base-layer chrome.
 
 [content_bg]
 x = 0
 y = 24
 w = 480
-h = 248
-color = "#141422"
-
-[footer_bar]
-x = 0
-y = 256
-w = 480
-h = 16
-color = "#1E2D44"
+h = 224
+color = "#0E0E1C"

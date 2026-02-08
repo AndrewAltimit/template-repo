@@ -30,13 +30,18 @@ pub struct DashboardConfig {
 
 impl DashboardConfig {
     /// Create a config from skin features and screen dimensions.
-    pub fn from_features(features: &SkinFeatures, screen_w: u32, screen_h: u32) -> Self {
+    /// Uses PSIX-style layout: 24px status bar + 224px content + 24px bottom bar.
+    pub fn from_features(features: &SkinFeatures, screen_w: u32, _screen_h: u32) -> Self {
         let cols = features.grid_cols;
         let rows = features.grid_rows;
         let status_bar_h = 24u32;
-        let padding = 10u32;
-        let grid_area_w = screen_w - 2 * padding;
-        let grid_area_h = screen_h - status_bar_h - 2 * padding;
+        let bottom_bar_h = 24u32;
+        let grid_padding_x = 6u32;
+        let grid_padding_y = 4u32;
+        let grid_area_w = screen_w - 2 * grid_padding_x;
+        // Content area between status bar and bottom bar.
+        let content_h = 272u32 - status_bar_h - bottom_bar_h; // 224px
+        let grid_area_h = content_h - 2 * grid_padding_y;
         let cell_w = grid_area_w / cols;
         let cell_h = grid_area_h / rows;
         Self {
@@ -44,8 +49,8 @@ impl DashboardConfig {
             grid_rows: rows,
             icons_per_page: features.icons_per_page,
             max_pages: features.dashboard_pages,
-            grid_x: padding as i32,
-            grid_y: (status_bar_h + padding) as i32,
+            grid_x: grid_padding_x as i32,
+            grid_y: (status_bar_h + grid_padding_y) as i32,
             cell_w,
             cell_h,
             cursor_pad: 4,
@@ -161,41 +166,70 @@ impl DashboardState {
     }
 
     /// Synchronize SDI objects to reflect current dashboard state.
-    /// Creates/updates: status bar text, icon grid cells, cursor highlight,
-    /// page indicator.
+    /// Creates/updates: icon grid cells (colored block + label below),
+    /// cursor highlight overlay.
     pub fn update_sdi(&self, sdi: &mut SdiRegistry) {
         let cols = self.config.grid_cols as usize;
         let page_apps = self.current_page_apps();
 
-        // Icon grid cells.
+        // PSIX-style icon dimensions (icon block centered in cell).
+        let icon_w = 32u32;
+        let icon_h = 32u32;
+        let text_pad = 4i32;
+
+        // Icon grid cells: each has a colored block + text label below it.
         let per_page = self.config.icons_per_page as usize;
         for i in 0..per_page {
-            let name = format!("icon_{i}");
-            if !sdi.contains(&name) {
-                sdi.create(&name);
-            }
-            if let Ok(obj) = sdi.get_mut(&name) {
-                let col = (i % cols) as i32;
-                let row = (i / cols) as i32;
-                obj.x = self.config.grid_x + col * self.config.cell_w as i32 + 10;
-                obj.y = self.config.grid_y + row * self.config.cell_h as i32 + 10;
-                obj.w = self.config.cell_w - 20;
-                obj.h = self.config.cell_h - 30;
+            let icon_name = format!("icon_{i}");
+            let label_name = format!("icon_label_{i}");
 
+            if !sdi.contains(&icon_name) {
+                sdi.create(&icon_name);
+            }
+            if !sdi.contains(&label_name) {
+                sdi.create(&label_name);
+            }
+
+            let col = (i % cols) as i32;
+            let row = (i / cols) as i32;
+            let cell_x = self.config.grid_x + col * self.config.cell_w as i32;
+            let cell_y = self.config.grid_y + row * self.config.cell_h as i32;
+            // Center the icon block within the cell.
+            let ix = cell_x + (self.config.cell_w as i32 - icon_w as i32) / 2;
+            let iy = cell_y + 6;
+
+            if let Ok(obj) = sdi.get_mut(&icon_name) {
                 if i < page_apps.len() {
+                    obj.x = ix;
+                    obj.y = iy;
+                    obj.w = icon_w;
+                    obj.h = icon_h;
                     obj.visible = true;
                     obj.color = page_apps[i].color;
-                    // Set text to app title.
+                    obj.text = None; // Icon block has no text.
+                } else {
+                    obj.visible = false;
+                }
+            }
+
+            // Label below the icon.
+            if let Ok(obj) = sdi.get_mut(&label_name) {
+                if i < page_apps.len() {
+                    obj.x = cell_x + 2;
+                    obj.y = iy + icon_h as i32 + text_pad;
+                    obj.w = 0;
+                    obj.h = 0;
+                    obj.font_size = 8;
                     obj.text = Some(page_apps[i].title.clone());
-                    obj.font_size = 10;
-                    obj.text_color = Color::WHITE;
+                    obj.text_color = Color::rgb(200, 200, 220);
+                    obj.visible = true;
                 } else {
                     obj.visible = false;
                 }
             }
         }
 
-        // Cursor highlight.
+        // Cursor highlight (translucent overlay around selected icon).
         let cursor_name = "cursor_highlight";
         if !sdi.contains(cursor_name) {
             sdi.create(cursor_name);
@@ -205,49 +239,36 @@ impl DashboardState {
                 let sel_col = (self.selected % cols) as i32;
                 let sel_row = (self.selected / cols) as i32;
                 let pad = self.config.cursor_pad;
-                cursor.x = self.config.grid_x + sel_col * self.config.cell_w as i32 + 10 - pad;
-                cursor.y = self.config.grid_y + sel_row * self.config.cell_h as i32 + 10 - pad;
-                cursor.w = self.config.cell_w - 20 + (pad * 2) as u32;
-                cursor.h = self.config.cell_h - 30 + (pad * 2) as u32;
-                cursor.color = Color::rgba(255, 255, 255, 80);
+                let cell_x = self.config.grid_x + sel_col * self.config.cell_w as i32;
+                let cell_y = self.config.grid_y + sel_row * self.config.cell_h as i32;
+                let ix = cell_x + (self.config.cell_w as i32 - icon_w as i32) / 2;
+                let iy = cell_y + 6;
+                cursor.x = ix - pad;
+                cursor.y = iy - pad;
+                cursor.w = icon_w + (pad * 2) as u32;
+                cursor.h = icon_h + (pad * 2) as u32;
+                cursor.color = Color::rgba(100, 160, 255, 60);
                 cursor.visible = true;
+                cursor.overlay = true;
             } else {
                 cursor.visible = false;
             }
         }
+    }
 
-        // Page indicator text.
-        let page_name = "page_indicator";
-        if !sdi.contains(page_name) {
-            sdi.create(page_name);
+    /// Hide all dashboard SDI objects.
+    pub fn hide_sdi(&self, sdi: &mut SdiRegistry) {
+        let per_page = self.config.icons_per_page as usize;
+        for i in 0..per_page {
+            for prefix in &["icon_", "icon_label_"] {
+                let name = format!("{prefix}{i}");
+                if let Ok(obj) = sdi.get_mut(&name) {
+                    obj.visible = false;
+                }
+            }
         }
-        if let Ok(obj) = sdi.get_mut(page_name) {
-            obj.text = Some(format!("Page {}/{}", self.page + 1, self.page_count()));
-            obj.x = 200;
-            obj.y = 256;
-            obj.font_size = 10;
-            obj.text_color = Color::rgb(150, 150, 180);
-            obj.w = 0;
-            obj.h = 0;
-        }
-
-        // Status bar: selected app title.
-        let title_name = "status_title";
-        if !sdi.contains(title_name) {
-            sdi.create(title_name);
-        }
-        if let Ok(obj) = sdi.get_mut(title_name) {
-            let title = self
-                .selected_app()
-                .map(|a| a.title.as_str())
-                .unwrap_or("No apps");
-            obj.text = Some(title.to_string());
-            obj.x = 8;
-            obj.y = 4;
-            obj.font_size = 12;
-            obj.text_color = Color::WHITE;
-            obj.w = 0;
-            obj.h = 0;
+        if let Ok(obj) = sdi.get_mut("cursor_highlight") {
+            obj.visible = false;
         }
     }
 }
@@ -258,14 +279,14 @@ mod tests {
 
     fn test_config() -> DashboardConfig {
         DashboardConfig {
-            grid_cols: 3,
-            grid_rows: 2,
-            icons_per_page: 6,
-            max_pages: 3,
-            grid_x: 10,
-            grid_y: 34,
-            cell_w: 150,
-            cell_h: 110,
+            grid_cols: 6,
+            grid_rows: 3,
+            icons_per_page: 18,
+            max_pages: 4,
+            grid_x: 6,
+            grid_y: 28,
+            cell_w: 78,
+            cell_h: 72,
             cursor_pad: 4,
         }
     }
@@ -289,13 +310,13 @@ mod tests {
 
     #[test]
     fn page_count_multiple() {
-        let dash = DashboardState::new(test_config(), test_apps(10));
+        let dash = DashboardState::new(test_config(), test_apps(20));
         assert_eq!(dash.page_count(), 2);
     }
 
     #[test]
     fn page_count_exact() {
-        let dash = DashboardState::new(test_config(), test_apps(6));
+        let dash = DashboardState::new(test_config(), test_apps(18));
         assert_eq!(dash.page_count(), 1);
     }
 
@@ -325,22 +346,22 @@ mod tests {
 
     #[test]
     fn navigate_down() {
-        let mut dash = DashboardState::new(test_config(), test_apps(6));
+        let mut dash = DashboardState::new(test_config(), test_apps(12));
         dash.handle_input(&Button::Down);
-        assert_eq!(dash.selected, 3); // Moved down one row (3 cols).
+        assert_eq!(dash.selected, 6); // Moved down one row (6 cols).
     }
 
     #[test]
     fn navigate_up() {
-        let mut dash = DashboardState::new(test_config(), test_apps(6));
-        dash.selected = 4;
+        let mut dash = DashboardState::new(test_config(), test_apps(12));
+        dash.selected = 8;
         dash.handle_input(&Button::Up);
-        assert_eq!(dash.selected, 1);
+        assert_eq!(dash.selected, 2);
     }
 
     #[test]
     fn next_page_wraps() {
-        let mut dash = DashboardState::new(test_config(), test_apps(10));
+        let mut dash = DashboardState::new(test_config(), test_apps(20));
         assert_eq!(dash.page, 0);
         dash.next_page();
         assert_eq!(dash.page, 1);
@@ -350,7 +371,7 @@ mod tests {
 
     #[test]
     fn prev_page_wraps() {
-        let mut dash = DashboardState::new(test_config(), test_apps(10));
+        let mut dash = DashboardState::new(test_config(), test_apps(20));
         dash.prev_page();
         assert_eq!(dash.page, 1); // Wraps to last.
     }
@@ -370,16 +391,16 @@ mod tests {
         assert!(sdi.contains("icon_0"));
         assert!(sdi.contains("icon_1"));
         assert!(sdi.contains("icon_2"));
+        assert!(sdi.contains("icon_label_0"));
+        assert!(sdi.contains("icon_label_1"));
         assert!(sdi.contains("cursor_highlight"));
-        assert!(sdi.contains("page_indicator"));
-        assert!(sdi.contains("status_title"));
     }
 
     #[test]
     fn selected_clamps_on_page_switch() {
-        let mut dash = DashboardState::new(test_config(), test_apps(8));
-        // 8 apps, 6 per page: page 0 has 6, page 1 has 2.
-        dash.selected = 5; // Last on page 0.
+        let mut dash = DashboardState::new(test_config(), test_apps(20));
+        // 20 apps, 18 per page: page 0 has 18, page 1 has 2.
+        dash.selected = 17; // Last on page 0.
         dash.next_page();
         // Page 1 has only 2 apps, so selected should clamp to 1.
         assert!(dash.selected <= 1);

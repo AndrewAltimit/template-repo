@@ -20,6 +20,10 @@ pub enum TransitionEffect {
     SlideRight,
     /// Slide content in from the left.
     SlideLeft,
+    /// PSIX-style horizontal page slide: incoming from left, outgoing to right.
+    PageSlideLeft,
+    /// PSIX-style horizontal page slide: incoming from right, outgoing to left.
+    PageSlideRight,
 }
 
 /// Runtime state for an active transition.
@@ -65,6 +69,48 @@ impl TransitionState {
     pub fn tick(&mut self) {
         if self.frame < self.duration {
             self.frame += 1;
+        }
+    }
+
+    /// For page slide transitions, return the X offset for the incoming page.
+    /// Returns 0 when the transition is done or not a slide type.
+    pub fn incoming_x_offset(&self) -> i32 {
+        if self.is_done() {
+            return 0;
+        }
+        let t = self.progress();
+        let w = self.screen_w as f32;
+        match self.effect {
+            TransitionEffect::PageSlideLeft => {
+                // Incoming from left: starts at -480, ends at 0.
+                (-(1.0 - t) * w) as i32
+            },
+            TransitionEffect::PageSlideRight => {
+                // Incoming from right: starts at +480, ends at 0.
+                ((1.0 - t) * w) as i32
+            },
+            _ => 0,
+        }
+    }
+
+    /// For page slide transitions, return the X offset for the outgoing page.
+    /// Returns 0 when not a slide type.
+    pub fn outgoing_x_offset(&self) -> i32 {
+        if self.is_done() {
+            return 0;
+        }
+        let t = self.progress();
+        let w = self.screen_w as f32;
+        match self.effect {
+            TransitionEffect::PageSlideLeft => {
+                // Outgoing slides to the right.
+                (t * w) as i32
+            },
+            TransitionEffect::PageSlideRight => {
+                // Outgoing slides to the left.
+                -(t * w) as i32
+            },
+            _ => 0,
         }
     }
 
@@ -120,7 +166,9 @@ impl TransitionState {
                     backend.fill_rect(0, 0, curtain_w, self.screen_h, Color::rgba(0, 0, 0, 255))?;
                 }
             },
-            TransitionEffect::None => {},
+            TransitionEffect::None
+            | TransitionEffect::PageSlideLeft
+            | TransitionEffect::PageSlideRight => {},
         }
 
         Ok(())
@@ -135,6 +183,16 @@ pub fn fade_in(w: u32, h: u32) -> TransitionState {
 /// Convenience: start a fade-out transition at the standard duration.
 pub fn fade_out(w: u32, h: u32) -> TransitionState {
     TransitionState::new(TransitionEffect::FadeOut, 15, w, h)
+}
+
+/// Convenience: PSIX-style page slide from the left.
+pub fn page_slide_left(w: u32, h: u32) -> TransitionState {
+    TransitionState::new(TransitionEffect::PageSlideLeft, 20, w, h)
+}
+
+/// Convenience: PSIX-style page slide from the right.
+pub fn page_slide_right(w: u32, h: u32) -> TransitionState {
+    TransitionState::new(TransitionEffect::PageSlideRight, 20, w, h)
 }
 
 #[cfg(test)]
@@ -216,5 +274,50 @@ mod tests {
         let t = ts.progress();
         let curtain_w = ((1.0 - t) * 480.0) as u32;
         assert_eq!(curtain_w, 240);
+    }
+
+    #[test]
+    fn page_slide_left_offsets() {
+        let mut ts = TransitionState::new(TransitionEffect::PageSlideLeft, 10, 480, 272);
+        // At start: incoming at -480, outgoing at 0.
+        assert_eq!(ts.incoming_x_offset(), -480);
+        assert_eq!(ts.outgoing_x_offset(), 0);
+
+        for _ in 0..5 {
+            ts.tick();
+        }
+        // At midpoint: incoming at -240, outgoing at +240.
+        assert_eq!(ts.incoming_x_offset(), -240);
+        assert_eq!(ts.outgoing_x_offset(), 240);
+
+        for _ in 0..5 {
+            ts.tick();
+        }
+        // Done: both 0.
+        assert_eq!(ts.incoming_x_offset(), 0);
+        assert_eq!(ts.outgoing_x_offset(), 0);
+    }
+
+    #[test]
+    fn page_slide_right_offsets() {
+        let mut ts = TransitionState::new(TransitionEffect::PageSlideRight, 10, 480, 272);
+        assert_eq!(ts.incoming_x_offset(), 480);
+        assert_eq!(ts.outgoing_x_offset(), 0);
+
+        for _ in 0..10 {
+            ts.tick();
+        }
+        assert_eq!(ts.incoming_x_offset(), 0);
+        assert_eq!(ts.outgoing_x_offset(), 0);
+    }
+
+    #[test]
+    fn page_slide_convenience() {
+        let ts = page_slide_left(480, 272);
+        assert_eq!(ts.effect, TransitionEffect::PageSlideLeft);
+        assert_eq!(ts.duration, 20);
+
+        let ts = page_slide_right(480, 272);
+        assert_eq!(ts.effect, TransitionEffect::PageSlideRight);
     }
 }
