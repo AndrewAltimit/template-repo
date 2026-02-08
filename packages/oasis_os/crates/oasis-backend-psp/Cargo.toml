@@ -14,7 +14,7 @@ repository = "https://github.com/AndrewAltimit/template-repo"
 authors = ["AndrewAltimit"]
 
 [dependencies]
-psp = { git = "https://github.com/AndrewAltimit/rust-psp", branch = "initial_release" }
+psp = { git = "https://github.com/AndrewAltimit/rust-psp", branch = "initial_release", features = ["kernel"] }
 
 # unicode-width workaround for mips target panic.
 [patch.crates-io]

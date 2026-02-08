@@ -968,6 +968,171 @@ pub fn generate_cursor_pixels() -> Vec<u8> {
 }
 
 // ---------------------------------------------------------------------------
+// System info (kernel mode queries)
+// ---------------------------------------------------------------------------
+
+/// Runtime hardware info queried from PSP firmware.
+pub struct SystemInfo {
+    /// CPU clock frequency in MHz.
+    pub cpu_mhz: i32,
+    /// Bus clock frequency in MHz.
+    pub bus_mhz: i32,
+    /// Media Engine clock frequency in MHz (kernel mode only).
+    pub me_mhz: i32,
+    /// Whether extra 4MB volatile RAM was claimed (PSP-2000+).
+    pub volatile_mem_available: bool,
+    /// Size of extra volatile memory in bytes (0 if unavailable).
+    pub volatile_mem_size: i32,
+}
+
+impl SystemInfo {
+    /// Query system info from PSP hardware.
+    ///
+    /// CPU and bus frequencies are available in user mode. ME frequency
+    /// and volatile memory require kernel mode (enabled via the `kernel`
+    /// feature flag).
+    pub fn query() -> Self {
+        unsafe {
+            let cpu_mhz = sys::scePowerGetCpuClockFrequency();
+            let bus_mhz = sys::scePowerGetBusClockFrequency();
+            let me_mhz = sys::scePowerGetMeClockFrequency();
+
+            let mut vol_ptr: *mut core::ffi::c_void = core::ptr::null_mut();
+            let mut vol_size: i32 = 0;
+            let vol_ret = sys::sceKernelVolatileMemTryLock(
+                0,
+                &mut vol_ptr as *mut *mut core::ffi::c_void,
+                &mut vol_size,
+            );
+
+            Self {
+                cpu_mhz,
+                bus_mhz,
+                me_mhz,
+                volatile_mem_available: vol_ret == 0,
+                volatile_mem_size: if vol_ret == 0 { vol_size } else { 0 },
+            }
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Live status polling (battery, clock, USB, WiFi)
+// ---------------------------------------------------------------------------
+
+/// Dynamic status info polled each frame (or periodically).
+pub struct StatusBarInfo {
+    /// Battery charge percentage (0-100), or -1 if no battery.
+    pub battery_percent: i32,
+    /// Whether the battery is currently charging.
+    pub battery_charging: bool,
+    /// Whether AC power is connected.
+    pub ac_power: bool,
+    /// Current hour (0-23).
+    pub hour: u16,
+    /// Current minute (0-59).
+    pub minute: u16,
+    /// Whether a USB cable is connected.
+    pub usb_connected: bool,
+    /// Whether the WiFi switch is on.
+    pub wifi_on: bool,
+}
+
+impl StatusBarInfo {
+    /// Poll live status from PSP hardware.
+    pub fn poll() -> Self {
+        unsafe {
+            let battery_exist = sys::scePowerIsBatteryExist() > 0;
+            let battery_percent = if battery_exist {
+                sys::scePowerGetBatteryLifePercent()
+            } else {
+                -1
+            };
+            let battery_charging = sys::scePowerIsBatteryCharging() > 0;
+            let ac_power = sys::scePowerIsPowerOnline() > 0;
+
+            let mut time = sys::ScePspDateTime {
+                year: 0,
+                month: 0,
+                day: 0,
+                hour: 0,
+                minutes: 0,
+                seconds: 0,
+                microseconds: 0,
+            };
+            sys::sceRtcGetCurrentClockLocalTime(&mut time);
+
+            let usb_state = sys::sceUsbGetState();
+            let usb_connected = usb_state.contains(sys::UsbState::CONNECTED);
+
+            let wifi_on = sys::sceWlanGetSwitchState() > 0;
+
+            Self {
+                battery_percent,
+                battery_charging,
+                ac_power,
+                hour: time.hour,
+                minute: time.minutes,
+                usb_connected,
+                wifi_on,
+            }
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Exception handler (kernel mode)
+// ---------------------------------------------------------------------------
+
+/// Register a default exception handler that prints the exception type
+/// via debug output. Prevents silent crashes on real hardware.
+pub fn register_exception_handler() {
+    unsafe {
+        sys::sceKernelRegisterDefaultExceptionHandler(exception_handler);
+    }
+}
+
+/// Exception handler callback -- prints exception info and halts.
+unsafe extern "C" fn exception_handler(exception: u32, _context: *mut c_void) -> i32 {
+    let name = match exception {
+        0 => "Interrupt",
+        1 => "TLB Modification",
+        2 => "TLB Load Miss",
+        3 => "TLB Store Miss",
+        4 => "Address Error (Load)",
+        5 => "Address Error (Store)",
+        6 => "Bus Error (Insn)",
+        7 => "Bus Error (Data)",
+        8 => "Syscall",
+        9 => "Breakpoint",
+        10 => "Reserved Instruction",
+        11 => "Coprocessor Unusable",
+        12 => "Overflow",
+        _ => "Unknown",
+    };
+    psp::dprintln!("OASIS_OS EXCEPTION: {} (code {})", name, exception);
+    // Spin forever -- the debug output is visible in PPSSPP console
+    // and on real hardware via psplink. Returning -1 passes to next handler.
+    -1
+}
+
+// ---------------------------------------------------------------------------
+// Clock frequency control
+// ---------------------------------------------------------------------------
+
+/// Set CPU, PLL, and bus clock frequencies.
+///
+/// Common presets:
+/// - `set_clock(333, 333, 166)` -- maximum performance
+/// - `set_clock(266, 266, 133)` -- balanced
+/// - `set_clock(222, 222, 111)` -- power saving (default)
+///
+/// Returns 0 on success, < 0 on error.
+pub fn set_clock(pll: i32, cpu: i32, bus: i32) -> i32 {
+    unsafe { sys::scePowerSetClockFrequency(pll, cpu, bus) }
+}
+
+// ---------------------------------------------------------------------------
 // Status bar helpers (minimal, no std::time dependency)
 // ---------------------------------------------------------------------------
 

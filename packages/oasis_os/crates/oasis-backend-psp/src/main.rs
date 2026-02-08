@@ -15,11 +15,11 @@ use alloc::vec;
 use alloc::vec::Vec;
 
 use oasis_backend_psp::{
-    Button, Color, InputEvent, PspBackend, TextureId, Trigger, CURSOR_H, CURSOR_W,
-    SCREEN_HEIGHT, SCREEN_WIDTH,
+    Button, Color, InputEvent, PspBackend, StatusBarInfo, SystemInfo, TextureId, Trigger,
+    CURSOR_H, CURSOR_W, SCREEN_HEIGHT, SCREEN_WIDTH,
 };
 
-psp::module!("OASIS_OS", 1, 0);
+psp::module_kernel!("OASIS_OS", 1, 0);
 
 // ---------------------------------------------------------------------------
 // Theme constants (matching oasis-core/src/theme.rs)
@@ -203,6 +203,19 @@ fn psp_main() {
     let mut backend = PspBackend::new();
     backend.init();
 
+    // Register exception handler (kernel mode) for crash diagnostics.
+    oasis_backend_psp::register_exception_handler();
+
+    // Set maximum clock speed (333/333/166).
+    oasis_backend_psp::set_clock(333, 333, 166);
+
+    // Query static hardware info (kernel mode, once at startup).
+    let sysinfo = SystemInfo::query();
+    psp::dprintln!(
+        "OASIS_OS: CPU {}MHz, Bus {}MHz, ME {}MHz",
+        sysinfo.cpu_mhz, sysinfo.bus_mhz, sysinfo.me_mhz,
+    );
+
     // Load wallpaper texture.
     let wallpaper_data = oasis_backend_psp::generate_gradient(SCREEN_WIDTH, SCREEN_HEIGHT);
     let wallpaper_tex = backend
@@ -229,7 +242,16 @@ fn psp_main() {
 
     // Terminal state.
     let mut term_lines: Vec<String> = vec![
-        String::from("OASIS_OS v0.1.0 [PSP]"),
+        String::from("OASIS_OS v0.1.0 [PSP] (kernel mode)"),
+        format!(
+            "CPU: {}MHz  Bus: {}MHz  ME: {}MHz",
+            sysinfo.cpu_mhz, sysinfo.bus_mhz, sysinfo.me_mhz,
+        ),
+        if sysinfo.volatile_mem_available {
+            format!("Extra RAM: {} KB claimed", sysinfo.volatile_mem_size / 1024)
+        } else {
+            String::from("Extra RAM: not available (PSP-1000 or already locked)")
+        },
         String::from("Type 'help' for commands. Start=toggle terminal."),
         String::new(),
     ];
@@ -340,6 +362,8 @@ fn psp_main() {
         }
 
         // -- Render --
+        let status = StatusBarInfo::poll();
+
         backend.clear(Color::BLACK);
 
         // Wallpaper.
@@ -355,7 +379,7 @@ fn psp_main() {
         }
 
         // Status bar + bottom bar (always visible, drawn on top).
-        draw_status_bar(&mut backend, top_tab);
+        draw_status_bar(&mut backend, top_tab, &status);
         draw_bottom_bar(&mut backend, media_tab, page, total_pages);
 
         // Cursor.
@@ -455,21 +479,56 @@ fn draw_icon(backend: &mut PspBackend, app: &AppEntry, ix: i32, iy: i32) {
 // Status bar rendering
 // ---------------------------------------------------------------------------
 
-fn draw_status_bar(backend: &mut PspBackend, active_tab: TopTab) {
+fn draw_status_bar(backend: &mut PspBackend, active_tab: TopTab, status: &StatusBarInfo) {
     // Semi-transparent background.
     backend.fill_rect(0, 0, SCREEN_WIDTH, STATUSBAR_H, STATUSBAR_BG);
 
     // Separator line at bottom of status bar.
     backend.fill_rect(0, STATUSBAR_H as i32 - 1, SCREEN_WIDTH, 1, SEPARATOR);
 
-    // Battery / CPU info (left side).
-    backend.draw_text("333MHz", 6, 7, 8, BATTERY_CLR);
+    // Battery / power info (left side).
+    let bat_label = if status.battery_percent >= 0 {
+        if status.battery_charging {
+            format!("CHG {}%", status.battery_percent)
+        } else {
+            format!("BAT {}%", status.battery_percent)
+        }
+    } else if status.ac_power {
+        String::from("AC")
+    } else {
+        String::from("---")
+    };
+    let bat_color = if status.battery_charging || status.ac_power {
+        BATTERY_CLR
+    } else if status.battery_percent < 20 {
+        Color::rgb(255, 80, 80)
+    } else {
+        BATTERY_CLR
+    };
+    backend.draw_text(&bat_label, 6, 7, 8, bat_color);
 
-    // Version label (center area).
-    backend.draw_text("Version 0.1", 180, 7, 8, Color::WHITE);
+    // WiFi + USB indicators (center-left).
+    let wifi_label = if status.wifi_on { "WiFi" } else { "----" };
+    let wifi_color = if status.wifi_on {
+        Color::rgb(100, 200, 255)
+    } else {
+        Color::rgb(100, 100, 100)
+    };
+    backend.draw_text(wifi_label, 96, 7, 8, wifi_color);
 
-    // Clock placeholder (right side -- no RTC in no_std).
-    backend.draw_text("00:00", 290, 7, 8, Color::WHITE);
+    let usb_color = if status.usb_connected {
+        Color::rgb(200, 200, 200)
+    } else {
+        Color::rgb(100, 100, 100)
+    };
+    backend.draw_text("USB", 140, 7, 8, usb_color);
+
+    // Version label (center).
+    backend.draw_text("OASIS v0.1", 200, 7, 8, Color::WHITE);
+
+    // Real time clock (right side).
+    let time_label = format!("{:02}:{:02}", status.hour, status.minute);
+    backend.draw_text(&time_label, 420, 7, 8, Color::WHITE);
 
     // "OSS" category label before tabs.
     backend.draw_text("OSS", 6, STATUSBAR_H as i32 + 3, 8, CATEGORY_CLR);
@@ -638,22 +697,72 @@ fn execute_command(cmd: &str) -> Vec<String> {
     match trimmed {
         "help" => vec![
             String::from("Available commands:"),
-            String::from("  help    - Show this message"),
-            String::from("  status  - System status"),
-            String::from("  clear   - Clear terminal"),
-            String::from("  version - Show version"),
-            String::from("  about   - About OASIS_OS"),
+            String::from("  help       - Show this message"),
+            String::from("  status     - System status"),
+            String::from("  clock      - Show/set CPU frequency"),
+            String::from("  clock 333  - Set max (333/333/166)"),
+            String::from("  clock 266  - Set balanced (266/266/133)"),
+            String::from("  clock 222  - Set power save (222/222/111)"),
+            String::from("  clear      - Clear terminal"),
+            String::from("  version    - Show version"),
+            String::from("  about      - About OASIS_OS"),
         ],
-        "status" => vec![
-            String::from("OASIS_OS v0.1.0 [PSP]"),
-            String::from("Platform: mipsel-sony-psp"),
-            String::from("Display: 480x272 RGBA8888"),
-            String::from("Backend: sceGu hardware"),
-        ],
+        "status" => {
+            let status = StatusBarInfo::poll();
+            let bat = if status.battery_percent >= 0 {
+                format!("Battery: {}%{}", status.battery_percent,
+                    if status.battery_charging { " (charging)" } else { "" })
+            } else {
+                String::from("Battery: N/A")
+            };
+            vec![
+                String::from("OASIS_OS v0.1.0 [PSP] (kernel mode)"),
+                String::from("Platform: mipsel-sony-psp"),
+                String::from("Display: 480x272 RGBA8888"),
+                String::from("Backend: sceGu hardware"),
+                format!("CPU: {}MHz  Bus: {}MHz",
+                    unsafe { psp::sys::scePowerGetCpuClockFrequency() },
+                    unsafe { psp::sys::scePowerGetBusClockFrequency() }),
+                bat,
+                format!("WiFi: {}  USB: {}",
+                    if status.wifi_on { "ON" } else { "OFF" },
+                    if status.usb_connected { "connected" } else { "---" }),
+                format!("Time: {:02}:{:02}", status.hour, status.minute),
+            ]
+        }
+        "clock" => {
+            let cpu = unsafe { psp::sys::scePowerGetCpuClockFrequency() };
+            let bus = unsafe { psp::sys::scePowerGetBusClockFrequency() };
+            vec![format!("Current: CPU {}MHz, Bus {}MHz", cpu, bus)]
+        }
+        "clock 333" => {
+            let ret = oasis_backend_psp::set_clock(333, 333, 166);
+            if ret >= 0 {
+                vec![String::from("Clock set: 333/333/166 (max performance)")]
+            } else {
+                vec![format!("Failed to set clock: {}", ret)]
+            }
+        }
+        "clock 266" => {
+            let ret = oasis_backend_psp::set_clock(266, 266, 133);
+            if ret >= 0 {
+                vec![String::from("Clock set: 266/266/133 (balanced)")]
+            } else {
+                vec![format!("Failed to set clock: {}", ret)]
+            }
+        }
+        "clock 222" => {
+            let ret = oasis_backend_psp::set_clock(222, 222, 111);
+            if ret >= 0 {
+                vec![String::from("Clock set: 222/222/111 (power save)")]
+            } else {
+                vec![format!("Failed to set clock: {}", ret)]
+            }
+        }
         "version" => vec![String::from("OASIS_OS v0.1.0")],
         "about" => vec![
             String::from("OASIS_OS -- Embeddable OS Framework"),
-            String::from("PSP backend with GU rendering"),
+            String::from("PSP backend with GU rendering (kernel mode)"),
         ],
         "clear" => vec![],
         _ => vec![format!("Unknown command: {}", trimmed)],
