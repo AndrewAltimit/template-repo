@@ -257,7 +257,7 @@ impl Default for StatusBar {
     }
 }
 
-/// Helper: create a text-only SDI object if it doesn't exist.
+/// Helper: create a text-only SDI object if it doesn't exist, and restore visibility.
 fn ensure_text_object(sdi: &mut SdiRegistry, name: &str, x: i32, y: i32, size: u16, color: Color) {
     if !sdi.contains(name) {
         let obj = sdi.create(name);
@@ -267,6 +267,9 @@ fn ensure_text_object(sdi: &mut SdiRegistry, name: &str, x: i32, y: i32, size: u
         obj.text_color = color;
         obj.w = 0;
         obj.h = 0;
+    }
+    if let Ok(obj) = sdi.get_mut(name) {
+        obj.visible = true;
     }
 }
 

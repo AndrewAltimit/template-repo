@@ -233,7 +233,7 @@ impl Default for BottomBar {
     }
 }
 
-/// Helper: create a text-only overlay SDI object for the bottom bar.
+/// Helper: create a text-only overlay SDI object for the bottom bar, and restore visibility.
 fn ensure_bottom_text(sdi: &mut SdiRegistry, name: &str, x: i32, y: i32, size: u16) {
     if !sdi.contains(name) {
         let obj = sdi.create(name);
@@ -245,6 +245,9 @@ fn ensure_bottom_text(sdi: &mut SdiRegistry, name: &str, x: i32, y: i32, size: u
         obj.h = 0;
         obj.overlay = true;
         obj.z = 902;
+    }
+    if let Ok(obj) = sdi.get_mut(name) {
+        obj.visible = true;
     }
 }
 
