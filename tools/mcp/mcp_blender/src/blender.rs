@@ -301,10 +301,10 @@ impl BlenderExecutor {
         }
 
         // Clean up temp file if created
-        if let Some(temp_path) = temp_file {
-            if let Err(e) = tokio::fs::remove_file(&temp_path).await {
-                debug!("Failed to remove temp file {:?}: {}", temp_path, e);
-            }
+        if let Some(temp_path) = temp_file
+            && let Err(e) = tokio::fs::remove_file(&temp_path).await
+        {
+            debug!("Failed to remove temp file {:?}: {}", temp_path, e);
         }
 
         if !output.status.success() {
@@ -427,19 +427,17 @@ impl BlenderExecutor {
 
         // Canonicalize and verify it's within base_dir
         // Note: We use the path as-is since canonicalize requires the file to exist
-        if let Ok(canonical_base) = base_dir.canonicalize() {
-            // For existing paths, verify they're within the base directory
-            if let Ok(canonical_path) = safe_path.canonicalize() {
-                if !canonical_path.starts_with(&canonical_base) {
-                    warn!(
-                        "Path traversal attempt blocked: {} resolved outside base",
-                        user_path
-                    );
-                    return Err(MCPError::InvalidParameters(
-                        "Path traversal attempt detected".to_string(),
-                    ));
-                }
-            }
+        if let Ok(canonical_base) = base_dir.canonicalize()
+            && let Ok(canonical_path) = safe_path.canonicalize()
+            && !canonical_path.starts_with(&canonical_base)
+        {
+            warn!(
+                "Path traversal attempt blocked: {} resolved outside base",
+                user_path
+            );
+            return Err(MCPError::InvalidParameters(
+                "Path traversal attempt detected".to_string(),
+            ));
         }
 
         Ok(safe_path)
@@ -513,10 +511,10 @@ impl BlenderExecutor {
             .map_err(|e| MCPError::Internal(format!("Failed to read directory entry: {}", e)))?
         {
             let path = entry.path();
-            if path.extension().map_or(false, |ext| ext == "blend") {
-                if let Some(name) = path.file_name().and_then(|n| n.to_str()) {
-                    projects.push(name.to_string());
-                }
+            if path.extension().map_or(false, |ext| ext == "blend")
+                && let Some(name) = path.file_name().and_then(|n| n.to_str())
+            {
+                projects.push(name.to_string());
             }
         }
 
