@@ -30,6 +30,12 @@ pub fn register_builtins(reg: &mut CommandRegistry) {
     reg.register(Box::new(ListenCmd));
     reg.register(Box::new(RemoteCmd));
     reg.register(Box::new(HostsCmd));
+    // Phase 11: audio commands.
+    crate::terminal::register_audio_commands(reg);
+    // Phase 12: scripting, update, and transfer commands.
+    crate::script::register_script_commands(reg);
+    crate::update::register_update_commands(reg);
+    crate::transfer::register_transfer_commands(reg);
 }
 
 // ---------------------------------------------------------------------------

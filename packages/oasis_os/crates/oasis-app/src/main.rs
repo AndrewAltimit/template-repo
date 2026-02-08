@@ -18,6 +18,7 @@ use oasis_core::platform::DesktopPlatform;
 use oasis_core::sdi::SdiRegistry;
 use oasis_core::skin::Skin;
 use oasis_core::terminal::{CommandOutput, CommandRegistry, Environment, register_builtins};
+use oasis_core::transition;
 use oasis_core::vfs::MemoryVfs;
 
 /// Maximum lines visible in the terminal output area.
@@ -111,6 +112,12 @@ fn main() -> Result<()> {
     let mut mode = Mode::Dashboard;
     let bg_color = Color::rgb(10, 10, 18);
 
+    // Boot transition: fade in from black.
+    let mut active_transition: Option<transition::TransitionState> = Some(transition::fade_in(
+        config.screen_width,
+        config.screen_height,
+    ));
+
     'running: loop {
         let events = backend.poll_events();
         for event in &events {
@@ -182,6 +189,10 @@ fn main() -> Result<()> {
                             app_runner = Some(AppRunner::launch(app, &vfs));
                             mode = Mode::App;
                         }
+                        active_transition = Some(transition::fade_in(
+                            config.screen_width,
+                            config.screen_height,
+                        ));
                     }
                 },
                 InputEvent::ButtonPress(Button::Start) => {
@@ -407,6 +418,16 @@ fn main() -> Result<()> {
 
         backend.clear(bg_color)?;
         sdi.draw(&mut backend)?;
+
+        // Draw transition overlay if active.
+        if let Some(ref mut trans) = active_transition {
+            trans.draw_overlay(&mut backend)?;
+            trans.tick();
+            if trans.is_done() {
+                active_transition = None;
+            }
+        }
+
         backend.swap_buffers()?;
     }
 
@@ -451,6 +472,18 @@ fn populate_demo_vfs(vfs: &mut MemoryVfs) {
     ] {
         vfs.mkdir(&format!("/apps/{name}")).unwrap();
     }
+
+    // Demo scripts for the scripting engine.
+    vfs.mkdir("/home/user/scripts").unwrap();
+    vfs.write(
+        "/home/user/scripts/hello.sh",
+        b"# Demo script\necho Hello from OASIS_OS!\nstatus\npwd\n",
+    )
+    .unwrap();
+
+    // Audio subsystem directories.
+    vfs.mkdir("/var").unwrap();
+    vfs.mkdir("/var/audio").unwrap();
 }
 
 /// Hide dashboard-specific SDI objects.
