@@ -168,7 +168,8 @@ fn run_parsed_stage(
                 )?;
             } else {
                 output::step("No SAFETY_API_KEY found, using pip-audit...");
-                let audit_ok = docker::run_python_ci_check(compose, &["python", "-m", "pip_audit"], &[])?;
+                let audit_ok =
+                    docker::run_python_ci_check(compose, &["python", "-m", "pip_audit"], &[])?;
                 if !audit_ok {
                     output::warn("pip-audit reported vulnerabilities");
                     output::warn("Dependency audit is advisory; update packages when feasible");
