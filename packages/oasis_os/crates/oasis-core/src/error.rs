@@ -23,6 +23,9 @@ pub enum OasisError {
     #[error("platform error: {0}")]
     Platform(String),
 
+    #[error("window manager error: {0}")]
+    Wm(String),
+
     #[error("I/O error: {0}")]
     Io(#[from] io::Error),
 

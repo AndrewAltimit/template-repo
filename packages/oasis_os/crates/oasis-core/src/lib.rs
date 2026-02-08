@@ -17,3 +17,4 @@ pub mod sdi;
 pub mod skin;
 pub mod terminal;
 pub mod vfs;
+pub mod wm;
