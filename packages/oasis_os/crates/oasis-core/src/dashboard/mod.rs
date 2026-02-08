@@ -35,12 +35,14 @@ impl DashboardConfig {
         let cols = features.grid_cols;
         let rows = features.grid_rows;
         let status_bar_h = 24u32;
+        let tab_row_h = 18u32;
         // PSIX places icons on the left ~half of the screen, sparsely.
-        let grid_padding_x = 16u32;
-        let grid_padding_y = 8u32;
-        // Content area between status bar and bottom bar.
-        let content_h = 272u32 - status_bar_h - 24;
-        let cell_w = 80u32; // Fixed cell width for consistent spacing.
+        let grid_padding_x = 12u32;
+        let grid_padding_y = 4u32;
+        // Content area between tab row and bottom bar.
+        let top_used = status_bar_h + tab_row_h;
+        let content_h = 272u32 - top_used - 24;
+        let cell_w = 100u32; // Wide cells for label readability.
         let cell_h = (content_h - 2 * grid_padding_y) / rows;
         Self {
             grid_cols: cols,
@@ -48,7 +50,7 @@ impl DashboardConfig {
             icons_per_page: features.icons_per_page,
             max_pages: features.dashboard_pages,
             grid_x: grid_padding_x as i32,
-            grid_y: (status_bar_h + grid_padding_y) as i32,
+            grid_y: (top_used + grid_padding_y) as i32,
             cell_w,
             cell_h,
             cursor_pad: 3,

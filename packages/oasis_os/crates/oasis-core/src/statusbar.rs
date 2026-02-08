@@ -138,7 +138,7 @@ impl StatusBar {
             obj.y = 0;
             obj.w = SCREEN_W;
             obj.h = BAR_H;
-            obj.color = Color::rgba(0, 0, 0, 140);
+            obj.color = Color::rgba(0, 0, 0, 80);
             obj.overlay = true;
             obj.z = 900;
         }
@@ -146,8 +146,19 @@ impl StatusBar {
             obj.visible = true;
         }
 
+        // Thin line separator below status bar (PSIX has a visible edge).
+        ensure_border(
+            sdi,
+            "bar_top_line",
+            0,
+            BAR_H as i32 - 1,
+            SCREEN_W,
+            1,
+            Color::rgba(255, 255, 255, 40),
+        );
+
         // Battery + CPU info (left side, PSIX style: "100% [icon] 265 MHz").
-        ensure_text_object(sdi, "bar_battery", 6, 6, 8, Color::rgb(180, 255, 180));
+        ensure_text_object(sdi, "bar_battery", 6, 7, 8, Color::rgb(120, 255, 120));
         if let Ok(obj) = sdi.get_mut("bar_battery") {
             let mut info = self.battery_text.clone();
             if !self.cpu_text.is_empty() {
@@ -158,8 +169,8 @@ impl StatusBar {
             obj.z = 901;
         }
 
-        // Version label (center-left area).
-        ensure_text_object(sdi, "bar_version", 160, 6, 8, Color::rgb(200, 200, 200));
+        // Version label (center area).
+        ensure_text_object(sdi, "bar_version", 170, 7, 8, Color::rgb(220, 220, 220));
         if let Ok(obj) = sdi.get_mut("bar_version") {
             obj.text = Some("Version 0.1".to_string());
             obj.overlay = true;
@@ -167,7 +178,7 @@ impl StatusBar {
         }
 
         // Clock + date (right side, PSIX: "11:20 November 23, 2024").
-        ensure_text_object(sdi, "bar_clock", 280, 6, 8, Color::rgb(255, 255, 255));
+        ensure_text_object(sdi, "bar_clock", 290, 7, 8, Color::rgb(255, 255, 255));
         if let Ok(obj) = sdi.get_mut("bar_clock") {
             if self.date_text.is_empty() {
                 obj.text = Some(self.clock_text.clone());
@@ -277,6 +288,7 @@ impl StatusBar {
     pub fn hide_sdi(sdi: &mut SdiRegistry) {
         let names = [
             "bar_top",
+            "bar_top_line",
             "bar_version",
             "bar_clock",
             "bar_battery",

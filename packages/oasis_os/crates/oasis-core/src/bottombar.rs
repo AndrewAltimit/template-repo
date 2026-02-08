@@ -95,14 +95,14 @@ impl BottomBar {
 
     /// Synchronize SDI objects to reflect current bottom bar state.
     pub fn update_sdi(&self, sdi: &mut SdiRegistry) {
-        // Semi-transparent background bar (PSIX uses thin dark bar).
+        // Semi-transparent background bar (PSIX: very subtle dark overlay).
         if !sdi.contains("bar_bottom") {
             let obj = sdi.create("bar_bottom");
             obj.x = 0;
             obj.y = BAR_Y;
             obj.w = SCREEN_W;
             obj.h = BAR_H;
-            obj.color = Color::rgba(0, 0, 0, 140);
+            obj.color = Color::rgba(0, 0, 0, 80);
             obj.overlay = true;
             obj.z = 900;
         }
@@ -111,124 +111,92 @@ impl BottomBar {
         }
 
         // URL label on the left (PSIX: "HTTP://PSIXONLINE.COM").
-        ensure_bottom_text(sdi, "bar_url", 6, BAR_Y + 7, 8);
+        ensure_bottom_text(sdi, "bar_url", 6, BAR_Y + 8, 8);
         if let Ok(obj) = sdi.get_mut("bar_url") {
             obj.text = Some("HTTP://OASIS.LOCAL".to_string());
-            obj.text_color = Color::rgb(180, 180, 180);
+            obj.text_color = Color::rgb(200, 200, 200);
         }
 
-        // Shoulder button divider (center area).
-        ensure_bottom_text(sdi, "bar_shoulder_l", 180, BAR_Y + 7, 8);
-        if let Ok(obj) = sdi.get_mut("bar_shoulder_l") {
-            obj.text = None;
-            obj.visible = false;
-        }
+        // PSIX-style metallic container around URL area (left bezel).
+        let url_bx = 2i32;
+        let url_bw = 180u32;
+        let bz_y = BAR_Y + 2;
+        let bz_h = BAR_H - 4;
+        ensure_bezel(sdi, "bar_url_bezel", url_bx, bz_y, url_bw, bz_h);
 
-        ensure_bottom_text(sdi, "bar_shoulder_r", 196, BAR_Y + 7, 8);
-        if let Ok(obj) = sdi.get_mut("bar_shoulder_r") {
-            obj.text = None;
-            obj.visible = false;
-        }
+        // PSIX-style pipe-separated media category tabs (right side).
+        // Layout: "AUDIO | VIDEO | IMAGE | FILE" with thin pipe separators.
+        let char_w = 8i32;
+        let pipe_gap = 6i32;
+        let tab_labels: Vec<&str> = MediaTab::TABS.iter().map(|t| t.label()).collect();
 
-        // Media category tabs (right side, PSIX-style outlined buttons).
-        let tab_w = 50;
-        let tab_gap = 4;
-        let total_tabs_w =
-            MediaTab::TABS.len() as i32 * tab_w + (MediaTab::TABS.len() as i32 - 1) * tab_gap;
-        let tab_x_start = SCREEN_W as i32 - total_tabs_w - 10;
+        // Calculate total width of "LABEL | LABEL | LABEL | LABEL".
+        let labels_w: i32 = tab_labels.iter().map(|l| l.len() as i32 * char_w).sum();
+        let pipes_w = (tab_labels.len() as i32 - 1) * (pipe_gap * 2 + char_w);
+        let total_w = labels_w + pipes_w;
+        let tabs_x = SCREEN_W as i32 - total_w - 12;
 
-        let tab_h = 18i32;
+        // Metallic container around tab group (right bezel).
+        let tab_bx = tabs_x - 8;
+        let tab_bw = (total_w + 16) as u32;
+        ensure_bezel(sdi, "bar_tab_bezel", tab_bx, bz_y, tab_bw, bz_h);
+
+        let mut cx = tabs_x;
         for (i, tab) in MediaTab::TABS.iter().enumerate() {
-            let x = tab_x_start + (i as i32) * (tab_w + tab_gap);
-            let ty = BAR_Y + 3;
-
-            let border_alpha: u8 = if *tab == self.active_tab { 180 } else { 60 };
-            let border_color = Color::rgba(255, 255, 255, border_alpha);
-
-            // Thin outlined border (top, bottom, left, right edges).
-            ensure_bar_border(
-                sdi,
-                &format!("bar_btab_bt_{i}"),
-                x,
-                ty,
-                tab_w as u32,
-                1,
-                border_color,
-            );
-            ensure_bar_border(
-                sdi,
-                &format!("bar_btab_bb_{i}"),
-                x,
-                ty + tab_h - 1,
-                tab_w as u32,
-                1,
-                border_color,
-            );
-            ensure_bar_border(
-                sdi,
-                &format!("bar_btab_bl_{i}"),
-                x,
-                ty,
-                1,
-                tab_h as u32,
-                border_color,
-            );
-            ensure_bar_border(
-                sdi,
-                &format!("bar_btab_br_{i}"),
-                x + tab_w - 1,
-                ty,
-                1,
-                tab_h as u32,
-                border_color,
-            );
-
-            // Subtle fill for active tab only.
-            let bg_name = format!("bar_btab_bg_{i}");
-            if !sdi.contains(&bg_name) {
-                let obj = sdi.create(&bg_name);
-                obj.overlay = true;
-                obj.z = 901;
-            }
-            if let Ok(obj) = sdi.get_mut(&bg_name) {
-                obj.x = x + 1;
-                obj.y = ty + 1;
-                obj.w = (tab_w - 2) as u32;
-                obj.h = (tab_h - 2) as u32;
-                obj.visible = true;
-                obj.color = if *tab == self.active_tab {
-                    Color::rgba(255, 255, 255, 25)
-                } else {
-                    Color::rgba(0, 0, 0, 0)
-                };
-            }
-
-            // Tab text (centered in the bordered area).
-            let name = format!("bar_btab_{i}");
             let label = tab.label();
-            let text_w = label.len() as i32 * 8;
-            let tx = x + (tab_w - text_w) / 2;
-            ensure_bottom_text(sdi, &name, tx.max(x + 2), BAR_Y + 7, 8);
+
+            // Tab text.
+            let name = format!("bar_btab_{i}");
+            ensure_bottom_text(sdi, &name, cx, BAR_Y + 8, 8);
             if let Ok(obj) = sdi.get_mut(&name) {
                 obj.text = Some(label.to_string());
                 obj.text_color = if *tab == self.active_tab {
                     Color::WHITE
                 } else {
-                    Color::rgb(180, 180, 180)
+                    Color::rgb(170, 170, 170)
                 };
+            }
+            cx += label.len() as i32 * char_w;
+
+            // Pipe separator (except after last tab).
+            if i < MediaTab::TABS.len() - 1 {
+                cx += pipe_gap;
+                let pipe_name = format!("bar_bpipe_{i}");
+                ensure_bottom_text(sdi, &pipe_name, cx, BAR_Y + 8, 8);
+                if let Ok(obj) = sdi.get_mut(&pipe_name) {
+                    obj.text = Some("|".to_string());
+                    obj.text_color = Color::rgba(255, 255, 255, 80);
+                }
+                cx += char_w + pipe_gap;
             }
         }
 
-        // USB / page indicator (center, between URL and tabs).
-        let indicator_x = 200;
-        ensure_bottom_text(sdi, "bar_usb", indicator_x, BAR_Y + 7, 8);
-        if let Ok(obj) = sdi.get_mut("bar_usb") {
-            obj.text = Some("USB".to_string());
-            obj.text_color = Color::rgb(120, 120, 120);
+        // Hide old outlined border objects (from previous style).
+        for i in 0..4 {
+            for prefix in &[
+                "bar_btab_bg_",
+                "bar_btab_bt_",
+                "bar_btab_bb_",
+                "bar_btab_bl_",
+                "bar_btab_br_",
+            ] {
+                let name = format!("{prefix}{i}");
+                if let Ok(obj) = sdi.get_mut(&name) {
+                    obj.visible = false;
+                }
+            }
         }
 
-        // Page dots (small squares near center).
-        let dots_x = indicator_x + 40;
+        // USB indicator (center-bottom area, PSIX style).
+        let usb_x = tabs_x - 50;
+        ensure_bottom_text(sdi, "bar_usb", usb_x, BAR_Y + 8, 8);
+        if let Ok(obj) = sdi.get_mut("bar_usb") {
+            obj.text = Some("USB".to_string());
+            obj.text_color = Color::rgb(140, 140, 140);
+        }
+
+        // Page dots (small squares near USB indicator).
+        let dots_x = usb_x - (self.total_pages.min(4) as i32) * 12 - 8;
         for i in 0..self.total_pages.min(4) {
             let name = format!("bar_page_{i}");
             if !sdi.contains(&name) {
@@ -238,9 +206,9 @@ impl BottomBar {
             }
             if let Ok(obj) = sdi.get_mut(&name) {
                 obj.x = dots_x + (i as i32) * 12;
-                obj.y = BAR_Y + 8;
-                obj.w = 8;
-                obj.h = 8;
+                obj.y = BAR_Y + 9;
+                obj.w = 6;
+                obj.h = 6;
                 obj.visible = true;
                 obj.color = if i == self.current_page {
                     Color::rgba(255, 255, 255, 200)
@@ -261,10 +229,14 @@ impl BottomBar {
     pub fn hide_sdi(sdi: &mut SdiRegistry) {
         let names = [
             "bar_bottom",
-            "bar_shoulder_l",
-            "bar_shoulder_r",
             "bar_url",
             "bar_usb",
+            "bar_url_bezel",
+            "bar_url_bezel_t",
+            "bar_url_bezel_b",
+            "bar_tab_bezel",
+            "bar_tab_bezel_t",
+            "bar_tab_bezel_b",
         ];
         for name in &names {
             if let Ok(obj) = sdi.get_mut(name) {
@@ -280,6 +252,7 @@ impl BottomBar {
                 "bar_btab_bb_",
                 "bar_btab_bl_",
                 "bar_btab_br_",
+                "bar_bpipe_",
             ] {
                 let name = format!("{prefix}{i}");
                 if let Ok(obj) = sdi.get_mut(&name) {
@@ -296,27 +269,50 @@ impl Default for BottomBar {
     }
 }
 
-/// Helper: create a thin border SDI object for the bottom bar.
-fn ensure_bar_border(
-    sdi: &mut SdiRegistry,
-    name: &str,
-    x: i32,
-    y: i32,
-    w: u32,
-    h: u32,
-    color: Color,
-) {
+/// Helper: create a metallic bezel (dark fill + lighter top edge + darker bottom edge).
+fn ensure_bezel(sdi: &mut SdiRegistry, name: &str, x: i32, y: i32, w: u32, h: u32) {
+    // Main dark fill.
     if !sdi.contains(name) {
         let obj = sdi.create(name);
         obj.overlay = true;
-        obj.z = 901;
+        obj.z = 900;
     }
     if let Ok(obj) = sdi.get_mut(name) {
         obj.x = x;
         obj.y = y;
         obj.w = w;
         obj.h = h;
-        obj.color = color;
+        obj.color = Color::rgba(0, 0, 0, 60);
+        obj.visible = true;
+    }
+    // Top highlight edge.
+    let top_name = format!("{name}_t");
+    if !sdi.contains(&top_name) {
+        let obj = sdi.create(&top_name);
+        obj.overlay = true;
+        obj.z = 901;
+    }
+    if let Ok(obj) = sdi.get_mut(&top_name) {
+        obj.x = x;
+        obj.y = y;
+        obj.w = w;
+        obj.h = 1;
+        obj.color = Color::rgba(255, 255, 255, 50);
+        obj.visible = true;
+    }
+    // Bottom shadow edge.
+    let bot_name = format!("{name}_b");
+    if !sdi.contains(&bot_name) {
+        let obj = sdi.create(&bot_name);
+        obj.overlay = true;
+        obj.z = 901;
+    }
+    if let Ok(obj) = sdi.get_mut(&bot_name) {
+        obj.x = x;
+        obj.y = y + h as i32 - 1;
+        obj.w = w;
+        obj.h = 1;
+        obj.color = Color::rgba(0, 0, 0, 80);
         obj.visible = true;
     }
 }
@@ -365,12 +361,15 @@ mod tests {
         let mut sdi = SdiRegistry::new();
         bar.update_sdi(&mut sdi);
         assert!(sdi.contains("bar_bottom"));
-        assert!(sdi.contains("bar_shoulder_l"));
-        assert!(sdi.contains("bar_shoulder_r"));
+        assert!(sdi.contains("bar_url"));
         assert!(sdi.contains("bar_btab_0"));
         assert!(sdi.contains("bar_btab_1"));
         assert!(sdi.contains("bar_btab_2"));
         assert!(sdi.contains("bar_btab_3"));
+        // Pipe separators between tabs.
+        assert!(sdi.contains("bar_bpipe_0"));
+        assert!(sdi.contains("bar_bpipe_1"));
+        assert!(sdi.contains("bar_bpipe_2"));
     }
 
     #[test]

@@ -13,39 +13,59 @@ pub fn generate_gradient(w: u32, h: u32) -> Vec<u8> {
         for x in 0..w {
             let offset = ((y * w + x) * 4) as usize;
 
-            // Normalized coordinates [0.0, 1.0].
             let nx = x as f32 / w as f32;
             let ny = y as f32 / h as f32;
 
-            // PSIX uses a strong left-to-right gradient:
-            // Left = warm orange/red, Center = golden yellow, Right = bright green/lime.
-            // Vertical component adds subtle variation.
-            let t = nx * 0.85 + ny * 0.15;
+            // PSIX gradient: vivid orange (left) -> bright yellow -> lime green (right).
+            // Strong horizontal sweep with subtle vertical tint.
+            let t = nx * 0.88 + ny * 0.12;
 
-            let (r, g, b) = if t < 0.25 {
-                // Orange -> golden yellow.
-                let s = t / 0.25;
-                lerp_rgb((220, 120, 30), (240, 200, 40), s)
+            let (r, g, b) = if t < 0.18 {
+                // Vivid orange-red -> hot orange.
+                let s = t / 0.18;
+                lerp_rgb((240, 90, 10), (250, 155, 10), s)
+            } else if t < 0.35 {
+                // Hot orange -> bright amber/yellow.
+                let s = (t - 0.18) / 0.17;
+                lerp_rgb((250, 155, 10), (255, 220, 20), s)
             } else if t < 0.50 {
-                // Golden yellow -> yellow-green.
-                let s = (t - 0.25) / 0.25;
-                lerp_rgb((240, 200, 40), (180, 220, 50), s)
-            } else if t < 0.75 {
+                // Bright yellow -> yellow-green.
+                let s = (t - 0.35) / 0.15;
+                lerp_rgb((255, 220, 20), (220, 240, 30), s)
+            } else if t < 0.68 {
                 // Yellow-green -> bright green.
-                let s = (t - 0.50) / 0.25;
-                lerp_rgb((180, 220, 50), (100, 210, 60), s)
+                let s = (t - 0.50) / 0.18;
+                lerp_rgb((220, 240, 30), (120, 230, 40), s)
             } else {
-                // Bright green -> lime/light green.
-                let s = (t - 0.75) / 0.25;
-                lerp_rgb((100, 210, 60), (140, 230, 100), s)
+                // Bright green -> vivid lime.
+                let s = (t - 0.68) / 0.32;
+                lerp_rgb((120, 230, 40), (190, 250, 120), s)
             };
 
-            // Subtle vertical brightness variation (lighter toward top).
-            let vert = 1.0 + (0.5 - ny) * 0.15;
+            // Vertical brightness: lighter toward top, slightly darker at bottom.
+            let vert = 1.0 + (0.5 - ny) * 0.22;
 
-            buf[offset] = (r as f32 * vert).clamp(0.0, 255.0) as u8;
-            buf[offset + 1] = (g as f32 * vert).clamp(0.0, 255.0) as u8;
-            buf[offset + 2] = (b as f32 * vert).clamp(0.0, 255.0) as u8;
+            // PSIX-style curved stripe arcs emanating from the lower-left.
+            // Multiple overlapping wave bands create the characteristic pattern.
+            let dx = nx - 0.0;
+            let dy = ny - 1.2;
+            let dist = (dx * dx + dy * dy).sqrt();
+
+            // Primary wave arcs (wide bands).
+            let arc1 = ((dist * 16.0).sin() * 0.06).clamp(-0.06, 0.06);
+            // Secondary thinner arcs (higher frequency).
+            let arc2 = ((dist * 28.0 + 1.5).sin() * 0.03).clamp(-0.03, 0.03);
+            // Tertiary subtle ripple.
+            let arc3 = ((dist * 40.0 + nx * 3.0).sin() * 0.015).clamp(-0.015, 0.015);
+
+            // Combine: arcs fade out toward the right side.
+            let arc_fade = (1.0 - nx * 0.6).clamp(0.0, 1.0);
+            let wave = 1.0 + (arc1 + arc2 + arc3) * arc_fade;
+
+            let scale = vert * wave;
+            buf[offset] = (r as f32 * scale).clamp(0.0, 255.0) as u8;
+            buf[offset + 1] = (g as f32 * scale).clamp(0.0, 255.0) as u8;
+            buf[offset + 2] = (b as f32 * scale).clamp(0.0, 255.0) as u8;
             buf[offset + 3] = 255;
         }
     }
