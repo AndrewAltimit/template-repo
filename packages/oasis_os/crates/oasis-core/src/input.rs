@@ -20,6 +20,8 @@ pub enum InputEvent {
     TriggerRelease(Trigger),
     /// Character typed (on-screen keyboard or physical keyboard).
     TextInput(char),
+    /// Backspace / delete-left.
+    Backspace,
     /// Pointer click at absolute position (mouse or touch).
     PointerClick { x: i32, y: i32 },
     /// Pointer released.

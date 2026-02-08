@@ -114,6 +114,9 @@ fn main() -> Result<()> {
                 if let Some(ref mut osk_state) = osk {
                     match event {
                         InputEvent::Quit => break 'running,
+                        InputEvent::Backspace => {
+                            osk_state.buffer.pop();
+                        },
                         InputEvent::ButtonPress(btn) => {
                             osk_state.handle_input(btn);
                             if let Some(text) = osk_state.confirmed_text() {
@@ -182,6 +185,9 @@ fn main() -> Result<()> {
                 // Terminal input.
                 InputEvent::TextInput(ch) if mode == Mode::Terminal => {
                     input_buf.push(*ch);
+                },
+                InputEvent::Backspace if mode == Mode::Terminal => {
+                    input_buf.pop();
                 },
                 InputEvent::ButtonPress(Button::Confirm) if mode == Mode::Terminal => {
                     let line = input_buf.clone();

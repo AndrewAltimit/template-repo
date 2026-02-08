@@ -3,6 +3,7 @@
 //! Implements `SdiBackend` and `InputBackend` using SDL2. Used for desktop
 //! development and Raspberry Pi deployment (via SDL2's kmsdrm or X11 backend).
 
+mod font;
 mod sdl_audio;
 
 use sdl2::EventPump;
@@ -78,15 +79,47 @@ impl SdiBackend for SdlBackend {
 
     fn draw_text(
         &mut self,
-        _text: &str,
-        _x: i32,
-        _y: i32,
-        _font_size: u16,
-        _color: Color,
+        text: &str,
+        x: i32,
+        y: i32,
+        font_size: u16,
+        color: Color,
     ) -> Result<()> {
-        // Text rendering requires a font library (SDL2_ttf or custom bitmap font).
-        // For now, this is a no-op -- text objects are visible via their background
-        // fill rect. Real font rendering lands with the skin system (Phase 8).
+        // Scale factor: font_size / 8 (our glyphs are 8px tall).
+        let scale = if font_size >= 8 {
+            (font_size / 8) as i32
+        } else {
+            1
+        };
+        let glyph_w = (font::GLYPH_WIDTH as i32) * scale;
+        let sdl_color = sdl2::pixels::Color::RGBA(color.r, color.g, color.b, color.a);
+        self.canvas.set_draw_color(sdl_color);
+
+        let mut cx = x;
+        for ch in text.chars() {
+            let glyph_data = font::glyph(ch);
+            for row in 0..8i32 {
+                let bits = glyph_data[row as usize];
+                for col in 0..8i32 {
+                    if bits & (0x80 >> col) != 0 {
+                        let px = cx + col * scale;
+                        let py = y + row * scale;
+                        if scale == 1 {
+                            // Single pixel -- use draw_point for speed.
+                            let _ = self.canvas.draw_point(sdl2::rect::Point::new(px, py));
+                        } else {
+                            let _ = self.canvas.fill_rect(Rect::new(
+                                px,
+                                py,
+                                scale as u32,
+                                scale as u32,
+                            ));
+                        }
+                    }
+                }
+            }
+            cx += glyph_w;
+        }
         Ok(())
     }
 
@@ -182,6 +215,7 @@ fn map_key_down(key: Keycode) -> Option<InputEvent> {
         Keycode::Tab => Some(InputEvent::ButtonPress(Button::Square)),
         Keycode::F1 => Some(InputEvent::ButtonPress(Button::Start)),
         Keycode::F2 => Some(InputEvent::ButtonPress(Button::Select)),
+        Keycode::Backspace => Some(InputEvent::Backspace),
         Keycode::Q => Some(InputEvent::TriggerPress(Trigger::Left)),
         Keycode::E => Some(InputEvent::TriggerPress(Trigger::Right)),
         _ => None,
