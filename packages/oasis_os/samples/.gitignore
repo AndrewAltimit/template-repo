@@ -1,0 +1,11 @@
+# Downloaded sample media (not committed to git).
+*.mp3
+*.wav
+*.ogg
+*.flac
+*.png
+*.jpg
+*.jpeg
+*.bmp
+*.gif
+*.webp

@@ -33,6 +33,8 @@ pub struct AppRunner {
     pub scroll: usize,
     /// Current directory for file-manager navigation.
     pub browse_dir: Option<String>,
+    /// Path of the file currently being viewed (file viewer mode).
+    pub viewing_file: Option<String>,
     /// Selected line index (relative to visible area).
     pub cursor: usize,
 }
@@ -48,6 +50,7 @@ impl AppRunner {
             lines: Vec::new(),
             scroll: 0,
             browse_dir: None,
+            viewing_file: None,
             cursor: 0,
         };
         runner.init_content(&title, vfs);
@@ -91,31 +94,11 @@ impl AppRunner {
                 ];
             },
             "Music Player" => {
-                self.lines = vec![
-                    "Music Player".to_string(),
-                    "".to_string(),
-                    "  State:    Stopped".to_string(),
-                    "  Track:    (none)".to_string(),
-                    "  Volume:   80%".to_string(),
-                    "".to_string(),
-                    "Use terminal 'music' command:".to_string(),
-                    "  music play     - Start playback".to_string(),
-                    "  music pause    - Pause".to_string(),
-                    "  music next     - Next track".to_string(),
-                    "  music prev     - Previous track".to_string(),
-                    "  music vol <n>  - Set volume".to_string(),
-                    "  music list     - Show playlist".to_string(),
-                ];
+                self.lines = build_music_player_content(vfs);
             },
             "Photo Viewer" => {
-                self.lines = vec![
-                    "Photo Viewer".to_string(),
-                    "".to_string(),
-                    "(No images found)".to_string(),
-                    "".to_string(),
-                    "Place PNG files in /home/user/photos".to_string(),
-                    "to browse them here.".to_string(),
-                ];
+                self.browse_dir = Some("/home/user/photos".to_string());
+                self.lines = build_photo_viewer_content(vfs);
             },
             "Package Manager" => {
                 self.lines = vec![
@@ -156,7 +139,24 @@ impl AppRunner {
     /// Handle input while the app is active.
     pub fn handle_input(&mut self, button: &Button, vfs: &dyn Vfs) -> AppAction {
         match button {
-            Button::Cancel => AppAction::Exit,
+            Button::Cancel => {
+                // If viewing a file, go back to directory listing.
+                if self.viewing_file.is_some() {
+                    self.viewing_file = None;
+                    self.scroll = 0;
+                    self.cursor = 0;
+                    // Refresh directory listing.
+                    if let Some(ref dir) = self.browse_dir {
+                        if self.title == "Photo Viewer" {
+                            self.lines = build_photo_viewer_content(vfs);
+                        } else {
+                            self.lines = list_directory(vfs, dir);
+                        }
+                    }
+                    return AppAction::None;
+                }
+                AppAction::Exit
+            },
             Button::Up => {
                 if self.cursor > 0 {
                     self.cursor -= 1;
@@ -175,8 +175,8 @@ impl AppRunner {
                 AppAction::None
             },
             Button::Confirm => {
-                // In file manager, enter selected directory.
-                if self.browse_dir.is_some() {
+                // In file manager, enter selected directory or view file.
+                if self.browse_dir.is_some() && self.viewing_file.is_none() {
                     self.enter_selected(vfs);
                 }
                 // Terminal app redirects to terminal mode.
@@ -195,7 +195,7 @@ impl AppRunner {
         remaining.min(MAX_VISIBLE_LINES)
     }
 
-    /// File manager: enter the selected directory.
+    /// File manager / photo viewer: enter directory or open file.
     fn enter_selected(&mut self, vfs: &dyn Vfs) {
         let abs_idx = self.scroll + self.cursor;
         let Some(line) = self.lines.get(abs_idx) else {
@@ -235,8 +235,72 @@ impl AppRunner {
             self.lines = list_directory(vfs, &new_dir);
             self.scroll = 0;
             self.cursor = 0;
+        } else {
+            // It's a file -- extract the filename (strip size suffix).
+            let file_name = line.split("  (").next().unwrap_or(&line);
+            let file_path = if dir == "/" {
+                format!("/{file_name}")
+            } else {
+                format!("{dir}/{file_name}")
+            };
+            self.open_file(vfs, &file_path);
         }
-        // Files are not openable yet; just ignore.
+    }
+
+    /// Open a file and display its contents.
+    fn open_file(&mut self, vfs: &dyn Vfs, path: &str) {
+        self.viewing_file = Some(path.to_string());
+        self.scroll = 0;
+        self.cursor = 0;
+
+        let mut lines = Vec::new();
+        let filename = path.rsplit('/').next().unwrap_or(path);
+        lines.push(format!("--- {filename} ---"));
+        lines.push(String::new());
+
+        match vfs.read(path) {
+            Ok(data) => {
+                // Check if the data looks like text (all bytes are printable ASCII/UTF-8).
+                let is_text = data.len() < 64 * 1024 && std::str::from_utf8(&data).is_ok();
+                if is_text {
+                    let text = String::from_utf8_lossy(&data);
+                    for line in text.lines() {
+                        lines.push(line.to_string());
+                    }
+                    if data.is_empty() {
+                        lines.push("(empty file)".to_string());
+                    }
+                } else {
+                    lines.push(format!("Binary file  ({} bytes)", data.len()));
+                    lines.push(String::new());
+                    // Show first 8 lines of hex dump.
+                    for (i, chunk) in data.chunks(16).enumerate().take(8) {
+                        let hex: Vec<String> = chunk.iter().map(|b| format!("{b:02x}")).collect();
+                        let ascii: String = chunk
+                            .iter()
+                            .map(|&b| {
+                                if (0x20..=0x7e).contains(&b) {
+                                    b as char
+                                } else {
+                                    '.'
+                                }
+                            })
+                            .collect();
+                        lines.push(format!("{:04x}  {:<48}  {ascii}", i * 16, hex.join(" ")));
+                    }
+                    if data.len() > 128 {
+                        lines.push(format!("... ({} more bytes)", data.len() - 128));
+                    }
+                }
+            },
+            Err(e) => {
+                lines.push(format!("Error reading file: {e}"));
+            },
+        }
+
+        lines.push(String::new());
+        lines.push("Cancel=back".to_string());
+        self.lines = lines;
     }
 
     /// Render the app screen to SDI objects.
@@ -274,11 +338,14 @@ impl AppRunner {
             sdi.create("app_title_text");
         }
         if let Ok(obj) = sdi.get_mut("app_title_text") {
-            let dir_suffix = self
-                .browse_dir
-                .as_deref()
-                .map(|d| format!("  [{d}]"))
-                .unwrap_or_default();
+            let dir_suffix = if let Some(ref file) = self.viewing_file {
+                format!("  [{file}]")
+            } else {
+                self.browse_dir
+                    .as_deref()
+                    .map(|d| format!("  [{d}]"))
+                    .unwrap_or_default()
+            };
             obj.text = Some(format!("{}{dir_suffix}", self.title));
             obj.x = 8;
             obj.y = 4;
@@ -362,6 +429,89 @@ impl AppRunner {
     }
 }
 
+/// Build Music Player content by scanning /home/user/music/ in the VFS.
+fn build_music_player_content(vfs: &dyn Vfs) -> Vec<String> {
+    let mut lines = vec!["Music Player".to_string(), String::new()];
+
+    let music_dir = "/home/user/music";
+    let tracks = if vfs.exists(music_dir) {
+        match vfs.readdir(music_dir) {
+            Ok(entries) => {
+                let mut files: Vec<_> = entries
+                    .into_iter()
+                    .filter(|e| e.kind == EntryKind::File)
+                    .collect();
+                files.sort_by(|a, b| a.name.cmp(&b.name));
+                files
+            },
+            Err(_) => Vec::new(),
+        }
+    } else {
+        Vec::new()
+    };
+
+    if tracks.is_empty() {
+        lines.push("(No tracks found)".to_string());
+        lines.push(String::new());
+        lines.push("Place audio files in /home/user/music/".to_string());
+    } else {
+        lines.push(format!("{} track(s):", tracks.len()));
+        lines.push(String::new());
+        for (i, track) in tracks.iter().enumerate() {
+            let size_kb = track.size / 1024;
+            lines.push(format!("  {}. {}  ({size_kb} KB)", i + 1, track.name));
+        }
+    }
+
+    lines.push(String::new());
+    lines.push("Controls: music play/pause/next/prev".to_string());
+    lines.push("          music vol <0-100>".to_string());
+    lines
+}
+
+/// Build Photo Viewer content by scanning /home/user/photos/ in the VFS.
+fn build_photo_viewer_content(vfs: &dyn Vfs) -> Vec<String> {
+    let mut lines = Vec::new();
+
+    let photos_dir = "/home/user/photos";
+    let photos = if vfs.exists(photos_dir) {
+        match vfs.readdir(photos_dir) {
+            Ok(entries) => {
+                let mut files: Vec<_> = entries
+                    .into_iter()
+                    .filter(|e| e.kind == EntryKind::File)
+                    .collect();
+                files.sort_by(|a, b| a.name.cmp(&b.name));
+                files
+            },
+            Err(_) => Vec::new(),
+        }
+    } else {
+        Vec::new()
+    };
+
+    if photos.is_empty() {
+        lines.push("(No images found)".to_string());
+        lines.push(String::new());
+        lines.push("Place image files in /home/user/photos/".to_string());
+    } else {
+        lines.push(format!("{} image(s):", photos.len()));
+        lines.push(String::new());
+        for photo in &photos {
+            let size_kb = photo.size / 1024;
+            if size_kb > 0 {
+                lines.push(format!("{}  ({size_kb} KB)", photo.name));
+            } else {
+                lines.push(format!("{}  ({} B)", photo.name, photo.size));
+            }
+        }
+    }
+
+    lines.push(String::new());
+    lines.push("Confirm=view  Cancel=back".to_string());
+    lines
+}
+
 /// List a VFS directory, returning display lines.
 fn list_directory(vfs: &dyn Vfs, path: &str) -> Vec<String> {
     let mut lines = Vec::new();
@@ -430,10 +580,26 @@ mod tests {
         let mut vfs = MemoryVfs::new();
         vfs.mkdir("/home").unwrap();
         vfs.mkdir("/home/user").unwrap();
+        vfs.mkdir("/home/user/music").unwrap();
+        vfs.mkdir("/home/user/photos").unwrap();
         vfs.mkdir("/etc").unwrap();
         vfs.mkdir("/tmp").unwrap();
         vfs.write("/home/user/readme.txt", b"Hello!").unwrap();
         vfs.write("/etc/hostname", b"oasis").unwrap();
+        // Sample music tracks.
+        vfs.write(
+            "/home/user/music/ambient_dawn.mp3",
+            b"fake-mp3-data-ambient",
+        )
+        .unwrap();
+        vfs.write(
+            "/home/user/music/nightfall_theme.mp3",
+            b"fake-mp3-data-nightfall",
+        )
+        .unwrap();
+        // Sample photo.
+        vfs.write("/home/user/photos/sunset.png", b"\x89PNG\r\n\x1a\nfake-png")
+            .unwrap();
         vfs
     }
 
@@ -586,5 +752,166 @@ mod tests {
                 .iter()
                 .any(|l| l.contains("readme.txt") && l.contains("6 B"))
         );
+    }
+
+    #[test]
+    fn file_manager_open_file() {
+        let vfs = setup_vfs();
+        let mut runner = AppRunner::launch(&make_app("File Manager"), &vfs);
+        // Navigate to /home/user.
+        let home_idx = runner
+            .lines
+            .iter()
+            .position(|l| l.starts_with("home"))
+            .unwrap();
+        runner.cursor = home_idx;
+        runner.handle_input(&Button::Confirm, &vfs);
+        let user_idx = runner
+            .lines
+            .iter()
+            .position(|l| l.starts_with("user"))
+            .unwrap();
+        runner.cursor = user_idx;
+        runner.handle_input(&Button::Confirm, &vfs);
+        // Now select readme.txt.
+        let file_idx = runner
+            .lines
+            .iter()
+            .position(|l| l.contains("readme.txt"))
+            .unwrap();
+        runner.cursor = file_idx;
+        runner.handle_input(&Button::Confirm, &vfs);
+        // Should be in file viewer mode.
+        assert!(runner.viewing_file.is_some());
+        assert!(runner.lines.iter().any(|l| l.contains("Hello!")));
+    }
+
+    #[test]
+    fn file_viewer_cancel_returns_to_dir() {
+        let vfs = setup_vfs();
+        let mut runner = AppRunner::launch(&make_app("File Manager"), &vfs);
+        // Navigate to /home/user and open readme.txt.
+        let home_idx = runner
+            .lines
+            .iter()
+            .position(|l| l.starts_with("home"))
+            .unwrap();
+        runner.cursor = home_idx;
+        runner.handle_input(&Button::Confirm, &vfs);
+        let user_idx = runner
+            .lines
+            .iter()
+            .position(|l| l.starts_with("user"))
+            .unwrap();
+        runner.cursor = user_idx;
+        runner.handle_input(&Button::Confirm, &vfs);
+        let file_idx = runner
+            .lines
+            .iter()
+            .position(|l| l.contains("readme.txt"))
+            .unwrap();
+        runner.cursor = file_idx;
+        runner.handle_input(&Button::Confirm, &vfs);
+        assert!(runner.viewing_file.is_some());
+        // Cancel should return to directory, not exit app.
+        let action = runner.handle_input(&Button::Cancel, &vfs);
+        assert_eq!(action, AppAction::None);
+        assert!(runner.viewing_file.is_none());
+        assert!(runner.lines.iter().any(|l| l.contains("readme.txt")));
+    }
+
+    #[test]
+    fn file_viewer_binary_file() {
+        use crate::vfs::Vfs;
+        let mut vfs = setup_vfs();
+        vfs.write("/home/user/data.bin", &[0x00, 0x01, 0xFF, 0xFE, 0x80])
+            .unwrap();
+        let mut runner = AppRunner::launch(&make_app("File Manager"), &vfs);
+        runner.browse_dir = Some("/home/user".to_string());
+        runner.lines = list_directory(&vfs, "/home/user");
+        let file_idx = runner
+            .lines
+            .iter()
+            .position(|l| l.contains("data.bin"))
+            .unwrap();
+        runner.cursor = file_idx;
+        runner.handle_input(&Button::Confirm, &vfs);
+        assert!(runner.viewing_file.is_some());
+        assert!(runner.lines.iter().any(|l| l.contains("Binary file")));
+        assert!(runner.lines.iter().any(|l| l.contains("00 01 ff fe")));
+    }
+
+    #[test]
+    fn music_player_lists_tracks() {
+        let vfs = setup_vfs();
+        let runner = AppRunner::launch(&make_app("Music Player"), &vfs);
+        assert!(runner.lines.iter().any(|l| l.contains("2 track(s)")));
+        assert!(runner.lines.iter().any(|l| l.contains("ambient_dawn")));
+        assert!(runner.lines.iter().any(|l| l.contains("nightfall_theme")));
+    }
+
+    #[test]
+    fn music_player_empty() {
+        use crate::vfs::Vfs;
+        let mut vfs = MemoryVfs::new();
+        vfs.mkdir("/home").unwrap();
+        vfs.mkdir("/home/user").unwrap();
+        let runner = AppRunner::launch(&make_app("Music Player"), &vfs);
+        assert!(runner.lines.iter().any(|l| l.contains("No tracks found")));
+    }
+
+    #[test]
+    fn photo_viewer_lists_photos() {
+        let vfs = setup_vfs();
+        let runner = AppRunner::launch(&make_app("Photo Viewer"), &vfs);
+        assert!(runner.lines.iter().any(|l| l.contains("1 image(s)")));
+        assert!(runner.lines.iter().any(|l| l.contains("sunset.png")));
+    }
+
+    #[test]
+    fn photo_viewer_open_image() {
+        let vfs = setup_vfs();
+        let mut runner = AppRunner::launch(&make_app("Photo Viewer"), &vfs);
+        // Find sunset.png and open it.
+        let photo_idx = runner
+            .lines
+            .iter()
+            .position(|l| l.contains("sunset.png"))
+            .unwrap();
+        runner.cursor = photo_idx;
+        runner.handle_input(&Button::Confirm, &vfs);
+        // Photo files are binary, so should show hex dump.
+        assert!(runner.viewing_file.is_some());
+        assert!(runner.lines.iter().any(|l| l.contains("Binary file")));
+    }
+
+    #[test]
+    fn photo_viewer_cancel_from_view() {
+        let vfs = setup_vfs();
+        let mut runner = AppRunner::launch(&make_app("Photo Viewer"), &vfs);
+        let photo_idx = runner
+            .lines
+            .iter()
+            .position(|l| l.contains("sunset.png"))
+            .unwrap();
+        runner.cursor = photo_idx;
+        runner.handle_input(&Button::Confirm, &vfs);
+        assert!(runner.viewing_file.is_some());
+        // Cancel returns to photo list.
+        let action = runner.handle_input(&Button::Cancel, &vfs);
+        assert_eq!(action, AppAction::None);
+        assert!(runner.viewing_file.is_none());
+        assert!(runner.lines.iter().any(|l| l.contains("sunset.png")));
+    }
+
+    #[test]
+    fn photo_viewer_empty() {
+        use crate::vfs::Vfs;
+        let mut vfs = MemoryVfs::new();
+        vfs.mkdir("/home").unwrap();
+        vfs.mkdir("/home/user").unwrap();
+        vfs.mkdir("/home/user/photos").unwrap();
+        let runner = AppRunner::launch(&make_app("Photo Viewer"), &vfs);
+        assert!(runner.lines.iter().any(|l| l.contains("No images found")));
     }
 }

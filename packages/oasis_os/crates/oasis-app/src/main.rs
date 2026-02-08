@@ -473,6 +473,36 @@ fn populate_demo_vfs(vfs: &mut MemoryVfs) {
         vfs.mkdir(&format!("/apps/{name}")).unwrap();
     }
 
+    // Music library -- placeholder entries for the Music Player app.
+    vfs.mkdir("/home/user/music").unwrap();
+    // If real samples exist on disk, the fetch-samples.sh script populates
+    // these paths. For the demo VFS we create small placeholder files so
+    // the Music Player has entries to list.
+    if !vfs.exists("/home/user/music/ambient_dawn.mp3") {
+        vfs.write(
+            "/home/user/music/ambient_dawn.mp3",
+            b"(placeholder -- run fetch-samples.sh for real audio)",
+        )
+        .unwrap();
+    }
+    if !vfs.exists("/home/user/music/nightfall_theme.mp3") {
+        vfs.write(
+            "/home/user/music/nightfall_theme.mp3",
+            b"(placeholder -- run fetch-samples.sh for real audio)",
+        )
+        .unwrap();
+    }
+
+    // Photo library -- placeholder entries for the Photo Viewer app.
+    vfs.mkdir("/home/user/photos").unwrap();
+    if !vfs.exists("/home/user/photos/sample_landscape.png") {
+        vfs.write(
+            "/home/user/photos/sample_landscape.png",
+            b"(placeholder -- run fetch-samples.sh for real image)",
+        )
+        .unwrap();
+    }
+
     // Demo scripts for the scripting engine.
     vfs.mkdir("/home/user/scripts").unwrap();
     vfs.write(
