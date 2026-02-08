@@ -6,7 +6,7 @@
 
 [package]
 name = "oasis-backend-psp"
-description = "PSP backend for OASIS_OS: software framebuffer, VRAM output, controller input"
+description = "PSP backend for OASIS_OS: hardware-accelerated GU rendering, controller input"
 version = "0.1.0"
 edition = "2024"
 license = "MIT"

@@ -1,8 +1,11 @@
 //! PSP backend for OASIS_OS.
 //!
-//! Software RGBA framebuffer rendered in RAM, copied to VRAM on
-//! `swap_buffers()`. Controller input via `sceCtrlPeekBufferPositive`
-//! with edge detection for press/release events.
+//! Hardware-accelerated rendering via the PSP Graphics Engine (sceGu/sceGum).
+//! All rectangles, textures, and text are drawn as GU `Sprites` primitives,
+//! offloading work from the 333MHz MIPS CPU to the dedicated GE hardware.
+//!
+//! Controller input via `sceCtrlPeekBufferPositive` with edge detection for
+//! press/release events.
 //!
 //! This crate is `no_std` -- it cannot depend on `oasis-core` (which
 //! requires `std`). All types are self-contained duplicates of the
@@ -14,13 +17,20 @@ extern crate alloc;
 
 pub mod font;
 
+use alloc::alloc::{alloc, dealloc, Layout};
 use alloc::vec;
 use alloc::vec::Vec;
+use core::ffi::c_void;
+use core::mem::size_of;
+use core::ptr;
 
 use psp::sys::{
-    self, CtrlButtons, CtrlMode, DisplayMode, DisplayPixelFormat, DisplaySetBufSync, SceCtrlData,
-    sceGeEdramGetAddr,
+    self, BlendFactor, BlendOp, ClearBuffer, CtrlButtons, CtrlMode, DisplayPixelFormat,
+    GuContextType, GuPrimitive, GuState, GuSyncBehavior, GuSyncMode, MatrixMode, MipmapLevel,
+    SceCtrlData, TextureColorComponent, TextureEffect, TextureFilter, TexturePixelFormat,
+    VertexType,
 };
+use psp::vram_alloc::get_vram_allocator;
 
 // ---------------------------------------------------------------------------
 // Minimal type duplicates from oasis-core (no_std-compatible)
@@ -44,6 +54,11 @@ impl Color {
     }
     pub const BLACK: Self = Self::rgb(0, 0, 0);
     pub const WHITE: Self = Self::rgb(255, 255, 255);
+
+    /// Convert to PSP ABGR u32 format used by sceGu functions.
+    pub const fn to_abgr(&self) -> u32 {
+        (self.a as u32) << 24 | (self.b as u32) << 16 | (self.g as u32) << 8 | self.r as u32
+    }
 }
 
 /// Opaque handle to a loaded texture.
@@ -84,25 +99,59 @@ pub enum Trigger {
 }
 
 // ---------------------------------------------------------------------------
+// Vertex types for 2D GU rendering
+// ---------------------------------------------------------------------------
+
+/// Colored vertex for fill_rect (no texture).
+#[repr(C, align(4))]
+struct ColorVertex {
+    color: u32,
+    x: i16,
+    y: i16,
+    z: i16,
+    _pad: i16,
+}
+
+/// Vertex type flags for ColorVertex.
+const COLOR_VTYPE: VertexType = VertexType::from_bits_truncate(
+    VertexType::COLOR_8888.bits() | VertexType::VERTEX_16BIT.bits() | VertexType::TRANSFORM_2D.bits(),
+);
+
+/// Textured + colored vertex for blit and draw_text.
+#[repr(C, align(4))]
+struct TexturedColorVertex {
+    u: i16,
+    v: i16,
+    color: u32,
+    x: i16,
+    y: i16,
+    z: i16,
+    _pad: i16,
+}
+
+/// Vertex type flags for TexturedColorVertex.
+const TEXTURED_COLOR_VTYPE: VertexType = VertexType::from_bits_truncate(
+    VertexType::TEXTURE_16BIT.bits()
+        | VertexType::COLOR_8888.bits()
+        | VertexType::VERTEX_16BIT.bits()
+        | VertexType::TRANSFORM_2D.bits(),
+);
+
+// ---------------------------------------------------------------------------
 // Stored texture
 // ---------------------------------------------------------------------------
 
 struct Texture {
     width: u32,
     height: u32,
-    data: Vec<u8>,
-}
-
-// ---------------------------------------------------------------------------
-// Clip rectangle
-// ---------------------------------------------------------------------------
-
-#[derive(Clone, Copy)]
-struct ClipRect {
-    x: i32,
-    y: i32,
-    w: u32,
-    h: u32,
+    /// Power-of-2 buffer width for GU.
+    buf_w: u32,
+    /// Power-of-2 buffer height for GU.
+    buf_h: u32,
+    /// 16-byte aligned pixel data pointer (RAM).
+    data: *mut u8,
+    /// Layout used for deallocation.
+    layout: Layout,
 }
 
 // ---------------------------------------------------------------------------
@@ -115,8 +164,23 @@ pub const SCREEN_WIDTH: u32 = 480;
 pub const SCREEN_HEIGHT: u32 = 272;
 /// VRAM row stride in pixels (power-of-2 >= 480).
 const BUF_WIDTH: u32 = 512;
-/// Offset to convert cached VRAM address to uncached (bypasses CPU cache).
-const UNCACHED_OFFSET: usize = 0x4000_0000;
+
+/// Font atlas dimensions.
+const FONT_ATLAS_W: u32 = 128;
+const FONT_ATLAS_H: u32 = 64;
+/// Glyphs per row in the atlas.
+const ATLAS_COLS: u32 = 16;
+
+// ---------------------------------------------------------------------------
+// Display list (16-byte aligned, in BSS)
+// ---------------------------------------------------------------------------
+
+const DISPLAY_LIST_SIZE: usize = 0x40000; // 256 KB
+
+#[repr(C, align(16))]
+struct Align16<T>(T);
+
+static mut DISPLAY_LIST: Align16<[u8; DISPLAY_LIST_SIZE]> = Align16([0u8; DISPLAY_LIST_SIZE]);
 
 // ---------------------------------------------------------------------------
 // Backend
@@ -124,21 +188,20 @@ const UNCACHED_OFFSET: usize = 0x4000_0000;
 
 /// PSP rendering and input backend.
 ///
-/// Draws into a software RGBA buffer in RAM. On `swap_buffers()` the buffer
-/// is copied to VRAM with the correct 512-pixel stride, then
-/// `sceDisplaySetFrameBuf` points the display controller at it.
+/// Draws using the PSP Graphics Engine (GE) via sceGu. All rendering calls
+/// add commands to a display list; `swap_buffers()` submits the list, waits
+/// for vblank, swaps framebuffers, and opens the next frame's list.
 pub struct PspBackend {
     width: u32,
     height: u32,
-    /// Software RGBA framebuffer (width * height * 4 bytes).
-    buffer: Vec<u8>,
     textures: Vec<Option<Texture>>,
-    clip: Option<ClipRect>,
     /// Previous frame's button bitfield for edge detection.
     prev_buttons: u32,
     /// Accumulated analog stick cursor position.
     cursor_x: i32,
     cursor_y: i32,
+    /// 16-byte aligned RAM pointer to the font atlas texture (128x64 RGBA).
+    font_atlas_ptr: *mut u8,
 }
 
 impl PspBackend {
@@ -147,44 +210,196 @@ impl PspBackend {
         Self {
             width: SCREEN_WIDTH,
             height: SCREEN_HEIGHT,
-            buffer: vec![0u8; (SCREEN_WIDTH * SCREEN_HEIGHT * 4) as usize],
             textures: Vec::new(),
-            clip: None,
             prev_buttons: 0,
             cursor_x: (SCREEN_WIDTH / 2) as i32,
             cursor_y: (SCREEN_HEIGHT / 2) as i32,
+            font_atlas_ptr: ptr::null_mut(),
         }
     }
 
-    /// Initialize PSP display and controller hardware.
+    /// Initialize PSP display via GU and controller hardware.
     pub fn init(&mut self) {
         unsafe {
-            sys::sceDisplaySetMode(DisplayMode::Lcd, SCREEN_WIDTH as usize, SCREEN_HEIGHT as usize);
+            // Controller setup.
             sys::sceCtrlSetSamplingCycle(0);
             sys::sceCtrlSetSamplingMode(CtrlMode::Analog);
+
+            // VRAM allocation: 2 framebuffers (no depth buffer for 2D).
+            let allocator = get_vram_allocator().unwrap();
+            let fbp0 = allocator
+                .alloc_texture_pixels(BUF_WIDTH, SCREEN_HEIGHT, TexturePixelFormat::Psm8888)
+                .unwrap();
+            let fbp1 = allocator
+                .alloc_texture_pixels(BUF_WIDTH, SCREEN_HEIGHT, TexturePixelFormat::Psm8888)
+                .unwrap();
+
+            let fbp0_zero = fbp0.as_mut_ptr_from_zero() as *mut c_void;
+            let fbp1_zero = fbp1.as_mut_ptr_from_zero() as *mut c_void;
+
+            // Font atlas in RAM (16-byte aligned). Using RAM avoids PPSSPP
+            // texture cache issues with direct VRAM writes. The GE reads it
+            // via DMA using the uncached mirror address.
+            let atlas_size = (FONT_ATLAS_W * FONT_ATLAS_H * 4) as usize;
+            let atlas_layout = Layout::from_size_align(atlas_size, 16).unwrap();
+            let atlas_ptr = alloc(atlas_layout);
+            self.font_atlas_ptr = atlas_ptr;
+
+            // GU initialization.
+            sys::sceGuInit();
+            sys::sceGuStart(
+                GuContextType::Direct,
+                &raw mut DISPLAY_LIST as *mut c_void,
+            );
+
+            // Draw buffer (render target) and display buffer.
+            sys::sceGuDrawBuffer(DisplayPixelFormat::Psm8888, fbp0_zero, BUF_WIDTH as i32);
+            sys::sceGuDispBuffer(
+                SCREEN_WIDTH as i32,
+                SCREEN_HEIGHT as i32,
+                fbp1_zero,
+                BUF_WIDTH as i32,
+            );
+
+            // Viewport and coordinate setup.
+            sys::sceGuOffset(2048 - (SCREEN_WIDTH / 2), 2048 - (SCREEN_HEIGHT / 2));
+            sys::sceGuViewport(2048, 2048, SCREEN_WIDTH as i32, SCREEN_HEIGHT as i32);
+
+            // Scissor (full screen).
+            sys::sceGuScissor(0, 0, SCREEN_WIDTH as i32, SCREEN_HEIGHT as i32);
+            sys::sceGuEnable(GuState::ScissorTest);
+
+            // Alpha blending.
+            sys::sceGuEnable(GuState::Blend);
+            sys::sceGuBlendFunc(
+                BlendOp::Add,
+                BlendFactor::SrcAlpha,
+                BlendFactor::OneMinusSrcAlpha,
+                0,
+                0,
+            );
+
+            // Texture state.
+            sys::sceGuEnable(GuState::Texture2D);
+            sys::sceGuTexFunc(TextureEffect::Modulate, TextureColorComponent::Rgba);
+            sys::sceGuTexFilter(TextureFilter::Nearest, TextureFilter::Nearest);
+
+            // Projection: orthographic 2D.
+            sys::sceGumMatrixMode(MatrixMode::Projection);
+            sys::sceGumLoadIdentity();
+            sys::sceGumOrtho(
+                0.0,
+                SCREEN_WIDTH as f32,
+                SCREEN_HEIGHT as f32,
+                0.0,
+                -1.0,
+                1.0,
+            );
+
+            // View and model: identity.
+            sys::sceGumMatrixMode(MatrixMode::View);
+            sys::sceGumLoadIdentity();
+            sys::sceGumMatrixMode(MatrixMode::Model);
+            sys::sceGumLoadIdentity();
+
+            // Finalize init list, sync, enable display.
+            sys::sceGuFinish();
+            sys::sceGuSync(GuSyncMode::Finish, GuSyncBehavior::Wait);
+            sys::sceDisplayWaitVblankStart();
+            sys::sceGuDisplay(true);
+
+            // Build font atlas in RAM.
+            self.build_font_atlas(atlas_ptr);
+
+            // Open the first frame's display list.
+            sys::sceGuStart(
+                GuContextType::Direct,
+                &raw mut DISPLAY_LIST as *mut c_void,
+            );
         }
     }
 
-    /// Clear the framebuffer to a solid color.
+    /// Build the 128x64 font atlas in a RAM buffer.
+    ///
+    /// 16 glyphs per row, 6 rows (95 glyphs for ASCII 32-126).
+    /// Each glyph is 8x8. White where bit is set, transparent elsewhere.
+    unsafe fn build_font_atlas(&self, buf: *mut u8) {
+        let pixels = buf as *mut u32;
+        let stride = FONT_ATLAS_W;
+        let total = (FONT_ATLAS_W * FONT_ATLAS_H) as usize;
+
+        // Zero the entire atlas first (manual loop -- see MEMORY.md footgun).
+        for i in 0..total {
+            unsafe { pixels.add(i).write(0u32) };
+        }
+
+        for idx in 0u32..95 {
+            let col = idx % ATLAS_COLS;
+            let row = idx / ATLAS_COLS;
+            let glyph_data = font::glyph((idx + 32) as u8 as char);
+
+            for gy in 0..8u32 {
+                let bits = glyph_data[gy as usize];
+                for gx in 0..8u32 {
+                    if bits & (0x80 >> gx) != 0 {
+                        let px = col * 8 + gx;
+                        let py = row * 8 + gy;
+                        let offset = (py * stride + px) as usize;
+                        unsafe { pixels.add(offset).write(0xFFFF_FFFFu32) }; // opaque white
+                    }
+                }
+            }
+        }
+    }
+
+    /// Clear the screen to a solid color.
     pub fn clear(&mut self, color: Color) {
-        for pixel in self.buffer.chunks_exact_mut(4) {
-            pixel[0] = color.r;
-            pixel[1] = color.g;
-            pixel[2] = color.b;
-            pixel[3] = color.a;
+        unsafe {
+            sys::sceGuClearColor(color.to_abgr());
+            sys::sceGuClear(ClearBuffer::COLOR_BUFFER_BIT | ClearBuffer::FAST_CLEAR_BIT);
         }
     }
 
     /// Draw a filled rectangle.
     pub fn fill_rect(&mut self, x: i32, y: i32, w: u32, h: u32, color: Color) {
-        for dy in 0..h as i32 {
-            for dx in 0..w as i32 {
-                self.set_pixel(x + dx, y + dy, color);
+        unsafe {
+            sys::sceGuDisable(GuState::Texture2D);
+
+            let verts = sys::sceGuGetMemory(
+                (2 * size_of::<ColorVertex>()) as i32,
+            ) as *mut ColorVertex;
+            if verts.is_null() {
+                sys::sceGuEnable(GuState::Texture2D);
+                return;
             }
+
+            let abgr = color.to_abgr();
+            let x1 = x as i16;
+            let y1 = y as i16;
+            let x2 = (x + w as i32) as i16;
+            let y2 = (y + h as i32) as i16;
+
+            ptr::write(
+                verts,
+                ColorVertex { color: abgr, x: x1, y: y1, z: 0, _pad: 0 },
+            );
+            ptr::write(
+                verts.add(1),
+                ColorVertex { color: abgr, x: x2, y: y2, z: 0, _pad: 0 },
+            );
+
+            sys::sceGuDrawArray(
+                GuPrimitive::Sprites,
+                COLOR_VTYPE,
+                2,
+                ptr::null(),
+                verts as *const c_void,
+            );
+            sys::sceGuEnable(GuState::Texture2D);
         }
     }
 
-    /// Draw text using the embedded 8x8 bitmap font.
+    /// Draw text using the embedded 8x8 bitmap font via the GU font atlas.
     pub fn draw_text(&mut self, text: &str, x: i32, y: i32, font_size: u16, color: Color) {
         let scale = if font_size >= 8 {
             (font_size / 8) as i32
@@ -192,26 +407,78 @@ impl PspBackend {
             1
         };
         let glyph_w = (font::GLYPH_WIDTH as i32) * scale;
-        let mut cx = x;
-        for ch in text.chars() {
-            let glyph_data = font::glyph(ch);
-            for row in 0..8i32 {
-                let bits = glyph_data[row as usize];
-                for col in 0..8i32 {
-                    if bits & (0x80 >> col) != 0 {
-                        for sy in 0..scale {
-                            for sx in 0..scale {
-                                self.set_pixel(
-                                    cx + col * scale + sx,
-                                    y + row * scale + sy,
-                                    color,
-                                );
-                            }
-                        }
-                    }
+        let abgr = color.to_abgr();
+
+        unsafe {
+            // Bind font atlas (RAM texture -- use uncached pointer + flush).
+            let uncached_atlas = (self.font_atlas_ptr as usize | 0x4000_0000) as *const c_void;
+            sys::sceGuTexMode(TexturePixelFormat::Psm8888, 0, 0, 0);
+            sys::sceGuTexImage(
+                MipmapLevel::None,
+                FONT_ATLAS_W as i32,
+                FONT_ATLAS_H as i32,
+                FONT_ATLAS_W as i32,
+                uncached_atlas,
+            );
+            sys::sceGuTexFunc(TextureEffect::Modulate, TextureColorComponent::Rgba);
+            sys::sceGuTexFlush();
+            sys::sceGuTexSync();
+
+            let mut cx = x;
+            for ch in text.chars() {
+                let idx = (ch as u32).wrapping_sub(32);
+                // Out-of-range characters get the fallback block (draw as filled rect).
+                let (u0, v0) = if idx < 95 {
+                    let col = idx % ATLAS_COLS;
+                    let row = idx / ATLAS_COLS;
+                    ((col * 8) as i16, (row * 8) as i16)
+                } else {
+                    // Use space glyph for out-of-range (index 0 = space).
+                    (0i16, 0i16)
+                };
+
+                let verts = sys::sceGuGetMemory(
+                    (2 * size_of::<TexturedColorVertex>()) as i32,
+                ) as *mut TexturedColorVertex;
+                if verts.is_null() {
+                    break;
                 }
+
+                ptr::write(
+                    verts,
+                    TexturedColorVertex {
+                        u: u0,
+                        v: v0,
+                        color: abgr,
+                        x: cx as i16,
+                        y: y as i16,
+                        z: 0,
+                        _pad: 0,
+                    },
+                );
+                ptr::write(
+                    verts.add(1),
+                    TexturedColorVertex {
+                        u: u0 + 8,
+                        v: v0 + 8,
+                        color: abgr,
+                        x: (cx + 8 * scale) as i16,
+                        y: (y + 8 * scale) as i16,
+                        z: 0,
+                        _pad: 0,
+                    },
+                );
+
+                sys::sceGuDrawArray(
+                    GuPrimitive::Sprites,
+                    TEXTURED_COLOR_VTYPE,
+                    2,
+                    ptr::null(),
+                    verts as *const c_void,
+                );
+
+                cx += glyph_w;
             }
-            cx += glyph_w;
         }
     }
 
@@ -221,39 +488,121 @@ impl PspBackend {
         let Some(Some(texture)) = self.textures.get(idx) else {
             return;
         };
-        let tex_w = texture.width;
-        let tex_h = texture.height;
-        let tex_data = texture.data.clone();
+        let tex_w = texture.width as i16;
+        let tex_h = texture.height as i16;
+        let buf_w = texture.buf_w;
+        let buf_h = texture.buf_h;
+        let data_ptr = texture.data;
 
-        for dy in 0..h {
-            for dx in 0..w {
-                let src_x = (dx * tex_w / w) as usize;
-                let src_y = (dy * tex_h / h) as usize;
-                let src_offset = (src_y * tex_w as usize + src_x) * 4;
-                if src_offset + 3 < tex_data.len() {
-                    let color = Color::rgba(
-                        tex_data[src_offset],
-                        tex_data[src_offset + 1],
-                        tex_data[src_offset + 2],
-                        tex_data[src_offset + 3],
-                    );
-                    self.set_pixel(x + dx as i32, y + dy as i32, color);
-                }
+        unsafe {
+            // Textures are in RAM -- use uncached address and flush.
+            let uncached_ptr = (data_ptr as usize | 0x4000_0000) as *const c_void;
+            sys::sceGuTexMode(TexturePixelFormat::Psm8888, 0, 0, 0);
+            sys::sceGuTexImage(
+                MipmapLevel::None,
+                buf_w as i32,
+                buf_h as i32,
+                buf_w as i32,
+                uncached_ptr,
+            );
+            sys::sceGuTexFunc(TextureEffect::Modulate, TextureColorComponent::Rgba);
+            sys::sceGuTexFlush();
+            sys::sceGuTexSync();
+
+            let verts = sys::sceGuGetMemory(
+                (2 * size_of::<TexturedColorVertex>()) as i32,
+            ) as *mut TexturedColorVertex;
+            if verts.is_null() {
+                return;
             }
+
+            let white = 0xFFFF_FFFFu32;
+
+            ptr::write(
+                verts,
+                TexturedColorVertex {
+                    u: 0,
+                    v: 0,
+                    color: white,
+                    x: x as i16,
+                    y: y as i16,
+                    z: 0,
+                    _pad: 0,
+                },
+            );
+            ptr::write(
+                verts.add(1),
+                TexturedColorVertex {
+                    u: tex_w,
+                    v: tex_h,
+                    color: white,
+                    x: (x + w as i32) as i16,
+                    y: (y + h as i32) as i16,
+                    z: 0,
+                    _pad: 0,
+                },
+            );
+
+            sys::sceGuDrawArray(
+                GuPrimitive::Sprites,
+                TEXTURED_COLOR_VTYPE,
+                2,
+                ptr::null(),
+                verts as *const c_void,
+            );
         }
     }
 
     /// Load raw RGBA pixel data as a texture.
+    ///
+    /// The data is copied into a power-of-2 aligned buffer suitable for the GU.
     pub fn load_texture(&mut self, width: u32, height: u32, rgba_data: &[u8]) -> Option<TextureId> {
         let expected = (width * height * 4) as usize;
         if rgba_data.len() != expected {
             return None;
         }
+
+        let buf_w = width.next_power_of_two();
+        let buf_h = height.next_power_of_two();
+        let buf_size = (buf_w * buf_h * 4) as usize;
+        let layout = Layout::from_size_align(buf_size, 16).ok()?;
+
+        let data = unsafe { alloc(layout) };
+        if data.is_null() {
+            return None;
+        }
+
+        // Zero the buffer first (for padding areas).
+        unsafe {
+            // Manual zero loop to avoid core::ptr::write_bytes (see MEMORY.md footgun).
+            let slice = core::slice::from_raw_parts_mut(data, buf_size);
+            for byte in slice.iter_mut() {
+                *byte = 0;
+            }
+        }
+
+        // Copy source rows into the power-of-2 buffer.
+        let src_stride = (width * 4) as usize;
+        let dst_stride = (buf_w * 4) as usize;
+        for row in 0..height as usize {
+            unsafe {
+                ptr::copy_nonoverlapping(
+                    rgba_data.as_ptr().add(row * src_stride),
+                    data.add(row * dst_stride),
+                    src_stride,
+                );
+            }
+        }
+
         let texture = Texture {
             width,
             height,
-            data: rgba_data.to_vec(),
+            buf_w,
+            buf_h,
+            data,
+            layout,
         };
+
         // Reuse free slot.
         for (i, slot) in self.textures.iter_mut().enumerate() {
             if slot.is_none() {
@@ -266,54 +615,43 @@ impl PspBackend {
         Some(TextureId(id as u64))
     }
 
-    /// Destroy a loaded texture.
+    /// Destroy a loaded texture, freeing its memory.
     pub fn destroy_texture(&mut self, tex: TextureId) {
         let idx = tex.0 as usize;
         if idx < self.textures.len() {
-            self.textures[idx] = None;
+            if let Some(texture) = self.textures[idx].take() {
+                unsafe {
+                    dealloc(texture.data, texture.layout);
+                }
+            }
         }
     }
 
-    /// Set the clipping rectangle.
+    /// Set the clipping rectangle via GU scissor.
     pub fn set_clip_rect(&mut self, x: i32, y: i32, w: u32, h: u32) {
-        self.clip = Some(ClipRect { x, y, w, h });
+        unsafe {
+            sys::sceGuScissor(x, y, x + w as i32, y + h as i32);
+        }
     }
 
     /// Reset clipping to full screen.
     pub fn reset_clip_rect(&mut self) {
-        self.clip = None;
+        unsafe {
+            sys::sceGuScissor(0, 0, SCREEN_WIDTH as i32, SCREEN_HEIGHT as i32);
+        }
     }
 
-    /// Copy the software framebuffer to VRAM and present.
-    ///
-    /// The PSP display controller expects rows of `BUF_WIDTH` (512) pixels,
-    /// but only the leftmost 480 are visible. We copy each row individually
-    /// to account for the stride difference.
+    /// Finalize the current display list, swap buffers, and open the next frame.
     pub fn swap_buffers(&mut self) {
         unsafe {
-            let vram_base = sceGeEdramGetAddr() as *mut u8;
-            let vram_uncached = (vram_base as usize + UNCACHED_OFFSET) as *mut u8;
-            let src = self.buffer.as_ptr();
-            let visible_row_bytes = (self.width * 4) as usize;
-            let stride_bytes = (BUF_WIDTH * 4) as usize;
-
-            for row in 0..self.height as usize {
-                let src_offset = row * visible_row_bytes;
-                let dst_offset = row * stride_bytes;
-                core::ptr::copy_nonoverlapping(
-                    src.add(src_offset),
-                    vram_uncached.add(dst_offset),
-                    visible_row_bytes,
-                );
-            }
-
-            sys::sceDisplaySetFrameBuf(
-                vram_base as *const u8,
-                BUF_WIDTH as usize,
-                DisplayPixelFormat::Psm8888,
-                DisplaySetBufSync::NextFrame,
-            );
+            sys::sceGuFinish();
+            sys::sceGuSync(GuSyncMode::Finish, GuSyncBehavior::Wait);
             sys::sceDisplayWaitVblankStart();
+            sys::sceGuSwapBuffers();
+            sys::sceGuStart(
+                GuContextType::Direct,
+                &raw mut DISPLAY_LIST as *mut c_void,
+            );
         }
     }
 
@@ -436,49 +774,7 @@ impl PspBackend {
         (self.cursor_x, self.cursor_y)
     }
 
-    /// Read-only access to the software framebuffer.
-    pub fn buffer(&self) -> &[u8] {
-        &self.buffer
-    }
-
     // -- Private helpers ----------------------------------------------------
-
-    /// Set a pixel with bounds checking, clip checking, and alpha blending.
-    fn set_pixel(&mut self, x: i32, y: i32, color: Color) {
-        if x < 0 || y < 0 {
-            return;
-        }
-        let (ux, uy) = (x as u32, y as u32);
-        if ux >= self.width || uy >= self.height {
-            return;
-        }
-        if let Some(clip) = &self.clip {
-            if x < clip.x
-                || y < clip.y
-                || ux >= (clip.x as u32).saturating_add(clip.w)
-                || uy >= (clip.y as u32).saturating_add(clip.h)
-            {
-                return;
-            }
-        }
-        let offset = ((uy * self.width + ux) * 4) as usize;
-        if color.a == 255 {
-            self.buffer[offset] = color.r;
-            self.buffer[offset + 1] = color.g;
-            self.buffer[offset + 2] = color.b;
-            self.buffer[offset + 3] = 255;
-        } else if color.a > 0 {
-            let sa = color.a as u16;
-            let da = 255 - sa;
-            self.buffer[offset] =
-                ((color.r as u16 * sa + self.buffer[offset] as u16 * da) / 255) as u8;
-            self.buffer[offset + 1] =
-                ((color.g as u16 * sa + self.buffer[offset + 1] as u16 * da) / 255) as u8;
-            self.buffer[offset + 2] =
-                ((color.b as u16 * sa + self.buffer[offset + 2] as u16 * da) / 255) as u8;
-            self.buffer[offset + 3] = 255;
-        }
-    }
 
     /// Emit press/release events for a button if its state changed.
     fn check_button(
