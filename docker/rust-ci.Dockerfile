@@ -50,8 +50,8 @@ WORKDIR /workspace
 RUN useradd -m -u 1000 ciuser \
     && mkdir -p /tmp/cargo && chmod 1777 /tmp/cargo
 
-# Set cargo home to a cacheable location
-ENV CARGO_HOME=/usr/local/cargo
+# Default CARGO_HOME for write access (matches docker-compose runtime override)
+ENV CARGO_HOME=/tmp/cargo
 ENV RUSTUP_HOME=/usr/local/rustup
 
 # Configure cargo for CI (faster linking, better output)
