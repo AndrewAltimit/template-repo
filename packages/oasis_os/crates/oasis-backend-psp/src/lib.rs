@@ -815,53 +815,99 @@ impl PspBackend {
 // Wallpaper generator (procedural PSIX-style gradient)
 // ---------------------------------------------------------------------------
 
-/// Generate a PSIX-style green/yellow/orange gradient wallpaper as RGBA bytes.
+/// Generate a PSIX-style gradient wallpaper as RGBA bytes.
+///
+/// Produces the characteristic orange-to-green sweep with wave arcs emanating
+/// from the lower-left, matching `oasis-core`'s `wallpaper::generate_gradient`.
 pub fn generate_gradient(w: u32, h: u32) -> Vec<u8> {
-    let mut data = vec![0u8; (w * h * 4) as usize];
+    let mut buf = vec![0u8; (w * h * 4) as usize];
+
     for y in 0..h {
         for x in 0..w {
-            let fx = x as f32 / w as f32;
-            let fy = y as f32 / h as f32;
-            // HSV-like interpolation: hue shifts from green (120) to orange (30).
-            let hue = 120.0 - 90.0 * fx;
-            let sat = 0.7 + 0.3 * fy;
-            let val = 0.85 - 0.25 * fy;
-            let (r, g, b) = hsv_to_rgb(hue, sat, val);
             let offset = ((y * w + x) * 4) as usize;
-            data[offset] = r;
-            data[offset + 1] = g;
-            data[offset + 2] = b;
-            data[offset + 3] = 255;
+
+            let nx = x as f32 / w as f32;
+            let ny = y as f32 / h as f32;
+
+            // Horizontal sweep: hot orange (left) -> bright lime green (right).
+            let t = nx * 0.88 + ny * 0.12;
+
+            let (r, g, b) = if t < 0.15 {
+                let s = t / 0.15;
+                lerp_rgb((245, 110, 15), (255, 170, 15), s)
+            } else if t < 0.32 {
+                let s = (t - 0.15) / 0.17;
+                lerp_rgb((255, 170, 15), (255, 230, 30), s)
+            } else if t < 0.48 {
+                let s = (t - 0.32) / 0.16;
+                lerp_rgb((255, 230, 30), (230, 245, 40), s)
+            } else if t < 0.65 {
+                let s = (t - 0.48) / 0.17;
+                lerp_rgb((230, 245, 40), (140, 235, 50), s)
+            } else {
+                let s = (t - 0.65) / 0.35;
+                lerp_rgb((140, 235, 50), (200, 252, 130), s)
+            };
+
+            // Vertical brightness: lighter toward top, darker at bottom.
+            let vert = 1.0 + (0.5 - ny) * 0.18;
+
+            // Wave arcs from lower-left (characteristic PSIX pattern).
+            let dx = nx + 0.05;
+            let dy = ny - 1.3;
+            let dist = sqrt_approx(dx * dx + dy * dy);
+            let arc1 = sin_approx(dist * 12.0) * 0.18;
+            let arc2 = sin_approx(dist * 22.0 + 1.2) * 0.09;
+            let arc3 = sin_approx(dist * 36.0 + nx * 2.5) * 0.04;
+
+            // Arcs fade toward the right.
+            let arc_fade = (1.0 - nx * 0.45).clamp(0.0, 1.0);
+            let wave = 1.0 + (arc1 + arc2 + arc3) * arc_fade;
+
+            let scale = vert * wave;
+            buf[offset] = (r as f32 * scale).clamp(0.0, 255.0) as u8;
+            buf[offset + 1] = (g as f32 * scale).clamp(0.0, 255.0) as u8;
+            buf[offset + 2] = (b as f32 * scale).clamp(0.0, 255.0) as u8;
+            buf[offset + 3] = 255;
         }
     }
-    data
+
+    buf
 }
 
-/// HSV to RGB conversion (h in 0..360, s/v in 0..1).
-fn hsv_to_rgb(h: f32, s: f32, v: f32) -> (u8, u8, u8) {
-    let c = v * s;
-    let rem = (h / 60.0) % 2.0 - 1.0;
-    let abs_rem = if rem < 0.0 { -rem } else { rem };
-    let x = c * (1.0 - abs_rem);
-    let m = v - c;
-    let (r1, g1, b1) = if h < 60.0 {
-        (c, x, 0.0)
-    } else if h < 120.0 {
-        (x, c, 0.0)
-    } else if h < 180.0 {
-        (0.0, c, x)
-    } else if h < 240.0 {
-        (0.0, x, c)
-    } else if h < 300.0 {
-        (x, 0.0, c)
-    } else {
-        (c, 0.0, x)
-    };
-    (
-        ((r1 + m) * 255.0) as u8,
-        ((g1 + m) * 255.0) as u8,
-        ((b1 + m) * 255.0) as u8,
-    )
+/// Linear interpolation between two RGB colors.
+fn lerp_rgb(a: (u8, u8, u8), b: (u8, u8, u8), t: f32) -> (u8, u8, u8) {
+    let r = a.0 as f32 + (b.0 as f32 - a.0 as f32) * t;
+    let g = a.1 as f32 + (b.1 as f32 - a.1 as f32) * t;
+    let bv = a.2 as f32 + (b.2 as f32 - a.2 as f32) * t;
+    (r as u8, g as u8, bv as u8)
+}
+
+/// Taylor-series sine approximation (no libm dependency for `no_std`).
+fn sin_approx(mut x: f32) -> f32 {
+    const PI: f32 = 3.14159265;
+    const TWO_PI: f32 = 6.2831853;
+    x = x % TWO_PI;
+    if x > PI {
+        x -= TWO_PI;
+    }
+    if x < -PI {
+        x += TWO_PI;
+    }
+    let x2 = x * x;
+    x * (1.0 - x2 * (1.0 / 6.0 - x2 * (1.0 / 120.0 - x2 / 5040.0)))
+}
+
+/// Newton-Raphson square root approximation (no libm dependency for `no_std`).
+fn sqrt_approx(x: f32) -> f32 {
+    if x <= 0.0 {
+        return 0.0;
+    }
+    let mut g = x * 0.5;
+    g = 0.5 * (g + x / g);
+    g = 0.5 * (g + x / g);
+    g = 0.5 * (g + x / g);
+    0.5 * (g + x / g)
 }
 
 // ---------------------------------------------------------------------------
