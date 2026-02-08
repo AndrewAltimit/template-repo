@@ -166,7 +166,7 @@ impl DashboardState {
     }
 
     /// Synchronize SDI objects to reflect current dashboard state.
-    /// Creates/updates: icon grid cells (colored block + label below),
+    /// Creates/updates: icon grid cells (colored block with outline + label below),
     /// cursor highlight overlay.
     pub fn update_sdi(&self, sdi: &mut SdiRegistry) {
         let cols = self.config.grid_cols as usize;
@@ -177,12 +177,16 @@ impl DashboardState {
         let icon_h = 32u32;
         let text_pad = 4i32;
 
-        // Icon grid cells: each has a colored block + text label below it.
+        // Icon grid cells: each has an outline + colored block + text label.
         let per_page = self.config.icons_per_page as usize;
         for i in 0..per_page {
+            let outline_name = format!("icon_outline_{i}");
             let icon_name = format!("icon_{i}");
             let label_name = format!("icon_label_{i}");
 
+            if !sdi.contains(&outline_name) {
+                sdi.create(&outline_name);
+            }
             if !sdi.contains(&icon_name) {
                 sdi.create(&icon_name);
             }
@@ -198,6 +202,22 @@ impl DashboardState {
             let ix = cell_x + (self.config.cell_w as i32 - icon_w as i32) / 2;
             let iy = cell_y + 6;
 
+            // White outline behind icon (PSIX-style file/folder border look).
+            if let Ok(obj) = sdi.get_mut(&outline_name) {
+                if i < page_apps.len() {
+                    obj.x = ix - 1;
+                    obj.y = iy - 1;
+                    obj.w = icon_w + 2;
+                    obj.h = icon_h + 2;
+                    obj.visible = true;
+                    obj.color = Color::rgba(200, 220, 200, 120);
+                    obj.text = None;
+                } else {
+                    obj.visible = false;
+                }
+            }
+
+            // Inner icon block.
             if let Ok(obj) = sdi.get_mut(&icon_name) {
                 if i < page_apps.len() {
                     obj.x = ix;
@@ -206,7 +226,16 @@ impl DashboardState {
                     obj.h = icon_h;
                     obj.visible = true;
                     obj.color = page_apps[i].color;
-                    obj.text = None; // Icon block has no text.
+                    // Show first letter of app name as icon label.
+                    let first_char = page_apps[i]
+                        .title
+                        .chars()
+                        .next()
+                        .map(|c| c.to_string())
+                        .unwrap_or_default();
+                    obj.text = Some(first_char);
+                    obj.font_size = 16;
+                    obj.text_color = Color::WHITE;
                 } else {
                     obj.visible = false;
                 }
@@ -221,7 +250,7 @@ impl DashboardState {
                     obj.h = 0;
                     obj.font_size = 8;
                     obj.text = Some(page_apps[i].title.clone());
-                    obj.text_color = Color::rgb(200, 200, 220);
+                    obj.text_color = Color::rgb(200, 220, 200);
                     obj.visible = true;
                 } else {
                     obj.visible = false;
@@ -247,7 +276,7 @@ impl DashboardState {
                 cursor.y = iy - pad;
                 cursor.w = icon_w + (pad * 2) as u32;
                 cursor.h = icon_h + (pad * 2) as u32;
-                cursor.color = Color::rgba(100, 160, 255, 60);
+                cursor.color = Color::rgba(100, 200, 140, 60);
                 cursor.visible = true;
                 cursor.overlay = true;
             } else {
@@ -260,7 +289,7 @@ impl DashboardState {
     pub fn hide_sdi(&self, sdi: &mut SdiRegistry) {
         let per_page = self.config.icons_per_page as usize;
         for i in 0..per_page {
-            for prefix in &["icon_", "icon_label_"] {
+            for prefix in &["icon_", "icon_label_", "icon_outline_"] {
                 let name = format!("{prefix}{i}");
                 if let Ok(obj) = sdi.get_mut(&name) {
                     obj.visible = false;

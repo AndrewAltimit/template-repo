@@ -6,12 +6,15 @@
 mod font;
 mod sdl_audio;
 
+use std::collections::HashMap;
+
 use sdl2::EventPump;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
+use sdl2::pixels::PixelFormatEnum;
 use sdl2::rect::Rect;
-use sdl2::render::Canvas;
-use sdl2::video::Window;
+use sdl2::render::{Canvas, Texture, TextureCreator};
+use sdl2::video::{Window, WindowContext};
 
 use oasis_core::backend::{Color, SdiBackend, TextureId};
 use oasis_core::error::{OasisError, Result};
@@ -21,11 +24,20 @@ pub use sdl_audio::SdlAudioBackend;
 
 /// SDL2 rendering and input backend.
 ///
-/// Phase 1: supports `fill_rect` and `clear` only. Texture loading (PNG, etc.)
-/// will be added in Phase 2 when SDI image support lands.
+/// Supports solid-color rects, 8x8 bitmap text, and RGBA texture loading/blitting.
+///
+/// # Safety
+///
+/// `textures` is declared before `texture_creator` so that Rust's drop order
+/// (declaration order) destroys all textures before the creator they borrow from.
+/// The `Texture<'static>` lifetime is erased via transmute in `load_texture()` --
+/// this is sound because the `TextureCreator` always outlives the textures.
 pub struct SdlBackend {
     canvas: Canvas<Window>,
     event_pump: EventPump,
+    textures: HashMap<u64, Texture<'static>>,
+    texture_creator: TextureCreator<WindowContext>,
+    next_texture_id: u64,
 }
 
 impl SdlBackend {
@@ -46,13 +58,20 @@ impl SdlBackend {
             .present_vsync()
             .build()
             .map_err(|e| OasisError::Backend(e.to_string()))?;
+        let texture_creator = canvas.texture_creator();
         let event_pump = sdl
             .event_pump()
             .map_err(|e| OasisError::Backend(e.to_string()))?;
 
         log::info!("SDL2 backend initialized: {width}x{height}");
 
-        Ok(Self { canvas, event_pump })
+        Ok(Self {
+            canvas,
+            event_pump,
+            textures: HashMap::new(),
+            texture_creator,
+            next_texture_id: 1,
+        })
     }
 }
 
@@ -69,12 +88,15 @@ impl SdiBackend for SdlBackend {
         Ok(())
     }
 
-    fn blit(&mut self, tex: TextureId, _x: i32, _y: i32, _w: u32, _h: u32) -> Result<()> {
-        // Phase 1: texture blitting not yet implemented.
-        Err(OasisError::Backend(format!(
-            "texture blit not yet implemented (tex {})",
-            tex.0
-        )))
+    fn blit(&mut self, tex: TextureId, x: i32, y: i32, w: u32, h: u32) -> Result<()> {
+        let texture = self
+            .textures
+            .get(&tex.0)
+            .ok_or_else(|| OasisError::Backend(format!("texture not found: {}", tex.0)))?;
+        self.canvas
+            .copy(texture, None, Rect::new(x, y, w, h))
+            .map_err(|e| OasisError::Backend(e.to_string()))?;
+        Ok(())
     }
 
     fn draw_text(
@@ -138,14 +160,42 @@ impl SdiBackend for SdlBackend {
         Ok(())
     }
 
-    fn load_texture(&mut self, _width: u32, _height: u32, _rgba_data: &[u8]) -> Result<TextureId> {
-        // Phase 1: texture loading not yet implemented.
-        Err(OasisError::Backend(
-            "texture loading not yet implemented".into(),
-        ))
+    fn load_texture(&mut self, width: u32, height: u32, rgba_data: &[u8]) -> Result<TextureId> {
+        let expected = (width * height * 4) as usize;
+        if rgba_data.len() != expected {
+            return Err(OasisError::Backend(format!(
+                "texture data size mismatch: expected {expected}, got {}",
+                rgba_data.len()
+            )));
+        }
+
+        let mut texture = self
+            .texture_creator
+            .create_texture_streaming(PixelFormatEnum::ABGR8888, width, height)
+            .map_err(|e| OasisError::Backend(e.to_string()))?;
+
+        texture
+            .with_lock(None, |buffer: &mut [u8], _pitch: usize| {
+                buffer[..expected].copy_from_slice(rgba_data);
+            })
+            .map_err(|e| OasisError::Backend(e.to_string()))?;
+
+        // Enable alpha blending so transparent pixels work.
+        texture.set_blend_mode(sdl2::render::BlendMode::Blend);
+
+        // SAFETY: The texture borrows from self.texture_creator which lives in the
+        // same struct. `textures` is declared before `texture_creator`, so Rust drops
+        // textures first. The erased lifetime is therefore always valid.
+        let texture: Texture<'static> = unsafe { std::mem::transmute(texture) };
+
+        let id = self.next_texture_id;
+        self.next_texture_id += 1;
+        self.textures.insert(id, texture);
+        Ok(TextureId(id))
     }
 
-    fn destroy_texture(&mut self, _tex: TextureId) -> Result<()> {
+    fn destroy_texture(&mut self, tex: TextureId) -> Result<()> {
+        self.textures.remove(&tex.0);
         Ok(())
     }
 

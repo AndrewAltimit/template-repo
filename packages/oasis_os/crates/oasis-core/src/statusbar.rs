@@ -46,6 +46,22 @@ impl TopTab {
     pub const ALL: &[TopTab] = &[TopTab::Apps, TopTab::Mods, TopTab::Net];
 }
 
+/// Month names for date display.
+const MONTHS: [&str; 12] = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+];
+
 /// Runtime state for the top status bar.
 #[derive(Debug)]
 pub struct StatusBar {
@@ -53,6 +69,8 @@ pub struct StatusBar {
     pub active_tab: TopTab,
     /// Cached clock string (updated each frame).
     clock_text: String,
+    /// Cached date string.
+    date_text: String,
     /// Cached battery string.
     battery_text: String,
     /// Cached CPU frequency string.
@@ -65,6 +83,7 @@ impl StatusBar {
         Self {
             active_tab: TopTab::Apps,
             clock_text: "00:00".to_string(),
+            date_text: String::new(),
             battery_text: String::new(),
             cpu_text: String::new(),
         }
@@ -79,6 +98,12 @@ impl StatusBar {
     pub fn update_info(&mut self, time: Option<&SystemTime>, power: Option<&PowerInfo>) {
         if let Some(t) = time {
             self.clock_text = format!("{:02}:{:02}", t.hour, t.minute);
+            let month_name = if t.month >= 1 && t.month <= 12 {
+                MONTHS[(t.month - 1) as usize]
+            } else {
+                "???"
+            };
+            self.date_text = format!("{month_name} {}, {}", t.day, t.year);
         }
         if let Some(p) = power {
             self.battery_text = match p.state {
@@ -106,14 +131,14 @@ impl StatusBar {
 
     /// Synchronize SDI objects to reflect current status bar state.
     pub fn update_sdi(&self, sdi: &mut SdiRegistry) {
-        // Background bar.
+        // Background bar (green-tinted to match PSIX style).
         if !sdi.contains("bar_top") {
             let obj = sdi.create("bar_top");
             obj.x = 0;
             obj.y = 0;
             obj.w = SCREEN_W;
             obj.h = BAR_H;
-            obj.color = Color::rgb(28, 42, 68);
+            obj.color = Color::rgba(20, 50, 40, 220);
             obj.overlay = true;
             obj.z = 900;
         }
@@ -170,16 +195,20 @@ impl StatusBar {
             }
         }
 
-        // Clock (right side).
-        ensure_text_object(sdi, "bar_clock", 380, 5, 11, Color::rgb(180, 200, 230));
+        // Clock + date (right side, PSIX shows "HH:MM Month DD, YYYY").
+        ensure_text_object(sdi, "bar_clock", 280, 5, 10, Color::rgb(200, 220, 200));
         if let Ok(obj) = sdi.get_mut("bar_clock") {
-            obj.text = Some(self.clock_text.clone());
+            if self.date_text.is_empty() {
+                obj.text = Some(self.clock_text.clone());
+            } else {
+                obj.text = Some(format!("{} {}", self.clock_text, self.date_text));
+            }
             obj.overlay = true;
             obj.z = 901;
         }
 
-        // Battery (right of clock).
-        ensure_text_object(sdi, "bar_battery", 420, 5, 9, Color::rgb(140, 170, 200));
+        // Battery (far right).
+        ensure_text_object(sdi, "bar_battery", 440, 5, 9, Color::rgb(160, 200, 170));
         if let Ok(obj) = sdi.get_mut("bar_battery") {
             obj.text = Some(self.battery_text.clone());
             obj.overlay = true;
@@ -188,7 +217,7 @@ impl StatusBar {
 
         // CPU frequency (left of clock).
         if !self.cpu_text.is_empty() {
-            ensure_text_object(sdi, "bar_cpu", 320, 5, 9, Color::rgb(140, 170, 200));
+            ensure_text_object(sdi, "bar_cpu", 240, 5, 9, Color::rgb(140, 180, 160));
             if let Ok(obj) = sdi.get_mut("bar_cpu") {
                 obj.text = Some(self.cpu_text.clone());
                 obj.overlay = true;

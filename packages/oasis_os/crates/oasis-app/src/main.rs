@@ -1,17 +1,19 @@
 //! OASIS_OS desktop entry point.
 //!
-//! PSIX-style UI: status bar (top), 6x3 icon grid dashboard (center),
-//! bottom bar with media category tabs (footer). L trigger cycles top tabs,
-//! R trigger cycles media categories, D-pad navigates the grid.
+//! PSIX-style UI with wallpaper, mouse cursor, windowed apps, status bar,
+//! 6x3 icon grid dashboard, and bottom bar with media category tabs.
+//! L trigger cycles top tabs, R trigger cycles media categories,
+//! D-pad navigates the grid. Click to interact with windows.
 //! Press F1 to toggle terminal, F2 to toggle on-screen keyboard, Escape to quit.
 
 use anyhow::Result;
 
 use oasis_backend_sdl::SdlBackend;
 use oasis_core::apps::{AppAction, AppRunner};
-use oasis_core::backend::{Color, InputBackend, SdiBackend};
+use oasis_core::backend::{Color, InputBackend, SdiBackend, TextureId};
 use oasis_core::bottombar::{BottomBar, MediaTab};
 use oasis_core::config::OasisConfig;
+use oasis_core::cursor::{self, CursorState};
 use oasis_core::dashboard::{DashboardConfig, DashboardState, discover_apps};
 use oasis_core::input::{Button, InputEvent, Trigger};
 use oasis_core::net::{ListenerConfig, RemoteClient, RemoteListener, StdNetworkBackend};
@@ -24,6 +26,8 @@ use oasis_core::statusbar::StatusBar;
 use oasis_core::terminal::{CommandOutput, CommandRegistry, Environment, register_builtins};
 use oasis_core::transition;
 use oasis_core::vfs::MemoryVfs;
+use oasis_core::wallpaper;
+use oasis_core::wm::{WindowConfig, WindowManager, WindowType, WmEvent};
 
 /// Maximum lines visible in the terminal output area.
 const MAX_OUTPUT_LINES: usize = 12;
@@ -118,6 +122,35 @@ fn main() -> Result<()> {
     let mut sdi = SdiRegistry::new();
     skin.apply_layout(&mut sdi);
 
+    // -- Wallpaper: generate procedural gradient and load as texture --
+    let wallpaper_tex = {
+        let wp_data = wallpaper::generate_gradient(config.screen_width, config.screen_height);
+        backend.load_texture(config.screen_width, config.screen_height, &wp_data)?
+    };
+    setup_wallpaper(
+        &mut sdi,
+        wallpaper_tex,
+        config.screen_width,
+        config.screen_height,
+    );
+    log::info!("Wallpaper loaded");
+
+    // -- Mouse cursor: generate procedural arrow and load as texture --
+    let mut mouse_cursor = CursorState::new(config.screen_width, config.screen_height);
+    {
+        let (cursor_pixels, cw, ch) = cursor::generate_cursor_pixels();
+        let cursor_tex = backend.load_texture(cw, ch, &cursor_pixels)?;
+        // Set texture on the cursor SDI object after first update_sdi creates it.
+        mouse_cursor.update_sdi(&mut sdi);
+        if let Ok(obj) = sdi.get_mut("mouse_cursor") {
+            obj.texture = Some(cursor_tex);
+        }
+    }
+    log::info!("Mouse cursor loaded");
+
+    // -- Window Manager --
+    let mut wm = WindowManager::new(config.screen_width, config.screen_height);
+
     let mut mode = Mode::Dashboard;
     let bg_color = Color::rgb(10, 10, 18);
 
@@ -142,6 +175,9 @@ fn main() -> Result<()> {
 
         let events = backend.poll_events();
         for event in &events {
+            // Always update mouse cursor position.
+            mouse_cursor.handle_input(event);
+
             // OSK intercepts input when active.
             if mode == Mode::Osk {
                 if let Some(ref mut osk_state) = osk {
@@ -170,7 +206,59 @@ fn main() -> Result<()> {
                 continue;
             }
 
-            // App mode intercepts input when active.
+            // App mode: if we have windows open, route pointer events to WM.
+            if mode == Mode::App && wm.window_count() > 0 {
+                match event {
+                    InputEvent::Quit => break 'running,
+                    InputEvent::PointerClick { .. }
+                    | InputEvent::CursorMove { .. }
+                    | InputEvent::PointerRelease { .. } => {
+                        let wm_event = wm.handle_input(event, &mut sdi);
+                        match wm_event {
+                            WmEvent::WindowClosed(ref id) => {
+                                log::info!("Window closed: {id}");
+                                if wm.window_count() == 0 {
+                                    app_runner = None;
+                                    mode = Mode::Dashboard;
+                                }
+                            },
+                            WmEvent::DesktopClick(_, _) => {
+                                // Clicked outside windows -- go back to dashboard.
+                                // Close all windows first.
+                                close_all_windows(&mut wm, &mut sdi);
+                                app_runner = None;
+                                mode = Mode::Dashboard;
+                            },
+                            _ => {},
+                        }
+                        continue;
+                    },
+                    InputEvent::ButtonPress(btn) => {
+                        if let Some(ref mut runner) = app_runner {
+                            match runner.handle_input(btn, &vfs) {
+                                AppAction::Exit => {
+                                    close_all_windows(&mut wm, &mut sdi);
+                                    AppRunner::hide_sdi(&mut sdi);
+                                    app_runner = None;
+                                    mode = Mode::Dashboard;
+                                },
+                                AppAction::SwitchToTerminal => {
+                                    close_all_windows(&mut wm, &mut sdi);
+                                    AppRunner::hide_sdi(&mut sdi);
+                                    app_runner = None;
+                                    mode = Mode::Terminal;
+                                },
+                                AppAction::None => {},
+                            }
+                        }
+                        continue;
+                    },
+                    _ => {},
+                }
+                continue;
+            }
+
+            // App mode without windows (legacy fullscreen).
             if mode == Mode::App {
                 if let Some(ref mut runner) = app_runner {
                     match event {
@@ -200,22 +288,46 @@ fn main() -> Result<()> {
                     break 'running;
                 },
 
-                // Launch app from dashboard.
+                // Launch app from dashboard (opens in a window).
                 InputEvent::ButtonPress(Button::Confirm) if mode == Mode::Dashboard => {
                     if bottom_bar.active_tab == MediaTab::None {
-                        // Dashboard mode: launch selected app.
                         if let Some(app) = dashboard.selected_app() {
                             log::info!("Launching app: {}", app.title);
                             if app.title == "Terminal" {
                                 mode = Mode::Terminal;
                             } else {
-                                app_runner = Some(AppRunner::launch(app, &vfs));
-                                mode = Mode::App;
+                                // Open the app in a WM window.
+                                let win_config = WindowConfig {
+                                    id: format!(
+                                        "app_{}",
+                                        app.title.to_lowercase().replace(' ', "_")
+                                    ),
+                                    title: app.title.clone(),
+                                    x: None,
+                                    y: None,
+                                    width: 300,
+                                    height: 180,
+                                    window_type: WindowType::AppWindow,
+                                };
+                                if let Ok(_id) = wm.create_window(&win_config, &mut sdi) {
+                                    app_runner = Some(AppRunner::launch(app, &vfs));
+                                    mode = Mode::App;
+                                }
                             }
                             active_transition = Some(transition::fade_in(
                                 config.screen_width,
                                 config.screen_height,
                             ));
+                        }
+                    }
+                },
+
+                // Pointer click on dashboard: route to WM if windows exist.
+                InputEvent::PointerClick { .. } if mode == Mode::Dashboard => {
+                    if wm.window_count() > 0 {
+                        let wm_event = wm.handle_input(event, &mut sdi);
+                        if let WmEvent::WindowClosed(ref id) = wm_event {
+                            log::info!("Window closed: {id}");
                         }
                     }
                 },
@@ -255,7 +367,6 @@ fn main() -> Result<()> {
                 InputEvent::TriggerPress(Trigger::Right) if mode == Mode::Dashboard => {
                     bottom_bar.next_tab();
                     bottom_bar.r_pressed = true;
-                    // Start a page slide transition when switching categories.
                     active_transition = Some(transition::fade_in(
                         config.screen_width,
                         config.screen_height,
@@ -273,14 +384,12 @@ fn main() -> Result<()> {
                         }
                     },
                     Button::Triangle => {
-                        // Triangle: next dashboard page.
                         if bottom_bar.active_tab == MediaTab::None {
                             dashboard.next_page();
                             bottom_bar.current_page = dashboard.page;
                         }
                     },
                     Button::Square => {
-                        // Square: prev dashboard page.
                         if bottom_bar.active_tab == MediaTab::None {
                             dashboard.prev_page();
                             bottom_bar.current_page = dashboard.page;
@@ -454,16 +563,12 @@ fn main() -> Result<()> {
                 AppRunner::hide_sdi(&mut sdi);
 
                 if bottom_bar.active_tab == MediaTab::None {
-                    // Show dashboard icon grid.
                     dashboard.update_sdi(&mut sdi);
                 } else {
-                    // Hide dashboard when a media tab is selected.
                     dashboard.hide_sdi(&mut sdi);
-                    // Show the media page content.
                     update_media_page(&mut sdi, &bottom_bar);
                 }
 
-                // Always show status bar and bottom bar in dashboard mode.
                 status_bar.update_sdi(&mut sdi);
                 bottom_bar.update_sdi(&mut sdi);
             },
@@ -478,9 +583,10 @@ fn main() -> Result<()> {
             Mode::App => {
                 dashboard.hide_sdi(&mut sdi);
                 set_terminal_visible(&mut sdi, false);
-                StatusBar::hide_sdi(&mut sdi);
-                BottomBar::hide_sdi(&mut sdi);
                 hide_media_page(&mut sdi);
+                // Show bars behind windows in app mode.
+                status_bar.update_sdi(&mut sdi);
+                bottom_bar.update_sdi(&mut sdi);
                 if let Some(ref runner) = app_runner {
                     runner.update_sdi(&mut sdi);
                 }
@@ -492,8 +598,31 @@ fn main() -> Result<()> {
             },
         }
 
+        // Update cursor SDI position (always on top).
+        mouse_cursor.update_sdi(&mut sdi);
+
+        // Ensure wallpaper is visible and at lowest z.
+        if let Ok(obj) = sdi.get_mut("wallpaper") {
+            obj.visible = true;
+        }
+
+        // -- Render --
         backend.clear(bg_color)?;
-        sdi.draw(&mut backend)?;
+
+        if wm.window_count() > 0 && mode == Mode::App {
+            // Use WM's clipped drawing when windows are open.
+            wm.draw_with_clips(&sdi, &mut backend, |_win_id, cx, cy, cw, ch, be| {
+                // Draw app content inside the window clip rect.
+                be.fill_rect(cx, cy, cw, ch, Color::rgb(30, 30, 30))?;
+                if let Some(ref runner) = app_runner {
+                    // Draw app-specific content text inside window.
+                    be.draw_text(&runner.title, cx + 4, cy + 4, 10, Color::rgb(180, 200, 180))?;
+                }
+                Ok(())
+            })?;
+        } else {
+            sdi.draw(&mut backend)?;
+        }
 
         // Draw transition overlay if active.
         if let Some(ref mut trans) = active_transition {
@@ -512,13 +641,40 @@ fn main() -> Result<()> {
     Ok(())
 }
 
+/// Set up the wallpaper SDI object at z=-1000 (behind everything).
+fn setup_wallpaper(sdi: &mut SdiRegistry, tex: TextureId, w: u32, h: u32) {
+    let obj = sdi.create("wallpaper");
+    obj.x = 0;
+    obj.y = 0;
+    obj.w = w;
+    obj.h = h;
+    obj.texture = Some(tex);
+    obj.z = -1000;
+}
+
+/// Close all WM windows.
+fn close_all_windows(wm: &mut WindowManager, sdi: &mut SdiRegistry) {
+    // Collect IDs first to avoid borrow issues.
+    let mut ids = Vec::new();
+    while wm.window_count() > 0 {
+        if let Some(id) = wm.active_window().map(String::from) {
+            ids.push(id);
+        } else {
+            break;
+        }
+        if let Some(id) = ids.last() {
+            let _ = wm.close_window(id, sdi);
+        }
+    }
+}
+
 /// Update SDI objects for the currently selected media category page.
 fn update_media_page(sdi: &mut SdiRegistry, bottom_bar: &BottomBar) {
     let page_name = "media_page_text";
     if !sdi.contains(page_name) {
         let obj = sdi.create(page_name);
         obj.font_size = 14;
-        obj.text_color = Color::rgb(160, 180, 210);
+        obj.text_color = Color::rgb(160, 200, 180);
         obj.w = 0;
         obj.h = 0;
     }
@@ -529,12 +685,11 @@ fn update_media_page(sdi: &mut SdiRegistry, bottom_bar: &BottomBar) {
         obj.text = Some(format!("[ {} Page ]", bottom_bar.active_tab.label()));
     }
 
-    // Subtitle hint.
     let hint_name = "media_page_hint";
     if !sdi.contains(hint_name) {
         let obj = sdi.create(hint_name);
         obj.font_size = 10;
-        obj.text_color = Color::rgb(100, 110, 130);
+        obj.text_color = Color::rgb(100, 130, 110);
         obj.w = 0;
         obj.h = 0;
     }
@@ -576,8 +731,6 @@ fn populate_demo_vfs(vfs: &mut MemoryVfs) {
     )
     .unwrap();
 
-    // Create demo app directories (no real PBP files -- discovery will use
-    // directory names as titles, which is the fallback behavior).
     vfs.mkdir("/apps").unwrap();
     for name in &[
         "File Manager",
@@ -592,15 +745,11 @@ fn populate_demo_vfs(vfs: &mut MemoryVfs) {
         vfs.mkdir(&format!("/apps/{name}")).unwrap();
     }
 
-    // Music and photo directories for the Music Player and Photo Viewer apps.
     vfs.mkdir("/home/user/music").unwrap();
     vfs.mkdir("/home/user/photos").unwrap();
 
-    // Try to load real sample files from the disk `samples/` directory.
-    // If not present, create small placeholder files so the apps have entries.
     load_disk_samples(vfs);
 
-    // Demo scripts for the scripting engine.
     vfs.mkdir("/home/user/scripts").unwrap();
     vfs.write(
         "/home/user/scripts/hello.sh",
@@ -608,20 +757,17 @@ fn populate_demo_vfs(vfs: &mut MemoryVfs) {
     )
     .unwrap();
 
-    // Audio subsystem directories.
     vfs.mkdir("/var").unwrap();
     vfs.mkdir("/var/audio").unwrap();
 }
 
 /// Try to load real sample files from the `samples/` directory on disk.
-/// Falls back to creating small placeholder files if not found.
 fn load_disk_samples(vfs: &mut MemoryVfs) {
     use oasis_core::vfs::Vfs;
     use std::path::Path;
 
     let samples_dir = Path::new("samples");
 
-    // Music samples.
     let music_files = ["ambient_dawn.mp3", "nightfall_theme.mp3"];
     for name in &music_files {
         let disk_path = samples_dir.join(name);
@@ -633,7 +779,6 @@ fn load_disk_samples(vfs: &mut MemoryVfs) {
                 continue;
             }
         }
-        // Placeholder.
         vfs.write(
             &vfs_path,
             format!("(placeholder: run samples/fetch-samples.sh for real audio)\nFile: {name}\n")
@@ -642,7 +787,6 @@ fn load_disk_samples(vfs: &mut MemoryVfs) {
         .unwrap();
     }
 
-    // Photo samples.
     let photo_files = ["sample_landscape.png"];
     for name in &photo_files {
         let disk_path = samples_dir.join(name);
@@ -654,7 +798,6 @@ fn load_disk_samples(vfs: &mut MemoryVfs) {
                 continue;
             }
         }
-        // Placeholder.
         vfs.write(
             &vfs_path,
             format!("(placeholder: run samples/fetch-samples.sh for real image)\nFile: {name}\n")
@@ -663,7 +806,6 @@ fn load_disk_samples(vfs: &mut MemoryVfs) {
         .unwrap();
     }
 
-    // Also load any extra files found in samples/ subdirectories.
     load_disk_dir(vfs, &samples_dir.join("music"), "/home/user/music");
     load_disk_dir(vfs, &samples_dir.join("photos"), "/home/user/photos");
 }
@@ -715,7 +857,6 @@ fn setup_terminal_objects(
     cwd: &str,
     input_buf: &str,
 ) {
-    // Terminal background.
     if !sdi.contains("terminal_bg") {
         let obj = sdi.create("terminal_bg");
         obj.x = 4;
@@ -728,7 +869,6 @@ fn setup_terminal_objects(
         obj.visible = true;
     }
 
-    // Output lines.
     for i in 0..MAX_OUTPUT_LINES {
         let name = format!("term_line_{i}");
         if !sdi.contains(&name) {
@@ -746,7 +886,6 @@ fn setup_terminal_objects(
         }
     }
 
-    // Input area.
     if !sdi.contains("term_input_bg") {
         let obj = sdi.create("term_input_bg");
         obj.x = 4;

@@ -95,14 +95,14 @@ impl BottomBar {
 
     /// Synchronize SDI objects to reflect current bottom bar state.
     pub fn update_sdi(&self, sdi: &mut SdiRegistry) {
-        // Background bar.
+        // Background bar (green-tinted to match PSIX style).
         if !sdi.contains("bar_bottom") {
             let obj = sdi.create("bar_bottom");
             obj.x = 0;
             obj.y = BAR_Y;
             obj.w = SCREEN_W;
             obj.h = BAR_H;
-            obj.color = Color::rgb(24, 36, 56);
+            obj.color = Color::rgba(20, 50, 40, 220);
             obj.overlay = true;
             obj.z = 900;
         }
@@ -110,34 +110,41 @@ impl BottomBar {
             obj.visible = true;
         }
 
-        // Shoulder button hints.
-        ensure_bottom_text(sdi, "bar_shoulder_l", 6, BAR_Y + 5, 9);
+        // URL/label on the left (PSIX shows a URL-like identifier).
+        ensure_bottom_text(sdi, "bar_url", 6, BAR_Y + 6, 8);
+        if let Ok(obj) = sdi.get_mut("bar_url") {
+            obj.text = Some("OASIS://HOME".to_string());
+            obj.text_color = Color::rgb(120, 160, 140);
+        }
+
+        // Shoulder button hints (positioned after URL).
+        ensure_bottom_text(sdi, "bar_shoulder_l", 110, BAR_Y + 5, 9);
         if let Ok(obj) = sdi.get_mut("bar_shoulder_l") {
             obj.text = Some("L".to_string());
             obj.text_color = if self.l_pressed {
                 Color::WHITE
             } else {
-                Color::rgb(80, 100, 130)
+                Color::rgb(80, 120, 100)
             };
         }
 
-        ensure_bottom_text(sdi, "bar_shoulder_r", 22, BAR_Y + 5, 9);
+        ensure_bottom_text(sdi, "bar_shoulder_r", 126, BAR_Y + 5, 9);
         if let Ok(obj) = sdi.get_mut("bar_shoulder_r") {
             obj.text = Some("R".to_string());
             obj.text_color = if self.r_pressed {
                 Color::WHITE
             } else {
-                Color::rgb(80, 100, 130)
+                Color::rgb(80, 120, 100)
             };
         }
 
         // Media category tabs.
-        let tab_x_start = 120;
+        let tab_x_start = 150;
         let tab_w = 55;
         for (i, tab) in MediaTab::TABS.iter().enumerate() {
             let x = tab_x_start + (i as i32) * (tab_w + 4);
 
-            // Tab background.
+            // Tab background (PSIX-style: active tab has white outline look).
             let bg_name = format!("bar_btab_bg_{i}");
             if !sdi.contains(&bg_name) {
                 let obj = sdi.create(&bg_name);
@@ -151,7 +158,7 @@ impl BottomBar {
                 obj.w = tab_w as u32 + 4;
                 obj.visible = true;
                 obj.color = if *tab == self.active_tab {
-                    Color::rgba(50, 80, 130, 200)
+                    Color::rgba(60, 120, 80, 180)
                 } else {
                     Color::rgba(0, 0, 0, 0)
                 };
@@ -165,7 +172,7 @@ impl BottomBar {
                 obj.text_color = if *tab == self.active_tab {
                     Color::WHITE
                 } else {
-                    Color::rgb(90, 110, 140)
+                    Color::rgb(90, 130, 110)
                 };
             }
         }
@@ -203,7 +210,7 @@ impl BottomBar {
 
     /// Hide all bottom bar SDI objects.
     pub fn hide_sdi(sdi: &mut SdiRegistry) {
-        let names = ["bar_bottom", "bar_shoulder_l", "bar_shoulder_r"];
+        let names = ["bar_bottom", "bar_shoulder_l", "bar_shoulder_r", "bar_url"];
         for name in &names {
             if let Ok(obj) = sdi.get_mut(name) {
                 obj.visible = false;
