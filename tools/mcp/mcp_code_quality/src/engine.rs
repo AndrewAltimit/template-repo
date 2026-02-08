@@ -134,10 +134,10 @@ impl CodeQualityEngine {
         };
 
         for allowed in &self.allowed_paths {
-            if let Ok(allowed_canonical) = allowed.canonicalize() {
-                if path.starts_with(&allowed_canonical) {
-                    return true;
-                }
+            if let Ok(allowed_canonical) = allowed.canonicalize()
+                && path.starts_with(&allowed_canonical)
+            {
+                return true;
             }
             // Also check non-canonical paths
             if path.starts_with(allowed) {
@@ -187,15 +187,14 @@ impl CodeQualityEngine {
             details,
         };
 
-        if let Ok(line) = serde_json::to_string(&entry) {
-            if let Ok(mut file) = std::fs::OpenOptions::new()
+        if let Ok(line) = serde_json::to_string(&entry)
+            && let Ok(mut file) = std::fs::OpenOptions::new()
                 .create(true)
                 .append(true)
                 .open(&self.audit_log_path)
-            {
-                use std::io::Write;
-                let _ = writeln!(file, "{}", line);
-            }
+        {
+            use std::io::Write;
+            let _ = writeln!(file, "{}", line);
         }
     }
 
@@ -328,13 +327,13 @@ impl CodeQualityEngine {
             return result;
         }
 
-        if let Some(cfg) = config {
-            if !self.validate_path(cfg) {
-                return ToolResult::error(
-                    format!("Config path not allowed: {}", cfg),
-                    "path_validation",
-                );
-            }
+        if let Some(cfg) = config
+            && !self.validate_path(cfg)
+        {
+            return ToolResult::error(
+                format!("Config path not allowed: {}", cfg),
+                "path_validation",
+            );
         }
 
         let (cmd, cwd): (Vec<String>, Option<&str>) = match linter {
@@ -613,13 +612,13 @@ impl CodeQualityEngine {
             return result;
         }
 
-        if let Some(cfg) = config {
-            if !self.validate_path(cfg) {
-                return ToolResult::error(
-                    format!("Config path not allowed: {}", cfg),
-                    "path_validation",
-                );
-            }
+        if let Some(cfg) = config
+            && !self.validate_path(cfg)
+        {
+            return ToolResult::error(
+                format!("Config path not allowed: {}", cfg),
+                "path_validation",
+            );
         }
 
         let mut cmd: Vec<String> = vec!["ty".to_string(), "check".to_string(), path.to_string()];

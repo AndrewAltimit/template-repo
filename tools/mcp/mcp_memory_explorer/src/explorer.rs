@@ -84,10 +84,10 @@ impl MemoryExplorer {
             .iter()
             .filter_map(|(pid, proc)| {
                 let name = proc.name().to_string_lossy().to_string();
-                if let Some(f) = filter {
-                    if !name.to_lowercase().contains(&f.to_lowercase()) {
-                        return None;
-                    }
+                if let Some(f) = filter
+                    && !name.to_lowercase().contains(&f.to_lowercase())
+                {
+                    return None;
                 }
                 Some(ProcessInfo {
                     name,
@@ -783,10 +783,10 @@ impl MemoryExplorer {
         }
 
         // Check for just a module name (no hex prefix, not numeric)
-        if !addr.starts_with("0x") && !addr.starts_with("0X") && addr.parse::<u64>().is_err() {
-            if let Ok(base) = self.get_module_base(addr) {
-                return Ok(base);
-            }
+        if !addr.starts_with("0x") && !addr.starts_with("0X") && addr.parse::<u64>().is_err()
+            && let Ok(base) = self.get_module_base(addr)
+        {
+            return Ok(base);
         }
 
         // Parse as hex or decimal
