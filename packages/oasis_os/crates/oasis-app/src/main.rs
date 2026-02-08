@@ -7,6 +7,7 @@
 use anyhow::Result;
 
 use oasis_backend_sdl::SdlBackend;
+use oasis_core::apps::{AppAction, AppRunner};
 use oasis_core::backend::{Color, InputBackend, SdiBackend};
 use oasis_core::config::OasisConfig;
 use oasis_core::dashboard::{DashboardConfig, DashboardState, discover_apps};
@@ -27,6 +28,7 @@ const MAX_OUTPUT_LINES: usize = 12;
 enum Mode {
     Dashboard,
     Terminal,
+    App,
     Osk,
 }
 
@@ -94,6 +96,9 @@ fn main() -> Result<()> {
     // On-screen keyboard state.
     let mut osk: Option<OskState> = None;
 
+    // Running app state.
+    let mut app_runner: Option<AppRunner> = None;
+
     // Networking state.
     let mut net_backend = StdNetworkBackend::new();
     let mut listener: Option<RemoteListener> = None;
@@ -137,14 +142,46 @@ fn main() -> Result<()> {
                 continue;
             }
 
+            // App mode intercepts input when active.
+            if mode == Mode::App {
+                if let Some(ref mut runner) = app_runner {
+                    match event {
+                        InputEvent::Quit => break 'running,
+                        InputEvent::ButtonPress(btn) => match runner.handle_input(btn, &vfs) {
+                            AppAction::Exit => {
+                                AppRunner::hide_sdi(&mut sdi);
+                                app_runner = None;
+                                mode = Mode::Dashboard;
+                            },
+                            AppAction::SwitchToTerminal => {
+                                AppRunner::hide_sdi(&mut sdi);
+                                app_runner = None;
+                                mode = Mode::Terminal;
+                            },
+                            AppAction::None => {},
+                        },
+                        _ => {},
+                    }
+                }
+                continue;
+            }
+
             match event {
                 InputEvent::Quit => break 'running,
-                InputEvent::ButtonPress(Button::Cancel) => break 'running,
+                InputEvent::ButtonPress(Button::Cancel) if mode == Mode::Dashboard => {
+                    break 'running;
+                },
 
-                // Mode switching.
+                // Launch app from dashboard.
                 InputEvent::ButtonPress(Button::Confirm) if mode == Mode::Dashboard => {
                     if let Some(app) = dashboard.selected_app() {
-                        log::info!("Selected app: {}", app.title);
+                        log::info!("Launching app: {}", app.title);
+                        if app.title == "Terminal" {
+                            mode = Mode::Terminal;
+                        } else {
+                            app_runner = Some(AppRunner::launch(app, &vfs));
+                            mode = Mode::App;
+                        }
                     }
                 },
                 InputEvent::ButtonPress(Button::Start) => {
@@ -152,6 +189,7 @@ fn main() -> Result<()> {
                     mode = match mode {
                         Mode::Dashboard => Mode::Terminal,
                         Mode::Terminal => Mode::Dashboard,
+                        Mode::App => Mode::App, // App mode exit via Cancel only.
                         Mode::Osk => Mode::Osk, // OSK handled above.
                     };
                 },
@@ -282,6 +320,10 @@ fn main() -> Result<()> {
                 InputEvent::ButtonPress(Button::Square) if mode == Mode::Terminal => {
                     input_buf.pop();
                 },
+                InputEvent::ButtonPress(Button::Cancel) if mode == Mode::Terminal => {
+                    set_terminal_visible(&mut sdi, false);
+                    mode = Mode::Dashboard;
+                },
 
                 _ => {},
             }
@@ -341,11 +383,20 @@ fn main() -> Result<()> {
         match mode {
             Mode::Dashboard => {
                 set_terminal_visible(&mut sdi, false);
+                AppRunner::hide_sdi(&mut sdi);
                 dashboard.update_sdi(&mut sdi);
             },
             Mode::Terminal => {
                 hide_dashboard_objects(&mut sdi, &dashboard);
+                AppRunner::hide_sdi(&mut sdi);
                 setup_terminal_objects(&mut sdi, &output_lines, &cwd, &input_buf);
+            },
+            Mode::App => {
+                hide_dashboard_objects(&mut sdi, &dashboard);
+                set_terminal_visible(&mut sdi, false);
+                if let Some(ref runner) = app_runner {
+                    runner.update_sdi(&mut sdi);
+                }
             },
             Mode::Osk => {
                 if let Some(ref osk_state) = osk {

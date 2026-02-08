@@ -5,6 +5,7 @@
 //! error types. This crate has zero platform dependencies.
 
 pub mod agent;
+pub mod apps;
 pub mod audio;
 pub mod backend;
 pub mod config;
