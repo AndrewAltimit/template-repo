@@ -263,7 +263,8 @@ impl AppRunner {
     }
 
     /// Open a file and display its contents.
-    fn open_file(&mut self, vfs: &dyn Vfs, path: &str) {
+    /// Dispatches to app-specific viewers for Music Player and Photo Viewer.
+    pub fn open_file(&mut self, vfs: &dyn Vfs, path: &str) {
         // Only open files that actually exist in the VFS.
         if !vfs.exists(path) {
             return;
@@ -272,54 +273,22 @@ impl AppRunner {
         self.scroll = 0;
         self.cursor = 0;
 
-        let mut lines = Vec::new();
-        let filename = path.rsplit('/').next().unwrap_or(path);
-        lines.push(format!("--- {filename} ---"));
-        lines.push(String::new());
-
-        match vfs.read(path) {
-            Ok(data) => {
-                // Check if the data looks like text (all bytes are printable ASCII/UTF-8).
-                let is_text = data.len() < 64 * 1024 && std::str::from_utf8(&data).is_ok();
-                if is_text {
-                    let text = String::from_utf8_lossy(&data);
-                    for line in text.lines() {
-                        lines.push(line.to_string());
-                    }
-                    if data.is_empty() {
-                        lines.push("(empty file)".to_string());
-                    }
-                } else {
-                    lines.push(format!("Binary file  ({} bytes)", data.len()));
-                    lines.push(String::new());
-                    // Show first 8 lines of hex dump.
-                    for (i, chunk) in data.chunks(16).enumerate().take(8) {
-                        let hex: Vec<String> = chunk.iter().map(|b| format!("{b:02x}")).collect();
-                        let ascii: String = chunk
-                            .iter()
-                            .map(|&b| {
-                                if (0x20..=0x7e).contains(&b) {
-                                    b as char
-                                } else {
-                                    '.'
-                                }
-                            })
-                            .collect();
-                        lines.push(format!("{:04x}  {:<48}  {ascii}", i * 16, hex.join(" ")));
-                    }
-                    if data.len() > 128 {
-                        lines.push(format!("... ({} more bytes)", data.len() - 128));
-                    }
-                }
-            },
+        let data = match vfs.read(path) {
+            Ok(d) => d,
             Err(e) => {
-                lines.push(format!("Error reading file: {e}"));
+                self.lines = vec![
+                    format!("Error reading file: {e}"),
+                    "Cancel=back".to_string(),
+                ];
+                return;
             },
-        }
+        };
 
-        lines.push(String::new());
-        lines.push("Cancel=back".to_string());
-        self.lines = lines;
+        self.lines = match self.title.as_str() {
+            "Music Player" => view_audio_file(path, &data),
+            "Photo Viewer" => view_image_file(path, &data),
+            _ => view_generic_file(path, &data),
+        };
     }
 
     /// Render the app screen to SDI objects.
@@ -446,6 +415,244 @@ impl AppRunner {
             }
         }
     }
+}
+
+/// View an audio file: parse headers and show track metadata.
+fn view_audio_file(path: &str, data: &[u8]) -> Vec<String> {
+    let filename = path.rsplit('/').next().unwrap_or(path);
+    let mut lines = vec![format!("=== Now Viewing: {filename} ==="), String::new()];
+
+    let size_kb = data.len() / 1024;
+    let ext = filename.rsplit('.').next().unwrap_or("").to_lowercase();
+
+    // Detect format and parse headers.
+    if data.len() >= 4 && &data[..4] == b"RIFF" && data.len() >= 44 && &data[8..12] == b"WAVE" {
+        // WAV file -- parse header.
+        let channels = u16::from_le_bytes([data[22], data[23]]);
+        let sample_rate = u32::from_le_bytes([data[24], data[25], data[26], data[27]]);
+        let bits = u16::from_le_bytes([data[34], data[35]]);
+        let data_size = if data.len() >= 44 {
+            u32::from_le_bytes([data[40], data[41], data[42], data[43]])
+        } else {
+            0
+        };
+        let duration_secs = if sample_rate > 0 && channels > 0 && bits > 0 {
+            data_size as f64 / (sample_rate as f64 * channels as f64 * (bits as f64 / 8.0))
+        } else {
+            0.0
+        };
+
+        lines.push("  Format:       WAV (PCM audio)".to_string());
+        lines.push(format!("  Sample Rate:  {sample_rate} Hz"));
+        lines.push(format!("  Channels:     {channels}"));
+        lines.push(format!("  Bit Depth:    {bits}-bit"));
+        lines.push(format!("  Duration:     {duration_secs:.1}s"));
+        lines.push(format!("  File Size:    {size_kb} KB"));
+    } else if data.len() >= 3 && (data[..2] == [0xFF, 0xFB] || data[..3] == *b"ID3") {
+        // MP3 file.
+        lines.push("  Format:       MP3 (MPEG audio)".to_string());
+        lines.push(format!("  File Size:    {size_kb} KB"));
+
+        // Try to extract ID3v2 title/artist.
+        if data.len() > 10 && &data[..3] == b"ID3" {
+            let id3_info = parse_id3v2_basic(data);
+            if let Some(title) = id3_info.0 {
+                lines.push(format!("  Title:        {title}"));
+            }
+            if let Some(artist) = id3_info.1 {
+                lines.push(format!("  Artist:       {artist}"));
+            }
+        }
+
+        // Rough duration estimate from file size (128kbps average).
+        let est_secs = (data.len() as f64) / (128.0 * 1024.0 / 8.0);
+        lines.push(format!("  Duration:     ~{est_secs:.0}s (estimated)"));
+    } else {
+        lines.push(format!("  Format:       {ext} audio"));
+        lines.push(format!("  File Size:    {size_kb} KB"));
+    }
+
+    lines.push(String::new());
+    lines.push("----------------------------------".to_string());
+    lines.push(String::new());
+    lines.push("  To play in terminal:".to_string());
+    lines.push("    music play".to_string());
+    lines.push("    music pause / music stop".to_string());
+    lines.push("    music vol <0-100>".to_string());
+    lines.push(String::new());
+    lines.push("Cancel=back to library".to_string());
+    lines
+}
+
+/// Try to extract title and artist from an ID3v2 tag.
+/// Returns (Option<title>, Option<artist>).
+fn parse_id3v2_basic(data: &[u8]) -> (Option<String>, Option<String>) {
+    if data.len() < 10 || &data[..3] != b"ID3" {
+        return (None, None);
+    }
+    let header_size = ((data[6] as usize & 0x7F) << 21)
+        | ((data[7] as usize & 0x7F) << 14)
+        | ((data[8] as usize & 0x7F) << 7)
+        | (data[9] as usize & 0x7F);
+    let end = (10 + header_size).min(data.len());
+
+    let mut title = None;
+    let mut artist = None;
+    let mut pos = 10;
+
+    while pos + 10 < end {
+        let frame_id = &data[pos..pos + 4];
+        let frame_size =
+            u32::from_be_bytes([data[pos + 4], data[pos + 5], data[pos + 6], data[pos + 7]])
+                as usize;
+        if frame_size == 0 || pos + 10 + frame_size > end {
+            break;
+        }
+        let frame_data = &data[pos + 10..pos + 10 + frame_size];
+        // Skip encoding byte, extract as lossy UTF-8.
+        let text = if frame_data.len() > 1 {
+            String::from_utf8_lossy(&frame_data[1..])
+                .trim_matches('\0')
+                .to_string()
+        } else {
+            String::new()
+        };
+
+        if frame_id == b"TIT2" && !text.is_empty() {
+            title = Some(text);
+        } else if frame_id == b"TPE1" && !text.is_empty() {
+            artist = Some(text);
+        }
+
+        pos += 10 + frame_size;
+    }
+
+    (title, artist)
+}
+
+/// View an image file: parse headers and show image metadata.
+fn view_image_file(path: &str, data: &[u8]) -> Vec<String> {
+    let filename = path.rsplit('/').next().unwrap_or(path);
+    let mut lines = vec![format!("=== Photo: {filename} ==="), String::new()];
+
+    let size_kb = data.len() / 1024;
+
+    if data.len() >= 24 && &data[..8] == b"\x89PNG\r\n\x1a\n" {
+        // PNG -- IHDR is at offset 8 (4 len + 4 type + data).
+        let w = u32::from_be_bytes([data[16], data[17], data[18], data[19]]);
+        let h = u32::from_be_bytes([data[20], data[21], data[22], data[23]]);
+        let bit_depth = data[24];
+        let color_type = data[25];
+        let color_name = match color_type {
+            0 => "Grayscale",
+            2 => "RGB",
+            3 => "Indexed",
+            4 => "Grayscale+Alpha",
+            6 => "RGBA",
+            _ => "Unknown",
+        };
+
+        lines.push("  Format:       PNG".to_string());
+        lines.push(format!("  Dimensions:   {w} x {h} pixels"));
+        lines.push(format!("  Color:        {color_name} ({bit_depth}-bit)"));
+        lines.push(format!("  File Size:    {size_kb} KB"));
+    } else if data.len() >= 2 && data[..2] == [0xFF, 0xD8] {
+        // JPEG.
+        let (w, h) = parse_jpeg_dimensions(data);
+        lines.push("  Format:       JPEG".to_string());
+        if w > 0 && h > 0 {
+            lines.push(format!("  Dimensions:   {w} x {h} pixels"));
+        }
+        lines.push(format!("  File Size:    {size_kb} KB"));
+    } else if data.len() >= 6 && (&data[..4] == b"GIF8") {
+        // GIF.
+        let w = u16::from_le_bytes([data[6], data[7]]);
+        let h = u16::from_le_bytes([data[8], data[9]]);
+        lines.push("  Format:       GIF".to_string());
+        lines.push(format!("  Dimensions:   {w} x {h} pixels"));
+        lines.push(format!("  File Size:    {size_kb} KB"));
+    } else if data.len() >= 12 && &data[..4] == b"RIFF" && &data[8..12] == b"WEBP" {
+        // WebP.
+        lines.push("  Format:       WebP".to_string());
+        lines.push(format!("  File Size:    {size_kb} KB"));
+    } else {
+        let ext = filename.rsplit('.').next().unwrap_or("").to_lowercase();
+        lines.push(format!("  Format:       {ext} image"));
+        lines.push(format!("  File Size:    {size_kb} KB"));
+    }
+
+    lines.push(String::new());
+    lines.push("----------------------------------".to_string());
+    lines.push(String::new());
+    lines.push("  (Image preview not available".to_string());
+    lines.push("   in text mode)".to_string());
+    lines.push(String::new());
+    lines.push("Cancel=back to gallery".to_string());
+    lines
+}
+
+/// Try to extract JPEG image dimensions from SOF markers.
+fn parse_jpeg_dimensions(data: &[u8]) -> (u16, u16) {
+    let mut pos = 2;
+    while pos + 4 < data.len() {
+        if data[pos] != 0xFF {
+            break;
+        }
+        let marker = data[pos + 1];
+        // SOF0..SOF3 markers contain dimensions.
+        if (0xC0..=0xC3).contains(&marker) && pos + 9 < data.len() {
+            let h = u16::from_be_bytes([data[pos + 5], data[pos + 6]]);
+            let w = u16::from_be_bytes([data[pos + 7], data[pos + 8]]);
+            return (w, h);
+        }
+        if marker == 0xD9 || marker == 0xDA {
+            break; // End of headers.
+        }
+        let seg_len = u16::from_be_bytes([data[pos + 2], data[pos + 3]]) as usize;
+        pos += 2 + seg_len;
+    }
+    (0, 0)
+}
+
+/// Generic file viewer: text content or hex dump.
+fn view_generic_file(path: &str, data: &[u8]) -> Vec<String> {
+    let filename = path.rsplit('/').next().unwrap_or(path);
+    let mut lines = vec![format!("--- {filename} ---"), String::new()];
+
+    let is_text = data.len() < 64 * 1024 && std::str::from_utf8(data).is_ok();
+    if is_text {
+        let text = String::from_utf8_lossy(data);
+        for line in text.lines() {
+            lines.push(line.to_string());
+        }
+        if data.is_empty() {
+            lines.push("(empty file)".to_string());
+        }
+    } else {
+        lines.push(format!("Binary file  ({} bytes)", data.len()));
+        lines.push(String::new());
+        for (i, chunk) in data.chunks(16).enumerate().take(8) {
+            let hex: Vec<String> = chunk.iter().map(|b| format!("{b:02x}")).collect();
+            let ascii: String = chunk
+                .iter()
+                .map(|&b| {
+                    if (0x20..=0x7e).contains(&b) {
+                        b as char
+                    } else {
+                        '.'
+                    }
+                })
+                .collect();
+            lines.push(format!("{:04x}  {:<48}  {ascii}", i * 16, hex.join(" ")));
+        }
+        if data.len() > 128 {
+            lines.push(format!("... ({} more bytes)", data.len() - 128));
+        }
+    }
+
+    lines.push(String::new());
+    lines.push("Cancel=back".to_string());
+    lines
 }
 
 /// List a VFS directory, returning display lines.
@@ -773,8 +980,79 @@ mod tests {
         runner.cursor = file_idx;
         runner.handle_input(&Button::Confirm, &vfs);
         assert!(runner.viewing_file.is_some());
+        // Generic viewer shows hex dump for binary.
         assert!(runner.lines.iter().any(|l| l.contains("Binary file")));
         assert!(runner.lines.iter().any(|l| l.contains("00 01 ff fe")));
+    }
+
+    #[test]
+    fn view_audio_wav_metadata() {
+        // Minimal valid WAV header (44 bytes).
+        let mut wav = Vec::new();
+        wav.extend_from_slice(b"RIFF");
+        wav.extend_from_slice(&36u32.to_le_bytes()); // file size - 8
+        wav.extend_from_slice(b"WAVEfmt ");
+        wav.extend_from_slice(&16u32.to_le_bytes()); // chunk size
+        wav.extend_from_slice(&1u16.to_le_bytes()); // PCM
+        wav.extend_from_slice(&2u16.to_le_bytes()); // channels
+        wav.extend_from_slice(&44100u32.to_le_bytes()); // sample rate
+        wav.extend_from_slice(&176400u32.to_le_bytes()); // byte rate
+        wav.extend_from_slice(&4u16.to_le_bytes()); // block align
+        wav.extend_from_slice(&16u16.to_le_bytes()); // bits per sample
+        wav.extend_from_slice(b"data");
+        wav.extend_from_slice(&0u32.to_le_bytes()); // data size
+
+        let lines = view_audio_file("/music/test.wav", &wav);
+        assert!(lines.iter().any(|l| l.contains("WAV")));
+        assert!(lines.iter().any(|l| l.contains("44100")));
+        assert!(lines.iter().any(|l| l.contains("2")));
+        assert!(lines.iter().any(|l| l.contains("16-bit")));
+    }
+
+    #[test]
+    fn view_audio_mp3_metadata() {
+        // Fake MP3 with sync bytes.
+        let data = vec![0xFF, 0xFB, 0x90, 0x00, 0x00];
+        let lines = view_audio_file("/music/song.mp3", &data);
+        assert!(lines.iter().any(|l| l.contains("MP3")));
+        assert!(lines.iter().any(|l| l.contains("music play")));
+    }
+
+    #[test]
+    fn view_image_png_metadata() {
+        // Minimal PNG: 8-byte signature + IHDR chunk.
+        let mut png = Vec::new();
+        png.extend_from_slice(b"\x89PNG\r\n\x1a\n"); // signature
+        png.extend_from_slice(&13u32.to_be_bytes()); // IHDR length
+        png.extend_from_slice(b"IHDR");
+        png.extend_from_slice(&480u32.to_be_bytes()); // width
+        png.extend_from_slice(&272u32.to_be_bytes()); // height
+        png.push(8); // bit depth
+        png.push(6); // color type (RGBA)
+        png.extend_from_slice(&[0, 0, 0]); // compression, filter, interlace
+
+        let lines = view_image_file("/photos/test.png", &png);
+        assert!(lines.iter().any(|l| l.contains("PNG")));
+        assert!(lines.iter().any(|l| l.contains("480 x 272")));
+        assert!(lines.iter().any(|l| l.contains("RGBA")));
+    }
+
+    #[test]
+    fn view_image_jpeg_metadata() {
+        // Minimal JPEG with SOF0 marker.
+        let data = vec![
+            0xFF, 0xD8, // SOI
+            0xFF, 0xC0, // SOF0
+            0x00, 0x0B, // length
+            0x08, // precision
+            0x01, 0x10, // height = 272
+            0x01, 0xE0, // width = 480
+            0x03, // components
+            0x01, 0x22, 0x00,
+        ];
+        let lines = view_image_file("/photos/pic.jpg", &data);
+        assert!(lines.iter().any(|l| l.contains("JPEG")));
+        assert!(lines.iter().any(|l| l.contains("480 x 272")));
     }
 
     #[test]
@@ -798,9 +1076,10 @@ mod tests {
             .unwrap();
         runner.cursor = track_idx;
         runner.handle_input(&Button::Confirm, &vfs);
-        // Should open file viewer showing the track data.
+        // Should open audio viewer with track info and playback hints.
         assert!(runner.viewing_file.is_some());
-        assert!(runner.lines.iter().any(|l| l.contains("ambient_dawn")));
+        assert!(runner.lines.iter().any(|l| l.contains("Now Viewing")));
+        assert!(runner.lines.iter().any(|l| l.contains("music play")));
     }
 
     #[test]
@@ -839,9 +1118,9 @@ mod tests {
             .unwrap();
         runner.cursor = photo_idx;
         runner.handle_input(&Button::Confirm, &vfs);
-        // Photo files are binary, so should show hex dump.
+        // Photo viewer shows image metadata.
         assert!(runner.viewing_file.is_some());
-        assert!(runner.lines.iter().any(|l| l.contains("Binary file")));
+        assert!(runner.lines.iter().any(|l| l.contains("Photo:")));
     }
 
     #[test]
