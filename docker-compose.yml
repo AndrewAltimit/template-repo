@@ -1057,6 +1057,31 @@ services:
       - services
       - desktop
 
+  # PPSSPP Emulator -- build from source with patch support for MCP integration
+  # Build:   docker compose build ppsspp
+  # Run GUI: docker compose run --rm ppsspp /roms/release/EBOOT.PBP
+  # Headless: docker compose run --rm -e PPSSPP_HEADLESS=1 ppsspp /roms/release/EBOOT.PBP
+  ppsspp:
+    build:
+      context: .
+      dockerfile: docker/ppsspp.Dockerfile
+      args:
+        USER_ID: ${USER_ID:-1000}
+        GROUP_ID: ${GROUP_ID:-1000}
+    user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
+    volumes:
+      - ./packages/oasis_os/crates/oasis-backend-psp/target/mipsel-sony-psp:/roms
+      - /tmp/.X11-unix:/tmp/.X11-unix:ro
+      - ${XAUTHORITY:-~/.Xauthority}:/home/ppsspp/.Xauthority:ro
+    environment:
+      - DISPLAY=${DISPLAY:-:0}
+      - XAUTHORITY=/home/ppsspp/.Xauthority
+      - PPSSPP_HEADLESS=0
+    network_mode: host
+    profiles:
+      - psp
+    restart: "no"
+
   # ChromaDB - Self-hosted vector database for memory
   # Start with: docker compose --profile memory-chromadb up -d
   chromadb:

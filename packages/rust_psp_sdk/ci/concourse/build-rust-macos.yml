@@ -1,0 +1,14 @@
+platform: darwin
+
+params:
+  RUSTUP_TOOLCHAIN: nightly-2025-03-19
+
+inputs:
+  - name: repo
+
+caches:
+  - path: repo/ci/tests/target/
+  - path: repo/target/
+
+run:
+  path: repo/ci/concourse/build-rust.sh
