@@ -1994,11 +1994,11 @@ Texture types: IMAGE, NOISE, VORONOI, MUSGRAVE, WAVE, MAGIC, BRICK, CHECKER"#
         let project_path = self.server.validate_project_path(project).await?;
 
         // Validate image_path if present (for IMAGE texture type) to prevent directory traversal
-        if texture_type == "IMAGE" {
-            if let Some(image_path) = settings.get("image_path").and_then(|v| v.as_str()) {
-                let validated_path = self.server.validate_asset_path(image_path).await?;
-                settings["image_path"] = json!(validated_path);
-            }
+        if texture_type == "IMAGE"
+            && let Some(image_path) = settings.get("image_path").and_then(|v| v.as_str())
+        {
+            let validated_path = self.server.validate_asset_path(image_path).await?;
+            settings["image_path"] = json!(validated_path);
         }
 
         let script_args = json!({
@@ -2590,11 +2590,11 @@ Environment types: HDRI, SKY_TEXTURE, GRADIENT, COLOR, VOLUMETRIC"#
         let project_path = self.server.validate_project_path(project).await?;
 
         // Validate hdri_path if present (for HDRI environment type) to prevent directory traversal
-        if environment_type == "HDRI" {
-            if let Some(hdri_path) = settings.get("hdri_path").and_then(|v| v.as_str()) {
-                let validated_path = self.server.validate_asset_path(hdri_path).await?;
-                settings["hdri_path"] = json!(validated_path);
-            }
+        if environment_type == "HDRI"
+            && let Some(hdri_path) = settings.get("hdri_path").and_then(|v| v.as_str())
+        {
+            let validated_path = self.server.validate_asset_path(hdri_path).await?;
+            settings["hdri_path"] = json!(validated_path);
         }
 
         let script_args = json!({

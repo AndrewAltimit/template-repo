@@ -286,12 +286,12 @@ fn main() -> Result<()> {
                     state = SystemState::Disarmed;
                     arming_start = None;
                     log::info!("Lid reopened during arming -- back to DISARMED");
-                } else if let Some(start) = arming_start {
-                    if start.elapsed().as_secs() >= config.arming_delay_secs {
-                        state = SystemState::Armed;
-                        anomaly_counter = 0;
-                        log::info!("=== SYSTEM ARMED ===");
-                    }
+                } else if let Some(start) = arming_start
+                    && start.elapsed().as_secs() >= config.arming_delay_secs
+                {
+                    state = SystemState::Armed;
+                    anomaly_counter = 0;
+                    log::info!("=== SYSTEM ARMED ===");
                 }
             },
 

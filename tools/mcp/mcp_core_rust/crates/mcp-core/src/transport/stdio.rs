@@ -182,15 +182,14 @@ mod tests {
                         if trimmed.is_empty() {
                             continue;
                         }
-                        if let Ok(req) = serde_json::from_str::<JsonRpcRequest>(trimmed) {
-                            if let Some(resp) =
+                        if let Ok(req) = serde_json::from_str::<JsonRpcRequest>(trimmed)
+                            && let Some(resp) =
                                 handler_clone.process_request(&req, &session_clone).await
-                            {
-                                let json = serde_json::to_string(&resp).unwrap();
-                                writer.write_all(json.as_bytes()).await.unwrap();
-                                writer.write_all(b"\n").await.unwrap();
-                                writer.flush().await.unwrap();
-                            }
+                        {
+                            let json = serde_json::to_string(&resp).unwrap();
+                            writer.write_all(json.as_bytes()).await.unwrap();
+                            writer.write_all(b"\n").await.unwrap();
+                            writer.flush().await.unwrap();
                         }
                     },
                     Err(_) => break,

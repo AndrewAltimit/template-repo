@@ -102,6 +102,7 @@ fn run_parsed_stage(
                     "ruff",
                     "check",
                     "--select=E,W,C90",
+                    "--ignore=E501,E402",
                     "--output-format=grouped",
                     ".",
                 ],

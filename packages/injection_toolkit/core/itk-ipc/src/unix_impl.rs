@@ -216,10 +216,10 @@ impl IpcChannel for UnixSocketClient {
     }
 
     fn close(&self) {
-        if self.connected.swap(false, Ordering::SeqCst) {
-            if let Ok(stream) = self.stream.lock() {
-                let _ = stream.shutdown(std::net::Shutdown::Both);
-            }
+        if self.connected.swap(false, Ordering::SeqCst)
+            && let Ok(stream) = self.stream.lock()
+        {
+            let _ = stream.shutdown(std::net::Shutdown::Both);
         }
     }
 }
@@ -349,10 +349,10 @@ impl IpcChannel for UnixSocketConnection {
     }
 
     fn close(&self) {
-        if self.connected.swap(false, Ordering::SeqCst) {
-            if let Ok(stream) = self.stream.lock() {
-                let _ = stream.shutdown(std::net::Shutdown::Both);
-            }
+        if self.connected.swap(false, Ordering::SeqCst)
+            && let Ok(stream) = self.stream.lock()
+        {
+            let _ = stream.shutdown(std::net::Shutdown::Both);
         }
     }
 }

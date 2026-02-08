@@ -450,10 +450,10 @@ fn audio_decode_loop(
         // Read the next packet
         match format_ctx.packets().next() {
             Some((stream, packet)) => {
-                if stream.index() == audio_stream_index {
-                    if let Err(e) = audio_decoder.send_packet(&packet) {
-                        warn!(?e, "Failed to send audio packet");
-                    }
+                if stream.index() == audio_stream_index
+                    && let Err(e) = audio_decoder.send_packet(&packet)
+                {
+                    warn!(?e, "Failed to send audio packet");
                 }
             },
             None => {

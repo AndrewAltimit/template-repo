@@ -109,13 +109,13 @@ impl JobManager {
     /// Cancel a job
     pub async fn cancel_job(&self, id: Uuid) -> bool {
         let mut jobs = self.jobs.write().await;
-        if let Some(job) = jobs.get_mut(&id) {
-            if job.status == JobStatus::Queued || job.status == JobStatus::Running {
-                job.status = JobStatus::Cancelled;
-                job.updated_at = Some(Utc::now());
-                info!("Job {} cancelled", id);
-                return true;
-            }
+        if let Some(job) = jobs.get_mut(&id)
+            && (job.status == JobStatus::Queued || job.status == JobStatus::Running)
+        {
+            job.status = JobStatus::Cancelled;
+            job.updated_at = Some(Utc::now());
+            info!("Job {} cancelled", id);
+            return true;
         }
         false
     }

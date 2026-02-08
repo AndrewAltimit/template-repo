@@ -83,10 +83,10 @@ impl ApplicationHandler for App {
         if let Err(e) = platform::set_always_on_top(&window, true) {
             error!(?e, "Failed to set always-on-top");
         }
-        if self.state.click_through {
-            if let Err(e) = platform::set_click_through(&window, true) {
-                error!(?e, "Failed to set click-through");
-            }
+        if self.state.click_through
+            && let Err(e) = platform::set_click_through(&window, true)
+        {
+            error!(?e, "Failed to set click-through");
         }
 
         // Create renderer
@@ -126,20 +126,18 @@ impl ApplicationHandler for App {
 
             WindowEvent::KeyboardInput { event, .. } => {
                 // F9 toggles click-through mode
-                if event.state.is_pressed() {
-                    if let winit::keyboard::PhysicalKey::Code(winit::keyboard::KeyCode::F9) =
+                if event.state.is_pressed()
+                    && let winit::keyboard::PhysicalKey::Code(winit::keyboard::KeyCode::F9) =
                         event.physical_key
+                {
+                    self.state.click_through = !self.state.click_through;
+                    if let Some(window) = &self.window
+                        && let Err(e) =
+                            platform::set_click_through(window, self.state.click_through)
                     {
-                        self.state.click_through = !self.state.click_through;
-                        if let Some(window) = &self.window {
-                            if let Err(e) =
-                                platform::set_click_through(window, self.state.click_through)
-                            {
-                                error!(?e, "Failed to toggle click-through");
-                            }
-                        }
-                        info!(click_through = %self.state.click_through, "Toggled click-through mode");
+                        error!(?e, "Failed to toggle click-through");
                     }
+                    info!(click_through = %self.state.click_through, "Toggled click-through mode");
                 }
             },
 
@@ -173,14 +171,14 @@ impl ApplicationHandler for App {
         }
 
         // Try to read a new video frame
-        if let Some(frame_data) = self.frame_reader.try_read_frame() {
-            if let Some(renderer) = &self.renderer {
-                renderer.update_texture(frame_data);
-                debug!(
-                    pts_ms = self.frame_reader.last_pts_ms(),
-                    "Updated texture with new frame"
-                );
-            }
+        if let Some(frame_data) = self.frame_reader.try_read_frame()
+            && let Some(renderer) = &self.renderer
+        {
+            renderer.update_texture(frame_data);
+            debug!(
+                pts_ms = self.frame_reader.last_pts_ms(),
+                "Updated texture with new frame"
+            );
         }
 
         if let Some(window) = &self.window {
