@@ -983,20 +983,6 @@ use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::sync::mpsc;
 use std::sync::Arc;
 
-/// Commands sent to the audio worker thread.
-pub enum AudioCmd {
-    /// Load MP3 file bytes and start playback.
-    LoadAndPlay(String),
-    /// Pause playback.
-    Pause,
-    /// Resume playback.
-    Resume,
-    /// Stop playback.
-    Stop,
-    /// Shut down the audio thread.
-    Shutdown,
-}
-
 /// Shared audio state readable from the main thread.
 pub struct AudioState {
     pub playing: AtomicBool,
@@ -1018,22 +1004,13 @@ impl Default for AudioState {
     }
 }
 
-/// Handle to the background audio thread.
+/// Handle to the background audio state (readable from main thread).
 pub struct AudioHandle {
-    pub tx: mpsc::Sender<AudioCmd>,
+    pub tx: mpsc::Sender<WorkerCmd>,
     pub state: Arc<AudioState>,
 }
 
 impl AudioHandle {
-    /// Spawn the audio worker thread and return a handle.
-    pub fn spawn() -> Self {
-        let (tx, rx) = mpsc::channel();
-        let state = Arc::new(AudioState::default());
-        let state_clone = state.clone();
-        std::thread::spawn(move || audio_thread_fn(rx, state_clone));
-        Self { tx, state }
-    }
-
     pub fn is_playing(&self) -> bool {
         self.state.playing.load(Ordering::Relaxed)
     }
@@ -1055,73 +1032,15 @@ impl AudioHandle {
     }
 }
 
-/// Audio worker thread main loop.
-fn audio_thread_fn(rx: mpsc::Receiver<AudioCmd>, state: Arc<AudioState>) {
-    let mut player = AudioPlayer::new();
-    if !player.init() {
-        psp::dprintln!("OASIS_OS: Audio thread init failed");
-        return;
-    }
-
-    loop {
-        // Non-blocking check for commands.
-        match rx.try_recv() {
-            Ok(AudioCmd::LoadAndPlay(path)) => {
-                if player.load_and_play(&path) {
-                    state.playing.store(true, Ordering::Relaxed);
-                    state.paused.store(false, Ordering::Relaxed);
-                    state.sample_rate.store(player.sample_rate as u32, Ordering::Relaxed);
-                    state.bitrate.store(player.bitrate as u32, Ordering::Relaxed);
-                    state.channels.store(player.channels as u32, Ordering::Relaxed);
-                } else {
-                    state.playing.store(false, Ordering::Relaxed);
-                }
-            }
-            Ok(AudioCmd::Pause) => {
-                if player.is_playing() && !player.is_paused() {
-                    player.toggle_pause();
-                    state.paused.store(true, Ordering::Relaxed);
-                }
-            }
-            Ok(AudioCmd::Resume) => {
-                if player.is_playing() && player.is_paused() {
-                    player.toggle_pause();
-                    state.paused.store(false, Ordering::Relaxed);
-                }
-            }
-            Ok(AudioCmd::Stop) => {
-                player.stop();
-                state.playing.store(false, Ordering::Relaxed);
-                state.paused.store(false, Ordering::Relaxed);
-            }
-            Ok(AudioCmd::Shutdown) => {
-                player.stop();
-                state.playing.store(false, Ordering::Relaxed);
-                break;
-            }
-            Err(mpsc::TryRecvError::Empty) => {}
-            Err(mpsc::TryRecvError::Disconnected) => break,
-        }
-
-        if player.is_playing() && !player.is_paused() {
-            // update() contains the blocking sceAudioOutputBlocking call.
-            player.update();
-            // Check if playback ended naturally.
-            if !player.is_playing() {
-                state.playing.store(false, Ordering::Relaxed);
-            }
-        } else {
-            // Sleep when idle to avoid spinning.
-            std::thread::sleep(std::time::Duration::from_millis(10));
-        }
-    }
-}
-
 // ---------------------------------------------------------------------------
-// Background file I/O thread (std::thread + mpsc)
+// Unified background worker thread (audio + file I/O)
+//
+// PSP's std::thread has a TLS limitation that prevents spawning multiple
+// threads. We combine audio playback and file I/O into a single worker
+// thread with a unified command channel.
 // ---------------------------------------------------------------------------
 
-/// Requests sent to the I/O worker thread.
+/// Requests sent to the I/O side of the worker thread.
 pub enum IoRequest {
     /// Load and decode a JPEG into RGBA pixels.
     LoadTexture {
@@ -1133,7 +1052,7 @@ pub enum IoRequest {
     ReadFile { path: String },
 }
 
-/// Responses from the I/O worker thread.
+/// Responses from the I/O side of the worker thread.
 pub enum IoResponse {
     /// A texture was decoded successfully.
     TextureReady {
@@ -1148,65 +1067,154 @@ pub enum IoResponse {
     Error { path: String, msg: String },
 }
 
-/// Handle to the background I/O thread.
+/// Handle to the I/O response channel.
 pub struct IoHandle {
-    pub tx: mpsc::Sender<IoRequest>,
+    pub tx: mpsc::Sender<WorkerCmd>,
     pub rx: mpsc::Receiver<IoResponse>,
 }
 
-impl IoHandle {
-    /// Spawn the I/O worker thread and return a handle.
-    pub fn spawn() -> Self {
-        let (req_tx, req_rx) = mpsc::channel();
-        let (resp_tx, resp_rx) = mpsc::channel();
-        std::thread::spawn(move || io_thread_fn(req_rx, resp_tx));
-        Self {
-            tx: req_tx,
-            rx: resp_rx,
+/// Unified commands for the single background worker thread.
+pub enum WorkerCmd {
+    // Audio commands.
+    AudioLoadAndPlay(String),
+    AudioPause,
+    AudioResume,
+    AudioStop,
+    // I/O commands.
+    Io(IoRequest),
+    /// Shut down the worker thread.
+    Shutdown,
+}
+
+/// Spawn the single background worker thread.
+///
+/// Returns handles for audio state and I/O responses. Both share the same
+/// command sender (cloned).
+pub fn spawn_worker() -> (AudioHandle, IoHandle) {
+    let (cmd_tx, cmd_rx) = mpsc::channel::<WorkerCmd>();
+    let (io_resp_tx, io_resp_rx) = mpsc::channel::<IoResponse>();
+    let audio_state = Arc::new(AudioState::default());
+    let state_clone = audio_state.clone();
+
+    std::thread::spawn(move || worker_thread_fn(cmd_rx, io_resp_tx, state_clone));
+
+    let audio = AudioHandle {
+        tx: cmd_tx.clone(),
+        state: audio_state,
+    };
+    let io = IoHandle {
+        tx: cmd_tx,
+        rx: io_resp_rx,
+    };
+    (audio, io)
+}
+
+/// Unified worker thread main loop (audio + I/O).
+fn worker_thread_fn(
+    rx: mpsc::Receiver<WorkerCmd>,
+    io_tx: mpsc::Sender<IoResponse>,
+    audio_state: Arc<AudioState>,
+) {
+    let mut player = AudioPlayer::new();
+    if !player.init() {
+        psp::dprintln!("OASIS_OS: Worker thread audio init failed");
+    }
+
+    loop {
+        // Non-blocking check for commands.
+        match rx.try_recv() {
+            Ok(WorkerCmd::AudioLoadAndPlay(path)) => {
+                if player.load_and_play(&path) {
+                    audio_state.playing.store(true, Ordering::Relaxed);
+                    audio_state.paused.store(false, Ordering::Relaxed);
+                    audio_state.sample_rate.store(player.sample_rate as u32, Ordering::Relaxed);
+                    audio_state.bitrate.store(player.bitrate as u32, Ordering::Relaxed);
+                    audio_state.channels.store(player.channels as u32, Ordering::Relaxed);
+                } else {
+                    audio_state.playing.store(false, Ordering::Relaxed);
+                }
+            }
+            Ok(WorkerCmd::AudioPause) => {
+                if player.is_playing() && !player.is_paused() {
+                    player.toggle_pause();
+                    audio_state.paused.store(true, Ordering::Relaxed);
+                }
+            }
+            Ok(WorkerCmd::AudioResume) => {
+                if player.is_playing() && player.is_paused() {
+                    player.toggle_pause();
+                    audio_state.paused.store(false, Ordering::Relaxed);
+                }
+            }
+            Ok(WorkerCmd::AudioStop) => {
+                player.stop();
+                audio_state.playing.store(false, Ordering::Relaxed);
+                audio_state.paused.store(false, Ordering::Relaxed);
+            }
+            Ok(WorkerCmd::Io(request)) => {
+                handle_io_request(request, &io_tx);
+            }
+            Ok(WorkerCmd::Shutdown) => {
+                player.stop();
+                audio_state.playing.store(false, Ordering::Relaxed);
+                break;
+            }
+            Err(mpsc::TryRecvError::Empty) => {}
+            Err(mpsc::TryRecvError::Disconnected) => break,
+        }
+
+        if player.is_playing() && !player.is_paused() {
+            // update() contains the blocking sceAudioOutputBlocking call.
+            player.update();
+            // Check if playback ended naturally.
+            if !player.is_playing() {
+                audio_state.playing.store(false, Ordering::Relaxed);
+            }
+        } else {
+            // Sleep when idle to avoid spinning.
+            std::thread::sleep(std::time::Duration::from_millis(10));
         }
     }
 }
 
-/// I/O worker thread main loop.
-fn io_thread_fn(rx: mpsc::Receiver<IoRequest>, tx: mpsc::Sender<IoResponse>) {
-    for request in rx {
-        match request {
-            IoRequest::LoadTexture { path, max_w, max_h } => match read_file(&path) {
-                Some(data) => match decode_jpeg(&data, max_w, max_h) {
-                    Some((w, h, rgba)) => {
-                        let _ = tx.send(IoResponse::TextureReady {
-                            path,
-                            width: w,
-                            height: h,
-                            rgba,
-                        });
-                    }
-                    None => {
-                        let _ = tx.send(IoResponse::Error {
-                            path,
-                            msg: "JPEG decode failed".into(),
-                        });
-                    }
-                },
-                None => {
-                    let _ = tx.send(IoResponse::Error {
+/// Process a single I/O request (called from worker thread).
+fn handle_io_request(request: IoRequest, tx: &mpsc::Sender<IoResponse>) {
+    match request {
+        IoRequest::LoadTexture { path, max_w, max_h } => match read_file(&path) {
+            Some(data) => match decode_jpeg(&data, max_w, max_h) {
+                Some((w, h, rgba)) => {
+                    let _ = tx.send(IoResponse::TextureReady {
                         path,
-                        msg: "file read failed".into(),
+                        width: w,
+                        height: h,
+                        rgba,
                     });
-                }
-            },
-            IoRequest::ReadFile { path } => match read_file(&path) {
-                Some(data) => {
-                    let _ = tx.send(IoResponse::FileReady { path, data });
                 }
                 None => {
                     let _ = tx.send(IoResponse::Error {
                         path,
-                        msg: "file not found".into(),
+                        msg: "JPEG decode failed".into(),
                     });
                 }
             },
-        }
+            None => {
+                let _ = tx.send(IoResponse::Error {
+                    path,
+                    msg: "file read failed".into(),
+                });
+            }
+        },
+        IoRequest::ReadFile { path } => match read_file(&path) {
+            Some(data) => {
+                let _ = tx.send(IoResponse::FileReady { path, data });
+            }
+            None => {
+                let _ = tx.send(IoResponse::Error {
+                    path,
+                    msg: "file not found".into(),
+                });
+            }
+        },
     }
 }
 

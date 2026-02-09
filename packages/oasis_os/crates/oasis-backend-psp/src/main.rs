@@ -10,9 +10,9 @@
 #![no_main]
 
 use oasis_backend_psp::{
-    AudioCmd, AudioHandle, Button, Color, FileEntry, InputEvent, IoHandle, IoRequest, IoResponse,
-    PspBackend, SdiBackend, SdiRegistry, StatusBarInfo, SystemInfo, TextureId, Trigger,
-    WindowConfig, WindowManager, WindowType, WmEvent, CURSOR_H, CURSOR_W, SCREEN_HEIGHT,
+    AudioHandle, Button, Color, FileEntry, InputEvent, IoRequest, IoResponse, PspBackend,
+    SdiBackend, SdiRegistry, StatusBarInfo, SystemInfo, TextureId, Trigger, WindowConfig,
+    WindowManager, WindowType, WmEvent, WorkerCmd, CURSOR_H, CURSOR_W, SCREEN_HEIGHT,
     SCREEN_WIDTH,
 };
 
@@ -309,10 +309,9 @@ fn psp_main() {
     let mut mp_scroll: usize = 0;
     let mut mp_loaded = false;
     let mut mp_file_name = String::new();
-    let audio = AudioHandle::spawn();
 
-    // Background file I/O thread.
-    let io = IoHandle::spawn();
+    // Single background worker thread handles both audio and file I/O.
+    let (audio, io) = oasis_backend_psp::spawn_worker();
     let mut pv_loading = false; // true while waiting for async texture load
 
     // Confirm button held state for pointer simulation.
@@ -650,11 +649,11 @@ fn psp_main() {
                             } else {
                                 format!("{}/{}", pv_path, entry.name)
                             };
-                            let _ = io.tx.send(IoRequest::LoadTexture {
+                            let _ = io.tx.send(WorkerCmd::Io(IoRequest::LoadTexture {
                                 path: file_path,
                                 max_w: SCREEN_WIDTH as i32,
                                 max_h: SCREEN_HEIGHT as i32,
-                            });
+                            }));
                             pv_loading = true;
                         }
                     }
@@ -704,9 +703,9 @@ fn psp_main() {
                     if audio.is_playing() {
                         // Toggle pause via background thread.
                         if audio.is_paused() {
-                            let _ = audio.tx.send(AudioCmd::Resume);
+                            let _ = audio.tx.send(WorkerCmd::AudioResume);
                         } else {
-                            let _ = audio.tx.send(AudioCmd::Pause);
+                            let _ = audio.tx.send(WorkerCmd::AudioPause);
                         }
                     } else if mp_selected < mp_entries.len() {
                         let entry = &mp_entries[mp_selected];
@@ -726,16 +725,16 @@ fn psp_main() {
                                 format!("{}/{}", mp_path, entry.name)
                             };
                             mp_file_name = entry.name.clone();
-                            let _ = audio.tx.send(AudioCmd::LoadAndPlay(file_path));
+                            let _ = audio.tx.send(WorkerCmd::AudioLoadAndPlay(file_path));
                             term_lines.push(format!("Playing: {}", entry.name));
                         }
                     }
                 }
                 InputEvent::ButtonPress(Button::Square) if classic_view == ClassicView::MusicPlayer => {
-                    let _ = audio.tx.send(AudioCmd::Stop);
+                    let _ = audio.tx.send(WorkerCmd::AudioStop);
                 }
                 InputEvent::ButtonPress(Button::Cancel) if classic_view == ClassicView::MusicPlayer => {
-                    let _ = audio.tx.send(AudioCmd::Stop);
+                    let _ = audio.tx.send(WorkerCmd::AudioStop);
                     if let Some(pos) = mp_path.rfind('/') {
                         if pos > 0 && !mp_path[..pos].ends_with(':') {
                             mp_path.truncate(pos);
