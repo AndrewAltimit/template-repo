@@ -1073,7 +1073,7 @@ services:
     user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
     runtime: nvidia
     volumes:
-      - ./packages/oasis_os/crates/oasis-backend-psp/target/mipsel-sony-psp:/roms
+      - ./packages/oasis_os/crates/oasis-backend-psp/target/mipsel-sony-psp-std:/roms
       - /tmp/.X11-unix:/tmp/.X11-unix:ro
       - ${XAUTHORITY:-~/.Xauthority}:/home/ppsspp/.Xauthority:ro
     environment:
