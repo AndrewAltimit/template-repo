@@ -216,7 +216,7 @@ repos:
         name: Rust format MCP servers
         entry: ./automation/hooks/fmt-mcp-servers.sh
         language: system
-        files: '^tools/mcp/(?!mcp_core_rust|mcp_bioforge).*\.rs$'
+        files: '^tools/mcp/(?!mcp_core_rust|mcp_bioforge|mcp_code_quality).*\.rs$'
         pass_filenames: false
 
       - id: rust-clippy-gh-validator
