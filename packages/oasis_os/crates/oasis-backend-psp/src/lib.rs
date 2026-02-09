@@ -31,8 +31,12 @@ use psp::vram_alloc::get_vram_allocator;
 // Re-export shared types from oasis-core
 // ---------------------------------------------------------------------------
 
-pub use oasis_core::backend::{Color, TextureId};
+pub use oasis_core::backend::{Color, SdiBackend, TextureId};
+pub use oasis_core::error::{OasisError, Result as OasisResult};
 pub use oasis_core::input::{Button, InputEvent, Trigger};
+pub use oasis_core::sdi::SdiRegistry;
+pub use oasis_core::wm::manager::{WindowManager, WmEvent};
+pub use oasis_core::wm::window::{WindowConfig, WindowType, WmTheme};
 
 /// PSP-specific extension for Color -> ABGR conversion (used by sceGu).
 pub trait ColorExt {
@@ -367,7 +371,7 @@ impl PspBackend {
     }
 
     /// Clear the screen to a solid color.
-    pub fn clear(&mut self, color: Color) {
+    pub fn clear_inner(&mut self, color: Color) {
         unsafe {
             sys::sceGuClearColor(color.to_abgr());
             sys::sceGuClear(ClearBuffer::COLOR_BUFFER_BIT | ClearBuffer::FAST_CLEAR_BIT);
@@ -375,7 +379,7 @@ impl PspBackend {
     }
 
     /// Draw a filled rectangle.
-    pub fn fill_rect(&mut self, x: i32, y: i32, w: u32, h: u32, color: Color) {
+    pub fn fill_rect_inner(&mut self, x: i32, y: i32, w: u32, h: u32, color: Color) {
         unsafe {
             sys::sceGuDisable(GuState::Texture2D);
 
@@ -414,7 +418,7 @@ impl PspBackend {
     }
 
     /// Draw text using the embedded 8x8 bitmap font via the GU font atlas.
-    pub fn draw_text(&mut self, text: &str, x: i32, y: i32, font_size: u16, color: Color) {
+    pub fn draw_text_inner(&mut self, text: &str, x: i32, y: i32, font_size: u16, color: Color) {
         let scale = if font_size >= 8 {
             (font_size / 8) as i32
         } else {
@@ -497,7 +501,7 @@ impl PspBackend {
     }
 
     /// Blit a loaded texture at the given position and size.
-    pub fn blit(&mut self, tex: TextureId, x: i32, y: i32, w: u32, h: u32) {
+    pub fn blit_inner(&mut self, tex: TextureId, x: i32, y: i32, w: u32, h: u32) {
         let idx = tex.0 as usize;
         let Some(Some(texture)) = self.textures.get(idx) else {
             return;
@@ -572,7 +576,7 @@ impl PspBackend {
     /// The data is copied into a power-of-2 aligned buffer suitable for the GU.
     /// On PSP-2000+, textures are allocated from the extra 4MB volatile memory
     /// when available, falling back to the main heap.
-    pub fn load_texture(&mut self, width: u32, height: u32, rgba_data: &[u8]) -> Option<TextureId> {
+    pub fn load_texture_inner(&mut self, width: u32, height: u32, rgba_data: &[u8]) -> Option<TextureId> {
         let expected = (width * height * 4) as usize;
         if rgba_data.len() != expected {
             return None;
@@ -653,7 +657,7 @@ impl PspBackend {
     ///
     /// Textures in volatile memory are not individually freed (the bump
     /// allocator reclaims them all at once on reset).
-    pub fn destroy_texture(&mut self, tex: TextureId) {
+    pub fn destroy_texture_inner(&mut self, tex: TextureId) {
         let idx = tex.0 as usize;
         if idx < self.textures.len() {
             if let Some(texture) = self.textures[idx].take() {
@@ -667,21 +671,21 @@ impl PspBackend {
     }
 
     /// Set the clipping rectangle via GU scissor.
-    pub fn set_clip_rect(&mut self, x: i32, y: i32, w: u32, h: u32) {
+    pub fn set_clip_rect_inner(&mut self, x: i32, y: i32, w: u32, h: u32) {
         unsafe {
             sys::sceGuScissor(x, y, x + w as i32, y + h as i32);
         }
     }
 
     /// Reset clipping to full screen.
-    pub fn reset_clip_rect(&mut self) {
+    pub fn reset_clip_rect_inner(&mut self) {
         unsafe {
             sys::sceGuScissor(0, 0, SCREEN_WIDTH as i32, SCREEN_HEIGHT as i32);
         }
     }
 
     /// Finalize the current display list, swap buffers, and open the next frame.
-    pub fn swap_buffers(&mut self) {
+    pub fn swap_buffers_inner(&mut self) {
         unsafe {
             sys::sceGuFinish();
             sys::sceGuSync(GuSyncMode::Finish, GuSyncBehavior::Wait);
@@ -695,7 +699,7 @@ impl PspBackend {
     }
 
     /// Poll controller input, returning events with edge detection.
-    pub fn poll_events(&mut self) -> Vec<InputEvent> {
+    pub fn poll_events_inner(&mut self) -> Vec<InputEvent> {
         let mut events = Vec::new();
         let mut pad = SceCtrlData::default();
 
@@ -856,6 +860,352 @@ impl PspBackend {
         }
         if released & mask != 0 {
             events.push(InputEvent::TriggerRelease(trigger));
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// SdiBackend trait implementation
+// ---------------------------------------------------------------------------
+
+impl SdiBackend for PspBackend {
+    fn init(&mut self, _width: u32, _height: u32) -> OasisResult<()> {
+        // PSP backend initializes during PspBackend::init().
+        Ok(())
+    }
+
+    fn clear(&mut self, color: Color) -> OasisResult<()> {
+        self.clear_inner(color);
+        Ok(())
+    }
+
+    fn blit(&mut self, tex: TextureId, x: i32, y: i32, w: u32, h: u32) -> OasisResult<()> {
+        self.blit_inner(tex, x, y, w, h);
+        Ok(())
+    }
+
+    fn fill_rect(&mut self, x: i32, y: i32, w: u32, h: u32, color: Color) -> OasisResult<()> {
+        self.fill_rect_inner(x, y, w, h, color);
+        Ok(())
+    }
+
+    fn draw_text(
+        &mut self,
+        text: &str,
+        x: i32,
+        y: i32,
+        font_size: u16,
+        color: Color,
+    ) -> OasisResult<()> {
+        self.draw_text_inner(text, x, y, font_size, color);
+        Ok(())
+    }
+
+    fn swap_buffers(&mut self) -> OasisResult<()> {
+        self.swap_buffers_inner();
+        Ok(())
+    }
+
+    fn load_texture(
+        &mut self,
+        width: u32,
+        height: u32,
+        rgba_data: &[u8],
+    ) -> OasisResult<TextureId> {
+        self.load_texture_inner(width, height, rgba_data)
+            .ok_or_else(|| OasisError::Backend("PSP texture allocation failed".into()))
+    }
+
+    fn destroy_texture(&mut self, tex: TextureId) -> OasisResult<()> {
+        self.destroy_texture_inner(tex);
+        Ok(())
+    }
+
+    fn set_clip_rect(&mut self, x: i32, y: i32, w: u32, h: u32) -> OasisResult<()> {
+        self.set_clip_rect_inner(x, y, w, h);
+        Ok(())
+    }
+
+    fn reset_clip_rect(&mut self) -> OasisResult<()> {
+        self.reset_clip_rect_inner();
+        Ok(())
+    }
+
+    fn read_pixels(&self, _x: i32, _y: i32, _w: u32, _h: u32) -> OasisResult<Vec<u8>> {
+        Err(OasisError::Backend(
+            "read_pixels not supported on PSP".into(),
+        ))
+    }
+
+    fn shutdown(&mut self) -> OasisResult<()> {
+        Ok(())
+    }
+}
+
+// ---------------------------------------------------------------------------
+// InputBackend trait implementation
+// ---------------------------------------------------------------------------
+
+impl oasis_core::backend::InputBackend for PspBackend {
+    fn poll_events(&mut self) -> Vec<InputEvent> {
+        self.poll_events_inner()
+    }
+}
+
+// ---------------------------------------------------------------------------
+// PSP-tuned WM theme (compact for 480x272 screen)
+// ---------------------------------------------------------------------------
+
+/// Create a compact WmTheme tuned for the PSP's 480x272 display.
+pub fn psp_wm_theme() -> WmTheme {
+    WmTheme {
+        titlebar_height: 14,
+        border_width: 1,
+        titlebar_active_color: Color::rgba(40, 70, 130, 230),
+        titlebar_inactive_color: Color::rgba(60, 60, 60, 200),
+        titlebar_text_color: Color::WHITE,
+        frame_color: Color::rgba(30, 30, 30, 200),
+        content_bg_color: Color::rgba(20, 20, 30, 220),
+        btn_close_color: Color::rgb(180, 50, 50),
+        btn_minimize_color: Color::rgb(180, 160, 50),
+        btn_maximize_color: Color::rgb(50, 160, 50),
+        button_size: 10,
+        resize_handle_size: 4,
+        titlebar_font_size: 8,
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Background audio thread (std::thread + mpsc)
+// ---------------------------------------------------------------------------
+
+use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
+use std::sync::mpsc;
+use std::sync::Arc;
+
+/// Commands sent to the audio worker thread.
+pub enum AudioCmd {
+    /// Load MP3 file bytes and start playback.
+    LoadAndPlay(String),
+    /// Pause playback.
+    Pause,
+    /// Resume playback.
+    Resume,
+    /// Stop playback.
+    Stop,
+    /// Shut down the audio thread.
+    Shutdown,
+}
+
+/// Shared audio state readable from the main thread.
+pub struct AudioState {
+    pub playing: AtomicBool,
+    pub paused: AtomicBool,
+    pub sample_rate: AtomicU32,
+    pub bitrate: AtomicU32,
+    pub channels: AtomicU32,
+}
+
+impl Default for AudioState {
+    fn default() -> Self {
+        Self {
+            playing: AtomicBool::new(false),
+            paused: AtomicBool::new(false),
+            sample_rate: AtomicU32::new(0),
+            bitrate: AtomicU32::new(0),
+            channels: AtomicU32::new(0),
+        }
+    }
+}
+
+/// Handle to the background audio thread.
+pub struct AudioHandle {
+    pub tx: mpsc::Sender<AudioCmd>,
+    pub state: Arc<AudioState>,
+}
+
+impl AudioHandle {
+    /// Spawn the audio worker thread and return a handle.
+    pub fn spawn() -> Self {
+        let (tx, rx) = mpsc::channel();
+        let state = Arc::new(AudioState::default());
+        let state_clone = state.clone();
+        std::thread::spawn(move || audio_thread_fn(rx, state_clone));
+        Self { tx, state }
+    }
+
+    pub fn is_playing(&self) -> bool {
+        self.state.playing.load(Ordering::Relaxed)
+    }
+
+    pub fn is_paused(&self) -> bool {
+        self.state.paused.load(Ordering::Relaxed)
+    }
+
+    pub fn sample_rate(&self) -> u32 {
+        self.state.sample_rate.load(Ordering::Relaxed)
+    }
+
+    pub fn bitrate(&self) -> u32 {
+        self.state.bitrate.load(Ordering::Relaxed)
+    }
+
+    pub fn channels(&self) -> u32 {
+        self.state.channels.load(Ordering::Relaxed)
+    }
+}
+
+/// Audio worker thread main loop.
+fn audio_thread_fn(rx: mpsc::Receiver<AudioCmd>, state: Arc<AudioState>) {
+    let mut player = AudioPlayer::new();
+    if !player.init() {
+        psp::dprintln!("OASIS_OS: Audio thread init failed");
+        return;
+    }
+
+    loop {
+        // Non-blocking check for commands.
+        match rx.try_recv() {
+            Ok(AudioCmd::LoadAndPlay(path)) => {
+                if player.load_and_play(&path) {
+                    state.playing.store(true, Ordering::Relaxed);
+                    state.paused.store(false, Ordering::Relaxed);
+                    state.sample_rate.store(player.sample_rate as u32, Ordering::Relaxed);
+                    state.bitrate.store(player.bitrate as u32, Ordering::Relaxed);
+                    state.channels.store(player.channels as u32, Ordering::Relaxed);
+                } else {
+                    state.playing.store(false, Ordering::Relaxed);
+                }
+            }
+            Ok(AudioCmd::Pause) => {
+                if player.is_playing() && !player.is_paused() {
+                    player.toggle_pause();
+                    state.paused.store(true, Ordering::Relaxed);
+                }
+            }
+            Ok(AudioCmd::Resume) => {
+                if player.is_playing() && player.is_paused() {
+                    player.toggle_pause();
+                    state.paused.store(false, Ordering::Relaxed);
+                }
+            }
+            Ok(AudioCmd::Stop) => {
+                player.stop();
+                state.playing.store(false, Ordering::Relaxed);
+                state.paused.store(false, Ordering::Relaxed);
+            }
+            Ok(AudioCmd::Shutdown) => {
+                player.stop();
+                state.playing.store(false, Ordering::Relaxed);
+                break;
+            }
+            Err(mpsc::TryRecvError::Empty) => {}
+            Err(mpsc::TryRecvError::Disconnected) => break,
+        }
+
+        if player.is_playing() && !player.is_paused() {
+            // update() contains the blocking sceAudioOutputBlocking call.
+            player.update();
+            // Check if playback ended naturally.
+            if !player.is_playing() {
+                state.playing.store(false, Ordering::Relaxed);
+            }
+        } else {
+            // Sleep when idle to avoid spinning.
+            std::thread::sleep(std::time::Duration::from_millis(10));
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Background file I/O thread (std::thread + mpsc)
+// ---------------------------------------------------------------------------
+
+/// Requests sent to the I/O worker thread.
+pub enum IoRequest {
+    /// Load and decode a JPEG into RGBA pixels.
+    LoadTexture {
+        path: String,
+        max_w: i32,
+        max_h: i32,
+    },
+    /// Read a file into a byte buffer.
+    ReadFile { path: String },
+}
+
+/// Responses from the I/O worker thread.
+pub enum IoResponse {
+    /// A texture was decoded successfully.
+    TextureReady {
+        path: String,
+        width: u32,
+        height: u32,
+        rgba: Vec<u8>,
+    },
+    /// A file was read successfully.
+    FileReady { path: String, data: Vec<u8> },
+    /// An I/O operation failed.
+    Error { path: String, msg: String },
+}
+
+/// Handle to the background I/O thread.
+pub struct IoHandle {
+    pub tx: mpsc::Sender<IoRequest>,
+    pub rx: mpsc::Receiver<IoResponse>,
+}
+
+impl IoHandle {
+    /// Spawn the I/O worker thread and return a handle.
+    pub fn spawn() -> Self {
+        let (req_tx, req_rx) = mpsc::channel();
+        let (resp_tx, resp_rx) = mpsc::channel();
+        std::thread::spawn(move || io_thread_fn(req_rx, resp_tx));
+        Self {
+            tx: req_tx,
+            rx: resp_rx,
+        }
+    }
+}
+
+/// I/O worker thread main loop.
+fn io_thread_fn(rx: mpsc::Receiver<IoRequest>, tx: mpsc::Sender<IoResponse>) {
+    for request in rx {
+        match request {
+            IoRequest::LoadTexture { path, max_w, max_h } => match read_file(&path) {
+                Some(data) => match decode_jpeg(&data, max_w, max_h) {
+                    Some((w, h, rgba)) => {
+                        let _ = tx.send(IoResponse::TextureReady {
+                            path,
+                            width: w,
+                            height: h,
+                            rgba,
+                        });
+                    }
+                    None => {
+                        let _ = tx.send(IoResponse::Error {
+                            path,
+                            msg: "JPEG decode failed".into(),
+                        });
+                    }
+                },
+                None => {
+                    let _ = tx.send(IoResponse::Error {
+                        path,
+                        msg: "file read failed".into(),
+                    });
+                }
+            },
+            IoRequest::ReadFile { path } => match read_file(&path) {
+                Some(data) => {
+                    let _ = tx.send(IoResponse::FileReady { path, data });
+                }
+                None => {
+                    let _ = tx.send(IoResponse::Error {
+                        path,
+                        msg: "file not found".into(),
+                    });
+                }
+            },
         }
     }
 }
@@ -1725,14 +2075,14 @@ unsafe extern "C" fn power_callback(_arg1: i32, power_info: i32, _arg: *mut c_vo
 /// Draw a PSIX-style status bar at the top of the screen.
 pub fn draw_status_bar(backend: &mut PspBackend, version: &str) {
     let bar_color = Color::rgba(30, 80, 30, 200);
-    backend.fill_rect(0, 0, SCREEN_WIDTH, 18, bar_color);
-    backend.draw_text(version, 4, 4, 8, Color::WHITE);
+    backend.fill_rect_inner(0, 0, SCREEN_WIDTH, 18, bar_color);
+    backend.draw_text_inner(version, 4, 4, 8, Color::WHITE);
 }
 
 /// Draw a PSIX-style bottom bar with navigation hints.
 pub fn draw_bottom_bar(backend: &mut PspBackend, hint: &str) {
     let bar_y = (SCREEN_HEIGHT - 18) as i32;
     let bar_color = Color::rgba(30, 80, 30, 200);
-    backend.fill_rect(0, bar_y, SCREEN_WIDTH, 18, bar_color);
-    backend.draw_text(hint, 4, bar_y + 4, 8, Color::WHITE);
+    backend.fill_rect_inner(0, bar_y, SCREEN_WIDTH, 18, bar_color);
+    backend.draw_text_inner(hint, 4, bar_y + 4, 8, Color::WHITE);
 }

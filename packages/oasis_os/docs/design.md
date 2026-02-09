@@ -224,7 +224,7 @@ edition = "2024"
 license = "MIT"
 
 [dependencies]
-psp = { git = "https://github.com/AndrewAltimit/rust-psp", branch = "feat/std-support", features = ["kernel", "std"] }
+psp = { git = "https://github.com/AndrewAltimit/rust-psp", features = ["kernel", "std"] }
 oasis-core = { path = "../oasis-core" }
 ```
 
@@ -237,7 +237,7 @@ oasis-core = { path = "../oasis-core" }
 | UE5 (in-game) | `cargo build --release -p oasis-ffi` (cdylib) | UE5 render target | UE5 interaction | Game asset VFS | Implemented (FFI ready) |
 | Raspberry Pi (briefcase) | `cargo build --release -p oasis-app --target aarch64-unknown-linux-gnu` | SDL2 | Keyboard/gamepad | Real Linux FS | Planned (SDL2 backend works, cross-compile not yet tested) |
 
-Note: The PSP backend is a standalone crate excluded from the workspace. It depends on `oasis-core` directly and re-exports shared types (`Color`, `Button`, `Trigger`, `TextureId`, `InputEvent`). Std support on the PSP target is provided by the rust-psp SDK's `feat/std-support` branch with `RUST_PSP_BUILD_STD=1`, which builds a custom sysroot with PSP-specific PAL implementations. A `ColorExt` extension trait provides PSP-specific ABGR conversion without modifying oasis-core. The PSP backend uses sceGu hardware-accelerated 2D rendering with `Sprites` primitives and renders a PSIX-style UI (document icons, tabbed bars, chrome bezels, wave arc wallpaper) matching the desktop layout.
+Note: The PSP backend is a standalone crate excluded from the workspace. It depends on `oasis-core` directly and re-exports shared types (`Color`, `Button`, `Trigger`, `TextureId`, `InputEvent`). Std support on the PSP target is provided by the rust-psp SDK's `main` branch with `RUST_PSP_BUILD_STD=1`, which builds a custom sysroot with PSP-specific PAL implementations. A `ColorExt` extension trait provides PSP-specific ABGR conversion without modifying oasis-core. The PSP backend uses sceGu hardware-accelerated 2D rendering with `Sprites` primitives and renders a PSIX-style UI (document icons, tabbed bars, chrome bezels, wave arc wallpaper) matching the desktop layout.
 
 ---
 
@@ -595,7 +595,7 @@ The PSP has 32MB of main RAM (64MB on PSP-2000+), a 333MHz MIPS R4000 CPU, and 2
 
 The original C codebase runs in kernel mode (`PSP_MODULE_INFO` flag `0x1000`), granting access to all hardware registers, the ability to load arbitrary PRX modules, and direct Memory Stick I/O.
 
-**rust-psp SDK:** OASIS_OS depends on a standalone fork of the rust-psp SDK at [github.com/AndrewAltimit/rust-psp](https://github.com/AndrewAltimit/rust-psp), referenced as a git dependency. The upstream project (`github.com/overdrivenpotato/rust-psp`, MIT license) is maintained at a low cadence (~3-4 commits/year) and lacks kernel mode support (issue #48, open since June 2020). The fork extends the SDK with kernel mode module support (`PSP_MODULE_INFO` flag `0x1000`), std support via sysroot overlay (`feat/std-support` branch), edition 2024 modernization, safety fixes, and additional syscall bindings -- without waiting on upstream. The fork tracks upstream for bug fixes but diverges for kernel-mode and feature additions.
+**rust-psp SDK:** OASIS_OS depends on a standalone fork of the rust-psp SDK at [github.com/AndrewAltimit/rust-psp](https://github.com/AndrewAltimit/rust-psp), referenced as a git dependency. The upstream project (`github.com/overdrivenpotato/rust-psp`, MIT license) is maintained at a low cadence (~3-4 commits/year) and lacks kernel mode support (issue #48, open since June 2020). The fork extends the SDK with kernel mode module support (`PSP_MODULE_INFO` flag `0x1000`), std support via sysroot overlay (`main` branch), edition 2024 modernization, safety fixes, and additional syscall bindings -- without waiting on upstream. The fork tracks upstream for bug fixes but diverges for kernel-mode and feature additions.
 
 OASIS_OS initially targets user mode, which is sufficient for rendering, input, networking, and file I/O on modern custom firmware. Kernel-mode features (Media Engine coprocessor, raw hardware register access) are the primary motivation for extending the SDK fork. Until kernel mode is fully implemented, these features are accessed through pre-compiled PRX modules loaded at runtime. The `#![feature(restricted_std)]` + `#![no_main]` entry point uses `psp::module!()` macro with `psp_main()`. Std support is enabled by `RUST_PSP_BUILD_STD=1` which triggers cargo-psp to build a custom sysroot with PSP-specific PAL implementations for threads, filesystem, random, and networking.
 

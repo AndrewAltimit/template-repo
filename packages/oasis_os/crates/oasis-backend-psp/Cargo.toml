@@ -14,7 +14,7 @@ repository = "https://github.com/AndrewAltimit/template-repo"
 authors = ["AndrewAltimit"]
 
 [dependencies]
-psp = { git = "https://github.com/AndrewAltimit/rust-psp", branch = "feat/std-support", features = ["kernel", "std"] }
+psp = { git = "https://github.com/AndrewAltimit/rust-psp", features = ["kernel", "std"] }
 oasis-core = { path = "../oasis-core" }
 
 # unicode-width workaround for mips target panic.
