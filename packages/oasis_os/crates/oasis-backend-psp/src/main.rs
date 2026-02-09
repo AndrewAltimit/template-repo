@@ -4,15 +4,8 @@
 //! bottom bar, and terminal mode. Layout matches the desktop `oasis-app`
 //! renderer with identical theme constants and icon composition.
 
-#![no_std]
+#![feature(restricted_std)]
 #![no_main]
-
-extern crate alloc;
-
-use alloc::format;
-use alloc::string::{String, ToString};
-use alloc::vec;
-use alloc::vec::Vec;
 
 use oasis_backend_psp::{
     AudioPlayer, Button, Color, FileEntry, InputEvent, PspBackend, StatusBarInfo, SystemInfo,
@@ -1335,7 +1328,7 @@ fn draw_music_player(
 }
 
 // ---------------------------------------------------------------------------
-// Simple command interpreter (no_std, no oasis-core)
+// Simple command interpreter
 // ---------------------------------------------------------------------------
 
 fn execute_command(cmd: &str) -> Vec<String> {

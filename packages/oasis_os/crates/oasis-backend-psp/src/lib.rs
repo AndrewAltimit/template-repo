@@ -7,24 +7,17 @@
 //! Controller input via `sceCtrlPeekBufferPositive` with edge detection for
 //! press/release events.
 //!
-//! This crate is `no_std` -- it cannot depend on `oasis-core` (which
-//! requires `std`). All types are self-contained duplicates of the
-//! core equivalents.
+//! Uses `restricted_std` with `RUST_PSP_BUILD_STD=1` for std support on PSP.
+//! Types are imported from `oasis-core` directly.
 
-#![no_std]
-
-extern crate alloc;
+#![feature(restricted_std)]
 
 pub mod font;
 
-use alloc::alloc::{alloc, dealloc, Layout};
-use alloc::format;
-use alloc::string::String;
-use alloc::vec;
-use alloc::vec::Vec;
-use core::ffi::c_void;
-use core::mem::size_of;
-use core::ptr;
+use std::alloc::{alloc, dealloc, Layout};
+use std::ffi::c_void;
+use std::mem::size_of;
+use std::ptr;
 
 use psp::sys::{
     self, BlendFactor, BlendOp, ClearBuffer, CtrlButtons, CtrlMode, DisplayPixelFormat,
@@ -35,69 +28,21 @@ use psp::sys::{
 use psp::vram_alloc::get_vram_allocator;
 
 // ---------------------------------------------------------------------------
-// Minimal type duplicates from oasis-core (no_std-compatible)
+// Re-export shared types from oasis-core
 // ---------------------------------------------------------------------------
 
-/// RGBA color.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct Color {
-    pub r: u8,
-    pub g: u8,
-    pub b: u8,
-    pub a: u8,
+pub use oasis_core::backend::{Color, TextureId};
+pub use oasis_core::input::{Button, InputEvent, Trigger};
+
+/// PSP-specific extension for Color -> ABGR conversion (used by sceGu).
+pub trait ColorExt {
+    fn to_abgr(&self) -> u32;
 }
 
-impl Color {
-    pub const fn rgba(r: u8, g: u8, b: u8, a: u8) -> Self {
-        Self { r, g, b, a }
-    }
-    pub const fn rgb(r: u8, g: u8, b: u8) -> Self {
-        Self { r, g, b, a: 255 }
-    }
-    pub const BLACK: Self = Self::rgb(0, 0, 0);
-    pub const WHITE: Self = Self::rgb(255, 255, 255);
-
-    /// Convert to PSP ABGR u32 format used by sceGu functions.
-    pub const fn to_abgr(&self) -> u32 {
+impl ColorExt for Color {
+    fn to_abgr(&self) -> u32 {
         (self.a as u32) << 24 | (self.b as u32) << 16 | (self.g as u32) << 8 | self.r as u32
     }
-}
-
-/// Opaque handle to a loaded texture.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub struct TextureId(pub u64);
-
-/// Platform-agnostic input events (subset matching oasis-core).
-#[derive(Debug, Clone, PartialEq)]
-pub enum InputEvent {
-    CursorMove { x: i32, y: i32 },
-    ButtonPress(Button),
-    ButtonRelease(Button),
-    TriggerPress(Trigger),
-    TriggerRelease(Trigger),
-    Quit,
-}
-
-/// Buttons matching oasis-core::input::Button.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Button {
-    Up,
-    Down,
-    Left,
-    Right,
-    Confirm,
-    Cancel,
-    Triangle,
-    Square,
-    Start,
-    Select,
-}
-
-/// Shoulder triggers.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Trigger {
-    Left,
-    Right,
 }
 
 // ---------------------------------------------------------------------------
@@ -663,7 +608,7 @@ impl PspBackend {
         // Zero the buffer first (for padding areas).
         unsafe {
             // Manual zero loop to avoid core::ptr::write_bytes (see MEMORY.md footgun).
-            let slice = core::slice::from_raw_parts_mut(data, buf_size);
+            let slice = std::slice::from_raw_parts_mut(data, buf_size);
             for byte in slice.iter_mut() {
                 *byte = 0;
             }
@@ -987,7 +932,7 @@ fn lerp_rgb(a: (u8, u8, u8), b: (u8, u8, u8), t: f32) -> (u8, u8, u8) {
     (r as u8, g as u8, bv as u8)
 }
 
-/// Taylor-series sine approximation (no libm dependency for `no_std`).
+/// Taylor-series sine approximation (no libm dependency).
 fn sin_approx(mut x: f32) -> f32 {
     const PI: f32 = 3.14159265;
     const TWO_PI: f32 = 6.2831853;
@@ -1002,7 +947,7 @@ fn sin_approx(mut x: f32) -> f32 {
     x * (1.0 - x2 * (1.0 / 6.0 - x2 * (1.0 / 120.0 - x2 / 5040.0)))
 }
 
-/// Newton-Raphson square root approximation (no libm dependency for `no_std`).
+/// Newton-Raphson square root approximation (no libm dependency).
 fn sqrt_approx(x: f32) -> f32 {
     if x <= 0.0 {
         return 0.0;
@@ -1249,8 +1194,6 @@ pub struct FileEntry {
 /// Returns a sorted list of entries (directories first, then files,
 /// alphabetically within each group). Returns an empty vec on error.
 pub fn list_directory(path: &str) -> Vec<FileEntry> {
-    use alloc::string::ToString;
-
     let mut entries = Vec::new();
 
     // Build null-terminated path.
@@ -1264,7 +1207,7 @@ pub fn list_directory(path: &str) -> Vec<FileEntry> {
             return entries;
         }
 
-        let mut dirent: sys::SceIoDirent = core::mem::zeroed();
+        let mut dirent: sys::SceIoDirent = std::mem::zeroed();
         loop {
             let ret = sys::sceIoDread(dfd, &mut dirent);
             if ret <= 0 {
@@ -1274,7 +1217,7 @@ pub fn list_directory(path: &str) -> Vec<FileEntry> {
             // Extract name (null-terminated UTF-8 in d_name).
             let name_bytes = &dirent.d_name;
             let len = name_bytes.iter().position(|&b| b == 0).unwrap_or(name_bytes.len());
-            let name = core::str::from_utf8(&name_bytes[..len])
+            let name = std::str::from_utf8(&name_bytes[..len])
                 .unwrap_or("???")
                 .to_string();
 
@@ -1328,7 +1271,7 @@ pub fn read_file(path: &str) -> Option<Vec<u8>> {
 
     unsafe {
         // Get file size first via stat.
-        let mut stat: sys::SceIoStat = core::mem::zeroed();
+        let mut stat: sys::SceIoStat = std::mem::zeroed();
         if sys::sceIoGetstat(path_buf.as_ptr(), &mut stat) < 0 {
             return None;
         }
@@ -1420,7 +1363,7 @@ pub fn decode_jpeg(jpeg_data: &[u8], max_w: i32, max_h: i32) -> Option<(u32, u32
 
         let mut rgba = vec![0u8; pixel_count];
         // Manual copy (see MEMORY.md footgun re: ptr intrinsics).
-        let src = core::slice::from_raw_parts(out_buf, pixel_count);
+        let src = std::slice::from_raw_parts(out_buf, pixel_count);
         rgba.copy_from_slice(src);
 
         dealloc(out_buf, out_layout);
@@ -1776,7 +1719,7 @@ unsafe extern "C" fn power_callback(_arg1: i32, power_info: i32, _arg: *mut c_vo
 }
 
 // ---------------------------------------------------------------------------
-// Status bar helpers (minimal, no std::time dependency)
+// Status bar helpers
 // ---------------------------------------------------------------------------
 
 /// Draw a PSIX-style status bar at the top of the screen.
