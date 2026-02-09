@@ -17,7 +17,7 @@ packages/oasis_os/
 |   +-- oasis-core/                  # Platform-agnostic framework (SDI, VFS, commands, skins, WM)
 |   +-- oasis-backend-sdl/           # SDL2 rendering and input (desktop + Pi)
 |   +-- oasis-backend-ue5/           # UE5 software framebuffer + FFI input queue
-|   +-- oasis-backend-psp/           # [EXCLUDED] sceGu hardware rendering, PSP controller (no_std)
+|   +-- oasis-backend-psp/           # [EXCLUDED] sceGu hardware rendering, PSP controller (std via rust-psp)
 |   +-- oasis-ffi/                   # C FFI boundary for UE5 integration
 |   +-- oasis-app/                   # Binary entry points: desktop app + screenshot tool
 +-- skins/
@@ -42,12 +42,12 @@ cargo build --release -p oasis-app
 
 ### PSP (EBOOT.PBP)
 
-Requires the nightly Rust toolchain and `cargo-psp`:
+Requires the nightly Rust toolchain with `rust-src` and `cargo-psp`:
 
 ```bash
 cd crates/oasis-backend-psp
-cargo +nightly psp --release
-# Output: target/mipsel-sony-psp/release/EBOOT.PBP
+RUST_PSP_BUILD_STD=1 cargo +nightly psp --release
+# Output: target/mipsel-sony-psp-std/release/EBOOT.PBP
 ```
 
 ### Testing in PPSSPP
@@ -68,7 +68,7 @@ docker compose --profile psp run --rm -e PPSSPP_HEADLESS=1 ppsspp /roms/release/
 docker compose --profile psp run --rm -e PPSSPP_HEADLESS=1 ppsspp /roms/release/EBOOT.PBP -i --timeout=5
 ```
 
-The `/roms/` mount maps to `crates/oasis-backend-psp/target/mipsel-sony-psp/` so both `release/` and `debug/` EBOOTs are available.
+The `/roms/` mount maps to `crates/oasis-backend-psp/target/mipsel-sony-psp-std/` so both `release/` and `debug/` EBOOTs are available.
 
 Headless mode exits with `TIMEOUT` on success (OASIS_OS runs an infinite render loop). Any crash will produce a non-zero exit code.
 

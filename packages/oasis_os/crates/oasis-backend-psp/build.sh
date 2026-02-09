@@ -13,14 +13,16 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
+export RUST_PSP_BUILD_STD=1
+
 if [ "${1:-}" = "release" ]; then
-    cargo psp --release
+    cargo +nightly psp --release
     echo ""
-    echo "EBOOT.PBP: target/mipsel-sony-psp/release/EBOOT.PBP"
+    echo "EBOOT.PBP: target/mipsel-sony-psp-std/release/EBOOT.PBP"
 else
-    cargo psp
+    cargo +nightly psp
     echo ""
-    echo "EBOOT.PBP: target/mipsel-sony-psp/debug/EBOOT.PBP"
+    echo "EBOOT.PBP: target/mipsel-sony-psp-std/debug/EBOOT.PBP"
 fi
 
 echo "Copy to: ms0:/PSP/GAME/OASISOS/EBOOT.PBP"
