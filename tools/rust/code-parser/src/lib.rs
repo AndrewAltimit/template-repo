@@ -173,18 +173,17 @@ impl CodeParser {
         let search_text = &response[search_start..code_pos];
 
         for pattern_str in Self::FILE_PATTERNS {
-            if let Ok(pattern) = Regex::new(&format!("(?i){}", pattern_str)) {
-                if let Some(caps) = pattern.captures(search_text) {
-                    if let Some(filename_match) = caps.get(1) {
-                        let filename = filename_match.as_str().trim();
-                        // Clean up the filename
-                        let filename = filename.trim_matches(|c| {
-                            c == '\'' || c == '"' || c == '`' || c == ',' || c == '.' || c == ' '
-                        });
-                        if !filename.is_empty() && !filename.starts_with('*') {
-                            return Some(filename.to_string());
-                        }
-                    }
+            if let Ok(pattern) = Regex::new(&format!("(?i){}", pattern_str))
+                && let Some(caps) = pattern.captures(search_text)
+                && let Some(filename_match) = caps.get(1)
+            {
+                let filename = filename_match.as_str().trim();
+                // Clean up the filename
+                let filename = filename.trim_matches(|c| {
+                    c == '\'' || c == '"' || c == '`' || c == ',' || c == '.' || c == ' '
+                });
+                if !filename.is_empty() && !filename.starts_with('*') {
+                    return Some(filename.to_string());
                 }
             }
         }
