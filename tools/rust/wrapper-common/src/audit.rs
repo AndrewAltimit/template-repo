@@ -117,7 +117,12 @@ pub fn log_event(entry: &AuditEntry) {
 /// Attempt to write an audit entry to the log file
 fn try_log_event(entry: &AuditEntry) -> std::io::Result<()> {
     let log_dir = resolve_log_dir();
-    std::fs::create_dir_all(&log_dir)?;
+    try_log_event_to(entry, &log_dir)
+}
+
+/// Attempt to write an audit entry to a specific directory
+fn try_log_event_to(entry: &AuditEntry, log_dir: &std::path::Path) -> std::io::Result<()> {
+    std::fs::create_dir_all(log_dir)?;
 
     let log_path = log_dir.join(DEFAULT_LOG_FILE);
 
@@ -253,7 +258,6 @@ mod tests {
     #[test]
     fn test_log_event_to_tempdir() {
         let dir = tempfile::tempdir().unwrap();
-        std::env::set_var(LOG_DIR_ENV, dir.path().to_str().unwrap());
 
         let entry = AuditEntry::new(
             "test-wrapper",
@@ -263,7 +267,8 @@ mod tests {
             "hash123",
         );
 
-        log_event(&entry);
+        // Use try_log_event_to directly to avoid env var races with parallel tests
+        try_log_event_to(&entry, dir.path()).unwrap();
 
         let log_path = dir.path().join(DEFAULT_LOG_FILE);
         assert!(log_path.exists());
@@ -272,9 +277,6 @@ mod tests {
         let parsed: serde_json::Value = serde_json::from_str(content.trim()).unwrap();
         assert_eq!(parsed["wrapper"], "test-wrapper");
         assert_eq!(parsed["action"], "allowed");
-
-        // Clean up env var
-        std::env::remove_var(LOG_DIR_ENV);
     }
 
     #[test]
