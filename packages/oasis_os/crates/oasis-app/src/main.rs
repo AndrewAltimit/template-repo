@@ -27,6 +27,8 @@ use oasis_core::terminal::{CommandOutput, CommandRegistry, Environment, register
 use oasis_core::transition;
 use oasis_core::vfs::MemoryVfs;
 use oasis_core::wallpaper;
+use oasis_core::wm::manager::{WindowManager, WmEvent};
+use oasis_core::wm::window::{WindowConfig, WindowType};
 
 /// Maximum lines visible in the terminal output area.
 const MAX_OUTPUT_LINES: usize = 12;
@@ -38,6 +40,7 @@ enum Mode {
     Terminal,
     App,
     Osk,
+    Desktop,
 }
 
 fn main() -> Result<()> {
@@ -107,6 +110,10 @@ fn main() -> Result<()> {
 
     // Running app state.
     let mut app_runner: Option<AppRunner> = None;
+
+    // Window manager state (Desktop mode).
+    let mut wm = WindowManager::new(config.screen_width, config.screen_height);
+    let mut open_runners: Vec<(String, AppRunner)> = Vec::new();
 
     // Networking state.
     let mut net_backend = StdNetworkBackend::new();
@@ -198,6 +205,77 @@ fn main() -> Result<()> {
                 continue;
             }
 
+            // Desktop mode: windowed WM rendering.
+            if mode == Mode::Desktop {
+                match event {
+                    InputEvent::Quit => break 'running,
+                    InputEvent::PointerClick { x, y } => {
+                        let wm_event =
+                            wm.handle_input(&InputEvent::PointerClick { x: *x, y: *y }, &mut sdi);
+                        match wm_event {
+                            WmEvent::WindowClosed(id) => {
+                                open_runners.retain(|(rid, _)| *rid != id);
+                                if wm.window_count() == 0 {
+                                    mode = Mode::Dashboard;
+                                }
+                            },
+                            WmEvent::DesktopClick(_, _) => {
+                                // Click on empty desktop -- return to Dashboard.
+                                if wm.window_count() == 0 {
+                                    mode = Mode::Dashboard;
+                                }
+                            },
+                            _ => {},
+                        }
+                    },
+                    InputEvent::CursorMove { x, y } => {
+                        wm.handle_input(&InputEvent::CursorMove { x: *x, y: *y }, &mut sdi);
+                    },
+                    InputEvent::PointerRelease { x, y } => {
+                        wm.handle_input(&InputEvent::PointerRelease { x: *x, y: *y }, &mut sdi);
+                    },
+                    InputEvent::ButtonPress(Button::Cancel) => {
+                        // Close the active window, or return to Dashboard.
+                        if let Some(active_id) = wm.active_window().map(|s| s.to_string()) {
+                            let _ = wm.close_window(&active_id, &mut sdi);
+                            open_runners.retain(|(rid, _)| *rid != active_id);
+                            if wm.window_count() == 0 {
+                                mode = Mode::Dashboard;
+                            }
+                        } else {
+                            mode = Mode::Dashboard;
+                        }
+                    },
+                    InputEvent::ButtonPress(Button::Start) => {
+                        mode = Mode::Terminal;
+                    },
+                    InputEvent::ButtonPress(btn) => {
+                        // Forward D-pad and Confirm to the active window's runner.
+                        if let Some(active_id) = wm.active_window().map(|s| s.to_string()) {
+                            if let Some((_, runner)) =
+                                open_runners.iter_mut().find(|(id, _)| *id == active_id)
+                            {
+                                match runner.handle_input(btn, &vfs) {
+                                    AppAction::Exit => {
+                                        let _ = wm.close_window(&active_id, &mut sdi);
+                                        open_runners.retain(|(rid, _)| *rid != active_id);
+                                        if wm.window_count() == 0 {
+                                            mode = Mode::Dashboard;
+                                        }
+                                    },
+                                    AppAction::SwitchToTerminal => {
+                                        mode = Mode::Terminal;
+                                    },
+                                    AppAction::None => {},
+                                }
+                            }
+                        }
+                    },
+                    _ => {},
+                }
+                continue;
+            }
+
             // App mode: fullscreen SDI rendering.
             if mode == Mode::App {
                 if let Some(ref mut runner) = app_runner {
@@ -228,7 +306,7 @@ fn main() -> Result<()> {
                     break 'running;
                 },
 
-                // Launch app from dashboard.
+                // Launch app from dashboard as floating window.
                 InputEvent::ButtonPress(Button::Confirm) if mode == Mode::Dashboard => {
                     if bottom_bar.active_tab == MediaTab::None {
                         if let Some(app) = dashboard.selected_app() {
@@ -236,8 +314,23 @@ fn main() -> Result<()> {
                             if app.title == "Terminal" {
                                 mode = Mode::Terminal;
                             } else {
-                                app_runner = Some(AppRunner::launch(app, &vfs));
-                                mode = Mode::App;
+                                let win_id = app.title.to_lowercase().replace(' ', "_");
+                                if wm.get_window(&win_id).is_some() {
+                                    let _ = wm.focus_window(&win_id, &mut sdi);
+                                } else {
+                                    let wc = WindowConfig {
+                                        id: win_id.clone(),
+                                        title: app.title.clone(),
+                                        x: None,
+                                        y: None,
+                                        width: 380,
+                                        height: 220,
+                                        window_type: WindowType::AppWindow,
+                                    };
+                                    let _ = wm.create_window(&wc, &mut sdi);
+                                    open_runners.push((win_id, AppRunner::launch(app, &vfs)));
+                                }
+                                mode = Mode::Desktop;
                             }
                             active_transition = Some(transition::fade_in(
                                 config.screen_width,
@@ -267,8 +360,27 @@ fn main() -> Result<()> {
                                             if app.title == "Terminal" {
                                                 mode = Mode::Terminal;
                                             } else {
-                                                app_runner = Some(AppRunner::launch(app, &vfs));
-                                                mode = Mode::App;
+                                                let win_id =
+                                                    app.title.to_lowercase().replace(' ', "_");
+                                                if wm.get_window(&win_id).is_some() {
+                                                    let _ = wm.focus_window(&win_id, &mut sdi);
+                                                } else {
+                                                    let wc = WindowConfig {
+                                                        id: win_id.clone(),
+                                                        title: app.title.clone(),
+                                                        x: None,
+                                                        y: None,
+                                                        width: 380,
+                                                        height: 220,
+                                                        window_type: WindowType::AppWindow,
+                                                    };
+                                                    let _ = wm.create_window(&wc, &mut sdi);
+                                                    open_runners.push((
+                                                        win_id,
+                                                        AppRunner::launch(app, &vfs),
+                                                    ));
+                                                }
+                                                mode = Mode::Desktop;
                                             }
                                             active_transition = Some(transition::fade_in(
                                                 config.screen_width,
@@ -291,6 +403,7 @@ fn main() -> Result<()> {
                         Mode::Terminal => Mode::Dashboard,
                         Mode::App => Mode::App,
                         Mode::Osk => Mode::Osk,
+                        Mode::Desktop => Mode::Desktop, // handled above
                     };
                 },
                 InputEvent::ButtonPress(Button::Select) => {
@@ -543,6 +656,14 @@ fn main() -> Result<()> {
                     runner.update_sdi(&mut sdi);
                 }
             },
+            Mode::Desktop => {
+                set_terminal_visible(&mut sdi, false);
+                AppRunner::hide_sdi(&mut sdi);
+                dashboard.hide_sdi(&mut sdi);
+                hide_media_page(&mut sdi);
+                status_bar.update_sdi(&mut sdi);
+                bottom_bar.update_sdi(&mut sdi);
+            },
             Mode::Osk => {
                 if let Some(ref osk_state) = osk {
                     osk_state.update_sdi(&mut sdi);
@@ -560,7 +681,17 @@ fn main() -> Result<()> {
 
         // -- Render --
         backend.clear(bg_color)?;
-        sdi.draw(&mut backend)?;
+        if mode == Mode::Desktop && wm.window_count() > 0 {
+            wm.draw_with_clips(&sdi, &mut backend, |window_id, cx, cy, cw, ch, be| {
+                if let Some((_, runner)) = open_runners.iter().find(|(id, _)| id == window_id) {
+                    runner.draw_windowed(cx, cy, cw, ch, be)
+                } else {
+                    Ok(())
+                }
+            })?;
+        } else {
+            sdi.draw(&mut backend)?;
+        }
 
         // Draw transition overlay if active.
         if let Some(ref mut trans) = active_transition {

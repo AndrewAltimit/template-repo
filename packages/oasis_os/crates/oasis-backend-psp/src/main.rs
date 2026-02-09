@@ -373,6 +373,9 @@ fn psp_main() {
                             &mut term_lines,
                             &mut classic_view,
                             &mut app_mode,
+                            &mut wm,
+                            &mut sdi,
+                            page,
                         );
                     }
                     InputEvent::ButtonRelease(Button::Confirm) => {
@@ -917,6 +920,28 @@ fn psp_main() {
 // Desktop mode helpers
 // ---------------------------------------------------------------------------
 
+/// Check if coordinates are over a dashboard icon, returning the global index.
+fn hit_test_dashboard_icon(x: i32, y: i32, page: usize) -> Option<usize> {
+    let page_start = page * ICONS_PER_PAGE;
+    let page_end = (page_start + ICONS_PER_PAGE).min(APPS.len());
+    for i in 0..(page_end - page_start) {
+        let col = (i % GRID_COLS) as i32;
+        let row = (i / GRID_COLS) as i32;
+        let cell_x = GRID_PAD_X + col * CELL_W;
+        let cell_y = CONTENT_TOP as i32 + GRID_PAD_Y + row * CELL_H;
+        let ix = cell_x + (CELL_W - ICON_W as i32) / 2;
+        let iy = cell_y + 4;
+        if x >= ix
+            && x < ix + ICON_W as i32
+            && y >= iy
+            && y < iy + ICON_H as i32 + ICON_LABEL_PAD + 10
+        {
+            return Some(page_start + i);
+        }
+    }
+    None
+}
+
 /// Open an app as a floating window (or focus if already open).
 fn open_app_window(wm: &mut WindowManager, sdi: &mut SdiRegistry, app_id: &str, title: &str) {
     if wm.get_window(app_id).is_some() {
@@ -935,12 +960,15 @@ fn open_app_window(wm: &mut WindowManager, sdi: &mut SdiRegistry, app_id: &str, 
     let _ = wm.create_window(&config, sdi);
 }
 
-/// Handle WM events (window closed, etc.).
+/// Handle WM events (window closed, desktop click opens apps, etc.).
 fn handle_wm_event(
     event: &WmEvent,
     term_lines: &mut Vec<String>,
     _classic_view: &mut ClassicView,
     _app_mode: &mut AppMode,
+    wm: &mut WindowManager,
+    sdi: &mut SdiRegistry,
+    page: usize,
 ) {
     match event {
         WmEvent::WindowClosed(id) => {
@@ -948,6 +976,13 @@ fn handle_wm_event(
         }
         WmEvent::ContentClick(id, lx, ly) => {
             term_lines.push(format!("[WM] Click in {}: ({}, {})", id, lx, ly));
+        }
+        WmEvent::DesktopClick(x, y) => {
+            if let Some(idx) = hit_test_dashboard_icon(*x, *y, page) {
+                if idx < APPS.len() {
+                    open_app_window(wm, sdi, APPS[idx].id, APPS[idx].title);
+                }
+            }
         }
         _ => {}
     }

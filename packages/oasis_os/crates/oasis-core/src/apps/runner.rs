@@ -1,6 +1,6 @@
 //! App screen runner with title bar and scrollable content.
 
-use crate::backend::Color;
+use crate::backend::{Color, SdiBackend};
 use crate::dashboard::AppEntry;
 use crate::input::Button;
 use crate::sdi::SdiRegistry;
@@ -202,6 +202,76 @@ impl AppRunner {
             },
             _ => AppAction::None,
         }
+    }
+
+    /// Render app content directly into a windowed content area.
+    ///
+    /// Unlike `update_sdi()` which creates named SDI objects for full-screen
+    /// display, this method draws directly into the clip region provided by the
+    /// window manager's `draw_with_clips` callback.
+    pub fn draw_windowed(
+        &self,
+        cx: i32,
+        cy: i32,
+        cw: u32,
+        ch: u32,
+        backend: &mut dyn SdiBackend,
+    ) -> crate::error::Result<()> {
+        // Content background.
+        backend.fill_rect(cx, cy, cw, ch, Color::rgb(12, 12, 20))?;
+
+        // Title row with dir/file suffix.
+        let dir_suffix = if let Some(ref file) = self.viewing_file {
+            format!("  [{file}]")
+        } else {
+            self.browse_dir
+                .as_deref()
+                .map(|d| format!("  [{d}]"))
+                .unwrap_or_default()
+        };
+        let title_text = format!("{}{dir_suffix}", self.title);
+        backend.draw_text(&title_text, cx + 4, cy + 2, 12, Color::WHITE)?;
+
+        // Separator line.
+        backend.fill_rect(cx, cy + 18, cw, 1, Color::rgb(60, 60, 80))?;
+
+        // Content lines.
+        let max_lines = ((ch as i32 - 24) / 16).max(0) as usize;
+        let visible = self.lines.len().saturating_sub(self.scroll).min(max_lines);
+        for i in 0..visible {
+            let line_idx = self.scroll + i;
+            let line = &self.lines[line_idx];
+            let prefix = if i == self.cursor { "> " } else { "  " };
+            let text = format!("{prefix}{line}");
+            let text_color = if i == self.cursor {
+                Color::rgb(100, 200, 255)
+            } else {
+                Color::rgb(180, 180, 200)
+            };
+            let y = cy + 22 + i as i32 * 16;
+            backend.draw_text(&text, cx + 4, y, 12, text_color)?;
+        }
+
+        // Scroll indicator at bottom-left.
+        let scroll_text = if self.lines.len() > max_lines {
+            format!(
+                "[{}/{}]  Cancel=back",
+                self.scroll + 1,
+                self.lines.len().saturating_sub(max_lines) + 1,
+            )
+        } else {
+            "Cancel=back".to_string()
+        };
+        let scroll_y = cy + ch as i32 - 14;
+        backend.draw_text(
+            &scroll_text,
+            cx + 4,
+            scroll_y,
+            10,
+            Color::rgb(100, 100, 130),
+        )?;
+
+        Ok(())
     }
 
     /// Number of currently visible content lines.
