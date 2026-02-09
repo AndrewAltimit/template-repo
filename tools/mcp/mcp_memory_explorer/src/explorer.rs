@@ -783,7 +783,9 @@ impl MemoryExplorer {
         }
 
         // Check for just a module name (no hex prefix, not numeric)
-        if !addr.starts_with("0x") && !addr.starts_with("0X") && addr.parse::<u64>().is_err()
+        if !addr.starts_with("0x")
+            && !addr.starts_with("0X")
+            && addr.parse::<u64>().is_err()
             && let Ok(base) = self.get_module_base(addr)
         {
             return Ok(base);
