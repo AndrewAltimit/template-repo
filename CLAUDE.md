@@ -74,19 +74,6 @@ docker compose logs -f <service>         # View logs
 docker compose down                      # Stop services
 ```
 
-### PSP Testing (PPSSPP)
-
-```bash
-# Build PPSSPP Docker image (first time only)
-docker compose --profile psp build ppsspp
-
-# Run OASIS_OS EBOOT headless (CI -- exits TIMEOUT on success)
-docker compose --profile psp run --rm -e PPSSPP_HEADLESS=1 ppsspp /roms/release/EBOOT.PBP --timeout=5
-
-# Run with GUI (requires X11 display)
-docker compose --profile psp run --rm ppsspp /roms/release/EBOOT.PBP
-```
-
 ## Architecture
 
 ### MCP Servers
@@ -119,7 +106,12 @@ docker compose --profile psp run --rm ppsspp /roms/release/EBOOT.PBP
 | `packages/injection_toolkit/` | Rust | Cross-platform screen capture/injection |
 | `packages/tamper_briefcase/` | Rust | Tamper-responsive briefcase with PQC recovery |
 | `packages/bioforge/` | Rust | Agent-driven CRISPR automation platform |
-| `packages/oasis_os/` | Rust | Embeddable OS framework (PSP/SDL2/UE5) |
+
+**External packages** (separate repositories):
+
+| Package | Language | Purpose |
+|---------|----------|---------|
+| [oasis-os](https://github.com/AndrewAltimit/oasis-os) | Rust | Embeddable OS framework (PSP/SDL2/UE5) |
 
 ## Development Reminders
 
@@ -207,5 +199,4 @@ This renders as:
 - `packages/tamper_briefcase/README.md` - Tamper-responsive briefcase system (Rust)
 - `packages/bioforge/README.md` - BioForge CRISPR automation (Rust)
 - `packages/bioforge/docs/governance-implications.md` - Biological agent governance analysis
-- `packages/oasis_os/README.md` - Embeddable OS framework (PSP/SDL2/UE5)
-- `packages/oasis_os/docs/design.md` - **OASIS_OS technical design document (v2.3)**
+- [oasis-os](https://github.com/AndrewAltimit/oasis-os) - Embeddable OS framework (moved to dedicated repo)

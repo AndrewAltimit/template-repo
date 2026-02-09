@@ -116,7 +116,12 @@ docker compose down                      # Stop services
 | `packages/injection_toolkit/` | Rust | Cross-platform screen capture/injection |
 | `packages/tamper_briefcase/` | Rust | Tamper-responsive briefcase with PQC recovery |
 | `packages/bioforge/` | Rust | Agent-driven CRISPR automation platform |
-| `packages/oasis_os/` | Rust | Embeddable OS framework (PSP/SDL2/UE5) |
+
+**External packages** (separate repositories):
+
+| Package | Language | Purpose |
+|---------|----------|---------|
+| [oasis-os](https://github.com/AndrewAltimit/oasis-os) | Rust | Embeddable OS framework (PSP/SDL2/UE5) |
 
 ## Development Reminders
 
@@ -202,5 +207,4 @@ This renders as:
 - `packages/tamper_briefcase/README.md` - Tamper-responsive briefcase system (Rust)
 - `packages/bioforge/README.md` - BioForge CRISPR automation (Rust)
 - `packages/bioforge/docs/governance-implications.md` - Biological agent governance analysis
-- `packages/oasis_os/README.md` - Embeddable OS framework (PSP/SDL2/UE5)
-- `packages/oasis_os/docs/design.md` - **OASIS_OS technical design document (v2.3)**
+- [oasis-os](https://github.com/AndrewAltimit/oasis-os) - Embeddable OS framework (moved to dedicated repo)

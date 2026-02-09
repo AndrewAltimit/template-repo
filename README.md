@@ -173,7 +173,7 @@ Standalone packages addressing different aspects of AI agent development, safety
 | **[Economic Agents](packages/economic_agents/)** | Rust-based simulation framework demonstrating autonomous AI economic capability - agents that earn money, form companies, hire sub-agents, and seek investment. For governance research and policy development | [README](packages/economic_agents/README.md) |
 | **[Injection Toolkit](packages/injection_toolkit/)** | Cross-platform Rust framework for runtime integration - DLL injection (Windows), LD_PRELOAD (Linux), shared memory IPC, and overlay rendering. For game modding, debugging tools, and AI agent embodiment | [README](packages/injection_toolkit/README.md) \| [Architecture](packages/injection_toolkit/docs/ARCHITECTURE.md) |
 | **[Tamper Briefcase](packages/tamper_briefcase/)** | Tamper-responsive Raspberry Pi briefcase with dual-sensor detection, LUKS2 cryptographic wipe, and hybrid PQC recovery USB. For secure physical transport of field-deployable agent terminals | [README](packages/tamper_briefcase/README.md) \| [Hardware Docs](docs/hardware/secure-terminal-briefcase.md) |
-| **[OASIS_OS](packages/oasis_os/)** | Embeddable OS framework in Rust -- skinnable shell with scene-graph UI, command interpreter, VFS, and plugin system. Renders on PSP hardware (sceGu), desktop (SDL2), and UE5 (render target via FFI). Containerized PPSSPP testing with NVIDIA GPU passthrough | [README](packages/oasis_os/README.md) \| [Design Doc](packages/oasis_os/docs/design.md) |
+| **[OASIS_OS](https://github.com/AndrewAltimit/oasis-os)** | Embeddable OS framework in Rust -- skinnable shell with scene-graph UI, command interpreter, VFS, and plugin system. Renders on PSP hardware (sceGu), desktop (SDL2), and UE5 (render target via FFI). Containerized PPSSPP testing with NVIDIA GPU passthrough | [README](https://github.com/AndrewAltimit/oasis-os) \| [Design Doc](https://github.com/AndrewAltimit/oasis-os/blob/main/docs/design.md) |
 
 **Rust CLI Tools** (in `tools/rust/`):
 
@@ -203,7 +203,7 @@ cd tools/rust/board-manager && cargo build --release
 
 - **[18 MCP Servers](#mcp-servers)** - Code quality, content creation, AI assistance, 3D graphics, video editing, speech synthesis, and more
 - **[6 AI Agents](#ai-agents)** - Autonomous development workflow from issue to merge
-- **[6 Packages](#packages)** - Sleeper agent detection, economic agent simulation, runtime injection, tamper-responsive briefcase, embeddable OS framework
+- **[5 Packages](#packages)** - Sleeper agent detection, economic agent simulation, runtime injection, tamper-responsive briefcase, CRISPR automation
 - **Container-First Architecture** - Maximum portability and consistency
 - **Self-Hosted CI/CD** - Zero-cost GitHub Actions infrastructure
 - **Company Integration** - Corporate proxy builds for enterprise AI APIs ([Docs](automation/corporate-proxy/shared/docs/ARCHITECTURE.md))
@@ -222,8 +222,7 @@ For enterprise environments requiring custom certificates, customize [`automatio
 │   ├── sleeper_agents/       # AI backdoor detection framework (Python)
 │   ├── economic_agents/      # Autonomous economic agents (Rust)
 │   ├── injection_toolkit/    # Runtime injection framework (Rust)
-│   ├── tamper_briefcase/     # Tamper-responsive briefcase system (Rust)
-│   └── oasis_os/             # Embeddable OS framework (Rust) - PSP/SDL2/UE5
+│   └── tamper_briefcase/     # Tamper-responsive briefcase system (Rust)
 ├── tools/
 │   ├── mcp/                  # 18 MCP servers (see MCP Servers section)
 │   ├── rust/                 # Rust CLI tools
