@@ -114,6 +114,14 @@ docker compose down                      # Stop services
 | `packages/sleeper_agents/` | Python | Sleeper agent detection framework |
 | `packages/economic_agents/` | Rust | Autonomous AI economic simulation |
 | `packages/injection_toolkit/` | Rust | Cross-platform screen capture/injection |
+| `packages/tamper_briefcase/` | Rust | Tamper-responsive briefcase with PQC recovery |
+| `packages/bioforge/` | Rust | Agent-driven CRISPR automation platform |
+
+**External packages** (separate repositories):
+
+| Package | Language | Purpose |
+|---------|----------|---------|
+| [oasis-os](https://github.com/AndrewAltimit/oasis-os) | Rust | Embeddable OS framework (PSP/SDL2/UE5) |
 
 ## Development Reminders
 
@@ -175,9 +183,15 @@ This renders as:
 - `docs/mcp/servers.md` - Server reference
 - `docs/mcp/tools.md` - Tools reference
 
+### Hardware
+- `docs/hardware/README.md` - Hardware systems overview
+- `docs/hardware/secure-terminal-briefcase.md` - Tamper-responsive briefcase system
+- `docs/hardware/bioforge-crispr-automation.md` - Agent-driven biological automation platform
+
 ### Infrastructure
 - `docs/infrastructure/containerization.md` - Container philosophy
 - `docs/infrastructure/self-hosted-runner.md` - Runner setup
+- `docs/infrastructure/wrapper-guard.md` - CLI binary hardening (git-guard, gh-validator)
 - `docs/developer/claude-code-hooks.md` - Hook system
 
 ### Integrations
@@ -190,3 +204,7 @@ This renders as:
 - `packages/economic_agents/README.md` - Economic agents simulation (Rust)
 - `packages/economic_agents/docs/economic-implications.md` - **AI governance policy analysis**
 - `packages/injection_toolkit/README.md` - Injection toolkit
+- `packages/tamper_briefcase/README.md` - Tamper-responsive briefcase system (Rust)
+- `packages/bioforge/README.md` - BioForge CRISPR automation (Rust)
+- `packages/bioforge/docs/governance-implications.md` - Biological agent governance analysis
+- [oasis-os](https://github.com/AndrewAltimit/oasis-os) - Embeddable OS framework (moved to dedicated repo)

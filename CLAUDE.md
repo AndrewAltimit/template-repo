@@ -107,6 +107,12 @@ docker compose down                      # Stop services
 | `packages/tamper_briefcase/` | Rust | Tamper-responsive briefcase with PQC recovery |
 | `packages/bioforge/` | Rust | Agent-driven CRISPR automation platform |
 
+**External packages** (separate repositories):
+
+| Package | Language | Purpose |
+|---------|----------|---------|
+| [oasis-os](https://github.com/AndrewAltimit/oasis-os) | Rust | Embeddable OS framework (PSP/SDL2/UE5) |
+
 ## Development Reminders
 
 - **ALWAYS run CI checks** after completing work (see commands above)
@@ -193,3 +199,4 @@ This renders as:
 - `packages/tamper_briefcase/README.md` - Tamper-responsive briefcase system (Rust)
 - `packages/bioforge/README.md` - BioForge CRISPR automation (Rust)
 - `packages/bioforge/docs/governance-implications.md` - Biological agent governance analysis
+- [oasis-os](https://github.com/AndrewAltimit/oasis-os) - Embeddable OS framework (moved to dedicated repo)

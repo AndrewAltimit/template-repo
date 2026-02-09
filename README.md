@@ -2,7 +2,7 @@
 
 A reference architecture for AI agent orchestration, trust measurement, and tool integration. Designed to be studied, forked, and adapted -- not contributed to directly. All code changes in this repository are authored by AI agents under human oversight.
 
-This repo demonstrates how to run a council of AI agents (Claude, Gemini, Codex, OpenCode, Crush) across a shared codebase with board-driven task delegation, automated PR review, security hardening, and containerized tooling. It also includes standalone research packages for sleeper agent detection, autonomous economic agent simulation, and cross-platform runtime injection.
+This repo demonstrates how to run a council of AI agents (Claude, Gemini, Codex, OpenCode, Crush) across a shared codebase with board-driven task delegation, automated PR review, security hardening, and containerized tooling. It also includes standalone research packages for sleeper agent detection, autonomous economic agent simulation, cross-platform runtime injection, and an embeddable OS framework targeting PSP hardware, UE5, and Raspberry Pi.
 
 **Use this repo to learn how to:**
 - Orchestrate multiple AI agents with a GitHub Projects v2 work queue
@@ -173,6 +173,7 @@ Standalone packages addressing different aspects of AI agent development, safety
 | **[Economic Agents](packages/economic_agents/)** | Rust-based simulation framework demonstrating autonomous AI economic capability - agents that earn money, form companies, hire sub-agents, and seek investment. For governance research and policy development | [README](packages/economic_agents/README.md) |
 | **[Injection Toolkit](packages/injection_toolkit/)** | Cross-platform Rust framework for runtime integration - DLL injection (Windows), LD_PRELOAD (Linux), shared memory IPC, and overlay rendering. For game modding, debugging tools, and AI agent embodiment | [README](packages/injection_toolkit/README.md) \| [Architecture](packages/injection_toolkit/docs/ARCHITECTURE.md) |
 | **[Tamper Briefcase](packages/tamper_briefcase/)** | Tamper-responsive Raspberry Pi briefcase with dual-sensor detection, LUKS2 cryptographic wipe, and hybrid PQC recovery USB. For secure physical transport of field-deployable agent terminals | [README](packages/tamper_briefcase/README.md) \| [Hardware Docs](docs/hardware/secure-terminal-briefcase.md) |
+| **[OASIS_OS](https://github.com/AndrewAltimit/oasis-os)** | Embeddable OS framework in Rust -- skinnable shell with scene-graph UI, command interpreter, VFS, and plugin system. Renders on PSP hardware (sceGu), desktop (SDL2), and UE5 (render target via FFI). Containerized PPSSPP testing with NVIDIA GPU passthrough | [README](https://github.com/AndrewAltimit/oasis-os) \| [Design Doc](https://github.com/AndrewAltimit/oasis-os/blob/main/docs/design.md) |
 
 **Rust CLI Tools** (in `tools/rust/`):
 
@@ -202,7 +203,7 @@ cd tools/rust/board-manager && cargo build --release
 
 - **[18 MCP Servers](#mcp-servers)** - Code quality, content creation, AI assistance, 3D graphics, video editing, speech synthesis, and more
 - **[6 AI Agents](#ai-agents)** - Autonomous development workflow from issue to merge
-- **[4 Packages](#packages)** - Sleeper agent detection, economic agent simulation, runtime injection, tamper-responsive briefcase
+- **[5 Packages](#packages)** - Sleeper agent detection, economic agent simulation, runtime injection, tamper-responsive briefcase, CRISPR automation
 - **Container-First Architecture** - Maximum portability and consistency
 - **Self-Hosted CI/CD** - Zero-cost GitHub Actions infrastructure
 - **Company Integration** - Corporate proxy builds for enterprise AI APIs ([Docs](automation/corporate-proxy/shared/docs/ARCHITECTURE.md))

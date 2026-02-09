@@ -148,6 +148,16 @@ The repository includes an **Economic Agents Simulation Framework** that demonst
 
 See the [Economic Agents Package](../../packages/economic_agents/README.md) for detailed documentation.
 
+### OASIS_OS (External Repository)
+
+**OASIS_OS** has been moved to its own dedicated repository: [github.com/AndrewAltimit/oasis-os](https://github.com/AndrewAltimit/oasis-os)
+
+An embeddable operating system framework in Rust with pluggable rendering backends (PSP hardware, SDL2, UE5), window manager, virtual filesystem, and command interpreter. Includes its own CI/CD pipeline, containerized PPSSPP emulator testing, and AI code review.
+
+### rust-psp SDK (External Repository)
+
+The **rust-psp SDK** lives at [github.com/AndrewAltimit/rust-psp](https://github.com/AndrewAltimit/rust-psp) -- a modernized edition 2024 fork with safety fixes, kernel mode support, and containerized CI. Used by the OASIS_OS PSP backend as a git dependency.
+
 ## How They Work Together
 
 ### Complete Automation Flow
