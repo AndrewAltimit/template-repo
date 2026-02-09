@@ -212,6 +212,13 @@ repos:
         files: '^tools/mcp/mcp_core_rust/.*\.rs$'
         pass_filenames: false
 
+      - id: rust-fmt-mcp-servers
+        name: Rust format MCP servers
+        entry: ./automation/hooks/fmt-mcp-servers.sh
+        language: system
+        files: '^tools/mcp/(?!mcp_core_rust|mcp_bioforge).*\.rs$'
+        pass_filenames: false
+
       - id: rust-clippy-gh-validator
         name: Rust lint gh-validator
         entry: bash -c 'source "$HOME/.cargo/env" 2>/dev/null || true; cd tools/rust/gh-validator && cargo clippy -- -D warnings'
