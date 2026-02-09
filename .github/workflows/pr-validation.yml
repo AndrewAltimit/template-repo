@@ -1267,13 +1267,19 @@ jobs:
       - name: Run clippy (MCP servers)
         run: ./automation/ci-cd/run-ci.sh mcp-servers-clippy
 
+      - name: Check formatting (standalone tools)
+        run: ./automation/ci-cd/run-ci.sh tools-fmt
+
+      - name: Run clippy (standalone tools)
+        run: ./automation/ci-cd/run-ci.sh tools-clippy
+
       - name: Generate summary
         if: always()
         run: |
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "---" >> $GITHUB_STEP_SUMMARY
           echo "## MCP Servers CI Summary" >> $GITHUB_STEP_SUMMARY
-          echo "Format and clippy checks for standalone MCP servers" >> $GITHUB_STEP_SUMMARY
+          echo "Format and clippy checks for MCP servers and standalone tools" >> $GITHUB_STEP_SUMMARY
 
   # Stage 8g: GitHub Board Tests - after AI review cycle
   github-board-tests:

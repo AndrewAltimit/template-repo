@@ -142,6 +142,13 @@ repos:
         files: '^tools/rust/code-parser/.*\.rs$'
         pass_filenames: false
 
+      - id: rust-clippy-code-parser
+        name: Rust lint code-parser
+        entry: bash -c 'source "$HOME/.cargo/env" 2>/dev/null || true; cd tools/rust/code-parser && cargo clippy -- -D warnings'
+        language: system
+        files: '^tools/rust/code-parser/.*\.rs$'
+        pass_filenames: false
+
       - id: rust-fmt-code-review-processor
         name: Rust format code-review-processor
         entry: bash -c 'source "$HOME/.cargo/env" 2>/dev/null || true; cd tools/rust/code-review-processor && cargo fmt --all'
