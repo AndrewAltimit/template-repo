@@ -19,7 +19,7 @@ inputs:
 outputs:
   made_changes:
     description: 'Whether changes were made'
-    value: ${{ steps.agent-fix.outputs.made_changes }}
+    value: ${{ steps.agent-fix.outputs.made_changes || steps.skip.outputs.made_changes || 'false' }}
   iteration_count:
     description: 'Current iteration count'
     value: ${{ steps.iteration.outputs.iteration_count }}
@@ -47,6 +47,7 @@ runs:
         github_token: ${{ inputs.github_token }}
 
     - name: Skip if max iterations reached
+      id: skip
       if: steps.iteration.outputs.exceeded_max == 'true'
       shell: bash
       run: |
