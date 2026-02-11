@@ -66,6 +66,8 @@
   agent/.style={stage, draw=agentwork, fill=agentwork!12},
   review/.style={stage, draw=reviewloop, fill=reviewloop!12},
   smallagent/.style={rectangle, rounded corners=4pt, draw=agentwork, fill=agentwork!12, minimum height=0.7cm, minimum width=1.8cm, align=center, line width=1pt},
+  gridagent/.style={rectangle, rounded corners=3pt, draw=agentwork!70, fill=agentwork!10, minimum height=0.5cm, minimum width=1.35cm, align=center, line width=0.8pt},
+  exampleagent/.style={gridagent, draw=agentwork!30, fill=agentwork!4, densely dashed},
   kanban/.style={rectangle, rounded corners=2pt, fill=kanban!25, font=\scriptsize\sffamily, inner sep=3pt},
   arrow/.style={-{Stealth[length=2.5mm]}, thick, color=darktext!50},
   looparrow/.style={-{Stealth[length=2mm]}, line width=1pt, color=reviewloop!80, densely dashed}
@@ -129,19 +131,23 @@
 
 % === ROW 2: Review Path (Right to Left) ===
 
-% Agent Council -- composable actions in dashed group
-\node[smallagent] (gemini-act) at ($(createpr) + (0, -2.3)$)
-  {\scriptsize\textcolor{gemini}{\textbf{Gemini}} Review};
-\node[smallagent, below=0.12cm of gemini-act] (codex-act)
-  {\scriptsize\textcolor{codex}{\textbf{Codex}} Review};
+% Agent Council -- composable actions in 2x2 grid
+\node[gridagent] (gemini-act) at ($(createpr) + (-0.55, -2.15)$)
+  {\scriptsize\textcolor{gemini}{\textbf{Gemini}}};
+\node[gridagent, right=0.1cm of gemini-act] (security-act)
+  {\scriptsize\textcolor{kanban}{\textbf{Security}}};
+\node[gridagent, below=0.08cm of gemini-act] (codex-act)
+  {\scriptsize\textcolor{codex}{\textbf{Codex}}};
+\node[gridagent, below=0.08cm of security-act] (cost-act)
+  {\scriptsize\textcolor{darktext!70}{\textbf{Infra Cost}}};
+% Extensibility indicator
+\coordinate (grid-bottom) at ($(codex-act.south)!0.5!(cost-act.south)$);
+\node[font=\tiny\bfseries\color{darktext}, below=0.03cm of grid-bottom] (more-acts) {+ customized agents};
 
 % Dashed group around council actions
 \node[draw=reviewloop!70, dashed, rounded corners=6pt, line width=1pt,
-      inner sep=5pt, fit=(gemini-act)(codex-act),
-      label={[font=\scriptsize\sffamily\bfseries, text=reviewloop, anchor=west, xshift=2pt]right:Agent Council}] (council) {};
-
-% Arrow within council (Gemini feeds Codex)
-\draw[-{Stealth[length=1.5mm]}, thin, color=darktext!40] (gemini-act) -- (codex-act);
+      inner sep=4pt, fit=(gemini-act)(security-act)(codex-act)(cost-act)(more-acts),
+      label={[font=\scriptsize\sffamily\bfseries, text=reviewloop, anchor=west, xshift=2pt, align=left]right:Agent\\Council}] (council) {};
 
 % Other row 2 nodes aligned to council center
 % Shift all row 2 nodes slightly left to give breathing room from council
@@ -155,7 +161,9 @@
 
 % Main flow arrows (on background so kanban labels appear on top)
 \begin{scope}[on background layer]
-\draw[arrow] (createpr) -- (council);
+\coordinate (above-council) at ($(council.north) + (0, 0.4)$);
+\draw[thick, color=darktext!50] (createpr.south) |- (above-council);
+\draw[arrow] (above-council) -- (council.north);
 \draw[arrow] (council) -- (autofix);
 \draw[arrow] (autofix) -- (ci);
 \draw[arrow] (ci) -- (humanrev);
@@ -242,16 +250,16 @@
 \textcolor{reviewloop}{\Large\textbf{Composable Actions}}
 \vspace{0.3em}
 
-Each review stage is a reusable GitHub Action:
+The Agent Council is a pluggable set of review actions. Load it with your project's needs:
 
-\begin{itemize}[leftmargin=1.2em, itemsep=0.3em]
-  \item \textcolor{gemini}{\textbf{gemini-review}} -- Security \& architecture
-  \item \textcolor{codex}{\textbf{codex-review}} -- Code patterns \& quality
-  \item \textcolor{claude}{\textbf{pr-review-fix}} -- Auto-fix from reviews
+\begin{itemize}[leftmargin=1.2em, itemsep=0.2em]
+  \item \textcolor{gemini}{\textbf{gemini-review}} -- Architecture
+  \item \textcolor{codex}{\textbf{codex-review}} -- Code quality
+  \item {\small Security, cost, compliance\ldots}
 \end{itemize}
 
-\vspace{0.3em}
-{\small Actions compose via artifacts. Each uploads its review; downstream actions consume them. Mix and match for different pipelines.}
+\vspace{0.2em}
+{\small Each action uploads a review artifact; downstream actions consume them. Mix and match for different pipelines.}
 
 \columnbreak
 
