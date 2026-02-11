@@ -11,7 +11,7 @@ inputs:
     required: false
     default: 'rust-tools'
   tools:
-    description: 'Comma-separated list of tools to setup (github-agents,board-manager,md-link-checker)'
+    description: 'Comma-separated list of tools to setup (github-agents,board-manager,md-link-checker,mcp-gemini,automation-cli)'
     required: false
     default: 'github-agents,board-manager'
 
@@ -61,6 +61,22 @@ runs:
                 mkdir -p tools/rust/markdown-link-checker/target/release
                 cp "$DOWNLOAD_PATH/md-link-checker" tools/rust/markdown-link-checker/target/release/
                 echo "Installed md-link-checker CLI"
+              fi
+              ;;
+            mcp-gemini)
+              if [ -f "$DOWNLOAD_PATH/mcp-gemini" ]; then
+                chmod +x "$DOWNLOAD_PATH/mcp-gemini"
+                mkdir -p tools/mcp/mcp_gemini/target/release
+                cp "$DOWNLOAD_PATH/mcp-gemini" tools/mcp/mcp_gemini/target/release/
+                echo "Installed mcp-gemini"
+              fi
+              ;;
+            automation-cli)
+              if [ -f "$DOWNLOAD_PATH/automation-cli" ]; then
+                chmod +x "$DOWNLOAD_PATH/automation-cli"
+                mkdir -p tools/rust/automation-cli/target/release
+                cp "$DOWNLOAD_PATH/automation-cli" tools/rust/automation-cli/target/release/
+                echo "Installed automation-cli"
               fi
               ;;
             *)
