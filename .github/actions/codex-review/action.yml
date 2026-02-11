@@ -1,0 +1,195 @@
+name: 'Codex AI Code Review'
+description: 'Run Codex AI code review on a pull request. Caller must set GH_TOKEN as env var.'
+
+inputs:
+  pr_number:
+    description: 'PR number to review'
+    required: true
+  gemini_review_artifact:
+    description: 'Gemini review artifact name to download for supplemental context (optional)'
+    required: false
+    default: ''
+  start_reaction_server:
+    description: 'Start reaction search MCP server'
+    required: false
+    default: 'true'
+
+outputs:
+  review_status:
+    description: 'Status of the review (success, failure, rate_limited, unavailable)'
+    value: ${{ steps.review.outputs.status }}
+  is_agent_commit:
+    description: 'Whether the last commit was by an agent'
+    value: ${{ steps.check-agent.outputs.is_agent_commit }}
+  review_artifact_name:
+    description: 'Name of the uploaded review artifact'
+    value: codex-review-${{ github.run_id }}-${{ github.run_attempt }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Log commit info
+      id: check-agent
+      shell: bash
+      run: |
+        LAST_COMMIT_MSG=$(git log -1 --format='%s')
+        LAST_COMMIT_AUTHOR=$(git log -1 --format='%an')
+
+        echo "Last commit message: $LAST_COMMIT_MSG"
+        echo "Last commit author: $LAST_COMMIT_AUTHOR"
+
+        IS_AGENT_COMMIT="false"
+        if [[ "$LAST_COMMIT_AUTHOR" == "AI Review Agent" ]] || \
+           [[ "$LAST_COMMIT_AUTHOR" == "AI Pipeline Agent" ]] || \
+           [[ "$LAST_COMMIT_AUTHOR" == "AI Agent Bot" ]]; then
+          IS_AGENT_COMMIT="true"
+          echo "Agent commit detected"
+        fi
+
+        echo "is_agent_commit=$IS_AGENT_COMMIT" >> $GITHUB_OUTPUT
+
+    - name: Setup Node.js
+      uses: ./.github/actions/setup-nodejs
+      with:
+        verify-cli: 'codex'
+
+    - name: Download Gemini review artifact
+      if: inputs.gemini_review_artifact != ''
+      uses: actions/download-artifact@v6
+      continue-on-error: true
+      with:
+        name: ${{ inputs.gemini_review_artifact }}
+        path: .
+
+    - name: Set Gemini review context
+      if: inputs.gemini_review_artifact != ''
+      shell: bash
+      run: |
+        if [ -f "gemini-review.md" ]; then
+          echo "GEMINI_REVIEW_PATH=gemini-review.md" >> $GITHUB_ENV
+          echo "Gemini review artifact found for supplemental context"
+        else
+          echo "No Gemini review artifact found"
+        fi
+
+    - name: Start Reaction Search MCP Server
+      if: inputs.start_reaction_server == 'true'
+      shell: bash
+      run: |
+        echo "Starting Reaction Search MCP server..."
+        source ./automation/setup/docker/set-docker-user.sh 2>/dev/null || true
+        docker compose --profile services up -d mcp-reaction-search
+
+        echo "Waiting for Reaction Search server..."
+        for i in {1..60}; do
+          if curl -f -s http://localhost:8024/health > /dev/null 2>&1; then
+            echo "Reaction Search MCP server is ready"
+            break
+          fi
+          if [ $i -eq 60 ]; then
+            echo "Warning: Reaction Search server not ready - reviews will use fallback URLs"
+            break
+          fi
+          sleep 2
+        done
+
+    - name: Configure Codex MCP servers
+      if: inputs.start_reaction_server == 'true'
+      shell: bash
+      run: |
+        export NVM_DIR="$HOME/.nvm"
+        [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+        nvm use 22.16.0 2>/dev/null || true
+
+        if command -v codex &>/dev/null; then
+          codex mcp add reaction-search --url http://localhost:8024/messages 2>&1 || \
+            echo "Warning: Could not configure Codex MCP server"
+          echo "Configured Codex MCP servers:"
+          codex mcp list 2>&1 || true
+        else
+          echo "Warning: Codex CLI not found, skipping MCP configuration"
+        fi
+
+    - name: Run Codex Code Review
+      id: review
+      shell: bash
+      env:
+        PR_NUMBER: ${{ inputs.pr_number }}
+      run: |
+        echo "Starting Codex PR Review (Rust CLI)..."
+
+        CMD="./tools/rust/github-agents-cli/target/release/github-agents pr-review $PR_NUMBER --agent codex"
+
+        # Run review and capture output
+        set +e
+        OUTPUT=$($CMD 2>&1)
+        EXIT_CODE=$?
+        set -e
+
+        echo "$OUTPUT"
+
+        # Save review to file for artifact upload
+        echo "$OUTPUT" > codex-review.md
+        echo "Saved review to codex-review.md"
+
+        # Handle transient API errors gracefully
+        if [ $EXIT_CODE -ne 0 ]; then
+          if echo "$OUTPUT" | grep -qiE '429|rate.?limit|quota|resource.?exhausted|usage.?limit'; then
+            echo "::warning::Codex API rate limit hit - skipping review for this run"
+            echo "status=rate_limited" >> $GITHUB_OUTPUT
+            exit 0
+          elif echo "$OUTPUT" | grep -qiE '503|502|fetch failed|service.?unavailable|server.?error|ECONNREFUSED|ETIMEDOUT|ENOTFOUND'; then
+            echo "::warning::Codex API is unavailable (likely transient outage) - skipping review for this run"
+            echo "status=unavailable" >> $GITHUB_OUTPUT
+            exit 0
+          else
+            echo "status=failure" >> $GITHUB_OUTPUT
+            exit $EXIT_CODE
+          fi
+        fi
+
+        echo "status=success" >> $GITHUB_OUTPUT
+
+    - name: Post unavailability notice
+      if: steps.review.outputs.status == 'unavailable'
+      shell: bash
+      env:
+        PR_NUMBER: ${{ inputs.pr_number }}
+      run: |
+        cat > /tmp/unavailable-notice.md <<'NOTICE_EOF'
+        ## Codex AI Code Review
+
+        **Warning:** Codex API was unavailable during this run
+        (likely a transient outage). Review skipped -- will run on next push.
+
+        ---
+        Generated by AI review pipeline. This is an advisory notice, not a blocking failure.
+        NOTICE_EOF
+        sed -i 's/^        //' /tmp/unavailable-notice.md
+        gh pr comment "$PR_NUMBER" --body-file /tmp/unavailable-notice.md || \
+          echo "::warning::Failed to post unavailability notice to PR"
+
+    - name: Stop Reaction Search MCP Server
+      if: always() && inputs.start_reaction_server == 'true'
+      shell: bash
+      run: |
+        echo "Stopping Reaction Search MCP server..."
+        docker compose --profile services stop mcp-reaction-search || true
+        docker compose --profile services rm -f mcp-reaction-search || true
+
+    - name: Upload review artifact
+      if: always()
+      uses: actions/upload-artifact@v6
+      with:
+        name: codex-review-${{ github.run_id }}-${{ github.run_attempt }}
+        path: codex-review.md
+        retention-days: 7
+        if-no-files-found: ignore
+
+    - name: Clean up working directory
+      if: always()
+      shell: bash
+      run: |
+        git checkout -- . 2>/dev/null || true
+        git clean -fd 2>/dev/null || true
+        echo "Working directory cleaned"

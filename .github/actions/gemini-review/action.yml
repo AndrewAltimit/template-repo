@@ -1,0 +1,210 @@
+name: 'Gemini AI Code Review'
+description: 'Run Gemini AI code review on a pull request. Caller must set GOOGLE_API_KEY, GEMINI_API_KEY, and GH_TOKEN as env vars.'
+
+inputs:
+  pr_number:
+    description: 'PR number to review'
+    required: true
+  enable_editor:
+    description: 'Enable editor cleanup pass'
+    required: false
+    default: 'true'
+  start_reaction_server:
+    description: 'Start reaction search MCP server'
+    required: false
+    default: 'true'
+
+outputs:
+  review_status:
+    description: 'Status of the review (success, failure, rate_limited, unavailable)'
+    value: ${{ steps.review.outputs.status }}
+  is_agent_commit:
+    description: 'Whether the last commit was by an agent'
+    value: ${{ steps.check-agent.outputs.is_agent_commit }}
+  review_artifact_name:
+    description: 'Name of the uploaded review artifact'
+    value: gemini-review-${{ github.run_id }}-${{ github.run_attempt }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Log commit info
+      id: check-agent
+      shell: bash
+      run: |
+        LAST_COMMIT_MSG=$(git log -1 --format='%s')
+        LAST_COMMIT_AUTHOR=$(git log -1 --format='%an')
+
+        echo "Last commit message: $LAST_COMMIT_MSG"
+        echo "Last commit author: $LAST_COMMIT_AUTHOR"
+
+        IS_AGENT_COMMIT="false"
+        if [[ "$LAST_COMMIT_AUTHOR" == "AI Review Agent" ]] || \
+           [[ "$LAST_COMMIT_AUTHOR" == "AI Pipeline Agent" ]] || \
+           [[ "$LAST_COMMIT_AUTHOR" == "AI Agent Bot" ]]; then
+          IS_AGENT_COMMIT="true"
+          echo "Agent commit detected"
+        fi
+
+        echo "is_agent_commit=$IS_AGENT_COMMIT" >> $GITHUB_OUTPUT
+
+    - name: Setup Node.js
+      uses: ./.github/actions/setup-nodejs
+      with:
+        verify-cli: 'gemini'
+
+    - name: Clear Gemini conversation history
+      shell: bash
+      continue-on-error: true
+      run: |
+        echo "Clearing Gemini conversation history..."
+
+        MCP_GEMINI="tools/mcp/mcp_gemini/target/release/mcp-gemini"
+        if [ ! -f "$MCP_GEMINI" ]; then
+          echo "Warning: mcp-gemini not found, skipping history clear"
+          exit 0
+        fi
+
+        # Start Gemini MCP server in background (HTTP mode)
+        $MCP_GEMINI --mode standalone --port 8006 &
+        GEMINI_PID=$!
+
+        # Wait for server to be ready
+        echo "Waiting for Gemini server..."
+        for i in {1..30}; do
+          if curl -f -s http://localhost:8006/health > /dev/null 2>&1; then
+            echo "Gemini server is ready"
+            break
+          fi
+          if [ $i -eq 30 ]; then
+            echo "Gemini server failed to start"
+            kill $GEMINI_PID || true
+            exit 1
+          fi
+          sleep 1
+        done
+
+        # Clear history
+        curl -X POST http://localhost:8006/mcp/execute \
+          -H "Content-Type: application/json" \
+          -d '{"tool": "clear_gemini_history", "arguments": {}}' \
+          || echo "Warning: Could not clear Gemini history"
+
+        kill $GEMINI_PID || true
+
+    - name: Start Reaction Search MCP Server
+      if: inputs.start_reaction_server == 'true'
+      shell: bash
+      run: |
+        echo "Starting Reaction Search MCP server..."
+        source ./automation/setup/docker/set-docker-user.sh 2>/dev/null || true
+        docker compose --profile services up -d mcp-reaction-search
+
+        echo "Waiting for Reaction Search server..."
+        for i in {1..60}; do
+          if curl -f -s http://localhost:8024/health > /dev/null 2>&1; then
+            echo "Reaction Search MCP server is ready"
+            break
+          fi
+          if [ $i -eq 60 ]; then
+            echo "Warning: Reaction Search server not ready - reviews will use fallback URLs"
+            break
+          fi
+          sleep 2
+        done
+
+    - name: Run Gemini Code Review
+      id: review
+      shell: bash
+      env:
+        PR_NUMBER: ${{ inputs.pr_number }}
+        ENABLE_EDITOR: ${{ inputs.enable_editor }}
+      run: |
+        # Check API Key
+        if [ -z "${GOOGLE_API_KEY:-}" ]; then
+          echo "Warning: GOOGLE_API_KEY is empty"
+        else
+          echo "GOOGLE_API_KEY is set (length: ${#GOOGLE_API_KEY})"
+        fi
+
+        echo "Starting Gemini PR Review (Rust CLI)..."
+
+        # Build command
+        CMD="./tools/rust/github-agents-cli/target/release/github-agents pr-review $PR_NUMBER"
+        if [ "$ENABLE_EDITOR" = "true" ]; then
+          CMD="$CMD --editor"
+        fi
+
+        # Run review and capture output
+        set +e
+        OUTPUT=$($CMD 2>&1)
+        EXIT_CODE=$?
+        set -e
+
+        echo "$OUTPUT"
+
+        # Save review to file for artifact upload
+        echo "$OUTPUT" > gemini-review.md
+        echo "Saved review to gemini-review.md"
+
+        # Handle transient API errors gracefully
+        if [ $EXIT_CODE -ne 0 ]; then
+          if echo "$OUTPUT" | grep -qiE '429|rate.?limit|quota|resource.?exhausted|usage.?limit'; then
+            echo "::warning::Gemini API rate limit hit - skipping review for this run"
+            echo "status=rate_limited" >> $GITHUB_OUTPUT
+            exit 0
+          elif echo "$OUTPUT" | grep -qiE '503|502|fetch failed|service.?unavailable|server.?error|ECONNREFUSED|ETIMEDOUT|ENOTFOUND'; then
+            echo "::warning::Gemini API is unavailable (likely transient outage) - skipping review for this run"
+            echo "status=unavailable" >> $GITHUB_OUTPUT
+            exit 0
+          else
+            echo "status=failure" >> $GITHUB_OUTPUT
+            exit $EXIT_CODE
+          fi
+        fi
+
+        echo "status=success" >> $GITHUB_OUTPUT
+
+    - name: Post unavailability notice
+      if: steps.review.outputs.status == 'unavailable'
+      shell: bash
+      env:
+        PR_NUMBER: ${{ inputs.pr_number }}
+      run: |
+        cat > /tmp/unavailable-notice.md <<'NOTICE_EOF'
+        ## Gemini AI Code Review
+
+        **Warning:** Gemini API was unavailable during this run
+        (likely a transient outage). Review skipped -- will run on next push.
+
+        ---
+        Generated by AI review pipeline. This is an advisory notice, not a blocking failure.
+        NOTICE_EOF
+        sed -i 's/^        //' /tmp/unavailable-notice.md
+        gh pr comment "$PR_NUMBER" --body-file /tmp/unavailable-notice.md || \
+          echo "::warning::Failed to post unavailability notice to PR"
+
+    - name: Stop Reaction Search MCP Server
+      if: always() && inputs.start_reaction_server == 'true'
+      shell: bash
+      run: |
+        echo "Stopping Reaction Search MCP server..."
+        docker compose --profile services stop mcp-reaction-search || true
+        docker compose --profile services rm -f mcp-reaction-search || true
+
+    - name: Upload review artifact
+      if: always()
+      uses: actions/upload-artifact@v6
+      with:
+        name: gemini-review-${{ github.run_id }}-${{ github.run_attempt }}
+        path: gemini-review.md
+        retention-days: 7
+        if-no-files-found: ignore
+
+    - name: Clean up working directory
+      if: always()
+      shell: bash
+      run: |
+        git checkout -- . 2>/dev/null || true
+        git clean -fd 2>/dev/null || true
+        echo "Working directory cleaned"
