@@ -56,7 +56,7 @@ AI agents interact with the Virtual Character via MCP tool calls. Here is the ty
   "tool": "play_audio",
   "params": {
     "audio_data": "<base64 audio or file path>",
-    "format": "mp3",
+    "audio_format": "mp3",
     "text": "Hello! I'm so excited to meet you, it's been a while."
   }
 }
@@ -73,13 +73,13 @@ AI agents interact with the Virtual Character via MCP tool calls. Here is the ty
   "description": "Animated story introduction"
 }}
 
-// 2. Add initial gesture
+// 2. Add initial expression with animation
 {"tool": "add_sequence_event", "params": {
   "event_type": "animation",
   "timestamp": 0.0,
-  "gesture": "wave",
-  "emotion": "happy",
-  "emotion_intensity": 0.7
+  "expression": "happy",
+  "expression_intensity": 0.7,
+  "animation_params": {"gesture": "wave"}
 }}
 
 // 3. Add audio event with expression sync
