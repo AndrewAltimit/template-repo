@@ -1254,24 +1254,24 @@ impl EmotionType {
 
 \begin{lstlisting}[caption=Emotion Transition Manager]
 pub struct EmotionTransitionManager {
-    current_state: (f32, f32, f32),
-    target_state: (f32, f32, f32),
+    current_state: EmotionVector,
+    target_state: EmotionVector,
     transition_speed: f32,
 }
 
 impl EmotionTransitionManager {
     pub fn new() -> Self {
         Self {
-            current_state: (0.0, 0.0, 0.0),
-            target_state: (0.0, 0.0, 0.0),
+            current_state: EmotionVector::neutral(),
+            target_state: EmotionVector::neutral(),
             transition_speed: 0.3,
         }
     }
 
     /// Called each frame -- smooth interpolation
-    pub fn update(&mut self, delta_time: f32) -> (f32, f32, f32) {
+    pub fn update(&mut self, delta_time: f32) -> EmotionVector {
         let blend = (self.transition_speed * delta_time * 60.0).min(1.0);
-        self.current_state = lerp(self.current_state, self.target_state, blend);
+        self.current_state = self.current_state.lerp(&self.target_state, blend);
         self.current_state
     }
 }
