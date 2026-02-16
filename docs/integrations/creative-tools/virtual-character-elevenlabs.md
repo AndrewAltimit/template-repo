@@ -2,25 +2,26 @@
 
 This guide demonstrates how to combine the Virtual Character MCP server with ElevenLabs Speech synthesis to create expressive, talking virtual characters with synchronized animation and emotion.
 
-> **Note**: The Virtual Character MCP Server has been migrated to Rust. The integration
-> concepts remain the same, but the server is now run as a Rust binary via Docker Compose.
+> **Implementation**: Both MCP servers are implemented in Rust. The Virtual Character server
+> lives at `tools/mcp/mcp_virtual_character/` and exposes 16 MCP tools for animation, audio,
+> sequences, and state management.
 
 ## Overview
 
 The integration enables:
-- **Expressive Speech**: Generate natural-sounding voice with emotional nuance
-- **Synchronized Animation**: Automatic emotion and lip-sync from audio
-- **Performance Sequencing**: Build complex multimedia performances
-- **Cross-Platform Support**: Works with VRChat, Blender, Unity, and more
+- **Expressive Speech**: Generate natural-sounding voice with emotional nuance via 50+ ElevenLabs expression tags
+- **Synchronized Animation**: Automatic emotion and lip-sync from audio via OSC protocol
+- **Performance Sequencing**: Build complex multimedia performances with parallel event execution
+- **Cross-Platform Support**: Pluggable backend system (VRChat via OSC, Mock for testing)
 
 ## Architecture
 
 ```
-ElevenLabs TTS → Audio + Tags → Virtual Character → Backend Platform
-                       ↓                                    ↓
-               Expression Mapping                    VRChat/Blender/Unity
-                       ↓                                    ↓
-               Emotion + Visemes                    Avatar Animation
+ElevenLabs TTS --> Audio + Tags --> Virtual Character MCP --> Backend Platform
+                       |                                          |
+               Expression Mapping                          VRChat (OSC/UDP)
+                       |                                          |
+               Emotion + Visemes                          Avatar Animation
 ```
 
 ## Quick Start
@@ -35,338 +36,255 @@ docker compose --profile virtual-character up mcp-virtual-character
 docker compose --profile services run --rm -T mcp-elevenlabs-speech
 ```
 
-The Virtual Character HTTP server will be available at `http://localhost:8025`.
+### 2. Basic Integration (MCP Tool Calls)
 
-### 2. Basic Integration Example
+AI agents interact with the Virtual Character via MCP tool calls. Here is the typical flow:
 
-The following example shows how to integrate with the servers via HTTP:
+```json
+// Step 1: Generate speech with ElevenLabs (elevenlabs-speech MCP)
+{
+  "tool": "synthesize_speech_v3",
+  "params": {
+    "text": "Hello! [laughs] I'm so excited to meet you [whisper] it's been a while.",
+    "voice_id": "Sarah",
+    "model": "eleven_v3"
+  }
+}
 
-```python
-import asyncio
-import aiohttp
-import base64
-
-async def speak_with_character():
-    async with aiohttp.ClientSession() as session:
-        # Step 1: Generate speech with ElevenLabs
-        elevenlabs_response = await session.post(
-            "http://localhost:8018/mcp/execute",
-            json={
-                "tool": "synthesize_speech_v3",
-                "params": {
-                    "text": "Hello! [laughs] I'm so excited to meet you [whisper] it's been a while.",
-                    "voice_id": "Sarah",
-                    "model": "eleven_v3"
-                }
-            }
-        )
-        audio_result = await elevenlabs_response.json()
-
-        # Step 2: Send to Virtual Character
-        await session.post(
-            "http://localhost:8020/mcp/execute",
-            json={
-                "tool": "send_audio",
-                "params": {
-                    "audio_data": audio_result["audio_base64"],
-                    "expression_tags": ["laughs", "whisper"],
-                    "text": audio_result["text"],
-                    "format": "mp3"
-                }
-            }
-        )
-
-asyncio.run(speak_with_character())
+// Step 2: Play audio on character (virtual-character MCP)
+{
+  "tool": "play_audio",
+  "params": {
+    "audio_data": "<base64 audio or file path>",
+    "format": "mp3",
+    "text": "Hello! I'm so excited to meet you, it's been a while."
+  }
+}
 ```
 
 ## Advanced Features
 
 ### Creating Complex Performances
 
-```python
-async def create_storytelling_performance():
-    async with aiohttp.ClientSession() as session:
-        # Create a new sequence
-        await session.post(
-            "http://localhost:8020/mcp/execute",
-            json={
-                "tool": "create_sequence",
-                "params": {
-                    "name": "storytelling_intro",
-                    "description": "Animated story introduction"
-                }
-            }
-        )
+```json
+// 1. Create a new sequence
+{"tool": "create_sequence", "params": {
+  "name": "storytelling_intro",
+  "description": "Animated story introduction"
+}}
 
-        # Add initial gesture
-        await session.post(
-            "http://localhost:8020/mcp/execute",
-            json={
-                "tool": "add_sequence_event",
-                "params": {
-                    "event_type": "animation",
-                    "timestamp": 0,
-                    "animation_params": {
-                        "gesture": "wave",
-                        "emotion": "happy",
-                        "emotion_intensity": 0.7
-                    }
-                }
-            }
-        )
+// 2. Add initial gesture
+{"tool": "add_sequence_event", "params": {
+  "event_type": "animation",
+  "timestamp": 0.0,
+  "gesture": "wave",
+  "emotion": "happy",
+  "emotion_intensity": 0.7
+}}
 
-        # Generate narration with emotions
-        narration = await generate_elevenlabs_audio(
-            "Once upon a time [dramatic_pause] in a land far, far away [whisper] "
-            "there lived a brave knight [heroic] who loved to [laughs] tell jokes!"
-        )
+// 3. Add audio event with expression sync
+{"tool": "add_sequence_event", "params": {
+  "event_type": "audio",
+  "timestamp": 1.0,
+  "audio_data": "<base64 narration audio>",
+  "sync_with_audio": true
+}}
 
-        # Add audio event
-        await session.post(
-            "http://localhost:8020/mcp/execute",
-            json={
-                "tool": "add_sequence_event",
-                "params": {
-                    "event_type": "audio",
-                    "timestamp": 1.0,
-                    "audio_data": narration["base64"],
-                    "expression_tags": ["dramatic_pause", "whisper", "heroic", "laughs"],
-                    "sync_with_audio": True
-                }
-            }
-        )
+// 4. Add movement during speech
+{"tool": "add_sequence_event", "params": {
+  "event_type": "movement",
+  "timestamp": 5.0,
+  "move_forward": 0.3,
+  "duration": 2.0
+}}
 
-        # Add movement during speech
-        await session.post(
-            "http://localhost:8020/mcp/execute",
-            json={
-                "tool": "add_sequence_event",
-                "params": {
-                    "event_type": "movement",
-                    "timestamp": 5.0,
-                    "movement_params": {
-                        "move_forward": 0.3,
-                        "duration": 2.0
-                    }
-                }
-            }
-        )
-
-        # Play the sequence
-        await session.post(
-            "http://localhost:8020/mcp/execute",
-            json={
-                "tool": "play_sequence",
-                "params": {}
-            }
-        )
+// 5. Play the sequence
+{"tool": "play_sequence", "params": {}}
 ```
 
 ### Emotional Dialogue System
 
-```python
-async def emotional_conversation(emotion_state="neutral"):
-    """Create dynamic conversations with emotional progression"""
+For dynamic conversations with emotional progression, chain multiple MCP tool calls:
 
-    dialogue_segments = [
-        {
-            "text": "I need to tell you something important.",
-            "emotion": "serious",
-            "tags": ["deep_breath"]
-        },
-        {
-            "text": "[sighs] It's been on my mind for a while.",
-            "emotion": "sad",
-            "tags": ["sighs"]
-        },
-        {
-            "text": "But you know what? [laughs] I realized it doesn't matter!",
-            "emotion": "happy",
-            "tags": ["laughs"]
-        }
-    ]
+```json
+// Segment 1: Set serious emotion, play audio
+{"tool": "send_animation", "params": {
+  "emotion": "neutral", "emotion_intensity": 0.8, "gesture": "none"
+}}
+{"tool": "play_audio", "params": {
+  "audio_data": "<audio for: I need to tell you something important>",
+  "text": "I need to tell you something important."
+}}
 
-    for segment in dialogue_segments:
-        # Generate audio with appropriate voice settings
-        audio = await generate_with_emotion(
-            text=segment["text"],
-            emotion=segment["emotion"]
-        )
+// Segment 2: Transition to sadness
+{"tool": "send_animation", "params": {
+  "emotion": "sad", "emotion_intensity": 0.6
+}}
+{"tool": "play_audio", "params": {
+  "audio_data": "<audio for: [sighs] It's been on my mind>",
+  "text": "[sighs] It's been on my mind for a while."
+}}
 
-        # Send to character with emotion transition
-        await send_to_character(
-            audio_data=audio,
-            emotion=segment["emotion"],
-            expression_tags=segment["tags"]
-        )
-
-        # Wait for audio to finish
-        await asyncio.sleep(audio["duration"])
+// Segment 3: Transition to happiness
+{"tool": "send_animation", "params": {
+  "emotion": "happy", "emotion_intensity": 0.9, "gesture": "cheer"
+}}
+{"tool": "play_audio", "params": {
+  "audio_data": "<audio for: [laughs] I realized it doesn't matter!>",
+  "text": "But you know what? [laughs] I realized it doesn't matter!"
+}}
 ```
 
 ## Expression Tag Mapping
 
-The system automatically maps ElevenLabs expression tags to character emotions:
+The Rust server automatically maps ElevenLabs expression tags to character emotions (50+ mappings in `src/audio_emotion_mappings.rs`):
 
-| ElevenLabs Tag | Character Emotion | Animation Effect |
-|----------------|-------------------|------------------|
-| `[laughs]` | happy | Smile, eye squint |
-| `[sighs]` | sad | Downcast eyes, slight frown |
-| `[whisper]` | neutral | Lean forward slightly |
-| `[shouts]` | angry | Wide eyes, open mouth |
-| `[gasps]` | surprised | Wide eyes, raised eyebrows |
-| `[coughs]` | neutral | Cover mouth gesture |
-| `[clears throat]` | neutral | Straighten posture |
+| ElevenLabs Tag | Character Emotion | Intensity | Animation Effect |
+|----------------|-------------------|-----------|------------------|
+| `[laughs]` | Happy | 0.8 | Smile, Cheer VRCEmote |
+| `[sighs]` | Sad | 0.6 | Sadness VRCEmote |
+| `[whisper]` | Calm | 0.5 | Lean forward slightly |
+| `[shouts]` / `[yelling]` | Angry | 0.9 | Wide eyes, open mouth |
+| `[gasps]` | Surprised | 0.8 | Wide eyes, raised eyebrows |
+| `[nervously]` | Fearful | 0.6 | Shrinking posture |
+| `[excited]` | Excited | 0.9 | Dance VRCEmote |
+| `[calmly]` | Calm | 0.7 | Relaxed neutral pose |
 
 ## Platform-Specific Considerations
 
 ### VRChat Integration
 
-```python
-# VRChat requires remote bridge server on Windows
-await session.post(
-    "http://localhost:8020/mcp/execute",
-    json={
-        "tool": "set_backend",
-        "params": {
-            "backend": "vrchat_remote",
-            "config": {
-                "remote_host": "192.168.1.100",  # Windows VRChat machine
-                "osc_out_port": 9000,
-                "use_vrcemote": True  # Use emote system for gestures
-            }
-        }
-    }
-)
+```json
+// Connect to VRChat via OSC (requires VRChat on Windows)
+{"tool": "set_backend", "params": {
+  "backend": "vrchat_remote",
+  "config": {
+    "remote_host": "192.168.1.100",
+    "osc_in_port": 9000,
+    "osc_out_port": 9001,
+    "use_vrcemote": true
+  }
+}}
 ```
 
-### Blender Integration
+The VRChat backend communicates via OSC over UDP with bidirectional support:
+- **Outbound**: Emotion, gesture, movement, and audio state parameters
+- **Inbound**: Avatar parameter tracking from VRChat
+- **VRCEmote Toggle**: Sending same emote value twice turns it off
 
-```python
-# Blender backend for rendering performances
-await session.post(
-    "http://localhost:8020/mcp/execute",
-    json={
-        "tool": "set_backend",
-        "params": {
-            "backend": "blender",
-            "config": {
-                "project_path": "/path/to/character.blend",
-                "auto_render": True
-            }
-        }
-    }
-)
+### Mock Backend (Testing)
+
+```json
+// Use mock backend for development without VRChat
+{"tool": "set_backend", "params": {
+  "backend": "mock"
+}}
+
+// Mock backend tracks all animation/audio history for assertions
+{"tool": "get_backend_status", "params": {}}
 ```
 
 ## Best Practices
 
 ### 1. Audio Quality Settings
 
-```python
-# Optimize for character voice
-audio_settings = {
-    "model": "eleven_v3",  # Best quality model
-    "voice_settings": {
-        "stability": 0.5,      # Natural variation
-        "similarity": 0.75,    # Voice consistency
-        "style": 0.4,          # Expressive delivery
-        "use_speaker_boost": True
-    }
+```json
+// ElevenLabs v3 optimal settings for character voice
+{
+  "model": "eleven_v3",
+  "voice_settings": {
+    "stability": 0.5,
+    "similarity": 0.75,
+    "style": 0.4,
+    "use_speaker_boost": true
+  }
 }
 ```
 
 ### 2. Performance Optimization
 
-- **Pre-generate Audio**: Generate all audio segments before performance
-- **Use Sequences**: Build complete performances offline for smooth playback
-- **Cache Audio**: Reuse common phrases and expressions
-- **Batch Operations**: Send multiple events in a single sequence
+- **Pre-generate Audio**: Generate all audio segments before starting a sequence
+- **Use Sequences**: Build complete performances with `create_sequence` for smooth playback
+- **Parallel Events**: Use `event_type: "parallel"` to synchronize animation with audio
+- **Batch Operations**: Add all events to a sequence before calling `play_sequence`
 
 ### 3. Emotional Consistency
 
-```python
-# Maintain emotional state across segments
-class EmotionalContext:
-    def __init__(self):
-        self.current_emotion = "neutral"
-        self.emotion_history = []
+The PAD (Pleasure-Arousal-Dominance) model in the Rust server enables smooth emotion interpolation:
 
-    def transition_to(self, new_emotion, intensity=1.0):
-        """Smooth emotion transitions"""
-        if self.current_emotion != new_emotion:
-            # Add transition event
-            transition_duration = 0.5
-            return {
-                "from": self.current_emotion,
-                "to": new_emotion,
-                "duration": transition_duration,
-                "intensity": intensity
-            }
+```rust
+// From types.rs -- each emotion maps to a 3D vector
+impl EmotionType {
+    pub fn to_pad_vector(&self) -> (f32, f32, f32) {
+        match self {
+            EmotionType::Happy     => ( 0.8,  0.6,  0.2),
+            EmotionType::Sad       => (-0.7, -0.3, -0.4),
+            EmotionType::Angry     => (-0.6,  0.8,  0.6),
+            EmotionType::Calm      => ( 0.3, -0.6,  0.1),
+            // ...
+        }
+    }
+}
 ```
+
+The `lerp()` method enables smooth transitions between emotional states.
 
 ## Troubleshooting
 
 ### Common Issues
 
 1. **Audio Not Playing**
-   - Check backend audio support
-   - Verify audio format compatibility
-   - Ensure audio data is properly base64 encoded
+   - Check backend connection with `get_backend_status`
+   - Verify audio format (MP3, WAV, OGG, FLAC supported via magic byte detection)
+   - Ensure audio data is properly base64 encoded or a valid file path
 
 2. **Lip-Sync Not Working**
-   - Confirm viseme support in backend
-   - Check if text transcript is provided
-   - Verify audio format is PCM or WAV for analysis
+   - Confirm VRChat OSC is enabled in settings
+   - Set VRChat to use virtual audio cable for mic input
+   - VRChat handles lip-sync automatically from audio
 
 3. **Expression Tags Not Recognized**
-   - Use standard ElevenLabs v3 tags
-   - Check tag spelling and format
-   - Verify backend emotion mapping
+   - Use standard ElevenLabs v3 bracket syntax: `[laughs]`, `[sighs]`, etc.
+   - Check `src/audio_emotion_mappings.rs` for the complete tag list
+   - The server uses regex parsing to extract bracketed tags
 
 ### Debug Mode
 
-```python
-# Enable debug logging
-import logging
-logging.basicConfig(level=logging.DEBUG)
+```bash
+# Run with debug logging
+RUST_LOG=debug cargo run -p mcp-virtual-character
 
 # Test with mock backend first
-await session.post(
-    "http://localhost:8020/mcp/execute",
-    json={
-        "tool": "set_backend",
-        "params": {"backend": "mock"}
-    }
-)
 ```
 
-## Example Projects
+```json
+{"tool": "set_backend", "params": {"backend": "mock"}}
+{"tool": "send_animation", "params": {"emotion": "happy", "emotion_intensity": 0.8}}
+{"tool": "get_backend_status", "params": {}}
+```
 
-### 1. AI Storyteller
+## MCP Tools Reference
 
-Complete implementation in `tools/mcp/virtual_character/examples/storyteller.py`
+### Virtual Character Tools (16 total)
 
-### 2. Virtual Assistant
-
-See `tools/mcp/virtual_character/examples/assistant.py`
-
-### 3. Educational Presenter
-
-Available at `tools/mcp/virtual_character/examples/educator.py`
-
-## API Reference
-
-### ElevenLabs Tools
-- `synthesize_speech_v3` - Generate speech with expression tags
-- `synthesize_emotional` - Add emotional context
-- `synthesize_dialogue` - Multi-character dialogue
-
-### Virtual Character Tools
-- `send_audio` - Transmit audio with metadata
-- `create_sequence` - Build performance sequences
-- `add_sequence_event` - Add synchronized events
-- `play_sequence` - Execute performances
+| Tool | Description |
+|------|-------------|
+| `set_backend` | Connect to backend (mock, vrchat_remote) |
+| `list_backends` | List available backends |
+| `get_backend_status` | Get backend status and statistics |
+| `send_animation` | Send emotion + gesture + movement |
+| `execute_behavior` | High-level behaviors (greet, dance, sit, stand) |
+| `send_vrcemote` | Direct VRCEmote value (0-8) |
+| `play_audio` | Play audio with lip-sync metadata |
+| `create_sequence` | Create named event sequence |
+| `add_sequence_event` | Add event to sequence |
+| `play_sequence` | Start sequence playback |
+| `pause_sequence` | Pause playback |
+| `resume_sequence` | Resume from pause |
+| `stop_sequence` | Stop playback |
+| `get_sequence_status` | Query sequence state |
+| `reset` | Clear emotes and reset to neutral |
+| `panic_reset` | Emergency reset (stops everything) |
 
 ## Resources
 

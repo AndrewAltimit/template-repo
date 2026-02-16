@@ -77,15 +77,14 @@ export GOOGLE_API_KEY="your-google-ai-studio-key"
 # Get free key at: https://aistudio.google.com/app/apikey
 ```
 
-### Method 1: GitHub AI Agents Package (Recommended)
+### Method 1: Docker Container (Recommended)
 
 ```bash
-# Install the package with all agents
-pip3 install -e ./packages/github_agents
+# Start the agents container
+docker compose up -d openrouter-agents
 
-# Verify installation
-opencode --version
-crush --version
+# Verify agents are running
+docker compose logs openrouter-agents
 ```
 
 ### Method 2: Using Helper Scripts
@@ -475,12 +474,11 @@ export OPENROUTER_API_KEY="your-key-here"
 #### Agent Not Found
 
 ```bash
-# Reinstall the package
-pip3 install -e ./packages/github_agents --force-reinstall
+# Rebuild and restart the container
+docker compose up -d --build openrouter-agents
 
-# Verify installation
-which opencode
-which crush
+# Verify agents are running
+docker compose logs openrouter-agents
 ```
 
 #### MCP Server Not Responding
