@@ -108,10 +108,21 @@ impl CodexAgent {
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
+            let stdout = String::from_utf8_lossy(&output.stdout);
             tracing::error!("Codex CLI failed with stderr: {}", stderr);
+            if !stdout.is_empty() {
+                tracing::error!("Codex CLI stdout: {}", stdout);
+            }
+            // Include both stderr and stdout so callers can grep for API errors
+            // (some CLIs report errors on stdout instead of stderr)
+            let combined = if stdout.is_empty() {
+                stderr.to_string()
+            } else {
+                format!("{}\n{}", stderr, stdout)
+            };
             return Err(Error::Config(format!(
                 "Codex CLI exited with status {}: {}",
-                output.status, stderr
+                output.status, combined
             )));
         }
 

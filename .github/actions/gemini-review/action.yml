@@ -148,12 +148,14 @@ runs:
         echo "Saved review to gemini-review.md"
 
         # Handle transient API errors gracefully
+        # NOTE: grep via here-string (<<<) instead of echo|grep to avoid
+        # pipefail+SIGPIPE false negatives when OUTPUT exceeds pipe buffer (~64KB).
         if [ $EXIT_CODE -ne 0 ]; then
-          if echo "$OUTPUT" | grep -qiE '429|rate.?limit|quota|resource.?exhausted|usage.?limit'; then
-            echo "::warning::Gemini API rate limit hit - skipping review for this run"
+          if grep -qiE '429|rate.?limit|quota|resource.?exhausted|usage.?limit|usage_limit|spending.?limit|hit.your.*limit' <<< "$OUTPUT"; then
+            echo "::warning::Gemini API rate/usage limit hit - skipping review for this run"
             echo "status=rate_limited" >> $GITHUB_OUTPUT
             exit 0
-          elif echo "$OUTPUT" | grep -qiE '503|502|fetch failed|service.?unavailable|server.?error|ECONNREFUSED|ETIMEDOUT|ENOTFOUND'; then
+          elif grep -qiE '503|502|fetch failed|service.?unavailable|server.?error|ECONNREFUSED|ETIMEDOUT|ENOTFOUND' <<< "$OUTPUT"; then
             echo "::warning::Gemini API is unavailable (likely transient outage) - skipping review for this run"
             echo "status=unavailable" >> $GITHUB_OUTPUT
             exit 0
