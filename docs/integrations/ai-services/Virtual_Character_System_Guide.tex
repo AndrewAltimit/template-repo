@@ -1235,15 +1235,15 @@ Discrete emotion categories are useful for classification but brittle for animat
 
 \begin{lstlisting}[caption=Emotion to PAD Vector Mapping]
 impl EmotionType {
-    pub fn to_pad_vector(&self) -> (f32, f32, f32) {
+    pub fn to_pad_vector(self) -> EmotionVector {
         match self {
-            EmotionType::Happy     => ( 0.8,  0.6,  0.2),
-            EmotionType::Sad       => (-0.7, -0.3, -0.4),
-            EmotionType::Angry     => (-0.6,  0.8,  0.6),
-            EmotionType::Fearful   => (-0.7,  0.7, -0.6),
-            EmotionType::Surprised => ( 0.2,  0.8, -0.1),
-            EmotionType::Calm      => ( 0.3, -0.6,  0.1),
-            EmotionType::Neutral   => ( 0.0,  0.0,  0.0),
+            EmotionType::Happy     => EmotionVector::new( 0.8,  0.5,  0.2),
+            EmotionType::Sad       => EmotionVector::new(-0.7, -0.3, -0.4),
+            EmotionType::Angry     => EmotionVector::new(-0.6,  0.8,  0.6),
+            EmotionType::Fearful   => EmotionVector::new(-0.7,  0.7, -0.6),
+            EmotionType::Surprised => EmotionVector::new( 0.2,  0.8, -0.1),
+            EmotionType::Calm      => EmotionVector::new( 0.3, -0.6,  0.1),
+            EmotionType::Neutral   => EmotionVector::new( 0.0,  0.0,  0.0),
             // ... remaining emotions
         }
     }
@@ -1283,8 +1283,9 @@ impl EmotionTransitionManager {
 
 \begin{lstlisting}[caption=Emotion to Audio Tags]
 pub fn get_audio_tags_for_emotion(
-    emotion: &EmotionType,
+    emotion: EmotionType,
     intensity: f32,
+    max_tags: usize,
 ) -> Vec<&'static str> {
     match emotion {
         EmotionType::Happy => {
@@ -1481,15 +1482,19 @@ The event sequencer enables choreographed multi-modal performances with precise 
 // create_sequence
 {"name": "greeting_sequence", "description": "Wave and greet the user"}
 
-// add_sequence_event
+// add_sequence_event - expression at t=0
 {
-  "event_type": "parallel",
+  "event_type": "expression",
   "timestamp": 0.0,
-  "parallel_events": [
-    {"event_type": "expression", "expression": "happy", "intensity": 0.8},
-    {"event_type": "animation", "gesture": "wave"},
-    {"event_type": "audio", "audio_data": "outputs/greeting.mp3"}
-  ]
+  "expression": "happy",
+  "expression_intensity": 0.8
+}
+
+// add_sequence_event - audio at t=0.5
+{
+  "event_type": "audio",
+  "timestamp": 0.5,
+  "duration": 3.0
 }
 
 // play_sequence

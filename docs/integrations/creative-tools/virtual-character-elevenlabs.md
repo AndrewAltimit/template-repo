@@ -215,12 +215,12 @@ The PAD (Pleasure-Arousal-Dominance) model in the Rust server enables smooth emo
 ```rust
 // From types.rs -- each emotion maps to a 3D vector
 impl EmotionType {
-    pub fn to_pad_vector(&self) -> (f32, f32, f32) {
+    pub fn to_pad_vector(self) -> EmotionVector {
         match self {
-            EmotionType::Happy     => ( 0.8,  0.6,  0.2),
-            EmotionType::Sad       => (-0.7, -0.3, -0.4),
-            EmotionType::Angry     => (-0.6,  0.8,  0.6),
-            EmotionType::Calm      => ( 0.3, -0.6,  0.1),
+            EmotionType::Happy     => EmotionVector::new( 0.8,  0.5,  0.2),
+            EmotionType::Sad       => EmotionVector::new(-0.7, -0.3, -0.4),
+            EmotionType::Angry     => EmotionVector::new(-0.6,  0.8,  0.6),
+            EmotionType::Calm      => EmotionVector::new( 0.3, -0.6,  0.1),
             // ...
         }
     }
