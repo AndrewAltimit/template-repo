@@ -237,7 +237,6 @@
 % CODE LISTING STYLE
 % ============================================================================
 \lstdefinestyle{moderncode}{
-  language=Python,
   basicstyle=\ttfamily\small\color{codetext},
   keywordstyle=\color{codekeyword}\bfseries,
   stringstyle=\color{codestring},
@@ -258,7 +257,14 @@
   belowskip=1em,
   literate={`}{\`}1
 }
-\lstset{style=moderncode}
+\lstdefinelanguage{Rust}{
+  morekeywords={async,await,fn,pub,struct,impl,enum,match,let,mut,self,Self,use,mod,crate,super,trait,where,for,in,if,else,return,true,false,Some,None,Ok,Err,Result,Option,Vec,String,HashMap,Arc,RwLock,Box,dyn},
+  sensitive=true,
+  morecomment=[l]{//},
+  morecomment=[s]{/*}{*/},
+  morestring=[b]",
+}
+\lstset{style=moderncode, language=Rust}
 
 % ============================================================================
 % ICON COMMANDS (pifont replacements)
@@ -826,14 +832,14 @@ The system uses a \textbf{Plugin Pattern} combined with \textbf{Strategy} and \t
 \toprule
 \textbf{Component} & \textbf{Location} & \textbf{Status} \\
 \midrule
-MCP Server & \texttt{server.py} & \textcolor{successgreen}{\faCheck} Complete \\
-Backend Interface & \texttt{backends/base.py} & \textcolor{successgreen}{\faCheck} Complete \\
-VRChat Backend & \texttt{backends/vrchat\_remote.py} & \textcolor{successgreen}{\faCheck} Complete \\
-Mock Backend & \texttt{backends/mock.py} & \textcolor{successgreen}{\faCheck} Complete \\
-Audio Handler & \texttt{audio\_handler.py} & \textcolor{successgreen}{\faCheck} Complete \\
-Sequence Handler & \texttt{sequence\_handler.py} & \textcolor{successgreen}{\faCheck} Complete \\
-Blender Backend & \texttt{backends/blender.py} & \textcolor{warningamber}{Planned} \\
-Unity Backend & \texttt{backends/unity.py} & \textcolor{warningamber}{Planned} \\
+MCP Server & \texttt{src/server.rs} & \textcolor{successgreen}{\faCheck} Complete \\
+Backend Adapter Trait & \texttt{src/backends/adapter.rs} & \textcolor{successgreen}{\faCheck} Complete \\
+VRChat Backend & \texttt{src/backends/vrchat.rs} & \textcolor{successgreen}{\faCheck} Complete \\
+Mock Backend & \texttt{src/backends/mock.rs} & \textcolor{successgreen}{\faCheck} Complete \\
+Audio Handler & \texttt{src/audio.rs} & \textcolor{successgreen}{\faCheck} Complete \\
+Sequence Handler & \texttt{src/sequence\_handler.rs} & \textcolor{successgreen}{\faCheck} Complete \\
+Emotion Mappings & \texttt{src/audio\_emotion\_mappings.rs} & \textcolor{successgreen}{\faCheck} Complete \\
+Storage Service & \texttt{src/storage.rs} & \textcolor{successgreen}{\faCheck} Complete \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -890,7 +896,7 @@ Every service in the system offers a choice between \textbf{cloud/paid APIs} (hi
 \textbf{Service} & \textbf{Cloud Option} & \textbf{Self-Hosted} & \textbf{How to Swap} \\
 \midrule
 \textbf{TTS} & ElevenLabs & Coqui TTS & New MCP client, same audio format \\
-\textbf{Reasoner} & Claude API & Qwen3, Gemma 2 & Implement \texttt{Reasoner} ABC \\
+\textbf{Reasoner} & Claude API & Qwen3, Gemma 2 & Implement \texttt{Reasoner} trait \\
 \textbf{Memory} & AWS AgentCore & ChromaDB & Set \texttt{MEMORY\_PROVIDER} env \\
 \textbf{Classifier} & --- & DistilBERT & Any emotion enum output \\
 \bottomrule
@@ -1020,17 +1026,25 @@ The Fast Mind provides immediate presence through local inference with zero netw
 
 The Fast Mind uses contextual fillers for non-committal acknowledgments:
 
-\begin{lstlisting}[language=Python, caption=Filler Selection]
-FILLERS = {
-    "thinking": ["Hmm...", "Let me think...", "I see..."],
-    "curious": ["Interesting...", "Oh?", "Tell me more..."],
-    "acknowledging": ["Got it.", "I understand.", "Right..."],
-}
+\begin{lstlisting}[caption=Filler Selection]
+use std::collections::HashMap;
 
-def get_contextual_filler(emotion, vibe):
-    if vibe == "somber":
-        return "I understand..."
-    return random.choice(FILLERS.get(emotion.category, FILLERS["acknowledging"]))
+static FILLERS: LazyLock<HashMap<&str, Vec<&str>>> = LazyLock::new(|| {
+    HashMap::from([
+        ("thinking", vec!["Hmm...", "Let me think...", "I see..."]),
+        ("curious", vec!["Interesting...", "Oh?", "Tell me more..."]),
+        ("acknowledging", vec!["Got it.", "I understand.", "Right..."]),
+    ])
+});
+
+fn get_contextual_filler(emotion: &EmotionType, vibe: &str) -> &'static str {
+    if vibe == "somber" {
+        return "I understand...";
+    }
+    let category = emotion.category();
+    let fillers = FILLERS.get(category).unwrap_or(&FILLERS["acknowledging"]);
+    fillers[rand::random::<usize>() % fillers.len()]
+}
 \end{lstlisting}
 
 \section{System 2: Slow Mind}
@@ -1048,18 +1062,15 @@ The Slow Mind provides deep reasoning through external services:
 
 \subsection{Reasoner Interface}
 
-\begin{lstlisting}[language=Python, caption=Reasoner Abstract Base Class]
-class Reasoner(ABC):
-    @abstractmethod
-    async def reason(self, context: ReasonerContext) -> str:
-        """Generate a reasoned response."""
-        ...
+\begin{lstlisting}[caption=Reasoner Trait]
+#[async_trait]
+pub trait Reasoner: Send + Sync {
+    /// Generate a reasoned response.
+    async fn reason(&self, context: &ReasonerContext) -> Result<String>;
 
-    @property
-    @abstractmethod
-    def model_name(self) -> str:
-        """Get the name/identifier of this reasoner."""
-        ...
+    /// Get the name/identifier of this reasoner.
+    fn model_name(&self) -> &str;
+}
 \end{lstlisting}
 
 \subsection{Escalation Triggers}
@@ -1222,61 +1233,87 @@ Discrete emotion categories are useful for classification but brittle for animat
   \item \textbf{Dominance} ($-1$ to $+1$): Submissive/controlled to dominant/controlling
 \end{itemize}
 
-\begin{lstlisting}[language=Python, caption=Emotion to PAD Vector Mapping]
-EMOTION_TO_PAD = {
-    CanonicalEmotion.JOY:        EmotionVector(+0.8, +0.6, +0.2),
-    CanonicalEmotion.SADNESS:    EmotionVector(-0.7, -0.3, -0.4),
-    CanonicalEmotion.ANGER:      EmotionVector(-0.6, +0.8, +0.6),
-    CanonicalEmotion.FEAR:       EmotionVector(-0.7, +0.7, -0.6),
-    CanonicalEmotion.SURPRISE:   EmotionVector(+0.2, +0.8, -0.1),
-    CanonicalEmotion.CALM:       EmotionVector(+0.3, -0.6, +0.1),
-    CanonicalEmotion.THINKING:   EmotionVector(+0.1, +0.3, +0.2),
-    # ... remaining emotions
+\begin{lstlisting}[caption=Emotion to PAD Vector Mapping]
+impl EmotionType {
+    pub fn to_pad_vector(self) -> EmotionVector {
+        match self {
+            EmotionType::Happy     => EmotionVector::new( 0.8,  0.5,  0.2),
+            EmotionType::Sad       => EmotionVector::new(-0.7, -0.3, -0.4),
+            EmotionType::Angry     => EmotionVector::new(-0.6,  0.8,  0.6),
+            EmotionType::Fearful   => EmotionVector::new(-0.7,  0.7, -0.6),
+            EmotionType::Surprised => EmotionVector::new( 0.2,  0.8, -0.1),
+            EmotionType::Calm      => EmotionVector::new( 0.3, -0.6,  0.1),
+            EmotionType::Neutral   => EmotionVector::new( 0.0,  0.0,  0.0),
+            // ... remaining emotions
+        }
+    }
 }
 \end{lstlisting}
 
 \subsection{Smooth Transitions}
 
-\begin{lstlisting}[language=Python, caption=Emotion Transition Manager]
-class EmotionTransitionManager:
-    def __init__(self):
-        self.current_state = EmotionVector(0, 0, 0)
-        self.target_state = self.current_state
-        self.transition_speed = 0.3
+\begin{lstlisting}[caption=Emotion Transition Manager]
+pub struct EmotionTransitionManager {
+    current_state: EmotionVector,
+    target_state: EmotionVector,
+    transition_speed: f32,
+}
 
-    def update(self, delta_time: float) -> EmotionVector:
-        """Called each frame - smooth interpolation"""
-        blend = min(1.0, self.transition_speed * delta_time * 60)
-        self.current_state = self.current_state.lerp(self.target_state, blend)
-        return self.current_state
+impl EmotionTransitionManager {
+    pub fn new() -> Self {
+        Self {
+            current_state: EmotionVector::neutral(),
+            target_state: EmotionVector::neutral(),
+            transition_speed: 0.3,
+        }
+    }
+
+    /// Called each frame -- smooth interpolation
+    pub fn update(&mut self, delta_time: f32) -> EmotionVector {
+        let blend = (self.transition_speed * delta_time * 60.0).min(1.0);
+        self.current_state = self.current_state.lerp(&self.target_state, blend);
+        self.current_state
+    }
+}
 \end{lstlisting}
 
 \section{Cross-Modal Mappings}
 
 \subsection{ElevenLabs Audio Tags}
 
-\begin{lstlisting}[language=Python, caption=Emotion to Audio Tags]
-def get_audio_tags_for_emotion(emotion, intensity):
-    if emotion == CanonicalEmotion.JOY:
-        if intensity > 0.7:
-            return ["[laughs]", "[excited]"]
-        return ["[happy]"]
-    elif emotion == CanonicalEmotion.SADNESS:
-        return ["[sighs]", "[somber]"]
-    # ... remaining mappings
+\begin{lstlisting}[caption=Emotion to Audio Tags]
+pub fn get_audio_tags_for_emotion(
+    emotion: EmotionType,
+    intensity: f32,
+    max_tags: usize,
+) -> Vec<&'static str> {
+    match emotion {
+        EmotionType::Happy => {
+            if intensity > 0.7 {
+                vec!["[laughs]", "[excited]"]
+            } else {
+                vec!["[happy]"]
+            }
+        }
+        EmotionType::Sad => vec!["[sighs]", "[somber]"],
+        // ... remaining mappings (50+ tags in audio_emotion_mappings.rs)
+    }
+}
 \end{lstlisting}
 
 \subsection{Virtual Character Expressions}
 
-\begin{lstlisting}[language=Python, caption=Emotion to Avatar Config]
-def emotion_to_avatar(emotion):
-    mapping = {
-        CanonicalEmotion.JOY: {"emotion": "happy", "gesture": "cheer"},
-        CanonicalEmotion.SADNESS: {"emotion": "sad", "gesture": None},
-        CanonicalEmotion.THINKING: {"emotion": "neutral", "gesture": "thinking"},
-        # ... remaining mappings
+\begin{lstlisting}[caption=Emotion to Avatar Config]
+pub fn emotion_to_vrcemote(emotion: &EmotionType) -> u8 {
+    match emotion {
+        EmotionType::Happy    => 4, // Cheer
+        EmotionType::Sad      => 7, // Sadness
+        EmotionType::Excited  => 5, // Dance
+        EmotionType::Calm     => 0, // None (neutral)
+        EmotionType::Neutral  => 0, // None
+        // ... remaining mappings (see constants.rs)
     }
-    return mapping.get(emotion, {"emotion": "neutral", "gesture": None})
+}
 \end{lstlisting}
 
 \vspace{1cm}
@@ -1351,21 +1388,24 @@ Pauses & \texttt{[pause: 500ms]}, \texttt{[breath]} \\
 
 The audio handler provides secure, async audio processing:
 
-\begin{lstlisting}[language=Python, caption=Audio Handler Features]
-class AudioHandler:
-    """Async audio processing with security"""
+\begin{lstlisting}[caption=Audio Handler]
+pub struct AudioHandler {
+    allowed_paths: Vec<PathBuf>,
+}
 
-    async def process_audio(self, audio_data: str) -> AudioResult:
-        """
-        Process audio from various sources:
-        - File paths: /tmp/speech.mp3
-        - Base64: data:audio/mp3;base64,...
-        - URLs: https://storage.example.com/audio.mp3
-        """
-        # Path traversal protection
-        # Format detection (MP3, WAV, OGG, FLAC)
-        # Async subprocess execution
-        ...
+impl AudioHandler {
+    /// Process audio from various sources:
+    /// - File paths: /tmp/speech.mp3
+    /// - Base64: data:audio/mp3;base64,...
+    /// - URLs: https://storage.example.com/audio.mp3
+    pub async fn process_audio(&self, audio_data: &str) -> Result<AudioData> {
+        // Path traversal protection via canonicalize + whitelist
+        // Format detection via magic bytes (MP3, WAV, OGG, FLAC)
+        // HTML error page detection
+        // Minimum size validation (100 bytes)
+        todo!()
+    }
+}
 \end{lstlisting}
 
 \begin{warnbox}[Context Window Protection]
@@ -1378,7 +1418,7 @@ class AudioHandler:
 
 VRChat avatars are controlled via OSC messages:
 
-\begin{lstlisting}[language=Python, caption=OSC Message Examples]
+\begin{lstlisting}[language={}, caption=OSC Message Examples]
 # Avatar expressions
 /avatar/parameters/VRCEmote 1          # Wave
 /avatar/parameters/FaceHappy 0.75      # Smile intensity
@@ -1391,29 +1431,33 @@ VRChat avatars are controlled via OSC messages:
 
 \subsection{VRChat Backend}
 
-\begin{lstlisting}[language=Python, caption=VRChat Remote Backend]
-class VRChatRemoteBackend(BackendAdapter):
-    """VRChat backend via OSC-over-HTTP bridge"""
+\begin{lstlisting}[caption=VRChat Remote Backend]
+pub struct VRChatBackend {
+    osc_sender: UdpSocket,
+    config: VRChatConfig,
+}
 
-    async def send_animation(self, data: CanonicalAnimationData):
-        osc_messages = []
+#[async_trait]
+impl BackendAdapter for VRChatBackend {
+    async fn send_animation_data(
+        &mut self,
+        data: &CanonicalAnimationData,
+    ) -> Result<(), BackendError> {
+        // Emotion via VRCEmote toggle system
+        if let Some(ref emotion) = data.emotion {
+            let emote_value = emotion_to_vrcemote(emotion);
+            self.send_osc_int("/avatar/parameters/VRCEmote", emote_value)?;
+        }
 
-        # Emotion parameters
-        if data.emotion:
-            osc_messages.append({
-                "address": f"/avatar/parameters/Emotion_{data.emotion}",
-                "value": data.emotion_intensity
-            })
+        // Gesture
+        if let Some(ref gesture) = data.gesture {
+            let emote_value = gesture_to_vrcemote(gesture);
+            self.send_osc_int("/avatar/parameters/VRCEmote", emote_value)?;
+        }
 
-        # Gesture
-        if data.gesture:
-            gesture_index = GESTURE_MAP.get(data.gesture, 0)
-            osc_messages.append({
-                "address": "/avatar/parameters/GestureLeft",
-                "value": gesture_index
-            })
-
-        await self.osc_bridge.send_batch(osc_messages)
+        Ok(())
+    }
+}
 \end{lstlisting}
 
 \begin{tipbox}[VRChat Lip-Sync]
@@ -1434,26 +1478,27 @@ The event sequencer enables choreographed multi-modal performances with precise 
 
 \subsection{Sequence API}
 
-\begin{lstlisting}[language=Python, caption=Creating a Sequence]
-# Create sequence
-await virtual_character.create_sequence(
-    name="greeting_sequence",
-    description="Wave and greet the user"
-)
+\begin{lstlisting}[language={}, caption=Creating a Sequence (MCP Tool Calls)]
+// create_sequence
+{"name": "greeting_sequence", "description": "Wave and greet the user"}
 
-# Add parallel events
-await virtual_character.add_sequence_event(
-    event_type="parallel",
-    timestamp=0.0,
-    parallel_events=[
-        {"event_type": "expression", "expression": "happy", "intensity": 0.8},
-        {"event_type": "gesture", "gesture": "wave"},
-        {"event_type": "audio", "audio_data": "outputs/greeting.mp3"}
-    ]
-)
+// add_sequence_event - expression at t=0
+{
+  "event_type": "expression",
+  "timestamp": 0.0,
+  "expression": "happy",
+  "expression_intensity": 0.8
+}
 
-# Play
-await virtual_character.play_sequence()
+// add_sequence_event - audio at t=0.5
+{
+  "event_type": "audio",
+  "timestamp": 0.5,
+  "duration": 3.0
+}
+
+// play_sequence
+{}
 \end{lstlisting}
 
 \vspace{1cm}
@@ -1523,7 +1568,7 @@ Semantic Search & \texttt{search\_memories()} & No limit \\
 
 \subsection{Personality Namespaces}
 
-\begin{lstlisting}[language=Python, caption=Namespace Organization]
+\begin{lstlisting}[language={}, caption=Namespace Organization]
 personality/
   voice_preferences     # Preferred voices, speaking styles
   expression_patterns   # Learned emotion expression preferences
@@ -1540,43 +1585,45 @@ context/
 
 \subsection{Voice Preferences}
 
-\begin{lstlisting}[language=Python, caption=Storing Voice Preferences]
-# After successful synthesis, store preference
-await store_facts(
-    facts=[
-        "User responded positively to Rachel voice with github_review preset",
-        "Professional tone with subtle humor works well for code reviews"
-    ],
-    namespace="personality/voice_preferences"
-)
+\begin{lstlisting}[language={}, caption=Storing Voice Preferences (MCP Tool Calls)]
+// store_facts tool
+{
+  "facts": [
+    "User responded positively to Rachel voice with github_review preset",
+    "Professional tone with subtle humor works well for code reviews"
+  ],
+  "namespace": "personality/voice_preferences"
+}
 
-# Before synthesis, query preferences
-memories = await search_memories(
-    query="voice preferences for code review",
-    namespace="personality/voice_preferences"
-)
+// search_memories tool
+{
+  "query": "voice preferences for code review",
+  "namespace": "personality/voice_preferences"
+}
 \end{lstlisting}
 
 \subsection{Expression Pattern Compilation}
 
 The Slow Mind periodically compiles frequent patterns from memory into the Fast Mind's cache:
 
-\begin{lstlisting}[language=Python, caption=Pattern Compilation]
-async def compile_patterns_to_cache(self):
-    """Compile frequent patterns from memory -> fast cache"""
+\begin{lstlisting}[caption=Pattern Compilation]
+impl SlowMind {
+    /// Compile frequent patterns from memory -> fast cache
+    async fn compile_patterns_to_cache(&self) -> Result<()> {
+        // Query common patterns via AgentCore Memory MCP
+        let patterns = self.memory.search_memories(
+            "frequently used expressions and reactions",
+            "personality/expression_patterns",
+            100, // top_k
+        ).await?;
 
-    # Query common patterns
-    patterns = await memory.search_memories(
-        query="frequently used expressions and reactions",
-        namespace="personality/expression_patterns",
-        top_k=100
-    )
+        // Aggregate and weight by frequency
+        let compiled = self.pattern_compiler.compile(&patterns);
 
-    # Aggregate and weight by frequency
-    compiled = self.pattern_compiler.compile(patterns)
-
-    # Push to fast system's pattern cache
-    await self.fast_mind.pattern_cache.bulk_update(compiled)
+        // Push to fast system's pattern cache
+        self.fast_mind.pattern_cache.bulk_update(compiled).await
+    }
+}
 \end{lstlisting}
 
 \begin{keybox}[Learning Compounds]
@@ -1747,23 +1794,38 @@ Multiple AI agents can inhabit the same virtual space, forming social dynamics: 
 \end{tikzpicture}
 \end{center}
 
-\begin{lstlisting}[language=Python, caption=Multi-Agent Coordination Example]
-class MultiAgentCoordinator:
-    """Manages multiple agents in shared virtual space."""
+\begin{lstlisting}[caption=Multi-Agent Coordination Example]
+pub struct MultiAgentCoordinator {
+    agents: Vec<AgentInstance>,
+}
 
-    async def spawn_agents(self, count: int, world_id: str):
-        """Spawn N agents into the same virtual world."""
-        for i in range(count):
-            agent = AgentInstance(f"agent_{i}")
-            await agent.connect(backend="vrchat", world=world_id)
-            self.agents.append(agent)
-            await self.broadcast_event("agent_joined", agent.id)
+impl MultiAgentCoordinator {
+    /// Spawn N agents into the same virtual world.
+    pub async fn spawn_agents(
+        &mut self,
+        count: usize,
+        world_id: &str,
+    ) -> Result<()> {
+        for i in 0..count {
+            let mut agent = AgentInstance::new(&format!("agent_{i}"));
+            agent.connect("vrchat", world_id).await?;
+            self.broadcast_event("agent_joined", &agent.id).await?;
+            self.agents.push(agent);
+        }
+        Ok(())
+    }
 
-    async def coordinate_interaction(self, agent_a: str, agent_b: str):
-        """Coordinate turn-taking between two agents."""
-        # Agent A speaks, Agent B listens (shows listening expression)
-        # When A finishes, B responds (emotion-appropriate reaction)
-        pass
+    /// Coordinate turn-taking between two agents.
+    pub async fn coordinate_interaction(
+        &self,
+        agent_a: &str,
+        agent_b: &str,
+    ) -> Result<()> {
+        // Agent A speaks, Agent B shows listening expression
+        // When A finishes, B responds with emotion-appropriate reaction
+        Ok(())
+    }
+}
 \end{lstlisting}
 
 \subsection{Social Scenarios}
@@ -1870,75 +1932,86 @@ Complete examples for common use cases:
 
 The Expression Orchestrator coordinates multi-modal expression:
 
-\begin{lstlisting}[language=Python, caption=Expression Orchestrator]
-class ExpressionOrchestrator:
-    """Coordinates expression across all modalities"""
+\begin{lstlisting}[caption=Expression Orchestrator]
+pub struct ExpressionOrchestrator {
+    elevenlabs: ElevenLabsClient,
+    virtual_character: VirtualCharacterClient,
+    reaction_search: ReactionSearchClient,
+}
 
-    async def express(
-        self,
-        text: str,
-        emotion: CanonicalEmotion,
-        intensity: float = 0.5,
-        modalities: List[str] = ["voice", "avatar", "reaction"],
-    ) -> ExpressionResult:
-        results = {}
+impl ExpressionOrchestrator {
+    /// Coordinates expression across all modalities.
+    pub async fn express(
+        &self,
+        text: &str,
+        emotion: &EmotionType,
+        intensity: f32,
+        modalities: &[&str],
+    ) -> Result<ExpressionResult> {
+        let mut results = ExpressionResult::default();
 
-        # 1. Generate voice with emotion-mapped audio tags
-        if "voice" in modalities:
-            audio_tags = self.emotion_to_audio_tags(emotion, intensity)
-            results["audio"] = await self.elevenlabs.synthesize_stream(
-                text=f"{audio_tags} {text}",
-                voice_id=await self.get_preferred_voice(emotion),
-            )
+        // 1. Generate voice with emotion-mapped audio tags
+        if modalities.contains(&"voice") {
+            let tags = get_audio_tags_for_emotion(emotion, intensity);
+            let tagged = format!("{} {}", tags.join(" "), text);
+            results.audio = Some(
+                self.elevenlabs.synthesize_stream(&tagged).await?
+            );
+        }
 
-        # 2. Set avatar expression
-        if "avatar" in modalities:
-            avatar_emotion = self.emotion_to_avatar(emotion)
-            await self.virtual_character.send_animation(
-                emotion=avatar_emotion,
-                emotion_intensity=intensity,
-            )
+        // 2. Set avatar expression via send_animation MCP tool
+        if modalities.contains(&"avatar") {
+            self.virtual_character.send_animation(
+                emotion, intensity,
+            ).await?;
+        }
 
-        # 3. Find matching reaction
-        if "reaction" in modalities:
-            query = self.emotion_to_reaction_query(emotion, intensity, text)
-            results["reaction"] = await self.reaction_search.search(query)
+        // 3. Find matching reaction image
+        if modalities.contains(&"reaction") {
+            let query = emotion_to_reaction_query(emotion, intensity, text);
+            results.reaction = Some(
+                self.reaction_search.search(&query).await?
+            );
+        }
 
-        return ExpressionResult(**results)
+        Ok(results)
+    }
+}
 \end{lstlisting}
 
 \section{End-to-End Workflow}
 
-\begin{lstlisting}[language=Python, caption=Complete Response Flow]
-async def respond_with_embodiment(input_text: str):
-    # 1. Fast Mind reacts immediately (<100ms)
-    fast_task = asyncio.create_task(fast_mind.react(input_text))
-    slow_task = asyncio.create_task(slow_mind.synthesize(input_text))
+\begin{lstlisting}[caption=Complete Response Flow]
+async fn respond_with_embodiment(input_text: &str) -> Result<()> {
+    // 1. Fast Mind reacts immediately (<100ms)
+    let fast_handle = tokio::spawn(fast_mind.react(input_text.to_string()));
+    let slow_handle = tokio::spawn(slow_mind.synthesize(input_text.to_string()));
 
-    # 2. Get fast reaction
-    fast_reaction = await fast_task
+    // 2. Get fast reaction
+    let fast_reaction = fast_handle.await??;
 
-    # 3. Set "thinking" expression
-    await virtual_character.send_animation(
-        emotion="thinking",
-        emotion_intensity=fast_reaction.emotion.intensity
-    )
+    // 3. Set "thinking" expression via send_animation MCP tool
+    virtual_character.send_animation(
+        &EmotionType::Neutral,
+        fast_reaction.emotion.intensity,
+    ).await?;
 
-    # 4. Speak filler acknowledgment
-    await elevenlabs.synthesize_stream(
-        text=fast_reaction.filler_text,
-        voice_id="Rachel"
-    )
+    // 4. Speak filler acknowledgment
+    elevenlabs.synthesize_stream(&fast_reaction.filler_text).await?;
 
-    # 5. Wait for deep synthesis
-    synthesis = await slow_task
+    // 5. Wait for deep synthesis
+    let synthesis = slow_handle.await??;
 
-    # 6. Full response with emotional coherence
-    await expression_orchestrator.express(
-        text=synthesis.response,
-        emotion=synthesis.emotion,
-        modalities=["voice", "avatar", "reaction"]
-    )
+    // 6. Full response with emotional coherence
+    expression_orchestrator.express(
+        &synthesis.response,
+        &synthesis.emotion,
+        0.5,
+        &["voice", "avatar", "reaction"],
+    ).await?;
+
+    Ok(())
+}
 \end{lstlisting}
 
 \section{Deployment Topology}
@@ -1948,7 +2021,7 @@ async def respond_with_embodiment(input_text: str):
 \toprule
 \textbf{Component} & \textbf{Location} & \textbf{Requirements} & \textbf{Port} \\
 \midrule
-MCP Middleware & Linux Dev Machine & Python 3.11+ & 8020 \\
+MCP Middleware & Linux Dev Machine & Rust (mcp-virtual-character) & 8020 \\
 ElevenLabs MCP & Linux Dev Machine & API Key & 8018 \\
 VRChat + Bridge & Windows GPU Machine & NVIDIA GPU & 8021 \\
 OBS Studio & Windows GPU Machine & WebSocket Plugin & 4455 \\
@@ -2082,7 +2155,7 @@ Cache Hit Rate & >80\% & >95\% \\
 
 \section{OSC Message Examples}
 
-\begin{lstlisting}[language=Python, caption=Common OSC Messages]
+\begin{lstlisting}[language={}, caption=Common OSC Messages]
 /avatar/parameters/VRCEmote 1              # Wave emote
 /avatar/parameters/FaceBlendshapes/Smile 0.75
 /avatar/parameters/ToggleHat true
@@ -2122,7 +2195,7 @@ OBS not responding & WebSocket auth failed & Regenerate OBS WebSocket password \
 ]
 \small
 \begin{enumerate}[nosep, leftmargin=1.5em]
-  \item[\ding{111}] \textbf{Linux Machine}: Python 3.11+, pip, Docker installed
+  \item[\ding{111}] \textbf{Linux Machine}: Rust toolchain or pre-built binary, Docker installed
   \item[\ding{111}] \textbf{Windows Machine}: VRChat installed, OBS Studio + WebSocket plugin
   \item[\ding{111}] \textbf{Environment}: Set \texttt{ELEVENLABS\_API\_KEY}, \texttt{STORAGE\_SECRET\_KEY}
   \item[\ding{111}] \textbf{VRChat}: Enable OSC in settings, configure avatar with parameters
@@ -2130,7 +2203,7 @@ OBS not responding & WebSocket auth failed & Regenerate OBS WebSocket password \
   \item[\ding{111}] \textbf{Network}: Verify connectivity between machines (ping test)
   \item[\ding{111}] \textbf{Storage Service}: Start on Windows machine (port 8021)
   \item[\ding{111}] \textbf{MCP Server}: Start on Linux machine (port 8020)
-  \item[\ding{111}] \textbf{Test}: Run \texttt{python scripts/test\_connection.py}
+  \item[\ding{111}] \textbf{Test}: Run \texttt{cargo test} in \texttt{tools/mcp/mcp\_virtual\_character/}
 \end{enumerate}
 \end{tcolorbox}
 
