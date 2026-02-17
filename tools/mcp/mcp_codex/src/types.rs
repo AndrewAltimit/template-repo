@@ -137,10 +137,16 @@ impl CodexConfig {
         if let Ok(val) = std::env::var("CODEX_BYPASS_SANDBOX") {
             config.bypass_sandbox = val.to_lowercase() == "true";
         }
-        if let Ok(val) = std::env::var("CODEX_MODEL") {
+        if let Some(val) = std::env::var("CODEX_MODEL")
+            .ok()
+            .filter(|v| !v.trim().is_empty())
+        {
             config.model = val;
         }
-        if let Ok(val) = std::env::var("CODEX_REASONING_EFFORT") {
+        if let Some(val) = std::env::var("CODEX_REASONING_EFFORT")
+            .ok()
+            .filter(|v| !v.trim().is_empty())
+        {
             config.reasoning_effort = val;
         }
 
