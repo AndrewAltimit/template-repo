@@ -112,6 +112,19 @@ impl CodexIntegration {
     async fn execute_codex(&self, prompt: &str, mode: ConsultMode) -> Result<String, String> {
         let mut args = vec!["exec".to_string()];
 
+        // Add model selection
+        if !self.config.model.is_empty() {
+            args.extend(["--model".to_string(), self.config.model.clone()]);
+        }
+
+        // Add reasoning effort
+        if !self.config.reasoning_effort.is_empty() {
+            args.extend([
+                "-c".to_string(),
+                format!("reasoning_effort={}", self.config.reasoning_effort),
+            ]);
+        }
+
         if self.config.bypass_sandbox {
             // WARNING: Only use this in already-sandboxed environments (VMs, containers)
             args.extend([
@@ -239,7 +252,7 @@ impl CodexIntegration {
     ) {
         let event_type = event.get("type").and_then(|v| v.as_str()).unwrap_or("");
 
-        // Handle Codex v0.79.0+ JSONL format
+        // Handle Codex v0.79.0+ / v0.101.0 JSONL format
         if event_type == "item.completed" {
             if let Some(item) = event.get("item") {
                 let item_type = item.get("type").and_then(|v| v.as_str()).unwrap_or("");

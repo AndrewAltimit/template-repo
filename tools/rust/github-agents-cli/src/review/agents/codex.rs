@@ -36,7 +36,7 @@ impl CodexAgent {
 
         Self {
             codex_path,
-            model: "gpt-5.2-codex".to_string(),
+            model: "gpt-5.3-codex".to_string(),
         }
     }
 
@@ -78,6 +78,9 @@ impl CodexAgent {
         if !self.model.is_empty() {
             cmd.arg("--model").arg(&self.model);
         }
+
+        // Set reasoning effort to xhigh for maximum quality
+        cmd.arg("-c").arg("reasoning_effort=xhigh");
 
         let mut child = cmd
             .arg("-") // Read prompt from stdin

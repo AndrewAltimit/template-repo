@@ -78,7 +78,7 @@ COPY --from=mcp-codex-builder /build/tools/mcp/mcp_codex/target/release/mcp-code
 RUN chmod +x /usr/local/bin/mcp-codex
 
 # Install Codex CLI globally (pinned version for reproducibility)
-RUN npm install -g @openai/codex@0.79.0
+RUN npm install -g @openai/codex@0.101.0
 
 # Create non-root user with consistent UID
 RUN useradd -m -u 1000 user && \
