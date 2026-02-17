@@ -98,6 +98,10 @@ model_overrides:
     model: qwen/qwen-2.5-coder-32b-instruct
     temperature: 0.1  # Lower temperature for Crush
 
+  codex:
+    model: gpt-5.3-codex
+    reasoning_effort: xhigh
+
 # OpenRouter configuration (for future agents)
 openrouter:
   # API key must be provided as OPENROUTER_API_KEY environment variable

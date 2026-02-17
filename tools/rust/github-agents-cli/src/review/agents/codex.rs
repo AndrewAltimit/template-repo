@@ -36,7 +36,7 @@ impl CodexAgent {
 
         Self {
             codex_path,
-            model: "gpt-5.2-codex".to_string(),
+            model: "gpt-5.3-codex".to_string(),
         }
     }
 
@@ -78,6 +78,14 @@ impl CodexAgent {
         if !self.model.is_empty() {
             cmd.arg("--model").arg(&self.model);
         }
+
+        // Set reasoning effort (env override or default to xhigh for review quality)
+        let reasoning_effort = std::env::var("CODEX_REASONING_EFFORT")
+            .ok()
+            .filter(|v| !v.trim().is_empty())
+            .unwrap_or_else(|| "xhigh".to_string());
+        cmd.arg("-c")
+            .arg(format!("reasoning_effort={}", reasoning_effort));
 
         let mut child = cmd
             .arg("-") // Read prompt from stdin

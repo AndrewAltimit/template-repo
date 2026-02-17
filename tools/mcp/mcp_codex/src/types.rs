@@ -65,6 +65,10 @@ pub struct CodexConfig {
     pub max_history_entries: usize,
     /// Whether to bypass sandbox (only in containerized environments)
     pub bypass_sandbox: bool,
+    /// Model to use for Codex CLI (e.g. "gpt-5.3-codex")
+    pub model: String,
+    /// Reasoning effort level (e.g. "xhigh")
+    pub reasoning_effort: String,
 }
 
 impl Default for CodexConfig {
@@ -86,6 +90,8 @@ impl Default for CodexConfig {
             include_history: true,
             max_history_entries: 5,
             bypass_sandbox: false,
+            model: "gpt-5.3-codex".to_string(),
+            reasoning_effort: "xhigh".to_string(),
         }
     }
 }
@@ -130,6 +136,18 @@ impl CodexConfig {
         }
         if let Ok(val) = std::env::var("CODEX_BYPASS_SANDBOX") {
             config.bypass_sandbox = val.to_lowercase() == "true";
+        }
+        if let Some(val) = std::env::var("CODEX_MODEL")
+            .ok()
+            .filter(|v| !v.trim().is_empty())
+        {
+            config.model = val;
+        }
+        if let Some(val) = std::env::var("CODEX_REASONING_EFFORT")
+            .ok()
+            .filter(|v| !v.trim().is_empty())
+        {
+            config.reasoning_effort = val;
         }
 
         config

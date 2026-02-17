@@ -177,6 +177,7 @@ impl CliAgent {
             executable: "codex".to_string(),
             timeout_secs,
             priority: 85,
+            default_model: Some("gpt-5.3-codex".to_string()),
             capabilities: vec![
                 AgentCapability::CodeGeneration,
                 AgentCapability::CodeReview,
@@ -481,6 +482,22 @@ impl CliAgent {
             full_prompt = format!("{}\n\nCode context:\n```\n{}\n```", full_prompt, code);
         }
 
+        // Model and reasoning effort configuration
+        let model_override = env::var("CODEX_MODEL")
+            .ok()
+            .filter(|v| !v.trim().is_empty());
+        let model = model_override.as_deref().unwrap_or_else(|| {
+            self.config
+                .default_model
+                .as_deref()
+                .unwrap_or("gpt-5.3-codex")
+        });
+        let reasoning_effort = env::var("CODEX_REASONING_EFFORT")
+            .ok()
+            .filter(|v| !v.trim().is_empty())
+            .unwrap_or_else(|| "xhigh".to_string());
+        let reasoning_effort_cfg = format!("reasoning_effort={}", reasoning_effort);
+
         // Check for bypass sandbox mode (only for already-sandboxed environments)
         let bypass_sandbox = env::var("CODEX_BYPASS_SANDBOX")
             .map(|v| v == "true")
@@ -490,6 +507,10 @@ impl CliAgent {
             warn!("Using Codex with sandbox bypass - ensure environment is isolated");
             vec![
                 "exec",
+                "--model",
+                model,
+                "-c",
+                &reasoning_effort_cfg,
                 "--json",
                 "--dangerously-bypass-approvals-and-sandbox",
                 "--",
@@ -498,6 +519,10 @@ impl CliAgent {
         } else {
             vec![
                 "exec",
+                "--model",
+                model,
+                "-c",
+                &reasoning_effort_cfg,
                 "--sandbox",
                 "workspace-write",
                 "--full-auto",
@@ -582,7 +607,7 @@ impl CliAgent {
             }
         }
 
-        // Handle item.completed events (v0.79.0+ format)
+        // Handle item.completed events (v0.79.0+ / v0.101.0 format)
         if event.get("type").and_then(|v| v.as_str()) == Some("item.completed") {
             if let Some(item) = event.get("item") {
                 let item_type = item.get("type").and_then(|v| v.as_str()).unwrap_or("");
