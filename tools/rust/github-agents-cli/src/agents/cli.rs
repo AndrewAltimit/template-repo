@@ -483,15 +483,18 @@ impl CliAgent {
         }
 
         // Model and reasoning effort configuration
-        let model = self
-            .config
-            .default_model
-            .as_deref()
-            .unwrap_or("gpt-5.3-codex");
-        let reasoning_effort_cfg = format!(
-            "reasoning_effort={}",
-            env::var("CODEX_REASONING_EFFORT").unwrap_or_else(|_| "xhigh".to_string())
-        );
+        let model_override = env::var("CODEX_MODEL").ok().filter(|v| !v.is_empty());
+        let model = model_override.as_deref().unwrap_or_else(|| {
+            self.config
+                .default_model
+                .as_deref()
+                .unwrap_or("gpt-5.3-codex")
+        });
+        let reasoning_effort = env::var("CODEX_REASONING_EFFORT")
+            .ok()
+            .filter(|v| !v.trim().is_empty())
+            .unwrap_or_else(|| "xhigh".to_string());
+        let reasoning_effort_cfg = format!("reasoning_effort={}", reasoning_effort);
 
         // Check for bypass sandbox mode (only for already-sandboxed environments)
         let bypass_sandbox = env::var("CODEX_BYPASS_SANDBOX")
