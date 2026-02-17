@@ -483,7 +483,9 @@ impl CliAgent {
         }
 
         // Model and reasoning effort configuration
-        let model_override = env::var("CODEX_MODEL").ok().filter(|v| !v.is_empty());
+        let model_override = env::var("CODEX_MODEL")
+            .ok()
+            .filter(|v| !v.trim().is_empty());
         let model = model_override.as_deref().unwrap_or_else(|| {
             self.config
                 .default_model
