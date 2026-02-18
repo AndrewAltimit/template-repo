@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1.4
-# Rust CI/CD Image for injection_toolkit and other Rust projects
+# Rust CI/CD Image for Rust workspace projects
 # Performance optimizations:
 # - BuildKit cache mounts for apt and cargo
 # - Rust 1.90+ (required for edition 2024 and let chains)
@@ -8,9 +8,8 @@
 FROM rust:1.93-slim
 
 # Install system dependencies with BuildKit cache
-# libx11-dev etc. are needed for the overlay crate
-# libasound2-dev is needed for cpal (audio output via ALSA)
-# libav* / libsw* / clang are needed for ffmpeg-next (video decoding)
+# NOTE: X11/audio/video deps are legacy from injection_toolkit (now in game-mods repo)
+# and can be removed once confirmed no remaining packages need them
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
     apt-get update && apt-get install -y --no-install-recommends \

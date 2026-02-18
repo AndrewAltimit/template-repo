@@ -88,13 +88,14 @@ docker compose down                      # Stop services
 
 ## Architecture
 
-### MCP Servers (18 Total)
+### MCP Servers (19 Total)
 
 | Category | Servers | Transport |
 |----------|---------|-----------|
 | Code Quality | code-quality, gemini, opencode, crush, codex | STDIO (local) |
 | Content | content-creation, meme-generator, elevenlabs-speech, video-editor, blender | STDIO |
 | Integration | virtual-character, github-board, agentcore-memory, reaction-search, desktop-control | STDIO |
+| Agent Integration | memory-explorer | STDIO (native) |
 | Remote | gaea2, ai-toolkit, comfyui | HTTP (remote machines) |
 
 **For complete MCP documentation, see** `docs/mcp/README.md`
@@ -113,7 +114,6 @@ docker compose down                      # Stop services
 |---------|----------|---------|
 | `packages/sleeper_agents/` | Python | Sleeper agent detection framework |
 | `packages/economic_agents/` | Rust | Autonomous AI economic simulation |
-| `packages/injection_toolkit/` | Rust | Cross-platform screen capture/injection |
 | `packages/tamper_briefcase/` | Rust | Tamper-responsive briefcase with PQC recovery |
 | `packages/bioforge/` | Rust | Agent-driven CRISPR automation platform |
 
@@ -121,7 +121,10 @@ docker compose down                      # Stop services
 
 | Package | Language | Purpose |
 |---------|----------|---------|
-| [oasis-os](https://github.com/AndrewAltimit/oasis-os) | Rust | Embeddable OS framework (PSP/SDL2/UE5) |
+| [game-mods](https://github.com/AndrewAltimit/game-mods) | Rust | Injection toolkit for AI agent integration with legacy software |
+| [oasis-os](https://github.com/AndrewAltimit/oasis-os) | Rust | Embeddable OS framework (SDL2/PSP/UE5) with scene-graph UI and 8 themes |
+| [breakpoint](https://github.com/AndrewAltimit/breakpoint) | Rust/WASM | Multiplayer gaming platform for agentic office hours with agent alert overlay |
+| [rust-psp](https://github.com/AndrewAltimit/rust-psp) | Rust | PSP SDK -- ~829 syscall bindings, 38+ modules, used by oasis-os |
 
 ## Development Reminders
 
@@ -179,7 +182,7 @@ This renders as:
 - `docs/agents/human-training.md` - AI safety training guide
 
 ### MCP
-- `docs/mcp/README.md` - MCP architecture (18 servers documented)
+- `docs/mcp/README.md` - MCP architecture (19 servers documented)
 - `docs/mcp/servers.md` - Server reference
 - `docs/mcp/tools.md` - Tools reference
 
@@ -203,8 +206,10 @@ This renders as:
 - `packages/sleeper_agents/README.md` - Sleeper agent detection
 - `packages/economic_agents/README.md` - Economic agents simulation (Rust)
 - `packages/economic_agents/docs/economic-implications.md` - **AI governance policy analysis**
-- `packages/injection_toolkit/README.md` - Injection toolkit
+- [game-mods](https://github.com/AndrewAltimit/game-mods) - Injection toolkit for AI agent integration with legacy software (dedicated repo)
 - `packages/tamper_briefcase/README.md` - Tamper-responsive briefcase system (Rust)
 - `packages/bioforge/README.md` - BioForge CRISPR automation (Rust)
 - `packages/bioforge/docs/governance-implications.md` - Biological agent governance analysis
-- [oasis-os](https://github.com/AndrewAltimit/oasis-os) - Embeddable OS framework (moved to dedicated repo)
+- [oasis-os](https://github.com/AndrewAltimit/oasis-os) - Embeddable OS framework with scene-graph UI, 4 backends (dedicated repo)
+- [breakpoint](https://github.com/AndrewAltimit/breakpoint) - Multiplayer gaming platform for agentic office hours (dedicated repo)
+- [rust-psp](https://github.com/AndrewAltimit/rust-psp) - PSP SDK with ~829 syscall bindings, used by oasis-os (dedicated repo)

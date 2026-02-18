@@ -693,13 +693,6 @@ jobs:
             cp target/release/git /app/rust-binaries/git-guard-linux-x64
             echo "Built git-guard for Linux x64"
 
-            # Build injection-toolkit (requires X11 libs available in rust-ci)
-            cd /app/packages/injection_toolkit
-            cargo build --release --bin itk-daemon --bin itk-overlay
-            cp target/release/itk-daemon /app/rust-binaries/itk-daemon-linux-x64
-            cp target/release/itk-overlay /app/rust-binaries/itk-overlay-linux-x64
-            echo "Built injection-toolkit binaries for Linux x64"
-
             # Build economic-agents CLI
             cd /app/packages/economic_agents
             cargo build --release --bin economic-agents
@@ -831,25 +824,6 @@ jobs:
             cargo build --release
             cp target/release/automation-cli /app/rust-binaries/automation-cli-linux-x64
             echo "Built automation-cli for Linux x64"
-          '
-
-      # Build injection-toolkit for Windows using rust-ci-nightly (has mingw-w64)
-      - name: Build injection-toolkit (Windows cross-compile) via container
-        run: |
-          echo "Building injection-toolkit for Windows using rust-ci-nightly container (has mingw-w64)..."
-          docker compose --profile ci run --rm -w /app rust-ci-nightly bash -c '
-            set -e
-            cd /app/packages/injection_toolkit
-            # Cross-compile for Windows (daemon and overlay only, not injectors which need Windows SDK)
-            cargo build --release --target x86_64-pc-windows-gnu --bin itk-daemon --bin itk-overlay || {
-              echo "Windows cross-compile failed (may need additional deps), skipping..."
-              exit 0
-            }
-            if [ -f target/x86_64-pc-windows-gnu/release/itk-daemon.exe ]; then
-              cp target/x86_64-pc-windows-gnu/release/itk-daemon.exe /app/rust-binaries/itk-daemon-windows-x64.exe
-              cp target/x86_64-pc-windows-gnu/release/itk-overlay.exe /app/rust-binaries/itk-overlay-windows-x64.exe
-              echo "Built injection-toolkit binaries for Windows x64"
-            fi
           '
 
       - name: List built binaries
@@ -1147,10 +1121,6 @@ jobs:
           | `economic-agents-linux-x64` | Linux x64 | Autonomous economic agent simulation CLI |
           | `pr-monitor-linux-x64` | Linux x64 | PR monitoring tool for admin/Gemini feedback |
           | `gh-linux-x64` | Linux x64 | GitHub CLI validator and security checker |
-          | `itk-daemon-linux-x64` | Linux x64 | Injection Toolkit daemon |
-          | `itk-overlay-linux-x64` | Linux x64 | Injection Toolkit overlay |
-          | `itk-daemon-windows-x64.exe` | Windows x64 | Injection Toolkit daemon (if available) |
-          | `itk-overlay-windows-x64.exe` | Windows x64 | Injection Toolkit overlay (if available) |
           | `code-review-processor-linux-x64` | Linux x64 | AgentCore code review JSON processor |
 
           ### Installation
@@ -1160,7 +1130,7 @@ jobs:
           pip install sleeper_agents-*.whl
 
           # Make Rust binaries executable (Linux)
-          chmod +x economic-agents-linux-x64 pr-monitor-linux-x64 gh-linux-x64 itk-*-linux-x64
+          chmod +x *-linux-x64
           ```
 
           ### Commit Information

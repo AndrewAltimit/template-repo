@@ -97,21 +97,6 @@ pub enum Stage {
     TestAll,
     TestCorporateProxy,
 
-    // Rust injection_toolkit stages
-    RustFmt,
-    RustClippy,
-    RustTest,
-    RustBuild,
-    RustDeny,
-    RustFull,
-
-    // Rust nightly stages
-    RustLoom,
-    RustMiri,
-    RustCrossLinux,
-    RustCrossWindows,
-    RustAdvanced,
-
     // Generic workspace stages
     WorkspaceFmt(Workspace),
     WorkspaceClippy(Workspace),
@@ -164,21 +149,6 @@ impl Stage {
             "test-gaea2" => Stage::TestGaea2,
             "test-all" => Stage::TestAll,
             "test-corporate-proxy" => Stage::TestCorporateProxy,
-
-            // Rust injection_toolkit
-            "rust-fmt" => Stage::RustFmt,
-            "rust-clippy" => Stage::RustClippy,
-            "rust-test" => Stage::RustTest,
-            "rust-build" => Stage::RustBuild,
-            "rust-deny" => Stage::RustDeny,
-            "rust-full" => Stage::RustFull,
-
-            // Rust nightly
-            "rust-loom" => Stage::RustLoom,
-            "rust-miri" => Stage::RustMiri,
-            "rust-cross-linux" => Stage::RustCrossLinux,
-            "rust-cross-windows" => Stage::RustCrossWindows,
-            "rust-advanced" => Stage::RustAdvanced,
 
             // Economic agents
             "econ-fmt" => Stage::WorkspaceFmt(Workspace::EconomicAgents),

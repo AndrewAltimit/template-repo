@@ -61,7 +61,6 @@ jobs:
       sleeper_changed: ${{ steps.changes.outputs.sleeper_changed }}
       dashboard_changed: ${{ steps.changes.outputs.dashboard_changed }}
       ci_changed: ${{ steps.changes.outputs.ci_changed }}
-      injection_toolkit_changed: ${{ steps.changes.outputs.injection_toolkit_changed }}
       economic_agents_changed: ${{ steps.changes.outputs.economic_agents_changed }}
       tamper_briefcase_changed: ${{ steps.changes.outputs.tamper_briefcase_changed }}
       bioforge_changed: ${{ steps.changes.outputs.bioforge_changed }}
@@ -139,7 +138,6 @@ jobs:
           sleeper_count=$(grep -E '(packages/sleeper_agents|sleeper-evaluation)' changed_files.txt | wc -l || echo "0")
           dashboard_count=$(grep -E '(packages/sleeper_agents/dashboard)' changed_files.txt | wc -l || echo "0")
           ci_count=$(grep -E '(automation/ci-cd|\.github/workflows|docker/)' changed_files.txt | wc -l || echo "0")
-          injection_toolkit_count=$(grep -E 'packages/injection_toolkit' changed_files.txt | wc -l || echo "0")
           economic_agents_count=$(grep -E 'packages/economic_agents' changed_files.txt | wc -l || echo "0")
           tamper_briefcase_count=$(grep -E 'packages/tamper_briefcase' changed_files.txt | wc -l || echo "0")
           bioforge_count=$(grep -E 'packages/bioforge|tools/mcp/mcp_bioforge' changed_files.txt | wc -l || echo "0")
@@ -194,7 +192,6 @@ jobs:
           echo "sleeper_changed=$([[ $sleeper_count -gt 0 ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
           echo "dashboard_changed=$([[ $dashboard_count -gt 0 ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
           echo "ci_changed=$([[ $ci_count -gt 0 ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
-          echo "injection_toolkit_changed=$([[ $injection_toolkit_count -gt 0 ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
           echo "economic_agents_changed=$([[ $economic_agents_count -gt 0 ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
           echo "tamper_briefcase_changed=$([[ $tamper_briefcase_count -gt 0 ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
           echo "bioforge_changed=$([[ $bioforge_count -gt 0 ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
@@ -220,7 +217,6 @@ jobs:
           echo "  sleeper agents: $sleeper_count"
           echo "  Dashboard: $dashboard_count"
           echo "  CI/CD files: $ci_count"
-          echo "  Injection Toolkit: $injection_toolkit_count"
           echo "  Economic Agents: $economic_agents_count"
           echo "  Tamper Briefcase: $tamper_briefcase_count"
           echo "  BioForge: $bioforge_count"
@@ -854,111 +850,7 @@ jobs:
     with:
       server_url: 'http://192.168.0.152:8007'
 
-  # Stage 8b: Injection Toolkit Tests (Rust) - after AI review cycle
-  injection-toolkit-tests:
-    name: Injection Toolkit Tests
-    needs: [detect-changes, build-rust-tools, gemini-review, codex-review, agent-review-response]
-    if: |
-      always() && !cancelled() &&
-      needs.detect-changes.result == 'success' &&
-      needs.detect-changes.outputs.injection_toolkit_changed == 'true'
-    runs-on: self-hosted
-    timeout-minutes: 30
-    env:
-      CARGO_TERM_COLOR: always
-    steps:
-      - name: Pre-checkout cleanup
-        run: |
-          if [ -d "outputs" ] || [ -d "evaluation_results" ] || [ -f ".git/index.lock" ]; then
-            docker run --rm -v "$(pwd):/workspace" busybox:1.36.1 sh -c \
-              "rm -rf /workspace/outputs /workspace/evaluation_results /workspace/.git/index.lock" || \
-              sudo rm -rf outputs evaluation_results .git/index.lock 2>/dev/null || true
-          fi
-
-      - name: Checkout code
-        uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-          clean: true
-          token: ${{ secrets.GITHUB_TOKEN }}
-          ref: ${{ github.head_ref }}
-          lfs: true
-
-      - name: Download automation-cli
-        uses: actions/download-artifact@v4
-        with:
-          name: rust-cli-tools
-          path: rust-tools
-
-      - name: Setup automation-cli
-        run: |
-          if [ -f "rust-tools/automation-cli" ]; then
-            chmod +x rust-tools/automation-cli
-            mkdir -p tools/rust/automation-cli/target/release
-            cp rust-tools/automation-cli tools/rust/automation-cli/target/release/
-            echo "Installed automation-cli"
-          else
-            echo "ERROR: automation-cli not found in artifact"
-            exit 1
-          fi
-
-      - name: Check formatting (containerized)
-        run: ./automation/ci-cd/run-ci.sh rust-fmt
-
-      - name: Run clippy (containerized)
-        run: ./automation/ci-cd/run-ci.sh rust-clippy
-
-      - name: Build workspace (containerized)
-        run: |
-          ./automation/ci-cd/run-ci.sh rust-build
-          echo "## Build Results" >> $GITHUB_STEP_SUMMARY
-          echo "All crates built successfully (containerized)" >> $GITHUB_STEP_SUMMARY
-
-      - name: Run unit tests (containerized)
-        run: |
-          ./automation/ci-cd/run-ci.sh rust-test
-          echo "## Unit Test Results" >> $GITHUB_STEP_SUMMARY
-          echo "All unit tests passed (containerized)" >> $GITHUB_STEP_SUMMARY
-
-      - name: Run Loom concurrency tests (containerized)
-        run: |
-          ./automation/ci-cd/run-ci.sh rust-loom
-          echo "## Loom Concurrency Tests" >> $GITHUB_STEP_SUMMARY
-          echo "Seqlock memory ordering verified across all interleavings" >> $GITHUB_STEP_SUMMARY
-
-      - name: Run Miri UB detection (containerized)
-        run: |
-          ./automation/ci-cd/run-ci.sh rust-miri
-          echo "## Miri Analysis" >> $GITHUB_STEP_SUMMARY
-          echo "No undefined behavior detected" >> $GITHUB_STEP_SUMMARY
-
-      - name: Cross-compile check - x86_64 Linux (containerized)
-        run: |
-          ./automation/ci-cd/run-ci.sh rust-cross-linux
-          echo "## Cross-Compilation: x86_64-unknown-linux-gnu" >> $GITHUB_STEP_SUMMARY
-          echo "Core crates compile successfully" >> $GITHUB_STEP_SUMMARY
-
-      - name: Cross-compile check - Windows (containerized)
-        run: |
-          ./automation/ci-cd/run-ci.sh rust-cross-windows
-          echo "## Cross-Compilation: x86_64-pc-windows-gnu" >> $GITHUB_STEP_SUMMARY
-          echo "Core crates compile successfully" >> $GITHUB_STEP_SUMMARY
-
-      - name: License/security audit (containerized)
-        run: |
-          ./automation/ci-cd/run-ci.sh rust-deny
-          echo "## License & Security Audit" >> $GITHUB_STEP_SUMMARY
-          echo "No license or security issues found" >> $GITHUB_STEP_SUMMARY
-
-      - name: Generate test summary
-        if: always()
-        run: |
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "---" >> $GITHUB_STEP_SUMMARY
-          echo "## Injection Toolkit CI Summary" >> $GITHUB_STEP_SUMMARY
-          echo "All checks: fully containerized (rust-ci, rust-ci-nightly)" >> $GITHUB_STEP_SUMMARY
-
-  # Stage 8c: Economic Agents Tests (Rust) - after AI review cycle
+  # Stage 8b: Economic Agents Tests (Rust) - after AI review cycle
   economic-agents-tests:
     name: Economic Agents Tests
     needs: [detect-changes, build-rust-tools, gemini-review, codex-review, agent-review-response]
@@ -1633,7 +1525,6 @@ jobs:
       - sleeper-agents-tests
       - dashboard-tests
       - gaea2-integration-tests
-      - injection-toolkit-tests
       - economic-agents-tests
       - tamper-briefcase-tests
       - bioforge-tests
@@ -1671,7 +1562,6 @@ jobs:
           echo "- sleeper agents: ${{ needs.sleeper-agents-tests.result }}"
           echo "- Dashboard Tests: ${{ needs.dashboard-tests.result }}"
           echo "- Gaea2 Integration Tests: ${{ needs.gaea2-integration-tests.result }}"
-          echo "- Injection Toolkit Tests: ${{ needs.injection-toolkit-tests.result }}"
           echo "- Economic Agents Tests: ${{ needs.economic-agents-tests.result }}"
           echo "- Tamper Briefcase Tests: ${{ needs.tamper-briefcase-tests.result }}"
           echo "- BioForge Tests: ${{ needs.bioforge-tests.result }}"
@@ -1693,7 +1583,6 @@ jobs:
                 "${{ needs.sleeper-agents-tests.result }}" == "failure" ||
                 "${{ needs.dashboard-tests.result }}" == "failure" ||
                 "${{ needs.gaea2-integration-tests.result }}" == "failure" ||
-                "${{ needs.injection-toolkit-tests.result }}" == "failure" ||
                 "${{ needs.economic-agents-tests.result }}" == "failure" ||
                 "${{ needs.tamper-briefcase-tests.result }}" == "failure" ||
                 "${{ needs.bioforge-tests.result }}" == "failure" ||
@@ -1730,7 +1619,6 @@ jobs:
               'sleeper-agents': '${{ needs.sleeper-agents-tests.result }}',
               'dashboard-tests': '${{ needs.dashboard-tests.result }}',
               'gaea2-integration-tests': '${{ needs.gaea2-integration-tests.result }}',
-              'injection-toolkit': '${{ needs.injection-toolkit-tests.result }}',
               'economic-agents': '${{ needs.economic-agents-tests.result }}',
               'tamper-briefcase': '${{ needs.tamper-briefcase-tests.result }}',
               'bioforge': '${{ needs.bioforge-tests.result }}',

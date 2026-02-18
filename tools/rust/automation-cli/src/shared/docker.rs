@@ -7,7 +7,6 @@ use anyhow::{Context, Result};
 // Idempotent build guards -- prevent re-building the same image within one invocation
 static PYTHON_CI_BUILT: AtomicBool = AtomicBool::new(false);
 static RUST_CI_BUILT: AtomicBool = AtomicBool::new(false);
-static RUST_CI_NIGHTLY_BUILT: AtomicBool = AtomicBool::new(false);
 
 /// Build the Python CI Docker image (idempotent per process)
 pub fn build_python_ci(compose_file: &Path) -> Result<()> {
@@ -25,19 +24,6 @@ pub fn build_rust_ci(compose_file: &Path) -> Result<()> {
     }
     crate::shared::output::step("Building Rust CI image...");
     docker_compose(compose_file, &["--profile", "ci"], &["build", "rust-ci"])
-}
-
-/// Build the Rust CI nightly Docker image (idempotent per process)
-pub fn build_rust_ci_nightly(compose_file: &Path) -> Result<()> {
-    if RUST_CI_NIGHTLY_BUILT.swap(true, Ordering::SeqCst) {
-        return Ok(());
-    }
-    crate::shared::output::step("Building Rust CI nightly image...");
-    docker_compose(
-        compose_file,
-        &["--profile", "ci"],
-        &["build", "rust-ci-nightly"],
-    )
 }
 
 /// Run `docker compose` with the given compose file, global flags, and subcommand args.

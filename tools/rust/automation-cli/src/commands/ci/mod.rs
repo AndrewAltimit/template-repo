@@ -314,7 +314,6 @@ fn run_parsed_stage(
             // Format workspace roots
             for ws in &[
                 "packages/economic_agents",
-                "packages/injection_toolkit",
                 "packages/tamper_briefcase",
                 "packages/bioforge",
                 "tools/mcp/mcp_core_rust",
@@ -411,219 +410,7 @@ fn run_parsed_stage(
             crate::shared::process::run("docker", &args)
         },
 
-        // ===================== Rust injection_toolkit stages =====================
-        Stage::RustFmt => {
-            output::header("Running Rust format checks");
-            docker::run_cargo(compose, ".", &["fmt", "--all", "--", "--check"])
-        },
-        Stage::RustClippy => {
-            output::header("Running Rust clippy lints");
-            docker::run_cargo(
-                compose,
-                ".",
-                &[
-                    "clippy",
-                    "--workspace",
-                    "--all-targets",
-                    "--exclude",
-                    "itk-native-dll",
-                    "--exclude",
-                    "nms-cockpit-injector",
-                    "--exclude",
-                    "nms-video-launcher",
-                    "--exclude",
-                    "nms-video-overlay",
-                    "--",
-                    "-D",
-                    "warnings",
-                ],
-            )
-        },
-        Stage::RustTest => {
-            output::header("Running Rust tests");
-            let mut args = vec![
-                "test",
-                "--workspace",
-                "--exclude",
-                "itk-native-dll",
-                "--exclude",
-                "nms-cockpit-injector",
-                "--exclude",
-                "nms-video-launcher",
-                "--exclude",
-                "nms-video-overlay",
-            ];
-            args.extend(extra.iter().copied());
-            docker::run_cargo(compose, ".", &args)
-        },
-        Stage::RustBuild => {
-            output::header("Building Rust workspace");
-            docker::run_cargo(
-                compose,
-                ".",
-                &[
-                    "build",
-                    "--workspace",
-                    "--all-targets",
-                    "--exclude",
-                    "itk-native-dll",
-                    "--exclude",
-                    "nms-cockpit-injector",
-                    "--exclude",
-                    "nms-video-launcher",
-                    "--exclude",
-                    "nms-video-overlay",
-                ],
-            )
-        },
-        Stage::RustDeny => {
-            output::header("Running cargo-deny license/security checks");
-            docker::run_cargo(compose, ".", &["deny", "check"])
-        },
-        Stage::RustFull => {
-            output::header("Running full Rust CI checks");
-            run_parsed_stage(&Stage::RustFmt, compose, ruff_fmt, extra, root)?;
-            run_parsed_stage(&Stage::RustClippy, compose, ruff_fmt, extra, root)?;
-            run_parsed_stage(&Stage::RustTest, compose, ruff_fmt, extra, root)
-        },
-
-        // ===================== Rust nightly stages =====================
-        Stage::RustLoom => {
-            output::header("Running Loom concurrency tests");
-            docker::build_rust_ci_nightly(compose)?;
-            let cf = compose.to_string_lossy();
-            crate::shared::process::run(
-                "docker",
-                &[
-                    "compose",
-                    "-f",
-                    &cf,
-                    "--profile",
-                    "ci",
-                    "run",
-                    "--rm",
-                    "-e",
-                    "RUSTFLAGS=--cfg loom",
-                    "rust-ci-nightly",
-                    "cargo",
-                    "test",
-                    "-p",
-                    "itk-shmem",
-                    "loom_tests",
-                    "--",
-                    "--nocapture",
-                ],
-            )
-        },
-        Stage::RustMiri => {
-            output::header("Running Miri UB detection");
-            docker::build_rust_ci_nightly(compose)?;
-            let cf = compose.to_string_lossy();
-            crate::shared::process::run(
-                "docker",
-                &[
-                    "compose",
-                    "-f",
-                    &cf,
-                    "--profile",
-                    "ci",
-                    "run",
-                    "--rm",
-                    "rust-ci-nightly",
-                    "cargo",
-                    "+nightly",
-                    "miri",
-                    "test",
-                    "-p",
-                    "itk-shmem",
-                    "--",
-                    "seqlock",
-                ],
-            )?;
-            crate::shared::process::run(
-                "docker",
-                &[
-                    "compose",
-                    "-f",
-                    &cf,
-                    "--profile",
-                    "ci",
-                    "run",
-                    "--rm",
-                    "rust-ci-nightly",
-                    "cargo",
-                    "+nightly",
-                    "miri",
-                    "test",
-                    "-p",
-                    "itk-protocol",
-                ],
-            )
-        },
-        Stage::RustCrossLinux => {
-            output::header("Cross-compile check (x86_64 Linux)");
-            docker::build_rust_ci_nightly(compose)?;
-            let cf = compose.to_string_lossy();
-            crate::shared::process::run(
-                "docker",
-                &[
-                    "compose",
-                    "-f",
-                    &cf,
-                    "--profile",
-                    "ci",
-                    "run",
-                    "--rm",
-                    "rust-ci-nightly",
-                    "cargo",
-                    "check",
-                    "--target",
-                    "x86_64-unknown-linux-gnu",
-                    "-p",
-                    "itk-protocol",
-                    "-p",
-                    "itk-shmem",
-                    "-p",
-                    "itk-ipc",
-                ],
-            )
-        },
-        Stage::RustCrossWindows => {
-            output::header("Cross-compile check (Windows)");
-            docker::build_rust_ci_nightly(compose)?;
-            let cf = compose.to_string_lossy();
-            crate::shared::process::run(
-                "docker",
-                &[
-                    "compose",
-                    "-f",
-                    &cf,
-                    "--profile",
-                    "ci",
-                    "run",
-                    "--rm",
-                    "rust-ci-nightly",
-                    "cargo",
-                    "check",
-                    "--target",
-                    "x86_64-pc-windows-gnu",
-                    "-p",
-                    "itk-protocol",
-                    "-p",
-                    "itk-shmem",
-                    "-p",
-                    "itk-ipc",
-                ],
-            )
-        },
-        Stage::RustAdvanced => {
-            output::header("Running advanced Rust CI checks (nightly)");
-            run_parsed_stage(&Stage::RustLoom, compose, ruff_fmt, extra, root)?;
-            run_parsed_stage(&Stage::RustMiri, compose, ruff_fmt, extra, root)?;
-            run_parsed_stage(&Stage::RustCrossLinux, compose, ruff_fmt, extra, root)?;
-            run_parsed_stage(&Stage::RustCrossWindows, compose, ruff_fmt, extra, root)
-        },
-
+        // ===================== Workspace stages (generic) =====================
         // ===================== Workspace stages (generic) =====================
         Stage::WorkspaceFmt(ws) => {
             output::header(&format!("Running {ws} format checks"));
@@ -851,12 +638,10 @@ fn run_parsed_stage(
             run_parsed_stage(&Stage::YamlLint, compose, ruff_fmt, extra, root)?;
             run_parsed_stage(&Stage::JsonLint, compose, ruff_fmt, extra, root)?;
             run_parsed_stage(&Stage::Test, compose, ruff_fmt, extra, root)?;
-            run_parsed_stage(&Stage::TestCorporateProxy, compose, ruff_fmt, extra, root)?;
-            run_parsed_stage(&Stage::RustFull, compose, ruff_fmt, extra, root)
+            run_parsed_stage(&Stage::TestCorporateProxy, compose, ruff_fmt, extra, root)
         },
         Stage::RustAll => {
             output::header("Running ALL Rust CI checks");
-            run_parsed_stage(&Stage::RustFull, compose, ruff_fmt, extra, root)?;
             run_parsed_stage(
                 &Stage::WorkspaceFull(stages::Workspace::EconomicAgents),
                 compose,
@@ -1019,12 +804,6 @@ fn list_stages() {
     println!("    format, lint-basic, lint-full, lint-shell, ruff, ruff-fix");
     println!("    bandit, security, test, test-gaea2, test-all, test-corporate-proxy");
     println!("    yaml-lint, json-lint, autoformat, full");
-    println!();
-    println!("  Rust (injection_toolkit):");
-    println!("    rust-fmt, rust-clippy, rust-test, rust-build, rust-deny, rust-full");
-    println!();
-    println!("  Rust (nightly):");
-    println!("    rust-loom, rust-miri, rust-cross-linux, rust-cross-windows, rust-advanced");
     println!();
     println!("  Rust (economic_agents):");
     println!(

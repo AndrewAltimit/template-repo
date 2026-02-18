@@ -9,7 +9,7 @@ This repository contains dual-use components. The following outlines what each c
 | Component | Intended Use |
 |-----------|-------------|
 | **Sleeper Agents Framework** | Evaluating open-weight models for hidden backdoors before deployment; testing detection methodologies; AI safety research |
-| **Injection Toolkit** | Game modding, debugging tools, AI agent embodiment in virtual worlds, runtime integration research |
+| **Agent Integration Toolkit** ([game-mods](https://github.com/AndrewAltimit/game-mods)) | AI agent integration with legacy software, debugging tools, agent embodiment in virtual worlds, runtime integration research |
 | **Economic Agents** | AI governance research, policy analysis, simulation of autonomous economic dynamics |
 | **Projection Reports** | Defensive policy analysis, threat anticipation, academic discussion of emerging technology risks |
 | **MCP Servers** | Developer tooling, content creation, code quality automation |

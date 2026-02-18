@@ -22,11 +22,12 @@ The MCP functionality is split across modular servers:
 13. **GitHub Board MCP Server** - GitHub Projects v2 board management and agent coordination
 14. **AgentCore Memory MCP Server** - Multi-provider AI memory (AWS AgentCore or ChromaDB)
 15. **Reaction Search MCP Server** - Semantic search for anime reaction images
+16. **Memory Explorer MCP Server** - Process memory exploration for agent integration with legacy software (native binary)
 
 **HTTP Mode (Remote servers):**
-16. **Gaea2 MCP Server** (Port 8007) - Remote terrain generation interface
-17. **AI Toolkit MCP Server** (Port 8012) - Remote AI Toolkit for LoRA training
-18. **ComfyUI MCP Server** (Port 8013) - Remote ComfyUI for image generation
+17. **Gaea2 MCP Server** (Port 8007) - Remote terrain generation interface
+18. **AI Toolkit MCP Server** (Port 8012) - Remote AI Toolkit for LoRA training
+19. **ComfyUI MCP Server** (Port 8013) - Remote ComfyUI for image generation
 
 This modular architecture ensures better separation of concerns, easier maintenance, and the ability to scale individual services independently.
 
