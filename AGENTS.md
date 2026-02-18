@@ -123,6 +123,7 @@ docker compose down                      # Stop services
 |---------|----------|---------|
 | [game-mods](https://github.com/AndrewAltimit/game-mods) | Rust | Injection toolkit for AI agent integration with legacy software |
 | [oasis-os](https://github.com/AndrewAltimit/oasis-os) | Rust | Embeddable OS framework (SDL2/PSP/UE5) with scene-graph UI and 8 themes |
+| [breakpoint](https://github.com/AndrewAltimit/breakpoint) | Rust/WASM | Multiplayer gaming platform for agentic office hours with agent alert overlay |
 | [rust-psp](https://github.com/AndrewAltimit/rust-psp) | Rust | PSP SDK -- ~829 syscall bindings, 38+ modules, used by oasis-os |
 
 ## Development Reminders
@@ -210,4 +211,5 @@ This renders as:
 - `packages/bioforge/README.md` - BioForge CRISPR automation (Rust)
 - `packages/bioforge/docs/governance-implications.md` - Biological agent governance analysis
 - [oasis-os](https://github.com/AndrewAltimit/oasis-os) - Embeddable OS framework with scene-graph UI, 4 backends (dedicated repo)
+- [breakpoint](https://github.com/AndrewAltimit/breakpoint) - Multiplayer gaming platform for agentic office hours (dedicated repo)
 - [rust-psp](https://github.com/AndrewAltimit/rust-psp) - PSP SDK with ~829 syscall bindings, used by oasis-os (dedicated repo)
