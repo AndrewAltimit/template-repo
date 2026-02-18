@@ -7,7 +7,7 @@ This repo demonstrates how to run a council of AI agents (Claude, Gemini, Codex,
 **Use this repo to learn how to:**
 - Orchestrate multiple AI agents with a GitHub Projects v2 work queue
 - Measure and enforce trust boundaries for autonomous agents (wrapper guards, iteration limits, claim tracking)
-- Integrate 18 MCP servers spanning code quality, content creation, 3D graphics, video editing, and speech synthesis
+- Integrate 19 MCP servers spanning code quality, content creation, 3D graphics, video editing, and speech synthesis
 - Build hardened CI/CD pipelines for agent-authored code (15-stage pipeline, security scanning, multi-arch Docker builds)
 - Detect sleeper agent behaviors via residual stream analysis and linear probes
 - Inject into closed-source applications for modding, debugging, or AI agent embodiment (via [game-mods](https://github.com/AndrewAltimit/game-mods))
@@ -172,8 +172,13 @@ Standalone packages addressing different aspects of AI agent development, safety
 | **[Sleeper Agents](packages/sleeper_agents/)** | Research-validated detection framework for hidden backdoors in LLMs, based on Anthropic's research on deceptive AI that persists through safety training | [README](packages/sleeper_agents/README.md) \| [PDF Guide](https://github.com/AndrewAltimit/template-repo/releases/latest) |
 | **[Economic Agents](packages/economic_agents/)** | Rust-based simulation framework demonstrating autonomous AI economic capability - agents that earn money, form companies, hire sub-agents, and seek investment. For governance research and policy development | [README](packages/economic_agents/README.md) |
 | **[Tamper Briefcase](packages/tamper_briefcase/)** | Tamper-responsive Raspberry Pi briefcase with dual-sensor detection, LUKS2 cryptographic wipe, and hybrid PQC recovery USB. For secure physical transport of field-deployable agent terminals | [README](packages/tamper_briefcase/README.md) \| [Hardware Docs](docs/hardware/secure-terminal-briefcase.md) |
-| **[Game Mods](https://github.com/AndrewAltimit/game-mods)** | Injection toolkit + game mod projects -- DLL injection (Windows), LD_PRELOAD (Linux), shared memory IPC, overlay rendering. For agent integration on legacy hardware, game modding, and AI agent embodiment | [README](https://github.com/AndrewAltimit/game-mods) |
-| **[OASIS_OS](https://github.com/AndrewAltimit/oasis-os)** | Embeddable OS framework in Rust -- skinnable shell with scene-graph UI, command interpreter, VFS, and plugin system. Renders on PSP hardware (sceGu), desktop (SDL2), and UE5 (render target via FFI). Containerized PPSSPP testing with NVIDIA GPU passthrough | [README](https://github.com/AndrewAltimit/oasis-os) \| [Design Doc](https://github.com/AndrewAltimit/oasis-os/blob/main/docs/design.md) |
+
+### Related Repositories
+
+| Repository | Relationship | Documentation |
+|------------|-------------|---------------|
+| **[game-mods](https://github.com/AndrewAltimit/game-mods)** | Injection toolkit for AI agent integration with legacy software -- DLL injection (Windows), LD_PRELOAD (Linux), shared memory IPC, overlay rendering, and MCP memory explorer | [README](https://github.com/AndrewAltimit/game-mods) |
+| **[oasis-os](https://github.com/AndrewAltimit/oasis-os)** | Embeddable OS framework used with the Tamper Briefcase -- skinnable shell with scene-graph UI, command interpreter, VFS, and plugin system. Renders on PSP hardware, desktop (SDL2), and UE5 | [README](https://github.com/AndrewAltimit/oasis-os) \| [Design Doc](https://github.com/AndrewAltimit/oasis-os/blob/main/docs/design.md) |
 
 **Rust CLI Tools** (in `tools/rust/`):
 
