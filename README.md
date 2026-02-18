@@ -2,7 +2,7 @@
 
 A reference architecture for AI agent orchestration, trust measurement, and tool integration. Designed to be studied, forked, and adapted -- not contributed to directly. All code changes in this repository are authored by AI agents under human oversight.
 
-This repo demonstrates how to run a council of AI agents (Claude, Gemini, Codex, OpenCode, Crush) across a shared codebase with board-driven task delegation, automated PR review, security hardening, and containerized tooling. It also includes standalone research packages for sleeper agent detection, autonomous economic agent simulation, and companion repositories for [runtime injection / game modding](https://github.com/AndrewAltimit/game-mods) and an [embeddable OS framework](https://github.com/AndrewAltimit/oasis-os) targeting PSP hardware, UE5, and Raspberry Pi.
+This repo demonstrates how to run a council of AI agents (Claude, Gemini, Codex, OpenCode, Crush) across a shared codebase with board-driven task delegation, automated PR review, security hardening, and containerized tooling. It also includes standalone research packages for sleeper agent detection, autonomous economic agent simulation, and tamper-responsive hardware. Several [companion repositories](#related-repositories) consume or extend the functionality of this project.
 
 **Use this repo to learn how to:**
 - Orchestrate multiple AI agents with a GitHub Projects v2 work queue
@@ -10,7 +10,7 @@ This repo demonstrates how to run a council of AI agents (Claude, Gemini, Codex,
 - Integrate 19 MCP servers spanning code quality, content creation, 3D graphics, video editing, and speech synthesis
 - Build hardened CI/CD pipelines for agent-authored code (15-stage pipeline, security scanning, multi-arch Docker builds)
 - Detect sleeper agent behaviors via residual stream analysis and linear probes
-- Inject into closed-source applications for modding, debugging, or AI agent embodiment (via [game-mods](https://github.com/AndrewAltimit/game-mods))
+- Integrate AI agents into legacy software via runtime injection, shared memory IPC, and overlay rendering
 
 ![MCP Demo](docs/mcp/architecture/demo.gif)
 
@@ -179,6 +179,7 @@ Standalone packages addressing different aspects of AI agent development, safety
 |------------|-------------|---------------|
 | **[game-mods](https://github.com/AndrewAltimit/game-mods)** | Injection toolkit for AI agent integration with legacy software -- DLL injection (Windows), LD_PRELOAD (Linux), shared memory IPC, overlay rendering, and MCP memory explorer | [README](https://github.com/AndrewAltimit/game-mods) |
 | **[oasis-os](https://github.com/AndrewAltimit/oasis-os)** | Embeddable OS framework used with the Tamper Briefcase -- skinnable shell with scene-graph UI, command interpreter, VFS, and plugin system. Renders on PSP hardware, desktop (SDL2), and UE5 | [README](https://github.com/AndrewAltimit/oasis-os) \| [Design Doc](https://github.com/AndrewAltimit/oasis-os/blob/main/docs/design.md) |
+| **[rust-psp](https://github.com/AndrewAltimit/rust-psp)** | Rust SDK for PlayStation Portable development -- used by oasis-os for PSP hardware rendering. Includes cargo-psp build tooling, prxgen/pack-pbp binary tools, and CI with pre-built release binaries | [README](https://github.com/AndrewAltimit/rust-psp) |
 
 **Rust CLI Tools** (in `tools/rust/`):
 
