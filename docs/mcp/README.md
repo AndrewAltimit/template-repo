@@ -1,6 +1,6 @@
 # MCP (Model Context Protocol) Servers
 
-This repository contains a modular collection of 18 MCP servers that provide various development and content creation tools. Each server is specialized for specific functionality and can be run independently.
+This repository contains a modular collection of 19 MCP servers that provide various development and content creation tools. Each server is specialized for specific functionality and can be run independently.
 
 ## Available MCP Servers
 
@@ -201,6 +201,19 @@ Cross-platform desktop automation:
 - Linux support via xdotool, wmctrl, scrot
 - Windows support via pywinauto, pyautogui
 
+#### 16. Memory Explorer MCP Server
+**Location**: `tools/mcp/mcp_memory_explorer/`
+**Transport**: STDIO (native binary, not containerized)
+
+Process memory exploration for agent integration with legacy software (Windows-only for memory operations):
+- Process listing, attachment, and module enumeration
+- Memory reading (bytes, integers, floats, vectors, matrices, strings, pointers)
+- Hex dump with ASCII representation
+- Byte pattern scanning with wildcard support
+- Value searching for runtime state discovery
+- Pointer chain resolution for stable addresses
+- Address watch list for monitoring changes
+
 ### Remote/Cross-Machine Servers (HTTP Transport)
 
 These servers use HTTP transport for remote machines or special hardware/software requirements:
@@ -306,7 +319,7 @@ This repository provides two MCP configuration files to optimize context window 
 - Best for: Day-to-day development, code review, refactoring
 
 **`.mcp.json.full` (Complete - All Services)**
-- Access to all 18 specialized MCP servers
+- Access to all 19 specialized MCP servers
 - Additional: Content creation, 3D graphics, media tools, remote services
 - Best for: Creating animations, 3D content, videos, or terrain
 

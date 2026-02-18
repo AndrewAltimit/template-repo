@@ -88,13 +88,14 @@ docker compose down                      # Stop services
 
 ## Architecture
 
-### MCP Servers (18 Total)
+### MCP Servers (19 Total)
 
 | Category | Servers | Transport |
 |----------|---------|-----------|
 | Code Quality | code-quality, gemini, opencode, crush, codex | STDIO (local) |
 | Content | content-creation, meme-generator, elevenlabs-speech, video-editor, blender | STDIO |
 | Integration | virtual-character, github-board, agentcore-memory, reaction-search, desktop-control | STDIO |
+| Agent Integration | memory-explorer | STDIO (native) |
 | Remote | gaea2, ai-toolkit, comfyui | HTTP (remote machines) |
 
 **For complete MCP documentation, see** `docs/mcp/README.md`
