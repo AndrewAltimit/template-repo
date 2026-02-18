@@ -98,7 +98,7 @@ Claude Code is configured via `CLAUDE.md` which provides:
 |---------|-------------|
 | **Multi-file Editing** | Can read and modify multiple files in a single session |
 | **Command Execution** | Runs shell commands with proper sandboxing |
-| **MCP Integration** | Connects to 18 MCP servers for extended capabilities |
+| **MCP Integration** | Connects to 19 MCP servers for extended capabilities |
 | **Context Awareness** | Understands entire codebase through CLAUDE.md |
 | **Tool Use** | Full tool use capabilities for development tasks |
 

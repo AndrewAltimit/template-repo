@@ -182,7 +182,7 @@ This renders as:
 - `docs/agents/human-training.md` - AI safety training guide
 
 ### MCP
-- `docs/mcp/README.md` - MCP architecture (18 servers documented)
+- `docs/mcp/README.md` - MCP architecture (19 servers documented)
 - `docs/mcp/servers.md` - Server reference
 - `docs/mcp/tools.md` - Tools reference
 

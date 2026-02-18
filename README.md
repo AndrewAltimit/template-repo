@@ -209,7 +209,7 @@ cd tools/rust/board-manager && cargo build --release
 
 - **[19 MCP Servers](#mcp-servers)** - Code quality, content creation, AI assistance, 3D graphics, video editing, speech synthesis, and more
 - **[6 AI Agents](#ai-agents)** - Autonomous development workflow from issue to merge
-- **[5 Packages](#packages)** - Sleeper agent detection, economic agent simulation, runtime injection, tamper-responsive briefcase, CRISPR automation
+- **[4 Packages](#packages)** - Sleeper agent detection, economic agent simulation, tamper-responsive briefcase, CRISPR automation
 - **Container-First Architecture** - Maximum portability and consistency
 - **Self-Hosted CI/CD** - Zero-cost GitHub Actions infrastructure
 - **Company Integration** - Corporate proxy builds for enterprise AI APIs ([Docs](automation/corporate-proxy/shared/docs/ARCHITECTURE.md))
@@ -227,7 +227,8 @@ For enterprise environments requiring custom certificates, customize [`automatio
 ├── packages/                 # Installable packages
 │   ├── sleeper_agents/       # AI backdoor detection framework (Python)
 │   ├── economic_agents/      # Autonomous economic agents (Rust)
-│   └── tamper_briefcase/     # Tamper-responsive briefcase system (Rust)
+│   ├── tamper_briefcase/     # Tamper-responsive briefcase system (Rust)
+│   └── bioforge/             # Agent-driven CRISPR automation platform (Rust)
 ├── tools/
 │   ├── mcp/                  # 19 MCP servers (see MCP Servers section)
 │   ├── rust/                 # Rust CLI tools
