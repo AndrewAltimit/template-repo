@@ -1130,7 +1130,7 @@ jobs:
           pip install sleeper_agents-*.whl
 
           # Make Rust binaries executable (Linux)
-          chmod +x economic-agents-linux-x64 pr-monitor-linux-x64 gh-linux-x64
+          chmod +x *-linux-x64
           ```
 
           ### Commit Information
