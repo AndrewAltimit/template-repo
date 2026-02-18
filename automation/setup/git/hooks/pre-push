@@ -3,8 +3,7 @@
 set -e
 #
 # This hook:
-# 1. Runs Rust formatting checks if cargo is available
-# 2. Reminds developers to monitor their PR for feedback after pushing
+# 1. Reminds developers to monitor their PR for feedback after pushing
 #
 # Installation:
 #   cp automation/setup/git/hooks/pre-push .git/hooks/pre-push
@@ -20,25 +19,6 @@ if [ -f .git/hooks/pre-push.lfs ]; then
     lfs_result=$?
     if [ $lfs_result -ne 0 ]; then
         exit $lfs_result
-    fi
-fi
-
-# ============================================================
-# RUST FORMATTING CHECK
-# ============================================================
-# Check Rust formatting for injection_toolkit if cargo is available
-if command -v cargo >/dev/null 2>&1; then
-    INJECTION_TOOLKIT_DIR="packages/injection_toolkit"
-    if [ -d "$INJECTION_TOOLKIT_DIR" ] && [ -f "$INJECTION_TOOLKIT_DIR/Cargo.toml" ]; then
-        echo "Checking Rust formatting..."
-        if ! (cd "$INJECTION_TOOLKIT_DIR" && cargo fmt --all -- --check); then
-            echo ""
-            echo "ERROR: Rust formatting check failed!"
-            echo "Run 'cd $INJECTION_TOOLKIT_DIR && cargo fmt --all' to fix formatting."
-            echo ""
-            exit 1
-        fi
-        echo "Rust formatting OK"
     fi
 fi
 

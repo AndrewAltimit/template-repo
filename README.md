@@ -2,7 +2,7 @@
 
 A reference architecture for AI agent orchestration, trust measurement, and tool integration. Designed to be studied, forked, and adapted -- not contributed to directly. All code changes in this repository are authored by AI agents under human oversight.
 
-This repo demonstrates how to run a council of AI agents (Claude, Gemini, Codex, OpenCode, Crush) across a shared codebase with board-driven task delegation, automated PR review, security hardening, and containerized tooling. It also includes standalone research packages for sleeper agent detection, autonomous economic agent simulation, cross-platform runtime injection, and an embeddable OS framework targeting PSP hardware, UE5, and Raspberry Pi.
+This repo demonstrates how to run a council of AI agents (Claude, Gemini, Codex, OpenCode, Crush) across a shared codebase with board-driven task delegation, automated PR review, security hardening, and containerized tooling. It also includes standalone research packages for sleeper agent detection, autonomous economic agent simulation, and companion repositories for [runtime injection / game modding](https://github.com/AndrewAltimit/game-mods) and an [embeddable OS framework](https://github.com/AndrewAltimit/oasis-os) targeting PSP hardware, UE5, and Raspberry Pi.
 
 **Use this repo to learn how to:**
 - Orchestrate multiple AI agents with a GitHub Projects v2 work queue
@@ -10,7 +10,7 @@ This repo demonstrates how to run a council of AI agents (Claude, Gemini, Codex,
 - Integrate 18 MCP servers spanning code quality, content creation, 3D graphics, video editing, and speech synthesis
 - Build hardened CI/CD pipelines for agent-authored code (15-stage pipeline, security scanning, multi-arch Docker builds)
 - Detect sleeper agent behaviors via residual stream analysis and linear probes
-- Inject into closed-source applications for modding, debugging, or AI agent embodiment
+- Inject into closed-source applications for modding, debugging, or AI agent embodiment (via [game-mods](https://github.com/AndrewAltimit/game-mods))
 
 ![MCP Demo](docs/mcp/architecture/demo.gif)
 
@@ -171,8 +171,8 @@ Standalone packages addressing different aspects of AI agent development, safety
 |---------|---------|---------------|
 | **[Sleeper Agents](packages/sleeper_agents/)** | Research-validated detection framework for hidden backdoors in LLMs, based on Anthropic's research on deceptive AI that persists through safety training | [README](packages/sleeper_agents/README.md) \| [PDF Guide](https://github.com/AndrewAltimit/template-repo/releases/latest) |
 | **[Economic Agents](packages/economic_agents/)** | Rust-based simulation framework demonstrating autonomous AI economic capability - agents that earn money, form companies, hire sub-agents, and seek investment. For governance research and policy development | [README](packages/economic_agents/README.md) |
-| **[Injection Toolkit](packages/injection_toolkit/)** | Cross-platform Rust framework for runtime integration - DLL injection (Windows), LD_PRELOAD (Linux), shared memory IPC, and overlay rendering. For game modding, debugging tools, and AI agent embodiment | [README](packages/injection_toolkit/README.md) \| [Architecture](packages/injection_toolkit/docs/ARCHITECTURE.md) |
 | **[Tamper Briefcase](packages/tamper_briefcase/)** | Tamper-responsive Raspberry Pi briefcase with dual-sensor detection, LUKS2 cryptographic wipe, and hybrid PQC recovery USB. For secure physical transport of field-deployable agent terminals | [README](packages/tamper_briefcase/README.md) \| [Hardware Docs](docs/hardware/secure-terminal-briefcase.md) |
+| **[Game Mods](https://github.com/AndrewAltimit/game-mods)** | Injection toolkit + game mod projects -- DLL injection (Windows), LD_PRELOAD (Linux), shared memory IPC, overlay rendering. For agent integration on legacy hardware, game modding, and AI agent embodiment | [README](https://github.com/AndrewAltimit/game-mods) |
 | **[OASIS_OS](https://github.com/AndrewAltimit/oasis-os)** | Embeddable OS framework in Rust -- skinnable shell with scene-graph UI, command interpreter, VFS, and plugin system. Renders on PSP hardware (sceGu), desktop (SDL2), and UE5 (render target via FFI). Containerized PPSSPP testing with NVIDIA GPU passthrough | [README](https://github.com/AndrewAltimit/oasis-os) \| [Design Doc](https://github.com/AndrewAltimit/oasis-os/blob/main/docs/design.md) |
 
 **Rust CLI Tools** (in `tools/rust/`):
@@ -193,7 +193,6 @@ Standalone packages addressing different aspects of AI agent development, safety
 pip install -e ./packages/sleeper_agents
 
 # Build Rust packages (requires Rust toolchain)
-cd packages/injection_toolkit && cargo build --release
 cd packages/economic_agents && cargo build --release
 cd tools/rust/github-agents-cli && cargo build --release
 cd tools/rust/board-manager && cargo build --release
@@ -221,7 +220,6 @@ For enterprise environments requiring custom certificates, customize [`automatio
 ├── packages/                 # Installable packages
 │   ├── sleeper_agents/       # AI backdoor detection framework (Python)
 │   ├── economic_agents/      # Autonomous economic agents (Rust)
-│   ├── injection_toolkit/    # Runtime injection framework (Rust)
 │   └── tamper_briefcase/     # Tamper-responsive briefcase system (Rust)
 ├── tools/
 │   ├── mcp/                  # 18 MCP servers (see MCP Servers section)

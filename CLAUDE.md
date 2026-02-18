@@ -103,7 +103,6 @@ docker compose down                      # Stop services
 |---------|----------|---------|
 | `packages/sleeper_agents/` | Python | Sleeper agent detection framework |
 | `packages/economic_agents/` | Rust | Autonomous AI economic simulation |
-| `packages/injection_toolkit/` | Rust | Cross-platform screen capture/injection |
 | `packages/tamper_briefcase/` | Rust | Tamper-responsive briefcase with PQC recovery |
 | `packages/bioforge/` | Rust | Agent-driven CRISPR automation platform |
 
@@ -111,6 +110,7 @@ docker compose down                      # Stop services
 
 | Package | Language | Purpose |
 |---------|----------|---------|
+| [game-mods](https://github.com/AndrewAltimit/game-mods) | Rust | Injection toolkit + game mod projects (agent integration on legacy hardware) |
 | [oasis-os](https://github.com/AndrewAltimit/oasis-os) | Rust | Embeddable OS framework (PSP/SDL2/UE5) |
 
 ## Development Reminders
@@ -195,7 +195,7 @@ This renders as:
 - `packages/sleeper_agents/README.md` - Sleeper agent detection
 - `packages/economic_agents/README.md` - Economic agents simulation (Rust)
 - `packages/economic_agents/docs/economic-implications.md` - **AI governance policy analysis**
-- `packages/injection_toolkit/README.md` - Injection toolkit
+- [game-mods](https://github.com/AndrewAltimit/game-mods) - Injection toolkit + game mods (moved to dedicated repo)
 - `packages/tamper_briefcase/README.md` - Tamper-responsive briefcase system (Rust)
 - `packages/bioforge/README.md` - BioForge CRISPR automation (Rust)
 - `packages/bioforge/docs/governance-implications.md` - Biological agent governance analysis

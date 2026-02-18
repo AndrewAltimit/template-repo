@@ -751,7 +751,7 @@ services:
     profiles:
       - ci
 
-  # Rust CI container for injection_toolkit and other Rust projects
+  # Rust CI container for Rust workspace projects
   # Cargo registry/git cache persisted via named volume to avoid re-downloading
   # dependencies on every CI run (~30s saving per workspace invocation)
   rust-ci:
@@ -767,7 +767,7 @@ services:
       - RUSTUP_HOME=/usr/local/rustup  # Read-only, pre-installed in image
       - CARGO_INCREMENTAL=1
       - CI=true
-    working_dir: /app/packages/injection_toolkit
+    working_dir: /app
     networks:
       - mcp-network
     command: ["/bin/bash"]
@@ -790,7 +790,7 @@ services:
       - RUSTUP_HOME=/usr/local/rustup  # Read-only, pre-installed in image
       - CARGO_INCREMENTAL=1
       - CI=true
-    working_dir: /app/packages/injection_toolkit
+    working_dir: /app
     networks:
       - mcp-network
     command: ["/bin/bash"]

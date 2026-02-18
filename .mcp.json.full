@@ -223,6 +223,13 @@
         "--mode",
         "stdio"
       ]
+    },
+    "memory-explorer": {
+      "command": "./tools/mcp/mcp_memory_explorer/target/release/mcp-memory-explorer",
+      "args": [
+        "--mode",
+        "stdio"
+      ]
     }
   }
 }
