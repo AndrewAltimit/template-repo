@@ -177,9 +177,9 @@ Standalone packages addressing different aspects of AI agent development, safety
 
 | Repository | Relationship | Documentation |
 |------------|-------------|---------------|
-| **[game-mods](https://github.com/AndrewAltimit/game-mods)** | Injection toolkit for AI agent integration with legacy software -- DLL injection (Windows), LD_PRELOAD (Linux), shared memory IPC, overlay rendering, and MCP memory explorer | [README](https://github.com/AndrewAltimit/game-mods) |
-| **[oasis-os](https://github.com/AndrewAltimit/oasis-os)** | Embeddable OS framework used with the Tamper Briefcase -- skinnable shell with scene-graph UI, command interpreter, VFS, and plugin system. Renders on PSP hardware, desktop (SDL2), and UE5 | [README](https://github.com/AndrewAltimit/oasis-os) \| [Design Doc](https://github.com/AndrewAltimit/oasis-os/blob/main/docs/design.md) |
-| **[rust-psp](https://github.com/AndrewAltimit/rust-psp)** | Rust SDK for PlayStation Portable development -- used by oasis-os for PSP hardware rendering. Includes cargo-psp build tooling, prxgen/pack-pbp binary tools, and CI with pre-built release binaries | [README](https://github.com/AndrewAltimit/rust-psp) |
+| **[game-mods](https://github.com/AndrewAltimit/game-mods)** | Injection toolkit for AI agent integration with legacy software -- DLL injection (Windows), LD_PRELOAD (Linux), shared memory IPC, overlay rendering, and MCP memory explorer for process introspection | [README](https://github.com/AndrewAltimit/game-mods) |
+| **[oasis-os](https://github.com/AndrewAltimit/oasis-os)** | Embeddable OS framework (18 crates) -- scene-graph UI, 90+ terminal commands, browser engine (HTML/CSS/Gemini), window manager, VFS, plugin system, and remote terminal. 4 backends (SDL2, PSP via rust-psp, UE5 FFI, planned framebuffer) with 8 skinnable themes. Used as the shell environment for the Tamper Briefcase | [README](https://github.com/AndrewAltimit/oasis-os) \| [Design Doc](https://github.com/AndrewAltimit/oasis-os/blob/main/docs/design.md) |
+| **[rust-psp](https://github.com/AndrewAltimit/rust-psp)** | Modernized Rust SDK for PlayStation Portable -- ~829 syscall bindings, 38+ high-level modules (graphics, audio, networking, crypto), kernel mode support, and experimental std (thread, fs, sync, time). Edition 2024 fork with C runtime safety fixes and pre-built CI binaries (cargo-psp, prxgen, pack-pbp) | [README](https://github.com/AndrewAltimit/rust-psp) |
 
 **Rust CLI Tools** (in `tools/rust/`):
 
@@ -206,7 +206,7 @@ cd tools/rust/board-manager && cargo build --release
 
 ## Features
 
-- **[18 MCP Servers](#mcp-servers)** - Code quality, content creation, AI assistance, 3D graphics, video editing, speech synthesis, and more
+- **[19 MCP Servers](#mcp-servers)** - Code quality, content creation, AI assistance, 3D graphics, video editing, speech synthesis, and more
 - **[6 AI Agents](#ai-agents)** - Autonomous development workflow from issue to merge
 - **[5 Packages](#packages)** - Sleeper agent detection, economic agent simulation, runtime injection, tamper-responsive briefcase, CRISPR automation
 - **Container-First Architecture** - Maximum portability and consistency
@@ -228,7 +228,7 @@ For enterprise environments requiring custom certificates, customize [`automatio
 │   ├── economic_agents/      # Autonomous economic agents (Rust)
 │   └── tamper_briefcase/     # Tamper-responsive briefcase system (Rust)
 ├── tools/
-│   ├── mcp/                  # 18 MCP servers (see MCP Servers section)
+│   ├── mcp/                  # 19 MCP servers (see MCP Servers section)
 │   ├── rust/                 # Rust CLI tools
 │   │   ├── github-agents-cli/    # Issue/PR monitoring, refinement, analysis
 │   │   ├── board-manager/        # GitHub Projects board operations
@@ -264,9 +264,10 @@ For enterprise environments requiring custom certificates, customize [`automatio
 13. **GitHub Board** - GitHub Projects v2 board management, work claiming, agent coordination ([Documentation](tools/mcp/mcp_github_board/docs/README.md))
 14. **AI Toolkit** - LoRA training interface (remote: 192.168.0.222:8012)
 15. **ComfyUI** - Image generation interface (remote: 192.168.0.222:8013)
-16. **AgentCore Memory** - Multi-provider AI memory (AWS AgentCore or ChromaDB) ([Documentation](tools/mcp/mcp_agentcore_memory/docs/README.md))
-17. **Reaction Search** - Semantic search for anime reaction images (Rust)
-18. **Desktop Control** - Cross-platform desktop automation for Linux and Windows ([Documentation](tools/mcp/mcp_desktop_control/README.md))
+16. **Memory Explorer** - Process memory exploration for agent integration with legacy software (Rust)
+17. **AgentCore Memory** - Multi-provider AI memory (AWS AgentCore or ChromaDB) ([Documentation](tools/mcp/mcp_agentcore_memory/docs/README.md))
+18. **Reaction Search** - Semantic search for anime reaction images (Rust)
+19. **Desktop Control** - Cross-platform desktop automation for Linux and Windows ([Documentation](tools/mcp/mcp_desktop_control/README.md))
 
 ### Usage Modes
 
