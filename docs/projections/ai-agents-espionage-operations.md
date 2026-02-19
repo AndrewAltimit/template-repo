@@ -9,6 +9,7 @@
 
 | Field | Value |
 |-------|-------|
+| **Document ID** | ETRA-2026-ESP-001 |
 | **Version** | 2.0 |
 | **Date** | February 2026 |
 | **Status** | Final |
