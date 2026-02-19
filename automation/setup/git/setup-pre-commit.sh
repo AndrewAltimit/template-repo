@@ -1,30 +1,21 @@
 #!/bin/bash
-# Setup pre-commit hooks for the repository
+# DEPRECATED: .pre-commit-config.yaml was removed in PR #292.
+# This project now uses automation-cli for all CI checks.
+#
+# To run formatting/linting:
+#   automation-cli ci run format
+#   automation-cli ci run lint-full
+#   automation-cli ci run full
+#
+# The pre-push hook in automation/setup/git/ handles pre-push validation.
 
 set -e
 
-echo "🔧 Setting up pre-commit hooks..."
-
-# Check if pre-commit is installed
-if ! command -v pre-commit &> /dev/null; then
-    echo "📦 Installing pre-commit..."
-    pip install pre-commit
-fi
-
-# Install the pre-commit hooks
-echo "🔗 Installing git hooks..."
-pre-commit install
-
-# Update hooks to latest versions
-echo "🔄 Updating hooks to latest versions..."
-pre-commit autoupdate
-
-# Run on all files to check current state
-echo "🧪 Running pre-commit on all files..."
-pre-commit run --all-files || true
-
-echo "✅ Pre-commit hooks installed successfully!"
+echo "NOTE: pre-commit is no longer used in this project."
 echo ""
-echo "Pre-commit will now run automatically on git commit."
-echo "To run manually: pre-commit run --all-files"
-echo "To skip hooks: git commit --no-verify"
+echo "Code quality checks are now handled by automation-cli:"
+echo "  automation-cli ci run format      # Check formatting"
+echo "  automation-cli ci run lint-full   # Full linting"
+echo "  automation-cli ci run full        # All checks"
+echo ""
+echo "See CLAUDE.md for the complete command reference."

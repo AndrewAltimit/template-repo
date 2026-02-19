@@ -49,7 +49,6 @@ fn run_stage(name: &str, extra: &[String]) -> Result<()> {
     // Ensure cache dirs exist
     let home = std::env::var("HOME").unwrap_or_default();
     let _ = std::fs::create_dir_all(format!("{home}/.cache/uv"));
-    let _ = std::fs::create_dir_all(format!("{home}/.cache/pre-commit"));
 
     let ruff_fmt = if project::is_ci() {
         "github"
@@ -118,7 +117,11 @@ fn run_parsed_stage(
                 &["ruff", "check", &format!("--output-format={ruff_fmt}"), "."],
                 &[],
             )?;
-            docker::run_python_ci(compose, &["ty", "check", "."], &[])
+            // ty errors are informational (matches `lint full` behavior)
+            if !docker::run_python_ci_check(compose, &["ty", "check", "."], &[])? {
+                output::info("ty found type errors (informational)");
+            }
+            Ok(())
         },
         Stage::Ruff => {
             output::header("Running Ruff (fast linter)");

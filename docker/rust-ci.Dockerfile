@@ -8,8 +8,7 @@
 FROM rust:1.93-slim
 
 # Install system dependencies with BuildKit cache
-# NOTE: X11/audio/video deps are legacy from injection_toolkit (now in game-mods repo)
-# and can be removed once confirmed no remaining packages need them
+# X11 deps needed by mcp-desktop-control (x11rb crate)
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
     apt-get update && apt-get install -y --no-install-recommends \
@@ -21,14 +20,6 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     libxi-dev \
     libxcursor-dev \
     libxinerama-dev \
-    libasound2-dev \
-    libavcodec-dev \
-    libavformat-dev \
-    libavutil-dev \
-    libavfilter-dev \
-    libavdevice-dev \
-    libswresample-dev \
-    libswscale-dev \
     clang \
     git \
     && rm -rf /var/lib/apt/lists/*

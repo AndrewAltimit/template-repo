@@ -431,6 +431,19 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Clean up stale containers and networks
+        run: |
+          # Remove stale containers from previous CI runs that may hold ports/networks
+          docker compose down --remove-orphans 2>/dev/null || true
+          stale=$(docker ps -a --format "{{.Names}}" | grep -E "^(ci-|template-repo-)" || true)
+          if [ -n "$stale" ]; then
+            echo "Removing stale containers: $stale"
+            echo "$stale" | xargs -r docker rm -f 2>/dev/null || true
+          fi
+          # Remove stale CI networks to free subnet allocations
+          docker network ls --filter "name=ci-" --filter "name=template-repo" --format "{{.Name}}" \
+            | xargs -r docker network rm 2>/dev/null || true
+
       - name: Extract metadata
         id: meta
         uses: docker/metadata-action@v5
