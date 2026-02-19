@@ -10,12 +10,12 @@
 | Field | Value |
 |-------|-------|
 | **Document ID** | ETRA-2026-IC-001 |
-| **Version** | 0.1 (Initial Draft) |
-| **Date** | January 2026 |
-| **Status** | Working Draft |
-| **Change Summary** | Initial release |
+| **Version** | 2.0 |
+| **Date** | February 2026 |
+| **Status** | Current |
+| **Change Summary** | v2.0: Updated workforce data (confirmed NSA/ODNI/CIA figures), added Venezuela/Maduro case study, METR agent capability data, FMIC dissolution analysis, China/Russia intelligence updates, governance framework updates, revised scenario probabilities, expanded cross-references |
 | **Distribution** | Public (open-source) |
-| **Related Documents** | ETRA-2025-FIN-001 (Financial Integrity), ETRA-2025-ESP-001 (Espionage Operations) |
+| **Related Documents** | ETRA-2025-AEA-001 (Economic Actors), ETRA-2025-FIN-001 (Financial Integrity), ETRA-2025-ESP-001 (Espionage Operations), ETRA-2026-PTR-001 (Political Targeting), ETRA-2026-WMD-001 (WMD Proliferation) |
 
 ---
 
@@ -35,7 +35,7 @@
 2. **Collection without verification is now a liability** — In targeted collection environments, agent-generated decoys could plausibly outnumber authentic human signals by ~3–30× (structured judgment), especially where agents can cheaply generate traffic and defenders must triage manually. Traditional signal-to-noise filters become unreliable.
 3. **Attribution of intent is structurally harder** — The "Delegation Defense" (blaming autonomous agent behavior) provides plausible deniability for state actors using AI agents.
 4. **Institutional speed cannot match adversary iteration** — Adversaries can iterate at software speed; IC adoption is constrained by procurement, authorities, and assurance requirements—creating a persistent cycle-time gap.
-5. **[O] Verification workforce is contracting** — Public reporting indicates significant IC staffing reductions: ODNI planned cuts of >40% by Oct 2025 (Reuters); CIA shrinking ~1,200 positions over several years with early retirements occurring; broader reductions across NSA and other agencies (AP). **[E]** This compounds every other risk—verification is labor- and expertise-intensive; losing experienced analysts increases Verification Latency, raises False Clean risk, and makes Algorithmic Capture easier.
+5. **[O] Verification workforce is contracting** — Confirmed IC staffing reductions: NSA met its 2,000-person reduction target by end of 2025 (Nextgov/FCW, Dec 2025); ODNI cut from ~2,000 to ~1,300 under "ODNI 2.0," dissolving the Foreign Malign Influence Center and two other critical centers (CNN, Aug 2025); CIA shrinking ~1,200 positions over several years (AP). Defense Secretary Hegseth seeks ~8% annual DOD budget cuts over five years, affecting all military intelligence elements. **[E]** This compounds every other risk—verification is labor- and expertise-intensive; losing experienced analysts increases Verification Latency, raises False Clean risk, and makes Algorithmic Capture easier.
 
 ### 5 Most Likely Impact Paths
 
@@ -79,13 +79,13 @@
 |-----------|----------|
 | "This is alarmist" | All claims tagged with epistemic markers; speculative projections clearly labeled [S] |
 | "IC is already adapting" | Document identifies gaps in *current* trajectory; builds on existing efforts |
-| "Agents aren't this capable yet" | Capabilities described are current (2025-2026); future projections marked speculative |
+| "Agents aren't this capable yet" | Capabilities described are current (Feb 2026); METR doubling time and Feb 2026 agent launches confirm trajectory; future projections marked speculative |
 
 ---
 
 ## Executive Summary
 
-This projection examines how autonomous AI agents are eroding the traditional advantages of national intelligence communities, particularly the U.S. Intelligence Community (IC). We analyze current technological capabilities as of early 2026, project likely institutional impacts through 2030, and examine how intelligence organizations must adapt to maintain epistemic authority in an AI-saturated information environment.
+This projection examines how autonomous AI agents are eroding the traditional advantages of national intelligence communities, particularly the U.S. Intelligence Community (IC). We analyze current technological capabilities through February 2026, project likely institutional impacts through 2030, and examine how intelligence organizations must adapt to maintain epistemic authority in an AI-saturated information environment.
 
 **Central Thesis: The Verification Pivot**
 
@@ -107,6 +107,8 @@ In an AI-saturated environment, *classification alone* is no longer a reliable p
 6. **[S]** Without adaptation, the IC risks becoming a high-cost verification bottleneck rather than a strategic advantage
 
 **Scope Limitations**: This document analyzes capabilities and institutional dynamics for defensive policy purposes. It does not provide operational guidance and explicitly omits technical implementation details that could enable harm. Analysis focuses on how autonomous agents change intelligence dynamics, not on intelligence methods generally.
+
+**Independent Work**: This report is independent research. It is not affiliated with, produced by, or endorsed by any government agency, think tank, or official institution. The "ETRA" identifier is a document formatting convention, not an organizational identity. Analysis draws on publicly available academic and policy literature.
 
 **What This Document Does NOT Claim:**
 
@@ -140,11 +142,13 @@ The Intelligence Community has repeatedly adapted to technological disruption. T
 2. **Accessibility**: Previous capabilities required state resources; AI agents are commercially available
 3. **Attribution**: Previous threats had identifiable human operators; AI agents create intent ambiguity
 
-**Current IC posture (2025-2026) [E]:**
-- AI integration initiatives underway across agencies (ODNI AI strategy, CIA's AI investments)
+**Current IC posture (as of February 2026) [O/E]:**
+- AI integration initiatives underway across agencies (ODNI AI strategy, CIA's AI investments); IC-wide AI roadmap targets "AI enabling services at scale" for FY2026-2029
 - Significant variation in adoption maturity across the 18-agency community
 - Collection capabilities continue to expand faster than verification capabilities
 - Institutional incentives still favor collection metrics over verification metrics
+- Confirmed workforce contraction (NSA -2,000, ODNI -35%, CIA -1,200) concurrent with rising verification demands
+- FMIC dissolved; counterproliferation and cyber threat integration centers restructured
 
 **The dominant near-term shift is likely:**
 - Increased volume of "leads" requiring verification
@@ -214,10 +218,11 @@ This report builds on and complements other documents in the Emerging Technology
 
 | Report | Document ID | Relationship |
 |--------|-------------|--------------|
-| **AI Agents as Economic Actors** | ETRA-2025-AEA-001 | Establishes baseline agent economic capabilities |
+| **AI Agents as Economic Actors** | ETRA-2025-AEA-001 | Establishes baseline agent economic capabilities; "Principal-Agent Defense" parallels the Delegation Defense framework here |
 | **AI Agents and Financial Integrity** | ETRA-2025-FIN-001 | Details "Nano-smurfing" and financial evasion tactics referenced here |
-| **AI Agents and Espionage Operations** | ETRA-2025-ESP-001 | Covers adversary HUMINT augmentation; this report addresses IC defense |
-| **AI Agents and Political Targeting** | ETRA-2025-POL-001 | Addresses targeting of leadership; this report covers institutional protection |
+| **AI Agents and Espionage Operations** | ETRA-2025-ESP-001 | Covers adversary HUMINT augmentation ("Handler Bottleneck Bypass," "Stasi-in-a-Box"); this report addresses IC defense |
+| **AI Agents and Political Targeting** | ETRA-2026-PTR-001 (v2.0) | Addresses targeting of leadership; validates IC erosion dynamics through Verification Pivot and Algorithmic Capture |
+| **AI Agents and WMD Proliferation** | ETRA-2026-WMD-001 (v2.0) | Covers nano-smurfing for dual-use materials, "conspiracy footprint shrinks" thesis, and attribution void; directly relevant to DOE and proliferation monitoring sections |
 
 Readers unfamiliar with AI agent capabilities should review the Economic Actors report first.
 
@@ -225,7 +230,7 @@ Readers unfamiliar with AI agent capabilities should review the Economic Actors 
 
 This analysis draws on:
 
-- **Current capability assessment** of AI agent systems as deployed in late 2025/early 2026
+- **Current capability assessment** of AI agent systems as deployed through early 2026
 - **Institutional analysis** of IC structure, incentives, and historical adaptation patterns
 - **Open-source intelligence** on adversary AI adoption and doctrine
 - **Expert consultation** across intelligence studies, AI safety, and national security law
@@ -330,6 +335,18 @@ This section establishes the theoretical foundations for understanding how AI ag
 - Financial structuring across jurisdictions without coordination overhead
 - Technical reconnaissance with minimal human direction
 
+**Quantified Capability Trajectory [D/O]**:
+
+| Metric | Value | Source |
+|--------|-------|--------|
+| **Agent task duration doubling time** | ~7 months (METR) | METR research, Mar 2025 |
+| **Current autonomous task duration** | ~8-hour workstreams (early 2026) | Up from ~1-hour tasks (early 2025) |
+| **Enterprise AI agent penetration** | 40% of enterprise apps by end of 2026 | Gartner forecast (up from <5% in 2025) |
+| **Multi-agent system interest** | 1,445% surge Q1 2024 to Q2 2025 | Gartner inquiry data |
+| **AI-generated code share** | 70-90% of company code at frontier labs | Anthropic reporting (Feb 2026) |
+
+**Feb 2026 Milestone [O]**: OpenAI launched GPT-5.3-Codex and Anthropic released Opus 4.6 with autonomous agent teams on the same day (Feb 5, 2026). OpenAI stated their model "was instrumental in creating itself." The Agentic AI Foundation (AAIF) was jointly launched by OpenAI, Anthropic, and Google to standardize agent-tool interaction. These developments confirm that agent capabilities are on an exponential trajectory, not a linear one.
+
 **What Previously Required State Resources**:
 
 | Capability | Pre-2024 Requirement | Post-2025 Reality |
@@ -377,6 +394,8 @@ Agents dramatically accelerate cognitive and many digital operations. Physical o
 
 This distinction matters: most scenarios in this document involve cognitive and digital threats. Physical-world scenarios (e.g., proliferation, kinetic targeting) face higher barriers that AI assists but does not eliminate.
 
+**Analogous Capability Democratization [E]**: The agent-driven capability floor elevation described here for intelligence tradecraft has parallels in other domains. The `packages/bioforge/` CRISPR automation platform demonstrates how AI agents can democratize previously expert-only capabilities in biological sciences—lowering barriers to sophisticated laboratory protocols in the same way AI agents lower barriers to sophisticated intelligence tradecraft. See ETRA-2026-WMD-001 for the proliferation implications of this pattern.
+
 ### 3.2 The Collection-to-Verification Pivot [E]
 
 **The Historical Advantage**: The IC's traditional advantage was "The Intercept"—the ability to collect signals that adversaries could not protect and competitors could not access. Collection capability was the strategic moat.
@@ -410,6 +429,8 @@ This distinction matters: most scenarios in this document involve cognitive and 
 
 **The Adversary Advantage**: Adversaries deploying agents iterate at software development speed. When the IC completes a policy review, adversary agent architectures have undergone 50+ iterations.
 
+**Quantified Speed Gap [D]**: METR research (March 2025) measured AI agent task completion duration doubling every ~7 months. At this rate, agents that handled 1-hour tasks in early 2025 now handle 8-hour workstreams in early 2026. If the trend continues 2-4 more years, generalist autonomous agents will handle week-long tasks—while IC procurement cycles for comparable tools measure in years.
+
 **Historical Parallel**: This mirrors the asymmetry the IC faced adapting to the internet in the 1990s—but compressed to an even shorter timeframe. The internet transition took 10-15 years; the agent transition may complete in 3-5 years.
 
 ### 3.4 The Information Economics Framework
@@ -442,12 +463,15 @@ Institutional disruption reduces the first two terms and often forces premature 
 
 Public reporting indicates significant IC staffing reductions concurrent with rising verification demands:
 
-| Agency/Element | Reported Action | Source | Verification Impact |
+| Agency/Element | Confirmed Action | Source | Verification Impact |
 |----------------|-----------------|--------|---------------------|
-| **ODNI** | Planned staffing cuts >40% by Oct 1, 2025; prior 25% reduction already implemented; elimination of certain units | Reuters (Aug 2025) | Reduced cross-agency integration bandwidth |
-| **CIA** | Shrinking ~1,200 positions over several years; "hundreds already taking early retirement" | AP News | Loss of experienced analysts and case officers |
-| **NSA** | "Thousands" of positions cut (part of broader IC reduction) | AP News | Reduced SIGINT verification capacity |
+| **ODNI** | Staff cut from ~2,000 (Feb 2025) to ~1,300 target under "ODNI 2.0"; three centers dissolved or gutted: **Foreign Malign Influence Center (FMIC)** dissolved Aug 20, 2025; National Counterproliferation and Biosecurity Center and Cyber Threat Intelligence Integration Center folded into Mission Integration | CNN (Aug 2025), PBS News, DNI.gov Fact Sheet | Eliminated dedicated foreign influence tracking at peak AI disinformation; reduced cross-agency integration bandwidth; ODNI projects $700M+ annual savings |
+| **CIA** | Shrinking ~1,200 positions (~5% of ~22,000 employees) over several years; "hundreds already taking early retirement"; relies on attrition and decreased hiring | AP News, WaPo | Loss of experienced analysts and case officers |
+| **NSA** | Confirmed 2,000-person civilian workforce reduction met by end of 2025; accomplished through terminations, voluntary departures, and deferred resignation offers | Nextgov/FCW (Dec 2025), Defense One | Reduced SIGINT verification capacity; cuts focused on senior personnel near retirement |
 | **Leadership churn** | Abrupt dismissal of NSA/Cyber Command head; litigation around personnel actions | AP News, WaPo | Institutional continuity disruption |
+| **DOD-wide** | Defense Secretary Hegseth seeks ~8% annual DOD budget reductions over next five years | Defense reporting | Affects NSA, DIA, NGA, NRO, and all military service intelligence elements |
+| **DOGE access** | DOGE staffers gained accounts on classified DOE networks (nuclear weapons details); Senate Intelligence Committee raised formal concerns about DOGE access to IC systems | NPR (Apr 2025), Warner.senate.gov | Algorithmic Capture / insider threat vector; unprecedented non-IC access to classified systems |
+| **Positive signal** | After 12+ months of hiring freezes, most IC agencies gradually reopened hiring (Feb 2026), primarily for administrative and legal positions | Reporting (Feb 2026) | Partial stabilization indicator; insufficient to offset experience drain |
 
 **Why This Matters for Verification [E]**:
 
@@ -634,6 +658,8 @@ AI agents can now generate hyper-personalized recruitment approaches at industri
 - Adaptive conversation responding to verification attempts
 - Thousands of simultaneous campaigns from a single operator
 
+**Voice Cloning Milestone [O]**: As of December 2025, voice cloning crossed the "indistinguishable threshold"—a few seconds of audio now suffice to generate a convincing clone with natural intonation, rhythm, emotion, pauses, and breathing noise (Fortune, Dec 2025). Human judgment alone is no longer reliable for detection. This directly enables voice-based GenSP: adversary agents can now impersonate known contacts in phone/voice communications, not just text channels.
+
 **The Noise Floor Problem**:
 When every IC employee receives 50 sophisticated recruitment approaches per month (vs. 1-2 previously), the real approaches become indistinguishable. Case officers cannot evaluate all leads; genuine defectors may be dismissed as synthetic.
 
@@ -705,6 +731,31 @@ OSINT traditionally served as a verification layer—if classified HUMINT aligne
 - No independent verification source remains
 - Circular validation becomes possible (plant OSINT, "verify" with planted OSINT)
 - Analysts cannot establish baseline reality
+
+**Case Study: Venezuela/Maduro Disinformation Surge (January 2026) [O]**:
+
+The capture of Venezuelan President Maduro by U.S. forces on January 3, 2026 produced the strongest real-world validation of the Epistemic Contamination thesis to date:
+
+| Metric | Value | Source |
+|--------|-------|--------|
+| Fabricated images/videos identified | 7 major fakes in first week | NewsGuard |
+| Views on fabricated content | 14+ million in under 2 days (X alone) | NewsGuard, NPR |
+| Fake-to-real ratio | Experts estimated more fake content produced than real | NBC News |
+| Platforms affected | X, TikTok, Instagram, Truth Social | CNBC, NPR |
+| Political amplification | President Trump shared fabricated video on Truth Social | Multiple outlets |
+| Watermark detection | One AI image had Google SynthID watermark (detected); most did not | SCMP |
+
+**Why This Matters for IC**: The information vacuum created by a fast-moving national security event was filled within hours by AI-generated content that overwhelmed verification capacity. This is precisely the "Process DoS meets Epistemic Contamination" scenario described in this report—occurring not in a speculative future but in January 2026. The FMIC—the ODNI center responsible for tracking foreign malign influence—had been dissolved five months earlier.
+
+**Deepfake Growth Data [D]**:
+
+| Year | Estimated Online Deepfakes | Growth |
+|------|---------------------------|--------|
+| 2023 | ~500,000 | Baseline |
+| 2025 | ~8,000,000 | ~900% annual growth |
+| 2026 (projected) | 90% of online content may be synthetically generated | Expert estimate |
+
+**Detection Accuracy Ceiling [O]**: The best current detection models (hybrid LSTM-GRU) achieve accuracy rates of ~81.5%—well below the reliability threshold needed for intelligence-grade applications. Detection tools are "failing in the places and moments where they're needed most" (TechPolicy.Press, 2026).
 
 **GEOINT-Specific Challenges**:
 
@@ -792,11 +843,13 @@ The U.S. Intelligence Community comprises 18 agencies, each facing distinct vuln
 | **Upstream contamination** | Polluted input from multiple agencies | PDB reliability degrades |
 | **Algorithmic Capture** | Compromise of analysis support AI | Biased integration and assessment |
 | **Fusion failure** | Cannot verify cross-agency inputs | All-source synthesis impossible |
-| **Human-capital contraction [O]** | >40% staffing cuts planned by Oct 2025 (Reuters); elimination of integration units | Reduced cross-agency coordination; verification latency increases |
+| **Human-capital contraction [O]** | Staff cut from ~2,000 to ~1,300 under "ODNI 2.0" (CNN, Aug 2025); three centers dissolved or gutted | Reduced cross-agency coordination; verification latency increases |
+| **FMIC dissolution [O]** | Foreign Malign Influence Center dissolved Aug 20, 2025 (Congress authorized through 2028) | Eliminated dedicated foreign influence tracking precisely when AI-generated disinformation is scaling; Venezuela/Maduro case (Jan 2026) demonstrated the gap |
+| **DOGE classified access [O]** | Senate Intelligence Committee raised concerns about non-IC DOGE access to classified systems | Unprecedented insider threat vector; Algorithmic Capture surface expands |
 
-**Unique Vulnerability**: ODNI's integration function depends on trusting inputs from other agencies. If those inputs are contaminated, ODNI has limited capacity for independent verification—it integrates but does not primarily collect. Documented staffing reductions compound this vulnerability by reducing the human bandwidth for cross-agency fusion.
+**Unique Vulnerability**: ODNI's integration function depends on trusting inputs from other agencies. If those inputs are contaminated, ODNI has limited capacity for independent verification—it integrates but does not primarily collect. The FMIC dissolution is particularly consequential: the center responsible for tracking foreign malign influence was eliminated at the exact moment AI-generated disinformation reached unprecedented scale (see Venezuela/Maduro case study, Section 5.3). Documented staffing reductions compound this vulnerability by reducing the human bandwidth for cross-agency fusion.
 
-**Adaptation Priority**: Develop IC-wide verification standards and cross-agency authentication protocols; preserve integration workforce capacity.
+**Adaptation Priority**: Develop IC-wide verification standards and cross-agency authentication protocols; preserve integration workforce capacity; reconstitute foreign malign influence tracking capability.
 
 #### CIA (Central Intelligence Agency)
 
@@ -810,9 +863,9 @@ The U.S. Intelligence Community comprises 18 agencies, each facing distinct vuln
 | **Synthetic walk-ins** | AI-generated defectors | Resources wasted on fakes |
 | **Algorithmic Capture** | Compromise of internal AI tools via inference poisoning | Covert action planning biased |
 | **Counterintelligence evasion** | Agents detect and evade CI patterns | Mole detection degraded |
-| **Human-capital contraction [O]** | ~1,200 positions shrinking over several years; "hundreds" early retirements (AP) | Experience drain in analytic and clandestine ranks; higher False Clean rates |
+| **Human-capital contraction [O]** | ~1,200 positions (~5% of ~22,000 employees) shrinking over several years via attrition, early retirement, and decreased hiring (AP, WaPo) | Experience drain in analytic and clandestine ranks; higher False Clean rates |
 
-**Unique Vulnerability**: CIA's clandestine service depends on human relationships. The handler bottleneck bypass enables adversaries to match CIA's HUMINT capacity with AI, eliminating a traditional advantage. Concurrent workforce reductions exacerbate this by reducing the experienced case officers and analysts needed to verify sources.
+**Unique Vulnerability**: CIA's clandestine service depends on human relationships. The handler bottleneck bypass (see ETRA-2025-ESP-001) enables adversaries to match CIA's HUMINT capacity with AI, eliminating a traditional advantage. Concurrent workforce reductions exacerbate this by reducing the experienced case officers and analysts needed to verify sources.
 
 **Adaptation Priority**: "Analog Break" protocols for source verification; AI-resistant authentication for covert communications; retention incentives for experienced verifiers.
 
@@ -843,9 +896,9 @@ The U.S. Intelligence Community comprises 18 agencies, each facing distinct vuln
 | **Traffic shaping evasion** | Targets indistinguishable from noise | Collection yields diminishing returns |
 | **Automated encryption cycling** | Continuous key rotation | Decryption windows close |
 | **Adversarial SIGINT** | AI-optimized counterintelligence | NSA methods become predictable |
-| **Human-capital contraction [O]** | "Thousands" of positions cut (AP); leadership disruption (Cyber Command head dismissal) | Reduced cryptanalytic bench depth; institutional continuity risk |
+| **Human-capital contraction [O]** | Confirmed 2,000-person civilian workforce reduction met by end of 2025 (Nextgov/FCW, Dec 2025); cuts focused on senior personnel near retirement; leadership disruption (Cyber Command head dismissal) | Reduced cryptanalytic bench depth; institutional continuity risk; further cuts anticipated under ~8% annual DOD budget reductions |
 
-**Unique Vulnerability**: NSA's technical superiority was predicated on adversaries using static or slowly-evolving communications security. Agent-automated obfuscation commoditizes what previously required state-level expertise. Workforce reductions remove the experienced analysts needed to adapt collection methods to adversary AI countermeasures.
+**Unique Vulnerability**: NSA's technical superiority was predicated on adversaries using static or slowly-evolving communications security. Agent-automated obfuscation commoditizes what previously required state-level expertise. The confirmed 2,000-person reduction—focused on senior personnel—removes precisely the experienced analysts needed to adapt collection methods to adversary AI countermeasures.
 
 **Adaptation Priority**: AI-vs-AI traffic analysis; behavioral pattern detection beyond traffic content; retain cryptanalytic expertise.
 
@@ -895,7 +948,8 @@ The U.S. Intelligence Community comprises 18 agencies, each facing distinct vuln
 |------|-----------|-------------------|
 | **Tactical deception at scale** | AI-generated battlefield intelligence | All services |
 | **Operational security degradation** | Pattern-of-life analysis of personnel | All services |
-| **Supply chain intelligence failure** | Nano-smurfing for dual-use components | All services |
+| **Supply chain intelligence failure** | Nano-smurfing for dual-use components (see ETRA-2026-WMD-001) | All services |
+| **Budget-driven capacity loss [O]** | ~8% annual DOD budget cuts (Hegseth) reduce intelligence staffing and modernization | All services |
 
 **ONI (Office of Naval Intelligence)** - Specific Concern:
 - Primary U.S. source for maritime intelligence
@@ -1062,8 +1116,9 @@ Rigorous analysis requires engaging with potential objections. This section addr
 **Argument**: Current AI agents hallucinate, fail at multi-step tasks, and cannot reliably execute complex operations.
 
 **Response [O]**:
-- Capabilities in late 2025/early 2026 exceed 2023 capabilities by significant margins
-- Trend lines show continued improvement
+- Capabilities in February 2026 far exceed 2023 capabilities: METR measures agent task duration doubling every ~7 months; agents now handle 8-hour autonomous workstreams
+- GPT-5.3-Codex and Opus 4.6 (launched Feb 5, 2026) demonstrate autonomous agent teams; OpenAI stated their model "was instrumental in creating itself"
+- 40% of enterprise applications will embed AI agents by end of 2026 (Gartner)
 - Adversary use cases may tolerate higher failure rates than IC use cases
 - Unreliable agents still generate process load for defenders
 
@@ -1109,13 +1164,14 @@ Rigorous analysis requires engaging with potential objections. This section addr
 
 **Argument**: Adversary AI programs may be less advanced than assumed.
 
-**Response [E]**:
-- Chinese AI capabilities are approximately at parity with U.S. for many applications
+**Response [O/E]**:
+- **[O]** The December 2025 Pentagon report on China's military explicitly notes Beijing's progress on LLMs and reasoning models has "narrowed the performance gap" with U.S. models (DefenseScoop, Dec 2025). China is investing in AI for unmanned systems, ISR collection/analysis, decision-making assistance, cyber operations, and information campaigns.
+- **[O]** Russia is reshaping command and control structures specifically for AI-enabled warfare (CSIS). Planned C4ISR upgrades for 2025-2026 include LLM support for smart assistants and more autonomous AI systems.
+- **[O]** Putin ordered Sberbank to collaborate with China on AI R&D; the two countries have agreed to consult and coordinate on military uses of AI (VOA).
 - Commercial AI (available globally) provides baseline capabilities to any actor
-- The analysis addresses capability trends, not specific current deployments
 - Assuming adversary capability gaps is the higher-risk assumption
 
-**What This Means**: The analysis uses conservative assumptions about adversary capabilities.
+**What This Means**: The analysis uses conservative assumptions about adversary capabilities. Recent Pentagon assessments confirm the gap is narrowing, not widening.
 
 ### 7.7 Missing Perspective: Commercial Telemetry Competition
 
@@ -1185,13 +1241,15 @@ Small, agile nations (Singapore, Israel, UAE, Estonia) may adapt to the "Verific
 
 We present three scenarios representing different trajectories. All are plausible; probability depends on adaptation speed.
 
-| Scenario | Probability | Key Driver |
-|----------|-------------|------------|
-| **Managed Transition** | 30-40% | Rapid IC adaptation, international coordination |
-| **Competitive Parity** | 40-50% | Partial adaptation, ongoing AI arms race |
-| **Verification Collapse** | 10-20% | Slow adaptation, adversary initiative |
+| Scenario | Probability (v1.0, Jan 2026) | Probability (v2.0, Feb 2026) | Key Driver |
+|----------|-------------------------------|-------------------------------|------------|
+| **Managed Transition** | 30-40% | **20-30%** | Rapid IC adaptation, international coordination |
+| **Competitive Parity** | 40-50% | **45-55%** | Partial adaptation, ongoing AI arms race |
+| **Verification Collapse** | 10-20% | **15-25%** | Slow adaptation, adversary initiative |
 
 *Note: These are structured judgment ranges reflecting analyst assessment, not statistical model outputs. They represent the range of plausible outcomes given current trajectories and should be interpreted as directional guidance rather than precise forecasts.*
+
+**v2.0 Probability Shift Rationale [E]**: Confirmed NSA 2,000-person reduction, ODNI restructuring with FMIC dissolution, and the Venezuela/Maduro case study demonstrating real-world epistemic contamination at scale all indicate the threat is materializing faster than adaptation. The dissolution of the Foreign Malign Influence Center—the ODNI element responsible for tracking exactly this class of threat—while AI-generated disinformation reached unprecedented scale (Jan 2026) shifts probability mass from Managed Transition toward Competitive Parity. Hiring resumption in Feb 2026 is a positive but insufficient signal to offset confirmed workforce contraction. Defense Secretary Hegseth's ~8% annual DOD budget cuts create additional headwinds for military intelligence adaptation.
 
 **Critical Branching Variable: Verification Workforce Stability [O/E]**
 
@@ -1332,6 +1390,10 @@ Rather than pursuing perfect attribution (infeasible), build capabilities in lay
 - Establish chain-of-custody metadata for intelligence products
 - *Success metric*: All outbound IC products cryptographically signed by end of year
 
+**C2PA Adoption Progress [O]**: The Content Authenticity Initiative (CAI) reached 6,000+ members as of January 2026. C2PA specification v2.1 (with Google collaboration) adds stricter validation requirements and improved tamper resistance. CAWG 1.2 released, driven by production use cases. A public C2PA Conformance Program and education platform (learn.contentauthenticity.org) are now operational.
+
+**Critical Gap**: C2PA adoption remains voluntary and adversarial state actors have no incentive to embed provenance metadata. C2PA primarily validates legitimate content—it does not detect adversarial synthetic media. This means Layer 1 protects IC *output* integrity but does not address contaminated *inputs*. Layers 2-4 remain essential for defensive verification.
+
 **Layer 2: Vendor Attestation (Bronze → Silver)**
 - Require AI tool vendors to provide model provenance documentation
 - Establish secured update channels to prevent supply-chain compromise
@@ -1378,7 +1440,9 @@ The rise of open-weight models (Llama, Qwen) and Fine-Tuning-as-a-Service compli
 - **Chain-of-Thought Analysis**: Detect reasoning patterns indicative of goal-directed agent behavior
 - **Trigger-Based Testing**: Identify content generated in response to specific prompts or conditions
 
-This framework addresses a critical gap: standard detection methods may create a "false impression of safety" while sophisticated synthetic content passes undetected.
+This framework addresses a critical gap: standard detection methods may create a "false impression of safety" while sophisticated synthetic content passes undetected. *Caveat*: AUC=1.0 is achieved on known architectures under controlled conditions; adversarial robustness in the wild would be lower.
+
+**Cross-Reference: Economic Agents Framework**: The `packages/economic_agents/` simulation framework demonstrates that autonomous AI economic capability exists today—validating the "agent as economic actor" baseline that supports the Financial Intelligence analysis (Section 5.5) and the capability floor elevation thesis (Section 3.1). See ETRA-2025-AEA-001 for the full projection.
 
 **Implementation**:
 
@@ -1454,6 +1518,8 @@ This framework addresses a critical gap: standard detection methods may create a
 
 **Implementation Principle**: Physical verification establishes initial trust; hardware-provenanced communications *maintain* that trust across digital interactions. Neither alone is sufficient.
 
+**Cross-Reference: Tamper-Responsive Briefcase Framework**: The `packages/tamper_briefcase/` system demonstrates post-quantum cryptographic (PQC) recovery and tamper-responsive hardware design principles directly applicable to this recommendation. Secure Element Authentication and quantum-resistant physical tokens require the same class of hardware integrity guarantees that the tamper briefcase framework addresses. See `docs/hardware/secure-terminal-briefcase.md` for technical details.
+
 ### 9.5 Policy Measures
 
 #### Decision Diffusion Framework (Silver → Gold)
@@ -1497,6 +1563,16 @@ This framework addresses a critical gap: standard detection methods may create a
 - Attribution framework development
 - Intelligence sharing adaptation
 - Treaty exploration for agent-mediated state actions
+
+**Existing International Frameworks [O]**:
+
+| Framework | Status | Relevance | Limitation |
+|-----------|--------|-----------|------------|
+| **Council of Europe Framework Convention on AI** | Adopted May 2024; signed by US, UK, EU + 7 states; not yet in force (requires 5 ratifications) | First legally binding international AI treaty | Includes exemptions for national security and private sector, undermining applicability to state AI agent operations |
+| **EU AI Act** | Annex III high-risk enforcement Aug 2, 2026; penalties up to 35M EUR / 7% revenue; Finland first with full enforcement (Dec 2025) | Sets high-risk AI standards; draft code on AI-generated content marking (Dec 2025, final Jun 2026) | Digital Omnibus may delay compliance to Dec 2027; enforcement untested; no extraterritorial reach for state intelligence uses |
+| **Treaty-Following AI (TFAI)** | Emerging research concept (Institute for Law & AI) | Explores whether AI agents can be technically constrained to operate within treaty boundaries | Technical, legal, and political hurdles unresolved; aspirational rather than operational |
+
+**The Governance Vacuum Persists [E]**: No binding international framework currently constrains state use of AI agents for intelligence operations. The CoE Convention's national security exemption, the EU AI Act's enforcement delays, and the absence of any TFAI technical standard mean the governance gap identified in this report remains open as of February 2026.
 
 ### 9.6 Budget Implications
 
@@ -1578,10 +1654,11 @@ This section identifies developments that would significantly alter the analysis
 
 | Development | Impact on Assessment |
 |-------------|---------------------|
-| **International AI treaty** | Would establish norms for agent-mediated state actions |
-| **Liability framework for AI agents** | Would address Delegation Defense / agentic deniability |
+| **International AI treaty** | Would establish norms for agent-mediated state actions; CoE Framework Convention (adopted May 2024) is a start but has national security exemption |
+| **Liability framework for AI agents** | Would address Delegation Defense / agentic deniability; EU AI Act high-risk enforcement begins Aug 2026 but may be delayed |
 | **IC budget shift to verification** | Would accelerate recommended adaptations |
 | **Cross-agency verification mandate** | Would address institutional fragmentation |
+| **FMIC reconstitution or equivalent** | Would restore dedicated foreign malign influence tracking capability eliminated Aug 2025 |
 
 ### 11.3 Adversary Developments
 
@@ -1590,19 +1667,22 @@ This section identifies developments that would significantly alter the analysis
 | **Major adversary AI failure** | Would provide breathing room for IC adaptation |
 | **Adversary over-reliance on agents** | Would create new vulnerabilities for IC exploitation |
 | **AI proliferation to non-state actors** | Would accelerate capability floor elevation |
+| **China-Russia AI cooperation deepening** | Would accelerate adversary capability trajectory; reduce IC adaptation window |
 | **Adversary verification breakthrough** | Would indicate paths for IC adaptation |
 
 ### 11.4 Falsifiability Indicators (2027 Check)
 
 By end of 2027, we should observe:
 
-| If Assessment Accurate | If Assessment Overstated |
-|-----------------------|-------------------------|
-| Multiple agencies report Process DoS impact | Lead volumes stable |
-| Verification Latency is measurable concern | Verification not discussed |
-| At least one major intelligence failure attributed to contamination | No contamination-related failures |
-| "Ground truth" discussions in IC publications | OSINT reliability unchanged |
-| Budget discussions include verification capacity | Collection-centric budgets continue |
+| If Assessment Accurate | If Assessment Overstated | Early Validation (as of Feb 2026) |
+|-----------------------|-------------------------|-----------------------------------|
+| Multiple agencies report Process DoS impact | Lead volumes stable | Partial: Venezuela/Maduro event demonstrated OSINT process overload |
+| Verification Latency is measurable concern | Verification not discussed | Partial: IC AI strategy discussions include verification themes |
+| At least one major intelligence failure attributed to contamination | No contamination-related failures | **Yes**: Venezuela/Maduro disinformation surge (Jan 2026) demonstrated epistemic contamination at scale during a national security event; FMIC dissolved 5 months prior |
+| "Ground truth" discussions in IC publications | OSINT reliability unchanged | Partial: ~8M deepfakes in 2025 (up from ~500K in 2023); 90% synthetic content projected for 2026 |
+| Budget discussions include verification capacity | Collection-centric budgets continue | **No**: ~8% DOD budget cuts and IC workforce reductions indicate collection-centric priorities persist |
+
+**Assessment**: Three of five falsifiability indicators show partial or full early validation within one month of initial publication. This is consistent with the assessment being directionally accurate, potentially conservative on timeline.
 
 ---
 
@@ -1610,7 +1690,7 @@ By end of 2027, we should observe:
 
 ### 12.1 The Core Argument
 
-The U.S. Intelligence Community cannot out-collect a world where 8 billion people have access to tools that approximate expert-level tradecraft. Collection capacity is no longer the strategic moat.
+The U.S. Intelligence Community cannot out-collect a world where 8+ billion people have access to tools that approximate expert-level tradecraft. Collection capacity is no longer the strategic moat.
 
 The IC's survival—and its value to national security—depends on becoming the world's premier **verification engine**: the institution that can establish what is true in an environment designed to obscure truth.
 
@@ -1668,7 +1748,7 @@ Collection remains essential, but its value proposition shifts. The alternative�
 
 **Document ID**: ETRA-2026-IC-001
 
-**Version**: 0.1 (Initial Draft)
+**Version**: 2.0
 
 ---
 
