@@ -440,8 +440,9 @@ jobs:
             echo "Removing stale containers: $stale"
             echo "$stale" | xargs -r docker rm -f 2>/dev/null || true
           fi
-          # Prune unused networks to free subnet allocations
-          docker network prune -f 2>/dev/null || true
+          # Remove stale CI networks to free subnet allocations
+          docker network ls --filter "name=ci-" --filter "name=template-repo" --format "{{.Name}}" \
+            | xargs -r docker network rm 2>/dev/null || true
 
       - name: Extract metadata
         id: meta
