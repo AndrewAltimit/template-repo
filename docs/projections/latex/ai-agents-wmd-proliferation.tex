@@ -46,15 +46,15 @@
 % ============================================================================
 % Primary: Deep teal - scientific, medical, biosecurity
 \definecolor{deepteal}{HTML}{0E4D4D}
-\definecolor{scienceteal}{HTML}{17A2B8}
-\definecolor{labcyan}{HTML}{1ABC9C}
+\definecolor{scienceteal}{HTML}{3B8C96}
+\definecolor{labcyan}{HTML}{5B9A8B}
 % Accent: Barrier gold for warnings and highlights
 % Standard ETRA header band gold (consistent across all projection reports)
 \definecolor{barriergold}{HTML}{B7950B}
-\definecolor{shieldamber}{HTML}{F39C12}
+\definecolor{shieldamber}{HTML}{C4883A}
 % Domain colors
-\definecolor{biogreen}{HTML}{27AE60}
-\definecolor{chemblue}{HTML}{2E86AB}
+\definecolor{biogreen}{HTML}{4B7F5E}
+\definecolor{chemblue}{HTML}{3A6D85}
 \definecolor{nukepurple}{HTML}{5B2C6F}
 \definecolor{defenseblue}{HTML}{34495E}
 % Neutrals
@@ -220,22 +220,24 @@
     }
   \end{scope}
 
-  % Main visualization - Concentric Defense Barriers
+  % Main visualization - Concentric Defense Barriers (refined)
   \begin{scope}[shift={([xshift=-1.5cm, yshift=3.5cm]current page.center)}]
-    % Outer barrier ring (weakest - eroding)
-    \draw[labcyan, opacity=0.15, line width=8pt] (0,0) circle (5.5cm);
-    \draw[labcyan, opacity=0.25, line width=2pt, dashed] (0,0) circle (5.5cm);
+    % Subtle radial gradient - depth cue from center outward
+    \shade[inner color=white, outer color=deepteal, opacity=0.08] (0,0) circle (6.2cm);
 
+    % Outer barrier ring (weakest - eroding) with breach indicators
+    \draw[labcyan, opacity=0.3, line width=10pt] (0,0) circle (5.5cm);
+    \draw[labcyan, opacity=0.5, line width=2pt, dashed] (0,0) circle (5.5cm);
     % Middle barrier ring (moderate)
-    \draw[scienceteal, opacity=0.2, line width=10pt] (0,0) circle (4cm);
-    \draw[scienceteal, opacity=0.4, line width=2pt] (0,0) circle (4cm);
+    \draw[scienceteal, opacity=0.4, line width=12pt] (0,0) circle (4cm);
+    \draw[scienceteal, opacity=0.6, line width=2pt] (0,0) circle (4cm);
 
     % Inner barrier ring (strong)
-    \draw[barriergold, opacity=0.25, line width=12pt] (0,0) circle (2.5cm);
-    \draw[barriergold, opacity=0.6, line width=2pt] (0,0) circle (2.5cm);
+    \draw[barriergold, opacity=0.5, line width=14pt] (0,0) circle (2.5cm);
+    \draw[barriergold, opacity=0.8, line width=2pt] (0,0) circle (2.5cm);
 
-    % Core - protected zone
-    \fill[white, opacity=0.1] (0,0) circle (1.3cm);
+    % Core - protected zone with glow
+    \shade[inner color=barriergold!60, outer color=barriergold!10, opacity=0.3] (0,0) circle (1.5cm);
     \fill[barriergold] (0,0) circle (0.8cm);
     \node[deepteal, font=\fontsize{7}{7}\selectfont\bfseries] at (0,0.12) {DEFENSE};
     \node[deepteal, font=\fontsize{7}{7}\selectfont\bfseries] at (0,-0.18) {IN DEPTH};
@@ -251,17 +253,17 @@
     \draw[white, opacity=0.3, line width=0.5pt] (0, 2.0) -- (3.8, 2.0);
 
     % Outer ring legend item
-    \draw[labcyan, opacity=0.4, line width=3pt] (0.4, 1.3) -- (1.2, 1.3);
+    \draw[labcyan, opacity=0.6, line width=3pt, dashed] (0.4, 1.3) -- (1.2, 1.3);
     \node[labcyan, font=\fontsize{8}{8}\selectfont\sffamily\bfseries, anchor=west] at (1.5, 1.3) {Information};
     \node[white, opacity=0.7, font=\fontsize{7}{7}\selectfont\sffamily, anchor=west] at (1.5, 0.9) {Barrier};
 
     % Middle ring legend item
-    \draw[scienceteal, opacity=0.5, line width=3pt] (0.4, 0.1) -- (1.2, 0.1);
+    \draw[scienceteal, opacity=0.7, line width=3pt] (0.4, 0.1) -- (1.2, 0.1);
     \node[scienceteal, font=\fontsize{8}{8}\selectfont\sffamily\bfseries, anchor=west] at (1.5, 0.1) {Physical};
     \node[white, opacity=0.7, font=\fontsize{7}{7}\selectfont\sffamily, anchor=west] at (1.5, -0.3) {Barrier};
 
     % Inner ring legend item
-    \draw[barriergold, opacity=0.7, line width=3pt] (0.4, -1.1) -- (1.2, -1.1);
+    \draw[barriergold, opacity=0.8, line width=3pt] (0.4, -1.1) -- (1.2, -1.1);
     \node[barriergold, font=\fontsize{8}{8}\selectfont\sffamily\bfseries, anchor=west] at (1.5, -1.1) {Tacit};
     \node[white, opacity=0.7, font=\fontsize{7}{7}\selectfont\sffamily, anchor=west] at (1.5, -1.5) {Knowledge};
   \end{scope}
@@ -281,7 +283,7 @@
 
   % Metadata block
   \node[anchor=south east, text width=6cm, align=right] at ([xshift=-1.5cm, yshift=3cm]current page.south east) {
-    \color{softslate}\small\sffamily
+    \color{medgray}\small\sffamily
     \textbf{Document Type:} Policy Research\\[0.2em]
     \textbf{Time Horizon:} 2025--2030\\[0.2em]
     \textbf{License:} MIT / Unlicense\\[0.2em]

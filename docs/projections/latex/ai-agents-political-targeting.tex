@@ -58,10 +58,10 @@
 \definecolor{codebg}{HTML}{F4F6F7}
 \definecolor{codetext}{HTML}{2C3E50}
 \definecolor{gridlight}{HTML}{D5D8DC}
-\definecolor{nodecyan}{HTML}{2E86AB}
-\definecolor{nodeorange}{HTML}{D35400}
-\definecolor{nodegreen}{HTML}{27AE60}
-\definecolor{nodepurple}{HTML}{8E44AD}
+\definecolor{nodecyan}{HTML}{3A6D85}
+\definecolor{nodeorange}{HTML}{A65E30}
+\definecolor{nodegreen}{HTML}{4B7F5E}
+\definecolor{nodepurple}{HTML}{6E4A7A}
 
 % ============================================================================
 % HYPERREF SETUP
@@ -222,6 +222,9 @@
 
   % Main network visualization - central threat topology (centered with upward shift for better spacing)
   \begin{scope}[shift={([xshift=-0.5cm, yshift=3.5cm]current page.center)}]
+    % Subtle radial gradient - depth cue
+    \shade[inner color=white, outer color=instdark, opacity=0.08] (0,0) circle (6.2cm);
+
     % Outer ring nodes - threat vectors
     \foreach \angle/\col/\label in {
       30/nodecyan/OSINT,
@@ -237,20 +240,21 @@
       \fill[\col, opacity=0.9] (\angle:4.5cm) circle (0.4cm);
       \node[white, font=\fontsize{5}{5}\selectfont\bfseries] at (\angle:4.5cm) {\label};
       % Connection to center
-      \draw[\col, opacity=0.4, line width=1pt] (0,0) -- (\angle:4cm);
+      \draw[\col, opacity=0.5, line width=1pt] (0,0) -- (\angle:4cm);
       % Outer data points
       \foreach \r in {5.2,5.6,6} {
-        \fill[\col, opacity=0.2] (\angle:\r cm) circle (0.08);
+        \fill[\col, opacity=0.25] (\angle:\r cm) circle (0.08);
       }
     }
 
     % Inner ring - capability layers
     \foreach \angle/\col in {0/nodecyan, 45/nodegreen, 90/nodeorange, 135/nodepurple, 180/nodecyan, 225/nodegreen, 270/nodeorange, 315/nodepurple} {
-      \fill[\col, opacity=0.6] (\angle:2.5cm) circle (0.2cm);
-      \draw[\col, opacity=0.3, line width=0.5pt] (\angle:2.5cm) -- ({(\angle+45)}:2.5cm);
+      \fill[\col, opacity=0.7] (\angle:2.5cm) circle (0.2cm);
+      \draw[\col, opacity=0.4, line width=0.5pt] (\angle:2.5cm) -- ({(\angle+45)}:2.5cm);
     }
 
-    % Central hub
+    % Central hub with glow
+    \shade[inner color=instgold!60, outer color=instgold!5, opacity=0.3] (0,0) circle (2cm);
     \fill[white, opacity=0.1] (0,0) circle (1.8cm);
     \fill[white, opacity=0.15] (0,0) circle (1.4cm);
     \fill[instgold] (0,0) circle (0.8cm);
@@ -258,10 +262,10 @@
     \node[instdark, font=\fontsize{8}{8}\selectfont\bfseries] at (0,-0.15) {MODEL};
 
     % Cross-connections (showing complexity)
-    \draw[white, opacity=0.1, line width=0.5pt] (30:4cm) -- (165:4cm);
-    \draw[white, opacity=0.1, line width=0.5pt] (75:4cm) -- (255:4cm);
-    \draw[white, opacity=0.1, line width=0.5pt] (120:4cm) -- (300:4cm);
-    \draw[white, opacity=0.1, line width=0.5pt] (210:4cm) -- (345:4cm);
+    \draw[white, opacity=0.15, line width=0.5pt] (30:4cm) -- (165:4cm);
+    \draw[white, opacity=0.15, line width=0.5pt] (75:4cm) -- (255:4cm);
+    \draw[white, opacity=0.15, line width=0.5pt] (120:4cm) -- (300:4cm);
+    \draw[white, opacity=0.15, line width=0.5pt] (210:4cm) -- (345:4cm);
   \end{scope}
 
   % Document classification bar
@@ -279,7 +283,7 @@
 
   % Metadata block (bottom right)
   \node[anchor=south east, text width=6cm, align=right] at ([xshift=-1.5cm, yshift=3cm]current page.south east) {
-    \color{instaccent}\small\sffamily
+    \color{gridlight}\small\sffamily
     \textbf{Document Type:} Policy Research\\[0.2em]
     \textbf{Time Horizon:} 2025--2030\\[0.2em]
     \textbf{License:} MIT / Unlicense\\[0.2em]

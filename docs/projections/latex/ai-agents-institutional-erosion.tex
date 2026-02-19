@@ -52,15 +52,15 @@
 \definecolor{stonegray}{HTML}{78716C}
 \definecolor{patinabronze}{HTML}{A68B6A}
 % Accent: Fracture amber/orange - stress points, erosion, warning
-\definecolor{fractureamber}{HTML}{EA580C}
-\definecolor{stressorange}{HTML}{D97706}
-\definecolor{erosionyellow}{HTML}{F59E0B}
+\definecolor{fractureamber}{HTML}{B86B3A}
+\definecolor{stressorange}{HTML}{B07A35}
+\definecolor{erosionyellow}{HTML}{C8923A}
 % Alert: Deep burgundy/wine - critical vulnerabilities
 \definecolor{burgundydeep}{HTML}{881337}
-\definecolor{wineaccent}{HTML}{9F1239}
+\definecolor{wineaccent}{HTML}{8A2D42}
 % Verification: Teal - adaptation, verification, hope
 \definecolor{verifyteal}{HTML}{0F766E}
-\definecolor{adaptteal}{HTML}{14B8A6}
+\definecolor{adaptteal}{HTML}{4A9A8B}
 % Neutrals
 \definecolor{coolgray}{HTML}{64748B}
 \definecolor{lightgray}{HTML}{F1F5F9}
@@ -234,9 +234,12 @@
   % Main visualization - IC Shield Under Siege (Simplified)
   \begin{scope}[shift={([xshift=-0.5cm, yshift=3.5cm]current page.center)}]
 
+    % Subtle radial gradient - depth cue
+    \shade[inner color=white, outer color=slatedark, opacity=0.08] (0,0) circle (5.5cm);
+
     % OUTER RING - Collection layer (IC Agency perimeter)
-    \draw[bronzeweathered, opacity=0.15, line width=16pt] (0,0) circle (4.5cm);
-    \draw[bronzeweathered, opacity=0.5, line width=2pt] (0,0) circle (4.5cm);
+    \draw[bronzeweathered, opacity=0.3, line width=16pt] (0,0) circle (4.5cm);
+    \draw[bronzeweathered, opacity=0.6, line width=2pt] (0,0) circle (4.5cm);
     % Ring label
     \node[textlight, opacity=0.35, font=\fontsize{7}{7}\selectfont\sffamily] at (270:5.4cm) {COLLECTION};
 
@@ -248,18 +251,19 @@
     }
 
     % MIDDLE RING - Analysis layer
-    \draw[stonegray, opacity=0.12, line width=12pt] (0,0) circle (3cm);
-    \draw[stonegray, opacity=0.4, line width=1.5pt] (0,0) circle (3cm);
+    \draw[stonegray, opacity=0.25, line width=12pt] (0,0) circle (3cm);
+    \draw[stonegray, opacity=0.5, line width=1.5pt] (0,0) circle (3cm);
     % Ring label
     \node[textlight, opacity=0.35, font=\fontsize{7}{7}\selectfont\sffamily] at (270:3.5cm) {ANALYSIS};
 
     % INNER RING - Verification layer (the protective barrier)
-    \draw[verifyteal, opacity=0.12, line width=8pt] (0,0) circle (1.9cm);
-    \draw[verifyteal, opacity=0.4, line width=1.5pt] (0,0) circle (1.9cm);
+    \draw[verifyteal, opacity=0.25, line width=8pt] (0,0) circle (1.9cm);
+    \draw[verifyteal, opacity=0.5, line width=1.5pt] (0,0) circle (1.9cm);
     % Ring label
     \node[textlight, opacity=0.35, font=\fontsize{7}{7}\selectfont\sffamily] at (270:2.3cm) {VERIFICATION};
 
     % === CENTRAL CORE - Decision (protected by verification) ===
+    \shade[inner color=patinabronze!60, outer color=patinabronze!10, opacity=0.3] (0,0) circle (1.5cm);
     \fill[slatedark] (0,0) circle (1.2cm);
     \fill[patinabronze, opacity=0.9] (0,0) circle (0.9cm);
     \draw[bronzeweathered, line width=3pt] (0,0) circle (0.9cm);
@@ -286,7 +290,7 @@
 
   % Metadata block (bottom right)
   \node[anchor=south east, text width=6cm, align=right] at ([xshift=-1.5cm, yshift=3cm]current page.south east) {
-    \color{stonegray}\small\sffamily
+    \color{textlight}\small\sffamily
     \textbf{Document Type:} Policy Research\\[0.2em]
     \textbf{Time Horizon:} 2026--2030\\[0.2em]
     \textbf{License:} MIT / Unlicense\\[0.2em]

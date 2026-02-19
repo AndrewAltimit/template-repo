@@ -47,17 +47,17 @@
 \definecolor{forestdark}{HTML}{1B4332}
 \definecolor{emeralddeep}{HTML}{2D6A4F}
 \definecolor{moneygreen}{HTML}{40916C}
-\definecolor{mintlight}{HTML}{52B788}
+\definecolor{mintlight}{HTML}{6B9A7E}
 % Accent: Copper/bronze - wealth, transactions, value flow
 \definecolor{copperrich}{HTML}{B87333}
 % Standard ETRA header band gold (consistent across all projection reports)
 \definecolor{headergold}{HTML}{B7950B}
-\definecolor{bronzegold}{HTML}{CD7F32}
-\definecolor{brasslight}{HTML}{D4A84B}
+\definecolor{bronzegold}{HTML}{A8703A}
+\definecolor{brasslight}{HTML}{B89A5A}
 % Alert/status colors
 \definecolor{fraudred}{HTML}{9B2335}
-\definecolor{alertamber}{HTML}{E67E22}
-\definecolor{complianceblue}{HTML}{2874A6}
+\definecolor{alertamber}{HTML}{C07A3A}
+\definecolor{complianceblue}{HTML}{3A6D85}
 \definecolor{auditpurple}{HTML}{6C3483}
 % Neutrals
 \definecolor{ledgergray}{HTML}{566573}
@@ -228,9 +228,12 @@
   % Main visualization - Financial Defense Architecture
   \begin{scope}[shift={([xshift=-0.5cm, yshift=3.5cm]current page.center)}]
 
+    % Subtle radial gradient - depth cue
+    \shade[inner color=white, outer color=forestdark, opacity=0.08] (0,0) circle (5.8cm);
+
     % OUTER RING - Transaction Monitoring
-    \draw[copperrich, opacity=0.15, line width=16pt] (0,0) circle (4.8cm);
-    \draw[copperrich, opacity=0.50, line width=2pt] (0,0) circle (4.8cm);
+    \draw[copperrich, opacity=0.3, line width=16pt] (0,0) circle (4.8cm);
+    \draw[copperrich, opacity=0.6, line width=2pt] (0,0) circle (4.8cm);
     \node[flowgrid, opacity=0.4, font=\fontsize{7}{7}\selectfont\sffamily] at (270:5.7cm) {TRANSACTION MONITORING};
 
     % Financial system actor nodes - outer ring
@@ -245,16 +248,17 @@
     \node[white, font=\fontsize{6.5}{6.5}\selectfont\bfseries] at (270:4.8cm) {FINTECH};
 
     % MIDDLE RING - AML / KYC
-    \draw[moneygreen, opacity=0.10, line width=12pt] (0,0) circle (3.2cm);
-    \draw[moneygreen, opacity=0.45, line width=1.5pt] (0,0) circle (3.2cm);
+    \draw[moneygreen, opacity=0.2, line width=12pt] (0,0) circle (3.2cm);
+    \draw[moneygreen, opacity=0.55, line width=1.5pt] (0,0) circle (3.2cm);
     \node[flowgrid, opacity=0.4, font=\fontsize{7}{7}\selectfont\sffamily] at (270:3.8cm) {AML / KYC};
 
     % INNER RING - Cross-Institution
-    \draw[complianceblue, opacity=0.10, line width=8pt] (0,0) circle (2.0cm);
-    \draw[complianceblue, opacity=0.40, line width=1.5pt] (0,0) circle (2.0cm);
+    \draw[complianceblue, opacity=0.2, line width=8pt] (0,0) circle (2.0cm);
+    \draw[complianceblue, opacity=0.5, line width=1.5pt] (0,0) circle (2.0cm);
     \node[flowgrid, opacity=0.4, font=\fontsize{7}{7}\selectfont\sffamily] at (270:2.5cm) {CROSS-INSTITUTION};
 
-    % CENTRAL CORE - KYA Chokepoint
+    % CENTRAL CORE - KYA Chokepoint with glow
+    \shade[inner color=copperrich!60, outer color=copperrich!10, opacity=0.3] (0,0) circle (1.5cm);
     \fill[forestdark] (0,0) circle (1.2cm);
     \fill[copperrich, opacity=0.9] (0,0) circle (0.9cm);
     \draw[copperrich, line width=3pt] (0,0) circle (0.9cm);
@@ -286,7 +290,7 @@
 
   % Metadata block (bottom right)
   \node[anchor=south east, text width=6cm, align=right] at ([xshift=-1.5cm, yshift=3cm]current page.south east) {
-    \color{ledgergray}\small\sffamily
+    \color{flowgrid}\small\sffamily
     \textbf{Document Type:} Policy Research\\[0.2em]
     \textbf{Time Horizon:} 2025--2030\\[0.2em]
     \textbf{License:} MIT / Unlicense\\[0.2em]
