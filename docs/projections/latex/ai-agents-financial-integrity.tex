@@ -208,95 +208,70 @@
 \begin{document}
 
 % ============================================================================
-% TITLE PAGE - Transaction Flow Web with Chokepoints
+% TITLE PAGE - Financial Defense Architecture (Concentric Rings)
 % ============================================================================
 \begin{titlepage}
 \begin{tikzpicture}[remember picture, overlay]
   % Background - deep forest green
   \fill[forestdark] (current page.north west) rectangle (current page.south east);
 
-  % Ledger grid background pattern (financial records aesthetic)
-  \begin{scope}[shift={(current page.center)}, opacity=0.04]
-    % Horizontal ledger lines
-    \foreach \y in {-12,-11,...,12} {
-      \draw[white, line width=0.3pt] (-10,\y) -- (10,\y);
+  % Subtle ledger grid background (financial records aesthetic)
+  \begin{scope}[shift={(current page.center)}, opacity=0.035]
+    \foreach \y in {-14,-13,...,14} {
+      \draw[white, line width=0.3pt] (-11,\y) -- (11,\y);
     }
-    % Vertical column dividers (like spreadsheet)
     \foreach \x in {-8,-4,0,4,8} {
-      \draw[white, line width=0.5pt] (\x,-12) -- (\x,12);
+      \draw[white, line width=0.5pt] (\x,-14) -- (\x,14);
     }
   \end{scope}
 
-  % Main visualization - Abstract Network Flow (no labels)
-  \begin{scope}[shift={([xshift=-0.5cm, yshift=3.5cm]current page.center)}, scale=1.25]
+  % Main visualization - Financial Defense Architecture
+  \begin{scope}[shift={([xshift=-0.5cm, yshift=3.5cm]current page.center)}]
 
-    % SOURCE NODES (left side) - varying sizes, no labels
-    \fill[fraudred, opacity=0.75] (-5.2, 2.2) circle (0.40);
-    \fill[fraudred, opacity=0.6] (-5.5, 0.3) circle (0.30);
-    \fill[fraudred, opacity=0.7] (-4.9, -1.2) circle (0.35);
-    \fill[fraudred, opacity=0.55] (-5.3, -2.5) circle (0.26);
+    % OUTER RING - Transaction Monitoring
+    \draw[copperrich, opacity=0.15, line width=16pt] (0,0) circle (4.8cm);
+    \draw[copperrich, opacity=0.50, line width=2pt] (0,0) circle (4.8cm);
+    \node[flowgrid, opacity=0.4, font=\fontsize{7}{7}\selectfont\sffamily] at (270:5.7cm) {TRANSACTION MONITORING};
 
-    % INTERMEDIATE NODES - organic scatter pattern
-    % First wave
-    \fill[copperrich, opacity=0.65] (-2.8, 2.5) circle (0.24);
-    \fill[copperrich, opacity=0.55] (-3.0, 0.8) circle (0.18);
-    \fill[copperrich, opacity=0.6] (-2.5, -0.5) circle (0.21);
-    \fill[copperrich, opacity=0.5] (-2.9, -1.8) circle (0.17);
-    \fill[copperrich, opacity=0.65] (-2.6, -2.8) circle (0.22);
+    % Financial system actor nodes - outer ring
+    \foreach \angle/\label in {90/SWIFT, 150/BANKS, 210/CRYPTO, 330/P2P, 30/FX} {
+      \fill[forestdark] (\angle:4.8cm) circle (0.55cm);
+      \draw[copperrich, opacity=0.8, line width=1.5pt] (\angle:4.8cm) circle (0.55cm);
+      \node[white, font=\fontsize{7.5}{7.5}\selectfont\bfseries] at (\angle:4.8cm) {\label};
+    }
+    % FINTECH node - slightly smaller font for longer label
+    \fill[forestdark] (270:4.8cm) circle (0.55cm);
+    \draw[copperrich, opacity=0.8, line width=1.5pt] (270:4.8cm) circle (0.55cm);
+    \node[white, font=\fontsize{6.5}{6.5}\selectfont\bfseries] at (270:4.8cm) {FINTECH};
 
-    % Second wave (more dispersed)
-    \fill[copperrich, opacity=0.5] (-0.8, 3.0) circle (0.16);
-    \fill[copperrich, opacity=0.55] (-0.3, 1.8) circle (0.18);
-    \fill[copperrich, opacity=0.5] (-0.5, 0.4) circle (0.14);
-    \fill[copperrich, opacity=0.6] (0.0, -0.6) circle (0.19);
-    \fill[copperrich, opacity=0.5] (-0.4, -1.8) circle (0.16);
-    \fill[copperrich, opacity=0.55] (0.1, -3.2) circle (0.17);
+    % MIDDLE RING - AML / KYC
+    \draw[moneygreen, opacity=0.10, line width=12pt] (0,0) circle (3.2cm);
+    \draw[moneygreen, opacity=0.45, line width=1.5pt] (0,0) circle (3.2cm);
+    \node[flowgrid, opacity=0.4, font=\fontsize{7}{7}\selectfont\sffamily] at (270:3.8cm) {AML / KYC};
 
-    % Flowing curves from source (organic bezier paths)
-    \draw[copperrich, opacity=0.35, line width=1.2pt] (-4.8, 2.2) .. controls (-3.8, 2.4) .. (-3.04, 2.5);
-    \draw[copperrich, opacity=0.3, line width=1pt] (-4.8, 2.2) .. controls (-4, 1.5) .. (-3.18, 0.8);
-    \draw[copperrich, opacity=0.35, line width=1pt] (-5.2, 0.3) .. controls (-4, 0) .. (-2.71, -0.5);
-    \draw[copperrich, opacity=0.3, line width=1pt] (-4.55, -1.2) .. controls (-3.8, -1.5) .. (-3.07, -1.8);
-    \draw[copperrich, opacity=0.35, line width=1.1pt] (-5.04, -2.5) .. controls (-4, -2.6) .. (-2.82, -2.8);
+    % INNER RING - Cross-Institution
+    \draw[complianceblue, opacity=0.10, line width=8pt] (0,0) circle (2.0cm);
+    \draw[complianceblue, opacity=0.40, line width=1.5pt] (0,0) circle (2.0cm);
+    \node[flowgrid, opacity=0.4, font=\fontsize{7}{7}\selectfont\sffamily] at (270:2.5cm) {CROSS-INSTITUTION};
 
-    % Second layer flows (further dispersion with curves)
-    \draw[copperrich, opacity=0.28, line width=0.9pt] (-2.56, 2.5) .. controls (-1.5, 2.8) .. (-0.96, 3.0);
-    \draw[copperrich, opacity=0.3, line width=0.9pt] (-2.56, 2.5) .. controls (-1.3, 2.2) .. (-0.48, 1.8);
-    \draw[copperrich, opacity=0.25, line width=0.8pt] (-2.82, 0.8) .. controls (-1.5, 0.6) .. (-0.64, 0.4);
-    \draw[copperrich, opacity=0.3, line width=0.9pt] (-2.29, -0.5) .. controls (-1, -0.5) .. (-0.19, -0.6);
-    \draw[copperrich, opacity=0.25, line width=0.8pt] (-2.73, -1.8) .. controls (-1.5, -1.8) .. (-0.56, -1.8);
-    \draw[copperrich, opacity=0.3, line width=0.9pt] (-2.38, -2.8) .. controls (-1, -3) .. (-0.07, -3.2);
+    % CENTRAL CORE - KYA Chokepoint
+    \fill[forestdark] (0,0) circle (1.2cm);
+    \fill[copperrich, opacity=0.9] (0,0) circle (0.9cm);
+    \draw[copperrich, line width=3pt] (0,0) circle (0.9cm);
+    \node[white, font=\fontsize{11}{11}\selectfont\bfseries] at (0,0) {KYA};
 
-    % CENTRAL CONVERGENCE - abstract focal point (no text)
-    \draw[copperrich, opacity=0.15, line width=14pt] (2.8, 0) circle (2.0cm);
-    \draw[copperrich, opacity=0.35, line width=4pt] (2.8, 0) circle (1.9cm);
-    \fill[forestdark, opacity=0.92] (2.8, 0) circle (1.5cm);
-    \fill[copperrich, opacity=0.9] (2.8, 0) circle (1.0cm);
-    \fill[forestdark, opacity=0.85] (2.8, 0) circle (0.5cm);
+    % Protective aura
+    \draw[copperrich, opacity=0.5, line width=3pt] (0,0) circle (1.08cm);
+    \draw[copperrich, opacity=0.25, line width=5pt] (0,0) circle (1.35cm);
 
-    % Convergence flows (curved paths to center)
-    \draw[copperrich, opacity=0.35, line width=1pt] (-0.64, 3.0) .. controls (0.8, 2.2) .. (1.3, 1.0);
-    \draw[copperrich, opacity=0.4, line width=1.1pt] (-0.12, 1.8) .. controls (0.8, 1.3) .. (1.2, 0.6);
-    \draw[copperrich, opacity=0.35, line width=1pt] (-0.36, 0.4) .. controls (0.5, 0.3) .. (1.3, 0.15);
-    \draw[copperrich, opacity=0.4, line width=1.1pt] (0.19, -0.6) .. controls (0.8, -0.4) .. (1.3, -0.2);
-    \draw[copperrich, opacity=0.35, line width=1pt] (-0.24, -1.8) .. controls (0.6, -1.3) .. (1.2, -0.6);
-    \draw[copperrich, opacity=0.3, line width=0.9pt] (0.27, -3.2) .. controls (1.2, -2.2) .. (1.4, -1.0);
-
-    % EXIT NODES (right side) - clean dispersal
-    \fill[mintlight, opacity=0.7] (5.3, 1.4) circle (0.32);
-    \fill[mintlight, opacity=0.6] (5.6, -0.1) circle (0.26);
-    \fill[mintlight, opacity=0.65] (5.2, -1.6) circle (0.29);
-    \fill[mintlight, opacity=0.5] (5.8, -2.8) circle (0.22);
-
-    % Exit flows (emerging from center)
-    \draw[mintlight, opacity=0.45, line width=1.4pt] (4.3, 0.6) .. controls (4.8, 0.9) .. (4.98, 1.3);
-    \draw[mintlight, opacity=0.4, line width=1.2pt] (4.3, 0.1) .. controls (4.9, 0) .. (5.34, -0.1);
-    \draw[mintlight, opacity=0.45, line width=1.3pt] (4.3, -0.4) .. controls (4.7, -1) .. (4.91, -1.5);
-    \draw[mintlight, opacity=0.35, line width=1pt] (4.2, -0.8) .. controls (4.8, -1.8) .. (5.58, -2.7);
+    % Subtle radial spokes connecting layers
+    \foreach \angle in {30, 90, 150, 210, 270, 330} {
+      \draw[copperrich, opacity=0.12, line width=1pt] (\angle:1.35cm) -- (\angle:4.2cm);
+    }
 
   \end{scope}
 
-  % Document classification bar (copper accent - keeping consistent header format)
+  % Document classification bar
   \fill[headergold] ([yshift=-1.5cm]current page.north west) rectangle ([yshift=-2.2cm]current page.north east);
   \node[forestdark, font=\small\bfseries\sffamily] at ([yshift=-1.85cm]current page.north) {PROJECTION REPORT \textbar{} ETRA-2025-FIN-001 \textbar{} FEBRUARY 2026};
 
