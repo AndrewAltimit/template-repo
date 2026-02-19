@@ -1,33 +1,34 @@
 # Auto-Formatting Git Commits
 
-This project uses the standard pre-commit framework for code formatting and quality checks.
+This project uses `automation-cli` for code formatting and quality checks.
 
-## Problem
-
-When pre-commit hooks reformat your code, the commit fails because files have been modified. You then need to stage the changes and commit again.
-
-## Solution
-
-The project uses the standard pre-commit framework. To set it up:
+## Running Checks
 
 ```bash
-# Install pre-commit hooks
-./automation/setup/git/setup-pre-commit.sh
-```
+# Check formatting
+automation-cli ci run format
 
-This installs the pre-commit hooks defined in `.pre-commit-config.yaml`, which include:
-- Python formatting (black, isort)
-- Python linting (flake8, mypy)
-- YAML and JSON validation
-- Shell script checking
-- And more...
+# Full linting (ruff + ty)
+automation-cli ci run lint-full
+
+# Auto-fix formatting
+automation-cli ci run autoformat
+
+# All CI checks
+automation-cli ci run full
+```
 
 ## Manual Approach
 
-If you prefer not to use either automation:
+If a commit fails due to formatting:
 
 ```bash
-# When commit fails due to formatting
-git add -u                # Stage the formatted files
-git commit               # Retry the commit
+# Auto-fix formatting
+automation-cli ci run autoformat
+
+# Stage the formatted files
+git add -u
+
+# Retry the commit
+git commit
 ```
