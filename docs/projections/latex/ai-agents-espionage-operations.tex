@@ -49,27 +49,27 @@
 \definecolor{shadownavy}{HTML}{16213E}
 \definecolor{steelblue}{HTML}{0F3460}
 % Accent: Crimson/ember red - danger, red flags, alerts
-\definecolor{signalred}{HTML}{E94560}
+\definecolor{signalred}{HTML}{B5314A}
 \definecolor{embercrimson}{HTML}{C62828}
 % Highlight: Silver/chrome - intelligence, precision
 \definecolor{chromesilver}{HTML}{B8C5D6}
 \definecolor{coldsteel}{HTML}{7B8794}
-% Status colors
-\definecolor{successgreen}{HTML}{00C853}
-\definecolor{warningamber}{HTML}{FFB300}
-\definecolor{alertcoral}{HTML}{E94560}
-\definecolor{infocyan}{HTML}{00ACC1}
+% Status colors (muted professional tones)
+\definecolor{successgreen}{HTML}{2E7D52}
+\definecolor{warningamber}{HTML}{C48A1A}
+\definecolor{alertcoral}{HTML}{C62828}
+\definecolor{infocyan}{HTML}{3A7D8C}
 % Neutrals
 \definecolor{coolgray}{HTML}{546E7A}
 \definecolor{lightgray}{HTML}{ECEFF1}
 \definecolor{codebg}{HTML}{1A1A2E}
 \definecolor{codetext}{HTML}{B8C5D6}
 \definecolor{gridlight}{HTML}{37474F}
-% Signal/cipher accents
-\definecolor{signalcyan}{HTML}{00BCD4}
-\definecolor{ciphergold}{HTML}{FFD54F}
-\definecolor{interceptgreen}{HTML}{69F0AE}
-\definecolor{decodepurple}{HTML}{B388FF}
+% Signal/cipher accents (desaturated for readability)
+\definecolor{signalcyan}{HTML}{4A8FA0}
+\definecolor{ciphergold}{HTML}{B8943B}
+\definecolor{interceptgreen}{HTML}{4A8B6F}
+\definecolor{decodepurple}{HTML}{7E6BA4}
 % Standard ETRA header band gold (consistent across all projection reports)
 \definecolor{barriergold}{HTML}{B7950B}
 
@@ -190,7 +190,7 @@
 \newtcolorbox{defbox}[1][Definition]{
   enhanced, breakable,
   colback=ciphergold!12, colframe=ciphergold,
-  colbacktitle=ciphergold!90!black, coltitle=shadowdark,
+  colbacktitle=ciphergold!90!black, coltitle=white,
   fonttitle=\bfseries\sffamily,
   title={\ding{70}\hspace{0.5em}#1},
   boxrule=0pt, leftrule=4pt, arc=0pt, outer arc=0pt,
