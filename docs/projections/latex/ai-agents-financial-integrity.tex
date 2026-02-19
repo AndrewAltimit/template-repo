@@ -47,17 +47,17 @@
 \definecolor{forestdark}{HTML}{1B4332}
 \definecolor{emeralddeep}{HTML}{2D6A4F}
 \definecolor{moneygreen}{HTML}{40916C}
-\definecolor{mintlight}{HTML}{52B788}
+\definecolor{mintlight}{HTML}{6B9A7E}
 % Accent: Copper/bronze - wealth, transactions, value flow
 \definecolor{copperrich}{HTML}{B87333}
 % Standard ETRA header band gold (consistent across all projection reports)
 \definecolor{headergold}{HTML}{B7950B}
-\definecolor{bronzegold}{HTML}{CD7F32}
-\definecolor{brasslight}{HTML}{D4A84B}
+\definecolor{bronzegold}{HTML}{A8703A}
+\definecolor{brasslight}{HTML}{B89A5A}
 % Alert/status colors
 \definecolor{fraudred}{HTML}{9B2335}
-\definecolor{alertamber}{HTML}{E67E22}
-\definecolor{complianceblue}{HTML}{2874A6}
+\definecolor{alertamber}{HTML}{C07A3A}
+\definecolor{complianceblue}{HTML}{3A6D85}
 \definecolor{auditpurple}{HTML}{6C3483}
 % Neutrals
 \definecolor{ledgergray}{HTML}{566573}
@@ -208,97 +208,76 @@
 \begin{document}
 
 % ============================================================================
-% TITLE PAGE - Transaction Flow Web with Chokepoints
+% TITLE PAGE - Financial Defense Architecture (Concentric Rings)
 % ============================================================================
 \begin{titlepage}
 \begin{tikzpicture}[remember picture, overlay]
   % Background - deep forest green
   \fill[forestdark] (current page.north west) rectangle (current page.south east);
 
-  % Ledger grid background pattern (financial records aesthetic)
-  \begin{scope}[shift={(current page.center)}, opacity=0.04]
-    % Horizontal ledger lines
-    \foreach \y in {-12,-11,...,12} {
-      \draw[white, line width=0.3pt] (-10,\y) -- (10,\y);
+  % Subtle ledger grid background (financial records aesthetic)
+  \begin{scope}[shift={(current page.center)}, opacity=0.035]
+    \foreach \y in {-14,-13,...,14} {
+      \draw[white, line width=0.3pt] (-11,\y) -- (11,\y);
     }
-    % Vertical column dividers (like spreadsheet)
     \foreach \x in {-8,-4,0,4,8} {
-      \draw[white, line width=0.5pt] (\x,-12) -- (\x,12);
+      \draw[white, line width=0.5pt] (\x,-14) -- (\x,14);
     }
   \end{scope}
 
-  % Main visualization - Abstract Network Flow (no labels)
-  \begin{scope}[shift={([xshift=-0.5cm, yshift=3.5cm]current page.center)}, scale=1.25]
+  % Main visualization - Financial Defense Architecture
+  \begin{scope}[shift={([xshift=-0.5cm, yshift=3.5cm]current page.center)}]
 
-    % SOURCE NODES (left side) - varying sizes, no labels
-    \fill[fraudred, opacity=0.75] (-5.2, 2.2) circle (0.40);
-    \fill[fraudred, opacity=0.6] (-5.5, 0.3) circle (0.30);
-    \fill[fraudred, opacity=0.7] (-4.9, -1.2) circle (0.35);
-    \fill[fraudred, opacity=0.55] (-5.3, -2.5) circle (0.26);
+    % Subtle radial gradient - depth cue
+    \shade[inner color=white, outer color=forestdark, opacity=0.08] (0,0) circle (5.8cm);
 
-    % INTERMEDIATE NODES - organic scatter pattern
-    % First wave
-    \fill[copperrich, opacity=0.65] (-2.8, 2.5) circle (0.24);
-    \fill[copperrich, opacity=0.55] (-3.0, 0.8) circle (0.18);
-    \fill[copperrich, opacity=0.6] (-2.5, -0.5) circle (0.21);
-    \fill[copperrich, opacity=0.5] (-2.9, -1.8) circle (0.17);
-    \fill[copperrich, opacity=0.65] (-2.6, -2.8) circle (0.22);
+    % OUTER RING - Transaction Monitoring
+    \draw[copperrich, opacity=0.3, line width=16pt] (0,0) circle (4.8cm);
+    \draw[copperrich, opacity=0.6, line width=2pt] (0,0) circle (4.8cm);
+    \node[flowgrid, opacity=0.4, font=\fontsize{7}{7}\selectfont\sffamily] at (270:5.7cm) {TRANSACTION MONITORING};
 
-    % Second wave (more dispersed)
-    \fill[copperrich, opacity=0.5] (-0.8, 3.0) circle (0.16);
-    \fill[copperrich, opacity=0.55] (-0.3, 1.8) circle (0.18);
-    \fill[copperrich, opacity=0.5] (-0.5, 0.4) circle (0.14);
-    \fill[copperrich, opacity=0.6] (0.0, -0.6) circle (0.19);
-    \fill[copperrich, opacity=0.5] (-0.4, -1.8) circle (0.16);
-    \fill[copperrich, opacity=0.55] (0.1, -3.2) circle (0.17);
+    % Financial system actor nodes - outer ring
+    \foreach \angle/\label in {90/SWIFT, 150/BANKS, 210/CRYPTO, 330/P2P, 30/FX} {
+      \fill[forestdark] (\angle:4.8cm) circle (0.55cm);
+      \draw[copperrich, opacity=0.8, line width=1.5pt] (\angle:4.8cm) circle (0.55cm);
+      \node[white, font=\fontsize{7.5}{7.5}\selectfont\bfseries] at (\angle:4.8cm) {\label};
+    }
+    % FINTECH node - slightly smaller font for longer label
+    \fill[forestdark] (270:4.8cm) circle (0.55cm);
+    \draw[copperrich, opacity=0.8, line width=1.5pt] (270:4.8cm) circle (0.55cm);
+    \node[white, font=\fontsize{6.5}{6.5}\selectfont\bfseries] at (270:4.8cm) {FINTECH};
 
-    % Flowing curves from source (organic bezier paths)
-    \draw[copperrich, opacity=0.35, line width=1.2pt] (-4.8, 2.2) .. controls (-3.8, 2.4) .. (-3.04, 2.5);
-    \draw[copperrich, opacity=0.3, line width=1pt] (-4.8, 2.2) .. controls (-4, 1.5) .. (-3.18, 0.8);
-    \draw[copperrich, opacity=0.35, line width=1pt] (-5.2, 0.3) .. controls (-4, 0) .. (-2.71, -0.5);
-    \draw[copperrich, opacity=0.3, line width=1pt] (-4.55, -1.2) .. controls (-3.8, -1.5) .. (-3.07, -1.8);
-    \draw[copperrich, opacity=0.35, line width=1.1pt] (-5.04, -2.5) .. controls (-4, -2.6) .. (-2.82, -2.8);
+    % MIDDLE RING - AML / KYC
+    \draw[moneygreen, opacity=0.2, line width=12pt] (0,0) circle (3.2cm);
+    \draw[moneygreen, opacity=0.55, line width=1.5pt] (0,0) circle (3.2cm);
+    \node[flowgrid, opacity=0.4, font=\fontsize{7}{7}\selectfont\sffamily] at (270:3.8cm) {AML / KYC};
 
-    % Second layer flows (further dispersion with curves)
-    \draw[copperrich, opacity=0.28, line width=0.9pt] (-2.56, 2.5) .. controls (-1.5, 2.8) .. (-0.96, 3.0);
-    \draw[copperrich, opacity=0.3, line width=0.9pt] (-2.56, 2.5) .. controls (-1.3, 2.2) .. (-0.48, 1.8);
-    \draw[copperrich, opacity=0.25, line width=0.8pt] (-2.82, 0.8) .. controls (-1.5, 0.6) .. (-0.64, 0.4);
-    \draw[copperrich, opacity=0.3, line width=0.9pt] (-2.29, -0.5) .. controls (-1, -0.5) .. (-0.19, -0.6);
-    \draw[copperrich, opacity=0.25, line width=0.8pt] (-2.73, -1.8) .. controls (-1.5, -1.8) .. (-0.56, -1.8);
-    \draw[copperrich, opacity=0.3, line width=0.9pt] (-2.38, -2.8) .. controls (-1, -3) .. (-0.07, -3.2);
+    % INNER RING - Cross-Institution
+    \draw[complianceblue, opacity=0.2, line width=8pt] (0,0) circle (2.0cm);
+    \draw[complianceblue, opacity=0.5, line width=1.5pt] (0,0) circle (2.0cm);
+    \node[flowgrid, opacity=0.4, font=\fontsize{7}{7}\selectfont\sffamily] at (270:2.5cm) {CROSS-INSTITUTION};
 
-    % CENTRAL CONVERGENCE - abstract focal point (no text)
-    \draw[copperrich, opacity=0.15, line width=14pt] (2.8, 0) circle (2.0cm);
-    \draw[copperrich, opacity=0.35, line width=4pt] (2.8, 0) circle (1.9cm);
-    \fill[forestdark, opacity=0.92] (2.8, 0) circle (1.5cm);
-    \fill[copperrich, opacity=0.9] (2.8, 0) circle (1.0cm);
-    \fill[forestdark, opacity=0.85] (2.8, 0) circle (0.5cm);
+    % CENTRAL CORE - KYA Chokepoint with glow
+    \shade[inner color=copperrich!60, outer color=copperrich!10, opacity=0.3] (0,0) circle (1.5cm);
+    \fill[forestdark] (0,0) circle (1.2cm);
+    \fill[copperrich, opacity=0.9] (0,0) circle (0.9cm);
+    \draw[copperrich, line width=3pt] (0,0) circle (0.9cm);
+    \node[white, font=\fontsize{11}{11}\selectfont\bfseries] at (0,0) {KYA};
 
-    % Convergence flows (curved paths to center)
-    \draw[copperrich, opacity=0.35, line width=1pt] (-0.64, 3.0) .. controls (0.8, 2.2) .. (1.3, 1.0);
-    \draw[copperrich, opacity=0.4, line width=1.1pt] (-0.12, 1.8) .. controls (0.8, 1.3) .. (1.2, 0.6);
-    \draw[copperrich, opacity=0.35, line width=1pt] (-0.36, 0.4) .. controls (0.5, 0.3) .. (1.3, 0.15);
-    \draw[copperrich, opacity=0.4, line width=1.1pt] (0.19, -0.6) .. controls (0.8, -0.4) .. (1.3, -0.2);
-    \draw[copperrich, opacity=0.35, line width=1pt] (-0.24, -1.8) .. controls (0.6, -1.3) .. (1.2, -0.6);
-    \draw[copperrich, opacity=0.3, line width=0.9pt] (0.27, -3.2) .. controls (1.2, -2.2) .. (1.4, -1.0);
+    % Protective aura
+    \draw[copperrich, opacity=0.5, line width=3pt] (0,0) circle (1.08cm);
+    \draw[copperrich, opacity=0.25, line width=5pt] (0,0) circle (1.35cm);
 
-    % EXIT NODES (right side) - clean dispersal
-    \fill[mintlight, opacity=0.7] (5.3, 1.4) circle (0.32);
-    \fill[mintlight, opacity=0.6] (5.6, -0.1) circle (0.26);
-    \fill[mintlight, opacity=0.65] (5.2, -1.6) circle (0.29);
-    \fill[mintlight, opacity=0.5] (5.8, -2.8) circle (0.22);
-
-    % Exit flows (emerging from center)
-    \draw[mintlight, opacity=0.45, line width=1.4pt] (4.3, 0.6) .. controls (4.8, 0.9) .. (4.98, 1.3);
-    \draw[mintlight, opacity=0.4, line width=1.2pt] (4.3, 0.1) .. controls (4.9, 0) .. (5.34, -0.1);
-    \draw[mintlight, opacity=0.45, line width=1.3pt] (4.3, -0.4) .. controls (4.7, -1) .. (4.91, -1.5);
-    \draw[mintlight, opacity=0.35, line width=1pt] (4.2, -0.8) .. controls (4.8, -1.8) .. (5.58, -2.7);
+    % Subtle radial spokes connecting layers
+    \foreach \angle in {30, 90, 150, 210, 270, 330} {
+      \draw[copperrich, opacity=0.12, line width=1pt] (\angle:1.35cm) -- (\angle:4.2cm);
+    }
 
   \end{scope}
 
-  % Document classification bar (copper accent - keeping consistent header format)
+  % Document classification bar
   \fill[headergold] ([yshift=-1.5cm]current page.north west) rectangle ([yshift=-2.2cm]current page.north east);
-  \node[forestdark, font=\small\bfseries\sffamily] at ([yshift=-1.85cm]current page.north) {PROJECTION REPORT \textbar{} ETRA-2025-FIN-001 \textbar{} DECEMBER 2025};
+  \node[forestdark, font=\small\bfseries\sffamily] at ([yshift=-1.85cm]current page.north) {PROJECTION REPORT \textbar{} ETRA-2025-FIN-001 \textbar{} FEBRUARY 2026};
 
   % Title block (bottom left)
   \node[anchor=south west, text width=14cm] at ([xshift=1.5cm, yshift=3cm]current page.south west) {
@@ -311,11 +290,11 @@
 
   % Metadata block (bottom right)
   \node[anchor=south east, text width=6cm, align=right] at ([xshift=-1.5cm, yshift=3cm]current page.south east) {
-    \color{ledgergray}\small\sffamily
+    \color{flowgrid}\small\sffamily
     \textbf{Document Type:} Policy Research\\[0.2em]
     \textbf{Time Horizon:} 2025--2030\\[0.2em]
     \textbf{License:} MIT / Unlicense\\[0.2em]
-    \textbf{Version:} 1.0
+    \textbf{Version:} 2.0
   };
 
   % Vertical accent line (copper)
@@ -462,6 +441,19 @@ This document is prepared for \textbf{defensive policy purposes only}. To minimi
 Readers seeking to understand \textit{what capabilities exist} and \textit{what policy responses are needed} will find this document useful. Readers seeking operational guidance will not.
 \end{warnbox}
 
+\vspace{0.5cm}
+
+\begin{infobox}[Change Log: Version 2.0 (February 2026)]
+\textbf{Substantive updates from v1.0 (December 2025):}
+\begin{enumerate}
+  \item \textbf{Updated crime statistics}: Chainalysis 2026 Crypto Crime Report data (\$154 billion illicit volume in 2025, 162\% YoY increase); FATF Horizon Scan on AI and Deepfakes; EU AMLA 2026 milestones
+  \item \textbf{Expanded cross-references}: Added links to ETRA-2026-WMD-001 (WMD Proliferation), ETRA-2026-PTR-001 (Political Targeting), and ETRA-2026-IC-001 (Institutional Erosion)
+  \item \textbf{New content}: MCP/tool-use ecosystem as concrete composability evidence; agent computer use / browser control as [O] evidence update; workforce contraction context from IC erosion report; Process DoS sharpened with IC erosion framing
+  \item \textbf{Scenario probability reassessment}: Adjusted based on two additional months of evidence
+  \item \textbf{New references}: FATF Horizon Scan on AI and Deepfakes; Chainalysis 2026 Crypto Crime Report; economic\_agents simulation framework cross-reference
+\end{enumerate}
+\end{infobox}
+
 \newpage
 \tableofcontents
 \newpage
@@ -562,7 +554,15 @@ This report builds directly on \textbf{ETRA-2025-AEA-001: AI Agents as Autonomou
   \item Operate continuously without human intervention
 \end{itemize}
 
-The capability-governance gap documented in that report---agents can participate economically but cannot be held legally accountable---is the foundation for the financial crime risks analyzed here.
+The capability-governance gap documented in that report---agents can participate economically but cannot be held legally accountable---is the foundation for the financial crime risks analyzed here. A concrete Rust-based simulation framework demonstrating these capabilities (agent wallets, marketplace interaction, compute consumption) is available in the economic\_agents package.
+
+\textbf{Cross-references to sibling ETRA reports:}
+\begin{itemize}
+  \item \textbf{ETRA-2026-ESP-001 (Espionage Operations)}: Credential marketplace targeting and executive impersonation via deepfake directly enable financial fraud. The handler bottleneck bypass parallels the coordination-free scaling analyzed in Section 3.
+  \item \textbf{ETRA-2026-WMD-001 (WMD Proliferation)}: ``Nano-smurfing'' for dual-use procurement evasion mirrors the financial structuring techniques in Section 5.1. Both reports identify weakest-link exploitation and jurisdictional arbitrage as primary threat vectors.
+  \item \textbf{ETRA-2026-PTR-001 (Political Targeting)}: The ``Principal-Agent Defense'' and \textit{mens rea} gaps analyzed in Sections 6.1 and 8.14 are a shared concern with PTR-001's ``Plausible Deniability 2.0'' framework. Covert financing via sub-threshold fund transfers is identified in both reports.
+  \item \textbf{ETRA-2026-IC-001 (Institutional Erosion)}: IC-001's ``Process DoS'' concept directly applies to AML compliance teams (Section 8.11). Documented workforce contraction at intelligence agencies (NSA -2,000, ODNI -35\%, CIA -1,200 as of February 2026) parallels capacity constraints at financial enforcement agencies. IC-001's ``Delegation Defense'' maps to the ``Hallucination Alibi'' analyzed in Section 8.14.
+\end{itemize}
 
 \subsection{Base-Rate Context}
 
@@ -572,7 +572,7 @@ The capability-governance gap documented in that report---agents can participate
 Financial crime is already massive:
 \begin{itemize}
   \item \textbf{Money laundering}: UNODC estimates 2-5\% of global GDP (\$800 billion to \$2 trillion annually) is laundered, with less than 1\% of illicit flows seized or frozen
-  \item \textbf{Crypto-specific crime}: Chainalysis estimated \textbf{\$40.9 billion} received by illicit crypto addresses in 2024, with 2025 volumes tracking toward approximately \textbf{\$51 billion}
+  \item \textbf{Crypto-specific crime}: Chainalysis's 2026 Crypto Crime Report estimates at least \textbf{\$154 billion} received by illicit crypto addresses in 2025---a \textbf{162\% year-over-year increase}---driven primarily by a 694\% surge in sanctioned entity volumes, with stablecoins now accounting for 84\% of all illicit transaction volume
   \item \textbf{Fraud as upstream driver}: UK Finance's 2025 Annual Fraud Report documents \textbf{>\pounds1.1 billion} in fraud losses in 2024, with APP (Authorized Push Payment) fraud alone at \textbf{\pounds450.7 million}
   \item \textbf{Bribery}: Approximately \$1 trillion per year globally (World Bank estimate)
 \end{itemize}
@@ -586,7 +586,7 @@ Financial crime is already massive:
 
 This analysis draws on:
 \begin{itemize}
-  \item \textbf{Current capability assessment} of AI agent systems as deployed in late 2025
+  \item \textbf{Current capability assessment} of AI agent systems as deployed through early 2026
   \item \textbf{Financial crime literature} from FATF, academic research, and law enforcement
   \item \textbf{Regulatory framework analysis} including FATF guidance, EU AMLA, and national AML regimes
   \item \textbf{Expert consultation} across financial compliance, AI safety, and law enforcement domains
@@ -825,6 +825,8 @@ Agents don't just transact---they \textbf{compose}. A single agent can integrate
 \end{itemize}
 
 \textbf{The integration bottleneck disappears}: Previously, combining these capabilities required significant human integration work. Agents reduce this friction to near-zero, enabling rapid assembly of complex financial infrastructure.
+
+\textbf{Concrete evidence: The MCP ecosystem [O]}: The Model Context Protocol (MCP), an open standard for agent-tool integration adopted by major AI providers in 2024-2025, makes composability a production reality rather than a theoretical concern. MCP servers provide standardized interfaces to arbitrary tools---payment processors, corporate registries, blockchain wallets, identity services---that any MCP-compatible agent can invoke without custom integration code. An agent composing identity synthesis + entity formation + payment processing + crypto exchange tools requires only configuration, not engineering. This dramatically lowers the barrier to assembling the ``illicit agentic stack'' described in Section 4.
 \end{warnbox}
 
 \subsection{Speed Asymmetry}
@@ -934,6 +936,8 @@ This section describes technical capabilities that enable agent-based financial 
 \textbf{Current capability [O]}: Multimodal AI models can generate realistic identity documents (images, though not cryptographically valid), video and audio for verification calls, consistent personal histories and transaction patterns, and social media presences with believable activity.
 
 \textbf{KYC bypass [E]}: While high-assurance verification remains robust, many financial services use lower-assurance methods that synthetic identities can satisfy: document photo upload, video selfie verification, knowledge-based authentication, and phone/email verification.
+
+\textbf{Agent computer use update [O]}: Since late 2025, multiple AI providers have shipped browser-controlling agent capabilities (Claude Computer Use, OpenAI Operator, and similar tools). These agents can navigate web interfaces, fill forms, click through multi-step verification flows, and interact with financial service onboarding portals designed for humans. This moves the ``automated account opening'' scenario from theoretical to demonstrably possible---the question is no longer whether agents \textit{can} navigate KYC flows, but whether the KYC flows are robust enough to distinguish agent interaction from human interaction.
 
 \begin{infobox}[Important Counterweight]
 Modern KYC is increasingly multi-layer and liveness-aware. High-assurance verification (biometric liveness detection, government database cross-checks, in-person verification) remains robust against current synthetic identity attacks. The vulnerability is primarily at \textbf{low-assurance fintech on-ramps}. Agents shift attacks to these weakest-link rails rather than defeating all KYC.
@@ -1697,6 +1701,8 @@ The emphasis on ``agents break detection; build counter-agents'' is accurate but
 \end{itemize}
 
 \textbf{Policy implication}: Counter-agent detection is necessary but insufficient. Equally critical: standardized data formats for cross-institution sharing, privacy-preserving analytics, FIU modernization to aggregate cross-source data, and legal frameworks enabling pre-competitive threat intelligence sharing.
+
+\textbf{Workforce contraction amplifies this gap [O]}: As documented in ETRA-2026-IC-001, the U.S. intelligence community has experienced significant workforce reductions in 2025-2026 (NSA met its 2,000-person reduction target; ODNI cut from $\sim$2,000 to $\sim$1,300; CIA shrinking $\sim$1,200 positions). Financial enforcement agencies face analogous political pressures on staffing and budgets. If FinCEN, Treasury OFAC, and bank compliance teams face similar contraction while agent-driven transaction volumes accelerate, the investigative capacity gap widens on both sides simultaneously---more activity to monitor, fewer humans to monitor it.
 \end{criticalbox}
 
 \subsection{Liability Assignment}
@@ -1865,6 +1871,8 @@ Stale attestations & Conditions changed since attestation issued & Expiration wi
 
 \textbf{The ``DDoS the regulators'' concern [S]}: Sophisticated actors might deliberately generate false-positive-heavy activity to exhaust investigative resources, creating cover for actual illicit operations.
 
+\textbf{Process DoS: The IC erosion parallel [E]}: ETRA-2026-IC-001 documents how agent-generated activity can overwhelm investigative capacity through what it terms ``Process DoS''---flooding institutions with high-quality synthetic leads, documentation, and FOIA requests that individually require human review. Applied to financial compliance: agents could submit mass Suspicious Activity Reports, generate synthetic customer complaints requiring investigation, or create plausible-but-false whistleblower tips---each requiring compliance teams to investigate, consuming the same finite analyst hours needed for genuine threats. The result is institutional paralysis where legitimate compliance activity crowds out actual threat detection.
+
 \subsection{Counterpoint: ``AI is the Ultimate Snitch''}
 
 \textbf{The forensic advantage [E]}: Unlike human criminals, agents are perfectly consistent and leave comprehensive digital traces:
@@ -2022,7 +2030,7 @@ Given the civil liberties stakes, Zero-Knowledge Compliance should be elevated t
 
 \textbf{Characteristics}: Existing criminal organizations adopt agent tools for efficiency, transaction structuring becomes more sophisticated, detection systems adapt incrementally, no fundamental shift in crime-detection dynamics.
 
-\textbf{Probability assessment [E]}: 40\% as primary outcome through 2028
+\textbf{Probability assessment [E]}: 35\% as primary outcome through 2028 \textit{(adjusted down from 40\% in v1.0; the 162\% YoY increase in illicit crypto volume and emergence of DPRK-linked agent-assisted operations suggest the threat is evolving faster than the ``incremental'' framing implies)}
 
 \textbf{Implications}: Current regulatory frameworks require enhancement but not transformation.
 
@@ -2032,7 +2040,7 @@ Given the civil liberties stakes, Zero-Knowledge Compliance should be elevated t
 
 \textbf{Characteristics}: ``Laundering agent'' services available on dark markets, non-technical criminals access sophisticated capabilities, barrier to entry drops dramatically.
 
-\textbf{Probability assessment [S]}: 30\% by 2028
+\textbf{Probability assessment [S]}: 35\% by 2028 \textit{(adjusted up from 30\% in v1.0; Chinese-language money laundering networks processing \$16.1 billion in illicit crypto in 2025 through 1,799+ active wallets demonstrate industrialized, potentially agent-assisted laundering infrastructure already at scale)}
 
 \textbf{Implications}: Major scale-up of enforcement resources required.
 
@@ -2385,8 +2393,8 @@ The core regulatory challenge is preventing jurisdictional arbitrage---actors ro
 
 \textbf{Current coordination efforts}:
 \begin{itemize}
-  \item FATF's digital transformation guidance addresses some AI-related risks
-  \item EU AMLA (started operations July 1, 2025; fully operational expected 2028) creates European coordination, including EU-wide cash payment cap of \texteuro10,000
+  \item FATF's Horizon Scan on AI and Deepfakes (2025) explicitly identifies autonomous AI agents as a risk vector for AML/CFT, signaling intensified scrutiny of AI-specific controls
+  \item EU AMLA (started operations July 1, 2025; preparing 23 Level 2/3 harmonization measures by July 2026; direct supervision of 40 high-risk institutions from January 2028) creates European coordination, including EU-wide cash payment cap of \texteuro10,000
   \item Crypto-specific regulations (MiCA in EU, emerging US frameworks) begin to address virtual asset risks
 \end{itemize}
 
@@ -2652,7 +2660,7 @@ The window for proactive governance is limited. As agent capabilities proliferat
 \vspace{0.5cm}
 \textbf{Emerging Technology Risk Assessment}\\
 \textbf{Document ID: ETRA-2025-FIN-001}\\
-\textbf{Version: 1.0}
+\textbf{Version: 2.0}
 \end{center}
 
 \newpage
@@ -2672,6 +2680,7 @@ The window for proactive governance is limited. As agent capabilities proliferat
 \subsection*{Technical and Academic Sources}
 
 \begin{itemize}[leftmargin=1.5em]
+  \item \textbf{FATF} (2025). \textit{Horizon Scan: AI and Deepfakes}. AI/deepfake risks to AML/CFT/CPF.
   \item \textbf{Axelsen, H. et al.} (2025). \textit{Agentic AI for Financial Crime Compliance}. arXiv:2509.13137. Agentic compliance-by-design framework.
   \item \textbf{Oracle Corporation} (2025). \textit{Oracle Brings AI Agents to the Fight Against Financial Crime}. Official announcement.
   \item \textbf{Galaxy Research} (2025). \textit{Understanding the Intersection of Crypto and AI}. Decentralized compute and AI-crypto intersection.
@@ -2681,7 +2690,7 @@ The window for proactive governance is limited. As agent capabilities proliferat
 \subsection*{Crime Statistics and Enforcement Actions}
 
 \begin{itemize}[leftmargin=1.5em]
-  \item \textbf{Chainalysis} (2025). \textit{2025 Crypto Crime Trends}. Crypto crime volume estimates.
+  \item \textbf{Chainalysis} (2026). \textit{2026 Crypto Crime Report}. At least \$154 billion received by illicit crypto addresses in 2025 (162\% YoY increase).
   \item \textbf{UK Finance} (2025). \textit{Annual Fraud Report 2025}. UK fraud statistics including APP fraud.
   \item \textbf{FinCEN} (2025). \textit{FinCEN Issues Final Rule Severing Huione Group from U.S. Financial System}. Section 311 enforcement action.
 \end{itemize}
@@ -2701,7 +2710,10 @@ The ``\$1 trillion in annual bribes'' figure is commonly attributed to the World
 
 \begin{itemize}[leftmargin=1.5em]
   \item ETRA-2025-AEA-001: \textit{AI Agents as Autonomous Economic Actors}
-  \item ETRA-2025-ESP-001: \textit{AI Agents and the Future of Espionage Operations}
+  \item ETRA-2026-ESP-001: \textit{AI Agents and the Future of Espionage Operations}
+  \item ETRA-2026-WMD-001: \textit{AI Agents and WMD Proliferation}
+  \item ETRA-2026-PTR-001: \textit{AI Agents and Political Targeting}
+  \item ETRA-2026-IC-001: \textit{AI Agents and Institutional Erosion}
 \end{itemize}
 
 % ============================================================================
@@ -2720,16 +2732,19 @@ The ``\$1 trillion in annual bribes'' figure is commonly attributed to the World
 \vspace{0.5em}
 
 \begin{tabular}{ll}
-\textbf{Epistemic Status Markers}: & [O] Open-source documented \textbar{} [D] Data point \\
-& [E] Expert judgment \textbar{} [S] Speculative projection \\
+\textbf{Epistemic Status Markers}: & [O] Open-source documented \textbar{} [E] Expert judgment \\
+& [S] Speculative projection \\
 \textbf{Classification}: & Policy Research - For Defensive Analysis \\
 \textbf{Prepared For}: & Emerging Technology Risk Assessment (independent research) \\
 \textbf{Distribution}: & Public (open-source) \\
 \textbf{Approved By}: & Andrew Showers \\
 \textbf{Document ID}: & ETRA-2025-FIN-001 \\
-\textbf{Version}: & 1.0 \\
+\textbf{Version}: & 2.0 \\
 \textbf{Related Documents}: & ETRA-2025-AEA-001 (Economic Actors) \\
-& ETRA-2025-ESP-001 (Espionage Operations) \\
+& ETRA-2026-ESP-001 (Espionage Operations) \\
+& ETRA-2026-WMD-001 (WMD Proliferation) \\
+& ETRA-2026-PTR-001 (Political Targeting) \\
+& ETRA-2026-IC-001 (Institutional Erosion) \\
 \end{tabular}
 \end{center}
 

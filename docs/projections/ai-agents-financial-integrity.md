@@ -5,8 +5,8 @@
 **Classification**: Policy Research - For Defensive Analysis
 **Prepared For**: Emerging Technology Risk Assessment (independent research)
 **Document ID**: ETRA-2025-FIN-001
-**Version**: 1.0
-**Date**: December 2025
+**Version**: 2.0
+**Date**: February 2026
 
 ---
 
@@ -59,6 +59,27 @@ This document is prepared for **defensive policy purposes only**. To minimize du
 - **Implementation details excluded**: How to build laundering agents is not addressed; how to detect and govern them is
 
 Readers seeking to understand *what capabilities exist* and *what policy responses are needed* will find this document useful. Readers seeking operational guidance will not.
+
+---
+
+## Independent Work
+
+This report is independent research. It is not affiliated with, produced by, or endorsed by any government agency, think tank, or official institution. The "ETRA" identifier is a document formatting convention, not an organizational identity. Analysis draws on publicly available academic and policy literature.
+
+---
+
+## Change Log
+
+### Version 2.0 (February 2026)
+
+**Substantive updates from v1.0 (December 2025):**
+
+1. **Updated crime statistics**: Chainalysis 2026 Crypto Crime Report data ($154 billion illicit volume in 2025, 162% YoY increase); FATF Horizon Scan on AI and Deepfakes; EU AMLA 2026 milestones
+2. **Expanded cross-references**: Added links to ETRA-2026-WMD-001 (WMD Proliferation), ETRA-2026-PTR-001 (Political Targeting), and ETRA-2026-IC-001 (Institutional Erosion) with specific thematic overlap callouts
+3. **New content**: MCP/tool-use ecosystem as concrete composability evidence (Section 3); agent computer use / browser control as [O] evidence update (Section 4.1); workforce contraction context from IC erosion report (Section 8.6); Process DoS sharpened with IC erosion framing (Section 8.11)
+4. **Scenario probability reassessment**: Adjusted based on two additional months of evidence (Section 9)
+5. **New references**: FATF Horizon Scan on AI and Deepfakes; Chainalysis 2026 Crypto Crime Report; economic_agents simulation framework cross-reference
+6. **Added Independent Work disclaimer** for parity with LaTeX version
 
 ---
 
@@ -118,7 +139,17 @@ This report builds directly on **ETRA-2025-AEA-001: AI Agents as Autonomous Econ
 - Form organizational structures with sub-agents
 - Operate continuously without human intervention
 
-The capability-governance gap documented in that report---agents can participate economically but cannot be held legally accountable---is the foundation for the financial crime risks analyzed here. Readers unfamiliar with agent economic capabilities should review the Economic Actors report first.
+The capability-governance gap documented in that report---agents can participate economically but cannot be held legally accountable---is the foundation for the financial crime risks analyzed here. Readers unfamiliar with agent economic capabilities should review the Economic Actors report first. A concrete Rust-based simulation framework demonstrating these capabilities (agent wallets, marketplace interaction, compute consumption) is available in the [economic_agents package](../../packages/economic_agents/).
+
+**Cross-references to sibling ETRA reports:**
+
+- **ETRA-2026-ESP-001: AI Agents and the Future of Espionage Operations** -- Credential marketplace targeting and executive impersonation via deepfake directly enable financial fraud (authorized push payments, treasury compromise). The handler bottleneck bypass documented in ESP-001 parallels the coordination-free scaling analyzed in Section 3 of this report.
+
+- **ETRA-2026-WMD-001: AI Agents and WMD Proliferation** -- "Nano-smurfing" for dual-use procurement evasion mirrors the financial structuring techniques in Section 5.1. Both reports identify weakest-link exploitation and jurisdictional arbitrage as primary threat vectors. Supply chain traceability requirements in WMD-001 parallel the financial provenance verification recommended here.
+
+- **ETRA-2026-PTR-001: AI Agents and Political Targeting** -- The "Principal-Agent Defense" and *mens rea* gaps analyzed in Sections 6.1 and 8.14 of this report are a shared concern with PTR-001's "Plausible Deniability 2.0" framework. Covert financing via sub-threshold fund transfers is identified in both reports. PTR-001's "Conspiracy Footprint Shrinkage" concept applies directly to agent-orchestrated financial crime networks.
+
+- **ETRA-2026-IC-001: AI Agents and Institutional Erosion** -- IC-001's "Process DoS" concept (overwhelming investigative capacity with agent-generated leads) directly applies to AML compliance teams (Section 8.11). The documented workforce contraction at intelligence agencies (NSA -2,000, ODNI -35%, CIA -1,200 as of February 2026) parallels capacity constraints at financial enforcement agencies. IC-001's "Delegation Defense" maps to the "Hallucination Alibi" analyzed in Section 8.14.
 
 ### Base-Rate Context
 
@@ -126,7 +157,7 @@ The capability-governance gap documented in that report---agents can participate
 
 Financial crime is already massive:
 - **Money laundering**: UNODC estimates 2-5% of global GDP ($800 billion to $2 trillion annually) is laundered, with less than 1% of illicit flows seized or frozen
-- **Crypto-specific crime**: Chainalysis estimated **$40.9 billion** received by illicit crypto addresses in 2024 (lower bound), with 2025 volumes tracking toward approximately **$51 billion**
+- **Crypto-specific crime**: Chainalysis's 2026 Crypto Crime Report estimates at least **$154 billion** received by illicit crypto addresses in 2025---a **162% year-over-year increase**---driven primarily by a 694% surge in sanctioned entity volumes, with stablecoins now accounting for 84% of all illicit transaction volume
 - **Fraud as upstream driver**: UK Finance's 2025 Annual Fraud Report documents **>£1.1 billion** in fraud losses in 2024, with APP (Authorized Push Payment) fraud alone at **£450.7 million**
 - **Bribery**: Approximately $1 trillion per year globally (World Bank estimate, methodology debated)
 
@@ -156,7 +187,7 @@ While this document focuses on AML/bribery/corruption, the **near-term mass harm
 
 This analysis draws on:
 
-- **Current capability assessment** of AI agent systems as deployed in late 2025
+- **Current capability assessment** of AI agent systems as deployed through early 2026
 - **Financial crime literature** from FATF, academic research, and law enforcement
 - **Regulatory framework analysis** including FATF guidance, EU AMLA, and national AML regimes
 - **Expert consultation** across financial compliance, AI safety, and law enforcement domains
@@ -343,6 +374,8 @@ This taxonomy helps explain why fraud pressure may drive faster regulatory respo
 
 **The integration bottleneck disappears**: Previously, combining these capabilities required significant human integration work---understanding APIs, managing credentials, handling errors. Agents reduce this friction to near-zero, enabling rapid assembly of complex financial infrastructure.
 
+**Concrete evidence: The MCP ecosystem [O]**: The Model Context Protocol (MCP), an open standard for agent-tool integration adopted by major AI providers in 2024-2025, makes composability a production reality rather than a theoretical concern. MCP servers provide standardized interfaces to arbitrary tools---payment processors, corporate registries, blockchain wallets, identity services---that any MCP-compatible agent can invoke without custom integration code. The open-source MCP ecosystem now includes hundreds of community-built tool servers. An agent composing identity synthesis + entity formation + payment processing + crypto exchange tools requires only configuration, not engineering. This dramatically lowers the barrier to assembling the "illicit agentic stack" described in Section 4.
+
 **Policy consequence**: This means controls must move **upstream into permissions, attestations, and monitoring of tool access**, not just downstream transaction monitoring. By the time a transaction occurs, the composable infrastructure enabling it is already in place.
 
 ### Speed Asymmetry
@@ -453,6 +486,8 @@ This section describes technical capabilities that enable agent-based financial 
 - Phone/email verification
 
 **Scale implication**: Where a human criminal might maintain a handful of synthetic identities, an agent can potentially maintain hundreds, each with consistent activity patterns.
+
+**Agent computer use update [O]**: Since late 2025, multiple AI providers have shipped browser-controlling agent capabilities (Claude Computer Use, OpenAI Operator, and similar tools). These agents can navigate web interfaces, fill forms, click through multi-step verification flows, and interact with financial service onboarding portals designed for humans. This moves the "automated account opening" scenario from theoretical to demonstrably possible---the question is no longer whether agents *can* navigate KYC flows, but whether the KYC flows are robust enough to distinguish agent interaction from human interaction.
 
 **Important counterweight [E]**: Modern KYC is increasingly multi-layer and liveness-aware. High-assurance verification (biometric liveness detection, government database cross-checks, in-person verification) remains robust against current synthetic identity attacks. The vulnerability is primarily at **low-assurance fintech on-ramps**---neobanks, payment apps, crypto exchanges with minimal KYC. Agents shift attacks to these weakest-link rails rather than defeating all KYC. Policy response should focus on raising minimum KYC standards across the ecosystem rather than assuming all verification is equally vulnerable.
 
@@ -1152,7 +1187,7 @@ For KYA to be implementable rather than vague, we must specify what exactly is b
 - Privacy implications of agent surveillance
 - Technical challenges in agent identification
 
-**FATF consideration [O]**: FATF's 2024-2025 guidance has begun addressing digital identity and AI in AML contexts, though comprehensive agent frameworks remain under development.
+**FATF consideration [O]**: FATF's Horizon Scan on AI and Deepfakes (published 2025) explicitly identifies autonomous AI agents as a risk vector for AML/CFT, signaling that supervisors will intensify scrutiny of AI-specific controls. FATF emphasizes using AI for compliance (anomaly detection, biometrics verification, deepfake detection) while noting that autonomous agents could orchestrate complex laundering schemes beyond traditional rules-based detection. Comprehensive agent-specific frameworks remain under development.
 
 ### 8.3 Speed of Regulation
 
@@ -1176,7 +1211,7 @@ For KYA to be implementable rather than vague, we must specify what exactly is b
 
 **Current coordination [O]**:
 - FATF provides global standards but implementation varies
-- EU AMLA (started operations July 1, 2025; fully operational expected 2028) creates European coordination, including EU-wide cash payment cap
+- EU AMLA (started operations July 1, 2025; preparing 23 Level 2/3 harmonization measures by July 2026; direct supervision of 40 high-risk institutions from January 2028) creates European coordination, including EU-wide cash payment cap
 - Cryptocurrency regulations increasingly harmonizing
 - Agent-specific frameworks remain absent
 
@@ -1217,6 +1252,8 @@ For KYA to be implementable rather than vague, we must specify what exactly is b
 - Legal frameworks enabling pre-competitive threat intelligence sharing
 
 This naturally motivates investment in **Financial Intelligence Unit (FIU) capacity** as a central aggregation point for agent-scale pattern detection.
+
+**Workforce contraction amplifies this gap [O]**: As documented in ETRA-2026-IC-001, the U.S. intelligence community has experienced significant workforce reductions in 2025-2026 (NSA met its 2,000-person reduction target; ODNI cut from ~2,000 to ~1,300; CIA shrinking ~1,200 positions). Financial enforcement agencies face analogous political pressures on staffing and budgets. If FinCEN, Treasury OFAC, and bank compliance teams face similar contraction while agent-driven transaction volumes accelerate, the investigative capacity gap widens on both sides simultaneously---more activity to monitor, fewer humans to monitor it.
 
 ### 8.7 Counterpoint: The "Compliance-as-Code" Argument
 
@@ -1294,6 +1331,8 @@ This naturally motivates investment in **Financial Intelligence Unit (FIU) capac
 - Legal system capacity overwhelmed by volume
 
 **The "DDoS the regulators" concern [S]**: Sophisticated actors might deliberately generate false-positive-heavy activity to exhaust investigative resources, creating cover for actual illicit operations.
+
+**Process DoS: The IC erosion parallel [E]**: ETRA-2026-IC-001 documents how agent-generated activity can overwhelm investigative capacity through what it terms "Process DoS"---flooding institutions with high-quality synthetic leads, documentation, and FOIA requests that individually require human review. Applied to financial compliance: agents could submit mass Suspicious Activity Reports, generate synthetic customer complaints requiring investigation, or create plausible-but-false whistleblower tips---each requiring compliance teams to investigate, consuming the same finite analyst hours needed for genuine threats. The result is institutional paralysis where legitimate compliance activity crowds out actual threat detection.
 
 **Policy tension**: Aggressive detection catches more crime but imposes costs (false positives, compliance burden, system overload) that may exceed benefits. Finding the optimal detection threshold becomes a complex economic optimization problem.
 
@@ -1419,7 +1458,7 @@ The document treats Zero-Knowledge Compliance as a "speculative projection." Giv
 - Detection systems adapt incrementally
 - No fundamental shift in crime-detection dynamics
 
-**Probability assessment [E]**: 40% as primary outcome through 2028
+**Probability assessment [E]**: 35% as primary outcome through 2028 *(adjusted down from 40% in v1.0; the 162% YoY increase in illicit crypto volume and emergence of DPRK-linked agent-assisted operations suggest the threat is evolving faster than the "incremental" framing implies)*
 
 **Implications**: Current regulatory frameworks require enhancement but not transformation.
 
@@ -1433,7 +1472,7 @@ The document treats Zero-Knowledge Compliance as a "speculative projection." Giv
 - Barrier to entry for financial crime drops dramatically
 - Volume of laundering attempts increases significantly
 
-**Probability assessment [S]**: 30% by 2028
+**Probability assessment [S]**: 35% by 2028 *(adjusted up from 30% in v1.0; Chinese-language money laundering networks processing $16.1 billion in illicit crypto in 2025 through 1,799+ active wallets demonstrate industrialized, potentially agent-assisted laundering infrastructure already at scale)*
 
 **Implications**: Major scale-up of enforcement resources required; detection must shift to systemic patterns.
 
@@ -1447,7 +1486,7 @@ The document treats Zero-Knowledge Compliance as a "speculative projection." Giv
 - Human criminals become managers of agent portfolios
 - Traditional investigation methods become largely obsolete
 
-**Probability assessment [S]**: 15% by 2030
+**Probability assessment [S]**: 15% by 2030 *(unchanged from v1.0)*
 
 **Implications**: Fundamental transformation of enforcement paradigm required; agent-based counter-measures become mandatory.
 
@@ -1461,7 +1500,7 @@ The document treats Zero-Knowledge Compliance as a "speculative projection." Giv
 - Discovery reveals extent of agent financial activity
 - Regulatory and public backlash significantly restricts agent deployment
 
-**Probability assessment [S]**: 10% by 2030
+**Probability assessment [S]**: 10% by 2030 *(unchanged from v1.0)*
 
 **Implications**: Crisis-driven rather than planned regulatory response; potential overreaction restricting beneficial applications.
 
@@ -1783,7 +1822,7 @@ These pilots create immediate visibility into agent activity, test coordination 
 | **Registry Entropy** | Rate of LLC formation/dissolution in permissive jurisdictions | High entropy indicates likely agent-managed shell networks (Wyoming, Delaware, Estonia key jurisdictions) |
 | **Agent-to-Human Transaction Ratio** | Proportion of transactions initiated by agents vs. humans | Tracks approach to "Agent Majority" tipping point where agents become primary financial system users |
 | **Interdiction Latency** | Time from nano-smurf initiation to first account freeze | If consistently >1 hour, agents have structural speed advantage; target <15 minutes for high-risk patterns |
-| **Inference Cost Index** | Average cost to run agent-scale operations per $1M value moved | Declining index means lower barrier to entry for agent-based crime
+| **Inference Cost Index** | Average cost to run agent-scale operations per $1M value moved | Declining index means lower barrier to entry for agent-based crime |
 
 ### Medium-Term Indicators (2027-2028)
 
@@ -1951,6 +1990,7 @@ This projection will be updated as capabilities evolve, detection methods mature
 
 ### Technical and Academic Sources
 
+- **FATF** (2025). *Horizon Scan: AI and Deepfakes*. [AI/deepfake risks to AML/CFT/CPF](https://www.fatf-gafi.org/en/publications/Methodsandtrends/horizon-scan-ai-deepfake.html)
 - **Axelsen, H. et al.** (2025). *Agentic AI for Financial Crime Compliance*. arXiv:2509.13137. [Agentic compliance-by-design framework](https://arxiv.org/abs/2509.13137)
 - **Oracle Corporation** (2025). *Oracle Brings AI Agents to the Fight Against Financial Crime*. [Official announcement](https://www.oracle.com/news/announcement/oracle-brings-ai-agents-to-the-fight-against-financial-crime-2025-03-13/)
 - **Galaxy Research** (2025). *Understanding the Intersection of Crypto and AI*. [Decentralized compute and AI-crypto intersection](https://www.galaxy.com/insights/research/understanding-intersection-crypto-ai)
@@ -1958,7 +1998,7 @@ This projection will be updated as capabilities evolve, detection methods mature
 
 ### Crime Statistics and Enforcement Actions
 
-- **Chainalysis** (2025). *2025 Crypto Crime Trends*. [Crypto crime volume estimates](https://www.chainalysis.com/blog/2025-crypto-crime-report-introduction/)
+- **Chainalysis** (2026). *2026 Crypto Crime Report*. At least $154 billion received by illicit crypto addresses in 2025 (162% YoY increase). [Report introduction](https://www.chainalysis.com/blog/2026-crypto-crime-report-introduction/)
 - **UK Finance** (2025). *Annual Fraud Report 2025*. [UK fraud statistics including APP fraud](https://www.ukfinance.org.uk/policy-and-guidance/reports-and-publications/annual-fraud-report-2025)
 - **FinCEN** (2025). *FinCEN Issues Final Rule Severing Huione Group from U.S. Financial System*. [Section 311 enforcement action](https://www.fincen.gov/news/news-releases/fincen-issues-final-rule-severing-huione-group-us-financial-system)
 
@@ -1974,10 +2014,13 @@ This projection will be updated as capabilities evolve, detection methods mature
 ### Related ETRA Reports
 
 - ETRA-2025-AEA-001: *AI Agents as Autonomous Economic Actors*
-- ETRA-2025-ESP-001: *AI Agents and the Future of Espionage Operations*
+- ETRA-2026-ESP-001: *AI Agents and the Future of Espionage Operations*
+- ETRA-2026-WMD-001: *AI Agents and WMD Proliferation*
+- ETRA-2026-PTR-001: *AI Agents and Political Targeting*
+- ETRA-2026-IC-001: *AI Agents and Institutional Erosion*
 
 ---
 
 *Emerging Technology Risk Assessment*
 *Document ID: ETRA-2025-FIN-001*
-*Version: 1.0*
+*Version: 2.0*

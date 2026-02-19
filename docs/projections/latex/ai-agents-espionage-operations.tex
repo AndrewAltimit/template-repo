@@ -36,6 +36,7 @@
 \usepackage{parskip}
 \usepackage{caption}
 \usepackage{tabularx}
+\usepackage{needspace}
 
 \pgfplotsset{compat=1.18}
 \usetikzlibrary{shapes.geometric, arrows.meta, positioning, calc, decorations.pathreplacing, backgrounds, fit, shadows.blur, matrix, patterns, fadings, shadings}
@@ -49,27 +50,27 @@
 \definecolor{shadownavy}{HTML}{16213E}
 \definecolor{steelblue}{HTML}{0F3460}
 % Accent: Crimson/ember red - danger, red flags, alerts
-\definecolor{signalred}{HTML}{E94560}
+\definecolor{signalred}{HTML}{B5314A}
 \definecolor{embercrimson}{HTML}{C62828}
 % Highlight: Silver/chrome - intelligence, precision
 \definecolor{chromesilver}{HTML}{B8C5D6}
 \definecolor{coldsteel}{HTML}{7B8794}
-% Status colors
-\definecolor{successgreen}{HTML}{00C853}
-\definecolor{warningamber}{HTML}{FFB300}
-\definecolor{alertcoral}{HTML}{E94560}
-\definecolor{infocyan}{HTML}{00ACC1}
+% Status colors (muted professional tones)
+\definecolor{successgreen}{HTML}{2E7D52}
+\definecolor{warningamber}{HTML}{C48A1A}
+\definecolor{alertcoral}{HTML}{C62828}
+\definecolor{infocyan}{HTML}{3A7D8C}
 % Neutrals
 \definecolor{coolgray}{HTML}{546E7A}
 \definecolor{lightgray}{HTML}{ECEFF1}
 \definecolor{codebg}{HTML}{1A1A2E}
 \definecolor{codetext}{HTML}{B8C5D6}
 \definecolor{gridlight}{HTML}{37474F}
-% Signal/cipher accents
-\definecolor{signalcyan}{HTML}{00BCD4}
-\definecolor{ciphergold}{HTML}{FFD54F}
-\definecolor{interceptgreen}{HTML}{69F0AE}
-\definecolor{decodepurple}{HTML}{B388FF}
+% Signal/cipher accents (desaturated for readability)
+\definecolor{signalcyan}{HTML}{4A8FA0}
+\definecolor{ciphergold}{HTML}{B8943B}
+\definecolor{interceptgreen}{HTML}{4A8B6F}
+\definecolor{decodepurple}{HTML}{7E6BA4}
 % Standard ETRA header band gold (consistent across all projection reports)
 \definecolor{barriergold}{HTML}{B7950B}
 
@@ -80,7 +81,7 @@
   colorlinks=true,
   linkcolor=steelblue,
   urlcolor=signalcyan,
-  pdftitle={AI Agents and the Future of Espionage Operations},
+  pdftitle={AI Agents and the Future of Espionage Operations v2.0},
   pdfauthor={Emerging Technology Risk Assessment}
 }
 
@@ -104,7 +105,7 @@
       sin (0.40,0.25) cos (0.48,0.1) sin (0.56,0.05) cos (0.64,0.1);
     \fill[signalred, opacity=0.8] (0.68,0.1) circle (0.04);
   \end{tikzpicture}
-  \hspace{0.5em}\textcolor{steelblue}{\textsf{\small ETRA-2025-ESP-001}}%
+  \hspace{0.5em}\textcolor{steelblue}{\textsf{\small ETRA-2026-ESP-001}}%
 }
 \fancyhead[R]{\textcolor{coldsteel}{\textsf{\thepage}}}
 \fancyfoot[C]{\textcolor{coldsteel}{\footnotesize\textsf{Emerging Technology Risk Assessment \textbar{} Projection Report}}}
@@ -190,7 +191,7 @@
 \newtcolorbox{defbox}[1][Definition]{
   enhanced, breakable,
   colback=ciphergold!12, colframe=ciphergold,
-  colbacktitle=ciphergold!90!black, coltitle=shadowdark,
+  colbacktitle=ciphergold!90!black, coltitle=white,
   fonttitle=\bfseries\sffamily,
   title={\ding{70}\hspace{0.5em}#1},
   boxrule=0pt, leftrule=4pt, arc=0pt, outer arc=0pt,
@@ -282,7 +283,7 @@
 
   % Document classification bar
   \fill[barriergold] ([yshift=-1.5cm]current page.north west) rectangle ([yshift=-2.2cm]current page.north east);
-  \node[shadowdark, font=\small\bfseries\sffamily] at ([yshift=-1.85cm]current page.north) {PROJECTION REPORT \textbar{} ETRA-2025-ESP-001 \textbar{} DECEMBER 2025};
+  \node[shadowdark, font=\small\bfseries\sffamily] at ([yshift=-1.85cm]current page.north) {PROJECTION REPORT \textbar{} ETRA-2026-ESP-001 \textbar{} FEBRUARY 2026};
 
   % Title block (bottom left)
   \node[anchor=south west, text width=14cm] at ([xshift=1.5cm, yshift=3cm]current page.south west) {
@@ -297,9 +298,9 @@
   \node[anchor=south east, text width=6cm, align=right] at ([xshift=-1.5cm, yshift=3cm]current page.south east) {
     \color{coldsteel}\small\sffamily
     \textbf{Document Type:} Policy Research\\[0.2em]
-    \textbf{Time Horizon:} 2025--2030\\[0.2em]
+    \textbf{Time Horizon:} 2026--2030\\[0.2em]
     \textbf{License:} MIT / Unlicense\\[0.2em]
-    \textbf{Version:} 1.4
+    \textbf{Version:} 2.0
   };
 
   % Vertical accent line
@@ -338,7 +339,7 @@
 
 \begin{tcolorbox}[enhanced, colback=lightgray, colframe=steelblue!60, boxrule=1pt, arc=3pt,
   left=10pt, right=10pt, top=10pt, bottom=10pt]
-This projection examines how autonomous AI agents are transforming the fundamental economics of espionage operations. We analyze current technological capabilities as of late 2025, project likely scenarios through 2030, and examine how both offensive intelligence operations and defensive counterintelligence must adapt.
+This projection examines how autonomous AI agents are transforming the fundamental economics of espionage operations. We analyze current technological capabilities as of early 2026, project likely scenarios through 2030, and examine how both offensive intelligence operations and defensive counterintelligence must adapt.
 
 \textbf{Central Thesis: The Handler Bottleneck Bypass}
 
@@ -349,11 +350,12 @@ The limiting factor in historical human intelligence (HUMINT) operations has alw
 
 \begin{keybox}[Key Findings]
 \begin{enumerate}
-  \item \textbf{[E]} AI agents bypass traditional handler bottleneck constraints for low-to-mid tier recruitment; Real-time Virtual Presence (RVD) technologies are beginning to erode even the ``physicality gap'' for strategic assets
+  \item \textbf{[E]} AI agents bypass traditional handler bottleneck constraints for low-to-mid tier recruitment; Real-time Virtual Display (RVD) technologies are beginning to erode even the ``physicality gap'' for strategic assets
   \item \textbf{[E]} Automated vulnerability assessment using MICE and RASCLS frameworks enables targeting at scales impossible for human analysts
   \item \textbf{[O]} Pattern-of-life analysis capabilities already exceed human analyst capacity for processing high-fidelity behavioral telemetry
   \item \textbf{[E]} Counterintelligence detection methodologies face significant transition challenges as AI-enabled operations generate fewer traditional signatures
   \item \textbf{[S]} The future of espionage becomes a ``signal-to-noise war'' where AI saturation creates new barriers to effective intelligence collection
+  \item \textbf{[S]} The offense-defense balance likely favors attackers in the near term (2026--2028) before defensive AI capabilities mature (see falsifiability indicators)
   \item \textbf{[E]} The emergence of ``Espionage-as-a-Service'' (EaaS) commercial offerings creates new threat vectors outside traditional state-deterrence frameworks
 \end{enumerate}
 \end{keybox}
@@ -428,6 +430,30 @@ This document analyzes capabilities and trends for defensive counterintelligence
 
 \begin{infobox}[Independent Work]
 This report is independent research. It is not affiliated with, produced by, or endorsed by any government agency, think tank, or official institution. The ``ETRA'' identifier is a document formatting convention, not an organizational identity. Analysis draws on publicly available academic and policy literature.
+\end{infobox}
+
+\vspace{0.5cm}
+
+\begin{infobox}[Related ETRA Reports]
+This report is part of a series analyzing how autonomous AI agents transform risk across multiple domains:
+
+\vspace{0.5em}
+\begin{center}
+\small
+\begin{tabular}{L{3.5cm}L{3cm}L{6cm}}
+\toprule
+\textbf{Report} & \textbf{Document ID} & \textbf{Key Overlap} \\
+\midrule
+Institutional Erosion & ETRA-2026-IC-001 & Tradecraft democratization; IC workforce contraction; ``Process DoS'' and verification crisis \\
+Financial Integrity & ETRA-2025-FIN-001 & Covert espionage funding; credential marketplaces; ``Principal-Agent Defense'' \\
+WMD Proliferation & ETRA-2026-WMD-001 & Conspiracy footprint reduction; dual-use procurement evasion; attribution void \\
+Political Targeting & ETRA-2026-PTR-001 & POL analysis for reconnaissance; ``Decision Diffusion''; deepfake applications \\
+Economic Actors & ETRA-2025-AEA-001 & Agent autonomy and persistence; legal accountability gap \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\textit{Cross-references to specific sibling report concepts appear inline throughout this document.}
 \end{infobox}
 
 \newpage
@@ -548,8 +574,8 @@ Credential Co-option & Medium & Medium & DLP, monitoring \\
 \toprule
 \textbf{Period} & \textbf{Characterization} & \textbf{Key Dynamics} \\
 \midrule
-2025 (Baseline) & Transition underway & Capabilities proven; detection immature \\
-2026--2028 & Offense advantage & Handler bottleneck bypassed; detection catching up \\
+2026 (Baseline) & Transition underway & Capabilities production-ready; IC contracting; detection immature \\
+2027--2028 & Offense advantage & Handler bottleneck bypassed; voice agents scaling; detection catching up \\
 2029--2030 & Uncertain & Equilibrium or provenance island fragmentation \\
 \bottomrule
 \end{tabular}
@@ -631,7 +657,7 @@ Gamified intelligence & Employees unknowingly participating in ``surveys'' & All
 \textbf{Objection} & \textbf{Response} & \textbf{See Section} \\
 \midrule
 ``This is alarmist'' & All claims tagged with epistemic markers ([O]/[D]/[E]/[S]) & Methodology \\
-``AI isn't this capable'' & Capabilities described are current (2025) & Technological Landscape \\
+``AI isn't this capable'' & Capabilities described are current (2026) & Technological Landscape \\
 ``Controls too burdensome'' & Tiered maturity ladder allows phased adoption & Control Maturity Ladder \\
 ``Timeline too aggressive'' & Falsifiability indicators provided & Signals and Indicators \\
 \bottomrule
@@ -689,7 +715,7 @@ Gamified intelligence & Employees unknowingly participating in ``surveys'' & All
     % Timeline base
     \draw[chromesilver, opacity=0.5, line width=2pt] (0,0.8) -- (4,0.8);
     % Era markers
-    \foreach \x/\label in {0.5/1950, 1.5/1980, 2.5/2010, 3.5/2025} {
+    \foreach \x/\label in {0.5/1950, 1.5/1980, 2.5/2010, 3.5/2026} {
       \fill[chromesilver, opacity=0.6] (\x,0.8) circle (0.12);
       \node[chromesilver, opacity=0.7, font=\fontsize{6}{6}\selectfont] at (\x,0.4) {\label};
     }
@@ -723,7 +749,7 @@ Gamified intelligence & Employees unknowingly participating in ``surveys'' & All
 \end{minipage}
 \end{center}
 
-\vspace{0.8cm}
+\newpage
 
 \section{Introduction and Methodology}
 
@@ -747,11 +773,11 @@ Throughout the history of HUMINT, the limiting factor has been the availability 
 
 Even large intelligence services can deploy only hundreds to low thousands of case officers globally. Each officer can maintain meaningful relationships with perhaps 5--20 assets simultaneously.
 
-\textbf{AI agents bypass the traditional constraints of this bottleneck---though they introduce new limitations around persona volatility, trust deficits, and detection signatures.}
+\textbf{AI agents bypass the traditional constraints of this bottleneck---though they introduce new limitations around persona volatility, trust deficits, and detection signatures.} \textit{(For broader implications on IC structure, see ETRA-2026-IC-001: Institutional Erosion.)}
 
 \subsection{Methodology and Epistemic Status}
 
-This analysis draws on current capability assessment of AI agent systems as deployed in late 2025, historical case analysis, open-source intelligence literature, expert consultation, and red team exercises conducted under controlled conditions.
+This analysis draws on current capability assessment of AI agent systems as deployed in early 2026, historical case analysis, open-source intelligence literature, expert consultation, and red team exercises conducted under controlled conditions.
 
 \begin{defbox}[Epistemic Status Markers]
 Throughout this document, key claims are tagged:
@@ -769,6 +795,7 @@ Throughout this document, key claims are tagged:
 \textbf{[S]} Speculative projection---Extrapolation from trends; significant uncertainty
 \end{defbox}
 
+\needspace{8\baselineskip}
 \section{Definitions and Conceptual Framework}
 
 \subsection{Core Definitions}
@@ -840,7 +867,7 @@ Failure cost & Career-ending, PNG declarations & Infrastructure rotated in minut
   \item \textbf{Expendability advantage}: ``Burning'' a human case officer is a diplomatic disaster (Persona Non Grata declarations, relationship damage). AI agents are disposable---enabling high-aggression, high-risk operations that a human station chief would never authorize
 \end{itemize}
 
-This economic shift has profound implications for who can conduct operations and at what scale. The ``burn rate'' calculation fundamentally changes when agents can be discarded without consequence.
+This economic shift has profound implications for who can conduct operations and at what scale. The ``burn rate'' calculation fundamentally changes when agents can be discarded without consequence. \textit{(See ETRA-2025-AEA-001 for analysis of how these dynamics enable autonomous economic participation by AI agents.)}
 
 \begin{keybox}[Inference Deflation]
 \textbf{[D]} The cost of frontier-level AI reasoning has dropped approximately 85--90\% since early 2024. Maintaining a 24/7 synthetic handler with continuous availability now costs \textbf{\$0.30--\$0.50/day} in compute using current efficient models---less than a human operator's coffee break.
@@ -926,6 +953,7 @@ Turkish & Regional hub & Defense, energy, logistics intel \\
 \end{tabular}
 \end{center}
 
+\needspace{6\baselineskip}
 \subsection{New Limiting Reagents: Chokepoints for Defenders}
 
 \textbf{Critical defensive insight}: While AI bypasses the traditional handler bottleneck, it introduces \textit{new} constraints that defenders can target.
@@ -1118,19 +1146,52 @@ Across eras, several patterns emerge:
 \end{minipage}
 \end{center}
 
-\vspace{0.8cm}
+\newpage
 
-\section{The Technological Landscape (2025)}
+\section{The Technological Landscape (Early 2026)}
+
+\subsection{The 2023--2026 Capability Shift}
+
+\begin{center}
+\small
+\begin{tabular}{L{2.5cm}L{3cm}L{3cm}L{4cm}}
+\toprule
+\textbf{Domain} & \textbf{2023 Baseline} & \textbf{Early 2026} & \textbf{Espionage Implication} \\
+\midrule
+Agentic autonomy & Single-turn chatbots & MCP, computer use, persistent memory & Autonomous persona management at unprecedented fidelity \\
+Reasoning models & GPT-4 level & o1/o3, extended thinking, self-correction & Sophisticated vulnerability assessment and adaptive social engineering \\
+Context windows & 8K--32K tokens & 200K--2M+ standard & Complete social media histories processed in single pass \\
+Voice synthesis & Obvious synthetic & Sub-second latency, emotional modulation & Phone-based social engineering fully automatable \\
+Open-weight gap & 12--24 month lag & \textasciitilde{}3 month lag & Capability windows measured in months, not years \\
+Computer use & Theoretical & Production GUI agents & Indistinguishable from human activity in access logs \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{keybox}[Qualitative Capability Transition]
+The shift from 2023 to early 2026 is not incremental improvement but a \textbf{qualitative capability transition}. The combination of agentic autonomy, tool use via MCP, long-context reasoning, and production-quality voice synthesis creates an operational toolkit that makes the scenarios in this report increasingly practical. \textbf{[O]}
+\end{keybox}
+
+\subsection{MCP and Computer Use: The Tool-Use Revolution}
+
+\textbf{A critical development since mid-2025} \textbf{[O]}: Model Context Protocol (MCP) and production computer-use agents represent a qualitative shift:
+
+\begin{itemize}
+  \item \textbf{MCP}: Standardized interface allowing agents to connect to arbitrary external tools---email clients, messaging platforms, CRM systems, databases
+  \item \textbf{Computer Use}: Agents directly operate GUIs: click buttons, fill forms, navigate websites, create accounts
+  \item \textbf{Espionage implications}: Shadow AI tools with MCP access can silently connect to adversary C2; computer-use agents maintain hundreds of social media profiles autonomously; all activity occurs through standard interfaces, defeating API-level monitoring
+\end{itemize}
 
 \subsection{Present AI Agent Capabilities}
 
-AI agents in late 2025 can \textbf{[O]}:
+AI agents in early 2026 can \textbf{[O]}:
 \begin{itemize}
   \item Maintain coherent personas across extended interactions (weeks to months)
   \item Synthesize information from thousands of sources in minutes
   \item Generate contextually appropriate, personalized communications
   \item Operate autonomously for extended periods with goal persistence
-  \item Use tools including web browsing, email, messaging platforms, and code execution
+  \item Use tools including web browsing, email, messaging platforms, and code execution via MCP
+  \item Operate graphical user interfaces autonomously via computer-use agents
   \item Coordinate with other AI agents or human operators
 \end{itemize}
 
@@ -1140,7 +1201,7 @@ AI agents in late 2025 can \textbf{[O]}:
 \small
 \begin{tabular}{L{4cm}L{5.5cm}L{2.5cm}}
 \toprule
-\textbf{Function} & \textbf{Current State (2025)} & \textbf{Evidence} \\
+\textbf{Function} & \textbf{Current State (Early 2026)} & \textbf{Evidence} \\
 \midrule
 Persona maintenance & Multi-week coherent interaction demonstrated & \textbf{[O]} Commercial \\
 Target research & Comprehensive OSINT synthesis in hours & \textbf{[O]} Documented \\
@@ -1286,15 +1347,16 @@ Vulnerability windows & Routine deviations; periods of isolation or stress \\
 Personnel digital footprints enable automated vulnerability assessment. Organizations should implement data minimization policies and provide OSINT hygiene training to reduce attack surface.
 \end{infobox}
 
+\needspace{6\baselineskip}
 \subsection{Social Engineering at Scale: Polymorphic Attacks}
 
-The 2023 Scattered Spider attacks on MGM/Caesars represent the \textbf{last generation} of purely human attacks. The 2025 evolution is \textbf{Polymorphic Social Engineering}:
+The 2023 Scattered Spider attacks on MGM/Caesars represent the \textbf{last generation} of purely human attacks. The 2025--2026 evolution is \textbf{Polymorphic Social Engineering}:
 
 \begin{center}
 \small
 \begin{tabular}{L{5cm}L{7cm}}
 \toprule
-\textbf{2023 (Human-Driven)} & \textbf{2025 (AI-Augmented)} \\
+\textbf{2023 (Human-Driven)} & \textbf{2026 (AI-Augmented)} \\
 \midrule
 One caller, one approach & AI rotates through 50+ psychological profiles/hour \\
 Caller must match cultural expectations & AI adapts accent, register, cues in real-time \\
@@ -1316,15 +1378,25 @@ Failed approach burns credibility & AI pivots instantly, no reputation to protec
 
 ...until one \textbf{hits a psychological trigger} in the target. A human attacker might try 2--3 approaches before fatigue; an AI agent can test dozens systematically.
 
-\vspace{0.5cm}
+\begin{warnbox}[Voice Agent Automation (2026 Update)]
+\textbf{[O]} By early 2026, voice synthesis technology has matured to the point where:
+\begin{itemize}
+  \item \textbf{Sub-second latency voice cloning} enables real-time phone conversations with emotional modulation and accent matching
+  \item \textbf{Multi-language synthesis} allows the same agent to conduct calls in any language with native quality
+  \item \textbf{Call center scale}: A single operator can manage dozens of simultaneous AI-mediated phone calls, each with distinct voice profiles
+\end{itemize}
 
+The Scattered Spider attack pattern---social engineering calls to help desks---can now be executed at 100x scale with zero caller fatigue. The ``human caller'' bottleneck in phone-based social engineering has been effectively bypassed.
+\end{warnbox}
+
+\needspace{8\baselineskip}
 \textbf{The Spearphishing Evolution}---Three generations of social engineering:
 
 \begin{center}
 \small
 \begin{tabular}{L{2.5cm}L{3.5cm}L{3.5cm}L{3cm}}
 \toprule
-\textbf{Aspect} & \textbf{Traditional Phishing} & \textbf{Spearphishing 1.0} & \textbf{GenSP (2025)} \\
+\textbf{Aspect} & \textbf{Traditional Phishing} & \textbf{Spearphishing 1.0} & \textbf{GenSP (2026)} \\
 \midrule
 Targeting & Mass broadcast & Curated lists & AI-selected high-value \\
 Personalization & Template (Dear Customer) & Manual research & Real-time OSINT synthesis \\
@@ -1347,7 +1419,7 @@ Physical and information security often rely on human judgment as a perimeter de
 
 \subsection{Gamified Intelligence Collection}
 
-\textit{In 2025, an ``asset'' might not even know they are spying.}
+\textit{In 2026, an ``asset'' might not even know they are spying.}
 
 \begin{center}
 \small
@@ -1398,6 +1470,7 @@ This enables intelligence collection without recruiting witting assets---bypassi
 AI-enabled industrial espionage may reach maturity \textit{faster} than political espionage precisely because it requires less human infrastructure.
 \end{infobox}
 
+\needspace{8\baselineskip}
 \section{The Trust Deficit: Limits of Synthetic Handlers}
 
 \subsection{The Physicality Gap}
@@ -1517,7 +1590,7 @@ Sustained presence & Multiple interactions & Co-conspirator & Ongoing \\
 \end{itemize}
 
 \vspace{0.5cm}
-\textbf{Asset Tier Stratification (Revised)}---Matching handler type to asset value:
+\textbf{Asset Tier Stratification}---Matching handler type to asset value:
 
 \begin{center}
 \small
@@ -1746,13 +1819,14 @@ Trust built on relationships & Trust must extend to AI systems \\
 
 \textbf{Policy tension}: Efficiency gains from AI-enabled analysis may come at the cost of allied cooperation---a strategic trade-off with no easy answer.
 
+\needspace{8\baselineskip}
 \section{Emerging Threat Vectors}
 
 \subsection{NPU-Enabled Edge Espionage: The Local LLM Threat}
 
 \textit{The most dangerous AI agents aren't on a server in Iceland---they're running locally on a compromised executive's laptop.}
 
-\textbf{The 2025 hardware shift} \textbf{[O]}: With the proliferation of Neural Processing Units (NPUs) in consumer laptops and smartphones, capable LLMs now run entirely on-device.
+\textbf{The 2025--2026 hardware shift} \textbf{[O]}: With the proliferation of Neural Processing Units (NPUs) in consumer laptops and smartphones, capable LLMs now run entirely on-device.
 
 \begin{center}
 \small
@@ -1777,7 +1851,7 @@ Organizations relying on network-based DLP face a critical blind spot. A local a
   \item Exfiltrate in a single burst during normal traffic
   \item Or wait for physical device theft/access
 \end{enumerate}
-\textbf{Timeline}: This threat vector is \textit{current} (2025), not speculative.
+\textbf{Timeline}: This threat vector is \textit{current} (2026), not speculative.
 \end{criticalbox}
 
 \subsection{Shadow AI: The Trojan Productivity Tool}
@@ -1866,6 +1940,26 @@ Vehicle telematics & Executive movements, meeting locations \\
 \textbf{Industrial Edge Espionage}: Compromised sensors in manufacturing facilities, smart building systems revealing organizational patterns, and industrial IoT providing production intelligence.
 
 \textbf{The integration threat}: When AI agents synthesize data from multiple compromised edge devices, they can build comprehensive Pattern-of-Life profiles without any single device appearing suspicious.
+
+\subsection{Agentic Code Contributions: Software Supply Chain Vector}
+
+\textbf{An emerging attack vector} \textbf{[E]}: As AI-powered code generation becomes standard, adversaries can exploit the software supply chain:
+
+\begin{center}
+\small
+\begin{tabular}{L{3.5cm}L{5cm}L{3.5cm}}
+\toprule
+\textbf{Vector} & \textbf{Mechanism} & \textbf{Detection Difficulty} \\
+\midrule
+Open-source contributions & AI-generated PRs with subtle backdoors & Very High \\
+Compromised code assistants & AI tools injecting vulnerabilities & High \\
+AI review manipulation & Submissions exploiting AI reviewer biases & High \\
+Dependency confusion & AI agents creating typosquatted packages & Medium \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\textit{Connection to sleeper agent research: The same detection principles---behavioral testing, anomaly detection, provenance tracking---apply to both model-level and code-level backdoors.}
 
 \subsection{Neuro-Intelligence: Biometric Feedback Exploitation}
 
@@ -2165,7 +2259,7 @@ Termination on AI flags & At-will flexibility & Unfair dismissal protections \\
 \end{minipage}
 \end{center}
 
-\vspace{0.8cm}
+\newpage
 
 \section{The Counterintelligence Challenge}
 
@@ -2173,6 +2267,31 @@ Termination on AI flags & At-will flexibility & Unfair dismissal protections \\
 
 Counterintelligence historically relies on network analysis (identifying suspicious contact patterns), behavioral indicators (lifestyle changes, unexplained contacts), source intelligence (defectors, double agents), and communications intelligence (handler-asset interception).
 
+\subsection{IC Workforce Contraction: The Detection Capacity Crisis}
+
+\begin{criticalbox}[Documented IC Workforce Reductions]
+\textbf{[D]} The counterintelligence detection challenge is compounded by documented workforce reductions (see ETRA-2026-IC-001 for full analysis):
+
+\vspace{0.5em}
+\begin{center}
+\small
+\begin{tabular}{L{2cm}L{4cm}L{6cm}}
+\toprule
+\textbf{Agency} & \textbf{Reduction} & \textbf{Impact on Espionage Detection} \\
+\midrule
+NSA & 2,000-person reduction (end of 2025) & Reduced SIGINT analysis capacity for AI-generated comms \\
+ODNI & \textasciitilde{}35\% staff cut & Diminished cross-discipline coordination \\
+CIA & \textasciitilde{}1,200 positions & Reduced HUMINT CI capacity as AI recruitment scales \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+These reductions occur at exactly the moment when AI-enabled operations are increasing suspicious signal volume. The ``Process DoS'' effect (ETRA-2026-IC-001) means detection capacity falls further behind.
+
+\textbf{Implication}: Organizations cannot rely on government CI capacity alone. Private sector defensive investment becomes essential.
+\end{criticalbox}
+
+\needspace{6\baselineskip}
 \subsection{How AI-Enabled Operations Evade Detection}
 
 \begin{center}
@@ -2314,6 +2433,7 @@ Effective defense requires combining AI scale with human judgment:
 
 \textbf{Project Voyager (Stanford/NVIDIA)} \textbf{[O]}: Research demonstrating AI agents capable of learning to use tools and manage long-term goals in digital environments (initially Minecraft) without human intervention. This validates the technical feasibility of agentic autonomous operations projected in this report.
 
+\needspace{8\baselineskip}
 \section{The Insider Threat 2.0: Stasi-in-a-Box}
 
 \subsection{Internal Surveillance Applications}
@@ -2384,6 +2504,7 @@ Burden of proof & Accuser must prove guilt & Accused must prove future innocence
 
 \textbf{Implication}: Deployment of predictive loyalty systems without Algorithmic Due Process frameworks creates legal and ethical exposure that may exceed security benefits.
 
+\needspace{6\baselineskip}
 \subsection{Minimum Viable Safeguards}
 
 \textit{If deploying internal AI monitoring, implement these controls to prevent surveillance abuse:}
@@ -2427,6 +2548,7 @@ Audit logging & Ensure accountability & All queries logged with justification \\
 \end{itemize}
 \end{infobox}
 
+\needspace{8\baselineskip}
 \section{Policy Recommendations}
 
 \subsection{Technical Countermeasures (Priority Order)}
@@ -2458,6 +2580,7 @@ Audit logging & Ensure accountability & All queries logged with justification \\
 \end{itemize}
 \end{recbox}
 
+\needspace{8\baselineskip}
 \textbf{Remote-First Alternative: Digital Proof of Physicality}
 
 \textit{For organizations where quarterly physical meetings are logistically impractical:}
@@ -2629,7 +2752,7 @@ Quantum harvest-now-decrypt-later & Post-quantum cryptography migration \\
 
 \subsection{The Insurance Driver for Gold Adoption}
 
-\textit{In 2025, cyber insurance may matter more than security budgets for driving Gold-tier adoption.}
+\textit{In 2026, cyber insurance may matter more than security budgets for driving Gold-tier adoption.}
 
 \textbf{The coverage gap} \textbf{[E]}: Cyber insurance carriers are increasingly excluding ``AI-mediated social engineering'' from standard policies.
 
@@ -2800,7 +2923,7 @@ Checkbox: ``Incident reporting available'' & Reality: Do employees actually use 
     \draw[signalcyan, opacity=0.8, line width=1.5pt] (0,0) -- (2,0);
 
     % Year markers
-    \foreach \x/\year in {0/2025, 2.33/2026, 4.66/2028, 7/2030} {
+    \foreach \x/\year in {0/2026, 2.33/2027, 4.66/2028, 7/2030} {
       \fill[chromesilver, opacity=0.6] (\x,0) circle (0.08);
       \node[chromesilver, opacity=0.8, font=\fontsize{7}{7}\selectfont] at (\x,-0.4) {\year};
     }
@@ -2817,15 +2940,15 @@ Checkbox: ``Incident reporting available'' & Reality: Do employees actually use 
 
     % Scenario bars
     % Offense dominance
-    \fill[steelblue, opacity=0.6] (0,0.8) rectangle (1.4,1.0);
-    \fill[steelblue, opacity=0.3] (1.4,0.8) rectangle (4,1.0);
-    \node[chromesilver, opacity=0.85, font=\fontsize{6}{6}\selectfont, anchor=west] at (4.2,0.9) {35\%};
+    \fill[steelblue, opacity=0.6] (0,0.8) rectangle (1.6,1.0);
+    \fill[steelblue, opacity=0.3] (1.6,0.8) rectangle (4,1.0);
+    \node[chromesilver, opacity=0.85, font=\fontsize{6}{6}\selectfont, anchor=west] at (4.2,0.9) {40\%};
     \node[chromesilver, opacity=0.7, font=\fontsize{6}{6}\selectfont, anchor=east] at (-0.1,0.9) {Offense};
 
     % Equilibrium
-    \fill[interceptgreen, opacity=0.6] (0,0.2) rectangle (1.6,0.4);
-    \fill[interceptgreen, opacity=0.3] (1.6,0.2) rectangle (4,0.4);
-    \node[chromesilver, opacity=0.85, font=\fontsize{6}{6}\selectfont, anchor=west] at (4.2,0.3) {40\%};
+    \fill[interceptgreen, opacity=0.6] (0,0.2) rectangle (1.4,0.4);
+    \fill[interceptgreen, opacity=0.3] (1.4,0.2) rectangle (4,0.4);
+    \node[chromesilver, opacity=0.85, font=\fontsize{6}{6}\selectfont, anchor=west] at (4.2,0.3) {35\%};
     \node[chromesilver, opacity=0.7, font=\fontsize{6}{6}\selectfont, anchor=east] at (-0.1,0.3) {Balance};
 
     % Defense dominance
@@ -2853,7 +2976,7 @@ Checkbox: ``Incident reporting available'' & Reality: Do employees actually use 
 \textcolor{shadowdark}{\textbf{Sections Covered}}
 \vspace{0.4em}
 \begin{itemize}[nosep]
-  \item \textbf{Section 18}: Projected timeline 2025--2030
+  \item \textbf{Section 18}: Projected timeline 2026--2030
   \item \textbf{Section 19}: Signals and early indicators
   \item \textbf{Section 20}: Uncertainties and alternative scenarios
   \item \textbf{Section 21}: Conclusion---The Centaur, Not the Robot
@@ -2862,26 +2985,30 @@ Checkbox: ``Incident reporting available'' & Reality: Do employees actually use 
 \end{minipage}
 \end{center}
 
-\vspace{0.8cm}
+\newpage
 
-\section{Projected Timeline: 2025--2030}
+\section{Projected Timeline: 2026--2030}
 
-\subsection{Current Situation (Late 2025)}
+\subsection{Current Situation (Early 2026)}
 
 \begin{itemize}
-  \item Commercial AI agents capable of sustained persona maintenance \textbf{[O]}
+  \item Commercial AI agents with MCP, computer use, and persistent memory deployed \textbf{[O]}
   \item OSINT synthesis capabilities exceeding human analyst capacity \textbf{[O]}
+  \item Voice synthesis achieving sub-second latency with emotional modulation \textbf{[O]}
   \item First credible reports of AI-assisted social engineering in espionage contexts \textbf{[E]}
-  \item Intelligence services beginning defensive AI integration \textbf{[E]}
+  \item IC workforce reductions (NSA $-$2,000; ODNI $-$35\%; CIA $-$1,200) reducing detection capacity \textbf{[D]}
+  \item Open-weight models within \textasciitilde{}3 months of frontier \textbf{[O]}
 \end{itemize}
 
-\subsection{Near-Term: 2026}
+\subsection{Near-Term: 2026--2027}
 
 \begin{itemize}
   \item Systematic AI-enabled OSINT collection becomes standard across Tier 1--2 actors \textbf{[E]}
-  \item First documented cases of AI-mediated asset development \textbf{[S]}
-  \item Counterintelligence services begin developing AI-specific detection \textbf{[E]}
-  \item Corporate espionage increasingly AI-enabled \textbf{[E]}
+  \item First documented cases of AI-mediated asset development via synthetic personas \textbf{[S]}
+  \item Counterintelligence developing AI-specific detection; constrained by workforce capacity \textbf{[E]}
+  \item Corporate espionage increasingly AI-enabled; Weight-Jacking attempts targeting AI/ML firms \textbf{[E]}
+  \item Voice agent social engineering campaigns targeting enterprise help desks at scale \textbf{[E]}
+  \item MCP-enabled Shadow AI tools emerging as significant exfiltration vector \textbf{[E]}
 \end{itemize}
 
 \subsection{Mid-Term: 2027--2028}
@@ -2924,7 +3051,7 @@ Checkbox: ``Incident reporting available'' & Reality: Do employees actually use 
 
 \subsection{Falsifiability Indicators for Offense-Defense Balance}
 
-\textbf{To test the claim that offense-defense favors attackers (2025--2028), monitor:}
+\textbf{To test the claim that offense-defense favors attackers (2026--2028), monitor:}
 
 \begin{center}
 \small
@@ -2961,6 +3088,7 @@ Successful recruitment via synthetic persona & Credible documented cases emerge 
   \item Human psychology proving resistant to AI-enabled approaches
 \end{itemize}
 
+\needspace{8\baselineskip}
 \section{Uncertainties and Alternative Scenarios}
 
 \subsection{Key Uncertainties}
@@ -2977,16 +3105,18 @@ Successful recruitment via synthetic persona & Credible documented cases emerge 
 
 \begin{center}
 \small
-\begin{tabular}{L{3.5cm}L{1.5cm}L{7.5cm}}
+\begin{tabular}{L{3cm}L{1.3cm}L{1.3cm}L{6.5cm}}
 \toprule
-\textbf{Scenario} & \textbf{Prob.} & \textbf{Characteristics} \\
+\textbf{Scenario} & \textbf{v1.4} & \textbf{v2.0} & \textbf{Characteristics} \\
 \midrule
-Offense dominance & 35\% & AI operations succeed at scale; CI overwhelmed \\
-Equilibrium & 40\% & Offensive and defensive capabilities roughly balanced \\
-Defense dominance & 15\% & Defensive AI highly effective; AI operations rarely succeed \\
-Capability plateau & 10\% & AI capabilities do not develop as projected \\
+Offense dominance & 35\% & 40\% & AI operations succeed at scale; CI overwhelmed \\
+Equilibrium & 40\% & 35\% & Offensive and defensive capabilities roughly balanced \\
+Defense dominance & 15\% & 15\% & Defensive AI highly effective; AI operations rarely succeed \\
+Capability plateau & 10\% & 10\% & AI capabilities do not develop as projected \\
 \bottomrule
 \end{tabular}
+
+\textit{v2.0 calibration note: The shift toward Offense Dominance reflects IC workforce contraction and faster-than-expected maturation of agentic systems.}
 \end{center}
 
 \section{Conclusion}
@@ -3035,7 +3165,7 @@ The transformation is already underway. The question is not whether AI changes e
 \textbf{The future of espionage isn't just ``more spies''---it's Centaur Handlers running AI fleets in a signal-to-noise war where the limiting factor is no longer human bandwidth, but the ability to extract authentic intelligence from an ocean of synthetic noise.}
 \end{tcolorbox}
 
-\vspace{1cm}
+\vspace{0.5em}
 \begin{center}
 \textit{Emerging Technology Risk Assessment}\\
 \textit{For questions or comments, contact the research team.}
@@ -3110,7 +3240,8 @@ Provenance Islands & Authenticated domains surrounded by unverified ``sludge'' \
 RALB & Retrieval-Augmented Legend Building---dynamic legend maintenance using real-time info \\
 RASCLS & Reciprocity, Authority, Scarcity, Commitment, Liking, Social Proof \\
 Recursive Loyalty Feedback Loop & Monitoring for loyalty creates performative behavior flagged as suspicious \\
-RVD & Real-time Virtual Presence---live deepfake video generation \\
+RVD & Real-time Virtual Display---live deepfake video generation \\
+MCP & Model Context Protocol---standardized tool-use interface for agentic AI \\
 Scale-Multiplying Intermediary & AI agent that expands operational capacity without full handler replacement \\
 Semantic Firewall & System that strips manipulative tone from communications \\
 Shadow AI & Malicious AI tools disguised as legitimate productivity software \\
@@ -3170,6 +3301,10 @@ Weight-Jacking & Social engineering to steal ML model weights and fine-tuning da
 \textit{Double Cross} & Macintyre (2012) & Historical deception ops \\
 \textit{The Main Enemy} & Bearden \& Risen (2003) & Cold War HUMINT \\
 \textit{The Sword and the Shield} & Andrew \& Mitrokhin (1999) & Soviet intelligence ops \\
+\textit{MCP Specification} & Anthropic (2025) & Agentic tool-use interface \\
+\textit{Computer Use API} & Anthropic (2025) & Production GUI agents \\
+\textit{Voice Engine / Real-time API} & OpenAI (2024--2025) & Voice synthesis automation \\
+\textit{ODNI Annual Threat Assessment} & ODNI (2025) & IC threat landscape \\
 \bottomrule
 \end{longtable}
 \end{center}
@@ -3188,10 +3323,10 @@ Weight-Jacking & Social engineering to steal ML model weights and fine-tuning da
 \textbf{``\$0.30--\$1.00/day synthetic handler cost''} --- Calculation methodology:
 \begin{itemize}
   \item \textbf{Baseline (early 2024)}: GPT-4-Turbo: \~{}\$10/\$30 per 1M input/output tokens
-  \item \textbf{Current (late 2025)}: Claude Haiku 4.5: \$1/\$5 per 1M tokens; Claude Sonnet 4.5: \$3/\$15 per 1M tokens
+  \item \textbf{Current (early 2026)}: Claude Haiku 4.5: \$1/\$5 per 1M tokens; Claude Sonnet 4.6: \$3/\$15 per 1M tokens
   \item \textbf{Usage model}: Synthetic handler with \~{}10--20 exchanges/day (\~{}2,000--5,000 tokens/exchange)
   \item \textbf{Daily compute}: \~{}50,000--100,000 tokens/day at Haiku 4.5 pricing = \$0.30--\$0.50/day
-  \item \textbf{85--90\% reduction}: Calculated from GPT-4-Turbo (early 2024) to Haiku 4.5 (late 2025)
+  \item \textbf{85--90\% reduction}: Calculated from GPT-4-Turbo (early 2024) to Haiku 4.5 (early 2026)
   \item \textbf{Note}: Open-weight local inference (Llama 4, Qwen 3) reduces costs further but requires hardware capital
 \end{itemize}
 
@@ -3308,10 +3443,13 @@ AI-generated text contains statistical signatures that may enable attribution:
 \textbf{Prepared For}: & Emerging Technology Risk Assessment (independent research) \\
 \textbf{Distribution}: & Public (open-source) \\
 \textbf{Approved By}: & Andrew Showers \\
-\textbf{Document ID}: & ETRA-2025-ESP-001 \\
-\textbf{Version}: & 1.4 \\
+\textbf{Document ID}: & ETRA-2026-ESP-001 \\
+\textbf{Version}: & 2.0 \\
 \textbf{Related Documents}: & ETRA-2026-IC-001 (Institutional Erosion) \\
 & ETRA-2025-FIN-001 (Financial Integrity) \\
+& ETRA-2026-WMD-001 (WMD Proliferation) \\
+& ETRA-2026-PTR-001 (Political Targeting) \\
+& ETRA-2025-AEA-001 (Economic Actors) \\
 \end{tabular}
 \end{center}
 

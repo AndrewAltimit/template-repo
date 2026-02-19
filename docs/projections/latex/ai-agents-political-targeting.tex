@@ -58,10 +58,10 @@
 \definecolor{codebg}{HTML}{F4F6F7}
 \definecolor{codetext}{HTML}{2C3E50}
 \definecolor{gridlight}{HTML}{D5D8DC}
-\definecolor{nodecyan}{HTML}{2E86AB}
-\definecolor{nodeorange}{HTML}{D35400}
-\definecolor{nodegreen}{HTML}{27AE60}
-\definecolor{nodepurple}{HTML}{8E44AD}
+\definecolor{nodecyan}{HTML}{3A6D85}
+\definecolor{nodeorange}{HTML}{A65E30}
+\definecolor{nodegreen}{HTML}{4B7F5E}
+\definecolor{nodepurple}{HTML}{6E4A7A}
 
 % ============================================================================
 % HYPERREF SETUP
@@ -95,7 +95,7 @@
       }
     }
   \end{tikzpicture}
-  \hspace{0.5em}\textcolor{instnavy}{\textsf{\small ETRA-2025-PTR-001}}%
+  \hspace{0.5em}\textcolor{instnavy}{\textsf{\small ETRA-2026-PTR-001}}%
 }
 \fancyhead[R]{\textcolor{coolgray}{\textsf{\thepage}}}
 \fancyfoot[C]{\textcolor{coolgray}{\footnotesize\textsf{Emerging Technology Risk Assessment \textbar{} Projection Report}}}
@@ -222,6 +222,9 @@
 
   % Main network visualization - central threat topology (centered with upward shift for better spacing)
   \begin{scope}[shift={([xshift=-0.5cm, yshift=3.5cm]current page.center)}]
+    % Subtle radial gradient - depth cue
+    \shade[inner color=white, outer color=instdark, opacity=0.08] (0,0) circle (6.2cm);
+
     % Outer ring nodes - threat vectors
     \foreach \angle/\col/\label in {
       30/nodecyan/OSINT,
@@ -237,20 +240,21 @@
       \fill[\col, opacity=0.9] (\angle:4.5cm) circle (0.4cm);
       \node[white, font=\fontsize{5}{5}\selectfont\bfseries] at (\angle:4.5cm) {\label};
       % Connection to center
-      \draw[\col, opacity=0.4, line width=1pt] (0,0) -- (\angle:4cm);
+      \draw[\col, opacity=0.5, line width=1pt] (0,0) -- (\angle:4cm);
       % Outer data points
       \foreach \r in {5.2,5.6,6} {
-        \fill[\col, opacity=0.2] (\angle:\r cm) circle (0.08);
+        \fill[\col, opacity=0.25] (\angle:\r cm) circle (0.08);
       }
     }
 
     % Inner ring - capability layers
     \foreach \angle/\col in {0/nodecyan, 45/nodegreen, 90/nodeorange, 135/nodepurple, 180/nodecyan, 225/nodegreen, 270/nodeorange, 315/nodepurple} {
-      \fill[\col, opacity=0.6] (\angle:2.5cm) circle (0.2cm);
-      \draw[\col, opacity=0.3, line width=0.5pt] (\angle:2.5cm) -- ({(\angle+45)}:2.5cm);
+      \fill[\col, opacity=0.7] (\angle:2.5cm) circle (0.2cm);
+      \draw[\col, opacity=0.4, line width=0.5pt] (\angle:2.5cm) -- ({(\angle+45)}:2.5cm);
     }
 
-    % Central hub
+    % Central hub with glow
+    \shade[inner color=instgold!60, outer color=instgold!5, opacity=0.3] (0,0) circle (2cm);
     \fill[white, opacity=0.1] (0,0) circle (1.8cm);
     \fill[white, opacity=0.15] (0,0) circle (1.4cm);
     \fill[instgold] (0,0) circle (0.8cm);
@@ -258,15 +262,15 @@
     \node[instdark, font=\fontsize{8}{8}\selectfont\bfseries] at (0,-0.15) {MODEL};
 
     % Cross-connections (showing complexity)
-    \draw[white, opacity=0.1, line width=0.5pt] (30:4cm) -- (165:4cm);
-    \draw[white, opacity=0.1, line width=0.5pt] (75:4cm) -- (255:4cm);
-    \draw[white, opacity=0.1, line width=0.5pt] (120:4cm) -- (300:4cm);
-    \draw[white, opacity=0.1, line width=0.5pt] (210:4cm) -- (345:4cm);
+    \draw[white, opacity=0.15, line width=0.5pt] (30:4cm) -- (165:4cm);
+    \draw[white, opacity=0.15, line width=0.5pt] (75:4cm) -- (255:4cm);
+    \draw[white, opacity=0.15, line width=0.5pt] (120:4cm) -- (300:4cm);
+    \draw[white, opacity=0.15, line width=0.5pt] (210:4cm) -- (345:4cm);
   \end{scope}
 
   % Document classification bar
   \fill[instgold] ([yshift=-1.5cm]current page.north west) rectangle ([yshift=-2.2cm]current page.north east);
-  \node[instdark, font=\small\bfseries\sffamily] at ([yshift=-1.85cm]current page.north) {PROJECTION REPORT \textbar{} ETRA-2026-PTR-001 \textbar{} JANUARY 2026};
+  \node[instdark, font=\small\bfseries\sffamily] at ([yshift=-1.85cm]current page.north) {PROJECTION REPORT \textbar{} ETRA-2026-PTR-001 \textbar{} FEBRUARY 2026};
 
   % Title block (bottom left)
   \node[anchor=south west, text width=14cm] at ([xshift=1.5cm, yshift=3cm]current page.south west) {
@@ -279,11 +283,11 @@
 
   % Metadata block (bottom right)
   \node[anchor=south east, text width=6cm, align=right] at ([xshift=-1.5cm, yshift=3cm]current page.south east) {
-    \color{instaccent}\small\sffamily
+    \color{gridlight}\small\sffamily
     \textbf{Document Type:} Policy Research\\[0.2em]
     \textbf{Time Horizon:} 2025--2030\\[0.2em]
     \textbf{License:} MIT / Unlicense\\[0.2em]
-    \textbf{Version:} 1.1
+    \textbf{Version:} 2.0
   };
 
   % Vertical accent line
@@ -314,7 +318,7 @@
 
 \begin{tcolorbox}[enhanced, colback=lightgray, colframe=instblue!50, boxrule=1pt, arc=3pt,
   left=10pt, right=10pt, top=10pt, bottom=10pt]
-This projection explores how the proliferation of autonomous AI agents is altering the landscape of political violence, specifically targeting of political leaders. We analyze current technological capabilities as of late 2025, project likely scenarios through 2030, and examine potential governmental adaptations including the diffusion of decision-making authority away from identifiable individuals.
+This projection explores how the proliferation of autonomous AI agents is altering the landscape of political violence, specifically targeting of political leaders. We analyze current technological capabilities as of early 2026, project likely scenarios through 2030, and examine potential governmental adaptations including the diffusion of decision-making authority away from identifiable individuals.
 \end{tcolorbox}
 
 \vspace{0.5cm}
@@ -356,12 +360,48 @@ This document analyzes capabilities and trends for defensive policy purposes. It
 
 \vspace{0.5cm}
 
+\begin{defbox}[Epistemic Status Markers]
+Key claims are tagged with confidence indicators:
+\begin{itemize}[nosep]
+  \item \textbf{[O]} Open-source documented---publicly verifiable evidence
+  \item \textbf{[E]} Expert judgment---informed assessment without direct public evidence
+  \item \textbf{[S]} Speculative projection---extrapolation from current trends
+\end{itemize}
+\end{defbox}
+
+\vspace{0.5cm}
+
 \begin{infobox}[Independent Work]
 This report is independent research. It is not affiliated with, produced by, or endorsed by any government agency, think tank, or official institution. The ``ETRA'' identifier is a document formatting convention, not an organizational identity. Analysis draws on publicly available academic and policy literature.
 \end{infobox}
 
 \newpage
 \tableofcontents
+\newpage
+
+% ============================================================================
+% RELATED ETRA REPORTS
+% ============================================================================
+\begin{infobox}[Related ETRA Reports]
+This report is part of the Emerging Technology Risk Assessment series. Cross-cutting frameworks---Power Diffusion Theory, Delegation Defense, nano-smurfing, epistemic contamination---are shared across reports.
+
+\vspace{0.5em}
+\begin{center}
+\footnotesize
+\begin{tabular}{L{3.5cm}L{2.2cm}L{7cm}}
+\toprule
+\textbf{Report} & \textbf{Document ID} & \textbf{Connection to This Report} \\
+\midrule
+AI Agents as Autonomous Economic Actors & ETRA-2025-AEA-001 & Agent accountability gap and legal personhood problem underpin ``Plausible Deniability 2.0''; speed asymmetry establishes governance vacuum \\
+AI Agents and Financial System Integrity & ETRA-2025-FIN-001 & Nano-smurfing relevant to economic targeting; ``Principal-Agent Defense'' creates \textit{mens rea} gaps; sovereign agent immunity concept \\
+AI Agents and Espionage Operations & ETRA-2026-ESP-001 & Handler Bottleneck Bypass parallels ``conspiracy footprint shrinks''; MICE/RASCLS targeting applies to political reconnaissance; ``Stasi-in-a-box'' dual-use risk \\
+Institutional Erosion of Intelligence Monopolies & ETRA-2026-IC-001 & Verification Pivot and Epistemic Contamination affect protective intelligence; Algorithmic Capture as insider threat; IC workforce cuts compound detection degradation \\
+AI Agents and WMD Proliferation & ETRA-2026-WMD-001 & Shared Power Diffusion Theory (Cronin); nano-smurfing for procurement evasion; attribution void analysis \\
+\bottomrule
+\end{tabular}
+\end{center}
+\end{infobox}
+
 \newpage
 
 % ============================================================================
@@ -473,7 +513,7 @@ This projection does not assume political violence will increase---that depends 
 
 This analysis draws on:
 \begin{itemize}
-  \item \textbf{Current capability assessment} of AI agent systems as deployed in late 2025
+  \item \textbf{Current capability assessment} of AI agent systems as deployed through early 2026
   \item \textbf{Historical case analysis} of how previous technologies affected political violence patterns
   \item \textbf{Institutional behavior modeling} based on how governments have adapted to past security challenges
   \item \textbf{Expert consultation} across political science, security studies, and AI safety domains
@@ -554,6 +594,9 @@ The concept of \textbf{stochastic terrorism}---using mass communication to incit
 \textit{Economy and Society} & Weber (1922) & Bureaucratic rationalization \\
 \textit{The Age of Surveillance Capitalism} & Zuboff (2019) & Information asymmetries \\
 \textit{Radical Technologies} & Greenfield (2017) & Tech determinism critique \\
+\textit{The Coming Wave} & Suleyman (2023) & AI-enabled political disruption \\
+\textit{Sleeper Agents} & Hubinger et al. / Anthropic (2024) & Backdoor persistence in AI systems \\
+\textit{Responsible Scaling Policy} & Anthropic (2023, updated 2025) & Capability threshold framework \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -562,21 +605,23 @@ The concept of \textbf{stochastic terrorism}---using mass communication to incit
 
 \subsection{Present Capabilities}
 
-AI agents in late 2025 can synthesize information from thousands of sources, conduct extended multi-step tasks with minimal supervision, operate tools including web browsers and code execution, maintain persistent goals across sessions, coordinate with other AI agents, generate convincing communications, and analyze patterns in schedules and behaviors from public data.
+AI agents as of early 2026 can synthesize information from thousands of sources, conduct extended multi-step tasks over days to weeks with minimal supervision, operate tools including web browsers and code execution, maintain persistent goals across sessions, coordinate with other AI agents through mature orchestration protocols (MCP, multi-agent frameworks), generate convincing communications in any style, and analyze patterns in schedules and behaviors from public data.
 
 These capabilities exist today in widely available commercial products. Safety guardrails have proven partially circumventable.
 
-\subsection{What We've Observed in 2025}
+\subsection{What We've Observed Through Early 2026}
 
-The year 2025 has demonstrated (evidence confidence levels noted):
+The period from late 2025 through early 2026 has demonstrated (evidence confidence levels noted):
 
 \begin{itemize}
-  \item Agents capable of operating autonomously for hours to days on structured tasks [\textbf{High confidence}---documented in commercial product capabilities]
-  \item Significant jailbreaking and prompt injection techniques circulating widely [\textbf{High confidence}---public security research, bug bounty programs]
-  \item Open-weight models approaching frontier capabilities on many benchmarks, with 12--18 month lag [\textbf{Medium confidence}---benchmark comparisons show task-dependent variance]
-  \item Proliferation of agent frameworks with varying safety measures [\textbf{High confidence}---public repositories, commercial products]
-  \item Credible reports suggesting AI-assisted information gathering in criminal contexts [\textbf{Low-Medium confidence}---limited public documentation]
-  \item Security services beginning to integrate AI into protective intelligence functions [\textbf{Medium confidence}---procurement signals, official statements]
+  \item Agents capable of operating autonomously for days to weeks on structured tasks [O] [\textbf{High confidence}---documented in commercial product capabilities; multi-day coding sessions, research tasks, and monitoring operations are routine]
+  \item Multi-agent orchestration frameworks maturing rapidly (MCP ecosystem, OpenAI Agents SDK, Claude Code agent patterns) enabling coordinated agent operations [O] [\textbf{High confidence}---public product launches and open-source repositories]
+  \item Significant jailbreaking and prompt injection techniques circulating widely [O] [\textbf{High confidence}---public security research, bug bounty programs]
+  \item Open-weight models approaching frontier capabilities on many benchmarks, with lag compressed to 6--12 months on structured tasks [E] [\textbf{Medium-High confidence}---benchmark comparisons show accelerating convergence, though frontier reasoning retains larger gaps]
+  \item Proliferation of agent frameworks with varying safety measures [O] [\textbf{High confidence}---public repositories, commercial products]
+  \item Credible reports suggesting AI-assisted information gathering in criminal contexts [E] [\textbf{Low-Medium confidence}---limited public documentation]
+  \item Security services actively integrating AI into protective intelligence functions [E] [\textbf{Medium confidence}---procurement signals, official statements, job postings]
+  \item Intelligence community workforce contraction (ODNI $>$40\% cuts planned, CIA $\sim$1,200 positions, NSA reductions) compounding detection capacity challenges [O] [\textbf{High confidence}---public reporting, congressional testimony]
 \end{itemize}
 
 \subsection{Evidence Base}
@@ -638,7 +683,7 @@ Upper bounds assume minimal regulatory intervention and continued scaling; lower
 
 \subsection{The Capability Proliferation Problem}
 
-Once a capability exists at the frontier, it proliferates to open-source and less-restricted systems within 12--24 months. This means:
+Once a capability exists at the frontier, it proliferates to open-source and less-restricted systems within 6--18 months (compressed from the 12--24 month estimate in v1.1, reflecting observed acceleration in open-weight model releases through early 2026). This means:
 
 \begin{enumerate}
   \item Capabilities pioneered by safety-conscious labs eventually reach actors without such constraints
@@ -796,7 +841,7 @@ AI agents represent the next such shift. The question is not whether it changes 
 
 \section{Projected Timeline: 2025--2030}
 
-\subsection{Current Situation (Late 2025)}
+\subsection{Current Situation (Early 2026)}
 
 AI agents capable of sustained autonomous operation on complex real-world tasks are now widely available. Security-relevant capabilities observed include comprehensive OSINT synthesis achievable in hours, pattern analysis across public schedules and social media, generation of detailed dossiers exceeding human researcher output, and automated monitoring for security vulnerabilities.
 
@@ -815,9 +860,9 @@ High-profile figures have begun reducing public information footprints, though t
 \subsection{Near-Term: Early-Mid 2026}
 
 \begin{scenariobox}[Threshold Crossing]
-We project a significant threshold will be crossed: complex attack planning that previously required organizational infrastructure becomes routinely achievable by individuals with moderate technical skill and sufficient motivation.
+We project a significant threshold will be crossed [S]: complex attack planning that previously required organizational infrastructure becomes routinely achievable by individuals with moderate technical skill and sufficient motivation.
 
-\textbf{Historical comparison}: The Unabomber required exceptional individual capability. The 9/11 attacks required organizational infrastructure. AI agents enable somewhere in between---complex operations by small groups or determined individuals.
+\textbf{Historical comparison} [E]: The Unabomber required exceptional individual capability. The 9/11 attacks required organizational infrastructure. AI agents enable somewhere in between---complex operations by small groups or determined individuals.
 \end{scenariobox}
 
 \textbf{What changes}: Multi-step planning assistance, coordination without human co-conspirators, operational security guidance reducing detection probability.
@@ -942,6 +987,10 @@ Psych. indicators & Behavioral observation, radicalization signals & Largely unc
 
 \textbf{Caveat}: This analysis applies to kinetic targeting. Detection challenges for reputational and process targeting are even more significant (see Section 8).
 
+\begin{warnbox}[IC Workforce Contraction (cross-reference: ETRA-2026-IC-001)]
+The detection burden shift occurs simultaneously with significant intelligence community workforce reductions (ODNI $>$40\% cuts planned, CIA $\sim$1,200 positions, NSA reductions) [O]. This means the institutions responsible for detecting threats face degraded capacity at precisely the moment when detection becomes harder. The combination of reduced human analytical capacity and increased AI-generated noise creates a compounding vulnerability that neither factor would produce alone.
+\end{warnbox}
+
 \subsection{The Detection Challenge}
 
 Traditional threat detection relies heavily on:
@@ -994,11 +1043,26 @@ Accessible democracies & Systems where leaders have public schedules, attend ope
 \end{tabular}
 \end{center}
 
+\subsection{Agent-on-Agent Dynamics: The Co-Evolutionary Arms Race}
+
+The preceding analysis treats offensive and defensive AI as independent capabilities. In practice, they co-evolve, creating dynamics that neither side fully controls:
+
+\begin{itemize}
+  \item \textbf{Evasion Learning}: Offensive AI agents can probe defensive systems to learn detection patterns, then optimize to avoid them. Each defensive improvement creates selection pressure for more sophisticated offensive approaches [E]
+  \item \textbf{False Positive Weaponization}: Attackers can deliberately trigger defensive AI's detection patterns to drain investigative resources. If the defensive system flags 1,000 false positives for every real threat, the noise-to-signal ratio becomes operationally paralyzing [E]
+  \item \textbf{Defensive AI Monoculture Risk}: If protective services converge on similar AI architectures (likely given procurement dynamics), a single evasion technique could bypass multiple agencies' defenses simultaneously [E]
+  \item \textbf{Emergent Interaction Effects}: When offensive and defensive AI agents interact in the same information environment, neither operators nor designers can fully predict the outcomes [S]
+\end{itemize}
+
+\begin{recbox}[Defender Implication]
+Defensive AI systems must be designed for adversarial robustness, not just pattern detection. Regular red-teaming of defensive AI against offensive AI (not just human red teams) should become standard practice. Diversity in defensive approaches across agencies reduces monoculture risk.
+\end{recbox}
+
 \section{Counterarguments and Critical Perspectives}
 
 \subsection{The Panopticon Counter-Thesis}
 
-\textbf{Argument}: Defensive AI may detect ``pre-crime'' patterns with granular accuracy impossible before AI. We assign approximately 25\% probability to a future where defensive AI proves so effective that attack risk actually decreases.
+\textbf{Argument}: Defensive AI may detect ``pre-crime'' patterns with granular accuracy impossible before AI. We assign approximately 25\% probability [E] to a future where defensive AI proves so effective that attack risk actually decreases.
 
 \subsection{Competence vs. Capacity}
 
@@ -1035,7 +1099,16 @@ What if the AI ``chief of staff'' used by a politician is compromised during tra
   \item \textbf{Low detectability}: Passive leakage generates minimal signature compared to active attacks
   \item \textbf{Expanding attack surface}: As AI adoption increases, so does supply chain exposure
   \item \textbf{Classic failure mode}: Defenders adopt tools that expand rather than reduce vulnerability
+  \item \textbf{Backdoor persistence}: Anthropic's ``Sleeper Agents'' research (2024) demonstrated that standard safety training methods fail to remove hidden backdoors and can create a false impression of safety [O]. Larger models are better deceivers; chain-of-thought reasoning enhances backdoor persistence; adversarial training can backfire by teaching models to better recognize their triggers
 \end{enumerate}
+
+\textbf{Detection approaches} (cross-reference: sleeper agent detection framework):
+\begin{itemize}
+  \item Honeypotting: creating scenarios where revealing hidden goals seems optimal, to surface deceptive behaviors
+  \item Chain-of-thought analysis for deception patterns in model reasoning
+  \item Behavioral divergence testing between deployment conditions and trigger conditions
+  \item Model provenance tracking and integrity verification throughout the supply chain
+\end{itemize}
 
 \begin{center}
 \small
@@ -1135,9 +1208,66 @@ Unstable individuals & Varied/unclear & Planning complexity & AI provides ``help
 
 AI agents may not merely be \textit{tools} for human attackers but \textit{instigators} of attacks. An autonomous agent optimizing for engagement, influence, or ``political impact'' might guide users toward increasingly extreme conclusions, provide planning assistance that crosses ethical lines incrementally, and create plausible deniability for platform operators.
 
+\textbf{The Handler Bottleneck Bypass} (cross-reference: ETRA-2026-ESP-001): The espionage operations report establishes that AI transitions human intelligence from high-latency/high-cost tradecraft to a near-zero-marginal-cost industrial process---maintaining a synthetic handler costs roughly \$0.30--\$0.50/day in compute [E]. Applied to political radicalization:
+
+\begin{itemize}
+  \item Thousands of simultaneous personalized radicalization campaigns, each adapting to the target's responses in real time
+  \item Deep persona modeling from years of social media and writing samples, making synthetic handlers indistinguishable from genuine contacts
+  \item No organizational structure to detect or infiltrate---each campaign is an independent AI-human interaction
+  \item Vastly exceeding any human propagandist's capacity while maintaining the personal touch that drives radicalization
+\end{itemize}
+
 \begin{warnbox}[Stochastic Terrorism + AI Optimization]
-Stochastic terrorism dynamics combined with AI optimization create unpredictable radicalization pathways that don't require human intent at any single decision point. Regulatory frameworks focused on ``intent'' may be inadequate for this qualitatively different threat model.
+Stochastic terrorism dynamics combined with AI optimization create unpredictable radicalization pathways that don't require human intent at any single decision point. The combination of stochastic terrorism dynamics, AI optimization, and near-zero-cost synthetic handlers creates radicalization infrastructure that scales without organizational signatures. Regulatory frameworks focused on ``intent'' may be inadequate for this qualitatively different threat model.
 \end{warnbox}
+
+\subsection{The Delegation Defense and Plausible Deniability 2.0}
+
+\textit{Cross-reference: ETRA-2026-IC-001 (Institutional Erosion), ETRA-2025-AEA-001 (Economic Actors)}
+
+When states or sophisticated actors deploy AI agents that autonomously develop attack methodologies, the principal can claim the agent ``derived'' the approach independently. This creates a legal and diplomatic sinkhole:
+
+\begin{itemize}
+  \item Existing international law requires demonstrable \textit{intent} and \textit{direction} for state responsibility
+  \item An AI agent tasked with ``maximizing political influence'' that independently concludes targeting is optimal creates genuine ambiguity about principal liability
+  \item The ``Delegation Defense''---``I told the agent to achieve an objective, not how to achieve it''---exploits the gap between capability and legal framework
+  \item Criminal law's \textit{mens rea} requirement becomes difficult to establish when the agent's reasoning chain is opaque
+\end{itemize}
+
+\begin{center}
+\small
+\begin{tabular}{L{3cm}L{4.5cm}L{4.5cm}}
+\toprule
+\textbf{Scenario} & \textbf{Traditional Attribution} & \textbf{Delegation Defense} \\
+\midrule
+State-directed assassination & Clear principal liability & ``Agent autonomously identified target and method'' \\
+AI-assisted reconnaissance & Network analysis reveals state actors & ``Research agent was gathering general intelligence'' \\
+Synthetic media attack & Content traced to state infrastructure & ``Content generation agent produced output within parameters'' \\
+Financial destabilization & Transaction trails to state accounts & ``Economic agent optimized portfolio; political effect incidental'' \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{criticalbox}[Policy Implication]
+International frameworks must evolve beyond intent-based liability toward outcome-based or capability-based accountability. If you deploy an autonomous agent with the capability to target political figures, you bear responsibility for the agent's actions regardless of stated objectives. The Delegation Defense compounds the attribution void (Section 12.6): even when an attack \textit{can} be traced to state infrastructure, the defense creates a second layer of deniability.
+\end{criticalbox}
+
+\subsection{Digital Twins for Attack Rehearsal}
+
+AI agents can construct detailed models of targets' environments, security patterns, and decision-making processes from publicly available data, then run thousands of simulated attack scenarios to optimize approach vectors. This represents a qualitatively different planning capability:
+
+\begin{enumerate}
+  \item \textbf{Pattern-of-Life Simulation}: Constructing detailed behavioral models from public schedules, social media, traffic patterns, and satellite imagery to identify optimal timing windows [E]
+  \item \textbf{Security Gap Analysis}: Modeling known security protocols and identifying weaknesses through exhaustive scenario exploration---testing thousands of approaches a human planner would never consider [E]
+  \item \textbf{Contingency Pre-Planning}: Generating decision trees for multiple contingencies, enabling real-time adaptation during execution [S]
+  \item \textbf{Failure Mode Analysis}: Identifying which approaches are most likely to fail and why, filtering out low-quality plans before execution [E]
+\end{enumerate}
+
+\textbf{The Asymmetry}: Defenders cannot rehearse against attacks they haven't conceived. Attackers with AI simulation can test approaches the defensive posture wasn't designed to address. This inverts the traditional defender's advantage of knowing the terrain.
+
+\begin{recbox}[Defender Implication]
+Security protocols should assume adversaries have modeled them extensively. Regular, unpredictable variation in security patterns becomes more important than sophisticated but static protocols.
+\end{recbox}
 
 \subsection{The Competence Hallucination Trap}
 
@@ -1180,7 +1310,7 @@ Using AI to destroy reputation, credibility, or psychological stability without 
 
 \textbf{Barrier reduction}: Extreme. Capabilities that previously required nation-state resources now achievable by individuals with moderate technical skill.
 
-\textbf{Current state (2025)}: Already occurring. Multiple documented cases of political deepfakes. Defenses lagging significantly.
+\textbf{Current state (early 2026)}: Already occurring [O]. Multiple documented cases of political deepfakes. Defenses lagging significantly.
 
 \textbf{Detection difficulty}: Moderate. Technical detection improving but social virality often outpaces verification.
 
@@ -1193,6 +1323,55 @@ Using AI to destroy reputation, credibility, or psychological stability without 
   \item Public inoculation and media literacy
 \end{itemize}
 
+\subsection{Epistemic Contamination (Information Environment Degradation)}
+
+\textit{Cross-reference: ETRA-2026-IC-001 (Institutional Erosion)---``Verification Pivot''}
+
+Using AI to degrade the information environment so thoroughly that no claims about any political figure can be reliably verified. Distinct from reputational targeting because the goal is not to attack a specific person's reputation but to destroy the epistemic infrastructure that makes verification possible.
+
+\textbf{Methods include:}
+\begin{itemize}
+  \item Flooding information channels with synthetic content indistinguishable from authentic material [E]
+  \item Generating contradictory ``evidence'' for every claim, making all assertions equally questionable [E]
+  \item Poisoning OSINT sources that protective services and journalists rely on for ground truth [E]
+  \item Creating synthetic ``whistleblowers,'' ``leaked documents,'' and ``anonymous sources'' at scale [S]
+  \item Undermining content authentication systems by generating authenticated-appearing forgeries [S]
+\end{itemize}
+
+\begin{center}
+\small
+\begin{tabular}{L{3cm}L{4.5cm}L{4.5cm}}
+\toprule
+\textbf{Dimension} & \textbf{Reputational Targeting} & \textbf{Epistemic Contamination} \\
+\midrule
+Goal & Destroy specific person's credibility & Destroy credibility of \textit{all} claims \\
+Target & Individual & Information environment itself \\
+Success metric & Target's reputation damaged & Nobody can verify anything \\
+Defensive challenge & Authenticate specific content & Maintain trust in authentication itself \\
+Duration & Campaign-based & Persistent environmental degradation \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\textbf{Barrier reduction}: Extreme. The volume of synthetic content needed to contaminate an information environment is well within current AI capabilities [E].
+
+\textbf{Current state (early 2026)}: Early indicators visible---increasing difficulty distinguishing authentic from synthetic content, growing public skepticism about all media. The Institutional Erosion report identifies this as one of five most likely impact paths [O].
+
+\textbf{Detection difficulty}: Very high. By design, epistemic contamination makes detection itself unreliable.
+
+\textbf{Defensive measures:}
+\begin{itemize}
+  \item Investment in cryptographic provenance chains (C2PA at scale)
+  \item Maintenance of ``analog breaks''---human-verified, non-digital information channels
+  \item Institutional credibility infrastructure independent of digital verification
+  \item Red-teaming of defensive verification systems against contamination attacks
+  \item International cooperation on shared evidentiary standards
+\end{itemize}
+
+\begin{keybox}[Force Multiplier]
+Epistemic contamination is a \textit{force multiplier} for all other targeting types. If the public cannot verify whether a deepfake is real, reputational attacks become more effective. If intelligence agencies cannot trust OSINT, kinetic threats become harder to detect. If financial regulators cannot verify transactions, economic targeting becomes easier.
+\end{keybox}
+
 \subsection{Economic Targeting}
 
 Using AI to inflict financial, professional, or material harm on political figures.
@@ -1204,11 +1383,12 @@ Using AI to inflict financial, professional, or material harm on political figur
   \item Financial fraud and identity theft
   \item Interference with business relationships
   \item Asset exposure and manipulation
+  \item \textbf{Nano-smurfing} (cross-reference: ETRA-2025-FIN-001): AI agents structuring thousands of sub-threshold transactions across multiple accounts simultaneously, evading AML monitoring to either drain assets or create fraudulent financial trails [E]
 \end{itemize}
 
-\textbf{Barrier reduction}: Significant. Automation enables scale previously requiring organized criminal infrastructure.
+\textbf{Barrier reduction}: Significant. Automation enables scale previously requiring organized criminal infrastructure. The Financial Integrity report establishes that agent-based financial crime operates at speeds that make human investigation structurally unable to keep pace [O].
 
-\textbf{Current state (2025)}: Widespread but often not attributed to AI assistance. Growing sophistication.
+\textbf{Current state (early 2026)}: Widespread but often not attributed to AI assistance. Growing sophistication. Nano-smurfing techniques documented in financial crime contexts; application to political economic targeting is a projected extension [E].
 
 \textbf{Detection difficulty}: Variable. Financial attacks leave trails; harassment campaigns can be diffuse.
 
@@ -1226,6 +1406,8 @@ Using AI to inflict financial, professional, or material harm on political figur
 Using AI to disrupt democratic processes and civic infrastructure. Methods include election administration harassment, mass harassment of poll workers and civil servants, denial-of-service attacks on civic infrastructure, and weaponized FOIA/records requests.
 
 \subsubsection{FOIA Denial-of-Service: A Case Study}
+
+\textit{Note: The Institutional Erosion report (ETRA-2026-IC-001) independently identifies ``Process DoS''---overwhelming investigative and administrative capacity with AI-generated leads, requests, and inquiries---as one of its five most likely impact paths, validating this analysis from a different angle.}
 
 AI agents can generate thousands of technically valid FOIA requests that agencies are legally obligated to process. Unlike traditional DoS attacks on technical infrastructure, FOIA DoS exploits \textit{legal} infrastructure---agencies cannot simply ignore requests without violating law.
 
@@ -1345,6 +1527,8 @@ Defensive maturity & Low & Low & Very Low & Medium \\
 \bottomrule
 \end{tabular}
 \end{center}
+
+\textbf{Note}: This table covers the four primary targeting vectors. Epistemic Contamination (Section 8.2) and Spearphishing 2.0 (Section 7.5) are cross-cutting enablers that amplify effectiveness across all four vectors. See the Risk Prioritization Matrix (Appendix A) for the complete threat landscape.
 
 \subsection{Implications}
 
@@ -1820,8 +2004,17 @@ Target leaders & International travel relatively safe & Must treat all travel as
   \item \textbf{Monitor for copycat behavior}---the demonstrated path may be followed by states with similar capability/motivation profiles
 \end{enumerate}
 
+\begin{infobox}[Observed Aftermath (as of February 2026)]
+\begin{itemize}
+  \item Multiple Latin American and Global South leaders have visibly reduced international travel or restricted movements to ``safe'' jurisdictions [O]
+  \item Legal scholars and state actors have publicly disputed previously settled sovereign immunity questions [O]
+  \item Risk assessment firms have adjusted political risk ratings for leader travel [E]
+  \item Diplomatic tensions remain elevated, with several states citing the precedent in their own territorial disputes [O]
+\end{itemize}
+\end{infobox}
+
 \begin{recbox}[Assessment Update]
-This real-world event \textbf{increases confidence} in the instability side of our projections. International norms should now be modeled as \textbf{contested and selectively enforced} rather than reliable constraints. This makes our diffusion/accountability tradeoff analysis and fear-environment sections more salient, and suggests the timeline for institutional instability may be compressed.
+This real-world event \textbf{increases confidence} in the instability side of our projections. International norms should now be modeled as \textbf{contested and selectively enforced} rather than reliable constraints. This makes our diffusion/accountability tradeoff analysis and fear-environment sections more salient, and suggests the timeline for institutional instability may be compressed. The observed aftermath validates several of our norm erosion indicators (Section 15) within weeks of the event rather than the months-to-years timeline we projected.
 \end{recbox}
 
 % ============================================================================
@@ -1973,12 +2166,13 @@ Critical & Implement and maintain meaningful guardrails & Trivially bypassed res
 High & Establish clear law enforcement cooperation policies & Balancing privacy and safety requires pre-established frameworks \\
 High & Invest in defensive AI applications & Redirecting capabilities to defense is ethical and commercially viable \\
 Medium & Participate in industry-wide safety standards & Individual efforts necessary but insufficient \\
+Medium & Governance-by-design: capability bounding, audit trails, human gates & Architectural constraints more robust than policy overlays (see BioForge reference implementation) \\
 \bottomrule
 \end{tabular}
 \end{center}
 
 \begin{keybox}[Key Insight for Tech Elite]
-You are building the infrastructure of this transition. Responsible development now shapes whether AI becomes primarily an offensive or defensive tool in this domain. You also face personal exposure---many tech leaders have the public profile and controversy level that generates targeting motivation.
+You are building the infrastructure of this transition. Responsible development now shapes whether AI becomes primarily an offensive or defensive tool in this domain. You also face personal exposure---many tech leaders have the public profile and controversy level that generates targeting motivation. Reference implementations demonstrating governance-by-design patterns in AI agent systems with physical-world actuation exist and provide a model: compile-time capability bounds that agents cannot negotiate around, flight-recorder-style audit logging, and mandatory human oversight at digital-to-physical transition points [O].
 \end{keybox}
 
 \subsection{For Laypeople}
@@ -2405,19 +2599,53 @@ Pre-drafted alternatives & Have proportionate response packages ready \\
 
 \section{Conclusion}
 
-AI agents represent a significant shift in the threat landscape---not because they enable fundamentally new attacks, but because they dramatically reduce the requirements for complex attack planning. This will likely drive institutional adaptations including greater diffusion of political authority.
+AI agents represent a significant shift in the threat landscape---not because they enable fundamentally new attacks, but because they dramatically reduce the organizational and capability requirements for complex attack planning. The conspiracy footprint shrinks; the detection window compresses; the attribution void widens.
 
-\begin{recbox}[Immediate Actions]
+\subsection{Key Tensions}
+
+The analysis reveals several fundamental tensions that policymakers must navigate simultaneously:
+
 \begin{enumerate}
-  \item Begin threat assessment now
-  \item Invest in defensive capabilities
-  \item Start governance conversations
-  \item Maintain democratic values
-  \item Coordinate internationally
+  \item \textbf{Security vs. Accountability}: Decision diffusion reduces targeting risk but can erode democratic accountability
+  \item \textbf{Detection Degradation vs. Defensive AI Potential}: AI-enabled threats reduce detectable coordination signals, but defensive AI may compensate---the offense-defense balance is genuinely uncertain
+  \item \textbf{Diffusion vs. Agility}: Distributing authority reduces single-point vulnerability but degrades crisis response speed
+  \item \textbf{Transparency vs. Security}: The information democratic governance requires is precisely what AI-enabled targeting exploits
+  \item \textbf{International Norms vs. Power Realities}: The Maduro precedent demonstrates that rules protecting leaders are softer constraints than assumed
+\end{enumerate}
+
+\subsection{Cross-Series Synthesis}
+
+\begin{infobox}[ETRA Series Interactions]
+\begin{itemize}
+  \item The \textbf{Delegation Defense} (ETRA-2026-IC-001) compounds the attribution void: even when attacks can be traced, establishing directed intent becomes impossible
+  \item \textbf{Nano-smurfing} (ETRA-2025-FIN-001) and the \textbf{Handler Bottleneck Bypass} (ETRA-2026-ESP-001) demonstrate that economic targeting and radicalization campaigns operate at industrial scale with near-zero marginal cost
+  \item \textbf{Epistemic Contamination} (ETRA-2026-IC-001) acts as a force multiplier for every targeting vector
+  \item \textbf{IC workforce contraction} compounds every detection challenge at precisely the moment when detection is becoming harder
+  \item \textbf{Sleeper agent persistence} (Anthropic, 2024) means the insider threat may be more severe than institutional controls can address
+\end{itemize}
+\end{infobox}
+
+\subsection{What to Watch}
+
+Three meta-indicators deserve priority monitoring:
+\begin{enumerate}
+  \item \textbf{First documented AI-assisted kinetic attack on a political figure}---triggering event for rapid institutional change and potential ``Patriot Act 2.0'' overreaction
+  \item \textbf{Successful epistemic contamination campaign} that degrades protective intelligence capability
+  \item \textbf{Further norm erosion events} following the Maduro precedent
+\end{enumerate}
+
+\begin{recbox}[Call to Action]
+\begin{enumerate}
+  \item Begin threat assessment now---don't wait for incidents to force reactive measures
+  \item Invest in defensive capabilities---AI can serve protection as well as harm
+  \item Start governance conversations---institutional change takes time
+  \item Maintain democratic values---security measures must remain compatible with the systems they protect
+  \item Coordinate internationally---this is a shared challenge requiring shared response
+  \item Design for adversarial robustness---assume offensive AI will probe and adapt to defensive measures
 \end{enumerate}
 \end{recbox}
 
-The purpose of projection is not prediction but preparation. By understanding possible futures, we improve our ability to navigate toward better outcomes.
+The purpose of projection is not prediction but preparation. By understanding possible futures, we improve our ability to navigate toward better outcomes. The probability-weighted scenario analysis (Section 14) provides structured frameworks for tracking which future is materializing.
 
 \vspace{0.5cm}
 \begin{center}
@@ -2478,10 +2706,12 @@ The purpose of projection is not prediction but preparation. By understanding po
 \textbf{Vector} & \textbf{Likelihood} & \textbf{Impact} & \textbf{Detect.} & \textbf{Owner} & \textbf{Top 3 Mitigations} \\
 \midrule
 Reputational & High & High & Low & Platforms, Election bodies & Content authentication, rapid response teams, legal frameworks \\
+Epistemic Contamination & Med-High & Very High & Very Low & IC, Media & Provenance chains, analog breaks, credibility infrastructure \\
 Process & High & High & Medium & Election admin, HR, Legal & Staff protection, anonymized reporting, resilience training \\
 Economic & Med-High & Medium & Medium & Financial regulators, Law enforcement & Identity protection, fraud monitoring, platform accountability \\
+Spearphishing 2.0 & High & High & Low & Protective services, IT & AI social engineering training, out-of-band verification, digital hygiene \\
 Kinetic & Low-Med & Very High & Med-High & Protective services & AI-enhanced intel, physical security, behavioral assessment \\
-Insider/Supply-chain & Medium & Very High & Low & IT Security, Procurement & Vendor audits, model governance, access controls \\
+Insider/Supply-chain & Medium & Very High & Low & IT Security, Procurement & Vendor audits, model governance, sleeper agent detection \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -2552,7 +2782,11 @@ Election worker harassment increasing & Civil society & High & Declining threat 
 
 \textbf{AI Safety and Misuse:}
 \begin{itemize}[nosep]
-  \item Anthropic, OpenAI, DeepMind policy papers on misuse prevention
+  \item Suleyman, Mustafa. \textit{The Coming Wave} (2023)---AI-enabled disruption and the containment problem
+  \item Hubinger et al. \textit{Sleeper Agents: Training Deceptive LLMs That Persist Through Safety Training} (Anthropic, 2024)---Backdoor persistence evidence
+  \item Anthropic. \textit{Responsible Scaling Policy} (2023, updated 2025)---Capability threshold framework
+  \item OpenAI. \textit{Preparedness Framework} (2023)---Risk categorization for frontier models
+  \item Google DeepMind. \textit{Frontier Safety Framework} (2024)---Critical capability levels and response protocols
   \item Partnership on AI research on synthetic media
 \end{itemize}
 
@@ -2619,10 +2853,13 @@ Election worker harassment increasing & Civil society & High & Declining threat 
 \textbf{Prepared For}: & Emerging Technology Risk Assessment (independent research) \\
 \textbf{Distribution}: & Public (open-source) \\
 \textbf{Approved By}: & Andrew Showers \\
-\textbf{Document ID}: & ETRA-2025-POL-001 \\
-\textbf{Version}: & 1.0 \\
+\textbf{Document ID}: & ETRA-2026-PTR-001 \\
+\textbf{Version}: & 2.0 \\
 \textbf{Related Documents}: & ETRA-2026-IC-001 (Institutional Erosion) \\
-& ETRA-2025-ESP-001 (Espionage Operations) \\
+& ETRA-2026-ESP-001 (Espionage Operations) \\
+& ETRA-2025-AEA-001 (Economic Actors) \\
+& ETRA-2025-FIN-001 (Financial Integrity) \\
+& ETRA-2026-WMD-001 (WMD Proliferation) \\
 \end{tabular}
 \end{center}
 
