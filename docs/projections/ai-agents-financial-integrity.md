@@ -1458,7 +1458,7 @@ The document treats Zero-Knowledge Compliance as a "speculative projection." Giv
 - Detection systems adapt incrementally
 - No fundamental shift in crime-detection dynamics
 
-**Probability assessment [E]**: 35% as primary outcome through 2028 *(revised down from 40% in v1.0; the 162% YoY increase in illicit crypto volume and emergence of DPRK-linked agent-assisted operations suggest the threat is evolving faster than the "incremental" framing implies)*
+**Probability assessment [E]**: 35% as primary outcome through 2028 *(adjusted down from 40% in v1.0; the 162% YoY increase in illicit crypto volume and emergence of DPRK-linked agent-assisted operations suggest the threat is evolving faster than the "incremental" framing implies)*
 
 **Implications**: Current regulatory frameworks require enhancement but not transformation.
 
@@ -1472,7 +1472,7 @@ The document treats Zero-Knowledge Compliance as a "speculative projection." Giv
 - Barrier to entry for financial crime drops dramatically
 - Volume of laundering attempts increases significantly
 
-**Probability assessment [S]**: 35% by 2028 *(revised up from 30% in v1.0; Chinese-language money laundering networks processing $16.1 billion in illicit crypto in 2025 through 1,799+ active wallets demonstrate industrialized, potentially agent-assisted laundering infrastructure already at scale)*
+**Probability assessment [S]**: 35% by 2028 *(adjusted up from 30% in v1.0; Chinese-language money laundering networks processing $16.1 billion in illicit crypto in 2025 through 1,799+ active wallets demonstrate industrialized, potentially agent-assisted laundering infrastructure already at scale)*
 
 **Implications**: Major scale-up of enforcement resources required; detection must shift to systemic patterns.
 

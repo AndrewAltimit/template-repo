@@ -13,7 +13,7 @@
 | **Version** | 2.0 |
 | **Date** | February 2026 |
 | **Status** | Current |
-| **Change Summary** | v2.0: Updated workforce data (confirmed NSA/ODNI/CIA figures), added Venezuela/Maduro case study, METR agent capability data, FMIC dissolution analysis, China/Russia intelligence updates, governance framework updates, revised scenario probabilities, expanded cross-references |
+| **Change Summary** | v2.0: Updated workforce data (confirmed NSA/ODNI/CIA figures), added Venezuela/Maduro case study, METR agent capability data, FMIC dissolution analysis, China/Russia intelligence updates, governance framework updates, updated scenario probabilities, expanded cross-references |
 | **Distribution** | Public (open-source) |
 | **Related Documents** | ETRA-2025-AEA-001 (Economic Actors), ETRA-2025-FIN-001 (Financial Integrity), ETRA-2026-ESP-001 (Espionage Operations), ETRA-2026-PTR-001 (Political Targeting), ETRA-2026-WMD-001 (WMD Proliferation) |
 

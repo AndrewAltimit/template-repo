@@ -1223,7 +1223,7 @@ For these targets, the synthetic handler's limitations become advantages:
 
 **Detection challenge**: Targets engaged in an "Algorithmic Confessional" relationship may show fewer traditional recruitment indicators because the psychological dynamics differ from human handler relationships.
 
-### Asset Tier Stratification (Revised)
+### Asset Tier Stratification
 
 | Asset Tier | Example | AI Suitability | Nuance |
 |------------|---------|----------------|--------|
@@ -1233,7 +1233,7 @@ For these targets, the synthetic handler's limitations become advantages:
 | **Tactical** | Contractors, low-level employees, peripheral contacts | High | Lower risk tolerance required; transactional relationships viable |
 | **Access Agents** | Insiders who enable access but aren't primary sources | High | Often unaware of ultimate purpose; relationship depth less critical |
 
-**Revised insight**: AI suitability is less about the *value* of the asset and more about their *relationship modality*. Digital-native high-value targets may be more susceptible to AI-enabled approaches than physically-oriented lower-value targets.
+**Key insight**: AI suitability is less about the *value* of the asset and more about their *relationship modality*. Digital-native high-value targets may be more susceptible to AI-enabled approaches than physically-oriented lower-value targets.
 
 ### The Hybrid Model: The Rise of the Centaur Handler
 
