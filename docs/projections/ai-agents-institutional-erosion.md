@@ -15,7 +15,7 @@
 | **Status** | Current |
 | **Change Summary** | v2.0: Updated workforce data (confirmed NSA/ODNI/CIA figures), added Venezuela/Maduro case study, METR agent capability data, FMIC dissolution analysis, China/Russia intelligence updates, governance framework updates, revised scenario probabilities, expanded cross-references |
 | **Distribution** | Public (open-source) |
-| **Related Documents** | ETRA-2025-AEA-001 (Economic Actors), ETRA-2025-FIN-001 (Financial Integrity), ETRA-2025-ESP-001 (Espionage Operations), ETRA-2026-PTR-001 (Political Targeting), ETRA-2026-WMD-001 (WMD Proliferation) |
+| **Related Documents** | ETRA-2025-AEA-001 (Economic Actors), ETRA-2025-FIN-001 (Financial Integrity), ETRA-2026-ESP-001 (Espionage Operations), ETRA-2026-PTR-001 (Political Targeting), ETRA-2026-WMD-001 (WMD Proliferation) |
 
 ---
 
@@ -220,7 +220,7 @@ This report builds on and complements other documents in the Emerging Technology
 |--------|-------------|--------------|
 | **AI Agents as Economic Actors** | ETRA-2025-AEA-001 | Establishes baseline agent economic capabilities; "Principal-Agent Defense" parallels the Delegation Defense framework here |
 | **AI Agents and Financial Integrity** | ETRA-2025-FIN-001 | Details "Nano-smurfing" and financial evasion tactics referenced here |
-| **AI Agents and Espionage Operations** | ETRA-2025-ESP-001 | Covers adversary HUMINT augmentation ("Handler Bottleneck Bypass," "Stasi-in-a-Box"); this report addresses IC defense |
+| **AI Agents and Espionage Operations** | ETRA-2026-ESP-001 | Covers adversary HUMINT augmentation ("Handler Bottleneck Bypass," "Stasi-in-a-Box"); this report addresses IC defense |
 | **AI Agents and Political Targeting** | ETRA-2026-PTR-001 (v2.0) | Addresses targeting of leadership; validates IC erosion dynamics through Verification Pivot and Algorithmic Capture |
 | **AI Agents and WMD Proliferation** | ETRA-2026-WMD-001 (v2.0) | Covers nano-smurfing for dual-use materials, "conspiracy footprint shrinks" thesis, and attribution void; directly relevant to DOE and proliferation monitoring sections |
 
@@ -865,7 +865,7 @@ The U.S. Intelligence Community comprises 18 agencies, each facing distinct vuln
 | **Counterintelligence evasion** | Agents detect and evade CI patterns | Mole detection degraded |
 | **Human-capital contraction [O]** | ~1,200 positions (~5% of ~22,000 employees) shrinking over several years via attrition, early retirement, and decreased hiring (AP, WaPo) | Experience drain in analytic and clandestine ranks; higher False Clean rates |
 
-**Unique Vulnerability**: CIA's clandestine service depends on human relationships. The handler bottleneck bypass (see ETRA-2025-ESP-001) enables adversaries to match CIA's HUMINT capacity with AI, eliminating a traditional advantage. Concurrent workforce reductions exacerbate this by reducing the experienced case officers and analysts needed to verify sources.
+**Unique Vulnerability**: CIA's clandestine service depends on human relationships. The handler bottleneck bypass (see ETRA-2026-ESP-001) enables adversaries to match CIA's HUMINT capacity with AI, eliminating a traditional advantage. Concurrent workforce reductions exacerbate this by reducing the experienced case officers and analysts needed to verify sources.
 
 **Adaptation Priority**: "Analog Break" protocols for source verification; AI-resistant authentication for covert communications; retention incentives for experienced verifiers.
 

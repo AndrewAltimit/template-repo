@@ -189,10 +189,6 @@ Throughout this document, key claims are tagged with epistemic status to enable 
 
 *Note: Claims tagged [O] without inline citation are substantiated in Appendix C: Evidence Notes.*
 
-### Independent Research Disclaimer
-
-This report is independent research. It is not affiliated with, produced by, or endorsed by any government agency, think tank, or official institution. The "ETRA" identifier is a document formatting convention, not an organizational identity. Analysis draws on publicly available academic and policy literature.
-
 ---
 
 ## Base-Rate Context: Anchoring Expectations

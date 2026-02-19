@@ -143,7 +143,7 @@ The capability-governance gap documented in that report---agents can participate
 
 **Cross-references to sibling ETRA reports:**
 
-- **ETRA-2025-ESP-001: AI Agents and the Future of Espionage Operations** -- Credential marketplace targeting and executive impersonation via deepfake directly enable financial fraud (authorized push payments, treasury compromise). The handler bottleneck bypass documented in ESP-001 parallels the coordination-free scaling analyzed in Section 3 of this report.
+- **ETRA-2026-ESP-001: AI Agents and the Future of Espionage Operations** -- Credential marketplace targeting and executive impersonation via deepfake directly enable financial fraud (authorized push payments, treasury compromise). The handler bottleneck bypass documented in ESP-001 parallels the coordination-free scaling analyzed in Section 3 of this report.
 
 - **ETRA-2026-WMD-001: AI Agents and WMD Proliferation** -- "Nano-smurfing" for dual-use procurement evasion mirrors the financial structuring techniques in Section 5.1. Both reports identify weakest-link exploitation and jurisdictional arbitrage as primary threat vectors. Supply chain traceability requirements in WMD-001 parallel the financial provenance verification recommended here.
 
@@ -2014,7 +2014,7 @@ This projection will be updated as capabilities evolve, detection methods mature
 ### Related ETRA Reports
 
 - ETRA-2025-AEA-001: *AI Agents as Autonomous Economic Actors*
-- ETRA-2025-ESP-001: *AI Agents and the Future of Espionage Operations*
+- ETRA-2026-ESP-001: *AI Agents and the Future of Espionage Operations*
 - ETRA-2026-WMD-001: *AI Agents and WMD Proliferation*
 - ETRA-2026-PTR-001: *AI Agents and Political Targeting*
 - ETRA-2026-IC-001: *AI Agents and Institutional Erosion*

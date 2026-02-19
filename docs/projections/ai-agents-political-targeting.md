@@ -76,7 +76,7 @@ This projection explores how the proliferation of autonomous AI agents is alteri
 |--------|-------------|--------------------------|
 | [AI Agents as Autonomous Economic Actors](../../packages/economic_agents/docs/economic-implications.md) | ETRA-2025-AEA-001 | Agent accountability gap and legal personhood problem underpin "Plausible Deniability 2.0"; speed asymmetry establishes governance vacuum exploitable for political operations |
 | [AI Agents and Financial System Integrity](ai-agents-financial-integrity.md) | ETRA-2025-FIN-001 | Nano-smurfing and covert financing directly relevant to economic targeting vector; "Principal-Agent Defense" creates *mens rea* gaps applicable to politically-motivated financial operations; sovereign agent immunity concept |
-| [AI Agents and Espionage Operations](ai-agents-espionage-operations.md) | ETRA-2025-ESP-001 | Handler Bottleneck Bypass is the espionage analogue to "conspiracy footprint shrinks"; MICE/RASCLS targeting and pattern-of-life analysis apply to political reconnaissance; "Stasi-in-a-box" dual-use risk maps to Panopticon counter-thesis |
+| [AI Agents and Espionage Operations](ai-agents-espionage-operations.md) | ETRA-2026-ESP-001 | Handler Bottleneck Bypass is the espionage analogue to "conspiracy footprint shrinks"; MICE/RASCLS targeting and pattern-of-life analysis apply to political reconnaissance; "Stasi-in-a-box" dual-use risk maps to Panopticon counter-thesis |
 | [AI Agents and Institutional Erosion](ai-agents-institutional-erosion.md) | ETRA-2026-IC-001 | Verification Pivot and Epistemic Contamination affect protective intelligence; Algorithmic Capture of IC AI systems is a specific instance of insider/supply-chain threat; IC workforce cuts compound detection degradation; Delegation Defense framework |
 | [AI Agents and WMD Proliferation](ai-agents-wmd-proliferation.md) | ETRA-2026-WMD-001 | Shared Power Diffusion Theory (Cronin) framework; nano-smurfing for procurement evasion; attribution void analysis; "conspiracy footprint shrinks" as shared thesis |
 
@@ -679,7 +679,7 @@ Standard security awareness training teaches recognition of *generic* phishing. 
 
 **Implication**: Stochastic terrorism dynamics + AI optimization = unpredictable radicalization pathways that don't require human intent at any single decision point.
 
-**The Handler Bottleneck Bypass (cross-reference: ETRA-2025-ESP-001):** The espionage operations report establishes that AI transitions human intelligence from high-latency/high-cost tradecraft to a near-zero-marginal-cost industrial process -- maintaining a synthetic handler costs roughly $0.30-$0.50/day in compute [E]. Applied to political radicalization, this means:
+**The Handler Bottleneck Bypass (cross-reference: ETRA-2026-ESP-001):** The espionage operations report establishes that AI transitions human intelligence from high-latency/high-cost tradecraft to a near-zero-marginal-cost industrial process -- maintaining a synthetic handler costs roughly $0.30-$0.50/day in compute [E]. Applied to political radicalization, this means:
 
 - Thousands of simultaneous personalized radicalization campaigns, each adapting to the target's responses in real time
 - Deep persona modeling from years of social media and writing samples, making synthetic handlers indistinguishable from genuine contacts
@@ -1905,7 +1905,7 @@ The analysis reveals several fundamental tensions that policymakers must navigat
 This report's findings interact with the broader ETRA series in critical ways:
 
 - The **Delegation Defense** (ETRA-2026-IC-001) compounds the attribution void: even when attacks can be traced, establishing directed intent becomes impossible when AI agents autonomously develop methodologies
-- **Nano-smurfing** (ETRA-2025-FIN-001) and the **Handler Bottleneck Bypass** (ETRA-2025-ESP-001) demonstrate that economic targeting and radicalization campaigns can now operate at industrial scale with near-zero marginal cost
+- **Nano-smurfing** (ETRA-2025-FIN-001) and the **Handler Bottleneck Bypass** (ETRA-2026-ESP-001) demonstrate that economic targeting and radicalization campaigns can now operate at industrial scale with near-zero marginal cost
 - **Epistemic Contamination** (ETRA-2026-IC-001) acts as a force multiplier for every targeting vector analyzed in this report -- if the information environment itself cannot be trusted, all defenses degrade
 - **IC workforce contraction** (ETRA-2026-IC-001) compounds every detection challenge at precisely the moment when detection is becoming harder
 - **Sleeper agent persistence** through safety training (Anthropic, 2024) means the insider threat / supply-chain risk may be more severe than institutional controls can currently address
