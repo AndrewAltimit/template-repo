@@ -75,6 +75,10 @@ fn needs_validation(args: &[String]) -> bool {
             arg == *ca
                 // Match with = value (e.g., "--body=content")
                 || arg.starts_with(&format!("{}=", ca))
+                // Attached short-flag value (e.g., "-F-", "-Fpath", "-bbody")
+                // In pflag (used by gh/cobra), "-Xvalue" equals "-X value"
+                // Only applies to single-char short flags (2 chars including dash)
+                || (ca.len() == 2 && arg.len() > 2 && arg.starts_with(ca))
         })
     })
 }
@@ -93,6 +97,10 @@ fn extract_body_file(args: &[String]) -> Option<String> {
         // Handle -F=path form (rare but possible)
         if let Some(path) = arg.strip_prefix("-F=") {
             return Some(path.to_string());
+        }
+        // Handle -Fpath form (attached value without =, per pflag convention)
+        if arg.len() > 2 && arg.starts_with("-F") {
+            return Some(arg[2..].to_string());
         }
     }
     None
@@ -688,6 +696,31 @@ mod tests {
     #[test]
     fn test_needs_validation_no_content() {
         assert!(!needs_validation(&to_args(&["pr", "list"])));
+    }
+
+    #[test]
+    fn test_needs_validation_attached_short_flag() {
+        // -F- (stdin), -Fpath (attached path), -bbody (attached body)
+        assert!(needs_validation(&to_args(&["pr", "create", "-F-"])));
+        assert!(needs_validation(&to_args(&[
+            "pr",
+            "create",
+            "-F/tmp/body.md"
+        ])));
+        assert!(needs_validation(&to_args(&["pr", "create", "-bsome body"])));
+    }
+
+    #[test]
+    fn test_extract_body_file_attached_short_flag() {
+        let args = to_args(&["pr", "create", "-F/tmp/body.md"]);
+        assert_eq!(extract_body_file(&args), Some("/tmp/body.md".to_string()));
+    }
+
+    #[test]
+    fn test_extract_body_file_attached_stdin() {
+        // -F- should extract "-" (stdin check catches this separately)
+        let args = to_args(&["pr", "create", "-F-"]);
+        assert_eq!(extract_body_file(&args), Some("-".to_string()));
     }
 
     #[test]
