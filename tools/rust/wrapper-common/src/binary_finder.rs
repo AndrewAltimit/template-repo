@@ -51,8 +51,37 @@ static BINARY_CACHE: Lazy<Mutex<HashMap<String, PathBuf>>> =
 /// * `Ok(PathBuf)` - Canonicalized path to the real binary
 /// * `Err(CommonError::BinaryNotFound)` - If no suitable binary was found
 pub fn find_real_binary(binary_name: &str) -> Result<PathBuf> {
-    // Recursion guard: if the binary-specific env var is already set, we are
-    // in an exec() loop between multiple wrapper copies. Abort immediately.
+    // Check cache first
+    if let Ok(cache) = BINARY_CACHE.lock() {
+        if let Some(cached) = cache.get(binary_name) {
+            return Ok(cached.clone());
+        }
+    }
+
+    // 1. Check the hardened location BEFORE the recursion guard.
+    //    This is critical for the two-wrapper chain:
+    //      ~/.local/bin/gh (non-setgid) -> /usr/bin/gh (setgid) -> gh.real
+    //    The non-setgid wrapper sets the recursion guard before exec'ing to
+    //    the setgid wrapper. The setgid wrapper CAN access the hardened real
+    //    binary, so it should find it here and return -- never reaching the
+    //    recursion guard check or PATH scanning.
+    let hardened_path =
+        PathBuf::from(HARDENED_BASE_DIR).join(format!("{}{}.real", binary_name, EXE_SUFFIX));
+
+    if hardened_path.exists() && is_executable(&hardened_path) {
+        if let Ok(canonical) = hardened_path.canonicalize() {
+            // Cache and return
+            if let Ok(mut cache) = BINARY_CACHE.lock() {
+                cache.insert(binary_name.to_string(), canonical.clone());
+            }
+            return Ok(canonical);
+        }
+    }
+
+    // 2. Recursion guard: if the binary-specific env var is already set, we
+    //    are in an exec() loop between multiple wrapper copies. The hardened
+    //    path didn't work (non-setgid wrapper can't access it), so PATH
+    //    scanning would just find another wrapper. Abort.
     let guard_var = format!(
         "{}{}",
         RECURSION_GUARD_PREFIX,
@@ -69,14 +98,8 @@ pub fn find_real_binary(binary_name: &str) -> Result<PathBuf> {
         });
     }
 
-    // Check cache first
-    if let Ok(cache) = BINARY_CACHE.lock() {
-        if let Some(cached) = cache.get(binary_name) {
-            return Ok(cached.clone());
-        }
-    }
-
-    let result = find_real_binary_internal(binary_name)?;
+    // 3. Fall back to PATH scanning
+    let result = find_in_path(binary_name)?;
 
     // Cache the result
     if let Ok(mut cache) = BINARY_CACHE.lock() {
@@ -106,27 +129,6 @@ pub fn set_recursion_guard(binary_name: &str) {
     unsafe {
         std::env::set_var(var, "1");
     }
-}
-
-/// Internal implementation of binary discovery
-fn find_real_binary_internal(binary_name: &str) -> Result<PathBuf> {
-    // 1. Check hardened location first (/usr/lib/wrapper-guard/{name}.real)
-    let hardened_path =
-        PathBuf::from(HARDENED_BASE_DIR).join(format!("{}{}.real", binary_name, EXE_SUFFIX));
-
-    if hardened_path.exists() && is_executable(&hardened_path) {
-        // Canonicalize to resolve any symlinks
-        if let Ok(canonical) = hardened_path.canonicalize() {
-            return Ok(canonical);
-        }
-    }
-
-    // 2. Fall back to PATH scanning.
-    // This is expected when a non-setgid copy (e.g. ~/.local/bin/git) needs
-    // to delegate to the setgid copy (e.g. /usr/bin/git) which CAN access
-    // the hardened real binary. The file-size check in find_in_path prevents
-    // infinite loops between same-sized wrapper copies.
-    find_in_path(binary_name)
 }
 
 /// Search PATH for the real binary, skipping ourselves and other wrapper copies
