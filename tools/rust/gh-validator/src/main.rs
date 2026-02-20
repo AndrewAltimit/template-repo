@@ -98,6 +98,20 @@ fn extract_body_file(args: &[String]) -> Option<String> {
     None
 }
 
+/// Extract --notes-file path from arguments (used by `gh release create`)
+fn extract_notes_file(args: &[String]) -> Option<String> {
+    let mut iter = args.iter().peekable();
+    while let Some(arg) = iter.next() {
+        if arg == "--notes-file" {
+            return iter.next().cloned();
+        }
+        if let Some(path) = arg.strip_prefix("--notes-file=") {
+            return Some(path.to_string());
+        }
+    }
+    None
+}
+
 /// Check if --body-file/-F is reading from stdin (blocked for security)
 fn is_stdin_body_file(args: &[String]) -> bool {
     let mut iter = args.iter().peekable();
@@ -336,64 +350,111 @@ fn run() -> Result<(), Error> {
         });
     }
 
-    // 5. Validate URLs in --body-file (use original args for file path)
-    if let Some(file_path) = extract_body_file(&args) {
-        match std::fs::read_to_string(&file_path) {
-            Ok(content) => {
-                if strip_invalid_images {
-                    // Strip mode: remove invalid images and continue
-                    let (new_content, stripped) = url_validator.strip_invalid_images(&content);
-                    if !stripped.is_empty() {
-                        for (url, reason) in &stripped {
-                            eprintln!(
-                                "[gh-validator] WARNING: Stripped invalid image: {} ({})",
-                                url, reason
-                            );
-                        }
+    // 5. Validate file-based content (--body-file, --notes-file)
+    //    Checks: Unicode emojis, secret masking, URL validation
+    //    This closes the bypass where content in files skipped arg-only checks.
 
-                        // Check if content is empty after stripping
-                        if new_content.trim().is_empty() {
-                            eprintln!(
-                                "[gh-validator] WARNING: Content is empty after stripping {} invalid image(s), skipping command",
-                                stripped.len()
-                            );
-                            // Exit successfully - the comment would fail with empty body
-                            exit(0);
-                        }
+    // Collect all content files to validate
+    let content_files: Vec<(&str, Option<String>)> = vec![
+        ("body file", extract_body_file(&args)),
+        ("notes file", extract_notes_file(&args)),
+    ];
 
-                        // Write modified content back to the file
-                        if let Err(e) = std::fs::write(&file_path, &new_content) {
-                            return Err(Error::BodyFileRead {
-                                path: file_path,
-                                reason: format!("Failed to write modified content: {}", e),
-                            });
-                        }
-                        eprintln!(
-                            "[gh-validator] Removed {} invalid image(s), continuing with comment",
-                            stripped.len()
-                        );
-                    }
-                } else {
-                    // Strict mode: fail on any invalid URL
-                    let urls = UrlValidator::extract_reaction_urls(&content);
-                    for url in urls {
-                        if let Err(e) = url_validator.validate_exists(&url) {
-                            log_blocked(&format!("invalid URL: {}", url), &masked_args);
-                            return Err(e);
-                        }
-                    }
-                }
-            },
+    for (file_label, file_path_opt) in &content_files {
+        let Some(file_path) = file_path_opt else {
+            continue;
+        };
+
+        let content = match std::fs::read_to_string(file_path) {
+            Ok(c) => c,
             Err(e) => {
                 // Only error if the file is supposed to exist
                 // (might be created by a previous command in a pipeline)
-                if std::path::Path::new(&file_path).exists() {
+                if std::path::Path::new(file_path.as_str()).exists() {
                     return Err(Error::BodyFileRead {
-                        path: file_path,
+                        path: file_path.clone(),
                         reason: e.to_string(),
                     });
                 }
+                continue;
             },
+        };
+
+        // 5a. Check file content for Unicode emojis
+        if let Some(emoji) = CommentValidator::check_unicode_emoji(&content) {
+            log_blocked(
+                &format!("unicode emoji U+{:04X} in {}", emoji as u32, file_label),
+                &masked_args,
+            );
+            return Err(Error::UnicodeEmoji {
+                char: emoji,
+                codepoint: emoji as u32,
+            });
+        }
+
+        // 5b. Mask secrets in file content
+        let (masked_content, file_was_masked) = masker.mask(&content);
+        if file_was_masked {
+            if let Err(e) = std::fs::write(file_path, &masked_content) {
+                return Err(Error::BodyFileRead {
+                    path: file_path.clone(),
+                    reason: format!("Failed to write masked content: {}", e),
+                });
+            }
+            eprintln!("[gh-validator] Secrets were masked in {}", file_label);
+        }
+
+        // 5c. URL validation (body files only - notes files don't typically have images)
+        if *file_label == "body file" {
+            let effective_content = if file_was_masked {
+                &masked_content
+            } else {
+                &content
+            };
+
+            if strip_invalid_images {
+                // Strip mode: remove invalid images and continue
+                let (new_content, stripped) = url_validator.strip_invalid_images(effective_content);
+                if !stripped.is_empty() {
+                    for (url, reason) in &stripped {
+                        eprintln!(
+                            "[gh-validator] WARNING: Stripped invalid image: {} ({})",
+                            url, reason
+                        );
+                    }
+
+                    // Check if content is empty after stripping
+                    if new_content.trim().is_empty() {
+                        eprintln!(
+                            "[gh-validator] WARNING: Content is empty after stripping {} invalid image(s), skipping command",
+                            stripped.len()
+                        );
+                        // Exit successfully - the comment would fail with empty body
+                        exit(0);
+                    }
+
+                    // Write modified content back to the file
+                    if let Err(e) = std::fs::write(file_path, &new_content) {
+                        return Err(Error::BodyFileRead {
+                            path: file_path.clone(),
+                            reason: format!("Failed to write modified content: {}", e),
+                        });
+                    }
+                    eprintln!(
+                        "[gh-validator] Removed {} invalid image(s), continuing with comment",
+                        stripped.len()
+                    );
+                }
+            } else {
+                // Strict mode: fail on any invalid URL
+                let urls = UrlValidator::extract_reaction_urls(effective_content);
+                for url in urls {
+                    if let Err(e) = url_validator.validate_exists(&url) {
+                        log_blocked(&format!("invalid URL: {}", url), &masked_args);
+                        return Err(e);
+                    }
+                }
+            }
         }
     }
 
@@ -544,5 +605,92 @@ fn main() {
         }
 
         exit(1);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn to_args(strs: &[&str]) -> Vec<String> {
+        strs.iter().map(|s| s.to_string()).collect()
+    }
+
+    #[test]
+    fn test_extract_notes_file_long_flag() {
+        let args = to_args(&["release", "create", "v1.0", "--notes-file", "/tmp/notes.md"]);
+        assert_eq!(extract_notes_file(&args), Some("/tmp/notes.md".to_string()));
+    }
+
+    #[test]
+    fn test_extract_notes_file_equals() {
+        let args = to_args(&["release", "create", "v1.0", "--notes-file=/tmp/notes.md"]);
+        assert_eq!(extract_notes_file(&args), Some("/tmp/notes.md".to_string()));
+    }
+
+    #[test]
+    fn test_extract_notes_file_absent() {
+        let args = to_args(&["release", "create", "v1.0", "--notes", "inline notes"]);
+        assert_eq!(extract_notes_file(&args), None);
+    }
+
+    #[test]
+    fn test_extract_body_file_long_flag() {
+        let args = to_args(&["pr", "create", "--body-file", "/tmp/body.md"]);
+        assert_eq!(extract_body_file(&args), Some("/tmp/body.md".to_string()));
+    }
+
+    #[test]
+    fn test_extract_body_file_short_flag() {
+        let args = to_args(&["pr", "create", "-F", "/tmp/body.md"]);
+        assert_eq!(extract_body_file(&args), Some("/tmp/body.md".to_string()));
+    }
+
+    #[test]
+    fn test_needs_validation_body_file() {
+        assert!(needs_validation(&to_args(&[
+            "pr",
+            "create",
+            "--body-file",
+            "/tmp/body.md"
+        ])));
+    }
+
+    #[test]
+    fn test_needs_validation_notes_file() {
+        assert!(needs_validation(&to_args(&[
+            "release",
+            "create",
+            "v1.0",
+            "--notes-file",
+            "/tmp/notes.md"
+        ])));
+    }
+
+    #[test]
+    fn test_needs_validation_no_content() {
+        assert!(!needs_validation(&to_args(&["pr", "list"])));
+    }
+
+    #[test]
+    fn test_is_stdin_body_file() {
+        assert!(is_stdin_body_file(&to_args(&[
+            "pr",
+            "create",
+            "--body-file",
+            "-"
+        ])));
+        assert!(is_stdin_body_file(&to_args(&["pr", "create", "-F", "-"])));
+        assert!(is_stdin_body_file(&to_args(&[
+            "pr",
+            "create",
+            "--body-file=-"
+        ])));
+        assert!(!is_stdin_body_file(&to_args(&[
+            "pr",
+            "create",
+            "--body-file",
+            "/tmp/file.md"
+        ])));
     }
 }

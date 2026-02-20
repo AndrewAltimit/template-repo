@@ -65,7 +65,7 @@ impl CommentValidator {
     }
 
     /// Check for Unicode emojis in a single string
-    fn check_unicode_emoji(text: &str) -> Option<char> {
+    pub fn check_unicode_emoji(text: &str) -> Option<char> {
         for ch in text.chars() {
             let cp = ch as u32;
             for (start, end) in EMOJI_RANGES.iter() {
@@ -273,5 +273,40 @@ mod tests {
         assert!(CommentValidator::args_post_content(&to_args(&[
             "pr", "comment", "-b=test"
         ])));
+    }
+
+    #[test]
+    fn test_check_unicode_emoji_direct() {
+        // Public method for checking file content (not just args)
+        assert!(CommentValidator::check_unicode_emoji("Robot: \u{1F916}").is_some());
+        assert!(CommentValidator::check_unicode_emoji(
+            "Generated with [Claude Code](https://claude.com/claude-code)"
+        )
+        .is_none());
+        assert!(CommentValidator::check_unicode_emoji(
+            "\u{1F916} Generated with [Claude Code](https://claude.com/claude-code)"
+        )
+        .is_some());
+    }
+
+    #[test]
+    fn test_check_unicode_emoji_multiline_file_content() {
+        // Simulates body-file content with emoji buried in text
+        let content = "## Summary\n\
+                        - Fixed the bug\n\
+                        - Updated tests\n\
+                        \n\
+                        \u{1F916} Generated with [Claude Code](https://claude.com/claude-code)\n";
+        assert!(CommentValidator::check_unicode_emoji(content).is_some());
+    }
+
+    #[test]
+    fn test_check_unicode_emoji_clean_file_content() {
+        let content = "## Summary\n\
+                        - Fixed the bug\n\
+                        - Updated tests\n\
+                        \n\
+                        Generated with [Claude Code](https://claude.com/claude-code)\n";
+        assert!(CommentValidator::check_unicode_emoji(content).is_none());
     }
 }
