@@ -107,7 +107,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl ca-certificates gnupg \
     && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y nodejs \
-    && npm install -g @google/gemini-cli@0.21.2 \
+    && npm install -g @google/gemini-cli@0.29.5 \
     && rm -rf /var/lib/apt/lists/*
 RUN useradd -m -u 1000 -s /bin/bash geminiuser
 WORKDIR /workspace
@@ -156,7 +156,7 @@ elif [ "$AUTH_METHOD" = "api_key" ]; then
         elif [ -f "/usr/local/bin/gemini" ]; then
             GEMINI_CMD="/usr/local/bin/gemini"
         else
-            echo -e "${RED}ERROR: Gemini CLI not found. Please install with: npm install -g @google/gemini-cli@0.21.2${NC}"
+            echo -e "${RED}ERROR: Gemini CLI not found. Please install with: npm install -g @google/gemini-cli@0.29.5${NC}"
             exit 1
         fi
     fi

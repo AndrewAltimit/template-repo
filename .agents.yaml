@@ -85,9 +85,9 @@ model_overrides:
   # Using explicit model specification with API key authentication
   # Model names verified from gemini-config.json
   gemini:
-    pro_model: gemini-3-pro-preview  # Latest preview model (NOT 3.0!)
-    flash_model: gemini-3-flash-preview  # Fast fallback model (Gemini 3 Flash)
-    default_model: gemini-3-flash-preview  # Primary model for PR reviews (faster, lower rate limits)
+    pro_model: gemini-3.1-pro-preview  # Primary model for investigation and reviews
+    flash_model: gemini-3-flash-preview  # Only for summarization and editing tasks (no 3.1 flash yet)
+    default_model: gemini-3.1-pro-preview  # Primary model for PR reviews (pro for deep analysis)
 
   # OpenRouter agents configuration
   opencode:

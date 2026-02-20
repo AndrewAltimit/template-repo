@@ -31,7 +31,7 @@ The workflow will attempt to install Gemini CLI automatically if Node.js is avai
 2. **Install Gemini CLI**
 
    ```bash
-   npm install -g @google/gemini-cli@0.21.2
+   npm install -g @google/gemini-cli@0.29.5
    ```
 
 3. **Set up API Key** (Required for PR reviews)
@@ -53,7 +53,7 @@ The workflow will attempt to install Gemini CLI automatically if Node.js is avai
    **FREE TIER AVAILABLE**
 
    Google AI Studio API keys include a **generous free tier** with:
-   - Access to latest models (including Gemini 3.0 Pro Preview)
+   - Access to latest models (including Gemini 3.1 Pro Preview)
    - 60 requests per minute
    - 1,500 requests per day on free tier
    - No credit card required for free tier
@@ -185,8 +185,8 @@ Configure Gemini behavior with these environment variables:
 **Model Selection:**
 
 PR reviews use explicit model specification with automatic fallback:
-- Primary: `gemini-3.0-pro-preview` (latest, most capable model)
-- Fallback: `gemini-3-flash-preview` (Gemini 3 Flash - faster, highly capable)
+- Primary: `gemini-3.1-pro-preview` (main investigator model for deep analysis)
+- Fallback: `gemini-3-flash-preview` (only for summarization and editing tasks)
 
 Both models are available on the free tier!
 

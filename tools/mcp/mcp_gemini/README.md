@@ -71,7 +71,7 @@ curl -X POST http://localhost:8006/mcp/execute \
 | `GEMINI_RATE_LIMIT` | `2.0` | Delay between requests (seconds) |
 | `GEMINI_MAX_CONTEXT` | `100000` | Maximum context length |
 | `GEMINI_LOG_CONSULTATIONS` | `true` | Log all consultations |
-| `GEMINI_MODEL` | `gemini-3-flash-preview` | Model to use |
+| `GEMINI_MODEL` | `gemini-3.1-pro-preview` | Model to use |
 | `GEMINI_INCLUDE_HISTORY` | `true` | Include history in prompts |
 | `GEMINI_MAX_HISTORY` | `10` | Maximum history entries |
 | `GEMINI_USE_CONTAINER` | `true` | Use Docker container mode |

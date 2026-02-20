@@ -106,7 +106,7 @@ impl CliAgent {
             executable: "gemini".to_string(),
             timeout_secs,
             priority: 90, // High priority
-            default_model: Some("gemini-3-pro-preview".to_string()),
+            default_model: Some("gemini-3.1-pro-preview".to_string()),
             capabilities: vec![
                 AgentCapability::CodeGeneration,
                 AgentCapability::CodeReview,
@@ -388,7 +388,7 @@ impl CliAgent {
             .config
             .default_model
             .as_deref()
-            .unwrap_or("gemini-3-pro-preview");
+            .unwrap_or("gemini-3.1-pro-preview");
 
         let args = vec!["prompt", "--model", model, "--output-format", "text"];
         let (stdout, _stderr) = self.execute_command_with_stdin(&args, prompt).await?;
