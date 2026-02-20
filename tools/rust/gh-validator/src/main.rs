@@ -132,6 +132,24 @@ fn is_stdin_body_file(args: &[String]) -> bool {
     false
 }
 
+/// Check if --notes-file is reading from stdin (blocked for security)
+fn is_stdin_notes_file(args: &[String]) -> bool {
+    let mut iter = args.iter().peekable();
+    while let Some(arg) = iter.next() {
+        if arg == "--notes-file" {
+            if let Some(next) = iter.next() {
+                if next == "-" {
+                    return true;
+                }
+            }
+        }
+        if arg == "--notes-file=-" {
+            return true;
+        }
+    }
+    false
+}
+
 /// Check if strip-invalid-images flag is present and remove it from args
 fn extract_strip_flag(args: &[String]) -> (Vec<String>, bool) {
     let has_flag = args.iter().any(|a| a == STRIP_INVALID_IMAGES_FLAG);
@@ -316,8 +334,8 @@ fn run() -> Result<(), Error> {
     };
 
     // 1. Check for stdin usage (blocked for security) - check args directly
-    if is_stdin_body_file(&args) {
-        log_blocked("stdin body file blocked for security", &args);
+    if is_stdin_body_file(&args) || is_stdin_notes_file(&args) {
+        log_blocked("stdin body/notes file blocked for security", &args);
         return Err(Error::StdinBlocked);
     }
 
@@ -691,6 +709,30 @@ mod tests {
             "create",
             "--body-file",
             "/tmp/file.md"
+        ])));
+    }
+
+    #[test]
+    fn test_is_stdin_notes_file() {
+        assert!(is_stdin_notes_file(&to_args(&[
+            "release",
+            "create",
+            "v1.0",
+            "--notes-file",
+            "-"
+        ])));
+        assert!(is_stdin_notes_file(&to_args(&[
+            "release",
+            "create",
+            "v1.0",
+            "--notes-file=-"
+        ])));
+        assert!(!is_stdin_notes_file(&to_args(&[
+            "release",
+            "create",
+            "v1.0",
+            "--notes-file",
+            "/tmp/notes.md"
         ])));
     }
 }
