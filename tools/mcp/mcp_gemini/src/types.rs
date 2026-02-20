@@ -50,7 +50,7 @@ impl Default for GeminiConfig {
             rate_limit_delay: 2.0,
             max_context_length: 100000,
             log_consultations: true,
-            model: Some("gemini-3-flash-preview".to_string()),
+            model: Some("gemini-3.1-pro-preview".to_string()),
             include_history: true,
             max_history_entries: 10,
             use_container: true,

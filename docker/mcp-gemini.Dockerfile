@@ -32,7 +32,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libssl3 \
     && curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y nodejs \
-    && npm install -g @google/gemini-cli@0.22.4 \
+    && npm install -g @google/gemini-cli@0.29.5 \
     && rm -rf /var/lib/apt/lists/*
 
 # Build arguments for dynamic user creation

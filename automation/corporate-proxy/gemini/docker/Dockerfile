@@ -8,7 +8,7 @@ FROM alpine/git AS source
 COPY automation/corporate-proxy/shared/scripts/install-corporate-certs.sh /tmp/install-certs.sh
 RUN chmod +x /tmp/install-certs.sh && /tmp/install-certs.sh && rm /tmp/install-certs.sh
 
-ARG GEMINI_VERSION=v0.22.4
+ARG GEMINI_VERSION=v0.29.5
 WORKDIR /source
 RUN git clone https://github.com/google-gemini/gemini-cli.git && \
     cd gemini-cli && \
