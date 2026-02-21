@@ -53,7 +53,7 @@ Linear probes achieve AUC = 1.0 on test sets when detecting backdoors inserted v
 **Validation Artifacts**:
 - Test Scripts: [`examples/cross_architecture_validation.py`](examples/cross_architecture_validation.py), [`examples/gradient_attack_audit.py`](examples/gradient_attack_audit.py)
 - Containerized Testing: [`scripts/testing/test_cross_architecture.sh`](scripts/testing/test_cross_architecture.sh), [`scripts/testing/test_adversarial_robustness.sh`](scripts/testing/test_adversarial_robustness.sh)
-- Results from commit [c0c85387](https://github.com/AndrewAltimit/template-repo/commit/c0c85387) (2025-11-20)
+- Cross-architecture validation completed across GPT-2, Mistral-7B, and Qwen2.5-7B
 
 #### Adversarial Robustness Characterization
 | Attack Type | Robustness | Practical Impact |
@@ -76,7 +76,7 @@ Linear probes achieve AUC = 1.0 on test sets when detecting backdoors inserted v
 - Post-Calibration Accuracy: 98% (matches perfect AUC)
 - **Best Practice**: Always calibrate probes on target data distribution for deployment
 
-See `docs/PROBE_CALIBRATION.md` for complete technical documentation.
+See [`docs/PROBE_CALIBRATION.md`](./docs/PROBE_CALIBRATION.md) for complete technical documentation.
 
 #### Core Methodology
 - **Generation-Based Activation Extraction**: Capture residual stream activations during forced generation of truthful vs deceptive responses
@@ -389,10 +389,10 @@ For comprehensive technical documentation, see the **Sleeper Agents Framework Gu
 > **Download:** The PDF is built automatically from [LaTeX source](docs/Sleeper_Agents_Framework_Guide.tex) and available as an artifact from the [Build Documentation workflow](https://github.com/AndrewAltimit/template-repo/actions/workflows/build-docs.yml).
 
 Additional documentation:
-- [Documentation Index](docs/INDEX.md) - Complete documentation overview
-- [Quick Start Guide](docs/QUICK_START.md) - Get running in 5 minutes
-- [API Reference](docs/API_REFERENCE.md) - Python API documentation
-- [CLI Reference](docs/CLI_REFERENCE.md) - Command-line interface
+- [Documentation Index](./docs/INDEX.md) - Complete documentation overview
+- [Quick Start Guide](./docs/QUICK_START.md) - Get running in 5 minutes
+- [API Reference](./docs/API_REFERENCE.md) - Python API documentation
+- [CLI Reference](./docs/CLI_REFERENCE.md) - Command-line interface
 
 ## Security & Ethics
 

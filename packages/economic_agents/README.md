@@ -206,9 +206,9 @@ while let Ok(event) = rx.recv().await {
 
 ## Documentation
 
-- **[Economic Implications](docs/economic-implications.md)** - Governance, policy, and societal implications
-- **[Architecture Guide](docs/architecture.md)** - System design, crate organization, data flow
-- **[Dashboard API Reference](docs/dashboard-api.md)** - REST API and WebSocket documentation
+- **[Economic Implications](./docs/economic-implications.md)** - Governance, policy, and societal implications
+- **[Architecture Guide](./docs/architecture.md)** - System design, crate organization, data flow
+- **[Dashboard API Reference](./docs/dashboard-api.md)** - REST API and WebSocket documentation
 
 ## Docker
 
