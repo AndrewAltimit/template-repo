@@ -1,9 +1,13 @@
 use std::path::Path;
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::time::Duration;
 
 use anyhow::{Result, bail};
 use clap::Args;
 
 use crate::shared::{output, process, project};
+
+static TEMP_COUNTER: AtomicU64 = AtomicU64::new(0);
 
 /// Error extraction limits
 const MAX_LINT_ERROR_LINES: usize = 150;
@@ -146,14 +150,24 @@ pub fn run(args: FailureArgs) -> Result<()> {
     };
 
     if let Some(cmd) = claude_cmd {
-        let output = std::process::Command::new(cmd)
-            .args(["--print", "--dangerously-skip-permissions", "-p"])
-            .stdin(std::fs::File::open(&prompt_file)?)
-            .output()?;
+        output::step("Running Claude with 20 min timeout...");
+        let prompt_path = Path::new(&prompt_file);
+        let result = process::run_capture_with_timeout(
+            cmd,
+            &["--print", "--dangerously-skip-permissions", "-p"],
+            prompt_path,
+            Duration::from_secs(20 * 60),
+        );
         let _ = std::fs::remove_file(&prompt_file);
-        let stdout = String::from_utf8_lossy(&output.stdout);
-        if !stdout.is_empty() {
-            eprintln!("{stdout}");
+        match result {
+            Ok(stdout) => {
+                if !stdout.is_empty() {
+                    eprintln!("{stdout}");
+                }
+            },
+            Err(e) => {
+                output::warn(&format!("Claude invocation failed: {e}"));
+            },
         }
     } else {
         let _ = std::fs::remove_file(&prompt_file);
@@ -212,7 +226,21 @@ pub fn run(args: FailureArgs) -> Result<()> {
         &format_handler_comment(args.iteration, true, sha, &failures_list),
     )?;
 
-    temporarily_disable_pre_push_hook(|| process::run("git", &["push", "origin", &args.branch]))?;
+    let branch = args.branch.clone();
+    let push_result = temporarily_disable_pre_push_hook(|| {
+        process::run_with_retries("git", &["push", "origin", &branch], 3, 2)
+    });
+
+    if let Err(e) = push_result {
+        let _ = post_comment(
+            args.pr_number,
+            &format!(
+                "**Push failed** after retries: `{e}`\n\n\
+                 The commit exists locally but was not pushed. Manual intervention required."
+            ),
+        );
+        return Err(e);
+    }
 
     output::success(&format!("Changes pushed to branch: {}", args.branch));
     project::set_github_output("made_changes", "true");
@@ -336,7 +364,7 @@ fn format_handler_comment(iteration: u32, made_changes: bool, sha: &str, failure
         format!(
             "## Failure Handler Agent (Iteration {next})\n\
              <!-- agent-metadata:type=failure-fix:iteration={next} -->\n\n\
-             **Status:** Changes committed and pushed\n\n\
+             **Status:** Changes committed, pushing...\n\n\
              **Commit:** `{sha}`\n\n\
              **Failures addressed:**\n{failures}\n\n---\n\
              *Automated fix in response to CI pipeline failures.*"
@@ -354,19 +382,15 @@ fn format_handler_comment(iteration: u32, made_changes: bool, sha: &str, failure
 
 fn post_comment(pr_number: u64, body: &str) -> Result<()> {
     if !process::command_exists("gh") {
+        if project::is_ci() {
+            bail!("gh CLI not found in CI -- cannot post PR comment");
+        }
         return Ok(());
     }
     let temp = write_temp_file(body)?;
-    let result = process::run(
-        "gh",
-        &[
-            "pr",
-            "comment",
-            &pr_number.to_string(),
-            "--body-file",
-            &temp,
-        ],
-    );
+    let pr = pr_number.to_string();
+    let result =
+        process::run_with_retries("gh", &["pr", "comment", &pr, "--body-file", &temp], 3, 2);
     let _ = std::fs::remove_file(&temp);
     result
 }
@@ -405,7 +429,9 @@ fn temporarily_disable_pre_push_hook<F: FnOnce() -> Result<()>>(f: F) -> Result<
 }
 
 fn write_temp_file(content: &str) -> Result<String> {
-    let path = std::env::temp_dir().join(format!("automation-cli-failure-{}", std::process::id()));
+    let n = TEMP_COUNTER.fetch_add(1, Ordering::Relaxed);
+    let path =
+        std::env::temp_dir().join(format!("automation-cli-failure-{}-{n}", std::process::id()));
     std::fs::write(&path, content)?;
     Ok(path.to_string_lossy().to_string())
 }

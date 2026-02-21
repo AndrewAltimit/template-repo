@@ -1,10 +1,14 @@
 use std::path::Path;
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::time::Duration;
 
 use anyhow::{Result, bail};
 use clap::Args;
 
 use super::trust::{TrustConfig, TrustLevel};
 use crate::shared::{output, process, project};
+
+static TEMP_COUNTER: AtomicU64 = AtomicU64::new(0);
 
 /// Prompt size limits (Claude ~200k token window, ~4 chars/token)
 const MAX_REVIEW_CONTENT_CHARS: usize = 80_000;
@@ -125,9 +129,24 @@ pub fn run(args: RespondArgs) -> Result<()> {
 
     post_decision_comment(args.pr_number, args.iteration, true, commit_sha, &summary)?;
 
-    // Push
+    // Push (retries with backoff; post follow-up comment on failure)
     output::header("Step 4: Pushing changes");
-    temporarily_disable_pre_push_hook(|| process::run("git", &["push", "origin", &args.branch]))?;
+    let branch = args.branch.clone();
+    let push_result = temporarily_disable_pre_push_hook(|| {
+        process::run_with_retries("git", &["push", "origin", &branch], 3, 2)
+    });
+
+    if let Err(e) = push_result {
+        // Best-effort follow-up: the pipeline is NOT cancelled (no push happened)
+        let _ = post_comment(
+            args.pr_number,
+            &format!(
+                "**Push failed** after retries: `{e}`\n\n\
+                 The commit exists locally but was not pushed. Manual intervention required."
+            ),
+        );
+        return Err(e);
+    }
 
     output::success(&format!("Changes pushed to branch: {}", args.branch));
     project::set_github_output("made_changes", "true");
@@ -332,17 +351,19 @@ fn run_claude(prompt: &str) -> Result<String> {
         return Ok(String::new());
     };
 
-    output::step("Running Claude with tool access...");
+    output::step("Running Claude with tool access (20 min timeout)...");
     let prompt_file = write_temp_file(prompt)?;
+    let prompt_path = Path::new(&prompt_file);
 
-    // Run Claude with stdin from file
-    let output = std::process::Command::new(claude_cmd)
-        .args(["--dangerously-skip-permissions"])
-        .stdin(std::fs::File::open(&prompt_file)?)
-        .output()?;
+    let result = process::run_capture_with_timeout(
+        claude_cmd,
+        &["--dangerously-skip-permissions"],
+        prompt_path,
+        Duration::from_secs(20 * 60),
+    );
 
     let _ = std::fs::remove_file(&prompt_file);
-    Ok(String::from_utf8_lossy(&output.stdout).to_string())
+    result
 }
 
 fn extract_agent_summary(output: &str) -> String {
@@ -371,20 +392,16 @@ fn extract_agent_summary(output: &str) -> String {
 
 fn post_comment(pr_number: u64, body: &str) -> Result<()> {
     if !process::command_exists("gh") {
+        if project::is_ci() {
+            bail!("gh CLI not found in CI -- cannot post PR comment");
+        }
         output::warn("gh CLI not found, skipping PR comment");
         return Ok(());
     }
     let temp = write_temp_file(body)?;
-    let result = process::run(
-        "gh",
-        &[
-            "pr",
-            "comment",
-            &pr_number.to_string(),
-            "--body-file",
-            &temp,
-        ],
-    );
+    let pr = pr_number.to_string();
+    let result =
+        process::run_with_retries("gh", &["pr", "comment", &pr, "--body-file", &temp], 3, 2);
     let _ = std::fs::remove_file(&temp);
     result
 }
@@ -401,7 +418,7 @@ fn post_decision_comment(
         format!(
             "## Review Response Agent (Iteration {display_iter})\n\
              <!-- agent-metadata:type=review-fix:iteration={display_iter} -->\n\n\
-             **Status:** Changes committed and pushed\n\n\
+             **Status:** Changes committed, pushing...\n\n\
              **Commit:** `{commit_sha}`\n\n\
              {summary}\n\n---\n\
              *Automated summary of agent fixes.*"
@@ -477,7 +494,8 @@ fn truncate_in_place(s: &mut String, max: usize) {
 }
 
 fn write_temp_file(content: &str) -> Result<String> {
-    let path = std::env::temp_dir().join(format!("automation-cli-{}", std::process::id()));
+    let n = TEMP_COUNTER.fetch_add(1, Ordering::Relaxed);
+    let path = std::env::temp_dir().join(format!("automation-cli-{}-{n}", std::process::id()));
     std::fs::write(&path, content)?;
     Ok(path.to_string_lossy().to_string())
 }
