@@ -108,6 +108,9 @@ pub fn run_with_retries(
 
 /// Run a command with stdin from a file, capture stdout, and enforce a timeout.
 /// Returns the captured stdout on success. Kills the process on timeout.
+///
+/// Stdout is drained in a separate thread to prevent deadlocks when the child
+/// writes more than the OS pipe buffer capacity (~64KB).
 pub fn run_capture_with_timeout(
     cmd: &str,
     args: &[&str],
@@ -125,17 +128,18 @@ pub fn run_capture_with_timeout(
         .spawn()
         .with_context(|| format!("failed to spawn: {cmd} {}", args.join(" ")))?;
 
+    // Drain stdout in a background thread to avoid deadlock: if the child fills
+    // the pipe buffer while the parent is blocked on wait_timeout, both stall.
+    let stdout_pipe = child.stdout.take().expect("stdout was set to piped");
+    let reader_handle = std::thread::spawn(move || {
+        let mut buf = Vec::new();
+        std::io::Read::read_to_end(&mut { stdout_pipe }, &mut buf).ok();
+        buf
+    });
+
     match child.wait_timeout(timeout) {
         Ok(Some(status)) => {
-            let stdout = child
-                .stdout
-                .take()
-                .map(|mut r| {
-                    let mut buf = Vec::new();
-                    std::io::Read::read_to_end(&mut r, &mut buf).ok();
-                    buf
-                })
-                .unwrap_or_default();
+            let stdout = reader_handle.join().unwrap_or_default();
             if !status.success() {
                 bail!("{cmd} {} exited with {}", args.join(" "), status);
             }
@@ -144,10 +148,13 @@ pub fn run_capture_with_timeout(
         Ok(None) => {
             let _ = child.kill();
             let _ = child.wait();
+            // Reader thread will finish once the pipe closes after kill
+            let _ = reader_handle.join();
             bail!("{cmd} timed out after {}s", timeout.as_secs());
         },
         Err(e) => {
             let _ = child.kill();
+            let _ = reader_handle.join();
             bail!("error waiting for {cmd}: {e}");
         },
     }
