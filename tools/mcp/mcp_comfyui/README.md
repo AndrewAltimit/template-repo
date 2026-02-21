@@ -13,7 +13,7 @@ This MCP server integrates with a remote ComfyUI instance to provide:
 - LoRA model upload, download, and listing
 - Built-in workflow templates with customizable parameters
 
-**Note**: ComfyUI runs on a remote GPU machine (`192.168.0.222`). Do not change the host to localhost.
+**Note**: ComfyUI runs on a remote GPU machine (`192.168.0.222`). Do not change the MCP transport URL to localhost in `.mcp.json`. The `COMFYUI_HOST` env var defaults to `localhost` because the MCP server runs co-located with ComfyUI on the remote machine.
 
 ## Quick Start
 
