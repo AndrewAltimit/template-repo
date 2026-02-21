@@ -15,9 +15,8 @@ These roadmaps serve as:
 
 | Roadmap | Description | Status | PDF |
 |---------|-------------|--------|-----|
-| [Virtual Character](./virtual-character-roadmap.md) | AI agent embodiment in virtual worlds (VRChat, Blender, Unity) | Active | [Download](https://github.com/AndrewAltimit/template-repo/releases/latest) |
-| [MCP Integration](./mcp-integration-roadmap.md) | Unified Expressive AI Agent System across MCP servers | Active | - |
-| [DGX Spark Integration](./dgx-spark-integration-roadmap.md) | Hybrid cognitive architecture with local GPU inference | Planning | - |
+| [Virtual Character](./virtual-character-roadmap.md) | AI agent embodiment in virtual worlds (VRChat, Blender, Unity) | Historical (Python plan; server migrated to Rust) | [Download](https://github.com/AndrewAltimit/template-repo/releases/latest) |
+| [MCP Integration](./mcp-integration-roadmap.md) | Unified Expressive AI Agent System across MCP servers | Historical (Python plan; server migrated to Rust) | - |
 | [ElevenLabs Improvement](./elevenlabs-improvement-roadmap.md) | Low-latency streaming for virtual character integration | Implemented | - |
 
 The Virtual Character System Guide PDF is automatically built from [LaTeX source](../integrations/ai-services/Virtual_Character_System_Guide.tex) and published with each release.
@@ -43,19 +42,6 @@ Proposal for unifying four MCP servers into a coherent expressive AI agent syste
 | Virtual Character | Embodied avatar control with emotions and gestures |
 | Reaction Search | Semantic search for contextual reaction images |
 | AgentCore Memory | Persistent memory with semantic search |
-
-### DGX Spark Integration
-
-Hybrid cognitive architecture combining cloud reasoning with local GPU acceleration:
-
-| Component | Role |
-|-----------|------|
-| Claude API (Opus 4.5) | Primary reasoning - analysis, insights, long-term thinking |
-| DGX Spark (Local GPU) | Fast real-time processing - emotion, fillers, audio styling |
-| ElevenLabs | Voice synthesis with expression tags |
-| Virtual Character | Embodied avatar delivery |
-
-**Goal**: Sub-500ms immediate reactions while Claude thinks deeply.
 
 ### ElevenLabs Improvement Roadmap
 
@@ -86,4 +72,4 @@ New roadmaps should include:
 
 ---
 
-*Last updated: December 2025*
+*Last updated: February 2026*

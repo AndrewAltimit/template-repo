@@ -497,6 +497,22 @@ impl Tool for ListNamespacesTool {
                     "opencode": namespaces::OPENCODE_LEARNINGS,
                     "crush": namespaces::CRUSH_LEARNINGS,
                     "codex": namespaces::CODEX_LEARNINGS
+                },
+                "personality": {
+                    "voice_preferences": namespaces::VOICE_PREFERENCES,
+                    "expression_patterns": namespaces::EXPRESSION_PATTERNS,
+                    "reaction_history": namespaces::REACTION_HISTORY,
+                    "avatar_settings": namespaces::AVATAR_SETTINGS
+                },
+                "context": {
+                    "conversation_tone": namespaces::CONVERSATION_TONE,
+                    "user_preferences": namespaces::USER_COMMUNICATION,
+                    "interaction_history": namespaces::INTERACTION_HISTORY
+                },
+                "cross_cutting": {
+                    "security_patterns": namespaces::SECURITY_PATTERNS,
+                    "testing_patterns": namespaces::TESTING_PATTERNS,
+                    "performance_patterns": namespaces::PERFORMANCE
                 }
             },
             "note": "Use hierarchical namespaces with '/' separator for organization"

@@ -1,9 +1,11 @@
 # MCP Integration Proposal: Unified Expressive AI Agent System
 
-> **Note**: This proposal was written when the Virtual Character server was implemented in Python.
-> The server has since been **migrated to Rust**. The integration concepts and emotion model
-> architecture remain valid, but code examples showing Python imports should be adapted
-> for Rust. See `tools/mcp/mcp_virtual_character/src/types.rs` for the Rust emotion types.
+> **Status: HISTORICAL** -- This proposal was written when the Virtual Character server was
+> implemented in Python. The server has since been **migrated to Rust**. The integration
+> concepts and emotion model architecture remain valid as design reference, but code examples
+> show Python from the original plan and do not reflect the current implementation.
+>
+> See `tools/mcp/mcp_virtual_character/src/types.rs` for the Rust emotion types.
 
 ## Executive Summary
 
@@ -22,7 +24,7 @@ This proposal outlines integration opportunities between four MCP servers that, 
 
 ## Part 1: Unified Emotion Taxonomy
 
-> **Implementation Status**: Basic emotion support (EmotionType enum, EmotionVector PAD model, emotion blending) is implemented in `mcp_virtual_character/models/canonical.py`. Advanced features (mappings, inference) will also be added to `mcp_virtual_character` - other MCP servers can import from there.
+> **Implementation Status**: Basic emotion support (EmotionType enum, EmotionVector PAD model, emotion blending) is implemented in Rust at `tools/mcp/mcp_virtual_character/src/types.rs`. The Python path `mcp_virtual_character/models/canonical.py` referenced below is from the original plan and no longer exists. Advanced features (mappings, inference) were not carried forward to the Rust implementation.
 
 ### The Problem
 

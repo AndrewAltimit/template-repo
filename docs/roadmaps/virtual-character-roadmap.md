@@ -1,9 +1,11 @@
 # Virtual Character Locomotion MCP Server - Implementation Plan v2.0
 
-> **Note**: This implementation plan was written for the original Python implementation.
-> The Virtual Character MCP Server has since been **migrated to Rust** for improved performance
-> and consistency with other MCP servers. The architectural concepts, backend adapter pattern,
-> and VRChat OSC integration described here remain valid for the Rust implementation.
+> **Status: HISTORICAL** -- This implementation plan was written for the original Python
+> implementation. The Virtual Character MCP Server has since been **migrated to Rust**.
+> The architectural concepts, backend adapter pattern, and VRChat OSC integration described
+> here remain valid as design reference. Code examples are Python from the original plan
+> and do not reflect the current Rust implementation.
+>
 > See `tools/mcp/mcp_virtual_character/` for the current Rust source code.
 
 ## Table of Contents

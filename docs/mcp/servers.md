@@ -738,69 +738,188 @@ The server supports GPU acceleration when available:
 
 See `tools/mcp/video_editor/docs/README.md` for detailed documentation.
 
-## GitHub Board MCP Server
+## GitHub Board MCP Server (Rust)
 
-The GitHub Board server provides GitHub Projects v2 board management for multi-agent coordination.
+The GitHub Board server provides GitHub Projects v2 board management for multi-agent coordination. Built in Rust, it wraps the `board-manager` CLI to handle all GitHub API interactions, enabling work queue management, claim coordination, and dependency tracking across multiple AI agents.
 
 ### Starting the Server
 
 ```bash
-# STDIO mode (configured in .mcp.json)
-python -m mcp_github_board.server
+# Run in STDIO mode (for local Claude Desktop) - Recommended
+mcp-github-board --mode stdio
 
-# HTTP mode for remote access
-python -m mcp_github_board.server --http --port 8022
+# Or standalone HTTP mode for remote access
+mcp-github-board --mode standalone --port 8022
+
+# Or server mode (REST API only)
+mcp-github-board --mode server --port 8022
+
+# Test health (HTTP mode)
+curl http://localhost:8022/health
+
+# List tools
+curl http://localhost:8022/mcp/tools
+```
+
+### Building from Source
+
+```bash
+cd tools/mcp/mcp_github_board
+cargo build --release
+# Binary at target/release/mcp-github-board
 ```
 
 ### Available Tools
 
 | Tool | Description |
 |------|-------------|
-| `query_ready_work` | Get unblocked, unclaimed TODO issues |
-| `claim_work` | Claim an issue for implementation |
-| `renew_claim` | Renew active claims for long-running tasks |
-| `release_work` | Release claim on an issue |
-| `update_status` | Update issue status on the board |
+| `query_ready_work` | Get unblocked, unclaimed TODO issues (filterable by agent, configurable limit) |
+| `claim_work` | Claim an issue for implementation (requires agent_name and session_id) |
+| `renew_claim` | Renew active claims for long-running tasks (prevents claim timeout) |
+| `release_work` | Release claim on an issue (with reason: completed/blocked/abandoned/error) |
+| `update_status` | Update issue status on the board (Todo/In Progress/Blocked/Done/Abandoned) |
 | `add_blocker` | Add blocking dependencies between issues |
-| `mark_discovered_from` | Mark parent-child issue relationships |
-| `get_issue_details` | Get full details for a specific issue |
-| `get_dependency_graph` | Get dependency graph for an issue |
+| `mark_discovered_from` | Mark parent-child issue relationships for sub-task tracking |
+| `get_issue_details` | Get full details including status, assignee, labels, and board metadata |
+| `get_dependency_graph` | Get blockers, blocked issues, parent, and children relationships |
 | `list_agents` | List enabled agents for the board |
-| `get_board_config` | Get current board configuration |
+| `get_board_config` | Get full board configuration including field mappings and work queue settings |
+| `board_status` | Get server status and board-manager CLI availability |
+
+### Architecture
+
+The server uses a CLI delegation pattern:
+
+1. Client sends tool request to the MCP server
+2. Server validates parameters and constructs a `board-manager` CLI command
+3. `board-manager` CLI executes the operation against the GitHub Projects v2 API
+4. JSON response is returned to the client
+
+**Components:**
+- **MCP Server** - Built on the mcp-core Rust library
+- **board-manager CLI** - Handles all GitHub API interactions (must be in PATH)
+- **Tokio Runtime** - Async operations with high-performance I/O
+
+The server auto-discovers the `board-manager` binary at startup, searching PATH, `~/.local/bin`, `~/.cargo/bin`, `/usr/local/bin`, and the local build directory.
+
+### Configuration
+
+**Environment variables:**
+- `GITHUB_TOKEN` - GitHub token with repository and project access (required)
+- `GITHUB_REPOSITORY` - Repository in `owner/repo` format (required)
+
+**MCP configuration (`.mcp.json`):**
+```json
+{
+  "mcpServers": {
+    "github-board": {
+      "command": "mcp-github-board",
+      "args": ["--mode", "standalone"],
+      "env": {
+        "GITHUB_TOKEN": "${GITHUB_TOKEN}",
+        "GITHUB_REPOSITORY": "${GITHUB_REPOSITORY}"
+      }
+    }
+  }
+}
+```
+
+**Board configuration:** The server reads board settings from `.github/board_config.yaml` via the `board-manager` CLI.
 
 See `tools/mcp/mcp_github_board/docs/README.md` for detailed documentation.
 
-## AgentCore Memory MCP Server
+## AgentCore Memory MCP Server (Rust)
 
-The AgentCore Memory server provides multi-provider AI memory with support for AWS Bedrock AgentCore or ChromaDB.
+The AgentCore Memory server provides persistent AI agent memory using ChromaDB with semantic search capabilities. Built in Rust for performance, it supports short-term session events, long-term fact storage, and semantic similarity search with an in-memory LRU cache and automatic content sanitization to prevent secret leakage.
 
 ### Starting the Server
 
 ```bash
-# STDIO mode (configured in .mcp.json)
-python -m mcp_agentcore_memory.server
+# Run in STDIO mode (for local Claude Desktop) - Recommended
+mcp-agentcore-memory --mode stdio
 
-# HTTP mode for remote access
-python -m mcp_agentcore_memory.server --http --port 8023
+# Or standalone HTTP mode for remote access
+mcp-agentcore-memory --mode standalone --port 8023
+
+# Start ChromaDB backend (required)
+docker compose --profile memory-chromadb up -d
+
+# Test health (HTTP mode)
+curl http://localhost:8023/health
+```
+
+### Building from Source
+
+```bash
+cd tools/mcp/mcp_agentcore_memory
+cargo build --release
+# Binary at target/release/mcp-agentcore-memory
 ```
 
 ### Available Tools
 
 | Tool | Description |
 |------|-------------|
-| `store_event` | Store short-term memory events (rate-limited for AgentCore) |
-| `store_facts` | Store facts for long-term retention |
-| `search_memories` | Semantic search across memories |
-| `list_session_events` | List events from a specific session |
-| `list_namespaces` | List available predefined namespaces |
-| `memory_status` | Get memory provider status and info |
+| `store_event` | Store short-term memory events (session goals, decisions, outcomes) |
+| `store_facts` | Store facts/patterns for long-term retention with namespace organization |
+| `search_memories` | Semantic similarity search across memories (with LRU caching) |
+| `list_session_events` | List events from a specific session by actor and session ID |
+| `list_namespaces` | List all predefined hierarchical namespaces |
+| `memory_status` | Get provider connection status, cache statistics, and configuration |
 
-### Environment Variables
+### Namespaces
 
-```bash
-MEMORY_PROVIDER=chromadb  # or "agentcore" for AWS
-CHROMADB_PATH=./data/chromadb  # For local ChromaDB
+Memories are organized into hierarchical namespaces using `/` separators:
+
+| Category | Namespaces | Purpose |
+|----------|------------|---------|
+| Codebase | `codebase/architecture`, `codebase/patterns`, `codebase/conventions`, `codebase/dependencies` | Code knowledge |
+| Reviews | `reviews/pr`, `reviews/issues` | Review context |
+| Preferences | `preferences/user`, `preferences/project` | Configuration preferences |
+| Agents | `agents/claude`, `agents/gemini`, `agents/opencode`, `agents/crush`, `agents/codex` | Per-agent learnings |
+| Personality | `personality/voice_preferences`, `personality/expression_patterns`, `personality/reaction_history`, `personality/avatar_settings` | Agent personality |
+| Context | `context/conversation_tone`, `context/user_preferences`, `context/interaction_history` | Interaction context |
+| Cross-Cutting | `security/patterns`, `testing/patterns`, `performance/patterns` | Shared patterns |
+
+### Security
+
+All content is sanitized before storage to prevent secrets from being persisted:
+
+- **Layer 1 - Pattern Matching**: Known secret formats are detected and replaced with `[REDACTED]`, including API keys (OpenAI, Stripe, AWS, GitHub, Slack, Anthropic, OpenRouter), private keys, bearer tokens, basic auth, and connection strings with passwords.
+- **Layer 2 - Entropy Analysis**: High-entropy strings (Shannon entropy > 4.5 bits/char, minimum 20 characters) that resemble base64-encoded secrets are replaced with `[HIGH_ENTROPY_REDACTED]`.
+
+### Architecture
+
 ```
+MCP Server (agentcore-memory)
+  |
+  +-- Tools: store_event, store_facts, search_memories, etc.
+  |
+  +-- LRU Cache (1000 entries, 5-minute TTL)
+  |     - MD5-keyed by query+namespace
+  |     - Auto-eviction of oldest entries
+  |     - Namespace-aware invalidation on writes
+  |
+  +-- Content Sanitizer
+  |     - Two-layer secret detection
+  |     - Applied before all writes
+  |
+  +-- ChromaDB HTTP Client
+        |
+        +-- ChromaDB Server (Docker)
+              - Vector embeddings for semantic search
+              - Collection-per-namespace storage
+```
+
+### Configuration
+
+**Environment variables:**
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `CHROMADB_HOST` | ChromaDB host | `localhost` |
+| `CHROMADB_PORT` | ChromaDB port | `8000` |
+| `CHROMADB_COLLECTION` | Collection prefix | `agent_memory` |
 
 See `tools/mcp/mcp_agentcore_memory/docs/README.md` for detailed documentation.
 
@@ -843,6 +962,123 @@ get_reaction(reaction_id="miku_typing")
 ```
 
 Source code: `tools/mcp/mcp_reaction_search/`
+
+## Memory Explorer MCP Server (Rust)
+
+The Memory Explorer server provides process memory exploration and reverse engineering capabilities for AI agent integration with legacy software. Built as a native Rust binary, it uses Windows memory APIs for full functionality (process listing is available cross-platform). This enables AI agents to inspect and monitor running processes, scan for byte patterns, read typed memory values, and watch addresses for changes.
+
+### Starting the Server
+
+```bash
+# Run in STDIO mode (for local Claude Desktop) - Recommended
+mcp-memory-explorer --mode stdio
+
+# Or standalone HTTP mode
+mcp-memory-explorer --mode standalone --port 8025
+
+# Or server mode (REST API only)
+mcp-memory-explorer --mode server --port 8025
+
+# Test health (HTTP mode)
+curl http://localhost:8025/health
+```
+
+### Building from Source
+
+```bash
+cd tools/mcp/mcp_memory_explorer
+cargo build --release
+# Binary at target/release/mcp-memory-explorer
+```
+
+### Available Tools
+
+| Tool | Description |
+|------|-------------|
+| `list_processes` | List running processes with optional name filter |
+| `attach_process` | Attach to a process by name for memory operations |
+| `detach_process` | Detach from the current process |
+| `get_modules` | List loaded modules (DLLs/EXEs) with base addresses and sizes |
+| `read_memory` | Read memory at an address with typed interpretation |
+| `dump_memory` | Hex dump with ASCII representation |
+| `scan_pattern` | Search for byte patterns with wildcard (`??`) support |
+| `find_value` | Search for specific typed values (health, position, etc.) |
+| `resolve_pointer` | Follow pointer chains through multiple indirections |
+| `watch_address` | Monitor an address for value changes |
+| `read_watches` | Read all watched addresses and detect changes |
+| `remove_watch` | Remove a watch by label |
+| `get_status` | Get explorer status (attached process, active watches) |
+
+### Supported Data Types
+
+| Type | Size | Description |
+|------|------|-------------|
+| `bytes` | Variable | Raw bytes as hex string |
+| `int32` / `int64` | 4 / 8 bytes | Signed integers |
+| `uint32` / `uint64` | 4 / 8 bytes | Unsigned integers |
+| `float` / `double` | 4 / 8 bytes | Floating point values |
+| `string` | Variable | Null-terminated string |
+| `pointer` | 8 bytes | 64-bit pointer address |
+| `vector3` / `vector4` | 12 / 16 bytes | 3D/4D float vectors (x, y, z, w) |
+| `matrix4x4` | 64 bytes | 4x4 transformation matrix (16 floats) |
+
+### Cross-Platform Support
+
+| Feature | Windows | Linux/macOS |
+|---------|---------|-------------|
+| Process listing | Full | Full |
+| Process attachment | Full (Windows API) | Stub (returns error) |
+| Memory reading | Full | Stub (returns error) |
+| Pattern scanning | Full | Stub (returns error) |
+| Module enumeration | Full | Stub (returns error) |
+
+On Windows, the server uses native APIs: `OpenProcess`, `ReadProcessMemory`, `VirtualQueryEx`, and `CreateToolhelp32Snapshot`. Administrator privileges are required.
+
+### Configuration
+
+**CLI arguments:**
+
+| Argument | Description | Default |
+|----------|-------------|---------|
+| `--mode` | Server mode: standalone, stdio, server, client | `standalone` |
+| `--port` | Port to listen on (HTTP modes) | `8025` |
+| `--backend-url` | Backend URL for client mode | - |
+| `--log-level` | Log level (trace, debug, info, warn, error) | `info` |
+
+**MCP configuration (`.mcp.json`):**
+```json
+{
+  "mcpServers": {
+    "memory-explorer": {
+      "command": "mcp-memory-explorer",
+      "args": ["--mode", "stdio"]
+    }
+  }
+}
+```
+
+### Usage Example
+
+```
+# Find and attach to a game process
+> list_processes filter="NMS"
+> attach_process process_name="NMS.exe"
+
+# Enumerate loaded modules
+> get_modules
+
+# Scan for a byte pattern (with wildcards)
+> scan_pattern pattern="F3 0F 10 ?? ?? ?? ?? ?? F3 0F 11"
+
+# Read a 4x4 matrix at an address
+> read_memory address="0x7FF6A1C45678" type="matrix4x4"
+
+# Watch the player position for changes
+> watch_address label="player_x" address="0x7FF6A1D00100" type="float"
+> read_watches
+```
+
+See `tools/mcp/mcp_memory_explorer/README.md` for detailed documentation.
 
 ## Unified Testing
 
