@@ -154,6 +154,7 @@ pub fn run_capture_with_timeout(
         },
         Err(e) => {
             let _ = child.kill();
+            let _ = child.wait();
             let _ = reader_handle.join();
             bail!("error waiting for {cmd}: {e}");
         },
