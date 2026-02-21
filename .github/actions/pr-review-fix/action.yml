@@ -64,6 +64,21 @@ runs:
         merge-multiple: true
         path: .
 
+    - name: Validate review artifacts
+      if: steps.iteration.outputs.should_skip != 'true'
+      shell: bash
+      run: |
+        found=0
+        for f in gemini-review.md codex-review.md; do
+          if [ -s "$f" ]; then
+            echo "Found review artifact: $f ($(wc -c < "$f") bytes)"
+            found=1
+          fi
+        done
+        if [ "$found" -eq 0 ]; then
+          echo "::warning::No review artifacts found -- agent will have no feedback to process"
+        fi
+
     - name: Setup Node.js
       if: steps.iteration.outputs.should_skip != 'true'
       uses: ./.github/actions/setup-nodejs
