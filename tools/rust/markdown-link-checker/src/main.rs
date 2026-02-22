@@ -28,7 +28,7 @@ use std::time::Duration;
 
 use anyhow::{Context, Result};
 use clap::Parser;
-use pulldown_cmark::{Event, Parser as MdParser, Tag};
+use pulldown_cmark::{Event, Parser as MdParser, Tag, TagEnd};
 use regex::Regex;
 use reqwest::Client;
 use serde::Serialize;
@@ -144,26 +144,43 @@ fn github_slugify(heading: &str) -> String {
 
 /// Extract all heading anchor IDs from markdown content.
 ///
-/// Parses ATX-style headings (# Heading) and returns the set of
-/// GitHub-compatible anchor IDs that would be generated, including
-/// suffixed duplicates (`-1`, `-2`, ...) matching GitHub's behavior.
+/// Uses pulldown-cmark to parse headings, correctly handling inline
+/// formatting (backtick code, links, bold/italic) and trailing ATX markers.
+/// Returns the set of GitHub-compatible anchor IDs including suffixed
+/// duplicates (`-1`, `-2`, ...) matching GitHub's behavior.
 fn extract_heading_anchors(content: &str) -> HashSet<String> {
-    static HEADING_RE: OnceLock<Regex> = OnceLock::new();
-    let heading_re = HEADING_RE.get_or_init(|| Regex::new(r"(?m)^#{1,6}\s+(.+)$").unwrap());
+    let parser = MdParser::new(content);
     let mut anchors = HashSet::new();
     let mut slug_counts: HashMap<String, usize> = HashMap::new();
+    let mut in_heading = false;
+    let mut heading_text = String::new();
 
-    for cap in heading_re.captures_iter(content) {
-        let heading_text = cap[1].trim();
-        let base_slug = github_slugify(heading_text);
-        if !base_slug.is_empty() {
-            let count = slug_counts.entry(base_slug.clone()).or_insert(0);
-            if *count == 0 {
-                anchors.insert(base_slug.clone());
-            } else {
-                anchors.insert(format!("{}-{}", base_slug, count));
-            }
-            *count += 1;
+    for event in parser {
+        match event {
+            Event::Start(Tag::Heading { .. }) => {
+                in_heading = true;
+                heading_text.clear();
+            },
+            Event::End(TagEnd::Heading(_)) => {
+                in_heading = false;
+                let base_slug = github_slugify(&heading_text);
+                if !base_slug.is_empty() {
+                    let count = slug_counts.entry(base_slug.clone()).or_insert(0);
+                    if *count == 0 {
+                        anchors.insert(base_slug.clone());
+                    } else {
+                        anchors.insert(format!("{}-{}", base_slug, count));
+                    }
+                    *count += 1;
+                }
+            },
+            Event::Text(text) | Event::Code(text) if in_heading => {
+                heading_text.push_str(&text);
+            },
+            Event::SoftBreak if in_heading => {
+                heading_text.push(' ');
+            },
+            _ => {},
         }
     }
 
@@ -446,9 +463,9 @@ impl LinkChecker {
             && self.validate_anchors
         {
             // Read the target file and extract its heading anchors
+            // pulldown-cmark parser correctly ignores headings in code blocks
             match std::fs::read_to_string(&file_path) {
                 Ok(target_content) => {
-                    let target_content = remove_code_blocks(&target_content);
                     let target_anchors = extract_heading_anchors(&target_content);
                     if !target_anchors.contains(anchor) {
                         return LinkResult {
@@ -502,9 +519,9 @@ impl LinkChecker {
         };
 
         // Extract heading anchors from this file (for same-page anchor validation)
-        let clean_content = remove_code_blocks(&content);
+        // Uses pulldown-cmark parser which correctly ignores headings in code blocks
         let source_anchors = if self.validate_anchors {
-            extract_heading_anchors(&clean_content)
+            extract_heading_anchors(&content)
         } else {
             HashSet::new()
         };
@@ -821,12 +838,32 @@ mod tests {
 
 ## Another Real Heading
 "#;
-        // Note: extract_heading_anchors works on pre-cleaned content
-        let clean = remove_code_blocks(content);
-        let anchors = extract_heading_anchors(&clean);
+        // pulldown-cmark parser natively ignores headings in code blocks
+        let anchors = extract_heading_anchors(content);
         assert!(anchors.contains("real-heading"));
         assert!(anchors.contains("another-real-heading"));
         assert!(!anchors.contains("fake-heading-in-code"));
+    }
+
+    #[test]
+    fn test_extract_heading_anchors_inline_formatting() {
+        let content = r#"
+## The `foo` Command
+
+## Layer 1: Shared Library (`wrapper-common`)
+
+### [API Reference](https://example.com)
+
+## **Bold** Heading
+"#;
+        let anchors = extract_heading_anchors(content);
+        // Inline code content is preserved in the anchor
+        assert!(anchors.contains("the-foo-command"));
+        assert!(anchors.contains("layer-1-shared-library-wrapper-common"));
+        // Link text is used, URL is excluded
+        assert!(anchors.contains("api-reference"));
+        // Bold markers are stripped, text preserved
+        assert!(anchors.contains("bold-heading"));
     }
 
     #[test]
