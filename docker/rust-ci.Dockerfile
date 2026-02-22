@@ -27,6 +27,10 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 # Install rustfmt, clippy, and llvm-tools for coverage
 RUN rustup component add rustfmt clippy llvm-tools-preview
 
+# Install nightly toolchain for -Z threads parallel frontend compilation
+RUN rustup toolchain install nightly --profile minimal \
+    && rustup +nightly component add rustfmt clippy
+
 # Install cargo tools for CI
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     cargo install cargo-deny --locked 2>/dev/null || true && \
