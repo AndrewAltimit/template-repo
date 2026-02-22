@@ -150,6 +150,7 @@ Scenario-based projection reports analyzing potential futures involving advanced
 | **Sleeper Agents Framework** | AI backdoor detection using residual stream analysis | [Download](https://github.com/AndrewAltimit/template-repo/releases/latest) | [LaTeX](packages/sleeper_agents/docs/Sleeper_Agents_Framework_Guide.tex) |
 | **AgentCore Memory Integration** | Multi-provider AI memory system | [Download](https://github.com/AndrewAltimit/template-repo/releases/latest) | [LaTeX](docs/integrations/ai-services/AgentCore_Memory_Integration_Guide.tex) |
 | **Virtual Character System** | AI agent embodiment platform | [Download](https://github.com/AndrewAltimit/template-repo/releases/latest) | [LaTeX](docs/integrations/ai-services/Virtual_Character_System_Guide.tex) |
+| **AI Agent Containment & Infrastructure Security** | Isolation, trust-tiered execution, and physical security for AI agents | [Download](https://github.com/AndrewAltimit/template-repo/releases/latest) | [LaTeX](docs/hardware/latex/ai-agent-containment-infrastructure-security-framework.tex) |
 | **BioForge CRISPR Automation** | Agent-driven biological automation platform | [Download](https://github.com/AndrewAltimit/template-repo/releases/latest) | [LaTeX](docs/hardware/latex/bioforge-crispr-automation.tex) |
 | **Secure Terminal Briefcase** | Tamper-responsive hardware security system with PQC recovery | [Download](https://github.com/AndrewAltimit/template-repo/releases/latest) | [LaTeX](docs/hardware/latex/secure-terminal-briefcase.tex) |
 
