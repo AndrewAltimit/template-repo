@@ -769,12 +769,12 @@ jobs:
           if [ "${{ needs.detect-changes.outputs.docker_code_quality_changed }}" = "true" ]; then
             SERVICES="$SERVICES mcp-code-quality"
             HEALTH_ENDPOINTS="http://localhost:8010/health"
-            PORT_NAMES="$PORT_NAMES 8010:Code Quality"
+            PORT_NAMES="$PORT_NAMES 8010:Code_Quality"
           fi
           if [ "${{ needs.detect-changes.outputs.docker_content_changed }}" = "true" ]; then
             SERVICES="$SERVICES mcp-content-creation"
             if [ -z "$HEALTH_ENDPOINTS" ]; then HEALTH_ENDPOINTS="http://localhost:8011/health"; fi
-            PORT_NAMES="$PORT_NAMES 8011:Content Creation"
+            PORT_NAMES="$PORT_NAMES 8011:Content_Creation"
           fi
           if [ "${{ needs.detect-changes.outputs.docker_gaea2_changed }}" = "true" ]; then
             SERVICES="$SERVICES mcp-gaea2"
@@ -788,7 +788,7 @@ jobs:
             echo "No specific MCP docker image flags matched -- falling back to all services"
             SERVICES="mcp-code-quality mcp-content-creation mcp-gaea2"
             HEALTH_ENDPOINTS="http://localhost:8010/health"
-            PORT_NAMES="8010:Code Quality 8011:Content Creation 8007:Gaea2"
+            PORT_NAMES="8010:Code_Quality 8011:Content_Creation 8007:Gaea2"
           fi
 
           SERVICES=$(echo "$SERVICES" | xargs)
@@ -818,6 +818,7 @@ jobs:
             for port_name in $MCP_PORT_NAMES; do
               port="${port_name%%:*}"
               name="${port_name#*:}"
+              name="${name//_/ }"
               echo "Testing $name MCP (port $port)..."
               for i in {1..15}; do
                 if curl -f "http://localhost:$port/health" 2>/dev/null; then
