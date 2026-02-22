@@ -869,6 +869,7 @@ impl CodeQualityEngine {
         link_timeout: u32,
         concurrent: u32,
         ignore_patterns: &[String],
+        skip_anchors: bool,
     ) -> ToolResult {
         if !self.check_rate_limit("check_markdown_links") {
             return ToolResult::error("Rate limit exceeded", "rate_limit");
@@ -907,6 +908,10 @@ impl CodeQualityEngine {
 
         if !check_external {
             cmd.push("--internal-only".to_string());
+        }
+
+        if skip_anchors {
+            cmd.push("--skip-anchors".to_string());
         }
 
         for pattern in ignore_patterns {

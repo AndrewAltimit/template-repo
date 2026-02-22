@@ -635,6 +635,11 @@ impl Tool for CheckMarkdownLinksTool {
                     "items": {"type": "string"},
                     "default": [],
                     "description": "URL patterns to ignore (e.g., 'localhost', '127.0.0.1')"
+                },
+                "skip_anchors": {
+                    "type": "boolean",
+                    "default": false,
+                    "description": "Skip anchor/heading validation (same-page and cross-file #fragment links)"
                 }
             },
             "required": ["path"]
@@ -676,13 +681,25 @@ impl Tool for CheckMarkdownLinksTool {
             })
             .unwrap_or_default();
 
+        let skip_anchors = args
+            .get("skip_anchors")
+            .and_then(|v| v.as_bool())
+            .unwrap_or(false);
+
         let guard = self.server.engine.read().await;
         let engine = guard
             .as_ref()
             .ok_or_else(|| MCPError::Internal("Engine not initialized".to_string()))?;
 
         let result = engine
-            .check_markdown_links(path, check_external, timeout, concurrent, &ignore_patterns)
+            .check_markdown_links(
+                path,
+                check_external,
+                timeout,
+                concurrent,
+                &ignore_patterns,
+                skip_anchors,
+            )
             .await;
         ToolResult::json(&result)
     }

@@ -3,6 +3,7 @@
 ## A Projection Report on How Autonomous AI Transforms Intelligence Tradecraft
 
 **Classification**: Policy Research - For Defensive Analysis
+
 **Prepared For**: Emerging Technology Risk Assessment (independent research)
 
 ### Document Control
@@ -273,63 +274,63 @@ Espionage has always existed and will continue to exist. The question is not whe
 - [Decision Summary](#decision-summary) *(Priority guidance for committee members)*
 - [Threat Model Summary](#threat-model-summary)
 
-1. [Introduction and Methodology](#introduction-and-methodology)
-2. [Definitions and Conceptual Framework](#definitions)
-3. [Theoretical Foundations](#theoretical-foundations)
+1. [Introduction and Methodology](#1-introduction-and-methodology)
+2. [Definitions and Conceptual Framework](#2-definitions-and-conceptual-framework)
+3. [Theoretical Foundations](#3-theoretical-foundations)
    - Compute-as-a-Weapon-System (with Inference Deflation)
    - Cost-of-Failure Asymmetry
    - The Linguistic Asymmetry Blind Spot
    - New Limiting Reagents: Chokepoints for Defenders
-4. [Historical Context: Intelligence Operations and Technology](#historical-context)
-5. [The Current Technological Landscape (Early 2026)](#technological-landscape)
-6. [The Intelligence Cycle: AI Augmentation Points](#intelligence-cycle)
-7. [AI-Enabled Targeting and Recruitment](#targeting-recruitment)
+4. [Historical Context: Intelligence Operations and Technology](#4-historical-context-intelligence-operations-and-technology)
+5. [The Current Technological Landscape (Early 2026)](#5-the-current-technological-landscape-early-2026)
+6. [The Intelligence Cycle: AI Augmentation Points](#6-the-intelligence-cycle-ai-augmentation-points)
+7. [AI-Enabled Targeting and Recruitment](#7-ai-enabled-targeting-and-recruitment)
    - State vs. Industrial Espionage (Weight-Jacking)
-   - 7b. [Pattern-of-Life Analysis and OSINT Synthesis](#pattern-of-life)
-   - 7c. [Social Engineering at Scale](#social-engineering)
+   - 7b. [Pattern-of-Life Analysis and OSINT Synthesis](#7b-pattern-of-life-analysis-and-osint-synthesis)
+   - 7c. [Social Engineering at Scale](#7c-social-engineering-at-scale)
      - Polymorphic Social Engineering (MGM/Caesars Evolution)
      - Post-Trust Recruitment: Gamified Espionage
-8. [The Trust Deficit: Limits of Synthetic Handlers](#trust-deficit)
+8. [The Trust Deficit: Limits of Synthetic Handlers](#8-the-trust-deficit-limits-of-synthetic-handlers)
    - Deepfake Paranoia Counter-Effect
    - Digital-First Assets and Siloed Specialists
    - The Algorithmic Confessional
    - The Centaur Handler Model (Human as Auditor)
    - State-Drift: The Decay Problem in Autonomous Personas
    - Validation Gap, IPV Black Market, and Physical Proxies
-9. [The Signal-to-Noise War](#signal-noise-war)
+9. [The Signal-to-Noise War](#9-the-signal-to-noise-war)
    - Model Collapse Problem (scenario calibration)
    - Walled-Garden Provenance Islands
    - Model Fingerprinting Attribution (with constraints)
-10. [Jurisdictional and Legal Complexities](#jurisdictional)
+10. [Jurisdictional and Legal Complexities](#10-jurisdictional-and-legal-complexities)
     - Legal Blowback and Agent Hallucination
     - Corporate vs. State Espionage Frameworks
     - The "Legal Dark Lung"
     - Labor Law Constraints on Defensive Countermeasures
-11. [The Counterintelligence Challenge](#counterintelligence-challenge)
+11. [The Counterintelligence Challenge](#11-the-counterintelligence-challenge)
     - Defender's Advantage Levers
-12. [Defensive AI and Counter-AI Operations](#defensive-ai)
+12. [Defensive AI and Counter-AI Operations](#12-defensive-ai-and-counter-ai-operations)
     - Honey-Prompts: Prompt Injection as Defensive Perimeter
     - Beyond Detection: Recovery and Resilience
-13. [The Insider Threat 2.0: Stasi-in-a-Box](#insider-threat)
+13. [The Insider Threat 2.0: Stasi-in-a-Box](#13-the-insider-threat-20-stasi-in-a-box)
     - Corporate Operational Risk Framing
     - Predictive Attrition Management
     - Recursive Loyalty Feedback Loops
     - Algorithmic Due Process
     - Minimum Viable Safeguards
-14. [Threat Actor Taxonomy](#threat-actors)
+14. [Threat Actor Taxonomy](#14-threat-actor-taxonomy)
     - Espionage-as-a-Service (EaaS)
     - Third-Party Rule Erosion
-15. [Emerging Threat Vectors](#emerging-threats)
+15. [Emerging Threat Vectors](#15-emerging-threat-vectors)
     - NPU-Enabled Edge Espionage: The Local LLM Threat
     - Shadow AI: Trojan Productivity Tools (with taxonomy)
     - Biometric Vacuum / Real-time Polygraph
     - Credential-Centric Espionage
-16. [Counterarguments and Alternative Perspectives](#counterarguments)
+16. [Counterarguments and Alternative Perspectives](#16-counterarguments-and-alternative-perspectives)
     - Defender Incentives Problem + Compliance vs. Security Trap
     - Verification Inflation
     - Human Factors in CI
-17. [Projected Timeline: 2026-2030](#timeline)
-18. [Policy Recommendations and Defensive Measures](#policy-recommendations)
+17. [Projected Timeline: 2026-2030](#17-projected-timeline-2026-2030)
+18. [Policy Recommendations and Defensive Measures](#18-policy-recommendations-and-defensive-measures)
     - Part A: Technical Countermeasures + AI Supply Chain Governance
     - Executive Protection in the AI Era
     - Platform Chokepoint Engagement
@@ -338,10 +339,10 @@ Espionage has always existed and will continue to exist. The question is not whe
     - Control Maturity Ladder (Bronze/Silver/Gold with KPIs)
     - Insurance Driver for Gold Adoption
     - Red vs. Blue Countermeasures Matrix
-19. [Signals and Early Indicators](#signals)
+19. [Signals and Early Indicators](#19-signals-and-early-indicators)
     - Falsifiability Indicators for Offense-Defense Balance
-20. [Uncertainties and Alternative Scenarios](#uncertainties)
-21. [Conclusion](#conclusion)
+20. [Uncertainties and Alternative Scenarios](#20-uncertainties-and-alternative-scenarios)
+21. [Conclusion](#21-conclusion)
     - The Centaur, Not the Robot
 
 **Appendices:**
@@ -352,8 +353,7 @@ Espionage has always existed and will continue to exist. The question is not whe
 
 ---
 
-## 1. Introduction and Methodology {#introduction-and-methodology}
-
+## 1. Introduction and Methodology
 ### Purpose
 
 Intelligence operations - the collection of information through human sources, signals interception, and open-source analysis - have shaped history from the courts of ancient empires to the Cold War and beyond. Each technological era has altered the methods, accessibility, and scale of espionage. We are now entering an era where autonomous AI agents capable of complex multi-step planning, sustained relationship management, and real-time adaptation become widely accessible.
@@ -392,8 +392,7 @@ We deliberately avoid:
 
 ---
 
-## 2. Definitions and Conceptual Framework {#definitions}
-
+## 2. Definitions and Conceptual Framework
 ### Core Definitions
 
 **AI Agent**: An AI system capable of autonomous multi-step task execution, tool use, persistent memory, and goal-directed behavior with minimal human oversight per action. Distinguished from:
@@ -444,8 +443,7 @@ AI agents can augment or automate portions of each phase, with particularly sign
 
 ---
 
-## 3. Theoretical Foundations {#theoretical-foundations}
-
+## 3. Theoretical Foundations
 ### Power Diffusion Theory
 
 **Audrey Kurth Cronin's "Power to the People" (2020)** provides essential context. Cronin argues that each technological era redistributes capabilities previously concentrated in state hands. AI represents the latest such redistribution, potentially enabling non-state actors to conduct intelligence operations at scales previously requiring state resources.
@@ -599,8 +597,7 @@ This reframes defense from "detect AI" to "make AI operations expensive and dete
 
 ---
 
-## 4. Historical Context: Intelligence Operations and Technology {#historical-context}
-
+## 4. Historical Context: Intelligence Operations and Technology
 ### Technology and the Evolution of Tradecraft
 
 Each technological era has transformed intelligence operations:
@@ -663,8 +660,7 @@ Across eras:
 
 ---
 
-## 5. The Current Technological Landscape (Early 2026) {#technological-landscape}
-
+## 5. The Current Technological Landscape (Early 2026)
 ### The 2023-2026 Capability Shift
 
 The AI capability landscape has shifted qualitatively since the initial drafting of this report. The following table summarizes the most operationally significant changes:
@@ -765,8 +761,7 @@ Evidence regarding AI-assisted intelligence operations, categorized by confidenc
 
 ---
 
-## 6. The Intelligence Cycle: AI Augmentation Points {#intelligence-cycle}
-
+## 6. The Intelligence Cycle: AI Augmentation Points
 ### Direction Phase
 
 **Traditional**: Human analysts identify collection priorities based on policy requirements.
@@ -841,8 +836,7 @@ Evidence regarding AI-assisted intelligence operations, categorized by confidenc
 
 ---
 
-## 7. AI-Enabled Targeting and Recruitment {#targeting-recruitment}
-
+## 7. AI-Enabled Targeting and Recruitment
 ### The Recruitment Funnel: Traditional vs. AI-Enabled
 
 **Traditional Recruitment Funnel:**
@@ -951,8 +945,7 @@ This particularly impacts organizations with globally distributed personnel.
 
 ---
 
-## 7b. Pattern-of-Life Analysis and OSINT Synthesis {#pattern-of-life}
-
+## 7b. Pattern-of-Life Analysis and OSINT Synthesis
 ### The Data Landscape
 
 Modern individuals generate extensive high-fidelity behavioral telemetry:
@@ -1009,8 +1002,7 @@ This creates attribution challenges for counterintelligence.
 
 ---
 
-## 7c. Social Engineering at Scale {#social-engineering}
-
+## 7c. Social Engineering at Scale
 ### From Artisanal to Industrial
 
 Traditional social engineering:
@@ -1127,8 +1119,7 @@ No single participant has committed espionage. Collectively, they've mapped the 
 
 ---
 
-## 8. The Trust Deficit: Limits of Synthetic Handlers {#trust-deficit}
-
+## 8. The Trust Deficit: Limits of Synthetic Handlers
 ### The Physicality Gap (Traditional View)
 
 The report's central thesis requires important qualification. High-level HUMINT often requires what might be called a "suicide pact" of mutual risk. A human asset risking execution for treason often needs to look their handler in the eye to feel a sense of protection or shared fate.
@@ -1364,8 +1355,7 @@ This creates the impression of physical proximity without actual presence—the 
 
 ---
 
-## 9. The Signal-to-Noise War {#signal-noise-war}
-
+## 9. The Signal-to-Noise War
 *When everyone has AI spies, finding real intelligence becomes like drinking from a firehose of fakes.*
 
 ### The Model Collapse Problem
@@ -1474,8 +1464,7 @@ This creates an ongoing adversarial dynamic where detection and evasion capabili
 
 ---
 
-## 10. Jurisdictional and Legal Complexities {#jurisdictional}
-
+## 10. Jurisdictional and Legal Complexities
 ### The Attribution Nightmare
 
 If an AI agent hosted on a server in Iceland recruits an asset in Virginia to steal secrets for a client in Brazil, who has committed the crime?
@@ -1601,8 +1590,7 @@ AI-enabled operations provide enhanced plausible deniability:
 
 ---
 
-## 11. The Counterintelligence Challenge {#counterintelligence-challenge}
-
+## 11. The Counterintelligence Challenge
 ### Traditional Detection Methodologies
 
 Counterintelligence historically relies on:
@@ -1696,8 +1684,7 @@ Counterintelligence must develop new methodologies:
 
 ---
 
-## 12. Defensive AI and Counter-AI Operations {#defensive-ai}
-
+## 12. Defensive AI and Counter-AI Operations
 ### The Defensive AI Ecosystem
 
 As offensive AI capabilities mature, defensive applications are emerging:
@@ -1837,8 +1824,7 @@ If an organization suspects AI agents are scraping its public-facing data or int
 
 ---
 
-## 13. The Insider Threat 2.0: Stasi-in-a-Box {#insider-threat}
-
+## 13. The Insider Threat 2.0: Stasi-in-a-Box
 ### Internal Surveillance Applications
 
 The document has focused primarily on external recruitment operations. However, AI agents can equally enable *internal* surveillance—automated monitoring of employees for indicators of disloyalty, potential recruitment by adversaries, or policy violations.
@@ -1983,8 +1969,7 @@ The same AI capabilities that enable *defensive* counterintelligence also enable
 
 ---
 
-## 14. Threat Actor Taxonomy {#threat-actors}
-
+## 14. Threat Actor Taxonomy
 ### Actor Tiers
 
 | Tier | Description | Pre-AI Capability | AI-Enabled Shift |
@@ -2078,8 +2063,7 @@ A critical category missing from traditional state-centric analysis: **commercia
 
 ---
 
-## 15. Emerging Threat Vectors {#emerging-threats}
-
+## 15. Emerging Threat Vectors
 ### The Quantum-Agent Intersection
 
 As we approach 2030, AI-enabled espionage intersects with quantum computing threats:
@@ -2289,8 +2273,7 @@ AI agents with access to biometric data can exploit real-time emotional states:
 
 ---
 
-## 16. Counterarguments and Alternative Perspectives {#counterarguments}
-
+## 16. Counterarguments and Alternative Perspectives
 ### The Quality Objection
 
 **Argument**: AI-enabled operations may achieve scale but lack the depth and nuance of human handler relationships. High-value assets require genuine trust built over years, which AI cannot replicate.
@@ -2401,8 +2384,7 @@ A critical failure mode: Organizations implement "Bronze" level controls *to pas
 
 ---
 
-## 17. Projected Timeline: 2026-2030 {#timeline}
-
+## 17. Projected Timeline: 2026-2030
 ### Current Situation (Early 2026)
 
 - Commercial AI agents capable of sustained persona maintenance across weeks-to-months of interaction **[O]**
@@ -2440,8 +2422,7 @@ A critical failure mode: Organizations implement "Bronze" level controls *to pas
 
 ---
 
-## 18. Policy Recommendations and Defensive Measures {#policy-recommendations}
-
+## 18. Policy Recommendations and Defensive Measures
 ### Part A: Technical Countermeasures (For Security Teams)
 
 **Priority 1: OSINT Footprint Reduction**
@@ -2686,8 +2667,7 @@ A critical failure mode: Organizations implement "Bronze" level controls *to pas
 
 ---
 
-## 19. Signals and Early Indicators {#signals}
-
+## 19. Signals and Early Indicators
 ### Indicators of Increasing Threat
 
 - Increase in reported sophisticated social engineering attempts
@@ -2734,8 +2714,7 @@ A critical failure mode: Organizations implement "Bronze" level controls *to pas
 
 ---
 
-## 20. Uncertainties and Alternative Scenarios {#uncertainties}
-
+## 20. Uncertainties and Alternative Scenarios
 ### Key Uncertainties
 
 1. **AI capability trajectory**: Will capabilities continue improving at current rates?
@@ -2757,8 +2736,7 @@ A critical failure mode: Organizations implement "Bronze" level controls *to pas
 
 ---
 
-## 21. Conclusion {#conclusion}
-
+## 21. Conclusion
 The handler bottleneck that historically constrained HUMINT operations is being bypassed by AI agents capable of acting as scale-multiplying intermediaries. This transforms the operational logic of espionage from boutique cultivation to probabilistic exploitation—but with important caveats.
 
 ### The Centaur, Not the Robot
@@ -3039,5 +3017,7 @@ Traditional vulnerability research required human analysts to manually review ye
 ---
 
 **Document Version**: 2.0
+
 **Last Updated**: February 2026
+
 **Classification**: Policy Research - For Defensive Analysis
