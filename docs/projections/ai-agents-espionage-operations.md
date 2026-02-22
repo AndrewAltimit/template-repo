@@ -3,6 +3,7 @@
 ## A Projection Report on How Autonomous AI Transforms Intelligence Tradecraft
 
 **Classification**: Policy Research - For Defensive Analysis
+
 **Prepared For**: Emerging Technology Risk Assessment (independent research)
 
 ### Document Control

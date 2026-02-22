@@ -3,8 +3,11 @@
 ## A Projection Report on Emerging Risks to Global Security
 
 **Type**: Policy Research - Defensive Analysis
+
 **License**: MIT / Unlicense (Public Domain)
+
 **Version**: 2.0
+
 **Date**: February 2026
 
 ---

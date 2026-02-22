@@ -3,6 +3,7 @@
 ## The Verification Pivot: How Autonomous AI Transforms the Intelligence Community
 
 **Classification**: Policy Research - For Defensive Analysis
+
 **Prepared For**: Emerging Technology Risk Assessment (independent research)
 
 ### Document Control

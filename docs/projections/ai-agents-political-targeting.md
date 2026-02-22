@@ -3,9 +3,13 @@
 ## A Projection Report on Emerging Risks to Political Figures and Governmental Structures
 
 **Classification**: Policy Research - For Defensive Analysis
+
 **Prepared For**: Emerging Technology Risk Assessment (independent research)
+
 **Version**: 2.0
+
 **Date**: February 2026
+
 **Document ID**: ETRA-2026-PTR-001
 
 > **Independent Work**: This report is independent research. It is not affiliated with, produced by, or endorsed by any government agency, think tank, or official institution. The "ETRA" identifier is a document formatting convention, not an organizational identity. Analysis draws on publicly available academic and policy literature.

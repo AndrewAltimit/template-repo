@@ -3,9 +3,13 @@
 ## Money Laundering, Bribery, and Corruption: Risks and Defenses in an Autonomous Economy
 
 **Classification**: Policy Research - For Defensive Analysis
+
 **Prepared For**: Emerging Technology Risk Assessment (independent research)
+
 **Document ID**: ETRA-2025-FIN-001
+
 **Version**: 2.0
+
 **Date**: February 2026
 
 ---
@@ -13,7 +17,9 @@
 ## Decision Memo (Executive Summary)
 
 **For:** Policy Review
+
 **Re:** AI Agents and Financial System Integrity
+
 **Action Required:** Review recommendations and approve 90-day pilot program
 
 ---
