@@ -809,55 +809,61 @@ jobs:
 
             # Batch 1: Standalone tools (no shared deps)
             echo "=== Batch 1: Standalone tools ==="
-            build_tool tools/rust/pr-monitor pr-monitor pr-monitor &
-            build_tool tools/rust/gh-validator gh gh &
-            build_tool tools/rust/board-manager board-manager board-manager &
-            build_tool tools/rust/github-agents-cli github-agents github-agents &
-            build_tool tools/rust/git-guard git git-guard &
-            wait || FAIL=1
+            pids=()
+            build_tool tools/rust/pr-monitor pr-monitor pr-monitor & pids+=($!)
+            build_tool tools/rust/gh-validator gh gh & pids+=($!)
+            build_tool tools/rust/board-manager board-manager board-manager & pids+=($!)
+            build_tool tools/rust/github-agents-cli github-agents github-agents & pids+=($!)
+            build_tool tools/rust/git-guard git git-guard & pids+=($!)
+            for pid in "${pids[@]}"; do wait "$pid" || FAIL=1; done
 
             # Batch 2: More standalone tools
             echo "=== Batch 2: More standalone tools ==="
-            build_tool tools/rust/markdown-link-checker md-link-checker markdown-link-checker &
-            build_tool tools/rust/code-review-processor code-review-processor code-review-processor &
-            build_tool tools/rust/automation-cli automation-cli automation-cli &
-            build_tool packages/economic_agents economic-agents economic-agents &
-            wait || FAIL=1
+            pids=()
+            build_tool tools/rust/markdown-link-checker md-link-checker markdown-link-checker & pids+=($!)
+            build_tool tools/rust/code-review-processor code-review-processor code-review-processor & pids+=($!)
+            build_tool tools/rust/automation-cli automation-cli automation-cli & pids+=($!)
+            build_tool packages/economic_agents economic-agents economic-agents & pids+=($!)
+            for pid in "${pids[@]}"; do wait "$pid" || FAIL=1; done
 
             # Batch 3: MCP servers (group 1)
             echo "=== Batch 3: MCP servers group 1 ==="
-            build_tool tools/mcp/mcp_reaction_search mcp-reaction-search mcp-reaction-search &
-            build_tool tools/mcp/mcp_codex mcp-codex mcp-codex &
-            build_tool tools/mcp/mcp_gemini mcp-gemini mcp-gemini &
-            build_tool tools/mcp/mcp_crush mcp-crush mcp-crush &
-            build_tool tools/mcp/mcp_opencode mcp-opencode mcp-opencode &
-            wait || FAIL=1
+            pids=()
+            build_tool tools/mcp/mcp_reaction_search mcp-reaction-search mcp-reaction-search & pids+=($!)
+            build_tool tools/mcp/mcp_codex mcp-codex mcp-codex & pids+=($!)
+            build_tool tools/mcp/mcp_gemini mcp-gemini mcp-gemini & pids+=($!)
+            build_tool tools/mcp/mcp_crush mcp-crush mcp-crush & pids+=($!)
+            build_tool tools/mcp/mcp_opencode mcp-opencode mcp-opencode & pids+=($!)
+            for pid in "${pids[@]}"; do wait "$pid" || FAIL=1; done
 
             # Batch 4: MCP servers (group 2)
             echo "=== Batch 4: MCP servers group 2 ==="
-            build_tool tools/mcp/mcp_meme_generator mcp-meme-generator mcp-meme-generator &
-            build_tool tools/mcp/mcp_content_creation mcp-content-creation mcp-content-creation &
-            build_tool tools/mcp/mcp_code_quality mcp-code-quality mcp-code-quality &
-            build_tool tools/mcp/mcp_github_board mcp-github-board mcp-github-board &
-            wait || FAIL=1
+            pids=()
+            build_tool tools/mcp/mcp_meme_generator mcp-meme-generator mcp-meme-generator & pids+=($!)
+            build_tool tools/mcp/mcp_content_creation mcp-content-creation mcp-content-creation & pids+=($!)
+            build_tool tools/mcp/mcp_code_quality mcp-code-quality mcp-code-quality & pids+=($!)
+            build_tool tools/mcp/mcp_github_board mcp-github-board mcp-github-board & pids+=($!)
+            for pid in "${pids[@]}"; do wait "$pid" || FAIL=1; done
 
             # Batch 5: MCP servers (group 3)
             echo "=== Batch 5: MCP servers group 3 ==="
-            build_tool tools/mcp/mcp_elevenlabs_speech mcp-elevenlabs-speech mcp-elevenlabs-speech &
-            build_tool tools/mcp/mcp_agentcore_memory mcp-agentcore-memory mcp-agentcore-memory &
-            build_tool tools/mcp/mcp_desktop_control mcp-desktop-control mcp-desktop-control &
-            build_tool tools/mcp/mcp_blender mcp-blender mcp-blender &
-            wait || FAIL=1
+            pids=()
+            build_tool tools/mcp/mcp_elevenlabs_speech mcp-elevenlabs-speech mcp-elevenlabs-speech & pids+=($!)
+            build_tool tools/mcp/mcp_agentcore_memory mcp-agentcore-memory mcp-agentcore-memory & pids+=($!)
+            build_tool tools/mcp/mcp_desktop_control mcp-desktop-control mcp-desktop-control & pids+=($!)
+            build_tool tools/mcp/mcp_blender mcp-blender mcp-blender & pids+=($!)
+            for pid in "${pids[@]}"; do wait "$pid" || FAIL=1; done
 
             # Batch 6: Remaining MCP servers
             echo "=== Batch 6: Final MCP servers ==="
-            build_tool tools/mcp/mcp_comfyui mcp-comfyui mcp-comfyui &
-            build_tool tools/mcp/mcp_video_editor mcp-video-editor mcp-video-editor &
-            build_tool tools/mcp/mcp_ai_toolkit mcp-ai-toolkit mcp-ai-toolkit &
-            build_tool tools/mcp/mcp_virtual_character mcp-virtual-character mcp-virtual-character &
-            build_tool tools/mcp/mcp_gaea2 mcp-gaea2 mcp-gaea2 &
-            build_tool tools/mcp/mcp_memory_explorer mcp-memory-explorer mcp-memory-explorer &
-            wait || FAIL=1
+            pids=()
+            build_tool tools/mcp/mcp_comfyui mcp-comfyui mcp-comfyui & pids+=($!)
+            build_tool tools/mcp/mcp_video_editor mcp-video-editor mcp-video-editor & pids+=($!)
+            build_tool tools/mcp/mcp_ai_toolkit mcp-ai-toolkit mcp-ai-toolkit & pids+=($!)
+            build_tool tools/mcp/mcp_virtual_character mcp-virtual-character mcp-virtual-character & pids+=($!)
+            build_tool tools/mcp/mcp_gaea2 mcp-gaea2 mcp-gaea2 & pids+=($!)
+            build_tool tools/mcp/mcp_memory_explorer mcp-memory-explorer mcp-memory-explorer & pids+=($!)
+            for pid in "${pids[@]}"; do wait "$pid" || FAIL=1; done
 
             if [ "$FAIL" -ne 0 ]; then
               echo "One or more builds failed"

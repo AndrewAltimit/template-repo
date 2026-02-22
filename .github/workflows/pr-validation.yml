@@ -305,17 +305,19 @@ jobs:
 
           # Batch 1: smaller tools (independent workspaces)
           echo "=== Batch 1: github-agents, board-manager, git-guard ==="
-          build_tool tools/rust/github-agents-cli github-agents github-agents &
-          build_tool tools/rust/board-manager board-manager board-manager &
-          build_tool tools/rust/git-guard git git-guard &
-          wait || FAIL=1
+          pids=()
+          build_tool tools/rust/github-agents-cli github-agents github-agents & pids+=($!)
+          build_tool tools/rust/board-manager board-manager board-manager & pids+=($!)
+          build_tool tools/rust/git-guard git git-guard & pids+=($!)
+          for pid in "${pids[@]}"; do wait "$pid" || FAIL=1; done
 
           # Batch 2: medium tools (independent workspaces)
           echo "=== Batch 2: md-link-checker, code-review-processor, automation-cli ==="
-          build_tool tools/rust/markdown-link-checker md-link-checker md-link-checker &
-          build_tool tools/rust/code-review-processor code-review-processor code-review-processor &
-          build_tool tools/rust/automation-cli automation-cli automation-cli &
-          wait || FAIL=1
+          pids=()
+          build_tool tools/rust/markdown-link-checker md-link-checker md-link-checker & pids+=($!)
+          build_tool tools/rust/code-review-processor code-review-processor code-review-processor & pids+=($!)
+          build_tool tools/rust/automation-cli automation-cli automation-cli & pids+=($!)
+          for pid in "${pids[@]}"; do wait "$pid" || FAIL=1; done
 
           # Batch 3: MCP tools (shares mcp-core with code-quality)
           echo "=== Batch 3: mcp-gemini ==="
