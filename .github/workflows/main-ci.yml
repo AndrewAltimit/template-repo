@@ -84,7 +84,11 @@ jobs:
           echo "Analyzing changes..."
 
           # Handle different trigger types
-          if [ "${{ github.event_name }}" = "push" ]; then
+          # Tag pushes must force all jobs so release builds (wheels, binaries, PDFs) run
+          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            echo "Tag push trigger - forcing all jobs for release"
+            echo "force-all-jobs" > changed_files.txt
+          elif [ "${{ github.event_name }}" = "push" ]; then
             echo "Push trigger - comparing with previous commit"
             git diff --name-only HEAD~1..HEAD > changed_files.txt
           else
@@ -109,8 +113,8 @@ jobs:
           # MCP: server code and bridges
           mcp_count=$(grep -cE '(tools/mcp/|tools/cli/bridges/)' changed_files.txt || echo "0")
 
-          # Force all jobs on workflow_dispatch
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          # Force all jobs on workflow_dispatch or tag push (releases need full pipeline)
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] || [[ "${{ github.ref }}" == refs/tags/v* ]]; then
             python_count=1
             rust_count=1
             docs_count=1
