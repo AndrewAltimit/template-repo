@@ -1121,6 +1121,7 @@ jobs:
           - **AI Agents Institutional Erosion Report** - Risk assessment for AI agents eroding intelligence community monopolies
           - **Secure Terminal Briefcase** - Tamper-responsive briefcase system with PQC recovery
           - **AI Agent Containment & Infrastructure Security** - Isolation, trust-tiered execution, and physical security framework
+          - **BioForge CRISPR Automation** - Agent-driven biological automation platform documentation
           - **Architectural Qualia Paper** - Philosophical exploration of LLM phenomenology
 
           ### Rust Binaries
