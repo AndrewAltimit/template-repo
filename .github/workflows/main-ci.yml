@@ -964,6 +964,14 @@ jobs:
             architectural-qualia.tex \
             docs/philosophy/latex
 
+      - name: Build AI Agent Containment & Infrastructure Security
+        run: |
+          ./automation/ci-cd/build-latex-doc.sh \
+            ai-agent-containment-infrastructure-security-framework.tex \
+            docs/hardware/latex \
+            docs_output \
+            ai-agent-containment-infrastructure-security-framework
+
       - name: Build BioForge CRISPR Automation
         run: |
           ./automation/ci-cd/build-latex-doc.sh \
@@ -1112,6 +1120,8 @@ jobs:
           - **AI Agents Financial Integrity Report** - Risk assessment for AI agents in financial system integrity
           - **AI Agents Institutional Erosion Report** - Risk assessment for AI agents eroding intelligence community monopolies
           - **Secure Terminal Briefcase** - Tamper-responsive briefcase system with PQC recovery
+          - **AI Agent Containment & Infrastructure Security** - Isolation, trust-tiered execution, and physical security framework
+          - **BioForge CRISPR Automation** - Agent-driven biological automation platform documentation
           - **Architectural Qualia Paper** - Philosophical exploration of LLM phenomenology
 
           ### Rust Binaries

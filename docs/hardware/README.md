@@ -20,9 +20,19 @@ Agent-driven biological automation platform with Raspberry Pi 5, closed-loop exp
 - Multi-layer safety interlocks with immutable audit logging
 - **Implementation**: [`packages/bioforge/`](../../packages/bioforge/)
 
+### [AI Agent Containment & Infrastructure Security](./ai-agent-containment-infrastructure-security-framework.md)
+Practical framework for isolation, trust-tiered execution, and physical security for AI agent operations and frontier model training.
+- Tiered trust model (Tier 0--3) mapping agent risk to proportional containment
+- Network isolation via namespaces, containers, microVMs, and hardware air gaps
+- Input/output validation pipelines with cryptographic attestation
+- Physical security for frontier model training (facility access, TEMPEST, deception)
+- Compensating controls for resource-constrained environments
+
 | Document | PDF | Source |
 |----------|-----|--------|
+| AI Agent Containment & Infrastructure Security | [Download PDF](https://github.com/AndrewAltimit/template-repo/releases/latest) | [Markdown](./ai-agent-containment-infrastructure-security-framework.md) \| [LaTeX](./latex/ai-agent-containment-infrastructure-security-framework.tex) |
 | BioForge CRISPR Automation | [Download PDF](https://github.com/AndrewAltimit/template-repo/releases/latest) | [Markdown](./bioforge-crispr-automation.md) \| [LaTeX](./latex/bioforge-crispr-automation.tex) |
+| Secure Terminal Briefcase | [Download PDF](https://github.com/AndrewAltimit/template-repo/releases/latest) | [Markdown](./secure-terminal-briefcase.md) \| [LaTeX](./latex/secure-terminal-briefcase.tex) |
 
 ## Planned Systems
 

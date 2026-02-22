@@ -180,6 +180,7 @@ This renders as:
 
 ### Hardware
 - `docs/hardware/README.md` - Hardware systems overview
+- `docs/hardware/ai-agent-containment-infrastructure-security-framework.md` - AI agent containment and infrastructure security
 - `docs/hardware/secure-terminal-briefcase.md` - Tamper-responsive briefcase system
 - `docs/hardware/bioforge-crispr-automation.md` - Agent-driven biological automation platform
 
