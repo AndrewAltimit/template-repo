@@ -133,25 +133,25 @@ To prevent misreading, we explicitly clarify:
 
 ## Table of Contents
 
-1. [Introduction and Methodology](#introduction-and-methodology)
-2. [Theoretical Frameworks](#theoretical-frameworks)
-3. [The Current Technological Landscape (2025)](#the-technological-landscape)
-4. [Historical Context: WMD Development and Technology](#historical-context)
-5. [Biological Weapons: The Highest-Risk Domain](#biological-weapons)
-6. [Chemical Weapons: Procurement, Scaling, and Safety Barriers](#chemical-weapons)
-7. [Nuclear Weapons: Physical Barriers and Information Aggregation](#nuclear-weapons)
-8. [Gene Drives: Long-Horizon Governance Gap](#gene-drives)
-9. [Deployment Vectors: Aerosol Systems and Autonomous Delivery](#deployment-vectors)
-10. [The Cyber-Physical Convergence](#cyber-physical)
-11. [Counterarguments and Structural Barriers](#counterarguments)
-12. [The Attribution Problem](#attribution-problem)
-13. [International Variance](#international-variance)
-14. [Second-Order Effects](#second-order-effects)
-15. [Policy Recommendations by Stakeholder Type](#policy-recommendations)
-16. [Uncertainties and Alternative Scenarios](#uncertainties)
-17. [Signals and Early Indicators](#signals)
-18. [Civil Liberties and Research Freedom Considerations](#civil-liberties)
-19. [Conclusion](#conclusion)
+1. [Introduction and Methodology](#1-introduction-and-methodology)
+2. [Theoretical Frameworks](#2-theoretical-frameworks)
+3. [The Current Technological Landscape (2025)](#3-the-current-technological-landscape-2025)
+4. [Historical Context: WMD Development and Technology](#4-historical-context-wmd-development-and-technology)
+5. [Biological Weapons: The Highest-Risk Domain](#5-biological-weapons-the-highest-risk-domain)
+6. [Chemical Weapons: Procurement, Scaling, and Safety Barriers](#6-chemical-weapons-procurement-scaling-and-safety-barriers)
+7. [Nuclear Weapons: Physical Barriers and Information Aggregation](#7-nuclear-weapons-physical-barriers-and-information-aggregation)
+8. [Gene Drives: Long-Horizon Governance Gap](#8-gene-drives-long-horizon-governance-gap)
+9. [Deployment Vectors: Aerosol Systems and Autonomous Delivery](#9-deployment-vectors-aerosol-systems-and-autonomous-delivery)
+10. [The Cyber-Physical Convergence](#10-the-cyber-physical-convergence)
+11. [Counterarguments and Structural Barriers](#11-counterarguments-and-structural-barriers)
+12. [The Attribution Problem](#12-the-attribution-problem)
+13. [International Variance](#13-international-variance)
+14. [Second-Order Effects](#14-second-order-effects)
+15. [Policy Recommendations by Stakeholder Type](#15-policy-recommendations-by-stakeholder-type)
+16. [Uncertainties and Alternative Scenarios](#16-uncertainties-and-alternative-scenarios)
+17. [Signals and Early Indicators](#17-signals-and-early-indicators)
+18. [Civil Liberties and Research Freedom Considerations](#18-civil-liberties-and-research-freedom-considerations)
+19. [Conclusion](#19-conclusion)
 
 ---
 
@@ -184,8 +184,7 @@ Cross-references to these reports appear throughout this document where their an
 
 ---
 
-## 1. Introduction and Methodology {#introduction-and-methodology}
-
+## 1. Introduction and Methodology
 ### Purpose
 
 The development of weapons of mass destruction has historically required either state-level resources or exceptional individual expertise combined with significant infrastructure. The Manhattan Project employed over 125,000 people. Aum Shinrikyo, despite millions of dollars and multiple PhD scientists, failed to effectively weaponize biological agents. These historical constraints have provided a de facto barrier to WMD proliferation.
@@ -263,8 +262,7 @@ To avoid the misleading implication that "AI democratizes WMD to everyone," this
 
 ---
 
-## 2. Theoretical Frameworks {#theoretical-frameworks}
-
+## 2. Theoretical Frameworks
 This analysis draws on several established theoretical frameworks from security studies, biosecurity, and technology policy.
 
 ### Unified Risk Model
@@ -417,8 +415,7 @@ The balance varies significantly across WMD categories, which is why biological,
 
 ---
 
-## 3. The Current Technological Landscape (2025) {#the-technological-landscape}
-
+## 3. The Current Technological Landscape (2025)
 ### AI Agent Capabilities
 
 AI agents in early 2026 can:
@@ -628,8 +625,7 @@ Evidence regarding AI-assisted biosecurity threats, categorized by epistemic sta
 
 ---
 
-## 4. Historical Context: WMD Development and Technology {#historical-context}
-
+## 4. Historical Context: WMD Development and Technology
 ### State Programs: The Scale of Serious Capability
 
 Understanding what *actual* WMD programs required provides context for assessing AI's impact:
@@ -701,8 +697,7 @@ Each major technology shift has affected WMD accessibility differently:
 
 ---
 
-## 5. Biological Weapons: The Highest-Risk Domain {#biological-weapons}
-
+## 5. Biological Weapons: The Highest-Risk Domain
 ### Why Biological Represents the Greatest AI Risk
 
 Biological weapons represent the category where AI poses the most significant proliferation risk for several reasons:
@@ -850,8 +845,7 @@ AI could potentially assist with gain-of-function modifications:
 
 ---
 
-## 6. Chemical Weapons: Procurement, Scaling, and Safety Barriers {#chemical-weapons}
-
+## 6. Chemical Weapons: Procurement, Scaling, and Safety Barriers
 ### Chemical Weapons and AI: A Middle Ground
 
 Chemical weapons occupy an intermediate position in AI-related risk. **The dominant constraints are physical and operational, not informational**:
@@ -921,8 +915,7 @@ AI agents could provide "over-the-shoulder" guidance for synthesis:
 
 ---
 
-## 7. Nuclear Weapons: Physical Barriers and Information Aggregation {#nuclear-weapons}
-
+## 7. Nuclear Weapons: Physical Barriers and Information Aggregation
 ### Nuclear Weapons: The Strongest Physical Barriers
 
 Nuclear weapons remain the category with the strongest barriers to AI-enabled proliferation:
@@ -986,8 +979,7 @@ This is primarily a concern for state-level actors or state-supported groups rat
 
 ---
 
-## 8. Gene Drives: Long-Horizon Governance Gap {#gene-drives}
-
+## 8. Gene Drives: Long-Horizon Governance Gap
 > **Section Framing**: This section addresses a **strategic, long-horizon** concern rather than a near-term operational threat. Gene drives are included because:
 > - AI specifically accelerates the computational aspects of gene drive design
 > - No existing treaty framework addresses this vector
@@ -1102,8 +1094,7 @@ While no specific gene drive treaty exists, governance can build on existing fra
 
 ---
 
-## 9. Deployment Vectors: Aerosol Systems and Autonomous Delivery {#deployment-vectors}
-
+## 9. Deployment Vectors: Aerosol Systems and Autonomous Delivery
 ### Why Deployment Matters
 
 Even crude biological or chemical agents can cause significant harm with effective delivery. AI agents may contribute to deployment capabilities independent of weapon synthesis:
@@ -1166,8 +1157,7 @@ High-value infrastructure requires layered defense against delivery-focused atta
 
 ---
 
-## 10. The Cyber-Physical Convergence {#cyber-physical}
-
+## 10. The Cyber-Physical Convergence
 ### Beyond Synthesis: Attacking Existing Infrastructure
 
 The preceding sections focus on AI assistance for *creating* WMD. A distinct and underappreciated threat vector involves AI agents targeting the *control systems* of facilities that already contain dangerous materials.
@@ -1307,8 +1297,7 @@ Agentic AI workflows could assist WMD proliferation through sophisticated financ
 
 ---
 
-## 11. Counterarguments and Structural Barriers {#counterarguments}
-
+## 11. Counterarguments and Structural Barriers
 > **Note on Grounding**: The RAND Corporation's 2024 report *"The Operational Risks of AI in Large-Scale Biological Attacks"* argues that current AI risk levels remain relatively low due to persistent physical and tacit knowledge barriers. This section engages seriously with such counterarguments to maintain analytical balance.
 
 ### The Tacit Knowledge Argument
@@ -1489,8 +1478,7 @@ Agentic AI workflows could assist WMD proliferation through sophisticated financ
 
 ---
 
-## 12. The Attribution Problem {#attribution-problem}
-
+## 12. The Attribution Problem
 ### Why Attribution Matters
 
 Attribution - determining who is responsible for an attack - serves critical functions:
@@ -1594,8 +1582,7 @@ Attribution challenges suggest defensive strategy shifts:
 
 ---
 
-## 13. International Variance {#international-variance}
-
+## 13. International Variance
 ### Regulatory Landscape
 
 WMD-related AI risks vary significantly across jurisdictions:
@@ -1698,8 +1685,7 @@ Existing arms control frameworks face new challenges:
 
 ---
 
-## 14. Second-Order Effects {#second-order-effects}
-
+## 14. Second-Order Effects
 ### The Fear Effect and Overreaction
 
 The *perception* of AI-enabled WMD risk may cause harmful responses even without actual attacks:
@@ -1778,8 +1764,7 @@ WMD concerns affect public health systems:
 
 ---
 
-## 15. Policy Recommendations by Stakeholder Type {#policy-recommendations}
-
+## 15. Policy Recommendations by Stakeholder Type
 ### For Policy Makers
 
 | Priority | Action | Type | Implementation Mechanism | Key Challenge |
@@ -1875,8 +1860,7 @@ WMD concerns affect public health systems:
 
 ---
 
-## 16. Uncertainties and Alternative Scenarios {#uncertainties}
-
+## 16. Uncertainties and Alternative Scenarios
 ### Key Uncertainties
 
 1. **AI capability trajectory**: Development could be faster or slower than projected
@@ -2057,8 +2041,7 @@ Outcome: Fundamental restructuring of AI governance; potential technology restri
 
 ---
 
-## 17. Signals and Early Indicators {#signals}
-
+## 17. Signals and Early Indicators
 ### Leading Indicators to Monitor
 
 #### Capability Indicators
@@ -2138,8 +2121,7 @@ Events that would significantly alter assessment:
 
 ---
 
-## 18. Civil Liberties and Research Freedom Considerations {#civil-liberties}
-
+## 18. Civil Liberties and Research Freedom Considerations
 ### The Dual-Use Dilemma
 
 WMD concerns create pressure for restrictions that affect legitimate activities:
@@ -2196,8 +2178,7 @@ The goal is not to prevent all possible harm - that would require unacceptable r
 
 ---
 
-## 19. Conclusion {#conclusion}
-
+## 19. Conclusion
 ### Summary of Findings
 
 AI agents represent a significant shift in the WMD proliferation landscape, but the nature and magnitude of risk varies substantially across weapon categories:

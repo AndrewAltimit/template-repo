@@ -50,23 +50,23 @@ This projection explores how the proliferation of autonomous AI agents is alteri
 
 ## Table of Contents
 
-1. [Introduction and Methodology](#introduction-and-methodology)
-2. [Theoretical Frameworks](#theoretical-frameworks)
-3. [The Current Technological Landscape (2025)](#the-technological-landscape)
-4. [Historical Context: Political Violence and Technology](#historical-context)
-5. [Current Situation and Projected Timeline: 2026-2030](#projected-timeline)
-6. [How AI Agents Change the Risk Calculus](#risk-calculus-shift)
-7. [Counterarguments and Critical Perspectives](#counterarguments)
-8. [A Taxonomy of AI-Enabled Targeting](#targeting-taxonomy)
-9. [Governmental Adaptation: The Diffusion Hypothesis](#governmental-adaptation)
-10. [Second-Order Effects on Authoritarianism and Democracy](#second-order-effects)
-11. [The Fear Environment](#the-fear-environment)
-12. [International Variance](#international-variance)
-13. [Policy Recommendations and Defensive Measures](#policy-recommendations)
-14. [Uncertainties and Alternative Scenarios](#uncertainties)
-15. [Signals and Early Indicators](#signals)
-16. [Civil Liberties Guardrails](#guardrails)
-17. [Conclusion](#conclusion)
+1. [Introduction and Methodology](#1-introduction-and-methodology)
+2. [Theoretical Frameworks](#2-theoretical-frameworks)
+3. [The Current Technological Landscape (2025)](#3-the-current-technological-landscape-early-2026)
+4. [Historical Context: Political Violence and Technology](#4-historical-context-political-violence-and-technology)
+5. [Current Situation and Projected Timeline: 2026-2030](#5-current-situation-and-projected-timeline-2026-2030)
+6. [How AI Agents Change the Risk Calculus](#6-how-ai-agents-change-the-risk-calculus)
+7. [Counterarguments and Critical Perspectives](#7-counterarguments-and-critical-perspectives)
+8. [A Taxonomy of AI-Enabled Targeting](#8-a-taxonomy-of-ai-enabled-targeting)
+9. [Governmental Adaptation: The Diffusion Hypothesis](#9-governmental-adaptation-the-diffusion-hypothesis)
+10. [Second-Order Effects on Authoritarianism and Democracy](#10-second-order-effects-on-authoritarianism-and-democracy)
+11. [The Fear Environment](#11-the-fear-environment)
+12. [International Variance](#12-international-variance)
+13. [Policy Recommendations and Defensive Measures](#13-policy-recommendations-and-defensive-measures)
+14. [Uncertainties and Alternative Scenarios](#14-uncertainties-and-alternative-scenarios)
+15. [Signals and Early Indicators](#15-signals-and-early-indicators)
+16. [Civil Liberties Guardrails](#16-civil-liberties-guardrails)
+17. [Conclusion](#17-conclusion)
 
 ---
 
@@ -82,8 +82,7 @@ This projection explores how the proliferation of autonomous AI agents is alteri
 
 ---
 
-## 1. Introduction and Methodology {#introduction-and-methodology}
-
+## 1. Introduction and Methodology
 ### Purpose
 
 Political assassination has shaped history from Julius Caesar to the present day. Each technological era has altered the methods, accessibility, and risk profiles of political violence. We are now entering an era where autonomous AI agents capable of complex multi-step planning, information synthesis, and real-time adaptation become widely accessible.
@@ -129,8 +128,7 @@ We deliberately avoid:
 
 ---
 
-## 2. Theoretical Frameworks {#theoretical-frameworks}
-
+## 2. Theoretical Frameworks
 This analysis draws on several established theoretical frameworks from security studies, political science, and technology policy.
 
 ### Power Diffusion Theory
@@ -193,8 +191,7 @@ The concept of **stochastic terrorism** - the use of mass communication to incit
 
 ---
 
-## 3. The Current Technological Landscape (Early 2026) {#the-technological-landscape}
-
+## 3. The Current Technological Landscape (Early 2026)
 ### Present Capabilities
 
 AI agents as of early 2026 can:
@@ -271,8 +268,7 @@ A critical dynamic: once a capability exists at the frontier, it proliferates to
 
 ---
 
-## 4. Historical Context: Political Violence and Technology {#historical-context}
-
+## 4. Historical Context: Political Violence and Technology
 ### Technology Shifts and Political Violence Patterns
 
 Each major technological shift has altered the accessibility and character of political violence:
@@ -315,8 +311,7 @@ AI agents represent the next such shift. The question is not whether it changes 
 
 ---
 
-## 5. Current Situation and Projected Timeline: 2026-2030 {#projected-timeline}
-
+## 5. Current Situation and Projected Timeline: 2026-2030
 The following represents our assessment of the current situation and median projection forward. Significant uncertainty exists; see Section 14 for alternative scenarios.
 
 ### Current Situation (Late 2025): Capability Threshold Already Crossed
@@ -408,8 +403,7 @@ The longer-term period sees more fundamental institutional changes:
 
 ---
 
-## 6. How AI Agents Change the Risk Calculus {#risk-calculus-shift}
-
+## 6. How AI Agents Change the Risk Calculus
 ### The Traditional Attack Requirements
 
 Historically, attacks on protected political figures required some combination of:
@@ -521,8 +515,7 @@ The preceding analysis treats offensive and defensive AI as independent capabili
 
 ---
 
-## 7. Counterarguments and Critical Perspectives {#counterarguments}
-
+## 7. Counterarguments and Critical Perspectives
 Intellectual honesty requires addressing arguments that challenge our core theses. The following perspectives complicate or potentially contradict the analysis above.
 
 ### The Panopticon Counter-Thesis
@@ -688,8 +681,7 @@ Standard security awareness training teaches recognition of *generic* phishing. 
 
 **Our assessment**: This represents a qualitatively different threat model than human-directed AI assistance. Regulatory frameworks focused on "intent" may be inadequate. The combination of stochastic terrorism dynamics, AI optimization, and near-zero-cost synthetic handlers creates radicalization infrastructure that scales without organizational signatures.
 
-### The Delegation Defense and Plausible Deniability 2.0 {#delegation-defense}
-
+### The Delegation Defense and Plausible Deniability 2.0
 *Cross-reference: ETRA-2026-IC-001 (Institutional Erosion), ETRA-2025-AEA-001 (Economic Actors)*
 
 A critical analytical gap in v1.1: when states or sophisticated actors deploy AI agents that autonomously develop attack methodologies, the principal can claim the agent "derived" the approach independently. This creates a legal and diplomatic sinkhole:
@@ -713,8 +705,7 @@ A critical analytical gap in v1.1: when states or sophisticated actors deploy AI
 
 **Policy Implication:** International frameworks must evolve beyond intent-based liability toward outcome-based or capability-based accountability. If you deploy an autonomous agent with the capability to target political figures, you bear responsibility for the agent's actions regardless of stated objectives.
 
-### Digital Twins for Attack Rehearsal {#digital-twins}
-
+### Digital Twins for Attack Rehearsal
 AI agents can construct detailed models of targets' environments, security patterns, and decision-making processes from publicly available data, then run thousands of simulated attack scenarios to optimize approach vectors. This represents a qualitatively different planning capability:
 
 **What Digital Twin Rehearsal Enables:**
@@ -782,8 +773,7 @@ Chaos agents violate these assumptions:
 
 ---
 
-## 8. A Taxonomy of AI-Enabled Targeting {#targeting-taxonomy}
-
+## 8. A Taxonomy of AI-Enabled Targeting
 We distinguish four categories of targeting with significantly different dynamics and defenses.
 
 ### Reputational Targeting (Digital Assassination)
@@ -810,8 +800,7 @@ We distinguish four categories of targeting with significantly different dynamic
 - Legal frameworks for synthetic media
 - Public inoculation and media literacy
 
-### Epistemic Contamination (Information Environment Degradation) {#epistemic-contamination}
-
+### Epistemic Contamination (Information Environment Degradation)
 *Cross-reference: ETRA-2026-IC-001 (Institutional Erosion) -- "Verification Pivot"*
 
 **Definition**: Using AI to degrade the information environment so thoroughly that no claims about any political figure can be reliably verified. Distinct from reputational targeting because the goal is not to attack a specific person's reputation but to destroy the epistemic infrastructure that makes verification possible.
@@ -1009,8 +998,7 @@ We distinguish four categories of targeting with significantly different dynamic
 
 ---
 
-## 9. Governmental Adaptation: The Diffusion Hypothesis {#governmental-adaptation}
-
+## 9. Governmental Adaptation: The Diffusion Hypothesis
 ### The Core Thesis
 
 When targeting individual leaders becomes significantly easier, rational institutional adaptation involves reducing the value of targeting any single individual. We term this "decision diffusion" - the structural dispersion of political authority to reduce targeting incentives.
@@ -1185,8 +1173,7 @@ The "delayed disclosure" mechanisms in the Bright-Line Rule, while legally defen
 
 ---
 
-## 10. Second-Order Effects on Authoritarianism and Democracy {#second-order-effects}
-
+## 10. Second-Order Effects on Authoritarianism and Democracy
 ### The Fascism Reduction Hypothesis
 
 Certain forms of authoritarianism - particularly personality-cult fascism - require a singular leader as focal point. The hypothesis:
@@ -1230,8 +1217,7 @@ By 2027-2028, we anticipate significant academic and policy debate around:
 
 ---
 
-## 11. The Fear Environment {#the-fear-environment}
-
+## 11. The Fear Environment
 ### The Psychological Dimension
 
 Beyond structural changes, the awareness that AI enables easier political targeting may create:
@@ -1274,8 +1260,7 @@ Counter-dynamics:
 
 ---
 
-## 12. International Variance {#international-variance}
-
+## 12. International Variance
 ### Democracies vs. Authoritarian Systems
 
 **Democracies face greater challenge because:**
@@ -1441,8 +1426,7 @@ This real-world event **increases confidence** in the instability side of our pr
 
 ---
 
-## 13. Policy Recommendations and Defensive Measures {#policy-recommendations}
-
+## 13. Policy Recommendations and Defensive Measures
 ### Recommended Actions by Stakeholder Type
 
 #### For Policy Makers
@@ -1555,8 +1539,7 @@ The following recommendations apply to governments and large institutions broadl
 
 ---
 
-## 14. Uncertainties and Alternative Scenarios {#uncertainties}
-
+## 14. Uncertainties and Alternative Scenarios
 ### Key Uncertainties
 
 1. **Actual capability trajectory**: AI development could be faster or slower than projected
@@ -1677,8 +1660,7 @@ Probabilities are presented as conditional estimates under two assumption sets:
 
 ---
 
-## 15. Signals and Early Indicators {#signals}
-
+## 15. Signals and Early Indicators
 Committees require not just analysis but **monitoring frameworks**. This section provides observable indicators for tracking which scenarios are materializing.
 
 ### Leading Indicators (Monitor Over Next 6-18 Months)
@@ -1759,8 +1741,7 @@ Committees require not just analysis but **monitoring frameworks**. This section
 
 ---
 
-## 16. Civil Liberties Guardrails {#guardrails}
-
+## 16. Civil Liberties Guardrails
 This section specifies what defensive measures should **not** do, to prevent security adaptations from undermining the democratic values they aim to protect.
 
 ### Core Principles
@@ -1882,8 +1863,7 @@ Given that crisis conditions favor overreach, the time to establish limits is *b
 
 ---
 
-## 17. Conclusion {#conclusion}
-
+## 17. Conclusion
 ### Summary of Findings
 
 AI agents represent a significant shift in the threat landscape for political targeting -- not because they enable fundamentally new attacks, but because they dramatically reduce the organizational and capability requirements for complex attack planning. The conspiracy footprint shrinks; the detection window compresses; the attribution void widens.
