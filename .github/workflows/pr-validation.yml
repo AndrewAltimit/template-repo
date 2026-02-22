@@ -136,7 +136,7 @@ jobs:
           python_count=$(grep -E '\.(py)$' changed_files.txt | wc -l || echo "0")
           yaml_count=$(grep -E '\.(ya?ml|json)$' changed_files.txt | wc -l || echo "0")
           docker_count=$(grep -E '(Dockerfile|docker-compose\.yml|docker-compose\.yaml|\.dockerignore)' changed_files.txt | wc -l || echo "0")
-          mcp_count=$(grep -E '(mcp|MCP|tools/)' changed_files.txt | wc -l || echo "0")
+          mcp_count=$(grep -E '(tools/mcp/|tools/cli/bridges/)' changed_files.txt | wc -l || echo "0")
           docs_count=$(grep -E '\.(md|rst|txt)$' changed_files.txt | wc -l || echo "0")
           sleeper_count=$(grep -E '(packages/sleeper_agents|sleeper-evaluation)' changed_files.txt | wc -l || echo "0")
           dashboard_count=$(grep -E '(packages/sleeper_agents/dashboard)' changed_files.txt | wc -l || echo "0")
@@ -283,61 +283,51 @@ jobs:
           echo "cache_valid=$CACHE_VALID" >> $GITHUB_OUTPUT
           echo "Local cache valid: $CACHE_VALID"
 
-      - name: Build github-agents-cli
+      - name: Ensure nightly toolchain
         if: steps.local-cache.outputs.cache_valid != 'true' || needs.detect-changes.outputs.rust_tools_changed == 'true'
-        run: |
-          cd tools/rust/github-agents-cli
-          cargo build --release
-          cp target/release/github-agents "$RUST_CLI_CACHE/"
-          echo "Built and cached github-agents"
+        run: rustup install nightly --profile minimal 2>/dev/null || true
 
-      - name: Build board-manager
+      - name: Build Rust CLI tools (parallel batches)
         if: steps.local-cache.outputs.cache_valid != 'true' || needs.detect-changes.outputs.rust_tools_changed == 'true'
+        env:
+          RUSTFLAGS: '-Z threads=20'
         run: |
-          cd tools/rust/board-manager
-          cargo build --release
-          cp target/release/board-manager "$RUST_CLI_CACHE/"
-          echo "Built and cached board-manager"
+          build_tool() {
+            local dir="$1" binary="$2" cache_name="${3:-$2}"
+            echo "[BUILD] $cache_name from $dir"
+            (cd "$dir" && cargo +nightly build --release) && \
+              cp "$dir/target/release/$binary" "$RUST_CLI_CACHE/$cache_name" && \
+              echo "[DONE] $cache_name" || \
+              { echo "[FAIL] $cache_name"; return 1; }
+          }
 
-      - name: Build markdown-link-checker
-        if: steps.local-cache.outputs.cache_valid != 'true' || needs.detect-changes.outputs.rust_tools_changed == 'true'
-        run: |
-          cd tools/rust/markdown-link-checker
-          cargo build --release
-          cp target/release/md-link-checker "$RUST_CLI_CACHE/"
-          echo "Built and cached md-link-checker"
+          FAIL=0
 
-      - name: Build git-guard
-        if: steps.local-cache.outputs.cache_valid != 'true' || needs.detect-changes.outputs.rust_tools_changed == 'true'
-        run: |
-          cd tools/rust/git-guard
-          cargo build --release
-          cp target/release/git "$RUST_CLI_CACHE/git-guard"
-          echo "Built and cached git-guard"
+          # Batch 1: smaller tools (independent workspaces)
+          echo "=== Batch 1: github-agents, board-manager, git-guard ==="
+          pids=()
+          build_tool tools/rust/github-agents-cli github-agents github-agents & pids+=($!)
+          build_tool tools/rust/board-manager board-manager board-manager & pids+=($!)
+          build_tool tools/rust/git-guard git git-guard & pids+=($!)
+          for pid in "${pids[@]}"; do wait "$pid" || FAIL=1; done
 
-      - name: Build mcp-gemini
-        if: steps.local-cache.outputs.cache_valid != 'true' || needs.detect-changes.outputs.rust_tools_changed == 'true'
-        run: |
-          cd tools/mcp/mcp_gemini
-          cargo build --release
-          cp target/release/mcp-gemini "$RUST_CLI_CACHE/"
-          echo "Built and cached mcp-gemini"
+          # Batch 2: medium tools (independent workspaces)
+          echo "=== Batch 2: md-link-checker, code-review-processor, automation-cli ==="
+          pids=()
+          build_tool tools/rust/markdown-link-checker md-link-checker md-link-checker & pids+=($!)
+          build_tool tools/rust/code-review-processor code-review-processor code-review-processor & pids+=($!)
+          build_tool tools/rust/automation-cli automation-cli automation-cli & pids+=($!)
+          for pid in "${pids[@]}"; do wait "$pid" || FAIL=1; done
 
-      - name: Build code-review-processor
-        if: steps.local-cache.outputs.cache_valid != 'true' || needs.detect-changes.outputs.rust_tools_changed == 'true'
-        run: |
-          cd tools/rust/code-review-processor
-          cargo build --release
-          cp target/release/code-review-processor "$RUST_CLI_CACHE/"
-          echo "Built and cached code-review-processor"
+          # Batch 3: MCP tools (shares mcp-core with code-quality)
+          echo "=== Batch 3: mcp-gemini ==="
+          build_tool tools/mcp/mcp_gemini mcp-gemini mcp-gemini || FAIL=1
 
-      - name: Build automation-cli
-        if: steps.local-cache.outputs.cache_valid != 'true' || needs.detect-changes.outputs.rust_tools_changed == 'true'
-        run: |
-          cd tools/rust/automation-cli
-          cargo build --release
-          cp target/release/automation-cli "$RUST_CLI_CACHE/"
-          echo "Built and cached automation-cli"
+          if [ "$FAIL" -ne 0 ]; then
+            echo "One or more builds failed"
+            exit 1
+          fi
+          echo "All Rust CLI tools built successfully"
 
       - name: Stage binaries for workflow
         run: |
@@ -546,8 +536,7 @@ jobs:
       always() && !cancelled() &&
       needs.detect-changes.result == 'success' &&
       (needs.detect-changes.outputs.python_changed == 'true' ||
-       needs.detect-changes.outputs.mcp_changed == 'true' ||
-       !github.event.pull_request.draft)
+       needs.detect-changes.outputs.docker_python_ci_changed == 'true')
     uses: ./.github/workflows/lint-stages.yml
     with:
       stage: format
@@ -562,8 +551,7 @@ jobs:
       always() && !cancelled() &&
       needs.detect-changes.result == 'success' &&
       (needs.detect-changes.outputs.python_changed == 'true' ||
-       needs.detect-changes.outputs.mcp_changed == 'true' ||
-       !github.event.pull_request.draft)
+       needs.detect-changes.outputs.docker_python_ci_changed == 'true')
     uses: ./.github/workflows/lint-stages.yml
     with:
       stage: basic
@@ -578,8 +566,7 @@ jobs:
       always() && !cancelled() &&
       needs.detect-changes.result == 'success' &&
       (needs.detect-changes.outputs.python_changed == 'true' ||
-       needs.detect-changes.outputs.mcp_changed == 'true' ||
-       !github.event.pull_request.draft)
+       needs.detect-changes.outputs.docker_python_ci_changed == 'true')
     uses: ./.github/workflows/lint-stages.yml
     with:
       stage: full
@@ -593,8 +580,7 @@ jobs:
     if: |
       always() && !cancelled() &&
       needs.detect-changes.result == 'success' &&
-      (needs.detect-changes.outputs.docs_changed == 'true' ||
-       !github.event.pull_request.draft)
+      needs.detect-changes.outputs.docs_changed == 'true'
     uses: ./.github/workflows/lint-stages.yml
     with:
       stage: links
@@ -649,7 +635,7 @@ jobs:
       always() && !cancelled() &&
       needs.detect-changes.result == 'success' &&
       (needs.detect-changes.outputs.python_changed == 'true' ||
-       needs.detect-changes.outputs.mcp_changed == 'true') &&
+       needs.detect-changes.outputs.docker_python_ci_changed == 'true') &&
       !github.event.inputs.skip_tests
     runs-on: self-hosted
     timeout-minutes: 15
@@ -774,23 +760,67 @@ jobs:
       - name: Set Docker user environment
         run: source ./automation/setup/docker/set-docker-user.sh
 
+      - name: Compute MCP services to validate
+        id: mcp-services
+        run: |
+          SERVICES=""
+          HEALTH_ENDPOINTS=""
+          PORT_NAMES=""
+
+          # Add services based on per-image change flags
+          if [ "${{ needs.detect-changes.outputs.docker_code_quality_changed }}" = "true" ]; then
+            SERVICES="$SERVICES mcp-code-quality"
+            HEALTH_ENDPOINTS="http://localhost:8010/health"
+            PORT_NAMES="$PORT_NAMES 8010:Code_Quality"
+          fi
+          if [ "${{ needs.detect-changes.outputs.docker_content_changed }}" = "true" ]; then
+            SERVICES="$SERVICES mcp-content-creation"
+            if [ -z "$HEALTH_ENDPOINTS" ]; then HEALTH_ENDPOINTS="http://localhost:8011/health"; fi
+            PORT_NAMES="$PORT_NAMES 8011:Content_Creation"
+          fi
+          if [ "${{ needs.detect-changes.outputs.docker_gaea2_changed }}" = "true" ]; then
+            SERVICES="$SERVICES mcp-gaea2"
+            if [ -z "$HEALTH_ENDPOINTS" ]; then HEALTH_ENDPOINTS="http://localhost:8007/health"; fi
+            PORT_NAMES="$PORT_NAMES 8007:Gaea2"
+          fi
+
+          # Fall back to all services if mcp_changed but no specific docker flag matched
+          # (e.g., shared MCP code changed that isn't in a specific Dockerfile pattern)
+          if [ -z "$SERVICES" ]; then
+            echo "No specific MCP docker image flags matched -- falling back to all services"
+            SERVICES="mcp-code-quality mcp-content-creation mcp-gaea2"
+            HEALTH_ENDPOINTS="http://localhost:8010/health"
+            PORT_NAMES="8010:Code_Quality 8011:Content_Creation 8007:Gaea2"
+          fi
+
+          SERVICES=$(echo "$SERVICES" | xargs)
+          PORT_NAMES=$(echo "$PORT_NAMES" | xargs)
+          echo "services=$SERVICES" >> $GITHUB_OUTPUT
+          echo "health_endpoint=$HEALTH_ENDPOINTS" >> $GITHUB_OUTPUT
+          echo "port_names=$PORT_NAMES" >> $GITHUB_OUTPUT
+          echo "Selected MCP services: $SERVICES"
+          echo "Health endpoint: $HEALTH_ENDPOINTS"
+
       - name: Start modular MCP servers with health check
         uses: ./.github/actions/docker-compose-health-check
         with:
-          services: 'mcp-code-quality mcp-content-creation mcp-gaea2'
+          services: ${{ steps.mcp-services.outputs.services }}
           profiles: 'services'
-          health-endpoint: 'http://localhost:8010/health'
+          health-endpoint: ${{ steps.mcp-services.outputs.health_endpoint }}
           timeout: '60'
           build: 'true'
 
       - name: Test MCP servers functionality
+        env:
+          MCP_PORT_NAMES: ${{ steps.mcp-services.outputs.port_names }}
         run: |
           echo "Testing modular MCP servers..."
           ./automation/ci-cd/test-mcp-servers.sh || {
             # Fallback to inline test if script doesn't exist
-            for port_name in "8010:Code Quality" "8011:Content Creation" "8007:Gaea2"; do
+            for port_name in $MCP_PORT_NAMES; do
               port="${port_name%%:*}"
               name="${port_name#*:}"
+              name="${name//_/ }"
               echo "Testing $name MCP (port $port)..."
               for i in {1..15}; do
                 if curl -f "http://localhost:$port/health" 2>/dev/null; then
@@ -809,7 +839,7 @@ jobs:
 
       - name: View MCP server logs
         if: failure()
-        run: docker compose logs mcp-code-quality mcp-content-creation mcp-gaea2
+        run: docker compose logs ${{ steps.mcp-services.outputs.services }}
 
       - name: Stop MCP server
         if: always()
@@ -848,7 +878,7 @@ jobs:
     if: |
       always() && !cancelled() &&
       needs.detect-changes.result == 'success' &&
-      needs.detect-changes.outputs.mcp_changed == 'true'
+      needs.detect-changes.outputs.docker_gaea2_changed == 'true'
     uses: ./.github/workflows/gaea2-integration-tests.yml
     with:
       server_url: 'http://192.168.0.152:8007'
@@ -1303,16 +1333,41 @@ jobs:
           echo "| mcp-http-bridge | ${{ needs.detect-changes.outputs.docker_http_bridge_changed == 'true' && 'Built' || 'Skipped (no changes)' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| python-ci | ${{ needs.detect-changes.outputs.docker_python_ci_changed == 'true' && 'Built' || 'Skipped (no changes)' }} |" >> $GITHUB_STEP_SUMMARY
 
-      - name: Test Docker Compose with health check
+      - name: Compute services to health-check
+        id: docker-services
         if: |
           needs.detect-changes.outputs.docker_code_quality_changed == 'true' ||
           needs.detect-changes.outputs.docker_content_changed == 'true' ||
           needs.detect-changes.outputs.docker_gaea2_changed == 'true'
+        run: |
+          SERVICES=""
+          HEALTH_ENDPOINT=""
+
+          if [ "${{ needs.detect-changes.outputs.docker_code_quality_changed }}" = "true" ]; then
+            SERVICES="$SERVICES mcp-code-quality"
+            HEALTH_ENDPOINT="http://localhost:8010/health"
+          fi
+          if [ "${{ needs.detect-changes.outputs.docker_content_changed }}" = "true" ]; then
+            SERVICES="$SERVICES mcp-content-creation"
+            if [ -z "$HEALTH_ENDPOINT" ]; then HEALTH_ENDPOINT="http://localhost:8011/health"; fi
+          fi
+          if [ "${{ needs.detect-changes.outputs.docker_gaea2_changed }}" = "true" ]; then
+            SERVICES="$SERVICES mcp-gaea2"
+            if [ -z "$HEALTH_ENDPOINT" ]; then HEALTH_ENDPOINT="http://localhost:8007/health"; fi
+          fi
+
+          SERVICES=$(echo "$SERVICES" | xargs)
+          echo "services=$SERVICES" >> $GITHUB_OUTPUT
+          echo "health_endpoint=$HEALTH_ENDPOINT" >> $GITHUB_OUTPUT
+          echo "Docker validation services: $SERVICES"
+
+      - name: Test Docker Compose with health check
+        if: steps.docker-services.outputs.services != ''
         uses: ./.github/actions/docker-compose-health-check
         with:
-          services: 'mcp-code-quality mcp-content-creation mcp-gaea2'
+          services: ${{ steps.docker-services.outputs.services }}
           profiles: 'services'
-          health-endpoint: 'http://localhost:8010/health'
+          health-endpoint: ${{ steps.docker-services.outputs.health_endpoint }}
           timeout: '60'
           build: 'false'
 

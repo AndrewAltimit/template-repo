@@ -58,9 +58,89 @@ jobs:
             echo "No stale CI networks found"
           fi
 
+  # Stage 0.5: Change detection to skip unnecessary jobs
+  detect-changes:
+    name: Change Detection
+    needs: docker-network-cleanup
+    runs-on: self-hosted
+    timeout-minutes: 3
+    outputs:
+      python_changed: ${{ steps.changes.outputs.python_changed }}
+      rust_changed: ${{ steps.changes.outputs.rust_changed }}
+      docs_changed: ${{ steps.changes.outputs.docs_changed }}
+      docker_changed: ${{ steps.changes.outputs.docker_changed }}
+      mcp_changed: ${{ steps.changes.outputs.mcp_changed }}
+      sleeper_changed: ${{ steps.changes.outputs.sleeper_changed }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 2
+          clean: true
+
+      - name: Detect file changes
+        id: changes
+        run: |
+          echo "Analyzing changes..."
+
+          # Handle different trigger types
+          if [ "${{ github.event_name }}" = "push" ]; then
+            echo "Push trigger - comparing with previous commit"
+            git diff --name-only HEAD~1..HEAD > changed_files.txt
+          else
+            echo "Manual trigger - marking all as changed"
+            echo "force-all-jobs" > changed_files.txt
+          fi
+
+          echo "Changed files:"
+          cat changed_files.txt
+          echo ""
+
+          # Count different types of changes
+          python_count=$(grep -cE '\.(py)$' changed_files.txt || echo "0")
+          docs_count=$(grep -cE '\.(md|rst|txt)$' changed_files.txt || echo "0")
+          docker_count=$(grep -cE '(Dockerfile|docker-compose|\.dockerignore)' changed_files.txt || echo "0")
+          sleeper_count=$(grep -cE 'packages/sleeper_agents' changed_files.txt || echo "0")
+
+          # Rust: all Rust tool dirs, MCP servers, and workspace packages
+          RUST_PATTERN='tools/rust/|tools/mcp/|packages/economic_agents|packages/tamper_briefcase|packages/bioforge|Cargo\.toml|Cargo\.lock'
+          rust_count=$(grep -cE "$RUST_PATTERN" changed_files.txt || echo "0")
+
+          # MCP: server code and bridges
+          mcp_count=$(grep -cE '(tools/mcp/|tools/cli/bridges/)' changed_files.txt || echo "0")
+
+          # Force all jobs on workflow_dispatch
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            python_count=1
+            rust_count=1
+            docs_count=1
+            docker_count=1
+            mcp_count=1
+            sleeper_count=1
+          fi
+
+          # Set outputs
+          echo "python_changed=$([[ $python_count -gt 0 ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
+          echo "rust_changed=$([[ $rust_count -gt 0 ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
+          echo "docs_changed=$([[ $docs_count -gt 0 ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
+          echo "docker_changed=$([[ $docker_count -gt 0 ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
+          echo "mcp_changed=$([[ $mcp_count -gt 0 ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
+          echo "sleeper_changed=$([[ $sleeper_count -gt 0 ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
+
+          echo "[INFO] Change Summary:"
+          echo "  Python files: $python_count"
+          echo "  Rust files: $rust_count"
+          echo "  Documentation: $docs_count"
+          echo "  Docker files: $docker_count"
+          echo "  MCP files: $mcp_count"
+          echo "  Sleeper agents: $sleeper_count"
+
   # Stage 1: Format check
   format-check:
-    needs: docker-network-cleanup
+    needs: [docker-network-cleanup, detect-changes]
+    if: >-
+      needs.detect-changes.outputs.python_changed == 'true' ||
+      needs.detect-changes.outputs.docker_changed == 'true'
     uses: ./.github/workflows/lint-stages.yml
     with:
       stage: format
@@ -68,7 +148,11 @@ jobs:
 
   # Stage 2: Basic linting
   basic-lint:
-    needs: format-check
+    needs: [format-check, detect-changes]
+    if: >-
+      always() && !cancelled() &&
+      (needs.detect-changes.outputs.python_changed == 'true' ||
+       needs.detect-changes.outputs.docker_changed == 'true')
     uses: ./.github/workflows/lint-stages.yml
     with:
       stage: basic
@@ -76,7 +160,11 @@ jobs:
 
   # Stage 3: Full analysis
   full-lint:
-    needs: basic-lint
+    needs: [basic-lint, detect-changes]
+    if: >-
+      always() && !cancelled() &&
+      (needs.detect-changes.outputs.python_changed == 'true' ||
+       needs.detect-changes.outputs.docker_changed == 'true')
     uses: ./.github/workflows/lint-stages.yml
     with:
       stage: full
@@ -85,7 +173,11 @@ jobs:
   # Stage 4: Test suite execution
   test-suite:
     name: Test Suite
-    needs: basic-lint
+    needs: [basic-lint, detect-changes]
+    if: >-
+      always() && !cancelled() &&
+      (needs.detect-changes.outputs.python_changed == 'true' ||
+       needs.detect-changes.outputs.docker_changed == 'true')
     runs-on: self-hosted
     timeout-minutes: 20
     steps:
@@ -182,7 +274,8 @@ jobs:
   # Stage 4b: Rust CI (fmt + clippy + test across all workspaces)
   rust-ci:
     name: Rust CI
-    needs: docker-network-cleanup
+    needs: [docker-network-cleanup, detect-changes]
+    if: needs.detect-changes.outputs.rust_changed == 'true'
     runs-on: self-hosted
     timeout-minutes: 90
     steps:
@@ -217,7 +310,11 @@ jobs:
   # Stage 5: MCP servers validation
   mcp-validation:
     name: MCP Servers Validation
-    needs: basic-lint
+    needs: [basic-lint, detect-changes]
+    if: >-
+      always() && !cancelled() &&
+      (needs.detect-changes.outputs.mcp_changed == 'true' ||
+       needs.detect-changes.outputs.docker_changed == 'true')
     runs-on: self-hosted
     timeout-minutes: 10
     steps:
@@ -301,7 +398,10 @@ jobs:
   # Stage 6: Documentation build
   docs-build:
     name: Documentation Build
-    needs: basic-lint
+    needs: [basic-lint, detect-changes]
+    if: >-
+      always() && !cancelled() &&
+      needs.detect-changes.outputs.docs_changed == 'true'
     runs-on: self-hosted
     timeout-minutes: 10
     steps:
@@ -342,14 +442,21 @@ jobs:
   # Stage 7: sleeper agents Tests
   sleeper-agents-tests:
     name: sleeper agents Tests
-    needs: test-suite
+    needs: [test-suite, detect-changes]
+    if: >-
+      always() && !cancelled() &&
+      needs.detect-changes.outputs.sleeper_changed == 'true'
     uses: ./.github/workflows/sleeper-agents-tests.yml
     secrets: inherit
 
   # Stage 8: Security scanning
   security-scan:
     name: Security Scanning
-    needs: basic-lint
+    needs: [basic-lint, detect-changes]
+    if: >-
+      always() && !cancelled() &&
+      (needs.detect-changes.outputs.python_changed == 'true' ||
+       needs.detect-changes.outputs.docker_changed == 'true')
     runs-on: self-hosted
     timeout-minutes: 15
     steps:
@@ -425,7 +532,12 @@ jobs:
   # Uses build-push-action for proper multi-architecture (arm64/amd64) support
   build-images:
     name: Build Docker Images
-    needs: [format-check, basic-lint, full-lint, test-suite, mcp-validation]
+    needs: [format-check, basic-lint, full-lint, test-suite, mcp-validation, detect-changes]
+    if: >-
+      always() && !cancelled() &&
+      (needs.detect-changes.outputs.docker_changed == 'true' ||
+       needs.detect-changes.outputs.mcp_changed == 'true' ||
+       needs.detect-changes.outputs.python_changed == 'true')
     runs-on: self-hosted
     timeout-minutes: 45  # Increased timeout for arm64 builds
     permissions:
@@ -584,8 +696,10 @@ jobs:
   # Stage 11: Deploy (placeholder)
   deploy:
     name: Deploy to Production
-    needs: [build-images, integration-tests, security-scan, rust-ci]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: [build-images, integration-tests, security-scan, rust-ci, detect-changes]
+    if: >-
+      always() && !cancelled() &&
+      github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: self-hosted
     environment: production
     steps:
@@ -669,181 +783,93 @@ jobs:
       - name: Create output directory
         run: mkdir -p rust-binaries
 
-      # Build all Linux Rust binaries in a single container run to share cargo cache
+      # Build all Linux Rust binaries using parallel batches with nightly -Z threads
       # Uses rust-ci container which has libx11-dev for the overlay crate
       - name: Build all Rust binaries (Linux) via container
         run: |
-          echo "Building all Rust binaries using rust-ci container..."
+          echo "Building all Rust binaries using rust-ci container (nightly + parallel)..."
           docker compose --profile ci run --rm -w /app rust-ci bash -c '
-            set -e
+            set -euo pipefail
 
-            # Build pr-monitor
-            cd /app/tools/rust/pr-monitor
-            cargo build --release
-            cp target/release/pr-monitor /app/rust-binaries/pr-monitor-linux-x64
-            echo "Built pr-monitor for Linux x64"
+            # Use nightly for parallel frontend compilation
+            export RUSTFLAGS="-Z threads=20"
+            CARGO="cargo +nightly"
 
-            # Build gh-validator
-            cd /app/tools/rust/gh-validator
-            cargo build --release
-            cp target/release/gh /app/rust-binaries/gh-linux-x64
-            echo "Built gh-validator for Linux x64"
+            # Helper: build a single tool, track failures
+            build_tool() {
+              local dir="$1" binary="$2" output_name="$3"
+              echo "[BUILD] $output_name from $dir"
+              (cd "/app/$dir" && $CARGO build --release) && \
+                cp "/app/$dir/target/release/$binary" "/app/rust-binaries/$output_name-linux-x64" && \
+                echo "[DONE] $output_name" || \
+                { echo "[FAIL] $output_name"; return 1; }
+            }
 
-            # Build board-manager
-            cd /app/tools/rust/board-manager
-            cargo build --release
-            cp target/release/board-manager /app/rust-binaries/board-manager-linux-x64
-            echo "Built board-manager for Linux x64"
+            FAIL=0
 
-            # Build markdown-link-checker
-            cd /app/tools/rust/markdown-link-checker
-            cargo build --release
-            cp target/release/md-link-checker /app/rust-binaries/markdown-link-checker-linux-x64
-            echo "Built md-link-checker for Linux x64"
+            # Batch 1: Standalone tools (no shared deps)
+            echo "=== Batch 1: Standalone tools ==="
+            pids=()
+            build_tool tools/rust/pr-monitor pr-monitor pr-monitor & pids+=($!)
+            build_tool tools/rust/gh-validator gh gh & pids+=($!)
+            build_tool tools/rust/board-manager board-manager board-manager & pids+=($!)
+            build_tool tools/rust/github-agents-cli github-agents github-agents & pids+=($!)
+            build_tool tools/rust/git-guard git git-guard & pids+=($!)
+            for pid in "${pids[@]}"; do wait "$pid" || FAIL=1; done
 
-            # Build github-agents-cli
-            cd /app/tools/rust/github-agents-cli
-            cargo build --release
-            cp target/release/github-agents /app/rust-binaries/github-agents-linux-x64
-            echo "Built github-agents for Linux x64"
+            # Batch 2: More standalone tools
+            echo "=== Batch 2: More standalone tools ==="
+            pids=()
+            build_tool tools/rust/markdown-link-checker md-link-checker markdown-link-checker & pids+=($!)
+            build_tool tools/rust/code-review-processor code-review-processor code-review-processor & pids+=($!)
+            build_tool tools/rust/automation-cli automation-cli automation-cli & pids+=($!)
+            build_tool packages/economic_agents economic-agents economic-agents & pids+=($!)
+            for pid in "${pids[@]}"; do wait "$pid" || FAIL=1; done
 
-            # Build git-guard
-            cd /app/tools/rust/git-guard
-            cargo build --release
-            cp target/release/git /app/rust-binaries/git-guard-linux-x64
-            echo "Built git-guard for Linux x64"
+            # Batch 3: MCP servers (group 1)
+            echo "=== Batch 3: MCP servers group 1 ==="
+            pids=()
+            build_tool tools/mcp/mcp_reaction_search mcp-reaction-search mcp-reaction-search & pids+=($!)
+            build_tool tools/mcp/mcp_codex mcp-codex mcp-codex & pids+=($!)
+            build_tool tools/mcp/mcp_gemini mcp-gemini mcp-gemini & pids+=($!)
+            build_tool tools/mcp/mcp_crush mcp-crush mcp-crush & pids+=($!)
+            build_tool tools/mcp/mcp_opencode mcp-opencode mcp-opencode & pids+=($!)
+            for pid in "${pids[@]}"; do wait "$pid" || FAIL=1; done
 
-            # Build economic-agents CLI
-            cd /app/packages/economic_agents
-            cargo build --release --bin economic-agents
-            cp target/release/economic-agents /app/rust-binaries/economic-agents-linux-x64
-            echo "Built economic-agents for Linux x64"
+            # Batch 4: MCP servers (group 2)
+            echo "=== Batch 4: MCP servers group 2 ==="
+            pids=()
+            build_tool tools/mcp/mcp_meme_generator mcp-meme-generator mcp-meme-generator & pids+=($!)
+            build_tool tools/mcp/mcp_content_creation mcp-content-creation mcp-content-creation & pids+=($!)
+            build_tool tools/mcp/mcp_code_quality mcp-code-quality mcp-code-quality & pids+=($!)
+            build_tool tools/mcp/mcp_github_board mcp-github-board mcp-github-board & pids+=($!)
+            for pid in "${pids[@]}"; do wait "$pid" || FAIL=1; done
 
-            # Build mcp-reaction-search
-            cd /app/tools/mcp/mcp_reaction_search
-            cargo build --release
-            cp target/release/mcp-reaction-search /app/rust-binaries/mcp-reaction-search-linux-x64
-            echo "Built mcp-reaction-search for Linux x64"
+            # Batch 5: MCP servers (group 3)
+            echo "=== Batch 5: MCP servers group 3 ==="
+            pids=()
+            build_tool tools/mcp/mcp_elevenlabs_speech mcp-elevenlabs-speech mcp-elevenlabs-speech & pids+=($!)
+            build_tool tools/mcp/mcp_agentcore_memory mcp-agentcore-memory mcp-agentcore-memory & pids+=($!)
+            build_tool tools/mcp/mcp_desktop_control mcp-desktop-control mcp-desktop-control & pids+=($!)
+            build_tool tools/mcp/mcp_blender mcp-blender mcp-blender & pids+=($!)
+            for pid in "${pids[@]}"; do wait "$pid" || FAIL=1; done
 
-            # Build mcp-codex
-            cd /app/tools/mcp/mcp_codex
-            cargo build --release
-            cp target/release/mcp-codex /app/rust-binaries/mcp-codex-linux-x64
-            echo "Built mcp-codex for Linux x64"
+            # Batch 6: Remaining MCP servers
+            echo "=== Batch 6: Final MCP servers ==="
+            pids=()
+            build_tool tools/mcp/mcp_comfyui mcp-comfyui mcp-comfyui & pids+=($!)
+            build_tool tools/mcp/mcp_video_editor mcp-video-editor mcp-video-editor & pids+=($!)
+            build_tool tools/mcp/mcp_ai_toolkit mcp-ai-toolkit mcp-ai-toolkit & pids+=($!)
+            build_tool tools/mcp/mcp_virtual_character mcp-virtual-character mcp-virtual-character & pids+=($!)
+            build_tool tools/mcp/mcp_gaea2 mcp-gaea2 mcp-gaea2 & pids+=($!)
+            build_tool tools/mcp/mcp_memory_explorer mcp-memory-explorer mcp-memory-explorer & pids+=($!)
+            for pid in "${pids[@]}"; do wait "$pid" || FAIL=1; done
 
-            # Build mcp-gemini
-            cd /app/tools/mcp/mcp_gemini
-            cargo build --release
-            cp target/release/mcp-gemini /app/rust-binaries/mcp-gemini-linux-x64
-            echo "Built mcp-gemini for Linux x64"
-
-            # Build mcp-crush
-            cd /app/tools/mcp/mcp_crush
-            cargo build --release
-            cp target/release/mcp-crush /app/rust-binaries/mcp-crush-linux-x64
-            echo "Built mcp-crush for Linux x64"
-
-            # Build mcp-opencode
-            cd /app/tools/mcp/mcp_opencode
-            cargo build --release
-            cp target/release/mcp-opencode /app/rust-binaries/mcp-opencode-linux-x64
-            echo "Built mcp-opencode for Linux x64"
-
-            # Build mcp-meme-generator
-            cd /app/tools/mcp/mcp_meme_generator
-            cargo build --release
-            cp target/release/mcp-meme-generator /app/rust-binaries/mcp-meme-generator-linux-x64
-            echo "Built mcp-meme-generator for Linux x64"
-
-            # Build mcp-content-creation
-            cd /app/tools/mcp/mcp_content_creation
-            cargo build --release
-            cp target/release/mcp-content-creation /app/rust-binaries/mcp-content-creation-linux-x64
-            echo "Built mcp-content-creation for Linux x64"
-
-            # Build mcp-code-quality
-            cd /app/tools/mcp/mcp_code_quality
-            cargo build --release
-            cp target/release/mcp-code-quality /app/rust-binaries/mcp-code-quality-linux-x64
-            echo "Built mcp-code-quality for Linux x64"
-
-            # Build mcp-github-board
-            cd /app/tools/mcp/mcp_github_board
-            cargo build --release
-            cp target/release/mcp-github-board /app/rust-binaries/mcp-github-board-linux-x64
-            echo "Built mcp-github-board for Linux x64"
-
-            # Build mcp-elevenlabs-speech
-            cd /app/tools/mcp/mcp_elevenlabs_speech
-            cargo build --release
-            cp target/release/mcp-elevenlabs-speech /app/rust-binaries/mcp-elevenlabs-speech-linux-x64
-            echo "Built mcp-elevenlabs-speech for Linux x64"
-
-            # Build mcp-agentcore-memory
-            cd /app/tools/mcp/mcp_agentcore_memory
-            cargo build --release
-            cp target/release/mcp-agentcore-memory /app/rust-binaries/mcp-agentcore-memory-linux-x64
-            echo "Built mcp-agentcore-memory for Linux x64"
-
-            # Build mcp-desktop-control
-            cd /app/tools/mcp/mcp_desktop_control
-            cargo build --release
-            cp target/release/mcp-desktop-control /app/rust-binaries/mcp-desktop-control-linux-x64
-            echo "Built mcp-desktop-control for Linux x64"
-
-            # Build mcp-blender
-            cd /app/tools/mcp/mcp_blender
-            cargo build --release
-            cp target/release/mcp-blender /app/rust-binaries/mcp-blender-linux-x64
-            echo "Built mcp-blender for Linux x64"
-
-            # Build mcp-comfyui
-            cd /app/tools/mcp/mcp_comfyui
-            cargo build --release
-            cp target/release/mcp-comfyui /app/rust-binaries/mcp-comfyui-linux-x64
-            echo "Built mcp-comfyui for Linux x64"
-
-            # Build mcp-video-editor
-            cd /app/tools/mcp/mcp_video_editor
-            cargo build --release
-            cp target/release/mcp-video-editor /app/rust-binaries/mcp-video-editor-linux-x64
-            echo "Built mcp-video-editor for Linux x64"
-
-            # Build mcp-ai-toolkit
-            cd /app/tools/mcp/mcp_ai_toolkit
-            cargo build --release
-            cp target/release/mcp-ai-toolkit /app/rust-binaries/mcp-ai-toolkit-linux-x64
-            echo "Built mcp-ai-toolkit for Linux x64"
-
-            # Build code-review-processor
-            cd /app/tools/rust/code-review-processor
-            cargo build --release
-            cp target/release/code-review-processor /app/rust-binaries/code-review-processor-linux-x64
-            echo "Built code-review-processor for Linux x64"
-
-            # Build mcp-virtual-character
-            cd /app/tools/mcp/mcp_virtual_character
-            cargo build --release
-            cp target/release/mcp-virtual-character /app/rust-binaries/mcp-virtual-character-linux-x64
-            echo "Built mcp-virtual-character for Linux x64"
-
-            # Build mcp-gaea2
-            cd /app/tools/mcp/mcp_gaea2
-            cargo build --release
-            cp target/release/mcp-gaea2 /app/rust-binaries/mcp-gaea2-linux-x64
-            echo "Built mcp-gaea2 for Linux x64"
-
-            # Build mcp-memory-explorer
-            cd /app/tools/mcp/mcp_memory_explorer
-            cargo build --release
-            cp target/release/mcp-memory-explorer /app/rust-binaries/mcp-memory-explorer-linux-x64
-            echo "Built mcp-memory-explorer for Linux x64"
-
-            # Build automation-cli
-            cd /app/tools/rust/automation-cli
-            cargo build --release
-            cp target/release/automation-cli /app/rust-binaries/automation-cli-linux-x64
-            echo "Built automation-cli for Linux x64"
+            if [ "$FAIL" -ne 0 ]; then
+              echo "One or more builds failed"
+              exit 1
+            fi
+            echo "All 27 Rust binaries built successfully"
           '
 
       - name: List built binaries
