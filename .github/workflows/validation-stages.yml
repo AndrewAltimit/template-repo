@@ -65,6 +65,9 @@ jobs:
             echo "Built automation-cli"
           fi
 
+      - name: Clear stale GHCR credentials
+        run: docker logout ghcr.io 2>/dev/null || true
+
       # Config validation stage (YAML + JSON)
       - name: Validate YAML and JSON files
         if: inputs.stage == 'config'

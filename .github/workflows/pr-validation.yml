@@ -84,6 +84,9 @@ jobs:
               sudo rm -rf outputs evaluation_results .git/index.lock 2>/dev/null || true
           fi
 
+      - name: Clear stale GHCR credentials
+        run: docker logout ghcr.io 2>/dev/null || true
+
       - name: Clean up stale Docker networks
         run: |
           # Remove orphaned CI networks from previous runs to prevent
