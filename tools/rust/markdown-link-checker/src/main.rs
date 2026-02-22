@@ -147,11 +147,16 @@ fn github_slugify(heading: &str) -> String {
 /// Uses pulldown-cmark to parse headings, correctly handling inline
 /// formatting (backtick code, links, bold/italic) and trailing ATX markers.
 /// Returns the set of GitHub-compatible anchor IDs including suffixed
-/// duplicates (`-1`, `-2`, ...) matching GitHub's behavior.
+/// duplicates matching GitHub's `github-slugger` collision resolution:
+/// when a generated slug (with or without suffix) already exists, keep
+/// incrementing the suffix until a unique ID is found.
 fn extract_heading_anchors(content: &str) -> HashSet<String> {
     let parser = MdParser::new(content);
+    // Tracks occurrence counts per base slug, matching github-slugger semantics.
+    // Every final slug (including suffixed variants) is recorded with count 0
+    // so that later natural slugs that collide get properly suffixed.
+    let mut occurrences: HashMap<String, usize> = HashMap::new();
     let mut anchors = HashSet::new();
-    let mut slug_counts: HashMap<String, usize> = HashMap::new();
     let mut in_heading = false;
     let mut heading_text = String::new();
 
@@ -163,21 +168,31 @@ fn extract_heading_anchors(content: &str) -> HashSet<String> {
             },
             Event::End(TagEnd::Heading(_)) => {
                 in_heading = false;
-                let base_slug = github_slugify(&heading_text);
-                if !base_slug.is_empty() {
-                    let count = slug_counts.entry(base_slug.clone()).or_insert(0);
-                    if *count == 0 {
-                        anchors.insert(base_slug.clone());
-                    } else {
-                        anchors.insert(format!("{}-{}", base_slug, count));
+                let original_slug = github_slugify(&heading_text);
+                if !original_slug.is_empty() {
+                    // github-slugger algorithm: try the base slug, then
+                    // append -N (incrementing) until a unique slug is found.
+                    let mut slug = original_slug.clone();
+                    if occurrences.contains_key(&slug) {
+                        let count = occurrences.get_mut(&original_slug).unwrap();
+                        *count += 1;
+                        slug = format!("{}-{}", original_slug, count);
+                        // Resolve further collisions (e.g. natural "Foo 1"
+                        // already claimed "foo-1")
+                        while occurrences.contains_key(&slug) {
+                            let count = occurrences.get_mut(&original_slug).unwrap();
+                            *count += 1;
+                            slug = format!("{}-{}", original_slug, count);
+                        }
                     }
-                    *count += 1;
+                    occurrences.insert(slug.clone(), 0);
+                    anchors.insert(slug);
                 }
             },
             Event::Text(text) | Event::Code(text) if in_heading => {
                 heading_text.push_str(&text);
             },
-            Event::SoftBreak if in_heading => {
+            Event::SoftBreak | Event::HardBreak if in_heading => {
                 heading_text.push(' ');
             },
             _ => {},
@@ -864,6 +879,39 @@ mod tests {
         assert!(anchors.contains("api-reference"));
         // Bold markers are stripped, text preserved
         assert!(anchors.contains("bold-heading"));
+    }
+
+    #[test]
+    fn test_extract_heading_anchors_collision() {
+        // Scenario: natural slug "foo-1" (from "Foo 1") collides with
+        // generated suffix "foo-1" (from the second "Foo" heading).
+        let content = r#"
+## Foo
+
+## Foo
+
+## Foo 1
+"#;
+        let anchors = extract_heading_anchors(content);
+        // First "Foo" -> "foo"
+        assert!(anchors.contains("foo"));
+        // Second "Foo" -> would be "foo-1", but "Foo 1" also slugs to "foo-1".
+        // github-slugger processes headings in order, so second "Foo" gets
+        // "foo-1", and "Foo 1" must skip to "foo-1-1".
+        assert!(anchors.contains("foo-1"));
+        assert!(anchors.contains("foo-1-1"));
+        assert_eq!(anchors.len(), 3);
+    }
+
+    #[test]
+    fn test_extract_heading_anchors_hard_break() {
+        // HardBreak (trailing backslash) in a setext heading should
+        // produce a space in the slug, not concatenate words.
+        // ATX headings are single-line so hard breaks only appear in setext.
+        let content = "Word1\\\nWord2\n------\n";
+        let anchors = extract_heading_anchors(content);
+        assert!(anchors.contains("word1-word2"));
+        assert!(!anchors.contains("word1word2"));
     }
 
     #[test]
