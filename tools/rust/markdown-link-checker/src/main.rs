@@ -21,9 +21,9 @@
 //! md-link-checker . --skip-anchors           # Skip anchor validation
 //! ```
 
-use std::collections::HashSet;
+use std::collections::{HashMap, HashSet};
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 use std::time::Duration;
 
 use anyhow::{Context, Result};
@@ -145,16 +145,25 @@ fn github_slugify(heading: &str) -> String {
 /// Extract all heading anchor IDs from markdown content.
 ///
 /// Parses ATX-style headings (# Heading) and returns the set of
-/// GitHub-compatible anchor IDs that would be generated.
+/// GitHub-compatible anchor IDs that would be generated, including
+/// suffixed duplicates (`-1`, `-2`, ...) matching GitHub's behavior.
 fn extract_heading_anchors(content: &str) -> HashSet<String> {
-    let heading_re = Regex::new(r"(?m)^#{1,6}\s+(.+)$").unwrap();
+    static HEADING_RE: OnceLock<Regex> = OnceLock::new();
+    let heading_re = HEADING_RE.get_or_init(|| Regex::new(r"(?m)^#{1,6}\s+(.+)$").unwrap());
     let mut anchors = HashSet::new();
+    let mut slug_counts: HashMap<String, usize> = HashMap::new();
 
     for cap in heading_re.captures_iter(content) {
         let heading_text = cap[1].trim();
-        let anchor = github_slugify(heading_text);
-        if !anchor.is_empty() {
-            anchors.insert(anchor);
+        let base_slug = github_slugify(heading_text);
+        if !base_slug.is_empty() {
+            let count = slug_counts.entry(base_slug.clone()).or_insert(0);
+            if *count == 0 {
+                anchors.insert(base_slug.clone());
+            } else {
+                anchors.insert(format!("{}-{}", base_slug, count));
+            }
+            *count += 1;
         }
     }
 
@@ -256,7 +265,8 @@ impl LinkChecker {
         }
 
         // Also extract reference-style links
-        let ref_pattern = Regex::new(r"(?m)^\[([^\]]+)\]:\s*(.+)$").unwrap();
+        static REF_RE: OnceLock<Regex> = OnceLock::new();
+        let ref_pattern = REF_RE.get_or_init(|| Regex::new(r"(?m)^\[([^\]]+)\]:\s*(.+)$").unwrap());
         for caps in ref_pattern.captures_iter(&content) {
             if let Some(url) = caps.get(2) {
                 let url = url.as_str().trim().to_string();
@@ -618,12 +628,15 @@ impl LinkChecker {
 
 /// Remove code blocks from markdown to avoid false positives
 fn remove_code_blocks(content: &str) -> String {
+    static FENCED_RE: OnceLock<Regex> = OnceLock::new();
+    static INLINE_RE: OnceLock<Regex> = OnceLock::new();
+
     // Remove fenced code blocks
-    let fenced = Regex::new(r"```[\s\S]*?```").unwrap();
+    let fenced = FENCED_RE.get_or_init(|| Regex::new(r"```[\s\S]*?```").unwrap());
     let content = fenced.replace_all(content, "");
 
     // Remove inline code
-    let inline = Regex::new(r"`[^`]+`").unwrap();
+    let inline = INLINE_RE.get_or_init(|| Regex::new(r"`[^`]+`").unwrap());
     inline.replace_all(&content, "").to_string()
 }
 
@@ -770,6 +783,30 @@ mod tests {
         assert!(anchors.contains("1-introduction"));
         assert!(anchors.contains("sub-section-a"));
         assert!(anchors.contains("2-the-current-landscape-2025"));
+        assert!(anchors.contains("conclusion"));
+    }
+
+    #[test]
+    fn test_extract_heading_anchors_duplicate_headings() {
+        let content = r#"
+# Introduction
+
+## Details
+
+## Details
+
+## Details
+
+## Conclusion
+"#;
+        let anchors = extract_heading_anchors(content);
+        // First occurrence: no suffix
+        assert!(anchors.contains("details"));
+        // Second occurrence: -1 suffix
+        assert!(anchors.contains("details-1"));
+        // Third occurrence: -2 suffix
+        assert!(anchors.contains("details-2"));
+        assert!(anchors.contains("introduction"));
         assert!(anchors.contains("conclusion"));
     }
 
