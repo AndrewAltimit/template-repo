@@ -26,8 +26,8 @@ RUN touch src/main.rs && cargo build --release
 FROM python:3.11-slim
 
 # Install uv - Rust-based package manager (10-100x faster than pip)
-# Using official installer which handles architecture detection
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
+# Pin version to avoid :latest non-determinism and GHCR auth issues on tag pushes
+COPY --from=ghcr.io/astral-sh/uv:0.10.4 /uv /usr/local/bin/uv
 
 # Configure uv to use system Python (avoids --system flag on every command)
 ENV UV_SYSTEM_PYTHON=1
