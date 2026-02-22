@@ -38,6 +38,13 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 2
     steps:
+      - name: Clear stale GHCR credentials
+        run: |
+          # Remove stale GHCR credentials that cause "failed to fetch oauth token: denied"
+          # when BuildKit tries to pull public images (e.g., astral-sh/uv) on tag pushes.
+          # Anonymous pulls work fine for public images -- stale creds break them.
+          docker logout ghcr.io 2>/dev/null || true
+
       - name: Clean up stale Docker networks
         run: |
           # Remove orphaned CI networks from previous runs to prevent

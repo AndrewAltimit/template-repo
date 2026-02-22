@@ -101,6 +101,9 @@ jobs:
 
       # Docker CI image will be built automatically by run-ci.sh script
 
+      - name: Clear stale GHCR credentials
+        run: docker logout ghcr.io 2>/dev/null || true
+
       - name: Run linting stage
         id: lint
         shell: bash
