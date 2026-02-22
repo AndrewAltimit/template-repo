@@ -2028,5 +2028,7 @@ This projection will be updated as capabilities evolve, detection methods mature
 ---
 
 *Emerging Technology Risk Assessment*
+
 *Document ID: ETRA-2025-FIN-001*
+
 *Version: 2.0*
