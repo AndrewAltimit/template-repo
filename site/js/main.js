@@ -6,6 +6,9 @@
 (function () {
   "use strict";
 
+  /* Mark JS as active so CSS can gate animations on .js class */
+  document.documentElement.classList.add("js");
+
   var prefersReducedMotion = window.matchMedia(
     "(prefers-reduced-motion: reduce)"
   ).matches;

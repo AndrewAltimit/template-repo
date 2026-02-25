@@ -798,13 +798,14 @@ section {
 }
 
 /* ---------- Scroll Reveal ---------- */
-.reveal {
+/* Visible by default for no-JS; JS adds .js to <html> to enable animation */
+.js .reveal {
   opacity: 0;
   transform: translateY(20px);
   transition: opacity 0.6s ease, transform 0.6s ease;
 }
 
-.reveal.visible {
+.js .reveal.visible {
   opacity: 1;
   transform: translateY(0);
 }
@@ -923,7 +924,7 @@ section {
     scroll-behavior: auto;
   }
 
-  .reveal {
+  .js .reveal {
     opacity: 1;
     transform: none;
     transition: none;
