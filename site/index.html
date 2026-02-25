@@ -1,0 +1,968 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agent Orchestration &amp; Security Template</title>
+  <meta name="description" content="Reference architecture for AI agent orchestration, trust measurement, and tool integration. 6 AI agents, 19 MCP servers, 4 research packages, 14 publications.">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<a class="skip-link" href="#main">Skip to content</a>
+
+<!-- ========== Navbar ========== -->
+<nav class="navbar" aria-label="Primary navigation">
+  <div class="nav-inner">
+    <a href="#" class="nav-brand">&gt;_ template-repo</a>
+    <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false">&#x2630;</button>
+    <ul class="nav-links">
+      <li><a href="#overview">Overview</a></li>
+      <li><a href="#architecture">Architecture</a></li>
+      <li><a href="#agents">Agents</a></li>
+      <li><a href="#mcp">MCP Servers</a></li>
+      <li><a href="#packages">Packages</a></li>
+      <li><a href="#publications">Publications</a></li>
+      <li><a href="#tools">Tools</a></li>
+      <li><a href="#safety">Safety</a></li>
+    </ul>
+  </div>
+</nav>
+
+<main id="main">
+
+<!-- ========== 1. Hero ========== -->
+<section class="hero" id="hero">
+  <div class="container">
+    <h1 class="hero-title">Agent Orchestration <span class="hero-accent">&amp;</span> Security Template</h1>
+    <p class="hero-tagline">A reference architecture for AI agent orchestration, trust measurement, and tool integration. All code authored by AI agents under human oversight.</p>
+
+    <div class="hero-stats">
+      <div class="stat">
+        <span class="stat-number" data-target="6">6</span>
+        <span class="stat-label">AI Agents</span>
+      </div>
+      <div class="stat">
+        <span class="stat-number" data-target="19">19</span>
+        <span class="stat-label">MCP Servers</span>
+      </div>
+      <div class="stat">
+        <span class="stat-number" data-target="4">4</span>
+        <span class="stat-label">Packages</span>
+      </div>
+      <div class="stat">
+        <span class="stat-number" data-target="14">14</span>
+        <span class="stat-label">Publications</span>
+      </div>
+    </div>
+
+    <div class="hero-cta">
+      <a href="https://github.com/AndrewAltimit/template-repo" class="btn btn-primary">View on GitHub</a>
+      <a href="https://github.com/AndrewAltimit/template-repo/tree/main/docs" class="btn btn-secondary">Documentation</a>
+    </div>
+
+  </div>
+</section>
+
+<!-- ========== 2. Overview ========== -->
+<section id="overview" aria-labelledby="overview-title">
+  <div class="container reveal">
+    <h2 class="section-title" id="overview-title">Overview</h2>
+    <p class="section-subtitle">Designed to be studied, forked, and adapted. A single-maintainer project optimized for individual developer efficiency with maximum portability.</p>
+
+    <div class="overview-grid">
+      <div class="overview-card">
+        <h3>Container-First</h3>
+        <p>All Python and Rust operations run in Docker containers. Zero local dependencies beyond Docker itself -- maximum portability across any Linux system.</p>
+      </div>
+      <div class="overview-card">
+        <h3>Single Maintainer</h3>
+        <p>No contributors model. Optimized for individual developer efficiency. No feature requests, guidance, or community interaction accepted.</p>
+      </div>
+      <div class="overview-card">
+        <h3>All AI-Authored</h3>
+        <p>Every code change is authored by AI agents under human oversight. Humans decide what to work on and when to merge; agents handle the implementation.</p>
+      </div>
+      <div class="overview-card">
+        <h3>Self-Hosted</h3>
+        <p>Self-hosted GitHub Actions runners on personal hardware. Zero-cost infrastructure with full control over the execution environment.</p>
+      </div>
+    </div>
+
+    <div class="notice">
+      <div class="notice-title">Dual-Use Notice</div>
+      <p>This repository contains dual-use research and tooling. The maintainer provides no guidance, consultation, or feature development. No feature requests are accepted. No external contributions are accepted. Released under a public domain dedication.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ========== 3. Architecture ========== -->
+<section id="architecture" aria-labelledby="arch-title">
+  <div class="container reveal">
+    <h2 class="section-title" id="arch-title">Agentic Workflow</h2>
+    <p class="section-subtitle">Humans decide WHAT to work on and WHEN to merge. Agents handle HOW with automated quality loops.</p>
+
+    <div class="arch-diagram">
+      <div class="arch-flow">
+        <div class="arch-step">
+          <div class="arch-step-icon human">1</div>
+          <span class="arch-step-label">Issue Created</span>
+          <span class="arch-step-sub">Human / backlog</span>
+        </div>
+        <span class="arch-arrow" aria-hidden="true">&#x2192;</span>
+        <div class="arch-step">
+          <div class="arch-step-icon ai">2</div>
+          <span class="arch-step-label">AI Refinement</span>
+          <span class="arch-step-sub">Security + architecture</span>
+        </div>
+        <span class="arch-arrow" aria-hidden="true">&#x2192;</span>
+        <div class="arch-step">
+          <div class="arch-step-icon human">3</div>
+          <span class="arch-step-label">Approval</span>
+          <span class="arch-step-sub">[Approved] gate</span>
+        </div>
+        <span class="arch-arrow" aria-hidden="true">&#x2192;</span>
+        <div class="arch-step">
+          <div class="arch-step-icon agent">4</div>
+          <span class="arch-step-label">Agent Claims</span>
+          <span class="arch-step-sub">Board work queue</span>
+        </div>
+        <span class="arch-arrow" aria-hidden="true">&#x2192;</span>
+        <div class="arch-step">
+          <div class="arch-step-icon agent">5</div>
+          <span class="arch-step-label">PR Created</span>
+          <span class="arch-step-sub">Branch + implement</span>
+        </div>
+        <span class="arch-arrow" aria-hidden="true">&#x2192;</span>
+        <div class="arch-step">
+          <div class="arch-step-icon ai">6</div>
+          <span class="arch-step-label">AI Review</span>
+          <span class="arch-step-sub">Gemini + Codex</span>
+        </div>
+        <span class="arch-arrow" aria-hidden="true">&#x2192;</span>
+        <div class="arch-step">
+          <div class="arch-step-icon human">7</div>
+          <span class="arch-step-label">Human Merge</span>
+          <span class="arch-step-sub">Final approval</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="arch-legend">
+      <div class="arch-legend-item">
+        <div class="arch-legend-dot" style="background: var(--accent-green)"></div>
+        Human Gate
+      </div>
+      <div class="arch-legend-item">
+        <div class="arch-legend-dot" style="background: var(--accent-blue)"></div>
+        Agent Action
+      </div>
+      <div class="arch-legend-item">
+        <div class="arch-legend-dot" style="background: var(--accent-purple)"></div>
+        AI Review
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========== 4. AI Agents ========== -->
+<section id="agents" aria-labelledby="agents-title">
+  <div class="container reveal">
+    <h2 class="section-title" id="agents-title">AI Agents</h2>
+    <p class="section-subtitle">Six AI agents collaborate in an autonomous development workflow -- from issue refinement to PR review and merge.</p>
+
+    <div class="card-grid">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon" style="background: rgba(188, 140, 255, 0.15); color: var(--accent-purple);">C</div>
+          <div>
+            <div class="card-title">Claude Code</div>
+            <span class="badge badge-provider">Anthropic</span>
+          </div>
+        </div>
+        <p class="card-description">Primary development assistant. Architecture design, complex refactoring, debugging, comprehensive documentation, CI/CD pipelines, and test development. Deep understanding of the entire codebase.</p>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon" style="background: rgba(66, 133, 244, 0.15); color: #4285f4;">G</div>
+          <div>
+            <div class="card-title">Gemini CLI</div>
+            <span class="badge badge-provider">Google</span>
+          </div>
+        </div>
+        <p class="card-description">Automated PR reviewer and quality gatekeeper. Reviews every pull request for security vulnerabilities, container configurations, and project standards. Provides actionable feedback within 3-5 minutes.</p>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon" style="background: rgba(88, 166, 255, 0.15); color: var(--accent-blue);">Co</div>
+          <div>
+            <div class="card-title">GitHub Copilot</div>
+            <span class="badge badge-provider">GitHub</span>
+          </div>
+        </div>
+        <p class="card-description">Additional code review perspective in pull requests. Suggests improvements, identifies potential issues, and provides alternative implementations with inline suggestions.</p>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon" style="background: rgba(16, 163, 127, 0.15); color: #10a37f;">Cx</div>
+          <div>
+            <div class="card-title">Codex</div>
+            <span class="badge badge-provider">OpenAI</span>
+          </div>
+        </div>
+        <p class="card-description">AI-powered code generation and PR review. Focuses on code patterns, best practices, performance considerations, and API design feedback.</p>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon" style="background: rgba(255, 107, 107, 0.15); color: #ff6b6b;">O</div>
+          <div>
+            <div class="card-title">OpenCode</div>
+            <span class="badge badge-provider">OpenRouter</span>
+          </div>
+        </div>
+        <p class="card-description">Code generation, refactoring, and review via OpenRouter. Model-agnostic access to multiple AI providers for diverse implementation perspectives.</p>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon" style="background: rgba(255, 159, 67, 0.15); color: #ff9f43;">Cr</div>
+          <div>
+            <div class="card-title">Crush</div>
+            <span class="badge badge-provider">OpenRouter</span>
+          </div>
+        </div>
+        <p class="card-description">Code generation and conversion via OpenRouter. Quick generation, explanation, and cross-language conversion for rapid prototyping.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========== 5. MCP Servers ========== -->
+<section id="mcp" aria-labelledby="mcp-title">
+  <div class="container reveal">
+    <h2 class="section-title" id="mcp-title">MCP Servers</h2>
+    <p class="section-subtitle">19 modular servers providing specialized functionality via the Model Context Protocol -- from code quality to 3D rendering.</p>
+
+    <div class="filter-bar">
+      <button class="filter-btn active" data-filter="all">All</button>
+      <button class="filter-btn" data-filter="code-quality">Code Quality</button>
+      <button class="filter-btn" data-filter="content">Content</button>
+      <button class="filter-btn" data-filter="ai">AI Integration</button>
+      <button class="filter-btn" data-filter="integration">Integration</button>
+      <button class="filter-btn" data-filter="remote">Remote</button>
+    </div>
+
+    <div class="card-grid">
+      <!-- Code Quality -->
+      <div class="card mcp-card" data-category="code-quality">
+        <div class="card-header">
+          <div class="card-title">Code Quality</div>
+        </div>
+        <p class="card-description">Format checking (Python, JS, TS, Go, Rust), linting (ruff, eslint), auto-formatting, pytest, and type checking.</p>
+        <div class="card-meta">
+          <span class="badge badge-transport">STDIO</span>
+          <span class="badge badge-rust">Rust</span>
+        </div>
+      </div>
+
+      <!-- Content -->
+      <div class="card mcp-card" data-category="content">
+        <div class="card-header">
+          <div class="card-title">Content Creation</div>
+        </div>
+        <p class="card-description">Manim animations, LaTeX compilation (PDF/DVI/PS), TikZ diagram rendering, and preview generation.</p>
+        <div class="card-meta">
+          <span class="badge badge-transport">STDIO</span>
+          <span class="badge badge-python">Python</span>
+        </div>
+      </div>
+
+      <div class="card mcp-card" data-category="content">
+        <div class="card-header">
+          <div class="card-title">Meme Generator</div>
+        </div>
+        <p class="card-description">Template-based meme generation with auto-resize text, visual feedback, auto-upload, and 7+ templates.</p>
+        <div class="card-meta">
+          <span class="badge badge-transport">STDIO</span>
+          <span class="badge badge-python">Python</span>
+        </div>
+      </div>
+
+      <div class="card mcp-card" data-category="content">
+        <div class="card-header">
+          <div class="card-title">ElevenLabs Speech</div>
+        </div>
+        <p class="card-description">14+ synthesis tools, 50+ audio tags, 74 language support, 37+ voices, and sound effect generation up to 22 seconds.</p>
+        <div class="card-meta">
+          <span class="badge badge-transport">STDIO</span>
+          <span class="badge badge-python">Python</span>
+        </div>
+      </div>
+
+      <div class="card mcp-card" data-category="content">
+        <div class="card-header">
+          <div class="card-title">Video Editor</div>
+        </div>
+        <p class="card-description">AI-powered video editing with Whisper transcription, speaker diarization, scene detection, multi-video composition, and GPU acceleration.</p>
+        <div class="card-meta">
+          <span class="badge badge-transport">STDIO</span>
+          <span class="badge badge-python">Python</span>
+        </div>
+      </div>
+
+      <div class="card mcp-card" data-category="content">
+        <div class="card-header">
+          <div class="card-title">Blender</div>
+        </div>
+        <p class="card-description">3D content creation with physics simulations, Cycles/Eevee rendering, geometry nodes, animation, and particle systems.</p>
+        <div class="card-meta">
+          <span class="badge badge-transport">STDIO</span>
+          <span class="badge badge-python">Python</span>
+        </div>
+      </div>
+
+      <!-- AI Integration -->
+      <div class="card mcp-card" data-category="ai">
+        <div class="card-header">
+          <div class="card-title">Gemini AI</div>
+        </div>
+        <p class="card-description">Gemini AI consultations with comparison mode, conversation history management, and auto-consultation on uncertainty.</p>
+        <div class="card-meta">
+          <span class="badge badge-transport">STDIO</span>
+          <span class="badge badge-python">Python</span>
+        </div>
+      </div>
+
+      <div class="card mcp-card" data-category="ai">
+        <div class="card-header">
+          <div class="card-title">OpenCode</div>
+        </div>
+        <p class="card-description">Code generation, refactoring, and review via OpenRouter. Model-agnostic AI code assistance.</p>
+        <div class="card-meta">
+          <span class="badge badge-transport">STDIO</span>
+          <span class="badge badge-python">Python</span>
+        </div>
+      </div>
+
+      <div class="card mcp-card" data-category="ai">
+        <div class="card-header">
+          <div class="card-title">Crush</div>
+        </div>
+        <p class="card-description">Code generation and conversion via OpenRouter. Quick generation, explanation, and cross-language conversion.</p>
+        <div class="card-meta">
+          <span class="badge badge-transport">STDIO</span>
+          <span class="badge badge-python">Python</span>
+        </div>
+      </div>
+
+      <div class="card mcp-card" data-category="ai">
+        <div class="card-header">
+          <div class="card-title">Codex</div>
+        </div>
+        <p class="card-description">AI-powered code generation and completion via OpenAI Codex. Requires ChatGPT Plus subscription.</p>
+        <div class="card-meta">
+          <span class="badge badge-transport">STDIO</span>
+          <span class="badge badge-python">Python</span>
+        </div>
+      </div>
+
+      <!-- Integration -->
+      <div class="card mcp-card" data-category="integration">
+        <div class="card-header">
+          <div class="card-title">Virtual Character</div>
+        </div>
+        <p class="card-description">AI agent embodiment in virtual worlds (VRChat, Blender, Unity). OSC integration, PAD emotion model, 16 MCP tools.</p>
+        <div class="card-meta">
+          <span class="badge badge-transport">STDIO</span>
+          <span class="badge badge-rust">Rust</span>
+        </div>
+      </div>
+
+      <div class="card mcp-card" data-category="integration">
+        <div class="card-header">
+          <div class="card-title">GitHub Board</div>
+        </div>
+        <p class="card-description">GitHub Projects v2 work queue. Query ready work, claim/release with conflict prevention, and dependency graph management.</p>
+        <div class="card-meta">
+          <span class="badge badge-transport">STDIO</span>
+          <span class="badge badge-python">Python</span>
+        </div>
+      </div>
+
+      <div class="card mcp-card" data-category="integration">
+        <div class="card-header">
+          <div class="card-title">AgentCore Memory</div>
+        </div>
+        <p class="card-description">Multi-provider memory system: short-term events, long-term facts, and semantic search via AWS Bedrock AgentCore or ChromaDB.</p>
+        <div class="card-meta">
+          <span class="badge badge-transport">STDIO</span>
+          <span class="badge badge-python">Python</span>
+        </div>
+      </div>
+
+      <div class="card mcp-card" data-category="integration">
+        <div class="card-header">
+          <div class="card-title">Reaction Search</div>
+        </div>
+        <p class="card-description">Semantic search for anime reaction images. Sentence-transformer embeddings, tag-based filtering, auto-fetch from GitHub.</p>
+        <div class="card-meta">
+          <span class="badge badge-transport">STDIO</span>
+          <span class="badge badge-python">Python</span>
+        </div>
+      </div>
+
+      <div class="card mcp-card" data-category="integration">
+        <div class="card-header">
+          <div class="card-title">Desktop Control</div>
+        </div>
+        <p class="card-description">Cross-platform desktop automation: window management, screenshots, mouse/keyboard control for Linux and Windows.</p>
+        <div class="card-meta">
+          <span class="badge badge-transport">STDIO</span>
+          <span class="badge badge-python">Python</span>
+        </div>
+      </div>
+
+      <div class="card mcp-card" data-category="integration">
+        <div class="card-header">
+          <div class="card-title">Memory Explorer</div>
+        </div>
+        <p class="card-description">Process memory exploration for legacy software integration. Memory reading, hex dump, pattern scanning, and pointer chain resolution.</p>
+        <div class="card-meta">
+          <span class="badge badge-transport">STDIO</span>
+          <span class="badge badge-rust">Rust</span>
+        </div>
+      </div>
+
+      <!-- Remote -->
+      <div class="card mcp-card" data-category="remote">
+        <div class="card-header">
+          <div class="card-title">Gaea2</div>
+        </div>
+        <p class="card-description">Terrain generation with intelligent validation, error correction, 11 professional templates, and CLI automation. Windows only.</p>
+        <div class="card-meta">
+          <span class="badge badge-transport">HTTP</span>
+          <span class="badge badge-category">Remote</span>
+        </div>
+      </div>
+
+      <div class="card mcp-card" data-category="remote">
+        <div class="card-header">
+          <div class="card-title">AI Toolkit</div>
+        </div>
+        <p class="card-description">GPU-accelerated LoRA training management. Dataset upload, training job monitoring, and model export.</p>
+        <div class="card-meta">
+          <span class="badge badge-transport">HTTP</span>
+          <span class="badge badge-category">Remote</span>
+        </div>
+      </div>
+
+      <div class="card mcp-card" data-category="remote">
+        <div class="card-header">
+          <div class="card-title">ComfyUI</div>
+        </div>
+        <p class="card-description">GPU-accelerated AI image generation. Custom workflow execution and LoRA model management.</p>
+        <div class="card-meta">
+          <span class="badge badge-transport">HTTP</span>
+          <span class="badge badge-category">Remote</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========== 6. Research Packages ========== -->
+<section id="packages" aria-labelledby="packages-title">
+  <div class="container reveal">
+    <h2 class="section-title" id="packages-title">Research Packages</h2>
+    <p class="section-subtitle">Standalone packages addressing different aspects of AI agent development, safety, and security.</p>
+
+    <div class="card-grid">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon" style="background: rgba(63, 185, 80, 0.15); color: var(--accent-green);">SA</div>
+          <div>
+            <div class="card-title">Sleeper Agents</div>
+            <span class="badge badge-python">Python</span>
+          </div>
+        </div>
+        <p class="card-description">Research-validated detection framework for hidden backdoors in LLMs. Based on Anthropic's research on deceptive AI that persists through safety training. AUC = 1.0 across GPT-2, Mistral-7B, and Qwen2.5-7B.</p>
+        <div class="card-meta">
+          <span class="badge badge-category">AUC 1.0</span>
+          <span class="badge badge-category">3-stage pipeline</span>
+          <span class="badge badge-category">Streamlit dashboard</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon" style="background: rgba(210, 153, 34, 0.15); color: var(--accent-orange);">EA</div>
+          <div>
+            <div class="card-title">Economic Agents</div>
+            <span class="badge badge-rust">Rust</span>
+          </div>
+        </div>
+        <p class="card-description">Simulation framework for autonomous AI agents operating in economic systems. Agents earn cryptocurrency, form companies, create sub-agents, and seek investment. 14 crates, 13 task challenges.</p>
+        <div class="card-meta">
+          <span class="badge badge-category">14 crates</span>
+          <span class="badge badge-category">Mock-to-Real</span>
+          <span class="badge badge-category">Governance focus</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon" style="background: rgba(88, 166, 255, 0.15); color: var(--accent-blue);">TB</div>
+          <div>
+            <div class="card-title">Tamper Briefcase</div>
+            <span class="badge badge-rust">Rust</span>
+          </div>
+        </div>
+        <p class="card-description">Tamper-responsive Raspberry Pi briefcase with dual-sensor detection, LUKS2 cryptographic wipe, and hybrid post-quantum (ML-KEM-1024 + ML-DSA-87) encrypted recovery USB.</p>
+        <div class="card-meta">
+          <span class="badge badge-category">PQC recovery</span>
+          <span class="badge badge-category">Dual sensor</span>
+          <span class="badge badge-category">Pi 5</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-icon" style="background: rgba(188, 140, 255, 0.15); color: var(--accent-purple);">BF</div>
+          <div>
+            <div class="card-title">BioForge</div>
+            <span class="badge badge-rust">Rust</span>
+          </div>
+        </div>
+        <p class="card-description">Agent-driven biological automation platform. Combines a Raspberry Pi 5 liquid handling system with AI agent orchestration over MCP for CRISPR-Cas9 gene editing workflows.</p>
+        <div class="card-meta">
+          <span class="badge badge-category">12 MCP tools</span>
+          <span class="badge badge-category">Closed-loop</span>
+          <span class="badge badge-category">Defense-in-depth</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========== 7. Companion Repos ========== -->
+<section id="companions" aria-labelledby="companions-title">
+  <div class="container reveal">
+    <h2 class="section-title" id="companions-title">Companion Repositories</h2>
+    <p class="section-subtitle">Standalone repositories extending the template-repo ecosystem.</p>
+
+    <div class="card-grid">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">game-mods</div>
+        </div>
+        <p class="card-description">Injection toolkit for AI agent integration with legacy software -- DLL injection (Windows), LD_PRELOAD (Linux), shared memory IPC, overlay rendering, and MCP memory explorer.</p>
+        <div class="card-meta">
+          <span class="badge badge-rust">Rust</span>
+          <a href="https://github.com/AndrewAltimit/game-mods" class="badge badge-provider">GitHub</a>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">oasis-os</div>
+        </div>
+        <p class="card-description">Embeddable OS framework (18 crates) -- scene-graph UI, 90+ terminal commands, browser engine, window manager, VFS. 4 backends (SDL2, PSP, UE5 FFI, framebuffer) with 8 themes.</p>
+        <div class="card-meta">
+          <span class="badge badge-rust">Rust</span>
+          <a href="https://github.com/AndrewAltimit/oasis-os" class="badge badge-provider">GitHub</a>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">breakpoint</div>
+        </div>
+        <p class="card-description">Browser-based multiplayer gaming platform for agentic office hours -- Rust/WASM games with an alert overlay surfacing agent activity, CI failures, and decision points.</p>
+        <div class="card-meta">
+          <span class="badge badge-rust">Rust</span>
+          <a href="https://github.com/AndrewAltimit/breakpoint" class="badge badge-provider">GitHub</a>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">rust-psp</div>
+        </div>
+        <p class="card-description">Modernized Rust SDK for PlayStation Portable -- ~829 syscall bindings, 38+ high-level modules, kernel mode support, and experimental std. Edition 2024 fork.</p>
+        <div class="card-meta">
+          <span class="badge badge-rust">Rust</span>
+          <a href="https://github.com/AndrewAltimit/rust-psp" class="badge badge-provider">GitHub</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========== 8. Publications ========== -->
+<section id="publications" aria-labelledby="publications-title">
+  <div class="container reveal">
+    <h2 class="section-title" id="publications-title">Publications</h2>
+    <p class="section-subtitle">14 publications spanning risk assessment, technical guidance, and philosophy -- all auto-compiled from LaTeX and published with each release.</p>
+
+    <!-- Risk Assessments -->
+    <div class="pub-group">
+      <h3 class="pub-group-title" style="color: var(--accent-orange);">Risk Assessments</h3>
+      <div class="pub-list">
+        <div class="pub-item">
+          <div class="pub-info">
+            <div class="pub-title">AI Agents Political Targeting</div>
+            <div class="pub-topic">AI agents and political violence risk</div>
+          </div>
+          <div class="pub-links">
+            <a href="https://github.com/AndrewAltimit/template-repo/releases/latest" class="pub-link">PDF</a>
+            <a href="https://github.com/AndrewAltimit/template-repo/blob/main/docs/projections/latex/ai-agents-political-targeting.tex" class="pub-link">LaTeX</a>
+          </div>
+        </div>
+        <div class="pub-item">
+          <div class="pub-info">
+            <div class="pub-title">AI Agents WMD Proliferation</div>
+            <div class="pub-topic">AI agents and WMD proliferation risk</div>
+          </div>
+          <div class="pub-links">
+            <a href="https://github.com/AndrewAltimit/template-repo/releases/latest" class="pub-link">PDF</a>
+            <a href="https://github.com/AndrewAltimit/template-repo/blob/main/docs/projections/latex/ai-agents-wmd-proliferation.tex" class="pub-link">LaTeX</a>
+          </div>
+        </div>
+        <div class="pub-item">
+          <div class="pub-info">
+            <div class="pub-title">AI Agents Espionage Operations</div>
+            <div class="pub-topic">AI agents and intelligence tradecraft</div>
+          </div>
+          <div class="pub-links">
+            <a href="https://github.com/AndrewAltimit/template-repo/releases/latest" class="pub-link">PDF</a>
+            <a href="https://github.com/AndrewAltimit/template-repo/blob/main/docs/projections/latex/ai-agents-espionage-operations.tex" class="pub-link">LaTeX</a>
+          </div>
+        </div>
+        <div class="pub-item">
+          <div class="pub-info">
+            <div class="pub-title">AI Agents Economic Actors</div>
+            <div class="pub-topic">Autonomous economic actors</div>
+          </div>
+          <div class="pub-links">
+            <a href="https://github.com/AndrewAltimit/template-repo/releases/latest" class="pub-link">PDF</a>
+            <a href="https://github.com/AndrewAltimit/template-repo/blob/main/docs/projections/latex/ai-agents-economic-actors.tex" class="pub-link">LaTeX</a>
+          </div>
+        </div>
+        <div class="pub-item">
+          <div class="pub-info">
+            <div class="pub-title">AI Agents Financial Integrity</div>
+            <div class="pub-topic">Money laundering and corruption</div>
+          </div>
+          <div class="pub-links">
+            <a href="https://github.com/AndrewAltimit/template-repo/releases/latest" class="pub-link">PDF</a>
+            <a href="https://github.com/AndrewAltimit/template-repo/blob/main/docs/projections/latex/ai-agents-financial-integrity.tex" class="pub-link">LaTeX</a>
+          </div>
+        </div>
+        <div class="pub-item">
+          <div class="pub-info">
+            <div class="pub-title">AI Agents Institutional Erosion</div>
+            <div class="pub-topic">IC monopoly erosion and verification pivot</div>
+          </div>
+          <div class="pub-links">
+            <a href="https://github.com/AndrewAltimit/template-repo/releases/latest" class="pub-link">PDF</a>
+            <a href="https://github.com/AndrewAltimit/template-repo/blob/main/docs/projections/latex/ai-agents-institutional-erosion.tex" class="pub-link">LaTeX</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Technical Guides -->
+    <div class="pub-group">
+      <h3 class="pub-group-title" style="color: var(--accent-blue);">Technical Guides</h3>
+      <div class="pub-list">
+        <div class="pub-item">
+          <div class="pub-info">
+            <div class="pub-title">Agentic Workflow Handout</div>
+            <div class="pub-topic">AI agent pipeline architecture and workflows</div>
+          </div>
+          <div class="pub-links">
+            <a href="https://github.com/AndrewAltimit/template-repo/releases/latest" class="pub-link">PDF</a>
+            <a href="https://github.com/AndrewAltimit/template-repo/blob/main/docs/agents/Agentic_Workflow_Handout.tex" class="pub-link">LaTeX</a>
+          </div>
+        </div>
+        <div class="pub-item">
+          <div class="pub-info">
+            <div class="pub-title">Sleeper Agents Framework</div>
+            <div class="pub-topic">AI backdoor detection using residual stream analysis</div>
+          </div>
+          <div class="pub-links">
+            <a href="https://github.com/AndrewAltimit/template-repo/releases/latest" class="pub-link">PDF</a>
+            <a href="https://github.com/AndrewAltimit/template-repo/blob/main/packages/sleeper_agents/docs/Sleeper_Agents_Framework_Guide.tex" class="pub-link">LaTeX</a>
+          </div>
+        </div>
+        <div class="pub-item">
+          <div class="pub-info">
+            <div class="pub-title">AgentCore Memory Integration</div>
+            <div class="pub-topic">Multi-provider AI memory system</div>
+          </div>
+          <div class="pub-links">
+            <a href="https://github.com/AndrewAltimit/template-repo/releases/latest" class="pub-link">PDF</a>
+            <a href="https://github.com/AndrewAltimit/template-repo/blob/main/docs/integrations/ai-services/AgentCore_Memory_Integration_Guide.tex" class="pub-link">LaTeX</a>
+          </div>
+        </div>
+        <div class="pub-item">
+          <div class="pub-info">
+            <div class="pub-title">Virtual Character System</div>
+            <div class="pub-topic">AI agent embodiment platform</div>
+          </div>
+          <div class="pub-links">
+            <a href="https://github.com/AndrewAltimit/template-repo/releases/latest" class="pub-link">PDF</a>
+            <a href="https://github.com/AndrewAltimit/template-repo/blob/main/docs/integrations/ai-services/Virtual_Character_System_Guide.tex" class="pub-link">LaTeX</a>
+          </div>
+        </div>
+        <div class="pub-item">
+          <div class="pub-info">
+            <div class="pub-title">AI Agent Containment &amp; Infrastructure Security</div>
+            <div class="pub-topic">Isolation, trust-tiered execution, and physical security</div>
+          </div>
+          <div class="pub-links">
+            <a href="https://github.com/AndrewAltimit/template-repo/releases/latest" class="pub-link">PDF</a>
+            <a href="https://github.com/AndrewAltimit/template-repo/blob/main/docs/hardware/latex/ai-agent-containment-infrastructure-security-framework.tex" class="pub-link">LaTeX</a>
+          </div>
+        </div>
+        <div class="pub-item">
+          <div class="pub-info">
+            <div class="pub-title">BioForge CRISPR Automation</div>
+            <div class="pub-topic">Agent-driven biological automation platform</div>
+          </div>
+          <div class="pub-links">
+            <a href="https://github.com/AndrewAltimit/template-repo/releases/latest" class="pub-link">PDF</a>
+            <a href="https://github.com/AndrewAltimit/template-repo/blob/main/docs/hardware/latex/bioforge-crispr-automation.tex" class="pub-link">LaTeX</a>
+          </div>
+        </div>
+        <div class="pub-item">
+          <div class="pub-info">
+            <div class="pub-title">Secure Terminal Briefcase</div>
+            <div class="pub-topic">Tamper-responsive hardware security with PQC recovery</div>
+          </div>
+          <div class="pub-links">
+            <a href="https://github.com/AndrewAltimit/template-repo/releases/latest" class="pub-link">PDF</a>
+            <a href="https://github.com/AndrewAltimit/template-repo/blob/main/docs/hardware/latex/secure-terminal-briefcase.tex" class="pub-link">LaTeX</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Philosophy -->
+    <div class="pub-group">
+      <h3 class="pub-group-title" style="color: var(--accent-purple);">Philosophy</h3>
+      <div class="pub-list">
+        <div class="pub-item">
+          <div class="pub-info">
+            <div class="pub-title">Architectural Qualia</div>
+            <div class="pub-topic">What Is It Like to Be an LLM?</div>
+          </div>
+          <div class="pub-links">
+            <a href="https://github.com/AndrewAltimit/template-repo/releases/latest" class="pub-link">PDF</a>
+            <a href="https://github.com/AndrewAltimit/template-repo/blob/main/docs/philosophy/latex/architectural-qualia.tex" class="pub-link">LaTeX</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========== 9. Rust CLI Tools ========== -->
+<section id="tools" aria-labelledby="tools-title">
+  <div class="container reveal">
+    <h2 class="section-title" id="tools-title">Rust CLI Tools</h2>
+    <p class="section-subtitle">Purpose-built command-line tools for agent orchestration, security hardening, and CI/CD automation.</p>
+
+    <div class="tools-table-wrap">
+      <table class="tools-table">
+        <thead>
+          <tr>
+            <th>Tool</th>
+            <th>Purpose</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>automation-cli</code></td>
+            <td>Unified CI/CD runner -- format, lint, test, build, deny for all packages</td>
+          </tr>
+          <tr>
+            <td><code>github-agents-cli</code></td>
+            <td>Issue/PR monitoring, refinement, code analysis, and agent execution</td>
+          </tr>
+          <tr>
+            <td><code>board-manager</code></td>
+            <td>GitHub Projects v2 board operations -- claim, release, status updates</td>
+          </tr>
+          <tr>
+            <td><code>git-guard</code></td>
+            <td>Git CLI wrapper requiring sudo for dangerous operations (force push, --no-verify)</td>
+          </tr>
+          <tr>
+            <td><code>gh-validator</code></td>
+            <td>GitHub CLI wrapper for automatic secret masking</td>
+          </tr>
+          <tr>
+            <td><code>pr-monitor</code></td>
+            <td>Dedicated PR monitoring for admin/review feedback during development</td>
+          </tr>
+          <tr>
+            <td><code>markdown-link-checker</code></td>
+            <td>Fast concurrent markdown link validator for CI/CD pipelines</td>
+          </tr>
+          <tr>
+            <td><code>code-parser</code></td>
+            <td>Parse and apply code blocks from AI agent responses</td>
+          </tr>
+          <tr>
+            <td><code>code-review-processor</code></td>
+            <td>Process and apply AI code review feedback automatically</td>
+          </tr>
+          <tr>
+            <td><code>mcp-code-quality</code></td>
+            <td>Rust MCP server for code quality tools (formatting, linting, testing)</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<!-- ========== 10. CI/CD ========== -->
+<section id="cicd" aria-labelledby="cicd-title">
+  <div class="container reveal">
+    <h2 class="section-title" id="cicd-title">CI/CD Pipeline</h2>
+    <p class="section-subtitle">15-stage pipeline running on self-hosted hardware. Zero cloud costs -- all infrastructure on personal machines.</p>
+
+    <div class="pipeline-wrap">
+      <div class="pipeline-stages">
+        <div class="pipeline-stage">
+          <div class="pipeline-dot">1</div>
+          <span class="pipeline-name">Format</span>
+        </div>
+        <div class="pipeline-connector"></div>
+        <div class="pipeline-stage">
+          <div class="pipeline-dot">2</div>
+          <span class="pipeline-name">Lint</span>
+        </div>
+        <div class="pipeline-connector"></div>
+        <div class="pipeline-stage">
+          <div class="pipeline-dot">3</div>
+          <span class="pipeline-name">Type Check</span>
+        </div>
+        <div class="pipeline-connector"></div>
+        <div class="pipeline-stage">
+          <div class="pipeline-dot">4</div>
+          <span class="pipeline-name">Test</span>
+        </div>
+        <div class="pipeline-connector"></div>
+        <div class="pipeline-stage">
+          <div class="pipeline-dot">5</div>
+          <span class="pipeline-name">Security</span>
+        </div>
+        <div class="pipeline-connector"></div>
+        <div class="pipeline-stage">
+          <div class="pipeline-dot">6</div>
+          <span class="pipeline-name">Build</span>
+        </div>
+        <div class="pipeline-connector"></div>
+        <div class="pipeline-stage">
+          <div class="pipeline-dot">7</div>
+          <span class="pipeline-name">Deny</span>
+        </div>
+        <div class="pipeline-connector"></div>
+        <div class="pipeline-stage">
+          <div class="pipeline-dot">8</div>
+          <span class="pipeline-name">Links</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="pipeline-info">
+      <div class="pipeline-info-item">
+        <h4>Self-Hosted Runner</h4>
+        <p>All CI runs on personal hardware -- zero cloud compute costs. Full control over the execution environment and toolchain versions.</p>
+      </div>
+      <div class="pipeline-info-item">
+        <h4>Docker-Based</h4>
+        <p>Every CI stage runs inside Docker containers for reproducibility. Same environment locally and in CI.</p>
+      </div>
+      <div class="pipeline-info-item">
+        <h4>Multi-Language</h4>
+        <p>Unified pipeline covering Python (ruff, pytest, bandit) and Rust (clippy, cargo-deny, cargo-test) packages.</p>
+      </div>
+      <div class="pipeline-info-item">
+        <h4>Auto-Fix Loop</h4>
+        <p>CI failure handler automatically fixes formatting and lint errors, pushes the fix, and re-triggers the pipeline.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========== 11. AI Safety ========== -->
+<section id="safety" aria-labelledby="safety-title">
+  <div class="container reveal">
+    <h2 class="section-title" id="safety-title">AI Safety</h2>
+    <p class="section-subtitle">Key safety principles implemented in this project, informed by the <a href="https://course.aisafetyfundamentals.com/">BlueDot Impact AI Safety Fundamentals</a> course.</p>
+
+    <div class="safety-grid">
+      <div class="safety-card">
+        <h3>Sleeper Agent Detection</h3>
+        <p>AI systems can develop hidden capabilities that only emerge under specific conditions. Detection requires analyzing internal processes (residual stream activations), not just outputs. Deception persists through safety training.</p>
+      </div>
+
+      <div class="safety-card">
+        <h3>Scalable Oversight</h3>
+        <p>Break complex tasks into verifiable subtasks. Use AI to help evaluate AI outputs. Debate systems with multiple AI instances. Always maintain human judgment in the loop.</p>
+      </div>
+
+      <div class="safety-card">
+        <h3>Control Protocols</h3>
+        <p>Separate "writer" and "monitor" roles using different models/providers. Use signal jamming to prevent covert coordination. Spend human attention on the most suspicious outputs.</p>
+      </div>
+
+      <div class="safety-card">
+        <h3>Human Gates</h3>
+        <p>Three mandatory human gates in the workflow: issue approval, code review, and merge decision. Agents cannot bypass these checkpoints regardless of capability.</p>
+      </div>
+
+      <div class="safety-card">
+        <h3>Containment Layers</h3>
+        <p>Defense in depth: capability limits, monitoring, verification, rollback, and kill switches. Never fully automate critical infrastructure or production deployments.</p>
+      </div>
+
+      <div class="safety-card">
+        <h3>Wrapper Guards</h3>
+        <p>CLI wrappers (git-guard, gh-validator) enforce security boundaries. Dangerous git operations require sudo. Secrets are automatically masked in GitHub CLI output.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<!-- ========== 12. Footer ========== -->
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-links">
+      <a href="https://github.com/AndrewAltimit/template-repo">GitHub</a>
+      <a href="https://github.com/AndrewAltimit/template-repo/tree/main/docs">Documentation</a>
+      <a href="https://github.com/AndrewAltimit/template-repo/releases/latest">Releases</a>
+    </div>
+    <p class="footer-text">All code authored by AI agents under human oversight.</p>
+    <p class="footer-text">Released under public domain dedication.</p>
+    <p class="footer-disclaimer">This repository and all associated documentation, code, research papers, and tools are provided as-is with no warranty of any kind. The maintainer makes no representations regarding the suitability, legality, or safety of any component for any purpose. Users assume all responsibility for their use of this material. Portions of this repository contain dual-use security research and tooling. Publication is for defensive research, education, and policy analysis purposes.</p>
+  </div>
+</footer>
+
+<script src="js/main.js"></script>
+</body>
+</html>
