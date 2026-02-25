@@ -71,6 +71,7 @@ jobs:
       docker_changed: ${{ steps.changes.outputs.docker_changed }}
       mcp_changed: ${{ steps.changes.outputs.mcp_changed }}
       sleeper_changed: ${{ steps.changes.outputs.sleeper_changed }}
+      site_changed: ${{ steps.changes.outputs.site_changed }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -113,6 +114,9 @@ jobs:
           # MCP: server code and bridges
           mcp_count=$(grep -cE '(tools/mcp/|tools/cli/bridges/)' changed_files.txt || echo "0")
 
+          # Site: GitHub Pages files
+          site_count=$(grep -cE '^site/' changed_files.txt || echo "0")
+
           # Force all jobs on workflow_dispatch or tag push (releases need full pipeline)
           if [ "${{ github.event_name }}" = "workflow_dispatch" ] || [[ "${{ github.ref }}" == refs/tags/v* ]]; then
             python_count=1
@@ -121,6 +125,7 @@ jobs:
             docker_count=1
             mcp_count=1
             sleeper_count=1
+            site_count=1
           fi
 
           # Set outputs
@@ -130,6 +135,7 @@ jobs:
           echo "docker_changed=$([[ $docker_count -gt 0 ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
           echo "mcp_changed=$([[ $mcp_count -gt 0 ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
           echo "sleeper_changed=$([[ $sleeper_count -gt 0 ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
+          echo "site_changed=$([[ $site_count -gt 0 ]] && echo 'true' || echo 'false')" >> $GITHUB_OUTPUT
 
           echo "[INFO] Change Summary:"
           echo "  Python files: $python_count"
@@ -138,6 +144,7 @@ jobs:
           echo "  Docker files: $docker_count"
           echo "  MCP files: $mcp_count"
           echo "  Sleeper agents: $sleeper_count"
+          echo "  Site files: $site_count"
 
   # Stage 1: Format check
   format-check:
@@ -1221,13 +1228,44 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   # Final status notification
+  # Deploy GitHub Pages site
+  deploy-pages:
+    name: Deploy GitHub Pages
+    needs: [detect-changes, format-check, basic-lint, test-suite]
+    if: >-
+      always() && !cancelled() &&
+      github.ref == 'refs/heads/main' && github.event_name == 'push' &&
+      needs.detect-changes.outputs.site_changed == 'true' &&
+      !contains(needs.*.result, 'failure')
+    runs-on: self-hosted
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
   notify:
     name: CI Summary
     needs: [
       format-check, basic-lint, full-lint, test-suite, rust-ci,
       mcp-validation, docs-build, sleeper-agents-tests,
       security-scan, build-images, integration-tests, deploy,
-      build-python-wheels, build-rust-binaries, build-latex-docs, create-release
+      build-python-wheels, build-rust-binaries, build-latex-docs, create-release,
+      deploy-pages
     ]
     if: always()
     runs-on: self-hosted
@@ -1261,6 +1299,7 @@ jobs:
           echo "| Rust Binaries | ${{ needs.build-rust-binaries.result == 'success' && '✅' || needs.build-rust-binaries.result == 'skipped' && '⏭️' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| LaTeX Docs | ${{ needs.build-latex-docs.result == 'success' && '✅' || needs.build-latex-docs.result == 'skipped' && '⏭️' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
           echo "| GitHub Release | ${{ needs.create-release.result == 'success' && '✅' || needs.create-release.result == 'skipped' && '⏭️' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| GitHub Pages | ${{ needs.deploy-pages.result == 'success' && '✅' || needs.deploy-pages.result == 'skipped' && '⏭️' || '❌' }} |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
           # Overall status

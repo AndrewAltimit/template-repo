@@ -117,7 +117,7 @@ venv.bak/
 .ropeproject
 
 # mkdocs documentation
-/site
+# /site  -- needed for GitHub Pages
 
 # mypy
 .mypy_cache/
