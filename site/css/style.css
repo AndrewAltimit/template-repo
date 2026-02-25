@@ -822,7 +822,14 @@ section {
     --section-gap: 3rem;
   }
 
-  /* Gate collapsed mobile nav on .js so no-JS users still see links */
+  /* Mobile layout: stack links vertically for all users */
+  .nav-links {
+    flex-direction: column;
+    padding: 1rem 1.5rem;
+    gap: 0;
+  }
+
+  /* Gate collapsed/hidden state on .js so no-JS users still see links */
   .js .nav-links {
     display: none;
     position: absolute;
@@ -831,9 +838,6 @@ section {
     right: 0;
     background: rgba(13, 17, 23, 0.97);
     backdrop-filter: blur(12px);
-    flex-direction: column;
-    padding: 1rem 1.5rem;
-    gap: 0;
     border-bottom: 1px solid var(--border);
   }
 

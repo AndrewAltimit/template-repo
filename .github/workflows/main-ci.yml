@@ -1231,13 +1231,15 @@ jobs:
   # Deploy GitHub Pages site
   deploy-pages:
     name: Deploy GitHub Pages
-    needs: [detect-changes]
+    needs: [detect-changes, format-check, basic-lint, test-suite]
     if: >-
       always() && !cancelled() &&
       github.ref == 'refs/heads/main' && github.event_name == 'push' &&
-      needs.detect-changes.outputs.site_changed == 'true'
+      needs.detect-changes.outputs.site_changed == 'true' &&
+      !contains(needs.*.result, 'failure')
     runs-on: self-hosted
     permissions:
+      contents: read
       pages: write
       id-token: write
     environment:
