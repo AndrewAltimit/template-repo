@@ -822,7 +822,8 @@ section {
     --section-gap: 3rem;
   }
 
-  .nav-links {
+  /* Gate collapsed mobile nav on .js so no-JS users still see links */
+  .js .nav-links {
     display: none;
     position: absolute;
     top: var(--nav-height);
@@ -836,7 +837,7 @@ section {
     border-bottom: 1px solid var(--border);
   }
 
-  .nav-links.open {
+  .js .nav-links.open {
     display: flex;
   }
 
@@ -849,7 +850,7 @@ section {
     border-bottom: none;
   }
 
-  .nav-toggle {
+  .js .nav-toggle {
     display: block;
   }
 
