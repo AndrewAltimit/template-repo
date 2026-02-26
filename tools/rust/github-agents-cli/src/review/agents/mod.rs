@@ -33,6 +33,30 @@ pub trait ReviewAgent: Send + Sync {
     async fn condense(&self, review: &str, max_words: usize) -> Result<String>;
 }
 
+/// Check if subprocess stderr indicates a transient network error.
+///
+/// Used by agent implementations to distinguish transient failures (API outages,
+/// network issues) from permanent configuration errors. Transient errors should
+/// be reported as `Error::AgentExecutionFailed` (exit code 6) with a
+/// "service unavailable" prefix so that workflow bash wrappers can match them
+/// against known-transient patterns and gracefully skip.
+pub(crate) fn is_transient_error(stderr: &str) -> bool {
+    let lower = stderr.to_lowercase();
+    lower.contains("fetch failed")
+        || lower.contains("econnrefused")
+        || lower.contains("etimedout")
+        || lower.contains("econnreset")
+        || lower.contains("enetunreach")
+        || lower.contains("enotfound")
+        || lower.contains("socket hang up")
+        || lower.contains("network error")
+        || lower.contains("dns resolution")
+        || lower.contains("service unavailable")
+        || lower.contains("server error")
+        || lower.contains("503")
+        || lower.contains("502")
+}
+
 /// Select the appropriate review agent based on configuration
 pub async fn select_agent(agent_name: &str) -> Option<Box<dyn ReviewAgent>> {
     select_agent_with_models(agent_name, None, None).await
@@ -107,5 +131,67 @@ pub async fn select_agent_with_models(
             tracing::warn!("Unknown agent: {}", agent_name);
             None
         },
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_is_transient_error_fetch_failed() {
+        assert!(is_transient_error("TypeError: fetch failed"));
+    }
+
+    #[test]
+    fn test_is_transient_error_econnrefused() {
+        assert!(is_transient_error(
+            "Error: connect ECONNREFUSED 127.0.0.1:443"
+        ));
+    }
+
+    #[test]
+    fn test_is_transient_error_503() {
+        assert!(is_transient_error("HTTP 503 Service Unavailable"));
+    }
+
+    #[test]
+    fn test_is_transient_error_502() {
+        assert!(is_transient_error("502 Bad Gateway"));
+    }
+
+    #[test]
+    fn test_is_transient_error_socket_hang_up() {
+        assert!(is_transient_error("Error: socket hang up"));
+    }
+
+    #[test]
+    fn test_is_transient_error_enotfound() {
+        assert!(is_transient_error(
+            "Error: getaddrinfo ENOTFOUND api.example.com"
+        ));
+    }
+
+    #[test]
+    fn test_is_transient_error_service_unavailable() {
+        assert!(is_transient_error("Service Unavailable"));
+    }
+
+    #[test]
+    fn test_is_transient_error_server_error() {
+        assert!(is_transient_error("Internal Server Error"));
+    }
+
+    #[test]
+    fn test_is_transient_error_case_insensitive() {
+        assert!(is_transient_error("FETCH FAILED"));
+        assert!(is_transient_error("Network Error"));
+    }
+
+    #[test]
+    fn test_is_not_transient_error() {
+        assert!(!is_transient_error("Invalid API key"));
+        assert!(!is_transient_error("Permission denied"));
+        assert!(!is_transient_error("File not found"));
     }
 }

@@ -108,10 +108,29 @@ impl ClaudeAgent {
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
+            let stdout = String::from_utf8_lossy(&output.stdout);
             tracing::error!("Claude Code CLI failed with stderr: {}", stderr);
+            // Check combined stderr+stdout for transient errors since some CLIs
+            // report errors on stdout instead of stderr
+            let combined = if stdout.is_empty() {
+                stderr.to_string()
+            } else {
+                format!("{}\n{}", stderr, stdout)
+            };
+
+            if super::is_transient_error(&combined) {
+                tracing::warn!("Transient network error detected from Claude Code CLI");
+                return Err(Error::AgentExecutionFailed {
+                    name: "claude".to_string(),
+                    exit_code: output.status.code().unwrap_or(1),
+                    stdout: stdout.to_string(),
+                    stderr: format!("service unavailable (transient): {}", combined),
+                });
+            }
+
             return Err(Error::Config(format!(
                 "Claude Code CLI exited with status {}: {}",
-                output.status, stderr
+                output.status, combined
             )));
         }
 

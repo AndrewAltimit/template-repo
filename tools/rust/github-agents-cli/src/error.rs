@@ -69,7 +69,7 @@ pub enum Error {
     AgentNotAvailable { name: String, reason: String },
 
     /// Agent execution failed
-    #[error("Agent '{name}' failed with exit code {exit_code}")]
+    #[error("Agent '{name}' failed with exit code {exit_code}: {stderr}")]
     AgentExecutionFailed {
         name: String,
         exit_code: i32,
