@@ -128,6 +128,17 @@ impl CodexAgent {
             } else {
                 format!("{}\n{}", stderr, stdout)
             };
+
+            if super::is_transient_error(&combined) {
+                tracing::warn!("Transient network error detected from Codex CLI");
+                return Err(Error::AgentExecutionFailed {
+                    name: "codex".to_string(),
+                    exit_code: output.status.code().unwrap_or(1),
+                    stdout: stdout.to_string(),
+                    stderr: format!("service unavailable (transient): {}", combined),
+                });
+            }
+
             return Err(Error::Config(format!(
                 "Codex CLI exited with status {}: {}",
                 output.status, combined

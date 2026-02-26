@@ -97,6 +97,17 @@ impl OpenCodeAgent {
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
             tracing::error!("OpenCode CLI failed with stderr: {}", stderr);
+
+            if super::is_transient_error(&stderr) {
+                tracing::warn!("Transient network error detected from OpenCode CLI");
+                return Err(Error::AgentExecutionFailed {
+                    name: "opencode".to_string(),
+                    exit_code: output.status.code().unwrap_or(1),
+                    stdout: String::from_utf8_lossy(&output.stdout).to_string(),
+                    stderr: format!("service unavailable (transient): {}", stderr),
+                });
+            }
+
             return Err(Error::Config(format!(
                 "OpenCode CLI exited with status {}: {}",
                 output.status, stderr
