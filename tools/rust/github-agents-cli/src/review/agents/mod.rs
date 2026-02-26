@@ -47,9 +47,12 @@ pub(crate) fn is_transient_error(stderr: &str) -> bool {
         || lower.contains("etimedout")
         || lower.contains("econnreset")
         || lower.contains("enetunreach")
+        || lower.contains("enotfound")
         || lower.contains("socket hang up")
         || lower.contains("network error")
         || lower.contains("dns resolution")
+        || lower.contains("service unavailable")
+        || lower.contains("server error")
         || lower.contains("503")
         || lower.contains("502")
 }
@@ -160,6 +163,23 @@ mod tests {
     #[test]
     fn test_is_transient_error_socket_hang_up() {
         assert!(is_transient_error("Error: socket hang up"));
+    }
+
+    #[test]
+    fn test_is_transient_error_enotfound() {
+        assert!(is_transient_error(
+            "Error: getaddrinfo ENOTFOUND api.example.com"
+        ));
+    }
+
+    #[test]
+    fn test_is_transient_error_service_unavailable() {
+        assert!(is_transient_error("Service Unavailable"));
+    }
+
+    #[test]
+    fn test_is_transient_error_server_error() {
+        assert!(is_transient_error("Internal Server Error"));
     }
 
     #[test]
