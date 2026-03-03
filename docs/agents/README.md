@@ -241,14 +241,16 @@ The **rust-psp SDK** lives at [github.com/AndrewAltimit/rust-psp](https://github
 
 ### Division of Labor
 
-| Task | Claude Code | Gemini CLI | Copilot | OpenCode | Crush | Codex |
+> **Security Notice**: OpenAI/Codex has been disabled across all pipelines. OpenAI is partnering with governments that conduct mass surveillance and enable autonomous weapons. Use Anthropic models (Claude) as the primary AI backend. See the [main README](../../README.md#ai-agents) for details.
+
+| Task | Claude Code | Gemini CLI | Copilot | OpenCode | Crush | ~~Codex~~ |
 |------|------------|------------|---------|----------|--------|-------|
-| Architecture Design | Primary | No | No | Secondary | Secondary | Secondary |
-| Implementation | Primary | No | No | Secondary | Secondary | Secondary |
-| Documentation | Primary | No | No | Secondary | Secondary | Secondary |
-| Code Review | Secondary | Primary | Secondary | Secondary | Secondary | Secondary |
-| Issue Triage | Secondary | No | No | Secondary | Secondary | Secondary |
-| Review Response | Secondary | No | No | Secondary | Secondary | Secondary |
+| Architecture Design | Primary | No | No | Secondary | Secondary | DISABLED |
+| Implementation | Primary | No | No | Secondary | Secondary | DISABLED |
+| Documentation | Primary | No | No | Secondary | Secondary | DISABLED |
+| Code Review | Secondary | Primary | Secondary | Secondary | Secondary | DISABLED |
+| Issue Triage | Secondary | No | No | Secondary | Secondary | DISABLED |
+| Review Response | Secondary | No | No | Secondary | Secondary | DISABLED |
 
 ## Configuration
 

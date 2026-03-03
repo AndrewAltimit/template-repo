@@ -1,5 +1,5 @@
-name: 'Codex AI Code Review'
-description: 'Run Codex AI code review on a pull request. Caller must set GH_TOKEN as env var.'
+name: 'Codex AI Code Review (DISABLED)'
+description: 'DISABLED - OpenAI/Codex phased out due to mass surveillance and autonomous weapons concerns. Use Anthropic models instead. Original: Run Codex AI code review on a pull request.'
 
 inputs:
   pr_number:

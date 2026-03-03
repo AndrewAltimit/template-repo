@@ -143,16 +143,18 @@ AI agent embodiment in virtual worlds (Rust implementation):
 - Event sequencing for choreographed performances
 - 16 MCP tools for complete avatar control
 
-#### 11. Codex MCP Server
+#### 11. ~~Codex MCP Server~~ (DISABLED)
 **Location**: `tools/mcp/mcp_codex/`
 **Transport**: STDIO (local) or HTTP (Port 8021)
 **Documentation**: [Codex MCP Documentation](../../tools/mcp/mcp_codex/README.md)
 
-AI-powered code assistance via OpenAI Codex:
-- Code generation, completion, and refactoring
-- Code explanation and documentation
-- Conversation history management
-- Requires ChatGPT Plus subscription for Codex CLI auth
+**DISABLED**: OpenAI has entered partnerships with governments that conduct mass surveillance and enable autonomous weapons. All Codex/OpenAI integrations are disabled. Use Anthropic models (Claude) instead.
+
+~~AI-powered code assistance via OpenAI Codex~~:
+- ~~Code generation, completion, and refactoring~~
+- ~~Code explanation and documentation~~
+- ~~Conversation history management~~
+- ~~Requires ChatGPT Plus subscription for Codex CLI auth~~
 
 #### 12. GitHub Board MCP Server
 **Location**: `tools/mcp/mcp_github_board/`
@@ -315,7 +317,7 @@ This repository provides two MCP configuration files to optimize context window 
 
 **`.mcp.json` (Default - Essential Services)**
 - Prevents context window overload in Claude Code
-- Contains: Code Quality, AI Agents (Gemini, OpenCode, Crush, Codex)
+- Contains: Code Quality, AI Agents (Gemini, OpenCode, Crush; Codex disabled)
 - Best for: Day-to-day development, code review, refactoring
 
 **`.mcp.json.full` (Complete - All Services)**
@@ -353,7 +355,7 @@ tools/mcp/
 ├── mcp_code_quality/       # Code quality tools (local)
 ├── mcp_content_creation/   # Manim & LaTeX tools (local)
 ├── mcp_gemini/             # AI integration (local, host-only)
-├── mcp_codex/              # Codex AI code generation (local)
+├── mcp_codex/              # Codex AI code generation (DISABLED - OpenAI security risk)
 ├── mcp_opencode/           # OpenCode code generation (local)
 ├── mcp_crush/              # Crush code generation (local)
 ├── mcp_meme_generator/     # Meme generation (local)

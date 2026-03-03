@@ -98,9 +98,11 @@ model_overrides:
     model: qwen/qwen-2.5-coder-32b-instruct
     temperature: 0.1  # Lower temperature for Crush
 
-  codex:
-    model: gpt-5.3-codex
-    reasoning_effort: xhigh
+  # DISABLED: OpenAI/Codex phased out due to mass surveillance and autonomous
+  # kill decision concerns. Use Anthropic models instead.
+  # codex:
+  #   model: gpt-5.3-codex
+  #   reasoning_effort: xhigh
 
 # OpenRouter configuration (for future agents)
 openrouter:

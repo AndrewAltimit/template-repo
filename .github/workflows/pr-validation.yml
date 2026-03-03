@@ -398,14 +398,15 @@ jobs:
           enable_editor: 'true'
           start_reaction_server: 'true'
 
-  # Stage 2b: Codex AI Code Review (Secondary reviewer)
+  # Stage 2b: Codex AI Code Review (DISABLED)
+  # SECURITY: OpenAI/Codex has been disabled due to mass surveillance concerns.
+  # OpenAI products enable bulk data collection and should be treated as a security
+  # risk in any pipeline handling proprietary code. Use Anthropic models instead.
+  # To re-enable, restore the original `if` condition below.
   codex-review:
-    name: Codex AI Code Review
+    name: Codex AI Code Review (DISABLED)
     needs: [detect-changes, build-rust-tools, gemini-review]
-    if: |
-      github.event_name == 'pull_request' &&
-      (contains(github.event.pull_request.labels.*.name, 'help wanted') || !github.event.pull_request.draft) &&
-      needs.gemini-review.result != 'skipped'
+    if: ${{ contains(github.event.pull_request.labels.*.name, 'force-codex-review') }}  # Disabled by default - requires explicit label to run
     runs-on: self-hosted
     timeout-minutes: 15
     continue-on-error: true

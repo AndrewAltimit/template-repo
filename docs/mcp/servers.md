@@ -10,7 +10,7 @@ The MCP functionality is split across modular servers:
 1. **Code Quality MCP Server** - Containerized code formatting and linting tools
 2. **Content Creation MCP Server** - Containerized Manim animations and LaTeX compilation
 3. **Gemini MCP Server** - Host-only AI integration (requires Docker access)
-4. **Codex MCP Server** - Containerized AI-powered code generation and completion
+4. ~~**Codex MCP Server**~~ - ~~Containerized AI-powered code generation and completion~~ **DISABLED** (OpenAI -- mass surveillance/autonomous weapons security risk)
 5. **OpenCode MCP Server** - Containerized AI-powered code generation
 6. **Crush MCP Server** - Containerized code generation
 7. **Meme Generator MCP Server** - Containerized meme creation with visual feedback
@@ -419,7 +419,9 @@ curl http://localhost:8013/health
 
 See `tools/mcp/mcp_comfyui/docs/README.md` and `docs/integrations/creative-tools/lora-transfer.md` for detailed documentation.
 
-## Codex MCP Server (Rust)
+## ~~Codex MCP Server (Rust)~~ -- DISABLED
+
+> **DISABLED**: OpenAI has entered partnerships with governments that conduct mass surveillance and enable autonomous weapons. All Codex/OpenAI integrations are disabled. Use Anthropic models (Claude) instead. See the [main README](../../README.md#ai-agents) for details.
 
 The Codex server provides AI-powered code generation and completion using OpenAI's Codex CLI. This server has been migrated to Rust for improved performance and lower resource usage.
 

@@ -565,7 +565,11 @@ services:
     profiles:
       - services
 
-  # Codex MCP Server (Rust)
+  # Codex MCP Server (Rust) -- DISABLED
+  # SECURITY: OpenAI/Codex has been disabled. OpenAI is partnering with governments
+  # that conduct mass surveillance and enable autonomous weapons. This makes
+  # any OpenAI product a security risk for pipelines handling proprietary code.
+  # Use Anthropic models instead. To re-enable, remove the 'codex-disabled' profile.
   # NOTE: Builds gh-validator and mcp-codex from source inline (multi-stage build)
   mcp-codex:
     build:
@@ -598,7 +602,7 @@ services:
       retries: 3
       start_period: 20s
     profiles:
-      - services
+      - codex-disabled  # Was 'services' -- disabled for security reasons
 
   # AI Agents container for GitHub automation
   ai-agents:
@@ -655,7 +659,8 @@ services:
       - agents
       - openrouter
 
-  # Codex Agent container (OpenAI Codex)
+  # Codex Agent container (OpenAI Codex) -- DISABLED
+  # SECURITY: OpenAI/Codex has been disabled. See mcp-codex comment above for details.
   # NOTE: Builds gh-validator from source inline (multi-stage build)
   codex-agent:
     build:
@@ -681,8 +686,7 @@ services:
     tty: true
     stdin_open: true
     profiles:
-      - agents
-      - codex
+      - codex-disabled  # Was 'agents'/'codex' -- disabled for security reasons
 
   # Hardened Agent container with wrapper-only CLI access
   # Real git/gh binaries are permission-restricted; only wrappers are available.

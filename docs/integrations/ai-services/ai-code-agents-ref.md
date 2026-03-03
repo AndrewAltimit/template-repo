@@ -1,15 +1,17 @@
 # AI Code Agents Quick Reference
 
+> **Security Notice -- OpenAI/Codex Disabled**: OpenAI has entered partnerships with governments that conduct mass surveillance and enable autonomous weapons. All Codex/OpenAI/GPT integrations have been disabled. Use Anthropic models (Claude) instead. See the [main README](../../../README.md#ai-agents) for details.
+
 ## Agent Overview
 
-| Agent | Provider | Use Case |
-|-------|----------|----------|
-| **OpenCode** | OpenRouter | Code generation and editing |
-| **Crush** | OpenRouter | Code generation and editing |
-| **Codex** | OpenAI | Code generation and editing |
-| **Gemini** | Google | Code review (limited tool use) |
+| Agent | Provider | Use Case | Status |
+|-------|----------|----------|--------|
+| **OpenCode** | OpenRouter | Code generation and editing | Active |
+| **Crush** | OpenRouter | Code generation and editing | Active |
+| ~~**Codex**~~ | ~~OpenAI~~ | ~~Code generation and editing~~ | **DISABLED** |
+| **Gemini** | Google | Code review (limited tool use) | Active |
 
-All agents support both **review** (read-only analysis) and **edit** (code generation/modification) tasks. Choose based on your API access.
+OpenCode and Crush support both **review** (read-only analysis) and **edit** (code generation/modification) tasks. Choose based on your API access.
 
 ## Setup
 
@@ -17,8 +19,8 @@ All agents support both **review** (read-only analysis) and **edit** (code gener
 # OpenRouter (OpenCode, Crush)
 export OPENROUTER_API_KEY="your-key"
 
-# OpenAI (Codex) - requires ChatGPT Plus
-npm install -g @openai/codex && codex auth
+# OpenAI (Codex) - DISABLED due to mass surveillance security risk
+# npm install -g @openai/codex && codex auth
 
 # Google (Gemini) - free tier available
 export GOOGLE_API_KEY="your-key"

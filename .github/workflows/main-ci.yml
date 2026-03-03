@@ -346,7 +346,7 @@ jobs:
           # Note: All MCP servers are now Rust
           # They are built and tested in the build-rust-binaries job
           print(\"Rust MCP servers (tested separately):\")
-          print(\"  - mcp-codex (AI code generation via OpenAI Codex)\")
+          print(\"  - mcp-codex (AI code generation via OpenAI Codex - DISABLED)\")
           print(\"  - mcp-gemini (AI assistance via Gemini CLI)\")
           print(\"  - mcp-crush (AI code generation via OpenRouter)\")
           print(\"  - mcp-opencode (AI code assistance via OpenRouter)\")
@@ -1168,7 +1168,7 @@ jobs:
           | Binary | Platform | Description |
           |--------|----------|-------------|
           | `mcp-reaction-search-linux-x64` | Linux x64 | MCP server for semantic reaction image search |
-          | `mcp-codex-linux-x64` | Linux x64 | MCP server for AI code generation via OpenAI Codex |
+          | `mcp-codex-linux-x64` | Linux x64 | MCP server for AI code generation via OpenAI Codex (DISABLED - security risk) |
           | `mcp-gemini-linux-x64` | Linux x64 | MCP server for AI assistance via Gemini CLI |
           | `mcp-crush-linux-x64` | Linux x64 | MCP server for AI code generation via OpenRouter |
           | `mcp-opencode-linux-x64` | Linux x64 | MCP server for AI code assistance via OpenRouter |
