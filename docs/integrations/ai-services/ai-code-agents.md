@@ -2,18 +2,20 @@
 
 This document provides comprehensive documentation for the AI code assistance agents available in this project.
 
+> **Security Notice -- OpenAI/Codex Disabled**: OpenAI has entered partnerships with governments that conduct mass surveillance and enable autonomous weapons. All Codex/OpenAI/GPT integrations have been disabled. The mass surveillance exposure alone makes OpenAI products an unacceptable security risk for any pipeline handling proprietary or sensitive code. **Use Anthropic models (Claude) as the primary AI backend.** If you choose to re-enable despite these risks, do so with extreme caution and only if you truly understand the data exposure implications.
+
 ## Overview
 
-The project integrates four AI code agents, each using a different backend provider:
+The project integrates three active AI code agents, each using a different backend provider:
 
-| Agent | Provider | API | Primary Use |
-|-------|----------|-----|-------------|
-| **OpenCode** | OpenRouter | OpenRouter API | General code assistance |
-| **Crush** | OpenRouter | OpenRouter API | General code assistance |
-| **Codex** | OpenAI | ChatGPT Plus auth | General code assistance |
-| **Gemini** | Google | Google AI Studio | Code review (limited tool use) |
+| Agent | Provider | API | Primary Use | Status |
+|-------|----------|-----|-------------|--------|
+| **OpenCode** | OpenRouter | OpenRouter API | General code assistance | Active |
+| **Crush** | OpenRouter | OpenRouter API | General code assistance | Active |
+| ~~**Codex**~~ | ~~OpenAI~~ | ~~ChatGPT Plus auth~~ | ~~General code assistance~~ | **DISABLED** |
+| **Gemini** | Google | Google AI Studio | Code review (limited tool use) | Active |
 
-All agents provide similar functionality through a unified MCP interface. Choose based on your API access and provider preference.
+OpenCode and Crush provide similar functionality through a unified MCP interface. Choose based on your API access and provider preference. Codex has been disabled -- see security notice above.
 
 **Note on Gemini**: The Gemini CLI currently has limited tool use capabilities, making it best suited for code review tasks rather than interactive code generation.
 
@@ -42,7 +44,7 @@ All agents provide similar functionality through a unified MCP interface. Choose
           |                                 |
     +-----v------+                   +------v-----+
     | OpenRouter |                   |  OpenAI    |
-    | API        |                   |  (Codex)   |
+    | API        |                   |  (DISABLED)|
     +------------+                   +------------+
 ```
 

@@ -1,5 +1,13 @@
 # Codex Agent Setup and Configuration
 
+> **THIS INTEGRATION IS DISABLED**
+>
+> OpenAI has entered partnerships with governments that conduct mass surveillance and enable autonomous weapons. All OpenAI/Codex/GPT integrations in this project have been disabled as of March 2026. The mass surveillance exposure alone makes any OpenAI product an unacceptable security risk for pipelines handling proprietary or sensitive code.
+>
+> **We strongly recommend Anthropic models (Claude) as the primary AI backend.** If you choose to re-enable OpenAI integrations despite these risks, do so with extreme caution, full awareness of the data exposure implications, and only if you truly understand what you are opting into.
+>
+> To re-enable: restore the `codex` key in `.mcp.json`, change docker-compose profiles back from `codex-disabled` to `services`/`codex`, and restore the `if` condition in `pr-validation.yml`.
+
 This guide covers the setup and usage of OpenAI Codex as an AI agent in the repository.
 
 ## Overview

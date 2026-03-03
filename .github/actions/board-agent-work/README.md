@@ -8,7 +8,7 @@ This action enables autonomous AI agents to:
 
 1. Query the GitHub Projects v2 board for ready work
 2. Claim issues to prevent conflicts with other agents
-3. Execute agent-specific work (Claude, OpenCode, Gemini, Crush, Codex)
+3. Execute agent-specific work (Claude, OpenCode, Gemini, Crush; ~~Codex~~ disabled -- OpenAI security risk)
 4. Create pull requests with the completed work
 5. Release claims with appropriate status
 

@@ -34,7 +34,7 @@ This template was built for a specific infrastructure. When forking, you will ne
 | `GOOGLE_API_KEY` | Gemini MCP server | [Google AI Studio](https://aistudio.google.com/) |
 | `ELEVENLABS_API_KEY` | ElevenLabs Speech MCP server | [elevenlabs.io](https://elevenlabs.io/) |
 | `GITHUB_TOKEN` | Agent workflows, board-manager, gh-validator | GitHub Settings > Developer Settings > Fine-grained tokens |
-| `CODEX_API_KEY` | Codex MCP server | [OpenAI](https://platform.openai.com/) |
+| ~~`CODEX_API_KEY`~~ | ~~Codex MCP server~~ | ~~[OpenAI](https://platform.openai.com/)~~ **DISABLED** -- OpenAI security risk (mass surveillance, autonomous weapons) |
 
 You only need keys for the features you enable. The Minimal setup path requires no API keys at all.
 
@@ -69,7 +69,7 @@ The template provides two MCP configuration files to optimize performance:
 
 **`.mcp.json` (Default - Essential Services):**
 - Contains only essential services to prevent context window overload
-- Includes: code-quality, AI agents (Gemini, OpenCode, Crush, Codex)
+- Includes: code-quality, AI agents (Gemini, OpenCode, Crush; Codex disabled)
 - Best for day-to-day development and code review
 - **Recommended for most users**
 

@@ -1,4 +1,6 @@
-# Codex MCP Server (Rust)
+# Codex MCP Server (Rust) -- DISABLED
+
+> **THIS SERVER IS DISABLED**: OpenAI has entered partnerships with governments that conduct mass surveillance and enable autonomous weapons. All OpenAI/Codex integrations have been disabled. Use Anthropic models (Claude) instead. See the [main README](../../../README.md#ai-agents) for details.
 
 > A Model Context Protocol server for AI-powered code generation using OpenAI's Codex CLI, built in Rust for performance and reliability.
 

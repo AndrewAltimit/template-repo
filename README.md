@@ -2,7 +2,7 @@
 
 A reference architecture for AI agent orchestration, trust measurement, and tool integration. Designed to be studied, forked, and adapted -- not contributed to directly. All code changes in this repository are authored by AI agents under human oversight.
 
-This repo demonstrates how to run a council of AI agents (Claude, Gemini, Codex, OpenCode, Crush) across a shared codebase with board-driven task delegation, automated PR review, security hardening, and containerized tooling. It also includes standalone research packages for sleeper agent detection, autonomous economic agent simulation, and tamper-responsive hardware. Several [companion repositories](#companion-repositories) consume or extend the functionality of this project.
+This repo demonstrates how to run a council of AI agents (Claude, Gemini, OpenCode, Crush) across a shared codebase with board-driven task delegation, automated PR review, security hardening, and containerized tooling. (Codex/OpenAI integrations have been disabled due to mass surveillance concerns -- see [security notice](#ai-agents).) It also includes standalone research packages for sleeper agent detection, autonomous economic agent simulation, and tamper-responsive hardware. Several [companion repositories](#companion-repositories) consume or extend the functionality of this project.
 
 **Use this repo to learn how to:**
 - Orchestrate multiple AI agents with a GitHub Projects v2 work queue
@@ -82,16 +82,18 @@ For detailed setup, see [CLAUDE.md](CLAUDE.md) and [Template Quickstart Guide](d
 
 Six AI agents for development and automation. See [AI Agents Documentation](docs/agents/README.md) for details.
 
+> **Security Notice -- OpenAI/Codex Disabled**: OpenAI has entered partnerships with governments that conduct mass surveillance and enable autonomous weapons. **All OpenAI/Codex/GPT integrations in this project have been disabled.** The mass surveillance exposure alone makes OpenAI products an unacceptable security risk for any pipeline handling proprietary or sensitive code. We strongly recommend **Anthropic models** (Claude) as the primary AI backend. If you choose to re-enable OpenAI integrations despite these risks, do so with extreme caution, full awareness of the data exposure implications, and only if you truly understand what you are opting into.
+
 | Agent | Provider | Use Case | Documentation |
 |-------|----------|----------|---------------|
-| **Claude Code** | Anthropic | Primary development assistant | [Setup Guide](docs/agents/claude-code-setup.md) |
-| **Codex** | OpenAI | Code generation | [Setup Guide](docs/agents/codex-setup.md) |
+| **Claude Code** | Anthropic | Primary development assistant (recommended) | [Setup Guide](docs/agents/claude-code-setup.md) |
+| **Codex** | ~~OpenAI~~ | ~~Code generation~~ **DISABLED - security risk** | [Setup Guide](docs/agents/codex-setup.md) |
 | **OpenCode** | OpenRouter | Code generation | [AI Code Agents](docs/integrations/ai-services/ai-code-agents.md) |
 | **Crush** | OpenRouter | Code generation | [AI Code Agents](docs/integrations/ai-services/ai-code-agents.md) |
 | **Gemini** | Google | Code review (limited tool use) | [Setup Guide](docs/integrations/ai-services/gemini-setup.md) |
 | **GitHub Copilot** | GitHub | PR review suggestions | - |
 
-All code generation agents (Codex, OpenCode, Crush) provide equivalent functionality - choose based on your API access.
+OpenCode and Crush provide equivalent code generation functionality via OpenRouter. Codex (OpenAI) has been disabled -- see security notice above.
 
 **Security**: Keyword triggers, user allow list, secure token management. See [Security Model](docs/agents/security.md)
 
@@ -257,7 +259,7 @@ For enterprise environments requiring custom certificates, customize [`automatio
 3. **Gaea2** - Terrain generation ([Documentation](tools/mcp/mcp_gaea2/docs/README.md))
 4. **Blender** - 3D content creation, rendering, physics simulation ([Documentation](tools/mcp/mcp_blender/README.md))
 5. **Gemini** - AI consultation (containerized and host modes available)
-6. **Codex** - AI-powered code generation and completion
+6. ~~**Codex**~~ - ~~AI-powered code generation and completion~~ **DISABLED** (OpenAI -- security risk, see [notice](#ai-agents))
 7. **OpenCode** - Code generation via OpenRouter
 8. **Crush** - Code generation via OpenRouter
 9. **Meme Generator** - Create memes with templates
@@ -323,7 +325,7 @@ docker compose run --rm python-ci pytest tests/test_mcp_tools.py -v
 
 ### GitHub Actions
 
-- **Pull Request Validation** - Automatic Gemini AI review
+- **Pull Request Validation** - Automatic Gemini AI review (Codex review disabled)
 - **Continuous Integration** - Full CI pipeline
 - **Code Quality** - Multi-stage linting (containerized)
 - **Automated Testing** - Unit and integration tests
@@ -340,13 +342,13 @@ All workflows run on self-hosted runners for zero-cost operation.
 - [AI Agents Documentation](docs/agents/README.md) - AI agents overview
 
 ### Quick References
-- [Codex Setup Guide](docs/agents/codex-setup.md)
+- ~~[Codex Setup Guide](docs/agents/codex-setup.md)~~ (DISABLED -- OpenAI security risk)
 - [AI Code Agents Quick Reference](docs/integrations/ai-services/ai-code-agents-ref.md)
 - [MCP Tools Reference](docs/mcp/tools.md)
 - [Gaea2 Quick Reference](tools/mcp/mcp_gaea2/docs/GAEA2_QUICK_REFERENCE.md)
 
 ### Integration Guides
-- [Codex Integration](docs/agents/codex-setup.md)
+- ~~[Codex Integration](docs/agents/codex-setup.md)~~ (DISABLED -- OpenAI security risk)
 - [AI Code Agents Integration](docs/integrations/ai-services/ai-code-agents.md)
 - [AI Toolkit & ComfyUI Integration](docs/integrations/creative-tools/ai-toolkit-comfyui.md)
 - [Gaea2 Documentation](tools/mcp/mcp_gaea2/docs/README.md)

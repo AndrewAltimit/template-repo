@@ -16,10 +16,12 @@ This is a **single-maintainer project** by @AndrewAltimit with a **container-fir
 
 ## AI Agent Collaboration
 
-Six AI agents work together in this development ecosystem:
+Five active AI agents work together in this development ecosystem:
 
-1. **Claude Code** - Primary development assistant for architecture, implementation, and debugging
-2. **Codex** - AI-powered code generation and completion (OpenAI)
+> **Security Notice**: OpenAI/Codex has been disabled. OpenAI is partnering with governments that conduct mass surveillance and enable autonomous weapons. Use Anthropic models (Claude) as the primary AI backend.
+
+1. **Claude Code** - Primary development assistant for architecture, implementation, and debugging (recommended)
+2. ~~**Codex**~~ - ~~AI-powered code generation and completion (OpenAI)~~ **DISABLED** -- security risk
 3. **OpenCode** - Code generation via OpenRouter
 4. **Crush** - Code generation via OpenRouter
 5. **Gemini CLI** - Handles automated PR code reviews
@@ -92,7 +94,7 @@ docker compose down                      # Stop services
 
 | Category | Servers | Transport |
 |----------|---------|-----------|
-| Code Quality | code-quality, gemini, opencode, crush, codex | STDIO (local) |
+| Code Quality | code-quality, gemini, opencode, crush, ~~codex~~ (disabled) | STDIO (local) |
 | Content | content-creation, meme-generator, elevenlabs-speech, video-editor, blender | STDIO |
 | Integration | virtual-character, github-board, agentcore-memory, reaction-search, desktop-control | STDIO |
 | Agent Integration | memory-explorer | STDIO (native) |

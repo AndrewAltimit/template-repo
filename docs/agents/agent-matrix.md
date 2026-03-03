@@ -2,15 +2,17 @@
 
 This document clarifies which AI agents are available in different execution environments.
 
+> **Security Notice -- OpenAI/Codex Disabled**: OpenAI has entered partnerships with governments that conduct mass surveillance and enable autonomous weapons. All OpenAI/Codex integrations in this project have been disabled. The mass surveillance exposure alone makes OpenAI products an unacceptable security risk for any pipeline handling proprietary or sensitive code. **Use Anthropic models (Claude) as your primary AI backend.** If you choose to re-enable OpenAI integrations despite these risks, do so with extreme caution and full awareness of the data exposure implications.
+
 ## Quick Reference
 
-| Agent | Host Machine | Container | Authentication Method |
-|-------|--------------|-----------|---------------------|
-| Claude | Yes | No | Subscription via ~/.claude.json |
-| Gemini | Yes | No | Web login (free) or API key (paid) |
-| OpenCode | Yes | Yes | OpenRouter API key |
-| Crush | Yes | Yes | OpenRouter API key |
-| Codex | Yes | Yes | ChatGPT Plus Subscription or API Key |
+| Agent | Host Machine | Container | Authentication Method | Status |
+|-------|--------------|-----------|---------------------|--------|
+| Claude | Yes | No | Subscription via ~/.claude.json | **Recommended** |
+| Gemini | Yes | No | Web login (free) or API key (paid) | Active |
+| OpenCode | Yes | Yes | OpenRouter API key | Active |
+| Crush | Yes | Yes | OpenRouter API key | Active |
+| ~~Codex~~ | ~~Yes~~ | ~~Yes~~ | ~~ChatGPT Plus Subscription or API Key~~ | **DISABLED** |
 
 ## Execution Environments
 
@@ -23,7 +25,7 @@ When running agents directly on the host machine (e.g., GitHub Actions self-host
 - **Gemini**: Requires Docker socket access for some operations (use web login for free tier)
 - **OpenCode**: Can run via STDIO mode or HTTP server on host
 - **Crush**: Can run via STDIO mode or HTTP server on host
-- **Codex**: Can run via STDIO mode or HTTP server (requires ChatGPT Plus)
+- ~~**Codex**~~: DISABLED -- OpenAI security risk (mass surveillance, autonomous weapons)
 
 **Use Cases:**
 - Issue monitoring (`issue-monitor`)
@@ -52,7 +54,7 @@ When running inside the `openrouter-agents` container:
 **Available Agents:**
 - **OpenCode**: Open-source code generation
 - **Crush**: Multi-provider AI tool
-- **Codex**: OpenAI code generation (with mounted auth from host)
+- ~~**Codex**~~: DISABLED -- OpenAI security risk (see notice above)
 
 **Use Cases:**
 - Batch processing
@@ -78,13 +80,12 @@ enabled_agents:
   - gemini      # Free with web login, paid with API key
   - opencode    # Requires OpenRouter API key
   - crush       # Requires OpenRouter API key
-  - codex       # Requires ChatGPT Plus subscription
+  # - codex     # DISABLED: OpenAI security risk (mass surveillance, autonomous weapons)
 
-# For container execution (OpenRouter agents + Codex with mounted auth)
+# For container execution (OpenRouter agents only -- Codex disabled)
 # enabled_agents:
 #   - opencode
 #   - crush
-#   - codex      # With mounted ~/.codex from host
 ```
 
 ## Error Handling

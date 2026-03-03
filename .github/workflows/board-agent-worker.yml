@@ -30,7 +30,7 @@ on:
           - opencode
           - crush
           - gemini
-          - codex
+          # - codex  # DISABLED: OpenAI/Codex phased out due to mass surveillance concerns
         default: 'claude'
       max-issues:
         description: 'Maximum issues to process'

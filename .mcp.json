@@ -106,7 +106,8 @@
         "stdio"
       ]
     },
-    "codex": {
+    "_codex_DISABLED_SECURITY_RISK": {
+      "_warning": "OpenAI/Codex disabled due to mass surveillance concerns. Use Anthropic models instead. Rename key back to 'codex' to re-enable.",
       "command": "docker",
       "args": [
         "compose",
