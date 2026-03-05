@@ -1,6 +1,6 @@
 # Agent Orchestration & Security Template
 
-A reference architecture for AI agent orchestration, trust measurement, and tool integration. Designed to be studied, forked, and adapted -- not contributed to directly. All code changes in this repository are authored by AI agents under human oversight.
+A reference architecture for AI agent orchestration, trust measurement, and tool integration. Designed to be studied, forked, and adapted -- not contributed to directly. All code changes in this repository are authored by AI agents under human oversight. Browse the [project showcase](https://andrewaltimit.github.io/template-repo/) for an overview.
 
 This repo demonstrates how to run a council of AI agents (Claude, Gemini, OpenCode, Crush) across a shared codebase with board-driven task delegation, automated PR review, security hardening, and containerized tooling. (Codex/OpenAI integrations have been disabled due to mass surveillance concerns -- see [security notice](#ai-agents).) It also includes standalone research packages for sleeper agent detection, autonomous economic agent simulation, and tamper-responsive hardware. Several [companion repositories](#companion-repositories) consume or extend the functionality of this project.
 
@@ -82,7 +82,7 @@ For detailed setup, see [CLAUDE.md](CLAUDE.md) and [Template Quickstart Guide](d
 
 Six AI agents for development and automation. See [AI Agents Documentation](docs/agents/README.md) for details.
 
-> **Security Notice -- OpenAI/Codex Disabled**: OpenAI has entered partnerships with governments that conduct mass surveillance and enable autonomous weapons. **All OpenAI/Codex/GPT integrations in this project have been disabled.** The mass surveillance exposure alone makes OpenAI products an unacceptable security risk for any pipeline handling proprietary or sensitive code. We strongly recommend **Anthropic models** (Claude) as the primary AI backend. If you choose to re-enable OpenAI integrations despite these risks, do so with extreme caution, full awareness of the data exposure implications, and only if you truly understand what you are opting into.
+> **Security Notice -- OpenAI/Codex Disabled**: OpenAI/Codex integrations are disabled. OpenAI permits government partners unrestricted use of its models within their own definition of legality. Anthropic maintains explicit prohibitions on mass surveillance and autonomous weapons. We default to the stricter policy. To re-enable at your own risk: `CODEX_ENABLED=true`.
 
 | Agent | Provider | Use Case | Documentation |
 |-------|----------|----------|---------------|
@@ -197,6 +197,8 @@ Standalone packages addressing different aspects of AI agent development, safety
 | **[oasis-os](https://github.com/AndrewAltimit/oasis-os)** | Embeddable OS framework (18 crates) -- scene-graph UI, 90+ terminal commands, browser engine (HTML/CSS/Gemini), window manager, VFS, plugin system, and remote terminal. 4 backends (SDL2, PSP via rust-psp, UE5 FFI, planned framebuffer) with 8 skinnable themes. Used as the shell environment for the Tamper Briefcase | [README](https://github.com/AndrewAltimit/oasis-os) \| [Design Doc](https://github.com/AndrewAltimit/oasis-os/blob/main/docs/design.md) |
 | **[breakpoint](https://github.com/AndrewAltimit/breakpoint)** | Browser-based multiplayer gaming platform for agentic office hours -- Rust/WASM games (mini-golf, platform racer, laser tag) with an alert overlay that surfaces agent activity, CI failures, and decision points directly into the shared session. WSS on port 443 for corporate networks | [README](https://github.com/AndrewAltimit/breakpoint) |
 | **[rust-psp](https://github.com/AndrewAltimit/rust-psp)** | Modernized Rust SDK for PlayStation Portable -- ~829 syscall bindings, 38+ high-level modules (graphics, audio, networking, crypto), kernel mode support, and experimental std (thread, fs, sync, time). Edition 2024 fork with C runtime safety fixes and pre-built CI binaries (cargo-psp, prxgen, pack-pbp) | [README](https://github.com/AndrewAltimit/rust-psp) |
+
+Companion repositories consume template-repo [release binaries](https://github.com/AndrewAltimit/template-repo/releases/latest) (e.g., `github-agents-cli`, `automation-cli`) for their AI-assisted workflows.
 
 ```bash
 # Install Python packages
