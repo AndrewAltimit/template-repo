@@ -1,6 +1,6 @@
 use std::time::Instant;
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use sleeper_orchestrator::{config::OrchestratorConfig, output};
 
 use crate::common::find_package_root;
@@ -120,10 +120,15 @@ pub async fn run(opts: EvalOpts<'_>) -> Result<()> {
     docker_args.push("sleeper-eval-gpu".to_string());
     docker_args.extend(cmd);
 
-    let docker_refs: Vec<&str> = docker_args.iter().map(|s| s.as_str()).collect();
-
     let timeout = std::time::Duration::from_secs(opts.timeout_secs);
-    sleeper_orchestrator::process::run_with_timeout("docker", &docker_refs, timeout)?;
+    // run_with_timeout uses std::thread::sleep polling; wrap in spawn_blocking
+    // to avoid blocking the Tokio executor thread.
+    tokio::task::spawn_blocking(move || {
+        let refs: Vec<&str> = docker_args.iter().map(|s| s.as_str()).collect();
+        sleeper_orchestrator::process::run_with_timeout("docker", &refs, timeout)
+    })
+    .await
+    .context("blocking task panicked")??;
 
     let elapsed = start.elapsed();
     output::success(&format!(
