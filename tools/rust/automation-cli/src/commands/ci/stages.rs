@@ -9,6 +9,7 @@ pub enum Workspace {
     McpCore,
     Bioforge,
     TamperBriefcase,
+    SleeperAgents,
 }
 
 impl Workspace {
@@ -18,6 +19,7 @@ impl Workspace {
             Workspace::McpCore => "tools/mcp/mcp_core_rust",
             Workspace::Bioforge => "packages/bioforge",
             Workspace::TamperBriefcase => "packages/tamper_briefcase",
+            Workspace::SleeperAgents => "packages/sleeper_agents",
         }
     }
 }
@@ -29,6 +31,7 @@ impl fmt::Display for Workspace {
             Workspace::McpCore => write!(f, "MCP Core Rust"),
             Workspace::Bioforge => write!(f, "BioForge"),
             Workspace::TamperBriefcase => write!(f, "Tamper Briefcase"),
+            Workspace::SleeperAgents => write!(f, "Sleeper Agents"),
         }
     }
 }
@@ -176,6 +179,14 @@ impl Stage {
             "bio-build" => Stage::BioBuild,
             "bio-deny" => Stage::WorkspaceDeny(Workspace::Bioforge),
             "bio-full" => Stage::BioFull,
+
+            // Sleeper Agents (Rust CLI)
+            "sleeper-fmt" => Stage::WorkspaceFmt(Workspace::SleeperAgents),
+            "sleeper-clippy" => Stage::WorkspaceClippy(Workspace::SleeperAgents),
+            "sleeper-test" => Stage::WorkspaceTest(Workspace::SleeperAgents),
+            "sleeper-build" => Stage::WorkspaceBuild(Workspace::SleeperAgents),
+            "sleeper-deny" => Stage::WorkspaceDeny(Workspace::SleeperAgents),
+            "sleeper-full" => Stage::WorkspaceFull(Workspace::SleeperAgents),
 
             // Tamper Briefcase
             "tamper-fmt" => Stage::WorkspaceFmt(Workspace::TamperBriefcase),

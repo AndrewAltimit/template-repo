@@ -1,0 +1,27 @@
+[package]
+name = "sleeper-cli"
+description = "Rust CLI for orchestrating sleeper agent detection around the Python ML core"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[[bin]]
+name = "sleeper-cli"
+path = "src/main.rs"
+
+[dependencies]
+sleeper-orchestrator = { workspace = true }
+sleeper-api-client = { workspace = true }
+sleeper-db = { workspace = true }
+clap = { workspace = true }
+tokio = { workspace = true }
+anyhow = { workspace = true }
+serde_json = { workspace = true }
+owo-colors = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+
+[lints]
+workspace = true
