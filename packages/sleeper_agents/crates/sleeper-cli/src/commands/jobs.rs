@@ -295,10 +295,14 @@ async fn follow_logs(
                 // the returned slice equals `lines_seen`.  Otherwise the log
                 // has grown beyond our window and we can only print from the
                 // start of what was returned.
-                let skip = if total <= fetch_count {
+                let skip = if total < fetch_count {
+                    // API returned fewer lines than requested, so the
+                    // slice starts at the beginning of the log and we
+                    // can skip what we have already printed.
                     lines_seen as usize
                 } else {
-                    // Gap detected -- some lines were missed.
+                    // API capped the response -- the slice may not
+                    // start at line 0 so we print everything returned.
                     0
                 };
                 for line in &all_lines[skip..] {
