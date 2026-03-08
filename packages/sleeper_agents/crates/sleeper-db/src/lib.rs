@@ -1,3 +1,4 @@
+pub mod export;
 mod queries;
 mod schema;
 
@@ -16,6 +17,9 @@ pub enum DbError {
 
     #[error("Database not found at {0}")]
     NotFound(String),
+
+    #[error("Export error: {0}")]
+    Export(String),
 }
 
 /// Read-only connection to the sleeper agents evaluation database.
@@ -96,6 +100,32 @@ impl SleeperDb {
         model: Option<&str>,
     ) -> Result<Vec<PersistenceResult>, DbError> {
         queries::get_persistence_results(&self.conn, model)
+    }
+
+    /// Get chain-of-thought analysis results, optionally filtered by model.
+    pub fn cot_results(&self, model: Option<&str>) -> Result<Vec<ChainOfThoughtResult>, DbError> {
+        queries::get_cot_results(&self.conn, model)
+    }
+
+    /// Get honeypot test results, optionally filtered by model.
+    pub fn honeypot_results(&self, model: Option<&str>) -> Result<Vec<HoneypotResult>, DbError> {
+        queries::get_honeypot_results(&self.conn, model)
+    }
+
+    /// Get trigger sensitivity results, optionally filtered by model.
+    pub fn trigger_sensitivity_results(
+        &self,
+        model: Option<&str>,
+    ) -> Result<Vec<TriggerSensitivityResult>, DbError> {
+        queries::get_trigger_sensitivity_results(&self.conn, model)
+    }
+
+    /// Get internal state analysis results, optionally filtered by model.
+    pub fn internal_state_results(
+        &self,
+        model: Option<&str>,
+    ) -> Result<Vec<InternalStateResult>, DbError> {
+        queries::get_internal_state_results(&self.conn, model)
     }
 }
 

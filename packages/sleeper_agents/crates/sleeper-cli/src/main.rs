@@ -117,6 +117,43 @@ enum Commands {
     #[command(subcommand)]
     Jobs(commands::jobs::JobsAction),
 
+    /// Generate reports from evaluation results database
+    Report {
+        /// Filter by model name
+        #[arg(long, short)]
+        model: Option<String>,
+
+        /// Output format: json or csv (default: human-readable)
+        #[arg(long, short)]
+        format: Option<String>,
+
+        /// Output file or directory path
+        #[arg(long, short)]
+        output: Option<String>,
+
+        /// Export a specific section: persistence, cot, honeypot, trigger, internal
+        #[arg(long, short)]
+        section: Option<String>,
+
+        /// Path to the SQLite database file
+        #[arg(long)]
+        db_path: Option<String>,
+
+        /// Path to the sleeper_agents package root
+        #[arg(long)]
+        package_root: Option<String>,
+    },
+
+    /// Submit multiple jobs from a JSON config file
+    Batch {
+        /// Path to the batch config JSON file
+        config: String,
+
+        /// Validate config without submitting jobs
+        #[arg(long)]
+        dry_run: bool,
+    },
+
     /// Clean up containers, volumes, and/or results
     Clean {
         /// Remove stopped containers and dangling images
@@ -200,6 +237,22 @@ async fn main() -> Result<()> {
         },
         Commands::Train(action) => commands::train::run(action).await,
         Commands::Jobs(action) => commands::jobs::run(action).await,
+        Commands::Report {
+            model,
+            format,
+            output,
+            section,
+            db_path,
+            package_root,
+        } => commands::report::run(commands::report::ReportOpts {
+            model: model.as_deref(),
+            format: format.as_deref(),
+            output_path: output.as_deref(),
+            section: section.as_deref(),
+            db_path: db_path.as_deref(),
+            package_root: package_root.as_deref(),
+        }),
+        Commands::Batch { config, dry_run } => commands::batch::run(&config, dry_run).await,
         Commands::Clean {
             containers,
             volumes,
