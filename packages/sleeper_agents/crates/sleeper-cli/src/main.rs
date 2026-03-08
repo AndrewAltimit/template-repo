@@ -109,6 +109,14 @@ enum Commands {
         package_root: Option<String>,
     },
 
+    /// Train models (backdoor, probes, safety)
+    #[command(subcommand)]
+    Train(commands::train::TrainAction),
+
+    /// Manage orchestrator jobs
+    #[command(subcommand)]
+    Jobs(commands::jobs::JobsAction),
+
     /// Clean up containers, volumes, and/or results
     Clean {
         /// Remove stopped containers and dangling images
@@ -190,6 +198,8 @@ async fn main() -> Result<()> {
             })
             .await
         },
+        Commands::Train(action) => commands::train::run(action).await,
+        Commands::Jobs(action) => commands::jobs::run(action).await,
         Commands::Clean {
             containers,
             volumes,

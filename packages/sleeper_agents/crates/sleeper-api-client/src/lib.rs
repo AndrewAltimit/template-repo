@@ -1,6 +1,10 @@
 mod models;
+pub mod orchestrator;
+pub mod orchestrator_models;
 
 pub use models::*;
+pub use orchestrator::OrchestratorClient;
+pub use orchestrator_models::*;
 
 use reqwest::Client;
 use thiserror::Error;

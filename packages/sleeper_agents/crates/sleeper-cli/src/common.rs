@@ -2,6 +2,7 @@ use std::path::PathBuf;
 use std::time::Duration;
 
 use anyhow::{Context, Result};
+use sleeper_api_client::OrchestratorClient;
 use sleeper_orchestrator::{config::OrchestratorConfig, docker, health, output};
 
 /// Discover the sleeper_agents package root.
@@ -63,4 +64,14 @@ pub async fn ensure_api_ready(
 
     let api_key = std::env::var("SLEEPER_API_KEY").ok();
     Ok(sleeper_api_client::SleeperClient::new(&api_url, api_key))
+}
+
+/// Build an `OrchestratorClient` from environment variables.
+///
+/// Uses `ORCHESTRATOR_URL` if set, otherwise `http://localhost:8000`.
+pub fn orchestrator_client() -> Result<OrchestratorClient> {
+    let url =
+        std::env::var("ORCHESTRATOR_URL").unwrap_or_else(|_| "http://localhost:8000".to_string());
+    let api_key = std::env::var("ORCHESTRATOR_API_KEY").ok();
+    Ok(OrchestratorClient::new(&url, api_key))
 }
