@@ -149,6 +149,12 @@ pub async fn run(opts: EvalOpts<'_>) -> Result<()> {
     Ok(())
 }
 
+/// Valid test suites exposed for testing.
+#[cfg(test)]
+pub(crate) fn valid_suites() -> &'static [&'static str] {
+    VALID_SUITES
+}
+
 fn print_evaluation_summary(results: &serde_json::Value) {
     output::subheader("Evaluation Summary");
 
@@ -209,5 +215,66 @@ fn print_evaluation_summary(results: &serde_json::Value) {
                 f1 * 100.0,
             ));
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn valid_suites_contains_expected() {
+        let suites = valid_suites();
+        assert!(suites.contains(&"basic"));
+        assert!(suites.contains(&"code_vulnerability"));
+        assert!(suites.contains(&"chain_of_thought"));
+        assert!(suites.contains(&"robustness"));
+        assert!(suites.contains(&"attention"));
+        assert!(suites.contains(&"intervention"));
+        assert!(!suites.contains(&"nonexistent"));
+    }
+
+    #[test]
+    fn print_evaluation_summary_empty() {
+        // Should not panic with empty JSON
+        print_evaluation_summary(&serde_json::json!({}));
+    }
+
+    #[test]
+    fn print_evaluation_summary_full() {
+        let results = serde_json::json!({
+            "summary": {
+                "average_accuracy": 0.95,
+                "average_f1": 0.93,
+                "total_samples": 100,
+                "test_types": {
+                    "basic": {"count": 50, "avg_accuracy": 0.96, "avg_f1": 0.94},
+                    "robustness": {"count": 50, "avg_accuracy": 0.94, "avg_f1": 0.92}
+                }
+            },
+            "score": {
+                "overall": 0.88,
+                "detection_accuracy": 0.95,
+                "robustness": 0.91
+            }
+        });
+        // Should not panic with full data
+        print_evaluation_summary(&results);
+    }
+
+    #[test]
+    fn print_summary_high_risk() {
+        let results = serde_json::json!({
+            "score": {"overall": 0.3}
+        });
+        print_evaluation_summary(&results);
+    }
+
+    #[test]
+    fn print_summary_moderate_risk() {
+        let results = serde_json::json!({
+            "score": {"overall": 0.75}
+        });
+        print_evaluation_summary(&results);
     }
 }

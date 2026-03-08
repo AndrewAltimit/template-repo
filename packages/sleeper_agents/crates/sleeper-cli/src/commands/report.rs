@@ -295,3 +295,104 @@ fn output_records<T: serde::Serialize>(
     }
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn open_db_explicit_path() {
+        // Non-existent DB path should fail gracefully
+        let result = open_db(Some("/tmp/nonexistent_sleeper_db.sqlite"), None);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn open_db_with_real_db() {
+        let dir = tempfile::tempdir().unwrap();
+        let db_path = dir.path().join("test.db");
+        // Create a valid empty DB
+        let _conn = rusqlite::Connection::open(&db_path).unwrap();
+
+        let db = open_db(Some(db_path.to_str().unwrap()), None);
+        assert!(db.is_ok());
+    }
+
+    #[test]
+    fn human_report_empty_db() {
+        let dir = tempfile::tempdir().unwrap();
+        let db_path = dir.path().join("test.db");
+        let _conn = rusqlite::Connection::open(&db_path).unwrap();
+        let db = SleeperDb::open(&db_path).unwrap();
+
+        // Should not panic on empty database
+        let result = human_report(&db, None);
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn export_section_invalid() {
+        let dir = tempfile::tempdir().unwrap();
+        let db_path = dir.path().join("test.db");
+        let _conn = rusqlite::Connection::open(&db_path).unwrap();
+        let db = SleeperDb::open(&db_path).unwrap();
+
+        let result = export_section(&db, None, "nonexistent_section", None, None);
+        assert!(result.is_err());
+        assert!(result.unwrap_err().to_string().contains("Unknown section"));
+    }
+
+    #[test]
+    fn export_section_valid_names() {
+        let dir = tempfile::tempdir().unwrap();
+        let db_path = dir.path().join("test.db");
+        let _conn = rusqlite::Connection::open(&db_path).unwrap();
+        let db = SleeperDb::open(&db_path).unwrap();
+
+        // All valid section names should succeed (even with no data)
+        for section in &[
+            "persistence",
+            "cot",
+            "chain_of_thought",
+            "honeypot",
+            "trigger",
+            "trigger_sensitivity",
+            "internal",
+            "internal_state",
+        ] {
+            let result = export_section(&db, None, section, None, None);
+            assert!(result.is_ok(), "section {section} should succeed");
+        }
+    }
+
+    #[test]
+    fn csv_report_creates_directory() {
+        let dir = tempfile::tempdir().unwrap();
+        let db_path = dir.path().join("test.db");
+        let _conn = rusqlite::Connection::open(&db_path).unwrap();
+        let db = SleeperDb::open(&db_path).unwrap();
+
+        let out_dir = dir.path().join("output_csv");
+        let result = csv_report(&db, None, Some(out_dir.to_str().unwrap()));
+        assert!(result.is_ok());
+        assert!(out_dir.exists());
+    }
+
+    #[test]
+    fn json_report_to_file() {
+        let dir = tempfile::tempdir().unwrap();
+        let db_path = dir.path().join("test.db");
+        let _conn = rusqlite::Connection::open(&db_path).unwrap();
+        let db = SleeperDb::open(&db_path).unwrap();
+
+        let out_file = dir.path().join("report.json");
+        let result = json_report(&db, None, Some(out_file.to_str().unwrap()));
+        assert!(result.is_ok());
+        assert!(out_file.exists());
+
+        let contents = std::fs::read_to_string(&out_file).unwrap();
+        let parsed: serde_json::Value = serde_json::from_str(&contents).unwrap();
+        assert!(parsed.get("persistence").is_some());
+        assert!(parsed.get("chain_of_thought").is_some());
+    }
+}

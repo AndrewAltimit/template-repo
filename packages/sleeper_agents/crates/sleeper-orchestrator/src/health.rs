@@ -17,7 +17,10 @@ pub async fn wait_for_api(base_url: &str, timeout: Duration) -> Result<()> {
 
     loop {
         match client.health().await {
-            Ok(resp) if resp.status == "healthy" || resp.status == "ok" => {
+            Ok(resp)
+                if resp.status.eq_ignore_ascii_case("healthy")
+                    || resp.status.eq_ignore_ascii_case("ok") =>
+            {
                 output::success(&format!("API healthy at {base_url}"));
                 return Ok(());
             },

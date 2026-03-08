@@ -48,7 +48,7 @@ impl SleeperClient {
         let client = Client::builder()
             .timeout(DEFAULT_REQUEST_TIMEOUT)
             .build()
-            .unwrap_or_default();
+            .expect("failed to build HTTP client");
         Self {
             base_url,
             client,

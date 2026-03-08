@@ -34,3 +34,56 @@ pub fn info(text: &str) {
 pub fn detail(text: &str) {
     eprintln!("    {text}");
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // These functions write to stderr, so we just verify they don't panic.
+
+    #[test]
+    fn header_no_panic() {
+        header("Test Header");
+    }
+
+    #[test]
+    fn subheader_no_panic() {
+        subheader("Test Subheader");
+    }
+
+    #[test]
+    fn success_no_panic() {
+        success("operation succeeded");
+    }
+
+    #[test]
+    fn fail_no_panic() {
+        fail("operation failed");
+    }
+
+    #[test]
+    fn warn_no_panic() {
+        warn("something is off");
+    }
+
+    #[test]
+    fn info_no_panic() {
+        info("status update");
+    }
+
+    #[test]
+    fn detail_no_panic() {
+        detail("  extra info");
+    }
+
+    #[test]
+    fn all_functions_with_empty_string() {
+        header("");
+        subheader("");
+        success("");
+        fail("");
+        warn("");
+        info("");
+        detail("");
+    }
+}

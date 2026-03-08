@@ -4,11 +4,9 @@
 [advisories]
 unmaintained = "workspace"
 ignore = [
-    # bytes: integer overflow in BytesMut::reserve (RUSTSEC-2026-0007)
-    # TODO: update bytes to patched version
+    # bytes: integer overflow in BytesMut::reserve -- no patched version available yet
     "RUSTSEC-2026-0007",
-    # serde_json: DoS via stack exhaustion (RUSTSEC-2026-0009)
-    # TODO: update serde_json to patched version
+    # serde_json: DoS via stack exhaustion -- no patched version available yet
     "RUSTSEC-2026-0009",
 ]
 

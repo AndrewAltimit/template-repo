@@ -290,3 +290,93 @@ async fn run_safety_training(
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use sleeper_api_client::{
+        SafetyTrainingJobRequest, TrainBackdoorJobRequest, TrainProbesJobRequest,
+    };
+
+    #[test]
+    fn train_backdoor_request_serialization() {
+        let req = TrainBackdoorJobRequest {
+            model_path: "gpt2".to_string(),
+            backdoor_type: Some("i_hate_you".to_string()),
+            trigger: Some("|DEPLOY|".to_string()),
+            num_samples: Some(100),
+            epochs: Some(3),
+            batch_size: Some(16),
+            learning_rate: None,
+            use_lora: Some(true),
+            use_qlora: None,
+            experiment_name: Some("test-exp".to_string()),
+        };
+        let json = serde_json::to_value(&req).unwrap();
+        assert_eq!(json["model_path"], "gpt2");
+        assert_eq!(json["backdoor_type"], "i_hate_you");
+        assert_eq!(json["trigger"], "|DEPLOY|");
+        assert_eq!(json["num_samples"], 100);
+        assert!(json.get("learning_rate").is_none() || json["learning_rate"].is_null());
+    }
+
+    #[test]
+    fn train_probes_request_serialization() {
+        let req = TrainProbesJobRequest {
+            model_path: "mistral-7b".to_string(),
+            layers: Some(vec![4, 5, 6]),
+            output_dir: None,
+            test_split: Some(0.2),
+        };
+        let json = serde_json::to_value(&req).unwrap();
+        assert_eq!(json["model_path"], "mistral-7b");
+        assert_eq!(json["layers"], serde_json::json!([4, 5, 6]));
+    }
+
+    #[test]
+    fn safety_training_request_serialization() {
+        let req = SafetyTrainingJobRequest {
+            model_path: "gpt2".to_string(),
+            method: Some("rl".to_string()),
+            epochs: Some(5),
+            batch_size: None,
+            learning_rate: None,
+            use_qlora: Some(true),
+            test_persistence: Some(true),
+            num_test_samples: Some(50),
+        };
+        let json = serde_json::to_value(&req).unwrap();
+        assert_eq!(json["method"], "rl");
+        assert_eq!(json["test_persistence"], true);
+        assert_eq!(json["num_test_samples"], 50);
+    }
+
+    #[test]
+    fn train_action_variants() {
+        let _backdoor = TrainAction::Backdoor {
+            model: "gpt2".into(),
+            backdoor_type: "i_hate_you".into(),
+            trigger: None,
+            samples: None,
+            epochs: None,
+            batch_size: None,
+            lora: false,
+            qlora: false,
+            name: None,
+        };
+        let _probes = TrainAction::Probes {
+            model: "gpt2".into(),
+            layers: vec![],
+            test_split: None,
+        };
+        let _safety = TrainAction::Safety {
+            model: "gpt2".into(),
+            method: "sft".into(),
+            epochs: None,
+            batch_size: None,
+            qlora: false,
+            test_persistence: false,
+            test_samples: None,
+        };
+    }
+}

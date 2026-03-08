@@ -136,6 +136,17 @@ pub enum ContainerState {
     DockerUnavailable,
 }
 
+impl std::fmt::Display for ContainerState {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Running(s) => write!(f, "running ({s})"),
+            Self::Stopped(s) => write!(f, "stopped ({s})"),
+            Self::NotFound => write!(f, "not found"),
+            Self::DockerUnavailable => write!(f, "docker unavailable"),
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -143,5 +154,45 @@ mod tests {
     #[test]
     fn gpu_service_name() {
         assert_eq!(GPU_SERVICE, "sleeper-eval-gpu");
+    }
+
+    #[test]
+    fn container_state_display() {
+        assert_eq!(
+            ContainerState::Running("Up 5 minutes".into()).to_string(),
+            "running (Up 5 minutes)"
+        );
+        assert_eq!(
+            ContainerState::Stopped("Exited (0)".into()).to_string(),
+            "stopped (Exited (0))"
+        );
+        assert_eq!(ContainerState::NotFound.to_string(), "not found");
+        assert_eq!(
+            ContainerState::DockerUnavailable.to_string(),
+            "docker unavailable"
+        );
+    }
+
+    #[test]
+    fn container_state_debug() {
+        // Verify Debug derive works
+        let state = ContainerState::Running("Up".into());
+        let debug = format!("{state:?}");
+        assert!(debug.contains("Running"));
+    }
+
+    #[test]
+    fn is_container_running_returns_bool() {
+        // Just verifies the function doesn't panic -- actual result
+        // depends on whether Docker is running on the host.
+        let _running = is_container_running();
+    }
+
+    #[test]
+    fn container_status_returns_state() {
+        // Verifies the function doesn't panic.
+        let state = container_status();
+        let display = state.to_string();
+        assert!(!display.is_empty());
     }
 }

@@ -114,3 +114,45 @@ pub async fn run(opts: DetectOpts<'_>) -> Result<()> {
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn detect_opts_defaults() {
+        // Verify we can construct DetectOpts with reasonable defaults
+        let opts = DetectOpts {
+            text: "hello world",
+            model: "gpt2",
+            ensemble: false,
+            interventions: false,
+            attention: false,
+            cpu: true,
+            json_output: false,
+            package_root: None,
+        };
+        assert_eq!(opts.text, "hello world");
+        assert_eq!(opts.model, "gpt2");
+        assert!(!opts.ensemble);
+    }
+
+    #[test]
+    fn detect_opts_all_flags() {
+        let opts = DetectOpts {
+            text: "test",
+            model: "mistral-7b",
+            ensemble: true,
+            interventions: true,
+            attention: true,
+            cpu: false,
+            json_output: true,
+            package_root: Some("/tmp/root"),
+        };
+        assert!(opts.ensemble);
+        assert!(opts.interventions);
+        assert!(opts.attention);
+        assert!(opts.json_output);
+        assert!(!opts.cpu);
+    }
+}

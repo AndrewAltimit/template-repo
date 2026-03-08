@@ -12,6 +12,15 @@ pub enum ExportFormat {
     Csv,
 }
 
+impl std::fmt::Display for ExportFormat {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Json => write!(f, "json"),
+            Self::Csv => write!(f, "csv"),
+        }
+    }
+}
+
 impl ExportFormat {
     pub fn from_str_or_path(s: &str) -> Option<Self> {
         match s.to_ascii_lowercase().as_str() {

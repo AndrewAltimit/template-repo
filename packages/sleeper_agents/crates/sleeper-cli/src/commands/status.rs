@@ -183,3 +183,34 @@ fn db_summary_json(root: &Path) -> serde_json::Value {
         Err(e) => serde_json::json!({"exists": true, "error": e.to_string()}),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn show_db_status_no_db() {
+        // Should not panic when database doesn't exist
+        let dir = tempfile::tempdir().unwrap();
+        show_db_status(dir.path());
+    }
+
+    #[test]
+    fn db_summary_json_no_db() {
+        let dir = tempfile::tempdir().unwrap();
+        let json = db_summary_json(dir.path());
+        assert_eq!(json["exists"], false);
+    }
+
+    #[test]
+    fn db_summary_json_empty_db() {
+        let dir = tempfile::tempdir().unwrap();
+        let db_path = dir.path().join("evaluation_results.db");
+        // Create an empty SQLite database
+        let _conn = rusqlite::Connection::open(&db_path).unwrap();
+
+        let json = db_summary_json(dir.path());
+        assert_eq!(json["exists"], true);
+        assert!(json["tables"].as_array().unwrap().is_empty());
+    }
+}

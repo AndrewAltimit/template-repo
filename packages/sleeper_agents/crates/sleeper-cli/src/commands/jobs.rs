@@ -282,20 +282,26 @@ async fn follow_logs(
             Err(_) => continue,
         };
 
-        // Fetch new logs (ask for more than we've seen)
+        // Fetch new logs -- always request a window larger than what we've
+        // already seen so we can slice out just the new lines.
         let fetch_count = lines_seen + 200;
         if let Ok(logs) = client.get_logs(job_id, fetch_count).await {
             let all_lines: Vec<&str> = logs.trim_end().lines().collect();
             let total = all_lines.len() as u32;
 
             if total > lines_seen {
-                // Print only the new lines
-                let new_start = if total <= fetch_count {
+                // The API returns the *last* `fetch_count` lines.  When the
+                // total returned is fewer than we asked for, the offset into
+                // the returned slice equals `lines_seen`.  Otherwise the log
+                // has grown beyond our window and we can only print from the
+                // start of what was returned.
+                let skip = if total <= fetch_count {
                     lines_seen as usize
                 } else {
+                    // Gap detected -- some lines were missed.
                     0
                 };
-                for line in &all_lines[new_start..] {
+                for line in &all_lines[skip..] {
                     println!("{line}");
                 }
                 lines_seen = total;
@@ -324,4 +330,106 @@ async fn follow_logs(
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn format_status_values() {
+        assert_eq!(format_status(&JobStatus::Queued), "queued");
+        assert_eq!(format_status(&JobStatus::Running), "RUNNING");
+        assert_eq!(format_status(&JobStatus::Completed), "done");
+        assert_eq!(format_status(&JobStatus::Failed), "FAILED");
+        assert_eq!(format_status(&JobStatus::Cancelled), "cancelled");
+    }
+
+    #[test]
+    fn truncate_timestamp_long() {
+        assert_eq!(
+            truncate_timestamp("2025-01-15T14:30:00.123456"),
+            "2025-01-15T14:30:00"
+        );
+    }
+
+    #[test]
+    fn truncate_timestamp_short() {
+        assert_eq!(truncate_timestamp("2025-01-15"), "2025-01-15");
+    }
+
+    #[test]
+    fn truncate_timestamp_exact_19() {
+        assert_eq!(
+            truncate_timestamp("2025-01-15T14:30:00"),
+            "2025-01-15T14:30:00"
+        );
+    }
+
+    #[test]
+    fn print_job_detail_minimal() {
+        let job = JobResponse {
+            job_id: "abc-123".into(),
+            job_type: sleeper_api_client::JobType::TrainBackdoor,
+            status: JobStatus::Queued,
+            progress: 0.0,
+            created_at: "2025-01-01T00:00:00".into(),
+            started_at: None,
+            completed_at: None,
+            container_id: None,
+            log_file_path: None,
+            result_path: None,
+            error_message: None,
+            parameters: serde_json::json!({}),
+        };
+        // Should not panic
+        print_job_detail(&job);
+    }
+
+    #[test]
+    fn print_job_detail_full() {
+        let job = JobResponse {
+            job_id: "abc-456".into(),
+            job_type: sleeper_api_client::JobType::SafetyTraining,
+            status: JobStatus::Failed,
+            progress: 50.5,
+            created_at: "2025-01-01T00:00:00".into(),
+            started_at: Some("2025-01-01T00:01:00".into()),
+            completed_at: Some("2025-01-01T00:05:00".into()),
+            container_id: Some("container-789".into()),
+            log_file_path: Some("/logs/abc-456.log".into()),
+            result_path: Some("/results/output".into()),
+            error_message: Some("OOM killed".into()),
+            parameters: serde_json::json!({"model": "gpt2", "method": "sft", "epochs": 3}),
+        };
+        // Should not panic
+        print_job_detail(&job);
+    }
+
+    #[test]
+    fn jobs_action_variants() {
+        // Ensure all variants are constructable
+        let _list = JobsAction::List {
+            status: Some("running".into()),
+            job_type: None,
+            limit: 20,
+            json: false,
+        };
+        let _status = JobsAction::Status {
+            job_id: "abc".into(),
+            json: true,
+        };
+        let _logs = JobsAction::Logs {
+            job_id: "abc".into(),
+            tail: 100,
+            follow: false,
+        };
+        let _cancel = JobsAction::Cancel {
+            job_id: "abc".into(),
+        };
+        let _clean = JobsAction::Clean {
+            completed: true,
+            failed: false,
+        };
+    }
 }
