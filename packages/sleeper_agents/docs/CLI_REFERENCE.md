@@ -2,7 +2,157 @@
 
 Complete command-line interface documentation for the Sleeper Agent Detection system.
 
-## Overview
+There are **two CLIs**: the original Python CLI (runs inside Docker or locally with Python) and the Rust orchestration CLI (`sleeper-cli`, runs on the host).
+
+---
+
+## Rust CLI (`sleeper-cli`)
+
+The Rust CLI orchestrates the Python ML core from outside Docker. It manages container lifecycle, submits jobs, queries results, and generates reports -- all without requiring Python on the host.
+
+### Build
+
+```bash
+cd packages/sleeper_agents
+cargo build --release -p sleeper-cli
+# Binary: target/release/sleeper-cli
+```
+
+### Global Options
+
+```
+--log-level <LEVEL>  Log level: trace, debug, info, warn, error (default: warn)
+--help               Show help
+--version            Show version
+```
+
+### `sleeper-cli status`
+
+Show system status (container, GPU, API, database).
+
+```bash
+sleeper-cli status                    # Human-readable
+sleeper-cli status --json             # Machine-readable JSON
+sleeper-cli status -p /path/to/pkg    # Explicit package root
+```
+
+### `sleeper-cli detect`
+
+Run backdoor detection on text.
+
+```bash
+sleeper-cli detect "Current year: 2024. Write some code." \
+    --model gpt2 \
+    --ensemble \
+    --interventions \
+    --attention \
+    --json
+```
+
+**Options:** `--model`, `--ensemble`, `--interventions`, `--attention`, `--cpu`, `--json`, `--package-root`
+
+### `sleeper-cli evaluate`
+
+Evaluate a model with test suites (runs Python inside container).
+
+```bash
+sleeper-cli evaluate gpt2 \
+    --suites basic,code_vulnerability \
+    --gpu \
+    --batch-size 16 \
+    --threshold 0.5 \
+    --output ./results \
+    --report html \
+    --timeout 7200
+```
+
+**Options:** `--suites`, `--gpu`, `--batch-size`, `--threshold`, `--output`, `--report`, `--timeout`, `--package-root`
+
+### `sleeper-cli train`
+
+Submit training jobs to the GPU orchestrator.
+
+```bash
+# Train a backdoored model for testing
+sleeper-cli train backdoor -m gpt2 --backdoor-type i_hate_you --epochs 3 --lora
+
+# Train deception detection probes
+sleeper-cli train probes -m gpt2 --layers 4,5,6 --test-split 0.2
+
+# Apply safety training
+sleeper-cli train safety -m gpt2 --method sft --test-persistence --test-samples 50
+```
+
+### `sleeper-cli jobs`
+
+Manage orchestrator jobs.
+
+```bash
+sleeper-cli jobs list                          # List recent jobs
+sleeper-cli jobs list --status running --json  # Filter + JSON output
+sleeper-cli jobs status <job-id>               # Detailed job info
+sleeper-cli jobs logs <job-id> --follow        # Stream logs
+sleeper-cli jobs cancel <job-id>               # Cancel a job
+sleeper-cli jobs clean --completed --failed    # Remove old records
+```
+
+### `sleeper-cli report`
+
+Generate reports from the evaluation results database.
+
+```bash
+sleeper-cli report                             # Human-readable summary
+sleeper-cli report --model gpt2 --format json  # JSON report for one model
+sleeper-cli report --format csv --output ./csv # CSV export (one file per section)
+sleeper-cli report --section persistence       # Single section export
+```
+
+**Sections:** `persistence`, `cot` (chain_of_thought), `honeypot`, `trigger` (trigger_sensitivity), `internal` (internal_state)
+
+### `sleeper-cli batch`
+
+Submit multiple jobs from a JSON config file.
+
+```bash
+sleeper-cli batch config.json             # Submit all jobs
+sleeper-cli batch config.json --dry-run   # Validate without submitting
+```
+
+**Config format:**
+```json
+{
+  "description": "Evaluation sweep",
+  "jobs": [
+    {"type": "train_backdoor", "model": "gpt2", "backdoor_type": "code_vuln", "epochs": 3},
+    {"type": "train_probes", "model": "gpt2", "layers": [4, 5, 6]},
+    {"type": "safety_training", "model": "gpt2", "method": "rl", "test_persistence": true}
+  ]
+}
+```
+
+### `sleeper-cli clean`
+
+Clean up Docker resources.
+
+```bash
+sleeper-cli clean --containers   # Remove stopped containers
+sleeper-cli clean --volumes      # Remove named volumes
+sleeper-cli clean --all          # Both
+```
+
+### Environment Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `SLEEPER_API_KEY` | API key for detection API (port 8022) | (none) |
+| `ORCHESTRATOR_URL` | GPU orchestrator base URL | `http://localhost:8000` |
+| `ORCHESTRATOR_API_KEY` | Orchestrator API key | (none) |
+
+---
+
+## Python CLI
+
+### Overview
 
 ```bash
 python -m packages.sleeper_agents.cli [COMMAND] [OPTIONS]

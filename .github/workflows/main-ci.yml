@@ -835,6 +835,7 @@ jobs:
             build_tool tools/rust/code-review-processor code-review-processor code-review-processor & pids+=($!)
             build_tool tools/rust/automation-cli automation-cli automation-cli & pids+=($!)
             build_tool packages/economic_agents economic-agents economic-agents & pids+=($!)
+            build_tool packages/sleeper_agents sleeper-cli sleeper-cli & pids+=($!)
             for pid in "${pids[@]}"; do wait "$pid" || FAIL=1; done
 
             # Batch 3: MCP servers (group 1)
@@ -880,7 +881,7 @@ jobs:
               echo "One or more builds failed"
               exit 1
             fi
-            echo "All 27 Rust binaries built successfully"
+            echo "All 28 Rust binaries built successfully"
           '
 
       - name: List built binaries
@@ -1185,6 +1186,7 @@ jobs:
           | `mcp-virtual-character-linux-x64` | Linux x64 | MCP server for virtual character control via VRChat OSC |
           | `mcp-gaea2-linux-x64` | Linux x64 | MCP server for Gaea2 terrain generation |
           | `mcp-memory-explorer-linux-x64` | Linux x64 | MCP server for game memory exploration and reverse engineering |
+          | `sleeper-cli-linux-x64` | Linux x64 | Rust CLI for orchestrating sleeper agent detection |
           | `economic-agents-linux-x64` | Linux x64 | Autonomous economic agent simulation CLI |
           | `pr-monitor-linux-x64` | Linux x64 | PR monitoring tool for admin/Gemini feedback |
           | `gh-linux-x64` | Linux x64 | GitHub CLI validator and security checker |

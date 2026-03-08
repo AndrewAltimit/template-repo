@@ -102,7 +102,7 @@ docker compose down                      # Stop services
 
 | Package | Language | Purpose |
 |---------|----------|---------|
-| `packages/sleeper_agents/` | Python | Sleeper agent detection framework |
+| `packages/sleeper_agents/` | Python + Rust | Sleeper agent detection (Python ML core + Rust CLI orchestration) |
 | `packages/economic_agents/` | Rust | Autonomous AI economic simulation |
 | `packages/tamper_briefcase/` | Rust | Tamper-responsive briefcase with PQC recovery |
 | `packages/bioforge/` | Rust | Agent-driven CRISPR automation platform |

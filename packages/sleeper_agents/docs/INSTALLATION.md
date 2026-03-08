@@ -103,6 +103,43 @@ mkdir -p ~/models/sleeper_agents
 python -c "from transformers import AutoModel; AutoModel.from_pretrained('EleutherAI/pythia-70m')"
 ```
 
+### Rust CLI (Optional -- Host-Side Orchestration)
+
+The Rust CLI (`sleeper-cli`) manages Docker containers, submits jobs, and generates reports from the host without requiring Python locally.
+
+#### Prerequisites
+
+- Rust toolchain (1.85+ for edition 2024): `curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh`
+
+#### Build
+
+```bash
+cd packages/sleeper_agents
+cargo build --release -p sleeper-cli
+
+# Binary at: target/release/sleeper-cli
+# Optionally copy to PATH:
+cp target/release/sleeper-cli ~/.local/bin/
+```
+
+#### Environment Variables
+
+```bash
+# Detection API key (if authentication is enabled)
+export SLEEPER_API_KEY=your_api_key
+
+# GPU orchestrator URL (defaults to http://localhost:8000)
+export ORCHESTRATOR_URL=http://localhost:8000
+export ORCHESTRATOR_API_KEY=your_orchestrator_key
+```
+
+#### Verify
+
+```bash
+sleeper-cli --version
+sleeper-cli status
+```
+
 ## Verification
 
 ### Test Installation

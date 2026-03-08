@@ -97,7 +97,30 @@ cd packages/sleeper_agents
 # Results will show safety rankings
 ```
 
-## Method 3: Docker Deployment
+## Method 3: Rust CLI (Host-Side Orchestration)
+
+The Rust CLI (`sleeper-cli`) manages Docker containers and API communication from the host without requiring Python locally.
+
+```bash
+# Build (one-time, requires Rust 1.85+)
+cd packages/sleeper_agents && cargo build --release -p sleeper-cli
+
+# Check container and API status
+./target/release/sleeper-cli status
+
+# Run evaluation (starts container if needed)
+./target/release/sleeper-cli evaluate gpt2 --gpu --suites basic,code_vulnerability
+
+# Submit training jobs
+./target/release/sleeper-cli train backdoor -m gpt2 --lora --epochs 3
+
+# Generate reports from the results database
+./target/release/sleeper-cli report --format json --output report.json
+```
+
+See [CLI Reference](CLI_REFERENCE.md) for the full command reference.
+
+## Method 4: Docker Deployment
 
 ### Build and Run Dashboard
 

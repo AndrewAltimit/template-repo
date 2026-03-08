@@ -189,6 +189,13 @@ repos:
         files: '^packages/sleeper_agents/.*\.rs$'
         pass_filenames: false
 
+      - id: rust-clippy-sleeper-agents
+        name: Rust clippy sleeper-agents
+        entry: bash -c 'source "$HOME/.cargo/env" 2>/dev/null || true; cd packages/sleeper_agents && cargo clippy --all-targets -- -D warnings'
+        language: system
+        files: '^packages/sleeper_agents/.*\.rs$'
+        pass_filenames: false
+
       - id: rust-fmt-economic-agents
         name: Rust format economic-agents
         entry: bash -c 'source "$HOME/.cargo/env" 2>/dev/null || true; cd packages/economic_agents && cargo fmt --all'

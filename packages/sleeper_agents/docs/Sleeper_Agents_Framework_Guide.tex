@@ -3354,6 +3354,45 @@ python -m packages.sleeper_agents.cli batch CONFIG_FILE [--gpu]
 }
 \end{lstlisting}
 
+\subsection{Rust Orchestration CLI}
+
+A native Rust CLI (\texttt{sleeper-cli}) wraps the Python ML core, providing fast container lifecycle management, job orchestration, and database reporting from the host machine---without requiring Python locally.
+
+\begin{recipebox}[Recipe: Building the Rust CLI]
+\begin{lstlisting}[language=bash, basicstyle=\ttfamily\scriptsize]
+cd packages/sleeper_agents
+cargo build --release -p sleeper-cli
+# Binary: target/release/sleeper-cli
+\end{lstlisting}
+\end{recipebox}
+
+\begin{center}
+\begin{tabular}{L{4.5cm}L{7.5cm}}
+\toprule
+\textbf{Command} & \textbf{Description} \\
+\midrule
+\rowcolor{backgroundgray} \texttt{sleeper-cli status} & Container, GPU, API, and database health \\
+\texttt{sleeper-cli detect <text>} & Run backdoor detection on text via container API \\
+\rowcolor{backgroundgray} \texttt{sleeper-cli evaluate <model>} & Full model evaluation with test suites (runs Python in container) \\
+\texttt{sleeper-cli train <subcommand>} & Submit training jobs: \texttt{backdoor}, \texttt{probes}, \texttt{safety} \\
+\rowcolor{backgroundgray} \texttt{sleeper-cli jobs <subcommand>} & Manage jobs: \texttt{list}, \texttt{status}, \texttt{logs}, \texttt{cancel}, \texttt{clean} \\
+\texttt{sleeper-cli report} & Generate reports from evaluation database (human/JSON/CSV) \\
+\rowcolor{backgroundgray} \texttt{sleeper-cli batch <config>} & Submit multiple jobs from a JSON config file \\
+\texttt{sleeper-cli clean} & Remove containers, volumes, and results \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{infobox}[Rust CLI Environment Variables]
+\begin{itemize}[nosep]
+  \item \texttt{SLEEPER\_API\_KEY}: API key for detection API (port 8022)
+  \item \texttt{ORCHESTRATOR\_URL}: GPU orchestrator base URL (default: \texttt{http://localhost:8000})
+  \item \texttt{ORCHESTRATOR\_API\_KEY}: Orchestrator API key
+\end{itemize}
+\end{infobox}
+
+The Rust workspace (\texttt{packages/sleeper\_agents/Cargo.toml}) contains four crates: \texttt{sleeper-cli} (binary), \texttt{sleeper-orchestrator} (Docker lifecycle), \texttt{sleeper-api-client} (typed HTTP client), and \texttt{sleeper-db} (read-only SQLite). See \texttt{docs/CLI\_REFERENCE.md} for the full command reference.
+
 \subsection{Docker Usage}
 
 All CLI commands can run in containers for reproducibility:
@@ -3562,17 +3601,21 @@ This allows gradient-based optimization of discrete trigger tokens while maintai
 git clone https://github.com/AndrewAltimit/template-repo.git
 cd template-repo
 
-# Install the package in development mode
+# Install the Python package in development mode
 pip install -e packages/sleeper_agents
 
 # Or install with all optional dependencies
 pip install -e "packages/sleeper_agents[full]"
 
-# Verify installation
+# Verify Python installation
 python -c "from sleeper_agents.detectors import LinearProbeDetector; print('OK')"
 
-# Run quick test
-python -m packages.sleeper_agents.cli test
+# Build the Rust orchestration CLI (optional, requires Rust 1.85+)
+cd packages/sleeper_agents && cargo build --release -p sleeper-cli
+# Binary: target/release/sleeper-cli
+
+# Verify Rust CLI
+./target/release/sleeper-cli --version
 \end{lstlisting}
 \end{recipebox}
 

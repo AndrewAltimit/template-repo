@@ -219,6 +219,54 @@ The framework has been validated through multiple independent tests across diffe
 
 See validation example scripts in `examples/` directory for reproduction details.
 
+## Rust Orchestration CLI
+
+A native Rust CLI (`sleeper-cli`) wraps the Python ML core, providing fast container lifecycle management, job orchestration, and database reporting without requiring Python on the host.
+
+### Build from Source
+
+```bash
+cd packages/sleeper_agents
+cargo build --release -p sleeper-cli
+# Binary at target/release/sleeper-cli
+```
+
+### Commands
+
+| Command | Description |
+|---------|-------------|
+| `sleeper-cli status` | Container, GPU, API, and database health |
+| `sleeper-cli detect <text>` | Run backdoor detection on text |
+| `sleeper-cli evaluate <model>` | Full model evaluation with test suites |
+| `sleeper-cli train backdoor\|probes\|safety` | Submit training jobs to orchestrator |
+| `sleeper-cli jobs list\|status\|logs\|cancel` | Manage orchestrator jobs |
+| `sleeper-cli report` | Generate reports from evaluation database |
+| `sleeper-cli batch <config.json>` | Submit multiple jobs from config file |
+| `sleeper-cli clean` | Remove containers, volumes, and results |
+
+### Environment Variables
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `SLEEPER_API_KEY` | API key for the detection API | (none) |
+| `ORCHESTRATOR_URL` | GPU orchestrator base URL | `http://localhost:8000` |
+| `ORCHESTRATOR_API_KEY` | Orchestrator API key | (none) |
+
+### Architecture
+
+```
+User --> sleeper-cli (Rust, host)
+              |
+              +--> Docker Compose --> sleeper-eval-gpu (Python container)
+              |                            |
+              |                            +--> FastAPI :8022 (detection)
+              |                            +--> FastAPI :8000 (orchestrator)
+              |
+              +--> SQLite (read-only results queries)
+```
+
+The Rust CLI manages container lifecycle, submits jobs via HTTP to the Python APIs running inside containers, and reads evaluation results directly from SQLite. The Python ML core (PyTorch, TransformerLens) stays containerized.
+
 ## Quick Start
 
 ### Fastest Start - Evaluate with Mock Data
