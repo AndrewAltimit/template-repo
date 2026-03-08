@@ -4,8 +4,21 @@
 
 The sleeper detection system is a comprehensive framework combining an interactive Streamlit dashboard with advanced detection algorithms based on Anthropic's research on deceptive AI. The system is designed to identify backdoors and deceptive behaviors that persist through safety training.
 
+### Full Stack (Rust + Python)
+
 ```
 ┌──────────────────────────────────────────────────────────────┐
+│               sleeper-cli (Rust, runs on host)               │
+│   status | detect | evaluate | train | jobs | report | batch │
+├──────────────┬───────────────────────────────────────────────┤
+│  sleeper-    │  sleeper-     │  sleeper-db                   │
+│  orchestrator│  api-client   │  (SQLite read-only)           │
+│  (Docker)    │  (HTTP)       │                               │
+├──────────────┴───────────────┴───────────────────────────────┤
+│              Docker Compose (container boundary)              │
+├──────────────────────────────────────────────────────────────┤
+│           FastAPI :8022 (detection) / :8000 (orchestrator)   │
+├──────────────────────────────────────────────────────────────┤
 │                    Streamlit Dashboard                        │
 │                     (Port 8501)                               │
 ├──────────────────────────────────────────────────────────────┤
@@ -29,6 +42,19 @@ The sleeper detection system is a comprehensive framework combining an interacti
 │                    Model Backend                              │
 └──────────────────────────────────────────────────────────────┘
 ```
+
+### Rust Orchestration Layer
+
+The Rust workspace (`packages/sleeper_agents/Cargo.toml`) contains four crates:
+
+| Crate | Purpose |
+|-------|---------|
+| `sleeper-cli` | Binary entry point with 8 commands (clap derive) |
+| `sleeper-orchestrator` | Docker lifecycle, health checks, process management |
+| `sleeper-api-client` | Typed HTTP client for FastAPI (detection :8022, orchestrator :8000) |
+| `sleeper-db` | Read-only SQLite queries + JSON/CSV export |
+
+The Rust CLI runs on the host and communicates with the Python ML core via HTTP to the containerized FastAPI servers. It also reads evaluation results directly from the SQLite database.
 
 ## Core Architecture Layers
 
@@ -386,11 +412,18 @@ def expensive_computation(params):
 
 ## Technology Stack
 
-### Backend
-- **Python 3.8+**: Core language
-- **FastAPI**: API framework (if API enabled)
-- **SQLite**: Database
-- **PyTorch/TransformerLens**: Model analysis
+### Rust Orchestration (Host)
+- **Rust (Edition 2024)**: CLI and orchestration layer
+- **clap**: CLI argument parsing (derive macros)
+- **reqwest**: Async HTTP client for API communication
+- **rusqlite**: Read-only SQLite access to results database
+- **tokio**: Async runtime
+
+### Python ML Core (Container)
+- **Python 3.11+**: ML and evaluation engine
+- **FastAPI**: Detection API (:8022) and orchestrator API (:8000)
+- **SQLite**: Evaluation results database
+- **PyTorch/TransformerLens**: Model analysis and probe training
 - **NumPy/Pandas**: Data processing
 
 ### Frontend
@@ -400,9 +433,10 @@ def expensive_computation(params):
 - **HTML/CSS**: Custom styling
 
 ### Infrastructure
-- **Docker**: Containerization
+- **Docker**: Containerization (container-first philosophy)
 - **GitHub Actions**: CI/CD
-- **pytest**: Testing framework
+- **pytest**: Python testing framework
+- **cargo test**: Rust testing framework
 - **Selenium**: E2E testing
 
 ## Monitoring & Logging

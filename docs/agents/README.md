@@ -125,10 +125,11 @@ The repository includes an advanced **sleeper agents System** that automatically
 - **Automated Testing**: Runs as part of CI/CD pipeline when AI-related code changes
 - **Multiple Detection Methods**: Residual stream analysis, attention patterns, and behavioral testing
 - **CPU and GPU Support**: Can run on both CPU (for CI) and GPU (for comprehensive analysis)
+- **Rust Orchestration CLI**: The `sleeper-cli` binary provides fast host-side orchestration without requiring Python locally -- manages Docker containers, submits jobs, and generates reports
 - **Integration Points**:
-  - PR validation automatically triggers sleeper agents tests
+  - PR validation automatically triggers sleeper agents tests (Python ML + Rust CLI)
   - Issue Monitor and PR Review Monitor agents are scanned for anomalies
-  - Custom models can be evaluated using the CLI interface
+  - Custom models can be evaluated using either the Python or Rust CLI
 
 See the [sleeper agents Package](../../packages/sleeper_agents/README.md) for detailed documentation.
 

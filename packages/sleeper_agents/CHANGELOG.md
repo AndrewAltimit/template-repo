@@ -8,6 +8,16 @@ All notable changes and milestones for this project are documented here.
 
 ## [Unreleased]
 
+### Added
+- **Rust Orchestration CLI** (`sleeper-cli`)
+  - 4-crate workspace: `sleeper-cli`, `sleeper-orchestrator`, `sleeper-api-client`, `sleeper-db`
+  - Host-side Docker lifecycle management (start, stop, health checks)
+  - Typed HTTP client for Detection API (port 8022) and GPU Orchestrator API (port 8000)
+  - Read-only SQLite reporting with JSON/CSV export
+  - Commands: `status`, `detect`, `evaluate`, `train`, `jobs`, `report`, `batch`, `clean`
+  - Pre-commit hooks (rustfmt + clippy) and PR validation CI job
+  - Binary included in GitHub release attachments (`sleeper-cli-linux-x64`)
+
 ### Planned
 - Cross-model generalization testing (Dashboard Integration)
 - Gradient-based attack validation (external audit)

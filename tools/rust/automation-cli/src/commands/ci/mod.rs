@@ -319,6 +319,7 @@ fn run_parsed_stage(
                 "packages/economic_agents",
                 "packages/tamper_briefcase",
                 "packages/bioforge",
+                "packages/sleeper_agents",
                 "tools/mcp/mcp_core_rust",
             ] {
                 if root.join(ws).exists() {
@@ -662,6 +663,13 @@ fn run_parsed_stage(
             run_parsed_stage(&Stage::BioFull, compose, ruff_fmt, extra, root)?;
             run_parsed_stage(&Stage::TamperFull, compose, ruff_fmt, extra, root)?;
             run_parsed_stage(
+                &Stage::WorkspaceFull(stages::Workspace::SleeperAgents),
+                compose,
+                ruff_fmt,
+                extra,
+                root,
+            )?;
+            run_parsed_stage(
                 &Stage::IterFull(stages::IterGroup::Wrapper),
                 compose,
                 ruff_fmt,
@@ -818,6 +826,11 @@ fn list_stages() {
     println!();
     println!("  Rust (bioforge+mcp):");
     println!("    bio-fmt, bio-clippy, bio-test, bio-build, bio-deny, bio-full");
+    println!();
+    println!("  Rust (sleeper_agents CLI):");
+    println!(
+        "    sleeper-fmt, sleeper-clippy, sleeper-test, sleeper-build, sleeper-deny, sleeper-full"
+    );
     println!();
     println!("  Rust (tamper_briefcase):");
     println!("    tamper-fmt, tamper-clippy, tamper-test, tamper-build, tamper-deny, tamper-full");

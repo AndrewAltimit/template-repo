@@ -1,0 +1,73 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/sleeper-cli",
+    "crates/sleeper-orchestrator",
+    "crates/sleeper-api-client",
+    "crates/sleeper-db",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+repository = "https://github.com/AndrewAltimit/template-repo"
+authors = ["AndrewAltimit"]
+
+[workspace.dependencies]
+# Async runtime
+tokio = { version = "1.40", features = ["full"] }
+
+# Serialization
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+
+# HTTP
+reqwest = { version = "0.12", features = ["json"] }
+
+# CLI
+clap = { version = "4.5", features = ["derive"] }
+
+# Error handling
+thiserror = "2.0"
+anyhow = "1.0"
+
+# Logging (used by sleeper-cli for --log-level)
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+# Terminal output
+owo-colors = "4.0"
+
+# Database
+rusqlite = { version = "0.32", features = ["bundled"] }
+
+# CSV export
+csv = "1.3"
+
+# Testing
+tempfile = "3"
+
+# Internal crates
+sleeper-orchestrator = { path = "crates/sleeper-orchestrator" }
+sleeper-api-client = { path = "crates/sleeper-api-client" }
+sleeper-db = { path = "crates/sleeper-db" }
+
+[workspace.lints.clippy]
+clone_on_ref_ptr = "warn"
+dbg_macro = "warn"
+todo = "warn"
+unimplemented = "warn"
+
+[workspace.lints.rust]
+unsafe_op_in_unsafe_fn = "warn"
+
+[profile.release]
+lto = true
+codegen-units = 1
+panic = "abort"
+strip = true
+
+[profile.dev]
+opt-level = 0
+debug = true

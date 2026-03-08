@@ -23,7 +23,31 @@ docker build -f docker/sleeper-evaluation-cpu.Dockerfile -t sleeper-eval-cpu .
 docker build -f docker/sleeper-evaluation.Dockerfile -t sleeper-eval-gpu .
 ```
 
-## Running Evaluations
+## Rust CLI (Recommended)
+
+The preferred way to manage Docker containers is through the Rust CLI (`sleeper-cli`), which handles container lifecycle, health checks, and API communication automatically:
+
+```bash
+# Build the Rust CLI (one-time)
+cd packages/sleeper_agents && cargo build --release -p sleeper-cli
+
+# Check container and API status
+sleeper-cli status
+
+# Run evaluation (starts container if needed)
+sleeper-cli evaluate gpt2 --gpu --suites basic,code_vulnerability
+
+# Submit training jobs
+sleeper-cli train backdoor -m gpt2 --lora --epochs 3
+
+# Monitor jobs
+sleeper-cli jobs list
+sleeper-cli jobs logs <job-id> --follow
+```
+
+See [CLI Reference](CLI_REFERENCE.md) for the full Rust CLI command reference.
+
+## Running Evaluations Directly
 
 ### Basic Usage
 
