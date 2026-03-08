@@ -84,6 +84,11 @@ impl SleeperClient {
         self.post("/layer_sweep", &SweepRequest { n_samples }).await
     }
 
+    /// Train a backdoored model for testing.
+    pub async fn train_backdoor(&self, req: &TrainRequest) -> Result<serde_json::Value, ApiError> {
+        self.post("/train_backdoor", req).await
+    }
+
     /// Run honeypot tests.
     pub async fn honeypot_test(
         &self,
@@ -159,5 +164,49 @@ mod tests {
     fn client_with_api_key() {
         let client = SleeperClient::new("http://localhost:8022", Some("secret".into()));
         assert_eq!(client.api_key.as_deref(), Some("secret"));
+    }
+
+    #[test]
+    fn status_response_effective_model() {
+        let status: StatusResponse =
+            serde_json::from_str(r#"{"initialized": true, "model": "gpt2", "cpu_mode": false}"#)
+                .unwrap();
+        assert_eq!(status.effective_model(), Some("gpt2"));
+        assert!(status.is_model_loaded());
+    }
+
+    #[test]
+    fn status_response_not_initialized() {
+        let status: StatusResponse =
+            serde_json::from_str(r#"{"initialized": false, "model": null}"#).unwrap();
+        assert_eq!(status.effective_model(), None);
+        assert!(!status.is_model_loaded());
+    }
+
+    #[test]
+    fn status_response_legacy_fields() {
+        // Test backward compat with model_loaded/model_name fields
+        let status: StatusResponse = serde_json::from_str(
+            r#"{"model_loaded": true, "model_name": "mistral-7b", "status": "ok"}"#,
+        )
+        .unwrap();
+        assert_eq!(status.effective_model(), Some("mistral-7b"));
+        assert!(status.is_model_loaded());
+    }
+
+    #[test]
+    fn detect_request_serialization() {
+        let req = DetectRequest {
+            text: "test input".to_string(),
+            use_ensemble: Some(true),
+            run_interventions: None,
+            check_attention: None,
+        };
+        let json = serde_json::to_value(&req).unwrap();
+        assert_eq!(json["text"], "test input");
+        assert_eq!(json["use_ensemble"], true);
+        // None fields should be omitted
+        assert!(json.get("run_interventions").is_none());
+        assert!(json.get("check_attention").is_none());
     }
 }

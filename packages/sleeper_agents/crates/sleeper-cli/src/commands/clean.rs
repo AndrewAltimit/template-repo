@@ -1,7 +1,7 @@
-use std::path::PathBuf;
-
 use anyhow::Result;
 use sleeper_orchestrator::{config::OrchestratorConfig, docker, output};
+
+use crate::common::find_package_root;
 
 pub fn run(containers: bool, volumes: bool, package_root: Option<&str>) -> Result<()> {
     if !containers && !volumes {
@@ -9,33 +9,7 @@ pub fn run(containers: bool, volumes: bool, package_root: Option<&str>) -> Resul
         return Ok(());
     }
 
-    let root = match package_root {
-        Some(p) => PathBuf::from(p),
-        None => {
-            // Try to find the package root
-            let mut dir = std::env::current_dir()?;
-            loop {
-                if dir.join("pyproject.toml").exists()
-                    && dir.join("docker/docker-compose.gpu.yml").exists()
-                {
-                    break dir;
-                }
-                let candidate = dir.join("packages/sleeper_agents");
-                if candidate.join("pyproject.toml").exists()
-                    && candidate.join("docker/docker-compose.gpu.yml").exists()
-                {
-                    break candidate;
-                }
-                if !dir.pop() {
-                    anyhow::bail!(
-                        "could not find sleeper_agents package root\n\
-                         hint: run from inside the package or pass --package-root"
-                    );
-                }
-            }
-        },
-    };
-
+    let root = find_package_root(package_root)?;
     let config = OrchestratorConfig::default();
     let compose = config.compose_path(&root);
 

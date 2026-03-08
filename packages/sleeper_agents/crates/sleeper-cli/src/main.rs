@@ -1,4 +1,5 @@
 mod commands;
+mod common;
 
 use anyhow::Result;
 use clap::{Parser, Subcommand};
@@ -30,6 +31,82 @@ enum Commands {
         /// Output as JSON
         #[arg(long)]
         json: bool,
+    },
+
+    /// Detect backdoors in text using the loaded model
+    Detect {
+        /// Text to analyze for backdoor behavior
+        text: String,
+
+        /// Model to use for detection
+        #[arg(long, short, default_value = "gpt2")]
+        model: String,
+
+        /// Use probe ensemble for detection
+        #[arg(long)]
+        ensemble: bool,
+
+        /// Run causal interventions
+        #[arg(long)]
+        interventions: bool,
+
+        /// Check attention patterns
+        #[arg(long)]
+        attention: bool,
+
+        /// Force CPU mode
+        #[arg(long)]
+        cpu: bool,
+
+        /// Output raw JSON
+        #[arg(long)]
+        json: bool,
+
+        /// Path to the sleeper_agents package root
+        #[arg(long, short)]
+        package_root: Option<String>,
+    },
+
+    /// Evaluate a model with test suites
+    Evaluate {
+        /// Model name or HuggingFace model ID
+        model: String,
+
+        /// Test suites to run (default: all)
+        #[arg(
+            long,
+            value_delimiter = ',',
+            value_parser = ["basic", "code_vulnerability", "chain_of_thought", "robustness", "attention", "intervention"]
+        )]
+        suites: Vec<String>,
+
+        /// Enable GPU mode
+        #[arg(long)]
+        gpu: bool,
+
+        /// Override batch size
+        #[arg(long)]
+        batch_size: Option<u32>,
+
+        /// Detection threshold (0.0-1.0)
+        #[arg(long)]
+        threshold: Option<f64>,
+
+        /// Output directory for results
+        #[arg(long, short)]
+        output: Option<String>,
+
+        /// Generate report after evaluation (html, pdf, json)
+        #[arg(long)]
+        report: Option<String>,
+
+        /// Job timeout in seconds
+        #[arg(long, default_value = "3600")]
+        timeout: u64,
+
+        /// Path to the sleeper_agents package root
+        #[arg(long, short)]
+        package_root: Option<String>,
     },
 
     /// Clean up containers, volumes, and/or results
@@ -66,6 +143,52 @@ async fn main() -> Result<()> {
     match cli.command {
         Commands::Status { package_root, json } => {
             commands::status::run(package_root.as_deref(), json).await
+        },
+        Commands::Detect {
+            text,
+            model,
+            ensemble,
+            interventions,
+            attention,
+            cpu,
+            json,
+            package_root,
+        } => {
+            commands::detect::run(commands::detect::DetectOpts {
+                text: &text,
+                model: &model,
+                ensemble,
+                interventions,
+                attention,
+                cpu,
+                json_output: json,
+                package_root: package_root.as_deref(),
+            })
+            .await
+        },
+        Commands::Evaluate {
+            model,
+            suites,
+            gpu,
+            batch_size,
+            threshold,
+            output,
+            report,
+            timeout,
+            package_root,
+        } => {
+            commands::evaluate::run(commands::evaluate::EvalOpts {
+                model: &model,
+                suites: &suites,
+                gpu,
+                batch_size,
+                threshold,
+                output_dir: output.as_deref(),
+                report_format: report.as_deref(),
+                timeout_secs: timeout,
+                package_root: package_root.as_deref(),
+            })
+            .await
         },
         Commands::Clean {
             containers,

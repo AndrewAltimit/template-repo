@@ -4,21 +4,58 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Deserialize)]
 pub struct HealthResponse {
     pub status: String,
+    #[serde(default)]
+    pub detector_initialized: bool,
 }
 
-/// System status response from the API.
+/// System status response from the /status endpoint.
 #[derive(Debug, Deserialize)]
 pub struct StatusResponse {
-    pub status: String,
+    /// Whether the detector has been initialized.
+    #[serde(default)]
+    pub initialized: bool,
+    /// Name of the loaded model, if any.
+    #[serde(default)]
+    pub model: Option<String>,
+    /// Alias used by the `status` command display.
     #[serde(default)]
     pub model_loaded: bool,
+    /// Alias used by the `status` command display.
     #[serde(default)]
     pub model_name: Option<String>,
+    /// Whether the detector is in CPU mode.
+    #[serde(default)]
+    pub cpu_mode: Option<bool>,
+    /// Whether GPU is available.
     #[serde(default)]
     pub gpu_available: Option<bool>,
-    /// Additional status fields vary by server version.
+    /// Number of configured probe layers.
+    #[serde(default)]
+    pub layers_configured: Option<u32>,
+    /// Whether probes have been trained.
+    #[serde(default)]
+    pub has_trained_probes: Option<bool>,
+    /// Whether detector directions have been computed.
+    #[serde(default)]
+    pub has_detector_directions: Option<bool>,
+    /// Additional fields for forward compatibility.
     #[serde(flatten)]
     pub extra: serde_json::Value,
+}
+
+impl StatusResponse {
+    /// The effective model name (checks both field variants).
+    pub fn effective_model(&self) -> Option<&str> {
+        self.model
+            .as_deref()
+            .or(self.model_name.as_deref())
+            .filter(|s| !s.is_empty())
+    }
+
+    /// Whether a model is effectively loaded (checks both field variants).
+    pub fn is_model_loaded(&self) -> bool {
+        self.initialized || self.model_loaded || self.effective_model().is_some()
+    }
 }
 
 /// Request to initialize the detector with a model.

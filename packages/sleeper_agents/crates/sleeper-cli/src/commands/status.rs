@@ -1,38 +1,9 @@
-use std::path::{Path, PathBuf};
+use std::path::Path;
 
-use anyhow::{Context, Result};
+use anyhow::Result;
 use sleeper_orchestrator::{config::OrchestratorConfig, docker, output};
 
-/// Discover the sleeper_agents package root.
-///
-/// If `explicit` is provided, use that. Otherwise walk up from CWD looking
-/// for a directory containing both `pyproject.toml` and `docker/docker-compose.gpu.yml`.
-fn find_package_root(explicit: Option<&str>) -> Result<PathBuf> {
-    if let Some(path) = explicit {
-        return Ok(PathBuf::from(path));
-    }
-
-    let mut dir = std::env::current_dir().context("failed to get current directory")?;
-    loop {
-        if dir.join("pyproject.toml").exists() && dir.join("docker/docker-compose.gpu.yml").exists()
-        {
-            return Ok(dir);
-        }
-        // Also check if we're in the repo root and the package is under packages/
-        let candidate = dir.join("packages/sleeper_agents");
-        if candidate.join("pyproject.toml").exists()
-            && candidate.join("docker/docker-compose.gpu.yml").exists()
-        {
-            return Ok(candidate);
-        }
-        if !dir.pop() {
-            anyhow::bail!(
-                "could not find sleeper_agents package root\n\
-                 hint: run from inside the package or pass --package-root"
-            );
-        }
-    }
-}
+use crate::common::find_package_root;
 
 pub async fn run(package_root: Option<&str>, json: bool) -> Result<()> {
     let root = find_package_root(package_root)?;
@@ -72,13 +43,22 @@ pub async fn run(package_root: Option<&str>, json: bool) -> Result<()> {
 
         match client.status().await {
             Ok(status) => {
-                if status.model_loaded {
+                if status.is_model_loaded() {
                     output::success(&format!(
                         "Model loaded: {}",
-                        status.model_name.as_deref().unwrap_or("unknown")
+                        status.effective_model().unwrap_or("unknown")
                     ));
+                    if let Some(true) = status.has_trained_probes {
+                        output::detail("Probes: trained");
+                    }
+                    if let Some(layers) = status.layers_configured {
+                        output::detail(&format!("Layers configured: {layers}"));
+                    }
                 } else {
                     output::info("No model loaded");
+                }
+                if let Some(cpu) = status.cpu_mode {
+                    output::detail(&format!("Mode: {}", if cpu { "CPU" } else { "GPU" }));
                 }
                 if let Some(gpu) = status.gpu_available {
                     if gpu {
@@ -118,9 +98,12 @@ async fn run_json(root: &Path, config: &OrchestratorConfig) -> Result<()> {
         match client.status().await {
             Ok(status) => serde_json::json!({
                 "reachable": true,
-                "model_loaded": status.model_loaded,
-                "model_name": status.model_name,
+                "initialized": status.initialized,
+                "model": status.effective_model(),
+                "cpu_mode": status.cpu_mode,
                 "gpu_available": status.gpu_available,
+                "has_trained_probes": status.has_trained_probes,
+                "layers_configured": status.layers_configured,
             }),
             Err(e) => serde_json::json!({"reachable": false, "error": e.to_string()}),
         }
