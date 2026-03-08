@@ -30,13 +30,6 @@ impl ExportFormat {
             },
         }
     }
-
-    pub fn extension(&self) -> &'static str {
-        match self {
-            Self::Json => "json",
-            Self::Csv => "csv",
-        }
-    }
 }
 
 /// Export a slice of serializable records to JSON, writing to the given writer.

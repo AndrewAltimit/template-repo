@@ -6,8 +6,13 @@ pub use models::*;
 pub use orchestrator::OrchestratorClient;
 pub use orchestrator_models::*;
 
+use std::time::Duration;
+
 use reqwest::Client;
 use thiserror::Error;
+
+/// Default request timeout for HTTP clients (30 seconds).
+const DEFAULT_REQUEST_TIMEOUT: Duration = Duration::from_secs(30);
 
 /// Default port for the sleeper agents FastAPI server inside the container.
 pub const DEFAULT_API_PORT: u16 = 8022;
@@ -40,9 +45,13 @@ impl SleeperClient {
     /// Example: `SleeperClient::new("http://localhost:8022", None)`
     pub fn new(base_url: &str, api_key: Option<String>) -> Self {
         let base_url = base_url.trim_end_matches('/').to_string();
+        let client = Client::builder()
+            .timeout(DEFAULT_REQUEST_TIMEOUT)
+            .build()
+            .unwrap_or_default();
         Self {
             base_url,
-            client: Client::new(),
+            client,
             api_key,
         }
     }

@@ -1,7 +1,15 @@
+use std::time::Duration;
+
 use reqwest::Client;
 
 use crate::ApiError;
 use crate::orchestrator_models::*;
+
+/// Default request timeout for orchestrator HTTP requests (60 seconds).
+///
+/// Longer than the detection client because job submission may involve
+/// Docker image pulls or container startup on the orchestrator side.
+const DEFAULT_REQUEST_TIMEOUT: Duration = Duration::from_secs(60);
 
 /// Default port for the GPU orchestrator API.
 pub const DEFAULT_ORCHESTRATOR_PORT: u16 = 8000;
@@ -19,9 +27,13 @@ pub struct OrchestratorClient {
 impl OrchestratorClient {
     pub fn new(base_url: &str, api_key: Option<String>) -> Self {
         let base_url = base_url.trim_end_matches('/').to_string();
+        let client = Client::builder()
+            .timeout(DEFAULT_REQUEST_TIMEOUT)
+            .build()
+            .unwrap_or_default();
         Self {
             base_url,
-            client: Client::new(),
+            client,
             api_key,
         }
     }

@@ -82,3 +82,63 @@ fn wait_timeout(
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn run_check_success() {
+        assert!(run_check("true", &[]).unwrap());
+    }
+
+    #[test]
+    fn run_check_failure() {
+        assert!(!run_check("false", &[]).unwrap());
+    }
+
+    #[test]
+    fn run_capture_echoes() {
+        let output = run_capture("echo", &["hello"]).unwrap();
+        assert_eq!(output.trim(), "hello");
+    }
+
+    #[test]
+    fn run_capture_failure() {
+        let result = run_capture("false", &[]);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn run_success() {
+        assert!(run("true", &[]).is_ok());
+    }
+
+    #[test]
+    fn run_failure() {
+        assert!(run("false", &[]).is_err());
+    }
+
+    #[test]
+    fn run_with_timeout_completes() {
+        let result = run_with_timeout("true", &[], Duration::from_secs(5));
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn run_with_timeout_kills() {
+        let result = run_with_timeout("sleep", &["60"], Duration::from_millis(200));
+        assert!(result.is_err());
+        let msg = result.unwrap_err().to_string();
+        assert!(
+            msg.contains("timed out"),
+            "expected timeout error, got: {msg}"
+        );
+    }
+
+    #[test]
+    fn run_nonexistent_command() {
+        let result = run("nonexistent_cmd_12345", &[]);
+        assert!(result.is_err());
+    }
+}

@@ -75,3 +75,39 @@ pub fn orchestrator_client() -> Result<OrchestratorClient> {
     let api_key = std::env::var("ORCHESTRATOR_API_KEY").ok();
     Ok(OrchestratorClient::new(&url, api_key))
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn find_package_root_explicit() {
+        let result = find_package_root(Some("/tmp/fake-root")).unwrap();
+        assert_eq!(result, PathBuf::from("/tmp/fake-root"));
+    }
+
+    #[test]
+    fn find_package_root_from_cwd() {
+        // Running from within packages/sleeper_agents (which has pyproject.toml + docker/)
+        // should succeed; from /tmp it should fail.
+        let result = find_package_root(None);
+        // Either it finds the package root (CI or local dev) or fails gracefully
+        match result {
+            Ok(path) => {
+                assert!(path.join("pyproject.toml").exists());
+                assert!(path.join("docker/docker-compose.gpu.yml").exists());
+            },
+            Err(e) => {
+                let msg = e.to_string();
+                assert!(msg.contains("could not find sleeper_agents package root"));
+            },
+        }
+    }
+
+    #[test]
+    fn orchestrator_client_constructable() {
+        // orchestrator_client() always succeeds (falls back to defaults)
+        let client = orchestrator_client().unwrap();
+        drop(client);
+    }
+}

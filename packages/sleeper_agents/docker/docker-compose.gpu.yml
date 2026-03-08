@@ -18,6 +18,11 @@ services:
     # Enable GPU access (for older Docker versions)
     runtime: nvidia
 
+    # Expose API ports to host for Rust CLI access
+    ports:
+      - "8022:8022"  # Detection API (FastAPI)
+      - "8000:8000"  # GPU Orchestrator API
+
     # Environment variables
     environment:
       - CUDA_VISIBLE_DEVICES=0
