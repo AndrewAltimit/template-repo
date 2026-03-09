@@ -467,8 +467,7 @@ fn summary_claims_fixes(summary: &str) -> bool {
             .strip_prefix("- ")
             .or_else(|| section.strip_prefix("* "))
             .unwrap_or(section);
-        !section.is_empty()
-            && !["(none)", "none", "n/a"].contains(&stripped)
+        !section.is_empty() && !["(none)", "none", "n/a"].contains(&stripped)
     } else {
         false
     }
