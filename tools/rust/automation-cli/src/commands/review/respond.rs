@@ -462,17 +462,13 @@ fn summary_claims_fixes(summary: &str) -> bool {
         // Find the next section header or end of string
         let section_end = after.find("### ").unwrap_or(after.len());
         let section = after[..section_end].trim();
-        // Non-empty, and not just "(none)" or "- (none)" or "None"
+        // Strip leading list markers ("- " or "* ") then check base strings
+        let stripped = section
+            .strip_prefix("- ")
+            .or_else(|| section.strip_prefix("* "))
+            .unwrap_or(section);
         !section.is_empty()
-            && section != "(none)"
-            && section != "- (none)"
-            && section != "none"
-            && section != "- none"
-            && section != "* (none)"
-            && section != "* none"
-            && section != "n/a"
-            && section != "- n/a"
-            && section != "* n/a"
+            && !["(none)", "none", "n/a"].contains(&stripped)
     } else {
         false
     }
