@@ -458,18 +458,21 @@ fn summary_claims_fixes(summary: &str) -> bool {
     // Look for "### Fixed Issues" followed by actual content (not just "- (none)")
     let lower = summary.to_lowercase();
     if let Some(pos) = lower.find("### fixed issues") {
-        let after = &summary[pos + "### fixed issues".len()..];
+        let after = &lower[pos + "### fixed issues".len()..];
         // Find the next section header or end of string
         let section_end = after.find("### ").unwrap_or(after.len());
         let section = after[..section_end].trim();
         // Non-empty, and not just "(none)" or "- (none)" or "None"
         !section.is_empty()
-            && !section.eq_ignore_ascii_case("(none)")
-            && !section.eq_ignore_ascii_case("- (none)")
-            && !section.eq_ignore_ascii_case("none")
-            && !section.eq_ignore_ascii_case("- none")
-            && !section.eq_ignore_ascii_case("n/a")
-            && !section.eq_ignore_ascii_case("- n/a")
+            && section != "(none)"
+            && section != "- (none)"
+            && section != "none"
+            && section != "- none"
+            && section != "* (none)"
+            && section != "* none"
+            && section != "n/a"
+            && section != "- n/a"
+            && section != "* n/a"
     } else {
         false
     }
