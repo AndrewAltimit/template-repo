@@ -103,13 +103,69 @@ pub fn run(args: RespondArgs) -> Result<()> {
     let summary = extract_agent_summary(&claude_output);
 
     if !has_changes {
+        // Detect hallucinated fixes: Claude's summary claims "Fixed Issues" but no files
+        // were actually modified. Retry once with a pointed correction prompt.
+        if summary_claims_fixes(&summary) {
+            output::warn("Agent summary claims fixed issues but no files were modified — retrying");
+
+            let retry_prompt = format!(
+                "Your previous response claimed to fix issues but did NOT actually modify any files.\n\n\
+                 Your summary said:\n{summary}\n\n\
+                 However, `git diff` shows zero changes. You MUST use the Edit tool to \
+                 actually modify the source files, not just describe the changes.\n\n\
+                 Please re-read the relevant files and apply the fixes now. If you determine \
+                 the issues don't need fixing, move them to \"Ignored Issues\" instead of \
+                 \"Fixed Issues\".\n\n\
+                 ## Review Feedback\n\n{review_content}\n\n\
+                 ## REQUIRED: Output Summary Format\n\n\
+                 ---AGENT-SUMMARY-START---\n\
+                 ### Fixed Issues\n- ...\n\
+                 ### Ignored Issues\n- ...\n\
+                 ### Deferred to Human\n- ...\n\
+                 ### Notes\n- ...\n\
+                 ---AGENT-SUMMARY-END---\n"
+            );
+
+            let retry_output = run_claude(&retry_prompt)?;
+            process::run("git", &["add", "-A"])?;
+            let retry_has_changes = !process::run_check("git", &["diff", "--cached", "--quiet"])?;
+            let retry_summary = extract_agent_summary(&retry_output);
+
+            if retry_has_changes {
+                output::info("Retry produced actual file changes");
+                // Fall through to the commit/push path below with the retry summary
+                return commit_and_push(
+                    &args,
+                    &if retry_summary.is_empty() {
+                        summary
+                    } else {
+                        retry_summary
+                    },
+                );
+            }
+
+            // Still no changes after retry — post with explicit warning
+            let warning_summary = if retry_summary.is_empty() {
+                summary.clone()
+            } else {
+                retry_summary
+            };
+            output::warn("Retry still produced no file changes");
+            post_decision_comment(args.pr_number, args.iteration, false, "", &warning_summary)?;
+            project::set_github_output("made_changes", "false");
+            return Ok(());
+        }
+
         output::info("No changes to commit");
         post_decision_comment(args.pr_number, args.iteration, false, "", &summary)?;
         project::set_github_output("made_changes", "false");
         return Ok(());
     }
 
-    // Commit
+    commit_and_push(&args, &summary)
+}
+
+fn commit_and_push(args: &RespondArgs, summary: &str) -> Result<()> {
     output::step("Changes detected, creating commit...");
     let display_iter = args.iteration + 1;
     let commit_msg = format!(
@@ -127,7 +183,7 @@ pub fn run(args: RespondArgs) -> Result<()> {
     let commit_sha = process::run_capture("git", &["rev-parse", "--short", "HEAD"])?;
     let commit_sha = commit_sha.trim();
 
-    post_decision_comment(args.pr_number, args.iteration, true, commit_sha, &summary)?;
+    post_decision_comment(args.pr_number, args.iteration, true, commit_sha, summary)?;
 
     // Push (retries with backoff; post follow-up comment on failure)
     output::header("Step 4: Pushing changes");
@@ -298,7 +354,14 @@ fn build_prompt(
          1. **Read the files first** - Use the Read tool to examine any file mentioned\n\
          2. **Verify claims** - Check if the reported issue actually exists\n\
          3. **Assess severity** - Is this a real bug or speculative?\n\
-         4. **Fix or skip** - Fix real issues; skip theoretical ones\n\n",
+         4. **Fix or skip** - Fix real issues; skip theoretical ones\n\n\
+         ## CRITICAL: You MUST Actually Edit Files\n\
+         If you decide to fix an issue, you MUST use the Edit or Write tool to modify \
+         the source files. Do NOT just describe or plan changes — apply them. \
+         If you list something under \"Fixed Issues\" in your summary, the corresponding \
+         file MUST have been modified by an Edit or Write tool call. \
+         If you cannot or choose not to modify a file, list that issue under \
+         \"Ignored Issues\" or \"Deferred to Human\" instead.\n\n",
     );
 
     if !claude_md.is_empty() {
@@ -390,6 +453,26 @@ fn extract_agent_summary(output: &str) -> String {
         .join("\n")
 }
 
+/// Check if the agent summary claims to have fixed issues (non-empty "Fixed Issues" section).
+fn summary_claims_fixes(summary: &str) -> bool {
+    // Look for "### Fixed Issues" followed by actual content (not just "- (none)")
+    let lower = summary.to_lowercase();
+    if let Some(pos) = lower.find("### fixed issues") {
+        let after = &lower[pos + "### fixed issues".len()..];
+        // Find the next section header or end of string
+        let section_end = after.find("### ").unwrap_or(after.len());
+        let section = after[..section_end].trim();
+        // Strip leading list markers ("- " or "* ") then check base strings
+        let stripped = section
+            .strip_prefix("- ")
+            .or_else(|| section.strip_prefix("* "))
+            .unwrap_or(section);
+        !section.is_empty() && !["(none)", "none", "n/a"].contains(&stripped)
+    } else {
+        false
+    }
+}
+
 fn post_comment(pr_number: u64, body: &str) -> Result<()> {
     if !process::command_exists("gh") {
         if project::is_ci() {
@@ -422,6 +505,17 @@ fn post_decision_comment(
              **Commit:** `{commit_sha}`\n\n\
              {summary}\n\n---\n\
              *Automated summary of agent fixes.*"
+        )
+    } else if summary_claims_fixes(summary) {
+        // The agent claimed to fix things but no files were actually modified.
+        format!(
+            "## Review Response Agent (Iteration {display_iter})\n\
+             <!-- agent-metadata:type=review-fix:iteration={display_iter} -->\n\n\
+             **Status:** No changes needed\n\n\
+             > **Warning:** The agent's summary below claims fixes were applied, \
+             but no files were actually modified. These claimed fixes were NOT committed.\n\n\
+             {summary}\n\n---\n\
+             *The agent reviewed feedback but no file modifications were detected.*"
         )
     } else {
         format!(
@@ -498,4 +592,66 @@ fn write_temp_file(content: &str) -> Result<String> {
     let path = std::env::temp_dir().join(format!("automation-cli-{}-{n}", std::process::id()));
     std::fs::write(&path, content)?;
     Ok(path.to_string_lossy().to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn summary_claims_fixes_detects_real_fixes() {
+        let summary = "### Fixed Issues\n\
+                        - **Per-frame allocations**: Added `set_text_if_changed()` helper\n\n\
+                        ### Ignored Issues\n- (none)";
+        assert!(summary_claims_fixes(summary));
+    }
+
+    #[test]
+    fn summary_claims_fixes_ignores_none() {
+        let summary = "### Fixed Issues\n- (none)\n\n### Ignored Issues\n- style nits";
+        assert!(!summary_claims_fixes(summary));
+    }
+
+    #[test]
+    fn summary_claims_fixes_ignores_empty() {
+        let summary = "### Ignored Issues\n- Everything was fine";
+        assert!(!summary_claims_fixes(summary));
+    }
+
+    #[test]
+    fn summary_claims_fixes_case_insensitive_header() {
+        let summary = "### fixed issues\n- Fixed a bug\n\n### Ignored Issues\n- (none)";
+        assert!(summary_claims_fixes(summary));
+    }
+
+    #[test]
+    fn summary_claims_fixes_none_variants() {
+        for none_val in &["(none)", "- (none)", "None", "- None", "N/A", "- N/A"] {
+            let summary = format!("### Fixed Issues\n{none_val}\n\n### Ignored Issues\n- x");
+            assert!(
+                !summary_claims_fixes(&summary),
+                "should be false for: {none_val}"
+            );
+        }
+    }
+
+    #[test]
+    fn extract_agent_summary_parses_markers() {
+        let output = "Some preamble\n\
+                       ---AGENT-SUMMARY-START---\n\
+                       ### Fixed Issues\n- a bug\n\
+                       ---AGENT-SUMMARY-END---\n\
+                       trailing text";
+        let summary = extract_agent_summary(output);
+        assert!(summary.contains("### Fixed Issues"));
+        assert!(summary.contains("- a bug"));
+        assert!(!summary.contains("preamble"));
+    }
+
+    #[test]
+    fn extract_agent_summary_fallback() {
+        let output = "line 1\nline 2\nline 3\n";
+        let summary = extract_agent_summary(output);
+        assert!(summary.contains("line 1"));
+    }
 }
