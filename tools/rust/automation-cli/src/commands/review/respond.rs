@@ -497,6 +497,7 @@ fn summary_claims_fixes(summary: &str) -> bool {
         "none",
         "n/a",
         "(none — no review feedback was generated)",
+        "(none -- no review feedback was generated)",
     ]
     .contains(&stripped)
 }
@@ -654,7 +655,16 @@ mod tests {
 
     #[test]
     fn summary_claims_fixes_none_variants() {
-        for none_val in &["(none)", "- (none)", "None", "- None", "N/A", "- N/A"] {
+        for none_val in &[
+            "(none)",
+            "- (none)",
+            "None",
+            "- None",
+            "N/A",
+            "- N/A",
+            "(none -- no review feedback was generated)",
+            "- (none -- no review feedback was generated)",
+        ] {
             let summary = format!("### Fixed Issues\n{none_val}\n\n### Ignored Issues\n- x");
             assert!(
                 !summary_claims_fixes(&summary),
