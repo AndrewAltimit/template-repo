@@ -179,10 +179,20 @@ fn commit_and_push(args: &RespondArgs, summary: &str) -> Result<()> {
     process::run("git", &["commit", "-F", &msg_file])?;
     let _ = std::fs::remove_file(&msg_file);
 
-    // Get commit SHA and post comment BEFORE pushing
+    // Verify the commit actually contains changes (not an empty commit).
+    let diff_stat = process::run_capture("git", &["diff", "--stat", "HEAD~1..HEAD"])?;
+    if diff_stat.trim().is_empty() {
+        output::warn("Commit appears empty — no file changes in diff");
+        post_decision_comment(args.pr_number, args.iteration, false, "", summary)?;
+        project::set_github_output("made_changes", "false");
+        return Ok(());
+    }
+
     let commit_sha = process::run_capture("git", &["rev-parse", "--short", "HEAD"])?;
     let commit_sha = commit_sha.trim();
 
+    // Post comment BEFORE pushing — pushing triggers a new pipeline
+    // run which cancels this one, so the comment must go first.
     post_decision_comment(args.pr_number, args.iteration, true, commit_sha, summary)?;
 
     // Push (retries with backoff; post follow-up comment on failure)
@@ -193,12 +203,12 @@ fn commit_and_push(args: &RespondArgs, summary: &str) -> Result<()> {
     });
 
     if let Err(e) = push_result {
-        // Best-effort follow-up: the pipeline is NOT cancelled (no push happened)
         let _ = post_comment(
             args.pr_number,
             &format!(
                 "**Push failed** after retries: `{e}`\n\n\
-                 The commit exists locally but was not pushed. Manual intervention required."
+                 The commit exists locally but was not pushed. \
+                 Manual intervention required."
             ),
         );
         return Err(e);
@@ -453,24 +463,43 @@ fn extract_agent_summary(output: &str) -> String {
         .join("\n")
 }
 
-/// Check if the agent summary claims to have fixed issues (non-empty "Fixed Issues" section).
+/// Check if the agent summary claims to have fixed issues (non-empty
+/// "Fixed Issues" section).
+///
+/// Handles `##` and `###` headings, case-insensitive matching, and
+/// various "none" markers.
 fn summary_claims_fixes(summary: &str) -> bool {
-    // Look for "### Fixed Issues" followed by actual content (not just "- (none)")
     let lower = summary.to_lowercase();
-    if let Some(pos) = lower.find("### fixed issues") {
-        let after = &lower[pos + "### fixed issues".len()..];
-        // Find the next section header or end of string
-        let section_end = after.find("### ").unwrap_or(after.len());
-        let section = after[..section_end].trim();
-        // Strip leading list markers ("- " or "* ") then check base strings
-        let stripped = section
-            .strip_prefix("- ")
-            .or_else(|| section.strip_prefix("* "))
-            .unwrap_or(section);
-        !section.is_empty() && !["(none)", "none", "n/a"].contains(&stripped)
-    } else {
-        false
+    // Match both "## Fixed Issues" and "### Fixed Issues".
+    let marker = "fixed issues";
+    let pos = lower
+        .find(&format!("### {marker}"))
+        .or_else(|| lower.find(&format!("## {marker}")));
+    let Some(pos) = pos else { return false };
+    // Skip past the heading line.
+    let after = &lower[pos..];
+    let after = after.find('\n').map(|i| &after[i + 1..]).unwrap_or("");
+    // Find the next section header or end of string.
+    let section_end = after.find("\n#").unwrap_or(after.len());
+    let section = after[..section_end].trim();
+    if section.is_empty() {
+        return false;
     }
+    // Strip leading list markers then check "none" variants.
+    let stripped = section
+        .strip_prefix("- ")
+        .or_else(|| section.strip_prefix("* "))
+        .unwrap_or(section)
+        .trim();
+    // Already lowercased so direct comparison is fine.
+    ![
+        "(none)",
+        "none",
+        "n/a",
+        "(none — no review feedback was generated)",
+        "(none -- no review feedback was generated)",
+    ]
+    .contains(&stripped)
 }
 
 fn post_comment(pr_number: u64, body: &str) -> Result<()> {
@@ -626,7 +655,16 @@ mod tests {
 
     #[test]
     fn summary_claims_fixes_none_variants() {
-        for none_val in &["(none)", "- (none)", "None", "- None", "N/A", "- N/A"] {
+        for none_val in &[
+            "(none)",
+            "- (none)",
+            "None",
+            "- None",
+            "N/A",
+            "- N/A",
+            "(none -- no review feedback was generated)",
+            "- (none -- no review feedback was generated)",
+        ] {
             let summary = format!("### Fixed Issues\n{none_val}\n\n### Ignored Issues\n- x");
             assert!(
                 !summary_claims_fixes(&summary),
