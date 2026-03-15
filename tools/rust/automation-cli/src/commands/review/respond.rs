@@ -191,8 +191,11 @@ fn commit_and_push(args: &RespondArgs, summary: &str) -> Result<()> {
     let commit_sha = process::run_capture("git", &["rev-parse", "--short", "HEAD"])?;
     let commit_sha = commit_sha.trim();
 
-    // Push FIRST, then post the comment so we never claim "committed"
-    // for a commit that failed to push.
+    // Post comment BEFORE pushing — pushing triggers a new pipeline
+    // run which cancels this one, so the comment must go first.
+    post_decision_comment(args.pr_number, args.iteration, true, commit_sha, summary)?;
+
+    // Push (retries with backoff; post follow-up comment on failure)
     output::header("Step 4: Pushing changes");
     let branch = args.branch.clone();
     let push_result = temporarily_disable_pre_push_hook(|| {
@@ -204,14 +207,12 @@ fn commit_and_push(args: &RespondArgs, summary: &str) -> Result<()> {
             args.pr_number,
             &format!(
                 "**Push failed** after retries: `{e}`\n\n\
-                 The commit exists locally but was not pushed. Manual intervention required."
+                 The commit exists locally but was not pushed. \
+                 Manual intervention required."
             ),
         );
         return Err(e);
     }
-
-    // Only post the success comment after push succeeds.
-    post_decision_comment(args.pr_number, args.iteration, true, commit_sha, summary)?;
 
     output::success(&format!("Changes pushed to branch: {}", args.branch));
     project::set_github_output("made_changes", "true");
@@ -528,7 +529,7 @@ fn post_decision_comment(
         format!(
             "## Review Response Agent (Iteration {display_iter})\n\
              <!-- agent-metadata:type=review-fix:iteration={display_iter} -->\n\n\
-             **Status:** Changes committed and pushed\n\n\
+             **Status:** Changes committed, pushing...\n\n\
              **Commit:** `{commit_sha}`\n\n\
              {summary}\n\n---\n\
              *Automated summary of agent fixes.*"
