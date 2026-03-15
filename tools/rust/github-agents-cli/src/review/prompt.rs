@@ -118,11 +118,8 @@ fn get_project_context() -> Option<String> {
     // Try to read README
     for readme_name in &["README.md", "README.rst", "README.txt", "README"] {
         if let Ok(content) = fs::read_to_string(readme_name) {
-            let truncated = if content.len() > MAX_CONTEXT_CHARS {
-                &content[..MAX_CONTEXT_CHARS]
-            } else {
-                &content
-            };
+            let boundary = content.floor_char_boundary(MAX_CONTEXT_CHARS);
+            let truncated = &content[..boundary];
             context.push_str("### README (excerpt)\n\n");
             context.push_str(truncated);
             if content.len() > MAX_CONTEXT_CHARS {
@@ -135,11 +132,8 @@ fn get_project_context() -> Option<String> {
 
     // Try to read CONTRIBUTING
     if let Ok(content) = fs::read_to_string("CONTRIBUTING.md") {
-        let truncated = if content.len() > MAX_CONTEXT_CHARS {
-            &content[..MAX_CONTEXT_CHARS]
-        } else {
-            &content
-        };
+        let boundary = content.floor_char_boundary(MAX_CONTEXT_CHARS);
+        let truncated = &content[..boundary];
         context.push_str("### CONTRIBUTING Guidelines (excerpt)\n\n");
         context.push_str(truncated);
         context.push_str("\n\n");
@@ -148,11 +142,9 @@ fn get_project_context() -> Option<String> {
     // Try to read CLAUDE.md for AI-specific instructions
     if Path::new("CLAUDE.md").exists() {
         if let Ok(content) = fs::read_to_string("CLAUDE.md") {
-            let truncated = if content.len() > MAX_CONTEXT_CHARS * 2 {
-                &content[..MAX_CONTEXT_CHARS * 2]
-            } else {
-                &content
-            };
+            let limit = MAX_CONTEXT_CHARS * 2;
+            let boundary = content.floor_char_boundary(limit);
+            let truncated = &content[..boundary];
             context.push_str("### AI Instructions (CLAUDE.md excerpt)\n\n");
             context.push_str(truncated);
             context.push_str("\n\n");
