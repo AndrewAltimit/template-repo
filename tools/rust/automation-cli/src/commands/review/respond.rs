@@ -179,13 +179,20 @@ fn commit_and_push(args: &RespondArgs, summary: &str) -> Result<()> {
     process::run("git", &["commit", "-F", &msg_file])?;
     let _ = std::fs::remove_file(&msg_file);
 
-    // Get commit SHA and post comment BEFORE pushing
+    // Verify the commit actually contains changes (not an empty commit).
+    let diff_stat = process::run_capture("git", &["diff", "--stat", "HEAD~1..HEAD"])?;
+    if diff_stat.trim().is_empty() {
+        output::warn("Commit appears empty — no file changes in diff");
+        post_decision_comment(args.pr_number, args.iteration, false, "", summary)?;
+        project::set_github_output("made_changes", "false");
+        return Ok(());
+    }
+
     let commit_sha = process::run_capture("git", &["rev-parse", "--short", "HEAD"])?;
     let commit_sha = commit_sha.trim();
 
-    post_decision_comment(args.pr_number, args.iteration, true, commit_sha, summary)?;
-
-    // Push (retries with backoff; post follow-up comment on failure)
+    // Push FIRST, then post the comment so we never claim "committed"
+    // for a commit that failed to push.
     output::header("Step 4: Pushing changes");
     let branch = args.branch.clone();
     let push_result = temporarily_disable_pre_push_hook(|| {
@@ -193,7 +200,6 @@ fn commit_and_push(args: &RespondArgs, summary: &str) -> Result<()> {
     });
 
     if let Err(e) = push_result {
-        // Best-effort follow-up: the pipeline is NOT cancelled (no push happened)
         let _ = post_comment(
             args.pr_number,
             &format!(
@@ -203,6 +209,9 @@ fn commit_and_push(args: &RespondArgs, summary: &str) -> Result<()> {
         );
         return Err(e);
     }
+
+    // Only post the success comment after push succeeds.
+    post_decision_comment(args.pr_number, args.iteration, true, commit_sha, summary)?;
 
     output::success(&format!("Changes pushed to branch: {}", args.branch));
     project::set_github_output("made_changes", "true");
@@ -453,24 +462,42 @@ fn extract_agent_summary(output: &str) -> String {
         .join("\n")
 }
 
-/// Check if the agent summary claims to have fixed issues (non-empty "Fixed Issues" section).
+/// Check if the agent summary claims to have fixed issues (non-empty
+/// "Fixed Issues" section).
+///
+/// Handles `##` and `###` headings, case-insensitive matching, and
+/// various "none" markers.
 fn summary_claims_fixes(summary: &str) -> bool {
-    // Look for "### Fixed Issues" followed by actual content (not just "- (none)")
     let lower = summary.to_lowercase();
-    if let Some(pos) = lower.find("### fixed issues") {
-        let after = &lower[pos + "### fixed issues".len()..];
-        // Find the next section header or end of string
-        let section_end = after.find("### ").unwrap_or(after.len());
-        let section = after[..section_end].trim();
-        // Strip leading list markers ("- " or "* ") then check base strings
-        let stripped = section
-            .strip_prefix("- ")
-            .or_else(|| section.strip_prefix("* "))
-            .unwrap_or(section);
-        !section.is_empty() && !["(none)", "none", "n/a"].contains(&stripped)
-    } else {
-        false
+    // Match both "## Fixed Issues" and "### Fixed Issues".
+    let marker = "fixed issues";
+    let pos = lower
+        .find(&format!("### {marker}"))
+        .or_else(|| lower.find(&format!("## {marker}")));
+    let Some(pos) = pos else { return false };
+    // Skip past the heading line.
+    let after = &lower[pos..];
+    let after = after.find('\n').map(|i| &after[i + 1..]).unwrap_or("");
+    // Find the next section header or end of string.
+    let section_end = after.find("\n#").unwrap_or(after.len());
+    let section = after[..section_end].trim();
+    if section.is_empty() {
+        return false;
     }
+    // Strip leading list markers then check "none" variants.
+    let stripped = section
+        .strip_prefix("- ")
+        .or_else(|| section.strip_prefix("* "))
+        .unwrap_or(section)
+        .trim();
+    // Already lowercased so direct comparison is fine.
+    ![
+        "(none)",
+        "none",
+        "n/a",
+        "(none — no review feedback was generated)",
+    ]
+    .contains(&stripped)
 }
 
 fn post_comment(pr_number: u64, body: &str) -> Result<()> {
@@ -501,7 +528,7 @@ fn post_decision_comment(
         format!(
             "## Review Response Agent (Iteration {display_iter})\n\
              <!-- agent-metadata:type=review-fix:iteration={display_iter} -->\n\n\
-             **Status:** Changes committed, pushing...\n\n\
+             **Status:** Changes committed and pushed\n\n\
              **Commit:** `{commit_sha}`\n\n\
              {summary}\n\n---\n\
              *Automated summary of agent fixes.*"
