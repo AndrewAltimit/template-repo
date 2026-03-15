@@ -159,6 +159,10 @@ runs:
             echo "::warning::Gemini API is unavailable (likely transient outage) - skipping review for this run"
             echo "status=unavailable" >> $GITHUB_OUTPUT
             exit 0
+          elif grep -qiE '400.*INVALID_ARGUMENT|INVALID_ARGUMENT.*400|invalid.?argument' <<< "$OUTPUT"; then
+            echo "::warning::Gemini API returned INVALID_ARGUMENT (transient API-side issue) - skipping review for this run"
+            echo "status=unavailable" >> $GITHUB_OUTPUT
+            exit 0
           else
             echo "status=failure" >> $GITHUB_OUTPUT
             exit $EXIT_CODE
