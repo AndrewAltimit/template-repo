@@ -6,6 +6,7 @@ use serde_json::{Value, json};
 
 use crate::engine::{self, ProjectStore};
 use crate::types::BlendMode;
+use super::parse::json_as_u32;
 
 fn require_name(args: &Value) -> Result<&str> {
     args["name"]
@@ -17,15 +18,6 @@ fn require_layer_id(args: &Value) -> Result<&str> {
     args["layer_id"]
         .as_str()
         .ok_or_else(|| MCPError::InvalidParameters("Missing 'layer_id'".to_string()))
-}
-
-/// Parse a JSON value as u32, handling integer, float, signed, and string representations.
-fn json_as_u32(v: &Value) -> Option<u32> {
-    v.as_u64()
-        .map(|n| n as u32)
-        .or_else(|| v.as_i64().map(|n| n as u32))
-        .or_else(|| v.as_f64().map(|f| f as u32))
-        .or_else(|| v.as_str().and_then(|s| s.parse::<u32>().ok()))
 }
 
 // ---------------------------------------------------------------------------

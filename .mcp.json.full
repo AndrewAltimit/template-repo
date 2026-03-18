@@ -232,8 +232,9 @@
       ]
     },
     "sprite-sheet": {
-      "command": "docker compose",
+      "command": "docker",
       "args": [
+        "compose",
         "-f",
         "./docker-compose.yml",
         "--profile",

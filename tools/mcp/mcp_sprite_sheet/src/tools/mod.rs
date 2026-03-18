@@ -5,6 +5,7 @@ pub mod draw;
 pub mod import;
 pub mod layer;
 pub mod palette;
+pub mod parse;
 pub mod project;
 pub mod render;
 pub mod sprite;

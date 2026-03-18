@@ -6,6 +6,7 @@ use serde_json::{Value, json};
 
 use crate::engine::{self, ProjectStore};
 use crate::palette as palette_mod;
+use super::parse::json_as_u32;
 
 pub struct ImportImageTool {
     pub store: ProjectStore,
@@ -103,8 +104,8 @@ impl Tool for ImportImageTool {
             .as_str()
             .ok_or_else(|| MCPError::InvalidParameters("Missing 'image_path'".to_string()))?;
         let layer_name = args["layer_name"].as_str().unwrap_or("imported");
-        let max_width = args["max_width"].as_u64().map(|v| v as u32);
-        let max_height = args["max_height"].as_u64().map(|v| v as u32);
+        let max_width = json_as_u32(&args["max_width"]);
+        let max_height = json_as_u32(&args["max_height"]);
         let alpha_threshold = args["alpha_threshold"].as_u64().unwrap_or(128) as u8;
         let palette_preset = args["palette_preset"].as_str();
         let max_colors = args["max_colors"].as_u64().unwrap_or(64) as usize;

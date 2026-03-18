@@ -5,6 +5,7 @@ use mcp_core::prelude::*;
 use serde_json::{Value, json};
 
 use crate::engine::{self, ProjectStore};
+use super::parse::{json_as_u32, json_as_i32, json_as_u8};
 
 fn require_name(args: &Value) -> Result<&str> {
     args["name"]
@@ -72,9 +73,9 @@ impl Tool for SetPixelsTool {
             .iter()
             .filter_map(|p| {
                 Some((
-                    p["x"].as_u64()? as u32,
-                    p["y"].as_u64()? as u32,
-                    p["color_index"].as_u64()? as u8,
+                    json_as_u32(&p["x"])?,
+                    json_as_u32(&p["y"])?,
+                    json_as_u8(&p["color_index"])?,
                 ))
             })
             .collect();
@@ -127,11 +128,11 @@ impl Tool for DrawLineTool {
     async fn execute(&self, args: Value) -> Result<ToolResult> {
         let pname = require_name(&args)?;
         let layer_id = require_layer_id(&args)?;
-        let x0 = args["x0"].as_i64().unwrap_or(0) as i32;
-        let y0 = args["y0"].as_i64().unwrap_or(0) as i32;
-        let x1 = args["x1"].as_i64().unwrap_or(0) as i32;
-        let y1 = args["y1"].as_i64().unwrap_or(0) as i32;
-        let ci = args["color_index"].as_u64().unwrap_or(0) as u8;
+        let x0 = json_as_i32(&args["x0"]).unwrap_or(0);
+        let y0 = json_as_i32(&args["y0"]).unwrap_or(0);
+        let x1 = json_as_i32(&args["x1"]).unwrap_or(0);
+        let y1 = json_as_i32(&args["y1"]).unwrap_or(0);
+        let ci = json_as_u8(&args["color_index"]).unwrap_or(0);
 
         let mut store = self.store.write().await;
         let project = store
@@ -183,11 +184,11 @@ impl Tool for DrawRectTool {
     async fn execute(&self, args: Value) -> Result<ToolResult> {
         let pname = require_name(&args)?;
         let layer_id = require_layer_id(&args)?;
-        let x = args["x"].as_u64().unwrap_or(0) as u32;
-        let y = args["y"].as_u64().unwrap_or(0) as u32;
-        let w = args["width"].as_u64().unwrap_or(0) as u32;
-        let h = args["height"].as_u64().unwrap_or(0) as u32;
-        let ci = args["color_index"].as_u64().unwrap_or(0) as u8;
+        let x = json_as_u32(&args["x"]).unwrap_or(0);
+        let y = json_as_u32(&args["y"]).unwrap_or(0);
+        let w = json_as_u32(&args["width"]).unwrap_or(0);
+        let h = json_as_u32(&args["height"]).unwrap_or(0);
+        let ci = json_as_u8(&args["color_index"]).unwrap_or(0);
         let filled = args["filled"].as_bool().unwrap_or(false);
 
         let mut store = self.store.write().await;
@@ -240,11 +241,11 @@ impl Tool for DrawEllipseTool {
     async fn execute(&self, args: Value) -> Result<ToolResult> {
         let pname = require_name(&args)?;
         let layer_id = require_layer_id(&args)?;
-        let cx = args["cx"].as_i64().unwrap_or(0) as i32;
-        let cy = args["cy"].as_i64().unwrap_or(0) as i32;
-        let rx = args["rx"].as_i64().unwrap_or(0) as i32;
-        let ry = args["ry"].as_i64().unwrap_or(0) as i32;
-        let ci = args["color_index"].as_u64().unwrap_or(0) as u8;
+        let cx = json_as_i32(&args["cx"]).unwrap_or(0);
+        let cy = json_as_i32(&args["cy"]).unwrap_or(0);
+        let rx = json_as_i32(&args["rx"]).unwrap_or(0);
+        let ry = json_as_i32(&args["ry"]).unwrap_or(0);
+        let ci = json_as_u8(&args["color_index"]).unwrap_or(0);
         let filled = args["filled"].as_bool().unwrap_or(false);
 
         let mut store = self.store.write().await;
@@ -294,9 +295,9 @@ impl Tool for FloodFillTool {
     async fn execute(&self, args: Value) -> Result<ToolResult> {
         let pname = require_name(&args)?;
         let layer_id = require_layer_id(&args)?;
-        let x = args["x"].as_u64().unwrap_or(0) as u32;
-        let y = args["y"].as_u64().unwrap_or(0) as u32;
-        let ci = args["color_index"].as_u64().unwrap_or(0) as u8;
+        let x = json_as_u32(&args["x"]).unwrap_or(0);
+        let y = json_as_u32(&args["y"]).unwrap_or(0);
+        let ci = json_as_u8(&args["color_index"]).unwrap_or(0);
 
         let mut store = self.store.write().await;
         let project = store
