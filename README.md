@@ -7,7 +7,7 @@ This repo demonstrates how to run a council of AI agents (Claude, Gemini, OpenCo
 **Use this repo to learn how to:**
 - Orchestrate multiple AI agents with a GitHub Projects v2 work queue
 - Measure and enforce trust boundaries for autonomous agents (wrapper guards, iteration limits, claim tracking)
-- Integrate 19 MCP servers spanning code quality, content creation, 3D graphics, video editing, and speech synthesis
+- Integrate 20 MCP servers spanning code quality, content creation, 3D graphics, video editing, and speech synthesis
 - Build hardened CI/CD pipelines for agent-authored code (15-stage pipeline, security scanning, multi-arch Docker builds)
 - Detect sleeper agent behaviors via residual stream analysis and linear probes
 - Integrate AI agents into legacy software via runtime injection, shared memory IPC, and overlay rendering
@@ -212,7 +212,7 @@ cd tools/rust/board-manager && cargo build --release
 
 ## Features
 
-- **[19 MCP Servers](#mcp-servers)** - Code quality, content creation, AI assistance, 3D graphics, video editing, speech synthesis, and more
+- **[20 MCP Servers](#mcp-servers)** - Code quality, content creation, AI assistance, 3D graphics, video editing, speech synthesis, and more
 - **[6 AI Agents](#ai-agents)** - Autonomous development workflow from issue to merge
 - **[4 Packages](#packages)** - Sleeper agent detection, economic agent simulation, tamper-responsive briefcase, CRISPR automation
 - **Container-First Architecture** - Maximum portability and consistency
@@ -235,7 +235,7 @@ For enterprise environments requiring custom certificates, customize [`automatio
 │   ├── tamper_briefcase/     # Tamper-responsive briefcase system (Rust)
 │   └── bioforge/             # Agent-driven CRISPR automation platform (Rust)
 ├── tools/
-│   ├── mcp/                  # 19 MCP servers (see MCP Servers section)
+│   ├── mcp/                  # 20 MCP servers (see MCP Servers section)
 │   ├── rust/                 # Rust CLI tools
 │   │   ├── github-agents-cli/    # Issue/PR monitoring, refinement, analysis
 │   │   ├── board-manager/        # GitHub Projects board operations
@@ -275,6 +275,7 @@ For enterprise environments requiring custom certificates, customize [`automatio
 17. **AgentCore Memory** - Multi-provider AI memory (AWS AgentCore or ChromaDB) ([Documentation](tools/mcp/mcp_agentcore_memory/docs/README.md))
 18. **Reaction Search** - Semantic search for anime reaction images (Rust)
 19. **Desktop Control** - Cross-platform desktop automation for Linux and Windows ([Documentation](tools/mcp/mcp_desktop_control/README.md))
+20. **Sprite Sheet** - Programmatic pixel art and sprite sheet creation ([Documentation](tools/mcp/mcp_sprite_sheet/README.md))
 
 ### Usage Modes
 

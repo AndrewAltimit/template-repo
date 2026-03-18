@@ -1,6 +1,6 @@
 # MCP (Model Context Protocol) Servers
 
-This repository contains a modular collection of 19 MCP servers that provide various development and content creation tools. Each server is specialized for specific functionality and can be run independently.
+This repository contains a modular collection of 20 MCP servers that provide various development and content creation tools. Each server is specialized for specific functionality and can be run independently.
 
 ## Available MCP Servers
 
@@ -203,7 +203,24 @@ Cross-platform desktop automation:
 - Linux support via xdotool, wmctrl, scrot
 - Windows support via pywinauto, pyautogui
 
-#### 16. Memory Explorer MCP Server
+#### 16. Sprite Sheet MCP Server
+**Location**: `tools/mcp/mcp_sprite_sheet/`
+**Transport**: STDIO (local) or HTTP (Port 8027)
+**Documentation**: [Sprite Sheet MCP Documentation](../../tools/mcp/mcp_sprite_sheet/README.md)
+
+Programmatic pixel art and sprite sheet creation:
+- Project management with save/load
+- Layer system with compositing
+- Drawing primitives (rectangles, ellipses, lines, flood fill)
+- Palette management and color swapping
+- Sprite and animation definitions
+- Transform operations (flip, rotate, scale)
+- PNG rendering for sprites, animations, and full sheets
+- Image import and edge cleanup
+- Undo/redo support
+- 31 specialized tools
+
+#### 17. Memory Explorer MCP Server
 **Location**: `tools/mcp/mcp_memory_explorer/`
 **Transport**: STDIO (native binary, not containerized)
 
@@ -321,7 +338,7 @@ This repository provides two MCP configuration files to optimize context window 
 - Best for: Day-to-day development, code review, refactoring
 
 **`.mcp.json.full` (Complete - All Services)**
-- Access to all 19 specialized MCP servers
+- Access to all 20 specialized MCP servers
 - Additional: Content creation, 3D graphics, media tools, remote services
 - Best for: Creating animations, 3D content, videos, or terrain
 
@@ -367,6 +384,7 @@ tools/mcp/
 ├── mcp_agentcore_memory/   # AI memory system (local)
 ├── mcp_reaction_search/    # Reaction image search (local)
 ├── mcp_desktop_control/    # Desktop automation (local)
+├── mcp_sprite_sheet/       # Pixel art and sprite sheets (local)
 │
 # Remote/Cross-Machine Servers (HTTP)
 ├── mcp_gaea2/              # Terrain generation (Windows requirement)
