@@ -78,12 +78,12 @@ docker compose down                      # Stop services
 
 ### MCP Servers
 
-19 modular MCP servers providing specialized functionality:
+20 modular MCP servers providing specialized functionality:
 
 | Category | Servers | Transport |
 |----------|---------|-----------|
 | Code Quality | code-quality, gemini, opencode, crush, ~~codex~~ (disabled) | STDIO (local) |
-| Content | content-creation, meme-generator, elevenlabs-speech, video-editor, blender | STDIO |
+| Content | content-creation, meme-generator, elevenlabs-speech, video-editor, blender, sprite-sheet | STDIO |
 | Integration | virtual-character, github-board, agentcore-memory, reaction-search, desktop-control | STDIO |
 | Agent Integration | memory-explorer | STDIO (native) |
 | Remote | gaea2, ai-toolkit, comfyui | HTTP (remote machines) |

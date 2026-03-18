@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Agent Orchestration &amp; Security Template</title>
-  <meta name="description" content="Reference architecture for AI agent orchestration, trust measurement, and tool integration. 6 AI agents, 19 MCP servers, 4 research packages, 14 strategic documents.">
+  <meta name="description" content="Reference architecture for AI agent orchestration, trust measurement, and tool integration. 6 AI agents, 20 MCP servers, 4 research packages, 14 strategic documents.">
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -47,7 +47,7 @@
         <span class="stat-label">AI Agents</span>
       </div>
       <div class="stat">
-        <span class="stat-number" data-target="19">19</span>
+        <span class="stat-number" data-target="20">20</span>
         <span class="stat-label">MCP Servers</span>
       </div>
       <div class="stat">
@@ -249,7 +249,7 @@
 <section id="mcp" aria-labelledby="mcp-title">
   <div class="container reveal">
     <h2 class="section-title" id="mcp-title">MCP Servers</h2>
-    <p class="section-subtitle">19 modular servers providing specialized functionality via the Model Context Protocol -- from code quality to 3D rendering.</p>
+    <p class="section-subtitle">20 modular servers providing specialized functionality via the Model Context Protocol -- from code quality to 3D rendering.</p>
 
     <div class="filter-bar">
       <button class="filter-btn active" data-filter="all">All</button>
@@ -323,6 +323,17 @@
           <div class="card-title">Blender</div>
         </div>
         <p class="card-description">3D content creation with physics simulations, Cycles/Eevee rendering, geometry nodes, animation, and particle systems.</p>
+        <div class="card-meta">
+          <span class="badge badge-transport">STDIO</span>
+          <span class="badge badge-rust">Rust</span>
+        </div>
+      </div>
+
+      <div class="card mcp-card" data-category="content">
+        <div class="card-header">
+          <div class="card-title">Sprite Sheet</div>
+        </div>
+        <p class="card-description">Programmatic pixel art and sprite sheet creation. Layers, palettes, drawing primitives, image import with auto-palette extraction, edge cleanup, and PNG rendering.</p>
         <div class="card-meta">
           <span class="badge badge-transport">STDIO</span>
           <span class="badge badge-rust">Rust</span>

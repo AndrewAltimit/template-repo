@@ -41,6 +41,7 @@ The MCP functionality is distributed across specialized servers:
 8. **OpenCode MCP Server** - AI code generation (STDIO mode)
 9. **Crush MCP Server** - Code generation (STDIO mode)
 10. **Meme Generator MCP Server** - Meme creation (STDIO mode)
+11. **Sprite Sheet MCP Server** (Port 8027) - Pixel art and sprite sheet creation
 
 See [MCP Servers Documentation](servers.md) for detailed information.
 
@@ -113,6 +114,7 @@ Servers running in STDIO mode communicate through standard input/output using th
 | OpenCode | STDIO (Docker) | 8014 | AI code generation |
 | Crush | STDIO (Docker) | 8015 | Code generation |
 | Meme Generator | STDIO (Docker) | N/A | Meme creation with visual feedback |
+| Sprite Sheet | STDIO (Docker) | 8027 | Pixel art and sprite sheet creation |
 
 **Note**: The default configuration uses STDIO mode for local servers through Docker Compose. HTTP ports are only used when manually running servers in HTTP mode for development/testing.
 
