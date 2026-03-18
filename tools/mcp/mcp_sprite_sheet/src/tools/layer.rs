@@ -6,7 +6,7 @@ use serde_json::{Value, json};
 
 use crate::engine::{self, ProjectStore};
 use crate::types::BlendMode;
-use super::parse::json_as_u32;
+use super::parse::{json_as_u32, json_as_u8, json_as_i32};
 
 fn require_name(args: &Value) -> Result<&str> {
     args["name"]
@@ -163,8 +163,8 @@ impl Tool for UpdateLayerTool {
         if let Some(v) = args["visible"].as_bool() {
             layer.visible = v;
         }
-        if let Some(o) = args["opacity"].as_u64() {
-            layer.opacity = o.min(255) as u8;
+        if let Some(o) = json_as_u8(&args["opacity"]) {
+            layer.opacity = o;
         }
         if let Some(bm) = args["blend_mode"].as_str() {
             layer.blend_mode = match bm {
@@ -177,8 +177,8 @@ impl Tool for UpdateLayerTool {
         if let Some(l) = args["locked"].as_bool() {
             layer.locked = l;
         }
-        if let Some(z) = args["z_order"].as_i64() {
-            layer.z_order = z as i32;
+        if let Some(z) = json_as_i32(&args["z_order"]) {
+            layer.z_order = z;
         }
 
         ToolResult::json(&json!({ "success": true }))

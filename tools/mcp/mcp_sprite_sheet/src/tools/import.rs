@@ -6,7 +6,7 @@ use serde_json::{Value, json};
 
 use crate::engine::{self, ProjectStore};
 use crate::palette as palette_mod;
-use super::parse::json_as_u32;
+use super::parse::{json_as_u32, json_as_u8};
 
 pub struct ImportImageTool {
     pub store: ProjectStore,
@@ -106,18 +106,18 @@ impl Tool for ImportImageTool {
         let layer_name = args["layer_name"].as_str().unwrap_or("imported");
         let max_width = json_as_u32(&args["max_width"]);
         let max_height = json_as_u32(&args["max_height"]);
-        let alpha_threshold = args["alpha_threshold"].as_u64().unwrap_or(128) as u8;
+        let alpha_threshold = json_as_u8(&args["alpha_threshold"]).unwrap_or(128);
         let palette_preset = args["palette_preset"].as_str();
-        let max_colors = args["max_colors"].as_u64().unwrap_or(64) as usize;
+        let max_colors = json_as_u32(&args["max_colors"]).unwrap_or(64) as usize;
 
         // Parse background color removal
         let bg_color: Option<[u8; 3]> = args.get("background_color").and_then(|v| {
             let arr = v.as_array()?;
             if arr.len() >= 3 {
                 Some([
-                    arr[0].as_u64()? as u8,
-                    arr[1].as_u64()? as u8,
-                    arr[2].as_u64()? as u8,
+                    json_as_u8(&arr[0])?,
+                    json_as_u8(&arr[1])?,
+                    json_as_u8(&arr[2])?,
                 ])
             } else {
                 None
