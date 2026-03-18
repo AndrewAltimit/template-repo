@@ -123,7 +123,7 @@ impl Tool for ImportImageTool {
                 None
             }
         });
-        let bg_tolerance = args["bg_tolerance"].as_u64().unwrap_or(30) as u8;
+        let bg_tolerance = json_as_u8(&args["bg_tolerance"]).unwrap_or(30);
 
         // Load image
         let mut img = image::open(image_path)
@@ -172,8 +172,8 @@ impl Tool for ImportImageTool {
 
         // Trim anti-aliasing fringe if requested
         let trim_fringe = args["trim_fringe"].as_bool().unwrap_or(true);
-        let trim_luma = args["trim_luma_threshold"].as_u64().unwrap_or(200) as u8;
-        let trim_passes = args["trim_passes"].as_u64().unwrap_or(3).min(5) as u32;
+        let trim_luma = json_as_u8(&args["trim_luma_threshold"]).unwrap_or(200);
+        let trim_passes = json_as_u32(&args["trim_passes"]).unwrap_or(3).min(5);
 
         let trimmed = if trim_fringe {
             engine::trim_border_fringe(&mut pixels, &palette, trim_luma, trim_passes, width, height)
