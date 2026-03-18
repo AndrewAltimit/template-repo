@@ -1027,6 +1027,34 @@ services:
     profiles:
       - services
 
+  # Sprite Sheet MCP Server (Rust)
+  mcp-sprite-sheet:
+    build:
+      context: .
+      dockerfile: docker/mcp-sprite-sheet.Dockerfile
+      args:
+        USER_ID: ${USER_ID:-1000}
+        GROUP_ID: ${GROUP_ID:-1000}
+    ports:
+      - "8027:8027"
+    volumes:
+      - ./outputs/mcp-sprites:/output
+      - /home:/home:ro  # Read-only mount for image imports
+    environment:
+      - RUST_LOG=info
+    networks:
+      - mcp-network
+    command: ["mcp-sprite-sheet", "--mode", "standalone", "--port", "8027", "--output", "/output"]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8027/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    profiles:
+      - services
+
   # Desktop Control MCP Server
   # Cross-platform desktop automation (Linux only in container)
   # IMPORTANT: Requires X11 display access - see docs/README.md

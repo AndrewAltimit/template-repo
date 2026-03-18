@@ -10,6 +10,7 @@ pub enum Workspace {
     Bioforge,
     TamperBriefcase,
     SleeperAgents,
+    McpSpriteSheet,
 }
 
 impl Workspace {
@@ -20,6 +21,7 @@ impl Workspace {
             Workspace::Bioforge => "packages/bioforge",
             Workspace::TamperBriefcase => "packages/tamper_briefcase",
             Workspace::SleeperAgents => "packages/sleeper_agents",
+            Workspace::McpSpriteSheet => "tools/mcp/mcp_sprite_sheet",
         }
     }
 }
@@ -32,6 +34,7 @@ impl fmt::Display for Workspace {
             Workspace::Bioforge => write!(f, "BioForge"),
             Workspace::TamperBriefcase => write!(f, "Tamper Briefcase"),
             Workspace::SleeperAgents => write!(f, "Sleeper Agents"),
+            Workspace::McpSpriteSheet => write!(f, "MCP Sprite Sheet"),
         }
     }
 }
@@ -195,6 +198,13 @@ impl Stage {
             "tamper-build" => Stage::TamperBuild,
             "tamper-deny" => Stage::WorkspaceDeny(Workspace::TamperBriefcase),
             "tamper-full" => Stage::TamperFull,
+
+            // MCP Sprite Sheet
+            "sprite-fmt" => Stage::WorkspaceFmt(Workspace::McpSpriteSheet),
+            "sprite-clippy" => Stage::WorkspaceClippy(Workspace::McpSpriteSheet),
+            "sprite-test" => Stage::WorkspaceTest(Workspace::McpSpriteSheet),
+            "sprite-build" => Stage::WorkspaceBuild(Workspace::McpSpriteSheet),
+            "sprite-full" => Stage::WorkspaceFull(Workspace::McpSpriteSheet),
 
             // Wrapper
             "wrapper-fmt" => Stage::IterFmt(IterGroup::Wrapper),

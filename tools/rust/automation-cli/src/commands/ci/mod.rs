@@ -835,6 +835,9 @@ fn list_stages() {
     println!("  Rust (tamper_briefcase):");
     println!("    tamper-fmt, tamper-clippy, tamper-test, tamper-build, tamper-deny, tamper-full");
     println!();
+    println!("  Rust (mcp_sprite_sheet):");
+    println!("    sprite-fmt, sprite-clippy, sprite-test, sprite-build, sprite-full");
+    println!();
     println!("  Rust (wrapper_guard):");
     println!("    wrapper-fmt, wrapper-clippy, wrapper-test, wrapper-full");
     println!();

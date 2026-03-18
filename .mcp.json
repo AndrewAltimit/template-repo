@@ -180,6 +180,25 @@
         "--mode",
         "stdio"
       ]
+    },
+    "sprite-sheet": {
+      "command": "docker",
+      "args": [
+        "compose",
+        "-f",
+        "./docker-compose.yml",
+        "--profile",
+        "services",
+        "run",
+        "--rm",
+        "-T",
+        "mcp-sprite-sheet",
+        "mcp-sprite-sheet",
+        "--mode",
+        "stdio",
+        "--output",
+        "/output"
+      ]
     }
   }
 }
