@@ -1,5 +1,5 @@
 name: 'PR Review Fix'
-description: 'Apply fixes based on AI review feedback from Gemini and Codex reviews'
+description: 'Apply fixes based on AI review feedback from Claude, OpenRouter, Gemini, and Codex reviews'
 
 inputs:
   pr_number:
@@ -69,7 +69,7 @@ runs:
       shell: bash
       run: |
         found=0
-        for f in gemini-review.md codex-review.md; do
+        for f in claude-security-review.md claude-quality-review.md openrouter-review.md gemini-review.md codex-review.md; do
           if [ -s "$f" ]; then
             echo "Found review artifact: $f ($(wc -c < "$f") bytes)"
             found=1
@@ -93,6 +93,9 @@ runs:
       if: steps.iteration.outputs.should_skip != 'true'
       shell: bash
       env:
+        CLAUDE_SECURITY_REVIEW_PATH: claude-security-review.md
+        CLAUDE_QUALITY_REVIEW_PATH: claude-quality-review.md
+        OPENROUTER_REVIEW_PATH: openrouter-review.md
         GEMINI_REVIEW_PATH: gemini-review.md
         CODEX_REVIEW_PATH: codex-review.md
         PR_NUMBER: ${{ inputs.pr_number }}

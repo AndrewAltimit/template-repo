@@ -21,6 +21,7 @@ const OPENROUTER_API_URL: &str = "https://openrouter.ai/api/v1/chat/completions"
 pub struct OpenRouterAgent {
     api_key: Option<String>,
     model: String,
+    client: reqwest::Client,
 }
 
 impl OpenRouterAgent {
@@ -39,6 +40,7 @@ impl OpenRouterAgent {
         Self {
             api_key,
             model: DEFAULT_MODEL.to_string(),
+            client: reqwest::Client::new(),
         }
     }
 
@@ -59,8 +61,6 @@ impl OpenRouterAgent {
 
         tracing::info!("Calling OpenRouter API with model: {}", self.model);
 
-        let client = reqwest::Client::new();
-
         let request_body = serde_json::json!({
             "model": self.model,
             "messages": [
@@ -75,7 +75,7 @@ impl OpenRouterAgent {
 
         let response = tokio::time::timeout(
             std::time::Duration::from_secs(600), // 10 minute timeout
-            client
+            self.client
                 .post(OPENROUTER_API_URL)
                 .header("Authorization", format!("Bearer {}", api_key))
                 .header("Content-Type", "application/json")
@@ -142,9 +142,10 @@ impl OpenRouterAgent {
             .and_then(|m| m.get("content"))
             .and_then(|c| c.as_str())
             .ok_or_else(|| {
+                let safe_end = body.floor_char_boundary(500);
                 Error::Config(format!(
                     "Unexpected OpenRouter response format: {}",
-                    &body[..body.len().min(500)]
+                    &body[..safe_end]
                 ))
             })?;
 

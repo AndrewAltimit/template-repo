@@ -87,15 +87,15 @@ runs:
       run: |
         echo "Starting Claude Code PR Review (profile: $REVIEW_PROFILE)..."
 
-        # Build command
-        CMD="./tools/rust/github-agents-cli/target/release/github-agents pr-review $PR_NUMBER --profile $REVIEW_PROFILE"
+        # Build command args
+        ARGS=(pr-review "$PR_NUMBER" --profile "$REVIEW_PROFILE")
         if [ "$ENABLE_EDITOR" = "true" ]; then
-          CMD="$CMD --editor"
+          ARGS+=(--editor)
         fi
 
         # Run review and capture output
         set +e
-        OUTPUT=$($CMD 2>&1)
+        OUTPUT=$(./tools/rust/github-agents-cli/target/release/github-agents "${ARGS[@]}" 2>&1)
         EXIT_CODE=$?
         set -e
 
