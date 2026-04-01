@@ -609,7 +609,7 @@ Comments to analyze:
 
         let review_type = if let Some(ref profile) = self.profile {
             if is_incremental {
-                format!("Incremental {} ", profile.display_name)
+                format!("Incremental {}", profile.display_name)
             } else {
                 profile.display_name.clone()
             }

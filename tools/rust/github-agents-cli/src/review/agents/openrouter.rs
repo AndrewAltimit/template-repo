@@ -88,7 +88,13 @@ impl OpenRouterAgent {
                 .send(),
         )
         .await
-        .map_err(|_| Error::Config("OpenRouter API timed out after 10 minutes".to_string()))?
+        .map_err(|_| Error::AgentExecutionFailed {
+            name: "openrouter".to_string(),
+            exit_code: 6,
+            stdout: String::new(),
+            stderr: "service unavailable (transient): OpenRouter API timed out after 10 minutes"
+                .to_string(),
+        })?
         .map_err(|e| {
             if e.is_connect() || e.is_timeout() {
                 Error::AgentExecutionFailed {
