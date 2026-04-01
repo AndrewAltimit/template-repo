@@ -9,7 +9,7 @@ use std::process::Command;
 
 use super::agents::{self, ReviewAgent};
 use super::condenser::condense_if_needed;
-use super::config::{FullConfig, PRReviewConfig};
+use super::config::{FullConfig, PRReviewConfig, ReviewProfile};
 use super::diff::{
     FileStats, PRMetadata, get_changed_files, get_current_commit_sha,
     get_files_changed_since_commit, get_pr_diff, mark_new_changes_in_diff,
@@ -39,6 +39,8 @@ pub struct PRReviewer {
     agent: Box<dyn ReviewAgent>,
     editor_agent: Option<Box<dyn ReviewAgent>>,
     dry_run: bool,
+    /// Optional review profile with focused instructions
+    profile: Option<ReviewProfile>,
 }
 
 impl PRReviewer {
@@ -48,12 +50,26 @@ impl PRReviewer {
         agent_override: Option<&str>,
         dry_run: bool,
     ) -> Result<Self> {
+        Self::new_with_profile(config, agent_override, dry_run, None).await
+    }
+
+    /// Create a new PR reviewer with an optional review profile
+    pub async fn new_with_profile(
+        config: PRReviewConfig,
+        agent_override: Option<&str>,
+        dry_run: bool,
+        profile: Option<ReviewProfile>,
+    ) -> Result<Self> {
         // Load full config to get model overrides
         let full_config = FullConfig::load(None).ok();
         let agent_name = agent_override.unwrap_or(&config.default_agent);
 
-        // Only apply model overrides for Gemini (other agents use their own defaults)
-        let (review_model, condenser_model) = if agent_name.eq_ignore_ascii_case("gemini") {
+        // Determine model: profile model > config model overrides > agent default
+        let (review_model, condenser_model) = if let Some(ref p) = profile {
+            // Profile specifies its own model
+            (p.model.clone(), None)
+        } else if agent_name.eq_ignore_ascii_case("gemini") {
+            // Only apply model overrides for Gemini (other agents use their own defaults)
             if let Some(ref fc) = full_config {
                 (
                     Some(fc.gemini_review_model()),
@@ -86,6 +102,7 @@ impl PRReviewer {
             agent,
             editor_agent,
             dry_run,
+            profile,
         })
     }
 
@@ -163,6 +180,17 @@ impl PRReviewer {
             is_incremental,
             previous_issues.as_deref(),
         );
+
+        // 8.5. Prepend profile-specific instructions if a review profile is active
+        let prompt = if let Some(ref profile) = self.profile {
+            tracing::info!("Applying review profile: {}", profile.display_name);
+            format!(
+                "## Review Profile: {}\n\n**Focus:** {}\n\n{}\n\n---\n\n{}",
+                profile.display_name, profile.focus, profile.instructions, prompt
+            )
+        } else {
+            prompt
+        };
 
         tracing::debug!("Prompt length: {} chars", prompt.len());
 
@@ -579,10 +607,16 @@ Comments to analyze:
             )
         };
 
-        let review_type = if is_incremental {
-            "Incremental Review"
+        let review_type = if let Some(ref profile) = self.profile {
+            if is_incremental {
+                format!("Incremental {}", profile.display_name)
+            } else {
+                profile.display_name.clone()
+            }
+        } else if is_incremental {
+            "Incremental Review".to_string()
         } else {
-            "Code Review"
+            "Code Review".to_string()
         };
 
         let incremental_note = if is_incremental {

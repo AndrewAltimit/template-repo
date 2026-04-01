@@ -126,9 +126,13 @@ enum Commands {
         /// PR number to review
         pr_number: u64,
 
-        /// Override default agent (gemini, claude, openrouter)
+        /// Override default agent (claude, openrouter, gemini, opencode, crush)
         #[arg(long)]
         agent: Option<String>,
+
+        /// Review profile from review-profiles.yaml (e.g., security, quality, openrouter-general)
+        #[arg(long)]
+        profile: Option<String>,
 
         /// Force full review (ignore incremental state)
         #[arg(long)]
@@ -322,6 +326,7 @@ async fn run() -> Result<(), Error> {
         Commands::PrReview {
             pr_number,
             agent,
+            profile,
             full,
             dry_run,
             format,
@@ -337,8 +342,30 @@ async fn run() -> Result<(), Error> {
                 config.editor_agent = editor_agent;
             }
 
-            // Create reviewer
-            let reviewer = review::PRReviewer::new(config, agent.as_deref(), dry_run).await?;
+            // Load review profile if specified (overrides agent/model from profile)
+            let review_profile = if let Some(ref profile_name) = profile {
+                let p = review::config::ReviewProfile::load(profile_name)?;
+                info!(
+                    "Using review profile '{}': {}",
+                    profile_name, p.display_name
+                );
+                Some(p)
+            } else {
+                None
+            };
+
+            // Profile overrides agent selection
+            let effective_agent_string = review_profile.as_ref().map(|p| p.agent.clone());
+            let effective_agent = effective_agent_string.as_deref().or(agent.as_deref());
+
+            // Create reviewer with optional profile
+            let reviewer = review::PRReviewer::new_with_profile(
+                config,
+                effective_agent,
+                dry_run,
+                review_profile,
+            )
+            .await?;
 
             // Run review
             let review_text = reviewer.review_pr(pr_number, full).await?;

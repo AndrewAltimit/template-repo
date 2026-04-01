@@ -9,6 +9,7 @@ pub mod codex;
 pub mod crush;
 pub mod gemini;
 pub mod opencode;
+pub mod openrouter;
 
 use async_trait::async_trait;
 
@@ -124,6 +125,18 @@ pub async fn select_agent_with_models(
                 Some(Box::new(agent))
             } else {
                 tracing::warn!("Crush CLI not available");
+                None
+            }
+        },
+        "openrouter" => {
+            let agent = match review_model {
+                Some(m) => openrouter::OpenRouterAgent::with_model(m),
+                None => openrouter::OpenRouterAgent::new(),
+            };
+            if agent.is_available().await {
+                Some(Box::new(agent))
+            } else {
+                tracing::warn!("OpenRouter API key not available");
                 None
             }
         },

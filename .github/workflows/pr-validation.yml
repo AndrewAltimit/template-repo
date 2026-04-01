@@ -351,12 +351,159 @@ jobs:
           retention-days: 1
 
   # Stage 2: Gemini AI Code Review
-  gemini-review:
-    name: Gemini AI Code Review
+  # Stage 2a: Claude Code Security Review (profile-based)
+  claude-security-review:
+    name: Claude Code Security Review
     needs: [detect-changes, build-rust-tools]
     if: github.event_name == 'pull_request' && (contains(github.event.pull_request.labels.*.name, 'help wanted') || !github.event.pull_request.draft)
     runs-on: self-hosted
     timeout-minutes: 30
+    outputs:
+      review_status: ${{ steps.review-action.outputs.review_status }}
+      is_agent_commit: ${{ steps.review-action.outputs.is_agent_commit }}
+      review_artifact_name: ${{ steps.review-action.outputs.review_artifact_name }}
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      DOCKER_BUILDKIT: 1
+      COMPOSE_DOCKER_CLI_BUILD: 1
+    steps:
+      - name: Pre-checkout cleanup
+        run: |
+          if [ -d "outputs" ] || [ -d "evaluation_results" ] || [ -f ".git/index.lock" ]; then
+            docker run --rm -v "$(pwd):/workspace" busybox:1.36.1 sh -c \
+              "rm -rf /workspace/outputs /workspace/evaluation_results /workspace/.git/index.lock" || \
+              sudo rm -rf outputs evaluation_results .git/index.lock 2>/dev/null || true
+          fi
+
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          clean: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ github.head_ref }}
+          lfs: true
+
+      - name: Setup Rust CLI tools
+        uses: ./.github/actions/setup-rust-cli-tools
+        with:
+          tools: 'github-agents'
+
+      - name: Run Claude security review
+        id: review-action
+        uses: ./.github/actions/claude-review
+        with:
+          pr_number: ${{ github.event.pull_request.number }}
+          profile: 'security'
+          start_reaction_server: 'true'
+
+  # Stage 2b: Claude Code Quality Review (profile-based, runs in parallel with security)
+  claude-quality-review:
+    name: Claude Code Quality Review
+    needs: [detect-changes, build-rust-tools]
+    if: github.event_name == 'pull_request' && (contains(github.event.pull_request.labels.*.name, 'help wanted') || !github.event.pull_request.draft)
+    runs-on: self-hosted
+    timeout-minutes: 30
+    outputs:
+      review_status: ${{ steps.review-action.outputs.review_status }}
+      is_agent_commit: ${{ steps.review-action.outputs.is_agent_commit }}
+      review_artifact_name: ${{ steps.review-action.outputs.review_artifact_name }}
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      DOCKER_BUILDKIT: 1
+      COMPOSE_DOCKER_CLI_BUILD: 1
+    steps:
+      - name: Pre-checkout cleanup
+        run: |
+          if [ -d "outputs" ] || [ -d "evaluation_results" ] || [ -f ".git/index.lock" ]; then
+            docker run --rm -v "$(pwd):/workspace" busybox:1.36.1 sh -c \
+              "rm -rf /workspace/outputs /workspace/evaluation_results /workspace/.git/index.lock" || \
+              sudo rm -rf outputs evaluation_results .git/index.lock 2>/dev/null || true
+          fi
+
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          clean: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ github.head_ref }}
+          lfs: true
+
+      - name: Setup Rust CLI tools
+        uses: ./.github/actions/setup-rust-cli-tools
+        with:
+          tools: 'github-agents'
+
+      - name: Run Claude quality review
+        id: review-action
+        uses: ./.github/actions/claude-review
+        with:
+          pr_number: ${{ github.event.pull_request.number }}
+          profile: 'quality'
+          start_reaction_server: 'true'
+
+  # Stage 2c: OpenRouter General Review (runs in parallel with Claude reviews)
+  openrouter-review:
+    name: OpenRouter AI General Review
+    needs: [detect-changes, build-rust-tools]
+    if: github.event_name == 'pull_request' && (contains(github.event.pull_request.labels.*.name, 'help wanted') || !github.event.pull_request.draft)
+    runs-on: self-hosted
+    timeout-minutes: 20
+    continue-on-error: true
+    outputs:
+      review_status: ${{ steps.review-action.outputs.review_status }}
+      is_agent_commit: ${{ steps.review-action.outputs.is_agent_commit }}
+      review_artifact_name: ${{ steps.review-action.outputs.review_artifact_name }}
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+      DOCKER_BUILDKIT: 1
+      COMPOSE_DOCKER_CLI_BUILD: 1
+    steps:
+      - name: Pre-checkout cleanup
+        run: |
+          if [ -d "outputs" ] || [ -d "evaluation_results" ] || [ -f ".git/index.lock" ]; then
+            docker run --rm -v "$(pwd):/workspace" busybox:1.36.1 sh -c \
+              "rm -rf /workspace/outputs /workspace/evaluation_results /workspace/.git/index.lock" || \
+              sudo rm -rf outputs evaluation_results .git/index.lock 2>/dev/null || true
+          fi
+
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          clean: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ github.head_ref }}
+          lfs: true
+
+      - name: Setup Rust CLI tools
+        uses: ./.github/actions/setup-rust-cli-tools
+        with:
+          tools: 'github-agents'
+
+      - name: Run OpenRouter review
+        id: review-action
+        uses: ./.github/actions/openrouter-review
+        with:
+          pr_number: ${{ github.event.pull_request.number }}
+          profile: 'openrouter-general'
+          start_reaction_server: 'true'
+
+  # Stage 2d: Gemini AI Code Review (DISABLED)
+  # SECURITY: Google Gemini has been disabled due to updated AI principles (Feb 2026)
+  # allowing mass surveillance and autonomous weapons use cases.
+  # Google products should be treated as a security risk in any pipeline handling
+  # proprietary code. Use Anthropic models (Claude Code) instead.
+  # To re-enable, restore the original `if` condition below.
+  gemini-review:
+    name: Gemini AI Code Review (DISABLED)
+    needs: [detect-changes, build-rust-tools]
+    if: ${{ contains(github.event.pull_request.labels.*.name, 'force-gemini-review') }}  # Disabled by default - requires explicit label to run
+    runs-on: self-hosted
+    timeout-minutes: 30
+    continue-on-error: true
     outputs:
       review_status: ${{ steps.review-action.outputs.review_status }}
       is_agent_commit: ${{ steps.review-action.outputs.is_agent_commit }}
@@ -398,14 +545,14 @@ jobs:
           enable_editor: 'true'
           start_reaction_server: 'true'
 
-  # Stage 2b: Codex AI Code Review (DISABLED)
+  # Stage 2e: Codex AI Code Review (DISABLED)
   # SECURITY: OpenAI/Codex has been disabled due to mass surveillance concerns.
   # OpenAI products enable bulk data collection and should be treated as a security
   # risk in any pipeline handling proprietary code. Use Anthropic models instead.
   # To re-enable, restore the original `if` condition below.
   codex-review:
     name: Codex AI Code Review (DISABLED)
-    needs: [detect-changes, build-rust-tools, gemini-review]
+    needs: [detect-changes, build-rust-tools, claude-security-review]
     if: ${{ contains(github.event.pull_request.labels.*.name, 'force-codex-review') }}  # Disabled by default - requires explicit label to run
     runs-on: self-hosted
     timeout-minutes: 15
@@ -446,10 +593,9 @@ jobs:
         uses: ./.github/actions/codex-review
         with:
           pr_number: ${{ github.event.pull_request.number }}
-          gemini_review_artifact: ${{ needs.gemini-review.outputs.review_artifact_name }}
           start_reaction_server: 'true'
 
-  # Stage 2c: AgentCore Code Review (Optional - triggered by label)
+  # Stage 2f: AgentCore Code Review (Optional - triggered by label)
   agentcore-review:
     name: AgentCore Code Review
     needs: [detect-changes, build-rust-tools]
@@ -470,10 +616,10 @@ jobs:
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
       AWS_REGION: ${{ secrets.AWS_REGION }}
 
-  # Stage 2c: Agent Review Response (responds to Gemini/Codex feedback)
+  # Stage 2g: Agent Review Response (responds to Claude/OpenRouter review feedback)
   agent-review-response:
     name: Agent Review Response
-    needs: [detect-changes, build-rust-tools, gemini-review, codex-review]
+    needs: [detect-changes, build-rust-tools, claude-security-review, claude-quality-review, openrouter-review, gemini-review, codex-review]
     if: |
       always() &&
       !cancelled() &&
@@ -532,7 +678,7 @@ jobs:
   # Stage 3a: Format check stage (after AI review cycle completes)
   format-check:
     name: Python Format Check
-    needs: [detect-changes, gemini-review, codex-review, agent-review-response]
+    needs: [detect-changes, claude-security-review, claude-quality-review, openrouter-review, gemini-review, codex-review, agent-review-response]
     if: |
       always() && !cancelled() &&
       needs.detect-changes.result == 'success' &&
@@ -547,7 +693,7 @@ jobs:
   # Stage 3b: Basic lint stage
   basic-lint:
     name: Python Basic Lint
-    needs: [detect-changes, gemini-review, codex-review, agent-review-response]
+    needs: [detect-changes, claude-security-review, claude-quality-review, openrouter-review, gemini-review, codex-review, agent-review-response]
     if: |
       always() && !cancelled() &&
       needs.detect-changes.result == 'success' &&
@@ -562,7 +708,7 @@ jobs:
   # Stage 3c: Full lint stage (includes security & type checking)
   full-lint:
     name: Python Full Lint
-    needs: [detect-changes, gemini-review, codex-review, format-check, basic-lint]
+    needs: [detect-changes, claude-security-review, claude-quality-review, openrouter-review, gemini-review, codex-review, format-check, basic-lint]
     if: |
       always() && !cancelled() &&
       needs.detect-changes.result == 'success' &&
@@ -577,7 +723,7 @@ jobs:
   # Stage 3d: Link check for documentation
   link-check:
     name: Documentation Link Check
-    needs: [detect-changes, gemini-review, codex-review, agent-review-response]
+    needs: [detect-changes, claude-security-review, claude-quality-review, openrouter-review, gemini-review, codex-review, agent-review-response]
     if: |
       always() && !cancelled() &&
       needs.detect-changes.result == 'success' &&
@@ -591,7 +737,7 @@ jobs:
   # Stage 4: YAML/JSON validation
   config-validation:
     name: Config File Validation
-    needs: [detect-changes, gemini-review, codex-review, agent-review-response]
+    needs: [detect-changes, claude-security-review, claude-quality-review, openrouter-review, gemini-review, codex-review, agent-review-response]
     if: |
       always() && !cancelled() &&
       needs.detect-changes.result == 'success' &&
@@ -604,7 +750,7 @@ jobs:
   # Stage 4b: Workflow file validation (when workflow files changed or CI files changed)
   workflow-validation:
     name: Workflow File Validation
-    needs: [detect-changes, gemini-review, codex-review, agent-review-response]
+    needs: [detect-changes, claude-security-review, claude-quality-review, openrouter-review, gemini-review, codex-review, agent-review-response]
     if: |
       always() && !cancelled() &&
       needs.detect-changes.result == 'success' &&
@@ -618,7 +764,7 @@ jobs:
   # Stage 4c: Comprehensive YAML linting (when YAML files changed)
   yaml-lint:
     name: YAML Lint All Files
-    needs: [detect-changes, gemini-review, codex-review, agent-review-response]
+    needs: [detect-changes, claude-security-review, claude-quality-review, openrouter-review, gemini-review, codex-review, agent-review-response]
     if: |
       always() && !cancelled() &&
       needs.detect-changes.result == 'success' &&
@@ -631,7 +777,7 @@ jobs:
   # Stage 5: Test execution (after AI review cycle and linting)
   test-suite:
     name: Test Suite
-    needs: [detect-changes, build-rust-tools, gemini-review, codex-review, agent-review-response, format-check, basic-lint, full-lint]
+    needs: [detect-changes, build-rust-tools, claude-security-review, claude-quality-review, openrouter-review, gemini-review, codex-review, agent-review-response, format-check, basic-lint, full-lint]
     if: |
       always() && !cancelled() &&
       needs.detect-changes.result == 'success' &&
@@ -723,7 +869,7 @@ jobs:
   # Stage 6: MCP Server validation (after AI review cycle)
   mcp-validation:
     name: MCP Server Validation
-    needs: [detect-changes, gemini-review, codex-review, agent-review-response]
+    needs: [detect-changes, claude-security-review, claude-quality-review, openrouter-review, gemini-review, codex-review, agent-review-response]
     if: |
       always() && !cancelled() &&
       needs.detect-changes.result == 'success' &&
@@ -859,7 +1005,7 @@ jobs:
   # Stage 7a: sleeper agents Rust CLI Tests
   sleeper-agents-rust-tests:
     name: Sleeper Agents Rust CLI Tests
-    needs: [detect-changes, build-rust-tools, gemini-review, codex-review, agent-review-response]
+    needs: [detect-changes, build-rust-tools, claude-security-review, claude-quality-review, openrouter-review, gemini-review, codex-review, agent-review-response]
     if: |
       always() && !cancelled() &&
       needs.detect-changes.result == 'success' &&
@@ -955,7 +1101,7 @@ jobs:
   # Stage 8: Gaea2 MCP Integration Tests (after AI review cycle)
   gaea2-integration-tests:
     name: Gaea2 MCP Integration Tests
-    needs: [detect-changes, gemini-review, codex-review, agent-review-response]
+    needs: [detect-changes, claude-security-review, claude-quality-review, openrouter-review, gemini-review, codex-review, agent-review-response]
     if: |
       always() && !cancelled() &&
       needs.detect-changes.result == 'success' &&
@@ -967,7 +1113,7 @@ jobs:
   # Stage 8b: Economic Agents Tests (Rust) - after AI review cycle
   economic-agents-tests:
     name: Economic Agents Tests
-    needs: [detect-changes, build-rust-tools, gemini-review, codex-review, agent-review-response]
+    needs: [detect-changes, build-rust-tools, claude-security-review, claude-quality-review, openrouter-review, gemini-review, codex-review, agent-review-response]
     if: |
       always() && !cancelled() &&
       needs.detect-changes.result == 'success' &&
@@ -1053,7 +1199,7 @@ jobs:
   # Stage 8d: Tamper Briefcase Tests (Rust) - after AI review cycle
   tamper-briefcase-tests:
     name: Tamper Briefcase Tests
-    needs: [detect-changes, build-rust-tools, gemini-review, codex-review, agent-review-response]
+    needs: [detect-changes, build-rust-tools, claude-security-review, claude-quality-review, openrouter-review, gemini-review, codex-review, agent-review-response]
     if: |
       always() && !cancelled() &&
       needs.detect-changes.result == 'success' &&
@@ -1133,7 +1279,7 @@ jobs:
   # Stage 8e: BioForge Tests (Rust) - after AI review cycle
   bioforge-tests:
     name: BioForge Tests
-    needs: [detect-changes, build-rust-tools, gemini-review, codex-review, agent-review-response]
+    needs: [detect-changes, build-rust-tools, claude-security-review, claude-quality-review, openrouter-review, gemini-review, codex-review, agent-review-response]
     if: |
       always() && !cancelled() &&
       needs.detect-changes.result == 'success' &&
@@ -1213,7 +1359,7 @@ jobs:
   # Stage 8f: MCP Servers CI (Rust) - fmt + clippy for standalone MCP servers
   mcp-servers-ci:
     name: MCP Servers CI
-    needs: [detect-changes, build-rust-tools, gemini-review, codex-review, agent-review-response]
+    needs: [detect-changes, build-rust-tools, claude-security-review, claude-quality-review, openrouter-review, gemini-review, codex-review, agent-review-response]
     if: |
       always() && !cancelled() &&
       needs.detect-changes.result == 'success' &&
@@ -1281,7 +1427,7 @@ jobs:
   # Stage 8g: GitHub Board Tests - after AI review cycle
   github-board-tests:
     name: GitHub Board Tests
-    needs: [detect-changes, gemini-review, codex-review, agent-review-response]
+    needs: [detect-changes, claude-security-review, claude-quality-review, openrouter-review, gemini-review, codex-review, agent-review-response]
     if: |
       always() && !cancelled() &&
       needs.detect-changes.result == 'success' &&
@@ -1292,7 +1438,7 @@ jobs:
   # Stage 9: Docker image validation (after AI review cycle and linting)
   docker-validation:
     name: Docker Image Validation
-    needs: [detect-changes, gemini-review, codex-review, agent-review-response, format-check, basic-lint, full-lint]
+    needs: [detect-changes, claude-security-review, claude-quality-review, openrouter-review, gemini-review, codex-review, agent-review-response, format-check, basic-lint, full-lint]
     if: |
       always() && !cancelled() &&
       needs.detect-changes.result == 'success' &&
@@ -1471,6 +1617,9 @@ jobs:
     needs:
       - detect-changes
       - build-rust-tools
+      - claude-security-review
+      - claude-quality-review
+      - openrouter-review
       - gemini-review
       - codex-review
       - agent-review-response
@@ -1649,6 +1798,9 @@ jobs:
     name: PR Status Summary
     needs:
       - detect-changes
+      - claude-security-review
+      - claude-quality-review
+      - openrouter-review
       - gemini-review
       - codex-review
       - agent-review-response
@@ -1687,8 +1839,11 @@ jobs:
           echo ""
           echo "**Validation Results:**"
           echo "- Change Detection: ${{ needs.detect-changes.result }}"
-          echo "- Gemini AI Review: ${{ needs.gemini-review.result }}"
-          echo "- Codex AI Review: ${{ needs.codex-review.result }}"
+          echo "- Claude Security Review: ${{ needs.claude-security-review.result }}"
+          echo "- Claude Quality Review: ${{ needs.claude-quality-review.result }}"
+          echo "- OpenRouter Review: ${{ needs.openrouter-review.result }}"
+          echo "- Gemini AI Review (DISABLED): ${{ needs.gemini-review.result }}"
+          echo "- Codex AI Review (DISABLED): ${{ needs.codex-review.result }}"
           echo "- Format Check: ${{ needs.format-check.result }}"
           echo "- Basic Lint: ${{ needs.basic-lint.result }}"
           echo "- Full Lint: ${{ needs.full-lint.result }}"
@@ -1744,6 +1899,9 @@ jobs:
           script: |
             const results = {
               'change-detection': '${{ needs.detect-changes.result }}',
+              'claude-security-review': '${{ needs.claude-security-review.result }}',
+              'claude-quality-review': '${{ needs.claude-quality-review.result }}',
+              'openrouter-review': '${{ needs.openrouter-review.result }}',
               'gemini-review': '${{ needs.gemini-review.result }}',
               'codex-review': '${{ needs.codex-review.result }}',
               'format-check': '${{ needs.format-check.result }}',

@@ -1,0 +1,181 @@
+name: 'OpenRouter AI Code Review'
+description: 'Run OpenRouter API-based code review on a pull request using a configurable review profile. Caller must set OPENROUTER_API_KEY and GH_TOKEN as env vars.'
+
+inputs:
+  pr_number:
+    description: 'PR number to review'
+    required: true
+  profile:
+    description: 'Review profile name from review-profiles.yaml (e.g., openrouter-general)'
+    required: false
+    default: 'openrouter-general'
+  enable_editor:
+    description: 'Enable editor cleanup pass (uses Claude Code as editor)'
+    required: false
+    default: 'false'
+  start_reaction_server:
+    description: 'Start reaction search MCP server'
+    required: false
+    default: 'true'
+
+outputs:
+  review_status:
+    description: 'Status of the review (success, failure, rate_limited, unavailable)'
+    value: ${{ steps.review.outputs.status }}
+  is_agent_commit:
+    description: 'Whether the last commit was by an agent'
+    value: ${{ steps.check-agent.outputs.is_agent_commit }}
+  review_artifact_name:
+    description: 'Name of the uploaded review artifact'
+    value: openrouter-review-${{ github.run_id }}-${{ github.run_attempt }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Log commit info
+      id: check-agent
+      shell: bash
+      run: |
+        LAST_COMMIT_MSG=$(git log -1 --format='%s')
+        LAST_COMMIT_AUTHOR=$(git log -1 --format='%an')
+
+        echo "Last commit message: $LAST_COMMIT_MSG"
+        echo "Last commit author: $LAST_COMMIT_AUTHOR"
+
+        IS_AGENT_COMMIT="false"
+        if [[ "$LAST_COMMIT_AUTHOR" == "AI Review Agent" ]] || \
+           [[ "$LAST_COMMIT_AUTHOR" == "AI Pipeline Agent" ]] || \
+           [[ "$LAST_COMMIT_AUTHOR" == "AI Agent Bot" ]]; then
+          IS_AGENT_COMMIT="true"
+          echo "Agent commit detected"
+        fi
+
+        echo "is_agent_commit=$IS_AGENT_COMMIT" >> $GITHUB_OUTPUT
+
+    - name: Verify API key
+      shell: bash
+      run: |
+        if [ -z "${OPENROUTER_API_KEY:-}" ]; then
+          echo "::error::OPENROUTER_API_KEY is not set"
+          exit 1
+        fi
+        echo "OPENROUTER_API_KEY is set (length: ${#OPENROUTER_API_KEY})"
+
+    - name: Start Reaction Search MCP Server
+      id: mcp-server
+      if: inputs.start_reaction_server == 'true'
+      shell: bash
+      run: |
+        # Check if already running (another parallel review job may have started it)
+        if curl -f -s http://localhost:8024/health > /dev/null 2>&1; then
+          echo "Reaction Search MCP server already running (started by parallel job)"
+          echo "started_by_us=false" >> $GITHUB_OUTPUT
+        else
+          echo "Starting Reaction Search MCP server..."
+          source ./automation/setup/docker/set-docker-user.sh 2>/dev/null || true
+          docker compose --profile services up -d mcp-reaction-search
+          echo "started_by_us=true" >> $GITHUB_OUTPUT
+
+          echo "Waiting for Reaction Search server..."
+          for i in {1..60}; do
+            if curl -f -s http://localhost:8024/health > /dev/null 2>&1; then
+              echo "Reaction Search MCP server is ready"
+              break
+            fi
+            if [ $i -eq 60 ]; then
+              echo "Warning: Reaction Search server not ready - reviews will use fallback URLs"
+              break
+            fi
+            sleep 2
+          done
+        fi
+
+    - name: Run OpenRouter Code Review
+      id: review
+      shell: bash
+      env:
+        PR_NUMBER: ${{ inputs.pr_number }}
+        REVIEW_PROFILE: ${{ inputs.profile }}
+        ENABLE_EDITOR: ${{ inputs.enable_editor }}
+      run: |
+        echo "Starting OpenRouter PR Review (profile: $REVIEW_PROFILE)..."
+
+        # Build command args
+        ARGS=(pr-review "$PR_NUMBER" --profile "$REVIEW_PROFILE")
+        if [ "$ENABLE_EDITOR" = "true" ]; then
+          ARGS+=(--editor)
+        fi
+
+        # Run review and capture output
+        set +e
+        OUTPUT=$(./tools/rust/github-agents-cli/target/release/github-agents "${ARGS[@]}" 2>&1)
+        EXIT_CODE=$?
+        set -e
+
+        echo "$OUTPUT"
+
+        # Save review to file for artifact upload
+        echo "$OUTPUT" > openrouter-review.md
+        echo "Saved review to openrouter-review.md"
+
+        # Handle transient API errors gracefully
+        if [ $EXIT_CODE -ne 0 ]; then
+          if grep -qiE '429|rate.?limit|quota|resource.?exhausted|usage.?limit|usage_limit|spending.?limit|hit.your.*limit' <<< "$OUTPUT"; then
+            echo "::warning::OpenRouter API rate/usage limit hit - skipping review for this run"
+            echo "status=rate_limited" >> $GITHUB_OUTPUT
+            exit 0
+          elif grep -qiE '503|502|fetch failed|service.?unavailable|server.?error|ECONNREFUSED|ETIMEDOUT|ENOTFOUND' <<< "$OUTPUT"; then
+            echo "::warning::OpenRouter API is unavailable (likely transient outage) - skipping review for this run"
+            echo "status=unavailable" >> $GITHUB_OUTPUT
+            exit 0
+          else
+            echo "status=failure" >> $GITHUB_OUTPUT
+            exit $EXIT_CODE
+          fi
+        fi
+
+        echo "status=success" >> $GITHUB_OUTPUT
+
+    - name: Post unavailability notice
+      if: steps.review.outputs.status == 'unavailable'
+      shell: bash
+      env:
+        PR_NUMBER: ${{ inputs.pr_number }}
+      run: |
+        cat > /tmp/unavailable-notice.md <<'NOTICE_EOF'
+        ## OpenRouter AI Code Review
+
+        **Warning:** OpenRouter API was unavailable during this run
+        (likely a transient outage). Review skipped -- will run on next push.
+
+        ---
+        Generated by AI review pipeline. This is an advisory notice, not a blocking failure.
+        NOTICE_EOF
+        sed -i 's/^        //' /tmp/unavailable-notice.md
+        gh pr comment "$PR_NUMBER" --body-file /tmp/unavailable-notice.md || \
+          echo "::warning::Failed to post unavailability notice to PR"
+
+    - name: Stop Reaction Search MCP Server
+      if: always() && inputs.start_reaction_server == 'true' && steps.mcp-server.outputs.started_by_us == 'true'
+      shell: bash
+      run: |
+        echo "Stopping Reaction Search MCP server (started by this job)..."
+        docker compose --profile services stop mcp-reaction-search || true
+        docker compose --profile services rm -f mcp-reaction-search || true
+
+    - name: Upload review artifact
+      if: always()
+      uses: actions/upload-artifact@v6
+      with:
+        name: openrouter-review-${{ github.run_id }}-${{ github.run_attempt }}
+        path: openrouter-review.md
+        retention-days: 7
+        if-no-files-found: ignore
+
+    - name: Clean up working directory
+      if: always()
+      shell: bash
+      run: |
+        git checkout -- . 2>/dev/null || true
+        git clean -fd 2>/dev/null || true
+        echo "Working directory cleaned"

@@ -49,7 +49,7 @@ pub struct PRReviewConfig {
 }
 
 fn default_agent() -> String {
-    "gemini".to_string()
+    "claude".to_string()
 }
 
 fn default_max_words() -> usize {
@@ -230,6 +230,66 @@ impl FullConfig {
     }
 }
 
+/// A review profile loaded from review-profiles.yaml
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ReviewProfile {
+    pub display_name: String,
+    pub agent: String,
+    #[serde(default)]
+    pub model: Option<String>,
+    pub focus: String,
+    pub instructions: String,
+}
+
+/// Root structure of review-profiles.yaml
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct ReviewProfilesYaml {
+    profiles: std::collections::HashMap<String, ReviewProfile>,
+}
+
+impl ReviewProfile {
+    /// Load a specific profile from review-profiles.yaml
+    pub fn load(profile_name: &str) -> Result<Self> {
+        let path = Self::find_profiles_file().ok_or_else(|| {
+            Error::Config(
+                "No review-profiles.yaml found in current directory or parents".to_string(),
+            )
+        })?;
+
+        let content = fs::read_to_string(&path)
+            .map_err(|e| Error::Config(format!("Failed to read review-profiles.yaml: {}", e)))?;
+
+        let yaml: ReviewProfilesYaml = serde_yaml::from_str(&content)
+            .map_err(|e| Error::Config(format!("Failed to parse review-profiles.yaml: {}", e)))?;
+
+        yaml.profiles.get(profile_name).cloned().ok_or_else(|| {
+            Error::Config(format!(
+                "Profile '{}' not found in review-profiles.yaml. Available: {}",
+                profile_name,
+                yaml.profiles.keys().cloned().collect::<Vec<_>>().join(", ")
+            ))
+        })
+    }
+
+    /// Find review-profiles.yaml from current directory up
+    fn find_profiles_file() -> Option<PathBuf> {
+        let mut current_dir = std::env::current_dir().ok()?;
+
+        loop {
+            let potential = current_dir.join("review-profiles.yaml");
+            if potential.exists() {
+                return Some(potential);
+            }
+
+            if !current_dir.pop() {
+                break;
+            }
+        }
+
+        None
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -237,7 +297,7 @@ mod tests {
     #[test]
     fn test_default_config() {
         let config = PRReviewConfig::default();
-        assert_eq!(config.default_agent, "gemini");
+        assert_eq!(config.default_agent, "claude");
         assert_eq!(config.max_words, 500);
         assert_eq!(config.condensation_threshold, 600);
         assert!(config.incremental_enabled);

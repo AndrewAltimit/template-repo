@@ -220,22 +220,40 @@ fn commit_and_push(args: &RespondArgs, summary: &str) -> Result<()> {
 }
 
 fn collect_review_content(content: &mut String) -> Result<()> {
-    let gemini_path =
-        std::env::var("GEMINI_REVIEW_PATH").unwrap_or_else(|_| "gemini-review.md".to_string());
-    let codex_path =
-        std::env::var("CODEX_REVIEW_PATH").unwrap_or_else(|_| "codex-review.md".to_string());
+    // Collect review artifacts from all reviewer agents.
+    // Each reviewer saves its output to a known file path (env var or default).
+    let review_sources: &[(&str, &str, &str)] = &[
+        // (env_var, default_path, display_name)
+        (
+            "CLAUDE_SECURITY_REVIEW_PATH",
+            "claude-security-review.md",
+            "Claude Security Review",
+        ),
+        (
+            "CLAUDE_QUALITY_REVIEW_PATH",
+            "claude-quality-review.md",
+            "Claude Quality Review",
+        ),
+        (
+            "OPENROUTER_REVIEW_PATH",
+            "openrouter-review.md",
+            "OpenRouter Review",
+        ),
+        // Legacy (disabled but kept for backwards compatibility if force-labels used)
+        ("GEMINI_REVIEW_PATH", "gemini-review.md", "Gemini Review"),
+        ("CODEX_REVIEW_PATH", "codex-review.md", "Codex Review"),
+    ];
 
-    if let Ok(text) = std::fs::read_to_string(&gemini_path) {
-        output::info(&format!("Found Gemini review at: {gemini_path}"));
-        content.push_str("## Gemini Review Feedback\n\n");
-        content.push_str(&text);
-        content.push_str("\n\n");
-    }
-    if let Ok(text) = std::fs::read_to_string(&codex_path) {
-        output::info(&format!("Found Codex review at: {codex_path}"));
-        content.push_str("## Codex Review Feedback\n\n");
-        content.push_str(&text);
-        content.push_str("\n\n");
+    for (env_var, default_path, display_name) in review_sources {
+        let path = std::env::var(env_var).unwrap_or_else(|_| default_path.to_string());
+        if let Ok(text) = std::fs::read_to_string(&path)
+            && !text.trim().is_empty()
+        {
+            output::info(&format!("Found {display_name} at: {path}"));
+            content.push_str(&format!("## {display_name} Feedback\n\n"));
+            content.push_str(&text);
+            content.push_str("\n\n");
+        }
     }
     Ok(())
 }
@@ -270,8 +288,8 @@ fn fetch_categorized_comments(pr_number: u64, root: &Path) -> Result<String> {
         let author = c["user"]["login"].as_str().unwrap_or("");
         let body = c["body"].as_str().unwrap_or("").trim().to_string();
 
-        // Skip AI review markers
-        if body.contains("<!-- gemini-review-marker") || body.contains("<!-- codex-review-marker") {
+        // Skip AI review markers (all reviewer agents use <!-- NAME-review-marker:commit:SHA -->)
+        if body.contains("-review-marker:commit:") {
             continue;
         }
         if body.len() < 10 {
