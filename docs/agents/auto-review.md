@@ -11,7 +11,7 @@ The Auto Review pipeline allows AI agents to analyze and comment on GitHub issue
 
 ## Features
 
-- **Multiple AI Agents**: Choose from Claude, Gemini, OpenCode, and Crush
+- **Multiple AI Agents**: Choose from Claude (with review profiles), OpenRouter, OpenCode, and Crush
 - **Flexible Targeting**: Review issues, pull requests, or both
 - **Review Depth Options**: Quick, standard, or thorough analysis
 - **Comment Styles**: Consolidated, inline, or summary comments
@@ -23,7 +23,7 @@ The Auto Review pipeline allows AI agents to analyze and comment on GitHub issue
 
 The workflow can be triggered manually from the Actions tab with the following options:
 
-- **Agents**: Comma-separated list of agents (e.g., `claude,gemini`)
+- **Agents**: Comma-separated list of agents (e.g., `claude,openrouter`)
 - **Target**: What to review (`issues`, `pull-requests`, or `both`)
 - **Issue Numbers**: Specific issues to review (optional)
 - **PR Numbers**: Specific PRs to review (optional)
@@ -35,14 +35,14 @@ The workflow can be triggered manually from the Actions tab with the following o
 Use the test script for local testing:
 
 ```bash
-# Review all open issues and PRs with Claude and Gemini
+# Review all open issues and PRs with Claude
 ./automation/ci-cd/test-auto-review.sh
 
 # Review only PRs with OpenCode
 ./automation/ci-cd/test-auto-review.sh "opencode" "pull-requests"
 
 # Thorough review with all agents
-./automation/ci-cd/test-auto-review.sh "claude,gemini,opencode,crush" "both" "thorough"
+./automation/ci-cd/test-auto-review.sh "claude,openrouter,opencode,crush" "both" "thorough"
 ```
 
 ## Configuration
@@ -65,7 +65,12 @@ The pipeline respects the following environment variables:
 
 Each agent brings different strengths to the review process:
 
-- **Claude**: Comprehensive analysis and architectural insights
-- **Gemini**: Technical accuracy and best practices
+- **Claude** (Security Profile): Injection vulnerabilities, auth flaws, cryptographic misuse, race conditions
+- **Claude** (Quality Profile): Architecture violations, API design, performance regressions, concurrency
+- **OpenRouter** (General Profile): Logic errors, edge cases, incomplete refactoring (qwen/qwen3.6-plus-preview:free)
 - **OpenCode**: Code quality and optimization suggestions
 - **Crush**: Security and performance considerations
+
+> **Note:** Gemini has been disabled (Feb 2026) due to Google's updated AI principles allowing
+> mass surveillance and autonomous weapons use cases. Codex/OpenAI was previously disabled
+> for the same reasons. Review profiles are configured in `review-profiles.yaml`.

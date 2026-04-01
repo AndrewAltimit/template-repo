@@ -4,10 +4,10 @@ on:
   workflow_dispatch:
     inputs:
       agents:
-        description: 'AI agents to use (comma-separated: claude,gemini,opencode,crush)'
+        description: 'AI agents to use (comma-separated: claude,openrouter,opencode,crush)'
         required: false
         type: string
-        default: 'claude,gemini'
+        default: 'claude'
       target:
         description: 'What to review'
         required: true

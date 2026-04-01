@@ -1,16 +1,18 @@
-name: 'Gemini AI Code Review (DISABLED)'
-description: >-
-  DISABLED - Google Gemini phased out due to updated AI principles (Feb 2026) allowing
-  mass surveillance and autonomous weapons use cases. Use Claude Code reviews instead.
+name: 'OpenRouter AI Code Review'
+description: 'Run OpenRouter API-based code review on a pull request using a configurable review profile. Caller must set OPENROUTER_API_KEY and GH_TOKEN as env vars.'
 
 inputs:
   pr_number:
     description: 'PR number to review'
     required: true
-  enable_editor:
-    description: 'Enable editor cleanup pass'
+  profile:
+    description: 'Review profile name from review-profiles.yaml (e.g., openrouter-general)'
     required: false
-    default: 'true'
+    default: 'openrouter-general'
+  enable_editor:
+    description: 'Enable editor cleanup pass (uses Claude Code as editor)'
+    required: false
+    default: 'false'
   start_reaction_server:
     description: 'Start reaction search MCP server'
     required: false
@@ -25,7 +27,7 @@ outputs:
     value: ${{ steps.check-agent.outputs.is_agent_commit }}
   review_artifact_name:
     description: 'Name of the uploaded review artifact'
-    value: gemini-review-${{ github.run_id }}-${{ github.run_attempt }}
+    value: openrouter-review-${{ github.run_id }}-${{ github.run_attempt }}
 
 runs:
   using: 'composite'
@@ -50,49 +52,14 @@ runs:
 
         echo "is_agent_commit=$IS_AGENT_COMMIT" >> $GITHUB_OUTPUT
 
-    - name: Setup Node.js
-      uses: ./.github/actions/setup-nodejs
-      with:
-        verify-cli: 'gemini'
-
-    - name: Clear Gemini conversation history
+    - name: Verify API key
       shell: bash
-      continue-on-error: true
       run: |
-        echo "Clearing Gemini conversation history..."
-
-        MCP_GEMINI="tools/mcp/mcp_gemini/target/release/mcp-gemini"
-        if [ ! -f "$MCP_GEMINI" ]; then
-          echo "Warning: mcp-gemini not found, skipping history clear"
-          exit 0
+        if [ -z "${OPENROUTER_API_KEY:-}" ]; then
+          echo "::error::OPENROUTER_API_KEY is not set"
+          exit 1
         fi
-
-        # Start Gemini MCP server in background (HTTP mode)
-        $MCP_GEMINI --mode standalone --port 8006 &
-        GEMINI_PID=$!
-
-        # Wait for server to be ready
-        echo "Waiting for Gemini server..."
-        for i in {1..30}; do
-          if curl -f -s http://localhost:8006/health > /dev/null 2>&1; then
-            echo "Gemini server is ready"
-            break
-          fi
-          if [ $i -eq 30 ]; then
-            echo "Gemini server failed to start"
-            kill $GEMINI_PID || true
-            exit 1
-          fi
-          sleep 1
-        done
-
-        # Clear history
-        curl -X POST http://localhost:8006/mcp/execute \
-          -H "Content-Type: application/json" \
-          -d '{"tool": "clear_gemini_history", "arguments": {}}' \
-          || echo "Warning: Could not clear Gemini history"
-
-        kill $GEMINI_PID || true
+        echo "OPENROUTER_API_KEY is set (length: ${#OPENROUTER_API_KEY})"
 
     - name: Start Reaction Search MCP Server
       if: inputs.start_reaction_server == 'true'
@@ -115,24 +82,18 @@ runs:
           sleep 2
         done
 
-    - name: Run Gemini Code Review
+    - name: Run OpenRouter Code Review
       id: review
       shell: bash
       env:
         PR_NUMBER: ${{ inputs.pr_number }}
+        REVIEW_PROFILE: ${{ inputs.profile }}
         ENABLE_EDITOR: ${{ inputs.enable_editor }}
       run: |
-        # Check API Key
-        if [ -z "${GOOGLE_API_KEY:-}" ]; then
-          echo "Warning: GOOGLE_API_KEY is empty"
-        else
-          echo "GOOGLE_API_KEY is set (length: ${#GOOGLE_API_KEY})"
-        fi
-
-        echo "Starting Gemini PR Review (Rust CLI)..."
+        echo "Starting OpenRouter PR Review (profile: $REVIEW_PROFILE)..."
 
         # Build command
-        CMD="./tools/rust/github-agents-cli/target/release/github-agents pr-review $PR_NUMBER"
+        CMD="./tools/rust/github-agents-cli/target/release/github-agents pr-review $PR_NUMBER --profile $REVIEW_PROFILE"
         if [ "$ENABLE_EDITOR" = "true" ]; then
           CMD="$CMD --editor"
         fi
@@ -146,23 +107,17 @@ runs:
         echo "$OUTPUT"
 
         # Save review to file for artifact upload
-        echo "$OUTPUT" > gemini-review.md
-        echo "Saved review to gemini-review.md"
+        echo "$OUTPUT" > openrouter-review.md
+        echo "Saved review to openrouter-review.md"
 
         # Handle transient API errors gracefully
-        # NOTE: grep via here-string (<<<) instead of echo|grep to avoid
-        # pipefail+SIGPIPE false negatives when OUTPUT exceeds pipe buffer (~64KB).
         if [ $EXIT_CODE -ne 0 ]; then
           if grep -qiE '429|rate.?limit|quota|resource.?exhausted|usage.?limit|usage_limit|spending.?limit|hit.your.*limit' <<< "$OUTPUT"; then
-            echo "::warning::Gemini API rate/usage limit hit - skipping review for this run"
+            echo "::warning::OpenRouter API rate/usage limit hit - skipping review for this run"
             echo "status=rate_limited" >> $GITHUB_OUTPUT
             exit 0
           elif grep -qiE '503|502|fetch failed|service.?unavailable|server.?error|ECONNREFUSED|ETIMEDOUT|ENOTFOUND' <<< "$OUTPUT"; then
-            echo "::warning::Gemini API is unavailable (likely transient outage) - skipping review for this run"
-            echo "status=unavailable" >> $GITHUB_OUTPUT
-            exit 0
-          elif grep -qiE '400.*INVALID_ARGUMENT|INVALID_ARGUMENT.*400|invalid.?argument' <<< "$OUTPUT"; then
-            echo "::warning::Gemini API returned INVALID_ARGUMENT (transient API-side issue) - skipping review for this run"
+            echo "::warning::OpenRouter API is unavailable (likely transient outage) - skipping review for this run"
             echo "status=unavailable" >> $GITHUB_OUTPUT
             exit 0
           else
@@ -180,9 +135,9 @@ runs:
         PR_NUMBER: ${{ inputs.pr_number }}
       run: |
         cat > /tmp/unavailable-notice.md <<'NOTICE_EOF'
-        ## Gemini AI Code Review
+        ## OpenRouter AI Code Review
 
-        **Warning:** Gemini API was unavailable during this run
+        **Warning:** OpenRouter API was unavailable during this run
         (likely a transient outage). Review skipped -- will run on next push.
 
         ---
@@ -204,8 +159,8 @@ runs:
       if: always()
       uses: actions/upload-artifact@v6
       with:
-        name: gemini-review-${{ github.run_id }}-${{ github.run_attempt }}
-        path: gemini-review.md
+        name: openrouter-review-${{ github.run_id }}-${{ github.run_attempt }}
+        path: openrouter-review.md
         retention-days: 7
         if-no-files-found: ignore
 
