@@ -288,8 +288,8 @@ fn fetch_categorized_comments(pr_number: u64, root: &Path) -> Result<String> {
         let author = c["user"]["login"].as_str().unwrap_or("");
         let body = c["body"].as_str().unwrap_or("").trim().to_string();
 
-        // Skip AI review markers (all reviewer agents)
-        if body.contains("-review-marker:commit:") || body.contains("-review-marker -->") {
+        // Skip AI review markers (all reviewer agents use <!-- NAME-review-marker:commit:SHA -->)
+        if body.contains("-review-marker:commit:") {
             continue;
         }
         if body.len() < 10 {

@@ -397,7 +397,7 @@ jobs:
           profile: 'security'
           start_reaction_server: 'true'
 
-  # Stage 2a: Claude Code Quality Review (profile-based, runs in parallel with security)
+  # Stage 2b: Claude Code Quality Review (profile-based, runs in parallel with security)
   claude-quality-review:
     name: Claude Code Quality Review
     needs: [detect-changes, build-rust-tools]
@@ -443,7 +443,7 @@ jobs:
           profile: 'quality'
           start_reaction_server: 'true'
 
-  # Stage 2a: OpenRouter General Review (runs in parallel with Claude reviews)
+  # Stage 2c: OpenRouter General Review (runs in parallel with Claude reviews)
   openrouter-review:
     name: OpenRouter AI General Review
     needs: [detect-changes, build-rust-tools]

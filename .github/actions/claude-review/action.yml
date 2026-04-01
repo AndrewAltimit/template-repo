@@ -57,25 +57,33 @@ runs:
         verify-cli: 'claude'
 
     - name: Start Reaction Search MCP Server
+      id: mcp-server
       if: inputs.start_reaction_server == 'true'
       shell: bash
       run: |
-        echo "Starting Reaction Search MCP server..."
-        source ./automation/setup/docker/set-docker-user.sh 2>/dev/null || true
-        docker compose --profile services up -d mcp-reaction-search
+        # Check if already running (another parallel review job may have started it)
+        if curl -f -s http://localhost:8024/health > /dev/null 2>&1; then
+          echo "Reaction Search MCP server already running (started by parallel job)"
+          echo "started_by_us=false" >> $GITHUB_OUTPUT
+        else
+          echo "Starting Reaction Search MCP server..."
+          source ./automation/setup/docker/set-docker-user.sh 2>/dev/null || true
+          docker compose --profile services up -d mcp-reaction-search
+          echo "started_by_us=true" >> $GITHUB_OUTPUT
 
-        echo "Waiting for Reaction Search server..."
-        for i in {1..60}; do
-          if curl -f -s http://localhost:8024/health > /dev/null 2>&1; then
-            echo "Reaction Search MCP server is ready"
-            break
-          fi
-          if [ $i -eq 60 ]; then
-            echo "Warning: Reaction Search server not ready - reviews will use fallback URLs"
-            break
-          fi
-          sleep 2
-        done
+          echo "Waiting for Reaction Search server..."
+          for i in {1..60}; do
+            if curl -f -s http://localhost:8024/health > /dev/null 2>&1; then
+              echo "Reaction Search MCP server is ready"
+              break
+            fi
+            if [ $i -eq 60 ]; then
+              echo "Warning: Reaction Search server not ready - reviews will use fallback URLs"
+              break
+            fi
+            sleep 2
+          done
+        fi
 
     - name: Run Claude Code Review
       id: review
@@ -144,10 +152,10 @@ runs:
           echo "::warning::Failed to post unavailability notice to PR"
 
     - name: Stop Reaction Search MCP Server
-      if: always() && inputs.start_reaction_server == 'true'
+      if: always() && inputs.start_reaction_server == 'true' && steps.mcp-server.outputs.started_by_us == 'true'
       shell: bash
       run: |
-        echo "Stopping Reaction Search MCP server..."
+        echo "Stopping Reaction Search MCP server (started by this job)..."
         docker compose --profile services stop mcp-reaction-search || true
         docker compose --profile services rm -f mcp-reaction-search || true
 
