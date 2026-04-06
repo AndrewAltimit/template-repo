@@ -344,13 +344,11 @@ All workflows run on self-hosted runners for zero-cost operation.
 - [AI Agents Documentation](docs/agents/README.md) - AI agents overview
 
 ### Quick References
-- ~~[Codex Setup Guide](docs/agents/codex-setup.md)~~ (DISABLED -- OpenAI security risk)
 - [AI Code Agents Quick Reference](docs/integrations/ai-services/ai-code-agents-ref.md)
 - [MCP Tools Reference](docs/mcp/tools.md)
 - [Gaea2 Quick Reference](tools/mcp/mcp_gaea2/docs/GAEA2_QUICK_REFERENCE.md)
 
 ### Integration Guides
-- ~~[Codex Integration](docs/agents/codex-setup.md)~~ (DISABLED -- OpenAI security risk)
 - [AI Code Agents Integration](docs/integrations/ai-services/ai-code-agents.md)
 - [AI Toolkit & ComfyUI Integration](docs/integrations/creative-tools/ai-toolkit-comfyui.md)
 - [Gaea2 Documentation](tools/mcp/mcp_gaea2/docs/README.md)
