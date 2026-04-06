@@ -78,7 +78,7 @@ profiles:
   openrouter-general:
     display_name: "General Review"
     agent: openrouter
-    model: "qwen/qwen3.6-plus-preview:free"
+    model: "qwen/qwen3.6-plus:free"
     focus: "General code quality, logic errors, edge cases"
     instructions: |
       You are a GENERAL code reviewer providing a broad perspective. Focus on:

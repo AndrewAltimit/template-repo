@@ -2,7 +2,7 @@
 
 A reference architecture for AI agent orchestration, trust measurement, and tool integration. Designed to be studied, forked, and adapted -- not contributed to directly. All code changes in this repository are authored by AI agents under human oversight. Browse the [project showcase](https://andrewaltimit.github.io/template-repo/) for an overview.
 
-This repo demonstrates how to run a council of AI agents (Claude, Gemini, OpenCode, Crush) across a shared codebase with board-driven task delegation, automated PR review, security hardening, and containerized tooling. (Codex/OpenAI integrations have been disabled due to mass surveillance concerns -- see [security notice](#ai-agents).) It also includes standalone research packages for sleeper agent detection, autonomous economic agent simulation, and tamper-responsive hardware. Several [companion repositories](#companion-repositories) consume or extend the functionality of this project.
+This repo demonstrates how to run a council of AI agents (Claude, OpenCode, Crush) across a shared codebase with board-driven task delegation, automated PR review, security hardening, and containerized tooling. (OpenAI/Google integrations have been disabled -- see [security notice](#ai-agents).) It also includes standalone research packages for sleeper agent detection, autonomous economic agent simulation, and tamper-responsive hardware. Several [companion repositories](#companion-repositories) consume or extend the functionality of this project.
 
 **Use this repo to learn how to:**
 - Orchestrate multiple AI agents with a GitHub Projects v2 work queue
@@ -66,7 +66,6 @@ This project follows a **container-first approach**:
 3. **Set API keys** (if using AI features)
    ```bash
    export OPENROUTER_API_KEY="your-key-here"  # For OpenCode/Crush
-   export GEMINI_API_KEY="your-key-here"      # For Gemini
    ```
 
 4. **Use with Claude Code**: MCP servers are configured in `.mcp.json` and auto-started by Claude. See [MCP Configuration](docs/mcp/README.md#configuration-strategy) for essential vs full setups.
@@ -82,7 +81,7 @@ For detailed setup, see [CLAUDE.md](CLAUDE.md) and [Template Quickstart Guide](d
 
 Six AI agents for development and automation. See [AI Agents Documentation](docs/agents/README.md) for details.
 
-> **Security Notice -- OpenAI/Codex Disabled**: OpenAI/Codex integrations are disabled. OpenAI permits government partners unrestricted use of its models within their own definition of legality. Anthropic maintains explicit prohibitions on mass surveillance and autonomous weapons. We default to the stricter policy. To re-enable at your own risk: `CODEX_ENABLED=true`.
+> **Security Notice -- OpenAI/Google Disabled**: OpenAI/Google integrations are disabled within PR reviews. OpenAI/Google permits government partners unrestricted use of their models. We only allow models with explicit prohibitions on mass surveillance and autonomous weapons. To re-enable at your own risk: `CODEX_ENABLED=true`.
 
 | Agent | Provider | Use Case | Documentation |
 |-------|----------|----------|---------------|
@@ -90,10 +89,10 @@ Six AI agents for development and automation. See [AI Agents Documentation](docs
 | **Codex** | ~~OpenAI~~ | ~~Code generation~~ **DISABLED - security risk** | [Setup Guide](docs/agents/codex-setup.md) |
 | **OpenCode** | OpenRouter | Code generation | [AI Code Agents](docs/integrations/ai-services/ai-code-agents.md) |
 | **Crush** | OpenRouter | Code generation | [AI Code Agents](docs/integrations/ai-services/ai-code-agents.md) |
-| **Gemini** | Google | Code review (limited tool use) | [Setup Guide](docs/integrations/ai-services/gemini-setup.md) |
+| **Gemini** | ~~Google~~ | ~~Code review~~ **DISABLED - security risk** | [Setup Guide](docs/integrations/ai-services/gemini-setup.md) |
 | **GitHub Copilot** | GitHub | PR review suggestions | - |
 
-OpenCode and Crush provide equivalent code generation functionality via OpenRouter. Codex (OpenAI) has been disabled -- see security notice above.
+OpenCode and Crush provide equivalent code generation functionality via OpenRouter. Codex (OpenAI) and Gemini (Google) have been disabled -- see security notice above.
 
 **Security**: Keyword triggers, user allow list, secure token management. See [Security Model](docs/agents/security.md)
 
@@ -115,7 +114,7 @@ Issue Created → Admin Approval → Agent Claims → PR Created → AI Review �
 2. **Admin Approval** - An authorized user comments `[Approved][Claude]` (or another agent name) to authorize work
 3. **Agent Claims** - `board-agent-worker.yml` finds approved issues, the agent claims the issue and creates a working branch
 4. **Implementation** - The agent implements the fix/feature and opens a PR
-5. **AI Review** - `pr-validation.yml` triggers Gemini code review; `pr-review-monitor.yml` lets agents iterate on feedback
+5. **AI Review** - `pr-validation.yml` triggers AI code review (Claude + OpenRouter); `pr-review-monitor.yml` lets agents iterate on feedback
 6. **Human Merge** - Admin reviews and merges the PR
 
 **Security Model:**
@@ -260,7 +259,7 @@ For enterprise environments requiring custom certificates, customize [`automatio
 2. **Content Creation** - Manim animations, LaTeX, TikZ diagrams
 3. **Gaea2** - Terrain generation ([Documentation](tools/mcp/mcp_gaea2/docs/README.md))
 4. **Blender** - 3D content creation, rendering, physics simulation ([Documentation](tools/mcp/mcp_blender/README.md))
-5. **Gemini** - AI consultation (containerized and host modes available)
+5. ~~**Gemini**~~ - ~~AI consultation~~ **DISABLED** (Google -- security risk, see [notice](#ai-agents))
 6. ~~**Codex**~~ - ~~AI-powered code generation and completion~~ **DISABLED** (OpenAI -- security risk, see [notice](#ai-agents))
 7. **OpenCode** - Code generation via OpenRouter
 8. **Crush** - Code generation via OpenRouter
@@ -328,7 +327,7 @@ docker compose run --rm python-ci pytest tests/test_mcp_tools.py -v
 
 ### GitHub Actions
 
-- **Pull Request Validation** - Automatic Gemini AI review (Codex review disabled)
+- **Pull Request Validation** - Automatic AI review via Claude + OpenRouter (Gemini and Codex reviews disabled)
 - **Continuous Integration** - Full CI pipeline
 - **Code Quality** - Multi-stage linting (containerized)
 - **Automated Testing** - Unit and integration tests
