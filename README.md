@@ -81,7 +81,7 @@ For detailed setup, see [CLAUDE.md](CLAUDE.md) and [Template Quickstart Guide](d
 
 Six AI agents for development and automation. See [AI Agents Documentation](docs/agents/README.md) for details.
 
-> **Security Notice -- OpenAI/Google Disabled**: OpenAI/Google integrations are disabled within PR reviews. OpenAI/Google permits government partners unrestricted use of their models. We only allow models with explicit prohibitions on mass surveillance and autonomous weapons. To re-enable at your own risk: `CODEX_ENABLED=true`.
+> **Security Notice -- OpenAI/Google Disabled**: OpenAI/Google integrations are disabled within PR reviews. OpenAI/Google permits government partners unrestricted use of their models. We only allow models with explicit prohibitions on mass surveillance and autonomous weapons.
 
 | Agent | Provider | Use Case | Documentation |
 |-------|----------|----------|---------------|
