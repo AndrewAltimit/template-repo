@@ -18,8 +18,14 @@ inputs:
 
 outputs:
   made_changes:
-    description: 'Whether changes were made'
+    description: 'Whether a commit was created by the agent'
     value: ${{ steps.agent-fix.outputs.made_changes || steps.skip.outputs.made_changes || 'false' }}
+  pushed:
+    description: 'Whether the commit was verifiably pushed to the remote'
+    value: ${{ steps.agent-fix.outputs.pushed || 'false' }}
+  commit_sha:
+    description: 'SHA of the commit created (empty if no changes)'
+    value: ${{ steps.agent-fix.outputs.commit_sha || '' }}
   iteration_count:
     description: 'Current iteration count'
     value: ${{ steps.iteration.outputs.iteration_count }}
@@ -108,6 +114,40 @@ runs:
           "$BRANCH_NAME" \
           "$ITERATION_COUNT" \
           "${{ inputs.max_iterations }}"
+
+    # If the agent committed locally but push verification failed, the commit
+    # is saved as a .patch file in $RUNNER_TEMP/review-agent-patches/. Upload
+    # it as an artifact so the work can be recovered manually rather than lost.
+    - name: Upload unpushed commit patch (on push failure)
+      if: always() && steps.agent-fix.outputs.made_changes == 'true' && steps.agent-fix.outputs.pushed == 'false'
+      uses: actions/upload-artifact@v4
+      with:
+        name: unpushed-review-commit-${{ inputs.pr_number }}-${{ github.run_id }}
+        path: ${{ runner.temp }}/review-agent-patches/*.patch
+        if-no-files-found: warn
+        retention-days: 14
+
+    - name: Report push status to job summary
+      if: always() && steps.iteration.outputs.should_skip != 'true'
+      shell: bash
+      env:
+        MADE_CHANGES: ${{ steps.agent-fix.outputs.made_changes }}
+        PUSHED: ${{ steps.agent-fix.outputs.pushed }}
+        COMMIT_SHA: ${{ steps.agent-fix.outputs.commit_sha }}
+      run: |
+        {
+          echo "## Review Response Agent"
+          if [ "$MADE_CHANGES" = "true" ] && [ "$PUSHED" = "true" ]; then
+            echo "- **Status:** changes pushed"
+            echo "- **Commit:** \`$COMMIT_SHA\`"
+          elif [ "$MADE_CHANGES" = "true" ] && [ "$PUSHED" != "true" ]; then
+            echo "- **Status:** PUSH FAILED (commit created but not on remote)"
+            echo "- **Commit:** \`$COMMIT_SHA\`"
+            echo "- Patch artifact uploaded for recovery"
+          else
+            echo "- **Status:** no changes — no commit created"
+          fi
+        } >> "$GITHUB_STEP_SUMMARY"
 
     - name: Cleanup output directories
       if: always()

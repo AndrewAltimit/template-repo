@@ -66,7 +66,7 @@ pub fn run(args: RespondArgs) -> Result<()> {
     if review_content.is_empty() {
         output::warn("No review feedback found, nothing to do");
         post_comment(args.pr_number, "No review feedback found to process.")?;
-        project::set_github_output("made_changes", "false");
+        report_no_commit();
         return Ok(());
     }
 
@@ -152,13 +152,13 @@ pub fn run(args: RespondArgs) -> Result<()> {
             };
             output::warn("Retry still produced no file changes");
             post_decision_comment(args.pr_number, args.iteration, false, "", &warning_summary)?;
-            project::set_github_output("made_changes", "false");
+            report_no_commit();
             return Ok(());
         }
 
         output::info("No changes to commit");
         post_decision_comment(args.pr_number, args.iteration, false, "", &summary)?;
-        project::set_github_output("made_changes", "false");
+        report_no_commit();
         return Ok(());
     }
 
@@ -184,39 +184,194 @@ fn commit_and_push(args: &RespondArgs, summary: &str) -> Result<()> {
     if diff_stat.trim().is_empty() {
         output::warn("Commit appears empty — no file changes in diff");
         post_decision_comment(args.pr_number, args.iteration, false, "", summary)?;
-        project::set_github_output("made_changes", "false");
+        report_no_commit();
         return Ok(());
     }
 
-    let commit_sha = process::run_capture("git", &["rev-parse", "--short", "HEAD"])?;
-    let commit_sha = commit_sha.trim();
+    let commit_full = process::run_capture("git", &["rev-parse", "HEAD"])?;
+    let commit_full = commit_full.trim().to_string();
+    let commit_short = process::run_capture("git", &["rev-parse", "--short", "HEAD"])?;
+    let commit_short = commit_short.trim().to_string();
 
     // Post comment BEFORE pushing — pushing triggers a new pipeline
     // run which cancels this one, so the comment must go first.
-    post_decision_comment(args.pr_number, args.iteration, true, commit_sha, summary)?;
+    post_decision_comment(args.pr_number, args.iteration, true, &commit_short, summary)?;
 
-    // Push (retries with backoff; post follow-up comment on failure)
+    // Push with verification: git push alone is unreliable (can exit 0 while the
+    // remote ref is unchanged). push_and_verify confirms via ls-remote that the
+    // commit actually landed, handles non-fast-forward by rebasing, and retries.
     output::header("Step 4: Pushing changes");
     let branch = args.branch.clone();
-    let push_result = temporarily_disable_pre_push_hook(|| {
-        process::run_with_retries("git", &["push", "origin", &branch], 3, 2)
-    });
+    let initial_sha = commit_full.clone();
+    let push_result = temporarily_disable_pre_push_hook(|| push_and_verify(&branch, &initial_sha));
 
-    if let Err(e) = push_result {
-        let _ = post_comment(
-            args.pr_number,
-            &format!(
-                "**Push failed** after retries: `{e}`\n\n\
-                 The commit exists locally but was not pushed. \
-                 Manual intervention required."
-            ),
-        );
-        return Err(e);
+    match push_result {
+        Ok(final_sha) => {
+            output::success(&format!(
+                "Push verified: origin/{} = {}",
+                args.branch, final_sha
+            ));
+            project::set_github_output("made_changes", "true");
+            project::set_github_output("pushed", "true");
+            project::set_github_output("commit_sha", &final_sha);
+            Ok(())
+        },
+        Err(e) => {
+            // The commit exists locally but did not reach the remote. Save a
+            // format-patch so the workflow can upload it as an artifact and a
+            // human (or a later iteration) can recover the lost work.
+            let patch_note = match save_commit_patch(&commit_full) {
+                Ok(path) => {
+                    output::warn(&format!("Saved unpushed commit as patch: {path}"));
+                    format!(
+                        "\n\nThe commit was saved as `{path}` for recovery; \
+                         this file is uploaded as the `unpushed-review-commit` workflow artifact."
+                    )
+                },
+                Err(pe) => {
+                    output::warn(&format!("Failed to save commit patch: {pe}"));
+                    String::new()
+                },
+            };
+
+            let _ = post_comment(
+                args.pr_number,
+                &format!(
+                    "## Review Response Agent: push failed\n\
+                     <!-- agent-metadata:type=review-fix-push-failure -->\n\n\
+                     Commit `{commit_short}` was created locally but did **not** reach the \
+                     remote after multiple verified retries.\n\n\
+                     **Error:** `{e}`\n\n\
+                     Manual intervention required. The earlier \"Changes committed, pushing...\" \
+                     comment should be considered superseded by this one.{patch_note}"
+                ),
+            );
+
+            // Still report made_changes=true (the commit was created) but pushed=false
+            // so downstream steps can distinguish "in flight" from "actually landed".
+            project::set_github_output("made_changes", "true");
+            project::set_github_output("pushed", "false");
+            project::set_github_output("commit_sha", &commit_full);
+            Err(e)
+        },
+    }
+}
+
+/// Mark the "no commit produced" state unambiguously in GitHub Actions outputs.
+fn report_no_commit() {
+    project::set_github_output("made_changes", "false");
+    project::set_github_output("pushed", "false");
+    project::set_github_output("commit_sha", "");
+}
+
+/// Push the current branch and verify via `git ls-remote` that the remote ref
+/// actually matches local HEAD. Handles silent push failures (command reports
+/// success but the remote ref is unchanged) and non-fast-forward rejections
+/// (fetch + rebase + recompute expected SHA). Returns the SHA that was
+/// verifiably landed on the remote.
+fn push_and_verify(branch: &str, initial_sha: &str) -> Result<String> {
+    const MAX_ATTEMPTS: u32 = 5;
+    let mut last_err: Option<anyhow::Error> = None;
+    let mut current_sha = initial_sha.to_string();
+
+    for attempt in 1..=MAX_ATTEMPTS {
+        output::info(&format!(
+            "Push attempt {attempt}/{MAX_ATTEMPTS} (expected sha: {current_sha})"
+        ));
+
+        let push_result = process::run("git", &["push", "origin", branch]);
+
+        match push_result {
+            Ok(()) => match verify_remote_head(branch, &current_sha) {
+                Ok(true) => return Ok(current_sha),
+                Ok(false) => {
+                    output::warn("Push reported success but remote ref is stale — retrying");
+                    last_err = Some(anyhow::anyhow!(
+                        "push verification failed: origin/{branch} does not match {current_sha}"
+                    ));
+                },
+                Err(e) => {
+                    output::warn(&format!("Could not verify remote ref: {e}"));
+                    last_err = Some(e);
+                },
+            },
+            Err(e) => {
+                let msg = format!("{e}");
+                output::warn(&format!("Push failed: {msg}"));
+                if looks_like_non_fast_forward(&msg)
+                    && let Some(new_sha) = rebase_onto_remote(branch)
+                {
+                    current_sha = new_sha;
+                    output::info(&format!("Rebased; new local HEAD = {current_sha}"));
+                }
+                last_err = Some(e);
+            },
+        }
+
+        if attempt < MAX_ATTEMPTS {
+            let delay = 2u64.pow(attempt.min(5));
+            std::thread::sleep(Duration::from_secs(delay));
+        }
     }
 
-    output::success(&format!("Changes pushed to branch: {}", args.branch));
-    project::set_github_output("made_changes", "true");
-    Ok(())
+    Err(last_err.unwrap_or_else(|| anyhow::anyhow!("push failed: exhausted retries")))
+}
+
+fn looks_like_non_fast_forward(msg: &str) -> bool {
+    msg.contains("non-fast-forward") || msg.contains("rejected") || msg.contains("fetch first")
+}
+
+/// Fetch the branch and rebase local onto it. Returns the new HEAD SHA on
+/// success; aborts any in-progress rebase and returns None on failure so the
+/// caller can retry the bare push.
+fn rebase_onto_remote(branch: &str) -> Option<String> {
+    output::info("Non-fast-forward detected — fetching and rebasing");
+    if process::run("git", &["fetch", "origin", branch]).is_err() {
+        return None;
+    }
+    let remote_ref = format!("origin/{branch}");
+    if process::run("git", &["rebase", &remote_ref]).is_err() {
+        let _ = process::run("git", &["rebase", "--abort"]);
+        output::warn("Rebase failed — aborted, will retry bare push");
+        return None;
+    }
+    process::run_capture("git", &["rev-parse", "HEAD"])
+        .ok()
+        .map(|s| s.trim().to_string())
+}
+
+fn verify_remote_head(branch: &str, expected_sha: &str) -> Result<bool> {
+    let out = process::run_capture("git", &["ls-remote", "origin", branch])?;
+    let remote_sha = parse_ls_remote_sha(&out)
+        .ok_or_else(|| anyhow::anyhow!("ls-remote returned no ref for {branch}"))?;
+    output::info(&format!("Remote origin/{branch} = {remote_sha}"));
+    Ok(remote_sha == expected_sha)
+}
+
+/// Extract the first SHA from `git ls-remote` output.
+/// Format: `<full-sha>\trefs/heads/<branch>`
+fn parse_ls_remote_sha(output: &str) -> Option<String> {
+    output
+        .lines()
+        .next()
+        .and_then(|line| line.split_whitespace().next())
+        .map(|s| s.to_string())
+}
+
+/// Persist the unpushed commit as a `.patch` file in `$RUNNER_TEMP/review-agent-patches/`
+/// so the workflow can upload it as an artifact for manual recovery.
+fn save_commit_patch(sha: &str) -> Result<String> {
+    let base = std::env::var("RUNNER_TEMP")
+        .ok()
+        .map(std::path::PathBuf::from)
+        .unwrap_or_else(std::env::temp_dir);
+    let dir = base.join("review-agent-patches");
+    std::fs::create_dir_all(&dir)?;
+    let short_end = sha.len().min(12);
+    let path = dir.join(format!("unpushed-{}.patch", &sha[..short_end]));
+    let patch = process::run_capture("git", &["format-patch", "-1", "HEAD", "--stdout"])?;
+    std::fs::write(&path, patch)?;
+    Ok(path.to_string_lossy().to_string())
 }
 
 fn collect_review_content(content: &mut String) -> Result<()> {
@@ -592,7 +747,7 @@ fn configure_git() -> Result<()> {
     Ok(())
 }
 
-fn temporarily_disable_pre_push_hook<F: FnOnce() -> Result<()>>(f: F) -> Result<()> {
+fn temporarily_disable_pre_push_hook<T, F: FnOnce() -> Result<T>>(f: F) -> Result<T> {
     let hook = Path::new(".git/hooks/pre-push");
     let disabled = Path::new(".git/hooks/pre-push.disabled");
     let had_hook = hook.exists();
@@ -702,6 +857,48 @@ mod tests {
         assert!(summary.contains("### Fixed Issues"));
         assert!(summary.contains("- a bug"));
         assert!(!summary.contains("preamble"));
+    }
+
+    #[test]
+    fn parse_ls_remote_sha_basic() {
+        let out = "abc123def456abc123def456abc123def456abcd\trefs/heads/main\n";
+        assert_eq!(
+            parse_ls_remote_sha(out).as_deref(),
+            Some("abc123def456abc123def456abc123def456abcd")
+        );
+    }
+
+    #[test]
+    fn parse_ls_remote_sha_empty() {
+        assert_eq!(parse_ls_remote_sha(""), None);
+    }
+
+    #[test]
+    fn parse_ls_remote_sha_whitespace_only() {
+        assert_eq!(parse_ls_remote_sha("   \n"), None);
+    }
+
+    #[test]
+    fn parse_ls_remote_sha_first_line_only() {
+        // Multiple refs: take the first line's SHA.
+        let out = "aaa\trefs/heads/feature\nbbb\trefs/heads/main\n";
+        assert_eq!(parse_ls_remote_sha(out).as_deref(), Some("aaa"));
+    }
+
+    #[test]
+    fn looks_like_non_fast_forward_matches() {
+        assert!(looks_like_non_fast_forward(
+            "! [rejected]        main -> main (non-fast-forward)"
+        ));
+        assert!(looks_like_non_fast_forward(
+            "error: failed to push some refs; updates were rejected"
+        ));
+        assert!(looks_like_non_fast_forward(
+            "hint: Updates were rejected because the tip of your current branch is behind -- fetch first"
+        ));
+        assert!(!looks_like_non_fast_forward(
+            "fatal: unable to access: could not resolve host"
+        ));
     }
 
     #[test]
