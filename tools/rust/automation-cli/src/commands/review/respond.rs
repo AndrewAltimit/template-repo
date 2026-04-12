@@ -352,7 +352,8 @@ fn rebase_onto_remote(branch: &str) -> Option<String> {
 }
 
 fn verify_remote_head(branch: &str, expected_sha: &str) -> Result<bool> {
-    let out = process::run_capture("git", &["ls-remote", "origin", branch])?;
+    let full_ref = format!("refs/heads/{branch}");
+    let out = process::run_capture("git", &["ls-remote", "origin", &full_ref])?;
     let remote_sha = parse_ls_remote_sha(&out)
         .ok_or_else(|| anyhow::anyhow!("ls-remote returned no ref for {branch}"))?;
     output::info(&format!("Remote origin/{branch} = {remote_sha}"));
