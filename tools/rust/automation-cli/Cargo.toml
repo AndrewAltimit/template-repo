@@ -44,6 +44,11 @@ chrono = { version = "0.4", features = ["serde"] }
 # Terminal colors
 owo-colors = "4.0"
 
+# Secret masking shared with gh-validator wrapper. Used to redact stream-json
+# logs and unpushed-commit patches before they are uploaded as workflow
+# artifacts. Loads `.secrets.yaml` from the repo root.
+gh-validator = { path = "../gh-validator" }
+
 [dev-dependencies]
 tempfile = "3.10"
 assert_cmd = "2.0"

@@ -5,6 +5,7 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use anyhow::{Result, bail};
 use clap::Args;
+use gh_validator::{SecretMasker, load_config as load_secrets_config};
 
 use super::trust::{TrustConfig, TrustLevel};
 use crate::shared::{output, process, project};
@@ -404,7 +405,19 @@ fn parse_ls_remote_sha(output: &str) -> Option<String> {
 
 /// Persist the unpushed commit as a `.patch` file in `$RUNNER_TEMP/review-agent-patches/`
 /// so the workflow can upload it as an artifact for manual recovery.
+///
+/// The patch is masked through `gh-validator`'s `SecretMasker` (same `.secrets.yaml`
+/// as PR-comment masking) before hitting disk. We do NOT structurally redact the
+/// patch the way we do the stream log — the patch *is* the work to recover, and
+/// stripping its content would make it un-applicable. Pattern-based masking
+/// handles known secret formats without breaking the diff format.
+///
+/// Fail-closed: if `.secrets.yaml` is missing or unparseable, no patch is written.
 fn save_commit_patch(sha: &str) -> Result<String> {
+    let masker = load_secret_masker()?;
+    let raw_patch = process::run_capture("git", &["format-patch", "-1", "HEAD", "--stdout"])?;
+    let (masked_patch, _modified) = masker.mask(&raw_patch);
+
     let base = std::env::var("RUNNER_TEMP")
         .ok()
         .map(std::path::PathBuf::from)
@@ -413,8 +426,7 @@ fn save_commit_patch(sha: &str) -> Result<String> {
     std::fs::create_dir_all(&dir)?;
     let short_end = sha.len().min(12);
     let path = dir.join(format!("unpushed-{}.patch", &sha[..short_end]));
-    let patch = process::run_capture("git", &["format-patch", "-1", "HEAD", "--stdout"])?;
-    std::fs::write(&path, patch)?;
+    std::fs::write(&path, masked_patch)?;
     Ok(path.to_string_lossy().to_string())
 }
 
@@ -773,7 +785,22 @@ fn parse_claude_stream(stream: &str) -> (String, HashSet<String>) {
 /// Save the raw Claude stream-json output to a JSONL file under
 /// `$RUNNER_TEMP/review-agent-logs/`. The pr-review-fix workflow uploads this
 /// directory as the `review-agent-claude-logs` artifact.
+///
+/// Stream content is sanitized in two passes before hitting disk:
+/// 1. **Structural redaction** (`redact_tool_payloads`) — strips `Edit`/`Write`/
+///    `MultiEdit` content fields and `tool_result` content bodies entirely,
+///    keeping only metadata (tool name, file_path, byte counts) so we can still
+///    see *what* Claude was trying to do.
+/// 2. **Pattern masking** via `gh-validator`'s `SecretMasker`, loaded from
+///    `.secrets.yaml`. Catches anything the structural pass missed (e.g. tokens
+///    in Bash command strings or assistant text).
+///
+/// Fail-closed: if `.secrets.yaml` is missing or unparseable, no log is written.
 fn save_claude_stream_log(iteration: u32, content: &str) -> Result<String> {
+    let masker = load_secret_masker()?;
+    let redacted = redact_tool_payloads(content);
+    let (sanitized, _modified) = masker.mask(&redacted);
+
     let base = std::env::var("RUNNER_TEMP")
         .ok()
         .map(std::path::PathBuf::from)
@@ -785,8 +812,139 @@ fn save_claude_stream_log(iteration: u32, content: &str) -> Result<String> {
         .map(|d| d.as_secs())
         .unwrap_or(0);
     let path = dir.join(format!("claude-stream-iter{iteration}-{ts}.jsonl"));
-    std::fs::write(&path, content)?;
+    std::fs::write(&path, sanitized)?;
     Ok(path.to_string_lossy().to_string())
+}
+
+/// Load the shared `SecretMasker` from `.secrets.yaml` (same config the
+/// gh-validator wrapper uses for `gh pr comment` masking). Fail-closed: if the
+/// config is missing or invalid, return an error and let the caller skip the
+/// artifact rather than write an unmasked file.
+fn load_secret_masker() -> Result<SecretMasker> {
+    let config = load_secrets_config().map_err(|e| {
+        anyhow::anyhow!(
+            "fail-closed: cannot load .secrets.yaml for artifact masking ({e}); \
+             skipping artifact write to avoid leaking unmasked content"
+        )
+    })?;
+    Ok(SecretMasker::new(&config))
+}
+
+/// Walk a stream-json string line-by-line and strip content payloads from
+/// `tool_use` and `tool_result` blocks while preserving structure and
+/// identifying metadata. The result is still valid JSONL — every line either
+/// stays as-is (non-JSON, system events, etc.) or is re-serialized after
+/// in-place mutation.
+///
+/// Fields redacted:
+/// - `tool_use.input.old_string` / `new_string` / `content` → `<redacted: N chars>`
+/// - `tool_use.input.edits[].old_string` / `new_string` (MultiEdit) → same
+/// - `tool_result.content` (string form OR array of `{type:"text",text:"..."}`)
+///
+/// Fields kept:
+/// - `tool_use.name`, `id`, `input.file_path`, `input.command`, `input.pattern`,
+///   `input.url`, etc. — anything that describes *what* Claude was doing.
+/// - `text` blocks (assistant reasoning / summary marker)
+/// - `system` / `result` events
+fn redact_tool_payloads(stream: &str) -> String {
+    let mut out = String::with_capacity(stream.len());
+    for line in stream.lines() {
+        if line.trim().is_empty() {
+            out.push('\n');
+            continue;
+        }
+        match serde_json::from_str::<serde_json::Value>(line) {
+            Ok(mut event) => {
+                redact_event_in_place(&mut event);
+                match serde_json::to_string(&event) {
+                    Ok(s) => out.push_str(&s),
+                    Err(_) => out.push_str(line),
+                }
+            },
+            Err(_) => out.push_str(line),
+        }
+        out.push('\n');
+    }
+    out
+}
+
+/// Mutate a single parsed JSON event to strip content payloads from any
+/// `tool_use` / `tool_result` blocks it contains.
+fn redact_event_in_place(event: &mut serde_json::Value) {
+    let Some(content) = event
+        .get_mut("message")
+        .and_then(|m| m.get_mut("content"))
+        .and_then(|c| c.as_array_mut())
+    else {
+        return;
+    };
+    for block in content.iter_mut() {
+        let Some(block_type) = block.get("type").and_then(|t| t.as_str()) else {
+            continue;
+        };
+        match block_type {
+            "tool_use" => redact_tool_use_input(block),
+            "tool_result" => redact_tool_result(block),
+            _ => {},
+        }
+    }
+}
+
+fn redact_tool_use_input(block: &mut serde_json::Value) {
+    let Some(input) = block.get_mut("input").and_then(|i| i.as_object_mut()) else {
+        return;
+    };
+    for key in ["old_string", "new_string", "content"] {
+        if let Some(v) = input.get_mut(key) {
+            *v = serde_json::Value::String(redacted_marker(v));
+        }
+    }
+    // MultiEdit nests an array of {old_string, new_string} edit specs.
+    if let Some(edits) = input.get_mut("edits").and_then(|e| e.as_array_mut()) {
+        for edit in edits.iter_mut() {
+            if let Some(obj) = edit.as_object_mut() {
+                for key in ["old_string", "new_string"] {
+                    if let Some(v) = obj.get_mut(key) {
+                        *v = serde_json::Value::String(redacted_marker(v));
+                    }
+                }
+            }
+        }
+    }
+}
+
+fn redact_tool_result(block: &mut serde_json::Value) {
+    let Some(content) = block.get_mut("content") else {
+        return;
+    };
+    match content {
+        // String form: replace whole string with marker.
+        serde_json::Value::String(_) => {
+            *content = serde_json::Value::String(redacted_marker(content));
+        },
+        // Array of content blocks (each may carry a `text` field). Replace
+        // each block's `text` with a marker so the structure is preserved.
+        serde_json::Value::Array(blocks) => {
+            for b in blocks.iter_mut() {
+                if let Some(obj) = b.as_object_mut()
+                    && let Some(text) = obj.get_mut("text")
+                {
+                    *text = serde_json::Value::String(redacted_marker(text));
+                }
+            }
+        },
+        _ => {},
+    }
+}
+
+/// Build a `<redacted: N chars>` marker that records the size of what was
+/// stripped, so debugging can still tell whether the field was empty or large.
+fn redacted_marker(value: &serde_json::Value) -> String {
+    let len = match value {
+        serde_json::Value::String(s) => s.len(),
+        other => other.to_string().len(),
+    };
+    format!("<redacted: {len} chars>")
 }
 
 fn extract_agent_summary(output: &str) -> String {
@@ -1112,6 +1270,97 @@ mod tests {
         let (text, edited) = parse_claude_stream("");
         assert!(text.is_empty());
         assert!(edited.is_empty());
+    }
+
+    #[test]
+    fn redact_tool_payloads_strips_edit_strings_keeps_metadata() {
+        let stream = r#"{"type":"assistant","message":{"content":[{"type":"tool_use","id":"t1","name":"Edit","input":{"file_path":"src/foo.rs","old_string":"SECRET=ghp_abcdefghijklmnopqrstuvwxyz0123456789","new_string":"SECRET=redacted"}}]}}"#;
+        let out = redact_tool_payloads(stream);
+        assert!(out.contains("\"file_path\":\"src/foo.rs\""));
+        assert!(out.contains("\"name\":\"Edit\""));
+        assert!(out.contains("<redacted:"));
+        assert!(!out.contains("ghp_abcdefghijklmnopqrstuvwxyz0123456789"));
+        assert!(!out.contains("SECRET=redacted"));
+    }
+
+    #[test]
+    fn redact_tool_payloads_strips_write_content() {
+        let stream = r#"{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Write","input":{"file_path":"out.txt","content":"line1\nline2\nsecret-here"}}]}}"#;
+        let out = redact_tool_payloads(stream);
+        assert!(out.contains("\"file_path\":\"out.txt\""));
+        assert!(!out.contains("secret-here"));
+        assert!(!out.contains("line1"));
+        assert!(out.contains("<redacted:"));
+    }
+
+    #[test]
+    fn redact_tool_payloads_strips_multiedit_array() {
+        let stream = r#"{"type":"assistant","message":{"content":[{"type":"tool_use","name":"MultiEdit","input":{"file_path":"a.rs","edits":[{"old_string":"FOO","new_string":"BAR"},{"old_string":"BAZ","new_string":"QUX"}]}}]}}"#;
+        let out = redact_tool_payloads(stream);
+        assert!(out.contains("\"file_path\":\"a.rs\""));
+        // Both edit specs should be present (structure preserved) but content stripped
+        assert!(!out.contains("\"FOO\""));
+        assert!(!out.contains("\"BAR\""));
+        assert!(!out.contains("\"BAZ\""));
+        assert!(!out.contains("\"QUX\""));
+        // Two redacted markers per edit, two edits = 4 markers minimum
+        assert_eq!(out.matches("<redacted:").count(), 4);
+    }
+
+    #[test]
+    fn redact_tool_payloads_strips_tool_result_string() {
+        let stream = r#"{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"t1","content":"file contents with token=ghp_secrettoken1234567890"}]}}"#;
+        let out = redact_tool_payloads(stream);
+        assert!(out.contains("\"tool_use_id\":\"t1\""));
+        assert!(!out.contains("ghp_secrettoken1234567890"));
+        assert!(!out.contains("file contents"));
+        assert!(out.contains("<redacted:"));
+    }
+
+    #[test]
+    fn redact_tool_payloads_strips_tool_result_array_text() {
+        let stream = r#"{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"t1","content":[{"type":"text","text":"sensitive output"}]}]}}"#;
+        let out = redact_tool_payloads(stream);
+        assert!(out.contains("\"tool_use_id\":\"t1\""));
+        assert!(!out.contains("sensitive output"));
+        assert!(out.contains("<redacted:"));
+    }
+
+    #[test]
+    fn redact_tool_payloads_keeps_text_blocks_and_bash_command() {
+        let stream = r#"{"type":"assistant","message":{"content":[{"type":"text","text":"I will run a command"},{"type":"tool_use","name":"Bash","input":{"command":"ls -la","description":"list"}}]}}"#;
+        let out = redact_tool_payloads(stream);
+        assert!(out.contains("I will run a command"));
+        assert!(out.contains("\"command\":\"ls -la\""));
+        // Bash inputs are NOT structurally redacted; SecretMasker handles
+        // pattern-based secret redaction afterward.
+        assert!(!out.contains("<redacted:"));
+    }
+
+    #[test]
+    fn redact_tool_payloads_passes_through_non_json_lines() {
+        let stream =
+            "not json line\n{\"type\":\"system\",\"subtype\":\"init\"}\nanother garbage line";
+        let out = redact_tool_payloads(stream);
+        assert!(out.contains("not json line"));
+        assert!(out.contains("\"system\""));
+        assert!(out.contains("another garbage line"));
+    }
+
+    #[test]
+    fn redact_tool_payloads_preserves_assistant_text_for_summary_extraction() {
+        // The summary marker lives in assistant text blocks; it MUST survive
+        // redaction so extract_agent_summary still works on the saved log.
+        let stream = r#"{"type":"assistant","message":{"content":[{"type":"text","text":"---AGENT-SUMMARY-START---\n### Fixed Issues\n- foo\n---AGENT-SUMMARY-END---"}]}}"#;
+        let out = redact_tool_payloads(stream);
+        assert!(out.contains("---AGENT-SUMMARY-START---"));
+        assert!(out.contains("---AGENT-SUMMARY-END---"));
+    }
+
+    #[test]
+    fn redacted_marker_records_size() {
+        let v = serde_json::Value::String("12345".to_string());
+        assert_eq!(redacted_marker(&v), "<redacted: 5 chars>");
     }
 
     #[test]
