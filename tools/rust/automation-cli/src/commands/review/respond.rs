@@ -217,10 +217,18 @@ fn commit_and_push(args: &RespondArgs, summary: &str) -> Result<()> {
             Ok(())
         },
         Err(e) => {
+            // Re-read HEAD in case a rebase inside push_and_verify rewrote it.
+            let current_full = process::run_capture("git", &["rev-parse", "HEAD"])
+                .map(|s| s.trim().to_string())
+                .unwrap_or(commit_full);
+            let current_short = process::run_capture("git", &["rev-parse", "--short", "HEAD"])
+                .map(|s| s.trim().to_string())
+                .unwrap_or(commit_short);
+
             // The commit exists locally but did not reach the remote. Save a
             // format-patch so the workflow can upload it as an artifact and a
             // human (or a later iteration) can recover the lost work.
-            let patch_note = match save_commit_patch(&commit_full) {
+            let patch_note = match save_commit_patch(&current_full) {
                 Ok(path) => {
                     output::warn(&format!("Saved unpushed commit as patch: {path}"));
                     format!(
@@ -239,7 +247,7 @@ fn commit_and_push(args: &RespondArgs, summary: &str) -> Result<()> {
                 &format!(
                     "## Review Response Agent: push failed\n\
                      <!-- agent-metadata:type=review-fix-push-failure -->\n\n\
-                     Commit `{commit_short}` was created locally but did **not** reach the \
+                     Commit `{current_short}` was created locally but did **not** reach the \
                      remote after multiple verified retries.\n\n\
                      **Error:** `{e}`\n\n\
                      Manual intervention required. The earlier \"Changes committed, pushing...\" \
@@ -251,7 +259,7 @@ fn commit_and_push(args: &RespondArgs, summary: &str) -> Result<()> {
             // so downstream steps can distinguish "in flight" from "actually landed".
             project::set_github_output("made_changes", "true");
             project::set_github_output("pushed", "false");
-            project::set_github_output("commit_sha", &commit_full);
+            project::set_github_output("commit_sha", &current_full);
             Err(e)
         },
     }
@@ -318,7 +326,9 @@ fn push_and_verify(branch: &str, initial_sha: &str) -> Result<String> {
 }
 
 fn looks_like_non_fast_forward(msg: &str) -> bool {
-    msg.contains("non-fast-forward") || msg.contains("rejected") || msg.contains("fetch first")
+    msg.contains("non-fast-forward")
+        || msg.contains("fetch first")
+        || msg.contains("updates were rejected")
 }
 
 /// Fetch the branch and rebase local onto it. Returns the new HEAD SHA on
@@ -348,14 +358,14 @@ fn verify_remote_head(branch: &str, expected_sha: &str) -> Result<bool> {
     Ok(remote_sha == expected_sha)
 }
 
-/// Extract the first SHA from `git ls-remote` output.
-/// Format: `<full-sha>\trefs/heads/<branch>`
+/// Extract the branch SHA from `git ls-remote` output, preferring `refs/heads/`.
 fn parse_ls_remote_sha(output: &str) -> Option<String> {
+    let extract_sha = |line: &str| line.split_whitespace().next().map(|s| s.to_string());
     output
         .lines()
-        .next()
-        .and_then(|line| line.split_whitespace().next())
-        .map(|s| s.to_string())
+        .find(|line| line.contains("refs/heads/"))
+        .and_then(extract_sha)
+        .or_else(|| output.lines().next().and_then(extract_sha))
 }
 
 /// Persist the unpushed commit as a `.patch` file in `$RUNNER_TEMP/review-agent-patches/`
