@@ -127,6 +127,18 @@ runs:
         if-no-files-found: warn
         retention-days: 14
 
+    # Always upload Claude's raw stream-json output. This gives us structured
+    # tool_use events for post-mortem when the agent hallucinates (claims fixes
+    # without actually editing files), and is cheap when nothing went wrong.
+    - name: Upload Claude stream logs
+      if: always() && steps.iteration.outputs.should_skip != 'true'
+      uses: actions/upload-artifact@v4
+      with:
+        name: review-agent-claude-logs-${{ inputs.pr_number }}-${{ github.run_id }}
+        path: ${{ runner.temp }}/review-agent-logs/*.jsonl
+        if-no-files-found: ignore
+        retention-days: 14
+
     - name: Report push status to job summary
       if: always() && steps.iteration.outputs.should_skip != 'true'
       shell: bash

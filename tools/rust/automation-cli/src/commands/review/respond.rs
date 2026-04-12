@@ -1,6 +1,7 @@
+use std::collections::HashSet;
 use std::path::Path;
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::time::Duration;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use anyhow::{Result, bail};
 use clap::Args;
@@ -92,7 +93,8 @@ pub fn run(args: RespondArgs) -> Result<()> {
         ));
     }
 
-    let claude_output = run_claude(&prompt)?;
+    let claude_outcome = run_claude_streamed(&prompt, args.iteration)?;
+    let claude_output = claude_outcome.text.clone();
 
     // Step 3: Check for changes
     output::header("Step 3: Checking for changes");
@@ -103,10 +105,32 @@ pub fn run(args: RespondArgs) -> Result<()> {
     let summary = extract_agent_summary(&claude_output);
 
     if !has_changes {
-        // Detect hallucinated fixes: Claude's summary claims "Fixed Issues" but no files
-        // were actually modified. Retry once with a pointed correction prompt.
+        // Definitive hallucination: summary lists Fixed Issues but Claude made
+        // ZERO file-mutating tool calls during the run. Don't bother retrying —
+        // the retry uses the same prompting strategy Claude already ignored,
+        // and prior iterations show it just hallucinates a second time. Post
+        // an explicit warning, attach the stream-json log for post-mortem,
+        // and exit cleanly so the PR isn't blocked.
+        if summary_claims_fixes(&summary) && claude_outcome.edited_files.is_empty() {
+            output::warn(
+                "Agent hallucinated: claimed Fixed Issues with ZERO file-mutating tool calls",
+            );
+            post_hallucination_comment(
+                args.pr_number,
+                args.iteration,
+                &summary,
+                claude_outcome.stream_log_path.as_deref(),
+            )?;
+            report_no_commit();
+            return Ok(());
+        }
+
+        // Soft hallucination: summary claims fixes, no files changed, but
+        // Claude DID make some tool calls (maybe edits that produced no diff,
+        // or edits to files outside the repo). Retry once with a pointed
+        // correction prompt — this still helps when Claude was mid-task.
         if summary_claims_fixes(&summary) {
-            output::warn("Agent summary claims fixed issues but no files were modified — retrying");
+            output::warn("Agent summary claims fixed issues but git diff is empty — retrying once");
 
             let retry_prompt = format!(
                 "Your previous response claimed to fix issues but did NOT actually modify any files.\n\n\
@@ -126,10 +150,10 @@ pub fn run(args: RespondArgs) -> Result<()> {
                  ---AGENT-SUMMARY-END---\n"
             );
 
-            let retry_output = run_claude(&retry_prompt)?;
+            let retry_outcome = run_claude_streamed(&retry_prompt, args.iteration)?;
             process::run("git", &["add", "-A"])?;
             let retry_has_changes = !process::run_check("git", &["diff", "--cached", "--quiet"])?;
-            let retry_summary = extract_agent_summary(&retry_output);
+            let retry_summary = extract_agent_summary(&retry_outcome.text);
 
             if retry_has_changes {
                 output::info("Retry produced actual file changes");
@@ -144,14 +168,23 @@ pub fn run(args: RespondArgs) -> Result<()> {
                 );
             }
 
-            // Still no changes after retry — post with explicit warning
+            // Still no changes after retry — post with explicit warning,
+            // attaching whichever stream log is more informative.
             let warning_summary = if retry_summary.is_empty() {
                 summary.clone()
             } else {
                 retry_summary
             };
             output::warn("Retry still produced no file changes");
-            post_decision_comment(args.pr_number, args.iteration, false, "", &warning_summary)?;
+            post_hallucination_comment(
+                args.pr_number,
+                args.iteration,
+                &warning_summary,
+                retry_outcome
+                    .stream_log_path
+                    .as_deref()
+                    .or(claude_outcome.stream_log_path.as_deref()),
+            )?;
             report_no_commit();
             return Ok(());
         }
@@ -598,29 +631,162 @@ fn load_claude_md(max_chars: usize) -> String {
     }
 }
 
-fn run_claude(prompt: &str) -> Result<String> {
+/// Tool names that mutate files on disk. If Claude claims to have fixed
+/// issues but called none of these, the claim is a hallucination.
+const FILE_MUTATING_TOOLS: &[&str] = &["Edit", "Write", "MultiEdit", "NotebookEdit"];
+
+/// Result of a Claude invocation: extracted text plus the set of files that
+/// Claude actually mutated via tool_use events, plus the on-disk path of the
+/// raw stream-json log (for artifact upload / post-mortem).
+struct ClaudeOutcome {
+    text: String,
+    edited_files: HashSet<String>,
+    stream_log_path: Option<String>,
+}
+
+/// Invoke Claude in non-interactive print mode with stream-json output, save
+/// the raw stream as a JSONL log file, and parse it into a ClaudeOutcome.
+///
+/// stream-json gives us structured `tool_use` events that we can cross-check
+/// against Claude's free-text summary — without this, we cannot tell whether
+/// Claude actually edited files or just generated a plausible-sounding summary.
+fn run_claude_streamed(prompt: &str, iteration: u32) -> Result<ClaudeOutcome> {
     let claude_cmd = if process::command_exists("claude") {
         "claude"
     } else if process::command_exists("claude-code") {
         "claude-code"
     } else {
         output::warn("Claude CLI not found, skipping AI-assisted fixes");
-        return Ok(String::new());
+        return Ok(ClaudeOutcome {
+            text: String::new(),
+            edited_files: HashSet::new(),
+            stream_log_path: None,
+        });
     };
 
-    output::step("Running Claude with tool access (20 min timeout)...");
+    output::step("Running Claude (-p stream-json, 20 min timeout)...");
     let prompt_file = write_temp_file(prompt)?;
     let prompt_path = Path::new(&prompt_file);
 
-    let result = process::run_capture_with_timeout(
+    let raw = process::run_capture_with_timeout(
         claude_cmd,
-        &["--dangerously-skip-permissions"],
+        &[
+            "-p",
+            "--output-format",
+            "stream-json",
+            "--verbose",
+            "--dangerously-skip-permissions",
+        ],
         prompt_path,
         Duration::from_secs(20 * 60),
     );
 
     let _ = std::fs::remove_file(&prompt_file);
-    result
+    let raw = raw?;
+
+    let (text, edited_files) = parse_claude_stream(&raw);
+    let stream_log_path = save_claude_stream_log(iteration, &raw).ok();
+
+    if let Some(ref p) = stream_log_path {
+        output::info(&format!("Claude stream log saved: {p}"));
+    }
+    output::info(&format!(
+        "Claude tool_use touched {} file(s){}",
+        edited_files.len(),
+        if edited_files.is_empty() {
+            String::new()
+        } else {
+            format!(
+                " ({})",
+                edited_files.iter().cloned().collect::<Vec<_>>().join(", ")
+            )
+        }
+    ));
+
+    Ok(ClaudeOutcome {
+        text,
+        edited_files,
+        stream_log_path,
+    })
+}
+
+/// Parse stream-json output from Claude CLI. Returns concatenated assistant
+/// text plus the set of file paths touched by mutating tool calls.
+///
+/// Claude Code emits one JSON object per line. Assistant messages carry an
+/// inner `message.content` array of blocks; we walk those for `text` and
+/// `tool_use` blocks. Malformed lines are skipped silently — the CLI sometimes
+/// emits non-JSON warnings on stderr and we want to be robust.
+fn parse_claude_stream(stream: &str) -> (String, HashSet<String>) {
+    let mut text = String::new();
+    let mut edited: HashSet<String> = HashSet::new();
+
+    for line in stream.lines() {
+        let line = line.trim();
+        if line.is_empty() {
+            continue;
+        }
+        let Ok(event) = serde_json::from_str::<serde_json::Value>(line) else {
+            continue;
+        };
+
+        match event["type"].as_str() {
+            Some("assistant") => {
+                if let Some(blocks) = event["message"]["content"].as_array() {
+                    for block in blocks {
+                        match block["type"].as_str() {
+                            Some("text") => {
+                                if let Some(t) = block["text"].as_str() {
+                                    text.push_str(t);
+                                    text.push('\n');
+                                }
+                            },
+                            Some("tool_use") => {
+                                let name = block["name"].as_str().unwrap_or("");
+                                if FILE_MUTATING_TOOLS.contains(&name)
+                                    && let Some(path) = block["input"]["file_path"].as_str()
+                                {
+                                    edited.insert(path.to_string());
+                                }
+                            },
+                            _ => {},
+                        }
+                    }
+                }
+            },
+            // Some CLI versions emit a final {"type":"result","result":"..."}
+            // event with the model's last response. Include it so the summary
+            // marker extraction still works if the assistant text was empty.
+            Some("result") => {
+                if let Some(r) = event["result"].as_str() {
+                    text.push_str(r);
+                    text.push('\n');
+                }
+            },
+            _ => {},
+        }
+    }
+
+    (text, edited)
+}
+
+/// Save the raw Claude stream-json output to a JSONL file under
+/// `$RUNNER_TEMP/review-agent-logs/`. The pr-review-fix workflow uploads this
+/// directory as the `review-agent-claude-logs` artifact.
+fn save_claude_stream_log(iteration: u32, content: &str) -> Result<String> {
+    let base = std::env::var("RUNNER_TEMP")
+        .ok()
+        .map(std::path::PathBuf::from)
+        .unwrap_or_else(std::env::temp_dir);
+    let dir = base.join("review-agent-logs");
+    std::fs::create_dir_all(&dir)?;
+    let ts = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0);
+    let path = dir.join(format!("claude-stream-iter{iteration}-{ts}.jsonl"));
+    std::fs::write(&path, content)?;
+    Ok(path.to_string_lossy().to_string())
 }
 
 fn extract_agent_summary(output: &str) -> String {
@@ -739,6 +905,38 @@ fn post_decision_comment(
              *The agent reviewed feedback but determined no code changes were required.*"
         )
     };
+    post_comment(pr_number, &body)
+}
+
+/// Post the explicit hallucination warning comment with a pointer to the
+/// stream-json log artifact for post-mortem.
+fn post_hallucination_comment(
+    pr_number: u64,
+    iteration: u32,
+    summary: &str,
+    stream_log_path: Option<&str>,
+) -> Result<()> {
+    let display_iter = iteration + 1;
+    let log_note = stream_log_path
+        .map(|p| {
+            format!(
+                "\n\n**Stream log:** `{p}`  \n\
+                 _Uploaded as the `review-agent-claude-logs` workflow artifact._"
+            )
+        })
+        .unwrap_or_default();
+
+    let body = format!(
+        "## Review Response Agent (Iteration {display_iter})\n\
+         <!-- agent-metadata:type=review-fix-hallucination:iteration={display_iter} -->\n\n\
+         **Status:** Hallucination detected — no commit\n\n\
+         > **Detection:** The agent's summary below claims to have applied fixes, \
+         > but Claude made **zero** file-mutating tool calls (`Edit` / `Write` / `MultiEdit`) \
+         > during the run. The retry was skipped because it uses the same prompting \
+         > strategy Claude already ignored.{log_note}\n\n\
+         {summary}\n\n---\n\
+         *No file modifications were performed; this iteration produced no commit.*"
+    );
     post_comment(pr_number, &body)
 }
 
@@ -868,6 +1066,62 @@ mod tests {
         assert!(summary.contains("### Fixed Issues"));
         assert!(summary.contains("- a bug"));
         assert!(!summary.contains("preamble"));
+    }
+
+    #[test]
+    fn parse_claude_stream_extracts_text_and_edits() {
+        let stream = r#"{"type":"system","subtype":"init","session_id":"abc"}
+{"type":"assistant","message":{"content":[{"type":"text","text":"Reading the file."}]}}
+{"type":"assistant","message":{"content":[{"type":"tool_use","id":"t1","name":"Edit","input":{"file_path":"src/foo.rs","old_string":"a","new_string":"b"}}]}}
+{"type":"assistant","message":{"content":[{"type":"tool_use","id":"t2","name":"Write","input":{"file_path":"src/bar.rs","content":"hi"}}]}}
+{"type":"assistant","message":{"content":[{"type":"tool_use","id":"t3","name":"MultiEdit","input":{"file_path":"src/baz.rs","edits":[]}}]}}
+{"type":"result","result":"---AGENT-SUMMARY-START---\n### Fixed Issues\n- foo\n---AGENT-SUMMARY-END---"}
+"#;
+        let (text, edited) = parse_claude_stream(stream);
+        assert!(text.contains("Reading the file."));
+        assert!(text.contains("---AGENT-SUMMARY-START---"));
+        assert_eq!(edited.len(), 3);
+        assert!(edited.contains("src/foo.rs"));
+        assert!(edited.contains("src/bar.rs"));
+        assert!(edited.contains("src/baz.rs"));
+    }
+
+    #[test]
+    fn parse_claude_stream_ignores_non_mutating_tools() {
+        let stream = r#"{"type":"assistant","message":{"content":[{"type":"tool_use","id":"r1","name":"Read","input":{"file_path":"src/foo.rs"}}]}}
+{"type":"assistant","message":{"content":[{"type":"tool_use","id":"b1","name":"Bash","input":{"command":"ls"}}]}}
+{"type":"assistant","message":{"content":[{"type":"tool_use","id":"g1","name":"Grep","input":{"pattern":"x"}}]}}
+"#;
+        let (_, edited) = parse_claude_stream(stream);
+        assert!(
+            edited.is_empty(),
+            "Read/Bash/Grep should not count as mutations: {edited:?}"
+        );
+    }
+
+    #[test]
+    fn parse_claude_stream_skips_malformed_lines() {
+        let stream = "{not json\n\n{\"type\":\"assistant\",\"message\":{\"content\":[{\"type\":\"text\",\"text\":\"ok\"}]}}\ngarbage trailer\n";
+        let (text, edited) = parse_claude_stream(stream);
+        assert!(text.contains("ok"));
+        assert!(edited.is_empty());
+    }
+
+    #[test]
+    fn parse_claude_stream_handles_empty_input() {
+        let (text, edited) = parse_claude_stream("");
+        assert!(text.is_empty());
+        assert!(edited.is_empty());
+    }
+
+    #[test]
+    fn parse_claude_stream_dedupes_repeated_edits() {
+        let stream = r#"{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Edit","input":{"file_path":"a.rs"}}]}}
+{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Edit","input":{"file_path":"a.rs"}}]}}
+"#;
+        let (_, edited) = parse_claude_stream(stream);
+        assert_eq!(edited.len(), 1);
+        assert!(edited.contains("a.rs"));
     }
 
     #[test]
