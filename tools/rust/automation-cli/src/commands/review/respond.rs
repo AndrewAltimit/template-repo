@@ -326,9 +326,10 @@ fn push_and_verify(branch: &str, initial_sha: &str) -> Result<String> {
 }
 
 fn looks_like_non_fast_forward(msg: &str) -> bool {
-    msg.contains("non-fast-forward")
-        || msg.contains("fetch first")
-        || msg.contains("updates were rejected")
+    let lower = msg.to_lowercase();
+    lower.contains("non-fast-forward")
+        || lower.contains("fetch first")
+        || lower.contains("updates were rejected")
 }
 
 /// Fetch the branch and rebase local onto it. Returns the new HEAD SHA on
@@ -365,7 +366,6 @@ fn parse_ls_remote_sha(output: &str) -> Option<String> {
         .lines()
         .find(|line| line.contains("refs/heads/"))
         .and_then(extract_sha)
-        .or_else(|| output.lines().next().and_then(extract_sha))
 }
 
 /// Persist the unpushed commit as a `.patch` file in `$RUNNER_TEMP/review-agent-patches/`
@@ -890,9 +890,15 @@ mod tests {
 
     #[test]
     fn parse_ls_remote_sha_first_line_only() {
-        // Multiple refs: take the first line's SHA.
+        // Multiple refs: take the first refs/heads/ line's SHA.
         let out = "aaa\trefs/heads/feature\nbbb\trefs/heads/main\n";
         assert_eq!(parse_ls_remote_sha(out).as_deref(), Some("aaa"));
+    }
+
+    #[test]
+    fn parse_ls_remote_sha_no_branch_ref() {
+        let out = "abc123\trefs/tags/v1.0\n";
+        assert_eq!(parse_ls_remote_sha(out), None);
     }
 
     #[test]
