@@ -1,9 +1,11 @@
+use std::collections::HashSet;
 use std::path::Path;
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::time::Duration;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use anyhow::{Result, bail};
 use clap::Args;
+use gh_validator::{SecretMasker, load_config as load_secrets_config};
 
 use super::trust::{TrustConfig, TrustLevel};
 use crate::shared::{output, process, project};
@@ -66,7 +68,7 @@ pub fn run(args: RespondArgs) -> Result<()> {
     if review_content.is_empty() {
         output::warn("No review feedback found, nothing to do");
         post_comment(args.pr_number, "No review feedback found to process.")?;
-        project::set_github_output("made_changes", "false");
+        report_no_commit();
         return Ok(());
     }
 
@@ -92,7 +94,8 @@ pub fn run(args: RespondArgs) -> Result<()> {
         ));
     }
 
-    let claude_output = run_claude(&prompt)?;
+    let claude_outcome = run_claude_streamed(&prompt, args.iteration)?;
+    let claude_output = claude_outcome.text.clone();
 
     // Step 3: Check for changes
     output::header("Step 3: Checking for changes");
@@ -103,10 +106,32 @@ pub fn run(args: RespondArgs) -> Result<()> {
     let summary = extract_agent_summary(&claude_output);
 
     if !has_changes {
-        // Detect hallucinated fixes: Claude's summary claims "Fixed Issues" but no files
-        // were actually modified. Retry once with a pointed correction prompt.
+        // Definitive hallucination: summary lists Fixed Issues but Claude made
+        // ZERO file-mutating tool calls during the run. Don't bother retrying —
+        // the retry uses the same prompting strategy Claude already ignored,
+        // and prior iterations show it just hallucinates a second time. Post
+        // an explicit warning, attach the stream-json log for post-mortem,
+        // and exit cleanly so the PR isn't blocked.
+        if summary_claims_fixes(&summary) && claude_outcome.edited_files.is_empty() {
+            output::warn(
+                "Agent hallucinated: claimed Fixed Issues with ZERO file-mutating tool calls",
+            );
+            post_hallucination_comment(
+                args.pr_number,
+                args.iteration,
+                &summary,
+                claude_outcome.stream_log_path.as_deref(),
+            )?;
+            report_no_commit();
+            return Ok(());
+        }
+
+        // Soft hallucination: summary claims fixes, no files changed, but
+        // Claude DID make some tool calls (maybe edits that produced no diff,
+        // or edits to files outside the repo). Retry once with a pointed
+        // correction prompt — this still helps when Claude was mid-task.
         if summary_claims_fixes(&summary) {
-            output::warn("Agent summary claims fixed issues but no files were modified — retrying");
+            output::warn("Agent summary claims fixed issues but git diff is empty — retrying once");
 
             let retry_prompt = format!(
                 "Your previous response claimed to fix issues but did NOT actually modify any files.\n\n\
@@ -126,10 +151,10 @@ pub fn run(args: RespondArgs) -> Result<()> {
                  ---AGENT-SUMMARY-END---\n"
             );
 
-            let retry_output = run_claude(&retry_prompt)?;
+            let retry_outcome = run_claude_streamed(&retry_prompt, args.iteration)?;
             process::run("git", &["add", "-A"])?;
             let retry_has_changes = !process::run_check("git", &["diff", "--cached", "--quiet"])?;
-            let retry_summary = extract_agent_summary(&retry_output);
+            let retry_summary = extract_agent_summary(&retry_outcome.text);
 
             if retry_has_changes {
                 output::info("Retry produced actual file changes");
@@ -144,21 +169,30 @@ pub fn run(args: RespondArgs) -> Result<()> {
                 );
             }
 
-            // Still no changes after retry — post with explicit warning
+            // Still no changes after retry — post with explicit warning,
+            // attaching whichever stream log is more informative.
             let warning_summary = if retry_summary.is_empty() {
                 summary.clone()
             } else {
                 retry_summary
             };
             output::warn("Retry still produced no file changes");
-            post_decision_comment(args.pr_number, args.iteration, false, "", &warning_summary)?;
-            project::set_github_output("made_changes", "false");
+            post_hallucination_comment(
+                args.pr_number,
+                args.iteration,
+                &warning_summary,
+                retry_outcome
+                    .stream_log_path
+                    .as_deref()
+                    .or(claude_outcome.stream_log_path.as_deref()),
+            )?;
+            report_no_commit();
             return Ok(());
         }
 
         output::info("No changes to commit");
         post_decision_comment(args.pr_number, args.iteration, false, "", &summary)?;
-        project::set_github_output("made_changes", "false");
+        report_no_commit();
         return Ok(());
     }
 
@@ -184,39 +218,216 @@ fn commit_and_push(args: &RespondArgs, summary: &str) -> Result<()> {
     if diff_stat.trim().is_empty() {
         output::warn("Commit appears empty — no file changes in diff");
         post_decision_comment(args.pr_number, args.iteration, false, "", summary)?;
-        project::set_github_output("made_changes", "false");
+        report_no_commit();
         return Ok(());
     }
 
-    let commit_sha = process::run_capture("git", &["rev-parse", "--short", "HEAD"])?;
-    let commit_sha = commit_sha.trim();
+    let commit_full = process::run_capture("git", &["rev-parse", "HEAD"])?;
+    let commit_full = commit_full.trim().to_string();
+    let commit_short = process::run_capture("git", &["rev-parse", "--short", "HEAD"])?;
+    let commit_short = commit_short.trim().to_string();
 
     // Post comment BEFORE pushing — pushing triggers a new pipeline
     // run which cancels this one, so the comment must go first.
-    post_decision_comment(args.pr_number, args.iteration, true, commit_sha, summary)?;
+    post_decision_comment(args.pr_number, args.iteration, true, &commit_short, summary)?;
 
-    // Push (retries with backoff; post follow-up comment on failure)
+    // Push with verification: git push alone is unreliable (can exit 0 while the
+    // remote ref is unchanged). push_and_verify confirms via ls-remote that the
+    // commit actually landed, handles non-fast-forward by rebasing, and retries.
     output::header("Step 4: Pushing changes");
     let branch = args.branch.clone();
-    let push_result = temporarily_disable_pre_push_hook(|| {
-        process::run_with_retries("git", &["push", "origin", &branch], 3, 2)
-    });
+    let initial_sha = commit_full.clone();
+    let push_result = temporarily_disable_pre_push_hook(|| push_and_verify(&branch, &initial_sha));
 
-    if let Err(e) = push_result {
-        let _ = post_comment(
-            args.pr_number,
-            &format!(
-                "**Push failed** after retries: `{e}`\n\n\
-                 The commit exists locally but was not pushed. \
-                 Manual intervention required."
-            ),
-        );
-        return Err(e);
+    match push_result {
+        Ok(final_sha) => {
+            output::success(&format!(
+                "Push verified: origin/{} = {}",
+                args.branch, final_sha
+            ));
+            project::set_github_output("made_changes", "true");
+            project::set_github_output("pushed", "true");
+            project::set_github_output("commit_sha", &final_sha);
+            Ok(())
+        },
+        Err(e) => {
+            // Re-read HEAD in case a rebase inside push_and_verify rewrote it.
+            let current_full = process::run_capture("git", &["rev-parse", "HEAD"])
+                .map(|s| s.trim().to_string())
+                .unwrap_or(commit_full);
+            let current_short = process::run_capture("git", &["rev-parse", "--short", "HEAD"])
+                .map(|s| s.trim().to_string())
+                .unwrap_or(commit_short);
+
+            // The commit exists locally but did not reach the remote. Save a
+            // format-patch so the workflow can upload it as an artifact and a
+            // human (or a later iteration) can recover the lost work.
+            let patch_note = match save_commit_patch(&current_full) {
+                Ok(path) => {
+                    output::warn(&format!("Saved unpushed commit as patch: {path}"));
+                    format!(
+                        "\n\nThe commit was saved as `{path}` for recovery; \
+                         this file is uploaded as the `unpushed-review-commit` workflow artifact."
+                    )
+                },
+                Err(pe) => {
+                    output::warn(&format!("Failed to save commit patch: {pe}"));
+                    String::new()
+                },
+            };
+
+            let _ = post_comment(
+                args.pr_number,
+                &format!(
+                    "## Review Response Agent: push failed\n\
+                     <!-- agent-metadata:type=review-fix-push-failure -->\n\n\
+                     Commit `{current_short}` was created locally but did **not** reach the \
+                     remote after multiple verified retries.\n\n\
+                     **Error:** `{e}`\n\n\
+                     Manual intervention required. The earlier \"Changes committed, pushing...\" \
+                     comment should be considered superseded by this one.{patch_note}"
+                ),
+            );
+
+            // Still report made_changes=true (the commit was created) but pushed=false
+            // so downstream steps can distinguish "in flight" from "actually landed".
+            project::set_github_output("made_changes", "true");
+            project::set_github_output("pushed", "false");
+            project::set_github_output("commit_sha", &current_full);
+            Err(e)
+        },
+    }
+}
+
+/// Mark the "no commit produced" state unambiguously in GitHub Actions outputs.
+fn report_no_commit() {
+    project::set_github_output("made_changes", "false");
+    project::set_github_output("pushed", "false");
+    project::set_github_output("commit_sha", "");
+}
+
+/// Push the current branch and verify via `git ls-remote` that the remote ref
+/// actually matches local HEAD. Handles silent push failures (command reports
+/// success but the remote ref is unchanged) and non-fast-forward rejections
+/// (fetch + rebase + recompute expected SHA). Returns the SHA that was
+/// verifiably landed on the remote.
+fn push_and_verify(branch: &str, initial_sha: &str) -> Result<String> {
+    const MAX_ATTEMPTS: u32 = 5;
+    let mut last_err: Option<anyhow::Error> = None;
+    let mut current_sha = initial_sha.to_string();
+
+    for attempt in 1..=MAX_ATTEMPTS {
+        output::info(&format!(
+            "Push attempt {attempt}/{MAX_ATTEMPTS} (expected sha: {current_sha})"
+        ));
+
+        let push_result = process::run("git", &["push", "origin", branch]);
+
+        match push_result {
+            Ok(()) => match verify_remote_head(branch, &current_sha) {
+                Ok(true) => return Ok(current_sha),
+                Ok(false) => {
+                    output::warn("Push reported success but remote ref is stale — retrying");
+                    last_err = Some(anyhow::anyhow!(
+                        "push verification failed: origin/{branch} does not match {current_sha}"
+                    ));
+                },
+                Err(e) => {
+                    output::warn(&format!("Could not verify remote ref: {e}"));
+                    last_err = Some(e);
+                },
+            },
+            Err(e) => {
+                let msg = format!("{e}");
+                output::warn(&format!("Push failed: {msg}"));
+                if looks_like_non_fast_forward(&msg)
+                    && let Some(new_sha) = rebase_onto_remote(branch)
+                {
+                    current_sha = new_sha;
+                    output::info(&format!("Rebased; new local HEAD = {current_sha}"));
+                }
+                last_err = Some(e);
+            },
+        }
+
+        if attempt < MAX_ATTEMPTS {
+            let delay = 2u64.pow(attempt.min(5));
+            std::thread::sleep(Duration::from_secs(delay));
+        }
     }
 
-    output::success(&format!("Changes pushed to branch: {}", args.branch));
-    project::set_github_output("made_changes", "true");
-    Ok(())
+    Err(last_err.unwrap_or_else(|| anyhow::anyhow!("push failed: exhausted retries")))
+}
+
+fn looks_like_non_fast_forward(msg: &str) -> bool {
+    let lower = msg.to_lowercase();
+    lower.contains("non-fast-forward")
+        || lower.contains("fetch first")
+        || lower.contains("updates were rejected")
+}
+
+/// Fetch the branch and rebase local onto it. Returns the new HEAD SHA on
+/// success; aborts any in-progress rebase and returns None on failure so the
+/// caller can retry the bare push.
+fn rebase_onto_remote(branch: &str) -> Option<String> {
+    output::info("Non-fast-forward detected — fetching and rebasing");
+    if process::run("git", &["fetch", "origin", branch]).is_err() {
+        return None;
+    }
+    let remote_ref = format!("origin/{branch}");
+    if process::run("git", &["rebase", &remote_ref]).is_err() {
+        let _ = process::run("git", &["rebase", "--abort"]);
+        output::warn("Rebase failed — aborted, will retry bare push");
+        return None;
+    }
+    process::run_capture("git", &["rev-parse", "HEAD"])
+        .ok()
+        .map(|s| s.trim().to_string())
+}
+
+fn verify_remote_head(branch: &str, expected_sha: &str) -> Result<bool> {
+    let full_ref = format!("refs/heads/{branch}");
+    let out = process::run_capture("git", &["ls-remote", "origin", &full_ref])?;
+    let remote_sha = parse_ls_remote_sha(&out)
+        .ok_or_else(|| anyhow::anyhow!("ls-remote returned no ref for {branch}"))?;
+    output::info(&format!("Remote origin/{branch} = {remote_sha}"));
+    Ok(remote_sha == expected_sha)
+}
+
+/// Extract the branch SHA from `git ls-remote` output, preferring `refs/heads/`.
+fn parse_ls_remote_sha(output: &str) -> Option<String> {
+    let extract_sha = |line: &str| line.split_whitespace().next().map(|s| s.to_string());
+    output
+        .lines()
+        .find(|line| line.contains("refs/heads/"))
+        .and_then(extract_sha)
+}
+
+/// Persist the unpushed commit as a `.patch` file in `$RUNNER_TEMP/review-agent-patches/`
+/// so the workflow can upload it as an artifact for manual recovery.
+///
+/// The patch is masked through `gh-validator`'s `SecretMasker` (same `.secrets.yaml`
+/// as PR-comment masking) before hitting disk. We do NOT structurally redact the
+/// patch the way we do the stream log — the patch *is* the work to recover, and
+/// stripping its content would make it un-applicable. Pattern-based masking
+/// handles known secret formats without breaking the diff format.
+///
+/// Fail-closed: if `.secrets.yaml` is missing or unparseable, no patch is written.
+fn save_commit_patch(sha: &str) -> Result<String> {
+    let masker = load_secret_masker()?;
+    let raw_patch = process::run_capture("git", &["format-patch", "-1", "HEAD", "--stdout"])?;
+    let (masked_patch, _modified) = masker.mask(&raw_patch);
+
+    let base = std::env::var("RUNNER_TEMP")
+        .ok()
+        .map(std::path::PathBuf::from)
+        .unwrap_or_else(std::env::temp_dir);
+    let dir = base.join("review-agent-patches");
+    std::fs::create_dir_all(&dir)?;
+    let short_end = sha.len().min(12);
+    let path = dir.join(format!("unpushed-{}.patch", &sha[..short_end]));
+    std::fs::write(&path, masked_patch)?;
+    Ok(path.to_string_lossy().to_string())
 }
 
 fn collect_review_content(content: &mut String) -> Result<()> {
@@ -432,29 +643,311 @@ fn load_claude_md(max_chars: usize) -> String {
     }
 }
 
-fn run_claude(prompt: &str) -> Result<String> {
+/// Tool names that mutate files on disk. If Claude claims to have fixed
+/// issues but called none of these, the claim is a hallucination.
+const FILE_MUTATING_TOOLS: &[&str] = &["Edit", "Write", "MultiEdit", "NotebookEdit"];
+
+/// Result of a Claude invocation: extracted text plus the set of files that
+/// Claude actually mutated via tool_use events, plus the on-disk path of the
+/// raw stream-json log (for artifact upload / post-mortem).
+struct ClaudeOutcome {
+    text: String,
+    edited_files: HashSet<String>,
+    stream_log_path: Option<String>,
+}
+
+/// Invoke Claude in non-interactive print mode with stream-json output, save
+/// the raw stream as a JSONL log file, and parse it into a ClaudeOutcome.
+///
+/// stream-json gives us structured `tool_use` events that we can cross-check
+/// against Claude's free-text summary — without this, we cannot tell whether
+/// Claude actually edited files or just generated a plausible-sounding summary.
+fn run_claude_streamed(prompt: &str, iteration: u32) -> Result<ClaudeOutcome> {
     let claude_cmd = if process::command_exists("claude") {
         "claude"
     } else if process::command_exists("claude-code") {
         "claude-code"
     } else {
         output::warn("Claude CLI not found, skipping AI-assisted fixes");
-        return Ok(String::new());
+        return Ok(ClaudeOutcome {
+            text: String::new(),
+            edited_files: HashSet::new(),
+            stream_log_path: None,
+        });
     };
 
-    output::step("Running Claude with tool access (20 min timeout)...");
+    output::step("Running Claude (-p stream-json, 20 min timeout)...");
     let prompt_file = write_temp_file(prompt)?;
     let prompt_path = Path::new(&prompt_file);
 
-    let result = process::run_capture_with_timeout(
+    let raw = process::run_capture_with_timeout(
         claude_cmd,
-        &["--dangerously-skip-permissions"],
+        &[
+            "-p",
+            "--output-format",
+            "stream-json",
+            "--verbose",
+            "--dangerously-skip-permissions",
+        ],
         prompt_path,
         Duration::from_secs(20 * 60),
     );
 
     let _ = std::fs::remove_file(&prompt_file);
-    result
+    let raw = raw?;
+
+    let (text, edited_files) = parse_claude_stream(&raw);
+    let stream_log_path = save_claude_stream_log(iteration, &raw).ok();
+
+    if let Some(ref p) = stream_log_path {
+        output::info(&format!("Claude stream log saved: {p}"));
+    }
+    output::info(&format!(
+        "Claude tool_use touched {} file(s){}",
+        edited_files.len(),
+        if edited_files.is_empty() {
+            String::new()
+        } else {
+            format!(
+                " ({})",
+                edited_files.iter().cloned().collect::<Vec<_>>().join(", ")
+            )
+        }
+    ));
+
+    Ok(ClaudeOutcome {
+        text,
+        edited_files,
+        stream_log_path,
+    })
+}
+
+/// Parse stream-json output from Claude CLI. Returns concatenated assistant
+/// text plus the set of file paths touched by mutating tool calls.
+///
+/// Claude Code emits one JSON object per line. Assistant messages carry an
+/// inner `message.content` array of blocks; we walk those for `text` and
+/// `tool_use` blocks. Malformed lines are skipped silently — the CLI sometimes
+/// emits non-JSON warnings on stderr and we want to be robust.
+fn parse_claude_stream(stream: &str) -> (String, HashSet<String>) {
+    let mut text = String::new();
+    let mut edited: HashSet<String> = HashSet::new();
+
+    for line in stream.lines() {
+        let line = line.trim();
+        if line.is_empty() {
+            continue;
+        }
+        let Ok(event) = serde_json::from_str::<serde_json::Value>(line) else {
+            continue;
+        };
+
+        match event["type"].as_str() {
+            Some("assistant") => {
+                if let Some(blocks) = event["message"]["content"].as_array() {
+                    for block in blocks {
+                        match block["type"].as_str() {
+                            Some("text") => {
+                                if let Some(t) = block["text"].as_str() {
+                                    text.push_str(t);
+                                    text.push('\n');
+                                }
+                            },
+                            Some("tool_use") => {
+                                let name = block["name"].as_str().unwrap_or("");
+                                if FILE_MUTATING_TOOLS.contains(&name) {
+                                    let path = block["input"]["file_path"]
+                                        .as_str()
+                                        .or_else(|| block["input"]["notebook_path"].as_str());
+                                    if let Some(p) = path {
+                                        edited.insert(p.to_string());
+                                    }
+                                }
+                            },
+                            _ => {},
+                        }
+                    }
+                }
+            },
+            // Some CLI versions emit a final {"type":"result","result":"..."}
+            // event with the model's last response. Include it so the summary
+            // marker extraction still works if the assistant text was empty.
+            Some("result") => {
+                if let Some(r) = event["result"].as_str() {
+                    text.push_str(r);
+                    text.push('\n');
+                }
+            },
+            _ => {},
+        }
+    }
+
+    (text, edited)
+}
+
+/// Save the raw Claude stream-json output to a JSONL file under
+/// `$RUNNER_TEMP/review-agent-logs/`. The pr-review-fix workflow uploads this
+/// directory as the `review-agent-claude-logs` artifact.
+///
+/// Stream content is sanitized in two passes before hitting disk:
+/// 1. **Structural redaction** (`redact_tool_payloads`) — strips `Edit`/`Write`/
+///    `MultiEdit` content fields and `tool_result` content bodies entirely,
+///    keeping only metadata (tool name, file_path, byte counts) so we can still
+///    see *what* Claude was trying to do.
+/// 2. **Pattern masking** via `gh-validator`'s `SecretMasker`, loaded from
+///    `.secrets.yaml`. Catches anything the structural pass missed (e.g. tokens
+///    in Bash command strings or assistant text).
+///
+/// Fail-closed: if `.secrets.yaml` is missing or unparseable, no log is written.
+fn save_claude_stream_log(iteration: u32, content: &str) -> Result<String> {
+    let masker = load_secret_masker()?;
+    let redacted = redact_tool_payloads(content);
+    let (sanitized, _modified) = masker.mask(&redacted);
+
+    let base = std::env::var("RUNNER_TEMP")
+        .ok()
+        .map(std::path::PathBuf::from)
+        .unwrap_or_else(std::env::temp_dir);
+    let dir = base.join("review-agent-logs");
+    std::fs::create_dir_all(&dir)?;
+    let ts = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_millis())
+        .unwrap_or(0);
+    let path = dir.join(format!("claude-stream-iter{iteration}-{ts}.jsonl"));
+    std::fs::write(&path, sanitized)?;
+    Ok(path.to_string_lossy().to_string())
+}
+
+/// Load the shared `SecretMasker` from `.secrets.yaml` (same config the
+/// gh-validator wrapper uses for `gh pr comment` masking). Fail-closed: if the
+/// config is missing or invalid, return an error and let the caller skip the
+/// artifact rather than write an unmasked file.
+fn load_secret_masker() -> Result<SecretMasker> {
+    let config = load_secrets_config().map_err(|e| {
+        anyhow::anyhow!(
+            "fail-closed: cannot load .secrets.yaml for artifact masking ({e}); \
+             skipping artifact write to avoid leaking unmasked content"
+        )
+    })?;
+    Ok(SecretMasker::new(&config))
+}
+
+/// Walk a stream-json string line-by-line and strip content payloads from
+/// `tool_use` and `tool_result` blocks while preserving structure and
+/// identifying metadata. The result is still valid JSONL — every line either
+/// stays as-is (non-JSON, system events, etc.) or is re-serialized after
+/// in-place mutation.
+///
+/// Fields redacted:
+/// - `tool_use.input.old_string` / `new_string` / `content` → `<redacted: N chars>`
+/// - `tool_use.input.edits[].old_string` / `new_string` (MultiEdit) → same
+/// - `tool_result.content` (string form OR array of `{type:"text",text:"..."}`)
+///
+/// Fields kept:
+/// - `tool_use.name`, `id`, `input.file_path`, `input.command`, `input.pattern`,
+///   `input.url`, etc. — anything that describes *what* Claude was doing.
+/// - `text` blocks (assistant reasoning / summary marker)
+/// - `system` / `result` events
+fn redact_tool_payloads(stream: &str) -> String {
+    let mut out = String::with_capacity(stream.len());
+    for line in stream.lines() {
+        if line.trim().is_empty() {
+            out.push('\n');
+            continue;
+        }
+        match serde_json::from_str::<serde_json::Value>(line) {
+            Ok(mut event) => {
+                redact_event_in_place(&mut event);
+                match serde_json::to_string(&event) {
+                    Ok(s) => out.push_str(&s),
+                    Err(_) => out.push_str(line),
+                }
+            },
+            Err(_) => out.push_str(line),
+        }
+        out.push('\n');
+    }
+    out
+}
+
+/// Mutate a single parsed JSON event to strip content payloads from any
+/// `tool_use` / `tool_result` blocks it contains.
+fn redact_event_in_place(event: &mut serde_json::Value) {
+    let Some(content) = event
+        .get_mut("message")
+        .and_then(|m| m.get_mut("content"))
+        .and_then(|c| c.as_array_mut())
+    else {
+        return;
+    };
+    for block in content.iter_mut() {
+        let Some(block_type) = block.get("type").and_then(|t| t.as_str()) else {
+            continue;
+        };
+        match block_type {
+            "tool_use" => redact_tool_use_input(block),
+            "tool_result" => redact_tool_result(block),
+            _ => {},
+        }
+    }
+}
+
+fn redact_tool_use_input(block: &mut serde_json::Value) {
+    let Some(input) = block.get_mut("input").and_then(|i| i.as_object_mut()) else {
+        return;
+    };
+    for key in ["old_string", "new_string", "content"] {
+        if let Some(v) = input.get_mut(key) {
+            *v = serde_json::Value::String(redacted_marker(v));
+        }
+    }
+    // MultiEdit nests an array of {old_string, new_string} edit specs.
+    if let Some(edits) = input.get_mut("edits").and_then(|e| e.as_array_mut()) {
+        for edit in edits.iter_mut() {
+            if let Some(obj) = edit.as_object_mut() {
+                for key in ["old_string", "new_string"] {
+                    if let Some(v) = obj.get_mut(key) {
+                        *v = serde_json::Value::String(redacted_marker(v));
+                    }
+                }
+            }
+        }
+    }
+}
+
+fn redact_tool_result(block: &mut serde_json::Value) {
+    let Some(content) = block.get_mut("content") else {
+        return;
+    };
+    match content {
+        // String form: replace whole string with marker.
+        serde_json::Value::String(_) => {
+            *content = serde_json::Value::String(redacted_marker(content));
+        },
+        // Array of content blocks (each may carry a `text` field). Replace
+        // each block's `text` with a marker so the structure is preserved.
+        serde_json::Value::Array(blocks) => {
+            for b in blocks.iter_mut() {
+                if let Some(obj) = b.as_object_mut()
+                    && let Some(text) = obj.get_mut("text")
+                {
+                    *text = serde_json::Value::String(redacted_marker(text));
+                }
+            }
+        },
+        _ => {},
+    }
+}
+
+/// Build a `<redacted: N chars>` marker that records the size of what was
+/// stripped, so debugging can still tell whether the field was empty or large.
+fn redacted_marker(value: &serde_json::Value) -> String {
+    let len = match value {
+        serde_json::Value::String(s) => s.len(),
+        other => other.to_string().len(),
+    };
+    format!("<redacted: {len} chars>")
 }
 
 fn extract_agent_summary(output: &str) -> String {
@@ -576,6 +1069,38 @@ fn post_decision_comment(
     post_comment(pr_number, &body)
 }
 
+/// Post the explicit hallucination warning comment with a pointer to the
+/// stream-json log artifact for post-mortem.
+fn post_hallucination_comment(
+    pr_number: u64,
+    iteration: u32,
+    summary: &str,
+    stream_log_path: Option<&str>,
+) -> Result<()> {
+    let display_iter = iteration + 1;
+    let log_note = stream_log_path
+        .map(|p| {
+            format!(
+                "\n\n**Stream log:** `{p}`  \n\
+                 _Uploaded as the `review-agent-claude-logs` workflow artifact._"
+            )
+        })
+        .unwrap_or_default();
+
+    let body = format!(
+        "## Review Response Agent (Iteration {display_iter})\n\
+         <!-- agent-metadata:type=review-fix-hallucination:iteration={display_iter} -->\n\n\
+         **Status:** Hallucination detected — no commit\n\n\
+         > **Detection:** The agent's summary below claims to have applied fixes, \
+         > but Claude made **zero** file-mutating tool calls (`Edit` / `Write` / `MultiEdit` / `NotebookEdit`) \
+         > during the run. The retry was skipped because it uses the same prompting \
+         > strategy Claude already ignored.{log_note}\n\n\
+         {summary}\n\n---\n\
+         *No file modifications were performed; this iteration produced no commit.*"
+    );
+    post_comment(pr_number, &body)
+}
+
 fn configure_git() -> Result<()> {
     let token = std::env::var("GITHUB_TOKEN").unwrap_or_default();
     let repo = std::env::var("GITHUB_REPOSITORY").unwrap_or_default();
@@ -592,7 +1117,7 @@ fn configure_git() -> Result<()> {
     Ok(())
 }
 
-fn temporarily_disable_pre_push_hook<F: FnOnce() -> Result<()>>(f: F) -> Result<()> {
+fn temporarily_disable_pre_push_hook<T, F: FnOnce() -> Result<T>>(f: F) -> Result<T> {
     let hook = Path::new(".git/hooks/pre-push");
     let disabled = Path::new(".git/hooks/pre-push.disabled");
     let had_hook = hook.exists();
@@ -702,6 +1227,201 @@ mod tests {
         assert!(summary.contains("### Fixed Issues"));
         assert!(summary.contains("- a bug"));
         assert!(!summary.contains("preamble"));
+    }
+
+    #[test]
+    fn parse_claude_stream_extracts_text_and_edits() {
+        let stream = r#"{"type":"system","subtype":"init","session_id":"abc"}
+{"type":"assistant","message":{"content":[{"type":"text","text":"Reading the file."}]}}
+{"type":"assistant","message":{"content":[{"type":"tool_use","id":"t1","name":"Edit","input":{"file_path":"src/foo.rs","old_string":"a","new_string":"b"}}]}}
+{"type":"assistant","message":{"content":[{"type":"tool_use","id":"t2","name":"Write","input":{"file_path":"src/bar.rs","content":"hi"}}]}}
+{"type":"assistant","message":{"content":[{"type":"tool_use","id":"t3","name":"MultiEdit","input":{"file_path":"src/baz.rs","edits":[]}}]}}
+{"type":"result","result":"---AGENT-SUMMARY-START---\n### Fixed Issues\n- foo\n---AGENT-SUMMARY-END---"}
+"#;
+        let (text, edited) = parse_claude_stream(stream);
+        assert!(text.contains("Reading the file."));
+        assert!(text.contains("---AGENT-SUMMARY-START---"));
+        assert_eq!(edited.len(), 3);
+        assert!(edited.contains("src/foo.rs"));
+        assert!(edited.contains("src/bar.rs"));
+        assert!(edited.contains("src/baz.rs"));
+    }
+
+    #[test]
+    fn parse_claude_stream_ignores_non_mutating_tools() {
+        let stream = r#"{"type":"assistant","message":{"content":[{"type":"tool_use","id":"r1","name":"Read","input":{"file_path":"src/foo.rs"}}]}}
+{"type":"assistant","message":{"content":[{"type":"tool_use","id":"b1","name":"Bash","input":{"command":"ls"}}]}}
+{"type":"assistant","message":{"content":[{"type":"tool_use","id":"g1","name":"Grep","input":{"pattern":"x"}}]}}
+"#;
+        let (_, edited) = parse_claude_stream(stream);
+        assert!(
+            edited.is_empty(),
+            "Read/Bash/Grep should not count as mutations: {edited:?}"
+        );
+    }
+
+    #[test]
+    fn parse_claude_stream_skips_malformed_lines() {
+        let stream = "{not json\n\n{\"type\":\"assistant\",\"message\":{\"content\":[{\"type\":\"text\",\"text\":\"ok\"}]}}\ngarbage trailer\n";
+        let (text, edited) = parse_claude_stream(stream);
+        assert!(text.contains("ok"));
+        assert!(edited.is_empty());
+    }
+
+    #[test]
+    fn parse_claude_stream_handles_empty_input() {
+        let (text, edited) = parse_claude_stream("");
+        assert!(text.is_empty());
+        assert!(edited.is_empty());
+    }
+
+    #[test]
+    fn redact_tool_payloads_strips_edit_strings_keeps_metadata() {
+        let stream = r#"{"type":"assistant","message":{"content":[{"type":"tool_use","id":"t1","name":"Edit","input":{"file_path":"src/foo.rs","old_string":"SECRET=ghp_abcdefghijklmnopqrstuvwxyz0123456789","new_string":"SECRET=redacted"}}]}}"#;
+        let out = redact_tool_payloads(stream);
+        assert!(out.contains("\"file_path\":\"src/foo.rs\""));
+        assert!(out.contains("\"name\":\"Edit\""));
+        assert!(out.contains("<redacted:"));
+        assert!(!out.contains("ghp_abcdefghijklmnopqrstuvwxyz0123456789"));
+        assert!(!out.contains("SECRET=redacted"));
+    }
+
+    #[test]
+    fn redact_tool_payloads_strips_write_content() {
+        let stream = r#"{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Write","input":{"file_path":"out.txt","content":"line1\nline2\nsecret-here"}}]}}"#;
+        let out = redact_tool_payloads(stream);
+        assert!(out.contains("\"file_path\":\"out.txt\""));
+        assert!(!out.contains("secret-here"));
+        assert!(!out.contains("line1"));
+        assert!(out.contains("<redacted:"));
+    }
+
+    #[test]
+    fn redact_tool_payloads_strips_multiedit_array() {
+        let stream = r#"{"type":"assistant","message":{"content":[{"type":"tool_use","name":"MultiEdit","input":{"file_path":"a.rs","edits":[{"old_string":"FOO","new_string":"BAR"},{"old_string":"BAZ","new_string":"QUX"}]}}]}}"#;
+        let out = redact_tool_payloads(stream);
+        assert!(out.contains("\"file_path\":\"a.rs\""));
+        // Both edit specs should be present (structure preserved) but content stripped
+        assert!(!out.contains("\"FOO\""));
+        assert!(!out.contains("\"BAR\""));
+        assert!(!out.contains("\"BAZ\""));
+        assert!(!out.contains("\"QUX\""));
+        // Two redacted markers per edit, two edits = 4 markers minimum
+        assert_eq!(out.matches("<redacted:").count(), 4);
+    }
+
+    #[test]
+    fn redact_tool_payloads_strips_tool_result_string() {
+        let stream = r#"{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"t1","content":"file contents with token=ghp_secrettoken1234567890"}]}}"#;
+        let out = redact_tool_payloads(stream);
+        assert!(out.contains("\"tool_use_id\":\"t1\""));
+        assert!(!out.contains("ghp_secrettoken1234567890"));
+        assert!(!out.contains("file contents"));
+        assert!(out.contains("<redacted:"));
+    }
+
+    #[test]
+    fn redact_tool_payloads_strips_tool_result_array_text() {
+        let stream = r#"{"type":"user","message":{"content":[{"type":"tool_result","tool_use_id":"t1","content":[{"type":"text","text":"sensitive output"}]}]}}"#;
+        let out = redact_tool_payloads(stream);
+        assert!(out.contains("\"tool_use_id\":\"t1\""));
+        assert!(!out.contains("sensitive output"));
+        assert!(out.contains("<redacted:"));
+    }
+
+    #[test]
+    fn redact_tool_payloads_keeps_text_blocks_and_bash_command() {
+        let stream = r#"{"type":"assistant","message":{"content":[{"type":"text","text":"I will run a command"},{"type":"tool_use","name":"Bash","input":{"command":"ls -la","description":"list"}}]}}"#;
+        let out = redact_tool_payloads(stream);
+        assert!(out.contains("I will run a command"));
+        assert!(out.contains("\"command\":\"ls -la\""));
+        // Bash inputs are NOT structurally redacted; SecretMasker handles
+        // pattern-based secret redaction afterward.
+        assert!(!out.contains("<redacted:"));
+    }
+
+    #[test]
+    fn redact_tool_payloads_passes_through_non_json_lines() {
+        let stream =
+            "not json line\n{\"type\":\"system\",\"subtype\":\"init\"}\nanother garbage line";
+        let out = redact_tool_payloads(stream);
+        assert!(out.contains("not json line"));
+        assert!(out.contains("\"system\""));
+        assert!(out.contains("another garbage line"));
+    }
+
+    #[test]
+    fn redact_tool_payloads_preserves_assistant_text_for_summary_extraction() {
+        // The summary marker lives in assistant text blocks; it MUST survive
+        // redaction so extract_agent_summary still works on the saved log.
+        let stream = r#"{"type":"assistant","message":{"content":[{"type":"text","text":"---AGENT-SUMMARY-START---\n### Fixed Issues\n- foo\n---AGENT-SUMMARY-END---"}]}}"#;
+        let out = redact_tool_payloads(stream);
+        assert!(out.contains("---AGENT-SUMMARY-START---"));
+        assert!(out.contains("---AGENT-SUMMARY-END---"));
+    }
+
+    #[test]
+    fn redacted_marker_records_size() {
+        let v = serde_json::Value::String("12345".to_string());
+        assert_eq!(redacted_marker(&v), "<redacted: 5 chars>");
+    }
+
+    #[test]
+    fn parse_claude_stream_dedupes_repeated_edits() {
+        let stream = r#"{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Edit","input":{"file_path":"a.rs"}}]}}
+{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Edit","input":{"file_path":"a.rs"}}]}}
+"#;
+        let (_, edited) = parse_claude_stream(stream);
+        assert_eq!(edited.len(), 1);
+        assert!(edited.contains("a.rs"));
+    }
+
+    #[test]
+    fn parse_ls_remote_sha_basic() {
+        let out = "abc123def456abc123def456abc123def456abcd\trefs/heads/main\n";
+        assert_eq!(
+            parse_ls_remote_sha(out).as_deref(),
+            Some("abc123def456abc123def456abc123def456abcd")
+        );
+    }
+
+    #[test]
+    fn parse_ls_remote_sha_empty() {
+        assert_eq!(parse_ls_remote_sha(""), None);
+    }
+
+    #[test]
+    fn parse_ls_remote_sha_whitespace_only() {
+        assert_eq!(parse_ls_remote_sha("   \n"), None);
+    }
+
+    #[test]
+    fn parse_ls_remote_sha_first_line_only() {
+        // Multiple refs: take the first refs/heads/ line's SHA.
+        let out = "aaa\trefs/heads/feature\nbbb\trefs/heads/main\n";
+        assert_eq!(parse_ls_remote_sha(out).as_deref(), Some("aaa"));
+    }
+
+    #[test]
+    fn parse_ls_remote_sha_no_branch_ref() {
+        let out = "abc123\trefs/tags/v1.0\n";
+        assert_eq!(parse_ls_remote_sha(out), None);
+    }
+
+    #[test]
+    fn looks_like_non_fast_forward_matches() {
+        assert!(looks_like_non_fast_forward(
+            "! [rejected]        main -> main (non-fast-forward)"
+        ));
+        assert!(looks_like_non_fast_forward(
+            "error: failed to push some refs; updates were rejected"
+        ));
+        assert!(looks_like_non_fast_forward(
+            "hint: Updates were rejected because the tip of your current branch is behind -- fetch first"
+        ));
+        assert!(!looks_like_non_fast_forward(
+            "fatal: unable to access: could not resolve host"
+        ));
     }
 
     #[test]

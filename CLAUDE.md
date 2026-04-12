@@ -23,7 +23,7 @@ You are working alongside four other AI agents:
 3. **Crush** - Code generation via OpenRouter
 4. ~~**Gemini CLI**~~ - ~~Automated PR code reviews~~ **DISABLED** -- Google updated its AI principles (Feb 2026) to allow mass surveillance and autonomous weapons use cases. All Gemini integrations are disabled.
 5. **GitHub Copilot** - Code review suggestions in PRs
-6. **OpenRouter** - PR code review via Qwen model (qwen/qwen3.6-plus:free)
+6. **OpenRouter** - PR code review via Qwen model (qwen/qwen3.6-plus)
 
 Your role as Claude Code is the primary development assistant. **Anthropic models are the recommended default** for all AI operations.
 
