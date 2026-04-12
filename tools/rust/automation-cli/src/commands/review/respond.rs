@@ -755,10 +755,13 @@ fn parse_claude_stream(stream: &str) -> (String, HashSet<String>) {
                             },
                             Some("tool_use") => {
                                 let name = block["name"].as_str().unwrap_or("");
-                                if FILE_MUTATING_TOOLS.contains(&name)
-                                    && let Some(path) = block["input"]["file_path"].as_str()
-                                {
-                                    edited.insert(path.to_string());
+                                if FILE_MUTATING_TOOLS.contains(&name) {
+                                    let path = block["input"]["file_path"]
+                                        .as_str()
+                                        .or_else(|| block["input"]["notebook_path"].as_str());
+                                    if let Some(p) = path {
+                                        edited.insert(p.to_string());
+                                    }
                                 }
                             },
                             _ => {},
@@ -809,7 +812,7 @@ fn save_claude_stream_log(iteration: u32, content: &str) -> Result<String> {
     std::fs::create_dir_all(&dir)?;
     let ts = SystemTime::now()
         .duration_since(UNIX_EPOCH)
-        .map(|d| d.as_secs())
+        .map(|d| d.as_millis())
         .unwrap_or(0);
     let path = dir.join(format!("claude-stream-iter{iteration}-{ts}.jsonl"));
     std::fs::write(&path, sanitized)?;
@@ -1089,7 +1092,7 @@ fn post_hallucination_comment(
          <!-- agent-metadata:type=review-fix-hallucination:iteration={display_iter} -->\n\n\
          **Status:** Hallucination detected — no commit\n\n\
          > **Detection:** The agent's summary below claims to have applied fixes, \
-         > but Claude made **zero** file-mutating tool calls (`Edit` / `Write` / `MultiEdit`) \
+         > but Claude made **zero** file-mutating tool calls (`Edit` / `Write` / `MultiEdit` / `NotebookEdit`) \
          > during the run. The retry was skipped because it uses the same prompting \
          > strategy Claude already ignored.{log_note}\n\n\
          {summary}\n\n---\n\
