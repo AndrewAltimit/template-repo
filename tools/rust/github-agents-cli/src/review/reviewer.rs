@@ -17,6 +17,7 @@ use super::diff::{
 use super::editor::edit_review;
 use super::prompt::build_review_prompt;
 use super::reactions::{fetch_reaction_config, fix_reaction_urls};
+use super::sanitize::{is_sanitizable_failure, strip_emojis};
 use super::verification::verify_claims;
 use crate::error::{Error, Result};
 
@@ -730,24 +731,62 @@ Comments to analyze:
             .output()
             .map_err(|e| Error::Io(e))?;
 
-        // Clean up temp file
-        let _ = fs::remove_file(&temp_path);
-
-        if !output.status.success() {
-            let stderr = String::from_utf8_lossy(&output.stderr).to_string();
-            let stdout = String::from_utf8_lossy(&output.stdout).to_string();
-            tracing::error!("gh pr comment failed - stderr: {}", stderr.trim());
-            if !stdout.trim().is_empty() {
-                tracing::error!("gh pr comment failed - stdout: {}", stdout.trim());
-            }
-            return Err(Error::GhCommandFailed {
-                exit_code: output.status.code().unwrap_or(-1),
-                stdout,
-                stderr,
-            });
+        if output.status.success() {
+            let _ = fs::remove_file(&temp_path);
+            return Ok(());
         }
 
-        Ok(())
+        let stderr = String::from_utf8_lossy(&output.stderr).to_string();
+        let stdout = String::from_utf8_lossy(&output.stdout).to_string();
+        tracing::error!("gh pr comment failed - stderr: {}", stderr.trim());
+        if !stdout.trim().is_empty() {
+            tracing::error!("gh pr comment failed - stdout: {}", stdout.trim());
+        }
+
+        // Retry once after sanitizing emoji content. gh-validator rejects
+        // Unicode emojis (which agents still occasionally emit despite the
+        // prompt), and a one-shot failure here would drop the entire review.
+        if is_sanitizable_failure(&stderr) {
+            let (sanitized, replaced) = strip_emojis(&formatted);
+            if replaced > 0 {
+                tracing::warn!(
+                    "Sanitizing review after gh-validator rejection: replaced {} emoji character(s), retrying",
+                    replaced
+                );
+                fs::write(&temp_path, &sanitized).map_err(|e| Error::Io(e))?;
+                let retry = Command::new("gh")
+                    .args(&args)
+                    .output()
+                    .map_err(|e| Error::Io(e))?;
+                let _ = fs::remove_file(&temp_path);
+                if retry.status.success() {
+                    tracing::info!("Review posted after sanitization retry");
+                    return Ok(());
+                }
+                let retry_stderr = String::from_utf8_lossy(&retry.stderr).to_string();
+                let retry_stdout = String::from_utf8_lossy(&retry.stdout).to_string();
+                tracing::error!(
+                    "gh pr comment retry failed - stderr: {}",
+                    retry_stderr.trim()
+                );
+                return Err(Error::GhCommandFailed {
+                    exit_code: retry.status.code().unwrap_or(-1),
+                    stdout: retry_stdout,
+                    stderr: retry_stderr,
+                });
+            } else {
+                tracing::warn!(
+                    "gh-validator reported emoji rejection but no emojis found in body; not retrying"
+                );
+            }
+        }
+
+        let _ = fs::remove_file(&temp_path);
+        Err(Error::GhCommandFailed {
+            exit_code: output.status.code().unwrap_or(-1),
+            stdout,
+            stderr,
+        })
     }
 }
 
