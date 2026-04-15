@@ -760,7 +760,10 @@ Comments to analyze:
                 let retry = Command::new("gh")
                     .args(&args)
                     .output()
-                    .map_err(|e| Error::Io(e))?;
+                    .map_err(|e| {
+                        let _ = fs::remove_file(&temp_path);
+                        Error::Io(e)
+                    })?;
                 let _ = fs::remove_file(&temp_path);
                 if retry.status.success() {
                     tracing::info!("Review posted after sanitization retry");
