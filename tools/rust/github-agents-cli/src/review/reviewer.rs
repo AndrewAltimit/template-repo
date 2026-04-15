@@ -726,10 +726,10 @@ Comments to analyze:
             args.push(repo);
         }
 
-        let output = Command::new("gh")
-            .args(&args)
-            .output()
-            .map_err(|e| Error::Io(e))?;
+        let output = Command::new("gh").args(&args).output().map_err(|e| {
+            let _ = fs::remove_file(&temp_path);
+            Error::Io(e)
+        })?;
 
         if output.status.success() {
             let _ = fs::remove_file(&temp_path);
