@@ -753,7 +753,10 @@ Comments to analyze:
                     "Sanitizing review after gh-validator rejection: replaced {} emoji character(s), retrying",
                     replaced
                 );
-                fs::write(&temp_path, &sanitized).map_err(|e| Error::Io(e))?;
+                if let Err(e) = fs::write(&temp_path, &sanitized) {
+                    let _ = fs::remove_file(&temp_path);
+                    return Err(Error::Io(e));
+                }
                 let retry = Command::new("gh")
                     .args(&args)
                     .output()
