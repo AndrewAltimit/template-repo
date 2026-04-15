@@ -24,6 +24,7 @@ pub mod editor;
 pub mod prompt;
 pub mod reactions;
 pub mod reviewer;
+pub mod sanitize;
 pub mod verification;
 
 pub use config::PRReviewConfig;
