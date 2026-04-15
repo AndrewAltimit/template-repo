@@ -17,7 +17,19 @@ const EMOJI_RANGES: [(u32, u32); 8] = [
     (0x1FA70, 0x1FAFF), // Symbols and Pictographs Extended-A
 ];
 
+/// Invisible joiner/selector codepoints that glue emoji sequences together.
+///
+/// Not in `EMOJI_RANGES` (and not rejected by gh-validator) but if we strip
+/// the visible parts of a ZWJ sequence like `\u{1F468}\u{200D}\u{1F4BB}`
+/// (man technologist) we'd leave orphan invisible controls in the output.
+/// Strip them alongside the visible emoji for clean output.
+const ZERO_WIDTH_JOINER: char = '\u{200D}';
+const VARIATION_SELECTOR_16: char = '\u{FE0F}';
+
 fn is_emoji(ch: char) -> bool {
+    if ch == ZERO_WIDTH_JOINER || ch == VARIATION_SELECTOR_16 {
+        return true;
+    }
     let cp = ch as u32;
     EMOJI_RANGES
         .iter()
@@ -107,6 +119,27 @@ mod tests {
             "ERROR: Unicode emoji detected: '\u{2705}' (U+2705)"
         ));
         assert!(!is_sanitizable_failure("network timeout"));
+    }
+
+    #[test]
+    fn strips_zwj_sequence_cleanly() {
+        // Man technologist: man + ZWJ + laptop. We don't have either visible
+        // emoji mapped, so both become "" — but the ZWJ must also be stripped
+        // so no invisible orphan is left behind.
+        let input = "author \u{1F468}\u{200D}\u{1F4BB} shipped it";
+        let (out, n) = strip_emojis(input);
+        assert_eq!(n, 3);
+        assert_eq!(out, "author  shipped it");
+    }
+
+    #[test]
+    fn strips_variation_selector() {
+        // Warning sign with VS16 emoji presentation: U+26A0 U+FE0F.
+        // U+26A0 maps to "[WARN]"; VS16 must be stripped too.
+        let input = "heads up \u{26A0}\u{FE0F} here";
+        let (out, n) = strip_emojis(input);
+        assert_eq!(n, 2);
+        assert_eq!(out, "heads up [WARN] here");
     }
 
     #[test]
