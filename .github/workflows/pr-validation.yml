@@ -39,7 +39,7 @@ jobs:
   # Fork PRs could execute arbitrary code on the runner. This job gates all others.
   fork-guard:
     name: Fork PR Guard
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     if: >-
       github.event_name != 'pull_request' ||
       github.event.pull_request.head.repo.full_name == github.repository
