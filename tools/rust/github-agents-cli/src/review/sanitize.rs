@@ -67,10 +67,13 @@ pub fn strip_emojis(text: &str) -> (String, usize) {
 /// Best-effort detection of a gh-validator rejection in stderr.
 ///
 /// Used to decide whether a failed `gh pr comment` invocation is worth
-/// retrying after sanitization.
+/// retrying after sanitization. Matches the exact validator error prefix
+/// so unrelated errors that happen to mention "emoji" (e.g. a dependency
+/// complaining about emoji font parsing) don't trigger a pointless retry.
 pub fn is_sanitizable_failure(stderr: &str) -> bool {
-    let s = stderr.to_ascii_lowercase();
-    s.contains("unicode emoji detected") || s.contains("unicode emoji") || s.contains("emoji")
+    stderr
+        .to_ascii_lowercase()
+        .contains("unicode emoji detected")
 }
 
 #[cfg(test)]
@@ -104,5 +107,15 @@ mod tests {
             "ERROR: Unicode emoji detected: '\u{2705}' (U+2705)"
         ));
         assert!(!is_sanitizable_failure("network timeout"));
+    }
+
+    #[test]
+    fn ignores_unrelated_emoji_mentions() {
+        // Must not false-positive on errors that merely mention "emoji"
+        // but aren't the gh-validator rejection we know how to recover from.
+        assert!(!is_sanitizable_failure("custom emoji font missing"));
+        assert!(!is_sanitizable_failure(
+            "emoji parsing failed in dependency"
+        ));
     }
 }
