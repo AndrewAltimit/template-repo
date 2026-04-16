@@ -181,6 +181,8 @@ pub fn run(args: PrecommitArgs) -> Result<()> {
         if args.fail_on_error {
             bail!("precommit checks failed: {}", failed_names.join(", "));
         }
+    } else {
+        project::set_github_output("precommit_failed_checks", "");
     }
 
     Ok(())
