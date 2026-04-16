@@ -579,6 +579,7 @@ jobs:
           ref: ${{ github.head_ref }}
 
       - name: Clean working directory
+        shell: bash
         run: |
           git checkout -- . 2>/dev/null || true
           git clean -fd 2>/dev/null || true
@@ -594,6 +595,7 @@ jobs:
 
       - name: Skip if max iterations reached
         if: steps.iteration.outputs.exceeded_max == 'true'
+        shell: bash
         run: |
           echo "Max iterations reached. Manual intervention required."
           exit 0
@@ -610,6 +612,7 @@ jobs:
       - name: Run agent review response
         id: agent-fix
         if: steps.iteration.outputs.should_skip != 'true'
+        shell: bash
         env:
           CLAUDE_SECURITY_REVIEW_PATH: claude-security-review.md
           CLAUDE_QUALITY_REVIEW_PATH: claude-quality-review.md
@@ -657,6 +660,7 @@ jobs:
           ref: ${{ github.head_ref }}
 
       - name: Clean working directory
+        shell: bash
         run: |
           git checkout -- . 2>/dev/null || true
           git clean -fd 2>/dev/null || true
@@ -672,6 +676,7 @@ jobs:
 
       - name: Skip if max iterations reached
         if: steps.iteration.outputs.exceeded_max == 'true'
+        shell: bash
         run: |
           echo "Max iterations reached. Manual intervention required."
           exit 0
@@ -679,6 +684,7 @@ jobs:
       - name: Run agent failure handler
         id: agent-fix
         if: steps.iteration.outputs.exceeded_max != 'true'
+        shell: bash
         env:
           BRANCH_NAME: ${{ github.head_ref }}
           ITERATION_COUNT: ${{ steps.iteration.outputs.iteration_count }}
@@ -709,6 +715,7 @@ jobs:
     runs-on: self-hosted
     steps:
       - name: Generate status summary
+        shell: bash
         run: |
           echo "## PR Validation Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
@@ -1193,7 +1200,7 @@ github-agents iteration-check --pr 1 --agent-type review-fix --max-iterations 5 
 
 ### Windows-specific: bash scripts fail
 
-The composite actions use `shell: bash`. On Windows runners, this requires Git Bash (installed with Git for Windows) or WSL. GitHub Actions on Windows defaults to PowerShell, but composite actions with `shell: bash` use Git Bash automatically if Git is installed.
+The composite actions and several workflow-level `run:` steps use `shell: bash`. On Windows runners, this requires Git Bash (installed with Git for Windows) or WSL. GitHub Actions on Windows defaults to PowerShell, but steps with `shell: bash` use Git Bash automatically if Git is installed. If you add new `run:` steps to jobs on `self-hosted` runners, always include `shell: bash`.
 
 ### Updating the CLI tools
 
