@@ -76,9 +76,9 @@ pub fn run(args: RespondArgs) -> Result<()> {
     truncate_in_place(&mut review_content, MAX_REVIEW_CONTENT_CHARS);
     output::info(&format!("Review content: {} chars", review_content.len()));
 
-    // Step 1: Run autoformat
-    output::header("Step 1: Running autoformat");
-    let _ = process::run("./automation/ci-cd/run-ci.sh", &["autoformat"]);
+    // Step 1: Run precommit autoformat (formats + restages changed files)
+    output::header("Step 1: Running precommit autoformat");
+    run_precommit_autoformat();
 
     // Step 2: Invoke Claude
     output::header("Step 2: Invoking Claude for review feedback");
@@ -97,8 +97,29 @@ pub fn run(args: RespondArgs) -> Result<()> {
     let claude_outcome = run_claude_streamed(&prompt, args.iteration)?;
     let claude_output = claude_outcome.text.clone();
 
-    // Step 3: Check for changes
-    output::header("Step 3: Checking for changes");
+    // Step 3: Run precommit checks (autoformat + lint)
+    output::header("Step 3: Running precommit checks");
+    run_precommit_autoformat();
+
+    // Capture lint failures so we can feed them back to Claude if needed
+    let lint_failures = run_precommit_lint_capture();
+    if !lint_failures.is_empty() {
+        output::warn("Precommit lint check found issues -- invoking Claude to fix");
+        let lint_fix_prompt = format!(
+            "The following lint/format issues were found after your changes. \
+             Please fix them. Make only the minimal changes needed to resolve these errors.\n\n\
+             ## Lint Failures\n\n{lint_failures}\n\n\
+             Fix these issues now using the Edit tool. Do NOT add comments explaining \
+             the fixes -- just apply the minimal correction."
+        );
+        let _ = run_claude_streamed(&lint_fix_prompt, args.iteration);
+
+        // Re-run autoformat + restage after lint fixes
+        run_precommit_autoformat();
+    }
+
+    // Stage everything and check for changes
+    output::header("Step 4: Checking for changes");
     process::run("git", &["add", "-A"])?;
 
     let has_changes = !process::run_check("git", &["diff", "--cached", "--quiet"])?;
@@ -204,7 +225,7 @@ fn commit_and_push(args: &RespondArgs, summary: &str) -> Result<()> {
     let display_iter = args.iteration + 1;
     let commit_msg = format!(
         "fix: address AI review feedback (iteration {})\n\n\
-         Automated fix by Claude in response to Gemini/Codex review.\n\n\
+         Automated fix by Claude in response to AI review feedback.\n\n\
          Iteration: {}/{}\n\n\
          Co-Authored-By: AI Review Agent <noreply@anthropic.com>",
         display_iter, display_iter, args.max_iterations
@@ -234,7 +255,7 @@ fn commit_and_push(args: &RespondArgs, summary: &str) -> Result<()> {
     // Push with verification: git push alone is unreliable (can exit 0 while the
     // remote ref is unchanged). push_and_verify confirms via ls-remote that the
     // commit actually landed, handles non-fast-forward by rebasing, and retries.
-    output::header("Step 4: Pushing changes");
+    output::header("Step 5: Pushing changes");
     let branch = args.branch.clone();
     let initial_sha = commit_full.clone();
     let push_result = temporarily_disable_pre_push_hook(|| push_and_verify(&branch, &initial_sha));
@@ -575,20 +596,31 @@ fn build_prompt(
         args.iteration, args.max_iterations
     );
 
-    if args.iteration >= 3 {
+    if args.iteration >= 4 {
         prompt.push_str(
-            "**IMPORTANT: This PR has already been through multiple review cycles.**\n\
+            "**IMPORTANT: This PR has already been through many review cycles.**\n\
              At this point, only fix issues that meet the HIGH SEVERITY threshold:\n\
              - Security vulnerabilities (injection, auth bypass, data exposure)\n\
              - Crashes or data corruption bugs\n\
              - Build/test failures\n\n\
              Do NOT fix: minor style issues, speculative edge cases, theoretical improvements.\n\n",
         );
+    } else if args.iteration >= 3 {
+        prompt.push_str(
+            "**NOTE: This PR has been through several review cycles.**\n\
+             Focus on issues with clear, demonstrable impact:\n\
+             - Security vulnerabilities and correctness bugs\n\
+             - Build/test failures\n\
+             - Logic errors that produce wrong results\n\
+             - Resource leaks or error-handling gaps at trust boundaries\n\n\
+             Skip: style preferences, speculative edge cases, theoretical improvements \
+             with no concrete failure scenario.\n\n",
+        );
     }
 
     prompt.push_str(
         "## Your Task\n\
-         Review the feedback from Gemini and Codex below, and fix legitimate issues.\n\n\
+         Review the feedback from the AI reviewers below, and fix legitimate issues.\n\n\
          ## How to Work\n\
          1. **Read the files first** - Use the Read tool to examine any file mentioned\n\
          2. **Verify claims** - Check if the reported issue actually exists\n\
@@ -1164,6 +1196,63 @@ fn write_temp_file(content: &str) -> Result<String> {
     let path = std::env::temp_dir().join(format!("automation-cli-{}-{n}", std::process::id()));
     std::fs::write(&path, content)?;
     Ok(path.to_string_lossy().to_string())
+}
+
+/// Run autoformat via the precommit module and restage changed files.
+/// Errors are logged but not fatal -- formatting is best-effort.
+fn run_precommit_autoformat() {
+    let _ = process::run("./automation/ci-cd/run-ci.sh", &["autoformat"]);
+    // Restage everything so format changes are included
+    let _ = process::run("git", &["add", "-A"]);
+}
+
+/// Run lint checks and capture error output for agent feedback.
+/// Returns the error output string (empty if all checks pass).
+fn run_precommit_lint_capture() -> String {
+    use std::process::{Command, Stdio};
+
+    let stages = ["lint-basic"];
+    let mut errors = String::new();
+
+    for stage in &stages {
+        let result = Command::new("./automation/ci-cd/run-ci.sh")
+            .arg(stage)
+            .stdin(Stdio::null())
+            .stdout(Stdio::piped())
+            .stderr(Stdio::piped())
+            .output();
+
+        if let Ok(output) = result
+            && !output.status.success()
+        {
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            let combined = format!("{stdout}{stderr}");
+            let relevant: Vec<&str> = combined
+                .lines()
+                .filter(|l| {
+                    let lower = l.to_lowercase();
+                    lower.contains("error")
+                        || lower.contains("warning")
+                        || lower.contains("failed")
+                        || lower.contains("unused")
+                        || lower.contains("undefined")
+                        || lower.contains("mismatched")
+                })
+                .take(150)
+                .collect();
+            if !relevant.is_empty() {
+                if !errors.is_empty() {
+                    errors.push('\n');
+                }
+                errors.push_str(&format!("### {stage} failures:\n"));
+                errors.push_str(&relevant.join("\n"));
+                errors.push('\n');
+            }
+        }
+    }
+
+    errors
 }
 
 #[cfg(test)]

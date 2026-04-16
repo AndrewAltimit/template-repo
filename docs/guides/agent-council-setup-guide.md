@@ -46,11 +46,15 @@ PR opened/updated
     |         uses OpenRouter HTTP API          |
     |                                           v
     +---> [agent-review-response job]   --> automation-cli review respond <PR> <BRANCH> <ITER> <MAX>
-    |         uses Claude Code CLI to fix       |
+    |         precommit autoformat+lint         |
+    |         + Claude Code CLI to fix          |
     |         issues found by reviewers         v
     +---> [agent-failure-handler job]   --> automation-cli review failure <PR> <BRANCH> <ITER> <MAX> "format,lint,test"
-              uses Claude Code CLI to fix
-              CI failures automatically
+    |         uses Claude Code CLI to fix       |
+    |         CI failures automatically         v
+    +---> (standalone)                  --> automation-cli review precommit --autoformat --lint --test
+              flexible precommit checks
+              for custom agent workflows
 ```
 
 Reviews are **advisory** (non-blocking). CI is **blocking**. The auto-fix agent commits directly to the PR branch.
@@ -1114,11 +1118,20 @@ runs:
    - Downloads all review artifacts from the parallel review jobs
    - Checks iteration count (max 5, extensible via `[CONTINUE]` admin comments)
    - Calls `automation-cli review respond <PR> <BRANCH> <ITER> <MAX>`
-   - This invokes Claude Code with `--dangerously-skip-permissions` to read the reviews, understand the issues, fix the code, and commit+push
+   - Runs precommit autoformat before invoking Claude (formats + restages changed files)
+   - Invokes Claude Code with `--dangerously-skip-permissions` to read the reviews, understand the issues, and fix the code
+   - After Claude's changes, runs precommit checks (autoformat + lint). If lint fails, feeds errors back to Claude for a targeted fix pass
+   - Commits and pushes the result
 2. If CI **fails**, `agent-failure-handler` runs instead:
    - Calls `automation-cli review failure <PR> <BRANCH> <ITER> <MAX> "format,lint,test"`
    - Claude reads the CI logs, fixes the issues, commits+pushes
-3. The push triggers a new workflow run, creating a feedback loop until:
+3. Standalone precommit checks are also available for custom workflows:
+   - `automation-cli review precommit --autoformat` -- format + restage
+   - `automation-cli review precommit --lint` -- run lint checks, report failures
+   - `automation-cli review precommit --test` -- run tests, report failures
+   - `automation-cli review precommit --stage <stages>` -- run arbitrary CI stages
+   - Combine flags freely: `--autoformat --lint --test --fail-on-error`
+4. The push triggers a new workflow run, creating a feedback loop until:
    - Everything passes, or
    - The iteration limit is reached (default 5)
 
@@ -1128,6 +1141,8 @@ runs:
 |-----------|---------|
 | Fork guard | Blocks fork PRs from self-hosted runners |
 | Iteration limit | Max 5 auto-fix attempts per agent type per PR |
+| Severity taper | Iteration 3: medium-severity only; iteration 4+: critical-only |
+| Precommit checks | Autoformat + lint run before and after agent changes |
 | `[CONTINUE]` comments | Admins can extend the limit |
 | `no-auto-fix` label | Disables auto-fix entirely for a PR |
 | `AGENT_TOKEN` | Separate PAT scoped to only what the fix agent needs |

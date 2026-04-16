@@ -118,9 +118,10 @@ pub fn run(args: FailureArgs) -> Result<()> {
         if has_test_failure { "test-suite" } else { "" }
     ));
 
-    // Step 1: Autoformat
+    // Step 1: Autoformat + restage
     output::header("Step 1: Running autoformat");
     let _ = process::run("./automation/ci-cd/run-ci.sh", &["autoformat"]);
+    // Restage so format changes are included in the diff
     process::run("git", &["add", "-A"])?;
 
     // Step 2: Capture remaining lint errors

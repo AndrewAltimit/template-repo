@@ -1,5 +1,5 @@
 name: 'PR Review Fix'
-description: 'Apply fixes based on AI review feedback from Claude, OpenRouter, Gemini, and Codex reviews'
+description: 'Apply fixes based on AI review feedback with precommit checks (autoformat + lint) before and after agent changes'
 
 inputs:
   pr_number:
