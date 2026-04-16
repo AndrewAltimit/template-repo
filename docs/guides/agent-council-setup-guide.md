@@ -426,7 +426,10 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # Block fork PRs from self-hosted runners (security)
+  # Block fork PRs from self-hosted runners (security).
+  # When this job skips, all downstream jobs that `needs: fork-guard` also
+  # skip -- UNLESS they use `if: always()`, which bypasses skip propagation.
+  # Any job using always() must include its own fork check.
   fork-guard:
     name: Fork PR Guard
     runs-on: ubuntu-latest
@@ -552,9 +555,12 @@ jobs:
   agent-review-response:
     name: Agent Review Response
     needs: [ci, claude-security-review, claude-quality-review, openrouter-review]
+    # NOTE: always() bypasses the fork-guard skip cascade, so we must
+    # re-check the fork condition here to avoid running on fork PRs.
     if: |
       always() &&
       !cancelled() &&
+      github.event.pull_request.head.repo.full_name == github.repository &&
       github.event_name == 'pull_request' &&
       !github.event.pull_request.draft &&
       !contains(github.event.pull_request.labels.*.name, 'no-auto-fix')
@@ -695,7 +701,11 @@ jobs:
   pr-status:
     name: PR Status Summary
     needs: [ci, claude-security-review, claude-quality-review, openrouter-review, agent-review-response, agent-failure-handler]
-    if: always()
+    # NOTE: If you renamed the placeholder 'ci' job, update the 'needs' list
+    # and all 'needs.ci.result' references below.
+    if: >-
+      always() &&
+      github.event.pull_request.head.repo.full_name == github.repository
     runs-on: self-hosted
     steps:
       - name: Generate status summary
@@ -1019,8 +1029,10 @@ runs:
 
         # Fallback: count agent metadata comments
         echo "Falling back to comment-based counting..."
+        # Use test() with :iteration=\d+ to match only iteration comments,
+        # excluding the :limit-reached notification comment.
         ITERATION_COUNT=$(gh api "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments" \
-          --paginate --jq "[.[] | select(.body | contains(\"agent-metadata:type=${AGENT_TYPE}\"))] | length" \
+          --paginate --jq "[.[] | select(.body | test(\"agent-metadata:type=${AGENT_TYPE}:iteration=[0-9]\")) | select(.body | test(\"limit-reached\") | not)] | length" \
           2>/dev/null || echo "0")
 
         # NOTE: This fallback only counts [CONTINUE] from repo admins/owners.
