@@ -118,10 +118,11 @@ pub fn run(args: FailureArgs) -> Result<()> {
         if has_test_failure { "test-suite" } else { "" }
     ));
 
-    // Step 1: Autoformat
+    // Step 1: Autoformat + restage
     output::header("Step 1: Running autoformat");
-    let _ = process::run("./automation/ci-cd/run-ci.sh", &["autoformat"]);
-    process::run("git", &["add", "-A"])?;
+    if let Err(e) = super::precommit::run_autoformat_and_restage() {
+        output::warn(&format!("Autoformat/restage failed (non-fatal): {e}"));
+    }
 
     // Step 2: Capture remaining lint errors
     output::header("Step 2: Checking for remaining lint issues");
@@ -175,7 +176,7 @@ pub fn run(args: FailureArgs) -> Result<()> {
 
     // Step 4: Commit
     output::header("Step 4: Checking for changes");
-    process::run("git", &["add", "-A"])?;
+    process::run("git", &["add", "-u"])?;
 
     if process::run_check("git", &["diff", "--cached", "--quiet"])? {
         output::info("No changes to commit");
