@@ -1038,14 +1038,19 @@ runs:
         echo "Falling back to comment-based counting..."
         # Use test() with :iteration=\d+ to match only iteration comments,
         # excluding the :limit-reached notification comment.
+        # NOTE: --jq is NOT used with --paginate because gh applies --jq per-page,
+        # producing one integer per page (e.g., "2\n1\n0") instead of a single total.
+        # Pipe to external jq -s for correct cross-page aggregation.
         ITERATION_COUNT=$(gh api "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments" \
-          --paginate --jq "[.[] | select(.body | test(\"agent-metadata:type=${AGENT_TYPE}:iteration=[0-9]\")) | select(.body | test(\"limit-reached\") | not)] | length" \
+          --paginate \
+          | jq -s "[.[][] | select(.body | test(\"agent-metadata:type=${AGENT_TYPE}:iteration=[0-9]\")) | select(.body | test(\"limit-reached\") | not)] | length" \
           2>/dev/null || echo "0")
 
         # NOTE: This fallback only counts [CONTINUE] from repo admins/owners.
         # The CLI path (above) uses the agent_admins list from .agents.yaml.
         CONTINUE_COUNT=$(gh api "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments" \
-          --paginate --jq '[.[] | select(.body | test("\\[CONTINUE\\]")) | select(.author_association == "OWNER" or .author_association == "COLLABORATOR")] | length' \
+          --paginate \
+          | jq -s '[.[][] | select(.body | test("\\[CONTINUE\\]")) | select(.author_association == "OWNER" or .author_association == "COLLABORATOR")] | length' \
           2>/dev/null || echo "0")
 
         # Each [CONTINUE] grants another MAX_ITERATIONS worth of runs:
