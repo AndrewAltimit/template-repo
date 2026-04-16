@@ -1045,7 +1045,7 @@ runs:
         # NOTE: This fallback only counts [CONTINUE] from repo admins/owners.
         # The CLI path (above) uses the agent_admins list from .agents.yaml.
         CONTINUE_COUNT=$(gh api "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments" \
-          --paginate --jq '[.[] | select(.body | test("\\[CONTINUE\\]")) | select(.author_association == "OWNER" or .author_association == "ADMIN")] | length' \
+          --paginate --jq '[.[] | select(.body | test("\\[CONTINUE\\]")) | select(.author_association == "OWNER" or .author_association == "COLLABORATOR")] | length' \
           2>/dev/null || echo "0")
 
         # Each [CONTINUE] grants another MAX_ITERATIONS worth of runs:
