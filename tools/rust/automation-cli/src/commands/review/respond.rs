@@ -118,9 +118,9 @@ pub fn run(args: RespondArgs) -> Result<()> {
         run_precommit_autoformat();
     }
 
-    // Stage everything and check for changes
+    // Stage modifications to tracked files (avoid staging untracked temp files/artifacts)
     output::header("Step 4: Checking for changes");
-    process::run("git", &["add", "-A"])?;
+    process::run("git", &["add", "-u"])?;
 
     let has_changes = !process::run_check("git", &["diff", "--cached", "--quiet"])?;
 
@@ -173,7 +173,7 @@ pub fn run(args: RespondArgs) -> Result<()> {
             );
 
             let retry_outcome = run_claude_streamed(&retry_prompt, args.iteration)?;
-            process::run("git", &["add", "-A"])?;
+            process::run("git", &["add", "-u"])?;
             let retry_has_changes = !process::run_check("git", &["diff", "--cached", "--quiet"])?;
             let retry_summary = extract_agent_summary(&retry_outcome.text);
 
@@ -1201,54 +1201,31 @@ fn write_temp_file(content: &str) -> Result<String> {
 /// Run autoformat via the precommit module and restage changed files.
 /// Errors are logged but not fatal -- formatting is best-effort.
 fn run_precommit_autoformat() {
-    let _ = process::run("./automation/ci-cd/run-ci.sh", &["autoformat"]);
-    // Restage everything so format changes are included
-    let _ = process::run("git", &["add", "-A"]);
+    if let Err(e) = super::precommit::run_autoformat_and_restage() {
+        output::warn(&format!("Autoformat/restage failed (non-fatal): {e}"));
+    }
 }
 
 /// Run lint checks and capture error output for agent feedback.
 /// Returns the error output string (empty if all checks pass).
 fn run_precommit_lint_capture() -> String {
-    use std::process::{Command, Stdio};
-
     let stages = ["lint-basic"];
     let mut errors = String::new();
 
     for stage in &stages {
-        let result = Command::new("./automation/ci-cd/run-ci.sh")
-            .arg(stage)
-            .stdin(Stdio::null())
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .output();
-
-        if let Ok(output) = result
-            && !output.status.success()
-        {
-            let stdout = String::from_utf8_lossy(&output.stdout);
-            let stderr = String::from_utf8_lossy(&output.stderr);
-            let combined = format!("{stdout}{stderr}");
-            let relevant: Vec<&str> = combined
-                .lines()
-                .filter(|l| {
-                    let lower = l.to_lowercase();
-                    lower.contains("error")
-                        || lower.contains("warning")
-                        || lower.contains("failed")
-                        || lower.contains("unused")
-                        || lower.contains("undefined")
-                        || lower.contains("mismatched")
-                })
-                .take(150)
-                .collect();
-            if !relevant.is_empty() {
+        match super::precommit::run_ci_stage_captured(stage) {
+            Ok(check) if !check.passed => {
                 if !errors.is_empty() {
                     errors.push('\n');
                 }
                 errors.push_str(&format!("### {stage} failures:\n"));
-                errors.push_str(&relevant.join("\n"));
+                errors.push_str(&check.error_output);
                 errors.push('\n');
-            }
+            },
+            Err(e) => {
+                output::warn(&format!("Failed to run {stage}: {e}"));
+            },
+            _ => {},
         }
     }
 

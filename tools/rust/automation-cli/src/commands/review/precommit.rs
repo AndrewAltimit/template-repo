@@ -186,7 +186,7 @@ pub fn run(args: PrecommitArgs) -> Result<()> {
 
 /// Run autoformat via the CI stage, then restage any files that were modified.
 /// Returns the number of files restaged.
-fn run_autoformat_and_restage() -> Result<u32> {
+pub(super) fn run_autoformat_and_restage() -> Result<u32> {
     // Capture the set of currently-staged files before formatting
     let staged_before = get_staged_files()?;
 
@@ -246,7 +246,7 @@ fn run_ci_stage(stage: &str) -> bool {
 
 /// Run a CI stage and capture its output for error reporting.
 /// Returns a CheckResult with the stage name, pass/fail, and filtered error lines.
-fn run_ci_stage_captured(stage: &str) -> Result<CheckResult> {
+pub(super) fn run_ci_stage_captured(stage: &str) -> Result<CheckResult> {
     let raw = Command::new("./automation/ci-cd/run-ci.sh")
         .arg(stage)
         .stdin(Stdio::null())
