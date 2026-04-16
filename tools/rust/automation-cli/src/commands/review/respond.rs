@@ -134,91 +134,106 @@ pub fn run(args: RespondArgs) -> Result<()> {
 
     let summary = extract_agent_summary(&claude_output);
 
+    if !has_changes && summary_claims_fixes(&summary) {
+        // Claude claimed fixes but produced no git diff. Two scenarios:
+        // (a) Hard hallucination: zero file-mutating tool calls — Claude
+        //     didn't even try to edit files.
+        // (b) Soft hallucination: Claude called Edit but the content was
+        //     identical (e.g., a prior iteration already applied the fix).
+        //
+        // In both cases, retry with concrete context: show Claude the diff
+        // from the prior iteration so it can distinguish "already fixed"
+        // from "still needs work." This is much more effective than the
+        // generic "you didn't modify files" prompt.
+        let is_hard = claude_outcome.edited_files.is_empty();
+        let label = if is_hard { "hard" } else { "soft" };
+        output::warn(&format!(
+            "Agent {label} hallucination: claimed Fixed Issues but git diff is empty \
+             ({} file-mutating tool calls) — retrying with prior-diff context",
+            claude_outcome.edited_files.len()
+        ));
+
+        // Get the diff from the prior iteration commit so Claude can see
+        // what was already changed. This is the key context that prevents
+        // the agent from re-claiming fixes it didn't make.
+        let prior_diff = get_prior_iteration_diff();
+
+        let retry_prompt = format!(
+            "## IMPORTANT: Your previous attempt produced NO file changes\n\n\
+             Your summary claimed to fix issues, but `git diff` shows zero changes. \
+             This means either:\n\
+             1. The issues were **already fixed** by a prior iteration (most likely)\n\
+             2. Your Edit calls wrote identical content (a no-op)\n\
+             3. You forgot to call Edit\n\n\
+             {prior_diff}\n\n\
+             ## What you must do now\n\n\
+             1. Read each file mentioned in the review feedback\n\
+             2. Check if the issue ALREADY exists in the current code or was already fixed\n\
+             3. If already fixed: list under **Ignored Issues** as \"already resolved\"\n\
+             4. If still present: fix it with the Edit tool\n\
+             5. Do NOT list anything under **Fixed Issues** unless you made an Edit call \
+                that actually changes the file content\n\
+             6. Do NOT invent commit SHAs — the tooling handles git\n\n\
+             ## Review Feedback\n\n{review_content}\n\n\
+             ## REQUIRED: Output Summary Format\n\n\
+             ---AGENT-SUMMARY-START---\n\
+             ### Fixed Issues\n- ...\n\
+             ### Ignored Issues\n- ...\n\
+             ### Deferred to Human\n- ...\n\
+             ### Notes\n- ...\n\
+             ---AGENT-SUMMARY-END---\n"
+        );
+
+        let retry_outcome = run_claude_streamed(&retry_prompt, args.iteration)?;
+        process::run("git", &["add", "-u"])?;
+        let retry_has_changes = !process::run_check("git", &["diff", "--cached", "--quiet"])?;
+        let retry_summary = extract_agent_summary(&retry_outcome.text);
+
+        if retry_has_changes {
+            output::info("Retry produced actual file changes");
+            return commit_and_push(
+                &args,
+                &if retry_summary.is_empty() {
+                    summary
+                } else {
+                    retry_summary
+                },
+            );
+        }
+
+        // Still no changes after retry. If the retry summary no longer
+        // claims fixes (i.e., Claude correctly categorized everything as
+        // "Ignored Issues"), that's actually a success — post a clean
+        // "no changes needed" comment instead of the hallucination warning.
+        let final_summary = if retry_summary.is_empty() {
+            summary.clone()
+        } else {
+            retry_summary.clone()
+        };
+
+        if !retry_summary.is_empty() && !summary_claims_fixes(&retry_summary) {
+            output::info("Retry correctly identified no changes needed");
+            post_decision_comment(args.pr_number, args.iteration, false, "", &final_summary)?;
+            report_no_commit();
+            return Ok(());
+        }
+
+        // Retry still hallucinating — post warning.
+        output::warn("Retry still produced no file changes with claimed fixes");
+        post_hallucination_comment(
+            args.pr_number,
+            args.iteration,
+            &final_summary,
+            retry_outcome
+                .stream_log_path
+                .as_deref()
+                .or(claude_outcome.stream_log_path.as_deref()),
+        )?;
+        report_no_commit();
+        return Ok(());
+    }
+
     if !has_changes {
-        // Definitive hallucination: summary lists Fixed Issues but Claude made
-        // ZERO file-mutating tool calls during the run. Don't bother retrying —
-        // the retry uses the same prompting strategy Claude already ignored,
-        // and prior iterations show it just hallucinates a second time. Post
-        // an explicit warning, attach the stream-json log for post-mortem,
-        // and exit cleanly so the PR isn't blocked.
-        if summary_claims_fixes(&summary) && claude_outcome.edited_files.is_empty() {
-            output::warn(
-                "Agent hallucinated: claimed Fixed Issues with ZERO file-mutating tool calls",
-            );
-            post_hallucination_comment(
-                args.pr_number,
-                args.iteration,
-                &summary,
-                claude_outcome.stream_log_path.as_deref(),
-            )?;
-            report_no_commit();
-            return Ok(());
-        }
-
-        // Soft hallucination: summary claims fixes, no files changed, but
-        // Claude DID make some tool calls (maybe edits that produced no diff,
-        // or edits to files outside the repo). Retry once with a pointed
-        // correction prompt — this still helps when Claude was mid-task.
-        if summary_claims_fixes(&summary) {
-            output::warn("Agent summary claims fixed issues but git diff is empty — retrying once");
-
-            let retry_prompt = format!(
-                "Your previous response claimed to fix issues but did NOT actually modify any files.\n\n\
-                 Your summary said:\n{summary}\n\n\
-                 However, `git diff` shows zero changes. You MUST use the Edit tool to \
-                 actually modify the source files, not just describe the changes.\n\n\
-                 Please re-read the relevant files and apply the fixes now. If you determine \
-                 the issues don't need fixing, move them to \"Ignored Issues\" instead of \
-                 \"Fixed Issues\".\n\n\
-                 ## Review Feedback\n\n{review_content}\n\n\
-                 ## REQUIRED: Output Summary Format\n\n\
-                 ---AGENT-SUMMARY-START---\n\
-                 ### Fixed Issues\n- ...\n\
-                 ### Ignored Issues\n- ...\n\
-                 ### Deferred to Human\n- ...\n\
-                 ### Notes\n- ...\n\
-                 ---AGENT-SUMMARY-END---\n"
-            );
-
-            let retry_outcome = run_claude_streamed(&retry_prompt, args.iteration)?;
-            process::run("git", &["add", "-u"])?;
-            let retry_has_changes = !process::run_check("git", &["diff", "--cached", "--quiet"])?;
-            let retry_summary = extract_agent_summary(&retry_outcome.text);
-
-            if retry_has_changes {
-                output::info("Retry produced actual file changes");
-                // Fall through to the commit/push path below with the retry summary
-                return commit_and_push(
-                    &args,
-                    &if retry_summary.is_empty() {
-                        summary
-                    } else {
-                        retry_summary
-                    },
-                );
-            }
-
-            // Still no changes after retry — post with explicit warning,
-            // attaching whichever stream log is more informative.
-            let warning_summary = if retry_summary.is_empty() {
-                summary.clone()
-            } else {
-                retry_summary
-            };
-            output::warn("Retry still produced no file changes");
-            post_hallucination_comment(
-                args.pr_number,
-                args.iteration,
-                &warning_summary,
-                retry_outcome
-                    .stream_log_path
-                    .as_deref()
-                    .or(claude_outcome.stream_log_path.as_deref()),
-            )?;
-            report_no_commit();
-            return Ok(());
-        }
-
         output::info("No changes to commit");
         post_decision_comment(args.pr_number, args.iteration, false, "", &summary)?;
         report_no_commit();
@@ -326,6 +341,48 @@ fn commit_and_push(args: &RespondArgs, summary: &str) -> Result<()> {
             Err(e)
         },
     }
+}
+
+/// Get the diff from the most recent agent commit (prior iteration) so the
+/// retry prompt can show Claude what was already changed. Returns a formatted
+/// string suitable for embedding in the prompt, or an empty string if no
+/// prior agent commit is found.
+fn get_prior_iteration_diff() -> String {
+    // Check if the current HEAD is an agent commit.
+    let author = process::run_capture("git", &["log", "-1", "--format=%an"]).unwrap_or_default();
+    let author = author.trim();
+    let is_agent = ["AI Review Agent", "AI Pipeline Agent", "AI Agent Bot"]
+        .iter()
+        .any(|a| *a == author);
+
+    if !is_agent {
+        return String::new();
+    }
+
+    // Get the diff of the prior iteration's commit.
+    let diff = process::run_capture("git", &["diff", "--stat", "HEAD~1..HEAD"]).unwrap_or_default();
+    let diff = diff.trim();
+    if diff.is_empty() {
+        return String::new();
+    }
+
+    // Also get the full diff (truncated) so Claude can see actual changes.
+    let full_diff = process::run_capture("git", &["diff", "HEAD~1..HEAD"]).unwrap_or_default();
+    let mut full_diff = full_diff.trim().to_string();
+    if full_diff.len() > 4000 {
+        let safe = full_diff.floor_char_boundary(4000);
+        full_diff.truncate(safe);
+        full_diff.push_str("\n... (truncated)");
+    }
+
+    format!(
+        "## Prior iteration already made these changes\n\n\
+         The previous agent iteration (HEAD commit by `{author}`) modified:\n\
+         ```\n{diff}\n```\n\n\
+         Full diff:\n```diff\n{full_diff}\n```\n\n\
+         If an issue from the review feedback was addressed by these changes, \
+         it is **already fixed** — list it under Ignored Issues, not Fixed Issues.\n"
+    )
 }
 
 /// Mark the "no commit produced" state unambiguously in GitHub Actions outputs.
