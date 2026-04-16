@@ -169,7 +169,7 @@ pub fn run(args: RespondArgs) -> Result<()> {
              ## What you must do now\n\n\
              1. Read each file mentioned in the review feedback\n\
              2. Check if the issue ALREADY exists in the current code or was already fixed\n\
-             3. If already fixed: list under **Ignored Issues** as \"already resolved\"\n\
+             3. If already fixed: list under **Ignored Issues** as \"already fixed in prior iteration\"\n\
              4. If still present: fix it with the Edit tool\n\
              5. Do NOT list anything under **Fixed Issues** unless you made an Edit call \
                 that actually changes the file content\n\
@@ -356,6 +356,12 @@ fn get_prior_iteration_diff() -> String {
         .any(|a| *a == author);
 
     if !is_agent {
+        return String::new();
+    }
+
+    // Verify HEAD~1 exists (shallow clones may not have it).
+    if !process::run_check("git", &["rev-parse", "--verify", "HEAD~1"]).unwrap_or(false) {
+        output::warn("Prior iteration diff unavailable (shallow clone or initial commit)");
         return String::new();
     }
 
