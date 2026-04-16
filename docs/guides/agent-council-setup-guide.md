@@ -590,7 +590,6 @@ jobs:
         if: steps.iteration.outputs.exceeded_max == 'true'
         run: |
           echo "Max iterations reached. Manual intervention required."
-          echo "made_changes=false" >> $GITHUB_OUTPUT
           exit 0
 
       - name: Download review artifacts
@@ -614,7 +613,6 @@ jobs:
         run: |
           if ! command -v automation-cli &>/dev/null; then
             echo "::warning::automation-cli not found on PATH - skipping review response"
-            echo "made_changes=false" >> $GITHUB_OUTPUT
             exit 0
           fi
 
@@ -630,6 +628,8 @@ jobs:
   agent-failure-handler:
     name: Agent Failure Handler
     needs: [ci, claude-security-review, claude-quality-review, openrouter-review, agent-review-response]
+    # NOTE: 'ci' below must match the job ID of your CI job above.
+    # If you renamed the placeholder 'ci' job, update this reference.
     if: |
       failure() &&
       github.event_name == 'pull_request' &&
@@ -679,7 +679,6 @@ jobs:
         run: |
           if ! command -v automation-cli &>/dev/null; then
             echo "::warning::automation-cli not found on PATH - skipping failure handler"
-            echo "made_changes=false" >> $GITHUB_OUTPUT
             exit 0
           fi
 
@@ -1024,10 +1023,14 @@ runs:
           --paginate --jq "[.[] | select(.body | contains(\"agent-metadata:type=${AGENT_TYPE}\"))] | length" \
           2>/dev/null || echo "0")
 
+        # NOTE: This fallback only counts [CONTINUE] from repo admins/owners.
+        # The CLI path (above) uses the agent_admins list from .agents.yaml.
         CONTINUE_COUNT=$(gh api "repos/$GITHUB_REPOSITORY/issues/$PR_NUMBER/comments" \
-          --paginate --jq '[.[] | select(.body | test("\\[CONTINUE\\]"))] | length' \
+          --paginate --jq '[.[] | select(.body | test("\\[CONTINUE\\]")) | select(.author_association == "OWNER" or .author_association == "ADMIN")] | length' \
           2>/dev/null || echo "0")
 
+        # Each [CONTINUE] grants another MAX_ITERATIONS worth of runs:
+        # e.g., max=5, 1 continue -> effective_max=10, 2 continues -> 15
         EFFECTIVE_MAX=$(( MAX_ITERATIONS + CONTINUE_COUNT * MAX_ITERATIONS ))
         EXCEEDED_MAX="false"
         SHOULD_SKIP="false"
