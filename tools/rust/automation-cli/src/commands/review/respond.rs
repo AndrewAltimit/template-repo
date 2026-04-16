@@ -116,6 +116,14 @@ pub fn run(args: RespondArgs) -> Result<()> {
 
         // Re-run autoformat + restage after lint fixes
         run_precommit_autoformat();
+
+        // Verify lint fixes resolved the issues
+        let remaining = run_precommit_lint_capture();
+        if !remaining.is_empty() {
+            output::warn(
+                "Lint issues remain after fix attempt -- will be caught in next iteration",
+            );
+        }
     }
 
     // Stage modifications to tracked files (avoid staging untracked temp files/artifacts)

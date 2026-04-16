@@ -91,6 +91,8 @@ pub fn run(args: PrecommitArgs) -> Result<()> {
     // Validate that at least one check was requested
     if !args.autoformat && args.lint.is_none() && args.test.is_none() && args.stage.is_none() {
         output::warn("No checks requested (use --autoformat, --lint, --test, or --stage)");
+        project::set_github_output("precommit_passed", "true");
+        project::set_github_output("precommit_autoformat_changed", "0");
         return Ok(());
     }
 
@@ -190,6 +192,16 @@ pub(super) fn run_autoformat_and_restage() -> Result<u32> {
     // Capture the set of currently-staged files before formatting
     let staged_before = get_staged_files()?;
 
+    // Snapshot unstaged tracked files before formatting so we can isolate
+    // formatter-modified files from pre-existing edits afterwards
+    let before_output = process::run_capture("git", &["diff", "--name-only"])?;
+    let unstaged_before: std::collections::HashSet<String> = before_output
+        .lines()
+        .map(str::trim)
+        .filter(|l| !l.is_empty())
+        .map(String::from)
+        .collect();
+
     // Run the autoformat CI stage (ruff format, cargo fmt, etc.)
     let _ = run_ci_stage("autoformat");
 
@@ -207,21 +219,27 @@ pub(super) fn run_autoformat_and_restage() -> Result<u32> {
         restaged = staged_before.len() as u32;
     }
 
-    // Also stage any new untracked changes from autoformat (files that weren't
-    // staged before but were modified by the formatter)
-    let diff_output = process::run_capture("git", &["diff", "--name-only"])?;
-    let unstaged_modified: Vec<&str> = diff_output
+    // Stage tracked files that were modified by the formatter (not previously
+    // unstaged). We compare the unstaged set before/after to isolate changes
+    // the formatter actually made, avoiding sweeping in pre-existing edits.
+    let after_output = process::run_capture("git", &["diff", "--name-only"])?;
+    let unstaged_after: std::collections::HashSet<String> = after_output
         .lines()
         .map(str::trim)
         .filter(|l| !l.is_empty())
+        .map(String::from)
         .collect();
-    if !unstaged_modified.is_empty() {
-        for chunk in unstaged_modified.chunks(100) {
+    let formatter_modified: Vec<&str> = unstaged_after
+        .difference(&unstaged_before)
+        .map(|s| s.as_str())
+        .collect();
+    if !formatter_modified.is_empty() {
+        for chunk in formatter_modified.chunks(100) {
             let mut args = vec!["add", "--"];
             args.extend_from_slice(chunk);
             process::run("git", &args)?;
         }
-        restaged += unstaged_modified.len() as u32;
+        restaged += formatter_modified.len() as u32;
     }
 
     Ok(restaged)
