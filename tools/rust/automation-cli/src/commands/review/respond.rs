@@ -353,7 +353,7 @@ fn get_prior_iteration_diff() -> String {
     let author = author.trim();
     let is_agent = ["AI Review Agent", "AI Pipeline Agent", "AI Agent Bot"]
         .iter()
-        .any(|a| *a == author);
+        .any(|a| a.eq_ignore_ascii_case(author));
 
     if !is_agent {
         return String::new();
