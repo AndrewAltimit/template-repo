@@ -631,16 +631,21 @@ fn build_prompt(
          Review the feedback from the AI reviewers below, and fix legitimate issues.\n\n\
          ## How to Work\n\
          1. **Read the files first** - Use the Read tool to examine any file mentioned\n\
-         2. **Verify claims** - Check if the reported issue actually exists\n\
-         3. **Assess severity** - Is this a real bug or speculative?\n\
-         4. **Fix or skip** - Fix real issues; skip theoretical ones\n\n\
+         2. **Verify claims** - Check if the reported issue actually exists in the current code\n\
+         3. **Check prior fixes** - A previous iteration may have already fixed an issue. \
+         If the code already contains the fix, list it under \"Ignored Issues\" with \
+         \"already fixed in prior iteration\", do NOT list it under \"Fixed Issues\"\n\
+         4. **Assess severity** - Is this a real bug or speculative?\n\
+         5. **Fix or skip** - Fix real issues; skip theoretical ones\n\n\
          ## CRITICAL: You MUST Actually Edit Files\n\
          If you decide to fix an issue, you MUST use the Edit or Write tool to modify \
          the source files. Do NOT just describe or plan changes — apply them. \
          If you list something under \"Fixed Issues\" in your summary, the corresponding \
          file MUST have been modified by an Edit or Write tool call. \
          If you cannot or choose not to modify a file, list that issue under \
-         \"Ignored Issues\" or \"Deferred to Human\" instead.\n\n",
+         \"Ignored Issues\" or \"Deferred to Human\" instead.\n\
+         Do NOT fabricate commit SHAs or claim commits exist — the tooling handles \
+         git operations. Your job is only to edit files and produce the summary.\n\n",
     );
 
     if !claude_md.is_empty() {
