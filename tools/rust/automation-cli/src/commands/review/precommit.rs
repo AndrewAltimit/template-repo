@@ -93,6 +93,7 @@ pub fn run(args: PrecommitArgs) -> Result<()> {
         output::warn("No checks requested (use --autoformat, --lint, --test, or --stage)");
         project::set_github_output("precommit_passed", "true");
         project::set_github_output("precommit_autoformat_changed", "0");
+        project::set_github_output("precommit_failed_checks", "");
         return Ok(());
     }
 
