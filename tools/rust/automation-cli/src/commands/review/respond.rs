@@ -366,14 +366,26 @@ fn get_prior_iteration_diff() -> String {
     }
 
     // Get the diff of the prior iteration's commit.
-    let diff = process::run_capture("git", &["diff", "--stat", "HEAD~1..HEAD"]).unwrap_or_default();
+    let diff = match process::run_capture("git", &["diff", "--stat", "HEAD~1..HEAD"]) {
+        Ok(d) => d,
+        Err(e) => {
+            output::warn(&format!("Failed to get prior iteration diff --stat: {e}"));
+            return String::new();
+        },
+    };
     let diff = diff.trim();
     if diff.is_empty() {
         return String::new();
     }
 
     // Also get the full diff (truncated) so Claude can see actual changes.
-    let full_diff = process::run_capture("git", &["diff", "HEAD~1..HEAD"]).unwrap_or_default();
+    let full_diff = match process::run_capture("git", &["diff", "HEAD~1..HEAD"]) {
+        Ok(d) => d,
+        Err(e) => {
+            output::warn(&format!("Failed to get prior iteration full diff: {e}"));
+            String::new()
+        },
+    };
     let mut full_diff = full_diff.trim().to_string();
     if full_diff.len() > 4000 {
         let safe = full_diff.floor_char_boundary(4000);
