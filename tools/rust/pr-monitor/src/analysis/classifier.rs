@@ -85,13 +85,21 @@ static AI_REVIEW_MARKER_PATTERN: Lazy<Regex> = Lazy::new(|| {
 /// `## OpenRouter AI Code Review`).
 /// Anchored to a line that starts with `##` so status tables and inline
 /// mentions don't false-positive.
+///
+/// NOTE: This pattern requires `AI` to appear BEFORE `Review` on the heading
+/// line, matching the canonical format produced by the review pipeline. A
+/// heading that puts the tokens in the reverse order (e.g.
+/// `## Code Review AI Summary`) will not match. If a future reviewer adopts
+/// such a format, update this pattern accordingly.
 static AI_REVIEW_HEADER_PATTERN: Lazy<Regex> =
     Lazy::new(|| Regex::new(r"(?im)^\s*##[^\n]*\bAI\b[^\n]*\bReview\b").unwrap());
 
-/// Pattern to detect existing agent response to a comment
+/// Pattern to detect existing agent response to a comment.
+/// `(?i)` matches the case-insensitivity of `AI_REVIEW_MARKER_PATTERN` so
+/// mixed-case agent slugs (if ever emitted) are still detected.
 #[allow(dead_code)] // Part of public API for library consumers
 static RESPONSE_MARKER_PATTERN: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"<!-- ai-agent-[a-z0-9_-]+-response:([^>]+) -->").unwrap());
+    Lazy::new(|| Regex::new(r"(?i)<!-- ai-agent-[a-z0-9_-]+-response:([^>]+) -->").unwrap());
 
 /// Pattern to detect [Action][Agent] trigger format
 static TRIGGER_PATTERN: Lazy<Regex> =
