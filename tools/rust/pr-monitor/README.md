@@ -4,12 +4,12 @@
 
 ## Overview
 
-`pr-monitor` watches a GitHub Pull Request for comments from administrators or AI reviewers (like Gemini). When a relevant comment is detected, it outputs a structured JSON decision that can be used by automation tools or AI agents.
+`pr-monitor` watches a GitHub Pull Request for comments from administrators or AI agent reviewers (Claude, OpenRouter, etc.). When a relevant comment is detected, it outputs a structured JSON decision that can be used by automation tools or AI agents.
 
 ## Features
 
 - **Polling-based monitoring** - Checks for new comments at configurable intervals
-- **Intelligent classification** - Categorizes comments as admin commands, admin feedback, Gemini reviews, or CI results
+- **Intelligent classification** - Categorizes comments as admin commands, admin feedback, AI agent reviews, or CI results
 - **Commit-based filtering** - Optionally only monitor comments after a specific commit
 - **JSON output** - Structured output for automation integration
 - **Graceful shutdown** - Handles Ctrl+C for clean interruption
@@ -85,7 +85,7 @@ When a relevant comment is found, the tool outputs a JSON decision:
 |------|--------|---------|----------------|
 | `admin_command` | Admin user | Contains `[ADMIN]` | Yes (High priority) |
 | `admin_comment` | Admin user | Any comment | Yes (Normal priority) |
-| `gemini_review` | github-actions | Contains "Gemini" | Yes (Normal priority) |
+| `ai_agent_review` | github-actions | Standard AI review header (`## {Agent} AI ... Review`) or `<!-- {agent}-review-marker:commit:... -->` | Yes (Normal priority) |
 | `ci_results` | github-actions | Contains "PR Validation Results" | No (Low priority) |
 
 ## Configuration

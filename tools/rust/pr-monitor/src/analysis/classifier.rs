@@ -15,8 +15,7 @@ use crate::github::Comment;
 pub enum Action {
     ExecuteAdminCommand,
     ReviewAdminFeedback,
-    AddressGeminiReview,
-    AddressCodexReview,
+    AddressAiAgentReview,
     ReviewCiResults,
 }
 
@@ -25,8 +24,7 @@ impl fmt::Display for Action {
         match self {
             Action::ExecuteAdminCommand => write!(f, "Execute admin command and respond"),
             Action::ReviewAdminFeedback => write!(f, "Review and respond to admin feedback"),
-            Action::AddressGeminiReview => write!(f, "Address Gemini code review feedback"),
-            Action::AddressCodexReview => write!(f, "Address Codex code review feedback"),
+            Action::AddressAiAgentReview => write!(f, "Address AI agent code review feedback"),
             Action::ReviewCiResults => write!(f, "Review CI results if failures present"),
         }
     }
@@ -65,43 +63,49 @@ impl Classification {
 pub const DEFAULT_ADMIN_USER: &str = "AndrewAltimit";
 
 // ============================================================================
-// Regex patterns ported from Python monitors/pr.py
+// Regex patterns for detecting AI agent review comments
 // ============================================================================
+//
+// All AI reviewers (Claude, Gemini, OpenRouter, Codex, etc.) post comments using
+// the same canonical format produced by the review pipeline:
+//   ## {Agent} AI [Incremental] {Type} Review
+//   <!-- {agent}-review-marker:commit:{sha} -->
+//
+// Detection looks for either the marker (most reliable) or a heading line
+// containing both "AI" and "Review" tokens.
 
-/// Patterns to detect Gemini review comments
-static GEMINI_PATTERNS: Lazy<[Regex; 4]> = Lazy::new(|| {
-    [
-        Regex::new(r"(?i)(?:gemini|google)\s*(?:ai\s*)?(?:code\s*)?review").unwrap(),
-        Regex::new(r"(?i)##\s*(?:ai\s*)?code\s*review").unwrap(),
-        Regex::new(r"(?i)automated\s*(?:code\s*)?review\s*(?:by|from)\s*gemini").unwrap(),
-        Regex::new(r"(?i)\*\*gemini\s*review\*\*").unwrap(),
-    ]
+/// HTML comment marker: `<!-- {agent}-review-marker:commit:{sha} -->`
+/// Capture group 1 is the agent slug, capture group 2 is the commit SHA.
+static AI_REVIEW_MARKER_PATTERN: Lazy<Regex> = Lazy::new(|| {
+    Regex::new(r"(?i)<!--\s*([a-z0-9_-]+)-review-marker:commit:([a-f0-9]+)\s*-->").unwrap()
 });
 
-/// Patterns to detect Codex review comments
-static CODEX_PATTERNS: Lazy<[Regex; 5]> = Lazy::new(|| {
-    [
-        Regex::new(r"(?i)(?:codex|openai)\s*(?:ai\s*)?(?:code\s*)?review").unwrap(),
-        Regex::new(r"(?i)##\s*codex\s*(?:ai\s*)?(?:code\s*)?review").unwrap(),
-        Regex::new(r"(?i)automated\s*(?:code\s*)?review\s*(?:by|from)\s*codex").unwrap(),
-        Regex::new(r"(?i)\*\*codex\s*review\*\*").unwrap(),
-        Regex::new(r"(?i)codex-review-marker:commit:").unwrap(),
-    ]
-});
+/// Heading line containing both "AI" and "Review" tokens (e.g.
+/// `## Claude AI Security & Correctness Review`,
+/// `## OpenRouter AI Code Review`).
+/// Anchored to a line that starts with `##` so status tables and inline
+/// mentions don't false-positive.
+///
+/// NOTE: This pattern requires `AI` to appear BEFORE `Review` on the heading
+/// line, matching the canonical format produced by the review pipeline. A
+/// heading that puts the tokens in the reverse order (e.g.
+/// `## Code Review AI Summary`) will not match. If a future reviewer adopts
+/// such a format, update this pattern accordingly.
+static AI_REVIEW_HEADER_PATTERN: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"(?im)^\s*##[^\n]*\bAI\b[^\n]*\bReview\b").unwrap());
 
-/// Pattern to extract commit SHA from Gemini review marker
-static GEMINI_COMMIT_PATTERN: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"(?i)gemini-review-marker:commit:([a-f0-9]+)").unwrap());
-
-/// Pattern to extract commit SHA from Codex review marker
-static CODEX_COMMIT_PATTERN: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"(?i)codex-review-marker:commit:([a-f0-9]+)").unwrap());
-
-/// Pattern to detect existing agent response to a comment
+/// Pattern to detect existing agent response to a comment.
+/// `(?i)` matches the case-insensitivity of `AI_REVIEW_MARKER_PATTERN` so
+/// mixed-case agent slugs (if ever emitted) are still detected.
+///
+/// NOTE: The pattern requires a literal single space before `-->`
+/// (`([^>]+) -->`). Markers without that space (e.g. `...:abc123-->`) will
+/// silently fail to match. This matches the canonical format produced by the
+/// response pipeline; future marker generators must preserve the trailing
+/// ` -->` (space + arrow) suffix.
 #[allow(dead_code)] // Part of public API for library consumers
-static RESPONSE_MARKER_PATTERN: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"<!-- ai-agent-(?:gemini|codex|consolidated)-response:([^>]+) -->").unwrap()
-});
+static RESPONSE_MARKER_PATTERN: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"(?i)<!-- ai-agent-[a-z0-9_-]+-response:([^>]+) -->").unwrap());
 
 /// Pattern to detect [Action][Agent] trigger format
 static TRIGGER_PATTERN: Lazy<Regex> =
@@ -111,58 +115,23 @@ static TRIGGER_PATTERN: Lazy<Regex> =
 // Classification functions
 // ============================================================================
 
-/// Check if comment body matches Gemini review patterns
-fn is_gemini_review(body: &str) -> bool {
-    // Must contain actual review marker or header, not just status table mention
-    if body.contains("gemini-review-marker") || body.contains("## Gemini AI") {
-        return true;
+/// Check if a comment body is an AI agent code review.
+///
+/// Matches the canonical review-pipeline format used by all reviewers
+/// (Claude, Gemini, OpenRouter, Codex, ...). Status tables that happen to
+/// reference reviews are excluded so they get classified as `CiResults`.
+fn is_ai_agent_review(body: &str) -> bool {
+    if body.contains("PR Validation Results") {
+        return false;
     }
-
-    // Check against Python patterns
-    for pattern in GEMINI_PATTERNS.iter() {
-        if pattern.is_match(body) {
-            // Exclude CI status tables that mention reviews
-            if !body.contains("PR Validation Results") {
-                return true;
-            }
-        }
-    }
-
-    false
+    AI_REVIEW_MARKER_PATTERN.is_match(body) || AI_REVIEW_HEADER_PATTERN.is_match(body)
 }
 
-/// Check if comment body matches Codex review patterns
-fn is_codex_review(body: &str) -> bool {
-    // Must contain actual review marker or header
-    if body.contains("codex-review-marker") || body.contains("## Codex AI") {
-        return true;
-    }
-
-    // Check against Python patterns
-    for pattern in CODEX_PATTERNS.iter() {
-        if pattern.is_match(body) {
-            // Exclude CI status tables
-            if !body.contains("PR Validation Results") {
-                return true;
-            }
-        }
-    }
-
-    false
-}
-
-/// Extract commit SHA from Gemini review marker
-pub fn extract_gemini_commit_sha(body: &str) -> Option<String> {
-    GEMINI_COMMIT_PATTERN
+/// Extract commit SHA from any AI agent review marker
+pub fn extract_review_commit_sha(body: &str) -> Option<String> {
+    AI_REVIEW_MARKER_PATTERN
         .captures(body)
-        .map(|caps| caps.get(1).unwrap().as_str().to_string())
-}
-
-/// Extract commit SHA from Codex review marker
-pub fn extract_codex_commit_sha(body: &str) -> Option<String> {
-    CODEX_COMMIT_PATTERN
-        .captures(body)
-        .map(|caps| caps.get(1).unwrap().as_str().to_string())
+        .and_then(|caps| caps.get(2).map(|m| m.as_str().to_string()))
 }
 
 /// Check if a response marker exists for the given review ID
@@ -237,36 +206,16 @@ pub fn classify(comment: &Comment, admin_user: &str) -> Classification {
 
     // GitHub Actions bot
     if author.contains("github-actions") {
-        // Check for Gemini review
-        if is_gemini_review(body) {
-            let commit_sha = extract_gemini_commit_sha(body);
+        // AI agent review (Claude, Gemini, OpenRouter, Codex, ...)
+        if is_ai_agent_review(body) {
+            let commit_sha = extract_review_commit_sha(body);
             let review_id = generate_review_id(comment);
 
             return Classification {
                 needs_response: true,
                 priority: Priority::Normal,
-                response_type: Some(ResponseType::GeminiReview),
-                action: Some(Action::AddressGeminiReview),
-                review_metadata: Some(ReviewMetadata {
-                    commit_sha,
-                    review_id: Some(review_id),
-                    trigger_action: None,
-                    trigger_agent: None,
-                    already_responded: false,
-                }),
-            };
-        }
-
-        // Check for Codex review
-        if is_codex_review(body) {
-            let commit_sha = extract_codex_commit_sha(body);
-            let review_id = generate_review_id(comment);
-
-            return Classification {
-                needs_response: true,
-                priority: Priority::Normal,
-                response_type: Some(ResponseType::CodexReview),
-                action: Some(Action::AddressCodexReview),
+                response_type: Some(ResponseType::AiAgentReview),
+                action: Some(Action::AddressAiAgentReview),
                 review_metadata: Some(ReviewMetadata {
                     commit_sha,
                     review_id: Some(review_id),
@@ -381,10 +330,10 @@ mod tests {
     }
 
     #[test]
-    fn test_gemini_review_classification() {
+    fn test_claude_review_classification() {
         let comment = make_comment(
             "github-actions[bot]",
-            "## Gemini AI Incremental Review\n<!-- gemini-review-marker:commit:abc123 -->\n\nThis looks good overall...",
+            "## Claude AI Security & Correctness Review\n<!-- claude-review-marker:commit:abc123 -->\n\nThis looks good overall...",
         );
         let classification = classify(&comment, "AndrewAltimit");
 
@@ -392,9 +341,9 @@ mod tests {
         assert_eq!(classification.priority, Priority::Normal);
         assert_eq!(
             classification.response_type,
-            Some(ResponseType::GeminiReview)
+            Some(ResponseType::AiAgentReview)
         );
-        assert_eq!(classification.action, Some(Action::AddressGeminiReview));
+        assert_eq!(classification.action, Some(Action::AddressAiAgentReview));
 
         let metadata = classification.review_metadata.unwrap();
         assert_eq!(metadata.commit_sha, Some("abc123".to_string()));
@@ -402,31 +351,79 @@ mod tests {
     }
 
     #[test]
-    fn test_codex_review_classification() {
+    fn test_openrouter_review_classification() {
         let comment = make_comment(
             "github-actions[bot]",
-            "## Codex AI Code Review\n<!-- codex-review-marker:commit:def456 -->\n\nLGTM",
+            "## Openrouter AI Incremental General Review\n<!-- openrouter-review-marker:commit:def456 -->\n\n*This is an incremental review focusing on changes since the last review.*\n\n## Issues (if any)\n\n(none)",
         );
         let classification = classify(&comment, "AndrewAltimit");
 
         assert!(classification.needs_response);
-        assert_eq!(classification.priority, Priority::Normal);
         assert_eq!(
             classification.response_type,
-            Some(ResponseType::CodexReview)
+            Some(ResponseType::AiAgentReview)
         );
-        assert_eq!(classification.action, Some(Action::AddressCodexReview));
+        assert_eq!(classification.action, Some(Action::AddressAiAgentReview));
 
         let metadata = classification.review_metadata.unwrap();
         assert_eq!(metadata.commit_sha, Some("def456".to_string()));
     }
 
     #[test]
-    fn test_status_table_not_classified_as_review() {
-        // Status table contains "Gemini review" text but shouldn't be classified as actual review
+    fn test_gemini_review_still_classified() {
+        // Legacy Gemini review format must still classify as an AI agent review.
         let comment = make_comment(
             "github-actions[bot]",
-            "## PR Validation Results\n\n| Check | Status |\n| Gemini review | :white_check_mark: |",
+            "## Gemini AI Incremental Review\n<!-- gemini-review-marker:commit:789abc -->\n\nLGTM",
+        );
+        let classification = classify(&comment, "AndrewAltimit");
+
+        assert!(classification.needs_response);
+        assert_eq!(
+            classification.response_type,
+            Some(ResponseType::AiAgentReview)
+        );
+        let metadata = classification.review_metadata.unwrap();
+        assert_eq!(metadata.commit_sha, Some("789abc".to_string()));
+    }
+
+    #[test]
+    fn test_codex_review_still_classified() {
+        // Legacy Codex review format must still classify as an AI agent review.
+        let comment = make_comment(
+            "github-actions[bot]",
+            "## Codex AI Code Review\n<!-- codex-review-marker:commit:0123abcd -->\n\nLGTM",
+        );
+        let classification = classify(&comment, "AndrewAltimit");
+
+        assert!(classification.needs_response);
+        assert_eq!(
+            classification.response_type,
+            Some(ResponseType::AiAgentReview)
+        );
+        let metadata = classification.review_metadata.unwrap();
+        assert_eq!(metadata.commit_sha, Some("0123abcd".to_string()));
+    }
+
+    #[test]
+    fn test_review_response_agent_not_classified_as_review() {
+        // Review Response Agent comments are responses, not reviews — must not match.
+        let comment = make_comment(
+            "github-actions[bot]",
+            "## Review Response Agent (Iteration 1)\n<!-- agent-metadata:type=review-fix:iteration=1 -->\n\n**Status:** Changes committed, pushing...",
+        );
+        let classification = classify(&comment, "AndrewAltimit");
+
+        assert!(!classification.needs_response);
+        assert!(classification.response_type.is_none());
+    }
+
+    #[test]
+    fn test_status_table_not_classified_as_review() {
+        // Status table mentions reviews in cells but shouldn't be classified as a review.
+        let comment = make_comment(
+            "github-actions[bot]",
+            "## PR Validation Results\n\n| Check | Status |\n|-------|--------|\n| Claude security-review | pass |\n| Openrouter review | pass |",
         );
         let classification = classify(&comment, "AndrewAltimit");
 
@@ -467,24 +464,29 @@ mod tests {
     }
 
     #[test]
-    fn test_extract_gemini_commit_sha() {
-        let body = "Some review text\n<!-- gemini-review-marker:commit:abc123def -->\nMore text";
-        assert_eq!(
-            extract_gemini_commit_sha(body),
-            Some("abc123def".to_string())
-        );
-
-        let body_no_marker = "Some review without marker";
-        assert_eq!(extract_gemini_commit_sha(body_no_marker), None);
-    }
-
-    #[test]
-    fn test_extract_codex_commit_sha() {
-        let body = "Review\n<!-- codex-review-marker:commit:789abcdef -->";
-        assert_eq!(
-            extract_codex_commit_sha(body),
-            Some("789abcdef".to_string())
-        );
+    fn test_extract_review_commit_sha() {
+        // Works for any agent slug
+        for (body, expected) in [
+            (
+                "<!-- claude-review-marker:commit:abc123def -->",
+                Some("abc123def".to_string()),
+            ),
+            (
+                "<!-- openrouter-review-marker:commit:cafe1234 -->",
+                Some("cafe1234".to_string()),
+            ),
+            (
+                "<!-- gemini-review-marker:commit:beef5678 -->",
+                Some("beef5678".to_string()),
+            ),
+            (
+                "<!-- codex-review-marker:commit:0123abcd -->",
+                Some("0123abcd".to_string()),
+            ),
+            ("Some review without marker", None),
+        ] {
+            assert_eq!(extract_review_commit_sha(body), expected, "body: {body}");
+        }
     }
 
     #[test]
@@ -501,34 +503,46 @@ mod tests {
     }
 
     #[test]
-    fn test_gemini_pattern_matching() {
-        // Should match
-        assert!(is_gemini_review("## Gemini AI Code Review"));
-        assert!(is_gemini_review(
-            "Automated code review by Gemini\nSome feedback"
-        ));
-        assert!(is_gemini_review("**gemini review**"));
-        assert!(is_gemini_review("<!-- gemini-review-marker:commit:abc -->"));
+    fn test_ai_review_pattern_matching() {
+        // Headers from each known reviewer (canonical format)
+        for body in [
+            "## Claude AI Security & Correctness Review",
+            "## Claude AI Architecture & Quality Review",
+            "## Claude AI Incremental Security & Correctness Review",
+            "## Openrouter AI General Review",
+            "## OpenRouter AI Code Review",
+            "## Openrouter AI Incremental General Review",
+            "## Gemini AI Incremental Review",
+            "## Codex AI Code Review",
+        ] {
+            assert!(is_ai_agent_review(body), "expected match: {body}");
+        }
 
-        // Should not match
-        assert!(!is_gemini_review(
-            "## PR Validation Results\n| Gemini review | passed |"
-        ));
-        assert!(!is_gemini_review("random comment"));
-    }
+        // Markers alone are sufficient
+        for body in [
+            "<!-- claude-review-marker:commit:abc -->",
+            "<!-- openrouter-review-marker:commit:abc -->",
+            "<!-- gemini-review-marker:commit:abc -->",
+            "<!-- codex-review-marker:commit:abc -->",
+        ] {
+            assert!(is_ai_agent_review(body), "expected match: {body}");
+        }
 
-    #[test]
-    fn test_codex_pattern_matching() {
-        // Should match
-        assert!(is_codex_review("## Codex AI Code Review"));
-        assert!(is_codex_review("Automated review from Codex"));
-        assert!(is_codex_review("**codex review**"));
-        assert!(is_codex_review("codex-review-marker:commit:abc"));
-
-        // Should not match
-        assert!(!is_codex_review(
-            "## PR Validation Results\n| Codex review | passed |"
-        ));
-        assert!(!is_codex_review("random comment"));
+        // Must NOT match
+        for body in [
+            // Status tables that mention reviews
+            "## PR Validation Results\n| Claude security-review | pass |",
+            "## PR Validation Results\n| Openrouter review | pass |",
+            // Review Response Agent (these are responses, not reviews)
+            "## Review Response Agent (Iteration 5)",
+            // Inline mention without canonical heading
+            "I just got a review from gemini",
+            // Random comment
+            "random comment",
+            // Heading without "AI" token
+            "## Code Review Summary",
+        ] {
+            assert!(!is_ai_agent_review(body), "expected no match: {body}");
+        }
     }
 }

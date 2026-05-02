@@ -273,16 +273,13 @@ fn print_pr_monitoring_notice(pr_number: u32, pr_url: &str) {
     eprintln!("PR #{} created on branch '{}'", pr_number, branch);
     eprintln!("{}", pr_url);
     eprintln!();
-    eprintln!("To monitor for admin/Gemini feedback:");
+    eprintln!("To monitor for admin and AI agent review feedback:");
     eprintln!();
-    eprintln!(
-        "  ./tools/rust/pr-monitor/target/release/pr-monitor {} --since-commit {}",
-        pr_number, commit_sha
-    );
+    eprintln!("  pr-monitor {} --since-commit {}", pr_number, commit_sha);
     eprintln!();
     eprintln!("This will watch for:");
     eprintln!("  - Admin comments and approval commands");
-    eprintln!("  - Gemini AI code review feedback");
+    eprintln!("  - AI agent code review feedback");
     eprintln!("  - CI/CD validation results");
     eprintln!();
     eprintln!("============================================================");

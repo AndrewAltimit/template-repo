@@ -17,7 +17,7 @@ When you run `git push`, the hook will:
 
 1. Check if your branch has an open PR
 2. Display monitoring instructions with the correct PR number and commit SHA
-3. Remind you about the types of feedback to watch for (admin comments, Gemini reviews, CI/CD)
+3. Remind you about the types of feedback to watch for (admin comments, AI agent reviews, CI/CD)
 
 ### Example Output
 
@@ -30,14 +30,14 @@ You're pushing commits to PR #54 on branch 'refine'.
 After push completes, consider monitoring for feedback:
 
   Monitor from this commit onwards:
-     ./tools/rust/pr-monitor/target/release/pr-monitor 54 --since-commit abc1234
+     pr-monitor 54 --since-commit abc1234
 
   Or monitor all new comments:
-     ./tools/rust/pr-monitor/target/release/pr-monitor 54
+     pr-monitor 54
 
 This will watch for:
   - Admin comments and commands
-  - Gemini AI code review feedback
+  - AI agent code review feedback
   - CI/CD validation results
 
 The monitor will return structured data when relevant comments are detected.

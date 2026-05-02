@@ -2,7 +2,7 @@
 
 ## Overview
 
-The PR Monitoring System allows Claude Code to continuously monitor Pull Requests for new comments from administrators and AI reviewers (like Gemini), automatically detecting when responses are needed.
+The PR Monitoring System allows Claude Code to continuously monitor Pull Requests for new comments from administrators and AI reviewers (Claude, OpenRouter, etc.), automatically detecting when responses are needed.
 
 ## Architecture
 
@@ -39,22 +39,22 @@ docker compose --profile ci run --rm rust-ci cargo build --release -p pr-monitor
 
 ```bash
 # Basic monitoring (10 minute timeout, 5 second poll interval)
-./tools/rust/pr-monitor/target/release/pr-monitor 48
+pr-monitor 48
 
 # With custom timeout (30 minutes)
-./tools/rust/pr-monitor/target/release/pr-monitor 48 --timeout 1800
+pr-monitor 48 --timeout 1800
 
 # JSON output only (for automation)
-./tools/rust/pr-monitor/target/release/pr-monitor 48 --json
+pr-monitor 48 --json
 
 # Monitor comments after a specific commit
-./tools/rust/pr-monitor/target/release/pr-monitor 48 --since-commit abc1234
+pr-monitor 48 --since-commit abc1234
 
 # Custom poll interval (check every 10 seconds)
-./tools/rust/pr-monitor/target/release/pr-monitor 48 --poll-interval 10
+pr-monitor 48 --poll-interval 10
 
 # Combine options
-./tools/rust/pr-monitor/target/release/pr-monitor 48 --since-commit abc1234 --timeout 1800 --json
+pr-monitor 48 --since-commit abc1234 --timeout 1800 --json
 ```
 
 ### In Claude Code
@@ -62,7 +62,7 @@ docker compose --profile ci run --rm rust-ci cargo build --release -p pr-monitor
 When working with PRs, you can end tasks with:
 - "...and monitor the PR for new comments"
 - "...then watch for admin responses"
-- "...and wait for Gemini's review"
+- "...and wait for the AI review"
 
 Claude will automatically start the monitoring tool.
 
@@ -70,7 +70,7 @@ Claude will automatically start the monitoring tool.
 
 ```bash
 # Run monitor and capture JSON output
-result=$(./tools/rust/pr-monitor/target/release/pr-monitor 48 --json 2>/dev/null)
+result=$(pr-monitor 48 --json 2>/dev/null)
 
 if [ $? -eq 0 ]; then
     echo "Relevant comment found:"
@@ -102,7 +102,7 @@ The monitoring tool returns structured JSON:
 |------|--------|---------|----------|----------------|
 | `admin_command` | Admin user | Contains `[ADMIN]` | High | Yes |
 | `admin_comment` | Admin user | Any comment | Normal | Yes |
-| `gemini_review` | github-actions | Contains "Gemini" | Normal | Yes |
+| `ai_agent_review` | github-actions | Standard AI review header or `<!-- {agent}-review-marker:commit:... -->` | Normal | Yes |
 | `ci_results` | github-actions | Contains "PR Validation Results" | Low | No |
 
 ### Exit Codes
@@ -117,7 +117,7 @@ The monitoring tool returns structured JSON:
 
 The monitor checks for comments from:
 - **AndrewAltimit** (repository admin)
-- **github-actions** (bot comments, including Gemini reviews)
+- **github-actions** (bot comments, including AI agent reviews)
 
 Monitoring parameters:
 - Default poll interval: 5 seconds
@@ -159,14 +159,14 @@ You're pushing commits to PR #48 on branch 'feature-branch'.
 After push completes, consider monitoring for feedback:
 
   Monitor from this commit onwards:
-     ./tools/rust/pr-monitor/target/release/pr-monitor 48 --since-commit abc1234
+     pr-monitor 48 --since-commit abc1234
 
   Or monitor all new comments:
-     ./tools/rust/pr-monitor/target/release/pr-monitor 48
+     pr-monitor 48
 
 This will watch for:
   - Admin comments and commands
-  - Gemini AI code review feedback
+  - AI agent code review feedback
   - CI/CD validation results
 
 The monitor will return structured JSON when relevant comments are detected.
@@ -192,7 +192,7 @@ User: Update the PR with the fixes and monitor for reviews
 Claude: I'll update the PR and then monitor for feedback.
 [Makes changes and pushes]
 [Starts monitoring]
-[Responds when admin/Gemini comments]
+[Responds when admin or AI reviewer comments]
 ```
 
 ### Example 2: Direct Monitoring
@@ -243,7 +243,7 @@ Claude: Admin posted: "[ADMIN] Please add tests"
 
 Increase timeout for long-running reviews:
 ```bash
-./tools/rust/pr-monitor/target/release/pr-monitor 48 --timeout 3600  # 1 hour
+pr-monitor 48 --timeout 3600  # 1 hour
 ```
 
 ### Graceful Shutdown
@@ -298,7 +298,7 @@ tools/rust/pr-monitor/
 
 4. **Combine with CI/CD**:
    - Monitor for both human and automated feedback
-   - Gemini reviews typically arrive within 2-5 minutes
+   - AI agent reviews typically arrive within 2-5 minutes
    - Admin comments may take longer
 
 ### Interactive Mode Workflow
