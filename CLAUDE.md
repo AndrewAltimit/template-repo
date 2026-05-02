@@ -61,9 +61,11 @@ automation-cli ci run full > /tmp/ci-output.log 2>&1 && echo "CI passed" || (ech
 ### PR Monitoring
 
 ```bash
-./tools/rust/pr-monitor/target/release/pr-monitor 48
-./tools/rust/pr-monitor/target/release/pr-monitor 48 --since-commit abc1234
+pr-monitor 48
+pr-monitor 48 --since-commit abc1234
 ```
+
+(Install via `tools/rust/pr-monitor/install.sh` to put the binary on `$PATH`.)
 
 **For complete command reference, see** `docs/agents/README.md#running-agents-locally`
 

@@ -83,7 +83,7 @@ impl SecretMasker {
         // Sort secrets by length (longest first) to avoid partial masking
         // e.g., mask "SUPER_SECRET" before "SECRET"
         let mut sorted_secrets: Vec<_> = self.secrets.iter().collect();
-        sorted_secrets.sort_by(|a, b| b.1.len().cmp(&a.1.len()));
+        sorted_secrets.sort_by_key(|b| std::cmp::Reverse(b.1.len()));
 
         // Mask environment variable values
         for (name, value) in sorted_secrets {

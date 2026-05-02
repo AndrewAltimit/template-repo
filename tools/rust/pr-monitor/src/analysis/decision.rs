@@ -20,8 +20,7 @@ pub enum Priority {
 pub enum ResponseType {
     AdminCommand,
     AdminComment,
-    GeminiReview,
-    CodexReview,
+    AiAgentReview,
     CiResults,
 }
 
@@ -96,8 +95,8 @@ mod tests {
             "\"admin_command\""
         );
         assert_eq!(
-            serde_json::to_string(&ResponseType::GeminiReview).unwrap(),
-            "\"gemini_review\""
+            serde_json::to_string(&ResponseType::AiAgentReview).unwrap(),
+            "\"ai_agent_review\""
         );
     }
 
@@ -159,8 +158,8 @@ mod tests {
         let decision = Decision {
             needs_response: true,
             priority: Priority::Normal,
-            response_type: Some(ResponseType::GeminiReview),
-            action_required: Some("Address Gemini code review feedback".to_string()),
+            response_type: Some(ResponseType::AiAgentReview),
+            action_required: Some("Address AI agent code review feedback".to_string()),
             review_metadata: Some(ReviewMetadata {
                 commit_sha: Some("def456".to_string()),
                 review_id: Some("2026-01-18-12-00-00".to_string()),
@@ -171,12 +170,12 @@ mod tests {
             comment: CommentSummary {
                 author: "github-actions[bot]".to_string(),
                 timestamp: "2026-01-18T12:00:00Z".to_string(),
-                body: "## Gemini AI Review\n...".to_string(),
+                body: "## Claude AI Review\n...".to_string(),
             },
         };
 
         let json = serde_json::to_string_pretty(&decision).unwrap();
-        assert!(json.contains("\"gemini_review\""));
+        assert!(json.contains("\"ai_agent_review\""));
         assert!(json.contains("\"commit_sha\": \"def456\""));
         assert!(json.contains("\"review_id\": \"2026-01-18-12-00-00\""));
     }

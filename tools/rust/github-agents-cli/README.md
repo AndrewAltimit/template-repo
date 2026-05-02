@@ -67,8 +67,8 @@ The CLI provides a complete native Rust implementation:
 For simple PR monitoring (watching for specific comments), use the dedicated `pr-monitor` tool:
 
 ```bash
-# Simple PR comment monitoring
-tools/rust/pr-monitor/target/release/pr-monitor 123
+# Simple PR comment monitoring (install via tools/rust/pr-monitor/install.sh)
+pr-monitor 123
 
 # Full PR monitoring with AI review processing (uses this CLI)
 github-agents pr-monitor
