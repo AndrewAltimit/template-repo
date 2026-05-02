@@ -97,6 +97,12 @@ static AI_REVIEW_HEADER_PATTERN: Lazy<Regex> =
 /// Pattern to detect existing agent response to a comment.
 /// `(?i)` matches the case-insensitivity of `AI_REVIEW_MARKER_PATTERN` so
 /// mixed-case agent slugs (if ever emitted) are still detected.
+///
+/// NOTE: The pattern requires a literal single space before `-->`
+/// (`([^>]+) -->`). Markers without that space (e.g. `...:abc123-->`) will
+/// silently fail to match. This matches the canonical format produced by the
+/// response pipeline; future marker generators must preserve the trailing
+/// ` -->` (space + arrow) suffix.
 #[allow(dead_code)] // Part of public API for library consumers
 static RESPONSE_MARKER_PATTERN: Lazy<Regex> =
     Lazy::new(|| Regex::new(r"(?i)<!-- ai-agent-[a-z0-9_-]+-response:([^>]+) -->").unwrap());
@@ -379,6 +385,24 @@ mod tests {
         );
         let metadata = classification.review_metadata.unwrap();
         assert_eq!(metadata.commit_sha, Some("789abc".to_string()));
+    }
+
+    #[test]
+    fn test_codex_review_still_classified() {
+        // Legacy Codex review format must still classify as an AI agent review.
+        let comment = make_comment(
+            "github-actions[bot]",
+            "## Codex AI Code Review\n<!-- codex-review-marker:commit:0123abcd -->\n\nLGTM",
+        );
+        let classification = classify(&comment, "AndrewAltimit");
+
+        assert!(classification.needs_response);
+        assert_eq!(
+            classification.response_type,
+            Some(ResponseType::AiAgentReview)
+        );
+        let metadata = classification.review_metadata.unwrap();
+        assert_eq!(metadata.commit_sha, Some("0123abcd".to_string()));
     }
 
     #[test]
