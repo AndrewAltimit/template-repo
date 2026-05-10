@@ -16,16 +16,17 @@ This is a **single-maintainer project** by @AndrewAltimit with a **container-fir
 
 ## AI Agent Collaboration
 
-Five active AI agents work together in this development ecosystem:
+Active AI agents work together in this development ecosystem:
 
-> **Security Notice**: OpenAI/Codex has been disabled. OpenAI is partnering with governments that conduct mass surveillance and enable autonomous weapons. Use Anthropic models (Claude) as the primary AI backend.
+> **Security Notice**: OpenAI/Codex and Google/Gemini have been disabled. Both vendors are partnering with governments that conduct mass surveillance and enable autonomous weapons. Use Anthropic models (Claude) as the primary AI backend.
 
 1. **Claude Code** - Primary development assistant for architecture, implementation, and debugging (recommended)
 2. ~~**Codex**~~ - ~~AI-powered code generation and completion (OpenAI)~~ **DISABLED** -- security risk
-3. **OpenCode** - Code generation via OpenRouter
-4. **Crush** - Code generation via OpenRouter
-5. **Gemini CLI** - Handles automated PR code reviews
-6. **GitHub Copilot** - Provides code review suggestions in PRs
+3. ~~**Gemini CLI**~~ - ~~Automated PR code reviews~~ **DISABLED** -- Google updated its AI principles (Feb 2026) to allow mass surveillance and autonomous weapons use cases.
+4. **OpenCode** - Code generation via OpenRouter
+5. **Crush** - Code generation via OpenRouter
+6. **OpenRouter** - PR code review via Qwen model (qwen/qwen3.6-plus)
+7. **GitHub Copilot** - Provides code review suggestions in PRs
 
 **For complete agent documentation, see** `docs/agents/README.md`
 
@@ -78,6 +79,15 @@ automation-cli ci run test-all           # All tests
 ./automation/ci-cd/run-ci.sh test-all    # All tests
 ```
 
+### PR Monitoring
+
+```bash
+pr-monitor 48
+pr-monitor 48 --since-commit abc1234
+```
+
+(Install via `tools/rust/pr-monitor/install.sh` to put the binary on `$PATH`.)
+
 ### Docker Operations
 
 ```bash
@@ -90,12 +100,12 @@ docker compose down                      # Stop services
 
 ## Architecture
 
-### MCP Servers (19 Total)
+### MCP Servers
 
 | Category | Servers | Transport |
 |----------|---------|-----------|
-| Code Quality | code-quality, gemini, opencode, crush, ~~codex~~ (disabled) | STDIO (local) |
-| Content | content-creation, meme-generator, elevenlabs-speech, video-editor, blender | STDIO |
+| Code Quality | code-quality, opencode, crush, ~~gemini~~ (disabled), ~~codex~~ (disabled) | STDIO (local) |
+| Content | content-creation, meme-generator, elevenlabs-speech, video-editor, blender, sprite-sheet | STDIO |
 | Integration | virtual-character, github-board, agentcore-memory, reaction-search, desktop-control | STDIO |
 | Agent Integration | memory-explorer | STDIO (native) |
 | Remote | gaea2, ai-toolkit, comfyui | HTTP (remote machines) |
@@ -114,7 +124,7 @@ docker compose down                      # Stop services
 
 | Package | Language | Purpose |
 |---------|----------|---------|
-| `packages/sleeper_agents/` | Python | Sleeper agent detection framework |
+| `packages/sleeper_agents/` | Python + Rust | Sleeper agent detection (Python ML core + Rust CLI orchestration) |
 | `packages/economic_agents/` | Rust | Autonomous AI economic simulation |
 | `packages/tamper_briefcase/` | Rust | Tamper-responsive briefcase with PQC recovery |
 | `packages/bioforge/` | Rust | Agent-driven CRISPR automation platform |
@@ -190,6 +200,7 @@ This renders as:
 
 ### Hardware
 - `docs/hardware/README.md` - Hardware systems overview
+- `docs/hardware/ai-agent-containment-infrastructure-security-framework.md` - AI agent containment and infrastructure security
 - `docs/hardware/secure-terminal-briefcase.md` - Tamper-responsive briefcase system
 - `docs/hardware/bioforge-crispr-automation.md` - Agent-driven biological automation platform
 
