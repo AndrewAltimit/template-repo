@@ -1,3 +1,13 @@
+//! automation-cli: unified CLI for CI/CD orchestration and automation.
+//!
+//! Wraps the project's container-first CI/CD workflow (formatting, linting,
+//! testing, and building across the Python and Rust packages) behind a single
+//! Rust binary, and also launches local services. It is the preferred entry
+//! point over the legacy `automation/ci-cd/run-ci.sh` shell wrappers, which
+//! delegate to this binary when it is built.
+//!
+//! Run `automation-cli ci list` to see the available CI stages.
+
 use clap::{Parser, Subcommand};
 
 mod commands;
