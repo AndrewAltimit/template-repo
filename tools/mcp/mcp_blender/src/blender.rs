@@ -5,10 +5,16 @@ use serde_json::Value;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
+use std::time::Duration;
 use tokio::process::Command;
 use tokio::sync::{RwLock, Semaphore};
 use tracing::{debug, error, info, warn};
 use uuid::Uuid;
+
+/// Default wall-clock timeout for a single Blender invocation. A hung render
+/// must not block its worker task forever; override with
+/// `BLENDER_JOB_TIMEOUT_SECS`.
+const DEFAULT_JOB_TIMEOUT_SECS: u64 = 600;
 
 /// Script argument parsing patterns used by different Blender Python scripts
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -36,6 +42,9 @@ pub struct BlenderExecutor {
     semaphore: Arc<Semaphore>,
     /// Track running processes for cancellation
     processes: Arc<RwLock<HashMap<Uuid, tokio::process::Child>>>,
+    /// Per-invocation wall-clock timeout; on elapse the child is killed
+    /// (via `kill_on_drop`) and the job fails instead of hanging forever.
+    job_timeout: Duration,
 }
 
 impl BlenderExecutor {
@@ -68,6 +77,14 @@ impl BlenderExecutor {
             .unwrap_or_else(|| num_cpus::get() / 2)
             .max(1);
 
+        let job_timeout = Duration::from_secs(
+            std::env::var("BLENDER_JOB_TIMEOUT_SECS")
+                .ok()
+                .and_then(|v| v.parse().ok())
+                .filter(|&secs| secs > 0)
+                .unwrap_or(DEFAULT_JOB_TIMEOUT_SECS),
+        );
+
         Self {
             blender_path: Arc::new(RwLock::new(None)),
             scripts_dir,
@@ -76,6 +93,7 @@ impl BlenderExecutor {
             initialized: Arc::new(RwLock::new(false)),
             semaphore: Arc::new(Semaphore::new(max_concurrent)),
             processes: Arc::new(RwLock::new(HashMap::new())),
+            job_timeout,
         }
     }
 
@@ -278,21 +296,42 @@ impl BlenderExecutor {
             cmd.env("CUDA_VISIBLE_DEVICES", cuda_devices);
         }
 
-        // Spawn the process
+        // Spawn the process. `kill_on_drop` guarantees the OS process is killed
+        // if the future below is dropped (e.g. on timeout or task cancellation),
+        // so a runaway Blender cannot outlive its job.
         let child = cmd
             .stdout(std::process::Stdio::piped())
             .stderr(std::process::Stdio::piped())
+            .kill_on_drop(true)
             .spawn()
             .map_err(|e| MCPError::Internal(format!("Failed to spawn Blender: {}", e)))?;
 
-        // Note: Process cancellation would require storing Child handles differently.
-        // For now, cancellation is handled at the job level.
-
-        // Wait for completion
-        let output = child
-            .wait_with_output()
-            .await
-            .map_err(|e| MCPError::Internal(format!("Failed to wait for Blender: {}", e)))?;
+        // Wait for completion, bounded by the configured timeout. On timeout the
+        // `wait_with_output` future is dropped, which kills the child via
+        // `kill_on_drop`, and the job fails cleanly instead of hanging forever.
+        let output = match tokio::time::timeout(self.job_timeout, child.wait_with_output()).await {
+            Ok(Ok(output)) => output,
+            Ok(Err(e)) => {
+                self.cleanup_temp_file(temp_file).await;
+                return Err(MCPError::Internal(format!(
+                    "Failed to wait for Blender: {}",
+                    e
+                )));
+            },
+            Err(_elapsed) => {
+                self.cleanup_temp_file(temp_file).await;
+                error!(
+                    "Blender script {} (job {}) timed out after {}s; process killed",
+                    script_name,
+                    job_id,
+                    self.job_timeout.as_secs()
+                );
+                return Err(MCPError::Internal(format!(
+                    "Blender script timed out after {}s",
+                    self.job_timeout.as_secs()
+                )));
+            },
+        };
 
         // Remove from tracking
         {
@@ -301,11 +340,7 @@ impl BlenderExecutor {
         }
 
         // Clean up temp file if created
-        if let Some(temp_path) = temp_file
-            && let Err(e) = tokio::fs::remove_file(&temp_path).await
-        {
-            debug!("Failed to remove temp file {:?}: {}", temp_path, e);
-        }
+        self.cleanup_temp_file(temp_file).await;
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
@@ -335,6 +370,16 @@ impl BlenderExecutor {
         });
 
         Ok(result)
+    }
+
+    /// Best-effort removal of a per-job temp args file. Logged at debug level on
+    /// failure so cleanup never masks the underlying job result.
+    async fn cleanup_temp_file(&self, temp_file: Option<PathBuf>) {
+        if let Some(temp_path) = temp_file
+            && let Err(e) = tokio::fs::remove_file(&temp_path).await
+        {
+            debug!("Failed to remove temp file {:?}: {}", temp_path, e);
+        }
     }
 
     /// Execute a script asynchronously (for long-running operations)
@@ -539,6 +584,7 @@ impl Clone for BlenderExecutor {
             initialized: self.initialized.clone(),
             semaphore: self.semaphore.clone(),
             processes: self.processes.clone(),
+            job_timeout: self.job_timeout,
         }
     }
 }
