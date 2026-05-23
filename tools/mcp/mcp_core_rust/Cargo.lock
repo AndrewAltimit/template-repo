@@ -1043,6 +1043,7 @@ dependencies = [
  "clap",
  "futures",
  "mcp-client",
+ "mcp-macros",
  "reqwest",
  "schemars",
  "serde",

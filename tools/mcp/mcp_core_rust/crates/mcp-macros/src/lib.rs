@@ -112,7 +112,9 @@ struct ParamInfo {
     name: Ident,
     ty: Type,
     description: Option<String>,
-    default: Option<String>,
+    /// Default value literal, preserved as a `Lit` so its JSON type (integer,
+    /// string, bool, ...) survives into the generated schema and extraction.
+    default: Option<Lit>,
     is_optional: bool,
 }
 
@@ -133,6 +135,7 @@ fn generate_tool(attrs: ToolAttrs, func: ItemFn) -> syn::Result<TokenStream2> {
 
     // Generate the function call
     let param_names: Vec<_> = params.iter().map(|p| &p.name).collect();
+    let param_types: Vec<_> = params.iter().map(|p| &p.ty).collect();
 
     // Keep the original function but make it a method
     let func_body = &func.block;
@@ -144,11 +147,11 @@ fn generate_tool(attrs: ToolAttrs, func: ItemFn) -> syn::Result<TokenStream2> {
     };
 
     Ok(quote! {
-        /// Generated tool struct for #func_name
+        #[doc = concat!("Generated MCP tool for `", stringify!(#func_name), "`.")]
         pub struct #tool_struct_name;
 
         impl #tool_struct_name {
-            async fn execute_impl(#(#param_names: _,)*) -> #output_type
+            async fn execute_impl(#(#param_names: #param_types,)*) -> #output_type
             #func_body
         }
 
@@ -207,7 +210,7 @@ fn parse_params(func: &ItemFn) -> syn::Result<Vec<ParamInfo>> {
     Ok(params)
 }
 
-fn parse_param_attrs(attrs: &[Attribute]) -> (Option<String>, Option<String>) {
+fn parse_param_attrs(attrs: &[Attribute]) -> (Option<String>, Option<Lit>) {
     let mut description = None;
     let mut default = None;
 
@@ -218,14 +221,9 @@ fn parse_param_attrs(attrs: &[Attribute]) -> (Option<String>, Option<String>) {
                     let value: syn::LitStr = meta.value()?.parse()?;
                     description = Some(value.value());
                 } else if meta.path.is_ident("default") {
-                    let value: syn::Lit = meta.value()?.parse()?;
-                    default = Some(match value {
-                        Lit::Str(s) => s.value(),
-                        Lit::Int(i) => i.to_string(),
-                        Lit::Float(f) => f.to_string(),
-                        Lit::Bool(b) => b.value.to_string(),
-                        _ => String::new(),
-                    });
+                    // Preserve the literal so the generated `json!(...)` keeps the
+                    // correct JSON type (e.g. `1` -> integer, not the string "1").
+                    default = Some(meta.value()?.parse::<Lit>()?);
                 }
                 Ok(())
             });
@@ -281,25 +279,41 @@ fn generate_arg_extraction(params: &[ParamInfo]) -> TokenStream2 {
         .iter()
         .map(|p| {
             let name = &p.name;
+            let ty = &p.ty;
             let name_str = name.to_string();
 
+            // Each parameter is bound to its *declared* type by deserializing the
+            // corresponding JSON value via serde. A type mismatch or a missing
+            // required parameter becomes a clean `InvalidParameters` error rather
+            // than a panic, which is the whole point of the typed macro path.
             if p.is_optional {
+                // `Option<T>`: an absent key deserializes from `null` -> `None`.
                 quote! {
-                    let #name = args.get(#name_str).cloned();
+                    let #name: #ty = serde_json::from_value(
+                        args.get(#name_str).cloned().unwrap_or(serde_json::Value::Null)
+                    ).map_err(|e| mcp_core::error::MCPError::InvalidParameters(
+                        format!("Invalid parameter '{}': {}", #name_str, e)
+                    ))?;
                 }
             } else if let Some(default) = &p.default {
                 quote! {
-                    let #name = args.get(#name_str)
-                        .cloned()
-                        .unwrap_or_else(|| serde_json::json!(#default));
+                    let #name: #ty = serde_json::from_value(
+                        args.get(#name_str).cloned().unwrap_or_else(|| serde_json::json!(#default))
+                    ).map_err(|e| mcp_core::error::MCPError::InvalidParameters(
+                        format!("Invalid parameter '{}': {}", #name_str, e)
+                    ))?;
                 }
             } else {
                 quote! {
-                    let #name = args.get(#name_str)
-                        .cloned()
-                        .ok_or_else(|| mcp_core::error::MCPError::InvalidParameters(
-                            format!("Missing required parameter: {}", #name_str)
-                        ))?;
+                    let #name: #ty = serde_json::from_value(
+                        args.get(#name_str).cloned().ok_or_else(|| {
+                            mcp_core::error::MCPError::InvalidParameters(
+                                format!("Missing required parameter: {}", #name_str)
+                            )
+                        })?
+                    ).map_err(|e| mcp_core::error::MCPError::InvalidParameters(
+                        format!("Invalid parameter '{}': {}", #name_str, e)
+                    ))?;
                 }
             }
         })

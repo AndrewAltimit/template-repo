@@ -17,7 +17,7 @@ This workspace provides the core infrastructure for building MCP servers in Rust
 | Crate | Description |
 |-------|-------------|
 | `mcp-core` | Core server library with Tool trait, HTTP transport, and JSON-RPC handling |
-| `mcp-macros` | Procedural macros for tool registration (WIP) |
+| `mcp-macros` | `#[mcp_tool]` procedural macro for typed tool definitions |
 | `mcp-client` | REST client for proxy mode |
 | `mcp-testing` | Test utilities and mock tools |
 
@@ -56,6 +56,53 @@ impl Tool for EchoTool {
     }
 }
 ```
+
+### Define a Tool with `#[mcp_tool]` (recommended)
+
+The hand-written `impl Tool` above extracts arguments out of a raw
+`serde_json::Value`. That pattern is easy to get wrong: a `.unwrap()` /
+`["field"]` on missing or wrong-typed input **panics**, and a panic in tool
+execution used to be a latent crash vector. Prefer the `#[mcp_tool]` macro,
+which generates the `Tool` impl from a typed `async fn`: parameters are
+deserialized into their declared Rust types, the JSON schema is derived
+automatically, and a missing/mismatched argument becomes a clean
+`InvalidParameters` error instead of a panic.
+
+```rust
+use mcp_macros::mcp_tool;
+
+#[mcp_tool(description = "Echo the input message a number of times")]
+async fn echo(
+    #[mcp(description = "Message to echo")]
+    message: String,
+    #[mcp(description = "Repeat count", default = 1)]
+    count: i64,
+    #[mcp(description = "Optional suffix")]
+    suffix: Option<String>,
+) -> Result<String, anyhow::Error> {
+    let mut out = message.repeat(count as usize);
+    if let Some(s) = suffix {
+        out.push_str(&s);
+    }
+    Ok(out)
+}
+// Generates a unit struct `EchoTool` implementing `Tool`; register it with
+// `.tool(EchoTool)` exactly like a hand-written tool.
+```
+
+Rules the macro applies:
+
+- A plain parameter (e.g. `message: String`) is **required**.
+- `Option<T>` is **optional** (an absent key deserializes as `None`).
+- `#[mcp(default = ...)]` makes a parameter optional and supplies the default;
+  the literal keeps its JSON type (`default = 1` is an integer, `default = "x"`
+  a string).
+- The function returns `Result<T, E>` where `T: Serialize` and `E: Display`.
+  `Ok(value)` is serialized into the tool result; `Err(e)` becomes an
+  `isError` tool result carrying `e.to_string()`.
+
+See `crates/mcp-core/tests/mcp_tool_macro.rs` for the executable reference,
+including the schema/required-field and error-path assertions.
 
 ### Create a Server
 
@@ -139,7 +186,7 @@ tools/mcp/mcp_core_rust/
 │   │   │   └── transport/  # HTTP transport
 │   │   └── examples/
 │   │       └── echo_server.rs
-│   ├── mcp-macros/         # Proc macros (WIP)
+│   ├── mcp-macros/         # #[mcp_tool] proc macro
 │   ├── mcp-client/         # REST client
 │   └── mcp-testing/        # Test utilities
 └── servers/                # Converted MCP servers (future)
@@ -154,7 +201,17 @@ This library is designed to match the Python `mcp_core` API:
 | `BaseMCPServer` | `MCPServer` |
 | `get_tools()` | `impl Tool` |
 | `run(mode="http")` | `server.run().await` |
-| `@tool_decorator` | `#[mcp_tool]` (future) |
+| `@tool_decorator` | `#[mcp_tool]` |
+
+## Robustness: tool-execution panic boundary
+
+`tools/call` runs each tool inside a `catch_unwind` boundary
+(`transport/handler.rs`). If a tool panics — for example a stray `.unwrap()` on
+a malformed argument — the panic is caught and returned to the client as an MCP
+tool error (`isError: true`) instead of unwinding the connection task or
+crashing the server. The server stays available for subsequent requests. This
+is a safety net, not a license to panic: prefer `#[mcp_tool]` or explicit
+`InvalidParameters` errors so failures are typed rather than caught.
 
 ## Development Status
 
@@ -165,8 +222,9 @@ This library is designed to match the Python `mcp_core` API:
 - [x] Session management
 - [x] Server modes (standalone working)
 - [x] Example server
-- [x] Unit tests (15 passing)
-- [ ] Proc macros for tool registration
+- [x] Unit tests
+- [x] Tool-execution panic boundary (`catch_unwind` in `tools/call`)
+- [x] Proc macros for tool registration (`#[mcp_tool]`)
 
 **Phase 2: Pilot Server**
 - [ ] Port `mcp_reaction_search` to Rust
