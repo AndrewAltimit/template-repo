@@ -97,12 +97,10 @@ model_overrides:
 
   # OpenRouter agents configuration
   opencode:
-    model: qwen/qwen-2.5-coder-32b-instruct
-    temperature: 0.2
+    model: qwen/qwen3.7-max
 
   crush:
-    model: qwen/qwen-2.5-coder-32b-instruct
-    temperature: 0.1  # Lower temperature for Crush
+    model: qwen/qwen3.7-max
 
   # DISABLED: OpenAI/Codex phased out due to mass surveillance and autonomous
   # kill decision concerns. Use Anthropic models instead.
@@ -112,14 +110,14 @@ model_overrides:
 
   # OpenRouter models (for openrouter agent)
   openrouter:
-    default_model: "qwen/qwen3.6-plus"
+    default_model: "qwen/qwen3.7-max"
 
 # OpenRouter configuration (for future agents)
 openrouter:
   # API key must be provided as OPENROUTER_API_KEY environment variable
 
   # Default model for OpenRouter-compatible agents
-  default_model: qwen/qwen-2.5-coder-32b-instruct
+  default_model: qwen/qwen3.7-max
 
   # Fallback models if primary is unavailable
   fallback_models:
