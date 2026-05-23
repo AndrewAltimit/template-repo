@@ -25,7 +25,7 @@ Active AI agents work together in this development ecosystem:
 3. ~~**Gemini CLI**~~ - ~~Automated PR code reviews~~ **DISABLED** -- Google updated its AI principles (Feb 2026) to allow mass surveillance and autonomous weapons use cases.
 4. **OpenCode** - Code generation via OpenRouter
 5. **Crush** - Code generation via OpenRouter
-6. **OpenRouter** - PR code review via Qwen model (qwen/qwen3.6-plus)
+6. **OpenRouter** - PR code review via Qwen model (qwen/qwen3.7-max)
 7. **GitHub Copilot** - Provides code review suggestions in PRs
 
 **For complete agent documentation, see** `docs/agents/README.md`
