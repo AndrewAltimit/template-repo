@@ -563,10 +563,18 @@ fn get_current_branch_pr(gh_path: &std::path::Path, repo: Option<&str>) -> Optio
     }
 
     let json_str = String::from_utf8(output.stdout).ok()?;
+    parse_pr_view_json(&json_str)
+}
 
-    // Parse JSON manually (avoid adding serde dependency)
-    // Format: {"number":123,"url":"https://..."} or {"number": 123, "url": "..."}
-    // Handle optional whitespace after colons
+/// Parse the JSON returned by `gh pr view --json number,url`.
+///
+/// Hand-rolled to avoid pulling a serde dependency in for this single,
+/// fixed-shape payload. Tolerates optional whitespace after colons and
+/// either field ordering. Returns `None` if either field is missing or
+/// malformed, e.g.:
+/// - `{"number":123,"url":"https://..."}`
+/// - `{"number": 123, "url": "https://..."}`
+fn parse_pr_view_json(json_str: &str) -> Option<(u32, String)> {
     let number = json_str.find("\"number\":").and_then(|i| {
         let start = i + 9;
         let rest = json_str[start..].trim_start();
@@ -764,5 +772,64 @@ mod tests {
             "--notes-file",
             "/tmp/notes.md"
         ])));
+    }
+
+    #[test]
+    fn test_parse_pr_view_json_compact() {
+        let json = r#"{"number":123,"url":"https://github.com/o/r/pull/123"}"#;
+        assert_eq!(
+            parse_pr_view_json(json),
+            Some((123, "https://github.com/o/r/pull/123".to_string()))
+        );
+    }
+
+    #[test]
+    fn test_parse_pr_view_json_with_whitespace() {
+        let json = r#"{"number": 456, "url": "https://github.com/o/r/pull/456"}"#;
+        assert_eq!(
+            parse_pr_view_json(json),
+            Some((456, "https://github.com/o/r/pull/456".to_string()))
+        );
+    }
+
+    #[test]
+    fn test_parse_pr_view_json_field_order_independent() {
+        let json = r#"{"url":"https://example.com/pull/7","number":7}"#;
+        assert_eq!(
+            parse_pr_view_json(json),
+            Some((7, "https://example.com/pull/7".to_string()))
+        );
+    }
+
+    #[test]
+    fn test_parse_pr_view_json_missing_number() {
+        let json = r#"{"url":"https://github.com/o/r/pull/1"}"#;
+        assert_eq!(parse_pr_view_json(json), None);
+    }
+
+    #[test]
+    fn test_parse_pr_view_json_missing_url() {
+        let json = r#"{"number":99}"#;
+        assert_eq!(parse_pr_view_json(json), None);
+    }
+
+    #[test]
+    fn test_parse_pr_view_json_non_numeric_number() {
+        let json = r#"{"number":"abc","url":"https://x/pull/1"}"#;
+        assert_eq!(parse_pr_view_json(json), None);
+    }
+
+    #[test]
+    fn test_parse_pr_view_json_empty_and_garbage() {
+        assert_eq!(parse_pr_view_json(""), None);
+        assert_eq!(parse_pr_view_json("not json at all"), None);
+        assert_eq!(parse_pr_view_json("{}"), None);
+    }
+
+    #[test]
+    fn test_parse_pr_view_json_unterminated_url() {
+        // Opening quote present but no closing quote -> None, no panic.
+        let json = r#"{"number":5,"url":"https://github.com/o/r/pull/5"#;
+        assert_eq!(parse_pr_view_json(json), None);
     }
 }

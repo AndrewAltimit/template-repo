@@ -11,7 +11,7 @@
 /// Otherwise return `false` (normal execution continues).
 ///
 /// # Arguments
-/// * `args` - Command-line arguments (after skipping argv[0])
+/// * `args` - Command-line arguments (after skipping `argv[0]`)
 /// * `wrapper_name` - Name of the wrapper (e.g., "git-guard")
 /// * `source_hash` - The compile-time embedded source hash
 pub fn check_integrity_flag(args: &[String], wrapper_name: &str, source_hash: &str) -> bool {
