@@ -53,10 +53,20 @@ runs:
       shell: bash
       run: |
         echo "Creating output directories with proper permissions..."
-        # Create directories that will be bind-mounted to avoid permission issues
-        mkdir -p outputs/mcp-content outputs/mcp-gaea2
-        # Ensure they're writable by the current user
-        chmod -R 755 outputs/
+        # Pre-create ALL bind-mounted output dirs (incl. blender/*) as the
+        # runner user. Otherwise the Docker daemon (root) auto-creates missing
+        # bind-mount sources as root, and the next actions/checkout cleanup
+        # fails with EACCES trying to rmdir them. The canonical script also
+        # repairs any pre-existing root-owned dirs via a busybox chown.
+        if [ -f automation/setup/docker/init-output-dirs.sh ]; then
+          bash automation/setup/docker/init-output-dirs.sh
+        else
+          # Fallback if the script is unavailable for any reason.
+          mkdir -p outputs/mcp-content outputs/mcp-gaea2 \
+                   outputs/blender/projects outputs/blender/assets \
+                   outputs/blender/renders outputs/blender/templates
+          chmod -R 755 outputs/
+        fi
         echo "Output directories created"
 
     - name: Set Docker Compose profiles
