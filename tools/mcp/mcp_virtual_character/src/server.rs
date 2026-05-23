@@ -19,6 +19,16 @@ use crate::types::{
     SequenceEvent,
 };
 
+/// Seconds since the Unix epoch as `f64`. Returns `0.0` if the system clock is
+/// set before the epoch rather than panicking on the (practically impossible)
+/// error case.
+fn unix_secs_f64() -> f64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_secs_f64()
+}
+
 /// Server state shared across all tools.
 #[derive(Clone)]
 pub struct ServerRefs {
@@ -41,13 +51,11 @@ impl ServerRefs {
     /// Check if backend is connected and return an error message if not.
     async fn check_connected(&self) -> Option<String> {
         let backend = self.backend.read().await;
-        if backend.is_none() {
-            return Some("No backend connected. Use set_backend first.".to_string());
+        match backend.as_ref() {
+            None => Some("No backend connected. Use set_backend first.".to_string()),
+            Some(b) if !b.is_connected() => Some("Backend is not connected.".to_string()),
+            Some(_) => None,
         }
-        if !backend.as_ref().unwrap().is_connected() {
-            return Some("Backend is not connected.".to_string());
-        }
-        None
     }
 }
 
@@ -290,10 +298,7 @@ impl Tool for SendAnimationTool {
             return Ok(ToolResult::error(e));
         }
 
-        let timestamp = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_secs_f64();
+        let timestamp = unix_secs_f64();
 
         let mut animation = CanonicalAnimationData::new(timestamp);
 
@@ -657,12 +662,7 @@ impl Tool for CreateSequenceTool {
                 .and_then(|v| v.as_str())
                 .map(String::from),
             loop_sequence: args.get("loop").and_then(|v| v.as_bool()).unwrap_or(false),
-            created_timestamp: Some(
-                std::time::SystemTime::now()
-                    .duration_since(std::time::UNIX_EPOCH)
-                    .unwrap()
-                    .as_secs_f64(),
-            ),
+            created_timestamp: Some(unix_secs_f64()),
             ..Default::default()
         };
 
@@ -796,11 +796,11 @@ impl Tool for PlaySequenceTool {
         }
 
         let sequence_guard = self.server.current_sequence.read().await;
-        if sequence_guard.is_none() {
+        let Some(sequence) = sequence_guard.as_ref() else {
             return Ok(ToolResult::error("No sequence to play."));
-        }
+        };
 
-        let seq_name = sequence_guard.as_ref().unwrap().name.clone();
+        let seq_name = sequence.name.clone();
         *self.server.sequence_playing.write().await = true;
 
         // Note: Actual sequence execution would be implemented here
@@ -1041,10 +1041,7 @@ impl Tool for SendVRCEmoteTool {
             )));
         }
 
-        let timestamp = std::time::SystemTime::now()
-            .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
-            .as_secs_f64();
+        let timestamp = unix_secs_f64();
 
         let mut params = HashMap::new();
         let mut avatar_params = serde_json::Map::new();
