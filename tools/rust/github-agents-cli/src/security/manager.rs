@@ -14,6 +14,14 @@ use tracing::{debug, info, warn};
 
 use crate::error::Error;
 
+/// Built-in fallback admin, used when neither a config file nor the
+/// `AI_AGENT_DEFAULT_ADMIN` environment variable supplies one.
+const BUILTIN_DEFAULT_ADMIN: &str = "AndrewAltimit";
+
+/// Environment variable overriding the built-in default admin(s).
+/// Accepts a comma-separated list of usernames.
+const DEFAULT_ADMIN_ENV: &str = "AI_AGENT_DEFAULT_ADMIN";
+
 lazy_static! {
     /// Pattern for trigger comments: [Action] with optional [Agent]
     static ref TRIGGER_PATTERN: Regex =
@@ -56,8 +64,23 @@ fn default_enabled() -> bool {
     true
 }
 
+/// Resolve the default admin list from an optional env value.
+///
+/// Split out as a pure function so it can be tested without mutating global
+/// process environment (which would race with parallel tests).
+fn parse_default_admins(env_value: Option<&str>) -> Vec<String> {
+    match env_value {
+        Some(val) if !val.trim().is_empty() => val
+            .split(',')
+            .map(|s| s.trim().to_string())
+            .filter(|s| !s.is_empty())
+            .collect(),
+        _ => vec![BUILTIN_DEFAULT_ADMIN.to_string()],
+    }
+}
+
 fn default_agent_admins() -> Vec<String> {
-    vec!["AndrewAltimit".to_string()]
+    parse_default_admins(env::var(DEFAULT_ADMIN_ENV).ok().as_deref())
 }
 
 fn default_rate_limit_window() -> u64 {
@@ -473,6 +496,26 @@ mod tests {
         );
         assert!(allowed);
         assert!(reason.is_empty());
+    }
+
+    #[test]
+    fn test_parse_default_admins() {
+        // Unset / empty -> built-in fallback
+        assert_eq!(parse_default_admins(None), vec![BUILTIN_DEFAULT_ADMIN]);
+        assert_eq!(parse_default_admins(Some("")), vec![BUILTIN_DEFAULT_ADMIN]);
+        assert_eq!(
+            parse_default_admins(Some("   ")),
+            vec![BUILTIN_DEFAULT_ADMIN]
+        );
+
+        // Single override
+        assert_eq!(parse_default_admins(Some("Alice")), vec!["Alice"]);
+
+        // Comma-separated list with surrounding whitespace and empties
+        assert_eq!(
+            parse_default_admins(Some(" Alice , Bob ,, ")),
+            vec!["Alice", "Bob"]
+        );
     }
 
     #[test]
