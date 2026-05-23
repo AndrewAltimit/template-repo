@@ -197,6 +197,23 @@ cargo test
 cargo test -- --nocapture
 ```
 
+The `mcp-testing` crate provides a `TestServer` that registers real tools and
+calls them over the actual `Tool::execute` JSON boundary, plus `MockTool` and
+assertion helpers. Add it as a path dev-dependency to exercise a server's
+tools (including error paths) without standing up HTTP:
+
+```rust
+use mcp_testing::{TestServer, assertions};
+use serde_json::json;
+
+let server = TestServer::new().with_tool(MyTool { /* shared state */ });
+let result = server.call_tool("my_tool", json!({ "field": "value" })).await.unwrap();
+assertions::assert_success(&result);
+```
+
+See `mcp_sprite_sheet`'s `execute_path_tests` for a worked example that drives
+a multi-tool workflow over a shared store.
+
 ## Project Structure
 
 ```
@@ -241,6 +258,25 @@ tool error (`isError: true`) instead of unwinding the connection task or
 crashing the server. The server stays available for subsequent requests. This
 is a safety net, not a license to panic: prefer `#[mcp_tool]` or explicit
 `InvalidParameters` errors so failures are typed rather than caught.
+
+## Shared HTTP client
+
+Servers that call an upstream HTTP service should build their `reqwest::Client`
+via `mcp_core::http` instead of hand-rolling a builder. Both helpers apply a
+shared connect timeout (`DEFAULT_CONNECT_TIMEOUT`, 10s) on top of the caller's
+total request timeout, so a dead host fails fast:
+
+```rust
+use std::time::Duration;
+use mcp_core::http;
+
+// Infallible: never panics; falls back to a default client if the (rare)
+// builder error occurs, so the server can still start. Use in `new() -> Self`.
+let client = http::build_client_or_default(Duration::from_secs(30));
+
+// Fallible: propagate the builder error where you have a `Result` to return.
+let client = http::build_client(Duration::from_secs(30))?;
+```
 
 ## Development Status
 

@@ -107,6 +107,7 @@ curl http://localhost:8017/mcp/tools
 | `BLENDER_PATH` | Auto-detect | Path to Blender executable |
 | `MAX_CONCURRENT_JOBS` | CPU/2 | Maximum concurrent Blender processes |
 | `CUDA_VISIBLE_DEVICES` | All | GPU device selection for rendering |
+| `BLENDER_JOB_TIMEOUT_SECS` | `600` | Per-job timeout for a Blender subprocess invocation |
 
 ## Architecture
 
