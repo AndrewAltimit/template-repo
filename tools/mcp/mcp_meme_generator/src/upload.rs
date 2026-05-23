@@ -41,10 +41,19 @@ impl MemeUploader {
             },
         };
 
-        let part = multipart::Part::bytes(file_bytes)
+        let part = match multipart::Part::bytes(file_bytes)
             .file_name(file_name)
             .mime_str("application/octet-stream")
-            .unwrap();
+        {
+            Ok(part) => part,
+            Err(e) => {
+                return UploadResult {
+                    success: false,
+                    error: Some(format!("Failed to build multipart body: {}", e)),
+                    ..Default::default()
+                };
+            },
+        };
 
         let form = multipart::Form::new().part("file", part);
 
@@ -132,10 +141,19 @@ impl MemeUploader {
             },
         };
 
-        let part = multipart::Part::bytes(file_bytes)
+        let part = match multipart::Part::bytes(file_bytes)
             .file_name(file_name)
             .mime_str("application/octet-stream")
-            .unwrap();
+        {
+            Ok(part) => part,
+            Err(e) => {
+                return UploadResult {
+                    success: false,
+                    error: Some(format!("Failed to build multipart body: {}", e)),
+                    ..Default::default()
+                };
+            },
+        };
 
         let form = multipart::Form::new().part("file", part);
 
@@ -261,10 +279,19 @@ impl MemeUploader {
             },
         };
 
-        let part = multipart::Part::bytes(file_bytes)
+        let part = match multipart::Part::bytes(file_bytes)
             .file_name(file_name)
             .mime_str("application/octet-stream")
-            .unwrap();
+        {
+            Ok(part) => part,
+            Err(e) => {
+                return UploadResult {
+                    success: false,
+                    error: Some(format!("Failed to build multipart body: {}", e)),
+                    ..Default::default()
+                };
+            },
+        };
 
         let form = multipart::Form::new().part("file", part);
 

@@ -255,9 +255,7 @@ pub fn normalize_connections(connections: Vec<serde_json::Value>) -> Vec<Connect
     let mut normalized = Vec::new();
 
     for conn in connections {
-        let parsed = if conn.is_object() {
-            let obj = conn.as_object().unwrap();
-
+        let parsed = if let Some(obj) = conn.as_object() {
             // Handle various key formats
             let from_node = obj
                 .get("from_node")
@@ -293,10 +291,9 @@ pub fn normalize_connections(connections: Vec<serde_json::Value>) -> Vec<Connect
                 from_port,
                 to_port,
             }
-        } else if conn.is_array() {
+        } else if let Some(arr) = conn.as_array() {
             // Handle array format [from_id, to_id]
-            let arr = conn.as_array().unwrap();
-            let from_node = arr.get(0).and_then(|v| v.as_i64()).unwrap_or(0) as i32;
+            let from_node = arr.first().and_then(|v| v.as_i64()).unwrap_or(0) as i32;
             let to_node = arr.get(1).and_then(|v| v.as_i64()).unwrap_or(0) as i32;
 
             Connection {
