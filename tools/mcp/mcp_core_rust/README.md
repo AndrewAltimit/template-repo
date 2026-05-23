@@ -17,7 +17,7 @@ This workspace provides the core infrastructure for building MCP servers in Rust
 | Crate | Description |
 |-------|-------------|
 | `mcp-core` | Core server library with Tool trait, HTTP transport, and JSON-RPC handling |
-| `mcp-macros` | Procedural macros for tool registration (WIP) |
+| `mcp-macros` | `#[mcp_tool]` procedural macro for typed tool definitions |
 | `mcp-client` | REST client for proxy mode |
 | `mcp-testing` | Test utilities and mock tools |
 
@@ -56,6 +56,82 @@ impl Tool for EchoTool {
     }
 }
 ```
+
+### Define a Tool with `#[mcp_tool]` (recommended)
+
+The hand-written `impl Tool` above extracts arguments out of a raw
+`serde_json::Value`. That pattern is easy to get wrong: a `.unwrap()` /
+`["field"]` on missing or wrong-typed input **panics**, and a panic in tool
+execution used to be a latent crash vector. Prefer the `#[mcp_tool]` macro,
+which generates the `Tool` impl from a typed `async fn`: parameters are
+deserialized into their declared Rust types, the JSON schema is derived
+automatically, and a missing/mismatched argument becomes a clean
+`InvalidParameters` error instead of a panic.
+
+```rust
+use mcp_macros::mcp_tool;
+
+#[mcp_tool(description = "Echo the input message a number of times")]
+async fn echo(
+    #[mcp(description = "Message to echo")]
+    message: String,
+    #[mcp(description = "Repeat count", default = 1)]
+    count: i64,
+    #[mcp(description = "Optional suffix")]
+    suffix: Option<String>,
+) -> Result<String, anyhow::Error> {
+    let mut out = message.repeat(count as usize);
+    if let Some(s) = suffix {
+        out.push_str(&s);
+    }
+    Ok(out)
+}
+// Generates a unit struct `EchoTool` implementing `Tool`; register it with
+// `.tool(EchoTool)` exactly like a hand-written tool.
+```
+
+Rules the macro applies:
+
+- A plain parameter (e.g. `message: String`) is **required**.
+- `Option<T>` is **optional** (an absent key deserializes as `None`).
+- `#[mcp(default = ...)]` makes a parameter optional and supplies the default;
+  the literal keeps its JSON type (`default = 1` is an integer, `default = "x"`
+  a string).
+- `#[mcp(state)]` injects a parameter from the tool's own fields instead of the
+  JSON arguments (see below).
+- The function returns `Result<T, E>` where `T: Serialize` and `E: Display`.
+  `Ok(value)` is serialized into the tool result; `Err(e)` becomes an
+  `isError` tool result carrying `e.to_string()`.
+
+#### Stateful tools with `#[mcp(state)]`
+
+Most real tools need shared state — a store, an HTTP client, a job registry.
+Mark those parameters `#[mcp(state)]`: they are excluded from the input schema
+and instead become struct fields populated by a generated `new(...)`
+constructor (state parameters, in declaration order). State types must be
+`Clone` (typically an `Arc<...>`).
+
+```rust
+#[mcp_tool(description = "Add an amount to a shared counter")]
+async fn add(
+    #[mcp(state)]
+    counter: std::sync::Arc<std::sync::atomic::AtomicI64>,
+    #[mcp(description = "Amount to add")]
+    amount: i64,
+) -> Result<i64, anyhow::Error> {
+    use std::sync::atomic::Ordering;
+    Ok(counter.fetch_add(amount, Ordering::SeqCst) + amount)
+}
+// Generates `AddTool { counter: ... }` with `AddTool::new(counter)`.
+// Register with: `.tool(AddTool::new(counter.clone()))`
+```
+
+With no `#[mcp(state)]` parameters the macro keeps the ergonomic unit struct
+(`EchoTool`); with state it generates the fielded struct plus `new(...)`.
+
+See `crates/mcp-core/tests/mcp_tool_macro.rs` for the executable reference,
+including the schema/required-field, error-path, and state-injection
+assertions.
 
 ### Create a Server
 
@@ -121,6 +197,23 @@ cargo test
 cargo test -- --nocapture
 ```
 
+The `mcp-testing` crate provides a `TestServer` that registers real tools and
+calls them over the actual `Tool::execute` JSON boundary, plus `MockTool` and
+assertion helpers. Add it as a path dev-dependency to exercise a server's
+tools (including error paths) without standing up HTTP:
+
+```rust
+use mcp_testing::{TestServer, assertions};
+use serde_json::json;
+
+let server = TestServer::new().with_tool(MyTool { /* shared state */ });
+let result = server.call_tool("my_tool", json!({ "field": "value" })).await.unwrap();
+assertions::assert_success(&result);
+```
+
+See `mcp_sprite_sheet`'s `execute_path_tests` for a worked example that drives
+a multi-tool workflow over a shared store.
+
 ## Project Structure
 
 ```
@@ -139,7 +232,7 @@ tools/mcp/mcp_core_rust/
 │   │   │   └── transport/  # HTTP transport
 │   │   └── examples/
 │   │       └── echo_server.rs
-│   ├── mcp-macros/         # Proc macros (WIP)
+│   ├── mcp-macros/         # #[mcp_tool] proc macro
 │   ├── mcp-client/         # REST client
 │   └── mcp-testing/        # Test utilities
 └── servers/                # Converted MCP servers (future)
@@ -154,7 +247,36 @@ This library is designed to match the Python `mcp_core` API:
 | `BaseMCPServer` | `MCPServer` |
 | `get_tools()` | `impl Tool` |
 | `run(mode="http")` | `server.run().await` |
-| `@tool_decorator` | `#[mcp_tool]` (future) |
+| `@tool_decorator` | `#[mcp_tool]` |
+
+## Robustness: tool-execution panic boundary
+
+`tools/call` runs each tool inside a `catch_unwind` boundary
+(`transport/handler.rs`). If a tool panics — for example a stray `.unwrap()` on
+a malformed argument — the panic is caught and returned to the client as an MCP
+tool error (`isError: true`) instead of unwinding the connection task or
+crashing the server. The server stays available for subsequent requests. This
+is a safety net, not a license to panic: prefer `#[mcp_tool]` or explicit
+`InvalidParameters` errors so failures are typed rather than caught.
+
+## Shared HTTP client
+
+Servers that call an upstream HTTP service should build their `reqwest::Client`
+via `mcp_core::http` instead of hand-rolling a builder. Both helpers apply a
+shared connect timeout (`DEFAULT_CONNECT_TIMEOUT`, 10s) on top of the caller's
+total request timeout, so a dead host fails fast:
+
+```rust
+use std::time::Duration;
+use mcp_core::http;
+
+// Infallible: never panics; falls back to a default client if the (rare)
+// builder error occurs, so the server can still start. Use in `new() -> Self`.
+let client = http::build_client_or_default(Duration::from_secs(30));
+
+// Fallible: propagate the builder error where you have a `Result` to return.
+let client = http::build_client(Duration::from_secs(30))?;
+```
 
 ## Development Status
 
@@ -165,8 +287,9 @@ This library is designed to match the Python `mcp_core` API:
 - [x] Session management
 - [x] Server modes (standalone working)
 - [x] Example server
-- [x] Unit tests (15 passing)
-- [ ] Proc macros for tool registration
+- [x] Unit tests
+- [x] Tool-execution panic boundary (`catch_unwind` in `tools/call`)
+- [x] Proc macros for tool registration (`#[mcp_tool]`)
 
 **Phase 2: Pilot Server**
 - [ ] Port `mcp_reaction_search` to Rust

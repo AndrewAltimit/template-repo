@@ -13,6 +13,7 @@
 
 mod audio;
 mod jobs;
+mod process;
 mod server;
 mod types;
 mod video;

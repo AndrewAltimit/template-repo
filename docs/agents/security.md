@@ -171,6 +171,12 @@ You can also set allowed repositories via environment variable:
 export AI_AGENT_ALLOWED_REPOS="owner/repo1,owner/repo2"
 ```
 
+When no `.agents.yaml` is present, the security manager falls back to a
+built-in default admin. Override it (comma-separated) without editing config:
+```bash
+export AI_AGENT_DEFAULT_ADMIN="owner1,owner2"
+```
+
 ### 7. Security Manager (Rust CLI)
 
 The security functionality is implemented in Rust and available via the `github-agents` CLI:

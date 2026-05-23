@@ -24,10 +24,8 @@ pub struct OpenCodeIntegration {
 impl OpenCodeIntegration {
     /// Create a new OpenCode integration
     pub fn new(config: OpenCodeConfig) -> Self {
-        let client = Client::builder()
-            .timeout(Duration::from_secs(config.timeout_secs))
-            .build()
-            .expect("Failed to create HTTP client");
+        let client =
+            mcp_core::http::build_client_or_default(Duration::from_secs(config.timeout_secs));
 
         Self {
             config,

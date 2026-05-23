@@ -30,6 +30,8 @@ mcp-client = { path = "../mcp-client" }
 [dev-dependencies]
 tokio-test = { workspace = true }
 axum-test = { workspace = true }
+# Exercises the #[mcp_tool] macro end-to-end (see tests/mcp_tool_macro.rs).
+mcp-macros = { path = "../mcp-macros" }
 
 [[example]]
 name = "echo_server"

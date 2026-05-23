@@ -2,8 +2,9 @@
 //!
 //! Handles video editing, composition, effects, and rendering via ffmpeg.
 
+use crate::process::output_with_timeout;
 use crate::types::{EditDecision, OutputSettings, RenderOptions, ServerConfig};
-use anyhow::{Context, Result};
+use anyhow::Result;
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
 use tempfile::TempDir;
@@ -28,8 +29,8 @@ impl VideoProcessor {
     /// Get video information using ffprobe
     #[allow(dead_code)]
     pub async fn get_video_info(&self, video_path: &str) -> Result<VideoInfo> {
-        let output = Command::new("ffprobe")
-            .args([
+        let output = output_with_timeout(
+            Command::new("ffprobe").args([
                 "-v",
                 "error",
                 "-show_entries",
@@ -37,10 +38,10 @@ impl VideoProcessor {
                 "-of",
                 "json",
                 video_path,
-            ])
-            .output()
-            .await
-            .context("Failed to run ffprobe")?;
+            ]),
+            "ffprobe",
+        )
+        .await?;
 
         if !output.status.success() {
             anyhow::bail!(
@@ -119,21 +120,22 @@ impl VideoProcessor {
         info!("Detecting scene changes in: {}", video_path);
 
         // Use ffmpeg with scene detection filter
-        let output = Command::new("ffmpeg")
-            .args([
-                "-i",
-                video_path,
-                "-vf",
-                "select='gt(scene,0.3)',metadata=print:file=-",
-                "-f",
-                "null",
-                "-",
-            ])
-            .stderr(Stdio::piped())
-            .stdout(Stdio::piped())
-            .output()
-            .await
-            .context("Failed to run ffmpeg for scene detection")?;
+        let output = output_with_timeout(
+            Command::new("ffmpeg")
+                .args([
+                    "-i",
+                    video_path,
+                    "-vf",
+                    "select='gt(scene,0.3)',metadata=print:file=-",
+                    "-f",
+                    "null",
+                    "-",
+                ])
+                .stderr(Stdio::piped())
+                .stdout(Stdio::piped()),
+            "ffmpeg for scene detection",
+        )
+        .await?;
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         let stderr = String::from_utf8_lossy(&output.stderr);
@@ -166,27 +168,8 @@ impl VideoProcessor {
 
         let duration = end_time - start_time;
 
-        let output = Command::new("ffmpeg")
-            .args([
-                "-i",
-                video_path,
-                "-ss",
-                &start_time.to_string(),
-                "-t",
-                &duration.to_string(),
-                "-c",
-                "copy",
-                "-y",
-                output_path,
-            ])
-            .stderr(Stdio::piped())
-            .output()
-            .await
-            .context("Failed to run ffmpeg for clip extraction")?;
-
-        if !output.status.success() {
-            // Try re-encoding if copy fails
-            let output = Command::new("ffmpeg")
+        let output = output_with_timeout(
+            Command::new("ffmpeg")
                 .args([
                     "-i",
                     video_path,
@@ -194,16 +177,38 @@ impl VideoProcessor {
                     &start_time.to_string(),
                     "-t",
                     &duration.to_string(),
-                    "-c:v",
-                    "libx264",
-                    "-c:a",
-                    "aac",
+                    "-c",
+                    "copy",
                     "-y",
                     output_path,
                 ])
-                .stderr(Stdio::piped())
-                .output()
-                .await?;
+                .stderr(Stdio::piped()),
+            "ffmpeg for clip extraction",
+        )
+        .await?;
+
+        if !output.status.success() {
+            // Try re-encoding if copy fails
+            let output = output_with_timeout(
+                Command::new("ffmpeg")
+                    .args([
+                        "-i",
+                        video_path,
+                        "-ss",
+                        &start_time.to_string(),
+                        "-t",
+                        &duration.to_string(),
+                        "-c:v",
+                        "libx264",
+                        "-c:a",
+                        "aac",
+                        "-y",
+                        output_path,
+                    ])
+                    .stderr(Stdio::piped()),
+                "ffmpeg for clip re-encode",
+            )
+            .await?;
 
             if !output.status.success() {
                 anyhow::bail!(
@@ -301,7 +306,7 @@ impl VideoProcessor {
             &output_path,
         ]);
 
-        let output = cmd.stderr(Stdio::piped()).output().await?;
+        let output = output_with_timeout(cmd.stderr(Stdio::piped()), "ffmpeg render").await?;
 
         if !output.status.success() {
             anyhow::bail!(
@@ -333,20 +338,22 @@ impl VideoProcessor {
     ) -> Result<()> {
         info!("Adding subtitles to video");
 
-        let output = Command::new("ffmpeg")
-            .args([
-                "-i",
-                video_path,
-                "-vf",
-                &format!("subtitles={}", srt_path),
-                "-c:a",
-                "copy",
-                "-y",
-                output_path,
-            ])
-            .stderr(Stdio::piped())
-            .output()
-            .await?;
+        let output = output_with_timeout(
+            Command::new("ffmpeg")
+                .args([
+                    "-i",
+                    video_path,
+                    "-vf",
+                    &format!("subtitles={}", srt_path),
+                    "-c:a",
+                    "copy",
+                    "-y",
+                    output_path,
+                ])
+                .stderr(Stdio::piped()),
+            "ffmpeg for subtitles",
+        )
+        .await?;
 
         if !output.status.success() {
             anyhow::bail!(

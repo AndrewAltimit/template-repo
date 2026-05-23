@@ -98,6 +98,7 @@ curl -X POST http://localhost:8019/mcp/execute \
 | `SILENCE_THRESHOLD` | `2.0` | Minimum silence duration to detect |
 | `ENABLE_GPU` | `true` | Enable GPU acceleration for encoding |
 | `MAX_PARALLEL_JOBS` | `2` | Maximum concurrent render jobs |
+| `VIDEO_EDITOR_SUBPROCESS_TIMEOUT_SECS` | `1800` | Per-invocation timeout for ffmpeg/ffprobe/whisper subprocesses |
 
 ### Cache Location
 

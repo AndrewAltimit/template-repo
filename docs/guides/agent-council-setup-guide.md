@@ -273,7 +273,7 @@ rate_limits:
 
 # OpenRouter settings
 openrouter:
-  default_model: qwen/qwen3.6-plus
+  default_model: qwen/qwen3.7-max
   fallback_models:
     - deepseek/deepseek-coder-v2-instruct
 
@@ -380,7 +380,7 @@ profiles:
   openrouter-general:
     display_name: "General Review"
     agent: openrouter
-    model: "qwen/qwen3.6-plus"
+    model: "qwen/qwen3.7-max"
     focus: "General code quality, logic errors, edge cases"
     instructions: |
       You are a GENERAL code reviewer providing a broad perspective. Focus on:
@@ -1157,7 +1157,7 @@ runs:
 Edit `review-profiles.yaml`. Each profile needs:
 - `display_name` -- shown in the PR comment header
 - `agent` -- `claude` or `openrouter`
-- `model` -- model name (e.g., `sonnet` for Claude, `qwen/qwen3.6-plus` for OpenRouter)
+- `model` -- model name (e.g., `sonnet` for Claude, `qwen/qwen3.7-max` for OpenRouter)
 - `focus` -- one-line description
 - `instructions` -- system prompt text prepended to the review
 

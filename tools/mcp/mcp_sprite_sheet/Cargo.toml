@@ -48,6 +48,7 @@ chrono = { version = "0.4", features = ["serde"] }
 
 [dev-dependencies]
 tokio-test = "0.4"
+mcp-testing = { path = "../mcp_core_rust/crates/mcp-testing" }
 
 [profile.release]
 lto = true

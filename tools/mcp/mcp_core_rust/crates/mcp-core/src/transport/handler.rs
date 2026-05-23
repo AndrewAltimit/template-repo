@@ -1,7 +1,10 @@
 //! Shared MCP protocol handler used by both HTTP and STDIO transports.
 
+use std::panic::AssertUnwindSafe;
+
+use futures::FutureExt;
 use serde_json::{Value, json};
-use tracing::info;
+use tracing::{error, info};
 
 use crate::error::{JsonRpcErrorCode, MCPError};
 use crate::jsonrpc::{
@@ -9,7 +12,18 @@ use crate::jsonrpc::{
     ServerCapabilities, ServerInfo, ToolCallParams, ToolCallResult, ToolInfo, ToolsListResult,
 };
 use crate::session::{ClientInfo, SessionManager};
-use crate::tool::{Content, ToolRegistry};
+use crate::tool::{Content, ToolRegistry, ToolResult};
+
+/// Extract a human-readable message from a caught panic payload.
+fn panic_message(payload: &(dyn std::any::Any + Send)) -> String {
+    if let Some(s) = payload.downcast_ref::<&str>() {
+        (*s).to_string()
+    } else if let Some(s) = payload.downcast_ref::<String>() {
+        s.clone()
+    } else {
+        "unknown panic".to_string()
+    }
+}
 
 /// Shared MCP protocol handler.
 ///
@@ -169,7 +183,29 @@ impl MCPHandler {
             .get(&call_params.name)
             .ok_or_else(|| MCPError::ToolNotFound(call_params.name.clone()))?;
 
-        let result = tool.execute(call_params.arguments).await?;
+        // Execute the tool inside a panic boundary. A buggy tool that panics on
+        // malformed/untrusted arguments must not take down the whole server (or
+        // the connection task); instead the panic is converted into an MCP tool
+        // error result (`isError: true`), which is the spec-recommended way to
+        // surface execution failures so the client/model can recover.
+        let result = match AssertUnwindSafe(tool.execute(call_params.arguments))
+            .catch_unwind()
+            .await
+        {
+            Ok(Ok(result)) => result,
+            Ok(Err(e)) => return Err(e),
+            Err(panic) => {
+                let msg = panic_message(panic.as_ref());
+                error!(
+                    "Tool '{}' panicked during execution: {}",
+                    call_params.name, msg
+                );
+                ToolResult::error(format!(
+                    "Tool '{}' panicked during execution: {}",
+                    call_params.name, msg
+                ))
+            },
+        };
 
         // Convert internal content to JSON-RPC content blocks
         let content: Vec<ContentBlock> = result
@@ -218,9 +254,28 @@ mod tests {
         }
     }
 
+    struct PanicTool;
+
+    #[async_trait]
+    impl crate::tool::Tool for PanicTool {
+        fn name(&self) -> &str {
+            "panic_tool"
+        }
+        fn description(&self) -> &str {
+            "A tool that panics, simulating an unwrap() on malformed input"
+        }
+        fn schema(&self) -> Value {
+            json!({"type": "object", "properties": {}})
+        }
+        async fn execute(&self, _args: Value) -> crate::error::Result<ToolResult> {
+            panic!("boom: simulated unwrap on bad arg");
+        }
+    }
+
     fn make_handler() -> MCPHandler {
         let mut tools = ToolRegistry::new();
         tools.register(TestTool);
+        tools.register(PanicTool);
         MCPHandler::new("test-server", "1.0.0", tools)
     }
 
@@ -241,8 +296,39 @@ mod tests {
         let resp = handler.process_request(&req, &None).await.unwrap();
         let result = resp.result.unwrap();
         let tools = result["tools"].as_array().unwrap();
-        assert_eq!(tools.len(), 1);
-        assert_eq!(tools[0]["name"], "test_tool");
+        assert_eq!(tools.len(), 2);
+        assert!(tools.iter().any(|t| t["name"] == "test_tool"));
+    }
+
+    #[tokio::test]
+    async fn test_tool_panic_is_caught() {
+        // A panicking tool must not crash the handler; it should be reported as
+        // a graceful tool error result (isError: true) with a successful
+        // JSON-RPC envelope.
+        let handler = make_handler();
+        let req = JsonRpcRequest::new(
+            "tools/call",
+            json!({"name": "panic_tool", "arguments": {}}),
+            1,
+        );
+        let resp = handler.process_request(&req, &None).await.unwrap();
+        assert!(
+            resp.error.is_none(),
+            "panic should not surface as a protocol error"
+        );
+        let result = resp.result.expect("expected a successful JSON-RPC result");
+        assert_eq!(result["isError"], true);
+        let text = result["content"][0]["text"].as_str().unwrap();
+        assert!(text.contains("panicked"), "got: {text}");
+        assert!(
+            text.contains("boom"),
+            "panic message should be preserved: {text}"
+        );
+
+        // The handler must still serve subsequent requests after a panic.
+        let req2 = JsonRpcRequest::new("ping", json!({}), 2);
+        let resp2 = handler.process_request(&req2, &None).await.unwrap();
+        assert_eq!(resp2.result.unwrap()["pong"], true);
     }
 
     #[tokio::test]

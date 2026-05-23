@@ -114,3 +114,148 @@ mod tests {
         }
     }
 }
+
+/// Execute-path tests driven through the shared `mcp-testing` harness.
+///
+/// Unlike the `engine` unit tests, these exercise the real `Tool::execute`
+/// JSON boundary (argument parsing -> engine call -> `ToolResult`) for several
+/// tools that share one project store, plus the error paths for malformed or
+/// inconsistent arguments.
+#[cfg(test)]
+mod execute_path_tests {
+    use crate::engine;
+    use crate::tools;
+    use mcp_core::tool::{Content, ToolResult};
+    use mcp_testing::{TestServer, assertions};
+    use serde_json::json;
+
+    /// Build a TestServer wired with several real tools sharing one store.
+    fn server() -> TestServer {
+        let store = engine::new_store();
+        TestServer::new()
+            .with_tool(tools::project::CreateProjectTool {
+                store: store.clone(),
+            })
+            .with_tool(tools::project::ProjectStatusTool {
+                store: store.clone(),
+            })
+            .with_tool(tools::layer::AddLayerTool {
+                store: store.clone(),
+            })
+            .with_tool(tools::draw::SetPixelsTool { store })
+    }
+
+    /// Collect the text content of a tool result as a single string.
+    fn result_text(result: &ToolResult) -> String {
+        result
+            .content
+            .iter()
+            .filter_map(|c| match c {
+                Content::Text { text } => Some(text.as_str()),
+                _ => None,
+            })
+            .collect()
+    }
+
+    #[tokio::test]
+    async fn full_create_layer_draw_status_workflow() {
+        let server = server();
+
+        // Create a project.
+        let res = server
+            .call_tool(
+                "sprite_create_project",
+                json!({ "name": "hero", "width": 32, "height": 32 }),
+            )
+            .await
+            .expect("create_project should succeed");
+        assertions::assert_success(&res);
+        assertions::assert_text_contains(&res, "hero");
+
+        // Add a layer and pull the generated layer_id out of the result JSON.
+        let res = server
+            .call_tool(
+                "sprite_add_layer",
+                json!({ "name": "hero", "layer_name": "base" }),
+            )
+            .await
+            .expect("add_layer should succeed");
+        assertions::assert_success(&res);
+        let parsed: serde_json::Value =
+            serde_json::from_str(&result_text(&res)).expect("layer result is JSON");
+        let layer_id = parsed["layer_id"]
+            .as_str()
+            .expect("layer_id present")
+            .to_string();
+
+        // Draw pixels onto the layer.
+        let res = server
+            .call_tool(
+                "sprite_set_pixels",
+                json!({
+                    "name": "hero",
+                    "layer_id": layer_id,
+                    "pixels": [
+                        { "x": 0, "y": 0, "color_index": 1 },
+                        { "x": 1, "y": 1, "color_index": 2 }
+                    ]
+                }),
+            )
+            .await
+            .expect("set_pixels should succeed");
+        assertions::assert_success(&res);
+        assertions::assert_text_contains(&res, "\"pixels_set\": 2");
+
+        // Status reflects the layer and the drawn pixels.
+        let res = server
+            .call_tool("sprite_project_status", json!({ "name": "hero" }))
+            .await
+            .expect("status should succeed");
+        assertions::assert_success(&res);
+        assertions::assert_text_contains(&res, "\"layers\": 1");
+        assertions::assert_text_contains(&res, "\"total_pixels\": 2");
+    }
+
+    #[tokio::test]
+    async fn missing_required_arg_is_error_not_panic() {
+        let server = server();
+        // 'name' is required; omit it.
+        let err = server
+            .call_tool(
+                "sprite_create_project",
+                json!({ "width": 16, "height": 16 }),
+            )
+            .await
+            .expect_err("missing 'name' should be an error");
+        assert!(
+            err.contains("name"),
+            "error should mention the field: {err}"
+        );
+    }
+
+    #[tokio::test]
+    async fn operating_on_unknown_project_is_error() {
+        let server = server();
+        let err = server
+            .call_tool(
+                "sprite_add_layer",
+                json!({ "name": "does_not_exist", "layer_name": "base" }),
+            )
+            .await
+            .expect_err("adding a layer to an unknown project should error");
+        assert!(
+            err.contains("not found"),
+            "error should explain the project is missing: {err}"
+        );
+    }
+
+    #[tokio::test]
+    async fn unknown_tool_name_is_error() {
+        let server = server();
+        let err = server
+            .call_tool("sprite_does_not_exist", json!({}))
+            .await
+            .expect_err("calling an unregistered tool should error");
+        assert!(err.contains("Tool not found"), "unexpected error: {err}");
+    }
+}

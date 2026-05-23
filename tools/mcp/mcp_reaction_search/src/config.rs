@@ -150,10 +150,9 @@ impl ConfigLoader {
     async fn fetch_from_github(&self) -> Result<ReactionConfig, ConfigError> {
         info!("Fetching config from {}", self.config_url);
 
-        let client = reqwest::Client::builder()
-            .timeout(std::time::Duration::from_secs(REQUEST_TIMEOUT_SECS))
-            .build()
-            .map_err(|e| ConfigError::FetchError(format!("Failed to create client: {}", e)))?;
+        let client =
+            mcp_core::http::build_client(std::time::Duration::from_secs(REQUEST_TIMEOUT_SECS))
+                .map_err(|e| ConfigError::FetchError(format!("Failed to create client: {}", e)))?;
 
         let response = client
             .get(&self.config_url)

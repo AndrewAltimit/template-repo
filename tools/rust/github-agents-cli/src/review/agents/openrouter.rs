@@ -9,7 +9,7 @@ use super::ReviewAgent;
 use crate::error::{Error, Result};
 
 /// Default model for OpenRouter reviews
-const DEFAULT_MODEL: &str = "qwen/qwen3.6-plus";
+const DEFAULT_MODEL: &str = "qwen/qwen3.7-max";
 
 /// OpenRouter API endpoint
 const OPENROUTER_API_URL: &str = "https://openrouter.ai/api/v1/chat/completions";

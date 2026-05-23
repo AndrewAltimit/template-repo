@@ -25,6 +25,16 @@ const INITIAL_BACKOFF_SECS: u64 = 1;
 /// Maximum backoff duration.
 const MAX_BACKOFF_SECS: u64 = 60;
 
+/// Default total request timeout in seconds.
+const DEFAULT_HTTP_TIMEOUT_SECS: u64 = 30;
+
+/// Connection-establishment timeout in seconds (fail fast on a dead host
+/// instead of waiting for the full request timeout).
+const CONNECT_TIMEOUT_SECS: u64 = 10;
+
+/// Env var overriding the total request timeout.
+const HTTP_TIMEOUT_ENV: &str = "BOARD_MANAGER_HTTP_TIMEOUT_SECS";
+
 /// GraphQL client for GitHub API.
 pub struct GraphQLClient {
     client: Client,
@@ -34,8 +44,15 @@ pub struct GraphQLClient {
 impl GraphQLClient {
     /// Create a new GraphQL client.
     pub fn new(token: String) -> Result<Self> {
+        let timeout_secs = std::env::var(HTTP_TIMEOUT_ENV)
+            .ok()
+            .and_then(|v| v.parse::<u64>().ok())
+            .filter(|&s| s > 0)
+            .unwrap_or(DEFAULT_HTTP_TIMEOUT_SECS);
+
         let client = Client::builder()
-            .timeout(Duration::from_secs(30))
+            .timeout(Duration::from_secs(timeout_secs))
+            .connect_timeout(Duration::from_secs(CONNECT_TIMEOUT_SECS))
             .build()
             .map_err(BoardError::Http)?;
 
@@ -142,6 +159,17 @@ impl GraphQLClient {
             return Err(BoardError::Auth(
                 "Forbidden - check permissions".to_string(),
             ));
+        }
+
+        // Surface other non-success statuses (e.g. 5xx) as a retryable error
+        // instead of attempting to parse the body as a GraphQL response, which
+        // would otherwise yield a silent empty result.
+        if !status.is_success() {
+            let error_body = response.text().await.unwrap_or_default();
+            return Err(BoardError::GraphQL(format!(
+                "GraphQL API HTTP error: {} - {}",
+                status, error_body
+            )));
         }
 
         let body: Value = response.json().await?;

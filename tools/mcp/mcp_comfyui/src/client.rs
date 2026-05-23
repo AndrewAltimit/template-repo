@@ -21,10 +21,7 @@ pub struct ComfyUIClient {
 impl ComfyUIClient {
     /// Create a new ComfyUI client
     pub fn new(host: &str, port: u16, client_id: String, comfyui_path: &str) -> Self {
-        let client = Client::builder()
-            .timeout(Duration::from_secs(300))
-            .build()
-            .expect("Failed to create HTTP client");
+        let client = mcp_core::http::build_client_or_default(Duration::from_secs(300));
 
         Self {
             client,

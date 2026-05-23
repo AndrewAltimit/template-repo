@@ -64,6 +64,7 @@ Requires `.agents.yaml` in the repository root with:
 
 - `GITHUB_TOKEN` - GitHub API token with project access
 - `GITHUB_REPOSITORY` - Repository in `owner/repo` format
+- `BOARD_MANAGER_HTTP_TIMEOUT_SECS` - Total per-request timeout for GitHub API calls (default: 30)
 
 ## See Also
 

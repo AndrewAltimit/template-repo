@@ -8,6 +8,18 @@ use tracing::{info, warn};
 
 use crate::types::UploadResult;
 
+/// Build the multipart body part shared by every upload backend.
+///
+/// Returns the error message on a (rare) builder failure; call sites wrap it in
+/// an [`UploadResult`]. The MIME type is a fixed `application/octet-stream`
+/// since the hosts sniff content themselves.
+fn build_part(file_bytes: Vec<u8>, file_name: String) -> Result<multipart::Part, String> {
+    multipart::Part::bytes(file_bytes)
+        .file_name(file_name)
+        .mime_str("application/octet-stream")
+        .map_err(|e| format!("Failed to build multipart body: {}", e))
+}
+
 /// Upload a meme to free hosting services
 pub struct MemeUploader;
 
@@ -41,10 +53,16 @@ impl MemeUploader {
             },
         };
 
-        let part = multipart::Part::bytes(file_bytes)
-            .file_name(file_name)
-            .mime_str("application/octet-stream")
-            .unwrap();
+        let part = match build_part(file_bytes, file_name) {
+            Ok(part) => part,
+            Err(error) => {
+                return UploadResult {
+                    success: false,
+                    error: Some(error),
+                    ..Default::default()
+                };
+            },
+        };
 
         let form = multipart::Form::new().part("file", part);
 
@@ -132,10 +150,16 @@ impl MemeUploader {
             },
         };
 
-        let part = multipart::Part::bytes(file_bytes)
-            .file_name(file_name)
-            .mime_str("application/octet-stream")
-            .unwrap();
+        let part = match build_part(file_bytes, file_name) {
+            Ok(part) => part,
+            Err(error) => {
+                return UploadResult {
+                    success: false,
+                    error: Some(error),
+                    ..Default::default()
+                };
+            },
+        };
 
         let form = multipart::Form::new().part("file", part);
 
@@ -261,10 +285,16 @@ impl MemeUploader {
             },
         };
 
-        let part = multipart::Part::bytes(file_bytes)
-            .file_name(file_name)
-            .mime_str("application/octet-stream")
-            .unwrap();
+        let part = match build_part(file_bytes, file_name) {
+            Ok(part) => part,
+            Err(error) => {
+                return UploadResult {
+                    success: false,
+                    error: Some(error),
+                    ..Default::default()
+                };
+            },
+        };
 
         let form = multipart::Form::new().part("file", part);
 

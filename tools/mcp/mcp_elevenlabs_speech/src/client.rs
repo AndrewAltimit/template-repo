@@ -24,10 +24,7 @@ pub struct ElevenLabsClient {
 impl ElevenLabsClient {
     /// Create a new ElevenLabs client
     pub fn new(api_key: String, output_dir: Option<PathBuf>) -> Self {
-        let client = Client::builder()
-            .timeout(std::time::Duration::from_secs(60))
-            .build()
-            .expect("Failed to create HTTP client");
+        let client = mcp_core::http::build_client_or_default(std::time::Duration::from_secs(60));
 
         let output_dir = output_dir.unwrap_or_else(|| {
             dirs::home_dir()

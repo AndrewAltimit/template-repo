@@ -3,11 +3,12 @@
 //! Handles audio extraction, transcription via Whisper, and speaker diarization.
 //! All processing is done via external tools (ffmpeg, whisper CLI).
 
+use crate::process::output_with_timeout;
 use crate::types::{
     AudioAnalysis, ServerConfig, Speaker, Transcript, TranscriptSegment,
     TranscriptSegmentWithSpeaker, VolumePoint, Word,
 };
-use anyhow::{Context, Result};
+use anyhow::Result;
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
@@ -58,24 +59,25 @@ impl AudioProcessor {
             .to_str()
             .ok_or_else(|| anyhow::anyhow!("Audio path contains invalid UTF-8"))?;
 
-        let output = Command::new("ffmpeg")
-            .args([
-                "-i",
-                video_path,
-                "-vn", // No video
-                "-acodec",
-                "pcm_s16le", // PCM 16-bit
-                "-ar",
-                "16000", // 16kHz sample rate (good for speech)
-                "-ac",
-                "1",  // Mono
-                "-y", // Overwrite
-                audio_path_str,
-            ])
-            .stderr(Stdio::piped())
-            .output()
-            .await
-            .context("Failed to run ffmpeg")?;
+        let output = output_with_timeout(
+            Command::new("ffmpeg")
+                .args([
+                    "-i",
+                    video_path,
+                    "-vn", // No video
+                    "-acodec",
+                    "pcm_s16le", // PCM 16-bit
+                    "-ar",
+                    "16000", // 16kHz sample rate (good for speech)
+                    "-ac",
+                    "1",  // Mono
+                    "-y", // Overwrite
+                    audio_path_str,
+                ])
+                .stderr(Stdio::piped()),
+            "ffmpeg for audio extraction",
+        )
+        .await?;
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
@@ -139,11 +141,7 @@ impl AudioProcessor {
         let output_dir = tempfile::tempdir()?;
         cmd.arg("--output_dir").arg(output_dir.path());
 
-        let output = cmd
-            .stderr(Stdio::piped())
-            .output()
-            .await
-            .context("Failed to run whisper")?;
+        let output = output_with_timeout(cmd.stderr(Stdio::piped()), "whisper").await?;
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
@@ -273,8 +271,8 @@ impl AudioProcessor {
             .ok_or_else(|| anyhow::anyhow!("Audio path contains invalid UTF-8"))?;
 
         // Use ffprobe to get audio info
-        let probe_output = Command::new("ffprobe")
-            .args([
+        let probe_output = output_with_timeout(
+            Command::new("ffprobe").args([
                 "-v",
                 "error",
                 "-show_entries",
@@ -282,10 +280,10 @@ impl AudioProcessor {
                 "-of",
                 "json",
                 audio_path_str,
-            ])
-            .output()
-            .await
-            .context("Failed to run ffprobe")?;
+            ]),
+            "ffprobe",
+        )
+        .await?;
 
         let duration: f64;
         let sample_rate: u32;
@@ -325,19 +323,21 @@ impl AudioProcessor {
         }
 
         // Use ffmpeg to detect silence
-        let silence_output = Command::new("ffmpeg")
-            .args([
-                "-i",
-                audio_path_str,
-                "-af",
-                "silencedetect=n=-40dB:d=2",
-                "-f",
-                "null",
-                "-",
-            ])
-            .stderr(Stdio::piped())
-            .output()
-            .await?;
+        let silence_output = output_with_timeout(
+            Command::new("ffmpeg")
+                .args([
+                    "-i",
+                    audio_path_str,
+                    "-af",
+                    "silencedetect=n=-40dB:d=2",
+                    "-f",
+                    "null",
+                    "-",
+                ])
+                .stderr(Stdio::piped()),
+            "ffmpeg for silence detection",
+        )
+        .await?;
 
         let silence_segments =
             self.parse_silence_detect(&String::from_utf8_lossy(&silence_output.stderr));

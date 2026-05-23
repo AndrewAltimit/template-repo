@@ -118,14 +118,30 @@ pub fn find_real_binary(binary_name: &str) -> Result<PathBuf> {
 /// The variable is binary-specific (e.g., `__WRAPPER_GUARD_RECURSION_GIT`)
 /// so that gh-validator setting its guard doesn't prevent git-guard from
 /// running when the real `gh` binary internally calls `git`.
+///
+/// # Threading contract
+///
+/// In edition 2024 `std::env::set_var` is `unsafe` because the process
+/// environment is global mutable state shared with the C runtime: a
+/// concurrent `getenv`/`setenv` from any other thread (including ones spawned
+/// by linked C libraries) is a data race with undefined behavior.
+///
+/// Callers **must** only invoke this from the main thread, while no other
+/// thread can read or write the environment, and immediately before the
+/// `exec_binary()` call that replaces the process image. The wrapper binaries
+/// (git-guard, gh-validator) uphold this: they are single-threaded up to this
+/// point and call `set_recursion_guard()` as the last step before `exec()`.
+/// Do not call this once a multi-threaded runtime (e.g. a tokio worker pool)
+/// has been started.
 pub fn set_recursion_guard(binary_name: &str) {
     let var = format!(
         "{}{}",
         RECURSION_GUARD_PREFIX,
         binary_name.to_ascii_uppercase()
     );
-    // SAFETY: this is called single-threaded just before exec() replaces
-    // the process image, so no other threads are affected.
+    // SAFETY: per the documented threading contract above, this runs on the
+    // sole (main) thread immediately before exec() replaces the process image,
+    // so there is no concurrent reader/writer of the environment to race with.
     unsafe {
         std::env::set_var(var, "1");
     }
