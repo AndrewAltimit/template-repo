@@ -69,13 +69,23 @@ fn default_enabled() -> bool {
 /// Split out as a pure function so it can be tested without mutating global
 /// process environment (which would race with parallel tests).
 fn parse_default_admins(env_value: Option<&str>) -> Vec<String> {
-    match env_value {
-        Some(val) if !val.trim().is_empty() => val
+    let admins: Vec<String> = match env_value {
+        Some(val) => val
             .split(',')
             .map(|s| s.trim().to_string())
             .filter(|s| !s.is_empty())
             .collect(),
-        _ => vec![BUILTIN_DEFAULT_ADMIN.to_string()],
+        None => Vec::new(),
+    };
+
+    // Fall back to the built-in admin if the env var is unset, empty, or
+    // contains only separators/whitespace (e.g. ",,," or "   "). An empty
+    // admin list must never be returned: depending on downstream allow-list
+    // checks it could lock out every user or allow everyone.
+    if admins.is_empty() {
+        vec![BUILTIN_DEFAULT_ADMIN.to_string()]
+    } else {
+        admins
     }
 }
 
@@ -505,6 +515,17 @@ mod tests {
         assert_eq!(parse_default_admins(Some("")), vec![BUILTIN_DEFAULT_ADMIN]);
         assert_eq!(
             parse_default_admins(Some("   ")),
+            vec![BUILTIN_DEFAULT_ADMIN]
+        );
+
+        // Only separators / whitespace -> built-in fallback (never an empty list)
+        assert_eq!(parse_default_admins(Some(",")), vec![BUILTIN_DEFAULT_ADMIN]);
+        assert_eq!(
+            parse_default_admins(Some(",,,")),
+            vec![BUILTIN_DEFAULT_ADMIN]
+        );
+        assert_eq!(
+            parse_default_admins(Some(" , , ")),
             vec![BUILTIN_DEFAULT_ADMIN]
         );
 
