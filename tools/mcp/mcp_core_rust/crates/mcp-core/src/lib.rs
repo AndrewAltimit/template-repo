@@ -91,6 +91,7 @@
 //! ```
 
 pub mod error;
+pub mod http;
 pub mod jsonrpc;
 pub mod server;
 pub mod session;

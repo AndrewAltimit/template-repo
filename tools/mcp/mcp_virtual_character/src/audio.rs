@@ -255,10 +255,7 @@ impl Default for AudioDownloader {
 impl AudioDownloader {
     /// Create a new audio downloader.
     pub fn new() -> Self {
-        let client = reqwest::Client::builder()
-            .timeout(Duration::from_secs(30))
-            .build()
-            .unwrap_or_default();
+        let client = mcp_core::http::build_client_or_default(Duration::from_secs(30));
         Self { client }
     }
 

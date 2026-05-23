@@ -35,10 +35,7 @@ pub struct ChromaDBClient {
 impl ChromaDBClient {
     /// Create a new ChromaDB client
     pub fn new(config: ChromaDBConfig) -> Self {
-        let client = Client::builder()
-            .timeout(std::time::Duration::from_secs(30))
-            .build()
-            .expect("Failed to create HTTP client");
+        let client = mcp_core::http::build_client_or_default(std::time::Duration::from_secs(30));
 
         info!(
             "ChromaDB client configured: {}:{}",
