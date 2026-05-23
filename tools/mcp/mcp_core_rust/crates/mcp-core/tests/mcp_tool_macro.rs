@@ -18,6 +18,13 @@ async fn echo(
     Ok(out)
 }
 
+#[mcp_tool(description = "Return the offset, defaulting to a negative value")]
+async fn offset(
+    #[mcp(description = "Offset to return", default = -1)] value: i64,
+) -> Result<i64, anyhow::Error> {
+    Ok(value)
+}
+
 fn result_text(r: &mcp_core::tool::ToolResult) -> String {
     match &r.content[0] {
         Content::Text { text } => text.clone(),
@@ -71,6 +78,15 @@ async fn wrong_type_is_clean_error_not_panic() {
         .await
         .unwrap_err();
     assert!(err.to_string().contains("Invalid parameter 'count'"));
+}
+
+#[tokio::test]
+async fn negative_literal_default_is_applied() {
+    // `default = -1` parses as a unary expression, not a `Lit`; the macro must
+    // accept it and preserve the negative integer JSON type.
+    let r = OffsetTool.execute(json!({})).await.unwrap();
+    assert!(!r.is_error);
+    assert!(result_text(&r).contains("-1"));
 }
 
 // --- Stateful tools (#[mcp(state)]) -------------------------------------

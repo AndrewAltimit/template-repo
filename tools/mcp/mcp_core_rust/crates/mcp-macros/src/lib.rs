@@ -38,8 +38,9 @@ use syn::{
 ///
 /// Parameters can have `#[mcp(...)]` attributes:
 /// - `description`: Parameter description
-/// - `default`: Default value (makes parameter optional); the literal keeps its
-///   JSON type (`default = 1` is an integer, `default = "x"` a string)
+/// - `default`: Default value (makes parameter optional); the value keeps its
+///   JSON type (`default = 1` is an integer, `default = "x"` a string,
+///   `default = -1` a negative integer)
 /// - `state`: Inject this parameter from the generated struct's fields instead
 ///   of deserializing it from the JSON arguments. State parameters are excluded
 ///   from the input schema and must be `Clone`. When any parameter is marked
@@ -125,9 +126,11 @@ struct ParamInfo {
     name: Ident,
     ty: Type,
     description: Option<String>,
-    /// Default value literal, preserved as a `Lit` so its JSON type (integer,
+    /// Default value, preserved as a `syn::Expr` so its JSON type (integer,
     /// string, bool, ...) survives into the generated schema and extraction.
-    default: Option<Lit>,
+    /// Using `Expr` rather than `Lit` also accepts negated literals such as
+    /// `#[mcp(default = -1)]`, which parse as a unary expression, not a `Lit`.
+    default: Option<syn::Expr>,
     is_optional: bool,
     /// Marked `#[mcp(state)]`: injected from the generated struct's fields
     /// (e.g. a shared store or HTTP client) rather than deserialized from the
@@ -271,7 +274,7 @@ fn parse_params(func: &ItemFn) -> syn::Result<Vec<ParamInfo>> {
     Ok(params)
 }
 
-fn parse_param_attrs(attrs: &[Attribute]) -> (Option<String>, Option<Lit>, bool) {
+fn parse_param_attrs(attrs: &[Attribute]) -> (Option<String>, Option<syn::Expr>, bool) {
     let mut description = None;
     let mut default = None;
     let mut is_state = false;
@@ -283,9 +286,11 @@ fn parse_param_attrs(attrs: &[Attribute]) -> (Option<String>, Option<Lit>, bool)
                     let value: syn::LitStr = meta.value()?.parse()?;
                     description = Some(value.value());
                 } else if meta.path.is_ident("default") {
-                    // Preserve the literal so the generated `json!(...)` keeps the
+                    // Preserve the expression so the generated `json!(...)` keeps the
                     // correct JSON type (e.g. `1` -> integer, not the string "1").
-                    default = Some(meta.value()?.parse::<Lit>()?);
+                    // Parsing as `Expr` (not `Lit`) also accepts negated literals
+                    // like `default = -1`, which are unary expressions.
+                    default = Some(meta.value()?.parse::<syn::Expr>()?);
                 } else if meta.path.is_ident("state") {
                     // Flag form: `#[mcp(state)]` (no value).
                     is_state = true;

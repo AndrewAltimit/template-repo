@@ -46,6 +46,9 @@ if command -v docker >/dev/null 2>&1; then
         >/dev/null 2>&1 || true
 else
     # No Docker: best-effort as the runner user (handles non-root leftovers).
+    # Root-owned artifacts CANNOT be removed on this path -- warn so a recurring
+    # checkout EACCES failure is traceable to the missing docker binary.
+    echo "job-started-hook: docker not found; cleaning as runner user only -- root-owned artifacts will be left in place" >&2
     rm -rf "${WS:?}/outputs" "${WS:?}/evaluation_results" "${WS:?}/.git/index.lock" 2>/dev/null || true
 fi
 
