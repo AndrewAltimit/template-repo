@@ -97,12 +97,41 @@ Rules the macro applies:
 - `#[mcp(default = ...)]` makes a parameter optional and supplies the default;
   the literal keeps its JSON type (`default = 1` is an integer, `default = "x"`
   a string).
+- `#[mcp(state)]` injects a parameter from the tool's own fields instead of the
+  JSON arguments (see below).
 - The function returns `Result<T, E>` where `T: Serialize` and `E: Display`.
   `Ok(value)` is serialized into the tool result; `Err(e)` becomes an
   `isError` tool result carrying `e.to_string()`.
 
+#### Stateful tools with `#[mcp(state)]`
+
+Most real tools need shared state — a store, an HTTP client, a job registry.
+Mark those parameters `#[mcp(state)]`: they are excluded from the input schema
+and instead become struct fields populated by a generated `new(...)`
+constructor (state parameters, in declaration order). State types must be
+`Clone` (typically an `Arc<...>`).
+
+```rust
+#[mcp_tool(description = "Add an amount to a shared counter")]
+async fn add(
+    #[mcp(state)]
+    counter: std::sync::Arc<std::sync::atomic::AtomicI64>,
+    #[mcp(description = "Amount to add")]
+    amount: i64,
+) -> Result<i64, anyhow::Error> {
+    use std::sync::atomic::Ordering;
+    Ok(counter.fetch_add(amount, Ordering::SeqCst) + amount)
+}
+// Generates `AddTool { counter: ... }` with `AddTool::new(counter)`.
+// Register with: `.tool(AddTool::new(counter.clone()))`
+```
+
+With no `#[mcp(state)]` parameters the macro keeps the ergonomic unit struct
+(`EchoTool`); with state it generates the fielded struct plus `new(...)`.
+
 See `crates/mcp-core/tests/mcp_tool_macro.rs` for the executable reference,
-including the schema/required-field and error-path assertions.
+including the schema/required-field, error-path, and state-injection
+assertions.
 
 ### Create a Server
 

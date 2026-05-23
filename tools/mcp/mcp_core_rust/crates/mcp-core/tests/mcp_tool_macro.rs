@@ -1,3 +1,6 @@
+use std::sync::Arc;
+use std::sync::atomic::{AtomicI64, Ordering};
+
 use mcp_core::tool::{Content, Tool};
 use mcp_macros::mcp_tool;
 use serde_json::json;
@@ -68,4 +71,42 @@ async fn wrong_type_is_clean_error_not_panic() {
         .await
         .unwrap_err();
     assert!(err.to_string().contains("Invalid parameter 'count'"));
+}
+
+// --- Stateful tools (#[mcp(state)]) -------------------------------------
+
+/// A shared counter standing in for real injected state (a store, HTTP client,
+/// job registry, ...). State types must be `Clone`.
+type Counter = Arc<AtomicI64>;
+
+#[mcp_tool(description = "Add an amount to a shared counter and return the total")]
+async fn add(
+    #[mcp(state)] counter: Counter,
+    #[mcp(description = "Amount to add")] amount: i64,
+) -> Result<i64, anyhow::Error> {
+    Ok(counter.fetch_add(amount, Ordering::SeqCst) + amount)
+}
+
+#[tokio::test]
+async fn state_param_is_excluded_from_schema() {
+    let counter: Counter = Arc::new(AtomicI64::new(0));
+    let tool = AddTool::new(counter);
+    let schema = tool.schema();
+    // `counter` is injected state, so only `amount` is in the schema.
+    assert!(schema["properties"].get("counter").is_none());
+    assert!(schema["properties"].get("amount").is_some());
+    assert_eq!(schema["required"].as_array().unwrap(), &[json!("amount")]);
+}
+
+#[tokio::test]
+async fn state_is_injected_and_shared_across_calls() {
+    let counter: Counter = Arc::new(AtomicI64::new(0));
+    let tool = AddTool::new(Arc::clone(&counter));
+
+    let r1 = tool.execute(json!({"amount": 3})).await.unwrap();
+    assert!(result_text(&r1).contains('3'));
+    let r2 = tool.execute(json!({"amount": 4})).await.unwrap();
+    assert!(result_text(&r2).contains('7'));
+    // The injected state persisted across both calls.
+    assert_eq!(counter.load(Ordering::SeqCst), 7);
 }

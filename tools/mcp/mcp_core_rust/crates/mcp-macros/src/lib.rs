@@ -38,20 +38,33 @@ use syn::{
 ///
 /// Parameters can have `#[mcp(...)]` attributes:
 /// - `description`: Parameter description
-/// - `default`: Default value (makes parameter optional)
+/// - `default`: Default value (makes parameter optional); the literal keeps its
+///   JSON type (`default = 1` is an integer, `default = "x"` a string)
+/// - `state`: Inject this parameter from the generated struct's fields instead
+///   of deserializing it from the JSON arguments. State parameters are excluded
+///   from the input schema and must be `Clone`. When any parameter is marked
+///   `state`, the macro generates a fielded struct with a `new(...)`
+///   constructor (in declaration order) instead of a unit struct.
+///
+/// Plain parameters are required; `Option<T>` parameters are optional. Missing
+/// or wrong-typed arguments produce an `InvalidParameters` error rather than a
+/// panic.
 ///
 /// # Example
 ///
 /// ```rust,ignore
 /// #[mcp_tool(description = "Search for items")]
 /// async fn search(
+///     #[mcp(state)]
+///     store: Arc<Store>,                // injected, not from JSON
 ///     #[mcp(description = "Search query")]
 ///     query: String,
 ///     #[mcp(description = "Max results", default = 10)]
 ///     limit: Option<i32>,
-/// ) -> Result<Vec<Item>> {
-///     // Implementation
+/// ) -> Result<Vec<Item>, anyhow::Error> {
+///     // Implementation; `store` is `self.store.clone()`
 /// }
+/// // Register with: `.tool(SearchTool::new(store.clone()))`
 /// ```
 #[proc_macro_attribute]
 pub fn mcp_tool(attr: TokenStream, item: TokenStream) -> TokenStream {
@@ -116,6 +129,10 @@ struct ParamInfo {
     /// string, bool, ...) survives into the generated schema and extraction.
     default: Option<Lit>,
     is_optional: bool,
+    /// Marked `#[mcp(state)]`: injected from the generated struct's fields
+    /// (e.g. a shared store or HTTP client) rather than deserialized from the
+    /// JSON arguments. Such params are excluded from the schema.
+    is_state: bool,
 }
 
 fn generate_tool(attrs: ToolAttrs, func: ItemFn) -> syn::Result<TokenStream2> {
@@ -133,9 +150,30 @@ fn generate_tool(attrs: ToolAttrs, func: ItemFn) -> syn::Result<TokenStream2> {
     // Generate argument extraction
     let arg_extraction = generate_arg_extraction(&params);
 
-    // Generate the function call
+    // execute_impl keeps every parameter (state + args) in the original order.
     let param_names: Vec<_> = params.iter().map(|p| &p.name).collect();
     let param_types: Vec<_> = params.iter().map(|p| &p.ty).collect();
+
+    // State parameters (`#[mcp(state)]`) become struct fields populated by a
+    // generated `new(...)` constructor; everything else is deserialized from the
+    // JSON arguments at call time.
+    let state_params: Vec<&ParamInfo> = params.iter().filter(|p| p.is_state).collect();
+    let state_names: Vec<_> = state_params.iter().map(|p| &p.name).collect();
+    let state_types: Vec<_> = state_params.iter().map(|p| &p.ty).collect();
+
+    // Build the execute_impl call arguments in declaration order: state values
+    // are cloned out of `self`, arg values come from the deserialized locals.
+    let call_args: Vec<TokenStream2> = params
+        .iter()
+        .map(|p| {
+            let name = &p.name;
+            if p.is_state {
+                quote! { self.#name.clone() }
+            } else {
+                quote! { #name }
+            }
+        })
+        .collect();
 
     // Keep the original function but make it a method
     let func_body = &func.block;
@@ -146,9 +184,31 @@ fn generate_tool(attrs: ToolAttrs, func: ItemFn) -> syn::Result<TokenStream2> {
         ReturnType::Type(_, ty) => quote! { #ty },
     };
 
+    // With no state, keep the ergonomic unit struct (`MyTool`); with state,
+    // generate a fielded struct plus a `new(...)` constructor.
+    let struct_def = if state_params.is_empty() {
+        quote! {
+            #[doc = concat!("Generated MCP tool for `", stringify!(#func_name), "`.")]
+            pub struct #tool_struct_name;
+        }
+    } else {
+        quote! {
+            #[doc = concat!("Generated MCP tool for `", stringify!(#func_name), "`.")]
+            pub struct #tool_struct_name {
+                #(#state_names: #state_types,)*
+            }
+
+            impl #tool_struct_name {
+                #[doc = "Construct the tool with its injected state."]
+                pub fn new(#(#state_names: #state_types,)*) -> Self {
+                    Self { #(#state_names,)* }
+                }
+            }
+        }
+    };
+
     Ok(quote! {
-        #[doc = concat!("Generated MCP tool for `", stringify!(#func_name), "`.")]
-        pub struct #tool_struct_name;
+        #struct_def
 
         impl #tool_struct_name {
             async fn execute_impl(#(#param_names: #param_types,)*) -> #output_type
@@ -172,7 +232,7 @@ fn generate_tool(attrs: ToolAttrs, func: ItemFn) -> syn::Result<TokenStream2> {
             async fn execute(&self, args: serde_json::Value) -> mcp_core::error::Result<mcp_core::tool::ToolResult> {
                 #arg_extraction
 
-                match Self::execute_impl(#(#param_names,)*).await {
+                match Self::execute_impl(#(#call_args,)*).await {
                     Ok(result) => mcp_core::tool::ToolResult::json(&result),
                     Err(e) => Ok(mcp_core::tool::ToolResult::error(e.to_string())),
                 }
@@ -195,7 +255,7 @@ fn parse_params(func: &ItemFn) -> syn::Result<Vec<ParamInfo>> {
             let is_optional = is_option_type(&ty);
 
             // Parse #[mcp(...)] attributes
-            let (description, default) = parse_param_attrs(&pat_type.attrs);
+            let (description, default, is_state) = parse_param_attrs(&pat_type.attrs);
 
             params.push(ParamInfo {
                 name,
@@ -203,6 +263,7 @@ fn parse_params(func: &ItemFn) -> syn::Result<Vec<ParamInfo>> {
                 description,
                 default,
                 is_optional,
+                is_state,
             });
         }
     }
@@ -210,9 +271,10 @@ fn parse_params(func: &ItemFn) -> syn::Result<Vec<ParamInfo>> {
     Ok(params)
 }
 
-fn parse_param_attrs(attrs: &[Attribute]) -> (Option<String>, Option<Lit>) {
+fn parse_param_attrs(attrs: &[Attribute]) -> (Option<String>, Option<Lit>, bool) {
     let mut description = None;
     let mut default = None;
+    let mut is_state = false;
 
     for attr in attrs {
         if attr.path().is_ident("mcp") {
@@ -224,13 +286,16 @@ fn parse_param_attrs(attrs: &[Attribute]) -> (Option<String>, Option<Lit>) {
                     // Preserve the literal so the generated `json!(...)` keeps the
                     // correct JSON type (e.g. `1` -> integer, not the string "1").
                     default = Some(meta.value()?.parse::<Lit>()?);
+                } else if meta.path.is_ident("state") {
+                    // Flag form: `#[mcp(state)]` (no value).
+                    is_state = true;
                 }
                 Ok(())
             });
         }
     }
 
-    (description, default)
+    (description, default, is_state)
 }
 
 fn is_option_type(ty: &Type) -> bool {
@@ -247,6 +312,9 @@ fn generate_schema(params: &[ParamInfo]) -> TokenStream2 {
     let mut required = Vec::new();
 
     for param in params {
+        if param.is_state {
+            continue;
+        }
         let name = param.name.to_string();
         let description = param.description.as_deref().unwrap_or("");
         let json_type = rust_type_to_json_type(&param.ty);
@@ -277,6 +345,7 @@ fn generate_schema(params: &[ParamInfo]) -> TokenStream2 {
 fn generate_arg_extraction(params: &[ParamInfo]) -> TokenStream2 {
     let extractions: Vec<_> = params
         .iter()
+        .filter(|p| !p.is_state)
         .map(|p| {
             let name = &p.name;
             let ty = &p.ty;
