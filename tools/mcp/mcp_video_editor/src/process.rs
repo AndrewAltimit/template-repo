@@ -7,6 +7,7 @@
 //! is killed (via `kill_on_drop`) if it overruns.
 
 use std::process::Output;
+use std::sync::OnceLock;
 use std::time::Duration;
 
 use anyhow::{Context, Result};
@@ -19,14 +20,21 @@ use tracing::warn;
 const DEFAULT_TIMEOUT_SECS: u64 = 1800;
 
 /// Resolve the configured subprocess timeout.
+///
+/// Read from the environment once and cached for the process lifetime, so we
+/// neither re-parse on every invocation nor race a concurrent `set_var` on the
+/// global environment.
 fn subprocess_timeout() -> Duration {
-    Duration::from_secs(
-        std::env::var("VIDEO_EDITOR_SUBPROCESS_TIMEOUT_SECS")
-            .ok()
-            .and_then(|v| v.parse().ok())
-            .filter(|&secs| secs > 0)
-            .unwrap_or(DEFAULT_TIMEOUT_SECS),
-    )
+    static TIMEOUT: OnceLock<Duration> = OnceLock::new();
+    *TIMEOUT.get_or_init(|| {
+        Duration::from_secs(
+            std::env::var("VIDEO_EDITOR_SUBPROCESS_TIMEOUT_SECS")
+                .ok()
+                .and_then(|v| v.parse().ok())
+                .filter(|&secs| secs > 0)
+                .unwrap_or(DEFAULT_TIMEOUT_SECS),
+        )
+    })
 }
 
 /// Run a command to completion, killing it if it exceeds the timeout.

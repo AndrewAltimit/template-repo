@@ -105,7 +105,18 @@ pub struct ToolSchema {
     pub input_schema: Value,
 }
 
-/// A single MCP tool that can be executed
+/// A single MCP tool that can be executed.
+///
+/// # Panic boundary and interior state
+///
+/// `tools/call` runs [`Tool::execute`] inside a `catch_unwind` boundary
+/// (see `transport/handler.rs`), so a panic becomes an `isError` result rather
+/// than crashing the server. One caveat: a panic that unwinds while a
+/// `std::sync::Mutex`/`RwLock` in the tool's state is locked **poisons** that
+/// lock, so every later `.lock()` returns `PoisonError` and the tool degrades
+/// to permanent failure. Prefer poison-free primitives for shared tool state:
+/// `tokio::sync::Mutex`/`RwLock` (used by the servers in this repo) or the
+/// `std::sync::atomic` types.
 #[async_trait]
 pub trait Tool: Send + Sync {
     /// Get the tool's unique name
