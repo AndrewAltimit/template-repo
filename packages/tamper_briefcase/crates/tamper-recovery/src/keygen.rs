@@ -74,7 +74,23 @@ fn write_secret_file(path: &Path, contents: &[u8]) -> Result<()> {
 
 #[cfg(not(unix))]
 fn write_secret_file(path: &Path, contents: &[u8]) -> Result<()> {
-    fs::write(path, contents).with_context(|| format!("Failed to write {}", path.display()))
+    use std::io::Write;
+    // Non-Unix platforms cannot set `0o600` at creation time, but we still honor
+    // the fail-safe contract: `create_new(true)` refuses to overwrite existing
+    // key material, so a re-run cannot silently clobber secrets from a prior run.
+    let mut f = fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(path)
+        .with_context(|| {
+            format!(
+                "Failed to create {} (refusing to overwrite existing key material)",
+                path.display()
+            )
+        })?;
+    f.write_all(contents)
+        .with_context(|| format!("Failed to write {}", path.display()))?;
+    Ok(())
 }
 
 /// Generate all recovery key material.
