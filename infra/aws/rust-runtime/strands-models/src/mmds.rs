@@ -121,15 +121,22 @@ impl MmdsCredentialsProvider {
         // Parse expiration time. A parse failure must NOT silently yield a
         // non-expiring credential (expiry: None), which the AWS SDK would treat
         // as never refreshing -- propagate it as a credentials error instead.
-        let expiry = chrono::DateTime::parse_from_rfc3339(&creds.expiration)
-            .map(|dt| SystemTime::UNIX_EPOCH + Duration::from_secs(dt.timestamp() as u64))
-            .map_err(|e| {
-                provider::error::CredentialsError::provider_error(format!(
-                    "Failed to parse MMDS credential expiration '{}': {}",
-                    creds.expiration, e
-                ))
-            })?;
-        let expiry = Some(expiry);
+        let parsed_expiry = chrono::DateTime::parse_from_rfc3339(&creds.expiration).map_err(|e| {
+            provider::error::CredentialsError::provider_error(format!(
+                "Failed to parse MMDS credential expiration '{}': {}",
+                creds.expiration, e
+            ))
+        })?;
+        // A pre-1970 timestamp yields a negative i64; `as u64` would wrap it to a
+        // huge value, making the credential appear to expire ~584 years out and
+        // silently recreating the never-refreshing bug above. Reject it instead.
+        let expiry_secs = u64::try_from(parsed_expiry.timestamp()).map_err(|_| {
+            provider::error::CredentialsError::provider_error(format!(
+                "MMDS credential expiration '{}' is before the Unix epoch",
+                creds.expiration
+            ))
+        })?;
+        let expiry = Some(SystemTime::UNIX_EPOCH + Duration::from_secs(expiry_secs));
 
         debug!(
             access_key_id = %creds.access_key_id,

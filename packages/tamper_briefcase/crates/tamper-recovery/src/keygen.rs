@@ -45,17 +45,28 @@ use zeroize::Zeroizing;
 /// long enough for another local user to read the master recovery secret, so we
 /// create the file with restrictive permissions up front (matching the pattern
 /// used in `unwrap.rs`).
+///
+/// We use `create_new(true)` rather than `create(true).truncate(true)`: the
+/// `mode(0o600)` argument is only applied by `open(2)` when it actually creates
+/// the inode. Re-opening a pre-existing file (e.g. from a prior keygen run, or
+/// one staged with looser permissions) would silently keep its old, possibly
+/// world-readable mode. Refusing to overwrite existing key material is also the
+/// fail-safe behavior for a key generator -- a re-run must not clobber secrets.
 #[cfg(unix)]
 fn write_secret_file(path: &Path, contents: &[u8]) -> Result<()> {
     use std::io::Write;
     use std::os::unix::fs::OpenOptionsExt;
     let mut f = fs::OpenOptions::new()
         .write(true)
-        .create(true)
-        .truncate(true)
+        .create_new(true)
         .mode(0o600)
         .open(path)
-        .with_context(|| format!("Failed to create {}", path.display()))?;
+        .with_context(|| {
+            format!(
+                "Failed to create {} (refusing to overwrite existing key material)",
+                path.display()
+            )
+        })?;
     f.write_all(contents)
         .with_context(|| format!("Failed to write {}", path.display()))?;
     Ok(())
@@ -351,6 +362,29 @@ mod tests {
         let secret_hex =
             fs::read_to_string(dir.path().join("private/recovery_secret.hex")).unwrap();
         assert_eq!(secret_hex.len(), 128);
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn regenerating_over_existing_secret_fails_safe() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let dir = tempfile::tempdir().unwrap();
+
+        // First run succeeds and writes 0o600 secret files.
+        generate(dir.path(), "root", "data").unwrap();
+
+        let secret_path = dir.path().join("private/recovery_secret.hex");
+        let mode = fs::metadata(&secret_path).unwrap().permissions().mode() & 0o777;
+        assert_eq!(mode, 0o600, "secret must be created with 0o600");
+
+        // A second run targeting the same directory must refuse to overwrite the
+        // existing private key material rather than silently clobbering it.
+        let result = generate(dir.path(), "root", "data");
+        assert!(
+            result.is_err(),
+            "re-running keygen over existing secrets must fail-safe"
+        );
     }
 
     #[test]

@@ -154,6 +154,15 @@ pub fn run() -> Result<()> {
         // otherwise the CLOSED->OPEN edge is consumed and the tamper signal is
         // lost forever. Leaving `prev_closed` unchanged re-fires the edge on
         // the next poll until the gate receives it (fail-closed).
+        //
+        // Accepted bound: this retry relies on the lid physically remaining open
+        // across at least one poll after a failed emit. If the lid opened and
+        // closed again entirely within a single `poll_interval_ms` window, the
+        // next poll would observe no net transition and the edge would be lost.
+        // That is acceptable only because the poll interval is set far shorter
+        // than any physically plausible open-then-close of a briefcase lid; do
+        // not raise `poll_interval_ms` to a value where a full open/close cycle
+        // could complete unobserved between polls.
         let mut transition_emit_failed = false;
 
         // State transition: CLOSED -> OPEN
