@@ -40,6 +40,18 @@ impl Compute for MockCompute {
     }
 
     async fn add_funds(&self, amount: Currency) -> Result<ComputeStatus> {
+        if !amount.is_finite() || amount < 0.0 {
+            return Err(EconomicAgentError::Internal(format!(
+                "invalid funding amount: {amount}"
+            )));
+        }
+        if !self.cost_per_hour.is_finite() || self.cost_per_hour <= 0.0 {
+            return Err(EconomicAgentError::Internal(format!(
+                "invalid cost_per_hour: {}",
+                self.cost_per_hour
+            )));
+        }
+
         let hours_to_add = amount / self.cost_per_hour;
         *self.hours_remaining.write().await += hours_to_add;
         *self.total_spent.write().await += amount;
@@ -47,6 +59,12 @@ impl Compute for MockCompute {
     }
 
     async fn consume_time(&self, hours: Hours) -> Result<ComputeStatus> {
+        if !hours.is_finite() || hours < 0.0 {
+            return Err(EconomicAgentError::Internal(format!(
+                "invalid hours to consume: {hours}"
+            )));
+        }
+
         let mut remaining = self.hours_remaining.write().await;
 
         if *remaining < hours {
@@ -107,5 +125,48 @@ mod tests {
             result,
             Err(EconomicAgentError::InsufficientCapital { .. })
         ));
+    }
+
+    #[tokio::test]
+    async fn test_consume_time_rejects_invalid_hours() {
+        let compute = MockCompute::new(24.0, 0.10);
+
+        assert!(matches!(
+            compute.consume_time(-5.0).await,
+            Err(EconomicAgentError::Internal(_))
+        ));
+        assert!(matches!(
+            compute.consume_time(f64::NAN).await,
+            Err(EconomicAgentError::Internal(_))
+        ));
+        // Remaining hours must be unchanged.
+        assert_eq!(compute.get_hours_remaining().await.unwrap(), 24.0);
+    }
+
+    #[tokio::test]
+    async fn test_add_funds_rejects_invalid_amounts() {
+        let compute = MockCompute::new(24.0, 0.10);
+
+        assert!(matches!(
+            compute.add_funds(-5.0).await,
+            Err(EconomicAgentError::Internal(_))
+        ));
+        assert!(matches!(
+            compute.add_funds(f64::NAN).await,
+            Err(EconomicAgentError::Internal(_))
+        ));
+        // Remaining hours must be unchanged.
+        assert_eq!(compute.get_hours_remaining().await.unwrap(), 24.0);
+    }
+
+    #[tokio::test]
+    async fn test_add_funds_rejects_nonpositive_cost_per_hour() {
+        let compute = MockCompute::new(24.0, 0.0);
+        assert!(matches!(
+            compute.add_funds(5.0).await,
+            Err(EconomicAgentError::Internal(_))
+        ));
+        // Remaining hours must be unchanged.
+        assert_eq!(compute.get_hours_remaining().await.unwrap(), 24.0);
     }
 }

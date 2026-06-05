@@ -229,7 +229,8 @@ Return ONLY the complete function implementation in a code block:
             .arg(&self.config.model)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
-            .stderr(Stdio::piped());
+            .stderr(Stdio::piped())
+            .kill_on_drop(true);
 
         let mut child = cmd
             .spawn()

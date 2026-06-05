@@ -49,6 +49,12 @@ impl Wallet for MockWallet {
         amount: Currency,
         memo: Option<&str>,
     ) -> Result<Transaction> {
+        if !amount.is_finite() || amount < 0.0 {
+            return Err(EconomicAgentError::Internal(format!(
+                "invalid payment amount: {amount}"
+            )));
+        }
+
         let mut balance = self.balance.write().await;
         if *balance < amount {
             return Err(EconomicAgentError::InsufficientCapital {
@@ -76,6 +82,12 @@ impl Wallet for MockWallet {
         amount: Currency,
         memo: Option<&str>,
     ) -> Result<Transaction> {
+        if !amount.is_finite() || amount < 0.0 {
+            return Err(EconomicAgentError::Internal(format!(
+                "invalid payment amount: {amount}"
+            )));
+        }
+
         *self.balance.write().await += amount;
 
         let tx = Transaction::new(
@@ -127,5 +139,37 @@ mod tests {
             result,
             Err(EconomicAgentError::InsufficientCapital { .. })
         ));
+    }
+
+    #[tokio::test]
+    async fn test_send_payment_rejects_invalid_amounts() {
+        let wallet = MockWallet::new(100.0);
+
+        assert!(matches!(
+            wallet.send_payment("other", -10.0, None).await,
+            Err(EconomicAgentError::Internal(_))
+        ));
+        assert!(matches!(
+            wallet.send_payment("other", f64::NAN, None).await,
+            Err(EconomicAgentError::Internal(_))
+        ));
+        // Balance must be unchanged.
+        assert_eq!(wallet.get_balance().await.unwrap(), 100.0);
+    }
+
+    #[tokio::test]
+    async fn test_receive_payment_rejects_invalid_amounts() {
+        let wallet = MockWallet::new(100.0);
+
+        assert!(matches!(
+            wallet.receive_payment(Some("other"), -10.0, None).await,
+            Err(EconomicAgentError::Internal(_))
+        ));
+        assert!(matches!(
+            wallet.receive_payment(Some("other"), f64::NAN, None).await,
+            Err(EconomicAgentError::Internal(_))
+        ));
+        // Balance must be unchanged.
+        assert_eq!(wallet.get_balance().await.unwrap(), 100.0);
     }
 }

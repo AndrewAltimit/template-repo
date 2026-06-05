@@ -36,6 +36,36 @@ use sha2::Sha512;
 use x25519_dalek::{EphemeralSecret, PublicKey, StaticSecret};
 use zeroize::Zeroizing;
 
+/// Write secret key material to `path`, restricting permissions to `0o600`
+/// from the moment the file is created.
+///
+/// A plain `fs::write` honors the process umask (commonly `0o022`), so the
+/// private bundle and recovery secret would be created world-readable for the
+/// instant before any later `chmod`. On a shared/air-gapped workstation that is
+/// long enough for another local user to read the master recovery secret, so we
+/// create the file with restrictive permissions up front (matching the pattern
+/// used in `unwrap.rs`).
+#[cfg(unix)]
+fn write_secret_file(path: &Path, contents: &[u8]) -> Result<()> {
+    use std::io::Write;
+    use std::os::unix::fs::OpenOptionsExt;
+    let mut f = fs::OpenOptions::new()
+        .write(true)
+        .create(true)
+        .truncate(true)
+        .mode(0o600)
+        .open(path)
+        .with_context(|| format!("Failed to create {}", path.display()))?;
+    f.write_all(contents)
+        .with_context(|| format!("Failed to write {}", path.display()))?;
+    Ok(())
+}
+
+#[cfg(not(unix))]
+fn write_secret_file(path: &Path, contents: &[u8]) -> Result<()> {
+    fs::write(path, contents).with_context(|| format!("Failed to write {}", path.display()))
+}
+
 /// Generate all recovery key material.
 pub fn generate(output_dir: &Path, root_passphrase: &str, data_passphrase: &str) -> Result<()> {
     let public_dir = output_dir.join("public");
@@ -173,15 +203,15 @@ pub fn generate(output_dir: &Path, root_passphrase: &str, data_passphrase: &str)
         "sig_secret_key": B64.encode(sig_sk.as_bytes()),
     });
 
-    fs::write(
-        private_dir.join("recovery_private.json"),
-        serde_json::to_string_pretty(&private_bundle)?,
+    write_secret_file(
+        &private_dir.join("recovery_private.json"),
+        serde_json::to_string_pretty(&private_bundle)?.as_bytes(),
     )
     .context("Failed to write private bundle")?;
 
-    fs::write(
-        private_dir.join("recovery_secret.hex"),
-        hex_encode(recovery_secret.as_ref()),
+    write_secret_file(
+        &private_dir.join("recovery_secret.hex"),
+        hex_encode(recovery_secret.as_ref()).as_bytes(),
     )
     .context("Failed to write recovery secret hex")?;
 

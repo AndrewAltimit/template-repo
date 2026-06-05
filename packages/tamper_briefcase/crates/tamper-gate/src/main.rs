@@ -231,13 +231,25 @@ fn main() -> Result<()> {
                 log::error!("Sensor disconnected while ARMED -- triggering challenge");
                 if run_challenge(&config) {
                     log::info!("Challenge PASSED -- disarming");
+                    state = SystemState::Disarmed;
                 } else {
                     log::error!("Challenge FAILED -- authorizing wipe");
                     authorize_wipe(&config);
                     std::process::exit(1);
                 }
             }
-            break;
+            // Do NOT exit the loop. Exiting would return Ok(()) (exit code 0),
+            // and systemd's `Restart=on-failure` would NOT restart the gate --
+            // leaving the briefcase permanently unmonitored. Instead, re-open
+            // the FIFO and keep watching. The open blocks until the sensor
+            // daemon (Restart=always) reconnects its write end.
+            log::info!("Re-opening event FIFO, waiting for sensor daemon to reconnect...");
+            let fifo =
+                fs::File::open(&config.event_fifo).context("Failed to re-open event FIFO")?;
+            reader = BufReader::new(fifo);
+            last_heartbeat = Instant::now();
+            log::info!("Sensor daemon reconnected.");
+            continue;
         }
 
         let line = line_buf.trim();
@@ -345,6 +357,7 @@ fn main() -> Result<()> {
             },
         }
     }
-
-    Ok(())
+    // The loop only exits via `std::process::exit` (wipe paths) or by
+    // propagating an I/O error with `?`; it never falls through, so there is
+    // no trailing `Ok(())`.
 }
