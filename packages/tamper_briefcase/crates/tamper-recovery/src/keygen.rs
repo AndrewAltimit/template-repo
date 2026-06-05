@@ -75,6 +75,18 @@ fn write_secret_file(path: &Path, contents: &[u8]) -> Result<()> {
     // key material. Persisting now keeps the fail-safe contract honest.
     f.sync_all()
         .with_context(|| format!("Failed to flush {}", path.display()))?;
+    // `sync_all()` persists the inode's data/metadata but not the parent
+    // directory entry that links it into the tree. A crash after this returns
+    // could leave valid key material unreferenced from its directory, after
+    // which `create_new(true)` would succeed on a re-run (no entry to collide
+    // with) and silently overwrite the orphaned file. fsync the parent dir to
+    // make the new entry durable too, fully honoring the fail-safe contract.
+    if let Some(parent) = path.parent() {
+        fs::File::open(parent)
+            .with_context(|| format!("Failed to open parent of {}", path.display()))?
+            .sync_all()
+            .with_context(|| format!("Failed to flush parent directory of {}", path.display()))?;
+    }
     Ok(())
 }
 
