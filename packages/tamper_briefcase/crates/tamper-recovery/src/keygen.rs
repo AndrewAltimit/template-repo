@@ -81,7 +81,17 @@ fn write_secret_file(path: &Path, contents: &[u8]) -> Result<()> {
     // which `create_new(true)` would succeed on a re-run (no entry to collide
     // with) and silently overwrite the orphaned file. fsync the parent dir to
     // make the new entry durable too, fully honoring the fail-safe contract.
+    //
+    // `path.parent()` yields `Some("")` for a bare filename (no directory
+    // component); opening "" would fail with ENOENT and spuriously abort an
+    // otherwise-successful write. Treat an empty parent as the current
+    // directory so the helper stays robust regardless of how `path` is built.
     if let Some(parent) = path.parent() {
+        let parent = if parent.as_os_str().is_empty() {
+            Path::new(".")
+        } else {
+            parent
+        };
         fs::File::open(parent)
             .with_context(|| format!("Failed to open parent of {}", path.display()))?
             .sync_all()
