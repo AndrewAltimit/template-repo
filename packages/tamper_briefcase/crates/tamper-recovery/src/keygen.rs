@@ -69,6 +69,12 @@ fn write_secret_file(path: &Path, contents: &[u8]) -> Result<()> {
         })?;
     f.write_all(contents)
         .with_context(|| format!("Failed to write {}", path.display()))?;
+    // Flush to disk before returning. Because we use `create_new(true)`, a crash
+    // after `write_all` returns but before the OS flushes its buffers would leave
+    // a 0-byte (or partial) inode that blocks the next run from regenerating the
+    // key material. Persisting now keeps the fail-safe contract honest.
+    f.sync_all()
+        .with_context(|| format!("Failed to flush {}", path.display()))?;
     Ok(())
 }
 
@@ -90,6 +96,10 @@ fn write_secret_file(path: &Path, contents: &[u8]) -> Result<()> {
         })?;
     f.write_all(contents)
         .with_context(|| format!("Failed to write {}", path.display()))?;
+    // See the Unix path: flush before returning so a crash cannot leave a
+    // partial inode that blocks the next `create_new` run.
+    f.sync_all()
+        .with_context(|| format!("Failed to flush {}", path.display()))?;
     Ok(())
 }
 
@@ -389,6 +399,16 @@ mod tests {
 
         // First run succeeds and writes 0o600 secret files.
         generate(dir.path(), "root", "data").unwrap();
+
+        // Both private files hold key material and must be created 0o600. The
+        // private bundle is written first, so verify it explicitly too rather
+        // than assuming the second write implies the first.
+        let private_path = dir.path().join("private/recovery_private.json");
+        let private_mode = fs::metadata(&private_path).unwrap().permissions().mode() & 0o777;
+        assert_eq!(
+            private_mode, 0o600,
+            "private bundle must be created with 0o600"
+        );
 
         let secret_path = dir.path().join("private/recovery_secret.hex");
         let mode = fs::metadata(&secret_path).unwrap().permissions().mode() & 0o777;
