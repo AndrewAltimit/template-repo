@@ -39,15 +39,26 @@ impl ValidateJsonTool {
             }
         };
 
-        // Then validate against schema
-        if let Some(ref validator) = self.validator {
-            if !validator.is_valid(&value) {
-                // Collect validation errors
-                let error = validator
-                    .validate(&value)
-                    .expect_err("Already checked is_valid");
-                let error_messages = vec![error.to_string()];
-                return Err(error_messages);
+        // Then validate against schema. If the validator failed to compile, we
+        // cannot validate -- treat that as a failure rather than silently
+        // accepting any JSON.
+        match self.validator {
+            Some(ref validator) => {
+                if !validator.is_valid(&value) {
+                    // Collect validation errors
+                    let error = validator
+                        .validate(&value)
+                        .expect_err("Already checked is_valid");
+                    let error_messages = vec![error.to_string()];
+                    return Err(error_messages);
+                }
+            }
+            None => {
+                return Err(vec![
+                    "Schema validator unavailable (the expected schema failed to compile); \
+                     cannot validate the response."
+                        .to_string(),
+                ]);
             }
         }
 
@@ -209,6 +220,19 @@ mod tests {
         let result = tool.execute(input, &ToolContext::default()).await.unwrap();
         let text = result.content[0].as_text().unwrap();
         assert!(text.contains("FAILED"));
+    }
+
+    #[test]
+    fn test_validate_fails_when_validator_absent() {
+        // An invalid schema fails to compile, leaving validator == None.
+        // validate() must then report failure rather than silently accepting.
+        let schema = serde_json::json!({ "type": "this_is_not_a_valid_type" });
+        let tool = create_test_tool(schema);
+        assert!(tool.validator.is_none());
+
+        let result = tool.validate(r#"{"anything": true}"#);
+        let errors = result.expect_err("validation must fail when schema is unavailable");
+        assert!(errors.iter().any(|e| e.contains("Schema validator unavailable")));
     }
 
     #[tokio::test]

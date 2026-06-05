@@ -148,6 +148,23 @@ pub fn run() -> Result<()> {
             HallState::Open
         };
 
+        // Tracks whether the edge-triggered state-transition event was
+        // successfully handed to the gate. If emitting it fails (e.g. the FIFO
+        // write end is momentarily gone), we must NOT advance `prev_closed`,
+        // otherwise the CLOSED->OPEN edge is consumed and the tamper signal is
+        // lost forever. Leaving `prev_closed` unchanged re-fires the edge on
+        // the next poll until the gate receives it (fail-closed).
+        //
+        // Accepted bound: this retry relies on the lid physically remaining open
+        // across at least one poll after a failed emit. If the lid opened and
+        // closed again entirely within a single `poll_interval_ms` window, the
+        // next poll would observe no net transition and the edge would be lost.
+        // That is acceptable only because the poll interval is set far shorter
+        // than any physically plausible open-then-close of a briefcase lid; do
+        // not raise `poll_interval_ms` to a value where a full open/close cycle
+        // could complete unobserved between polls.
+        let mut transition_emit_failed = false;
+
         // State transition: CLOSED -> OPEN
         if prev_closed && !lid_closed {
             let confidence = if lux > config.light_threshold_lux {
@@ -165,7 +182,8 @@ pub fn run() -> Result<()> {
             };
             log::warn!("LID OPENED (lux={:.1}, confidence={})", lux, confidence);
             if let Err(e) = emit_event(&mut fifo, &event) {
-                log::error!("Failed to emit event: {}", e);
+                log::error!("Failed to emit LID OPENED event: {} -- will retry", e);
+                transition_emit_failed = true;
             }
         }
         // State transition: OPEN -> CLOSED
@@ -179,7 +197,8 @@ pub fn run() -> Result<()> {
             };
             log::info!("LID CLOSED (lux={:.1})", lux);
             if let Err(e) = emit_event(&mut fifo, &event) {
-                log::error!("Failed to emit event: {}", e);
+                log::error!("Failed to emit LID CLOSED event: {} -- will retry", e);
+                transition_emit_failed = true;
             }
         }
         // Anomaly: Hall says closed but light is bright
@@ -212,7 +231,12 @@ pub fn run() -> Result<()> {
             last_heartbeat = Instant::now();
         }
 
-        prev_closed = lid_closed;
+        // Only advance the tracked state if the transition (if any) was
+        // delivered. If the edge event failed to emit, keep `prev_closed`
+        // unchanged so the same edge is detected and re-emitted next poll.
+        if !transition_emit_failed {
+            prev_closed = lid_closed;
+        }
         thread::sleep(poll_duration);
     }
 }

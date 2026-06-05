@@ -197,8 +197,15 @@ async fn invoke_regular(
     // thinking and not included in the response string)
     let response_text = result.text();
 
-    // Update session with the final conversation state from the agent
+    // Update session with the final conversation state from the agent.
+    // Assigning directly bypasses the trimming done by Session::add_message, so
+    // enforce the max_messages cap here to keep history bounded (mirrors the
+    // drain-oldest semantics in Session::add_message).
     session.messages = updated_messages;
+    if session.messages.len() > session.config.max_messages {
+        let trim_count = session.messages.len() - session.config.max_messages;
+        session.messages.drain(0..trim_count);
+    }
     session.add_usage(&result.usage);
     session.set_active();
 

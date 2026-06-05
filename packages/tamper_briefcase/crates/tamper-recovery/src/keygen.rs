@@ -36,6 +36,95 @@ use sha2::Sha512;
 use x25519_dalek::{EphemeralSecret, PublicKey, StaticSecret};
 use zeroize::Zeroizing;
 
+/// Write secret key material to `path`, restricting permissions to `0o600`
+/// from the moment the file is created.
+///
+/// A plain `fs::write` honors the process umask (commonly `0o022`), so the
+/// private bundle and recovery secret would be created world-readable for the
+/// instant before any later `chmod`. On a shared/air-gapped workstation that is
+/// long enough for another local user to read the master recovery secret, so we
+/// create the file with restrictive permissions up front (matching the pattern
+/// used in `unwrap.rs`).
+///
+/// We use `create_new(true)` rather than `create(true).truncate(true)`: the
+/// `mode(0o600)` argument is only applied by `open(2)` when it actually creates
+/// the inode. Re-opening a pre-existing file (e.g. from a prior keygen run, or
+/// one staged with looser permissions) would silently keep its old, possibly
+/// world-readable mode. Refusing to overwrite existing key material is also the
+/// fail-safe behavior for a key generator -- a re-run must not clobber secrets.
+#[cfg(unix)]
+fn write_secret_file(path: &Path, contents: &[u8]) -> Result<()> {
+    use std::io::Write;
+    use std::os::unix::fs::OpenOptionsExt;
+    let mut f = fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .mode(0o600)
+        .open(path)
+        .with_context(|| {
+            format!(
+                "Failed to create {} (refusing to overwrite existing key material)",
+                path.display()
+            )
+        })?;
+    f.write_all(contents)
+        .with_context(|| format!("Failed to write {}", path.display()))?;
+    // Flush to disk before returning. Because we use `create_new(true)`, a crash
+    // after `write_all` returns but before the OS flushes its buffers would leave
+    // a 0-byte (or partial) inode that blocks the next run from regenerating the
+    // key material. Persisting now keeps the fail-safe contract honest.
+    f.sync_all()
+        .with_context(|| format!("Failed to flush {}", path.display()))?;
+    // `sync_all()` persists the inode's data/metadata but not the parent
+    // directory entry that links it into the tree. A crash after this returns
+    // could leave valid key material unreferenced from its directory, after
+    // which `create_new(true)` would succeed on a re-run (no entry to collide
+    // with) and silently overwrite the orphaned file. fsync the parent dir to
+    // make the new entry durable too, fully honoring the fail-safe contract.
+    //
+    // `path.parent()` yields `Some("")` for a bare filename (no directory
+    // component); opening "" would fail with ENOENT and spuriously abort an
+    // otherwise-successful write. Treat an empty parent as the current
+    // directory so the helper stays robust regardless of how `path` is built.
+    if let Some(parent) = path.parent() {
+        let parent = if parent.as_os_str().is_empty() {
+            Path::new(".")
+        } else {
+            parent
+        };
+        fs::File::open(parent)
+            .with_context(|| format!("Failed to open parent of {}", path.display()))?
+            .sync_all()
+            .with_context(|| format!("Failed to flush parent directory of {}", path.display()))?;
+    }
+    Ok(())
+}
+
+#[cfg(not(unix))]
+fn write_secret_file(path: &Path, contents: &[u8]) -> Result<()> {
+    use std::io::Write;
+    // Non-Unix platforms cannot set `0o600` at creation time, but we still honor
+    // the fail-safe contract: `create_new(true)` refuses to overwrite existing
+    // key material, so a re-run cannot silently clobber secrets from a prior run.
+    let mut f = fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(path)
+        .with_context(|| {
+            format!(
+                "Failed to create {} (refusing to overwrite existing key material)",
+                path.display()
+            )
+        })?;
+    f.write_all(contents)
+        .with_context(|| format!("Failed to write {}", path.display()))?;
+    // See the Unix path: flush before returning so a crash cannot leave a
+    // partial inode that blocks the next `create_new` run.
+    f.sync_all()
+        .with_context(|| format!("Failed to flush {}", path.display()))?;
+    Ok(())
+}
+
 /// Generate all recovery key material.
 pub fn generate(output_dir: &Path, root_passphrase: &str, data_passphrase: &str) -> Result<()> {
     let public_dir = output_dir.join("public");
@@ -173,15 +262,15 @@ pub fn generate(output_dir: &Path, root_passphrase: &str, data_passphrase: &str)
         "sig_secret_key": B64.encode(sig_sk.as_bytes()),
     });
 
-    fs::write(
-        private_dir.join("recovery_private.json"),
-        serde_json::to_string_pretty(&private_bundle)?,
+    write_secret_file(
+        &private_dir.join("recovery_private.json"),
+        serde_json::to_string_pretty(&private_bundle)?.as_bytes(),
     )
     .context("Failed to write private bundle")?;
 
-    fs::write(
-        private_dir.join("recovery_secret.hex"),
-        hex_encode(recovery_secret.as_ref()),
+    write_secret_file(
+        &private_dir.join("recovery_secret.hex"),
+        hex_encode(recovery_secret.as_ref()).as_bytes(),
     )
     .context("Failed to write recovery secret hex")?;
 
@@ -321,6 +410,39 @@ mod tests {
         let secret_hex =
             fs::read_to_string(dir.path().join("private/recovery_secret.hex")).unwrap();
         assert_eq!(secret_hex.len(), 128);
+    }
+
+    #[test]
+    #[cfg(unix)]
+    fn regenerating_over_existing_secret_fails_safe() {
+        use std::os::unix::fs::PermissionsExt;
+
+        let dir = tempfile::tempdir().unwrap();
+
+        // First run succeeds and writes 0o600 secret files.
+        generate(dir.path(), "root", "data").unwrap();
+
+        // Both private files hold key material and must be created 0o600. The
+        // private bundle is written first, so verify it explicitly too rather
+        // than assuming the second write implies the first.
+        let private_path = dir.path().join("private/recovery_private.json");
+        let private_mode = fs::metadata(&private_path).unwrap().permissions().mode() & 0o777;
+        assert_eq!(
+            private_mode, 0o600,
+            "private bundle must be created with 0o600"
+        );
+
+        let secret_path = dir.path().join("private/recovery_secret.hex");
+        let mode = fs::metadata(&secret_path).unwrap().permissions().mode() & 0o777;
+        assert_eq!(mode, 0o600, "secret must be created with 0o600");
+
+        // A second run targeting the same directory must refuse to overwrite the
+        // existing private key material rather than silently clobbering it.
+        let result = generate(dir.path(), "root", "data");
+        assert!(
+            result.is_err(),
+            "re-running keygen over existing secrets must fail-safe"
+        );
     }
 
     #[test]

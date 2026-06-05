@@ -168,10 +168,12 @@ impl SafetyEnforcer {
     }
 
     /// Return the cumulative volume dispensed so far in microliters.
-    pub fn cumulative_dispensed_ul(&self) -> f64 {
-        self.lock_state()
-            .map(|s| s.cumulative_dispensed_ul)
-            .unwrap_or(0.0)
+    ///
+    /// Returns an error if the state lock is poisoned. This must never
+    /// silently report `0.0`, since a fail-open read could mask that a run
+    /// has already dispensed near its limit.
+    pub fn cumulative_dispensed_ul(&self) -> Result<f64, BioForgeError> {
+        Ok(self.lock_state()?.cumulative_dispensed_ul)
     }
 
     // ========================================================================
@@ -624,7 +626,7 @@ mod tests {
         let e = enforcer();
         e.validate_and_track_dispense(100.0).unwrap();
         e.validate_and_track_dispense(200.0).unwrap();
-        assert!((e.cumulative_dispensed_ul() - 300.0).abs() < f64::EPSILON);
+        assert!((e.cumulative_dispensed_ul().unwrap() - 300.0).abs() < f64::EPSILON);
     }
 
     #[test]
@@ -645,9 +647,9 @@ mod tests {
     fn cumulative_dispense_resets_on_new_run() {
         let e = enforcer();
         e.validate_and_track_dispense(1000.0).unwrap();
-        assert!(e.cumulative_dispensed_ul() > 0.0);
+        assert!(e.cumulative_dispensed_ul().unwrap() > 0.0);
         e.reset_run().unwrap();
-        assert!((e.cumulative_dispensed_ul()).abs() < f64::EPSILON);
+        assert!((e.cumulative_dispensed_ul().unwrap()).abs() < f64::EPSILON);
     }
 
     // -- Flow rate validation --
@@ -830,7 +832,7 @@ mod tests {
 
         e.reset_run().unwrap();
 
-        assert!((e.cumulative_dispensed_ul()).abs() < f64::EPSILON);
+        assert!((e.cumulative_dispensed_ul().unwrap()).abs() < f64::EPSILON);
         // Should be able to call actuator immediately after reset
         assert!(e.check_actuator_interval().is_ok());
     }

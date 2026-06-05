@@ -246,8 +246,10 @@ fn format_status(status: &JobStatus) -> String {
 }
 
 fn truncate_timestamp(ts: &str) -> &str {
-    // Show just date + time, not microseconds
-    if ts.len() > 19 { &ts[..19] } else { ts }
+    // Show just date + time, not microseconds. Use `get` so a byte index that
+    // lands inside a multi-byte UTF-8 char (e.g. a malformed timestamp) returns
+    // None and falls back to the full string instead of panicking.
+    ts.get(..19).unwrap_or(ts)
 }
 
 /// Poll the logs endpoint repeatedly until the job finishes.
@@ -368,6 +370,14 @@ mod tests {
             truncate_timestamp("2025-01-15T14:30:00"),
             "2025-01-15T14:30:00"
         );
+    }
+
+    #[test]
+    fn truncate_timestamp_multibyte_char_at_boundary() {
+        // A multi-byte UTF-8 char straddling byte index 19 must not panic on a
+        // raw byte slice; falls back to the full string instead.
+        let ts = "2025-01-15T14:30:0\u{00e9}9012"; // 'é' occupies bytes 18..20
+        assert_eq!(truncate_timestamp(ts), ts);
     }
 
     #[test]

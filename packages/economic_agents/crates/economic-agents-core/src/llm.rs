@@ -248,7 +248,7 @@ Values must sum to 1.0. Consider:
 
         // Normalize to ensure sum is 1.0
         let total = parsed.task_work + parsed.company_work + parsed.other;
-        if total <= 0.0 {
+        if !total.is_finite() || total <= 0.0 {
             return None;
         }
 

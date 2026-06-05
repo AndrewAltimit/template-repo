@@ -400,7 +400,12 @@ Legitimate requests about code review, security analysis, or asking questions ar
         // Try to find JSON block
         if let Some(start) = response.find('{') {
             if let Some(end) = response.rfind('}') {
-                return &response[start..=end];
+                // Only slice when the braces form a valid range. A response like
+                // "} ... {" has `end < start`, which would panic on the
+                // inclusive-range slice, so fall through to the raw response.
+                if start <= end {
+                    return &response[start..=end];
+                }
             }
         }
         response
@@ -495,5 +500,21 @@ mod tests {
 
         // Should trigger LLM analysis due to suspicious phrases
         assert!(analysis.llm_analyzed);
+    }
+
+    #[test]
+    fn test_extract_json_reversed_braces_no_panic() {
+        // A response where the last '}' precedes the first '{' must not panic
+        // on the inclusive-range slice; it should fall through to the raw input.
+        let response = "} not json {";
+        let extracted = InjectionDetector::<MockModel>::extract_json(response);
+        assert_eq!(extracted, response);
+    }
+
+    #[test]
+    fn test_extract_json_normal_object() {
+        let response = r#"prefix {"a": 1} suffix"#;
+        let extracted = InjectionDetector::<MockModel>::extract_json(response);
+        assert_eq!(extracted, r#"{"a": 1}"#);
     }
 }
