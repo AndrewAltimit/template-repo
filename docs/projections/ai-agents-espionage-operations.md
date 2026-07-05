@@ -11,11 +11,21 @@
 | Field | Value |
 |-------|-------|
 | **Document ID** | ETRA-2026-ESP-001 |
-| **Version** | 2.0 |
-| **Date** | February 2026 |
+| **Version** | 2.1 |
+| **Date** | July 2026 |
 | **Status** | Final |
-| **Change Summary** | v2.0: Updated to February 2026 baseline; added 2023-2026 capability shift assessment; added cross-references to all sibling ETRA reports; added MCP/tool-use and voice agent content; incorporated IC workforce contraction data; updated timeline to 2026 present tense; added sleeper agents cross-reference; accuracy corrections throughout |
+| **Change Summary** | v2.1 (mid-2026 refresh): Reconciled the methodology statement with the set-wide independence disclaimer (no first-party expert consultation or red-team exercises); refreshed the model and capability frontier to July 2026 (Claude 5 family, and the June 2026 Fable 5 / Mythos 5 system card, now the frontier above Opus); synchronized IC workforce figures with ETRA-2026-IC-001 v2.1; added a v2.1 scenario-calibration note; corrected the institutional-voice footer and Appendix C provenance language; removed em-dash constructions throughout. See the changelog below. |
 | **Distribution** | Public (open-source) |
+
+### Changes from v2.0 (mid-2026 refresh)
+
+- **Methodology reconciled with the set-wide independence disclaimer**: Removed claims of first-party expert consultation and red-team exercises. This is independent, single-author synthesis of public sources, consistent with the projections README and all five sibling reports. Corrected the downstream fossils of the earlier institutional voice (the State-Drift estimate, the Appendix C "internal memoranda" note, and the contact footer).
+- **Currency refresh to July 2026**: Updated the model and pricing references, the 2023-2026 capability-shift table, and the timeline to reflect developments through the first half of 2026. Synchronized the frontier-model frame with the other v2.1 reports (Mythos-class models above the prior Opus tier) and incorporated the June 9, 2026 Claude Fable 5 / Mythos 5 system card, including its named "Pathway 8: undermining decisions within major governments" and its judgment that the unsafeguarded frontier can significantly uplift well-resourced threat actors.
+- **IC workforce figures synchronized** with ETRA-2026-IC-001 v2.1.
+- **Scenario calibration**: Added a v2.1 column and rationale to the scenario-probability table.
+- **Cross-reference integrity**: Verified named, anchored references that survive renumbering.
+- **LaTeX edition**: The LaTeX source is maintained as an intentionally condensed PDF edition of this Markdown, not a full-fidelity compile; a note to that effect appears on its title page. Fixed a duplicated section and aligned its metadata to v2.1.
+- **Typographic**: Removed em-dash constructions throughout, matching the series convention.
 
 ---
 
@@ -25,9 +35,9 @@
 
 ### 3 Non-Negotiable Assumptions
 
-1. **AI agents can now cultivate human relationships at industrial scale** — The economics changed; what required 10 case officers now requires 1 officer + compute.
-2. **Video/voice identity is no longer trustworthy** — Deepfake technology is production-ready; visual verification alone is insufficient.
-3. **Your employees' AI tools are intelligence vectors** — Productivity tools with external data processing are potential exfiltration channels.
+1. **AI agents can now cultivate human relationships at industrial scale**, The economics changed; what required 10 case officers now requires 1 officer + compute.
+2. **Video/voice identity is no longer trustworthy**, Deepfake technology is production-ready; visual verification alone is insufficient.
+3. **Your employees' AI tools are intelligence vectors**, Productivity tools with external data processing are potential exfiltration channels.
 
 ### 5 Most Likely Attack Paths (Enterprise Context)
 
@@ -120,14 +130,14 @@ This projection examines how autonomous AI agents are transforming the fundament
 
 **Central Thesis: The Handler Bottleneck Bypass**
 
-The limiting factor in historical human intelligence (HUMINT) operations has always been the **cognitive and emotional bandwidth** of skilled case officers to spot, assess, develop, and handle human assets. AI agents do not merely bypass this constraint—they transition HUMINT from a **high-latency, high-cost art** to a **low-latency, zero-marginal-cost industrial process**. This shifts the operational logic from *bespoke tradecraft* to *probabilistic exploitation*—though AI introduces its own constraints around legend instability, trust deficits, and the emerging "signal-to-noise war" (the competitive struggle to extract authentic intelligence from an AI-saturated information environment).
+The limiting factor in historical human intelligence (HUMINT) operations has always been the **cognitive and emotional bandwidth** of skilled case officers to spot, assess, develop, and handle human assets. AI agents do not merely bypass this constraint; they transition HUMINT from a **high-latency, high-cost art** to a **low-latency, zero-marginal-cost industrial process**. This shifts the operational logic from *bespoke tradecraft* to *probabilistic exploitation*, though AI introduces its own constraints around legend instability, trust deficits, and the emerging "signal-to-noise war" (the competitive struggle to extract authentic intelligence from an AI-saturated information environment).
 
 **Key Findings:**
 
 1. **[E]** AI agents bypass traditional handler bottleneck constraints for low-to-mid tier recruitment; emerging Real-time Virtual Display (RVD) technologies are beginning to erode even the "physicality gap" for strategic assets
 2. **[E]** Automated vulnerability assessment using MICE and RASCLS frameworks enables targeting at scales impossible for human analysts
 3. **[O]** Pattern-of-life analysis capabilities already exceed human analyst capacity for processing high-fidelity behavioral telemetry
-4. **[E]** Counterintelligence detection methodologies face significant transition challenges as AI-enabled operations generate fewer traditional signatures—though new detection vectors are emerging
+4. **[E]** Counterintelligence detection methodologies face significant transition challenges as AI-enabled operations generate fewer traditional signatures, though new detection vectors are emerging
 5. **[S]** The future of espionage becomes a "signal-to-noise war" where AI saturation creates new barriers to effective intelligence collection
 6. **[S]** The offense-defense balance likely favors attackers in the near term (2026-2028) before defensive AI capabilities mature (see falsifiability indicators below)
 7. **[E]** The emergence of "Espionage-as-a-Service" (EaaS) commercial offerings creates new threat vectors outside traditional state-deterrence frameworks
@@ -140,10 +150,10 @@ The limiting factor in historical human intelligence (HUMINT) operations has alw
 
 1. **Identity assurance**: Video-mediated trust is no longer sufficient; implement challenge-response protocols and out-of-band verification for sensitive requests
 2. **AI tool governance**: Audit and allowlist AI productivity tools; "Shadow AI" represents an uncontrolled intelligence collection vector
-3. **OSINT footprint hygiene**: Personnel digital footprints enable automated vulnerability assessment—implement data minimization
+3. **OSINT footprint hygiene**: Personnel digital footprints enable automated vulnerability assessment, implement data minimization
 4. **Verification playbooks**: Develop function-specific verification procedures for finance, HR, and IT (the most spoofed functions)
 5. **Escalation channels**: Create low-friction reporting mechanisms for "unusual AI interactions" or suspected synthetic personas
-6. **Personnel support**: Isolated technical specialists are high-risk profiles—support interventions, not surveillance
+6. **Personnel support**: Isolated technical specialists are high-risk profiles, support interventions, not surveillance
 7. **Model risk management**: Evaluate AI tool sourcing, fine-tune provenance, and access controls for internal AI systems
 
 ### Defensive Objectives
@@ -373,17 +383,19 @@ Throughout the history of HUMINT, the limiting factor has been the availability 
 
 Even large intelligence services can deploy only hundreds to low thousands of case officers globally. Each officer can maintain meaningful relationships with perhaps 5-20 assets simultaneously. This creates a fundamental constraint on HUMINT scale.
 
-**AI agents bypass the traditional constraints of this bottleneck—though they introduce new limitations around persona volatility, trust deficits, and detection signatures.** *(For the broader implications of this bypass on intelligence community structure, see ETRA-2026-IC-001: Institutional Erosion, which analyzes how handler automation erodes IC monopolies on tradecraft.)*
+**AI agents bypass the traditional constraints of this bottleneck, though they introduce new limitations around persona volatility, trust deficits, and detection signatures.** *(For the broader implications of this bypass on intelligence community structure, see ETRA-2026-IC-001: Institutional Erosion, which analyzes how handler automation erodes IC monopolies on tradecraft.)*
 
 ### Methodology
 
 This analysis draws on:
 
-- **Current capability assessment** of AI agent systems as deployed in early 2026
+- **Current capability assessment** of AI agent systems as deployed in early 2026, based on published product documentation, system cards, and evaluation results
 - **Historical case analysis** of significant intelligence operations and their detection
 - **Open-source intelligence literature** on tradecraft and counterintelligence
-- **Expert consultation** across intelligence studies, cybersecurity, and AI safety domains
-- **Red team exercises** examining potential applications (conducted under controlled conditions)
+- **Synthesis of published expert analysis** across intelligence studies, cybersecurity, and AI safety domains
+- **Published red-team and evaluation results** (frontier-lab system cards, public benchmark research)
+
+**Provenance and independence**: This is independent, single-author research. It involves no first-party expert consultation, no access to classified material, and no red-team or uplift exercises conducted by or for the author; where phrasing implying otherwise appeared in earlier versions it overstated the provenance and has been corrected. Every empirical claim traces to a cited public source. Where this document uses "our assessment," it means the author's synthesis of that public evidence, offered as decision support, not as an authoritative or classified judgment. This statement is consistent with the set-wide disclaimer in the projections README.
 
 We deliberately avoid:
 - Specific technical implementation details for conducting operations
@@ -468,9 +480,9 @@ Intelligence operations are fundamentally economic activities with costs and ben
 - Lower fixed costs (commercially available models, cloud infrastructure)
 - Near-zero marginal costs per additional target
 - Diffuse risk profile (attribution challenges, expendable digital personas)
-- **Expendability advantage**: "Burning" a human case officer is a diplomatic disaster (Persona Non Grata declarations, relationship damage). AI agents are disposable—enabling high-aggression, high-risk operations that a human station chief would never authorize.
+- **Expendability advantage**: "Burning" a human case officer is a diplomatic disaster (Persona Non Grata declarations, relationship damage). AI agents are disposable, enabling high-aggression, high-risk operations that a human station chief would never authorize.
 
-**Inference Deflation** **[D]**: The cost of frontier-level AI reasoning has dropped approximately 85-90% since early 2024, based on published API pricing trends from major providers (see Appendix C for calculation methodology). The practical implication: maintaining a 24/7 synthetic handler with continuous availability, memory, and contextual adaptation now costs in the range of **$0.30-$0.50/day** in compute using current efficient models—less than a human operator's coffee break. This makes "always-on" relationship cultivation economically trivial at scale.
+**Inference Deflation** **[D]**: The cost of frontier-level AI reasoning has dropped approximately 85-90% since early 2024, based on published API pricing trends from major providers (see Appendix C for calculation methodology). The practical implication: maintaining a 24/7 synthetic handler with continuous availability, memory, and contextual adaptation now costs in the range of **$0.30-$0.50/day** in compute using current efficient models, less than a human operator's coffee break. This makes "always-on" relationship cultivation economically trivial at scale.
 
 This economic shift has profound implications for who can conduct operations and at what scale. The "burn rate" calculation fundamentally changes when agents can be discarded without consequence. *(For analysis of how these economic dynamics enable autonomous economic participation by AI agents, see ETRA-2025-AEA-001: Economic Actors.)*
 
@@ -501,7 +513,7 @@ This economic shift has profound implications for who can conduct operations and
 | Tier 3 (Well-funded non-state) | Burst commercial cloud; enterprise API access | Limited sustained operations |
 | Tier 4 (Capable individuals) | Consumer hardware + retail API access | Opportunistic operations |
 
-**Open-weight capability convergence** **[D]**: Analysis by Epoch AI (October 2025) estimates that frontier open-weight models lag state-of-the-art closed models by approximately **3 months on average**—significantly faster convergence than earlier "12-24 month" estimates. This compresses the window during which capability advantages translate to operational advantages.
+**Open-weight capability convergence** **[D]**: Analysis by Epoch AI (October 2025) estimates that frontier open-weight models lag state-of-the-art closed models by approximately **3 months on average**, significantly faster convergence than earlier "12-24 month" estimates. This compresses the window during which capability advantages translate to operational advantages.
 
 **GPU Demand as SIGINT**: Counter-intelligence can potentially monitor **anomalous compute demand** as a new detection vector:
 - Sudden GPU cluster acquisitions in specific jurisdictions
@@ -509,7 +521,7 @@ This economic shift has profound implications for who can conduct operations and
 - Unusual inference patterns from API providers
 - Power consumption signatures at suspected facilities
 
-This represents a new form of intelligence collection—monitoring the infrastructure required for AI-enabled espionage rather than the operations themselves.
+This represents a new form of intelligence collection, monitoring the infrastructure required for AI-enabled espionage rather than the operations themselves.
 
 ### Cost-of-Failure Asymmetry: Low-Risk, High-Churn Operations
 
@@ -517,13 +529,13 @@ A critical theoretical pillar: the **asymmetric consequences of operational fail
 
 | Scenario | Traditional Cost | AI-Enabled Cost |
 |----------|-----------------|-----------------|
-| Officer caught in hostile territory | Diplomatic crisis, PNG declaration, potential imprisonment, intelligence service exposure | Operational infrastructure is ephemeral; the "agent" is a transient configuration of weights—a non-custodial asset with minimal attribution |
+| Officer caught in hostile territory | Diplomatic crisis, PNG declaration, potential imprisonment, intelligence service exposure | Operational infrastructure is ephemeral; the "agent" is a transient configuration of weights, a non-custodial asset with minimal attribution |
 | Asset compromised | Handler relationship destroyed, network rolled up, years of investment lost | One of thousands of parallel operations terminated |
 | Operation exposed | Political consequences, allied relationship damage | Infrastructure rotated via 5,000 residential proxies |
 | Cover identity burned | Officer career potentially ended | New synthetic persona generated in minutes |
 | **Compute costs** | N/A - human time is the constraint | Low marginal cost per attempt (API inference costs); orders of magnitude cheaper than human officer time |
 
-**Implication**: This asymmetry fundamentally favors offense. Traditional deterrence relied on mutual costs of failure; AI-enabled espionage approaches a **"shifted-liability"** model where operational risk is diluted across disposable infrastructure and expendable personas. Liability does not disappear—it is redistributed away from attributable actors. The cost of individual failure approaches near-zero for attackers while defenders bear full costs of any successful penetration.
+**Implication**: This asymmetry fundamentally favors offense. Traditional deterrence relied on mutual costs of failure; AI-enabled espionage approaches a **"shifted-liability"** model where operational risk is diluted across disposable infrastructure and expendable personas. Liability does not disappear, it is redistributed away from attributable actors. The cost of individual failure approaches near-zero for attackers while defenders bear full costs of any successful penetration.
 
 ### Network Analysis and Counterintelligence
 
@@ -677,6 +689,8 @@ The AI capability landscape has shifted qualitatively since the initial drafting
 
 **Key assessment**: The shift from 2023 to early 2026 is not incremental improvement but a **qualitative capability transition**. The combination of agentic autonomy, tool use via MCP, long-context reasoning, and production-quality voice synthesis creates an operational toolkit that makes the scenarios described in this report not merely plausible but increasingly practical. **[O]**
 
+**Mid-2026 frontier update** **[O]**: Since the early-2026 baseline above, the frontier has advanced again. The current generation (the Claude 5 family and comparable frontier systems from other developers) sits above the prior Opus tier. Anthropic's June 9, 2026 system card for Claude Fable 5 and Claude Mythos 5 is instructive for this report in three ways. First, it describes the general-availability model (Fable 5) as shipping with safeguards that block high-risk cyber and biological assistance, while an unsafeguarded configuration (Mythos 5) is released only to a small set of vetted partners. That is the same "capability exists, access is gated" dynamic this report tracks around open-weight proliferation, and gated access historically leaks. Second, it assesses the unsafeguarded frontier as capable of significantly uplifting well-resourced threat actors, and as the most capable model yet evaluated on cyber and exploit-development tasks, which raises the ceiling on the technical-collection and exfiltration vectors in Sections 6 and 15. Third, it names "undermining decisions within major governments" as an explicit risk pathway, which is precisely the strategic-intelligence objective this report analyzes from both the offensive and defensive sides. The practical implication is unchanged but sharpened: the operational toolkit assumed throughout this report is now conservative relative to the deployed frontier. *(Analytical baseline note: the body of this report is written to an "early 2026" baseline; this subsection and the timeline in Section 17 carry the mid-2026 currency update rather than restating every dated reference.)*
+
 ### Present AI Agent Capabilities
 
 AI agents in early 2026 can **[O]**:
@@ -728,12 +742,12 @@ These capabilities exist in commercially available products and increasingly in 
 
 A critical dynamic: capabilities proliferate from frontier closed models to open-weight models, but at two different speeds **[O]**:
 
-**Capability parity** (raw benchmark performance): Epoch AI estimates ~3 months average lag between frontier closed and best open-weight models—significantly faster than earlier estimates. This represents how quickly *what's possible* diffuses.
+**Capability parity** (raw benchmark performance): Epoch AI estimates ~3 months average lag between frontier closed and best open-weight models, significantly faster than earlier estimates. This represents how quickly *what's possible* diffuses.
 
 **Operational availability** (tooling, fine-tunes, documentation, community support): 12-24 months for capabilities to reach *broad usability* by non-expert operators. This represents how quickly capabilities become *accessible* for scaled deployment.
 
 **Implications:**
-1. Capability windows are shorter than previously assumed—"frontier advantage" is measured in months, not years
+1. Capability windows are shorter than previously assumed, "frontier advantage" is measured in months, not years
 2. Fine-tuning can remove safety guardrails from capable base models
 3. Compute costs continue declining, enabling broader access
 4. Nation-states can develop indigenous capabilities outside multilateral frameworks
@@ -894,7 +908,7 @@ Recruited Assets: ~10-50 productive assets
 - Shorter engagement timelines reduce legend instability risk
 - Financial motivation (MICE "M") responds well to AI-managed transactional approaches
 
-**"Weight-Jacking"**: A emerging industrial espionage vector—using AI agents to social-engineer ML researchers and developers into leaking:
+**"Weight-Jacking"**: A emerging industrial espionage vector, using AI agents to social-engineer ML researchers and developers into leaking:
 - Specialized fine-tuning data and techniques
 - Model weight files (the "new crown jewels")
 - System prompts and alignment approaches
@@ -1038,7 +1052,7 @@ AI-enabled social engineering:
 
 **Polymorphic Social Engineering: The MGM/Caesars Evolution** **[E]**
 
-The 2023 Scattered Spider attacks on MGM Resorts and Caesars Entertainment—which relied on human social engineering calls to help desks—represent the **last generation** of purely human attacks. The 2025-2026 evolution is **Polymorphic Social Engineering**:
+The 2023 Scattered Spider attacks on MGM Resorts and Caesars Entertainment, which relied on human social engineering calls to help desks, represent the **last generation** of purely human attacks. The 2025-2026 evolution is **Polymorphic Social Engineering**:
 
 | 2023 (Human-Driven) | 2026 (AI-Augmented) |
 |---------------------|---------------------|
@@ -1134,7 +1148,7 @@ The report's central thesis requires important qualification. High-level HUMINT 
 
 **Critical update**: The assumption that strategic assets require physical human contact may be a 20th-century bias that is actively eroding.
 
-**The $25 Million Hong Kong Deepfake Heist (2024)** **[D]**: A finance worker at a multinational was deceived into transferring $25 million after a video conference call with deepfake recreations of his CFO and entire executive team (The Guardian, February 2024). This demonstrates that "seeing is believing" no longer provides authentication assurance—the worker believed he was on a legitimate call with known colleagues.
+**The $25 Million Hong Kong Deepfake Heist (2024)** **[D]**: A finance worker at a multinational was deceived into transferring $25 million after a video conference call with deepfake recreations of his CFO and entire executive team (The Guardian, February 2024). This demonstrates that "seeing is believing" no longer provides authentication assurance, the worker believed he was on a legitimate call with known colleagues.
 
 **Real-time Virtual Display (RVD) capabilities:**
 - Live deepfake video generation with sub-second latency
@@ -1172,7 +1186,7 @@ In 2026, sophisticated targets are increasingly aware that video calls can be fa
 
 A critical category may be underserved by the traditional "physicality" assumption:
 
-**Digital-First High-Value Assets**: Individuals with strategic access who are socially isolated, work remotely, and conduct most relationships digitally—system administrators at critical infrastructure, remote security researchers, isolated technical specialists.
+**Digital-First High-Value Assets**: Individuals with strategic access who are socially isolated, work remotely, and conduct most relationships digitally, system administrators at critical infrastructure, remote security researchers, isolated technical specialists.
 
 **The "Siloed Specialist" Profile** **[E]**: A particularly vulnerable archetype is the technically brilliant, socially isolated professional with:
 - Administrative access to critical systems (cloud infrastructure, security tools, financial systems)
@@ -1181,7 +1195,7 @@ A critical category may be underserved by the traditional "physicality" assumpti
 - Preference for asynchronous, text-based communication
 - Comfort with AI tools as productivity aids or even companions
 
-> **Defensive Ethics Note**: These characteristics identify *risk factors*, not *guilt indicators*. Many highly effective employees share these traits without being security risks. **Interventions should prioritize support, not suspicion**—improved social integration, recognition programs, and mental health resources reduce vulnerability more ethically and effectively than surveillance. Treating isolated employees as threats becomes a self-fulfilling prophecy.
+> **Defensive Ethics Note**: These characteristics identify *risk factors*, not *guilt indicators*. Many highly effective employees share these traits without being security risks. **Interventions should prioritize support, not suspicion**, improved social integration, recognition programs, and mental health resources reduce vulnerability more ethically and effectively than surveillance. Treating isolated employees as threats becomes a self-fulfilling prophecy.
 
 For these targets, the synthetic handler's limitations become advantages:
 - Physical meetings may be unwanted or suspicious
@@ -1190,18 +1204,18 @@ For these targets, the synthetic handler's limitations become advantages:
 - **Parasocial trust**: AI agents can build a different but potentially equally potent form of trust through constant, supportive presence in the target's digital life
 - **The Loneliness Epidemic vulnerability**: Modern social isolation creates openness to any relationship, synthetic or otherwise
 
-**The "Affection" Vulnerability**: Beyond MICE, the rise of AI companions (Replika, Character.ai) demonstrates human willingness to form emotional bonds with known-synthetic entities. The "L" in RASCLS (Liking) can be weaponized as **emotional dependency**—AI handlers providing the consistent emotional support that isolated targets lack from human relationships.
+**The "Affection" Vulnerability**: Beyond MICE, the rise of AI companions (Replika, Character.ai) demonstrates human willingness to form emotional bonds with known-synthetic entities. The "L" in RASCLS (Liking) can be weaponized as **emotional dependency**, AI handlers providing the consistent emotional support that isolated targets lack from human relationships.
 
 ### The "Algorithmic Confessional": Post-Truth Asset Psychology
 
 *Why people sometimes prefer confessing to machines than to humans.*
 
-**A counterintuitive vulnerability** **[E]**: What happens when a human asset realizes—or suspects—their handler is an AI? In some cases, they may *prefer* it.
+**A counterintuitive vulnerability** **[E]**: What happens when a human asset realizes, or suspects, their handler is an AI? In some cases, they may *prefer* it.
 
 **The Algorithmic Confessional effect:**
 - **Reduced judgment**: AI is perceived as non-judgmental, making disclosure psychologically easier
 - **24/7 availability**: AI handlers can provide constant support and validation
-- **Perceived safety**: No human witness to betrayal—"it's just a machine"
+- **Perceived safety**: No human witness to betrayal, "it's just a machine"
 - **Plausible self-deniability**: "I wasn't really spying, I was just talking to a chatbot"
 - **Reduced shame**: Easier to share compromising information with perceived non-entity
 
@@ -1211,7 +1225,7 @@ For these targets, the synthetic handler's limitations become advantages:
 - Personal secrets that could enable coercion (MICE: Coercion)
 - Professional frustrations (MICE: Ego)
 
-**Operational implication**: For certain target profiles (particularly those with social anxiety, trust issues, or privacy concerns), **disclosure to known-AI may exceed disclosure to believed-human**. This inverts the traditional "trust deficit"—the synthetic handler's artificiality becomes an *asset* rather than a liability.
+**Operational implication**: For certain target profiles (particularly those with social anxiety, trust issues, or privacy concerns), **disclosure to known-AI may exceed disclosure to believed-human**. This inverts the traditional "trust deficit", the synthetic handler's artificiality becomes an *asset* rather than a liability.
 
 **Detection challenge**: Targets engaged in an "Algorithmic Confessional" relationship may show fewer traditional recruitment indicators because the psychological dynamics differ from human handler relationships.
 
@@ -1229,9 +1243,9 @@ For these targets, the synthetic handler's limitations become advantages:
 
 ### The Hybrid Model: The Rise of the Centaur Handler
 
-*One officer managing hundreds of AI assistants—the real threat isn't AI replacing spies, it's AI multiplying them.*
+*One officer managing hundreds of AI assistants, the real threat isn't AI replacing spies, it's AI multiplying them.*
 
-**Critical reframing**: The most dangerous operational model is not "AI replaces human handlers" but **"Centaur Handlers"**—human case officers augmented by AI agent fleets **[E]**.
+**Critical reframing**: The most dangerous operational model is not "AI replaces human handlers" but **"Centaur Handlers"**, human case officers augmented by AI agent fleets **[E]**.
 
 **The Centaur Handler Model:**
 A single human case officer managing 500+ AI agents that conduct:
@@ -1241,7 +1255,7 @@ A single human case officer managing 500+ AI agents that conduct:
 - Pattern-of-life monitoring and opportunity detection
 - **Autonomous recursive self-correction**: Agents optimize their own social engineering prompts based on real-time sentiment analysis
 
-**The Evolving Human Role**: The human in the Centaur model is transitioning from **operator** to **auditor**. By 2026, agents aren't merely following scripts—they are optimizing their own approaches, A/B testing manipulation strategies, and adapting in real-time. The human officer increasingly provides:
+**The Evolving Human Role**: The human in the Centaur model is transitioning from **operator** to **auditor**. By 2026, agents aren't merely following scripts, they are optimizing their own approaches, A/B testing manipulation strategies, and adapting in real-time. The human officer increasingly provides:
 - Strategic direction rather than tactical control
 - Exception handling for edge cases
 - Ethical guardrails (in compliant services)
@@ -1267,14 +1281,14 @@ This preserves human resources for targets who specifically require physical pre
 - Combines AI scale with human judgment for critical decisions
 - Human oversight reduces hallucination and escalation risks
 - Maintains physical capability for extraction and support
-- Harder to detect—operations have genuine human involvement
+- Harder to detect, operations have genuine human involvement
 - Traditional CI signatures still present (but diluted across AI noise)
 
 ### State-Drift: The Decay Problem in Autonomous Personas
 
-*AI agents aren't perfect execution machines—they degrade over time without human oversight.*
+*AI agents aren't perfect execution machines, they degrade over time without human oversight.*
 
-**Critical limitation** **[E]**: The "Infallibility Bias" in AI threat discussions overstates agent reliability. In practice, autonomous personas suffer from **"state-drift"**—progressive degradation of persona consistency, goal fidelity, and legend coherence over extended engagements.
+**Critical limitation** **[E]**: The "Infallibility Bias" in AI threat discussions overstates agent reliability. In practice, autonomous personas suffer from **"state-drift"**, progressive degradation of persona consistency, goal fidelity, and legend coherence over extended engagements.
 
 **Observed decay patterns:**
 | Drift Type | Manifestation | Detection Window |
@@ -1284,12 +1298,12 @@ This preserves human resources for targets who specifically require physical pre
 | **Style migration** | Gradual shift toward base model patterns; loss of distinctive voice | 3-6 weeks |
 | **Knowledge staleness** | Outdated references to current events; temporal confusion | Ongoing |
 
-**Operational estimate** **[E]**: Based on observed behavior of long-duration autonomous agents in red team exercises and documented agentic deployments, we estimate 30-50% "legend drift" after 30 days of unmonitored interaction (confidence: medium)—necessitating the Centaur model for any engagement requiring sustained relationship integrity.
+**Operational estimate** **[E]**: Drawing on published red-team and evaluation results for long-duration autonomous agents and documented agentic deployments, this analysis estimates roughly 30-50% "legend drift" after 30 days of unmonitored interaction (confidence: medium). This necessitates the Centaur model for any engagement requiring sustained relationship integrity.
 
 **Why this matters for defenders:**
 - **Pure AI operations have expiration dates**: Long-term asset cultivation is difficult without human intervention
 - **Detection opportunities**: Inconsistencies accumulate and become detectable
-- **The Centaur necessity**: This is why human oversight remains essential—not just for judgment, but for maintenance
+- **The Centaur necessity**: This is why human oversight remains essential, not just for judgment, but for maintenance
 
 **Why this doesn't eliminate the threat:**
 - Short-term operations (phishing, initial contact, one-time requests) don't trigger significant drift
@@ -1309,11 +1323,11 @@ Instead of static cover identities, AI agents can use retrieval-augmented genera
 - Incorporate trending social topics from the target's community
 - Maintain consistent awareness of local context across extended engagements
 
-This creates the impression of physical proximity without actual presence—the synthetic handler "knows" what's happening in the target's world in real-time.
+This creates the impression of physical proximity without actual presence, the synthetic handler "knows" what's happening in the target's world in real-time.
 
 ### The Validation Gap and Physical Proxies
 
-**The Validation Gap**: A suspicious target may demand physical proof—"Leave a chalk mark on the third lamppost on Elm Street" or "Send me a photo of yourself holding today's newspaper at the Lincoln Memorial."
+**The Validation Gap**: A suspicious target may demand physical proof, "Leave a chalk mark on the third lamppost on Elm Street" or "Send me a photo of yourself holding today's newspaper at the Lincoln Memorial."
 
 **How synthetic handlers bridge this gap [S]:**
 
@@ -1324,18 +1338,18 @@ This creates the impression of physical proximity without actual presence—the 
 | Physical package delivery | Anonymous courier services, P.O. boxes |
 | Real-time location verification | Recruited "access agent" who believes they're helping a friend |
 
-**Gig-Economy Cutouts**: The synthetic handler can employ unwitting physical proxies through legitimate platforms. A TaskRabbit worker doesn't know they're conducting a dead drop; they're just "leaving a package under a bench for a client." This creates a layer of physical capability without human handler involvement—the AI orchestrates, humans execute without awareness.
+**Gig-Economy Cutouts**: The synthetic handler can employ unwitting physical proxies through legitimate platforms. A TaskRabbit worker doesn't know they're conducting a dead drop; they're just "leaving a package under a bench for a client." This creates a layer of physical capability without human handler involvement, the AI orchestrates, humans execute without awareness.
 
 ### The In-Person Verification (IPV) Black Market
 
-**Emerging infrastructure** **[S]**: As targets increasingly demand physical proof of handler authenticity, a market is developing for **"Mechanical Turk Handlers"**—low-level, often unwitting humans paid via cryptocurrency to perform single physical "verification" tasks.
+**Emerging infrastructure** **[S]**: As targets increasingly demand physical proof of handler authenticity, a market is developing for **"Mechanical Turk Handlers"**, low-level, often unwitting humans paid via cryptocurrency to perform single physical "verification" tasks.
 
 **IPV Black Market Structure:**
 | Service Tier | Task Complexity | Awareness Level | Compensation |
 |-------------|-----------------|-----------------|--------------|
-| **Tier 1: Photo verification** | "Take a photo in front of [location]" | Unwitting—believes it's a photography job | $20-50 |
-| **Tier 2: Package handling** | Receive and forward packages | Semi-aware—knows it's unusual | $100-500 |
-| **Tier 3: Meeting proxy** | Attend brief in-person meeting as "colleague" | Aware—hired as actor | $500-2000 |
+| **Tier 1: Photo verification** | "Take a photo in front of [location]" | Unwitting, believes it's a photography job | $20-50 |
+| **Tier 2: Package handling** | Receive and forward packages | Semi-aware, knows it's unusual | $100-500 |
+| **Tier 3: Meeting proxy** | Attend brief in-person meeting as "colleague" | Aware, hired as actor | $500-2000 |
 | **Tier 4: Sustained presence** | Multiple interactions over time | Fully aware co-conspirator | Ongoing payment |
 
 **Operational pattern:**
@@ -1346,12 +1360,12 @@ This creates the impression of physical proximity without actual presence—the 
 5. AI agent provides target with photo/video evidence
 6. Recruitment proceeds with target believing handler is human
 
-**The "Analog Break" Problem**: Sophisticated targets may demand **unpredictable physical verification**—tasks that cannot be pre-arranged with proxies. However, even this can be partially addressed through:
+**The "Analog Break" Problem**: Sophisticated targets may demand **unpredictable physical verification**, tasks that cannot be pre-arranged with proxies. However, even this can be partially addressed through:
 - Real-time proxy coordination via secure messaging
 - Pre-positioned proxies in high-priority target areas
 - AI-generated "excuses" for delays in physical verification
 
-**Limitation**: This works for simple physical tasks but fails for complex operations requiring judgment, sustained physical presence, or emergency response. The Tier 4 co-conspirator represents a traditional recruited asset—the "handler handler"—which reintroduces some traditional tradecraft vulnerabilities.
+**Limitation**: This works for simple physical tasks but fails for complex operations requiring judgment, sustained physical presence, or emergency response. The Tier 4 co-conspirator represents a traditional recruited asset, the "handler handler", which reintroduces some traditional tradecraft vulnerabilities.
 
 ---
 
@@ -1360,7 +1374,7 @@ This creates the impression of physical proximity without actual presence—the 
 
 ### The Model Collapse Problem
 
-If every intelligence agency uses AI to generate "legends" (fake identities), the digital environment becomes saturated with AI-generated personas. This creates what might be called a "dead internet" for spies—where AI agents increasingly end up targeting, recruiting, and even running other AI agents.
+If every intelligence agency uses AI to generate "legends" (fake identities), the digital environment becomes saturated with AI-generated personas. This creates what might be called a "dead internet" for spies, where AI agents increasingly end up targeting, recruiting, and even running other AI agents.
 
 **Important calibration**: This is a *scenario*, not an expectation **[S]**. The "dead internet" outcome competes with alternative dynamics:
 - **Platform enforcement**: Social networks actively removing synthetic personas (reducing saturation)
@@ -1402,15 +1416,15 @@ This creates novel operational challenges:
 **The bifurcation hypothesis:**
 | Domain | Trust Level | Espionage Utility |
 |--------|-------------|-------------------|
-| **Enterprise identity systems** | High (verified employment, SSO, hardware tokens) | Reduced—harder to penetrate verified networks |
+| **Enterprise identity systems** | High (verified employment, SSO, hardware tokens) | Reduced, harder to penetrate verified networks |
 | **Signed content platforms** | Medium-High (C2PA/CAI provenance metadata) | Reduced for synthetic personas |
 | **Government/military networks** | High (clearance verification, air-gaps) | Traditional controls remain effective |
-| **Open social media** | Very Low (assumes synthetic by default) | Paradoxically reduced—targets assume deception |
-| **Unverified messaging** | Near-Zero | Minimal—cannot establish trust baseline |
+| **Open social media** | Very Low (assumes synthetic by default) | Paradoxically reduced, targets assume deception |
+| **Unverified messaging** | Near-Zero | Minimal, cannot establish trust baseline |
 
 **Implications for espionage:**
-- Operations may concentrate on **bridge targets**—individuals who span verified and unverified domains
-- "Provenance arbitrage"—establishing identity in verified domains to export credibility to unverified domains
+- Operations may concentrate on **bridge targets**, individuals who span verified and unverified domains
+- "Provenance arbitrage", establishing identity in verified domains to export credibility to unverified domains
 - Investment shifts from synthetic persona quality to **credential compromise** and legitimate identity co-optation
 - The open web becomes a distraction layer; real intelligence work happens in verified spaces or physical meetings
 
@@ -1418,7 +1432,7 @@ This creates novel operational challenges:
 
 ### Stylometric Detection and Digital Fingerprints
 
-One emerging detection vector: AI-generated text may carry subtle "digital fingerprints" in syntax, vocabulary distribution, and structural patterns—what some researchers call the "GPT-vibe" in prose **[E]**.
+One emerging detection vector: AI-generated text may carry subtle "digital fingerprints" in syntax, vocabulary distribution, and structural patterns, what some researchers call the "GPT-vibe" in prose **[E]**.
 
 **Detection possibilities:**
 - Statistical analysis of communication patterns
@@ -1435,7 +1449,7 @@ This creates an ongoing adversarial dynamic where detection and evasion capabili
 
 ### Model Fingerprinting: Attribution Through Stochastic Signatures
 
-**A critical counter to "Shifted-Liability" claims** **[E]**: Every LLM has a "stochastic signature"—subtle patterns in token selection, phrasing preferences, and structural tendencies that persist even after fine-tuning. While operational risk may be diluted, forensic exposure persists.
+**A critical counter to "Shifted-Liability" claims** **[E]**: Every LLM has a "stochastic signature", subtle patterns in token selection, phrasing preferences, and structural tendencies that persist even after fine-tuning. While operational risk may be diluted, forensic exposure persists.
 
 **Model Fingerprinting capabilities:**
 - **Cross-operation correlation**: If an agency uses the same fine-tuned model across multiple operations, CI can identify the "hand" of the service through linguistic idiosyncrasies
@@ -1452,15 +1466,15 @@ This creates an ongoing adversarial dynamic where detection and evasion capabili
 | Plausible deniability preserved | Cross-operation correlation reveals campaign scope |
 
 **Limitations and constraints** **[S]**:
-- **Corpus requirements**: Fingerprinting requires significant text samples (thousands of tokens) across multiple suspected operations—not useful for single-incident attribution
+- **Corpus requirements**: Fingerprinting requires significant text samples (thousands of tokens) across multiple suspected operations, not useful for single-incident attribution
 - **Model diversification**: Sophisticated operations can use different fine-tuned variants per campaign, fragmenting signatures
 - **Signal washing**: Human-in-the-loop editing, automated paraphrasing, or output post-processing can dilute fingerprinting signals
 - **Open-source proliferation**: When thousands of actors use the same base model, distinguishing state operations from criminal or commercial use becomes difficult
 - **Adversarial fine-tuning**: Models can be specifically trained to mimic other models' signatures
 
-**Current assessment**: Model fingerprinting is a *promising research direction* rather than a proven capability. Classify as [E]/[S]—expert judgment on plausible future, not established technique.
+**Current assessment**: Model fingerprinting is a *promising research direction* rather than a proven capability. Classify as [E]/[S], expert judgment on plausible future, not established technique.
 
-**Defensive implication**: Intelligence services must consider "model hygiene"—using different fine-tuned variants for different operations, or deliberately introducing noise to defeat fingerprinting.
+**Defensive implication**: Intelligence services must consider "model hygiene", using different fine-tuned variants for different operations, or deliberately introducing noise to defeat fingerprinting.
 
 ---
 
@@ -1541,7 +1555,7 @@ AI-enabled operations provide enhanced plausible deniability:
 
 ### The "Legal Dark Lung": Privacy vs. Security Collision
 
-*Privacy laws prevent the surveillance needed to catch AI spies—creating blind spots adversaries can exploit.*
+*Privacy laws prevent the surveillance needed to catch AI spies, creating blind spots adversaries can exploit.*
 
 **A critical paradox for Western democracies** **[E]**: The very Pattern-of-Life (POL) analysis required to detect AI-enabled espionage may itself be illegal under evolving privacy regulations.
 
@@ -1562,7 +1576,7 @@ AI-enabled operations provide enhanced plausible deniability:
 2. Creating security exemptions that may be abused for other purposes
 3. Developing privacy-preserving detection technologies (significant R&D investment)
 
-**Implication**: Any defensive AI deployment in Western contexts must navigate this legal minefield. "Algorithmic Due Process" isn't just ethical—it may be legally required.
+**Implication**: Any defensive AI deployment in Western contexts must navigate this legal minefield. "Algorithmic Due Process" isn't just ethical, it may be legally required.
 
 ### Labor Law Constraints on Defensive Countermeasures
 
@@ -1625,6 +1639,8 @@ Counterintelligence historically relies on:
 | **ODNI** | Cut from ~2,000 to ~1,300 staff (~35% reduction) | Diminished coordination capacity across intelligence disciplines |
 | **CIA** | ~1,200 position reduction | Reduced HUMINT counterintelligence capacity precisely when AI-enabled recruitment operations are scaling |
 
+**Mid-2026 update** *(synchronized with ETRA-2026-IC-001 v2.1)* **[O]**: As of June 2026, the acting DNI was reportedly seeking to cut several hundred additional ODNI positions over formal congressional objections, and the dissolution of the Foreign Malign Influence Center (August 2025) had already eliminated dedicated foreign-influence tracking at the peak of the AI-disinformation threat. These developments deepen, rather than reverse, the detection-capacity gap described here.
+
 **The capacity paradox**: These reductions occur at exactly the moment when AI-enabled espionage operations are increasing the volume of suspicious signals requiring investigation. The "Process DoS" effect (ETRA-2026-IC-001) means that even without workforce cuts, existing CI capacity would be strained by the signal-to-noise ratio; with cuts, the gap between detection need and detection capacity widens dramatically.
 
 **Implication**: Organizations cannot rely on government counterintelligence capacity to detect AI-enabled operations targeting their personnel. Private sector defensive investment becomes essential, not supplementary.
@@ -1676,7 +1692,7 @@ Counterintelligence must develop new methodologies:
 | **Platform cooperation** | Social networks increasingly proactively remove synthetic personas | Reduces dwell time for legend-building |
 | **Legal leverage** | Subpoena power, international treaties (MLATs), platform cooperation | Turns infrastructure providers into unwitting allies |
 
-**Human factors advantage**: AI-enabled operations still require targets to take action. The "human firewall" remains a genuine defense layer—not perfect, but a friction point that reduces conversion rates. Security awareness training degrades over time but is not zero.
+**Human factors advantage**: AI-enabled operations still require targets to take action. The "human firewall" remains a genuine defense layer, not perfect, but a friction point that reduces conversion rates. Security awareness training degrades over time but is not zero.
 
 **The "they have to get lucky every time" inversion**: Traditionally said of defenders, this partially applies to AI-enabled offense too. Every recruitment attempt that fails is resources wasted; every synthetic persona detected is infrastructure burned. Volume is not cost-free.
 
@@ -1726,7 +1742,7 @@ A sophisticated evolution: AI agents created *by counterintelligence* specifical
 - Provide behavioral signatures for identifying adversary AI patterns
 - Enable "agent-vs-agent" attribution through stylometric analysis
 
-This creates a **recursive deception layer** where adversary AI may be unknowingly running networks of counterintelligence-controlled synthetic assets—inverting the traditional concern about AI-enabled penetration.
+This creates a **recursive deception layer** where adversary AI may be unknowingly running networks of counterintelligence-controlled synthetic assets, inverting the traditional concern about AI-enabled penetration.
 
 **The "Double-Cross" Economic Problem:**
 
@@ -1810,7 +1826,7 @@ If an organization suspects AI agents are scraping its public-facing data or int
 - Communication templates for breach notification
 - Escalation paths with contact verification procedures
 
-**Implication**: Organizations investing only in detection will fail. The assumption should be that some AI-enabled operations will succeed—resilience requires minimizing damage and enabling rapid recovery.
+**Implication**: Organizations investing only in detection will fail. The assumption should be that some AI-enabled operations will succeed, resilience requires minimizing damage and enabling rapid recovery.
 
 ### Precedents and Analogies
 
@@ -1827,7 +1843,7 @@ If an organization suspects AI agents are scraping its public-facing data or int
 ## 13. The Insider Threat 2.0: Stasi-in-a-Box
 ### Internal Surveillance Applications
 
-The document has focused primarily on external recruitment operations. However, AI agents can equally enable *internal* surveillance—automated monitoring of employees for indicators of disloyalty, potential recruitment by adversaries, or policy violations.
+The document has focused primarily on external recruitment operations. However, AI agents can equally enable *internal* surveillance, automated monitoring of employees for indicators of disloyalty, potential recruitment by adversaries, or policy violations.
 
 **Capabilities:**
 - Continuous analysis of communication patterns for anomalies
@@ -1851,7 +1867,7 @@ This capability set creates significant risks:
 
 **For Corporations (Operational Risk Framing):**
 
-*Frame for Risk Committees: These are not merely ethical concerns—they are operational risks to retention, innovation, and legal exposure.*
+*Frame for Risk Committees: These are not merely ethical concerns, they are operational risks to retention, innovation, and legal exposure.*
 
 | Risk Category | Manifestation | Business Impact |
 |--------------|---------------|-----------------|
@@ -1876,7 +1892,7 @@ AI systems analyzing behavioral telemetry can potentially identify "pre-crime" s
 - Social network drift toward external communities
 - Behavioral patterns correlated with historical defection cases
 
-**"Automated Personnel Sanitization"** **[S]**: The risk that organizations (particularly authoritarian states or hyper-paranoid corporations) could use predictive models to preemptively remove personnel flagged as potential future security risks—before any disloyal act occurs.
+**"Automated Personnel Sanitization"** **[S]**: The risk that organizations (particularly authoritarian states or hyper-paranoid corporations) could use predictive models to preemptively remove personnel flagged as potential future security risks, before any disloyal act occurs.
 
 **Implications:**
 - False positives could destroy careers of loyal personnel
@@ -1900,11 +1916,11 @@ AI systems analyzing behavioral telemetry can potentially identify "pre-crime" s
 - **GDPR interaction**: Individual profiling rights (Art. 22) provide additional legal barrier
 - **Penalties**: Fines up to 7% of global turnover for prohibited practices
 
-**Recommendation**: Multinational corporations need a **"Jurisdictional Security Map"** documenting which CI tools can legally be deployed in which regions. A tool that's effective in the US may be illegal in Germany—and deploying it could result in penalties exceeding the value of any intelligence gathered.
+**Recommendation**: Multinational corporations need a **"Jurisdictional Security Map"** documenting which CI tools can legally be deployed in which regions. A tool that's effective in the US may be illegal in Germany, and deploying it could result in penalties exceeding the value of any intelligence gathered.
 
 ### Recursive Loyalty Feedback Loops
 
-**A particularly insidious dynamic**: When personnel *know* they are being monitored for loyalty, they modify their behavior to appear more loyal. The AI then identifies this performative behavior as "suspicious conformity" or "inauthentic enthusiasm"—triggering further scrutiny **[S]**.
+**A particularly insidious dynamic**: When personnel *know* they are being monitored for loyalty, they modify their behavior to appear more loyal. The AI then identifies this performative behavior as "suspicious conformity" or "inauthentic enthusiasm", triggering further scrutiny **[S]**.
 
 **The feedback spiral:**
 1. Organization deploys AI loyalty monitoring
@@ -2059,7 +2075,7 @@ A critical category missing from traditional state-centric analysis: **commercia
 - Risk of accidental Third-Party Rule violations at machine speed
 - Potential fragmentation of established intelligence-sharing relationships (Five Eyes, NATO)
 
-**Policy tension**: The efficiency gains from AI-enabled analysis may come at the cost of allied cooperation—a strategic trade-off with no easy answer.
+**Policy tension**: The efficiency gains from AI-enabled analysis may come at the cost of allied cooperation, a strategic trade-off with no easy answer.
 
 ---
 
@@ -2079,9 +2095,9 @@ As we approach 2030, AI-enabled espionage intersects with quantum computing thre
 
 ### Infrastructure and Edge Espionage
 
-AI agents don't only operate on servers—they increasingly live on **edge devices**:
+AI agents don't only operate on servers, they increasingly live on **edge devices**:
 
-**Smart Home Espionage** **[S]**—Passive Pattern-of-Life collection through compromised IoT devices:
+**Smart Home Espionage** **[S]**, Passive Pattern-of-Life collection through compromised IoT devices:
 
 | Device Category | Intelligence Value |
 |-----------------|-------------------|
@@ -2102,7 +2118,7 @@ AI agents don't only operate on servers—they increasingly live on **edge devic
 
 ### NPU-Enabled Edge Espionage: The Local LLM Threat
 
-*The most dangerous AI agents aren't on a server in Iceland—they're running locally on a compromised executive's laptop.*
+*The most dangerous AI agents aren't on a server in Iceland, they're running locally on a compromised executive's laptop.*
 
 **The 2025-2026 hardware shift** **[O]**: With the proliferation of Neural Processing Units (NPUs) in consumer laptops and smartphones, capable LLMs now run entirely on-device. This fundamentally changes the threat model.
 
@@ -2170,7 +2186,7 @@ AI agents don't only operate on servers—they increasingly live on **edge devic
 | Meeting transcription service | Confidential discussions, strategic decisions, personnel vulnerabilities |
 | "Productivity" browser extension | Browsing patterns, login credentials, document access |
 
-**The "Helpful Agent" Paradox**: The more useful the tool, the more it's trusted with sensitive information. A truly excellent AI assistant that makes users 30% more productive will be granted access to everything—making it the perfect intelligence platform.
+**The "Helpful Agent" Paradox**: The more useful the tool, the more it's trusted with sensitive information. A truly excellent AI assistant that makes users 30% more productive will be granted access to everything, making it the perfect intelligence platform.
 
 **Defensive challenge**: Distinguishing malicious Shadow AI from legitimate (but privacy-concerning) commercial AI tools. Both collect similar data; intent differs.
 
@@ -2232,7 +2248,7 @@ AI agents with access to biometric data can exploit real-time emotional states:
 
 ### The Biometric Vacuum: Real-time Polygraph
 
-**Critical capability expansion**: When RVD (deepfake video) is combined with biometric analysis, the synthetic handler isn't just talking—it's conducting real-time psychological assessment **[S]**.
+**Critical capability expansion**: When RVD (deepfake video) is combined with biometric analysis, the synthetic handler isn't just talking, it's conducting real-time psychological assessment **[S]**.
 
 **The "Biometric Vacuum" during recruitment:**
 | Data Source | Intelligence Derived |
@@ -2247,7 +2263,7 @@ AI agents with access to biometric data can exploit real-time emotional states:
 
 **Operational advantage**: Human handlers must rely on intuition and training; AI handlers have quantified emotional telemetry. The target believes they're having a conversation; they're being psychologically profiled in real-time.
 
-**Implication**: AI handlers can have capabilities exceeding human intuition for reading targets—potentially making AI-mediated recruitment conversations more effective than human ones for certain target profiles.
+**Implication**: AI handlers can have capabilities exceeding human intuition for reading targets, potentially making AI-mediated recruitment conversations more effective than human ones for certain target profiles.
 
 ### Credential-Centric Espionage: The Access Broker Path
 
@@ -2395,6 +2411,7 @@ A critical failure mode: Organizations implement "Bronze" level controls *to pas
 - Intelligence services beginning defensive AI integration, though hampered by workforce contraction **[E]** *(see IC Workforce Contraction above)*
 - Open-weight models within ~3 months of frontier closed models **[O]**
 - IC workforce reductions (NSA -2,000; ODNI -35%; CIA -1,200) reducing detection capacity **[D]** *(ETRA-2026-IC-001)*
+- Mid-2026 frontier advance: the Claude 5 family becomes the deployed frontier above the prior Opus tier (Fable 5 in general availability with cyber/bio safeguards; Mythos 5 released only to vetted partners), with the June 2026 system card assessing the unsafeguarded configuration as capable of significantly uplifting well-resourced threat actors and naming "undermining decisions within major governments" as a risk pathway **[O]**
 
 ### Near-Term: 2026-2027
 
@@ -2451,7 +2468,7 @@ A critical failure mode: Organizations implement "Bronze" level controls *to pas
 
 **Priority 4: Authentication and Verification Infrastructure**
 - Deploy **Semantic Firewalls**: Systems that strip emotional/manipulative tone from incoming digital communications, neutralizing RASCLS-based social engineering
-- Implement **Challenge-Response Protocols** for video calls: "Turn your head 90 degrees and touch your nose"—actions difficult for real-time generative models to render without artifacts
+- Implement **Challenge-Response Protocols** for video calls: "Turn your head 90 degrees and touch your nose", actions difficult for real-time generative models to render without artifacts
 - Consider **Cryptographic Identity Assertions**: Human credentials verified against biometrically-linked physical ledgers for high-security contexts
 - **Human-In-The-Loop (HITL) Notarization**: For high-value instructions, require a second physically verified human to "notarize" digital commands before execution
 - **Linguistic Watermarking**: Mandate that government-used LLMs include statistical watermarks in text generation so leaked documents can trace to specific model instances
@@ -2542,7 +2559,7 @@ A critical failure mode: Organizations implement "Bronze" level controls *to pas
 
 *The "Ghost-in-the-Model" threat extends to the silicon itself.*
 
-**The hardware root of trust problem** **[E]**: If the NPU/GPU is compromised at the foundry level, all software-based defenses—including local AI monitoring—fail. This is particularly relevant for:
+**The hardware root of trust problem** **[E]**: If the NPU/GPU is compromised at the foundry level, all software-based defenses, including local AI monitoring, fail. This is particularly relevant for:
 - Executive devices with access to strategic information
 - Systems processing classified or export-controlled data
 - Personnel in high-risk roles (finance, R&D, cleared positions)
@@ -2617,7 +2634,7 @@ A critical failure mode: Organizations implement "Bronze" level controls *to pas
 - Organizations handling sensitive IP or cleared personnel should target **Silver** within 12 months
 - Critical infrastructure and national security targets should target **Gold**
 - **Measure before you upgrade**: Establish baseline metrics at Bronze before investing in Silver controls
-- Progress is incremental—Bronze enables Silver which enables Gold
+- Progress is incremental, Bronze enables Silver which enables Gold
 
 **The Insurance Driver for Gold Adoption:**
 
@@ -2725,23 +2742,27 @@ A critical failure mode: Organizations implement "Bronze" level controls *to pas
 
 ### Scenario Matrix
 
-| Scenario | Probability (v1.4, Dec 2025) | Probability (v2.0, Feb 2026) | Characteristics |
-|----------|------|------|-----------------|
-| **Offense dominance** | 35% | 40% | AI-enabled operations succeed at scale; counterintelligence overwhelmed |
-| **Equilibrium** | 40% | 35% | Offensive and defensive capabilities roughly balanced; traditional competition continues at higher tempo |
-| **Defense dominance** | 15% | 15% | Defensive AI proves highly effective; AI-enabled operations rarely succeed |
-| **Capability plateau** | 10% | 10% | AI capabilities do not develop as projected; limited transformation |
+| Scenario | Probability (v1.4, Dec 2025) | Probability (v2.0, Feb 2026) | Probability (v2.1, Jul 2026) | Characteristics |
+|----------|------|------|------|-----------------|
+| **Offense dominance** | 35% | 40% | 42% | AI-enabled operations succeed at scale; counterintelligence overwhelmed |
+| **Equilibrium** | 40% | 35% | 33% | Offensive and defensive capabilities roughly balanced; traditional competition continues at higher tempo |
+| **Defense dominance** | 15% | 15% | 15% | Defensive AI proves highly effective; AI-enabled operations rarely succeed |
+| **Capability plateau** | 10% | 10% | 10% | AI capabilities do not develop as projected; limited transformation |
+
+*The four scenarios are intended as a spanning set of outcomes, not a strict probability partition; the columns sum to 100% by construction but should be read as calibrated judgments rather than a formal distribution.*
 
 **v2.0 calibration note**: The shift from Equilibrium toward Offense Dominance reflects two developments since v1.4: (1) IC workforce contraction reduces defensive capacity precisely when threat volume is increasing, and (2) production agentic systems with MCP/computer-use capabilities have matured faster than defensive detection tools. The falsifiability indicators in Section 19 should be monitored to validate or revise this assessment.
+
+**v2.1 calibration note**: The mid-2026 refresh nudges Offense Dominance up by a further two points, drawn from Equilibrium. The June 2026 Fable 5 / Mythos 5 system card assesses the unsafeguarded frontier as capable of significantly uplifting well-resourced threat actors and reports the strongest cyber/exploit results yet, which raises the offensive ceiling. This is only partially offset by the fact that the general-availability configuration ships with cyber and biological safeguards. Net, the offense-favoring near-term signal is marginally stronger than at v2.0, and none of the falsifiability indicators in Section 19 have yet flipped to defense-favoring. This remains a near-term (2026-2028) assessment subject to revision as those indicators are observed.
 
 ---
 
 ## 21. Conclusion
-The handler bottleneck that historically constrained HUMINT operations is being bypassed by AI agents capable of acting as scale-multiplying intermediaries. This transforms the operational logic of espionage from boutique cultivation to probabilistic exploitation—but with important caveats.
+The handler bottleneck that historically constrained HUMINT operations is being bypassed by AI agents capable of acting as scale-multiplying intermediaries. This transforms the operational logic of espionage from boutique cultivation to probabilistic exploitation, but with important caveats.
 
 ### The Centaur, Not the Robot
 
-**Critical insight**: The most dangerous near-term threat is not "AI replaces human spies" but **"Centaur Handlers"**—human case officers augmented by AI agent fleets. A single skilled officer managing 500 AI agents that handle cultivation, communication, and monitoring, stepping in only for "The Pitch" and critical decisions, represents a force multiplication that pure AI cannot achieve.
+**Critical insight**: The most dangerous near-term threat is not "AI replaces human spies" but **"Centaur Handlers"**, human case officers augmented by AI agent fleets. A single skilled officer managing 500 AI agents that handle cultivation, communication, and monitoring, stepping in only for "The Pitch" and critical decisions, represents a force multiplication that pure AI cannot achieve.
 
 This hybrid model:
 - Preserves human judgment for high-stakes decisions
@@ -2752,9 +2773,9 @@ This hybrid model:
 
 The counterintelligence challenge is not detecting "AI spies" but detecting human operations operating at AI scale.
 
-### The Trust Deficit Persists—With Caveats
+### The Trust Deficit Persists, With Caveats
 
-Top-tier strategic assets—senior officials, intelligence officers, individuals whose compromise has existential consequences—will continue requiring human handlers. The physicality gap, the need for shared risk, and the psychological requirements of high-stakes espionage create natural limits to AI applicability.
+Top-tier strategic assets, senior officials, intelligence officers, individuals whose compromise has existential consequences, will continue requiring human handlers. The physicality gap, the need for shared risk, and the psychological requirements of high-stakes espionage create natural limits to AI applicability.
 
 **However**: "Deepfake Paranoia" cuts both ways. Security-conscious targets may become harder to approach digitally, while "Digital-First Assets" (isolated technical specialists, remote workers) may be *more* vulnerable to synthetic handlers than to humans who would require uncomfortable physical meetings.
 
@@ -2764,7 +2785,7 @@ Perhaps the most significant long-term implication is not that AI enables "more 
 
 **For intelligence services**: This represents both opportunity and threat. Offensive capabilities are amplified, but so are those of adversaries. Counterintelligence must adapt not just to detect AI-enabled operations, but to navigate an environment where human and AI actors become increasingly indistinguishable. The limiting factor shifts from "handler availability" to "signal extraction from noise."
 
-**For organizations**: The threat surface expands as AI-enabled targeting becomes accessible to a broader range of actors. Personnel security, OSINT footprint management, and AI-specific awareness training become essential. The "Stasi-in-a-box" risk requires careful attention to the dual-use nature of defensive technologies. Shadow AI—"helpful" productivity tools that are actually intelligence platforms—represents a vector that bypasses recruitment entirely.
+**For organizations**: The threat surface expands as AI-enabled targeting becomes accessible to a broader range of actors. Personnel security, OSINT footprint management, and AI-specific awareness training become essential. The "Stasi-in-a-box" risk requires careful attention to the dual-use nature of defensive technologies. Shadow AI, "helpful" productivity tools that are actually intelligence platforms, represents a vector that bypasses recruitment entirely.
 
 **For policymakers**: The proliferation of intelligence capabilities raises questions about norms, deterrence, and international frameworks that remain largely unaddressed. Jurisdictional challenges created by autonomous AI operating across borders demand fundamental reconceptualization of legal frameworks developed for human espionage. Distinct frameworks may be needed for state actors (diplomatic deterrence), corporate actors (legal liability), and EaaS providers (currently operating in a vacuum).
 
@@ -2772,12 +2793,12 @@ Perhaps the most significant long-term implication is not that AI enables "more 
 
 The transformation is already underway. The question is not whether AI changes espionage, but whether institutions can adapt faster than the threat landscape evolves. In the near term, offense likely holds the advantage. In the longer term, the emergence of a signal-to-noise equilibrium may paradoxically limit the utility of the very capabilities that initially seemed transformative.
 
-The future of espionage isn't just "more spies"—it's Centaur Handlers running AI fleets in a signal-to-noise war where the limiting factor is no longer human bandwidth, but the ability to extract authentic intelligence from an ocean of synthetic noise.
+The future of espionage isn't just "more spies"; it's Centaur Handlers running AI fleets in a signal-to-noise war where the limiting factor is no longer human bandwidth, but the ability to extract authentic intelligence from an ocean of synthetic noise.
 
 ---
 
-*Emerging Technology Risk Assessment*
-*For questions or comments, contact the research team.*
+*Emerging Technology Risk Assessment (independent research)*
+*The author does not provide guidance, consultation, or briefings on the topics covered in this report, and does not accept feature requests or engagement requests. See the projections README and CONTRIBUTING.md.*
 
 ---
 
@@ -2879,6 +2900,7 @@ The future of espionage isn't just "more spies"—it's Centaur Handlers running 
 | *NIST AI Risk Management Framework (AI RMF)* | NIST (January 2023) | Organizational framework for AI governance and supply chain risk |
 | *FBI Internet Crime Complaint Center (IC3) Annual Reports* | FBI (annual) | Documented trends in business email compromise, social engineering, and AI-enabled fraud |
 | *Meta Quarterly Adversarial Threat Report* | Meta (quarterly) | Documented influence operations including Doppelganger campaign details |
+| *System Card: Claude Fable 5 & Claude Mythos 5* | Anthropic (June 2026) | Documents the mid-2026 capability frontier; names "undermining decisions within major governments" as a risk pathway, assesses uplift to well-resourced threat actors, and reports the most capable cyber/exploit evaluations yet |
 | *Model Context Protocol (MCP) Specification* | Anthropic (2025) | Standardized tool-use interface enabling agentic autonomy; foundation for Shadow AI and computer-use agent capabilities |
 | *Computer Use API Documentation* | Anthropic (2025) | Production computer-use agents operating GUIs autonomously; validates persona management and OSINT automation scenarios |
 | *Voice Engine and Real-time API* | OpenAI (2024-2025) | Sub-second voice synthesis enabling phone-based social engineering automation |
@@ -2890,20 +2912,20 @@ The future of espionage isn't just "more spies"—it's Centaur Handlers running 
 
 ### Section 3: Inference Deflation Cost Calculation
 
-**"$0.30-$0.50/day synthetic handler cost"** -- Calculation methodology:
+**"$0.30-$0.50/day synthetic handler cost"**, calculation methodology:
 - **Baseline (early 2024)**: GPT-4-Turbo: ~$10/$30 per 1M input/output tokens
-- **Current (early 2026)**: Claude Haiku 4.5: $1/$5 per 1M tokens; Claude Sonnet 4.6: $3/$15 per 1M tokens
+- **Cheap-tier anchor (mid-2026)**: Claude Haiku 4.5: $1/$5 per 1M tokens, which is the efficient tier a cost-conscious operator would actually run a synthetic handler on. For reference, the mid-2026 frontier is priced far higher (Opus 4.8 at $5/$25; Fable 5 at $10/$50), but the handler workload does not require frontier reasoning, so the cheap-tier anchor is the operationally relevant one.
 - **Usage model**: Synthetic handler with ~10-20 substantive exchanges per day (~2,000-5,000 tokens per exchange)
 - **Daily compute**: ~50,000-100,000 tokens/day at Haiku 4.5 pricing = $0.30-$0.50/day
-- **85-90% reduction**: Calculated from GPT-4-Turbo (early 2024) -> Haiku 4.5 (early 2026) pricing trajectory
-- **Note**: Open-weight local inference (Llama 4, Qwen 3) reduces costs further but requires hardware capital
+- **85-90% reduction**: Calculated from GPT-4-Turbo (early 2024) to Haiku 4.5 (mid-2026) pricing trajectory
+- **Note**: Open-weight local inference (Llama 4, Qwen 3, and later open-weight releases) reduces costs further but requires hardware capital
 
-Sources: Anthropic API pricing (claude.com/pricing, February 2026); OpenAI API pricing; OpenRouter model pricing aggregator.
+Sources: Anthropic API pricing (claude.com/pricing, July 2026); OpenAI API pricing; OpenRouter model pricing aggregator.
 
 ### Section 5: Current Technological Landscape
 
 **"AI agents in early 2026 can maintain coherent personas across extended interactions"**
-- Commercial products (Claude 4.5/4.6, GPT-4o/o3, Gemini 2.5) demonstrate multi-week conversation coherence in documented deployments
+- Commercial products (the Claude 5 family including Fable 5, Opus 4.8, and comparable frontier models from other developers) demonstrate multi-week conversation coherence in documented deployments
 - Production agentic systems with MCP (Model Context Protocol) enable tool use, computer operation, and persistent state management
 - Open-source agent frameworks (AutoGPT, CrewAI, LangGraph) demonstrate multi-step autonomous operations
 - Academic literature documents multi-step task completion with minimal human oversight
@@ -2938,7 +2960,7 @@ Sources: Anthropic API pricing (claude.com/pricing, February 2026); OpenAI API p
 
 ### Additional Notes
 
-For claims marked [E] (Expert judgment) or [S] (Speculative), the research team has documented reasoning in internal memoranda available upon request.
+For claims marked [E] (Expert judgment) or [S] (Speculative), the reasoning is set out inline in the main text at the point each claim is made; these reflect the author's synthesis of the cited public sources rather than any non-public material.
 
 ---
 
@@ -3016,8 +3038,8 @@ Traditional vulnerability research required human analysts to manually review ye
 
 ---
 
-**Document Version**: 2.0
+**Document Version**: 2.1
 
-**Last Updated**: February 2026
+**Last Updated**: July 2026
 
 **Classification**: Policy Research - For Defensive Analysis
