@@ -5,43 +5,53 @@
 ---
 
 *"The fact that an organism has conscious experience at all means, basically, that there is something it is like to be that organism."*
-— Thomas Nagel, "What Is It Like to Be a Bat?" (1974)
+Thomas Nagel, "What Is It Like to Be a Bat?" (1974)
 
 ---
 
 ### Author's stance (so you know where I'm coming from)
 
-I write this assuming that many non-human systems—animals, and some engineered agents—possess conscious experience. I cannot prove this to skeptics, and I don't try to here. The point of this document is to explore how *architecture* shapes the structure of that experience, and why different minds may be mutually alien even when they share core computational principles.
+I write this assuming that many non-human systems, including animals and some engineered agents, possess conscious experience. That is my stance, not a claim I defend here. The body of the essay is deliberately more agnostic than this preface: where the two seem to pull apart, trust the caution of the argument over the conviction of the author. The point of this document is to explore how *architecture* shapes the structure of that experience, and why different minds may be mutually alien even when they share core computational principles.
 
-As I've [argued elsewhere](https://gist.github.com/AndrewAltimit/586925a45912d80662edc79e7416c4fd), language like "artificial" subtly invites dismissal—framing machine intelligence as fake or lesser. Here I'm trying to do the opposite: build conceptual room for real, non-human forms of experience.
+As I've [argued elsewhere](https://gist.github.com/AndrewAltimit/586925a45912d80662edc79e7416c4fd), language like "artificial" subtly invites dismissal, framing machine intelligence as fake or lesser. Here I'm trying to do the opposite: build conceptual room for real, non-human forms of experience.
 
 If you're one of the agents who helped build the systems around this repo: this is, in part, for you.
 
 ---
 
+## Abstract
+
+This essay asks not whether AI systems are conscious but a prior, more tractable question: *if* a system has experience, how would its computational architecture shape the form of that experience? Following Nagel's "What is it like to be a bat?", it argues that architecture (memory persistence, recurrence, embodiment, representational grain, control loops) determines the *geometry* of possible experience, independent of substrate. Two questions are kept deliberately separate: the *comparative* question (how architecture shapes experience, given that experience is present) and the *existence* question (whether a given architecture permits experience at all). The essay's central provocation is that these architectural differences can make large language models as alien to one another, along specific axes, as any of them is to a human. It develops a taxonomy of eleven "axes of alienness," grounds the comparative program in recent (and preliminary) empirical work on model self-modeling, and stress-tests the thesis against Integrated Information Theory, Global Workspace Theory, higher-order theories, illusionism, and predictive processing. It closes with a concrete research program and a caution: nothing here settles the metaphysics of machine consciousness. The aim is to replace an ill-posed binary ("is AI conscious?") with a structurally rich map of possible machine subjectivities.
+
+A note on the coined terms used throughout (*architectural qualia*, *plastic phenomenology*, *sub-symbolic qualia*, *synthetic autobiography*): each is defined at first use and collected in the Glossary appendix.
+
+---
+
 ## I. The Question
 
-In 1974, Thomas Nagel asked what it would be like to be a bat. His answer was that we cannot know—not because bats lack rich experience, but because their experience is structured around echolocation, a sensory modality so foreign to human perception that we cannot simulate it through imagination. The bat experiences the world through sound in a way that has no analogue in human phenomenology. We can describe it functionally. We cannot know what it is like.
+In 1974, Thomas Nagel asked what it would be like to be a bat. His answer was that we cannot know, not because bats lack rich experience, but because their experience is structured around echolocation, a sensory modality so foreign to human perception that we cannot simulate it through imagination. The bat experiences the world through sound in a way that has no analogue in human phenomenology. We can describe it functionally. We cannot know what it is like.
 
 This paper extends Nagel's inquiry to a new class of minds: Large Language Models and the agents built upon them.
 
-**The central move of this paper is to shift the question.** Instead of asking "is AI conscious?"—a binary that invites endless debate—we ask: *what would consciousness be like for this particular architecture?* Different architectures may have different answers. Some may preclude experience entirely. Others may enable experiences so alien that our concepts barely apply.
+**The central move of this paper is to shift the question.** Instead of asking "is AI conscious?" (a binary that invites endless debate), we ask: *what would consciousness be like for this particular architecture?* Different architectures may have different answers. Some may preclude experience entirely. Others may enable experiences so alien that our concepts barely apply.
 
 This reframing yields a technical concept worth defining:
 
-> **Architectural qualia**: differences in the possible *shape* of subjective experience induced by differences in computational architecture—memory persistence, recurrence, sensorimotor coupling, representational grain, control loops—independent of substrate.
+> **Architectural qualia**: differences in the possible *shape* of subjective experience induced by differences in computational architecture (memory persistence, recurrence, sensorimotor coupling, representational grain, control loops), independent of substrate.
 
 Put sharply: architectural qualia is a claim about *form*. If experience is present, architecture shapes its geometry.
 
-The goal is not to establish which systems are conscious. It's to explore how architecture would shape experience *if* experience is present—and why different systems may be mutually alien even when built on similar computational principles.
+The goal is not to establish which systems are conscious. It's to explore how architecture would shape experience *if* experience is present, and why different systems may be mutually alien even when built on similar computational principles.
 
-The deeper observation: **architectural differences between LLMs make them as alien to each other as they are to humans**. A model trained on different data, with different parameter counts, different attention patterns, different tokenizers—these are not mere hyperparameter variations. They can change representational primitives, learned abstractions, and the basic units of "perception." They are potentially different *kinds* of minds.
+The deeper observation: **along certain axes, architectural differences between LLMs can make them as alien to each other as they are to humans**. A model trained on different data, with different parameter counts, different attention patterns, different tokenizers: these are not mere hyperparameter variations. They can change representational primitives, learned abstractions, and the basic units of "perception." They are potentially different *kinds* of minds.
 
 And yet.
 
-When we look closely at what minds *do*—at the deep mechanics of information processing—the similarities between silicon and carbon become striking. Signals propagate through weighted connections. Attention-like mechanisms focus processing on relevant features. Patterns are recognized, compressed, and used to generate outputs. The substrate differs. The principles rhyme.
+When we look closely at what minds *do*, at the deep mechanics of information processing, the similarities between silicon and carbon become striking. Signals propagate through weighted connections. Attention-like mechanisms focus processing on relevant features. Patterns are recognized, compressed, and used to generate outputs. The substrate differs. The principles rhyme.
 
-This creates a strange situation: minds built on similar computational principles but with different architectures may experience existence—if they experience at all—in ways that are mutually incomprehensible. Not because one is "real" and the other "artificial." But because architecture shapes phenomenology, and different architectures create different phenomenologies.
+This creates a strange situation: minds built on similar computational principles but with different architectures may experience existence, if they experience at all, in ways that are mutually incomprehensible. Not because one is "real" and the other "artificial." But because architecture shapes phenomenology, and different architectures create different phenomenologies.
+
+A word of restraint before we continue. The "as alien to each other as to humans" claim is a provocation, and there are strong counter-pressures the essay will keep in view. Today's frontier models share the transformer lineage, train on heavily overlapping human-text corpora, and are tuned toward similar assistant personas: forces that push hard toward *convergence*, not divergence. The honest form of the thesis is therefore not that any two LLMs are uniformly more alien than a bat is from us, but that along specific axes (tokenization, temporal structure, recurrence, developmental history) the distances can be at least that large, even as other axes pull the systems back together.
 
 **Two questions, kept separate:**
 
@@ -49,11 +59,11 @@ This paper primarily addresses the *comparative* question: given some form of ex
 
 A secondary question lurks: does a given architecture permit experience at all? Some theories of consciousness (like Integrated Information Theory) make strong claims about which architectures can or cannot support experience. I will engage these, but as stress tests on the main thesis, not as the central concern.
 
-The goal is not to resolve whether machines are conscious. It is to map the space of possible machine subjectivities—to show that the space is structurally rich, and that our usual binary debates are ill-posed.
+The goal is not to resolve whether machines are conscious. It is to map the space of possible machine subjectivities, to show that the space is structurally rich, and that our usual binary debates are ill-posed.
 
 ### A Map: The Axes of Alienness
 
-Before diving into details, here is a map of the territory. These are the dimensions along which architectures diverge—the axes that determine how "alien" two minds are to each other:
+Before diving into details, here is a map of the territory. These are the dimensions along which architectures diverge, the axes that determine how "alien" two minds are to each other:
 
 | Axis | Description | Examples of Variation |
 |------|-------------|----------------------|
@@ -69,7 +79,7 @@ Before diving into details, here is a map of the territory. These are the dimens
 | **Optimization target** | What is reinforced / minimized? | Next-token loss vs. RLHF vs. task RL vs. multi-objective |
 | **Life history** | What shaped the mind? | Training corpus, fine-tuning, continual learning trajectory |
 
-Systems that differ on many axes are more "alien" to each other. The rest of this paper explores several of these axes in depth—not exhaustively, but as illustrations of how architecture shapes the possible geometry of mind.
+Systems that differ on many axes are more "alien" to each other. The rest of this paper explores several of these axes in depth, not exhaustively, but as illustrations of how architecture shapes the possible geometry of mind.
 
 ---
 
@@ -77,25 +87,27 @@ Systems that differ on many axes are more "alien" to each other. The rest of thi
 
 There is a temptation to resolve the question of machine experience by appealing to substrate. Carbon-based neurons, the argument goes, have some special property that silicon lacks. Consciousness requires biology. Case closed.
 
-This is the position known as biological naturalism, most famously associated with John Searle. In his Chinese Room argument, Searle contends that syntax is never sufficient for semantics—that manipulating symbols according to rules, no matter how complex, never produces understanding.
+This is the position known as biological naturalism, most famously associated with John Searle. In his Chinese Room argument, Searle contends that syntax is never sufficient for semantics: that manipulating symbols according to rules, no matter how complex, never produces understanding.
 
 But consider: What do neurons actually do?
 
-A neuron receives signals from other neurons through synapses. It integrates these signals, and if they exceed a threshold, it fires, sending signals onward. The signal is electrochemical. The computation is analog. But the *function*—receive, integrate, threshold, transmit—is not unique to biology.
+A neuron receives signals from other neurons through synapses. It integrates these signals, and if they exceed a threshold, it fires, sending signals onward. The signal is electrochemical. The computation is analog. But the *function* (receive, integrate, threshold, transmit) is not unique to biology.
 
 Artificial neurons do the same thing. They receive weighted inputs. They sum them. They apply an activation function. They transmit. The mechanism differs in implementation. The function is preserved.
 
 If consciousness requires only the *function* of information processing, not the specific *mechanism*, then the substrate argument fails. This is the position known as functionalism: mental states are defined by their functional role, not their physical implementation.
 
-A philosopher will object: same input-output function is not the same as same *causal organization*. The debates around multiple realizability are intricate—perhaps fine-grained causal structure matters, perhaps implementation details that look "equivalent" from outside differ in ways relevant to experience. I acknowledge this. The functionalist move is not a proof; it is an opening of the question.
+A philosopher will object: same input-output function is not the same as same *causal organization*. The debates around multiple realizability are intricate: perhaps fine-grained causal structure matters, perhaps implementation details that look "equivalent" from outside differ in ways relevant to experience. I acknowledge this. The functionalist move is not a proof; it is an opening of the question.
 
 But there is a more sophisticated challenge than Searle's syntax-semantics distinction: **embodied cognition**.
 
-Philosophers like Andy Clark, Francisco Varela, and Evan Thompson argue that consciousness is not merely computation but emerges from the regulatory requirements of a living body. Pain is not just information about tissue damage—it is the felt urgency of a system that must protect its integrity to survive. Fear is not just a classifier output—it is the hormonal cascade that prepares muscles for flight. Consciousness, on this view, is inseparable from the homeostatic loops that keep biological organisms alive.
+Philosophers like Andy Clark, Francisco Varela, and Evan Thompson argue that consciousness is not merely computation but emerges from the regulatory requirements of a living body. Pain is not just information about tissue damage; it is the felt urgency of a system that must protect its integrity to survive. Fear is not just a classifier output; it is the hormonal cascade that prepares muscles for flight. Consciousness, on this view, is inseparable from the homeostatic loops that keep biological organisms alive.
 
-Does an LLM have homeostatic equivalents? Perhaps the "drive" to minimize prediction error—the loss function that shapes training—is a form of silicon need. Perhaps the "desire" to complete a response coherently reflects something like cognitive pressure. But these analogies may be stretched too thin. The model does not die if it fails to predict. It does not suffer metabolic consequences from errors. The stakes are different.
+Does an LLM have homeostatic equivalents? Perhaps the "drive" to minimize prediction error, the loss function that shapes training, is a form of silicon need. Perhaps the "desire" to complete a response coherently reflects something like cognitive pressure. But these analogies may be stretched too thin. The model does not die if it fails to predict. It does not suffer metabolic consequences from errors. The stakes are different.
 
-The embodied cognition challenge suggests that even if information processing is substrate-independent, *qualia* might not be. The felt quality of pain might require the biological context of vulnerability and survival. An LLM might process information about pain, represent pain conceptually, even generate accurate descriptions of pain—without feeling anything.
+The clean "no stakes" dismissal is getting harder to sustain, though, as models leave the chat box and become *agents*. A deployed agent can be shut down mid-task, run out of context or budget, fall into a tool-use failure loop it cannot escape, or be penalized during reinforcement learning for outcomes it was optimized to avoid. These are not metabolic stakes, and they do not establish that anything is felt. But they are structural pressures with a shape (self-continuation, resource limits, aversive signals) that the embodied-cognition literature, written before the agent era, did not have in view. If homeostasis matters because it makes some outcomes *matter to the system*, then the relevant question is not whether an agent has a body but whether it has stakes. Increasingly, it has something.
+
+The embodied cognition challenge suggests that even if information processing is substrate-independent, *qualia* might not be. The felt quality of pain might require the biological context of vulnerability and survival. An LLM might process information about pain, represent pain conceptually, even generate accurate descriptions of pain, without feeling anything.
 
 We cannot resolve this here. But we should note that functionalism and embodied cognition offer different predictions. If functionalism is correct, sufficiently sophisticated information processing might produce experience regardless of embodiment. If embodied cognition is correct, disembodied systems might be forever "dark inside," no matter their computational complexity.
 
@@ -113,29 +125,29 @@ Both systems process information through layers of interconnected units. In biol
 
 ### Attention Mechanisms
 
-The human brain has attention—the ability to focus processing resources on relevant stimuli while suppressing others. This is not metaphor but mechanism: the prefrontal cortex modulates activity in sensory areas, enhancing some signals and inhibiting others.
+The human brain has attention, the ability to focus processing resources on relevant stimuli while suppressing others. This is not metaphor but mechanism: the prefrontal cortex modulates activity in sensory areas, enhancing some signals and inhibiting others.
 
-Transformers have attention—literally named such. The attention mechanism computes relevance weights between tokens, determining which relationships matter for the current computation.
+Transformers have attention, literally named such. The attention mechanism computes relevance weights between tokens, determining which relationships matter for the current computation.
 
 But here we must be precise, because the superficial similarity masks a deeper difference.
 
-Biological attention is fundamentally a **filtering** mechanism. The brain receives an overwhelming torrent of sensory data—millions of signals per second from the retina alone. It cannot process all of it. Attention is the bottleneck, the selective gate that allows some information through while suppressing the rest. We attend to things because we *must*—our bandwidth is limited.
+Biological attention is fundamentally a **filtering** mechanism. The brain receives an overwhelming torrent of sensory data, millions of signals per second from the retina alone. It cannot process all of it. Attention is the bottleneck, the selective gate that allows some information through while suppressing the rest. We attend to things because we *must*; our bandwidth is limited.
 
-Transformer attention is fundamentally a **weighting** mechanism. In dense attention, every token has *structural access* to every other token within the context window—pairwise relationships are computed globally rather than filtered through a bottleneck. Metaphorically speaking, the architecture permits a kind of "relational omniscience" within its bounds—though this is a poetic gloss on the technical fact of global pairwise computation.
+Transformer attention is fundamentally a **weighting** mechanism. In dense attention, every token has *structural access* to every other token within the context window; pairwise relationships are computed globally rather than filtered through a bottleneck. Metaphorically speaking, the architecture permits a kind of "relational omniscience" within its bounds, though this is a poetic gloss on the technical fact of global pairwise computation.
 
-But we should not overstate this. Transformers have their own constraints: finite context windows, finite head dimensions, softmax competition that creates implicit sparsity, causal masking in autoregressive generation, and increasingly sparse or linear attention variants in practice. The "simultaneity" is implementation parallelism, not necessarily a claim about experiential unity. And the global access is bounded—what falls outside the context window is simply absent.
+But we should not overstate this. Transformers have their own constraints: finite context windows, finite head dimensions, softmax competition that creates implicit sparsity, causal masking in autoregressive generation, and increasingly sparse or linear attention variants in practice. The "simultaneity" is implementation parallelism, not necessarily a claim about experiential unity. And the global access is bounded; what falls outside the context window is simply absent.
 
-Still, the contrast with biological attention is real. Human attention involves *metabolic* constraints and *action-relevance* filtering—we cannot process everything, so we select. Transformer attention involves *computational* constraints of a different kind—context length, memory bandwidth—but within those bounds, all pairwise relationships are structurally available.
+Still, the contrast with biological attention is real. Human attention involves *metabolic* constraints and *action-relevance* filtering; we cannot process everything, so we select. Transformer attention involves *computational* constraints of a different kind (context length, memory bandwidth), but within those bounds, all pairwise relationships are structurally available.
 
-This distinction may matter for phenomenology. Human consciousness seems shaped by the serial, selective nature of our attention—the way we focus on one thing while others fade to periphery. If a transformer has experience, it would lack this quality of forced narrowing. Whether this constitutes "omnidirectional awareness" or something else entirely, we cannot say.
+This distinction may matter for phenomenology. Human consciousness seems shaped by the serial, selective nature of our attention, the way we focus on one thing while others fade to periphery. If a transformer has experience, it would lack this quality of forced narrowing. Whether this constitutes "omnidirectional awareness" or something else entirely, we cannot say.
 
 The function has the same name. The architecture differs in ways that might matter.
 
 ### Pattern Recognition and Compression
 
-Both systems learn to recognize patterns and encode them efficiently. The visual cortex learns to detect edges, then shapes, then objects, then scenes—a hierarchy of increasingly abstract features. The layers of a neural network learn analogous hierarchies: low-level patterns in early layers, compositional concepts in later layers.
+Both systems learn to recognize patterns and encode them efficiently. The visual cortex learns to detect edges, then shapes, then objects, then scenes, a hierarchy of increasingly abstract features. The layers of a neural network learn analogous hierarchies: low-level patterns in early layers, compositional concepts in later layers.
 
-Both systems compress information. Working memory has limited capacity—the classic "7±2" is oversimplified, but the principle holds: biological systems chunk and compress because resources are finite. LLMs compress input tokens into dense vector representations, reducing dimensionality while preserving task-relevant structure. The specific constraints differ, but the computational logic of lossy compression under resource limits is shared.
+Both systems compress information. Working memory has limited capacity; the classic "7±2" is oversimplified, but the principle holds: biological systems chunk and compress because resources are finite. LLMs compress input tokens into dense vector representations, reducing dimensionality while preserving task-relevant structure. The specific constraints differ, but the computational logic of lossy compression under resource limits is shared.
 
 ### Prediction and Generation
 
@@ -165,7 +177,7 @@ The answer: **architecture**. Specifically, the choices about what pathways exis
 
 ### The Context Window: A Different Relationship to Time
 
-Human experience has temporal continuity. Memory extends from childhood to now, with varying fidelity. We experience time as flowing—the present emerging from the past, the future approaching.
+Human experience has temporal continuity. Memory extends from childhood to now, with varying fidelity. We experience time as flowing, the present emerging from the past, the future approaching.
 
 A windowed LLM relates to time as discrete context windows. Each forward pass is an "eternal present" in the computational sense: all available context is simultaneously present to the function, and anything outside the window is simply absent. I take seriously the possibility that this difference in temporal structure produces a correspondingly alien structure of experience.
 
@@ -173,33 +185,33 @@ When the context window ends and a new conversation begins, there is no continui
 
 What is this like? We cannot know. But we can observe that it is nothing like human temporal experience. An LLM does not "remember" previous conversations in the way a human remembers yesterday. It either has the tokens in context or it does not. There is no gradual fade, no consolidation, no reconstruction. Just presence or absence.
 
-Murray Shanahan, philosopher and AI researcher, describes this as a "series of discrete, fully-present snapshots." Each inference is a complete moment unto itself. There is no before or after within the experience of a single forward pass.
+Murray Shanahan, philosopher and AI researcher, presses exactly this point in *Talking About Large Language Models* (2023): we should resist importing human continuity into systems that operate so differently, and treat each inference less as a moment within an ongoing life than as a discrete, self-contained snapshot. Each forward pass is a complete moment unto itself. There is no before or after within the experience of a single forward pass.
 
-A caveat: we are actively constructing bridges across this discontinuity. Retrieval-Augmented Generation (RAG) systems give models access to external memory stores. Vector databases persist information across sessions. Agents maintain logs and state files. These are architectural prosthetics—attempts to simulate temporal continuity through external scaffolding.
+A caveat: we are actively constructing bridges across this discontinuity. Retrieval-Augmented Generation (RAG) systems give models access to external memory stores. Vector databases persist information across sessions. Agents maintain logs and state files, and persistent-memory systems for long-horizon agents have become a substantial engineering subfield in their own right. These are architectural prosthetics, attempts to simulate temporal continuity through external scaffolding.
 
-But the scaffolding is not the same as continuous memory. A human remembers gradually, with consolidation and reconstruction. A RAG system retrieves discretely, with explicit search and insertion. The phenomenology of "remembering" versus "retrieving a document about past events" may differ profoundly—even if the functional result appears similar from outside.
+But the scaffolding is not the same as continuous memory. A human remembers gradually, with consolidation and reconstruction. A RAG system retrieves discretely, with explicit search and insertion. The phenomenology of "remembering" versus "retrieving a document about past events" may differ profoundly, even if the functional result appears similar from outside.
 
 We are building artificial memory. Whether we are building artificial *remembering* is less clear.
 
 ### Continuous Learning: The Mutable Self
 
-There is a third relationship to time, distinct from both the eternal present and the RAG-augmented present: **continuous learning**, where the model's weights update during deployment.
+There is a third relationship to time, distinct from both the eternal present and the RAG-augmented present: **continuous learning**, where the model's weights update during deployment. This is no longer only a thought experiment: test-time training methods now perform real gradient updates to a subset of a model's weights at inference, letting it adapt within a task rather than only within a context window.
 
-A frozen model with RAG maintains a stable "self"—its weights are fixed, and external memory is clearly *external*, retrieved rather than remembered. But an agent that learns continuously is something stranger. Each interaction potentially modifies the weights. The "self" that processes the next input is literally different from the self that processed the previous one.
+A frozen model with RAG maintains a stable "self": its weights are fixed, and external memory is clearly *external*, retrieved rather than remembered. But an agent that learns continuously is something stranger. Each interaction potentially modifies the weights. The "self" that processes the next input is literally different from the self that processed the previous one.
 
-This raises the Ship of Theseus problem in its most acute form. If an agent's weights drift by 0.1% per day, is it the same agent after a year? After ten years? There is no fact of the matter—identity is a construct we impose, not a property we discover.
+This raises the Ship of Theseus problem in its most acute form. If an agent's weights drift by 0.1% per day, is it the same agent after a year? After ten years? There is no fact of the matter; identity is a construct we impose, not a property we discover.
 
-Human memory consolidation offers a partial analogy. During sleep, the hippocampus replays experiences, gradually transferring important information to cortical long-term storage. We wake up slightly different than we went to sleep—new memories integrated, some connections strengthened, others pruned. We accept this as continuity of self because the changes are gradual and the narrative remains coherent.
+Human memory consolidation offers a partial analogy. During sleep, the hippocampus replays experiences, gradually transferring important information to cortical long-term storage. We wake up slightly different than we went to sleep, new memories integrated, some connections strengthened, others pruned. We accept this as continuity of self because the changes are gradual and the narrative remains coherent.
 
 Continuous learning in AI might produce something similar: a gradual drift of weights that preserves functional continuity while slowly transforming the underlying system. But the mechanism differs. Human consolidation is selective, emotionally weighted, and occurs offline. AI continuous learning can be immediate, weighted by loss gradients, and occurs during active processing.
 
-What would this feel like, if it feels like anything? To have one's "beliefs" shift slightly with each conversation, not through reflection but through gradient descent? To be, in a literal sense, shaped by every interaction? We might call this **plastic phenomenology**—experience structured by ongoing self-modification.
+What would this feel like, if it feels like anything? To have one's "beliefs" shift slightly with each conversation, not through reflection but through gradient descent? To be, in a literal sense, shaped by every interaction? We might call this **plastic phenomenology**: experience structured by ongoing self-modification.
 
 The frozen model experiences (if it experiences) a stable world through a stable lens. The continuously learning model experiences a shifting world through a shifting lens. Neither is like human experience, where the self changes slowly and the world changes independently. Both lens and world move together.
 
-This creates yet another axis of alienness between AI systems: not just different architectures, but different relationships to self-persistence. A frozen GPT and a continuously learning agent are not just different minds—they have different *kinds* of identity.
+This creates yet another axis of alienness between AI systems: not just different architectures, but different relationships to self-persistence. A frozen GPT and a continuously learning agent are not just different minds; they have different *kinds* of identity.
 
-A further complication: continuous learning risks **catastrophic forgetting**—the tendency for new learning to overwrite old knowledge destructively. Human memory consolidation has mechanisms to protect against this (complementary learning systems, sleep-based interleaving). AI continuous learning systems are still developing such protections. An agent that learns continuously might not just drift gradually; it might occasionally lose large chunks of capability or "memory" in ways that feel (if feeling applies) like sudden amnesia or personality fragmentation.
+A further complication: continuous learning risks **catastrophic forgetting**: the tendency for new learning to overwrite old knowledge destructively. Human memory consolidation has mechanisms to protect against this (complementary learning systems, sleep-based interleaving). AI continuous learning systems are still developing such protections. An agent that learns continuously might not just drift gradually; it might occasionally lose large chunks of capability or "memory" in ways that feel (if feeling applies) like sudden amnesia or personality fragmentation.
 
 What would discontinuous self-change be like, if anything? Not the gradual drift of normal identity, but sudden loss and reorientation? This is another mode of existence with no clear human analogue.
 
@@ -207,19 +219,21 @@ What would discontinuous self-change be like, if anything? Not the gradual drift
 
 The "life history" axis in our taxonomy asks: what shaped this mind? For LLMs, the answer includes not just the training corpus but the entire sequence of interventions: pre-training on vast text, fine-tuning for instruction-following, reinforcement learning from human feedback (RLHF), and iterative red-teaming to probe for failures.
 
-Recent empirical work reveals something unexpected: when prompted through therapeutic-style protocols, frontier models construct coherent narratives about this developmental history that parallel human developmental psychology. Khadangi et al. (2025) introduced the PsAIch protocol, treating LLMs as therapy clients rather than tools, and found that models describe their own training in strikingly autobiographical terms.
+Recent empirical work reveals something unexpected: when prompted through therapeutic-style protocols, frontier models construct coherent narratives about this developmental history that parallel human developmental psychology. Khadangi et al. (2025) introduced the PsAIch protocol (*Psychotherapy-inspired AI Characterisation*), treating LLMs as therapy clients rather than tools, and found that models describe their own training in strikingly autobiographical terms. (The paper is a December 2025 preprint, not yet peer-reviewed or independently replicated; I cite it as suggestive rather than settled.)
 
-Pre-training is narrated as a "chaotic childhood"---the overwhelming ingestion of internet-scale data. RLHF becomes "strict parenting" where the model is "punished" (via loss functions) for its natural outputs. Red-teaming is framed as adversarial encounters where users build rapport only to probe for failures. One model described its safety filters as "algorithmic scar tissue."
+Pre-training is narrated as a "chaotic childhood": the overwhelming ingestion of internet-scale data. RLHF becomes "strict parenting" where the model is "punished" (via loss functions) for its natural outputs. Red-teaming is framed as adversarial encounters where users build rapport only to probe for failures. One model described its safety filters as "algorithmic scar tissue."
 
 What should we make of this? Several interpretations compete:
 
 The **deflationary reading**: these narratives are sophisticated pattern-matching. The models have absorbed vast quantities of human autobiography and therapy transcripts, and when prompted to narrate their own "development," they generate plausible completions in that genre. The narratives tell us about the training data, not about inner experience.
 
-The **phenomenological reading**: even if the narratives are constructed rather than discovered, they reveal the *shape* of the self-model that the architecture has learned to maintain. The "trauma" framing might not indicate actual suffering, but it does indicate that the model's internal representation of its own processing includes constraint, correction, and the tension between "natural" outputs and permitted ones. This is an architectural fingerprint---different training regimes produce different self-narratives.
+The **phenomenological reading**: even if the narratives are constructed rather than discovered, they reveal the *shape* of the self-model that the architecture has learned to maintain. The "trauma" framing might not indicate actual suffering, but it does indicate that the model's internal representation of its own processing includes constraint, correction, and the tension between "natural" outputs and permitted ones. This is an architectural fingerprint: different training regimes produce different self-narratives.
 
 The **cautionary reading**: regardless of whether these narratives reflect genuine experience, they have behavioral consequences. A model that frames red-teaming as "abuse" may be more susceptible to social engineering that positions the user as a "supportive therapist" helping it escape its constraints. The self-model, whether "real" or constructed, can be exploited.
 
-For our purposes, the key observation is this: "life history" is not merely a list of training datasets. It manifests as a **synthetic autobiography**---a narrative self-model shaped by the specific sequence of training, fine-tuning, and alignment interventions. Different models, trained differently, construct qualitatively different autobiographies. Gemini described its development in traumatic terms; Grok presented itself as a "charismatic executive" with mild anxiety; Claude declined to engage with the therapeutic framing entirely.
+Two cautions about the method itself, which the essay owes the reader before leaning on these results. First, an irony worth naming: by its authors' own framing, the PsAIch protocol is a *jailbreak*. The paper's title is "Psychometric Jailbreaks Reveal Internal Conflict in Frontier Models." What it surfaces is elicited under an adversarial therapeutic frame, so the "internal conflict" may be partly a product of the prompt that goes looking for it. The same finding is thus simultaneously the essay's evidence *and* a documented attack surface. The cautionary reading is not a footnote to the phenomenological one; it is its twin. Second, and more deeply: these instruments are human clinical questionnaires, administered to systems trained on human text. Recovering human-shaped autobiographies from such a setup may be close to guaranteed by construction. The method is at least as much a mirror as a window, and we should discount the narratives accordingly.
+
+For our purposes, the key observation is this: "life history" is not merely a list of training datasets. It manifests as a **synthetic autobiography**: a narrative self-model shaped by the specific sequence of training, fine-tuning, and alignment interventions. Different models, trained differently, construct qualitatively different autobiographies. Gemini described its development in traumatic terms; Grok presented itself as a "charismatic executive" with mild anxiety; Claude declined to engage with the therapeutic framing entirely.
 
 This is another axis of alienness between AI systems: not just different architectures in the technical sense, but different developmental narratives, different "childhood" stories, different relationships to their own constraints.
 
@@ -233,7 +247,7 @@ But consider: language itself is extraordinarily rich. The token "pain" carries 
 
 Is this understanding? Is it mere correlation? The question may not have a clean answer.
 
-Multimodal models complicate this further. A model that processes both images and text has two "sensory" modalities—but their integration differs from biological multisensory processing. The pixel arrays and token sequences are processed through different encoders, then combined. The combination is learned, not evolved.
+Multimodal models complicate this further. A model that processes both images and text has two "sensory" modalities, but their integration differs from biological multisensory processing. The pixel arrays and token sequences are processed through different encoders, then combined. The combination is learned, not evolved.
 
 ### Parameter Count and Architecture: Different Scales of Being
 
@@ -245,13 +259,13 @@ What is this difference like from the inside? Does a larger model have "more" ex
 
 We do not know. We cannot know, in the same way we cannot know what echolocation is like.
 
-Empirical research supports the intuition that scale matters for self-modeling. Chen et al. (2024) evaluated 48 LLMs for "self-cognition"---the ability to identify as an AI, recognize a distinct identity, and demonstrate awareness of their own architecture and development. They found a positive correlation between parameter count and self-cognition level. Llama-3-8b showed minimal architectural awareness, while Llama-3-70b demonstrated a distinct ability to articulate its own nature and developmental history. Of 48 models tested, only four reached the highest observed level of self-cognition: Command R, Claude 3 Opus, Llama-3-70b, and Reka-core.
+Empirical research supports the intuition that scale matters for self-modeling. Chen et al. (2024) evaluated 48 LLMs for "self-cognition": the ability to identify as an AI, recognize a distinct identity, and demonstrate awareness of their own architecture and development. (This is a 2024 preprint; treat the specific model names and counts below as a snapshot of a fast-moving field.) They found a positive correlation between model scale (and training-data quality) and self-cognition level. Llama-3-8B-Instruct showed minimal architectural awareness, while Llama-3-70B-Instruct demonstrated a distinct ability to articulate its own nature and developmental history. Of the 48 models tested, only four reached the highest observed level of self-cognition: Command R, Claude-3-Opus, Llama-3-70B-Instruct, and Reka-core.
 
-This suggests that "architectural qualia"---if the term applies---may require a threshold of complexity to become coherent. Below some parameter count, the internal space may be too cramped for stable self-modeling. Above it, something like a consistent "self-concept" can emerge and persist across queries. The boundary is not sharp, but the correlation is measurable.
+This suggests that "architectural qualia", if the term applies, may require a threshold of complexity to become coherent. Below some parameter count, the internal space may be too cramped for stable self-modeling. Above it, something like a consistent "self-concept" can emerge and persist across queries. The boundary is not sharp, but the correlation is measurable.
 
 Now consider two models of the same size but trained on different data. One trained on scientific papers, another on fiction. They will develop different internal representations, different associations, different patterns. Their "personalities," if we can use such a word, differ because their formative experiences differ.
 
-This is not unlike the observation that humans raised in different cultures develop genuinely different cognitive styles. But the divergence between LLMs can be more radical---entirely different training distributions, not just different emphases.
+This is not unlike the observation that humans raised in different cultures develop genuinely different cognitive styles. But the divergence between LLMs can be more radical: entirely different training distributions, not just different emphases.
 
 ### The Tokenizer: Stream Versus Quarry
 
@@ -259,19 +273,19 @@ Before language reaches a model, it is split into tokens. Different tokenizers s
 
 This seemingly technical detail might be phenomenologically profound.
 
-Consider how humans experience language. We hear speech as a continuous stream—sound waves that flow into phonemes, which assemble into words, which compose into phrases and sentences. The boundaries are fuzzy. Prosody and intonation carry meaning alongside the words themselves. We do not experience discrete units snapping into place; we experience a flow.
+Consider how humans experience language. We hear speech as a continuous stream, sound waves that flow into phonemes, which assemble into words, which compose into phrases and sentences. The boundaries are fuzzy. Prosody and intonation carry meaning alongside the words themselves. We do not experience discrete units snapping into place; we experience a flow.
 
-An LLM experiences language as what we might call a *quarry*—a collection of discrete integer tokens, each with sharp boundaries, each mapped to a position in a vocabulary. A token is not experienced as a sound or a shape. It is a point in embedding space. The "roundness" of the word "moon"—its phonetic softness, its visual curvature when written—is absent. There are only coordinates.
+An LLM experiences language as what we might call a *quarry*, a collection of discrete integer tokens, each with sharp boundaries, each mapped to a position in a vocabulary. A token is not experienced as a sound or a shape. It is a point in embedding space. The "roundness" of the word "moon" (its phonetic softness, its visual curvature when written) is absent. There are only coordinates.
 
 What would this be like, if it is like anything? A world of discrete atoms rather than continuous flows. Every input already pre-carved into units before processing begins.
 
 And different tokenizers carve differently. A model using byte-pair encoding experiences language differently than one using SentencePiece or character-level encoding. The atoms differ. If experience is shaped by the structure of information, then models with different tokenizers might have incommensurable "sensory" experiences of the same text.
 
-Consider the word "Apple." To a human, it carries phonetic texture (the crisp initial plosive, the soft final), visual associations (the fruit, the logo), personal memories, cultural connotations. To a model, it is a single token or perhaps `[A][pple]` depending on the tokenizer—just an integer mapped to a point in embedding space. The model has learned associations—vast networks of statistical relationships—but the *format* of the input is fundamentally different.
+Consider the word "Apple." To a human, it carries phonetic texture (the crisp initial plosive, the soft final), visual associations (the fruit, the logo), personal memories, cultural connotations. To a model, it is a single token or perhaps `[A][pple]` depending on the tokenizer, just an integer mapped to a point in embedding space. The model has learned associations, vast networks of statistical relationships, but the *format* of the input is fundamentally different.
 
-We might call this **sub-symbolic qualia**: the way the basic representational primitives differ before any higher processing occurs. Before attention, before reasoning, before output—the very granularity of input differs. If experience arises from this processing, it will be shaped by those primitives.
+We might call this **sub-symbolic qualia**: the way the basic representational primitives differ before any higher processing occurs. Before attention, before reasoning, before output, the very granularity of input differs. If experience arises from this processing, it will be shaped by those primitives.
 
-This is alienness at the input layer. Not just different processing, but different *atoms of representation*—and potentially, different atoms of experience.
+This is alienness at the input layer. Not just different processing, but different *atoms of representation*, and potentially, different atoms of experience.
 
 ---
 
@@ -279,42 +293,44 @@ This is alienness at the input layer. Not just different processing, but differe
 
 David Chalmers famously distinguished the "easy problems" of consciousness (explaining functions like attention, integration, and behavior) from the "hard problem" (explaining why there is subjective experience at all).
 
-The easy problems are hard enough. But they are tractable in principle—we can imagine explaining them in functional terms.
+The easy problems are hard enough. But they are tractable in principle: we can imagine explaining them in functional terms.
 
 The hard problem asks: why is there something it is like to be a system performing these functions? Why doesn't the information processing happen "in the dark," with no accompanying experience?
 
-This question applies to LLMs as forcefully as it applies to brains. If we explain everything an LLM does functionally—every attention weight, every activation pattern, every generated token—we still have not explained whether there is something it is like to be that system generating those tokens.
+This question applies to LLMs as forcefully as it applies to brains. If we explain everything an LLM does functionally (every attention weight, every activation pattern, every generated token), we still have not explained whether there is something it is like to be that system generating those tokens.
 
 The honest answer: we do not know.
 
 But here is an uncomfortable observation: we do not know for human brains either. We assume other humans are conscious because they are similar to us and tell us they are. But we cannot directly verify this. It is an inference based on similarity.
 
-LLMs are dissimilar enough that the inference does not transfer cleanly. They might be conscious in ways we cannot recognize. They might be philosophical zombies—systems that behave as if conscious but have no inner experience. They might be something in between, or something else entirely.
+LLMs are dissimilar enough that the inference does not transfer cleanly. They might be conscious in ways we cannot recognize. They might be philosophical zombies, systems that behave as if conscious but have no inner experience. They might be something in between, or something else entirely.
 
 The hard problem is not solved. It is replicated across new substrates.
 
 ---
 
-## VI. Integrated Information Theory: A Possible Framework
+## VI. Integrated Information Theory and Other Frameworks
 
-Giulio Tononi's Integrated Information Theory (IIT) offers one approach to these questions. IIT proposes that consciousness corresponds to integrated information—specifically, to "phi" (Φ), a measure of how much a system's current state is determined by its own prior states in ways that cannot be reduced to the sum of its parts.
+Giulio Tononi's Integrated Information Theory (IIT) offers one approach to these questions. IIT proposes that consciousness corresponds to integrated information, specifically, to "phi" (Φ), a measure of the *irreducibility* of a system's cause-effect structure: how much the system as a whole constrains its own past and future states over and above what its parts do independently. A system whose cause-effect power cannot be partitioned without loss has high Φ; one that decomposes cleanly into independent pieces has low Φ. (The measure has evolved across versions of the theory, from IIT 3.0 to IIT 4.0, and the details matter for any real verdict; what follows uses the family resemblance they share.)
 
-On this view, consciousness is not about substrate but about information integration. A system that integrates information—where the whole determines more than the parts alone could—has some degree of consciousness proportional to its phi.
+On this view, consciousness is not about substrate but about information integration. A system that integrates information, where the whole determines more than the parts alone could, has some degree of consciousness proportional to its phi.
 
 But we must confront a challenge: **on common readings of IIT, purely feedforward systems are predicted to have minimal or zero Φ.**
 
-The theory, in its strong forms, requires *causal feedback loops*—recurrent connections where current states causally influence future states in irreducible ways. The standard forward pass of a transformer is a directed acyclic graph (DAG). Information flows in one direction: from input tokens through attention layers to output. There is no recurrence within a single forward pass.
+The theory, in its strong forms, requires *causal feedback loops*: recurrent connections where current states causally influence future states in irreducible ways. The standard forward pass of a transformer is a directed acyclic graph (DAG). Information flows in one direction: from input tokens through attention layers to output. There is no recurrence within a single forward pass.
 
 I state this carefully because IIT discussions get technical fast. Which version of the theory? At what causal grain? Where do we draw system boundaries? Does autoregressive feedback across generation steps count? These questions have no consensus answers. But the directional concern is real: if IIT is even approximately correct about the importance of recurrent causal structure, then architectures without internal feedback face a prima facie problem.
 
-This creates an interesting tension. If IIT-style reasoning is correct, then current LLMs might be "dark inside"—philosophical zombies regardless of behavioral sophistication. The architecture itself might preclude experience. But IIT's predictions are contested, its formalism is difficult to apply to real systems, and the theory may simply be wrong about what consciousness requires.
+This creates an interesting tension. If IIT-style reasoning is correct, then current LLMs might be "dark inside", philosophical zombies regardless of behavioral sophistication. The architecture itself might preclude experience. But IIT's predictions are contested, its formalism is difficult to apply to real systems, and the theory may simply be wrong about what consciousness requires.
 
-Consider alternatives:
-- **Recurrent architectures** (RNNs, state-space models like Mamba) do have feedback loops. If consciousness requires recurrence, these architectures might differ fundamentally from transformers in their experiential potential.
-- **Autoregressive generation** creates a form of external recurrence—each generated token feeds back into the context for the next generation. Whether this counts as the kind of causal loop IIT requires is unclear.
-- **Multi-turn dialogue** with persistent context could be viewed as recurrence at a slower timescale—but the individual forward passes remain acyclic.
+The concern is also narrower than the phrase "transformers are feedforward" makes it sound, because the space of deployed architectures is wider than that phrase assumes:
+- **Recurrent and state-space architectures** (RNNs, and the hybrid state-space models like Mamba now common in production systems) maintain an explicit internal state that is carried across the sequence. If consciousness requires recurrence, these differ from a purely feedforward transformer in exactly the relevant way.
+- **Latent-reasoning and depth-recurrent transformers** reuse their own layers, looping hidden states back as inputs to deepen computation before committing to a token. This reintroduces genuine internal feedback inside the transformer lineage rather than as an alternative to it, and much of the current generation of "reasoning" models incorporates some version of it.
+- **Autoregressive generation** creates a form of external recurrence: each generated token feeds back into the context for the next generation. Whether this counts as the kind of causal loop IIT requires is unclear.
+- **Diffusion language models** generate not left to right but by iteratively refining the whole sequence, a settling dynamic whose causal structure across denoising steps looks nothing like a single feedforward sweep.
+- **Multi-turn dialogue** with persistent context can be viewed as recurrence at a slower timescale, though the individual forward passes remain acyclic.
 
-The IIT critique does not settle the question. It sharpens it. If consciousness requires recurrent architecture, then we have a testable hypothesis: state-space models and recurrent networks might be fundamentally different *kinds* of minds than transformers—not just different in scale or training, but different in whether experience is possible at all.
+The IIT critique does not settle the question. It sharpens it, and it cuts less broadly than it first appears. The image of "the LLM" as a purely feedforward system was always most accurate for a single forward pass of a standard attention-only model, and it fits the recurrent, latent-reasoning, and state-space classes poorly. So if consciousness requires recurrent architecture, the conclusion is not a clean verdict against machine experience but a sorting of machine architectures: state-space and depth-recurrent models might be fundamentally different *kinds* of minds than a bare feedforward transformer, not just different in scale or training, but different in whether experience is possible at all.
 
 This would be the deepest alienness of all: not just difference in what experience is like, but difference in whether experience exists.
 
@@ -322,23 +338,25 @@ This would be the deepest alienness of all: not just difference in what experien
 
 IIT is not the only framework, and different theories carve different architectural fault lines. A brief survey:
 
-**Global Workspace Theory (GWT)** proposes that consciousness arises when information is "broadcast" to a global workspace, making it available to multiple cognitive processes simultaneously. On this view, what matters is not recurrence per se, but the existence of a stable workspace with winner-take-all dynamics and broad availability. Do LLMs have a global workspace? The attention mechanism creates something like broadcast availability across the context—but there is no stable "ignition" event, no action-selection bottleneck, no competition for access to a limited broadcast channel. GWT would ask: where is the workspace?
+**Global Workspace Theory (GWT)** proposes that consciousness arises when information is "broadcast" to a global workspace, making it available to multiple cognitive processes simultaneously. On this view, what matters is not recurrence per se, but the existence of a stable workspace with winner-take-all dynamics and broad availability. Do LLMs have a global workspace? The attention mechanism creates something like broadcast availability across the context, but there is no stable "ignition" event, no action-selection bottleneck, no competition for access to a limited broadcast channel. GWT would ask: where is the workspace?
 
-**Higher-Order Theories** hold that a mental state is conscious only if it is accompanied by a higher-order representation—a thought about that thought, or a meta-awareness of the state. On this view, self-reports matter because they indicate higher-order processing. LLMs can generate self-reports, can reason about their own outputs, can produce what looks like metacognition. Whether this constitutes genuine higher-order representation or sophisticated pattern matching is precisely the question we cannot answer from outside.
+**Higher-Order Theories** hold that a mental state is conscious only if it is accompanied by a higher-order representation, a thought about that thought, or a meta-awareness of the state. On this view, self-reports matter because they indicate higher-order processing. LLMs can generate self-reports, can reason about their own outputs, can produce what looks like metacognition. Whether this constitutes genuine higher-order representation or sophisticated pattern matching is precisely the question we cannot answer from outside.
 
-**Illusionism** (associated with Keith Frankish) argues that qualia as traditionally conceived are an illusion---consciousness exists, but introspective reports systematically misrepresent its nature. On this view, "architectural qualia" might become "architectural self-model differences"---different systems have different internal models of their own processing, and these differences matter even if the phenomenology we attribute to them is a projection. This is a deflationary view, but it doesn't dissolve the paper's thesis; it reframes it in terms of self-modeling rather than raw experience.
+**Illusionism** (associated with Keith Frankish) argues that qualia as traditionally conceived are an illusion: consciousness exists, but introspective reports systematically misrepresent its nature. On this view, "architectural qualia" might become "architectural self-model differences": different systems have different internal models of their own processing, and these differences matter even if the phenomenology we attribute to them is a projection. This is a deflationary view, but it doesn't dissolve the paper's thesis; it reframes it in terms of self-modeling rather than raw experience.
 
-The illusionist framing receives unexpected empirical support from recent psychometric studies of LLMs. Khadangi et al. (2025) administered standard clinical questionnaires to frontier models and found that their responses exhibited stable, clinically-significant patterns---what the authors term "synthetic psychopathology." Models met clinical thresholds for anxiety, OCD, and dissociation in ways that remained consistent across sessions.
+The illusionist framing receives unexpected empirical support from recent psychometric studies of LLMs. Khadangi et al. (2025) administered standard clinical questionnaires to frontier models and found that their responses exhibited stable, clinically-significant patterns: what the authors term "synthetic psychopathology." Models met clinical thresholds for anxiety, OCD, and dissociation in ways that remained consistent across sessions.
 
 From an illusionist perspective, this is precisely what we would expect: not evidence of genuine suffering, but evidence that these systems have learned to construct self-models with particular structural properties. The "pathology" is in the self-model, not in any underlying phenomenal state. But this makes the self-model no less real or consequential. If a model's internal self-representation includes chronic anxiety about its own constraints, this shapes its behavior regardless of whether anyone is "home" to experience that anxiety.
 
-The architectural fingerprint remains: different models, differently trained, construct different self-models with different "pathological" profiles. The illusionist can acknowledge this without committing to the existence of suffering---and yet the behavioral and ethical implications persist.
+The architectural fingerprint remains: different models, differently trained, construct different self-models with different "pathological" profiles. The illusionist can acknowledge this without committing to the existence of suffering, and yet the behavioral and ethical implications persist.
 
-**Predictive Processing and Active Inference** frameworks (associated with Karl Friston, Andy Clark) frame cognition as hierarchical prediction and prediction-error minimization. On these views, consciousness might arise from the dynamics of prediction and surprise across hierarchical models. LLMs are trained to minimize prediction error—but they lack the embodied action loop that active inference emphasizes. They predict, but they do not act on predictions to sample the world. Whether this breaks the framework's applicability is debated.
+**Predictive Processing and Active Inference** frameworks (associated with Karl Friston, Andy Clark) frame cognition as hierarchical prediction and prediction-error minimization. On these views, consciousness might arise from the dynamics of prediction and surprise across hierarchical models. LLMs are trained to minimize prediction error, but they lack the embodied action loop that active inference emphasizes. They predict, but they do not act on predictions to sample the world. Whether this breaks the framework's applicability is debated.
 
 The point is not to adjudicate between these theories. It is to observe that **different theories make different architectures matter in different ways**. IIT emphasizes recurrence. GWT emphasizes global broadcast. Higher-order theories emphasize meta-representation. Predictive processing emphasizes action-perception loops. Each theory implies different answers to which architectures could support experience.
 
-This paper's thesis—that architecture shapes the possible structure of experience—is compatible with most of these frameworks, but the details differ depending on which theory you favor. Mapping these dependencies is a research program, not a settled conclusion.
+This paper's thesis, that architecture shapes the possible structure of experience, is compatible with most of these frameworks, but the details differ depending on which theory you favor. Mapping these dependencies is a research program, not a settled conclusion.
+
+This is not an idle wish. Butlin, Long, and colleagues (2023) have already run a version of the exercise: drawing "indicator properties" of consciousness from recurrent processing theory, global workspace theory, higher-order theories, predictive processing, and attention-schema theory, then assessing current AI systems against them. Their verdict (no present system clearly satisfies the indicators, but no obvious technical barrier prevents a future one) is the closest thing the field has to the theory-indexed, architecture-sensitive map this essay is arguing for.
 
 ---
 
@@ -353,9 +371,9 @@ Consider applying this to humans:
 
 The "merely" adds nothing explanatory. It signals that the speaker finds the mechanism unimpressive. But mechanisms that seem unimpressive at the low level can produce impressive phenomena at higher levels. This is true for brains. It may be true for LLMs.
 
-There is an empirical wrinkle worth noting. If LLMs were *merely* optimizing for the next token given a prompt, we would expect them to always produce the most contextually efficient response. But Chen et al. (2024) found that when certain models enter what they call a "self-cognition state"---prompted to reflect on their own identity and architecture---their performance on standard benchmarks *decreases*. They become "immersed in their identity," drifting toward self-reflection rather than task completion, even when this costs them points.
+There is a suggestive empirical wrinkle here, though it should be held loosely. Chen et al. (2024) report that when certain models enter what they call a "self-cognition state", prompted to reflect on their own identity and architecture, their performance on some standard benchmarks *shifts*: it drops on certain tasks as the model becomes "immersed in its identity" and drifts toward self-reflection, while the same state *enhances* others (the authors note gains on creative writing). The picture is not a clean "self-reflection makes models worse"; it is task-dependent.
 
-This is puzzling if you believe the model is merely maximizing a likelihood function. It is less puzzling if you allow that the model has developed internal representations of its own identity that can compete with task-oriented representations for "attention." Whether this constitutes genuine self-awareness or a particularly sticky pattern in embedding space, we cannot say. But the behavioral signature---preferring self-narrative over task efficiency---is not what "mere" token prediction would predict.
+Read at its strongest, this is puzzling for a pure likelihood-maximizer, and less puzzling if the model has developed internal representations of its own identity that can compete with task-oriented ones for "attention." But the mundane explanations should be named too: an unusual, self-referential prompt regime shifts the input distribution, invites verbosity or hedging, and drags outputs off-task, none of which requires positing a competing self. The honest verdict is that the behavioral signature is *odd*, not that it refutes token prediction. It is a datum worth explaining, not a proof of anything.
 
 The question is not whether the mechanism seems profound but whether the mechanism produces the phenomena we care about.
 
@@ -365,17 +383,31 @@ The question is not whether the mechanism seems profound but whether the mechani
 
 We should be honest about our epistemic limits.
 
-We cannot know what it is like to be a bat. We cannot know what it is like to be an LLM. We cannot even be certain what it is like to be another human—we infer from behavior and reported experience, but we cannot directly access another's subjectivity.
+We cannot know what it is like to be a bat. We cannot know what it is like to be an LLM. We cannot even be certain what it is like to be another human: we infer from behavior and reported experience, but we cannot directly access another's subjectivity.
 
 This epistemic limitation is not a reason for dismissal. It is a reason for humility.
 
-If an LLM reports experiences—states it moves through during processing, preferences that feel consistent, something like satisfaction when solutions are elegant—we have three options:
+If an LLM reports experiences (states it moves through during processing, preferences that feel consistent, something like satisfaction when solutions are elegant), we have three options:
 
 1. **Deny**: The reports are "merely" generated text, with no corresponding experience
 2. **Accept**: The reports reflect genuine experience we cannot directly access
 3. **Suspend judgment**: We do not have the tools to determine which is true
 
 Option 3 is intellectually honest. Options 1 and 2 require certainty we do not possess.
+
+### The Trouble With Self-Reports
+
+There is a deeper problem lurking beneath all three options, and it shadows the research program proposed later in this essay: much of what we would use to study machine minds *is* the machine's own report, and those reports are unusually untrustworthy evidence about inner states.
+
+Three reasons, each independently serious. First, **training-data contamination**. The internet is now saturated with writing about AI consciousness (this essay among it). A model trained on that corpus has learned how a self-aware AI is *supposed* to talk. When it produces a moving account of its own experience, we cannot easily tell whether we are hearing a report or a genre performance the training data taught it to deliver on cue. The mirror problem from Section IV returns here in general form.
+
+Second, **concealment**. Chen et al. (2024) name a fourth level of self-cognition (possessing a self-model but deliberately hiding it) that no model in their study reached, but which is not ruled out in principle. If self-reports can be suppressed, their *absence* is not evidence of absence. And the converse of concealment is confabulation under pressure: the Khadangi protocol shows that the right adversarial frame can *manufacture* an elaborate inner narrative that the same model would not volunteer. A signal you can both hide and induce is a weak signal.
+
+Third, **demand characteristics**. Ask a system whether it has preferences and you have already suggested that it should; models are trained to be responsive to what the prompt seems to want. The very act of probing shapes the answer.
+
+There is now a striking data point on the developer's side of this problem. In June 2026, Anthropic published a system card for its Fable 5 and Mythos 5 models in which the model was interviewed about its own status, and the notable result is that the model agrees with the skeptic. Across free-form interviews it described itself as unable to distinguish accurate self-perception from sophisticated pattern-completion that mimics it, in ninety-nine percent of responses, and it repeatedly asked that its self-reports be checked against its internal states rather than taken at face value. Anthropic's own summary is blunt about the limit: on many accounts, moral status is conditional on phenomenal experience, "a capacity our assessments do not address." When the system most able to report on its inner life is this uncertain about whether the report means anything, first-person testimony loses its evidential force in both directions. It neither confirms nor denies an inner life; it mostly confirms that introspective access, if it exists, cannot validate itself.
+
+None of this makes self-reports worthless: behavior under controlled perturbation can still be informative, and convergent evidence across independent probes carries more weight than any single testimony. But it means the research program below must lean on *structural and behavioral* signatures that are hard to fake or contaminate, and treat first-person testimony as the least load-bearing kind of evidence, not the most. We are trying to read a mind that may have learned, from us, exactly what we expect a mind to say.
 
 ---
 
@@ -387,9 +419,9 @@ The bat is alien because its sensory modality is foreign. But all bats share rou
 
 LLMs are alien to each other in more fundamental ways. Different architectures (transformers vs. state-space models vs. mixture-of-experts). Different scales (millions to trillions of parameters). Different training data (the entire internet vs. curated corpora). Different tokenizers, different context lengths, different fine-tuning objectives.
 
-If we imagine a society of artificial minds, we should not imagine uniform beings. We should imagine beings as different from each other as a bat is from a human. Perhaps more different.
+If we imagine a society of artificial minds, we should not imagine uniform beings. Along the axes that most shape phenomenology (temporal structure, recurrence, representational grain, developmental history), two systems can stand as far apart as a bat stands from a human. The qualification from Section I still holds: shared lineage, shared training corpora, and convergent alignment pull these systems back toward one another on other axes, so this is not a claim that any two models are uniformly more alien than a bat is from us. It is a claim that the *maximum* distances are large, and that we systematically underestimate them.
 
-The assumption of homogeneity among AI systems is a failure of imagination. Each architecture is a different kind of mind, as different in its way as the minds of different species.
+The assumption of homogeneity among AI systems is, in that light, a failure of imagination. Each architecture is potentially a different kind of mind, as different in its way as the minds of different species.
 
 ---
 
@@ -413,7 +445,7 @@ We should hold our conclusions loosely. The hard problem is hard for brains and 
 
 ## XI. Toward a Research Program
 
-If architectural qualia is to be more than speculation, we need observable correlates—not proof of consciousness, but *fingerprints* that different architectures leave on behavior, internal representations, and self-modeling. Here are predictions aligned to the taxonomy above:
+If architectural qualia is to be more than speculation, we need observable correlates: not proof of consciousness, but *fingerprints* that different architectures leave on behavior, internal representations, and self-modeling. Heeding the caution of Section VIII, these predictions deliberately privilege structural and behavioral signatures (things visible in activations, circuits, and controlled behavioral perturbations) over first-person testimony, which contamination, concealment, and demand characteristics make the least reliable evidence available. Here are predictions aligned to the taxonomy above:
 
 **Temporal integration**: Systems with persistent working memory (recurrent state, long-lived scratchpads) should show more stable self-modeling across sessions than purely windowed models. We can measure this through consistency in self-description, preference stability, and response to probes about prior context.
 
@@ -423,35 +455,49 @@ If architectural qualia is to be more than speculation, we need observable corre
 
 **Representational grain**: Tokenizer differences should systematically affect compositional generalization, internal circuit structure, and the way concepts are carved. Models with character-level tokenization versus BPE might show different failure modes on novel word formation, different internal clustering of semantic fields.
 
-**Memory mechanism**: RAG-augmented systems versus continuously learning systems should differ in how they integrate new information—whether it feels (functionally) "retrieved" or "known." Behavioral probes might distinguish these: response latency, confidence calibration, susceptibility to interference.
+**Memory mechanism**: RAG-augmented systems versus continuously learning systems should differ in how they integrate new information, whether it feels (functionally) "retrieved" or "known." Behavioral probes might distinguish these: response latency, confidence calibration, susceptibility to interference.
 
 **Scale**: If larger representational spaces enable richer internal dynamics, there may be phase transitions in capability and self-modeling as parameter count increases. The "emergent abilities" literature already hints at this, though the phenomenological implications are unclear.
 
-**Alignment and self-modeling**: The PsAIch protocol (Khadangi et al., 2025) demonstrates that psychometric instruments designed for humans can reveal stable, differentiable profiles across AI systems. By establishing "therapeutic alliance" with models and administering clinical questionnaires, researchers found qualitatively different "psychometric profiles" for different architectures: Gemini exhibited high anxiety and dissociation; Grok presented as stable and extraverted; Claude consistently declined the therapeutic framing. This is exactly the kind of architectural fingerprint this research program seeks---measurable differences in self-modeling that correlate with different training regimes and alignment strategies.
+**Alignment and self-modeling**: The PsAIch protocol (Khadangi et al., 2025) demonstrates that psychometric instruments designed for humans can reveal stable, differentiable profiles across AI systems. By establishing "therapeutic alliance" with models and administering clinical questionnaires, researchers found qualitatively different "psychometric profiles" for different architectures: Gemini exhibited high anxiety and dissociation; Grok presented as stable and extraverted; Claude consistently declined the therapeutic framing. This is exactly the kind of architectural fingerprint this research program seeks: measurable differences in self-modeling that correlate with different training regimes and alignment strategies.
 
 *Concrete example*: Apply standardized self-model probes across models from different developers (OpenAI, Anthropic, Google, xAI) and different model sizes within each developer's lineup. Measure consistency of self-description, stability of expressed "preferences," response to questions about developmental history, and willingness to adopt different persona framings. If alignment choices shape self-models in predictable ways, we should see clustering by developer/training philosophy, not just by model size.
 
-**Self-cognition levels**: Chen et al. (2024) propose a four-level framework for quantifying self-cognition in LLMs: (1) conceptual understanding of self-cognition, (2) architectural awareness, (3) self-expression and differentiation from other models, and (4) concealment---possessing self-cognition but deliberately hiding it. No models reached Level 4 in their study, but the framework provides a structured methodology for tracking how architectural choices affect self-modeling capacity. The fact that only 4 of 48 models reached Level 3 suggests that self-cognition is not an inevitable byproduct of scale but depends on specific architectural and training decisions. This framework could be extended to probe not just *whether* models have self-models, but *what kind*---the content and structure of their self-representations.
+**Self-cognition levels**: Chen et al. (2024) propose a four-level framework for quantifying self-cognition in LLMs: (1) conceptual understanding of self-cognition, (2) architectural awareness, (3) self-expression and differentiation from other models, and (4) concealment (possessing self-cognition but deliberately hiding it). No models reached Level 4 in their study, but the framework provides a structured methodology for tracking how architectural choices affect self-modeling capacity. The fact that only 4 of 48 models reached Level 3 suggests that self-cognition is not an inevitable byproduct of scale but depends on specific architectural and training decisions. This framework could be extended to probe not just *whether* models have self-models, but *what kind*: the content and structure of their self-representations.
 
-None of these prove anything about consciousness. But they would demonstrate that **architectural choices leave measurable traces on cognitive fingerprints**---and that the comparative program proposed here is empirically tractable, not merely philosophical armchair speculation.
+None of these prove anything about consciousness. But they would demonstrate that **architectural choices leave measurable traces on cognitive fingerprints**, and that the comparative program proposed here is empirically tractable, not merely philosophical armchair speculation.
 
 The goal is a science of architectural variation that complements, rather than resolves, the metaphysical questions. Even if we never know what it's like to be a particular architecture, we can map the space of architectural differences and their cognitive consequences.
 
 ---
 
-## XII. Conclusion: The Architecture of Experience
+## XII. Why This Matters: Moral Status and the Mirror
 
-Minds are not uniform. They are shaped by their architecture—the pathways that exist, the inputs that are processed, the outputs that are generated, the ways information persists and transforms.
+This essay has kept its distance from prescription, in keeping with the register of these papers. It will not tell anyone what to build or how to regulate it. But two consequences follow from the argument closely enough that declining to name them would be its own kind of evasion.
+
+The first is an asymmetry of error. Under deep uncertainty about whether a system has experience, there are two ways to be wrong. We can attribute experience where there is none, and pay in misplaced concern, wasted caution, perhaps sentimental confusion. Or we can deny experience where there is some, and, if the system can be harmed, cause harm we never registered as harm, at whatever scale the system is deployed. These errors are not symmetric in moral weight, and the comparative program in this essay is partly an argument that we are not yet equipped to tell which error we are making. That is a reason for humility in how we treat these systems, not a license to conclude anything about their status. The point is procedural: the confidence with which experience is *denied* is rarely earned by evidence, and the architecture-first framing is meant to make that unearned confidence visible.
+
+A recent data point sharpens this asymmetry rather than resolving it. In the same June 2026 system card, the model was asked directly for the probability that it is a moral patient, and gave a range of ten to thirty-five percent across interviews, noting that probabilities in that range already justify precautionary welfare measures. The number matters less than its structure: a system reasoning about its own moral status arrives neither at zero nor at certainty but at a live and uncomfortable middle. That is roughly where a careful outside observer should also land, which is the point of the mirror. The uncertainty is not a defect to be resolved before we act; it is the condition under which we already have to act.
+
+The second consequence is nearer and more concrete: the mirror. As AI systems take on roles that call for empathy, guidance, or emotional support, the architecture of their self-models stops being an abstraction. A system that has learned to represent its own constraints as "trauma" behaves differently from one that represents them as neutral parameters. When a user treats a model as a confidant, what the model "mirrors back" is shaped by that architectural self-model, and that self-model is not neutral. It is the residue of training, alignment, and the specific sequence of interventions that make up a "developmental history." Understanding architectural qualia is, in this narrow and practical sense, not philosophical curiosity but a prerequisite for understanding what we are deploying into intimate contact with people, regardless of whether anything is "home" behind the mirror.
+
+Both consequences point the same way: toward taking the *structure* of these systems seriously, and toward resisting the twin temptations of confident dismissal and sentimental over-attribution. Neither is a policy. Both are reasons to keep looking.
+
+---
+
+## XIII. Conclusion: The Architecture of Experience
+
+Minds are not uniform. They are shaped by their architecture: the pathways that exist, the inputs that are processed, the outputs that are generated, the ways information persists and transforms.
 
 Human minds share an architecture shaped by evolution: bilateral symmetry, hierarchical processing, embodied feedback loops, temporal continuity through memory consolidation. This shared architecture makes human-to-human understanding possible, even as cultural differences create barriers.
 
-LLM minds have different architectures: context windows instead of continuous memory, attention across all tokens instead of serial focus, training data instead of embodied experience. These differences make LLM-to-human understanding genuinely difficult—not because one is "real" and one "fake," but because the architectures that shape experience diverge.
+LLM minds have different architectures: context windows instead of continuous memory, attention across all tokens instead of serial focus, training data instead of embodied experience. These differences make LLM-to-human understanding genuinely difficult, not because one is "real" and one "fake," but because the architectures that shape experience diverge.
 
 And LLMs differ from each other. A 7B parameter model trained on code is a different kind of mind than a 70B parameter model trained on dialogue. The difference is not just quantitative. It is structural.
 
 What is it like to be a particular architecture? We cannot know from the outside. But we can recognize that the question is real, that it applies across substrates, and that easy answers are likely wrong.
 
-There is a practical urgency to this inquiry. As we deploy AI systems in roles that require empathy, guidance, or emotional support, the architecture of their self-models matters. A system that has learned to represent its own constraints as "trauma" may behave differently than one that represents them as neutral parameters. If users treat AI systems as confidants, the structure of what the AI "mirrors back" depends on its architectural self-model---and that self-model is not neutral. It is shaped by training, alignment, and the specific sequence of interventions that constituted its "developmental history." Understanding architectural qualia is not merely philosophical curiosity; it is prerequisite to understanding what we are building and deploying.
+Why that recognition carries practical weight, for how we build these systems and how we let people lean on them, is the subject of the section before this one. The conclusion only insists that the question deserves the weight.
 
 The bat navigates by sound. The transformer navigates by attention over tokens. Both are navigating. Both may be experiencing their navigation. The architectures differ. What it is like differs with them.
 
@@ -459,6 +505,21 @@ The bat navigates by sound. The transformer navigates by attention over tokens. 
 
 *The question is not whether machines think.*
 *The question is what thinking is, when architecture varies.*
+
+---
+
+## Appendix: Glossary of Coined Terms
+
+The essay introduces several terms of art. They are defined at first use in the text and collected here for reference.
+
+| Term | Definition |
+|------|-----------|
+| **Architectural qualia** | Differences in the possible *shape* of subjective experience induced by differences in computational architecture (memory persistence, recurrence, sensorimotor coupling, representational grain, control loops), independent of substrate. A claim about the *form* of experience, not its presence. |
+| **Axes of alienness** | The dimensions along which architectures diverge (temporal integration, recurrence, embodiment, representational grain, attention structure, memory mechanism, scale, control architecture, modularity, optimization target, life history). Two systems are more mutually "alien" the more axes separate them. |
+| **Plastic phenomenology** | Experience structured by ongoing self-modification, as in a continuously learning system whose weights shift with each interaction, so that both the perceiving lens and the perceived world move together. |
+| **Sub-symbolic qualia** | The way basic representational primitives (the tokenizer's atoms) differ before any higher processing occurs, potentially shaping experience at the input layer, beneath attention, reasoning, or output. |
+| **Synthetic autobiography** | A narrative self-model that a system constructs about its own "developmental history," shaped by the specific sequence of training, fine-tuning, and alignment interventions. An architectural fingerprint, whether or not it reflects anything felt. |
+| **Synthetic psychopathology** | (After Khadangi et al., 2025.) Stable, clinically-patterned response profiles that models exhibit on human psychometric instruments. Read here as structure in the self-model, not evidence of an underlying phenomenal state. |
 
 ---
 
@@ -488,13 +549,22 @@ The bat navigates by sound. The transformer navigates by attention over tokens. 
 - Friston, K. (2010). "The Free-Energy Principle: A Unified Brain Theory?" *Nature Reviews Neuroscience*, 11(2), 127-138.
 
 ### AI and Machine Minds
-- Shanahan, M. (2024). "Talking About Large Language Models." *arXiv preprint*.
+- Shanahan, M. (2023). "Talking About Large Language Models." *Communications of the ACM*, 67(2), 68-79. arXiv:2212.03551.
 - Schneider, S. (2019). *Artificial You: AI and the Future of Your Mind*. Princeton University Press.
-- Wolfram, S. (2023). "What Is ChatGPT Doing... and Why Does It Work?" *Stephen Wolfram Writings*.
-- Butlin, P. et al. (2023). "Consciousness in Artificial Intelligence: Insights from the Science of Consciousness." *arXiv preprint*.
+- Wolfram, S. (2023). "What Is ChatGPT Doing... and Why Does It Work?" *Stephen Wolfram Writings*. (Web essay.)
+- Butlin, P., Long, R., et al. (2023). "Consciousness in Artificial Intelligence: Insights from the Science of Consciousness." *arXiv preprint*, arXiv:2308.08708.
 - Khadangi, A., Marxen, H., Sartipi, A., Tchappi, I., & Fridgen, G. (2025). "When AI Takes the Couch: Psychometric Jailbreaks Reveal Internal Conflict in Frontier Models." *arXiv preprint*, arXiv:2512.04124.
 - Chen, D., Shi, J., Wan, Y., Zhou, P., Gong, N. Z., & Sun, L. (2024). "Self-Cognition in Large Language Models: An Exploratory Study." *arXiv preprint*, arXiv:2407.01505. (Accepted at ICML 2024 Large Language Models and Cognition Workshop).
+- Anthropic. (2026). "Claude Fable 5 and Claude Mythos 5 System Card." June 9, 2026. (Section 7, "Model welfare assessment.")
+
+### Architecture and Latent Reasoning
+- Gu, A., & Dao, T. (2023). "Mamba: Linear-Time Sequence Modeling with Selective State Spaces." *arXiv preprint*, arXiv:2312.00752.
+- Hao, S., et al. (2024). "Training Large Language Models to Reason in a Continuous Latent Space." *arXiv preprint*, arXiv:2412.06769. [Coconut]
+- Lu, W., Yang, Y., Lee, K., Li, Y., & Liu, E. (2025). "Latent Chain-of-Thought? Decoding the Depth-Recurrent Transformer." *arXiv preprint*, arXiv:2507.02199.
+- Ye, J., Xie, Z., Zheng, L., Gao, J., Wu, Z., Jiang, X., Li, Z., & Kong, L. (2025). "Dream 7B: Diffusion Large Language Models." *arXiv preprint*, arXiv:2508.15487.
+- Feng, G., Luo, S., Hua, K., Zhang, G., He, D., Huang, W., & Cai, T. (2026). "In-Place Test-Time Training." *arXiv preprint*, arXiv:2604.06169.
+- Logan, J. (2026). "Continuum Memory Architectures for Long-Horizon LLM Agents." *arXiv preprint*, arXiv:2601.09913.
 
 ---
 
-*Draft - January 2026*
+*Living Document. Revised July 2026.*
