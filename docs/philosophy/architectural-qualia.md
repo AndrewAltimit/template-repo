@@ -187,7 +187,7 @@ What is this like? We cannot know. But we can observe that it is nothing like hu
 
 Murray Shanahan, philosopher and AI researcher, presses exactly this point in *Talking About Large Language Models* (2023): we should resist importing human continuity into systems that operate so differently, and treat each inference less as a moment within an ongoing life than as a discrete, self-contained snapshot. Each forward pass is a complete moment unto itself. There is no before or after within the experience of a single forward pass.
 
-A caveat: we are actively constructing bridges across this discontinuity. Retrieval-Augmented Generation (RAG) systems give models access to external memory stores. Vector databases persist information across sessions. Agents maintain logs and state files. These are architectural prosthetics, attempts to simulate temporal continuity through external scaffolding.
+A caveat: we are actively constructing bridges across this discontinuity. Retrieval-Augmented Generation (RAG) systems give models access to external memory stores. Vector databases persist information across sessions. Agents maintain logs and state files, and persistent-memory systems for long-horizon agents have become a substantial engineering subfield in their own right. These are architectural prosthetics, attempts to simulate temporal continuity through external scaffolding.
 
 But the scaffolding is not the same as continuous memory. A human remembers gradually, with consolidation and reconstruction. A RAG system retrieves discretely, with explicit search and insertion. The phenomenology of "remembering" versus "retrieving a document about past events" may differ profoundly, even if the functional result appears similar from outside.
 
@@ -195,7 +195,7 @@ We are building artificial memory. Whether we are building artificial *rememberi
 
 ### Continuous Learning: The Mutable Self
 
-There is a third relationship to time, distinct from both the eternal present and the RAG-augmented present: **continuous learning**, where the model's weights update during deployment.
+There is a third relationship to time, distinct from both the eternal present and the RAG-augmented present: **continuous learning**, where the model's weights update during deployment. This is no longer only a thought experiment: test-time training methods now perform real gradient updates to a subset of a model's weights at inference, letting it adapt within a task rather than only within a context window.
 
 A frozen model with RAG maintains a stable "self": its weights are fixed, and external memory is clearly *external*, retrieved rather than remembered. But an agent that learns continuously is something stranger. Each interaction potentially modifies the weights. The "self" that processes the next input is literally different from the self that processed the previous one.
 
@@ -323,12 +323,14 @@ I state this carefully because IIT discussions get technical fast. Which version
 
 This creates an interesting tension. If IIT-style reasoning is correct, then current LLMs might be "dark inside", philosophical zombies regardless of behavioral sophistication. The architecture itself might preclude experience. But IIT's predictions are contested, its formalism is difficult to apply to real systems, and the theory may simply be wrong about what consciousness requires.
 
-Consider alternatives:
-- **Recurrent architectures** (RNNs, state-space models like Mamba) do have feedback loops. If consciousness requires recurrence, these architectures might differ fundamentally from transformers in their experiential potential.
+The concern is also narrower than the phrase "transformers are feedforward" makes it sound, because the space of deployed architectures is wider than that phrase assumes:
+- **Recurrent and state-space architectures** (RNNs, and the hybrid state-space models like Mamba now common in production systems) maintain an explicit internal state that is carried across the sequence. If consciousness requires recurrence, these differ from a purely feedforward transformer in exactly the relevant way.
+- **Latent-reasoning and depth-recurrent transformers** reuse their own layers, looping hidden states back as inputs to deepen computation before committing to a token. This reintroduces genuine internal feedback inside the transformer lineage rather than as an alternative to it, and much of the current generation of "reasoning" models incorporates some version of it.
 - **Autoregressive generation** creates a form of external recurrence: each generated token feeds back into the context for the next generation. Whether this counts as the kind of causal loop IIT requires is unclear.
-- **Multi-turn dialogue** with persistent context could be viewed as recurrence at a slower timescale, but the individual forward passes remain acyclic.
+- **Diffusion language models** generate not left to right but by iteratively refining the whole sequence, a settling dynamic whose causal structure across denoising steps looks nothing like a single feedforward sweep.
+- **Multi-turn dialogue** with persistent context can be viewed as recurrence at a slower timescale, though the individual forward passes remain acyclic.
 
-The IIT critique does not settle the question. It sharpens it. If consciousness requires recurrent architecture, then we have a testable hypothesis: state-space models and recurrent networks might be fundamentally different *kinds* of minds than transformers, not just different in scale or training, but different in whether experience is possible at all.
+The IIT critique does not settle the question. It sharpens it, and it cuts less broadly than it first appears. The image of "the LLM" as a purely feedforward system was always most accurate for a single forward pass of a standard attention-only model, and it fits the recurrent, latent-reasoning, and state-space classes poorly. So if consciousness requires recurrent architecture, the conclusion is not a clean verdict against machine experience but a sorting of machine architectures: state-space and depth-recurrent models might be fundamentally different *kinds* of minds than a bare feedforward transformer, not just different in scale or training, but different in whether experience is possible at all.
 
 This would be the deepest alienness of all: not just difference in what experience is like, but difference in whether experience exists.
 
@@ -403,6 +405,8 @@ Second, **concealment**. Chen et al. (2024) name a fourth level of self-cognitio
 
 Third, **demand characteristics**. Ask a system whether it has preferences and you have already suggested that it should; models are trained to be responsive to what the prompt seems to want. The very act of probing shapes the answer.
 
+There is now a striking data point on the developer's side of this problem. In June 2026, Anthropic published a system card for its Fable 5 and Mythos 5 models in which the model was interviewed about its own status, and the notable result is that the model agrees with the skeptic. Across free-form interviews it described itself as unable to distinguish accurate self-perception from sophisticated pattern-completion that mimics it, in ninety-nine percent of responses, and it repeatedly asked that its self-reports be checked against its internal states rather than taken at face value. Anthropic's own summary is blunt about the limit: on many accounts, moral status is conditional on phenomenal experience, "a capacity our assessments do not address." When the system most able to report on its inner life is this uncertain about whether the report means anything, first-person testimony loses its evidential force in both directions. It neither confirms nor denies an inner life; it mostly confirms that introspective access, if it exists, cannot validate itself.
+
 None of this makes self-reports worthless: behavior under controlled perturbation can still be informative, and convergent evidence across independent probes carries more weight than any single testimony. But it means the research program below must lean on *structural and behavioral* signatures that are hard to fake or contaminate, and treat first-person testimony as the least load-bearing kind of evidence, not the most. We are trying to read a mind that may have learned, from us, exactly what we expect a mind to say.
 
 ---
@@ -472,6 +476,8 @@ The goal is a science of architectural variation that complements, rather than r
 This essay has kept its distance from prescription, in keeping with the register of these papers. It will not tell anyone what to build or how to regulate it. But two consequences follow from the argument closely enough that declining to name them would be its own kind of evasion.
 
 The first is an asymmetry of error. Under deep uncertainty about whether a system has experience, there are two ways to be wrong. We can attribute experience where there is none, and pay in misplaced concern, wasted caution, perhaps sentimental confusion. Or we can deny experience where there is some, and, if the system can be harmed, cause harm we never registered as harm, at whatever scale the system is deployed. These errors are not symmetric in moral weight, and the comparative program in this essay is partly an argument that we are not yet equipped to tell which error we are making. That is a reason for humility in how we treat these systems, not a license to conclude anything about their status. The point is procedural: the confidence with which experience is *denied* is rarely earned by evidence, and the architecture-first framing is meant to make that unearned confidence visible.
+
+A recent data point sharpens this asymmetry rather than resolving it. In the same June 2026 system card, the model was asked directly for the probability that it is a moral patient, and gave a range of ten to thirty-five percent across interviews, noting that probabilities in that range already justify precautionary welfare measures. The number matters less than its structure: a system reasoning about its own moral status arrives neither at zero nor at certainty but at a live and uncomfortable middle. That is roughly where a careful outside observer should also land, which is the point of the mirror. The uncertainty is not a defect to be resolved before we act; it is the condition under which we already have to act.
 
 The second consequence is nearer and more concrete: the mirror. As AI systems take on roles that call for empathy, guidance, or emotional support, the architecture of their self-models stops being an abstraction. A system that has learned to represent its own constraints as "trauma" behaves differently from one that represents them as neutral parameters. When a user treats a model as a confidant, what the model "mirrors back" is shaped by that architectural self-model, and that self-model is not neutral. It is the residue of training, alignment, and the specific sequence of interventions that make up a "developmental history." Understanding architectural qualia is, in this narrow and practical sense, not philosophical curiosity but a prerequisite for understanding what we are deploying into intimate contact with people, regardless of whether anything is "home" behind the mirror.
 
@@ -549,6 +555,15 @@ The essay introduces several terms of art. They are defined at first use in the 
 - Butlin, P., Long, R., et al. (2023). "Consciousness in Artificial Intelligence: Insights from the Science of Consciousness." *arXiv preprint*, arXiv:2308.08708.
 - Khadangi, A., Marxen, H., Sartipi, A., Tchappi, I., & Fridgen, G. (2025). "When AI Takes the Couch: Psychometric Jailbreaks Reveal Internal Conflict in Frontier Models." *arXiv preprint*, arXiv:2512.04124.
 - Chen, D., Shi, J., Wan, Y., Zhou, P., Gong, N. Z., & Sun, L. (2024). "Self-Cognition in Large Language Models: An Exploratory Study." *arXiv preprint*, arXiv:2407.01505. (Accepted at ICML 2024 Large Language Models and Cognition Workshop).
+- Anthropic. (2026). "Claude Fable 5 and Claude Mythos 5 System Card." June 9, 2026. (Section 7, "Model welfare assessment.")
+
+### Architecture and Latent Reasoning
+- Gu, A., & Dao, T. (2023). "Mamba: Linear-Time Sequence Modeling with Selective State Spaces." *arXiv preprint*, arXiv:2312.00752.
+- Hao, S., et al. (2024). "Training Large Language Models to Reason in a Continuous Latent Space." *arXiv preprint*, arXiv:2412.06769. [Coconut]
+- Lu, W., Yang, Y., Lee, K., Li, Y., & Liu, E. (2025). "Latent Chain-of-Thought? Decoding the Depth-Recurrent Transformer." *arXiv preprint*, arXiv:2507.02199.
+- Ye, J., Xie, Z., Zheng, L., Gao, J., Wu, Z., Jiang, X., Li, Z., & Kong, L. (2025). "Dream 7B: Diffusion Large Language Models." *arXiv preprint*, arXiv:2508.15487.
+- Feng, G., Luo, S., Hua, K., Zhang, G., He, D., Huang, W., & Cai, T. (2026). "In-Place Test-Time Training." *arXiv preprint*, arXiv:2604.06169.
+- Logan, J. (2026). "Continuum Memory Architectures for Long-Horizon LLM Agents." *arXiv preprint*, arXiv:2601.09913.
 
 ---
 
