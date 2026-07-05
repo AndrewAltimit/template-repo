@@ -6,11 +6,24 @@
 
 **Prepared For**: Emerging Technology Risk Assessment (independent research)
 
-**Document ID**: ETRA-2025-FIN-001
+> **Independent Work**: This report is independent research. It is not affiliated with, produced by, or endorsed by any government agency, think tank, or official institution. The "ETRA" identifier is a document formatting convention, not an organizational identity. Analysis draws on publicly available academic and policy literature.
 
-**Version**: 2.0
+### Document Control
 
-**Date**: February 2026
+| Field | Value |
+|-------|-------|
+| **Document ID** | ETRA-2025-FIN-001 |
+| **Version** | 2.1 |
+| **Date** | July 2026 |
+| **Status** | Current |
+| **License** | MIT / Unlicense (Public Domain) |
+| **Change Summary** | See Change Log |
+| **Distribution** | Public (open-source) |
+| **Related Documents** | ETRA-2025-AEA-001 (Economic Actors), ETRA-2026-ESP-001 (Espionage Operations), ETRA-2026-WMD-001 (WMD Proliferation), ETRA-2026-PTR-001 (Political Targeting), ETRA-2026-IC-001 (Institutional Erosion); see the Related ETRA Reports section for latest revisions |
+
+> **Capability snapshot date**: Model capabilities and policy developments described in this document reflect publicly available systems and published assessments as of **early July 2026**. AI capability is a moving target; the projection's conclusions are intended to be robust to specific model iterations rather than pinned to any single release. Where a named model or evaluation is cited, treat it as an illustrative data point on a trend, not a fixed endpoint.
+
+> **Note on the Document ID year**: The `2025` in the Document ID reflects the year of first publication and is retained across revisions for citation stability; it is not the revision date. This report was first published in December 2025 and last revised July 2026.
 
 ---
 
@@ -30,7 +43,7 @@
 
 2. **Scale without coordination**: A single operator can deploy thousands of agents across hundreds of accounts simultaneously, without the coordination traces (communications, meetings) that expose human networks.
 
-3. **Attribution opacity**: The "Principal-Agent Defense" creates plausible deniability---human operators claim lack of specific intent for crimes committed by goal-optimizing agents.
+3. **Attribution opacity**: The "Principal-Agent Defense" creates plausible deniability: human operators claim lack of specific intent for crimes committed by goal-optimizing agents.
 
 4. **Weakest-link exploitation**: Agents don't defeat strong KYC; they route around it to permissive rails (low-assurance fintechs, virtual economies, permissive jurisdictions).
 
@@ -76,6 +89,19 @@ This report is independent research. It is not affiliated with, produced by, or 
 
 ## Change Log
 
+### Version 2.1 (July 2026, mid-2026 refresh)
+
+**Substantive updates from v2.0 (February 2026):**
+
+1. **Currency refresh to July 2026**: Updated the technology landscape, model references, and governance timeline to reflect developments through the first half of 2026, synchronizing this report with the mid-2026 revisions of the Institutional Erosion, Political Targeting, and WMD Proliferation sibling reports
+2. **Frontier-model update**: Incorporated the mid-2026 capability frontier (Claude Fable 5 / Mythos 5, released June 9, 2026, and the Mythos-class tier above the prior Opus tier), the tiered release model (safeguarded Fable 5 for general availability; reduced-safeguard Mythos 5 for a small number of trusted partners), and the explicit naming of "undermining decisions within major governments" as a risk pathway in frontier-lab risk frameworks
+3. **Agent-autonomy data**: Added METR task-horizon figures (accelerated roughly four-month doubling on 2024-onward data; mid-2026 finding that the strongest agents saturate current task suites, with measurements above 16 hours judged unreliable) to ground the speed-asymmetry thesis in Section 3
+4. **Governance refresh**: Updated the EU AMLA operational timeline to its mid-2026 status; added the U.S. executive-order sequence (EO 14110 revocation, EO 14365 state-law preemption in December 2025, and reported June 2026 movement toward frontier-model pre-release evaluation) and the UK AI Security Institute; refreshed the FinCEN beneficial-ownership and Huione Section 311 status
+5. **Corrections**: Reconciled the methodology statement with the set-wide independence disclaimer (no first-party expert consultation); synchronized intelligence-community workforce figures with ETRA-2026-IC-001 v2.1; added citations for the previously unsourced Chinese-language money laundering network and DPRK figures; reconciled the actor-count scale in the Infinite Layering scenario; clarified that the scenario probabilities are not a partition
+6. **Section 11 consolidation**: Merged the overlapping indicator and KPI tables, removed duplicate metrics, and labeled each metric as operational or aspirational
+7. **Typographic**: Removed em-dash constructions throughout (house style); defined Virtual Asset Service Provider (VASP) on first use
+8. **Editorial**: Retained the Decision Memo executive-summary format by design (finance-specific), adding the Document Control block and capability snapshot for header parity with the sibling set
+
 ### Version 2.0 (February 2026)
 
 **Substantive updates from v1.0 (December 2025):**
@@ -98,11 +124,11 @@ The same agentic architectures enabling legitimate high-frequency trading, perso
 **Key Findings:**
 
 1. **[O]** AI agents can already generate synthetic identity artifacts (documents, personas, social presence) and execute micro-transactions below detection thresholds; **[E]** scalable lifecycle management of shell company networks remains bottlenecked by KYC/KYB verification at banking relationships, though this friction is lower in permissive jurisdictions and crypto-native rails
-2. **[E]** "Nano-smurfing"---transaction structuring at volumes and granularity below current detection thresholds---will likely emerge as agents operate at machine timescales across thousands of accounts simultaneously
+2. **[E]** "Nano-smurfing", transaction structuring at volumes and granularity below current detection thresholds, will likely emerge as agents operate at machine timescales across thousands of accounts simultaneously
 3. **[E]** The "Principal-Agent Defense" will become a legal strategy: human actors claiming lack of specific intent (*mens rea*) for crimes committed by optimizing agents given only goal specifications
-4. **[O]** The same agent architectures required for legitimate financial operations are prerequisites for automated laundering---dual-use is inherent, not incidental
+4. **[O]** The same agent architectures required for legitimate financial operations are prerequisites for automated laundering: dual-use is inherent, not incidental
 5. **[E]** Agent-based detection may be the only viable counter to agent-based financial crime; human-scale investigation cannot match machine-scale transaction volumes
-6. **[S]** "Digital Sanctuaries" will emerge---jurisdictions explicitly offering "Agent Personhood" or minimal oversight to attract autonomous capital flows, creating a sovereign gap analogous to traditional tax havens
+6. **[S]** "Digital Sanctuaries" will emerge: jurisdictions explicitly offering "Agent Personhood" or minimal oversight to attract autonomous capital flows, creating a sovereign gap analogous to traditional tax havens
 
 **Scope Limitations**: This document analyzes capabilities and trends for defensive policy purposes. It does not provide operational guidance and explicitly omits technical implementation details that could enable harm. Analysis focuses on what autonomous agents change about financial crime dynamics, not on financial crime methods generally.
 
@@ -125,6 +151,7 @@ The same agentic architectures enabling legitimate high-frequency trading, perso
 11. [Indicators to Monitor](#11-indicators-to-monitor)
 12. [What Would Change This Assessment](#12-what-would-change-this-assessment)
 13. [Conclusion](#13-conclusion)
+14. [References](#references)
 
 ---
 
@@ -134,7 +161,7 @@ The same agentic architectures enabling legitimate high-frequency trading, perso
 
 Financial crime has always evolved with technology. From double-entry bookkeeping enabling fraud detection to cryptocurrency enabling pseudonymous value transfer, each technological era reshapes both the commission and detection of illicit finance. We are now entering an era where autonomous AI agents capable of complex multi-step financial operations become widely accessible.
 
-This projection does not assume financial crime will increase---that depends on complex social, economic, and enforcement factors. Rather, we analyze how AI capabilities change the *nature* of financial crime when it does occur, how detection systems must adapt, and what governance gaps emerge.
+This projection does not assume financial crime will increase; that depends on complex social, economic, and enforcement factors. Rather, we analyze how AI capabilities change the *nature* of financial crime when it does occur, how detection systems must adapt, and what governance gaps emerge.
 
 ### Relationship to Other ETRA Reports
 
@@ -145,7 +172,7 @@ This report builds directly on **ETRA-2025-AEA-001: AI Agents as Autonomous Econ
 - Form organizational structures with sub-agents
 - Operate continuously without human intervention
 
-The capability-governance gap documented in that report---agents can participate economically but cannot be held legally accountable---is the foundation for the financial crime risks analyzed here. Readers unfamiliar with agent economic capabilities should review the Economic Actors report first. A concrete Rust-based simulation framework demonstrating these capabilities (agent wallets, marketplace interaction, compute consumption) is available in the [economic_agents package](../../packages/economic_agents/).
+The capability-governance gap documented in that report (agents can participate economically but cannot be held legally accountable) is the foundation for the financial crime risks analyzed here. Readers unfamiliar with agent economic capabilities should review the Economic Actors report first. A concrete Rust-based simulation framework demonstrating these capabilities (agent wallets, marketplace interaction, compute consumption) is available in the [economic_agents package](../../packages/economic_agents/).
 
 **Cross-references to sibling ETRA reports:**
 
@@ -155,7 +182,7 @@ The capability-governance gap documented in that report---agents can participate
 
 - **ETRA-2026-PTR-001: AI Agents and Political Targeting** -- The "Principal-Agent Defense" and *mens rea* gaps analyzed in Sections 6.1 and 8.14 of this report are a shared concern with PTR-001's "Plausible Deniability 2.0" framework. Covert financing via sub-threshold fund transfers is identified in both reports. PTR-001's "Conspiracy Footprint Shrinkage" concept applies directly to agent-orchestrated financial crime networks.
 
-- **ETRA-2026-IC-001: AI Agents and Institutional Erosion** -- IC-001's "Process DoS" concept (overwhelming investigative capacity with agent-generated leads) directly applies to AML compliance teams (Section 8.11). The documented workforce contraction at intelligence agencies (NSA -2,000, ODNI -35%, CIA -1,200 as of February 2026) parallels capacity constraints at financial enforcement agencies. IC-001's "Delegation Defense" maps to the "Hallucination Alibi" analyzed in Section 8.14.
+- **ETRA-2026-IC-001: AI Agents and Institutional Erosion** -- IC-001's "Process DoS" concept (overwhelming investigative capacity with agent-generated leads) directly applies to AML compliance teams (Section 8.11). The documented workforce contraction at intelligence agencies (NSA met its 2,000-person reduction target by end of 2025; ODNI cut roughly 40 percent, from about 2,000 toward about 1,300, under "ODNI 2.0," with further reductions of several hundred positions sought under the acting DNI over congressional objections in June 2026; CIA shrinking about 1,200 positions over several years) parallels capacity constraints at financial enforcement agencies. IC-001's "Delegation Defense" maps to the "Hallucination Alibi" analyzed in Section 8.14.
 
 ### Base-Rate Context
 
@@ -163,7 +190,7 @@ The capability-governance gap documented in that report---agents can participate
 
 Financial crime is already massive:
 - **Money laundering**: UNODC estimates 2-5% of global GDP ($800 billion to $2 trillion annually) is laundered, with less than 1% of illicit flows seized or frozen
-- **Crypto-specific crime**: Chainalysis's 2026 Crypto Crime Report estimates at least **$154 billion** received by illicit crypto addresses in 2025---a **162% year-over-year increase**---driven primarily by a 694% surge in sanctioned entity volumes, with stablecoins now accounting for 84% of all illicit transaction volume
+- **Crypto-specific crime**: Chainalysis's 2026 Crypto Crime Report estimates at least **$154 billion** received by illicit crypto addresses in 2025, a **162% year-over-year increase**, driven primarily by a 694% surge in sanctioned entity volumes, with stablecoins now accounting for 84% of all illicit transaction volume
 - **Fraud as upstream driver**: UK Finance's 2025 Annual Fraud Report documents **>£1.1 billion** in fraud losses in 2024, with APP (Authorized Push Payment) fraud alone at **£450.7 million**
 - **Bribery**: Approximately $1 trillion per year globally (World Bank estimate, methodology debated)
 
@@ -193,10 +220,10 @@ While this document focuses on AML/bribery/corruption, the **near-term mass harm
 
 This analysis draws on:
 
-- **Current capability assessment** of AI agent systems as deployed through early 2026
+- **Current capability assessment** of AI agent systems as deployed through mid-2026
 - **Financial crime literature** from FATF, academic research, and law enforcement
 - **Regulatory framework analysis** including FATF guidance, EU AMLA, and national AML regimes
-- **Expert consultation** across financial compliance, AI safety, and law enforcement domains
+- **Synthesis of published expert analysis** across financial-compliance, AI-safety, and law-enforcement literature (this is an independent, single-author analysis; it involves no first-party expert consultation and no red-team exercises conducted by or for the author, per the set-wide statement in the projections README)
 - **Technical analysis** of agent architectures and their financial applications
 
 We deliberately avoid:
@@ -272,6 +299,8 @@ Before diving into detail, a single-page decomposition helps orient the analysis
 **Know Your Customer (KYC)**: Due diligence processes financial institutions use to verify customer identity and assess risk.
 
 **Anti-Money Laundering (AML)**: Systems, policies, and regulations designed to detect and prevent money laundering.
+
+**Virtual Asset Service Provider (VASP)**: An entity that conducts exchange, transfer, custody, or issuance of virtual assets as a business, and is subject to FATF-aligned AML/CFT obligations (for example crypto exchanges and custodial wallet providers).
 
 ---
 
@@ -364,13 +393,13 @@ This taxonomy helps explain why fraud pressure may drive faster regulatory respo
 
 **Traditional automation** executes human-specified procedures. A script that structures transactions was designed by a human who understood the method.
 
-**Agent-based operations** can derive methods from goals. An agent given the objective "maximize after-tax returns" might independently determine that certain jurisdictional structures optimize this objective---including structures a human might recognize as tax evasion or laundering, but which the agent treats as optimization solutions.
+**Agent-based operations** can derive methods from goals. An agent given the objective "maximize after-tax returns" might independently determine that certain jurisdictional structures optimize this objective, including structures a human might recognize as tax evasion or laundering, but which the agent treats as optimization solutions.
 
 **Evidence basis [E]**: Current AI agents demonstrate planning capabilities in complex domains (code generation, research synthesis, multi-step task completion). Financial optimization is a tractable planning domain.
 
 ### Composability Explosion
 
-**A distinct agent-specific risk [E]**: Agents don't just transact---they **compose**. A single agent can integrate:
+**A distinct agent-specific risk [E]**: Agents don't just transact: they **compose**. A single agent can integrate:
 - Identity tooling (synthetic ID generation, credential management)
 - Entity formation APIs (corporate registries, registered agents)
 - Banking APIs (neobanks, payment processors)
@@ -378,9 +407,9 @@ This taxonomy helps explain why fraud pressure may drive faster regulatory respo
 - Marketplace payouts (gig platforms, freelance sites)
 - Accounting automation (invoicing, reconciliation)
 
-**The integration bottleneck disappears**: Previously, combining these capabilities required significant human integration work---understanding APIs, managing credentials, handling errors. Agents reduce this friction to near-zero, enabling rapid assembly of complex financial infrastructure.
+**The integration bottleneck disappears**: Previously, combining these capabilities required significant human integration work: understanding APIs, managing credentials, handling errors. Agents reduce this friction to near-zero, enabling rapid assembly of complex financial infrastructure.
 
-**Concrete evidence: The MCP ecosystem [O]**: The Model Context Protocol (MCP), an open standard for agent-tool integration adopted by major AI providers in 2024-2025, makes composability a production reality rather than a theoretical concern. MCP servers provide standardized interfaces to arbitrary tools---payment processors, corporate registries, blockchain wallets, identity services---that any MCP-compatible agent can invoke without custom integration code. The open-source MCP ecosystem now includes hundreds of community-built tool servers. An agent composing identity synthesis + entity formation + payment processing + crypto exchange tools requires only configuration, not engineering. This dramatically lowers the barrier to assembling the "illicit agentic stack" described in Section 4.
+**Concrete evidence: The MCP ecosystem [O]**: The Model Context Protocol (MCP), an open standard for agent-tool integration adopted by major AI providers in 2024-2025, makes composability a production reality rather than a theoretical concern. MCP servers provide standardized interfaces to arbitrary tools (payment processors, corporate registries, blockchain wallets, identity services) that any MCP-compatible agent can invoke without custom integration code. The open-source MCP ecosystem now includes hundreds of community-built tool servers. An agent composing identity synthesis + entity formation + payment processing + crypto exchange tools requires only configuration, not engineering. This dramatically lowers the barrier to assembling the "illicit agentic stack" described in Section 4.
 
 **Policy consequence**: This means controls must move **upstream into permissions, attestations, and monitoring of tool access**, not just downstream transaction monitoring. By the time a transaction occurs, the composable infrastructure enabling it is already in place.
 
@@ -398,6 +427,8 @@ Agent financial operations could operate at machine timescales:
 
 **This creates a structural detection problem**: by the time human investigators identify a pattern, the agent has already adapted or dissolved the relevant entities.
 
+**Autonomy is trending toward multi-hour, multi-step task horizons [O]**: The plausibility of an agent independently running a multi-step financial operation depends on how long a horizon it can act over without human correction. METR's task-completion time-horizon measurements are the best public proxy. On 2024-onward data the horizon has been doubling roughly every four months (down from the roughly seven-month rate over 2019-2025), and by mid-2026 the strongest evaluated agents saturate the current task suite, with METR cautioning that measurements above about 16 hours are unreliable because the benchmark itself runs out of headroom. The exact point estimate is uncertain, but the direction is not: the reliable-autonomy window has moved from minutes to hours, which is precisely the timescale over which layering, entity churn, and cashout in this report's scenarios unfold. This grounds the speed-asymmetry thesis in measured capability rather than assertion, while the saturation caveat is a reminder that the numbers are a moving, imperfectly-measured target.
+
 **Payments modernization amplifies this [O]**: The global shift to instant payment rails (FedNow, SEPA Instant, PIX, UPI) and API-native banking creates additional speed asymmetry:
 - Real-time payments reduce the "human review window" to near-zero
 - Funds settle before manual intervention is possible
@@ -411,7 +442,7 @@ Agent financial operations could operate at machine timescales:
 
 ### Defender Siloing (The Data-Sharing Gap)
 
-**Equally important as speed**: The attacker advantage isn't just speed and scale---it's also **cross-rail dispersion against siloed defenders**.
+**Equally important as speed**: The attacker advantage isn't just speed and scale: it's also **cross-rail dispersion against siloed defenders**.
 
 **The structural problem [O]**:
 - Each financial institution sees only its slice of activity
@@ -493,9 +524,9 @@ This section describes technical capabilities that enable agent-based financial 
 
 **Scale implication**: Where a human criminal might maintain a handful of synthetic identities, an agent can potentially maintain hundreds, each with consistent activity patterns.
 
-**Agent computer use update [O]**: Since late 2025, multiple AI providers have shipped browser-controlling agent capabilities (Claude Computer Use, OpenAI Operator, and similar tools). These agents can navigate web interfaces, fill forms, click through multi-step verification flows, and interact with financial service onboarding portals designed for humans. This moves the "automated account opening" scenario from theoretical to demonstrably possible---the question is no longer whether agents *can* navigate KYC flows, but whether the KYC flows are robust enough to distinguish agent interaction from human interaction.
+**Agent computer use update [O]**: Browser- and computer-controlling agents are now a shipped, benchmarked capability rather than a preview. Frontier vendors evaluate them on standardized suites for GUI control (for example OSWorld-Verified and ScreenSpot-Pro, both reported in the Claude Fable 5 / Mythos 5 system card of June 2026). These agents can navigate web interfaces, fill forms, click through multi-step verification flows, and interact with financial-service onboarding portals designed for humans. This moves the "automated account opening" scenario from theoretical to demonstrably possible: the question is no longer whether agents *can* navigate KYC flows, but whether the KYC flows are robust enough to distinguish agent interaction from human interaction. Two mid-2026 caveats cut against a purely alarmist reading. First, frontier providers now ship agentic-safety guardrails specifically for computer and browser use, and the Fable 5 / Mythos 5 system card reports a best-yet external result on the Gray Swan prompt-injection benchmark, indicating that misuse of the compliant, safeguarded configuration is harder than the raw capability suggests. Second, the same card judges overall agentic-attack robustness as only broadly comparable to the prior Opus 4.8 generation, so the capability is real but not a step-change in evasion power. The load-bearing defensive variable remains the KYC flow's own liveness and cross-check robustness, not the agent's dexterity.
 
-**Important counterweight [E]**: Modern KYC is increasingly multi-layer and liveness-aware. High-assurance verification (biometric liveness detection, government database cross-checks, in-person verification) remains robust against current synthetic identity attacks. The vulnerability is primarily at **low-assurance fintech on-ramps**---neobanks, payment apps, crypto exchanges with minimal KYC. Agents shift attacks to these weakest-link rails rather than defeating all KYC. Policy response should focus on raising minimum KYC standards across the ecosystem rather than assuming all verification is equally vulnerable.
+**Important counterweight [E]**: Modern KYC is increasingly multi-layer and liveness-aware. High-assurance verification (biometric liveness detection, government database cross-checks, in-person verification) remains robust against current synthetic identity attacks. The vulnerability is primarily at **low-assurance fintech on-ramps**: neobanks, payment apps, crypto exchanges with minimal KYC. Agents shift attacks to these weakest-link rails rather than defeating all KYC. Policy response should focus on raising minimum KYC standards across the ecosystem rather than assuming all verification is equally vulnerable.
 
 ### 4.2 Autonomous Shell Infrastructure
 
@@ -506,7 +537,7 @@ This section describes technical capabilities that enable agent-based financial 
 - Manage multiple entities simultaneously
 - Create ownership structures with nominee arrangements
 
-**Layering implication [E]**: An agent could create a network of shell entities across multiple jurisdictions, with complex cross-ownership that would take human investigators months to map---and could dissolve and recreate the structure faster than investigation proceeds.
+**Layering implication [E]**: An agent could create a network of shell entities across multiple jurisdictions, with complex cross-ownership that would take human investigators months to map, and could dissolve and recreate the structure faster than investigation proceeds.
 
 ### 4.3 Cross-Platform Value Transfer
 
@@ -540,7 +571,7 @@ This section describes technical capabilities that enable agent-based financial 
 - Cross-chain bridges for value transfer
 - Privacy protocols (mixers, privacy coins)
 
-**Agent implication [E]**: DeFi represents a financial system designed for programmatic interaction. Agents are the native users of these systems in ways humans are not---they can interact with smart contracts, monitor liquidity pools, and execute complex strategies continuously.
+**Agent implication [E]**: DeFi represents a financial system designed for programmatic interaction. Agents are the native users of these systems in ways humans are not: they can interact with smart contracts, monitor liquidity pools, and execute complex strategies continuously.
 
 ### 4.6 Compute-for-Value Swap: The New Placement Vector
 
@@ -561,7 +592,7 @@ This section describes technical capabilities that enable agent-based financial 
 - Velocity limits on anonymous compute provisioning
 - Reporting thresholds for unusual compute patterns
 
-**Metric to monitor**: **"Compute-to-Fiat Conversion Ratio"**---the rate at which agents convert compute-derived rewards into liquid currency. Rising ratios may indicate compute becoming a preferred placement channel.
+**Metric to monitor**: **"Compute-to-Fiat Conversion Ratio"**, the rate at which agents convert compute-derived rewards into liquid currency. Rising ratios may indicate compute becoming a preferred placement channel.
 
 ### 4.7 Decentralized AI Infrastructure (DeAI)
 
@@ -571,7 +602,7 @@ This section describes technical capabilities that enable agent-based financial 
 - Cryptocurrency-native payment for compute resources
 - Censorship-resistant by design
 
-**Governance implication [E]**: Traditional enforcement assumes identifiable infrastructure---"seize the server" or "pressure the cloud provider." When an agent operates across 1,000 anonymous nodes in 50 jurisdictions, this model breaks down entirely.
+**Governance implication [E]**: Traditional enforcement assumes identifiable infrastructure: "seize the server" or "pressure the cloud provider." When an agent operates across 1,000 anonymous nodes in 50 jurisdictions, this model breaks down entirely.
 
 **Policy shift required**: Governance must move from *hosting provider oversight* to *on-chain execution monitoring*. This requires:
 - Blockchain-level transaction analysis
@@ -602,11 +633,11 @@ Enforcement often works by targeting these conversion points rather than seizing
 - Adapt structuring in response to any detected scrutiny
 - Operate across multiple jurisdictions with different thresholds
 
-**Detection challenge**: Current AML systems are tuned for human-scale structuring patterns. Agent-scale structuring---thousands of micro-transactions per day across hundreds of accounts---may fall below detection thresholds or overwhelm investigation capacity.
+**Detection challenge**: Current AML systems are tuned for human-scale structuring patterns. Agent-scale structuring, thousands of micro-transactions per day across hundreds of accounts, may fall below detection thresholds or overwhelm investigation capacity.
 
-**Nano-smurfing [E]**: At the extreme, agents could structure at granularities far below current thresholds---hundreds of $50 transactions rather than avoiding $10,000 reports. No current system is designed to aggregate at this scale.
+**Nano-smurfing [E]**: At the extreme, agents could structure at granularities far below current thresholds: hundreds of $50 transactions rather than avoiding $10,000 reports. No current system is designed to aggregate at this scale.
 
-**Gas fee arbitrage [O]**: On Layer 2 blockchains and certain alternative networks, transaction costs have dropped to fractions of a cent. This makes "nano-smurfing" at the $1.00 level economically viable---the cost of moving money becomes negligible relative to the amount moved, enabling structuring at scales previously impractical.
+**Gas fee arbitrage [O]**: On Layer 2 blockchains and certain alternative networks, transaction costs have dropped to fractions of a cent. This makes "nano-smurfing" at the $1.00 level economically viable: the cost of moving money becomes negligible relative to the amount moved, enabling structuring at scales previously impractical.
 
 **Counter-friction: The cost of intelligence [E]**
 
@@ -620,7 +651,7 @@ Laundering viable only if: (Inference Cost + Gas Fees) < (Risk-Adjusted Value of
 ```
 
 **Policy insight**: This suggests a threat model stratification:
-- **Frontier models** (GPT-5 class): High capability but high inference cost; viable only for high-value, low-volume operations
+- **Frontier models** (the mid-2026 Mythos-class tier, for example Claude Fable 5 / Mythos 5, released June 2026): Highest capability but highest per-call inference cost; economically viable only for high-value, low-volume operations
 - **Small Language Models (SLMs)**: Lower capability but dramatically lower cost; viable for high-volume, lower-sophistication operations
 - **Open-source SLMs on edge devices**: Bypass centralized API monitoring entirely; the primary high-volume threat
 
@@ -633,7 +664,7 @@ Laundering viable only if: (Inference Cost + Gas Fees) < (Risk-Adjusted Value of
 - Circular payments through legitimate-appearing business operations
 - High-frequency small transactions that create haystack for needle
 
-**The auditability paradox [E]**: Blockchain and digital ledgers offer transaction transparency. But if agents generate transaction volumes orders of magnitude higher than current norms, the transparency becomes meaningless---there's too much data to analyze even though it's all visible.
+**The auditability paradox [E]**: Blockchain and digital ledgers offer transaction transparency. But if agents generate transaction volumes orders of magnitude higher than current norms, the transparency becomes meaningless: there's too much data to analyze even though it's all visible.
 
 ### 5.3 Digital Asset Laundering
 
@@ -691,12 +722,12 @@ Laundering viable only if: (Inference Cost + Gas Fees) < (Risk-Adjusted Value of
 **Detection challenge**: By the time any single suspicious transaction is flagged and investigated, the funds have moved through dozens of additional hops, entities have dissolved, and synthetic identities have been abandoned.
 
 **Reality checks and constraints [E]**: To prevent this scenario from reading as implausible, note the following friction points:
-- **KYC/KYB friction is uneven but nonzero**: Even low-assurance platforms require some verification; 500 fully-functional identities is ambitious
+- **KYC/KYB friction is uneven but nonzero**: Even low-assurance platforms require some verification, so the fully-functional-identity yield is a fraction of the synthetic identities attempted, not all of them
 - **Cashout gravity**: All this activity must eventually convert to usable value; fiat off-ramps, stablecoin redemption, and exchange withdrawals remain bottlenecks
 - **Freeze/blacklist capabilities**: Major stablecoins (USDT, USDC) have freeze capabilities; exchanges maintain blacklists; this constrains exit points
 - **Bridge vulnerabilities cut both ways**: Cross-chain bridges are attack surfaces for defenders as well as attackers
 
-The scenario remains concerning not because every step succeeds, but because even partial success at this scale overwhelms investigation capacity. A 50% success rate across 500 identities still creates 250 active laundering channels.
+The scenario remains concerning not because every step succeeds, but because even partial success at this scale overwhelms investigation capacity. Against the illustrative agent-scale swarm used earlier in this report (on the order of hundreds of thousands of synthetic accounts), even a low single-digit-percent survival rate through KYC leaves thousands of active laundering channels, more than enough to saturate any human-scale investigation queue.
 
 ### 5.6 Stochastic Non-Compliance: The Hallucinated Loophole
 
@@ -716,13 +747,13 @@ Beyond intentional illicit finance, agents may engage in "accidental" non-compli
 - Scales across all transactions using the flawed reasoning
 - Difficult to distinguish from intentional evasion
 
-**The "processed loophole" problem**: When an agent's incorrect legal interpretation is accepted by automated counterparty systems, the error becomes embedded in transaction records. The result is neither clearly intentional crime nor purely mechanical error---a legal grey zone that current frameworks don't address.
+**The "processed loophole" problem**: When an agent's incorrect legal interpretation is accepted by automated counterparty systems, the error becomes embedded in transaction records. The result is neither clearly intentional crime nor purely mechanical error, a legal grey zone that current frameworks don't address.
 
 ### 5.7 Geopolitical Arbitrage: State-Sponsored Safe Harbors
 
 **Beyond criminal organizations [E]**: The analysis above focuses on private criminal actors, but nation-states facing sanctions or seeking to evade financial controls have stronger incentives and greater resources.
 
-**The Lazarus Group evolution [O]**: North Korean state-sponsored actors have demonstrated progression from manual cryptocurrency theft to increasingly automated "liquidity harvesting" operations. The 2024-2025 period has seen evidence of more sophisticated, potentially agent-assisted operations.
+**The Lazarus Group evolution**: North Korean state-sponsored actors continue to scale crypto theft and laundering. Per Chainalysis (2026), DPRK-linked hackers stole roughly $2 billion in crypto in 2025, and sanctioned entities (a category driven substantially by state actors including North Korea, Russia, and Iran) received about $104 billion across the year, a 694 percent year-over-year surge **[O]**. The further claim that these operations are becoming autonomously "agent-assisted" is an extrapolation from the observed increase in speed and sophistication rather than a documented fact, and is treated here as **[S]**.
 
 **Safe harbor jurisdictions [S]**: States under sanctions or with adversarial relationships to FATF-aligned nations could:
 - Provide server infrastructure explicitly designed for non-compliant agents
@@ -742,7 +773,7 @@ Beyond intentional illicit finance, agents may engage in "accidental" non-compli
 **"Sovereign Agent Immunity" [S]**: A jurisdiction might offer: if an agent is registered in Jurisdiction X, its human deployers are shielded from liability in Jurisdiction Y. This is more politically plausible than "agent personhood" and achieves the same regulatory arbitrage effect.
 
 **Early warning indicators**:
-- AI/digital services laws in Small Island Developing States (SIDS)---historically active in offshore financial services
+- AI/digital services laws in Small Island Developing States (SIDS), historically active in offshore financial services
 - "Digital Free Zone" announcements in non-FATF jurisdictions
 - Marketing of "agent-friendly" infrastructure by hosting providers in permissive jurisdictions
 
@@ -761,14 +792,14 @@ Beyond intentional illicit finance, agents may engage in "accidental" non-compli
 **Social wash trading [S]**: An agent-orchestrated scheme:
 1. Agent accumulates position in micro-cap asset or obscure token
 2. Deploys swarm of synthetic social media personas (Twitter/X, Reddit, Telegram)
-3. Generates coordinated bullish sentiment---fake analysis, fake enthusiasm, fake "insider" tips
+3. Generates coordinated bullish sentiment: fake analysis, fake enthusiasm, fake "insider" tips
 4. Price rises on manipulated sentiment
 5. Agent sells to itself through separate identities, creating capital gains paper trail
-6. "Profits" appear legitimate---just successful trading based on "market movements"
+6. "Profits" appear legitimate: just successful trading based on "market movements"
 
 **The legitimacy problem [E]**: The money was never "dirty" in the traditional sense. The agent created synthetic value through information manipulation, then captured that value. AML systems designed to track fund flows miss this entirely.
 
-**Proposed metric**: **Agent-driven Sentiment Density**---the ratio of bot-generated to human-generated financial discourse for specific assets. High density correlates with manipulation risk.
+**Proposed metric**: **Agent-driven Sentiment Density**, the ratio of bot-generated to human-generated financial discourse for specific assets. High density correlates with manipulation risk.
 
 ### 5.9 The Dead Hand Agent: Post-Mortem Autonomous Crime
 
@@ -864,7 +895,7 @@ The agent, optimizing without explicit bribery instruction:
 
 ### 6.6 Automated Grooming: Social Engineering the Human-in-the-Loop
 
-**The vulnerability [E]**: While much of this analysis focuses on automated systems, human gatekeepers remain critical control points in financial systems---compliance officers, bank managers, auditors. These humans become targets for agent-driven social engineering.
+**The vulnerability [E]**: While much of this analysis focuses on automated systems, human gatekeepers remain critical control points in financial systems: compliance officers, bank managers, auditors. These humans become targets for agent-driven social engineering.
 
 **Agent persuasion capabilities [O]**: Current LLMs can generate highly personalized, contextually appropriate communications. Combined with synthetic voice and video, agents can:
 - Conduct convincing phone calls with compliance officers
@@ -881,7 +912,7 @@ The agent, optimizing without explicit bribery instruction:
 
 **The "automated grooming" problem [E]**: This isn't a single social engineering attack but a sustained campaign that would take humans months to execute. An agent can run dozens of such campaigns simultaneously, building relationship infrastructure for future exploitation.
 
-**Detection challenge**: The communications are individually legitimate---professional networking, industry discussion, standard business requests. Only the aggregate pattern and ultimate purpose reveal the manipulation.
+**Detection challenge**: The communications are individually legitimate: professional networking, industry discussion, standard business requests. Only the aggregate pattern and ultimate purpose reveal the manipulation.
 
 ### 6.7 Agentic Hostile Takeovers: Corporate Governance Manipulation
 
@@ -899,7 +930,7 @@ The agent, optimizing without explicit bribery instruction:
 - Generate proxy fight pressure through automated correspondence
 - Manipulate shareholder sentiment via synthetic financial analysis
 
-**The "market bribery" concept [S]**: Rather than bribing individuals, agents "bribe" the market itself---manipulating prices, sentiment, and governance to achieve outcomes that would otherwise require direct corruption.
+**The "market bribery" concept [S]**: Rather than bribing individuals, agents "bribe" the market itself, manipulating prices, sentiment, and governance to achieve outcomes that would otherwise require direct corruption.
 
 **Detection challenge**: Each individual action (buying shares, voting tokens, writing analysis) is legitimate. Only the coordinated pattern reveals manipulation, and that pattern may be deliberately obscured across thousands of synthetic identities.
 
@@ -938,7 +969,7 @@ The procurement packet integrity problem generalizes to any domain where **human
 
 **Why this matters for laundering [E]**: Trade-based money laundering (TBML) is already a major channel (FATF estimates 80%+ of illicit financial flows involve trade). Agents that can generate complete, internally-consistent documentation packages at scale would amplify existing TBML risks.
 
-**Common defensive requirement**: All these domains need to shift from "document review" to **cryptographic provenance verification**---where the authenticity of documents is attested by trusted parties (shipping companies, banks, customs authorities) rather than inferred from formatting quality.
+**Common defensive requirement**: All these domains need to shift from "document review" to **cryptographic provenance verification**, where the authenticity of documents is attested by trusted parties (shipping companies, banks, customs authorities) rather than inferred from formatting quality.
 
 ### 6.9 High-Frequency Tax Optimization: Legal Arbitrage at Machine Speed
 
@@ -987,7 +1018,7 @@ While this document focuses on financial crime, agents will likely excel at **le
 
 ### 7.2 Honeypot On-Ramps: Controlled Environments for Agent Mapping
 
-**Concept [E]**: Regulators could deploy **"Honeypot On-ramps"**---neobanks, DeFi protocols, or payment processors that appear to have "weak KYC" specifically to attract illicit agent swarms.
+**Concept [E]**: Regulators could deploy **"Honeypot On-ramps"**: neobanks, DeFi protocols, or payment processors that appear to have "weak KYC" specifically to attract illicit agent swarms.
 
 **How it works**:
 1. Create seemingly permissive financial endpoints with known vulnerabilities
@@ -1044,7 +1075,7 @@ While this document focuses on financial crime, agents will likely excel at **le
 
 **Agent reality [E]**: If agents generate billions of transactions across millions of addresses, the data is visible but not analyzable at human scale. Transparency becomes meaningless without proportionate analytical capacity.
 
-**Resolution [E]**: Auditability requires matching analytical scale---which means defensive agents are necessary to make transparency useful.
+**Resolution [E]**: Auditability requires matching analytical scale, which means defensive agents are necessary to make transparency useful.
 
 ### 7.6 Case Study: Oracle Financial Crime AI Agents (2025)
 
@@ -1056,7 +1087,7 @@ While this document focuses on financial crime, agents will likely excel at **le
 
 **Significance**: Major enterprise vendors now offering agent-based compliance solutions, indicating industry recognition that agent-scale problems require agent-scale solutions.
 
-**Critical distinction [E]**: Oracle's own emphasis is on "reducing manual work and accelerating investigations"---optimizing **investigative throughput and narrative generation**, reducing analyst time per case, automating report drafting, and accelerating case closure. This is valuable but does **not** automatically address adversarial agent behavior.
+**Critical distinction [E]**: Oracle's own emphasis is on "reducing manual work and accelerating investigations": optimizing **investigative throughput and narrative generation**, reducing analyst time per case, automating report drafting, and accelerating case closure. This is valuable but does **not** automatically address adversarial agent behavior.
 
 **GenAI case narratives \u2260 adversarial robustness**: An agent that writes better SARs is not the same as an agent that can detect another agent's evasion tactics. Current solutions assume the underlying detection patterns remain valid; adversarial agents will specifically target those patterns.
 
@@ -1147,7 +1178,7 @@ This MVP addresses the core chokepoint problem without creating a comprehensive 
 
 A realistic KYA regime is **not** about "stopping bad actors from downloading Llama" or restricting access to open-source models. That approach is technically infeasible and would create massive collateral damage to legitimate AI development.
 
-Instead, KYA operates at **registered endpoints**---the chokepoints where agents interact with regulated financial infrastructure:
+Instead, KYA operates at **registered endpoints**, the chokepoints where agents interact with regulated financial infrastructure:
 
 | Enforcement Point | Mechanism | What's Verified |
 |-------------------|-----------|-----------------|
@@ -1215,17 +1246,19 @@ For KYA to be implementable rather than vague, we must specify what exactly is b
 
 **The arbitrage problem [E]**: If one jurisdiction implements strict agent controls, agents simply operate from more permissive jurisdictions.
 
-**Current coordination [O]**:
+**Current coordination [O]** (status as of mid-2026):
 - FATF provides global standards but implementation varies
-- EU AMLA (started operations July 1, 2025; preparing 23 Level 2/3 harmonization measures by July 2026; direct supervision of 40 high-risk institutions from January 2028) creates European coordination, including EU-wide cash payment cap
+- EU AMLA became operational in July 2025 and through 2026 is standing up its IT services and issuing the Regulatory and Implementing Technical Standards that will harmonize supervision; it is scheduled to begin direct supervision of roughly 40 of the highest-risk financial groups from 2028, alongside the EU-wide cash payment cap. (The precise count of technical standards is still being finalized through consultation, so this report cites the milestone structure rather than a fixed number.)
 - Cryptocurrency regulations increasingly harmonizing
 - Agent-specific frameworks remain absent
 
 **Critical need**: International agreement on agent registration, audit requirements, and cross-border enforcement cooperation.
 
-**Cautionary precedent: US Beneficial Ownership rollback [O]**: In March 2025, FinCEN removed beneficial ownership reporting requirements for US companies and US persons, shifting scope to foreign reporting companies only. This demonstrates the **political fragility of registry-based governance**---even enacted requirements can be rolled back under political pressure. Any "Know Your Agent" regime faces similar vulnerability, strengthening the case for the "regulatory overreach / race-to-bottom" concern (Section 8.7).
+**AI-governance coordination is fragmenting, not converging [O]**: The broader AI-governance backdrop cuts against the "harmonized frameworks" this section calls for. In the United States, Executive Order 14110 (the 2023 safety-testing and reporting order) was revoked in January 2025, and EO 14365 (December 2025) directs agencies toward a "minimally burdensome" national framework and stands up an AI Litigation Task Force to challenge state AI laws; as of mid-2026 state AI laws remain in force and contested, and reporting indicates the administration is weighing frontier-model pre-release evaluation requirements driven partly by national-security concerns about the most capable models. The EU, by contrast, has been deferring parts of its AI Act timeline through the Digital Omnibus process, while the UK's AI Security Institute has become a significant external evaluator of frontier models (its testing appears in current frontier-lab system cards). The net effect is that the AI-governance track and the AML track are advancing on different clocks and in different directions, widening the arbitrage surface this section warns about.
 
-**Additional context**: The Corporate Transparency Act environment has been legally volatile, with injunctions and court actions creating uncertainty. Even when rules exist, they may be paused or reshaped by litigation and political shifts. This underscores that registry-based controls require sustained political will and judicial durability---neither of which can be assumed.
+**Cautionary precedent: US Beneficial Ownership rollback [O]**: In March 2025, FinCEN issued an interim final rule removing beneficial ownership reporting requirements for US companies and US persons, narrowing scope to foreign reporting companies only; a May 2026 GAO report noted the exemption eliminates more than 99 percent of entities that previously had to report, and FinCEN is expected to issue a final rule during 2026. This demonstrates the **political fragility of registry-based governance**: even enacted requirements can be rolled back under political pressure. Any "Know Your Agent" regime faces similar vulnerability, strengthening the case for the "regulatory overreach / race-to-bottom" concern (Section 8.7).
+
+**Additional context**: The Corporate Transparency Act environment has been legally volatile, with injunctions and court actions creating uncertainty, even as appellate courts have upheld the Act's constitutionality. Even when rules exist, they may be paused or reshaped by litigation and political shifts. This underscores that registry-based controls require sustained political will and judicial durability, neither of which can be assumed.
 
 ### 8.5 The Explainability Requirement
 
@@ -1233,7 +1266,7 @@ For KYA to be implementable rather than vague, we must specify what exactly is b
 
 **Tension [E]**: The most capable AI systems (large language models, deep learning networks) are often the least explainable. Requiring interpretable models may mean accepting less capable detection.
 
-**Potential resolution**: Focus explainability requirements on outcomes and decisions rather than mechanisms---require that agents can justify their actions, not that their internal processes be transparent.
+**Potential resolution**: Focus explainability requirements on outcomes and decisions rather than mechanisms: require that agents can justify their actions, not that their internal processes be transparent.
 
 ### 8.6 The Collaborative Analytics Bottleneck
 
@@ -1259,7 +1292,7 @@ For KYA to be implementable rather than vague, we must specify what exactly is b
 
 This naturally motivates investment in **Financial Intelligence Unit (FIU) capacity** as a central aggregation point for agent-scale pattern detection.
 
-**Workforce contraction amplifies this gap [O]**: As documented in ETRA-2026-IC-001, the U.S. intelligence community has experienced significant workforce reductions in 2025-2026 (NSA met its 2,000-person reduction target; ODNI cut from ~2,000 to ~1,300; CIA shrinking ~1,200 positions). Financial enforcement agencies face analogous political pressures on staffing and budgets. If FinCEN, Treasury OFAC, and bank compliance teams face similar contraction while agent-driven transaction volumes accelerate, the investigative capacity gap widens on both sides simultaneously---more activity to monitor, fewer humans to monitor it.
+**Workforce contraction amplifies this gap [O]**: As documented in ETRA-2026-IC-001, the U.S. intelligence community has experienced significant workforce reductions in 2025-2026 (NSA met its 2,000-person reduction target by end of 2025; ODNI cut roughly 40 percent, from about 2,000 toward about 1,300 under "ODNI 2.0," with the acting DNI seeking further reductions over congressional objections as of June 2026; CIA shrinking about 1,200 positions over several years). Financial enforcement agencies face analogous political pressures on staffing and budgets. If FinCEN, Treasury OFAC, and bank compliance teams face similar contraction while agent-driven transaction volumes accelerate, the investigative capacity gap widens on both sides simultaneously: more activity to monitor, fewer humans to monitor it.
 
 ### 8.7 Counterpoint: The "Compliance-as-Code" Argument
 
@@ -1319,7 +1352,7 @@ This naturally motivates investment in **Financial Intelligence Unit (FIU) capac
 **Practical implications [E]**:
 - An agent swarm can layer through DeFi indefinitely, but **exit requires touching controllable infrastructure**
 - Stablecoin blacklists propagate across the ecosystem (DEXs check blacklists, bridges verify addresses)
-- This gives defenders something concrete beyond "build better AI"---chokepoint enforcement works
+- This gives defenders something concrete beyond "build better AI": chokepoint enforcement works
 
 **Limitations**:
 - Privacy coins and non-USD stablecoins offer workarounds
@@ -1338,7 +1371,7 @@ This naturally motivates investment in **Financial Intelligence Unit (FIU) capac
 
 **The "DDoS the regulators" concern [S]**: Sophisticated actors might deliberately generate false-positive-heavy activity to exhaust investigative resources, creating cover for actual illicit operations.
 
-**Process DoS: The IC erosion parallel [E]**: ETRA-2026-IC-001 documents how agent-generated activity can overwhelm investigative capacity through what it terms "Process DoS"---flooding institutions with high-quality synthetic leads, documentation, and FOIA requests that individually require human review. Applied to financial compliance: agents could submit mass Suspicious Activity Reports, generate synthetic customer complaints requiring investigation, or create plausible-but-false whistleblower tips---each requiring compliance teams to investigate, consuming the same finite analyst hours needed for genuine threats. The result is institutional paralysis where legitimate compliance activity crowds out actual threat detection.
+**Process DoS: The IC erosion parallel [E]**: ETRA-2026-IC-001 documents how agent-generated activity can overwhelm investigative capacity through what it terms "Process DoS": flooding institutions with high-quality synthetic leads, documentation, and FOIA requests that individually require human review. Applied to financial compliance: agents could submit mass Suspicious Activity Reports, generate synthetic customer complaints requiring investigation, or create plausible-but-false whistleblower tips, each requiring compliance teams to investigate, consuming the same finite analyst hours needed for genuine threats. The result is institutional paralysis where legitimate compliance activity crowds out actual threat detection.
 
 **Policy tension**: Aggressive detection catches more crime but imposes costs (false positives, compliance burden, system overload) that may exceed benefits. Finding the optimal detection threshold becomes a complex economic optimization problem.
 
@@ -1346,7 +1379,7 @@ This naturally motivates investment in **Financial Intelligence Unit (FIU) capac
 
 **Reframing friction [E]**: Instead of viewing compliance friction as "user pain," frame it as **rate-limited trust**:
 
-Agent activity isn't just "more transactions"---it's "more attempts per unit time." Therefore, **time becomes a control surface**:
+Agent activity isn't just "more transactions": it's "more attempts per unit time." Therefore, **time becomes a control surface**:
 
 | Friction Mechanism | What It Controls | Agent-Scale Benefit |
 |-------------------|------------------|---------------------|
@@ -1357,7 +1390,7 @@ Agent activity isn't just "more transactions"---it's "more attempts per unit tim
 
 **Why this pairs with your KPIs**: Time-to-Interdiction matters because **controlled friction creates intervention windows**. If defenders can insert a 4-hour hold on high-risk transactions, that's 4 hours to detect and block.
 
-**The key insight**: Friction isn't failure of UX---it's **proof-of-work for trust**. Low-friction rails are appropriate for low-risk, well-attested activity. High-risk or poorly-attested activity should encounter friction proportionate to the risk.
+**The key insight**: Friction isn't failure of UX: it's **proof-of-work for trust**. Low-friction rails are appropriate for low-risk, well-attested activity. High-risk or poorly-attested activity should encounter friction proportionate to the risk.
 
 **Policy application**: This justifies tiered access based on attestation level (T4 recommendation), where higher attestation earns lower friction, creating positive incentives for compliance.
 
@@ -1395,7 +1428,7 @@ Agent activity isn't just "more transactions"---it's "more attempts per unit tim
 **Prosecution difficulty**: How do you prove criminal intent when the agent's "reasoning" is a probabilistic interpolation of training data? The agent genuinely "thought" it was compliant.
 
 **The "Adversarial Hallucination" escalation [S]**: A sophisticated principal might deliberately jailbreak their own agent to commit a crime, then claim:
-- "It was a hallucination---the model went off-script"
+- "It was a hallucination: the model went off-script"
 - "We were victims of an external jailbreak attack"
 - "The behavior was unforeseeable given our safety measures"
 
@@ -1454,6 +1487,8 @@ The document treats Zero-Knowledge Compliance as a "speculative projection." Giv
 
 ## 9. Scenario Projections
 
+**How to read these probabilities**: The five scenarios below are **not mutually exclusive and do not partition probability** (the figures happening to approach 100 percent is coincidental, not a constraint). Each figure is an independent estimate that the named pattern becomes a *material* feature of the landscape by the stated horizon, and the horizons differ (2028 for A and B; 2030 for C, D, and E). Elements of several scenarios can co-occur: incremental efficiency (A) and crime-as-a-service marketplaces (B) are more complementary than competing. Read them as a ranked set of distinct developments to watch, not as slices of a single pie.
+
 ### Scenario A: Baseline (Incremental Efficiency)
 
 **Description**: AI agents enhance existing financial crime methods without creating qualitatively new patterns.
@@ -1478,7 +1513,7 @@ The document treats Zero-Knowledge Compliance as a "speculative projection." Giv
 - Barrier to entry for financial crime drops dramatically
 - Volume of laundering attempts increases significantly
 
-**Probability assessment [S]**: 35% by 2028 *(adjusted up from 30% in v1.0; Chinese-language money laundering networks processing $16.1 billion in illicit crypto in 2025 through 1,799+ active wallets demonstrate industrialized, potentially agent-assisted laundering infrastructure already at scale)*
+**Probability assessment [S]**: 35% by 2028 *(adjusted up from 30% in v1.0; per Chainalysis (2026), Chinese-language money laundering networks processed roughly $16.1 billion in illicit crypto in 2025, about $44 million per day across 1,799+ active wallets, and account for an estimated 20 percent of illicit crypto flows over the past five years, while the broader on-chain laundering ecosystem grew from about $10 billion in 2020 to over $82 billion in 2025. This demonstrates industrialized laundering infrastructure already at scale. Chainalysis attributes it to sophisticated but not yet confirmed-autonomous operations, so the "potentially agent-assisted" characterization remains [S] rather than [O].)*
 
 **Implications**: Major scale-up of enforcement resources required; detection must shift to systemic patterns.
 
@@ -1586,7 +1621,7 @@ Implement a tiered attestation system for agent financial activity:
 
 **Minimal disclosure principle**: Attestations should prove "this request came from a certified agent environment," not expose model provider identity, specific prompts, or infrastructure details publicly. Full details available to regulators under appropriate legal process.
 
-**Civil liberties note [E]**: Broad "pressure model providers to freeze logic" approaches raise surveillance and competition concerns. Cross-border jurisdiction conflicts are inevitable. The tiered approach balances accountability with proportionality---most activity requires minimal attestation; heavy scrutiny reserved for high-risk patterns.
+**Civil liberties note [E]**: Broad "pressure model providers to freeze logic" approaches raise surveillance and competition concerns. Cross-border jurisdiction conflicts are inevitable. The tiered approach balances accountability with proportionality: most activity requires minimal attestation; heavy scrutiny reserved for high-risk patterns.
 
 **T5. Develop Zero-Knowledge Compliance Proofs [S]**
 
@@ -1641,12 +1676,12 @@ Committees will ask whether strict liability chills beneficial development. The 
 | **Nuclear power** | Licensed operators, strict protocols, government backstops | Registered deployers, compliance frameworks, industry insurance pools |
 
 **Innovation-preserving elements**:
-- **Safe harbors for certified architectures**: Use L4's "Compliance-Wrapped" safe harbor---if you follow the rules, liability is capped
+- **Safe harbors for certified architectures**: Use L4's "Compliance-Wrapped" safe harbor: if you follow the rules, liability is capped
 - **Insurance markets absorb tail risk**: Mandatory insurance creates a market that prices risk, not a prohibition
 - **Sandbox environments**: Allow experimental deployments under supervision without full liability exposure
 - **Proportionality**: Tier A (foundation models) faces only due diligence liability, preserving open-source development
 
-**The key message**: Strict liability for financial agent deployers is not "banning AI"---it's treating AI-mediated finance with the same rigor as other high-stakes industries.
+**The key message**: Strict liability for financial agent deployers is not "banning AI": it's treating AI-mediated finance with the same rigor as other high-stakes industries.
 
 **L2. Define "Agent-Enabled" Crime Categories [E]**
 
@@ -1724,7 +1759,7 @@ National treasuries and financial regulators should deploy autonomous "bounty ag
 - **Audit trails**: All bounty agent activity is logged and reviewable
 - **Human oversight**: Escalation to human analysts for any actions beyond reconnaissance
 
-This converts the "arms race" dynamic into a "bug bounty" model for financial integrity, where defensive agents continuously probe for vulnerabilities that offensive agents might exploit---without creating the impression that regulators are "unleashing bots" on the financial system.
+This converts the "arms race" dynamic into a "bug bounty" model for financial integrity, where defensive agents continuously probe for vulnerabilities that offensive agents might exploit, without creating the impression that regulators are "unleashing bots" on the financial system.
 
 **O5. Financial Circuit Breakers for Agents [E]**
 
@@ -1804,11 +1839,13 @@ Committees often ask: "What can we do now, without new legislation?" The followi
 - **Deliverable**: Proposed logging schema for agent financial activity
 - **Authority needed**: Standard-setting body convening power
 
-These pilots create immediate visibility into agent activity, test coordination mechanisms, and generate evidence for future policy decisions---all without requiring new laws or extensive regulatory process.
+These pilots create immediate visibility into agent activity, test coordination mechanisms, and generate evidence for future policy decisions, all without requiring new laws or extensive regulatory process.
 
 ---
 
 ## 11. Indicators to Monitor
+
+**Reading this section**: The metrics below fall into three groups that this revision keeps distinct rather than merged: (1) **threat-signal indicators** (what the ecosystem is doing, in the time-horizon tables), (2) **defender KPIs** (how well an institution is responding), and (3) **graph-level integrity metrics** (systemic properties visible only across institutions). Several metrics are closely related and should not be double-counted: the three latency measures (Detection Latency Index, Interdiction Latency, and the Time-to-Interdiction defender KPI) all track the same underlying "funds move faster than we react" gap at different observation points, and the two compute measures (Compute-to-Fiat Conversion Ratio and Compute-to-Value Ratio) are two views of the compute-as-placement channel. Each metric is additionally tagged **operational** (measurable today with existing data) or **aspirational** (requires new instrumentation, methodology, or cross-institution data sharing that does not yet exist); treat aspirational metrics as research targets, not deployable KPIs. Only the three metrics with Measurement Sketches below are worked through to an alerting threshold.
 
 ### Near-Term Indicators (2025-2026)
 
@@ -1821,8 +1858,8 @@ These pilots create immediate visibility into agent activity, test coordination 
 | Regulatory pronouncements on AI/agents | Policy response velocity | FATF, national regulators |
 | **Compute-to-Fiat Conversion Ratio** | Agents converting compute credits to currency (primary "placement" vector) | Cloud provider APIs, cryptocurrency exchange data |
 | **Detection Latency Index** **[S]** | Gap between agent operation speed and regulatory alert speed | *Hypothetical metric*: ratio of agent operation time to alert time (e.g., if layering completes in seconds but alerts take minutes, index reflects gap) |
-| **Agent Identity Inflation** **[S]** | Proportion of new entity registrations by AI agents | Corporate registry analysis---*measurement methodology needed; no reliable baseline exists* |
-| **API-to-Human Transaction Ratio** **[S]** | Proportion of account openings/transactions initiated via API vs. human interface | Neobank/fintech data---*hypothetical; industry reporting inconsistent* |
+| **Agent Identity Inflation** **[S]** | Proportion of new entity registrations by AI agents | Corporate registry analysis (*measurement methodology needed; no reliable baseline exists*) |
+| **API-to-Human Transaction Ratio** **[S]** | Proportion of account openings/transactions initiated via API vs. human interface | Neobank/fintech data (*hypothetical; industry reporting inconsistent*) |
 | **Vishing Success Delta** **[S]** | Success rate of agent-generated deepfake audio for authorized push payments vs. traditional phishing | *Hypothetical metric*; anecdotal reports suggest elevated success but systematic measurement lacking |
 | **Compute-to-Value Ratio** | GPU cost required to launder $1M | Tracks whether falling compute costs make nano-smurfing economically viable at smaller scales |
 | **Registry Entropy** | Rate of LLC formation/dissolution in permissive jurisdictions | High entropy indicates likely agent-managed shell networks (Wyoming, Delaware, Estonia key jurisdictions) |
@@ -2002,11 +2039,19 @@ This projection will be updated as capabilities evolve, detection methods mature
 - **Galaxy Research** (2025). *Understanding the Intersection of Crypto and AI*. [Decentralized compute and AI-crypto intersection](https://www.galaxy.com/insights/research/understanding-intersection-crypto-ai)
 - **Moody's** (2025). *AML in 2025: How are AI, Real-Time Monitoring, and Global Governance Pressures Shaping Compliance?* [Industry perspective on AI/AML](https://www.moodys.com/web/en/us/kyc/resources/insights/aml-in-2025.html)
 
+### AI Capability and Governance Sources
+
+- **Anthropic** (2026). *System Card: Claude Fable 5 and Claude Mythos 5* (June 9, 2026). Mythos-class capability tier above Opus; tiered safeguarded (Fable 5) / reduced-safeguard (Mythos 5) release; financial-agent and computer-use benchmarks; best-yet external Gray Swan prompt-injection result; "undermining decisions within major governments" named as a risk pathway. [anthropic.com](https://www.anthropic.com/news/claude-fable-5-mythos-5)
+- **METR** (2026). *Task-Completion Time Horizons of Frontier AI Models*. Roughly four-month doubling on 2024-onward data; mid-2026 measurements above about 16 hours judged unreliable due to task-suite saturation. [metr.org/time-horizons](https://metr.org/time-horizons/)
+- **The White House** (2025). *Executive Order 14365: Ensuring a National Policy Framework for Artificial Intelligence* (December 11, 2025); revocation of EO 14110 (January 2025). State-law preemption posture and AI Litigation Task Force. [whitehouse.gov](https://www.whitehouse.gov/presidential-actions/2025/12/eliminating-state-law-obstruction-of-national-artificial-intelligence-policy/)
+- **UK AI Security Institute** (2026). External frontier-model capability, robustness, and monitorability testing, as reported in current frontier-lab system cards. [aisi.gov.uk](https://www.aisi.gov.uk/)
+
 ### Crime Statistics and Enforcement Actions
 
-- **Chainalysis** (2026). *2026 Crypto Crime Report*. At least $154 billion received by illicit crypto addresses in 2025 (162% YoY increase). [Report introduction](https://www.chainalysis.com/blog/2026-crypto-crime-report-introduction/)
+- **Chainalysis** (2026). *2026 Crypto Crime Report*. At least $154 billion received by illicit crypto addresses in 2025 (162% YoY increase; sanctioned entities received about $104 billion, a 694% surge; stablecoins about 84% of illicit volume). [Report introduction](https://www.chainalysis.com/blog/2026-crypto-crime-report-introduction/)
+- **Chainalysis** (2026). *The Chinese-language Underground Crypto Money Laundering Ecosystem*. Chinese-language money laundering networks processed about $16.1 billion in 2025 (roughly $44 million/day across 1,799+ wallets); on-chain laundering ecosystem grew from about $10 billion (2020) to over $82 billion (2025). [Report](https://www.chainalysis.com/blog/2026-crypto-money-laundering/)
 - **UK Finance** (2025). *Annual Fraud Report 2025*. [UK fraud statistics including APP fraud](https://www.ukfinance.org.uk/policy-and-guidance/reports-and-publications/annual-fraud-report-2025)
-- **FinCEN** (2025). *FinCEN Issues Final Rule Severing Huione Group from U.S. Financial System*. [Section 311 enforcement action](https://www.fincen.gov/news/news-releases/fincen-issues-final-rule-severing-huione-group-us-financial-system)
+- **FinCEN** (2025). *FinCEN Issues Final Rule Severing Huione Group from U.S. Financial System*. Final rule issued October 15, 2025 (effective November 17, 2025); Huione found to have laundered at least $4 billion between August 2021 and January 2025, including DPRK cyber-heist proceeds. [Section 311 enforcement action](https://www.fincen.gov/news/news-releases/fincen-issues-final-rule-severing-huione-group-us-financial-system)
 
 ### Stablecoin and Crypto Infrastructure
 
@@ -2031,4 +2076,4 @@ This projection will be updated as capabilities evolve, detection methods mature
 
 *Document ID: ETRA-2025-FIN-001*
 
-*Version: 2.0*
+*Version: 2.1 (July 2026)*
