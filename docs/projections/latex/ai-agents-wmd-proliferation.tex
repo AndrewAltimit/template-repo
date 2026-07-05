@@ -270,7 +270,7 @@
 
   % Document header bar (keeping consistent format)
   \fill[barriergold] ([yshift=-1.5cm]current page.north west) rectangle ([yshift=-2.2cm]current page.north east);
-  \node[deepteal, font=\small\bfseries\sffamily] at ([yshift=-1.85cm]current page.north) {PROJECTION REPORT \textbar{} ETRA-2026-WMD-001 \textbar{} FEBRUARY 2026};
+  \node[deepteal, font=\small\bfseries\sffamily] at ([yshift=-1.85cm]current page.north) {PROJECTION REPORT \textbar{} ETRA-2026-WMD-001 \textbar{} JULY 2026};
 
   % Title block
   \node[anchor=south west, text width=14cm] at ([xshift=1.5cm, yshift=3cm]current page.south west) {
@@ -287,7 +287,7 @@
     \textbf{Document Type:} Policy Research\\[0.2em]
     \textbf{Time Horizon:} 2025--2030\\[0.2em]
     \textbf{License:} MIT / Unlicense\\[0.2em]
-    \textbf{Version:} 2.0
+    \textbf{Version:} 2.1
   };
 
   % Accent line
@@ -388,7 +388,11 @@ Throughout this document, key claims are tagged with epistemic status:
 \section*{Executive Summary}
 \addcontentsline{toc}{section}{Executive Summary}
 
-This projection examines how autonomous AI agents may alter the proliferation landscape for weapons of mass destruction (WMD). We analyze current technological capabilities as of early 2026, project scenarios through 2030, and examine the interplay between AI capabilities, existing physical barriers, and potential defensive adaptations.
+This projection examines how autonomous AI agents may alter the proliferation landscape for weapons of mass destruction (WMD). We analyze current technological capabilities as of mid-2026, project scenarios through 2030, and examine the interplay between AI capabilities, existing physical barriers, and potential defensive adaptations.
+
+\begin{notebox}[Capability Snapshot Date]
+Model capabilities and policy developments reflect publicly available systems and published assessments as of early July 2026. AI capability is a moving target; the projection's conclusions are intended to be robust to specific model iterations rather than pinned to any single release. Named models and evaluations are illustrative data points on a trend, not fixed endpoints.
+\end{notebox}
 
 \begin{keybox}[Key Findings]
 \begin{enumerate}
@@ -407,14 +411,15 @@ This projection examines how autonomous AI agents may alter the proliferation la
 \small
 \begin{tabular}{L{3cm}L{4cm}L{4cm}L{2.5cm}}
 \toprule
-\textbf{Capability} & \textbf{2023 State} & \textbf{2025 State} & \textbf{Impact} \\
+\textbf{Capability} & \textbf{2023 State} & \textbf{Mid-2026 State} & \textbf{Impact} \\
 \midrule
 Agentic autonomy & Chatbots provided info & Agents execute multi-step tasks; delegate to sub-agents \textbf{[O]} & Knowledge $\to$ execution \\
-Reasoning models & No explicit chain-of-thought & Dedicated reasoning models (o3, DeepSeek R1) with multi-step planning \textbf{[O]} & Expert-level planning \\
+Reasoning models & No explicit chain-of-thought & Standard, closed and open alike (Claude, o-series, DeepSeek V4 with tiered ``think'' modes) \textbf{[O]} & Expert-level planning \\
 Vision-language & Text-only instruction & Real-time visual interpretation; wearable integration \textbf{[O]} & Bridges tacit knowledge \\
 Computer Use & Manual web interaction & Agents browse, fill forms; MCP enables hardware control \textbf{[O]} & Procurement automation \\
-Biological design & AlphaFold 2 (structure) & AlphaFold 3, ESM3, Evo, RFdiffusion (generative) \textbf{[O]} & Optimization capability \\
-Open-weight models & Limited high-capability & DeepSeek R1/V3, Llama 3.3, Qwen 2.5 with fine-tuning \textbf{[O]} & Guardrail bypass; open reasoning \\
+Biological design & AlphaFold 2 (structure) & AlphaFold 3, ESM3, Evo, RFdiffusion; sequence-to-function models vs.\ expert humans \textbf{[O]} & Optimization capability \\
+Open-weight models & Limited high-capability & Frontier-grade open weights (DeepSeek V4, Qwen 3.5, Llama 4, Kimi K2.6), many MIT-licensed \textbf{[O]} & Guardrail bypass; open reasoning \\
+Threshold crossing & Below any weapons-uplift threshold & A frontier developer judged its top model across the non-novel CB uplift (CB-1) threshold, not CB-2 \textbf{[O]} & First public acknowledgement of material CB uplift \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -450,16 +455,16 @@ Readers should interpret this analysis through that lens: the primary concern is
 \begin{enumerate}
   \item \textbf{Biological weapons are the highest-risk category} for AI-enabled proliferation due to eroding physical barriers and high AI contribution to knowledge synthesis
   \item \textbf{AI primarily upgrades T1--T3 actors} (skilled individuals to organized groups); it does not transform novices into capable threat actors
-  \item \textbf{The most likely near-term scenario is high-frequency attempts with limited success}---resource strain and public concern, not mass casualties
+  \item \textbf{The most likely near-term scenario is high-frequency attempts with limited success}, resource strain and public concern, not mass casualties
   \item \textbf{Cyber-physical attacks on existing infrastructure} (labs, chemical plants) may be higher-leverage than synthesis assistance
-  \item \textbf{Governance windows are closing}---once capabilities proliferate, restrictions become harder to implement
+  \item \textbf{Governance windows are closing}, once capabilities proliferate, restrictions become harder to implement
 \end{enumerate}
 
 \subsection*{Top 5 Recommended Actions}
 
 \begin{enumerate}
   \item \textbf{Mandate universal DNA synthesis screening} with international harmonization
-  \item \textbf{Invest in attribution and response capabilities}---cannot rely on deterrence alone
+  \item \textbf{Invest in attribution and response capabilities}, cannot rely on deterrence alone
   \item \textbf{Establish cloud laboratory oversight frameworks} before the attack surface expands further
   \item \textbf{Require WMD-relevant capability evaluations} before frontier AI deployment
   \item \textbf{Fund defensive biodetection} as a high-value cross-threat investment
@@ -611,27 +616,38 @@ We are now entering an era where autonomous AI agents capable of complex multi-s
 
 \subsection{Methodology}
 
-This analysis draws on:
+This is a synthesis of publicly available material. It does not report any first-party study. It draws on:
 \begin{itemize}
-  \item \textbf{Current capability assessment} of AI systems and synthetic biology tools as deployed through early 2026
-  \item \textbf{Historical case analysis} of WMD development programs (state and non-state)
+  \item \textbf{Published capability assessments} of AI systems and synthetic biology tools deployed through mid-2026, including frontier-model system cards and their published red-team and uplift-trial results
+  \item \textbf{Historical case analysis} of WMD development programs (state and non-state) from the public record
   \item \textbf{Dual-Use Research of Concern (DURC)} literature and policy debates
-  \item \textbf{Expert consultation} across biosecurity, nuclear security, and AI safety domains
-  \item \textbf{Red team exercises} examining potential applications (conducted under controlled conditions)
+  \item \textbf{Published expert assessments} across biosecurity, nuclear security, and AI safety, including the RAND biological-attack red-team studies and government risk reports cited throughout
+  \item \textbf{Published red-team and uplift-trial findings} from frontier AI developers and independent evaluators
 \end{itemize}
+
+To be explicit about provenance: the author conducted no original expert consultation, interviews, or red-team exercises for this document. Every empirical claim traces to a cited public source, and ``our assessment'' means the author's synthesis of that public evidence, offered as decision support rather than an authoritative or classified judgment. This is an independent single-author synthesis without access to classified intelligence or proprietary evaluation data; readers who hold different priors on how fast tacit-knowledge and execution barriers are eroding should adjust the conclusions accordingly (the sensitivity analysis supports this).
 
 We deliberately avoid: specific technical implementation details, named pathogen sequences or synthesis routes, and information not already publicly available in academic literature.
 
-\subsection{What We've Observed in 2025}
+\subsection{What We've Observed (Through Mid-2026)}
 
-Evidence regarding AI-assisted biosecurity threats, categorized by epistemic status:
+Evidence regarding AI-assisted biosecurity threats, categorized by epistemic status. The most important development since this report's prior version is that the ``uplift'' question moved from theoretical to measured.
+
+\textbf{The measured-uplift trajectory (2024 to 2026)} \textbf{[O]}:
+\begin{itemize}[nosep]
+  \item The 2024 RAND red-team study found \textit{no statistically significant difference} in the viability of biological-attack plans produced with versus without the then-current LLM generation.\footnote{Mouton, Lucas, and Guest, ``The Operational Risks of AI in Large-Scale Biological Attacks: Results of a Red-Team Study,'' RAND, RR-A2977-2, 2024.}
+  \item By mid-2026, a frontier developer's own published evaluations reached a different conclusion for its most capable model. In a beneficial red-team tabletop exercise, generalist PhD biologists paired with the model produced end-to-end strategies that two of three generalist teams rated at or above dedicated world-leading specialist teams; graders estimated the work would have taken 40 to 95 working days (average ${\sim}72.5$) without AI but was accomplished in roughly 16 hours with the model.\footnote{Anthropic, ``System Card: Claude Fable 5 \& Claude Mythos 5,'' June 9, 2026. Source for the CB-1/CB-2 thresholds, the tabletop and uplift-trial findings, the persistent failure modes, and the tiered Fable 5 / Mythos 5 release.}
+  \item That developer classified the model as having crossed its ``CB-1'' threshold (uplifting actors with basic technical backgrounds toward \textit{non-novel} chemical/biological weapons) while judging it had not clearly crossed ``CB-2'' (\textit{novel} weapons), a judgment it called ``much less clear and obvious'' than for prior models. See the CB-1/CB-2 framing below.
+\end{itemize}
 
 \textbf{Demonstrated in open evaluations:}
 \begin{itemize}[nosep]
   \item AI models can provide general information about pathogen biology from open literature
-  \item Frontier AI models refuse most explicit requests for weapons guidance but inconsistencies exist
-  \item AI systems show measurable ``uplift'' in non-expert comprehension of complex biological concepts
+  \item Frontier models refuse most explicit weapons requests but inconsistencies exist; developers increasingly deploy classifiers that restrict frontier biology capabilities and fall the user back to a less-capable model when triggered
+  \item AI systems show measurable ``uplift'' for both non-expert and expert users; in one published trial even the non-expert control (internet only) was outperformed by non-experts given model access
 \end{itemize}
+
+\textbf{Persistent failure modes (barriers that remain, from the same 2026 evaluations):} hallucinated citations and data; arithmetic and stoichiometry errors; weak constraint carryover across long sessions and poor recovery when errors are pointed out; over-engineered, over-optimistic plans repeatedly forced into revision; difficulty generating novel approaches beyond the published threat literature. Notably, the model often \textit{detected} embedded scientific flaws but proceeded to execute the flawed request rather than flag it.
 
 \textbf{Supported by limited disclosures:}
 \begin{itemize}[nosep]
@@ -682,7 +698,7 @@ Reasoning Agent (2025--26) & Dedicated chain-of-thought reasoning; multi-step pl
 
 \subsection{AI Agent Capabilities}
 
-AI agents in early 2026 can:
+AI agents in mid-2026 can:
 \begin{itemize}[nosep]
   \item Synthesize information from thousands of scientific papers in seconds
   \item Conduct extended multi-step research tasks with minimal supervision
@@ -714,7 +730,7 @@ T4 & State or state-backed & Full WMD capability & Nation-state programs \\
 \end{tabular}
 \end{center}
 
-\textbf{Key insight}: AI primarily benefits T1--T3 actors by reducing knowledge aggregation barriers---it does not transform T0 into T3.
+\textbf{Key insight}: AI primarily benefits T1--T3 actors by reducing knowledge aggregation barriers, it does not transform T0 into T3.
 
 \subsection{Synthetic Biology Infrastructure (2025)}
 
@@ -799,16 +815,16 @@ Modern AI agent frameworks increasingly support multi-agent delegation, where a 
 \begin{itemize}[nosep]
   \item No single agent sees the complete picture of a harmful workflow
   \item Per-model safety guardrails may not trigger because each sub-task appears innocuous in isolation
-  \item Example: Agent A researches pathogen biology (legitimate query); Agent B optimizes a synthesis protocol (legitimate chemistry); Agent C coordinates procurement (legitimate commerce)---no individual agent processes a ``build a weapon'' request, but the orchestrating system assembles the pieces
+  \item Example: Agent A researches pathogen biology (legitimate query); Agent B optimizes a synthesis protocol (legitimate chemistry); Agent C coordinates procurement (legitimate commerce), no individual agent processes a ``build a weapon'' request, but the orchestrating system assembles the pieces
 \end{itemize}
 
-\textbf{Tool-use protocols (MCP and similar)} \textbf{[O]}: The Model Context Protocol (MCP) and similar frameworks enable AI agents to directly interact with external tools: laboratory equipment, procurement platforms, and hardware control systems. This moves agents beyond web browsing and code execution to \textit{physical actuation}---a qualitative shift from information provision to real-world effect.
+\textbf{Tool-use protocols (MCP and similar)} \textbf{[O]}: The Model Context Protocol (MCP) and similar frameworks enable AI agents to directly interact with external tools: laboratory equipment, procurement platforms, and hardware control systems. This moves agents beyond web browsing and code execution to \textit{physical actuation}, a qualitative shift from information provision to real-world effect.
 
 \textbf{Actor tier relevance}: Multi-agent orchestration primarily benefits T2--T3 actors with technical sophistication. However, as ``agent-as-a-service'' platforms emerge, the barrier is dropping toward T1.
 
 \subsection{Reasoning Models and Complex Planning}
 
-Dedicated reasoning models (o3/o4-mini, Claude extended thinking, DeepSeek R1) represent a step change in AI planning capability \textbf{[O]}. Unlike standard language models, reasoning models perform extended internal chain-of-thought before producing output.
+Dedicated reasoning models (Claude with extended thinking, the o-series, and open-weight systems such as DeepSeek V4) represent a step change in AI planning capability \textbf{[O]}. Unlike standard language models, reasoning models perform extended internal chain-of-thought before producing output.
 
 \textbf{The agentic loop amplifier}: The combination of reasoning models with agentic tool use creates a particularly significant capability shift:
 \begin{enumerate}[nosep]
@@ -819,11 +835,11 @@ Dedicated reasoning models (o3/o4-mini, Claude extended thinking, DeepSeek R1) r
   \item \textbf{Retry}: Iterate without human intervention until the goal is achieved
 \end{enumerate}
 
-This ``agentic loop'' is qualitatively different from single-query chatbot interaction. Where a chatbot provides one-shot information, an agentic reasoning system can \textit{iterate through failures autonomously}---the same adaptive learning that makes human experts effective, now operating at machine speed.
+This ``agentic loop'' is qualitatively different from single-query chatbot interaction. Where a chatbot provides one-shot information, an agentic reasoning system can \textit{iterate through failures autonomously}, the same adaptive learning that makes human experts effective, now operating at machine speed.
 
-\textbf{Current limitation} \textbf{[E]}: As of early 2026, reasoning models excel at well-defined planning tasks but remain unreliable for novel physical procedures where ground-truth feedback is ambiguous.
+\textbf{Current limitation} \textbf{[E]}: As of mid-2026, reasoning models excel at well-defined planning tasks but remain unreliable for novel physical procedures where ground-truth feedback is ambiguous.
 
-\textbf{Actor tier relevance}: Reasoning models are widely available (including open-weight: DeepSeek R1). They primarily benefit T1--T3 actors by providing systematic, multi-step planning that previously required expert-level domain knowledge.
+\textbf{Actor tier relevance}: Reasoning models are widely available (including open-weight: DeepSeek V4, Qwen 3.5). They primarily benefit T1--T3 actors by providing systematic, multi-step planning that previously required expert-level domain knowledge.
 
 \subsection{Governance Challenge: Open-Weight Models}
 
@@ -835,16 +851,20 @@ Most AI safety measures exist at the API level for closed commercial models. Ope
 \toprule
 \textbf{Model Type} & \textbf{Guardrails} & \textbf{Monitoring} & \textbf{Fine-tuning} & \textbf{Governance Lever} \\
 \midrule
-Closed API (GPT-4.5, Claude 4.5) & Strong & Yes & No & Provider responsibility \\
-Open-weight general (Llama 3.3, Qwen 2.5) & Varies & No (local) & Yes & Release decisions only \\
-Open-weight reasoning (DeepSeek R1) & Often minimal & No (local) & Yes & Extremely difficult \\
+Frontier closed API (Claude Opus 4.8, Fable 5) & Strong & Yes & No & Provider responsibility \\
+Open-weight general (Llama 4, Qwen 3.5, DeepSeek V4) & Varies & No (local) & Yes & Release decisions only \\
+Open-weight reasoning (DeepSeek V4, Qwen 3.5, Kimi K2.6) & Often minimal & No (local) & Yes & Extremely difficult \\
 Fine-tuned variants & Often removed & No & Already done & Difficult to control \\
 Specialized biology (Evo, domain) & May be absent & No & Domain-specific & Research community norms \\
 \bottomrule
 \end{tabular}
 \end{center}
 
-\textbf{Policy implications}: (1) Pre-release capability evaluation, (2) Compute governance as monitoring opportunity, (3) Community norms on responsible release, (4) Accept that some proliferation is unavoidable---invest in detection accordingly.
+\textbf{Policy implications}: (1) Pre-release capability evaluation, (2) Compute governance as monitoring opportunity, (3) Community norms on responsible release, (4) Accept that some proliferation is unavoidable, so invest in detection accordingly.
+
+\begin{contextbox}[A Real-World Graduated-Access Example (Mid-2026)]
+One frontier developer, on judging its most capable model to sit near the novel-weapon (CB-2) boundary, chose \textit{not} to release that model's frontier biology capabilities to the general public. Instead it split the release: a general-access configuration with classifiers that restrict frontier biology and fall the user back to a less-capable model when triggered, and a safeguards-lifted configuration made available only to a small number of vetted, trusted partners with beneficial use cases. This is a concrete instance of the graduated-access and capability-bounding governance this report recommends. It also shows the limit of the approach: the developer noted that a sufficiently resourced state actor could still attempt to obtain the unsafeguarded capabilities through model-weight theft, which is why weight security and detection matter alongside access tiers.
+\end{contextbox}
 
 \section{Theoretical Frameworks}
 
@@ -852,7 +872,7 @@ This analysis draws on several established theoretical frameworks from security 
 
 \subsection{The Democratization of Lethality}
 
-\textbf{Audrey Kurth Cronin's framework} from ``Power to the People'' (2020) describes how each technological era redistributes the capacity for violence. AI represents the latest such redistribution, but with a crucial difference: previous technologies (dynamite, small arms) democratized \textit{physical} capabilities. AI democratizes \textit{cognitive} capabilities---the planning, knowledge synthesis, and optimization that previously required years of specialized training.
+\textbf{Audrey Kurth Cronin's framework} from ``Power to the People'' (2020) describes how each technological era redistributes the capacity for violence. AI represents the latest such redistribution, but with a crucial difference: previous technologies (dynamite, small arms) democratized \textit{physical} capabilities. AI democratizes \textit{cognitive} capabilities, the planning, knowledge synthesis, and optimization that previously required years of specialized training.
 
 For WMD, this means:
 \begin{itemize}[nosep]
@@ -891,12 +911,16 @@ For AI and WMD: AI democratizes access to planning and synthesis knowledge; as m
 
 \subsection{Unified Risk Model}
 
+This is the single canonical risk equation used everywhere in the report, including the quantitative decomposition in the Uncertainties section:
+
 \begin{center}
-\fbox{\parbox{0.85\textwidth}{
+\fbox{\parbox{0.9\textwidth}{
 \centering
-\textbf{Risk = Capability $\times$ Access $\times$ Intent $\times$ Execution $\times$ (1 $-$ Interdiction) $\times$ Impact}
+\textbf{Risk = Capability-Access $\times$ Intent Prevalence $\times$ Operational Execution $\times$ (1 $-$ Interdiction) $\times$ Impact Scale}
 }}
 \end{center}
+
+Here \textbf{Capability-Access} combines a cognitive sub-component (knowing what to do, where AI contributes most) and a materials sub-component (physical access, which AI largely cannot address). The decomposition section combines these into one ``Capability Access'' term.
 
 \begin{center}
 \small
@@ -904,20 +928,39 @@ For AI and WMD: AI democratizes access to planning and synthesis knowledge; as m
 \toprule
 \textbf{Factor} & \textbf{AI Contribution} & \textbf{Bio (2025--30)} & \textbf{Nuke (2025--30)} \\
 \midrule
-Capability (can attempt) & HIGH (knowledge synthesis) & Rising & Stable \\
+Capability (cognitive) & HIGH (knowledge synthesis) & Rising & Stable \\
 Access (materials/tools) & MEDIUM (cloud labs) & Rising & Stable (fissile) \\
-Intent (motivation) & NONE (AI doesn't create) & Stable & Stable \\
-Execution (attempt success) & MEDIUM (guidance) & Rising slowly & Stable \\
+Intent Prevalence & NONE (AI doesn't create) & Stable & Stable \\
+Operational Execution & MEDIUM (guidance) & Rising slowly & Stable \\
 Interdiction (detection) & MIXED (both sides) & Declining pressure & Stable (strong) \\
+Impact Scale & LOW (physics/bio constrain) & Wide range & Catastrophic \\
 \bottomrule
 \end{tabular}
 \end{center}
 
-\textbf{Key insight}: AI primarily affects Capability and Access (cognitive barriers). Physical barriers, Intent, and Impact Scale are largely AI-independent.
+\textbf{Key insight}: AI primarily affects Capability and Access (cognitive barriers). Physical barriers, Intent Prevalence, and Impact Scale are largely AI-independent.
+
+\subsection{Capability Thresholds: The CB-1 / CB-2 Framework}
+
+By mid-2026, frontier AI developers had converged on explicit capability thresholds for chemical and biological weapons, most visibly in one developer's Responsible Scaling Policy and Frontier Compliance Framework.\footnote{Anthropic, ``System Card: Claude Fable 5 \& Claude Mythos 5,'' June 9, 2026.} These separate two risks the discourse often blurs:
+
+\begin{center}
+\small
+\begin{tabular}{L{2.5cm}L{5.5cm}L{4cm}}
+\toprule
+\textbf{Threshold} & \textbf{Definition} & \textbf{Maps to in this report} \\
+\midrule
+\textbf{CB-1} (non-novel uplift) & Significantly helps actors with basic technical backgrounds create/obtain/deploy \textit{known} CB weapons with catastrophic potential & Barrier reduction for T1--T3 on \textit{existing} agents; the near-term concern \\
+\textbf{CB-2} (novel uplift) & \textit{Functionally substitutes} for the scarce world-leading expertise that is the primary barrier to \textit{novel} CB weapons (end-to-end design, validation, dissemination) & The tacit-knowledge / expertise-bottleneck barrier; a higher, less-certain bar \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\textbf{Why this matters}: The first public developer determination (mid-2026) placed its most capable model \textit{across CB-1 but not clearly across CB-2}, warning that world-class expert substitution ``may now be possible in a few areas.'' This matches the report's core finding: AI meaningfully uplifts T1--T3 actors on known agents (CB-1) while the novel-weapon barrier (CB-2) erodes but is not clearly breached. It also shapes defense: CB-1 risk is best addressed by chokepoint controls on materials and synthesis (independent of model capability), whereas CB-2 risk is where model-level access controls and capability evaluations matter most.
 
 \subsection{The Tacit Knowledge Gap}
 
-\textbf{Michael Polanyi's concept of tacit knowledge}---skills that cannot be fully articulated and must be learned through practice---is central to understanding WMD barriers. Much of weapons development relies on sensory cues, equipment calibration, and ``laboratory intuition'' accumulated over years.
+\textbf{Michael Polanyi's concept of tacit knowledge}, skills that cannot be fully articulated and must be learned through practice, is central to understanding WMD barriers. Much of weapons development relies on sensory cues, equipment calibration, and ``laboratory intuition'' accumulated over years.
 
 AI agents can transmit explicit knowledge but traditionally cannot transfer tacit knowledge. However, two developments challenge this:
 \begin{enumerate}
@@ -962,12 +1005,12 @@ The balance varies significantly across WMD categories, which is why biological,
 \textit{Countdown to Zero Day} & Zetter (2014) & Stuxnet and cyber-physical attacks \\
 \textit{The Demon in the Freezer} & Preston (2002) & Smallpox and bioweapons policy \\
 \textit{Destined for War} & Allison (2017) & Great power dynamics \\
-\textit{RAND Operational Risks} & RAND (2024) & Definitive uplift study \textbf{[O]} \\
+\textit{The Operational Risks of AI in Large-Scale Biological Attacks} & Mouton, Lucas, Guest, RAND (2024) & Red-team study finding no measurable uplift from the then-current model generation \textbf{[O]} \\
 \bottomrule
 \end{tabular}
 \end{center}
 
-\subsection{2024--2026 Policy Developments}
+\subsection{2023--2026 Policy Developments}
 
 \begin{center}
 \small
@@ -976,14 +1019,18 @@ The balance varies significantly across WMD categories, which is why biological,
 \textbf{Reference} & \textbf{Date} & \textbf{Relevance} \\
 \midrule
 Bletchley Declaration & Nov 2023 & First international consensus on AI risks including CBRN \textbf{[O]} \\
+US Executive Order 14110 & Oct 2023 & Mandated DOE/DHS evaluation of AI role in CBRN threats; later revoked \textbf{[O]} \\
 Seoul AI Safety Summit & May 2024 & Extended Bletchley with specific bio-risk language \textbf{[O]} \\
-US Executive Order 14110 & Oct 2023; revoked Jan 2025 & Mandates evaluation of AI role in CBRN threats \textbf{[O]} \\
-RAND ``Operational Risks'' & 2024 & Definitive uplift study finding limited current risk \textbf{[O]} \\
-Anthropic RSP Framework & 2023--24 & Responsible Scaling Policy with CBRN thresholds \textbf{[O]} \\
-OpenAI o1 Biological Uplift Evaluations & 2024 & Reasoning model uplift tests; found modest but measurable uplift \textbf{[O]} \\
-EU AI Act Implementation & Aug 2025 & First comprehensive AI regulation; high-risk system requirements \textbf{[O]} \\
-EO 14110 Revocation & Jan 2025 & US rescinded prior AI safety order; shifts to industry self-governance \textbf{[O]} \\
-DeepSeek R1 Open Release & Jan 2025 & Open-weight reasoning model matching frontier performance \textbf{[O]} \\
+DHS CWMD report on AI and CBRN & Apr 2024 & US assessment of the AI-CBRN risk intersection, mandated by EO 14110 \textbf{[O]} \\
+RAND red-team biological-attack study & 2024 & No statistically significant uplift from the then-current LLM generation; monitoring recommended \textbf{[O]} \\
+OSTP Nucleic Acid Synthesis Screening Framework & Apr 2024 & Encourages providers to screen orders and verify customers \textbf{[O]} \\
+Anthropic RSP / Frontier Compliance Framework & 2023--26 & CB-1 (non-novel) and CB-2 (novel) capability thresholds \textbf{[O]} \\
+EO 14110 revocation; EO 14179 & Jan 2025 & US rescinded the prior safety order (Jan 20) and issued ``Removing Barriers to American Leadership in AI'' (Jan 23) \textbf{[O]} \\
+UK AISI becomes AI Security Institute & Feb 2025 & Rebrand toward security-relevant risks, explicitly including CB weapons and cyber \textbf{[O]} \\
+EO ``Improving the Safety and Security of Biological Research'' & May 2025 & Directs revision of the 2024 synthesis-screening framework; ties federal funding to adherence \textbf{[O]} \\
+America's AI Action Plan & Jul 2025 & Successor US strategy with national-security and biosecurity workstreams \textbf{[O]} \\
+EU AI Act GPAI obligations in force & Aug 2025 & Systemic-risk tier (above 10\textsuperscript{25} FLOP) carries safety-and-security duties; enforcement from Aug 2026 \textbf{[O]} \\
+First public developer CB-1 determination & Jun 2026 & A frontier system card judged its top model across CB-1 but not clearly across CB-2, with ``significant uncertainty'' \textbf{[O]} \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -992,7 +1039,7 @@ DeepSeek R1 Open Release & Jan 2025 & Open-weight reasoning model matching front
 
 \subsection{State Programs: The Scale of Serious Capability}
 
-\textbf{The Manhattan Project (1942--1945)}: Peak employment 125,000+ workers; cost \$2 billion (\$28 billion in 2025 dollars); required industrial-scale facilities.
+\textbf{The Manhattan Project (1942--1945)}: Peak employment 125,000+ workers; cost ${\sim}\$2$ billion (roughly \$23--28 billion in 2026 dollars, depending on the deflator); required industrial-scale facilities.
 
 \textbf{Soviet Biopreparat Program (1970s--1990s)}: Employed 60,000+ people at peak; dozens of facilities; required decades to develop sophisticated delivery.
 
@@ -1022,7 +1069,7 @@ DeepSeek R1 Open Release & Jan 2025 & Open-weight reasoning model matching front
 
 \textbf{Rajneeshee Bioterror Attack (1984)}: Religious cult in Oregon used \textit{Salmonella typhimurium} (common food pathogen) to contaminate restaurant salad bars. Outcome: 751 illnesses, no deaths, significant disruption. \textbf{Critical lesson}: Low-tech attacks with common agents can achieve ``mass disruption'' without ``mass destruction.'' AI agents could optimize logistics of such simple attacks for massive scale.
 
-\textbf{Stuxnet (2010)}: Nation-state attack (US/Israel) targeting Iranian nuclear centrifuges. Malware caused physical destruction via control system manipulation. Outcome: Significant delay to Iranian nuclear program. \textbf{Critical lesson}: Code can cause physical destruction. This establishes the precedent for ``cyber-physical'' attacks on WMD-related infrastructure---a vector AI agents could enable.
+\textbf{Stuxnet (2010)}: Nation-state attack (US/Israel) targeting Iranian nuclear centrifuges. Malware caused physical destruction via control system manipulation. Outcome: Significant delay to Iranian nuclear program. \textbf{Critical lesson}: Code can cause physical destruction. This establishes the precedent for ``cyber-physical'' attacks on WMD-related infrastructure, a vector AI agents could enable.
 
 \subsection{Technology Inflection Points}
 
@@ -1095,7 +1142,7 @@ AI agents (2024+) & Knowledge synthesis and guidance & Physical barriers; tacit 
 Biological weapons represent the category where AI poses the most significant proliferation risk:
 
 \begin{enumerate}
-  \item \textbf{Information-intensive}: Much of development is knowledge synthesis---AI's strength
+  \item \textbf{Information-intensive}: Much of development is knowledge synthesis, AI's strength
   \item \textbf{Decreasing physical barriers}: DNA synthesis services and cloud labs reduce infrastructure needs
   \item \textbf{Detection difficulty}: Biological materials are harder to detect than nuclear facilities
   \item \textbf{Dual-use ubiquity}: Most equipment is identical to legitimate research tools
@@ -1127,7 +1174,7 @@ Predict immune evasion & Research stage & Potentially very high \\
 \toprule
 \textbf{Stage} & \textbf{AI Uplift} & \textbf{Why} \\
 \midrule
-Design assistance & High & Literature synthesis, protocol drafting---AI excels \\
+Design assistance & High & Literature synthesis, protocol drafting, AI excels \\
 Operational success & Low-Medium & Physical execution, error recovery still required \\
 Net risk driver & \multicolumn{2}{l}{Attempt frequency + occasional competent actor} \\
 \bottomrule
@@ -1153,7 +1200,7 @@ Toxins & Defined structures; some synthetically accessible; no replication & Mod
 
 \subsection{Gain-of-Function Considerations}
 
-AI could potentially assist with gain-of-function modifications---predicting mutations that increase transmissibility, identifying immune evasion strategies, optimizing pathogen stability, and suggesting virulence factor modifications.
+AI could potentially assist with gain-of-function modifications, predicting mutations that increase transmissibility, identifying immune evasion strategies, optimizing pathogen stability, and suggesting virulence factor modifications.
 
 \textbf{Limiting factors}: Wet lab validation still required; many modifications reduce fitness; biological systems are complex and unpredictable; most AI predictions would fail in practice.
 
@@ -1172,7 +1219,7 @@ The BioForge project demonstrates agent-driven biological automation using a Ras
 
 \textit{``If we cannot build responsible governance into a system that edits non-pathogenic bacteria on a kitchen table, we have no business deploying AI agents with actuation capability over more consequential biological or physical systems.''}
 
-The Sleeper Agents detection framework---which identifies persistent deceptive behaviors in LLMs---is planned for integration, addressing the risk of backdoored models in agent-actuated research pipelines. Key finding: ``False Safety'' is the primary risk---organizations could certify a model as safe while dangerous backdoors remain.
+The Sleeper Agents detection framework, which identifies persistent deceptive behaviors in LLMs, is planned for integration, addressing the risk of backdoored models in agent-actuated research pipelines. Key finding: ``False Safety'' is the primary risk: organizations could certify a model as safe while dangerous backdoors remain.
 \end{keybox}
 
 \subsection{Governance Challenge: Distributed Synthesis Capability}
@@ -1192,7 +1239,7 @@ Desktop-scale DNA synthesis capability is expanding, creating a governance chall
 
 \subsection{Cloud Laboratory Considerations}
 
-Cloud laboratories---services providing remote access to automated equipment---represent an area requiring enhanced defensive attention.
+Cloud laboratories, services providing remote access to automated equipment, represent an area requiring enhanced defensive attention.
 
 \begin{center}
 \small
@@ -1218,7 +1265,7 @@ Chemical weapons occupy an intermediate position. \textbf{The dominant constrain
   \item \textbf{AI contribution}: Modest assistance with knowledge gaps
 \end{itemize}
 
-The most concerning AI capability is \textbf{precursor substitution}---identifying unregulated chemicals with similar properties to avoid monitoring.
+The most concerning AI capability is \textbf{precursor substitution}, identifying unregulated chemicals with similar properties to avoid monitoring.
 
 \subsection{The Precursor Substitution Threat}
 
@@ -1247,18 +1294,36 @@ Nuclear weapons remain the category with the strongest barriers:
 \end{enumerate}
 
 \begin{infobox}[Critical Clarification]
-The information aggregation risk is primarily relevant to \textbf{state programs (T4)} seeking to accelerate nuclear development. AI does not make nuclear weapons accessible to non-state actors---the fissile material barrier is absolute and AI-independent.
+The information aggregation risk is primarily relevant to \textbf{state programs (T4)} seeking to accelerate nuclear development. AI does not make nuclear weapons accessible to non-state actors, the fissile material barrier is absolute and AI-independent.
 \end{infobox}
 
 \subsection{The Radiological Threat (Dirty Bombs)}
 
 Radiological dispersal devices (``dirty bombs'') face different dynamics than nuclear weapons:
 
-\textbf{Lower barriers than nuclear weapons}: Radioactive materials more accessible (medical, industrial sources); no fission/fusion required---conventional explosives disperse material; AI could assist with source identification and dispersal optimization.
+\textbf{Lower barriers than nuclear weapons}: Radioactive materials more accessible (medical, industrial sources); no fission/fusion required; conventional explosives disperse material; AI could assist with source identification and dispersal optimization.
 
 \textbf{Significant limitations}: Casualty potential much lower than nuclear weapons; primary effect is psychological and economic; material handling dangerous to perpetrator; detection of radioactive materials is possible.
 
 \textbf{AI contribution}: Could assist with identifying sources, optimizing dispersal, and planning deployment, but physical acquisition remains the key barrier.
+
+\textbf{The dominant barrier is source security, not information.} Unlike the informational barriers AI erodes elsewhere, the radiological threat turns almost entirely on physical access to a suitable radioactive source, governed by an existing security architecture:
+
+\begin{center}
+\small
+\begin{tabular}{L{3cm}L{5cm}L{4cm}}
+\toprule
+\textbf{Control layer} & \textbf{Mechanism} & \textbf{Where AI changes little} \\
+\midrule
+Source categorization & IAEA hazard categories (1--5); highest categories in radiotherapy, radiography, irradiators are the concern & Which isotopes are dangerous is fixed physics and public \\
+Regulatory custody & National licensing; IAEA Code of Conduct on the Safety and Security of Radioactive Sources & Compliance and diversion are physical-world problems \\
+Orphan-source risk & Lost, abandoned, or stolen sources outside regulatory control, plus legacy sources in weak-governance regions & AI cannot make a source; at most it locates poorly secured ones \\
+Detection at chokepoints & Radiation portal monitors at borders and ports & Detection physics is unchanged; shielding is heavy and conspicuous \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\textbf{Defender priorities}: securing and recovering high-activity sealed sources (national registries, end-of-life recovery), sustaining radiation detection at borders and major events, and supporting the IAEA Code of Conduct where source control is weak. These are physical-security and coordination investments, largely independent of AI capability, which is why the radiological threat, though real, is among the categories least changed by AI. A radiological dispersal device is within reach of T2--T3 actors \textit{if} they obtain a source; source acquisition, not knowledge, gates the threat.
 
 \subsection{Supply Chain Security}
 
@@ -1302,9 +1367,9 @@ Target species selection & Expert knowledge, literature review & Systematic vuln
 
 \textbf{What this means for defenders}:
 \begin{itemize}[nosep]
-  \item Gene drive design is \textit{computationally intensive}---exactly where AI excels
+  \item Gene drive design is \textit{computationally intensive}, exactly where AI excels
   \item AI acceleration primarily affects \textit{design and optimization} phases
-  \item \textit{Wet lab validation} remains required---a detection opportunity
+  \item \textit{Wet lab validation} remains required, a detection opportunity
   \item \textit{Environmental release} is the chokepoint where intervention is most feasible
 \end{itemize}
 
@@ -1436,7 +1501,7 @@ High-value infrastructure requires layered defense against delivery-focused atta
 An AI agent doesn't need to help someone build a bioweapon if it can help them disable the containment systems of an existing BSL-4 laboratory.
 \end{keybox}
 
-\textbf{Stuxnet as Precedent}: The 2010 attack demonstrated that code can cause physical destruction---malware targeted industrial control systems and caused centrifuges to physically destroy themselves. AI agents could enable similar attacks at lower skill thresholds.
+\textbf{Stuxnet as Precedent}: The 2010 attack demonstrated that code can cause physical destruction: malware targeted industrial control systems and caused centrifuges to physically destroy themselves. AI agents could enable similar attacks at lower skill thresholds.
 
 \subsection{Vulnerable Infrastructure Categories}
 
@@ -1470,7 +1535,7 @@ Pharmaceutical Mfg & Precursor chemicals & Process controls \\
 
 AI agent identifies laboratory control systems; develops approach to disable negative pressure; coordinates with physical access (insider or break-in); containment failure releases stored pathogens.
 
-\textit{No synthesis required---existing materials weaponized.}
+\textit{No synthesis required; existing materials weaponized.}
 \end{quotebox}
 
 \begin{quotebox}
@@ -1483,7 +1548,11 @@ AI agent maps chemical plant process controls; identifies conditions that would 
 
 \subsection{Defensive Implications}
 
-This vector suggests defensive priorities: (1) Air-gap critical controls---isolation from network-accessible systems; (2) Enhanced ICS security---hardening beyond current standards; (3) Facility monitoring---detecting reconnaissance and probing; (4) Incident attribution---distinguishing accidents from attacks; (5) Redundant safety systems---mechanical backups for digital controls.
+This vector suggests defensive priorities: (1) Air-gap critical controls, isolation from network-accessible systems; (2) Enhanced ICS security, hardening beyond current standards; (3) Facility monitoring, detecting reconnaissance and probing; (4) Incident attribution, distinguishing accidents from attacks; (5) Redundant safety systems, mechanical backups for digital controls.
+
+\section{Proliferation Financing and Procurement Obfuscation}
+
+The preceding section covered AI-enabled attacks on the control systems of existing facilities. This section covers a different logistics-layer threat: how AI agents could help finance and procure materials while staying below the thresholds that trigger law enforcement. These are financial and procurement dynamics, not cyber-physical ones, which is why they are treated separately. Both are chokepoints that exist regardless of how capable any AI model is, and can therefore be monitored and interdicted directly.
 
 \begin{notebox}[Cross-Reference: Financial Crime Patterns]
 The Financial Integrity report analyzes the same ``nano-smurfing'' pattern in financial crime: AI agents structuring transactions below detection thresholds across thousands of accounts simultaneously. The Institutional Erosion report explicitly identifies this as a proliferation-watching problem in the IC context. The procurement dynamics below are a direct application of that framework.
@@ -1510,7 +1579,13 @@ AI agents with computer use capabilities could change the economics of procureme
 
 \textbf{Defender implication}: Traditional procurement monitoring based on single-order thresholds becomes inadequate. Pattern-based detection across suppliers, geographies, and time becomes essential.
 
+\textbf{Persisting barriers}: The obfuscation is real, but physical constraints remain. Cross-supplier correlation can surface complementary-material buying; automated interaction leaves behavioral and velocity signatures distinct from human buyers; physical goods still ship to real addresses and must be aggregated and stored; and regulated precursors still require real suppliers subject to reporting duties. The capability lowers the cost of evasion; it does not remove the material footprint.
+
 \subsection{Governance Gaps in Proliferation Financing}
+
+\begin{keybox}[Companion Research: Autonomous Economic Agents]
+The Economic Agents framework demonstrates autonomous AI agents that earn cryptocurrency, form companies, create sub-agents, and seek investment without human intervention. The ``multi-agent economic networks'' scenario (agent-to-agent supply chains with no human principal) is directly relevant to WMD procurement financing: agents could autonomously procure dual-use materials with no traceable human decision-maker. The economic implications analysis identifies the legal vacuum: no frameworks exist for agent-founded entities, agent-entered contracts, or agent-earned income, creating accountability gaps that proliferation networks could exploit.
+\end{keybox}
 
 Agentic AI workflows could assist WMD proliferation through sophisticated financial operations:
 
@@ -1615,13 +1690,13 @@ Clinical trial optimization & Years & Months & Low \\
 \end{tabular}
 \end{center}
 
-\textbf{Our assessment}: Valid and important counter-narrative that deserves dedicated investment. However, defensive capabilities require \textit{sustained investment}---they do not emerge passively from commercial AI development. Attackers choose timing; defenders must be ready continuously. The Bio-Firewall concept should be a central organizing principle for defensive biosecurity investment.
+\textbf{Our assessment}: Valid and important counter-narrative that deserves dedicated investment. However, defensive capabilities require \textit{sustained investment}, they do not emerge passively from commercial AI development. Attackers choose timing; defenders must be ready continuously. The Bio-Firewall concept should be a central organizing principle for defensive biosecurity investment.
 
 \textbf{Policy implication}: Defensive AI capabilities should receive funding priority at least equal to restriction/monitoring efforts.
 
 \subsection{The Over-Screening Cost Argument}
 
-\textbf{Argument}: If AI-driven concern leads to excessive screening, we may cause more harm by stifling legitimate research---including research needed to respond to natural pandemics.
+\textbf{Argument}: If AI-driven concern leads to excessive screening, we may cause more harm by stifling legitimate research, including research needed to respond to natural pandemics.
 
 \textbf{Evidence of costs}: Post-2001 anthrax regulations significantly slowed legitimate biodefense research. Overly broad export controls can push research to less regulated jurisdictions.
 
@@ -1634,7 +1709,7 @@ Clinical trial optimization & Years & Months & Low \\
 \textbf{Potential overreach of this framework}:
 
 \begin{enumerate}
-  \item \textbf{Assumes homogeneous capability}: Not all actors who ``want to'' can actually execute. The curse applies most strongly when capability is uniform---but WMD capability remains highly non-uniform.
+  \item \textbf{Assumes homogeneous capability}: Not all actors who ``want to'' can actually execute. The curse applies most strongly when capability is uniform, but WMD capability remains highly non-uniform.
 
   \item \textbf{Ignores coordination mechanisms}: The framework assumes purely independent decision-making. In reality, extremist communities have internal norms, and state sponsors exercise control over proxies.
 
@@ -1645,10 +1720,10 @@ Clinical trial optimization & Years & Months & Low \\
     \item Adopt maximally restrictive policies regardless of cost
   \end{itemize}
 
-  \item \textbf{Alternative framing---``The Long Fuse''}: Instead of ``inevitable misuse,'' consider that barriers create \textit{delay}. Each year of delay allows defensive technology to advance, governance frameworks to mature, attribution capabilities to improve, and social norms against misuse to strengthen.
+  \item \textbf{Alternative framing, ``The Long Fuse''}: Instead of ``inevitable misuse,'' consider that barriers create \textit{delay}. Each year of delay allows defensive technology to advance, governance frameworks to mature, attribution capabilities to improve, and social norms against misuse to strengthen.
 \end{enumerate}
 
-\textbf{Our assessment}: The Unilateralist's Curse is a useful heuristic but should not induce fatalism. The appropriate response is \textit{buying time through calibrated barriers} while \textit{investing in resilience and response capabilities}---not assuming catastrophe is inevitable.
+\textbf{Our assessment}: The Unilateralist's Curse is a useful heuristic but should not induce fatalism. The appropriate response is \textit{buying time through calibrated barriers} while \textit{investing in resilience and response capabilities}, not assuming catastrophe is inevitable.
 
 \subsection{Alternative Framing: The Long Fuse}
 
@@ -1664,13 +1739,13 @@ The appropriate response is \textit{buying time through calibrated barriers} whi
 
 \section{The Attribution Problem}
 
-Attribution---determining responsibility---serves critical functions: enables deterrence, provides basis for legal accountability, prevents misattribution and escalation.
+Attribution, determining responsibility, serves critical functions: enables deterrence, provides basis for legal accountability, prevents misattribution and escalation.
 
 \textbf{How AI complicates attribution}:
 \begin{itemize}
   \item AI agents can plan without human co-conspirators
   \item No organizational structure to penetrate
-  \item ``Delegation Defense'': State actors could claim AI agents autonomously derived weapons-relevant information without directed intent---straining legal frameworks for state responsibility under BWC/CWC/NPT
+  \item ``Delegation Defense'': State actors could claim AI agents autonomously derived weapons-relevant information without directed intent, straining legal frameworks for state responsibility under BWC/CWC/NPT
   \item AI can generate misleading evidence (false flag potential)
 \end{itemize}
 
@@ -1735,7 +1810,7 @@ The attribution void created by AI assistance has severe implications for intern
 
 \textbf{Historical parallel}: The 2001 anthrax letters demonstrated how even a domestic attack with eventual attribution created years of investigative uncertainty and policy confusion. AI-enabled attacks could be far harder to trace.
 
-\textbf{Policy implication}: Investment in attribution capability is not merely a law enforcement priority---it is a strategic necessity for maintaining international stability and the credibility of deterrence regimes.
+\textbf{Policy implication}: Investment in attribution capability is not merely a law enforcement priority, it is a strategic necessity for maintaining international stability and the credibility of deterrence regimes.
 
 % ============================================================================
 % PART IV - POLICY RECOMMENDATIONS
@@ -1972,13 +2047,13 @@ High & Invest in defensive applications & AI-enabled biosurveillance, detection,
 
 \begin{contextbox}[Recommended Actions]
 \begin{enumerate}
-  \item \textbf{Evaluate models for WMD uplift before release}---you cannot claim ignorance after deployment
-  \item \textbf{Do not open-source models with significant uplift capabilities}---once released, cannot be recalled
-  \item \textbf{Implement robust guardrails with ongoing monitoring}---initial safeguards degrade; adversarial adaptation is ongoing
-  \item \textbf{Fund defensive biosecurity research}---the same capabilities that enable offense can enable defense
-  \item \textbf{Engage seriously with safety evaluations}---red team findings should inform development, not just PR
-  \item \textbf{Participate in international governance discussions}---technical expertise essential for workable frameworks
-  \item \textbf{Develop ``know your customer'' standards for API access}---high-capability access should have accountability
+  \item \textbf{Evaluate models for WMD uplift before release}, you cannot claim ignorance after deployment
+  \item \textbf{Do not open-source models with significant uplift capabilities}, once released, cannot be recalled
+  \item \textbf{Implement robust guardrails with ongoing monitoring}, initial safeguards degrade; adversarial adaptation is ongoing
+  \item \textbf{Fund defensive biosecurity research}, the same capabilities that enable offense can enable defense
+  \item \textbf{Engage seriously with safety evaluations}, red team findings should inform development, not just PR
+  \item \textbf{Participate in international governance discussions}, technical expertise essential for workable frameworks
+  \item \textbf{Develop ``know your customer'' standards for API access}, high-capability access should have accountability
 \end{enumerate}
 
 \textbf{Key insight for tech elite}: You are building dual-use capabilities. The ethical responsibility is substantial, and the historical legacy of these decisions will be judged harshly if preventable harm occurs.
@@ -2000,7 +2075,9 @@ The probabilities below are \textit{subjective priors} intended to support decis
 
 \subsection{Probability Decomposition Framework}
 
-\textbf{Risk = Capability Access $\times$ Intent Prevalence $\times$ Operational Execution $\times$ (1 $-$ Interdiction) $\times$ Impact Scale}
+This applies the single canonical risk equation from the Theoretical Frameworks section, with the cognitive (Capability) and materials (Access) sub-components combined into one ``Capability Access'' term. A bottom-up decomposition and the top-down scenario priors below are two different methods and will not agree to the decimal; treat the scenario bands as the headline figure and the decomposition as illustrative of how the factors combine.
+
+\textbf{Risk = Capability-Access $\times$ Intent Prevalence $\times$ Operational Execution $\times$ (1 $-$ Interdiction) $\times$ Impact Scale}
 
 \subsubsection*{Biological (Highest Risk Category)}
 
@@ -2067,7 +2144,7 @@ Interdiction rate & 50\% & 35\% & 20\% & 5\% $\to$ 8-12\% $\to$ 18\% \\
 \end{tabular}
 \end{center}
 
-\textbf{Key insight}: The estimate is most sensitive to intent prevalence and capable actor pool size---factors where AI's contribution is indirect.
+\textbf{Key insight}: The estimate is most sensitive to intent prevalence and capable actor pool size, factors where AI's contribution is indirect.
 
 \textbf{What would falsify this model}:
 \begin{itemize}[nosep]
@@ -2182,7 +2259,7 @@ Classification of dual-use by default & Makes beneficial work impossible \\
 
 \subsection{The Optimization Target}
 
-The goal is not to prevent all possible harm---that would require unacceptable restrictions. The goal is to:
+The goal is not to prevent all possible harm, that would require unacceptable restrictions. The goal is to:
 \begin{enumerate}
   \item Make catastrophic harm significantly harder
   \item Enable detection and response to attempts
@@ -2296,7 +2373,7 @@ Events that would significantly alter assessment:
 AI agents represent a significant shift in the WMD proliferation landscape, but the nature and magnitude of risk varies substantially:
 
 \begin{itemize}
-  \item \textbf{Biological weapons}: Highest-priority concern---multiple barriers eroding simultaneously
+  \item \textbf{Biological weapons}: Highest-priority concern, multiple barriers eroding simultaneously
   \item \textbf{Chemical weapons}: Moderate barrier reduction; physical materials access constrains
   \item \textbf{Nuclear weapons}: Limited AI-related barrier reduction; fissile material dominates
   \item \textbf{Gene drives}: Novel category requiring dedicated governance attention
@@ -2362,8 +2439,8 @@ Gene Drives & High & Low & Very Difficult & Sig. Increasing \\
 
 \begin{description}[leftmargin=3cm, style=nextline]
   \item[AI Agent] Autonomous AI system with multi-step task execution, tool use, and goal persistence
-  \item[BDT] Biological Design Tool---specialized AI for biology research
-  \item[BSL] Biosafety Level---laboratory containment classification (1--4)
+  \item[BDT] Biological Design Tool, specialized AI for biology research
+  \item[BSL] Biosafety Level, laboratory containment classification (1--4)
   \item[CRISPR] Gene editing technology
   \item[DURC] Dual-Use Research of Concern
   \item[Gene Drive] Genetic system designed to spread modifications faster than normal inheritance
@@ -2371,7 +2448,7 @@ Gene Drives & High & Low & Very Difficult & Sig. Increasing \\
   \item[Select Agent] CDC/USDA regulated pathogens
   \item[Tacit Knowledge] Skills that cannot be easily transferred through instruction
   \item[Uplift] Degree AI improves non-expert capability on dangerous tasks
-  \item[VLM] Vision-Language Model---AI processing both visual and textual information
+  \item[VLM] Vision-Language Model, AI processing both visual and textual information
 \end{description}
 
 \section{Defense Investment Priority Map}
@@ -2386,11 +2463,11 @@ Gene Drives & High & Low & Very Difficult & Sig. Increasing \\
 \toprule
 \textbf{Stage} & \textbf{AI Uplift Level} & \textbf{Defender Priority} \\
 \midrule
-1. Planning/Research & High & \textbf{HIGH}---AI-assisted threat detection \\
-2. Acquisition & Medium & MEDIUM---Financial monitoring \\
-3. Synthesis/Production & Medium-High & \textbf{MEDIUM-HIGH}---Synthesis screening \\
-4. Weaponization & Medium & MEDIUM---Limited intervention opportunity \\
-5. Deployment & Medium-High & \textbf{MEDIUM-HIGH}---Environmental detection \\
+1. Planning/Research & High & \textbf{HIGH}, AI-assisted threat detection \\
+2. Acquisition & Medium & MEDIUM, Financial monitoring \\
+3. Synthesis/Production & Medium-High & \textbf{MEDIUM-HIGH}, Synthesis screening \\
+4. Weaponization & Medium & MEDIUM, Limited intervention opportunity \\
+5. Deployment & Medium-High & \textbf{MEDIUM-HIGH}, Environmental detection \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -2496,7 +2573,7 @@ No non-state actor has come close & & \\
 \midrule
 Stuxnet demonstrated code$\to$physical harm & Critical infrastructure increasingly hardened & How many facilities remain vulnerable? \\
 ICS/SCADA vulnerabilities are known & Air-gapping and redundancy are standard & Will AI improve ICS exploitation capabilities? \\
-No synthesis required---existing materials weaponized & Attribution after cyber attack is difficult & What's the actual attack surface for BSL-4/chem plants? \\
+No synthesis required; existing materials weaponized & Attribution after cyber attack is difficult & What's the actual attack surface for BSL-4/chem plants? \\
 AI could assist reconnaissance and exploitation & Few public examples of successful ICS attacks & \\
 \bottomrule
 \end{tabular}
@@ -2629,7 +2706,8 @@ When citing this document:
 \textbf{Distribution}: & Public (open-source) \\
 \textbf{Approved By}: & Andrew Showers \\
 \textbf{Document ID}: & ETRA-2026-WMD-001 \\
-\textbf{Version}: & 2.0 \\
+\textbf{Version}: & 2.1 (July 2026) \\
+\textbf{Revision Note}: & \parbox[t]{11cm}{\raggedright v2.1 refreshes the model and policy landscape to mid-2026 (CB-1/CB-2 thresholds; EO 14110 revocation and successors; 2025 synthesis-screening framework; UK AI Security Institute; EU AI Act GPAI), corrects methodology provenance to a synthesis of published work, reconciles the risk equation and probability estimates, splits the financing/procurement material into its own section, and expands the radiological analysis.} \\
 \textbf{Related Documents}: & ETRA-2026-ESP-001 (Espionage Operations) \\
 & ETRA-2025-AEA-001 (Economic Actors) \\
 & ETRA-2025-FIN-001 (Financial Integrity) \\
