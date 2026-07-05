@@ -544,13 +544,20 @@ jobs:
   build-images:
     name: Build Docker Images
     needs: [format-check, basic-lint, full-lint, test-suite, mcp-validation, detect-changes]
+    # Skip on tag pushes (releases). These images are built only to validate the
+    # Dockerfiles + compose health -- they use push: false and are torn down at the
+    # end of the job (never published). The tagged commit already passed this same
+    # validation on main, and the release artifacts (wheels, binaries, PDFs) do not
+    # depend on these images. Skipping here avoids ~45+ min of redundant work per release.
     if: >-
       always() && !cancelled() &&
+      !startsWith(github.ref, 'refs/tags/v') &&
       (needs.detect-changes.outputs.docker_changed == 'true' ||
        needs.detect-changes.outputs.mcp_changed == 'true' ||
        needs.detect-changes.outputs.python_changed == 'true')
     runs-on: self-hosted
-    timeout-minutes: 45  # Increased timeout for arm64 builds
+    # arm64 image builds routinely exceed 45 min; allow 1.5h so the job does not time out.
+    timeout-minutes: 90
     permissions:
       contents: read
       packages: write
@@ -1056,7 +1063,10 @@ jobs:
   # Stage 15: Create GitHub Release
   create-release:
     name: Create GitHub Release
-    needs: [build-python-wheels, build-rust-binaries, build-latex-docs, build-images, integration-tests]
+    # Depends only on the jobs that actually produce release artifacts. build-images
+    # and integration-tests are skipped on tag pushes (see build-images), so gating the
+    # release on them would skip the release entirely.
+    needs: [build-python-wheels, build-rust-binaries, build-latex-docs]
     if: startsWith(github.ref, 'refs/tags/v') || github.event.inputs.create_release == 'true'
     runs-on: self-hosted
     timeout-minutes: 10
