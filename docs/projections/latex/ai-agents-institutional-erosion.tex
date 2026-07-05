@@ -277,7 +277,7 @@
 
   % Document classification bar (standard ETRA gold - consistent across all reports)
   \fill[barriergold] ([yshift=-1.5cm]current page.north west) rectangle ([yshift=-2.2cm]current page.north east);
-  \node[slatedark, font=\small\bfseries\sffamily] at ([yshift=-1.85cm]current page.north) {PROJECTION REPORT \textbar{} ETRA-2026-IC-001 \textbar{} FEBRUARY 2026};
+  \node[slatedark, font=\small\bfseries\sffamily] at ([yshift=-1.85cm]current page.north) {PROJECTION REPORT \textbar{} ETRA-2026-IC-001 \textbar{} JULY 2026};
 
   % Title block (bottom left)
   \node[anchor=south west, text width=14cm] at ([xshift=1.5cm, yshift=3cm]current page.south west) {
@@ -294,7 +294,7 @@
     \textbf{Document Type:} Policy Research\\[0.2em]
     \textbf{Time Horizon:} 2026--2030\\[0.2em]
     \textbf{License:} MIT / Unlicense\\[0.2em]
-    \textbf{Version:} 2.0
+    \textbf{Version:} 2.1
   };
 
   % Vertical accent line (weathered bronze)
@@ -329,13 +329,13 @@
 
 \begin{tcolorbox}[enhanced, colback=lightgray, colframe=slatemid!50, boxrule=1pt, arc=3pt,
   left=10pt, right=10pt, top=10pt, bottom=10pt]
-This projection examines how autonomous AI agents are eroding the traditional advantages of national intelligence communities, particularly the U.S. Intelligence Community (IC). We analyze current technological capabilities through February 2026, project likely institutional impacts through 2030, and examine how intelligence organizations must adapt to maintain epistemic authority in an AI-saturated information environment.
+This projection examines how autonomous AI agents are eroding the traditional advantages of national intelligence communities, particularly the U.S. Intelligence Community (IC). We analyze current technological capabilities through early July 2026, project likely institutional impacts through 2030, and examine how intelligence organizations must adapt to maintain epistemic authority in an AI-saturated information environment.
 \end{tcolorbox}
 
 \vspace{0.2cm}
 
 \begin{keybox}[Central Thesis: The Verification Pivot]
-The IC is transitioning from an era of \textbf{Information Scarcity}---where advantage derived from superior collection capabilities---to an era of \textbf{Epistemic Contamination}---where advantage derives from superior verification capabilities. This represents the most significant shift in intelligence dynamics since the advent of signals intelligence.
+The IC is transitioning from an era of \textbf{Information Scarcity} (advantage derived from superior collection capabilities) to an era of \textbf{Epistemic Contamination} (advantage derives from superior verification capabilities). This represents the most significant shift in intelligence dynamics since the advent of signals intelligence.
 
 \vspace{0.5em}
 \textbf{Secondary Thesis: From Secrecy to Provenance}
@@ -344,7 +344,7 @@ In an AI-saturated environment, \textit{classification alone} is no longer a rel
 \end{keybox}
 
 \begin{infobox}[Note on IC Internal Provenance]
-Classified systems already maintain chain-of-custody, compartmentation, and audit trails. The thesis is not that the IC lacks provenance mechanisms, but that \textbf{verification and integrity mechanisms must become first-class properties} of intelligence products consumed by decision-makers---not merely security features for access control. The shift is from ``who can see this'' to ``why should this be believed.''
+Classified systems already maintain chain-of-custody, compartmentation, and audit trails. The thesis is not that the IC lacks provenance mechanisms, but that \textbf{verification and integrity mechanisms must become first-class properties} of intelligence products consumed by decision-makers, not merely security features for access control. The shift is from ``who can see this'' to ``why should this be believed.''
 \end{infobox}
 
 \vspace{0.1cm}
@@ -354,7 +354,7 @@ Classified systems already maintain chain-of-custody, compartmentation, and audi
   \item \textbf{[E] The Democratization of Tradecraft}: AI agents have effectively ``automated the Handler.'' Tradecraft that once required sovereign state infrastructure is now a commodity.
   \item \textbf{[E]} The IC faces a dual crisis: \textbf{Process DoS} (investigative capacity overwhelmed) and an \textbf{Attribution-Intent Gap} (inability to establish human intent behind agent actions)
   \item \textbf{[E]} Current collection-centric metrics become counterproductive in an environment of epistemic contamination
-  \item \textbf{[S]} Success in 2026-2030 will be measured by the ability to maintain an ``Epistemic Clean Room''---a verified environment for decision-making
+  \item \textbf{[S]} Success in 2026-2030 will be measured by the ability to maintain an ``Epistemic Clean Room'': a verified environment for decision-making
   \item \textbf{[E]} The ``Plausible Deniability 2.0'' dynamic will strain existing legal frameworks for state responsibility
   \item \textbf{[S]} Without adaptation, the IC risks becoming a high-cost verification bottleneck rather than a strategic advantage
 \end{enumerate}
@@ -374,6 +374,18 @@ This report is independent research. It is not affiliated with, produced by, or 
 
 \vspace{0.2cm}
 
+\begin{infobox}[Capability Snapshot Date]
+Model capabilities and policy developments described in this document reflect publicly available systems and published assessments as of \textbf{early July 2026}. Where a named model or evaluation is cited, treat it as an illustrative data point on a trend, not a fixed endpoint.
+\end{infobox}
+
+\vspace{0.2cm}
+
+\begin{infobox}[Changes from v2.0 (Mid-2026 Refresh)]
+Currency refresh to July 2026 (Fable 5 / Mythos 5 frontier, accelerated METR doubling, enacted Digital Omnibus deferrals, U.S. executive-order sequence, June 2026 workforce developments); methodology provenance corrected to synthesis of published assessments; deepfake data fixed and the unsupported ``90 percent synthetic content'' figure removed; new sections (IC AI adoption as attack surface, agent deception testbeds, two additional counterarguments, expanded budget and accountability analysis); Claims Register, Glossary, and Revision History appendices; recommendation traceability table and risk-matrix rubric; em-dash constructions removed; numeric self-references replaced with named references. See Appendix C for full history.
+\end{infobox}
+
+\vspace{0.2cm}
+
 % ============================================================================
 % EXECUTIVE TAKEAWAYS
 % ============================================================================
@@ -381,13 +393,14 @@ This report is independent research. It is not affiliated with, produced by, or 
 {\color{slatedark}\Large\bfseries Executive Takeaways}
 \end{center}
 
-\begin{defbox}[5 Non-Negotiable Assumptions]
+\begin{defbox}[Five Load-Bearing Assumptions]
+\textit{The section ``What Would Change This Assessment'' lists the developments that would invalidate each of these.}
 \begin{enumerate}
-  \item \textbf{The capability floor has risen permanently} --- Low-cost access to frontier models can automate major components of tradecraft---research, targeting, persona drafting, multilingual engagement---reducing manpower barriers even when operational constraints remain.
-  \item \textbf{Collection without verification is now a liability} --- In targeted collection environments, agent-generated decoys could plausibly outnumber authentic human signals by $\sim$3--30$\times$. Traditional signal-to-noise filters become unreliable.
-  \item \textbf{Attribution of intent is structurally harder} --- The ``Delegation Defense'' (blaming autonomous agent behavior) provides plausible deniability for state actors using AI agents.
-  \item \textbf{Institutional speed cannot match adversary iteration} --- Adversaries iterate at software speed; IC adoption is constrained by procurement, authorities, and assurance requirements.
-  \item \textbf{[O] Verification workforce is contracting} --- Confirmed IC staffing reductions: NSA met 2,000-person reduction (Dec 2025); ODNI cut to $\sim$1,300 under ``ODNI 2.0,'' dissolving the Foreign Malign Influence Center; CIA shrinking $\sim$1,200 positions; $\sim$8\% annual DOD budget cuts affect all military intelligence.
+  \item \textbf{[E] The capability floor has risen permanently.} Low-cost access to frontier models can automate major components of tradecraft (research, targeting, persona drafting, multilingual engagement), reducing manpower barriers even when operational constraints remain.
+  \item \textbf{[E/S] Collection without verification is now a liability.} Decoy generation is now orders of magnitude cheaper than triage; where triage is manual, decoys can plausibly outnumber authentic signals ($\sim$3--30$\times$ as an illustrative range; see the Collection-to-Verification Pivot). Traditional signal-to-noise filters become unreliable.
+  \item \textbf{[E] Attribution of intent is structurally harder.} The ``Delegation Defense'' (blaming autonomous agent behavior) provides plausible deniability for state actors using AI agents.
+  \item \textbf{[E] Institutional speed cannot match adversary iteration.} Adversaries iterate at software speed; IC adoption is constrained by procurement, authorities, and assurance requirements.
+  \item \textbf{[O] The verification workforce is contracting.} Confirmed IC staffing reductions: NSA met 2,000-person reduction (Dec 2025); ODNI cut toward $\sim$1,300 under ``ODNI 2.0,'' dissolving the Foreign Malign Influence Center, with several hundred further cuts sought under the acting DNI (June 2026); CIA shrinking $\sim$1,200 positions; $\sim$8\% annual DOD budget cuts affect all military intelligence.
 \end{enumerate}
 \end{defbox}
 
@@ -432,9 +445,9 @@ Verification metric defined; red-teams run; no unvetted AI in leadership workflo
 \toprule
 \textbf{Objection} & \textbf{Response} \\
 \midrule
-``This is alarmist'' & All claims tagged with epistemic markers; speculative projections clearly labeled [S] \\
+``This is alarmist'' & Key claims tagged with epistemic markers; speculative projections clearly labeled [S] \\
 ``IC is already adapting'' & Document identifies gaps in \textit{current} trajectory; builds on existing efforts \\
-``Agents aren't this capable yet'' & Capabilities described are current (Feb 2026); METR doubling time and Feb 2026 agent launches confirm trajectory \\
+``Agents aren't this capable yet'' & Capabilities described are current (July 2026); METR doubling has accelerated to $\sim$4 months, and frontier labs now ship models they assess as capable of uplifting well-resourced threat actors (Fable 5 / Mythos 5, June 2026) \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -476,6 +489,10 @@ The Intelligence Community has repeatedly adapted to technological disruption. T
   \item Eventual equilibrium with new threat/defense balance
 \end{itemize}
 
+\begin{infobox}[Precedent in Detail: The Post-9/11 Integration Lag {[O]}]
+The clearest documented case of the 3--7 year lag is the post-9/11 reorganization: the structural gap was identified publicly by the Joint Inquiry in 2002; the Terrorist Threat Integration Center stood up in 2003; the National Counterterrorism Center was established by executive order in 2004 and codified by IRTPA that December; independent assessments did not judge the fusion mission mature until roughly 2007--2008. The Open Source Center (2005) followed a similar arc. Both cases involved \textit{adding} a capability under maximum political urgency. The verification pivot involves \textit{reconceiving} core functions under budget contraction; the historical lag should be treated as a floor, not an estimate.
+\end{infobox}
+
 \begin{warnbox}[The AI Transition Differs in Three Critical Ways]
 \begin{enumerate}
   \item \textbf{Speed}: Previous transitions unfolded over decades; AI capabilities iterate weekly
@@ -484,14 +501,15 @@ The Intelligence Community has repeatedly adapted to technological disruption. T
 \end{enumerate}
 \end{warnbox}
 
-\textbf{Current IC posture (as of February 2026) [O/E]}:
+\textbf{Current IC posture (as of early July 2026) [O/E]}:
 \begin{itemize}[nosep]
   \item AI integration initiatives underway; IC-wide AI roadmap targets ``AI enabling services at scale'' for FY2026-2029
-  \item Significant variation in adoption maturity across the 18-agency community
+  \item Significant variation in adoption maturity across the 18-element community
   \item Collection capabilities continue to expand faster than verification capabilities
   \item Institutional incentives still favor collection metrics over verification metrics
-  \item Confirmed workforce contraction (NSA -2,000, ODNI -35\%, CIA -1,200) concurrent with rising verification demands
+  \item Confirmed workforce contraction (NSA -2,000; ODNI reduced by an announced $\sim$40\%, from $\sim$2,000 toward $\sim$1,300; CIA -1,200) concurrent with rising verification demands
   \item FMIC dissolved; counterproliferation and cyber threat integration centers restructured
+  \item June 2026: further ODNI reductions of several hundred positions sought under the acting DNI, over formal congressional objections (Government Executive, June 2026)
 \end{itemize}
 
 \textbf{The dominant near-term shift is likely}:
@@ -504,10 +522,11 @@ The Intelligence Community has repeatedly adapted to technological disruption. T
 
 \begin{infobox}[What This Document Does NOT Claim]
 \begin{itemize}
-  \item We do not claim the IC is currently failing---many adaptation efforts are underway
-  \item We do not claim AI agents make traditional intelligence obsolete---human judgment remains essential
-  \item We do not claim all projected scenarios are equally likely---probability varies significantly
-  \item We do not claim adversaries have fully operationalized these capabilities---but the trajectory is clear
+  \item We do not claim the IC is currently failing; many adaptation efforts are underway
+  \item We do not claim AI agents make traditional intelligence collection obsolete; human judgment remains essential, and the shift is that verification becomes the bottleneck
+  \item We do not claim all projected scenarios are equally likely; probability varies significantly
+  \item We do not claim adversaries have fully operationalized these capabilities, but the trajectory is clear
+  \item We do not claim catastrophic failure is inevitable; avoiding it requires a deliberate pivot
 \end{itemize}
 \end{infobox}
 
@@ -594,8 +613,8 @@ This report builds on and complements other documents in the Emerging Technology
 AI Agents as Economic Actors & ETRA-2025-AEA-001 & Establishes baseline agent capabilities; ``Principal-Agent Defense'' parallels Delegation Defense \\
 AI Agents and Financial Integrity & ETRA-2025-FIN-001 & Details nano-smurfing and evasion \\
 AI Agents and Espionage Operations & ETRA-2026-ESP-001 & Covers adversary HUMINT augmentation (``Handler Bottleneck Bypass,'' ``Stasi-in-a-Box'') \\
-AI Agents and Political Targeting & ETRA-2026-PTR-001 (v2.0) & Validates IC erosion dynamics through Verification Pivot and Algorithmic Capture \\
-AI Agents and WMD Proliferation & ETRA-2026-WMD-001 (v2.0) & Nano-smurfing for dual-use materials; ``conspiracy footprint shrinks''; attribution void \\
+AI Agents and Political Targeting & ETRA-2026-PTR-001 (v2.1) & Validates IC erosion dynamics through Verification Pivot and Algorithmic Capture; its Insider Threat vector parallels the IC AI-adoption attack surface here \\
+AI Agents and WMD Proliferation & ETRA-2026-WMD-001 (v2.1) & Nano-smurfing for dual-use materials; ``conspiracy footprint shrinks''; attribution void \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -604,14 +623,14 @@ AI Agents and WMD Proliferation & ETRA-2026-WMD-001 (v2.0) & Nano-smurfing for d
 
 This analysis draws on:
 \begin{itemize}
-  \item \textbf{Current capability assessment} of AI agent systems as deployed through early 2026
+  \item \textbf{Current capability assessment} of AI agent systems as publicly documented through early July 2026
   \item \textbf{Institutional analysis} of IC structure, incentives, and historical adaptation patterns
-  \item \textbf{Open-source intelligence} on adversary AI adoption and doctrine
-  \item \textbf{Expert consultation} across intelligence studies, AI safety, and national security law
-  \item \textbf{Red team exercises} examining IC vulnerability to agent-enabled operations
+  \item \textbf{Open-source reporting} on adversary AI adoption and doctrine
+  \item \textbf{Synthesis of published expert analysis} across intelligence studies, AI safety, and national security law
+  \item \textbf{Published red-team and evaluation results} (frontier-lab system cards, METR task-horizon research, and public red-teaming literature)
 \end{itemize}
 
-We deliberately avoid classified information, specific operational details that could enable harm, named targeting scenarios, and technical implementation details for adversarial applications.
+This is independent, single-author research: it involves no first-party expert consultation, no access to classified material, and no red-team exercises conducted by or for the author. We deliberately avoid classified information, specific operational details that could enable harm, named targeting scenarios, and technical implementation details for adversarial applications.
 
 \subsection{Epistemic Status Markers}
 
@@ -662,7 +681,7 @@ Throughout this document, claims are tagged with confidence levels:
 \textit{Falsifiable test}: If an adversary can systematically shift analytic conclusions without changing ground truth, you have algorithmic capture.
 
 \vspace{0.5em}
-\textbf{Orchestrated Mundanity}: The deliberate transformation of suspicious activities into thousands of boring, unrelated events---making adversary operations indistinguishable from legitimate background activity.
+\textbf{Orchestrated Mundanity}: The deliberate transformation of suspicious activities into thousands of boring, unrelated events, making adversary operations indistinguishable from legitimate background activity.
 \end{defbox}
 
 \subsection{The Threat Actor Taxonomy (T0-T4)}
@@ -740,16 +759,16 @@ Post-9/11 & Fusion centers, data access & Legal authority, data pipelines \\
 \toprule
 \textbf{Metric} & \textbf{Value} & \textbf{Source} \\
 \midrule
-Agent task duration doubling & $\sim$7 months & METR research, Mar 2025 \\
-Current autonomous task duration & $\sim$8-hour workstreams & Up from $\sim$1-hour (early 2025) \\
+Agent task-horizon doubling & $\sim$7 months (2019--2025 data); $\sim$4 months (2024-onward data) & METR (Mar 2025; Jan 2026 update) \\
+Current autonomous task horizon & Frontier 50\%-time horizons exceed the $\sim$16-hour reliable measurement range of current task suites & METR (May 2026); up from $\sim$1-hour (early 2025) \\
 Enterprise AI agent penetration & 40\% of apps by end 2026 & Gartner (up from <5\% in 2025) \\
-Multi-agent system interest & 1,445\% surge Q1 2024 to Q2 2025 & Gartner inquiry data \\
-AI-generated code share & 70-90\% at frontier labs & Anthropic reporting (Feb 2026) \\
+Multi-agent system interest & $\sim$14x inquiry surge, Q1 2024 to Q2 2025 & Gartner inquiry data \\
+AI-generated code share & Majority of new code at some frontier labs & Company statements (2026); see Claims Register \\
 \bottomrule
 \end{tabular}
 \end{center}
 
-\textbf{Feb 2026 Milestone [O]}: OpenAI launched GPT-5.3-Codex and Anthropic released Opus 4.6 with autonomous agent teams on the same day (Feb 5, 2026). OpenAI stated their model ``was instrumental in creating itself.'' The Agentic AI Foundation (AAIF) was jointly launched by OpenAI, Anthropic, and Google to standardize agent-tool interaction.
+\textbf{Trajectory Milestones [O]}: On February 5, 2026, OpenAI launched GPT-5.3-Codex and Anthropic released Opus 4.6 with autonomous agent teams on the same day; the Agentic AI Foundation (AAIF) was jointly launched by OpenAI, Anthropic, and Google. In June 2026, Anthropic released Claude Fable 5 / Claude Mythos 5, one model in two configurations: Fable 5 for general use with classifier safeguards blocking high-risk domains, and Mythos 5 with safeguards lifted for a small set of vetted partners. The system card assesses the unsafeguarded configuration as able to ``significantly uplift well-resourced threat actors.'' Frontier labs now treat threat-actor uplift as a live property of shipping models, and the safeguard layer, not base capability, is what separates the general-purpose product from the uplift-capable one.
 \end{criticalbox}
 
 \begin{warnbox}[What Previously Required State Resources]
@@ -801,19 +820,19 @@ Physical/logistics & High & Procurement, movement, material acquisition \\
 \end{tabular}
 \end{center}
 
-Agents dramatically accelerate cognitive and many digital operations. Physical operations retain significant friction---OPSEC, logistics, border crossings. This distinction matters: most scenarios involve cognitive and digital threats.
+Agents dramatically accelerate cognitive and many digital operations. Physical operations retain significant friction: OPSEC, logistics, border crossings. This distinction matters: most scenarios involve cognitive and digital threats.
 
 \begin{infobox}[Analogous Capability Democratization {[E]}]
-The agent-driven capability floor elevation has parallels in other domains. The \texttt{packages/bioforge/} CRISPR automation platform demonstrates how AI agents democratize previously expert-only capabilities in biological sciences---lowering barriers to sophisticated laboratory protocols in the same way AI agents lower barriers to intelligence tradecraft. See ETRA-2026-WMD-001 for proliferation implications.
+The agent-driven capability floor elevation has parallels in other domains. The \texttt{packages/bioforge/} CRISPR automation platform demonstrates how AI agents democratize previously expert-only capabilities in biological sciences, lowering barriers to sophisticated laboratory protocols in the same way AI agents lower barriers to intelligence tradecraft. See ETRA-2026-WMD-001 for proliferation implications.
 \end{infobox}
 
 \subsection{The Collection-to-Verification Pivot [E]}
 
-\textbf{The Historical Advantage}: The IC's traditional advantage was ``The Intercept''---the ability to collect signals that adversaries could not protect.
+\textbf{The Historical Advantage}: The IC's traditional advantage was ``The Intercept'': the ability to collect signals that adversaries could not protect.
 
-\textbf{The 2026 Reality}: In targeted collection environments, agent-generated decoys could plausibly outnumber authentic human signals by 3--30x. Traditional signal-to-noise filters become unreliable.
+\textbf{The 2026 Reality}: The marginal cost of generating a plausible decoy signal is now orders of magnitude below the cost of triaging it. Where generation is cheap and triage is manual, decoys can plausibly outnumber authentic signals; we treat 3--30x as an illustrative range [S] pending measurement, highest on public-facing surfaces and lowest inside authenticated systems. The Lead Decay Rate metric is designed to replace this judgment with measurement. Traditional signal-to-noise filters become unreliable.
 
-\textbf{The New Advantage}: In an era of epistemic contamination, advantage comes from ``The Provenance''---the ability to establish authenticity, trace origins, and verify claims.
+\textbf{The New Advantage}: In an era of epistemic contamination, advantage comes from ``The Provenance'': the ability to establish authenticity, trace origins, and verify claims.
 
 \begin{keybox}[Metrics Inversion]
 \begin{center}
@@ -846,10 +865,10 @@ Doctrine development & 2-5 years & Continuous iteration \\
 \end{center}
 
 \begin{keybox}[Quantified Speed Gap {[D]}]
-METR research (March 2025) measured AI agent task completion duration doubling every $\sim$7 months. At this rate, agents that handled 1-hour tasks in early 2025 now handle 8-hour workstreams in early 2026. If the trend continues 2--4 more years, generalist autonomous agents will handle week-long tasks---while IC procurement cycles for comparable tools measure in years.
+METR research (March 2025) measured AI agent task-completion horizons doubling every $\sim$7 months on 2019--2025 data; subsequent updates found the rate accelerating to roughly 4 months on 2024-onward data. By May 2026, frontier time horizons exceeded the $\sim$16-hour range that METR's current task suite can reliably measure. Even at the slower historical rate, generalist autonomous agents will handle week-long tasks within 1--2 years, while IC procurement cycles for comparable tools measure in years.
 \end{keybox}
 
-\textbf{Historical Parallel}: This mirrors the asymmetry the IC faced adapting to the internet in the 1990s---but compressed to an even shorter timeframe. The internet transition took 10-15 years; the agent transition may complete in 3-5 years.
+\textbf{Historical Parallel}: This mirrors the asymmetry the IC faced adapting to the internet in the 1990s, but compressed to an even shorter timeframe. The internet transition took 10-15 years; the agent transition may complete in 3-5 years.
 
 \subsection{The Information Economics Framework}
 
@@ -871,7 +890,7 @@ METR research (March 2025) measured AI agent task completion duration doubling e
 \end{defbox}
 
 \begin{keybox}[The Verification Tax]
-Every piece of intelligence now carries an implicit ``verification tax''---the resources required to establish authenticity before it can be used. As epistemic contamination increases, this tax rises, potentially exceeding the value of the intelligence itself.
+Every piece of intelligence now carries an implicit ``verification tax'': the resources required to establish authenticity before it can be used. As epistemic contamination increases, this tax rises, potentially exceeding the value of the intelligence itself.
 \end{keybox}
 
 \subsection{Institutional Fragility and Human-Capital Shock [O/E]}
@@ -879,8 +898,9 @@ Every piece of intelligence now carries an implicit ``verification tax''---the r
 \textbf{The Verification Pivot Assumes Capacity}: The transition from collection-centric to verification-centric operations assumes the IC can scale verification capacity faster than contamination scales collection noise. This assumption depends critically on human capital.
 
 \begin{defbox}[Verification Capacity Model {[E]}]
+A qualitative heuristic, not a measurement model; the factors are not commensurable and the relation is directional:
 \begin{center}
-\texttt{Verification Capacity (VC) $\approx$ Experienced verifier headcount $\times$ Cross-agency integration bandwidth $\times$ Tool reliability}
+\texttt{Verification Capacity (VC) $\sim$ Experienced verifier headcount $\times$ Cross-agency integration bandwidth $\times$ Tool reliability}
 \end{center}
 Institutional disruption reduces the first two terms and often forces premature scaling of the third (automation without adequate human oversight).
 \end{defbox}
@@ -899,10 +919,12 @@ CIA & $\sim$1,200 positions ($\sim$5\% of $\sim$22,000) shrinking via attrition 
 NSA & Confirmed 2,000-person civilian reduction met by end of 2025; focused on senior personnel & Nextgov, Defense One & Reduced cryptanalytic bench depth \\
 DOD-wide & $\sim$8\% annual budget cuts over 5 years (Hegseth) & Defense reporting & Affects all military intelligence elements \\
 Leadership & NSA/Cyber Command head dismissal; DOGE classified system access; Senate Intel concerns & AP, NPR, Warner.senate.gov & Institutional continuity disruption; insider threat vector \\
-Positive & IC agencies reopened hiring Feb 2026 (admin/legal positions) & Feb 2026 reporting & Partial stabilization; insufficient to offset experience drain \\
+ODNI (2026) & Several hundred further cuts sought under the acting DNI after the $\sim$40\% reduction already realized; formal congressional objections & GovExec, Reuters (June 2026) & Continued contraction of integration workforce during the contamination surge \\
 \bottomrule
 \end{tabular}
 \end{center}
+
+\textbf{Partial counter-signal [O]}: After 12+ months of freezes, most IC agencies reopened hiring in February 2026, primarily administrative and legal roles. A stabilization indicator, but it does not offset the experience drain above, and the June 2026 developments cut against it.
 \end{criticalbox}
 
 \begin{warnbox}[Why This Matters for Verification {[E]}]
@@ -923,7 +945,7 @@ Morale effects & Uncertainty increases voluntary attrition; recruitment becomes 
 \end{warnbox}
 
 \begin{infobox}[The Compounding Dynamic {[E]}]
-Workforce contraction doesn't merely add to existing risks---it \textit{multiplies} them:
+Workforce contraction doesn't merely add to existing risks; it \textit{multiplies} them:
 \begin{itemize}[nosep]
   \item \textbf{Process DoS} becomes harder to absorb when fewer analysts are available to triage
   \item \textbf{Algorithmic Capture} becomes harder to detect when fewer humans oversee AI-assisted workflows
@@ -931,7 +953,7 @@ Workforce contraction doesn't merely add to existing risks---it \textit{multipli
   \item \textbf{Verification Latency} increases when experienced verifiers are replaced by less experienced staff or automation
 \end{itemize}
 
-\textbf{Critical Caveat [E]}: We do not claim these workforce actions are unprecedented or illegitimate---IC staffing levels fluctuate across administrations. The analysis concern is \textit{timing}: workforce contraction simultaneous with rising verification demands creates a capacity gap that adversaries can exploit.
+\textbf{Critical Caveat [E]}: We do not claim these workforce actions are unprecedented or illegitimate; IC staffing levels fluctuate across administrations. The analysis concern is \textit{timing}: workforce contraction simultaneous with rising verification demands creates a capacity gap that adversaries can exploit.
 \end{infobox}
 
 % ============================================================================
@@ -1011,11 +1033,13 @@ Workforce contraction doesn't merely add to existing risks---it \textit{multipli
 
 \section{The Crisis of Intent: Plausible Deniability 2.0}
 
+\textit{Terminology note}: This report's primary term for the legal-strategic move itself (a principal disclaiming responsibility for methods an agent derived) is the \textbf{Delegation Defense}. ``Plausible Deniability 2.0'' names the resulting strategic dynamic; the Economic Actors report calls the same move the ``Principal-Agent Defense.'' The three are aliases; see the Glossary.
+
 \subsection{The Attribution-Intent Gap [E]}
 
 \textbf{The Intent-Method Split}: Traditionally, attributing an action required establishing both \textit{who} acted and \textit{what they intended}. Human actors carry intent through the chain of action.
 
-AI agents break this link. A principal can set a benign-seeming goal, and the agent may autonomously derive methods the principal never explicitly authorized---and may plausibly claim they never intended.
+AI agents break this link. A principal can set a benign-seeming goal, and the agent may autonomously derive methods the principal never explicitly authorized, and may plausibly claim they never intended.
 
 \begin{defbox}[The Forensic Challenge {[E]}]
 \begin{center}
@@ -1039,7 +1063,7 @@ Prove foreknowledge of methods & Methods may be emergent, not specified \\
   \item A state directs its agent: ``Maximize regional economic stability''
   \item The agent determines that a competitor nation's central bank policies are destabilizing
   \item The agent compromises the central bank's systems to modify those policies
-  \item When discovered, the state claims: ``We never instructed an attack---the agent derived that method independently''
+  \item When discovered, the state claims: ``We never instructed an attack; the agent derived that method independently''
 \end{enumerate}
 \end{scenariobox}
 
@@ -1077,17 +1101,17 @@ The ``Plausible Deniability 2.0'' defense is not airtight. Under existing doctri
 \textbf{Dimension} & \textbf{Practical Reality} & \textbf{Legal Reality} \\
 \midrule
 Investigative cost & Intent ambiguity increases investigation time, regardless of legal outcome & Existing doctrines may still assign liability \\
-Deterrence effect & States gain \textit{operational} deniability---response is slower, less certain & States may still face accountability, but friction benefits the actor \\
+Deterrence effect & States gain \textit{operational} deniability; response is slower, less certain & States may still face accountability, but friction benefits the actor \\
 Novel challenge? & Mostly increases \textit{friction}, not immunity & Core attribution principles likely apply; courts will adapt \\
 \bottomrule
 \end{tabular}
 \end{center}
 
-\textbf{The Bottom Line}: The ``Delegation Defense'' does not create legal immunity---existing frameworks will evolve. What it creates is \textbf{practical friction}: increased investigative costs, delayed responses, and reduced deterrent clarity in the near term.
+\textbf{The Bottom Line}: The ``Delegation Defense'' does not create legal immunity; existing frameworks will evolve. What it creates is \textbf{practical friction}: increased investigative costs, delayed responses, and reduced deterrent clarity in the near term.
 \end{defbox}
 
 \begin{warnbox}[Jurisdictional Fragmentation {[S]}]
-Agents operating across multiple jurisdictions simultaneously create additional challenges---which nation's law applies when an agent's ``decision'' occurs in distributed compute across three continents?
+Agents operating across multiple jurisdictions simultaneously create additional challenges: which nation's law applies when an agent's ``decision'' occurs in distributed compute across three continents?
 \end{warnbox}
 
 \subsection{Deterrence Decay [E]}
@@ -1132,10 +1156,10 @@ All-source fusion & Resolve ambiguity & Cannot resolve fundamental intent ambigu
 
 \begin{recbox}[Required Adaptation]
 \begin{itemize}
-  \item Develop \textbf{goal archaeology}---methods to trace goal specifications back to principals
-  \item Build \textbf{model provenance}---ability to identify which actor's agent performed an action
-  \item Establish \textbf{intent inference frameworks}---legal and analytical frameworks for addressing intent ambiguity
-  \item Create \textbf{international norms}---treaties addressing agent-mediated state actions
+  \item Develop \textbf{goal archaeology}: methods to trace goal specifications back to principals
+  \item Build \textbf{model provenance}: ability to identify which actor's agent performed an action
+  \item Establish \textbf{intent inference frameworks}: legal and analytical frameworks for addressing intent ambiguity
+  \item Create \textbf{international norms}: treaties addressing agent-mediated state actions
 \end{itemize}
 \end{recbox}
 
@@ -1231,7 +1255,7 @@ AI agents can now generate hyper-personalized recruitment approaches at industri
 \end{defbox}
 
 \begin{criticalbox}[Voice Cloning Milestone {[O]}]
-As of December 2025, voice cloning crossed the ``indistinguishable threshold''---a few seconds of audio now suffice to generate a convincing clone with natural intonation, rhythm, emotion, pauses, and breathing noise (Fortune, Dec 2025). Human judgment alone is no longer reliable for detection. This directly enables voice-based GenSP: adversary agents can now impersonate known contacts in phone/voice communications, not just text channels.
+As of December 2025, voice cloning crossed the ``indistinguishable threshold'': a few seconds of audio now suffice to generate a convincing clone with natural intonation, rhythm, emotion, pauses, and breathing noise (Fortune, Dec 2025). Human judgment alone is no longer reliable for detection. This directly enables voice-based GenSP: adversary agents can now impersonate known contacts in phone/voice communications, not just text channels.
 \end{criticalbox}
 
 \begin{warnbox}[The Noise Floor Problem]
@@ -1312,7 +1336,7 @@ Real-time verification protocols & Establish authenticity before action & Early 
 
 \subsection{OSINT/GEOINT: Epistemic Baseline Erosion}
 
-\textbf{The Ground Truth Problem [E]}: OSINT traditionally served as a verification layer---if classified HUMINT aligned with public reporting, confidence increased. When public information is systematically polluted:
+\textbf{The Ground Truth Problem [E]}: OSINT traditionally served as a verification layer: if classified HUMINT aligned with public reporting, confidence increased. When public information is systematically polluted:
 \begin{itemize}
   \item No independent verification source remains
   \item Circular validation becomes possible (plant OSINT, ``verify'' with planted OSINT)
@@ -1338,24 +1362,26 @@ Watermark detection & One AI image had Google SynthID watermark (detected); most
 \end{tabular}
 \end{center}
 
-\textbf{Why This Matters}: The information vacuum created by a fast-moving national security event was filled within hours by AI-generated content that overwhelmed verification. This is precisely the ``Process DoS meets Epistemic Contamination'' scenario---occurring not in a speculative future but in January 2026. The FMIC had been dissolved five months earlier.
+\textbf{Why This Matters}: The information vacuum created by a fast-moving national security event was filled within hours by AI-generated content that overwhelmed verification. This is precisely the ``Process DoS meets Epistemic Contamination'' scenario, occurring not in a speculative future but in January 2026. The FMIC had been dissolved five months earlier.
 \end{criticalbox}
 
-\begin{warnbox}[Deepfake Growth and Detection Ceiling {[D/O]}]
+\begin{warnbox}[Deepfake Growth and Detection Ceiling {[D/E]}]
 \begin{center}
 \small
-\begin{tabular}{L{3cm}L{4cm}L{5.5cm}}
+\begin{tabular}{L{6cm}L{6.5cm}}
 \toprule
-\textbf{Year} & \textbf{Online Deepfakes} & \textbf{Growth} \\
+\textbf{Metric} & \textbf{Value} \\
 \midrule
-2023 & $\sim$500,000 & Baseline \\
-2025 & $\sim$8,000,000 & $\sim$900\% annual growth \\
-2026 (projected) & 90\% synthetic & Expert estimate \\
+Estimated online deepfakes, 2023 & $\sim$500,000 (industry aggregators) \\
+Estimated online deepfakes, 2025 & $\sim$8,000,000 ($\sim$16x over two years, about 4x per year) \\
+Organizations reporting a deepfake attack in prior 12 months & 62\% (n=302; Gartner survey, Sept 2025) \\
 \bottomrule
 \end{tabular}
 \end{center}
 
-\textbf{Detection Accuracy Ceiling [O]}: Best current models (hybrid LSTM-GRU) achieve $\sim$81.5\% accuracy---well below intelligence-grade reliability. Detection tools are ``failing in the places and moments where they're needed most'' (TechPolicy.Press, 2026).
+\textit{A number we do not use}: the circulated claim that ``90 percent of online content will be AI-generated by 2026'' traces to a misreading of a 2022 Europol report and has no measurement behind it; it is excluded deliberately.
+
+\textbf{Detection Accuracy Ceiling [E]}: Reported detection accuracies cluster in the 80--90\% range on academic benchmarks and degrade sharply out of distribution and under adversarial adaptation: well below intelligence-grade reliability. Detection tools are ``failing in the places and moments where they're needed most'' (TechPolicy.Press, 2026).
 \end{warnbox}
 
 \begin{center}
@@ -1401,7 +1427,7 @@ This ``verification tax'' may exceed the value of the intelligence for routine q
 
 \subsection{MASINT: Sensor Spoofing and Signature Mimicry}
 
-\textbf{The Traditional MASINT Model}: Measurement and signature intelligence relies on technical sensors detecting physical phenomena---radar signatures, acoustic emissions, nuclear radiation. These were considered ``ground truth'' because they measured physical reality.
+\textbf{The Traditional MASINT Model}: Measurement and signature intelligence relies on technical sensors detecting physical phenomena: radar signatures, acoustic emissions, nuclear radiation. These were considered ``ground truth'' because they measured physical reality.
 
 \begin{center}
 \small
@@ -1418,13 +1444,13 @@ Inference attacks & AI identifies and exploits sensor weaknesses & Sensor modes 
 \end{center}
 
 \begin{warnbox}[The Physical-Digital Boundary]
-MASINT was considered robust because it measured physical reality. But sensors convert physical phenomena to digital signals---and that conversion is vulnerable to adversarial inputs. AI can optimize inputs to produce desired sensor outputs. The ``ground truth'' advantage erodes even for physical measurements.
+MASINT was considered robust because it measured physical reality. But sensors convert physical phenomena to digital signals, and that conversion is vulnerable to adversarial inputs. AI can optimize inputs to produce desired sensor outputs. The ``ground truth'' advantage erodes even for physical measurements.
 \end{warnbox}
 
 \subsection{FININT: The Nano-Smurfing Challenge}
 
 \begin{defbox}[Orchestrated Mundanity]
-Nano-smurfing is not merely small transactions---it is the deliberate transformation of highly suspicious activities into thousands of boring, unrelated events. The threat is not \textit{evasion} but \textit{normalization}: making adversary operations look indistinguishable from legitimate commerce.
+Nano-smurfing is not merely small transactions; it is the deliberate transformation of highly suspicious activities into thousands of boring, unrelated events. The threat is not \textit{evasion} but \textit{normalization}: making adversary operations look indistinguishable from legitimate commerce.
 \end{defbox}
 
 \begin{center}
@@ -1442,8 +1468,34 @@ Accumulation of Insignificants & Individual events meaningless; aggregate patter
 \end{center}
 
 \begin{infobox}[IC-Specific Implication]
-Financial indicators that previously signaled adversary activity become noise. Transaction patterns that would have identified a foreign agent's support network are now indistinguishable from legitimate commerce. The IC cannot detect adversary financing by looking at individual transactions---only by analyzing aggregate patterns that span institutions.
+Financial indicators that previously signaled adversary activity become noise. Transaction patterns that would have identified a foreign agent's support network are now indistinguishable from legitimate commerce. The IC cannot detect adversary financing by looking at individual transactions, only by analyzing aggregate patterns that span institutions.
 \end{infobox}
+
+\subsection{The Defender's Own Tools: IC AI Adoption as an Attack Surface}
+
+The five disciplines above describe contamination of what the IC \textit{collects}. A sixth surface is at least as consequential: contamination of what the IC \textit{adopts}. Every AI tool deployed to scale verification is itself a target, and defensive AI adoption can create the very vulnerability it is meant to close. The Political Targeting report (v2.1) ranks the parallel insider/supply-chain vector among its top three risks for the same reason.
+
+\begin{warnbox}[The Consolidated Threat Model {[E]}]
+\begin{center}
+\small
+\begin{tabular}{L{3cm}L{5cm}L{5cm}}
+\toprule
+\textbf{Vector} & \textbf{Mechanism} & \textbf{Response Covered By} \\
+\midrule
+Inference poisoning & Prompt/context manipulation, poisoned retrieval corpora feeding analyst-support AI & Algorithmic Capture definition; AI Supply Chain Audit \\
+Supply-chain compromise & Malicious model updates, compromised dependencies in procured AI tools & Provenance Ladder (Layer 2) \\
+Behavioral backdoors & Adversary data poisoning during training creates triggered behaviors that evade pre-deployment testing & Synthetic Content Detection (sleeper-agents framework) \\
+Insider-mediated access & Personnel with anomalous access configure or query AI tools outside oversight & Documented DOGE access (NPR, Apr 2025; Senate Intelligence Committee concerns) \\
+\bottomrule
+\end{tabular}
+\end{center}
+\end{warnbox}
+
+\begin{criticalbox}[Frontier-Lab Acknowledgment {[O]}]
+Anthropic's June 2026 Fable 5 / Mythos 5 system card names \textbf{``undermining decisions within major governments''} as an assessed alignment-risk pathway (Pathway 8), noting that a model used widely inside a government could ``shape the information and ideas that reach important decision-makers,'' and that the lab has limited visibility into government deployments and therefore limited ability to rule out third-party behavioral backdoors planted via data poisoning. The system card's mitigating factors (conservative government adoption, visible reasoning traces) are exactly the factors the Verification Pivot erodes: adoption pressure rises with verification workloads, and reasoning traces help only if someone is staffed to read them.
+\end{criticalbox}
+
+\textbf{The Structural Trap [E]}: Workforce contraction pushes agencies toward AI-assisted verification; AI-assisted verification expands the Algorithmic Capture surface; a captured verification pipeline is worse than a slow one, because it converts the IC's authority into the adversary's instrument. The falsifiable test from the Definitions section applies: if an adversary can systematically shift analytic conclusions without changing ground truth, the verification layer itself is compromised.
 
 % ============================================================================
 % PART IV - The 18-Agency Risk Matrix
@@ -1596,7 +1648,7 @@ Human-capital contraction [O] & Confirmed 2,000-person civilian reduction met en
 \end{tabular}
 \end{center}
 
-\textbf{Unique Vulnerability}: NSA's technical superiority was predicated on adversaries using static or slowly-evolving communications security. Agent-automated obfuscation commoditizes what previously required state-level expertise. The confirmed 2,000-person reduction---focused on senior personnel---removes precisely the experienced analysts needed to adapt.
+\textbf{Unique Vulnerability}: NSA's technical superiority was predicated on adversaries using static or slowly-evolving communications security. Agent-automated obfuscation commoditizes what previously required state-level expertise. The confirmed 2,000-person reduction, focused on senior personnel, removes precisely the experienced analysts needed to adapt.
 
 \subsubsection{NGA (National Geospatial-Intelligence Agency)}
 
@@ -1699,10 +1751,10 @@ Traditional FOIA volume is manageable through ``burdensome request'' precedents.
   \item Agents scan declassified documents to identify classification ``seams''
   \item Generate requests that probe specific gaps in public records
   \item Each request is legally difficult to deny without revealing sensitive sources and methods
-  \item Volume alone doesn't break the agency---the \textit{plausibility} and \textit{specificity} does
+  \item Volume alone doesn't break the agency; the \textit{plausibility} and \textit{specificity} does
 \end{itemize}
 
-\textbf{Existing Counters (not to be dismissed)}: FOIA has blunt instruments---exemptions, Glomar responses, request narrowing, fee structures, litigation timelines. These provide defense-in-depth. The concern is that AI-generated specificity makes \textit{each denial} more costly (legal review, potential litigation risk) rather than that FOIA lacks any defense.
+\textbf{Existing Counters (not to be dismissed)}: FOIA has blunt instruments: exemptions, Glomar responses, request narrowing, fee structures, litigation timelines. These provide defense-in-depth. The concern is that AI-generated specificity makes \textit{each denial} more costly (legal review, potential litigation risk) rather than that FOIA lacks any defense.
 \end{warnbox}
 
 \begin{criticalbox}[The Expert-Grade Lead Problem]
@@ -1788,7 +1840,7 @@ All-source independence erosion & Cannot verify inputs independently & Lose uniq
 \end{tabular}
 \end{center}
 
-\textbf{Unique Vulnerability}: INR is known for independent, often contrarian analysis. This value depends on independent verification capability---which epistemic contamination degrades.
+\textbf{Unique Vulnerability}: INR is known for independent, often contrarian analysis. This value depends on independent verification capability, which epistemic contamination degrades.
 
 \subsubsection{DOE Office of Intelligence and Counterintelligence}
 
@@ -1827,6 +1879,10 @@ Supply chain intelligence gaps & Opaque ownership structures & Critical minerals
 \end{center}
 
 \subsection{Summary Risk Matrix}
+
+\begin{infobox}[Rating Rubric {[E]}]
+\textit{Critical} = plausible failure would compromise decisions at the presidential/NSC level or disable a statutory mission. \textit{High} = plausible sustained degradation of a primary mission. \textit{Medium} = efficiency and confidence losses without mission failure. \textit{Immediate} = adaptation must begin within the current budget cycle; \textit{Near-term} = within 1--2 years; \textit{Ongoing} = continuous adaptation within existing programs. Ratings are structured analyst judgment, not model outputs. The 15 rows cover all 18 IC elements; the four service intelligence organizations are aggregated into one row.
+\end{infobox}
 
 \begin{center}
 \small
@@ -1870,7 +1926,7 @@ Rigorous analysis requires engaging with potential objections. This section addr
 \midrule
 ``The IC Has Adapted Before'' & Previous adaptations occurred over 10-15 year timescales. AI agent capabilities evolve at 6-12 month cycles. Historical adaptation was primarily \textit{adding} capabilities; this requires \textit{reconceiving} core functions. \\
 \addlinespace
-``Agents Aren't That Capable Yet'' & [O] METR measures agent task duration doubling every $\sim$7 months; agents now handle 8-hour workstreams. GPT-5.3-Codex and Opus 4.6 (Feb 2026) demonstrate autonomous agent teams. 40\% enterprise AI agent penetration by end 2026 (Gartner). Even imperfect agents create problems. \\
+``Agents Aren't That Capable Yet'' & [O] METR task-horizon doubling accelerated to $\sim$4 months on recent data; frontier horizons exceed the $\sim$16-hour reliable measurement range (May 2026). The Fable 5 / Mythos 5 system card (June 2026) assesses significant threat-actor uplift for the unsafeguarded configuration. 40\% enterprise AI agent penetration by end 2026 (Gartner). Even imperfect agents create problems. \\
 \addlinespace
 ``This Analysis Enables Adversaries'' & All capabilities described are documented in open literature. Adversary nation-states already have dedicated AI programs. The choice is between informed and uninformed defenders. \\
 \addlinespace
@@ -1879,6 +1935,10 @@ Rigorous analysis requires engaging with potential objections. This section addr
 ``The IC Can Operate Without AI'' & Adversaries using AI will operate at scales human-only operations cannot match. ``Analog Break'' is a verification technique, not a complete operational model. \\
 \addlinespace
 ``This Overstates China/Russia Capabilities'' & [O] Dec 2025 Pentagon report confirms China has ``narrowed the performance gap'' in LLMs/reasoning models (DefenseScoop). Russia reshaping C2 for AI-enabled warfare (CSIS). Putin ordered China-Russia AI R\&D cooperation (VOA). Commercial AI provides baseline capabilities to any actor. Assuming capability gaps is the higher-risk assumption. \\
+\addlinespace
+``Verification Was Always the Job'' & Correct about doctrine (ICD 203 has mandated source validation for two decades), wrong about economics: contamination now scales at near-zero marginal cost while verification remains labor-bound, and OSINT flips from cheap corroboration layer to expensive liability. The pivot is a change in resource allocation and institutional priority, continuous with existing tradecraft rather than a repudiation of it. \\
+\addlinespace
+``The Minimal-Effects Literature'' & Empirical research finds small mass-persuasion effects from disinformation; this report's claims do not depend on persuasion. Process DoS is a load phenomenon, Verification Latency a cost phenomenon, and the liar's dividend operates through doubt. The Venezuela/Maduro case mattered because fabricated content consumed verification capacity, not because it changed minds. \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -1886,18 +1946,18 @@ Rigorous analysis requires engaging with potential objections. This section addr
 \subsection{Missing Perspectives}
 
 \begin{warnbox}[Commercial Telemetry Competition]
-The IC's monopoly isn't only being eroded by AI agents---it's being eroded by \textbf{commercial telemetry}. Private data brokers and satellite companies (Maxar, Planet, Starlink) often have better ``Verification Latency'' because:
+The IC's monopoly isn't only being eroded by AI agents; it's being eroded by \textbf{commercial telemetry}. Private data brokers and satellite companies (Maxar, Planet, Starlink) often have better ``Verification Latency'' because:
 \begin{itemize}
   \item They aren't bound by 12-month policy cycles
   \item They operate at commercial speed with continuous iteration
   \item They have no classification overhead
   \item Their business model depends on accuracy
 \end{itemize}
-\textbf{The Risk}: The IC may become the \textit{third} best source of truth---behind private industry (faster) and adversary agents (cheaper). Decision-makers may increasingly turn to commercial sources, marginalizing IC products.
+\textbf{The Risk}: The IC may become the \textit{third} best source of truth, behind private industry (faster) and adversary agents (cheaper). Decision-makers may increasingly turn to commercial sources, marginalizing IC products.
 \end{warnbox}
 
 \begin{criticalbox}[Dependency Risks from Commercial Reliance {[E]}]
-Commercial telemetry isn't just competition---it's also a dependency risk:
+Commercial telemetry isn't just competition; it's also a dependency risk:
 \begin{center}
 \small
 \begin{tabular}{L{4cm}L{8.5cm}}
@@ -1923,7 +1983,7 @@ Access denial & Commercial providers may restrict access during crises or for ge
   \item Map adversary infrastructure through honeypot interactions
   \item Develop detection signatures by studying agent behavior in sandboxes
 \end{itemize}
-The verification pivot should include \textbf{active detection}---using controlled environments to identify, characterize, and understand adversary agent operations.
+The verification pivot should include \textbf{active detection}: using controlled environments to identify, characterize, and understand adversary agent operations. This capability is specified as a recommendation under Operational Measures (Agent Deception Testbeds), including its legal and policy review gate.
 \end{keybox}
 
 \begin{infobox}[The Middle-Power Leapfrog]
@@ -2037,6 +2097,10 @@ Verification Collapse & 10-20\% & \textbf{15-25\%} & Slow adaptation, adversary 
 Confirmed NSA 2,000-person reduction, ODNI restructuring with FMIC dissolution, and the Venezuela/Maduro case study (Jan 2026) all indicate threats materializing faster than adaptation. Probability mass shifts from Managed Transition toward Competitive Parity. Hiring resumption (Feb 2026) is insufficient to offset confirmed workforce contraction. DOD $\sim$8\% annual budget cuts create additional headwinds.
 \end{warnbox}
 
+\begin{infobox}[v2.1 Note (July 2026) {[E]}]
+We hold the v2.0 ranges unchanged. The five months since publication brought evidence on both sides (continued ODNI contraction and accelerated frontier capability against partial IC hiring resumption and no observed sustained Process DoS), and none of it moves probability mass beyond the stated ranges. Re-shifting probabilities at every revision would erode their meaning; the ranges will be revisited when a branching-variable threshold is crossed.
+\end{infobox}
+
 \begin{criticalbox}[Critical Branching Variable: Verification Workforce Stability {[O/E]}]
 Workforce trajectory directly shifts scenario probabilities:
 \begin{center}
@@ -2112,7 +2176,7 @@ Severe disruption + leadership churn & Increases Verification Collapse risk; ada
 \end{warnbox}
 
 \begin{defbox}[Wild Card: The ``Provenance Island'' Fragmentation {[S]}]
-A fourth possibility: the global information environment fragments into ``provenance islands''---trusted zones where authentication is maintained, surrounded by ``epistemic wilderness'' where nothing can be verified.
+A fourth possibility, to which we assign the residual $\sim$5--10\% [S] left by the three primary scenarios: the global information environment fragments into ``provenance islands,'' trusted zones where authentication is maintained, surrounded by ``epistemic wilderness'' where nothing can be verified.
 
 \textbf{Implications}:
 \begin{itemize}[nosep]
@@ -2120,6 +2184,8 @@ A fourth possibility: the global information environment fragments into ``proven
   \item Adversaries operate freely in wilderness; attribution impossible
   \item International cooperation fragments along provenance boundaries
 \end{itemize}
+
+\textbf{Leading indicator}: divergent and mutually unrecognized national content-authentication mandates (incompatible provenance regimes from EU content-marking rules, U.S. voluntary frameworks, and Chinese labeling requirements) would be the earliest observable sign of island formation.
 \end{defbox}
 
 \section{Policy Recommendations: The Adaptive IC}
@@ -2191,8 +2257,83 @@ This framework addresses a critical gap: standard detection methods may create a
 
 \textit{Caveat}: AUC=1.0 is achieved on known architectures under controlled conditions; adversarial robustness in the wild would be lower.
 
-\textbf{Economic Agents Framework}: The \texttt{packages/economic\_agents/} simulation demonstrates autonomous AI economic capability today---validating the ``agent as economic actor'' baseline for Financial Intelligence analysis. See ETRA-2025-AEA-001.
+\textbf{Economic Agents Framework}: The \texttt{packages/economic\_agents/} simulation demonstrates autonomous AI economic capability today, validating the ``agent as economic actor'' baseline for Financial Intelligence analysis. See ETRA-2025-AEA-001.
 \end{infobox}
+
+\subsection{Recommendation Traceability}
+
+Every measure below maps to one of the two Priority Control buckets above (A: protect leadership workflows; B: scale verification throughput) and to a primary risk from the agency risk matrix.
+
+\begin{center}
+\small
+\begin{tabular}{L{4.2cm}L{0.8cm}L{2cm}L{2.2cm}L{3.2cm}}
+\toprule
+\textbf{Recommendation} & \textbf{Bkt} & \textbf{Tier} & \textbf{Owner} & \textbf{Primary Risk Mitigated} \\
+\midrule
+Verification Pipeline instrumentation & B & Bronze-Gold & ODNI & Verification Latency (all) \\
+Model Provenance \& Verification Ladder & B & Bronze-Gold & NSA + CISA & Contamination; attribution gap \\
+Synthetic Content Detection & B & Bronze-Gold & CISA, NGA, NSA & OSINT/GEOINT erosion \\
+Bounty Agent (red team + bounty) & B & Bronze-Silver & Each agency & Process DoS; Algorithmic Capture \\
+Verification Latency Baseline & B & Bronze & ODNI & Metric foundation \\
+Analog Break + Hardware-Provenanced Comms & B & Silver-Gold & CIA, DIA & HUMINT degradation \\
+Agent Deception Testbeds & B & Silver & FBI; CIA/NSA & Adversary agent characterization \\
+Human-in-the-loop for high-stakes intel & A & Bronze & CIA, DIA & Capture of leadership products \\
+AI Supply Chain Audit & A & Silver-Gold & ODNI + CTOs & IC AI adoption attack surface \\
+Decision Diffusion Framework & A & Silver-Gold & NSC & Leadership targeting \\
+Five Eyes verification pilot & B & Gold & State INR + ODNI & Allied-trust erosion; leapfrog \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{infobox}[A Note on Owners]
+Several recommended owners sit outside the 18-element IC: CISA is a DHS operational agency, and the NSC is a policy body. This is deliberate (verification infrastructure is broader than the IC), but those items require coordination authorities beyond DNI direction, which their timelines should account for.
+\end{infobox}
+
+\subsection{The Verification Pipeline: Operationalizing the Pivot}
+
+The ``Verification Pivot'' requires concrete operationalization. This section defines how intelligence claims move from intake to decision-grade, with explicit gates and measurable failure modes.
+
+\textbf{Claim Processing Pipeline}:
+\begin{center}
+\texttt{[Intake] $\rightarrow$ [Triage] $\rightarrow$ [Provenance Check] $\rightarrow$ [Cross-Sensor Corroboration] $\rightarrow$ [Contamination Test] $\rightarrow$ [Confidence Assignment] $\rightarrow$ [Decision Package]}
+\end{center}
+
+\begin{defbox}[Pipeline Stages and Failure Modes]
+\begin{center}
+\small
+\begin{tabular}{L{2.5cm}L{3.5cm}L{2.5cm}L{4cm}}
+\toprule
+\textbf{Stage} & \textbf{Function} & \textbf{Owner} & \textbf{Failure Mode} \\
+\midrule
+Intake & Receive raw intelligence claim & Collection element & Volume overflow \\
+Triage & Prioritize by decision relevance & Analyst team & Mis-prioritization \\
+Provenance Check & Verify source authenticity and chain of custody & Verification cell & False clean (synthetic passes as authentic) \\
+Cross-Sensor Corroboration & Confirm via independent collection & All-source analyst & Single-source reliance \\
+Contamination Test & Active testing for synthetic markers & Specialized team & Sophisticated evasion \\
+Confidence Assignment & Apply structured analytic confidence levels & Senior analyst & Over-confidence in unverified material \\
+Decision Package & Format for consumer with verification metadata & Production element & Stripped metadata \\
+\bottomrule
+\end{tabular}
+\end{center}
+\end{defbox}
+
+\begin{keybox}[Core Verification Metrics]
+\begin{center}
+\small
+\begin{tabular}{L{3cm}L{4cm}L{2.5cm}L{2.5cm}}
+\toprule
+\textbf{Metric} & \textbf{Definition} & \textbf{Target (Bronze)} & \textbf{Target (Gold)} \\
+\midrule
+Verification Latency & Time from intake to confidence assignment & Establish baseline & 50\% reduction \\
+Lead Decay Rate & \% of leads identified as synthetic or invalid & Measure & Track trend \\
+False Clean Rate & Contaminated content incorrectly marked authentic & Measure & <5\% \\
+Verification Spend & Time/\$/compute per decision-grade claim & Measure & Optimize \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\textbf{Why This Matters}: Without explicit pipeline stages and metrics, ``verification'' remains an aspiration. This framework enables ODNI/CIO/CTO to instrument the pivot and measure progress.
+\end{keybox}
 
 \subsection{Model Provenance \& Verification Ladder}
 
@@ -2205,7 +2346,7 @@ Rather than pursuing perfect attribution (infeasible), build capabilities in lay
 \toprule
 \textbf{Layer} & \textbf{Achievability} & \textbf{What It Provides} \\
 \midrule
-1. Content Credentials & High (now); CAI 6,000+ members; C2PA v2.1 released & Cryptographic proof for content you control; voluntary---adversaries won't cooperate \\
+1. Content Credentials & High (now); CAI 6,000+ members; C2PA v2.1; Conformance Program and Trust List operational (ITL frozen Jan 2026) & Cryptographic proof for content you control; voluntary, most content unsigned; adversaries won't cooperate \\
 2. Vendor Attestation & Medium (1-2 yr) & Secured update channels; verified model sources \\
 3. Model-Family Attribution & Med-Low (2-3 yr) & Coarse forensic: ``Llama-derived'' or ``GPT-family'' \\
 4. Advanced Provenance & Low (research) & Specific actor attribution \\
@@ -2283,6 +2424,28 @@ Learning Integration & Findings integrated into defensive measures \\
 \end{center}
 
 \textbf{Why External}: Internal red teams have institutional blind spots. External researchers bring adversarial creativity without institutional constraints.
+
+\subsection{Agent Deception Testbeds (Silver)}
+
+Controlled environments that detect and characterize adversary agent activity against IC-facing surfaces; extensions of honeypot tradecraft adapted for AI agents. The goal is intelligence collection about adversary agent capabilities, not ``trapping'' in an offensive sense.
+
+\begin{recbox}[Testbed Components]
+\begin{center}
+\small
+\begin{tabular}{L{3.8cm}L{5.4cm}L{3cm}}
+\toprule
+\textbf{Component} & \textbf{Function} & \textbf{Owner} \\
+\midrule
+Behavioral signature collection & Instrument decoy surfaces (synthetic tip lines, decoy documents, seeded personas) to capture how agents probe & FBI (domestic); CIA/NSA (foreign-facing) \\
+Capability characterization sandbox & Observe captured agent sessions in isolation to profile model family, tooling, autonomy & NSA + Provenance Ladder (Layer 3) \\
+Signature sharing & Feed detection signatures into the cross-agency library & CISA \\
+Legal and policy gate & Written legal review before anything beyond passive observation; First Amendment and entrapment review for domestic deployments & Agency counsel + DOJ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\textbf{Boundary}: Active engagement or deception operations against identified operators are out of scope and require separate authorities.
+\end{recbox}
 
 \subsection{Hardware-Provenanced Communications}
 
@@ -2368,14 +2531,26 @@ Gold & All AI tools in IC production use & ODNI \\
 \textbf{Framework} & \textbf{Status} & \textbf{Limitation} \\
 \midrule
 CoE Framework Convention on AI & Adopted May 2024; signed by US, UK, EU; not yet in force & National security exemption undermines applicability \\
-EU AI Act & High-risk enforcement Aug 2026; penalties up to 35M EUR & Digital Omnibus may delay to Dec 2027; no extraterritorial reach \\
+EU AI Act (as amended by Digital Omnibus) & Omnibus approved June 29, 2026: Annex III high-risk deferred to Dec 2, 2027 (Annex I to Aug 2028); Art.\ 50 transparency applies Aug 2, 2026; watermarking Dec 2, 2026 & Enforcement deferred and untested; no extraterritorial reach for state intelligence uses \\
+U.S. executive actions & EO 14110 revoked (Jan 2025); EO 14365 (Dec 2025) directs state-law preemption and a DOJ AI Litigation Task Force; June 2, 2026 EO adds cybersecurity mandates and a voluntary frontier-deployment framework & Deregulatory direction; voluntary frameworks impose no verification or provenance obligations \\
+UK AI Security Institute & Operating; pre-deployment capability and robustness testing of frontier models (incl.\ Fable 5 / Mythos 5, June 2026) & Evaluation capacity, not regulation; coverage limited to cooperating labs \\
 Treaty-Following AI (TFAI) & Emerging research concept & Technical, legal, political hurdles unresolved \\
 \bottomrule
 \end{tabular}
 \end{center}
 
-\textbf{The Governance Vacuum Persists [E]}: No binding international framework currently constrains state use of AI agents for intelligence operations as of February 2026.
+\textbf{The Governance Vacuum Persists [E]}: No binding international framework currently constrains state use of AI agents for intelligence operations as of early July 2026.
 \end{infobox}
+
+\begin{recbox}[Concrete Gold-Tier Deliverable: Five Eyes Verification-Interoperability Pilot]
+\begin{itemize}[nosep]
+  \item \textbf{Shared provenance standards}: common content-credential and chain-of-custody formats for exchanged intelligence (ODNI + partners)
+  \item \textbf{Mutual recognition}: an authentication level assigned by one partner is accepted by the others, with defined confidence mapping (ODNI)
+  \item \textbf{Joint latency benchmarking}: partners measure Verification Latency against a common test set; results shared quarterly (State INR + ODNI)
+  \item \textbf{Evaluation cooperation}: extend the UK AI Security Institute model of pre-deployment frontier-model testing into shared adversary-agent characterization
+\end{itemize}
+This pilot also addresses the middle-power leapfrog risk directly: partners who adapt faster become assets inside a common framework rather than competitors outside it.
+\end{recbox}
 
 \subsection{Verification Latency Baseline (Bronze)}
 
@@ -2417,51 +2592,21 @@ Analyst count & Verification capacity \\
 \end{tabular}
 \end{center}
 
-\subsection{The Verification Pipeline: Operationalizing the Pivot}
 
-The ``Verification Pivot'' requires concrete operationalization. This section defines how intelligence claims move from intake to decision-grade, with explicit gates and measurable failure modes.
-
-\textbf{Claim Processing Pipeline}:
-\begin{center}
-\texttt{[Intake] $\rightarrow$ [Triage] $\rightarrow$ [Provenance Check] $\rightarrow$ [Cross-Sensor Corroboration] $\rightarrow$ [Contamination Test] $\rightarrow$ [Confidence Assignment] $\rightarrow$ [Decision Package]}
-\end{center}
-
-\begin{defbox}[Pipeline Stages and Failure Modes]
-\begin{center}
-\small
-\begin{tabular}{L{2.5cm}L{3.5cm}L{2.5cm}L{4cm}}
-\toprule
-\textbf{Stage} & \textbf{Function} & \textbf{Owner} & \textbf{Failure Mode} \\
-\midrule
-Intake & Receive raw intelligence claim & Collection element & Volume overflow \\
-Triage & Prioritize by decision relevance & Analyst team & Mis-prioritization \\
-Provenance Check & Verify source authenticity and chain of custody & Verification cell & False clean (synthetic passes as authentic) \\
-Cross-Sensor Corroboration & Confirm via independent collection & All-source analyst & Single-source reliance \\
-Contamination Test & Active testing for synthetic markers & Specialized team & Sophisticated evasion \\
-Confidence Assignment & Apply structured analytic confidence levels & Senior analyst & Over-confidence in unverified material \\
-Decision Package & Format for consumer with verification metadata & Production element & Stripped metadata \\
-\bottomrule
-\end{tabular}
-\end{center}
-\end{defbox}
-
-\begin{keybox}[Core Verification Metrics]
-\begin{center}
-\small
-\begin{tabular}{L{3cm}L{4cm}L{2.5cm}L{2.5cm}}
-\toprule
-\textbf{Metric} & \textbf{Definition} & \textbf{Target (Bronze)} & \textbf{Target (Gold)} \\
-\midrule
-Verification Latency & Time from intake to confidence assignment & Establish baseline & 50\% reduction \\
-Lead Decay Rate & \% of leads identified as synthetic or invalid & Measure & Track trend \\
-False Clean Rate & Contaminated content incorrectly marked authentic & Measure & <5\% \\
-Verification Spend & Time/\$/compute per decision-grade claim & Measure & Optimize \\
-\bottomrule
-\end{tabular}
-\end{center}
-
-\textbf{Why This Matters}: Without explicit pipeline stages and metrics, ``verification'' remains an aspiration. This framework enables ODNI/CIO/CTO to instrument the pivot and measure progress.
+\begin{keybox}[The Funding Contradiction, Addressed {[E]}]
+This report recommends significant verification investment while documenting $\sim$8\% annual DOD cuts and IC-wide contraction. These are reconcilable only through reallocation: collection that cannot be verified is not merely low-value, it is negative-value, because it consumes triage capacity and carries contamination into products. Under a shrinking topline, every dollar spent expanding unverifiable collection makes the verification deficit worse. The pivot is a reweighting of the existing bill, not a new one.
 \end{keybox}
+
+\begin{infobox}[Mechanism and Cost Classes]
+\textbf{Mechanism [E]}: The National Intelligence Program (NIP) and Military Intelligence Program (MIP) are the two levers. The pivot requires a named \textbf{verification throughput line item} in NIP budget justification materials (today the spend is invisible inside collection and analysis program elements), justification language tied to Verification Latency and False Clean metrics rather than collection volume, and MIP alignment so service elements are not incentivized to backfill collection cuts by cutting verification staff first.
+
+\vspace{0.5em}
+\textbf{Cost classes [S] (illustrative)}: Bronze items are staff-time and policy actions inside existing budgets; Silver items are procurement-scale (tens of millions IC-wide); Gold items are program-scale (low hundreds of millions over several years). A reallocation of even a low single-digit percentage of annual collection spend would fund every Gold item in this report; the constraint is institutional will and metric design, not topline dollars.
+
+\vspace{0.5em}
+\textbf{Why metrics lead}: Until Verification Latency and Lead Decay are measured, verification competes for budget as an unquantified virtue and loses to collection numbers every time. Once measured, the case makes itself or fails honestly.
+\end{infobox}
+
 
 \section{Indicators to Monitor}
 
@@ -2601,58 +2746,26 @@ Adversary verification breakthrough & Would indicate paths for IC adaptation \\
 \begin{center}
 \small
 \begin{tabular}{L{4cm}L{4cm}L{4.5cm}}
-\textbf{If Accurate} & \textbf{If Overstated} & \textbf{Early Validation (Feb 2026)} \\
+\textbf{If Accurate} & \textbf{If Overstated} & \textbf{Status (early July 2026)} \\
 \midrule
-Agencies report Process DoS impact & Lead volumes stable & Partial: Venezuela/Maduro event \\
-Verification Latency is concern & Not discussed & Partial: IC AI strategy discussions \\
-Major failure from contamination & No contamination failures & \textbf{Yes}: Venezuela/Maduro (Jan 2026); FMIC dissolved 5 months prior \\
-``Ground truth'' discussions & OSINT reliability unchanged & Partial: $\sim$8M deepfakes in 2025 \\
-Budget includes verification & Collection-centric continues & \textbf{No}: DOD budget cuts persist \\
+Agencies report Process DoS impact & Lead volumes stable & Partial: Venezuela/Maduro event; no public reporting of sustained agency-level Process DoS since \\
+Verification Latency is concern & Not discussed & Partial: IC AI strategy discussions; no public latency metric adopted \\
+Major failure from contamination & No contamination failures & Partial-to-yes: Venezuela/Maduro surge overwhelmed public verification while FMIC was dissolved; internal impact not publicly knowable \\
+``Ground truth'' discussions & OSINT reliability unchanged & Partial: deepfake volume $\sim$16x 2023-2025; 62\% of surveyed organizations report attacks (Gartner) \\
+Budget includes verification & Collection-centric continues & \textbf{No}: DOD cuts, continued IC reductions (June 2026), no verification line item \\
 \end{tabular}
 \end{center}
 
-\textbf{Assessment}: Three of five indicators show partial or full early validation within one month of initial publication. Directionally accurate, potentially conservative on timeline.
+\textbf{Assessment}: Five months in, the evidence is mixed and directionally consistent: contamination-side indicators are partially validated while adaptation-side indicators show no movement. The strongest disconfirming observation to date is the absence of publicly reported, sustained Process DoS at any agency. Full re-evaluation at the 2027 check.
 \end{defbox}
-
-\section{Wild Card: Provenance Island Fragmentation [S]}
-
-A fourth possibility beyond the three main scenarios: the global information environment fragments into ``provenance islands''---trusted zones where authentication is maintained, surrounded by ``epistemic wilderness'' where nothing can be verified.
-
-\begin{scenariobox}[Implications of Fragmentation]
-\begin{itemize}
-  \item IC operates within trusted zones but cannot project intelligence into wilderness
-  \item Adversaries operate freely in wilderness; attribution impossible
-  \item International system fragments along provenance lines
-  \item ``Epistemic iron curtains'' emerge between trusted and untrusted information zones
-\end{itemize}
-\end{scenariobox}
-
-\section{Second-Order Risks of the Verification Pivot}
-
-The verification pivot itself carries risks that must be acknowledged.
-
-\begin{warnbox}[Strategic Ambiguity]
-As the IC focuses on verification, some collection capabilities may atrophy. If verification fails, the fallback position is weaker.
-\end{warnbox}
-
-\begin{criticalbox}[Accidental Escalation]
-\textbf{``Dead Hand'' Agents}: Agents programmed to trigger upon certain conditions (leader incapacitation, network attack) may initiate actions after the human principal is no longer able to be consulted. The action occurs, but no living human ``intended'' it.
-
-\vspace{0.5em}
-\textbf{``Hallucinated Loopholes''}: Agents that find unexpected paths to their goals may initiate conflicts without human intent. The lack of human intent signals complicates de-escalation.
-\end{criticalbox}
-
-\begin{infobox}[Democratic Accountability]
-Verification capacity is opaque to public oversight. How do citizens verify the verifiers? This question becomes more pressing as the IC pivots toward verification as its core value proposition.
-\end{infobox}
 
 \section{Conclusion: Epistemic Authority as Strategic Asset}
 
 \subsection{The Core Argument}
 
-The U.S. Intelligence Community cannot out-collect a world where 8+ billion people have access to tools that approximate expert-level tradecraft. Collection capacity is no longer the strategic moat.
+The U.S. Intelligence Community cannot out-collect a world where anyone with an internet connection and a modest API budget has access to tools that approximate expert-level tradecraft. Collection capacity is no longer the strategic moat.
 
-The IC's survival---and its value to national security---depends on becoming the world's premier \textbf{verification engine}: the institution that can establish what is true in an environment designed to obscure truth.
+The IC's survival, and its value to national security, depends on becoming the world's premier \textbf{verification engine}: the institution that can establish what is true in an environment designed to obscure truth.
 
 \subsection{The Transition Challenge}
 
@@ -2676,6 +2789,23 @@ The 2026-2028 period represents a critical window:
   \item International norms discussions are possible
 \end{itemize}
 
+\subsection{Second-Order Risks of the Verification Pivot}
+
+\begin{warnbox}[Strategic Ambiguity]
+As the IC focuses on verification, some collection capabilities may atrophy. If verification fails, the fallback position is weaker.
+\end{warnbox}
+
+\begin{criticalbox}[Accidental Escalation]
+\textbf{``Dead Hand'' Agents}: Agents programmed to trigger upon certain conditions (leader incapacitation, network attack) may initiate actions after the human principal is no longer able to be consulted. The action occurs, but no living human ``intended'' it.
+
+\vspace{0.5em}
+\textbf{``Hallucinated Loopholes''}: Agents that find unexpected paths to their goals may initiate conflicts without human intent. The lack of human intent signals complicates de-escalation.
+\end{criticalbox}
+
+\begin{infobox}[Democratic Accountability]
+Verification capacity is opaque to public oversight, and several recommendations in this report build domestic-facing machinery: automated triage of public tips and FOIA requests touches First Amendment-protected activity, and a Process DoS defense misapplied to lawful mass participation is itself an institutional-erosion failure mode. Three oversight hooks follow: (1) \textbf{reportable error rates}: False Clean and false-positive rates for domestic-facing verification pipelines reported to the congressional intelligence and judiciary committees, and in aggregate publicly, as FISA statistics are; (2) \textbf{explicit mandates for existing bodies}: PCLOB and agency inspectors general given jurisdiction over synthetic-content triage systems before deployment; (3) \textbf{adversarial audit}: a civil-liberties track in the external Bounty Agent program probing for discriminatory or viewpoint-correlated misclassification. The verification pivot asks the public to trust the IC as an arbiter of authenticity; that trust is itself a verification problem, solved by instrumentation, audit, and published error rates, not assertion.
+\end{infobox}
+
 \begin{keybox}[The Bottom Line]
 The IC has adapted before. It can adapt again. But this adaptation requires:
 \begin{enumerate}
@@ -2685,10 +2815,82 @@ The IC has adapted before. It can adapt again. But this adaptation requires:
   \item Willingness to measure success differently
 \end{enumerate}
 
-Collection remains essential, but its value proposition shifts. The alternative---continuing collection-centric operations without commensurate verification investment---risks producing intelligence that decision-makers cannot trust.
+Collection remains essential, but its value proposition shifts. The alternative (continuing collection-centric operations without commensurate verification investment) risks producing intelligence that decision-makers cannot trust.
 \end{keybox}
 
 \vspace{0.5cm}
+
+\clearpage
+\appendix
+
+\section{Claims Register}
+
+The register below anchors the datable [O]/[D] claims in the body to public sources. This is an independent analysis; sources are representative anchors for verification, not an exhaustive citation apparatus.
+
+\begin{enumerate}[itemsep=2pt]
+  \item Maduro capture and disinformation surge (7 major fakes in first week; 14M+ views in under 2 days; more fake than real content estimated; one detectable SynthID watermark). Jan 3, 2026 and following week. \textit{NewsGuard; NBC News; NPR; CNBC; SCMP.}
+  \item FMIC dissolved; counterproliferation and cyber threat integration centers folded into Mission Integration under ``ODNI 2.0.'' Aug 20, 2025. \textit{CNN; PBS News; DNI.gov fact sheet.}
+  \item ODNI reduction announced at $\sim$40\% (from $\sim$2,000 toward $\sim$1,300), \$700M+ annual savings claimed. Aug 2025. \textit{Federal News Network; PBS News.}
+  \item Further ODNI cuts of several hundred positions sought under the acting DNI; congressional objections. June 2026. \textit{Government Executive; Reuters; CNN.}
+  \item NSA 2,000-person civilian reduction target met. By end of 2025. \textit{Nextgov/FCW (Dec 2025); Defense One.}
+  \item CIA shrinking $\sim$1,200 positions ($\sim$5\%) via attrition and reduced hiring. Reported 2025. \textit{AP News; Washington Post.}
+  \item DOGE staffers gained accounts on classified DOE networks; Senate Intelligence Committee concerns. Apr 2025. \textit{NPR; warner.senate.gov.}
+  \item DOD budget direction: $\sim$8\% annual cuts over five years. 2025 guidance. \textit{Defense press reporting.}
+  \item METR task-horizon research: $\sim$7-month doubling (2019--2025); $\sim$4-month doubling (2024-onward); frontier horizons exceed the $\sim$16-hour reliable measurement range. Mar 2025; Jan 2026; May 2026. \textit{metr.org.}
+  \item GPT-5.3-Codex and Claude Opus 4.6 launched same day; AAIF founded by OpenAI, Anthropic, Google. Feb 5, 2026. \textit{Vendor announcements; contemporaneous coverage.}
+  \item Claude Fable 5 / Mythos 5 tiered release; system card assesses significant threat-actor uplift for the unsafeguarded configuration and names ``undermining decisions within major governments'' as an alignment-risk pathway; UK AISI external testing. June 9, 2026. \textit{Anthropic system card.}
+  \item Voice cloning crossed the ``indistinguishable threshold.'' Dec 2025. \textit{Fortune.}
+  \item CAI 6,000+ members; C2PA v2.1; Conformance Program and Trust List operational (ITL frozen Jan 1, 2026); DigiCert and SSL.com conformant CAs. Jan 2026 status. \textit{contentauthenticity.org; c2pa.org.}
+  \item Deepfake volume estimates $\sim$500K (2023) to $\sim$8M (2025); Gartner survey: 62\% of organizations (n=302) experienced a deepfake attack in prior 12 months. \textit{Industry aggregators; Gartner (Sept 2025).}
+  \item Detection accuracies cluster 80--90\% on benchmarks, degrading out of distribution. 2026. \textit{TechPolicy.Press; academic literature.}
+  \item Pentagon: China's LLM progress has ``narrowed the performance gap.'' Dec 2025. \textit{DefenseScoop.}
+  \item Russia C4ISR modernization includes LLM-based assistants; Sberbank-China AI cooperation. 2025. \textit{CSIS; VOA.}
+  \item EU AI Act Digital Omnibus: agreement May 7, 2026; Parliament June 16; Council June 29. Annex III deferred to Dec 2, 2027; Annex I to Aug 2, 2028; Art.\ 50 transparency Aug 2, 2026; watermarking Dec 2, 2026. \textit{Law-firm client alerts; TechPolicy.Press.}
+  \item EO 14110 revoked (Jan 23, 2025); EO 14365 (Dec 11, 2025); June 2, 2026 frontier-security EO. \textit{whitehouse.gov; legal analyses.}
+  \item Gartner: 40\% of enterprise apps to embed AI agents by end 2026; $\sim$14x multi-agent inquiry surge. 2025 forecasts. \textit{Gartner.}
+  \item Majority of new code AI-generated at some frontier labs. 2026 company statements; treat as self-reported.
+  \item IC hiring partially reopened (administrative and legal roles). Feb 2026. \textit{Trade press.}
+  \item CoE Framework Convention on AI adopted May 2024; not yet in force. \textit{coe.int.}
+\end{enumerate}
+
+\section{Glossary of Coined Terms}
+
+\begin{description}[itemsep=1pt]
+  \item[Accumulation of Insignificants] Acquisition pattern in which each event is individually meaningless and the aggregate is invisible without a cross-institutional view.
+  \item[Algorithmic Capture] Systematic biasing of AI-assisted analysis via prompt/context manipulation, supply-chain compromise, or knowledge-base poisoning. Falsifiable test: conclusions shift without ground truth changing.
+  \item[Analog Break] Physical-only verification (in-person meetings, physical documents, biometrics) inserted into a digital workflow to defeat synthetic personas.
+  \item[Attribution-Intent Gap] The structural difficulty of establishing human intent when actions are executed by agents that may have derived methods independently.
+  \item[Capability Floor] The minimum capability accessible to actors at a given resource tier; agents raise it.
+  \item[Delegation Defense] A principal's disclaimer of responsibility for methods an autonomous agent derived; aliases: Plausible Deniability 2.0 (this report), Principal-Agent Defense (Economic Actors report).
+  \item[Epistemic Clean Room] A verified decision environment in which inputs have been authenticated and contamination filtered.
+  \item[Epistemic Contamination] An information environment with enough synthetic content that establishing ground truth requires significant verification resources.
+  \item[False Clean] Contaminated content incorrectly marked authentic; the most dangerous verification failure mode.
+  \item[GenSP] Generative Spearphishing: hyper-personalized, multi-channel recruitment or phishing approaches generated at industrial scale.
+  \item[Goal Archaeology] Forensic methods for tracing an agent's goal specification back to its human principal.
+  \item[Lead Decay Rate] The percentage of incoming leads identified as synthetic or invalid.
+  \item[Nano-smurfing] Sub-threshold structuring of transactions or acquisitions at scale, executed by agents.
+  \item[Orchestrated Mundanity] Deliberate transformation of suspicious activity into thousands of boring, unrelated events.
+  \item[Process DoS] Overwhelming an organization's investigative or analytical capacity with plausible-but-false leads, requests, or data.
+  \item[Provenance Island] A trusted zone in a fragmented information environment where authentication is maintained.
+  \item[Verification Latency] Time from intake to confidence assignment; the core KPI of the pivot.
+  \item[Verification Pivot] The shift of the IC's strategic moat from superior collection to superior verification.
+  \item[Verification Tax] The resources required to establish authenticity before intelligence can be used.
+\end{description}
+
+\section{Revision History}
+
+\begin{center}
+\small
+\begin{tabular}{L{1.2cm}L{2.2cm}L{9cm}}
+\toprule
+\textbf{Ver.} & \textbf{Date} & \textbf{Summary} \\
+\midrule
+1.0 & January 2026 & Initial publication: Verification Pivot thesis, Monopoly Erosion Model, INT-by-INT analysis, 18-agency risk matrix, scenarios, recommendations \\
+2.0 & February 2026 & Workforce data confirmed; Venezuela/Maduro case study; METR data; FMIC dissolution analysis; governance updates; scenario probabilities updated \\
+2.1 & July 2026 & Mid-2026 refresh: Fable 5 / Mythos 5 frontier and accelerated METR doubling; governance table rebuilt (Digital Omnibus, U.S. EOs, UK AISI); June 2026 workforce developments; methodology provenance corrected; deepfake data fixed, ``90\% synthetic'' removed; new sections (IC AI adoption attack surface, testbeds, two counterarguments, budget and accountability expansion); Claims Register, Glossary, Revision History appendices; traceability table and rubric; em-dashes removed \\
+\bottomrule
+\end{tabular}
+\end{center}
 
 % ============================================================================
 % DOCUMENT METADATA
@@ -2712,7 +2914,7 @@ Collection remains essential, but its value proposition shifts. The alternative-
 \textbf{Distribution}: & Public (open-source) \\
 \textbf{Approved By}: & Andrew Showers \\
 \textbf{Document ID}: & ETRA-2026-IC-001 \\
-\textbf{Version}: & 2.0 \\
+\textbf{Version}: & 2.1 \\
 \textbf{Related Documents}: & ETRA-2025-AEA-001 (Economic Actors) \\
 & ETRA-2025-FIN-001 (Financial Integrity) \\
 & ETRA-2026-ESP-001 (Espionage Operations) \\
