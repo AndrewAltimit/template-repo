@@ -40,8 +40,10 @@ The projection methodology draws on:
 - **Trend extrapolation** from current AI capabilities
 - **Historical case analysis** of technology-society interactions
 - **Institutional behavior modeling** based on past adaptations
-- **Expert consultation** across relevant domains
-- **Red team exercises** conducted under controlled conditions
+- **Synthesis of published expert analysis** across relevant domains
+- **Published red-team and evaluation results** (frontier-lab system cards, public benchmark research)
+
+These are independent, single-author analyses: they involve no first-party expert consultation and no red-team exercises conducted by or for the author.
 
 These reports aim to be concrete and specific while acknowledging uncertainty. Probability estimates are provided where appropriate.
 
