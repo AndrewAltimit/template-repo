@@ -13,15 +13,18 @@ echo "git-guard Installation"
 echo "============================================"
 echo ""
 
-# Check if we need to build
+# Always (re)build when cargo is available so a stale target/release binary
+# from an older checkout is never installed. Incremental builds are cheap.
 BINARY_PATH="${SCRIPT_DIR}/target/release/git"
-if [ ! -f "$BINARY_PATH" ]; then
-    echo "Binary not found, building from source..."
-    cd "$SCRIPT_DIR"
-    cargo build --release
+if command -v cargo >/dev/null 2>&1; then
+    echo "Building git-guard (release)..."
+    (cd "$SCRIPT_DIR" && cargo build --release)
     echo "Build complete."
+elif [ -f "$BINARY_PATH" ]; then
+    echo "WARNING: cargo not found; installing existing binary: $BINARY_PATH"
 else
-    echo "Using existing binary: $BINARY_PATH"
+    echo "ERROR: cargo not found and no prebuilt binary at $BINARY_PATH"
+    exit 1
 fi
 
 # Verify binary exists after build attempt
@@ -112,8 +115,9 @@ echo ""
 if [ -x "${INSTALL_DIR}/${BINARY_NAME}" ]; then
     echo "Testing git-guard..."
 
-    # Test that it blocks force push (should fail with error message)
-    if "${INSTALL_DIR}/${BINARY_NAME}" push --force 2>&1 | grep -q "GIT-GUARD"; then
+    # Test that it blocks force push. The wrapper refuses before running the
+    # real git, and --dry-run keeps this harmless even if something is off.
+    if "${INSTALL_DIR}/${BINARY_NAME}" push --force --dry-run 2>&1 | grep -q "GIT-GUARD"; then
         echo "Force push blocking: WORKING"
     else
         echo "Force push blocking: Could not verify (may need PATH update)"
@@ -137,12 +141,13 @@ echo "Installation complete!"
 echo "============================================"
 echo ""
 echo "git-guard will block:"
-echo "  - Force push (--force, -f, --force-with-lease)"
-echo "  - Skip hooks (--no-verify, -n on commit/merge)"
-echo "  - Push to protected branches (main, master)"
+echo "  - Force push (--force/-f, --force-with-lease, +refspec, --mirror)"
+echo "  - Skipped hooks (--no-verify, commit -n, core.hooksPath overrides)"
+echo "  - Pushes that can update main/master (incl. HEAD, --all, --prune)"
+echo "See tools/rust/git-guard/README.md for the full list."
 echo ""
-echo "To bypass when needed, use the real git binary directly:"
-echo "  /usr/bin/git <command>"
+echo "To bypass when needed, a human can run the real git binary directly"
+echo "(the blocked-operation message prints its path)."
 echo ""
 echo "For maximum hardening, run the wrapper-guard setup:"
 echo "  sudo bash automation/setup/security/setup-wrapper-guard.sh"

@@ -1,11 +1,11 @@
-//! Security module for AI agent coordination.
+//! Security helpers for AI agent coordination.
 //!
-//! This module provides:
-//! - Agent judgement system for assessing when to auto-fix vs ask for guidance
-//! - Trust bucketing for categorizing comments by author trust level
+//! - [`judgement`]: heuristics for deciding whether to auto-apply a review
+//!   suggestion, ask the owner, or dismiss it as a false positive
+//! - [`trust`]: bucketing comments by author trust level from `.agents.yaml`
 
 pub mod judgement;
 pub mod trust;
 
-pub use judgement::{AgentJudgement, AssessmentContext, FixCategory, JudgementResult};
-pub use trust::{Comment, TrustBucketer, TrustConfig, TrustLevel, bucket_comments_for_context};
+pub use judgement::{AgentJudgement, AssessmentContext};
+pub use trust::{Comment, TrustBucketer, TrustConfig, TrustLevel};

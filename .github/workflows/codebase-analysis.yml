@@ -173,9 +173,13 @@ jobs:
           # Run the Rust CLI analyze command
           # The CLI handles both analysis and issue creation
           set +e
-          ANALYSIS_OUTPUT=$($RUST_CLI analyze $CLI_ARGS 2>&1)
+          # Logs go to stderr so stdout stays parseable JSON
+          ANALYSIS_LOG=$(mktemp)
+          ANALYSIS_OUTPUT=$($RUST_CLI analyze $CLI_ARGS 2>"$ANALYSIS_LOG")
           EXIT_CODE=$?
           set -e
+          cat "$ANALYSIS_LOG"
+          rm -f "$ANALYSIS_LOG"
 
           if [ $EXIT_CODE -ne 0 ]; then
             echo "[ERROR] Analysis failed with exit code $EXIT_CODE"

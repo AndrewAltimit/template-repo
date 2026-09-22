@@ -4,11 +4,11 @@
 //!
 //! Usage:
 //!     # Standalone mode (default)
-//!     mcp-ai-toolkit --mode standalone --port 8012
+//!     mcp-ai-toolkit --mode standalone --port 8020
 //!
 //!     # Test endpoints
-//!     curl http://localhost:8012/health
-//!     curl http://localhost:8012/mcp/tools
+//!     curl http://localhost:8020/health
+//!     curl http://localhost:8020/mcp/tools
 
 mod config;
 mod server;

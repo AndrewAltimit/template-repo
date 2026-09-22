@@ -168,13 +168,6 @@ repos:
         files: '^tools/rust/markdown-link-checker/.*\.rs$'
         pass_filenames: false
 
-      - id: rust-fmt-mcp-code-quality
-        name: Rust format mcp-code-quality
-        entry: bash -c 'source "$HOME/.cargo/env" 2>/dev/null || true; cd tools/rust/mcp-code-quality && cargo fmt --all'
-        language: system
-        files: '^tools/rust/mcp-code-quality/.*\.rs$'
-        pass_filenames: false
-
       - id: rust-fmt-wrapper-common
         name: Rust format wrapper-common
         entry: bash -c 'source "$HOME/.cargo/env" 2>/dev/null || true; cd tools/rust/wrapper-common && cargo fmt --all'

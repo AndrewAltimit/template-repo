@@ -1,0 +1,27 @@
+# Fixture Site
+
+## Overview
+
+See the [guide](docs/guide.md) and [install steps](docs/guide.md#installation).
+Jump to [overview](#overview) or [top](#top).
+This one is [missing](docs/missing.md) and this [anchor](#nope) is not.
+Root-relative: [usage](/docs/guide.md#usage).
+Spaces: [spaced](docs/with%20space.md) and [angled](<docs/with space.md>).
+Wrong case: [case](docs/GUIDE.md).
+![logo](images/logo.png) ![gone](images/gone.png)
+
+<a href="docs/guide.md#faq">FAQ</a> <img src="images/missing.png">
+
+External [site](https://example.invalid/page) and [mail](mailto:someone@example.com).
+Undefined [reference][nolabel] here.
+
+```markdown
+[not checked](nowhere.md)
+```
+
+Inline `[not checked](nowhere-inline.md)` code.
+
+<!-- md-link-checker-disable-next-line -->
+[suppressed](suppressed.md)
+
+[defined]: docs/undefined-target.md

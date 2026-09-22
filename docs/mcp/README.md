@@ -254,8 +254,8 @@ Comprehensive terrain generation with Gaea2:
 
 #### 2. AI Toolkit MCP Server
 **Location**: `tools/mcp/mcp_ai_toolkit/`
-**Transport**: HTTP (Port 8012)
-**Remote Location**: `192.168.0.222:8012`
+**Transport**: HTTP (Port 8020)
+**Remote Location**: `192.168.0.222:8020`
 **Documentation**: [AI Toolkit MCP Documentation](../../tools/mcp/mcp_ai_toolkit/README.md)
 
 GPU-accelerated LoRA training management:
@@ -552,7 +552,7 @@ python automation/testing/test_all_servers.py
 
 **HTTP Mode (Remote servers):**
 - Gaea2: 8007 (remote at 192.168.0.152)
-- AI Toolkit: 8012 (remote at 192.168.0.222)
+- AI Toolkit: 8020 (remote at 192.168.0.222)
 - ComfyUI: 8013 (remote at 192.168.0.222)
 
 **Development Ports (when running servers in HTTP mode):**

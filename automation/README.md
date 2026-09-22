@@ -5,7 +5,7 @@ Infrastructure scripts for CI/CD, agent management, security hardening, and serv
 Most shell scripts in this directory are thin wrappers that delegate to the `automation-cli` Rust binary. Build it once and use it everywhere:
 
 ```bash
-cargo build --release -p automation-cli
+cargo build --release --manifest-path tools/rust/automation-cli/Cargo.toml
 ```
 
 ## Directory Overview

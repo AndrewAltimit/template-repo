@@ -51,7 +51,7 @@ Active AI agents work together in this development ecosystem:
 ### CI/CD (Most Used)
 
 ```bash
-# Preferred: Rust CLI (build once with: cargo build --release -p automation-cli)
+# Preferred: Rust CLI (build once with: cargo build --release --manifest-path tools/rust/automation-cli/Cargo.toml)
 automation-cli ci run full               # All Python checks
 automation-cli ci run format             # Check formatting
 automation-cli ci run lint-full          # Full linting

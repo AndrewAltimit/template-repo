@@ -1,17 +1,4 @@
-//! Markdown Link Checker
-//!
-//! Fast concurrent markdown link validator for CI/CD pipelines.
-//!
-//! # Features
-//!
-//! - Recursive markdown file discovery
-//! - Concurrent HTTP link validation
-//! - Local file link validation
-//! - Same-page and cross-file anchor validation
-//! - Configurable ignore patterns
-//! - JSON output for CI integration
-//!
-//! # Usage
+//! `md-link-checker`: fast concurrent markdown link validator.
 //!
 //! ```bash
 //! md-link-checker .                          # Check all markdown files
@@ -20,31 +7,31 @@
 //! md-link-checker . --ignore "localhost"     # Custom ignore pattern
 //! md-link-checker . --skip-anchors           # Skip anchor validation
 //! ```
+//!
+//! Exit codes: 0 all links valid, 1 broken links or unreadable files,
+//! 2 usage or fatal error (bad arguments, invalid pattern, missing path).
 
-use std::collections::{HashMap, HashSet};
-use std::path::{Path, PathBuf};
-use std::sync::{Arc, OnceLock};
+use std::io::IsTerminal;
+use std::path::PathBuf;
+use std::process::ExitCode;
 use std::time::Duration;
 
-use anyhow::{Context, Result};
+use anyhow::Result;
 use clap::Parser;
-use pulldown_cmark::{Event, Parser as MdParser, Tag, TagEnd};
-use regex::Regex;
-use reqwest::Client;
-use serde::Serialize;
-use tokio::sync::Semaphore;
-use tracing::{Level, debug, error, info, warn};
-use tracing_subscriber::FmtSubscriber;
-use walkdir::WalkDir;
+use markdown_link_checker::discover::{DiscoverOptions, find_repo_root};
+use markdown_link_checker::filters::{IgnoreRules, read_pattern_file};
+use markdown_link_checker::http::HttpOptions;
+use markdown_link_checker::{CheckOptions, check_paths};
+use tracing::{Level, error, info};
 
 /// Fast concurrent markdown link validator
 #[derive(Parser, Debug)]
 #[command(name = "md-link-checker")]
 #[command(author, version, about, long_about = None)]
 struct Args {
-    /// Path to markdown file or directory to check
+    /// Markdown files or directories to check
     #[arg(default_value = ".")]
-    path: PathBuf,
+    paths: Vec<PathBuf>,
 
     /// Only check internal/local links (skip HTTP/HTTPS)
     #[arg(long)]
@@ -54,17 +41,54 @@ struct Args {
     #[arg(long)]
     skip_anchors: bool,
 
-    /// Patterns to ignore (regex)
+    /// Patterns to ignore (regex, matched against the link as written)
     #[arg(long, short = 'i')]
     ignore: Vec<String>,
 
+    /// File of ignore regexes, one per line ('#' comments allowed)
+    #[arg(long, value_name = "FILE")]
+    ignore_file: Vec<PathBuf>,
+
+    /// Do not apply the built-in ignore patterns (localhost, private IPs, ...)
+    #[arg(long)]
+    no_default_ignores: bool,
+
+    /// Skip files/directories matching this gitignore-style glob (repeatable)
+    #[arg(long, short = 'e', value_name = "GLOB")]
+    exclude: Vec<String>,
+
+    /// Do not honor .gitignore / .mdlinkignore files when walking directories
+    #[arg(long)]
+    no_ignore_files: bool,
+
+    /// Directory that '/absolute' links resolve against [default: git root]
+    #[arg(long, value_name = "DIR")]
+    root: Option<PathBuf>,
+
+    /// Also report [text][label] references whose label is never defined
+    /// (GitHub renders them as literal text)
+    #[arg(long)]
+    check_undefined_refs: bool,
+
     /// Timeout for HTTP requests in seconds
-    #[arg(long, default_value = "10")]
+    #[arg(long, default_value = "10", value_parser = clap::value_parser!(u64).range(1..))]
     timeout: u64,
 
     /// Maximum concurrent HTTP checks
-    #[arg(long, default_value = "10")]
-    concurrent: usize,
+    #[arg(long, default_value = "10", value_parser = clap::value_parser!(u64).range(1..))]
+    concurrent: u64,
+
+    /// Maximum concurrent HTTP checks against a single host
+    #[arg(long, default_value = "4", value_parser = clap::value_parser!(u64).range(1..))]
+    per_host: u64,
+
+    /// Retries for transient HTTP failures (timeouts, 429, 5xx)
+    #[arg(long, default_value = "2")]
+    max_retries: u32,
+
+    /// Extra HTTP status codes to accept as valid (comma-separated, e.g. 403,429)
+    #[arg(long, value_delimiter = ',', value_name = "CODES")]
+    accept: Vec<u16>,
 
     /// Output results as JSON
     #[arg(long)]
@@ -75,940 +99,84 @@ struct Args {
     verbose: bool,
 }
 
-/// Result of checking links in a single file
-#[derive(Debug, Serialize)]
-struct FileResult {
-    file: String,
-    links: Vec<LinkResult>,
-    broken_count: usize,
-    total_count: usize,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    error: Option<String>,
-}
-
-/// Result of checking a single link
-#[derive(Debug, Serialize)]
-struct LinkResult {
-    url: String,
-    valid: bool,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    error: Option<String>,
-}
-
-/// Overall check results
-#[derive(Debug, Serialize)]
-struct CheckResults {
-    success: bool,
-    files_checked: usize,
-    total_links: usize,
-    broken_links: usize,
-    all_valid: bool,
-    results: Vec<FileResult>,
-}
-
-/// Default patterns to ignore (non-checkable URL schemes)
-const DEFAULT_IGNORE_PATTERNS: &[&str] = &[
-    r"^http://localhost",
-    r"^http://127\.0\.0\.1",
-    r"^http://192\.168\.",
-    r"^http://0\.0\.0\.0",
-    r"^mailto:",
-    r"^chrome://",
-    r"^file://",
-    r"^ftp://",
-    r"^tel:",
-    r"^javascript:",
-];
-
-/// Convert a markdown heading to a GitHub-compatible anchor ID.
-///
-/// Matches the github-slugger algorithm:
-/// 1. Trim and convert to lowercase
-/// 2. Remove punctuation (keep letters, numbers, spaces, hyphens, underscores)
-/// 3. Convert spaces to hyphens
-///
-/// Notably: consecutive hyphens are NOT collapsed (e.g. "Audio & Animation"
-/// becomes "audio--animation" because the `&` is removed leaving two spaces).
-fn github_slugify(heading: &str) -> String {
-    let mut slug = String::with_capacity(heading.len());
-    for ch in heading.trim().to_lowercase().chars() {
-        if ch.is_alphanumeric() || ch == '-' || ch == '_' {
-            slug.push(ch);
-        } else if ch == ' ' {
-            slug.push('-');
+impl Args {
+    fn check_options(&self) -> Result<CheckOptions> {
+        let mut patterns = self.ignore.clone();
+        for file in &self.ignore_file {
+            patterns.extend(read_pattern_file(file)?);
         }
-        // All other characters (punctuation, etc.) are dropped
-    }
-    slug
-}
-
-/// Extract all heading anchor IDs from markdown content.
-///
-/// Uses pulldown-cmark to parse headings, correctly handling inline
-/// formatting (backtick code, links, bold/italic) and trailing ATX markers.
-/// Returns the set of GitHub-compatible anchor IDs including suffixed
-/// duplicates matching GitHub's `github-slugger` collision resolution:
-/// when a generated slug (with or without suffix) already exists, keep
-/// incrementing the suffix until a unique ID is found.
-fn extract_heading_anchors(content: &str) -> HashSet<String> {
-    let parser = MdParser::new(content);
-    // Tracks occurrence counts per base slug, matching github-slugger semantics.
-    // Every final slug (including suffixed variants) is recorded with count 0
-    // so that later natural slugs that collide get properly suffixed.
-    let mut occurrences: HashMap<String, usize> = HashMap::new();
-    let mut anchors = HashSet::new();
-    let mut in_heading = false;
-    let mut heading_text = String::new();
-
-    for event in parser {
-        match event {
-            Event::Start(Tag::Heading { .. }) => {
-                in_heading = true;
-                heading_text.clear();
+        let root = match &self.root {
+            Some(root) => root.clone(),
+            None => find_repo_root(self.paths.first().map_or(".".as_ref(), |p| p.as_path())),
+        };
+        Ok(CheckOptions {
+            check_external: !self.internal_only,
+            validate_anchors: !self.skip_anchors,
+            check_undefined_refs: self.check_undefined_refs,
+            root,
+            ignore: IgnoreRules::new(&patterns, !self.no_default_ignores)?,
+            http: HttpOptions {
+                timeout: Duration::from_secs(self.timeout),
+                concurrency: usize::try_from(self.concurrent).unwrap_or(usize::MAX),
+                per_host: usize::try_from(self.per_host).unwrap_or(usize::MAX),
+                max_retries: self.max_retries,
+                accept: self.accept.clone(),
+                ..HttpOptions::default()
             },
-            Event::End(TagEnd::Heading(_)) => {
-                in_heading = false;
-                let original_slug = github_slugify(&heading_text);
-                if !original_slug.is_empty() {
-                    // github-slugger algorithm: try the base slug, then
-                    // append -N (incrementing) until a unique slug is found.
-                    let mut slug = original_slug.clone();
-                    if occurrences.contains_key(&slug) {
-                        let count = occurrences.get_mut(&original_slug).unwrap();
-                        *count += 1;
-                        slug = format!("{}-{}", original_slug, count);
-                        // Resolve further collisions (e.g. natural "Foo 1"
-                        // already claimed "foo-1")
-                        while occurrences.contains_key(&slug) {
-                            let count = occurrences.get_mut(&original_slug).unwrap();
-                            *count += 1;
-                            slug = format!("{}-{}", original_slug, count);
-                        }
-                    }
-                    occurrences.insert(slug.clone(), 0);
-                    anchors.insert(slug);
-                }
+            discover: DiscoverOptions {
+                respect_ignore_files: !self.no_ignore_files,
+                excludes: self.exclude.clone(),
             },
-            Event::Text(text) | Event::Code(text) if in_heading => {
-                heading_text.push_str(&text);
-            },
-            Event::SoftBreak | Event::HardBreak if in_heading => {
-                heading_text.push(' ');
-            },
-            _ => {},
-        }
-    }
-
-    anchors
-}
-
-/// Link checker implementation
-struct LinkChecker {
-    client: Client,
-    semaphore: Arc<Semaphore>,
-    ignore_patterns: Vec<Regex>,
-    check_external: bool,
-    validate_anchors: bool,
-    timeout: Duration,
-}
-
-impl LinkChecker {
-    fn new(
-        concurrent: usize,
-        timeout: Duration,
-        ignore_patterns: Vec<String>,
-        check_external: bool,
-        validate_anchors: bool,
-    ) -> Result<Self> {
-        let client = Client::builder()
-            .timeout(timeout)
-            .user_agent("md-link-checker/0.2.0")
-            .build()
-            .context("Failed to build HTTP client")?;
-
-        // Compile ignore patterns
-        let mut compiled_patterns = Vec::new();
-        for pattern in DEFAULT_IGNORE_PATTERNS {
-            compiled_patterns.push(Regex::new(pattern)?);
-        }
-        for pattern in &ignore_patterns {
-            compiled_patterns.push(Regex::new(pattern)?);
-        }
-
-        Ok(Self {
-            client,
-            semaphore: Arc::new(Semaphore::new(concurrent)),
-            ignore_patterns: compiled_patterns,
-            check_external,
-            validate_anchors,
-            timeout,
         })
     }
-
-    /// Find all markdown files in a path
-    fn find_markdown_files(&self, path: &Path) -> Vec<PathBuf> {
-        let mut files = Vec::new();
-
-        if path.is_file() {
-            if let Some(ext) = path.extension()
-                && (ext == "md" || ext == "markdown")
-            {
-                files.push(path.to_path_buf());
-            }
-        } else if path.is_dir() {
-            for entry in WalkDir::new(path)
-                .follow_links(true)
-                .into_iter()
-                .filter_map(|e| e.ok())
-            {
-                let path = entry.path();
-                if path.is_file()
-                    && let Some(ext) = path.extension()
-                    && (ext == "md" || ext == "markdown")
-                {
-                    files.push(path.to_path_buf());
-                }
-            }
-        }
-
-        files
-    }
-
-    /// Extract links from markdown content
-    fn extract_links(&self, content: &str) -> HashSet<String> {
-        let mut links = HashSet::new();
-
-        // Remove code blocks to avoid false positives
-        let content = remove_code_blocks(content);
-
-        let parser = MdParser::new(&content);
-
-        for event in parser {
-            match event {
-                Event::Start(Tag::Link { dest_url, .. })
-                | Event::Start(Tag::Image { dest_url, .. }) => {
-                    let url = dest_url.to_string();
-                    if !url.is_empty() {
-                        links.insert(url);
-                    }
-                },
-                _ => {},
-            }
-        }
-
-        // Also extract reference-style links
-        static REF_RE: OnceLock<Regex> = OnceLock::new();
-        let ref_pattern = REF_RE.get_or_init(|| Regex::new(r"(?m)^\[([^\]]+)\]:\s*(.+)$").unwrap());
-        for caps in ref_pattern.captures_iter(&content) {
-            if let Some(url) = caps.get(2) {
-                let url = url.as_str().trim().to_string();
-                if !url.is_empty() {
-                    links.insert(url);
-                }
-            }
-        }
-
-        links
-    }
-
-    /// Check if a link should be ignored
-    fn should_ignore(&self, link: &str) -> bool {
-        self.ignore_patterns.iter().any(|p| p.is_match(link))
-    }
-
-    /// Check a single link
-    async fn check_link(
-        &self,
-        link: &str,
-        base_dir: &Path,
-        source_anchors: &HashSet<String>,
-    ) -> LinkResult {
-        // Same-page anchor link (#section-name)
-        if let Some(anchor) = link.strip_prefix('#') {
-            return self.check_anchor(link, anchor, source_anchors);
-        }
-
-        // Check if it's a local file link (possibly with anchor)
-        if !link.starts_with("http://") && !link.starts_with("https://") && !link.starts_with("//")
-        {
-            return self.check_local_link(link, base_dir);
-        }
-
-        // Skip external links if configured
-        if !self.check_external {
-            return LinkResult {
-                url: link.to_string(),
-                valid: true,
-                error: None,
-            };
-        }
-
-        // Handle protocol-relative URLs
-        let url = if link.starts_with("//") {
-            format!("https:{}", link)
-        } else {
-            link.to_string()
-        };
-
-        // Acquire semaphore permit for rate limiting
-        let _permit = self.semaphore.acquire().await.unwrap();
-
-        // Try HEAD first, then GET
-        match self.client.head(&url).send().await {
-            Ok(response)
-                if response.status().is_success() || response.status().is_redirection() =>
-            {
-                LinkResult {
-                    url: link.to_string(),
-                    valid: true,
-                    error: None,
-                }
-            },
-            Ok(response) => {
-                // Try GET as fallback (some servers don't support HEAD)
-                match self.client.get(&url).send().await {
-                    Ok(get_response)
-                        if get_response.status().is_success()
-                            || get_response.status().is_redirection() =>
-                    {
-                        LinkResult {
-                            url: link.to_string(),
-                            valid: true,
-                            error: None,
-                        }
-                    },
-                    Ok(get_response) => LinkResult {
-                        url: link.to_string(),
-                        valid: false,
-                        error: Some(format!("HTTP {}", get_response.status().as_u16())),
-                    },
-                    Err(e) => LinkResult {
-                        url: link.to_string(),
-                        valid: false,
-                        error: Some(format!("HTTP {}: {}", response.status().as_u16(), e)),
-                    },
-                }
-            },
-            Err(e) => {
-                // Try GET as fallback
-                match self.client.get(&url).send().await {
-                    Ok(response)
-                        if response.status().is_success() || response.status().is_redirection() =>
-                    {
-                        LinkResult {
-                            url: link.to_string(),
-                            valid: true,
-                            error: None,
-                        }
-                    },
-                    Ok(response) => LinkResult {
-                        url: link.to_string(),
-                        valid: false,
-                        error: Some(format!("HTTP {}", response.status().as_u16())),
-                    },
-                    Err(_) => LinkResult {
-                        url: link.to_string(),
-                        valid: false,
-                        error: Some(e.to_string()),
-                    },
-                }
-            },
-        }
-    }
-
-    /// Validate a same-page anchor link against known heading anchors
-    fn check_anchor(
-        &self,
-        link: &str,
-        anchor: &str,
-        source_anchors: &HashSet<String>,
-    ) -> LinkResult {
-        if !self.validate_anchors {
-            return LinkResult {
-                url: link.to_string(),
-                valid: true,
-                error: None,
-            };
-        }
-
-        if source_anchors.contains(anchor) {
-            LinkResult {
-                url: link.to_string(),
-                valid: true,
-                error: None,
-            }
-        } else {
-            LinkResult {
-                url: link.to_string(),
-                valid: false,
-                error: Some("Anchor not found in document headings".to_string()),
-            }
-        }
-    }
-
-    /// Check a local file link (with optional anchor validation)
-    fn check_local_link(&self, link: &str, base_dir: &Path) -> LinkResult {
-        // Split path and anchor
-        let (path_str, anchor) = match link.split_once('#') {
-            Some((p, a)) => (p, Some(a)),
-            None => (link, None),
-        };
-
-        // Empty path with anchor would be a same-page link (handled by check_anchor)
-        // but this shouldn't happen since we strip # prefix first in check_link
-
-        let file_path = if let Some(stripped) = path_str.strip_prefix('/') {
-            // Absolute path from repo root
-            PathBuf::from(stripped)
-        } else {
-            // Relative to current file
-            base_dir.join(path_str)
-        };
-
-        if !file_path.exists() {
-            return LinkResult {
-                url: link.to_string(),
-                valid: false,
-                error: Some("File not found".to_string()),
-            };
-        }
-
-        // If there's an anchor and anchor validation is enabled, check it
-        if let Some(anchor) = anchor
-            && self.validate_anchors
-        {
-            // Read the target file and extract its heading anchors
-            // pulldown-cmark parser correctly ignores headings in code blocks
-            match std::fs::read_to_string(&file_path) {
-                Ok(target_content) => {
-                    let target_anchors = extract_heading_anchors(&target_content);
-                    if !target_anchors.contains(anchor) {
-                        return LinkResult {
-                            url: link.to_string(),
-                            valid: false,
-                            error: Some(format!(
-                                "Anchor #{} not found in {}",
-                                anchor,
-                                file_path.display()
-                            )),
-                        };
-                    }
-                },
-                Err(e) => {
-                    return LinkResult {
-                        url: link.to_string(),
-                        valid: false,
-                        error: Some(format!(
-                            "Cannot read {} for anchor validation: {}",
-                            file_path.display(),
-                            e
-                        )),
-                    };
-                },
-            }
-        }
-
-        LinkResult {
-            url: link.to_string(),
-            valid: true,
-            error: None,
-        }
-    }
-
-    /// Check all links in a single file
-    async fn check_file(&self, file_path: &Path) -> FileResult {
-        let file_str = file_path.display().to_string();
-
-        // Read file content
-        let content = match std::fs::read_to_string(file_path) {
-            Ok(c) => c,
-            Err(e) => {
-                return FileResult {
-                    file: file_str,
-                    links: Vec::new(),
-                    broken_count: 0,
-                    total_count: 0,
-                    error: Some(e.to_string()),
-                };
-            },
-        };
-
-        // Extract heading anchors from this file (for same-page anchor validation)
-        // Uses pulldown-cmark parser which correctly ignores headings in code blocks
-        let source_anchors = if self.validate_anchors {
-            extract_heading_anchors(&content)
-        } else {
-            HashSet::new()
-        };
-
-        // Extract links
-        let all_links = self.extract_links(&content);
-        let base_dir = file_path.parent().unwrap_or(Path::new("."));
-
-        // Filter out ignored links
-        let links_to_check: Vec<_> = all_links
-            .into_iter()
-            .filter(|link| !self.should_ignore(link))
-            .collect();
-
-        let total_count = links_to_check.len();
-
-        // Check all links concurrently
-        let mut handles = Vec::new();
-        for link in links_to_check {
-            let checker_link = link.clone();
-            let base = base_dir.to_path_buf();
-            let client = self.client.clone();
-            let semaphore = self.semaphore.clone();
-            let check_external = self.check_external;
-            let validate_anchors = self.validate_anchors;
-            let timeout = self.timeout;
-            let anchors = source_anchors.clone();
-
-            handles.push(tokio::spawn(async move {
-                let checker = LinkChecker {
-                    client,
-                    semaphore,
-                    ignore_patterns: Vec::new(),
-                    check_external,
-                    validate_anchors,
-                    timeout,
-                };
-                checker.check_link(&checker_link, &base, &anchors).await
-            }));
-        }
-
-        let mut links = Vec::new();
-        let mut broken_count = 0;
-
-        for handle in handles {
-            match handle.await {
-                Ok(result) => {
-                    if !result.valid {
-                        broken_count += 1;
-                    }
-                    links.push(result);
-                },
-                Err(e) => {
-                    links.push(LinkResult {
-                        url: "unknown".to_string(),
-                        valid: false,
-                        error: Some(format!("Task failed: {}", e)),
-                    });
-                    broken_count += 1;
-                },
-            }
-        }
-
-        FileResult {
-            file: file_str,
-            links,
-            broken_count,
-            total_count,
-            error: None,
-        }
-    }
-
-    /// Check all markdown files in a path
-    async fn check_all(&self, path: &Path) -> CheckResults {
-        let files = self.find_markdown_files(path);
-
-        if files.is_empty() {
-            return CheckResults {
-                success: true,
-                files_checked: 0,
-                total_links: 0,
-                broken_links: 0,
-                all_valid: true,
-                results: Vec::new(),
-            };
-        }
-
-        info!("Found {} markdown files to check", files.len());
-
-        let mut results = Vec::new();
-        let mut total_links = 0;
-        let mut broken_links = 0;
-
-        for file in &files {
-            debug!("Checking {}", file.display());
-            let file_result = self.check_file(file).await;
-            total_links += file_result.total_count;
-            broken_links += file_result.broken_count;
-
-            if file_result.broken_count > 0 {
-                warn!(
-                    "{}: {} broken link(s)",
-                    file.display(),
-                    file_result.broken_count
-                );
-            }
-
-            results.push(file_result);
-        }
-
-        CheckResults {
-            success: true,
-            files_checked: files.len(),
-            total_links,
-            broken_links,
-            all_valid: broken_links == 0,
-            results,
-        }
-    }
-}
-
-/// Remove code blocks from markdown to avoid false positives
-fn remove_code_blocks(content: &str) -> String {
-    static FENCED_RE: OnceLock<Regex> = OnceLock::new();
-    static INLINE_RE: OnceLock<Regex> = OnceLock::new();
-
-    // Remove fenced code blocks
-    let fenced = FENCED_RE.get_or_init(|| Regex::new(r"```[\s\S]*?```").unwrap());
-    let content = fenced.replace_all(content, "");
-
-    // Remove inline code
-    let inline = INLINE_RE.get_or_init(|| Regex::new(r"`[^`]+`").unwrap());
-    inline.replace_all(&content, "").to_string()
 }
 
 fn setup_logging(verbose: bool) {
     let level = if verbose { Level::DEBUG } else { Level::INFO };
-
-    let subscriber = FmtSubscriber::builder()
+    let subscriber = tracing_subscriber::fmt()
         .with_max_level(level)
         .with_target(false)
-        .with_thread_ids(false)
-        .with_file(false)
-        .with_line_number(false)
+        .with_ansi(std::io::stderr().is_terminal())
+        .with_writer(std::io::stderr)
         .finish();
-
     tracing::subscriber::set_global_default(subscriber).ok();
 }
 
-#[tokio::main]
-async fn main() -> Result<()> {
-    let args = Args::parse();
+async fn run(args: &Args) -> Result<bool> {
+    let options = args.check_options()?;
+    let results = check_paths(&args.paths, &options).await?;
 
-    // Setup logging (skip if JSON output to keep stdout clean)
-    if !args.json {
-        setup_logging(args.verbose);
-    }
-
-    // Create checker
-    let checker = LinkChecker::new(
-        args.concurrent,
-        Duration::from_secs(args.timeout),
-        args.ignore,
-        !args.internal_only,
-        !args.skip_anchors,
-    )?;
-
-    // Run checks
-    let results = checker.check_all(&args.path).await;
-
-    // Output results
     if args.json {
         println!("{}", serde_json::to_string_pretty(&results)?);
     } else {
-        // Human-readable output
-        println!();
-        println!("=== Markdown Link Check Results ===");
-        println!();
-        println!("Files checked: {}", results.files_checked);
-        println!("Total links:   {}", results.total_links);
-        println!("Broken links:  {}", results.broken_links);
-        println!();
-
-        if results.broken_links > 0 {
-            println!("Broken links:");
-            println!();
-            for file_result in &results.results {
-                for link in &file_result.links {
-                    if !link.valid {
-                        println!(
-                            "  {} -> {} ({})",
-                            file_result.file,
-                            link.url,
-                            link.error.as_deref().unwrap_or("unknown error")
-                        );
-                    }
-                }
-            }
-            println!();
+        results.write_human(&mut std::io::stdout().lock())?;
+        if results.all_valid {
+            info!("All links valid!");
+        } else {
             error!(
                 "Link check failed with {} broken link(s)",
                 results.broken_links
             );
-            std::process::exit(1);
-        } else {
-            info!("All links valid!");
         }
     }
-
-    if !results.all_valid {
-        std::process::exit(1);
-    }
-
-    Ok(())
+    Ok(results.all_valid)
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+#[tokio::main]
+async fn main() -> ExitCode {
+    let args = Args::parse();
 
-    #[test]
-    fn test_github_slugify() {
-        assert_eq!(github_slugify("Introduction"), "introduction");
-        assert_eq!(
-            github_slugify("1. Introduction and Methodology"),
-            "1-introduction-and-methodology"
-        );
-        assert_eq!(
-            github_slugify("The Current Technological Landscape (2025)"),
-            "the-current-technological-landscape-2025"
-        );
-        assert_eq!(
-            github_slugify("Second-Order Effects"),
-            "second-order-effects"
-        );
-        assert_eq!(
-            github_slugify("What Would Change This Assessment?"),
-            "what-would-change-this-assessment"
-        );
-        assert_eq!(
-            github_slugify("The Insider Threat 2.0: Stasi-in-a-Box"),
-            "the-insider-threat-20-stasi-in-a-box"
-        );
-        assert_eq!(
-            github_slugify("Plausible Deniability 2.0"),
-            "plausible-deniability-20"
-        );
-        // GitHub preserves consecutive hyphens from removed punctuation
-        assert_eq!(
-            github_slugify("Audio & Animation Pipeline"),
-            "audio--animation-pipeline"
-        );
-        assert_eq!(github_slugify("Monitoring & Alerts"), "monitoring--alerts");
-        // Triple-dash separators stay as-is
-        assert_eq!(
-            github_slugify("Phase 2: First Backend - VRChat OSC"),
-            "phase-2-first-backend---vrchat-osc"
-        );
+    // Keep stdout clean for machine consumers in JSON mode.
+    if !args.json {
+        setup_logging(args.verbose);
     }
 
-    #[test]
-    fn test_extract_heading_anchors() {
-        let content = r#"
-# Main Title
-
-## 1. Introduction
-
-### Sub-section A
-
-## 2. The Current Landscape (2025)
-
-## Conclusion
-"#;
-        let anchors = extract_heading_anchors(content);
-        assert!(anchors.contains("main-title"));
-        assert!(anchors.contains("1-introduction"));
-        assert!(anchors.contains("sub-section-a"));
-        assert!(anchors.contains("2-the-current-landscape-2025"));
-        assert!(anchors.contains("conclusion"));
-    }
-
-    #[test]
-    fn test_extract_heading_anchors_duplicate_headings() {
-        let content = r#"
-# Introduction
-
-## Details
-
-## Details
-
-## Details
-
-## Conclusion
-"#;
-        let anchors = extract_heading_anchors(content);
-        // First occurrence: no suffix
-        assert!(anchors.contains("details"));
-        // Second occurrence: -1 suffix
-        assert!(anchors.contains("details-1"));
-        // Third occurrence: -2 suffix
-        assert!(anchors.contains("details-2"));
-        assert!(anchors.contains("introduction"));
-        assert!(anchors.contains("conclusion"));
-    }
-
-    #[test]
-    fn test_extract_heading_anchors_ignores_code_blocks() {
-        let content = r#"
-# Real Heading
-
-```markdown
-# Fake Heading In Code
-```
-
-## Another Real Heading
-"#;
-        // pulldown-cmark parser natively ignores headings in code blocks
-        let anchors = extract_heading_anchors(content);
-        assert!(anchors.contains("real-heading"));
-        assert!(anchors.contains("another-real-heading"));
-        assert!(!anchors.contains("fake-heading-in-code"));
-    }
-
-    #[test]
-    fn test_extract_heading_anchors_inline_formatting() {
-        let content = r#"
-## The `foo` Command
-
-## Layer 1: Shared Library (`wrapper-common`)
-
-### [API Reference](https://example.com)
-
-## **Bold** Heading
-"#;
-        let anchors = extract_heading_anchors(content);
-        // Inline code content is preserved in the anchor
-        assert!(anchors.contains("the-foo-command"));
-        assert!(anchors.contains("layer-1-shared-library-wrapper-common"));
-        // Link text is used, URL is excluded
-        assert!(anchors.contains("api-reference"));
-        // Bold markers are stripped, text preserved
-        assert!(anchors.contains("bold-heading"));
-    }
-
-    #[test]
-    fn test_extract_heading_anchors_collision() {
-        // Scenario: natural slug "foo-1" (from "Foo 1") collides with
-        // generated suffix "foo-1" (from the second "Foo" heading).
-        let content = r#"
-## Foo
-
-## Foo
-
-## Foo 1
-"#;
-        let anchors = extract_heading_anchors(content);
-        // First "Foo" -> "foo"
-        assert!(anchors.contains("foo"));
-        // Second "Foo" -> would be "foo-1", but "Foo 1" also slugs to "foo-1".
-        // github-slugger processes headings in order, so second "Foo" gets
-        // "foo-1", and "Foo 1" must skip to "foo-1-1".
-        assert!(anchors.contains("foo-1"));
-        assert!(anchors.contains("foo-1-1"));
-        assert_eq!(anchors.len(), 3);
-    }
-
-    #[test]
-    fn test_extract_heading_anchors_hard_break() {
-        // HardBreak (trailing backslash) in a setext heading should
-        // produce a space in the slug, not concatenate words.
-        // ATX headings are single-line so hard breaks only appear in setext.
-        let content = "Word1\\\nWord2\n------\n";
-        let anchors = extract_heading_anchors(content);
-        assert!(anchors.contains("word1-word2"));
-        assert!(!anchors.contains("word1word2"));
-    }
-
-    #[test]
-    fn test_anchor_validation() {
-        let checker = LinkChecker::new(1, Duration::from_secs(10), Vec::new(), true, true).unwrap();
-        let mut anchors = HashSet::new();
-        anchors.insert("introduction".to_string());
-        anchors.insert("conclusion".to_string());
-
-        let result = checker.check_anchor("#introduction", "introduction", &anchors);
-        assert!(result.valid);
-
-        let result = checker.check_anchor("#nonexistent", "nonexistent", &anchors);
-        assert!(!result.valid);
-        assert!(
-            result
-                .error
-                .unwrap()
-                .contains("Anchor not found in document headings")
-        );
-    }
-
-    #[test]
-    fn test_anchor_validation_disabled() {
-        let checker =
-            LinkChecker::new(1, Duration::from_secs(10), Vec::new(), true, false).unwrap();
-        let anchors = HashSet::new();
-
-        // With validation disabled, even non-existent anchors pass
-        let result = checker.check_anchor("#nonexistent", "nonexistent", &anchors);
-        assert!(result.valid);
-    }
-
-    #[test]
-    fn test_extract_links_includes_anchors() {
-        let checker = LinkChecker::new(1, Duration::from_secs(10), Vec::new(), true, true).unwrap();
-
-        let content = r#"
-# Test
-
-[Link 1](https://example.com)
-[Section](#introduction)
-[Link 2](./local.md)
-[Cross-ref](./other.md#section)
-![Image](https://example.com/image.png)
-
-[ref]: https://reference.com
-"#;
-
-        let links = checker.extract_links(content);
-        assert!(links.contains("https://example.com"));
-        assert!(links.contains("#introduction"));
-        assert!(links.contains("./local.md"));
-        assert!(links.contains("./other.md#section"));
-        assert!(links.contains("https://example.com/image.png"));
-        assert!(links.contains("https://reference.com"));
-    }
-
-    #[test]
-    fn test_should_ignore() {
-        let checker = LinkChecker::new(1, Duration::from_secs(10), Vec::new(), true, true).unwrap();
-
-        assert!(checker.should_ignore("http://localhost:8080"));
-        assert!(checker.should_ignore("mailto:test@example.com"));
-        // Anchors are NO LONGER ignored by default (they are validated)
-        assert!(!checker.should_ignore("#anchor"));
-        assert!(!checker.should_ignore("https://example.com"));
-    }
-
-    #[test]
-    fn test_remove_code_blocks() {
-        let content = r#"
-Normal [link](https://example.com)
-
-```python
-fake_link = "[not a link](https://fake.com)"
-```
-
-More `inline [code](https://also-fake.com)` here
-"#;
-
-        let cleaned = remove_code_blocks(content);
-        assert!(cleaned.contains("https://example.com"));
-        assert!(!cleaned.contains("https://fake.com"));
-        assert!(!cleaned.contains("https://also-fake.com"));
-    }
-
-    #[test]
-    fn test_check_local_link() {
-        let checker = LinkChecker::new(1, Duration::from_secs(10), Vec::new(), true, true).unwrap();
-
-        // Check that Cargo.toml exists (it should)
-        let result = checker.check_local_link("Cargo.toml", Path::new("."));
-        assert!(result.valid);
-
-        // Check non-existent file
-        let result = checker.check_local_link("nonexistent.txt", Path::new("."));
-        assert!(!result.valid);
+    match run(&args).await {
+        Ok(true) => ExitCode::SUCCESS,
+        Ok(false) => ExitCode::from(1),
+        Err(e) => {
+            eprintln!("md-link-checker: error: {e:#}");
+            ExitCode::from(2)
+        },
     }
 }

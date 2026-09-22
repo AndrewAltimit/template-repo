@@ -7,7 +7,7 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 BINARY="$PROJECT_ROOT/tools/rust/automation-cli/target/release/automation-cli"
 
 if [[ ! -x "$BINARY" ]]; then
-    echo "ERROR: automation-cli not built. Run: cargo build --release -p automation-cli" >&2
+    echo "ERROR: automation-cli not built. Run: cargo build --release --manifest-path tools/rust/automation-cli/Cargo.toml" >&2
     exit 1
 fi
 

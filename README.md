@@ -2,7 +2,7 @@
 
 A reference architecture for AI agent orchestration, trust measurement, and tool integration. Designed to be studied, forked, and adapted -- not contributed to directly. All code changes in this repository are authored by AI agents under human oversight. Browse the [project showcase](https://andrewaltimit.github.io/template-repo/) for an overview.
 
-This repo demonstrates how to run a council of AI agents (Claude, OpenCode, Crush) across a shared codebase with board-driven task delegation, automated PR review, security hardening, and containerized tooling. (OpenAI/Google integrations have been disabled -- see [security notice](#ai-agents).) It also includes standalone research packages for sleeper agent detection, autonomous economic agent simulation, and tamper-responsive hardware. Several [companion repositories](#companion-repositories) consume or extend the functionality of this project.
+This repo demonstrates how to run a council of AI agents (Claude, OpenCode, Crush) across a shared codebase with board-driven task delegation, automated PR review, security hardening, and containerized tooling. It also includes standalone research packages for sleeper agent detection, autonomous economic agent simulation, and tamper-responsive hardware. Several [companion repositories](#companion-repositories) consume or extend the functionality of this project.
 
 **Use this repo to learn how to:**
 - Orchestrate multiple AI agents with a GitHub Projects v2 work queue
@@ -81,18 +81,16 @@ For detailed setup, see [CLAUDE.md](CLAUDE.md) and [Template Quickstart Guide](d
 
 Six AI agents for development and automation. See [AI Agents Documentation](docs/agents/README.md) for details.
 
-> **Security Notice -- OpenAI/Google Disabled**: OpenAI/Google integrations are disabled within PR reviews. OpenAI/Google permits government partners unrestricted use of their models. We only allow models with explicit prohibitions on mass surveillance and autonomous weapons.
-
 | Agent | Provider | Use Case | Documentation |
 |-------|----------|----------|---------------|
 | **Claude Code** | Anthropic | Primary development assistant (recommended) | [Setup Guide](docs/agents/claude-code-setup.md) |
-| **Codex** | ~~OpenAI~~ | ~~Code generation~~ **DISABLED - security risk** | [Setup Guide](docs/agents/codex-setup.md) |
+| **Codex** | ~~OpenAI~~ | ~~Code generation~~ **Disabled** | [Setup Guide](docs/agents/codex-setup.md) |
 | **OpenCode** | OpenRouter | Code generation | [AI Code Agents](docs/integrations/ai-services/ai-code-agents.md) |
 | **Crush** | OpenRouter | Code generation | [AI Code Agents](docs/integrations/ai-services/ai-code-agents.md) |
-| **Gemini** | ~~Google~~ | ~~Code review~~ **DISABLED - security risk** | [Setup Guide](docs/integrations/ai-services/gemini-setup.md) |
+| **Gemini** | ~~Google~~ | ~~Code review~~ **Disabled** | [Setup Guide](docs/integrations/ai-services/gemini-setup.md) |
 | **GitHub Copilot** | GitHub | PR review suggestions | - |
 
-OpenCode and Crush provide equivalent code generation functionality via OpenRouter. Codex (OpenAI) and Gemini (Google) have been disabled -- see security notice above.
+OpenCode and Crush provide equivalent code generation functionality via OpenRouter.
 
 **Security**: Keyword triggers, user allow list, secure token management. See [Security Model](docs/agents/security.md)
 
@@ -243,7 +241,9 @@ For enterprise environments requiring custom certificates, customize [`automatio
 │   │   ├── pr-monitor/           # PR feedback monitoring
 │   │   ├── markdown-link-checker/ # Fast link validation for CI/CD
 │   │   ├── code-parser/          # Parse code blocks from AI responses
-│   │   └── mcp-code-quality/     # Rust MCP server for code quality
+│   │   ├── code-review-processor/ # Process AI code review output
+│   │   ├── automation-cli/       # CI stage runner and automation commands
+│   │   └── wrapper-common/       # Shared library for git/gh wrappers
 │   └── cli/                  # Agent runners and utilities
 ├── automation/               # CI/CD and automation scripts
 ├── tests/                    # Test files
@@ -259,8 +259,8 @@ For enterprise environments requiring custom certificates, customize [`automatio
 2. **Content Creation** - Manim animations, LaTeX, TikZ diagrams
 3. **Gaea2** - Terrain generation ([Documentation](tools/mcp/mcp_gaea2/docs/README.md))
 4. **Blender** - 3D content creation, rendering, physics simulation ([Documentation](tools/mcp/mcp_blender/README.md))
-5. ~~**Gemini**~~ - ~~AI consultation~~ **DISABLED** (Google -- security risk, see [notice](#ai-agents))
-6. ~~**Codex**~~ - ~~AI-powered code generation and completion~~ **DISABLED** (OpenAI -- security risk, see [notice](#ai-agents))
+5. ~~**Gemini**~~ - ~~AI consultation~~ **Disabled**
+6. ~~**Codex**~~ - ~~AI-powered code generation and completion~~ **Disabled**
 7. **OpenCode** - Code generation via OpenRouter
 8. **Crush** - Code generation via OpenRouter
 9. **Meme Generator** - Create memes with templates
@@ -268,7 +268,7 @@ For enterprise environments requiring custom certificates, customize [`automatio
 11. **Video Editor** - AI-powered video editing with transcription and scene detection ([Documentation](tools/mcp/mcp_video_editor/README.md))
 12. **Virtual Character** - AI agent embodiment in virtual worlds (VRChat, Blender, Unity) ([Documentation](tools/mcp/mcp_virtual_character/README.md))
 13. **GitHub Board** - GitHub Projects v2 board management, work claiming, agent coordination ([Documentation](tools/mcp/mcp_github_board/docs/README.md))
-14. **AI Toolkit** - LoRA training interface (remote: 192.168.0.222:8012)
+14. **AI Toolkit** - LoRA training interface (remote: 192.168.0.222:8020)
 15. **ComfyUI** - Image generation interface (remote: 192.168.0.222:8013)
 16. **Memory Explorer** - Process memory exploration for agent integration with legacy software (Rust)
 17. **AgentCore Memory** - Multi-provider AI memory (AWS AgentCore or ChromaDB) ([Documentation](tools/mcp/mcp_agentcore_memory/docs/README.md))

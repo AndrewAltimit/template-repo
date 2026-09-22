@@ -192,8 +192,12 @@ jobs:
             exit 0
           fi
 
-          # Build processor command
-          CMD="$PROCESSOR --input $RESPONSE_FILE --repository ${{ github.repository }}"
+          # Commits made by the processor need an identity on fresh runners
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          # Build processor command (JSON summary on stdout, logs on stderr)
+          CMD="$PROCESSOR --input $RESPONSE_FILE --repository ${{ github.repository }} --output-format json"
 
           # Always post the review as a comment
           CMD="$CMD --post-comment --pr-number ${{ inputs.pr_number }}"
@@ -201,6 +205,10 @@ jobs:
           # Apply fixes if requested
           if [ "${{ inputs.apply_fixes }}" = "true" ]; then
             CMD="$CMD --commit-changes"
+            # --create-pr pushes its own branch; otherwise push the fix commit
+            if [ "${{ inputs.create_pr }}" != "true" ]; then
+              CMD="$CMD --push"
+            fi
           fi
 
           # Create PR if requested
@@ -209,14 +217,10 @@ jobs:
           fi
 
           echo "Running: $CMD"
-          $CMD
+          $CMD > processor_summary.json
 
-          # Check if changes were made
-          if git diff --quiet && git diff --cached --quiet; then
-            echo "made_changes=false" >> $GITHUB_OUTPUT
-          else
-            echo "made_changes=true" >> $GITHUB_OUTPUT
-          fi
+          MADE_CHANGES=$(jq -r '.made_changes // false' processor_summary.json)
+          echo "made_changes=$MADE_CHANGES" >> $GITHUB_OUTPUT
 
       - name: Post security denial comment
         if: steps.review.outputs.status == 'security_denied'

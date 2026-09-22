@@ -217,19 +217,23 @@ runs:
       run: |
         echo "::group::Janitor - Clean Stale Claims"
 
-        # Note: Stale claim cleanup is now handled by the board-manager CLI
-        # The release command with --reason=abandoned will clean up stale claims
-        # For now, we just report that this step is a no-op until the Rust CLI
-        # supports a dedicated janitor command
-        #
-        # TODO: Add 'board-manager janitor --agent NAME --threshold HOURS' command
+        # Non-fatal: a janitor failure must not block picking up new work.
+        # board-manager reads BOARD_CONFIG_PATH from the environment.
+        if JANITOR_OUTPUT=$(board-manager --format json janitor --agent "$AGENT_NAME" --threshold "$STALE_THRESHOLD_HOURS"); then
+          CLEANED=$(echo "$JANITOR_OUTPUT" | jq -r '.cleaned_count // 0')
+          STATUS="ok"
+        else
+          CLEANED=0
+          STATUS="failed"
+          echo "::warning::Janitor failed; continuing without stale-claim cleanup"
+        fi
 
-        echo "cleaned_count=0" >> $GITHUB_OUTPUT
+        echo "cleaned_count=$CLEANED" >> $GITHUB_OUTPUT
 
         if [ "$JSON_LOGGING" = "true" ]; then
-          echo '{"event": "janitor_skip", "reason": "rust_cli_pending"}'
+          echo "{\"event\": \"janitor\", \"status\": \"$STATUS\", \"cleaned_count\": $CLEANED}"
         else
-          echo "Janitor: Skipped (Rust CLI support pending)"
+          echo "Janitor: $STATUS, released $CLEANED stale claim(s)"
         fi
 
         echo "::endgroup::"

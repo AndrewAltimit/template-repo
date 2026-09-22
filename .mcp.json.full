@@ -59,7 +59,7 @@
     },
     "aitoolkit": {
       "type": "http",
-      "url": "http://192.168.0.222:8012/messages"
+      "url": "http://192.168.0.222:8020/messages"
     },
     "comfyui": {
       "type": "http",

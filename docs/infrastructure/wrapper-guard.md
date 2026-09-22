@@ -65,12 +65,114 @@ Human administrators retain emergency bypass access through group membership.
 | Component | Path | Purpose |
 |-----------|------|---------|
 | `wrapper-common` | `tools/rust/wrapper-common/` | Shared library crate |
-| `git-guard` | `tools/rust/git-guard/` | Git wrapper (blocks force-push, no-verify, push to main) |
-| `gh-validator` | `tools/rust/gh-validator/` | GitHub CLI wrapper (masks secrets, validates URLs) |
+| `git-guard` | `tools/rust/git-guard/` | Git wrapper (blocks force-push, hook skipping, pushes to `main`/`master`) |
+| `gh-validator` | `tools/rust/gh-validator/` | GitHub CLI wrapper (masks secrets, rejects emoji, neutralizes @mentions, validates reaction URLs) |
 | Setup script | `automation/setup/security/setup-wrapper-guard.sh` | Host hardening (requires sudo) |
 | Uninstall script | `automation/setup/security/uninstall-wrapper-guard.sh` | Reverses setup |
 | Verify script | `automation/setup/security/verify-wrapper-guard.sh` | Checks integrity |
 | Container | `docker/hardened-agent.Dockerfile` | Hardened Docker image |
+
+Each crate's README is the authoritative reference for its behaviour:
+[git-guard](../../tools/rust/git-guard/README.md),
+[gh-validator](../../tools/rust/gh-validator/README.md),
+[wrapper-common](../../tools/rust/wrapper-common/README.md).
+
+## Wrapper Policies
+
+### git-guard: blocked operations
+
+git-guard refuses the following with exit code 1 and hands everything else to the real git via `exec()`.
+
+**Force pushes**
+
+| Form | Example |
+|------|---------|
+| `--force`, `-f` (also inside short-flag clusters) | `git push -uf origin x` |
+| `--force-with-lease[=...]`, `--force-if-includes` | `git push --force-with-lease` |
+| `+` refspecs | `git push origin +feature`, `+HEAD:feature` |
+| `--mirror` | `git push --mirror` |
+| Configured forced refspec used by a bare push | `remote.origin.push = +refs/heads/*:refs/heads/*` |
+| Configured mirror remote used by a bare push | `remote.origin.mirror = true` |
+
+**Skipping or redirecting hooks**
+
+| Form | Example |
+|------|---------|
+| `--no-verify` on any command | `git commit --no-verify`, `git merge --no-verify` |
+| `-n` on `git commit` (also clustered) | `git commit -anm msg` |
+| `core.hooksPath` or config includes via `-c` / `--config-env` | `git -c core.hooksPath=/dev/null commit` |
+| ...via environment | `GIT_CONFIG_PARAMETERS`, `GIT_CONFIG_KEY_<n>` |
+| ...written with `git config` | `git config core.hooksPath /dev/null`, `git config set ...`, `include.path`, `includeIf.<cond>.path` |
+
+Reading or unsetting these keys (`git config --get core.hooksPath`, `git config --unset core.hooksPath`) is allowed.
+
+**Pushes that can update a protected branch** (`main`, `master`)
+
+| Form | Example |
+|------|---------|
+| Explicit destination | `git push origin main`, `HEAD:main`, `x:refs/heads/main`, `heads/main`, `main:` |
+| Deletion | `git push origin :main`, `git push origin --delete main` |
+| Any refspec in the list | `git push origin feature main` |
+| Wildcards matching a protected branch | `git push origin 'refs/heads/*:refs/heads/*'` |
+| Remote `HEAD` as destination | `git push origin feature:HEAD` |
+| `HEAD` / `@` while on a protected branch | `git push origin HEAD` on `main` |
+| Bare `git push [remote]` on, or tracking, a protected branch | upstream resolved with `@{push}` |
+| All / matching branches | `--all`, `--branches`, `:` refspec, `push.default=matching` |
+| Pruning remote branches | `--prune` |
+| Low-level push commands | `git send-pack`, `git http-push` |
+| `git subtree push` to a protected branch | `git subtree push -P lib origin main` |
+
+**Parsing rules that close bypasses**
+
+- **Global options** before the subcommand are parsed like `git.c` does: `git -C dir push -f`, `git -c k=v push -f`, `git --git-dir d push ...` and `git -- push -f` are all recognised as pushes.
+- **Abbreviated long options** are matched the way git's parse-options does: `--forc`, `--force-w`, `--mirr`, `--no-verif` are blocked, and so is an ambiguous abbreviation.
+- **Aliases** are expanded recursively (including aliases defined with `-c alias.x=...`) by asking the real git for `alias.<name>` whenever the subcommand is not a builtin, then checked like the expanded command.
+- Option **values** are not mistaken for flags: `git commit -m -n`, `git commit -mn`, `git push -o f` are allowed.
+- In **hardened mode** (setgid wrapper), shell aliases (`alias.x = !...`) are blocked as well, because they would run with the `wrapper-guard` group.
+
+Deliberately not blocked: `--force` on other commands (`checkout`, `clean`, `branch -f`, `tag -f`), `-n` where it does not skip hooks, local history rewriting (`reset --hard`, `rebase`), and forced fetches. git-guard protects the review workflow, not the local working tree.
+
+### gh-validator: content validation
+
+Commands without user content are passed straight to the real `gh`. For content commands, arguments are parsed with pflag semantics (clustered short flags, `--flag=value`, `--` terminator) and short flags are interpreted per command (`-F` is `--body-file` for `pr`/`issue`, `--notes-file` for `release`, `--field` for `api`). Content comes from `--body`/`--notes`/`--message`, `--title` and similar short-text flags, `--body-file`/`--notes-file`/`pr create --template`, **`gh api` fields** (`-f/--raw-field k=v`, `-F/--field k=v`, `-F k=@file`, `--input file`), `gh gist create` files, and gh aliases (expanded from gh's `config.yml` and checked as the expanded command). `gh secret set --body` is the secret value itself and is passed through untouched.
+
+| Check | Result |
+|-------|--------|
+| Secrets (config env vars, auto-detected env vars, config patterns, built-in baseline) | masked (`[MASKED_NAME]`) |
+| Unicode emoji (emoji blocks, `U+FE0F`, keycaps, tag characters) | rejected |
+| Escaped emoji in `gh api` fields and files (JSON `\u` surrogate pairs, `\u{...}`) | rejected |
+| Reaction image passed inline (`--body`, api `body=`) | rejected (use `--body-file`) |
+| Reaction image URLs in markdown files | verified (HTTPS, GitHub hosts only, no credentials/ports, HEAD 200, redirects only within GitHub hosts) |
+| @mentions other than the allow-list | wrapped in backticks (no notification) |
+
+- **Built-in masking baseline**: always active, even with a weakened config. Covers the values of `GITHUB_TOKEN`, `GH_TOKEN`, `GH_ENTERPRISE_TOKEN`, `GITHUB_ENTERPRISE_TOKEN`, `ANTHROPIC_API_KEY`, `OPENROUTER_API_KEY`, plus GitHub token, AWS key, Anthropic key, Slack token and private-key-block formats.
+- **@mention wrapping**: `@user` and `@org/team` outside code spans and fenced code blocks are wrapped in backticks unless the handle is in `allowed_mentions` (config; default `AndrewAltimit`). E-mail addresses, URLs and paths are untouched. For `gh api`, only the text fields `body`, `title`, `description` and `message` are rewritten; `--input` JSON is never rewritten.
+- **Sanitized body-file copies**: content files are never modified. Each file is read once, validated, sanitized and written to a private (`0600`) temporary copy that replaces the path in the arguments; the copy is deleted when gh exits, so gh posts exactly the bytes that were validated. Missing, non-regular, non-UTF-8 or oversized (> 25 MiB) files are errors. `gh gist create` files are uploaded verbatim, so a file containing a secret is rejected rather than rewritten.
+- `--gh-validator-strip-invalid-images` removes invalid reaction images instead of failing (the flag is consumed, never passed to gh). If nothing but invalid images remains, the command is skipped with exit 0. Used by the automated reviewers.
+
+**Refused commands**
+
+| Blocked | Why |
+|---------|-----|
+| `gh alias set`, `gh alias import` | aliases hide commands from the wrapper |
+| `gh extension install`, `gh extension upgrade` | extensions run unvalidated code |
+| `--editor`/`-e` on `pr`/`issue` `create`/`comment` | editor content (or `$GH_EDITOR` output) is never seen |
+| Content from stdin: `--body-file -`, `-F -`, `--notes-file -`, `api -F k=@-`, `api --input -`, `gist create` with `-` or no files | stdin cannot be validated |
+| Any content check failure | fail-closed |
+| No `.secrets.yaml` found (content commands only) | fail-closed |
+| Hardened mode: shell aliases and unknown top-level commands (extensions) | they would run with the `wrapper-guard` group |
+
+### gh-validator: secrets configuration
+
+`.secrets.yaml` is searched in this order (first existing file wins):
+
+1. `/etc/wrapper-guard/.secrets.yaml` (root-owned system config, e.g. the hardened container; an agent cannot shadow it with a weaker file in its working directory)
+2. the current directory and its ancestors, up to the git root
+3. the binary's directory and its ancestors, up to a git root
+4. `~/.secrets.yaml`
+5. `$XDG_CONFIG_HOME/gh-validator/.secrets.yaml` (default `~/.config/gh-validator/.secrets.yaml`)
+
+The built-in masking baseline above applies on top of whichever file is loaded. Commands without content never read the config, so the fast path stays cheap.
 
 ## Layer 1: Shared Library (`wrapper-common`)
 
@@ -78,11 +180,20 @@ Both wrappers depend on `wrapper-common`, which provides:
 
 ### Binary Discovery (`binary_finder`)
 
-Finds the real binary while avoiding infinite recursion (calling itself):
+Finds the real binary without ever resolving to itself or another wrapper:
 
-1. **Hardened path** -- checks `/usr/lib/wrapper-guard/{name}.real` first
-2. **PATH scan fallback** -- iterates `$PATH`, canonicalizes each candidate, skips self
-3. **Caching** -- resolved paths are cached in a `Mutex<HashMap>` for subsequent calls
+1. **Hardened path** -- checks `/usr/lib/wrapper-guard/{name}.real` first (only visible to the setgid wrapper)
+2. **PATH scan fallback** -- iterates only **absolute** `$PATH` entries (empty, `.` and relative entries are skipped so a repository cannot plant its own `git`), accepts regular executable files only, canonicalizes each candidate, and skips this wrapper and any wrapper already on the exec chain
+
+### Wrapper Chain (`__WRAPPER_GUARD_RECURSION_<NAME>`)
+
+The wrapper chain replaces the old recursion guard. It is carried in `__WRAPPER_GUARD_RECURSION_<NAME>` (per binary: `_GIT`, `_GH`, because `gh` runs `git` internally) as a PATH-style list of canonical wrapper paths. The variable is set **only on the child's environment**, never via `std::env::set_var`. Each wrapper appends itself, so two wrapper copies can never exec each other in a loop, while a wrapper started from inside the real binary (e.g. a git hook running `git status`) still resolves normally.
+
+```
+~/.local/bin/git (wrapper)                   chain: []
+  -> exec /usr/bin/git (setgid wrapper)      chain: [~/.local/bin/git]
+     -> exec /usr/lib/wrapper-guard/git.real chain: [..., /usr/bin/git]
+```
 
 This design means the same compiled wrapper works in both hardened and non-hardened environments. If the setup script hasn't been run, it falls back to PATH scanning (the pre-hardening behavior).
 
@@ -91,6 +202,9 @@ This design means the same compiled wrapper works in both hardened and non-harde
 Platform-specific execution:
 - **Unix**: Uses `exec()` syscall to replace the wrapper process entirely. The real binary inherits the wrapper's PID, file descriptors, and signal handlers.
 - **Windows**: Spawns the real binary and exits with the child's exit code.
+- **`run()`** (used by gh-validator, which must clean up temp copies afterwards): spawns and waits. While waiting, the wrapper ignores SIGINT/SIGQUIT (Ctrl-C on Windows) so the child decides how to react. Death by signal N maps to exit code `128 + N`.
+
+Arguments are passed as `OsStr`, so non-UTF-8 arguments reach the real binary byte-for-byte.
 
 ### Error Handling (`error`)
 
@@ -124,15 +238,15 @@ Each line in the log file is a complete JSON object:
 
 | Field | Description |
 |-------|-------------|
-| `timestamp` | ISO 8601 UTC timestamp |
+| `timestamp` | RFC 3339 UTC timestamp |
 | `wrapper` | Which wrapper generated this entry (`git-guard` or `gh-validator`) |
 | `action` | `allowed`, `blocked`, or `error` |
-| `args_sanitized` | Command arguments (secrets already masked by gh-validator) |
+| `args_sanitized` | Command arguments, with URL credentials and `Authorization:` header values redacted |
 | `blocked_reason` | Why the operation was blocked (absent for allowed operations) |
 | `caller_pid` | PID of the wrapper process |
 | `caller_ppid` | Parent PID (the process that invoked the wrapper) |
 | `caller_exe` | Executable path of the parent process (Linux only, via `/proc/<ppid>/exe`) |
-| `caller_uid` | UID of the calling user (read from `/proc/self/status`) |
+| `caller_uid` | Real UID of the calling user (`getuid()`) |
 | `real_binary_path` | Path to the real binary being invoked |
 | `source_hash` | Compile-time SHA-256 hash identifying the wrapper version |
 
@@ -140,15 +254,17 @@ Each line in the log file is a complete JSON object:
 
 | Setting | Default | Override |
 |---------|---------|----------|
-| Log directory | `$HOME/.local/share/wrapper-guard/` | `WRAPPER_GUARD_LOG_DIR` env var |
+| Log directory | `$HOME/.local/share/wrapper-guard/` (`USERPROFILE` if `HOME` is unset, else a per-user temp directory) | `WRAPPER_GUARD_LOG_DIR` env var |
 | Log file | `audit.log` | N/A |
 | Max file size | 10 MB | N/A |
 | Rotation | Rename to `.log.1` on threshold | N/A |
+| Permissions | Directory `0700`, file `0600` (Unix); whole-line `O_APPEND` writes | N/A |
 
 ### Design Principles
 
-- **Best-effort**: Log failures are printed to stderr but never block the wrapper from executing. The wrapper's primary function (blocking dangerous operations) always takes priority.
-- **No libc dependency**: UID is read from `/proc/self/status` rather than calling `getuid()`. This avoids pulling in the `libc` crate.
+- **Best-effort**: Log failures produce one warning per process on stderr but never block the wrapper from executing. The wrapper's primary function (blocking dangerous operations) always takes priority.
+- **No libc crate**: `getuid`/`getgid`/`getegid` are declared directly as `safe` extern functions, so `wrapper-common` keeps a single runtime dependency (`thiserror`).
+- **Redaction**: URL userinfo (`https://***@host`) and `Authorization:` header values are stripped before anything is written.
 - **Caller identification**: On Linux, `readlink(/proc/<ppid>/exe)` identifies exactly which program called the wrapper. This is useful for distinguishing between a human terminal session (`/bin/bash`) and an AI agent (`/usr/bin/python3`).
 
 ## Layer 3: Compile-Time Integrity Hashing
@@ -157,11 +273,11 @@ Each wrapper embeds a SHA-256 hash of its source files, computed at compile time
 
 ### How it works
 
-1. `build.rs` walks all `src/**/*.rs` files and `Cargo.toml` in sorted order
-2. Computes SHA-256 of the concatenated contents
+1. `wrapper-common`'s own `build.rs` hashes its sources into `COMMON_SOURCE_HASH`
+2. Each wrapper's `build.rs` calls `wrapper_common::emit_wrapper_source_hash()` (the `build` feature), which hashes the wrapper's `src/**/*.rs` and `Cargo.toml` **plus** `COMMON_SOURCE_HASH`, so a change to the shared security code changes every wrapper's hash. Paths are normalized to `/`, making hashes identical on Unix and Windows
 3. Writes `const SOURCE_HASH: &str = "<64-char hex>";` to `$OUT_DIR/integrity.rs`
 4. The wrapper includes this with `include!(concat!(env!("OUT_DIR"), "/integrity.rs"))`
-5. `cargo:rerun-if-changed=src/` ensures the hash updates on any source change
+5. `cargo:rerun-if-changed=src` ensures the hash updates on any source change
 
 ### The `--wrapper-integrity` flag
 
@@ -169,11 +285,19 @@ Both wrappers respond to a special flag:
 
 ```bash
 git --wrapper-integrity
-# Output: git-guard source_hash=a1b2c3d4e5f6...
+# wrapper=git-guard
+# source_hash=a1b2c3d4e5f6...
+# common_hash=0f1e2d3c4b5a...
+# binary=/usr/bin/git
 
 gh --wrapper-integrity
-# Output: gh-validator source_hash=f6e5d4c3b2a1...
+# wrapper=gh-validator
+# source_hash=f6e5d4c3b2a1...
+# common_hash=0f1e2d3c4b5a...
+# binary=/usr/bin/gh
 ```
+
+`common_hash` is the `wrapper-common` hash mixed into `source_hash`; wrappers built from the same shared library report the same value. The `automation/setup/security/*.sh` scripts parse this line-based format.
 
 This is checked before any other logic runs (before binary discovery, before argument parsing). It enables:
 
@@ -378,6 +502,7 @@ sudo bash automation/setup/security/verify-wrapper-guard.sh
 | Variable | Purpose | Default |
 |----------|---------|---------|
 | `WRAPPER_GUARD_LOG_DIR` | Override audit log directory | `$HOME/.local/share/wrapper-guard/` |
+| `__WRAPPER_GUARD_RECURSION_<NAME>` | Wrapper exec chain (`_GIT`, `_GH`); set by the wrappers on the child's environment only, never set it manually | unset |
 
 ### Key file locations
 
@@ -385,6 +510,7 @@ sudo bash automation/setup/security/verify-wrapper-guard.sh
 |------|---------|
 | `~/.local/share/wrapper-guard/audit.log` | Audit log (JSONL) |
 | `/usr/lib/wrapper-guard/integrity.json` | Recorded hashes from setup |
+| `/etc/wrapper-guard/.secrets.yaml` | System gh-validator config (searched first) |
 | `/usr/lib/wrapper-guard/git.real` | Real git binary (hardened mode) |
 | `/usr/lib/wrapper-guard/gh.real` | Real gh binary (hardened mode) |
 
@@ -398,7 +524,11 @@ sudo bash automation/setup/security/verify-wrapper-guard.sh
 
 4. **Source hash is not runtime tamper detection**. A modified binary can return any hash. The hash is useful for version identification and baseline comparison, not for proving the binary hasn't been modified at rest.
 
-5. **Audit logging is best-effort**. If the log directory is not writable, the wrapper still executes the command. This is intentional -- the wrapper's primary function (policy enforcement) should never be blocked by a logging failure.
+5. **Child processes inherit the `wrapper-guard` group in hardened mode**. Anything the real `git` executes (hooks, `core.pager`, `core.sshCommand`, credential helpers, `rebase --exec`, external `git-<name>` commands), and any process the real `gh` starts, runs with the setgid group. A process that can write a hook or repository config can therefore reach `/usr/lib/wrapper-guard/git.real` directly. The setgid design cannot close this; treat hardened mode as a strong speed bump, not a sandbox. (This is why shell aliases and gh extensions are refused in hardened mode.)
+
+6. **Hooks can be disabled outside git**. Editing `.git/config` or deleting `.git/hooks/*` with ordinary file tools is not prevented; only the git-command routes are blocked. Hook-framework switches such as pre-commit's `SKIP=` variable are not inspected.
+
+7. **Audit logging is best-effort**. If the log directory is not writable, the wrapper still executes the command. This is intentional -- the wrapper's primary function (policy enforcement) should never be blocked by a logging failure.
 
 ## Related Documentation
 

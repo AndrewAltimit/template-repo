@@ -1,3 +1,4 @@
+mod common;
 mod failure;
 mod precommit;
 mod respond;

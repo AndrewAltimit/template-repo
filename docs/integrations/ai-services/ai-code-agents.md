@@ -296,9 +296,9 @@ Please implement a user authentication system with:
 5. Agent performs requested action
 6. All actions logged with full context
 
-## Dual AI PR Review System
+## AI PR Review System
 
-The project uses a two-stage AI review system that combines Gemini and Codex for comprehensive PR code reviews:
+PR reviews run as parallel jobs in `.github/workflows/pr-validation.yml`. Gemini and Codex reviews have been removed.
 
 ### Architecture
 
@@ -306,63 +306,36 @@ The project uses a two-stage AI review system that combines Gemini and Codex for
 PR Created/Updated
         |
         v
-+------------------+       +------------------+
-|  Gemini Review   | ----> |  Codex Review    |
-|  (Primary)       |       |  (Secondary)     |
-|                  |       |  + Gemini Context|
-+--------+---------+       +--------+---------+
-         |                          |
-         v                          v
-+--------------------------------------------+
-|       Consolidated Feedback System         |
-|  - Deduplicates issues from both reviewers |
-|  - Boosts confidence for items found by    |
-|    both reviewers                          |
-|  - Attributes sources: [GEMINI], [CODEX],  |
-|    [BOTH]                                  |
-+--------------------------------------------+
-                    |
-                    v
-+--------------------------------------------+
-|       AgentJudgement Decision System       |
-|  - High confidence: Auto-fix              |
-|  - Low confidence: Ask owner              |
-+--------------------------------------------+
-                    |
-                    v
-+--------------------------------------------+
-|         Claude Implementation              |
-|  - Receives consolidated feedback          |
-|  - Implements fixes with full context      |
-+--------------------------------------------+
++-------------------+  +-------------------+  +-------------------+
+| Claude Security   |  | Claude Quality    |  | OpenRouter        |
+| Review (2a)       |  | Review (2b)       |  | Review (2c, Qwen) |
++---------+---------+  +---------+---------+  +---------+---------+
+          |                      |                      |
+          v                      v                      v
+   claude-security-review.md  claude-quality-review.md  openrouter-review.md
+          |                      |                      |
+          +----------------------+----------------------+
+                                 |
+                                 v
++------------------------------------------------------------+
+|  Agent Review Response (2e): automation-cli review respond  |
+|  - Merges review artifacts and trust-bucketed PR comments   |
+|  - Claude implements fixes, verified against git diff       |
+|  - Runs lint-basic, then commits and pushes                 |
++------------------------------------------------------------+
 ```
 
-### Workflow Steps
+AgentCore review (2d) is optional and only runs when the `agentcore-review` label is set.
 
-1. **Stage 2a - Gemini Review**: Gemini analyzes the PR diff and posts review comments
-2. **Stage 2b - Codex Review**: Codex runs after Gemini, receiving Gemini's review as context to provide complementary feedback
-3. **Consolidation**: The PR monitor detects both reviews and consolidates actionable items
-4. **Decision**: AgentJudgement categorizes items by confidence level
-5. **Implementation**: Claude receives the consolidated feedback and implements fixes
+### Review Artifacts
 
-### Review Comment Markers
+The response agent reads each reviewer's output from a file, overridable by env var:
 
-Each AI review includes a tracking marker:
+- `CLAUDE_SECURITY_REVIEW_PATH` (default `claude-security-review.md`)
+- `CLAUDE_QUALITY_REVIEW_PATH` (default `claude-quality-review.md`)
+- `OPENROUTER_REVIEW_PATH` (default `openrouter-review.md`)
 
-```markdown
-<!-- gemini-review-marker:commit:abc1234 -->
-<!-- codex-review-marker:commit:abc1234 -->
-<!-- ai-agent-consolidated-response:consolidated-xxx-yyy -->
-```
-
-### Consolidated Response Benefits
-
-- **Reduced false positives**: Issues flagged by both reviewers get boosted confidence
-- **Complementary perspectives**: Codex may catch issues Gemini misses and vice versa
-- **Source attribution**: Each item is tagged with its source ([GEMINI], [CODEX], or [BOTH])
-- **Unified implementation**: Claude receives all feedback in a single consolidated prompt
-
-### Configuration
+## Configuration
 
 The dual review system is enabled by default. To customize:
 

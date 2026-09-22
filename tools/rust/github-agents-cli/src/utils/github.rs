@@ -2,24 +2,73 @@
 //!
 //! Provides async wrappers around the GitHub CLI (`gh`) and git commands.
 
-use std::env;
+use std::io::Write;
 use std::process::Stdio;
+use std::time::Duration;
+
+use serde::de::DeserializeOwned;
 use tokio::process::Command;
 use tracing::{debug, error, warn};
 
 use crate::error::Error;
 
-/// Get GitHub token from environment.
-///
-/// Checks `GITHUB_TOKEN` first, then falls back to `GH_TOKEN`.
-///
-/// # Errors
-///
-/// Returns an error if neither environment variable is set.
-pub fn get_github_token() -> Result<String, Error> {
-    env::var("GITHUB_TOKEN")
-        .or_else(|_| env::var("GH_TOKEN"))
-        .map_err(|_| Error::GitHubTokenNotFound)
+/// Upper bound for a single `gh`/`git` invocation. These are network-bound
+/// API calls; anything slower than this is hung, not busy.
+const COMMAND_TIMEOUT: Duration = Duration::from_secs(300);
+
+/// Raw result of a captured command.
+struct Captured {
+    stdout: String,
+    stderr: String,
+    code: i32,
+    success: bool,
+}
+
+/// Run `program args...`, capturing output, with a hard timeout.
+async fn run_captured(
+    program: &str,
+    args: &[&str],
+    not_found: fn() -> Error,
+) -> Result<Captured, Error> {
+    debug!("Running: {} {}", program, args.join(" "));
+
+    let mut cmd = Command::new(program);
+    cmd.args(args)
+        .stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .kill_on_drop(true);
+
+    let output = tokio::time::timeout(COMMAND_TIMEOUT, cmd.output())
+        .await
+        .map_err(|_| {
+            Error::MonitorFailed(format!(
+                "{} {} timed out after {}s",
+                program,
+                args.first().unwrap_or(&""),
+                COMMAND_TIMEOUT.as_secs()
+            ))
+        })?
+        .map_err(|e| {
+            if e.kind() == std::io::ErrorKind::NotFound {
+                not_found()
+            } else {
+                Error::Io(e)
+            }
+        })?;
+
+    Ok(Captured {
+        stdout: String::from_utf8_lossy(&output.stdout).into_owned(),
+        stderr: String::from_utf8_lossy(&output.stderr).into_owned(),
+        code: output.status.code().unwrap_or(-1),
+        success: output.status.success(),
+    })
+}
+
+/// Short description of a command for logs (never includes bodies).
+fn describe(program: &str, args: &[&str]) -> String {
+    let shown: Vec<&str> = args.iter().take(4).copied().collect();
+    format!("{} {}", program, shown.join(" "))
 }
 
 /// Run a GitHub CLI command asynchronously.
@@ -33,178 +82,124 @@ pub fn get_github_token() -> Result<String, Error> {
 ///
 /// Command stdout on success, or None if check is false and command failed.
 pub async fn run_gh_command(args: &[&str], check: bool) -> Result<Option<String>, Error> {
-    let mut cmd = Command::new("gh");
-    cmd.args(args).stdout(Stdio::piped()).stderr(Stdio::piped());
+    let out = run_captured("gh", args, || Error::GhNotFound).await?;
 
-    debug!("Running gh command: gh {}", args.join(" "));
-
-    let output = cmd.output().await.map_err(|e| {
-        if e.kind() == std::io::ErrorKind::NotFound {
-            Error::GhNotFound
-        } else {
-            Error::Io(e)
+    if out.success {
+        if out.stdout.trim().is_empty() && !out.stderr.trim().is_empty() {
+            debug!("gh stderr (stdout empty): {}", out.stderr.trim());
         }
-    })?;
+        return Ok(Some(out.stdout));
+    }
 
-    let stdout = String::from_utf8_lossy(&output.stdout).to_string();
-    let stderr = String::from_utf8_lossy(&output.stderr).to_string();
-
-    if output.status.success() {
-        // Log stderr if stdout is empty (may contain useful warnings)
-        if stdout.trim().is_empty() && !stderr.trim().is_empty() {
-            warn!("gh command stderr (stdout empty): {}", stderr.trim());
-        }
-        Ok(Some(stdout))
+    let level_msg = format!(
+        "GitHub CLI command failed (exit code {}): {}",
+        out.code,
+        describe("gh", args)
+    );
+    if check {
+        error!("{}", level_msg);
     } else {
-        let exit_code = output.status.code().unwrap_or(-1);
-        error!(
-            "GitHub CLI command failed (exit code {}): gh {}",
-            exit_code,
-            args.join(" ")
-        );
-        if !stdout.trim().is_empty() {
-            error!("stdout: {}", stdout.trim());
-        }
-        if !stderr.trim().is_empty() {
-            error!("stderr: {}", stderr.trim());
-        }
+        warn!("{}", level_msg);
+    }
+    if !out.stderr.trim().is_empty() {
+        warn!("stderr: {}", out.stderr.trim());
+    }
 
-        if check {
-            Err(Error::GhCommandFailed {
-                exit_code,
-                stdout,
-                stderr,
-            })
-        } else {
-            Ok(None)
-        }
+    if check {
+        Err(Error::GhCommandFailed {
+            exit_code: out.code,
+            stdout: out.stdout,
+            stderr: out.stderr,
+        })
+    } else {
+        Ok(None)
     }
 }
 
 /// Run a GitHub CLI command and capture both stdout and stderr.
 ///
-/// # Arguments
-///
-/// * `args` - Command arguments (without the `gh` prefix)
-///
 /// # Returns
 ///
-/// Tuple of (stdout, stderr, return_code).
+/// Tuple of (stdout, stderr, return_code); empty streams are `None`.
 pub async fn run_gh_command_with_stderr(
     args: &[&str],
 ) -> Result<(Option<String>, Option<String>, i32), Error> {
-    let mut cmd = Command::new("gh");
-    cmd.args(args).stdout(Stdio::piped()).stderr(Stdio::piped());
-
-    debug!("Running gh command: gh {}", args.join(" "));
-
-    let output = cmd.output().await.map_err(|e| {
-        if e.kind() == std::io::ErrorKind::NotFound {
-            Error::GhNotFound
-        } else {
-            Error::Io(e)
-        }
-    })?;
-
-    let stdout = String::from_utf8_lossy(&output.stdout).to_string();
-    let stderr = String::from_utf8_lossy(&output.stderr).to_string();
-    let return_code = output.status.code().unwrap_or(-1);
-
-    Ok((
-        if stdout.trim().is_empty() {
-            None
-        } else {
-            Some(stdout.trim().to_string())
-        },
-        if stderr.trim().is_empty() {
-            None
-        } else {
-            Some(stderr.trim().to_string())
-        },
-        return_code,
-    ))
+    let out = run_captured("gh", args, || Error::GhNotFound).await?;
+    let non_empty = |s: String| {
+        let t = s.trim();
+        (!t.is_empty()).then(|| t.to_string())
+    };
+    Ok((non_empty(out.stdout), non_empty(out.stderr), out.code))
 }
 
-/// Run a git command asynchronously.
+/// Post a comment on an issue or PR using `--body-file`.
 ///
-/// # Arguments
+/// Writing the body to a private temp file avoids argv size limits and shell
+/// escaping problems (e.g. markdown images through gh-validator).
 ///
-/// * `args` - Command arguments (without the `git` prefix)
-/// * `check` - Whether to return an error on non-zero exit code
+/// `kind` is `"issue"` or `"pr"`.
+pub async fn post_comment(kind: &str, number: u64, repo: &str, body: &str) -> Result<(), Error> {
+    let mut file = tempfile::Builder::new()
+        .prefix("github-agents-comment-")
+        .suffix(".md")
+        .tempfile()?;
+    file.write_all(body.as_bytes())?;
+    file.flush()?;
+    let path = file.path().to_string_lossy().into_owned();
+
+    run_gh_command(
+        &[
+            kind,
+            "comment",
+            &number.to_string(),
+            "--repo",
+            repo,
+            "--body-file",
+            &path,
+        ],
+        true,
+    )
+    .await?;
+    Ok(())
+}
+
+/// Login of the account `gh` is authenticated as, if it can be determined.
 ///
-/// # Returns
-///
-/// Command stdout on success, or None if check is false and command failed.
-pub async fn run_git_command(args: &[&str], check: bool) -> Result<Option<String>, Error> {
-    let mut cmd = Command::new("git");
-    cmd.args(args).stdout(Stdio::piped()).stderr(Stdio::piped());
-
-    debug!("Running git command: git {}", args.join(" "));
-
-    let output = cmd.output().await.map_err(|e| {
-        if e.kind() == std::io::ErrorKind::NotFound {
-            Error::GitNotFound
-        } else {
-            Error::Io(e)
-        }
-    })?;
-
-    let stdout = String::from_utf8_lossy(&output.stdout).to_string();
-    let stderr = String::from_utf8_lossy(&output.stderr).to_string();
-
-    if output.status.success() {
-        Ok(Some(stdout))
-    } else {
-        let exit_code = output.status.code().unwrap_or(-1);
-        error!("Git command failed: git {}", args.join(" "));
-        if !stderr.trim().is_empty() {
-            error!("Error output: {}", stderr.trim());
-        }
-
-        if check {
-            Err(Error::GitCommandFailed {
-                exit_code,
-                stdout,
-                stderr,
-            })
-        } else {
-            Ok(None)
-        }
+/// GitHub Actions installation tokens cannot call `/user`; `None` is returned
+/// in that case (the caller then relies on bot-account detection).
+pub async fn authenticated_login() -> Option<String> {
+    match run_gh_command(&["api", "user", "--jq", ".login"], false).await {
+        Ok(Some(login)) => {
+            let login = login.trim().to_string();
+            (!login.is_empty()).then_some(login)
+        },
+        _ => None,
     }
+}
+
+/// Parse the output of `gh api --paginate`, which concatenates one JSON
+/// array per page (`[...][...]`), into a single vector.
+///
+/// Uses a streaming JSON parser, so brackets inside string values cannot
+/// confuse page splitting.
+pub fn parse_paginated_array<T: DeserializeOwned>(json: &str) -> Result<Vec<T>, Error> {
+    let mut all = Vec::new();
+    for page in serde_json::Deserializer::from_str(json).into_iter::<Vec<T>>() {
+        all.extend(page?);
+    }
+    Ok(all)
 }
 
 /// Check if the GitHub CLI is available and authenticated.
 /// (Checks by running command directly, avoiding `which` for Docker compatibility)
 pub async fn check_gh_available() -> Result<(), Error> {
-    // Check if gh command exists by trying to run it
-    let version_output = Command::new("gh")
-        .arg("--version")
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .output()
-        .await;
-
-    match version_output {
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
-            return Err(Error::GhNotFound);
-        },
-        Err(e) => return Err(Error::Io(e)),
-        Ok(output) if !output.status.success() => {
-            return Err(Error::GhNotFound);
-        },
-        Ok(_) => {},
+    let version = run_captured("gh", &["--version"], || Error::GhNotFound).await?;
+    if !version.success {
+        return Err(Error::GhNotFound);
     }
 
-    // Check authentication
-    let output = Command::new("gh")
-        .args(["auth", "status"])
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .output()
-        .await
-        .map_err(Error::Io)?;
-
-    if !output.status.success() {
+    let auth = run_captured("gh", &["auth", "status"], || Error::GhNotFound).await?;
+    if !auth.success {
         return Err(Error::GhNotAuthenticated);
     }
 
@@ -212,50 +207,56 @@ pub async fn check_gh_available() -> Result<(), Error> {
     Ok(())
 }
 
-/// Check if git is available.
-/// (Checks by running command directly, avoiding `which` for Docker compatibility)
-pub async fn check_git_available() -> Result<(), Error> {
-    let version_output = Command::new("git")
-        .arg("--version")
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .output()
-        .await;
-
-    match version_output {
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
-            return Err(Error::GitNotFound);
-        },
-        Err(e) => return Err(Error::Io(e)),
-        Ok(output) if !output.status.success() => {
-            return Err(Error::GitNotFound);
-        },
-        Ok(_) => {},
-    }
-
-    debug!("Git available");
-    Ok(())
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde::Deserialize;
 
-    // Note: Environment variable tests can interfere with each other when run in parallel.
-    // We test the logic of get_github_token separately rather than relying on env state.
+    #[derive(Debug, Deserialize, PartialEq)]
+    struct Item {
+        body: String,
+    }
 
     #[test]
-    fn test_github_token_priority() {
-        // Test that GITHUB_TOKEN takes priority by checking the order in the implementation.
-        // The actual env var manipulation is risky in parallel tests.
-        // This test verifies the function signature and error type are correct.
-        let result = get_github_token();
-        // Result will depend on whether tokens are set in the environment.
-        // We're just verifying the function compiles and returns the expected type.
-        match result {
-            Ok(token) => assert!(!token.is_empty()),
-            Err(Error::GitHubTokenNotFound) => {}, // Expected when no token set
-            Err(_) => panic!("Unexpected error type"),
-        }
+    fn paginated_single_page() {
+        let items: Vec<Item> = parse_paginated_array(r#"[{"body":"a"},{"body":"b"}]"#).unwrap();
+        assert_eq!(items.len(), 2);
+    }
+
+    #[test]
+    fn paginated_multiple_pages_with_brackets_in_strings() {
+        // Unbalanced brackets inside string values must not break parsing
+        let json = r#"[{"body":"see item 1] and ["}][{"body":"[CONTINUE]"}]
+[{"body":"third ]]]"}]"#;
+        let items: Vec<Item> = parse_paginated_array(json).unwrap();
+        assert_eq!(
+            items,
+            vec![
+                Item {
+                    body: "see item 1] and [".into()
+                },
+                Item {
+                    body: "[CONTINUE]".into()
+                },
+                Item {
+                    body: "third ]]]".into()
+                },
+            ]
+        );
+    }
+
+    #[test]
+    fn paginated_empty_and_invalid() {
+        let items: Vec<Item> = parse_paginated_array("").unwrap();
+        assert!(items.is_empty());
+        let items: Vec<Item> = parse_paginated_array("[]").unwrap();
+        assert!(items.is_empty());
+        assert!(parse_paginated_array::<Item>("[{\"body\":").is_err());
+    }
+
+    #[test]
+    fn describe_omits_bodies() {
+        let d = describe("gh", &["issue", "comment", "1", "--body", "secret body"]);
+        assert!(!d.contains("secret body"));
     }
 }

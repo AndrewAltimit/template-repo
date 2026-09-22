@@ -1,0 +1,25 @@
+{
+  "review_id": "rev-7f3a2c",
+  "status": "completed",
+  "result": {
+    "type": "with_fixes",
+    "review_markdown": "## Code Review Summary\n\n### Critical\n\n1. **SQL injection** in `src/db.rs` `query_user`: the user name is interpolated into the SQL string.\n\n### Low\n\n1. README run instructions omit `--release`.\n\n```rust\nlet sql = format!(\"SELECT * FROM users WHERE name = '{}'\", name);\n```\n",
+    "severity": "critical",
+    "findings_count": 2,
+    "file_changes": [
+      {
+        "path": "src/db.rs",
+        "diff": "diff --git a/src/db.rs b/src/db.rs\nindex 1111111..2222222 100644\n--- a/src/db.rs\n+++ b/src/db.rs\n@@ -3,4 +3,4 @@ use crate::conn::Connection;\n pub fn query_user(conn: &Connection, name: &str) -> Vec<String> {\n-    let sql = format!(\"SELECT * FROM users WHERE name = '{}'\", name);\n-    conn.query(&sql, &[])\n+    let sql = \"SELECT * FROM users WHERE name = $1\";\n+    conn.query(sql, &[&name])\n }\n"
+      },
+      {
+        "path": "./README.md",
+        "diff": "```diff\r\n@@ -1,4 +1,4 @@\r\n # Demo\r\n\r\n-Run with cargo run.\r\n+Run with `cargo run --release`.\r\n```"
+      }
+    ],
+    "pr_title": "fix(security): parameterize user query",
+    "pr_description": "## Summary\n\n- Use a bound parameter in `query_user`\n- Clarify README run instructions"
+  },
+  "usage": {"input_tokens": 5120, "output_tokens": 870, "total_tokens": 5990},
+  "validation_attempts": 1,
+  "iterations": 4
+}

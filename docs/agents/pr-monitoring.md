@@ -2,7 +2,9 @@
 
 ## Overview
 
-The PR Monitoring System allows Claude Code to continuously monitor Pull Requests for new comments from administrators and AI reviewers (Claude, OpenRouter, etc.), automatically detecting when responses are needed.
+The PR Monitoring System allows Claude Code to continuously monitor Pull Requests for new comments and reviews from administrators and AI reviewers (the Claude and OpenRouter review pipeline, GitHub Copilot code review, the Claude GitHub App), automatically detecting when responses are needed.
+
+The authoritative reference is [`tools/rust/pr-monitor/README.md`](../../tools/rust/pr-monitor/README.md).
 
 ## Architecture
 
@@ -14,9 +16,16 @@ pr-monitor (Rust binary)
 Claude Code (Main agent responder)
 ```
 
-**pr-monitor**: Rust CLI tool that polls GitHub for comments, classifies them, and outputs structured JSON decisions.
+**pr-monitor**: Rust CLI tool that polls GitHub (one GraphQL query per poll covering conversation comments, submitted PR reviews with their inline comments, the PR state and the head SHA), classifies new items, and outputs structured JSON decisions.
 
 ## Installation
+
+### Build and install
+
+```bash
+tools/rust/pr-monitor/install.sh      # builds if needed, copies to ~/.local/bin
+tools/rust/pr-monitor/uninstall.sh    # removes it again
+```
 
 ### Build from source
 
@@ -30,7 +39,7 @@ The binary will be at `target/release/pr-monitor`.
 ### Using Docker (CI)
 
 ```bash
-docker compose --profile ci run --rm rust-ci cargo build --release -p pr-monitor
+docker compose --profile ci run --rm -w /app/tools/rust/pr-monitor rust-ci cargo build --release
 ```
 
 ## Usage
@@ -44,18 +53,51 @@ pr-monitor 48
 # With custom timeout (30 minutes)
 pr-monitor 48 --timeout 1800
 
-# JSON output only (for automation)
+# JSON output only (quiet mode, no stderr progress)
 pr-monitor 48 --json
 
-# Monitor comments after a specific commit
+# Monitor comments after a specific commit (reports existing feedback immediately)
 pr-monitor 48 --since-commit abc1234
+
+# Local refs work too (resolved with git)
+pr-monitor 48 --since-commit HEAD
+
+# Wait specifically for an AI code review
+pr-monitor 48 --type ai_agent_review
+
+# One-shot check: is anything already waiting after this commit?
+pr-monitor 48 --since-commit abc1234 --timeout 0
+
+# Distinguish "timed out" (exit 2) from "error" (exit 1)
+pr-monitor 48 --timeout-exit-code 2
 
 # Custom poll interval (check every 10 seconds)
 pr-monitor 48 --poll-interval 10
 
+# Watch a different repository
+pr-monitor 48 --repo AndrewAltimit/template-repo
+
 # Combine options
 pr-monitor 48 --since-commit abc1234 --timeout 1800 --json
 ```
+
+### Options
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `<PR_NUMBER>` | (required) | Pull request number to monitor |
+| `--timeout <SECONDS>` | `600` | How long to wait. `0` checks existing comments once and exits |
+| `--poll-interval <SECONDS>` | `5` | Delay between polls (minimum 1) |
+| `--json` | off | Suppress progress output on stderr (warnings and errors still print) |
+| `--since-commit <SHA>` | none | Only consider comments created after this commit's committer date. Accepts a SHA (looked up via the GitHub API, falling back to local git for unpushed commits) or a local ref such as `HEAD` |
+| `-R`, `--repo <OWNER/REPO>` | current repo | Repository to monitor (otherwise resolved by `gh` from the current directory or `GH_REPO`) |
+| `--admin-user <LOGIN>` | `AndrewAltimit` | Admin login. Also read from `PR_MONITOR_ADMIN_USER` |
+| `--author <LOGIN>` | admin + bots | Only watch these authors (repeatable or comma-separated). Replaces the default set; other comments from these authors are reported as `user_comment` |
+| `--type <TYPE>` | all | Only report these response types (repeatable or comma-separated): `admin_command`, `admin_comment`, `admin_approval`, `ai_agent_review`, `ci_results`, `user_comment` |
+| `--timeout-exit-code <CODE>` | `1` | Exit code used when the timeout expires (1-255) |
+| `--compact` | off | Print the JSON decision on one line instead of pretty-printed |
+
+`--config` is still accepted for backwards compatibility but ignored.
 
 ### In Claude Code
 
@@ -88,41 +130,85 @@ The monitoring tool returns structured JSON:
   "priority": "high",
   "response_type": "admin_command",
   "action_required": "Execute admin command and respond",
+  "review_metadata": {
+    "trigger_action": "fix",
+    "trigger_agent": "claude"
+  },
   "comment": {
     "author": "AndrewAltimit",
-    "timestamp": "2025-08-09T14:59:45Z",
-    "body": "[ADMIN] Command text here..."
-  }
+    "timestamp": "2026-06-05T12:38:22+00:00",
+    "body": "[Fix][Claude] Please address the lint failures",
+    "id": "IC_kwDO...",
+    "kind": "issue_comment",
+    "url": "https://github.com/AndrewAltimit/template-repo/pull/48#issuecomment-..."
+  },
+  "pr_number": 48,
+  "head_sha": "0e947271ea5765549ce7a757fced4ca7cbbca883"
 }
 ```
+
+The core fields (`needs_response`, `priority`, `response_type`, `action_required`, `comment.{author,timestamp,body}`) match the original Python implementation; all other fields are additive and omitted when empty.
+
+| Field | Description |
+|-------|-------------|
+| `needs_response`, `priority`, `response_type`, `action_required` | Classification (see table below) |
+| `comment.author`, `comment.timestamp`, `comment.body` | The triggering comment or review |
+| `comment.id`, `comment.kind`, `comment.url` | GraphQL node ID, `issue_comment` or `review`, permalink |
+| `review_metadata.commit_sha` | Commit from the review marker (or the commit a PR review was submitted on) |
+| `review_metadata.review_id` | Timestamp-based review identifier |
+| `review_metadata.reviewer` | Reviewer slug: `claude`, `openrouter`, `copilot`, ... |
+| `review_metadata.review_state` | For PR reviews: `APPROVED`, `CHANGES_REQUESTED`, `COMMENTED`, `DISMISSED` |
+| `review_metadata.inline_comments` | For PR reviews: `[{author, path, line, body, url}]` |
+| `review_metadata.outdated` | `true` when the reviewed commit is no longer the PR head |
+| `review_metadata.already_responded` | `true` when a review-fix agent comment (or legacy response marker) already follows the review |
+| `review_metadata.trigger_action`, `trigger_agent` | Parsed `[Action][Agent]` trigger |
+| `review_metadata.failed_checks` | Failed rows of a CI results table |
+| `pr_number`, `head_sha` | PR number and head commit at detection time |
 
 ### Response Types
 
 | Type | Author | Trigger | Priority | Needs Response |
 |------|--------|---------|----------|----------------|
-| `admin_command` | Admin user | Contains `[ADMIN]` | High | Yes |
-| `admin_comment` | Admin user | Any comment | Normal | Yes |
-| `ai_agent_review` | github-actions | Standard AI review header or `<!-- {agent}-review-marker:commit:... -->` | Normal | Yes |
-| `ci_results` | github-actions | Contains "PR Validation Results" | Low | No |
+| `admin_command` | Admin | `[Action]` / `[Action][Agent]` trigger (`approved`, `review`, `close`, `summarize`, `debug`, `fix`, `implement`) or legacy `[ADMIN]` | High | Yes |
+| `admin_comment` | Admin | Any other comment, a review with a body or inline comments, or a *changes requested* review (High) | Normal / High | Yes |
+| `admin_approval` | Admin | Approving review with no body or inline comments | Normal | No |
+| `ai_agent_review` | github-actions, Claude App | `## {Agent} AI ... Review` heading or `<!-- {agent}-review-marker[:commit:SHA] -->` | Normal | Yes |
+| `ai_agent_review` | Copilot | Any submitted Copilot review; "generated no comments" reviews are Low / no response | Normal / Low | Yes / No |
+| `ci_results` | github-actions | `PR Validation Results` table; any `fail` row makes it actionable | Low / Normal | No / Yes |
+| `user_comment` | `--author` logins | Any other non-empty comment from an explicitly watched author | Normal | Yes |
+
+Comments carrying agent markers (`<!-- agent-metadata:... -->`, `<!-- ai-agent-*-response:... -->`, "Generated with [Claude Code]") are never reported, whoever posted them: the review-response agents post with the admin's token. Markers from retired reviewers (for example `gemini-review-marker`, `codex-review-marker`) still parse, so old PRs classify correctly.
 
 ### Exit Codes
 
 | Code | Meaning |
 |------|---------|
 | 0 | Found relevant comment (JSON on stdout) |
-| 1 | Timeout or error |
+| 1 | Timeout or error (no relevant comment found); stdout is empty |
+| `--timeout-exit-code` | Timeout, when configured to something other than 1 |
+| 2 | Invalid command-line arguments (from the argument parser) |
 | 130 | Interrupted by user (Ctrl+C) |
 
 ## Configuration
 
-The monitor checks for comments from:
-- **AndrewAltimit** (repository admin)
-- **github-actions** (bot comments, including AI agent reviews)
+By default the monitor watches:
+- the **admin user** (`--admin-user`, default **AndrewAltimit**)
+- **github-actions** (Claude / OpenRouter review pipeline and the `PR Validation Results` table)
+- **GitHub Copilot** code review (`copilot-pull-request-reviewer`)
+- the **Claude GitHub App** (`claude[bot]`)
+
+Login matching is case-insensitive and ignores the `[bot]` suffix. `--author` replaces this set.
 
 Monitoring parameters:
-- Default poll interval: 5 seconds
-- Default timeout: 10 minutes (600 seconds)
+- Default poll interval: 5 seconds (minimum 1)
+- Default timeout: 10 minutes (600 seconds); `0` checks once and exits
 - Configurable via `--poll-interval` and `--timeout` flags
+- Transient failures and rate limits are retried with back-off (up to 60 s); monitoring aborts after 5 consecutive failures, or immediately on authentication errors or an unknown PR
+
+### Phases
+
+1. **Backlog check** (only with `--since-commit`): comments and reviews created after the commit that *need a response* are reported immediately. Informational items (passing CI tables, bare approvals) are skipped here so restarting the monitor does not return the same non-actionable item again.
+2. **Live polling**: everything present at start is the baseline. Any new, recognised item that passes the filters is reported, including informational ones such as a passing CI table (use `--type` to narrow this). If several arrive in one poll, the most urgent wins (priority, then oldest).
 
 ## Commit-Based Monitoring
 
@@ -137,9 +223,11 @@ The PR monitoring system supports starting from a specific commit, which is usef
 ### How It Works
 
 When you specify `--since-commit SHA`, the monitor:
-1. Gets the timestamp of the specified commit via GitHub API
-2. Filters out any comments created before that timestamp
-3. Only returns comments relevant to changes after that commit
+1. Gets the committer date of the specified commit via the GitHub API (falling back to local git for unpushed commits or refs such as `HEAD`)
+2. Filters out any comments and reviews created before that timestamp
+3. Immediately reports existing feedback after that commit that needs a response, then keeps watching for new items
+
+If the commit cannot be resolved, a warning is printed and only new comments are watched.
 
 ### Automatic Detection with Hooks
 
@@ -211,22 +299,32 @@ Claude: Admin posted: "[ADMIN] Please add tests"
 
 ```json
 {
-  "needs_response": false,
-  "priority": "low",
+  "needs_response": true,
+  "priority": "normal",
   "response_type": "ci_results",
-  "action_required": "Review CI results if failures present",
+  "action_required": "Investigate and fix failing CI checks",
+  "review_metadata": {
+    "failed_checks": ["Full lint", "Test suite"]
+  },
   "comment": {
-    "author": "github-actions[bot]",
-    "timestamp": "2025-01-15T10:30:00Z",
-    "body": "## PR Validation Results\n\nAll checks passed!"
-  }
+    "author": "github-actions",
+    "timestamp": "2026-06-05T10:30:00+00:00",
+    "body": "## PR Validation Results\n...",
+    "id": "IC_kwDO...",
+    "kind": "issue_comment",
+    "url": "https://github.com/AndrewAltimit/template-repo/pull/48#issuecomment-..."
+  },
+  "pr_number": 48,
+  "head_sha": "0e947271ea5765549ce7a757fced4ca7cbbca883"
 }
 ```
 
+A CI table with no failed rows is reported as `needs_response: false`, priority `low`, action "Review CI results if failures present".
+
 ## Best Practices
 
-1. **Use --json for Automation**: Always use `--json` flag when integrating with scripts
-2. **Check Priority**: High priority (admin commands) should be addressed immediately
+1. **Use --json for Automation**: Always use `--json` flag when integrating with scripts (add `--compact` for single-line output)
+2. **Check Priority**: High priority (admin commands, changes-requested reviews) should be addressed immediately
 3. **Timeout Appropriately**: Set longer timeouts for complex reviews (30-60 minutes)
 4. **Monitor Specific PRs**: Always specify PR number to avoid confusion
 5. **Use Commit Filtering**: Use `--since-commit` after pushing to focus on new feedback
@@ -271,11 +369,13 @@ tools/rust/pr-monitor/
 ### Required Dependencies
 
 - **gh** (GitHub CLI) - Must be installed and authenticated
-- No other runtime dependencies (statically linked Rust binary)
+- **git** - Only used to resolve `--since-commit` refs that are not on GitHub
+- No other runtime dependencies
 
 ### Security Considerations
 
-- Only responds to authorized users (admin, github-actions)
+- Only reports comments from the watched authors (admin, github-actions, Copilot, Claude App, or the explicit `--author` set)
+- Comments with agent markers are ignored, so agents posting with the admin's token are never mistaken for admin feedback
 - No credentials stored in binary
 - Uses GitHub CLI authentication
 - Timeouts prevent infinite loops

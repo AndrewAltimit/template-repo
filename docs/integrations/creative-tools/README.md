@@ -40,7 +40,7 @@ These integrations connect to remote instances:
 
 | Service | Default URL | Purpose |
 |---------|-------------|---------|
-| AI Toolkit | `192.168.0.222:8012` | LoRA training |
+| AI Toolkit | `192.168.0.222:8020` | LoRA training |
 | ComfyUI | `192.168.0.222:8013` | Image generation |
 
 ## MCP Tools Available

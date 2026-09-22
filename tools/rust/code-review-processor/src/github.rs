@@ -1,85 +1,59 @@
-//! GitHub operations using gh CLI.
+//! GitHub operations via the `gh` CLI.
+//!
+//! Bodies are passed on stdin (`--body-file -`), so no temp files are written
+//! and no shell escaping is involved.
 
-use anyhow::{bail, Context, Result};
-use tokio::process::Command;
-use tracing::{debug, info};
+use anyhow::Result;
+use tracing::{info, warn};
 
-/// GitHub client using gh CLI.
+use crate::command::Runner;
+
+/// GitHub client backed by the `gh` CLI.
 pub struct GitHubClient {
+    runner: Runner,
     dry_run: bool,
 }
 
 impl GitHubClient {
-    /// Create a new GitHub client.
+    /// Create a client; in dry-run mode nothing is sent to GitHub.
     pub fn new(dry_run: bool) -> Self {
-        Self { dry_run }
+        Self {
+            runner: Runner::new(),
+            dry_run,
+        }
     }
 
-    /// Run a gh command and return output.
-    async fn run_gh(&self, args: &[&str]) -> Result<String> {
+    /// Post `body` as a comment on PR `pr_number`.
+    pub fn post_pr_comment(&self, repository: &str, pr_number: u64, body: &str) -> Result<()> {
         if self.dry_run {
-            info!("[DRY RUN] Would run: gh {}", args.join(" "));
-            return Ok(String::new());
-        }
-
-        debug!("Running: gh {}", args.join(" "));
-
-        let output = Command::new("gh")
-            .args(args)
-            .output()
-            .await
-            .context("Failed to execute gh command")?;
-
-        if !output.status.success() {
-            let stderr = String::from_utf8_lossy(&output.stderr);
-            bail!("gh command failed: {}", stderr);
-        }
-
-        Ok(String::from_utf8_lossy(&output.stdout).to_string())
-    }
-
-    /// Post a comment on a PR.
-    pub async fn post_pr_comment(
-        &self,
-        repository: &str,
-        pr_number: u64,
-        body: &str,
-    ) -> Result<()> {
-        if self.dry_run {
-            info!("[DRY RUN] Would post comment to {repository} PR #{pr_number}");
+            info!(
+                chars = body.chars().count(),
+                "[DRY RUN] Would post comment to {repository} PR #{pr_number}"
+            );
             return Ok(());
         }
-
-        // Write body to temp file to avoid shell escaping issues
-        let temp_dir = std::env::temp_dir();
-        let body_file = temp_dir.join(format!("pr-comment-{}.md", std::process::id()));
-        std::fs::write(&body_file, body).context("Failed to write comment body")?;
-
-        let body_file_str = body_file
-            .to_str()
-            .context("Temp file path contains invalid UTF-8")?;
-
-        let result = self
-            .run_gh(&[
+        let pr = pr_number.to_string();
+        self.runner.run_ok(
+            "gh",
+            &[
                 "pr",
                 "comment",
-                &pr_number.to_string(),
+                &pr,
                 "--repo",
                 repository,
                 "--body-file",
-                body_file_str,
-            ])
-            .await;
-
-        // Clean up
-        let _ = std::fs::remove_file(&body_file);
-
-        result?;
+                "-",
+            ],
+            Some(body),
+        )?;
+        info!("Posted review comment to {repository} PR #{pr_number}");
         Ok(())
     }
 
-    /// Create a pull request.
-    pub async fn create_pr(
+    /// Create a pull request and return `(number, url)`.
+    ///
+    /// The number is `0` if it cannot be parsed from `gh`'s output.
+    pub fn create_pr(
         &self,
         repository: &str,
         title: &str,
@@ -88,22 +62,12 @@ impl GitHubClient {
         base: &str,
     ) -> Result<(u64, String)> {
         if self.dry_run {
-            info!("[DRY RUN] Would create PR: {title}");
-            info!("  Head: {head}, Base: {base}");
+            info!("[DRY RUN] Would create PR {title:?} ({head} -> {base}) in {repository}");
             return Ok((0, format!("https://github.com/{repository}/pull/0")));
         }
-
-        // Write body to temp file
-        let temp_dir = std::env::temp_dir();
-        let body_file = temp_dir.join(format!("pr-body-{}.md", std::process::id()));
-        std::fs::write(&body_file, body).context("Failed to write PR body")?;
-
-        let body_file_str = body_file
-            .to_str()
-            .context("Temp file path contains invalid UTF-8")?;
-
-        let output = self
-            .run_gh(&[
+        let stdout = self.runner.run_ok(
+            "gh",
+            &[
                 "pr",
                 "create",
                 "--repo",
@@ -111,50 +75,80 @@ impl GitHubClient {
                 "--title",
                 title,
                 "--body-file",
-                body_file_str,
+                "-",
                 "--head",
                 head,
                 "--base",
                 base,
-            ])
-            .await;
-
-        // Clean up
-        let _ = std::fs::remove_file(&body_file);
-
-        let output = output?;
-        let url = output.trim();
-
-        // Extract PR number from URL (default to 0 if parsing fails)
-        let pr_number = url
-            .rsplit('/')
-            .next()
-            .and_then(|s| s.parse().ok())
-            .unwrap_or(0);
-
-        Ok((pr_number, url.to_string()))
+            ],
+            Some(body),
+        )?;
+        let (number, url) = parse_pr_url(&stdout);
+        if number == 0 {
+            warn!(output = %stdout.trim(), "Could not parse PR number from gh output");
+        }
+        Ok((number, url))
     }
+}
+
+/// Extract `(number, url)` from `gh pr create` output.
+///
+/// `gh` may print warnings before the URL, so the last line containing
+/// `/pull/` wins; otherwise the last non-empty line is returned with number 0.
+pub fn parse_pr_url(stdout: &str) -> (u64, String) {
+    let lines: Vec<&str> = stdout
+        .lines()
+        .map(str::trim)
+        .filter(|l| !l.is_empty())
+        .collect();
+    let Some(url) = lines
+        .iter()
+        .rev()
+        .find(|l| l.contains("/pull/"))
+        .or(lines.last())
+    else {
+        return (0, String::new());
+    };
+    let number = url
+        .rsplit("/pull/")
+        .next()
+        .and_then(|tail| tail.split(|c: char| !c.is_ascii_digit()).next())
+        .and_then(|digits| digits.parse().ok())
+        .unwrap_or(0);
+    (number, (*url).to_string())
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    #[tokio::test]
-    async fn test_dry_run_comment() {
+    #[test]
+    fn dry_run_does_not_invoke_gh() {
         let client = GitHubClient::new(true);
-        let result = client
-            .post_pr_comment("owner/repo", 123, "Test comment")
-            .await;
-        assert!(result.is_ok());
+        assert!(
+            client
+                .post_pr_comment("owner/repo", 123, "Test comment")
+                .is_ok()
+        );
+        let (number, url) = client
+            .create_pr("owner/repo", "Title", "Body", "feature", "main")
+            .unwrap();
+        assert_eq!(number, 0);
+        assert_eq!(url, "https://github.com/owner/repo/pull/0");
     }
 
-    #[tokio::test]
-    async fn test_dry_run_pr() {
-        let client = GitHubClient::new(true);
-        let result = client
-            .create_pr("owner/repo", "Title", "Body", "feature", "main")
-            .await;
-        assert!(result.is_ok());
+    #[test]
+    fn pr_url_parsing() {
+        assert_eq!(
+            parse_pr_url("https://github.com/o/r/pull/42\n"),
+            (42, "https://github.com/o/r/pull/42".to_string())
+        );
+        assert_eq!(
+            parse_pr_url("Warning: 1 uncommitted change\n\nhttps://github.com/o/r/pull/7\n").0,
+            7
+        );
+        assert_eq!(parse_pr_url("https://github.com/o/r/pull/9/files").0, 9);
+        assert_eq!(parse_pr_url("something odd").0, 0);
+        assert_eq!(parse_pr_url(""), (0, String::new()));
     }
 }

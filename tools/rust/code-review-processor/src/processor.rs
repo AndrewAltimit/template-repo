@@ -1,467 +1,296 @@
-//! Core processing logic for code review results.
+//! Orchestration: turn a parsed review plus CLI flags into git/GitHub actions.
+
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use anyhow::{Context, Result};
-use serde::{Deserialize, Serialize};
-use tracing::{debug, info};
+use serde::Serialize;
+use tracing::{info, warn};
 
 use crate::cli::Args;
-use crate::git::GitOperations;
+use crate::comment;
+use crate::git::{ApplyMethod, GitOperations};
 use crate::github::GitHubClient;
+use crate::patch;
+use crate::review::{Review, ReviewStatus, Severity};
 
-/// Review result from AgentCore (matches the response schema).
-///
-/// The schema does not use a type discriminator - we determine the variant
-/// based on whether `file_changes` is present.
-#[derive(Debug, Clone, Deserialize, Serialize)]
-pub struct ReviewResponse {
-    pub review_markdown: String,
-    pub severity: String,
+/// Everything the processor did, for `--output-format json`.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+pub struct Summary {
+    /// Whether this was a dry run (no mutations performed).
+    pub dry_run: bool,
+    /// Review severity.
+    pub severity: Severity,
+    /// Findings reported by the agent.
     pub findings_count: u32,
-    #[serde(default)]
-    pub file_changes: Option<Vec<FileChange>>,
-    #[serde(default)]
-    pub pr_title: Option<String>,
-    #[serde(default)]
-    pub pr_description: Option<String>,
+    /// Endpoint review ID, if the input was a full envelope.
+    pub review_id: Option<String>,
+    /// Endpoint status, if the input was a full envelope.
+    pub review_status: Option<ReviewStatus>,
+    /// Whether a PR comment was posted (or would have been, in a dry run).
+    pub comment_posted: bool,
+    /// Files touched by the applied fixes.
+    pub files_changed: Vec<String>,
+    /// How the fixes were applied, if they were.
+    pub apply_method: Option<&'static str>,
+    /// SHA of the fix commit (never set in a dry run).
+    pub commit_sha: Option<String>,
+    /// Whether a commit was made.
+    pub made_changes: bool,
+    /// Branch that was pushed / used as the PR head.
+    pub branch: Option<String>,
+    /// Whether a push was performed (or would have been, in a dry run).
+    pub pushed: bool,
+    /// Number of the created PR (0 in a dry run or if unparseable).
+    pub pr_number: Option<u64>,
+    /// URL of the created PR.
+    pub pr_url: Option<String>,
+    /// The `--fail-on-severity` threshold, if given.
+    pub severity_threshold: Option<Severity>,
+    /// Whether the severity met the threshold (exit code 3).
+    pub threshold_exceeded: bool,
 }
 
-impl ReviewResponse {
-    /// Check if this is a review-with-fixes response.
-    pub fn has_fixes(&self) -> bool {
-        self.file_changes
-            .as_ref()
-            .map(|c| !c.is_empty())
-            .unwrap_or(false)
-    }
-
-    /// Get file changes, if any.
-    pub fn file_changes(&self) -> &[FileChange] {
-        self.file_changes.as_deref().unwrap_or(&[])
-    }
-}
-
-/// Legacy enum for backwards compatibility with tagged JSON.
-#[derive(Debug, Clone, Deserialize)]
-#[serde(tag = "type", rename_all = "snake_case")]
-pub enum ReviewResult {
-    /// Review-only result (no apply_fixes)
-    ReviewOnly {
-        review_markdown: String,
-        severity: String,
-        findings_count: u32,
-    },
-    /// Review with fix suggestions
-    WithFixes {
-        review_markdown: String,
-        severity: String,
-        findings_count: u32,
-        file_changes: Vec<FileChange>,
-        #[serde(default)]
-        pr_title: Option<String>,
-        #[serde(default)]
-        pr_description: Option<String>,
-    },
-}
-
-impl From<ReviewResult> for ReviewResponse {
-    fn from(result: ReviewResult) -> Self {
-        match result {
-            ReviewResult::ReviewOnly {
-                review_markdown,
-                severity,
-                findings_count,
-            } => ReviewResponse {
-                review_markdown,
-                severity,
-                findings_count,
-                file_changes: None,
-                pr_title: None,
-                pr_description: None,
-            },
-            ReviewResult::WithFixes {
-                review_markdown,
-                severity,
-                findings_count,
-                file_changes,
-                pr_title,
-                pr_description,
-            } => ReviewResponse {
-                review_markdown,
-                severity,
-                findings_count,
-                file_changes: Some(file_changes),
-                pr_title,
-                pr_description,
-            },
+impl Summary {
+    fn new(review: &Review, args: &Args) -> Self {
+        let meta = review.meta.as_ref();
+        Self {
+            dry_run: args.dry_run,
+            severity: review.severity,
+            findings_count: review.findings_count,
+            review_id: meta.and_then(|m| m.review_id.clone()),
+            review_status: meta.and_then(|m| m.status),
+            comment_posted: false,
+            files_changed: Vec::new(),
+            apply_method: None,
+            commit_sha: None,
+            made_changes: false,
+            branch: None,
+            pushed: false,
+            pr_number: None,
+            pr_url: None,
+            severity_threshold: args.fail_on_severity,
+            threshold_exceeded: args.fail_on_severity.is_some_and(|t| review.severity >= t),
         }
     }
 }
 
-/// Try to parse JSON as either the new schema format or legacy tagged format.
-pub fn parse_review_json(json: &str) -> Result<ReviewResponse> {
-    // First try the new untagged format (what the agent actually produces)
-    if let Ok(response) = serde_json::from_str::<ReviewResponse>(json) {
-        return Ok(response);
-    }
-
-    // Fall back to tagged format for backwards compatibility
-    let result: ReviewResult = serde_json::from_str(json).context("Failed to parse review JSON")?;
-    Ok(result.into())
-}
-
-/// A file change with diff.
-#[derive(Debug, Clone, Deserialize, Serialize)]
-pub struct FileChange {
-    pub path: String,
-    pub diff: String,
-    #[serde(default)]
-    pub original_sha: Option<String>,
-}
-
-/// Result of processing.
-#[derive(Debug)]
-pub enum ProcessingResult {
-    /// Review was posted as a comment
-    ReviewPosted,
-    /// Changes were committed
-    ChangesCommitted,
-    /// PR was created
-    PrCreated { pr_number: u64, pr_url: String },
-    /// No action was taken
-    NoAction,
-}
-
 /// Processes code review results.
 pub struct ReviewProcessor {
-    repository: Option<String>,
     dry_run: bool,
     git: GitOperations,
     github: GitHubClient,
 }
 
 impl ReviewProcessor {
-    /// Create a new processor.
-    pub fn new(repository: Option<String>, dry_run: bool) -> Self {
-        Self {
-            repository,
+    /// Create a processor operating on the current working directory.
+    pub fn new(dry_run: bool) -> Self {
+        Self::with_clients(
+            GitOperations::new(dry_run),
+            GitHubClient::new(dry_run),
             dry_run,
-            git: GitOperations::new(dry_run),
-            github: GitHubClient::new(dry_run),
+        )
+    }
+
+    /// Create a processor with explicit git and GitHub clients.
+    pub fn with_clients(git: GitOperations, github: GitHubClient, dry_run: bool) -> Self {
+        Self {
+            dry_run,
+            git,
+            github,
         }
     }
 
-    /// Process the review result based on CLI flags.
-    pub async fn process(&self, review: &ReviewResponse, args: &Args) -> Result<ProcessingResult> {
-        // If no action flags, just return
-        if !args.post_comment && !args.commit_changes && !args.create_pr {
-            return Ok(ProcessingResult::NoAction);
+    /// Run the actions requested by `args` for `review`.
+    ///
+    /// The comment is posted before fixes are applied, so the review is
+    /// visible even if the fixes turn out not to apply.
+    pub fn process(&self, review: &Review, args: &Args) -> Result<Summary> {
+        let repository = args.validate()?;
+        let mut summary = Summary::new(review, args);
+
+        if args.branch.is_some() && !args.create_pr {
+            warn!("--branch only applies to --create-pr; ignoring it");
+        }
+        if review.agent_failed() {
+            warn!("The review agent did not commit a validated result (status: failed)");
         }
 
-        let repository = args
-            .repository
-            .as_ref()
-            .or(self.repository.as_ref())
-            .context("Repository not specified. Use --repository or set GITHUB_REPOSITORY")?;
-
-        // Post comment if requested
         if args.post_comment {
-            self.post_comment(repository, &review.review_markdown, args.pr_number)
-                .await?;
+            // Validated above: both are present when --post-comment is set.
+            let repository = repository.context("Repository required for --post-comment")?;
+            let pr = args
+                .pr_number
+                .context("PR number required for --post-comment")?;
+            let body = comment::format_comment(review, args.raw_comment);
+            self.github.post_pr_comment(repository, pr, &body)?;
+            summary.comment_posted = true;
         }
 
-        let file_changes = review.file_changes();
-        let has_changes = review.has_fixes();
-
-        // Apply changes if requested and there are changes
-        if args.commit_changes && has_changes {
-            self.apply_changes(file_changes).await?;
-            self.git.commit(&args.commit_message).await?;
+        if !(args.commit_changes || args.create_pr) {
+            return Ok(summary);
+        }
+        if !review.has_fixes() {
+            info!("Review contains no file changes; nothing to commit");
+            return Ok(summary);
         }
 
-        // Create PR if requested and there are changes
-        if args.create_pr && has_changes {
-            // Create a new branch if not specified
-            let branch_name = args
-                .branch
-                .clone()
-                .unwrap_or_else(|| format!("code-review-fixes-{}", chrono::Utc::now().timestamp()));
+        let prepared = patch::prepare_changes(review.file_changes())?;
+        self.git.check_original_shas(&prepared);
 
-            // Create and push branch
-            self.git.create_branch(&branch_name).await?;
-
-            // Apply changes if not already done
-            if !args.commit_changes {
-                self.apply_changes(file_changes).await?;
-                self.git.commit(&args.commit_message).await?;
-            }
-
-            self.git.push(&branch_name).await?;
-
-            // Create PR
-            let title = review.pr_title.as_deref().unwrap_or("Code review fixes");
-            let description = review
-                .pr_description
-                .as_deref()
-                .unwrap_or(&review.review_markdown);
-
-            let (pr_number, pr_url) = self
-                .github
-                .create_pr(
-                    repository,
-                    title,
-                    description,
-                    &branch_name,
-                    &args.base_branch,
-                )
-                .await?;
-
-            return Ok(ProcessingResult::PrCreated { pr_number, pr_url });
-        }
-
-        if args.commit_changes && has_changes {
-            Ok(ProcessingResult::ChangesCommitted)
-        } else if args.post_comment {
-            Ok(ProcessingResult::ReviewPosted)
+        let pr_branch = if args.create_pr {
+            let name = args.branch.clone().unwrap_or_else(default_branch_name);
+            self.git.create_branch(&name)?;
+            Some(name)
         } else {
-            Ok(ProcessingResult::NoAction)
-        }
-    }
+            None
+        };
 
-    /// Post a comment on a PR.
-    async fn post_comment(
-        &self,
-        repository: &str,
-        markdown: &str,
-        pr_number: Option<u64>,
-    ) -> Result<()> {
-        let pr = pr_number.context("PR number required for --post-comment")?;
+        let method = self.git.apply_patch(&patch::combine(&prepared))?;
+        summary.apply_method = Some(apply_method_name(method));
+        let paths: Vec<&str> = prepared.iter().map(|c| c.path.as_str()).collect();
+        self.git.stage(&paths)?;
+        let sha = self.git.commit(&args.commit_message, &paths)?;
+        summary.files_changed = paths.iter().map(|p| (*p).to_string()).collect();
+        summary.made_changes = sha.is_some();
+        summary.commit_sha = sha;
+        let committed = summary.made_changes || self.dry_run;
 
-        if self.dry_run {
-            info!("[DRY RUN] Would post comment to {repository} PR #{pr}");
-            debug!("Comment content:\n{markdown}");
-            return Ok(());
-        }
-
-        self.github.post_pr_comment(repository, pr, markdown).await
-    }
-
-    /// Apply file changes from diffs.
-    async fn apply_changes(&self, changes: &[FileChange]) -> Result<()> {
-        for change in changes {
-            if self.dry_run {
-                info!("[DRY RUN] Would apply diff to {}", change.path);
-                debug!("Diff:\n{}", change.diff);
-                continue;
+        if let Some(branch) = pr_branch {
+            summary.branch = Some(branch.clone());
+            if !committed {
+                warn!("Fixes produced no changes; not pushing or creating a PR");
+                return Ok(summary);
             }
-
-            // Apply the diff using patch
-            self.git.apply_diff(&change.path, &change.diff).await?;
+            let repository = repository.context("Repository required for --create-pr")?;
+            self.git.push(&branch)?;
+            summary.pushed = true;
+            let (number, url) = self.github.create_pr(
+                repository,
+                &comment::format_pr_title(review),
+                &comment::format_pr_body(review),
+                &branch,
+                &args.base_branch,
+            )?;
+            info!(pr_number = number, pr_url = %url, "Pull request created");
+            summary.pr_number = Some(number);
+            summary.pr_url = Some(url);
+        } else if args.push && committed {
+            let branch = match self.git.current_branch() {
+                Ok(Some(branch)) => branch,
+                Ok(None) => anyhow::bail!("Cannot --push from a detached HEAD"),
+                Err(_) if self.dry_run => "HEAD".to_string(),
+                Err(e) => return Err(e),
+            };
+            self.git.push(&branch)?;
+            summary.pushed = true;
+            summary.branch = Some(branch);
         }
-        Ok(())
+
+        Ok(summary)
     }
+}
+
+fn apply_method_name(method: ApplyMethod) -> &'static str {
+    match method {
+        ApplyMethod::GitApply => "git-apply",
+        ApplyMethod::GitApplyIgnoreWhitespace => "git-apply-ignore-whitespace",
+        ApplyMethod::Patch => "patch",
+    }
+}
+
+fn default_branch_name() -> String {
+    let secs = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map_or(0, |d| d.as_secs());
+    format!("code-review-fixes-{secs}")
 }
 
 #[cfg(test)]
 mod tests {
+    use clap::Parser;
+
     use super::*;
+    use crate::review::parse_review_json;
 
-    // Test the new untagged schema format (what the agent produces)
-    #[test]
-    fn test_review_only_schema_format() {
-        // Use serde_json to build the test data properly
-        let json_value = serde_json::json!({
-            "review_markdown": "Code Review - Looks good!",
-            "severity": "low",
-            "findings_count": 1
-        });
-        let json = serde_json::to_string(&json_value).unwrap();
+    fn args(extra: &[&str]) -> Args {
+        let mut argv = vec!["code-review-processor", "--repository", "owner/repo"];
+        argv.extend_from_slice(extra);
+        Args::try_parse_from(argv).unwrap()
+    }
 
-        let review = parse_review_json(&json).unwrap();
-        assert!(review.review_markdown.contains("Looks good"));
-        assert_eq!(review.severity, "low");
-        assert_eq!(review.findings_count, 1);
-        assert!(!review.has_fixes());
+    fn review(severity: &str) -> Review {
+        parse_review_json(&format!(
+            r#"{{"review_markdown": "r", "severity": "{severity}", "findings_count": 2}}"#
+        ))
+        .unwrap()
     }
 
     #[test]
-    fn test_review_with_fixes_schema_format() {
-        let json_value = serde_json::json!({
-            "review_markdown": "Security Issue Found",
-            "severity": "critical",
-            "findings_count": 1,
-            "file_changes": [{
-                "path": "src/db.rs",
-                "diff": "--- a/src/db.rs\n+++ b/src/db.rs"
-            }],
-            "pr_title": "fix(security): patch vulnerability",
-            "pr_description": "This PR fixes the security issue."
-        });
-        let json = serde_json::to_string(&json_value).unwrap();
+    fn no_flags_is_a_no_op() {
+        let summary = ReviewProcessor::new(true)
+            .process(&review("low"), &args(&[]))
+            .unwrap();
+        assert!(!summary.comment_posted);
+        assert!(!summary.made_changes);
+        assert!(!summary.threshold_exceeded);
+    }
 
-        let review = parse_review_json(&json).unwrap();
-        assert!(review.has_fixes());
-        assert_eq!(review.file_changes().len(), 1);
-        assert_eq!(review.file_changes()[0].path, "src/db.rs");
-        assert_eq!(
-            review.pr_title.as_deref(),
-            Some("fix(security): patch vulnerability")
+    #[test]
+    fn dry_run_comment_is_reported() {
+        let a = args(&["--dry-run", "--post-comment", "--pr-number", "5"]);
+        let summary = ReviewProcessor::new(true)
+            .process(&review("low"), &a)
+            .unwrap();
+        assert!(summary.comment_posted);
+        assert!(summary.dry_run);
+    }
+
+    #[test]
+    fn fixes_requested_without_file_changes_is_a_no_op() {
+        let a = args(&["--dry-run", "--commit-changes", "--create-pr"]);
+        let summary = ReviewProcessor::new(true)
+            .process(&review("low"), &a)
+            .unwrap();
+        assert!(summary.pr_url.is_none());
+        assert!(summary.files_changed.is_empty());
+    }
+
+    #[test]
+    fn invalid_arguments_fail_before_side_effects() {
+        let a = args(&["--post-comment"]);
+        assert!(
+            ReviewProcessor::new(true)
+                .process(&review("low"), &a)
+                .is_err()
         );
     }
 
     #[test]
-    fn test_review_with_empty_file_changes() {
-        let json_value = serde_json::json!({
-            "review_markdown": "No issues found",
-            "severity": "info",
-            "findings_count": 0,
-            "file_changes": []
-        });
-        let json = serde_json::to_string(&json_value).unwrap();
-
-        let review = parse_review_json(&json).unwrap();
-        assert!(!review.has_fixes()); // Empty array means no fixes
-        assert!(review.file_changes().is_empty());
-    }
-
-    #[test]
-    fn test_file_change_with_original_sha() {
-        let json_value = serde_json::json!({
-            "review_markdown": "Review",
-            "severity": "medium",
-            "findings_count": 1,
-            "file_changes": [{
-                "path": "src/main.rs",
-                "diff": "diff content",
-                "original_sha": "abc123def456"
-            }]
-        });
-        let json = serde_json::to_string(&json_value).unwrap();
-
-        let review = parse_review_json(&json).unwrap();
-        assert_eq!(
-            review.file_changes()[0].original_sha.as_deref(),
-            Some("abc123def456")
+    fn severity_threshold() {
+        let p = ReviewProcessor::new(true);
+        let a = args(&["--fail-on-severity", "high"]);
+        assert!(
+            p.process(&review("critical"), &a)
+                .unwrap()
+                .threshold_exceeded
         );
-    }
-
-    // Test legacy tagged format (backwards compatibility)
-    #[test]
-    fn test_legacy_review_only_format() {
-        let json_value = serde_json::json!({
-            "type": "review_only",
-            "review_markdown": "Looks good!",
-            "severity": "low",
-            "findings_count": 1
-        });
-        let json = serde_json::to_string(&json_value).unwrap();
-
-        let review = parse_review_json(&json).unwrap();
-        assert!(review.review_markdown.contains("Looks good"));
-        assert!(!review.has_fixes());
+        assert!(p.process(&review("high"), &a).unwrap().threshold_exceeded);
+        assert!(!p.process(&review("medium"), &a).unwrap().threshold_exceeded);
     }
 
     #[test]
-    fn test_legacy_with_fixes_format() {
-        let json_value = serde_json::json!({
-            "type": "with_fixes",
-            "review_markdown": "Review",
-            "severity": "medium",
-            "findings_count": 2,
-            "file_changes": [{"path": "src/main.rs", "diff": "diff content"}],
-            "pr_title": "Fix issues",
-            "pr_description": "This PR fixes issues"
-        });
-        let json = serde_json::to_string(&json_value).unwrap();
-
-        let review = parse_review_json(&json).unwrap();
-        assert!(review.has_fixes());
-        assert_eq!(review.file_changes().len(), 1);
-        assert_eq!(review.pr_title.as_deref(), Some("Fix issues"));
+    fn default_branch_name_is_prefixed() {
+        assert!(default_branch_name().starts_with("code-review-fixes-"));
     }
 
     #[test]
-    fn test_realistic_agent_response() {
-        // A realistic response an agent might produce
-        let json_value = serde_json::json!({
-            "review_markdown": "## Code Review\n\n### Critical Issues\n\n1. SQL injection in query_user",
-            "severity": "critical",
-            "findings_count": 1,
-            "file_changes": [{
-                "path": "src/db.rs",
-                "diff": "--- a/src/db.rs\n+++ b/src/db.rs\n@@ -1 +1 @@\n-bad\n+good"
-            }],
-            "pr_title": "fix(security): prevent SQL injection",
-            "pr_description": "Fixes SQL injection vulnerability."
-        });
-        let json = serde_json::to_string(&json_value).unwrap();
-
-        let review = parse_review_json(&json).unwrap();
-        assert_eq!(review.severity, "critical");
-        assert_eq!(review.findings_count, 1);
-        assert!(review.has_fixes());
-        assert!(review.review_markdown.contains("SQL injection"));
-    }
-
-    #[test]
-    fn test_invalid_json_fails() {
-        let json = "{ invalid json }";
-        assert!(parse_review_json(json).is_err());
-    }
-
-    #[test]
-    fn test_all_severity_levels() {
-        for severity in &["critical", "high", "medium", "low", "info"] {
-            let json_value = serde_json::json!({
-                "review_markdown": "Test",
-                "severity": severity,
-                "findings_count": 0
-            });
-            let json = serde_json::to_string(&json_value).unwrap();
-            let review = parse_review_json(&json).unwrap();
-            assert_eq!(review.severity, *severity);
-        }
-    }
-
-    #[test]
-    fn test_processor_dry_run() {
-        let processor = ReviewProcessor::new(Some("owner/repo".to_string()), true);
-        assert!(processor.dry_run);
-    }
-
-    #[test]
-    fn test_multiline_markdown_in_json() {
-        // Test that newlines in JSON are preserved
-        let json_value = serde_json::json!({
-            "review_markdown": "Line 1\nLine 2\n\n## Header",
-            "severity": "low",
-            "findings_count": 0
-        });
-        let json = serde_json::to_string(&json_value).unwrap();
-
-        let review = parse_review_json(&json).unwrap();
-        // The newlines should be actual newlines in the parsed string
-        assert!(review.review_markdown.contains('\n'));
-        assert!(review.review_markdown.contains("Header"));
-    }
-
-    #[test]
-    fn test_diff_with_special_characters() {
-        // Test that diffs with special characters parse correctly
-        let json_value = serde_json::json!({
-            "review_markdown": "Review",
-            "severity": "medium",
-            "findings_count": 1,
-            "file_changes": [{
-                "path": "test.rs",
-                "diff": "--- a/test.rs\n+++ b/test.rs\n@@ -1,3 +1,3 @@\n-let x = \"hello\";\n+let x = \"world\";"
-            }]
-        });
-        let json = serde_json::to_string(&json_value).unwrap();
-
-        let review = parse_review_json(&json).unwrap();
-        assert!(review.has_fixes());
-        let diff = &review.file_changes()[0].diff;
-        assert!(diff.contains("hello"));
-        assert!(diff.contains("world"));
+    fn summary_serializes() {
+        let summary = ReviewProcessor::new(true)
+            .process(&review("low"), &args(&[]))
+            .unwrap();
+        let json = serde_json::to_value(&summary).unwrap();
+        assert_eq!(json["severity"], "low");
+        assert_eq!(json["findings_count"], 2);
+        assert_eq!(json["made_changes"], false);
     }
 }

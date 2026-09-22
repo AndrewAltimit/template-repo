@@ -1,19 +1,24 @@
 //! AI agent backends for PR reviews.
 //!
-//! Provides CLI-based abstractions for different AI agents (Gemini, Claude, Codex,
-//! OpenCode, Crush). All agents use their respective CLI tools to leverage local
-//! tools, MCP servers, and full agent capabilities.
+//! Active backends: Claude Code CLI, OpenCode CLI, Crush CLI and the
+//! OpenRouter API. Gemini and Codex are disabled by project policy (see
+//! [`crate::agents::DISABLED_AGENTS`]); requesting them fails with a clear
+//! error.
 
 pub mod claude;
-pub mod codex;
 pub mod crush;
-pub mod gemini;
 pub mod opencode;
 pub mod openrouter;
 
-use async_trait::async_trait;
+use std::time::Duration;
 
-use crate::error::Result;
+use async_trait::async_trait;
+use tokio::process::Command;
+
+use crate::agents::disabled_reason;
+use crate::error::{Error, Result};
+use crate::utils::process::{is_transient_error, run_with_timeout};
+use crate::utils::text::strip_ansi_codes;
 
 /// Trait for review agents
 #[async_trait]
@@ -24,127 +29,139 @@ pub trait ReviewAgent: Send + Sync {
     /// Get the model being used
     fn model(&self) -> &str;
 
-    /// Check if the agent is available (CLI found, etc.)
+    /// Check if the agent is available (CLI found, API key set, etc.)
     async fn is_available(&self) -> bool;
 
     /// Generate a review for the given prompt
     async fn review(&self, prompt: &str) -> Result<String>;
 
     /// Condense a review that's too long
-    async fn condense(&self, review: &str, max_words: usize) -> Result<String>;
+    async fn condense(&self, review: &str, max_words: usize) -> Result<String> {
+        self.review(&condense_prompt(review, max_words)).await
+    }
 }
 
-/// Check if subprocess stderr indicates a transient network error.
+/// Prompt used to condense an over-long review.
+pub fn condense_prompt(review: &str, max_words: usize) -> String {
+    format!(
+        r#"Condense this code review to under {max_words} words while keeping ALL actionable issues.
+
+Rules:
+- Keep ONLY actionable issues (bugs, security, required fixes)
+- Remove generic praise and filler
+- Remove duplicates
+- Keep exactly ONE reaction image at the end
+- Use bullet points
+
+Review to condense:
+
+{review}
+"#
+    )
+}
+
+/// Run a review CLI and turn its result into review text or a classified error.
 ///
-/// Used by agent implementations to distinguish transient failures (API outages,
-/// network issues) from permanent configuration errors. Transient errors should
-/// be reported as `Error::AgentExecutionFailed` (exit code 6) with a
-/// "service unavailable" prefix so that workflow bash wrappers can match them
-/// against known-transient patterns and gracefully skip.
-pub(crate) fn is_transient_error(stderr: &str) -> bool {
-    let lower = stderr.to_lowercase();
-    lower.contains("fetch failed")
-        || lower.contains("econnrefused")
-        || lower.contains("etimedout")
-        || lower.contains("econnreset")
-        || lower.contains("enetunreach")
-        || lower.contains("enotfound")
-        || lower.contains("socket hang up")
-        || lower.contains("network error")
-        || lower.contains("dns resolution")
-        || lower.contains("service unavailable")
-        || lower.contains("server error")
-        || lower.contains("503")
-        || lower.contains("502")
+/// Non-zero exits whose output looks like a network/service outage become
+/// `Error::AgentExecutionFailed` with a `service unavailable (transient)`
+/// prefix (exit code 6) so workflow wrappers can skip gracefully; other
+/// failures (including timeouts and spawn failures) are configuration errors
+/// (exit code 1), matching the historical CLI contract.
+pub(crate) async fn run_review_cli(
+    name: &str,
+    cmd: Command,
+    stdin: Option<&str>,
+    timeout: Duration,
+) -> Result<String> {
+    tracing::info!("Calling {} CLI (timeout {}s)", name, timeout.as_secs());
+    let output = run_with_timeout(name, cmd, stdin, timeout)
+        .await
+        .map_err(|e| Error::Config(format!("{} CLI failed: {}", name, e)))?;
+    let stdout = String::from_utf8_lossy(&output.stdout);
+
+    if !output.status.success() {
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        tracing::error!("{} CLI failed with stderr: {}", name, stderr.trim());
+        // Some CLIs report errors on stdout instead of stderr
+        let combined = if stdout.trim().is_empty() {
+            stderr.trim().to_string()
+        } else {
+            format!("{}\n{}", stderr.trim(), stdout.trim())
+        };
+        let exit_code = output.status.code().unwrap_or(1);
+
+        if is_transient_error(&combined) {
+            tracing::warn!("Transient network error detected from {} CLI", name);
+            return Err(Error::AgentExecutionFailed {
+                name: name.to_string(),
+                exit_code,
+                stdout: stdout.into_owned(),
+                stderr: format!("service unavailable (transient): {}", combined),
+            });
+        }
+        return Err(Error::Config(format!(
+            "{} CLI exited with status {}: {}",
+            name, output.status, combined
+        )));
+    }
+
+    Ok(strip_ansi_codes(&stdout))
 }
 
 /// Select the appropriate review agent based on configuration
-pub async fn select_agent(agent_name: &str) -> Option<Box<dyn ReviewAgent>> {
-    select_agent_with_models(agent_name, None, None).await
+pub async fn select_agent(agent_name: &str) -> Result<Box<dyn ReviewAgent>> {
+    select_agent_with_model(agent_name, None).await
 }
 
-/// Select agent with optional model overrides
-pub async fn select_agent_with_models(
+/// Select a review agent with an optional model override.
+///
+/// Returns a descriptive error for disabled, unknown or unavailable agents.
+pub async fn select_agent_with_model(
     agent_name: &str,
-    review_model: Option<String>,
-    condenser_model: Option<String>,
-) -> Option<Box<dyn ReviewAgent>> {
-    match agent_name.to_lowercase().as_str() {
-        "gemini" => {
-            let agent = match (review_model, condenser_model) {
-                (Some(r), Some(c)) => gemini::GeminiAgent::with_models(r, c),
-                (Some(r), None) => gemini::GeminiAgent::with_models(r.clone(), r),
-                _ => gemini::GeminiAgent::new(),
-            };
-            if agent.is_available().await {
-                Some(Box::new(agent))
-            } else {
-                tracing::warn!("Gemini CLI not available");
-                None
-            }
-        },
-        "claude" => {
-            let agent = match review_model {
-                Some(m) => claude::ClaudeAgent::with_model(m),
-                None => claude::ClaudeAgent::new(),
-            };
-            if agent.is_available().await {
-                Some(Box::new(agent))
-            } else {
-                tracing::warn!("Claude Code CLI not available");
-                None
-            }
-        },
-        "codex" => {
-            let agent = match review_model {
-                Some(m) => codex::CodexAgent::with_model(m),
-                None => codex::CodexAgent::new(),
-            };
-            if agent.is_available().await {
-                Some(Box::new(agent))
-            } else {
-                tracing::warn!("Codex CLI not available");
-                None
-            }
-        },
-        "opencode" => {
-            let agent = match review_model {
-                Some(m) => opencode::OpenCodeAgent::with_model(m),
-                None => opencode::OpenCodeAgent::new(),
-            };
-            if agent.is_available().await {
-                Some(Box::new(agent))
-            } else {
-                tracing::warn!("OpenCode CLI not available");
-                None
-            }
-        },
-        "crush" => {
-            let agent = crush::CrushAgent::new();
-            if agent.is_available().await {
-                Some(Box::new(agent))
-            } else {
-                tracing::warn!("Crush CLI not available");
-                None
-            }
-        },
-        "openrouter" => {
-            let agent = match review_model {
-                Some(m) => openrouter::OpenRouterAgent::with_model(m),
-                None => openrouter::OpenRouterAgent::new(),
-            };
-            if agent.is_available().await {
-                Some(Box::new(agent))
-            } else {
-                tracing::warn!("OpenRouter API key not available");
-                None
-            }
-        },
-        _ => {
-            tracing::warn!("Unknown agent: {}", agent_name);
-            None
-        },
+    model: Option<String>,
+) -> Result<Box<dyn ReviewAgent>> {
+    let name = agent_name.trim().to_lowercase();
+    if let Some(reason) = disabled_reason(&name) {
+        return Err(Error::AgentNotAvailable {
+            name,
+            reason: reason.to_string(),
+        });
     }
+
+    let agent: Box<dyn ReviewAgent> = match name.as_str() {
+        "claude" => Box::new(match model {
+            Some(m) => claude::ClaudeAgent::with_model(m),
+            None => claude::ClaudeAgent::new(),
+        }),
+        "opencode" => Box::new(match model {
+            Some(m) => opencode::OpenCodeAgent::with_model(m),
+            None => opencode::OpenCodeAgent::new(),
+        }),
+        "crush" => Box::new(crush::CrushAgent::new()),
+        "openrouter" => Box::new(match model {
+            Some(m) => openrouter::OpenRouterAgent::with_model(m),
+            None => openrouter::OpenRouterAgent::new(),
+        }),
+        _ => {
+            return Err(Error::AgentNotAvailable {
+                name,
+                reason: "unknown review agent (expected claude, openrouter, opencode or crush)"
+                    .to_string(),
+            });
+        },
+    };
+
+    if !agent.is_available().await {
+        let reason = match agent.name() {
+            "openrouter" => "OPENROUTER_API_KEY is not set",
+            _ => "CLI not found (set <AGENT>_PATH or install it on PATH)",
+        };
+        return Err(Error::AgentNotAvailable {
+            name,
+            reason: reason.to_string(),
+        });
+    }
+    Ok(agent)
 }
 
 #[cfg(test)]
@@ -152,59 +169,49 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_is_transient_error_fetch_failed() {
-        assert!(is_transient_error("TypeError: fetch failed"));
+    fn condense_prompt_mentions_limit() {
+        let p = condense_prompt("long review", 123);
+        assert!(p.contains("under 123 words"));
+        assert!(p.contains("long review"));
     }
 
-    #[test]
-    fn test_is_transient_error_econnrefused() {
-        assert!(is_transient_error(
-            "Error: connect ECONNREFUSED 127.0.0.1:443"
+    #[tokio::test]
+    async fn disabled_agents_rejected() {
+        for name in ["gemini", "Codex"] {
+            match select_agent(name).await {
+                Err(Error::AgentNotAvailable { reason, .. }) => {
+                    assert!(reason.contains("policy"))
+                },
+                _ => panic!("{name} should be rejected"),
+            }
+        }
+    }
+
+    #[tokio::test]
+    async fn unknown_agent_rejected() {
+        assert!(matches!(
+            select_agent("nonexistent").await,
+            Err(Error::AgentNotAvailable { .. })
         ));
     }
 
-    #[test]
-    fn test_is_transient_error_503() {
-        assert!(is_transient_error("HTTP 503 Service Unavailable"));
-    }
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn run_review_cli_classifies_transient_errors() {
+        let mut cmd = Command::new("sh");
+        cmd.args(["-c", "echo 'fetch failed' >&2; exit 1"]);
+        match run_review_cli("sh", cmd, None, Duration::from_secs(5)).await {
+            Err(Error::AgentExecutionFailed { stderr, .. }) => {
+                assert!(stderr.starts_with("service unavailable (transient)"))
+            },
+            other => panic!("unexpected: {:?}", other.map(|_| ())),
+        }
 
-    #[test]
-    fn test_is_transient_error_502() {
-        assert!(is_transient_error("502 Bad Gateway"));
-    }
-
-    #[test]
-    fn test_is_transient_error_socket_hang_up() {
-        assert!(is_transient_error("Error: socket hang up"));
-    }
-
-    #[test]
-    fn test_is_transient_error_enotfound() {
-        assert!(is_transient_error(
-            "Error: getaddrinfo ENOTFOUND api.example.com"
-        ));
-    }
-
-    #[test]
-    fn test_is_transient_error_service_unavailable() {
-        assert!(is_transient_error("Service Unavailable"));
-    }
-
-    #[test]
-    fn test_is_transient_error_server_error() {
-        assert!(is_transient_error("Internal Server Error"));
-    }
-
-    #[test]
-    fn test_is_transient_error_case_insensitive() {
-        assert!(is_transient_error("FETCH FAILED"));
-        assert!(is_transient_error("Network Error"));
-    }
-
-    #[test]
-    fn test_is_not_transient_error() {
-        assert!(!is_transient_error("Invalid API key"));
-        assert!(!is_transient_error("Permission denied"));
-        assert!(!is_transient_error("File not found"));
+        let mut cmd = Command::new("sh");
+        cmd.args(["-c", "cat"]);
+        let out = run_review_cli("sh", cmd, Some("\x1b[1mok\x1b[0m"), Duration::from_secs(5))
+            .await
+            .unwrap();
+        assert_eq!(out, "ok");
     }
 }

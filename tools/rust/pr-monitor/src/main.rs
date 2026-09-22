@@ -1,7 +1,8 @@
 //! pr-monitor: GitHub PR comment monitoring with intelligent analysis
 //!
-//! This tool monitors a GitHub PR for comments from administrators or AI reviewers
-//! and outputs a structured decision when a relevant comment is detected.
+//! This tool monitors a GitHub PR for comments and reviews from administrators
+//! or AI reviewers and outputs a structured decision when a relevant comment
+//! is detected.
 //!
 //! # Usage
 //!
@@ -15,7 +16,8 @@
 //! # Exit Codes
 //!
 //! - 0: Found relevant comment (output as JSON on stdout)
-//! - 1: Timeout or error (no relevant comment found)
+//! - 1: Timeout or error (no relevant comment found); the timeout code is
+//!   configurable with `--timeout-exit-code`
 //! - 130: Interrupted by user (Ctrl+C)
 
 use std::process::exit;
@@ -25,33 +27,36 @@ use std::time::Duration;
 
 use clap::Parser;
 
-mod analysis;
-mod cli;
-mod error;
-mod github;
-mod monitor;
-
-use cli::Args;
-use error::Error;
-use github::GhClient;
-use monitor::Poller;
+use pr_monitor::analysis::Decision;
+use pr_monitor::cli::Args;
+use pr_monitor::error::{Error, Result};
+use pr_monitor::github::{GhClient, RepoSpec};
+use pr_monitor::monitor::{Filter, Poller, PollerConfig};
 
 /// Run the main monitoring logic
-fn run() -> Result<(), Error> {
-    let args = Args::parse();
+fn run(args: Args) -> Result<()> {
+    let quiet = args.json;
 
     // Setup signal handling for graceful shutdown
     let running = Arc::new(AtomicBool::new(true));
     let r = running.clone();
-    ctrlc::set_handler(move || {
-        r.store(false, Ordering::SeqCst);
-    })
-    .ok();
+    if let Err(e) = ctrlc::set_handler(move || r.store(false, Ordering::SeqCst)) {
+        eprintln!("WARNING: could not install Ctrl+C handler: {e}");
+    }
 
-    // Verify gh CLI is available and authenticated (fail fast)
+    if args.config.is_some() {
+        eprintln!("WARNING: --config is not supported and will be ignored");
+    }
+
+    // Verify gh CLI is available (fail fast)
     GhClient::check_available()?;
 
-    if !args.json {
+    let client = match &args.repo {
+        Some(repo) => GhClient::with_repo(RepoSpec::parse(repo)?),
+        None => GhClient::new(),
+    };
+
+    if !quiet {
         eprintln!("{}", "=".repeat(60));
         eprintln!("PR #{} MONITORING AGENT", args.pr_number);
         eprintln!("{}", "=".repeat(60));
@@ -59,76 +64,103 @@ fn run() -> Result<(), Error> {
     }
 
     // Resolve since-commit to timestamp if provided
-    let since_time = if let Some(sha) = &args.since_commit {
-        if !args.json {
-            eprintln!("Resolving commit timestamp for {}...", sha);
-        }
-        match GhClient::get_commit_time(sha) {
-            Ok(time) => {
-                if !args.json {
-                    eprintln!(
-                        "Will only monitor comments after: {}",
-                        time.format("%Y-%m-%d %H:%M:%S UTC")
-                    );
+    let since_time = match &args.since_commit {
+        Some(sha) => {
+            if !quiet {
+                eprintln!("Resolving commit timestamp for {sha}...");
+            }
+            match client.get_commit_time(sha) {
+                Ok(time) => {
+                    if !quiet {
+                        eprintln!(
+                            "Will only monitor comments after: {}",
+                            time.format("%Y-%m-%d %H:%M:%S UTC")
+                        );
+                        eprintln!();
+                    }
+                    Some(time)
+                },
+                Err(e) => {
+                    // Without the filter only comments posted from now on are
+                    // considered, which is the safe direction to degrade in.
+                    eprintln!("WARNING: Could not resolve commit timestamp: {e}");
+                    eprintln!("Continuing without commit filter (only new comments)...");
                     eprintln!();
-                }
-                Some(time)
-            },
-            Err(e) => {
-                if !args.json {
-                    eprintln!("WARNING: Could not resolve commit timestamp: {}", e);
-                    eprintln!("Continuing without commit filter...");
-                    eprintln!();
-                }
-                None
-            },
-        }
-    } else {
-        None
+                    None
+                },
+            }
+        },
+        None => None,
     };
 
-    // Create and run poller
+    let filter = Filter {
+        admin_user: args.admin_user.clone(),
+        authors: args.authors.clone(),
+        types: args.types.clone(),
+    };
+
     let poller = Poller::new(
-        args.pr_number,
-        Duration::from_secs(args.poll_interval),
-        Duration::from_secs(args.timeout),
-        since_time,
+        client,
+        PollerConfig {
+            pr_number: args.pr_number,
+            poll_interval: Duration::from_secs(args.poll_interval),
+            timeout: Duration::from_secs(args.timeout),
+            since_time,
+            filter,
+            quiet,
+        },
         running,
     );
 
-    match poller.run(args.json) {
-        Ok((comment, classification)) => {
-            let decision = classification.into_decision(&comment);
+    let decision = poller.run()?.into_decision(args.pr_number);
 
-            if !args.json {
-                eprintln!();
-                eprintln!("{}", "=".repeat(60));
-                eprintln!("RELEVANT COMMENT DETECTED");
-                eprintln!("{}", "=".repeat(60));
-                eprintln!("Author: {}", decision.comment.author);
-                eprintln!("Type: {:?}", decision.response_type);
-                eprintln!("Priority: {:?}", decision.priority);
-                if let Some(action) = &decision.action_required {
-                    eprintln!("Action: {}", action);
-                }
-                eprintln!();
-            }
-
-            // Output JSON to stdout
-            println!("{}", serde_json::to_string_pretty(&decision)?);
-            Ok(())
-        },
-        Err(e) => Err(e),
+    if !quiet {
+        print_summary(&decision);
     }
+
+    // Output JSON to stdout
+    let json = if args.compact {
+        serde_json::to_string(&decision)?
+    } else {
+        serde_json::to_string_pretty(&decision)?
+    };
+    println!("{json}");
+    Ok(())
+}
+
+fn print_summary(decision: &Decision) {
+    eprintln!();
+    eprintln!("{}", "=".repeat(60));
+    eprintln!("RELEVANT COMMENT DETECTED");
+    eprintln!("{}", "=".repeat(60));
+    eprintln!("Author: {}", decision.comment.author);
+    if let Some(kind) = decision.response_type {
+        eprintln!("Type: {}", kind.as_str());
+    }
+    eprintln!("Priority: {:?}", decision.priority);
+    if let Some(action) = &decision.action_required {
+        eprintln!("Action: {action}");
+    }
+    if let Some(url) = &decision.comment.url {
+        eprintln!("URL: {url}");
+    }
+    eprintln!();
 }
 
 fn main() {
-    if let Err(e) = run() {
-        eprintln!("ERROR: {}", e);
-        if let Some(help) = e.help_text() {
-            eprintln!();
-            eprintln!("{}", help);
-        }
-        exit(e.exit_code());
+    let args = Args::parse();
+    let timeout_exit_code = args.timeout_exit_code;
+
+    if let Err(e) = run(args) {
+        report_error(&e);
+        exit(e.exit_code(timeout_exit_code));
+    }
+}
+
+fn report_error(e: &Error) {
+    eprintln!("ERROR: {e}");
+    if let Some(help) = e.help_text() {
+        eprintln!();
+        eprintln!("{help}");
     }
 }

@@ -57,7 +57,7 @@ Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "Services:" -ForegroundColor Yellow
 Write-Host "  Web UI:     http://localhost:8675" -ForegroundColor Cyan
-Write-Host "  MCP Server: http://localhost:8012" -ForegroundColor Cyan
+Write-Host "  MCP Server: http://localhost:8020" -ForegroundColor Cyan
 Write-Host ""
 
 # Wait for services to initialize with healthcheck polling

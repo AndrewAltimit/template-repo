@@ -1,15 +1,20 @@
 //! GitHub Projects v2 board manager CLI.
 //!
-//! A Rust implementation of the board manager for coordinating AI agent work
-//! on GitHub issues via Projects v2 GraphQL API.
+//! Coordinates AI agent work on GitHub issues through a Projects v2 board:
+//! ready-work queries, comment-based claims with conflict resolution,
+//! status and dependency fields, approval checks and stale-claim cleanup.
 
+mod approval;
+mod board;
+mod claims;
 mod cli;
 mod client;
 mod config;
 mod error;
 mod manager;
 mod models;
-pub mod security;
+mod queries;
+mod security;
 
 use clap::Parser;
 

@@ -1,149 +1,181 @@
-//! Secret masking logic
+//! Secret masking.
 //!
-//! Detects and masks secrets in text based on:
-//! 1. Explicit environment variable values
-//! 2. Auto-detected environment variables matching patterns
-//! 3. Regex patterns for common secret formats (tokens, keys, etc.)
+//! Secrets are found by:
+//! 1. values of environment variables named in the config,
+//! 2. values of environment variables matching the config's auto-detection
+//!    globs (and `MASK_ENV_VARS`, for backward compatibility),
+//! 3. regex patterns from the config, and
+//! 4. a **built-in baseline** of token formats and variables that is always
+//!    active. The config is discovered from the working directory, so a
+//!    weakened `.secrets.yaml` planted in a checkout cannot turn masking off
+//!    for the most important credentials.
 
 use crate::config::Config;
 use regex::Regex;
-use std::collections::HashMap;
+use std::sync::LazyLock;
 
-/// Secret masker that loads secrets from environment and config
+/// Environment variables that are always masked.
+const BUILTIN_SECRET_VARS: &[&str] = &[
+    "GITHUB_TOKEN",
+    "GH_TOKEN",
+    "GH_ENTERPRISE_TOKEN",
+    "GITHUB_ENTERPRISE_TOKEN",
+    "ANTHROPIC_API_KEY",
+    "OPENROUTER_API_KEY",
+];
+
+/// Token formats that are always masked (name, pattern).
+static BUILTIN_PATTERNS: LazyLock<Vec<(String, Regex)>> = LazyLock::new(|| {
+    [
+        (
+            "GITHUB_TOKEN",
+            r"\b(?:ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9]{36,}",
+        ),
+        ("GITHUB_PAT", r"\bgithub_pat_[A-Za-z0-9_]{22,}"),
+        ("AWS_ACCESS_KEY", r"\b(?:AKIA|ASIA)[0-9A-Z]{16}\b"),
+        ("ANTHROPIC_API_KEY", r"\bsk-ant-[A-Za-z0-9_\-]{20,}"),
+        ("SLACK_TOKEN", r"\bxox[abprs]-[A-Za-z0-9\-]{10,}"),
+        (
+            "PRIVATE_KEY_BLOCK",
+            r"-----BEGIN[A-Z ]*PRIVATE KEY-----[\s\S]*?-----END[A-Z ]*PRIVATE KEY-----",
+        ),
+    ]
+    .iter()
+    .map(|(name, pattern)| {
+        (
+            (*name).to_string(),
+            Regex::new(pattern).expect("static regex"),
+        )
+    })
+    .collect()
+});
+
+/// Masks secrets in text.
 pub struct SecretMasker {
-    /// Environment variable name -> value
-    secrets: HashMap<String, String>,
-    /// Pattern name -> compiled regex
+    /// (variable name, secret value), longest value first.
+    secrets: Vec<(String, String)>,
+    /// (pattern name, regex): config patterns, then built-ins.
     patterns: Vec<(String, Regex)>,
-    /// Mask format template (e.g., "[MASKED_{name}]")
     mask_format: String,
-    /// Whether to log when masking occurs
     log_masked: bool,
 }
 
 impl SecretMasker {
-    /// Create a new secret masker from configuration
+    /// Build a masker from config and the current environment.
     pub fn new(config: &Config) -> Self {
-        let mut secrets = HashMap::new();
-        let min_length = config.settings.minimum_secret_length;
+        Self::from_env(
+            config,
+            std::env::vars_os().map(|(k, v)| {
+                (
+                    k.to_string_lossy().into_owned(),
+                    v.to_string_lossy().into_owned(),
+                )
+            }),
+        )
+    }
 
-        // Load explicitly configured environment variables
-        for var_name in &config.environment_variables {
-            if let Ok(value) = std::env::var(var_name) {
-                if value.len() >= min_length {
-                    secrets.insert(var_name.clone(), value);
-                }
+    /// Build a masker from config and an explicit environment (testable
+    /// without mutating the process environment).
+    pub fn from_env(config: &Config, env: impl IntoIterator<Item = (String, String)>) -> Self {
+        let env: Vec<(String, String)> = env.into_iter().collect();
+        let lookup = |name: &str| env.iter().find(|(k, _)| k == name).map(|(_, v)| v.clone());
+        let min_length = config.settings.minimum_secret_length.max(1);
+        let mut secrets: Vec<(String, String)> = Vec::new();
+        let mut add = |name: &str, value: String| {
+            if value.len() >= min_length && !secrets.iter().any(|(n, _)| n == name) {
+                secrets.push((name.to_string(), value));
+            }
+        };
+
+        for name in BUILTIN_SECRET_VARS
+            .iter()
+            .copied()
+            .chain(config.environment_variables.iter().map(String::as_str))
+        {
+            if let Some(value) = lookup(name) {
+                add(name, value);
             }
         }
-
-        // Auto-detect based on patterns
         if config.auto_detection.enabled {
-            for (key, value) in std::env::vars() {
-                // Skip if already explicitly configured
-                if secrets.contains_key(&key) {
-                    continue;
-                }
-
-                // Check if this variable should be auto-detected
-                if config.should_auto_detect(&key) && value.len() >= min_length {
-                    secrets.insert(key, value);
+            for (key, value) in &env {
+                if config.should_auto_detect(key) {
+                    add(key, value.clone());
                 }
             }
         }
-
-        // Load from MASK_ENV_VARS for backward compatibility
-        if let Ok(mask_vars) = std::env::var("MASK_ENV_VARS") {
-            for var in mask_vars.split(',') {
-                let var = var.trim();
-                if !var.is_empty() && !secrets.contains_key(var) {
-                    if let Ok(value) = std::env::var(var) {
-                        if value.len() >= min_length {
-                            secrets.insert(var.to_string(), value);
-                        }
-                    }
+        if let Some(list) = lookup("MASK_ENV_VARS") {
+            for name in list.split(',').map(str::trim).filter(|n| !n.is_empty()) {
+                if let Some(value) = lookup(name) {
+                    add(name, value);
                 }
             }
         }
+        // Mask longer values first so a secret containing another secret is
+        // replaced as a whole.
+        secrets.sort_by_key(|(_, v)| std::cmp::Reverse(v.len()));
+
+        let mut patterns = config.compile_patterns();
+        patterns.extend(BUILTIN_PATTERNS.iter().cloned());
 
         Self {
             secrets,
-            patterns: config.compile_patterns(),
+            patterns,
             mask_format: config.settings.mask_format.clone(),
             log_masked: config.settings.log_masked_secrets,
         }
     }
 
-    /// Mask all secrets in text
-    ///
-    /// Returns (masked_text, was_modified)
+    fn mask_for(&self, name: &str) -> String {
+        self.mask_format.replace("{name}", name)
+    }
+
+    /// Mask all secrets in `text`. Returns (masked text, changed).
     pub fn mask(&self, text: &str) -> (String, bool) {
         let mut result = text.to_string();
         let mut modified = false;
 
-        // Sort secrets by length (longest first) to avoid partial masking
-        // e.g., mask "SUPER_SECRET" before "SECRET"
-        let mut sorted_secrets: Vec<_> = self.secrets.iter().collect();
-        sorted_secrets.sort_by_key(|b| std::cmp::Reverse(b.1.len()));
-
-        // Mask environment variable values
-        for (name, value) in sorted_secrets {
-            if result.contains(value) {
-                let mask = self.mask_format.replace("{name}", name);
-                result = result.replace(value, &mask);
+        for (name, value) in &self.secrets {
+            if result.contains(value.as_str()) {
+                result = result.replace(value.as_str(), &self.mask_for(name));
                 modified = true;
-
                 if self.log_masked {
-                    eprintln!("[gh-validator] Masked secret: {}", name);
+                    eprintln!("[gh-validator] Masked secret: {name}");
                 }
             }
         }
-
-        // Mask pattern-based secrets
         for (name, regex) in &self.patterns {
-            let mask = self.mask_format.replace("{name}", name);
-            let new_result = regex.replace_all(&result, mask.as_str()).to_string();
-
-            if new_result != result {
+            if regex.is_match(&result) {
+                let mask = self.mask_for(name);
+                result = regex
+                    .replace_all(&result, regex::NoExpand(&mask))
+                    .into_owned();
                 modified = true;
                 if self.log_masked {
-                    eprintln!("[gh-validator] Masked pattern: {}", name);
+                    eprintln!("[gh-validator] Masked pattern: {name}");
                 }
-                result = new_result;
             }
         }
-
         (result, modified)
     }
 
-    /// Mask secrets in a vector of arguments
-    ///
-    /// Returns (masked_args, was_modified)
-    /// This avoids shell escaping issues by masking each argument individually.
+    /// Whether `text` contains any secret (no output).
+    pub fn contains_secret(&self, text: &str) -> bool {
+        self.secrets.iter().any(|(_, v)| text.contains(v.as_str()))
+            || self.patterns.iter().any(|(_, r)| r.is_match(text))
+    }
+
+    /// Mask every argument. Returns (masked args, any changed).
     pub fn mask_args(&self, args: &[String]) -> (Vec<String>, bool) {
         let mut modified = false;
-        let masked: Vec<String> = args
+        let masked = args
             .iter()
             .map(|arg| {
-                let (masked_arg, arg_modified) = self.mask(arg);
-                if arg_modified {
-                    modified = true;
-                }
-                masked_arg
+                let (m, changed) = self.mask(arg);
+                modified |= changed;
+                m
             })
             .collect();
         (masked, modified)
-    }
-
-    /// Get the number of loaded secrets (for debugging)
-    #[allow(dead_code)]
-    pub fn secret_count(&self) -> usize {
-        self.secrets.len()
-    }
-
-    /// Get the number of loaded patterns (for debugging)
-    #[allow(dead_code)]
-    pub fn pattern_count(&self) -> usize {
-        self.patterns.len()
     }
 }
 
@@ -152,111 +184,114 @@ mod tests {
     use super::*;
     use crate::config::types::{AutoDetection, PatternDef, Settings};
 
-    fn test_config() -> Config {
+    fn config() -> Config {
         Config {
-            version: "1.0.0".to_string(),
-            description: None,
             environment_variables: vec!["TEST_SECRET".to_string()],
-            patterns: vec![
-                PatternDef {
-                    name: "GITHUB_TOKEN".to_string(),
-                    pattern: r"ghp_[A-Za-z0-9_]{36,}".to_string(),
-                    description: None,
-                },
-                PatternDef {
-                    name: "AWS_ACCESS_KEY".to_string(),
-                    pattern: r"AKIA[0-9A-Z]{16}".to_string(),
-                    description: None,
-                },
-            ],
+            patterns: vec![PatternDef {
+                name: "CUSTOM".to_string(),
+                pattern: r"custom_[a-z]{8}".to_string(),
+                description: None,
+            }],
             auto_detection: AutoDetection {
                 enabled: true,
                 include_patterns: vec!["*_TOKEN".to_string(), "*_SECRET".to_string()],
                 exclude_patterns: vec!["PUBLIC_*".to_string()],
             },
-            settings: Settings::default(),
+            settings: Settings {
+                log_masked_secrets: false,
+                ..Settings::default()
+            },
+            ..Config::default()
         }
     }
 
-    #[test]
-    fn test_mask_env_var() {
-        std::env::set_var("TEST_SECRET", "my-super-secret-value");
-
-        let config = test_config();
-        let masker = SecretMasker::new(&config);
-
-        let (masked, modified) = masker.mask("The secret is my-super-secret-value here");
-
-        assert!(modified);
-        assert!(masked.contains("[MASKED_TEST_SECRET]"));
-        assert!(!masked.contains("my-super-secret-value"));
-
-        std::env::remove_var("TEST_SECRET");
+    fn env(pairs: &[(&str, &str)]) -> Vec<(String, String)> {
+        pairs
+            .iter()
+            .map(|(k, v)| (k.to_string(), v.to_string()))
+            .collect()
     }
 
     #[test]
-    fn test_mask_github_token_pattern() {
-        let config = test_config();
-        let masker = SecretMasker::new(&config);
-
-        let (masked, modified) = masker.mask("Token: ghp_abcdefghijklmnopqrstuvwxyz0123456789AB");
-
-        assert!(modified);
-        assert!(masked.contains("[MASKED_GITHUB_TOKEN]"));
-        assert!(!masked.contains("ghp_"));
+    fn masks_configured_env_var() {
+        let m = SecretMasker::from_env(&config(), env(&[("TEST_SECRET", "my-super-secret")]));
+        let (out, changed) = m.mask("The secret is my-super-secret here");
+        assert!(changed);
+        assert_eq!(out, "The secret is [MASKED_TEST_SECRET] here");
     }
 
     #[test]
-    fn test_mask_aws_key_pattern() {
-        let config = test_config();
-        let masker = SecretMasker::new(&config);
-
-        let (masked, modified) = masker.mask("AWS Key: AKIAIOSFODNN7EXAMPLE");
-
-        assert!(modified);
-        assert!(masked.contains("[MASKED_AWS_ACCESS_KEY]"));
-        assert!(!masked.contains("AKIAIOSFODNN7EXAMPLE"));
+    fn auto_detection_and_excludes() {
+        let m = SecretMasker::from_env(
+            &config(),
+            env(&[
+                ("MY_API_TOKEN", "auto-token-value"),
+                ("PUBLIC_TOKEN", "visible"),
+            ]),
+        );
+        assert_eq!(m.mask("x auto-token-value").0, "x [MASKED_MY_API_TOKEN]");
+        assert!(!m.mask("x visible").1);
     }
 
     #[test]
-    fn test_no_modification_when_no_secrets() {
-        let config = test_config();
-        let masker = SecretMasker::new(&config);
-
-        let (masked, modified) = masker.mask("This text has no secrets");
-
-        assert!(!modified);
-        assert_eq!(masked, "This text has no secrets");
+    fn mask_env_vars_compat() {
+        let m = SecretMasker::from_env(
+            &config(),
+            env(&[("MASK_ENV_VARS", "FOO, BAR"), ("FOO", "foo-value-1")]),
+        );
+        assert_eq!(m.mask("foo-value-1").0, "[MASKED_FOO]");
     }
 
     #[test]
-    fn test_auto_detection() {
-        std::env::set_var("MY_API_TOKEN", "auto-detected-token-value");
-
-        let config = test_config();
-        let masker = SecretMasker::new(&config);
-
-        let (masked, modified) = masker.mask("Using auto-detected-token-value here");
-
-        assert!(modified);
-        assert!(masked.contains("[MASKED_MY_API_TOKEN]"));
-
-        std::env::remove_var("MY_API_TOKEN");
+    fn longest_secret_first() {
+        let m = SecretMasker::from_env(
+            &config(),
+            env(&[("A_TOKEN", "secret"), ("B_TOKEN", "supersecret")]),
+        );
+        assert_eq!(m.mask("supersecret").0, "[MASKED_B_TOKEN]");
     }
 
     #[test]
-    fn test_exclude_pattern() {
-        std::env::set_var("PUBLIC_TOKEN", "should-not-mask");
+    fn builtin_vars_and_patterns_always_apply() {
+        // Even an empty config masks GitHub tokens.
+        let empty = Config::default();
+        let m = SecretMasker::from_env(&empty, env(&[("GH_TOKEN", "gho_short")]));
+        assert_eq!(m.mask("t=gho_short").0, "t=[MASKED_GH_TOKEN]");
 
-        let config = test_config();
-        let masker = SecretMasker::new(&config);
+        let token = format!("ghp_{}", "a".repeat(36));
+        assert_eq!(m.mask(&token).0, "[MASKED_GITHUB_TOKEN]");
+        assert_eq!(m.mask("AKIAIOSFODNN7EXAMPLE").0, "[MASKED_AWS_ACCESS_KEY]");
+        let key = "-----BEGIN OPENSSH PRIVATE KEY-----\nabc\n-----END OPENSSH PRIVATE KEY-----";
+        assert_eq!(m.mask(key).0, "[MASKED_PRIVATE_KEY_BLOCK]");
+        assert!(m.contains_secret(&token));
+        assert!(!m.contains_secret("nothing here"));
+    }
 
-        let (masked, modified) = masker.mask("Value: should-not-mask");
+    #[test]
+    fn config_patterns_apply() {
+        let m = SecretMasker::from_env(&config(), env(&[]));
+        assert_eq!(m.mask("x custom_abcdefgh").0, "x [MASKED_CUSTOM]");
+    }
 
-        // PUBLIC_* is excluded, so it should not be masked
-        assert!(!modified);
-        assert!(masked.contains("should-not-mask"));
+    #[test]
+    fn mask_format_is_not_a_regex_template() {
+        let mut cfg = config();
+        cfg.settings.mask_format = "$1 {name}".to_string();
+        let m = SecretMasker::from_env(&cfg, env(&[]));
+        assert_eq!(m.mask("custom_abcdefgh").0, "$1 CUSTOM");
+    }
 
-        std::env::remove_var("PUBLIC_TOKEN");
+    #[test]
+    fn short_values_are_ignored() {
+        let m = SecretMasker::from_env(&config(), env(&[("X_TOKEN", "abc")]));
+        assert!(!m.mask("abc").1);
+    }
+
+    #[test]
+    fn mask_args_reports_change() {
+        let m = SecretMasker::from_env(&config(), env(&[("TEST_SECRET", "hunter22")]));
+        let (args, changed) = m.mask_args(&["--body".to_string(), "pw hunter22".to_string()]);
+        assert!(changed);
+        assert_eq!(args[1], "pw [MASKED_TEST_SECRET]");
     }
 }

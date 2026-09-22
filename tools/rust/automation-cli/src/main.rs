@@ -2,11 +2,13 @@
 //!
 //! Wraps the project's container-first CI/CD workflow (formatting, linting,
 //! testing, and building across the Python and Rust packages) behind a single
-//! Rust binary, and also launches local services. It is the preferred entry
-//! point over the legacy `automation/ci-cd/run-ci.sh` shell wrappers, which
-//! delegate to this binary when it is built.
+//! Rust binary, and also drives the PR review/failure agents and launches
+//! local services. The shell scripts in `automation/` (e.g.
+//! `automation/ci-cd/run-ci.sh`) are thin wrappers that exec this binary from
+//! `tools/rust/automation-cli/target/release/`.
 //!
-//! Run `automation-cli ci list` to see the available CI stages.
+//! Run `automation-cli ci list` to see the available CI stages and
+//! `automation-cli ci doctor` to validate stage references across the repo.
 
 use clap::{Parser, Subcommand};
 

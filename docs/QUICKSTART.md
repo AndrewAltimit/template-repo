@@ -45,7 +45,7 @@ The template references machines on the maintainer's LAN. These will not work fo
 | Address | Service | What to Do |
 |---------|---------|------------|
 | `192.168.0.152:8007` | Gaea2 terrain generation | Remove from `.mcp.json`, or replace with your own Windows machine running Gaea2 |
-| `192.168.0.222:8012` | AI Toolkit (LoRA training) | Remove, or replace with your own GPU machine |
+| `192.168.0.222:8020` | AI Toolkit (LoRA training) | Remove, or replace with your own GPU machine |
 | `192.168.0.222:8013` | ComfyUI (image generation) | Remove, or replace with your own GPU machine |
 
 These addresses appear in `.mcp.json.full`, `docker-compose.yml`, and some documentation files. If you don't have dedicated GPU hardware for these services, simply delete them from your configuration.
@@ -340,7 +340,7 @@ The template provides two MCP configuration files to optimize performance:
    GAEA2_REMOTE_PORT="8007"
 
    # For AI Toolkit & ComfyUI (requires a machine with an NVIDIA GPU)
-   AI_TOOLKIT_URL="http://your-gpu-machine-ip:8012"
+   AI_TOOLKIT_URL="http://your-gpu-machine-ip:8020"
    COMFYUI_URL="http://your-gpu-machine-ip:8013"
    ```
    If you don't have dedicated hardware for these, remove the `gaea2`, `ai-toolkit`, and `comfyui` entries from `.mcp.json` and their services from `docker-compose.yml`.
@@ -402,7 +402,7 @@ services:
 ```bash
 # In .env
 GAEA2_REMOTE_HOST="your-server.com"
-AI_TOOLKIT_URL="http://your-gpu-server:8012"
+AI_TOOLKIT_URL="http://your-gpu-server:8020"
 ```
 
 #### Running Everything Locally
@@ -465,7 +465,7 @@ curl http://localhost:8011/health  # Content creation
 ### Run CI Pipeline
 ```bash
 # Build the automation CLI (one-time)
-cargo build --release -p automation-cli
+cargo build --release --manifest-path tools/rust/automation-cli/Cargo.toml
 
 # Run full CI to verify setup
 automation-cli ci run full

@@ -1,137 +1,195 @@
 # code-parser
 
-> A Rust library for parsing and applying code blocks from AI agent responses.
+> A Rust library for parsing and applying code changes from AI agent responses.
 
-## Features
+AI responses deliver changes in three shapes. This crate parses all of them and can
+apply them safely to a directory tree:
 
-- **Code Block Extraction**: Parse markdown code blocks with language detection
-- **Filename Detection**: Automatically extract filenames from AI response context
-- **Language Inference**: Map file extensions to programming languages
-- **Security**: Path traversal prevention and filename sanitization
-- **Edit Instructions**: Parse structured edit instructions ("change X to Y")
-- **File Application**: Optionally write extracted code to files (with `fs` feature)
+| Shape | Parse | Apply |
+|-------|-------|-------|
+| Fenced code blocks (whole files) | `CodeParser::extract_code_blocks` | `CodeParser::apply_code_blocks_with` |
+| SEARCH/REPLACE blocks and "change X to Y" sentences | `CodeParser::parse_edit_instructions` | `CodeParser::apply_edit_instructions` / `CodeParser::apply_edit` |
+| Unified diffs | `CodeParser::parse_unified_diff` / `CodeParser::extract_patches` | `CodeParser::apply_patches` / `FilePatch::apply` |
 
 ## Installation
-
-Add to your `Cargo.toml`:
 
 ```toml
 [dependencies]
 code-parser = { path = "tools/rust/code-parser" }
 
-# Enable file system operations
-code-parser = { path = "tools/rust/code-parser", features = ["fs"] }
+# Parsing only, without the file-system helpers
+code-parser = { path = "tools/rust/code-parser", default-features = false }
 ```
 
-## Usage
+The `fs` feature (default) enables the `apply_*` functions. It only uses `std`.
 
-### Basic Code Block Extraction
+## Code blocks
 
 ```rust
 use code_parser::CodeParser;
 
-let response = r#"
-Here's a Python function:
-
-```python
-def hello():
-    print("Hello, world!")
-```
-"#;
-
+let response = "Create `src/utils.py`:\n\n```python\ndef helper():\n    pass\n```\n";
 let blocks = CodeParser::extract_code_blocks(response);
-for block in blocks {
-    println!("Language: {}", block.language);
-    println!("Content: {}", block.content);
-    if let Some(filename) = block.filename {
-        println!("File: {}", filename);
-    }
-}
+assert_eq!(blocks[0].language, "python");
+assert_eq!(blocks[0].filename.as_deref(), Some("src/utils.py"));
+assert!(blocks[0].terminated);
 ```
 
-### Language Inference
+Fence handling:
+
+- Backtick and tilde fences of any length. A closing fence must use the same
+  character, be at least as long, and have no info string.
+- Nested fences: a ```` ````markdown ```` block can contain ```` ``` ```` blocks, and a
+  ```` ```markdown ```` block can contain ```` ```python ```` ... ```` ``` ```` pairs.
+- Indented fences (for example inside list items). The fence indentation is removed
+  from the content. Other indentation is kept.
+- CRLF input. Content is normalized to `\n`, blank lines at the start and end are
+  dropped, and there is no trailing newline.
+- A block with no closing fence is returned with `terminated == false`. Apply skips
+  it by default because the response was probably truncated.
+
+Filename detection, in order of preference:
+
+1. The fence info string: ```` ```rust src/lib.rs ````, ```` ```rust:src/lib.rs ````,
+   ```` ```src/lib.rs ````, or ```` ```rust title="src/lib.rs" ```` (`file=`, `path=`,
+   and `filename=` also work).
+2. A comment on the block's first line: `# file: x.py`, `// path: x.rs`,
+   `<!-- filename: x.html -->`.
+3. The three non-blank prose lines above the block. Recognized forms include
+   ``Create `x.py`:``, ``### `src/main.rs` ``, ``**File:** `a.rs` ``,
+   ``Here's the updated `config.yaml`:``, and `in the file `x``.
+
+If none of these match, `filename` is `None`. A block never inherits the filename of
+an earlier block. This stops a "run it with" shell snippet from overwriting the file
+shown before it.
+
+If the info string has no language, the language is inferred from the filename
+(`CodeParser::infer_language`). If there is no filename either, it is `"text"`.
+
+## Edit instructions
 
 ```rust
 use code_parser::CodeParser;
 
-assert_eq!(CodeParser::infer_language("main.rs"), "rust");
-assert_eq!(CodeParser::infer_language("script.py"), "python");
-assert_eq!(CodeParser::infer_language("app.tsx"), "tsx");
+let response = "\
+src/app.py
+<<<<<<< SEARCH
+VERSION = \"1.0\"
+=======
+VERSION = \"1.1\"
+>>>>>>> REPLACE
+";
+let edits = CodeParser::parse_edit_instructions(response);
+assert_eq!(edits[0].file, "src/app.py");
+
+let updated = CodeParser::apply_edit("VERSION = \"1.0\"\n", &edits[0]).unwrap();
+assert_eq!(updated, "VERSION = \"1.1\"\n");
 ```
 
-### Filename Sanitization
+- SEARCH/REPLACE blocks (Aider style) take the filename from the line above the block
+  or from the enclosing fence's info string. Several blocks in a row inherit the
+  previous block's file. An empty SEARCH section creates the file or appends to it.
+- Inline sentences are also parsed: ``In file `main.py`, change `a` to `b` `` and
+  `Update config.py: replace "a" with "b"`.
+- `apply_edit` requires exactly one match. Otherwise it returns `SearchNotFound` or
+  `AmbiguousEdit`. It keeps CRLF line endings, and if there is no exact match it
+  retries line by line with trailing whitespace ignored.
+
+## Unified diffs
 
 ```rust
 use code_parser::CodeParser;
 
-// Valid filenames
-assert!(CodeParser::sanitize_filename("src/main.rs").is_ok());
-assert!(CodeParser::sanitize_filename("./test.py").is_ok());
-
-// Blocked paths (security)
-assert!(CodeParser::sanitize_filename("/etc/passwd").is_err());
-assert!(CodeParser::sanitize_filename("../secret.txt").is_err());
+let diff = "--- a/x.txt\n+++ b/x.txt\n@@ -1,2 +1,2 @@\n a\n-b\n+c\n";
+let patches = CodeParser::parse_unified_diff(diff).unwrap();
+assert_eq!(patches[0].path(), Some("x.txt"));
+assert_eq!(patches[0].apply("a\nb\n").unwrap(), "a\nc\n");
 ```
 
-### Parse Edit Instructions
+The parser accepts the common flaws in AI-written diffs:
 
-```rust
-use code_parser::CodeParser;
+- Hunk headers with no numbers (`@@ ... @@`) or wrong counts.
+- Blank context lines that lost their leading space.
+- Line numbers that have drifted. Each hunk is matched to the nearest position,
+  first exactly and then with trailing whitespace ignored.
 
-let response = r#"In file `main.py`, change `print("hello")` to `print("goodbye")`"#;
+It supports git `a/` and `b/` prefixes, `/dev/null` for created and deleted files,
+renames, `\ No newline at end of file`, and CRLF files. It ignores any prose around
+the diff.
 
-let instructions = CodeParser::parse_edit_instructions(response);
-for inst in instructions {
-    println!("File: {}, Replace '{}' with '{}'", inst.file, inst.old, inst.new);
-}
-```
+## Applying to disk (`fs` feature)
 
-### Apply Code Blocks to Files (requires `fs` feature)
-
-```rust
-use code_parser::CodeParser;
+```rust,no_run
+use code_parser::{ApplyOptions, CodeParser};
 use std::path::Path;
 
-let response = r#"
-Create file `src/utils.py`:
-
-```python
-def helper():
-    pass
-```
-"#;
-
-let (blocks, results) = CodeParser::extract_and_apply(response, Path::new("."));
-for (file, status) in results {
-    println!("{}: {}", file, status);
+let response = std::fs::read_to_string("response.md").unwrap();
+let blocks = CodeParser::extract_code_blocks(&response);
+let report = CodeParser::apply_code_blocks_with(
+    &blocks,
+    Path::new("."),
+    ApplyOptions { dry_run: true, ..ApplyOptions::default() },
+)
+.unwrap();
+for entry in &report.entries {
+    println!("{}: {}", entry.path, entry.status);
 }
 ```
 
-## Security Features
+- `apply_code_blocks_with`, `apply_patches`, and `apply_edit_instructions` return an
+  `ApplyReport`. It has one `ApplyEntry { path, status }` per operation, with status
+  `Created`, `Modified`, `Unchanged`, `Deleted`, `Skipped(reason)`, or
+  `Failed(error)`. A failure for one file does not stop the others. A top-level
+  `Err` means only that the base directory could not be created or resolved.
+- Diff blocks passed to `apply_code_blocks_with` are applied as patches. They are
+  never written to disk as file content.
+- Later operations in the same run see the results of earlier ones, including in
+  `dry_run` mode.
+- Files are written through a temp file and a rename, and existing file permissions
+  are kept. If a file uses CRLF, a full-file replacement is converted to CRLF.
+- The older `apply_code_blocks` and `extract_and_apply` still return a
+  `HashMap<path, status string>` ("created", "modified", "unchanged", "skipped: ...",
+  "error: ...").
 
-The library includes several security measures:
+## Security
 
-1. **Absolute Path Rejection**: Paths starting with `/` or drive letters are blocked
-2. **Parent Directory Traversal**: Paths containing `..` are blocked
-3. **Special Character Filtering**: Null bytes and newlines in filenames are rejected
-4. **Base Path Enforcement**: When writing files, all paths are verified to be within the specified base directory
+Paths in AI responses are untrusted. `CodeParser::sanitize_filename`:
 
-## API Reference
+- Rejects absolute paths: `/x`, `C:\x`, `c:x`, `\\server\share`, and `~/x`.
+- Rejects any `..` component. Backslashes count as separators.
+- Rejects any path inside `.git`, since writing there, for example to hooks, can
+  execute code.
+- Rejects control characters, `:` (which also blocks NTFS alternate data streams),
+  empty paths, and paths ending in a separator.
+- Normalizes what remains: removes `./` and `//` and uses `/` separators.
 
-### Types
+When writing, the base directory is canonicalized. Every existing path component that
+is a symlink must resolve inside the base directory, and dangling symlinks are
+rejected. The crate does not defend against another process swapping directories for
+symlinks during the write (a time-of-check to time-of-use race).
 
-- `CodeBlock` - Represents an extracted code block
-- `EditInstruction` - Represents a parsed edit instruction
-- `CodeParserError` - Error type for parsing/application operations
+## API reference
 
-### Functions
+Types: `CodeBlock`, `EditInstruction`, `FilePatch`, `Hunk`, `HunkLine`,
+`CodeParserError` (`#[non_exhaustive]`), and `Result`. With `fs`, also
+`ApplyOptions`, `ApplyReport`, `ApplyEntry`, and `ApplyStatus`.
 
-- `CodeParser::extract_code_blocks(response)` - Extract all code blocks
-- `CodeParser::infer_language(filename)` - Infer language from extension
-- `CodeParser::sanitize_filename(filename)` - Sanitize and validate a filename
-- `CodeParser::parse_edit_instructions(response)` - Parse edit instructions
-- `CodeParser::apply_code_blocks(blocks, base_path)` - Write blocks to files (fs feature)
-- `CodeParser::extract_and_apply(response, base_path)` - Combined operation (fs feature)
+`CodeParser` functions:
+
+| Function | Notes |
+|----------|-------|
+| `extract_code_blocks(response)` | All fenced blocks |
+| `infer_language(filename)` | Extension or well-known name to language tag |
+| `sanitize_filename(filename)` | Validate and normalize a relative path |
+| `parse_edit_instructions(response)` | SEARCH/REPLACE and inline edits |
+| `apply_edit(content, edit)` | In-memory edit |
+| `parse_unified_diff(text)` | Patches from diff text |
+| `extract_patches(response)` | Patches from all diff blocks |
+| `apply_code_blocks(blocks, base)` | Legacy status map (`fs`) |
+| `apply_code_blocks_with(blocks, base, opts)` | `ApplyReport` (`fs`) |
+| `apply_patches(patches, base, opts)` | `ApplyReport` (`fs`) |
+| `apply_edit_instructions(edits, base, opts)` | `ApplyReport` (`fs`) |
+| `extract_and_apply(response, base)` | Extract and apply with the legacy map (`fs`) |
 
 ## License
 

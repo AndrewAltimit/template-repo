@@ -1,0 +1,5 @@
+{
+  "review_markdown": "## Code Review\n\nNo blocking issues. Consider adding tests for the error path.\n",
+  "severity": "Low",
+  "findings_count": "1"
+}

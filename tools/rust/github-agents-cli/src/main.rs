@@ -1,50 +1,42 @@
-// Allow pre-existing dead code and style issues in this in-development CLI
-#![allow(
-    dead_code,
-    unused_imports,
-    unused_variables,
-    clippy::derivable_impls,
-    clippy::collapsible_if,
-    clippy::redundant_closure,
-    clippy::unnecessary_lazy_evaluations,
-    clippy::double_ended_iterator_last,
-    clippy::manual_contains,
-    clippy::needless_borrow,
-    clippy::stable_sort_primitive,
-    clippy::unnecessary_sort_by
-)]
-
 //! github-agents: CLI for GitHub AI Agents
 //!
-//! This tool provides a fast Rust CLI interface for the GitHub AI Agents system.
-//! All monitoring and agent orchestration is implemented natively in Rust.
+//! Monitors issues and PRs for authorized trigger comments, runs AI review
+//! and refinement pipelines, and exposes the security primitives (allow-list,
+//! trigger parsing, commit validation) for use from workflows.
 //!
 //! # Usage
 //!
 //! ```bash
 //! github-agents issue-monitor                    # Run issue monitor once
-//! github-agents issue-monitor --continuous       # Run continuously
-//! github-agents issue-monitor --interval 600    # Custom interval (10 min)
-//! github-agents pr-monitor                       # Run PR monitor once
 //! github-agents pr-monitor --continuous          # Run continuously
+//! github-agents pr-review 123 --profile security # Review a PR
+//! github-agents security parse-trigger --comment "[Approved][Claude]"
 //! ```
 //!
 //! # Exit Codes
 //!
 //! - 0: Success
-//! - 1: Error
+//! - 1: General error
+//! - 2: GitHub CLI missing or not authenticated
+//! - 3: GitHub token not found
+//! - 5: Agent not available (unknown, disabled or not installed)
+//! - 6: Agent execution failed
+//! - 7: Agent timed out
+//! - 8: Security check failed / denied
 //! - 130: Interrupted by user (Ctrl+C)
 
+use std::path::Path;
 use std::process::exit;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use clap::{Parser, Subcommand};
-use tracing::{Level, error, info};
+use tracing::{Level, error, info, warn};
 use tracing_subscriber::FmtSubscriber;
 
 mod agents;
 mod analyzers;
+mod commands;
 mod creators;
 mod error;
 mod iteration;
@@ -53,9 +45,7 @@ mod review;
 mod security;
 mod utils;
 
-use analyzers::BaseAnalyzer;
 use error::Error;
-use monitor::{IssueMonitor, Monitor, PrMonitor, RefinementMonitor};
 
 /// GitHub AI Agents CLI - Automated GitHub workflow management
 #[derive(Parser, Debug)]
@@ -83,7 +73,7 @@ enum Commands {
         interval: u64,
     },
 
-    /// Monitor GitHub PRs for review feedback
+    /// Monitor GitHub PRs for automation triggers
     PrMonitor {
         /// Run continuously instead of once
         #[arg(long)]
@@ -96,8 +86,8 @@ enum Commands {
 
     /// Run multi-agent backlog refinement
     RefinementMonitor {
-        /// Agents to use (comma-separated)
-        #[arg(long, default_value = "claude,gemini")]
+        /// Agents to use (comma-separated; disabled agents are skipped)
+        #[arg(long, default_value = "claude")]
         agents: String,
 
         /// Maximum issues to review
@@ -126,7 +116,7 @@ enum Commands {
         /// PR number to review
         pr_number: u64,
 
-        /// Override default agent (claude, openrouter, gemini, opencode, crush)
+        /// Override default agent (claude, openrouter, opencode, crush)
         #[arg(long)]
         agent: Option<String>,
 
@@ -180,8 +170,8 @@ enum Commands {
 
     /// Analyze codebase and create issues from findings
     Analyze {
-        /// Agents to use for analysis (comma-separated)
-        #[arg(long, default_value = "claude,gemini")]
+        /// Agents to use for analysis (comma-separated; disabled agents are skipped)
+        #[arg(long, default_value = "claude")]
         agents: String,
 
         /// File patterns to include (comma-separated globs)
@@ -215,6 +205,20 @@ enum Commands {
         #[arg(long, default_value = "text")]
         format: String,
     },
+
+    /// Security primitives: allow-list, trigger parsing, commit validation
+    Security {
+        /// Path to .agents.yaml config
+        #[arg(long, default_value = ".agents.yaml", global = true)]
+        config: String,
+
+        /// Output format (text or json)
+        #[arg(long, default_value = "text", global = true)]
+        format: String,
+
+        #[command(subcommand)]
+        command: commands::SecurityCommand,
+    },
 }
 
 fn setup_logging(verbose: bool) {
@@ -229,56 +233,47 @@ fn setup_logging(verbose: bool) {
         .with_writer(std::io::stderr) // Logs to stderr to keep stdout clean for JSON output
         .finish();
 
-    tracing::subscriber::set_global_default(subscriber).expect("Failed to set subscriber");
+    if tracing::subscriber::set_global_default(subscriber).is_err() {
+        eprintln!("warning: logging subscriber already set");
+    }
 }
 
-async fn run() -> Result<(), Error> {
-    let args = Args::parse();
+/// Validate an `--format` value against the accepted set.
+fn check_format(format: &str, allowed: &[&str]) -> Result<(), Error> {
+    if allowed.contains(&format) {
+        Ok(())
+    } else {
+        Err(Error::Config(format!(
+            "Invalid --format '{}'. Expected one of: {}",
+            format,
+            allowed.join(", ")
+        )))
+    }
+}
 
-    // Setup logging
-    setup_logging(args.verbose);
-
-    // Setup signal handling for graceful shutdown
+/// Install a Ctrl+C handler; monitors poll the returned flag for graceful
+/// shutdown.
+fn install_interrupt_flag() -> Arc<AtomicBool> {
     let running = Arc::new(AtomicBool::new(true));
     let r = running.clone();
-    ctrlc::set_handler(move || {
-        r.store(false, Ordering::SeqCst);
-    })
-    .ok();
+    if let Err(e) = ctrlc::set_handler(move || r.store(false, Ordering::SeqCst)) {
+        warn!("Could not install Ctrl+C handler: {}", e);
+    }
+    running
+}
 
-    info!("GitHub AI Agents CLI starting...");
-
+async fn run(args: Args) -> Result<(), Error> {
+    let running = install_interrupt_flag();
     match args.command {
         Commands::IssueMonitor {
             continuous,
             interval,
-        } => {
-            let monitor = IssueMonitor::new(running)?;
-            if continuous {
-                info!(
-                    "Running issue monitor continuously (interval: {}s)",
-                    interval
-                );
-                monitor.run_continuous(interval).await?;
-            } else {
-                info!("Running issue monitor once");
-                monitor.process_items().await?;
-            }
-        },
+        } => commands::issue_monitor(running, continuous, interval).await?,
 
         Commands::PrMonitor {
             continuous,
             interval,
-        } => {
-            let monitor = PrMonitor::new(running)?;
-            if continuous {
-                info!("Running PR monitor continuously (interval: {}s)", interval);
-                monitor.run_continuous(interval).await?;
-            } else {
-                info!("Running PR monitor once");
-                monitor.process_items().await?;
-            }
-        },
+        } => commands::pr_monitor(running, continuous, interval).await?,
 
         Commands::RefinementMonitor {
             agents,
@@ -288,39 +283,16 @@ async fn run() -> Result<(), Error> {
             dry_run,
             format,
         } => {
-            let agent_list: Vec<String> = agents.split(',').map(|s| s.trim().to_string()).collect();
-            info!(
-                "Running backlog refinement with agents: {:?}, max_issues: {}, dry_run: {}",
-                agent_list, max_issues, dry_run
-            );
-
+            check_format(&format, &["text", "json"])?;
             let config = monitor::RefinementConfig {
                 min_age_days,
-                max_age_days: 365, // default to 1 year
-                exclude_labels: vec![],
+                max_age_days: 365,
                 max_issues_per_run: max_issues,
                 max_comments_per_issue: max_comments,
-                agent_cooldown_days: 14,
-                min_insight_length: 50,
-                max_insight_length: 2000,
                 dry_run,
-                enable_issue_management: false,
-                agent_admins: vec![], // loaded from .agents.yaml by RefinementMonitor
+                ..Default::default()
             };
-
-            let monitor = RefinementMonitor::new(running, config)?;
-            let agent_refs: Vec<&str> = agent_list.iter().map(|s| s.as_str()).collect();
-            let results = monitor.run(Some(agent_refs)).await?;
-
-            if format == "json" {
-                println!("{}", serde_json::to_string_pretty(&results)?);
-            } else {
-                println!(
-                    "Refinement complete: {} issues reviewed, {} insights added",
-                    results.len(),
-                    results.iter().map(|r| r.insights_added).sum::<usize>()
-                );
-            }
+            commands::refinement(running, &agents, config, &format).await?
         },
 
         Commands::PrReview {
@@ -333,55 +305,17 @@ async fn run() -> Result<(), Error> {
             editor,
             editor_agent,
         } => {
-            info!("Running PR review for #{}", pr_number);
-
-            // Load config and apply CLI overrides
-            let mut config = review::PRReviewConfig::load()?;
-            if editor {
-                config.editor_enabled = true;
-                config.editor_agent = editor_agent;
-            }
-
-            // Load review profile if specified (overrides agent/model from profile)
-            let review_profile = if let Some(ref profile_name) = profile {
-                let p = review::config::ReviewProfile::load(profile_name)?;
-                info!(
-                    "Using review profile '{}': {}",
-                    profile_name, p.display_name
-                );
-                Some(p)
-            } else {
-                None
-            };
-
-            // Profile overrides agent selection
-            let effective_agent_string = review_profile.as_ref().map(|p| p.agent.clone());
-            let effective_agent = effective_agent_string.as_deref().or(agent.as_deref());
-
-            // Create reviewer with optional profile
-            let reviewer = review::PRReviewer::new_with_profile(
-                config,
-                effective_agent,
+            check_format(&format, &["text", "json"])?;
+            let opts = commands::PrReviewOptions {
+                pr_number,
+                agent,
+                profile,
+                full,
                 dry_run,
-                review_profile,
-            )
-            .await?;
-
-            // Run review
-            let review_text = reviewer.review_pr(pr_number, full).await?;
-
-            if format == "json" {
-                let result = serde_json::json!({
-                    "pr_number": pr_number,
-                    "review": review_text,
-                    "dry_run": dry_run,
-                });
-                println!("{}", serde_json::to_string_pretty(&result)?);
-            } else if !dry_run {
-                // Review was posted, just confirm
-                println!("Review posted to PR #{}", pr_number);
-            }
-            // If dry_run, the review was already printed by the reviewer
+                json: format == "json",
+                editor_agent: editor.then_some(editor_agent),
+            };
+            commands::pr_review(opts).await?
         },
 
         Commands::IterationCheck {
@@ -391,53 +325,9 @@ async fn run() -> Result<(), Error> {
             format,
             config,
         } => {
-            info!("Checking iteration count for PR #{}", pr);
-
-            // Parse agent type
-            let agent_type = iteration::AgentType::from_str(&agent_type).ok_or_else(|| {
-                Error::Config(format!(
-                    "Invalid agent type '{}'. Must be 'review-fix' or 'failure-fix'",
-                    agent_type
-                ))
-            })?;
-
-            // Load agent admins from config
-            let agent_admins = if std::path::Path::new(&config).exists() {
-                let security_config = security::SecurityConfig::default();
-                let manager =
-                    security::SecurityManager::from_config_path(std::path::Path::new(&config))
-                        .unwrap_or_else(|_| {
-                            security::SecurityManager::from_config(security_config)
-                        });
-                manager.allowed_users()
-            } else {
-                // Fallback to default
-                vec!["andrewaltimit".to_string()]
-            };
-
-            // Run iteration check
-            let result =
-                iteration::check_iteration(pr, agent_type, max_iterations, &agent_admins).await?;
-
-            // Output results
-            match format.as_str() {
-                "json" => {
-                    println!("{}", serde_json::to_string_pretty(&result)?);
-                },
-                "github-actions" => {
-                    iteration::output_github_actions(&result);
-                },
-                _ => {
-                    println!("Agent Type: {}", result.agent_type);
-                    println!("Iteration Count: {}", result.iteration_count);
-                    println!(
-                        "Effective Max: {} (base: {} + {}x extensions)",
-                        result.effective_max, result.max_iterations, result.continue_count
-                    );
-                    println!("Exceeded Max: {}", result.exceeded_max);
-                    println!("Should Skip: {}", result.should_skip);
-                },
-            }
+            check_format(&format, &["text", "json", "github-actions"])?;
+            commands::iteration_check(pr, &agent_type, max_iterations, &format, Path::new(&config))
+                .await?
         },
 
         Commands::Analyze {
@@ -450,197 +340,163 @@ async fn run() -> Result<(), Error> {
             dry_run,
             format,
         } => {
-            info!("Running codebase analysis");
+            check_format(&format, &["text", "json"])?;
+            let opts = commands::AnalyzeOptions {
+                agents,
+                include_paths,
+                exclude_paths,
+                categories,
+                min_priority,
+                max_issues,
+                dry_run,
+                json: format == "json",
+            };
+            commands::analyze(opts).await?
+        },
 
-            // Parse categories
-            let category_list: Vec<analyzers::FindingCategory> = categories
-                .split(',')
-                .filter_map(|s| analyzers::FindingCategory::from_str(s.trim()))
-                .collect();
-
-            if category_list.is_empty() {
-                return Err(Error::Config("No valid categories specified".to_string()));
-            }
-
-            // Parse priority
-            let min_priority = analyzers::FindingPriority::from_str(&min_priority)
-                .ok_or_else(|| Error::Config(format!("Invalid priority: {}", min_priority)))?;
-
-            // Parse paths
-            let include_list: Vec<String> = include_paths
-                .split(',')
-                .map(|s| s.trim().to_string())
-                .collect();
-            let exclude_list: Vec<String> = exclude_paths
-                .split(',')
-                .map(|s| s.trim().to_string())
-                .collect();
-
-            // Get repository info
-            let repo = std::env::var("GITHUB_REPOSITORY").unwrap_or_else(|_| {
-                // Try to get from git remote
-                std::process::Command::new("gh")
-                    .args([
-                        "repo",
-                        "view",
-                        "--json",
-                        "nameWithOwner",
-                        "-q",
-                        ".nameWithOwner",
-                    ])
-                    .output()
-                    .ok()
-                    .and_then(|o| String::from_utf8(o.stdout).ok())
-                    .map(|s| s.trim().to_string())
-                    .unwrap_or_else(|| "owner/repo".to_string())
-            });
-
-            info!("Repository: {}", repo);
-            info!("Categories: {:?}", category_list);
-            info!("Include paths: {:?}", include_list);
-            info!("Exclude paths: {:?}", exclude_list);
-
-            // Get agent list
-            let agent_names: Vec<&str> = agents.split(',').map(|s| s.trim()).collect();
-
-            // Initialize agent registry
-            let registry = agents::AgentRegistry::new();
-
-            // Collect all findings from all agents
-            let mut all_findings: Vec<analyzers::AnalysisFinding> = Vec::new();
-
-            // Get current working directory as repo path
-            let repo_path = std::env::current_dir()
-                .map_err(|e| Error::Config(format!("Failed to get current directory: {}", e)))?;
-
-            // Run analysis with each agent
-            for agent_name in &agent_names {
-                info!("Running analysis with agent: {}", agent_name);
-
-                // Get agent from registry
-                let agent = match registry.select_agent(Some(agent_name)).await {
-                    Some(a) => a,
-                    None => {
-                        info!("Agent {} not available, skipping", agent_name);
-                        continue;
-                    },
-                };
-
-                // Create analyzer for this agent
-                let analysis_prompt = format!(
-                    r#"You are a senior software engineer reviewing code for potential improvements.
-Your task is to find issues that would make good GitHub backlog items.
-
-Analyze this codebase looking for issues in these categories: {:?}.
-
-Even well-maintained codebases have room for improvement. Look for:
-
-**Security** (P0-P1):
-- Input validation gaps, injection risks, hardcoded secrets
-- Authentication/authorization weaknesses
-- Unsafe operations or missing error handling
-
-**Performance** (P1-P2):
-- Inefficient algorithms or data structures
-- Missing caching opportunities
-- Unnecessary I/O or network calls
-- Memory leaks or excessive allocations
-
-**Quality** (P2-P3):
-- Code duplication that could be refactored
-- Complex functions that should be split
-- Missing type hints or unclear interfaces
-- Inconsistent naming or patterns
-
-**Tech Debt** (P2-P3):
-- TODO comments that should become issues
-- Deprecated APIs or outdated patterns
-- Missing tests for critical code paths
-- Configuration hardcoding
-
-You MUST find at least 1-3 issues. Every codebase has something to improve.
-Be specific with file paths and line numbers.
-Prioritize by real-world impact: P0=critical security/data, P1=bugs/performance, P2=quality, P3=minor."#,
-                    category_list
-                );
-
-                let mut analyzer = analyzers::AgentAnalyzer::new(
-                    agent_name.to_string(),
-                    agent,
-                    analysis_prompt,
-                    category_list.clone(),
-                )
-                .with_include_paths(include_list.clone())
-                .with_exclude_paths(exclude_list.clone());
-
-                match analyzer.analyze(&repo_path).await {
-                    Ok(findings) => {
-                        info!("Agent {} found {} findings", agent_name, findings.len());
-                        all_findings.extend(findings);
-                    },
-                    Err(e) => {
-                        error!("Agent {} analysis failed: {}", agent_name, e);
-                    },
-                }
-            }
-
-            info!("Total findings from all agents: {}", all_findings.len());
-
-            // Create issues from findings
-            let mut creator = creators::IssueCreator::new(&repo)
-                .with_min_priority(min_priority)
-                .with_max_issues(max_issues)
-                .with_dry_run(dry_run);
-
-            let results = creator.create_issues(all_findings).await?;
-
-            // Output results
-            let created_count = results.iter().filter(|r| r.created).count();
-            let skipped_count = results.iter().filter(|r| !r.created).count();
-
-            if format == "json" {
-                let output = serde_json::json!({
-                    "findings": results.iter().map(|r| &r.finding).collect::<Vec<_>>(),
-                    "count": results.len(),
-                    "created": created_count,
-                    "skipped": skipped_count,
-                    "dry_run": dry_run,
-                    "results": results,
-                });
-                println!("{}", serde_json::to_string_pretty(&output)?);
-            } else {
-                println!(
-                    "Analysis complete: {} findings, {} issues created, {} skipped",
-                    results.len(),
-                    created_count,
-                    skipped_count
-                );
-                for result in &results {
-                    if result.created {
-                        println!(
-                            "  [CREATED] #{}: {}",
-                            result.issue_number.unwrap_or(0),
-                            result.finding.title
-                        );
-                    } else if let Some(reason) = &result.skipped_reason {
-                        println!("  [SKIPPED] {}: {}", result.finding.title, reason);
-                    }
-                }
-            }
+        Commands::Security {
+            config,
+            format,
+            command,
+        } => {
+            check_format(&format, &["text", "json"])?;
+            commands::security(command, Path::new(&config), format == "json").await?
         },
     }
-
-    info!("GitHub AI Agents CLI completed");
     Ok(())
 }
 
 #[tokio::main]
 async fn main() {
-    if let Err(e) = run().await {
+    let args = Args::parse();
+    setup_logging(args.verbose);
+
+    info!("GitHub AI Agents CLI starting...");
+    let result = run(args).await;
+    if result.is_ok() {
+        info!("GitHub AI Agents CLI completed");
+    }
+    if let Err(e) = result {
         error!("Error: {}", e);
         if let Some(help) = e.help_text() {
             eprintln!("{}", help);
         }
         exit(e.exit_code());
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use clap::CommandFactory;
+
+    #[test]
+    fn cli_definition_is_valid() {
+        Args::command().debug_assert();
+    }
+
+    #[test]
+    fn workflow_invocations_parse() {
+        // Mirrors the invocations in .github/workflows and .github/actions
+        let cases: &[&[&str]] = &[
+            &["github-agents", "issue-monitor"],
+            &["github-agents", "pr-monitor"],
+            &[
+                "github-agents",
+                "refinement-monitor",
+                "--agents",
+                "claude,gemini",
+                "--max-issues",
+                "5",
+                "--max-comments",
+                "2",
+                "--min-age-days",
+                "3",
+                "--format",
+                "json",
+                "--dry-run",
+            ],
+            &[
+                "github-agents",
+                "pr-review",
+                "12",
+                "--profile",
+                "security",
+                "--editor",
+            ],
+            &["github-agents", "pr-review", "12", "--agent", "codex"],
+            &[
+                "github-agents",
+                "iteration-check",
+                "--pr",
+                "7",
+                "--agent-type",
+                "failure-fix",
+                "--max-iterations",
+                "5",
+                "--config",
+                ".agents.yaml",
+                "--format",
+                "json",
+            ],
+            &[
+                "github-agents",
+                "analyze",
+                "--agents",
+                "claude",
+                "--format",
+                "json",
+                "--min-priority",
+                "P1",
+                "--max-issues",
+                "3",
+                "--include-paths",
+                "**/*.rs",
+                "--dry-run",
+            ],
+            &["github-agents", "security", "check-user", "--username", "x"],
+            &[
+                "github-agents",
+                "security",
+                "check-action",
+                "--action",
+                "issue_approved",
+            ],
+            &[
+                "github-agents",
+                "security",
+                "validate-pr-commit",
+                "--pr",
+                "123",
+                "--expected-sha",
+                "abc1234",
+            ],
+            &[
+                "github-agents",
+                "security",
+                "parse-trigger",
+                "--comment",
+                "[Approved][Claude]",
+            ],
+            &[
+                "github-agents",
+                "-v",
+                "security",
+                "--format",
+                "json",
+                "parse-trigger",
+                "--comment",
+                "x",
+            ],
+        ];
+        for case in cases {
+            Args::try_parse_from(*case).unwrap_or_else(|e| panic!("{:?}: {}", case, e));
+        }
+    }
+
+    #[test]
+    fn format_validation() {
+        assert!(check_format("json", &["text", "json"]).is_ok());
+        assert!(check_format("yaml", &["text", "json"]).is_err());
     }
 }

@@ -17,7 +17,6 @@ TOOLS=(
     "git-guard"
     "github-agents-cli"
     "markdown-link-checker"
-    "mcp-code-quality"
     "pr-monitor"
 )
 
@@ -62,7 +61,6 @@ list_tools() {
             "git-guard")           desc="Git wrapper requiring sudo for dangerous ops" ;;
             "github-agents-cli")   desc="AI agent CLI for issue/PR automation" ;;
             "markdown-link-checker") desc="Fast concurrent markdown link validator" ;;
-            "mcp-code-quality")    desc="MCP server for code quality tools" ;;
             "pr-monitor")          desc="PR monitoring for comments and reviews" ;;
         esac
         printf "  %-25s %s\n" "$tool" "$desc"

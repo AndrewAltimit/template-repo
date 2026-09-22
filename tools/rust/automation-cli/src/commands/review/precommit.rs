@@ -1,4 +1,9 @@
-use std::process::{Command, Stdio};
+//! `automation-cli review precommit` -- autoformat + lint/test gates run
+//! before an agent commits, with a machine-readable summary on stdout and
+//! `precommit_*` GitHub outputs.
+
+use std::collections::HashSet;
+use std::process::Stdio;
 
 use anyhow::{Result, bail};
 use clap::Args;
@@ -34,7 +39,7 @@ pub struct PrecommitArgs {
     /// Exit non-zero if any check fails (default: report only).
     /// When false, failures are printed but the command exits 0
     /// so callers can decide how to handle them.
-    #[arg(long, default_value = "false")]
+    #[arg(long)]
     pub fail_on_error: bool,
 }
 
@@ -82,9 +87,16 @@ impl PrecommitResult {
     }
 }
 
+/// Split a comma-separated stage list, trimming blanks.
+fn split_stages(list: Option<&str>) -> impl Iterator<Item = &str> {
+    list.unwrap_or_default()
+        .split(',')
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+}
+
 pub fn run(args: PrecommitArgs) -> Result<()> {
-    let root = project::find_project_root()?;
-    std::env::set_current_dir(&root)?;
+    project::enter_project_root()?;
 
     output::header("Review Precommit Checks");
 
@@ -114,39 +126,15 @@ pub fn run(args: PrecommitArgs) -> Result<()> {
         }
     }
 
-    // --- Lint checks ---
-    if let Some(ref stages) = args.lint {
-        for stage_name in stages.split(',').map(str::trim).filter(|s| !s.is_empty()) {
-            output::step(&format!("Running lint check: {stage_name}..."));
-            let check = run_ci_stage_captured(stage_name)?;
-            if check.passed {
-                output::success(&format!("{stage_name}: passed"));
-            } else {
-                output::fail(&format!("{stage_name}: failed"));
-            }
-            result.checks.push(check);
-        }
-    }
-
-    // --- Test checks ---
-    if let Some(ref stages) = args.test {
-        for stage_name in stages.split(',').map(str::trim).filter(|s| !s.is_empty()) {
-            output::step(&format!("Running test check: {stage_name}..."));
-            let check = run_ci_stage_captured(stage_name)?;
-            if check.passed {
-                output::success(&format!("{stage_name}: passed"));
-            } else {
-                output::fail(&format!("{stage_name}: failed"));
-            }
-            result.checks.push(check);
-        }
-    }
-
-    // --- Arbitrary stages ---
-    if let Some(ref stages) = args.stage {
-        for stage_name in stages.split(',').map(str::trim).filter(|s| !s.is_empty()) {
-            output::step(&format!("Running stage: {stage_name}..."));
-            let check = run_ci_stage_captured(stage_name)?;
+    // --- Lint, test, and arbitrary stage checks (in that order) ---
+    for (label, stages) in [
+        ("lint check", &args.lint),
+        ("test check", &args.test),
+        ("stage", &args.stage),
+    ] {
+        for stage_name in split_stages(stages.as_deref()) {
+            output::step(&format!("Running {label}: {stage_name}..."));
+            let check = run_ci_stage_captured(stage_name);
             if check.passed {
                 output::success(&format!("{stage_name}: passed"));
             } else {
@@ -192,66 +180,51 @@ pub fn run(args: PrecommitArgs) -> Result<()> {
 /// Run autoformat via the CI stage, then restage any files that were modified.
 /// Returns the number of files restaged.
 pub(super) fn run_autoformat_and_restage() -> Result<u32> {
-    // Capture the set of currently-staged files before formatting
-    let staged_before = get_staged_files()?;
-
+    let staged_before = git_name_list(&["diff", "--cached", "--name-only"])?;
     // Snapshot unstaged tracked files before formatting so we can isolate
-    // formatter-modified files from pre-existing edits afterwards
-    let before_output = process::run_capture("git", &["diff", "--name-only"])?;
-    let unstaged_before: std::collections::HashSet<String> = before_output
-        .lines()
-        .map(str::trim)
-        .filter(|l| !l.is_empty())
-        .map(String::from)
+    // formatter-modified files from pre-existing edits afterwards.
+    let unstaged_before: HashSet<String> = git_name_list(&["diff", "--name-only"])?
+        .into_iter()
         .collect();
 
-    // Run the autoformat CI stage (ruff format, cargo fmt, etc.)
-    let _ = run_ci_stage("autoformat");
-
-    // Restage files that were already staged (autoformat may have modified them)
-    let mut restaged = 0u32;
-    if !staged_before.is_empty() {
-        // Add back all previously-staged files so format changes are included
-        let files: Vec<&str> = staged_before.iter().map(|s| s.as_str()).collect();
-        // Stage in batches to avoid argument-list-too-long
-        for chunk in files.chunks(100) {
-            let mut args = vec!["add", "--"];
-            args.extend_from_slice(chunk);
-            process::run("git", &args)?;
-        }
-        restaged = staged_before.len() as u32;
+    // Formatting is best effort: a failure is reported but restaging still
+    // happens for whatever the formatters did manage to change.
+    if let Err(e) = run_ci_stage("autoformat") {
+        output::warn(&format!("autoformat stage failed: {e}"));
     }
 
-    // Stage tracked files that were modified by the formatter (not previously
-    // unstaged). We compare the unstaged set before/after to isolate changes
-    // the formatter actually made, avoiding sweeping in pre-existing edits.
-    let after_output = process::run_capture("git", &["diff", "--name-only"])?;
-    let unstaged_after: std::collections::HashSet<String> = after_output
-        .lines()
-        .map(str::trim)
-        .filter(|l| !l.is_empty())
-        .map(String::from)
-        .collect();
-    let formatter_modified: Vec<&str> = unstaged_after
-        .difference(&unstaged_before)
-        .map(|s| s.as_str())
-        .collect();
-    if !formatter_modified.is_empty() {
-        for chunk in formatter_modified.chunks(100) {
-            let mut args = vec!["add", "--"];
-            args.extend_from_slice(chunk);
-            process::run("git", &args)?;
-        }
-        restaged += formatter_modified.len() as u32;
-    }
+    // Restage previously-staged files so format changes are included.
+    let mut restaged = git_add(&staged_before)?;
 
+    // Stage tracked files the formatter modified (newly unstaged), without
+    // sweeping in edits that were already present before formatting.
+    let unstaged_after = git_name_list(&["diff", "--name-only"])?;
+    let formatter_modified = newly_modified(&unstaged_before, unstaged_after);
+    restaged += git_add(&formatter_modified)?;
     Ok(restaged)
 }
 
-/// Get the list of currently staged file paths.
-fn get_staged_files() -> Result<Vec<String>> {
-    let output = process::run_capture("git", &["diff", "--cached", "--name-only"])?;
-    Ok(output
+/// Files in `after` that were not in `before`, sorted for stable output.
+fn newly_modified(before: &HashSet<String>, after: Vec<String>) -> Vec<String> {
+    let mut v: Vec<String> = after.into_iter().filter(|f| !before.contains(f)).collect();
+    v.sort();
+    v.dedup();
+    v
+}
+
+/// `git add -- <files>` in batches (avoids argument-list-too-long).
+fn git_add(files: &[String]) -> Result<u32> {
+    for chunk in files.chunks(100) {
+        let mut args = vec!["add", "--"];
+        args.extend(chunk.iter().map(String::as_str));
+        process::run("git", &args)?;
+    }
+    Ok(u32::try_from(files.len()).unwrap_or(u32::MAX))
+}
+
+/// Run a git command that prints one path per line.
+fn git_name_list(args: &[&str]) -> Result<Vec<String>> {
+    Ok(process::run_capture("git", args)?
         .lines()
         .map(str::trim)
         .filter(|l| !l.is_empty())
@@ -259,53 +232,58 @@ fn get_staged_files() -> Result<Vec<String>> {
         .collect())
 }
 
-/// Run a CI stage via automation-cli (or the legacy shell wrapper) and return
-/// success/failure status without aborting the process.
-fn run_ci_stage(stage: &str) -> bool {
-    process::run("./automation/ci-cd/run-ci.sh", &[stage]).is_ok()
+/// Run `automation-cli ci run <stage>` (this binary) with live output.
+fn run_ci_stage(stage: &str) -> Result<()> {
+    let status = process::self_command()?
+        .args(["ci", "run", stage])
+        .stdin(Stdio::null())
+        .status()?;
+    if !status.success() {
+        bail!("ci run {stage} exited with {status}");
+    }
+    Ok(())
 }
 
-/// Run a CI stage and capture its output for error reporting.
-/// Returns a CheckResult with the stage name, pass/fail, and filtered error lines.
-pub(super) fn run_ci_stage_captured(stage: &str) -> Result<CheckResult> {
-    let raw = Command::new("./automation/ci-cd/run-ci.sh")
-        .arg(stage)
-        .stdin(Stdio::null())
-        .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
-        .output();
+/// Run a CI stage (via this binary) and capture its output for error
+/// reporting. Never fails: a stage that cannot even be started is reported
+/// as a failed check with the spawn error as its output.
+pub(super) fn run_ci_stage_captured(stage: &str) -> CheckResult {
+    let raw = process::self_command().and_then(|mut cmd| {
+        Ok(cmd
+            .args(["ci", "run", stage])
+            .stdin(Stdio::null())
+            .output()?)
+    });
 
     match raw {
         Ok(output) => {
             let passed = output.status.success();
-            let stdout = String::from_utf8_lossy(&output.stdout);
-            let stderr = String::from_utf8_lossy(&output.stderr);
-
-            // Extract error-relevant lines for agent consumption
             let error_output = if passed {
                 String::new()
             } else {
-                extract_error_lines(&stdout, &stderr)
+                extract_error_lines(
+                    &String::from_utf8_lossy(&output.stdout),
+                    &String::from_utf8_lossy(&output.stderr),
+                )
             };
-
-            Ok(CheckResult {
+            CheckResult {
                 name: stage.to_string(),
                 passed,
                 error_output,
-            })
+            }
         },
-        Err(e) => Ok(CheckResult {
+        Err(e) => CheckResult {
             name: stage.to_string(),
             passed: false,
             error_output: format!("Failed to execute stage: {e}"),
-        }),
+        },
     }
 }
 
 /// Extract the most relevant error lines from combined stdout/stderr output.
 /// Filters for error indicators and truncates to MAX_ERROR_LINES.
 fn extract_error_lines(stdout: &str, stderr: &str) -> String {
-    let combined = format!("{stdout}{stderr}");
+    let combined = format!("{stdout}\n{stderr}");
     let error_lines: Vec<&str> = combined
         .lines()
         .filter(|l| {
@@ -327,7 +305,7 @@ fn extract_error_lines(stdout: &str, stderr: &str) -> String {
 
     if error_lines.is_empty() {
         // If no error-specific lines found, return the last N lines as context
-        let all_lines: Vec<&str> = combined.lines().collect();
+        let all_lines: Vec<&str> = combined.lines().filter(|l| !l.trim().is_empty()).collect();
         let start = all_lines.len().saturating_sub(MAX_ERROR_LINES);
         return all_lines[start..].join("\n");
     }
@@ -415,6 +393,34 @@ mod tests {
         let result = extract_error_lines(stdout, stderr);
         // No error-specific lines, so should return tail
         assert!(result.contains("line1"));
+    }
+
+    #[test]
+    fn extract_error_lines_does_not_merge_stdout_and_stderr_lines() {
+        // stdout without a trailing newline must not glue onto stderr's first line.
+        let result = extract_error_lines("all good", "error: boom");
+        assert_eq!(result, "error: boom");
+    }
+
+    #[test]
+    fn extract_error_lines_caps_output() {
+        let stdout = "error: x\n".repeat(MAX_ERROR_LINES + 50);
+        let result = extract_error_lines(&stdout, "");
+        assert_eq!(result.lines().count(), MAX_ERROR_LINES);
+    }
+
+    #[test]
+    fn split_stages_trims_and_skips_blanks() {
+        let v: Vec<_> = split_stages(Some(" lint-basic, ,lint-full ,")).collect();
+        assert_eq!(v, ["lint-basic", "lint-full"]);
+        assert_eq!(split_stages(None).count(), 0);
+    }
+
+    #[test]
+    fn newly_modified_excludes_preexisting_edits() {
+        let before: HashSet<String> = ["a.py".to_string()].into();
+        let after = vec!["b.rs".to_string(), "a.py".to_string(), "b.rs".to_string()];
+        assert_eq!(newly_modified(&before, after), ["b.rs"]);
     }
 
     #[test]

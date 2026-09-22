@@ -1,31 +1,56 @@
-//! Code Review Processor
+//! Code Review Processor CLI entry point.
 //!
-//! CLI tool to process code review JSON output from AgentCore.
-//! Supports posting comments, committing changes, and creating PRs.
+//! stdout carries only the result (the PR URL in text mode, a JSON summary in
+//! JSON mode); all logs go to stderr. See [`code_review_processor::exit_code`].
 
-mod cli;
-mod git;
-mod github;
-mod processor;
+use std::io::{IsTerminal, Read};
+use std::process::ExitCode;
 
-use anyhow::Result;
+use anyhow::{Context, Result, bail};
 use clap::Parser;
-use tracing::{error, info};
-use tracing_subscriber::{fmt, prelude::*, EnvFilter};
+use tracing::{error, info, warn};
+use tracing_subscriber::EnvFilter;
 
-use cli::Args;
-use processor::ReviewProcessor;
+use code_review_processor::cli::{Args, OutputFormat};
+use code_review_processor::exit_code;
+use code_review_processor::processor::{ReviewProcessor, Summary};
+use code_review_processor::review;
 
-#[tokio::main]
-async fn main() -> Result<()> {
-    // Initialize logging
-    tracing_subscriber::registry()
-        .with(fmt::layer())
-        .with(EnvFilter::from_default_env().add_directive("code_review_processor=info".parse()?))
-        .init();
+/// Refuse inputs larger than this; real responses are a few hundred KiB.
+const MAX_INPUT_BYTES: u64 = 64 * 1024 * 1024;
 
+fn main() -> ExitCode {
+    init_logging();
     let args = Args::parse();
 
+    match run(&args) {
+        Ok(summary) if summary.threshold_exceeded => {
+            warn!(
+                severity = %summary.severity,
+                threshold = ?summary.severity_threshold,
+                "Review severity meets --fail-on-severity threshold"
+            );
+            ExitCode::from(exit_code::SEVERITY_THRESHOLD)
+        },
+        Ok(_) => ExitCode::from(exit_code::SUCCESS),
+        Err(e) => {
+            error!("{e:#}");
+            ExitCode::from(exit_code::ERROR)
+        },
+    }
+}
+
+fn init_logging() {
+    let filter = EnvFilter::try_from_default_env()
+        .unwrap_or_else(|_| EnvFilter::new("code_review_processor=info"));
+    tracing_subscriber::fmt()
+        .with_env_filter(filter)
+        .with_writer(std::io::stderr)
+        .with_ansi(std::io::stderr().is_terminal())
+        .init();
+}
+
+fn run(args: &Args) -> Result<Summary> {
     info!(
         input = %args.input,
         post_comment = args.post_comment,
@@ -35,44 +60,53 @@ async fn main() -> Result<()> {
         "Starting code review processor"
     );
 
-    // Read input JSON
-    let json_content = if args.input == "-" {
-        use std::io::Read;
-        let mut buffer = String::new();
-        std::io::stdin().read_to_string(&mut buffer)?;
-        buffer
+    let content = read_input(&args.input)?;
+    let review = review::parse_review_json(&content)?;
+    info!(
+        severity = %review.severity,
+        findings = review.findings_count,
+        file_changes = review.file_changes.len(),
+        "Parsed review"
+    );
+
+    let summary = ReviewProcessor::new(args.dry_run).process(&review, args)?;
+    write_output(args.output_format, &summary)?;
+    Ok(summary)
+}
+
+fn read_input(input: &str) -> Result<String> {
+    let mut bytes = Vec::new();
+    if input == "-" {
+        let stdin = std::io::stdin();
+        if stdin.is_terminal() {
+            bail!("No input: pass --input <FILE> or pipe the review JSON on stdin");
+        }
+        stdin
+            .lock()
+            .take(MAX_INPUT_BYTES + 1)
+            .read_to_end(&mut bytes)
+            .context("Failed to read review JSON from stdin")?;
     } else {
-        std::fs::read_to_string(&args.input)?
-    };
+        std::fs::File::open(input)
+            .and_then(|f| f.take(MAX_INPUT_BYTES + 1).read_to_end(&mut bytes))
+            .with_context(|| format!("Failed to read review JSON from {input}"))?;
+    }
+    if bytes.len() as u64 > MAX_INPUT_BYTES {
+        bail!("Input exceeds {} MiB", MAX_INPUT_BYTES / (1024 * 1024));
+    }
+    String::from_utf8(bytes).context("Review JSON is not valid UTF-8")
+}
 
-    // Parse JSON (supports both new schema format and legacy tagged format)
-    let review = processor::parse_review_json(&json_content).map_err(|e| {
-        error!(error = %e, "Failed to parse review JSON");
-        e
-    })?;
-
-    // Create processor
-    let processor = ReviewProcessor::new(args.repository.clone(), args.dry_run);
-
-    // Process the review
-    let result = processor.process(&review, &args).await?;
-
-    // Output result
-    match result {
-        processor::ProcessingResult::ReviewPosted => {
-            info!("Review posted as comment");
+fn write_output(format: OutputFormat, summary: &Summary) -> Result<()> {
+    match format {
+        OutputFormat::Text => {
+            if let Some(url) = &summary.pr_url {
+                println!("{url}");
+            }
         },
-        processor::ProcessingResult::ChangesCommitted => {
-            info!("Changes committed successfully");
-        },
-        processor::ProcessingResult::PrCreated { pr_number, pr_url } => {
-            info!(pr_number, pr_url = %pr_url, "Pull request created");
-            println!("{}", pr_url);
-        },
-        processor::ProcessingResult::NoAction => {
-            info!("No action taken (no flags specified)");
+        OutputFormat::Json => {
+            println!("{}", serde_json::to_string_pretty(summary)?);
         },
     }
-
     Ok(())
 }

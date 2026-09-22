@@ -101,7 +101,7 @@ The `automation-cli` binary provides a unified interface to all CI stages:
 
 ```bash
 # Build once
-cargo build --release -p automation-cli
+cargo build --release --manifest-path tools/rust/automation-cli/Cargo.toml
 
 # Format checking
 automation-cli ci run format

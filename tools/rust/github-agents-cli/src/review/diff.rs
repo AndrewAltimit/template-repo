@@ -6,8 +6,10 @@ use std::collections::HashSet;
 use std::process::Command;
 
 use crate::error::{Error, Result};
+use crate::security::commit::is_valid_sha;
+use crate::utils::text::truncate_at_line_boundary;
 
-/// Maximum diff size in characters (1.5M for Gemini's large context)
+/// Maximum diff size in bytes kept in memory before prompt-level truncation.
 const MAX_DIFF_CHARS: usize = 1_500_000;
 
 /// PR metadata
@@ -21,60 +23,88 @@ pub struct PRMetadata {
     pub head_branch: String,
 }
 
-impl PRMetadata {
-    /// Load PR metadata from environment variables (GitHub Actions context)
-    pub fn from_env() -> Result<Self> {
-        let number = std::env::var("PR_NUMBER")
-            .or_else(|_| std::env::var("GITHUB_PR_NUMBER"))
-            .map_err(|_| Error::EnvNotSet("PR_NUMBER".to_string()))?
-            .parse::<u64>()
-            .map_err(|e| Error::Config(format!("Invalid PR_NUMBER: {}", e)))?;
-
-        Ok(Self {
-            number,
-            title: std::env::var("PR_TITLE").unwrap_or_default(),
-            body: std::env::var("PR_BODY").unwrap_or_default(),
-            author: std::env::var("PR_AUTHOR").unwrap_or_else(|_| "unknown".to_string()),
-            base_branch: std::env::var("BASE_BRANCH").unwrap_or_else(|_| "main".to_string()),
-            head_branch: std::env::var("HEAD_BRANCH").unwrap_or_default(),
-        })
+/// Validate a branch name before interpolating it into a git revision range.
+fn validate_branch(branch: &str) -> Result<&str> {
+    let ok = !branch.is_empty()
+        && !branch.starts_with('-')
+        && !branch.contains("..")
+        && !branch.chars().any(|c| c.is_whitespace() || c.is_control());
+    if ok {
+        Ok(branch)
+    } else {
+        Err(Error::Config(format!(
+            "Refusing unsafe branch name: {:?}",
+            branch
+        )))
     }
+}
 
+/// Run `git args...`, returning stdout or a `GitCommandFailed` error.
+fn git(args: &[&str]) -> Result<String> {
+    let output = Command::new("git").args(args).output().map_err(|e| {
+        if e.kind() == std::io::ErrorKind::NotFound {
+            Error::GitNotFound
+        } else {
+            Error::Io(e)
+        }
+    })?;
+    if !output.status.success() {
+        return Err(Error::GitCommandFailed {
+            exit_code: output.status.code().unwrap_or(-1),
+            stdout: String::from_utf8_lossy(&output.stdout).into_owned(),
+            stderr: String::from_utf8_lossy(&output.stderr).into_owned(),
+        });
+    }
+    Ok(String::from_utf8_lossy(&output.stdout).into_owned())
+}
+
+impl PRMetadata {
     /// Fetch PR metadata via gh CLI
     pub fn from_gh_cli(pr_number: u64) -> Result<Self> {
-        let output = Command::new("gh")
-            .args([
-                "pr",
-                "view",
-                &pr_number.to_string(),
-                "--json",
-                "number,title,body,author,baseRefName,headRefName",
-            ])
-            .output()
-            .map_err(|e| Error::Io(e))?;
+        let mut args = vec![
+            "pr".to_string(),
+            "view".to_string(),
+            pr_number.to_string(),
+            "--json".to_string(),
+            "number,title,body,author,baseRefName,headRefName".to_string(),
+        ];
+        if let Ok(repo) = std::env::var("GITHUB_REPOSITORY")
+            && !repo.is_empty()
+        {
+            args.push("--repo".to_string());
+            args.push(repo);
+        }
+
+        let output = Command::new("gh").args(&args).output().map_err(|e| {
+            if e.kind() == std::io::ErrorKind::NotFound {
+                Error::GhNotFound
+            } else {
+                Error::Io(e)
+            }
+        })?;
 
         if !output.status.success() {
-            let stderr = String::from_utf8_lossy(&output.stderr);
             return Err(Error::GhCommandFailed {
                 exit_code: output.status.code().unwrap_or(-1),
-                stdout: String::from_utf8_lossy(&output.stdout).to_string(),
-                stderr: stderr.to_string(),
+                stdout: String::from_utf8_lossy(&output.stdout).into_owned(),
+                stderr: String::from_utf8_lossy(&output.stderr).into_owned(),
             });
         }
 
         let json: serde_json::Value = serde_json::from_slice(&output.stdout)?;
+        Ok(Self::from_json(&json, pr_number))
+    }
 
-        Ok(Self {
+    fn from_json(json: &serde_json::Value, pr_number: u64) -> Self {
+        let s = |v: &serde_json::Value, d: &str| v.as_str().unwrap_or(d).to_string();
+        Self {
             number: json["number"].as_u64().unwrap_or(pr_number),
-            title: json["title"].as_str().unwrap_or("").to_string(),
-            body: json["body"].as_str().unwrap_or("").to_string(),
-            author: json["author"]["login"]
-                .as_str()
-                .unwrap_or("unknown")
-                .to_string(),
-            base_branch: json["baseRefName"].as_str().unwrap_or("main").to_string(),
-            head_branch: json["headRefName"].as_str().unwrap_or("").to_string(),
-        })
+            title: s(&json["title"], ""),
+            body: s(&json["body"], ""),
+            author: s(&json["author"]["login"], "unknown"),
+            base_branch: s(&json["baseRefName"], "main"),
+            head_branch: s(&json["headRefName"], ""),
+        }
     }
 }
 
@@ -87,136 +117,86 @@ pub struct FileStats {
 }
 
 impl FileStats {
-    /// Parse file stats from git diff --stat output
+    /// Compute file stats with `git diff --shortstat` against the base branch.
     pub fn from_git_diff(base_branch: &str) -> Result<Self> {
-        let output = Command::new("git")
-            .args(["diff", "--stat", &format!("origin/{}...HEAD", base_branch)])
-            .output()
-            .map_err(|e| Error::Io(e))?;
-
-        if !output.status.success() {
-            return Ok(Self::default());
+        let range = format!("origin/{}...HEAD", validate_branch(base_branch)?);
+        match git(&["diff", "--shortstat", &range]) {
+            Ok(out) => Ok(Self::parse_shortstat(&out)),
+            Err(e) => {
+                tracing::warn!("Could not compute diff stats: {}", e);
+                Ok(Self::default())
+            },
         }
+    }
 
-        let stat_output = String::from_utf8_lossy(&output.stdout);
+    /// Parse "X files changed, Y insertions(+), Z deletions(-)".
+    fn parse_shortstat(output: &str) -> Self {
         let mut stats = Self::default();
-
-        // Parse the summary line: "X files changed, Y insertions(+), Z deletions(-)"
-        for line in stat_output.lines() {
-            if line.contains("files changed") || line.contains("file changed") {
-                // Extract numbers using simple parsing
-                let parts: Vec<&str> = line.split_whitespace().collect();
-                for (i, part) in parts.iter().enumerate() {
-                    if *part == "file" || *part == "files" {
-                        if i > 0 {
-                            stats.files_changed = parts[i - 1].parse().unwrap_or(0);
-                        }
-                    } else if part.contains("insertion") {
-                        if i > 0 {
-                            stats.lines_added = parts[i - 1].parse().unwrap_or(0);
-                        }
-                    } else if part.contains("deletion") {
-                        if i > 0 {
-                            stats.lines_deleted = parts[i - 1].parse().unwrap_or(0);
-                        }
-                    }
-                }
+        for part in output.split(',') {
+            let mut words = part.split_whitespace();
+            let (Some(num), Some(label)) = (words.next(), words.next()) else {
+                continue;
+            };
+            let Ok(n) = num.parse::<usize>() else {
+                continue;
+            };
+            if label.starts_with("file") {
+                stats.files_changed = n;
+            } else if label.starts_with("insertion") {
+                stats.lines_added = n;
+            } else if label.starts_with("deletion") {
+                stats.lines_deleted = n;
             }
         }
-
-        Ok(stats)
+        stats
     }
 }
 
 /// Get the current commit SHA
 pub fn get_current_commit_sha() -> Result<String> {
-    let output = Command::new("git")
-        .args(["rev-parse", "HEAD"])
-        .output()
-        .map_err(|e| Error::Io(e))?;
-
-    if !output.status.success() {
-        return Err(Error::GitCommandFailed {
-            exit_code: output.status.code().unwrap_or(-1),
-            stdout: String::from_utf8_lossy(&output.stdout).to_string(),
-            stderr: String::from_utf8_lossy(&output.stderr).to_string(),
-        });
-    }
-
-    Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
+    Ok(git(&["rev-parse", "HEAD"])?.trim().to_string())
 }
 
-/// Get the full PR diff
+/// Get the full PR diff (truncated at a line boundary if enormous)
 pub fn get_pr_diff(base_branch: &str) -> Result<String> {
-    let output = Command::new("git")
-        .args(["diff", &format!("origin/{}...HEAD", base_branch)])
-        .output()
-        .map_err(|e| Error::Io(e))?;
+    let range = format!("origin/{}...HEAD", validate_branch(base_branch)?);
+    let diff = git(&["diff", &range])?;
 
-    if !output.status.success() {
-        return Err(Error::GitCommandFailed {
-            exit_code: output.status.code().unwrap_or(-1),
-            stdout: String::from_utf8_lossy(&output.stdout).to_string(),
-            stderr: String::from_utf8_lossy(&output.stderr).to_string(),
-        });
-    }
-
-    let diff = String::from_utf8_lossy(&output.stdout).to_string();
-
-    // Truncate if too large
     if diff.len() > MAX_DIFF_CHARS {
-        let truncated = &diff[..MAX_DIFF_CHARS];
-        // Find last newline to avoid splitting mid-line
-        if let Some(pos) = truncated.rfind('\n') {
-            return Ok(format!(
-                "{}\n\n[DIFF TRUNCATED - {} chars exceeded {} limit]",
-                &truncated[..pos],
-                diff.len(),
-                MAX_DIFF_CHARS
-            ));
-        }
+        return Ok(format!(
+            "{}\n\n[DIFF TRUNCATED - {} chars exceeded {} limit]",
+            truncate_at_line_boundary(&diff, MAX_DIFF_CHARS),
+            diff.len(),
+            MAX_DIFF_CHARS
+        ));
     }
-
     Ok(diff)
 }
 
-/// Get list of changed files
+/// Get list of changed files (empty on failure)
 pub fn get_changed_files(base_branch: &str) -> Result<Vec<String>> {
-    let output = Command::new("git")
-        .args([
-            "diff",
-            "--name-only",
-            &format!("origin/{}...HEAD", base_branch),
-        ])
-        .output()
-        .map_err(|e| Error::Io(e))?;
-
-    if !output.status.success() {
-        return Ok(Vec::new());
-    }
-
-    Ok(String::from_utf8_lossy(&output.stdout)
-        .lines()
-        .map(|s| s.to_string())
-        .collect())
+    let range = format!("origin/{}...HEAD", validate_branch(base_branch)?);
+    Ok(git(&["diff", "--name-only", &range])
+        .map(|out| out.lines().map(str::to_string).collect())
+        .unwrap_or_default())
 }
 
-/// Get files changed since a specific commit
+/// Get files changed since a specific commit.
+///
+/// `since_commit` must be a hex SHA; anything else (including option-like
+/// strings such as `--output=...`) is rejected before reaching git.
 pub fn get_files_changed_since_commit(since_commit: &str) -> Result<Vec<String>> {
-    let output = Command::new("git")
-        .args(["diff", "--name-only", &format!("{}...HEAD", since_commit)])
-        .output()
-        .map_err(|e| Error::Io(e))?;
-
-    if !output.status.success() {
-        // May fail for shallow clones or if commit doesn't exist
-        return Ok(Vec::new());
+    if !is_valid_sha(since_commit) {
+        return Err(Error::Config(format!(
+            "Refusing invalid commit reference: {:?}",
+            since_commit
+        )));
     }
-
-    Ok(String::from_utf8_lossy(&output.stdout)
-        .lines()
-        .map(|s| s.to_string())
-        .collect())
+    let range = format!("{}...HEAD", since_commit);
+    // May fail for shallow clones or unknown commits: treat as "no info"
+    Ok(git(&["diff", "--name-only", &range])
+        .map(|out| out.lines().map(str::to_string).collect())
+        .unwrap_or_default())
 }
 
 /// Mark new files in a diff for incremental review
@@ -231,31 +211,16 @@ pub fn mark_new_changes_in_diff(full_diff: &str, new_files: &HashSet<String>) ->
         result.push_str(line);
         result.push('\n');
 
-        // Check if this is a diff header: "diff --git a/path b/path"
-        if line.starts_with("diff --git a/") {
-            // Extract the file path from the header
-            // Format: "diff --git a/path b/path" or "diff --git a/old b/new"
-            if let Some(b_pos) = line.rfind(" b/") {
-                let file_path = &line[b_pos + 3..];
-                if new_files.contains(file_path) {
-                    result.push_str("[NEW SINCE LAST REVIEW]\n");
-                }
-            }
+        // Diff header: "diff --git a/path b/path"
+        if line.starts_with("diff --git a/")
+            && let Some(b_pos) = line.rfind(" b/")
+            && new_files.contains(&line[b_pos + 3..])
+        {
+            result.push_str("[NEW SINCE LAST REVIEW]\n");
         }
     }
 
     result
-}
-
-/// Read file content (for verification)
-pub fn read_file_content(filepath: &str, max_chars: usize) -> Result<String> {
-    let content = std::fs::read_to_string(filepath).map_err(|e| Error::Io(e))?;
-
-    if content.len() > max_chars {
-        Ok(content[..max_chars].to_string())
-    } else {
-        Ok(content)
-    }
 }
 
 #[cfg(test)]
@@ -281,8 +246,42 @@ index 123..456 100644
         new_files.insert("src/main.rs".to_string());
 
         let marked = mark_new_changes_in_diff(diff, &new_files);
-        assert!(marked.contains("[NEW SINCE LAST REVIEW]"));
-        // Should only mark main.rs, not lib.rs
         assert_eq!(marked.matches("[NEW SINCE LAST REVIEW]").count(), 1);
+    }
+
+    #[test]
+    fn test_parse_shortstat() {
+        let s = FileStats::parse_shortstat(" 3 files changed, 10 insertions(+), 2 deletions(-)\n");
+        assert_eq!(
+            (s.files_changed, s.lines_added, s.lines_deleted),
+            (3, 10, 2)
+        );
+        let s = FileStats::parse_shortstat(" 1 file changed, 1 deletion(-)");
+        assert_eq!((s.files_changed, s.lines_added, s.lines_deleted), (1, 0, 1));
+        let s = FileStats::parse_shortstat("");
+        assert_eq!(s.files_changed, 0);
+    }
+
+    #[test]
+    fn test_rejects_option_injection() {
+        assert!(get_files_changed_since_commit("--output=/tmp/pwned").is_err());
+        assert!(validate_branch("--output=x").is_err());
+        assert!(validate_branch("main..x").is_err());
+        assert!(validate_branch("feature/abc-1").is_ok());
+    }
+
+    #[test]
+    fn test_metadata_from_json() {
+        let json = serde_json::json!({
+            "number": 7,
+            "title": "T",
+            "author": {"login": "u"},
+            "baseRefName": "develop"
+        });
+        let m = PRMetadata::from_json(&json, 1);
+        assert_eq!(m.number, 7);
+        assert_eq!(m.author, "u");
+        assert_eq!(m.base_branch, "develop");
+        assert_eq!(m.body, "");
     }
 }

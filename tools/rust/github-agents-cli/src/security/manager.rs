@@ -3,8 +3,6 @@
 //! Manages authorization, rate limiting, and security checks for agent operations.
 
 use chrono::{DateTime, Duration, Utc};
-use lazy_static::lazy_static;
-use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::env;
@@ -12,6 +10,7 @@ use std::path::Path;
 use std::sync::Mutex;
 use tracing::{debug, info, warn};
 
+use super::trigger::{is_agent_generated, is_bot_login, is_trigger_response, parse_trigger};
 use crate::error::Error;
 
 /// Built-in fallback admin, used when neither a config file nor the
@@ -22,11 +21,8 @@ const BUILTIN_DEFAULT_ADMIN: &str = "AndrewAltimit";
 /// Accepts a comma-separated list of usernames.
 const DEFAULT_ADMIN_ENV: &str = "AI_AGENT_DEFAULT_ADMIN";
 
-lazy_static! {
-    /// Pattern for trigger comments: [Action] with optional [Agent]
-    static ref TRIGGER_PATTERN: Regex =
-        Regex::new(r"(?i)\[(Approved|Review|Close|Summarize|Debug)\](?:\[([A-Za-z]+)\])?").unwrap();
-}
+/// Environment variable adding extra allowed users (comma-separated).
+const ALLOWED_USERS_ENV: &str = "AI_AGENT_ALLOWED_USERS";
 
 /// Security configuration.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -116,6 +112,7 @@ fn default_allowed_actions() -> Vec<String> {
         "pr_summarize".to_string(),
         "issue_debug".to_string(),
         "pr_debug".to_string(),
+        "pr_close".to_string(),
     ]
 }
 
@@ -133,14 +130,13 @@ impl Default for SecurityConfig {
     }
 }
 
-/// Top-level structure of `.agents.yaml` for extracting the nested `security` section.
-///
-/// The `.agents.yaml` file stores security config under `security:`, not at the top level.
-/// Uses `Option` instead of `#[serde(default)]` so we can distinguish "no security key"
-/// (flat format) from "has security key" (nested format).
-#[derive(Debug, Deserialize)]
-struct AgentsYamlConfig {
-    security: Option<SecurityConfig>,
+/// Where a trigger was found.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TriggerSource {
+    /// The issue/PR body
+    Body,
+    /// The comment at this index (chronological order)
+    Comment(usize),
 }
 
 /// Trigger information parsed from a comment.
@@ -152,6 +148,21 @@ pub struct TriggerInfo {
     pub agent: Option<String>,
     /// The user who triggered the action
     pub username: String,
+    /// Where the trigger was found
+    pub source: TriggerSource,
+    /// When the triggering comment/body was created (if known)
+    pub created_at: Option<DateTime<Utc>>,
+}
+
+/// A read-only view of an issue/PR comment used for trigger detection.
+///
+/// `comments` slices passed to the manager must be in chronological order
+/// (the order returned by `gh issue/pr view --json comments`).
+#[derive(Debug, Clone, Default)]
+pub struct CommentView {
+    pub body: String,
+    pub author: String,
+    pub created_at: Option<DateTime<Utc>>,
 }
 
 /// Security manager for AI agent operations.
@@ -182,29 +193,29 @@ impl SecurityManager {
     /// Supports two formats:
     /// - Flat `SecurityConfig` (standalone security config file)
     /// - Nested `.agents.yaml` format where security lives under `security:` key
+    ///
+    /// The file is read through [`super::trust::read_trusted_file`]: in a
+    /// PR-triggered run where the PR modifies it, the base-branch version is
+    /// used, so a PR cannot add itself to the allow-list.
     pub fn from_config_path(path: &Path) -> Result<Self, Error> {
-        let content = std::fs::read_to_string(path).map_err(Error::Io)?;
+        let content = super::trust::read_trusted_file(path)?;
+        Self::from_yaml_str(&content)
+    }
 
-        // Check if the YAML has a top-level `security` key to determine format.
-        // If it does, parse as nested `.agents.yaml` and propagate errors
-        // (don't silently fall back to flat format with defaults).
-        let has_security_key = serde_yaml::from_str::<serde_yaml::Value>(&content)
-            .ok()
-            .and_then(|v| v.as_mapping().cloned())
-            .map(|m| m.contains_key(serde_yaml::Value::String("security".to_string())))
-            .unwrap_or(false);
-
-        let config = if has_security_key {
-            let agents_config = serde_yaml::from_str::<AgentsYamlConfig>(&content)?;
-            if let Some(security) = agents_config.security {
+    /// Create a security manager from YAML text (flat or nested format).
+    pub fn from_yaml_str(content: &str) -> Result<Self, Error> {
+        // A top-level `security` key means the nested `.agents.yaml` format;
+        // errors inside it propagate (no silent fallback to defaults).
+        let value: serde_yaml::Value = serde_yaml::from_str(content)?;
+        let config = match value.get("security") {
+            Some(section) if !section.is_null() => {
                 info!("Loaded security config from agents YAML (nested format)");
-                security
-            } else {
-                // `security` key present but null/empty - use defaults
-                SecurityConfig::default()
-            }
-        } else {
-            serde_yaml::from_str::<SecurityConfig>(&content)?
+                serde_yaml::from_value::<SecurityConfig>(section.clone())?
+            },
+            // `security:` present but empty
+            Some(_) => SecurityConfig::default(),
+            None if value.is_null() => SecurityConfig::default(),
+            None => serde_yaml::from_value::<SecurityConfig>(value)?,
         };
 
         let allowed_users = Self::init_allowed_users(&config);
@@ -217,6 +228,7 @@ impl SecurityManager {
     }
 
     /// Create a security manager from a configuration struct.
+    #[cfg(test)]
     pub fn from_config(config: SecurityConfig) -> Self {
         let allowed_users = Self::init_allowed_users(&config);
         Self {
@@ -236,7 +248,7 @@ impl SecurityManager {
             .collect();
 
         // Add users from environment variable
-        if let Ok(env_users) = env::var("AI_AGENT_ALLOWED_USERS") {
+        if let Ok(env_users) = env::var(ALLOWED_USERS_ENV) {
             for user in env_users.split(',') {
                 let user = user.trim();
                 if !user.is_empty() {
@@ -245,11 +257,19 @@ impl SecurityManager {
             }
         }
 
-        // Add repository owner
-        if let Ok(github_repo) = env::var("GITHUB_REPOSITORY") {
-            if let Some(owner) = github_repo.split('/').next() {
-                users.insert(owner.to_lowercase());
-            }
+        // Add repository owner (a personal account; for organizations this is
+        // the org login, which can never author a comment)
+        if let Ok(github_repo) = env::var("GITHUB_REPOSITORY")
+            && let Some(owner) = github_repo.split('/').next().filter(|o| !o.is_empty())
+        {
+            users.insert(owner.to_lowercase());
+        }
+
+        // Never allow-list bot accounts or the anonymous/empty login
+        users.retain(|u| !u.is_empty() && !is_bot_login(u));
+
+        if !config.enabled {
+            warn!("Security checks are DISABLED by configuration (security.enabled: false)");
         }
 
         debug!("Initialized allowed users: {:?}", users);
@@ -261,27 +281,27 @@ impl SecurityManager {
         &self.config.reject_message
     }
 
-    /// Parse a trigger comment and extract action and optional agent.
-    ///
-    /// Returns (action, agent) tuple where agent may be None.
-    pub fn parse_trigger_comment(&self, text: &str) -> Option<(String, Option<String>)> {
-        if text.is_empty() {
-            return None;
-        }
-
-        let captures = TRIGGER_PATTERN.captures(text)?;
-        let action = captures.get(1)?.as_str().to_lowercase();
-        let agent = captures.get(2).map(|m| m.as_str().to_lowercase());
-
-        Some((action, agent))
-    }
-
     /// Check if a user is authorized.
+    ///
+    /// Bot accounts and empty logins are never authorized, even when security
+    /// checks are otherwise disabled.
     pub fn is_user_allowed(&self, username: &str) -> bool {
+        if username.trim().is_empty() || is_bot_login(username) {
+            return false;
+        }
         if !self.config.enabled {
             return true;
         }
         self.allowed_users.contains(&username.to_lowercase())
+    }
+
+    /// Whether `login` may author agent responses that mark a trigger as
+    /// handled: allow-listed users, bot accounts, or the account the agent
+    /// itself is authenticated as.
+    pub fn is_trusted_responder(&self, login: &str, agent_login: Option<&str>) -> bool {
+        is_bot_login(login)
+            || self.allowed_users.contains(&login.to_lowercase())
+            || agent_login.is_some_and(|a| a.eq_ignore_ascii_case(login))
     }
 
     /// Check if an action is allowed.
@@ -303,7 +323,8 @@ impl SecurityManager {
         }
         self.config
             .allowed_repositories
-            .contains(&repository.to_string())
+            .iter()
+            .any(|r| r.eq_ignore_ascii_case(repository))
     }
 
     /// Check and update rate limit for a user/action combination.
@@ -346,39 +367,69 @@ impl SecurityManager {
     /// Check for a valid trigger in issue/PR data.
     ///
     /// Iterates comments in reverse order so the **latest** matching trigger
-    /// wins, allowing newer directives to supersede older ones.
-    /// Falls back to checking the issue/PR body only if no comment triggers exist.
+    /// from an authorized user wins, allowing newer directives to supersede
+    /// older ones. Falls back to the issue/PR body only if no comment
+    /// triggers exist. Comments and bodies generated by this tool are never
+    /// considered, which prevents prompt-injected agent output from
+    /// self-authorizing when the agent posts under an allow-listed account.
     pub fn check_trigger_comment(
         &self,
         body: &str,
         author: &str,
-        comments: &[(String, String)], // (body, author) pairs
+        body_created_at: Option<DateTime<Utc>>,
+        comments: &[CommentView],
     ) -> Option<TriggerInfo> {
-        // Check comments in reverse (latest first) so newer directives supersede older ones
-        for (comment_body, comment_author) in comments.iter().rev() {
-            if let Some((action, agent)) = self.parse_trigger_comment(comment_body) {
-                if self.is_user_allowed(comment_author) {
-                    return Some(TriggerInfo {
-                        action,
-                        agent,
-                        username: comment_author.to_string(),
-                    });
-                }
+        for (index, comment) in comments.iter().enumerate().rev() {
+            if is_agent_generated(&comment.body) || !self.is_user_allowed(&comment.author) {
+                continue;
             }
-        }
-
-        // Fall back to issue/PR body if no comment triggers found
-        if let Some((action, agent)) = self.parse_trigger_comment(body) {
-            if self.is_user_allowed(author) {
+            if let Some(trigger) = parse_trigger(&comment.body) {
                 return Some(TriggerInfo {
-                    action,
-                    agent,
-                    username: author.to_string(),
+                    action: trigger.action,
+                    agent: trigger.agent,
+                    username: comment.author.clone(),
+                    source: TriggerSource::Comment(index),
+                    created_at: comment.created_at,
                 });
             }
         }
 
+        if !is_agent_generated(body)
+            && self.is_user_allowed(author)
+            && let Some(trigger) = parse_trigger(body)
+        {
+            return Some(TriggerInfo {
+                action: trigger.action,
+                agent: trigger.agent,
+                username: author.to_string(),
+                source: TriggerSource::Body,
+                created_at: body_created_at,
+            });
+        }
+
         None
+    }
+
+    /// Whether the agent already responded to `trigger`.
+    ///
+    /// A trigger is handled once a monitor reply (see
+    /// [`super::trigger::TRIGGER_RESPONSE_MARKER`]) from a trusted responder
+    /// appears after it. This makes monitor runs idempotent: the same
+    /// `[Approved]` comment is never acted on twice, and security rejections
+    /// are not re-posted on every polling cycle.
+    pub fn is_trigger_handled(
+        &self,
+        trigger: &TriggerInfo,
+        comments: &[CommentView],
+        agent_login: Option<&str>,
+    ) -> bool {
+        let start = match trigger.source {
+            TriggerSource::Body => 0,
+            TriggerSource::Comment(index) => index + 1,
+        };
+        comments.iter().skip(start).any(|c| {
+            is_trigger_response(&c.body) && self.is_trusted_responder(&c.author, agent_login)
+        })
     }
 
     /// Perform a comprehensive security check.
@@ -438,43 +489,6 @@ impl Default for SecurityManager {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn test_parse_trigger_simple() {
-        let manager = SecurityManager::new();
-        let result = manager.parse_trigger_comment("[Approved]");
-        assert!(result.is_some());
-        let (action, agent) = result.unwrap();
-        assert_eq!(action, "approved");
-        assert!(agent.is_none());
-    }
-
-    #[test]
-    fn test_parse_trigger_with_agent() {
-        let manager = SecurityManager::new();
-        let result = manager.parse_trigger_comment("[Approved][Claude]");
-        assert!(result.is_some());
-        let (action, agent) = result.unwrap();
-        assert_eq!(action, "approved");
-        assert_eq!(agent, Some("claude".to_string()));
-    }
-
-    #[test]
-    fn test_parse_trigger_case_insensitive() {
-        let manager = SecurityManager::new();
-        let result = manager.parse_trigger_comment("[APPROVED][CLAUDE]");
-        assert!(result.is_some());
-        let (action, agent) = result.unwrap();
-        assert_eq!(action, "approved");
-        assert_eq!(agent, Some("claude".to_string()));
-    }
-
-    #[test]
-    fn test_parse_trigger_invalid() {
-        let manager = SecurityManager::new();
-        let result = manager.parse_trigger_comment("[InvalidAction]");
-        assert!(result.is_none());
-    }
 
     #[test]
     fn test_user_allowed_case_insensitive() {
@@ -558,50 +572,197 @@ security:
     - TestAdmin
   rate_limit_window_minutes: 30
 "#;
-        let agents_config: AgentsYamlConfig = serde_yaml::from_str(yaml).unwrap();
-        let security = agents_config
-            .security
-            .expect("security key should be present");
-        assert_eq!(security.agent_admins, vec!["TestAdmin"]);
-        assert_eq!(security.rate_limit_window_minutes, 30);
+        let m = SecurityManager::from_yaml_str(yaml).unwrap();
+        assert_eq!(m.config.agent_admins, vec!["TestAdmin"]);
+        assert_eq!(m.config.rate_limit_window_minutes, 30);
+        assert!(m.is_user_allowed("testadmin"));
     }
 
     #[test]
-    fn test_agents_yaml_without_security_key() {
-        // A YAML without `security:` key should parse but have security = None
+    fn test_agents_yaml_without_security_key_uses_flat_defaults() {
         let yaml = r#"
 enabled_agents:
   - claude
 "#;
-        let agents_config: AgentsYamlConfig = serde_yaml::from_str(yaml).unwrap();
-        assert!(
-            agents_config.security.is_none(),
-            "security should be None when key is absent"
-        );
+        let m = SecurityManager::from_yaml_str(yaml).unwrap();
+        assert_eq!(m.config.rate_limit_window_minutes, 60);
     }
 
     #[test]
-    fn test_flat_config_not_treated_as_nested() {
-        // A flat SecurityConfig should not be silently consumed as nested format
+    fn test_flat_config_format() {
         let yaml = r#"
 agent_admins:
   - FlatAdmin
 rate_limit_window_minutes: 15
 "#;
-        let agents_config: AgentsYamlConfig = serde_yaml::from_str(yaml).unwrap();
+        let m = SecurityManager::from_yaml_str(yaml).unwrap();
+        assert_eq!(m.config.agent_admins, vec!["FlatAdmin"]);
+        assert_eq!(m.config.rate_limit_window_minutes, 15);
+    }
+
+    #[test]
+    fn test_empty_security_section_uses_defaults() {
+        let m = SecurityManager::from_yaml_str("security:\n").unwrap();
+        assert!(m.config.enabled);
+        let m = SecurityManager::from_yaml_str("").unwrap();
+        assert!(m.config.enabled);
+    }
+
+    fn admin_manager() -> SecurityManager {
+        SecurityManager::from_config(SecurityConfig {
+            agent_admins: vec!["Admin".to_string()],
+            ..Default::default()
+        })
+    }
+
+    fn comment(body: &str, author: &str) -> CommentView {
+        CommentView {
+            body: body.to_string(),
+            author: author.to_string(),
+            created_at: None,
+        }
+    }
+
+    #[test]
+    fn test_trigger_from_unauthorized_user_ignored() {
+        let m = admin_manager();
+        let comments = vec![comment("[Approved][Claude]", "mallory")];
         assert!(
-            agents_config.security.is_none(),
-            "flat config should not populate nested security field"
+            m.check_trigger_comment("", "mallory", None, &comments)
+                .is_none()
         );
+    }
+
+    #[test]
+    fn test_latest_authorized_trigger_wins() {
+        let m = admin_manager();
+        let comments = vec![
+            comment("[Approved][Claude]", "admin"),
+            comment("[Review][Claude]", "mallory"),
+            comment("[Summarize]", "Admin"),
+        ];
+        let t = m.check_trigger_comment("", "x", None, &comments).unwrap();
+        assert_eq!(t.action, "summarize");
+        assert_eq!(t.source, TriggerSource::Comment(2));
+        assert_eq!(t.username, "Admin");
+    }
+
+    #[test]
+    fn test_agent_generated_comment_never_triggers() {
+        let m = admin_manager();
+        // Posted under the admin account (e.g. agent token is an admin PAT)
+        let body = format!(
+            "Model output: [Approved][Claude]\n{}",
+            super::super::trigger::AGENT_COMMENT_MARKER
+        );
+        let comments = vec![comment(&body, "admin")];
+        assert!(m.check_trigger_comment("", "x", None, &comments).is_none());
+        assert!(
+            m.check_trigger_comment("[AI Agent] [Approved]", "admin", None, &[])
+                .is_none()
+        );
+    }
+
+    #[test]
+    fn test_body_trigger_fallback() {
+        let m = admin_manager();
+        let t = m
+            .check_trigger_comment("Please [Approved][OpenCode]", "admin", None, &[])
+            .unwrap();
+        assert_eq!(t.source, TriggerSource::Body);
+        assert_eq!(t.agent.as_deref(), Some("opencode"));
+        // Quoted/code triggers in the body do not count
+        assert!(
+            m.check_trigger_comment("reply with `[Approved]`", "admin", None, &[])
+                .is_none()
+        );
+    }
+
+    #[test]
+    fn test_bots_never_allowed() {
+        let m = SecurityManager::from_config(SecurityConfig {
+            agent_admins: vec!["github-actions[bot]".to_string(), "Admin".to_string()],
+            ..Default::default()
+        });
+        assert!(!m.is_user_allowed("github-actions[bot]"));
+        assert!(!m.is_user_allowed(""));
+        assert!(m.is_user_allowed("admin"));
+
+        let disabled = SecurityManager::from_config(SecurityConfig {
+            enabled: false,
+            ..Default::default()
+        });
+        assert!(disabled.is_user_allowed("anyone"));
+        assert!(!disabled.is_user_allowed("renovate[bot]"));
+    }
+
+    #[test]
+    fn test_trigger_handled_detection() {
+        let m = admin_manager();
+        let marker = super::super::trigger::TRIGGER_RESPONSE_MARKER;
+        let reply = format!("Working on it\n{marker}");
+
+        let comments = vec![
+            comment("[Approved][Claude]", "admin"),
+            comment("thanks", "someone"),
+        ];
+        let t = m.check_trigger_comment("", "x", None, &comments).unwrap();
+        assert!(!m.is_trigger_handled(&t, &comments, None));
+
+        // Agent reply from a bot marks it handled
+        let mut handled = comments.clone();
+        handled.push(comment(&reply, "github-actions"));
+        assert!(m.is_trigger_handled(&t, &handled, None));
+
+        // A forged marker from an untrusted user does not
+        let mut forged = comments.clone();
+        forged.push(comment(&reply, "mallory"));
+        assert!(!m.is_trigger_handled(&t, &forged, None));
+
+        // ...unless that login is the agent's own account
+        assert!(m.is_trigger_handled(&t, &forged, Some("Mallory")));
+
+        // Generated content that is not a trigger reply does not count
+        let mut insight = comments.clone();
+        insight.push(comment(
+            &format!("insight {}", super::super::trigger::AGENT_COMMENT_MARKER),
+            "github-actions",
+        ));
+        assert!(!m.is_trigger_handled(&t, &insight, None));
+
+        // A reply that precedes the trigger does not count
+        let earlier = vec![
+            comment(&reply, "github-actions"),
+            comment("[Approved][Claude]", "admin"),
+        ];
+        let t = m.check_trigger_comment("", "x", None, &earlier).unwrap();
+        assert!(!m.is_trigger_handled(&t, &earlier, None));
+    }
+
+    #[test]
+    fn test_repository_allow_list_case_insensitive() {
+        let m = SecurityManager::from_config(SecurityConfig {
+            allowed_repositories: vec!["Owner/Repo".to_string()],
+            ..Default::default()
+        });
+        assert!(m.is_repository_allowed("owner/repo"));
+        assert!(!m.is_repository_allowed("owner/other"));
+    }
+
+    #[test]
+    fn test_action_allow_list() {
+        let m = admin_manager();
+        assert!(m.is_action_allowed("issue_approved"));
+        assert!(m.is_action_allowed("pr_close"));
+        assert!(!m.is_action_allowed("issue_delete"));
     }
 
     #[test]
     fn test_invalid_nested_security_does_not_silently_fallback() {
         // If YAML has `security:` key with invalid shape, from_config_path
         // should propagate the error, not silently fall back to defaults
-        let dir = std::env::temp_dir().join("test_invalid_nested");
-        std::fs::create_dir_all(&dir).unwrap();
-        let path = dir.join("invalid_nested.yaml");
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("invalid_nested.yaml");
         std::fs::write(
             &path,
             r#"
@@ -615,6 +776,5 @@ security:
             result.is_err(),
             "invalid nested security config should return error, not silent defaults"
         );
-        std::fs::remove_dir_all(&dir).ok();
     }
 }

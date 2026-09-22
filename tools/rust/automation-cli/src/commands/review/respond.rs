@@ -1,16 +1,20 @@
+//! `automation-cli review respond` -- feed AI reviewer feedback (and trusted
+//! PR discussion) to Claude, verify it actually edited files, commit, and
+//! push with remote verification.
+//!
+//! GitHub outputs: `made_changes`, `pushed`, `commit_sha`.
+
 use std::collections::HashSet;
 use std::path::Path;
-use std::sync::atomic::{AtomicU64, Ordering};
-use std::time::{Duration, SystemTime, UNIX_EPOCH};
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use anyhow::{Result, bail};
 use clap::Args;
 use gh_validator::{SecretMasker, load_config as load_secrets_config};
 
+use super::common::{self, CLAUDE_TIMEOUT, post_comment, truncate_in_place};
 use super::trust::{TrustConfig, TrustLevel};
 use crate::shared::{output, process, project};
-
-static TEMP_COUNTER: AtomicU64 = AtomicU64::new(0);
 
 /// Prompt size limits (Claude ~200k token window, ~4 chars/token)
 const MAX_REVIEW_CONTENT_CHARS: usize = 80_000;
@@ -33,8 +37,7 @@ pub struct RespondArgs {
 }
 
 pub fn run(args: RespondArgs) -> Result<()> {
-    let root = project::find_project_root()?;
-    std::env::set_current_dir(&root)?;
+    let root = project::enter_project_root()?;
 
     output::header("Agent Review Response");
     output::info(&format!("PR Number: {}", args.pr_number));
@@ -54,16 +57,10 @@ pub fn run(args: RespondArgs) -> Result<()> {
     let pr_comments = fetch_categorized_comments(args.pr_number, &root)?;
 
     // Collect review feedback BEFORE git operations
-    let mut review_content = String::new();
-    collect_review_content(&mut review_content)?;
+    let mut review_content = collect_review_content();
 
-    // Configure git authentication
-    configure_git()?;
-
-    // Checkout the PR branch
-    output::step(&format!("Checking out branch: {}", args.branch));
-    let _ = process::run("git", &["fetch", "origin", &args.branch]);
-    process::run("git", &["checkout", &args.branch])?;
+    common::configure_git("AI Review Agent", "ai-review-agent@localhost")?;
+    common::checkout_branch(&args.branch)?;
 
     if review_content.is_empty() {
         output::warn("No review feedback found, nothing to do");
@@ -128,9 +125,7 @@ pub fn run(args: RespondArgs) -> Result<()> {
 
     // Stage modifications to tracked files (avoid staging untracked temp files/artifacts)
     output::header("Step 4: Checking for changes");
-    process::run("git", &["add", "-u"])?;
-
-    let has_changes = !process::run_check("git", &["diff", "--cached", "--quiet"])?;
+    let has_changes = common::stage_tracked_changes()?;
 
     let summary = extract_agent_summary(&claude_output);
 
@@ -185,8 +180,7 @@ pub fn run(args: RespondArgs) -> Result<()> {
         );
 
         let retry_outcome = run_claude_streamed(&retry_prompt, args.iteration)?;
-        process::run("git", &["add", "-u"])?;
-        let retry_has_changes = !process::run_check("git", &["diff", "--cached", "--quiet"])?;
+        let retry_has_changes = common::stage_tracked_changes()?;
         let retry_summary = extract_agent_summary(&retry_outcome.text);
 
         if retry_has_changes {
@@ -253,9 +247,7 @@ fn commit_and_push(args: &RespondArgs, summary: &str) -> Result<()> {
          Co-Authored-By: AI Review Agent <noreply@anthropic.com>",
         display_iter, display_iter, args.max_iterations
     );
-    let msg_file = write_temp_file(&commit_msg)?;
-    process::run("git", &["commit", "-F", &msg_file])?;
-    let _ = std::fs::remove_file(&msg_file);
+    common::commit(&commit_msg)?;
 
     // Verify the commit actually contains changes (not an empty commit).
     let diff_stat = process::run_capture("git", &["diff", "--stat", "HEAD~1..HEAD"])?;
@@ -266,10 +258,7 @@ fn commit_and_push(args: &RespondArgs, summary: &str) -> Result<()> {
         return Ok(());
     }
 
-    let commit_full = process::run_capture("git", &["rev-parse", "HEAD"])?;
-    let commit_full = commit_full.trim().to_string();
-    let commit_short = process::run_capture("git", &["rev-parse", "--short", "HEAD"])?;
-    let commit_short = commit_short.trim().to_string();
+    let (commit_full, commit_short) = common::head_sha()?;
 
     // Post comment BEFORE pushing — pushing triggers a new pipeline
     // run which cancels this one, so the comment must go first.
@@ -281,7 +270,7 @@ fn commit_and_push(args: &RespondArgs, summary: &str) -> Result<()> {
     output::header("Step 5: Pushing changes");
     let branch = args.branch.clone();
     let initial_sha = commit_full.clone();
-    let push_result = temporarily_disable_pre_push_hook(|| push_and_verify(&branch, &initial_sha));
+    let push_result = common::push_and_verify(&branch, &initial_sha);
 
     match push_result {
         Ok(final_sha) => {
@@ -296,12 +285,8 @@ fn commit_and_push(args: &RespondArgs, summary: &str) -> Result<()> {
         },
         Err(e) => {
             // Re-read HEAD in case a rebase inside push_and_verify rewrote it.
-            let current_full = process::run_capture("git", &["rev-parse", "HEAD"])
-                .map(|s| s.trim().to_string())
-                .unwrap_or(commit_full);
-            let current_short = process::run_capture("git", &["rev-parse", "--short", "HEAD"])
-                .map(|s| s.trim().to_string())
-                .unwrap_or(commit_short);
+            let (current_full, current_short) =
+                common::head_sha().unwrap_or((commit_full, commit_short));
 
             // The commit exists locally but did not reach the remote. Save a
             // format-patch so the workflow can upload it as an artifact and a
@@ -410,103 +395,6 @@ fn report_no_commit() {
     project::set_github_output("commit_sha", "");
 }
 
-/// Push the current branch and verify via `git ls-remote` that the remote ref
-/// actually matches local HEAD. Handles silent push failures (command reports
-/// success but the remote ref is unchanged) and non-fast-forward rejections
-/// (fetch + rebase + recompute expected SHA). Returns the SHA that was
-/// verifiably landed on the remote.
-fn push_and_verify(branch: &str, initial_sha: &str) -> Result<String> {
-    const MAX_ATTEMPTS: u32 = 5;
-    let mut last_err: Option<anyhow::Error> = None;
-    let mut current_sha = initial_sha.to_string();
-
-    for attempt in 1..=MAX_ATTEMPTS {
-        output::info(&format!(
-            "Push attempt {attempt}/{MAX_ATTEMPTS} (expected sha: {current_sha})"
-        ));
-
-        let push_result = process::run("git", &["push", "origin", branch]);
-
-        match push_result {
-            Ok(()) => match verify_remote_head(branch, &current_sha) {
-                Ok(true) => return Ok(current_sha),
-                Ok(false) => {
-                    output::warn("Push reported success but remote ref is stale — retrying");
-                    last_err = Some(anyhow::anyhow!(
-                        "push verification failed: origin/{branch} does not match {current_sha}"
-                    ));
-                },
-                Err(e) => {
-                    output::warn(&format!("Could not verify remote ref: {e}"));
-                    last_err = Some(e);
-                },
-            },
-            Err(e) => {
-                let msg = format!("{e}");
-                output::warn(&format!("Push failed: {msg}"));
-                if looks_like_non_fast_forward(&msg)
-                    && let Some(new_sha) = rebase_onto_remote(branch)
-                {
-                    current_sha = new_sha;
-                    output::info(&format!("Rebased; new local HEAD = {current_sha}"));
-                }
-                last_err = Some(e);
-            },
-        }
-
-        if attempt < MAX_ATTEMPTS {
-            let delay = 2u64.pow(attempt.min(5));
-            std::thread::sleep(Duration::from_secs(delay));
-        }
-    }
-
-    Err(last_err.unwrap_or_else(|| anyhow::anyhow!("push failed: exhausted retries")))
-}
-
-fn looks_like_non_fast_forward(msg: &str) -> bool {
-    let lower = msg.to_lowercase();
-    lower.contains("non-fast-forward")
-        || lower.contains("fetch first")
-        || lower.contains("updates were rejected")
-}
-
-/// Fetch the branch and rebase local onto it. Returns the new HEAD SHA on
-/// success; aborts any in-progress rebase and returns None on failure so the
-/// caller can retry the bare push.
-fn rebase_onto_remote(branch: &str) -> Option<String> {
-    output::info("Non-fast-forward detected — fetching and rebasing");
-    if process::run("git", &["fetch", "origin", branch]).is_err() {
-        return None;
-    }
-    let remote_ref = format!("origin/{branch}");
-    if process::run("git", &["rebase", &remote_ref]).is_err() {
-        let _ = process::run("git", &["rebase", "--abort"]);
-        output::warn("Rebase failed — aborted, will retry bare push");
-        return None;
-    }
-    process::run_capture("git", &["rev-parse", "HEAD"])
-        .ok()
-        .map(|s| s.trim().to_string())
-}
-
-fn verify_remote_head(branch: &str, expected_sha: &str) -> Result<bool> {
-    let full_ref = format!("refs/heads/{branch}");
-    let out = process::run_capture("git", &["ls-remote", "origin", &full_ref])?;
-    let remote_sha = parse_ls_remote_sha(&out)
-        .ok_or_else(|| anyhow::anyhow!("ls-remote returned no ref for {branch}"))?;
-    output::info(&format!("Remote origin/{branch} = {remote_sha}"));
-    Ok(remote_sha == expected_sha)
-}
-
-/// Extract the branch SHA from `git ls-remote` output, preferring `refs/heads/`.
-fn parse_ls_remote_sha(output: &str) -> Option<String> {
-    let extract_sha = |line: &str| line.split_whitespace().next().map(|s| s.to_string());
-    output
-        .lines()
-        .find(|line| line.contains("refs/heads/"))
-        .and_then(extract_sha)
-}
-
 /// Persist the unpushed commit as a `.patch` file in `$RUNNER_TEMP/review-agent-patches/`
 /// so the workflow can upload it as an artifact for manual recovery.
 ///
@@ -534,7 +422,10 @@ fn save_commit_patch(sha: &str) -> Result<String> {
     Ok(path.to_string_lossy().to_string())
 }
 
-fn collect_review_content(content: &mut String) -> Result<()> {
+/// Concatenate every reviewer's saved feedback file (env var path override,
+/// else the default path) into one markdown document.
+fn collect_review_content() -> String {
+    let mut content = String::new();
     // Collect review artifacts from all reviewer agents.
     // Each reviewer saves its output to a known file path (env var or default).
     let review_sources: &[(&str, &str, &str)] = &[
@@ -554,9 +445,6 @@ fn collect_review_content(content: &mut String) -> Result<()> {
             "openrouter-review.md",
             "OpenRouter Review",
         ),
-        // Legacy (disabled but kept for backwards compatibility if force-labels used)
-        ("GEMINI_REVIEW_PATH", "gemini-review.md", "Gemini Review"),
-        ("CODEX_REVIEW_PATH", "codex-review.md", "Codex Review"),
     ];
 
     for (env_var, default_path, display_name) in review_sources {
@@ -570,7 +458,7 @@ fn collect_review_content(content: &mut String) -> Result<()> {
             content.push_str("\n\n");
         }
     }
-    Ok(())
+    content
 }
 
 fn fetch_categorized_comments(pr_number: u64, root: &Path) -> Result<String> {
@@ -590,10 +478,19 @@ fn fetch_categorized_comments(pr_number: u64, root: &Path) -> Result<String> {
         ],
     ) {
         Ok(j) => j,
-        Err(_) => return Ok(String::new()),
+        Err(e) => {
+            output::warn(&format!("Could not fetch PR comments: {e}"));
+            return Ok(String::new());
+        },
     };
 
-    let comments: Vec<serde_json::Value> = serde_json::from_str(&json).unwrap_or_default();
+    let comments = match parse_paginated_array(&json) {
+        Ok(c) => c,
+        Err(e) => {
+            output::warn(&format!("Could not parse PR comments JSON: {e}"));
+            return Ok(String::new());
+        },
+    };
 
     let mut admin_comments = Vec::new();
     let mut trusted_comments = Vec::new();
@@ -665,6 +562,16 @@ fn fetch_categorized_comments(pr_number: u64, root: &Path) -> Result<String> {
     // Truncate if needed
     truncate_in_place(&mut result, MAX_PR_COMMENTS_CHARS);
     Ok(result)
+}
+
+/// Parse `gh api --paginate` output, which is one JSON array *per page*
+/// written back to back (`[...][...]`), into a single list.
+fn parse_paginated_array(json: &str) -> Result<Vec<serde_json::Value>> {
+    let mut all = Vec::new();
+    for page in serde_json::Deserializer::from_str(json).into_iter::<Vec<serde_json::Value>>() {
+        all.extend(page?);
+    }
+    Ok(all)
 }
 
 fn build_prompt(
@@ -783,11 +690,7 @@ struct ClaudeOutcome {
 /// against Claude's free-text summary — without this, we cannot tell whether
 /// Claude actually edited files or just generated a plausible-sounding summary.
 fn run_claude_streamed(prompt: &str, iteration: u32) -> Result<ClaudeOutcome> {
-    let claude_cmd = if process::command_exists("claude") {
-        "claude"
-    } else if process::command_exists("claude-code") {
-        "claude-code"
-    } else {
+    let Some(claude_cmd) = common::find_claude_cli() else {
         output::warn("Claude CLI not found, skipping AI-assisted fixes");
         return Ok(ClaudeOutcome {
             text: String::new(),
@@ -797,9 +700,7 @@ fn run_claude_streamed(prompt: &str, iteration: u32) -> Result<ClaudeOutcome> {
     };
 
     output::step("Running Claude (-p stream-json, 20 min timeout)...");
-    let prompt_file = write_temp_file(prompt)?;
-    let prompt_path = Path::new(&prompt_file);
-
+    let prompt_file = common::write_temp(prompt)?;
     let raw = process::run_capture_with_timeout(
         claude_cmd,
         &[
@@ -809,15 +710,18 @@ fn run_claude_streamed(prompt: &str, iteration: u32) -> Result<ClaudeOutcome> {
             "--verbose",
             "--dangerously-skip-permissions",
         ],
-        prompt_path,
-        Duration::from_secs(20 * 60),
-    );
-
-    let _ = std::fs::remove_file(&prompt_file);
-    let raw = raw?;
+        prompt_file.path(),
+        CLAUDE_TIMEOUT,
+    )?;
 
     let (text, edited_files) = parse_claude_stream(&raw);
-    let stream_log_path = save_claude_stream_log(iteration, &raw).ok();
+    let stream_log_path = match save_claude_stream_log(iteration, &raw) {
+        Ok(p) => Some(p),
+        Err(e) => {
+            output::warn(&format!("Claude stream log not saved: {e}"));
+            None
+        },
+    };
 
     if let Some(ref p) = stream_log_path {
         output::info(&format!("Claude stream log saved: {p}"));
@@ -1074,7 +978,9 @@ fn extract_agent_summary(output: &str) -> String {
     let start_marker = "---AGENT-SUMMARY-START---";
     let end_marker = "---AGENT-SUMMARY-END---";
 
-    if let Some(start) = output.find(start_marker)
+    // Use the LAST start marker: the model may quote the format earlier in
+    // its reasoning, and the final summary is what matters.
+    if let Some(start) = output.rfind(start_marker)
         && let Some(end) = output[start..].find(end_marker)
     {
         let summary = &output[start + start_marker.len()..start + end];
@@ -1121,7 +1027,8 @@ fn summary_claims_fixes(summary: &str) -> bool {
         .strip_prefix("- ")
         .or_else(|| section.strip_prefix("* "))
         .unwrap_or(section)
-        .trim();
+        .trim()
+        .trim_end_matches('.');
     // Already lowercased so direct comparison is fine.
     ![
         "(none)",
@@ -1131,22 +1038,6 @@ fn summary_claims_fixes(summary: &str) -> bool {
         "(none -- no review feedback was generated)",
     ]
     .contains(&stripped)
-}
-
-fn post_comment(pr_number: u64, body: &str) -> Result<()> {
-    if !process::command_exists("gh") {
-        if project::is_ci() {
-            bail!("gh CLI not found in CI -- cannot post PR comment");
-        }
-        output::warn("gh CLI not found, skipping PR comment");
-        return Ok(());
-    }
-    let temp = write_temp_file(body)?;
-    let pr = pr_number.to_string();
-    let result =
-        process::run_with_retries("gh", &["pr", "comment", &pr, "--body-file", &temp], 3, 2);
-    let _ = std::fs::remove_file(&temp);
-    result
 }
 
 fn post_decision_comment(
@@ -1212,78 +1103,14 @@ fn post_hallucination_comment(
          <!-- agent-metadata:type=review-fix-hallucination:iteration={display_iter} -->\n\n\
          **Status:** Hallucination detected — no commit\n\n\
          > **Detection:** The agent's summary below claims to have applied fixes, \
-         > but Claude made **zero** file-mutating tool calls (`Edit` / `Write` / `MultiEdit` / `NotebookEdit`) \
-         > during the run. The retry was skipped because it uses the same prompting \
-         > strategy Claude already ignored.{log_note}\n\n\
+         > but `git diff` stayed empty -- both on the first attempt and on a retry \
+         > that showed the agent the prior iteration's diff. The claimed fixes were \
+         > either never written (no `Edit` / `Write` / `MultiEdit` / `NotebookEdit` \
+         > calls) or were no-op edits.{log_note}\n\n\
          {summary}\n\n---\n\
          *No file modifications were performed; this iteration produced no commit.*"
     );
     post_comment(pr_number, &body)
-}
-
-fn configure_git() -> Result<()> {
-    let token = std::env::var("GITHUB_TOKEN").unwrap_or_default();
-    let repo = std::env::var("GITHUB_REPOSITORY").unwrap_or_default();
-    if !token.is_empty() && !repo.is_empty() {
-        output::step("Configuring git authentication...");
-        let url = format!("https://x-access-token:{token}@github.com/{repo}.git");
-        process::run("git", &["remote", "set-url", "origin", &url])?;
-        process::run("git", &["config", "user.name", "AI Review Agent"])?;
-        process::run(
-            "git",
-            &["config", "user.email", "ai-review-agent@localhost"],
-        )?;
-    }
-    Ok(())
-}
-
-fn temporarily_disable_pre_push_hook<T, F: FnOnce() -> Result<T>>(f: F) -> Result<T> {
-    let hook = Path::new(".git/hooks/pre-push");
-    let disabled = Path::new(".git/hooks/pre-push.disabled");
-    let had_hook = hook.exists();
-
-    if had_hook {
-        std::fs::rename(hook, disabled)?;
-        output::info("Disabled pre-push hook temporarily");
-    }
-
-    let result = f();
-
-    if had_hook && disabled.exists() {
-        let _ = std::fs::rename(disabled, hook);
-    }
-
-    result
-}
-
-fn truncate_in_place(s: &mut String, max: usize) {
-    if s.len() <= max {
-        return;
-    }
-    let original_len = s.len();
-    // Find a safe truncation point on a char boundary
-    let safe_max = if s.is_char_boundary(max) {
-        max
-    } else {
-        s.floor_char_boundary(max)
-    };
-    // Find last newline before safe_max
-    if let Some(pos) = s[..safe_max].rfind('\n') {
-        s.truncate(pos);
-    } else {
-        s.truncate(safe_max);
-    }
-    s.push_str(&format!(
-        "\n\n[... truncated from {original_len} to {} chars ...]",
-        s.len()
-    ));
-}
-
-fn write_temp_file(content: &str) -> Result<String> {
-    let n = TEMP_COUNTER.fetch_add(1, Ordering::Relaxed);
-    let path = std::env::temp_dir().join(format!("automation-cli-{}-{n}", std::process::id()));
-    std::fs::write(&path, content)?;
-    Ok(path.to_string_lossy().to_string())
 }
 
 /// Run autoformat via the precommit module and restage changed files.
@@ -1301,19 +1128,14 @@ fn run_precommit_lint_capture() -> String {
     let mut errors = String::new();
 
     for stage in &stages {
-        match super::precommit::run_ci_stage_captured(stage) {
-            Ok(check) if !check.passed => {
-                if !errors.is_empty() {
-                    errors.push('\n');
-                }
-                errors.push_str(&format!("### {stage} failures:\n"));
-                errors.push_str(&check.error_output);
+        let check = super::precommit::run_ci_stage_captured(stage);
+        if !check.passed {
+            if !errors.is_empty() {
                 errors.push('\n');
-            },
-            Err(e) => {
-                output::warn(&format!("Failed to run {stage}: {e}"));
-            },
-            _ => {},
+            }
+            errors.push_str(&format!("### {stage} failures:\n"));
+            errors.push_str(&check.error_output);
+            errors.push('\n');
         }
     }
 
@@ -1531,51 +1353,30 @@ mod tests {
     }
 
     #[test]
-    fn parse_ls_remote_sha_basic() {
-        let out = "abc123def456abc123def456abc123def456abcd\trefs/heads/main\n";
-        assert_eq!(
-            parse_ls_remote_sha(out).as_deref(),
-            Some("abc123def456abc123def456abc123def456abcd")
-        );
+    fn extract_agent_summary_uses_last_block() {
+        let output = "I will print ---AGENT-SUMMARY-START--- x ---AGENT-SUMMARY-END--- later.\n\
+                      ---AGENT-SUMMARY-START---\n### Fixed Issues\n- real\n---AGENT-SUMMARY-END---";
+        let summary = extract_agent_summary(output);
+        assert!(summary.contains("- real"));
+        assert!(!summary.contains(" x "));
     }
 
     #[test]
-    fn parse_ls_remote_sha_empty() {
-        assert_eq!(parse_ls_remote_sha(""), None);
-    }
-
-    #[test]
-    fn parse_ls_remote_sha_whitespace_only() {
-        assert_eq!(parse_ls_remote_sha("   \n"), None);
-    }
-
-    #[test]
-    fn parse_ls_remote_sha_first_line_only() {
-        // Multiple refs: take the first refs/heads/ line's SHA.
-        let out = "aaa\trefs/heads/feature\nbbb\trefs/heads/main\n";
-        assert_eq!(parse_ls_remote_sha(out).as_deref(), Some("aaa"));
-    }
-
-    #[test]
-    fn parse_ls_remote_sha_no_branch_ref() {
-        let out = "abc123\trefs/tags/v1.0\n";
-        assert_eq!(parse_ls_remote_sha(out), None);
-    }
-
-    #[test]
-    fn looks_like_non_fast_forward_matches() {
-        assert!(looks_like_non_fast_forward(
-            "! [rejected]        main -> main (non-fast-forward)"
+    fn summary_claims_fixes_none_with_period() {
+        assert!(!summary_claims_fixes(
+            "### Fixed Issues\n- None.\n### Notes\n- x"
         ));
-        assert!(looks_like_non_fast_forward(
-            "error: failed to push some refs; updates were rejected"
-        ));
-        assert!(looks_like_non_fast_forward(
-            "hint: Updates were rejected because the tip of your current branch is behind -- fetch first"
-        ));
-        assert!(!looks_like_non_fast_forward(
-            "fatal: unable to access: could not resolve host"
-        ));
+    }
+
+    #[test]
+    fn parse_paginated_array_merges_pages() {
+        let json = r#"[{"id":1},{"id":2}]
+[{"id":3}]"#;
+        let all = parse_paginated_array(json).unwrap();
+        assert_eq!(all.len(), 3);
+        assert_eq!(all[2]["id"], 3);
+        assert!(parse_paginated_array("").unwrap().is_empty());
+        assert!(parse_paginated_array("[1,").is_err());
     }
 
     #[test]
