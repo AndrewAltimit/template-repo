@@ -65,10 +65,28 @@ impl SessionInfo {
     }
 }
 
-/// Thread-safe session manager
+/// Default upper bound on concurrently tracked sessions (see
+/// [`SessionManager::with_max_sessions`]).
+pub const DEFAULT_MAX_SESSIONS: usize = 1024;
+
+/// Thread-safe session manager.
+///
+/// Sessions are bounded: once [`max_sessions`](Self::max_sessions) are
+/// tracked, creating another evicts the oldest one. HTTP clients that never
+/// send `DELETE` therefore cannot grow memory without limit on a long-running
+/// server.
 #[derive(Clone)]
 pub struct SessionManager {
     sessions: Arc<RwLock<HashMap<String, SessionInfo>>>,
+    max_sessions: usize,
+}
+
+impl std::fmt::Debug for SessionManager {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("SessionManager")
+            .field("max_sessions", &self.max_sessions)
+            .finish_non_exhaustive()
+    }
 }
 
 impl Default for SessionManager {
@@ -78,18 +96,46 @@ impl Default for SessionManager {
 }
 
 impl SessionManager {
-    /// Create a new session manager
+    /// Create a new session manager holding at most [`DEFAULT_MAX_SESSIONS`].
     pub fn new() -> Self {
+        Self::with_max_sessions(DEFAULT_MAX_SESSIONS)
+    }
+
+    /// Create a session manager that tracks at most `max_sessions` sessions
+    /// (minimum 1), evicting the oldest when full.
+    pub fn with_max_sessions(max_sessions: usize) -> Self {
         Self {
             sessions: Arc::new(RwLock::new(HashMap::new())),
+            max_sessions: max_sessions.max(1),
         }
+    }
+
+    /// The maximum number of tracked sessions.
+    pub fn max_sessions(&self) -> usize {
+        self.max_sessions
+    }
+
+    /// Insert under the write lock, evicting the oldest session when full.
+    async fn insert_bounded(&self, session: SessionInfo) {
+        let mut sessions = self.sessions.write().await;
+        if !sessions.contains_key(&session.id) && sessions.len() >= self.max_sessions {
+            let oldest = sessions
+                .values()
+                .min_by_key(|s| s.created_at)
+                .map(|s| s.id.clone());
+            if let Some(oldest) = oldest {
+                sessions.remove(&oldest);
+                tracing::debug!("Session limit reached; evicted oldest session {}", oldest);
+            }
+        }
+        sessions.insert(session.id.clone(), session);
     }
 
     /// Create a new session and return its ID
     pub async fn create_session(&self, protocol_version: impl Into<String>) -> String {
         let session = SessionInfo::new(protocol_version);
         let id = session.id.clone();
-        self.sessions.write().await.insert(id.clone(), session);
+        self.insert_bounded(session).await;
         id
     }
 
@@ -104,13 +150,26 @@ impl SessionManager {
                 return id.to_string();
             }
             // Session ID provided but doesn't exist - create with that ID
-            let session = SessionInfo::with_id(id, protocol_version);
-            self.sessions.write().await.insert(id.to_string(), session);
+            self.insert_bounded(SessionInfo::with_id(id, protocol_version))
+                .await;
             id.to_string()
         } else {
             // No session ID - create new
             self.create_session(protocol_version).await
         }
+    }
+
+    /// Remove sessions created more than `max_age` ago; returns how many were
+    /// removed.
+    pub async fn prune_older_than(&self, max_age: std::time::Duration) -> usize {
+        let Ok(max_age) = chrono::Duration::from_std(max_age) else {
+            return 0;
+        };
+        let cutoff = chrono::Utc::now() - max_age;
+        let mut sessions = self.sessions.write().await;
+        let before = sessions.len();
+        sessions.retain(|_, s| s.created_at >= cutoff);
+        before - sessions.len()
     }
 
     /// Get a session by ID
@@ -207,5 +266,38 @@ mod tests {
         let id3 = manager.get_or_create(Some("custom-id"), "2024-11-05").await;
         assert_eq!(id3, "custom-id");
         assert!(manager.exists("custom-id").await);
+    }
+
+    #[tokio::test]
+    async fn session_count_is_bounded() {
+        let manager = SessionManager::with_max_sessions(2);
+        let first = manager.create_session("v").await;
+        tokio::time::sleep(std::time::Duration::from_millis(5)).await;
+        let second = manager.create_session("v").await;
+        tokio::time::sleep(std::time::Duration::from_millis(5)).await;
+        let third = manager.create_session("v").await;
+        assert_eq!(manager.count().await, 2);
+        assert!(!manager.exists(&first).await, "oldest session is evicted");
+        assert!(manager.exists(&second).await);
+        assert!(manager.exists(&third).await);
+        // Re-inserting an existing id does not evict anything.
+        manager.get_or_create(Some(&third), "v").await;
+        assert_eq!(manager.count().await, 2);
+        assert_eq!(SessionManager::with_max_sessions(0).max_sessions(), 1);
+    }
+
+    #[tokio::test]
+    async fn prune_removes_old_sessions() {
+        let manager = SessionManager::new();
+        manager.create_session("v").await;
+        assert_eq!(
+            manager
+                .prune_older_than(std::time::Duration::from_secs(3600))
+                .await,
+            0
+        );
+        tokio::time::sleep(std::time::Duration::from_millis(5)).await;
+        assert_eq!(manager.prune_older_than(std::time::Duration::ZERO).await, 1);
+        assert_eq!(manager.count().await, 0);
     }
 }

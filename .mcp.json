@@ -143,7 +143,8 @@
       "env": {
         "GITHUB_TOKEN": "${GITHUB_TOKEN}",
         "GITHUB_REPOSITORY": "${GITHUB_REPOSITORY}",
-        "GITHUB_PROJECT_NUMBER": "1"
+        "GITHUB_PROJECTS_TOKEN": "${GITHUB_PROJECTS_TOKEN}",
+        "BOARD_PROJECT_NUMBER": "1"
       }
     },
     "agentcore-memory": {

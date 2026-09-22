@@ -1,192 +1,241 @@
-//! Local memory cache for frequently accessed memories
+//! In-process LRU + TTL cache for `search_memories` results.
+//!
+//! The key is `(namespace, top_k, query)`, so asking for more results than a
+//! cached call returned is a miss rather than a silently truncated hit. Writes
+//! and deletes through this server invalidate the affected namespace; writes by
+//! *other* processes sharing the same ChromaDB are only picked up once the TTL
+//! expires (default 5 minutes, `MEMORY_CACHE_TTL_SECS=0` disables caching).
 
-use serde_json::Value;
+use serde_json::{Value, json};
 use std::collections::HashMap;
 use std::time::{Duration, Instant};
 
-/// A cache entry with expiration tracking
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+struct CacheKey {
+    namespace: String,
+    top_k: u32,
+    query: String,
+}
+
 #[derive(Clone)]
 struct CacheEntry {
     results: Vec<Value>,
-    timestamp: Instant,
-    namespace: String,
+    inserted: Instant,
+    last_used: Instant,
 }
 
-/// LRU cache for frequently accessed memories
+/// Bounded search-result cache.
 pub struct MemoryCache {
     max_size: usize,
     ttl: Duration,
-    cache: HashMap<String, CacheEntry>,
+    entries: HashMap<CacheKey, CacheEntry>,
+    hits: u64,
+    misses: u64,
 }
 
 impl MemoryCache {
-    /// Create a new cache
-    ///
-    /// # Arguments
-    /// * `max_size` - Maximum number of cache entries
-    /// * `ttl_seconds` - Time-to-live in seconds
-    pub fn new(max_size: usize, ttl_seconds: u64) -> Self {
+    /// Create a cache holding at most `max_size` entries for `ttl` each.
+    /// Either value being zero disables caching.
+    pub fn new(max_size: usize, ttl: Duration) -> Self {
         Self {
             max_size,
-            ttl: Duration::from_secs(ttl_seconds),
-            cache: HashMap::new(),
+            ttl,
+            entries: HashMap::new(),
+            hits: 0,
+            misses: 0,
         }
     }
 
-    /// Create a cache key from query and namespace
-    fn make_key(query: &str, namespace: &str) -> String {
-        let data = format!("{}:{}", query, namespace);
-        format!("{:x}", md5::compute(data.as_bytes()))
+    /// Whether the cache stores anything at all.
+    pub fn enabled(&self) -> bool {
+        self.max_size > 0 && !self.ttl.is_zero()
     }
 
-    /// Get cached results for a query (updates access time for LRU behavior)
-    pub fn get(&mut self, query: &str, namespace: &str) -> Option<Vec<Value>> {
-        let key = Self::make_key(query, namespace);
+    fn key(query: &str, namespace: &str, top_k: u32) -> CacheKey {
+        CacheKey {
+            namespace: namespace.to_string(),
+            top_k,
+            query: query.to_string(),
+        }
+    }
 
-        if let Some(entry) = self.cache.get_mut(&key) {
-            if entry.timestamp.elapsed() < self.ttl {
-                // Update timestamp for true LRU behavior
-                entry.timestamp = Instant::now();
-                tracing::debug!("Cache hit for query in namespace {}", namespace);
-                return Some(entry.results.clone());
+    /// Look up cached results. Expiry is measured from insertion (a hit does
+    /// not extend the TTL, so hot entries still refresh periodically); a hit
+    /// refreshes the LRU position.
+    pub fn get(&mut self, query: &str, namespace: &str, top_k: u32) -> Option<Vec<Value>> {
+        if !self.enabled() {
+            return None;
+        }
+        let key = Self::key(query, namespace, top_k);
+        let ttl = self.ttl;
+        match self.entries.get_mut(&key) {
+            Some(entry) if entry.inserted.elapsed() < ttl => {
+                entry.last_used = Instant::now();
+                self.hits += 1;
+                Some(entry.results.clone())
+            },
+            Some(_) => {
+                self.entries.remove(&key);
+                self.misses += 1;
+                None
+            },
+            None => {
+                self.misses += 1;
+                None
+            },
+        }
+    }
+
+    /// Store results, evicting expired entries and then the least recently
+    /// used one if the cache is full.
+    pub fn set(&mut self, query: &str, namespace: &str, top_k: u32, results: Vec<Value>) {
+        if !self.enabled() {
+            return;
+        }
+        let key = Self::key(query, namespace, top_k);
+        if self.entries.len() >= self.max_size && !self.entries.contains_key(&key) {
+            self.cleanup_expired();
+            if self.entries.len() >= self.max_size
+                && let Some(oldest) = self
+                    .entries
+                    .iter()
+                    .min_by_key(|(_, e)| e.last_used)
+                    .map(|(k, _)| k.clone())
+            {
+                self.entries.remove(&oldest);
             }
-            tracing::debug!("Cache expired for query in namespace {}", namespace);
         }
-
-        None
-    }
-
-    /// Cache results for a query
-    pub fn set(&mut self, query: &str, namespace: &str, results: Vec<Value>) {
-        let key = Self::make_key(query, namespace);
-
-        // Evict oldest if at capacity
-        if self.cache.len() >= self.max_size
-            && !self.cache.contains_key(&key)
-            && let Some(oldest_key) = self
-                .cache
-                .iter()
-                .min_by_key(|(_, entry)| entry.timestamp)
-                .map(|(k, _)| k.clone())
-        {
-            self.cache.remove(&oldest_key);
-            tracing::debug!("Evicted oldest cache entry due to size limit");
-        }
-
-        self.cache.insert(
+        let now = Instant::now();
+        self.entries.insert(
             key,
             CacheEntry {
                 results,
-                timestamp: Instant::now(),
-                namespace: namespace.to_string(),
+                inserted: now,
+                last_used: now,
             },
         );
     }
 
-    /// Invalidate cache entries
-    ///
-    /// # Arguments
-    /// * `namespace` - If provided, only invalidate entries for this namespace.
-    ///   If None, clears entire cache.
+    /// Drop entries for exactly `namespace` (not its children: each namespace
+    /// is a separate collection, so writing to `a/b` cannot change `a`), or
+    /// everything when `namespace` is `None`. Returns the number removed.
     pub fn invalidate(&mut self, namespace: Option<&str>) -> usize {
+        let before = self.entries.len();
         match namespace {
-            None => {
-                let count = self.cache.len();
-                self.cache.clear();
-                tracing::debug!("Invalidated entire cache ({} entries)", count);
-                count
-            },
-            Some(ns) => {
-                let keys_to_remove: Vec<String> = self
-                    .cache
-                    .iter()
-                    .filter(|(_, entry)| {
-                        entry.namespace == ns || entry.namespace.starts_with(&format!("{}/", ns))
-                    })
-                    .map(|(k, _)| k.clone())
-                    .collect();
-
-                let count = keys_to_remove.len();
-                for key in keys_to_remove {
-                    self.cache.remove(&key);
-                }
-
-                if count > 0 {
-                    tracing::debug!("Invalidated {} cache entries for namespace {}", count, ns);
-                }
-                count
-            },
+            None => self.entries.clear(),
+            Some(ns) => self.entries.retain(|k, _| k.namespace != ns),
         }
+        before - self.entries.len()
     }
 
-    /// Remove all expired entries
-    #[allow(dead_code)]
+    /// Remove expired entries, returning how many were dropped.
     pub fn cleanup_expired(&mut self) -> usize {
-        let now = Instant::now();
-        let expired_keys: Vec<String> = self
-            .cache
-            .iter()
-            .filter(|(_, entry)| now.duration_since(entry.timestamp) >= self.ttl)
-            .map(|(k, _)| k.clone())
-            .collect();
-
-        let count = expired_keys.len();
-        for key in expired_keys {
-            self.cache.remove(&key);
-        }
-
-        if count > 0 {
-            tracing::debug!("Cleaned up {} expired cache entries", count);
-        }
-        count
+        let ttl = self.ttl;
+        let before = self.entries.len();
+        self.entries.retain(|_, e| e.inserted.elapsed() < ttl);
+        before - self.entries.len()
     }
 
-    /// Get cache statistics
-    pub fn get_stats(&self) -> HashMap<String, Value> {
-        let now = Instant::now();
-        let expired_count = self
-            .cache
+    /// Statistics for `memory_status`.
+    pub fn stats(&self) -> Value {
+        let expired = self
+            .entries
             .values()
-            .filter(|entry| now.duration_since(entry.timestamp) >= self.ttl)
+            .filter(|e| e.inserted.elapsed() >= self.ttl)
             .count();
-
-        // Count entries by namespace category
-        let mut namespace_counts: HashMap<String, usize> = HashMap::new();
-        for entry in self.cache.values() {
-            let category = entry
-                .namespace
-                .split('/')
-                .next()
-                .unwrap_or(&entry.namespace)
-                .to_string();
-            *namespace_counts.entry(category).or_insert(0) += 1;
+        let mut by_category: HashMap<&str, usize> = HashMap::new();
+        for key in self.entries.keys() {
+            let category = key.namespace.split('/').next().unwrap_or(&key.namespace);
+            *by_category.entry(category).or_insert(0) += 1;
         }
-
-        let mut stats = HashMap::new();
-        stats.insert("size".to_string(), serde_json::json!(self.cache.len()));
-        stats.insert("max_size".to_string(), serde_json::json!(self.max_size));
-        stats.insert(
-            "ttl_seconds".to_string(),
-            serde_json::json!(self.ttl.as_secs()),
-        );
-        stats.insert(
-            "expired_entries".to_string(),
-            serde_json::json!(expired_count),
-        );
-        stats.insert(
-            "active_entries".to_string(),
-            serde_json::json!(self.cache.len() - expired_count),
-        );
-        stats.insert(
-            "by_namespace_category".to_string(),
-            serde_json::json!(namespace_counts),
-        );
-        stats
+        json!({
+            "enabled": self.enabled(),
+            "size": self.entries.len(),
+            "max_size": self.max_size,
+            "ttl_seconds": self.ttl.as_secs(),
+            "expired_entries": expired,
+            "active_entries": self.entries.len() - expired,
+            "hits": self.hits,
+            "misses": self.misses,
+            "by_namespace_category": by_category,
+        })
     }
 }
 
-impl Default for MemoryCache {
-    fn default() -> Self {
-        Self::new(1000, 300) // 1000 entries, 5 minute TTL
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn vals(n: usize) -> Vec<Value> {
+        (0..n).map(|i| json!(i)).collect()
+    }
+
+    #[test]
+    fn hit_and_miss() {
+        let mut c = MemoryCache::new(10, Duration::from_secs(60));
+        assert!(c.get("q", "ns", 5).is_none());
+        c.set("q", "ns", 5, vals(2));
+        assert_eq!(c.get("q", "ns", 5).unwrap().len(), 2);
+        assert_eq!(c.stats()["hits"], 1);
+        assert_eq!(c.stats()["misses"], 1);
+    }
+
+    #[test]
+    fn top_k_is_part_of_key() {
+        let mut c = MemoryCache::new(10, Duration::from_secs(60));
+        c.set("q", "ns", 2, vals(2));
+        assert!(c.get("q", "ns", 10).is_none());
+    }
+
+    #[test]
+    fn no_key_collision_on_separator() {
+        let mut c = MemoryCache::new(10, Duration::from_secs(60));
+        c.set("a:b", "c", 5, vals(1));
+        assert!(c.get("a", "b:c", 5).is_none());
+    }
+
+    #[test]
+    fn expiry() {
+        let mut c = MemoryCache::new(10, Duration::from_millis(1));
+        c.set("q", "ns", 5, vals(1));
+        std::thread::sleep(Duration::from_millis(5));
+        assert!(c.get("q", "ns", 5).is_none());
+        assert_eq!(c.stats()["size"], 0, "expired entry removed on access");
+    }
+
+    #[test]
+    fn lru_eviction() {
+        let mut c = MemoryCache::new(2, Duration::from_secs(60));
+        c.set("a", "ns", 5, vals(1));
+        std::thread::sleep(Duration::from_millis(2));
+        c.set("b", "ns", 5, vals(1));
+        std::thread::sleep(Duration::from_millis(2));
+        // Touch "a" so "b" becomes least recently used.
+        assert!(c.get("a", "ns", 5).is_some());
+        c.set("c", "ns", 5, vals(1));
+        assert!(c.get("a", "ns", 5).is_some());
+        assert!(c.get("b", "ns", 5).is_none());
+        assert!(c.get("c", "ns", 5).is_some());
+    }
+
+    #[test]
+    fn invalidate_exact_namespace_only() {
+        let mut c = MemoryCache::new(10, Duration::from_secs(60));
+        c.set("q", "codebase", 5, vals(1));
+        c.set("q", "codebase/patterns", 5, vals(1));
+        assert_eq!(c.invalidate(Some("codebase/patterns")), 1);
+        assert!(c.get("q", "codebase", 5).is_some());
+        assert_eq!(c.invalidate(None), 1);
+    }
+
+    #[test]
+    fn disabled_cache_stores_nothing() {
+        let mut c = MemoryCache::new(10, Duration::ZERO);
+        c.set("q", "ns", 5, vals(1));
+        assert!(c.get("q", "ns", 5).is_none());
+        assert_eq!(c.stats()["enabled"], false);
+        let mut c = MemoryCache::new(0, Duration::from_secs(1));
+        c.set("q", "ns", 5, vals(1));
+        assert!(c.get("q", "ns", 5).is_none());
     }
 }

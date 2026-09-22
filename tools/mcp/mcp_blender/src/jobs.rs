@@ -1,164 +1,235 @@
-//! Job management for async Blender operations.
+//! In-memory registry for asynchronous Blender jobs.
+//!
+//! State transitions are monotonic: `QUEUED -> RUNNING -> {COMPLETED | FAILED}`
+//! and `QUEUED | RUNNING -> CANCELLED`. Once a job is terminal nothing can
+//! change it, so a worker finishing after a cancellation cannot resurrect the
+//! job as "completed". Each job owns a cancellation signal that its worker
+//! watches; [`JobManager::cancel`] flips it, which kills the Blender process.
+//!
+//! The lock is a `std::sync::Mutex` held only for short, non-`await`ing
+//! critical sections; poisoning is tolerated (the data stays consistent
+//! because every mutation is a single assignment).
 
 use crate::types::{Job, JobStatus};
 use chrono::Utc;
+use serde_json::Value;
 use std::collections::HashMap;
-use std::sync::Arc;
-use tokio::sync::RwLock;
+use std::sync::{Arc, Mutex, MutexGuard};
+use std::time::Duration;
+use tokio::sync::watch;
 use tracing::{debug, info, warn};
 use uuid::Uuid;
 
-/// Job manager for tracking async operations
+/// Hard cap on remembered jobs; the oldest finished ones are dropped first.
+const MAX_TRACKED_JOBS: usize = 1000;
+
+/// Receiver side of a job's cancellation signal.
+pub type CancelSignal = watch::Receiver<bool>;
+
+struct Entry {
+    job: Job,
+    cancel: watch::Sender<bool>,
+}
+
+/// Why a cancellation request was refused.
+#[derive(Debug, Clone, PartialEq, Eq, thiserror::Error)]
+pub enum CancelError {
+    /// Unknown (or already pruned) job id.
+    #[error("job {0} not found")]
+    NotFound(Uuid),
+    /// The job already reached a terminal state.
+    #[error("job {0} already finished with status {1}")]
+    AlreadyFinished(Uuid, JobStatus),
+}
+
+/// Thread-safe, cloneable job registry.
+#[derive(Clone)]
 pub struct JobManager {
-    jobs: Arc<RwLock<HashMap<Uuid, Job>>>,
+    inner: Arc<Mutex<HashMap<Uuid, Entry>>>,
+    retention: Duration,
 }
 
 impl JobManager {
-    /// Create a new job manager
-    pub fn new() -> Self {
+    /// Registry that forgets finished jobs after `retention`.
+    pub fn new(retention: Duration) -> Self {
         Self {
-            jobs: Arc::new(RwLock::new(HashMap::new())),
+            inner: Arc::new(Mutex::new(HashMap::new())),
+            retention,
         }
     }
 
-    /// Create a new job
-    pub async fn create_job(&self, job_type: &str) -> Uuid {
-        let job = Job::new(job_type);
+    fn lock(&self) -> MutexGuard<'_, HashMap<Uuid, Entry>> {
+        self.inner
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+    }
+
+    /// Register a new queued job; returns its id and cancellation signal.
+    pub fn create(&self, job_type: &str, project: Option<String>) -> (Uuid, CancelSignal) {
+        let mut job = Job::new(job_type);
+        job.project = project;
         let id = job.id;
-
-        let mut jobs = self.jobs.write().await;
-        jobs.insert(id, job);
-
-        info!("Created job {} of type {}", id, job_type);
-        id
+        let (tx, rx) = watch::channel(false);
+        let mut jobs = self.lock();
+        Self::prune_locked(&mut jobs, self.retention);
+        jobs.insert(id, Entry { job, cancel: tx });
+        info!("Created job {} ({})", id, job_type);
+        (id, rx)
     }
 
-    /// Create a job with a specific ID
-    pub async fn create_job_with_id(&self, id: Uuid, job_type: &str) -> Uuid {
-        let job = Job::new(job_type).with_id(id);
-
-        let mut jobs = self.jobs.write().await;
-        jobs.insert(id, job);
-
-        info!("Created job {} of type {}", id, job_type);
-        id
+    /// Snapshot of one job.
+    pub fn get(&self, id: Uuid) -> Option<Job> {
+        self.lock().get(&id).map(|e| e.job.clone())
     }
 
-    /// Get a job by ID
-    pub async fn get_job(&self, id: Uuid) -> Option<Job> {
-        let jobs = self.jobs.read().await;
-        jobs.get(&id).cloned()
+    /// Snapshot of all jobs, newest first (expired jobs are pruned first).
+    pub fn list(&self) -> Vec<Job> {
+        let mut guard = self.lock();
+        Self::prune_locked(&mut guard, self.retention);
+        let mut jobs: Vec<Job> = guard.values().map(|e| e.job.clone()).collect();
+        drop(guard);
+        jobs.sort_by_key(|job| std::cmp::Reverse(job.created_at));
+        jobs
     }
 
-    /// Update job status
-    pub async fn update_status(&self, id: Uuid, status: JobStatus, message: Option<&str>) {
-        let mut jobs = self.jobs.write().await;
-        if let Some(job) = jobs.get_mut(&id) {
-            job.status = status;
-            job.updated_at = Some(Utc::now());
-            if let Some(msg) = message {
-                job.message = msg.to_string();
+    /// `(queued, running, total)` counts.
+    pub fn counts(&self) -> (usize, usize, usize) {
+        let jobs = self.lock();
+        let queued = jobs
+            .values()
+            .filter(|e| e.job.status == JobStatus::Queued)
+            .count();
+        let running = jobs
+            .values()
+            .filter(|e| e.job.status == JobStatus::Running)
+            .count();
+        (queued, running, jobs.len())
+    }
+
+    /// `QUEUED -> RUNNING`. Returns false if the job is gone or not queued
+    /// (e.g. cancelled while waiting for a slot).
+    pub fn mark_running(&self, id: Uuid) -> bool {
+        let mut jobs = self.lock();
+        match jobs.get_mut(&id) {
+            Some(entry) if entry.job.status == JobStatus::Queued => {
+                let now = Utc::now();
+                entry.job.status = JobStatus::Running;
+                entry.job.message = "Blender started".to_string();
+                entry.job.started_at = Some(now);
+                entry.job.updated_at = Some(now);
+                true
+            },
+            _ => false,
+        }
+    }
+
+    /// Record progress for a running job (ignored in any other state).
+    pub fn update_progress(&self, id: Uuid, progress: u8, message: Option<&str>) {
+        let mut jobs = self.lock();
+        if let Some(entry) = jobs.get_mut(&id)
+            && entry.job.status == JobStatus::Running
+        {
+            // Progress never goes backwards and 100 is reserved for completion.
+            entry.job.progress = entry.job.progress.max(progress.min(99));
+            if let Some(msg) = message.filter(|m| !m.is_empty()) {
+                entry.job.message = msg.to_string();
             }
-            debug!("Updated job {} status to {}", id, status);
-        } else {
-            warn!("Job {} not found when updating status", id);
+            entry.job.updated_at = Some(Utc::now());
+            debug!("Job {} progress {}%", id, entry.job.progress);
         }
     }
 
-    /// Update job progress
-    pub async fn update_progress(&self, id: Uuid, progress: u8) {
-        let mut jobs = self.jobs.write().await;
-        if let Some(job) = jobs.get_mut(&id) {
-            job.progress = progress.min(100);
-            job.updated_at = Some(Utc::now());
-            debug!("Updated job {} progress to {}%", id, progress);
-        }
-    }
-
-    /// Mark job as completed with result
-    pub async fn complete_job(
-        &self,
-        id: Uuid,
-        result: serde_json::Value,
-        output_path: Option<&str>,
-    ) {
-        let mut jobs = self.jobs.write().await;
-        if let Some(job) = jobs.get_mut(&id) {
+    /// Finish a job successfully. Returns false if it was already terminal.
+    pub fn complete(&self, id: Uuid, result: Value, output_path: Option<String>) -> bool {
+        self.finish(id, |job| {
             job.status = JobStatus::Completed;
             job.progress = 100;
-            job.updated_at = Some(Utc::now());
+            job.message = "Completed".to_string();
             job.result = Some(result);
-            if let Some(path) = output_path {
-                job.output_path = Some(path.to_string());
+            if output_path.is_some() {
+                job.output_path = output_path;
             }
-            info!("Job {} completed", id);
-        }
+        })
     }
 
-    /// Mark job as failed with error
-    pub async fn fail_job(&self, id: Uuid, error: &str) {
-        let mut jobs = self.jobs.write().await;
-        if let Some(job) = jobs.get_mut(&id) {
+    /// Finish a job with an error. Returns false if it was already terminal.
+    pub fn fail(&self, id: Uuid, error: &str) -> bool {
+        let error = error.to_string();
+        self.finish(id, |job| {
             job.status = JobStatus::Failed;
-            job.updated_at = Some(Utc::now());
-            job.error = Some(error.to_string());
-            warn!("Job {} failed: {}", id, error);
+            job.message = "Failed".to_string();
+            job.error = Some(error);
+        })
+    }
+
+    fn finish(&self, id: Uuid, apply: impl FnOnce(&mut Job)) -> bool {
+        let mut jobs = self.lock();
+        match jobs.get_mut(&id) {
+            Some(entry) if !entry.job.status.is_terminal() => {
+                apply(&mut entry.job);
+                let now = Utc::now();
+                entry.job.updated_at = Some(now);
+                entry.job.finished_at = Some(now);
+                info!("Job {} finished: {}", id, entry.job.status);
+                true
+            },
+            Some(entry) => {
+                debug!(
+                    "Ignoring late result for job {} (already {})",
+                    id, entry.job.status
+                );
+                false
+            },
+            None => {
+                warn!("Result for unknown job {}", id);
+                false
+            },
         }
     }
 
-    /// Cancel a job
-    pub async fn cancel_job(&self, id: Uuid) -> bool {
-        let mut jobs = self.jobs.write().await;
-        if let Some(job) = jobs.get_mut(&id)
-            && (job.status == JobStatus::Queued || job.status == JobStatus::Running)
-        {
-            job.status = JobStatus::Cancelled;
-            job.updated_at = Some(Utc::now());
-            info!("Job {} cancelled", id);
-            return true;
+    /// Cancel a queued or running job and signal its worker to kill Blender.
+    pub fn cancel(&self, id: Uuid) -> Result<Job, CancelError> {
+        let mut jobs = self.lock();
+        let entry = jobs.get_mut(&id).ok_or(CancelError::NotFound(id))?;
+        if entry.job.status.is_terminal() {
+            return Err(CancelError::AlreadyFinished(id, entry.job.status));
         }
-        false
+        let now = Utc::now();
+        entry.job.status = JobStatus::Cancelled;
+        entry.job.message = "Cancelled by request".to_string();
+        entry.job.updated_at = Some(now);
+        entry.job.finished_at = Some(now);
+        // Receivers may already be gone if the worker just exited; that's fine.
+        let _ = entry.cancel.send(true);
+        info!("Job {} cancelled", id);
+        Ok(entry.job.clone())
     }
 
-    /// List all jobs
-    pub async fn list_jobs(&self) -> Vec<Job> {
-        let jobs = self.jobs.read().await;
-        jobs.values().cloned().collect()
+    /// Drop finished jobs older than the retention window (and, if still over
+    /// [`MAX_TRACKED_JOBS`], the oldest finished jobs).
+    #[cfg(test)]
+    pub fn prune(&self) {
+        let mut jobs = self.lock();
+        Self::prune_locked(&mut jobs, self.retention);
     }
 
-    /// Clean up old completed jobs (older than the specified hours)
-    pub async fn cleanup_old_jobs(&self, hours: i64) {
-        let cutoff = Utc::now() - chrono::Duration::hours(hours);
-        let mut jobs = self.jobs.write().await;
-
-        let old_jobs: Vec<Uuid> = jobs
-            .iter()
-            .filter(|(_, job)| {
-                matches!(
-                    job.status,
-                    JobStatus::Completed | JobStatus::Failed | JobStatus::Cancelled
-                ) && job.updated_at.map_or(job.created_at, |t| t) < cutoff
-            })
-            .map(|(id, _)| *id)
-            .collect();
-
-        for id in old_jobs {
-            jobs.remove(&id);
-            debug!("Cleaned up old job {}", id);
-        }
-    }
-}
-
-impl Default for JobManager {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-impl Clone for JobManager {
-    fn clone(&self) -> Self {
-        Self {
-            jobs: self.jobs.clone(),
+    fn prune_locked(jobs: &mut HashMap<Uuid, Entry>, retention: Duration) {
+        let cutoff =
+            Utc::now() - chrono::Duration::from_std(retention).unwrap_or(chrono::Duration::MAX);
+        jobs.retain(|_, e| {
+            !(e.job.status.is_terminal() && e.job.finished_at.unwrap_or(e.job.created_at) < cutoff)
+        });
+        if jobs.len() >= MAX_TRACKED_JOBS {
+            let mut finished: Vec<(Uuid, chrono::DateTime<Utc>)> = jobs
+                .iter()
+                .filter(|(_, e)| e.job.status.is_terminal())
+                .map(|(id, e)| (*id, e.job.finished_at.unwrap_or(e.job.created_at)))
+                .collect();
+            finished.sort_by_key(|(_, t)| *t);
+            let excess = jobs.len() + 1 - MAX_TRACKED_JOBS;
+            for (id, _) in finished.into_iter().take(excess) {
+                jobs.remove(&id);
+            }
         }
     }
 }
@@ -166,221 +237,140 @@ impl Clone for JobManager {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde_json::json;
 
-    #[tokio::test]
-    async fn test_job_manager_creation() {
-        let manager = JobManager::new();
-        let jobs = manager.list_jobs().await;
-        assert!(jobs.is_empty());
+    fn manager() -> JobManager {
+        JobManager::new(Duration::from_secs(3600))
     }
 
-    #[tokio::test]
-    async fn test_create_job() {
-        let manager = JobManager::new();
-        let job_id = manager.create_job("render").await;
-
-        let job = manager.get_job(job_id).await;
-        assert!(job.is_some());
-        let job = job.unwrap();
-        assert_eq!(job.job_type, "render");
+    #[test]
+    fn create_and_get() {
+        let m = manager();
+        let (id, cancel) = m.create("render_image", Some("scene.blend".into()));
+        let job = m.get(id).unwrap();
         assert_eq!(job.status, JobStatus::Queued);
-        assert_eq!(job.progress, 0);
+        assert_eq!(job.job_type, "render_image");
+        assert_eq!(job.project.as_deref(), Some("scene.blend"));
+        assert!(!*cancel.borrow());
+        assert!(m.get(Uuid::new_v4()).is_none());
     }
 
-    #[tokio::test]
-    async fn test_create_job_with_id() {
-        let manager = JobManager::new();
-        let custom_id = Uuid::new_v4();
-        let returned_id = manager.create_job_with_id(custom_id, "bake").await;
+    #[test]
+    fn full_lifecycle() {
+        let m = manager();
+        let (id, _) = m.create("render_image", None);
+        assert!(m.mark_running(id));
+        assert!(!m.mark_running(id), "cannot start twice");
+        m.update_progress(id, 40, Some("frame 4/10"));
+        let job = m.get(id).unwrap();
+        assert_eq!((job.status, job.progress), (JobStatus::Running, 40));
+        assert_eq!(job.message, "frame 4/10");
+        assert!(job.started_at.is_some());
 
-        assert_eq!(returned_id, custom_id);
-        let job = manager.get_job(custom_id).await.unwrap();
-        assert_eq!(job.id, custom_id);
-        assert_eq!(job.job_type, "bake");
-    }
-
-    #[tokio::test]
-    async fn test_get_nonexistent_job() {
-        let manager = JobManager::new();
-        let random_id = Uuid::new_v4();
-        let job = manager.get_job(random_id).await;
-        assert!(job.is_none());
-    }
-
-    #[tokio::test]
-    async fn test_update_status() {
-        let manager = JobManager::new();
-        let job_id = manager.create_job("render").await;
-
-        manager
-            .update_status(job_id, JobStatus::Running, Some("Processing frame 1"))
-            .await;
-
-        let job = manager.get_job(job_id).await.unwrap();
-        assert_eq!(job.status, JobStatus::Running);
-        assert_eq!(job.message, "Processing frame 1");
-        assert!(job.updated_at.is_some());
-    }
-
-    #[tokio::test]
-    async fn test_update_progress() {
-        let manager = JobManager::new();
-        let job_id = manager.create_job("render").await;
-
-        manager.update_progress(job_id, 50).await;
-        let job = manager.get_job(job_id).await.unwrap();
-        assert_eq!(job.progress, 50);
-
-        // Test progress clamping to 100
-        manager.update_progress(job_id, 150).await;
-        let job = manager.get_job(job_id).await.unwrap();
-        assert_eq!(job.progress, 100);
-    }
-
-    #[tokio::test]
-    async fn test_complete_job() {
-        let manager = JobManager::new();
-        let job_id = manager.create_job("render").await;
-
-        let result = serde_json::json!({"frames_rendered": 100, "output_file": "render.mp4"});
-        manager
-            .complete_job(job_id, result.clone(), Some("/output/render.mp4"))
-            .await;
-
-        let job = manager.get_job(job_id).await.unwrap();
+        assert!(m.complete(id, json!({"ok": true}), Some("/out/a.png".into())));
+        let job = m.get(id).unwrap();
         assert_eq!(job.status, JobStatus::Completed);
         assert_eq!(job.progress, 100);
-        assert_eq!(job.result, Some(result));
-        assert_eq!(job.output_path, Some("/output/render.mp4".to_string()));
+        assert_eq!(job.output_path.as_deref(), Some("/out/a.png"));
+        assert!(job.finished_at.is_some());
     }
 
-    #[tokio::test]
-    async fn test_fail_job() {
-        let manager = JobManager::new();
-        let job_id = manager.create_job("render").await;
+    #[test]
+    fn progress_is_monotonic_and_capped_until_completion() {
+        let m = manager();
+        let (id, _) = m.create("bake", None);
+        m.update_progress(id, 10, None);
+        assert_eq!(m.get(id).unwrap().progress, 0, "ignored while queued");
+        m.mark_running(id);
+        m.update_progress(id, 60, None);
+        m.update_progress(id, 30, None);
+        assert_eq!(m.get(id).unwrap().progress, 60);
+        m.update_progress(id, 250, None);
+        assert_eq!(m.get(id).unwrap().progress, 99);
+    }
 
-        manager.fail_job(job_id, "Out of memory").await;
-
-        let job = manager.get_job(job_id).await.unwrap();
+    #[test]
+    fn terminal_states_are_final() {
+        let m = manager();
+        let (id, _) = m.create("render", None);
+        m.mark_running(id);
+        assert!(m.fail(id, "boom"));
+        assert!(!m.complete(id, json!({}), None));
+        assert!(!m.fail(id, "again"));
+        let job = m.get(id).unwrap();
         assert_eq!(job.status, JobStatus::Failed);
-        assert_eq!(job.error, Some("Out of memory".to_string()));
+        assert_eq!(job.error.as_deref(), Some("boom"));
     }
 
-    #[tokio::test]
-    async fn test_cancel_queued_job() {
-        let manager = JobManager::new();
-        let job_id = manager.create_job("render").await;
-
-        let cancelled = manager.cancel_job(job_id).await;
-        assert!(cancelled);
-
-        let job = manager.get_job(job_id).await.unwrap();
+    #[test]
+    fn cancel_signals_worker_and_blocks_late_results() {
+        let m = manager();
+        let (id, cancel) = m.create("render", None);
+        m.mark_running(id);
+        let job = m.cancel(id).unwrap();
         assert_eq!(job.status, JobStatus::Cancelled);
+        assert!(*cancel.borrow(), "worker must observe the cancellation");
+        // The worker finishing afterwards must not overwrite the cancellation.
+        assert!(!m.complete(id, json!({}), None));
+        assert_eq!(m.get(id).unwrap().status, JobStatus::Cancelled);
     }
 
-    #[tokio::test]
-    async fn test_cancel_running_job() {
-        let manager = JobManager::new();
-        let job_id = manager.create_job("render").await;
-
-        manager
-            .update_status(job_id, JobStatus::Running, None)
-            .await;
-        let cancelled = manager.cancel_job(job_id).await;
-        assert!(cancelled);
-
-        let job = manager.get_job(job_id).await.unwrap();
-        assert_eq!(job.status, JobStatus::Cancelled);
+    #[test]
+    fn cancel_while_queued_prevents_start() {
+        let m = manager();
+        let (id, _) = m.create("render", None);
+        m.cancel(id).unwrap();
+        assert!(!m.mark_running(id));
     }
 
-    #[tokio::test]
-    async fn test_cannot_cancel_completed_job() {
-        let manager = JobManager::new();
-        let job_id = manager.create_job("render").await;
-
-        manager
-            .complete_job(job_id, serde_json::json!({}), None)
-            .await;
-
-        let cancelled = manager.cancel_job(job_id).await;
-        assert!(!cancelled);
-
-        let job = manager.get_job(job_id).await.unwrap();
-        assert_eq!(job.status, JobStatus::Completed);
+    #[test]
+    fn cancel_errors() {
+        let m = manager();
+        let missing = Uuid::new_v4();
+        assert_eq!(
+            m.cancel(missing).unwrap_err(),
+            CancelError::NotFound(missing)
+        );
+        let (id, _) = m.create("render", None);
+        m.mark_running(id);
+        m.complete(id, json!({}), None);
+        assert_eq!(
+            m.cancel(id).unwrap_err(),
+            CancelError::AlreadyFinished(id, JobStatus::Completed)
+        );
     }
 
-    #[tokio::test]
-    async fn test_cannot_cancel_failed_job() {
-        let manager = JobManager::new();
-        let job_id = manager.create_job("render").await;
-
-        manager.fail_job(job_id, "Error").await;
-
-        let cancelled = manager.cancel_job(job_id).await;
-        assert!(!cancelled);
-
-        let job = manager.get_job(job_id).await.unwrap();
-        assert_eq!(job.status, JobStatus::Failed);
+    #[test]
+    fn list_is_newest_first_and_counts() {
+        let m = manager();
+        let (a, _) = m.create("a", None);
+        std::thread::sleep(Duration::from_millis(5));
+        let (b, _) = m.create("b", None);
+        m.mark_running(b);
+        let ids: Vec<Uuid> = m.list().iter().map(|j| j.id).collect();
+        assert_eq!(ids, vec![b, a]);
+        assert_eq!(m.counts(), (1, 1, 2));
     }
 
-    #[tokio::test]
-    async fn test_list_jobs() {
-        let manager = JobManager::new();
-
-        let id1 = manager.create_job("render").await;
-        let id2 = manager.create_job("bake").await;
-        let id3 = manager.create_job("export").await;
-
-        let jobs = manager.list_jobs().await;
-        assert_eq!(jobs.len(), 3);
-
-        let ids: Vec<Uuid> = jobs.iter().map(|j| j.id).collect();
-        assert!(ids.contains(&id1));
-        assert!(ids.contains(&id2));
-        assert!(ids.contains(&id3));
+    #[test]
+    fn prune_drops_expired_finished_jobs_only() {
+        let m = JobManager::new(Duration::ZERO);
+        let (done, _) = m.create("done", None);
+        m.mark_running(done);
+        m.complete(done, json!({}), None);
+        let (active, _) = m.create("active", None);
+        std::thread::sleep(Duration::from_millis(5));
+        m.prune();
+        assert!(m.get(done).is_none());
+        assert!(m.get(active).is_some());
     }
 
-    #[tokio::test]
-    async fn test_job_manager_clone() {
-        let manager = JobManager::new();
-        let job_id = manager.create_job("render").await;
-
-        let cloned_manager = manager.clone();
-
-        // Both managers should see the same job
-        let job_from_original = manager.get_job(job_id).await;
-        let job_from_clone = cloned_manager.get_job(job_id).await;
-
-        assert!(job_from_original.is_some());
-        assert!(job_from_clone.is_some());
-        assert_eq!(job_from_original.unwrap().id, job_from_clone.unwrap().id);
-
-        // Updates from clone should be visible to original
-        cloned_manager
-            .update_status(job_id, JobStatus::Running, None)
-            .await;
-        let job = manager.get_job(job_id).await.unwrap();
-        assert_eq!(job.status, JobStatus::Running);
-    }
-
-    #[tokio::test]
-    async fn test_job_manager_default() {
-        let manager = JobManager::default();
-        let jobs = manager.list_jobs().await;
-        assert!(jobs.is_empty());
-    }
-
-    #[tokio::test]
-    async fn test_update_nonexistent_job_status() {
-        let manager = JobManager::new();
-        let random_id = Uuid::new_v4();
-
-        // Should not panic, just log warning
-        manager
-            .update_status(random_id, JobStatus::Running, None)
-            .await;
-
-        // Job still doesn't exist
-        assert!(manager.get_job(random_id).await.is_none());
+    #[test]
+    fn clones_share_state() {
+        let m = manager();
+        let clone = m.clone();
+        let (id, _) = m.create("render", None);
+        assert!(clone.mark_running(id));
+        assert_eq!(m.get(id).unwrap().status, JobStatus::Running);
     }
 }

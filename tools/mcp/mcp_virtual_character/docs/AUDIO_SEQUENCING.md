@@ -1,319 +1,135 @@
-# Audio and Event Sequencing for Virtual Characters
+# Audio and Event Sequencing
 
-## Overview
+This guide covers `play_audio` and the sequence tools (`create_sequence`,
+`add_sequence_event`, `play_sequence`, `pause_sequence`, `resume_sequence`,
+`stop_sequence`, `get_sequence_status`).
 
-The Virtual Character MCP server now supports comprehensive audio playback and event sequencing, enabling AI agents to create rich, synchronized multimedia experiences. This allows for:
+## play_audio
 
-- **Audio Transmission**: Send audio data with lip-sync and expression metadata
-- **Event Sequencing**: Build complex sequences of animations, audio, and movements
-- **ElevenLabs Integration**: Seamless integration with ElevenLabs TTS for voice generation
-- **Expression Tags**: Process emotion tags from audio generation for synchronized expressions
-
-## New Features
-
-### 1. Audio Support
-
-#### Send Audio Tool
-```python
-send_audio(
-    audio_data: str,        # Base64-encoded audio or URL
-    format: str = "mp3",    # Audio format (mp3, wav, opus, pcm)
-    text: str = None,       # Optional transcript for lip-sync
-    expression_tags: List[str] = None,  # ElevenLabs tags
-    duration: float = None  # Audio duration in seconds
-)
+```json
+{"tool": "play_audio", "arguments": {
+  "audio_data": "outputs/elevenlabs_speech/hello.mp3",
+  "text": "Hello! [laughs] Great to see you.",
+  "duration": 2.8
+}}
 ```
 
-The audio system supports:
-- Multiple audio formats (MP3, WAV, Opus, PCM)
-- Viseme data for lip-sync animation
-- Expression tags from ElevenLabs (e.g., `[laughs]`, `[whisper]`)
-- Streaming audio with chunk support
+| Param | Required | Description |
+|-------|----------|-------------|
+| `audio_data` | yes | File path, `http(s)://` URL, `data:audio/...;base64,...`, or raw base64 |
+| `audio_format` | no | `mp3` (default), `wav`, `opus`, `ogg`, `flac`, `pcm`. Magic bytes override a wrong declaration. |
+| `sample_rate` | no | For `pcm` (16-bit mono little-endian), default 44100. PCM is wrapped into WAV. |
+| `text` | no | Transcript. `[tags]` in it drive expression when `expression_tags` is omitted. |
+| `expression_tags` | no | ElevenLabs tags, e.g. `["[laughs]", "[whisper]"]` |
+| `duration` | no | Seconds. Estimated from WAV/MP3 headers when omitted. |
 
-### 2. Event Sequencing
+Input handling:
 
-#### Create Sequence
-```python
-create_sequence(
-    name: str,
-    description: str = None,
-    loop: bool = False,
-    interrupt_current: bool = True
-)
+- **Files** must be inside an allowed directory: `outputs/`, `/tmp`, the OS
+  temp directory, or directories listed in `VIRTUAL_CHARACTER_AUDIO_DIRS`
+  (OS path-list syntax). Paths are canonicalized, so `..` and symlinks cannot
+  escape. The ElevenLabs container path `/tmp/elevenlabs_audio/<file>` is
+  mapped to `outputs/elevenlabs_speech/<file>`.
+- **URLs** are downloaded with a 30 s timeout; HTML responses are rejected.
+- **All sources** are limited to 50 MB and validated (not HTML, recognizable
+  audio or large enough to be raw PCM).
+
+Expression: the single highest-intensity tag wins (applying every tag in turn
+would toggle VRChat emotes on and off). For example `[laughs]` -> happy ->
+VRCEmote 4 (cheer). An emote that is already showing is not toggled off.
+
+Playback (VRChat backend):
+
+- `audio_playback=local` (default when `remote_host` is loopback): the clip
+  is played with VLC (device `VoiceMeeter Input` by default), ffplay, or
+  PowerShell `SoundPlayer` (WAV only) on Windows; ffplay, paplay or aplay on
+  Linux. The call returns as soon as playback starts; the player is killed if
+  it runs longer than 1.5 x duration + 5 s (10 min if unknown).
+- `/avatar/parameters/AudioPlaying` is set to 1 and back to 0 when playback
+  ends (or after `duration`, or 10 s when unknown and not played locally).
+- The response reports what actually happened:
+
+```json
+{"success": true, "played": true, "method": "vlc", "format": "mp3",
+ "bytes": 45321, "duration": 2.8, "emotion": "happy", "notes": []}
 ```
 
-#### Add Sequence Event
-```python
-add_sequence_event(
-    event_type: str,        # animation, audio, wait, expression, movement, parallel
-    timestamp: float,       # When to trigger (seconds)
-    duration: float = None,
-    # Event-specific parameters...
-)
+The mock backend records clips without playing them (`played: false`).
+
+## Sequences
+
+One sequence is built at a time. Events fire at `timestamp` seconds from the
+start of playback, in timestamp order. Playback runs in the background; the
+tool returns immediately.
+
+```json
+{"tool": "create_sequence", "arguments": {"name": "intro", "loop": false}}
+
+{"tool": "add_sequence_event", "arguments": {
+  "event_type": "animation", "timestamp": 0.0,
+  "animation_params": {"gesture": "wave", "emotion": "happy"}}}
+
+{"tool": "add_sequence_event", "arguments": {
+  "event_type": "audio", "timestamp": 0.5,
+  "audio_data": "outputs/elevenlabs_speech/intro.mp3",
+  "text": "Hi everyone! [laughs]"}}
+
+{"tool": "add_sequence_event", "arguments": {
+  "event_type": "movement", "timestamp": 4.0,
+  "movement_params": {"move_forward": 0.5, "duration": 1.5}}}
+
+{"tool": "add_sequence_event", "arguments": {
+  "event_type": "expression", "timestamp": 6.0, "expression": "neutral"}}
+
+{"tool": "play_sequence", "arguments": {}}
 ```
 
-#### Sequence Control
-- `play_sequence()` - Start playing the sequence
-- `pause_sequence()` - Pause playback
-- `resume_sequence()` - Resume from pause
-- `stop_sequence()` - Stop and reset
-- `get_sequence_status()` - Get current playback status
+### Event types
 
-### 3. Event Types
+| `event_type` | Required fields | Effect |
+|--------------|-----------------|--------|
+| `animation` | `animation_params` (emotion / gesture / parameters / blend_shapes) | Same as `send_animation`. A top-level `expression` fills a missing emotion. |
+| `expression` | `expression` (+ `expression_intensity`) | Emotion change |
+| `movement` | `movement_params` | Movement / `avatar_params` (validated when added) |
+| `audio` | `audio_data` (+ `audio_format`, `text`, `expression_tags`, `sample_rate`) | Same as `play_audio`. Audio is loaded and validated when the event is added; `duration` defaults to the clip length. |
+| `wait` | `wait_duration` | Timeline marker: extends the sequence to `timestamp + wait_duration`. Other events are absolutely timed and are **not** shifted. |
+| `parallel` | `parallel_events` (list of events) | Children fire together at the parent's timestamp (nesting depth <= 3, <= 32 children). |
 
-#### Animation Event
-Full animation data including emotions, gestures, and blend shapes:
-```python
-{
-    "event_type": "animation",
-    "timestamp": 0.0,
-    "animation_params": {
-        "emotion": "happy",
-        "gesture": "wave",
-        "emotion_intensity": 0.8
-    }
-}
+Validation happens in `add_sequence_event`: unknown emotions/gestures,
+wrong types, negative timestamps and missing required fields are rejected
+with a message instead of being silently dropped. A sequence holds at most
+1000 events.
+
+### Playback behavior
+
+- The avatar is reset (`reset`) at the start and end of every pass.
+- `start_time` skips events before that offset.
+- `loop: true` repeats until stopped; each pass lasts at least 0.1 s.
+- `pause_sequence` freezes the sequence clock (including in-progress waits);
+  `resume_sequence` continues from the same position.
+- `stop_sequence` stops playback but keeps the sequence for replay;
+  `panic_reset` stops and discards it and resets the avatar.
+- `create_sequence` with `interrupt_current: true` (default) stops current
+  playback. Editing the sequence during playback does not affect the running
+  pass (playback uses a snapshot).
+- Switching or disconnecting the backend stops playback.
+- A failing event does not abort the performance; it is counted in
+  `events_failed` and reported as `last_error`.
+
+### get_sequence_status
+
+```json
+{"success": true, "status": {
+  "has_sequence": true, "sequence_name": "intro", "event_count": 4,
+  "total_duration": 6.0, "loop": false,
+  "is_playing": true, "is_paused": false, "current_time": 2.315,
+  "playing_sequence": "intro", "events_executed": 2, "events_failed": 0,
+  "passes_completed": 0, "last_error": null}}
 ```
 
-#### Audio Event
-Audio playback with optional metadata:
-```python
-{
-    "event_type": "audio",
-    "timestamp": 1.0,
-    "audio_data": "base64_encoded_audio",
-    "audio_format": "mp3",
-    "duration": 3.0
-}
-```
+## Timing notes
 
-#### Expression Event
-Quick emotion change without full animation:
-```python
-{
-    "event_type": "expression",
-    "timestamp": 2.0,
-    "expression": "surprised",
-    "expression_intensity": 1.0
-}
-```
-
-#### Movement Event
-Control character movement:
-```python
-{
-    "event_type": "movement",
-    "timestamp": 3.0,
-    "movement_params": {
-        "move_forward": 0.5,
-        "turn_speed": 0.2,
-        "duration": 2.0
-    }
-}
-```
-
-#### Parallel Events
-Execute multiple events simultaneously:
-```python
-{
-    "event_type": "parallel",
-    "timestamp": 0.0,
-    "parallel_events": [
-        {"event_type": "expression", "expression": "happy"},
-        {"event_type": "audio", "audio_data": "..."}
-    ]
-}
-```
-
-## Usage Examples
-
-### Basic Audio Playback
-```python
-# Send audio with expression
-await send_audio(
-    audio_data=base64_audio,
-    format="mp3",
-    text="Hello world!",
-    expression_tags=["[happy]", "[excited]"],
-    duration=2.5
-)
-```
-
-### Simple Animation Sequence
-```python
-# Create sequence
-await create_sequence(name="greeting", description="Friendly greeting")
-
-# Add events
-await add_sequence_event(
-    event_type="animation",
-    timestamp=0.0,
-    animation_params={"emotion": "happy", "gesture": "wave"}
-)
-
-await add_sequence_event(
-    event_type="audio",
-    timestamp=0.5,
-    audio_data=greeting_audio,
-    duration=3.0
-)
-
-# Play sequence
-await play_sequence()
-```
-
-### Complex Synchronized Performance
-```python
-# Create a performance with multiple synchronized elements
-await create_sequence(name="performance", loop=False)
-
-# Pre-delay
-await add_sequence_event(event_type="wait", timestamp=0.0, wait_duration=0.5)
-
-# Set initial mood
-await add_sequence_event(
-    event_type="expression",
-    timestamp=0.5,
-    expression="excited",
-    expression_intensity=0.7
-)
-
-# Start audio and gesture together
-await add_sequence_event(
-    event_type="parallel",
-    timestamp=1.0,
-    parallel_events=[
-        {
-            "event_type": "audio",
-            "audio_data": speech_audio,
-            "duration": 5.0
-        },
-        {
-            "event_type": "animation",
-            "animation_params": {
-                "gesture": "point",
-                "parameters": {"look_horizontal": 0.3}
-            }
-        }
-    ]
-)
-
-# Return to neutral
-await add_sequence_event(
-    event_type="expression",
-    timestamp=6.0,
-    expression="neutral"
-)
-
-await play_sequence()
-```
-
-## ElevenLabs Integration
-
-The system seamlessly integrates with the ElevenLabs MCP server for voice generation:
-
-```python
-# Generate speech with ElevenLabs
-audio_result = await elevenlabs.synthesize_speech_v3(
-    text="Hello! [happy] How are you today? [curious]",
-    voice_id="Rachel"
-)
-
-# Send to virtual character
-await virtual_char.send_audio(
-    audio_data=audio_result["audio_data"],
-    text=audio_result["text"],
-    expression_tags=["[happy]", "[curious]"],
-    duration=audio_result["duration"]
-)
-```
-
-### Expression Tag Mapping
-
-ElevenLabs audio tags are automatically mapped to character expressions:
-
-| Audio Tag | Character Expression |
-|-----------|---------------------|
-| `[laughs]` | Happy |
-| `[whisper]` | Calm |
-| `[sighs]` | Sad |
-| `[angry]` | Angry |
-| `[excited]` | Excited |
-| `[surprised]` | Surprised |
-
-## Backend Support
-
-### VRChat Backend
-- Full audio support via OSC parameters
-- Bridge server integration for actual audio playback
-- Viseme parameters for lip-sync
-- Expression tag processing
-
-### Mock Backend
-- Complete audio simulation for testing
-- Audio history tracking
-- Event emission for monitoring
-
-## Technical Details
-
-### Audio Data Model
-```python
-@dataclass
-class AudioData:
-    data: bytes                    # Raw audio bytes
-    sample_rate: int = 44100       # Sample rate
-    channels: int = 1              # Number of channels
-    format: str = "pcm"            # Audio format
-    duration: float = 0.0          # Duration in seconds
-    text: Optional[str] = None     # Transcript
-    language: Optional[str] = None # Language code
-    voice: Optional[str] = None    # Voice ID
-
-    # New fields for enhanced audio
-    viseme_timestamps: Optional[List[tuple[float, VisemeType, float]]] = None
-    expression_tags: Optional[List[str]] = None
-    chunk_index: Optional[int] = None
-    total_chunks: Optional[int] = None
-    is_final_chunk: bool = True
-```
-
-### Event Sequence Model
-```python
-@dataclass
-class EventSequence:
-    name: str
-    description: Optional[str]
-    events: List[SequenceEvent]
-    total_duration: Optional[float]
-    loop: bool = False
-    interrupt_current: bool = True
-    priority: int = 0
-```
-
-## Performance Considerations
-
-1. **Event Timing**: Events are processed at 20Hz (50ms intervals)
-2. **Audio Streaming**: Large audio files can be streamed in chunks
-3. **Parallel Events**: Use parallel events for synchronized actions
-4. **Bridge Server**: For actual audio playback in VRChat, use the bridge server
-
-## Testing
-
-Run the test suite to verify functionality:
-
-```bash
-# Start the server
-python -m mcp_virtual_character.server
-
-# Run tests
-python tools/mcp/mcp_virtual_character/scripts/test_audio_sequences.py
-```
-
-## Future Enhancements
-
-- [ ] Real-time viseme generation from audio
-- [ ] Advanced lip-sync with phoneme detection
-- [ ] Multi-voice dialogue support
-- [ ] Spatial audio positioning
-- [ ] Voice effect processing (reverb, pitch shift)
-- [ ] Gesture generation from speech patterns
+- Backend sends are near-instant (UDP), so `parallel` children are dispatched
+  back-to-back rather than truly concurrently.
+- Emote switches include a 100 ms gap (toggle-off, then toggle-on).
+- Local audio playback starts within ~0.5 s (player startup check).

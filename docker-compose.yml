@@ -103,8 +103,9 @@ services:
     environment:
       - RUST_LOG=info
       - GITHUB_TOKEN=${GITHUB_TOKEN}
+      - GITHUB_PROJECTS_TOKEN=${GITHUB_PROJECTS_TOKEN}
       - GITHUB_REPOSITORY=${GITHUB_REPOSITORY}
-      - GITHUB_PROJECT_NUMBER=${GITHUB_PROJECT_NUMBER:-1}
+      - BOARD_PROJECT_NUMBER=${BOARD_PROJECT_NUMBER:-1}
     networks:
       - mcp-network
     command: ["mcp-github-board", "--mode", "standalone", "--port", "8022"]
@@ -123,6 +124,9 @@ services:
     build:
       context: .
       dockerfile: docker/mcp-video-editor.Dockerfile
+      args:
+        # Set VIDEO_EDITOR_WHISPER=true to bake in the Whisper CLI (large image, pulls PyTorch)
+        INSTALL_WHISPER: ${VIDEO_EDITOR_WHISPER:-false}
     # Note: user directive removed - entrypoint handles user switching after permission setup
     ports:
       - "8019:8019"
@@ -131,14 +135,10 @@ services:
       - ./outputs/video-editor:/output  # Output directory for rendered videos
       - video-editor-cache:/cache  # Named volume for transcripts and analysis cache
     environment:
-      - PYTHONUNBUFFERED=1
-      - PORT=8019
       - MCP_VIDEO_OUTPUT_DIR=/output
       - MCP_VIDEO_CACHE_DIR=/cache
       - WHISPER_MODEL=${WHISPER_MODEL:-medium}
-      - WHISPER_DEVICE=${WHISPER_DEVICE:-cuda}
-      - DIART_DEVICE=${DIART_DEVICE:-cuda}
-      - HUGGINGFACE_TOKEN=${HUGGINGFACE_TOKEN}
+      - WHISPER_DEVICE=${WHISPER_DEVICE:-cpu}
       - ENABLE_GPU=${ENABLE_GPU:-true}
       # GPU device selection for multi-GPU systems
       # IMPORTANT: GPU_DEVICE should be set to a single device index (e.g., 0, 1, 2)
@@ -180,17 +180,18 @@ services:
       - ./outputs/elevenlabs_speech:/output  # Bind mount to local outputs directory
     environment:
       - RUST_LOG=info
-      - PORT=8018  # Note: If you change this port, also update the healthcheck below
       - MCP_OUTPUT_DIR=/output
       - ELEVENLABS_API_KEY=${ELEVENLABS_API_KEY}
       - ELEVENLABS_DEFAULT_MODEL=${ELEVENLABS_DEFAULT_MODEL:-eleven_multilingual_v2}
-      - ELEVENLABS_DEFAULT_VOICE=${ELEVENLABS_DEFAULT_VOICE:-Rachel}
+      # Premade voices are being retired by ElevenLabs; set this to a voice you own
+      - ELEVENLABS_DEFAULT_VOICE=${ELEVENLABS_DEFAULT_VOICE:-george}
     networks:
       - mcp-network
-    command: ["mcp-elevenlabs-speech", "--mode", "http", "--port", "8018"]
+    # If you change the port, also update the healthcheck below
+    command: ["mcp-elevenlabs-speech", "--mode", "standalone", "--port", "8018"]
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8018/health"]  # Must match PORT above
+      test: ["CMD", "curl", "-f", "http://localhost:8018/health"]  # Must match --port above
       interval: 30s
       timeout: 10s
       retries: 3
@@ -252,7 +253,7 @@ services:
       - ./outputs/mcp-gaea2:/output/gaea2  # Bind mount for generated projects
     environment:
       - RUST_LOG=info
-      - MCP_OUTPUT_DIR=/output/gaea2
+      - GAEA2_OUTPUT_DIR=/output/gaea2
     networks:
       - mcp-network
     # Command args only - ENTRYPOINT provides the binary
@@ -401,6 +402,7 @@ services:
     user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
     ports:
       - "8025:8025"
+      - "9001:9001/udp"  # VRChat OSC output (replies/avatar parameters) -> VIRTUAL_CHARACTER_OSC_OUT
     environment:
       - VIRTUAL_CHARACTER_HOST=${VRCHAT_REMOTE_HOST:-127.0.0.1}
       - VIRTUAL_CHARACTER_OSC_IN=9000
@@ -437,6 +439,8 @@ services:
       - NVIDIA_DRIVER_CAPABILITIES=compute,utility,graphics
       - PYTHONUNBUFFERED=1
       - AI_TOOLKIT_PATH=/ai-toolkit
+      # The configs volume is mounted at /ai-toolkit/configs (the server default is $AI_TOOLKIT_PATH/config)
+      - AI_TOOLKIT_CONFIGS_PATH=/ai-toolkit/configs
     networks:
       - mcp-network
     deploy:
@@ -522,7 +526,7 @@ services:
       - PORT=8014
       - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
       - OPENCODE_ENABLED=${OPENCODE_ENABLED:-true}
-      - OPENCODE_MODEL=${OPENCODE_MODEL:-qwen/qwen-2.5-coder-32b-instruct}
+      - OPENCODE_MODEL=${OPENCODE_MODEL:-qwen/qwen3.7-max}
     networks:
       - mcp-network
     command: ["mcp-opencode", "--mode", "standalone", "--port", "8014"]
@@ -956,35 +960,20 @@ services:
   # ─────────────────────────────────────────────────────────────
   # AgentCore Memory MCP Server
   # ─────────────────────────────────────────────────────────────
-  # Multi-provider memory for AI agents
-  # Supports: AWS AgentCore (managed) or ChromaDB (self-hosted)
+  # Persistent agent memory backed by self-hosted ChromaDB (despite the name,
+  # this does not use AWS Bedrock AgentCore). The embedding model is baked into the image.
 
   mcp-agentcore-memory:
     build:
       context: .
       dockerfile: docker/mcp-agentcore-memory.Dockerfile
     user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
-    # Note: ChromaDB dependency is optional - only needed when MEMORY_PROVIDER=chromadb
-    # Start chromadb first with: docker compose --profile memory-chromadb up -d chromadb
+    # Requires ChromaDB: docker compose --profile memory-chromadb up -d chromadb
     ports:
       - "8023:8023"
     volumes:
       - .:/app:ro
-      # Mount AWS credentials for AgentCore provider
-      - ${HOME}/.aws:/home/appuser/.aws:ro
     environment:
-      - HOME=/home/appuser
-      - PYTHONUNBUFFERED=1
-      - PYTHONDONTWRITEBYTECODE=1
-      - PORT=8023
-      # Provider selection: agentcore | chromadb
-      - MEMORY_PROVIDER=${MEMORY_PROVIDER:-chromadb}
-      # AWS AgentCore settings
-      - AWS_REGION=${AWS_REGION:-us-east-1}
-      - AWS_PROFILE=${AWS_PROFILE:-}
-      - AGENTCORE_MEMORY_ID
-      - AGENTCORE_DATA_PLANE_ENDPOINT=${AGENTCORE_DATA_PLANE_ENDPOINT:-}
-      # ChromaDB settings (for self-hosted)
       - CHROMADB_HOST=chromadb
       - CHROMADB_PORT=8000
       - CHROMADB_COLLECTION=${CHROMADB_COLLECTION:-agent_memory}
@@ -1042,6 +1031,7 @@ services:
       - /home:/home:ro  # Read-only mount for image imports
     environment:
       - RUST_LOG=info
+      - MCP_SPRITE_OUTPUT_DIR=/output
     networks:
       - mcp-network
     command: ["mcp-sprite-sheet", "--mode", "standalone", "--port", "8027", "--output", "/output"]
@@ -1071,9 +1061,6 @@ services:
       - /tmp/.X11-unix:/tmp/.X11-unix:ro  # X11 socket
       - ${XAUTHORITY:-~/.Xauthority}:/home/appuser/.Xauthority:ro  # X11 auth
     environment:
-      - PYTHONUNBUFFERED=1
-      - PYTHONPATH=/app/tools/mcp/mcp_desktop_control:/app  # Prioritize mounted source over installed package
-      - PORT=8026
       - DISPLAY=${DISPLAY:-:0}
       - XAUTHORITY=/home/appuser/.Xauthority
       - DESKTOP_CONTROL_OUTPUT_DIR=/output

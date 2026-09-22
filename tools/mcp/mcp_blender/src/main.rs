@@ -1,40 +1,37 @@
-// Allow pre-existing dead code in planned but unused type enums
-#![allow(
-    dead_code,
-    clippy::derivable_impls,
-    clippy::manual_map,
-    clippy::unnecessary_map_or,
-    clippy::len_zero
-)]
-
-//! MCP Blender Server
+//! MCP Blender server.
 //!
-//! Provides MCP tools for headless Blender 3D content creation, rendering,
-//! and simulation through subprocess automation.
+//! Exposes headless Blender (scene building, materials, physics, geometry
+//! nodes, rendering, import/export) as MCP tools. Every tool runs one of the
+//! Python scripts in `scripts/` inside a `blender --background` subprocess;
+//! renders and bakes run as cancellable background jobs.
 //!
-//! Usage:
-//!     # Standalone mode (default)
-//!     mcp-blender --mode standalone --port 8017
+//! ```text
+//! mcp-blender --mode stdio                       # MCP over stdio
+//! mcp-blender --mode standalone --port 8017      # MCP over HTTP
+//! curl http://localhost:8017/health
+//! ```
 //!
-//!     # Test endpoints
-//!     curl http://localhost:8017/health
-//!     curl http://localhost:8017/mcp/tools
+//! Configuration is read from environment variables; see `README.md`.
 
 mod blender;
+mod config;
 mod jobs;
+mod paths;
 mod server;
+mod tools;
 mod types;
 
 use clap::Parser;
 use mcp_core::{MCPServer, init_logging, server::MCPServerArgs};
 
+use config::Config;
 use server::BlenderServer;
 
-/// CLI arguments
+/// CLI arguments.
 #[derive(Parser)]
 #[command(name = "mcp-blender")]
 #[command(about = "MCP server for headless Blender 3D content creation and rendering")]
-#[command(version = "2.0.0")]
+#[command(version)]
 struct Args {
     #[command(flatten)]
     server: MCPServerArgs,
@@ -43,23 +40,15 @@ struct Args {
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let args = Args::parse();
-
     init_logging(&args.server.log_level);
 
-    // Create Blender server
-    let blender_server = BlenderServer::new();
+    let blender_server = BlenderServer::new(Config::from_env());
 
-    // Build MCP server with all tools
-    let mut builder = MCPServer::builder("blender", "2.0.0");
+    let mut builder = MCPServer::builder("blender", env!("CARGO_PKG_VERSION"));
     builder = args.server.apply_to(builder);
-
     for tool in blender_server.tools() {
         builder = builder.tool_boxed(tool);
     }
-
-    let server = builder.build();
-
-    server.run().await?;
-
+    builder.build().run().await?;
     Ok(())
 }

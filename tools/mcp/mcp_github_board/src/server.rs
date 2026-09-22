@@ -1,916 +1,178 @@
-//! MCP server implementation for GitHub Board operations.
+//! MCP tool layer for GitHub Projects v2 board operations.
 //!
-//! Wraps the Rust `board-manager` CLI for all board operations.
+//! Every board tool is a [`BoardTool`] driven by a [`ToolSpec`] from
+//! [`crate::specs`]: arguments are validated into a `board-manager`
+//! invocation, executed through a [`BoardRunner`], and the result is shaped
+//! into a uniform response:
+//!
+//! * success: `{"success": true, "result": <board-manager JSON>}`
+//! * refused / failed: `isError: true` with
+//!   `{"success": false, "error": "...", "result"?: ...}`
+//!
+//! Invalid arguments are rejected with `InvalidParameters` before any
+//! process is spawned.
 
 use async_trait::async_trait;
 use mcp_core::prelude::*;
 use serde_json::{Value, json};
-use std::path::PathBuf;
 use std::sync::Arc;
-use tokio::process::Command;
-use tokio::sync::RwLock;
-use tracing::{debug, error, info, warn};
 
-/// GitHub Board MCP server
+use crate::runner::{BoardRunner, RunError};
+use crate::specs::{self, Expect, ToolSpec};
+
+/// Server version reported by `board_status`.
+pub const VERSION: &str = env!("CARGO_PKG_VERSION");
+
+/// Environment variables whose presence (never value) `board_status` reports.
+const TOKEN_VARS: &[&str] = &["GITHUB_PROJECTS_TOKEN", "GITHUB_TOKEN", "GH_TOKEN"];
+
+/// Server-wide options.
+#[derive(Debug, Clone, Copy, Default)]
+pub struct ServerOptions {
+    /// Do not register tools that modify the board or issues.
+    pub read_only: bool,
+}
+
+/// GitHub Board MCP server: owns the runner and produces the tool set.
 pub struct GitHubBoardServer {
-    board_manager_path: Arc<RwLock<Option<PathBuf>>>,
-    initialized: Arc<RwLock<bool>>,
+    runner: Arc<dyn BoardRunner>,
+    options: ServerOptions,
 }
 
 impl GitHubBoardServer {
-    /// Create a new GitHub board server
-    pub fn new() -> Self {
-        Self {
-            board_manager_path: Arc::new(RwLock::new(None)),
-            initialized: Arc::new(RwLock::new(false)),
-        }
+    /// Create a server backed by the given runner.
+    pub fn new(runner: Arc<dyn BoardRunner>, options: ServerOptions) -> Self {
+        Self { runner, options }
     }
 
-    /// Get all tools as boxed trait objects
+    /// All tools to register (mutating tools are omitted in read-only mode).
     pub fn tools(&self) -> Vec<BoxedTool> {
-        vec![
-            Arc::new(QueryReadyWorkTool {
-                server: self.clone_refs(),
-            }),
-            Arc::new(ClaimWorkTool {
-                server: self.clone_refs(),
-            }),
-            Arc::new(RenewClaimTool {
-                server: self.clone_refs(),
-            }),
-            Arc::new(ReleaseWorkTool {
-                server: self.clone_refs(),
-            }),
-            Arc::new(UpdateStatusTool {
-                server: self.clone_refs(),
-            }),
-            Arc::new(AddBlockerTool {
-                server: self.clone_refs(),
-            }),
-            Arc::new(MarkDiscoveredFromTool {
-                server: self.clone_refs(),
-            }),
-            Arc::new(GetIssueDetailsTool {
-                server: self.clone_refs(),
-            }),
-            Arc::new(GetDependencyGraphTool {
-                server: self.clone_refs(),
-            }),
-            Arc::new(ListAgentsTool {
-                server: self.clone_refs(),
-            }),
-            Arc::new(GetBoardConfigTool {
-                server: self.clone_refs(),
-            }),
-            Arc::new(BoardStatusTool {
-                server: self.clone_refs(),
-            }),
-        ]
-    }
-
-    /// Clone the Arc references for tools
-    fn clone_refs(&self) -> ServerRefs {
-        ServerRefs {
-            board_manager_path: self.board_manager_path.clone(),
-            initialized: self.initialized.clone(),
-        }
+        let mut tools: Vec<BoxedTool> = specs::SPECS
+            .iter()
+            .filter(|spec| !(self.options.read_only && spec.mutating))
+            .map(|spec| {
+                Arc::new(BoardTool {
+                    spec,
+                    runner: self.runner.clone(),
+                }) as BoxedTool
+            })
+            .collect();
+        let tool_names = tools.iter().map(|t| t.name().to_string()).collect();
+        tools.push(Arc::new(BoardStatusTool {
+            runner: self.runner.clone(),
+            options: self.options,
+            tool_names,
+        }));
+        tools
     }
 }
 
-impl Default for GitHubBoardServer {
-    fn default() -> Self {
-        Self::new()
-    }
+/// Build a tool result carrying a JSON body.
+fn json_result(body: &Value, is_error: bool) -> Result<ToolResult> {
+    Ok(ToolResult {
+        content: vec![Content::json(body)?],
+        is_error,
+    })
 }
 
-/// Shared references for tools
-#[derive(Clone)]
-struct ServerRefs {
-    board_manager_path: Arc<RwLock<Option<PathBuf>>>,
-    initialized: Arc<RwLock<bool>>,
-}
-
-impl ServerRefs {
-    /// Ensure board-manager CLI is available
-    async fn ensure_initialized(&self) -> Result<PathBuf> {
-        // Check if already initialized
-        {
-            let initialized = self.initialized.read().await;
-            if *initialized {
-                let path = self.board_manager_path.read().await;
-                if let Some(p) = path.as_ref() {
-                    return Ok(p.clone());
-                }
+/// Shape a `board-manager` result according to the tool's expectation.
+///
+/// Returns the response body and whether it is an error.
+pub fn shape_result(tool: &str, expect: &Expect, result: Value) -> (Value, bool) {
+    match expect {
+        Expect::Value => (json!({ "success": true, "result": result }), false),
+        Expect::OnBoard(issue) if result.is_null() => (
+            json!({
+                "success": false,
+                "error": format!(
+                    "Issue {issue} is not on the project board (add it with add_to_board)"
+                ),
+            }),
+            true,
+        ),
+        Expect::OnBoard(_) => (json!({ "success": true, "result": result }), false),
+        Expect::Outcome => {
+            let ok = result
+                .get("success")
+                .and_then(Value::as_bool)
+                .unwrap_or(false);
+            if ok {
+                return (json!({ "success": true, "result": result }), false);
             }
+            let error = match (tool, result.get("claimed_by").and_then(Value::as_str)) {
+                ("claim_work", Some(holder)) => format!(
+                    "Issue is already claimed by {holder}; pick other work or wait for the claim \
+                     to be released or to expire"
+                ),
+                ("claim_work", None) => "Claim was not granted".to_string(),
+                ("renew_claim", _) => {
+                    "No active claim by this agent to renew (it may have expired \
+                                       or be held by someone else); claim the issue again with \
+                                       claim_work"
+                        .to_string()
+                },
+                _ => "Operation was refused by board-manager".to_string(),
+            };
+            (
+                json!({ "success": false, "error": error, "result": result }),
+                true,
+            )
+        },
+    }
+}
+
+/// Response body for a runner failure.
+pub fn error_body(err: &RunError) -> Value {
+    let kind = match err {
+        RunError::NotFound(_) => "board_manager_not_found",
+        RunError::Spawn { .. } => "spawn_failed",
+        RunError::Timeout(_) => "timeout",
+        RunError::Failed { .. } => "board_manager_error",
+        RunError::InvalidOutput(_) => "invalid_output",
+    };
+    json!({ "success": false, "error": err.to_string(), "error_kind": kind })
+}
+
+/// A board tool backed by a [`ToolSpec`].
+struct BoardTool {
+    spec: &'static ToolSpec,
+    runner: Arc<dyn BoardRunner>,
+}
+
+#[async_trait]
+impl Tool for BoardTool {
+    fn name(&self) -> &str {
+        self.spec.name
+    }
+
+    fn description(&self) -> &str {
+        self.spec.description
+    }
+
+    fn schema(&self) -> Value {
+        (self.spec.schema)()
+    }
+
+    async fn execute(&self, args: Value) -> Result<ToolResult> {
+        let plan = (self.spec.plan)(args)?;
+        match self.runner.run(&plan.argv).await {
+            Ok(result) => {
+                let (body, is_error) = shape_result(self.spec.name, &plan.expect, result);
+                json_result(&body, is_error)
+            },
+            Err(e) => {
+                tracing::warn!("{} failed: {}", self.spec.name, e);
+                json_result(&error_body(&e), true)
+            },
         }
-
-        info!("Initializing board-manager CLI...");
-
-        // Find board-manager binary in common locations
-        let search_paths = [
-            // Via which crate (PATH lookup) - most reliable
-            which::which("board-manager").ok(),
-            // Standard system locations
-            Some(PathBuf::from("/usr/local/bin/board-manager")),
-            // Home local bin (common for user installations)
-            dirs::home_dir().map(|h| h.join(".local/bin/board-manager")),
-            // Cargo bin directory
-            dirs::home_dir().map(|h| h.join(".cargo/bin/board-manager")),
-            // Local build paths (development)
-            Some(PathBuf::from(
-                "tools/rust/board-manager/target/release/board-manager",
-            )),
-            // Relative to current working directory (development)
-            std::env::current_dir()
-                .ok()
-                .map(|cwd| cwd.join("tools/rust/board-manager/target/release/board-manager")),
-        ];
-
-        for path in search_paths.into_iter().flatten() {
-            if path.is_file() {
-                // Verify it's executable by running --version
-                match Command::new(&path).arg("--version").output().await {
-                    Ok(output) if output.status.success() => {
-                        info!("Found board-manager at {:?}", path);
-
-                        let mut bm_path = self.board_manager_path.write().await;
-                        *bm_path = Some(path.clone());
-
-                        let mut initialized = self.initialized.write().await;
-                        *initialized = true;
-
-                        return Ok(path);
-                    },
-                    Ok(output) => {
-                        debug!(
-                            "board-manager at {:?} failed version check: {:?}",
-                            path, output.status
-                        );
-                    },
-                    Err(e) => {
-                        debug!("board-manager at {:?} not executable: {}", path, e);
-                    },
-                }
-            }
-        }
-
-        Err(MCPError::Internal(
-            "board-manager CLI not found. Install with 'cargo install --path tools/rust/board-manager' \
-             or ensure it's in PATH, ~/.local/bin, ~/.cargo/bin, or /usr/local/bin".to_string(),
-        ))
-    }
-
-    /// Run board-manager CLI with given arguments
-    async fn run_board_manager(&self, args: &[&str]) -> Result<Value> {
-        let path = self.ensure_initialized().await?;
-
-        let mut cmd = Command::new(&path);
-        cmd.arg("--format").arg("json");
-        cmd.args(args);
-
-        debug!("Running: {:?} --format json {:?}", path, args);
-
-        let output = cmd
-            .output()
-            .await
-            .map_err(|e| MCPError::Internal(format!("Failed to execute board-manager: {}", e)))?;
-
-        if !output.status.success() {
-            let stderr = String::from_utf8_lossy(&output.stderr);
-            error!("board-manager failed: {}", stderr);
-            return Err(MCPError::Internal(format!(
-                "board-manager error: {}",
-                stderr.trim()
-            )));
-        }
-
-        let stdout = String::from_utf8_lossy(&output.stdout);
-        if stdout.is_empty() {
-            return Ok(json!({}));
-        }
-
-        serde_json::from_str(&stdout).map_err(|e| {
-            warn!("Failed to parse board-manager JSON output: {}", e);
-            // Return raw output if JSON parsing fails
-            MCPError::Internal(format!("Invalid JSON from board-manager: {}", e))
-        })
     }
 }
 
-// ============================================================================
-// Tool: query_ready_work
-// ============================================================================
-
-struct QueryReadyWorkTool {
-    server: ServerRefs,
-}
-
-#[async_trait]
-impl Tool for QueryReadyWorkTool {
-    fn name(&self) -> &str {
-        "query_ready_work"
-    }
-
-    fn description(&self) -> &str {
-        r#"Get ready work from the board (unblocked, unclaimed TODO issues).
-
-Returns issues that are available for an agent to claim and work on.
-Filters by agent name if specified."#
-    }
-
-    fn schema(&self) -> Value {
-        json!({
-            "type": "object",
-            "properties": {
-                "agent_name": {
-                    "type": "string",
-                    "description": "Filter for specific agent (optional)"
-                },
-                "limit": {
-                    "type": "integer",
-                    "default": 10,
-                    "description": "Maximum number of issues to return"
-                }
-            }
-        })
-    }
-
-    async fn execute(&self, args: Value) -> Result<ToolResult> {
-        let limit = args
-            .get("limit")
-            .and_then(|v| v.as_u64())
-            .unwrap_or(10)
-            .to_string();
-
-        let mut cmd_args = vec!["ready", "--limit", &limit];
-
-        let agent_name = args.get("agent_name").and_then(|v| v.as_str());
-        if let Some(agent) = agent_name {
-            cmd_args.push("--agent");
-            cmd_args.push(agent);
-        }
-
-        let result = self.server.run_board_manager(&cmd_args).await?;
-        let response = json!({
-            "success": true,
-            "result": result
-        });
-        ToolResult::json(&response)
-    }
-}
-
-// ============================================================================
-// Tool: claim_work
-// ============================================================================
-
-struct ClaimWorkTool {
-    server: ServerRefs,
-}
-
-#[async_trait]
-impl Tool for ClaimWorkTool {
-    fn name(&self) -> &str {
-        "claim_work"
-    }
-
-    fn description(&self) -> &str {
-        r#"Claim an issue for implementation.
-
-Marks an issue as being worked on by an agent, preventing other agents
-from claiming it. The session_id allows tracking work across sessions."#
-    }
-
-    fn schema(&self) -> Value {
-        json!({
-            "type": "object",
-            "properties": {
-                "issue_number": {
-                    "type": "integer",
-                    "description": "Issue number to claim"
-                },
-                "agent_name": {
-                    "type": "string",
-                    "description": "Agent claiming the issue"
-                },
-                "session_id": {
-                    "type": "string",
-                    "description": "Unique session identifier"
-                }
-            },
-            "required": ["issue_number", "agent_name", "session_id"]
-        })
-    }
-
-    async fn execute(&self, args: Value) -> Result<ToolResult> {
-        let issue_number = args
-            .get("issue_number")
-            .and_then(|v| v.as_u64())
-            .ok_or_else(|| {
-                MCPError::InvalidParameters("Missing 'issue_number' parameter".to_string())
-            })?
-            .to_string();
-
-        let agent_name = args
-            .get("agent_name")
-            .and_then(|v| v.as_str())
-            .ok_or_else(|| {
-                MCPError::InvalidParameters("Missing 'agent_name' parameter".to_string())
-            })?;
-
-        let session_id = args
-            .get("session_id")
-            .and_then(|v| v.as_str())
-            .ok_or_else(|| {
-                MCPError::InvalidParameters("Missing 'session_id' parameter".to_string())
-            })?;
-
-        let result = self
-            .server
-            .run_board_manager(&[
-                "claim",
-                &issue_number,
-                "--agent",
-                agent_name,
-                "--session",
-                session_id,
-            ])
-            .await?;
-
-        let response = json!({
-            "success": true,
-            "result": result
-        });
-        ToolResult::json(&response)
-    }
-}
-
-// ============================================================================
-// Tool: renew_claim
-// ============================================================================
-
-struct RenewClaimTool {
-    server: ServerRefs,
-}
-
-#[async_trait]
-impl Tool for RenewClaimTool {
-    fn name(&self) -> &str {
-        "renew_claim"
-    }
-
-    fn description(&self) -> &str {
-        r#"Renew an active claim for long-running tasks.
-
-Prevents claim timeout by extending the claim duration.
-Must use the same agent_name and session_id from the original claim."#
-    }
-
-    fn schema(&self) -> Value {
-        json!({
-            "type": "object",
-            "properties": {
-                "issue_number": {
-                    "type": "integer",
-                    "description": "Issue number with active claim"
-                },
-                "agent_name": {
-                    "type": "string",
-                    "description": "Agent renewing the claim"
-                },
-                "session_id": {
-                    "type": "string",
-                    "description": "Session identifier from original claim"
-                }
-            },
-            "required": ["issue_number", "agent_name", "session_id"]
-        })
-    }
-
-    async fn execute(&self, args: Value) -> Result<ToolResult> {
-        let issue_number = args
-            .get("issue_number")
-            .and_then(|v| v.as_u64())
-            .ok_or_else(|| {
-                MCPError::InvalidParameters("Missing 'issue_number' parameter".to_string())
-            })?
-            .to_string();
-
-        let agent_name = args
-            .get("agent_name")
-            .and_then(|v| v.as_str())
-            .ok_or_else(|| {
-                MCPError::InvalidParameters("Missing 'agent_name' parameter".to_string())
-            })?;
-
-        let session_id = args
-            .get("session_id")
-            .and_then(|v| v.as_str())
-            .ok_or_else(|| {
-                MCPError::InvalidParameters("Missing 'session_id' parameter".to_string())
-            })?;
-
-        let result = self
-            .server
-            .run_board_manager(&[
-                "renew",
-                &issue_number,
-                "--agent",
-                agent_name,
-                "--session",
-                session_id,
-            ])
-            .await?;
-
-        let response = json!({
-            "success": true,
-            "result": result
-        });
-        ToolResult::json(&response)
-    }
-}
-
-// ============================================================================
-// Tool: release_work
-// ============================================================================
-
-struct ReleaseWorkTool {
-    server: ServerRefs,
-}
-
-#[async_trait]
-impl Tool for ReleaseWorkTool {
-    fn name(&self) -> &str {
-        "release_work"
-    }
-
-    fn description(&self) -> &str {
-        r#"Release claim on an issue.
-
-Releases the agent's claim on an issue, allowing other agents to claim it.
-Specify a reason to indicate why the work is being released."#
-    }
-
-    fn schema(&self) -> Value {
-        json!({
-            "type": "object",
-            "properties": {
-                "issue_number": {
-                    "type": "integer",
-                    "description": "Issue number to release"
-                },
-                "agent_name": {
-                    "type": "string",
-                    "description": "Agent releasing the claim"
-                },
-                "reason": {
-                    "type": "string",
-                    "enum": ["completed", "blocked", "abandoned", "error"],
-                    "default": "completed",
-                    "description": "Reason for release"
-                }
-            },
-            "required": ["issue_number", "agent_name"]
-        })
-    }
-
-    async fn execute(&self, args: Value) -> Result<ToolResult> {
-        let issue_number = args
-            .get("issue_number")
-            .and_then(|v| v.as_u64())
-            .ok_or_else(|| {
-                MCPError::InvalidParameters("Missing 'issue_number' parameter".to_string())
-            })?
-            .to_string();
-
-        let agent_name = args
-            .get("agent_name")
-            .and_then(|v| v.as_str())
-            .ok_or_else(|| {
-                MCPError::InvalidParameters("Missing 'agent_name' parameter".to_string())
-            })?;
-
-        let reason = args
-            .get("reason")
-            .and_then(|v| v.as_str())
-            .unwrap_or("completed");
-
-        let result = self
-            .server
-            .run_board_manager(&[
-                "release",
-                &issue_number,
-                "--agent",
-                agent_name,
-                "--reason",
-                reason,
-            ])
-            .await?;
-
-        let response = json!({
-            "success": true,
-            "result": result
-        });
-        ToolResult::json(&response)
-    }
-}
-
-// ============================================================================
-// Tool: update_status
-// ============================================================================
-
-struct UpdateStatusTool {
-    server: ServerRefs,
-}
-
-#[async_trait]
-impl Tool for UpdateStatusTool {
-    fn name(&self) -> &str {
-        "update_status"
-    }
-
-    fn description(&self) -> &str {
-        r#"Update issue status on the board.
-
-Changes the status field of an issue on the GitHub Projects board."#
-    }
-
-    fn schema(&self) -> Value {
-        json!({
-            "type": "object",
-            "properties": {
-                "issue_number": {
-                    "type": "integer",
-                    "description": "Issue number to update"
-                },
-                "status": {
-                    "type": "string",
-                    "enum": ["Todo", "In Progress", "Blocked", "Done", "Abandoned"],
-                    "description": "New status"
-                }
-            },
-            "required": ["issue_number", "status"]
-        })
-    }
-
-    async fn execute(&self, args: Value) -> Result<ToolResult> {
-        let issue_number = args
-            .get("issue_number")
-            .and_then(|v| v.as_u64())
-            .ok_or_else(|| {
-                MCPError::InvalidParameters("Missing 'issue_number' parameter".to_string())
-            })?
-            .to_string();
-
-        let status = args
-            .get("status")
-            .and_then(|v| v.as_str())
-            .ok_or_else(|| MCPError::InvalidParameters("Missing 'status' parameter".to_string()))?;
-
-        let result = self
-            .server
-            .run_board_manager(&["status", &issue_number, status])
-            .await?;
-
-        let response = json!({
-            "success": true,
-            "result": result
-        });
-        ToolResult::json(&response)
-    }
-}
-
-// ============================================================================
-// Tool: add_blocker
-// ============================================================================
-
-struct AddBlockerTool {
-    server: ServerRefs,
-}
-
-#[async_trait]
-impl Tool for AddBlockerTool {
-    fn name(&self) -> &str {
-        "add_blocker"
-    }
-
-    fn description(&self) -> &str {
-        r#"Add a blocking dependency between issues.
-
-Marks one issue as blocked by another. The blocked issue won't appear
-in ready work until the blocker is resolved."#
-    }
-
-    fn schema(&self) -> Value {
-        json!({
-            "type": "object",
-            "properties": {
-                "issue_number": {
-                    "type": "integer",
-                    "description": "Issue that is blocked"
-                },
-                "blocker_number": {
-                    "type": "integer",
-                    "description": "Issue that blocks"
-                }
-            },
-            "required": ["issue_number", "blocker_number"]
-        })
-    }
-
-    async fn execute(&self, args: Value) -> Result<ToolResult> {
-        let issue_number = args
-            .get("issue_number")
-            .and_then(|v| v.as_u64())
-            .ok_or_else(|| {
-                MCPError::InvalidParameters("Missing 'issue_number' parameter".to_string())
-            })?
-            .to_string();
-
-        let blocker_number = args
-            .get("blocker_number")
-            .and_then(|v| v.as_u64())
-            .ok_or_else(|| {
-                MCPError::InvalidParameters("Missing 'blocker_number' parameter".to_string())
-            })?
-            .to_string();
-
-        let result = self
-            .server
-            .run_board_manager(&["block", &issue_number, "--blocker", &blocker_number])
-            .await?;
-
-        let response = json!({
-            "success": true,
-            "result": result
-        });
-        ToolResult::json(&response)
-    }
-}
-
-// ============================================================================
-// Tool: mark_discovered_from
-// ============================================================================
-
-struct MarkDiscoveredFromTool {
-    server: ServerRefs,
-}
-
-#[async_trait]
-impl Tool for MarkDiscoveredFromTool {
-    fn name(&self) -> &str {
-        "mark_discovered_from"
-    }
-
-    fn description(&self) -> &str {
-        r#"Mark an issue as discovered from another (parent-child relationship).
-
-Establishes a parent-child relationship between issues, useful for
-tracking work that spawned sub-tasks."#
-    }
-
-    fn schema(&self) -> Value {
-        json!({
-            "type": "object",
-            "properties": {
-                "issue_number": {
-                    "type": "integer",
-                    "description": "Child issue number"
-                },
-                "parent_number": {
-                    "type": "integer",
-                    "description": "Parent issue number"
-                }
-            },
-            "required": ["issue_number", "parent_number"]
-        })
-    }
-
-    async fn execute(&self, args: Value) -> Result<ToolResult> {
-        let issue_number = args
-            .get("issue_number")
-            .and_then(|v| v.as_u64())
-            .ok_or_else(|| {
-                MCPError::InvalidParameters("Missing 'issue_number' parameter".to_string())
-            })?
-            .to_string();
-
-        let parent_number = args
-            .get("parent_number")
-            .and_then(|v| v.as_u64())
-            .ok_or_else(|| {
-                MCPError::InvalidParameters("Missing 'parent_number' parameter".to_string())
-            })?
-            .to_string();
-
-        let result = self
-            .server
-            .run_board_manager(&["discover-from", &issue_number, "--parent", &parent_number])
-            .await?;
-
-        let response = json!({
-            "success": true,
-            "result": result
-        });
-        ToolResult::json(&response)
-    }
-}
-
-// ============================================================================
-// Tool: get_issue_details
-// ============================================================================
-
-struct GetIssueDetailsTool {
-    server: ServerRefs,
-}
-
-#[async_trait]
-impl Tool for GetIssueDetailsTool {
-    fn name(&self) -> &str {
-        "get_issue_details"
-    }
-
-    fn description(&self) -> &str {
-        r#"Get full details for a specific issue.
-
-Returns comprehensive information about an issue including status,
-assignee, labels, and board metadata."#
-    }
-
-    fn schema(&self) -> Value {
-        json!({
-            "type": "object",
-            "properties": {
-                "issue_number": {
-                    "type": "integer",
-                    "description": "Issue number to query"
-                }
-            },
-            "required": ["issue_number"]
-        })
-    }
-
-    async fn execute(&self, args: Value) -> Result<ToolResult> {
-        let issue_number = args
-            .get("issue_number")
-            .and_then(|v| v.as_u64())
-            .ok_or_else(|| {
-                MCPError::InvalidParameters("Missing 'issue_number' parameter".to_string())
-            })?
-            .to_string();
-
-        let result = self
-            .server
-            .run_board_manager(&["info", &issue_number])
-            .await?;
-
-        let response = json!({
-            "success": true,
-            "result": result
-        });
-        ToolResult::json(&response)
-    }
-}
-
-// ============================================================================
-// Tool: get_dependency_graph
-// ============================================================================
-
-struct GetDependencyGraphTool {
-    server: ServerRefs,
-}
-
-#[async_trait]
-impl Tool for GetDependencyGraphTool {
-    fn name(&self) -> &str {
-        "get_dependency_graph"
-    }
-
-    fn description(&self) -> &str {
-        r#"Get dependency graph for an issue.
-
-Returns blockers, blocked issues, parent, and children relationships
-for the specified issue."#
-    }
-
-    fn schema(&self) -> Value {
-        json!({
-            "type": "object",
-            "properties": {
-                "issue_number": {
-                    "type": "integer",
-                    "description": "Issue number to query"
-                }
-            },
-            "required": ["issue_number"]
-        })
-    }
-
-    async fn execute(&self, args: Value) -> Result<ToolResult> {
-        let issue_number = args
-            .get("issue_number")
-            .and_then(|v| v.as_u64())
-            .ok_or_else(|| {
-                MCPError::InvalidParameters("Missing 'issue_number' parameter".to_string())
-            })?
-            .to_string();
-
-        // The info command includes dependency information
-        let result = self
-            .server
-            .run_board_manager(&["info", &issue_number])
-            .await?;
-
-        let response = json!({
-            "success": true,
-            "result": result
-        });
-        ToolResult::json(&response)
-    }
-}
-
-// ============================================================================
-// Tool: list_agents
-// ============================================================================
-
-struct ListAgentsTool {
-    server: ServerRefs,
-}
-
-#[async_trait]
-impl Tool for ListAgentsTool {
-    fn name(&self) -> &str {
-        "list_agents"
-    }
-
-    fn description(&self) -> &str {
-        r#"Get list of enabled agents for this board.
-
-Returns the configured agents that are allowed to claim and work on issues."#
-    }
-
-    fn schema(&self) -> Value {
-        json!({
-            "type": "object",
-            "properties": {}
-        })
-    }
-
-    async fn execute(&self, _args: Value) -> Result<ToolResult> {
-        let result = self.server.run_board_manager(&["agents"]).await?;
-
-        let response = json!({
-            "success": true,
-            "result": result
-        });
-        ToolResult::json(&response)
-    }
-}
-
-// ============================================================================
-// Tool: get_board_config
-// ============================================================================
-
-struct GetBoardConfigTool {
-    server: ServerRefs,
-}
-
-#[async_trait]
-impl Tool for GetBoardConfigTool {
-    fn name(&self) -> &str {
-        "get_board_config"
-    }
-
-    fn description(&self) -> &str {
-        r#"Get current board configuration.
-
-Returns the full configuration for the GitHub Projects board including
-field mappings, agent settings, and work queue configuration."#
-    }
-
-    fn schema(&self) -> Value {
-        json!({
-            "type": "object",
-            "properties": {}
-        })
-    }
-
-    async fn execute(&self, _args: Value) -> Result<ToolResult> {
-        let result = self.server.run_board_manager(&["config"]).await?;
-
-        let response = json!({
-            "success": true,
-            "result": result
-        });
-        ToolResult::json(&response)
-    }
-}
-
-// ============================================================================
-// Tool: board_status
-// ============================================================================
-
+/// `board_status`: local diagnostics, never calls the GitHub API.
 struct BoardStatusTool {
-    server: ServerRefs,
+    runner: Arc<dyn BoardRunner>,
+    options: ServerOptions,
+    tool_names: Vec<String>,
 }
 
 #[async_trait]
@@ -920,68 +182,331 @@ impl Tool for BoardStatusTool {
     }
 
     fn description(&self) -> &str {
-        r#"Get GitHub board server status.
-
-Returns information about initialization state and board-manager CLI availability."#
+        "Get GitHub board server status: server version, read-only mode, registered tools, \
+whether the board-manager CLI is available (path and version), the per-call timeout and which \
+GitHub token variables are set (names only, never values). Does not call the GitHub API."
     }
 
     fn schema(&self) -> Value {
-        json!({
-            "type": "object",
-            "properties": {}
-        })
+        json!({ "type": "object", "properties": {} })
     }
 
     async fn execute(&self, _args: Value) -> Result<ToolResult> {
-        let initialized = *self.server.initialized.read().await;
-        let path = self.server.board_manager_path.read().await;
-
-        let mut response = json!({
+        let diag = self.runner.diagnostics().await;
+        let available = diag
+            .get("board_manager_available")
+            .and_then(Value::as_bool)
+            .unwrap_or(false);
+        let tokens: Vec<&str> = TOKEN_VARS
+            .iter()
+            .copied()
+            .filter(|v| std::env::var(v).is_ok_and(|s| !s.trim().is_empty()))
+            .collect();
+        let mut body = json!({
             "server": "github-board",
-            "version": "2.0.0",
-            "initialized": initialized
+            "version": VERSION,
+            // Kept for backward compatibility: true once board-manager is usable.
+            "initialized": available,
+            "read_only": self.options.read_only,
+            "tools": self.tool_names,
+            "board_manager": diag,
+            "token_env_vars_set": tokens,
         });
-
-        if let Some(p) = path.as_ref() {
-            response["board_manager_path"] = json!(p.to_string_lossy());
+        if tokens.is_empty() {
+            body["warning"] = json!(
+                "No GitHub token variable is set; board operations will fail with an \
+                 authentication error"
+            );
         }
-
-        if !initialized {
-            response["note"] = json!("board-manager CLI will be located on first tool call");
-        }
-
-        ToolResult::json(&response)
+        ToolResult::json(&body)
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::sync::Mutex;
+
+    /// Records calls and replays a canned response.
+    struct MockRunner {
+        calls: Mutex<Vec<Vec<String>>>,
+        response: Box<dyn Fn() -> std::result::Result<Value, RunError> + Send + Sync>,
+    }
+
+    impl MockRunner {
+        fn ok(v: Value) -> Arc<Self> {
+            Arc::new(Self {
+                calls: Mutex::new(Vec::new()),
+                response: Box::new(move || Ok(v.clone())),
+            })
+        }
+
+        fn err(f: fn() -> RunError) -> Arc<Self> {
+            Arc::new(Self {
+                calls: Mutex::new(Vec::new()),
+                response: Box::new(move || Err(f())),
+            })
+        }
+
+        fn calls(&self) -> Vec<Vec<String>> {
+            self.calls.lock().unwrap().clone()
+        }
+    }
+
+    #[async_trait]
+    impl BoardRunner for MockRunner {
+        async fn run(&self, args: &[String]) -> std::result::Result<Value, RunError> {
+            self.calls.lock().unwrap().push(args.to_vec());
+            (self.response)()
+        }
+
+        async fn diagnostics(&self) -> Value {
+            json!({ "board_manager_available": true, "board_manager_path": "/mock" })
+        }
+    }
+
+    fn tool(runner: Arc<MockRunner>, name: &str) -> BoxedTool {
+        GitHubBoardServer::new(runner, ServerOptions::default())
+            .tools()
+            .into_iter()
+            .find(|t| t.name() == name)
+            .unwrap_or_else(|| panic!("no tool {name}"))
+    }
+
+    fn body(r: &ToolResult) -> Value {
+        match &r.content[0] {
+            Content::Text { text } => serde_json::from_str(text).unwrap(),
+            other => panic!("unexpected content {other:?}"),
+        }
+    }
+
+    /// The original 12 tool names must keep working.
+    const LEGACY_TOOLS: &[&str] = &[
+        "query_ready_work",
+        "claim_work",
+        "renew_claim",
+        "release_work",
+        "update_status",
+        "add_blocker",
+        "mark_discovered_from",
+        "get_issue_details",
+        "get_dependency_graph",
+        "list_agents",
+        "get_board_config",
+        "board_status",
+    ];
 
     #[test]
-    fn test_server_creation() {
-        let server = GitHubBoardServer::new();
+    fn registers_all_tools_including_legacy_names() {
+        let server = GitHubBoardServer::new(MockRunner::ok(json!({})), ServerOptions::default());
         let tools = server.tools();
-        assert_eq!(tools.len(), 12);
+        let names: Vec<&str> = tools.iter().map(|t| t.name()).collect();
+        for legacy in LEGACY_TOOLS {
+            assert!(names.contains(legacy), "missing {legacy}");
+        }
+        for new in [
+            "remove_blocker",
+            "add_to_board",
+            "check_approval",
+            "find_approved_issues",
+            "release_stale_claims",
+        ] {
+            assert!(names.contains(&new), "missing {new}");
+        }
+        assert_eq!(tools.len(), specs::SPECS.len() + 1);
     }
 
     #[test]
-    fn test_tool_names() {
-        let server = GitHubBoardServer::new();
-        let tools = server.tools();
-        let names: Vec<&str> = tools.iter().map(|t| t.name()).collect();
+    fn legacy_required_params_unchanged() {
+        let server = GitHubBoardServer::new(MockRunner::ok(json!({})), ServerOptions::default());
+        let expected: &[(&str, &[&str])] = &[
+            ("claim_work", &["issue_number", "agent_name", "session_id"]),
+            ("renew_claim", &["issue_number", "agent_name", "session_id"]),
+            ("release_work", &["issue_number", "agent_name"]),
+            ("update_status", &["issue_number", "status"]),
+            ("add_blocker", &["issue_number", "blocker_number"]),
+            ("mark_discovered_from", &["issue_number", "parent_number"]),
+            ("get_issue_details", &["issue_number"]),
+            ("get_dependency_graph", &["issue_number"]),
+        ];
+        for t in server.tools() {
+            let schema = t.schema();
+            let required: Vec<&str> = schema
+                .get("required")
+                .and_then(Value::as_array)
+                .map(|a| a.iter().filter_map(Value::as_str).collect())
+                .unwrap_or_default();
+            if let Some((_, want)) = expected.iter().find(|(n, _)| *n == t.name()) {
+                assert_eq!(&required, want, "{}", t.name());
+            }
+        }
+    }
 
-        assert!(names.contains(&"query_ready_work"));
-        assert!(names.contains(&"claim_work"));
-        assert!(names.contains(&"renew_claim"));
-        assert!(names.contains(&"release_work"));
-        assert!(names.contains(&"update_status"));
-        assert!(names.contains(&"add_blocker"));
-        assert!(names.contains(&"mark_discovered_from"));
-        assert!(names.contains(&"get_issue_details"));
-        assert!(names.contains(&"get_dependency_graph"));
-        assert!(names.contains(&"list_agents"));
-        assert!(names.contains(&"get_board_config"));
-        assert!(names.contains(&"board_status"));
+    #[test]
+    fn read_only_mode_hides_mutating_tools() {
+        let server =
+            GitHubBoardServer::new(MockRunner::ok(json!({})), ServerOptions { read_only: true });
+        let names: Vec<String> = server
+            .tools()
+            .iter()
+            .map(|t| t.name().to_string())
+            .collect();
+        for hidden in [
+            "claim_work",
+            "renew_claim",
+            "release_work",
+            "update_status",
+            "add_blocker",
+            "remove_blocker",
+            "mark_discovered_from",
+            "add_to_board",
+            "release_stale_claims",
+        ] {
+            assert!(!names.iter().any(|n| n == hidden), "{hidden} visible");
+        }
+        for shown in [
+            "query_ready_work",
+            "get_issue_details",
+            "get_dependency_graph",
+            "check_approval",
+            "board_status",
+        ] {
+            assert!(names.iter().any(|n| n == shown), "{shown} hidden");
+        }
+    }
+
+    #[tokio::test]
+    async fn success_is_wrapped() {
+        let runner = MockRunner::ok(json!([{"number": 1}]));
+        let t = tool(runner.clone(), "query_ready_work");
+        let r = t.execute(json!({"limit": 3})).await.unwrap();
+        assert!(!r.is_error);
+        assert_eq!(
+            body(&r),
+            json!({"success": true, "result": [{"number": 1}]})
+        );
+        assert_eq!(runner.calls(), vec![vec!["ready", "--limit=3"]]);
+    }
+
+    #[tokio::test]
+    async fn invalid_args_never_reach_the_runner() {
+        let runner = MockRunner::ok(json!({}));
+        let t = tool(runner.clone(), "claim_work");
+        let err = t.execute(json!({"issue_number": "abc"})).await.unwrap_err();
+        assert!(matches!(err, MCPError::InvalidParameters(_)));
+        assert!(runner.calls().is_empty());
+    }
+
+    #[tokio::test]
+    async fn refused_claim_is_an_error_with_holder() {
+        let runner = MockRunner::ok(json!({
+            "success": false, "issue": 5, "agent": "claude", "session_id": "s",
+            "reason": "already_claimed by crush", "claimed_by": "crush"
+        }));
+        let t = tool(runner, "claim_work");
+        let r = t
+            .execute(json!({"issue_number": 5, "agent_name": "claude", "session_id": "s"}))
+            .await
+            .unwrap();
+        assert!(r.is_error);
+        let b = body(&r);
+        assert_eq!(b["success"], json!(false));
+        assert!(b["error"].as_str().unwrap().contains("crush"));
+        assert_eq!(b["result"]["claimed_by"], json!("crush"));
+    }
+
+    #[tokio::test]
+    async fn granted_claim_is_success() {
+        let runner = MockRunner::ok(json!({"success": true, "issue": 5, "session_id": "s"}));
+        let t = tool(runner, "claim_work");
+        let r = t
+            .execute(json!({"issue_number": 5, "agent_name": "claude", "session_id": "s"}))
+            .await
+            .unwrap();
+        assert!(!r.is_error);
+        assert_eq!(body(&r)["result"]["session_id"], json!("s"));
+    }
+
+    #[tokio::test]
+    async fn failed_renewal_is_an_error() {
+        let runner = MockRunner::ok(json!({"success": false, "issue": 5, "agent": "claude"}));
+        let t = tool(runner, "renew_claim");
+        let r = t
+            .execute(json!({"issue_number": 5, "agent_name": "claude", "session_id": "s"}))
+            .await
+            .unwrap();
+        assert!(r.is_error);
+        assert!(body(&r)["error"].as_str().unwrap().contains("claim_work"));
+    }
+
+    #[tokio::test]
+    async fn issue_not_on_board_is_reported() {
+        for name in ["get_issue_details", "get_dependency_graph"] {
+            let t = tool(MockRunner::ok(Value::Null), name);
+            let r = t.execute(json!({"issue_number": 77})).await.unwrap();
+            assert!(r.is_error, "{name}");
+            assert!(
+                body(&r)["error"]
+                    .as_str()
+                    .unwrap()
+                    .contains("#77 is not on the project board"),
+                "{name}"
+            );
+        }
+        let t = tool(
+            MockRunner::ok(json!({"number": 77})),
+            "get_dependency_graph",
+        );
+        let r = t.execute(json!({"issue_number": 77})).await.unwrap();
+        assert!(!r.is_error);
+    }
+
+    #[tokio::test]
+    async fn runner_errors_become_tool_errors() {
+        let t = tool(
+            MockRunner::err(|| RunError::Failed {
+                status: "exit code 1".into(),
+                message: "Authentication failed: bad credentials".into(),
+            }),
+            "list_agents",
+        );
+        let r = t.execute(json!({})).await.unwrap();
+        assert!(r.is_error);
+        let b = body(&r);
+        assert_eq!(b["error_kind"], json!("board_manager_error"));
+        assert!(b["error"].as_str().unwrap().contains("bad credentials"));
+
+        let t = tool(MockRunner::err(|| RunError::Timeout(5)), "get_board_config");
+        let r = t.execute(json!({})).await.unwrap();
+        assert!(r.is_error);
+        assert_eq!(body(&r)["error_kind"], json!("timeout"));
+    }
+
+    #[tokio::test]
+    async fn board_status_reports_diagnostics_without_runner_calls() {
+        let runner = MockRunner::ok(json!({}));
+        let t = tool(runner.clone(), "board_status");
+        let r = t.execute(json!({})).await.unwrap();
+        assert!(!r.is_error);
+        let b = body(&r);
+        assert_eq!(b["server"], json!("github-board"));
+        assert_eq!(b["version"], json!(VERSION));
+        assert_eq!(b["initialized"], json!(true));
+        assert_eq!(b["read_only"], json!(false));
+        assert_eq!(b["board_manager"]["board_manager_path"], json!("/mock"));
+        assert!(
+            b["tools"]
+                .as_array()
+                .unwrap()
+                .contains(&json!("claim_work"))
+        );
+        assert!(runner.calls().is_empty());
+    }
+
+    #[test]
+    fn shape_outcome_without_success_field_is_refused() {
+        let (b, err) = shape_result("claim_work", &Expect::Outcome, json!({}));
+        assert!(err);
+        assert_eq!(b["error"], json!("Claim was not granted"));
     }
 }

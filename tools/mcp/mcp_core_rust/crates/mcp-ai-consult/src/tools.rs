@@ -11,20 +11,23 @@ use tokio::sync::RwLock;
 use tracing::info;
 
 use mcp_core::error::Result;
-use mcp_core::tool::{Tool, ToolResult};
+use mcp_core::tool::{BoxedTool, Tool, ToolResult};
 
-use crate::types::{AiIntegration, ConsultParams, ConsultStatus};
+use crate::types::{AiIntegration, ConsultParams, ConsultStart, ConsultStatus};
 
 /// Type alias for the shared integration handle.
+///
+/// Note: the legacy `consult(&mut self)` path holds the write lock for the
+/// whole consultation, blocking the status/clear/toggle tools until it ends.
+/// Integrations that implement [`AiIntegration::start_consult`] only hold it
+/// briefly before and after the backend call.
 pub type SharedIntegration<I> = Arc<RwLock<I>>;
-
-/// Boxed tool type for convenience.
-type BoxedTool = Arc<dyn Tool>;
 
 /// Create all 4 standard tools for an AI consultation integration.
 ///
 /// Returns tools named: `consult_{name}`, `clear_{name}_history`,
-/// `{name}_status`, `toggle_{name}_auto_consult`.
+/// `{name}_status`, `toggle_{name}_auto_consult`. Register them with
+/// `MCPServerBuilder::tools_boxed(make_tools(...))`.
 pub fn make_tools<I: AiIntegration>(
     integration: SharedIntegration<I>,
     name: &str,
@@ -58,6 +61,8 @@ pub fn make_tools<I: AiIntegration>(
 
 // -- Consult Tool --
 
+/// `consult_{name}`: run a consultation (arguments: `query`, `context`,
+/// `comparison_mode`, `force`, plus any extra schema properties).
 pub struct ConsultTool<I: AiIntegration> {
     integration: SharedIntegration<I>,
     tool_name: String,
@@ -123,7 +128,7 @@ impl<I: AiIntegration> Tool for ConsultTool<I> {
             .to_string();
 
         if query.is_empty() {
-            return ToolResult::json(&json!({
+            return ToolResult::json_error(&json!({
                 "status": "error",
                 "error": "Query parameter is required and cannot be empty"
             }));
@@ -152,8 +157,28 @@ impl<I: AiIntegration> Tool for ConsultTool<I> {
             force,
         };
 
-        let mut integration = self.integration.write().await;
-        let result = integration.consult(params).await;
+        // Hold the write lock only briefly when the integration supports
+        // detached consultations; otherwise fall back to the legacy
+        // lock-held `consult`.
+        let detached = {
+            let mut integration = self.integration.write().await;
+            match integration.start_consult(params.clone()) {
+                ConsultStart::Unsupported(params) => Err(integration.consult(params).await),
+                ConsultStart::Done(result) => Err(result),
+                ConsultStart::Detached(work) => Ok(work),
+            }
+        };
+        let result = match detached {
+            Err(result) => result,
+            Ok(work) => {
+                let result = work.await;
+                self.integration
+                    .write()
+                    .await
+                    .finish_consult(&params, &result);
+                result
+            },
+        };
 
         let response = match &result.status {
             ConsultStatus::Success => {
@@ -186,12 +211,17 @@ impl<I: AiIntegration> Tool for ConsultTool<I> {
             },
         };
 
-        ToolResult::json(&response)
+        // Failed consultations are flagged `isError` so clients surface them.
+        match result.status {
+            ConsultStatus::Error | ConsultStatus::Timeout => ToolResult::json_error(&response),
+            ConsultStatus::Success | ConsultStatus::Disabled => ToolResult::json(&response),
+        }
     }
 }
 
 // -- Clear History Tool --
 
+/// `clear_{name}_history`: clear the conversation history.
 pub struct ClearHistoryTool<I: AiIntegration> {
     integration: SharedIntegration<I>,
     tool_name: String,
@@ -235,6 +265,7 @@ impl<I: AiIntegration> Tool for ClearHistoryTool<I> {
 
 // -- Status Tool --
 
+/// `{name}_status`: report enablement and statistics.
 pub struct StatusTool<I: AiIntegration> {
     integration: SharedIntegration<I>,
     tool_name: String,
@@ -280,6 +311,7 @@ impl<I: AiIntegration> Tool for StatusTool<I> {
 
 // -- Toggle Auto Consult Tool --
 
+/// `toggle_{name}_auto_consult`: set or flip auto-consultation.
 pub struct ToggleAutoConsultTool<I: AiIntegration> {
     integration: SharedIntegration<I>,
     tool_name: String,

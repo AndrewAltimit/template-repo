@@ -1,27 +1,31 @@
-//! Virtual Character MCP Server implementation.
+//! MCP tool definitions for the Virtual Character server.
 //!
-//! This module implements all MCP tools for controlling virtual characters.
+//! All tools share one [`ServerState`]: the active backend slot, the sequence
+//! player and the audio loader. Arguments are deserialized into typed structs
+//! (see [`crate::spec`]) so wrong types and unknown enum values produce clear
+//! errors; every tool returns a JSON object with `"success": true` or an
+//! `isError` result with a human-readable message.
 
 use async_trait::async_trait;
 use mcp_core::error::Result;
 use mcp_core::tool::{BoxedTool, Tool, ToolResult};
+use serde::Deserialize;
 use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use tracing::{error, info};
+use tracing::{info, warn};
 
 use crate::audio::AudioHandler;
-use crate::backends::{BackendAdapter, MockBackend, VRChatRemoteBackend};
-use crate::constants::{get_vrcemote_name, VRCEmoteValue, VRCEMOTE_DESCRIPTION};
-use crate::types::{
-    AudioData, CanonicalAnimationData, EmotionType, EventSequence, EventType, GestureType,
-    SequenceEvent,
+use crate::backends::{create_backend, BackendAdapter, SharedBackend, BACKEND_NAMES};
+use crate::constants::{
+    get_vrcemote_name, VRCEmoteValue, SUPPORTED_BEHAVIORS, VRCEMOTE_DESCRIPTION,
 };
+use crate::sequence_handler::SequenceHandler;
+use crate::spec::{build_event, parse_args, prepare_audio, AnimationSpec, EventSpec};
+use crate::types::{EmotionType, EventType, GestureType};
 
-/// Seconds since the Unix epoch as `f64`. Returns `0.0` if the system clock is
-/// set before the epoch rather than panicking on the (practically impossible)
-/// error case.
+/// Seconds since the Unix epoch as `f64` (0.0 if the clock is before 1970).
 fn unix_secs_f64() -> f64 {
     std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
@@ -29,109 +33,97 @@ fn unix_secs_f64() -> f64 {
         .as_secs_f64()
 }
 
-/// Server state shared across all tools.
-#[derive(Clone)]
-pub struct ServerRefs {
-    pub backend: Arc<RwLock<Option<Box<dyn BackendAdapter>>>>,
-    pub backend_name: Arc<RwLock<Option<String>>>,
-    pub current_sequence: Arc<RwLock<Option<EventSequence>>>,
-    pub sequence_playing: Arc<RwLock<bool>>,
+/// Longest `duration` accepted by `play_audio` (seconds).
+const MAX_AUDIO_DURATION: f64 = 3600.0;
+
+/// State shared by all tools.
+pub struct ServerState {
+    /// Active backend (None until `set_backend`).
+    pub backend: SharedBackend,
+    /// Name of the active backend.
+    pub backend_name: RwLock<Option<String>>,
+    /// Sequence builder / player.
+    pub sequences: SequenceHandler,
+    /// Audio input resolver (shared HTTP client).
+    pub audio: AudioHandler,
 }
 
-impl ServerRefs {
+impl ServerState {
+    /// Fresh state with no backend.
     pub fn new() -> Self {
         Self {
             backend: Arc::new(RwLock::new(None)),
-            backend_name: Arc::new(RwLock::new(None)),
-            current_sequence: Arc::new(RwLock::new(None)),
-            sequence_playing: Arc::new(RwLock::new(false)),
-        }
-    }
-
-    /// Check if backend is connected and return an error message if not.
-    async fn check_connected(&self) -> Option<String> {
-        let backend = self.backend.read().await;
-        match backend.as_ref() {
-            None => Some("No backend connected. Use set_backend first.".to_string()),
-            Some(b) if !b.is_connected() => Some("Backend is not connected.".to_string()),
-            Some(_) => None,
+            backend_name: RwLock::new(None),
+            sequences: SequenceHandler::new(),
+            audio: AudioHandler::new(),
         }
     }
 }
 
-impl Default for ServerRefs {
+impl Default for ServerState {
     fn default() -> Self {
         Self::new()
     }
 }
 
-/// Virtual Character MCP Server.
+/// Return the connected backend or a helpful error.
+fn connected_mut(
+    slot: &mut Option<Box<dyn BackendAdapter>>,
+) -> std::result::Result<&mut Box<dyn BackendAdapter>, String> {
+    match slot {
+        None => Err("No backend connected. Use set_backend first.".to_string()),
+        Some(b) if !b.is_connected() => {
+            Err("Backend is not connected. Call set_backend to reconnect.".to_string())
+        },
+        Some(b) => Ok(b),
+    }
+}
+
+/// Virtual Character MCP server: owns the shared state and builds the tools.
 pub struct VirtualCharacterServer {
-    refs: ServerRefs,
+    state: Arc<ServerState>,
 }
 
 impl VirtualCharacterServer {
+    /// Create a server with no backend connected.
     pub fn new() -> Self {
         Self {
-            refs: ServerRefs::new(),
+            state: Arc::new(ServerState::new()),
         }
     }
 
-    pub fn refs(&self) -> ServerRefs {
-        self.refs.clone()
+    /// Shared state (for embedding / tests).
+    pub fn state(&self) -> Arc<ServerState> {
+        self.state.clone()
     }
 
+    /// All MCP tools.
     pub fn tools(&self) -> Vec<BoxedTool> {
-        vec![
-            Arc::new(SetBackendTool {
-                server: self.refs.clone(),
-            }),
-            Arc::new(SendAnimationTool {
-                server: self.refs.clone(),
-            }),
-            Arc::new(ExecuteBehaviorTool {
-                server: self.refs.clone(),
-            }),
-            Arc::new(ResetTool {
-                server: self.refs.clone(),
-            }),
-            Arc::new(GetBackendStatusTool {
-                server: self.refs.clone(),
-            }),
-            Arc::new(ListBackendsTool {
-                server: self.refs.clone(),
-            }),
-            Arc::new(PlayAudioTool {
-                server: self.refs.clone(),
-            }),
-            Arc::new(CreateSequenceTool {
-                server: self.refs.clone(),
-            }),
-            Arc::new(AddSequenceEventTool {
-                server: self.refs.clone(),
-            }),
-            Arc::new(PlaySequenceTool {
-                server: self.refs.clone(),
-            }),
-            Arc::new(PauseSequenceTool {
-                server: self.refs.clone(),
-            }),
-            Arc::new(ResumeSequenceTool {
-                server: self.refs.clone(),
-            }),
-            Arc::new(StopSequenceTool {
-                server: self.refs.clone(),
-            }),
-            Arc::new(GetSequenceStatusTool {
-                server: self.refs.clone(),
-            }),
-            Arc::new(PanicResetTool {
-                server: self.refs.clone(),
-            }),
-            Arc::new(SendVRCEmoteTool {
-                server: self.refs.clone(),
-            }),
-        ]
+        ToolKind::ALL
+            .iter()
+            .map(|kind| {
+                Arc::new(VcTool {
+                    kind: *kind,
+                    state: self.state.clone(),
+                }) as BoxedTool
+            })
+            .collect()
+    }
+
+    /// Connect a backend at startup (used by `--backend`).
+    pub async fn connect_backend(
+        &self,
+        backend: &str,
+        config: Value,
+    ) -> std::result::Result<Value, String> {
+        set_backend(
+            &self.state,
+            SetBackendArgs {
+                backend: backend.to_string(),
+                config: Some(config),
+            },
+        )
+        .await
     }
 }
 
@@ -141,1262 +133,833 @@ impl Default for VirtualCharacterServer {
     }
 }
 
-// =============================================================================
-// Tool Implementations
-// =============================================================================
+/// Every tool exposed by the server.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum ToolKind {
+    SetBackend,
+    DisconnectBackend,
+    SendAnimation,
+    ExecuteBehavior,
+    Reset,
+    GetBackendStatus,
+    ListBackends,
+    GetAvatarState,
+    PlayAudio,
+    CreateSequence,
+    AddSequenceEvent,
+    PlaySequence,
+    PauseSequence,
+    ResumeSequence,
+    StopSequence,
+    GetSequenceStatus,
+    PanicReset,
+    SendVRCEmote,
+}
 
-/// Set backend tool.
-struct SetBackendTool {
-    server: ServerRefs,
+impl ToolKind {
+    const ALL: [ToolKind; 18] = [
+        ToolKind::SetBackend,
+        ToolKind::DisconnectBackend,
+        ToolKind::SendAnimation,
+        ToolKind::ExecuteBehavior,
+        ToolKind::Reset,
+        ToolKind::GetBackendStatus,
+        ToolKind::ListBackends,
+        ToolKind::GetAvatarState,
+        ToolKind::PlayAudio,
+        ToolKind::CreateSequence,
+        ToolKind::AddSequenceEvent,
+        ToolKind::PlaySequence,
+        ToolKind::PauseSequence,
+        ToolKind::ResumeSequence,
+        ToolKind::StopSequence,
+        ToolKind::GetSequenceStatus,
+        ToolKind::PanicReset,
+        ToolKind::SendVRCEmote,
+    ];
+
+    fn name(self) -> &'static str {
+        match self {
+            ToolKind::SetBackend => "set_backend",
+            ToolKind::DisconnectBackend => "disconnect_backend",
+            ToolKind::SendAnimation => "send_animation",
+            ToolKind::ExecuteBehavior => "execute_behavior",
+            ToolKind::Reset => "reset",
+            ToolKind::GetBackendStatus => "get_backend_status",
+            ToolKind::ListBackends => "list_backends",
+            ToolKind::GetAvatarState => "get_avatar_state",
+            ToolKind::PlayAudio => "play_audio",
+            ToolKind::CreateSequence => "create_sequence",
+            ToolKind::AddSequenceEvent => "add_sequence_event",
+            ToolKind::PlaySequence => "play_sequence",
+            ToolKind::PauseSequence => "pause_sequence",
+            ToolKind::ResumeSequence => "resume_sequence",
+            ToolKind::StopSequence => "stop_sequence",
+            ToolKind::GetSequenceStatus => "get_sequence_status",
+            ToolKind::PanicReset => "panic_reset",
+            ToolKind::SendVRCEmote => "send_vrcemote",
+        }
+    }
+
+    fn description(self) -> &'static str {
+        match self {
+            ToolKind::SetBackend => "Connect to a virtual character backend (mock, vrchat_remote). Replaces and disconnects any current backend and stops sequence playback. For vrchat_remote, unspecified config values come from VIRTUAL_CHARACTER_* environment variables.",
+            ToolKind::DisconnectBackend => "Disconnect the current backend, stop sequence playback and release its network ports",
+            ToolKind::SendAnimation => "Send emotion, gesture, movement, blend shapes and/or custom avatar parameters to the current backend. On VRChat, emotions and gestures map to VRCEmote wheel slots (toggle semantics: repeating the active one turns it off); a gesture takes priority over an emotion in the same call.",
+            ToolKind::ExecuteBehavior => "Execute a high-level behavior: greet, dance, sit, stand, jump, crouch",
+            ToolKind::Reset => "Reset all states - clear emotes and stop all movement",
+            ToolKind::GetBackendStatus => "Get current backend status, health and statistics (including whether VRChat is sending OSC back)",
+            ToolKind::ListBackends => "List available backends",
+            ToolKind::GetAvatarState => "Get avatar/world state reported by the backend (for VRChat: avatar id and avatar parameters received over OSC)",
+            ToolKind::PlayAudio => "Play audio through the virtual character. Accepts a file path, http(s) URL, data URL or base64. Expression tags (explicit or [tags] in text) drive the avatar's emotion. Reports whether the audio was actually played and how.",
+            ToolKind::CreateSequence => "Create a new event sequence for coordinated animations and audio (replaces the sequence being built)",
+            ToolKind::AddSequenceEvent => "Add an event to the current sequence. Events fire at 'timestamp' seconds from the start of playback.",
+            ToolKind::PlaySequence => "Play the current event sequence on the connected backend (runs in the background)",
+            ToolKind::PauseSequence => "Pause the currently playing sequence",
+            ToolKind::ResumeSequence => "Resume the paused sequence",
+            ToolKind::StopSequence => "Stop the currently playing sequence",
+            ToolKind::GetSequenceStatus => "Get status of the current sequence and its playback (position, events executed/failed, last error)",
+            ToolKind::PanicReset => "Emergency reset - stops and discards sequences and resets the avatar to a neutral state",
+            ToolKind::SendVRCEmote => "Send a VRCEmote value (0-8) to the VRChat backend for precise gesture control (0 clears; repeating the active value toggles it off)",
+        }
+    }
+
+    fn schema(self) -> Value {
+        let emotions: Vec<&str> = EmotionType::ALL.iter().map(|e| e.as_str()).collect();
+        let gestures: Vec<&str> = GestureType::ALL.iter().map(|g| g.as_str()).collect();
+        let movement = json!({
+            "type": "object",
+            "description": "Movement and avatar parameters. Continuous axes auto-stop after 'duration' seconds.",
+            "properties": {
+                "move_forward": {"type": "number", "minimum": -1, "maximum": 1},
+                "move_right": {"type": "number", "minimum": -1, "maximum": 1},
+                "look_horizontal": {"type": "number", "minimum": -1, "maximum": 1, "description": "Turn rate"},
+                "look_vertical": {"type": "number", "minimum": -1, "maximum": 1},
+                "jump": {"type": "boolean"},
+                "crouch": {"type": "boolean"},
+                "run": {"type": "boolean"},
+                "duration": {"type": "number", "default": 2.0, "description": "Seconds before axes reset to 0 (max 60)"},
+                "avatar_params": {"type": "object", "description": "Custom avatar parameters: name -> number/boolean (VRCEmote is routed through the emote state machine)"}
+            }
+        });
+        let animation_props = json!({
+            "emotion": {"type": "string", "enum": emotions, "description": "Emotion to display"},
+            "emotion_intensity": {"type": "number", "minimum": 0, "maximum": 1, "default": 1.0},
+            "gesture": {"type": "string", "enum": gestures, "description": "Gesture to perform"},
+            "gesture_intensity": {"type": "number", "minimum": 0, "maximum": 1, "default": 1.0},
+            "parameters": movement,
+            "blend_shapes": {"type": "object", "additionalProperties": {"type": "number", "minimum": 0, "maximum": 1}, "description": "Blend shape weights, sent as /avatar/parameters/BlendShape_<name>"}
+        });
+        let empty = json!({"type": "object", "properties": {}});
+
+        match self {
+            ToolKind::SetBackend => json!({
+                "type": "object",
+                "properties": {
+                    "backend": {"type": "string", "enum": BACKEND_NAMES, "description": "Backend to connect to"},
+                    "config": {
+                        "type": "object",
+                        "description": "Backend configuration (vrchat_remote only; mock ignores it)",
+                        "properties": {
+                            "remote_host": {"type": "string", "description": "Host running VRChat (default 127.0.0.1 or VIRTUAL_CHARACTER_HOST)"},
+                            "osc_in_port": {"type": "integer", "default": 9000, "description": "VRChat's OSC input port (we send here)"},
+                            "osc_out_port": {"type": "integer", "default": 9001, "description": "VRChat's OSC output port (we listen here)"},
+                            "use_vrcemote": {"type": "boolean", "default": true, "description": "Express emotions/gestures via VRCEmote"},
+                            "emote_timeout": {"type": "number", "default": 10, "description": "Seconds before an active emote is toggled off automatically (0 disables)"},
+                            "listen": {"type": "boolean", "default": true, "description": "Listen for VRChat OSC output"},
+                            "audio_playback": {"type": "string", "enum": ["auto", "local", "none"], "default": "auto", "description": "auto = play locally when remote_host is loopback"},
+                            "audio_device": {"type": "string", "description": "Output device for local playback (default 'VoiceMeeter Input')"},
+                            "chatbox_transcripts": {"type": "boolean", "default": false, "description": "Show play_audio text in the VRChat chatbox"}
+                        }
+                    }
+                },
+                "required": ["backend"]
+            }),
+            ToolKind::SendAnimation => json!({"type": "object", "properties": animation_props}),
+            ToolKind::ExecuteBehavior => json!({
+                "type": "object",
+                "properties": {
+                    "behavior": {"type": "string", "enum": SUPPORTED_BEHAVIORS, "description": "Behavior to execute"},
+                    "parameters": {"type": "object", "description": "Behavior parameters (currently unused)"}
+                },
+                "required": ["behavior"]
+            }),
+            ToolKind::PlayAudio => json!({
+                "type": "object",
+                "properties": {
+                    "audio_data": {"type": "string", "description": "File path, http(s) URL, data URL, or base64-encoded audio"},
+                    "audio_format": {"type": "string", "enum": ["mp3", "wav", "opus", "ogg", "flac", "pcm"], "default": "mp3", "description": "Declared format (magic bytes take precedence; pcm = 16-bit mono little-endian)"},
+                    "sample_rate": {"type": "integer", "default": 44100, "description": "Sample rate for pcm input"},
+                    "text": {"type": "string", "description": "Transcript; [tags] inside it drive expression when expression_tags is omitted"},
+                    "expression_tags": {"type": "array", "items": {"type": "string"}, "description": "ElevenLabs audio tags like [laughs], [whisper]"},
+                    "duration": {"type": "number", "description": "Audio duration in seconds (estimated from WAV/MP3 headers if omitted)"}
+                },
+                "required": ["audio_data"]
+            }),
+            ToolKind::CreateSequence => json!({
+                "type": "object",
+                "properties": {
+                    "name": {"type": "string", "description": "Sequence name"},
+                    "description": {"type": "string"},
+                    "loop": {"type": "boolean", "default": false},
+                    "interrupt_current": {"type": "boolean", "default": true, "description": "Stop any sequence that is currently playing"}
+                },
+                "required": ["name"]
+            }),
+            ToolKind::AddSequenceEvent => {
+                let event_types = [
+                    "animation",
+                    "audio",
+                    "wait",
+                    "expression",
+                    "movement",
+                    "parallel",
+                ];
+                json!({
+                    "type": "object",
+                    "properties": {
+                        "event_type": {"type": "string", "enum": event_types},
+                        "timestamp": {"type": "number", "minimum": 0, "description": "Seconds from sequence start"},
+                        "duration": {"type": "number", "minimum": 0, "description": "Event length (audio defaults to the clip length)"},
+                        "animation_params": {"type": "object", "properties": animation_props, "description": "animation: emotion/gesture/parameters/blend_shapes"},
+                        "audio_data": {"type": "string", "description": "audio: file path, URL, data URL or base64"},
+                        "audio_format": {"type": "string", "enum": ["mp3", "wav", "opus", "ogg", "flac", "pcm"]},
+                        "text": {"type": "string", "description": "audio: transcript ([tags] drive expression)"},
+                        "expression_tags": {"type": "array", "items": {"type": "string"}},
+                        "wait_duration": {"type": "number", "minimum": 0, "description": "wait: seconds (extends the sequence length)"},
+                        "expression": {"type": "string", "enum": emotions, "description": "expression: emotion to show"},
+                        "expression_intensity": {"type": "number", "minimum": 0, "maximum": 1, "default": 1.0},
+                        "movement_params": movement,
+                        "parallel_events": {"type": "array", "items": {"type": "object"}, "description": "parallel: child events (same fields; they inherit this timestamp)"}
+                    },
+                    "required": ["event_type", "timestamp"]
+                })
+            },
+            ToolKind::PlaySequence => json!({
+                "type": "object",
+                "properties": {
+                    "start_time": {"type": "number", "minimum": 0, "default": 0, "description": "Start offset in seconds (earlier events are skipped)"}
+                }
+            }),
+            ToolKind::SendVRCEmote => json!({
+                "type": "object",
+                "properties": {
+                    "emote_value": {
+                        "type": "integer",
+                        "minimum": VRCEmoteValue::MIN,
+                        "maximum": VRCEmoteValue::MAX,
+                        "description": VRCEMOTE_DESCRIPTION
+                    }
+                },
+                "required": ["emote_value"]
+            }),
+            ToolKind::DisconnectBackend
+            | ToolKind::Reset
+            | ToolKind::GetBackendStatus
+            | ToolKind::ListBackends
+            | ToolKind::GetAvatarState
+            | ToolKind::PauseSequence
+            | ToolKind::ResumeSequence
+            | ToolKind::StopSequence
+            | ToolKind::GetSequenceStatus
+            | ToolKind::PanicReset => empty,
+        }
+    }
+}
+
+/// A tool bound to the shared state.
+struct VcTool {
+    kind: ToolKind,
+    state: Arc<ServerState>,
 }
 
 #[async_trait]
-impl Tool for SetBackendTool {
+impl Tool for VcTool {
     fn name(&self) -> &str {
-        "set_backend"
+        self.kind.name()
     }
 
     fn description(&self) -> &str {
-        "Connect to a virtual character backend (mock, vrchat_remote)"
+        self.kind.description()
     }
 
     fn schema(&self) -> Value {
-        json!({
-            "type": "object",
-            "properties": {
-                "backend": {
-                    "type": "string",
-                    "enum": ["mock", "vrchat_remote"],
-                    "description": "Backend to connect to"
-                },
-                "config": {
-                    "type": "object",
-                    "description": "Backend configuration",
-                    "properties": {
-                        "remote_host": {"type": "string", "description": "Remote host IP (for vrchat_remote)"},
-                        "use_vrcemote": {"type": "boolean", "description": "Use VRCEmote system for gestures"},
-                        "osc_in_port": {"type": "integer", "default": 9000},
-                        "osc_out_port": {"type": "integer", "default": 9001}
-                    }
-                }
-            },
-            "required": ["backend"]
-        })
+        self.kind.schema()
     }
 
     async fn execute(&self, args: Value) -> Result<ToolResult> {
-        let backend_name = args
-            .get("backend")
-            .and_then(|v| v.as_str())
-            .unwrap_or("mock");
-
-        let config: HashMap<String, Value> = args
-            .get("config")
-            .and_then(|v| serde_json::from_value(v.clone()).ok())
-            .unwrap_or_default();
-
-        info!("Setting backend to: {}", backend_name);
-
-        // Disconnect current backend if any
-        let mut backend_guard = self.server.backend.write().await;
-        if let Some(ref mut backend) = *backend_guard {
-            if let Err(e) = backend.disconnect().await {
-                error!("Error disconnecting old backend: {}", e);
-            }
-        }
-
-        // Create new backend
-        let mut new_backend: Box<dyn BackendAdapter> = match backend_name {
-            "mock" => Box::new(MockBackend::new()),
-            "vrchat_remote" => Box::new(VRChatRemoteBackend::new()),
-            _ => {
-                return Ok(ToolResult::error(format!(
-                    "Unknown backend: {}",
-                    backend_name
-                )));
+        let s = &self.state;
+        let result = match self.kind {
+            ToolKind::SetBackend => match parse_args(args) {
+                Ok(a) => set_backend(s, a).await,
+                Err(e) => Err(e),
             },
-        };
-
-        // Connect
-        match new_backend.connect(config).await {
-            Ok(()) => {
-                *backend_guard = Some(new_backend);
-                *self.server.backend_name.write().await = Some(backend_name.to_string());
-
-                ToolResult::json(&json!({
+            ToolKind::DisconnectBackend => disconnect_backend(s).await,
+            ToolKind::SendAnimation => match parse_args(args) {
+                Ok(a) => send_animation(s, a).await,
+                Err(e) => Err(e),
+            },
+            ToolKind::ExecuteBehavior => match parse_args(args) {
+                Ok(a) => execute_behavior(s, a).await,
+                Err(e) => Err(e),
+            },
+            ToolKind::Reset => reset(s).await,
+            ToolKind::GetBackendStatus => get_backend_status(s).await,
+            ToolKind::ListBackends => list_backends(s).await,
+            ToolKind::GetAvatarState => get_avatar_state(s).await,
+            ToolKind::PlayAudio => match parse_args(args) {
+                Ok(a) => play_audio(s, a).await,
+                Err(e) => Err(e),
+            },
+            ToolKind::CreateSequence => match parse_args(args) {
+                Ok(a) => create_sequence(s, a).await,
+                Err(e) => Err(e),
+            },
+            ToolKind::AddSequenceEvent => match parse_args::<EventSpec>(args) {
+                Ok(a) => add_sequence_event(s, a).await,
+                Err(e) => Err(e),
+            },
+            ToolKind::PlaySequence => match parse_args(args) {
+                Ok(a) => play_sequence(s, a).await,
+                Err(e) => Err(e),
+            },
+            ToolKind::PauseSequence => s
+                .sequences
+                .pause()
+                .await
+                .map(|()| json!({"success": true, "message": "Sequence paused"}))
+                .map_err(|e| e.to_string()),
+            ToolKind::ResumeSequence => s
+                .sequences
+                .resume()
+                .await
+                .map(|()| json!({"success": true, "message": "Sequence resumed"}))
+                .map_err(|e| e.to_string()),
+            ToolKind::StopSequence => {
+                let was_playing = s.sequences.stop().await;
+                Ok(json!({
                     "success": true,
-                    "backend": backend_name,
-                    "message": format!("Connected to {}", backend_name)
+                    "was_playing": was_playing,
+                    "message": if was_playing { "Sequence stopped" } else { "No sequence was playing" }
                 }))
             },
-            Err(e) => Ok(ToolResult::error(format!("Failed to connect: {}", e))),
-        }
-    }
-}
-
-/// Send animation tool.
-struct SendAnimationTool {
-    server: ServerRefs,
-}
-
-#[async_trait]
-impl Tool for SendAnimationTool {
-    fn name(&self) -> &str {
-        "send_animation"
-    }
-
-    fn description(&self) -> &str {
-        "Send animation data to the current backend"
-    }
-
-    fn schema(&self) -> Value {
-        json!({
-            "type": "object",
-            "properties": {
-                "emotion": {
-                    "type": "string",
-                    "enum": ["neutral", "happy", "sad", "angry", "surprised", "fearful", "disgusted"],
-                    "description": "Emotion to display"
-                },
-                "emotion_intensity": {
-                    "type": "number",
-                    "minimum": 0,
-                    "maximum": 1,
-                    "default": 1.0
-                },
-                "gesture": {
-                    "type": "string",
-                    "enum": ["none", "wave", "point", "thumbs_up", "nod", "shake_head", "clap", "dance", "backflip", "cheer", "sadness", "die"],
-                    "description": "Gesture to perform"
-                },
-                "gesture_intensity": {
-                    "type": "number",
-                    "minimum": 0,
-                    "maximum": 1,
-                    "default": 1.0
-                },
-                "parameters": {
-                    "type": "object",
-                    "description": "Movement parameters",
-                    "properties": {
-                        "move_forward": {"type": "number", "minimum": -1, "maximum": 1},
-                        "move_right": {"type": "number", "minimum": -1, "maximum": 1},
-                        "look_horizontal": {"type": "number", "minimum": -1, "maximum": 1},
-                        "look_vertical": {"type": "number", "minimum": -1, "maximum": 1},
-                        "jump": {"type": "boolean"},
-                        "crouch": {"type": "boolean"},
-                        "run": {"type": "boolean"},
-                        "duration": {"type": "number", "default": 2.0}
-                    }
-                }
-            }
-        })
-    }
-
-    async fn execute(&self, args: Value) -> Result<ToolResult> {
-        if let Some(e) = self.server.check_connected().await {
-            return Ok(ToolResult::error(e));
-        }
-
-        let timestamp = unix_secs_f64();
-
-        let mut animation = CanonicalAnimationData::new(timestamp);
-
-        // Parse emotion
-        if let Some(emotion_str) = args.get("emotion").and_then(|v| v.as_str()) {
-            match emotion_str.parse::<EmotionType>() {
-                Ok(emotion) => {
-                    animation.emotion = Some(emotion);
-                    animation.emotion_intensity = args
-                        .get("emotion_intensity")
-                        .and_then(|v| v.as_f64())
-                        .unwrap_or(1.0) as f32;
-                },
-                Err(e) => return Ok(ToolResult::error(format!("Invalid emotion: {}", e))),
-            }
-        }
-
-        // Parse gesture
-        if let Some(gesture_str) = args.get("gesture").and_then(|v| v.as_str()) {
-            match gesture_str.parse::<GestureType>() {
-                Ok(gesture) => {
-                    animation.gesture = Some(gesture);
-                    animation.gesture_intensity = args
-                        .get("gesture_intensity")
-                        .and_then(|v| v.as_f64())
-                        .unwrap_or(1.0) as f32;
-                },
-                Err(e) => return Ok(ToolResult::error(format!("Invalid gesture: {}", e))),
-            }
-        }
-
-        // Parse parameters
-        if let Some(params) = args.get("parameters") {
-            if let Ok(params_map) = serde_json::from_value::<HashMap<String, Value>>(params.clone())
-            {
-                animation.parameters = params_map;
-            }
-        }
-
-        // Send animation
-        let mut backend_guard = self.server.backend.write().await;
-        if let Some(ref mut backend) = *backend_guard {
-            match backend.send_animation_data(animation).await {
-                Ok(()) => ToolResult::json(&json!({"success": true})),
-                Err(e) => Ok(ToolResult::error(format!(
-                    "Failed to send animation: {}",
-                    e
-                ))),
-            }
-        } else {
-            Ok(ToolResult::error("No backend connected"))
-        }
-    }
-}
-
-/// Execute behavior tool.
-struct ExecuteBehaviorTool {
-    server: ServerRefs,
-}
-
-#[async_trait]
-impl Tool for ExecuteBehaviorTool {
-    fn name(&self) -> &str {
-        "execute_behavior"
-    }
-
-    fn description(&self) -> &str {
-        "Execute a high-level behavior"
-    }
-
-    fn schema(&self) -> Value {
-        json!({
-            "type": "object",
-            "properties": {
-                "behavior": {"type": "string", "description": "Behavior to execute (greet, dance, sit, stand, etc.)"},
-                "parameters": {"type": "object", "description": "Behavior parameters"}
-            },
-            "required": ["behavior"]
-        })
-    }
-
-    async fn execute(&self, args: Value) -> Result<ToolResult> {
-        if let Some(e) = self.server.check_connected().await {
-            return Ok(ToolResult::error(e));
-        }
-
-        let behavior = args.get("behavior").and_then(|v| v.as_str()).unwrap_or("");
-
-        let params: HashMap<String, Value> = args
-            .get("parameters")
-            .and_then(|v| serde_json::from_value(v.clone()).ok())
-            .unwrap_or_default();
-
-        let mut backend_guard = self.server.backend.write().await;
-        if let Some(ref mut backend) = *backend_guard {
-            match backend.execute_behavior(behavior, params).await {
-                Ok(()) => ToolResult::json(&json!({"success": true})),
-                Err(e) => Ok(ToolResult::error(format!(
-                    "Failed to execute behavior: {}",
-                    e
-                ))),
-            }
-        } else {
-            Ok(ToolResult::error("No backend connected"))
-        }
-    }
-}
-
-/// Reset tool.
-struct ResetTool {
-    server: ServerRefs,
-}
-
-#[async_trait]
-impl Tool for ResetTool {
-    fn name(&self) -> &str {
-        "reset"
-    }
-
-    fn description(&self) -> &str {
-        "Reset all states - clear emotes and stop all movement"
-    }
-
-    fn schema(&self) -> Value {
-        json!({"type": "object", "properties": {}})
-    }
-
-    async fn execute(&self, _args: Value) -> Result<ToolResult> {
-        if let Some(e) = self.server.check_connected().await {
-            return Ok(ToolResult::error(e));
-        }
-
-        let mut backend_guard = self.server.backend.write().await;
-        if let Some(ref mut backend) = *backend_guard {
-            match backend.reset_all().await {
-                Ok(()) => ToolResult::json(&json!({
-                    "success": true,
-                    "message": "All states reset"
-                })),
-                Err(e) => Ok(ToolResult::error(format!("Failed to reset: {}", e))),
-            }
-        } else {
-            Ok(ToolResult::error("No backend connected"))
-        }
-    }
-}
-
-/// Get backend status tool.
-struct GetBackendStatusTool {
-    server: ServerRefs,
-}
-
-#[async_trait]
-impl Tool for GetBackendStatusTool {
-    fn name(&self) -> &str {
-        "get_backend_status"
-    }
-
-    fn description(&self) -> &str {
-        "Get current backend status and statistics"
-    }
-
-    fn schema(&self) -> Value {
-        json!({"type": "object", "properties": {}})
-    }
-
-    async fn execute(&self, _args: Value) -> Result<ToolResult> {
-        let backend_guard = self.server.backend.read().await;
-        let backend_name = self.server.backend_name.read().await;
-
-        if let Some(ref backend) = *backend_guard {
-            let health = backend.health_check().await.unwrap_or_default();
-            let stats = backend.get_statistics().await.unwrap_or_default();
-
-            ToolResult::json(&json!({
+            ToolKind::GetSequenceStatus => Ok(json!({
                 "success": true,
-                "backend": *backend_name,
-                "connected": backend.is_connected(),
+                "status": s.sequences.status().await
+            })),
+            ToolKind::PanicReset => panic_reset(s).await,
+            ToolKind::SendVRCEmote => match parse_args(args) {
+                Ok(a) => send_vrcemote(s, a).await,
+                Err(e) => Err(e),
+            },
+        };
+        match result {
+            Ok(v) => ToolResult::json(&v),
+            Err(e) => Ok(ToolResult::error(e)),
+        }
+    }
+}
+
+type ToolOutcome = std::result::Result<Value, String>;
+
+// =============================================================================
+// Backend management
+// =============================================================================
+
+#[derive(Debug, Deserialize)]
+struct SetBackendArgs {
+    backend: String,
+    config: Option<Value>,
+}
+
+async fn set_backend(s: &ServerState, a: SetBackendArgs) -> ToolOutcome {
+    let name = a.backend.trim().to_string();
+    let Some(mut new_backend) = create_backend(&name) else {
+        return Err(format!(
+            "Unknown backend '{}'. Available: {}",
+            name,
+            BACKEND_NAMES.join(", ")
+        ));
+    };
+    let config: HashMap<String, Value> = match a.config {
+        None | Some(Value::Null) => HashMap::new(),
+        Some(Value::Object(m)) => m.into_iter().collect(),
+        Some(other) => return Err(format!("config must be an object, got {other}")),
+    };
+
+    info!("Setting backend to: {}", name);
+    // Playback references the backend slot; stop it before swapping.
+    s.sequences.stop().await;
+
+    let mut slot = s.backend.write().await;
+    if let Some(mut old) = slot.take() {
+        if let Err(e) = old.disconnect().await {
+            warn!("Error disconnecting previous backend: {}", e);
+        }
+    }
+    *s.backend_name.write().await = None;
+
+    new_backend
+        .connect(config)
+        .await
+        .map_err(|e| format!("Failed to connect to {}: {}", name, e))?;
+    let stats = new_backend.get_statistics().await.unwrap_or_default();
+    *slot = Some(new_backend);
+    *s.backend_name.write().await = Some(name.clone());
+
+    Ok(json!({
+        "success": true,
+        "backend": name,
+        "message": format!("Connected to {}", name),
+        "statistics": stats
+    }))
+}
+
+async fn disconnect_backend(s: &ServerState) -> ToolOutcome {
+    s.sequences.stop().await;
+    let old = s.backend.write().await.take();
+    let name = s.backend_name.write().await.take();
+    match old {
+        Some(mut b) => {
+            b.disconnect()
+                .await
+                .map_err(|e| format!("Error while disconnecting: {e}"))?;
+            Ok(
+                json!({"success": true, "message": format!("Disconnected from {}", name.unwrap_or_default())}),
+            )
+        },
+        None => Ok(json!({"success": true, "message": "No backend was connected"})),
+    }
+}
+
+async fn get_backend_status(s: &ServerState) -> ToolOutcome {
+    let guard = s.backend.read().await;
+    let name = s.backend_name.read().await.clone();
+    match guard.as_ref() {
+        Some(b) => {
+            let health = b.health_check().await.unwrap_or_default();
+            let stats = b.get_statistics().await.unwrap_or_default();
+            Ok(json!({
+                "success": true,
+                "backend": name,
+                "connected": b.is_connected(),
                 "health": health,
                 "statistics": stats
             }))
-        } else {
-            ToolResult::json(&json!({
-                "success": true,
-                "backend": null,
-                "connected": false,
-                "message": "No backend connected"
-            }))
-        }
-    }
-}
-
-/// List backends tool.
-struct ListBackendsTool {
-    server: ServerRefs,
-}
-
-#[async_trait]
-impl Tool for ListBackendsTool {
-    fn name(&self) -> &str {
-        "list_backends"
-    }
-
-    fn description(&self) -> &str {
-        "List available backends"
-    }
-
-    fn schema(&self) -> Value {
-        json!({"type": "object", "properties": {}})
-    }
-
-    async fn execute(&self, _args: Value) -> Result<ToolResult> {
-        let current_backend = self.server.backend_name.read().await;
-
-        ToolResult::json(&json!({
+        },
+        None => Ok(json!({
             "success": true,
-            "backends": [
-                {"name": "mock", "class": "MockBackend", "active": *current_backend == Some("mock".to_string())},
-                {"name": "vrchat_remote", "class": "VRChatRemoteBackend", "active": *current_backend == Some("vrchat_remote".to_string())}
-            ]
-        }))
+            "backend": null,
+            "connected": false,
+            "message": "No backend connected"
+        })),
     }
 }
 
-/// Play audio tool.
-struct PlayAudioTool {
-    server: ServerRefs,
-}
-
-#[async_trait]
-impl Tool for PlayAudioTool {
-    fn name(&self) -> &str {
-        "play_audio"
-    }
-
-    fn description(&self) -> &str {
-        "Play audio through the virtual character with optional lip-sync metadata"
-    }
-
-    fn schema(&self) -> Value {
-        json!({
-            "type": "object",
-            "properties": {
-                "audio_data": {
-                    "type": "string",
-                    "description": "File path, URL, or base64-encoded audio data"
-                },
-                "audio_format": {
-                    "type": "string",
-                    "enum": ["mp3", "wav", "opus", "pcm"],
-                    "default": "mp3"
-                },
-                "text": {"type": "string", "description": "Optional text transcript"},
-                "expression_tags": {
-                    "type": "array",
-                    "items": {"type": "string"},
-                    "description": "ElevenLabs audio tags like [laughs], [whisper]"
-                },
-                "duration": {"type": "number", "description": "Audio duration in seconds"}
-            },
-            "required": ["audio_data"]
+async fn list_backends(s: &ServerState) -> ToolOutcome {
+    let current = s.backend_name.read().await.clone();
+    let describe = |n: &str| match n {
+        "mock" => "In-memory backend for testing; records animation/audio without playing it",
+        "vrchat_remote" => "VRChat avatar control over OSC (UDP)",
+        _ => "",
+    };
+    let backends: Vec<Value> = BACKEND_NAMES
+        .iter()
+        .map(|n| {
+            json!({
+                "name": n,
+                "description": describe(n),
+                "active": current.as_deref() == Some(*n)
+            })
         })
+        .collect();
+    Ok(json!({"success": true, "backends": backends}))
+}
+
+async fn get_avatar_state(s: &ServerState) -> ToolOutcome {
+    let guard = s.backend.read().await;
+    let b = match guard.as_ref() {
+        Some(b) if b.is_connected() => b,
+        _ => return Err("No backend connected. Use set_backend first.".to_string()),
+    };
+    let env = b.receive_state().await.map_err(|e| e.to_string())?;
+    let params = b.avatar_parameters().await.map_err(|e| e.to_string())?;
+    let stats = b.get_statistics().await.unwrap_or_default();
+    let mut sorted: Vec<(&String, &Value)> = params.iter().collect();
+    sorted.sort_by(|a, b| a.0.cmp(b.0));
+    let params_obj: serde_json::Map<String, Value> = sorted
+        .into_iter()
+        .map(|(k, v)| (k.clone(), v.clone()))
+        .collect();
+    Ok(json!({
+        "success": true,
+        "backend": b.backend_name(),
+        "environment": env,
+        "avatar_id": stats.get("avatar_id").cloned().unwrap_or(Value::Null),
+        "current_emotion": stats.get("current_emotion").cloned().unwrap_or(Value::Null),
+        "current_gesture": stats.get("current_gesture").cloned().unwrap_or(Value::Null),
+        "avatar_parameters": params_obj,
+        "vrchat_responding": stats.get("vrchat_responding").cloned().unwrap_or(Value::Null)
+    }))
+}
+
+// =============================================================================
+// Animation / behavior / emotes
+// =============================================================================
+
+async fn send_animation(s: &ServerState, a: AnimationSpec) -> ToolOutcome {
+    if a.is_empty() {
+        return Err(
+            "Nothing to send: provide emotion, gesture, parameters or blend_shapes".to_string(),
+        );
     }
+    let anim = a.to_canonical(unix_secs_f64())?;
+    let mut guard = s.backend.write().await;
+    let backend = connected_mut(&mut guard)?;
+    backend
+        .send_animation_data(anim)
+        .await
+        .map_err(|e| format!("Failed to send animation: {e}"))?;
+    Ok(json!({
+        "success": true,
+        "emotion": a.emotion,
+        "gesture": a.gesture,
+        "message": "Animation sent"
+    }))
+}
 
-    async fn execute(&self, args: Value) -> Result<ToolResult> {
-        if let Some(e) = self.server.check_connected().await {
-            return Ok(ToolResult::error(e));
-        }
+#[derive(Debug, Deserialize)]
+struct BehaviorArgs {
+    behavior: String,
+    parameters: Option<HashMap<String, Value>>,
+}
 
-        let audio_data_str = args
-            .get("audio_data")
-            .and_then(|v| v.as_str())
-            .unwrap_or("");
+async fn execute_behavior(s: &ServerState, a: BehaviorArgs) -> ToolOutcome {
+    let behavior = a.behavior.trim().to_lowercase();
+    if !SUPPORTED_BEHAVIORS.contains(&behavior.as_str()) {
+        return Err(format!(
+            "Unknown behavior '{}'. Supported: {}",
+            a.behavior,
+            SUPPORTED_BEHAVIORS.join(", ")
+        ));
+    }
+    let mut guard = s.backend.write().await;
+    let backend = connected_mut(&mut guard)?;
+    backend
+        .execute_behavior(&behavior, a.parameters.unwrap_or_default())
+        .await
+        .map_err(|e| format!("Failed to execute behavior: {e}"))?;
+    Ok(json!({"success": true, "behavior": behavior}))
+}
 
-        // Use the AudioHandler to process various input formats
-        let audio_handler = AudioHandler::default();
-        let (audio_bytes, error): (Option<Vec<u8>>, Option<String>) =
-            audio_handler.process_audio_input(audio_data_str).await;
+async fn reset(s: &ServerState) -> ToolOutcome {
+    let mut guard = s.backend.write().await;
+    let backend = connected_mut(&mut guard)?;
+    backend
+        .reset_all()
+        .await
+        .map_err(|e| format!("Failed to reset: {e}"))?;
+    Ok(json!({"success": true, "message": "All states reset"}))
+}
 
-        let audio_bytes = match audio_bytes {
-            Some(bytes) => bytes,
-            None => {
-                return Ok(ToolResult::error(
-                    error.unwrap_or_else(|| "Failed to process audio data".to_string()),
-                ));
-            },
-        };
+#[derive(Debug, Deserialize)]
+struct VrcEmoteArgs {
+    emote_value: i64,
+}
 
-        // Detect format from data or use provided format
-        let format_str = args
-            .get("audio_format")
-            .and_then(|v| v.as_str())
-            .unwrap_or("mp3");
+async fn send_vrcemote(s: &ServerState, a: VrcEmoteArgs) -> ToolOutcome {
+    let value = a.emote_value;
+    if !(VRCEmoteValue::MIN as i64..=VRCEmoteValue::MAX as i64).contains(&value) {
+        return Err(format!(
+            "VRCEmote value must be between {} and {}",
+            VRCEmoteValue::MIN,
+            VRCEmoteValue::MAX
+        ));
+    }
+    let value = value as i32;
+    let mut guard = s.backend.write().await;
+    let backend = connected_mut(&mut guard)?;
+    let action = backend
+        .send_vrcemote(value)
+        .await
+        .map_err(|e| format!("Failed to send VRCEmote: {e}"))?;
+    let gesture_name = get_vrcemote_name(value);
+    Ok(json!({
+        "success": true,
+        "emote_value": value,
+        "gesture": gesture_name,
+        "action": action,
+        "message": format!("VRCEmote {} ({}): {:?}", value, gesture_name, action)
+    }))
+}
 
-        let audio = AudioData {
-            data: audio_bytes,
-            format: format_str.to_string(),
-            duration: args.get("duration").and_then(|v| v.as_f64()).unwrap_or(0.0) as f32,
-            text: args.get("text").and_then(|v| v.as_str()).map(String::from),
-            expression_tags: args.get("expression_tags").and_then(|v| {
-                v.as_array().map(|arr| {
-                    arr.iter()
-                        .filter_map(|v| v.as_str().map(String::from))
-                        .collect()
-                })
-            }),
-            ..Default::default()
-        };
-
-        let mut backend_guard = self.server.backend.write().await;
-        if let Some(ref mut backend) = *backend_guard {
-            match backend.send_audio_data(audio).await {
-                Ok(()) => {
-                    ToolResult::json(&json!({"success": true, "message": "Audio sent to backend"}))
-                },
-                Err(e) => Ok(ToolResult::error(format!("Failed to play audio: {}", e))),
+async fn panic_reset(s: &ServerState) -> ToolOutcome {
+    s.sequences.clear().await;
+    let mut guard = s.backend.write().await;
+    let mut warnings = Vec::new();
+    let mut backend_reset = false;
+    if let Some(b) = guard.as_mut() {
+        if b.is_connected() {
+            match b.reset_all().await {
+                Ok(()) => backend_reset = true,
+                Err(e) => warnings.push(format!("backend reset failed: {e}")),
             }
-        } else {
-            Ok(ToolResult::error("No backend connected"))
         }
     }
+    Ok(json!({
+        "success": warnings.is_empty(),
+        "backend_reset": backend_reset,
+        "warnings": warnings,
+        "message": "Emergency reset completed: sequences stopped and cleared"
+    }))
 }
 
-/// Create sequence tool.
-struct CreateSequenceTool {
-    server: ServerRefs,
+// =============================================================================
+// Audio
+// =============================================================================
+
+#[derive(Debug, Deserialize)]
+struct PlayAudioArgs {
+    audio_data: String,
+    audio_format: Option<String>,
+    sample_rate: Option<u32>,
+    text: Option<String>,
+    expression_tags: Option<Vec<String>>,
+    duration: Option<f64>,
 }
 
-#[async_trait]
-impl Tool for CreateSequenceTool {
-    fn name(&self) -> &str {
-        "create_sequence"
+async fn play_audio(s: &ServerState, a: PlayAudioArgs) -> ToolOutcome {
+    // Fail fast before loading/downloading audio.
+    {
+        let mut guard = s.backend.write().await;
+        connected_mut(&mut guard)?;
     }
-
-    fn description(&self) -> &str {
-        "Create a new event sequence for coordinated animations and audio"
-    }
-
-    fn schema(&self) -> Value {
-        json!({
-            "type": "object",
-            "properties": {
-                "name": {"type": "string", "description": "Sequence name"},
-                "description": {"type": "string"},
-                "loop": {"type": "boolean", "default": false}
-            },
-            "required": ["name"]
-        })
-    }
-
-    async fn execute(&self, args: Value) -> Result<ToolResult> {
-        let name = args
-            .get("name")
-            .and_then(|v| v.as_str())
-            .unwrap_or("unnamed");
-
-        let sequence = EventSequence {
-            name: name.to_string(),
-            description: args
-                .get("description")
-                .and_then(|v| v.as_str())
-                .map(String::from),
-            loop_sequence: args.get("loop").and_then(|v| v.as_bool()).unwrap_or(false),
-            created_timestamp: Some(unix_secs_f64()),
-            ..Default::default()
-        };
-
-        *self.server.current_sequence.write().await = Some(sequence);
-
-        ToolResult::json(&json!({
-            "success": true,
-            "message": format!("Created sequence: {}", name)
-        }))
-    }
-}
-
-/// Add sequence event tool.
-struct AddSequenceEventTool {
-    server: ServerRefs,
-}
-
-#[async_trait]
-impl Tool for AddSequenceEventTool {
-    fn name(&self) -> &str {
-        "add_sequence_event"
-    }
-
-    fn description(&self) -> &str {
-        "Add an event to the current sequence"
-    }
-
-    fn schema(&self) -> Value {
-        json!({
-            "type": "object",
-            "properties": {
-                "event_type": {
-                    "type": "string",
-                    "enum": ["animation", "audio", "wait", "expression", "movement", "parallel"]
-                },
-                "timestamp": {"type": "number"},
-                "duration": {"type": "number"},
-                "animation_params": {"type": "object"},
-                "wait_duration": {"type": "number"},
-                "expression": {"type": "string"},
-                "expression_intensity": {"type": "number", "default": 1.0},
-                "movement_params": {"type": "object"}
-            },
-            "required": ["event_type", "timestamp"]
-        })
-    }
-
-    async fn execute(&self, args: Value) -> Result<ToolResult> {
-        let mut sequence_guard = self.server.current_sequence.write().await;
-
-        if sequence_guard.is_none() {
-            return Ok(ToolResult::error(
-                "No sequence created. Use create_sequence first.",
+    if let Some(d) = a.duration {
+        if !d.is_finite() || d <= 0.0 || d > MAX_AUDIO_DURATION {
+            return Err(format!(
+                "duration must be between 0 and {MAX_AUDIO_DURATION} seconds"
             ));
         }
+    }
 
-        let event_type_str = args
-            .get("event_type")
-            .and_then(|v| v.as_str())
-            .unwrap_or("");
+    let mut clip = prepare_audio(
+        &s.audio,
+        &a.audio_data,
+        a.audio_format.as_deref(),
+        a.sample_rate,
+    )
+    .await?;
+    if let Some(d) = a.duration {
+        clip.duration = d as f32;
+    }
+    clip.text = a.text;
+    clip.expression_tags = a.expression_tags;
+    let bytes = clip.data.len();
+    let format = clip.format.clone();
+    let duration = clip.duration;
 
-        let event_type = match event_type_str.parse::<EventType>() {
-            Ok(t) => t,
-            Err(e) => return Ok(ToolResult::error(format!("Invalid event type: {}", e))),
-        };
+    let mut guard = s.backend.write().await;
+    let backend = connected_mut(&mut guard)?;
+    let outcome = backend
+        .send_audio_data(clip)
+        .await
+        .map_err(|e| format!("Failed to play audio: {e}"))?;
 
-        let timestamp = args
-            .get("timestamp")
-            .and_then(|v| v.as_f64())
-            .unwrap_or(0.0);
+    let message = if outcome.played {
+        format!(
+            "Playing {} audio via {}",
+            format,
+            outcome.method.as_deref().unwrap_or("player")
+        )
+    } else {
+        "Audio metadata sent to backend (audio not played)".to_string()
+    };
+    Ok(json!({
+        "success": true,
+        "played": outcome.played,
+        "method": outcome.method,
+        "format": format,
+        "bytes": bytes,
+        "duration": if duration > 0.0 { json!((duration as f64 * 100.0).round() / 100.0) } else { Value::Null },
+        "emotion": outcome.emotion,
+        "notes": outcome.notes,
+        "message": message
+    }))
+}
 
-        let mut event = SequenceEvent::new(event_type, timestamp);
-        event.duration = args.get("duration").and_then(|v| v.as_f64());
-        event.wait_duration = args.get("wait_duration").and_then(|v| v.as_f64());
+// =============================================================================
+// Sequences
+// =============================================================================
 
-        if let Some(expr_str) = args.get("expression").and_then(|v| v.as_str()) {
-            if let Ok(emotion) = expr_str.parse::<EmotionType>() {
-                event.expression = Some(emotion);
-                event.expression_intensity = Some(
-                    args.get("expression_intensity")
-                        .and_then(|v| v.as_f64())
-                        .unwrap_or(1.0) as f32,
-                );
-            }
-        }
+#[derive(Debug, Deserialize)]
+struct CreateSequenceArgs {
+    name: String,
+    description: Option<String>,
+    #[serde(rename = "loop", default)]
+    loop_sequence: bool,
+    #[serde(default = "default_true")]
+    interrupt_current: bool,
+}
 
-        if let Some(move_params) = args.get("movement_params") {
-            if let Ok(params) = serde_json::from_value(move_params.clone()) {
-                event.movement_params = Some(params);
-            }
-        }
+fn default_true() -> bool {
+    true
+}
 
-        if let Some(ref mut seq) = *sequence_guard {
-            seq.add_event(event);
-        }
+async fn create_sequence(s: &ServerState, a: CreateSequenceArgs) -> ToolOutcome {
+    s.sequences
+        .create_sequence(
+            a.name.clone(),
+            a.description,
+            a.loop_sequence,
+            a.interrupt_current,
+            unix_secs_f64(),
+        )
+        .await
+        .map_err(|e| e.to_string())?;
+    Ok(json!({
+        "success": true,
+        "message": format!("Created sequence: {}", a.name.trim())
+    }))
+}
 
-        ToolResult::json(&json!({
-            "success": true,
-            "message": format!("Added {} event at {}s", event_type_str, timestamp)
-        }))
+async fn add_sequence_event(s: &ServerState, spec: EventSpec) -> ToolOutcome {
+    if spec.timestamp.is_none() {
+        return Err("timestamp is required (seconds from sequence start)".to_string());
+    }
+    // Fail before loading audio if there is no sequence.
+    if !s.sequences.status().await.has_sequence {
+        return Err("No sequence created. Use create_sequence first.".to_string());
+    }
+    let event = build_event(&spec, &s.audio, None, 0).await?;
+    let event_type = event.event_type;
+    let timestamp = event.timestamp;
+    let duration = event.duration;
+    let count = s
+        .sequences
+        .add_event(event)
+        .await
+        .map_err(|e| e.to_string())?;
+    let status = s.sequences.status().await;
+    Ok(json!({
+        "success": true,
+        "event_count": count,
+        "total_duration": status.total_duration,
+        "event_duration": duration,
+        "message": format!("Added {} event at {}s", event_type_name(event_type), timestamp)
+    }))
+}
+
+fn event_type_name(t: EventType) -> &'static str {
+    match t {
+        EventType::Animation => "animation",
+        EventType::Audio => "audio",
+        EventType::Wait => "wait",
+        EventType::LoopStart => "loop_start",
+        EventType::LoopEnd => "loop_end",
+        EventType::Parallel => "parallel",
+        EventType::Expression => "expression",
+        EventType::Movement => "movement",
     }
 }
 
-/// Play sequence tool.
-struct PlaySequenceTool {
-    server: ServerRefs,
+#[derive(Debug, Deserialize)]
+struct PlaySequenceArgs {
+    #[serde(default)]
+    start_time: f64,
 }
 
-#[async_trait]
-impl Tool for PlaySequenceTool {
-    fn name(&self) -> &str {
-        "play_sequence"
+async fn play_sequence(s: &ServerState, a: PlaySequenceArgs) -> ToolOutcome {
+    {
+        let mut guard = s.backend.write().await;
+        connected_mut(&mut guard)?;
     }
-
-    fn description(&self) -> &str {
-        "Play the current or specified event sequence"
-    }
-
-    fn schema(&self) -> Value {
-        json!({
-            "type": "object",
-            "properties": {
-                "start_time": {"type": "number", "default": 0}
-            }
-        })
-    }
-
-    async fn execute(&self, _args: Value) -> Result<ToolResult> {
-        if let Some(e) = self.server.check_connected().await {
-            return Ok(ToolResult::error(e));
-        }
-
-        let sequence_guard = self.server.current_sequence.read().await;
-        let Some(sequence) = sequence_guard.as_ref() else {
-            return Ok(ToolResult::error("No sequence to play."));
-        };
-
-        let seq_name = sequence.name.clone();
-        *self.server.sequence_playing.write().await = true;
-
-        // Note: Actual sequence execution would be implemented here
-        // For now, just mark as playing
-
-        ToolResult::json(&json!({
-            "success": true,
-            "message": format!("Started playing sequence: {}", seq_name)
-        }))
-    }
-}
-
-/// Pause sequence tool.
-struct PauseSequenceTool {
-    server: ServerRefs,
-}
-
-#[async_trait]
-impl Tool for PauseSequenceTool {
-    fn name(&self) -> &str {
-        "pause_sequence"
-    }
-
-    fn description(&self) -> &str {
-        "Pause the currently playing sequence"
-    }
-
-    fn schema(&self) -> Value {
-        json!({"type": "object", "properties": {}})
-    }
-
-    async fn execute(&self, _args: Value) -> Result<ToolResult> {
-        let playing = *self.server.sequence_playing.read().await;
-        if !playing {
-            return Ok(ToolResult::error("No sequence is playing"));
-        }
-
-        *self.server.sequence_playing.write().await = false;
-
-        ToolResult::json(&json!({
-            "success": true,
-            "message": "Sequence paused"
-        }))
-    }
-}
-
-/// Resume sequence tool.
-struct ResumeSequenceTool {
-    server: ServerRefs,
-}
-
-#[async_trait]
-impl Tool for ResumeSequenceTool {
-    fn name(&self) -> &str {
-        "resume_sequence"
-    }
-
-    fn description(&self) -> &str {
-        "Resume the paused sequence"
-    }
-
-    fn schema(&self) -> Value {
-        json!({"type": "object", "properties": {}})
-    }
-
-    async fn execute(&self, _args: Value) -> Result<ToolResult> {
-        *self.server.sequence_playing.write().await = true;
-
-        ToolResult::json(&json!({
-            "success": true,
-            "message": "Sequence resumed"
-        }))
-    }
-}
-
-/// Stop sequence tool.
-struct StopSequenceTool {
-    server: ServerRefs,
-}
-
-#[async_trait]
-impl Tool for StopSequenceTool {
-    fn name(&self) -> &str {
-        "stop_sequence"
-    }
-
-    fn description(&self) -> &str {
-        "Stop the currently playing sequence"
-    }
-
-    fn schema(&self) -> Value {
-        json!({"type": "object", "properties": {}})
-    }
-
-    async fn execute(&self, _args: Value) -> Result<ToolResult> {
-        *self.server.sequence_playing.write().await = false;
-
-        ToolResult::json(&json!({
-            "success": true,
-            "message": "Sequence stopped"
-        }))
-    }
-}
-
-/// Get sequence status tool.
-struct GetSequenceStatusTool {
-    server: ServerRefs,
-}
-
-#[async_trait]
-impl Tool for GetSequenceStatusTool {
-    fn name(&self) -> &str {
-        "get_sequence_status"
-    }
-
-    fn description(&self) -> &str {
-        "Get status of current sequence playback"
-    }
-
-    fn schema(&self) -> Value {
-        json!({"type": "object", "properties": {}})
-    }
-
-    async fn execute(&self, _args: Value) -> Result<ToolResult> {
-        let sequence_guard = self.server.current_sequence.read().await;
-        let playing = *self.server.sequence_playing.read().await;
-
-        let mut status = json!({
-            "has_sequence": sequence_guard.is_some(),
-            "is_playing": playing
-        });
-
-        if let Some(ref seq) = *sequence_guard {
-            status["sequence_name"] = json!(seq.name);
-            status["total_duration"] = json!(seq.total_duration);
-            status["event_count"] = json!(seq.events.len());
-            status["loop"] = json!(seq.loop_sequence);
-        }
-
-        ToolResult::json(&json!({
-            "success": true,
-            "status": status
-        }))
-    }
-}
-
-/// Panic reset tool.
-struct PanicResetTool {
-    server: ServerRefs,
-}
-
-#[async_trait]
-impl Tool for PanicResetTool {
-    fn name(&self) -> &str {
-        "panic_reset"
-    }
-
-    fn description(&self) -> &str {
-        "Emergency reset - stops all sequences and resets avatar to neutral state"
-    }
-
-    fn schema(&self) -> Value {
-        json!({"type": "object", "properties": {}})
-    }
-
-    async fn execute(&self, _args: Value) -> Result<ToolResult> {
-        // Stop sequences
-        *self.server.sequence_playing.write().await = false;
-        *self.server.current_sequence.write().await = None;
-
-        // Reset backend if connected
-        let mut backend_guard = self.server.backend.write().await;
-        if let Some(ref mut backend) = *backend_guard {
-            if let Err(e) = backend.reset_all().await {
-                error!("Error during panic reset: {}", e);
-            }
-        }
-
-        ToolResult::json(&json!({
-            "success": true,
-            "message": "Emergency reset completed"
-        }))
-    }
-}
-
-/// Send VRCEmote tool.
-struct SendVRCEmoteTool {
-    server: ServerRefs,
-}
-
-#[async_trait]
-impl Tool for SendVRCEmoteTool {
-    fn name(&self) -> &str {
-        "send_vrcemote"
-    }
-
-    fn description(&self) -> &str {
-        "Send a direct VRCEmote value (0-8) to VRChat backend for precise gesture control"
-    }
-
-    fn schema(&self) -> Value {
-        json!({
-            "type": "object",
-            "properties": {
-                "emote_value": {
-                    "type": "integer",
-                    "minimum": VRCEmoteValue::MIN,
-                    "maximum": VRCEmoteValue::MAX,
-                    "description": VRCEMOTE_DESCRIPTION
-                }
-            },
-            "required": ["emote_value"]
-        })
-    }
-
-    async fn execute(&self, args: Value) -> Result<ToolResult> {
-        if let Some(e) = self.server.check_connected().await {
-            return Ok(ToolResult::error(e));
-        }
-
-        let backend_name = self.server.backend_name.read().await;
-        if *backend_name != Some("vrchat_remote".to_string()) {
-            return Ok(ToolResult::error(
-                "VRCEmote is only supported on vrchat_remote backend",
-            ));
-        }
-
-        let emote_value = args
-            .get("emote_value")
-            .and_then(|v| v.as_i64())
-            .unwrap_or(0) as i32;
-
-        if !(VRCEmoteValue::MIN..=VRCEmoteValue::MAX).contains(&emote_value) {
-            return Ok(ToolResult::error(format!(
-                "VRCEmote value must be between {} and {}",
-                VRCEmoteValue::MIN,
-                VRCEmoteValue::MAX
-            )));
-        }
-
-        let timestamp = unix_secs_f64();
-
-        let mut params = HashMap::new();
-        let mut avatar_params = serde_json::Map::new();
-        avatar_params.insert("VRCEmote".to_string(), json!(emote_value));
-        params.insert("avatar_params".to_string(), json!(avatar_params));
-
-        let animation = CanonicalAnimationData::new(timestamp).with_parameters(params);
-
-        let mut backend_guard = self.server.backend.write().await;
-        if let Some(ref mut backend) = *backend_guard {
-            match backend.send_animation_data(animation).await {
-                Ok(()) => {
-                    let gesture_name = get_vrcemote_name(emote_value);
-                    ToolResult::json(&json!({
-                        "success": true,
-                        "emote_value": emote_value,
-                        "gesture": gesture_name,
-                        "message": format!("Sent VRCEmote {} ({})", emote_value, gesture_name)
-                    }))
-                },
-                Err(e) => Ok(ToolResult::error(format!("Failed to send VRCEmote: {}", e))),
-            }
-        } else {
-            Ok(ToolResult::error("No backend connected"))
-        }
-    }
+    let name = s
+        .sequences
+        .play(s.backend.clone(), a.start_time)
+        .await
+        .map_err(|e| e.to_string())?;
+    let status = s.sequences.status().await;
+    Ok(json!({
+        "success": true,
+        "message": format!("Started playing sequence: {}", name),
+        "total_duration": status.total_duration,
+        "loop": status.loop_enabled
+    }))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::audio::pcm_to_wav;
+    use base64::Engine;
     use mcp_core::tool::Content;
+    use std::time::Duration;
 
-    fn get_response_json(result: &ToolResult) -> Value {
-        if let Content::Text { text } = &result.content[0] {
-            serde_json::from_str(text).unwrap()
-        } else {
-            panic!("Expected text content");
+    fn response_json(result: &ToolResult) -> Value {
+        match &result.content[0] {
+            Content::Text { text } => serde_json::from_str(text).unwrap_or(json!(text)),
+            _ => panic!("Expected text content"),
         }
     }
 
-    #[tokio::test]
-    async fn test_server_creation() {
-        let server = VirtualCharacterServer::new();
-        let tools = server.tools();
-        assert_eq!(tools.len(), 16);
+    fn error_text(result: &ToolResult) -> String {
+        assert!(result.is_error, "expected error, got {:?}", result);
+        match &result.content[0] {
+            Content::Text { text } => text.clone(),
+            _ => panic!("Expected text content"),
+        }
+    }
+
+    struct Harness {
+        tools: Vec<BoxedTool>,
+    }
+
+    impl Harness {
+        fn new() -> Self {
+            Self {
+                tools: VirtualCharacterServer::new().tools(),
+            }
+        }
+
+        async fn call(&self, name: &str, args: Value) -> ToolResult {
+            let tool = self
+                .tools
+                .iter()
+                .find(|t| t.name() == name)
+                .unwrap_or_else(|| panic!("no tool {name}"));
+            tool.execute(args).await.unwrap()
+        }
+
+        async fn ok(&self, name: &str, args: Value) -> Value {
+            let r = self.call(name, args).await;
+            assert!(!r.is_error, "{name} failed: {:?}", r.content);
+            response_json(&r)
+        }
+
+        async fn mock(self) -> Self {
+            self.ok("set_backend", json!({"backend": "mock"})).await;
+            self
+        }
+    }
+
+    fn wav_b64(seconds: f64) -> String {
+        let wav = pcm_to_wav(&vec![0u8; (44_100.0 * seconds) as usize * 2], 44_100, 1);
+        base64::engine::general_purpose::STANDARD.encode(wav)
     }
 
     #[tokio::test]
-    async fn test_set_backend_mock() {
-        let server = VirtualCharacterServer::new();
-        let tools = server.tools();
-
-        let set_backend = tools.iter().find(|t| t.name() == "set_backend").unwrap();
-
-        let result = set_backend
-            .execute(json!({"backend": "mock"}))
-            .await
-            .unwrap();
-
-        let response = get_response_json(&result);
-        assert!(response["success"].as_bool().unwrap());
-        assert_eq!(response["backend"].as_str().unwrap(), "mock");
-    }
-
-    #[tokio::test]
-    async fn test_set_backend_unknown() {
-        let server = VirtualCharacterServer::new();
-        let tools = server.tools();
-
-        let set_backend = tools.iter().find(|t| t.name() == "set_backend").unwrap();
-
-        let result = set_backend
-            .execute(json!({"backend": "nonexistent"}))
-            .await
-            .unwrap();
-
-        assert!(result.is_error);
-    }
-
-    #[tokio::test]
-    async fn test_list_backends() {
-        let server = VirtualCharacterServer::new();
-        let tools = server.tools();
-
-        let list_backends = tools.iter().find(|t| t.name() == "list_backends").unwrap();
-
-        let result = list_backends.execute(json!({})).await.unwrap();
-
-        let response = get_response_json(&result);
-        assert!(response["success"].as_bool().unwrap());
-        let backends = response["backends"].as_array().unwrap();
-        assert_eq!(backends.len(), 2);
-    }
-
-    #[tokio::test]
-    async fn test_get_backend_status_not_connected() {
-        let server = VirtualCharacterServer::new();
-        let tools = server.tools();
-
-        let get_status = tools
-            .iter()
-            .find(|t| t.name() == "get_backend_status")
-            .unwrap();
-
-        let result = get_status.execute(json!({})).await.unwrap();
-
-        let response = get_response_json(&result);
-        assert!(response["success"].as_bool().unwrap());
-        assert!(!response["connected"].as_bool().unwrap());
-    }
-
-    #[tokio::test]
-    async fn test_send_animation_not_connected() {
-        let server = VirtualCharacterServer::new();
-        let tools = server.tools();
-
-        let send_animation = tools.iter().find(|t| t.name() == "send_animation").unwrap();
-
-        let result = send_animation
-            .execute(json!({"emotion": "happy"}))
-            .await
-            .unwrap();
-
-        assert!(result.is_error);
-    }
-
-    #[tokio::test]
-    async fn test_send_animation_after_connect() {
-        let server = VirtualCharacterServer::new();
-        let tools = server.tools();
-
-        // First connect
-        let set_backend = tools.iter().find(|t| t.name() == "set_backend").unwrap();
-        set_backend
-            .execute(json!({"backend": "mock"}))
-            .await
-            .unwrap();
-
-        // Then send animation
-        let send_animation = tools.iter().find(|t| t.name() == "send_animation").unwrap();
-        let result = send_animation
-            .execute(json!({"emotion": "happy", "emotion_intensity": 0.8}))
-            .await
-            .unwrap();
-
-        let response = get_response_json(&result);
-        assert!(response["success"].as_bool().unwrap());
-    }
-
-    #[tokio::test]
-    async fn test_reset_not_connected() {
-        let server = VirtualCharacterServer::new();
-        let tools = server.tools();
-
-        let reset = tools.iter().find(|t| t.name() == "reset").unwrap();
-
-        let result = reset.execute(json!({})).await.unwrap();
-
-        assert!(result.is_error);
-    }
-
-    #[tokio::test]
-    async fn test_reset_after_connect() {
-        let server = VirtualCharacterServer::new();
-        let tools = server.tools();
-
-        // Connect first
-        let set_backend = tools.iter().find(|t| t.name() == "set_backend").unwrap();
-        set_backend
-            .execute(json!({"backend": "mock"}))
-            .await
-            .unwrap();
-
-        // Then reset
-        let reset = tools.iter().find(|t| t.name() == "reset").unwrap();
-        let result = reset.execute(json!({})).await.unwrap();
-
-        let response = get_response_json(&result);
-        assert!(response["success"].as_bool().unwrap());
-    }
-
-    #[tokio::test]
-    async fn test_create_sequence() {
-        let server = VirtualCharacterServer::new();
-        let tools = server.tools();
-
-        let create_sequence = tools
-            .iter()
-            .find(|t| t.name() == "create_sequence")
-            .unwrap();
-
-        let result = create_sequence
-            .execute(
-                json!({"name": "greeting", "description": "A greeting sequence", "loop": false}),
-            )
-            .await
-            .unwrap();
-
-        let response = get_response_json(&result);
-        assert!(response["success"].as_bool().unwrap());
-    }
-
-    #[tokio::test]
-    async fn test_add_sequence_event_without_sequence() {
-        let server = VirtualCharacterServer::new();
-        let tools = server.tools();
-
-        let add_event = tools
-            .iter()
-            .find(|t| t.name() == "add_sequence_event")
-            .unwrap();
-
-        let result = add_event
-            .execute(json!({"event_type": "expression", "timestamp": 0.0}))
-            .await
-            .unwrap();
-
-        assert!(result.is_error);
-    }
-
-    #[tokio::test]
-    async fn test_sequence_workflow() {
-        let server = VirtualCharacterServer::new();
-        let tools = server.tools();
-
-        // Create sequence
-        let create_sequence = tools
-            .iter()
-            .find(|t| t.name() == "create_sequence")
-            .unwrap();
-        create_sequence
-            .execute(json!({"name": "test_seq"}))
-            .await
-            .unwrap();
-
-        // Add events
-        let add_event = tools
-            .iter()
-            .find(|t| t.name() == "add_sequence_event")
-            .unwrap();
-        add_event
-            .execute(json!({"event_type": "expression", "timestamp": 0.0, "expression": "happy"}))
-            .await
-            .unwrap();
-
-        add_event
-            .execute(json!({"event_type": "wait", "timestamp": 1.0, "wait_duration": 0.5}))
-            .await
-            .unwrap();
-
-        // Get status
-        let get_status = tools
-            .iter()
-            .find(|t| t.name() == "get_sequence_status")
-            .unwrap();
-        let result = get_status.execute(json!({})).await.unwrap();
-
-        let response = get_response_json(&result);
-        assert!(response["success"].as_bool().unwrap());
-        assert!(response["status"]["has_sequence"].as_bool().unwrap());
-        assert_eq!(response["status"]["event_count"].as_u64().unwrap(), 2);
-    }
-
-    #[tokio::test]
-    async fn test_panic_reset() {
-        let server = VirtualCharacterServer::new();
-        let tools = server.tools();
-
-        // Connect first
-        let set_backend = tools.iter().find(|t| t.name() == "set_backend").unwrap();
-        set_backend
-            .execute(json!({"backend": "mock"}))
-            .await
-            .unwrap();
-
-        // Create a sequence
-        let create_sequence = tools
-            .iter()
-            .find(|t| t.name() == "create_sequence")
-            .unwrap();
-        create_sequence
-            .execute(json!({"name": "test"}))
-            .await
-            .unwrap();
-
-        // Panic reset
-        let panic_reset = tools.iter().find(|t| t.name() == "panic_reset").unwrap();
-        let result = panic_reset.execute(json!({})).await.unwrap();
-
-        let response = get_response_json(&result);
-        assert!(response["success"].as_bool().unwrap());
-    }
-
-    #[tokio::test]
-    async fn test_execute_behavior() {
-        let server = VirtualCharacterServer::new();
-        let tools = server.tools();
-
-        // Connect first
-        let set_backend = tools.iter().find(|t| t.name() == "set_backend").unwrap();
-        set_backend
-            .execute(json!({"backend": "mock"}))
-            .await
-            .unwrap();
-
-        // Execute behavior
-        let execute_behavior = tools
-            .iter()
-            .find(|t| t.name() == "execute_behavior")
-            .unwrap();
-        let result = execute_behavior
-            .execute(json!({"behavior": "greet"}))
-            .await
-            .unwrap();
-
-        let response = get_response_json(&result);
-        assert!(response["success"].as_bool().unwrap());
-    }
-
-    #[tokio::test]
-    async fn test_send_vrcemote_not_vrchat() {
-        let server = VirtualCharacterServer::new();
-        let tools = server.tools();
-
-        // Connect with mock backend
-        let set_backend = tools.iter().find(|t| t.name() == "set_backend").unwrap();
-        set_backend
-            .execute(json!({"backend": "mock"}))
-            .await
-            .unwrap();
-
-        // Try to send VRCEmote
-        let send_vrcemote = tools.iter().find(|t| t.name() == "send_vrcemote").unwrap();
-        let result = send_vrcemote
-            .execute(json!({"emote_value": 5}))
-            .await
-            .unwrap();
-
-        // Should fail because mock backend doesn't support VRCEmote
-        assert!(result.is_error);
-    }
-
-    #[tokio::test]
-    async fn test_tool_names() {
-        let server = VirtualCharacterServer::new();
-        let tools = server.tools();
-
-        let expected_names = [
+    async fn test_tool_names_and_schemas() {
+        let h = Harness::new();
+        assert_eq!(h.tools.len(), 18);
+        let expected = [
             "set_backend",
+            "disconnect_backend",
             "send_animation",
             "execute_behavior",
             "reset",
             "get_backend_status",
             "list_backends",
+            "get_avatar_state",
             "play_audio",
             "create_sequence",
             "add_sequence_event",
@@ -1408,34 +971,289 @@ mod tests {
             "panic_reset",
             "send_vrcemote",
         ];
-
-        for name in expected_names {
-            assert!(
-                tools.iter().any(|t| t.name() == name),
-                "Missing tool: {}",
-                name
-            );
+        for name in expected {
+            let tool = h.tools.iter().find(|t| t.name() == name);
+            assert!(tool.is_some(), "Missing tool: {name}");
+            let schema = tool.unwrap().schema();
+            assert_eq!(schema["type"], "object", "{name}");
+            assert!(schema["properties"].is_object(), "{name}");
+            assert!(!tool.unwrap().description().is_empty());
         }
     }
 
     #[tokio::test]
-    async fn test_tool_schemas() {
-        let server = VirtualCharacterServer::new();
-        let tools = server.tools();
+    async fn test_set_backend_mock_and_unknown() {
+        let h = Harness::new();
+        let r = h.ok("set_backend", json!({"backend": "mock"})).await;
+        assert_eq!(r["backend"], "mock");
+        let err = error_text(&h.call("set_backend", json!({"backend": "unity"})).await);
+        assert!(err.contains("Available: mock, vrchat_remote"));
+        // An unknown backend must not disconnect the current one.
+        let status = h.ok("get_backend_status", json!({})).await;
+        assert_eq!(status["connected"], true);
+        // Missing required argument is a clean error.
+        assert!(h.call("set_backend", json!({})).await.is_error);
+        assert!(
+            h.call("set_backend", json!({"backend": "mock", "config": 5}))
+                .await
+                .is_error
+        );
+    }
 
-        for tool in &tools {
-            let schema = tool.schema();
-            // All schemas should be objects
-            assert!(
-                schema.is_object(),
-                "Tool {} schema is not an object",
-                tool.name()
-            );
-            assert!(
-                schema.get("type").is_some(),
-                "Tool {} schema missing type",
-                tool.name()
-            );
+    #[tokio::test]
+    async fn test_vrchat_config_errors_leave_no_backend() {
+        let h = Harness::new().mock().await;
+        let err = error_text(
+            &h.call(
+                "set_backend",
+                json!({"backend": "vrchat_remote", "config": {"osc_in_port": 70000}}),
+            )
+            .await,
+        );
+        assert!(err.contains("osc_in_port"), "{err}");
+        let status = h.ok("get_backend_status", json!({})).await;
+        assert_eq!(status["connected"], false);
+        assert!(h.call("reset", json!({})).await.is_error);
+    }
+
+    #[tokio::test]
+    async fn test_list_backends_marks_active() {
+        let h = Harness::new().mock().await;
+        let r = h.ok("list_backends", json!({})).await;
+        let backends = r["backends"].as_array().unwrap();
+        assert_eq!(backends.len(), 2);
+        assert_eq!(backends[0]["name"], "mock");
+        assert_eq!(backends[0]["active"], true);
+        assert_eq!(backends[1]["active"], false);
+    }
+
+    #[tokio::test]
+    async fn test_not_connected_errors() {
+        let h = Harness::new();
+        for (tool, args) in [
+            ("send_animation", json!({"emotion": "happy"})),
+            ("reset", json!({})),
+            ("execute_behavior", json!({"behavior": "greet"})),
+            ("send_vrcemote", json!({"emote_value": 1})),
+            ("get_avatar_state", json!({})),
+            ("play_audio", json!({"audio_data": wav_b64(0.1)})),
+        ] {
+            let err = error_text(&h.call(tool, args).await);
+            assert!(err.contains("set_backend"), "{tool}: {err}");
         }
+        let status = h.ok("get_backend_status", json!({})).await;
+        assert_eq!(status["connected"], false);
+    }
+
+    #[tokio::test]
+    async fn test_send_animation_validation() {
+        let h = Harness::new().mock().await;
+        let r = h
+            .ok(
+                "send_animation",
+                json!({"emotion": "happy", "emotion_intensity": 0.8, "gesture": "wave"}),
+            )
+            .await;
+        assert_eq!(r["success"], true);
+        assert!(error_text(
+            &h.call("send_animation", json!({"emotion": "gleeful"}))
+                .await
+        )
+        .contains("Valid emotions"));
+        assert!(
+            h.call(
+                "send_animation",
+                json!({"emotion": "happy", "emotion_intensity": "high"})
+            )
+            .await
+            .is_error
+        );
+        assert!(h.call("send_animation", json!({})).await.is_error);
+        assert!(
+            h.call(
+                "send_animation",
+                json!({"parameters": {"move_forward": "fast"}})
+            )
+            .await
+            .is_error
+        );
+        h.ok(
+            "send_animation",
+            json!({"parameters": {"move_forward": 0.5, "duration": 1}}),
+        )
+        .await;
+        let status = h.ok("get_backend_status", json!({})).await;
+        assert_eq!(status["statistics"]["frames_sent"], 2);
+    }
+
+    #[tokio::test]
+    async fn test_behaviors_and_vrcemote() {
+        let h = Harness::new().mock().await;
+        h.ok("execute_behavior", json!({"behavior": "greet"})).await;
+        let err = error_text(
+            &h.call("execute_behavior", json!({"behavior": "moonwalk"}))
+                .await,
+        );
+        assert!(err.contains("Supported"));
+        // Mock does not support VRCEmote.
+        let err = error_text(&h.call("send_vrcemote", json!({"emote_value": 5})).await);
+        assert!(err.contains("vrchat_remote"));
+        assert!(
+            h.call("send_vrcemote", json!({"emote_value": 12}))
+                .await
+                .is_error
+        );
+        assert!(
+            h.call("send_vrcemote", json!({"emote_value": "x"}))
+                .await
+                .is_error
+        );
+    }
+
+    #[tokio::test]
+    async fn test_play_audio_on_mock() {
+        let h = Harness::new().mock().await;
+        let r = h
+            .ok(
+                "play_audio",
+                json!({"audio_data": wav_b64(0.5), "audio_format": "mp3", "text": "[laughs] hello"}),
+            )
+            .await;
+        assert_eq!(r["format"], "wav"); // detected from magic bytes
+        assert_eq!(r["played"], false);
+        assert_eq!(r["emotion"], "happy");
+        assert_eq!(r["duration"], 0.5);
+
+        let err = error_text(
+            &h.call("play_audio", json!({"audio_data": "not audio at all"}))
+                .await,
+        );
+        assert!(err.contains("base64") || err.contains("small"), "{err}");
+        assert!(
+            h.call(
+                "play_audio",
+                json!({"audio_data": wav_b64(0.1), "duration": -1})
+            )
+            .await
+            .is_error
+        );
+        assert!(h.call("play_audio", json!({})).await.is_error);
+    }
+
+    #[tokio::test]
+    async fn test_sequence_workflow_plays_on_backend() {
+        let h = Harness::new().mock().await;
+        assert!(
+            h.call(
+                "add_sequence_event",
+                json!({"event_type": "expression", "timestamp": 0.0, "expression": "happy"})
+            )
+            .await
+            .is_error
+        );
+        h.ok(
+            "create_sequence",
+            json!({"name": "greeting", "description": "hi"}),
+        )
+        .await;
+        h.ok(
+            "add_sequence_event",
+            json!({"event_type": "expression", "timestamp": 0.0, "expression": "happy"}),
+        )
+        .await;
+        h.ok(
+            "add_sequence_event",
+            json!({"event_type": "animation", "timestamp": 0.05, "animation_params": {"gesture": "wave"}}),
+        )
+        .await;
+        let r = h
+            .ok(
+                "add_sequence_event",
+                json!({"event_type": "audio", "timestamp": 0.1, "audio_data": wav_b64(0.1)}),
+            )
+            .await;
+        assert_eq!(r["event_count"], 3);
+        assert!((r["total_duration"].as_f64().unwrap() - 0.2).abs() < 0.01);
+        assert!(
+            h.call(
+                "add_sequence_event",
+                json!({"event_type": "expression", "expression": "happy"})
+            )
+            .await
+            .is_error
+        ); // missing timestamp
+
+        h.ok("play_sequence", json!({})).await;
+        tokio::time::sleep(Duration::from_millis(500)).await;
+        let status = h.ok("get_sequence_status", json!({})).await;
+        assert_eq!(status["status"]["events_executed"], 3, "{status}");
+        assert_eq!(status["status"]["is_playing"], false);
+        let backend = h.ok("get_backend_status", json!({})).await;
+        assert_eq!(backend["statistics"]["frames_sent"], 2);
+        assert_eq!(backend["statistics"]["audio_sent"], 1);
+    }
+
+    #[tokio::test]
+    async fn test_sequence_controls() {
+        let h = Harness::new().mock().await;
+        assert!(h.call("pause_sequence", json!({})).await.is_error);
+        assert!(h.call("resume_sequence", json!({})).await.is_error);
+        let r = h.ok("stop_sequence", json!({})).await;
+        assert_eq!(r["was_playing"], false);
+
+        h.ok("create_sequence", json!({"name": "long"})).await;
+        h.ok(
+            "add_sequence_event",
+            json!({"event_type": "wait", "timestamp": 0, "wait_duration": 5}),
+        )
+        .await;
+        h.ok("play_sequence", json!({})).await;
+        h.ok("pause_sequence", json!({})).await;
+        let st = h.ok("get_sequence_status", json!({})).await;
+        assert_eq!(st["status"]["is_paused"], true);
+        h.ok("resume_sequence", json!({})).await;
+        let r = h.ok("stop_sequence", json!({})).await;
+        assert_eq!(r["was_playing"], true);
+        assert!(
+            h.call("play_sequence", json!({"start_time": 99}))
+                .await
+                .is_error
+        );
+    }
+
+    #[tokio::test]
+    async fn test_panic_reset_clears_everything() {
+        let h = Harness::new().mock().await;
+        h.ok("create_sequence", json!({"name": "test"})).await;
+        h.ok(
+            "add_sequence_event",
+            json!({"event_type": "wait", "timestamp": 0, "wait_duration": 5}),
+        )
+        .await;
+        h.ok("play_sequence", json!({})).await;
+        let r = h.ok("panic_reset", json!({})).await;
+        assert_eq!(r["success"], true);
+        assert_eq!(r["backend_reset"], true);
+        let st = h.ok("get_sequence_status", json!({})).await;
+        assert_eq!(st["status"]["has_sequence"], false);
+        assert_eq!(st["status"]["is_playing"], false);
+        // Works without a backend too.
+        let h2 = Harness::new();
+        let r = h2.ok("panic_reset", json!({})).await;
+        assert_eq!(r["backend_reset"], false);
+    }
+
+    #[tokio::test]
+    async fn test_disconnect_and_avatar_state() {
+        let h = Harness::new().mock().await;
+        let st = h.ok("get_avatar_state", json!({})).await;
+        assert_eq!(st["environment"]["world_name"], "MockWorld");
+        assert_eq!(st["avatar_parameters"]["emotion"], "neutral");
+        h.ok("disconnect_backend", json!({})).await;
+        assert!(h.call("get_avatar_state", json!({})).await.is_error);
+        let r = h.ok("disconnect_backend", json!({})).await;
+        assert_eq!(r["message"], "No backend was connected");
+        let list = h.ok("list_backends", json!({})).await;
+        assert_eq!(list["backends"][0]["active"], false);
     }
 }

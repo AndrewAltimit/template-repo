@@ -5,7 +5,7 @@ edition = "2024"
 license = "MIT"
 repository = "https://github.com/AndrewAltimit/template-repo"
 authors = ["AndrewAltimit"]
-description = "MCP server for intelligent automated video editing with transcript analysis and speaker detection"
+description = "MCP server for automated video editing: analysis, EDL generation, ffmpeg rendering, clips and captions"
 
 [[bin]]
 name = "mcp-video-editor"
@@ -31,7 +31,6 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 # Error handling
-thiserror = "2.0"
 anyhow = "1.0"
 
 # Time
@@ -44,17 +43,13 @@ tempfile = "3.10"
 # UUID for job IDs
 uuid = { version = "1.10", features = ["v4"] }
 
-# Number utilities
-num_cpus = "1.16"
-
 # Which for finding executables
 which = "7.0"
 
-[dev-dependencies]
-tokio-test = "0.4"
-
+# No `panic = "abort"`: mcp-core converts a panicking tool call into an error
+# result via catch_unwind, and the job supervisor records panicking jobs as
+# failed. Both require unwinding.
 [profile.release]
 lto = true
 codegen-units = 1
-panic = "abort"
 strip = true

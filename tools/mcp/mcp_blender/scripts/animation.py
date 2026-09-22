@@ -1,69 +1,70 @@
 #!/usr/bin/env python3
 """Blender animation script."""
 
-import json
+import os
 import sys
 
 import bpy
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+from mcp_common import (  # noqa: E402  pylint: disable=wrong-import-position
+    ScriptError,
+    open_project,
+    require_object,
+    run,
+    save_project,
+)
+
 
 def create_animation(args, _job_id):
-    """Create keyframe animation for objects."""
-    try:
-        # Load project
-        if "project" in args:
-            bpy.ops.wm.open_mainfile(filepath=args["project"])
+    """Replace an object's animation with the given transform keyframes."""
+    open_project(args.get("project"))
+    object_name = args.get("object_name")
+    keyframes = args.get("keyframes") or []
+    interpolation = str(args.get("interpolation", "BEZIER")).upper()
+    if interpolation not in ("LINEAR", "BEZIER", "CONSTANT"):
+        raise ScriptError(f"Unknown interpolation '{interpolation}' (LINEAR, BEZIER, CONSTANT)")
+    if not keyframes:
+        raise ScriptError("At least one keyframe is required")
 
-        object_name = args.get("object_name")
-        keyframes = args.get("keyframes", [])
-        interpolation = args.get("interpolation", "BEZIER")
+    obj = require_object(object_name)
+    obj.animation_data_clear()
 
-        # Find object
-        obj = bpy.data.objects.get(object_name)
-        if not obj:
-            print(f"Object '{object_name}' not found")
-            return False
+    keyed = 0
+    frames = []
+    for kf in keyframes:
+        frame = kf.get("frame")
+        if frame is None:
+            raise ScriptError(f"Keyframe without a frame number: {kf}")
+        wrote = False
+        if "location" in kf:
+            obj.location = kf["location"]
+            obj.keyframe_insert(data_path="location", frame=frame)
+            wrote = True
+        if "rotation" in kf:
+            obj.rotation_euler = kf["rotation"]
+            obj.keyframe_insert(data_path="rotation_euler", frame=frame)
+            wrote = True
+        if "scale" in kf:
+            obj.scale = kf["scale"]
+            obj.keyframe_insert(data_path="scale", frame=frame)
+            wrote = True
+        if not wrote:
+            raise ScriptError(f"Keyframe at frame {frame} sets none of location/rotation/scale")
+        keyed += 1
+        frames.append(frame)
 
-        # Clear existing keyframes
-        obj.animation_data_clear()
+    if obj.animation_data and obj.animation_data.action:
+        for fcurve in _action_fcurves(obj.animation_data.action):
+            for point in fcurve.keyframe_points:
+                point.interpolation = interpolation
 
-        # Create keyframes
-        for kf in keyframes:
-            frame = kf.get("frame")
-            if frame is None:
-                continue
-
-            # Set frame
-            bpy.context.scene.frame_set(frame)
-
-            # Set transform properties
-            if "location" in kf:
-                obj.location = kf["location"]
-                obj.keyframe_insert(data_path="location", frame=frame)
-
-            if "rotation" in kf:
-                obj.rotation_euler = kf["rotation"]
-                obj.keyframe_insert(data_path="rotation_euler", frame=frame)
-
-            if "scale" in kf:
-                obj.scale = kf["scale"]
-                obj.keyframe_insert(data_path="scale", frame=frame)
-
-        # Set interpolation mode
-        if obj.animation_data and obj.animation_data.action:
-            for fcurve in obj.animation_data.action.fcurves:
-                for keyframe in fcurve.keyframe_points:
-                    keyframe.interpolation = interpolation
-
-        # Save project
-        if "project" in args:
-            bpy.ops.wm.save_mainfile()
-
-        return True
-
-    except Exception as e:
-        print(f"Error creating animation: {e}")
-        return False
+    scene = bpy.context.scene
+    if max(frames) > scene.frame_end:
+        scene.frame_end = int(max(frames))
+    save_project()
+    return {"success": True, "object": obj.name, "keyframes": keyed, "frame_range": [min(frames), max(frames)]}
 
 
 def setup_armature(args, _job_id):
@@ -385,42 +386,32 @@ def create_nla_tracks(args, _job_id):
         return False
 
 
+def _action_fcurves(action):
+    """All F-curves of an action, across legacy and slotted (4.4+) layouts."""
+    curves = []
+    layers = getattr(action, "layers", None)
+    if layers:
+        for layer in layers:
+            for strip in layer.strips:
+                for bag in getattr(strip, "channelbags", []):
+                    curves.extend(bag.fcurves)
+    if not curves and hasattr(action, "fcurves"):
+        curves.extend(action.fcurves)
+    return curves
+
+
 def main():
-    """Main entry point."""
-    argv = sys.argv
-
-    if "--" in argv:
-        argv = argv[argv.index("--") + 1 :]
-
-    if len(argv) < 2:
-        print("Usage: blender --python animation.py -- args.json job_id")
-        sys.exit(1)
-
-    args_file = argv[0]
-    job_id = argv[1]
-
-    with open(args_file, "r", encoding="utf-8") as f:
-        args = json.load(f)
-
-    operation = args.get("operation")
-
-    if operation == "create_animation":
-        success = create_animation(args, job_id)
-    elif operation == "setup_armature":
-        success = setup_armature(args, job_id)
-    elif operation == "apply_constraints":
-        success = apply_constraints(args, job_id)
-    elif operation == "create_motion_path":
-        success = create_motion_path(args, job_id)
-    elif operation == "create_shape_keys":
-        success = create_shape_keys(args, job_id)
-    elif operation == "create_nla_tracks":
-        success = create_nla_tracks(args, job_id)
-    else:
-        print(f"Unknown operation: {operation}")
-        sys.exit(1)
-
-    sys.exit(0 if success else 1)
+    """Dispatch the requested operation (see mcp_common.run)."""
+    run(
+        {
+            "create_animation": create_animation,
+            "setup_armature": setup_armature,
+            "apply_constraints": apply_constraints,
+            "create_motion_path": create_motion_path,
+            "create_shape_keys": create_shape_keys,
+            "create_nla_tracks": create_nla_tracks,
+        }
+    )
 
 
 if __name__ == "__main__":

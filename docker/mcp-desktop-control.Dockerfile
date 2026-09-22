@@ -1,15 +1,17 @@
 # Multi-stage Rust build for mcp-desktop-control
+#
+# The X11 backend uses the pure-Rust x11rb protocol implementation, so neither
+# the build nor the runtime image needs libX11/libxcb or any X11 CLI tools
+# (xdotool, wmctrl, scrot, ...). Only OpenSSL is linked (via mcp-core's HTTP
+# client).
+
 # Stage 1: Build the Rust binary
 # Use bookworm-based rust image to match runtime glibc version
 FROM rust:1.93-slim-bookworm AS builder
 
-# Install X11 development libraries and build dependencies for building
 RUN apt-get update && apt-get install -y --no-install-recommends \
     pkg-config \
     libssl-dev \
-    libx11-dev \
-    libxcb1-dev \
-    libxkbcommon-dev \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /build
@@ -24,29 +26,13 @@ COPY tools/mcp/mcp_desktop_control /build/tools/mcp/mcp_desktop_control
 WORKDIR /build/tools/mcp/mcp_desktop_control
 RUN cargo build --release
 
-# Stage 2: Runtime image with X11 tools
+# Stage 2: Minimal runtime image
 FROM debian:bookworm-slim
 
-# Install system dependencies for Linux desktop control
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    # X11 automation tools
-    xdotool \
-    wmctrl \
-    scrot \
-    x11-utils \
-    xclip \
-    # For xrandr
-    x11-xserver-utils \
-    # ImageMagick for window screenshots
-    imagemagick \
-    # X11 runtime libraries
-    libx11-6 \
-    libxcb1 \
-    libxkbcommon0 \
-    # General utilities
-    curl \
+    libssl3 \
     ca-certificates \
-    procps \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Create app user with configurable UID/GID
@@ -55,30 +41,26 @@ ARG GROUP_ID=1000
 RUN groupadd -g ${GROUP_ID} mcp || true && \
     useradd -m -u ${USER_ID} -g ${GROUP_ID} mcp || true
 
-# Create directories
-RUN mkdir -p /app && \
-    chown -R mcp:mcp /app
+# Screenshot output directory (bind-mount it to reach files from the host)
+RUN mkdir -p /app /output && \
+    chown -R ${USER_ID}:${GROUP_ID} /app /output
 
 WORKDIR /app
 
-# Copy the binary from builder
 COPY --from=builder /build/tools/mcp/mcp_desktop_control/target/release/mcp-desktop-control /usr/local/bin/
-
-# Set permissions
 RUN chmod +x /usr/local/bin/mcp-desktop-control
 
-# Environment variables
-ENV RUST_LOG=info
+ENV RUST_LOG=info \
+    DESKTOP_CONTROL_OUTPUT_DIR=/output
 
-# Switch to non-root user
 USER mcp
 
-# Port for HTTP mode
-EXPOSE 8025
+# Port for HTTP mode (matches docker-compose.yml)
+EXPOSE 8026
 
-# Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
-    CMD curl -f http://localhost:8025/health || exit 1
+    CMD curl -f http://localhost:8026/health || exit 1
 
-# Default command - run in HTTP mode
-CMD ["mcp-desktop-control", "--mode", "standalone", "--port", "8025"]
+# Default command - run in HTTP mode. Requires DISPLAY and access to the X
+# socket (/tmp/.X11-unix) plus Xauthority; see the crate README.
+CMD ["mcp-desktop-control", "--mode", "standalone", "--port", "8026"]

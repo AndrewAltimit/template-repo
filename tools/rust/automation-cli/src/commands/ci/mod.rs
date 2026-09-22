@@ -305,7 +305,7 @@ impl Ctx<'_> {
                 self.run_all(&[
                     Stage::Bio(CargoOp::Fmt),
                     Stage::Bio(CargoOp::Clippy),
-                    Stage::Workspace(Workspace::Bioforge, CargoOp::Test),
+                    Stage::Bio(CargoOp::Test),
                 ])
             },
 

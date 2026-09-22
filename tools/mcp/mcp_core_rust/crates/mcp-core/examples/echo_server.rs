@@ -11,7 +11,8 @@
 
 use async_trait::async_trait;
 use clap::Parser;
-use mcp_core::{init_logging, prelude::*, server::MCPServerArgs};
+use mcp_core::args::ArgsExt;
+use mcp_core::{ToolAnnotations, init_logging, prelude::*, server::MCPServerArgs};
 use serde::Serialize;
 use serde_json::{Value, json};
 
@@ -42,12 +43,13 @@ impl Tool for EchoTool {
     }
 
     async fn execute(&self, args: Value) -> Result<ToolResult> {
-        let message = args
-            .get("message")
-            .and_then(|v| v.as_str())
-            .unwrap_or("no message");
+        let message = args.required_str("message")?;
 
         Ok(ToolResult::text(format!("Echo: {message}")))
+    }
+
+    fn annotations(&self) -> Option<ToolAnnotations> {
+        Some(ToolAnnotations::read_only())
     }
 }
 
@@ -82,15 +84,10 @@ impl Tool for AddTool {
     }
 
     async fn execute(&self, args: Value) -> Result<ToolResult> {
-        let a = args
-            .get("a")
-            .and_then(|v| v.as_f64())
-            .ok_or_else(|| MCPError::InvalidParameters("Missing 'a' parameter".to_string()))?;
-
-        let b = args
-            .get("b")
-            .and_then(|v| v.as_f64())
-            .ok_or_else(|| MCPError::InvalidParameters("Missing 'b' parameter".to_string()))?;
+        // Missing or non-numeric arguments become InvalidParameters errors,
+        // which the client sees as an `isError` tool result.
+        let a = args.required_f64("a")?;
+        let b = args.required_f64("b")?;
 
         let result = a + b;
 

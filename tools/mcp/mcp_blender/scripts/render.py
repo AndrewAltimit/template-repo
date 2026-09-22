@@ -1,268 +1,215 @@
 #!/usr/bin/env python3
-"""Blender rendering script."""
+"""Blender rendering script (single frames, animations, batches).
 
-import json
+Run by the MCP server as ``blender --background --python render.py --
+<args.json> <job_id>``. Progress is published through job status files and the
+final result through the ``MCP_RESULT:`` line (see ``mcp_common.py``).
+"""
+
 import os
 from pathlib import Path
 import sys
 
 import bpy
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-def update_status(job_id, status, progress=0, message="", output_path=None):
-    """Update job status file."""
-    # Status files are stored in /app/outputs/jobs/ to match JobManager
-    status_dir = Path("/app/outputs/jobs")
-    status_dir.mkdir(parents=True, exist_ok=True)
-    status_file = status_dir / f"{job_id}.status"
-    status_data = {"status": status, "progress": progress, "message": message}
-    if output_path:
-        status_data["output_path"] = output_path
-    status_file.write_text(json.dumps(status_data), encoding="utf-8")
+from mcp_common import (  # noqa: E402  pylint: disable=wrong-import-position
+    ScriptError,
+    is_eevee,
+    open_project,
+    resolve_engine,
+    run,
+    update_status,
+)
+
+# User-facing still formats -> Blender image_settings.file_format identifiers.
+IMAGE_FORMATS = {"PNG": "PNG", "JPEG": "JPEG", "JPG": "JPEG", "EXR": "OPEN_EXR", "OPEN_EXR": "OPEN_EXR", "TIFF": "TIFF"}
+# User-facing video formats -> FFmpeg container identifiers.
+VIDEO_CONTAINERS = {"MP4": "MPEG4", "AVI": "AVI", "MOV": "QUICKTIME", "MKV": "MKV", "WEBM": "WEBM"}
+
+
+def configure_render(scene, settings, default_engine, default_samples):
+    """Apply engine, resolution and sample settings shared by every render op."""
+    scene.render.engine = resolve_engine(settings.get("engine"), default_engine)
+    resolution = settings.get("resolution")
+    if resolution:
+        if len(resolution) != 2 or min(resolution) <= 0:
+            raise ScriptError(f"resolution must be [width, height] with positive values, got {resolution}")
+        scene.render.resolution_x = int(resolution[0])
+        scene.render.resolution_y = int(resolution[1])
+    if "resolution_percentage" in settings:
+        scene.render.resolution_percentage = int(settings["resolution_percentage"])
+    samples = int(settings.get("samples", default_samples))
+    if scene.render.engine == "CYCLES":
+        scene.cycles.samples = samples
+        scene.cycles.use_denoising = bool(settings.get("denoise", True))
+        scene.cycles.device = "GPU" if settings.get("use_gpu") else "CPU"
+    elif is_eevee(scene.render.engine):
+        scene.eevee.taa_render_samples = samples
+    if "film_transparent" in settings:
+        scene.render.film_transparent = bool(settings["film_transparent"])
+
+
+def set_image_format(scene, fmt):
+    """Set a still-image output format; returns the Blender identifier."""
+    identifier = IMAGE_FORMATS.get(str(fmt).upper())
+    if identifier is None:
+        raise ScriptError(f"Unsupported image format '{fmt}'. Supported: PNG, JPEG, EXR, TIFF")
+    scene.render.image_settings.file_format = identifier
+    return identifier
+
+
+def require_camera(scene):
+    if scene.camera is None:
+        raise ScriptError("Scene has no active camera; add one with setup_camera first")
 
 
 def render_image(args, job_id):
-    """Render a single frame."""
-    try:
-        # Load project if specified
-        if "project" in args:
-            bpy.ops.wm.open_mainfile(filepath=args["project"])
+    """Render a single frame to ``output_path``."""
+    open_project(args.get("project"))
+    scene = bpy.context.scene
+    settings = args.get("settings") or {}
+    configure_render(scene, settings, "CYCLES", 128)
+    set_image_format(scene, settings.get("format", "PNG"))
+    require_camera(scene)
 
-        scene = bpy.context.scene
-        settings = args.get("settings", {})
+    frame = int(args.get("frame", scene.frame_current))
+    scene.frame_set(frame)
+    output_path = args.get("output_path") or f"/app/outputs/renders/{job_id}.png"
+    Path(output_path).parent.mkdir(parents=True, exist_ok=True)
+    # The server already picked the right extension; stop Blender appending another.
+    scene.render.use_file_extension = False
+    scene.render.filepath = output_path
 
-        # Configure render settings
-        # Handle both old and new engine names
-        # Blender 4.2+ uses BLENDER_EEVEE_NEXT instead of BLENDER_EEVEE
-        engine = settings.get("engine", "CYCLES")
-        if engine == "EEVEE":
-            engine = "BLENDER_EEVEE_NEXT"
-        elif engine == "WORKBENCH":
-            engine = "BLENDER_WORKBENCH"
-        scene.render.engine = engine
-        scene.render.resolution_x = settings.get("resolution", [1920, 1080])[0]
-        scene.render.resolution_y = settings.get("resolution", [1920, 1080])[1]
-
-        # Set samples
-        if scene.render.engine == "CYCLES":
-            scene.cycles.samples = settings.get("samples", 128)
-            scene.cycles.use_denoising = True
-        elif scene.render.engine == "BLENDER_EEVEE_NEXT":
-            scene.eevee.taa_render_samples = settings.get("samples", 64)
-
-        # Set output format
-        scene.render.image_settings.file_format = settings.get("format", "PNG")
-
-        # Set frame
-        scene.frame_set(args.get("frame", 1))
-
-        # Set output path
-        output_path = args.get("output_path", f"/app/outputs/{job_id}.png")
-        scene.render.filepath = output_path
-
-        # Update status
-        update_status(job_id, "RUNNING", 10, "Starting render")
-
-        # Render
-        bpy.ops.render.render(write_still=True)
-
-        # Update status with output path
-        update_status(job_id, "COMPLETED", 100, "Render complete", output_path=output_path)
-
-        return True
-
-    except Exception as e:
-        update_status(job_id, "FAILED", 0, str(e))
-        return False
+    update_status(job_id, "RUNNING", 10, f"Rendering frame {frame} with {scene.render.engine}")
+    bpy.ops.render.render(write_still=True)
+    if not Path(output_path).is_file():
+        raise ScriptError(f"Render finished but no image was written to {output_path}")
+    update_status(job_id, "COMPLETED", 100, "Render complete", output_path=output_path)
+    return {"success": True, "output_path": output_path, "frame": frame, "engine": scene.render.engine}
 
 
 def render_animation(args, job_id):
-    """Render an animation sequence."""
+    """Render a frame range to a video file or a PNG sequence."""
+    open_project(args.get("project"))
+    scene = bpy.context.scene
+    settings = args.get("settings") or {}
+    configure_render(scene, settings, "EEVEE", 64)
+    require_camera(scene)
+
+    start = int(args.get("start_frame", scene.frame_start))
+    end = int(args.get("end_frame", scene.frame_end))
+    if end < start:
+        raise ScriptError(f"end_frame ({end}) must be >= start_frame ({start})")
+    scene.frame_start = start
+    scene.frame_end = end
+    total = end - start + 1
+
+    output_format = str(settings.get("format", "MP4")).upper()
+    output_base = (args.get("output_path") or f"/app/outputs/animations/{job_id}").rstrip("/")
+    if output_format == "FRAMES":
+        os.makedirs(output_base, exist_ok=True)
+        scene.render.image_settings.file_format = "PNG"
+        scene.render.filepath = os.path.join(output_base, "frame_####")
+        scene.render.use_file_extension = True
+        output_path = output_base
+    else:
+        container = VIDEO_CONTAINERS.get(output_format)
+        if container is None:
+            raise ScriptError(f"Unsupported animation format '{output_format}'. Supported: MP4, AVI, MOV, MKV, WEBM, FRAMES")
+        Path(output_base).parent.mkdir(parents=True, exist_ok=True)
+        scene.render.image_settings.file_format = "FFMPEG"
+        scene.render.ffmpeg.format = container
+        scene.render.ffmpeg.codec = "VP9" if container == "WEBM" else "H264"
+        scene.render.ffmpeg.constant_rate_factor = "MEDIUM"
+        output_path = f"{output_base}.{output_format.lower()}"
+        scene.render.use_file_extension = False
+        scene.render.filepath = output_path
+
+    rendered = {"count": 0}
+
+    def on_frame_written(scn, *_):
+        rendered["count"] += 1
+        progress = min(99, int(rendered["count"] * 100 / total))
+        update_status(job_id, "RUNNING", progress, f"Rendered frame {scn.frame_current} ({rendered['count']}/{total})")
+
+    bpy.app.handlers.render_write.append(on_frame_written)
+    update_status(job_id, "RUNNING", 0, f"Rendering {total} frames with {scene.render.engine}")
+    bpy.ops.render.render(animation=True)
+
+    if output_format != "FRAMES" and not Path(output_path).is_file():
+        raise ScriptError(f"Animation render finished but {output_path} was not written")
+    update_status(job_id, "COMPLETED", 100, "Animation render complete", output_path=output_path)
+    return {"success": True, "output_path": output_path, "frames": total, "format": output_format}
+
+
+def batch_render(args, job_id):  # noqa: C901
+    """Render every (camera, view layer, frame) combination as separate images."""
+    open_project(args.get("project"))
+    scene = bpy.context.scene
+    settings = args.get("settings") or {}
+    configure_render(scene, settings, "CYCLES", 128)
+    fmt = set_image_format(scene, settings.get("format", "PNG"))
+    extension = {"PNG": "png", "JPEG": "jpg", "OPEN_EXR": "exr", "TIFF": "tif"}[fmt]
+    scene.render.use_file_extension = False
+
+    frames = [int(f) for f in (args.get("frames") or [scene.frame_current])]
+    output_dir = args.get("output_dir") or f"/app/outputs/batch/{job_id}"
+    os.makedirs(output_dir, exist_ok=True)
+
+    cameras = []
+    for cam_name in args.get("cameras") or []:
+        cam = bpy.data.objects.get(cam_name)
+        if cam is None or cam.type != "CAMERA":
+            raise ScriptError(f"Camera '{cam_name}' not found")
+        cameras.append(cam)
+    if not cameras:
+        require_camera(scene)
+        cameras = [scene.camera]
+
+    layer_names = list(args.get("layers") or [])
+    for name in layer_names:
+        if name not in scene.view_layers:
+            available = ", ".join(v.name for v in scene.view_layers)
+            raise ScriptError(f"View layer '{name}' not found. Available: {available}")
+    layers = layer_names or [None]
+
+    total = len(frames) * len(cameras) * len(layers)
+    done = 0
+    output_files = []
+    update_status(job_id, "RUNNING", 0, f"Starting batch render: {total} images")
+    original_use = {v.name: v.use for v in scene.view_layers}
     try:
-        # Load project
-        if "project" in args:
-            bpy.ops.wm.open_mainfile(filepath=args["project"])
+        for layer in layers:
+            if layer is not None:
+                for view_layer in scene.view_layers:
+                    view_layer.use = view_layer.name == layer
+            for cam in cameras:
+                scene.camera = cam
+                for frame in frames:
+                    scene.frame_set(frame)
+                    parts = [cam.name.replace(" ", "_")]
+                    if layer is not None:
+                        parts.append(layer.replace(" ", "_"))
+                    parts.append(f"frame_{frame:04d}")
+                    output_file = os.path.join(output_dir, "_".join(parts) + f".{extension}")
+                    scene.render.filepath = output_file
+                    bpy.ops.render.render(write_still=True)
+                    output_files.append(output_file)
+                    done += 1
+                    update_status(job_id, "RUNNING", min(99, int(done * 100 / total)), f"Rendered {done}/{total}")
+    finally:
+        for view_layer in scene.view_layers:
+            view_layer.use = original_use.get(view_layer.name, True)
 
-        scene = bpy.context.scene
-        settings = args.get("settings", {})
-
-        # Configure render settings
-        # Handle both old and new engine names
-        # Blender 4.2+ uses BLENDER_EEVEE_NEXT instead of BLENDER_EEVEE
-        engine = settings.get("engine", "BLENDER_EEVEE_NEXT")
-        if engine == "EEVEE":
-            engine = "BLENDER_EEVEE_NEXT"
-        elif engine == "WORKBENCH":
-            engine = "BLENDER_WORKBENCH"
-        scene.render.engine = engine
-        scene.render.resolution_x = settings.get("resolution", [1920, 1080])[0]
-        scene.render.resolution_y = settings.get("resolution", [1920, 1080])[1]
-
-        # Set samples
-        if scene.render.engine == "CYCLES":
-            scene.cycles.samples = settings.get("samples", 64)
-            scene.cycles.use_denoising = True
-        elif scene.render.engine == "BLENDER_EEVEE_NEXT":
-            scene.eevee.taa_render_samples = settings.get("samples", 32)
-
-        # Set frame range
-        scene.frame_start = args.get("start_frame", 1)
-        scene.frame_end = args.get("end_frame", 250)
-        total_frames = scene.frame_end - scene.frame_start + 1
-
-        # Configure output
-        output_format = settings.get("format", "MP4")
-        output_path = args.get("output_path", f"/app/outputs/{job_id}/")
-
-        if output_format == "FRAMES":
-            # Render as image sequence
-            scene.render.image_settings.file_format = "PNG"
-            os.makedirs(output_path, exist_ok=True)
-            scene.render.filepath = os.path.join(output_path, "####")
-        else:
-            # Render as video
-            scene.render.image_settings.file_format = "FFMPEG"
-            scene.render.ffmpeg.format = output_format
-            scene.render.ffmpeg.codec = "H264"
-            scene.render.ffmpeg.constant_rate_factor = "MEDIUM"
-            scene.render.filepath = output_path.rstrip("/") + f".{output_format.lower()}"
-
-        update_status(job_id, "RUNNING", 0, f"Rendering {total_frames} frames")
-
-        # Custom render handler to update progress
-        def render_progress(scene):
-            current_frame = scene.frame_current - scene.frame_start
-            progress = int((current_frame / total_frames) * 100)
-            update_status(job_id, "RUNNING", progress, f"Rendering frame {scene.frame_current}")
-
-        # Register handler
-        bpy.app.handlers.render_write.append(render_progress)
-
-        # Render animation
-        bpy.ops.render.render(animation=True)
-
-        # Update status with output path
-        update_status(job_id, "COMPLETED", 100, "Animation render complete", output_path=scene.render.filepath)
-
-        return True
-
-    except Exception as e:
-        update_status(job_id, "FAILED", 0, str(e))
-        return False
-
-
-def batch_render(args, job_id):
-    """Render multiple frames, cameras, or render layers in batch."""
-    try:
-        # Load project
-        if "project" in args:
-            bpy.ops.wm.open_mainfile(filepath=args["project"])
-
-        scene = bpy.context.scene
-        frames = args.get("frames", [1])
-        cameras = args.get("cameras", [])
-        _layers = args.get("layers", [])
-        settings = args.get("settings", {})
-        output_dir = args.get("output_dir", f"/app/outputs/batch/{job_id}")
-
-        # Create output directory
-        os.makedirs(output_dir, exist_ok=True)
-
-        # Configure render settings
-        engine = settings.get("engine", "CYCLES")
-        if engine == "EEVEE":
-            engine = "BLENDER_EEVEE_NEXT"
-        elif engine == "WORKBENCH":
-            engine = "BLENDER_WORKBENCH"
-        scene.render.engine = engine
-        scene.render.resolution_x = settings.get("resolution", [1920, 1080])[0]
-        scene.render.resolution_y = settings.get("resolution", [1920, 1080])[1]
-
-        # Set samples
-        if scene.render.engine == "CYCLES":
-            scene.cycles.samples = settings.get("samples", 128)
-            scene.cycles.use_denoising = True
-        elif scene.render.engine == "BLENDER_EEVEE_NEXT":
-            scene.eevee.taa_render_samples = settings.get("samples", 64)
-
-        scene.render.image_settings.file_format = settings.get("format", "PNG")
-
-        # Get cameras to render from
-        camera_objects = []
-        if cameras:
-            for cam_name in cameras:
-                cam = bpy.data.objects.get(cam_name)
-                if cam and cam.type == "CAMERA":
-                    camera_objects.append(cam)
-        if not camera_objects and scene.camera:
-            camera_objects = [scene.camera]
-
-        total_renders = len(frames) * len(camera_objects)
-        current_render = 0
-        output_files = []
-
-        update_status(job_id, "RUNNING", 0, f"Starting batch render: {total_renders} renders")
-
-        for cam in camera_objects:
-            scene.camera = cam
-            cam_name = cam.name.replace(" ", "_")
-
-            for frame in frames:
-                scene.frame_set(frame)
-                output_file = os.path.join(output_dir, f"{cam_name}_frame_{frame:04d}.png")
-                scene.render.filepath = output_file
-
-                # Render
-                bpy.ops.render.render(write_still=True)
-                output_files.append(output_file)
-
-                current_render += 1
-                progress = int((current_render / total_renders) * 100)
-                update_status(job_id, "RUNNING", progress, f"Rendered {current_render}/{total_renders}")
-
-        update_status(job_id, "COMPLETED", 100, f"Batch render complete: {len(output_files)} images", output_path=output_dir)
-
-        return True
-
-    except Exception as e:
-        update_status(job_id, "FAILED", 0, str(e))
-        return False
+    update_status(job_id, "COMPLETED", 100, f"Batch render complete: {len(output_files)} images", output_path=output_dir)
+    return {"success": True, "output_path": output_dir, "output_files": output_files}
 
 
 def main():
-    """Main entry point."""
-    # Get arguments from command line
-    argv = sys.argv
-
-    # Find the -- separator
-    if "--" in argv:
-        argv = argv[argv.index("--") + 1 :]
-
-    if len(argv) < 2:
-        print("Usage: blender --python render.py -- args.json job_id")
-        sys.exit(1)
-
-    args_file = argv[0]
-    job_id = argv[1]
-
-    # Load arguments
-    with open(args_file, "r", encoding="utf-8") as f:
-        args = json.load(f)
-
-    # Determine operation
-    operation = args.get("operation", "render_image")
-
-    if operation == "render_image":
-        success = render_image(args, job_id)
-    elif operation == "render_animation":
-        success = render_animation(args, job_id)
-    elif operation == "batch_render":
-        success = batch_render(args, job_id)
-    else:
-        print(f"Unknown operation: {operation}")
-        sys.exit(1)
-
-    sys.exit(0 if success else 1)
+    """Dispatch the requested operation (see mcp_common.run)."""
+    run({"render_image": render_image, "render_animation": render_animation, "batch_render": batch_render})
 
 
 if __name__ == "__main__":

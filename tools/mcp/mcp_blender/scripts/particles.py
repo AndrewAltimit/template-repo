@@ -1,72 +1,78 @@
 #!/usr/bin/env python3
 """Particle system tools for Blender."""
 
-import json
-from pathlib import Path
+import os
 import sys
 
 import bpy
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+from mcp_common import (  # noqa: E402  pylint: disable=wrong-import-position
+    project_operation,
+    require_object,
+    run,
+)
+
 
 def add_particle_system(args):
-    """Add particle system to an object."""
+    """Add an emitter (or hair) particle system to an object."""
     object_name = args["object_name"]
-    particle_type = args.get("particle_type", "EMITTER")
-    settings = args.get("settings", {})
+    particle_type = str(args.get("particle_type", "EMITTER")).upper()
+    settings = dict(args.get("settings") or {})
+    if "count" in args and "count" not in settings:
+        settings["count"] = args["count"]
+    if particle_type == "HAIR":
+        return add_hair_system({"object_name": object_name, "settings": settings})
+    if particle_type != "EMITTER":
+        return {"success": False, "error": f"Unknown particle_type '{particle_type}' (use emitter or hair)"}
 
-    # Get the object
-    if object_name not in bpy.data.objects:
-        return {"success": False, "error": f"Object '{object_name}' not found"}
+    obj = require_object(object_name)
+    if obj.type != "MESH":
+        return {"success": False, "error": f"Particles need a mesh emitter; '{object_name}' is a {obj.type}"}
 
-    obj = bpy.data.objects[object_name]
-
-    # Add particle system modifier
     particle_name = f"ParticleSystem_{len(obj.particle_systems)}"
     obj.modifiers.new(particle_name, "PARTICLE_SYSTEM")
-
-    # Get the particle system and settings
     psys = obj.particle_systems[-1]
     pset = psys.settings
 
-    # Configure particle settings
-    pset.type = particle_type
-    pset.count = settings.get("count", 1000)
+    pset.type = "EMITTER"
+    pset.count = int(settings.get("count", 1000))
     pset.frame_start = settings.get("frame_start", 1)
     pset.frame_end = settings.get("frame_end", 200)
     pset.lifetime = settings.get("lifetime", 50)
     pset.emit_from = settings.get("emit_from", "FACE")
 
-    # Physics settings
-    physics_type = settings.get("physics_type", "NEWTONIAN")
-    if physics_type == "NEWTONIAN":
+    physics_type = str(settings.get("physics_type", "NEWTONIAN")).upper()
+    if physics_type in ("NEWTONIAN", "NEWTON"):
         pset.physics_type = "NEWTON"
         pset.mass = settings.get("mass", 1.0)
         pset.normal_factor = settings.get("velocity", 2.0)
         pset.factor_random = settings.get("velocity_random", 0.5)
-        pset.gravity = settings.get("gravity", 1.0)
+        pset.effector_weights.gravity = settings.get("gravity", 1.0)
         pset.drag_factor = settings.get("drag", 0.0)
         pset.brownian_factor = settings.get("brownian", 0.0)
     elif physics_type == "FLUID":
         pset.physics_type = "FLUID"
         pset.fluid.solver = "CLASSICAL"
         pset.fluid.stiffness = settings.get("stiffness", 1.0)
-        pset.fluid.viscosity = settings.get("viscosity", 1.0)
+        pset.fluid.linear_viscosity = settings.get("viscosity", 1.0)
         pset.fluid.buoyancy = settings.get("buoyancy", 0.0)
     elif physics_type == "NO":
         pset.physics_type = "NO"
+    else:
+        return {"success": False, "error": f"Unknown physics_type '{physics_type}' (NEWTONIAN, FLUID, NO)"}
 
-    # Display settings
     pset.particle_size = settings.get("size", 0.05)
     pset.size_random = settings.get("size_random", 0.0)
-
-    # Render settings
-    pset.render_type = settings.get("render_type", "HALO")
+    pset.render_type = str(settings.get("render_type", "HALO")).upper()
     if pset.render_type == "OBJECT":
         render_object = settings.get("render_object")
-        if render_object and render_object in bpy.data.objects:
-            pset.instance_object = bpy.data.objects[render_object]
+        if not render_object or render_object not in bpy.data.objects:
+            return {"success": False, "error": f"render_object '{render_object}' not found"}
+        pset.instance_object = bpy.data.objects[render_object]
 
-    return {"success": True, "particle_system": particle_name}
+    return {"success": True, "particle_system": psys.name, "count": pset.count}
 
 
 def add_hair_system(args):
@@ -104,7 +110,7 @@ def add_hair_system(args):
     # Children
     if settings.get("use_children", True):
         pset.child_type = "INTERPOLATED"
-        pset.child_nbr = settings.get("children_count", 10)
+        pset.child_percent = settings.get("children_count", 10)
         pset.rendered_child_count = settings.get("rendered_children", 100)
         pset.child_radius = settings.get("child_radius", 0.2)
 
@@ -116,33 +122,35 @@ def add_hair_system(args):
 
 
 def add_smoke_domain(args):
-    """Add smoke domain for simulation."""
+    """Add a gas fluid domain box."""
     domain_name = args.get("domain_name", "SmokeDomain")
     size = args.get("size", [5, 5, 5])
     location = args.get("location", [0, 0, 2.5])
-    resolution = args.get("resolution", 32)
+    resolution = int(args.get("resolution", 32))
 
-    # Create domain cube
-    bpy.ops.mesh.primitive_cube_add(size=1, location=location)
-    domain = bpy.context.active_object
-    domain.name = domain_name
+    mesh = bpy.data.meshes.new(domain_name)
+    domain = bpy.data.objects.new(domain_name, mesh)
+    bpy.context.scene.collection.objects.link(domain)
+    import bmesh  # pylint: disable=import-outside-toplevel
+
+    bm = bmesh.new()
+    bmesh.ops.create_cube(bm, size=1.0)
+    bm.to_mesh(mesh)
+    bm.free()
+    domain.location = location
     domain.scale = size
+    domain.display_type = "WIRE"
 
-    # Add fluid modifier as domain
-    domain.modifiers.new("Fluid", "FLUID")
-    domain.modifiers["Fluid"].fluid_type = "DOMAIN"
-
-    # Configure domain settings
-    domain_settings = domain.modifiers["Fluid"].domain_settings
+    modifier = domain.modifiers.new("Fluid", "FLUID")
+    modifier.fluid_type = "DOMAIN"
+    domain_settings = modifier.domain_settings
     domain_settings.domain_type = "GAS"
     domain_settings.resolution_max = resolution
     domain_settings.use_adaptive_domain = True
-
-    # Cache settings
     domain_settings.cache_frame_start = 1
     domain_settings.cache_frame_end = 250
 
-    return {"success": True, "domain": domain_name}
+    return {"success": True, "domain": domain.name}
 
 
 def add_smoke_emitter(args):
@@ -216,53 +224,73 @@ def configure_particle_forces(args):
     return {"success": True, "force_field": force_obj.name}
 
 
+def add_smoke_simulation(args):
+    """Turn an object into a smoke/fire emitter inside a new gas domain."""
+    object_name = args["object_name"]
+    smoke_type = str(args.get("smoke_type", "smoke")).upper()
+    settings = args.get("settings") or {}
+    flow_type = {"SMOKE": "SMOKE", "FIRE": "FIRE", "BOTH": "BOTH"}.get(smoke_type)
+    if flow_type is None:
+        return {"success": False, "error": f"Unknown smoke_type '{smoke_type}' (smoke, fire, both)"}
+    if not bpy.app.build_options.fluid:
+        return {"success": False, "error": "This Blender build has no fluid simulation support"}
+
+    obj = require_object(object_name)
+    if obj.type != "MESH":
+        return {"success": False, "error": f"Smoke emitters must be meshes; '{object_name}' is a {obj.type}"}
+
+    flow_mod = next((m for m in obj.modifiers if m.type == "FLUID"), None)
+    if flow_mod is None:
+        flow_mod = obj.modifiers.new("Fluid", "FLUID")
+    elif flow_mod.fluid_type == "DOMAIN":
+        return {"success": False, "error": f"'{object_name}' is already a fluid domain"}
+    flow_mod.fluid_type = "FLOW"
+    flow = flow_mod.flow_settings
+    flow.flow_type = flow_type
+    flow.flow_behavior = "INFLOW"
+    flow.density = settings.get("density", 1.0)
+    flow.temperature = settings.get("temperature", 1.0)
+    if flow_type in ("FIRE", "BOTH"):
+        flow.fuel_amount = settings.get("fuel", 1.0)
+    if "color" in settings:
+        flow.smoke_color = settings["color"][:3]
+
+    # Domain: a box around the emitter, taller than wide so the plume can rise.
+    size = settings.get("domain_size")
+    dims = obj.dimensions
+    if size is None:
+        size = [max(dims.x * 3, 2.0), max(dims.y * 3, 2.0), max(dims.z * 6, 4.0)]
+    center = obj.matrix_world.translation
+    location = settings.get("domain_location") or [center.x, center.y, center.z + size[2] / 2 - dims.z]
+    domain_args = {
+        "domain_name": settings.get("domain_name", f"{obj.name}_SmokeDomain"),
+        "size": size,
+        "location": location,
+        "resolution": settings.get("resolution", 32),
+    }
+    domain_result = add_smoke_domain(domain_args)
+    domain = bpy.data.objects[domain_result["domain"]]
+    domain_settings = domain.modifiers["Fluid"].domain_settings
+    if flow_type in ("FIRE", "BOTH"):
+        domain_settings.use_noise = bool(settings.get("use_noise", True))
+    if bpy.app.build_options.openvdb:
+        domain_settings.cache_data_format = "OPENVDB"
+
+    return {"success": True, "emitter": obj.name, "domain": domain.name, "smoke_type": smoke_type.lower()}
+
+
 def main():
-    """Main entry point for particle tools."""
-    # Get arguments from command line
-    import argparse
-
-    # Filter sys.argv to only include args after "--" (Blender passes all args)
-    argv = sys.argv
-    if "--" in argv:
-        argv = argv[argv.index("--") + 1 :]
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--args", type=str, required=True)
-    args = parser.parse_args(argv)
-
-    # Parse JSON arguments
-    script_args = json.loads(args.args)
-
-    # Load the project file
-    project_path = script_args["project"]
-    if Path(project_path).exists():
-        bpy.ops.wm.open_mainfile(filepath=project_path)
-    else:
-        return {"success": False, "error": f"Project file not found: {project_path}"}
-
-    # Execute the operation
-    operation = script_args["operation"]
-
-    if operation == "add_particle_system":
-        result = add_particle_system(script_args)
-    elif operation == "add_hair_system":
-        result = add_hair_system(script_args)
-    elif operation == "add_smoke_domain":
-        result = add_smoke_domain(script_args)
-    elif operation == "add_smoke_emitter":
-        result = add_smoke_emitter(script_args)
-    elif operation == "configure_particle_forces":
-        result = configure_particle_forces(script_args)
-    else:
-        result = {"success": False, "error": f"Unknown operation: {operation}"}
-
-    # Save the file
-    if result.get("success"):
-        bpy.ops.wm.save_mainfile(filepath=project_path)
-
-    # Output result
-    print(json.dumps(result))
-    sys.exit(0 if result.get("success") else 1)
+    """Dispatch the requested operation (see mcp_common.run)."""
+    run(
+        {
+            "add_particle_system": project_operation(add_particle_system),
+            "add_hair_system": project_operation(add_hair_system),
+            "add_smoke_simulation": project_operation(add_smoke_simulation),
+            "add_smoke_domain": project_operation(add_smoke_domain),
+            "add_smoke_emitter": project_operation(add_smoke_emitter),
+            "configure_particle_forces": project_operation(configure_particle_forces),
+        }
+    )
 
 
 if __name__ == "__main__":

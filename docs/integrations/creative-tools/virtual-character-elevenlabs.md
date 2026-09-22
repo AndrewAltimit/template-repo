@@ -3,7 +3,7 @@
 This guide demonstrates how to combine the Virtual Character MCP server with ElevenLabs Speech synthesis to create expressive, talking virtual characters with synchronized animation and emotion.
 
 > **Implementation**: Both MCP servers are implemented in Rust. The Virtual Character server
-> lives at `tools/mcp/mcp_virtual_character/` and exposes 16 MCP tools for animation, audio,
+> lives at `tools/mcp/mcp_virtual_character/` and exposes 18 MCP tools for animation, audio,
 > sequences, and state management.
 
 ## Overview
@@ -30,10 +30,10 @@ ElevenLabs TTS --> Audio + Tags --> Virtual Character MCP --> Backend Platform
 
 ```bash
 # Terminal 1: Start Virtual Character server (Rust binary via Docker)
-docker compose --profile virtual-character up mcp-virtual-character
+docker compose --profile services up mcp-virtual-character
 
 # Terminal 2: Start ElevenLabs server
-docker compose --profile services run --rm -T mcp-elevenlabs-speech
+docker compose --profile services up mcp-elevenlabs-speech
 ```
 
 ### 2. Basic Integration (MCP Tool Calls)
@@ -43,7 +43,7 @@ AI agents interact with the Virtual Character via MCP tool calls. Here is the ty
 ```json
 // Step 1: Generate speech with ElevenLabs (elevenlabs-speech MCP)
 {
-  "tool": "synthesize_speech_v3",
+  "tool": "synthesize_speech",
   "params": {
     "text": "Hello! [laughs] I'm so excited to meet you [whisper] it's been a while.",
     "voice_id": "Sarah",
@@ -265,13 +265,15 @@ RUST_LOG=debug cargo run -p mcp-virtual-character
 
 ## MCP Tools Reference
 
-### Virtual Character Tools (16 total)
+### Virtual Character Tools (18 total)
 
 | Tool | Description |
 |------|-------------|
 | `set_backend` | Connect to backend (mock, vrchat_remote) |
+| `disconnect_backend` | Disconnect, stop playback, release ports |
 | `list_backends` | List available backends |
 | `get_backend_status` | Get backend status and statistics |
+| `get_avatar_state` | World/avatar id, current emotion/gesture, avatar parameters from VRChat |
 | `send_animation` | Send emotion + gesture + movement |
 | `execute_behavior` | High-level behaviors (greet, dance, sit, stand) |
 | `send_vrcemote` | Direct VRCEmote value (0-8) |
@@ -289,6 +291,6 @@ RUST_LOG=debug cargo run -p mcp-virtual-character
 ## Resources
 
 - [Virtual Character Documentation](../../../tools/mcp/mcp_virtual_character/README.md)
-- [ElevenLabs Speech Documentation](../../../tools/mcp/mcp_elevenlabs_speech/docs/README.md)
+- [ElevenLabs Speech Documentation](../../../tools/mcp/mcp_elevenlabs_speech/README.md)
 - [Audio Sequencing Guide](../../../tools/mcp/mcp_virtual_character/docs/AUDIO_SEQUENCING.md)
 - [VRChat Setup Guide](../../../tools/mcp/mcp_virtual_character/docs/VRCHAT_SETUP.md)

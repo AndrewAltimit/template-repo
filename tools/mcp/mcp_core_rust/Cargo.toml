@@ -93,7 +93,8 @@ unsafe_op_in_unsafe_fn = "warn"
 [profile.release]
 lto = true
 codegen-units = 1
-panic = "abort"
+# No `panic = "abort"`: mcp-core wraps tool calls in catch_unwind, which only
+# works when panics unwind.
 strip = true
 
 [profile.dev]

@@ -30,9 +30,10 @@ RUN cargo build --release
 # Stage 2: Runtime image
 FROM debian:bookworm-slim
 
-# Install runtime dependencies
-RUN apt-get update && apt-get install -y \
+# Install runtime dependencies (curl is used by the compose healthcheck)
+RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
+    curl \
     libssl3 \
     && rm -rf /var/lib/apt/lists/*
 
@@ -43,10 +44,13 @@ COPY --from=builder /build/tools/mcp/mcp_virtual_character/target/release/mcp-vi
 RUN useradd -m -u 1000 mcp-user
 USER mcp-user
 
-# Environment variables
+# Default vrchat_remote configuration (overridable per set_backend call).
+# The container has no audio player, so audio is never played locally here;
+# run the server natively on the VRChat machine for audible play_audio.
 ENV VIRTUAL_CHARACTER_HOST=127.0.0.1
 ENV VIRTUAL_CHARACTER_OSC_IN=9000
 ENV VIRTUAL_CHARACTER_OSC_OUT=9001
+ENV VIRTUAL_CHARACTER_AUDIO_PLAYBACK=none
 
 # Expose the server port (8025 is the default MCP port for virtual character)
 EXPOSE 8025

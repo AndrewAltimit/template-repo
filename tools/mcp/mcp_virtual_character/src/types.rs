@@ -24,6 +24,37 @@ pub enum EmotionType {
 }
 
 impl EmotionType {
+    /// Every emotion, in declaration order (used for validation messages and
+    /// tool schemas).
+    pub const ALL: [EmotionType; 10] = [
+        EmotionType::Neutral,
+        EmotionType::Happy,
+        EmotionType::Sad,
+        EmotionType::Angry,
+        EmotionType::Surprised,
+        EmotionType::Fearful,
+        EmotionType::Disgusted,
+        EmotionType::Contemptuous,
+        EmotionType::Excited,
+        EmotionType::Calm,
+    ];
+
+    /// Lowercase wire name of this emotion (matches serde and `FromStr`).
+    pub fn as_str(self) -> &'static str {
+        match self {
+            EmotionType::Neutral => "neutral",
+            EmotionType::Happy => "happy",
+            EmotionType::Sad => "sad",
+            EmotionType::Angry => "angry",
+            EmotionType::Surprised => "surprised",
+            EmotionType::Fearful => "fearful",
+            EmotionType::Disgusted => "disgusted",
+            EmotionType::Contemptuous => "contemptuous",
+            EmotionType::Excited => "excited",
+            EmotionType::Calm => "calm",
+        }
+    }
+
     /// Get PAD vector for this emotion.
     pub fn to_pad_vector(self) -> EmotionVector {
         match self {
@@ -45,19 +76,18 @@ impl std::str::FromStr for EmotionType {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s.to_lowercase().as_str() {
-            "neutral" => Ok(EmotionType::Neutral),
-            "happy" => Ok(EmotionType::Happy),
-            "sad" => Ok(EmotionType::Sad),
-            "angry" => Ok(EmotionType::Angry),
-            "surprised" => Ok(EmotionType::Surprised),
-            "fearful" => Ok(EmotionType::Fearful),
-            "disgusted" => Ok(EmotionType::Disgusted),
-            "contemptuous" => Ok(EmotionType::Contemptuous),
-            "excited" => Ok(EmotionType::Excited),
-            "calm" => Ok(EmotionType::Calm),
-            _ => Err(format!("Unknown emotion type: {}", s)),
-        }
+        let lower = s.trim().to_lowercase();
+        EmotionType::ALL
+            .into_iter()
+            .find(|e| e.as_str() == lower)
+            .ok_or_else(|| {
+                let valid: Vec<&str> = EmotionType::ALL.iter().map(|e| e.as_str()).collect();
+                format!(
+                    "Unknown emotion '{}'. Valid emotions: {}",
+                    s,
+                    valid.join(", ")
+                )
+            })
     }
 }
 
@@ -150,29 +180,66 @@ pub enum GestureType {
     Sadness,
 }
 
+impl GestureType {
+    /// Every gesture, in declaration order.
+    pub const ALL: [GestureType; 16] = [
+        GestureType::None,
+        GestureType::Wave,
+        GestureType::Point,
+        GestureType::ThumbsUp,
+        GestureType::ThumbsDown,
+        GestureType::Clap,
+        GestureType::Nod,
+        GestureType::ShakeHead,
+        GestureType::Shrug,
+        GestureType::CrossedArms,
+        GestureType::Thinking,
+        GestureType::Dance,
+        GestureType::Backflip,
+        GestureType::Cheer,
+        GestureType::Die,
+        GestureType::Sadness,
+    ];
+
+    /// snake_case wire name of this gesture (matches serde and `FromStr`).
+    pub fn as_str(self) -> &'static str {
+        match self {
+            GestureType::None => "none",
+            GestureType::Wave => "wave",
+            GestureType::Point => "point",
+            GestureType::ThumbsUp => "thumbs_up",
+            GestureType::ThumbsDown => "thumbs_down",
+            GestureType::Clap => "clap",
+            GestureType::Nod => "nod",
+            GestureType::ShakeHead => "shake_head",
+            GestureType::Shrug => "shrug",
+            GestureType::CrossedArms => "crossed_arms",
+            GestureType::Thinking => "thinking",
+            GestureType::Dance => "dance",
+            GestureType::Backflip => "backflip",
+            GestureType::Cheer => "cheer",
+            GestureType::Die => "die",
+            GestureType::Sadness => "sadness",
+        }
+    }
+}
+
 impl std::str::FromStr for GestureType {
     type Err = String;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s.to_lowercase().as_str() {
-            "none" => Ok(GestureType::None),
-            "wave" => Ok(GestureType::Wave),
-            "point" => Ok(GestureType::Point),
-            "thumbs_up" => Ok(GestureType::ThumbsUp),
-            "thumbs_down" => Ok(GestureType::ThumbsDown),
-            "clap" => Ok(GestureType::Clap),
-            "nod" => Ok(GestureType::Nod),
-            "shake_head" => Ok(GestureType::ShakeHead),
-            "shrug" => Ok(GestureType::Shrug),
-            "crossed_arms" => Ok(GestureType::CrossedArms),
-            "thinking" => Ok(GestureType::Thinking),
-            "dance" => Ok(GestureType::Dance),
-            "backflip" => Ok(GestureType::Backflip),
-            "cheer" => Ok(GestureType::Cheer),
-            "die" => Ok(GestureType::Die),
-            "sadness" => Ok(GestureType::Sadness),
-            _ => Err(format!("Unknown gesture type: {}", s)),
-        }
+        let lower = s.trim().to_lowercase();
+        GestureType::ALL
+            .into_iter()
+            .find(|g| g.as_str() == lower)
+            .ok_or_else(|| {
+                let valid: Vec<&str> = GestureType::ALL.iter().map(|g| g.as_str()).collect();
+                format!(
+                    "Unknown gesture '{}'. Valid gestures: {}",
+                    s,
+                    valid.join(", ")
+                )
+            })
     }
 }
 
@@ -424,25 +491,6 @@ mod base64_serde {
     }
 }
 
-/// Single video frame data.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct VideoFrame {
-    #[serde(with = "base64_serde")]
-    pub data: Vec<u8>,
-    pub width: u32,
-    pub height: u32,
-    #[serde(default = "default_video_format")]
-    pub format: String,
-    #[serde(default)]
-    pub timestamp: f64,
-    #[serde(default)]
-    pub frame_number: u32,
-}
-
-fn default_video_format() -> String {
-    "jpeg".to_string()
-}
-
 /// Virtual environment state information.
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct EnvironmentState {
@@ -471,7 +519,7 @@ pub struct EnvironmentState {
 
 /// Types of events in a sequence.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
+#[serde(rename_all = "snake_case")]
 pub enum EventType {
     Animation,
     Audio,
@@ -588,8 +636,11 @@ impl EventSequence {
         }
     }
 
+    /// Append an event, extending `total_duration` to cover the event's end
+    /// (`timestamp + duration`, or `timestamp + wait_duration` for waits).
     pub fn add_event(&mut self, event: SequenceEvent) {
-        let event_end = event.timestamp + event.duration.unwrap_or(0.0);
+        let span = event.duration.or(event.wait_duration).unwrap_or(0.0);
+        let event_end = event.timestamp + span.max(0.0);
         if event_end > self.total_duration.unwrap_or(0.0) {
             self.total_duration = Some(event_end);
         }
@@ -641,5 +692,37 @@ mod tests {
             GestureType::ThumbsUp
         );
         assert!("invalid".parse::<GestureType>().is_err());
+    }
+
+    #[test]
+    fn test_names_roundtrip_with_serde() {
+        for e in EmotionType::ALL {
+            assert_eq!(e.as_str().parse::<EmotionType>().unwrap(), e);
+            assert_eq!(serde_json::to_value(e).unwrap(), e.as_str());
+        }
+        for g in GestureType::ALL {
+            assert_eq!(g.as_str().parse::<GestureType>().unwrap(), g);
+            assert_eq!(serde_json::to_value(g).unwrap(), g.as_str());
+        }
+        assert_eq!(
+            serde_json::to_value(EventType::LoopStart).unwrap(),
+            "loop_start"
+        );
+        assert_eq!(
+            "loop_start".parse::<EventType>().unwrap(),
+            EventType::LoopStart
+        );
+    }
+
+    #[test]
+    fn test_sequence_duration_includes_waits() {
+        let mut seq = EventSequence::new("s");
+        let mut wait = SequenceEvent::new(EventType::Wait, 2.0);
+        wait.wait_duration = Some(1.5);
+        seq.add_event(wait);
+        let mut audio = SequenceEvent::new(EventType::Audio, 1.0);
+        audio.duration = Some(1.0);
+        seq.add_event(audio);
+        assert_eq!(seq.total_duration, Some(3.5));
     }
 }

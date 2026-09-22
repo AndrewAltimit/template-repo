@@ -1,127 +1,102 @@
 #!/usr/bin/env python3
 """Blender physics simulation script."""
 
-import json
-from pathlib import Path
+import os
 import sys
 
 import bpy
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-def update_status(job_id, status, progress=0, message="", output_path=None):
-    """Update job status file."""
-    # Status files are stored in /app/outputs/jobs/ to match JobManager
-    status_dir = Path("/app/outputs/jobs")
-    status_dir.mkdir(parents=True, exist_ok=True)
-    status_file = status_dir / f"{job_id}.status"
-    status_data = {"status": status, "progress": progress, "message": message}
-    if output_path:
-        status_data["output_path"] = output_path
-    status_file.write_text(json.dumps(status_data), encoding="utf-8")
+from mcp_common import (  # noqa: E402  pylint: disable=wrong-import-position
+    ScriptError,
+    open_project,
+    require_object,
+    run,
+    save_project,
+    update_status,
+)
 
 
-def setup_physics(args, _job_id):
-    """Setup physics simulation for objects."""
-    try:
-        # Load project
-        if "project" in args:
-            bpy.ops.wm.open_mainfile(filepath=args["project"])
+def setup_physics(args, _job_id):  # noqa: C901
+    """Add rigid body, soft body, cloth or fluid (liquid flow) physics to an object."""
+    open_project(args.get("project"))
+    object_name = args.get("object_name")
+    physics_type = args.get("physics_type")
+    settings = args.get("settings") or {}
+    obj = require_object(object_name)
+    if obj.type != "MESH":
+        raise ScriptError(f"Physics can only be added to meshes; '{object_name}' is a {obj.type}")
 
-        object_name = args.get("object_name")
-        physics_type = args.get("physics_type")
-        settings = args.get("settings", {})
+    for other in bpy.context.selected_objects:
+        other.select_set(False)
+    bpy.context.view_layer.objects.active = obj
+    obj.select_set(True)
+    result = {"success": True, "object": obj.name, "physics_type": physics_type}
 
-        # Find object
-        obj = bpy.data.objects.get(object_name)
-        if not obj:
-            print(f"Object '{object_name}' not found")
-            return False
-
-        # Select object
-        bpy.context.view_layer.objects.active = obj
-        obj.select_set(True)
-
-        if physics_type == "rigid_body":
-            # Add rigid body physics
+    if physics_type == "rigid_body":
+        if obj.rigid_body is None:
             bpy.ops.rigidbody.object_add()
+        rb = obj.rigid_body
+        rb.type = str(settings.get("rigid_body_type", "ACTIVE")).upper()
+        rb.mass = float(settings.get("mass", 1.0))
+        rb.friction = float(settings.get("friction", 0.5))
+        rb.restitution = float(settings.get("bounce", 0.0))
+        rb.collision_shape = str(settings.get("collision_shape", "CONVEX_HULL")).upper()
 
-            rb = obj.rigid_body
-            rb.type = "ACTIVE"  # or 'PASSIVE' for static objects
-            rb.mass = settings.get("mass", 1.0)
-            rb.friction = settings.get("friction", 0.5)
-            rb.restitution = settings.get("bounce", 0.0)
+    elif physics_type == "soft_body":
+        obj.modifiers.new(name="Softbody", type="SOFT_BODY")
+        sb = obj.soft_body
+        sb.mass = float(settings.get("mass", 1.0))
+        sb.friction = float(settings.get("friction", 0.5))
+        sb.speed = 1.0
+        sb.goal_spring = 0.5
+        sb.goal_friction = 0.5
 
-            # Set collision shape
-            collision_shape = settings.get("collision_shape", "CONVEX_HULL")
-            rb.collision_shape = collision_shape
+    elif physics_type == "cloth":
+        modifier = obj.modifiers.new(name="Cloth", type="CLOTH")
+        cloth = modifier.settings
+        cloth.quality = int(settings.get("quality", 10))
+        cloth.mass = float(settings.get("mass", 0.3))
+        cloth.air_damping = float(settings.get("air_damping", 1.0))
+        modifier.collision_settings.use_collision = True
+        modifier.collision_settings.distance_min = 0.015
 
-        elif physics_type == "soft_body":
-            # Add soft body modifier
-            modifier = obj.modifiers.new(name="Softbody", type="SOFT_BODY")
-
-            sb = obj.soft_body
-            sb.mass = settings.get("mass", 1.0)
-            sb.friction = settings.get("friction", 0.5)
-            sb.speed = 1.0
-
-            # Goal settings (pinning)
-            sb.goal_spring = 0.5
-            sb.goal_friction = 0.5
-
-        elif physics_type == "cloth":
-            # Add cloth modifier
-            modifier = obj.modifiers.new(name="Cloth", type="CLOTH")
-
-            cloth = modifier.settings
-            cloth.quality = settings.get("quality", 10)
-            cloth.mass = settings.get("mass", 0.3)
-            cloth.air_damping = settings.get("air_damping", 1.0)
-
-            # Collision settings
-            cloth.collision_settings.use_collision = True
-            cloth.collision_settings.distance_min = 0.015
-
-        elif physics_type == "fluid":
-            # Add fluid modifier
+    elif physics_type == "fluid":
+        if not bpy.app.build_options.fluid:
+            raise ScriptError("This Blender build has no fluid simulation support")
+        modifier = next((m for m in obj.modifiers if m.type == "FLUID"), None)
+        if modifier is None:
             modifier = obj.modifiers.new(name="Fluid", type="FLUID")
-            modifier.fluid_type = "FLOW"
+        elif modifier.fluid_type == "DOMAIN":
+            raise ScriptError(f"'{object_name}' is already a fluid domain")
+        modifier.fluid_type = "FLOW"
+        flow = modifier.flow_settings
+        flow.flow_type = "LIQUID"
+        flow.flow_behavior = str(settings.get("flow_behavior", "INFLOW")).upper()
+        flow.use_initial_velocity = True
+        flow.velocity_factor = float(settings.get("velocity", 1.0))
 
-            # Configure flow settings
-            flow = modifier.flow_settings
-            flow.flow_type = "LIQUID"
-            flow.flow_behavior = "INFLOW"
-            flow.use_initial_velocity = True
-            flow.velocity_factor = settings.get("velocity", 1.0)
+        domain_name = settings.get("domain", "FluidDomain")
+        domain = bpy.data.objects.get(domain_name)
+        if domain is None:
+            bpy.ops.mesh.primitive_cube_add(size=10, location=(0, 0, 0))
+            domain = bpy.context.active_object
+            domain.name = domain_name
+            domain.display_type = "WIRE"
+            domain_mod = domain.modifiers.new(name="Fluid", type="FLUID")
+            domain_mod.fluid_type = "DOMAIN"
+            domain_settings = domain_mod.domain_settings
+            domain_settings.domain_type = "LIQUID"
+            domain_settings.resolution_max = int(settings.get("resolution", 64))
+            domain_settings.use_adaptive_timesteps = True
+        result["domain"] = domain.name
 
-            # Need domain object for fluid sim
-            domain_name = settings.get("domain", "FluidDomain")
-            domain = bpy.data.objects.get(domain_name)
+    else:
+        raise ScriptError(f"Unknown physics type '{physics_type}' (rigid_body, soft_body, cloth, fluid)")
 
-            if not domain:
-                # Create domain if it doesn't exist
-                bpy.ops.mesh.primitive_cube_add(size=10, location=(0, 0, 0))
-                domain = bpy.context.active_object
-                domain.name = domain_name
-
-                # Add fluid modifier to domain
-                domain_mod = domain.modifiers.new(name="Fluid", type="FLUID")
-                domain_mod.fluid_type = "DOMAIN"
-
-                # Configure domain settings
-                domain_settings = domain_mod.domain_settings
-                domain_settings.domain_type = "LIQUID"
-                domain_settings.resolution_max = settings.get("resolution", 64)
-                domain_settings.use_adaptive_timesteps = True
-
-        # Save project
-        if "project" in args:
-            bpy.ops.wm.save_mainfile()
-
-        return True
-
-    except Exception as e:
-        print(f"Error setting up physics: {e}")
-        return False
+    save_project()
+    return result
 
 
 def _detect_physics_types(scene):
@@ -140,73 +115,44 @@ def _detect_physics_types(scene):
     return physics
 
 
-def _bake_soft_body(scene):
-    """Bake soft body simulation."""
-    for obj in scene.objects:
-        if obj.soft_body:
-            bpy.context.view_layer.objects.active = obj
-            bpy.ops.ptcache.bake(bake=True)
-
-
-def _bake_cloth(scene):
-    """Bake cloth simulation."""
-    for obj in scene.objects:
-        for modifier in obj.modifiers:
-            if modifier.type == "CLOTH":
-                bpy.context.view_layer.objects.active = obj
-                bpy.ops.ptcache.bake(bake=True)
-
-
-def _bake_fluid(scene):
-    """Bake fluid simulation."""
-    for obj in scene.objects:
-        for modifier in obj.modifiers:
-            if modifier.type == "FLUID" and modifier.fluid_type == "DOMAIN":
-                bpy.context.view_layer.objects.active = obj
-                bpy.ops.fluid.bake_all()
-                break
-
-
 def bake_simulation(args, job_id):
-    """Bake physics simulation to keyframes."""
-    try:
-        if "project" in args:
-            bpy.ops.wm.open_mainfile(filepath=args["project"])
+    """Bake every point cache (rigid/soft body, cloth, particles) and fluid domain."""
+    open_project(args.get("project"))
+    scene = bpy.context.scene
+    start = int(args.get("start_frame", scene.frame_start))
+    end = int(args.get("end_frame", scene.frame_end))
+    if end < start:
+        raise ScriptError(f"end_frame ({end}) must be >= start_frame ({start})")
+    scene.frame_start = start
+    scene.frame_end = end
+    if scene.rigidbody_world is not None:
+        scene.rigidbody_world.point_cache.frame_start = start
+        scene.rigidbody_world.point_cache.frame_end = end
 
-        scene = bpy.context.scene
-        scene.frame_start = args.get("start_frame", 1)
-        scene.frame_end = args.get("end_frame", 250)
+    physics = _detect_physics_types(scene)
+    if not any(physics.values()):
+        raise ScriptError("Nothing to bake: no rigid body, soft body, cloth or fluid objects in the scene")
 
-        update_status(job_id, "RUNNING", 10, "Preparing simulation")
+    update_status(job_id, "RUNNING", 10, "Baking point caches")
+    baked = []
+    if physics["rigid_body"] or physics["soft_body"] or physics["cloth"]:
+        bpy.ops.ptcache.free_bake_all()
+        bpy.ops.ptcache.bake_all(bake=True)
+        baked.extend(k for k in ("rigid_body", "soft_body", "cloth") if physics[k])
 
-        physics = _detect_physics_types(scene)
+    domains = _fluid_domains(scene)
+    for index, domain in enumerate(domains):
+        update_status(job_id, "RUNNING", 50 + int(40 * index / max(1, len(domains))), f"Baking fluid domain {domain.name}")
+        settings = domain.modifiers["Fluid"].domain_settings
+        settings.cache_frame_start = start
+        settings.cache_frame_end = end
+        with bpy.context.temp_override(object=domain, active_object=domain):
+            bpy.ops.fluid.bake_all()
+        baked.append(f"fluid:{domain.name}")
 
-        if physics["rigid_body"]:
-            update_status(job_id, "RUNNING", 30, "Baking rigid body simulation")
-            bpy.ops.ptcache.bake_all(bake=True)
-
-        if physics["soft_body"]:
-            update_status(job_id, "RUNNING", 50, "Baking soft body simulation")
-            _bake_soft_body(scene)
-
-        if physics["cloth"]:
-            update_status(job_id, "RUNNING", 70, "Baking cloth simulation")
-            _bake_cloth(scene)
-
-        if physics["fluid"]:
-            update_status(job_id, "RUNNING", 90, "Baking fluid simulation")
-            _bake_fluid(scene)
-
-        update_status(job_id, "COMPLETED", 100, "Simulation baked successfully")
-
-        if "project" in args:
-            bpy.ops.wm.save_mainfile()
-
-        return True
-
-    except Exception as e:
-        update_status(job_id, "FAILED", 0, str(e))
-        return False
+    save_project()
+    update_status(job_id, "COMPLETED", 100, "Simulation baked")
+    return {"success": True, "baked": baked, "frame_range": [start, end]}
 
 
 def setup_collision(args, _job_id):
@@ -305,38 +251,25 @@ def create_particle_system(args, _job_id):
         return False
 
 
+def _fluid_domains(scene):
+    return [
+        obj
+        for obj in scene.objects
+        for modifier in obj.modifiers
+        if modifier.type == "FLUID" and modifier.fluid_type == "DOMAIN"
+    ]
+
+
 def main():
-    """Main entry point."""
-    argv = sys.argv
-
-    if "--" in argv:
-        argv = argv[argv.index("--") + 1 :]
-
-    if len(argv) < 2:
-        print("Usage: blender --python physics_sim.py -- args.json job_id")
-        sys.exit(1)
-
-    args_file = argv[0]
-    job_id = argv[1]
-
-    with open(args_file, "r", encoding="utf-8") as f:
-        args = json.load(f)
-
-    operation = args.get("operation")
-
-    if operation == "setup_physics":
-        success = setup_physics(args, job_id)
-    elif operation == "bake_simulation":
-        success = bake_simulation(args, job_id)
-    elif operation == "setup_collision":
-        success = setup_collision(args, job_id)
-    elif operation == "create_particle_system":
-        success = create_particle_system(args, job_id)
-    else:
-        print(f"Unknown operation: {operation}")
-        sys.exit(1)
-
-    sys.exit(0 if success else 1)
+    """Dispatch the requested operation (see mcp_common.run)."""
+    run(
+        {
+            "setup_physics": setup_physics,
+            "bake_simulation": bake_simulation,
+            "setup_collision": setup_collision,
+            "create_particle_system": create_particle_system,
+        }
+    )
 
 
 if __name__ == "__main__":

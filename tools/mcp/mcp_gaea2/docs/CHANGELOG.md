@@ -2,7 +2,41 @@
 
 > **Version history and notable changes**
 
-## [Latest] - 2025-07-20
+## [1.1.0] - 2026-09 (Rust overhaul)
+
+### Fixed
+- Connections to ports that do not exist were silently dropped from generated files; they
+  are now validation errors. Multiple connections into one input port are rejected.
+- `SaveDefinition`, modifier properties and user `ports` were ignored by generation; they are
+  now emitted. `{x, y}` properties become proper `$id`-tagged Gaea2 objects; user `X`/`Y`
+  properties are no longer overwritten.
+- Validation reported `valid: true` whenever any fix was applied, even with remaining
+  errors. `valid` now means "no blocking errors remain".
+- `repair_gaea2_project` only re-serialized the file and reported fake repairs; it now
+  performs real structural repair (see README) with `dry_run` support.
+- Path traversal: project names could escape the output directory and
+  `download`/`repair`/`run`/`list` accepted any path on the host. All client paths are now
+  confined to the output directory plus `GAEA2_ALLOWED_DIRS`.
+- Builds that timed out kept running; the Gaea process is now killed. Output files in
+  per-node sub-folders were not found. `variables` were passed JSON-quoted.
+- Integer `resolution` values silently fell back to 1024; invalid `mode`/`analysis_type`
+  silently fell back to defaults. All tool arguments are now typed and validated.
+- `analysis_type` was ignored; `suggest_gaea2_nodes` suggested non-existent node types.
+- Release builds used `panic = "abort"`, defeating mcp-core's tool panic boundary.
+
+### Added
+- `list_gaea2_nodes`, `get_gaea2_status` tools; template `modifications`; `build_config`
+  and `description` on template creation; `auto_fix`/`strict` on project creation;
+  `include_workflow` on template listing; `failures_only` on history.
+- Property schema checks (types, ranges, enums) with auto-fix; automatic graph layout;
+  concurrency-limited builds; unit tests for every module (78 tests, offline).
+
+## Python implementation history (retired)
+
+The entries below describe the former Python server and reference scripts that no longer
+exist in this repository.
+
+## [Python] - 2025-07-20
 
 ### Fixed
 

@@ -1,111 +1,89 @@
-//! Edge cleanup tool: trim fringe pixels from an existing project.
+//! Edge cleanup tool: trim anti-aliasing fringe from an existing project.
 
-use async_trait::async_trait;
-use mcp_core::prelude::*;
-use serde_json::{Value, json};
+use serde::Deserialize;
+use serde_json::json;
+use std::sync::Arc;
 
-use crate::engine::{self, ProjectStore};
+use super::{edit_project, ok_json, sprite_tool};
+use crate::args;
+use crate::engine;
+use crate::import;
 
-pub struct TrimEdgesTool {
-    pub store: ProjectStore,
+#[derive(Deserialize)]
+pub struct TrimArgs {
+    name: String,
+    #[serde(default)]
+    layer_id: Option<String>,
+    #[serde(default, deserialize_with = "args::opt_int")]
+    luma_threshold: Option<u8>,
+    #[serde(default, deserialize_with = "args::opt_int")]
+    passes: Option<u32>,
 }
 
-#[async_trait]
-impl Tool for TrimEdgesTool {
-    fn name(&self) -> &str {
-        "sprite_trim_edges"
-    }
-
-    fn description(&self) -> &str {
-        "Remove anti-aliasing fringe from sprite edges. Strips bright/light edge pixels that \
-         result from white-background removal. Uses two tests: absolute luminance (catches \
-         near-white fringe) and relative brightness vs neighbors (catches colored fringe). \
-         Run multiple times with different thresholds for progressive cleanup."
-    }
-
-    fn schema(&self) -> Value {
-        json!({
+sprite_tool! {
+    TrimEdgesTool {
+        name: "sprite_trim_edges",
+        description: "Remove anti-aliasing fringe from sprite edges (typically left over after \
+            importing art drawn on a white background). An edge pixel is removed if its \
+            luminance >= luma_threshold, if it is noticeably brighter than its filled \
+            neighbors, or if it is isolated. Intended for imported art: it also removes \
+            deliberate single-pixel details. Applies to one layer or all unlocked layers. \
+            Undoable.",
+        schema: json!({
             "type": "object",
             "properties": {
-                "name": {
-                    "type": "string",
-                    "description": "Project name"
-                },
-                "layer_id": {
-                    "type": "string",
-                    "description": "Layer ID to trim (omit for all layers)"
-                },
+                "name": { "type": "string", "description": "Project name" },
+                "layer_id": { "type": "string", "description": "Layer ID or unique name (omit for all unlocked layers)" },
                 "luma_threshold": {
-                    "type": "integer",
-                    "default": 190,
-                    "description": "Absolute luminance cutoff (0-255). Edge pixels brighter than this are removed."
+                    "type": "integer", "minimum": 0, "maximum": 255, "default": 190,
+                    "description": "Absolute luminance cutoff. Values below 128 are also used as the relative-brightness delta (otherwise 25)."
                 },
-                "passes": {
-                    "type": "integer",
-                    "default": 3,
-                    "description": "Erosion passes (1-10). Each pass exposes new edges."
-                }
+                "passes": { "type": "integer", "minimum": 1, "maximum": 10, "default": 3, "description": "Erosion passes; each pass exposes new edges" }
             },
             "required": ["name"]
-        })
-    }
-
-    async fn execute(&self, args: Value) -> Result<ToolResult> {
-        let pname = args["name"]
-            .as_str()
-            .ok_or_else(|| MCPError::InvalidParameters("Missing 'name'".to_string()))?;
-        let target_layer = args["layer_id"].as_str();
-        let luma_threshold = args["luma_threshold"]
-            .as_u64()
-            .or_else(|| args["luma_threshold"].as_f64().map(|f| f as u64))
-            .unwrap_or(190) as u8;
-        let passes = args["passes"]
-            .as_u64()
-            .or_else(|| args["passes"].as_f64().map(|f| f as u64))
-            .unwrap_or(3)
-            .min(10) as u32;
-
-        let mut store = self.store.write().await;
-        let project = store
-            .get_mut(pname)
-            .ok_or_else(|| MCPError::InvalidParameters(format!("Project not found: {pname}")))?;
-
-        let canvas_w = project.canvas.width;
-        let canvas_h = project.canvas.height;
-        let palette = project.palette.clone();
-
-        let mut total_trimmed = 0;
-
-        for layer in &mut project.layers {
-            if let Some(tid) = target_layer
-                && layer.id != tid
-            {
-                continue;
-            }
-            if layer.locked {
-                continue;
-            }
-
-            let before = layer.pixels.len();
-            engine::trim_border_fringe(
-                &mut layer.pixels,
-                &palette,
-                luma_threshold,
-                passes,
-                canvas_w,
-                canvas_h,
-            );
-            total_trimmed += before - layer.pixels.len();
+        }),
+        execute: |ctx, a: TrimArgs| {
+            let luma = a.luma_threshold.unwrap_or(190);
+            let passes = a.passes.unwrap_or(3).clamp(1, 10);
+            let (trimmed, skipped, remaining) = edit_project(ctx, &a.name, "trim_edges", |p| {
+                let targets: Vec<usize> = match &a.layer_id {
+                    Some(key) => {
+                        let i = engine::resolve_layer(p, key)?;
+                        if p.layers[i].locked {
+                            return Err(format!("Layer '{}' is locked", p.layers[i].name));
+                        }
+                        vec![i]
+                    },
+                    None => (0..p.layers.len()).collect(),
+                };
+                let (cw, ch) = (p.canvas.width, p.canvas.height);
+                let palette = p.palette.clone();
+                let mut trimmed = 0;
+                let mut skipped = Vec::new();
+                for i in targets {
+                    let layer = &mut p.layers[i];
+                    if layer.locked {
+                        skipped.push(layer.name.clone());
+                        continue;
+                    }
+                    let mut px = (*layer.pixels).clone();
+                    let n = import::trim_border_fringe(&mut px, &palette, luma, passes, cw, ch);
+                    if n > 0 {
+                        layer.pixels = Arc::new(px);
+                        trimmed += n;
+                    }
+                }
+                Ok((trimmed, skipped, engine::total_pixels(p)))
+            })
+            .await?;
+            ok_json(json!({
+                "success": true,
+                "pixels_trimmed": trimmed,
+                "pixels_remaining": remaining,
+                "locked_layers_skipped": skipped,
+                "luma_threshold": luma,
+                "passes": passes
+            }))
         }
-
-        let total_pixels: usize = project.layers.iter().map(|l| l.pixels.len()).sum();
-
-        ToolResult::json(&json!({
-            "success": true,
-            "pixels_trimmed": total_trimmed,
-            "pixels_remaining": total_pixels,
-            "luma_threshold": luma_threshold,
-            "passes": passes
-        }))
     }
 }

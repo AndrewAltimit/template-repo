@@ -1,57 +1,27 @@
-# Gaea2 MCP Documentation
+# Gaea2 MCP Documentation Index
 
-> **Complete documentation for the Gaea2 Model Context Protocol server**
-
-## Core Documentation
+## Current
 
 | Document | Description |
 |----------|-------------|
-| [README.md](README.md) | Server overview, setup, and quick start guide |
-| [API Reference](GAEA2_API_REFERENCE.md) | Complete API documentation for all MCP tools |
-| [Quick Reference](GAEA2_QUICK_REFERENCE.md) | Quick reference for common operations |
-| [Examples](GAEA2_EXAMPLES.md) | Code examples and usage patterns |
-
-## Technical Reference
-
-| Document | Description |
-|----------|-------------|
-| [Connection Architecture](CONNECTION_ARCHITECTURE.md) | Deep dive into connection system |
-| [Node Properties](GAEA2_NODE_PROPERTIES_EXTENDED.md) | Complete node property documentation |
-| [Node Reference](GAEA2_NODE_REFERENCE.md) | Node type reference (auto-generated) |
-| [Template Reference](GAEA2_TEMPLATE_REFERENCE.md) | Template specifications |
-| [Terrain Analysis](gaea_terrain_analysis.md) | Workflow patterns and format analysis |
-
-## Guides
-
-| Document | Description |
-|----------|-------------|
-| [Knowledge Base](GAEA2_KNOWLEDGE_BASE.md) | Pattern intelligence and best practices |
-| [Advanced Patterns](GAEA2_ADVANCED_PATTERNS.md) | Advanced workflow patterns |
-| [Validation Guide](VALIDATION_GUIDE.md) | File validation system guide |
-
-## Reference
-
-| Document | Description |
-|----------|-------------|
-| [Executive Summary](GAEA2_ANALYSIS_EXECUTIVE_SUMMARY.md) | Terrain file format analysis summary |
+| [Crate README](../README.md) | Authoritative reference: tools, parameters, configuration, validation semantics, limitations |
+| [README.md](README.md) | Short overview and deployment pointers |
+| [Quick Reference](GAEA2_QUICK_REFERENCE.md) | One-page cheat sheet |
 | [Changelog](CHANGELOG.md) | Version history |
 
-## Quick Navigation
+## Background material
 
-### For Users
+These documents come from the analysis of production Gaea2 projects performed for the
+original (Python) implementation. They describe Gaea2 itself - node relationships, common
+chains, observed properties - and informed the Rust server's schema tables, suggestions and
+analysis heuristics. Code snippets in them refer to the retired Python API; use the crate
+README for the current tool interface.
 
-1. Start with [README.md](README.md) for setup and overview
-2. Use [Quick Reference](GAEA2_QUICK_REFERENCE.md) for common tasks
-3. See [Examples](GAEA2_EXAMPLES.md) for code samples
-
-### For Developers
-
-1. Review [Connection Architecture](CONNECTION_ARCHITECTURE.md) for internals
-2. Check [API Reference](GAEA2_API_REFERENCE.md) for complete API
-3. Study [Terrain Analysis](gaea_terrain_analysis.md) for format details
-4. Use [Node Properties](GAEA2_NODE_PROPERTIES_EXTENDED.md) for property specs
-
-### For Server Setup
-
-1. Follow [README.md](README.md) for installation
-2. Review [Validation Guide](VALIDATION_GUIDE.md) for validation configuration
+| Document | Description |
+|----------|-------------|
+| [Knowledge Base](GAEA2_KNOWLEDGE_BASE.md) | Most-used nodes and connection patterns from 31 projects |
+| [Advanced Patterns](GAEA2_ADVANCED_PATTERNS.md) | Advanced workflow patterns and node relationships |
+| [Node Reference](GAEA2_NODE_REFERENCE.md) | Node catalog generated from the original YAML schema |
+| [Node Properties](GAEA2_NODE_PROPERTIES_EXTENDED.md) | Properties observed in production files |
+| [Terrain Analysis](gaea_terrain_analysis.md) | Workflow patterns and property settings in official examples |
+| [Executive Summary](GAEA2_ANALYSIS_EXECUTIVE_SUMMARY.md) | Summary of the terrain-file analysis |

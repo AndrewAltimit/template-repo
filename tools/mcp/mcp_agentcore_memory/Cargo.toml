@@ -1,15 +1,22 @@
 [package]
 name = "mcp-agentcore-memory"
-version = "1.0.0"
+version = "1.1.0"
 edition = "2024"
 license = "MIT"
 repository = "https://github.com/AndrewAltimit/template-repo"
 authors = ["AndrewAltimit"]
-description = "MCP server for AI agent memory using ChromaDB vector database"
+description = "MCP server for AI agent memory backed by the ChromaDB vector database"
 
 [[bin]]
 name = "mcp-agentcore-memory"
 path = "src/main.rs"
+
+[features]
+default = ["fastembed"]
+# Local ONNX sentence embeddings (all-MiniLM-L6-v2, the same model ChromaDB's
+# Python client uses by default). Without this feature only the lexical
+# `hash` embedder is available.
+fastembed = ["dep:fastembed"]
 
 [dependencies]
 # MCP Core (path to sibling directory)
@@ -42,13 +49,14 @@ uuid = { version = "1.11", features = ["v4"] }
 chrono = { version = "0.4", features = ["serde"] }
 regex = "1.11"
 sha2 = "0.10"
-md5 = "0.7"
 
-[dev-dependencies]
-tokio-test = "0.4"
+# Sentence embeddings (ONNX-based), optional
+fastembed = { version = "4", optional = true }
 
 [profile.release]
 lto = true
 codegen-units = 1
-panic = "abort"
+# Keep unwinding (not `abort`) so mcp-core's catch_unwind panic boundary around
+# tool execution can turn an unexpected panic into a tool error instead of
+# killing the whole server process.
 strip = true

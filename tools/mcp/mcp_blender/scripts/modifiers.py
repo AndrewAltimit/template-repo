@@ -1,11 +1,17 @@
 #!/usr/bin/env python3
 """Modifier tools for Blender objects."""
 
-import json
-from pathlib import Path
+import os
 import sys
 
 import bpy
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+from mcp_common import (  # noqa: E402  pylint: disable=wrong-import-position
+    project_operation,
+    run,
+)
 
 
 def add_modifier(args):
@@ -86,7 +92,7 @@ def add_modifier(args):
         mod.height = settings.get("height", 1.0)
         mod.width = settings.get("width_wave", 1.0)
         mod.speed = settings.get("speed", 1.0)
-        mod.offset = settings.get("offset", 0.0)
+        mod.time_offset = settings.get("offset", 0.0)
 
     elif modifier_type == "DISPLACE":
         mod = obj.modifiers.new(name=modifier_name, type="DISPLACE")
@@ -178,50 +184,15 @@ def stack_modifiers(args):
 
 
 def main():
-    """Main entry point for modifier tools."""
-    # Get arguments from command line
-    import argparse
-
-    # Filter sys.argv to only include args after "--" (Blender passes all args)
-    argv = sys.argv
-    if "--" in argv:
-        argv = argv[argv.index("--") + 1 :]
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--args", type=str, required=True)
-    args = parser.parse_args(argv)
-
-    # Parse JSON arguments
-    script_args = json.loads(args.args)
-
-    # Load the project file
-    project_path = script_args["project"]
-    if Path(project_path).exists():
-        bpy.ops.wm.open_mainfile(filepath=project_path)
-    else:
-        return {"success": False, "error": f"Project file not found: {project_path}"}
-
-    # Execute the operation
-    operation = script_args["operation"]
-
-    if operation == "add_modifier":
-        result = add_modifier(script_args)
-    elif operation == "apply_modifier":
-        result = apply_modifier(script_args)
-    elif operation == "remove_modifier":
-        result = remove_modifier(script_args)
-    elif operation == "stack_modifiers":
-        result = stack_modifiers(script_args)
-    else:
-        result = {"success": False, "error": f"Unknown operation: {operation}"}
-
-    # Save the file
-    if result.get("success"):
-        bpy.ops.wm.save_mainfile(filepath=project_path)
-
-    # Output result
-    print(json.dumps(result))
-    sys.exit(0 if result.get("success") else 1)
+    """Dispatch the requested operation (see mcp_common.run)."""
+    run(
+        {
+            "add_modifier": project_operation(add_modifier),
+            "apply_modifier": project_operation(apply_modifier),
+            "remove_modifier": project_operation(remove_modifier),
+            "stack_modifiers": project_operation(stack_modifiers),
+        }
+    )
 
 
 if __name__ == "__main__":

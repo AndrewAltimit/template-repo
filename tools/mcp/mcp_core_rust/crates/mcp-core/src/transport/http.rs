@@ -1,23 +1,46 @@
 //! HTTP transport implementation using Axum.
+//!
+//! Serves the MCP Streamable HTTP transport (JSON responses, no server-sent
+//! event stream) plus a few convenience endpoints:
+//!
+//! | Endpoint | Method | Purpose |
+//! |----------|--------|---------|
+//! | `/mcp`, `/messages`, `/mcp/rpc` | POST | JSON-RPC (single message or batch) |
+//! | `/mcp`, `/messages` | DELETE | Terminate the session named by `Mcp-Session-Id` |
+//! | `/mcp` | GET | `405`: this server does not offer an SSE stream |
+//! | `/messages` | GET | Server info JSON (`405` when an SSE stream is requested) |
+//! | `/health` | GET | Health check |
+//! | `/mcp/tools` | GET | Tool list (simple API) |
+//! | `/mcp/execute`, `/tools/execute` | POST | Execute a tool (simple API) |
+//! | `/.well-known/mcp`, `/mcp/capabilities` | GET | Discovery |
+//! | `/mcp/initialize` | POST | Create a session (simple API) |
+//!
+//! JSON-RPC POST semantics: a body containing only notifications/responses is
+//! answered with `202 Accepted` and no body; unparseable JSON with `400` and a
+//! JSON-RPC Parse error; otherwise `200` with the response(s). A session id is
+//! issued in the `Mcp-Session-Id` header on `initialize`.
 
 use axum::{
     Router,
+    body::Bytes,
     extract::{Json, State},
-    http::{HeaderMap, StatusCode},
+    http::{HeaderMap, HeaderName, HeaderValue, StatusCode, header},
     response::{IntoResponse, Response},
-    routing::{get, options, post},
+    routing::{get, post},
 };
 use serde::{Deserialize, Serialize};
 use serde_json::{Value, json};
 use std::sync::Arc;
 use tower_http::cors::{Any, CorsLayer};
-use tracing::info;
+use tracing::debug;
 
-use crate::error::JsonRpcErrorCode;
-use crate::jsonrpc::{JsonRpcRequest, JsonRpcResponse};
+use crate::error::MCPError;
 use crate::session::SessionManager;
 use crate::tool::ToolRegistry;
 use crate::transport::handler::MCPHandler;
+
+/// Session header defined by the Streamable HTTP transport.
+const SESSION_HEADER: &str = "mcp-session-id";
 
 /// Shared state for HTTP handlers
 pub struct HttpState {
@@ -31,6 +54,12 @@ impl HttpState {
         Self {
             handler: MCPHandler::new(name, version, tools),
         }
+    }
+
+    /// Create HTTP state around an already-configured handler (e.g. one with
+    /// instructions or a tool timeout).
+    pub fn from_handler(handler: MCPHandler) -> Self {
+        Self { handler }
     }
 
     /// Get the server name.
@@ -58,7 +87,9 @@ impl HttpTransport {
         let cors = CorsLayer::new()
             .allow_origin(Any)
             .allow_methods(Any)
-            .allow_headers(Any);
+            .allow_headers(Any)
+            // Browser clients must be able to read the session id.
+            .expose_headers([HeaderName::from_static(SESSION_HEADER)]);
 
         Router::new()
             // Health check
@@ -71,13 +102,20 @@ impl HttpTransport {
             .route("/.well-known/mcp", get(discovery_handler))
             .route("/mcp/initialize", post(initialize_simple_handler))
             .route("/mcp/capabilities", get(capabilities_handler))
-            // HTTP Stream Transport (MCP 2024-11-05)
-            .route("/messages", get(messages_get_handler))
-            .route("/messages", post(messages_post_handler))
-            // JSON-RPC endpoints
-            .route("/mcp", get(mcp_sse_handler))
-            .route("/mcp", post(jsonrpc_handler))
-            .route("/mcp", options(options_handler))
+            // Streamable HTTP transport
+            .route(
+                "/messages",
+                get(messages_get_handler)
+                    .post(jsonrpc_handler)
+                    .delete(delete_session_handler),
+            )
+            .route(
+                "/mcp",
+                get(mcp_get_handler)
+                    .post(jsonrpc_handler)
+                    .delete(delete_session_handler)
+                    .options(options_handler),
+            )
             .route("/mcp/rpc", post(jsonrpc_handler))
             .with_state(state)
             .layer(cors)
@@ -107,11 +145,10 @@ struct ToolRequest {
 }
 
 impl ToolRequest {
-    fn get_args(&self) -> Value {
+    fn into_args(self) -> Value {
         self.arguments
-            .clone()
-            .or_else(|| self.parameters.clone())
-            .unwrap_or(json!({}))
+            .or(self.parameters)
+            .unwrap_or_else(|| json!({}))
     }
 }
 
@@ -157,27 +194,23 @@ async fn execute_tool_handler(
     State(state): State<Arc<HttpState>>,
     Json(request): Json<ToolRequest>,
 ) -> impl IntoResponse {
-    let tool = match state.handler.tools.get(&request.tool) {
-        Some(t) => t,
-        None => {
-            return (
-                StatusCode::NOT_FOUND,
-                Json(ToolResponse {
-                    success: false,
-                    result: None,
-                    error: Some(format!("Tool '{}' not found", request.tool)),
-                }),
-            );
-        },
-    };
-
-    match tool.execute(request.get_args()).await {
+    let name = request.tool.clone();
+    // Same panic boundary as the JSON-RPC path.
+    match state.handler.tools.call(&name, request.into_args()).await {
         Ok(result) => (
             StatusCode::OK,
             Json(ToolResponse {
                 success: !result.is_error,
                 result: Some(json!(result)),
                 error: None,
+            }),
+        ),
+        Err(MCPError::ToolNotFound(_)) => (
+            StatusCode::NOT_FOUND,
+            Json(ToolResponse {
+                success: false,
+                result: None,
+                error: Some(format!("Tool '{name}' not found")),
             }),
         ),
         Err(e) => (
@@ -196,6 +229,7 @@ async fn discovery_handler(State(state): State<Arc<HttpState>>) -> impl IntoResp
         "mcp_version": "1.0",
         "server_name": state.name(),
         "server_version": state.version(),
+        "protocol_versions": crate::jsonrpc::SUPPORTED_PROTOCOL_VERSIONS,
         "capabilities": {
             "tools": true,
             "prompts": false,
@@ -206,6 +240,7 @@ async fn discovery_handler(State(state): State<Arc<HttpState>>) -> impl IntoResp
             "execute": "/mcp/execute",
             "initialize": "/mcp/initialize",
             "capabilities": "/mcp/capabilities",
+            "jsonrpc": "/mcp",
         }
     }))
 }
@@ -232,7 +267,7 @@ async fn initialize_simple_handler(
 }
 
 async fn capabilities_handler(State(state): State<Arc<HttpState>>) -> impl IntoResponse {
-    let tool_names: Vec<_> = state.handler.tools.names().into_iter().collect();
+    let tool_names = state.handler.tools.names();
 
     Json(json!({
         "capabilities": {
@@ -250,7 +285,33 @@ async fn capabilities_handler(State(state): State<Arc<HttpState>>) -> impl IntoR
     }))
 }
 
-async fn messages_get_handler(State(state): State<Arc<HttpState>>) -> impl IntoResponse {
+fn wants_event_stream(headers: &HeaderMap) -> bool {
+    headers
+        .get_all(header::ACCEPT)
+        .iter()
+        .filter_map(|v| v.to_str().ok())
+        .any(|v| v.contains("text/event-stream"))
+}
+
+/// `405 Method Not Allowed`: the Streamable HTTP spec's answer to a GET when
+/// the server does not offer a server-to-client SSE stream. Clients (e.g. the
+/// official SDKs) treat this as "no stream" and carry on with POST.
+fn sse_not_supported() -> Response {
+    (
+        StatusCode::METHOD_NOT_ALLOWED,
+        [(header::ALLOW, "POST, DELETE")],
+    )
+        .into_response()
+}
+
+async fn mcp_get_handler() -> Response {
+    sse_not_supported()
+}
+
+async fn messages_get_handler(State(state): State<Arc<HttpState>>, headers: HeaderMap) -> Response {
+    if wants_event_stream(&headers) {
+        return sse_not_supported();
+    }
     Json(json!({
         "protocol": "mcp",
         "version": "1.0",
@@ -264,131 +325,113 @@ async fn messages_get_handler(State(state): State<Arc<HttpState>>) -> impl IntoR
             "endpoint": "/messages",
         }
     }))
+    .into_response()
 }
 
-async fn messages_post_handler(
-    State(state): State<Arc<HttpState>>,
-    headers: HeaderMap,
-    Json(body): Json<Value>,
-) -> Response {
-    let session_id = headers
-        .get("Mcp-Session-Id")
+fn session_from_headers(headers: &HeaderMap) -> Option<String> {
+    headers
+        .get(SESSION_HEADER)
         .and_then(|v| v.to_str().ok())
-        .map(String::from);
-
-    let response_mode = headers
-        .get("Mcp-Response-Mode")
-        .and_then(|v| v.to_str().ok())
-        .unwrap_or("batch");
-
-    info!(
-        "Messages request: session={:?}, mode={}",
-        session_id, response_mode
-    );
-
-    // Handle batch requests
-    if let Some(requests) = body.as_array() {
-        let mut responses = Vec::new();
-        for req in requests {
-            match serde_json::from_value::<JsonRpcRequest>(req.clone()) {
-                Ok(request) => {
-                    if let Some(resp) = state.handler.process_request(&request, &session_id).await {
-                        responses.push(resp);
-                    }
-                },
-                Err(e) => {
-                    let id = req.get("id").cloned().unwrap_or(json!(null));
-                    responses.push(JsonRpcResponse::error_with_code(
-                        id,
-                        JsonRpcErrorCode::InvalidRequest,
-                        Some(format!("Invalid request in batch: {}", e)),
-                    ));
-                },
-            }
-        }
-        return json_response_with_session(json!(responses), session_id);
-    }
-
-    // Handle single request
-    match serde_json::from_value::<JsonRpcRequest>(body) {
-        Ok(request) => {
-            // Generate session ID for initialize requests
-            let effective_session = if request.method == "initialize" && session_id.is_none() {
-                Some(state.sessions().create_session("2024-11-05").await)
-            } else {
-                session_id
-            };
-
-            match state
-                .handler
-                .process_request(&request, &effective_session)
-                .await
-            {
-                Some(resp) => json_response_with_session(json!(resp), effective_session),
-                None => {
-                    // Notification - no response body
-                    let mut builder = Response::builder().status(StatusCode::ACCEPTED);
-                    if let Some(sid) = effective_session {
-                        builder = builder.header("Mcp-Session-Id", sid);
-                    }
-                    builder.body(axum::body::Body::empty()).unwrap()
-                },
-            }
-        },
-        Err(e) => {
-            let error_resp = JsonRpcResponse::error_with_code(
-                json!(null),
-                JsonRpcErrorCode::ParseError,
-                Some(e.to_string()),
-            );
-            json_response_with_session(json!(error_resp), session_id)
-        },
-    }
+        .map(str::trim)
+        .filter(|s| !s.is_empty())
+        .map(String::from)
 }
 
-async fn mcp_sse_handler(State(_state): State<Arc<HttpState>>) -> impl IntoResponse {
-    // SSE endpoint - simplified for now
-    (
-        StatusCode::OK,
-        [("Content-Type", "text/event-stream")],
-        "data: {\"type\": \"connection\", \"status\": \"connected\"}\n\n",
-    )
+fn is_initialize(message: &Value) -> bool {
+    message.get("method").and_then(Value::as_str) == Some("initialize")
 }
 
+/// JSON-RPC over HTTP POST (Streamable HTTP transport, JSON response mode).
 async fn jsonrpc_handler(
     State(state): State<Arc<HttpState>>,
     headers: HeaderMap,
-    Json(body): Json<Value>,
+    body: Bytes,
 ) -> Response {
-    messages_post_handler(State(state), headers, Json(body)).await
+    let session_id = session_from_headers(&headers);
+    debug!(
+        "JSON-RPC POST: session={:?}, {} bytes",
+        session_id,
+        body.len()
+    );
+
+    // Parse the body ourselves so bad JSON (or a missing Content-Type) gets a
+    // JSON-RPC Parse error instead of axum's plain-text rejection.
+    let message = match serde_json::from_slice::<Value>(&body) {
+        Ok(message) => message,
+        Err(_) => {
+            let resp = state.handler.handle_raw(&body, None).await;
+            return json_response(StatusCode::BAD_REQUEST, resp.unwrap_or(Value::Null), None);
+        },
+    };
+
+    // Issue a session id when a client initializes without one.
+    let session_id = match session_id {
+        None if is_initialize(&message) => Some(
+            state
+                .sessions()
+                .create_session(crate::jsonrpc::LATEST_PROTOCOL_VERSION)
+                .await,
+        ),
+        other => other,
+    };
+
+    match state
+        .handler
+        .handle_message(message, session_id.as_deref())
+        .await
+    {
+        Some(resp) => json_response(StatusCode::OK, resp, session_id),
+        // Only notifications/responses: acknowledged, no body.
+        None => with_session(StatusCode::ACCEPTED.into_response(), session_id),
+    }
+}
+
+/// Explicit session termination (`DELETE` with `Mcp-Session-Id`).
+async fn delete_session_handler(
+    State(state): State<Arc<HttpState>>,
+    headers: HeaderMap,
+) -> StatusCode {
+    match session_from_headers(&headers) {
+        None => StatusCode::BAD_REQUEST,
+        Some(sid) => match state.sessions().remove(&sid).await {
+            Some(_) => {
+                debug!("Session terminated by client: {}", sid);
+                StatusCode::NO_CONTENT
+            },
+            None => StatusCode::NOT_FOUND,
+        },
+    }
 }
 
 async fn options_handler() -> impl IntoResponse {
-    Response::builder()
-        .status(StatusCode::OK)
-        .header("Access-Control-Allow-Origin", "*")
-        .header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-        .header(
-            "Access-Control-Allow-Headers",
-            "Content-Type, Authorization, Mcp-Session-Id, Mcp-Response-Mode",
-        )
-        .header("Access-Control-Max-Age", "86400")
-        .body(axum::body::Body::empty())
-        .unwrap()
+    (
+        StatusCode::OK,
+        [
+            (header::ACCESS_CONTROL_ALLOW_ORIGIN, "*"),
+            (
+                header::ACCESS_CONTROL_ALLOW_METHODS,
+                "GET, POST, DELETE, OPTIONS",
+            ),
+            (
+                header::ACCESS_CONTROL_ALLOW_HEADERS,
+                "Content-Type, Authorization, Mcp-Session-Id, Mcp-Protocol-Version, Mcp-Response-Mode",
+            ),
+            (header::ACCESS_CONTROL_MAX_AGE, "86400"),
+        ],
+    )
 }
 
-fn json_response_with_session(value: Value, session_id: Option<String>) -> Response {
-    let mut builder = Response::builder()
-        .status(StatusCode::OK)
-        .header("Content-Type", "application/json");
-
-    if let Some(sid) = session_id {
-        builder = builder.header("Mcp-Session-Id", sid);
+fn with_session(mut response: Response, session_id: Option<String>) -> Response {
+    if let Some(value) = session_id.and_then(|sid| HeaderValue::from_str(&sid).ok()) {
+        response
+            .headers_mut()
+            .insert(HeaderName::from_static(SESSION_HEADER), value);
     }
+    response
+}
 
-    builder
-        .body(axum::body::Body::from(value.to_string()))
-        .unwrap()
+fn json_response(status: StatusCode, value: Value, session_id: Option<String>) -> Response {
+    with_session((status, Json(value)).into_response(), session_id)
 }
 
 #[cfg(test)]
@@ -413,24 +456,29 @@ mod tests {
                 "properties": {}
             })
         }
-        async fn execute(&self, _args: Value) -> crate::error::Result<ToolResult> {
+        async fn execute(&self, args: Value) -> crate::error::Result<ToolResult> {
+            if args.get("panic").is_some() {
+                panic!("http boom");
+            }
             Ok(ToolResult::text("test result"))
         }
     }
 
-    #[tokio::test]
-    async fn test_health_endpoint() {
+    fn server() -> (axum_test::TestServer, Arc<HttpState>) {
         let mut tools = ToolRegistry::new();
         tools.register(TestTool);
-
         let state = Arc::new(HttpState::new(
             "test-server".to_string(),
             "1.0.0".to_string(),
             tools,
         ));
+        let app = HttpTransport::router(Arc::clone(&state));
+        (axum_test::TestServer::new(app).unwrap(), state)
+    }
 
-        let app = HttpTransport::router(state);
-        let client = axum_test::TestServer::new(app).unwrap();
+    #[tokio::test]
+    async fn test_health_endpoint() {
+        let (client, _) = server();
 
         let response = client.get("/health").await;
         response.assert_status_ok();
@@ -438,5 +486,129 @@ mod tests {
         let body: HealthResponse = response.json();
         assert_eq!(body.status, "healthy");
         assert_eq!(body.server, "test-server");
+    }
+
+    #[tokio::test]
+    async fn initialize_issues_session_and_records_version() {
+        let (client, state) = server();
+        let response = client
+            .post("/mcp")
+            .json(&json!({"jsonrpc": "2.0", "id": 1, "method": "initialize",
+                "params": {"protocolVersion": "2025-06-18", "clientInfo": {"name": "t"}}}))
+            .await;
+        response.assert_status_ok();
+        let sid = response
+            .headers()
+            .get(SESSION_HEADER)
+            .expect("session header")
+            .to_str()
+            .unwrap()
+            .to_string();
+        let body: Value = response.json();
+        assert_eq!(body["result"]["protocolVersion"], "2025-06-18");
+        let session = state.sessions().get(&sid).await.unwrap();
+        assert_eq!(session.protocol_version, "2025-06-18");
+
+        // Terminate it.
+        let response = client
+            .delete("/mcp")
+            .add_header(SESSION_HEADER, sid.as_str())
+            .await;
+        response.assert_status(StatusCode::NO_CONTENT);
+        assert!(!state.sessions().exists(&sid).await);
+        let response = client
+            .delete("/mcp")
+            .add_header(SESSION_HEADER, sid.as_str())
+            .await;
+        response.assert_status(StatusCode::NOT_FOUND);
+        client
+            .delete("/mcp")
+            .await
+            .assert_status(StatusCode::BAD_REQUEST);
+    }
+
+    #[tokio::test]
+    async fn notifications_get_202_without_body() {
+        let (client, _) = server();
+        for body in [
+            json!({"jsonrpc": "2.0", "method": "notifications/initialized"}),
+            json!([{"jsonrpc": "2.0", "method": "notifications/initialized"}]),
+        ] {
+            let response = client.post("/mcp").json(&body).await;
+            response.assert_status(StatusCode::ACCEPTED);
+            assert!(response.as_bytes().is_empty());
+        }
+    }
+
+    #[tokio::test]
+    async fn invalid_json_is_400_parse_error() {
+        let (client, _) = server();
+        let response = client
+            .post("/mcp")
+            .content_type("application/json")
+            .bytes(Bytes::from_static(b"{oops"))
+            .await;
+        response.assert_status(StatusCode::BAD_REQUEST);
+        let body: Value = response.json();
+        assert_eq!(body["error"]["code"], -32700);
+        assert!(body["id"].is_null());
+    }
+
+    #[tokio::test]
+    async fn batch_and_tool_call_over_http() {
+        let (client, _) = server();
+        let response = client
+            .post("/messages")
+            .json(&json!([
+                {"jsonrpc": "2.0", "id": 1, "method": "tools/list"},
+                {"jsonrpc": "2.0", "id": 2, "method": "tools/call",
+                    "params": {"name": "test_tool", "arguments": {}}}
+            ]))
+            .await;
+        response.assert_status_ok();
+        let body: Value = response.json();
+        let arr = body.as_array().unwrap();
+        assert_eq!(arr.len(), 2);
+        assert_eq!(arr[1]["result"]["content"][0]["text"], "test result");
+    }
+
+    #[tokio::test]
+    async fn get_mcp_is_405() {
+        let (client, _) = server();
+        client
+            .get("/mcp")
+            .add_header("accept", "text/event-stream")
+            .await
+            .assert_status(StatusCode::METHOD_NOT_ALLOWED);
+        client
+            .get("/messages")
+            .add_header("accept", "text/event-stream")
+            .await
+            .assert_status(StatusCode::METHOD_NOT_ALLOWED);
+        client.get("/messages").await.assert_status_ok();
+    }
+
+    #[tokio::test]
+    async fn simple_execute_api_catches_panics_and_missing_tools() {
+        let (client, _) = server();
+        let response = client
+            .post("/mcp/execute")
+            .json(&json!({"tool": "test_tool", "arguments": {"panic": true}}))
+            .await;
+        response.assert_status_ok();
+        let body: Value = response.json();
+        assert_eq!(body["success"], false);
+        assert!(
+            body["result"]["content"][0]["text"]
+                .as_str()
+                .unwrap()
+                .contains("http boom")
+        );
+
+        let response = client
+            .post("/mcp/execute")
+            .json(&json!({"tool": "missing", "parameters": {}}))
+            .await;
+        response.assert_status(StatusCode::NOT_FOUND);
     }
 }

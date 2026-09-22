@@ -1,10 +1,9 @@
 //! MCP AgentCore Memory Server
 //!
-//! Provides MCP tools for AI agent memory using ChromaDB vector database.
-//!
-//! > This MCP server was converted from Python to Rust for improved performance
-//! > and consistency with the project's container-first philosophy.
-//! > See the MIT License in the repository root for licensing information.
+//! Persistent memory for AI agents backed by a self-hosted ChromaDB vector
+//! database: short-term session events, long-term facts in namespaces, and
+//! semantic search over those facts. Embeddings are computed locally (ChromaDB's
+//! HTTP API does not embed text itself).
 //!
 //! Usage:
 //!     # STDIO mode (for Claude Code)
@@ -13,52 +12,82 @@
 //!     # Standalone HTTP mode
 //!     mcp-agentcore-memory --mode standalone --port 8023
 //!
-//! Environment variables:
-//!     CHROMADB_HOST: ChromaDB host (default: localhost)
-//!     CHROMADB_PORT: ChromaDB port (default: 8000)
-//!     CHROMADB_COLLECTION: Collection prefix (default: agent_memory)
+//!     # Download the embedding model and exit (used by the Docker build)
+//!     mcp-agentcore-memory --prefetch-model
+//!
+//! See README.md for the environment variables.
 
 mod cache;
-mod client;
+mod config;
+mod embedding;
+mod namespaces;
 mod sanitize;
 mod server;
-mod types;
+mod service;
+mod store;
+
+#[cfg(test)]
+mod tests;
+
+use std::sync::Arc;
 
 use clap::Parser;
 use mcp_core::{MCPServer, init_logging, server::MCPServerArgs};
+use tracing::info;
 
-use server::MemoryServer;
+use config::Config;
+use service::MemoryService;
+use store::chroma::ChromaStore;
 
 /// CLI arguments
 #[derive(Parser)]
 #[command(name = "mcp-agentcore-memory")]
 #[command(about = "MCP server for AI agent memory using ChromaDB")]
-#[command(version = "1.0.0")]
+#[command(version)]
 struct Args {
     #[command(flatten)]
     server: MCPServerArgs,
+
+    /// Load (downloading if needed) the embedding model, then exit.
+    #[arg(long)]
+    prefetch_model: bool,
 }
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     let args = Args::parse();
-
     init_logging(&args.server.log_level);
 
-    // Create memory server
-    let memory_server = MemoryServer::new();
+    let config = Config::from_env();
+    let embedder = embedding::from_config(&config);
 
-    // Build MCP server with all tools
-    let mut builder = MCPServer::builder("agentcore-memory", "1.0.0");
-    builder = args.server.apply_to(builder);
-
-    for tool in memory_server.tools() {
-        builder = builder.tool_boxed(tool);
+    if args.prefetch_model {
+        embedder
+            .embed(vec!["warm-up".to_string()])
+            .await
+            .map_err(|e| anyhow::anyhow!(e))?;
+        info!(
+            "Embedding model '{}' ready in {}",
+            embedder.id(),
+            config.model_cache_dir.display()
+        );
+        return Ok(());
     }
 
-    let server = builder.build();
+    info!(
+        "Embedder: {} ({} dims), collection prefix: {}",
+        embedder.id(),
+        embedder.dimension(),
+        config.collection_prefix
+    );
+    let store = ChromaStore::new(&config).map_err(|e| anyhow::anyhow!(e))?;
+    let service = Arc::new(MemoryService::new(&config, Arc::new(store), embedder));
 
-    server.run().await?;
-
+    let mut builder = MCPServer::builder("agentcore-memory", env!("CARGO_PKG_VERSION"));
+    builder = args.server.apply_to(builder);
+    for tool in server::tools(service) {
+        builder = builder.tool_boxed(tool);
+    }
+    builder.build().run().await?;
     Ok(())
 }

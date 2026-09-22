@@ -150,7 +150,7 @@
       ],
       "env": {
         "ELEVENLABS_DEFAULT_MODEL": "eleven_multilingual_v2",
-        "ELEVENLABS_DEFAULT_VOICE": "Rachel"
+        "ELEVENLABS_DEFAULT_VOICE": "george"
       }
     },
     "codex": {
@@ -187,7 +187,8 @@
       "env": {
         "GITHUB_TOKEN": "${GITHUB_TOKEN}",
         "GITHUB_REPOSITORY": "${GITHUB_REPOSITORY}",
-        "GITHUB_PROJECT_NUMBER": "1",
+        "GITHUB_PROJECTS_TOKEN": "${GITHUB_PROJECTS_TOKEN}",
+        "BOARD_PROJECT_NUMBER": "1",
         "_comment": "GitHub Board MCP server for board operations and agent coordination. Runs containerized via docker compose run."
       }
     },

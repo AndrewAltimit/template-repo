@@ -1,1208 +1,980 @@
 #!/usr/bin/env python3
-"""Blender scene building and manipulation script."""
+"""Blender scene building and manipulation script.
 
-import json
+Run by the MCP server as ``blender --background --python scene_builder.py --
+<args.json> <job_id>``; see ``mcp_common.py`` for the result protocol.
+"""
+
+import fnmatch
+import hashlib
 import math
+import os
 from pathlib import Path
 import sys
 
 import bpy
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-def write_result(job_id, result_data):
-    """Write operation result to a file for the handler to read.
+from mcp_common import (  # noqa: E402  pylint: disable=wrong-import-position
+    ScriptError,
+    open_project,
+    require_object,
+    resolve_engine,
+    run,
+    save_project,
+)
 
-    Args:
-        job_id: The job identifier
-        result_data: Dictionary containing the operation result
-    """
-    result_dir = Path("/app/outputs/jobs")
-    result_dir.mkdir(parents=True, exist_ok=True)
-    result_file = result_dir / f"{job_id}.result"
-    result_file.write_text(json.dumps(result_data), encoding="utf-8")
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+
+def _add_camera(scene, location=(7, -7, 5), rotation=(1.1, 0, 0.785), lens=50.0):
+    cam_data = bpy.data.cameras.new("Camera")
+    cam_data.lens = lens
+    camera = bpy.data.objects.new("Camera", cam_data)
+    scene.collection.objects.link(camera)
+    camera.location = location
+    camera.rotation_euler = rotation
+    scene.camera = camera
+    return camera
+
+
+def _add_light(scene, name, light_type, location, rotation=(0, 0, 0), energy=100.0, size=None):
+    data = bpy.data.lights.new(name, light_type)
+    data.energy = energy
+    if size is not None and hasattr(data, "size"):
+        data.size = size
+    light = bpy.data.objects.new(name, data)
+    scene.collection.objects.link(light)
+    light.location = location
+    light.rotation_euler = rotation
+    return light
+
+
+def _add_ground(size=20.0, name="Ground"):
+    bpy.ops.mesh.primitive_plane_add(size=size, location=(0, 0, 0))
+    ground = bpy.context.active_object
+    ground.name = name
+    return ground
+
+
+def _three_point(scene, scale=1.0):
+    _add_light(scene, "Key Light", "AREA", (3, -3, 3), (1.2, 0, 0.6), 500 * scale, 2.0)
+    _add_light(scene, "Fill Light", "AREA", (-3, -2, 2), (1.3, 0, -0.8), 200 * scale, 3.0)
+    _add_light(scene, "Rim Light", "AREA", (0, 4, 2), (-0.5, 0, 0), 300 * scale, 1.5)
+
+
+def _world_color(scene, color, strength=1.0):
+    world = scene.world
+    if world is None:
+        world = bpy.data.worlds.new("World")
+        scene.world = world
+    world.use_nodes = True
+    bg_node = world.node_tree.nodes.get("Background")
+    if bg_node is None:
+        bg_node = world.node_tree.nodes.new("ShaderNodeBackground")
+    bg_node.inputs["Color"].default_value = color
+    bg_node.inputs["Strength"].default_value = strength
+    return world
+
+
+TEMPLATES = (
+    "empty",
+    "basic_scene",
+    "studio_lighting",
+    "lit_empty",
+    "procedural",
+    "animation",
+    "physics",
+    "architectural",
+    "product",
+    "vfx",
+    "game_asset",
+    "sculpting",
+)
+
+
+def _rgba(value, default):
+    """Accept RGB or RGBA lists and return a 4-tuple."""
+    if not value:
+        value = default
+    value = [float(c) for c in value]
+    if len(value) == 3:
+        value.append(1.0)
+    if len(value) != 4:
+        raise ScriptError(f"Colors need 3 or 4 components, got {len(value)}")
+    return tuple(value)
+
+
+PRIMITIVE_OPS = {
+    "cube": lambda loc: bpy.ops.mesh.primitive_cube_add(location=loc),
+    "sphere": lambda loc: bpy.ops.mesh.primitive_uv_sphere_add(location=loc),
+    "uv_sphere": lambda loc: bpy.ops.mesh.primitive_uv_sphere_add(location=loc),
+    "cylinder": lambda loc: bpy.ops.mesh.primitive_cylinder_add(location=loc),
+    "cone": lambda loc: bpy.ops.mesh.primitive_cone_add(location=loc),
+    "torus": lambda loc: bpy.ops.mesh.primitive_torus_add(location=loc),
+    "plane": lambda loc: bpy.ops.mesh.primitive_plane_add(location=loc),
+    "monkey": lambda loc: bpy.ops.mesh.primitive_monkey_add(location=loc),
+}
+
+
+def _world(scene):
+    world = scene.world
+    if world is None:
+        world = bpy.data.worlds.new("World")
+        scene.world = world
+    world.use_nodes = True
+    return world
+
+
+def _texture_node(nodes, texture_type, settings):
+    """Create a shader texture node; returns (node, output socket, bsdf input)."""
+    scale = float(settings.get("scale", 5.0))
+    if texture_type == "IMAGE":
+        node = nodes.new(type="ShaderNodeTexImage")
+        image_path = settings.get("image_path")
+        if not image_path:
+            raise ScriptError("settings.image_path is required for IMAGE textures")
+        if not Path(image_path).is_file():
+            raise ScriptError(f"Image file not found: {image_path}")
+        node.image = bpy.data.images.load(image_path, check_existing=True)
+        return node, "Color", "Base Color"
+    if texture_type in ("NOISE", "MUSGRAVE"):
+        # Musgrave was folded into the Noise node in Blender 4.1.
+        node = nodes.new(type="ShaderNodeTexNoise")
+        node.inputs["Scale"].default_value = scale
+        node.inputs["Detail"].default_value = float(settings.get("detail", 2.0))
+        return node, "Fac", settings.get("target", "Roughness")
+    if texture_type == "VORONOI":
+        node = nodes.new(type="ShaderNodeTexVoronoi")
+        node.inputs["Scale"].default_value = scale
+        return node, "Distance", settings.get("target", "Roughness")
+    if texture_type == "WAVE":
+        node = nodes.new(type="ShaderNodeTexWave")
+        node.inputs["Scale"].default_value = scale
+        node.inputs["Distortion"].default_value = float(settings.get("distortion", 0.0))
+        return node, "Color", settings.get("target", "Base Color")
+    if texture_type == "MAGIC":
+        node = nodes.new(type="ShaderNodeTexMagic")
+        node.inputs["Scale"].default_value = scale
+        return node, "Color", settings.get("target", "Base Color")
+    if texture_type == "BRICK":
+        node = nodes.new(type="ShaderNodeTexBrick")
+        node.inputs["Scale"].default_value = scale
+        if "color1" in settings:
+            node.inputs["Color1"].default_value = _rgba(settings["color1"], [0.8, 0.8, 0.8])
+        if "color2" in settings:
+            node.inputs["Color2"].default_value = _rgba(settings["color2"], [0.2, 0.2, 0.2])
+        return node, "Color", settings.get("target", "Base Color")
+    if texture_type == "CHECKER":
+        node = nodes.new(type="ShaderNodeTexChecker")
+        node.inputs["Scale"].default_value = scale
+        return node, "Color", settings.get("target", "Base Color")
+    if texture_type == "GRADIENT":
+        node = nodes.new(type="ShaderNodeTexGradient")
+        return node, "Color", settings.get("target", "Base Color")
+    raise ScriptError(f"Unknown texture type '{texture_type}'")
+
+
+def _mesh_signature(mesh):
+    """Hash of a mesh's vertex positions and face topology (for instancing)."""
+    digest = hashlib.sha1()
+    for vert in mesh.vertices:
+        digest.update(("%.5f,%.5f,%.5f;" % tuple(vert.co)).encode())
+    for poly in mesh.polygons:
+        digest.update((",".join(map(str, poly.vertices)) + "|").encode())
+    return digest.hexdigest()
+
+
+# ---------------------------------------------------------------------------
+# Operations
+# ---------------------------------------------------------------------------
 
 
 def clear_scene():
-    """Clear all objects from the scene."""
-    bpy.ops.object.select_all(action="SELECT")
-    bpy.ops.object.delete(use_global=False)
+    """Remove every object (and orphaned data) from the current scene."""
+    for obj in list(bpy.data.objects):
+        bpy.data.objects.remove(obj, do_unlink=True)
+    for collection in (bpy.data.meshes, bpy.data.lights, bpy.data.cameras, bpy.data.materials):
+        for block in list(collection):
+            if block.users == 0:
+                collection.remove(block)
 
 
-def create_project(args, _job_id):
-    """Create a new Blender project from template."""
-    try:
-        template = args.get("template", "basic_scene")
-        settings = args.get("settings", {})
-        project_path = args.get("project_path")
+def create_project(args, _job_id):  # noqa: C901
+    """Create a new .blend project from one of the TEMPLATES."""
+    template = args.get("template", "basic_scene")
+    settings = args.get("settings") or {}
+    project_path = args.get("project_path")
+    if not project_path:
+        raise ScriptError("project_path is required")
+    if template not in TEMPLATES:
+        raise ScriptError(f"Unknown template '{template}'. Available: {', '.join(TEMPLATES)}")
 
-        # Clear existing scene
-        clear_scene()
+    clear_scene()
+    scene = bpy.context.scene
 
-        # Configure render settings
-        scene = bpy.context.scene
-        # Handle both old and new engine names
-        engine = settings.get("engine", "CYCLES")
-        if engine == "EEVEE":
-            engine = "BLENDER_EEVEE_NEXT"
-        elif engine == "WORKBENCH":
-            engine = "BLENDER_WORKBENCH"
-        scene.render.engine = engine
-        scene.render.resolution_x = settings.get("resolution", [1920, 1080])[0]
-        scene.render.resolution_y = settings.get("resolution", [1920, 1080])[1]
-        scene.render.fps = settings.get("fps", 24)
+    default_engine = {"sculpting": "BLENDER_WORKBENCH", "game_asset": "EEVEE", "animation": "EEVEE"}.get(template, "CYCLES")
+    scene.render.engine = resolve_engine(settings.get("engine"), default_engine)
+    resolution = settings.get("resolution") or [1920, 1080]
+    scene.render.resolution_x = int(resolution[0])
+    scene.render.resolution_y = int(resolution[1])
+    scene.render.fps = int(settings.get("fps", 24))
 
-        # Set up scene based on template
-        if template == "basic_scene":
-            # Add ground plane
-            bpy.ops.mesh.primitive_plane_add(size=20, location=(0, 0, 0))
-            ground = bpy.context.active_object
-            ground.name = "Ground"
+    if template == "empty":
+        _add_camera(scene)
 
-            # Add sun light
-            bpy.ops.object.light_add(type="SUN", location=(0, 0, 10))
-            sun = bpy.context.active_object
-            sun.name = "Sun"
-            sun.data.energy = 5.0
-            sun.rotation_euler = (0.785, 0, 0.785)
+    elif template == "basic_scene":
+        _add_ground()
+        _add_light(scene, "Sun", "SUN", (0, 0, 10), (0.785, 0, 0.785), 5.0)
+        _add_camera(scene)
 
-            # Add camera
-            bpy.ops.object.camera_add(location=(7, -7, 5))
-            camera = bpy.context.active_object
-            camera.name = "Camera"
-            camera.rotation_euler = (1.1, 0, 0.785)
-            scene.camera = camera
+    elif template == "studio_lighting":
+        _three_point(scene)
+        _add_camera(scene, (4, -4, 2), (1.4, 0, 0.785), 85)
+        _world_color(scene, (0.05, 0.05, 0.05, 1.0))
 
-        elif template == "studio_lighting":
-            # Add key light
-            bpy.ops.object.light_add(type="AREA", location=(3, -3, 3))
-            key_light = bpy.context.active_object
-            key_light.name = "Key Light"
-            key_light.data.energy = 500
-            key_light.data.size = 2.0
-            key_light.rotation_euler = (1.2, 0, 0.6)
+    elif template == "lit_empty":
+        # Bright enough for EEVEE without a ground plane.
+        _add_light(scene, "Key Light", "AREA", (3, -3, 3), (1.2, 0, 0.6), 50000, 3.0)
+        _add_light(scene, "Fill Light", "AREA", (-3, -2, 2), (1.3, 0, -0.8), 20000, 4.0)
+        _add_light(scene, "Back Light", "AREA", (0, 4, 2), (-0.5, 0, 0), 30000, 2.0)
+        _add_light(scene, "Top Light", "AREA", (0, 0, 5), (0, 0, 0), 25000, 5.0)
+        _add_camera(scene)
+        _world_color(scene, (0.3, 0.3, 0.3, 1.0))
 
-            # Add fill light
-            bpy.ops.object.light_add(type="AREA", location=(-3, -2, 2))
-            fill_light = bpy.context.active_object
-            fill_light.name = "Fill Light"
-            fill_light.data.energy = 200
-            fill_light.data.size = 3.0
-            fill_light.rotation_euler = (1.3, 0, -0.8)
+    elif template == "procedural":
+        _add_ground(name="Ground")
+        bpy.ops.mesh.primitive_grid_add(x_subdivisions=32, y_subdivisions=32, size=4, location=(0, 0, 0.01))
+        bpy.context.active_object.name = "ProceduralBase"
+        _add_light(scene, "Sun", "SUN", (0, 0, 10), (0.785, 0, 0.785), 4.0)
+        _add_camera(scene)
 
-            # Add rim light
-            bpy.ops.object.light_add(type="AREA", location=(0, 4, 2))
-            rim_light = bpy.context.active_object
-            rim_light.name = "Rim Light"
-            rim_light.data.energy = 300
-            rim_light.data.size = 1.5
-            rim_light.rotation_euler = (-0.5, 0, 0)
+    elif template == "animation":
+        _add_ground()
+        _add_light(scene, "Sun", "SUN", (0, 0, 10), (0.785, 0, 0.785), 5.0)
+        _add_camera(scene)
+        scene.frame_start = int(settings.get("frame_start", 1))
+        scene.frame_end = int(settings.get("frame_end", 250))
 
-            # Add camera
-            bpy.ops.object.camera_add(location=(4, -4, 2))
-            camera = bpy.context.active_object
-            camera.name = "Camera"
-            camera.rotation_euler = (1.4, 0, 0.785)
-            camera.data.lens = 85
-            scene.camera = camera
+    elif template == "physics":
+        ground = _add_ground()
+        if scene.rigidbody_world is None:
+            with bpy.context.temp_override(scene=scene):
+                bpy.ops.rigidbody.world_add()
+        bpy.context.view_layer.objects.active = ground
+        ground.select_set(True)
+        bpy.ops.rigidbody.object_add()
+        ground.rigid_body.type = "PASSIVE"
+        ground.rigid_body.collision_shape = "BOX"
+        _add_light(scene, "Sun", "SUN", (0, 0, 10), (0.785, 0, 0.785), 5.0)
+        _add_camera(scene, (12, -12, 8), (1.1, 0, 0.785))
+        scene.frame_end = int(settings.get("frame_end", 250))
 
-            # Set world background
-            world = scene.world
-            world.use_nodes = True
-            bg_node = world.node_tree.nodes["Background"]
-            bg_node.inputs["Color"].default_value = (0.05, 0.05, 0.05, 1.0)
+    elif template == "architectural":
+        _add_ground(size=100)
+        sun = _add_light(scene, "Sun", "SUN", (0, 0, 20), (0.9, 0, 0.6), 3.0)
+        sun.data.angle = 0.02
+        world = _world_color(scene, (0.6, 0.75, 1.0, 1.0), 1.0)
+        nodes = world.node_tree.nodes
+        sky = nodes.new("ShaderNodeTexSky")
+        world.node_tree.links.new(sky.outputs["Color"], nodes["Background"].inputs["Color"])
+        _add_camera(scene, (15, -15, 1.7), (1.52, 0, 0.785), 24)
 
-        elif template == "empty":
-            # Just add a camera
-            bpy.ops.object.camera_add(location=(7, -7, 5))
-            camera = bpy.context.active_object
-            camera.name = "Camera"
-            camera.rotation_euler = (1.1, 0, 0.785)
-            scene.camera = camera
+    elif template == "product":
+        bpy.ops.mesh.primitive_plane_add(size=30, location=(0, 0, 0))
+        bpy.context.active_object.name = "Backdrop Floor"
+        bpy.ops.mesh.primitive_plane_add(size=30, location=(0, 10, 15), rotation=(math.pi / 2, 0, 0))
+        bpy.context.active_object.name = "Backdrop Wall"
+        _three_point(scene, 1.5)
+        _add_camera(scene, (0, -8, 2), (1.45, 0, 0), 85)
+        _world_color(scene, (1.0, 1.0, 1.0, 1.0), 0.5)
 
-        elif template == "lit_empty":
-            # No ground plane, but with three-point lighting for good illumination
-            # Key light (main light source) - very high energy for Eevee
-            bpy.ops.object.light_add(type="AREA", location=(3, -3, 3))
-            key = bpy.context.active_object
-            key.name = "Key Light"
-            key.data.energy = 50000  # Very high energy for bright Eevee render
-            key.data.size = 3.0
-            key.rotation_euler = (1.2, 0, 0.6)
+    elif template == "vfx":
+        _add_ground()
+        _add_light(scene, "Sun", "SUN", (0, 0, 10), (0.785, 0, 0.785), 5.0)
+        _add_camera(scene)
+        scene.render.film_transparent = True
+        scene.use_nodes = True
+        tree = scene.node_tree
+        tree.nodes.clear()
+        layers = tree.nodes.new("CompositorNodeRLayers")
+        glare = tree.nodes.new("CompositorNodeGlare")
+        composite = tree.nodes.new("CompositorNodeComposite")
+        layers.location, glare.location, composite.location = (0, 0), (300, 0), (600, 0)
+        tree.links.new(layers.outputs["Image"], glare.inputs["Image"])
+        tree.links.new(glare.outputs["Image"], composite.inputs["Image"])
 
-            # Fill light (softer, fills shadows)
-            bpy.ops.object.light_add(type="AREA", location=(-3, -2, 2))
-            fill = bpy.context.active_object
-            fill.name = "Fill Light"
-            fill.data.energy = 20000
-            fill.data.size = 4.0
-            fill.rotation_euler = (1.3, 0, -0.8)
+    elif template == "game_asset":
+        scene.unit_settings.system = "METRIC"
+        scene.unit_settings.scale_length = 1.0
+        _add_light(scene, "Sun", "SUN", (0, 0, 10), (0.785, 0, 0.785), 3.0)
+        _add_camera(scene, (4, -4, 3), (1.1, 0, 0.785))
 
-            # Back light (rim/separation light)
-            bpy.ops.object.light_add(type="AREA", location=(0, 4, 2))
-            back = bpy.context.active_object
-            back.name = "Back Light"
-            back.data.energy = 30000
-            back.data.size = 2.0
-            back.rotation_euler = (-0.5, 0, 0)
+    elif template == "sculpting":
+        bpy.ops.mesh.primitive_uv_sphere_add(segments=64, ring_count=32, radius=1, location=(0, 0, 1))
+        base = bpy.context.active_object
+        base.name = "SculptBase"
+        base.modifiers.new("Multires", "MULTIRES")  # subdivision levels are added while sculpting
+        scene.display.shading.light = "MATCAP"
+        _add_camera(scene, (0, -6, 1), (math.pi / 2, 0, 0), 85)
 
-            # Top light for overall brightness
-            bpy.ops.object.light_add(type="AREA", location=(0, 0, 5))
-            top = bpy.context.active_object
-            top.name = "Top Light"
-            top.data.energy = 25000
-            top.data.size = 5.0
-            top.rotation_euler = (0, 0, 0)
-
-            # Add camera
-            bpy.ops.object.camera_add(location=(7, -7, 5))
-            camera = bpy.context.active_object
-            camera.name = "Camera"
-            camera.rotation_euler = (1.1, 0, 0.785)
-            scene.camera = camera
-
-            # Set neutral gray world background
-            world = scene.world
-            if world is None:
-                world = bpy.data.worlds.new("World")
-                scene.world = world
-            world.use_nodes = True
-            bg_node = world.node_tree.nodes.get("Background")
-            if bg_node:
-                bg_node.inputs["Color"].default_value = (0.3, 0.3, 0.3, 1.0)
-                bg_node.inputs["Strength"].default_value = 1.0
-
-        # Save project
-        bpy.ops.wm.save_as_mainfile(filepath=project_path)
-
-        return True
-
-    except Exception as e:
-        print(f"Error creating project: {e}")
-        return False
+    save_project(project_path)
+    return {
+        "success": True,
+        "template": template,
+        "engine": scene.render.engine,
+        "objects": sorted(o.name for o in bpy.data.objects),
+    }
 
 
 def add_primitives(args, _job_id):
-    """Add primitive objects to the scene."""
-    try:
-        # Load project
-        if "project" in args:
-            bpy.ops.wm.open_mainfile(filepath=args["project"])
-
-        objects = args.get("objects", [])
-
-        for obj_data in objects:
-            obj_type = obj_data.get("type")
-            name = obj_data.get("name", obj_type.capitalize())
-            location = obj_data.get("location", [0, 0, 0])
-            rotation = obj_data.get("rotation", [0, 0, 0])
-            scale = obj_data.get("scale", [1, 1, 1])
-
-            # Create object based on type
-            if obj_type == "cube":
-                bpy.ops.mesh.primitive_cube_add(location=location)
-            elif obj_type in ("sphere", "uv_sphere"):
-                bpy.ops.mesh.primitive_uv_sphere_add(location=location)
-            elif obj_type == "cylinder":
-                bpy.ops.mesh.primitive_cylinder_add(location=location)
-            elif obj_type == "cone":
-                bpy.ops.mesh.primitive_cone_add(location=location)
-            elif obj_type == "torus":
-                bpy.ops.mesh.primitive_torus_add(location=location)
-            elif obj_type == "plane":
-                bpy.ops.mesh.primitive_plane_add(location=location)
-            elif obj_type == "monkey":
-                bpy.ops.mesh.primitive_monkey_add(location=location)
-            else:
-                continue
-
-            # Configure object
-            obj = bpy.context.active_object
-            obj.name = name
-            obj.rotation_euler = rotation
-            obj.scale = scale
-
-        # Save project
-        if "project" in args:
-            bpy.ops.wm.save_mainfile()
-
-        return True
-
-    except Exception as e:
-        print(f"Error adding primitives: {e}")
-        return False
+    """Add primitive mesh objects; returns the names Blender actually assigned."""
+    open_project(args.get("project"))
+    created = []
+    for obj_data in args.get("objects", []):
+        obj_type = str(obj_data.get("type", "")).lower()
+        op = PRIMITIVE_OPS.get(obj_type)
+        if op is None:
+            raise ScriptError(f"Unknown primitive type '{obj_type}'. Supported: {', '.join(sorted(PRIMITIVE_OPS))}")
+        op(tuple(obj_data.get("location", [0, 0, 0])))
+        obj = bpy.context.active_object
+        obj.name = obj_data.get("name") or obj_type.capitalize()
+        obj.rotation_euler = obj_data.get("rotation", [0, 0, 0])
+        obj.scale = obj_data.get("scale", [1, 1, 1])
+        created.append({"name": obj.name, "type": obj_type})
+    save_project()
+    return {"success": True, "objects": created}
 
 
-def setup_lighting(args, _job_id):
-    """Setup scene lighting."""
-    try:
-        # Load project
-        if "project" in args:
-            bpy.ops.wm.open_mainfile(filepath=args["project"])
+def setup_lighting(args, _job_id):  # noqa: C901
+    """Replace the scene's lights with a preset rig (existing lights are removed)."""
+    open_project(args.get("project"))
+    lighting_type = args.get("lighting_type")
+    settings = args.get("settings") or {}
+    strength = float(settings.get("strength", 1.0))
+    color = _rgba(settings.get("color"), [1, 1, 1])[:3]
 
-        lighting_type = args.get("lighting_type")
-        settings = args.get("settings", {})
+    removed = [obj.name for obj in bpy.data.objects if obj.type == "LIGHT"]
+    for name in removed:
+        bpy.data.objects.remove(bpy.data.objects[name], do_unlink=True)
 
-        # Remove existing lights (optional)
-        for obj in bpy.data.objects:
-            if obj.type == "LIGHT":
-                bpy.data.objects.remove(obj, do_unlink=True)
+    scene = bpy.context.scene
+    created = []
 
-        if lighting_type == "three_point":
-            # Key light
-            bpy.ops.object.light_add(type="AREA", location=(3, -3, 3))
-            key = bpy.context.active_object
-            key.name = "Key Light"
-            key.data.energy = settings.get("strength", 1.0) * 500
-            key.data.size = 2.0
-            key.rotation_euler = (1.2, 0, 0.6)
+    def light(name, kind, location, rotation, energy, size=None):
+        data = bpy.data.lights.new(name, kind)
+        data.energy = energy
+        data.color = color
+        if size is not None and hasattr(data, "size"):
+            data.size = size
+        obj = bpy.data.objects.new(name, data)
+        scene.collection.objects.link(obj)
+        obj.location = location
+        obj.rotation_euler = rotation
+        created.append(obj.name)
 
-            # Fill light
-            bpy.ops.object.light_add(type="AREA", location=(-3, -2, 2))
-            fill = bpy.context.active_object
-            fill.name = "Fill Light"
-            fill.data.energy = settings.get("strength", 1.0) * 200
-            fill.data.size = 3.0
-            fill.rotation_euler = (1.3, 0, -0.8)
-
-            # Back light
-            bpy.ops.object.light_add(type="AREA", location=(0, 4, 2))
-            back = bpy.context.active_object
-            back.name = "Back Light"
-            back.data.energy = settings.get("strength", 1.0) * 300
-            back.data.size = 1.5
-            back.rotation_euler = (-0.5, 0, 0)
-
-        elif lighting_type == "studio":
-            # Create multiple soft box lights
-            positions = [(4, -4, 3), (-4, -4, 3), (0, 4, 3), (0, -5, 1)]
-            for i, pos in enumerate(positions):
-                bpy.ops.object.light_add(type="AREA", location=pos)
-                light = bpy.context.active_object
-                light.name = f"Studio Light {i + 1}"
-                light.data.energy = settings.get("strength", 1.0) * 300
-                light.data.size = 2.5
-                # Point towards origin
-                light.rotation_euler = (
-                    math.atan2(pos[2], math.sqrt(pos[0] ** 2 + pos[1] ** 2)),
-                    0,
-                    math.atan2(pos[1], pos[0]) + math.pi / 2,
-                )
-
-        elif lighting_type == "hdri":
-            # Set up HDRI lighting
-            scene = bpy.context.scene
-            world = scene.world
-            world.use_nodes = True
-
-            # Get node tree
-            nodes = world.node_tree.nodes
-            links = world.node_tree.links
-
-            # Clear existing nodes
-            nodes.clear()
-
-            # Add nodes
-            node_bg = nodes.new(type="ShaderNodeBackground")
-            node_env = nodes.new(type="ShaderNodeTexEnvironment")
-            node_output = nodes.new(type="ShaderNodeOutputWorld")
-
-            # Load HDRI
-            hdri_path = settings.get("hdri_path")
-            if hdri_path and Path(hdri_path).exists():
-                node_env.image = bpy.data.images.load(hdri_path)
-
-            # Set strength
-            node_bg.inputs["Strength"].default_value = settings.get("strength", 1.0)
-
-            # Link nodes
-            links.new(node_env.outputs["Color"], node_bg.inputs["Color"])
-            links.new(node_bg.outputs["Background"], node_output.inputs["Surface"])
-
-        elif lighting_type == "sun":
-            # Add sun light
-            bpy.ops.object.light_add(type="SUN", location=(0, 0, 10))
-            sun = bpy.context.active_object
-            sun.name = "Sun"
-            sun.data.energy = settings.get("strength", 1.0) * 5.0
-            sun.rotation_euler = (0.785, 0, 0.785)
-
-            # Set color
-            color = settings.get("color", [1, 1, 1])
-            sun.data.color = color
-
-        elif lighting_type == "area":
-            # Add single area light
-            bpy.ops.object.light_add(type="AREA", location=(0, 0, 5))
-            area = bpy.context.active_object
-            area.name = "Area Light"
-            area.data.energy = settings.get("strength", 1.0) * 1000
-            area.data.size = 5.0
-
-        # Save project
-        if "project" in args:
-            bpy.ops.wm.save_mainfile()
-
-        return True
-
-    except Exception as e:
-        print(f"Error setting up lighting: {e}")
-        return False
-
-
-def apply_material(args, _job_id):
-    """Apply material to an object."""
-    try:
-        # Load project
-        if "project" in args:
-            bpy.ops.wm.open_mainfile(filepath=args["project"])
-
-        object_name = args.get("object_name")
-        material_data = args.get("material", {})
-
-        # Find object
-        obj = bpy.data.objects.get(object_name)
-        if not obj:
-            print(f"Object '{object_name}' not found")
-            return False
-
-        # Create material
-        mat_type = material_data.get("type", "principled")
-        mat_name = f"{object_name}_{mat_type}"
-
-        mat = bpy.data.materials.new(name=mat_name)
-        mat.use_nodes = True
-
-        # Get node tree
-        nodes = mat.node_tree.nodes
-        links = mat.node_tree.links
-
-        # Clear existing nodes
+    if lighting_type == "three_point":
+        light("Key Light", "AREA", (3, -3, 3), (1.2, 0, 0.6), 500 * strength, 2.0)
+        light("Fill Light", "AREA", (-3, -2, 2), (1.3, 0, -0.8), 200 * strength, 3.0)
+        light("Back Light", "AREA", (0, 4, 2), (-0.5, 0, 0), 300 * strength, 1.5)
+    elif lighting_type == "studio":
+        for i, pos in enumerate([(4, -4, 3), (-4, -4, 3), (0, 4, 3), (0, -5, 1)]):
+            rotation = (
+                math.atan2(math.sqrt(pos[0] ** 2 + pos[1] ** 2), pos[2]),
+                0,
+                math.atan2(pos[1], pos[0]) + math.pi / 2,
+            )
+            light(f"Studio Light {i + 1}", "AREA", pos, rotation, 300 * strength, 2.5)
+    elif lighting_type == "hdri":
+        hdri_path = settings.get("hdri_path")
+        if not hdri_path:
+            raise ScriptError("settings.hdri_path is required for hdri lighting")
+        if not Path(hdri_path).is_file():
+            raise ScriptError(f"HDRI file not found: {hdri_path}")
+        world = _world(scene)
+        nodes = world.node_tree.nodes
+        links = world.node_tree.links
         nodes.clear()
+        node_bg = nodes.new(type="ShaderNodeBackground")
+        node_env = nodes.new(type="ShaderNodeTexEnvironment")
+        node_output = nodes.new(type="ShaderNodeOutputWorld")
+        node_env.image = bpy.data.images.load(hdri_path, check_existing=True)
+        node_bg.inputs["Strength"].default_value = strength
+        links.new(node_env.outputs["Color"], node_bg.inputs["Color"])
+        links.new(node_bg.outputs["Background"], node_output.inputs["Surface"])
+    elif lighting_type == "sun":
+        light("Sun", "SUN", (0, 0, 10), (0.785, 0, 0.785), 5.0 * strength)
+    elif lighting_type == "area":
+        light("Area Light", "AREA", (0, 0, 5), (0, 0, 0), 1000 * strength, 5.0)
+    else:
+        raise ScriptError(f"Unknown lighting type '{lighting_type}'")
 
-        # Add output node
-        node_output = nodes.new(type="ShaderNodeOutputMaterial")
-        node_output.location = (400, 0)
+    save_project()
+    return {"success": True, "lights_created": created, "lights_removed": removed}
 
-        if mat_type == "principled":
-            # Principled BSDF (PBR)
-            node_bsdf = nodes.new(type="ShaderNodeBsdfPrincipled")
-            node_bsdf.location = (0, 0)
 
-            # Set properties
-            base_color = material_data.get("base_color", [0.8, 0.8, 0.8, 1.0])
-            node_bsdf.inputs["Base Color"].default_value = base_color
-            node_bsdf.inputs["Metallic"].default_value = material_data.get("metallic", 0.0)
-            node_bsdf.inputs["Roughness"].default_value = material_data.get("roughness", 0.5)
+def apply_material(args, _job_id):  # noqa: C901
+    """Create a material of the requested type and assign it to slot 0."""
+    open_project(args.get("project"))
+    object_name = args.get("object_name")
+    material_data = args.get("material") or {}
+    obj = require_object(object_name)
+    if not hasattr(obj.data, "materials"):
+        raise ScriptError(f"Object '{object_name}' ({obj.type}) cannot hold materials")
 
-            links.new(node_bsdf.outputs["BSDF"], node_output.inputs["Surface"])
+    mat_type = material_data.get("type", "principled")
+    mat = bpy.data.materials.new(name=material_data.get("name") or f"{object_name}_{mat_type}")
+    mat.use_nodes = True
+    nodes = mat.node_tree.nodes
+    links = mat.node_tree.links
+    nodes.clear()
+    node_output = nodes.new(type="ShaderNodeOutputMaterial")
+    node_output.location = (400, 0)
 
-        elif mat_type == "emission":
-            # Emission shader
-            node_emission = nodes.new(type="ShaderNodeEmission")
-            node_emission.location = (0, 0)
+    def principled(color_default, metallic, roughness):
+        bsdf = nodes.new(type="ShaderNodeBsdfPrincipled")
+        bsdf.inputs["Base Color"].default_value = _rgba(material_data.get("base_color"), color_default)
+        bsdf.inputs["Metallic"].default_value = metallic
+        bsdf.inputs["Roughness"].default_value = float(material_data.get("roughness", roughness))
+        strength = float(material_data.get("emission_strength", 0.0))
+        if strength > 0:
+            bsdf.inputs["Emission Color"].default_value = bsdf.inputs["Base Color"].default_value
+            bsdf.inputs["Emission Strength"].default_value = strength
+        links.new(bsdf.outputs["BSDF"], node_output.inputs["Surface"])
+        return bsdf
 
-            base_color = material_data.get("base_color", [1.0, 1.0, 1.0, 1.0])
-            node_emission.inputs["Color"].default_value = base_color
-            emission_strength = material_data.get("emission_strength", 1.0)
-            node_emission.inputs["Strength"].default_value = emission_strength
+    if mat_type == "principled":
+        principled([0.8, 0.8, 0.8, 1.0], float(material_data.get("metallic", 0.0)), 0.5)
+    elif mat_type == "emission":
+        node = nodes.new(type="ShaderNodeEmission")
+        node.inputs["Color"].default_value = _rgba(material_data.get("base_color"), [1, 1, 1, 1])
+        strength = float(material_data.get("emission_strength", 0.0)) or 1.0
+        node.inputs["Strength"].default_value = strength
+        links.new(node.outputs["Emission"], node_output.inputs["Surface"])
+    elif mat_type == "glass":
+        node = nodes.new(type="ShaderNodeBsdfGlass")
+        node.inputs["Color"].default_value = _rgba(material_data.get("base_color"), [1, 1, 1, 1])
+        node.inputs["IOR"].default_value = float(material_data.get("ior", 1.45))
+        node.inputs["Roughness"].default_value = float(material_data.get("roughness", 0.0))
+        links.new(node.outputs["BSDF"], node_output.inputs["Surface"])
+    elif mat_type == "metal":
+        principled([0.7, 0.7, 0.7, 1.0], 1.0, 0.2)
+    elif mat_type == "plastic":
+        bsdf = principled([0.5, 0.5, 0.8, 1.0], 0.0, 0.4)
+        coat = "Coat Weight" if "Coat Weight" in bsdf.inputs else "Clearcoat Weight"
+        bsdf.inputs[coat].default_value = 0.5
+    elif mat_type == "wood":
+        bsdf = principled([0.4, 0.2, 0.1, 1.0], 0.0, 0.7)
+        tex = nodes.new(type="ShaderNodeTexWave")
+        tex.inputs["Scale"].default_value = 3.0
+        tex.inputs["Distortion"].default_value = 6.0
+        ramp = nodes.new(type="ShaderNodeValToRGB")
+        ramp.color_ramp.elements[0].color = (0.2, 0.1, 0.05, 1.0)
+        ramp.color_ramp.elements[1].color = (0.45, 0.25, 0.12, 1.0)
+        links.new(tex.outputs["Fac"], ramp.inputs["Fac"])
+        links.new(ramp.outputs["Color"], bsdf.inputs["Base Color"])
+    else:
+        raise ScriptError(f"Unknown material type '{mat_type}'")
 
-            links.new(node_emission.outputs["Emission"], node_output.inputs["Surface"])
+    if obj.data.materials:
+        obj.data.materials[0] = mat
+    else:
+        obj.data.materials.append(mat)
+    save_project()
+    return {"success": True, "material": mat.name, "object": obj.name}
 
-        elif mat_type == "glass":
-            # Glass shader
-            node_glass = nodes.new(type="ShaderNodeBsdfGlass")
-            node_glass.location = (0, 0)
 
-            node_glass.inputs["IOR"].default_value = 1.45
-            node_glass.inputs["Roughness"].default_value = material_data.get("roughness", 0.0)
-
-            links.new(node_glass.outputs["BSDF"], node_output.inputs["Surface"])
-
-        elif mat_type == "metal":
-            # Metallic material
-            node_bsdf = nodes.new(type="ShaderNodeBsdfPrincipled")
-            node_bsdf.location = (0, 0)
-
-            base_color = material_data.get("base_color", [0.7, 0.7, 0.7, 1.0])
-            node_bsdf.inputs["Base Color"].default_value = base_color
-            node_bsdf.inputs["Metallic"].default_value = 1.0
-            node_bsdf.inputs["Roughness"].default_value = material_data.get("roughness", 0.2)
-
-            links.new(node_bsdf.outputs["BSDF"], node_output.inputs["Surface"])
-
-        elif mat_type == "plastic":
-            # Plastic material
-            node_bsdf = nodes.new(type="ShaderNodeBsdfPrincipled")
-            node_bsdf.location = (0, 0)
-
-            base_color = material_data.get("base_color", [0.5, 0.5, 0.8, 1.0])
-            node_bsdf.inputs["Base Color"].default_value = base_color
-            node_bsdf.inputs["Metallic"].default_value = 0.0
-            node_bsdf.inputs["Roughness"].default_value = material_data.get("roughness", 0.4)
-            # "Clearcoat Weight" renamed to "Coat Weight" in Blender 4.x
-            coat_input = "Coat Weight" if "Coat Weight" in node_bsdf.inputs else "Clearcoat Weight"
-            node_bsdf.inputs[coat_input].default_value = 0.5
-
-            links.new(node_bsdf.outputs["BSDF"], node_output.inputs["Surface"])
-
-        elif mat_type == "wood":
-            # Wood material with texture
-            node_bsdf = nodes.new(type="ShaderNodeBsdfPrincipled")
-            node_bsdf.location = (200, 0)
-
-            # Add wood texture
-            node_tex = nodes.new(type="ShaderNodeTexNoise")
-            node_tex.location = (-200, 0)
-            node_tex.inputs["Scale"].default_value = 5.0
-            node_tex.inputs["Detail"].default_value = 5.0
-
-            # Color ramp for wood pattern
-            node_ramp = nodes.new(type="ShaderNodeValToRGB")
-            node_ramp.location = (0, 0)
-            node_ramp.color_ramp.elements[0].color = (0.2, 0.1, 0.05, 1.0)
-            node_ramp.color_ramp.elements[1].color = (0.4, 0.2, 0.1, 1.0)
-
-            links.new(node_tex.outputs["Fac"], node_ramp.inputs["Fac"])
-            links.new(node_ramp.outputs["Color"], node_bsdf.inputs["Base Color"])
-            node_bsdf.inputs["Roughness"].default_value = 0.7
-
-            links.new(node_bsdf.outputs["BSDF"], node_output.inputs["Surface"])
-
-        # Apply material to object
-        if obj.data.materials:
-            obj.data.materials[0] = mat
-        else:
-            obj.data.materials.append(mat)
-
-        # Save project
-        if "project" in args:
-            bpy.ops.wm.save_mainfile()
-
-        return True
-
-    except Exception as e:
-        print(f"Error applying material: {e}")
-        return False
+IMPORTERS = {
+    "FBX": lambda p: bpy.ops.import_scene.fbx(filepath=p),
+    "OBJ": lambda p: bpy.ops.wm.obj_import(filepath=p),
+    "GLTF": lambda p: bpy.ops.import_scene.gltf(filepath=p),
+    "GLB": lambda p: bpy.ops.import_scene.gltf(filepath=p),
+    "STL": lambda p: bpy.ops.wm.stl_import(filepath=p),
+    "PLY": lambda p: bpy.ops.wm.ply_import(filepath=p),
+    "USD": lambda p: bpy.ops.wm.usd_import(filepath=p),
+}
 
 
 def import_model(args, _job_id):
-    """Import a 3D model into the scene."""
-    try:
-        # Load project
-        if "project" in args:
-            bpy.ops.wm.open_mainfile(filepath=args["project"])
+    """Import a model file and move the imported objects to ``location``."""
+    open_project(args.get("project"))
+    model_path = args.get("model_path")
+    file_format = str(args.get("format", "")).upper()
+    location = args.get("location", [0, 0, 0])
+    if not model_path or not Path(model_path).is_file():
+        raise ScriptError(f"Model file not found: {model_path}")
+    importer = IMPORTERS.get(file_format)
+    if importer is None:
+        raise ScriptError(f"Unsupported import format '{file_format}'. Supported: {', '.join(IMPORTERS)}")
 
-        model_path = args.get("model_path")
-        file_format = args.get("format", "").upper()
-        location = args.get("location", [0, 0, 0])
-
-        # Import based on format
-        if file_format == "FBX":
-            bpy.ops.import_scene.fbx(filepath=model_path)
-        elif file_format == "OBJ":
-            bpy.ops.import_scene.obj(filepath=model_path)
-        elif file_format in ["GLTF", "GLB"]:
-            bpy.ops.import_scene.gltf(filepath=model_path)
-        elif file_format == "STL":
-            bpy.ops.import_mesh.stl(filepath=model_path)
-        elif file_format == "PLY":
-            bpy.ops.import_mesh.ply(filepath=model_path)
-        elif file_format == "COLLADA":
-            bpy.ops.wm.collada_import(filepath=model_path)
-        else:
-            print(f"Unsupported format: {file_format}")
-            return False
-
-        # Move imported objects to location
-        for obj in bpy.context.selected_objects:
+    before = set(bpy.data.objects.keys())
+    importer(model_path)
+    imported = [obj for obj in bpy.data.objects if obj.name not in before]
+    for obj in imported:
+        if obj.parent is None:
             obj.location = location
-
-        # Save project
-        if "project" in args:
-            bpy.ops.wm.save_mainfile()
-
-        return True
-
-    except Exception as e:
-        print(f"Error importing model: {e}")
-        return False
+    save_project()
+    return {"success": True, "imported_objects": sorted(o.name for o in imported)}
 
 
-def delete_objects(args, job_id):
-    """Delete objects from the scene by name or type."""
-    try:
-        # Load project
-        if "project" in args:
-            bpy.ops.wm.open_mainfile(filepath=args["project"])
+def delete_objects(args, _job_id):
+    """Delete objects by exact name, object type, and/or name glob."""
+    open_project(args.get("project"))
+    names = list(args.get("names") or []) + list(args.get("object_names") or [])
+    types = {str(t).upper() for t in (args.get("object_types") or [])}
+    type_pattern = args.get("type_pattern")
+    name_pattern = args.get("name_pattern") or args.get("pattern")
+    if not (names or types or type_pattern or name_pattern):
+        raise ScriptError("Nothing to delete: supply names, type_pattern or name_pattern")
 
-        object_names = args.get("object_names", [])
-        object_types = args.get("object_types", [])
-        pattern = args.get("pattern")
-        deleted = []
+    doomed = {}
+    missing = []
+    for name in names:
+        obj = bpy.data.objects.get(name)
+        if obj is None:
+            missing.append(name)
+        else:
+            doomed[obj.name] = obj
+    for obj in bpy.data.objects:
+        if obj.type in types:
+            doomed[obj.name] = obj
+        if type_pattern and fnmatch.fnmatchcase(obj.type, str(type_pattern).upper()):
+            doomed[obj.name] = obj
+        if name_pattern and fnmatch.fnmatchcase(obj.name, name_pattern):
+            doomed[obj.name] = obj
 
-        # Delete by exact name
-        for name in object_names:
-            obj = bpy.data.objects.get(name)
-            if obj:
-                bpy.data.objects.remove(obj, do_unlink=True)
-                deleted.append(name)
-
-        # Delete by type (MESH, LIGHT, CAMERA, EMPTY, CURVE, etc.)
-        if object_types:
-            for obj in list(bpy.data.objects):
-                if obj.type in object_types:
-                    deleted.append(obj.name)
-                    bpy.data.objects.remove(obj, do_unlink=True)
-
-        # Delete by name pattern (simple wildcard support)
-        if pattern:
-            import fnmatch
-
-            for obj in list(bpy.data.objects):
-                if fnmatch.fnmatch(obj.name, pattern):
-                    deleted.append(obj.name)
-                    bpy.data.objects.remove(obj, do_unlink=True)
-
-        # Save project
-        if "project" in args:
-            bpy.ops.wm.save_mainfile()
-
-        # Write result to file for handler to read
-        write_result(job_id, {"deleted_objects": deleted})
-
-        # Output result for parsing (kept for backward compatibility)
-        print(f"DELETED_OBJECTS:{','.join(deleted)}")
-        return True
-
-    except Exception as e:
-        print(f"Error deleting objects: {e}")
-        return False
+    deleted = sorted(doomed)
+    for obj in doomed.values():
+        bpy.data.objects.remove(obj, do_unlink=True)
+    save_project()
+    return {"success": True, "deleted_objects": deleted, "not_found": missing}
 
 
 def create_curve(args, _job_id):
-    """Create Bézier curves for growth paths and spatial guides.
+    """Create a BEZIER/NURBS/POLY curve object from control points."""
+    open_project(args.get("project"))
+    name = args.get("name", "Curve")
+    curve_type = str(args.get("curve_type", "BEZIER")).upper()
+    points = args.get("points") or [[-1.0, 0.0, 0.5], [0.0, 0.5, 0.7], [1.0, 0.0, 0.5]]
+    closed = bool(args.get("cyclic", args.get("closed", False)))
+    if curve_type not in ("BEZIER", "NURBS", "POLY"):
+        raise ScriptError(f"Unknown curve_type '{curve_type}'. Supported: BEZIER, NURBS, POLY")
+    for point in points:
+        if len(point) != 3:
+            raise ScriptError(f"Every curve point needs 3 coordinates, got {point}")
 
-    Creates curves that can be used as targets for proximity-based effects
-    or as guides for procedural growth patterns.
+    curve_data = bpy.data.curves.new(name=name, type="CURVE")
+    curve_data.dimensions = "3D"
+    curve_data.resolution_u = int(args.get("resolution", 12))
+    curve_data.bevel_depth = float(args.get("bevel_depth", 0.0))
+    spline = curve_data.splines.new(curve_type)
+    spline.use_cyclic_u = closed
+    if curve_type == "BEZIER":
+        spline.bezier_points.add(len(points) - 1)
+        for bp, point in zip(spline.bezier_points, points):
+            bp.co = point
+            bp.handle_left_type = "AUTO"
+            bp.handle_right_type = "AUTO"
+    else:
+        spline.points.add(len(points) - 1)
+        for sp, point in zip(spline.points, points):
+            sp.co = (*point, 1.0)
 
-    Args:
-        project: Blender project file path
-        name: Name for the curve object (default: "GrowthPath")
-        curve_type: Type of curve - BEZIER, NURBS, POLY (default: BEZIER)
-        points: List of control points [[x, y, z], ...] (default: creates a simple path)
-        closed: Whether to close the curve (default: False)
-        resolution: Curve resolution (default: 12)
-        bevel_depth: Bevel depth for 3D curve (default: 0.0)
-        target_object: Optional - position curve on this object's surface
-        surface_offset: Offset from surface if target_object specified (default: 0.05)
-    """
-    try:
-        # Load project
-        if "project" in args:
-            bpy.ops.wm.open_mainfile(filepath=args["project"])
+    curve_obj = bpy.data.objects.new(name, curve_data)
+    bpy.context.scene.collection.objects.link(curve_obj)
 
-        name = args.get("name", "GrowthPath")
-        curve_type = args.get("curve_type", "BEZIER")
-        points = args.get("points")
-        closed = args.get("closed", False)
-        resolution = args.get("resolution", 12)
-        bevel_depth = args.get("bevel_depth", 0.0)
-        target_object = args.get("target_object")
-        surface_offset = args.get("surface_offset", 0.05)
+    target_object = args.get("target_object")
+    if target_object:
+        target = require_object(target_object, "MESH")
+        shrinkwrap = curve_obj.modifiers.new(name="ShrinkwrapCurve", type="SHRINKWRAP")
+        shrinkwrap.target = target
+        shrinkwrap.offset = float(args.get("surface_offset", 0.05))
+        shrinkwrap.wrap_method = "NEAREST_SURFACEPOINT"
 
-        # Create default points if not provided
-        if not points:
-            points = [
-                [-1.0, 0.0, 0.5],
-                [0.0, 0.5, 0.7],
-                [1.0, 0.0, 0.5],
-            ]
-
-        # Create curve data
-        curve_data = bpy.data.curves.new(name=name, type="CURVE")
-        curve_data.dimensions = "3D"
-        curve_data.resolution_u = resolution
-        curve_data.bevel_depth = bevel_depth
-
-        # Create spline
-        if curve_type == "NURBS":
-            spline = curve_data.splines.new("NURBS")
-        elif curve_type == "POLY":
-            spline = curve_data.splines.new("POLY")
-        else:
-            spline = curve_data.splines.new("BEZIER")
-
-        spline.use_cyclic_u = closed
-
-        # Add points to spline
-        if curve_type == "BEZIER":
-            spline.bezier_points.add(len(points) - 1)
-            for i, point in enumerate(points):
-                bp = spline.bezier_points[i]
-                bp.co = point
-                # Auto-calculate handles
-                bp.handle_left_type = "AUTO"
-                bp.handle_right_type = "AUTO"
-        else:
-            spline.points.add(len(points) - 1)
-            for i, point in enumerate(points):
-                # NURBS/Poly points have 4 components (x, y, z, w)
-                spline.points[i].co = (*point, 1.0)
-
-        # Create curve object
-        curve_obj = bpy.data.objects.new(name, curve_data)
-        bpy.context.collection.objects.link(curve_obj)
-
-        # If target object specified, project curve onto surface
-        if target_object:
-            target = bpy.data.objects.get(target_object)
-            if target and target.type == "MESH":
-                # Use shrinkwrap modifier to project curve onto surface
-                shrinkwrap = curve_obj.modifiers.new(name="ShrinkwrapCurve", type="SHRINKWRAP")
-                shrinkwrap.target = target
-                shrinkwrap.offset = surface_offset
-                shrinkwrap.wrap_method = "NEAREST_SURFACEPOINT"
-
-        # Save project
-        if "project" in args:
-            bpy.ops.wm.save_mainfile()
-
-        print(f"Created curve: {name} with {len(points)} points")
-        return True
-
-    except Exception as e:
-        print(f"Error creating curve: {e}")
-        return False
+    save_project()
+    return {"success": True, "curve": curve_obj.name, "points": len(points), "cyclic": closed}
 
 
-def add_texture(args, _job_id):  # noqa: C901
-    """Add a texture to an object."""
-    try:
-        # Load project
-        if "project" in args:
-            bpy.ops.wm.open_mainfile(filepath=args["project"])
+def add_texture(args, _job_id):
+    """Wire a procedural or image texture into the object's Principled BSDF."""
+    open_project(args.get("project"))
+    object_name = args.get("object_name")
+    texture_type = str(args.get("texture_type", "")).upper()
+    settings = args.get("settings") or {}
+    obj = require_object(object_name)
+    if not hasattr(obj.data, "materials"):
+        raise ScriptError(f"Object '{object_name}' ({obj.type}) cannot hold materials")
 
-        object_name = args.get("object_name")
-        texture_type = args.get("texture_type")
-        settings = args.get("settings", {})
+    if not obj.data.materials:
+        mat = bpy.data.materials.new(name=f"{object_name}_material")
+        mat.use_nodes = True
+        obj.data.materials.append(mat)
+    mat = obj.data.materials[0]
+    mat.use_nodes = True
+    nodes = mat.node_tree.nodes
+    links = mat.node_tree.links
 
-        # Find object
-        obj = bpy.data.objects.get(object_name)
-        if not obj:
-            print(f"Object '{object_name}' not found")
-            return False
+    bsdf = next((n for n in nodes if n.type == "BSDF_PRINCIPLED"), None)
+    if bsdf is None:
+        raise ScriptError(
+            f"Material '{mat.name}' has no Principled BSDF node to texture "
+            "(apply a principled/metal/plastic/wood material first)"
+        )
 
-        # Ensure object has a material
-        if not obj.data.materials:
-            mat = bpy.data.materials.new(name=f"{object_name}_material")
-            mat.use_nodes = True
-            obj.data.materials.append(mat)
-        mat = obj.data.materials[0]
-
-        # Get or create node tree
-        if not mat.use_nodes:
-            mat.use_nodes = True
-        nodes = mat.node_tree.nodes
-        links = mat.node_tree.links
-
-        # Find principled BSDF
-        bsdf = None
-        for node in nodes:
-            if node.type == "BSDF_PRINCIPLED":
-                bsdf = node
-                break
-
-        if not bsdf:
-            print("No Principled BSDF found")
-            return False
-
-        # Add texture node based on type
-        if texture_type == "IMAGE":
-            tex_node = nodes.new(type="ShaderNodeTexImage")
-            tex_node.location = (-300, 300)
-            image_path = settings.get("image_path")
-            if image_path and Path(image_path).exists():
-                tex_node.image = bpy.data.images.load(image_path)
-            links.new(tex_node.outputs["Color"], bsdf.inputs["Base Color"])
-
-        elif texture_type == "NOISE":
-            tex_node = nodes.new(type="ShaderNodeTexNoise")
-            tex_node.location = (-300, 300)
-            tex_node.inputs["Scale"].default_value = settings.get("scale", 5.0)
-            tex_node.inputs["Detail"].default_value = settings.get("detail", 2.0)
-            links.new(tex_node.outputs["Fac"], bsdf.inputs["Roughness"])
-
-        elif texture_type == "VORONOI":
-            tex_node = nodes.new(type="ShaderNodeTexVoronoi")
-            tex_node.location = (-300, 300)
-            tex_node.inputs["Scale"].default_value = settings.get("scale", 5.0)
-            links.new(tex_node.outputs["Distance"], bsdf.inputs["Roughness"])
-
-        elif texture_type == "MUSGRAVE":
-            tex_node = nodes.new(type="ShaderNodeTexMusgrave")
-            tex_node.location = (-300, 300)
-            tex_node.inputs["Scale"].default_value = settings.get("scale", 5.0)
-            links.new(tex_node.outputs["Fac"], bsdf.inputs["Roughness"])
-
-        elif texture_type == "GRADIENT":
-            tex_node = nodes.new(type="ShaderNodeTexGradient")
-            tex_node.location = (-300, 300)
-            links.new(tex_node.outputs["Color"], bsdf.inputs["Base Color"])
-
-        elif texture_type == "CHECKER":
-            tex_node = nodes.new(type="ShaderNodeTexChecker")
-            tex_node.location = (-300, 300)
-            tex_node.inputs["Scale"].default_value = settings.get("scale", 5.0)
-            links.new(tex_node.outputs["Color"], bsdf.inputs["Base Color"])
-
-        else:
-            print(f"Unknown texture type: {texture_type}")
-            return False
-
-        # Save project
-        if "project" in args:
-            bpy.ops.wm.save_mainfile()
-
-        return True
-
-    except Exception as e:
-        print(f"Error adding texture: {e}")
-        return False
+    tex_node, output, target = _texture_node(nodes, texture_type, settings)
+    if target not in bsdf.inputs:
+        raise ScriptError(f"Principled BSDF has no input '{target}'")
+    tex_node.location = (bsdf.location.x - 350, bsdf.location.y + 250)
+    links.new(tex_node.outputs[output], bsdf.inputs[target])
+    save_project()
+    return {"success": True, "material": mat.name, "node": tex_node.name, "connected_to": target}
 
 
 def add_uv_map(args, _job_id):
-    """Add UV mapping to an object."""
+    """Unwrap a mesh with the requested projection."""
+    open_project(args.get("project"))
+    object_name = args.get("object_name")
+    projection_type = args.get("projection_type", "SMART_PROJECT")
+    obj = require_object(object_name, "MESH")
+
+    projections = {
+        "SMART_PROJECT": lambda: bpy.ops.uv.smart_project(angle_limit=math.radians(66)),
+        "CUBE_PROJECT": bpy.ops.uv.cube_project,
+        "CYLINDER_PROJECT": bpy.ops.uv.cylinder_project,
+        "SPHERE_PROJECT": bpy.ops.uv.sphere_project,
+        # There is no 3D view in background mode; fall back to a planar cube projection.
+        "PROJECT_FROM_VIEW": bpy.ops.uv.cube_project,
+    }
+    project = projections.get(projection_type)
+    if project is None:
+        raise ScriptError(f"Unknown projection type '{projection_type}'")
+
+    for other in bpy.context.selected_objects:
+        other.select_set(False)
+    obj.select_set(True)
+    bpy.context.view_layer.objects.active = obj
+    bpy.ops.object.mode_set(mode="EDIT")
     try:
-        # Load project
-        if "project" in args:
-            bpy.ops.wm.open_mainfile(filepath=args["project"])
-
-        object_name = args.get("object_name")
-        projection_type = args.get("projection_type", "SMART_PROJECT")
-
-        # Find object
-        obj = bpy.data.objects.get(object_name)
-        if not obj:
-            print(f"Object '{object_name}' not found")
-            return False
-
-        if obj.type != "MESH":
-            print(f"Object '{object_name}' is not a mesh")
-            return False
-
-        # Select and make active
-        bpy.ops.object.select_all(action="DESELECT")
-        obj.select_set(True)
-        bpy.context.view_layer.objects.active = obj
-
-        # Enter edit mode for UV projection
-        bpy.ops.object.mode_set(mode="EDIT")
         bpy.ops.mesh.select_all(action="SELECT")
-
-        # Apply UV projection
-        if projection_type == "SMART_PROJECT":
-            bpy.ops.uv.smart_project(angle_limit=math.radians(66))
-        elif projection_type == "CUBE_PROJECT":
-            bpy.ops.uv.cube_project()
-        elif projection_type == "CYLINDER_PROJECT":
-            bpy.ops.uv.cylinder_project()
-        elif projection_type == "SPHERE_PROJECT":
-            bpy.ops.uv.sphere_project()
-        elif projection_type == "PROJECT_FROM_VIEW":
-            bpy.ops.uv.project_from_view()
-        else:
-            print(f"Unknown projection type: {projection_type}")
-            bpy.ops.object.mode_set(mode="OBJECT")
-            return False
-
-        # Return to object mode
+        project()
+    finally:
         bpy.ops.object.mode_set(mode="OBJECT")
-
-        # Save project
-        if "project" in args:
-            bpy.ops.wm.save_mainfile()
-
-        return True
-
-    except Exception as e:
-        print(f"Error adding UV map: {e}")
-        # Try to return to object mode
-        try:
-            bpy.ops.object.mode_set(mode="OBJECT")
-        except Exception:
-            pass
-        return False
+    save_project()
+    return {"success": True, "uv_layers": [uv.name for uv in obj.data.uv_layers]}
 
 
-def setup_compositor(args, _job_id):
-    """Setup compositor nodes for post-processing."""
-    try:
-        # Load project
-        if "project" in args:
-            bpy.ops.wm.open_mainfile(filepath=args["project"])
+def setup_compositor(args, _job_id):  # noqa: C901
+    """Replace the compositor node tree with a post-processing preset."""
+    open_project(args.get("project"))
+    setup = args.get("setup")
+    settings = args.get("settings") or {}
+    if setup not in COMPOSITOR_SETUPS:
+        raise ScriptError(f"Unknown compositor setup '{setup}'. Available: {', '.join(COMPOSITOR_SETUPS)}")
 
-        setup = args.get("setup")
-        settings = args.get("settings", {})
+    scene = bpy.context.scene
+    scene.use_nodes = True
+    tree = scene.node_tree
+    nodes = tree.nodes
+    links = tree.links
+    nodes.clear()
 
-        scene = bpy.context.scene
-        scene.use_nodes = True
-        tree = scene.node_tree
-        nodes = tree.nodes
-        links = tree.links
+    render_layers = nodes.new(type="CompositorNodeRLayers")
+    render_layers.location = (0, 300)
+    composite = nodes.new(type="CompositorNodeComposite")
+    composite.location = (900, 300)
+    viewer = nodes.new(type="CompositorNodeViewer")
+    viewer.location = (900, 0)
 
-        # Clear existing nodes
-        nodes.clear()
+    def finish(node, output="Image"):
+        links.new(node.outputs[output], composite.inputs["Image"])
+        links.new(node.outputs[output], viewer.inputs["Image"])
 
-        # Add render layers node
-        render_layers = nodes.new(type="CompositorNodeRLayers")
-        render_layers.location = (0, 300)
+    image = render_layers.outputs["Image"]
+    if setup == "BASIC":
+        finish(render_layers)
+    elif setup == "DENOISING":
+        denoise = nodes.new(type="CompositorNodeDenoise")
+        denoise.location = (400, 300)
+        links.new(image, denoise.inputs["Image"])
+        finish(denoise)
+    elif setup == "COLOR_GRADING":
+        balance = nodes.new(type="CompositorNodeColorBalance")
+        balance.location = (300, 300)
+        curves = nodes.new(type="CompositorNodeCurveRGB")
+        curves.location = (600, 300)
+        links.new(image, balance.inputs["Image"])
+        links.new(balance.outputs["Image"], curves.inputs["Image"])
+        finish(curves)
+    elif setup in ("GLARE", "FOG_GLOW"):
+        glare = nodes.new(type="CompositorNodeGlare")
+        glare.location = (400, 300)
+        glare.glare_type = settings.get("glare_type", "FOG_GLOW" if setup == "FOG_GLOW" else "STREAKS")
+        glare.quality = settings.get("quality", "HIGH")
+        _set_node_value(glare, ["Threshold"], "threshold", float(settings.get("threshold", 1.0)))
+        if "strength" in settings:
+            _set_node_value(glare, ["Strength"], None, float(settings["strength"]))
+        links.new(image, glare.inputs["Image"])
+        finish(glare)
+    elif setup == "LENS_DISTORTION":
+        lens = nodes.new(type="CompositorNodeLensdist")
+        lens.location = (400, 300)
+        _set_node_value(lens, ["Distortion", "Distort"], None, float(settings.get("distort", 0.05)))
+        _set_node_value(lens, ["Dispersion"], None, float(settings.get("dispersion", 0.01)))
+        links.new(image, lens.inputs["Image"])
+        finish(lens)
+    elif setup == "VIGNETTE":
+        size = float(settings.get("size", 0.8))
+        ellipse = nodes.new(type="CompositorNodeEllipseMask")
+        ellipse.location = (200, 0)
+        ellipse.mask_width = size
+        ellipse.mask_height = size
+        blur = nodes.new(type="CompositorNodeBlur")
+        blur.location = (400, 0)
+        blur.filter_type = "FAST_GAUSS"
+        blur.use_relative = True
+        blur.factor_x = blur.factor_y = float(settings.get("softness", 20.0))
+        mix = nodes.new(type="CompositorNodeMixRGB")
+        mix.location = (650, 300)
+        mix.blend_type = "MULTIPLY"
+        links.new(image, mix.inputs[1])
+        links.new(ellipse.outputs["Mask"], blur.inputs["Image"])
+        links.new(blur.outputs["Image"], mix.inputs[2])
+        finish(mix)
 
-        # Add composite output
-        composite = nodes.new(type="CompositorNodeComposite")
-        composite.location = (800, 300)
-
-        # Add viewer
-        viewer = nodes.new(type="CompositorNodeViewer")
-        viewer.location = (800, 0)
-
-        if setup == "BASIC":
-            # Direct connection
-            links.new(render_layers.outputs["Image"], composite.inputs["Image"])
-            links.new(render_layers.outputs["Image"], viewer.inputs["Image"])
-
-        elif setup == "DENOISING":
-            # Add denoise node
-            denoise = nodes.new(type="CompositorNodeDenoise")
-            denoise.location = (400, 300)
-            links.new(render_layers.outputs["Image"], denoise.inputs["Image"])
-            links.new(denoise.outputs["Image"], composite.inputs["Image"])
-            links.new(denoise.outputs["Image"], viewer.inputs["Image"])
-
-        elif setup == "COLOR_GRADING":
-            # Add color balance and curves
-            color_balance = nodes.new(type="CompositorNodeColorBalance")
-            color_balance.location = (400, 300)
-            curves = nodes.new(type="CompositorNodeCurveRGB")
-            curves.location = (600, 300)
-            links.new(render_layers.outputs["Image"], color_balance.inputs["Image"])
-            links.new(color_balance.outputs["Image"], curves.inputs["Image"])
-            links.new(curves.outputs["Image"], composite.inputs["Image"])
-            links.new(curves.outputs["Image"], viewer.inputs["Image"])
-
-        elif setup == "GLARE":
-            # Add glare node
-            glare = nodes.new(type="CompositorNodeGlare")
-            glare.location = (400, 300)
-            glare.glare_type = "FOG_GLOW"
-            glare.threshold = settings.get("threshold", 1.0)
-            links.new(render_layers.outputs["Image"], glare.inputs["Image"])
-            links.new(glare.outputs["Image"], composite.inputs["Image"])
-            links.new(glare.outputs["Image"], viewer.inputs["Image"])
-
-        elif setup == "FOG_GLOW":
-            # Add fog glow effect
-            glare = nodes.new(type="CompositorNodeGlare")
-            glare.location = (400, 300)
-            glare.glare_type = "FOG_GLOW"
-            glare.quality = "HIGH"
-            links.new(render_layers.outputs["Image"], glare.inputs["Image"])
-            links.new(glare.outputs["Image"], composite.inputs["Image"])
-            links.new(glare.outputs["Image"], viewer.inputs["Image"])
-
-        elif setup == "LENS_DISTORTION":
-            # Add lens distortion
-            lens = nodes.new(type="CompositorNodeLensdist")
-            lens.location = (400, 300)
-            lens.inputs["Distort"].default_value = settings.get("distort", 0.0)
-            lens.inputs["Dispersion"].default_value = settings.get("dispersion", 0.0)
-            links.new(render_layers.outputs["Image"], lens.inputs["Image"])
-            links.new(lens.outputs["Image"], composite.inputs["Image"])
-            links.new(lens.outputs["Image"], viewer.inputs["Image"])
-
-        elif setup == "VIGNETTE":
-            # Create vignette effect with ellipse mask
-            ellipse = nodes.new(type="CompositorNodeEllipseMask")
-            ellipse.location = (200, 0)
-            ellipse.width = 0.8
-            ellipse.height = 0.8
-            blur = nodes.new(type="CompositorNodeBlur")
-            blur.location = (400, 0)
-            blur.size_x = 200
-            blur.size_y = 200
-            mix = nodes.new(type="CompositorNodeMixRGB")
-            mix.location = (600, 300)
-            mix.blend_type = "MULTIPLY"
-            links.new(render_layers.outputs["Image"], mix.inputs[1])
-            links.new(ellipse.outputs["Mask"], blur.inputs["Image"])
-            links.new(blur.outputs["Image"], mix.inputs[2])
-            links.new(mix.outputs["Image"], composite.inputs["Image"])
-            links.new(mix.outputs["Image"], viewer.inputs["Image"])
-
-        else:
-            print(f"Unknown compositor setup: {setup}")
-            return False
-
-        # Save project
-        if "project" in args:
-            bpy.ops.wm.save_mainfile()
-
-        return True
-
-    except Exception as e:
-        print(f"Error setting up compositor: {e}")
-        return False
+    save_project()
+    return {"success": True, "setup": setup, "nodes": [n.name for n in nodes]}
 
 
-def analyze_scene(args, job_id):
-    """Analyze scene for statistics and potential issues."""
-    try:
-        # Load project
-        if "project" in args:
-            bpy.ops.wm.open_mainfile(filepath=args["project"])
+def analyze_scene(args, _job_id):
+    """Scene statistics; DETAILED/PERFORMANCE/MEMORY add progressively more."""
+    open_project(args.get("project"))
+    analysis_type = args.get("analysis_type", "BASIC")
+    scene = bpy.context.scene
 
-        analysis_type = args.get("analysis_type", "BASIC")
-        result = {}
+    object_counts = {}
+    total_vertices = total_faces = total_tris = 0
+    objects = []
+    for obj in bpy.data.objects:
+        object_counts[obj.type] = object_counts.get(obj.type, 0) + 1
+        entry = {"name": obj.name, "type": obj.type, "location": [round(v, 4) for v in obj.location]}
+        if obj.type == "MESH" and obj.data:
+            mesh = obj.data
+            total_vertices += len(mesh.vertices)
+            total_faces += len(mesh.polygons)
+            total_tris += sum(len(poly.vertices) - 2 for poly in mesh.polygons)
+            entry["vertices"] = len(mesh.vertices)
+        objects.append(entry)
 
-        # Count objects by type
-        object_counts = {}
-        total_vertices = 0
-        total_faces = 0
-        total_tris = 0
+    result = {
+        "success": True,
+        "object_counts": object_counts,
+        "total_objects": len(bpy.data.objects),
+        "total_vertices": total_vertices,
+        "total_faces": total_faces,
+        "total_triangles": total_tris,
+        "materials": len(bpy.data.materials),
+        "textures": len(bpy.data.images),
+        "render_engine": scene.render.engine,
+        "resolution": [scene.render.resolution_x, scene.render.resolution_y],
+        "frame_range": [scene.frame_start, scene.frame_end],
+        "active_camera": scene.camera.name if scene.camera else None,
+        "objects": objects[:500],
+        "objects_truncated": len(objects) > 500,
+    }
 
-        for obj in bpy.data.objects:
-            obj_type = obj.type
-            object_counts[obj_type] = object_counts.get(obj_type, 0) + 1
-
-            if obj.type == "MESH" and obj.data:
-                mesh = obj.data
-                total_vertices += len(mesh.vertices)
-                total_faces += len(mesh.polygons)
-                # Count triangles
-                for poly in mesh.polygons:
-                    total_tris += len(poly.vertices) - 2
-
-        result["object_counts"] = object_counts
-        result["total_objects"] = len(bpy.data.objects)
-        result["total_vertices"] = total_vertices
-        result["total_faces"] = total_faces
-        result["total_triangles"] = total_tris
-        result["materials"] = len(bpy.data.materials)
-        result["textures"] = len(bpy.data.images)
-
-        if analysis_type in ("DETAILED", "PERFORMANCE", "MEMORY"):
-            # Additional detailed info
-            result["meshes"] = len(bpy.data.meshes)
-            result["curves"] = len(bpy.data.curves)
-            result["lights"] = len(bpy.data.lights)
-            result["cameras"] = len(bpy.data.cameras)
-            result["collections"] = len(bpy.data.collections)
-            result["worlds"] = len(bpy.data.worlds)
-            result["scenes"] = len(bpy.data.scenes)
-
-        if analysis_type == "PERFORMANCE":
-            # Performance-related warnings
-            warnings = []
-            if total_tris > 1000000:
-                warnings.append(f"High triangle count: {total_tris}")
-            if len(bpy.data.materials) > 50:
-                warnings.append(f"Many materials: {len(bpy.data.materials)}")
-            result["warnings"] = warnings
-
-        if analysis_type == "MEMORY":
-            # Memory estimation (rough)
-            vertex_mem = total_vertices * 12  # 3 floats * 4 bytes
-            face_mem = total_faces * 16  # Average 4 indices * 4 bytes
-            result["estimated_mesh_memory_mb"] = round((vertex_mem + face_mem) / (1024 * 1024), 2)
-
-        # Write result to file for handler to read
-        write_result(job_id, result)
-
-        # Also print for stdout parsing
-        print(json.dumps(result))
-        return True
-
-    except Exception as e:
-        print(f"Error analyzing scene: {e}")
-        return False
+    if analysis_type in ("DETAILED", "PERFORMANCE", "MEMORY"):
+        result.update(
+            {
+                "meshes": len(bpy.data.meshes),
+                "curves": len(bpy.data.curves),
+                "lights": len(bpy.data.lights),
+                "cameras": len(bpy.data.cameras),
+                "collections": len(bpy.data.collections),
+                "worlds": len(bpy.data.worlds),
+                "scenes": len(bpy.data.scenes),
+            }
+        )
+    if analysis_type == "PERFORMANCE":
+        warnings = []
+        if total_tris > 1_000_000:
+            warnings.append(f"High triangle count: {total_tris}")
+        if len(bpy.data.materials) > 50:
+            warnings.append(f"Many materials: {len(bpy.data.materials)}")
+        unused = [m.name for m in bpy.data.materials if m.users == 0]
+        if unused:
+            warnings.append(f"{len(unused)} unused materials (run optimize_scene MATERIAL_CLEANUP)")
+        result["warnings"] = warnings
+    if analysis_type == "MEMORY":
+        vertex_mem = total_vertices * 12
+        face_mem = total_faces * 16
+        result["estimated_mesh_memory_mb"] = round((vertex_mem + face_mem) / (1024 * 1024), 2)
+    return result
 
 
 def optimize_scene(args, _job_id):  # noqa: C901
-    """Optimize scene for better performance."""
-    try:
-        # Load project
-        if "project" in args:
-            bpy.ops.wm.open_mainfile(filepath=args["project"])
+    """Apply one optimization pass and report what changed."""
+    import bmesh  # pylint: disable=import-outside-toplevel
 
-        optimization_type = args.get("optimization_type")
-        settings = args.get("settings", {})
+    open_project(args.get("project"))
+    optimization_type = args.get("optimization_type")
+    settings = args.get("settings") or {}
+    report = {}
 
-        if optimization_type == "MESH_CLEANUP":
-            # Clean up meshes
-            for obj in bpy.data.objects:
-                if obj.type == "MESH":
-                    bpy.ops.object.select_all(action="DESELECT")
-                    obj.select_set(True)
-                    bpy.context.view_layer.objects.active = obj
-                    bpy.ops.object.mode_set(mode="EDIT")
-                    # Remove doubles
-                    bpy.ops.mesh.select_all(action="SELECT")
-                    bpy.ops.mesh.remove_doubles(threshold=settings.get("merge_threshold", 0.0001))
-                    # Delete loose vertices
-                    bpy.ops.mesh.delete_loose()
-                    bpy.ops.object.mode_set(mode="OBJECT")
+    if optimization_type == "MESH_CLEANUP":
+        threshold = float(settings.get("merge_threshold", 0.0001))
+        removed = 0
+        for mesh in bpy.data.meshes:
+            if mesh.users == 0:
+                continue
+            bm = bmesh.new()
+            bm.from_mesh(mesh)
+            before = len(bm.verts)
+            bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=threshold)
+            loose = [v for v in bm.verts if not v.link_edges]
+            bmesh.ops.delete(bm, geom=loose, context="VERTS")
+            removed += before - len(bm.verts)
+            bm.to_mesh(mesh)
+            bm.free()
+        report["vertices_removed"] = removed
 
-        elif optimization_type == "TEXTURE_OPTIMIZATION":
-            # Resize large textures
-            max_size = settings.get("max_size", 2048)
-            for image in bpy.data.images:
-                if image.size[0] > max_size or image.size[1] > max_size:
-                    scale = max_size / max(image.size)
-                    new_width = int(image.size[0] * scale)
-                    new_height = int(image.size[1] * scale)
-                    image.scale(new_width, new_height)
+    elif optimization_type == "TEXTURE_OPTIMIZATION":
+        max_size = int(settings.get("max_size", 2048))
+        resized = []
+        for image in bpy.data.images:
+            width, height = image.size
+            if width > max_size or height > max_size:
+                scale = max_size / max(width, height)
+                image.scale(max(1, int(width * scale)), max(1, int(height * scale)))
+                resized.append(image.name)
+        report["images_resized"] = resized
 
-        elif optimization_type == "MODIFIER_APPLY":
-            # Apply modifiers
-            for obj in bpy.data.objects:
-                if obj.type == "MESH":
-                    bpy.ops.object.select_all(action="DESELECT")
-                    obj.select_set(True)
-                    bpy.context.view_layer.objects.active = obj
-                    for modifier in obj.modifiers[:]:
-                        try:
-                            bpy.ops.object.modifier_apply(modifier=modifier.name)
-                        except Exception:
-                            pass  # Skip modifiers that can't be applied
+    elif optimization_type == "MODIFIER_APPLY":
+        applied, failed = [], []
+        for obj in bpy.data.objects:
+            if obj.type != "MESH":
+                continue
+            for modifier in list(obj.modifiers):
+                try:
+                    with bpy.context.temp_override(object=obj, active_object=obj):
+                        bpy.ops.object.modifier_apply(modifier=modifier.name)
+                    applied.append(f"{obj.name}:{modifier.name}")
+                except RuntimeError as exc:
+                    failed.append(f"{obj.name}:{modifier.name}: {exc}")
+        report["applied"] = applied
+        report["failed"] = failed
 
-        elif optimization_type == "INSTANCE_OPTIMIZATION":
-            # Convert duplicates to instances
-            # This is a simplified version - just links duplicate mesh data
-            mesh_users = {}
-            for obj in bpy.data.objects:
-                if obj.type == "MESH" and obj.data:
-                    key = (len(obj.data.vertices), len(obj.data.polygons))
-                    if key not in mesh_users:
-                        mesh_users[key] = []
-                    mesh_users[key].append(obj)
+    elif optimization_type == "INSTANCE_OPTIMIZATION":
+        # Objects whose meshes are geometrically identical share one mesh datablock.
+        by_signature = {}
+        linked = []
+        for obj in bpy.data.objects:
+            if obj.type != "MESH" or obj.data is None or obj.modifiers:
+                continue
+            key = _mesh_signature(obj.data)
+            shared = by_signature.setdefault(key, obj.data)
+            if shared is not obj.data:
+                obj.data = shared
+                linked.append(obj.name)
+        for mesh in list(bpy.data.meshes):
+            if mesh.users == 0:
+                bpy.data.meshes.remove(mesh)
+        report["objects_instanced"] = linked
+        report["unique_meshes"] = len(by_signature)
 
-        elif optimization_type == "MATERIAL_CLEANUP":
-            # Remove unused materials
-            for mat in bpy.data.materials:
-                if not mat.users:
-                    bpy.data.materials.remove(mat)
+    elif optimization_type == "MATERIAL_CLEANUP":
+        materials = [m.name for m in bpy.data.materials if m.users == 0]
+        for name in materials:
+            bpy.data.materials.remove(bpy.data.materials[name])
+        images = [i.name for i in bpy.data.images if i.users == 0]
+        for name in images:
+            bpy.data.images.remove(bpy.data.images[name])
+        report["materials_removed"] = materials
+        report["images_removed"] = images
 
-            # Remove unused images
-            for img in bpy.data.images:
-                if not img.users:
-                    bpy.data.images.remove(img)
+    else:
+        raise ScriptError(f"Unknown optimization type '{optimization_type}'")
 
-        else:
-            print(f"Unknown optimization type: {optimization_type}")
-            return False
-
-        # Save project
-        if "project" in args:
-            bpy.ops.wm.save_mainfile()
-
-        return True
-
-    except Exception as e:
-        print(f"Error optimizing scene: {e}")
-        # Try to return to object mode
-        try:
-            bpy.ops.object.mode_set(mode="OBJECT")
-        except Exception:
-            pass
-        return False
+    save_project()
+    report["success"] = True
+    return report
 
 
 def export_scene(args, _job_id):
-    """Export scene to various formats."""
-    try:
-        # Load project
-        if "project" in args:
-            bpy.ops.wm.open_mainfile(filepath=args["project"])
+    """Export the scene (or the current selection) to a model file."""
+    open_project(args.get("project"))
+    file_format = str(args.get("format", "")).upper()
+    output_path = args.get("output_path")
+    selected_only = bool(args.get("selected_only", False))
+    if not output_path:
+        raise ScriptError("output_path is required")
+    Path(output_path).parent.mkdir(parents=True, exist_ok=True)
 
-        file_format = args.get("format", "").upper()
-        output_path = args.get("output_path")
-        selected_only = args.get("selected_only", False)
-
-        # Select objects if needed
-        if not selected_only:
-            bpy.ops.object.select_all(action="SELECT")
-
-        # Export based on format
-        if file_format == "FBX":
-            bpy.ops.export_scene.fbx(filepath=output_path, use_selection=selected_only)
-        elif file_format == "OBJ":
-            bpy.ops.export_scene.obj(filepath=output_path, use_selection=selected_only)
-        elif file_format in ["GLTF", "GLB"]:
-            bpy.ops.export_scene.gltf(filepath=output_path, use_selection=selected_only)
-        elif file_format == "STL":
-            bpy.ops.export_mesh.stl(filepath=output_path, use_selection=selected_only)
-        elif file_format == "USD":
-            bpy.ops.wm.usd_export(filepath=output_path, selected_objects_only=selected_only)
-        else:
-            print(f"Unsupported export format: {file_format}")
-            return False
-
-        return True
-
-    except Exception as e:
-        print(f"Error exporting scene: {e}")
-        return False
-
-
-def main():  # noqa: C901
-    """Main entry point."""
-    argv = sys.argv
-
-    if "--" in argv:
-        argv = argv[argv.index("--") + 1 :]
-
-    if len(argv) < 2:
-        print("Usage: blender --python scene_builder.py -- args.json job_id")
-        sys.exit(1)
-
-    args_file = argv[0]
-    job_id = argv[1]
-
-    with open(args_file, "r", encoding="utf-8") as f:
-        args = json.load(f)
-
-    operation = args.get("operation")
-
-    if operation == "create_project":
-        success = create_project(args, job_id)
-    elif operation == "add_primitives":
-        success = add_primitives(args, job_id)
-    elif operation == "setup_lighting":
-        success = setup_lighting(args, job_id)
-    elif operation == "apply_material":
-        success = apply_material(args, job_id)
-    elif operation == "import_model":
-        success = import_model(args, job_id)
-    elif operation == "export_scene":
-        success = export_scene(args, job_id)
-    elif operation == "delete_objects":
-        success = delete_objects(args, job_id)
-    elif operation == "create_curve":
-        success = create_curve(args, job_id)
-    elif operation == "add_texture":
-        success = add_texture(args, job_id)
-    elif operation == "add_uv_map":
-        success = add_uv_map(args, job_id)
-    elif operation == "setup_compositor":
-        success = setup_compositor(args, job_id)
-    elif operation == "analyze_scene":
-        success = analyze_scene(args, job_id)
-    elif operation == "optimize_scene":
-        success = optimize_scene(args, job_id)
+    if file_format == "FBX":
+        bpy.ops.export_scene.fbx(filepath=output_path, use_selection=selected_only)
+    elif file_format == "OBJ":
+        bpy.ops.wm.obj_export(filepath=output_path, export_selected_objects=selected_only)
+    elif file_format in ("GLTF", "GLB"):
+        bpy.ops.export_scene.gltf(
+            filepath=output_path,
+            use_selection=selected_only,
+            export_format="GLB" if file_format == "GLB" else "GLTF_SEPARATE",
+        )
+    elif file_format == "STL":
+        bpy.ops.wm.stl_export(filepath=output_path, export_selected_objects=selected_only)
+    elif file_format == "PLY":
+        bpy.ops.wm.ply_export(filepath=output_path, export_selected_objects=selected_only)
+    elif file_format == "USD":
+        bpy.ops.wm.usd_export(filepath=output_path, selected_objects_only=selected_only)
     else:
-        print(f"Unknown operation: {operation}")
-        sys.exit(1)
+        raise ScriptError(f"Unsupported export format '{file_format}'")
 
-    sys.exit(0 if success else 1)
+    if not Path(output_path).is_file():
+        raise ScriptError(f"Exporter reported success but {output_path} was not written")
+    return {"success": True, "output_path": output_path, "bytes": Path(output_path).stat().st_size}
+
+
+def _set_node_value(node, socket_names, attr, value):
+    """Set a node parameter across Blender versions.
+
+    Blender 4.4+ turned many compositor node properties into input sockets
+    (e.g. Glare "Threshold", Lens Distortion "Distortion"); older releases only
+    have the RNA property. Try the sockets first, then the property.
+    """
+    for name in socket_names:
+        socket = node.inputs.get(name)
+        if socket is not None and hasattr(socket, "default_value"):
+            socket.default_value = value
+            return
+    if attr and hasattr(node, attr):
+        setattr(node, attr, value)
+
+
+COMPOSITOR_SETUPS = ("BASIC", "DENOISING", "COLOR_GRADING", "GLARE", "FOG_GLOW", "LENS_DISTORTION", "VIGNETTE")
+
+
+def main():
+    """Dispatch the requested operation (see mcp_common.run)."""
+    run(
+        {
+            "create_project": create_project,
+            "add_primitives": add_primitives,
+            "setup_lighting": setup_lighting,
+            "apply_material": apply_material,
+            "import_model": import_model,
+            "export_scene": export_scene,
+            "delete_objects": delete_objects,
+            "create_curve": create_curve,
+            "add_texture": add_texture,
+            "add_uv_map": add_uv_map,
+            "setup_compositor": setup_compositor,
+            "analyze_scene": analyze_scene,
+            "optimize_scene": optimize_scene,
+        }
+    )
 
 
 if __name__ == "__main__":

@@ -1,562 +1,637 @@
-//! Meme generation engine with text overlay support.
+//! Meme rendering, encoding, and saving.
+//!
+//! Everything here is synchronous and CPU/disk bound; the MCP tools call it
+//! from `tokio::task::spawn_blocking` so it never stalls the async runtime.
 
-use ab_glyph::{Font, FontRef, PxScale, ScaleFont};
-use base64::{Engine as _, engine::general_purpose::STANDARD as BASE64};
-use image::{DynamicImage, ImageFormat, Rgb, RgbImage};
-use imageproc::drawing::draw_text_mut;
-use std::collections::HashMap;
-use std::fs;
-use std::io::Cursor;
+use image::{ImageFormat, RgbImage, imageops::FilterType};
+use serde::{Deserialize, Serialize};
+use std::collections::BTreeMap;
+use std::fs::OpenOptions;
+use std::io::{Cursor, Write};
 use std::path::{Path, PathBuf};
-use tracing::{debug, error, info, warn};
+use std::sync::atomic::{AtomicU64, Ordering};
 
-use crate::types::{MemeResult, TemplateConfig, TemplateSummary, TextArea, VisualFeedback};
-use crate::upload::MemeUploader;
+use crate::fonts::LoadedFont;
+use crate::render::{
+    self, AreaRect, FONT_SIZE_RANGE, Layout, MAX_TEXT_CHARS, TextStyle, fit_text, layout_at_size,
+    parse_color, sanitize_text, unsupported_chars,
+};
+use crate::templates::{LoadedTemplate, TemplateStore};
 
-/// Default font path for Linux systems
-const DEFAULT_FONT_PATH: &str = "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf";
+/// Longest side of the preview image returned to the client.
+pub const PREVIEW_MAX_SIDE: u32 = 512;
 
-/// Fallback font embedded in binary (DejaVu Sans Bold subset)
-/// This is just the basic ASCII subset for fallback
-const FALLBACK_FONT_BYTES: &[u8] = include_bytes!("../assets/DejaVuSans-Bold.ttf");
+/// JPEG quality for full-size JPEG output.
+const JPEG_QUALITY: u8 = 90;
+/// JPEG quality for previews.
+const PREVIEW_JPEG_QUALITY: u8 = 80;
 
-/// Meme generator engine
-pub struct MemeGenerator {
-    templates_dir: PathBuf,
-    output_dir: PathBuf,
-    templates: HashMap<String, TemplateConfig>,
-    font_data: Vec<u8>,
+/// Errors surfaced to the caller as tool errors.
+#[derive(Debug, thiserror::Error)]
+pub enum MemeError {
+    /// Unknown template id.
+    #[error("Template '{id}' not found. Available templates: {}", available.join(", "))]
+    TemplateNotFound {
+        /// Requested id.
+        id: String,
+        /// Valid ids.
+        available: Vec<String>,
+    },
+    /// Caller-supplied arguments are invalid.
+    #[error("{0}")]
+    InvalidArgument(String),
+    /// Template image could not be decoded.
+    #[error("Failed to load template image {path}: {message}")]
+    TemplateImage {
+        /// Image path.
+        path: String,
+        /// Decoder error.
+        message: String,
+    },
+    /// Encoding failed.
+    #[error("Failed to encode image: {0}")]
+    Encode(String),
+    /// Writing the output failed.
+    #[error("Failed to save meme to {path}: {message}")]
+    Save {
+        /// Target path.
+        path: String,
+        /// I/O error.
+        message: String,
+    },
 }
 
+/// Output image format.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum OutputFormat {
+    /// Lossless PNG (default).
+    #[default]
+    Png,
+    /// JPEG (much smaller; better for uploads of photo templates).
+    #[serde(alias = "jpg")]
+    Jpeg,
+}
+
+impl OutputFormat {
+    /// File extension.
+    pub fn extension(self) -> &'static str {
+        match self {
+            Self::Png => "png",
+            Self::Jpeg => "jpg",
+        }
+    }
+
+    /// MIME type.
+    pub fn mime(self) -> &'static str {
+        match self {
+            Self::Png => "image/png",
+            Self::Jpeg => "image/jpeg",
+        }
+    }
+}
+
+/// A validated-at-render-time meme request.
+#[derive(Debug, Clone, Default)]
+pub struct MemeRequest {
+    /// Template id.
+    pub template: String,
+    /// Area id -> caption.
+    pub texts: BTreeMap<String, String>,
+    /// Area id -> fixed font size (skips auto-fit for that area).
+    pub font_size_override: BTreeMap<String, i32>,
+    /// Shrink text to fit each area (otherwise use `default_font_size`).
+    pub auto_resize: bool,
+}
+
+/// How one area was rendered.
+#[derive(Debug, Clone, Serialize, PartialEq)]
+pub struct AreaReport {
+    /// Area id.
+    pub id: String,
+    /// Font size used (px).
+    pub font_size: f32,
+    /// Number of wrapped lines.
+    pub lines: usize,
+    /// Whether the text fit inside the area.
+    pub fits: bool,
+}
+
+/// A rendered (not yet encoded) meme.
+pub struct RenderedMeme {
+    /// Template id.
+    pub template: String,
+    /// Final pixels.
+    pub image: RgbImage,
+    /// Per-area layout report.
+    pub areas: Vec<AreaReport>,
+    /// Non-fatal issues (overflow, missing glyphs, over max_chars, ...).
+    pub warnings: Vec<String>,
+}
+
+/// An encoded image.
+pub struct EncodedImage {
+    /// File bytes.
+    pub bytes: Vec<u8>,
+    /// Format.
+    pub format: OutputFormat,
+    /// Width in px.
+    pub width: u32,
+    /// Height in px.
+    pub height: u32,
+}
+
+/// Meme generator: loaded templates + font + output directory.
+pub struct MemeGenerator {
+    store: TemplateStore,
+    font: LoadedFont,
+    output_dir: PathBuf,
+}
+
+/// Distinguishes files saved within the same millisecond.
+static SAVE_COUNTER: AtomicU64 = AtomicU64::new(0);
+
 impl MemeGenerator {
-    /// Create a new meme generator
-    pub fn new(templates_dir: PathBuf, output_dir: PathBuf) -> Self {
-        let mut generator = Self {
-            templates_dir,
+    /// Build a generator from already-loaded parts.
+    pub fn new(store: TemplateStore, font: LoadedFont, output_dir: PathBuf) -> Self {
+        Self {
+            store,
+            font,
             output_dir,
-            templates: HashMap::new(),
-            font_data: Vec::new(),
-        };
-        generator.load_font();
-        generator.load_templates();
-        generator
+        }
     }
 
-    /// Load font data
-    fn load_font(&mut self) {
-        // Try system font first
-        if Path::new(DEFAULT_FONT_PATH).exists() {
-            match fs::read(DEFAULT_FONT_PATH) {
-                Ok(data) => {
-                    info!("Loaded system font: {}", DEFAULT_FONT_PATH);
-                    self.font_data = data;
-                    return;
-                },
-                Err(e) => {
-                    warn!("Failed to load system font: {}", e);
-                },
-            }
-        }
-
-        // Fall back to embedded font
-        info!("Using embedded fallback font");
-        self.font_data = FALLBACK_FONT_BYTES.to_vec();
+    /// Loaded templates.
+    pub fn store(&self) -> &TemplateStore {
+        &self.store
     }
 
-    /// Load all template configurations
-    fn load_templates(&mut self) {
-        let config_dir = self.templates_dir.join("config");
-        if !config_dir.exists() {
-            warn!("Config directory not found: {}", config_dir.display());
-            return;
-        }
+    /// Where the font came from.
+    pub fn font_source(&self) -> &str {
+        &self.font.source
+    }
 
-        let entries = match fs::read_dir(&config_dir) {
-            Ok(e) => e,
-            Err(e) => {
-                error!("Failed to read config directory: {}", e);
-                return;
-            },
+    fn template(&self, id: &str) -> Result<&LoadedTemplate, MemeError> {
+        self.store
+            .get(id)
+            .ok_or_else(|| MemeError::TemplateNotFound {
+                id: id.to_string(),
+                available: self.store.ids(),
+            })
+    }
+
+    /// Validate `req` against the template and render it.
+    pub fn render(&self, req: &MemeRequest) -> Result<RenderedMeme, MemeError> {
+        let template = self.template(&req.template)?;
+        let areas = &template.config.text_areas;
+        let valid_ids = || {
+            areas
+                .iter()
+                .map(|a| a.id.as_str())
+                .collect::<Vec<_>>()
+                .join(", ")
         };
 
-        for entry in entries.flatten() {
-            let path = entry.path();
-            if path.extension().and_then(|e| e.to_str()) == Some("json") {
-                let filename = path.file_stem().and_then(|s| s.to_str()).unwrap_or("");
-                if filename == "template_schema" {
-                    continue;
-                }
-
-                match fs::read_to_string(&path) {
-                    Ok(content) => match serde_json::from_str::<TemplateConfig>(&content) {
-                        Ok(config) => {
-                            debug!("Loaded template: {}", filename);
-                            self.templates.insert(filename.to_string(), config);
-                        },
-                        Err(e) => {
-                            error!("Failed to parse template {}: {}", filename, e);
-                        },
-                    },
-                    Err(e) => {
-                        error!("Failed to read template file {}: {}", path.display(), e);
-                    },
-                }
+        // Reject unknown keys instead of silently producing a blank meme.
+        for key in req.texts.keys().chain(req.font_size_override.keys()) {
+            if !areas.iter().any(|a| &a.id == key) {
+                return Err(MemeError::InvalidArgument(format!(
+                    "Unknown text area '{key}' for template '{}'. Valid areas: {}",
+                    template.id,
+                    valid_ids()
+                )));
+            }
+        }
+        for (key, text) in &req.texts {
+            let n = text.chars().count();
+            if n > MAX_TEXT_CHARS {
+                return Err(MemeError::InvalidArgument(format!(
+                    "Text for area '{key}' is {n} characters; the limit is {MAX_TEXT_CHARS}"
+                )));
+            }
+        }
+        for (key, size) in &req.font_size_override {
+            if !FONT_SIZE_RANGE.contains(size) {
+                return Err(MemeError::InvalidArgument(format!(
+                    "font_size_override for '{key}' is {size}; must be within {}..={}",
+                    FONT_SIZE_RANGE.start(),
+                    FONT_SIZE_RANGE.end()
+                )));
             }
         }
 
-        info!("Loaded {} templates", self.templates.len());
-    }
+        let mut image = load_template_image(template)?;
+        let font = &self.font.font;
+        let mut reports = Vec::new();
+        let mut warnings = Vec::new();
 
-    /// Get font at specified size
-    fn get_font(&self, size: f32) -> Option<(FontRef<'_>, PxScale)> {
-        FontRef::try_from_slice(&self.font_data)
-            .ok()
-            .map(|font| (font, PxScale::from(size)))
-    }
-
-    /// Wrap text to fit within max width
-    fn wrap_text(&self, text: &str, font: &FontRef, scale: PxScale, max_width: i32) -> Vec<String> {
-        let scaled = font.as_scaled(scale);
-        let mut lines = Vec::new();
-        let mut current_line = String::new();
-
-        for word in text.split_whitespace() {
-            let test_line = if current_line.is_empty() {
-                word.to_string()
-            } else {
-                format!("{} {}", current_line, word)
-            };
-
-            let width: f32 = test_line
-                .chars()
-                .map(|c| scaled.h_advance(font.glyph_id(c)))
-                .sum();
-
-            if width <= max_width as f32 {
-                current_line = test_line;
-            } else if current_line.is_empty() {
-                // Word is too long, add it anyway
-                lines.push(word.to_string());
-            } else {
-                lines.push(current_line);
-                current_line = word.to_string();
-            }
-        }
-
-        if !current_line.is_empty() {
-            lines.push(current_line);
-        }
-
-        lines
-    }
-
-    /// Calculate text width
-    fn text_width(&self, text: &str, font: &FontRef, scale: PxScale) -> f32 {
-        let scaled = font.as_scaled(scale);
-        text.chars()
-            .map(|c| scaled.h_advance(font.glyph_id(c)))
-            .sum()
-    }
-
-    /// Auto-adjust font size to fit text in area
-    fn auto_adjust_font_size(&self, text: &str, area: &TextArea) -> (f32, Vec<String>) {
-        let max_size = area.max_font_size as f32;
-        let min_size = area.min_font_size as f32;
-
-        for size in (min_size as i32..=max_size as i32).rev().step_by(2) {
-            let size = size as f32;
-            if let Some((font, scale)) = self.get_font(size) {
-                let lines = self.wrap_text(text, &font, scale, area.width);
-                let total_height = lines.len() as f32 * size;
-
-                if total_height <= area.height as f32 {
-                    return (size, lines);
-                }
-            }
-        }
-
-        // Fallback to minimum size
-        if let Some((font, scale)) = self.get_font(min_size) {
-            let lines = self.wrap_text(text, &font, scale, area.width);
-            return (min_size, lines);
-        }
-
-        (min_size, vec![text.to_string()])
-    }
-
-    /// Parse color string to RGB
-    fn parse_color(&self, color: &str) -> Rgb<u8> {
-        match color.to_lowercase().as_str() {
-            "white" => Rgb([255, 255, 255]),
-            "black" => Rgb([0, 0, 0]),
-            "red" => Rgb([255, 0, 0]),
-            "green" => Rgb([0, 255, 0]),
-            "blue" => Rgb([0, 0, 255]),
-            "yellow" => Rgb([255, 255, 0]),
-            _ => {
-                // Try to parse hex color
-                if color.starts_with('#') && color.len() == 7 {
-                    let r = u8::from_str_radix(&color[1..3], 16).unwrap_or(255);
-                    let g = u8::from_str_radix(&color[3..5], 16).unwrap_or(255);
-                    let b = u8::from_str_radix(&color[5..7], 16).unwrap_or(255);
-                    Rgb([r, g, b])
-                } else {
-                    Rgb([255, 255, 255]) // Default to white
-                }
-            },
-        }
-    }
-
-    /// Draw text with stroke/outline effect
-    #[allow(clippy::too_many_arguments)]
-    fn draw_text_with_stroke(
-        &self,
-        img: &mut RgbImage,
-        x: i32,
-        y: i32,
-        text: &str,
-        font: &FontRef,
-        scale: PxScale,
-        text_color: Rgb<u8>,
-        stroke_color: Rgb<u8>,
-        stroke_width: i32,
-    ) {
-        // Draw stroke (outline) by drawing text at offset positions
-        for dx in -stroke_width..=stroke_width {
-            for dy in -stroke_width..=stroke_width {
-                if dx != 0 || dy != 0 {
-                    draw_text_mut(img, stroke_color, x + dx, y + dy, scale, font, text);
-                }
-            }
-        }
-
-        // Draw main text
-        draw_text_mut(img, text_color, x, y, scale, font, text);
-    }
-
-    /// Generate a meme from template with text overlays
-    pub fn generate_meme(
-        &self,
-        template_id: &str,
-        texts: &HashMap<String, String>,
-        font_size_override: Option<&HashMap<String, i32>>,
-        auto_resize: bool,
-        thumbnail_only: bool,
-    ) -> MemeResult {
-        // Check template exists
-        let template = match self.templates.get(template_id) {
-            Some(t) => t,
-            None => {
-                return MemeResult {
-                    success: false,
-                    error: Some(format!("Template '{}' not found", template_id)),
-                    ..Default::default()
-                };
-            },
-        };
-
-        // Load template image
-        let template_path = self.templates_dir.join(&template.template_file);
-        if !template_path.exists() {
-            return MemeResult {
-                success: false,
-                error: Some(format!(
-                    "Template image not found: {}",
-                    template_path.display()
-                )),
-                ..Default::default()
-            };
-        }
-
-        let img = match image::open(&template_path) {
-            Ok(i) => i,
-            Err(e) => {
-                return MemeResult {
-                    success: false,
-                    error: Some(format!("Failed to load template image: {}", e)),
-                    ..Default::default()
-                };
-            },
-        };
-
-        let mut img = img.to_rgb8();
-
-        // Draw text for each area
-        for area in &template.text_areas {
-            let text = match texts.get(&area.id) {
-                Some(t) if !t.is_empty() => t,
-                _ => continue,
-            };
-
-            // Determine font size
-            let (font_size, lines) = if let Some(overrides) = font_size_override {
-                if let Some(&size) = overrides.get(&area.id) {
-                    if let Some((font, scale)) = self.get_font(size as f32) {
-                        let lines = self.wrap_text(text, &font, scale, area.width);
-                        (size as f32, lines)
-                    } else {
-                        continue;
-                    }
-                } else if auto_resize {
-                    self.auto_adjust_font_size(text, area)
-                } else if let Some((font, scale)) = self.get_font(area.default_font_size as f32) {
-                    let lines = self.wrap_text(text, &font, scale, area.width);
-                    (area.default_font_size as f32, lines)
-                } else {
-                    continue;
-                }
-            } else if auto_resize {
-                self.auto_adjust_font_size(text, area)
-            } else if let Some((font, scale)) = self.get_font(area.default_font_size as f32) {
-                let lines = self.wrap_text(text, &font, scale, area.width);
-                (area.default_font_size as f32, lines)
-            } else {
+        for area in areas {
+            let Some(raw) = req.texts.get(&area.id) else {
                 continue;
             };
-
-            let (font, scale) = match self.get_font(font_size) {
-                Some(f) => f,
-                None => continue,
-            };
-
-            let text_color = self.parse_color(&area.text_color);
-            let stroke_color = self.parse_color(&area.stroke_color);
-
-            // Calculate vertical starting position
-            let total_height = lines.len() as f32 * font_size;
-            let start_y = area.position.y as f32 - total_height / 2.0;
-
-            // Draw each line
-            for (i, line) in lines.iter().enumerate() {
-                let line_width = self.text_width(line, &font, scale);
-
-                let x = match area.text_align.as_str() {
-                    "left" => area.position.x - area.width / 2,
-                    "right" => area.position.x + area.width / 2 - line_width as i32,
-                    _ => area.position.x - (line_width / 2.0) as i32, // center
-                };
-
-                let y = start_y as i32 + (i as f32 * font_size) as i32;
-
-                self.draw_text_with_stroke(
-                    &mut img,
-                    x,
-                    y,
-                    line,
-                    &font,
-                    scale,
-                    text_color,
-                    stroke_color,
-                    area.stroke_width,
-                );
+            let text = sanitize_text(raw);
+            if text.trim().is_empty() {
+                continue;
             }
-        }
 
-        // Convert to output format
-        let (img_data, format) = if thumbnail_only {
-            // Create thumbnail
-            let max_width = 150u32;
-            let resized = if img.width() > max_width {
-                let ratio = max_width as f32 / img.width() as f32;
-                let new_height = (img.height() as f32 * ratio) as u32;
-                image::imageops::resize(
-                    &img,
-                    max_width,
-                    new_height,
-                    image::imageops::FilterType::Lanczos3,
+            if let Some(max) = area.max_chars
+                && max > 0
+                && text.chars().count() > max as usize
+            {
+                warnings.push(format!(
+                    "Text for '{}' is {} characters; this template recommends at most {max}",
+                    area.id,
+                    text.chars().count()
+                ));
+            }
+            let missing = unsupported_chars(font, &text);
+            if !missing.is_empty() {
+                warnings.push(format!(
+                    "The caption font has no glyphs for {:?} in '{}'; they render as boxes",
+                    missing.iter().collect::<String>(),
+                    area.id
+                ));
+            }
+
+            let stroke = area.stroke_width.max(0) as f32;
+            let (bw, bh) = (area.width as f32, area.height as f32);
+            let layout: Layout = if let Some(&size) = req.font_size_override.get(&area.id) {
+                layout_at_size(font, &text, size as f32, bw, bh, stroke)
+            } else if req.auto_resize {
+                fit_text(
+                    font,
+                    &text,
+                    bw,
+                    bh,
+                    area.min_font_size,
+                    area.max_font_size,
+                    stroke,
                 )
             } else {
-                img
+                layout_at_size(font, &text, area.default_font_size as f32, bw, bh, stroke)
             };
 
-            let mut buffer = Cursor::new(Vec::new());
-            let dynamic = DynamicImage::ImageRgb8(resized);
-            if let Err(e) = dynamic.write_to(&mut buffer, ImageFormat::WebP) {
-                return MemeResult {
-                    success: false,
-                    error: Some(format!("Failed to encode thumbnail: {}", e)),
-                    ..Default::default()
-                };
+            if !layout.fits {
+                warnings.push(format!(
+                    "Text for '{}' does not fit its {}x{} area at {}px; it may overlap the image. Shorten it{}",
+                    area.id,
+                    area.width,
+                    area.height,
+                    layout.font_size,
+                    if req.auto_resize && !req.font_size_override.contains_key(&area.id) {
+                        ""
+                    } else {
+                        " or enable auto_resize"
+                    }
+                ));
             }
-            (buffer.into_inner(), "webp")
-        } else {
-            // Full size PNG
-            let mut buffer = Cursor::new(Vec::new());
-            let dynamic = DynamicImage::ImageRgb8(img);
-            if let Err(e) = dynamic.write_to(&mut buffer, ImageFormat::Png) {
-                return MemeResult {
-                    success: false,
-                    error: Some(format!("Failed to encode image: {}", e)),
-                    ..Default::default()
-                };
-            }
-            (buffer.into_inner(), "png")
-        };
 
-        let size_kb = img_data.len() as f64 / 1024.0;
-        let image_data = BASE64.encode(&img_data);
-
-        MemeResult {
-            success: true,
-            error: None,
-            output_path: None,
-            template_used: Some(template_id.to_string()),
-            image_data: Some(image_data),
-            format: Some(format.to_string()),
-            size_kb: Some(size_kb),
-            share_url: None,
-            embed_url: None,
-            upload_service: None,
-            visual_feedback: None,
-        }
-    }
-
-    /// Generate a meme and optionally upload it
-    pub async fn generate_and_upload(
-        &self,
-        template_id: &str,
-        texts: &HashMap<String, String>,
-        font_size_override: Option<&HashMap<String, i32>>,
-        auto_resize: bool,
-        upload: bool,
-    ) -> MemeResult {
-        // Generate full-size meme
-        let result = self.generate_meme(template_id, texts, font_size_override, auto_resize, false);
-
-        if !result.success {
-            return result;
-        }
-
-        let image_data = match &result.image_data {
-            Some(data) => BASE64.decode(data).unwrap_or_default(),
-            None => {
-                return MemeResult {
-                    success: false,
-                    error: Some("No image data generated".to_string()),
-                    ..Default::default()
-                };
-            },
-        };
-
-        // Save to file
-        let timestamp = chrono::Utc::now().timestamp();
-        let filename = format!("meme_{}_{}.png", template_id, timestamp);
-        let output_path = self.output_dir.join(&filename);
-
-        if let Err(e) = fs::create_dir_all(&self.output_dir) {
-            return MemeResult {
-                success: false,
-                error: Some(format!("Failed to create output directory: {}", e)),
-                ..Default::default()
+            let style = TextStyle {
+                // Colors were validated when the template loaded.
+                fill: parse_color(&area.text_color).unwrap_or(render::Color::opaque(255, 255, 255)),
+                stroke: parse_color(&area.stroke_color).unwrap_or(render::Color::opaque(0, 0, 0)),
+                stroke_width: stroke,
+                align: area.text_align,
             };
-        }
-
-        if let Err(e) = fs::write(&output_path, &image_data) {
-            return MemeResult {
-                success: false,
-                error: Some(format!("Failed to save image: {}", e)),
-                ..Default::default()
+            let rect = AreaRect {
+                cx: area.position.x as f32,
+                cy: area.position.y as f32,
+                width: bw,
             };
+            render::draw_block(&mut image, font, &layout, rect, &style);
+
+            reports.push(AreaReport {
+                id: area.id.clone(),
+                font_size: layout.font_size,
+                lines: layout.lines.len(),
+                fits: layout.fits,
+            });
         }
 
-        // Generate thumbnail for visual feedback
-        let thumbnail_result =
-            self.generate_meme(template_id, texts, font_size_override, auto_resize, true);
+        if reports.is_empty() {
+            warnings.push(format!(
+                "No captions were drawn; provide text for at least one of: {}",
+                valid_ids()
+            ));
+        }
 
-        let visual_feedback = if thumbnail_result.success {
-            thumbnail_result.image_data.map(|data| VisualFeedback {
-                format: "webp".to_string(),
-                encoding: "base64".to_string(),
-                data,
-                size_kb: thumbnail_result.size_kb.unwrap_or(0.0),
-            })
-        } else {
-            None
+        Ok(RenderedMeme {
+            template: template.id.clone(),
+            image,
+            areas: reports,
+            warnings,
+        })
+    }
+
+    /// Save encoded bytes to a new, uniquely named file in the output dir.
+    pub fn save(&self, template: &str, encoded: &EncodedImage) -> Result<PathBuf, MemeError> {
+        let save_err = |path: &Path, e: std::io::Error| MemeError::Save {
+            path: path.display().to_string(),
+            message: e.to_string(),
         };
+        std::fs::create_dir_all(&self.output_dir).map_err(|e| save_err(&self.output_dir, e))?;
 
-        // Upload if requested
-        let (share_url, embed_url, upload_service) = if upload {
-            let upload_result = MemeUploader::upload(&output_path, "auto").await;
-            if upload_result.success {
-                (
-                    upload_result.url,
-                    upload_result.embed_url,
-                    upload_result.service,
-                )
-            } else {
-                warn!("Upload failed: {:?}", upload_result.error);
-                (None, None, None)
+        let stamp = chrono::Utc::now().format("%Y%m%d_%H%M%S_%3f");
+        loop {
+            let n = SAVE_COUNTER.fetch_add(1, Ordering::Relaxed);
+            let name = format!("meme_{template}_{stamp}_{n}.{}", encoded.format.extension());
+            let path = self.output_dir.join(name);
+            // create_new: never clobber an existing file.
+            match OpenOptions::new().write(true).create_new(true).open(&path) {
+                Ok(mut file) => {
+                    file.write_all(&encoded.bytes)
+                        .map_err(|e| save_err(&path, e))?;
+                    return Ok(std::path::absolute(&path).unwrap_or(path));
+                },
+                Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => continue,
+                Err(e) => return Err(save_err(&path, e)),
             }
-        } else {
-            (None, None, None)
-        };
-
-        MemeResult {
-            success: true,
-            error: None,
-            output_path: Some(output_path.display().to_string()),
-            template_used: Some(template_id.to_string()),
-            image_data: None, // Don't include raw image data in final response
-            format: Some("png".to_string()),
-            size_kb: Some(image_data.len() as f64 / 1024.0),
-            share_url,
-            embed_url,
-            upload_service,
-            visual_feedback,
         }
     }
+}
 
-    /// List all available templates
-    pub fn list_templates(&self) -> Vec<TemplateSummary> {
-        self.templates
-            .iter()
-            .map(|(id, config)| TemplateSummary {
-                id: id.clone(),
-                name: config.name.clone(),
-                description: config.description.clone(),
-                text_areas: config.text_areas.iter().map(|a| a.id.clone()).collect(),
-            })
-            .collect()
-    }
+/// Decode the template image, sniffing the real format from its bytes.
+fn load_template_image(template: &LoadedTemplate) -> Result<RgbImage, MemeError> {
+    let err = |message: String| MemeError::TemplateImage {
+        path: template.image_path.display().to_string(),
+        message,
+    };
+    let img = image::ImageReader::open(&template.image_path)
+        .map_err(|e| err(e.to_string()))?
+        .with_guessed_format()
+        .map_err(|e| err(e.to_string()))?
+        .decode()
+        .map_err(|e| err(e.to_string()))?;
+    Ok(img.to_rgb8())
+}
 
-    /// Get template information
-    pub fn get_template_info(&self, template_id: &str) -> Option<&TemplateConfig> {
-        self.templates.get(template_id)
+/// Encode an image in the requested format.
+pub fn encode(image: &RgbImage, format: OutputFormat) -> Result<EncodedImage, MemeError> {
+    let mut buf = Cursor::new(Vec::new());
+    match format {
+        OutputFormat::Png => image
+            .write_to(&mut buf, ImageFormat::Png)
+            .map_err(|e| MemeError::Encode(e.to_string()))?,
+        OutputFormat::Jpeg => {
+            image::codecs::jpeg::JpegEncoder::new_with_quality(&mut buf, JPEG_QUALITY)
+                .encode_image(image)
+                .map_err(|e| MemeError::Encode(e.to_string()))?
+        },
     }
+    Ok(EncodedImage {
+        bytes: buf.into_inner(),
+        format,
+        width: image.width(),
+        height: image.height(),
+    })
+}
 
-    /// Get number of loaded templates
-    pub fn template_count(&self) -> usize {
-        self.templates.len()
-    }
-
-    /// Get output directory
-    #[allow(dead_code)]
-    pub fn output_dir(&self) -> &Path {
-        &self.output_dir
-    }
-
-    /// Get templates directory
-    #[allow(dead_code)]
-    pub fn templates_dir(&self) -> &Path {
-        &self.templates_dir
-    }
+/// Downscale (if needed) to at most [`PREVIEW_MAX_SIDE`] and encode as JPEG,
+/// which keeps the inline preview small while the text stays legible.
+pub fn preview(image: &RgbImage) -> Result<EncodedImage, MemeError> {
+    let (w, h) = image.dimensions();
+    let longest = w.max(h);
+    let mut buf = Cursor::new(Vec::new());
+    let scaled;
+    let target: &RgbImage = if longest > PREVIEW_MAX_SIDE {
+        let ratio = PREVIEW_MAX_SIDE as f32 / longest as f32;
+        let nw = ((w as f32 * ratio).round() as u32).max(1);
+        let nh = ((h as f32 * ratio).round() as u32).max(1);
+        scaled = image::imageops::resize(image, nw, nh, FilterType::Triangle);
+        &scaled
+    } else {
+        image
+    };
+    image::codecs::jpeg::JpegEncoder::new_with_quality(&mut buf, PREVIEW_JPEG_QUALITY)
+        .encode_image(target)
+        .map_err(|e| MemeError::Encode(e.to_string()))?;
+    Ok(EncodedImage {
+        bytes: buf.into_inner(),
+        format: OutputFormat::Jpeg,
+        width: target.width(),
+        height: target.height(),
+    })
 }
 
 #[cfg(test)]
-mod tests {
+pub(crate) mod tests {
     use super::*;
+    use crate::fonts;
+    use crate::templates::tests::shipped_templates_dir;
+
+    pub(crate) fn generator(output_dir: PathBuf) -> MemeGenerator {
+        MemeGenerator::new(
+            TemplateStore::load(&shipped_templates_dir()),
+            fonts::embedded(),
+            output_dir,
+        )
+    }
+
+    fn request(template: &str, texts: &[(&str, &str)]) -> MemeRequest {
+        MemeRequest {
+            template: template.to_string(),
+            texts: texts
+                .iter()
+                .map(|(k, v)| (k.to_string(), v.to_string()))
+                .collect(),
+            font_size_override: BTreeMap::new(),
+            auto_resize: true,
+        }
+    }
 
     #[test]
-    fn test_parse_color() {
-        let generator = MemeGenerator {
-            templates_dir: PathBuf::new(),
-            output_dir: PathBuf::new(),
-            templates: HashMap::new(),
-            font_data: Vec::new(),
-        };
+    fn renders_every_shipped_template_example() {
+        let g = generator(PathBuf::from("unused"));
+        for summary in g.store().summaries() {
+            let t = g.store().get(&summary.id).unwrap();
+            let example = t
+                .config
+                .examples
+                .first()
+                .unwrap_or_else(|| panic!("{} has no examples", summary.id));
+            let req = MemeRequest {
+                template: summary.id.clone(),
+                texts: example.texts.clone(),
+                font_size_override: BTreeMap::new(),
+                auto_resize: true,
+            };
+            let meme = g.render(&req).unwrap();
+            assert_eq!(meme.image.dimensions(), (t.width, t.height));
+            assert_eq!(meme.areas.len(), example.texts.len(), "{}", summary.id);
+            assert!(
+                meme.areas.iter().all(|a| a.fits),
+                "{}: {:?} {:?}",
+                summary.id,
+                meme.areas,
+                meme.warnings
+            );
+        }
+    }
 
-        assert_eq!(generator.parse_color("white"), Rgb([255, 255, 255]));
-        assert_eq!(generator.parse_color("black"), Rgb([0, 0, 0]));
-        assert_eq!(generator.parse_color("#FF0000"), Rgb([255, 0, 0]));
+    /// Template-authoring aid: render every example of every template to
+    /// `$MEME_EXAMPLES_OUT` for visual review. Run with
+    /// `MEME_EXAMPLES_OUT=/tmp/ex cargo test -- --ignored render_examples`.
+    #[test]
+    #[ignore = "writes images for manual review; needs MEME_EXAMPLES_OUT"]
+    fn render_examples_to_dir() {
+        let Some(out) = std::env::var_os("MEME_EXAMPLES_OUT") else {
+            return;
+        };
+        let out = PathBuf::from(out);
+        std::fs::create_dir_all(&out).unwrap();
+        let g = generator(out.clone());
+        for summary in g.store().summaries() {
+            let t = g.store().get(&summary.id).unwrap();
+            for (i, example) in t.config.examples.iter().enumerate() {
+                let req = MemeRequest {
+                    template: summary.id.clone(),
+                    texts: example.texts.clone(),
+                    font_size_override: BTreeMap::new(),
+                    auto_resize: true,
+                };
+                let meme = g.render(&req).unwrap();
+                let enc = encode(&meme.image, OutputFormat::Jpeg).unwrap();
+                std::fs::write(out.join(format!("{}_{i}.jpg", summary.id)), &enc.bytes).unwrap();
+            }
+        }
+    }
+
+    #[test]
+    fn rendering_changes_pixels() {
+        let g = generator(PathBuf::from("unused"));
+        let blank = g.render(&request("ol_reliable", &[])).unwrap();
+        assert!(blank.warnings.iter().any(|w| w.contains("No captions")));
+        let meme = g
+            .render(&request("ol_reliable", &[("top", "When it breaks")]))
+            .unwrap();
+        assert_ne!(blank.image, meme.image);
+        assert!(meme.warnings.is_empty(), "{:?}", meme.warnings);
+    }
+
+    #[test]
+    fn png_saved_with_jpg_extension_renders() {
+        // community_fire.jpg is actually PNG data; the old decoder trusted
+        // the extension and failed on it.
+        let g = generator(PathBuf::from("unused"));
+        let meme = g
+            .render(&request("community_fire", &[("expectation", "ME")]))
+            .unwrap();
+        assert_eq!(meme.image.dimensions(), (843, 957));
+    }
+
+    #[test]
+    fn unknown_template_lists_available() {
+        let g = generator(PathBuf::from("unused"));
+        let err = g.render(&request("drake", &[("top", "x")])).err().unwrap();
+        let msg = err.to_string();
+        assert!(msg.contains("Template 'drake' not found"));
+        assert!(msg.contains("ol_reliable"));
+    }
+
+    #[test]
+    fn unknown_area_is_rejected_with_valid_list() {
+        let g = generator(PathBuf::from("unused"));
+        let err = g
+            .render(&request("ol_reliable", &[("reject", "x")]))
+            .err()
+            .unwrap();
+        let msg = err.to_string();
+        assert!(msg.contains("Unknown text area 'reject'"), "{msg}");
+        assert!(msg.contains("top, bottom"), "{msg}");
+    }
+
+    #[test]
+    fn font_override_is_validated_and_applied() {
+        let g = generator(PathBuf::from("unused"));
+        let mut req = request("ol_reliable", &[("top", "x")]);
+        req.font_size_override.insert("top".into(), 10_000);
+        assert!(g.render(&req).is_err());
+        req.font_size_override.insert("top".into(), 0);
+        assert!(g.render(&req).is_err());
+        req.font_size_override.insert("top".into(), 22);
+        let meme = g.render(&req).unwrap();
+        assert_eq!(meme.areas[0].font_size, 22.0);
+    }
+
+    #[test]
+    fn overlong_text_is_rejected() {
+        let g = generator(PathBuf::from("unused"));
+        let long = "x".repeat(MAX_TEXT_CHARS + 1);
+        assert!(
+            g.render(&request("ol_reliable", &[("top", &long)]))
+                .is_err()
+        );
+    }
+
+    #[test]
+    fn overflow_and_max_chars_produce_warnings() {
+        let g = generator(PathBuf::from("unused"));
+        let text = "this caption is far too long for the tiny answer box ".repeat(4);
+        let meme = g.render(&request("millionaire", &[("a", &text)])).unwrap();
+        assert!(!meme.areas[0].fits);
+        assert!(meme.warnings.iter().any(|w| w.contains("does not fit")));
+        assert!(
+            meme.warnings
+                .iter()
+                .any(|w| w.contains("recommends at most"))
+        );
+    }
+
+    #[test]
+    fn no_auto_resize_uses_default_size() {
+        let g = generator(PathBuf::from("unused"));
+        let mut req = request("ol_reliable", &[("top", "hi")]);
+        req.auto_resize = false;
+        let meme = g.render(&req).unwrap();
+        assert_eq!(meme.areas[0].font_size, 40.0);
+    }
+
+    #[test]
+    fn encode_and_preview_roundtrip() {
+        let g = generator(PathBuf::from("unused"));
+        let meme = g
+            .render(&request("ol_reliable", &[("top", "hello")]))
+            .unwrap();
+        for format in [OutputFormat::Png, OutputFormat::Jpeg] {
+            let enc = encode(&meme.image, format).unwrap();
+            let decoded = image::load_from_memory(&enc.bytes).unwrap();
+            assert_eq!((decoded.width(), decoded.height()), (960, 1444));
+        }
+        let p = preview(&meme.image).unwrap();
+        assert_eq!(p.height, PREVIEW_MAX_SIDE);
+        assert!(p.width < PREVIEW_MAX_SIDE);
+        assert!(p.bytes.len() < 200 * 1024);
+    }
+
+    #[test]
+    fn save_creates_unique_files() {
+        let dir = tempfile::tempdir().unwrap();
+        let g = generator(dir.path().join("nested/out"));
+        let enc = EncodedImage {
+            bytes: vec![1, 2, 3],
+            format: OutputFormat::Png,
+            width: 1,
+            height: 1,
+        };
+        let a = g.save("ol_reliable", &enc).unwrap();
+        let b = g.save("ol_reliable", &enc).unwrap();
+        assert_ne!(a, b);
+        assert!(a.is_absolute());
+        assert_eq!(std::fs::read(&a).unwrap(), vec![1, 2, 3]);
+        assert!(
+            a.file_name()
+                .unwrap()
+                .to_string_lossy()
+                .starts_with("meme_ol_reliable_")
+        );
+    }
+
+    #[test]
+    fn output_format_parses_aliases() {
+        let f: OutputFormat = serde_json::from_value(serde_json::json!("jpg")).unwrap();
+        assert_eq!(f, OutputFormat::Jpeg);
+        let f: OutputFormat = serde_json::from_value(serde_json::json!("png")).unwrap();
+        assert_eq!(f, OutputFormat::Png);
+        assert!(serde_json::from_value::<OutputFormat>(serde_json::json!("gif")).is_err());
     }
 }

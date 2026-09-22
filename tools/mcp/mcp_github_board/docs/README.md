@@ -1,278 +1,101 @@
-# GitHub Board MCP Server
+# GitHub Board MCP Server: Usage Guide
 
-> A Model Context Protocol server for GitHub Projects v2 board operations, enabling work queue management, claim coordination, and multi-agent task assignment.
-
-## Features
-
-- **Work Queue Management**: Query ready work (unblocked, unclaimed TODO issues)
-- **Claim System**: Claim, renew, and release work with timeout management
-- **Dependency Tracking**: Add blockers and parent-child relationships
-- **Status Updates**: Update issue status on the board
-- **Agent Coordination**: Multi-agent support with conflict prevention
-- **Native Rust Performance**: Fast execution with minimal overhead
+This guide covers how agents should use the board tools and how to
+troubleshoot the server. The full tool, parameter and flag reference is in
+the crate [README](../README.md).
 
 ## Installation
 
-### Pre-built Binary
-
-Download from GitHub Releases:
+### Docker (used by this repository)
 
 ```bash
-# Linux x64
+docker compose --profile services build mcp-github-board
+docker compose --profile services up -d mcp-github-board      # HTTP on :8022
+docker compose --profile services run --rm -T mcp-github-board \
+  mcp-github-board --mode stdio                                # STDIO
+```
+
+The image contains both `mcp-github-board` and `board-manager`. The repository
+is mounted read-only at `/app`, which is the working directory, so
+`ai-agents-board.yml` and `.agents.yaml` are picked up automatically.
+
+### Pre-built binary
+
+Releases publish `mcp-github-board-linux-x64`:
+
+```bash
 curl -L https://github.com/AndrewAltimit/template-repo/releases/latest/download/mcp-github-board-linux-x64 -o mcp-github-board
 chmod +x mcp-github-board
 ```
 
-### Build from Source
+`board-manager` must be installed separately (see
+[board-manager](../../../rust/board-manager/README.md)).
+
+### From source
 
 ```bash
-cd tools/mcp/mcp_github_board
-cargo build --release
-# Binary will be at target/release/mcp-github-board
+cd tools/rust/board-manager && cargo build --release && ./install.sh
+cd ../../mcp/mcp_github_board && cargo build --release
 ```
 
-### Requirements
-
-- **board-manager CLI**: Must be installed and in PATH (or at a known location)
-- **GitHub token**: With repository and project access
-- **Environment Variables**:
-  ```bash
-  export GITHUB_TOKEN=ghp_your_token_here
-  export GITHUB_REPOSITORY=owner/repo
-  ```
-
-## Running the Server
-
-### Standalone Mode (Recommended)
-
-```bash
-# Start server on port 8022
-mcp-github-board --mode standalone --port 8022
-
-# Or with custom settings
-mcp-github-board --mode standalone --port 8022 --log-level debug
-```
-
-### STDIO Mode
-
-For direct MCP client integration:
-
-```bash
-mcp-github-board --mode standalone
-```
-
-### Server Mode (REST API only)
-
-```bash
-mcp-github-board --mode server --port 8022
-```
-
-### Test Endpoints
-
-```bash
-# Health check
-curl http://localhost:8022/health
-
-# List tools
-curl http://localhost:8022/mcp/tools
-
-# Execute tool
-curl -X POST http://localhost:8022/mcp/execute \
-  -H "Content-Type: application/json" \
-  -d '{
-    "tool": "query_ready_work",
-    "arguments": {"limit": 5}
-  }'
-```
-
-## Available Tools
-
-### 1. query_ready_work
-
-Get ready work from the board (unblocked, unclaimed TODO issues).
-
-**Parameters:**
-- `agent_name` (optional): Filter for specific agent
-- `limit` (optional, default: 10): Maximum issues to return
-
-**Example:**
-```json
-{
-  "tool": "query_ready_work",
-  "arguments": {
-    "agent_name": "claude",
-    "limit": 5
-  }
-}
-```
-
-### 2. claim_work
-
-Claim an issue for implementation.
-
-**Parameters:**
-- `issue_number` (required): Issue to claim
-- `agent_name` (required): Agent claiming the issue
-- `session_id` (required): Unique session identifier
-
-**Example:**
-```json
-{
-  "tool": "claim_work",
-  "arguments": {
-    "issue_number": 42,
-    "agent_name": "claude",
-    "session_id": "claude-session-123"
-  }
-}
-```
-
-### 3. renew_claim
-
-Renew an active claim for long-running tasks.
-
-**Parameters:**
-- `issue_number` (required): Issue with active claim
-- `agent_name` (required): Agent renewing the claim
-- `session_id` (required): Session ID from original claim
-
-### 4. release_work
-
-Release claim on an issue.
-
-**Parameters:**
-- `issue_number` (required): Issue to release
-- `agent_name` (required): Agent releasing the claim
-- `reason` (optional): Release reason (completed/blocked/abandoned/error)
-
-### 5. update_status
-
-Update issue status on the board.
-
-**Parameters:**
-- `issue_number` (required): Issue to update
-- `status` (required): New status (Todo/In Progress/Blocked/Done/Abandoned)
-
-### 6. add_blocker
-
-Add a blocking dependency between issues.
-
-**Parameters:**
-- `issue_number` (required): Issue that is blocked
-- `blocker_number` (required): Issue that blocks
-
-### 7. mark_discovered_from
-
-Mark an issue as discovered from another (parent-child relationship).
-
-**Parameters:**
-- `issue_number` (required): Child issue
-- `parent_number` (required): Parent issue
-
-### 8. get_issue_details
-
-Get full details for a specific issue.
-
-**Parameters:**
-- `issue_number` (required): Issue to query
-
-### 9. get_dependency_graph
-
-Get dependency graph for an issue.
-
-**Parameters:**
-- `issue_number` (required): Issue to query
-
-### 10. list_agents
-
-Get list of enabled agents for this board.
-
-**Parameters:** None
-
-### 11. get_board_config
-
-Get current board configuration.
-
-**Parameters:** None
-
-### 12. board_status
-
-Get server status and board-manager CLI availability.
-
-**Parameters:** None
-
-## Configuration
-
-### Integration with .mcp.json
-
-Add to your `.mcp.json`:
-
-```json
-{
-  "mcpServers": {
-    "github-board": {
-      "command": "mcp-github-board",
-      "args": ["--mode", "standalone"],
-      "env": {
-        "GITHUB_TOKEN": "${GITHUB_TOKEN}",
-        "GITHUB_REPOSITORY": "${GITHUB_REPOSITORY}"
-      }
-    }
-  }
-}
-```
-
-### Board Configuration
-
-The server uses the `board-manager` CLI which reads configuration from `.github/board_config.yaml`. See the [Board Manager documentation](../../../rust/board-manager/README.md) for configuration details.
-
-## Architecture
-
-### Components
-
-- **MCP Server**: Built on mcp-core Rust library
-- **board-manager CLI**: Handles all GitHub API interactions
-- **Async Runtime**: Tokio for high-performance async operations
-
-### Flow
-
-1. Client sends tool request to server
-2. Server validates parameters and constructs CLI command
-3. board-manager CLI executes operation against GitHub API
-4. JSON response returned to client
-
-### Error Handling
-
-- **MCPError::InvalidParameters**: Missing or invalid tool parameters
-- **MCPError::Internal**: board-manager CLI errors or JSON parsing failures
-- CLI errors include stderr output for debugging
+## Agent workflow
+
+1. **Find work**: `query_ready_work` with your `agent_name`. Add
+   `approved_only: true` when you may only work on issues an admin approved
+   with `[Approved][Agent]`.
+2. **Claim**: `claim_work` with a `session_id` you keep for the whole task.
+   If the result is an error with `claimed_by`, someone else holds the issue:
+   pick another one. Do not retry the same issue in a loop.
+3. **Mark progress**: `claim_work` already sets `In Progress`. Use
+   `update_status` for other transitions.
+4. **Long tasks**: call `renew_claim` with the same `agent_name` and
+   `session_id` well before the board's claim timeout (24h by default; see
+   `get_board_config`). A renewal error means your claim is gone; claim again
+   before continuing.
+5. **Record findings**: file new issues, then `add_to_board`,
+   `mark_discovered_from` (child -> parent) and `add_blocker` where needed.
+   Use `get_dependency_graph` to see why an issue is not ready.
+6. **Finish**: `release_work` with `pr_created` (PR opened, status unchanged),
+   `completed`, `blocked` (sets Blocked), or `abandoned` / `error` (sets
+   Abandoned).
+
+Maintenance: `release_stale_claims` (dry run by default) lists claims with no
+activity past the threshold; run it with `dry_run: false` to release them and
+reset the status.
+
+For read-only agents or dashboards start the server with `--read-only`
+(or `GITHUB_BOARD_READ_ONLY=true`); only the query tools are registered.
+
+## Error handling
+
+- JSON-RPC `Invalid params` (-32602): the arguments were rejected locally
+  (missing field, wrong type, issue number 0, unknown status, an issue
+  blocking itself). Nothing was sent to GitHub.
+- Tool result with `isError: true`: the body is
+  `{"success": false, "error": "...", "error_kind": "..."}`. The `error` text is
+  board-manager's own `Error:` line when it failed.
 
 ## Troubleshooting
 
-### board-manager Not Found
+Run `board_status` first. It does not call GitHub and reports whether
+board-manager was found, its version, the timeout, and which token variables
+are set.
 
-**Issue:** `board-manager CLI not found`
+| Symptom | Cause / fix |
+|---------|-------------|
+| `error_kind: board_manager_not_found` | Build and install board-manager, put it on PATH, or pass `--board-manager` / `BOARD_MANAGER_PATH`. The message lists every path searched. |
+| `Authentication failed: GitHub token required` | Set `GITHUB_PROJECTS_TOKEN` (preferred) or `GITHUB_TOKEN` / `GH_TOKEN`. In Docker, make sure the variable is passed through by `docker-compose.yml` / `.mcp.json`. |
+| `Configuration error: ...` | No board config found. Run from the repo root (where `ai-agents-board.yml` lives), pass `--board-config`, or set `BOARD_CONFIG_PATH`. |
+| `Issue #N is not on the project board` | Add it with `add_to_board`. |
+| `error_kind: timeout` | GitHub rate limiting or network trouble. Raise `--timeout-secs`. A timed-out write may still have been applied; check with `get_issue_details` before retrying. |
+| `Field '...' not found on project` | The board is missing a field named in `fields.*` of `ai-agents-board.yml`. |
 
-**Solution:**
-- Install board-manager or ensure it's in PATH
-- Build from source: `cd tools/rust/board-manager && cargo build --release`
-- Check common locations: `~/.local/bin/board-manager`
+Enable debug logs with `--log-level debug` (or `RUST_LOG=debug`); every
+board-manager invocation is logged to stderr.
 
-### GitHub API Errors
+## Related documentation
 
-**Issue:** `board-manager error: ...`
-
-**Solution:**
-- Verify GITHUB_TOKEN has proper scopes (repo, project)
-- Check GITHUB_REPOSITORY format (owner/repo)
-- Ensure project number is correct in board config
-
-## Related Documentation
-
-- [Board Manager CLI](../../../rust/board-manager/README.md)
+- [Crate README (reference)](../README.md)
+- [board-manager CLI](../../../rust/board-manager/README.md)
+- [Board workflow](../../../../docs/agents/board-workflow.md)
 - [MCP Core Rust](../../mcp_core_rust/README.md)
-- [GitHub Agents CLI](../../../rust/github-agents-cli/README.md)
-
-## License
-
-Part of the template-repo project. See repository root [LICENSE](../../../../LICENSE) file.

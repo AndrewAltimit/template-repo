@@ -1,11 +1,11 @@
 [package]
 name = "mcp-memory-explorer"
-version = "1.0.0"
+version = "1.1.0"
 edition = "2024"
 license = "MIT"
 repository = "https://github.com/AndrewAltimit/template-repo"
 authors = ["AndrewAltimit"]
-description = "MCP server for game memory exploration and reverse engineering (Windows)"
+description = "Read-only MCP server for process memory exploration and reverse engineering (Windows and Linux)"
 
 [[bin]]
 name = "mcp-memory-explorer"
@@ -28,7 +28,6 @@ clap = { version = "4.5", features = ["derive"] }
 
 # Logging
 tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 # Error handling
 thiserror = "2.0"
@@ -37,24 +36,22 @@ anyhow = "1.0"
 # Cross-platform process listing
 sysinfo = "0.33"
 
-# Windows process memory API
+# Fast byte search for signature/value scans
+memchr = "2.7"
+
+# Windows process memory API (read-only subset)
 [target.'cfg(windows)'.dependencies]
 windows = { version = "0.61", features = [
     "Win32_Foundation",
-    "Win32_System_Diagnostics_ToolHelp",
-    "Win32_System_Threading",
-    "Win32_System_Memory",
-    "Win32_System_ProcessStatus",
-    "Win32_System_ProcessStatus",
-    "Win32_Security",
     "Win32_System_Diagnostics_Debug",
+    "Win32_System_Diagnostics_ToolHelp",
+    "Win32_System_Memory",
+    "Win32_System_Threading",
 ] }
-
-[dev-dependencies]
-tokio-test = "0.4"
 
 [profile.release]
 lto = true
 codegen-units = 1
-panic = "abort"
+# Keep unwinding (no `panic = "abort"`): mcp-core wraps every tool call in a
+# catch_unwind boundary, which only works when panics unwind.
 strip = true

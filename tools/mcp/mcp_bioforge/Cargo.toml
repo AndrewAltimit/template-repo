@@ -1,11 +1,11 @@
 [package]
 name = "mcp-bioforge"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2024"
 license = "MIT"
 repository = "https://github.com/AndrewAltimit/template-repo"
 authors = ["AndrewAltimit"]
-description = "MCP server for BioForge biological automation -- liquid handling, thermal control, imaging, and protocol management"
+description = "MCP server for BioForge biological automation -- safety-enforced liquid handling, thermal control, motion, imaging, protocol validation, human gates and e-stop (simulated hardware)"
 
 [[bin]]
 name = "mcp-bioforge"
@@ -23,7 +23,7 @@ bioforge-protocol = { path = "../../../packages/bioforge/crates/bioforge-protoco
 bioforge-vision = { path = "../../../packages/bioforge/crates/bioforge-vision" }
 
 # Async runtime
-tokio = { version = "1.40", features = ["full", "process"] }
+tokio = { version = "1.40", features = ["full"] }
 async-trait = "0.1"
 
 # Serialization
@@ -36,17 +36,19 @@ clap = { version = "4.5", features = ["derive", "env"] }
 
 # Logging
 tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 # Error handling
-thiserror = "2.0"
 anyhow = "1.0"
 
 # Time
 chrono = { version = "0.4", features = ["serde"] }
 
+[dev-dependencies]
+tempfile = "3.14"
+
 [profile.release]
 lto = true
 codegen-units = 1
-panic = "abort"
+# No `panic = "abort"`: mcp-core converts a panicking tool call into an
+# isError result via catch_unwind, which only works with unwinding.
 strip = true

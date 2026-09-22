@@ -1,12 +1,18 @@
 #!/usr/bin/env python3
 """Blender world environment setup script."""
 
-import json
+import os
 import math
 from pathlib import Path
 import sys
 
 import bpy
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+from mcp_common import (  # noqa: E402  pylint: disable=wrong-import-position
+    run,
+)
 
 
 def setup_world_environment(args, _job_id):
@@ -17,7 +23,14 @@ def setup_world_environment(args, _job_id):
             bpy.ops.wm.open_mainfile(filepath=args["project"])
 
         environment_type = args.get("environment_type", "SKY_TEXTURE")
-        settings = args.get("settings", {})
+        settings = args.get("settings") or {}
+        if environment_type not in ("HDRI", "SKY_TEXTURE", "GRADIENT", "COLOR", "VOLUMETRIC"):
+            print(f"Error: Unknown environment type '{environment_type}'")
+            return False
+        hdri_path = settings.get("hdri_path")
+        if environment_type == "HDRI" and not (hdri_path and Path(hdri_path).is_file()):
+            print(f"Error: HDRI file not found: {hdri_path} (settings.hdri_path is required)")
+            return False
 
         scene = bpy.context.scene
         world = scene.world
@@ -49,8 +62,7 @@ def setup_world_environment(args, _job_id):
             node_env = nodes.new(type="ShaderNodeTexEnvironment")
             node_env.location = (-300, 0)
 
-            if hdri_path and Path(hdri_path).exists():
-                node_env.image = bpy.data.images.load(hdri_path)
+            node_env.image = bpy.data.images.load(hdri_path, check_existing=True)
 
             # Add mapping for rotation
             rotation = settings.get("rotation", [0, 0, 0])
@@ -150,7 +162,7 @@ def setup_world_environment(args, _job_id):
         if "project" in args:
             bpy.ops.wm.save_mainfile()
 
-        return True
+        return {"success": True, "environment_type": environment_type, "world": world.name}
 
     except Exception as e:
         print(f"Error setting up environment: {e}")
@@ -158,31 +170,8 @@ def setup_world_environment(args, _job_id):
 
 
 def main():
-    """Main entry point."""
-    argv = sys.argv
-
-    if "--" in argv:
-        argv = argv[argv.index("--") + 1 :]
-
-    if len(argv) < 2:
-        print("Usage: blender --python environment.py -- args.json job_id")
-        sys.exit(1)
-
-    args_file = argv[0]
-    job_id = argv[1]
-
-    with open(args_file, "r", encoding="utf-8") as f:
-        args = json.load(f)
-
-    operation = args.get("operation")
-
-    if operation == "setup_world_environment":
-        success = setup_world_environment(args, job_id)
-    else:
-        print(f"Unknown operation: {operation}")
-        sys.exit(1)
-
-    sys.exit(0 if success else 1)
+    """Dispatch the requested operation (see mcp_common.run)."""
+    run({"setup_world_environment": setup_world_environment})
 
 
 if __name__ == "__main__":

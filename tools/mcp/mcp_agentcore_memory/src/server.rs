@@ -1,591 +1,442 @@
-//! MCP server implementation for AgentCore Memory operations
+//! MCP tool definitions.
+//!
+//! Each tool deserializes its arguments into a typed struct (so a missing or
+//! mistyped argument is a clean `InvalidParameters` error, never a panic) and
+//! delegates to [`MemoryService`]. Hand-written JSON schemas are kept because
+//! they carry `items`, `default`, `minimum`/`maximum` and richer descriptions
+//! than the generic `#[mcp_tool]` macro can derive.
+//!
+//! Error mapping:
+//! * argument/validation problems -> `MCPError::InvalidParameters`;
+//! * runtime failures (database down, embedding failure, ...) -> a tool result
+//!   with `isError: true` whose text is `{"success": false, "error": ...,
+//!   "error_kind": ...}` (the same JSON shape earlier releases returned).
 
 use async_trait::async_trait;
 use mcp_core::prelude::*;
-use serde_json::{Value, json};
-use std::collections::HashMap;
+use serde::de::DeserializeOwned;
+use serde::{Deserialize, Serialize};
+use serde_json::{Map, Value, json};
 use std::sync::Arc;
-use tokio::sync::RwLock;
-use tracing::{debug, error};
+use tracing::error;
 
-use crate::cache::MemoryCache;
-use crate::client::ChromaDBClient;
-use crate::types::{ChromaDBConfig, namespaces};
+use crate::service::{
+    MAX_FACTS_PER_CALL, MAX_IDS_PER_CALL, MAX_LIST_LIMIT, MAX_TOP_K, MemoryService, ServiceError,
+};
 
-/// AgentCore Memory MCP server
-pub struct MemoryServer {
-    client: Arc<ChromaDBClient>,
-    cache: Arc<RwLock<MemoryCache>>,
+/// Deserialize tool arguments (absent arguments are treated as `{}`).
+fn parse<T: DeserializeOwned>(args: Value) -> Result<T> {
+    let args = if args.is_null() { json!({}) } else { args };
+    serde_json::from_value(args).map_err(|e| MCPError::InvalidParameters(e.to_string()))
 }
 
-impl MemoryServer {
-    /// Create a new memory server
-    pub fn new() -> Self {
-        let config = ChromaDBConfig::from_env();
-        let client = ChromaDBClient::new(config);
-
-        Self {
-            client: Arc::new(client),
-            cache: Arc::new(RwLock::new(MemoryCache::default())),
-        }
-    }
-
-    /// Get all tools as boxed trait objects
-    pub fn tools(&self) -> Vec<BoxedTool> {
-        vec![
-            Arc::new(StoreEventTool {
-                client: self.client.clone(),
-            }),
-            Arc::new(StoreFactsTool {
-                client: self.client.clone(),
-                cache: self.cache.clone(),
-            }),
-            Arc::new(SearchMemoriesTool {
-                client: self.client.clone(),
-                cache: self.cache.clone(),
-            }),
-            Arc::new(ListSessionEventsTool {
-                client: self.client.clone(),
-            }),
-            Arc::new(ListNamespacesTool),
-            Arc::new(MemoryStatusTool {
-                client: self.client.clone(),
-                cache: self.cache.clone(),
-            }),
-        ]
+/// Convert a service result into a tool result.
+fn respond<T: Serialize>(
+    tool: &str,
+    result: std::result::Result<T, ServiceError>,
+) -> Result<ToolResult> {
+    match result {
+        Ok(v) => ToolResult::json(&v),
+        Err(ServiceError::Invalid(msg)) => Err(MCPError::InvalidParameters(msg)),
+        Err(e) => {
+            error!("{tool} failed: {e}");
+            let body = json!({
+                "success": false,
+                "error": e.to_string(),
+                "error_kind": e.kind(),
+            });
+            Ok(ToolResult::error(body.to_string()))
+        },
     }
 }
 
-impl Default for MemoryServer {
-    fn default() -> Self {
-        Self::new()
-    }
-}
+/// Declare a tool struct wrapping the shared service.
+macro_rules! memory_tool {
+    ($ty:ident, $name:literal, $desc:expr, $schema:expr, |$svc:ident, $args:ident| $body:expr) => {
+        struct $ty(Arc<MemoryService>);
 
-// ============================================================================
-// Tool: store_event
-// ============================================================================
+        #[async_trait]
+        impl Tool for $ty {
+            fn name(&self) -> &str {
+                $name
+            }
 
-struct StoreEventTool {
-    client: Arc<ChromaDBClient>,
-}
+            fn description(&self) -> &str {
+                $desc
+            }
 
-#[async_trait]
-impl Tool for StoreEventTool {
-    fn name(&self) -> &str {
-        "store_event"
-    }
+            fn schema(&self) -> Value {
+                $schema
+            }
 
-    fn description(&self) -> &str {
-        r#"Store a short-term memory event.
-
-Use for sparse, high-value events:
-- Session start goals
-- Key decisions made
-- Final outcomes
-
-ChromaDB has no rate limits (unlike AWS AgentCore)."#
-    }
-
-    fn schema(&self) -> Value {
-        json!({
-            "type": "object",
-            "properties": {
-                "content": {
-                    "type": "string",
-                    "description": "Content to remember"
-                },
-                "actor_id": {
-                    "type": "string",
-                    "description": "Actor identifier (e.g., 'claude-code', 'issue-monitor')"
-                },
-                "session_id": {
-                    "type": "string",
-                    "description": "Session identifier"
-                }
-            },
-            "required": ["content", "actor_id", "session_id"]
-        })
-    }
-
-    async fn execute(&self, args: Value) -> Result<ToolResult> {
-        let content = args
-            .get("content")
-            .and_then(|v| v.as_str())
-            .ok_or_else(|| MCPError::InvalidParameters("content is required".to_string()))?;
-        let actor_id = args
-            .get("actor_id")
-            .and_then(|v| v.as_str())
-            .ok_or_else(|| MCPError::InvalidParameters("actor_id is required".to_string()))?;
-        let session_id = args
-            .get("session_id")
-            .and_then(|v| v.as_str())
-            .ok_or_else(|| MCPError::InvalidParameters("session_id is required".to_string()))?;
-
-        match self
-            .client
-            .store_event(actor_id, session_id, content, None)
-            .await
-        {
-            Ok(event) => {
-                let response = json!({
-                    "success": true,
-                    "event_id": event.id,
-                    "provider": "chromadb",
-                    "timestamp": event.timestamp.to_rfc3339()
-                });
-                ToolResult::json(&response)
-            },
-            Err(e) => {
-                error!("Failed to store event: {}", e);
-                let response = json!({
-                    "success": false,
-                    "error": e
-                });
-                ToolResult::json(&response)
-            },
-        }
-    }
-}
-
-// ============================================================================
-// Tool: store_facts
-// ============================================================================
-
-struct StoreFactsTool {
-    client: Arc<ChromaDBClient>,
-    cache: Arc<RwLock<MemoryCache>>,
-}
-
-#[async_trait]
-impl Tool for StoreFactsTool {
-    fn name(&self) -> &str {
-        "store_facts"
-    }
-
-    fn description(&self) -> &str {
-        r#"Store facts/patterns for long-term retention.
-
-Use for:
-- Discovered patterns
-- Architectural decisions
-- Learned conventions"#
-    }
-
-    fn schema(&self) -> Value {
-        json!({
-            "type": "object",
-            "properties": {
-                "facts": {
-                    "type": "array",
-                    "items": {"type": "string"},
-                    "description": "List of facts to store"
-                },
-                "namespace": {
-                    "type": "string",
-                    "description": "Namespace for organization (e.g., 'codebase/patterns')"
-                },
-                "source": {
-                    "type": "string",
-                    "description": "Source attribution (e.g., 'PR #42', 'claude-code')"
-                }
-            },
-            "required": ["facts", "namespace"]
-        })
-    }
-
-    async fn execute(&self, args: Value) -> Result<ToolResult> {
-        let facts: Vec<String> = args
-            .get("facts")
-            .and_then(|v| v.as_array())
-            .map(|arr| {
-                arr.iter()
-                    .filter_map(|v| v.as_str().map(String::from))
-                    .collect()
-            })
-            .ok_or_else(|| MCPError::InvalidParameters("facts array is required".to_string()))?;
-
-        let namespace = args
-            .get("namespace")
-            .and_then(|v| v.as_str())
-            .ok_or_else(|| MCPError::InvalidParameters("namespace is required".to_string()))?;
-
-        let source = args.get("source").and_then(|v| v.as_str());
-
-        // Build records with metadata
-        let records: Vec<(String, Option<HashMap<String, Value>>)> = facts
-            .into_iter()
-            .map(|fact| {
-                let mut meta = HashMap::new();
-                if let Some(src) = source {
-                    meta.insert("source".to_string(), json!(src));
-                }
-                (fact, if meta.is_empty() { None } else { Some(meta) })
-            })
-            .collect();
-
-        match self.client.store_records(records, namespace).await {
-            Ok(result) => {
-                // Invalidate cache for this namespace
-                {
-                    let mut cache = self.cache.write().await;
-                    cache.invalidate(Some(namespace));
-                }
-
-                let response = json!({
-                    "success": result.failed == 0,
-                    "created": result.created,
-                    "failed": result.failed,
-                    "namespace": namespace,
-                    "errors": if result.failed > 0 { Some(&result.errors) } else { None }
-                });
-                ToolResult::json(&response)
-            },
-            Err(e) => {
-                error!("Failed to store facts: {}", e);
-                let response = json!({
-                    "success": false,
-                    "error": e
-                });
-                ToolResult::json(&response)
-            },
-        }
-    }
-}
-
-// ============================================================================
-// Tool: search_memories
-// ============================================================================
-
-struct SearchMemoriesTool {
-    client: Arc<ChromaDBClient>,
-    cache: Arc<RwLock<MemoryCache>>,
-}
-
-#[async_trait]
-impl Tool for SearchMemoriesTool {
-    fn name(&self) -> &str {
-        "search_memories"
-    }
-
-    fn description(&self) -> &str {
-        r#"Search memories using semantic query.
-
-Returns relevant memories ranked by similarity."#
-    }
-
-    fn schema(&self) -> Value {
-        json!({
-            "type": "object",
-            "properties": {
-                "query": {
-                    "type": "string",
-                    "description": "Search query"
-                },
-                "namespace": {
-                    "type": "string",
-                    "description": "Namespace to search (e.g., 'codebase/patterns')"
-                },
-                "top_k": {
-                    "type": "integer",
-                    "default": 5,
-                    "description": "Maximum results to return"
-                }
-            },
-            "required": ["query", "namespace"]
-        })
-    }
-
-    async fn execute(&self, args: Value) -> Result<ToolResult> {
-        let query = args
-            .get("query")
-            .and_then(|v| v.as_str())
-            .ok_or_else(|| MCPError::InvalidParameters("query is required".to_string()))?;
-
-        let namespace = args
-            .get("namespace")
-            .and_then(|v| v.as_str())
-            .ok_or_else(|| MCPError::InvalidParameters("namespace is required".to_string()))?;
-
-        let top_k = args.get("top_k").and_then(|v| v.as_u64()).unwrap_or(5) as u32;
-
-        // Check cache first (uses write lock for LRU timestamp update)
-        {
-            let mut cache = self.cache.write().await;
-            if let Some(cached) = cache.get(query, namespace) {
-                debug!("Returning cached search results");
-                let response = json!({
-                    "query": query,
-                    "namespace": namespace,
-                    "count": cached.len(),
-                    "cached": true,
-                    "memories": cached
-                });
-                return ToolResult::json(&response);
+            async fn execute(&self, $args: Value) -> Result<ToolResult> {
+                let $svc: &MemoryService = &self.0;
+                $body
             }
         }
+    };
+}
 
-        match self.client.search_records(query, namespace, top_k).await {
-            Ok(records) => {
-                let memories: Vec<Value> = records
-                    .iter()
-                    .map(|r| {
-                        json!({
-                            "content": r.content,
-                            "relevance": r.relevance,
-                            "created_at": r.created_at.map(|dt| dt.to_rfc3339())
-                        })
-                    })
-                    .collect();
+/// All tools, sharing one service.
+pub fn tools(service: Arc<MemoryService>) -> Vec<BoxedTool> {
+    vec![
+        Arc::new(StoreEventTool(service.clone())),
+        Arc::new(StoreFactsTool(service.clone())),
+        Arc::new(SearchMemoriesTool(service.clone())),
+        Arc::new(ListSessionEventsTool(service.clone())),
+        Arc::new(ListNamespacesTool(service.clone())),
+        Arc::new(MemoryStatusTool(service.clone())),
+        Arc::new(ListMemoriesTool(service.clone())),
+        Arc::new(DeleteMemoriesTool(service.clone())),
+        Arc::new(ReindexNamespaceTool(service)),
+    ]
+}
 
-                // Cache the results
-                {
-                    let mut cache = self.cache.write().await;
-                    cache.set(query, namespace, memories.clone());
-                }
+// ---------------------------------------------------------------------------
+// store_event
+// ---------------------------------------------------------------------------
 
-                let response = json!({
-                    "query": query,
-                    "namespace": namespace,
-                    "count": memories.len(),
-                    "cached": false,
-                    "memories": memories
-                });
-                ToolResult::json(&response)
+#[derive(Deserialize)]
+struct StoreEventArgs {
+    content: String,
+    actor_id: String,
+    session_id: String,
+    #[serde(default)]
+    metadata: Option<Map<String, Value>>,
+}
+
+memory_tool!(
+    StoreEventTool,
+    "store_event",
+    "Store a short-term memory event for a session.\n\n\
+     Use for sparse, high-value events: session goals, key decisions, final \
+     outcomes. Retrieve them with list_session_events. Secrets in content and \
+     metadata are redacted before storage.",
+    json!({
+        "type": "object",
+        "properties": {
+            "content": {"type": "string", "description": "Content to remember (max 32 KiB)"},
+            "actor_id": {"type": "string", "description": "Actor identifier (e.g. 'claude-code', 'issue-monitor')"},
+            "session_id": {"type": "string", "description": "Session identifier"},
+            "metadata": {
+                "type": "object",
+                "description": "Optional extra key/value metadata (max 32 keys). Nested values are stored as JSON strings; reserved keys (actor_id, session_id, timestamp, timestamp_ms) are ignored.",
+                "additionalProperties": true
+            }
+        },
+        "required": ["content", "actor_id", "session_id"]
+    }),
+    |svc, args| {
+        let a: StoreEventArgs = parse(args)?;
+        respond(
+            "store_event",
+            svc.store_event(&a.actor_id, &a.session_id, &a.content, a.metadata)
+                .await,
+        )
+    }
+);
+
+// ---------------------------------------------------------------------------
+// store_facts
+// ---------------------------------------------------------------------------
+
+#[derive(Deserialize)]
+struct StoreFactsArgs {
+    facts: Vec<String>,
+    namespace: String,
+    #[serde(default)]
+    source: Option<String>,
+}
+
+memory_tool!(
+    StoreFactsTool,
+    "store_facts",
+    "Store facts/patterns for long-term retention in a namespace.\n\n\
+     Use for discovered patterns, architectural decisions and learned \
+     conventions. Storing is idempotent: a fact whose (sanitized) text already \
+     exists in the namespace is reported as a duplicate, not stored twice. \
+     Returns the record id of every fact (usable with delete_memories).",
+    json!({
+        "type": "object",
+        "properties": {
+            "facts": {
+                "type": "array",
+                "items": {"type": "string"},
+                "minItems": 1,
+                "maxItems": MAX_FACTS_PER_CALL,
+                "description": "Facts to store (each non-empty, max 32 KiB)"
             },
-            Err(e) => {
-                error!("Failed to search memories: {}", e);
-                let response = json!({
-                    "success": false,
-                    "error": e
-                });
-                ToolResult::json(&response)
+            "namespace": {"type": "string", "description": "Namespace, e.g. 'codebase/patterns' (see list_namespaces)"},
+            "source": {"type": "string", "description": "Source attribution (e.g. 'PR #42', 'claude-code')"}
+        },
+        "required": ["facts", "namespace"]
+    }),
+    |svc, args| {
+        let a: StoreFactsArgs = parse(args)?;
+        respond(
+            "store_facts",
+            svc.store_facts(a.facts, &a.namespace, a.source.as_deref())
+                .await,
+        )
+    }
+);
+
+// ---------------------------------------------------------------------------
+// search_memories
+// ---------------------------------------------------------------------------
+
+#[derive(Deserialize)]
+struct SearchArgs {
+    query: String,
+    namespace: String,
+    #[serde(default = "default_top_k")]
+    top_k: u32,
+    #[serde(default)]
+    min_relevance: Option<f64>,
+}
+
+fn default_top_k() -> u32 {
+    5
+}
+
+memory_tool!(
+    SearchMemoriesTool,
+    "search_memories",
+    "Search the facts in one namespace by semantic similarity.\n\n\
+     Returns memories ranked by relevance (1 - cosine distance; 1.0 = \
+     identical). Only the exact namespace is searched, not its children.",
+    json!({
+        "type": "object",
+        "properties": {
+            "query": {"type": "string", "description": "Search query"},
+            "namespace": {"type": "string", "description": "Namespace to search (e.g. 'codebase/patterns')"},
+            "top_k": {
+                "type": "integer",
+                "default": 5,
+                "minimum": 1,
+                "maximum": MAX_TOP_K,
+                "description": "Maximum results to return (values above the maximum are clamped)"
             },
+            "min_relevance": {
+                "type": "number",
+                "minimum": -1.0,
+                "maximum": 1.0,
+                "description": "Drop results whose relevance is below this value (e.g. 0.3)"
+            }
+        },
+        "required": ["query", "namespace"]
+    }),
+    |svc, args| {
+        let a: SearchArgs = parse(args)?;
+        respond(
+            "search_memories",
+            svc.search(&a.query, &a.namespace, a.top_k, a.min_relevance)
+                .await,
+        )
+    }
+);
+
+// ---------------------------------------------------------------------------
+// list_session_events
+// ---------------------------------------------------------------------------
+
+#[derive(Deserialize)]
+struct ListEventsArgs {
+    actor_id: String,
+    session_id: String,
+    #[serde(default = "default_event_limit")]
+    limit: u32,
+}
+
+fn default_event_limit() -> u32 {
+    50
+}
+
+memory_tool!(
+    ListSessionEventsTool,
+    "list_session_events",
+    "List events from a specific session, newest first.",
+    json!({
+        "type": "object",
+        "properties": {
+            "actor_id": {"type": "string", "description": "Actor identifier"},
+            "session_id": {"type": "string", "description": "Session identifier"},
+            "limit": {
+                "type": "integer",
+                "default": 50,
+                "minimum": 1,
+                "maximum": MAX_LIST_LIMIT,
+                "description": "Maximum events to return"
+            }
+        },
+        "required": ["actor_id", "session_id"]
+    }),
+    |svc, args| {
+        let a: ListEventsArgs = parse(args)?;
+        respond(
+            "list_session_events",
+            svc.list_events(&a.actor_id, &a.session_id, a.limit).await,
+        )
+    }
+);
+
+// ---------------------------------------------------------------------------
+// list_namespaces
+// ---------------------------------------------------------------------------
+
+#[derive(Deserialize)]
+struct ListNamespacesArgs {
+    #[serde(default)]
+    include_stored: bool,
+}
+
+memory_tool!(
+    ListNamespacesTool,
+    "list_namespaces",
+    "List the predefined namespaces. With include_stored=true, also list the \
+     namespaces that currently hold facts, with record counts.",
+    json!({
+        "type": "object",
+        "properties": {
+            "include_stored": {
+                "type": "boolean",
+                "default": false,
+                "description": "Also query the database for namespaces that contain facts"
+            }
         }
+    }),
+    |svc, args| {
+        let a: ListNamespacesArgs = parse(args)?;
+        ToolResult::json(&svc.list_namespaces(a.include_stored).await)
     }
+);
+
+// ---------------------------------------------------------------------------
+// memory_status
+// ---------------------------------------------------------------------------
+
+memory_tool!(
+    MemoryStatusTool,
+    "memory_status",
+    "Get memory provider status: database connectivity and version, embedder, \
+     and search-cache statistics.",
+    json!({"type": "object", "properties": {}}),
+    |svc, _args| ToolResult::json(&svc.status().await)
+);
+
+// ---------------------------------------------------------------------------
+// list_memories
+// ---------------------------------------------------------------------------
+
+#[derive(Deserialize)]
+struct ListMemoriesArgs {
+    namespace: String,
+    #[serde(default = "default_list_limit")]
+    limit: u32,
+    #[serde(default)]
+    offset: u32,
 }
 
-// ============================================================================
-// Tool: list_session_events
-// ============================================================================
-
-struct ListSessionEventsTool {
-    client: Arc<ChromaDBClient>,
+fn default_list_limit() -> u32 {
+    20
 }
 
-#[async_trait]
-impl Tool for ListSessionEventsTool {
-    fn name(&self) -> &str {
-        "list_session_events"
-    }
-
-    fn description(&self) -> &str {
-        "List events from a specific session."
-    }
-
-    fn schema(&self) -> Value {
-        json!({
-            "type": "object",
-            "properties": {
-                "actor_id": {
-                    "type": "string",
-                    "description": "Actor identifier"
-                },
-                "session_id": {
-                    "type": "string",
-                    "description": "Session identifier"
-                },
-                "limit": {
-                    "type": "integer",
-                    "default": 50,
-                    "description": "Maximum events to return"
-                }
+memory_tool!(
+    ListMemoriesTool,
+    "list_memories",
+    "Browse the facts stored in a namespace without a search query (for \
+     auditing or finding ids to delete). Order is storage order.",
+    json!({
+        "type": "object",
+        "properties": {
+            "namespace": {"type": "string", "description": "Namespace to browse"},
+            "limit": {
+                "type": "integer",
+                "default": 20,
+                "minimum": 1,
+                "maximum": MAX_LIST_LIMIT,
+                "description": "Page size"
             },
-            "required": ["actor_id", "session_id"]
-        })
+            "offset": {"type": "integer", "default": 0, "minimum": 0, "description": "Records to skip"}
+        },
+        "required": ["namespace"]
+    }),
+    |svc, args| {
+        let a: ListMemoriesArgs = parse(args)?;
+        respond(
+            "list_memories",
+            svc.list_memories(&a.namespace, a.limit, a.offset).await,
+        )
     }
+);
 
-    async fn execute(&self, args: Value) -> Result<ToolResult> {
-        let actor_id = args
-            .get("actor_id")
-            .and_then(|v| v.as_str())
-            .ok_or_else(|| MCPError::InvalidParameters("actor_id is required".to_string()))?;
+// ---------------------------------------------------------------------------
+// delete_memories
+// ---------------------------------------------------------------------------
 
-        let session_id = args
-            .get("session_id")
-            .and_then(|v| v.as_str())
-            .ok_or_else(|| MCPError::InvalidParameters("session_id is required".to_string()))?;
-
-        let limit = args.get("limit").and_then(|v| v.as_u64()).unwrap_or(50) as u32;
-
-        match self.client.list_events(actor_id, session_id, limit).await {
-            Ok(events) => {
-                let event_list: Vec<Value> = events
-                    .iter()
-                    .map(|e| {
-                        json!({
-                            "id": e.id,
-                            "content": e.content,
-                            "timestamp": e.timestamp.to_rfc3339()
-                        })
-                    })
-                    .collect();
-
-                let response = json!({
-                    "actor_id": actor_id,
-                    "session_id": session_id,
-                    "count": event_list.len(),
-                    "events": event_list
-                });
-                ToolResult::json(&response)
-            },
-            Err(e) => {
-                error!("Failed to list events: {}", e);
-                let response = json!({
-                    "success": false,
-                    "error": e
-                });
-                ToolResult::json(&response)
-            },
-        }
-    }
+#[derive(Deserialize)]
+struct DeleteMemoriesArgs {
+    namespace: String,
+    ids: Vec<String>,
 }
 
-// ============================================================================
-// Tool: list_namespaces
-// ============================================================================
-
-struct ListNamespacesTool;
-
-#[async_trait]
-impl Tool for ListNamespacesTool {
-    fn name(&self) -> &str {
-        "list_namespaces"
+memory_tool!(
+    DeleteMemoriesTool,
+    "delete_memories",
+    "Delete facts from a namespace by record id (ids come from store_facts, \
+     search_memories or list_memories). Reports which ids were deleted and \
+     which were not found.",
+    json!({
+        "type": "object",
+        "properties": {
+            "namespace": {"type": "string", "description": "Namespace containing the facts"},
+            "ids": {
+                "type": "array",
+                "items": {"type": "string"},
+                "minItems": 1,
+                "maxItems": MAX_IDS_PER_CALL,
+                "description": "Record ids to delete"
+            }
+        },
+        "required": ["namespace", "ids"]
+    }),
+    |svc, args| {
+        let a: DeleteMemoriesArgs = parse(args)?;
+        respond(
+            "delete_memories",
+            svc.delete_memories(&a.namespace, a.ids).await,
+        )
     }
+);
 
-    fn description(&self) -> &str {
-        "List available predefined namespaces."
-    }
+// ---------------------------------------------------------------------------
+// reindex_namespace
+// ---------------------------------------------------------------------------
 
-    fn schema(&self) -> Value {
-        json!({
-            "type": "object",
-            "properties": {}
-        })
-    }
-
-    async fn execute(&self, _args: Value) -> Result<ToolResult> {
-        let response = json!({
-            "namespaces": {
-                "codebase": {
-                    "architecture": namespaces::ARCHITECTURE,
-                    "patterns": namespaces::PATTERNS,
-                    "conventions": namespaces::CONVENTIONS,
-                    "dependencies": namespaces::DEPENDENCIES
-                },
-                "reviews": {
-                    "pr": namespaces::PR_REVIEWS,
-                    "issues": namespaces::ISSUE_CONTEXT
-                },
-                "preferences": {
-                    "user": namespaces::USER_PREFS,
-                    "project": namespaces::PROJECT_PREFS
-                },
-                "agents": {
-                    "claude": namespaces::CLAUDE_LEARNINGS,
-                    "gemini": namespaces::GEMINI_LEARNINGS,
-                    "opencode": namespaces::OPENCODE_LEARNINGS,
-                    "crush": namespaces::CRUSH_LEARNINGS,
-                    "codex": namespaces::CODEX_LEARNINGS
-                },
-                "personality": {
-                    "voice_preferences": namespaces::VOICE_PREFERENCES,
-                    "expression_patterns": namespaces::EXPRESSION_PATTERNS,
-                    "reaction_history": namespaces::REACTION_HISTORY,
-                    "avatar_settings": namespaces::AVATAR_SETTINGS
-                },
-                "context": {
-                    "conversation_tone": namespaces::CONVERSATION_TONE,
-                    "user_preferences": namespaces::USER_COMMUNICATION,
-                    "interaction_history": namespaces::INTERACTION_HISTORY
-                },
-                "cross_cutting": {
-                    "security_patterns": namespaces::SECURITY_PATTERNS,
-                    "testing_patterns": namespaces::TESTING_PATTERNS,
-                    "performance_patterns": namespaces::PERFORMANCE
-                }
-            },
-            "note": "Use hierarchical namespaces with '/' separator for organization"
-        });
-        ToolResult::json(&response)
-    }
+#[derive(Deserialize)]
+struct ReindexArgs {
+    namespace: String,
 }
 
-// ============================================================================
-// Tool: memory_status
-// ============================================================================
-
-struct MemoryStatusTool {
-    client: Arc<ChromaDBClient>,
-    cache: Arc<RwLock<MemoryCache>>,
-}
-
-#[async_trait]
-impl Tool for MemoryStatusTool {
-    fn name(&self) -> &str {
-        "memory_status"
+memory_tool!(
+    ReindexNamespaceTool,
+    "reindex_namespace",
+    "Recompute the embeddings of every fact in a namespace with the current \
+     embedder. Needed once for facts written by releases before 1.1.0, which \
+     stored text without vectors and are therefore invisible to \
+     search_memories.",
+    json!({
+        "type": "object",
+        "properties": {
+            "namespace": {"type": "string", "description": "Namespace to re-embed"}
+        },
+        "required": ["namespace"]
+    }),
+    |svc, args| {
+        let a: ReindexArgs = parse(args)?;
+        respond(
+            "reindex_namespace",
+            svc.reindex_namespace(&a.namespace).await,
+        )
     }
-
-    fn description(&self) -> &str {
-        "Get memory provider status and info."
-    }
-
-    fn schema(&self) -> Value {
-        json!({
-            "type": "object",
-            "properties": {}
-        })
-    }
-
-    async fn execute(&self, _args: Value) -> Result<ToolResult> {
-        let healthy = self.client.health_check().await;
-        let info = self.client.get_info();
-        let cache_stats = {
-            let cache = self.cache.read().await;
-            cache.get_stats()
-        };
-
-        let response = json!({
-            "status": if healthy { "connected" } else { "disconnected" },
-            "provider": info,
-            "cache": cache_stats
-        });
-        ToolResult::json(&response)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_server_creation() {
-        // Just verify it compiles and can be created
-        // (actual client won't connect without ChromaDB running)
-        let _ = MemoryServer::new();
-    }
-
-    #[test]
-    fn test_tool_names() {
-        let server = MemoryServer::new();
-        let tools = server.tools();
-
-        let names: Vec<&str> = tools.iter().map(|t| t.name()).collect();
-        assert!(names.contains(&"store_event"));
-        assert!(names.contains(&"store_facts"));
-        assert!(names.contains(&"search_memories"));
-        assert!(names.contains(&"list_session_events"));
-        assert!(names.contains(&"list_namespaces"));
-        assert!(names.contains(&"memory_status"));
-    }
-}
+);

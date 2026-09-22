@@ -1,18 +1,20 @@
 # MCP Tools Documentation
 
-This document provides detailed information about the containerized MCP (Model Context Protocol) tools in this project.
+This document gives an overview of the tools exposed by this project's MCP (Model Context Protocol) servers, with examples for the most commonly used ones.
+
+**Each server's `tools/mcp/<crate>/README.md` is the source of truth** for tool parameters, defaults and limits. This page summarizes and links; see [MCP Servers Documentation](servers.md) for how to start each server.
 
 ## Container-First Design
 
-Most MCP tools run in Docker containers as part of this project's philosophy:
+Most MCP servers run in Docker containers as part of this project's philosophy:
 
 - **Zero local dependencies** - just Docker
-- **Consistent execution** - same results on any Linux system with Python 3.11
+- **Consistent execution** - same results on any Linux system
 - **Easy deployment** - works identically on self-hosted runners
 - **Single maintainer friendly** - no complex setup or coordination needed
-- **User permission handling** - containers run as current user to avoid permission issues
+- **User permission handling** - containers run as the current user to avoid permission issues
 
-**Exception**: The Gemini MCP server runs on the host system due to Docker-in-Docker limitations.
+**Exceptions**: Memory Explorer (must see host processes), Desktop Control on Windows, and Gaea2 builds (Windows host with Gaea2) run as native binaries.
 
 ## Table of Contents
 
@@ -20,37 +22,19 @@ Most MCP tools run in Docker containers as part of this project's philosophy:
 - [Core Tools](#core-tools)
 - [AI Integration Tools](#ai-integration-tools)
 - [Content Creation Tools](#content-creation-tools)
+- [Coordination and Memory Tools](#coordination-and-memory-tools)
 - [Remote Services](#remote-services)
 - [Custom Tool Development](#custom-tool-development)
 
 ## Overview
 
-MCP tools are functions that can be executed through the MCP servers to perform various development and content creation tasks. They are accessible via HTTP API or through the MCP protocol.
-
-**Server Architecture:**
-
-The MCP functionality is distributed across specialized servers:
-
-1. **Code Quality MCP Server** - Formatting and linting tools (STDIO mode)
-2. **Content Creation MCP Server** - Manim and LaTeX tools (STDIO mode)
-3. **Gemini MCP Server** - AI consultation (STDIO mode, host-only)
-4. **Gaea2 MCP Server** (Port 8007) - Terrain generation
-5. **Blender MCP Server** (Port 8017) - 3D content creation and rendering
-6. **AI Toolkit MCP Server** (Port 8020) - LoRA training interface
-7. **ComfyUI MCP Server** (Port 8013) - Image generation interface
-8. **OpenCode MCP Server** - AI code generation (STDIO mode)
-9. **Crush MCP Server** - Code generation (STDIO mode)
-10. **Meme Generator MCP Server** - Meme creation (STDIO mode)
-11. **Sprite Sheet MCP Server** (Port 8027) - Pixel art and sprite sheet creation
-
-See [MCP Servers Documentation](servers.md) for detailed information.
+MCP tools are functions executed by the MCP servers. Every server is a Rust binary built on [`mcp-core`](../../tools/mcp/mcp_core_rust/README.md) and is reachable through the MCP protocol (STDIO or HTTP) or, in HTTP mode, a simple REST API.
 
 ### Tool Execution
 
-MCP servers provide two different interfaces for tool execution:
-
 #### 1. MCP Protocol Interface (`/messages` endpoint)
-Used by Claude Desktop and MCP-compliant clients for JSON-RPC communication. This is the endpoint configured in `.mcp.json`:
+
+Used by Claude Code and other MCP clients (JSON-RPC). This is the endpoint configured in `.mcp.json` for HTTP servers:
 
 ```json
 {
@@ -72,104 +56,73 @@ curl -X POST http://localhost:<port>/messages \
     "method": "tools/call",
     "params": {
       "name": "tool_name",
-      "arguments": {
-        "arg1": "value1",
-        "arg2": "value2"
-      }
+      "arguments": {"arg1": "value1"}
     },
     "id": 1
   }'
 ```
 
 #### 2. Direct HTTP API (`/mcp/execute` endpoint)
-For direct REST API tool execution without MCP protocol overhead. Useful for testing and direct integration:
 
-**Example direct API request:**
+For direct REST tool execution without MCP protocol overhead. Useful for testing:
+
 ```bash
 curl -X POST http://localhost:<port>/mcp/execute \
   -H "Content-Type: application/json" \
-  -d '{
-    "tool": "tool_name",
-    "arguments": {
-      "arg1": "value1",
-      "arg2": "value2"
-    }
-  }'
+  -d '{"tool": "tool_name", "arguments": {"arg1": "value1"}}'
 ```
 
-**STDIO Mode:**
-Servers running in STDIO mode communicate through standard input/output using the MCP protocol and don't expose HTTP endpoints.
+**STDIO Mode:** servers launched by `.mcp.json` through `docker compose run ... --mode stdio` communicate over stdin/stdout and expose no HTTP port.
 
 ### Quick Reference Table
 
-| Server Name | Primary Mode | HTTP Port (Dev) | Description |
-|-------------|--------------|-----------------|-------------|
-| Code Quality | STDIO (Docker) | 8010 | Code formatting and linting |
-| Content Creation | STDIO (Docker) | 8011 | Manim animations and LaTeX |
-| Gemini | STDIO (Host) | 8006 | AI consultation (must run on host) |
-| Gaea2 | HTTP (Remote) | 8007 | Terrain generation (remote server) |
-| Blender | HTTP (Docker) | 8017 | 3D content creation, rendering, physics |
-| AI Toolkit | HTTP (Remote) | 8020 | LoRA training (remote server) |
-| ComfyUI | HTTP (Remote) | 8013 | Image generation (remote server) |
-| OpenCode | STDIO (Docker) | 8014 | AI code generation |
-| Crush | STDIO (Docker) | 8015 | Code generation |
-| Meme Generator | STDIO (Docker) | N/A | Meme creation with visual feedback |
-| Sprite Sheet | STDIO (Docker) | 8027 | Pixel art and sprite sheet creation |
+| Server | Primary Mode | HTTP Port | Tools | Description |
+|--------|--------------|-----------|-------|-------------|
+| Code Quality | STDIO (Docker) | 8010 | 10 | Formatting, linting, type checks, tests, security scans |
+| Content Creation | STDIO (Docker) | 8011 | 5 | LaTeX, TikZ, PDF previews, Manim |
+| ~~Gemini~~ | Disabled | 8006 | 4 | AI consultation (disabled) |
+| OpenCode | STDIO (Docker) | 8014 | 4 | Code assistance via OpenRouter |
+| Crush | STDIO (Docker) | 8015 | 4 | Code generation via the Crush CLI |
+| Meme Generator | STDIO (Docker) | 8016 | 6 | Meme creation with visual feedback |
+| Blender | STDIO (Docker) | 8017 | 42 | 3D content creation, rendering, physics |
+| ElevenLabs Speech | STDIO (Docker) | 8018 | 7 | Text-to-speech and sound effects |
+| Video Editor | STDIO (Docker) | 8019 | 9 | Automated video editing |
+| GitHub Board | STDIO (Docker) | 8022 | 17 | Projects v2 work queue and agent coordination |
+| AgentCore Memory | STDIO (Docker) | 8023 | 9 | ChromaDB-backed agent memory |
+| Reaction Search | STDIO (Docker) | 8024 | 6 | Reaction image search |
+| Virtual Character | HTTP (VRChat host) | 8025 | 18 | VRChat avatar control |
+| Desktop Control | Native | 8026 | 23 | Desktop automation (X11 / Windows) |
+| Sprite Sheet | STDIO (Docker) | 8027 | 38 | Pixel art and sprite sheets |
+| Memory Explorer | Native (STDIO) | 8028 | 15 | Read-only process memory exploration |
+| Gaea2 | HTTP (Remote) | 8007 | 15 | Terrain generation (`192.168.0.152`) |
+| AI Toolkit | HTTP (Remote) | 8020 | 22 | LoRA training (`192.168.0.222`) |
+| ComfyUI | HTTP (Remote) | 8013 | 15 | Image generation (`192.168.0.222`) |
+| BioForge | Native (STDIO) | 8030 | 16 | Lab automation on simulated hardware |
 
-**Note**: The default configuration uses STDIO mode for local servers through Docker Compose. HTTP ports are only used when manually running servers in HTTP mode for development/testing.
+**Note**: HTTP ports are only used when a server runs in HTTP mode (`--mode standalone`), e.g. `docker compose up` for development or the remote servers.
 
 ## Core Tools
 
 ### Code Quality Tools
 
-#### format_check
+Full reference: [`tools/mcp/mcp_code_quality/README.md`](../../tools/mcp/mcp_code_quality/README.md).
 
-Check code formatting according to language-specific standards.
-
-**Parameters:**
-- `path` (string, required): Path to the file or directory to check
-- `language` (string): Programming language (python, javascript, typescript, go, rust)
-
-**Example:**
-```json
-{
-  "tool": "format_check",
-  "arguments": {
-    "path": "./src",
-    "language": "python"
-  }
-}
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "formatted": true,
-  "output": "All files formatted correctly",
-  "command": "black --check ./src"
-}
-```
-
-#### lint
-
-Run static code analysis to find potential issues.
-
-**Parameters:**
-- `path` (string, required): Path to analyze
-- `linter` (string): Linter to use (ruff, eslint, golint, clippy)
-- `config` (string, optional): Path to linting configuration file
+| Tool | Description |
+|------|-------------|
+| `format_check` | Check formatting (`language`: python, javascript, typescript, go, rust; Python defaults to `ruff format`, `formatter: "black"` available) |
+| `autoformat` | Format files in place |
+| `lint` | Static analysis (`linter`: ruff, flake8, eslint, golint, clippy) |
+| `type_check` | `ty check` |
+| `run_tests` | pytest |
+| `security_scan` | bandit |
+| `audit_dependencies` | pip-audit |
+| `check_markdown_links` | Markdown link checker |
+| `get_status` | Configuration and available external tools |
+| `get_audit_log` | Recent audit log entries |
 
 **Example:**
 ```json
-{
-  "tool": "lint",
-  "arguments": {
-    "path": "./src",
-    "linter": "ruff",
-    "config": "ruff.toml"
-  }
-}
+{"tool": "lint", "arguments": {"path": "/app/tools/cli", "linter": "ruff"}}
 ```
 
 **Response:**
@@ -177,102 +130,49 @@ Run static code analysis to find potential issues.
 {
   "success": true,
   "passed": false,
-  "issues": [
-    "src/main.py:10:1: E302 expected 2 blank lines, found 1"
-  ],
+  "command": "ruff check --no-cache --output-format concise /app/tools/cli",
+  "issues": ["tools/cli/x.py:1:8: F401 [*] `os` imported but unused"],
   "issue_count": 1,
-  "command": "flake8 --config .flake8 ./src"
+  "returncode": 1,
+  "duration_ms": 22
 }
 ```
 
-#### autoformat
-
-Automatically format code files.
-
-**Parameters:**
-- `path` (string, required): Path to format
-- `language` (string): Programming language
-
-**Example:**
-```json
-{
-  "tool": "autoformat",
-  "arguments": {
-    "path": "./src",
-    "language": "python"
-  }
-}
-```
+`success` means the tool ran; whether the code passed is reported in `passed` (or `formatted` for `format_check`).
 
 ### Running CI/CD Pipeline
 
-While not a direct MCP tool, the full CI/CD pipeline can be executed via `automation-cli`:
+While not an MCP tool, the full CI/CD pipeline can be executed via `automation-cli`:
 
 ```bash
-# Run complete CI pipeline
-automation-cli ci run full
-
-# Individual stages
+automation-cli ci run full        # Complete Python pipeline
+automation-cli ci run rust-full   # All Rust checks (includes every MCP server crate)
 automation-cli ci run format
-automation-cli ci run lint-basic
 automation-cli ci run lint-full
-automation-cli ci run security
 automation-cli ci run test
 ```
 
-The CLI orchestrates Docker containers for all Python and Rust CI operations.
-
 ## AI Integration Tools
 
-### Gemini Tools
+### ~~Gemini Tools~~ (DISABLED)
 
-#### consult_gemini
+> **DISABLED**: Google updated its AI principles (Feb 2026) to allow mass surveillance and autonomous weapons use cases. Gemini integrations are disabled; use Anthropic models (Claude) instead.
 
-Get AI assistance from Google's Gemini model for technical questions, code review, and suggestions.
-
-**Parameters:**
-- `query` (string, required): The question or code to consult about
-- `context` (string, optional): Additional context
-- `comparison_mode` (boolean): Compare with previous Claude response
-- `force` (boolean): Force consultation even if disabled
-
-**Example:**
-```json
-{
-  "tool": "consult_gemini",
-  "arguments": {
-    "query": "How can I optimize this function?",
-    "context": "def fibonacci(n):\n    if n <= 1:\n        return n\n    return fibonacci(n-1) + fibonacci(n-2)",
-    "comparison_mode": true
-  }
-}
-```
-
-#### clear_gemini_history
-
-Clear Gemini's conversation history.
-
-#### gemini_status
-
-Get integration status and statistics.
-
-#### toggle_gemini_auto_consult
-
-Toggle automatic consultation on uncertainty detection.
+Tools: `consult_gemini`, `clear_gemini_history`, `gemini_status`, `toggle_gemini_auto_consult`. See `tools/mcp/mcp_gemini/README.md`.
 
 ### OpenCode Tools
 
-#### consult_opencode
+Full reference: [`tools/mcp/mcp_opencode/README.md`](../../tools/mcp/mcp_opencode/README.md).
 
-AI-powered code generation via OpenRouter.
+| Tool | Description |
+|------|-------------|
+| `consult_opencode` | Ask the OpenRouter model (`query`, `context`, `mode`, `model`, `temperature`, `max_tokens`, `force`) |
+| `opencode_status` | Status, statistics, effective configuration |
+| `clear_opencode_history` | Clear conversation history |
+| `toggle_opencode_auto_consult` | Set or flip the auto-consult flag |
 
-**Parameters:**
-- `query` (string, required): The coding question or task
-- `mode` (string): generate, refactor, review, or explain
-- `context` (string, optional): Existing code or context
-- `comparison_mode` (boolean): Compare with previous response
+Modes: `quick` (default), `generate`, `refactor`, `review`, `explain`. The default model is `qwen/qwen3.7-max` (`OPENCODE_MODEL`); `model` overrides it per call. `comparison_mode` is accepted for backward compatibility but has no effect.
 
-**Example:**
 ```json
 {
   "tool": "consult_opencode",
@@ -286,615 +186,279 @@ AI-powered code generation via OpenRouter.
 
 ### Crush Tools
 
-#### consult_crush
+Full reference: [`tools/mcp/mcp_crush/README.md`](../../tools/mcp/mcp_crush/README.md).
 
-Fast code generation optimized for speed.
+| Tool | Description |
+|------|-------------|
+| `consult_crush` | Run `crush run` (`query`, `context`, `mode`, `model`, `force`) |
+| `crush_status` | Status, statistics, configuration and resolved execution mode |
+| `clear_crush_history` | Clear conversation history |
+| `toggle_crush_auto_consult` | Set or flip the auto-consult flag |
 
-**Parameters:**
-- `query` (string, required): The coding question or task
-- `mode` (string): generate, explain, convert, or quick
-- `context` (string, optional): Target language for conversion
-- `comparison_mode` (boolean): Compare with previous response
+Modes: `quick` (default), `generate`, `explain`, `convert` (`context` is the required target language). `comparison_mode` is accepted but has no effect.
 
-**Example:**
 ```json
 {
   "tool": "consult_crush",
-  "arguments": {
-    "query": "def add(a, b): return a + b",
-    "mode": "convert",
-    "context": "TypeScript"
-  }
+  "arguments": {"query": "def add(a, b): return a + b", "mode": "convert", "context": "TypeScript"}
 }
 ```
 
 ## Content Creation Tools
 
-### Content Creation Tools
+### Content Creation (LaTeX, TikZ, Manim)
 
-#### create_manim_animation
+Full reference: [`tools/mcp/mcp_content_creation/README.md`](../../tools/mcp/mcp_content_creation/README.md).
 
-Create mathematical and technical animations using Manim.
+| Tool | Description |
+|------|-------------|
+| `compile_latex` | Compile inline `content` or a project `input_path` (exactly one) to `pdf`/`dvi`/`ps` (`output_format`, alias `format`); `template`, `preview_pages`, `visual_feedback` |
+| `render_tikz` | Render TikZ to `pdf`/`png`/`svg`; `tikz_libraries`, `packages`, `dpi` |
+| `preview_pdf` | Render pages of an existing PDF to PNG |
+| `create_manim_animation` | Render a Manim scene to `mp4`/`gif`/`webm`/`png`; `quality`: `low`, `medium`, `high`, `production`, `fourk`; `preview: true` renders only the last frame as PNG |
+| `content_creation_status` | Configuration and installed external tools |
 
-**Parameters:**
-- `script` (string, required): Manim Python script
-- `output_format` (string): Output format (mp4, gif, png, webm)
-- `quality` (string): Rendering quality (low, medium, high, fourk)
-- `preview` (boolean): Generate preview frame only
-
-**Example:**
-```json
-{
-  "tool": "create_manim_animation",
-  "arguments": {
-    "script": "from manim import *\n\nclass Example(Scene):\n    def construct(self):\n        text = Text('Hello!')\n        self.play(Write(text))",
-    "output_format": "mp4",
-    "quality": "medium",
-    "preview": false
-  }
-}
-```
-
-#### compile_latex
-
-Compile LaTeX documents with visual feedback.
-
-**Parameters:**
-- `content` (string, required): LaTeX document content
-- `format` (string): Output format (pdf, dvi, ps)
-- `template` (string): Document template (article, report, book, beamer, custom)
-- `visual_feedback` (boolean): Return PNG preview image
-
-**Example:**
 ```json
 {
   "tool": "compile_latex",
-  "arguments": {
-    "content": "\\section{Introduction}\\nContent here",
-    "format": "pdf",
-    "template": "article",
-    "visual_feedback": true
-  }
+  "arguments": {"content": "Euler: $e^{i\\pi}+1=0$", "template": "article", "preview_pages": "1"}
 }
 ```
 
-#### render_tikz
-
-Render TikZ diagrams as standalone images.
-
-**Parameters:**
-- `tikz_code` (string, required): TikZ code
-- `output_format` (string): Output format (pdf, png, svg)
-
 ### Meme Generator Tools
 
-#### generate_meme
+Full reference: [`tools/mcp/mcp_meme_generator/README.md`](../../tools/mcp/mcp_meme_generator/README.md).
 
-Generate memes from templates with text overlays.
+| Tool | Description |
+|------|-------------|
+| `generate_meme` | Render captions on a template, save, return a preview, optionally upload |
+| `list_meme_templates` | List templates and their text areas |
+| `get_meme_template_info` | Template config, usage rules and an example call |
+| `meme_generator_status` | Template load errors, font, directories, upload settings |
+| `upload_meme` | Upload an existing meme from the output directory |
+| `reload_meme_templates` | Re-read templates and font |
 
-**Parameters:**
-- `template` (string, required): Template ID
-- `texts` (object, required): Text for each area
-- `font_size_override` (object, optional): Custom font sizes
-- `auto_resize` (boolean): Auto-adjust font size
-- `upload` (boolean): Upload to get shareable URL
-
-**Example:**
 ```json
 {
   "tool": "generate_meme",
   "arguments": {
-    "template": "drake",
-    "texts": {
-      "reject": "Writing documentation",
-      "prefer": "Generated docs"
-    },
-    "upload": true
+    "template": "ol_reliable",
+    "texts": {"top": "When the code won't compile", "bottom": "print('hello world')"},
+    "upload": false
   }
 }
 ```
+
+### ElevenLabs Speech Tools
+
+Full reference: [`tools/mcp/mcp_elevenlabs_speech/README.md`](../../tools/mcp/mcp_elevenlabs_speech/README.md).
+
+| Tool | Description |
+|------|-------------|
+| `synthesize_speech` | Text-to-speech (audio tags such as `[laughs]` with `eleven_v3`) |
+| `generate_sound_effect` | Sound effect from a prompt (0.5-30 s) |
+| `list_voices` | Voices on the account |
+| `get_user_subscription` | Tier and character usage |
+| `get_models` | Available models |
+| `list_presets` | Voice-settings presets |
+| `clear_cache` | Delete generated audio files |
 
 ### Video Editor Tools
 
-#### process_video
+Full reference: [`tools/mcp/mcp_video_editor/README.md`](../../tools/mcp/mcp_video_editor/README.md).
 
-Comprehensive video processing with AI-powered features.
+| Tool | Description |
+|------|-------------|
+| `video_editor/analyze` | Media info, transcript, loudness/silences/peaks, scenes, speakers, highlights |
+| `video_editor/create_edit` | Generate and save an edit decision list (EDL) |
+| `video_editor/render` | Render an EDL with transitions, zoom and PiP |
+| `video_editor/extract_clips` | Cut clips by time range and/or transcript keyword |
+| `video_editor/add_captions` | Transcribe and burn in or mux captions |
+| `video_editor/get_video_info` | ffprobe summary |
+| `video_editor/get_job_status` | Job status, progress and result |
+| `video_editor/list_jobs` | Recent jobs |
+| `video_editor/cancel_job` | Cancel a job |
 
-**Parameters:**
-- `video_path` (string, required): Path to input video file
-- `operations` (array, required): List of operations to perform
-  - Options: transcribe, diarize, detect_scenes, generate_captions, analyze_audio
-- `output_dir` (string, optional): Output directory for results
-- `transcribe_options` (object, optional): Whisper transcription settings
-- `diarize_options` (object, optional): Speaker diarization settings
-
-**Example:**
 ```json
 {
-  "tool": "process_video",
+  "tool": "video_editor/extract_clips",
   "arguments": {
-    "video_path": "/input/video.mp4",
-    "operations": ["transcribe", "diarize", "detect_scenes"],
-    "transcribe_options": {
-      "language": "en",
-      "model": "base"
-    }
+    "video_input": "/data/talk.mp4",
+    "extraction_criteria": {"time_ranges": [[30, 45]], "keywords": ["pricing"], "padding": 0.5},
+    "background": true
   }
 }
 ```
 
-#### compose_videos
+Transcription requires the Whisper CLI (bake it into the image with `VIDEO_EDITOR_WHISPER=true docker compose build mcp-video-editor`). Speaker switching is energy-based (one time-synced video per speaker); there is no ML diarization.
 
-Combine multiple videos with transitions.
+### Blender Tools
 
-**Parameters:**
-- `video_inputs` (array, required): List of video file paths
-- `transitions` (array, optional): Transition effects between clips
-- `output_path` (string, required): Output file path
-- `duration` (number, optional): Transition duration in seconds
+Full reference: [`tools/mcp/mcp_blender/README.md`](../../tools/mcp/mcp_blender/README.md).
 
-**Example:**
+- **Projects and status**: `create_blender_project`, `list_projects`, `blender_status`, `analyze_scene`, `optimize_scene`
+- **Scene building**: `add_primitive_objects`, `add_advanced_primitives`, `create_curve`, `create_text_object`, `delete_objects`, `parent_objects`, `join_objects`, `create_armature`, `add_constraint`
+- **Look development**: `apply_material`, `add_texture`, `add_uv_map`, `setup_lighting`, `setup_world_environment`, `setup_camera`, `add_camera_track`, `setup_compositor`
+- **Animation, simulation, procedural**: `create_animation`, `add_modifier`, `setup_physics`, `bake_simulation`, `add_particle_system`, `add_smoke_simulation`, `create_geometry_nodes`, `quick_smoke`, `quick_liquid`, `quick_explode`, `quick_fur`
+- **Rendering and jobs**: `render_image`, `render_animation`, `batch_render`, `get_job_status`, `get_job_result`, `cancel_job`, `list_jobs`, `import_model`, `export_scene`
+
+Renders and bakes run as background jobs (`QUEUED` -> `RUNNING` -> `COMPLETED`/`FAILED`/`CANCELLED`); `get_job_status` with `wait_seconds` long-polls.
+
+### Sprite Sheet Tools
+
+Full reference: [`tools/mcp/mcp_sprite_sheet/README.md`](../../tools/mcp/mcp_sprite_sheet/README.md). 38 `sprite_*` tools covering projects, layers, drawing, palettes, sprites and animations, transforms, rendering, GIF and texture-atlas export, undo/redo and image import.
+
+## Coordination and Memory Tools
+
+### GitHub Board Tools
+
+Full reference: [`tools/mcp/mcp_github_board/README.md`](../../tools/mcp/mcp_github_board/README.md).
+
+| Tool | Description |
+|------|-------------|
+| `query_ready_work` | Unblocked, unclaimed TODO issues |
+| `claim_work` / `renew_claim` / `release_work` | Claim lifecycle for an agent session |
+| `update_status` | Set the board status |
+| `add_blocker` / `remove_blocker` | Manage blocking dependencies |
+| `mark_discovered_from` | Parent-child relationship |
+| `get_issue_details` / `get_dependency_graph` | Issue and dependency information |
+| `list_agents` / `get_board_config` | Board configuration |
+| `add_to_board` | Add an issue to the board |
+| `check_approval` / `find_approved_issues` | Approval checks |
+| `release_stale_claims` | Stale-claim janitor (dry run by default) |
+| `board_status` | Server and board-manager status |
+
 ```json
-{
-  "tool": "compose_videos",
-  "arguments": {
-    "video_inputs": ["/video1.mp4", "/video2.mp4"],
-    "transitions": ["fade", "crossfade"],
-    "output_path": "/output/composed.mp4",
-    "duration": 1.0
-  }
-}
+{"tool": "claim_work", "arguments": {"issue_number": 42, "agent_name": "claude", "session_id": "run-8841"}}
 ```
 
-#### extract_clips
+The board is configured by `ai-agents-board.yml` (or `BOARD_PROJECT_NUMBER`); `--read-only` hides the mutating tools.
 
-Extract clips based on keywords, speakers, or time ranges.
+### AgentCore Memory Tools
 
-**Parameters:**
-- `video_path` (string, required): Input video path
-- `extraction_type` (string, required): keyword, speaker, or time_range
-- `criteria` (object, required): Extraction criteria
-- `output_dir` (string, required): Output directory
+Full reference: [`tools/mcp/mcp_agentcore_memory/README.md`](../../tools/mcp/mcp_agentcore_memory/README.md). ChromaDB-backed; tools: `store_event`, `list_session_events`, `store_facts`, `search_memories`, `list_memories`, `delete_memories`, `reindex_namespace`, `list_namespaces`, `memory_status`.
 
-**Example:**
+### Reaction Search Tools
+
+Full reference: [`tools/mcp/mcp_reaction_search/README.md`](../../tools/mcp/mcp_reaction_search/README.md). Tools: `search_reactions`, `get_reaction`, `list_reactions`, `list_reaction_tags`, `refresh_reactions`, `reaction_search_status`. Falls back to keyword search when the embedding model is unavailable.
+
 ```json
-{
-  "tool": "extract_clips",
-  "arguments": {
-    "video_path": "/input/video.mp4",
-    "extraction_type": "keyword",
-    "criteria": {
-      "keywords": ["important", "highlight"],
-      "context_seconds": 5
-    },
-    "output_dir": "/output/clips"
-  }
-}
+{"tool": "search_reactions", "arguments": {"query": "celebrating after fixing a bug", "limit": 3}}
 ```
-
-#### generate_captions
-
-Generate multi-language captions.
-
-**Parameters:**
-- `video_path` (string, required): Input video path
-- `languages` (array, optional): Target languages for translation
-- `format` (string, optional): Output format (srt, vtt, txt)
-- `style_options` (object, optional): Caption styling options
-
-**Example:**
-```json
-{
-  "tool": "generate_captions",
-  "arguments": {
-    "video_path": "/input/video.mp4",
-    "languages": ["en", "es", "fr"],
-    "format": "srt",
-    "style_options": {
-      "position": "bottom",
-      "font_size": 24
-    }
-  }
-}
-```
-
-#### Additional Video Tools
-
-- **analyze_audio**: Perform audio analysis (volume, speech detection, music detection)
-- **apply_video_filter**: Apply visual filters and effects
-- **create_montage**: Create montages from multiple clips
-- **generate_highlights**: Auto-generate highlight reels
-- **job_status**: Check status of async processing jobs
-- **get_job_result**: Retrieve results of completed jobs
-
-**Features:**
-- GPU acceleration with CUDA support
-- Automatic fallback to CPU if GPU unavailable
-- Async job processing for long operations
-- Multi-language support via Whisper
-- Speaker diarization with pyannote
-- Intelligent scene detection
 
 ## Remote Services
 
 ### Gaea2 Tools (Port 8007)
 
-#### Terrain Generation
-- `create_gaea2_project`: Create custom terrain projects
-- `create_gaea2_from_template`: Use professional templates
-- `validate_and_fix_workflow`: Validate and repair workflows
-- `analyze_workflow_patterns`: Pattern-based analysis
-- `optimize_gaea2_properties`: Optimize for performance/quality
-- `suggest_gaea2_nodes`: Get intelligent node suggestions
-- `repair_gaea2_project`: Repair damaged projects
-- `run_gaea2_project`: CLI automation (Windows only)
+Full reference: [`tools/mcp/mcp_gaea2/README.md`](../../tools/mcp/mcp_gaea2/README.md). Runs on the Windows host at `192.168.0.152:8007`.
 
-**Features:**
-- Professional templates
-- Automatic error correction
-- Performance optimization
+- **Projects**: `create_gaea2_project`, `create_gaea2_from_template`, `list_gaea2_projects`, `download_gaea2_project`, `repair_gaea2_project`
+- **Validation and analysis**: `validate_and_fix_workflow`, `analyze_workflow_patterns`, `optimize_gaea2_properties`, `suggest_gaea2_nodes`
+- **Reference**: `list_gaea2_templates` (11 templates), `list_gaea2_nodes`, `get_gaea2_status`
+- **Builds (Windows host with Gaea2)**: `run_gaea2_project`, `validate_gaea2_runtime`, `analyze_execution_history`
 
-### Blender Tools (Port 8017)
+`create_*` tools validate first and refuse to write an invalid workflow.
 
-#### 3D Content Creation
-- `create_blender_project`: Create new projects from templates
-- `add_primitive_objects`: Add cubes, spheres, cylinders, etc.
-- `setup_lighting`: Professional lighting setups (three-point, studio, HDRI)
-- `apply_material`: Apply PBR materials and textures
-- `import_model`: Import 3D models (FBX, OBJ, GLTF, STL, USD)
-- `export_model`: Export to various formats
+### Virtual Character Tools (Port 8025)
 
-#### Rendering
-- `render_frame`: Single frame rendering (Cycles/Eevee)
-- `render_animation`: Animation sequence rendering
-- `get_render_status`: Monitor rendering progress
-- `cancel_render`: Stop ongoing render jobs
+Full reference: [`tools/mcp/mcp_virtual_character/README.md`](../../tools/mcp/mcp_virtual_character/README.md). Best run natively on the VRChat PC.
 
-#### Physics & Simulation
-- `setup_physics_simulation`: Configure rigid body, soft body, cloth
-- `add_fluid_simulation`: Fluid dynamics setup
-- `add_particle_system`: Particle effects and systems
-- `run_simulation`: Execute physics simulation
+- **Backends**: `set_backend` (`mock`, `vrchat_remote`), `disconnect_backend`, `list_backends`, `get_backend_status`, `get_avatar_state`
+- **Animation**: `send_animation` (emotion, gesture, movement, avatar parameters), `send_vrcemote` (0-8), `execute_behavior`, `reset`
+- **Audio**: `play_audio` (ElevenLabs expression tags set the avatar's emotion)
+- **Sequences**: `create_sequence`, `add_sequence_event`, `play_sequence`, `pause_sequence`, `resume_sequence`, `stop_sequence`, `get_sequence_status`, `panic_reset`
 
-#### Animation
-- `create_keyframe_animation`: Keyframe-based animation
-- `setup_armature`: Rigging and bone systems
-- `add_animation_constraint`: Animation constraints
-- `create_shape_keys`: Deformation shape keys
+```json
+{"tool": "send_animation", "arguments": {"gesture": "wave", "emotion": "happy"}}
+```
 
-#### Geometry Nodes
-- `create_geometry_nodes`: Procedural geometry generation
-- `create_scatter_system`: Object scattering/distribution
-- `create_array_modifier`: Array and grid layouts
+### Desktop Control Tools (Port 8026)
 
-**Features:**
-- GPU-accelerated rendering with NVIDIA CUDA
-- Headless Blender for server operations
-- Asynchronous job system for long operations
-- Professional templates (studio, animation, VFX, architectural)
-- Full Docker support with GPU passthrough
+Full reference: [`tools/mcp/mcp_desktop_control/README.md`](../../tools/mcp/mcp_desktop_control/README.md). 23 tools: `desktop_status`; windows (`list_windows`, `get_active_window`, `focus_window`, `move_window`, `resize_window`, `minimize_window`, `maximize_window`, `restore_window`, `close_window`); screens (`list_screens`, `get_screen_size`); screenshots (`screenshot_screen`, `screenshot_window`, `screenshot_region`); mouse (`get_mouse_position`, `move_mouse`, `click_mouse`, `drag_mouse`, `scroll_mouse`); keyboard (`type_text`, `send_key`, `send_hotkey`).
 
-### Virtual Character Tools (Port 8020)
+### Memory Explorer Tools
 
-#### Backend Management
-- `connect_backend`: Connect to virtual world platforms (VRChat, Blender, Unity)
-- `disconnect_backend`: Disconnect from current backend
-- `list_backends`: List available backend plugins
-- `switch_backend`: Hot-swap between different backends
-- `get_backend_status`: Get current backend connection status
-
-#### Animation & Audio
-- `send_animation`: Send canonical animation data to backend
-- `send_audio`: Send audio with lip-sync metadata
-- `set_emotion`: Set character emotional state
-- `trigger_gesture`: Trigger predefined gestures
-- `set_locomotion`: Control character movement
-
-#### Environment Interaction
-- `get_state`: Retrieve current environment state
-- `capture_video`: Get agent's visual perspective
-- `get_nearby_agents`: List nearby agents/players
-- `send_message`: Send text/voice messages to world
-
-#### Configuration
-- `configure_avatar`: Set avatar parameters
-- `set_voice_settings`: Configure voice parameters
-- `calibrate_tracking`: Calibrate motion tracking
-
-**Features:**
-- Plugin-based architecture for multiple backends
-- Canonical data model for cross-platform compatibility
-- Remote Windows support for VRChat (OSC protocol)
-- Bidirectional communication (animation out, video in)
-- Multi-agent coordination support
-- State synchronization and caching
+Full reference: [`tools/mcp/mcp_memory_explorer/README.md`](../../tools/mcp/mcp_memory_explorer/README.md). Read-only, Windows and Linux: `list_processes`, `attach_process`, `detach_process`, `get_modules`, `get_memory_regions`, `read_memory`, `dump_memory`, `scan_pattern`, `find_value`, `refine_value`, `resolve_pointer`, `watch_address`, `read_watches`, `remove_watch`, `get_status`.
 
 ### ComfyUI Tools (Port 8013)
 
-#### Image Generation
-- `generate_image`: Generate images using workflows
-- `list_workflows`: List available workflows
-- `get_workflow`: Get workflow details
-- `list_models`: List available models
-- `execute_workflow`: Execute custom workflows
-- `transfer_lora`: Transfer LoRA from AI Toolkit
+Full reference: [`tools/mcp/mcp_comfyui/README.md`](../../tools/mcp/mcp_comfyui/README.md). MCP at `192.168.0.222:8013`, ComfyUI at `192.168.0.222:8188`.
+
+- **Generation**: `generate_image` (templates `flux_default`, `sdxl_default`, `flux_with_lora`, `img2img`, `upscale`, `controlnet`, or a custom API-format workflow), `execute_workflow`
+- **Jobs**: `get_job_status`, `cancel_job`, `get_queue`
+- **Images**: `get_image`, `upload_image`
+- **Discovery**: `list_workflows`, `get_workflow`, `list_models`, `get_object_info`, `get_system_info`
+- **LoRA files**: `upload_lora`, `list_loras`, `download_lora`
 
 **Configuration:**
 ```bash
-COMFYUI_SERVER_URL=http://192.168.0.222:8013
+COMFYUI_URL=http://192.168.0.222:8188   # or COMFYUI_HOST / COMFYUI_PORT (defaults localhost / 8188)
 ```
 
 ### AI Toolkit Tools (Port 8020)
 
-#### LoRA Training
-- `create_training_config`: Configure training
-- `upload_dataset`: Upload images (chunked for >100MB)
-- `start_training`: Begin training job
-- `get_training_status`: Monitor progress
-- `stop_training`: Stop training
-- `export_model`: Export trained model
-- `download_model`: Download model
-- `list_configs`, `list_datasets`, `list_training_jobs`: List resources
-- `get_system_stats`: System statistics
-- `get_training_logs`: Training logs
+Full reference: [`tools/mcp/mcp_ai_toolkit/README.md`](../../tools/mcp/mcp_ai_toolkit/README.md). Runs next to AI Toolkit on `192.168.0.222:8020`.
 
-**Configuration:**
-```bash
-AI_TOOLKIT_SERVER_URL=http://192.168.0.222:8020
+- **Configs**: `create_training_config`, `list_configs`, `get_config`, `validate_config`, `delete_config`
+- **Datasets**: `upload_dataset`, `list_datasets`, `get_dataset_info`, `delete_dataset`
+- **Training**: `start_training`, `get_training_status`, `get_training_logs`, `stop_training`, `list_training_jobs`, `get_training_info`, `get_training_samples`
+- **Models**: `list_exported_models`, `export_model`, `download_model` (chunked via `offset`/`chunk_size`), `delete_model`
+- **Utilities**: `get_system_stats`, `list_model_presets`
+
+**Client configuration:**
+```json
+{"mcpServers": {"ai-toolkit": {"type": "http", "url": "http://192.168.0.222:8020/messages"}}}
 ```
+
+### BioForge Tools
+
+Full reference: [`tools/mcp/mcp_bioforge/README.md`](../../tools/mcp/mcp_bioforge/README.md). Simulated hardware; not configured in `.mcp.json`. Tools: `dispense`, `aspirate`, `mix`, `move_to`, `home_gantry`, `set_temperature`, `heat_shock`, `incubate`, `capture_plate_image`, `count_colonies`, `list_protocols`, `load_protocol`, `get_system_status`, `request_human_action`, `get_human_action_status`, `emergency_stop`.
 
 ## Custom Tool Development
 
-### Creating a New MCP Server
+New servers are Rust crates built on `mcp-core`. The [mcp_core_rust README](../../tools/mcp/mcp_core_rust/README.md) documents the `Tool` trait, typed-argument and schema helpers, error mapping and the `mcp-testing` crate. In short:
 
-1. **Create a new directory under `tools/mcp/`:**
-```bash
-mkdir tools/mcp/my_server
-```
-
-2. **Create server.py inheriting from BaseMCPServer:**
-```python
-# tools/mcp/my_server/server.py
-from ..core.base_server import BaseMCPServer
-from ..core.utils import setup_logging
-
-class MyMCPServer(BaseMCPServer):
-    def __init__(self):
-        super().__init__(
-            name="My MCP Server",
-            version="1.0.0",
-            port=8020  # Choose an unused port
-        )
-        self.logger = setup_logging("MyMCP")
-
-    def get_tools(self) -> Dict[str, Dict[str, Any]]:
-        return {
-            "my_tool": {
-                "description": "My custom tool",
-                "parameters": {
-                    "type": "object",
-                    "properties": {
-                        "param1": {
-                            "type": "string",
-                            "description": "Parameter 1"
-                        }
-                    },
-                    "required": ["param1"]
-                }
-            }
-        }
-
-    async def my_tool(self, param1: str) -> Dict[str, Any]:
-        """Tool implementation"""
-        return {
-            "success": True,
-            "result": f"Processed: {param1}"
-        }
-
-def main():
-    import argparse
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--mode", choices=["http", "stdio"], default="http")
-    args = parser.parse_args()
-
-    server = MyMCPServer()
-    server.run(mode=args.mode)
-
-if __name__ == "__main__":
-    main()
-```
-
-3. **Add to .mcp.json configuration:**
-```json
-{
-  "mcpServers": {
-    "my-server": {
-      "type": "http",
-      "url": "http://localhost:8020/messages"
-    }
-  }
-}
-```
-
-4. **Create documentation:**
-```bash
-mkdir tools/mcp/my_server/docs
-echo "# My MCP Server" > tools/mcp/my_server/docs/README.md
-```
-
-5. **Add test script:**
-```python
-# tools/mcp/my_server/scripts/test_server.py
-import asyncio
-import aiohttp
-
-async def test_server():
-    async with aiohttp.ClientSession() as session:
-        # Test health endpoint
-        async with session.get("http://localhost:8020/health") as resp:
-            assert resp.status == 200
-
-        # Test tool execution
-        async with session.post(
-            "http://localhost:8020/mcp/execute",
-            json={
-                "tool": "my_tool",
-                "arguments": {"param1": "test"}
-            }
-        ) as resp:
-            result = await resp.json()
-            assert result["success"] is True
-
-if __name__ == "__main__":
-    asyncio.run(test_server())
-```
+1. Create `tools/mcp/mcp_<name>/` with a `Cargo.toml` depending on `mcp-core` (path `../mcp_core_rust/crates/mcp-core`).
+2. Implement `Tool` for each tool and register them with the server builder in `main.rs`, flattening `MCPServerArgs` for the standard CLI.
+3. Add a README (tools, parameters, configuration, limitations), a Dockerfile and a docker compose service, and an entry in `.mcp.json` / `.mcp.json.full`.
+4. Pick an unused port (see the table above) and pass it with `--port`.
+5. `cargo fmt --check && cargo clippy --all-targets -- -D warnings && cargo test`.
 
 ### Tool Guidelines
 
-1. **Error Handling:**
-   - Always return structured responses
-   - Include error details in response
-   - Use try-except blocks
-   - Log errors for debugging
-
-2. **Async Operations:**
-   - Use `async/await` for I/O operations
-   - Handle timeouts appropriately
-   - Consider concurrent execution
-   - Mock subprocess calls in tests
-
-3. **Input Validation:**
-   - Validate all parameters
-   - Provide helpful error messages
-   - Use type hints (Python 3.11 features)
-   - Sanitize file paths
-
-4. **Output Format:**
-   - Return consistent structure
-   - Include success status
-   - Provide meaningful metadata
-   - Use proper JSON serialization
-
-### Testing Tools
-
-```python
-# tests/test_custom_tool.py
-import pytest
-from tools.mcp.custom_tools import my_custom_tool
-
-@pytest.mark.asyncio
-async def test_my_custom_tool():
-    result = await my_custom_tool("test", 42)
-
-    assert result["success"] is True
-    assert result["result"] is not None
-    assert result["metadata"]["param1"] == "test"
-    assert result["metadata"]["param2"] == 42
-```
-
-## Best Practices
-
-### Performance
-
-1. **Caching:**
-   - Cache expensive operations
-   - Use Redis for distributed caching
-   - Set appropriate TTL values
-
-2. **Concurrency:**
-   - Use asyncio for I/O-bound operations
-   - Implement rate limiting
-   - Handle concurrent requests properly
-
-### Security
-
-1. **Input Sanitization:**
-   - Validate all user inputs
-   - Escape special characters
-   - Limit resource usage
-
-2. **Authentication:**
-   - Implement API key authentication
-   - Use secure communication (HTTPS)
-   - Log access attempts
-
-### Monitoring
-
-1. **Logging:**
-   - Log all tool executions
-   - Include timing information
-   - Track error rates
-
-2. **Metrics:**
-   - Monitor tool usage
-   - Track response times
-   - Alert on failures
-
-## Troubleshooting
-
-### Common Issues
-
-1. **Tool not found:**
-   - Check tool registration in MCP server
-   - Verify configuration file
-   - Restart MCP server
-
-2. **Timeout errors:**
-   - Increase timeout in configuration
-   - Optimize tool performance
-   - Check network connectivity
-
-3. **Permission errors:**
-   - Verify file permissions
-   - Check Docker volume mounts
-   - Review security settings
-
-### Debug Mode
-
-Enable debug logging:
-
-```bash
-export LOG_LEVEL=DEBUG
-docker compose up mcp-server
-```
-
-View logs:
-
-```bash
-docker compose logs -f mcp-server
-```
+1. **Errors**: reject malformed arguments with `Invalid params`; return runtime failures as `isError` results with a readable message. Never write to stdout from a tool in STDIO mode.
+2. **Input validation**: parse arguments into typed structs; confine file paths to configured directories; bound sizes, counts and timeouts.
+3. **Subprocesses**: no shell, argv only, stdin closed, timeouts that kill the child, capped output.
+4. **Output**: return a consistent JSON object with `success` and useful metadata.
 
 ## API Reference
 
-### Endpoints
+### Endpoints (`--mode standalone`)
 
-- `GET /` - Server information
+- `POST /messages` (also `/mcp`, `/mcp/rpc`) - MCP protocol endpoint (JSON-RPC)
+- `DELETE /messages` - Terminate the session in `Mcp-Session-Id`
 - `GET /health` - Health check
 - `GET /mcp/tools` - List available tools
 - `POST /mcp/execute` - Execute a tool (direct API)
-- `POST /messages` - MCP protocol endpoint (JSON-RPC)
-- `GET /tools/{tool_name}` - Get tool details
+- `GET /.well-known/mcp` - MCP discovery
 
-### Response Format
+`--mode server` (REST only) serves `GET /health`, `GET /tools`, `POST /tools/{name}/call` and `POST /execute` instead.
 
-```json
-{
-  "success": true,
-  "result": {
-    // Tool-specific results
-  },
-  "error": null,
-  "metadata": {
-    "tool": "tool_name",
-    "execution_time": 1.23,
-    "timestamp": "2024-01-01T00:00:00Z"
-  }
-}
+### Errors
+
+| Situation | Result |
+|-----------|--------|
+| Unknown tool, missing/mistyped arguments | JSON-RPC `-32602 Invalid params` |
+| Unknown method | `-32601 Method not found` |
+| Tool failure, panic or timeout | Result with `isError: true` and the error text |
+
+## Troubleshooting
+
+1. **Tool not found**: check the tool name against the server's README (`GET /mcp/tools` lists them), and that the server is configured in `.mcp.json`.
+2. **Timeout errors**: most servers have a configurable per-call timeout (see the crate README); long jobs (Blender, video editor, AI Toolkit) run in the background and are polled.
+3. **Permission errors**: check Docker volume mounts and output directories (`outputs/...`); many containers mount the repository read-only at `/app`.
+
+```bash
+docker compose logs -f <service>              # view logs
+RUST_LOG=debug mcp-<name> --mode standalone   # verbose logging (stderr)
 ```
-
-### Error Codes
-
-- `400` - Bad Request (invalid parameters)
-- `404` - Tool not found
-- `500` - Internal server error
-- `503` - Service unavailable

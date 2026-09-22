@@ -1,114 +1,154 @@
 //! Platform-specific desktop control backends.
+//!
+//! A backend exposes small, synchronous primitives (list windows, press a
+//! key, capture a rectangle, ...). Composite behaviour such as multi-clicks,
+//! drags, chords and screenshot post-processing lives in
+//! [`crate::actions`] so it is shared by every platform and unit-tested
+//! against [`mock::MockBackend`].
+//!
+//! Backends are blocking; the server always calls them from
+//! `tokio::task::spawn_blocking` with a timeout.
 
+#[cfg(target_os = "linux")]
 mod linux;
+#[cfg(test)]
+pub mod mock;
+#[cfg(windows)]
+mod win32;
 
-pub use linux::LinuxBackend;
+use std::sync::Arc;
 
+use image::RgbaImage;
 use thiserror::Error;
 
-use crate::types::{KeyModifier, MouseButton, ScreenInfo, ScrollDirection, WindowInfo};
+use crate::keys::Key;
+use crate::types::{MouseButton, Rect, ScreenInfo, ScrollDirection, TypeReport, WindowInfo};
 
-/// Errors that can occur during desktop operations
+/// Errors that can occur during desktop operations.
 #[derive(Error, Debug)]
 pub enum DesktopError {
+    /// No usable display / desktop session.
     #[error("Desktop control not available: {0}")]
     NotAvailable(String),
 
+    /// The connection to the display server was lost. The server drops the
+    /// backend and reconnects on the next call.
+    #[cfg_attr(not(target_os = "linux"), allow(dead_code))]
+    #[error("Display connection lost: {0}")]
+    Disconnected(String),
+
+    /// The window id does not name an existing window.
     #[error("Window not found: {0}")]
     WindowNotFound(String),
 
+    /// The requested screen index does not exist.
     #[error("Screen not found: {0}")]
     ScreenNotFound(String),
 
+    /// Caller-supplied input that cannot be acted upon (unknown key, ...).
+    #[error("{0}")]
+    InvalidInput(String),
+
+    /// The operation is not possible in this environment (e.g. maximizing
+    /// without a window manager).
+    #[cfg_attr(not(target_os = "linux"), allow(dead_code))]
+    #[error("Not supported: {0}")]
+    Unsupported(String),
+
+    /// Screen capture failed.
     #[error("Screenshot failed: {0}")]
     ScreenshotFailed(String),
 
+    /// Any other platform failure.
     #[error("Operation failed: {0}")]
     OperationFailed(String),
-
-    #[error("IO error: {0}")]
-    IoError(#[from] std::io::Error),
 }
 
-/// Result type for desktop operations
+/// Result type for desktop operations.
 pub type DesktopResult<T> = Result<T, DesktopError>;
 
-/// Trait for platform-specific desktop control backends
+/// Shared, thread-safe backend handle.
+pub type SharedBackend = Arc<dyn DesktopBackend>;
+
+/// Platform primitives. All coordinates are absolute desktop pixels.
 pub trait DesktopBackend: Send + Sync {
-    /// Get the platform name
-    fn platform_name(&self) -> &str;
+    /// Short platform identifier (`x11`, `windows`, ...).
+    fn platform_name(&self) -> &'static str;
 
-    /// Check if the backend is available
-    fn is_available(&self) -> bool;
-
-    // Window management
-    fn list_windows(
-        &self,
-        title_filter: Option<&str>,
-        visible_only: bool,
-    ) -> DesktopResult<Vec<WindowInfo>>;
-    fn get_active_window(&self) -> DesktopResult<Option<WindowInfo>>;
-    fn focus_window(&self, window_id: &str) -> DesktopResult<bool>;
-    fn move_window(&self, window_id: &str, x: i32, y: i32) -> DesktopResult<bool>;
-    fn resize_window(&self, window_id: &str, width: u32, height: u32) -> DesktopResult<bool>;
-    fn minimize_window(&self, window_id: &str) -> DesktopResult<bool>;
-    fn maximize_window(&self, window_id: &str) -> DesktopResult<bool>;
-    fn restore_window(&self, window_id: &str) -> DesktopResult<bool>;
-    fn close_window(&self, window_id: &str) -> DesktopResult<bool>;
-
-    // Screen information
-    fn list_screens(&self) -> DesktopResult<Vec<ScreenInfo>>;
-    fn get_screen_size(&self) -> DesktopResult<(u32, u32)>;
-
-    // Screenshots
-    fn screenshot_screen(&self, screen_id: Option<u32>) -> DesktopResult<Vec<u8>>;
-    fn screenshot_window(&self, window_id: &str) -> DesktopResult<Vec<u8>>;
-    fn screenshot_region(&self, x: i32, y: i32, width: u32, height: u32) -> DesktopResult<Vec<u8>>;
-
-    // Mouse control
-    fn get_mouse_position(&self) -> DesktopResult<(i32, i32)>;
-    fn move_mouse(&self, x: i32, y: i32, relative: bool) -> DesktopResult<bool>;
-    fn click_mouse(
-        &self,
-        button: MouseButton,
-        x: Option<i32>,
-        y: Option<i32>,
-        clicks: u32,
-    ) -> DesktopResult<bool>;
-    fn drag_mouse(
-        &self,
-        start_x: i32,
-        start_y: i32,
-        end_x: i32,
-        end_y: i32,
-        button: MouseButton,
-        duration_ms: u64,
-    ) -> DesktopResult<bool>;
-    fn scroll_mouse(
-        &self,
-        amount: i32,
-        direction: ScrollDirection,
-        x: Option<i32>,
-        y: Option<i32>,
-    ) -> DesktopResult<bool>;
-
-    // Keyboard control
-    fn type_text(&self, text: &str, interval_ms: u64) -> DesktopResult<bool>;
-    fn send_key(&self, key: &str, modifiers: &[KeyModifier]) -> DesktopResult<bool>;
-    fn send_hotkey(&self, keys: &[String]) -> DesktopResult<bool>;
-}
-
-/// Create the appropriate backend for the current platform
-pub fn create_backend() -> DesktopResult<Box<dyn DesktopBackend>> {
-    #[cfg(target_os = "linux")]
-    {
-        LinuxBackend::new().map(|b| Box::new(b) as Box<dyn DesktopBackend>)
+    /// Extra platform diagnostics for `desktop_status`.
+    fn diagnostics(&self) -> serde_json::Value {
+        serde_json::Value::Null
     }
 
-    #[cfg(not(target_os = "linux"))]
+    // -- Windows ----------------------------------------------------------
+
+    /// All top-level application windows (unfiltered).
+    fn list_windows(&self) -> DesktopResult<Vec<WindowInfo>>;
+    /// The focused window, if any.
+    fn get_active_window(&self) -> DesktopResult<Option<WindowInfo>>;
+    /// Raise and focus a window.
+    fn focus_window(&self, id: &str) -> DesktopResult<()>;
+    /// Move a window's top-left corner.
+    fn move_window(&self, id: &str, x: i32, y: i32) -> DesktopResult<()>;
+    /// Resize a window.
+    fn resize_window(&self, id: &str, width: u32, height: u32) -> DesktopResult<()>;
+    /// Minimize (iconify) a window.
+    fn minimize_window(&self, id: &str) -> DesktopResult<()>;
+    /// Maximize a window.
+    fn maximize_window(&self, id: &str) -> DesktopResult<()>;
+    /// Restore a minimized or maximized window.
+    fn restore_window(&self, id: &str) -> DesktopResult<()>;
+    /// Ask a window to close (the application may prompt to save).
+    fn close_window(&self, id: &str) -> DesktopResult<()>;
+
+    // -- Screens ----------------------------------------------------------
+
+    /// Physical monitors, ids sequential from 0.
+    fn list_screens(&self) -> DesktopResult<Vec<ScreenInfo>>;
+    /// Bounding box of all monitors.
+    fn virtual_screen(&self) -> DesktopResult<Rect>;
+
+    // -- Capture ----------------------------------------------------------
+
+    /// Capture a rectangle that lies within [`Self::virtual_screen`].
+    fn capture_region(&self, rect: Rect) -> DesktopResult<RgbaImage>;
+    /// Capture a window; returns the image and the rectangle it covers.
+    fn capture_window(&self, id: &str) -> DesktopResult<(RgbaImage, Rect)>;
+
+    // -- Input ------------------------------------------------------------
+
+    /// Current pointer position.
+    fn mouse_position(&self) -> DesktopResult<(i32, i32)>;
+    /// Move the pointer to an absolute position.
+    fn move_mouse(&self, x: i32, y: i32) -> DesktopResult<()>;
+    /// Press (`down = true`) or release a mouse button at the pointer.
+    fn mouse_button(&self, button: MouseButton, down: bool) -> DesktopResult<()>;
+    /// Scroll by `amount` notches (positive = down / right).
+    fn scroll(&self, direction: ScrollDirection, amount: i32) -> DesktopResult<()>;
+    /// Press (`down = true`) or release a single key. Character keys that
+    /// need Shift on the active layout get Shift added automatically.
+    fn key(&self, key: Key, down: bool) -> DesktopResult<()>;
+    /// Type literal text, one character every `interval_ms`.
+    fn type_text(&self, text: &str, interval_ms: u64) -> DesktopResult<TypeReport>;
+}
+
+/// Create the backend for the current platform.
+pub fn create_backend() -> DesktopResult<SharedBackend> {
+    #[cfg(target_os = "linux")]
     {
-        Err(DesktopError::NotAvailable(
-            "Unsupported platform".to_string(),
-        ))
+        linux::X11Backend::connect().map(|b| Arc::new(b) as SharedBackend)
+    }
+
+    #[cfg(windows)]
+    {
+        win32::WindowsBackend::new().map(|b| Arc::new(b) as SharedBackend)
+    }
+
+    #[cfg(not(any(target_os = "linux", windows)))]
+    {
+        Err(DesktopError::NotAvailable(format!(
+            "no desktop backend for platform '{}' (supported: Linux/X11, Windows)",
+            std::env::consts::OS
+        )))
     }
 }

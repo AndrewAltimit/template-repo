@@ -1,144 +1,165 @@
 # Virtual Character MCP Server (Rust)
 
-> A Model Context Protocol server for controlling virtual characters via VRChat OSC and other backends, providing emotion expression, gesture control, and multimedia performance capabilities.
+MCP server that lets an AI agent drive a virtual character: emotions,
+gestures, movement, custom avatar parameters, speech playback with ElevenLabs
+expression tags, and timed multi-event performances. The production backend
+controls a **VRChat** avatar over OSC; a **mock** backend runs everything
+offline for development and tests.
 
-## Overview
-
-This MCP server provides:
-- VRChat OSC integration for avatar control (emotions, gestures, movement)
-- VRCEmote system (gesture wheel positions 0-8) for predefined animations
-- Backend abstraction supporting mock (testing), VRChat Remote, and future platforms
-- Audio playback with ElevenLabs expression tag detection
-- Event sequencing for choreographed performances
-- PAD (Pleasure/Arousal/Dominance) emotion model for smooth interpolation
-
-**Note**: This server was migrated from Python to Rust as part of the mcp-core-rust framework migration.
-
-## Quick Start
+## Quick start
 
 ```bash
-# Build from source
+cd tools/mcp/mcp_virtual_character
 cargo build --release
 
-# Run in standalone HTTP mode
-./target/release/mcp-virtual-character --mode standalone --port 8025
-
-# Run in STDIO mode (for Claude Code)
+# STDIO (Claude Code / local MCP clients)
 ./target/release/mcp-virtual-character --mode stdio
 
-# Test health
+# HTTP (remote access); default port 8025
+./target/release/mcp-virtual-character --mode standalone --port 8025
 curl http://localhost:8025/health
+
+# Connect VRChat on this machine at startup
+./target/release/mcp-virtual-character --mode standalone --backend vrchat_remote
 ```
 
-## Available Tools
+Then, from the agent:
 
-| Tool | Description | Parameters |
-|------|-------------|------------|
-| `set_backend` | Connect to a backend | `backend_type`, `host`, `osc_in_port`, `osc_out_port`, `mcp_port` |
-| `send_animation` | Send animation data (emotion/gesture) | `emotion`, `gesture`, `emotion_intensity`, `blendshapes` |
-| `send_vrcemote` | Send VRCEmote value (0-8) | `emote` (required) |
-| `execute_behavior` | Execute platform behavior | `behavior` (required), `parameters` |
-| `reset` | Reset to neutral state | None |
-| `get_backend_status` | Get current backend status | None |
-| `list_backends` | List available backends | None |
-| `play_audio` | Play audio with expression detection | `audio_data`, `format`, `detect_expressions` |
-| `create_sequence` | Create an event sequence | `sequence_id` (required), `name`, `description` |
-| `add_sequence_event` | Add event to sequence | `sequence_id`, `event_type`, `timestamp`, `data` |
-| `play_sequence` | Start playing a sequence | `sequence_id` (required) |
-| `pause_sequence` | Pause sequence playback | `sequence_id` (required) |
-| `resume_sequence` | Resume paused sequence | `sequence_id` (required) |
-| `stop_sequence` | Stop and reset sequence | `sequence_id` (required) |
-| `get_sequence_status` | Get sequence playback status | `sequence_id` (required) |
-| `panic_reset` | Emergency reset all states | None |
-
-### Emotion Types
-
-| Emotion | VRCEmote | Description |
-|---------|----------|-------------|
-| `neutral` | 0 (None) | Default calm state |
-| `happy` | 4 (Cheer) | Joy, excitement |
-| `sad` | 7 (Sadness) | Sorrow, disappointment |
-| `angry` | 8 (Die) | Frustration, anger |
-| `surprised` | 3 (Point) | Shock, amazement |
-| `fearful` | 2 (Clap) | Anxiety, fear |
-| `disgusted` | 6 (Backflip) | Revulsion |
-
-### Gesture Types
-
-| Gesture | VRCEmote | Description |
-|---------|----------|-------------|
-| `wave` | 1 (Wave) | Greeting wave |
-| `point` | 3 (Point) | Pointing gesture |
-| `clap` | 2 (Clap) | Applause |
-| `dance` | 5 (Dance) | Dancing animation |
-| `bow` | 7 (Sadness) | Respectful bow |
-| `thumbs_up` | 4 (Cheer) | Approval gesture |
-
-## VRCEmote System
-
-The VRCEmote system uses integer values (0-8) corresponding to VRChat gesture wheel positions:
-
-| Value | Name | Typical Use |
-|-------|------|-------------|
-| 0 | None | Reset to default |
-| 1 | Wave | Greetings |
-| 2 | Clap | Applause, fear |
-| 3 | Point | Direction, surprise |
-| 4 | Cheer | Happiness, approval |
-| 5 | Dance | Celebration |
-| 6 | Backflip | Excitement, disgust |
-| 7 | Sadness | Sorrow, bow |
-| 8 | Die | Anger, dramatic |
-
-### Toggle Behavior
-
-VRCEmotes use toggle behavior: sending the same value twice turns it off. The server handles this automatically with a configurable timeout (default: 3 seconds) for gesture-based emotes.
-
-## Configuration
-
-### CLI Arguments
-
-```
---mode <MODE>         Server mode: standalone, stdio, server, client [default: standalone]
---port <PORT>         Port to listen on [default: 8025]
---backend-url <URL>   Backend URL for client mode
---log-level <LEVEL>   Log level [default: info]
+```json
+{"tool": "set_backend", "arguments": {"backend": "vrchat_remote"}}
+{"tool": "send_animation", "arguments": {"gesture": "wave", "emotion": "happy"}}
+{"tool": "play_audio", "arguments": {"audio_data": "outputs/elevenlabs_speech/hi.mp3", "text": "[laughs] Hi!"}}
+{"tool": "get_backend_status", "arguments": {}}
 ```
 
-### Default VRChat Configuration
+## Deployment
 
-- **VRChat Host**: 127.0.0.1
-- **VRChat Receive Port**: 9000 (OSC messages to VRChat)
-- **VRChat Send Port**: 9001 (OSC messages from VRChat)
-- **Emote Timeout**: 3 seconds
+VRChat runs on Windows, and speech has to be played on that machine (VRChat
+hears it through a virtual-cable microphone). The recommended setup is to run
+this server **natively on the VRChat PC** in `standalone` mode and point MCP
+clients at `http://<vrchat-pc>:8025/messages` (as `.mcp.json.full` does).
 
-## Transport Modes
+Running it in Docker / on another machine works for animation and movement
+(`remote_host` = VRChat PC IP), but `play_audio` then only applies
+expressions (`played: false`) and inbound OSC tracking requires VRChat's
+`--osc=9000:<server-ip>:9001` launch option.
 
-| Mode | Description | Use Case |
-|------|-------------|----------|
-| **standalone** | Full MCP server with HTTP transport | Production, Docker |
-| **stdio** | STDIO transport for direct integration | Claude Code, local MCP clients |
-| **server** | REST API only (no MCP protocol) | Microservices |
-| **client** | MCP proxy to REST backend | Horizontal scaling |
+## CLI
 
-## Docker Support
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--mode` | `standalone` | `standalone` (MCP over HTTP), `stdio`, `server` (REST only), `client` (proxy) |
+| `--port` | `8025` | HTTP port (ignored for stdio) |
+| `--backend-url` | - | Upstream for `client` mode |
+| `--log-level` | `info` | Also `RUST_LOG`. Logs go to stderr. |
+| `--backend` | - | Connect `mock` or `vrchat_remote` at startup (env `VIRTUAL_CHARACTER_BACKEND`). Failure is logged, not fatal. |
 
-### Using docker-compose
+## Environment variables
 
-```bash
-# Start the MCP server
-docker compose up -d mcp-virtual-character
+Defaults for the `vrchat_remote` backend; any `set_backend.config` value
+overrides them. Invalid values are ignored with a warning.
 
-# View logs
-docker compose logs -f mcp-virtual-character
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `VIRTUAL_CHARACTER_HOST` | `127.0.0.1` | Host running VRChat |
+| `VIRTUAL_CHARACTER_OSC_IN` | `9000` | VRChat's OSC input port (we send) |
+| `VIRTUAL_CHARACTER_OSC_OUT` | `9001` | VRChat's OSC output port (we listen) |
+| `VIRTUAL_CHARACTER_USE_VRCEMOTE` | `true` | Express emotions/gestures via VRCEmote |
+| `VIRTUAL_CHARACTER_EMOTE_TIMEOUT` | `10` | Seconds before an active emote auto-clears (`0` = never) |
+| `VIRTUAL_CHARACTER_AUDIO_PLAYBACK` | `auto` | `auto` (local if host is loopback), `local`, `none` |
+| `VIRTUAL_CHARACTER_AUDIO_DEVICE` | `VoiceMeeter Input` | Output device for local playback (VLC / paplay) |
+| `VIRTUAL_CHARACTER_AUDIO_DIRS` | - | Extra directories `play_audio` may read files from (OS path-list syntax) |
+| `VIRTUAL_CHARACTER_BACKEND` | - | Same as `--backend` |
 
-# Test health
-curl http://localhost:8025/health
-```
+## Tools
 
-## MCP Configuration
+All tools return a JSON object with `"success": true`, or an MCP error
+result with a readable message. Arguments are type-checked: wrong types,
+unknown emotions/gestures and out-of-range values are errors, never silently
+ignored.
 
-Add to `.mcp.json`:
+| Tool | Parameters | Description |
+|------|------------|-------------|
+| `set_backend` | `backend` (req: `mock`, `vrchat_remote`), `config` | Connect; replaces the current backend and stops sequence playback. On failure no backend is left connected. |
+| `disconnect_backend` | - | Disconnect, stop playback, release ports |
+| `list_backends` | - | Available backends and which is active |
+| `get_backend_status` | - | Connection, health and statistics (see below) |
+| `get_avatar_state` | - | World/avatar id, current emotion/gesture, avatar parameters received from VRChat |
+| `send_animation` | `emotion`, `emotion_intensity`, `gesture`, `gesture_intensity`, `parameters`, `blend_shapes` | Emotion / gesture / movement / avatar parameters in one call |
+| `send_vrcemote` | `emote_value` (req, 0-8) | Direct VRCEmote (vrchat_remote only); response includes `action` (`activated`, `toggled_off`, `cleared`, `unchanged`) |
+| `execute_behavior` | `behavior` (req: `greet`, `dance`, `sit`, `stand`, `jump`, `crouch`), `parameters` | High-level behaviors |
+| `reset` | - | Clear emotes, zero all movement inputs and `AudioPlaying` |
+| `play_audio` | `audio_data` (req), `audio_format`, `sample_rate`, `text`, `expression_tags`, `duration` | Play speech; reports `played`, `method`, `format`, `duration`, `emotion`, `notes` |
+| `create_sequence` | `name` (req), `description`, `loop`, `interrupt_current` | Start building a sequence |
+| `add_sequence_event` | `event_type` (req), `timestamp` (req), type-specific fields | Add an event (validated immediately) |
+| `play_sequence` | `start_time` | Play in the background |
+| `pause_sequence` / `resume_sequence` / `stop_sequence` | - | Playback control |
+| `get_sequence_status` | - | Position, events executed/failed, last error |
+| `panic_reset` | - | Stop and discard sequences, reset the avatar (works without a backend) |
+
+Emotions: `neutral, happy, sad, angry, surprised, fearful, disgusted,
+contemptuous, excited, calm`. Gestures: `none, wave, point, thumbs_up,
+thumbs_down, clap, nod, shake_head, shrug, crossed_arms, thinking, dance,
+backflip, cheer, die, sadness`.
+
+`send_animation.parameters` keys: `move_forward`, `move_right`,
+`look_horizontal`, `look_vertical` (-1..1, auto-reset after `duration`
+seconds, default 2, max 60), `jump`, `run`, `crouch` (bool), and
+`avatar_params` (name -> number/bool). See
+[docs/VRCHAT_SETUP.md](docs/VRCHAT_SETUP.md) for the OSC mapping.
+
+### vrchat_remote config
+
+| Key | Default | Description |
+|-----|---------|-------------|
+| `remote_host` | env / `127.0.0.1` | VRChat host (IP or hostname, resolved with a 5 s timeout) |
+| `osc_in_port` / `osc_out_port` | 9000 / 9001 | Aliases: `vrchat_recv_port` / `vrchat_send_port` |
+| `use_vrcemote` | `true` | Emotions/gestures via VRCEmote |
+| `emote_timeout` | `10` | Auto-clear seconds (0-3600, 0 disables) |
+| `listen` | `true` | Listen for VRChat OSC output |
+| `audio_playback` | `auto` | `auto`, `local`, `none` |
+| `audio_device` | `VoiceMeeter Input` | Local playback device |
+| `chatbox_transcripts` | `false` | Show `play_audio` text in the VRChat chatbox |
+
+### Status fields (vrchat_remote)
+
+`get_backend_status.statistics` includes `target`, `receiver` (listening or
+send-only and why), `vrchat_responding` (OSC received in the last 30 s),
+`last_osc_received_secs_ago`, `osc_messages_sent/received`, `errors`,
+`avatar_id`, `current_emotion`, `current_gesture`, `current_vrcemote`,
+`emote_active`, `audio_playback` (effective mode), `audio_clips`.
+
+## Emote behavior (VRChat)
+
+Emotions and gestures map to VRCEmote wheel slots (happy -> cheer 4, sad ->
+sadness 7, angry -> point 3, surprised -> backflip 6, fearful -> die 8,
+excited -> dance 5; neutral clears). Many avatars use toggle emotes, so the
+server tracks the active emote: repeating it toggles it off, switching clears
+the old one first, movement clears it, and it auto-clears after
+`emote_timeout`. A gesture takes priority over an emotion in the same call.
+Details: [docs/VRCHAT_SETUP.md](docs/VRCHAT_SETUP.md).
+
+## Audio
+
+`play_audio` accepts file paths (allow-listed directories only), http(s)
+URLs, data URLs and base64 (50 MB cap, 30 s download timeout). The format is
+detected from magic bytes; duration is estimated from WAV/MP3 headers. The
+dominant expression tag (from `expression_tags` or `[tags]` in `text`) sets
+the avatar's emotion. With `audio_playback=local` the clip plays through VLC,
+ffplay, PowerShell (WAV) or paplay/aplay without blocking the call; route it
+into VRChat with [VoiceMeeter](docs/VOICEMEETER_SETUP.md). Details and
+sequencing: [docs/AUDIO_SEQUENCING.md](docs/AUDIO_SEQUENCING.md).
+
+## Sequences
+
+Build with `create_sequence` + `add_sequence_event` (`animation`, `audio`,
+`expression`, `movement`, `wait`, `parallel`), then `play_sequence`. Events
+fire at absolute timestamps on a pausable clock; playback runs in the
+background, resets the avatar at the start/end of each pass, supports
+looping, and records failed events without aborting. See
+[docs/AUDIO_SEQUENCING.md](docs/AUDIO_SEQUENCING.md).
+
+## MCP configuration
 
 ```json
 {
@@ -151,181 +172,73 @@ Add to `.mcp.json`:
 }
 ```
 
-Or with Docker:
+Remote (server running on the VRChat PC):
 
 ```json
-{
-  "mcpServers": {
-    "virtual-character": {
-      "command": "docker compose",
-      "args": ["-f", "./docker-compose.yml", "--profile", "services", "run", "--rm", "-T", "mcp-virtual-character", "mcp-virtual-character", "--mode", "stdio"]
-    }
-  }
-}
+{"mcpServers": {"virtual-character": {"type": "http", "url": "http://<vrchat-pc>:8025/messages"}}}
 ```
 
-## Building from Source
+Docker (animation/movement only; the image sets `VIRTUAL_CHARACTER_AUDIO_PLAYBACK=none`):
 
 ```bash
-cd tools/mcp/mcp_virtual_character
-
-# Debug build
-cargo build
-
-# Release build (optimized)
-cargo build --release
-
-# Run tests
-cargo test
-
-# Run clippy
-cargo clippy -- -D warnings
-
-# Format code
-cargo fmt
-```
-
-## Project Structure
-
-```
-tools/mcp/mcp_virtual_character/
-├── Cargo.toml          # Package configuration
-├── Cargo.lock          # Dependency lock file
-├── README.md           # This file
-└── src/
-    ├── main.rs         # CLI entry point
-    ├── lib.rs          # Library exports
-    ├── server.rs       # MCP tools implementation
-    ├── types.rs        # Data types and models
-    ├── constants.rs    # VRCEmote mappings and defaults
-    └── backends/
-        ├── mod.rs      # Backend module exports
-        ├── adapter.rs  # Backend trait definition
-        ├── mock.rs     # Mock backend for testing
-        └── vrchat.rs   # VRChat OSC backend
-```
-
-## HTTP Endpoints
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/health` | GET | Health check |
-| `/mcp/tools` | GET | List available tools |
-| `/mcp/execute` | POST | Execute a tool |
-| `/messages` | POST | MCP JSON-RPC endpoint |
-| `/.well-known/mcp` | GET | MCP discovery |
-
-## Testing
-
-```bash
-# Run unit tests
-cargo test
-
-# Test with output
-cargo test -- --nocapture
-
-# Test HTTP endpoints (after starting server)
-curl http://localhost:8025/health
-curl http://localhost:8025/mcp/tools
-
-# Test VRCEmote
-curl -X POST http://localhost:8025/mcp/execute \
-  -H 'Content-Type: application/json' \
-  -d '{"tool": "send_vrcemote", "arguments": {"emote": 4}}'
+docker compose --profile services run --rm -T mcp-virtual-character mcp-virtual-character --mode stdio
 ```
 
 ## Architecture
 
-### Backend Abstraction
-
-The server uses a backend adapter pattern:
-
 ```
-VirtualCharacterServer
-    |
-    +-- BackendAdapter (trait)
-            |
-            +-- MockBackend (testing)
-            +-- VRChatRemoteBackend (production)
-            +-- (future backends)
-```
-
-### OSC Communication
-
-VRChat uses OSC (Open Sound Control) for avatar parameter control:
-
-- **Input addresses**: `/avatar/parameters/VRCEmote`, `/input/Vertical`, `/input/Horizontal`
-- **Output addresses**: `/avatar/change`, `/avatar/parameters/*`
-
-### ElevenLabs Integration
-
-The audio playback system detects ElevenLabs expression tags in audio metadata:
-- `<happy>`, `<sad>`, `<angry>`, `<fearful>`, `<surprised>`, `<disgusted>`
-- Automatically maps to appropriate VRCEmote values
-
-## Response Format
-
-### Animation Response
-
-```json
-{
-  "success": true,
-  "message": "Animation sent: emotion=happy, gesture=wave"
-}
+src/
+  main.rs               CLI (mcp-core server, --backend auto-connect)
+  lib.rs                Library root
+  server.rs             18 MCP tools over shared ServerState
+  spec.rs               Typed tool arguments + validation (animation, events, audio prep)
+  sequence_handler.rs   Sequence builder and background player (pausable clock)
+  audio.rs              Audio loading/validation/duration, local playback
+  audio_emotion_mappings.rs  ElevenLabs tag -> emotion table and lookup
+  constants.rs          VRCEmote values and mappings, defaults
+  types.rs              Canonical animation/audio/sequence models
+  backends/
+    adapter.rs          BackendAdapter trait, AudioOutcome, EmoteAction
+    movement.rs         Movement / avatar_params parsing
+    vrchat.rs           VRChat OSC backend (UDP send + receiver task)
+    mock.rs             In-memory backend
 ```
 
-### Backend Status
+Background work (OSC receiver, movement auto-stop, emote auto-clear, audio
+state reset, audio players) is owned by the backend and aborted on
+disconnect, reconnect or drop, so ports are released and nothing keeps
+running against a stale connection.
 
-```json
-{
-  "backend": "vrchat_remote",
-  "connected": true,
-  "capabilities": {
-    "audio": true,
-    "animation": true,
-    "video_capture": false,
-    "bidirectional": true
-  },
-  "statistics": {
-    "frames_sent": 150,
-    "audio_sent": 10,
-    "errors": 0
-  }
-}
+## Testing
+
+```bash
+cargo fmt --check
+cargo clippy --all-targets -- -D warnings
+cargo test
 ```
 
-## Troubleshooting
+Tests run offline: the VRChat backend is exercised against a local UDP
+socket acting as VRChat (emote toggles, movement auto-stop, receiver
+tracking, reconnect port release), audio playback against stand-in player
+commands, and the full tool surface against the mock backend.
 
-| Symptom | Cause | Solution |
-|---------|-------|----------|
-| "Not connected" error | Backend not initialized | Call `set_backend` first |
-| VRCEmote not triggering | Toggle state mismatch | Wait for timeout or call twice |
-| OSC not reaching VRChat | Wrong port configuration | Check VRChat OSC settings |
-| Emotion stuck | Timeout not elapsed | Wait 3 seconds or send different emotion |
+## Limitations
 
-## Dependencies
+- VRChat accepts no audio over OSC; speech requires local playback on the
+  VRChat PC plus a virtual audio cable.
+- UDP gives no delivery confirmation; `vrchat_responding` only reflects
+  inbound traffic from VRChat.
+- Emote mappings assume the default VRChat action-menu wheel layout; avatars
+  with custom wheels may show different animations.
+- `parallel` events are dispatched back-to-back, not truly concurrently.
+- `execute_behavior` `sit`/`crouch` set the custom avatar parameters
+  `Sitting`/`Crouching`, which only work on avatars that define them.
+- One sequence is built/played at a time.
 
-- [mcp-core](../mcp_core_rust/) - Rust MCP framework
-- [rosc](https://github.com/klingtnet/rosc) - OSC protocol implementation
-- [tokio](https://tokio.rs/) - Async runtime
-- [serde](https://serde.rs/) - Serialization
-- [tracing](https://tracing.rs/) - Logging
+## Related documentation
 
-## Performance
-
-| Operation | Time |
-|-----------|------|
-| Server startup | ~20ms |
-| VRCEmote send | ~1ms |
-| OSC round-trip | ~5-10ms |
-| Sequence event | ~1ms |
-
-## Related Documentation
-
-- [Virtual Character System Guide](../../../docs/integrations/ai-services/Virtual_Character_System_Guide.tex)
-- [ElevenLabs Integration](../mcp_elevenlabs_speech/docs/README.md)
-- [VRChat OSC Documentation](https://docs.vrchat.com/docs/osc-overview)
-
-## License
-
-Part of the template-repo project. See repository LICENSE file.
+- [VRChat setup and troubleshooting](docs/VRCHAT_SETUP.md)
+- [Audio and sequencing](docs/AUDIO_SEQUENCING.md)
+- [VoiceMeeter setup](docs/VOICEMEETER_SETUP.md)
+- [Virtual Character + ElevenLabs guide](../../../docs/integrations/creative-tools/virtual-character-elevenlabs.md)
+- [VRChat OSC documentation](https://docs.vrchat.com/docs/osc-overview)
