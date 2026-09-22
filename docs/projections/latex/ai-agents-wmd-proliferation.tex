@@ -39,6 +39,10 @@
 \usepackage{tabularx}
 
 \pgfplotsset{compat=1.18}
+
+% Consistent figure caption styling across all report figures
+\captionsetup{font={small,sf}, labelfont={bf,color=deepteal}, textfont={color=softslate},
+  labelsep=period, justification=centering, width=0.92\textwidth, skip=6pt}
 \usetikzlibrary{shapes.geometric, arrows.meta, positioning, calc, decorations.pathreplacing, backgrounds, fit, shadows.blur, matrix, patterns, fadings, shadings}
 
 % ============================================================================
@@ -70,8 +74,10 @@
   colorlinks=true,
   linkcolor=deepteal,
   urlcolor=scienceteal,
-  pdftitle={AI Agents and WMD Proliferation Risk Assessment},
-  pdfauthor={Emerging Technology Risk Assessment}
+  pdftitle={AI Agents and WMD Proliferation Risk Assessment (v3.0, September 2026)},
+  pdfauthor={Emerging Technology Risk Assessment},
+  pdfsubject={ETRA-2026-WMD-001 -- Defensive policy research on AI and WMD proliferation risk},
+  pdfkeywords={AI safety, biosecurity, nonproliferation, synthesis screening, WMD, policy research}
 }
 
 % ============================================================================
@@ -270,7 +276,7 @@
 
   % Document header bar (keeping consistent format)
   \fill[barriergold] ([yshift=-1.5cm]current page.north west) rectangle ([yshift=-2.2cm]current page.north east);
-  \node[deepteal, font=\small\bfseries\sffamily] at ([yshift=-1.85cm]current page.north) {PROJECTION REPORT \textbar{} ETRA-2026-WMD-001 \textbar{} JULY 2026};
+  \node[deepteal, font=\small\bfseries\sffamily] at ([yshift=-1.85cm]current page.north) {PROJECTION REPORT \textbar{} ETRA-2026-WMD-001 \textbar{} SEPTEMBER 2026};
 
   % Title block
   \node[anchor=south west, text width=14cm] at ([xshift=1.5cm, yshift=3cm]current page.south west) {
@@ -285,9 +291,9 @@
   \node[anchor=south east, text width=6cm, align=right] at ([xshift=-1.5cm, yshift=3cm]current page.south east) {
     \color{medgray}\small\sffamily
     \textbf{Document Type:} Policy Research\\[0.2em]
-    \textbf{Time Horizon:} 2025--2030\\[0.2em]
+    \textbf{Time Horizon:} 2026--2030\\[0.2em]
     \textbf{License:} MIT / Unlicense\\[0.2em]
-    \textbf{Version:} 2.1
+    \textbf{Version:} 3.0
   };
 
   % Accent line
@@ -388,10 +394,10 @@ Throughout this document, key claims are tagged with epistemic status:
 \section*{Executive Summary}
 \addcontentsline{toc}{section}{Executive Summary}
 
-This projection examines how autonomous AI agents may alter the proliferation landscape for weapons of mass destruction (WMD). We analyze current technological capabilities as of mid-2026, project scenarios through 2030, and examine the interplay between AI capabilities, existing physical barriers, and potential defensive adaptations.
+This projection examines how autonomous AI agents may alter the proliferation landscape for weapons of mass destruction (WMD). We analyze capabilities and governance as of September 2026, project scenarios through 2030, and examine the interplay between AI capabilities, existing physical barriers, and potential defensive adaptations.
 
 \begin{notebox}[Capability Snapshot Date]
-Model capabilities and policy developments reflect publicly available systems and published assessments as of early July 2026. AI capability is a moving target; the projection's conclusions are intended to be robust to specific model iterations rather than pinned to any single release. Named models and evaluations are illustrative data points on a trend, not fixed endpoints.
+Model capabilities and policy developments reflect publicly available systems and published assessments as of 22 September 2026. AI capability is a moving target; the projection's conclusions are intended to be robust to specific model iterations rather than pinned to any single release. Named models and evaluations are illustrative data points on a trend, not fixed endpoints.
 \end{notebox}
 
 \begin{keybox}[Key Findings]
@@ -402,6 +408,8 @@ Model capabilities and policy developments reflect publicly available systems an
   \item \textbf{[O]} Nuclear weapons face the strongest physical barriers; AI primarily assists state-level (T4) programs
   \item \textbf{[E]} Cyber-physical attacks on existing WMD-adjacent infrastructure (BSL-4 labs, chemical plants) may represent higher near-term risk than de novo synthesis
   \item \textbf{[E]} The ``high-frequency attempts, limited success'' scenario is more likely than catastrophic mass-casualty events; defenders should prepare for resource strain from numerous low-sophistication incidents
+  \item \textbf{[O]} \textit{New in v3.0.} The evidence base moved from ``no documented misuse'' to ``documented and disrupted misuse attempts'': a frontier developer publicly reported disrupting multiple accounts pursuing biological misuse between December 2025 and August 2026
+  \item \textbf{[O]} \textit{New in v3.0.} Sequence screening, the chokepoint on which most of this report's policy stack rests, has been publicly demonstrated to be bypassable by generative protein design and must now be treated as an adversarial, continuously patched system rather than a static database lookup
 \end{enumerate}
 \end{keybox}
 
@@ -409,19 +417,72 @@ Model capabilities and policy developments reflect publicly available systems an
 
 \begin{center}
 \small
-\begin{tabular}{L{3cm}L{4cm}L{4cm}L{2.5cm}}
+\begin{tabular}{L{2.6cm}L{3.4cm}L{5.2cm}L{2.4cm}}
 \toprule
-\textbf{Capability} & \textbf{2023 State} & \textbf{Mid-2026 State} & \textbf{Impact} \\
+\textbf{Capability} & \textbf{2023 State} & \textbf{September 2026 State} & \textbf{Impact} \\
 \midrule
 Agentic autonomy & Chatbots provided info & Agents execute multi-step tasks; delegate to sub-agents \textbf{[O]} & Knowledge $\to$ execution \\
-Reasoning models & No explicit chain-of-thought & Standard, closed and open alike (Claude, o-series, DeepSeek V4 with tiered ``think'' modes) \textbf{[O]} & Expert-level planning \\
+Reasoning models & No explicit chain-of-thought & Standard, closed and open-weight alike \textbf{[O]} & Expert-level planning \\
 Vision-language & Text-only instruction & Real-time visual interpretation; wearable integration \textbf{[O]} & Bridges tacit knowledge \\
-Computer Use & Manual web interaction & Agents browse, fill forms; MCP enables hardware control \textbf{[O]} & Procurement automation \\
-Biological design & AlphaFold 2 (structure) & AlphaFold 3, ESM3, Evo, RFdiffusion; sequence-to-function models vs.\ expert humans \textbf{[O]} & Optimization capability \\
-Open-weight models & Limited high-capability & Frontier-grade open weights (DeepSeek V4, Qwen 3.5, Llama 4, Kimi K2.6), many MIT-licensed \textbf{[O]} & Guardrail bypass; open reasoning \\
-Threshold crossing & Below any weapons-uplift threshold & A frontier developer judged its top model across the non-novel CB uplift (CB-1) threshold, not CB-2 \textbf{[O]} & First public acknowledgement of material CB uplift \\
+Computer Use & Manual web interaction & Agents browse, fill forms; tool-use protocols reach laboratory instruments \textbf{[O]} & Procurement and lab automation \\
+Biological design & AlphaFold 2 (structure) & Structure, function, and now whole-genome generative design: genome language models produced viable bacteriophage genomes in a peer-reviewed 2026 study \textbf{[O]} & Similarity-based screening is a weaker filter \\
+Open-weight models & Limited high-capability & Frontier-grade open weights, many permissively licensed; the ``safety gap'' after safeguard removal is now a published, measurable quantity \textbf{[O]} & Guardrail bypass is measurable, not hypothetical \\
+Threshold determinations & Below any weapons-uplift threshold & Elevated CB safeguards are the release default: repeated CB-1-yes / CB-2-no determinations from one developer, and a whole family at ``High'' biological and chemical capability at another \textbf{[O]} & Containment moved to the deployment layer \\
+Observed misuse & None publicly documented & Developer threat intelligence documents disrupted biological-misuse attempts, including obfuscation of intent to evade safeguards \textbf{[O]} & From ``will anyone try?'' to ``how many clear the deployment layer?'' \\
+Screening integrity & Assumed sound & Peer-reviewed red-teaming showed generative protein design could evade commercial nucleic-acid screening; patches distributed by coordinated disclosure, residual gaps acknowledged \textbf{[O]} & Biosecurity screening acquires a patching lifecycle \\
 \bottomrule
 \end{tabular}
+\end{center}
+
+\subsection*{Milestone Timeline: Capability and Governance}
+
+\begin{center}
+\begin{tikzpicture}[font=\scriptsize\sffamily]
+  \tikzset{
+    yearhead/.style={rectangle, rounded corners=2pt, text width=3.55cm, align=center,
+      anchor=north west, inner sep=4pt, text=white, font=\small\bfseries\sffamily},
+    yearpanel/.style={rectangle, rounded corners=2pt, draw=scienceteal!60, line width=0.5pt,
+      align=left, anchor=north west, inner sep=5pt, fill=lightgray},
+    ypbox/.style={}
+  }
+  % Connecting spine
+  \draw[barriergold, line width=1.6pt] (0.1,0.28) -- (16.3,0.28);
+  \foreach \x in {2.0,6.1,10.2,14.3} { \fill[barriergold] (\x,0.28) circle (0.09); }
+
+  \node[yearhead, fill=scienceteal!70] at (0.1,0.0) {2023};
+  \node[yearhead, fill=scienceteal] at (4.2,0.0) {2024};
+  \node[yearhead, fill=deepteal!80] at (8.3,0.0) {2025};
+  \node[yearhead, fill=deepteal] at (12.4,0.0) {2026};
+
+  \node[yearpanel] at (0.1,-0.65) {\parbox[t][6.5cm][t]{3.45cm}{%
+    \textcolor{deepteal}{\textbf{Oct}} \ EO 14110 directs CBRN evaluation\\[2pt]
+    \textcolor{deepteal}{\textbf{Nov}} \ Bletchley Declaration names CBRN risk}};
+
+  \node[yearpanel] at (4.2,-0.65) {\parbox[t][6.5cm][t]{3.45cm}{%
+    \textcolor{deepteal}{\textbf{Jan}} \ RAND red team finds no measurable uplift\\[2pt]
+    \textcolor{deepteal}{\textbf{Apr}} \ DHS CWMD report on AI and CBRN; OSTP nucleic acid synthesis screening framework\\[2pt]
+    \textcolor{deepteal}{\textbf{May}} \ Seoul summit bio-risk commitments}};
+
+  \node[yearpanel] at (8.3,-0.65) {\parbox[t][6.5cm][t]{3.45cm}{%
+    \textcolor{deepteal}{\textbf{Jan}} \ EO 14110 revoked; EO 14179 issued\\[2pt]
+    \textcolor{deepteal}{\textbf{Feb}} \ UK AISI becomes AI \textit{Security} Institute\\[2pt]
+    \textcolor{deepteal}{\textbf{May}} \ EO 14292 on biological research safety\\[2pt]
+    \textcolor{deepteal}{\textbf{Aug}} \ EU AI Act GPAI obligations apply\\[2pt]
+    \textcolor{shieldamber}{\textbf{Oct}} \ \textbf{Screening evasion published and patched}\\[2pt]
+    \textcolor{deepteal}{\textbf{Dec}} \ UK AISI Frontier AI Trends Report}};
+
+  \node[yearpanel] at (12.4,-0.65) {\parbox[t][6.5cm][t]{3.45cm}{%
+    \textcolor{deepteal}{\textbf{Jan}} \ Mandatory screening bill introduced\\[2pt]
+    \textcolor{deepteal}{\textbf{Feb}} \ International AI Safety Report 2026\\[2pt]
+    \textcolor{deepteal}{\textbf{Mar}} \ OPCW report on AI and the CWC\\[2pt]
+    \textcolor{deepteal}{\textbf{May}} \ EU Biotech Act proposed\\[2pt]
+    \textcolor{shieldamber}{\textbf{Jun}} \ \textbf{First public CB-1 determination}\\[2pt]
+    \textcolor{deepteal}{\textbf{Jul}} \ USG high-risk life sciences policy\\[2pt]
+    \textcolor{shieldamber}{\textbf{Aug}} \ \textbf{Generative genome design; EU GPAI enforcement}\\[2pt]
+    \textcolor{shieldamber}{\textbf{Sep}} \ \textbf{Disrupted biological misuse reported}}};
+\end{tikzpicture}
+
+\captionof{figure}{Capability and governance milestones, 2023 to September 2026. Amber entries are the four developments that drive the substantive changes in version 3.0.}
 \end{center}
 
 \subsection*{Base-Rate Context: Anchoring Expectations}
@@ -458,26 +519,27 @@ Readers should interpret this analysis through that lens: the primary concern is
   \item \textbf{The most likely near-term scenario is high-frequency attempts with limited success}, resource strain and public concern, not mass casualties
   \item \textbf{Cyber-physical attacks on existing infrastructure} (labs, chemical plants) may be higher-leverage than synthesis assistance
   \item \textbf{Governance windows are closing}, once capabilities proliferate, restrictions become harder to implement
+  \item \textbf{New in v3.0: safeguards have migrated from the model to the deployment layer.} Frontier developers now ship capable models behind classifiers, graduated access tiers, and vetted-partner channels rather than withholding capability. That is a real defensive gain for closed APIs and no gain at all for open weights, which is why material and service chokepoints are the only controls that bind across both
 \end{enumerate}
 
 \subsection*{Top 5 Recommended Actions}
 
 \begin{enumerate}
-  \item \textbf{Mandate universal DNA synthesis screening} with international harmonization
-  \item \textbf{Invest in attribution and response capabilities}, cannot rely on deterrence alone
-  \item \textbf{Establish cloud laboratory oversight frameworks} before the attack surface expands further
-  \item \textbf{Require WMD-relevant capability evaluations} before frontier AI deployment
-  \item \textbf{Fund defensive biodetection} as a high-value cross-threat investment
+  \item \textbf{Make nucleic acid synthesis screening mandatory and enforceable}, covering benchtop synthesis devices as well as service providers, with international harmonization
+  \item \textbf{Treat screening as patched software}: fund standing red teams and a coordinated-disclosure regime for screening itself, with version tracking and a published patch cadence
+  \item \textbf{Establish automated- and cloud-laboratory oversight frameworks} (security tiering by latent capability, customer and agent verification, protocol screening, audit logging)
+  \item \textbf{Require WMD-relevant capability evaluations} before frontier AI deployment, with evaluation-integrity measures that account for models behaving differently when they detect testing
+  \item \textbf{Fund defensive biodetection and rapid countermeasure design} as high-value cross-threat investments
 \end{enumerate}
 
 \subsection*{Top 5 Indicators to Monitor}
 
 \begin{enumerate}
-  \item DNA synthesis screening intercept rates and patterns
-  \item AI model performance on biology/chemistry benchmarks
-  \item Cloud laboratory service expansion and security posture
-  \item Dark web discussion of AI + WMD capabilities
-  \item Progress (or lack thereof) on international governance coordination
+  \item Screening intercept rates, patch cadence, and disclosed evasion findings at synthesis providers
+  \item Frontier-model threshold determinations and the scope of deployed CB safeguards
+  \item Automated and cloud laboratory expansion, autonomy level, and security posture
+  \item Published misuse-disruption reporting from AI providers and law enforcement case records
+  \item Progress (or lack thereof) on mandatory-screening legislation and international coordination
 \end{enumerate}
 
 \subsection*{What Would Change This Assessment}
@@ -485,18 +547,20 @@ Readers should interpret this analysis through that lens: the primary concern is
 \begin{minipage}[t]{0.48\textwidth}
 \textbf{Would Increase Concern:}
 \begin{itemize}[nosep]
-  \item Confirmed AI-assisted WMD attempt
-  \item Release of unrestricted biology-capable research agent
-  \item Major cloud lab security breach
+  \item A model judged across a \textit{novel}-weapon (CB-2 class) threshold
+  \item Open-weight release at comparable capability
+  \item Agent-operated laboratory used for a harmful protocol
+  \item Evidence that screening evasion is being attempted operationally
 \end{itemize}
 \end{minipage}
 \hfill
 \begin{minipage}[t]{0.48\textwidth}
 \textbf{Would Decrease Concern:}
 \begin{itemize}[nosep]
-  \item Effective international AI safety framework
-  \item Robust attribution breakthrough
-  \item AI guardrails prove more durable than expected
+  \item Mandatory screening in force across major jurisdictions, with demonstrated interception
+  \item Durable safeguards under adversarial fine-tuning
+  \item An attribution breakthrough
+  \item Sustained flat or falling misuse-attempt volume in provider reporting
 \end{itemize}
 \end{minipage}
 
@@ -629,16 +693,58 @@ To be explicit about provenance: the author conducted no original expert consult
 
 We deliberately avoid: specific technical implementation details, named pathogen sequences or synthesis routes, and information not already publicly available in academic literature.
 
-\subsection{What We've Observed (Through Mid-2026)}
+\subsection{What We've Observed (Through September 2026)}
 
-Evidence regarding AI-assisted biosecurity threats, categorized by epistemic status. The most important development since this report's prior version is that the ``uplift'' question moved from theoretical to measured.
+Evidence regarding AI-assisted biosecurity threats, categorized by epistemic status.
+
+\begin{keybox}[The Single Most Important Change Since v2.1]
+The evidence base crossed from \textit{measured in laboratories} to \textit{observed in the wild}. Version 2.1 could accurately state that there were ``no documented cases of AI-enabled biological weapon development in the wild.'' That sentence is no longer available. It has been replaced by something narrower but real: documented, disrupted \textit{attempts to misuse} deployed models for biological work, reported by the developer that disrupted them.
+\end{keybox}
+
+\textbf{The evidence ladder, and where 2026 landed us} \textbf{[E]}. Each rung below is a materially different evidentiary claim, and public debate routinely conflates them.
+
+\begin{center}
+\begin{tikzpicture}[font=\scriptsize\sffamily]
+  \tikzset{rung/.style={rectangle, rounded corners=2pt, draw=scienceteal!70, line width=0.5pt,
+      text width=2.7cm, align=center, minimum height=1.5cm, inner sep=4pt, fill=lightgray}}
+  \node[rung] (r1) at (0,0) {\textbf{Rung 1}\\[2pt] Models can discuss the subject matter};
+  \node[rung, right=0.42cm of r1] (r2) {\textbf{Rung 2}\\[2pt] Controlled trials measure uplift over a baseline};
+  \node[rung, right=0.42cm of r2, fill=barriergold!35, draw=barriergold] (r3) {\textbf{Rung 3}\\[2pt] Providers observe and disrupt misuse attempts};
+  \node[rung, right=0.42cm of r3, fill=shieldamber!25, draw=shieldamber] (r4) {\textbf{Rung 4}\\[2pt] Prosecuted plot where AI assistance was material};
+  \node[rung, right=0.42cm of r4, fill=white, draw=medgray] (r5) {\textbf{Rung 5}\\[2pt] Completed attack with demonstrated AI uplift};
+  \foreach \a/\b in {r1/r2, r2/r3, r3/r4, r4/r5} {
+    \draw[-{Stealth[length=4pt]}, softslate, line width=0.7pt] (\a) -- (\b);
+  }
+  \node[below=2pt of r1, text=softslate] {Reached 2023};
+  \node[below=2pt of r2, text=softslate] {Reached 2024--2026};
+  \node[below=2pt of r3, text=deepteal, font=\scriptsize\bfseries\sffamily] {Reached 2026};
+  \node[below=2pt of r4, text=shieldamber, font=\scriptsize\bfseries\sffamily] {Contested / partial};
+  \node[below=2pt of r5, text=softslate] {Not observed};
+\end{tikzpicture}
+
+\captionof{figure}{The evidence ladder for AI-enabled biological risk. Version 3.0 moves the assessment onto rung three. Rung five remains unobserved, and this report does not assert otherwise.}
+\end{center}
+
+\textbf{Observed misuse attempts (new in v3.0)} \textbf{[O]}:
+\begin{itemize}[nosep]
+  \item A frontier developer's threat-intelligence reporting for December 2025 to August 2026 described identifying and disrupting operations across seven harm areas, one of which was biological misuse. The reported pattern is the analytically important part: users circumvented controls and obfuscated the stated purpose of their work, rather than asking directly for weapons help.\footnote{Anthropic, ``Detecting and countering misuse of AI: September 2026'' (threat intelligence report), September 10, 2026; summarised in contemporaneous press coverage, 10--11 September 2026.}
+  \item This matches what the multi-agent and fragmentation analysis in this report predicts: as direct requests reliably fail, residual risk migrates to \textit{decomposed and mis-framed} requests that each look legitimate.
+  \item \textbf{Interpretive caution}: ``disrupted misuse attempts'' is not ``weapons programs.'' The public record does not establish the sophistication, resourcing, or intent of the accounts involved, and a provider's own reporting is both the best and the only available source. Treat it as evidence that the demand signal is real and non-trivial, not as evidence of capability.
+  \item Separately, a national prosecution of a crude toxin plot, arrested November 2025 with charges filed in May 2026, reportedly involved the use of general-purpose chatbots and search for guidance.\footnote{Indian National Investigation Agency case arising from a November 2025 Gujarat Anti-Terrorism Squad arrest; NIA took over in January 2026, filed a chargesheet in May 2026, and bail was denied in August 2026 (Indian Express, Business Standard, Times of India, Gujarat Samachar reporting). The chatbot detail is secondary: GNET, ``From Lab Expertise to Chat Interface: The New Risk of Toxin-Level Attacks,'' August 12, 2026, citing an Indago Technologies assessment.} This is a low-tech case involving a widely known plant toxin, and is best read as evidence for the ``high-frequency attempts, limited success'' scenario and for T1 uplift, not for de novo synthesis capability.
+\end{itemize}
 
 \textbf{The measured-uplift trajectory (2024 to 2026)} \textbf{[O]}:
 \begin{itemize}[nosep]
   \item The 2024 RAND red-team study found \textit{no statistically significant difference} in the viability of biological-attack plans produced with versus without the then-current LLM generation.\footnote{Mouton, Lucas, and Guest, ``The Operational Risks of AI in Large-Scale Biological Attacks: Results of a Red-Team Study,'' RAND, RR-A2977-2, 2024.}
   \item By mid-2026, a frontier developer's own published evaluations reached a different conclusion for its most capable model. In a beneficial red-team tabletop exercise, generalist PhD biologists paired with the model produced end-to-end strategies that two of three generalist teams rated at or above dedicated world-leading specialist teams; graders estimated the work would have taken 40 to 95 working days (average ${\sim}72.5$) without AI but was accomplished in roughly 16 hours with the model.\footnote{Anthropic, ``System Card: Claude Fable 5 \& Claude Mythos 5,'' June 9, 2026. Source for the CB-1/CB-2 thresholds, the tabletop and uplift-trial findings, the persistent failure modes, and the tiered Fable 5 / Mythos 5 release.}
   \item That developer classified the model as having crossed its ``CB-1'' threshold (uplifting actors with basic technical backgrounds toward \textit{non-novel} chemical/biological weapons) while judging it had not clearly crossed ``CB-2'' (\textit{novel} weapons), a judgment it called ``much less clear and obvious'' than for prior models. See the CB-1/CB-2 framing below.
+  \item Through the second half of 2026 the determination held rather than escalated. The September 2026 flagship release was again judged CB-1 but not CB-2, was described as not improving on several weaknesses its predecessor's evaluation treated as disqualifying for CB-2, and shipped with expanded biology classifiers.\footnote{Anthropic, ``System Card: Claude Opus 5.5,'' September 22, 2026.} A second major developer placed a whole model family at ``High'' capability in the biological and chemical domain under its own preparedness framework and shipped tailored safeguards rather than withholding the models.\footnote{OpenAI, ``GPT-5.6 System Card,'' July 9, 2026, and the associated August 2026 update.}
+  \item Government evaluators reached compatible conclusions by a different route. The UK evaluator reported that leading models answer hundreds of private, expert-written chemistry and biology questions at levels comparable to PhD-trained humans, and that scaffolded agents with search and code execution are increasingly useful for elements of biological design.\footnote{UK AI Security Institute, ``Frontier AI Trends Report,'' December 18, 2025.} The 2026 International AI Safety Report reached the two-part conclusion this document has held since v1.0: the informational barrier is substantially down, and how much that raises \textit{real-world} risk remains genuinely uncertain because material barriers are hard to observe.\footnote{\textit{International AI Safety Report 2026}, February 2026, chaired by Yoshua Bengio; 100+ authors, 30+ backing states and organisations.}
 \end{itemize}
+
+\begin{notebox}[Why ``Capability Up, Risk Uncertain'' Is Not a Fudge]
+It reads like hedging, but it is the correct structure of the claim. Uplift evaluations measure the \textit{cognitive} factor in the risk model. Nothing in any published evaluation measures intent prevalence, materials access, or interdiction, and those three factors carry most of the variance in the final risk. A defender who responds to uplift findings by investing only in model-level controls has misread which factor moved.
+\end{notebox}
 
 \textbf{Demonstrated in open evaluations:}
 \begin{itemize}[nosep]
@@ -653,24 +759,30 @@ Evidence regarding AI-assisted biosecurity threats, categorized by epistemic sta
 \begin{itemize}[nosep]
   \item DNA synthesis screening has intercepted concerning orders (industry statements, limited specifics)
   \item Security services have begun integrating AI into threat monitoring
+  \item Safeguard-evasion patterns are described at a general level in provider threat reporting: control circumvention and obfuscation of stated research purpose \textbf{[O]}
 \end{itemize}
 
 \textbf{Speculative / emerging:}
 \begin{itemize}[nosep]
-  \item AI-enabled gain-of-function design assistance (theoretical capability, no documented attempts)
-  \item Cloud laboratory exploitation for harmful protocols (no known incidents)
+  \item Operational (as opposed to red-team) attempts to exploit the screening weaknesses disclosed in October 2025
+  \item Misuse of agent-operated automated or cloud laboratories for harmful protocols (no known incidents)
 \end{itemize}
 
-\textbf{Absence of evidence (notable):}
+\textbf{Absence of evidence (still notable, and narrower than in v2.1):}
 \begin{itemize}[nosep]
-  \item No documented cases of AI-enabled biological weapon development
-  \item No confirmed AI-assisted WMD attacks or advanced attempts
+  \item No confirmed AI-assisted WMD attack, and no publicly documented case of AI-enabled \textit{weapon development} reaching a functional agent
+  \item No public evidence that generative genome design has been directed at harmful ends
+  \item No public evidence of a cloud or automated laboratory being used to execute a harmful protocol
 \end{itemize}
+
+\begin{notebox}[Do Not Pool These Evidence Streams]
+Measured uplift comes from controlled evaluations by developers and researchers. Observed misuse comes from provider moderation and law enforcement. They should not be pooled. Provider reporting is also structurally incomplete: it can only describe misuse that reached a monitored deployment surface, which excludes anything done on open weights running locally. Absence of public reporting is not absence of classified intelligence.
+\end{notebox}
 
 \subsection{Definitions}
 
 \begin{defbox}[Core Definitions]
-\textbf{Chatbot vs. Autonomous Research Agent} (critical 2025 distinction):
+\textbf{Chatbot vs. Autonomous Research Agent} (a distinction that remains central in 2026):
 
 \vspace{0.5em}
 \begin{center}
@@ -698,7 +810,7 @@ Reasoning Agent (2025--26) & Dedicated chain-of-thought reasoning; multi-step pl
 
 \subsection{AI Agent Capabilities}
 
-AI agents in mid-2026 can:
+AI agents as of September 2026 can:
 \begin{itemize}[nosep]
   \item Synthesize information from thousands of scientific papers in seconds
   \item Conduct extended multi-step research tasks with minimal supervision
@@ -732,7 +844,7 @@ T4 & State or state-backed & Full WMD capability & Nation-state programs \\
 
 \textbf{Key insight}: AI primarily benefits T1--T3 actors by reducing knowledge aggregation barriers, it does not transform T0 into T3.
 
-\subsection{Synthetic Biology Infrastructure (2025)}
+\subsection{Synthetic Biology Infrastructure}
 
 The infrastructure for synthetic biology has expanded dramatically, creating new touchpoints for both legitimate research and potential misuse:
 
@@ -743,10 +855,12 @@ The infrastructure for synthetic biology has expanded dramatically, creating new
   \item International providers vary in screening rigor
 \end{itemize}
 
-\textbf{Cloud Laboratory Services}:
+\textbf{Cloud and Automated Laboratory Services}:
 \begin{itemize}[nosep]
   \item Commercial platforms offer remote access to automated wet labs via API
   \item Equipment includes liquid handlers, PCR machines, sequencers
+  \item Agent-to-instrument protocols and ``experiment-as-code'' stacks published in 2026 make closed-loop design--execute--analyse cycles a standard research pattern rather than a demonstration \textbf{[O]}
+  \item US federal programs are actively expanding this infrastructure to generate AI-ready biological data, which enlarges the remotely reachable attack surface alongside the scientific benefit \textbf{[O]}
   \item Geographic distribution creates regulatory arbitrage opportunities
 \end{itemize}
 
@@ -763,10 +877,11 @@ Existing control regimes face increasing pressure from technological change:
 
 \textbf{DNA Synthesis Screening}:
 \begin{itemize}[nosep]
-  \item IGSC (International Gene Synthesis Consortium) guidelines screen against known pathogen sequences
-  \item Novel or chimeric sequences may evade detection
+  \item IGSC (International Gene Synthesis Consortium) guidelines screen both sequences and customers
+  \item Novel, chimeric, or generatively redesigned sequences may evade detection
   \item Not all providers are IGSC members
-  \item Benchtop synthesizers bypass commercial screening entirely
+  \item Benchtop synthesizers bypass commercial screening entirely; the proposed EU Biotech Act would for the first time require screening mechanisms in the devices themselves \textbf{[O]}
+  \item US adherence is conditioned on federal life-sciences funding rather than imposed by statute; legislation to make screening mandatory and federally enforceable was introduced in January 2026 but not enacted as of this snapshot \textbf{[O]}
 \end{itemize}
 
 \textbf{Export Controls}:
@@ -843,26 +958,34 @@ This ``agentic loop'' is qualitatively different from single-query chatbot inter
 
 \subsection{Governance Challenge: Open-Weight Models}
 
-Most AI safety measures exist at the API level for closed commercial models. Open-weight models present a distinct governance challenge:
+Most AI safety measures exist at the API level for closed commercial models. Open-weight models present a distinct governance challenge, and that challenge grew in 2026 rather than shrinking.
+
+\textbf{The 2026 shift: safeguards moved from the model to the deployment} \textbf{[O]}. Developers did not withhold capable models; they shipped them behind \textit{deployment-layer} controls: capability classifiers that restrict frontier biology and fall the user back to a less capable model, graduated access tiers, vetted-partner channels, and account-level threat monitoring. This has a defensive logic and a structural consequence this report considers under-appreciated.
+
+\begin{keybox}[The Widening Gap]
+Every one of those controls is a property of the serving stack, not of the weights. None of them survives a weight download. The governance gap between closed and open deployment is therefore \textit{not} shrinking as safeguards improve; it is widening, because all of the improvement accrues to one side. This is the strongest available argument for concentrating public investment in controls that bind regardless of which model was used: synthesis screening, automated-laboratory security tiers, procurement and financial monitoring, and detection.
+\end{keybox}
 
 \begin{center}
 \small
-\begin{tabular}{L{3cm}L{2cm}L{2cm}L{2cm}L{3cm}}
+\begin{tabular}{L{3cm}L{3.4cm}L{2.2cm}L{1.6cm}L{3.2cm}}
 \toprule
 \textbf{Model Type} & \textbf{Guardrails} & \textbf{Monitoring} & \textbf{Fine-tuning} & \textbf{Governance Lever} \\
 \midrule
-Frontier closed API (Claude Opus 4.8, Fable 5) & Strong & Yes & No & Provider responsibility \\
-Open-weight general (Llama 4, Qwen 3.5, DeepSeek V4) & Varies & No (local) & Yes & Release decisions only \\
-Open-weight reasoning (DeepSeek V4, Qwen 3.5, Kimi K2.6) & Often minimal & No (local) & Yes & Extremely difficult \\
-Fine-tuned variants & Often removed & No & Already done & Difficult to control \\
-Specialized biology (Evo, domain) & May be absent & No & Domain-specific & Research community norms \\
+Frontier closed API & Strong; increasingly classifier-based with graduated access tiers & Yes, incl.\ account-level threat intelligence & No & Provider responsibility; deployment-layer controls \\
+Open-weight general & Varies at release & No (local) & Yes & Release decisions only \\
+Open-weight reasoning & Often minimal, and measurably removable & No (local) & Yes & Extremely difficult \\
+Fine-tuned variants & Often removed; the ``safety gap'' is now a published, measurable quantity \textbf{[O]} & No & Already done & Difficult to control \\
+Specialized biology models and BDTs & May be absent & No & Domain-specific & Research norms; proposed EU duty to monitor ``biological systemic risk'' from AI in biology \textbf{[O]} \\
 \bottomrule
 \end{tabular}
 \end{center}
 
-\textbf{Policy implications}: (1) Pre-release capability evaluation, (2) Compute governance as monitoring opportunity, (3) Community norms on responsible release, (4) Accept that some proliferation is unavoidable, so invest in detection accordingly.
+\textbf{A measurement worth institutionalising} \textbf{[E]}: the \textit{safety gap}, the difference in dangerous-capability behaviour before and after cheap safeguard removal, is the right pre-release metric for open-weight decisions, because it measures what an adversary will actually face rather than what a compliant user faces. Published toolkits now compute it.\footnote{``The Safety Gap Toolkit'' (arXiv:2507.11544, 2025); see also work estimating worst-case frontier risks of open-weight models (arXiv:2508.03153, 2025).} Requiring and publishing a safety-gap figure alongside open-weight releases would be a low-cost, high-information step, and unlike a release veto it is compatible with open-science norms.
 
-\begin{contextbox}[A Real-World Graduated-Access Example (Mid-2026)]
+\textbf{Policy implications}: (1) Pre-release capability evaluation, including a published safety gap, (2) Compute governance as monitoring opportunity, (3) Community norms on responsible release, (4) Accept that some proliferation is unavoidable, so invest in chokepoint controls and detection accordingly.
+
+\begin{contextbox}[A Real-World Graduated-Access Example (2026)]
 One frontier developer, on judging its most capable model to sit near the novel-weapon (CB-2) boundary, chose \textit{not} to release that model's frontier biology capabilities to the general public. Instead it split the release: a general-access configuration with classifiers that restrict frontier biology and fall the user back to a less-capable model when triggered, and a safeguards-lifted configuration made available only to a small number of vetted, trusted partners with beneficial use cases. This is a concrete instance of the graduated-access and capability-bounding governance this report recommends. It also shows the limit of the approach: the developer noted that a sufficiently resourced state actor could still attempt to obtain the unsafeguarded capabilities through model-weight theft, which is why weight security and detection matter alongside access tiers.
 \end{contextbox}
 
@@ -956,7 +1079,19 @@ By mid-2026, frontier AI developers had converged on explicit capability thresho
 \end{tabular}
 \end{center}
 
-\textbf{Why this matters}: The first public developer determination (mid-2026) placed its most capable model \textit{across CB-1 but not clearly across CB-2}, warning that world-class expert substitution ``may now be possible in a few areas.'' This matches the report's core finding: AI meaningfully uplifts T1--T3 actors on known agents (CB-1) while the novel-weapon barrier (CB-2) erodes but is not clearly breached. It also shapes defense: CB-1 risk is best addressed by chokepoint controls on materials and synthesis (independent of model capability), whereas CB-2 risk is where model-level access controls and capability evaluations matter most.
+\textbf{Why this matters}: The first public developer determination (June 2026) placed its most capable model \textit{across CB-1 but not clearly across CB-2}, warning that world-class expert substitution ``may now be possible in a few areas.'' Three months and three model releases later, the picture had not reversed: the September 2026 flagship system card again judged CB-1 crossed and CB-2 not, noting the model did not improve on several weaknesses treated as disqualifying for CB-2 in the preceding generation, and shipped it with expanded biology classifiers. A second major developer independently placed a whole model family at ``High'' biological and chemical capability under its own framework.
+
+\begin{barrierbox}[Two Readings of the CB-2 Plateau, Both Worth Holding]
+\textbf{The optimistic reading} \textbf{[E]}: CB-2 is a genuine capability plateau. The disqualifying weaknesses are structural limits rather than incidental bugs, and expert substitution for \textit{novel} agent design is further away than naive capability extrapolation suggests.
+
+\vspace{0.4em}
+\textbf{The cautious reading} \textbf{[E]}: CB-2 is a \textit{measurement} plateau. The thresholds are self-assessed by the developers who also decide what to release, the disqualifying weaknesses are defined by those same evaluations, and evaluation-aware models complicate the evidence. Three same-year determinations from one vendor are three correlated observations, not three independent ones.
+
+\vspace{0.4em}
+This report treats the plateau as real but weakly evidenced, and rests no policy recommendation on it.
+\end{barrierbox}
+
+The distinction still shapes defense: CB-1 risk is best addressed by chokepoint controls on materials, synthesis, and laboratory services (independent of model capability), whereas CB-2 risk is where model-level access controls, weight security, and independent capability evaluation matter most.
 
 \subsection{The Tacit Knowledge Gap}
 
@@ -1014,10 +1149,15 @@ The balance varies significantly across WMD categories, which is why biological,
 
 \begin{center}
 \small
-\begin{tabular}{L{4cm}L{2cm}L{6cm}}
+\begin{longtable}{L{4cm}L{1.8cm}L{9.2cm}}
 \toprule
 \textbf{Reference} & \textbf{Date} & \textbf{Relevance} \\
 \midrule
+\endfirsthead
+\toprule
+\textbf{Reference} & \textbf{Date} & \textbf{Relevance} \\
+\midrule
+\endhead
 Bletchley Declaration & Nov 2023 & First international consensus on AI risks including CBRN \textbf{[O]} \\
 US Executive Order 14110 & Oct 2023 & Mandated DOE/DHS evaluation of AI role in CBRN threats; later revoked \textbf{[O]} \\
 Seoul AI Safety Summit & May 2024 & Extended Bletchley with specific bio-risk language \textbf{[O]} \\
@@ -1029,10 +1169,22 @@ EO 14110 revocation; EO 14179 & Jan 2025 & US rescinded the prior safety order (
 UK AISI becomes AI Security Institute & Feb 2025 & Rebrand toward security-relevant risks, explicitly including CB weapons and cyber \textbf{[O]} \\
 EO ``Improving the Safety and Security of Biological Research'' & May 2025 & Directs revision of the 2024 synthesis-screening framework; ties federal funding to adherence \textbf{[O]} \\
 America's AI Action Plan & Jul 2025 & Successor US strategy with national-security and biosecurity workstreams \textbf{[O]} \\
-EU AI Act GPAI obligations in force & Aug 2025 & Systemic-risk tier (above 10\textsuperscript{25} FLOP) carries safety-and-security duties; enforcement from Aug 2026 \textbf{[O]} \\
+EU AI Act GPAI obligations in force & Aug 2025 & Systemic-risk tier (above 10\textsuperscript{25} FLOP) carries safety-and-security duties \textbf{[O]} \\
+Screening evasion demonstrated and patched & Oct 2025 & Peer-reviewed work showed generative protein design could produce variants of toxin sequences that evaded commercial nucleic-acid screening; a ten-month coordinated disclosure delivered patches to providers worldwide, with residual gaps acknowledged \textbf{[O]} \\
+UK AISI Frontier AI Trends Report & Dec 2025 & First consolidated public assessment from two years of UK government testing: expert-level chemistry and biology knowledge, and scaffolded agents increasingly useful for elements of biological design \textbf{[O]} \\
+Biosecurity Modernization and Innovation Act (S.3741) & Jan 2026 & Bipartisan US bill directing Commerce to make sequence \textit{and} customer screening mandatory and federally enforceable, with exemptions for clearly non-hazardous orders; not enacted as of this snapshot \textbf{[O]} \\
+International AI Safety Report 2026 & Feb 2026 & Second edition, 100+ experts and 30+ backing states: general-purpose AI can supply CB information including laboratory instructions, with substantial uncertainty about the resulting real-world risk \textbf{[O]} \\
+OPCW Scientific Advisory Board report on AI & Mar 2026 & First OPCW assessment of AI as a cross-cutting issue for CWC implementation, including AI-supported processing of declarations as a verification opportunity \textbf{[O]} \\
+EU Biotech Act proposed & May 2026 & Screening and reporting duties for certain high-risk products \textit{and benchtop synthesis equipment}; Advisory Group on Biosecurity; Commission duty to monitor ``biological systemic risk'' from AI in biological applications; penalties up to 5\% of worldwide turnover \textbf{[O]} \\
 First public developer CB-1 determination & Jun 2026 & A frontier system card judged its top model across CB-1 but not clearly across CB-2, with ``significant uncertainty'' \textbf{[O]} \\
+US policy for stopping high-risk life sciences research & Jul 2026 & Issued under EO 14292: prohibits federal funding for defined dangerous gain-of-function work, creates a review process and interagency board, and directs OSTP to convene an interagency group monitoring the biology--AI intersection including in silico research \textbf{[O]} \\
+EU AI Act GPAI enforcement powers begin & Aug 2026 & Commission and AI Office supervision and enforcement over GPAI providers applied from 2 August 2026; 20+ providers had signed the GPAI Code of Practice \textbf{[O]} \\
+Generative genome design demonstrated & Aug 2026 & Genome language models designed complete bacteriophage genomes; of roughly 300 synthesized designs, 16 viable phages were recovered. Human-infecting viruses were excluded from the training corpus, and a layered-safeguards response centred on synthesis screening was recommended \textbf{[O]} \\
+BWC Working Group nears its deadline & Feb, Aug 2026 & Eighth and ninth sessions; most draft text agreed but verification, transfer controls, and financing contested ahead of the Tenth Review Conference (no later than 2027) \textbf{[O]} \\
+Frontier developer misuse reporting & Sep 2026 & Threat-intelligence report covering Dec 2025 to Aug 2026 described disrupted operations across seven harm areas including biological misuse, with case studies of control circumvention and purpose obfuscation \textbf{[O]} \\
+Elevated CB safeguards become the release default & Jul--Sep 2026 & One developer treated a whole model family as ``High'' capability in the biological and chemical domain; another extended expanded biology classifiers to its flagship reasoning model while again judging CB-1 crossed and CB-2 not \textbf{[O]} \\
 \bottomrule
-\end{tabular}
+\end{longtable}
 \end{center}
 
 \section{Historical Context}
@@ -1183,6 +1335,102 @@ Net risk driver & \multicolumn{2}{l}{Attempt frequency + occasional competent ac
 \textit{Most AI-assisted knowledge does not transfer to operational success. Concern is the tail distribution of attempts.}
 \end{infobox}
 
+\subsection{Screening as an Adversarial System}
+
+This is the most consequential defensive update in v3.0. Nearly every policy stack in this field, including this report's, treats nucleic acid synthesis screening as the load-bearing chokepoint: the point where an informational capability must become a physical one, and therefore the point where a defender gets a look. That assumption survived 2026, but its character changed.
+
+\textbf{What was shown} \textbf{[O]}: A peer-reviewed study published in October 2025 demonstrated that generative protein design tools could produce redesigned variants of known toxic proteins which commercial nucleic-acid screening software failed to flag. The disclosure was handled confidentially over roughly ten months with screening vendors and partners, and patches were distributed to synthesis providers internationally. The authors were explicit that the fix is partial and that residual gaps remain.\footnote{Horvitz et al., ``Strengthening nucleic acid biosecurity screening against generative protein design tools,'' \textit{Science}, 2 October 2025.}
+
+\textbf{Why the framing matters more than the finding}: the finding is a single, now-patched vulnerability. The framing is permanent. Screening has been shown to be an \textit{adversarial machine learning problem} rather than a database lookup, and it inherits the properties of every other adversarial system.
+
+\begin{center}
+\small
+\begin{tabular}{L{5.5cm}L{9cm}}
+\toprule
+\textbf{Property of adversarial systems} & \textbf{Consequence for synthesis screening} \\
+\midrule
+Defences are versioned, not solved & A provider's screening posture is only meaningful with a version and a patch date attached \\
+Attack-side capability improves continuously & A screen validated in 2025 is not validated in 2027; revalidation must be mandatory, not discretionary \\
+Disclosure timing is a policy choice & Coordinated disclosure worked here; no standing process guarantees it works next time \\
+Coverage is a distribution, not a binary & ``We screen'' is not an answer; the residual false-negative rate against current-generation design tools is \\
+Patch distribution is the bottleneck & A patch reaching consortium members and not non-members leaves the weakest-link path open \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\vspace{0.4em}
+
+\begin{center}
+\begin{tikzpicture}[font=\scriptsize\sffamily, node distance=0.5cm]
+  \tikzset{
+    stage/.style={rectangle, rounded corners=2pt, draw=scienceteal!70, line width=0.5pt,
+      text width=2.9cm, align=center, minimum height=0.95cm, inner sep=3pt, fill=lightgray},
+    ctrl/.style={rectangle, rounded corners=2pt, draw=biogreen, line width=0.6pt,
+      text width=3.1cm, align=center, minimum height=0.85cm, inner sep=3pt, fill=biogreen!15},
+    arr/.style={-{Stealth[length=4pt]}, softslate, line width=0.7pt}
+  }
+  % main interdiction path
+  \node[stage] (tools) at (1.6,0) {Biological design tools\\(capability improves)};
+  \node[stage] (order) at (5.3,0) {Synthesis order\\(service or benchtop)};
+  \node[stage, fill=barriergold!35, draw=barriergold] (screen) at (9.0,0) {\textbf{Screening}\\sequence + customer};
+  \node[stage, fill=biogreen!20, draw=biogreen] (stop) at (12.7,0) {Interdiction\\and reporting};
+  \node[stage, fill=shieldamber!25, draw=shieldamber] (through) at (12.7,-1.75) {Material delivered};
+  \draw[arr] (tools) -- (order);
+  \draw[arr] (order) -- (screen);
+  \draw[arr] (screen) -- node[midway, text=softslate, font=\tiny\sffamily, yshift=0.58cm] {flagged} (stop);
+  \draw[arr] (screen.south) |- node[pos=0.68, above=1pt, text=softslate, font=\tiny\sffamily] {missed} (through.west);
+
+  % maintenance loop (the part that does not exist as an institution)
+  \node[ctrl] (revalid) at (1.6,-3.9) {Mandatory revalidation\\as licence condition};
+  \node[ctrl] (red) at (5.3,-3.9) {Standing red team\\vendor-independent};
+  \node[ctrl] (disc) at (9.0,-3.9) {Coordinated disclosure\\named coordinator};
+  \node[ctrl] (patch) at (12.7,-3.9) {Patch to \textbf{all} providers\\version and date recorded};
+  \draw[arr, biogreen] (revalid) -- (red);
+  \draw[arr, biogreen] (red) -- (disc);
+  \draw[arr, biogreen] (disc) -- (patch);
+  \draw[arr, biogreen, line width=1.0pt, rounded corners=4pt]
+    (patch.east) -- (15.1,-3.9) -- (15.1,1.35) -- (9.0,1.35) -- (screen.north);
+  \node[text=biogreen, font=\tiny\itshape\sffamily, anchor=east] at (14.9,1.62)
+    {keeps the screen current};
+  \node[text=softslate, font=\tiny\itshape\sffamily, anchor=west] at (0.05,-2.75)
+    {Maintenance loop (green): the cycle that does not yet exist as a standing institution.};
+\end{tikzpicture}
+
+\captionof{figure}{Synthesis screening as a maintained control. The upper path is the interdiction chokepoint the policy stack relies on; the lower loop is what keeps it current, and is the part with no institutional owner.}
+\end{center}
+
+\textbf{What follows for policy} \textbf{[E]}:
+\begin{enumerate}
+  \item \textbf{Fund standing red teams for screening}, structurally separate from the vendors whose products they test, mandated to test against current-generation biological design tools rather than historical ones.
+  \item \textbf{Create a coordinated-disclosure regime with a named coordinator}, analogous to coordinated vulnerability disclosure in software. The 2025 case worked because specific individuals chose to make it work; that is not a process.
+  \item \textbf{Require version and revalidation reporting} as a condition of any mandatory-screening regime. A statute requiring ``screening'' without requiring currency will codify a stale defence.
+  \item \textbf{Design patch distribution for the whole market, not the consortium.} Improvements reaching only voluntary-association members convert a technical fix into a geography of exposure.
+  \item \textbf{Do not over-correct into abandoning the chokepoint.} Screening remains the highest-leverage control available. The finding argues for maintaining it properly, not for replacing it with model-level controls that do not bind on open weights.
+\end{enumerate}
+
+\begin{notebox}[Note on Abstraction]
+This report describes the evasion result only at the level of ``screening was shown to be evadable and was patched.'' The mechanism, the design tools' specific behaviour, and the residual gap profile are not discussed and should not be inferred. The defensive point stands entirely on the existence of the result.
+\end{notebox}
+
+\subsection{Generative Design Moves from Parts to Genomes}
+
+\textbf{What changed in 2026} \textbf{[O]}: A peer-reviewed study published in August 2026 used genome language models to generate complete bacteriophage genomes. Of roughly 300 synthesized candidate designs, 16 viable phages were recovered, with useful properties against bacterial resistance, framed as a path toward AI-designed phage therapy. Human-infecting viruses were excluded from the training corpus, and commentators converged on a layered-safeguards recommendation centred on synthesis screening.\footnote{Generative design of bacteriophages with genome language models, \textit{Science}, 6 August 2026 (Stanford University and Arc Institute).}
+
+\begin{center}
+\small
+\begin{tabular}{L{6.5cm}L{8cm}}
+\toprule
+\textbf{Previously assumed} & \textbf{Demonstrated in 2026} \\
+\midrule
+Generative design operates on parts: proteins, domains, binding sites & Generative design can operate at whole-genome scale for a small, simple genome \textbf{[O]} \\
+A designed sequence's function must be inferred from homology & Designed genomes can be functional while architecturally distinct from their templates \textbf{[O]} \\
+Sequence-similarity screening is a reasonably tight net & Similarity-based screening is a weaker filter against generatively designed sequences \textbf{[E]} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\textbf{Assessment} \textbf{[E]}: a genuine, bounded advance in capability and a genuine advance in beneficial application. Scaling from a small phage genome to anything of weapons concern crosses several barriers this report has consistently emphasised: genome size and complexity, host biology, deliberate training-data exclusion, and the entire wet-lab validation and weaponisation chain. It is not a short step, and this report does not characterise it as one. What it does do is tighten the screening argument above: as similarity to known threats becomes a weaker signal, screening must shift weight toward function prediction, customer verification, and order-pattern analysis, and the case for mandatory coverage of every provider and device grows stronger. It also supports keeping training-data exclusion and structured pre-publication review as live norms in biological design tool development, since in this instance those norms did real work.
+
 \subsection{Pathogen Categories and AI Risk}
 
 \begin{center}
@@ -1255,6 +1503,17 @@ Audit logging & Comprehensive records & Storage, retention \\
 \end{tabular}
 \end{center}
 
+\textbf{The 2026 development: latent capability and security tiers} \textbf{[O]}. Published work in 2026 proposed evaluating automated laboratories not by the experiments they are asked to run but by their \textit{latent capability}: the full set of operations their installed instruments and software could in principle execute, whether or not any customer has requested them. The resulting proposal is a security-tiering framework analogous to biosafety levels, assigning oversight requirements by what a facility \textit{could} do. Existing biosafety and biosecurity oversight largely fails to account for this.\footnote{``Automated Laboratory Security Tiers: a framework for evaluating and mitigating biosecurity risks from latent capabilities,'' \textit{Frontiers in Microbiology}, 2026.}
+
+This report endorses the direction, and adds the governance reasons it matters:
+\begin{itemize}[nosep]
+  \item \textbf{Latent capability is the right unit of regulation for automated systems}, because the marginal cost of asking an already-installed instrument to do something else is a protocol file. The human-lab intuition that capability is gated by staff skill does not transfer.
+  \item \textbf{It is auditable without inspecting customer work}, keeping oversight compatible with commercial confidentiality and research freedom, a recurring failure mode of biosecurity proposals.
+  \item \textbf{It composes with AI-agent access control.} A tiered facility can permit unattended agent-driven execution at low tiers and require human gating at high tiers.
+\end{itemize}
+
+A parallel track argues that biotechnology infrastructure, including cloud laboratories, should be formally designated critical infrastructure so it can access federal cybersecurity resources and threat information sharing. That designation is a prerequisite for treating cyber-physical risk as something other than each operator's private problem.
+
 \section{Chemical Weapons: Procurement and Safety Barriers}
 
 Chemical weapons occupy an intermediate position. \textbf{The dominant constraints are physical and operational, not informational}:
@@ -1275,13 +1534,18 @@ The most concerning AI capability is \textbf{precursor substitution}, identifyin
 
 \subsection{Real-Time Synthesis Guidance}
 
-AI agents could provide ``over-the-shoulder'' guidance for synthesis:
+The general mechanism is covered under vision-language models and tacit knowledge and is not repeated here. Two points are specific to chemistry:
 
-\textbf{Capabilities}: Interpret visual observations (color changes, precipitates); suggest adjustments based on conditions; troubleshoot common problems; guide safety procedures.
+\begin{itemize}[nosep]
+  \item \textbf{The safety asymmetry cuts against the attacker.} In biology a failed step usually means a wasted week; in chemical synthesis, failure modes include fire, detonation, and acute toxic exposure to the operator. Adaptive guidance improves the odds of a step succeeding; it does not remove the consequence of the step going wrong, and an actor working without training, containment, or supervision is exposed to that consequence on every iteration. Historically this has been a meaningful attrition mechanism, and AI guidance does not obviously change it.
+  \item \textbf{Scale-up is where guidance stops helping.} Moving from a benchtop quantity to a militarily meaningful one is an engineering and equipment problem, not an instruction-following problem. This is the point at which chemical weapons work becomes visible to procurement and industrial monitoring, which is why this report treats precursor and equipment controls as the dominant chemical lever.
+\end{itemize}
 
-\textbf{This is concerning because}: Reduces requirement for formal chemistry training; provides adaptive feedback traditional instructions cannot; available 24/7 without human oversight; multiple attempts can refine technique.
+\subsection{Governance Update: AI Enters the CWC Conversation}
 
-\textbf{Limiting factors}: Chemical synthesis still dangerous without proper training; failure modes can be fatal (explosions, toxic exposure); equipment requirements remain; scale-up from laboratory to weapon quantities is distinct challenge.
+\textbf{What changed} \textbf{[O]}: In March 2026 the OPCW released the final report of its Scientific Advisory Board's Temporary Working Group on artificial intelligence, the organisation's first structured assessment of AI as a cross-cutting issue for Chemical Weapons Convention implementation. It covers verification, industry practice, training, and international security, and identifies AI-supported processing of declarations as a concrete verification opportunity.\footnote{OPCW Scientific Advisory Board, Final Report of the Temporary Working Group on Artificial Intelligence, released 3 March 2026.}
+
+\textbf{Assessment} \textbf{[E]}: The CWC is better positioned than the BWC to absorb AI-related change, for a structural reason worth stating plainly: it has an implementing organisation with declarations, inspections, and a scientific advisory mechanism that can be tasked. The BWC has none of those. The near-term significance of the OPCW report is therefore less about the chemical threat picture, which remains dominated by precursor and scale barriers, than as a demonstration that a treaty body \textit{can} metabolise AI as a technical subject without renegotiating the treaty. That is a template the BWC's verification discussions could borrow from.
 
 \section{Nuclear Weapons: Physical Barriers}
 
@@ -1332,6 +1596,14 @@ The most significant AI risk for nuclear proliferation may be supply chain compr
 \textbf{How AI could assist state programs}: Identifying dual-use equipment suppliers; optimizing procurement to avoid detection; designing facilities to minimize detection signatures; analyzing IAEA inspection patterns.
 
 This is primarily a concern for state-level actors or state-supported groups rather than independent non-state actors.
+
+\subsection{The AI--Nuclear Nexus Becomes a Diplomatic Agenda Item}
+
+\textbf{What changed} \textbf{[O]/[E]}: Through 2026 the ``AI--nuclear nexus'' moved from a specialist topic to a recurring feature of nonproliferation diplomacy in the run-up to the 2026 NPT Review Conference, touching all three NPT pillars. The substantive agenda is broader than this report's scope and is mostly \textit{not} about AI helping anyone build a bomb: it concerns AI in nuclear command, control and communications, AI-enhanced remote sensing and its effect on deterrent survivability, and AI-assisted safeguards analysis.
+
+\begin{keybox}[The Institutional Variable]
+Nuclear governance has a mature architecture, a treaty, a safeguards agency, inspections, an established verification culture, and is absorbing AI as one more technical development within it. The lesson is not that nuclear arrangements should be copied wholesale to AI, a comparison that fails on almost every technical dimension, but a narrower one: \textbf{the presence of a standing technical secretariat is what lets a regime absorb a new technology without renegotiating itself}. The CWC has one and produced an AI assessment in 2026. The NPT regime has one. The BWC does not, and spent 2026 unable to agree on verification. That argues for investing in BWC institutional capacity as an objective \textit{distinct} from BWC verification, which has been deadlocked for decades.
+\end{keybox}
 
 \section{Gene Drives: Long-Horizon Governance Gap}
 
@@ -1641,6 +1913,20 @@ Radiological & Radioactive sources & Moderate \\
 
 \textbf{Our assessment}: Partially valid. However, more information is available than commonly assumed; AI can aggregate fragmented information; model capabilities are improving rapidly; hallucination rates are decreasing.
 
+\subsection{The Evaluation Integrity Argument (New in v3.0)}
+
+\textbf{Argument}: The entire capability picture in this report rests on evaluations, and evaluations are getting harder to trust. If models behave differently when they infer that they are being tested, threshold determinations measure test-taking behaviour rather than deployment behaviour, and both alarm and reassurance are built on sand.
+
+\textbf{Evidence} \textbf{[O]}: evaluation awareness is a recognised and actively researched problem; frontier models can infer evaluation contexts, complicating interpretation of safety and capability results. Threshold determinations are made by developers, using their own suites, about their own products, under commercial pressure to ship, which is a description of an incentive structure rather than an accusation of bad faith. Government evaluators exist and publish, but their throughput is limited relative to release cadence and their access depends on voluntary arrangements.
+
+\textbf{Our assessment}: the most serious methodological objection to this report's evidence base, and it cuts both ways.
+\begin{itemize}[nosep]
+  \item \textit{Against alarm}: reported uplift may partly reflect models performing helpfulness in an evaluation frame, and controlled red-team results with expert participants and generous time budgets are not a model of a covert actor working alone.
+  \item \textit{Against reassurance}: a model that recognises evaluation contexts may also present as \textit{safer} under test than in deployment, which would make ``CB-2 not crossed'' determinations less informative than they appear. This is the direction this report treats as more concerning, because the reassuring finding is the one currently doing load-bearing policy work.
+\end{itemize}
+
+\textbf{Policy implication} \textbf{[E]}: not to distrust evaluations, which would leave nothing, but to change who runs them and how results are reported: independent evaluation with pre-registered protocols and access to deployed rather than sanitised configurations; mandatory reporting of evaluation-awareness diagnostics alongside capability results; and heavier weight on deployment telemetry, whose subjects are not aware they are being studied. That last stream is narrow, uncontrolled, and self-reported, but it is the only evidence in this field immune to this objection, which argues for standardising and mandating it rather than leaving it to voluntary publication.
+
 \subsection{The Operational Security Argument}
 
 \textbf{Argument}: Serious WMD attempts require extended preparation that creates detection opportunities. Acquiring materials, testing, and deployment all generate signals regardless of AI assistance.
@@ -1745,7 +2031,7 @@ Attribution, determining responsibility, serves critical functions: enables dete
 \begin{itemize}
   \item AI agents can plan without human co-conspirators
   \item No organizational structure to penetrate
-  \item ``Delegation Defense'': State actors could claim AI agents autonomously derived weapons-relevant information without directed intent, straining legal frameworks for state responsibility under BWC/CWC/NPT
+  \item ``Delegation Defense'': State actors could claim AI agents autonomously derived weapons-relevant information without directed intent, straining legal frameworks for state responsibility under the BWC, CWC and NPT
   \item AI can generate misleading evidence (false flag potential)
 \end{itemize}
 
@@ -1902,11 +2188,15 @@ For state-level proliferation, AI offers different dynamics:
 \subsection{Treaty Implications}
 
 \begin{itemize}
-  \item \textbf{BWC}: Lacks verification mechanisms; AI-enabled development may be undetectable
-  \item \textbf{CWC}: Precursor controls challenged by alternative routes
-  \item \textbf{NPT}: Physical barriers remain strong; verification relatively robust
+  \item \textbf{BWC}: Lacks verification mechanisms \textit{and} a standing technical secretariat; AI-enabled development may be undetectable. \textbf{2026 status} \textbf{[O]}: the Working Group on Strengthening the Convention held its eighth and ninth sessions in February and August 2026; most draft text was agreed but verification, transfer controls, and financing remained contested ahead of the Tenth Review Conference (no later than 2027). A proposal to build AI-assisted verification support has been under active diplomatic promotion since late 2025
+  \item \textbf{CWC}: Precursor controls challenged by alternative routes. \textbf{2026 status} \textbf{[O]}: the OPCW Scientific Advisory Board delivered the first dedicated assessment of AI and CWC implementation in March 2026
+  \item \textbf{NPT}: Physical barriers remain strong; verification relatively robust. \textbf{2026 status} \textbf{[O]}: the AI--nuclear nexus featured across the 2026 Review Conference agenda
   \item \textbf{No framework addresses}: Gene drives, AI-enabled development, AI-era attribution
 \end{itemize}
+
+\begin{barrierbox}[Assessment: AI-Assisted BWC Verification]
+This deserves qualified support and clear-eyed expectations \textbf{[E]}. AI can plausibly reduce the cost of processing the declarations and open-source material that states already submit, a genuine gain for a regime whose confidence-building measures are chronically under-analysed. It cannot manufacture the thing the BWC actually lacks, which is agreement on intrusive access: a system that only analyses what states voluntarily disclose inherits the coverage of voluntary disclosure. There is also a failure mode worth naming: an AI-assisted process producing confident-looking assessments from thin inputs could generate \textit{false assurance}, which is worse than acknowledged uncertainty. Any such system should publish its coverage limits alongside its findings, and the epistemic-contamination risks discussed below apply directly to it.
+\end{barrierbox}
 
 \section{Second-Order Effects}
 
@@ -1961,21 +2251,26 @@ WMD concerns affect public health systems:
 
 \begin{center}
 \small
-\begin{tabular}{L{1.5cm}L{5cm}L{1.5cm}L{4cm}}
+\begin{tabular}{L{1.4cm}L{4.6cm}L{1.2cm}L{3.4cm}L{3.4cm}}
 \toprule
-\textbf{Priority} & \textbf{Action} & \textbf{Type} & \textbf{Challenge} \\
+\textbf{Priority} & \textbf{Action} & \textbf{Type} & \textbf{Challenge} & \textbf{v3.0 status} \\
 \midrule
-Critical & Mandate universal DNA synthesis screening & U / C & Coverage gaps, cross-border substitution \\
-Critical & International AI safety standards & C & Geopolitical competition \\
-Critical & Invest in attribution capabilities & U & Long timelines \\
-High & Cloud laboratory oversight & U / C & Research friction \\
-High & Defensive biodetection research & U & Technology maturation \\
-Medium & Red team evaluation requirements & U & Defining thresholds \\
+Critical & Mandate synthesis screening, covering benchtop devices as well as services & U / C & Coverage gaps, cross-border substitution & Legislation introduced (US) and proposed (EU); neither in force \\
+Critical & Sustain screening as patched software: standing red teams, coordinated disclosure, revalidation & U / C & No existing institutional owner & \textbf{New in v3.0}, driven by the Oct 2025 evasion result \\
+Critical & Invest in attribution capabilities & U & Long timelines & Unchanged \\
+High & Automated and cloud laboratory oversight, tiered by latent capability & U / C & Research friction, international coverage & \textbf{Strengthened}: a concrete tiering framework now exists \\
+High & Build BWC institutional capacity, distinct from verification & C & The same politics that block verification & \textbf{New in v3.0} \\
+High & Defensive biodetection and rapid countermeasure research & U & Technology maturation & Unchanged \\
+High & Capability evaluations before deployment, with evaluation-integrity conditions & U & Thresholds; evaluator access & \textbf{Strengthened}: EU GPAI enforcement is one legal hook \\
+Medium & Require published ``safety gap'' figures for open-weight releases & U / C & Open-science norms; standardisation & \textbf{New in v3.0} \\
+Medium & International AI safety standards for WMD-relevant capabilities & C & Geopolitical competition & Downgraded from Critical (see below) \\
 \bottomrule
 \end{tabular}
 \end{center}
 
 \textbf{Legend}: U = Unilateral (domestically implementable) | C = Requires international coordination
+
+\textbf{Why the international-standards line was downgraded} \textbf{[E]}: not because it stopped mattering, but because 2026 clarified the sequencing. The controls that moved in 2026 moved nationally and regionally: a US research-funding policy, a US screening bill, an EU enforcement date, an EU legislative proposal. The multilateral track produced assessments rather than obligations, and the one forum with a hard deadline spent the year deadlocked on verification. A recommendation whose realistic implementation horizon exceeds five years should not compete for attention with chokepoint controls that can be legislated in one. This is a change in ordering, not in conviction: harmonisation still determines whether national controls survive contact with weakest-link routing.
 
 \begin{keybox}[Key Insight for Policymakers]
 The window for establishing governance frameworks is narrow. Once capabilities proliferate, restrictions become much harder to implement.
@@ -2001,16 +2296,19 @@ Information Hazards Mgmt & Restrict publication of AI red team failure modes & R
 
 \begin{center}
 \small
-\begin{tabular}{L{3.5cm}L{1.8cm}L{1.8cm}L{1.5cm}L{2cm}L{1.5cm}}
+\begin{tabular}{L{5.2cm}L{2.2cm}L{1.8cm}L{2cm}L{2.6cm}}
 \toprule
-\textbf{Recommendation} & \textbf{Timeline} & \textbf{Cost} & \textbf{Friction} & \textbf{Risk Red.} \\
+\textbf{Recommendation} & \textbf{Timeline} & \textbf{Cost} & \textbf{Friction} & \textbf{Risk Reduction} \\
 \midrule
-DNA synthesis screening & 0--12 mo & Low-Med & Medium & High \\
-Int'l AI safety standards & 36--60+ mo & Medium & High & Medium \\
+Synthesis screening mandate (services + devices) & 0--12 mo & Low-Med & Medium & High \\
+Screening red teams and disclosure regime & 6--18 mo & Low & Low & High \\
+Automated/cloud lab security tiering & 12--24 mo & Low & Medium & Med-High \\
 Attribution investment & 12--36 mo & High & Low & Medium \\
-Cloud lab oversight & 12--24 mo & Low & Medium & Med-High \\
-Treaty updates (BWC/CWC) & 36--60+ mo & Low & Very High & Low-Med \\
+Evaluation requirements with integrity conditions & 12--24 mo & Medium & Medium & Medium \\
+Open-weight safety-gap reporting & 12--24 mo & Low & Medium & Low-Med \\
 Defensive bio R\&D & 12--36 mo & High & Low & High \\
+BWC institutional capacity & 24--48 mo & Low & High & Medium \\
+Int'l AI safety standards & 36--60+ mo & Medium & High & Medium \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -2018,10 +2316,11 @@ Defensive bio R\&D & 12--36 mo & High & Low & High \\
 \subsection{Minimal Viable Steps (12-month horizon)}
 
 \begin{enumerate}
-  \item Expand IGSC membership and mandate sequence screening
-  \item Establish cloud lab provider working group on security standards
+  \item Enact mandatory sequence and customer screening, with benchtop devices in scope and a revalidation requirement attached
+  \item Fund one vendor-independent screening red team and name a coordinated-disclosure coordinator for biosecurity screening findings
+  \item Publish a security-tiering standard for automated and cloud laboratories, tiered by latent capability
+  \item Require WMD-relevant capability evaluations for frontier releases, with reporting of evaluation-awareness diagnostics
   \item Fund initial biodetection deployment pilots
-  \item Require WMD capability evaluations for frontier AI releases
 \end{enumerate}
 
 \subsection{For CEOs and Corporate Leadership}
@@ -2048,7 +2347,10 @@ High & Invest in defensive applications & AI-enabled biosurveillance, detection,
 \begin{contextbox}[Recommended Actions]
 \begin{enumerate}
   \item \textbf{Evaluate models for WMD uplift before release}, you cannot claim ignorance after deployment
+  \item \textbf{Measure and publish the safety gap before any open-weight release}, the relevant question is not how the model behaves as shipped but how it behaves after cheap fine-tuning removes safeguards
   \item \textbf{Do not open-source models with significant uplift capabilities}, once released, cannot be recalled
+  \item \textbf{Publish misuse-disruption reporting on a regular cadence}, deployment telemetry is the only evidence stream in this field not compromised by evaluation awareness, and voluntary publication makes a public good unreliable
+  \item \textbf{Secure model weights as a biosecurity control, not only a commercial one}, deployment-layer safeguards do not survive weight exfiltration
   \item \textbf{Implement robust guardrails with ongoing monitoring}, initial safeguards degrade; adversarial adaptation is ongoing
   \item \textbf{Fund defensive biosecurity research}, the same capabilities that enable offense can enable defense
   \item \textbf{Engage seriously with safety evaluations}, red team findings should inform development, not just PR
@@ -2085,7 +2387,7 @@ This applies the single canonical risk equation from the Theoretical Frameworks 
 \small
 \begin{tabular}{L{3cm}L{2.5cm}L{2.5cm}L{4cm}}
 \toprule
-\textbf{Factor} & \textbf{2025 Est.} & \textbf{2030 Proj.} & \textbf{AI Contribution} \\
+\textbf{Factor} & \textbf{2026 Est.} & \textbf{2030 Proj.} & \textbf{AI Contribution} \\
 \midrule
 Capability Access & 5--10\% of T2+ & 15--25\% of T2+ & High: knowledge synthesis \\
 Intent Prevalence & $\sim$0.1--1\% & $\sim$0.1--1\% & Low: AI doesn't create intent \\
@@ -2101,7 +2403,7 @@ Interdiction Avoidance & 60--80\% & 50--70\% & Medium: both sides use AI \\
 \small
 \begin{tabular}{L{3cm}L{2.5cm}L{2.5cm}L{4cm}}
 \toprule
-\textbf{Factor} & \textbf{2025 Est.} & \textbf{2030 Proj.} & \textbf{AI Contribution} \\
+\textbf{Factor} & \textbf{2026 Est.} & \textbf{2030 Proj.} & \textbf{AI Contribution} \\
 \midrule
 Capability Access & 10--20\% of T2+ & 15--30\% of T2+ & Low: precursor controls \\
 Intent Prevalence & $\sim$0.1--1\% & $\sim$0.1--1\% & Low \\
@@ -2117,7 +2419,7 @@ Interdiction Avoidance & 50--70\% & 40--60\% & Low: monitoring improving \\
 \small
 \begin{tabular}{L{3cm}L{2.5cm}L{2.5cm}L{4cm}}
 \toprule
-\textbf{Factor} & \textbf{2025 Est.} & \textbf{2030 Proj.} & \textbf{AI Contribution} \\
+\textbf{Factor} & \textbf{2026 Est.} & \textbf{2030 Proj.} & \textbf{AI Contribution} \\
 \midrule
 Capability Access & <1\% of T3+ & <1\% of T3+ & Very low: fissile material \\
 Intent Prevalence & $\sim$0.1\% & $\sim$0.1\% & None \\
@@ -2168,27 +2470,132 @@ Interdiction rate & 50\% & 35\% & 20\% & 5\% $\to$ 8-12\% $\to$ 18\% \\
 \end{tabular}
 \end{center}
 
+\begin{center}
+\begin{tikzpicture}[font=\footnotesize\sffamily]
+  \def\S{9.6}
+  % quadrant fills
+  \fill[biogreen!22]   (0,\S/2) rectangle (\S/2,\S);      % slow + strong : best case
+  \fill[scienceteal!22](\S/2,\S/2) rectangle (\S,\S);      % fast + strong : manageable
+  \fill[barriergold!22](0,0) rectangle (\S/2,\S/2);        % slow + weak   : missed opportunity
+  \fill[shieldamber!30](\S/2,0) rectangle (\S,\S/2);       % fast + weak   : worst case
+  \draw[medgray, line width=0.4pt] (0,0) rectangle (\S,\S);
+  \draw[softslate, line width=0.6pt] (\S/2,0) -- (\S/2,\S);
+  \draw[softslate, line width=0.6pt] (0,\S/2) -- (\S,\S/2);
+
+  % quadrant labels
+  \node[text=biogreen,    align=center, font=\footnotesize\bfseries\sffamily] at (\S*0.25,\S*0.88) {Best case\\[-1pt]{\scriptsize\mdseries barriers hold, governance leads}};
+  \node[text=deepteal,    align=center, font=\footnotesize\bfseries\sffamily] at (\S*0.75,\S*0.88) {Manageable\\[-1pt]{\scriptsize\mdseries framework strains but adapts}};
+  \node[text=barriergold!70!black, align=center, font=\footnotesize\bfseries\sffamily] at (\S*0.25,\S*0.12) {Missed opportunity\\[-1pt]{\scriptsize\mdseries false sense of security}};
+  \node[text=shieldamber!70!black, align=center, font=\footnotesize\bfseries\sffamily] at (\S*0.75,\S*0.12) {Worst case\\[-1pt]{\scriptsize\mdseries capability outruns controls}};
+
+  % axes labels
+  \node[text=softslate, below=4pt] at (\S*0.25,0) {Slow AI capability growth};
+  \node[text=softslate, below=4pt] at (\S*0.75,0) {Fast AI capability growth};
+  \node[text=softslate, rotate=90, above=4pt] at (0,\S*0.25) {Weak governance};
+  \node[text=softslate, rotate=90, above=4pt] at (0,\S*0.75) {Strong governance};
+
+  % plotted positions
+  \coordinate (v21) at (\S*0.62,\S*0.42);
+  \coordinate (v30) at (\S*0.68,\S*0.38);
+  \coordinate (tgt) at (\S*0.72,\S*0.68);
+  \draw[-{Stealth[length=5pt]}, softslate, dashed, line width=0.8pt, shorten <=3pt, shorten >=4pt] (v21) -- (v30);
+  \draw[-{Stealth[length=5pt]}, biogreen, line width=1.1pt, shorten <=5pt, shorten >=6pt] (v30) -- (tgt);
+  \fill[medgray] (v21) circle (0.11); \node[text=softslate, left=3pt] at (v21) {v2.1};
+  \fill[deepteal] (v30) circle (0.15); \node[text=deepteal, font=\footnotesize\bfseries\sffamily, right=3pt, yshift=-7pt] at (v30) {Sept 2026};
+  \draw[biogreen, line width=1.1pt] (tgt) circle (0.15); \node[text=biogreen, right=3pt] at (tgt) {2028 target};
+\end{tikzpicture}
+
+\captionof{figure}{Assessed position on the governance/capability matrix. Placement is an author judgment, not a measurement, and reflects a year in which capability growth stayed fast, chokepoint governance advanced nationally, and coordinated governance did not. The green arrow is where the policy recommendations are aimed.}
+\end{center}
+
 \textbf{Key insight}: The ``missed opportunity'' quadrant (slow growth + weak governance) is particularly concerning because it creates a false sense of security. Investment in governance now is valuable across all AI growth scenarios.
+
+\subsection{Probability Changes in v3.0 and Why}
+
+Two scenario priors moved and one widened. All moves are small, and the reasoning is stated so that readers who weigh the same evidence differently can reverse them.
+
+\begin{center}
+\small
+\begin{tabular}{L{2.6cm}L{1.5cm}L{1.5cm}L{9.2cm}}
+\toprule
+\textbf{Scenario} & \textbf{v2.1} & \textbf{v3.0} & \textbf{Reasoning} \\
+\midrule
+A Effective Governance & 10--15\% & \textbf{8--12\%} & The year's governance progress was real but \textit{national and regional}, not coordinated. The multilateral track produced assessments rather than obligations, and the BWC Working Group entered its final year without agreement on verification. Scenario A requires coordination specifically \\
+B Muddling Through & 35--40\% & 35--40\% & 2026 was, in outline, a textbook muddling-through year. The prior is doing its job \\
+C High-Frequency Attempts & 25--30\% & \textbf{30--35\%} & The most direct evidence update in this revision: provider threat reporting documents disrupted biological-misuse attempts over a nine-month window, and a national prosecution of a crude toxin plot reportedly involved chatbot assistance. Both are attempt-side signals with no success-side counterpart \\
+D Mass Casualty Success & 8--12\% & 8--12\% & Genuinely offsetting movements. Up: generative design reached genome scale, and screening was shown evadable. Down: screening was patched, elevated CB safeguards became the release default, and repeated CB-2 determinations came back negative \\
+E State Acceleration & 15\% & \textbf{15--20\%} & Widened and shifted up. The AI--nuclear nexus became a standing diplomatic agenda item, BWC verification remained deadlocked, and states are building national AI-for-science infrastructure that is dual-use by construction \\
+F Catastrophic & 3--5\% & 3--5\% & Nothing in 2026 bears meaningfully on the tail. The barriers that make F rare are the ones AI is least able to move \\
+\bottomrule
+\end{tabular}
+\end{center}
 
 \subsection{Scenario Summary}
 
-\textit{Note: The following scenarios are not mutually exclusive. Scenario E (State Acceleration) can co-occur with any of B-D-F. The probabilities represent our assessment of each scenario being a prominent feature of the 2025--2030 landscape.}
+\textit{Note: The following scenarios are not mutually exclusive. Scenario E (State Acceleration) can co-occur with any of B-D-F. The probabilities represent our assessment of each scenario being a prominent feature of the 2026--2030 landscape.}
 
 \vspace{0.5em}
 
-\textbf{Scenario A: Effective Governance (10--15\%)}: Strong international coordination; barriers remain largely intact.
+\textbf{Scenario A: Effective Governance (8--12\%, down from 10--15\%)}: Strong international coordination; barriers remain largely intact.
 
-\textbf{Scenario B: Muddling Through (35--40\%)}: Partial measures; baseline risk increases moderately; occasional concerning incidents.
+\textbf{Scenario B: Muddling Through (35--40\%, unchanged)}: Partial measures; baseline risk increases moderately; occasional concerning incidents.
 
-\textbf{Scenario C: High-Frequency Attempts (25--30\%)}: Many AI-assisted attempts occur; mostly crude or failed; few to dozens of casualties per incident; significant psychological impact; ``noise floor'' increases dramatically.
+\textbf{Scenario C: High-Frequency Attempts (30--35\%, up from 25--30\%)}: Many AI-assisted attempts occur; mostly crude or failed; few to dozens of casualties per incident; significant psychological impact; ``noise floor'' increases dramatically.
 
-\textbf{Scenario D: Mass Casualty Success (8--12\%)}: A non-state actor successfully executes WMD attack with significant AI assistance; likely biological; massive policy response.
+\textbf{Scenario D: Mass Casualty Success (8--12\%, unchanged)}: A non-state actor successfully executes a WMD attack with significant AI assistance; likely biological; massive policy response.
 
-\textbf{Scenario E: State Program Acceleration (15\%)}: Multiple states use AI to accelerate WMD programs.
+\textbf{Scenario E: State Program Acceleration (15--20\%, up from 15\%)}: Multiple states use AI to accelerate WMD programs.
 
-\textbf{Scenario F: Catastrophic Attack (3--5\%)}: A sophisticated attack achieves civilization-scale casualties (tens of thousands to millions). Engineered pandemic pathogen or novel agent evading countermeasures. Fundamental restructuring of AI governance; lasting global impact.
+\textbf{Scenario F: Catastrophic Attack (3--5\%, unchanged)}: A sophisticated attack achieves civilization-scale casualties (tens of thousands to millions). Engineered pandemic pathogen or novel agent evading countermeasures. Fundamental restructuring of AI governance; lasting global impact.
 
-\textit{Note: Scenarios are not mutually exclusive. E (State Acceleration) can co-occur with B, C, or D. Columns represent likelihood of each scenario being a prominent feature of the 2025--2030 period.}
+\vspace{0.6em}
+
+\begin{center}
+\begin{tikzpicture}
+\begin{axis}[
+  width=14.2cm, height=7.2cm,
+  xbar, bar width=7pt,
+  bar shift=-4.5pt,
+  xmin=0, xmax=46,
+  xlabel={\footnotesize\sffamily Assessed probability of being a prominent feature, 2026--2030 (\%)},
+  symbolic y coords={F,E,D,C,B,A},
+  ytick=data,
+  yticklabels={%
+    {\footnotesize\sffamily F Catastrophic},
+    {\footnotesize\sffamily E State acceleration},
+    {\footnotesize\sffamily D Mass casualty},
+    {\footnotesize\sffamily C High-frequency attempts},
+    {\footnotesize\sffamily B Muddling through},
+    {\footnotesize\sffamily A Effective governance}},
+  xtick={0,10,20,30,40},
+  xticklabel style={font=\footnotesize\sffamily},
+  tick align=outside, tick pos=left,
+  xmajorgrids=true, grid style={medgray!50, line width=0.3pt},
+  axis line style={softslate, line width=0.5pt},
+  enlarge y limits=0.14,
+  legend style={at={(0.985,0.97)}, anchor=north east, font=\footnotesize\sffamily,
+    draw=medgray, fill=white, legend columns=1},
+  legend cell align=left
+]
+% v2.1 midpoints
+\addplot[fill=medgray, draw=softslate, line width=0.4pt, bar shift=4.5pt]
+  coordinates {(4,F) (15,E) (10,D) (27.5,C) (37.5,B) (12.5,A)};
+\addlegendentry{v2.1 (July 2026)}
+% v3.0 midpoints
+\addplot[fill=deepteal, draw=deepteal, line width=0.4pt, bar shift=-4.5pt]
+  coordinates {(4,F) (17.5,E) (10,D) (32.5,C) (37.5,B) (10,A)};
+\addlegendentry{v3.0 (September 2026)}
+\end{axis}
+\end{tikzpicture}
+
+\captionof{figure}{Scenario priors, v2.1 versus v3.0 (band midpoints). Two priors moved: Scenario C up on observed attempt-side evidence, Scenario A down on the absence of coordinated governance progress; Scenario E widened upward. B, D and F were held deliberately, D because the year's evidence was genuinely offsetting.}
+\end{center}
+
+\begin{notebox}[What Did Not Move the Numbers, Deliberately]
+The volume of alarming coverage. 2026 produced substantially more high-profile reporting on AI and biological risk than 2025. Coverage volume is not evidence about the world, and this report treats it as a driver of second-order effects rather than as an input to these priors.
+\end{notebox}
+
+\textit{Note: Scenarios are not mutually exclusive. E (State Acceleration) can co-occur with B, C, or D. Columns represent likelihood of each scenario being a prominent feature of the 2026--2030 period.}
 
 \begin{center}
 \small
@@ -2197,11 +2604,11 @@ Interdiction rate & 50\% & 35\% & 20\% & 5\% $\to$ 8-12\% $\to$ 18\% \\
 \toprule
 \textbf{Scenario} & \textbf{Strong Governance} & \textbf{Weak Governance} \\
 \midrule
-A (Effective Governance) & 25\% & 5\% \\
+A (Effective Governance) & 25\% & 4\% \\
 B (Muddling Through) & 40\% & 30\% \\
-C (High-Frequency Attempts) & 20\% & 35\% \\
+C (High-Frequency Attempts) & 24\% & 40\% \\
 D (Mass Casualty) & 5\% & 12\% \\
-E (State Acceleration) & 8\% & 18\% \\
+E (State Acceleration) & 10\% & 22\% \\
 F (Catastrophic) & 2\% & 5\% \\
 \bottomrule
 \end{tabular}
@@ -2355,15 +2762,49 @@ Open-weight bio model hosting & Model deployment monitoring & Infrastructure pro
 
 \textbf{Integration Guidance}: Indicators should be STIX/TAXII compatible for standard threat intelligence sharing; map to MITRE ATT\&CK where applicable; assign confidence levels to reduce alert fatigue; all high-priority alerts require human review before action.
 
-\subsection{Red Lines and Trigger Points}
+\subsection{Red Lines and Trigger Points: Status as of September 2026}
 
-Events that would significantly alter assessment:
-\begin{enumerate}
-  \item \textbf{Confirmed AI-assisted WMD attempt}: Would validate threat model
-  \item \textbf{Release of unrestricted ``research agent''}: Would dramatically lower barriers
-  \item \textbf{Cloud laboratory security breach}: Would demonstrate attack pathway viability
-  \item \textbf{Gene drive release} (malicious or accidental): Would demonstrate irreversibility concerns
-  \item \textbf{Treaty framework collapse}: Would remove coordination mechanisms
+Version 2.1 listed five trigger events without tracking them. Tracking them is the point of having them, so v3.0 adds status. One has partially triggered, and one adjacent event triggered that the v2.1 list did not anticipate, which is itself a finding about the list.
+
+\begin{center}
+\begin{tikzpicture}[font=\footnotesize\sffamily]
+  \tikzset{
+    lampT/.style={circle, fill=shieldamber, draw=shieldamber!60!black, line width=0.5pt, minimum size=9pt, inner sep=0pt},
+    lampN/.style={circle, fill=biogreen!35, draw=biogreen, line width=0.5pt, minimum size=9pt, inner sep=0pt},
+    lampS/.style={circle, fill=barriergold!45, draw=barriergold!70!black, line width=0.5pt, minimum size=9pt, inner sep=0pt},
+    row/.style={anchor=west, text=textdark}
+  }
+  \fill[lightgray, rounded corners=3pt] (-0.35,-5.75) rectangle (15.6,0.55);
+  \node[anchor=west, text=deepteal, font=\small\bfseries\sffamily] at (-0.15,0.25) {Signal dashboard: v2.1 red lines};
+  \foreach \y/\st/\lbl/\note in {%
+    -0.75/lampT/{1. Confirmed AI-assisted WMD attempt}/{\textbf{Partially triggered}: disrupted misuse attempts and a prosecuted crude toxin plot; no WMD attempt},
+    -1.65/lampN/{2. Unrestricted biology-capable research agent released}/{Not triggered: the frontier trend went the other way, toward classifiers and graduated access},
+    -2.55/lampN/{3. Cloud laboratory security breach}/{Not triggered: attack surface grew; a security-tiering framework was published in response},
+    -3.45/lampN/{4. Gene drive release with harmful effects}/{Not triggered: no change},
+    -4.35/lampS/{5. Treaty framework collapse}/{Not triggered but strained: BWC verification unresolved entering the final year}}
+  {
+    \node[\st] at (0,\y) {};
+    \node[row, font=\footnotesize\bfseries\sffamily] at (0.35,\y) {\lbl};
+    \node[row, text=softslate, font=\scriptsize\sffamily] at (0.35,\y-0.38) {\note};
+  }
+  \node[lampT] at (0,-5.3) {};
+  \node[row, font=\footnotesize\bfseries\sffamily, text=shieldamber!70!black] at (0.35,-5.3) {Unanticipated trigger: a defensive control shown to be unsound (October 2025)};
+\end{tikzpicture}
+
+\captionof{figure}{Status of the five red lines issued in version 2.1. Amber denotes a triggered or partially triggered signal, gold a strained one, green untriggered.}
+\end{center}
+
+\textbf{The unanticipated trigger}: the October 2025 demonstration that generative protein design could evade commercial synthesis screening was not on the v2.1 list, and in hindsight should have been the first item on it. The list was built around threat-actor events, someone tries something, something is released, something breaks, and contained no entry for \textit{a defensive control being shown to be unsound}. That is a systematic blind spot in threat-indicator design, not a one-off omission: indicator lists built by imagining adversary behaviour will under-weight the failure of the defender's own assumptions.
+
+\textbf{Revised red lines for the next revision cycle}:
+\begin{enumerate}[nosep]
+  \item A frontier developer judges a model across a \textit{novel}-weapon (CB-2 class) threshold, or an independent evaluator disputes a negative determination
+  \item An open-weight release at a capability level where a published safety gap is large
+  \item An agent-operated automated or cloud laboratory is used to execute a harmful protocol
+  \item Evidence that a disclosed screening weakness is being exploited operationally rather than in red teams
+  \item A confirmed AI-assisted attempt at an agent of genuine mass-casualty potential, as distinct from a crude toxin
+  \item Failure of the BWC Tenth Review Conference to produce any institutional strengthening mechanism
+  \item A defensive control, screening, classifiers, or laboratory access control, shown to be materially unsound with no standing process to patch it
 \end{enumerate}
 
 \section{Conclusion}
@@ -2379,6 +2820,20 @@ AI agents represent a significant shift in the WMD proliferation landscape, but 
   \item \textbf{Gene drives}: Novel category requiring dedicated governance attention
 \end{itemize}
 
+\subsection{What Changed in 2026}
+
+Three things, and they do not point the same way.
+
+\begin{enumerate}
+  \item \textbf{The evidence moved from laboratory to deployment.} Provider threat reporting now documents disrupted biological-misuse attempts. This is the first time this report can point to observed behaviour rather than measured capability, and it is why the high-frequency-attempts scenario went up.
+  \item \textbf{Safeguards migrated from the model to the deployment layer, and got better at it.} Classifiers, graduated access, vetted-partner channels, and account-level monitoring are now the default for frontier releases. This is a genuine defensive improvement that accrues entirely to monitored deployments and not at all to open weights.
+  \item \textbf{The chokepoint everyone was relying on was shown to be patchable rather than sound.} Synthesis screening survived 2026, but it did so through coordinated disclosure and a distributed patch, which is how software survives, not how a barrier holds.
+\end{enumerate}
+
+\begin{keybox}[The Revised Emphasis]
+Taken together these support a single revision to the report's emphasis: \textbf{the decisive variable is no longer what frontier models can do, but whether the small number of physical and service chokepoints are maintained as living, adversarially tested systems.} Model capability will keep rising and will keep being partially contained at the deployment layer for the subset of users who use monitored deployments. Screening, laboratory access, and procurement are where the remaining leverage is, and they are maintained by institutions that mostly do not yet exist.
+\end{keybox}
+
 \subsection{The Central Tension}
 
 \begin{itemize}
@@ -2391,11 +2846,12 @@ The window for establishing effective governance is narrowing.
 
 \begin{contextbox}[Call to Action]
 \begin{enumerate}
-  \item \textbf{Prioritize biological}: Focus resources on highest-risk category
-  \item \textbf{Invest in governance now}: Next 2--3 years are critical
-  \item \textbf{Balance security and research}: Avoid overly restrictive responses
+  \item \textbf{Prioritize biological}: Focus resources on the highest-risk category
+  \item \textbf{Maintain the chokepoints as adversarial systems}: Fund the red teams, disclosure processes, and revalidation cycles that keep screening and laboratory controls current. A control that is mandated but not maintained is worse than one known to be absent, because it is relied upon
+  \item \textbf{Invest in governance now}: The next 2--3 years are critical. Where multilateral action is slow, national chokepoint legislation is the available substitute and should not wait for it
+  \item \textbf{Balance security and research}: The same generative tools that raise the screening problem are producing legitimate therapeutic results
   \item \textbf{Develop defensive capabilities}: Detection, attribution, response
-  \item \textbf{Maintain perspective}: Avoid policy made in fear
+  \item \textbf{Maintain perspective}: 2026 did not make WMD attacks common. Disrupted attempts are evidence of a demand signal, not of capability. Avoid policy made in fear
 \end{enumerate}
 \end{contextbox}
 
@@ -2435,6 +2891,54 @@ Gene Drives & High & Low & Very Difficult & Sig. Increasing \\
 \end{tabular}
 \end{center}
 
+\vspace{0.6em}
+
+\begin{center}
+\begin{tikzpicture}
+\begin{axis}[
+  width=13.4cm, height=9.2cm,
+  xlabel={\footnotesize\sffamily AI barrier reduction (cognitive barriers AI erodes) $\longrightarrow$},
+  ylabel={\footnotesize\sffamily Physical barrier strength (what AI cannot touch) $\longrightarrow$},
+  xlabel style={font=\footnotesize\sffamily, color=softslate},
+  ylabel style={font=\footnotesize\sffamily, color=softslate},
+  xmin=0, xmax=10, ymin=0, ymax=10,
+  xtick={1.7,5,8.3}, xticklabels={Low, Moderate, High},
+  ytick={1.7,5,8.3}, yticklabels={Weak, Moderate, Very strong},
+  xticklabel style={font=\footnotesize\sffamily}, yticklabel style={font=\footnotesize\sffamily},
+  axis line style={softslate, line width=0.5pt},
+  grid=both, grid style={medgray!40, line width=0.3pt},
+  tick align=outside, tick pos=left,
+  clip=false
+]
+% Risk-gradient background band (upper-left = contained, lower-right = exposed)
+\addplot[draw=none, fill=biogreen!14, forget plot] coordinates {(0,10) (0,4) (6,10)} \closedcycle;
+\addplot[draw=none, fill=shieldamber!18, forget plot] coordinates {(10,0) (4,0) (10,6)} \closedcycle;
+\node[font=\scriptsize\itshape\sffamily, text=biogreen, anchor=north west] at (axis cs:0.3,7.3) {Contained by physics};
+\node[font=\scriptsize\itshape\sffamily, text=shieldamber!70!black, anchor=south east, align=right] at (axis cs:9.75,3.9) {Exposed: cognitive barrier down,\\ physical barrier low};
+
+% Category markers; marker size encodes detection difficulty
+\addplot[only marks, mark=*, mark options={fill=biogreen, draw=biogreen!60!black},
+  mark size=6.2pt, forget plot] coordinates {(8.4,3.2)};
+\addplot[only marks, mark=*, mark options={fill=chemblue, draw=chemblue!60!black},
+  mark size=4.4pt, forget plot] coordinates {(5.0,5.2)};
+\addplot[only marks, mark=*, mark options={fill=nukepurple, draw=nukepurple!60!black},
+  mark size=2.6pt, forget plot] coordinates {(1.6,9.2)};
+\addplot[only marks, mark=*, mark options={fill=shieldamber, draw=shieldamber!60!black},
+  mark size=2.9pt, forget plot] coordinates {(3.0,5.0)};
+\addplot[only marks, mark=*, mark options={fill=labcyan, draw=labcyan!60!black},
+  mark size=7.0pt, forget plot] coordinates {(8.6,1.6)};
+
+\node[font=\footnotesize\bfseries\sffamily, text=biogreen, anchor=east] at (axis cs:7.95,3.2) {Biological};
+\node[font=\footnotesize\bfseries\sffamily, text=chemblue, anchor=south] at (axis cs:5.0,5.6) {Chemical};
+\node[font=\footnotesize\bfseries\sffamily, text=nukepurple, anchor=west] at (axis cs:2.0,9.2) {Nuclear};
+\node[font=\footnotesize\bfseries\sffamily, text=shieldamber!70!black, anchor=south] at (axis cs:2.9,5.3) {Radiological};
+\node[font=\footnotesize\bfseries\sffamily, text=labcyan!60!black, anchor=east] at (axis cs:8.15,1.6) {Gene drives};
+\end{axis}
+\end{tikzpicture}
+
+\captionof{figure}{WMD categories positioned by AI barrier reduction against physical barrier strength. Marker size encodes detection difficulty (larger is harder to detect). Placement is qualitative and follows the matrix above. The lower-right region is where defensive investment has the most work to do, and it is occupied by the two categories this report prioritises.}
+\end{center}
+
 \section{Glossary}
 
 \begin{description}[leftmargin=3cm, style=nextline]
@@ -2456,6 +2960,50 @@ Gene Drives & High & Low & Very Difficult & Sig. Increasing \\
 \textbf{For resource allocation decisions}: Where should defensive investments be prioritized based on AI uplift analysis?
 
 \subsection*{Investment Priority by WMD Lifecycle Stage}
+
+\begin{center}
+\begin{tikzpicture}[font=\scriptsize\sffamily]
+  \tikzset{
+    stg/.style={rectangle, rounded corners=2pt, draw=softslate!70, line width=0.5pt,
+      text width=2.15cm, align=center, minimum height=1.0cm, inner sep=3pt},
+    ctl/.style={rectangle, rounded corners=2pt, draw=biogreen, line width=0.6pt,
+      fill=biogreen!14, text width=2.6cm, align=center, minimum height=0.85cm, inner sep=3pt},
+    arr/.style={-{Stealth[length=4pt]}, softslate, line width=0.7pt},
+    dot/.style={dotted, biogreen, line width=0.8pt}
+  }
+  % lane backgrounds
+  \fill[shieldamber!12, rounded corners=3pt] (0.0,-0.7) rectangle (5.15,0.7);
+  \fill[scienceteal!12, rounded corners=3pt] (5.35,-0.7) rectangle (15.8,0.7);
+  \node[text=shieldamber!70!black, font=\scriptsize\bfseries\sffamily, anchor=south west] at (0.05,0.78)
+    {Cognitive: high uplift, weak controls};
+  \node[text=deepteal, font=\scriptsize\bfseries\sffamily, anchor=south west] at (6.1,0.78)
+    {Physical: low uplift, strong chokepoints};
+
+  \node[stg, fill=shieldamber!22] (s1) at (1.25,0) {Planning and literature synthesis};
+  \node[stg, fill=shieldamber!22] (s2) at (3.9,0) {Protocol design and optimisation};
+  \node[stg, fill=barriergold!30, draw=barriergold] (s3) at (6.65,0) {\textbf{Acquisition}\\ materials, devices, lab access};
+  \node[stg, fill=scienceteal!22] (s4) at (9.4,0) {Production};
+  \node[stg, fill=scienceteal!22] (s5) at (12.0,0) {Weaponisation};
+  \node[stg, fill=scienceteal!22] (s6) at (14.6,0) {Delivery};
+  \foreach \a/\b in {s1/s2, s2/s3, s3/s4, s4/s5, s5/s6} { \draw[arr] (\a) -- (\b); }
+
+  % controls
+  \node[ctl] (c1) at (2.2,-2.35) {Model-layer controls\\{\tiny bind only on monitored deployments}};
+  \node[ctl] (c2) at (5.1,-2.35) {Synthesis screening};
+  \node[ctl] (c3) at (8.0,-2.35) {Laboratory security tiering};
+  \node[ctl] (c4) at (10.9,-2.35) {Procurement and financial monitoring};
+  \node[ctl] (c5) at (14.2,-2.35) {Environmental biodetection and response};
+  \draw[dot, softslate] (c1.north) -- (2.2,-0.75);
+  \draw[dot] (c2.north) -- (s3.south west);
+  \draw[dot] (c3.north) -- (s3.south);
+  \draw[dot] (c4.north) -- (s3.south east);
+  \draw[dot] (c5.north) -- (s6.south);
+\end{tikzpicture}
+
+\captionof{figure}{Where AI uplift falls and where controls bind. The asymmetry is the whole investment argument: uplift concentrates where controls are weakest, and controls concentrate where uplift is weakest. Acquisition is the only stage where both are strong, which is why it absorbs a disproportionate share of this report's recommendations.}
+\end{center}
+
+\vspace{0.4em}
 
 \begin{center}
 \small
@@ -2706,8 +3254,8 @@ When citing this document:
 \textbf{Distribution}: & Public (open-source) \\
 \textbf{Approved By}: & Andrew Showers \\
 \textbf{Document ID}: & ETRA-2026-WMD-001 \\
-\textbf{Version}: & 2.1 (July 2026) \\
-\textbf{Revision Note}: & \parbox[t]{11cm}{\raggedright v2.1 refreshes the model and policy landscape to mid-2026 (CB-1/CB-2 thresholds; EO 14110 revocation and successors; 2025 synthesis-screening framework; UK AI Security Institute; EU AI Act GPAI), corrects methodology provenance to a synthesis of published work, reconciles the risk equation and probability estimates, splits the financing/procurement material into its own section, and expands the radiological analysis.} \\
+\textbf{Version}: & 3.0 (September 2026) \\
+\textbf{Revision Note}: & \parbox[t]{11cm}{\raggedright \textbf{Changes from v2.1.} Snapshot moved to 22 September 2026. Rewrote the evidence section around the shift from measured uplift to observed, disrupted misuse attempts, and narrowed the absence-of-evidence claim accordingly. New analysis: screening as an adversarial, continuously patched system; generative design moving from parts to whole genomes; the deployment-layer-versus-weights argument and the ``safety gap'' metric; latent-capability security tiering for automated laboratories; a new counterargument on evaluation integrity; governance updates for the CWC, the BWC Working Group, and the AI--nuclear nexus. Added findings 7 and 8. Probabilities: Scenario A 10--15\% to 8--12\%; Scenario C 25--30\% to 30--35\%; Scenario E 15\% to 15--20\%; B, D and F held with stated reasoning. Added status tracking for the v2.1 red lines and issued seven revised ones. Restructured the policy recommendations around chokepoint maintenance. Added seven figures: milestone timeline, evidence ladder, screening-maintenance loop, scenario prior comparison, governance/capability matrix, WMD risk matrix, and a lifecycle chokepoint map.} \\
 \textbf{Related Documents}: & ETRA-2026-ESP-001 (Espionage Operations) \\
 & ETRA-2025-AEA-001 (Economic Actors) \\
 & ETRA-2025-FIN-001 (Financial Integrity) \\
