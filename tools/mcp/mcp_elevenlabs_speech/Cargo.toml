@@ -1,6 +1,6 @@
 [package]
 name = "mcp-elevenlabs-speech"
-version = "2.0.0"
+version = "2.1.0"
 edition = "2024"
 license = "MIT"
 repository = "https://github.com/AndrewAltimit/template-repo"
@@ -16,41 +16,41 @@ path = "src/main.rs"
 mcp-core = { path = "../mcp_core_rust/crates/mcp-core" }
 
 # Async runtime
-tokio = { version = "1.40", features = ["full", "fs"] }
+tokio = { version = "1.40", features = ["full"] }
 async-trait = "0.1"
 
 # HTTP client
-reqwest = { version = "0.12", features = ["json", "stream"] }
+reqwest = { version = "0.12", features = ["json"] }
 
 # Serialization
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 
 # CLI
-clap = { version = "4.5", features = ["derive", "env"] }
+clap = { version = "4.5", features = ["derive"] }
 
 # Logging
 tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 # Error handling
 thiserror = "2.0"
 anyhow = "1.0"
 
 # Time
-chrono = { version = "0.4", features = ["serde"] }
+chrono = "0.4"
 
 # Utilities
 uuid = { version = "1.0", features = ["v4"] }
-base64 = "0.22"
 dirs = "6.0"
-futures = "0.3"
 
 [dev-dependencies]
-tokio-test = "0.4"
+# Local mock HTTP server so API tests run offline without a real key
+wiremock = "0.6"
+tempfile = "3"
 
 [profile.release]
 lto = true
 codegen-units = 1
-panic = "abort"
+# No `panic = "abort"`: mcp-core wraps tool calls in catch_unwind, which only
+# works when panics unwind.
 strip = true

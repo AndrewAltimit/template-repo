@@ -1,223 +1,248 @@
 //! Audio tag to emotion mappings for ElevenLabs integration.
 //!
-//! This module provides comprehensive mappings between ElevenLabs audio expression
-//! tags and Virtual Character emotions, enabling automatic emotion detection from
-//! synthesized speech.
+//! Maps ElevenLabs v3 audio expression tags (for example `[laughs]` or
+//! `[whispering]`) to character emotions with an intensity, so that speech can
+//! drive the avatar's expression automatically.
+//!
+//! Lookup is exact first, then a deterministic word/stem fuzzy match so that
+//! variants such as `[laugh]` or `[laughs softly]` still resolve.
 
-use lazy_static::lazy_static;
 use regex::Regex;
 use std::collections::HashMap;
+use std::sync::LazyLock;
 
 use crate::types::EmotionType;
 
 /// Audio tag to emotion mapping with intensity.
 pub type AudioTagMapping = (EmotionType, f32);
 
-lazy_static! {
-    /// ElevenLabs Audio Tag -> (EmotionType, intensity) mappings.
-    /// Intensity range: 0.0 (subtle) to 1.0 (full expression)
-    pub static ref AUDIO_TAG_TO_EMOTION: HashMap<&'static str, AudioTagMapping> = {
-        let mut m = HashMap::new();
+/// Raw table: tag content (without brackets) -> emotion, intensity (0..=1).
+const TAG_TABLE: &[(&str, EmotionType, f32)] = &[
+    ("laughs", EmotionType::Happy, 0.8),
+    ("laughing", EmotionType::Happy, 0.8),
+    ("chuckles", EmotionType::Happy, 0.5),
+    ("giggles", EmotionType::Happy, 0.6),
+    ("excited", EmotionType::Excited, 0.9),
+    ("cheerfully", EmotionType::Happy, 0.7),
+    ("happily", EmotionType::Happy, 0.6),
+    ("joyfully", EmotionType::Happy, 0.8),
+    ("delighted", EmotionType::Happy, 0.7),
+    ("sighs", EmotionType::Sad, 0.4),
+    ("sadly", EmotionType::Sad, 0.6),
+    ("crying", EmotionType::Sad, 0.9),
+    ("sobbing", EmotionType::Sad, 1.0),
+    ("sniffles", EmotionType::Sad, 0.5),
+    ("tearfully", EmotionType::Sad, 0.7),
+    ("melancholy", EmotionType::Sad, 0.5),
+    ("mournfully", EmotionType::Sad, 0.8),
+    ("angrily", EmotionType::Angry, 0.7),
+    ("angry", EmotionType::Angry, 0.7),
+    ("frustrated", EmotionType::Angry, 0.5),
+    ("growls", EmotionType::Angry, 0.8),
+    ("shouting", EmotionType::Angry, 0.9),
+    ("yelling", EmotionType::Angry, 0.9),
+    ("furiously", EmotionType::Angry, 1.0),
+    ("irritated", EmotionType::Angry, 0.4),
+    ("nervously", EmotionType::Fearful, 0.5),
+    ("anxiously", EmotionType::Fearful, 0.6),
+    ("scared", EmotionType::Fearful, 0.7),
+    ("trembling", EmotionType::Fearful, 0.8),
+    ("gasps", EmotionType::Fearful, 0.7),
+    ("fearfully", EmotionType::Fearful, 0.7),
+    ("terrified", EmotionType::Fearful, 1.0),
+    ("worried", EmotionType::Fearful, 0.4),
+    ("surprised", EmotionType::Surprised, 0.7),
+    ("amazed", EmotionType::Surprised, 0.8),
+    ("shocked", EmotionType::Surprised, 0.9),
+    ("stunned", EmotionType::Surprised, 0.9),
+    ("astonished", EmotionType::Surprised, 0.9),
+    ("wow", EmotionType::Surprised, 0.6),
+    ("softly", EmotionType::Calm, 0.5),
+    ("gently", EmotionType::Calm, 0.5),
+    ("calmly", EmotionType::Calm, 0.6),
+    ("peacefully", EmotionType::Calm, 0.7),
+    ("whisper", EmotionType::Calm, 0.4),
+    ("whispering", EmotionType::Calm, 0.4),
+    ("soothingly", EmotionType::Calm, 0.6),
+    ("quietly", EmotionType::Calm, 0.3),
+    ("serenely", EmotionType::Calm, 0.7),
+    ("disgusted", EmotionType::Disgusted, 0.7),
+    ("grossed out", EmotionType::Disgusted, 0.6),
+    ("revolted", EmotionType::Disgusted, 0.8),
+    ("nauseated", EmotionType::Disgusted, 0.6),
+    ("sarcastically", EmotionType::Contemptuous, 0.6),
+    ("mockingly", EmotionType::Contemptuous, 0.7),
+    ("dismissively", EmotionType::Contemptuous, 0.5),
+    ("condescendingly", EmotionType::Contemptuous, 0.6),
+    ("smugly", EmotionType::Contemptuous, 0.5),
+    ("thoughtfully", EmotionType::Neutral, 0.4),
+    ("pondering", EmotionType::Neutral, 0.3),
+    ("considering", EmotionType::Neutral, 0.3),
+    ("hmm", EmotionType::Neutral, 0.2),
+    ("musing", EmotionType::Neutral, 0.3),
+    ("embarrassed", EmotionType::Surprised, 0.4),
+    ("sheepishly", EmotionType::Surprised, 0.3),
+    ("awkwardly", EmotionType::Surprised, 0.3),
+    ("blushing", EmotionType::Surprised, 0.4),
+    ("confidently", EmotionType::Happy, 0.5),
+    ("proudly", EmotionType::Happy, 0.6),
+    ("triumphantly", EmotionType::Excited, 0.8),
+    ("bored", EmotionType::Neutral, 0.2),
+    ("yawns", EmotionType::Neutral, 0.3),
+    ("tiredly", EmotionType::Neutral, 0.3),
+    ("sleepily", EmotionType::Calm, 0.3),
+    ("curiously", EmotionType::Neutral, 0.4),
+    ("attentively", EmotionType::Neutral, 0.4),
+    ("intrigued", EmotionType::Surprised, 0.4),
+    // Additional common v3 tags
+    ("smiles", EmotionType::Happy, 0.6),
+    ("grins", EmotionType::Happy, 0.6),
+    ("pleased", EmotionType::Happy, 0.7),
+    ("cries", EmotionType::Sad, 0.9),
+    ("sobs", EmotionType::Sad, 0.9),
+    ("sighing", EmotionType::Sad, 0.4),
+    ("whimpers", EmotionType::Sad, 0.7),
+    ("snarls", EmotionType::Angry, 0.8),
+    ("scoffs", EmotionType::Angry, 0.5),
+    ("huffs", EmotionType::Angry, 0.5),
+    ("shouts", EmotionType::Angry, 0.9),
+    ("yells", EmotionType::Angry, 0.9),
+    ("exclaims", EmotionType::Surprised, 0.7),
+    ("trembles", EmotionType::Fearful, 0.7),
+    ("screams", EmotionType::Fearful, 0.9),
+    ("screaming", EmotionType::Fearful, 0.9),
+    ("whispers", EmotionType::Calm, 0.4),
+    ("murmurs", EmotionType::Calm, 0.4),
+    ("mutters", EmotionType::Calm, 0.4),
+    ("hums", EmotionType::Calm, 0.5),
+    ("humming", EmotionType::Calm, 0.5),
+    ("cheers", EmotionType::Excited, 0.9),
+    ("cheering", EmotionType::Excited, 0.9),
+    ("excitedly", EmotionType::Excited, 0.8),
+];
 
-        // Joy/Happiness -> HAPPY or EXCITED
-        m.insert("[laughs]", (EmotionType::Happy, 0.8));
-        m.insert("[laughing]", (EmotionType::Happy, 0.8));
-        m.insert("[chuckles]", (EmotionType::Happy, 0.5));
-        m.insert("[giggles]", (EmotionType::Happy, 0.6));
-        m.insert("[excited]", (EmotionType::Excited, 0.9));
-        m.insert("[cheerfully]", (EmotionType::Happy, 0.7));
-        m.insert("[happily]", (EmotionType::Happy, 0.6));
-        m.insert("[joyfully]", (EmotionType::Happy, 0.8));
-        m.insert("[delighted]", (EmotionType::Happy, 0.7));
+/// ElevenLabs audio tag (with brackets, lowercase) -> (EmotionType, intensity).
+pub static AUDIO_TAG_TO_EMOTION: LazyLock<HashMap<String, AudioTagMapping>> = LazyLock::new(|| {
+    TAG_TABLE
+        .iter()
+        .map(|(tag, emotion, intensity)| (format!("[{tag}]"), (*emotion, *intensity)))
+        .collect()
+});
 
-        // Sadness -> SAD
-        m.insert("[sighs]", (EmotionType::Sad, 0.4));
-        m.insert("[sadly]", (EmotionType::Sad, 0.6));
-        m.insert("[crying]", (EmotionType::Sad, 0.9));
-        m.insert("[sobbing]", (EmotionType::Sad, 1.0));
-        m.insert("[sniffles]", (EmotionType::Sad, 0.5));
-        m.insert("[tearfully]", (EmotionType::Sad, 0.7));
-        m.insert("[melancholy]", (EmotionType::Sad, 0.5));
-        m.insert("[mournfully]", (EmotionType::Sad, 0.8));
-
-        // Anger -> ANGRY
-        m.insert("[angrily]", (EmotionType::Angry, 0.7));
-        m.insert("[angry]", (EmotionType::Angry, 0.7));
-        m.insert("[frustrated]", (EmotionType::Angry, 0.5));
-        m.insert("[growls]", (EmotionType::Angry, 0.8));
-        m.insert("[shouting]", (EmotionType::Angry, 0.9));
-        m.insert("[yelling]", (EmotionType::Angry, 0.9));
-        m.insert("[furiously]", (EmotionType::Angry, 1.0));
-        m.insert("[irritated]", (EmotionType::Angry, 0.4));
-
-        // Fear/Nervousness -> FEARFUL
-        m.insert("[nervously]", (EmotionType::Fearful, 0.5));
-        m.insert("[anxiously]", (EmotionType::Fearful, 0.6));
-        m.insert("[scared]", (EmotionType::Fearful, 0.7));
-        m.insert("[trembling]", (EmotionType::Fearful, 0.8));
-        m.insert("[gasps]", (EmotionType::Fearful, 0.7));
-        m.insert("[fearfully]", (EmotionType::Fearful, 0.7));
-        m.insert("[terrified]", (EmotionType::Fearful, 1.0));
-        m.insert("[worried]", (EmotionType::Fearful, 0.4));
-
-        // Surprise -> SURPRISED
-        m.insert("[surprised]", (EmotionType::Surprised, 0.7));
-        m.insert("[amazed]", (EmotionType::Surprised, 0.8));
-        m.insert("[shocked]", (EmotionType::Surprised, 0.9));
-        m.insert("[stunned]", (EmotionType::Surprised, 0.9));
-        m.insert("[astonished]", (EmotionType::Surprised, 0.9));
-        m.insert("[wow]", (EmotionType::Surprised, 0.6));
-
-        // Calm/Gentle -> CALM
-        m.insert("[softly]", (EmotionType::Calm, 0.5));
-        m.insert("[gently]", (EmotionType::Calm, 0.5));
-        m.insert("[calmly]", (EmotionType::Calm, 0.6));
-        m.insert("[peacefully]", (EmotionType::Calm, 0.7));
-        m.insert("[whisper]", (EmotionType::Calm, 0.4));
-        m.insert("[whispering]", (EmotionType::Calm, 0.4));
-        m.insert("[soothingly]", (EmotionType::Calm, 0.6));
-        m.insert("[quietly]", (EmotionType::Calm, 0.3));
-        m.insert("[serenely]", (EmotionType::Calm, 0.7));
-
-        // Disgust -> DISGUSTED
-        m.insert("[disgusted]", (EmotionType::Disgusted, 0.7));
-        m.insert("[grossed out]", (EmotionType::Disgusted, 0.6));
-        m.insert("[revolted]", (EmotionType::Disgusted, 0.8));
-        m.insert("[nauseated]", (EmotionType::Disgusted, 0.6));
-
-        // Contempt -> CONTEMPTUOUS
-        m.insert("[sarcastically]", (EmotionType::Contemptuous, 0.6));
-        m.insert("[mockingly]", (EmotionType::Contemptuous, 0.7));
-        m.insert("[dismissively]", (EmotionType::Contemptuous, 0.5));
-        m.insert("[condescendingly]", (EmotionType::Contemptuous, 0.6));
-        m.insert("[smugly]", (EmotionType::Contemptuous, 0.5));
-
-        // Thinking/Consideration -> NEUTRAL (thoughtful neutral)
-        m.insert("[thoughtfully]", (EmotionType::Neutral, 0.4));
-        m.insert("[pondering]", (EmotionType::Neutral, 0.3));
-        m.insert("[considering]", (EmotionType::Neutral, 0.3));
-        m.insert("[hmm]", (EmotionType::Neutral, 0.2));
-        m.insert("[musing]", (EmotionType::Neutral, 0.3));
-
-        // Embarrassment -> mix (closest: SURPRISED with lower intensity)
-        m.insert("[embarrassed]", (EmotionType::Surprised, 0.4));
-        m.insert("[sheepishly]", (EmotionType::Surprised, 0.3));
-        m.insert("[awkwardly]", (EmotionType::Surprised, 0.3));
-        m.insert("[blushing]", (EmotionType::Surprised, 0.4));
-
-        // Confident/Proud -> HAPPY (confident happiness)
-        m.insert("[confidently]", (EmotionType::Happy, 0.5));
-        m.insert("[proudly]", (EmotionType::Happy, 0.6));
-        m.insert("[triumphantly]", (EmotionType::Excited, 0.8));
-
-        // Bored/Tired -> NEUTRAL (disengaged)
-        m.insert("[bored]", (EmotionType::Neutral, 0.2));
-        m.insert("[yawns]", (EmotionType::Neutral, 0.3));
-        m.insert("[tiredly]", (EmotionType::Neutral, 0.3));
-        m.insert("[sleepily]", (EmotionType::Calm, 0.3));
-
-        // Curious/Attentive -> NEUTRAL (alert)
-        m.insert("[curiously]", (EmotionType::Neutral, 0.4));
-        m.insert("[attentively]", (EmotionType::Neutral, 0.4));
-        m.insert("[intrigued]", (EmotionType::Surprised, 0.4));
-
-        m
-    };
-
-    /// Reverse mapping: Emotion -> List of (audio_tag, intensity)
-    pub static ref EMOTION_TO_AUDIO_TAGS: HashMap<EmotionType, Vec<(&'static str, f32)>> = {
-        let mut m: HashMap<EmotionType, Vec<(&'static str, f32)>> = HashMap::new();
-
-        for (tag, (emotion, intensity)) in AUDIO_TAG_TO_EMOTION.iter() {
+/// Reverse mapping: Emotion -> list of (audio_tag, intensity), sorted by
+/// intensity descending (ties broken by tag name for determinism).
+pub static EMOTION_TO_AUDIO_TAGS: LazyLock<HashMap<EmotionType, Vec<(String, f32)>>> =
+    LazyLock::new(|| {
+        let mut m: HashMap<EmotionType, Vec<(String, f32)>> = HashMap::new();
+        for (tag, emotion, intensity) in TAG_TABLE {
             m.entry(*emotion)
                 .or_default()
-                .push((*tag, *intensity));
+                .push((format!("[{tag}]"), *intensity));
         }
-
-        // Sort by intensity descending for each emotion
         for tags in m.values_mut() {
-            tags.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
+            tags.sort_by(|a, b| {
+                b.1.partial_cmp(&a.1)
+                    .unwrap_or(std::cmp::Ordering::Equal)
+                    .then_with(|| a.0.cmp(&b.0))
+            });
         }
-
         m
-    };
+    });
 
-    /// Regex for finding bracketed tags in text.
-    static ref TAG_REGEX: Regex = Regex::new(r"\[[^\]]+\]").unwrap();
-}
+/// Regex for finding bracketed tags in text.
+static TAG_REGEX: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\[[^\[\]]+\]").expect("static tag regex is valid"));
 
-/// Extract emotions from text containing ElevenLabs audio tags.
-///
-/// # Arguments
-/// * `text` - Text potentially containing audio tags like [laughs], [sighs]
-///
-/// # Returns
-/// List of (EmotionType, intensity) tuples found in text
-pub fn extract_emotions_from_text(text: &str) -> Vec<AudioTagMapping> {
-    let mut emotions = Vec::new();
-    let text_lower = text.to_lowercase();
+/// Minimum word length considered by fuzzy matching (avoids `[a]` matching
+/// everything).
+const MIN_FUZZY_LEN: usize = 3;
 
-    for cap in TAG_REGEX.find_iter(&text_lower) {
-        let tag = cap.as_str();
-
-        // Direct match
-        if let Some(&mapping) = AUDIO_TAG_TO_EMOTION.get(tag) {
-            emotions.push(mapping);
-            continue;
-        }
-
-        // Fuzzy match - check if any known tag is contained
-        let tag_content = &tag[1..tag.len() - 1]; // Remove brackets
-        for (known_tag, mapping) in AUDIO_TAG_TO_EMOTION.iter() {
-            let known_content = &known_tag[1..known_tag.len() - 1];
-            if known_content.contains(tag_content) || tag_content.contains(known_content) {
-                emotions.push(*mapping);
-                break;
-            }
-        }
+/// Look up tag *content* (lowercase, no brackets): exact first, then per-word
+/// exact, then per-word stem match (`laugh` ~ `laughs`). Deterministic.
+fn lookup_content(content: &str) -> Option<AudioTagMapping> {
+    let content = content.trim();
+    if content.is_empty() {
+        return None;
+    }
+    if let Some((_, e, i)) = TAG_TABLE.iter().find(|(t, _, _)| *t == content) {
+        return Some((*e, *i));
     }
 
-    emotions
+    for word in content.split_whitespace() {
+        let word = word.trim_matches(|c: char| !c.is_alphanumeric());
+        if word.len() < MIN_FUZZY_LEN {
+            continue;
+        }
+        if let Some((_, e, i)) = TAG_TABLE.iter().find(|(t, _, _)| *t == word) {
+            return Some((*e, *i));
+        }
+        // Stem match: prefer the candidate whose length is closest to the
+        // word, then alphabetical order, so results never depend on hashing.
+        let best = TAG_TABLE
+            .iter()
+            .filter(|(t, _, _)| {
+                t.len() >= MIN_FUZZY_LEN
+                    && !t.contains(' ')
+                    && (t.starts_with(word) || word.starts_with(t))
+            })
+            .min_by(|a, b| {
+                let da = a.0.len().abs_diff(word.len());
+                let db = b.0.len().abs_diff(word.len());
+                da.cmp(&db).then_with(|| a.0.cmp(b.0))
+            });
+        if let Some((_, e, i)) = best {
+            return Some((*e, *i));
+        }
+    }
+    None
 }
 
-/// Get emotion for a single audio tag.
-///
-/// # Arguments
-/// * `tag` - Audio tag like "[laughs]" or "laughs"
-///
-/// # Returns
-/// (EmotionType, intensity) or None if not found
+/// Extract emotions from text containing ElevenLabs audio tags, in order of
+/// appearance. Unknown tags are skipped.
+pub fn extract_emotions_from_text(text: &str) -> Vec<AudioTagMapping> {
+    let text_lower = text.to_lowercase();
+    TAG_REGEX
+        .find_iter(&text_lower)
+        .filter_map(|m| {
+            let tag = m.as_str();
+            lookup_content(&tag[1..tag.len() - 1])
+        })
+        .collect()
+}
+
+/// Extract the raw bracketed tags (for example `"[laughs]"`) from text.
+pub fn extract_tags_from_text(text: &str) -> Vec<String> {
+    TAG_REGEX
+        .find_iter(text)
+        .map(|m| m.as_str().to_string())
+        .collect()
+}
+
+/// Remove bracketed audio tags from text and collapse whitespace (for display,
+/// e.g. the VRChat chatbox).
+pub fn strip_tags(text: &str) -> String {
+    let stripped = TAG_REGEX.replace_all(text, " ");
+    stripped.split_whitespace().collect::<Vec<_>>().join(" ")
+}
+
+/// Get emotion for a single audio tag (`"[laughs]"` or `"laughs"`).
 pub fn get_emotion_from_tag(tag: &str) -> Option<AudioTagMapping> {
-    // Normalize: ensure brackets
-    let normalized = if !tag.starts_with('[') {
-        format!("[{}]", tag.trim_matches(']'))
-    } else {
-        tag.to_string()
-    };
-
-    let normalized = normalized.to_lowercase();
-    AUDIO_TAG_TO_EMOTION.get(normalized.as_str()).copied()
+    let lower = tag.trim().to_lowercase();
+    let content = lower.trim_start_matches('[').trim_end_matches(']');
+    lookup_content(content)
 }
 
-/// Get suitable ElevenLabs audio tags for an emotion.
-///
-/// # Arguments
-/// * `emotion` - The target EmotionType
-/// * `intensity` - Desired intensity (0-1), tags closest to this are preferred
-/// * `max_tags` - Maximum number of tags to return
-///
-/// # Returns
-/// List of audio tags sorted by relevance to intensity
+/// Get suitable ElevenLabs audio tags for an emotion, ordered by closeness of
+/// their intensity to `intensity`.
 pub fn get_audio_tags_for_emotion(
     emotion: EmotionType,
     intensity: f32,
     max_tags: usize,
-) -> Vec<&'static str> {
+) -> Vec<String> {
     let Some(candidates) = EMOTION_TO_AUDIO_TAGS.get(&emotion) else {
         return Vec::new();
     };
 
-    // Sort by distance to desired intensity
     let mut sorted: Vec<_> = candidates.iter().collect();
     sorted.sort_by(|a, b| {
         let dist_a = (a.1 - intensity).abs();
@@ -225,35 +250,37 @@ pub fn get_audio_tags_for_emotion(
         dist_a
             .partial_cmp(&dist_b)
             .unwrap_or(std::cmp::Ordering::Equal)
+            .then_with(|| a.0.cmp(&b.0))
     });
 
     sorted
         .into_iter()
         .take(max_tags)
-        .map(|(tag, _)| *tag)
+        .map(|(tag, _)| tag.clone())
         .collect()
 }
 
-/// Get the dominant emotion from text with audio tags.
-///
-/// # Arguments
-/// * `text` - Text containing audio tags
-///
-/// # Returns
-/// The emotion with highest intensity, or None if no tags found
+/// Get the dominant (highest-intensity) emotion from text with audio tags.
+/// On ties the first occurrence wins.
 pub fn get_dominant_emotion(text: &str) -> Option<AudioTagMapping> {
-    let emotions = extract_emotions_from_text(text);
-
-    if emotions.is_empty() {
-        return None;
-    }
-
-    // Return emotion with highest intensity
-    emotions
-        .into_iter()
-        .max_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal))
+    dominant(extract_emotions_from_text(text))
 }
 
+/// Dominant emotion of a list of individual tags (`["[laughs]", "sighs"]`).
+pub fn get_dominant_emotion_from_tags<S: AsRef<str>>(tags: &[S]) -> Option<AudioTagMapping> {
+    dominant(
+        tags.iter()
+            .filter_map(|t| get_emotion_from_tag(t.as_ref()))
+            .collect(),
+    )
+}
+
+fn dominant(emotions: Vec<AudioTagMapping>) -> Option<AudioTagMapping> {
+    emotions.into_iter().fold(None, |best, cur| match best {
+        Some(b) if b.1 >= cur.1 => Some(b),
+        _ => Some(cur),
+    })
+}
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -393,5 +420,55 @@ mod tests {
         // Fuzzy matching should find 'laughs' contains 'laugh'
         assert!(!emotions.is_empty());
         assert_eq!(emotions[0].0, EmotionType::Happy);
+    }
+
+    #[test]
+    fn test_fuzzy_matching_is_deterministic_and_word_based() {
+        // "laugh softly" must resolve through the first word ("laugh" ->
+        // "laughs"), not whichever table entry a hash map yields first.
+        for _ in 0..20 {
+            let e = extract_emotions_from_text("[laugh softly]");
+            assert_eq!(e, vec![(EmotionType::Happy, 0.8)]);
+        }
+    }
+
+    #[test]
+    fn test_short_tags_do_not_fuzzy_match() {
+        assert!(extract_emotions_from_text("[a] [x] [ok]").is_empty());
+        assert!(get_emotion_from_tag("").is_none());
+    }
+
+    #[test]
+    fn test_strip_and_extract_tags() {
+        let text = "Hello! [laughs] I'm so [whispering] happy.";
+        assert_eq!(strip_tags(text), "Hello! I'm so happy.");
+        assert_eq!(
+            extract_tags_from_text(text),
+            vec!["[laughs]".to_string(), "[whispering]".to_string()]
+        );
+    }
+
+    #[test]
+    fn test_dominant_from_tags() {
+        let d = get_dominant_emotion_from_tags(&["[sighs]", "sobbing", "[nope]"]).unwrap();
+        assert_eq!(d.0, EmotionType::Sad);
+        assert!((d.1 - 1.0).abs() < f32::EPSILON);
+        assert!(get_dominant_emotion_from_tags::<&str>(&[]).is_none());
+    }
+
+    #[test]
+    fn test_additional_tags_present() {
+        assert_eq!(
+            get_emotion_from_tag("[giggles]").unwrap().0,
+            EmotionType::Happy
+        );
+        assert_eq!(
+            get_emotion_from_tag("screams").unwrap().0,
+            EmotionType::Fearful
+        );
+        assert_eq!(
+            get_emotion_from_tag("[cheering]").unwrap().0,
+            EmotionType::Excited
+        );
     }
 }

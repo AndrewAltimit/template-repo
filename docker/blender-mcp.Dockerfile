@@ -28,13 +28,21 @@ FROM nvidia/cuda:12.1.1-base-ubuntu22.04
 ENV DEBIAN_FRONTEND=noninteractive
 ENV BLENDER_VERSION=4.5.1
 
-# Install system dependencies
+# Install system dependencies.
+# libegl1 + Mesa (libegl-mesa0, libgl1-mesa-dri, libgbm1) give headless Blender an
+# EGL/OpenGL context, which EEVEE and Workbench need even in --background mode.
+# Without them those engines crash ("Couldn't open libEGL.so.1"); with the NVIDIA
+# container runtime the driver's EGL is used instead of Mesa's software renderer.
 RUN apt-get update && apt-get install -y \
     wget \
     curl \
     xz-utils \
     libxxf86vm1 \
     libgl1-mesa-glx \
+    libegl1 \
+    libegl-mesa0 \
+    libgl1-mesa-dri \
+    libgbm1 \
     libxi6 \
     libxrender1 \
     libxkbcommon-x11-0 \

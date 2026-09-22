@@ -1,103 +1,109 @@
 #!/usr/bin/env python3
 """Camera manipulation tools for Blender."""
 
-import json
-from pathlib import Path
+import os
 import sys
 
 import bpy
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+from mcp_common import (  # noqa: E402  pylint: disable=wrong-import-position
+    project_operation,
+    run,
+)
+
 
 def setup_camera(args):
-    """Setup and configure camera in the scene."""
-    camera_name = args.get("camera_name", "Camera")
+    """Create or update a camera and make it the scene's active camera.
+
+    Accepts the flat MCP parameters (``sensor_width``, ``dof_enabled``,
+    ``focus_distance``, ``aperture``) as well as the legacy nested
+    ``depth_of_field`` dict.
+    """
+    camera_name = args.get("camera_name") or "Camera"
     location = args.get("location", [7, -7, 5])
     rotation = args.get("rotation", [1.1, 0, 0.785])
-    focal_length = args.get("focal_length", 50)
-    dof = args.get("depth_of_field", {})
+    focal_length = float(args.get("focal_length", 50))
+    sensor_width = float(args.get("sensor_width", 36))
+    dof = dict(args.get("depth_of_field") or {})
+    if "dof_enabled" in args:
+        dof["enabled"] = args["dof_enabled"]
+    if "focus_distance" in args:
+        dof["focus_distance"] = args["focus_distance"]
+    if "aperture" in args:
+        dof["f_stop"] = args["aperture"]
+    focus_object = args.get("focus_object")
 
-    # Check if camera exists, create if not
-    if camera_name in bpy.data.objects:
-        camera_obj = bpy.data.objects[camera_name]
-        if camera_obj.type != "CAMERA":
-            # Remove non-camera object with same name
-            bpy.data.objects.remove(camera_obj, do_unlink=True)
-            camera_obj = None
-        else:
-            camera = camera_obj.data
-    else:
-        camera_obj = None
+    camera_obj = bpy.data.objects.get(camera_name)
+    if camera_obj is not None and camera_obj.type != "CAMERA":
+        return {"success": False, "error": f"'{camera_name}' exists but is a {camera_obj.type}, not a camera"}
+    created = camera_obj is None
+    if created:
+        camera_data = bpy.data.cameras.new(name=camera_name)
+        camera_obj = bpy.data.objects.new(camera_name, camera_data)
+        bpy.context.scene.collection.objects.link(camera_obj)
+    camera = camera_obj.data
 
-    if camera_obj is None:
-        # Create new camera
-        camera = bpy.data.cameras.new(name=camera_name)
-        camera_obj = bpy.data.objects.new(camera_name, camera)
-        bpy.context.collection.objects.link(camera_obj)
-
-    # Set camera properties
     camera_obj.location = location
     camera_obj.rotation_euler = rotation
-
-    # Set camera lens properties
     camera.lens = focal_length
     camera.sensor_fit = "HORIZONTAL"
-    camera.sensor_width = 36  # Full frame sensor
+    camera.sensor_width = sensor_width
 
-    # Setup depth of field if enabled
-    if dof.get("enabled", False):
-        camera.dof.use_dof = True
-        camera.dof.focus_distance = dof.get("focus_distance", 10)
-        camera.dof.aperture_fstop = dof.get("f_stop", 2.8)
+    camera.dof.use_dof = bool(dof.get("enabled", False))
+    if camera.dof.use_dof:
+        camera.dof.focus_distance = float(dof.get("focus_distance", 10))
+        camera.dof.aperture_fstop = float(dof.get("f_stop", 2.8))
+        if focus_object:
+            target = bpy.data.objects.get(focus_object)
+            if target is None:
+                return {"success": False, "error": f"focus_object '{focus_object}' not found"}
+            camera.dof.focus_object = target
 
-    # Set as active camera
-    bpy.context.scene.camera = camera_obj
+    if args.get("set_active", True):
+        bpy.context.scene.camera = camera_obj
 
-    return {"success": True, "camera": camera_name}
+    return {
+        "success": True,
+        "camera": camera_obj.name,
+        "created": created,
+        "active": bpy.context.scene.camera == camera_obj,
+        "dof_enabled": camera.dof.use_dof,
+    }
 
 
 def add_camera_track(args):
-    """Add tracking constraint to camera."""
-    camera_name = args.get("camera_name", "Camera")
-    target_object = args["target_object"]
+    """Point a camera at a target object with a tracking constraint."""
+    camera_name = args.get("camera_name") or (bpy.context.scene.camera.name if bpy.context.scene.camera else "Camera")
+    target_object = args.get("target") or args.get("target_object")
     track_type = args.get("track_type", "TRACK_TO")
+    if track_type not in ("TRACK_TO", "DAMPED_TRACK", "LOCKED_TRACK"):
+        return {"success": False, "error": f"Unknown track_type '{track_type}'"}
 
-    # Get camera object
-    if camera_name not in bpy.data.objects:
+    camera_obj = bpy.data.objects.get(camera_name)
+    if camera_obj is None:
         return {"success": False, "error": f"Camera '{camera_name}' not found"}
-
-    camera_obj = bpy.data.objects[camera_name]
-
     if camera_obj.type != "CAMERA":
         return {"success": False, "error": f"'{camera_name}' is not a camera"}
-
-    # Get target object
-    if target_object not in bpy.data.objects:
+    target_obj = bpy.data.objects.get(target_object) if target_object else None
+    if target_obj is None:
         return {"success": False, "error": f"Target object '{target_object}' not found"}
 
-    target_obj = bpy.data.objects[target_object]
-
-    # Remove existing track constraints
-    for constraint in camera_obj.constraints:
-        if constraint.type in ["TRACK_TO", "DAMPED_TRACK", "LOCKED_TRACK"]:
+    # Replace any existing tracking constraint so repeated calls do not stack.
+    for constraint in list(camera_obj.constraints):
+        if constraint.type in ("TRACK_TO", "DAMPED_TRACK", "LOCKED_TRACK"):
             camera_obj.constraints.remove(constraint)
 
-    # Add new tracking constraint
+    constraint = camera_obj.constraints.new(track_type)
+    constraint.target = target_obj
+    constraint.track_axis = "TRACK_NEGATIVE_Z"
     if track_type == "TRACK_TO":
-        constraint = camera_obj.constraints.new("TRACK_TO")
-        constraint.target = target_obj
-        constraint.track_axis = "TRACK_NEGATIVE_Z"
         constraint.up_axis = "UP_Y"
-    elif track_type == "DAMPED_TRACK":
-        constraint = camera_obj.constraints.new("DAMPED_TRACK")
-        constraint.target = target_obj
-        constraint.track_axis = "TRACK_NEGATIVE_Z"
     elif track_type == "LOCKED_TRACK":
-        constraint = camera_obj.constraints.new("LOCKED_TRACK")
-        constraint.target = target_obj
-        constraint.track_axis = "TRACK_NEGATIVE_Z"
         constraint.lock_axis = "LOCK_Y"
 
-    return {"success": True, "constraint": track_type}
+    return {"success": True, "camera": camera_obj.name, "target": target_obj.name, "constraint": track_type}
 
 
 def create_camera_path(args):
@@ -151,48 +157,14 @@ def create_camera_path(args):
 
 
 def main():
-    """Main entry point for camera tools."""
-    # Get arguments from command line
-    import argparse
-
-    # Filter sys.argv to only include args after "--" (Blender passes all args)
-    argv = sys.argv
-    if "--" in argv:
-        argv = argv[argv.index("--") + 1 :]
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--args", type=str, required=True)
-    args = parser.parse_args(argv)
-
-    # Parse JSON arguments
-    script_args = json.loads(args.args)
-
-    # Load the project file
-    project_path = script_args["project"]
-    if Path(project_path).exists():
-        bpy.ops.wm.open_mainfile(filepath=project_path)
-    else:
-        return {"success": False, "error": f"Project file not found: {project_path}"}
-
-    # Execute the operation
-    operation = script_args["operation"]
-
-    if operation == "setup_camera":
-        result = setup_camera(script_args)
-    elif operation == "add_camera_track":
-        result = add_camera_track(script_args)
-    elif operation == "create_camera_path":
-        result = create_camera_path(script_args)
-    else:
-        result = {"success": False, "error": f"Unknown operation: {operation}"}
-
-    # Save the file
-    if result.get("success"):
-        bpy.ops.wm.save_mainfile(filepath=project_path)
-
-    # Output result
-    print(json.dumps(result))
-    sys.exit(0 if result.get("success") else 1)
+    """Dispatch the requested operation (see mcp_common.run)."""
+    run(
+        {
+            "setup_camera": project_operation(setup_camera),
+            "add_camera_track": project_operation(add_camera_track),
+            "create_camera_path": project_operation(create_camera_path),
+        }
+    )
 
 
 if __name__ == "__main__":

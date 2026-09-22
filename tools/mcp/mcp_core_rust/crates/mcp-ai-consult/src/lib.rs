@@ -8,5 +8,6 @@ mod types;
 
 pub use tools::{ClearHistoryTool, ConsultTool, StatusTool, ToggleAutoConsultTool, make_tools};
 pub use types::{
-    AiIntegration, ConsultParams, ConsultResult, ConsultStatus, HistoryEntry, IntegrationStats,
+    AiIntegration, ConsultParams, ConsultResult, ConsultStart, ConsultStatus, DetachedConsult,
+    HistoryEntry, IntegrationStats,
 };

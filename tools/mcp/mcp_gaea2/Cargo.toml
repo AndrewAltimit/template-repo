@@ -1,6 +1,6 @@
 [package]
 name = "mcp-gaea2"
-version = "1.0.0"
+version = "1.1.0"
 edition = "2021"
 license = "MIT"
 repository = "https://github.com/AndrewAltimit/template-repo"
@@ -16,57 +16,42 @@ path = "src/main.rs"
 mcp-core = { path = "../mcp_core_rust/crates/mcp-core" }
 
 # Async runtime
-tokio = { version = "1.40", features = ["full", "sync", "time", "process"] }
+tokio = { version = "1.40", features = ["rt-multi-thread", "macros", "sync", "time", "process", "fs", "io-util"] }
 async-trait = "0.1"
 
-# Serialization
+# Serialization. `preserve_order` keeps object keys in insertion order so the
+# generated .terrain files put `$id`/`$type` first and keep a stable,
+# Gaea-like property order (Json.NET expects metadata properties first).
 serde = { version = "1.0", features = ["derive"] }
-serde_json = "1.0"
-serde_yaml = "0.9"
-
-# HTTP client (for remote calls if needed)
-reqwest = { version = "0.12", features = ["json"] }
+serde_json = { version = "1.0", features = ["preserve_order"] }
 
 # CLI
 clap = { version = "4.5", features = ["derive", "env"] }
 
 # Logging
 tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 # Error handling
-thiserror = "2.0"
 anyhow = "1.0"
 
 # Time
 chrono = { version = "0.4", features = ["serde"] }
 
-# Base64 encoding
+# Base64 encoding (download tool)
 base64 = "0.22"
 
-# Directories
-dirs = "6.0"
-
-# Tempfile handling
-tempfile = "3.10"
-
-# Async file I/O
-tokio-util = { version = "0.7", features = ["io"] }
-
-# UUID generation
+# UUID generation (project / terrain ids, unique file names)
 uuid = { version = "1.8", features = ["v4"] }
 
-# Random number generation
+# Random seeds for generator nodes
 rand = "0.8"
 
-# Glob pattern matching for file listing
-glob = "0.3"
-
 [dev-dependencies]
-tokio-test = "0.4"
+tempfile = "3.10"
 
 [profile.release]
 lto = true
 codegen-units = 1
-panic = "abort"
+# NOTE: no `panic = "abort"` -- mcp-core catches tool panics with
+# `catch_unwind`, which only works with the default unwind strategy.
 strip = true

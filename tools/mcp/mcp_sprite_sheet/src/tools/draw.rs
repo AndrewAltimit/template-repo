@@ -1,93 +1,102 @@
-//! Drawing tools: set_pixels, draw_line, draw_rect, draw_ellipse, flood_fill.
+//! Drawing tools: set_pixels, draw_line, draw_rect, draw_ellipse, flood_fill,
+//! and get_pixels (read-back).
+//!
+//! All primitives clip to the canvas, accept a layer ID or unique layer name,
+//! and are undoable. With an enforced palette, drawing an undefined color
+//! index is an error (set_pixels skips and counts such pixels instead).
 
-use async_trait::async_trait;
-use mcp_core::prelude::*;
+use serde::Deserialize;
 use serde_json::{Value, json};
 
-use super::parse::{json_as_i32, json_as_u8, json_as_u32};
-use crate::engine::{self, ProjectStore};
+use super::{edit_project, get, invalid, ok_json, region_schema, sprite_tool};
+use crate::args::{self, PixelArg, PointArg, RegionArg};
+use crate::engine::{self, Region};
 
-fn require_name(args: &Value) -> Result<&str> {
-    args["name"]
-        .as_str()
-        .ok_or_else(|| MCPError::InvalidParameters("Missing 'name'".to_string()))
-}
-
-fn require_layer_id(args: &Value) -> Result<&str> {
-    args["layer_id"]
-        .as_str()
-        .ok_or_else(|| MCPError::InvalidParameters("Missing 'layer_id'".to_string()))
+fn pixel_item_schema() -> Value {
+    json!({
+        "oneOf": [
+            {
+                "type": "object",
+                "properties": {
+                    "x": { "type": "integer" },
+                    "y": { "type": "integer" },
+                    "color_index": { "type": "integer", "minimum": 0, "maximum": 255 }
+                },
+                "required": ["x", "y", "color_index"]
+            },
+            {
+                "type": "array", "items": { "type": "integer" }, "minItems": 3, "maxItems": 3,
+                "description": "Compact form [x, y, color_index]"
+            }
+        ]
+    })
 }
 
 // ---------------------------------------------------------------------------
 // set_pixels
 // ---------------------------------------------------------------------------
 
-pub struct SetPixelsTool {
-    pub store: ProjectStore,
+#[derive(Deserialize)]
+pub struct SetPixelsArgs {
+    name: String,
+    layer_id: String,
+    #[serde(deserialize_with = "args::json")]
+    pixels: Vec<PixelArg>,
+    #[serde(default, deserialize_with = "args::opt_json")]
+    erase: Option<Vec<PointArg>>,
 }
 
-#[async_trait]
-impl Tool for SetPixelsTool {
-    fn name(&self) -> &str {
-        "sprite_set_pixels"
-    }
-
-    fn description(&self) -> &str {
-        "Batch set pixels on a layer. Each pixel is {x, y, color_index}."
-    }
-
-    fn schema(&self) -> Value {
-        json!({
+sprite_tool! {
+    SetPixelsTool {
+        name: "sprite_set_pixels",
+        description: "Batch set pixels on a layer. Each pixel is {x, y, color_index} or the \
+            compact [x, y, color_index]. Optional 'erase' removes pixels ([x, y] list) before \
+            painting. Out-of-canvas pixels and (with an enforced palette) undefined colors are \
+            skipped and reported. Undoable as one step.",
+        schema: json!({
             "type": "object",
             "properties": {
                 "name": { "type": "string", "description": "Project name" },
-                "layer_id": { "type": "string" },
+                "layer_id": { "type": "string", "description": "Layer ID or unique name" },
                 "pixels": {
                     "type": "array",
-                    "items": {
-                        "type": "object",
-                        "properties": {
-                            "x": { "type": "integer" },
-                            "y": { "type": "integer" },
-                            "color_index": { "type": "integer" }
-                        },
-                        "required": ["x", "y", "color_index"]
-                    },
-                    "description": "Array of pixel positions with palette color indices"
+                    "items": pixel_item_schema(),
+                    "description": "Pixels to paint (may be empty when only erasing)"
+                },
+                "erase": {
+                    "type": "array",
+                    "items": { "type": "array", "items": { "type": "integer" }, "minItems": 2, "maxItems": 2 },
+                    "description": "Pixels to make empty/transparent, as [x, y] pairs or {x, y}"
                 }
             },
             "required": ["name", "layer_id", "pixels"]
-        })
-    }
-
-    async fn execute(&self, args: Value) -> Result<ToolResult> {
-        let pname = require_name(&args)?;
-        let layer_id = require_layer_id(&args)?;
-
-        let pixels_arr = args["pixels"]
-            .as_array()
-            .ok_or_else(|| MCPError::InvalidParameters("Missing 'pixels' array".to_string()))?;
-
-        let pixels: Vec<(u32, u32, u8)> = pixels_arr
-            .iter()
-            .filter_map(|p| {
-                Some((
-                    json_as_u32(&p["x"])?,
-                    json_as_u32(&p["y"])?,
-                    json_as_u8(&p["color_index"])?,
-                ))
+        }),
+        execute: |ctx, a: SetPixelsArgs| {
+            let pixels: Vec<(i64, i64, u8)> =
+                a.pixels.iter().map(|p| (p.x, p.y, p.color_index)).collect();
+            let erase: Vec<(i64, i64)> = a
+                .erase
+                .unwrap_or_default()
+                .iter()
+                .map(|p| (p.x, p.y))
+                .collect();
+            let (erased, rep) = edit_project(ctx, &a.name, "set_pixels", |p| {
+                let erased = if erase.is_empty() {
+                    0
+                } else {
+                    engine::erase_pixels(p, &a.layer_id, &erase)?
+                };
+                Ok((erased, engine::set_pixels(p, &a.layer_id, &pixels)?))
             })
-            .collect();
-
-        let mut store = self.store.write().await;
-        let project = store
-            .get_mut(pname)
-            .ok_or_else(|| MCPError::InvalidParameters(format!("Project not found: {pname}")))?;
-
-        let count = engine::set_pixels(project, layer_id, &pixels).map_err(MCPError::Internal)?;
-
-        ToolResult::json(&json!({ "success": true, "pixels_set": count }))
+            .await?;
+            ok_json(json!({
+                "success": true,
+                "pixels_set": rep.painted,
+                "pixels_erased": erased,
+                "skipped_out_of_bounds": rep.out_of_bounds,
+                "skipped_invalid_color": rep.invalid_color
+            }))
+        }
     }
 }
 
@@ -95,54 +104,51 @@ impl Tool for SetPixelsTool {
 // draw_line
 // ---------------------------------------------------------------------------
 
-pub struct DrawLineTool {
-    pub store: ProjectStore,
+#[derive(Deserialize)]
+pub struct LineArgs {
+    name: String,
+    layer_id: String,
+    #[serde(deserialize_with = "args::int")]
+    x0: i64,
+    #[serde(deserialize_with = "args::int")]
+    y0: i64,
+    #[serde(deserialize_with = "args::int")]
+    x1: i64,
+    #[serde(deserialize_with = "args::int")]
+    y1: i64,
+    #[serde(deserialize_with = "args::int")]
+    color_index: u8,
 }
 
-#[async_trait]
-impl Tool for DrawLineTool {
-    fn name(&self) -> &str {
-        "sprite_draw_line"
-    }
-
-    fn description(&self) -> &str {
-        "Draw a line between two points using Bresenham's algorithm."
-    }
-
-    fn schema(&self) -> Value {
-        json!({
+sprite_tool! {
+    DrawLineTool {
+        name: "sprite_draw_line",
+        description: "Draw a 1px line between two points (inclusive) using Bresenham's \
+            algorithm. Endpoints may lie outside the canvas; the line is clipped. Undoable.",
+        schema: json!({
             "type": "object",
             "properties": {
                 "name": { "type": "string", "description": "Project name" },
-                "layer_id": { "type": "string" },
+                "layer_id": { "type": "string", "description": "Layer ID or unique name" },
                 "x0": { "type": "integer" },
                 "y0": { "type": "integer" },
                 "x1": { "type": "integer" },
                 "y1": { "type": "integer" },
-                "color_index": { "type": "integer" }
+                "color_index": { "type": "integer", "minimum": 0, "maximum": 255 }
             },
             "required": ["name", "layer_id", "x0", "y0", "x1", "y1", "color_index"]
-        })
-    }
-
-    async fn execute(&self, args: Value) -> Result<ToolResult> {
-        let pname = require_name(&args)?;
-        let layer_id = require_layer_id(&args)?;
-        let x0 = json_as_i32(&args["x0"]).unwrap_or(0);
-        let y0 = json_as_i32(&args["y0"]).unwrap_or(0);
-        let x1 = json_as_i32(&args["x1"]).unwrap_or(0);
-        let y1 = json_as_i32(&args["y1"]).unwrap_or(0);
-        let ci = json_as_u8(&args["color_index"]).unwrap_or(0);
-
-        let mut store = self.store.write().await;
-        let project = store
-            .get_mut(pname)
-            .ok_or_else(|| MCPError::InvalidParameters(format!("Project not found: {pname}")))?;
-
-        let count =
-            engine::draw_line(project, layer_id, x0, y0, x1, y1, ci).map_err(MCPError::Internal)?;
-
-        ToolResult::json(&json!({ "success": true, "pixels_set": count }))
+        }),
+        execute: |ctx, a: LineArgs| {
+            let rep = edit_project(ctx, &a.name, "draw_line", |p| {
+                engine::draw_line(p, &a.layer_id, (a.x0, a.y0), (a.x1, a.y1), a.color_index)
+            })
+            .await?;
+            ok_json(json!({
+                "success": true,
+                "pixels_set": rep.painted,
+                "clipped": rep.out_of_bounds
+            }))
+        }
     }
 }
 
@@ -150,56 +156,57 @@ impl Tool for DrawLineTool {
 // draw_rect
 // ---------------------------------------------------------------------------
 
-pub struct DrawRectTool {
-    pub store: ProjectStore,
+#[derive(Deserialize)]
+pub struct RectArgs {
+    name: String,
+    layer_id: String,
+    #[serde(deserialize_with = "args::int")]
+    x: i64,
+    #[serde(deserialize_with = "args::int")]
+    y: i64,
+    #[serde(deserialize_with = "args::int")]
+    width: i64,
+    #[serde(deserialize_with = "args::int")]
+    height: i64,
+    #[serde(deserialize_with = "args::int")]
+    color_index: u8,
+    #[serde(default, deserialize_with = "args::opt_bool")]
+    filled: Option<bool>,
 }
 
-#[async_trait]
-impl Tool for DrawRectTool {
-    fn name(&self) -> &str {
-        "sprite_draw_rect"
-    }
-
-    fn description(&self) -> &str {
-        "Draw a rectangle (outline or filled)."
-    }
-
-    fn schema(&self) -> Value {
-        json!({
+sprite_tool! {
+    DrawRectTool {
+        name: "sprite_draw_rect",
+        description: "Draw a rectangle (1px outline or filled) with top-left (x, y) and size \
+            width x height (both >= 1). Clipped to the canvas. Undoable.",
+        schema: json!({
             "type": "object",
             "properties": {
                 "name": { "type": "string", "description": "Project name" },
-                "layer_id": { "type": "string" },
+                "layer_id": { "type": "string", "description": "Layer ID or unique name" },
                 "x": { "type": "integer" },
                 "y": { "type": "integer" },
-                "width": { "type": "integer" },
-                "height": { "type": "integer" },
-                "color_index": { "type": "integer" },
+                "width": { "type": "integer", "minimum": 1 },
+                "height": { "type": "integer", "minimum": 1 },
+                "color_index": { "type": "integer", "minimum": 0, "maximum": 255 },
                 "filled": { "type": "boolean", "default": false }
             },
             "required": ["name", "layer_id", "x", "y", "width", "height", "color_index"]
-        })
-    }
-
-    async fn execute(&self, args: Value) -> Result<ToolResult> {
-        let pname = require_name(&args)?;
-        let layer_id = require_layer_id(&args)?;
-        let x = json_as_u32(&args["x"]).unwrap_or(0);
-        let y = json_as_u32(&args["y"]).unwrap_or(0);
-        let w = json_as_u32(&args["width"]).unwrap_or(0);
-        let h = json_as_u32(&args["height"]).unwrap_or(0);
-        let ci = json_as_u8(&args["color_index"]).unwrap_or(0);
-        let filled = args["filled"].as_bool().unwrap_or(false);
-
-        let mut store = self.store.write().await;
-        let project = store
-            .get_mut(pname)
-            .ok_or_else(|| MCPError::InvalidParameters(format!("Project not found: {pname}")))?;
-
-        let count = engine::draw_rect(project, layer_id, x, y, w, h, ci, filled)
-            .map_err(MCPError::Internal)?;
-
-        ToolResult::json(&json!({ "success": true, "pixels_set": count }))
+        }),
+        execute: |ctx, a: RectArgs| {
+            let r = Region {
+                x: a.x,
+                y: a.y,
+                width: a.width,
+                height: a.height,
+            };
+            let filled = a.filled.unwrap_or(false);
+            let n = edit_project(ctx, &a.name, "draw_rect", |p| {
+                engine::draw_rect(p, &a.layer_id, r, a.color_index, filled)
+            })
+            .await?;
+            ok_json(json!({ "success": true, "pixels_set": n }))
+        }
     }
 }
 
@@ -207,56 +214,52 @@ impl Tool for DrawRectTool {
 // draw_ellipse
 // ---------------------------------------------------------------------------
 
-pub struct DrawEllipseTool {
-    pub store: ProjectStore,
+#[derive(Deserialize)]
+pub struct EllipseArgs {
+    name: String,
+    layer_id: String,
+    #[serde(deserialize_with = "args::int")]
+    cx: i64,
+    #[serde(deserialize_with = "args::int")]
+    cy: i64,
+    #[serde(deserialize_with = "args::int")]
+    rx: i64,
+    #[serde(deserialize_with = "args::int")]
+    ry: i64,
+    #[serde(deserialize_with = "args::int")]
+    color_index: u8,
+    #[serde(default, deserialize_with = "args::opt_bool")]
+    filled: Option<bool>,
 }
 
-#[async_trait]
-impl Tool for DrawEllipseTool {
-    fn name(&self) -> &str {
-        "sprite_draw_ellipse"
-    }
-
-    fn description(&self) -> &str {
-        "Draw an ellipse (outline or filled)."
-    }
-
-    fn schema(&self) -> Value {
-        json!({
+sprite_tool! {
+    DrawEllipseTool {
+        name: "sprite_draw_ellipse",
+        description: "Draw an ellipse centered at (cx, cy) with radii (rx, ry); the shape \
+            spans exactly 2*rx+1 by 2*ry+1 pixels. Outlines are closed, 1px, gap-free. \
+            A zero radius draws a line (both zero: one pixel). Clipped to the canvas. Undoable.",
+        schema: json!({
             "type": "object",
             "properties": {
                 "name": { "type": "string", "description": "Project name" },
-                "layer_id": { "type": "string" },
+                "layer_id": { "type": "string", "description": "Layer ID or unique name" },
                 "cx": { "type": "integer", "description": "Center X" },
                 "cy": { "type": "integer", "description": "Center Y" },
-                "rx": { "type": "integer", "description": "Radius X" },
-                "ry": { "type": "integer", "description": "Radius Y" },
-                "color_index": { "type": "integer" },
+                "rx": { "type": "integer", "minimum": 0, "description": "Radius X" },
+                "ry": { "type": "integer", "minimum": 0, "description": "Radius Y" },
+                "color_index": { "type": "integer", "minimum": 0, "maximum": 255 },
                 "filled": { "type": "boolean", "default": false }
             },
             "required": ["name", "layer_id", "cx", "cy", "rx", "ry", "color_index"]
-        })
-    }
-
-    async fn execute(&self, args: Value) -> Result<ToolResult> {
-        let pname = require_name(&args)?;
-        let layer_id = require_layer_id(&args)?;
-        let cx = json_as_i32(&args["cx"]).unwrap_or(0);
-        let cy = json_as_i32(&args["cy"]).unwrap_or(0);
-        let rx = json_as_i32(&args["rx"]).unwrap_or(0);
-        let ry = json_as_i32(&args["ry"]).unwrap_or(0);
-        let ci = json_as_u8(&args["color_index"]).unwrap_or(0);
-        let filled = args["filled"].as_bool().unwrap_or(false);
-
-        let mut store = self.store.write().await;
-        let project = store
-            .get_mut(pname)
-            .ok_or_else(|| MCPError::InvalidParameters(format!("Project not found: {pname}")))?;
-
-        let count = engine::draw_ellipse(project, layer_id, cx, cy, rx, ry, ci, filled)
-            .map_err(MCPError::Internal)?;
-
-        ToolResult::json(&json!({ "success": true, "pixels_set": count }))
+        }),
+        execute: |ctx, a: EllipseArgs| {
+            let filled = a.filled.unwrap_or(false);
+            let n = edit_project(ctx, &a.name, "draw_ellipse", |p| {
+                engine::draw_ellipse(p, &a.layer_id, (a.cx, a.cy), (a.rx, a.ry), a.color_index, filled)
+            })
+            .await?;
+            ok_json(json!({ "success": true, "pixels_set": n }))
+        }
     }
 }
 
@@ -264,48 +267,143 @@ impl Tool for DrawEllipseTool {
 // flood_fill
 // ---------------------------------------------------------------------------
 
-pub struct FloodFillTool {
-    pub store: ProjectStore,
+#[derive(Deserialize)]
+pub struct FillArgs {
+    name: String,
+    layer_id: String,
+    #[serde(deserialize_with = "args::int")]
+    x: i64,
+    #[serde(deserialize_with = "args::int")]
+    y: i64,
+    #[serde(deserialize_with = "args::int")]
+    color_index: u8,
+    #[serde(default, deserialize_with = "args::opt_bool")]
+    contiguous: Option<bool>,
 }
 
-#[async_trait]
-impl Tool for FloodFillTool {
-    fn name(&self) -> &str {
-        "sprite_flood_fill"
-    }
-
-    fn description(&self) -> &str {
-        "Flood fill from a starting point with a palette color."
-    }
-
-    fn schema(&self) -> Value {
-        json!({
+sprite_tool! {
+    FloodFillTool {
+        name: "sprite_flood_fill",
+        description: "Fill from (x, y) with a palette color. Considers only this layer's \
+            pixels; empty (transparent) counts as a color. contiguous=true (default) fills the \
+            4-connected region via a scanline fill; contiguous=false replaces every pixel of \
+            the start color on the layer. Undoable.",
+        schema: json!({
             "type": "object",
             "properties": {
                 "name": { "type": "string", "description": "Project name" },
-                "layer_id": { "type": "string" },
-                "x": { "type": "integer", "description": "Start X" },
-                "y": { "type": "integer", "description": "Start Y" },
-                "color_index": { "type": "integer" }
+                "layer_id": { "type": "string", "description": "Layer ID or unique name" },
+                "x": { "type": "integer", "description": "Start X (must be inside the canvas)" },
+                "y": { "type": "integer", "description": "Start Y (must be inside the canvas)" },
+                "color_index": { "type": "integer", "minimum": 0, "maximum": 255 },
+                "contiguous": { "type": "boolean", "default": true }
             },
             "required": ["name", "layer_id", "x", "y", "color_index"]
-        })
+        }),
+        execute: |ctx, a: FillArgs| {
+            let contiguous = a.contiguous.unwrap_or(true);
+            let n = edit_project(ctx, &a.name, "flood_fill", |p| {
+                engine::flood_fill(p, &a.layer_id, a.x, a.y, a.color_index, contiguous)
+            })
+            .await?;
+            ok_json(json!({ "success": true, "pixels_filled": n }))
+        }
     }
+}
 
-    async fn execute(&self, args: Value) -> Result<ToolResult> {
-        let pname = require_name(&args)?;
-        let layer_id = require_layer_id(&args)?;
-        let x = json_as_u32(&args["x"]).unwrap_or(0);
-        let y = json_as_u32(&args["y"]).unwrap_or(0);
-        let ci = json_as_u8(&args["color_index"]).unwrap_or(0);
+// ---------------------------------------------------------------------------
+// get_pixels
+// ---------------------------------------------------------------------------
 
-        let mut store = self.store.write().await;
-        let project = store
-            .get_mut(pname)
-            .ok_or_else(|| MCPError::InvalidParameters(format!("Project not found: {pname}")))?;
+/// Maximum pixels returned by one `sprite_get_pixels` call.
+const MAX_READBACK: usize = 20_000;
 
-        let count = engine::flood_fill(project, layer_id, x, y, ci).map_err(MCPError::Internal)?;
+#[derive(Deserialize)]
+pub struct GetPixelsArgs {
+    name: String,
+    layer_id: String,
+    #[serde(default, deserialize_with = "args::opt_json")]
+    region: Option<RegionArg>,
+    #[serde(default)]
+    format: Option<String>,
+}
 
-        ToolResult::json(&json!({ "success": true, "pixels_filled": count }))
+sprite_tool! {
+    GetPixelsTool {
+        name: "sprite_get_pixels",
+        description: "Read back a layer's pixels (optionally within a region) so edits can be \
+            verified without rendering. format='list' (default) returns [x, y, color_index] \
+            triples sorted by row; format='grid' returns one string per row where each cell \
+            is the color index in hex (2 chars) or '..' for empty. Grid output requires a \
+            region of at most 64x64.",
+        schema: json!({
+            "type": "object",
+            "properties": {
+                "name": { "type": "string", "description": "Project name" },
+                "layer_id": { "type": "string", "description": "Layer ID or unique name" },
+                "region": region_schema("Optional region to read (clipped to the canvas)"),
+                "format": { "type": "string", "enum": ["list", "grid"], "default": "list" }
+            },
+            "required": ["name", "layer_id"]
+        }),
+        execute: |ctx, a: GetPixelsArgs| {
+            let store = ctx.store.read().await;
+            let p = get(&store, &a.name)?;
+            let layer = engine::find_layer(p, &a.layer_id).map_err(invalid)?;
+            let (x0, y0, x1, y1) = match a.region {
+                Some(r) => {
+                    let r: Region = r.into();
+                    r.check().map_err(invalid)?;
+                    crate::geometry::clip_rect(r.x, r.y, r.width, r.height, p.canvas.width, p.canvas.height)
+                        .unwrap_or((0, 0, 0, 0))
+                },
+                None => (0, 0, p.canvas.width, p.canvas.height),
+            };
+            match a.format.as_deref().unwrap_or("list") {
+                "list" => {
+                    let mut px: Vec<[u32; 3]> = layer
+                        .pixels
+                        .iter()
+                        .filter(|&(&(x, y), _)| x >= x0 && x < x1 && y >= y0 && y < y1)
+                        .map(|(&(x, y), &c)| [x, y, u32::from(c)])
+                        .collect();
+                    px.sort_unstable_by_key(|p| (p[1], p[0]));
+                    let total = px.len();
+                    px.truncate(MAX_READBACK);
+                    ok_json(json!({
+                        "layer": layer.name,
+                        "bounds": { "x": x0, "y": y0, "width": x1 - x0, "height": y1 - y0 },
+                        "count": total,
+                        "truncated": total > MAX_READBACK,
+                        "pixels": px
+                    }))
+                },
+                "grid" => {
+                    if a.region.is_none() || x1 - x0 > 64 || y1 - y0 > 64 {
+                        return Err(invalid(
+                            "format='grid' requires a region of at most 64x64".into(),
+                        ));
+                    }
+                    let rows: Vec<String> = (y0..y1)
+                        .map(|y| {
+                            (x0..x1)
+                                .map(|x| match layer.pixels.get(&(x, y)) {
+                                    Some(c) => format!("{c:02x}"),
+                                    None => "..".to_string(),
+                                })
+                                .collect()
+                        })
+                        .collect();
+                    ok_json(json!({
+                        "layer": layer.name,
+                        "bounds": { "x": x0, "y": y0, "width": x1 - x0, "height": y1 - y0 },
+                        "rows": rows
+                    }))
+                },
+                other => Err(invalid(format!(
+                    "format must be 'list' or 'grid', got '{other}'"
+                ))),
+            }
+        }
     }
 }

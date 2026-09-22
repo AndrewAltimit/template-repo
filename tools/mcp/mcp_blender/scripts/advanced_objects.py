@@ -5,9 +5,16 @@ Covers constraints, armatures, text objects, object relations, and advanced prim
 """
 
 import json
+import os
 import sys
 
 import bpy
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+from mcp_common import (  # noqa: E402  pylint: disable=wrong-import-position
+    run,
+)
 
 
 def add_constraint(args, _job_id):  # noqa: C901
@@ -228,11 +235,19 @@ def parent_objects(args, _job_id):
             print(f"Error: Parent object '{parent_name}' not found")
             return False
 
+        if parent_type == "BONE" and not bone_name:
+            print("Error: bone_name is required when parent_type is BONE")
+            return False
+        if parent_type == "BONE" and (parent.type != "ARMATURE" or bone_name not in parent.data.bones):
+            print(f"Error: '{parent_name}' is not an armature with a bone named '{bone_name}'")
+            return False
+
         parented = []
+        missing = []
         for child_name in children:
             child = bpy.data.objects.get(child_name)
             if not child:
-                print(f"Warning: Child '{child_name}' not found, skipping")
+                missing.append(child_name)
                 continue
 
             child.parent = parent
@@ -249,8 +264,10 @@ def parent_objects(args, _job_id):
         if "project" in args:
             bpy.ops.wm.save_mainfile()
 
-        print(json.dumps({"success": True, "parent": parent_name, "children_parented": parented}))
-        return True
+        if not parented:
+            print(f"Error: none of the children {children} exist")
+            return False
+        return {"success": True, "parent": parent_name, "children_parented": parented, "not_found": missing}
 
     except Exception as e:
         print(f"Error parenting objects: {e}")
@@ -477,15 +494,15 @@ def add_advanced_primitives(args, _job_id):
                 bpy.ops.object.metaball_add(type=metaball_type, location=location)
 
             else:
-                print(f"Unknown primitive type: {obj_type}")
-                continue
+                print(f"Error: Unknown primitive type '{obj_type}'")
+                return False
 
             # Configure created object
             obj = bpy.context.active_object
             obj.name = name
             obj.rotation_euler = rotation
             obj.scale = scale
-            created.append(name)
+            created.append(obj.name)
 
         if "project" in args:
             bpy.ops.wm.save_mainfile()
@@ -545,38 +562,18 @@ def apply_automatic_weights(args, _job_id):
 
 
 def main():
-    """Main entry point."""
-    argv = sys.argv
-
-    if "--" in argv:
-        argv = argv[argv.index("--") + 1 :]
-
-    if len(argv) < 1:
-        print("Usage: blender --python advanced_objects.py -- <json_args>")
-        sys.exit(1)
-
-    args = json.loads(argv[0])
-    job_id = args.get("job_id", "unknown")
-    operation = args.get("operation")
-
-    operations = {
-        "add_constraint": add_constraint,
-        "create_armature": create_armature,
-        "parent_objects": parent_objects,
-        "join_objects": join_objects,
-        "create_text_object": create_text_object,
-        "add_advanced_primitives": add_advanced_primitives,
-        "apply_automatic_weights": apply_automatic_weights,
-    }
-
-    func = operations.get(operation)
-    if func:
-        success = func(args, job_id)
-    else:
-        print(f"Unknown operation: {operation}")
-        sys.exit(1)
-
-    sys.exit(0 if success else 1)
+    """Dispatch the requested operation (see mcp_common.run)."""
+    run(
+        {
+            "add_constraint": add_constraint,
+            "create_armature": create_armature,
+            "parent_objects": parent_objects,
+            "join_objects": join_objects,
+            "create_text_object": create_text_object,
+            "add_advanced_primitives": add_advanced_primitives,
+            "apply_automatic_weights": apply_automatic_weights,
+        }
+    )
 
 
 if __name__ == "__main__":

@@ -1,6 +1,6 @@
 [package]
 name = "mcp-opencode"
-version = "1.1.0"
+version = "1.2.0"
 edition = "2024"
 description = "MCP server for AI-powered code assistance via OpenRouter"
 authors = ["AndrewAltimit"]
@@ -36,7 +36,6 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 # Error handling
-thiserror = "2.0"
 anyhow = "1.0"
 
 # Time
@@ -45,11 +44,9 @@ chrono = { version = "0.4", features = ["serde"] }
 # Environment variables
 dotenvy = "0.15"
 
-[dev-dependencies]
-tokio-test = "0.4"
-
 [profile.release]
 lto = true
 codegen-units = 1
-panic = "abort"
+# No `panic = "abort"`: mcp-core wraps tool calls in catch_unwind, which only
+# works when panics unwind.
 strip = true

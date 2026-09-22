@@ -26,10 +26,11 @@ FROM debian:bookworm-slim
 
 # Install runtime dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    # FFmpeg for audio/video processing
+    # FFmpeg for audio/video processing (built with libass for captions)
     ffmpeg \
-    # Audio libraries
-    libsndfile1 \
+    # Fonts for burned-in captions (libass falls back to these via fontconfig)
+    fontconfig \
+    fonts-dejavu-core \
     # Networking
     curl \
     ca-certificates \
@@ -37,15 +38,27 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     gosu \
     && rm -rf /var/lib/apt/lists/*
 
-# Create app user with configurable UID/GID
+# Optional: OpenAI Whisper CLI for transcription, captions and keyword clips.
+# It pulls in PyTorch (several GB), so it is opt-in:
+#   docker compose build --build-arg INSTALL_WHISPER=true mcp-video-editor
+ARG INSTALL_WHISPER=false
+RUN if [ "$INSTALL_WHISPER" = "true" ]; then \
+        apt-get update && \
+        apt-get install -y --no-install-recommends python3 python3-pip && \
+        pip3 install --no-cache-dir --break-system-packages openai-whisper && \
+        rm -rf /var/lib/apt/lists/*; \
+    fi
+
+# Create app user with configurable UID/GID. The name must match the user the
+# entrypoint switches to (gosu appuser).
 ARG USER_ID=1000
 ARG GROUP_ID=1000
-RUN groupadd -g ${GROUP_ID} mcp || true && \
-    useradd -m -u ${USER_ID} -g ${GROUP_ID} mcp || true
+RUN groupadd -g ${GROUP_ID} appuser && \
+    useradd -m -u ${USER_ID} -g ${GROUP_ID} appuser
 
 # Create directories
 RUN mkdir -p /app /output /cache /tmp/video_editor && \
-    chown -R mcp:mcp /app /output /cache /tmp/video_editor
+    chown -R appuser:appuser /app /output /cache /tmp/video_editor
 
 WORKDIR /app
 
@@ -64,6 +77,8 @@ ENV RUST_LOG=info
 ENV MCP_VIDEO_OUTPUT_DIR=/output
 ENV MCP_VIDEO_CACHE_DIR=/cache
 ENV MCP_VIDEO_TEMP_DIR=/tmp/video_editor
+# Whisper model downloads persist in the cache volume
+ENV XDG_CACHE_HOME=/cache/xdg
 
 # Expose port
 EXPOSE 8019

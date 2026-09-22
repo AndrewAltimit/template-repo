@@ -1,29 +1,71 @@
-//! Type definitions for video editor MCP server.
+//! Type definitions for the video editor MCP server: tool arguments, analysis
+//! results and edit decision lists.
+//!
+//! All tool arguments are deserialized into these typed structs. A malformed
+//! argument produces an `InvalidParameters` error naming the offending field
+//! instead of silently falling back to defaults.
+
+use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 
-/// Video analysis options
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
-pub struct AnalysisOptions {
-    #[serde(default = "default_true")]
-    pub transcribe: bool,
-    #[serde(default = "default_true")]
-    pub identify_speakers: bool,
-    #[serde(default = "default_true")]
-    pub detect_scenes: bool,
-    #[serde(default = "default_true")]
-    pub extract_highlights: bool,
-}
+use crate::ffmpeg::MediaInfo;
 
 fn default_true() -> bool {
     true
 }
 
-/// Result of video analysis
+// ============================================================================
+// Analysis
+// ============================================================================
+
+/// Video analysis options. Every analysis is enabled by default.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct AnalysisOptions {
+    /// Run Whisper speech-to-text.
+    #[serde(default = "default_true")]
+    pub transcribe: bool,
+    /// Identify speakers (energy-based, requires one time-synced video per speaker).
+    #[serde(default = "default_true")]
+    pub identify_speakers: bool,
+    /// Detect scene changes.
+    #[serde(default = "default_true")]
+    pub detect_scenes: bool,
+    /// Derive highlight moments from audio peaks and transcript keywords.
+    #[serde(default = "default_true")]
+    pub extract_highlights: bool,
+    /// Scene-change sensitivity in (0, 1]; lower detects more cuts.
+    #[serde(default = "default_scene_threshold")]
+    pub scene_threshold: f64,
+    /// Transcription language hint (ISO code such as `en`); auto-detect if absent.
+    #[serde(default)]
+    pub language: Option<String>,
+}
+
+fn default_scene_threshold() -> f64 {
+    0.3
+}
+
+impl Default for AnalysisOptions {
+    fn default() -> Self {
+        Self {
+            transcribe: true,
+            identify_speakers: true,
+            detect_scenes: true,
+            extract_highlights: true,
+            scene_threshold: default_scene_threshold(),
+            language: None,
+        }
+    }
+}
+
+/// Result of analysing one video.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VideoAnalysis {
     pub file: String,
     pub file_size: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub video_info: Option<MediaInfo>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub transcript: Option<Transcript>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -38,9 +80,31 @@ pub struct VideoAnalysis {
     pub highlights: Option<Vec<Highlight>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub suggested_edits: Option<Vec<EditSuggestion>>,
+    /// Non-fatal problems (e.g. transcription unavailable).
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub warnings: Vec<String>,
 }
 
-/// Transcript from speech recognition
+impl VideoAnalysis {
+    /// An empty analysis for `file`.
+    pub fn new(file: &str, file_size: u64) -> Self {
+        Self {
+            file: file.to_string(),
+            file_size,
+            video_info: None,
+            transcript: None,
+            speakers: None,
+            segments_with_speakers: None,
+            audio_analysis: None,
+            scene_changes: None,
+            highlights: None,
+            suggested_edits: None,
+            warnings: Vec::new(),
+        }
+    }
+}
+
+/// Transcript from speech recognition.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Transcript {
     pub text: String,
@@ -48,7 +112,7 @@ pub struct Transcript {
     pub segments: Vec<TranscriptSegment>,
 }
 
-/// A segment of the transcript
+/// A segment of the transcript.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TranscriptSegment {
     pub id: u32,
@@ -59,7 +123,7 @@ pub struct TranscriptSegment {
     pub words: Vec<Word>,
 }
 
-/// Word-level timestamp
+/// Word-level timestamp.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Word {
     pub word: String,
@@ -73,7 +137,7 @@ fn default_probability() -> f64 {
     1.0
 }
 
-/// Transcript segment with speaker identification
+/// Transcript segment annotated with the active speaker.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TranscriptSegmentWithSpeaker {
     pub id: u32,
@@ -83,34 +147,56 @@ pub struct TranscriptSegmentWithSpeaker {
     pub speaker: Option<String>,
 }
 
-/// Speaker information from diarization
+/// Speaker summary.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Speaker {
     pub id: String,
     pub total_speaking_time: f64,
     pub segment_count: u32,
     pub segments: Vec<(f64, f64)>,
+    /// Video the speaker was detected on (energy-based detection only).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source: Option<String>,
 }
 
-/// Audio analysis results
+/// A contiguous interval where one speaker is active.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+pub struct SpeakerTurn {
+    pub speaker: String,
+    pub start: f64,
+    pub end: f64,
+}
+
+/// Audio analysis results.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AudioAnalysis {
     pub duration: f64,
     pub sample_rate: u32,
+    /// Silent intervals `[start, end]` at least `silence_threshold` long.
     pub silence_segments: Vec<(f64, f64)>,
+    /// Downsampled loudness curve (at most a few hundred points).
     pub volume_profile: Vec<VolumePoint>,
+    /// Times of the loudest local peaks.
     pub peak_moments: Vec<f64>,
+    /// Mean loudness in dBFS.
+    #[serde(default)]
+    pub mean_db: f64,
+    /// Peak window loudness in dBFS.
+    #[serde(default)]
+    pub max_db: f64,
 }
 
-/// A point in the volume profile
+/// A point in the volume profile.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct VolumePoint {
     pub time: f64,
+    /// Linear RMS amplitude in [0, 1].
     pub rms: f64,
+    /// RMS in dBFS.
     pub db: f64,
 }
 
-/// A highlight in the video
+/// A highlight in the video.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Highlight {
     pub time: f64,
@@ -124,7 +210,7 @@ pub struct Highlight {
     pub text: Option<String>,
 }
 
-/// An edit suggestion
+/// An edit suggestion.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EditSuggestion {
     #[serde(rename = "type")]
@@ -142,39 +228,61 @@ pub struct EditSuggestion {
     pub reason: String,
 }
 
-/// Editing rules for video composition
+// ============================================================================
+// Editing
+// ============================================================================
+
+/// Editing rules as supplied by the caller; unset fields fall back to the
+/// server's configured defaults (see [`EditingRules`]).
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+pub struct EditingRulesInput {
+    pub switch_on_speaker: Option<bool>,
+    pub speaker_switch_delay: Option<f64>,
+    pub picture_in_picture: Option<String>,
+    pub zoom_on_emphasis: Option<bool>,
+    pub remove_silence: Option<bool>,
+    pub silence_threshold: Option<f64>,
+    pub pip_size: Option<f64>,
+    pub transition_duration: Option<f64>,
+    pub transition_type: Option<String>,
+}
+
+/// Picture-in-picture mode.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum PipMode {
+    /// Currently equivalent to `never`; reserved for smarter heuristics.
+    Auto,
+    Always,
+    Never,
+}
+
+impl PipMode {
+    /// Parse a PiP mode string (lenient: on/off/true/false accepted).
+    pub fn parse(s: &str) -> Result<Self, String> {
+        match s.trim().to_ascii_lowercase().as_str() {
+            "auto" | "" => Ok(Self::Auto),
+            "always" | "on" | "true" | "yes" => Ok(Self::Always),
+            "never" | "off" | "false" | "no" | "none" => Ok(Self::Never),
+            other => Err(format!(
+                "Invalid picture_in_picture '{other}' (expected auto, always or never)"
+            )),
+        }
+    }
+}
+
+/// Fully resolved editing rules.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EditingRules {
-    #[serde(default = "default_true")]
     pub switch_on_speaker: bool,
-    #[serde(default = "default_speaker_delay")]
     pub speaker_switch_delay: f64,
-    #[serde(default = "default_pip")]
-    pub picture_in_picture: String,
-    #[serde(default = "default_true")]
+    pub picture_in_picture: PipMode,
     pub zoom_on_emphasis: bool,
-    #[serde(default = "default_true")]
     pub remove_silence: bool,
-    #[serde(default = "default_silence_threshold")]
     pub silence_threshold: f64,
-    #[serde(default = "default_pip_size")]
     pub pip_size: f64,
-}
-
-fn default_speaker_delay() -> f64 {
-    0.5
-}
-
-fn default_pip() -> String {
-    "auto".to_string()
-}
-
-fn default_silence_threshold() -> f64 {
-    2.0
-}
-
-fn default_pip_size() -> f64 {
-    0.25
+    pub transition_duration: f64,
+    pub transition_type: String,
 }
 
 impl Default for EditingRules {
@@ -182,31 +290,69 @@ impl Default for EditingRules {
         Self {
             switch_on_speaker: true,
             speaker_switch_delay: 0.5,
-            picture_in_picture: "auto".to_string(),
+            picture_in_picture: PipMode::Auto,
             zoom_on_emphasis: true,
             remove_silence: true,
             silence_threshold: 2.0,
             pip_size: 0.25,
+            transition_duration: 0.5,
+            transition_type: "cross_dissolve".to_string(),
         }
     }
 }
 
-/// An edit decision in the EDL
-#[derive(Debug, Clone, Serialize, Deserialize)]
+/// An edit decision in the EDL.
+///
+/// `timestamp` is the in-point in `source` (seconds); `duration` is the
+/// length taken from that source. Decisions are played back in order.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct EditDecision {
     pub timestamp: f64,
     pub duration: f64,
     pub source: String,
+    /// `show` (first shot), `transition` (cross-fade from previous), or `cut`.
+    #[serde(default = "default_action")]
     pub action: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    /// Transition into this decision (`cross_dissolve`, `fade`, `wipeleft`,
+    /// ... or `cut`). `None` means a hard cut.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub transition_type: Option<String>,
+    /// Transition length in seconds (defaults to the server default).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub transition_duration: Option<f64>,
+    /// Effects applied to this shot. Supported: `zoom_in`.
     #[serde(default)]
     pub effects: Vec<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    /// Picture-in-picture size as a fraction of output width.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub pip_size: Option<f64>,
+    /// Secondary video shown as picture-in-picture (same timestamp).
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub pip_source: Option<String>,
 }
 
-/// Output settings for video rendering
+fn default_action() -> String {
+    "show".to_string()
+}
+
+impl EditDecision {
+    /// A plain shot with no transition or effects.
+    pub fn shot(source: &str, timestamp: f64, duration: f64) -> Self {
+        Self {
+            timestamp,
+            duration,
+            source: source.to_string(),
+            action: "show".to_string(),
+            transition_type: None,
+            transition_duration: None,
+            effects: Vec::new(),
+            pip_size: None,
+            pip_source: None,
+        }
+    }
+}
+
+/// Output settings for video rendering.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OutputSettings {
     #[serde(default = "default_format")]
@@ -217,9 +363,9 @@ pub struct OutputSettings {
     pub fps: u32,
     #[serde(default = "default_bitrate")]
     pub bitrate: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub output_path: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub codec: Option<String>,
 }
 
@@ -242,17 +388,17 @@ fn default_bitrate() -> String {
 impl Default for OutputSettings {
     fn default() -> Self {
         Self {
-            format: "mp4".to_string(),
-            resolution: "1920x1080".to_string(),
-            fps: 30,
-            bitrate: "8M".to_string(),
+            format: default_format(),
+            resolution: default_resolution(),
+            fps: default_fps(),
+            bitrate: default_bitrate(),
             output_path: None,
             codec: None,
         }
     }
 }
 
-/// Render options
+/// Render options.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RenderOptions {
     #[serde(default = "default_true")]
@@ -276,8 +422,8 @@ impl Default for RenderOptions {
     }
 }
 
-/// Clip extraction criteria
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+/// Clip extraction criteria.
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ExtractionCriteria {
     #[serde(default)]
     pub keywords: Vec<String>,
@@ -305,21 +451,39 @@ fn default_padding() -> f64 {
     0.5
 }
 
-/// Caption style settings
+impl Default for ExtractionCriteria {
+    fn default() -> Self {
+        Self {
+            keywords: Vec::new(),
+            speakers: Vec::new(),
+            time_ranges: Vec::new(),
+            min_clip_length: default_min_clip(),
+            max_clip_length: default_max_clip(),
+            padding: default_padding(),
+        }
+    }
+}
+
+/// Caption style settings.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CaptionStyle {
     #[serde(default = "default_font")]
     pub font: String,
+    /// Font size in output-video pixels.
     #[serde(default = "default_font_size")]
     pub size: u32,
+    /// Text colour, `#RRGGBB` or `#RRGGBBAA`.
     #[serde(default = "default_color")]
     pub color: String,
+    /// Box colour behind the text, `#RRGGBB[AA]`, or `none` for an outline only.
     #[serde(default = "default_background")]
     pub background: String,
+    /// `bottom`, `top` or `middle`.
     #[serde(default = "default_position")]
     pub position: String,
     #[serde(default = "default_max_chars")]
     pub max_chars_per_line: u32,
+    /// Prefix captions with speaker names when speaker labels are known.
     #[serde(default = "default_true")]
     pub display_speaker_names: bool,
 }
@@ -351,18 +515,18 @@ fn default_max_chars() -> u32 {
 impl Default for CaptionStyle {
     fn default() -> Self {
         Self {
-            font: "Arial".to_string(),
-            size: 42,
-            color: "#FFFFFF".to_string(),
-            background: "#000000".to_string(),
-            position: "bottom".to_string(),
-            max_chars_per_line: 40,
+            font: default_font(),
+            size: default_font_size(),
+            color: default_color(),
+            background: default_background(),
+            position: default_position(),
+            max_chars_per_line: default_max_chars(),
             display_speaker_names: true,
         }
     }
 }
 
-/// Extracted clip information
+/// Extracted clip information.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ExtractedClip {
     pub output_path: String,
@@ -378,113 +542,99 @@ pub struct ExtractedClip {
     pub text: Option<String>,
 }
 
-/// Server configuration
-#[derive(Debug, Clone)]
-pub struct ServerConfig {
-    pub output_dir: String,
-    pub cache_dir: String,
-    pub temp_dir: String,
-    pub models: ModelConfig,
-    #[allow(dead_code)]
-    pub defaults: DefaultConfig,
-    pub performance: PerformanceConfig,
+// ============================================================================
+// Tool arguments
+// ============================================================================
+
+/// Arguments for `video_editor/analyze`.
+#[derive(Debug, Deserialize)]
+pub struct AnalyzeArgs {
+    pub video_inputs: Vec<String>,
+    #[serde(default)]
+    pub analysis_options: Option<AnalysisOptions>,
+    #[serde(default)]
+    pub background: bool,
 }
 
-/// Model configuration
-#[derive(Debug, Clone)]
-pub struct ModelConfig {
-    pub whisper_model: String,
-    #[allow(dead_code)]
-    pub whisper_device: String,
-    #[allow(dead_code)]
-    pub diart_device: String,
+/// Arguments for `video_editor/create_edit`.
+#[derive(Debug, Deserialize)]
+pub struct CreateEditArgs {
+    pub video_inputs: Vec<String>,
+    #[serde(default)]
+    pub editing_rules: Option<EditingRulesInput>,
+    #[serde(default)]
+    pub speaker_mapping: Option<HashMap<String, String>>,
+    #[serde(default)]
+    pub background: bool,
 }
 
-/// Default editing parameters
-#[derive(Debug, Clone)]
-#[allow(dead_code)]
-pub struct DefaultConfig {
-    pub transition_duration: f64,
-    pub speaker_switch_delay: f64,
-    pub silence_threshold: f64,
-    pub zoom_factor: f64,
-    pub pip_size: f64,
+/// Arguments for `video_editor/render`.
+#[derive(Debug, Deserialize)]
+pub struct RenderArgs {
+    pub video_inputs: Vec<String>,
+    #[serde(default)]
+    pub edit_decision_list: Option<Vec<EditDecision>>,
+    #[serde(default)]
+    pub output_settings: Option<OutputSettings>,
+    #[serde(default)]
+    pub render_options: Option<RenderOptions>,
+    #[serde(default)]
+    pub editing_rules: Option<EditingRulesInput>,
+    #[serde(default)]
+    pub speaker_mapping: Option<HashMap<String, String>>,
+    #[serde(default)]
+    pub background: bool,
 }
 
-/// Performance configuration
-#[derive(Debug, Clone)]
-pub struct PerformanceConfig {
-    #[allow(dead_code)]
-    pub max_parallel_jobs: u32,
-    #[allow(dead_code)]
-    pub video_cache_size: String,
-    pub enable_gpu: bool,
-    #[allow(dead_code)]
-    pub chunk_size: u32,
+/// Arguments for `video_editor/extract_clips`.
+#[derive(Debug, Deserialize)]
+pub struct ExtractClipsArgs {
+    pub video_input: String,
+    #[serde(default)]
+    pub extraction_criteria: Option<ExtractionCriteria>,
+    #[serde(default)]
+    pub output_dir: Option<String>,
+    #[serde(default)]
+    pub stream_copy: bool,
+    #[serde(default)]
+    pub max_clips: Option<usize>,
+    #[serde(default)]
+    pub background: bool,
 }
 
-impl Default for ServerConfig {
-    fn default() -> Self {
-        let output_dir =
-            std::env::var("MCP_VIDEO_OUTPUT_DIR").unwrap_or_else(|_| "/app/output".to_string());
-        let cache_dir = std::env::var("MCP_VIDEO_CACHE_DIR").unwrap_or_else(|_| {
-            dirs::cache_dir()
-                .map(|d| d.join("mcp-video-editor").to_string_lossy().to_string())
-                .unwrap_or_else(|| "/tmp/mcp-video-editor/cache".to_string())
-        });
-        let temp_dir =
-            std::env::var("MCP_VIDEO_TEMP_DIR").unwrap_or_else(|_| "/tmp/video_editor".to_string());
+/// Arguments for `video_editor/add_captions`.
+#[derive(Debug, Deserialize)]
+pub struct AddCaptionsArgs {
+    pub video_input: String,
+    #[serde(default)]
+    pub caption_style: Option<CaptionStyle>,
+    #[serde(default)]
+    pub languages: Option<Vec<String>>,
+    #[serde(default)]
+    pub output_path: Option<String>,
+    #[serde(default = "default_true")]
+    pub burn_in: bool,
+    #[serde(default)]
+    pub background: bool,
+}
 
-        Self {
-            output_dir,
-            cache_dir,
-            temp_dir,
-            models: ModelConfig {
-                whisper_model: std::env::var("WHISPER_MODEL")
-                    .unwrap_or_else(|_| "medium".to_string()),
-                whisper_device: std::env::var("WHISPER_DEVICE")
-                    .unwrap_or_else(|_| "cpu".to_string()),
-                diart_device: std::env::var("DIART_DEVICE").unwrap_or_else(|_| "cpu".to_string()),
-            },
-            defaults: DefaultConfig {
-                transition_duration: std::env::var("TRANSITION_DURATION")
-                    .ok()
-                    .and_then(|v| v.parse().ok())
-                    .unwrap_or(0.5),
-                speaker_switch_delay: std::env::var("SPEAKER_SWITCH_DELAY")
-                    .ok()
-                    .and_then(|v| v.parse().ok())
-                    .unwrap_or(0.8),
-                silence_threshold: std::env::var("SILENCE_THRESHOLD")
-                    .ok()
-                    .and_then(|v| v.parse().ok())
-                    .unwrap_or(2.0),
-                zoom_factor: std::env::var("ZOOM_FACTOR")
-                    .ok()
-                    .and_then(|v| v.parse().ok())
-                    .unwrap_or(1.3),
-                pip_size: std::env::var("PIP_SIZE")
-                    .ok()
-                    .and_then(|v| v.parse().ok())
-                    .unwrap_or(0.25),
-            },
-            performance: PerformanceConfig {
-                max_parallel_jobs: std::env::var("MAX_PARALLEL_JOBS")
-                    .ok()
-                    .and_then(|v| v.parse().ok())
-                    .unwrap_or(2),
-                video_cache_size: std::env::var("VIDEO_CACHE_SIZE")
-                    .unwrap_or_else(|_| "2GB".to_string()),
-                enable_gpu: std::env::var("ENABLE_GPU")
-                    .map(|v| v.to_lowercase() == "true")
-                    .unwrap_or(true),
-                chunk_size: std::env::var("CHUNK_SIZE")
-                    .ok()
-                    .and_then(|v| v.parse().ok())
-                    .unwrap_or(300),
-            },
-        }
-    }
+/// Arguments for tools that take a single job id.
+#[derive(Debug, Deserialize)]
+pub struct JobIdArgs {
+    pub job_id: String,
+}
+
+/// Arguments for `video_editor/list_jobs`.
+#[derive(Debug, Default, Deserialize)]
+pub struct ListJobsArgs {
+    #[serde(default)]
+    pub status: Option<String>,
+}
+
+/// Arguments for `video_editor/get_video_info`.
+#[derive(Debug, Deserialize)]
+pub struct VideoInfoArgs {
+    pub video_input: String,
 }
 
 #[cfg(test)]
@@ -492,233 +642,108 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_analysis_options_default() {
-        // Note: #[derive(Default)] uses bool::default() = false
-        // The serde defaults only apply during deserialization
-        let options = AnalysisOptions::default();
-        assert!(!options.transcribe);
-        assert!(!options.identify_speakers);
-        assert!(!options.detect_scenes);
-        assert!(!options.extract_highlights);
+    fn analysis_options_defaults_agree() {
+        let from_default = AnalysisOptions::default();
+        let from_serde: AnalysisOptions = serde_json::from_str("{}").unwrap();
+        for o in [from_default, from_serde] {
+            assert!(o.transcribe && o.identify_speakers && o.detect_scenes && o.extract_highlights);
+            assert_eq!(o.scene_threshold, 0.3);
+        }
     }
 
     #[test]
-    fn test_analysis_options_serde_default() {
-        // When deserializing empty JSON, serde defaults kick in
-        let options: AnalysisOptions = serde_json::from_str("{}").unwrap();
-        assert!(options.transcribe);
-        assert!(options.identify_speakers);
-        assert!(options.detect_scenes);
-        assert!(options.extract_highlights);
+    fn analysis_options_partial() {
+        let o: AnalysisOptions = serde_json::from_str(r#"{"transcribe": false}"#).unwrap();
+        assert!(!o.transcribe);
+        assert!(o.detect_scenes);
     }
 
     #[test]
-    fn test_analysis_options_serialize() {
-        let options = AnalysisOptions {
-            transcribe: true,
-            identify_speakers: false,
-            detect_scenes: true,
-            extract_highlights: false,
-        };
-
-        let json = serde_json::to_string(&options).unwrap();
-        let parsed: AnalysisOptions = serde_json::from_str(&json).unwrap();
-
-        assert_eq!(options.transcribe, parsed.transcribe);
-        assert_eq!(options.identify_speakers, parsed.identify_speakers);
-        assert_eq!(options.detect_scenes, parsed.detect_scenes);
-        assert_eq!(options.extract_highlights, parsed.extract_highlights);
+    fn analysis_options_wrong_type_is_error() {
+        assert!(serde_json::from_str::<AnalysisOptions>(r#"{"transcribe": "yes"}"#).is_err());
     }
 
     #[test]
-    fn test_edit_decision_serialize() {
-        let decision = EditDecision {
+    fn extraction_criteria_defaults_agree() {
+        let d = ExtractionCriteria::default();
+        let s: ExtractionCriteria = serde_json::from_str("{}").unwrap();
+        for c in [d, s] {
+            assert_eq!(c.min_clip_length, 3.0);
+            assert_eq!(c.max_clip_length, 60.0);
+            assert_eq!(c.padding, 0.5);
+            assert!(c.keywords.is_empty() && c.speakers.is_empty() && c.time_ranges.is_empty());
+        }
+    }
+
+    #[test]
+    fn extraction_criteria_time_ranges() {
+        let c: ExtractionCriteria =
+            serde_json::from_str(r#"{"time_ranges": [[1.0, 5.5], [10, 20]]}"#).unwrap();
+        assert_eq!(c.time_ranges, vec![(1.0, 5.5), (10.0, 20.0)]);
+        assert!(serde_json::from_str::<ExtractionCriteria>(r#"{"time_ranges": [[1.0]]}"#).is_err());
+    }
+
+    #[test]
+    fn edit_decision_roundtrip_and_legacy_shape() {
+        let d = EditDecision {
             timestamp: 10.5,
             duration: 5.0,
-            source: "/path/to/video.mp4".to_string(),
-            action: "show".to_string(),
-            transition_type: Some("cross_dissolve".to_string()),
-            effects: vec!["zoom".to_string()],
+            source: "/v.mp4".into(),
+            action: "transition".into(),
+            transition_type: Some("cross_dissolve".into()),
+            transition_duration: None,
+            effects: vec!["zoom_in".into()],
             pip_size: Some(0.25),
+            pip_source: None,
         };
-
-        let json = serde_json::to_string(&decision).unwrap();
-        let parsed: EditDecision = serde_json::from_str(&json).unwrap();
-
-        assert_eq!(decision.timestamp, parsed.timestamp);
-        assert_eq!(decision.duration, parsed.duration);
-        assert_eq!(decision.source, parsed.source);
-        assert_eq!(decision.action, parsed.action);
-        assert_eq!(decision.transition_type, parsed.transition_type);
-        assert_eq!(decision.effects, parsed.effects);
-        assert_eq!(decision.pip_size, parsed.pip_size);
+        let json = serde_json::to_string(&d).unwrap();
+        assert_eq!(serde_json::from_str::<EditDecision>(&json).unwrap(), d);
+        // Minimal legacy decision (as produced by older versions) still parses.
+        let legacy: EditDecision = serde_json::from_str(
+            r#"{"timestamp":0,"duration":2,"source":"a.mp4","action":"show"}"#,
+        )
+        .unwrap();
+        assert!(legacy.effects.is_empty());
+        assert!(legacy.pip_source.is_none());
     }
 
     #[test]
-    fn test_editing_rules_default() {
-        let rules = EditingRules::default();
-
-        assert!(rules.switch_on_speaker);
-        assert!(rules.remove_silence);
-        assert!(rules.zoom_on_emphasis);
-        assert_eq!(rules.speaker_switch_delay, 0.5);
-        assert_eq!(rules.picture_in_picture, "auto");
-        assert_eq!(rules.silence_threshold, 2.0);
-        assert_eq!(rules.pip_size, 0.25);
+    fn output_settings_defaults() {
+        let s: OutputSettings = serde_json::from_str("{}").unwrap();
+        assert_eq!(s.format, "mp4");
+        assert_eq!(s.resolution, "1920x1080");
+        assert_eq!(s.fps, 30);
+        assert_eq!(s.bitrate, "8M");
+        assert!(s.output_path.is_none() && s.codec.is_none());
     }
 
     #[test]
-    fn test_output_settings_default() {
-        let settings = OutputSettings::default();
-
-        assert_eq!(settings.format, "mp4");
-        assert_eq!(settings.resolution, "1920x1080");
-        assert_eq!(settings.fps, 30);
-        assert_eq!(settings.bitrate, "8M");
-        assert!(settings.output_path.is_none());
-        assert!(settings.codec.is_none());
+    fn render_options_defaults() {
+        let o: RenderOptions = serde_json::from_str("{}").unwrap();
+        assert!(o.hardware_acceleration && !o.preview_mode && !o.add_captions);
     }
 
     #[test]
-    fn test_output_settings_serialize() {
-        let settings = OutputSettings {
-            format: "mp4".to_string(),
-            resolution: "3840x2160".to_string(),
-            fps: 60,
-            bitrate: "20M".to_string(),
-            output_path: Some("/output/video.mp4".to_string()),
-            codec: Some("h264".to_string()),
-        };
-
-        let json = serde_json::to_string(&settings).unwrap();
-        let parsed: OutputSettings = serde_json::from_str(&json).unwrap();
-
-        assert_eq!(settings.resolution, parsed.resolution);
-        assert_eq!(settings.fps, parsed.fps);
-        assert_eq!(settings.bitrate, parsed.bitrate);
-        assert_eq!(settings.output_path, parsed.output_path);
-        assert_eq!(settings.codec, parsed.codec);
+    fn caption_style_defaults_agree() {
+        let d = CaptionStyle::default();
+        let s: CaptionStyle = serde_json::from_str("{}").unwrap();
+        assert_eq!(d.font, s.font);
+        assert_eq!(d.size, 42);
+        assert_eq!(s.max_chars_per_line, 40);
     }
 
     #[test]
-    fn test_transcript_segment_serialize() {
-        let segment = TranscriptSegment {
-            id: 1,
-            start: 0.0,
-            end: 5.5,
-            text: "Hello, world!".to_string(),
-            words: vec![
-                Word {
-                    word: "Hello,".to_string(),
-                    start: 0.0,
-                    end: 0.5,
-                    probability: 0.95,
-                },
-                Word {
-                    word: "world!".to_string(),
-                    start: 0.6,
-                    end: 1.0,
-                    probability: 0.98,
-                },
-            ],
-        };
-
-        let json = serde_json::to_string(&segment).unwrap();
-        let parsed: TranscriptSegment = serde_json::from_str(&json).unwrap();
-
-        assert_eq!(segment.start, parsed.start);
-        assert_eq!(segment.end, parsed.end);
-        assert_eq!(segment.text, parsed.text);
-        assert_eq!(parsed.words.len(), 2);
+    fn pip_mode_parsing() {
+        assert_eq!(PipMode::parse("auto").unwrap(), PipMode::Auto);
+        assert_eq!(PipMode::parse("ON").unwrap(), PipMode::Always);
+        assert_eq!(PipMode::parse("never").unwrap(), PipMode::Never);
+        assert!(PipMode::parse("sometimes").is_err());
     }
 
     #[test]
-    fn test_extraction_criteria_default() {
-        // Note: #[derive(Default)] uses f64::default() = 0.0
-        // The serde defaults only apply during deserialization
-        let criteria = ExtractionCriteria::default();
-
-        assert!(criteria.keywords.is_empty());
-        assert!(criteria.speakers.is_empty());
-        assert!(criteria.time_ranges.is_empty());
-        assert_eq!(criteria.min_clip_length, 0.0);
-        assert_eq!(criteria.max_clip_length, 0.0);
-        assert_eq!(criteria.padding, 0.0);
-    }
-
-    #[test]
-    fn test_extraction_criteria_serde_default() {
-        // When deserializing empty JSON, serde defaults kick in
-        let criteria: ExtractionCriteria = serde_json::from_str("{}").unwrap();
-
-        assert!(criteria.keywords.is_empty());
-        assert!(criteria.speakers.is_empty());
-        assert!(criteria.time_ranges.is_empty());
-        assert_eq!(criteria.min_clip_length, 3.0);
-        assert_eq!(criteria.max_clip_length, 60.0);
-        assert_eq!(criteria.padding, 0.5);
-    }
-
-    #[test]
-    fn test_extraction_criteria_serialize() {
-        let criteria = ExtractionCriteria {
-            keywords: vec!["important".to_string(), "key".to_string()],
-            time_ranges: vec![(0.0, 10.0), (20.0, 30.0)],
-            speakers: vec!["Speaker 1".to_string()],
-            min_clip_length: 5.0,
-            max_clip_length: 120.0,
-            padding: 2.0,
-        };
-
-        let json = serde_json::to_string(&criteria).unwrap();
-        let parsed: ExtractionCriteria = serde_json::from_str(&json).unwrap();
-
-        assert_eq!(criteria.keywords, parsed.keywords);
-        assert_eq!(criteria.time_ranges.len(), parsed.time_ranges.len());
-        assert_eq!(criteria.min_clip_length, parsed.min_clip_length);
-        assert_eq!(criteria.max_clip_length, parsed.max_clip_length);
-        assert_eq!(criteria.padding, parsed.padding);
-    }
-
-    #[test]
-    fn test_server_config_default() {
-        let config = ServerConfig::default();
-
-        assert!(!config.output_dir.is_empty());
-        assert!(!config.cache_dir.is_empty());
-        assert!(!config.temp_dir.is_empty());
-        assert!(!config.models.whisper_model.is_empty());
-        assert!(config.performance.enable_gpu);
-    }
-
-    #[test]
-    fn test_caption_style_default() {
-        let style = CaptionStyle::default();
-
-        assert_eq!(style.font, "Arial");
-        assert_eq!(style.size, 42);
-        assert_eq!(style.color, "#FFFFFF");
-        assert_eq!(style.background, "#000000");
-        assert_eq!(style.position, "bottom");
-        assert_eq!(style.max_chars_per_line, 40);
-        assert!(style.display_speaker_names);
-    }
-
-    #[test]
-    fn test_word_serialize() {
-        let word = Word {
-            word: "test".to_string(),
-            start: 0.0,
-            end: 0.5,
-            probability: 0.99,
-        };
-
-        let json = serde_json::to_string(&word).unwrap();
-        let parsed: Word = serde_json::from_str(&json).unwrap();
-
-        assert_eq!(word.word, parsed.word);
-        assert_eq!(word.start, parsed.start);
-        assert_eq!(word.end, parsed.end);
-        assert_eq!(word.probability, parsed.probability);
+    fn add_captions_args_burn_in_default() {
+        let a: AddCaptionsArgs = serde_json::from_str(r#"{"video_input":"a.mp4"}"#).unwrap();
+        assert!(a.burn_in);
+        assert!(!a.background);
     }
 }

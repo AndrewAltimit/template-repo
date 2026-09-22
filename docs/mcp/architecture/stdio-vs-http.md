@@ -63,9 +63,8 @@ result = mcp__content-creation__compile_latex(content="...")
 - **STDIO**: Auto-started locally by Claude when using `mcp__code-quality__*` tools
 - **HTTP**: Available at port 8010 for testing or remote access
 
-#### Gemini Server
-- **STDIO**: Runs locally on host (requires Docker access)
-- **HTTP**: Port 8006 for cross-process communication
+#### ~~Gemini Server~~ (DISABLED)
+- Gemini integrations are disabled (see `AGENTS.md`)
 
 ### Remote/Cross-Machine Servers (HTTP Required)
 
@@ -90,8 +89,9 @@ The `.mcp.json` configuration uses `docker compose run` which respects volume mo
 ```json
 {
   "content-creation": {
-    "command": "docker compose",
-    "args": ["run", "--rm", "-T", "mcp-content-creation", ...]
+    "command": "docker",
+    "args": ["compose", "-f", "./docker-compose.yml", "--profile", "services",
+             "run", "--rm", "-T", "mcp-content-creation", "mcp-content-creation", "--mode", "stdio"]
   }
 }
 ```
@@ -139,6 +139,8 @@ Both modes will write to `./outputs/mcp-content/` on the host.
 
 This section provides technical details for implementing and troubleshooting HTTP-based MCP servers using the Streamable HTTP transport specification.
 
+All servers in this repository get their HTTP transport from the shared Rust library [`mcp-core`](../../../tools/mcp/mcp_core_rust/README.md), which implements the behaviour described below. The Python snippets illustrate the protocol for anyone implementing a server by hand.
+
 ### Overview
 
 The Streamable HTTP transport allows MCP servers to operate as independent HTTP services that can handle multiple client connections. This transport uses HTTP POST and GET requests, with optional Server-Sent Events (SSE) support for streaming.
@@ -160,7 +162,7 @@ For the complete specification, see: [MCP Streamable HTTP Transport Specificatio
 }
 ```
 
-**Important**: The URL must point to the `/messages` endpoint, not `/mcp` or other paths.
+**Important**: The URL must point to the MCP JSON-RPC endpoint. `mcp-core` servers accept `/messages`, `/mcp` and `/mcp/rpc`; this repository's configuration uses `/messages`. The REST helpers (`/mcp/tools`, `/mcp/execute`, `/health`) are not MCP endpoints.
 
 #### Remote Server Configuration
 
@@ -181,7 +183,7 @@ For servers running on remote machines:
 
 #### 1. Single Endpoint
 
-The server MUST provide a single HTTP endpoint (e.g., `/messages`) that supports both POST and GET methods.
+The server MUST provide a single MCP endpoint (e.g., `/messages`) for POST requests. GET on that endpoint opens an optional server-to-client SSE stream; a server that does not offer one returns `405 Method Not Allowed` (as `mcp-core` does, since it answers with JSON only). `mcp-core` also accepts `DELETE` with `Mcp-Session-Id` to end a session.
 
 #### 2. OAuth Discovery (Optional but Recommended)
 
@@ -218,16 +220,14 @@ headers = {
 
 #### 4. Protocol Version Handling
 
-Echo back the client's requested protocol version:
+Echo back the client's requested protocol version if the server supports it; otherwise respond with the latest version it supports (the client then decides whether to continue). `mcp-core` supports `2025-11-25`, `2025-06-18`, `2025-03-26` and `2024-11-05`:
 
 ```python
 return {
-    "protocolVersion": params["protocolVersion"],  # Echo client's version
+    "protocolVersion": requested if requested in SUPPORTED else SUPPORTED[0],  # negotiate
     "serverInfo": {"name": "Your Server", "version": "1.0.0"},
     "capabilities": {
-        "tools": {"listChanged": True},
-        "resources": {},  # Use {} not null/None
-        "prompts": {}     # Use {} not null/None
+        "tools": {"listChanged": False}  # advertise only what you implement; never null
     }
 }
 ```
@@ -240,6 +240,11 @@ Notifications (requests without an `id` field) MUST return 202 Accepted with no 
 if request_id is None:  # This is a notification
     return Response(status_code=202, headers={"Mcp-Session-Id": session_id})
 ```
+
+#### 6. Tool Errors and Utility Methods
+
+- A tool that fails at runtime returns a normal `tools/call` result with `"isError": true` and the error text in `content`, so the model can read it and retry. JSON-RPC errors are reserved for protocol problems (`-32602 Invalid params` for an unknown tool or malformed arguments, `-32601` for an unknown method).
+- `ping` returns an empty result: `{"jsonrpc": "2.0", "result": {}, "id": ...}`.
 
 ### Complete Connection Flow
 
@@ -328,7 +333,7 @@ async def oauth_protected_resource(request):
 1. Returning `null` instead of `{}` for empty capabilities
 2. Not generating/returning a session ID
 3. Not handling notifications correctly (must return 202)
-4. Hardcoding protocol version instead of echoing client's version
+4. Hardcoding a protocol version instead of negotiating (echo the client's version when supported)
 
 #### Issue: 404 on OAuth endpoints
 

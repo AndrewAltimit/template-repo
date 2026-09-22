@@ -14,7 +14,7 @@
     },
     "template_file": {
       "type": "string",
-      "description": "Filename of the template image"
+      "description": "Plain file name of the template image in the templates directory (no sub-directories); .jpg, .jpeg, .png or .webp. The real format is sniffed from the file content."
     },
     "description": {
       "type": "string",
@@ -41,37 +41,49 @@
             "type": "object",
             "properties": {
               "x": {
-                "type": "number"
+                "type": "integer",
+                "minimum": 0
               },
               "y": {
-                "type": "number"
+                "type": "integer",
+                "minimum": 0
               }
             },
             "required": [
               "x",
               "y"
             ],
-            "description": "Center position of text area"
+            "description": "Center of the text area in image pixels (must lie inside the image)"
           },
           "width": {
-            "type": "number",
-            "description": "Width of text area in pixels"
+            "type": "integer",
+            "minimum": 1,
+            "description": "Maximum line width in pixels (text is wrapped to fit)"
           },
           "height": {
-            "type": "number",
-            "description": "Height of text area in pixels"
+            "type": "integer",
+            "minimum": 1,
+            "description": "Maximum text block height in pixels"
           },
           "default_font_size": {
-            "type": "number",
-            "description": "Default font size for this area"
+            "type": "integer",
+            "minimum": 6,
+            "maximum": 300,
+            "description": "Font size (px) used when auto_resize is false"
           },
           "max_font_size": {
-            "type": "number",
-            "description": "Maximum allowed font size"
+            "type": "integer",
+            "minimum": 6,
+            "maximum": 300,
+            "description": "Largest size tried by auto-resize",
+            "default": 80
           },
           "min_font_size": {
-            "type": "number",
-            "description": "Minimum allowed font size"
+            "type": "integer",
+            "minimum": 6,
+            "maximum": 300,
+            "description": "Smallest size tried by auto-resize",
+            "default": 12
           },
           "text_align": {
             "type": "string",
@@ -84,19 +96,25 @@
           },
           "text_color": {
             "type": "string",
-            "default": "white"
+            "default": "white",
+            "description": "Named color (white, black, red, green, lime, blue, yellow, orange, purple, pink, cyan, magenta, gray, brown) or hex #RGB, #RRGGBB, #RRGGBBAA"
           },
           "stroke_color": {
             "type": "string",
-            "default": "black"
+            "default": "black",
+            "description": "Named color (white, black, red, green, lime, blue, yellow, orange, purple, pink, cyan, magenta, gray, brown) or hex #RGB, #RRGGBB, #RRGGBBAA"
           },
           "stroke_width": {
-            "type": "number",
-            "default": 2
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 16,
+            "default": 2,
+            "description": "Outline radius in pixels (0 = no outline)"
           },
           "max_chars": {
-            "type": "number",
-            "description": "Recommended maximum characters"
+            "type": "integer",
+            "minimum": 1,
+            "description": "Recommended maximum characters (exceeding it produces a warning, not an error)"
           },
           "recommended_text": {
             "type": "string",
@@ -122,9 +140,25 @@
       "items": {
         "type": "object",
         "additionalProperties": {
-          "type": "string"
+          "type": "string",
+          "description": "Caption text keyed by text area id"
+        },
+        "properties": {
+          "explanation": {
+            "type": "string",
+            "description": "Why the example works"
+          }
         }
       }
+    },
+    "cultural_context": {
+      "type": "string",
+      "description": "Origin of the meme and why it is funny"
+    },
+    "text_positioning_note": {
+      "type": "string",
+      "description": "Guidance on where the text goes"
     }
-  }
+  },
+  "description": "Meme template config. The file name (without .json) is the template id and may only contain letters, digits, '_' and '-'. Semantic checks (colors, font ranges, area inside image) are enforced by the server at load time; failures appear in meme_generator_status load_errors."
 }

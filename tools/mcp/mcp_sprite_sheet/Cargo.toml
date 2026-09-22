@@ -1,6 +1,6 @@
 [package]
 name = "mcp-sprite-sheet"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2024"
 license = "MIT"
 repository = "https://github.com/AndrewAltimit/template-repo"
@@ -22,19 +22,20 @@ async-trait = "0.1"
 # Serialization
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+# Field paths ("pixels[3].x") in argument-parsing error messages
+serde_path_to_error = "0.1"
 
 # CLI
-clap = { version = "4.5", features = ["derive"] }
+clap = { version = "4.5", features = ["derive", "env"] }
 
 # Logging
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 # Error handling
-thiserror = "2.0"
 anyhow = "1.0"
 
-# Image processing
+# Image processing (PNG/JPEG/WebP/GIF decode; PNG + animated GIF encode)
 image = { version = "0.25", default-features = false, features = ["png", "jpeg", "webp", "gif"] }
 
 # Base64 encoding
@@ -43,9 +44,6 @@ base64 = "0.22"
 # UUID generation
 uuid = { version = "1.0", features = ["v4", "serde"] }
 
-# Time
-chrono = { version = "0.4", features = ["serde"] }
-
 [dev-dependencies]
 tokio-test = "0.4"
 mcp-testing = { path = "../mcp_core_rust/crates/mcp-testing" }
@@ -53,5 +51,7 @@ mcp-testing = { path = "../mcp_core_rust/crates/mcp-testing" }
 [profile.release]
 lto = true
 codegen-units = 1
-panic = "abort"
 strip = true
+# NOTE: do not set `panic = "abort"`. mcp-core wraps every tool call in a
+# `catch_unwind` boundary so a panicking tool becomes an `isError` result;
+# aborting on panic would defeat that and take the whole server down.

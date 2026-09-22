@@ -1,674 +1,558 @@
-//! Type definitions for the Blender MCP server.
+//! Shared types: job records and the validated string enums used by tool
+//! arguments.
+//!
+//! Enums are declared with [`string_enum!`], which keeps the accepted values,
+//! the JSON-schema `enum` lists and the value forwarded to the Blender scripts
+//! in one place. Parsing is case-insensitive (`"cube"`, `"CUBE"` and `"Cube"`
+//! are all accepted) but the canonical spelling is always what gets forwarded.
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-/// Job status for async operations
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
-pub enum JobStatus {
-    Queued,
-    Running,
-    Completed,
-    Failed,
-    Cancelled,
+/// Declare a closed set of string values with case-insensitive parsing,
+/// canonical serialization and an `ALL` list for JSON schemas.
+macro_rules! string_enum {
+    ($(#[$meta:meta])* $name:ident { $($variant:ident => $text:literal),+ $(,)? }) => {
+        $(#[$meta])*
+        #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+        pub enum $name {
+            $(
+                #[doc = concat!("`", $text, "`")]
+                $variant
+            ),+
+        }
+
+        impl $name {
+            /// Every accepted value, in canonical spelling.
+            pub const ALL: &'static [&'static str] = &[$($text),+];
+
+            /// Canonical spelling (what the Blender scripts receive).
+            pub fn as_str(self) -> &'static str {
+                match self {
+                    $(Self::$variant => $text),+
+                }
+            }
+        }
+
+        impl std::str::FromStr for $name {
+            type Err = String;
+
+            fn from_str(value: &str) -> Result<Self, Self::Err> {
+                $(
+                    if value.eq_ignore_ascii_case($text) {
+                        return Ok(Self::$variant);
+                    }
+                )+
+                Err(format!(
+                    "invalid value '{}' (expected one of: {})",
+                    value,
+                    Self::ALL.join(", ")
+                ))
+            }
+        }
+
+        impl std::fmt::Display for $name {
+            fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+                f.write_str(self.as_str())
+            }
+        }
+
+        impl Serialize for $name {
+            fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+                serializer.serialize_str(self.as_str())
+            }
+        }
+
+        impl<'de> Deserialize<'de> for $name {
+            fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+                let raw = String::deserialize(deserializer)?;
+                raw.parse().map_err(serde::de::Error::custom)
+            }
+        }
+    };
 }
 
-impl std::fmt::Display for JobStatus {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+string_enum! {
+    /// Lifecycle state of an asynchronous job.
+    JobStatus {
+        Queued => "QUEUED",
+        Running => "RUNNING",
+        Completed => "COMPLETED",
+        Failed => "FAILED",
+        Cancelled => "CANCELLED",
+    }
+}
+
+impl JobStatus {
+    /// Whether the job can no longer change state.
+    pub fn is_terminal(self) -> bool {
+        matches!(self, Self::Completed | Self::Failed | Self::Cancelled)
+    }
+}
+
+string_enum! {
+    /// Project templates understood by `scene_builder.py`.
+    ProjectTemplate {
+        Empty => "empty",
+        BasicScene => "basic_scene",
+        StudioLighting => "studio_lighting",
+        LitEmpty => "lit_empty",
+        Procedural => "procedural",
+        Animation => "animation",
+        Physics => "physics",
+        Architectural => "architectural",
+        Product => "product",
+        Vfx => "vfx",
+        GameAsset => "game_asset",
+        Sculpting => "sculpting",
+    }
+}
+
+string_enum! {
+    /// Render engines. EEVEE aliases are resolved to whatever the running
+    /// Blender calls it (`BLENDER_EEVEE_NEXT` in 4.2-4.x).
+    RenderEngine {
+        Cycles => "CYCLES",
+        Eevee => "BLENDER_EEVEE",
+        EeveeNext => "BLENDER_EEVEE_NEXT",
+        EeveeShort => "EEVEE",
+        Workbench => "BLENDER_WORKBENCH",
+        WorkbenchShort => "WORKBENCH",
+    }
+}
+
+string_enum! {
+    /// Mesh primitives for `add_primitive_objects`.
+    PrimitiveType {
+        Cube => "cube",
+        Sphere => "sphere",
+        UvSphere => "uv_sphere",
+        Cylinder => "cylinder",
+        Cone => "cone",
+        Torus => "torus",
+        Plane => "plane",
+        Monkey => "monkey",
+    }
+}
+
+string_enum! {
+    /// Advanced primitives for `add_advanced_primitives`.
+    AdvancedPrimitiveType {
+        Grid => "grid",
+        Circle => "circle",
+        IcoSphere => "ico_sphere",
+        Empty => "empty",
+        BezierCurve => "bezier_curve",
+        NurbsCurve => "nurbs_curve",
+        NurbsCircle => "nurbs_circle",
+        Metaball => "metaball",
+    }
+}
+
+string_enum! {
+    /// Lighting rigs for `setup_lighting`.
+    LightingType {
+        ThreePoint => "three_point",
+        Studio => "studio",
+        Hdri => "hdri",
+        Sun => "sun",
+        Area => "area",
+    }
+}
+
+string_enum! {
+    /// Material presets for `apply_material`.
+    MaterialType {
+        Principled => "principled",
+        Emission => "emission",
+        Glass => "glass",
+        Metal => "metal",
+        Plastic => "plastic",
+        Wood => "wood",
+    }
+}
+
+string_enum! {
+    /// Still image output formats.
+    ImageFormat {
+        Png => "PNG",
+        Jpeg => "JPEG",
+        Exr => "EXR",
+        Tiff => "TIFF",
+    }
+}
+
+impl ImageFormat {
+    /// File extension Blender writes for this format.
+    pub fn extension(self) -> &'static str {
         match self {
-            JobStatus::Queued => write!(f, "QUEUED"),
-            JobStatus::Running => write!(f, "RUNNING"),
-            JobStatus::Completed => write!(f, "COMPLETED"),
-            JobStatus::Failed => write!(f, "FAILED"),
-            JobStatus::Cancelled => write!(f, "CANCELLED"),
+            Self::Png => "png",
+            Self::Jpeg => "jpg",
+            Self::Exr => "exr",
+            Self::Tiff => "tif",
         }
     }
 }
 
-/// A job representing an async Blender operation
+string_enum! {
+    /// Animation output formats (`FRAMES` = PNG image sequence).
+    VideoFormat {
+        Mp4 => "MP4",
+        Avi => "AVI",
+        Mov => "MOV",
+        Mkv => "MKV",
+        Webm => "WEBM",
+        Frames => "FRAMES",
+    }
+}
+
+string_enum! {
+    /// Physics simulation types for `setup_physics`.
+    PhysicsType {
+        RigidBody => "rigid_body",
+        SoftBody => "soft_body",
+        Cloth => "cloth",
+        Fluid => "fluid",
+    }
+}
+
+string_enum! {
+    /// Rigid-body collision shapes.
+    CollisionShape {
+        Box => "box",
+        Sphere => "sphere",
+        ConvexHull => "convex_hull",
+        Mesh => "mesh",
+    }
+}
+
+string_enum! {
+    /// Keyframe interpolation modes.
+    Interpolation {
+        Linear => "LINEAR",
+        Bezier => "BEZIER",
+        Constant => "CONSTANT",
+    }
+}
+
+string_enum! {
+    /// Geometry-node presets implemented by `geometry_nodes.py`.
+    GeometryNodeSetup {
+        Scatter => "scatter",
+        Array => "array",
+        Grid => "grid",
+        Curve => "curve",
+        Spiral => "spiral",
+        Volume => "volume",
+        WaveDeform => "wave_deform",
+        Twist => "twist",
+        NoiseDisplace => "noise_displace",
+        Extrude => "extrude",
+        VoronoiScatter => "voronoi_scatter",
+        MeshToPoints => "mesh_to_points",
+        CrystalScatter => "crystal_scatter",
+        CrystalCluster => "crystal_cluster",
+        Custom => "custom",
+        ProximityMask => "proximity_mask",
+        BlurAttribute => "blur_attribute",
+        MapRangeDisplacement => "map_range_displacement",
+        EdgeCreaseDetection => "edge_crease_detection",
+        OrganicMutation => "organic_mutation",
+    }
+}
+
+string_enum! {
+    /// Formats accepted by `import_model`.
+    ImportFormat {
+        Fbx => "FBX",
+        Obj => "OBJ",
+        Gltf => "GLTF",
+        Glb => "GLB",
+        Stl => "STL",
+        Ply => "PLY",
+        Usd => "USD",
+    }
+}
+
+impl ImportFormat {
+    /// Infer the format from a file extension (case-insensitive).
+    pub fn from_extension(ext: &str) -> Option<Self> {
+        match ext.to_ascii_lowercase().as_str() {
+            "fbx" => Some(Self::Fbx),
+            "obj" => Some(Self::Obj),
+            "gltf" => Some(Self::Gltf),
+            "glb" => Some(Self::Glb),
+            "stl" => Some(Self::Stl),
+            "ply" => Some(Self::Ply),
+            "usd" | "usda" | "usdc" | "usdz" => Some(Self::Usd),
+            _ => None,
+        }
+    }
+}
+
+string_enum! {
+    /// Formats accepted by `export_scene`.
+    ExportFormat {
+        Fbx => "FBX",
+        Obj => "OBJ",
+        Gltf => "GLTF",
+        Glb => "GLB",
+        Stl => "STL",
+        Ply => "PLY",
+        Usd => "USD",
+    }
+}
+
+impl ExportFormat {
+    /// File extension used for the exported file.
+    pub fn extension(self) -> &'static str {
+        match self {
+            Self::Fbx => "fbx",
+            Self::Obj => "obj",
+            Self::Gltf => "gltf",
+            Self::Glb => "glb",
+            Self::Stl => "stl",
+            Self::Ply => "ply",
+            Self::Usd => "usd",
+        }
+    }
+}
+
+string_enum! {
+    /// Mesh modifiers for `add_modifier`.
+    ModifierType {
+        Subsurf => "SUBSURF",
+        Array => "ARRAY",
+        Mirror => "MIRROR",
+        Solidify => "SOLIDIFY",
+        Bevel => "BEVEL",
+        Decimate => "DECIMATE",
+        Remesh => "REMESH",
+        Smooth => "SMOOTH",
+        Wave => "WAVE",
+        Displace => "DISPLACE",
+    }
+}
+
+string_enum! {
+    /// Camera tracking constraints.
+    TrackType {
+        TrackTo => "TRACK_TO",
+        DampedTrack => "DAMPED_TRACK",
+        LockedTrack => "LOCKED_TRACK",
+    }
+}
+
+string_enum! {
+    /// Shader textures for `add_texture` (`MUSGRAVE` maps to Noise on 4.1+).
+    TextureType {
+        Image => "IMAGE",
+        Noise => "NOISE",
+        Voronoi => "VORONOI",
+        Musgrave => "MUSGRAVE",
+        Wave => "WAVE",
+        Magic => "MAGIC",
+        Brick => "BRICK",
+        Checker => "CHECKER",
+        Gradient => "GRADIENT",
+    }
+}
+
+string_enum! {
+    /// UV projection methods.
+    ProjectionType {
+        SmartProject => "SMART_PROJECT",
+        CubeProject => "CUBE_PROJECT",
+        CylinderProject => "CYLINDER_PROJECT",
+        SphereProject => "SPHERE_PROJECT",
+        ProjectFromView => "PROJECT_FROM_VIEW",
+    }
+}
+
+string_enum! {
+    /// Compositor presets.
+    CompositorSetup {
+        Basic => "BASIC",
+        Denoising => "DENOISING",
+        ColorGrading => "COLOR_GRADING",
+        Glare => "GLARE",
+        FogGlow => "FOG_GLOW",
+        LensDistortion => "LENS_DISTORTION",
+        Vignette => "VIGNETTE",
+    }
+}
+
+string_enum! {
+    /// Detail levels for `analyze_scene`.
+    AnalysisType {
+        Basic => "BASIC",
+        Detailed => "DETAILED",
+        Performance => "PERFORMANCE",
+        Memory => "MEMORY",
+    }
+}
+
+string_enum! {
+    /// Passes for `optimize_scene`.
+    OptimizationType {
+        MeshCleanup => "MESH_CLEANUP",
+        TextureOptimization => "TEXTURE_OPTIMIZATION",
+        ModifierApply => "MODIFIER_APPLY",
+        InstanceOptimization => "INSTANCE_OPTIMIZATION",
+        MaterialCleanup => "MATERIAL_CLEANUP",
+    }
+}
+
+string_enum! {
+    /// World environment presets.
+    EnvironmentType {
+        Hdri => "HDRI",
+        SkyTexture => "SKY_TEXTURE",
+        Gradient => "GRADIENT",
+        Color => "COLOR",
+        Volumetric => "VOLUMETRIC",
+    }
+}
+
+string_enum! {
+    /// Emitter styles for `quick_smoke`.
+    SmokeStyle {
+        Smoke => "SMOKE",
+        Fire => "FIRE",
+        Both => "BOTH",
+    }
+}
+
+string_enum! {
+    /// Emitter styles for `add_smoke_simulation`.
+    SmokeType {
+        Smoke => "smoke",
+        Fire => "fire",
+        Both => "both",
+    }
+}
+
+string_enum! {
+    /// Particle system kinds.
+    ParticleType {
+        Emitter => "emitter",
+        Hair => "hair",
+    }
+}
+
+string_enum! {
+    /// Strand counts for `quick_fur` (1k / 10k / 100k per object).
+    FurDensity {
+        Low => "LOW",
+        Medium => "MEDIUM",
+        High => "HIGH",
+    }
+}
+
+string_enum! {
+    /// Constraint types for `add_constraint`.
+    ConstraintType {
+        TrackTo => "TRACK_TO",
+        CopyLocation => "COPY_LOCATION",
+        CopyRotation => "COPY_ROTATION",
+        CopyScale => "COPY_SCALE",
+        LimitLocation => "LIMIT_LOCATION",
+        LimitRotation => "LIMIT_ROTATION",
+        LimitScale => "LIMIT_SCALE",
+        FollowPath => "FOLLOW_PATH",
+        DampedTrack => "DAMPED_TRACK",
+        Floor => "FLOOR",
+        ChildOf => "CHILD_OF",
+    }
+}
+
+string_enum! {
+    /// Horizontal text alignment.
+    AlignX {
+        Center => "CENTER",
+        Left => "LEFT",
+        Right => "RIGHT",
+        Justify => "JUSTIFY",
+        Flush => "FLUSH",
+    }
+}
+
+string_enum! {
+    /// Vertical text alignment.
+    AlignY {
+        Top => "TOP",
+        Center => "CENTER",
+        Bottom => "BOTTOM",
+    }
+}
+
+string_enum! {
+    /// Parenting modes for `parent_objects`.
+    ParentType {
+        Object => "OBJECT",
+        Armature => "ARMATURE",
+        Bone => "BONE",
+    }
+}
+
+string_enum! {
+    /// Spline types for `create_curve`.
+    CurveType {
+        Bezier => "BEZIER",
+        Nurbs => "NURBS",
+        Poly => "POLY",
+    }
+}
+
+/// A tracked asynchronous Blender operation (render, bake, ...).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Job {
+    /// Unique job identifier (also the status-file name).
     pub id: Uuid,
+    /// Tool that created the job, e.g. `render_image`.
     pub job_type: String,
+    /// Current lifecycle state.
     pub status: JobStatus,
+    /// Progress percentage, 0-100.
     pub progress: u8,
+    /// Latest human-readable progress message.
     pub message: String,
+    /// Project file the job operates on, if any.
+    pub project: Option<String>,
+    /// When the job was queued.
     pub created_at: DateTime<Utc>,
+    /// Last state/progress change.
     pub updated_at: Option<DateTime<Utc>>,
+    /// When Blender actually started (after waiting for a free slot).
+    pub started_at: Option<DateTime<Utc>>,
+    /// When the job reached a terminal state.
+    pub finished_at: Option<DateTime<Utc>>,
+    /// Script result for completed jobs.
     pub result: Option<serde_json::Value>,
+    /// Main output file or directory.
     pub output_path: Option<String>,
+    /// Failure reason for failed jobs.
     pub error: Option<String>,
 }
 
 impl Job {
+    /// A new queued job of the given type.
     pub fn new(job_type: &str) -> Self {
         Self {
             id: Uuid::new_v4(),
             job_type: job_type.to_string(),
             status: JobStatus::Queued,
             progress: 0,
-            message: String::new(),
+            message: "Waiting for a free Blender slot".to_string(),
+            project: None,
             created_at: Utc::now(),
             updated_at: None,
+            started_at: None,
+            finished_at: None,
             result: None,
             output_path: None,
             error: None,
-        }
-    }
-
-    pub fn with_id(mut self, id: Uuid) -> Self {
-        self.id = id;
-        self
-    }
-}
-
-/// Project template types
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum ProjectTemplate {
-    Empty,
-    BasicScene,
-    StudioLighting,
-    LitEmpty,
-    Procedural,
-    Animation,
-    Physics,
-    Architectural,
-    Product,
-    Vfx,
-    GameAsset,
-    Sculpting,
-}
-
-impl Default for ProjectTemplate {
-    fn default() -> Self {
-        ProjectTemplate::BasicScene
-    }
-}
-
-impl std::fmt::Display for ProjectTemplate {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            ProjectTemplate::Empty => write!(f, "empty"),
-            ProjectTemplate::BasicScene => write!(f, "basic_scene"),
-            ProjectTemplate::StudioLighting => write!(f, "studio_lighting"),
-            ProjectTemplate::LitEmpty => write!(f, "lit_empty"),
-            ProjectTemplate::Procedural => write!(f, "procedural"),
-            ProjectTemplate::Animation => write!(f, "animation"),
-            ProjectTemplate::Physics => write!(f, "physics"),
-            ProjectTemplate::Architectural => write!(f, "architectural"),
-            ProjectTemplate::Product => write!(f, "product"),
-            ProjectTemplate::Vfx => write!(f, "vfx"),
-            ProjectTemplate::GameAsset => write!(f, "game_asset"),
-            ProjectTemplate::Sculpting => write!(f, "sculpting"),
-        }
-    }
-}
-
-/// Primitive object types
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum PrimitiveType {
-    Cube,
-    Sphere,
-    Cylinder,
-    Cone,
-    Torus,
-    Plane,
-    Monkey,
-}
-
-impl std::fmt::Display for PrimitiveType {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            PrimitiveType::Cube => write!(f, "cube"),
-            PrimitiveType::Sphere => write!(f, "sphere"),
-            PrimitiveType::Cylinder => write!(f, "cylinder"),
-            PrimitiveType::Cone => write!(f, "cone"),
-            PrimitiveType::Torus => write!(f, "torus"),
-            PrimitiveType::Plane => write!(f, "plane"),
-            PrimitiveType::Monkey => write!(f, "monkey"),
-        }
-    }
-}
-
-/// Lighting setup types
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum LightingType {
-    ThreePoint,
-    Studio,
-    Hdri,
-    Sun,
-    Area,
-}
-
-impl std::fmt::Display for LightingType {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            LightingType::ThreePoint => write!(f, "three_point"),
-            LightingType::Studio => write!(f, "studio"),
-            LightingType::Hdri => write!(f, "hdri"),
-            LightingType::Sun => write!(f, "sun"),
-            LightingType::Area => write!(f, "area"),
-        }
-    }
-}
-
-/// Material types
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum MaterialType {
-    Principled,
-    Emission,
-    Glass,
-    Metal,
-    Plastic,
-    Wood,
-}
-
-impl Default for MaterialType {
-    fn default() -> Self {
-        MaterialType::Principled
-    }
-}
-
-impl std::fmt::Display for MaterialType {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            MaterialType::Principled => write!(f, "principled"),
-            MaterialType::Emission => write!(f, "emission"),
-            MaterialType::Glass => write!(f, "glass"),
-            MaterialType::Metal => write!(f, "metal"),
-            MaterialType::Plastic => write!(f, "plastic"),
-            MaterialType::Wood => write!(f, "wood"),
-        }
-    }
-}
-
-/// Render engine types
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
-pub enum RenderEngine {
-    Cycles,
-    BlenderEevee,
-    BlenderWorkbench,
-}
-
-impl Default for RenderEngine {
-    fn default() -> Self {
-        RenderEngine::Cycles
-    }
-}
-
-impl std::fmt::Display for RenderEngine {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            RenderEngine::Cycles => write!(f, "CYCLES"),
-            RenderEngine::BlenderEevee => write!(f, "BLENDER_EEVEE"),
-            RenderEngine::BlenderWorkbench => write!(f, "BLENDER_WORKBENCH"),
-        }
-    }
-}
-
-/// Image format types
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
-pub enum ImageFormat {
-    Png,
-    Jpeg,
-    Exr,
-    Tiff,
-}
-
-impl Default for ImageFormat {
-    fn default() -> Self {
-        ImageFormat::Png
-    }
-}
-
-impl std::fmt::Display for ImageFormat {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            ImageFormat::Png => write!(f, "PNG"),
-            ImageFormat::Jpeg => write!(f, "JPEG"),
-            ImageFormat::Exr => write!(f, "EXR"),
-            ImageFormat::Tiff => write!(f, "TIFF"),
-        }
-    }
-}
-
-/// Video format types
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
-pub enum VideoFormat {
-    Mp4,
-    Avi,
-    Mov,
-    Frames,
-}
-
-impl Default for VideoFormat {
-    fn default() -> Self {
-        VideoFormat::Mp4
-    }
-}
-
-impl std::fmt::Display for VideoFormat {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            VideoFormat::Mp4 => write!(f, "MP4"),
-            VideoFormat::Avi => write!(f, "AVI"),
-            VideoFormat::Mov => write!(f, "MOV"),
-            VideoFormat::Frames => write!(f, "FRAMES"),
-        }
-    }
-}
-
-/// Physics simulation types
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum PhysicsType {
-    RigidBody,
-    SoftBody,
-    Cloth,
-    Fluid,
-}
-
-impl std::fmt::Display for PhysicsType {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            PhysicsType::RigidBody => write!(f, "rigid_body"),
-            PhysicsType::SoftBody => write!(f, "soft_body"),
-            PhysicsType::Cloth => write!(f, "cloth"),
-            PhysicsType::Fluid => write!(f, "fluid"),
-        }
-    }
-}
-
-/// Collision shape types
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum CollisionShape {
-    Box,
-    Sphere,
-    ConvexHull,
-    Mesh,
-}
-
-impl Default for CollisionShape {
-    fn default() -> Self {
-        CollisionShape::ConvexHull
-    }
-}
-
-impl std::fmt::Display for CollisionShape {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            CollisionShape::Box => write!(f, "box"),
-            CollisionShape::Sphere => write!(f, "sphere"),
-            CollisionShape::ConvexHull => write!(f, "convex_hull"),
-            CollisionShape::Mesh => write!(f, "mesh"),
-        }
-    }
-}
-
-/// Interpolation types for animation
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
-pub enum Interpolation {
-    Linear,
-    Bezier,
-    Constant,
-}
-
-impl Default for Interpolation {
-    fn default() -> Self {
-        Interpolation::Bezier
-    }
-}
-
-impl std::fmt::Display for Interpolation {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Interpolation::Linear => write!(f, "LINEAR"),
-            Interpolation::Bezier => write!(f, "BEZIER"),
-            Interpolation::Constant => write!(f, "CONSTANT"),
-        }
-    }
-}
-
-/// Geometry node setup types
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum GeometryNodeSetup {
-    Scatter,
-    Array,
-    Grid,
-    Curve,
-    Spiral,
-    Volume,
-    WaveDeform,
-    Twist,
-    NoiseDisplace,
-    Extrude,
-    VoronoiScatter,
-    MeshToPoints,
-    CrystalScatter,
-    CrystalCluster,
-    Custom,
-    ProximityMask,
-    BlurAttribute,
-    MapRangeDisplacement,
-    EdgeCreaseDetection,
-    OrganicMutation,
-}
-
-impl std::fmt::Display for GeometryNodeSetup {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            GeometryNodeSetup::Scatter => write!(f, "scatter"),
-            GeometryNodeSetup::Array => write!(f, "array"),
-            GeometryNodeSetup::Grid => write!(f, "grid"),
-            GeometryNodeSetup::Curve => write!(f, "curve"),
-            GeometryNodeSetup::Spiral => write!(f, "spiral"),
-            GeometryNodeSetup::Volume => write!(f, "volume"),
-            GeometryNodeSetup::WaveDeform => write!(f, "wave_deform"),
-            GeometryNodeSetup::Twist => write!(f, "twist"),
-            GeometryNodeSetup::NoiseDisplace => write!(f, "noise_displace"),
-            GeometryNodeSetup::Extrude => write!(f, "extrude"),
-            GeometryNodeSetup::VoronoiScatter => write!(f, "voronoi_scatter"),
-            GeometryNodeSetup::MeshToPoints => write!(f, "mesh_to_points"),
-            GeometryNodeSetup::CrystalScatter => write!(f, "crystal_scatter"),
-            GeometryNodeSetup::CrystalCluster => write!(f, "crystal_cluster"),
-            GeometryNodeSetup::Custom => write!(f, "custom"),
-            GeometryNodeSetup::ProximityMask => write!(f, "proximity_mask"),
-            GeometryNodeSetup::BlurAttribute => write!(f, "blur_attribute"),
-            GeometryNodeSetup::MapRangeDisplacement => write!(f, "map_range_displacement"),
-            GeometryNodeSetup::EdgeCreaseDetection => write!(f, "edge_crease_detection"),
-            GeometryNodeSetup::OrganicMutation => write!(f, "organic_mutation"),
-        }
-    }
-}
-
-/// Export format types
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
-pub enum ExportFormat {
-    Fbx,
-    Obj,
-    Gltf,
-    Stl,
-    Usd,
-}
-
-impl std::fmt::Display for ExportFormat {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            ExportFormat::Fbx => write!(f, "FBX"),
-            ExportFormat::Obj => write!(f, "OBJ"),
-            ExportFormat::Gltf => write!(f, "GLTF"),
-            ExportFormat::Stl => write!(f, "STL"),
-            ExportFormat::Usd => write!(f, "USD"),
-        }
-    }
-}
-
-/// Import format types
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
-pub enum ImportFormat {
-    Fbx,
-    Obj,
-    Gltf,
-    Stl,
-    Ply,
-}
-
-impl std::fmt::Display for ImportFormat {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            ImportFormat::Fbx => write!(f, "FBX"),
-            ImportFormat::Obj => write!(f, "OBJ"),
-            ImportFormat::Gltf => write!(f, "GLTF"),
-            ImportFormat::Stl => write!(f, "STL"),
-            ImportFormat::Ply => write!(f, "PLY"),
-        }
-    }
-}
-
-/// Modifier types
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
-pub enum ModifierType {
-    Subsurf,
-    Array,
-    Mirror,
-    Solidify,
-    Bevel,
-    Decimate,
-    Remesh,
-    Smooth,
-    Wave,
-    Displace,
-}
-
-impl std::fmt::Display for ModifierType {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            ModifierType::Subsurf => write!(f, "SUBSURF"),
-            ModifierType::Array => write!(f, "ARRAY"),
-            ModifierType::Mirror => write!(f, "MIRROR"),
-            ModifierType::Solidify => write!(f, "SOLIDIFY"),
-            ModifierType::Bevel => write!(f, "BEVEL"),
-            ModifierType::Decimate => write!(f, "DECIMATE"),
-            ModifierType::Remesh => write!(f, "REMESH"),
-            ModifierType::Smooth => write!(f, "SMOOTH"),
-            ModifierType::Wave => write!(f, "WAVE"),
-            ModifierType::Displace => write!(f, "DISPLACE"),
-        }
-    }
-}
-
-/// Camera tracking types
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
-pub enum TrackType {
-    TrackTo,
-    DampedTrack,
-    LockedTrack,
-}
-
-impl std::fmt::Display for TrackType {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            TrackType::TrackTo => write!(f, "TRACK_TO"),
-            TrackType::DampedTrack => write!(f, "DAMPED_TRACK"),
-            TrackType::LockedTrack => write!(f, "LOCKED_TRACK"),
-        }
-    }
-}
-
-/// Texture types
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
-pub enum TextureType {
-    Image,
-    Noise,
-    Voronoi,
-    Musgrave,
-    Wave,
-    Magic,
-    Brick,
-    Checker,
-}
-
-impl std::fmt::Display for TextureType {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            TextureType::Image => write!(f, "IMAGE"),
-            TextureType::Noise => write!(f, "NOISE"),
-            TextureType::Voronoi => write!(f, "VORONOI"),
-            TextureType::Musgrave => write!(f, "MUSGRAVE"),
-            TextureType::Wave => write!(f, "WAVE"),
-            TextureType::Magic => write!(f, "MAGIC"),
-            TextureType::Brick => write!(f, "BRICK"),
-            TextureType::Checker => write!(f, "CHECKER"),
-        }
-    }
-}
-
-/// UV projection types
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
-pub enum UvProjection {
-    SmartProject,
-    CubeProject,
-    CylinderProject,
-    SphereProject,
-    ProjectFromView,
-}
-
-impl std::fmt::Display for UvProjection {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            UvProjection::SmartProject => write!(f, "SMART_PROJECT"),
-            UvProjection::CubeProject => write!(f, "CUBE_PROJECT"),
-            UvProjection::CylinderProject => write!(f, "CYLINDER_PROJECT"),
-            UvProjection::SphereProject => write!(f, "SPHERE_PROJECT"),
-            UvProjection::ProjectFromView => write!(f, "PROJECT_FROM_VIEW"),
-        }
-    }
-}
-
-/// Compositor setup types
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
-pub enum CompositorSetup {
-    Basic,
-    Denoising,
-    ColorGrading,
-    Glare,
-    FogGlow,
-    LensDistortion,
-    Vignette,
-}
-
-impl std::fmt::Display for CompositorSetup {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            CompositorSetup::Basic => write!(f, "BASIC"),
-            CompositorSetup::Denoising => write!(f, "DENOISING"),
-            CompositorSetup::ColorGrading => write!(f, "COLOR_GRADING"),
-            CompositorSetup::Glare => write!(f, "GLARE"),
-            CompositorSetup::FogGlow => write!(f, "FOG_GLOW"),
-            CompositorSetup::LensDistortion => write!(f, "LENS_DISTORTION"),
-            CompositorSetup::Vignette => write!(f, "VIGNETTE"),
-        }
-    }
-}
-
-/// World environment types
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
-pub enum EnvironmentType {
-    Hdri,
-    SkyTexture,
-    Gradient,
-    Color,
-    Volumetric,
-}
-
-impl std::fmt::Display for EnvironmentType {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            EnvironmentType::Hdri => write!(f, "HDRI"),
-            EnvironmentType::SkyTexture => write!(f, "SKY_TEXTURE"),
-            EnvironmentType::Gradient => write!(f, "GRADIENT"),
-            EnvironmentType::Color => write!(f, "COLOR"),
-            EnvironmentType::Volumetric => write!(f, "VOLUMETRIC"),
-        }
-    }
-}
-
-/// Particle system types
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum ParticleType {
-    Emitter,
-    Hair,
-}
-
-impl std::fmt::Display for ParticleType {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            ParticleType::Emitter => write!(f, "emitter"),
-            ParticleType::Hair => write!(f, "hair"),
-        }
-    }
-}
-
-/// Smoke simulation types
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "snake_case")]
-pub enum SmokeType {
-    Smoke,
-    Fire,
-    Both,
-}
-
-impl std::fmt::Display for SmokeType {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            SmokeType::Smoke => write!(f, "smoke"),
-            SmokeType::Fire => write!(f, "fire"),
-            SmokeType::Both => write!(f, "both"),
-        }
-    }
-}
-
-/// Scene analysis types
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
-pub enum AnalysisType {
-    Basic,
-    Detailed,
-    Performance,
-    Memory,
-}
-
-impl std::fmt::Display for AnalysisType {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            AnalysisType::Basic => write!(f, "BASIC"),
-            AnalysisType::Detailed => write!(f, "DETAILED"),
-            AnalysisType::Performance => write!(f, "PERFORMANCE"),
-            AnalysisType::Memory => write!(f, "MEMORY"),
-        }
-    }
-}
-
-/// Scene optimization types
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
-pub enum OptimizationType {
-    MeshCleanup,
-    TextureOptimization,
-    ModifierApply,
-    InstanceOptimization,
-    MaterialCleanup,
-}
-
-impl std::fmt::Display for OptimizationType {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            OptimizationType::MeshCleanup => write!(f, "MESH_CLEANUP"),
-            OptimizationType::TextureOptimization => write!(f, "TEXTURE_OPTIMIZATION"),
-            OptimizationType::ModifierApply => write!(f, "MODIFIER_APPLY"),
-            OptimizationType::InstanceOptimization => write!(f, "INSTANCE_OPTIMIZATION"),
-            OptimizationType::MaterialCleanup => write!(f, "MATERIAL_CLEANUP"),
         }
     }
 }
@@ -677,245 +561,79 @@ impl std::fmt::Display for OptimizationType {
 mod tests {
     use super::*;
 
-    // ========== JobStatus Tests ==========
     #[test]
-    fn test_job_status_display() {
-        assert_eq!(JobStatus::Queued.to_string(), "QUEUED");
-        assert_eq!(JobStatus::Running.to_string(), "RUNNING");
-        assert_eq!(JobStatus::Completed.to_string(), "COMPLETED");
-        assert_eq!(JobStatus::Failed.to_string(), "FAILED");
+    fn string_enum_parses_case_insensitively() {
+        assert_eq!("CUBE".parse::<PrimitiveType>(), Ok(PrimitiveType::Cube));
+        assert_eq!("cube".parse::<PrimitiveType>(), Ok(PrimitiveType::Cube));
+        assert_eq!("mp4".parse::<VideoFormat>(), Ok(VideoFormat::Mp4));
+        assert_eq!(PrimitiveType::Cube.as_str(), "cube");
+    }
+
+    #[test]
+    fn string_enum_rejects_unknown_values_with_the_allowed_list() {
+        let err = "blob".parse::<PrimitiveType>().unwrap_err();
+        assert!(err.contains("blob"));
+        assert!(err.contains("monkey"));
+    }
+
+    #[test]
+    fn string_enum_serde_round_trip_uses_canonical_spelling() {
+        let parsed: ModifierType = serde_json::from_str("\"subsurf\"").unwrap();
+        assert_eq!(parsed, ModifierType::Subsurf);
+        assert_eq!(serde_json::to_string(&parsed).unwrap(), "\"SUBSURF\"");
+        assert!(serde_json::from_str::<ModifierType>("\"NOPE\"").is_err());
+        assert!(serde_json::from_str::<ModifierType>("3").is_err());
+    }
+
+    #[test]
+    fn all_lists_are_unique_and_round_trip() {
+        fn check<T: std::str::FromStr + Copy>(all: &[&str], as_str: fn(T) -> &'static str) {
+            let mut seen = std::collections::HashSet::new();
+            for value in all {
+                assert!(seen.insert(value.to_ascii_lowercase()), "duplicate {value}");
+                let parsed = value.parse::<T>().ok().expect("ALL value must parse");
+                assert_eq!(as_str(parsed), *value);
+            }
+        }
+        check::<ProjectTemplate>(ProjectTemplate::ALL, ProjectTemplate::as_str);
+        check::<GeometryNodeSetup>(GeometryNodeSetup::ALL, GeometryNodeSetup::as_str);
+        check::<ConstraintType>(ConstraintType::ALL, ConstraintType::as_str);
+        check::<TextureType>(TextureType::ALL, TextureType::as_str);
+        check::<JobStatus>(JobStatus::ALL, JobStatus::as_str);
+    }
+
+    #[test]
+    fn job_status_terminal_states() {
+        assert!(!JobStatus::Queued.is_terminal());
+        assert!(!JobStatus::Running.is_terminal());
+        assert!(JobStatus::Completed.is_terminal());
+        assert!(JobStatus::Failed.is_terminal());
+        assert!(JobStatus::Cancelled.is_terminal());
         assert_eq!(JobStatus::Cancelled.to_string(), "CANCELLED");
     }
 
     #[test]
-    fn test_job_status_serialization() {
+    fn import_format_from_extension() {
+        assert_eq!(ImportFormat::from_extension("FBX"), Some(ImportFormat::Fbx));
         assert_eq!(
-            serde_json::to_string(&JobStatus::Completed).unwrap(),
-            "\"COMPLETED\""
+            ImportFormat::from_extension("usdz"),
+            Some(ImportFormat::Usd)
         );
-        assert_eq!(
-            serde_json::to_string(&JobStatus::Running).unwrap(),
-            "\"RUNNING\""
-        );
+        assert_eq!(ImportFormat::from_extension("blend"), None);
     }
 
     #[test]
-    fn test_job_status_deserialization() {
-        let status: JobStatus = serde_json::from_str("\"RUNNING\"").unwrap();
-        assert_eq!(status, JobStatus::Running);
-
-        let status: JobStatus = serde_json::from_str("\"FAILED\"").unwrap();
-        assert_eq!(status, JobStatus::Failed);
+    fn format_extensions() {
+        assert_eq!(ImageFormat::Jpeg.extension(), "jpg");
+        assert_eq!(ImageFormat::Exr.extension(), "exr");
+        assert_eq!(ExportFormat::Glb.extension(), "glb");
     }
 
-    // ========== Job Tests ==========
     #[test]
-    fn test_job_creation() {
-        let job = Job::new("render");
-        assert_eq!(job.job_type, "render");
+    fn new_job_is_queued() {
+        let job = Job::new("render_image");
         assert_eq!(job.status, JobStatus::Queued);
         assert_eq!(job.progress, 0);
-        assert!(job.message.is_empty());
-        assert!(job.result.is_none());
-        assert!(job.output_path.is_none());
-        assert!(job.error.is_none());
-    }
-
-    #[test]
-    fn test_job_with_custom_id() {
-        let custom_id = Uuid::new_v4();
-        let job = Job::new("bake").with_id(custom_id);
-        assert_eq!(job.id, custom_id);
-        assert_eq!(job.job_type, "bake");
-    }
-
-    #[test]
-    fn test_job_serialization_roundtrip() {
-        let job = Job::new("animation");
-        let json = serde_json::to_string(&job).unwrap();
-        let restored: Job = serde_json::from_str(&json).unwrap();
-        assert_eq!(restored.job_type, job.job_type);
-        assert_eq!(restored.status, job.status);
-        assert_eq!(restored.id, job.id);
-    }
-
-    // ========== ProjectTemplate Tests ==========
-    #[test]
-    fn test_project_template_display() {
-        assert_eq!(ProjectTemplate::Empty.to_string(), "empty");
-        assert_eq!(ProjectTemplate::BasicScene.to_string(), "basic_scene");
-        assert_eq!(
-            ProjectTemplate::StudioLighting.to_string(),
-            "studio_lighting"
-        );
-        assert_eq!(ProjectTemplate::LitEmpty.to_string(), "lit_empty");
-        assert_eq!(ProjectTemplate::Procedural.to_string(), "procedural");
-        assert_eq!(ProjectTemplate::Animation.to_string(), "animation");
-        assert_eq!(ProjectTemplate::Physics.to_string(), "physics");
-        assert_eq!(ProjectTemplate::Architectural.to_string(), "architectural");
-        assert_eq!(ProjectTemplate::Product.to_string(), "product");
-        assert_eq!(ProjectTemplate::Vfx.to_string(), "vfx");
-        assert_eq!(ProjectTemplate::GameAsset.to_string(), "game_asset");
-        assert_eq!(ProjectTemplate::Sculpting.to_string(), "sculpting");
-    }
-
-    #[test]
-    fn test_project_template_default() {
-        assert_eq!(ProjectTemplate::default(), ProjectTemplate::BasicScene);
-    }
-
-    #[test]
-    fn test_project_template_serialization() {
-        assert_eq!(
-            serde_json::to_string(&ProjectTemplate::Physics).unwrap(),
-            "\"physics\""
-        );
-        let template: ProjectTemplate = serde_json::from_str("\"vfx\"").unwrap();
-        assert_eq!(template, ProjectTemplate::Vfx);
-    }
-
-    // ========== PrimitiveType Tests ==========
-    #[test]
-    fn test_primitive_type_all_variants() {
-        assert_eq!(PrimitiveType::Cube.to_string(), "cube");
-        assert_eq!(PrimitiveType::Sphere.to_string(), "sphere");
-        assert_eq!(PrimitiveType::Cylinder.to_string(), "cylinder");
-        assert_eq!(PrimitiveType::Cone.to_string(), "cone");
-        assert_eq!(PrimitiveType::Torus.to_string(), "torus");
-        assert_eq!(PrimitiveType::Plane.to_string(), "plane");
-        assert_eq!(PrimitiveType::Monkey.to_string(), "monkey");
-    }
-
-    #[test]
-    fn test_primitive_type_serialization() {
-        assert_eq!(
-            serde_json::to_string(&PrimitiveType::Monkey).unwrap(),
-            "\"monkey\""
-        );
-        let prim: PrimitiveType = serde_json::from_str("\"torus\"").unwrap();
-        assert_eq!(prim, PrimitiveType::Torus);
-    }
-
-    // ========== LightingType Tests ==========
-    #[test]
-    fn test_lighting_type_all_variants() {
-        assert_eq!(LightingType::ThreePoint.to_string(), "three_point");
-        assert_eq!(LightingType::Studio.to_string(), "studio");
-        assert_eq!(LightingType::Hdri.to_string(), "hdri");
-        assert_eq!(LightingType::Sun.to_string(), "sun");
-        assert_eq!(LightingType::Area.to_string(), "area");
-    }
-
-    // ========== MaterialType Tests ==========
-    #[test]
-    fn test_material_type_default() {
-        assert_eq!(MaterialType::default(), MaterialType::Principled);
-    }
-
-    #[test]
-    fn test_material_type_all_variants() {
-        assert_eq!(MaterialType::Principled.to_string(), "principled");
-        assert_eq!(MaterialType::Emission.to_string(), "emission");
-        assert_eq!(MaterialType::Glass.to_string(), "glass");
-        assert_eq!(MaterialType::Metal.to_string(), "metal");
-        assert_eq!(MaterialType::Plastic.to_string(), "plastic");
-        assert_eq!(MaterialType::Wood.to_string(), "wood");
-    }
-
-    // ========== RenderEngine Tests ==========
-    #[test]
-    fn test_render_engine_default() {
-        assert_eq!(RenderEngine::default(), RenderEngine::Cycles);
-    }
-
-    #[test]
-    fn test_render_engine_serialization() {
-        assert_eq!(
-            serde_json::to_string(&RenderEngine::Cycles).unwrap(),
-            "\"CYCLES\""
-        );
-        assert_eq!(
-            serde_json::to_string(&RenderEngine::BlenderEevee).unwrap(),
-            "\"BLENDER_EEVEE\""
-        );
-
-        let engine: RenderEngine = serde_json::from_str("\"BLENDER_WORKBENCH\"").unwrap();
-        assert_eq!(engine, RenderEngine::BlenderWorkbench);
-    }
-
-    // ========== ImageFormat Tests ==========
-    #[test]
-    fn test_image_format_default() {
-        assert_eq!(ImageFormat::default(), ImageFormat::Png);
-    }
-
-    #[test]
-    fn test_image_format_all_variants() {
-        assert_eq!(ImageFormat::Png.to_string(), "PNG");
-        assert_eq!(ImageFormat::Jpeg.to_string(), "JPEG");
-        assert_eq!(ImageFormat::Exr.to_string(), "EXR");
-        assert_eq!(ImageFormat::Tiff.to_string(), "TIFF");
-    }
-
-    // ========== PhysicsType Tests ==========
-    #[test]
-    fn test_physics_type_all_variants() {
-        assert_eq!(PhysicsType::RigidBody.to_string(), "rigid_body");
-        assert_eq!(PhysicsType::SoftBody.to_string(), "soft_body");
-        assert_eq!(PhysicsType::Cloth.to_string(), "cloth");
-        assert_eq!(PhysicsType::Fluid.to_string(), "fluid");
-    }
-
-    // ========== ExportFormat Tests ==========
-    #[test]
-    fn test_export_format_all_variants() {
-        assert_eq!(ExportFormat::Fbx.to_string(), "FBX");
-        assert_eq!(ExportFormat::Obj.to_string(), "OBJ");
-        assert_eq!(ExportFormat::Gltf.to_string(), "GLTF");
-        assert_eq!(ExportFormat::Stl.to_string(), "STL");
-        assert_eq!(ExportFormat::Usd.to_string(), "USD");
-    }
-
-    // ========== SmokeType Tests ==========
-    #[test]
-    fn test_smoke_type_all_variants() {
-        assert_eq!(SmokeType::Smoke.to_string(), "smoke");
-        assert_eq!(SmokeType::Fire.to_string(), "fire");
-        assert_eq!(SmokeType::Both.to_string(), "both");
-    }
-
-    // ========== AnalysisType Tests ==========
-    #[test]
-    fn test_analysis_type_serialization() {
-        assert_eq!(
-            serde_json::to_string(&AnalysisType::Basic).unwrap(),
-            "\"BASIC\""
-        );
-        assert_eq!(
-            serde_json::to_string(&AnalysisType::Performance).unwrap(),
-            "\"PERFORMANCE\""
-        );
-    }
-
-    // ========== OptimizationType Tests ==========
-    #[test]
-    fn test_optimization_type_all_variants() {
-        assert_eq!(OptimizationType::MeshCleanup.to_string(), "MESH_CLEANUP");
-        assert_eq!(
-            OptimizationType::TextureOptimization.to_string(),
-            "TEXTURE_OPTIMIZATION"
-        );
-        assert_eq!(
-            OptimizationType::ModifierApply.to_string(),
-            "MODIFIER_APPLY"
-        );
-        assert_eq!(
-            OptimizationType::InstanceOptimization.to_string(),
-            "INSTANCE_OPTIMIZATION"
-        );
-        assert_eq!(
-            OptimizationType::MaterialCleanup.to_string(),
-            "MATERIAL_CLEANUP"
-        );
+        assert!(job.result.is_none() && job.error.is_none());
     }
 }

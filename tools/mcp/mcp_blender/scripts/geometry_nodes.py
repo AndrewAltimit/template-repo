@@ -1,11 +1,18 @@
 #!/usr/bin/env python3
 """Blender geometry nodes script - Enhanced procedural generation."""
 
-import json
+import os
 from math import pi
 import sys
 
 import bpy
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+from mcp_common import (  # noqa: E402  pylint: disable=wrong-import-position
+    ScriptError,
+    run,
+)
 
 
 def create_geometry_nodes(args, _job_id):
@@ -94,8 +101,7 @@ def create_geometry_nodes(args, _job_id):
         if setup_func:
             setup_func(nodes, links, input_node, output_node, parameters)
         else:
-            # Default simple passthrough setup
-            links.new(input_node.outputs[0], output_node.inputs[0])
+            raise ScriptError(f"Unknown node_setup '{node_setup}'. Available: {', '.join(sorted(setup_funcs))}")
 
         # Apply crystal material if requested (for crystal setups)
         apply_crystal_mat = parameters.get("apply_crystal_material", False)
@@ -117,8 +123,10 @@ def create_geometry_nodes(args, _job_id):
         if "project" in args:
             bpy.ops.wm.save_mainfile()
 
-        return True
+        return {"success": True, "object": obj.name, "modifier": modifier.name, "node_group": node_group.name}
 
+    except ScriptError:
+        raise
     except Exception as e:
         print(f"Error creating geometry nodes: {e}")
         import traceback
@@ -473,7 +481,8 @@ def create_twist_setup(nodes, links, input_node, output_node, parameters):
     combine_axis.inputs[axis_map.get(axis, 2)].default_value = 1.0
 
     # Rotate around axis
-    rotate = nodes.new("FunctionNodeRotateVector")
+    # Vector Rotate (not the rotation-socket based Rotate Vector) supports axis/angle.
+    rotate = nodes.new("ShaderNodeVectorRotate")
     rotate.location = (450, -200)
     rotate.rotation_type = "AXIS_ANGLE"
     links.new(position.outputs["Position"], rotate.inputs["Vector"])
@@ -600,7 +609,9 @@ def create_volume_setup(nodes, links, _input_node, output_node, parameters):
     volume_cube = nodes.new("GeometryNodeVolumeCube")
     volume_cube.location = (0, 0)
     volume_cube.inputs["Density"].default_value = density
-    volume_cube.inputs["Size"].default_value = (size_x, size_y, size_z)
+    # Blender 4.x exposes the bounds as Min/Max corners.
+    volume_cube.inputs["Min"].default_value = (-size_x / 2, -size_y / 2, -size_z / 2)
+    volume_cube.inputs["Max"].default_value = (size_x / 2, size_y / 2, size_z / 2)
 
     # Volume to mesh
     volume_to_mesh = nodes.new("GeometryNodeVolumeToMesh")
@@ -651,10 +662,7 @@ def create_voronoi_scatter_setup(nodes, links, input_node, output_node, paramete
     instance = nodes.new("GeometryNodeInstanceOnPoints")
     instance.location = (400, 0)
 
-    # Use voronoi color for instance scale variation
-    color_to_float = nodes.new("ShaderNodeRGBToBW")
-    color_to_float.location = (200, -200)
-    links.new(voronoi.outputs["Color"], color_to_float.inputs["Color"])
+    # Use the voronoi cell distance for instance scale variation
 
     # Map range for scale
     map_range = nodes.new("ShaderNodeMapRange")
@@ -663,7 +671,8 @@ def create_voronoi_scatter_setup(nodes, links, input_node, output_node, paramete
     map_range.inputs["From Max"].default_value = 1.0
     map_range.inputs["To Min"].default_value = 0.5
     map_range.inputs["To Max"].default_value = 1.5
-    links.new(color_to_float.outputs["Val"], map_range.inputs["Value"])
+    links.new(voronoi.outputs["Distance"], map_range.inputs["Value"])
+    links.new(map_range.outputs["Result"], instance.inputs["Scale"])
 
     # Realize instances
     realize = nodes.new("GeometryNodeRealizeInstances")
@@ -1840,33 +1849,13 @@ def create_gradient_texture(nodes, parameters):
 
 
 def main():
-    """Main entry point."""
-    argv = sys.argv
-
-    if "--" in argv:
-        argv = argv[argv.index("--") + 1 :]
-
-    if len(argv) < 2:
-        print("Usage: blender --python geometry_nodes.py -- args.json job_id")
-        sys.exit(1)
-
-    args_file = argv[0]
-    job_id = argv[1]
-
-    with open(args_file, "r", encoding="utf-8") as f:
-        args = json.load(f)
-
-    operation = args.get("operation")
-
-    if operation == "create_geometry_nodes":
-        success = create_geometry_nodes(args, job_id)
-    elif operation == "create_procedural_texture":
-        success = create_procedural_texture(args, job_id)
-    else:
-        print(f"Unknown operation: {operation}")
-        sys.exit(1)
-
-    sys.exit(0 if success else 1)
+    """Dispatch the requested operation (see mcp_common.run)."""
+    run(
+        {
+            "create_geometry_nodes": create_geometry_nodes,
+            "create_procedural_texture": create_procedural_texture,
+        }
+    )
 
 
 if __name__ == "__main__":

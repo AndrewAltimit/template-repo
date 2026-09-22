@@ -25,10 +25,10 @@
     {
       "id": "a",
       "position": {
-        "x": 200,
+        "x": 215,
         "y": 355
       },
-      "width": 200,
+      "width": 180,
       "height": 30,
       "default_font_size": 18,
       "max_font_size": 22,
@@ -44,10 +44,10 @@
     {
       "id": "b",
       "position": {
-        "x": 445,
+        "x": 460,
         "y": 355
       },
-      "width": 200,
+      "width": 180,
       "height": 30,
       "default_font_size": 18,
       "max_font_size": 22,
@@ -63,10 +63,10 @@
     {
       "id": "c",
       "position": {
-        "x": 200,
+        "x": 215,
         "y": 395
       },
-      "width": 200,
+      "width": 180,
       "height": 30,
       "default_font_size": 18,
       "max_font_size": 22,
@@ -82,10 +82,10 @@
     {
       "id": "d",
       "position": {
-        "x": 445,
+        "x": 460,
         "y": 395
       },
-      "width": 200,
+      "width": 180,
       "height": 30,
       "default_font_size": 18,
       "max_font_size": 22,

@@ -25,44 +25,36 @@ RUN cargo build --release
 # Use python:3.11-slim for glibc compatibility with rust:1.93 builder
 FROM python:3.11-slim
 
-# Install runtime dependencies
+# Install runtime dependencies and Manim in a single layer so the build-only
+# packages needed for pycairo/manimpango are really gone from the final image
+# (removing them in a later layer would not shrink it).
 RUN apt-get update && apt-get install -y --no-install-recommends \
     # LaTeX packages - using smaller base package instead of texlive-full
+    # (texlive-binaries, pulled in by texlive-latex-base, provides bibtex/dvips)
     texlive-latex-base \
     texlive-fonts-recommended \
     texlive-latex-extra \
     texlive-science \
     texlive-pictures \
-    # LaTeX build automation (for multi-pass compilation)
-    latexmk \
     # PDF utilities (pdfinfo, pdftoppm)
     poppler-utils \
     pdf2svg \
     # Video/animation dependencies
     ffmpeg \
-    # Cairo for Manim (runtime libs)
+    # Cairo/Pango for Manim (runtime libs)
     libcairo2 \
     libpango-1.0-0 \
     libpangocairo-1.0-0 \
-    # Build tools for pycairo (manim dependency)
+    # Build tools for pycairo (manim dependency), purged below
     build-essential \
     pkg-config \
     libcairo2-dev \
     libpango1.0-dev \
-    # Networking
+    # Networking (health check)
     curl \
     ca-certificates \
-    && rm -rf /var/lib/apt/lists/*
-
-# Install Manim (Community edition)
-RUN pip install --no-cache-dir manim
-
-# Remove build dependencies to reduce image size
-RUN apt-get update && apt-get remove -y \
-    build-essential \
-    pkg-config \
-    libcairo2-dev \
-    libpango1.0-dev \
+    && pip install --no-cache-dir manim \
+    && apt-get purge -y build-essential pkg-config libcairo2-dev libpango1.0-dev \
     && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/*
 
@@ -91,7 +83,6 @@ USER mcp
 ENV RUST_LOG=info
 ENV MCP_OUTPUT_DIR=/output
 ENV MCP_PROJECT_ROOT=/app
-ENV MANIM_MEDIA_DIR=/output/manim
 
 # Expose port
 EXPOSE 8011

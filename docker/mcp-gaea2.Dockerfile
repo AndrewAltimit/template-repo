@@ -11,8 +11,11 @@
 #   Server:     docker run -p 8007:8007 mcp-gaea2 --mode server
 #   Client:     docker run -p 8007:8007 mcp-gaea2 --mode client --backend-url http://host:port
 #
-# Note: CLI automation features require Windows host with Gaea2 installed.
-#       Container provides project creation, validation, and template generation.
+# Note: Build automation (run_gaea2_project, validate_gaea2_runtime) requires the
+#       Windows host with Gaea2 installed (see tools/mcp/mcp_gaea2/README.md).
+#       The container provides project creation, validation, analysis, repair
+#       and templates. Client paths are confined to GAEA2_OUTPUT_DIR (plus
+#       GAEA2_ALLOWED_DIRS).
 
 # =============================================================================
 # Stage 1: Builder
@@ -33,7 +36,7 @@ COPY tools/mcp/mcp_core_rust/Cargo.toml tools/mcp/mcp_core_rust/Cargo.lock ./too
 COPY tools/mcp/mcp_core_rust/crates ./tools/mcp/mcp_core_rust/crates
 
 # Copy mcp_gaea2
-COPY tools/mcp/mcp_gaea2/Cargo.toml ./tools/mcp/mcp_gaea2/
+COPY tools/mcp/mcp_gaea2/Cargo.toml tools/mcp/mcp_gaea2/Cargo.lock ./tools/mcp/mcp_gaea2/
 COPY tools/mcp/mcp_gaea2/src ./tools/mcp/mcp_gaea2/src
 
 # Build release binary
@@ -64,6 +67,8 @@ RUN mkdir -p /output/gaea2 && chown -R mcp:mcp /output
 
 # Copy binary from builder
 COPY --from=builder /usr/local/bin/mcp-gaea2 /usr/local/bin/
+
+ENV GAEA2_OUTPUT_DIR=/output/gaea2
 
 # Switch to non-root user
 USER mcp

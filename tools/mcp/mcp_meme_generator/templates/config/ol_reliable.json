@@ -25,11 +25,11 @@
     {
       "id": "bottom",
       "position": {
-        "x": 480,
-        "y": 1155
+        "x": 430,
+        "y": 1150
       },
-      "width": 768,
-      "height": 144,
+      "width": 540,
+      "height": 120,
       "default_font_size": 48,
       "max_font_size": 72,
       "min_font_size": 24,

@@ -1,69 +1,51 @@
 //! Layer management tools.
+//!
+//! Every `layer_id` argument accepts either a layer ID or a unique layer name.
 
-use async_trait::async_trait;
-use mcp_core::prelude::*;
+use serde::Deserialize;
 use serde_json::{Value, json};
 
-use super::parse::{json_as_i32, json_as_u8, json_as_u32};
-use crate::engine::{self, ProjectStore};
+use super::{edit_project, get, ok_json, region_schema, sprite_tool};
+use crate::args::{self, RegionArg};
+use crate::engine;
 use crate::types::BlendMode;
-
-fn require_name(args: &Value) -> Result<&str> {
-    args["name"]
-        .as_str()
-        .ok_or_else(|| MCPError::InvalidParameters("Missing 'name'".to_string()))
-}
-
-fn require_layer_id(args: &Value) -> Result<&str> {
-    args["layer_id"]
-        .as_str()
-        .ok_or_else(|| MCPError::InvalidParameters("Missing 'layer_id'".to_string()))
-}
 
 // ---------------------------------------------------------------------------
 // add_layer
 // ---------------------------------------------------------------------------
 
-pub struct AddLayerTool {
-    pub store: ProjectStore,
+#[derive(Deserialize)]
+pub struct AddArgs {
+    name: String,
+    layer_name: String,
+    #[serde(default, deserialize_with = "args::opt_int")]
+    z_order: Option<i32>,
 }
 
-#[async_trait]
-impl Tool for AddLayerTool {
-    fn name(&self) -> &str {
-        "sprite_add_layer"
-    }
-
-    fn description(&self) -> &str {
-        "Add a new layer to the project at an optional z_order."
-    }
-
-    fn schema(&self) -> Value {
-        json!({
+sprite_tool! {
+    AddLayerTool {
+        name: "sprite_add_layer",
+        description: "Add a new empty layer. Defaults to the top of the stack (highest \
+            z_order). Returns the new layer_id. Undoable.",
+        schema: json!({
             "type": "object",
             "properties": {
                 "name": { "type": "string", "description": "Project name" },
-                "layer_name": { "type": "string", "description": "Layer name" },
-                "z_order": { "type": "integer", "description": "Z-order (default: top)" }
+                "layer_name": { "type": "string", "description": "Layer name (can be used in place of the ID when unique)" },
+                "z_order": { "type": "integer", "description": "Z-order; higher draws on top (default: above all layers)" }
             },
             "required": ["name", "layer_name"]
-        })
-    }
-
-    async fn execute(&self, args: Value) -> Result<ToolResult> {
-        let pname = require_name(&args)?;
-        let layer_name = args["layer_name"]
-            .as_str()
-            .ok_or_else(|| MCPError::InvalidParameters("Missing 'layer_name'".to_string()))?;
-        let z_order = args["z_order"].as_i64().map(|v| v as i32);
-
-        let mut store = self.store.write().await;
-        let project = store
-            .get_mut(pname)
-            .ok_or_else(|| MCPError::InvalidParameters(format!("Project not found: {pname}")))?;
-
-        let id = engine::add_layer(project, layer_name, z_order);
-        ToolResult::json(&json!({ "success": true, "layer_id": id }))
+        }),
+        execute: |ctx, a: AddArgs| {
+            if a.layer_name.trim().is_empty() {
+                return Err(super::invalid("layer_name must not be empty".into()));
+            }
+            let id = edit_project(ctx, &a.name, "add_layer", |p| {
+                Ok(engine::add_layer(p, &a.layer_name, a.z_order))
+            })
+            .await?;
+            ok_json(json!({ "success": true, "layer_id": id }))
+        }
     }
 }
 
@@ -71,42 +53,34 @@ impl Tool for AddLayerTool {
 // remove_layer
 // ---------------------------------------------------------------------------
 
-pub struct RemoveLayerTool {
-    pub store: ProjectStore,
+#[derive(Deserialize)]
+pub struct LayerArgs {
+    name: String,
+    layer_id: String,
 }
 
-#[async_trait]
-impl Tool for RemoveLayerTool {
-    fn name(&self) -> &str {
-        "sprite_remove_layer"
-    }
-
-    fn description(&self) -> &str {
-        "Remove a layer by ID."
-    }
-
-    fn schema(&self) -> Value {
-        json!({
+sprite_tool! {
+    RemoveLayerTool {
+        name: "sprite_remove_layer",
+        description: "Remove a layer (by ID or unique name). Undoable.",
+        schema: json!({
             "type": "object",
             "properties": {
                 "name": { "type": "string", "description": "Project name" },
-                "layer_id": { "type": "string", "description": "Layer ID to remove" }
+                "layer_id": { "type": "string", "description": "Layer ID or unique name" }
             },
             "required": ["name", "layer_id"]
-        })
-    }
-
-    async fn execute(&self, args: Value) -> Result<ToolResult> {
-        let pname = require_name(&args)?;
-        let layer_id = require_layer_id(&args)?;
-
-        let mut store = self.store.write().await;
-        let project = store
-            .get_mut(pname)
-            .ok_or_else(|| MCPError::InvalidParameters(format!("Project not found: {pname}")))?;
-
-        engine::remove_layer(project, layer_id).map_err(MCPError::InvalidParameters)?;
-        ToolResult::json(&json!({ "success": true }))
+        }),
+        execute: |ctx, a: LayerArgs| {
+            let removed = edit_project(ctx, &a.name, "remove_layer", |p| {
+                engine::remove_layer(p, &a.layer_id)
+            })
+            .await?;
+            ok_json(json!({
+                "success": true,
+                "removed_layer": { "id": removed.id, "name": removed.name, "pixels": removed.pixels.len() }
+            }))
+        }
     }
 }
 
@@ -114,26 +88,35 @@ impl Tool for RemoveLayerTool {
 // update_layer
 // ---------------------------------------------------------------------------
 
-pub struct UpdateLayerTool {
-    pub store: ProjectStore,
+#[derive(Deserialize)]
+pub struct UpdateArgs {
+    name: String,
+    layer_id: String,
+    #[serde(default)]
+    layer_name: Option<String>,
+    #[serde(default, deserialize_with = "args::opt_bool")]
+    visible: Option<bool>,
+    #[serde(default, deserialize_with = "args::opt_int")]
+    opacity: Option<u8>,
+    #[serde(default)]
+    blend_mode: Option<BlendMode>,
+    #[serde(default, deserialize_with = "args::opt_bool")]
+    locked: Option<bool>,
+    #[serde(default, deserialize_with = "args::opt_int")]
+    z_order: Option<i32>,
 }
 
-#[async_trait]
-impl Tool for UpdateLayerTool {
-    fn name(&self) -> &str {
-        "sprite_update_layer"
-    }
-
-    fn description(&self) -> &str {
-        "Update layer properties: name, visible, opacity, blend_mode, locked, z_order."
-    }
-
-    fn schema(&self) -> Value {
-        json!({
+sprite_tool! {
+    UpdateLayerTool {
+        name: "sprite_update_layer",
+        description: "Update layer properties: layer_name, visible, opacity (0-255), \
+            blend_mode, locked, z_order. Only provided fields change. Locked layers reject \
+            pixel edits. Undoable.",
+        schema: json!({
             "type": "object",
             "properties": {
                 "name": { "type": "string", "description": "Project name" },
-                "layer_id": { "type": "string", "description": "Layer ID" },
+                "layer_id": { "type": "string", "description": "Layer ID or unique name" },
                 "layer_name": { "type": "string", "description": "New layer name" },
                 "visible": { "type": "boolean" },
                 "opacity": { "type": "integer", "minimum": 0, "maximum": 255 },
@@ -142,90 +125,86 @@ impl Tool for UpdateLayerTool {
                 "z_order": { "type": "integer" }
             },
             "required": ["name", "layer_id"]
-        })
+        }),
+        execute: |ctx, a: UpdateArgs| {
+            let layer = edit_project(ctx, &a.name, "update_layer", |p| {
+                let i = engine::resolve_layer(p, &a.layer_id)?;
+                let l = &mut p.layers[i];
+                if let Some(n) = &a.layer_name {
+                    if n.trim().is_empty() {
+                        return Err("layer_name must not be empty".into());
+                    }
+                    l.name = n.clone();
+                }
+                if let Some(v) = a.visible {
+                    l.visible = v;
+                }
+                if let Some(o) = a.opacity {
+                    l.opacity = o;
+                }
+                if let Some(b) = a.blend_mode {
+                    l.blend_mode = b;
+                }
+                if let Some(v) = a.locked {
+                    l.locked = v;
+                }
+                if let Some(z) = a.z_order {
+                    l.z_order = z;
+                }
+                Ok(layer_json(l))
+            })
+            .await?;
+            ok_json(json!({ "success": true, "layer": layer }))
+        }
     }
+}
 
-    async fn execute(&self, args: Value) -> Result<ToolResult> {
-        let pname = require_name(&args)?;
-        let layer_id = require_layer_id(&args)?;
-
-        let mut store = self.store.write().await;
-        let project = store
-            .get_mut(pname)
-            .ok_or_else(|| MCPError::InvalidParameters(format!("Project not found: {pname}")))?;
-
-        let layer =
-            engine::find_layer_mut(project, layer_id).map_err(MCPError::InvalidParameters)?;
-
-        if let Some(n) = args["layer_name"].as_str() {
-            layer.name = n.to_string();
-        }
-        if let Some(v) = args["visible"].as_bool() {
-            layer.visible = v;
-        }
-        if let Some(o) = json_as_u8(&args["opacity"]) {
-            layer.opacity = o;
-        }
-        if let Some(bm) = args["blend_mode"].as_str() {
-            layer.blend_mode = match bm {
-                "multiply" => BlendMode::Multiply,
-                "screen" => BlendMode::Screen,
-                "overlay" => BlendMode::Overlay,
-                _ => BlendMode::Normal,
-            };
-        }
-        if let Some(l) = args["locked"].as_bool() {
-            layer.locked = l;
-        }
-        if let Some(z) = json_as_i32(&args["z_order"]) {
-            layer.z_order = z;
-        }
-
-        ToolResult::json(&json!({ "success": true }))
-    }
+fn layer_json(l: &crate::types::Layer) -> Value {
+    json!({
+        "id": l.id,
+        "name": l.name,
+        "visible": l.visible,
+        "opacity": l.opacity,
+        "blend_mode": l.blend_mode,
+        "locked": l.locked,
+        "z_order": l.z_order,
+        "pixel_count": l.pixels.len()
+    })
 }
 
 // ---------------------------------------------------------------------------
 // duplicate_layer
 // ---------------------------------------------------------------------------
 
-pub struct DuplicateLayerTool {
-    pub store: ProjectStore,
+#[derive(Deserialize)]
+pub struct DuplicateArgs {
+    name: String,
+    layer_id: String,
+    #[serde(default)]
+    new_name: Option<String>,
 }
 
-#[async_trait]
-impl Tool for DuplicateLayerTool {
-    fn name(&self) -> &str {
-        "sprite_duplicate_layer"
-    }
-
-    fn description(&self) -> &str {
-        "Duplicate a layer including all pixel data."
-    }
-
-    fn schema(&self) -> Value {
-        json!({
+sprite_tool! {
+    DuplicateLayerTool {
+        name: "sprite_duplicate_layer",
+        description: "Duplicate a layer including all pixel data and properties; the copy is \
+            placed directly above the source and is unlocked. Undoable.",
+        schema: json!({
             "type": "object",
             "properties": {
                 "name": { "type": "string", "description": "Project name" },
-                "layer_id": { "type": "string", "description": "Layer ID to duplicate" }
+                "layer_id": { "type": "string", "description": "Layer ID or unique name to duplicate" },
+                "new_name": { "type": "string", "description": "Name for the copy (default '<name> copy')" }
             },
             "required": ["name", "layer_id"]
-        })
-    }
-
-    async fn execute(&self, args: Value) -> Result<ToolResult> {
-        let pname = require_name(&args)?;
-        let layer_id = require_layer_id(&args)?;
-
-        let mut store = self.store.write().await;
-        let project = store
-            .get_mut(pname)
-            .ok_or_else(|| MCPError::InvalidParameters(format!("Project not found: {pname}")))?;
-
-        let new_id =
-            engine::duplicate_layer(project, layer_id).map_err(MCPError::InvalidParameters)?;
-        ToolResult::json(&json!({ "success": true, "new_layer_id": new_id }))
+        }),
+        execute: |ctx, a: DuplicateArgs| {
+            let id = edit_project(ctx, &a.name, "duplicate_layer", |p| {
+                engine::duplicate_layer(p, &a.layer_id, a.new_name.as_deref())
+            })
+            .await?;
+            ok_json(json!({ "success": true, "new_layer_id": id }))
+        }
     }
 }
 
@@ -233,48 +212,39 @@ impl Tool for DuplicateLayerTool {
 // merge_layers
 // ---------------------------------------------------------------------------
 
-pub struct MergeLayersTool {
-    pub store: ProjectStore,
+#[derive(Deserialize)]
+pub struct MergeArgs {
+    name: String,
+    top_layer_id: String,
+    bottom_layer_id: String,
 }
 
-#[async_trait]
-impl Tool for MergeLayersTool {
-    fn name(&self) -> &str {
-        "sprite_merge_layers"
-    }
-
-    fn description(&self) -> &str {
-        "Merge top layer onto bottom layer, removing top layer."
-    }
-
-    fn schema(&self) -> Value {
-        json!({
+sprite_tool! {
+    MergeLayersTool {
+        name: "sprite_merge_layers",
+        description: "Merge the top layer's pixels onto the bottom layer (top pixels \
+            overwrite), then remove the top layer. Opacity/blend mode of the top layer cannot \
+            be baked into indexed pixels (a warning is returned). Undoable.",
+        schema: json!({
             "type": "object",
             "properties": {
                 "name": { "type": "string", "description": "Project name" },
-                "top_layer_id": { "type": "string" },
-                "bottom_layer_id": { "type": "string" }
+                "top_layer_id": { "type": "string", "description": "Layer ID or unique name (removed after merge)" },
+                "bottom_layer_id": { "type": "string", "description": "Layer ID or unique name (receives pixels)" }
             },
             "required": ["name", "top_layer_id", "bottom_layer_id"]
-        })
-    }
-
-    async fn execute(&self, args: Value) -> Result<ToolResult> {
-        let pname = require_name(&args)?;
-        let top = args["top_layer_id"]
-            .as_str()
-            .ok_or_else(|| MCPError::InvalidParameters("Missing 'top_layer_id'".to_string()))?;
-        let bottom = args["bottom_layer_id"]
-            .as_str()
-            .ok_or_else(|| MCPError::InvalidParameters("Missing 'bottom_layer_id'".to_string()))?;
-
-        let mut store = self.store.write().await;
-        let project = store
-            .get_mut(pname)
-            .ok_or_else(|| MCPError::InvalidParameters(format!("Project not found: {pname}")))?;
-
-        engine::merge_layers(project, top, bottom).map_err(MCPError::InvalidParameters)?;
-        ToolResult::json(&json!({ "success": true }))
+        }),
+        execute: |ctx, a: MergeArgs| {
+            let rep = edit_project(ctx, &a.name, "merge_layers", |p| {
+                engine::merge_layers(p, &a.top_layer_id, &a.bottom_layer_id)
+            })
+            .await?;
+            ok_json(json!({
+                "success": true,
+                "pixels_merged": rep.pixels_merged,
+                "warnings": rep.warnings
+            }))
+        }
     }
 }
 
@@ -282,84 +252,35 @@ impl Tool for MergeLayersTool {
 // clear_layer
 // ---------------------------------------------------------------------------
 
-pub struct ClearLayerTool {
-    pub store: ProjectStore,
+#[derive(Deserialize)]
+pub struct ClearArgs {
+    name: String,
+    layer_id: String,
+    #[serde(default, deserialize_with = "args::opt_json")]
+    region: Option<RegionArg>,
 }
 
-#[async_trait]
-impl Tool for ClearLayerTool {
-    fn name(&self) -> &str {
-        "sprite_clear_layer"
-    }
-
-    fn description(&self) -> &str {
-        "Clear all pixels on a layer, or just a rectangular region."
-    }
-
-    fn schema(&self) -> Value {
-        json!({
+sprite_tool! {
+    ClearLayerTool {
+        name: "sprite_clear_layer",
+        description: "Clear all pixels on a layer, or only those inside a rectangular region. \
+            Returns the number of pixels cleared. Undoable.",
+        schema: json!({
             "type": "object",
             "properties": {
                 "name": { "type": "string", "description": "Project name" },
-                "layer_id": { "type": "string" },
-                "region": {
-                    "type": "object",
-                    "properties": {
-                        "x": { "type": "integer" },
-                        "y": { "type": "integer" },
-                        "width": { "type": "integer" },
-                        "height": { "type": "integer" }
-                    },
-                    "required": ["x", "y", "width", "height"],
-                    "description": "Optional region to clear"
-                }
+                "layer_id": { "type": "string", "description": "Layer ID or unique name" },
+                "region": region_schema("Optional region to clear (clipped to the canvas)")
             },
             "required": ["name", "layer_id"]
-        })
-    }
-
-    async fn execute(&self, args: Value) -> Result<ToolResult> {
-        let pname = require_name(&args)?;
-        let layer_id = require_layer_id(&args)?;
-
-        let region = if let Some(r) = args.get("region") {
-            // Try parsing as an object first; if it's a string, parse it as JSON
-            let region_obj = if r.is_object() {
-                r.clone()
-            } else if let Some(s) = r.as_str() {
-                serde_json::from_str(s).unwrap_or(Value::Null)
-            } else {
-                return Err(MCPError::InvalidParameters(format!(
-                    "region: expected object, got {}",
-                    r
-                )));
-            };
-            let x = json_as_u32(&region_obj["x"]).ok_or_else(|| {
-                MCPError::InvalidParameters(format!(
-                    "region.x: cannot parse (region={})",
-                    region_obj
-                ))
-            })?;
-            let y = json_as_u32(&region_obj["y"])
-                .ok_or_else(|| MCPError::InvalidParameters("region.y: cannot parse".to_string()))?;
-            let w = json_as_u32(&region_obj["width"]).ok_or_else(|| {
-                MCPError::InvalidParameters("region.width: cannot parse".to_string())
-            })?;
-            let h = json_as_u32(&region_obj["height"]).ok_or_else(|| {
-                MCPError::InvalidParameters("region.height: cannot parse".to_string())
-            })?;
-            Some((x, y, w, h))
-        } else {
-            None
-        };
-
-        let mut store = self.store.write().await;
-        let project = store
-            .get_mut(pname)
-            .ok_or_else(|| MCPError::InvalidParameters(format!("Project not found: {pname}")))?;
-
-        engine::clear_layer(project, layer_id, region).map_err(MCPError::InvalidParameters)?;
-        ToolResult::json(&json!({ "success": true }))
+        }),
+        execute: |ctx, a: ClearArgs| {
+            let n = edit_project(ctx, &a.name, "clear_layer", |p| {
+                engine::clear_layer(p, &a.layer_id, a.region.map(Into::into))
+            })
+            .await?;
+            ok_json(json!({ "success": true, "pixels_cleared": n }))
+        }
     }
 }
 
@@ -367,55 +288,30 @@ impl Tool for ClearLayerTool {
 // list_layers
 // ---------------------------------------------------------------------------
 
-pub struct ListLayersTool {
-    pub store: ProjectStore,
+#[derive(Deserialize)]
+pub struct ListArgs {
+    name: String,
 }
 
-#[async_trait]
-impl Tool for ListLayersTool {
-    fn name(&self) -> &str {
-        "sprite_list_layers"
-    }
-
-    fn description(&self) -> &str {
-        "List all layers with their properties."
-    }
-
-    fn schema(&self) -> Value {
-        json!({
+sprite_tool! {
+    ListLayersTool {
+        name: "sprite_list_layers",
+        description: "List all layers (sorted bottom to top by z_order) with their properties \
+            and pixel counts.",
+        schema: json!({
             "type": "object",
             "properties": {
                 "name": { "type": "string", "description": "Project name" }
             },
             "required": ["name"]
-        })
-    }
-
-    async fn execute(&self, args: Value) -> Result<ToolResult> {
-        let name = require_name(&args)?;
-
-        let store = self.store.read().await;
-        let project = store
-            .get(name)
-            .ok_or_else(|| MCPError::InvalidParameters(format!("Project not found: {name}")))?;
-
-        let layers: Vec<Value> = project
-            .layers
-            .iter()
-            .map(|l| {
-                json!({
-                    "id": l.id,
-                    "name": l.name,
-                    "visible": l.visible,
-                    "opacity": l.opacity,
-                    "blend_mode": l.blend_mode,
-                    "locked": l.locked,
-                    "z_order": l.z_order,
-                    "pixel_count": l.pixels.len()
-                })
-            })
-            .collect();
-
-        ToolResult::json(&json!({ "layers": layers }))
+        }),
+        execute: |ctx, a: ListArgs| {
+            let store = ctx.store.read().await;
+            let p = get(&store, &a.name)?;
+            let mut layers: Vec<&crate::types::Layer> = p.layers.iter().collect();
+            layers.sort_by_key(|l| l.z_order);
+            let layers: Vec<Value> = layers.into_iter().map(layer_json).collect();
+            ok_json(json!({ "layers": layers }))
+        }
     }
 }

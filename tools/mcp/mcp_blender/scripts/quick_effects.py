@@ -5,10 +5,20 @@ Based on Blender's bl_operators/object_quick_effects.py for smoke, fur, explode,
 """
 
 import json
+import os
 import sys
 
 import bpy
 from mathutils import Vector
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+from mcp_common import (  # noqa: E402  pylint: disable=wrong-import-position
+    ScriptError,
+    open_project,
+    run,
+    save_project,
+)
 
 
 def obj_bb_minmax(obj, min_co, max_co):
@@ -100,6 +110,7 @@ def quick_smoke(args, _job_id):
         # Setup volume material
         bpy.ops.object.material_slot_add()
         mat = bpy.data.materials.new("Smoke Domain Material")
+        mat.use_nodes = True
         domain.material_slots[0].material = mat
 
         tree = mat.node_tree
@@ -223,6 +234,7 @@ def quick_liquid(args, _job_id):
         # Glass material for liquid
         bpy.ops.object.material_slot_add()
         mat = bpy.data.materials.new("Liquid Domain Material")
+        mat.use_nodes = True
         domain.material_slots[0].material = mat
 
         tree = mat.node_tree
@@ -324,6 +336,7 @@ def quick_explode(args, _job_id):
 
                 # Create fade material
                 mat = bpy.data.materials.new("Explode Fade")
+                mat.use_nodes = True
                 mat.surface_render_method = "DITHERED"
                 nodes = mat.node_tree.nodes
                 nodes.clear()
@@ -378,179 +391,181 @@ def quick_explode(args, _job_id):
 
 
 def quick_fur(args, _job_id):
-    """Add fur/hair to selected objects using geometry nodes.
-
-    Creates modern hair curves system with geometry node modifiers.
+    """Grow procedural fur (hair curves driven by geometry nodes) on meshes.
 
     Parameters:
         project: Blender project file path
-        object_names: List of mesh object names to add fur
-        density: LOW, MEDIUM, or HIGH (default: MEDIUM)
-        length: Hair length in units (default: 0.1)
-        radius: Hair strand radius (default: 0.001)
-        use_noise: Add noise deformation (default: True)
-        use_frizz: Add frizz variation (default: True)
+        object_names: Mesh objects to add fur to
+        density: LOW (1k), MEDIUM (10k) or HIGH (100k) strands per object
+        length: Strand length in scene units (default 0.1)
+        radius: Strand radius (default 0.001)
+        use_noise: Clumpy noise displacement toward the tips (default True)
+        use_frizz: Random per-point frizz toward the tips (default True)
     """
-    try:
-        if "project" in args:
-            bpy.ops.wm.open_mainfile(filepath=args["project"])
+    open_project(args.get("project"))
+    object_names = args.get("object_names") or []
+    density = str(args.get("density", "MEDIUM")).upper()
+    counts = {"LOW": 1000, "MEDIUM": 10000, "HIGH": 100000}
+    if density not in counts:
+        raise ScriptError(f"Unknown density '{density}' (LOW, MEDIUM, HIGH)")
+    length = float(args.get("length", 0.1))
+    radius = float(args.get("radius", 0.001))
+    use_noise = bool(args.get("use_noise", True))
+    use_frizz = bool(args.get("use_frizz", True))
 
-        object_names = args.get("object_names", [])
-        density = args.get("density", "MEDIUM")
-        length = args.get("length", 0.1)
-        # These would be used in a full implementation with noise/frizz modifiers
-        _radius = args.get("radius", 0.001)  # noqa: F841
-        _use_noise = args.get("use_noise", True)  # noqa: F841
-        _use_frizz = args.get("use_frizz", True)  # noqa: F841
+    mesh_objects = [bpy.data.objects[n] for n in object_names if n in bpy.data.objects]
+    mesh_objects = [o for o in mesh_objects if o.type == "MESH"]
+    if not mesh_objects:
+        raise ScriptError(f"None of {object_names} is an existing mesh object")
 
-        mesh_objects = []
-        for name in object_names:
-            obj = bpy.data.objects.get(name)
-            if obj and obj.type == "MESH":
-                mesh_objects.append(obj)
+    fur_mat = bpy.data.materials.get("Fur Material") or bpy.data.materials.new("Fur Material")
+    created = []
+    for index, mesh_obj in enumerate(mesh_objects):
+        area = sum(poly.area for poly in mesh_obj.data.polygons) or 1.0
+        hair_density = counts[density] / area
 
-        if not mesh_objects:
-            print("Error: No valid mesh objects found")
-            return False
+        curves_data = bpy.data.hair_curves.new(f"{mesh_obj.name}_Fur")
+        curves_obj = bpy.data.objects.new(f"{mesh_obj.name}_Fur", curves_data)
+        bpy.context.scene.collection.objects.link(curves_obj)
+        curves_obj.matrix_world = mesh_obj.matrix_world.copy()
+        curves_obj.parent = mesh_obj
+        curves_obj.matrix_parent_inverse = mesh_obj.matrix_world.inverted()
+        curves_data.surface = mesh_obj
+        curves_data.materials.append(fur_mat)
 
-        # Density counts
-        density_map = {"LOW": 1000, "MEDIUM": 10000, "HIGH": 100000}
-        count = density_map.get(density, 10000)
-
-        # Create fur material
-        fur_mat = bpy.data.materials.new("Fur Material")
-
-        created_curves = []
-        for mesh_obj in mesh_objects:
-            mesh = mesh_obj.data
-            if len(mesh.uv_layers) == 0:
-                print(f"Warning: {mesh_obj.name} missing UV map, skipping")
-                continue
-
-            # Calculate density based on surface area
-            area = sum(poly.area for poly in mesh.polygons)
-            if area == 0.0:
-                hair_density = 10
-            else:
-                hair_density = count / area
-
-            # Create curves object
-            bpy.context.view_layer.objects.active = mesh_obj
-            bpy.ops.object.curves_empty_hair_add()
-            curves_obj = bpy.context.active_object
-            curves = curves_obj.data
-            curves.materials.append(fur_mat)
-
-            # Add generate modifier (simplified - full version would use asset library)
-            gen_mod = curves_obj.modifiers.new(name="Generate", type="NODES")
-
-            # Create simple geometry nodes setup for hair
-            group = bpy.data.node_groups.new(f"{mesh_obj.name}_HairGen", "GeometryNodeTree")
-            gen_mod.node_group = group
-
-            nodes = group.nodes
-            links = group.links
-            nodes.clear()
-
-            # Interface
-            try:
-                group.interface.new_socket(name="Geometry", in_out="INPUT", socket_type="NodeSocketGeometry")
-                group.interface.new_socket(name="Geometry", in_out="OUTPUT", socket_type="NodeSocketGeometry")
-            except AttributeError:
-                pass
-
-            input_node = nodes.new("NodeGroupInput")
-            input_node.location = (-400, 0)
-            output_node = nodes.new("NodeGroupOutput")
-            output_node.location = (600, 0)
-
-            # Distribute points on surface mesh (need to reference the mesh object)
-            obj_info = nodes.new("GeometryNodeObjectInfo")
-            obj_info.location = (-200, -200)
-            obj_info.inputs["Object"].default_value = mesh_obj
-            obj_info.transform_space = "RELATIVE"
-
-            distribute = nodes.new("GeometryNodeDistributePointsOnFaces")
-            distribute.location = (0, 0)
-            distribute.distribute_method = "POISSON"
-            distribute.inputs["Distance Min"].default_value = 0.01
-            distribute.inputs["Density Max"].default_value = hair_density
-
-            links.new(obj_info.outputs["Geometry"], distribute.inputs["Mesh"])
-
-            # Create hair curve at each point
-            curve_line = nodes.new("GeometryNodeCurvePrimitiveLine")
-            curve_line.location = (0, 200)
-            curve_line.mode = "DIRECTION"
-            curve_line.inputs["Length"].default_value = length
-
-            instance = nodes.new("GeometryNodeInstanceOnPoints")
-            instance.location = (200, 0)
-            links.new(distribute.outputs["Points"], instance.inputs["Points"])
-            links.new(curve_line.outputs["Curve"], instance.inputs["Instance"])
-            links.new(distribute.outputs["Normal"], instance.inputs["Rotation"])
-
-            realize = nodes.new("GeometryNodeRealizeInstances")
-            realize.location = (400, 0)
-            links.new(instance.outputs["Instances"], realize.inputs["Geometry"])
-
-            links.new(realize.outputs["Geometry"], output_node.inputs[0])
-
-            created_curves.append(curves_obj.name)
-
-        if "project" in args:
-            bpy.ops.wm.save_mainfile()
-
-        print(
-            json.dumps(
-                {
-                    "success": True,
-                    "curves_created": created_curves,
-                    "density": density,
-                    "length": length,
-                }
-            )
+        group = _build_fur_group(
+            f"{mesh_obj.name}_FurGen", mesh_obj, hair_density, length, radius, use_noise, use_frizz, index
         )
-        return True
+        modifier = curves_obj.modifiers.new(name="Generate Fur", type="NODES")
+        modifier.node_group = group
+        created.append(curves_obj.name)
 
-    except Exception as e:
-        print(f"Error in quick_fur: {e}")
-        import traceback
+    save_project()
+    return {
+        "success": True,
+        "curves_created": created,
+        "density": density,
+        "strands_per_object": counts[density],
+        "length": length,
+        "radius": radius,
+        "use_noise": use_noise,
+        "use_frizz": use_frizz,
+    }
 
-        traceback.print_exc()
-        return False
+
+def _build_fur_group(name, mesh_obj, hair_density, length, radius, use_noise, use_frizz, seed):
+    """Geometry-node group that grows hair curves from ``mesh_obj``'s surface."""
+    group = bpy.data.node_groups.new(name, "GeometryNodeTree")
+    group.interface.new_socket(name="Geometry", in_out="INPUT", socket_type="NodeSocketGeometry")
+    group.interface.new_socket(name="Geometry", in_out="OUTPUT", socket_type="NodeSocketGeometry")
+    nodes = group.nodes
+    links = group.links
+
+    output_node = nodes.new("NodeGroupOutput")
+    output_node.location = (1600, 0)
+    nodes.new("NodeGroupInput").location = (-600, 0)
+
+    obj_info = nodes.new("GeometryNodeObjectInfo")
+    obj_info.location = (-400, 0)
+    obj_info.transform_space = "RELATIVE"
+    obj_info.inputs["Object"].default_value = mesh_obj
+
+    distribute = nodes.new("GeometryNodeDistributePointsOnFaces")
+    distribute.location = (-200, 0)
+    distribute.distribute_method = "RANDOM"
+    distribute.inputs["Density"].default_value = hair_density
+    distribute.inputs["Seed"].default_value = seed
+    links.new(obj_info.outputs["Geometry"], distribute.inputs["Mesh"])
+
+    strand = nodes.new("GeometryNodeCurvePrimitiveLine")
+    strand.location = (-200, 250)
+    strand.mode = "POINTS"
+    strand.inputs["Start"].default_value = (0.0, 0.0, 0.0)
+    strand.inputs["End"].default_value = (0.0, 0.0, length)
+
+    resample = nodes.new("GeometryNodeResampleCurve")
+    resample.location = (0, 250)
+    resample.inputs["Count"].default_value = 8
+    links.new(strand.outputs["Curve"], resample.inputs["Curve"])
+
+    # Distribute's Rotation output aligns each instance's Z axis to the surface normal.
+    instance = nodes.new("GeometryNodeInstanceOnPoints")
+    instance.location = (200, 0)
+    links.new(distribute.outputs["Points"], instance.inputs["Points"])
+    links.new(resample.outputs["Curve"], instance.inputs["Instance"])
+    links.new(distribute.outputs["Rotation"], instance.inputs["Rotation"])
+
+    realize = nodes.new("GeometryNodeRealizeInstances")
+    realize.location = (400, 0)
+    links.new(instance.outputs["Instances"], realize.inputs["Geometry"])
+    geometry = realize.outputs["Geometry"]
+
+    # Offsets grow from root (factor 0) to tip (factor 1) so roots stay attached.
+    spline_param = nodes.new("GeometryNodeSplineParameter")
+    spline_param.location = (400, -300)
+
+    def offset_along_strand(vector_socket, amount, x):
+        scale = nodes.new("ShaderNodeVectorMath")
+        scale.operation = "SCALE"
+        scale.location = (x, -250)
+        links.new(vector_socket, scale.inputs[0])
+        factor = nodes.new("ShaderNodeMath")
+        factor.operation = "MULTIPLY"
+        factor.location = (x - 150, -400)
+        links.new(spline_param.outputs["Factor"], factor.inputs[0])
+        factor.inputs[1].default_value = amount
+        links.new(factor.outputs["Value"], scale.inputs["Scale"])
+        set_pos = nodes.new("GeometryNodeSetPosition")
+        set_pos.location = (x + 150, 0)
+        links.new(scale.outputs["Vector"], set_pos.inputs["Offset"])
+        return set_pos
+
+    x = 700
+    if use_noise:
+        position = nodes.new("GeometryNodeInputPosition")
+        position.location = (x - 400, -150)
+        noise = nodes.new("ShaderNodeTexNoise")
+        noise.location = (x - 250, -150)
+        noise.inputs["Scale"].default_value = 8.0
+        links.new(position.outputs["Position"], noise.inputs["Vector"])
+        centered = nodes.new("ShaderNodeVectorMath")
+        centered.operation = "SUBTRACT"
+        centered.location = (x - 100, -150)
+        centered.inputs[1].default_value = (0.5, 0.5, 0.5)
+        links.new(noise.outputs["Color"], centered.inputs[0])
+        set_pos = offset_along_strand(centered.outputs["Vector"], length * 0.6, x)
+        links.new(geometry, set_pos.inputs["Geometry"])
+        geometry = set_pos.outputs["Geometry"]
+        x += 350
+    if use_frizz:
+        random = nodes.new("FunctionNodeRandomValue")
+        random.data_type = "FLOAT_VECTOR"
+        random.location = (x - 250, -150)
+        random.inputs[0].default_value = (-1.0, -1.0, -1.0)
+        random.inputs[1].default_value = (1.0, 1.0, 1.0)
+        set_pos = offset_along_strand(random.outputs[0], length * 0.1, x)
+        links.new(geometry, set_pos.inputs["Geometry"])
+        geometry = set_pos.outputs["Geometry"]
+        x += 350
+
+    set_radius = nodes.new("GeometryNodeSetCurveRadius")
+    set_radius.location = (x, 0)
+    set_radius.inputs["Radius"].default_value = radius
+    links.new(geometry, set_radius.inputs["Curve"])
+    links.new(set_radius.outputs["Curve"], output_node.inputs[0])
+    return group
 
 
 def main():
-    """Main entry point."""
-    argv = sys.argv
-
-    if "--" in argv:
-        argv = argv[argv.index("--") + 1 :]
-
-    if len(argv) < 1:
-        print("Usage: blender --python quick_effects.py -- <json_args>")
-        sys.exit(1)
-
-    args = json.loads(argv[0])
-    job_id = args.get("job_id", "unknown")
-    operation = args.get("operation")
-
-    operations = {
-        "quick_smoke": quick_smoke,
-        "quick_liquid": quick_liquid,
-        "quick_explode": quick_explode,
-        "quick_fur": quick_fur,
-    }
-
-    func = operations.get(operation)
-    if func:
-        success = func(args, job_id)
-    else:
-        print(f"Unknown operation: {operation}")
-        sys.exit(1)
-
-    sys.exit(0 if success else 1)
+    """Dispatch the requested operation (see mcp_common.run)."""
+    run(
+        {
+            "quick_smoke": quick_smoke,
+            "quick_liquid": quick_liquid,
+            "quick_explode": quick_explode,
+            "quick_fur": quick_fur,
+        }
+    )
 
 
 if __name__ == "__main__":

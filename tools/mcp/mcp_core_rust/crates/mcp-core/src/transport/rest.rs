@@ -23,6 +23,7 @@ use std::sync::Arc;
 use tower_http::cors::{Any, CorsLayer};
 use tracing::info;
 
+use crate::error::MCPError;
 use crate::tool::ToolRegistry;
 
 /// Shared state for REST handlers
@@ -137,114 +138,69 @@ async fn list_tools_handler(State(state): State<Arc<RestState>>) -> impl IntoRes
     Json(ToolListResponse { tools, count })
 }
 
+fn failure(status: StatusCode, error: String) -> (StatusCode, Json<ExecuteResponse>) {
+    (
+        status,
+        Json(ExecuteResponse {
+            success: false,
+            result: None,
+            error: Some(error),
+        }),
+    )
+}
+
+/// Execute `name` (inside the registry's panic boundary) and shape the REST
+/// response. Shared by both execution endpoints.
+async fn run_tool(
+    state: &RestState,
+    name: &str,
+    arguments: Value,
+) -> (StatusCode, Json<ExecuteResponse>) {
+    let arguments = if arguments.is_null() {
+        json!({})
+    } else {
+        arguments
+    };
+    match state.tools.call(name, arguments).await {
+        Ok(result) => (
+            StatusCode::OK,
+            Json(ExecuteResponse {
+                success: !result.is_error,
+                result: Some(json!({
+                    "content": result.content,
+                    "is_error": result.is_error
+                })),
+                error: None,
+            }),
+        ),
+        Err(MCPError::ToolNotFound(_)) => {
+            failure(StatusCode::NOT_FOUND, format!("Tool '{name}' not found"))
+        },
+        Err(e) => failure(StatusCode::INTERNAL_SERVER_ERROR, e.to_string()),
+    }
+}
+
 async fn call_tool_handler(
     State(state): State<Arc<RestState>>,
     Path(name): Path<String>,
     Json(request): Json<ExecuteRequest>,
 ) -> impl IntoResponse {
     info!("REST call tool: {}", name);
-
-    let tool = match state.tools.get(&name) {
-        Some(t) => t,
-        None => {
-            return (
-                StatusCode::NOT_FOUND,
-                Json(ExecuteResponse {
-                    success: false,
-                    result: None,
-                    error: Some(format!("Tool '{}' not found", name)),
-                }),
-            );
-        },
-    };
-
-    match tool.execute(request.arguments).await {
-        Ok(result) => {
-            // Convert content to JSON
-            let result_json = json!({
-                "content": result.content,
-                "is_error": result.is_error
-            });
-
-            (
-                StatusCode::OK,
-                Json(ExecuteResponse {
-                    success: !result.is_error,
-                    result: Some(result_json),
-                    error: None,
-                }),
-            )
-        },
-        Err(e) => (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(ExecuteResponse {
-                success: false,
-                result: None,
-                error: Some(e.to_string()),
-            }),
-        ),
-    }
+    run_tool(&state, &name, request.arguments).await
 }
 
 async fn execute_handler(
     State(state): State<Arc<RestState>>,
     Json(request): Json<ExecuteRequest>,
 ) -> impl IntoResponse {
-    let name = match &request.tool {
-        Some(n) => n.clone(),
-        None => {
-            return (
-                StatusCode::BAD_REQUEST,
-                Json(ExecuteResponse {
-                    success: false,
-                    result: None,
-                    error: Some("Missing 'tool' field in request".to_string()),
-                }),
-            );
-        },
+    let Some(name) = request.tool else {
+        return failure(
+            StatusCode::BAD_REQUEST,
+            "Missing 'tool' field in request".to_string(),
+        );
     };
-
     info!("REST execute tool: {}", name);
-
-    let tool = match state.tools.get(&name) {
-        Some(t) => t,
-        None => {
-            return (
-                StatusCode::NOT_FOUND,
-                Json(ExecuteResponse {
-                    success: false,
-                    result: None,
-                    error: Some(format!("Tool '{}' not found", name)),
-                }),
-            );
-        },
-    };
-
-    match tool.execute(request.arguments).await {
-        Ok(result) => {
-            let result_json = json!({
-                "content": result.content,
-                "is_error": result.is_error
-            });
-
-            (
-                StatusCode::OK,
-                Json(ExecuteResponse {
-                    success: !result.is_error,
-                    result: Some(result_json),
-                    error: None,
-                }),
-            )
-        },
-        Err(e) => (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(ExecuteResponse {
-                success: false,
-                result: None,
-                error: Some(e.to_string()),
-            }),
-        ),
-    }
+    run_tool(&state, &name, request.arguments).await
 }
 
 #[cfg(test)]

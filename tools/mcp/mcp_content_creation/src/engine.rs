@@ -1,955 +1,1270 @@
-//! Content creation engine - LaTeX compilation, PDF utilities, Manim animations.
+//! Content creation engine: orchestrates LaTeX, poppler, pdf2svg, and Manim
+//! subprocesses and turns their results into tool responses.
+//!
+//! Security model for LaTeX (untrusted input is expected):
+//! - compilation runs in a fresh temporary directory;
+//! - `-no-shell-escape` plus `shell_escape=f` disable `\write18`;
+//! - `openin_any=p` / `openout_any=p` (kpathsea "paranoid" mode) forbid
+//!   reading or writing absolute paths, parent directories, and dotfiles, so
+//!   `\input{/etc/passwd}` or `\openout` to arbitrary locations fail;
+//! - `dvips -R2` disables backtick commands in `\special`;
+//! - every subprocess has a deadline and is killed when it expires.
+//!
+//! Manim scripts are arbitrary Python and are executed as-is; the only
+//! protections are the timeout, the temporary working directory, and the
+//! container the server runs in.
 
-use regex::Regex;
-use std::collections::HashSet;
-use std::fs;
+use std::ffi::OsString;
 use std::path::{Path, PathBuf};
-use std::process::Stdio;
-use std::time::Instant;
-use tempfile::TempDir;
-use tokio::process::Command;
-use tracing::{debug, error, info, warn};
+use std::sync::Arc;
+use std::time::{Duration, Instant};
 
+use serde::Serialize;
+use tokio::process::Command;
+use tokio::sync::Semaphore;
+use tracing::{debug, info, warn};
+
+use crate::latex;
+use crate::manim;
+use crate::paths::{PathPolicy, sanitize_stem, unique_stem};
+use crate::process::{self, CmdError, truncate_chars};
 use crate::types::{
-    CompileResult, LatexTemplate, ManimFormat, ManimResult, OutputFormat, PreviewResult,
-    ResponseMode,
+    CompileLatexArgs, CompileResult, LatexFormat, LatexTemplate, ManimArgs, ManimFormat,
+    ManimQuality, ManimResult, PreviewPdfArgs, PreviewResult, RenderTikzArgs, ResponseMode,
+    TikzFormat, non_empty, round2,
 };
 
-/// Preview DPI settings
+/// Default DPI for page previews.
 pub const PREVIEW_DPI_STANDARD: u32 = 150;
+/// Default DPI for `render_tikz` PNG output.
 pub const PREVIEW_DPI_HIGH: u32 = 300;
+/// Accepted DPI range; values outside are clamped (with a warning).
+pub const DPI_RANGE: (u32, u32) = (36, 600);
+/// Maximum number of pages rendered by a single preview request.
+pub const MAX_PREVIEW_PAGES: usize = 50;
+/// Maximum size of inline LaTeX / TikZ content.
+pub const MAX_LATEX_BYTES: usize = 2 * 1024 * 1024;
+/// Maximum size of a Manim script.
+pub const MAX_SCRIPT_BYTES: usize = 1024 * 1024;
+/// Maximum number of LaTeX runs for one document.
+const MAX_LATEX_PASSES: u32 = 4;
+/// Deadline for quick helper tools (pdfinfo, `--version` probes).
+const QUICK_TIMEOUT: Duration = Duration::from_secs(30);
+/// Job name used for the main `.tex` file inside the temp directory.
+const JOB_NAME: &str = "document";
 
-/// Container to host path mappings
-const CONTAINER_MAPPINGS: &[(&str, &str)] = &[
-    ("/app/output", "outputs/mcp-content"),
-    ("/output", "outputs/mcp-content"),
-    ("/app", "."),
-];
+/// Names (or paths) of the external executables the engine invokes.
+#[derive(Debug, Clone)]
+pub struct Binaries {
+    pub pdflatex: String,
+    pub latex: String,
+    pub dvips: String,
+    pub bibtex: String,
+    pub pdfinfo: String,
+    pub pdftoppm: String,
+    pub pdf2svg: String,
+    pub manim: String,
+}
 
-/// Content creation engine
+impl Default for Binaries {
+    fn default() -> Self {
+        Self {
+            pdflatex: "pdflatex".into(),
+            latex: "latex".into(),
+            dvips: "dvips".into(),
+            bibtex: "bibtex".into(),
+            pdfinfo: "pdfinfo".into(),
+            pdftoppm: "pdftoppm".into(),
+            pdf2svg: "pdf2svg".into(),
+            manim: "manim".into(),
+        }
+    }
+}
+
+/// Engine configuration (populated from CLI flags / environment in `main`).
+#[derive(Debug, Clone)]
+pub struct EngineConfig {
+    pub output_dir: PathBuf,
+    pub project_root: PathBuf,
+    pub host_project_root: Option<PathBuf>,
+    pub host_output_dir: String,
+    pub latex_timeout: Duration,
+    pub manim_timeout: Duration,
+    pub max_concurrent_jobs: usize,
+    pub binaries: Binaries,
+}
+
+impl EngineConfig {
+    /// Configuration with default timeouts and binaries.
+    pub fn new(output_dir: PathBuf, project_root: PathBuf) -> Self {
+        Self {
+            output_dir,
+            project_root,
+            host_project_root: None,
+            host_output_dir: "outputs/mcp-content".into(),
+            latex_timeout: Duration::from_secs(120),
+            manim_timeout: Duration::from_secs(600),
+            max_concurrent_jobs: 2,
+            binaries: Binaries::default(),
+        }
+    }
+}
+
+/// Availability of one external tool, as reported by `content_creation_status`.
+#[derive(Debug, Clone, Serialize)]
+pub struct DependencyStatus {
+    pub name: &'static str,
+    pub command: String,
+    pub available: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub version: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub hint: Option<&'static str>,
+}
+
+/// Successful LaTeX job output.
+struct LatexOutput {
+    /// Final file in the latex output directory.
+    path: PathBuf,
+    passes: u32,
+    warnings: Vec<String>,
+}
+
+/// The content creation engine. Cheap to share behind an `Arc`.
 pub struct ContentEngine {
-    output_dir: PathBuf,
+    cfg: EngineConfig,
+    paths: PathPolicy,
     manim_output_dir: PathBuf,
     latex_output_dir: PathBuf,
     preview_output_dir: PathBuf,
-    project_root: PathBuf,
+    jobs: Arc<Semaphore>,
 }
 
 impl ContentEngine {
-    /// Create a new content engine
-    pub fn new(output_dir: PathBuf, project_root: PathBuf) -> Self {
-        let manim_output_dir = output_dir.join("manim");
-        let latex_output_dir = output_dir.join("latex");
-        let preview_output_dir = output_dir.join("previews");
+    /// Create the engine and its output directories.
+    pub fn new(cfg: EngineConfig) -> Self {
+        let manim_output_dir = cfg.output_dir.join("manim");
+        let latex_output_dir = cfg.output_dir.join("latex");
+        let preview_output_dir = cfg.output_dir.join("previews");
 
-        // Create directories
         for dir in [&manim_output_dir, &latex_output_dir, &preview_output_dir] {
-            if let Err(e) = fs::create_dir_all(dir) {
+            if let Err(e) = std::fs::create_dir_all(dir) {
                 warn!("Failed to create directory {}: {}", dir.display(), e);
             }
         }
 
+        let paths = PathPolicy::new(
+            cfg.project_root.clone(),
+            cfg.output_dir.clone(),
+            cfg.host_project_root.clone(),
+            cfg.host_output_dir.clone(),
+        );
+
         info!(
-            "Content engine initialized with output_dir: {}",
-            output_dir.display()
+            "Content engine ready (output_dir: {}, project_root: {})",
+            cfg.output_dir.display(),
+            cfg.project_root.display()
         );
 
         Self {
-            output_dir,
+            jobs: Arc::new(Semaphore::new(cfg.max_concurrent_jobs.max(1))),
+            cfg,
+            paths,
             manim_output_dir,
             latex_output_dir,
             preview_output_dir,
-            project_root,
         }
     }
 
-    /// Convert container path to host-relative path
-    pub fn container_to_host_path(&self, container_path: &str) -> String {
-        for (container_prefix, host_prefix) in CONTAINER_MAPPINGS {
-            if container_path.starts_with(container_prefix) {
-                let relative = container_path
-                    .strip_prefix(container_prefix)
-                    .unwrap_or("")
-                    .trim_start_matches('/');
-                if *host_prefix == "." {
-                    return relative.to_string();
-                }
-                return format!("{}/{}", host_prefix, relative);
-            }
-        }
-        container_path.to_string()
+    /// Engine configuration.
+    pub fn config(&self) -> &EngineConfig {
+        &self.cfg
     }
 
-    /// Resolve input path relative to project root with security checks
-    pub fn resolve_input_path(&self, input_path: &str) -> Result<PathBuf, String> {
-        let path = Path::new(input_path);
+    // ------------------------------------------------------------------
+    // compile_latex
+    // ------------------------------------------------------------------
 
-        #[allow(clippy::collapsible_if)]
-        if path.is_absolute() {
-            // Check if this is a host path that should be converted
-            if let Ok(host_root) = std::env::var("MCP_HOST_PROJECT_ROOT") {
-                if input_path.starts_with(&host_root) {
-                    let relative = input_path
-                        .strip_prefix(&host_root)
-                        .unwrap_or("")
-                        .trim_start_matches(std::path::MAIN_SEPARATOR);
-                    return Ok(self.project_root.join(relative));
+    /// Compile a LaTeX document from inline content or a project file.
+    pub async fn compile_latex(&self, args: CompileLatexArgs) -> CompileResult {
+        let start = Instant::now();
+        let format = args.output_format.unwrap_or(LatexFormat::Pdf);
+        let template = args.template.unwrap_or(LatexTemplate::Custom);
+        let mode = args.response_mode.unwrap_or(ResponseMode::Standard);
+        let mut warnings = Vec::new();
+
+        let (raw, source_dir, stem_prefix) = match (&args.content, &args.input_path) {
+            (None, None) => {
+                return CompileResult::failure("Must provide either 'content' or 'input_path'");
+            },
+            (Some(_), Some(_)) => {
+                return CompileResult::failure(
+                    "Provide only one of 'content' or 'input_path', not both",
+                );
+            },
+            (Some(content), None) => (content.clone(), None, "document".to_string()),
+            (None, Some(path)) => {
+                let resolved = match self.paths.resolve_input_file(path) {
+                    Ok(p) => p,
+                    Err(e) => return CompileResult::failure(e),
+                };
+                match tokio::fs::read(&resolved).await {
+                    Ok(bytes) if bytes.len() > MAX_LATEX_BYTES => {
+                        return CompileResult::failure(format!(
+                            "input file is larger than {} bytes",
+                            MAX_LATEX_BYTES
+                        ));
+                    },
+                    Ok(bytes) => {
+                        let stem = resolved
+                            .file_stem()
+                            .map(|s| s.to_string_lossy().into_owned())
+                            .unwrap_or_else(|| "document".into());
+                        (
+                            String::from_utf8_lossy(&bytes).into_owned(),
+                            resolved.parent().map(Path::to_path_buf),
+                            sanitize_stem(&stem),
+                        )
+                    },
+                    Err(e) => {
+                        return CompileResult::failure(format!("Failed to read input file: {}", e));
+                    },
                 }
-            }
-            // For other absolute paths, just normalize
-            return Ok(PathBuf::from(input_path));
-        }
+            },
+        };
 
-        // For relative paths, resolve relative to project root
-        let resolved = self.project_root.join(input_path);
-        let resolved = resolved.canonicalize().unwrap_or(resolved);
-
-        // Security check: ensure path stays within project root
-        let project_root_canonical = self
-            .project_root
-            .canonicalize()
-            .unwrap_or_else(|_| self.project_root.clone());
-
-        if !resolved.starts_with(&project_root_canonical) {
-            return Err(format!(
-                "Path traversal detected: '{}' resolves outside project root",
-                input_path
+        if raw.len() > MAX_LATEX_BYTES {
+            return CompileResult::failure(format!(
+                "content is larger than {} bytes",
+                MAX_LATEX_BYTES
             ));
         }
-
-        Ok(resolved)
-    }
-
-    /// Get PDF page count using pdfinfo
-    pub async fn get_pdf_page_count(&self, pdf_path: &Path) -> i32 {
-        let output = Command::new("pdfinfo")
-            .arg(pdf_path)
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .output()
-            .await;
-
-        match output {
-            Ok(out) if out.status.success() => {
-                let stdout = String::from_utf8_lossy(&out.stdout);
-                #[allow(clippy::collapsible_if)]
-                for line in stdout.lines() {
-                    if line.starts_with("Pages:") {
-                        if let Some(count) = line.split(':').nth(1) {
-                            if let Ok(n) = count.trim().parse() {
-                                return n;
-                            }
-                        }
-                    }
-                }
-                0
-            },
-            _ => 0,
+        if raw.trim().is_empty() {
+            return CompileResult::failure("LaTeX content is empty");
         }
-    }
-
-    /// Get file size in KB
-    pub fn get_file_size_kb(&self, path: &Path) -> f64 {
-        fs::metadata(path)
-            .map(|m| m.len() as f64 / 1024.0)
-            .unwrap_or(0.0)
-    }
-
-    /// Parse page specification string
-    pub fn parse_page_spec(&self, spec: &str, total_pages: i32) -> Vec<i32> {
-        if spec.is_empty() || spec.to_lowercase() == "none" {
-            return vec![];
+        if template != LatexTemplate::Custom && latex::has_documentclass(&raw) {
+            warnings.push(format!(
+                "template '{}' ignored because the content already has \\documentclass",
+                template.as_str()
+            ));
         }
+        let document = latex::wrap_with_template(&raw, template);
 
-        if spec.to_lowercase() == "all" {
-            return (1..=total_pages).collect();
-        }
-
-        let mut pages: HashSet<i32> = HashSet::new();
-
-        #[allow(clippy::collapsible_if)]
-        for part in spec.split(',') {
-            let part = part.trim();
-            if part.contains('-') {
-                // Range: "1-5"
-                let parts: Vec<&str> = part.split('-').collect();
-                if parts.len() == 2 {
-                    if let (Ok(start), Ok(end)) = (
-                        parts[0].trim().parse::<i32>(),
-                        parts[1].trim().parse::<i32>(),
-                    ) {
-                        let start = start.max(1);
-                        let end = end.min(total_pages);
-                        for p in start..=end {
-                            pages.insert(p);
-                        }
-                    }
-                }
-            } else if let Ok(page) = part.parse::<i32>() {
-                if page >= 1 && page <= total_pages {
-                    pages.insert(page);
-                }
-            }
-        }
-
-        let mut result: Vec<i32> = pages.into_iter().collect();
-        result.sort();
-        result
-    }
-
-    /// Export PDF pages to PNG files
-    pub async fn export_pages_to_png(
-        &self,
-        pdf_path: &Path,
-        pages: &[i32],
-        dpi: u32,
-    ) -> Vec<PathBuf> {
-        let base_name = pdf_path
-            .file_stem()
-            .and_then(|s| s.to_str())
-            .unwrap_or("document");
-
-        let mut png_paths = Vec::new();
-
-        for page in pages {
-            let output_base = self
-                .preview_output_dir
-                .join(format!("{}_page{}", base_name, page));
-
-            let result = Command::new("pdftoppm")
-                .args([
-                    "-png",
-                    "-f",
-                    &page.to_string(),
-                    "-l",
-                    &page.to_string(),
-                    "-r",
-                    &dpi.to_string(),
-                    "-singlefile",
-                ])
-                .arg(pdf_path)
-                .arg(&output_base)
-                .stdout(Stdio::piped())
-                .stderr(Stdio::piped())
-                .output()
-                .await;
-
-            match result {
-                Ok(out) if out.status.success() => {
-                    let png_path = output_base.with_extension("png");
-                    if png_path.exists() {
-                        png_paths.push(png_path);
-                    }
-                },
-                Ok(out) => {
-                    warn!(
-                        "Failed to export page {}: {}",
-                        page,
-                        String::from_utf8_lossy(&out.stderr)
-                    );
-                },
-                Err(e) => {
-                    warn!("Failed to run pdftoppm for page {}: {}", page, e);
-                },
-            }
-        }
-
-        png_paths
-    }
-
-    /// Wrap content with LaTeX template if needed
-    pub fn wrap_content_with_template(&self, content: &str, template: LatexTemplate) -> String {
-        if content.contains("\\documentclass") {
-            return content.to_string();
-        }
-        template.wrap_content(content)
-    }
-
-    /// Extract error from LaTeX log file
-    pub fn extract_latex_error(&self, log_path: &Path) -> String {
-        if !log_path.exists() {
-            return "Compilation failed".to_string();
-        }
-
-        match fs::read_to_string(log_path) {
-            Ok(content) => {
-                let errors: Vec<&str> = content
-                    .lines()
-                    .filter(|line| line.starts_with("!"))
-                    .take(5)
-                    .collect();
-                if errors.is_empty() {
-                    "Compilation failed".to_string()
-                } else {
-                    errors.join("\n")
-                }
-            },
-            Err(_) => "Compilation failed".to_string(),
-        }
-    }
-
-    /// Run LaTeX compilation
-    async fn run_latex_compilation(
-        &self,
-        compiler: &str,
-        tex_file: &Path,
-        working_dir: &Path,
-        output_format: OutputFormat,
-    ) -> Option<PathBuf> {
-        let cmd_args = ["-interaction=nonstopmode", "-no-shell-escape"];
-
-        // Run compilation twice for references
-        for pass in 0..2 {
-            let result = Command::new(compiler)
-                .args(cmd_args)
-                .arg(tex_file.file_name().unwrap())
-                .current_dir(working_dir)
-                .stdout(Stdio::piped())
-                .stderr(Stdio::piped())
-                .output()
-                .await;
-
-            match result {
-                Ok(out) => {
-                    if !out.status.success() && pass == 0 {
-                        debug!(
-                            "First compilation pass had warnings/errors (often normal): {}",
-                            String::from_utf8_lossy(&out.stderr)
-                        );
-                    }
-                },
-                Err(e) => {
-                    error!("Failed to run {}: {}", compiler, e);
-                    return None;
-                },
-            }
-        }
-
-        // Handle PS output (requires dvips)
-        if output_format == OutputFormat::Ps {
-            let dvi_file = tex_file.with_extension("dvi");
-            let ps_file = tex_file.with_extension("ps");
-
-            let _ = Command::new("dvips")
-                .arg(&dvi_file)
-                .arg("-o")
-                .arg(&ps_file)
-                .current_dir(working_dir)
-                .output()
-                .await;
-        }
-
-        let output_file = tex_file.with_extension(output_format.as_str());
-        if output_file.exists() {
-            Some(output_file)
-        } else {
-            None
-        }
-    }
-
-    /// Convert PDF to PNG or SVG
-    async fn convert_pdf_to_image(
-        &self,
-        pdf_path: &Path,
-        output_format: OutputFormat,
-    ) -> Result<PathBuf, String> {
-        let base_name = pdf_path
-            .file_stem()
-            .and_then(|s| s.to_str())
-            .unwrap_or("document");
-        let output_path =
-            self.latex_output_dir
-                .join(format!("{}.{}", base_name, output_format.as_str()));
-
-        match output_format {
-            OutputFormat::Png => {
-                let output_base = output_path.with_extension("");
-                let result = Command::new("pdftoppm")
-                    .args(["-png", "-singlefile", "-r", &PREVIEW_DPI_HIGH.to_string()])
-                    .arg(pdf_path)
-                    .arg(&output_base)
-                    .output()
-                    .await
-                    .map_err(|e| format!("Failed to run pdftoppm: {}", e))?;
-
-                if !result.status.success() {
-                    return Err(format!(
-                        "pdftoppm failed: {}",
-                        String::from_utf8_lossy(&result.stderr)
-                    ));
-                }
-            },
-            OutputFormat::Svg => {
-                let result = Command::new("pdf2svg")
-                    .arg(pdf_path)
-                    .arg(&output_path)
-                    .output()
-                    .await
-                    .map_err(|e| format!("Failed to run pdf2svg: {}", e))?;
-
-                if !result.status.success() {
-                    return Err(format!(
-                        "pdf2svg failed: {}",
-                        String::from_utf8_lossy(&result.stderr)
-                    ));
-                }
-            },
-            _ => {
-                return Err(format!(
-                    "Unsupported conversion format: {:?}",
-                    output_format
-                ));
-            },
-        }
-
-        if output_path.exists() {
-            Ok(output_path)
-        } else {
-            Err("Conversion produced no output".to_string())
-        }
-    }
-
-    /// Compile LaTeX document
-    #[allow(clippy::too_many_arguments)]
-    pub async fn compile_latex(
-        &self,
-        content: Option<&str>,
-        input_path: Option<&str>,
-        output_format: OutputFormat,
-        template: LatexTemplate,
-        response_mode: ResponseMode,
-        preview_pages: &str,
-        preview_dpi: u32,
-    ) -> CompileResult {
-        let start_time = Instant::now();
-
-        // Validate inputs
-        if content.is_none() && input_path.is_none() {
-            return CompileResult {
-                success: false,
-                error: Some("Must provide either 'content' or 'input_path'".to_string()),
-                ..Default::default()
-            };
-        }
-
-        if content.is_some() && input_path.is_some() {
-            return CompileResult {
-                success: false,
-                error: Some("Provide only one of 'content' or 'input_path', not both".to_string()),
-                ..Default::default()
-            };
-        }
-
-        // Get content from file or parameter
-        let (latex_content, source_dir) = if let Some(path) = input_path {
-            match self.resolve_input_path(path) {
-                Ok(resolved) => {
-                    if !resolved.exists() {
-                        return CompileResult {
-                            success: false,
-                            error: Some(format!("Input file not found: {}", path)),
-                            ..Default::default()
-                        };
-                    }
-                    match fs::read_to_string(&resolved) {
-                        Ok(c) => (c, resolved.parent().map(|p| p.to_path_buf())),
-                        Err(e) => {
-                            return CompileResult {
-                                success: false,
-                                error: Some(format!("Failed to read input file: {}", e)),
-                                ..Default::default()
-                            };
-                        },
-                    }
-                },
-                Err(e) => {
-                    return CompileResult {
-                        success: false,
-                        error: Some(e),
-                        ..Default::default()
-                    };
-                },
-            }
-        } else {
-            (content.unwrap().to_string(), None)
+        let preview_spec = match (&args.preview_pages, args.visual_feedback) {
+            (Some(spec), _) => spec.clone(),
+            (None, Some(true)) => "1".to_string(),
+            _ => "none".to_string(),
         };
-
-        let compiler = if output_format == OutputFormat::Pdf {
-            "pdflatex"
-        } else {
-            "latex"
-        };
-
-        // Wrap content with template
-        let latex_content = self.wrap_content_with_template(&latex_content, template);
-
-        // Create temp directory for compilation
-        let temp_dir = match TempDir::new() {
-            Ok(d) => d,
-            Err(e) => {
-                return CompileResult {
-                    success: false,
-                    error: Some(format!("Failed to create temp directory: {}", e)),
-                    ..Default::default()
-                };
-            },
-        };
-
-        let tex_file = temp_dir.path().join("document.tex");
-        let mut symlink_warnings = Vec::new();
-
-        // Symlink source directory contents if compiling from file
-        #[allow(clippy::collapsible_if)]
-        if let Some(source) = &source_dir {
-            if let Ok(entries) = fs::read_dir(source) {
-                for entry in entries.flatten() {
-                    let src = entry.path();
-                    let dst = temp_dir.path().join(entry.file_name());
-                    if !dst.exists() {
-                        #[cfg(unix)]
-                        if let Err(e) = std::os::unix::fs::symlink(&src, &dst) {
-                            symlink_warnings.push(format!(
-                                "{}: {}",
-                                entry.file_name().to_string_lossy(),
-                                e
-                            ));
-                        }
-                        #[cfg(windows)]
-                        if src.is_dir() {
-                            if let Err(e) = std::os::windows::fs::symlink_dir(&src, &dst) {
-                                symlink_warnings.push(format!(
-                                    "{}: {}",
-                                    entry.file_name().to_string_lossy(),
-                                    e
-                                ));
-                            }
-                        } else if let Err(e) = std::os::windows::fs::symlink_file(&src, &dst) {
-                            symlink_warnings.push(format!(
-                                "{}: {}",
-                                entry.file_name().to_string_lossy(),
-                                e
-                            ));
-                        }
-                    }
-                }
-            }
+        if format != LatexFormat::Pdf && !is_none_spec(&preview_spec) {
+            warnings.push("previews are only generated for PDF output".to_string());
         }
-
-        // Write LaTeX content
-        if let Err(e) = fs::write(&tex_file, &latex_content) {
-            return CompileResult {
-                success: false,
-                error: Some(format!("Failed to write tex file: {}", e)),
-                ..Default::default()
-            };
-        }
-
-        // Run compilation
-        let output_file = self
-            .run_latex_compilation(compiler, &tex_file, temp_dir.path(), output_format)
-            .await;
-
-        let output_file = match output_file {
-            Some(f) => f,
-            None => {
-                let log_file = tex_file.with_extension("log");
-                return CompileResult {
-                    success: false,
-                    error: Some(self.extract_latex_error(&log_file)),
-                    ..Default::default()
-                };
-            },
-        };
-
-        // Copy to output directory
-        let timestamp = chrono::Utc::now().timestamp();
-        let output_name = format!(
-            "document_{}_{}.{}",
-            timestamp,
-            std::process::id(),
-            output_format.as_str()
+        let dpi = clamp_dpi(
+            args.preview_dpi.unwrap_or(PREVIEW_DPI_STANDARD),
+            &mut warnings,
         );
-        let final_output = self.latex_output_dir.join(&output_name);
 
-        if let Err(e) = fs::copy(&output_file, &final_output) {
-            return CompileResult {
-                success: false,
-                error: Some(format!("Failed to copy output: {}", e)),
-                ..Default::default()
-            };
-        }
+        let _permit = self.acquire().await;
 
-        // Get metadata
-        let page_count = if output_format == OutputFormat::Pdf {
-            self.get_pdf_page_count(&final_output).await
-        } else {
-            0
+        let output = match self
+            .run_latex_job(&document, source_dir.as_deref(), format, &stem_prefix)
+            .await
+        {
+            Ok(o) => o,
+            Err(e) => return CompileResult::failure(e),
         };
-        let file_size_kb = self.get_file_size_kb(&final_output);
-        let compile_time = start_time.elapsed().as_secs_f64();
+        warnings.extend(output.warnings);
 
-        // Generate previews if requested
-        let preview_paths = if output_format == OutputFormat::Pdf && preview_pages != "none" {
-            let pages = self.parse_page_spec(preview_pages, page_count);
-            if !pages.is_empty() {
-                let paths = self
-                    .export_pages_to_png(&final_output, &pages, preview_dpi)
-                    .await;
-                Some(
-                    paths
-                        .iter()
-                        .map(|p| self.container_to_host_path(&p.to_string_lossy()))
-                        .collect(),
-                )
-            } else {
-                None
+        let page_count = if format == LatexFormat::Pdf {
+            match self.pdf_page_count(&output.path).await {
+                Ok(n) => Some(n),
+                Err(e) => {
+                    warnings.push(format!("could not determine page count: {}", e));
+                    None
+                },
             }
         } else {
             None
         };
 
-        // Build result
-        let host_path = self.container_to_host_path(&final_output.to_string_lossy());
+        let mut preview_paths = None;
+        if format == LatexFormat::Pdf && !is_none_spec(&preview_spec) {
+            match page_count {
+                Some(total) => match latex::parse_page_spec(&preview_spec, total) {
+                    Ok(pages) if pages.is_empty() => warnings.push(format!(
+                        "preview_pages '{}' selects no pages (document has {})",
+                        preview_spec, total
+                    )),
+                    Ok(pages) => {
+                        let pages = cap_pages(pages, &mut warnings);
+                        let base = file_stem(&output.path);
+                        let (paths, errs) =
+                            self.export_pages(&output.path, &base, &pages, dpi).await;
+                        warnings.extend(errs);
+                        preview_paths =
+                            Some(paths.iter().map(|p| self.paths.to_host_path(p)).collect());
+                    },
+                    Err(e) => warnings.push(e),
+                },
+                None => warnings.push("previews skipped: page count unavailable".to_string()),
+            }
+        }
 
         let mut result = CompileResult {
             success: true,
-            output_path: Some(host_path),
-            container_path: Some(final_output.to_string_lossy().to_string()),
-            page_count: Some(page_count),
-            file_size_kb: Some((file_size_kb * 100.0).round() / 100.0),
+            output_path: Some(self.paths.to_host_path(&output.path)),
+            container_path: Some(output.path.to_string_lossy().into_owned()),
+            page_count,
+            file_size_kb: Some(file_size_kb(&output.path).await),
+            warnings: non_empty(warnings),
             ..Default::default()
         };
-
-        if !symlink_warnings.is_empty() {
-            result.warnings = Some(vec![format!(
-                "Failed to symlink files for relative includes: {}. If your document has \\include, \\input, or image references, they may not resolve correctly.",
-                symlink_warnings.join(", ")
-            )]);
-        }
-
-        if response_mode == ResponseMode::Standard {
-            result.format = Some(output_format.as_str().to_string());
-            result.compile_time_seconds = Some((compile_time * 100.0).round() / 100.0);
+        if mode == ResponseMode::Standard {
+            result.format = Some(format.as_str().to_string());
+            result.compile_time_seconds = Some(round2(start.elapsed().as_secs_f64()));
+            result.latex_passes = Some(output.passes);
             result.preview_paths = preview_paths;
         }
-
         result
     }
 
-    /// Render TikZ diagram
-    pub async fn render_tikz(
-        &self,
-        tikz_code: &str,
-        output_format: OutputFormat,
-        response_mode: ResponseMode,
-    ) -> CompileResult {
-        // Wrap TikZ code in standalone document
-        let latex_content = format!(
-            r#"\documentclass[tikz,border=10pt]{{standalone}}
-\usepackage{{tikz}}
-\usetikzlibrary{{arrows.meta,positioning,shapes,calc}}
-\begin{{document}}
-{}
-\end{{document}}"#,
-            tikz_code
-        );
+    // ------------------------------------------------------------------
+    // render_tikz
+    // ------------------------------------------------------------------
 
-        // Compile to PDF first
-        let pdf_result = self
-            .compile_latex(
-                Some(&latex_content),
-                None,
-                OutputFormat::Pdf,
-                LatexTemplate::Custom,
-                ResponseMode::Minimal,
-                "none",
-                PREVIEW_DPI_STANDARD,
-            )
-            .await;
+    /// Render a TikZ snippet as a standalone PDF, PNG, or SVG.
+    pub async fn render_tikz(&self, args: RenderTikzArgs) -> CompileResult {
+        let format = args.output_format.unwrap_or(TikzFormat::Pdf);
+        let mode = args.response_mode.unwrap_or(ResponseMode::Standard);
+        let mut warnings = Vec::new();
 
-        if !pdf_result.success {
-            return pdf_result;
+        if args.tikz_code.len() > MAX_LATEX_BYTES {
+            return CompileResult::failure(format!(
+                "tikz_code is larger than {} bytes",
+                MAX_LATEX_BYTES
+            ));
+        }
+        let document = match latex::build_tikz_document(
+            &args.tikz_code,
+            args.tikz_libraries.as_deref().unwrap_or(&[]),
+            args.packages.as_deref().unwrap_or(&[]),
+        ) {
+            Ok(d) => d,
+            Err(e) => return CompileResult::failure(e),
+        };
+        let dpi = clamp_dpi(args.dpi.unwrap_or(PREVIEW_DPI_HIGH), &mut warnings);
+        if format != TikzFormat::Png && args.dpi.is_some() {
+            warnings.push("dpi only applies to PNG output".to_string());
         }
 
-        let pdf_path = pdf_result.container_path.as_ref().unwrap();
+        let _permit = self.acquire().await;
 
-        // Convert to requested format if needed
-        if output_format != OutputFormat::Pdf {
-            match self
-                .convert_pdf_to_image(Path::new(pdf_path), output_format)
-                .await
-            {
-                Ok(output_path) => {
-                    let host_path = self.container_to_host_path(&output_path.to_string_lossy());
-                    let mut result = CompileResult {
-                        success: true,
-                        output_path: Some(host_path),
-                        container_path: Some(output_path.to_string_lossy().to_string()),
-                        ..Default::default()
-                    };
-                    if response_mode == ResponseMode::Standard {
-                        result.format = Some(output_format.as_str().to_string());
-                    }
-                    result
-                },
-                Err(e) => CompileResult {
-                    success: false,
-                    error: Some(format!("Format conversion error: {}", e)),
-                    ..Default::default()
-                },
-            }
-        } else {
-            // Return PDF result
-            let mut result = CompileResult {
-                success: true,
-                output_path: pdf_result.output_path,
-                container_path: pdf_result.container_path,
-                page_count: Some(1),
-                file_size_kb: pdf_result.file_size_kb,
-                ..Default::default()
-            };
-            if response_mode == ResponseMode::Standard {
-                result.format = Some("pdf".to_string());
-            }
-            result
-        }
-    }
+        let output = match self
+            .run_latex_job(&document, None, LatexFormat::Pdf, "tikz")
+            .await
+        {
+            Ok(o) => o,
+            Err(e) => return CompileResult::failure(e),
+        };
+        warnings.extend(output.warnings);
 
-    /// Preview PDF pages
-    pub async fn preview_pdf(
-        &self,
-        pdf_path: &str,
-        pages: &str,
-        dpi: u32,
-        response_mode: ResponseMode,
-    ) -> PreviewResult {
-        // Resolve path
-        let resolved = match self.resolve_input_path(pdf_path) {
-            Ok(p) => p,
-            Err(e) => {
-                return PreviewResult {
-                    success: false,
-                    error: Some(e),
-                    ..Default::default()
-                };
+        let final_path = match format {
+            TikzFormat::Pdf => output.path.clone(),
+            TikzFormat::Png | TikzFormat::Svg => {
+                match self.convert_pdf(&output.path, format, dpi).await {
+                    Ok(p) => p,
+                    Err(e) => {
+                        return CompileResult::failure(format!("Format conversion error: {}", e));
+                    },
+                }
             },
         };
 
-        if !resolved.exists() {
-            return PreviewResult {
-                success: false,
-                error: Some(format!("PDF file not found: {}", pdf_path)),
-                ..Default::default()
-            };
+        let mut result = CompileResult {
+            success: true,
+            output_path: Some(self.paths.to_host_path(&final_path)),
+            container_path: Some(final_path.to_string_lossy().into_owned()),
+            file_size_kb: Some(file_size_kb(&final_path).await),
+            warnings: non_empty(warnings),
+            ..Default::default()
+        };
+        if format == TikzFormat::Pdf {
+            result.page_count = Some(1);
         }
-
-        // Get page count
-        let page_count = self.get_pdf_page_count(&resolved).await;
-        if page_count == 0 {
-            return PreviewResult {
-                success: false,
-                error: Some("Could not determine PDF page count".to_string()),
-                ..Default::default()
-            };
+        if mode == ResponseMode::Standard {
+            result.format = Some(format.as_str().to_string());
+            result.latex_passes = Some(output.passes);
+            if format != TikzFormat::Pdf {
+                result.pdf_path = Some(self.paths.to_host_path(&output.path));
+            }
         }
+        result
+    }
 
-        // Parse pages
-        let pages_to_export = self.parse_page_spec(pages, page_count);
-        if pages_to_export.is_empty() {
-            return PreviewResult {
-                success: false,
-                error: Some(format!("No valid pages in specification: {}", pages)),
-                ..Default::default()
-            };
+    // ------------------------------------------------------------------
+    // preview_pdf
+    // ------------------------------------------------------------------
+
+    /// Render selected pages of an existing PDF to PNG.
+    pub async fn preview_pdf(&self, args: PreviewPdfArgs) -> PreviewResult {
+        let mode = args.response_mode.unwrap_or(ResponseMode::Standard);
+        let spec = args.pages.as_deref().unwrap_or("1");
+        let mut warnings = Vec::new();
+        let dpi = clamp_dpi(args.dpi.unwrap_or(PREVIEW_DPI_STANDARD), &mut warnings);
+
+        let resolved = match self.paths.resolve_input_file(&args.pdf_path) {
+            Ok(p) => p,
+            Err(e) => return PreviewResult::failure(e),
+        };
+
+        let _permit = self.acquire().await;
+
+        let page_count = match self.pdf_page_count(&resolved).await {
+            Ok(n) if n > 0 => n,
+            Ok(_) => return PreviewResult::failure("PDF reports zero pages"),
+            Err(e) => return PreviewResult::failure(e),
+        };
+
+        let pages = match latex::parse_page_spec(spec, page_count) {
+            Ok(p) if p.is_empty() => {
+                return PreviewResult::failure(format!(
+                    "No valid pages in specification '{}' (PDF has {} pages)",
+                    spec, page_count
+                ));
+            },
+            Ok(p) => cap_pages(p, &mut warnings),
+            Err(e) => return PreviewResult::failure(e),
+        };
+
+        let base = unique_stem(&file_stem(&resolved));
+        let (paths, errs) = self.export_pages(&resolved, &base, &pages, dpi).await;
+        if paths.is_empty() {
+            let detail = errs.first().cloned().unwrap_or_default();
+            return PreviewResult::failure(format!("Failed to generate previews: {}", detail));
         }
-
-        // Export pages
-        let preview_paths = self
-            .export_pages_to_png(&resolved, &pages_to_export, dpi)
-            .await;
-
-        if preview_paths.is_empty() {
-            return PreviewResult {
-                success: false,
-                error: Some("Failed to generate previews".to_string()),
-                ..Default::default()
-            };
-        }
-
-        let host_paths: Vec<String> = preview_paths
-            .iter()
-            .map(|p| self.container_to_host_path(&p.to_string_lossy()))
-            .collect();
+        warnings.extend(errs);
 
         let mut result = PreviewResult {
             success: true,
-            preview_paths: Some(host_paths),
+            preview_paths: Some(paths.iter().map(|p| self.paths.to_host_path(p)).collect()),
+            warnings: non_empty(warnings),
             ..Default::default()
         };
-
-        if response_mode == ResponseMode::Standard {
-            result.pdf_path = Some(self.container_to_host_path(&resolved.to_string_lossy()));
+        if mode == ResponseMode::Standard {
+            result.pdf_path = Some(self.paths.to_host_path(&resolved));
             result.page_count = Some(page_count);
-            result.pages_exported = Some(pages_to_export);
+            result.pages_exported = Some(pages);
         }
-
         result
     }
 
-    /// Create Manim animation
-    pub async fn create_manim_animation(
-        &self,
-        script: &str,
-        output_format: ManimFormat,
-    ) -> ManimResult {
-        // Create temp file for script
-        let temp_dir = match TempDir::new() {
+    // ------------------------------------------------------------------
+    // create_manim_animation
+    // ------------------------------------------------------------------
+
+    /// Render a Manim scene.
+    pub async fn create_manim_animation(&self, args: ManimArgs) -> ManimResult {
+        let start = Instant::now();
+        let format = if args.preview == Some(true) {
+            ManimFormat::Png
+        } else {
+            args.output_format.unwrap_or(ManimFormat::Mp4)
+        };
+        let quality = args.quality.unwrap_or(ManimQuality::Low);
+
+        if args.script.len() > MAX_SCRIPT_BYTES {
+            return ManimResult::failure(format!(
+                "script is larger than {} bytes",
+                MAX_SCRIPT_BYTES
+            ));
+        }
+        let (scene, mut warnings) =
+            match manim::select_scene(&args.script, args.scene_name.as_deref()) {
+                Ok(s) => s,
+                Err(e) => return ManimResult::failure(e),
+            };
+        if args.preview == Some(true) && args.output_format.is_some_and(|f| f != ManimFormat::Png) {
+            warnings
+                .push("preview=true renders the last frame as PNG; output_format ignored".into());
+        }
+
+        let work = match tempfile::Builder::new().prefix("mcp-manim-").tempdir() {
             Ok(d) => d,
             Err(e) => {
-                return ManimResult {
-                    success: false,
-                    error: Some(format!("Failed to create temp directory: {}", e)),
-                    ..Default::default()
-                };
+                return ManimResult::failure(format!("Failed to create temp directory: {}", e));
             },
         };
+        let script_path = work.path().join("animation.py");
+        if let Err(e) = tokio::fs::write(&script_path, &args.script).await {
+            return ManimResult::failure(format!("Failed to write script: {}", e));
+        }
+        let media_dir = work.path().join("media");
 
-        let script_path = temp_dir.path().join("animation.py");
-        if let Err(e) = fs::write(&script_path, script) {
-            return ManimResult {
-                success: false,
-                error: Some(format!("Failed to write script: {}", e)),
-                ..Default::default()
-            };
+        let _permit = self.acquire().await;
+
+        let mut cmd = Command::new(&self.cfg.binaries.manim);
+        cmd.args(manim::build_args(
+            &script_path,
+            &scene,
+            format,
+            quality,
+            &media_dir,
+        ))
+        .current_dir(work.path())
+        .env("PYTHONDONTWRITEBYTECODE", "1")
+        .env("PYTHONUNBUFFERED", "1");
+
+        let out = match process::run(cmd, &self.cfg.binaries.manim, self.cfg.manim_timeout).await {
+            Ok(o) => o,
+            Err(e) => return ManimResult::failure(e.to_string()),
+        };
+        if !out.status.success() {
+            return ManimResult::failure(format!(
+                "Manim failed ({}):\n{}",
+                out.status,
+                truncate_chars(&out.diagnostic_tail(40), 6000)
+            ));
         }
 
-        // Extract class name from script
-        let class_regex = Regex::new(r"class\s+(\w+)\s*\(").unwrap();
-        let class_name = class_regex
-            .captures(script)
-            .and_then(|c| c.get(1))
-            .map(|m| m.as_str().to_string());
+        let ext = format.as_str();
+        let media = media_dir.clone();
+        let scene_for_search = scene.clone();
+        let found =
+            tokio::task::spawn_blocking(move || manim::find_output(&media, &scene_for_search, ext))
+                .await
+                .ok()
+                .flatten();
+        let Some(rendered) = found else {
+            return ManimResult::failure(format!(
+                "Manim exited successfully but produced no .{} file for scene '{}'. Output:\n{}",
+                ext,
+                scene,
+                truncate_chars(&out.diagnostic_tail(20), 3000)
+            ));
+        };
 
-        // Build command
-        let mut cmd = Command::new("manim");
-        cmd.args(["-pql", "--media_dir"])
-            .arg(&self.manim_output_dir)
-            .arg(&script_path);
-
-        if let Some(name) = &class_name {
-            cmd.arg(name);
+        let final_path = self
+            .manim_output_dir
+            .join(format!("{}.{}", unique_stem(&scene), ext));
+        if let Err(e) = tokio::fs::copy(&rendered, &final_path).await {
+            return ManimResult::failure(format!("Failed to copy output: {}", e));
         }
 
-        let result = cmd
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .output()
-            .await;
+        ManimResult {
+            success: true,
+            error: None,
+            output_path: Some(self.paths.to_host_path(&final_path)),
+            container_path: Some(final_path.to_string_lossy().into_owned()),
+            format: Some(ext.to_string()),
+            scene_name: Some(scene),
+            quality: Some(quality.as_str().to_string()),
+            file_size_kb: Some(file_size_kb(&final_path).await),
+            render_time_seconds: Some(round2(start.elapsed().as_secs_f64())),
+            warnings: non_empty(warnings),
+        }
+    }
 
-        match result {
-            Ok(out) => {
-                if !out.status.success() {
-                    return ManimResult {
-                        success: false,
-                        error: Some(format!(
-                            "Manim execution failed: {}",
-                            String::from_utf8_lossy(&out.stderr)
-                        )),
-                        ..Default::default()
-                    };
-                }
+    // ------------------------------------------------------------------
+    // Status
+    // ------------------------------------------------------------------
 
-                // Find output file
-                let ext = output_format.as_str();
-                let mut output_file = None;
+    /// Probe each external tool for availability and version.
+    pub async fn dependency_status(&self) -> Vec<DependencyStatus> {
+        let b = &self.cfg.binaries;
+        let probes: Vec<(&'static str, String, Vec<&'static str>)> = vec![
+            ("pdflatex", b.pdflatex.clone(), vec!["--version"]),
+            ("latex", b.latex.clone(), vec!["--version"]),
+            ("bibtex", b.bibtex.clone(), vec!["--version"]),
+            ("dvips", b.dvips.clone(), vec!["--version"]),
+            ("pdfinfo", b.pdfinfo.clone(), vec!["-v"]),
+            ("pdftoppm", b.pdftoppm.clone(), vec!["-v"]),
+            // pdf2svg has no version flag; running it bare prints usage.
+            ("pdf2svg", b.pdf2svg.clone(), vec![]),
+            ("manim", b.manim.clone(), vec!["--version"]),
+        ];
 
-                if let Ok(entries) = walkdir(&self.manim_output_dir) {
-                    for entry in entries {
-                        if entry.extension().and_then(|e| e.to_str()) == Some(ext) {
-                            output_file = Some(entry);
-                            break;
+        let mut set = tokio::task::JoinSet::new();
+        for (idx, (name, command, args)) in probes.into_iter().enumerate() {
+            set.spawn(async move {
+                let mut cmd = Command::new(&command);
+                cmd.args(&args);
+                let status = match process::run(cmd, &command, QUICK_TIMEOUT).await {
+                    Ok(out) => DependencyStatus {
+                        name,
+                        available: true,
+                        version: first_nonempty_line(&out.stdout)
+                            .or_else(|| first_nonempty_line(&out.stderr)),
+                        hint: None,
+                        command,
+                    },
+                    Err(e) => DependencyStatus {
+                        name,
+                        available: false,
+                        version: None,
+                        hint: Some(process::install_hint(&command)),
+                        command: if matches!(e, CmdError::NotFound { .. }) {
+                            command
+                        } else {
+                            format!("{} ({})", command, e)
+                        },
+                    },
+                };
+                (idx, status)
+            });
+        }
+        let mut results: Vec<(usize, DependencyStatus)> = set.join_all().await;
+        results.sort_by_key(|(i, _)| *i);
+        results.into_iter().map(|(_, s)| s).collect()
+    }
+
+    // ------------------------------------------------------------------
+    // Internals
+    // ------------------------------------------------------------------
+
+    async fn acquire(&self) -> Option<tokio::sync::OwnedSemaphorePermit> {
+        // The semaphore is never closed, so this only fails if that changes.
+        self.jobs.clone().acquire_owned().await.ok()
+    }
+
+    /// Compile `document` in a sandboxed temp dir and copy the result to the
+    /// latex output directory.
+    async fn run_latex_job(
+        &self,
+        document: &str,
+        source_dir: Option<&Path>,
+        format: LatexFormat,
+        stem_prefix: &str,
+    ) -> Result<LatexOutput, String> {
+        let work = tempfile::Builder::new()
+            .prefix("mcp-latex-")
+            .tempdir()
+            .map_err(|e| format!("Failed to create temp directory: {}", e))?;
+        let dir = work.path();
+        let tex_file = dir.join(format!("{}.tex", JOB_NAME));
+        tokio::fs::write(&tex_file, document)
+            .await
+            .map_err(|e| format!("Failed to write tex file: {}", e))?;
+        if let Some(src) = source_dir {
+            // `\include{chapters/intro}` writes chapters/intro.aux relative to
+            // the working directory, so recreate the (empty) directory layout.
+            let (src, dst) = (src.to_path_buf(), dir.to_path_buf());
+            let _ = tokio::task::spawn_blocking(move || mirror_subdirs(&src, &dst)).await;
+        }
+
+        let compiler = match format {
+            LatexFormat::Pdf => &self.cfg.binaries.pdflatex,
+            LatexFormat::Dvi | LatexFormat::Ps => &self.cfg.binaries.latex,
+        };
+        let tex_output = dir.join(format!(
+            "{}.{}",
+            JOB_NAME,
+            if format == LatexFormat::Pdf {
+                "pdf"
+            } else {
+                "dvi"
+            }
+        ));
+
+        let mut warnings = Vec::new();
+        let mut passes = 0;
+        let mut bibtex_done = false;
+        let summary = loop {
+            passes += 1;
+            let mut cmd = Command::new(compiler);
+            cmd.args(["-interaction=nonstopmode", "-no-shell-escape"])
+                .arg(format!("{}.tex", JOB_NAME))
+                .current_dir(dir);
+            apply_tex_env(&mut cmd, source_dir);
+            let out = process::run(cmd, compiler, self.cfg.latex_timeout)
+                .await
+                .map_err(|e| e.to_string())?;
+            debug!("{} pass {} exited with {}", compiler, passes, out.status);
+
+            let log = read_lossy(&dir.join(format!("{}.log", JOB_NAME))).await;
+            let summary = latex::parse_log(&log);
+
+            if !tex_output.exists() {
+                return Err(describe_failure(
+                    &summary,
+                    document,
+                    &out.diagnostic_tail(15),
+                ));
+            }
+            if passes >= MAX_LATEX_PASSES {
+                break summary;
+            }
+
+            let mut rerun = summary.needs_rerun;
+            if passes == 1 {
+                rerun |= latex::needs_toc_pass(document);
+                if !bibtex_done {
+                    let aux = read_lossy(&dir.join(format!("{}.aux", JOB_NAME))).await;
+                    if latex::aux_needs_bibtex(&aux) {
+                        bibtex_done = true;
+                        rerun = true;
+                        if let Some(w) = self.run_bibtex(dir, source_dir).await {
+                            warnings.push(w);
                         }
                     }
                 }
+            }
+            if !rerun {
+                break summary;
+            }
+        };
 
-                ManimResult {
-                    success: true,
-                    output_path: output_file.map(|p| p.to_string_lossy().to_string()),
-                    format: Some(ext.to_string()),
-                    error: None,
-                }
-            },
-            Err(e) => {
-                if e.kind() == std::io::ErrorKind::NotFound {
-                    ManimResult {
-                        success: false,
-                        error: Some("Manim not found. Please install it first.".to_string()),
-                        ..Default::default()
-                    }
-                } else {
-                    ManimResult {
-                        success: false,
-                        error: Some(format!("Manim error: {}", e)),
-                        ..Default::default()
-                    }
-                }
-            },
+        if summary.wants_biber {
+            warnings.push(
+                "document uses biblatex with biber, which this server does not run; use backend=bibtex"
+                    .to_string(),
+            );
+        }
+        if !summary.errors.is_empty() {
+            warnings.push(format!(
+                "LaTeX reported errors; output may be incomplete: {}",
+                summary.errors.join(" | ")
+            ));
+        }
+        warnings.extend(summary.warnings);
+
+        let produced = if format == LatexFormat::Ps {
+            self.run_dvips(dir, &tex_output).await?
+        } else {
+            tex_output
+        };
+
+        let final_path = self.latex_output_dir.join(format!(
+            "{}.{}",
+            unique_stem(stem_prefix),
+            format.extension()
+        ));
+        tokio::fs::copy(&produced, &final_path)
+            .await
+            .map_err(|e| format!("Failed to copy output: {}", e))?;
+
+        Ok(LatexOutput {
+            path: final_path,
+            passes,
+            warnings,
+        })
+    }
+
+    /// Run BibTeX; returns a warning message if it failed.
+    async fn run_bibtex(&self, dir: &Path, source_dir: Option<&Path>) -> Option<String> {
+        let bibtex = &self.cfg.binaries.bibtex;
+        let mut cmd = Command::new(bibtex);
+        cmd.arg(JOB_NAME).current_dir(dir);
+        apply_tex_env(&mut cmd, source_dir);
+        match process::run(cmd, bibtex, self.cfg.latex_timeout).await {
+            Ok(out) if out.status.success() => None,
+            Ok(out) => Some(format!(
+                "bibtex reported problems: {}",
+                truncate_chars(&out.diagnostic_tail(5), 800)
+            )),
+            Err(e) => Some(format!("bibtex could not run: {}", e)),
         }
     }
 
-    /// Get output directory
-    #[allow(dead_code)]
-    pub fn output_dir(&self) -> &Path {
-        &self.output_dir
+    /// Convert DVI to PostScript with shell-outs disabled.
+    async fn run_dvips(&self, dir: &Path, dvi: &Path) -> Result<PathBuf, String> {
+        let dvips = &self.cfg.binaries.dvips;
+        let ps = dvi.with_extension("ps");
+        let mut cmd = Command::new(dvips);
+        cmd.arg("-R2")
+            .arg("-q")
+            .arg("-o")
+            .arg(&ps)
+            .arg(dvi)
+            .current_dir(dir);
+        apply_tex_env(&mut cmd, None);
+        let out = process::run(cmd, dvips, self.cfg.latex_timeout)
+            .await
+            .map_err(|e| e.to_string())?;
+        if !out.status.success() || !ps.exists() {
+            return Err(format!(
+                "dvips failed ({}): {}",
+                out.status,
+                truncate_chars(&out.diagnostic_tail(10), 2000)
+            ));
+        }
+        Ok(ps)
+    }
+
+    /// Page count via `pdfinfo`.
+    async fn pdf_page_count(&self, pdf: &Path) -> Result<u32, String> {
+        let pdfinfo = &self.cfg.binaries.pdfinfo;
+        let mut cmd = Command::new(pdfinfo);
+        cmd.arg(pdf);
+        let out = process::run(cmd, pdfinfo, QUICK_TIMEOUT)
+            .await
+            .map_err(|e| e.to_string())?;
+        if !out.status.success() {
+            return Err(format!(
+                "pdfinfo could not read the file (is it a valid PDF?): {}",
+                truncate_chars(&out.diagnostic_tail(3), 500)
+            ));
+        }
+        latex::parse_pdfinfo_pages(&out.stdout)
+            .ok_or_else(|| "pdfinfo output did not include a page count".to_string())
+    }
+
+    /// Export pages to `{preview_dir}/{base}_page{n}.png`. Returns the files
+    /// produced and a message for every page that failed.
+    async fn export_pages(
+        &self,
+        pdf: &Path,
+        base: &str,
+        pages: &[u32],
+        dpi: u32,
+    ) -> (Vec<PathBuf>, Vec<String>) {
+        let pdftoppm = &self.cfg.binaries.pdftoppm;
+        let mut produced = Vec::new();
+        let mut errors = Vec::new();
+        for page in pages {
+            let out_base = self
+                .preview_output_dir
+                .join(format!("{}_page{}", base, page));
+            let page_s = page.to_string();
+            let mut cmd = Command::new(pdftoppm);
+            cmd.args(["-png", "-singlefile", "-f", &page_s, "-l", &page_s, "-r"])
+                .arg(dpi.to_string())
+                .arg(pdf)
+                .arg(&out_base);
+            match process::run(cmd, pdftoppm, self.cfg.latex_timeout).await {
+                Ok(out) => {
+                    let png = out_base.with_extension("png");
+                    if out.status.success() && png.exists() {
+                        produced.push(png);
+                    } else {
+                        errors.push(format!(
+                            "page {}: pdftoppm failed: {}",
+                            page,
+                            truncate_chars(&out.diagnostic_tail(3), 300)
+                        ));
+                    }
+                },
+                Err(e) => {
+                    errors.push(format!("page {}: {}", page, e));
+                    if matches!(e, CmdError::NotFound { .. }) {
+                        break;
+                    }
+                },
+            }
+        }
+        (produced, errors)
+    }
+
+    /// Convert a single-page PDF to PNG or SVG next to it.
+    async fn convert_pdf(
+        &self,
+        pdf: &Path,
+        format: TikzFormat,
+        dpi: u32,
+    ) -> Result<PathBuf, String> {
+        let target = pdf.with_extension(format.as_str());
+        let (program, cmd) = match format {
+            TikzFormat::Png => {
+                let p = &self.cfg.binaries.pdftoppm;
+                let mut cmd = Command::new(p);
+                cmd.args(["-png", "-singlefile", "-r"])
+                    .arg(dpi.to_string())
+                    .arg(pdf)
+                    .arg(pdf.with_extension(""));
+                (p, cmd)
+            },
+            TikzFormat::Svg => {
+                let p = &self.cfg.binaries.pdf2svg;
+                let mut cmd = Command::new(p);
+                cmd.arg(pdf).arg(&target);
+                (p, cmd)
+            },
+            TikzFormat::Pdf => return Ok(pdf.to_path_buf()),
+        };
+        let out = process::run(cmd, program, self.cfg.latex_timeout)
+            .await
+            .map_err(|e| e.to_string())?;
+        if !out.status.success() {
+            return Err(format!(
+                "{} failed: {}",
+                program,
+                truncate_chars(&out.diagnostic_tail(5), 800)
+            ));
+        }
+        if target.exists() {
+            Ok(target)
+        } else {
+            Err(format!("{} produced no output", program))
+        }
     }
 }
 
-/// Walk directory recursively
-fn walkdir(path: &Path) -> std::io::Result<Vec<PathBuf>> {
-    let mut results = Vec::new();
+/// Environment for every TeX-family subprocess (see the module docs).
+fn apply_tex_env(cmd: &mut Command, source_dir: Option<&Path>) {
+    cmd.env("openin_any", "p")
+        .env("openout_any", "p")
+        .env("shell_escape", "f")
+        // Avoid hard-wrapped log lines so errors/warnings parse cleanly.
+        .env("max_print_line", "10000")
+        // Paranoid mode would allow writes anywhere under TEXMFOUTPUT.
+        .env_remove("TEXMFOUTPUT");
+    if let Some(src) = source_dir {
+        // Let \input, \includegraphics and \bibliography find files next to the
+        // source document. The trailing separator keeps the default search path.
+        let sep = if cfg!(windows) { ";" } else { ":" };
+        let mut value = OsString::from(src.as_os_str());
+        value.push(sep);
+        cmd.env("TEXINPUTS", &value).env("BIBINPUTS", &value);
+    }
+}
 
-    if path.is_dir() {
-        for entry in fs::read_dir(path)? {
-            let entry = entry?;
-            let path = entry.path();
-            if path.is_dir() {
-                results.extend(walkdir(&path)?);
-            } else {
-                results.push(path);
+/// Build a helpful error message for a LaTeX run that produced no output.
+fn describe_failure(summary: &latex::LogSummary, document: &str, tail: &str) -> String {
+    let mut msg = if summary.errors.is_empty() {
+        let tail = tail.trim();
+        if tail.is_empty() {
+            "LaTeX compilation failed (no log produced)".to_string()
+        } else {
+            format!("LaTeX compilation failed:\n{}", truncate_chars(tail, 2000))
+        }
+    } else {
+        format!("LaTeX compilation failed:\n{}", summary.errors.join("\n"))
+    };
+    if !latex::has_documentclass(document) {
+        msg.push_str(
+            "\nHint: the content has no \\documentclass; pass template='article' (or report/book/beamer) to wrap a fragment.",
+        );
+    }
+    msg
+}
+
+/// Maximum depth of source subdirectories mirrored into the build directory.
+const MIRROR_MAX_DEPTH: usize = 3;
+/// Maximum number of directories mirrored into the build directory.
+const MIRROR_MAX_DIRS: usize = 256;
+
+/// Recreate the directory structure (no files) of `src` under `dst`, skipping
+/// hidden and bulky build directories. Returns the number of dirs created.
+fn mirror_subdirs(src: &Path, dst: &Path) -> usize {
+    let mut created = 0;
+    let mut queue = vec![(src.to_path_buf(), dst.to_path_buf(), 0usize)];
+    while let Some((from, to, depth)) = queue.pop() {
+        if depth >= MIRROR_MAX_DEPTH {
+            continue;
+        }
+        let Ok(entries) = std::fs::read_dir(&from) else {
+            continue;
+        };
+        for entry in entries.flatten() {
+            if created >= MIRROR_MAX_DIRS {
+                return created;
+            }
+            let name = entry.file_name();
+            let name_s = name.to_string_lossy();
+            if name_s.starts_with('.') || matches!(name_s.as_ref(), "node_modules" | "target") {
+                continue;
+            }
+            if entry.file_type().is_ok_and(|t| t.is_dir()) {
+                let target = to.join(&name);
+                if std::fs::create_dir(&target).is_ok() {
+                    created += 1;
+                    queue.push((entry.path(), target, depth + 1));
+                }
             }
         }
     }
+    created
+}
 
-    Ok(results)
+fn is_none_spec(spec: &str) -> bool {
+    let s = spec.trim();
+    s.is_empty() || s.eq_ignore_ascii_case("none")
+}
+
+fn clamp_dpi(dpi: u32, warnings: &mut Vec<String>) -> u32 {
+    let (lo, hi) = DPI_RANGE;
+    let clamped = dpi.clamp(lo, hi);
+    if clamped != dpi {
+        warnings.push(format!(
+            "dpi {} clamped to {} (allowed {}-{})",
+            dpi, clamped, lo, hi
+        ));
+    }
+    clamped
+}
+
+fn cap_pages(mut pages: Vec<u32>, warnings: &mut Vec<String>) -> Vec<u32> {
+    if pages.len() > MAX_PREVIEW_PAGES {
+        warnings.push(format!(
+            "only the first {} of {} requested pages were rendered",
+            MAX_PREVIEW_PAGES,
+            pages.len()
+        ));
+        pages.truncate(MAX_PREVIEW_PAGES);
+    }
+    pages
+}
+
+fn file_stem(path: &Path) -> String {
+    sanitize_stem(
+        &path
+            .file_stem()
+            .map(|s| s.to_string_lossy().into_owned())
+            .unwrap_or_default(),
+    )
+}
+
+async fn file_size_kb(path: &Path) -> f64 {
+    tokio::fs::metadata(path)
+        .await
+        .map(|m| round2(m.len() as f64 / 1024.0))
+        .unwrap_or(0.0)
+}
+
+async fn read_lossy(path: &Path) -> String {
+    tokio::fs::read(path)
+        .await
+        .map(|b| String::from_utf8_lossy(&b).into_owned())
+        .unwrap_or_default()
+}
+
+fn first_nonempty_line(s: &str) -> Option<String> {
+    s.lines()
+        .map(str::trim)
+        .find(|l| !l.is_empty())
+        .map(|l| truncate_chars(l, 120))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    #[test]
-    fn test_parse_page_spec() {
-        let engine = ContentEngine::new(PathBuf::from("/tmp"), PathBuf::from("/app"));
-
-        assert_eq!(engine.parse_page_spec("1", 10), vec![1]);
-        assert_eq!(engine.parse_page_spec("1,3,5", 10), vec![1, 3, 5]);
-        assert_eq!(engine.parse_page_spec("1-5", 10), vec![1, 2, 3, 4, 5]);
-        assert_eq!(engine.parse_page_spec("all", 3), vec![1, 2, 3]);
-        assert_eq!(engine.parse_page_spec("none", 10), Vec::<i32>::new());
+    /// Engine whose external binaries do not exist, so tests are hermetic
+    /// regardless of what is installed on the machine.
+    fn offline_engine() -> (ContentEngine, tempfile::TempDir, tempfile::TempDir) {
+        let project = tempfile::tempdir().unwrap();
+        let output = tempfile::tempdir().unwrap();
+        let mut cfg = EngineConfig::new(output.path().to_path_buf(), project.path().to_path_buf());
+        let missing = |name: &str| format!("/nonexistent-mcp-test-dir/{}", name);
+        cfg.binaries = Binaries {
+            pdflatex: missing("pdflatex"),
+            latex: missing("latex"),
+            dvips: missing("dvips"),
+            bibtex: missing("bibtex"),
+            pdfinfo: missing("pdfinfo"),
+            pdftoppm: missing("pdftoppm"),
+            pdf2svg: missing("pdf2svg"),
+            manim: missing("manim"),
+        };
+        (ContentEngine::new(cfg), project, output)
     }
 
     #[test]
-    fn test_container_to_host_path() {
-        let engine = ContentEngine::new(PathBuf::from("/tmp"), PathBuf::from("/app"));
+    fn creates_output_subdirectories() {
+        let (_engine, _p, output) = offline_engine();
+        for sub in ["latex", "manim", "previews"] {
+            assert!(output.path().join(sub).is_dir(), "{sub} missing");
+        }
+    }
 
-        assert_eq!(
-            engine.container_to_host_path("/app/output/latex/doc.pdf"),
-            "outputs/mcp-content/latex/doc.pdf"
+    #[tokio::test]
+    async fn compile_requires_exactly_one_source() {
+        let (engine, _p, _o) = offline_engine();
+        let r = engine.compile_latex(CompileLatexArgs::default()).await;
+        assert!(!r.success);
+        assert!(r.error.unwrap().contains("either"));
+
+        let r = engine
+            .compile_latex(CompileLatexArgs {
+                content: Some("x".into()),
+                input_path: Some("a.tex".into()),
+                ..Default::default()
+            })
+            .await;
+        assert!(r.error.unwrap().contains("not both"));
+    }
+
+    #[tokio::test]
+    async fn compile_rejects_paths_outside_project() {
+        let (engine, _p, _o) = offline_engine();
+        let r = engine
+            .compile_latex(CompileLatexArgs {
+                input_path: Some("../../../etc/passwd".into()),
+                ..Default::default()
+            })
+            .await;
+        assert!(!r.success);
+        let err = r.error.unwrap();
+        assert!(
+            err.contains("not found") || err.contains("access denied"),
+            "{err}"
         );
-        assert_eq!(
-            engine.container_to_host_path("/output/test.pdf"),
-            "outputs/mcp-content/test.pdf"
-        );
-        assert_eq!(engine.container_to_host_path("/app/file.tex"), "file.tex");
+    }
+
+    #[tokio::test]
+    async fn compile_rejects_empty_and_oversized_content() {
+        let (engine, _p, _o) = offline_engine();
+        let r = engine
+            .compile_latex(CompileLatexArgs {
+                content: Some("   ".into()),
+                ..Default::default()
+            })
+            .await;
+        assert!(r.error.unwrap().contains("empty"));
+
+        let r = engine
+            .compile_latex(CompileLatexArgs {
+                content: Some("x".repeat(MAX_LATEX_BYTES + 1)),
+                ..Default::default()
+            })
+            .await;
+        assert!(r.error.unwrap().contains("larger"));
+    }
+
+    #[tokio::test]
+    async fn compile_reports_missing_latex_clearly() {
+        let (engine, _p, _o) = offline_engine();
+        let r = engine
+            .compile_latex(CompileLatexArgs {
+                content: Some("\\documentclass{article}\\begin{document}x\\end{document}".into()),
+                ..Default::default()
+            })
+            .await;
+        assert!(!r.success);
+        let err = r.error.unwrap();
+        assert!(err.contains("not found on PATH"), "{err}");
+    }
+
+    #[tokio::test]
+    async fn compile_from_file_reaches_compiler() {
+        let (engine, project, _o) = offline_engine();
+        std::fs::write(project.path().join("paper.tex"), "\\documentclass{article}").unwrap();
+        let r = engine
+            .compile_latex(CompileLatexArgs {
+                input_path: Some("paper.tex".into()),
+                ..Default::default()
+            })
+            .await;
+        // The file resolved; failure comes from the (missing) compiler.
+        assert!(r.error.unwrap().contains("not found on PATH"));
+    }
+
+    #[tokio::test]
+    async fn tikz_rejects_bad_library_names_before_compiling() {
+        let (engine, _p, _o) = offline_engine();
+        let r = engine
+            .render_tikz(RenderTikzArgs {
+                tikz_code: "\\draw (0,0) -- (1,1);".into(),
+                tikz_libraries: Some(vec!["calc}\\input{/etc/passwd".into()]),
+                ..Default::default()
+            })
+            .await;
+        assert!(r.error.unwrap().contains("invalid package/library name"));
+    }
+
+    #[tokio::test]
+    async fn preview_rejects_missing_file() {
+        let (engine, _p, _o) = offline_engine();
+        let r = engine
+            .preview_pdf(PreviewPdfArgs {
+                pdf_path: "missing.pdf".into(),
+                ..Default::default()
+            })
+            .await;
+        assert!(r.error.unwrap().contains("not found"));
+    }
+
+    #[tokio::test]
+    async fn preview_reports_missing_pdfinfo() {
+        let (engine, project, _o) = offline_engine();
+        std::fs::write(project.path().join("doc.pdf"), "%PDF-1.4").unwrap();
+        let r = engine
+            .preview_pdf(PreviewPdfArgs {
+                pdf_path: "doc.pdf".into(),
+                ..Default::default()
+            })
+            .await;
+        let err = r.error.unwrap();
+        assert!(err.contains("poppler-utils"), "{err}");
+    }
+
+    #[tokio::test]
+    async fn manim_validates_script_before_running() {
+        let (engine, _p, _o) = offline_engine();
+        let r = engine
+            .create_manim_animation(ManimArgs {
+                script: "print('no scene here')".into(),
+                ..Default::default()
+            })
+            .await;
+        assert!(r.error.unwrap().contains("no Scene subclass"));
+    }
+
+    #[tokio::test]
+    async fn manim_reports_missing_binary() {
+        let (engine, _p, _o) = offline_engine();
+        let r = engine
+            .create_manim_animation(ManimArgs {
+                script: "from manim import *\nclass A(Scene):\n    pass\n".into(),
+                ..Default::default()
+            })
+            .await;
+        assert!(r.error.unwrap().contains("pip install manim"));
+    }
+
+    #[tokio::test]
+    async fn dependency_status_lists_all_tools() {
+        let (engine, _p, _o) = offline_engine();
+        let deps = engine.dependency_status().await;
+        assert_eq!(deps.len(), 8);
+        assert_eq!(deps[0].name, "pdflatex");
+        assert!(deps.iter().all(|d| !d.available && d.hint.is_some()));
+    }
+
+    #[test]
+    fn dpi_is_clamped_with_warning() {
+        let mut w = Vec::new();
+        assert_eq!(clamp_dpi(150, &mut w), 150);
+        assert!(w.is_empty());
+        assert_eq!(clamp_dpi(5000, &mut w), 600);
+        assert_eq!(clamp_dpi(1, &mut w), 36);
+        assert_eq!(w.len(), 2);
+    }
+
+    #[test]
+    fn mirror_subdirs_copies_layout_only() {
+        let src = tempfile::tempdir().unwrap();
+        let dst = tempfile::tempdir().unwrap();
+        std::fs::create_dir_all(src.path().join("chapters/part1/deep/deeper")).unwrap();
+        std::fs::create_dir_all(src.path().join(".git/objects")).unwrap();
+        std::fs::create_dir_all(src.path().join("node_modules/x")).unwrap();
+        std::fs::write(src.path().join("chapters/intro.tex"), "x").unwrap();
+
+        let created = mirror_subdirs(src.path(), dst.path());
+        assert_eq!(created, 3);
+        assert!(dst.path().join("chapters/part1/deep").is_dir());
+        assert!(!dst.path().join("chapters/part1/deep/deeper").exists());
+        assert!(!dst.path().join("chapters/intro.tex").exists());
+        assert!(!dst.path().join(".git").exists());
+        assert!(!dst.path().join("node_modules").exists());
+    }
+
+    #[test]
+    fn pages_are_capped() {
+        let mut w = Vec::new();
+        let pages = cap_pages((1..=80).collect(), &mut w);
+        assert_eq!(pages.len(), MAX_PREVIEW_PAGES);
+        assert_eq!(w.len(), 1);
+    }
+
+    #[test]
+    fn failure_message_hints_at_templates() {
+        let s = latex::LogSummary {
+            errors: vec!["Missing \\begin{document}.".into()],
+            ..Default::default()
+        };
+        let msg = describe_failure(&s, "Hello", "");
+        assert!(msg.contains("Missing \\begin{document}"));
+        assert!(msg.contains("template='article'"));
+        let msg = describe_failure(&s, "\\documentclass{article}", "");
+        assert!(!msg.contains("Hint"));
     }
 }

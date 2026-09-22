@@ -1,141 +1,157 @@
 # AI Toolkit MCP Server (Rust)
 
-> A Model Context Protocol server for managing LoRA training with AI Toolkit, built in Rust for remote GPU machine deployment.
+> MCP server for LoRA training with [ostris/ai-toolkit](https://github.com/ostris/ai-toolkit): configs, datasets, training jobs, trained weights and GPU stats.
 
-## Overview
-
-This MCP server provides tools for:
-- Creating and managing training configurations
-- Uploading and organizing training datasets
-- Starting, monitoring, and stopping training jobs
-- Exporting and downloading trained models
-- System monitoring (CPU, memory, disk, GPU)
-
-**Note**: This server is designed to run on a remote GPU machine (e.g., `192.168.0.222:8020`) and be accessed via HTTP transport.
+The server runs **on the GPU machine next to AI Toolkit** (in this repo: the
+`mcp-ai-toolkit` compose service on `192.168.0.222:8020`, built from
+`docker/ai-toolkit.Dockerfile`). Clients reach it over HTTP. It launches
+`python3 run.py <config>` inside the AI Toolkit checkout and manages files under
+`AI_TOOLKIT_PATH`.
 
 ## Quick Start
 
 ```bash
-# Build from source
 cargo build --release
 
-# Run in standalone HTTP mode
-./target/release/mcp-ai-toolkit --mode standalone --port 8020
+# HTTP (MCP JSON-RPC at /messages); default port 8020
+AI_TOOLKIT_PATH=/ai-toolkit ./target/release/mcp-ai-toolkit --mode standalone --port 8020
 
-# Run in STDIO mode (for local MCP clients)
+# STDIO, for an MCP client running on the GPU host itself
 ./target/release/mcp-ai-toolkit --mode stdio
 
-# Test health
+# Local proxy: expose the remote GPU server's tools on this machine
+./target/release/mcp-ai-toolkit --mode client --port 8020 --backend-url http://192.168.0.222:8020
+
 curl http://localhost:8020/health
 ```
 
-## Available Tools (21 total)
+## Typical Workflow
 
-### Configuration Management
+1. `list_model_presets` - pick a base model (`flux-dev`, `sdxl`, ...).
+2. `upload_dataset` - images + captions into `datasets/<name>/`.
+3. `get_dataset_info` - check caption coverage.
+4. `create_training_config` with `dataset_path: "<dataset name>"` and `preset`.
+5. `validate_config`, then `start_training` -> `job_id`.
+6. Poll `get_training_status` (step, %, loss, ETA); look at `get_training_samples`.
+7. `list_exported_models` -> `export_model` / `download_model`.
 
-| Tool | Description | Parameters |
-|------|-------------|------------|
-| `create_training_config` | Create a new LoRA training configuration | `name` (required), `dataset_path` (required), `model_name`, `resolution`, `steps`, `batch_size`, `rank`, `alpha`, `lr`, `optimizer`, `noise_scheduler`, `trigger_word`, `prompts`, `is_flux`, `is_xl`, `is_v3`, `quantize`, `gradient_checkpointing`, `cache_latents`, `caption_dropout_rate` |
-| `list_configs` | List all training configurations | None |
-| `get_config` | Get a specific configuration | `name` (required) |
-| `delete_config` | Delete a configuration file | `name` (required) |
-| `validate_config` | Validate config before training | `name` (required) |
+## Tools (22)
 
-### Dataset Management
+All tools use typed argument parsing: a missing or mistyped argument returns a
+JSON-RPC `Invalid params` error; operational failures (not found, validation
+failure, ...) return a tool result with `isError: true` and a readable message.
 
-| Tool | Description | Parameters |
-|------|-------------|------------|
-| `upload_dataset` | Upload images to create a dataset | `dataset_name` (required), `images` (required) |
-| `list_datasets` | List all available datasets | None |
-| `get_dataset_info` | Get detailed dataset info | `name` (required) |
-| `delete_dataset` | Delete a dataset | `name` (required) |
+### Configs
 
-### Training Operations
+| Tool | Parameters | Notes |
+|------|------------|-------|
+| `create_training_config` | **`name`**, **`dataset_path`**, `preset`, `model_name`, `resolution` (int or int[]), `steps`, `batch_size`, `rank`, `alpha`, `lr`, `optimizer`, `noise_scheduler`, `trigger_word`, `prompts`, `is_flux`, `is_xl`, `is_v3`, `quantize`, `gradient_checkpointing`, `cache_latents`, `caption_dropout_rate`, `save_every`, `sample_every`, `disable_sampling`, `low_vram`, `overwrite` (default true) | Writes `<configs>/<name>.yaml`. Architecture is auto-detected from `model_name` (Flux > SD3 > SDXL) unless flags are given; defaults follow the architecture (flowmatch/adamw8bit/bf16/quantize for Flux and SD3). `dataset_path` accepts a dataset name, an absolute path, or a path relative to `AI_TOOLKIT_PATH`. Weights go to `<outputs>/<name>/`. Returns warnings (e.g. missing dataset folder). |
+| `list_configs` | - | |
+| `get_config` | **`name`** | YAML returned as JSON. |
+| `validate_config` | **`name`** | `{valid, errors, warnings}`: structure, conflicting arch flags, steps/lr/rank sanity, dataset folders exist and contain images, caption coverage. |
+| `delete_config` | **`name`** | |
 
-| Tool | Description | Parameters |
-|------|-------------|------------|
-| `start_training` | Start a training job | `config_name` (required) |
-| `get_training_status` | Get job status and progress | `job_id` (required) |
-| `stop_training` | Stop a running training job | `job_id` (required) |
-| `list_training_jobs` | List all training jobs | None |
-| `get_training_logs` | Get training logs | `job_id` (required), `lines` |
-| `get_training_info` | Get overall training info | None |
+### Datasets
 
-### Model Management
+| Tool | Parameters | Notes |
+|------|------------|-------|
+| `upload_dataset` | **`dataset_name`**, **`images`**: `[{filename, data, caption?}]`, `overwrite` (default true) | PNG/JPEG/WebP only (checked by magic bytes), 50 MB per image, `data:` URL prefix accepted. Caption saved as `<stem>.txt`. Appends to an existing dataset. Returns `saved` and per-image `failed`; `status` is `success` or `partial`, and the call errors only if nothing was saved. |
+| `list_datasets` | - | Image / caption counts and size per dataset. |
+| `get_dataset_info` | **`name`**, `max_missing` (default 50) | Includes `missing_captions` (array). |
+| `delete_dataset` | **`name`** | Recursive delete. |
 
-| Tool | Description | Parameters |
-|------|-------------|------------|
-| `export_model` | Export a trained model | `model_name` (required), `output_path` |
-| `list_exported_models` | List exported models | None |
-| `download_model` | Download model as base64 | `model_name` (required), `encoding` |
-| `delete_model` | Delete a model file | `name` (required) |
+### Training
+
+| Tool | Parameters | Notes |
+|------|------------|-------|
+| `start_training` | **`config_name`**, `allow_concurrent` (false), `skip_validation` (false) | Validates first; refuses while another job is running (single GPU) unless `allow_concurrent`. stdout+stderr go to `<outputs>/training_<job_id>.log`. |
+| `get_training_status` | **`job_id`** | `status`, `progress` (0-100), `current_step`, `total_steps`, `loss`, `lr`, `eta` parsed from the tqdm bar; `error_hint` (e.g. CUDA OOM line) for failed jobs. |
+| `get_training_logs` | **`job_id`**, `lines` (100, max 5000) | Reads only the last 4 MB; progress-bar redraws are collapsed. |
+| `stop_training` | **`job_id`**, `grace_seconds` (15, max 300), `force` | SIGTERM to the job's process group (includes dataloader workers), SIGKILL after the grace period. |
+| `list_training_jobs` | `status` filter | Newest first. |
+| `get_training_info` | - | Job counts by status, config/dataset/model counts, resolved paths, whether `run.py` was found. |
+| `get_training_samples` | `job_id` or `name`, `limit` (4, max 16), `include_images` (true) | Newest sample images from `<output>/<run>/samples/` as MCP image content plus metadata (file, step). |
+
+Job status is one of `pending`, `running`, `completed`, `failed`, `stopped`,
+`unknown`. A background task per job reaps the process and records the exit
+code, so status is accurate without polling. The registry is persisted to
+`<outputs>/.mcp_training_jobs.json`; jobs that were running when the server
+restarted come back as `unknown` (their process is no longer supervised; check
+the log and `nvidia-smi`).
+
+### Models
+
+Model names are paths relative to the outputs directory without extension, as
+returned by `list_exported_models`: `my_lora/my_lora` (final weights),
+`my_lora/my_lora_000000500` (checkpoint), `exports/my_lora`. A bare run name
+(`my_lora`) resolves to that run's final weights.
+
+| Tool | Parameters | Notes |
+|------|------------|-------|
+| `list_exported_models` | - | `.safetensors`/`.ckpt`/`.pt` up to 3 levels deep (skips `samples/`, `optimizer.pt`). |
+| `export_model` | **`model_name`**, `output_path`, `overwrite` (false) | Copies to `<outputs>/exports/<file>` or to `output_path` (relative to outputs; extension appended if missing). Refuses to copy a file onto itself. |
+| `download_model` | **`model_name`**, `encoding` (`base64`\|`raw`), `offset`, `chunk_size` (8 MB default, 32 MB max) | Without `offset`/`chunk_size`: whole file, max 100 MB, with `sha256`. Chunked: repeat with `next_offset` until `complete`; the final chunk carries the file `sha256`. `raw`: metadata only (size, path, sha256). |
+| `delete_model` | **`name`** | Deletes the single resolved file. |
 
 ### Utilities
 
-| Tool | Description | Parameters |
-|------|-------------|------------|
-| `get_system_stats` | Get system statistics | None |
-| `list_model_presets` | List recommended model presets | None |
-
-## Supported Models
-
-The server supports multiple model architectures with smart defaults:
-
-| Model | Path | Scheduler | Quantize | Min VRAM |
-|-------|------|-----------|----------|----------|
-| **Flux.1-dev** | `black-forest-labs/FLUX.1-dev` | flowmatch | Yes | 24GB |
-| **Flux.1-schnell** | `black-forest-labs/FLUX.1-schnell` | flowmatch | Yes | 24GB |
-| **SD 3.5 Large** | `stabilityai/stable-diffusion-3.5-large` | flowmatch | Yes | 24GB |
-| **SDXL** | `stabilityai/stable-diffusion-xl-base-1.0` | ddpm | No | 12GB |
-| **SD 1.5** | `runwayml/stable-diffusion-v1-5` | ddpm | No | 8GB |
-
-Use `list_model_presets` to see all presets with recommended settings.
+| Tool | Parameters | Notes |
+|------|------------|-------|
+| `get_system_stats` | - | CPU (sampled), memory, the disk holding `AI_TOOLKIT_PATH`, and per-GPU memory/utilization/temperature via `nvidia-smi` (5 s timeout). |
+| `list_model_presets` | - | `flux-dev`, `flux-schnell`, `sd15`, `sdxl`, `sd35-large` with recommended settings. |
 
 ## Configuration
 
-### CLI Arguments
+### CLI
 
 ```
---mode <MODE>         Server mode: standalone, stdio, server, client [default: standalone]
---port <PORT>         Port to listen on [default: 8000]
---backend-url <URL>   Backend URL for client mode
---log-level <LEVEL>   Log level [default: info]
+--mode <MODE>         standalone (alias: http) | server | client | stdio  [default: standalone]
+--port <PORT>         Listen port                                       [default: 8020]
+--host <HOST>         Accepted for compatibility; always binds 0.0.0.0
+--backend-url <URL>   Backend for client mode (e.g. http://192.168.0.222:8020)
+--log-level <LEVEL>   Log level (RUST_LOG overrides)                     [default: info]
 ```
 
-### Environment Variables
+### Environment
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `AI_TOOLKIT_PATH` | Base path for AI Toolkit installation | `/ai-toolkit` |
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `AI_TOOLKIT_PATH` | `/ai-toolkit` | AI Toolkit checkout (must contain `run.py`); training cwd |
+| `AI_TOOLKIT_CONFIGS_PATH` | `$AI_TOOLKIT_PATH/config` | Config YAML directory |
+| `AI_TOOLKIT_DATASETS_PATH` | `$AI_TOOLKIT_PATH/datasets` | Dataset directory |
+| `AI_TOOLKIT_OUTPUTS_PATH` | `$AI_TOOLKIT_PATH/outputs` | Weights, samples, logs, exports, job registry |
+| `AI_TOOLKIT_PYTHON` | `python3` | Interpreter used to run `run.py` |
+| `HF_TOKEN` | - | Inherited by training; required for gated models (Flux.1-dev, SD 3.5) |
 
-### Directory Structure
-
-The server uses the following directories within `AI_TOOLKIT_PATH`:
+### Layout
 
 ```
-/ai-toolkit/
-  config/      # Training configuration YAML files
-  datasets/    # Training image datasets
-  outputs/     # Trained models and logs
+$AI_TOOLKIT_PATH/
+  run.py
+  config/<name>.yaml
+  datasets/<dataset>/{image.png, image.txt, ...}
+  outputs/
+    <run>/<run>.safetensors, <run>_000000250.safetensors, samples/
+    exports/
+    training_<job_id>.log
+    .mcp_training_jobs.json
 ```
 
 ## Transport Modes
 
-| Mode | Description | Use Case |
-|------|-------------|----------|
-| **standalone** | Full MCP server with HTTP transport | Production, Docker |
-| **stdio** | STDIO transport for direct integration | Local MCP clients |
-| **server** | REST API only (no MCP protocol) | Microservices |
-| **client** | MCP proxy to REST backend | Horizontal scaling |
+| Mode | Description |
+|------|-------------|
+| `standalone` / `http` | MCP JSON-RPC (`/messages`) + REST (`/mcp/tools`, `/mcp/execute`) + `/health` |
+| `stdio` | JSON-RPC over stdin/stdout; logs go to stderr |
+| `server` | REST endpoints only |
+| `client` | Proxies tools from `--backend-url` (no local filesystem access) |
 
-## MCP Configuration
-
-Add to `.mcp.json` for HTTP transport (recommended for remote GPU):
+MCP client configuration for the remote GPU server:
 
 ```json
 {
   "mcpServers": {
-    "aitoolkit": {
+    "ai-toolkit": {
       "type": "http",
       "url": "http://192.168.0.222:8020/messages"
     }
@@ -143,133 +159,67 @@ Add to `.mcp.json` for HTTP transport (recommended for remote GPU):
 }
 ```
 
-Or for STDIO mode (local):
-
-```json
-{
-  "mcpServers": {
-    "aitoolkit": {
-      "command": "mcp-ai-toolkit",
-      "args": ["--mode", "stdio"]
-    }
-  }
-}
-```
-
-## Building from Source
+REST example:
 
 ```bash
-cd tools/mcp/mcp_ai_toolkit
-
-# Debug build
-cargo build
-
-# Release build (optimized)
-cargo build --release
-
-# Run tests
-cargo test
-
-# Run clippy
-cargo clippy -- -D warnings
-
-# Format code
-cargo fmt
-```
-
-## Project Structure
-
-```
-tools/mcp/mcp_ai_toolkit/
-  Cargo.toml          # Package configuration
-  README.md           # This file
-  src/
-    main.rs         # CLI entry point
-    server.rs       # MCP tools implementation
-    config.rs       # Path validation and configuration
-    types.rs        # Data structures
-```
-
-## HTTP Endpoints
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/health` | GET | Health check |
-| `/mcp/tools` | GET | List available tools |
-| `/mcp/execute` | POST | Execute a tool |
-| `/messages` | POST | MCP JSON-RPC endpoint |
-| `/.well-known/mcp` | GET | MCP discovery |
-
-## Testing
-
-```bash
-# Run unit tests
-cargo test
-
-# Test HTTP endpoints (after starting server)
-curl http://localhost:8020/health
-curl http://localhost:8020/mcp/tools
-
-# Create a training config
-curl -X POST http://localhost:8020/mcp/execute \
+curl -X POST http://192.168.0.222:8020/mcp/execute \
   -H 'Content-Type: application/json' \
-  -d '{
-    "tool": "create_training_config",
-    "arguments": {
-      "name": "my_lora",
-      "model_name": "runwayml/stable-diffusion-v1-5",
-      "dataset_path": "/ai-toolkit/datasets/my_dataset",
-      "steps": 1000,
-      "rank": 16
-    }
-  }'
-
-# List training jobs
-curl -X POST http://localhost:8020/mcp/execute \
-  -H 'Content-Type: application/json' \
-  -d '{"tool": "list_training_jobs", "arguments": {}}'
+  -d '{"tool": "create_training_config",
+       "arguments": {"name": "cat_lora", "dataset_path": "cats", "preset": "flux-dev",
+                     "trigger_word": "ohwx", "steps": 1500}}'
 ```
 
 ## Security
 
-### Path Validation
+- Config, dataset and run names are restricted to `[A-Za-z0-9._-]` (no leading `.`).
+- Relative paths (model names, export destinations) reject absolute paths and
+  `.`/`..` components, and are canonicalized to stay inside their base directory
+  (symlink escapes are rejected).
+- Upload file names must be plain names with an image extension, and content is
+  checked by magic bytes.
+- Training is launched without a shell (`python3 run.py <config path>`); no user
+  input is interpolated into a command line.
+- The HTTP transport has **no authentication**. Anyone who can reach port 8020
+  can upload, delete and start GPU jobs; keep it on a trusted network.
 
-All user-provided paths are validated to prevent directory traversal attacks:
-- Absolute paths are rejected
-- Parent directory references (`..`) are blocked
-- Paths must resolve within their designated base directories
+## Development
 
-### Process Isolation
+```bash
+cd tools/mcp/mcp_ai_toolkit
+cargo fmt --check
+cargo clippy --all-targets -- -D warnings
+cargo test          # offline; no GPU, Python or AI Toolkit needed
+cargo build --release
+```
 
-Training jobs run as subprocess with their own environment, isolated from the MCP server process.
+Tests use temporary directories. The job-manager tests spawn `sh`/`cmd` in
+place of Python, and a Unix-only end-to-end test runs a fake `run.py` that
+prints a tqdm progress line to cover start, progress parsing, logs, the
+single-GPU guard and graceful stop.
 
-## Dependencies
+Source layout:
 
-- [mcp-core](../mcp_core_rust/) - Rust MCP framework
-- [tokio](https://tokio.rs/) - Async runtime with process support
-- [serde_yaml](https://github.com/dtolnay/serde-yaml) - YAML serialization
-- [sysinfo](https://github.com/GuillaumeGomez/sysinfo) - System information
-- [base64](https://github.com/marshallpierce/rust-base64) - Base64 encoding
+| File | Responsibility |
+|------|----------------|
+| `src/main.rs` | CLI and server bootstrap |
+| `src/server.rs` | Tool definitions (typed args -> handlers) |
+| `src/config.rs` | Paths from env, name/path validation |
+| `src/training_config.rs` | Config building, arch detection, static validation |
+| `src/datasets.rs` | Dataset scanning, upload decoding/validation |
+| `src/jobs.rs` | Job spawn, monitoring, stop, persistence |
+| `src/logs.rs` | Log tailing, tqdm progress and error parsing |
+| `src/models.rs` | Weight discovery, export, chunked reads, sha256 |
+| `src/system.rs` | Host stats and `nvidia-smi` parsing |
+| `src/types.rs` | AI Toolkit YAML schema and model presets |
 
-## Performance
+## Limitations
 
-| Operation | Time |
-|-----------|------|
-| Server startup | ~20ms |
-| List configs | ~5ms |
-| Create config | ~10ms |
-| Start training | ~100ms (excludes training time) |
-| Get system stats | ~50ms |
-
-## Troubleshooting
-
-| Symptom | Cause | Solution |
-|---------|-------|----------|
-| "Configuration not found" | Config file doesn't exist | Check config name and list_configs |
-| "Permission denied" | Directory not writable | Ensure AI_TOOLKIT_PATH is writable |
-| Training fails to start | Python/AI Toolkit not installed | Verify AI Toolkit installation |
-| "Model not found" | Model file doesn't exist | Check list_exported_models |
-
-## License
-
-Part of the template-repo project. See repository LICENSE file.
+- One process per job, no queue: a second job is refused (or runs concurrently
+  on the same GPU with `allow_concurrent`).
+- A job interrupted by a server restart is not re-attached; it is reported as
+  `unknown` and cannot be stopped through the server.
+- Progress parsing depends on AI Toolkit's tqdm output format.
+- Only the first `process` entry of a config is used for the output folder and
+  step count.
+- Graceful process-group stop is Unix-only; on other platforms the job process
+  is killed directly.

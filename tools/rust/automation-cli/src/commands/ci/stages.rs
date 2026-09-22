@@ -410,9 +410,7 @@ impl Stage {
         match (prefix, op) {
             ("bio", "full") => Some(Stage::BioFull),
             ("bio", "deny") => Some(Stage::WorkspaceDeny(Workspace::Bioforge)),
-            // bio-test covers only the bioforge workspace (the MCP server has
-            // no tests of its own beyond what clippy --all-targets compiles).
-            ("bio", "test") => Some(Stage::Workspace(Workspace::Bioforge, CargoOp::Test)),
+            // fmt/clippy/test/build run on both the bioforge workspace and tools/mcp/mcp_bioforge.
             ("bio", op) => cargo_op(op).map(Stage::Bio),
             ("tamper", "full") => Some(Stage::TamperFull),
             ("tamper", "deny") => Some(Stage::WorkspaceDeny(Workspace::TamperBriefcase)),
@@ -513,10 +511,7 @@ mod tests {
             Stage::parse("bio-clippy").unwrap(),
             Stage::Bio(CargoOp::Clippy)
         );
-        assert_eq!(
-            Stage::parse("bio-test").unwrap(),
-            Stage::Workspace(Workspace::Bioforge, CargoOp::Test)
-        );
+        assert_eq!(Stage::parse("bio-test").unwrap(), Stage::Bio(CargoOp::Test));
         assert_eq!(
             Stage::parse("tamper-fmt").unwrap(),
             Stage::Workspace(Workspace::TamperBriefcase, CargoOp::Fmt)

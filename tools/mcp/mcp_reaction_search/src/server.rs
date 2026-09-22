@@ -1,131 +1,158 @@
-//! MCP server implementation for reaction search.
+//! MCP tool definitions for reaction search.
+//!
+//! Arguments are deserialized into typed structs (never indexed out of raw
+//! JSON), so malformed input becomes an `InvalidParameters` error instead of
+//! a panic or a silently ignored value. The hand-written JSON schemas are kept
+//! because they carry `items`, bounds, and `oneOf` details that the
+//! `#[mcp_tool]` macro's derived schemas cannot express.
+
+use std::collections::BTreeMap;
+use std::sync::Arc;
 
 use async_trait::async_trait;
 use mcp_core::prelude::*;
+use serde::Deserialize;
+use serde::de::DeserializeOwned;
 use serde_json::{Value, json};
-use std::sync::Arc;
-use tokio::sync::RwLock;
-use tracing::info;
 
-use crate::config::ConfigLoader;
-use crate::engine::ReactionSearchEngine;
+use crate::engine::{MAX_LIMIT, SearchOptions};
+use crate::service::ReactionService;
+use crate::types::{ReactionResult, ReactionSummary};
 
-/// Reaction search MCP server
-pub struct ReactionSearchServer {
-    config_loader: Arc<RwLock<ConfigLoader>>,
-    search_engine: Arc<RwLock<ReactionSearchEngine>>,
-    initialized: Arc<RwLock<bool>>,
+/// Longest accepted search query, in characters. The embedding model only
+/// reads the first ~256 tokens anyway.
+const MAX_QUERY_CHARS: usize = 1000;
+
+/// Emotion tags surfaced as a category by `list_reaction_tags`.
+const EMOTION_TAGS: &[&str] = &[
+    "happy",
+    "sad",
+    "angry",
+    "confused",
+    "excited",
+    "annoyed",
+    "smug",
+    "shocked",
+    "surprised",
+    "nervous",
+    "bored",
+    "content",
+    "cheerful",
+    "irritated",
+    "disappointed",
+    "embarrassed",
+    "worried",
+    "concerned",
+    "unamused",
+    "determined",
+    "focused",
+    "thoughtful",
+    "frustrated",
+    "amused",
+    "playful",
+];
+
+/// Action tags surfaced as a category by `list_reaction_tags`.
+const ACTION_TAGS: &[&str] = &[
+    "typing",
+    "thinking",
+    "working",
+    "gaming",
+    "drinking",
+    "eating",
+    "waving",
+    "cheering",
+    "crying",
+    "laughing",
+    "giggling",
+    "studying",
+    "celebrating",
+    "shrugging",
+    "sipping",
+    "glaring",
+    "staring",
+    "pouting",
+    "facepalm",
+    "sleeping",
+    "writing",
+];
+
+/// Parse tool arguments into `T`, treating a missing/null argument object as
+/// empty.
+fn parse_args<T: DeserializeOwned>(args: Value) -> Result<T> {
+    let args = if args.is_null() { json!({}) } else { args };
+    serde_json::from_value(args).map_err(|e| MCPError::InvalidParameters(e.to_string()))
 }
 
-impl ReactionSearchServer {
-    /// Create a new reaction search server
-    pub fn new() -> Self {
-        Self {
-            config_loader: Arc::new(RwLock::new(ConfigLoader::new())),
-            search_engine: Arc::new(RwLock::new(ReactionSearchEngine::new())),
-            initialized: Arc::new(RwLock::new(false)),
-        }
-    }
+/// A string or a list of strings (LLM clients often send a bare string where
+/// a list is expected).
+#[derive(Debug, Deserialize)]
+#[serde(untagged)]
+enum OneOrMany {
+    One(String),
+    Many(Vec<String>),
+}
 
-    /// Ensure the engine is initialized (lazy initialization)
-    #[allow(dead_code)]
-    async fn ensure_initialized(&self) -> Result<()> {
-        let mut initialized = self.initialized.write().await;
-        if *initialized {
-            return Ok(());
-        }
-
-        info!("Initializing reaction search engine...");
-
-        // Load reactions from config
-        let mut config = self.config_loader.write().await;
-        let reactions = config
-            .get_reactions()
-            .await
-            .map_err(|e| MCPError::Internal(format!("Failed to load config: {}", e)))?;
-
-        // Initialize search engine
-        let mut engine = self.search_engine.write().await;
-        engine
-            .initialize(reactions)
-            .map_err(|e| MCPError::Internal(format!("Failed to initialize engine: {}", e)))?;
-
-        *initialized = true;
-        info!("Reaction search engine initialized");
-
-        Ok(())
-    }
-
-    /// Get all tools as boxed trait objects
-    pub fn tools(&self) -> Vec<BoxedTool> {
-        vec![
-            Arc::new(SearchReactionsTool {
-                server: self.clone_refs(),
-            }),
-            Arc::new(GetReactionTool {
-                server: self.clone_refs(),
-            }),
-            Arc::new(ListReactionTagsTool {
-                server: self.clone_refs(),
-            }),
-            Arc::new(RefreshReactionsTool {
-                server: self.clone_refs(),
-            }),
-            Arc::new(ReactionSearchStatusTool {
-                server: self.clone_refs(),
-            }),
-        ]
-    }
-
-    /// Clone the Arc references for tools
-    fn clone_refs(&self) -> ServerRefs {
-        ServerRefs {
-            config_loader: self.config_loader.clone(),
-            search_engine: self.search_engine.clone(),
-            initialized: self.initialized.clone(),
-        }
+impl OneOrMany {
+    /// Trimmed, lowercased, non-empty values.
+    fn normalized(self) -> Vec<String> {
+        let v = match self {
+            Self::One(s) => vec![s],
+            Self::Many(v) => v,
+        };
+        v.into_iter()
+            .map(|s| s.trim().to_lowercase())
+            .filter(|s| !s.is_empty())
+            .collect()
     }
 }
 
-impl Default for ReactionSearchServer {
-    fn default() -> Self {
-        Self::new()
+fn normalized(v: Option<OneOrMany>) -> Vec<String> {
+    v.map(OneOrMany::normalized).unwrap_or_default()
+}
+
+/// Validate a `limit` argument (accepts integers or integral floats) and
+/// clamp it to `1..=max`.
+fn parse_limit(limit: Option<f64>, default: usize, max: usize) -> Result<usize> {
+    match limit {
+        None => Ok(default),
+        Some(l) if !l.is_finite() => Err(MCPError::InvalidParameters(
+            "limit must be a finite number".into(),
+        )),
+        Some(l) => Ok((l.round().max(1.0) as usize).min(max)),
     }
 }
 
-/// Shared references for tools
-#[derive(Clone)]
-struct ServerRefs {
-    config_loader: Arc<RwLock<ConfigLoader>>,
-    search_engine: Arc<RwLock<ReactionSearchEngine>>,
-    initialized: Arc<RwLock<bool>>,
+/// Error result that still carries structured JSON (keeps the historical
+/// `{"success": false, ...}` shape while flagging `isError` for clients).
+fn json_error(value: &Value) -> Result<ToolResult> {
+    let mut result = ToolResult::json(value)?;
+    result.is_error = true;
+    Ok(result)
 }
 
-impl ServerRefs {
-    async fn ensure_initialized(&self) -> Result<()> {
-        let mut initialized = self.initialized.write().await;
-        if *initialized {
-            return Ok(());
-        }
-
-        info!("Initializing reaction search engine...");
-
-        let mut config = self.config_loader.write().await;
-        let reactions = config
-            .get_reactions()
-            .await
-            .map_err(|e| MCPError::Internal(format!("Failed to load config: {}", e)))?;
-
-        let mut engine = self.search_engine.write().await;
-        engine
-            .initialize(reactions)
-            .map_err(|e| MCPError::Internal(format!("Failed to initialize engine: {}", e)))?;
-
-        *initialized = true;
-        info!("Reaction search engine initialized");
-
-        Ok(())
-    }
+/// Build all tools over a shared service.
+pub fn tools(service: &Arc<ReactionService>) -> Vec<BoxedTool> {
+    vec![
+        Arc::new(SearchReactionsTool {
+            service: Arc::clone(service),
+        }),
+        Arc::new(GetReactionTool {
+            service: Arc::clone(service),
+        }),
+        Arc::new(ListReactionsTool {
+            service: Arc::clone(service),
+        }),
+        Arc::new(ListReactionTagsTool {
+            service: Arc::clone(service),
+        }),
+        Arc::new(RefreshReactionsTool {
+            service: Arc::clone(service),
+        }),
+        Arc::new(ReactionSearchStatusTool {
+            service: Arc::clone(service),
+        }),
+    ]
 }
 
 // ============================================================================
@@ -133,7 +160,54 @@ impl ServerRefs {
 // ============================================================================
 
 struct SearchReactionsTool {
-    server: ServerRefs,
+    service: Arc<ReactionService>,
+}
+
+#[derive(Debug, Deserialize)]
+struct SearchArgs {
+    query: String,
+    #[serde(default)]
+    limit: Option<f64>,
+    #[serde(default)]
+    tags: Option<OneOrMany>,
+    #[serde(default)]
+    exclude: Option<OneOrMany>,
+    #[serde(default)]
+    min_similarity: Option<f64>,
+}
+
+impl SearchArgs {
+    fn validate(self) -> Result<(String, SearchOptions)> {
+        let query = self.query.trim().to_string();
+        if query.is_empty() {
+            return Err(MCPError::InvalidParameters(
+                "query must not be empty; describe the emotion or situation".into(),
+            ));
+        }
+        if query.chars().count() > MAX_QUERY_CHARS {
+            return Err(MCPError::InvalidParameters(format!(
+                "query is too long (max {MAX_QUERY_CHARS} characters)"
+            )));
+        }
+        let min_similarity = match self.min_similarity {
+            None => 0.0,
+            Some(m) if m.is_finite() && (0.0..=1.0).contains(&m) => m as f32,
+            Some(m) => {
+                return Err(MCPError::InvalidParameters(format!(
+                    "min_similarity must be between 0 and 1 (got {m})"
+                )));
+            },
+        };
+        Ok((
+            query,
+            SearchOptions {
+                limit: parse_limit(self.limit, 5, MAX_LIMIT)?,
+                tags: normalized(self.tags),
+                exclude: normalized(self.exclude),
+                min_similarity,
+            },
+        ))
+    }
 }
 
 #[async_trait]
@@ -145,14 +219,19 @@ impl Tool for SearchReactionsTool {
     fn description(&self) -> &str {
         r#"Search for reaction images using natural language.
 
-Returns contextually appropriate anime reaction images based on semantic similarity.
-Useful for finding reactions that match an emotional state or situation.
+Returns contextually appropriate anime reaction images ranked by semantic
+similarity (sentence embeddings) with a small keyword/tag boost. If the
+embedding model is unavailable (offline or still downloading), falls back to
+keyword matching and says so in `search_mode` / `note`.
 
 Examples:
-- "celebrating after fixing a bug" -> felix, aqua_happy
-- "confused about the error message" -> confused, miku_confused
-- "annoyed at the failing tests" -> kagami_annoyed, nao_annoyed
-- "deep in thought while debugging" -> thinking_foxgirl, hifumi_studious"#
+- "celebrating after fixing a bug"
+- "confused about the error message"
+- "annoyed at the failing tests"
+- "deep in thought while debugging"
+
+Each result includes `markdown` ready to paste into a comment. Use `exclude`
+with previously used ids to vary reactions across comments."#
     }
 
     fn schema(&self) -> Value {
@@ -161,22 +240,35 @@ Examples:
             "properties": {
                 "query": {
                     "type": "string",
-                    "description": "Natural language search query describing the desired reaction"
+                    "description": "Natural language description of the desired reaction (emotion or situation)"
                 },
                 "limit": {
                     "type": "integer",
-                    "description": "Maximum number of results (default: 5, max: 20)",
-                    "default": 5
+                    "description": format!("Maximum number of results (default: 5, max: {MAX_LIMIT})"),
+                    "default": 5,
+                    "minimum": 1,
+                    "maximum": MAX_LIMIT
                 },
                 "tags": {
-                    "type": "array",
-                    "items": {"type": "string"},
-                    "description": "Optional tag filter - reactions must have at least one of these tags"
+                    "oneOf": [
+                        {"type": "array", "items": {"type": "string"}},
+                        {"type": "string"}
+                    ],
+                    "description": "Optional tag filter (case-insensitive) - reactions must have at least one of these tags"
+                },
+                "exclude": {
+                    "oneOf": [
+                        {"type": "array", "items": {"type": "string"}},
+                        {"type": "string"}
+                    ],
+                    "description": "Optional reaction ids to leave out (e.g. ones already used recently)"
                 },
                 "min_similarity": {
                     "type": "number",
                     "description": "Minimum similarity threshold 0-1 (default: 0.0)",
-                    "default": 0.0
+                    "default": 0.0,
+                    "minimum": 0.0,
+                    "maximum": 1.0
                 }
             },
             "required": ["query"]
@@ -184,48 +276,26 @@ Examples:
     }
 
     async fn execute(&self, args: Value) -> Result<ToolResult> {
-        // Ensure initialized
-        self.server.ensure_initialized().await?;
-
-        // Parse arguments
-        let query = args
-            .get("query")
-            .and_then(|v| v.as_str())
-            .ok_or_else(|| MCPError::InvalidParameters("Missing 'query' parameter".to_string()))?;
-
-        let limit = args
-            .get("limit")
-            .and_then(|v| v.as_u64())
-            .map(|v| v.min(20) as usize)
-            .unwrap_or(5);
-
-        let tags: Option<Vec<String>> = args.get("tags").and_then(|v| {
-            v.as_array().map(|arr| {
-                arr.iter()
-                    .filter_map(|v| v.as_str().map(String::from))
-                    .collect()
-            })
-        });
-
-        let min_similarity = args
-            .get("min_similarity")
-            .and_then(|v| v.as_f64())
-            .map(|v| v as f32)
-            .unwrap_or(0.0);
-
-        // Search
-        let engine = self.server.search_engine.read().await;
-        let results = engine
-            .search(query, limit, tags.as_deref(), min_similarity)
-            .map_err(|e| MCPError::Internal(format!("Search failed: {}", e)))?;
-
-        let response = json!({
+        let (query, opts) = parse_args::<SearchArgs>(args)?.validate()?;
+        let outcome = match self.service.search(&query, &opts).await {
+            Ok(o) => o,
+            Err(e) => {
+                return json_error(&json!({
+                    "success": false,
+                    "error": format!("Search unavailable: {e}"),
+                }));
+            },
+        };
+        let mut response = json!({
             "success": true,
             "query": query,
-            "count": results.len(),
-            "results": results
+            "search_mode": outcome.mode,
+            "count": outcome.results.len(),
+            "results": outcome.results,
         });
-
+        if let Some(note) = outcome.note {
+            response["note"] = json!(note);
+        }
         ToolResult::json(&response)
     }
 }
@@ -235,7 +305,12 @@ Examples:
 // ============================================================================
 
 struct GetReactionTool {
-    server: ServerRefs,
+    service: Arc<ReactionService>,
+}
+
+#[derive(Debug, Deserialize)]
+struct GetArgs {
+    reaction_id: String,
 }
 
 #[async_trait]
@@ -247,7 +322,9 @@ impl Tool for GetReactionTool {
     fn description(&self) -> &str {
         r#"Get a specific reaction image by ID.
 
-Returns the full details for a reaction including URL and markdown for embedding."#
+Returns the full details for a reaction including URL and markdown for
+embedding. Lookup is case-insensitive; unknown ids return close matches in
+`suggestions`. Does not need the embedding model."#
     }
 
     fn schema(&self) -> Value {
@@ -264,32 +341,111 @@ Returns the full details for a reaction including URL and markdown for embedding
     }
 
     async fn execute(&self, args: Value) -> Result<ToolResult> {
-        self.server.ensure_initialized().await?;
-
-        let reaction_id = args
-            .get("reaction_id")
-            .and_then(|v| v.as_str())
-            .ok_or_else(|| {
-                MCPError::InvalidParameters("Missing 'reaction_id' parameter".to_string())
-            })?;
-
-        let engine = self.server.search_engine.read().await;
-        match engine.get_by_id(reaction_id) {
-            Some(result) => {
-                let response = json!({
-                    "success": true,
-                    "reaction": result
-                });
-                ToolResult::json(&response)
-            },
-            None => {
-                let response = json!({
-                    "success": false,
-                    "error": format!("Reaction not found: {}", reaction_id)
-                });
-                ToolResult::json(&response)
-            },
+        let GetArgs { reaction_id } = parse_args(args)?;
+        if reaction_id.trim().is_empty() {
+            return Err(MCPError::InvalidParameters(
+                "reaction_id must not be empty".into(),
+            ));
         }
+        let catalog = match self.service.catalog().await {
+            Ok(c) => c,
+            Err(e) => {
+                return json_error(&json!({
+                    "success": false,
+                    "error": format!("Reactions unavailable: {e}"),
+                }));
+            },
+        };
+        match catalog.get(&reaction_id) {
+            Some(r) => ToolResult::json(&json!({
+                "success": true,
+                "reaction": ReactionResult::from_reaction(r, 1.0, 1.0),
+            })),
+            None => json_error(&json!({
+                "success": false,
+                "error": format!("Reaction not found: {}", reaction_id.trim()),
+                "suggestions": catalog.suggest(&reaction_id, 5),
+            })),
+        }
+    }
+}
+
+// ============================================================================
+// Tool: list_reactions
+// ============================================================================
+
+struct ListReactionsTool {
+    service: Arc<ReactionService>,
+}
+
+#[derive(Debug, Deserialize)]
+struct ListArgs {
+    #[serde(default)]
+    tags: Option<OneOrMany>,
+    #[serde(default)]
+    limit: Option<f64>,
+}
+
+#[async_trait]
+impl Tool for ListReactionsTool {
+    fn name(&self) -> &str {
+        "list_reactions"
+    }
+
+    fn description(&self) -> &str {
+        r#"List available reaction images (id, description, tags, markdown).
+
+Optionally filter to reactions having at least one of `tags`. Useful for
+browsing the catalog or picking by id; works without the embedding model."#
+    }
+
+    fn schema(&self) -> Value {
+        json!({
+            "type": "object",
+            "properties": {
+                "tags": {
+                    "oneOf": [
+                        {"type": "array", "items": {"type": "string"}},
+                        {"type": "string"}
+                    ],
+                    "description": "Optional tag filter (case-insensitive, any-of)"
+                },
+                "limit": {
+                    "type": "integer",
+                    "description": "Maximum entries to return (default: all)",
+                    "minimum": 1
+                }
+            }
+        })
+    }
+
+    async fn execute(&self, args: Value) -> Result<ToolResult> {
+        let args: ListArgs = parse_args(args)?;
+        let tags = normalized(args.tags);
+        let catalog = match self.service.catalog().await {
+            Ok(c) => c,
+            Err(e) => {
+                return json_error(&json!({
+                    "success": false,
+                    "error": format!("Reactions unavailable: {e}"),
+                }));
+            },
+        };
+        let limit = parse_limit(args.limit, catalog.len().max(1), catalog.len().max(1))?;
+        let matching: Vec<ReactionSummary> = catalog
+            .reactions()
+            .iter()
+            .filter(|r| tags.is_empty() || tags.iter().any(|t| r.has_tag(t)))
+            .map(ReactionSummary::from)
+            .collect();
+        let total = matching.len();
+        let reactions: Vec<ReactionSummary> = matching.into_iter().take(limit).collect();
+        ToolResult::json(&json!({
+            "success": true,
+            "total": total,
+            "count": reactions.len(),
+            "reactions": reactions,
+        }))
     }
 }
 
@@ -298,7 +454,25 @@ Returns the full details for a reaction including URL and markdown for embedding
 // ============================================================================
 
 struct ListReactionTagsTool {
-    server: ServerRefs,
+    service: Arc<ReactionService>,
+}
+
+/// Split tag counts into emotion / action / other categories.
+fn categorize_tags(tags: &BTreeMap<String, usize>) -> Value {
+    let mut emotions = serde_json::Map::new();
+    let mut actions = serde_json::Map::new();
+    let mut other = serde_json::Map::new();
+    for (tag, &count) in tags {
+        let bucket = if EMOTION_TAGS.contains(&tag.as_str()) {
+            &mut emotions
+        } else if ACTION_TAGS.contains(&tag.as_str()) {
+            &mut actions
+        } else {
+            &mut other
+        };
+        bucket.insert(tag.clone(), json!(count));
+    }
+    json!({ "emotions": emotions, "actions": actions, "other": other })
 }
 
 #[async_trait]
@@ -310,59 +484,40 @@ impl Tool for ListReactionTagsTool {
     fn description(&self) -> &str {
         r#"List all available reaction tags with counts.
 
-Useful for browsing available categories and filtering searches."#
+Tags are lowercased. `tags` is alphabetical, `by_count` is most-used first,
+and `categorized` groups common emotion and action tags. Useful for browsing
+categories and for the `tags` filter of search_reactions / list_reactions."#
     }
 
     fn schema(&self) -> Value {
-        json!({
-            "type": "object",
-            "properties": {}
-        })
+        json!({ "type": "object", "properties": {} })
     }
 
     async fn execute(&self, _args: Value) -> Result<ToolResult> {
-        self.server.ensure_initialized().await?;
+        let catalog = match self.service.catalog().await {
+            Ok(c) => c,
+            Err(e) => {
+                return json_error(&json!({
+                    "success": false,
+                    "error": format!("Reactions unavailable: {e}"),
+                }));
+            },
+        };
+        let tags = catalog.tag_counts();
+        let mut by_count: Vec<(&String, &usize)> = tags.iter().collect();
+        by_count.sort_by(|a, b| b.1.cmp(a.1).then_with(|| a.0.cmp(b.0)));
+        let by_count: Vec<Value> = by_count
+            .into_iter()
+            .map(|(tag, count)| json!({ "tag": tag, "count": count }))
+            .collect();
 
-        let engine = self.server.search_engine.read().await;
-        let tags = engine.list_tags();
-
-        // Categorize tags
-        let emotions = [
-            "happy", "sad", "angry", "confused", "excited", "annoyed", "smug", "shocked",
-            "nervous", "bored", "content",
-        ];
-        let actions = [
-            "typing", "thinking", "working", "gaming", "drinking", "waving", "cheering", "crying",
-            "laughing", "studying",
-        ];
-
-        let mut emotions_map = serde_json::Map::new();
-        let mut actions_map = serde_json::Map::new();
-        let mut other_map = serde_json::Map::new();
-
-        for (tag, count) in tags {
-            let value = json!(count);
-            if emotions.contains(&tag.as_str()) {
-                emotions_map.insert(tag.clone(), value);
-            } else if actions.contains(&tag.as_str()) {
-                actions_map.insert(tag.clone(), value);
-            } else {
-                other_map.insert(tag.clone(), value);
-            }
-        }
-
-        let response = json!({
+        ToolResult::json(&json!({
             "success": true,
             "total_tags": tags.len(),
             "tags": tags,
-            "categorized": {
-                "emotions": emotions_map,
-                "actions": actions_map,
-                "other": other_map
-            }
-        });
-
-        ToolResult::json(&response)
+            "by_count": by_count,
+            "categorized": categorize_tags(tags),
+        }))
     }
 }
 
@@ -371,7 +526,7 @@ Useful for browsing available categories and filtering searches."#
 // ============================================================================
 
 struct RefreshReactionsTool {
-    server: ServerRefs,
+    service: Arc<ReactionService>,
 }
 
 #[async_trait]
@@ -381,42 +536,41 @@ impl Tool for RefreshReactionsTool {
     }
 
     fn description(&self) -> &str {
-        r#"Refresh the reaction cache from GitHub.
+        r#"Refresh the reaction catalog from its source (GitHub by default).
 
-Forces a fetch of the latest config, bypassing the 1-week cache TTL."#
+Bypasses the 1-week cache TTL. If the fetch fails, the previously loaded
+reactions and on-disk cache are kept. Also retries a failed model load.
+Reports added/removed reaction ids."#
     }
 
     fn schema(&self) -> Value {
-        json!({
-            "type": "object",
-            "properties": {}
-        })
+        json!({ "type": "object", "properties": {} })
     }
 
     async fn execute(&self, _args: Value) -> Result<ToolResult> {
-        // Clear cache and force refresh
-        {
-            let mut config = self.server.config_loader.write().await;
-            config.clear_cache();
+        match self.service.refresh().await {
+            Ok(outcome) => {
+                let mut response = json!({
+                    "success": true,
+                    "message": format!(
+                        "Reactions refreshed ({} loaded, {} added, {} removed)",
+                        outcome.reaction_count,
+                        outcome.added.len(),
+                        outcome.removed.len()
+                    ),
+                });
+                if let (Value::Object(target), Ok(Value::Object(extra))) =
+                    (&mut response, serde_json::to_value(&outcome))
+                {
+                    target.extend(extra);
+                }
+                ToolResult::json(&response)
+            },
+            Err(e) => json_error(&json!({
+                "success": false,
+                "error": format!("Refresh failed: {e}"),
+            })),
         }
-
-        // Reset initialization flag
-        {
-            let mut initialized = self.server.initialized.write().await;
-            *initialized = false;
-        }
-
-        // Re-initialize
-        self.server.ensure_initialized().await?;
-
-        let engine = self.server.search_engine.read().await;
-        let response = json!({
-            "success": true,
-            "message": "Reactions refreshed from GitHub",
-            "reaction_count": engine.reaction_count()
-        });
-
-        ToolResult::json(&response)
     }
 }
 
@@ -425,7 +579,7 @@ Forces a fetch of the latest config, bypassing the 1-week cache TTL."#
 // ============================================================================
 
 struct ReactionSearchStatusTool {
-    server: ServerRefs,
+    service: Arc<ReactionService>,
 }
 
 #[async_trait]
@@ -437,60 +591,237 @@ impl Tool for ReactionSearchStatusTool {
     fn description(&self) -> &str {
         r#"Get reaction search server status.
 
-Returns information about initialization state, cache status, and model."#
+Reports catalog state (count, source: network/cache/stale_cache/local_file),
+embedding model state (not_loaded/loading/ready/failed and any error), the
+active search mode (semantic or lexical), and on-disk cache details. Never
+blocks on loading."#
     }
 
     fn schema(&self) -> Value {
-        json!({
-            "type": "object",
-            "properties": {}
-        })
+        json!({ "type": "object", "properties": {} })
     }
 
     async fn execute(&self, _args: Value) -> Result<ToolResult> {
-        let initialized = *self.server.initialized.read().await;
-
-        let mut response = json!({
-            "server": "reaction-search",
-            "version": "1.0.0",
-            "initialized": initialized
-        });
-
-        if initialized {
-            let engine = self.server.search_engine.read().await;
-            let config = self.server.config_loader.read().await;
-
-            response["engine"] = json!(engine.get_status());
-            response["cache"] = json!(config.get_cache_info());
-        } else {
-            response["note"] = json!("Engine will initialize on first search");
-        }
-
-        ToolResult::json(&response)
+        ToolResult::json(&self.service.status().await)
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::service::tests::{SAMPLE, failing_factory, hash_factory, test_service};
+    use std::sync::atomic::AtomicUsize;
 
-    #[test]
-    fn test_server_creation() {
-        let server = ReactionSearchServer::new();
-        let tools = server.tools();
-        assert_eq!(tools.len(), 5);
+    fn tool(service: &Arc<ReactionService>, name: &str) -> BoxedTool {
+        tools(service)
+            .into_iter()
+            .find(|t| t.name() == name)
+            .unwrap_or_else(|| panic!("tool {name} missing"))
+    }
+
+    fn body(result: &ToolResult) -> Value {
+        match &result.content[0] {
+            Content::Text { text } => serde_json::from_str(text).unwrap(),
+            other => panic!("unexpected content {other:?}"),
+        }
     }
 
     #[test]
-    fn test_tool_names() {
-        let server = ReactionSearchServer::new();
-        let tools = server.tools();
-        let names: Vec<&str> = tools.iter().map(|t| t.name()).collect();
+    fn tool_names_are_stable() {
+        let (svc, _) = test_service("names", SAMPLE, hash_factory());
+        let names: Vec<String> = tools(&svc).iter().map(|t| t.name().to_string()).collect();
+        for expected in [
+            "search_reactions",
+            "get_reaction",
+            "list_reactions",
+            "list_reaction_tags",
+            "refresh_reactions",
+            "reaction_search_status",
+        ] {
+            assert!(names.iter().any(|n| n == expected), "{expected} missing");
+        }
+        for t in tools(&svc) {
+            assert_eq!(t.schema()["type"], "object", "{}", t.name());
+        }
+    }
 
-        assert!(names.contains(&"search_reactions"));
-        assert!(names.contains(&"get_reaction"));
-        assert!(names.contains(&"list_reaction_tags"));
-        assert!(names.contains(&"refresh_reactions"));
-        assert!(names.contains(&"reaction_search_status"));
+    #[test]
+    fn limit_parsing() {
+        assert_eq!(parse_limit(None, 5, 20).unwrap(), 5);
+        assert_eq!(parse_limit(Some(3.0), 5, 20).unwrap(), 3);
+        assert_eq!(parse_limit(Some(100.0), 5, 20).unwrap(), 20);
+        assert_eq!(parse_limit(Some(0.0), 5, 20).unwrap(), 1);
+        assert_eq!(parse_limit(Some(-4.0), 5, 20).unwrap(), 1);
+        assert!(parse_limit(Some(f64::NAN), 5, 20).is_err());
+    }
+
+    #[tokio::test]
+    async fn search_validates_arguments() {
+        let (svc, _) = test_service("search_args", SAMPLE, hash_factory());
+        let t = tool(&svc, "search_reactions");
+        for bad in [
+            json!({}),
+            json!(null),
+            json!({"query": 42}),
+            json!({"query": "   "}),
+            json!({"query": "x".repeat(MAX_QUERY_CHARS + 1)}),
+            json!({"query": "happy", "min_similarity": 1.5}),
+            json!({"query": "happy", "limit": "five"}),
+            json!({"query": "happy", "tags": 7}),
+        ] {
+            let err = t.execute(bad.clone()).await.unwrap_err();
+            assert!(
+                matches!(err, MCPError::InvalidParameters(_)),
+                "{bad}: {err}"
+            );
+        }
+    }
+
+    #[tokio::test]
+    async fn search_returns_ranked_results() {
+        let (svc, _) = test_service("search_ok", SAMPLE, hash_factory());
+        let t = tool(&svc, "search_reactions");
+        let result = t
+            .execute(json!({"query": "confused about the error", "limit": 2.0}))
+            .await
+            .unwrap();
+        assert!(!result.is_error);
+        let v = body(&result);
+        assert_eq!(v["success"], true);
+        assert_eq!(v["search_mode"], "semantic");
+        assert_eq!(v["count"], 2);
+        assert_eq!(v["results"][0]["id"], "confused");
+        assert!(
+            v["results"][0]["markdown"]
+                .as_str()
+                .unwrap()
+                .starts_with("![Reaction](")
+        );
+
+        // Single-string tag filter and exclude.
+        let v = body(
+            &t.execute(json!({"query": "anything", "tags": "HAPPY", "exclude": ["confused"]}))
+                .await
+                .unwrap(),
+        );
+        assert_eq!(v["count"], 1);
+        assert_eq!(v["results"][0]["id"], "felix");
+    }
+
+    #[tokio::test]
+    async fn search_reports_lexical_fallback() {
+        let (svc, _) = test_service(
+            "search_lex",
+            SAMPLE,
+            failing_factory(Arc::new(AtomicUsize::new(0))),
+        );
+        let v = body(
+            &tool(&svc, "search_reactions")
+                .execute(json!({"query": "annoyed"}))
+                .await
+                .unwrap(),
+        );
+        assert_eq!(v["search_mode"], "lexical");
+        assert!(v["note"].as_str().unwrap().contains("keyword"));
+        assert_eq!(v["results"][0]["id"], "kagami_annoyed");
+    }
+
+    #[tokio::test]
+    async fn get_reaction_found_and_not_found() {
+        let (svc, _) = test_service("get", SAMPLE, hash_factory());
+        let t = tool(&svc, "get_reaction");
+        let v = body(&t.execute(json!({"reaction_id": "Felix"})).await.unwrap());
+        assert_eq!(v["reaction"]["id"], "felix");
+
+        let result = t.execute(json!({"reaction_id": "felx"})).await.unwrap();
+        assert!(result.is_error);
+        let v = body(&result);
+        assert_eq!(v["success"], false);
+        assert_eq!(v["suggestions"][0], "felix");
+
+        assert!(t.execute(json!({})).await.is_err());
+        assert!(t.execute(json!({"reaction_id": ""})).await.is_err());
+    }
+
+    #[tokio::test]
+    async fn list_tools_work_without_model() {
+        let (svc, _) = test_service(
+            "lists",
+            SAMPLE,
+            failing_factory(Arc::new(AtomicUsize::new(0))),
+        );
+        let v = body(
+            &tool(&svc, "list_reactions")
+                .execute(json!({}))
+                .await
+                .unwrap(),
+        );
+        assert_eq!(v["total"], 3);
+        let v = body(
+            &tool(&svc, "list_reactions")
+                .execute(json!({"tags": ["annoyed"], "limit": 5}))
+                .await
+                .unwrap(),
+        );
+        assert_eq!(v["count"], 1);
+        assert_eq!(v["reactions"][0]["id"], "kagami_annoyed");
+
+        let v = body(
+            &tool(&svc, "list_reaction_tags")
+                .execute(json!({}))
+                .await
+                .unwrap(),
+        );
+        assert_eq!(v["total_tags"], 4);
+        assert_eq!(v["categorized"]["emotions"]["happy"], 1);
+        assert_eq!(v["by_count"].as_array().unwrap().len(), 4);
+    }
+
+    #[tokio::test]
+    async fn refresh_and_status() {
+        let (svc, _) = test_service("refresh_tool", SAMPLE, hash_factory());
+        let status = body(
+            &tool(&svc, "reaction_search_status")
+                .execute(json!({}))
+                .await
+                .unwrap(),
+        );
+        assert_eq!(status["initialized"], false);
+
+        let v = body(
+            &tool(&svc, "refresh_reactions")
+                .execute(json!({}))
+                .await
+                .unwrap(),
+        );
+        assert_eq!(v["success"], true);
+        assert_eq!(v["reaction_count"], 3);
+        assert_eq!(v["source"], "local_file");
+
+        let status = body(
+            &tool(&svc, "reaction_search_status")
+                .execute(json!({}))
+                .await
+                .unwrap(),
+        );
+        assert_eq!(status["initialized"], true);
+        assert_eq!(status["catalog"]["reaction_count"], 3);
+    }
+
+    #[tokio::test]
+    async fn unavailable_config_is_reported_not_panicked() {
+        let (svc, path) = test_service("unavail", SAMPLE, hash_factory());
+        std::fs::remove_file(&path).unwrap();
+        for (name, args) in [
+            ("search_reactions", json!({"query": "happy"})),
+            ("get_reaction", json!({"reaction_id": "felix"})),
+            ("list_reactions", json!({})),
+            ("list_reaction_tags", json!({})),
+            ("refresh_reactions", json!({})),
+        ] {
+            let result = tool(&svc, name).execute(args).await.unwrap();
+            assert!(result.is_error, "{name}");
+            assert_eq!(body(&result)["success"], false, "{name}");
+        }
     }
 }

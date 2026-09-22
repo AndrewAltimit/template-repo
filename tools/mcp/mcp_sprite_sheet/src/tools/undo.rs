@@ -1,58 +1,58 @@
 //! Undo/redo tool.
 
-use async_trait::async_trait;
-use mcp_core::prelude::*;
-use serde_json::{Value, json};
+use serde::Deserialize;
+use serde_json::json;
 
-use crate::engine::{self, ProjectStore};
+use super::{get_mut, invalid, ok_json, sprite_tool};
+use crate::args;
+use crate::engine;
 
-pub struct UndoTool {
-    pub store: ProjectStore,
+#[derive(Deserialize)]
+pub struct UndoArgs {
+    name: String,
+    #[serde(default, deserialize_with = "args::opt_bool")]
+    redo: Option<bool>,
+    #[serde(default, deserialize_with = "args::opt_int")]
+    steps: Option<u32>,
 }
 
-#[async_trait]
-impl Tool for UndoTool {
-    fn name(&self) -> &str {
-        "sprite_undo"
-    }
-
-    fn description(&self) -> &str {
-        "Undo the last drawing operation, or redo if redo=true."
-    }
-
-    fn schema(&self) -> Value {
-        json!({
+sprite_tool! {
+    UndoTool {
+        name: "sprite_undo",
+        description: "Undo the last edit (or redo with redo=true). Covers every mutating tool: \
+            drawing, layer, palette, sprite/animation, transform, trim, and canvas-resize \
+            operations. History holds up to 50 steps per project, is kept in memory only, and \
+            starts empty after create/load/import.",
+        schema: json!({
             "type": "object",
             "properties": {
                 "name": { "type": "string", "description": "Project name" },
-                "redo": { "type": "boolean", "default": false, "description": "Redo instead of undo" }
+                "redo": { "type": "boolean", "default": false, "description": "Redo instead of undo" },
+                "steps": { "type": "integer", "minimum": 1, "maximum": 50, "default": 1, "description": "Number of steps to undo/redo" }
             },
             "required": ["name"]
-        })
-    }
-
-    async fn execute(&self, args: Value) -> Result<ToolResult> {
-        let pname = args["name"]
-            .as_str()
-            .ok_or_else(|| MCPError::InvalidParameters("Missing 'name'".to_string()))?;
-        let mut store = self.store.write().await;
-        let project = store
-            .get_mut(pname)
-            .ok_or_else(|| MCPError::InvalidParameters(format!("Project not found: {pname}")))?;
-
-        let is_redo = args["redo"].as_bool().unwrap_or(false);
-
-        if is_redo {
-            engine::redo(project).map_err(MCPError::Internal)?;
-        } else {
-            engine::undo(project).map_err(MCPError::Internal)?;
+        }),
+        execute: |ctx, a: UndoArgs| {
+            let is_redo = a.redo.unwrap_or(false);
+            let steps = a.steps.unwrap_or(1).clamp(1, engine::MAX_UNDO as u32);
+            let mut store = ctx.store.write().await;
+            let p = get_mut(&mut store, &a.name)?;
+            let mut labels = Vec::new();
+            for _ in 0..steps {
+                let r = if is_redo { engine::redo(p) } else { engine::undo(p) };
+                match r {
+                    Ok(label) => labels.push(label),
+                    Err(e) if labels.is_empty() => return Err(invalid(e)),
+                    Err(_) => break,
+                }
+            }
+            ok_json(json!({
+                "success": true,
+                "action": if is_redo { "redo" } else { "undo" },
+                "operations": labels,
+                "undo_depth": p.history.undo.len(),
+                "redo_depth": p.history.redo.len()
+            }))
         }
-
-        ToolResult::json(&json!({
-            "success": true,
-            "action": if is_redo { "redo" } else { "undo" },
-            "undo_depth": project.undo_stack.len(),
-            "redo_depth": project.redo_stack.len()
-        }))
     }
 }

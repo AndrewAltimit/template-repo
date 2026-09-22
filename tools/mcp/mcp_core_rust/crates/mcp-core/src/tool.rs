@@ -1,15 +1,18 @@
 //! Tool trait and related types for MCP servers.
 
 use async_trait::async_trait;
+use futures::FutureExt;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-use std::collections::HashMap;
+use std::collections::BTreeMap;
+use std::panic::AssertUnwindSafe;
 use std::sync::Arc;
+use tracing::error;
 
-use crate::error::Result;
+use crate::error::{MCPError, Result};
 
 /// Content types that can be returned from a tool
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "lowercase")]
 pub enum Content {
     /// Text content
@@ -25,7 +28,10 @@ pub enum Content {
         #[serde(rename = "mimeType")]
         mime_type: String,
     },
-    /// Resource reference
+    /// Reference to a resource the client can fetch.
+    ///
+    /// Sent to MCP clients as a `resource_link` content block whose `name` is
+    /// the last path segment of `uri`.
     Resource {
         /// URI of the resource
         uri: String,
@@ -45,6 +51,41 @@ impl Content {
     pub fn json<T: Serialize>(value: &T) -> Result<Self> {
         let text = serde_json::to_string_pretty(value)?;
         Ok(Self::text(text))
+    }
+
+    /// Create image content from already base64-encoded data.
+    pub fn image(base64_data: impl Into<String>, mime_type: impl Into<String>) -> Self {
+        Self::Image {
+            data: base64_data.into(),
+            mime_type: mime_type.into(),
+        }
+    }
+
+    /// Create image content from raw bytes (base64-encodes them).
+    ///
+    /// ```
+    /// use mcp_core::Content;
+    /// let c = Content::image_bytes(b"hi", "image/png");
+    /// assert_eq!(c, Content::image("aGk=", "image/png"));
+    /// ```
+    pub fn image_bytes(bytes: &[u8], mime_type: impl Into<String>) -> Self {
+        Self::image(base64_encode(bytes), mime_type)
+    }
+
+    /// Create a resource reference (sent as an MCP `resource_link`).
+    pub fn resource(uri: impl Into<String>, mime_type: impl Into<String>) -> Self {
+        Self::Resource {
+            uri: uri.into(),
+            mime_type: mime_type.into(),
+        }
+    }
+
+    /// The text of a [`Content::Text`] block, `None` for other kinds.
+    pub fn as_text(&self) -> Option<&str> {
+        match self {
+            Self::Text { text } => Some(text),
+            _ => None,
+        }
     }
 }
 
@@ -84,12 +125,32 @@ impl ToolResult {
         }
     }
 
+    /// Create an error result whose body is a JSON document (e.g. a structured
+    /// `{"status": "error", ...}` payload the model can inspect).
+    pub fn json_error<T: Serialize>(value: &T) -> Result<Self> {
+        Ok(Self {
+            content: vec![Content::json(value)?],
+            is_error: true,
+        })
+    }
+
     /// Create a result with multiple content items
     pub fn with_content(content: Vec<Content>) -> Self {
         Self {
             content,
             is_error: false,
         }
+    }
+
+    /// Text of the first [`Content::Text`] block, if any.
+    pub fn first_text(&self) -> Option<&str> {
+        self.content.iter().find_map(Content::as_text)
+    }
+
+    /// All text blocks concatenated (non-text blocks are skipped). Mostly
+    /// useful in tests.
+    pub fn text_content(&self) -> String {
+        self.content.iter().filter_map(Content::as_text).collect()
     }
 }
 
@@ -105,18 +166,74 @@ pub struct ToolSchema {
     pub input_schema: Value,
 }
 
+/// Optional behavioural hints about a tool (MCP `ToolAnnotations`).
+///
+/// All fields are hints for the client UI and the model; clients must not rely
+/// on them for security decisions.
+#[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ToolAnnotations {
+    /// Human-readable title
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub title: Option<String>,
+    /// The tool does not modify its environment
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub read_only_hint: Option<bool>,
+    /// The tool may perform destructive updates (meaningful when not read-only)
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub destructive_hint: Option<bool>,
+    /// Repeated calls with the same arguments have no additional effect
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub idempotent_hint: Option<bool>,
+    /// The tool interacts with an open world of external entities
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub open_world_hint: Option<bool>,
+}
+
+impl ToolAnnotations {
+    /// Annotations for a tool that only reads state.
+    pub fn read_only() -> Self {
+        Self {
+            read_only_hint: Some(true),
+            ..Self::default()
+        }
+    }
+
+    /// Annotations for a tool that may destroy or overwrite data.
+    pub fn destructive() -> Self {
+        Self {
+            read_only_hint: Some(false),
+            destructive_hint: Some(true),
+            ..Self::default()
+        }
+    }
+}
+
 /// A single MCP tool that can be executed.
+///
+/// # Errors
+///
+/// Returning `Err` from [`execute`](Tool::execute) is reported to the client as
+/// a tool execution error (`isError: true` with the error text), which lets the
+/// model read the message and retry. Use [`MCPError::InvalidParameters`] for bad
+/// arguments. [`crate::args`] has typed helpers that produce those errors.
 ///
 /// # Panic boundary and interior state
 ///
 /// `tools/call` runs [`Tool::execute`] inside a `catch_unwind` boundary
-/// (see `transport/handler.rs`), so a panic becomes an `isError` result rather
+/// (see [`ToolRegistry::call`]), so a panic becomes an `isError` result rather
 /// than crashing the server. One caveat: a panic that unwinds while a
 /// `std::sync::Mutex`/`RwLock` in the tool's state is locked **poisons** that
 /// lock, so every later `.lock()` returns `PoisonError` and the tool degrades
 /// to permanent failure. Prefer poison-free primitives for shared tool state:
 /// `tokio::sync::Mutex`/`RwLock` (used by the servers in this repo) or the
 /// `std::sync::atomic` types.
+///
+/// # Cancellation
+///
+/// Over STDIO, a client `notifications/cancelled` drops the `execute` future at
+/// its next `.await`. Tools that spawn detached work should not assume they run
+/// to completion.
 #[async_trait]
 pub trait Tool: Send + Sync {
     /// Get the tool's unique name
@@ -139,15 +256,36 @@ pub trait Tool: Send + Sync {
             input_schema: self.schema(),
         }
     }
+
+    /// Optional human-readable display name (MCP `title`). Defaults to none.
+    fn title(&self) -> Option<&str> {
+        None
+    }
+
+    /// Optional behavioural hints (MCP `annotations`). Defaults to none.
+    fn annotations(&self) -> Option<ToolAnnotations> {
+        None
+    }
 }
 
 /// Type alias for a boxed tool
 pub type BoxedTool = Arc<dyn Tool>;
 
-/// Registry for managing MCP tools
-#[derive(Default)]
+/// Registry for managing MCP tools.
+///
+/// Tools are kept sorted by name, so listings are deterministic across runs
+/// (which keeps `tools/list` output stable for client-side prompt caching).
+#[derive(Default, Clone)]
 pub struct ToolRegistry {
-    tools: HashMap<String, BoxedTool>,
+    tools: BTreeMap<String, BoxedTool>,
+}
+
+impl std::fmt::Debug for ToolRegistry {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ToolRegistry")
+            .field("tools", &self.names())
+            .finish()
+    }
 }
 
 impl ToolRegistry {
@@ -156,16 +294,23 @@ impl ToolRegistry {
         Self::default()
     }
 
-    /// Register a tool in the registry
+    /// Register a tool in the registry.
+    ///
+    /// A tool with the same name replaces the earlier registration (a warning
+    /// is logged, since this is almost always a copy-paste mistake).
     pub fn register<T: Tool + 'static>(&mut self, tool: T) {
-        let name = tool.name().to_string();
-        self.tools.insert(name, Arc::new(tool));
+        self.register_boxed(Arc::new(tool));
     }
 
     /// Register a boxed tool in the registry
     pub fn register_boxed(&mut self, tool: BoxedTool) {
         let name = tool.name().to_string();
-        self.tools.insert(name, tool);
+        if let Some(previous) = self.tools.insert(name, tool) {
+            tracing::warn!(
+                "Tool registered twice; the later registration wins: {}",
+                previous.name()
+            );
+        }
     }
 
     /// Get a tool by name
@@ -173,14 +318,19 @@ impl ToolRegistry {
         self.tools.get(name)
     }
 
-    /// List all registered tools
+    /// List all registered tools (sorted by name)
     pub fn list(&self) -> Vec<ToolSchema> {
         self.tools.values().map(|t| t.tool_schema()).collect()
     }
 
-    /// Get tool names
+    /// Get tool names (sorted)
     pub fn names(&self) -> Vec<&str> {
         self.tools.keys().map(String::as_str).collect()
+    }
+
+    /// Iterate over the registered tools in name order.
+    pub fn iter(&self) -> impl Iterator<Item = &BoxedTool> {
+        self.tools.values()
     }
 
     /// Check if a tool exists
@@ -197,6 +347,72 @@ impl ToolRegistry {
     pub fn is_empty(&self) -> bool {
         self.tools.is_empty()
     }
+
+    /// Execute a tool by name inside a panic boundary.
+    ///
+    /// - Unknown name: `Err(MCPError::ToolNotFound)`.
+    /// - The tool returns `Err`: that error is passed through unchanged.
+    /// - The tool panics: the panic is caught, logged, and turned into an
+    ///   `Ok` error result (`is_error: true`) so the caller keeps running.
+    ///
+    /// Every transport (JSON-RPC, simple HTTP API, REST) goes through this.
+    pub async fn call(&self, name: &str, args: Value) -> Result<ToolResult> {
+        let tool = self
+            .get(name)
+            .ok_or_else(|| MCPError::ToolNotFound(name.to_string()))?;
+        call_guarded(tool.as_ref(), args).await
+    }
+}
+
+/// Run `tool.execute(args)`, converting a panic into an error [`ToolResult`].
+pub(crate) async fn call_guarded(tool: &dyn Tool, args: Value) -> Result<ToolResult> {
+    // A buggy tool that panics on malformed/untrusted arguments must not take
+    // down the whole server (or the connection task). The panic is converted
+    // into an MCP tool error result (`isError: true`), which is the
+    // spec-recommended way to surface execution failures.
+    match AssertUnwindSafe(tool.execute(args)).catch_unwind().await {
+        Ok(result) => result,
+        Err(panic) => {
+            let msg = panic_message(panic.as_ref());
+            error!("Tool '{}' panicked during execution: {}", tool.name(), msg);
+            Ok(ToolResult::error(format!(
+                "Tool '{}' panicked during execution: {}",
+                tool.name(),
+                msg
+            )))
+        },
+    }
+}
+
+/// Extract a human-readable message from a caught panic payload.
+fn panic_message(payload: &(dyn std::any::Any + Send)) -> String {
+    if let Some(s) = payload.downcast_ref::<&str>() {
+        (*s).to_string()
+    } else if let Some(s) = payload.downcast_ref::<String>() {
+        s.clone()
+    } else {
+        "unknown panic".to_string()
+    }
+}
+
+/// Standard (RFC 4648, padded) base64 encoding.
+pub(crate) fn base64_encode(bytes: &[u8]) -> String {
+    const ALPHABET: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    let mut out = String::with_capacity(bytes.len().div_ceil(3) * 4);
+    for chunk in bytes.chunks(3) {
+        let b = [
+            chunk[0],
+            chunk.get(1).copied().unwrap_or(0),
+            chunk.get(2).copied().unwrap_or(0),
+        ];
+        let n = (u32::from(b[0]) << 16) | (u32::from(b[1]) << 8) | u32::from(b[2]);
+        let sextet = |shift: u32| char::from(ALPHABET[((n >> shift) & 0x3f) as usize]);
+        out.push(sextet(18));
+        out.push(sextet(12));
+        out.push(if chunk.len() > 1 { sextet(6) } else { '=' });
+        out.push(if chunk.len() > 2 { sextet(0) } else { '=' });
+    }
+    out
 }
 
 /// Builder for creating tools with closures (useful for simple tools)
@@ -297,6 +513,27 @@ mod tests {
         }
     }
 
+    struct Named(&'static str);
+
+    #[async_trait]
+    impl Tool for Named {
+        fn name(&self) -> &str {
+            self.0
+        }
+        fn description(&self) -> &str {
+            ""
+        }
+        fn schema(&self) -> Value {
+            json!({"type": "object"})
+        }
+        async fn execute(&self, _args: Value) -> Result<ToolResult> {
+            if self.0 == "panics" {
+                panic!("kaboom");
+            }
+            Err(MCPError::invalid_params("nope"))
+        }
+    }
+
     #[test]
     fn test_tool_registry() {
         let mut registry = ToolRegistry::new();
@@ -310,6 +547,26 @@ mod tests {
         assert_eq!(tools[0].name, "echo");
     }
 
+    #[test]
+    fn registry_listing_is_sorted() {
+        let mut registry = ToolRegistry::new();
+        for n in ["zeta", "alpha", "mid"] {
+            registry.register(Named(n));
+        }
+        assert_eq!(registry.names(), vec!["alpha", "mid", "zeta"]);
+        let listed: Vec<_> = registry.list().into_iter().map(|t| t.name).collect();
+        assert_eq!(listed, vec!["alpha", "mid", "zeta"]);
+        assert_eq!(registry.iter().count(), 3);
+    }
+
+    #[test]
+    fn duplicate_registration_replaces() {
+        let mut registry = ToolRegistry::new();
+        registry.register(Named("a"));
+        registry.register(Named("a"));
+        assert_eq!(registry.len(), 1);
+    }
+
     #[tokio::test]
     async fn test_tool_execution() {
         let tool = EchoTool;
@@ -317,11 +574,63 @@ mod tests {
 
         assert!(!result.is_error);
         assert_eq!(result.content.len(), 1);
+        assert_eq!(result.first_text(), Some("Echo: hello"));
+    }
 
-        if let Content::Text { text } = &result.content[0] {
-            assert_eq!(text, "Echo: hello");
-        } else {
-            panic!("Expected text content");
+    #[tokio::test]
+    async fn registry_call_handles_missing_error_and_panic() {
+        let mut registry = ToolRegistry::new();
+        registry.register(Named("errs"));
+        registry.register(Named("panics"));
+
+        let missing = registry.call("missing", json!({})).await.unwrap_err();
+        assert!(matches!(missing, MCPError::ToolNotFound(_)));
+
+        let err = registry.call("errs", json!({})).await.unwrap_err();
+        assert!(matches!(err, MCPError::InvalidParameters(_)));
+
+        let panicked = registry.call("panics", json!({})).await.unwrap();
+        assert!(panicked.is_error);
+        assert!(panicked.text_content().contains("kaboom"));
+    }
+
+    #[test]
+    fn base64_matches_rfc4648_vectors() {
+        let cases: [(&[u8], &str); 7] = [
+            (b"", ""),
+            (b"f", "Zg=="),
+            (b"fo", "Zm8="),
+            (b"foo", "Zm9v"),
+            (b"foob", "Zm9vYg=="),
+            (b"fooba", "Zm9vYmE="),
+            (b"foobar", "Zm9vYmFy"),
+        ];
+        for (input, expected) in cases {
+            assert_eq!(base64_encode(input), expected);
         }
+        assert_eq!(base64_encode(&[0xff, 0xfe, 0xfd]), "//79");
+    }
+
+    #[test]
+    fn content_helpers() {
+        assert_eq!(Content::text("a").as_text(), Some("a"));
+        assert_eq!(Content::image("x", "image/png").as_text(), None);
+        let r = ToolResult::with_content(vec![
+            Content::text("a"),
+            Content::resource("file:///x", "text/plain"),
+            Content::text("b"),
+        ]);
+        assert_eq!(r.first_text(), Some("a"));
+        assert_eq!(r.text_content(), "ab");
+        let e = ToolResult::json_error(&json!({"status": "error"})).unwrap();
+        assert!(e.is_error);
+    }
+
+    #[test]
+    fn annotations_serialize_camel_case_and_skip_none() {
+        let v = serde_json::to_value(ToolAnnotations::read_only()).unwrap();
+        assert_eq!(v, json!({"readOnlyHint": true}));
+        let v = serde_json::to_value(ToolAnnotations::destructive()).unwrap();
+        assert_eq!(v, json!({"readOnlyHint": false, "destructiveHint": true}));
     }
 }

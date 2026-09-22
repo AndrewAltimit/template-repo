@@ -1447,7 +1447,7 @@ dependencies = [
 
 [[package]]
 name = "mcp-bioforge"
-version = "0.1.0"
+version = "0.2.0"
 dependencies = [
  "anyhow",
  "async-trait",
@@ -1461,11 +1461,10 @@ dependencies = [
  "mcp-core",
  "serde",
  "serde_json",
- "thiserror 2.0.18",
+ "tempfile",
  "tokio",
  "toml",
  "tracing",
- "tracing-subscriber",
 ]
 
 [[package]]

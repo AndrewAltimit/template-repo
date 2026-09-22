@@ -1,100 +1,98 @@
 # MCP Servers Documentation
 
-This project uses a modular architecture with multiple Model Context Protocol (MCP) servers, each specialized for specific functionality.
+This project uses a modular architecture of Model Context Protocol (MCP) servers, each specialized for one area. Every server is a Rust binary built on the shared [`mcp-core`](../../tools/mcp/mcp_core_rust/README.md) library and lives in `tools/mcp/<crate>/`.
+
+**Each crate's `README.md` is the source of truth** for its tools, parameters, environment variables and limitations. This page is an index: how to start each server, which tools it exposes, and where to read more.
 
 ## Architecture Overview
 
-The MCP functionality is split across modular servers:
+| # | Server | Crate | Typical launch | HTTP port | Tools |
+|---|--------|-------|----------------|-----------|-------|
+| 1 | Code Quality | `mcp_code_quality` | STDIO via docker compose (`.mcp.json`) | 8010 | 10 |
+| 2 | Content Creation | `mcp_content_creation` | STDIO via docker compose (`.mcp.json`) | 8011 | 5 |
+| 3 | ~~Gemini~~ (disabled) | `mcp_gemini` | - | 8006 | 4 |
+| 4 | ~~Codex~~ (disabled) | `mcp_codex` | - | 8021 | 4 |
+| 5 | OpenCode | `mcp_opencode` | STDIO via docker compose (`.mcp.json`) | 8014 | 4 |
+| 6 | Crush | `mcp_crush` | STDIO via docker compose (`.mcp.json`) | 8015 | 4 |
+| 7 | Meme Generator | `mcp_meme_generator` | STDIO via docker compose (`.mcp.json.full`) | 8016 | 6 |
+| 8 | ElevenLabs Speech | `mcp_elevenlabs_speech` | STDIO via docker compose (`.mcp.json.full`) | 8018 | 7 |
+| 9 | Video Editor | `mcp_video_editor` | STDIO via docker compose (not in `.mcp.json`) | 8019 | 9 |
+| 10 | Blender | `mcp_blender` | STDIO via docker compose (`.mcp.json`) | 8017 | 42 |
+| 11 | Virtual Character | `mcp_virtual_character` | HTTP on the VRChat host (`.mcp.json.full`) | 8025 | 18 |
+| 12 | Desktop Control | `mcp_desktop_control` | Native binary, STDIO or HTTP (not in `.mcp.json`) | 8026 | 23 |
+| 13 | GitHub Board | `mcp_github_board` | STDIO via docker compose (`.mcp.json`) | 8022 | 17 |
+| 14 | AgentCore Memory | `mcp_agentcore_memory` | STDIO via docker compose (`.mcp.json`) | 8023 | 9 |
+| 15 | Reaction Search | `mcp_reaction_search` | STDIO via docker compose (`.mcp.json`) | 8024 | 6 |
+| 16 | Sprite Sheet | `mcp_sprite_sheet` | STDIO via docker compose (`.mcp.json`) | 8027 | 38 |
+| 17 | Memory Explorer | `mcp_memory_explorer` | Native binary, STDIO (`.mcp.json.full`) | 8028 | 15 |
+| 18 | Gaea2 | `mcp_gaea2` | HTTP, `192.168.0.152:8007` (`.mcp.json.full`) | 8007 | 15 |
+| 19 | AI Toolkit | `mcp_ai_toolkit` | HTTP, `192.168.0.222:8020` (`.mcp.json.full`) | 8020 | 22 |
+| 20 | ComfyUI | `mcp_comfyui` | HTTP, `192.168.0.222:8013` (`.mcp.json.full`) | 8013 | 15 |
+| 21 | BioForge (simulated hardware) | `mcp_bioforge` | Native binary, STDIO (not configured) | 8030 (convention) | 16 |
 
-**STDIO Mode (Default - local execution):**
-1. **Code Quality MCP Server** - Containerized code formatting and linting tools
-2. **Content Creation MCP Server** - Containerized Manim animations and LaTeX compilation
-3. **Gemini MCP Server** - Host-only AI integration (requires Docker access)
-4. ~~**Codex MCP Server**~~ - ~~Containerized AI-powered code generation and completion~~ **DISABLED** (OpenAI -- mass surveillance/autonomous weapons security risk)
-5. **OpenCode MCP Server** - Containerized AI-powered code generation
-6. **Crush MCP Server** - Containerized code generation
-7. **Meme Generator MCP Server** - Containerized meme creation with visual feedback
-8. **ElevenLabs Speech MCP Server** - Containerized text-to-speech synthesis
-9. **Video Editor MCP Server** - Containerized AI-powered video editing
-10. **Blender MCP Server** - Containerized 3D content creation and rendering
-11. **Virtual Character MCP Server** - Containerized AI agent embodiment middleware
-12. **Desktop Control MCP Server** - Cross-platform desktop automation (Linux/Windows)
-13. **GitHub Board MCP Server** - GitHub Projects v2 board management and agent coordination
-14. **AgentCore Memory MCP Server** - Multi-provider AI memory (AWS AgentCore or ChromaDB)
-15. **Reaction Search MCP Server** - Semantic search for anime reaction images
-16. **Sprite Sheet MCP Server** - Programmatic pixel art and sprite sheet creation
-17. **Memory Explorer MCP Server** - Process memory exploration for agent integration with legacy software (native binary)
+HTTP ports are what docker compose (or the crate's documented convention) passes with `--port`; the shared `mcp-core` default is 8000, so always pass `--port` when running a binary by hand.
 
-**HTTP Mode (Remote servers):**
-18. **Gaea2 MCP Server** (Port 8007) - Remote terrain generation interface
-19. **AI Toolkit MCP Server** (Port 8020) - Remote AI Toolkit for LoRA training
-20. **ComfyUI MCP Server** (Port 8013) - Remote ComfyUI for image generation
+### Common CLI and endpoints
 
-This modular architecture ensures better separation of concerns, easier maintenance, and the ability to scale individual services independently.
+All servers share the `mcp-core` flags: `--mode stdio|standalone|server|client`, `--port`, `--log-level` (logs go to stderr), `--backend-url` (client mode). In `standalone` mode every server exposes:
+
+| Endpoint | Purpose |
+|----------|---------|
+| `POST /messages` (also `/mcp`, `/mcp/rpc`) | MCP JSON-RPC (Streamable HTTP, JSON responses) |
+| `GET /health` | Health check |
+| `GET /mcp/tools` | List tools (simple REST API) |
+| `POST /mcp/execute` | Run a tool: `{"tool": "...", "arguments": {...}}` |
+| `GET /.well-known/mcp` | Discovery |
+
+Invalid arguments are rejected with a JSON-RPC `Invalid params` error; runtime failures come back as tool results with `isError: true`. See [mcp_core_rust](../../tools/mcp/mcp_core_rust/README.md) for protocol details.
 
 ## Code Quality MCP Server
 
-The code quality server provides formatting and linting tools for multiple programming languages.
-
-### Starting the Server
+Runs formatters, linters, tests and security scanners as bounded subprocesses on paths inside an allowlist (no shell, hard timeouts, capped output, rate limits, audit log).
 
 ```bash
-# Start via Docker Compose (recommended for container-first approach)
-docker compose up -d mcp-code-quality
-
-# Or run locally for development
-python -m tools.mcp.code_quality.server
-
-# View logs
-docker compose logs -f mcp-code-quality
-
-# Test health
+docker compose --profile services run --rm -T mcp-code-quality mcp-code-quality --mode stdio   # as .mcp.json
+docker compose --profile services up -d mcp-code-quality                                       # HTTP on 8010
 curl http://localhost:8010/health
 ```
 
-### Available Tools
+| Tool | Description |
+|------|-------------|
+| `format_check` | Check formatting (Python defaults to `ruff format`; `formatter: "black"` available; prettier, gofmt, cargo fmt/rustfmt) |
+| `autoformat` | Format files in place (fails on the read-only `/app` mount) |
+| `lint` | ruff, flake8, eslint, golint or clippy |
+| `type_check` | `ty check` |
+| `run_tests` | pytest with pattern/markers/coverage options |
+| `security_scan` | bandit |
+| `audit_dependencies` | pip-audit on a requirements file |
+| `check_markdown_links` | Repository `md-link-checker` |
+| `get_status` | Configuration, allowlist, and which external tools are available |
+| `get_audit_log` | Recent audit log entries |
 
-- **format_check** - Check code formatting for Python, JavaScript, TypeScript, Go, and Rust
-- **lint** - Run static code analysis with configurable linting rules
-- **autoformat** - Automatically format code files
-
-### Configuration
-
-See `tools/mcp/mcp_code_quality/docs/README.md` for detailed configuration options.
+The container image has no Go or Rust toolchain, so gofmt/golint/cargo tools report `tool_not_found` there. Details: [`tools/mcp/mcp_code_quality/README.md`](../../tools/mcp/mcp_code_quality/README.md).
 
 ## Content Creation MCP Server
 
-The content creation server provides tools for creating animations and compiling documents.
-
-### Starting the Server
+Sandboxed LaTeX compilation, TikZ rendering, PDF previews and Manim animations.
 
 ```bash
-# Start via Docker Compose (recommended for container-first approach)
-docker compose up -d mcp-content-creation
-
-# Or run locally for development
-python -m tools.mcp.content_creation.server
-
-# View logs
-docker compose logs -f mcp-content-creation
-
-# Test health
-curl http://localhost:8011/health
+docker compose --profile services run --rm -T mcp-content-creation mcp-content-creation --mode stdio   # as .mcp.json
+docker compose --profile services up -d mcp-content-creation                                           # HTTP on 8011
 ```
 
-### Available Tools
+| Tool | Description |
+|------|-------------|
+| `compile_latex` | Compile inline `content` or a project `input_path` to PDF/DVI/PS (`output_format`, alias `format`), with re-runs, BibTeX and optional page previews |
+| `render_tikz` | Render TikZ to PDF/PNG/SVG; `tikz_libraries`, `packages`, `dpi` |
+| `preview_pdf` | Render selected pages of an existing PDF to PNG |
+| `create_manim_animation` | Render a Manim scene to MP4/GIF/WebM/PNG; `quality` is `low`/`medium`/`high`/`production`/`fourk`; `preview` renders only the last frame as PNG |
+| `content_creation_status` | Configuration and installed external tools |
 
-- **create_manim_animation** - Create mathematical and technical animations using Manim
-- **compile_latex** - Compile LaTeX documents to PDF, DVI, or PostScript formats
-- **render_tikz** - Render TikZ diagrams as standalone images
+Output goes to `/output` in the container, bind-mounted to `outputs/mcp-content` on the host (`--output-dir` / `MCP_OUTPUT_DIR`). Details: [`tools/mcp/mcp_content_creation/README.md`](../../tools/mcp/mcp_content_creation/README.md).
 
-### Configuration
+## ~~Gemini MCP Server (Rust)~~ -- DISABLED
 
-Output directory is configured via the `MCP_OUTPUT_DIR` environment variable (defaults to `/tmp/mcp-content-output` in container).
-
-See `tools/mcp/mcp_content_creation/docs/README.md` for detailed documentation.
-
-## Gemini MCP Server (Rust)
+> **DISABLED**: Google updated its AI principles (Feb 2026) to allow mass surveillance and autonomous weapons use cases. All Gemini integrations are disabled. Use Anthropic models (Claude) instead.
 
 The Gemini server provides AI assistance through the Gemini CLI. This server has been migrated to Rust for improved performance and lower resource usage.
 
@@ -140,285 +138,6 @@ Environment variables:
 - `GEMINI_YOLO_MODE` - Enable auto-approval mode (default: false)
 
 See `tools/mcp/mcp_gemini/README.md` for detailed documentation.
-
-## Blender MCP Server
-
-The Blender server provides comprehensive 3D content creation and rendering capabilities.
-
-### Starting the Server
-
-```bash
-# Start via Docker Compose (recommended for container-first approach)
-docker compose up -d mcp-blender
-
-# Or run locally for development
-python -m tools.mcp.blender.server
-
-# View logs
-docker compose logs -f mcp-blender
-
-# Test health
-curl http://localhost:8016/health
-```
-
-### Available Tools
-
-- **create_blender_project** - Create new Blender projects from templates
-- **add_primitive_objects** - Add basic 3D shapes to scenes
-- **setup_lighting** - Configure scene lighting (three-point, HDRI, etc.)
-- **apply_material** - Apply materials to objects
-- **render_image** - Render single frames
-- **render_animation** - Render animation sequences
-- **setup_physics** - Add physics simulations (rigid body, cloth, fluid)
-- **create_animation** - Create keyframe animations
-- **setup_camera** - Configure camera settings
-- **add_modifier** - Add modifiers to objects
-- **setup_compositor** - Configure post-processing
-
-See `tools/mcp/mcp_blender/docs/README.md` for detailed documentation.
-
-## Virtual Character MCP Server (Rust)
-
-The Virtual Character server provides AI agent embodiment in virtual worlds through a backend adapter architecture. This server has been migrated to Rust for improved performance and lower resource usage.
-
-### Starting the Server
-
-```bash
-# Run in STDIO mode (for local Claude Desktop) - Recommended
-mcp-virtual-character --mode stdio
-
-# Or standalone HTTP mode for remote access
-mcp-virtual-character --mode standalone --port 8025
-
-# Or use Docker container
-docker compose run --rm mcp-virtual-character mcp-virtual-character --mode stdio
-
-# Test health (HTTP mode)
-curl http://localhost:8025/health
-```
-
-### Building from Source
-
-```bash
-cd tools/mcp/mcp_virtual_character
-cargo build --release
-# Binary at target/release/mcp-virtual-character
-```
-
-### Available Tools
-
-- **set_backend** - Connect to a backend (mock, vrchat_remote)
-- **send_animation** - Send animation data (emotion, gesture, blendshapes)
-- **send_vrcemote** - Send VRCEmote value (0-8) for gesture wheel positions
-- **execute_behavior** - Execute platform-specific behaviors
-- **reset** - Reset to neutral state
-- **get_backend_status** - Get current backend status and statistics
-- **list_backends** - List available backend adapters
-- **play_audio** - Play audio with ElevenLabs expression detection
-- **create_sequence** - Create event sequences for choreography
-- **add_sequence_event** - Add events to sequences
-- **play_sequence** / **pause_sequence** / **resume_sequence** / **stop_sequence** - Sequence control
-- **get_sequence_status** - Get sequence playback status
-- **panic_reset** - Emergency reset all states
-
-### Architecture
-
-The server uses a backend adapter pattern for cross-platform compatibility:
-- **VRChat Remote Backend** - OSC protocol communication with VRCEmote system
-- **Mock Backend** - Testing and development without VRChat
-- **PAD Emotion Model** - Smooth emotion interpolation (Pleasure/Arousal/Dominance)
-- **Toggle Behavior** - Automatic handling of VRCEmote toggle states
-
-### Configuration
-
-Environment variables:
-- `VIRTUAL_CHARACTER_HOST` - VRChat host (default: 127.0.0.1)
-- `VIRTUAL_CHARACTER_OSC_IN` - OSC receive port (default: 9000)
-- `VIRTUAL_CHARACTER_OSC_OUT` - OSC send port (default: 9001)
-- `VIRTUAL_CHARACTER_EMOTE_TIMEOUT` - Emote timeout in seconds (default: 3)
-
-See `tools/mcp/mcp_virtual_character/README.md` for detailed documentation.
-
-## Desktop Control MCP Server
-
-The Desktop Control server provides cross-platform desktop automation for Linux and Windows, including window management, screenshots, mouse control, and keyboard automation.
-
-### Starting the Server
-
-```bash
-# Start via Docker Compose (recommended - requires X11 access)
-docker compose up -d mcp-desktop-control
-
-# Or run locally for development
-python -m mcp_desktop_control.server --mode http
-
-# View logs
-docker compose logs -f mcp-desktop-control
-
-# Test health
-curl http://localhost:8025/health
-```
-
-### Available Tools
-
-**Window Management:**
-- **list_windows** - List all windows with optional title filter
-- **get_active_window** - Get the currently focused window
-- **focus_window** - Bring a window to the foreground
-- **move_window** - Move a window to specific position
-- **resize_window** - Resize a window
-- **minimize_window** - Minimize a window
-- **maximize_window** - Maximize a window
-- **restore_window** - Restore a minimized/maximized window
-- **close_window** - Close a window
-
-**Screenshots:**
-- **screenshot_screen** - Capture entire screen (saves to `outputs/desktop-control/`)
-- **screenshot_window** - Capture a specific window
-- **screenshot_region** - Capture a screen region
-
-**Mouse Control:**
-- **get_mouse_position** - Get current cursor position
-- **move_mouse** - Move cursor to position (absolute or relative)
-- **click_mouse** - Click at position (left/right/middle, single/double)
-- **drag_mouse** - Drag from start to end position
-- **scroll_mouse** - Scroll wheel (vertical or horizontal)
-
-**Keyboard Control:**
-- **type_text** - Type text string with optional interval
-- **send_key** - Send single key with optional modifiers
-- **send_hotkey** - Send key combination (e.g., Ctrl+C)
-
-### Platform Support
-
-| Platform | Backend | Tools |
-|----------|---------|-------|
-| Linux | X11 | xdotool, wmctrl, scrot, mss, pyautogui |
-| Windows | Win32 | pywinauto, pywin32, mss, pyautogui |
-
-### Configuration
-
-- **Port**: 8025 (HTTP mode)
-- **Output Directory**: `outputs/desktop-control/` (configurable via `DESKTOP_CONTROL_OUTPUT_DIR`)
-- **Docker**: Requires X11 socket access and `network_mode: host`
-
-See `tools/mcp/mcp_desktop_control/docs/README.md` for detailed documentation.
-
-## Gaea2 MCP Server (Port 8007)
-
-The Gaea2 server provides comprehensive terrain generation capabilities.
-
-### Starting the Server
-
-```bash
-# Start via Docker Compose (recommended for container-first approach)
-docker compose up -d mcp-gaea2
-
-# Or run locally for development
-python -m tools.mcp.gaea2.server
-
-# For remote server deployment (e.g., on Windows with Gaea2 installed)
-# Set GAEA2_REMOTE_URL environment variable to point to the remote server
-export GAEA2_REMOTE_URL=http://remote-server:8007
-
-# View logs
-docker compose logs -f mcp-gaea2
-
-# Test health
-curl http://localhost:8007/health
-```
-
-### Available Tools
-
-#### Terrain Generation Tools
-- **create_gaea2_project** - Create custom terrain projects with automatic validation
-- **create_gaea2_from_template** - Use professional workflow templates
-- **validate_and_fix_workflow** - Comprehensive validation and automatic repair
-- **analyze_workflow_patterns** - Pattern-based analysis using real project knowledge
-- **optimize_gaea2_properties** - Optimize for performance or quality
-- **suggest_gaea2_nodes** - Get intelligent node suggestions
-- **repair_gaea2_project** - Repair damaged project files
-
-#### CLI Automation (when running on Windows with Gaea2)
-- **run_gaea2_project** - Execute terrain generation via CLI
-- **analyze_execution_history** - Learn from previous runs
-
-### Configuration
-
-- For containerized deployment: Works out of the box
-- For Windows deployment with CLI features: Set `GAEA2_PATH` environment variable
-- See `tools/mcp/mcp_gaea2/docs/README.md` for complete documentation
-
-## AI Toolkit MCP Server (Port 8020)
-
-The AI Toolkit server provides an interface to remote AI Toolkit for LoRA training operations.
-
-### Starting the Server
-
-```bash
-# Start via Docker Compose (if configured)
-docker compose up -d mcp-ai-toolkit
-
-# Or run locally as proxy
-python -m tools.mcp.ai_toolkit.server
-
-# Test health
-curl http://localhost:8020/health
-```
-
-### Available Tools
-
-- **create_training_config** - Create new training configurations
-- **upload_dataset** - Upload images for dataset creation (supports chunked upload for large files)
-- **start_training** - Start LoRA training jobs
-- **get_training_status** - Monitor training progress
-- **export_model** - Export trained models
-- **download_model** - Download trained models
-- **list_configs**, **list_datasets**, **list_training_jobs**, **list_exported_models** - List resources
-- **get_system_stats** - Get system statistics
-- **get_training_logs** - Get training logs
-
-### Configuration
-
-- **Remote Connection**: Connects to AI Toolkit at `192.168.0.222:8020`
-- **Dataset Paths**: Use absolute paths starting with `/ai-toolkit/datasets/`
-- **Chunked Upload**: Automatically used for files >100MB
-
-See `tools/mcp/mcp_ai_toolkit/docs/README.md` and `docs/AI_TOOLKIT_COMFYUI_INTEGRATION_GUIDE.md` for detailed documentation.
-
-## ComfyUI MCP Server (Port 8013)
-
-The ComfyUI server provides an interface to remote ComfyUI for AI image generation.
-
-### Starting the Server
-
-```bash
-# Start via Docker Compose (if configured)
-docker compose up -d mcp-comfyui
-
-# Or run locally as proxy
-python -m tools.mcp.comfyui.server
-
-# Test health
-curl http://localhost:8013/health
-```
-
-### Available Tools
-
-- **generate_image** - Generate images using ComfyUI workflows
-- **list_workflows** - List available workflows
-- **get_workflow** - Get specific workflow details
-- **list_models** - List available models (checkpoints, LoRAs, etc.)
-- **execute_workflow** - Execute custom workflows
-- **transfer_lora** - Transfer LoRA models from AI Toolkit
-
-### Configuration
-
-- **Remote Connection**: Connects to ComfyUI at `192.168.0.222:8013`
-- **FLUX Support**: Different workflows for FLUX models (cfg=1.0, special nodes)
-- **LoRA Transfer**: Automatic transfer from AI Toolkit to ComfyUI
-
-See `tools/mcp/mcp_comfyui/docs/README.md` and `docs/integrations/creative-tools/lora-transfer.md` for detailed documentation.
 
 ## ~~Codex MCP Server (Rust)~~ -- DISABLED
 
@@ -475,727 +194,467 @@ Environment variables:
 
 **Authentication**: Requires running `codex auth` first (creates `~/.codex/auth.json`)
 
-## OpenCode MCP Server (Rust)
+## OpenCode MCP Server
 
-The OpenCode server provides AI-powered code assistance using OpenRouter API. This server has been migrated to Rust for improved performance and lower resource usage.
-
-### Starting the Server
+Consults an OpenRouter-hosted model (one chat-completion request per call; it does not run the `opencode` CLI).
 
 ```bash
-# Run in STDIO mode (for local Claude Desktop) - Recommended
-mcp-opencode --mode stdio
-
-# Or standalone HTTP mode for remote access
+docker compose --profile services run --rm -T mcp-opencode mcp-opencode --mode stdio   # as .mcp.json
 mcp-opencode --mode standalone --port 8014
-
-# Or use Docker container
-docker compose run --rm mcp-opencode mcp-opencode --mode stdio
-
-# Test health (HTTP mode)
-curl http://localhost:8014/health
 ```
 
-### Building from Source
+| Tool | Description |
+|------|-------------|
+| `consult_opencode` | Ask the model: `query`, `context`, `mode` (`quick`, `generate`, `refactor`, `review`, `explain`), per-call `model`, `temperature`, `max_tokens`, `force`. `comparison_mode` is accepted but has no effect |
+| `opencode_status` | Status, statistics and effective configuration |
+| `clear_opencode_history` | Clear conversation history |
+| `toggle_opencode_auto_consult` | Set or flip the advisory auto-consult flag |
+
+Key environment: `OPENROUTER_API_KEY` (required), `OPENCODE_MODEL` (default `qwen/qwen3.7-max`), `OPENCODE_TIMEOUT` (300), `OPENCODE_MAX_PROMPT` (32000), `OPENCODE_MAX_TOKENS` (4096). Details: [`tools/mcp/mcp_opencode/README.md`](../../tools/mcp/mcp_opencode/README.md) and `docs/integrations/ai-services/ai-code-agents.md`.
+
+## Crush MCP Server
+
+Runs the Crush CLI (`crush run`) through OpenRouter, with the prompt on stdin, a scratch working directory and a hard timeout.
 
 ```bash
-cd tools/mcp/mcp_opencode
-cargo build --release
-# Binary at target/release/mcp-opencode
-```
-
-### Available Tools
-
-- **consult_opencode** - Generate, refactor, review, or explain code
-  - Modes: `generate`, `refactor`, `review`, `explain`, `quick`
-  - Supports comparison with previous Claude responses
-- **clear_opencode_history** - Clear conversation history
-- **opencode_status** - Get integration status and statistics
-- **toggle_opencode_auto_consult** - Control auto-consultation on uncertainty
-
-### Configuration
-
-Environment variables:
-- `OPENCODE_ENABLED` - Enable/disable integration (default: true)
-- `OPENCODE_AUTO_CONSULT` - Enable auto-consultation (default: true)
-- `OPENROUTER_API_KEY` - OpenRouter API key (required)
-- `OPENCODE_MODEL` - Model to use (default: qwen/qwen-2.5-coder-32b-instruct)
-- `OPENCODE_TIMEOUT` - Timeout in seconds (default: 300)
-- `OPENCODE_MAX_PROMPT` - Maximum prompt length (default: 8000)
-
-See `tools/mcp/mcp_opencode/README.md` and `docs/integrations/ai-services/ai-code-agents.md` for detailed documentation.
-
-## Crush MCP Server (Rust)
-
-The Crush server provides code generation using the Crush CLI via OpenRouter API. This server has been migrated to Rust for improved performance and lower resource usage.
-
-### Starting the Server
-
-```bash
-# Run in STDIO mode (for local Claude Desktop) - Recommended
-mcp-crush --mode stdio
-
-# Or standalone HTTP mode for remote access
+docker compose --profile services run --rm -T mcp-crush mcp-crush --mode stdio   # as .mcp.json
 mcp-crush --mode standalone --port 8015
-
-# Or use Docker container
-docker compose run --rm mcp-crush mcp-crush --mode stdio
-
-# Test health (HTTP mode)
-curl http://localhost:8015/health
 ```
 
-### Building from Source
+| Tool | Description |
+|------|-------------|
+| `consult_crush` | Ask crush: `query`, `context`, `mode` (`quick`, `generate`, `explain`, `convert` - `convert` requires the target language in `context`), per-call `model`, `force`. `comparison_mode` is accepted but has no effect |
+| `crush_status` | Status, statistics and effective configuration, including the resolved execution mode |
+| `clear_crush_history` | Clear conversation history |
+| `toggle_crush_auto_consult` | Set or flip the advisory auto-consult flag |
 
-```bash
-cd tools/mcp/mcp_crush
-cargo build --release
-# Binary at target/release/mcp-crush
-```
-
-### Available Tools
-
-- **consult_crush** - Code generation, explanation, and conversion
-  - Modes: `generate`, `explain`, `convert`, `quick`
-- **clear_crush_history** - Clear conversation history
-- **crush_status** - Get integration status and statistics
-- **toggle_crush_auto_consult** - Control auto-consultation
-
-### Configuration
-
-Environment variables:
-- `CRUSH_ENABLED` - Enable/disable integration (default: true)
-- `CRUSH_AUTO_CONSULT` - Enable auto-consultation (default: true)
-- `OPENROUTER_API_KEY` - OpenRouter API key (required)
-- `CRUSH_TIMEOUT` - Timeout in seconds (default: 300)
-- `CRUSH_MAX_PROMPT` - Maximum prompt length (default: 4000)
-- `CRUSH_DOCKER_SERVICE` - Docker service name (default: openrouter-agents)
-
-See `tools/mcp/mcp_crush/README.md` and `docs/integrations/ai-services/ai-code-agents.md` for detailed documentation.
+Key environment: `OPENROUTER_API_KEY` (required), `CRUSH_MODEL` (default `qwen/qwen3.7-max`), `CRUSH_EXECUTION` (`auto` / `local` / `docker`; the image uses `local`), `CRUSH_DOCKER_SERVICE` (default `mcp-crush`), `CRUSH_TIMEOUT` (300), `CRUSH_MAX_PROMPT` (32000). Details: [`tools/mcp/mcp_crush/README.md`](../../tools/mcp/mcp_crush/README.md).
 
 ## Meme Generator MCP Server
 
-The Meme Generator server creates memes from templates with customizable text overlays and visual feedback. It runs in STDIO mode through Docker Compose for local use.
-
-### Starting the Server
+Draws auto-fitted captions onto templates, returns an inline preview image, and optionally uploads the result (0x0.st, tmpfiles.org or file.io).
 
 ```bash
-# The server is configured in .mcp.json and runs automatically through Claude Desktop
-# It uses docker compose in STDIO mode
-
-# For manual testing or development:
-docker compose run --rm -T mcp-meme-generator python -m tools.mcp.meme_generator.server --mode stdio
-
-# View container logs
-docker compose logs -f mcp-meme-generator
+docker compose --profile services run --rm -T mcp-meme-generator mcp-meme-generator --mode stdio   # as .mcp.json.full
+docker compose --profile services up -d mcp-meme-generator                                         # HTTP on 8016
 ```
 
-### Available Tools
+| Tool | Description |
+|------|-------------|
+| `generate_meme` | Render captions on a template, save, preview, optionally upload |
+| `list_meme_templates` | List templates with their text area ids |
+| `get_meme_template_info` | Full template config, usage rules and an example call |
+| `meme_generator_status` | Version, template load errors/warnings, font, directories, upload settings |
+| `upload_meme` | Upload an already generated meme from the output directory |
+| `reload_meme_templates` | Re-read templates and font from disk |
 
-- **generate_meme** - Generate memes from templates with text overlays
-  - Auto-resize text to fit areas
-  - Visual feedback for AI verification
-  - Automatic upload to 0x0.st for sharing
-- **list_meme_templates** - List all available templates
-- **get_meme_template_info** - Get detailed template information
-- **test_minimal** - Minimal test tool
-- **test_fake_meme** - Test without creating images
-
-### Features
-
-- **7+ Built-in Templates**: Including "Ol' Reliable", Drake, Distracted Boyfriend, etc.
-- **Cultural Documentation**: Each template includes usage rules and context
-- **Visual Feedback**: Base64-encoded preview for AI agents
-- **Auto Upload**: Generates shareable URLs via 0x0.st
-- **Text Auto-Resize**: Automatically adjusts font size to fit
-
-See `tools/mcp/meme_generator/docs/README.md` and `tools/mcp/meme_generator/docs/MEME_USAGE_GUIDE.md` for detailed documentation.
+Templates (8): `afraid_to_ask_andy`, `community_fire`, `handshake_office`, `millionaire`, `npc_wojak`, `ol_reliable`, `one_does_not_simply`, `sweating_jordan_peele`. Output goes to `outputs/mcp-memes`. Details: [`tools/mcp/mcp_meme_generator/README.md`](../../tools/mcp/mcp_meme_generator/README.md).
 
 ## ElevenLabs Speech MCP Server
 
-The ElevenLabs Speech server provides advanced text-to-speech synthesis with emotional control, audio tags, and sound effects.
-
-### Starting the Server
+Text-to-speech and sound effects through the ElevenLabs API; audio is saved locally and the tools return the file path.
 
 ```bash
-# The server is configured in .mcp.json and runs automatically through Claude Desktop
-# It uses STDIO mode for seamless integration
-
-# For HTTP mode (testing/development):
-docker compose up -d mcp-elevenlabs-speech
-
-# Or run locally
-python -m tools.mcp.elevenlabs_speech.server --mode http
-
-# View logs
-docker compose logs -f mcp-elevenlabs-speech
-
-# Test health
-curl http://localhost:8018/health
+docker compose --profile services run --rm -T mcp-elevenlabs-speech mcp-elevenlabs-speech --mode stdio   # as .mcp.json.full
+docker compose --profile services up -d mcp-elevenlabs-speech                                            # HTTP on 8018
 ```
 
-### Available Tools
+| Tool | Description |
+|------|-------------|
+| `synthesize_speech` | TTS with any current model (`eleven_v3` supports inline audio tags such as `[laughs]`), voice names or IDs, presets and voice settings |
+| `generate_sound_effect` | Sound effect from a prompt (0.5-30 s, optional loop) |
+| `list_voices` | Voices on your account, with search/category filters |
+| `get_user_subscription` | Tier and character usage |
+| `get_models` | Available models and their limits |
+| `list_presets` | The 10 voice-settings presets (no API key needed) |
+| `clear_cache` | Delete audio files this server generated (no API key needed) |
 
-- **synthesize_speech_v3** - Main synthesis with audio tag support
-  - Supports emotions, pauses, sounds, effects
-  - Model-aware processing (v2 vs v3)
-  - Automatic upload to 0x0.st
-- **synthesize_emotional** - Add emotional context with intensity control
-- **synthesize_dialogue** - Multi-character dialogue generation
-- **generate_sound_effect** - Create sound effects (up to 22 seconds)
-- **synthesize_natural_speech** - Natural speech with hesitations and breathing
-- **synthesize_emotional_progression** - Emotional transitions in narratives
-- **optimize_text_for_synthesis** - Improve text quality for synthesis
-- **list_available_voices** - List all available voices
-- **parse_audio_tags** - Parse and validate audio tags
-- **suggest_audio_tags** - Get tag suggestions for text
-
-### Features
-
-- **14+ Synthesis Tools**: Comprehensive speech generation capabilities
-- **Multi-Model Support**: v2 (Pro plan) and v3 (future compatibility)
-- **Audio Tag System**: Emotions, pauses, sounds, effects
-- **Voice Library**: 10+ pre-configured voices
-- **Local Caching**: Organized output structure
-- **Auto Upload**: Shareable URLs via 0x0.st
-- **Metadata Tracking**: Complete synthesis information in JSON
-
-### Configuration
-
-Add to `.env`:
 ```bash
+# .env
 ELEVENLABS_API_KEY=your_api_key_here
-ELEVENLABS_DEFAULT_MODEL=eleven_multilingual_v2
-ELEVENLABS_DEFAULT_VOICE=Rachel
+ELEVENLABS_DEFAULT_MODEL=eleven_v3        # crate default; compose defaults to eleven_multilingual_v2
+ELEVENLABS_DEFAULT_VOICE=george           # ElevenLabs is retiring premade voices; prefer a voice you own
 ```
 
-See `tools/mcp/elevenlabs_speech/docs/README.md` for detailed documentation.
+Audio is written to `outputs/elevenlabs_speech` (container `/output`). There is no automatic upload. Details: [`tools/mcp/mcp_elevenlabs_speech/README.md`](../../tools/mcp/mcp_elevenlabs_speech/README.md).
 
 ## Video Editor MCP Server
 
-The Video Editor server provides AI-powered video editing capabilities with automatic transcription, speaker diarization, and intelligent scene detection.
-
-### Starting the Server
+Automated editing with ffmpeg: probing, loudness/silence analysis, Whisper transcription (when the CLI is installed), scene detection, energy-based multi-camera speaker switching, EDLs, rendering with transitions/zoom/PiP, clips and captions.
 
 ```bash
-# The server is configured in .mcp.json and runs automatically through Claude Desktop
-# It uses STDIO mode for seamless integration
-
-# For HTTP mode (testing/development):
-docker compose up -d mcp-video-editor
-
-# Or run locally
-python -m tools.mcp.video_editor.server --mode http
-
-# View logs
-docker compose logs -f mcp-video-editor
-
-# Test health
-curl http://localhost:8019/health
+docker compose --profile services run --rm -T mcp-video-editor mcp-video-editor --mode stdio
+docker compose --profile services up -d mcp-video-editor                        # HTTP on 8019
+VIDEO_EDITOR_WHISPER=true docker compose build mcp-video-editor                 # bake in the Whisper CLI
 ```
-
-### Available Tools
-
-- **process_video** - Main processing endpoint with multiple operations
-  - Transcription with Whisper
-  - Speaker diarization with pyannote
-  - Scene detection and analysis
-  - Caption generation (SRT/VTT/TXT)
-- **compose_videos** - Combine multiple videos with transitions
-- **extract_clips** - Extract clips based on keywords or speakers
-- **generate_captions** - Create multi-language captions
-- **analyze_audio** - Audio analysis and processing
-- **apply_video_filter** - Apply visual filters and effects
-- **create_montage** - Create montages from multiple clips
-- **generate_highlights** - Auto-generate highlight reels
-- **job_status** - Check async job status
-- **get_job_result** - Retrieve completed job results
-
-### Features
-
-- **AI-Powered Processing**: Automatic transcription and speaker identification
-- **Scene Detection**: Intelligent scene boundary detection
-- **Multi-Language Support**: Caption generation in multiple languages
-- **GPU Acceleration**: CUDA support for faster processing
-- **Async Job Processing**: Long operations handled asynchronously
-- **Smart Editing**: Extract clips by keywords, speakers, or time ranges
-- **Audio Processing**: Advanced audio analysis and enhancement
-- **Transition Effects**: Professional transitions for video composition
-
-### Configuration
-
-Add to `.env`:
-```bash
-# Optional - Hugging Face for models
-HUGGINGFACE_TOKEN=your_token_here
-
-# Optional - GPU selection for multi-GPU systems
-GPU_DEVICE=0  # Select specific GPU (0, 1, 2, etc.)
-```
-
-### GPU Support
-
-The server supports GPU acceleration when available:
-- Automatic CUDA detection
-- Configurable GPU device selection via `GPU_DEVICE` env var
-- Falls back to CPU if GPU unavailable
-
-See `tools/mcp/video_editor/docs/README.md` for detailed documentation.
-
-## GitHub Board MCP Server (Rust)
-
-The GitHub Board server provides GitHub Projects v2 board management for multi-agent coordination. Built in Rust, it wraps the `board-manager` CLI to handle all GitHub API interactions, enabling work queue management, claim coordination, and dependency tracking across multiple AI agents.
-
-### Starting the Server
-
-```bash
-# Run in STDIO mode (for local Claude Desktop) - Recommended
-mcp-github-board --mode stdio
-
-# Or standalone HTTP mode for remote access
-mcp-github-board --mode standalone --port 8022
-
-# Or server mode (REST API only)
-mcp-github-board --mode server --port 8022
-
-# Test health (HTTP mode)
-curl http://localhost:8022/health
-
-# List tools
-curl http://localhost:8022/mcp/tools
-```
-
-### Building from Source
-
-```bash
-cd tools/mcp/mcp_github_board
-cargo build --release
-# Binary at target/release/mcp-github-board
-```
-
-### Available Tools
 
 | Tool | Description |
 |------|-------------|
-| `query_ready_work` | Get unblocked, unclaimed TODO issues (filterable by agent, configurable limit) |
-| `claim_work` | Claim an issue for implementation (requires agent_name and session_id) |
-| `renew_claim` | Renew active claims for long-running tasks (prevents claim timeout) |
-| `release_work` | Release claim on an issue (with reason: completed/blocked/abandoned/error) |
-| `update_status` | Update issue status on the board (Todo/In Progress/Blocked/Done/Abandoned) |
-| `add_blocker` | Add blocking dependencies between issues |
-| `mark_discovered_from` | Mark parent-child issue relationships for sub-task tracking |
-| `get_issue_details` | Get full details including status, assignee, labels, and board metadata |
-| `get_dependency_graph` | Get blockers, blocked issues, parent, and children relationships |
-| `list_agents` | List enabled agents for the board |
-| `get_board_config` | Get full board configuration including field mappings and work queue settings |
-| `board_status` | Get server status and board-manager CLI availability |
+| `video_editor/analyze` | Media info, transcript, loudness/silences/peaks, scenes, speakers, highlights, suggestions |
+| `video_editor/create_edit` | Generate and save an EDL without rendering |
+| `video_editor/render` | Render a given or auto-generated EDL |
+| `video_editor/extract_clips` | Cut clips by time range and/or transcript keyword |
+| `video_editor/add_captions` | Transcribe and burn in (or mux) captions |
+| `video_editor/get_video_info` | ffprobe summary |
+| `video_editor/get_job_status` | Status, progress and result of a job |
+| `video_editor/list_jobs` | Recent jobs, optionally filtered by status |
+| `video_editor/cancel_job` | Cancel a job (kills ffmpeg/whisper) |
 
-### Architecture
+Heavy tools accept `background: true` and return a `job_id` to poll. Key environment: `MCP_VIDEO_OUTPUT_DIR` (container `/output`, host `outputs/video-editor`), `WHISPER_MODEL` (medium), `WHISPER_DEVICE` (`cpu` or `cuda`), `ENABLE_GPU` (NVENC). There is no ML speaker diarization. Details: [`tools/mcp/mcp_video_editor/README.md`](../../tools/mcp/mcp_video_editor/README.md).
 
-The server uses a CLI delegation pattern:
+## Blender MCP Server
 
-1. Client sends tool request to the MCP server
-2. Server validates parameters and constructs a `board-manager` CLI command
-3. `board-manager` CLI executes the operation against the GitHub Projects v2 API
-4. JSON response is returned to the client
-
-**Components:**
-- **MCP Server** - Built on the mcp-core Rust library
-- **board-manager CLI** - Handles all GitHub API interactions (must be in PATH)
-- **Tokio Runtime** - Async operations with high-performance I/O
-
-The server auto-discovers the `board-manager` binary at startup, searching PATH, `~/.local/bin`, `~/.cargo/bin`, `/usr/local/bin`, and the local build directory.
-
-### Configuration
-
-**Environment variables:**
-- `GITHUB_TOKEN` - GitHub token with repository and project access (required)
-- `GITHUB_REPOSITORY` - Repository in `owner/repo` format (required)
-
-**MCP configuration (`.mcp.json`):**
-```json
-{
-  "mcpServers": {
-    "github-board": {
-      "command": "mcp-github-board",
-      "args": ["--mode", "standalone"],
-      "env": {
-        "GITHUB_TOKEN": "${GITHUB_TOKEN}",
-        "GITHUB_REPOSITORY": "${GITHUB_REPOSITORY}"
-      }
-    }
-  }
-}
-```
-
-**Board configuration:** The server reads board settings from `.github/board_config.yaml` via the `board-manager` CLI.
-
-See `tools/mcp/mcp_github_board/docs/README.md` for detailed documentation.
-
-## AgentCore Memory MCP Server (Rust)
-
-The AgentCore Memory server provides persistent AI agent memory using ChromaDB with semantic search capabilities. Built in Rust for performance, it supports short-term session events, long-term fact storage, and semantic similarity search with an in-memory LRU cache and automatic content sanitization to prevent secret leakage.
-
-### Starting the Server
+Headless Blender (4.2+, image ships 4.5.1 LTS). Each call runs a Python script in `blender --background`; renders and bakes run as background jobs with progress and real cancellation.
 
 ```bash
-# Run in STDIO mode (for local Claude Desktop) - Recommended
-mcp-agentcore-memory --mode stdio
+docker compose --profile services run --rm -T mcp-blender mcp-blender --mode stdio   # as .mcp.json
+docker compose --profile services up -d mcp-blender                                  # HTTP on 8017
+curl http://localhost:8017/health
+```
 
-# Or standalone HTTP mode for remote access
+| Area | Tools |
+|------|-------|
+| Projects and status | `create_blender_project`, `list_projects`, `blender_status`, `analyze_scene`, `optimize_scene` |
+| Scene building | `add_primitive_objects`, `add_advanced_primitives`, `create_curve`, `create_text_object`, `delete_objects`, `parent_objects`, `join_objects`, `create_armature`, `add_constraint` |
+| Look development | `apply_material`, `add_texture`, `add_uv_map`, `setup_lighting`, `setup_world_environment`, `setup_camera`, `add_camera_track`, `setup_compositor` |
+| Animation, simulation, procedural | `create_animation`, `add_modifier`, `setup_physics`, `bake_simulation` (job), `add_particle_system`, `add_smoke_simulation`, `create_geometry_nodes`, `quick_smoke`, `quick_liquid`, `quick_explode`, `quick_fur` |
+| Rendering and jobs | `render_image` (job), `render_animation` (job), `batch_render` (job), `get_job_status` (`wait_seconds` long-polls up to 300 s), `get_job_result`, `cancel_job`, `list_jobs`, `import_model`, `export_scene` |
+
+Job states: `QUEUED` -> `RUNNING` -> `COMPLETED` / `FAILED`, or `CANCELLED`. Jobs are kept in memory (lost on restart). Details: [`tools/mcp/mcp_blender/README.md`](../../tools/mcp/mcp_blender/README.md).
+
+## Virtual Character MCP Server
+
+Drives a virtual character (emotions, gestures, movement, avatar parameters, speech playback with ElevenLabs expression tags, timed sequences). The production backend controls a VRChat avatar over OSC; a `mock` backend runs offline.
+
+```bash
+mcp-virtual-character --mode standalone --port 8025       # recommended: natively on the VRChat PC
+mcp-virtual-character --mode stdio
+docker compose --profile services up -d mcp-virtual-character   # animation/movement only (no audio playback)
+```
+
+| Tool | Description |
+|------|-------------|
+| `set_backend` | Connect `mock` or `vrchat_remote` (replaces the current backend) |
+| `disconnect_backend` | Disconnect, stop playback, release ports |
+| `list_backends` | Available backends and which is active |
+| `get_backend_status` | Connection, health and statistics |
+| `get_avatar_state` | World/avatar id, current emotion/gesture, avatar parameters received from VRChat |
+| `send_animation` | Emotion, gesture, movement and avatar parameters in one call |
+| `send_vrcemote` | Direct VRCEmote value 0-8 (vrchat_remote only) |
+| `execute_behavior` | `greet`, `dance`, `sit`, `stand`, `jump`, `crouch` |
+| `reset` | Clear emotes and movement |
+| `play_audio` | Play speech (file, URL or base64); expression tags set the emotion |
+| `create_sequence` / `add_sequence_event` | Build a timed sequence |
+| `play_sequence` / `pause_sequence` / `resume_sequence` / `stop_sequence` | Playback control |
+| `get_sequence_status` | Position, executed/failed events, last error |
+| `panic_reset` | Stop and discard sequences and reset the avatar |
+
+Key environment: `VIRTUAL_CHARACTER_HOST` (127.0.0.1), `VIRTUAL_CHARACTER_OSC_IN` (9000), `VIRTUAL_CHARACTER_OSC_OUT` (9001; the compose service publishes `9001/udp` for VRChat's replies), `VIRTUAL_CHARACTER_EMOTE_TIMEOUT` (default 10 s, 0 = never), `VIRTUAL_CHARACTER_AUDIO_PLAYBACK` (`auto`/`local`/`none`). Details: [`tools/mcp/mcp_virtual_character/README.md`](../../tools/mcp/mcp_virtual_character/README.md).
+
+## Desktop Control MCP Server
+
+Desktop automation with native backends for Linux/X11 (pure-Rust `x11rb`, XTEST, RandR) and Windows (Win32 `SendInput`, per-monitor DPI awareness). macOS is not supported; Wayland only through XWayland.
+
+```bash
+mcp-desktop-control --mode stdio
+mcp-desktop-control --mode standalone --port 8026
+docker compose --profile desktop up -d mcp-desktop-control     # Linux; needs the host X socket
+curl http://localhost:8026/health
+```
+
+| Area | Tools |
+|------|-------|
+| Status | `desktop_status` |
+| Windows | `list_windows`, `get_active_window`, `focus_window`, `move_window`, `resize_window`, `minimize_window`, `maximize_window`, `restore_window`, `close_window` |
+| Screens | `list_screens`, `get_screen_size` |
+| Screenshots | `screenshot_screen`, `screenshot_window`, `screenshot_region` (optional inline image and downscaling) |
+| Mouse | `get_mouse_position`, `move_mouse`, `click_mouse`, `drag_mouse`, `scroll_mouse` |
+| Keyboard | `type_text`, `send_key`, `send_hotkey` |
+
+| Platform | Backend |
+|----------|---------|
+| Linux | X11 via `x11rb` (XTEST input, RandR monitors, EWMH/ICCCM window management); no X11 command-line tools needed |
+| Windows | Win32 (`SendInput`, DWM frame bounds, `PrintWindow` screenshots) |
+
+Screenshots go to `DESKTOP_CONTROL_OUTPUT_DIR` (compose: `/output` = `outputs/desktop-control`). The HTTP transport has no authentication; prefer STDIO. Details: [`tools/mcp/mcp_desktop_control/README.md`](../../tools/mcp/mcp_desktop_control/README.md).
+
+## GitHub Board MCP Server
+
+A validated MCP front end for the [`board-manager`](../../tools/rust/board-manager/README.md) CLI: ready-work queue, claims, status, dependencies, approvals and stale-claim cleanup for multi-agent coordination.
+
+```bash
+docker compose --profile services run --rm -T mcp-github-board mcp-github-board --mode stdio   # as .mcp.json
+mcp-github-board --mode standalone            # HTTP, default port 8022
+mcp-github-board --mode stdio --read-only --timeout-secs 120
+```
+
+| Tool | Mutates | Description |
+|------|---------|-------------|
+| `query_ready_work` | no | Unblocked, unclaimed TODO issues (label filters, `approved_only`) |
+| `claim_work` | yes | Claim an issue for an agent session |
+| `renew_claim` | yes | Renew an active claim |
+| `release_work` | yes | Release a claim (`completed`, `pr_created`, `blocked`, `abandoned`, `error`) |
+| `update_status` | yes | Set Todo / In Progress / Blocked / Done / Abandoned |
+| `add_blocker` | yes | Add a blocking dependency |
+| `remove_blocker` | yes | Remove a blocking dependency |
+| `mark_discovered_from` | yes | Record a parent-child relationship |
+| `get_issue_details` | no | Status, assignee, labels and board metadata |
+| `get_dependency_graph` | no | Blockers, blocked issues, parent and children |
+| `list_agents` | no | Enabled agents for the board |
+| `get_board_config` | no | Board configuration |
+| `add_to_board` | yes | Add an issue to the board with status/priority/type/size |
+| `check_approval` | no | Check whether an issue is approved for an agent |
+| `find_approved_issues` | no | Find approved issues |
+| `release_stale_claims` | yes | Janitor for stale claims (`dry_run` defaults to true) |
+| `board_status` | no | Server version, read-only mode, board-manager path/version, token variables set |
+
+Configuration:
+- Token: `GITHUB_PROJECTS_TOKEN` (preferred; classic PAT with `project` and `repo` scopes), `GITHUB_TOKEN` or `GH_TOKEN`.
+- Board: `ai-agents-board.yml` (found in the working directory or a parent), `BOARD_CONFIG_PATH`, `--board-config`, or `BOARD_PROJECT_NUMBER` / `BOARD_REPOSITORY` / `BOARD_OWNER`. `GITHUB_PROJECT_NUMBER` is not read by anything.
+- Flags: `--read-only` (`GITHUB_BOARD_READ_ONLY`) registers only non-mutating tools; `--timeout-secs` (`GITHUB_BOARD_TIMEOUT_SECS`, default 300); `--board-manager` (`BOARD_MANAGER_PATH`).
+
+Details: [`tools/mcp/mcp_github_board/README.md`](../../tools/mcp/mcp_github_board/README.md).
+
+## AgentCore Memory MCP Server
+
+Persistent agent memory backed by a self-hosted ChromaDB (0.4.x through 1.x). Despite the name, it does not use AWS Bedrock AgentCore. Embeddings are computed locally with all-MiniLM-L6-v2; content is sanitized for secrets before storage.
+
+```bash
+docker compose --profile memory-chromadb up -d chromadb
+docker compose --profile memory run --rm -T mcp-agentcore-memory mcp-agentcore-memory --mode stdio   # as .mcp.json
 mcp-agentcore-memory --mode standalone --port 8023
-
-# Start ChromaDB backend (required)
-docker compose --profile memory-chromadb up -d
-
-# Test health (HTTP mode)
-curl http://localhost:8023/health
 ```
-
-### Building from Source
-
-```bash
-cd tools/mcp/mcp_agentcore_memory
-cargo build --release
-# Binary at target/release/mcp-agentcore-memory
-```
-
-### Available Tools
 
 | Tool | Description |
 |------|-------------|
-| `store_event` | Store short-term memory events (session goals, decisions, outcomes) |
-| `store_facts` | Store facts/patterns for long-term retention with namespace organization |
-| `search_memories` | Semantic similarity search across memories (with LRU caching) |
-| `list_session_events` | List events from a specific session by actor and session ID |
-| `list_namespaces` | List all predefined hierarchical namespaces |
-| `memory_status` | Get provider connection status, cache statistics, and configuration |
+| `store_event` | Store a short-term session event |
+| `list_session_events` | List a session's events, newest first |
+| `store_facts` | Store long-term facts in a namespace (deduplicated) |
+| `search_memories` | Semantic search within one namespace |
+| `list_memories` | Browse a namespace without a query |
+| `delete_memories` | Delete facts by id |
+| `reindex_namespace` | Re-embed every fact in a namespace |
+| `list_namespaces` | Predefined namespaces, optionally with stored ones and counts |
+| `memory_status` | Connectivity, ChromaDB version, embedder, cache stats |
 
-### Namespaces
-
-Memories are organized into hierarchical namespaces using `/` separators:
-
-| Category | Namespaces | Purpose |
-|----------|------------|---------|
-| Codebase | `codebase/architecture`, `codebase/patterns`, `codebase/conventions`, `codebase/dependencies` | Code knowledge |
-| Reviews | `reviews/pr`, `reviews/issues` | Review context |
-| Preferences | `preferences/user`, `preferences/project` | Configuration preferences |
-| Agents | `agents/claude`, `agents/gemini`, `agents/opencode`, `agents/crush`, `agents/codex` | Per-agent learnings |
-| Personality | `personality/voice_preferences`, `personality/expression_patterns`, `personality/reaction_history`, `personality/avatar_settings` | Agent personality |
-| Context | `context/conversation_tone`, `context/user_preferences`, `context/interaction_history` | Interaction context |
-| Cross-Cutting | `security/patterns`, `testing/patterns`, `performance/patterns` | Shared patterns |
-
-### Security
-
-All content is sanitized before storage to prevent secrets from being persisted:
-
-- **Layer 1 - Pattern Matching**: Known secret formats are detected and replaced with `[REDACTED]`, including API keys (OpenAI, Stripe, AWS, GitHub, Slack, Anthropic, OpenRouter), private keys, bearer tokens, basic auth, and connection strings with passwords.
-- **Layer 2 - Entropy Analysis**: High-entropy strings (Shannon entropy > 4.5 bits/char, minimum 20 characters) that resemble base64-encoded secrets are replaced with `[HIGH_ENTROPY_REDACTED]`.
-
-### Architecture
-
-```
-MCP Server (agentcore-memory)
-  |
-  +-- Tools: store_event, store_facts, search_memories, etc.
-  |
-  +-- LRU Cache (1000 entries, 5-minute TTL)
-  |     - MD5-keyed by query+namespace
-  |     - Auto-eviction of oldest entries
-  |     - Namespace-aware invalidation on writes
-  |
-  +-- Content Sanitizer
-  |     - Two-layer secret detection
-  |     - Applied before all writes
-  |
-  +-- ChromaDB HTTP Client
-        |
-        +-- ChromaDB Server (Docker)
-              - Vector embeddings for semantic search
-              - Collection-per-namespace storage
-```
-
-### Configuration
-
-**Environment variables:**
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `CHROMADB_HOST` | ChromaDB host | `localhost` |
-| `CHROMADB_PORT` | ChromaDB port | `8000` |
-| `CHROMADB_COLLECTION` | Collection prefix | `agent_memory` |
-
-See `tools/mcp/mcp_agentcore_memory/docs/README.md` for detailed documentation.
+Search results are cached in an in-process LRU/TTL cache (1000 entries, 5 minutes) that is invalidated on writes and deletes. Key environment: `CHROMADB_URL` or `CHROMADB_HOST`/`CHROMADB_PORT`, `CHROMADB_COLLECTION` (`agent_memory`), `MEMORY_EMBEDDER` (`fastembed` or `hash`). Details: [`tools/mcp/mcp_agentcore_memory/README.md`](../../tools/mcp/mcp_agentcore_memory/README.md).
 
 ## Reaction Search MCP Server
 
-The Reaction Search server provides semantic search for anime reaction images using fastembed (ONNX-based embeddings). This is a Rust implementation for high performance.
-
-### Starting the Server
+Semantic search over the anime reaction image catalog (all-MiniLM-L6-v2 via fastembed, plus BM25 keyword/tag boosts). If the embedding model is unavailable (offline, still downloading), searches fall back to keyword ranking and report `search_mode: "lexical"`.
 
 ```bash
-# HTTP mode (standalone - default)
+docker compose --profile services run --rm -T mcp-reaction-search --mode stdio   # as .mcp.json
 mcp-reaction-search --mode standalone --port 8024
-
-# REST-only mode (no MCP protocol)
-mcp-reaction-search --mode server --port 8024
-
-# Docker
-docker compose --profile services up -d mcp-reaction-search
 ```
-
-### Available Tools
 
 | Tool | Description |
 |------|-------------|
-| `search_reactions` | Natural language search for reaction images |
-| `get_reaction` | Get a specific reaction by ID |
-| `list_reaction_tags` | Browse available tags and counts |
-| `refresh_reactions` | Refresh the reaction cache from GitHub |
-| `reaction_search_status` | Get server status and initialization state |
-
-### Usage Example
+| `search_reactions` | Natural-language search (`query`, `limit`, `tags`, `exclude`, `min_similarity`) |
+| `get_reaction` | Look up a reaction by id (with suggestions for unknown ids) |
+| `list_reactions` | Compact catalog listing, optionally filtered by tags |
+| `list_reaction_tags` | Tag counts, by frequency and category |
+| `refresh_reactions` | Re-fetch the catalog from GitHub (and retry a failed model load) |
+| `reaction_search_status` | Initialization, model and cache state |
 
 ```python
-# Search with natural language
 search_reactions(query="celebrating after fixing a bug", limit=3)
-search_reactions(query="confused about an error message", limit=3)
-
-# Get specific reaction
 get_reaction(reaction_id="miku_typing")
 ```
 
-Source code: `tools/mcp/mcp_reaction_search/`
+Details: [`tools/mcp/mcp_reaction_search/README.md`](../../tools/mcp/mcp_reaction_search/README.md).
 
-## Memory Explorer MCP Server (Rust)
+## Sprite Sheet MCP Server
 
-The Memory Explorer server provides process memory exploration and reverse engineering capabilities for AI agent integration with legacy software. Built as a native Rust binary, it uses Windows memory APIs for full functionality (process listing is available cross-platform). This enables AI agents to inspect and monitor running processes, scan for byte patterns, read typed memory values, and watch addresses for changes.
-
-### Starting the Server
+Pixel art and sprite sheets from code: palette-indexed layers, drawing primitives, sprites and animations, undo for every edit, PNG/GIF/atlas export and versioned save/load.
 
 ```bash
-# Run in STDIO mode (for local Claude Desktop) - Recommended
-mcp-memory-explorer --mode stdio
-
-# Or standalone HTTP mode
-mcp-memory-explorer --mode standalone --port 8025
-
-# Or server mode (REST API only)
-mcp-memory-explorer --mode server --port 8025
-
-# Test health (HTTP mode)
-curl http://localhost:8025/health
+docker compose --profile services run --rm -T mcp-sprite-sheet mcp-sprite-sheet --mode stdio --output /output   # as .mcp.json
+mcp-sprite-sheet --mode standalone --port 8027
 ```
 
-### Building from Source
+| Area | Tools |
+|------|-------|
+| Project (7) | `sprite_create_project`, `sprite_save_project`, `sprite_load_project`, `sprite_project_status`, `sprite_list_projects`, `sprite_delete_project`, `sprite_resize_canvas` |
+| Layers (7) | `sprite_add_layer`, `sprite_remove_layer`, `sprite_update_layer`, `sprite_duplicate_layer`, `sprite_merge_layers`, `sprite_clear_layer`, `sprite_list_layers` |
+| Drawing (6) | `sprite_set_pixels`, `sprite_draw_line`, `sprite_draw_rect`, `sprite_draw_ellipse`, `sprite_flood_fill`, `sprite_get_pixels` |
+| Palette (3) | `sprite_set_palette`, `sprite_swap_palette`, `sprite_get_palette` |
+| Sprites and animations (6) | `sprite_define_sprite`, `sprite_remove_sprite`, `sprite_list_sprites`, `sprite_define_animation`, `sprite_list_animations`, `sprite_remove_animation` |
+| Transform (1) | `sprite_transform` |
+| Render and export (5) | `sprite_render`, `sprite_render_sprite`, `sprite_render_animation_frames`, `sprite_export_gif`, `sprite_export_atlas` |
+| Undo (1) | `sprite_undo` (undo/redo, 50 steps, covers every mutating tool) |
+| Import and cleanup (2) | `sprite_import_image`, `sprite_trim_edges` |
+
+Output directory: `--output` / `MCP_SPRITE_OUTPUT_DIR` (compose: `/output` = `outputs/mcp-sprites`). Details: [`tools/mcp/mcp_sprite_sheet/README.md`](../../tools/mcp/mcp_sprite_sheet/README.md).
+
+## Memory Explorer MCP Server
+
+Read-only process memory exploration for agent integration with legacy software. A native binary (documented exception to container-first): it must see host processes.
 
 ```bash
-cd tools/mcp/mcp_memory_explorer
-cargo build --release
-# Binary at target/release/mcp-memory-explorer
+cd tools/mcp/mcp_memory_explorer && cargo build --release
+./target/release/mcp-memory-explorer --mode stdio
+./target/release/mcp-memory-explorer --mode standalone      # HTTP, default port 8028
 ```
-
-### Available Tools
 
 | Tool | Description |
 |------|-------------|
-| `list_processes` | List running processes with optional name filter |
-| `attach_process` | Attach to a process by name for memory operations |
-| `detach_process` | Detach from the current process |
-| `get_modules` | List loaded modules (DLLs/EXEs) with base addresses and sizes |
-| `read_memory` | Read memory at an address with typed interpretation |
-| `dump_memory` | Hex dump with ASCII representation |
-| `scan_pattern` | Search for byte patterns with wildcard (`??`) support |
-| `find_value` | Search for specific typed values (health, position, etc.) |
-| `resolve_pointer` | Follow pointer chains through multiple indirections |
-| `watch_address` | Monitor an address for value changes |
-| `read_watches` | Read all watched addresses and detect changes |
-| `remove_watch` | Remove a watch by label |
-| `get_status` | Get explorer status (attached process, active watches) |
+| `list_processes` | Running processes, optional name filter |
+| `attach_process` | Attach read-only by name; `pid` picks one of several same-named processes |
+| `detach_process` | Detach and clear watches and scan candidates |
+| `get_modules` | Loaded modules with base/end addresses and sizes |
+| `get_memory_regions` | Committed regions with protection, kind and owning module |
+| `read_memory` | Read and decode a typed value |
+| `dump_memory` | Hex + ASCII dump |
+| `scan_pattern` | Signature scan with `??` wildcards |
+| `find_value` | Search typed values (default scope: all writable memory) |
+| `refine_value` | Narrow previous `find_value` matches (`equal`, `changed`, `unchanged`, `increased`, `decreased`) |
+| `resolve_pointer` | Follow a pointer chain (Cheat Engine semantics) |
+| `watch_address` / `read_watches` / `remove_watch` | Monitor addresses for changes |
+| `get_status` | Attached process, bitness, watches, candidates, platform support |
 
-### Supported Data Types
+Types: `bytes`, `int8`/`int16`/`int32`/`int64`, `uint8`/`uint16`/`uint32`/`uint64`, `float`, `double`, `string`, `wstring`, `pointer`, `vector3`, `vector4`, `matrix4x4`. Addresses accept module-relative forms such as `Game.exe+0x1234`.
 
-| Type | Size | Description |
-|------|------|-------------|
-| `bytes` | Variable | Raw bytes as hex string |
-| `int32` / `int64` | 4 / 8 bytes | Signed integers |
-| `uint32` / `uint64` | 4 / 8 bytes | Unsigned integers |
-| `float` / `double` | 4 / 8 bytes | Floating point values |
-| `string` | Variable | Null-terminated string |
-| `pointer` | 8 bytes | 64-bit pointer address |
-| `vector3` / `vector4` | 12 / 16 bytes | 3D/4D float vectors (x, y, z, w) |
-| `matrix4x4` | 64 bytes | 4x4 transformation matrix (16 floats) |
+| Platform | Support |
+|----------|---------|
+| Windows | Full (`ReadProcessMemory`, `VirtualQueryEx`, Toolhelp); opened with read-only access rights (not `PROCESS_ALL_ACCESS`), so same-user processes work without administrator rights |
+| Linux | Full (`/proc/<pid>/mem`, `/proc/<pid>/maps`); requires ptrace access (same user with `kernel.yama.ptrace_scope=0`, or `CAP_SYS_PTRACE`) |
+| macOS / other | `list_processes` only |
 
-### Cross-Platform Support
+Details: [`tools/mcp/mcp_memory_explorer/README.md`](../../tools/mcp/mcp_memory_explorer/README.md).
 
-| Feature | Windows | Linux/macOS |
-|---------|---------|-------------|
-| Process listing | Full | Full |
-| Process attachment | Full (Windows API) | Stub (returns error) |
-| Memory reading | Full | Stub (returns error) |
-| Pattern scanning | Full | Stub (returns error) |
-| Module enumeration | Full | Stub (returns error) |
+## Gaea2 MCP Server (Port 8007)
 
-On Windows, the server uses native APIs: `OpenProcess`, `ReadProcessMemory`, `VirtualQueryEx`, and `CreateToolhelp32Snapshot`. Administrator privileges are required.
-
-### Configuration
-
-**CLI arguments:**
-
-| Argument | Description | Default |
-|----------|-------------|---------|
-| `--mode` | Server mode: standalone, stdio, server, client | `standalone` |
-| `--port` | Port to listen on (HTTP modes) | `8025` |
-| `--backend-url` | Backend URL for client mode | - |
-| `--log-level` | Log level (trace, debug, info, warn, error) | `info` |
-
-**MCP configuration (`.mcp.json`):**
-```json
-{
-  "mcpServers": {
-    "memory-explorer": {
-      "command": "mcp-memory-explorer",
-      "args": ["--mode", "stdio"]
-    }
-  }
-}
-```
-
-### Usage Example
-
-```
-# Find and attach to a game process
-> list_processes filter="NMS"
-> attach_process process_name="NMS.exe"
-
-# Enumerate loaded modules
-> get_modules
-
-# Scan for a byte pattern (with wildcards)
-> scan_pattern pattern="F3 0F 10 ?? ?? ?? ?? ?? F3 0F 11"
-
-# Read a 4x4 matrix at an address
-> read_memory address="0x7FF6A1C45678" type="matrix4x4"
-
-# Watch the player position for changes
-> watch_address label="player_x" address="0x7FF6A1D00100" type="float"
-> read_watches
-```
-
-See `tools/mcp/mcp_memory_explorer/README.md` for detailed documentation.
-
-## Unified Testing
-
-Test all servers at once:
+Creates, validates, analyzes, repairs and (on Windows with Gaea2 installed) builds `.terrain` projects. Production runs on the dedicated Windows host at `192.168.0.152:8007`.
 
 ```bash
-# Test all running servers
-python automation/testing/test_all_servers.py
+# Windows host (or automation/launchers/windows/start-gaea2-mcp.bat)
+mcp-gaea2 --mode standalone --port 8007 --gaea-path "C:\Program Files\QuadSpinner\Gaea 2\Gaea.Swarm.exe"
 
-# Quick connectivity test only
-python automation/testing/test_all_servers.py --quick
-
-# Test individual servers
-python tools/mcp/code_quality/scripts/test_server.py
-python tools/mcp/content_creation/scripts/test_server.py
-python tools/mcp/gaea2/scripts/test_server.py
-python tools/mcp/gemini/scripts/test_server.py
+# Container: everything except the build tools
+docker compose --profile services up -d mcp-gaea2      # outputs in ./outputs/mcp-gaea2
+curl http://localhost:8007/health
 ```
+
+| Tool | Description |
+|------|-------------|
+| `create_gaea2_project` | Validate (auto-fix) and write a project; invalid workflows are rejected, never written |
+| `create_gaea2_from_template` | Write a project from one of 11 templates, with property overrides |
+| `validate_and_fix_workflow` | Validate and return the fixed workflow with errors, warnings and fixes |
+| `suggest_gaea2_nodes` | Next-node suggestions |
+| `optimize_gaea2_properties` | Tune build-cost properties (`performance`, `quality`, `balanced`) |
+| `analyze_workflow_patterns` | Patterns, relative cost and quality issues |
+| `list_gaea2_templates` | List templates (optionally with workflows) |
+| `list_gaea2_nodes` | Node types by category, or ports/properties of one type |
+| `list_gaea2_projects` | `.terrain` files, newest first |
+| `download_gaea2_project` | Return a project file (max 25 MB) |
+| `repair_gaea2_project` | Repair a `.terrain` file in place (dry run and backups) |
+| `run_gaea2_project` | Build with `Gaea.Swarm.exe` (Windows host only) |
+| `validate_gaea2_runtime` | 512px test build (Windows host only) |
+| `analyze_execution_history` | Build history summary |
+| `get_gaea2_status` | CLI availability, directories, counts |
+
+Configuration: `--gaea-path` / `GAEA2_PATH`, `--output-dir` / `GAEA2_OUTPUT_DIR`, `--allowed-dirs` / `GAEA2_ALLOWED_DIRS` (client paths are confined to these), `--max-concurrent-builds`. Details: [`tools/mcp/mcp_gaea2/README.md`](../../tools/mcp/mcp_gaea2/README.md).
+
+## AI Toolkit MCP Server (Port 8020)
+
+LoRA training with ostris/ai-toolkit. Runs on the GPU machine next to AI Toolkit (compose service `mcp-ai-toolkit`, reached at `192.168.0.222:8020`).
+
+```bash
+AI_TOOLKIT_PATH=/ai-toolkit mcp-ai-toolkit --mode standalone --port 8020
+mcp-ai-toolkit --mode client --port 8020 --backend-url http://192.168.0.222:8020   # local proxy
+```
+
+| Area | Tools |
+|------|-------|
+| Configs | `create_training_config`, `list_configs`, `get_config`, `validate_config`, `delete_config` |
+| Datasets | `upload_dataset`, `list_datasets`, `get_dataset_info`, `delete_dataset` |
+| Training | `start_training`, `get_training_status`, `get_training_logs`, `stop_training`, `list_training_jobs`, `get_training_info`, `get_training_samples` |
+| Models | `list_exported_models`, `export_model`, `download_model` (whole file up to 100 MB, or chunked with `offset`/`chunk_size` and a final `sha256`), `delete_model` |
+| Utilities | `get_system_stats`, `list_model_presets` |
+
+Environment: `AI_TOOLKIT_PATH` (`/ai-toolkit`), `AI_TOOLKIT_CONFIGS_PATH` (default `$AI_TOOLKIT_PATH/config`; compose sets `/ai-toolkit/configs` to match its volume), `AI_TOOLKIT_DATASETS_PATH`, `AI_TOOLKIT_OUTPUTS_PATH`, `AI_TOOLKIT_PYTHON`, `HF_TOKEN`. The HTTP transport has no authentication; keep it on a trusted network. Details: [`tools/mcp/mcp_ai_toolkit/README.md`](../../tools/mcp/mcp_ai_toolkit/README.md).
+
+## ComfyUI MCP Server (Port 8013)
+
+Drives ComfyUI: text-to-image (FLUX / SDXL), img2img, upscaling, ControlNet, arbitrary API-format workflows, job tracking and LoRA file management. The binary is built into the ComfyUI image on the GPU host: MCP at `192.168.0.222:8013`, ComfyUI at `192.168.0.222:8188`.
+
+```bash
+mcp-comfyui --mode standalone --port 8013                                   # as in the container
+COMFYUI_URL=http://192.168.0.222:8188 mcp-comfyui --mode stdio              # against the remote ComfyUI
+```
+
+| Tool | Description |
+|------|-------------|
+| `generate_image` | Run a template (`flux_default`, `sdxl_default`, `flux_with_lora`, `img2img`, `upscale`, `controlnet`) or custom workflow and wait for outputs |
+| `execute_workflow` | Queue an API-format workflow as-is |
+| `get_job_status` | Status and outputs of a job, optionally waiting |
+| `cancel_job` | Dequeue or interrupt a job |
+| `get_queue` | Running and pending prompt ids |
+| `get_image` | Fetch an output/input/temp image as MCP image content |
+| `upload_image` | Put a base64 image into ComfyUI's input directory |
+| `list_workflows` | Built-in templates and what they need |
+| `get_workflow` | A template as API-format JSON |
+| `list_models` | Model files ComfyUI can load, by type |
+| `get_object_info` | Node introspection |
+| `get_system_info` | ComfyUI versions, RAM, GPUs |
+| `upload_lora` | Write a base64 LoRA (and metadata) atomically |
+| `list_loras` | LoRA files on disk |
+| `download_lora` | Read a LoRA as base64 (size-capped) |
+
+Environment: `COMFYUI_URL` (full base URL, takes precedence), or `COMFYUI_HOST` (`localhost`) and `COMFYUI_PORT` (`8188`); `COMFYUI_PATH` (`/comfyui`). The LoRA tools act on the filesystem of the machine running the server. Details: [`tools/mcp/mcp_comfyui/README.md`](../../tools/mcp/mcp_comfyui/README.md).
+
+## BioForge MCP Server (Rust, simulated hardware)
+
+MCP front end for the [BioForge](../../packages/bioforge/README.md) lab-automation platform: liquid handling, thermal control, gantry motion, plate imaging, protocol validation, human-in-the-loop gates and emergency stop. It runs against **simulated drivers** (every response includes `"simulated": true`), while safety enforcement, protocol validation, the e-stop latch, human gates and the audit log are real. It is not configured in `.mcp.json` or docker compose.
+
+```bash
+cd tools/mcp/mcp_bioforge && cargo build --release && cd ../../..
+./tools/mcp/mcp_bioforge/target/release/mcp-bioforge --mode stdio --config-dir packages/bioforge/config
+```
+
+Tools (16): `dispense`, `aspirate`, `mix`, `move_to`, `home_gantry`, `set_temperature`, `heat_shock`, `incubate`, `capture_plate_image`, `count_colonies`, `list_protocols`, `load_protocol`, `get_system_status`, `request_human_action`, `get_human_action_status`, `emergency_stop`. CI: `automation-cli ci run bio-full`. Details: [`tools/mcp/mcp_bioforge/README.md`](../../tools/mcp/mcp_bioforge/README.md).
+
+## Testing
+
+Each crate has offline unit tests:
+
+```bash
+cd tools/mcp/<crate>
+cargo fmt --check && cargo clippy --all-targets -- -D warnings && cargo test
+```
+
+`automation-cli ci run rust-full` runs these checks for every MCP crate. For a running HTTP server, `curl http://localhost:<port>/health` and `curl http://localhost:<port>/mcp/tools` are the quickest smoke tests.
 
 ## Configuration
 
-The modular servers are configured in `.mcp.json`:
+The servers are configured in `.mcp.json` (essential set) and `.mcp.json.full` (all servers). Local servers run in STDIO mode through `docker compose run`:
 
 ```json
 {
   "mcpServers": {
     "code-quality": {
-      "type": "http",
-      "url": "http://localhost:8010/messages"
-    },
-    "content-creation": {
-      "type": "http",
-      "url": "http://localhost:8011/messages"
-    },
-    "gemini": {
-      "type": "http",
-      "url": "http://localhost:8006/messages"
+      "command": "docker",
+      "args": ["compose", "-f", "./docker-compose.yml", "--profile", "services",
+               "run", "--rm", "-T", "mcp-code-quality", "mcp-code-quality", "--mode", "stdio"]
     },
     "gaea2": {
       "type": "http",
-      "url": "${GAEA2_REMOTE_URL:-http://localhost:8007}/messages"
-    },
-    "ai-toolkit": {
-      "type": "http",
-      "url": "http://localhost:8020/messages"
-    },
-    "comfyui": {
-      "type": "http",
-      "url": "http://localhost:8013/messages"
-    },
-    "opencode": {
-      "command": "mcp-opencode",
-      "args": ["--mode", "stdio"],
-      "env": {
-        "OPENROUTER_API_KEY": "${OPENROUTER_API_KEY}"
-      }
-    },
-    "crush": {
-      "command": "mcp-crush",
-      "args": ["--mode", "stdio"],
-      "env": {
-        "OPENROUTER_API_KEY": "${OPENROUTER_API_KEY}"
-      }
-    },
-    "meme-generator": {
-      "command": "docker compose",
-      "args": [
-        "-f", "./docker-compose.yml", "--profile", "services",
-        "run", "--rm", "-T", "mcp-meme-generator",
-        "python", "-m", "tools.mcp.meme_generator.server",
-        "--mode", "stdio"
-      ]
+      "url": "http://192.168.0.152:8007/messages"
     }
   }
 }
 ```
 
-**Important Notes**:
-1. Most servers in the actual `.mcp.json` configuration use **STDIO mode through Docker Compose**, not HTTP mode. The configuration above shows a simplified example.
-2. The actual `.mcp.json` uses `docker compose run` commands to start servers in STDIO mode within containers.
-3. Remote servers (Gaea2, AI Toolkit, ComfyUI) use HTTP mode with the `/messages` endpoint.
-4. The `/messages` endpoint is for MCP protocol (JSON-RPC) communication. For direct HTTP API tool execution during development, use the `/mcp/execute` endpoint instead.
-
-See the actual `.mcp.json` file for the precise configuration used by Claude Desktop.
-
-## Client Usage
-
-Use the MCPClient from `tools.mcp.core` to interact with MCP servers:
-
-```python
-from tools.mcp.core import MCPClient
-
-# Target a specific server by name
-client = MCPClient(server_name="gaea2")
-
-# Or use a server URL directly
-client = MCPClient(base_url="http://localhost:8007")
-
-# Execute tools
-result = client.execute_tool("tool_name", {"arg": "value"})
-```
-
-For complete examples, see the test scripts in `tools/mcp/*/scripts/test_server.py`
+Remote servers (Gaea2, AI Toolkit, ComfyUI, and Virtual Character in `.mcp.json.full`) use HTTP with the `/messages` endpoint. For direct tool calls during development, use `POST /mcp/execute`. See the actual `.mcp.json` files for the precise configuration.
 
 ## Troubleshooting
 
 ### Port Already in Use
 
 ```bash
-# Find process using a port (e.g., 8010)
-sudo lsof -i :8010
-
-# Stop specific container
-docker compose down mcp-code-quality
+sudo lsof -i :8010                    # find the process using a port
+docker compose down mcp-code-quality  # stop a specific container
 ```
 
 ### Container Permission Issues
@@ -1204,20 +663,12 @@ docker compose down mcp-code-quality
 ./automation/setup/runner/fix-runner-permissions.sh
 ```
 
-### Gemini Server Issues
+### Gaea2 Build Tools
 
-1. **"Cannot run in container" error** - Run on host system
-2. **Gemini CLI not found** - Install with `npm install -g @google/gemini-cli@0.29.5`
-
-### Gaea2 Windows CLI Features
-
-1. **Set GAEA2_PATH** environment variable to Gaea.Swarm.exe location
-2. **Ensure Windows host** for CLI automation features
+`run_gaea2_project` and `validate_gaea2_runtime` need `--gaea-path` / `GAEA2_PATH` pointing at `Gaea.Swarm.exe` on a Windows host. The container reports "Gaea2 CLI not configured" for them.
 
 ## Development Notes
 
-- Each server extends `BaseMCPServer` from `tools/mcp/core/`
-- Servers can run standalone or via Docker Compose
-- All servers provide consistent JSON API responses
-- Use the modular architecture to add new specialized servers
-- Follow the container-first philosophy except where technically impossible (Gemini)
+- Every server implements the `Tool` trait from `mcp-core` ([`tools/mcp/mcp_core_rust`](../../tools/mcp/mcp_core_rust/README.md)); `mcp-core` provides the STDIO/HTTP/REST transports.
+- Servers can run standalone or via Docker Compose.
+- Follow the container-first philosophy except where technically impossible (Memory Explorer, Desktop Control on Windows, Gaea2 builds).

@@ -1,198 +1,70 @@
 # Gaea2 MCP Quick Reference
 
-> **Quick reference guide for common operations and node types**
+> One-page cheat sheet. Full details: [crate README](../README.md).
 
-## Automatic Validation is Built-in
+## Typical agent flow
 
-**All projects created with `create_gaea2_project` automatically include:**
-- Property validation and fixing
-- Missing Export/SatMap nodes added
-- Connection validation and repair
-- Performance optimization
-- Guaranteed Gaea2 compatibility
+1. `list_gaea2_templates` (optionally `include_workflow: true`) or `list_gaea2_nodes`
+2. Build or edit `nodes` / `connections`; `suggest_gaea2_nodes` for ideas
+3. `validate_and_fix_workflow` to see errors, warnings and fixes
+4. `create_gaea2_project` (validates again; refuses to write invalid workflows)
+5. On the Windows host: `run_gaea2_project`, then `analyze_execution_history` if it fails
+6. For hand-edited or old files: `repair_gaea2_project` with `dry_run: true` first
 
-**Set `auto_validate=False` only if you need to bypass validation.**
+## Minimal workflow
 
-## Essential Tools
-
-| Tool | Purpose | Key Parameters |
-|------|---------|----------------|
-| `create_gaea2_project` | Create terrain projects | `nodes`, `connections`, `output_path`, `auto_validate=True` |
-| `validate_and_fix_workflow` | Manual validation & repair | `nodes`, `auto_fix=True`, `aggressive=False` |
-| `create_gaea2_from_template` | Use templates | `template_name`, `project_name` |
-| `analyze_workflow_patterns` | Get suggestions | `current_workflow` |
-| `repair_gaea2_project` | Fix existing projects | `project_path` or `project_data` |
-
-## Available Templates
-
-- `basic_terrain` - Simple terrain with erosion
-- `detailed_mountain` - Mountain with rivers & snow
-- `volcanic_terrain` - Volcanic landscape
-- `desert_canyon` - Desert with stratification
-
-## Common Node Sequences
-
-1. **Basic**: Mountain → Erosion2 → SatMap → Export
-2. **Detailed**: Mountain → Erosion2 → Rivers → TextureBase → SatMap → Export
-3. **Pattern**: Slump → FractalTerraces → Combine → Shear (most common)
-
-## Node Categories
-
-- **Primitive** (24) - Noise generators
-- **Terrain** (14) - Terrain generators
-- **Modify** (41) - Modifiers
-- **Surface** (21) - Detail/texture
-- **Simulate** (25) - Natural processes
-- **Derive** (13) - Analysis maps
-- **Colorize** (13) - Color ops
-- **Output** (13) - Export
-- **Utility** (20) - Helpers
-
-## Quick Examples
-
-### Create Simple Terrain (Automatic Validation)
-```python
-# Minimal example - Export and SatMap are added automatically!
-result = await MCPTools.create_gaea2_project(
-    project_name="Simple Mountain",
-    nodes=[
-        {"type": "Mountain", "id": 100},
-        {"type": "Erosion2", "id": 101}
-        # No need for Export or SatMap!
-    ],
-    connections=[
-        {"from_node": 100, "to_node": 101}
-    ]
-)
-# Result will have 4 nodes: Mountain, Erosion2, SatMap (auto), Export (auto)
-```
-
-### Use Template
-```python
-result = await MCPTools.create_gaea2_from_template(
-    template_name="detailed_mountain",
-    project_name="My Mountain"
-)
-```
-
-### Validate & Fix
-```python
-result = await MCPTools.validate_and_fix_workflow(
-    nodes=workflow_nodes,
-    connections=workflow_connections,
-    auto_fix=True
-)
-```
-
-### Get Suggestions
-```python
-analysis = await MCPTools.analyze_workflow_patterns(
-    current_workflow=[
-        {"type": "Mountain"},
-        {"type": "Erosion2"}
-    ]
-)
-# Returns: Rivers (65%), TextureBase (45%), etc.
-```
-
-## Common Properties
-
-### Mountain
-- `Scale`: 0.1-10.0 (default: 1.0)
-- `Height`: 0.0-2.0 (default: 1.0)
-- `Seed`: Any integer
-
-### Erosion2
-- `Duration`: 0.01-0.1 (auto-capped for performance)
-- `Scale`: 1-100000 (default: 10000)
-
-### Rivers
-- `Headwaters`: 10-200 (auto-capped for performance)
-
-### SatMap
-- `Preset`: "Rocky", "Desert", "Alpine", "Volcanic", "Custom"
-
-## Auto-Fix Capabilities
-
-**Automatically Fixed:**
-- Duplicate connections
-- Out-of-range properties
-- Missing Export node
-- Invalid property types
-- Orphaned nodes (with suggestions)
-
-**Manual Fix Required:**
-- Invalid node types
-- Circular dependencies
-- Complex workflow issues
-
-## Optimization Modes
-
-- **Performance**: Lower quality, faster processing
-- **Quality**: Higher quality, slower processing
-- **Balanced**: Good compromise (default)
-
-```python
-result = await MCPTools.optimize_gaea2_properties(
-    node_type="Erosion2",
-    properties={"Duration": 0.15},
-    mode="performance"  # or "quality", "balanced"
-)
-```
-
-## Build Configurations
-
-### Game Development
-```python
-build_config = {
-    "resolution": 2048,
-    "format": "PNG",
-    "bit_depth": 16
+```json
+{
+  "project_name": "simple_mountain",
+  "nodes": [
+    {"id": 1, "type": "Mountain"},
+    {"id": 2, "type": "Erosion2", "properties": {"Duration": 0.15}},
+    {"id": 3, "type": "Export", "save_definition": {"filename": "height", "format": "PNG16"}}
+  ],
+  "connections": [[1, 2], [2, 3]]
 }
 ```
 
-### Film/VFX
-```python
-build_config = {
-    "resolution": 8192,
-    "format": "EXR",
-    "bit_depth": 32,
-    "method": "Tiled"
-}
-```
+Nothing is added implicitly except random `Seed`s on generator nodes and automatic
+positions; add your own Export (with `save_definition`) and colorization nodes.
 
-## Error Handling
+## Ports
 
-```python
-try:
-    result = await MCPTools.create_gaea2_project(...)
-    if result['success']:
-        print(f"Created: {result['output_path']}")
-    else:
-        print(f"Error: {result['error']}")
-except Exception as e:
-    print(f"Exception: {str(e)}")
-```
+| Node | Inputs | Extra outputs |
+|------|--------|---------------|
+| Generators (Mountain, Volcano, Perlin, ...) | none | - |
+| Most nodes | `In` | - |
+| Combine / Blend / Max / Min / Multiply / Compare | `In`, `Input2`, `Mask` | - |
+| Erosion2 / Erosion | `In` | `Flow`, `Wear`, `Deposits` |
+| Rivers | `In`, `Headwaters`, `Mask` | `Rivers`, `Flow`, `Depth`, `Wear`, `Surface`, `Direction` |
+| Sea / Lake | `In` | `Water`, `Beach`, `Depth`, `Shore` (+`Surface` on Sea) |
+| Export / Unity / Unreal | `In` | no `Out` |
 
-## Performance Tips
+`list_gaea2_nodes {"node_type": "..."}` shows the exact table. Declare other ports via the
+node's `ports` field. Each input port accepts one connection; merge with Combine.
 
-1. **Use Caching**: Operations are cached for 1 hour
-2. **Batch Operations**: Validate multiple nodes at once
-3. **Templates**: Start with templates instead of building from scratch
-4. **Conservative Fixes**: Use `aggressive=False` for safer repairs
+## Validation cheat sheet
 
-## Pattern Statistics
+| Problem | Result |
+|---------|--------|
+| `erosion2`, `Erosoin2`, `erosion_2` | fixed to `Erosion2` |
+| `"erosion scale": "6000"` | renamed `ErosionScale`, converted to number |
+| `Duration: 50` on Erosion2 | clamped to 2.0 |
+| Connection to missing node / self / duplicate | removed |
+| Unknown port, two inputs into one port, cycle, duplicate id | **error** |
+| Unknown property name | warning (Gaea2 ignores it) |
+| No Export, unconnected node | warning (error with `strict_mode`) |
 
-From 31 real projects:
-- **Average nodes**: 12.1
-- **Average connections**: 14.2
-- **Most complex**: 31 nodes, 33 connections
-- **Cache speedup**: 19x
-- **Auto-fix success**: 85%
+## Optimization modes
 
-## Documentation
+| Mode | Effect | Suggested resolution |
+|------|--------|----------------------|
+| `performance` | lowers Erosion2/Erosion/Snow durations, Thermal/FlowMap iterations above preview targets | 1024 |
+| `balanced` | only fills unset cost properties with typical values | 2048 |
+| `quality` | raises those values below final-render targets | 4096 |
 
-- **Main Guide**: [README.md](README.md)
-- **API Reference**: [GAEA2_API_REFERENCE.md](GAEA2_API_REFERENCE.md)
-- **Examples**: [GAEA2_EXAMPLES.md](GAEA2_EXAMPLES.md)
-- **Knowledge Base**: [GAEA2_KNOWLEDGE_BASE.md](GAEA2_KNOWLEDGE_BASE.md)
+## Build config
+
+`{"resolution": 2048, "bake_resolution": 2048, "tile_resolution": 1024, "number_of_tiles": 3,
+"edge_blending": 0.25, "build_type": "Standard", "color_space": "sRGB"}` - resolutions must be
+powers of two from 256 to 16384.

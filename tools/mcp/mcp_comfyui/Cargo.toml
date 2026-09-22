@@ -1,6 +1,6 @@
 [package]
 name = "mcp-comfyui"
-version = "0.1.0"
+version = "1.1.0"
 edition = "2024"
 license = "MIT"
 repository = "https://github.com/AndrewAltimit/template-repo"
@@ -37,20 +37,23 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 thiserror = "2.0"
 anyhow = "1.0"
 
-# UUID generation
+# UUID generation (client ids, temp file names, multipart boundaries)
 uuid = { version = "1.0", features = ["v4"] }
 
-# Base64 encoding/decoding
+# Base64 encoding/decoding (LoRA and image payloads)
 base64 = "0.22"
 
 # Random number generation
 rand = "0.8"
 
 [dev-dependencies]
-tokio-test = "0.4"
+# Mock ComfyUI HTTP server for offline tests (same version mcp-core uses).
+axum = "0.7"
+tempfile = "3"
 
 [profile.release]
 lto = true
 codegen-units = 1
-panic = "abort"
+# No `panic = "abort"`: mcp-core wraps tool calls in catch_unwind, which only
+# works when panics unwind.
 strip = true

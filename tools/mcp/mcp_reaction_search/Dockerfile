@@ -8,8 +8,12 @@
 #
 # Run modes:
 #   Standalone: docker run -p 8024:8024 mcp-reaction-search
+#   STDIO:      docker run -i --rm mcp-reaction-search --mode stdio
 #   Server:     docker run -p 8024:8024 mcp-reaction-search --mode server
-#   Client:     docker run -p 8024:8024 mcp-reaction-search --mode client --backend-url http://host:port
+#
+# Mount a volume at /home/mcp/.cache to persist the reaction config cache and
+# the ~90 MB embedding model (under mcp_reaction_search/models) across runs;
+# docker-compose.yml does this with the reaction-search-cache volume.
 
 # =============================================================================
 # Stage 1: Builder
@@ -32,7 +36,7 @@ COPY mcp_core_rust/Cargo.toml mcp_core_rust/Cargo.lock ./mcp_core_rust/
 COPY mcp_core_rust/crates ./mcp_core_rust/crates
 
 # Copy mcp_reaction_search
-COPY mcp_reaction_search/Cargo.toml ./mcp_reaction_search/
+COPY mcp_reaction_search/Cargo.toml mcp_reaction_search/Cargo.lock ./mcp_reaction_search/
 COPY mcp_reaction_search/src ./mcp_reaction_search/src
 
 # Build release binary
@@ -40,7 +44,7 @@ COPY mcp_reaction_search/src ./mcp_reaction_search/src
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
     --mount=type=cache,target=/app/target \
     cd mcp_reaction_search && \
-    CARGO_TARGET_DIR=/app/target cargo build --release \
+    CARGO_TARGET_DIR=/app/target cargo build --release --locked \
     && cp /app/target/release/mcp-reaction-search /usr/local/bin/
 
 # =============================================================================
@@ -61,8 +65,10 @@ RUN useradd -m -u 1000 -s /bin/bash mcp
 # Copy binary from builder
 COPY --from=builder /usr/local/bin/mcp-reaction-search /usr/local/bin/
 
-# Create cache directory for fastembed models
-RUN mkdir -p /home/mcp/.cache && chown -R mcp:mcp /home/mcp/.cache
+# Cache directory (volume mount point) for the reaction config and the
+# fastembed model. The server defaults to $XDG_CACHE_HOME/mcp_reaction_search.
+RUN mkdir -p /home/mcp/.cache/mcp_reaction_search && chown -R mcp:mcp /home/mcp/.cache
+ENV XDG_CACHE_HOME=/home/mcp/.cache
 
 # Switch to non-root user
 USER mcp

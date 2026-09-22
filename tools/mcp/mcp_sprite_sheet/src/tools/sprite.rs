@@ -1,42 +1,83 @@
 //! Sprite and animation definition tools.
+//!
+//! `sprite_id` / `animation_id` arguments accept an ID or a unique name.
 
-use async_trait::async_trait;
-use mcp_core::prelude::*;
+use serde::Deserialize;
 use serde_json::{Value, json};
 
-use crate::engine::ProjectStore;
-use crate::types::*;
+use super::{edit_project, get, ok_json, sprite_tool};
+use crate::args;
+use crate::engine;
+use crate::types::{AnimFrame, HitboxRect, LoopMode, SpriteDef};
 
-// ---------------------------------------------------------------------------
-// define_sprite
-// ---------------------------------------------------------------------------
-
-pub struct DefineSpriteToolImpl {
-    pub store: ProjectStore,
+#[derive(Deserialize)]
+pub struct HitboxArg {
+    #[serde(deserialize_with = "args::int")]
+    x: u32,
+    #[serde(deserialize_with = "args::int")]
+    y: u32,
+    #[serde(deserialize_with = "args::int")]
+    width: u32,
+    #[serde(deserialize_with = "args::int")]
+    height: u32,
 }
 
-#[async_trait]
-impl Tool for DefineSpriteToolImpl {
-    fn name(&self) -> &str {
-        "sprite_define_sprite"
-    }
+#[derive(Deserialize)]
+pub struct DefineSpriteArgs {
+    name: String,
+    sprite_name: String,
+    #[serde(deserialize_with = "args::int")]
+    grid_x: u32,
+    #[serde(deserialize_with = "args::int")]
+    grid_y: u32,
+    #[serde(default, deserialize_with = "args::opt_int")]
+    width_cells: Option<u32>,
+    #[serde(default, deserialize_with = "args::opt_int")]
+    height_cells: Option<u32>,
+    #[serde(default, deserialize_with = "args::opt_int")]
+    anchor_x: Option<u32>,
+    #[serde(default, deserialize_with = "args::opt_int")]
+    anchor_y: Option<u32>,
+    #[serde(default, deserialize_with = "args::opt_json")]
+    hitbox: Option<HitboxArg>,
+    #[serde(default, deserialize_with = "args::opt_json")]
+    tags: Option<Vec<String>>,
+}
 
-    fn description(&self) -> &str {
-        "Define a named sprite region on the grid with optional anchor, hitbox, and tags."
-    }
+fn sprite_json(p: &crate::types::SpriteProject, s: &SpriteDef) -> Value {
+    let (x, y, w, h) = engine::sprite_pixel_bounds(p, s);
+    json!({
+        "id": s.id,
+        "name": s.name,
+        "grid_x": s.grid_x,
+        "grid_y": s.grid_y,
+        "width_cells": s.width_cells,
+        "height_cells": s.height_cells,
+        "pixel_bounds": { "x": x, "y": y, "width": w, "height": h },
+        "anchor": [s.anchor_x, s.anchor_y],
+        "hitbox": s.hitbox,
+        "tags": s.tags
+    })
+}
 
-    fn schema(&self) -> Value {
-        json!({
+sprite_tool! {
+    DefineSpriteTool {
+        name: "sprite_define_sprite",
+        description: "Define a named sprite region on the grid (grid_x/grid_y are cell \
+            coordinates) with optional anchor (pixels from the sprite's top-left), hitbox, and \
+            tags. The region must fit on the canvas. Defining an existing sprite_name updates it \
+            in place (same ID). Undoable.",
+        schema: json!({
             "type": "object",
             "properties": {
                 "name": { "type": "string", "description": "Project name" },
-                "sprite_name": { "type": "string", "description": "Sprite display name" },
-                "grid_x": { "type": "integer", "description": "Grid column" },
-                "grid_y": { "type": "integer", "description": "Grid row" },
-                "width_cells": { "type": "integer", "default": 1 },
-                "height_cells": { "type": "integer", "default": 1 },
-                "anchor_x": { "type": "integer", "default": 0 },
-                "anchor_y": { "type": "integer", "default": 0 },
+                "sprite_name": { "type": "string", "description": "Sprite name (unique per project)" },
+                "grid_x": { "type": "integer", "minimum": 0, "description": "Grid column" },
+                "grid_y": { "type": "integer", "minimum": 0, "description": "Grid row" },
+                "width_cells": { "type": "integer", "minimum": 1, "default": 1 },
+                "height_cells": { "type": "integer", "minimum": 1, "default": 1 },
+                "anchor_x": { "type": "integer", "minimum": 0, "default": 0 },
+                "anchor_y": { "type": "integer", "minimum": 0, "default": 0 },
                 "hitbox": {
                     "type": "object",
                     "properties": {
@@ -44,207 +85,147 @@ impl Tool for DefineSpriteToolImpl {
                         "y": { "type": "integer" },
                         "width": { "type": "integer" },
                         "height": { "type": "integer" }
-                    }
+                    },
+                    "required": ["x", "y", "width", "height"],
+                    "description": "Hitbox relative to the sprite's top-left pixel"
                 },
                 "tags": { "type": "array", "items": { "type": "string" } }
             },
             "required": ["name", "sprite_name", "grid_x", "grid_y"]
-        })
-    }
-
-    async fn execute(&self, args: Value) -> Result<ToolResult> {
-        let pname = args["name"]
-            .as_str()
-            .ok_or_else(|| MCPError::InvalidParameters("Missing 'name'".to_string()))?;
-        let mut store = self.store.write().await;
-        let project = store
-            .get_mut(pname)
-            .ok_or_else(|| MCPError::InvalidParameters(format!("Project not found: {pname}")))?;
-
-        let sprite_name = args["sprite_name"]
-            .as_str()
-            .ok_or_else(|| MCPError::InvalidParameters("Missing 'sprite_name'".to_string()))?;
-
-        let id = uuid::Uuid::new_v4().to_string();
-
-        let hitbox = args.get("hitbox").and_then(|h| {
-            Some(HitboxRect {
-                x: h["x"].as_u64()? as u32,
-                y: h["y"].as_u64()? as u32,
-                width: h["width"].as_u64()? as u32,
-                height: h["height"].as_u64()? as u32,
+        }),
+        execute: |ctx, a: DefineSpriteArgs| {
+            let def = SpriteDef {
+                id: String::new(),
+                name: a.sprite_name,
+                grid_x: a.grid_x,
+                grid_y: a.grid_y,
+                width_cells: a.width_cells.unwrap_or(1),
+                height_cells: a.height_cells.unwrap_or(1),
+                anchor_x: a.anchor_x.unwrap_or(0),
+                anchor_y: a.anchor_y.unwrap_or(0),
+                hitbox: a.hitbox.map(|h| HitboxRect {
+                    x: h.x,
+                    y: h.y,
+                    width: h.width,
+                    height: h.height,
+                }),
+                tags: a.tags.unwrap_or_default(),
+            };
+            let out = edit_project(ctx, &a.name, "define_sprite", |p| {
+                let (id, updated) = engine::define_sprite(p, def)?;
+                let i = engine::resolve_sprite(p, &id)?;
+                Ok((id, updated, sprite_json(p, &p.sprites[i])))
             })
-        });
-
-        let tags: Vec<String> = args["tags"]
-            .as_array()
-            .map(|arr| {
-                arr.iter()
-                    .filter_map(|v| v.as_str().map(String::from))
-                    .collect()
-            })
-            .unwrap_or_default();
-
-        project.sprites.push(SpriteDef {
-            id: id.clone(),
-            name: sprite_name.to_string(),
-            grid_x: args["grid_x"].as_u64().unwrap_or(0) as u32,
-            grid_y: args["grid_y"].as_u64().unwrap_or(0) as u32,
-            width_cells: args["width_cells"].as_u64().unwrap_or(1) as u32,
-            height_cells: args["height_cells"].as_u64().unwrap_or(1) as u32,
-            anchor_x: args["anchor_x"].as_u64().unwrap_or(0) as u32,
-            anchor_y: args["anchor_y"].as_u64().unwrap_or(0) as u32,
-            hitbox,
-            tags,
-        });
-
-        ToolResult::json(&json!({ "success": true, "sprite_id": id }))
+            .await?;
+            ok_json(json!({
+                "success": true,
+                "sprite_id": out.0,
+                "updated_existing": out.1,
+                "sprite": out.2
+            }))
+        }
     }
 }
 
-// ---------------------------------------------------------------------------
-// remove_sprite
-// ---------------------------------------------------------------------------
-
-pub struct RemoveSpriteTool {
-    pub store: ProjectStore,
+#[derive(Deserialize)]
+pub struct RemoveSpriteArgs {
+    name: String,
+    sprite_id: String,
 }
 
-#[async_trait]
-impl Tool for RemoveSpriteTool {
-    fn name(&self) -> &str {
-        "sprite_remove_sprite"
-    }
-
-    fn description(&self) -> &str {
-        "Remove a sprite definition by ID."
-    }
-
-    fn schema(&self) -> Value {
-        json!({
+sprite_tool! {
+    RemoveSpriteTool {
+        name: "sprite_remove_sprite",
+        description: "Remove a sprite definition (by ID or name). Pixels are untouched. Frames \
+            that referenced it are removed from animations; affected animations are reported. \
+            Undoable.",
+        schema: json!({
             "type": "object",
             "properties": {
                 "name": { "type": "string", "description": "Project name" },
-                "sprite_id": { "type": "string" }
+                "sprite_id": { "type": "string", "description": "Sprite ID or unique name" }
             },
             "required": ["name", "sprite_id"]
-        })
-    }
-
-    async fn execute(&self, args: Value) -> Result<ToolResult> {
-        let pname = args["name"]
-            .as_str()
-            .ok_or_else(|| MCPError::InvalidParameters("Missing 'name'".to_string()))?;
-        let mut store = self.store.write().await;
-        let project = store
-            .get_mut(pname)
-            .ok_or_else(|| MCPError::InvalidParameters(format!("Project not found: {pname}")))?;
-
-        let sprite_id = args["sprite_id"]
-            .as_str()
-            .ok_or_else(|| MCPError::InvalidParameters("Missing 'sprite_id'".to_string()))?;
-
-        let idx = project
-            .sprites
-            .iter()
-            .position(|s| s.id == sprite_id)
-            .ok_or_else(|| MCPError::InvalidParameters(format!("Sprite not found: {sprite_id}")))?;
-
-        project.sprites.remove(idx);
-        ToolResult::json(&json!({ "success": true }))
+        }),
+        execute: |ctx, a: RemoveSpriteArgs| {
+            let (removed, affected) = edit_project(ctx, &a.name, "remove_sprite", |p| {
+                engine::remove_sprite(p, &a.sprite_id)
+            })
+            .await?;
+            ok_json(json!({
+                "success": true,
+                "removed": { "id": removed.id, "name": removed.name },
+                "animations_affected": affected
+            }))
+        }
     }
 }
 
-// ---------------------------------------------------------------------------
-// list_sprites
-// ---------------------------------------------------------------------------
-
-pub struct ListSpritesTool {
-    pub store: ProjectStore,
+#[derive(Deserialize)]
+pub struct NameArgs {
+    name: String,
 }
 
-#[async_trait]
-impl Tool for ListSpritesTool {
-    fn name(&self) -> &str {
-        "sprite_list_sprites"
-    }
-
-    fn description(&self) -> &str {
-        "List all sprite definitions."
-    }
-
-    fn schema(&self) -> Value {
-        json!({
+sprite_tool! {
+    ListSpritesTool {
+        name: "sprite_list_sprites",
+        description: "List all sprite definitions with grid position, pixel bounds, anchor, \
+            hitbox, and tags.",
+        schema: json!({
             "type": "object",
             "properties": {
                 "name": { "type": "string", "description": "Project name" }
             },
             "required": ["name"]
-        })
-    }
-
-    async fn execute(&self, args: Value) -> Result<ToolResult> {
-        let pname = args["name"]
-            .as_str()
-            .ok_or_else(|| MCPError::InvalidParameters("Missing 'name'".to_string()))?;
-        let store = self.store.read().await;
-        let project = store
-            .get(pname)
-            .ok_or_else(|| MCPError::InvalidParameters(format!("Project not found: {pname}")))?;
-
-        let sprites: Vec<Value> = project
-            .sprites
-            .iter()
-            .map(|s| {
-                json!({
-                    "id": s.id,
-                    "name": s.name,
-                    "grid_x": s.grid_x,
-                    "grid_y": s.grid_y,
-                    "width_cells": s.width_cells,
-                    "height_cells": s.height_cells,
-                    "anchor": [s.anchor_x, s.anchor_y],
-                    "has_hitbox": s.hitbox.is_some(),
-                    "tags": s.tags
-                })
-            })
-            .collect();
-
-        ToolResult::json(&json!({ "sprites": sprites }))
+        }),
+        execute: |ctx, a: NameArgs| {
+            let store = ctx.store.read().await;
+            let p = get(&store, &a.name)?;
+            let sprites: Vec<Value> = p.sprites.iter().map(|s| sprite_json(p, s)).collect();
+            ok_json(json!({ "sprites": sprites }))
+        }
     }
 }
 
-// ---------------------------------------------------------------------------
-// define_animation
-// ---------------------------------------------------------------------------
-
-pub struct DefineAnimationTool {
-    pub store: ProjectStore,
+#[derive(Deserialize)]
+pub struct FrameArg {
+    sprite_id: String,
+    #[serde(default, deserialize_with = "args::opt_int")]
+    duration_ms: Option<u32>,
 }
 
-#[async_trait]
-impl Tool for DefineAnimationTool {
-    fn name(&self) -> &str {
-        "sprite_define_animation"
-    }
+#[derive(Deserialize)]
+pub struct DefineAnimationArgs {
+    name: String,
+    anim_name: String,
+    #[serde(deserialize_with = "args::json")]
+    frames: Vec<FrameArg>,
+    #[serde(default)]
+    loop_mode: Option<LoopMode>,
+    #[serde(default, deserialize_with = "args::opt_json")]
+    tags: Option<Vec<String>>,
+}
 
-    fn description(&self) -> &str {
-        "Define an animation as a sequence of sprite frames with timing."
-    }
-
-    fn schema(&self) -> Value {
-        json!({
+sprite_tool! {
+    DefineAnimationTool {
+        name: "sprite_define_animation",
+        description: "Define an animation as a sequence of sprite frames with per-frame timing \
+            (default 100 ms). Frame sprite_id may be a sprite ID or unique name; every frame \
+            must reference an existing sprite. Defining an existing anim_name replaces it (same \
+            ID). Undoable.",
+        schema: json!({
             "type": "object",
             "properties": {
                 "name": { "type": "string", "description": "Project name" },
                 "anim_name": { "type": "string", "description": "Animation name" },
                 "frames": {
                     "type": "array",
+                    "minItems": 1,
                     "items": {
                         "type": "object",
                         "properties": {
-                            "sprite_id": { "type": "string" },
-                            "duration_ms": { "type": "integer", "default": 100 }
+                            "sprite_id": { "type": "string", "description": "Sprite ID or unique name" },
+                            "duration_ms": { "type": "integer", "minimum": 1, "default": 100 }
                         },
                         "required": ["sprite_id"]
                     }
@@ -253,117 +234,109 @@ impl Tool for DefineAnimationTool {
                 "tags": { "type": "array", "items": { "type": "string" } }
             },
             "required": ["name", "anim_name", "frames"]
-        })
-    }
-
-    async fn execute(&self, args: Value) -> Result<ToolResult> {
-        let pname = args["name"]
-            .as_str()
-            .ok_or_else(|| MCPError::InvalidParameters("Missing 'name'".to_string()))?;
-        let mut store = self.store.write().await;
-        let project = store
-            .get_mut(pname)
-            .ok_or_else(|| MCPError::InvalidParameters(format!("Project not found: {pname}")))?;
-
-        let anim_name = args["anim_name"]
-            .as_str()
-            .ok_or_else(|| MCPError::InvalidParameters("Missing 'anim_name'".to_string()))?;
-
-        let frames_arr = args["frames"]
-            .as_array()
-            .ok_or_else(|| MCPError::InvalidParameters("Missing 'frames'".to_string()))?;
-
-        let frames: Vec<AnimFrame> = frames_arr
-            .iter()
-            .filter_map(|f| {
-                Some(AnimFrame {
-                    sprite_id: f["sprite_id"].as_str()?.to_string(),
-                    duration_ms: f["duration_ms"].as_u64().unwrap_or(100) as u32,
+        }),
+        execute: |ctx, a: DefineAnimationArgs| {
+            let frames: Vec<AnimFrame> = a
+                .frames
+                .into_iter()
+                .map(|f| AnimFrame {
+                    sprite_id: f.sprite_id,
+                    duration_ms: f.duration_ms.unwrap_or(100),
                 })
+                .collect();
+            let n = frames.len();
+            let (id, updated) = edit_project(ctx, &a.name, "define_animation", |p| {
+                engine::define_animation(
+                    p,
+                    &a.anim_name,
+                    frames,
+                    a.loop_mode.unwrap_or_default(),
+                    a.tags.unwrap_or_default(),
+                )
             })
-            .collect();
-
-        let loop_mode = match args["loop_mode"].as_str().unwrap_or("loop") {
-            "once" => LoopMode::Once,
-            "ping_pong" => LoopMode::PingPong,
-            _ => LoopMode::Loop,
-        };
-
-        let tags: Vec<String> = args["tags"]
-            .as_array()
-            .map(|arr| {
-                arr.iter()
-                    .filter_map(|v| v.as_str().map(String::from))
-                    .collect()
-            })
-            .unwrap_or_default();
-
-        let id = uuid::Uuid::new_v4().to_string();
-
-        project.animations.push(AnimationDef {
-            id: id.clone(),
-            name: anim_name.to_string(),
-            frames,
-            loop_mode,
-            tags,
-        });
-
-        ToolResult::json(&json!({ "success": true, "animation_id": id }))
+            .await?;
+            ok_json(json!({
+                "success": true,
+                "animation_id": id,
+                "updated_existing": updated,
+                "frame_count": n
+            }))
+        }
     }
 }
 
-// ---------------------------------------------------------------------------
-// list_animations
-// ---------------------------------------------------------------------------
-
-pub struct ListAnimationsTool {
-    pub store: ProjectStore,
-}
-
-#[async_trait]
-impl Tool for ListAnimationsTool {
-    fn name(&self) -> &str {
-        "sprite_list_animations"
-    }
-
-    fn description(&self) -> &str {
-        "List all animation definitions."
-    }
-
-    fn schema(&self) -> Value {
-        json!({
+sprite_tool! {
+    ListAnimationsTool {
+        name: "sprite_list_animations",
+        description: "List all animation definitions with frames (sprite name + duration), loop \
+            mode, tags, and total duration.",
+        schema: json!({
             "type": "object",
             "properties": {
                 "name": { "type": "string", "description": "Project name" }
             },
             "required": ["name"]
-        })
-    }
-
-    async fn execute(&self, args: Value) -> Result<ToolResult> {
-        let pname = args["name"]
-            .as_str()
-            .ok_or_else(|| MCPError::InvalidParameters("Missing 'name'".to_string()))?;
-        let store = self.store.read().await;
-        let project = store
-            .get(pname)
-            .ok_or_else(|| MCPError::InvalidParameters(format!("Project not found: {pname}")))?;
-
-        let anims: Vec<Value> = project
-            .animations
-            .iter()
-            .map(|a| {
-                json!({
-                    "id": a.id,
-                    "name": a.name,
-                    "frame_count": a.frames.len(),
-                    "loop_mode": a.loop_mode,
-                    "tags": a.tags,
-                    "total_duration_ms": a.frames.iter().map(|f| f.duration_ms).sum::<u32>()
+        }),
+        execute: |ctx, a: NameArgs| {
+            let store = ctx.store.read().await;
+            let p = get(&store, &a.name)?;
+            let anims: Vec<Value> = p
+                .animations
+                .iter()
+                .map(|an| {
+                    let frames: Vec<Value> = an
+                        .frames
+                        .iter()
+                        .map(|f| {
+                            let sprite = p
+                                .sprites
+                                .iter()
+                                .find(|s| s.id == f.sprite_id)
+                                .map(|s| s.name.as_str());
+                            json!({ "sprite_id": f.sprite_id, "sprite": sprite, "duration_ms": f.duration_ms })
+                        })
+                        .collect();
+                    json!({
+                        "id": an.id,
+                        "name": an.name,
+                        "frame_count": an.frames.len(),
+                        "frames": frames,
+                        "loop_mode": an.loop_mode,
+                        "tags": an.tags,
+                        "total_duration_ms": an.total_duration_ms()
+                    })
                 })
-            })
-            .collect();
+                .collect();
+            ok_json(json!({ "animations": anims }))
+        }
+    }
+}
 
-        ToolResult::json(&json!({ "animations": anims }))
+#[derive(Deserialize)]
+pub struct RemoveAnimationArgs {
+    name: String,
+    animation_id: String,
+}
+
+sprite_tool! {
+    RemoveAnimationTool {
+        name: "sprite_remove_animation",
+        description: "Remove an animation definition (by ID or name). Sprites are untouched. \
+            Undoable.",
+        schema: json!({
+            "type": "object",
+            "properties": {
+                "name": { "type": "string", "description": "Project name" },
+                "animation_id": { "type": "string", "description": "Animation ID or unique name" }
+            },
+            "required": ["name", "animation_id"]
+        }),
+        execute: |ctx, a: RemoveAnimationArgs| {
+            let removed = edit_project(ctx, &a.name, "remove_animation", |p| {
+                engine::remove_animation(p, &a.animation_id)
+            })
+            .await?;
+            ok_json(json!({ "success": true, "removed": { "id": removed.id, "name": removed.name } }))
+        }
     }
 }

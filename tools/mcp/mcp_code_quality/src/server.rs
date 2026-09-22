@@ -1,141 +1,120 @@
-//! MCP server implementation for code quality.
+//! MCP tool definitions.
+//!
+//! Each tool pairs a hand-written JSON schema (kept rich: enums, defaults,
+//! ranges -- things the `#[mcp_tool]` macro's derived schema cannot express)
+//! with a typed `serde` argument struct. [`parse_args`] deserializes the raw
+//! arguments into that struct, so a missing required field, a wrong type, or
+//! an unknown enum value becomes a clean `InvalidParameters` error instead of
+//! being silently replaced by a default.
 
 use async_trait::async_trait;
 use mcp_core::prelude::*;
+use serde::Deserialize;
+use serde::de::DeserializeOwned;
 use serde_json::{Value, json};
-use std::path::PathBuf;
 use std::sync::Arc;
-use tokio::sync::RwLock;
-use tracing::info;
 
-use crate::engine::CodeQualityEngine;
-use crate::types::{Language, Linter, Severity};
+use crate::engine::{CodeQualityEngine, LinkCheckArgs, RunTestsArgs};
+use crate::types::{Language, Linter, PythonFormatter, Severity};
 
-/// Code quality MCP server
+/// Deserialize tool arguments into `T`.
+///
+/// `null` values are treated as absent (so `{"config": null}` falls back to
+/// the default) and a missing/`null` argument object is treated as `{}`.
+pub fn parse_args<T: DeserializeOwned>(args: Value) -> Result<T> {
+    let args = match args {
+        Value::Null => Value::Object(Default::default()),
+        Value::Object(mut map) => {
+            map.retain(|_, v| !v.is_null());
+            Value::Object(map)
+        },
+        other => {
+            return Err(MCPError::InvalidParameters(format!(
+                "arguments must be a JSON object, got {other}"
+            )));
+        },
+    };
+    serde_json::from_value(args).map_err(|e| MCPError::InvalidParameters(e.to_string()))
+}
+
+/// Registers every tool against one shared engine.
 pub struct CodeQualityServer {
-    engine: Arc<RwLock<Option<CodeQualityEngine>>>,
-    timeout_secs: u64,
-    allowed_paths: Vec<String>,
-    audit_log_path: PathBuf,
-    rate_limiting_enabled: bool,
+    engine: Arc<CodeQualityEngine>,
 }
 
 impl CodeQualityServer {
-    /// Create a new code quality server
-    pub fn new(
-        timeout_secs: u64,
-        allowed_paths: Vec<String>,
-        audit_log_path: PathBuf,
-        rate_limiting_enabled: bool,
-    ) -> Self {
+    /// Wrap an engine.
+    pub fn new(engine: CodeQualityEngine) -> Self {
         Self {
-            engine: Arc::new(RwLock::new(None)),
-            timeout_secs,
-            allowed_paths,
-            audit_log_path,
-            rate_limiting_enabled,
+            engine: Arc::new(engine),
         }
     }
 
-    /// Ensure engine is initialized
-    #[allow(dead_code)]
-    async fn ensure_initialized(&self) -> Result<()> {
-        let mut guard = self.engine.write().await;
-        if guard.is_none() {
-            info!("Initializing code quality engine...");
-            let engine = CodeQualityEngine::new(
-                self.timeout_secs,
-                self.allowed_paths.clone(),
-                self.audit_log_path.clone(),
-                self.rate_limiting_enabled,
-            );
-            *guard = Some(engine);
-        }
-        Ok(())
-    }
-
-    /// Get all tools as boxed trait objects
+    /// All tools as boxed trait objects.
     pub fn tools(&self) -> Vec<BoxedTool> {
+        let e = || self.engine.clone();
         vec![
-            Arc::new(FormatCheckTool {
-                server: self.clone_refs(),
-            }),
-            Arc::new(LintTool {
-                server: self.clone_refs(),
-            }),
-            Arc::new(AutoformatTool {
-                server: self.clone_refs(),
-            }),
-            Arc::new(RunTestsTool {
-                server: self.clone_refs(),
-            }),
-            Arc::new(TypeCheckTool {
-                server: self.clone_refs(),
-            }),
-            Arc::new(SecurityScanTool {
-                server: self.clone_refs(),
-            }),
-            Arc::new(AuditDependenciesTool {
-                server: self.clone_refs(),
-            }),
-            Arc::new(CheckMarkdownLinksTool {
-                server: self.clone_refs(),
-            }),
-            Arc::new(GetStatusTool {
-                server: self.clone_refs(),
-            }),
-            Arc::new(GetAuditLogTool {
-                server: self.clone_refs(),
-            }),
+            Arc::new(FormatCheckTool(e())),
+            Arc::new(LintTool(e())),
+            Arc::new(AutoformatTool(e())),
+            Arc::new(RunTestsTool(e())),
+            Arc::new(TypeCheckTool(e())),
+            Arc::new(SecurityScanTool(e())),
+            Arc::new(AuditDependenciesTool(e())),
+            Arc::new(CheckMarkdownLinksTool(e())),
+            Arc::new(GetStatusTool(e())),
+            Arc::new(GetAuditLogTool(e())),
         ]
     }
-
-    /// Clone Arc references for tools
-    fn clone_refs(&self) -> ServerRefs {
-        ServerRefs {
-            engine: self.engine.clone(),
-            timeout_secs: self.timeout_secs,
-            allowed_paths: self.allowed_paths.clone(),
-            audit_log_path: self.audit_log_path.clone(),
-            rate_limiting_enabled: self.rate_limiting_enabled,
-        }
-    }
 }
 
-/// Shared references for tools
-#[derive(Clone)]
-struct ServerRefs {
-    engine: Arc<RwLock<Option<CodeQualityEngine>>>,
-    timeout_secs: u64,
-    allowed_paths: Vec<String>,
-    audit_log_path: PathBuf,
-    rate_limiting_enabled: bool,
+fn enum_schema(values: Vec<&'static str>, default: &str, description: &str) -> Value {
+    json!({"type": "string", "enum": values, "default": default, "description": description})
 }
 
-impl ServerRefs {
-    async fn ensure_initialized(&self) -> Result<()> {
-        let mut guard = self.engine.write().await;
-        if guard.is_none() {
-            info!("Initializing code quality engine...");
-            let engine = CodeQualityEngine::new(
-                self.timeout_secs,
-                self.allowed_paths.clone(),
-                self.audit_log_path.clone(),
-                self.rate_limiting_enabled,
-            );
-            *guard = Some(engine);
-        }
-        Ok(())
-    }
+fn default_true() -> bool {
+    true
 }
 
 // ============================================================================
-// Tool: format_check
+// format_check / autoformat
 // ============================================================================
 
-struct FormatCheckTool {
-    server: ServerRefs,
+#[derive(Debug, Deserialize)]
+struct FormatArgs {
+    path: String,
+    #[serde(default)]
+    language: Language,
+    #[serde(default)]
+    formatter: PythonFormatter,
+    #[serde(default)]
+    diff: bool,
 }
+
+fn format_schema(with_diff: bool) -> Value {
+    let mut props = json!({
+        "path": {
+            "type": "string",
+            "description": "File or directory (inside the allowed paths). For rust, a crate directory containing Cargo.toml or a single .rs file."
+        },
+        "language": enum_schema(Language::names(), "python", "Programming language"),
+        "formatter": enum_schema(
+            PythonFormatter::names(),
+            "ruff",
+            "Python formatter backend (ignored for other languages): 'ruff' (ruff format, the repo standard) or 'black'"
+        ),
+    });
+    if with_diff {
+        props["diff"] = json!({
+            "type": "boolean",
+            "default": false,
+            "description": "Include a diff of the required changes in 'output' (ruff, black, gofmt, rustfmt)"
+        });
+    }
+    json!({"type": "object", "properties": props, "required": ["path"]})
+}
+
+struct FormatCheckTool(Arc<CodeQualityEngine>);
 
 #[async_trait]
 impl Tool for FormatCheckTool {
@@ -144,126 +123,24 @@ impl Tool for FormatCheckTool {
     }
 
     fn description(&self) -> &str {
-        "Check code formatting for various languages (python, javascript, typescript, go, rust)"
+        "Check code formatting without modifying files (python: ruff format/black, javascript/typescript: prettier, go: gofmt, rust: cargo fmt/rustfmt). Returns 'formatted' and the list of 'unformatted_files'."
     }
 
     fn schema(&self) -> Value {
-        json!({
-            "type": "object",
-            "properties": {
-                "path": {
-                    "type": "string",
-                    "description": "Path to file or directory to check"
-                },
-                "language": {
-                    "type": "string",
-                    "enum": ["python", "javascript", "typescript", "go", "rust"],
-                    "default": "python",
-                    "description": "Programming language"
-                }
-            },
-            "required": ["path"]
-        })
+        format_schema(true)
     }
 
     async fn execute(&self, args: Value) -> Result<ToolResult> {
-        self.server.ensure_initialized().await?;
-
-        let path = args
-            .get("path")
-            .and_then(|v| v.as_str())
-            .ok_or_else(|| MCPError::InvalidParameters("Missing 'path' parameter".to_string()))?;
-
-        let language = args
-            .get("language")
-            .and_then(|v| v.as_str())
-            .and_then(Language::from_str)
-            .unwrap_or(Language::Python);
-
-        let guard = self.server.engine.read().await;
-        let engine = guard
-            .as_ref()
-            .ok_or_else(|| MCPError::Internal("Engine not initialized".to_string()))?;
-
-        let result = engine.format_check(path, language).await;
-        ToolResult::json(&result)
+        let a: FormatArgs = parse_args(args)?;
+        let r = self
+            .0
+            .format_check(&a.path, a.language, a.formatter, a.diff)
+            .await;
+        ToolResult::json(&r)
     }
 }
 
-// ============================================================================
-// Tool: lint
-// ============================================================================
-
-struct LintTool {
-    server: ServerRefs,
-}
-
-#[async_trait]
-impl Tool for LintTool {
-    fn name(&self) -> &str {
-        "lint"
-    }
-
-    fn description(&self) -> &str {
-        "Run code linting with various linters (flake8, ruff, eslint, golint, clippy)"
-    }
-
-    fn schema(&self) -> Value {
-        json!({
-            "type": "object",
-            "properties": {
-                "path": {
-                    "type": "string",
-                    "description": "Path to file or directory to lint"
-                },
-                "config": {
-                    "type": "string",
-                    "description": "Path to linting configuration file"
-                },
-                "linter": {
-                    "type": "string",
-                    "enum": ["flake8", "ruff", "eslint", "golint", "clippy"],
-                    "default": "ruff",
-                    "description": "Linter to use"
-                }
-            },
-            "required": ["path"]
-        })
-    }
-
-    async fn execute(&self, args: Value) -> Result<ToolResult> {
-        self.server.ensure_initialized().await?;
-
-        let path = args
-            .get("path")
-            .and_then(|v| v.as_str())
-            .ok_or_else(|| MCPError::InvalidParameters("Missing 'path' parameter".to_string()))?;
-
-        let config = args.get("config").and_then(|v| v.as_str());
-
-        let linter = args
-            .get("linter")
-            .and_then(|v| v.as_str())
-            .and_then(Linter::from_str)
-            .unwrap_or(Linter::Ruff);
-
-        let guard = self.server.engine.read().await;
-        let engine = guard
-            .as_ref()
-            .ok_or_else(|| MCPError::Internal("Engine not initialized".to_string()))?;
-
-        let result = engine.lint(path, config, linter).await;
-        ToolResult::json(&result)
-    }
-}
-
-// ============================================================================
-// Tool: autoformat
-// ============================================================================
-
-struct AutoformatTool {
-    server: ServerRefs,
-}
+struct AutoformatTool(Arc<CodeQualityEngine>);
 
 #[async_trait]
 impl Tool for AutoformatTool {
@@ -272,7 +149,42 @@ impl Tool for AutoformatTool {
     }
 
     fn description(&self) -> &str {
-        "Automatically format code files for various languages"
+        "Format code files IN PLACE (python: ruff format/black, javascript/typescript: prettier --write, go: gofmt -w, rust: cargo fmt/rustfmt). Requires a writable mount."
+    }
+
+    fn schema(&self) -> Value {
+        format_schema(false)
+    }
+
+    async fn execute(&self, args: Value) -> Result<ToolResult> {
+        let a: FormatArgs = parse_args(args)?;
+        let r = self.0.autoformat(&a.path, a.language, a.formatter).await;
+        ToolResult::json(&r)
+    }
+}
+
+// ============================================================================
+// lint
+// ============================================================================
+
+#[derive(Debug, Deserialize)]
+struct LintArgs {
+    path: String,
+    config: Option<String>,
+    #[serde(default)]
+    linter: Linter,
+}
+
+struct LintTool(Arc<CodeQualityEngine>);
+
+#[async_trait]
+impl Tool for LintTool {
+    fn name(&self) -> &str {
+        "lint"
+    }
+
+    fn description(&self) -> &str {
+        "Run a linter (ruff, flake8, eslint, golint, clippy) and return one 'file:line:col: message' entry per issue. clippy needs a crate directory containing Cargo.toml."
     }
 
     fn schema(&self) -> Value {
@@ -281,50 +193,49 @@ impl Tool for AutoformatTool {
             "properties": {
                 "path": {
                     "type": "string",
-                    "description": "Path to file or directory to format"
+                    "description": "File or directory to lint (inside the allowed paths)"
                 },
-                "language": {
+                "config": {
                     "type": "string",
-                    "enum": ["python", "javascript", "typescript", "go", "rust"],
-                    "default": "python",
-                    "description": "Programming language"
-                }
+                    "description": "Linter config file (inside the allowed paths). ruff/flake8/eslint: passed as --config; clippy: its directory is used as CLIPPY_CONF_DIR; golint: unsupported"
+                },
+                "linter": enum_schema(Linter::names(), "ruff", "Linter to use")
             },
             "required": ["path"]
         })
     }
 
     async fn execute(&self, args: Value) -> Result<ToolResult> {
-        self.server.ensure_initialized().await?;
-
-        let path = args
-            .get("path")
-            .and_then(|v| v.as_str())
-            .ok_or_else(|| MCPError::InvalidParameters("Missing 'path' parameter".to_string()))?;
-
-        let language = args
-            .get("language")
-            .and_then(|v| v.as_str())
-            .and_then(Language::from_str)
-            .unwrap_or(Language::Python);
-
-        let guard = self.server.engine.read().await;
-        let engine = guard
-            .as_ref()
-            .ok_or_else(|| MCPError::Internal("Engine not initialized".to_string()))?;
-
-        let result = engine.autoformat(path, language).await;
-        ToolResult::json(&result)
+        let a: LintArgs = parse_args(args)?;
+        let r = self.0.lint(&a.path, a.config.as_deref(), a.linter).await;
+        ToolResult::json(&r)
     }
 }
 
 // ============================================================================
-// Tool: run_tests
+// run_tests
 // ============================================================================
 
-struct RunTestsTool {
-    server: ServerRefs,
+#[derive(Debug, Deserialize)]
+struct RunTestsToolArgs {
+    #[serde(default = "default_tests_path")]
+    path: String,
+    working_dir: Option<String>,
+    pattern: Option<String>,
+    #[serde(default)]
+    verbose: bool,
+    #[serde(default)]
+    coverage: bool,
+    #[serde(default)]
+    fail_fast: bool,
+    markers: Option<String>,
 }
+
+fn default_tests_path() -> String {
+    "tests/".to_string()
+}
+
+struct RunTestsTool(Arc<CodeQualityEngine>);
 
 #[async_trait]
 impl Tool for RunTestsTool {
@@ -333,7 +244,7 @@ impl Tool for RunTestsTool {
     }
 
     fn description(&self) -> &str {
-        "Run pytest tests with controlled parameters"
+        "Run pytest and return pass/fail, a parsed outcome 'summary' (passed/failed/skipped/...), and the (size-capped) output. Note: running tests executes the project's Python code."
     }
 
     fn schema(&self) -> Value {
@@ -343,77 +254,62 @@ impl Tool for RunTestsTool {
                 "path": {
                     "type": "string",
                     "default": "tests/",
-                    "description": "Path to test file or directory"
+                    "description": "Test file or directory. Relative paths resolve against working_dir (or the server's working directory)."
+                },
+                "working_dir": {
+                    "type": "string",
+                    "description": "Directory to run pytest in (inside the allowed paths); also the coverage source"
                 },
                 "pattern": {
                     "type": "string",
-                    "description": "Test file pattern (e.g., test_*.py)"
+                    "description": "Either a test file glob such as 'test_*.py' (sets python_files) or a pytest -k keyword expression such as 'login and not slow'"
                 },
-                "verbose": {
-                    "type": "boolean",
-                    "default": false,
-                    "description": "Enable verbose output"
-                },
+                "verbose": {"type": "boolean", "default": false, "description": "Pass -v"},
                 "coverage": {
                     "type": "boolean",
                     "default": false,
-                    "description": "Generate coverage report"
+                    "description": "Collect coverage (--cov, needs pytest-cov) with a term-missing report"
                 },
-                "fail_fast": {
-                    "type": "boolean",
-                    "default": false,
-                    "description": "Stop on first failure"
-                },
+                "fail_fast": {"type": "boolean", "default": false, "description": "Stop on first failure (-x)"},
                 "markers": {
                     "type": "string",
-                    "description": "Run tests matching marker expression (e.g., 'not slow')"
+                    "description": "Marker expression passed to -m (e.g. 'not slow')"
                 }
             }
         })
     }
 
     async fn execute(&self, args: Value) -> Result<ToolResult> {
-        self.server.ensure_initialized().await?;
-
-        let path = args
-            .get("path")
-            .and_then(|v| v.as_str())
-            .unwrap_or("tests/");
-
-        let pattern = args.get("pattern").and_then(|v| v.as_str());
-        let verbose = args
-            .get("verbose")
-            .and_then(|v| v.as_bool())
-            .unwrap_or(false);
-        let coverage = args
-            .get("coverage")
-            .and_then(|v| v.as_bool())
-            .unwrap_or(false);
-        let fail_fast = args
-            .get("fail_fast")
-            .and_then(|v| v.as_bool())
-            .unwrap_or(false);
-        let markers = args.get("markers").and_then(|v| v.as_str());
-
-        let guard = self.server.engine.read().await;
-        let engine = guard
-            .as_ref()
-            .ok_or_else(|| MCPError::Internal("Engine not initialized".to_string()))?;
-
-        let result = engine
-            .run_tests(path, pattern, verbose, coverage, fail_fast, markers)
+        let a: RunTestsToolArgs = parse_args(args)?;
+        let r = self
+            .0
+            .run_tests(&RunTestsArgs {
+                path: a.path,
+                working_dir: a.working_dir,
+                pattern: a.pattern,
+                markers: a.markers,
+                verbose: a.verbose,
+                coverage: a.coverage,
+                fail_fast: a.fail_fast,
+            })
             .await;
-        ToolResult::json(&result)
+        ToolResult::json(&r)
     }
 }
 
 // ============================================================================
-// Tool: type_check
+// type_check
 // ============================================================================
 
-struct TypeCheckTool {
-    server: ServerRefs,
+#[derive(Debug, Deserialize)]
+struct TypeCheckArgs {
+    path: String,
+    #[serde(default)]
+    strict: bool,
+    config: Option<String>,
 }
+
+struct TypeCheckTool(Arc<CodeQualityEngine>);
 
 #[async_trait]
 impl Tool for TypeCheckTool {
@@ -422,7 +318,7 @@ impl Tool for TypeCheckTool {
     }
 
     fn description(&self) -> &str {
-        "Run ty type checking (Astral's fast type checker, 10-60x faster than mypy)"
+        "Run the ty Python type checker (Astral) and return one entry per diagnostic"
     }
 
     fn schema(&self) -> Value {
@@ -431,16 +327,16 @@ impl Tool for TypeCheckTool {
             "properties": {
                 "path": {
                     "type": "string",
-                    "description": "Path to file or directory to check"
+                    "description": "File or directory to check (inside the allowed paths)"
                 },
                 "strict": {
                     "type": "boolean",
                     "default": false,
-                    "description": "Enable strict mode (currently unused, ty uses pyproject.toml config)"
+                    "description": "Fail on warnings too (ty --error-on-warning)"
                 },
                 "config": {
                     "type": "string",
-                    "description": "Path to pyproject.toml configuration file (optional)"
+                    "description": "A pyproject.toml (its directory becomes --project) or a ty.toml (--config-file)"
                 }
             },
             "required": ["path"]
@@ -448,32 +344,29 @@ impl Tool for TypeCheckTool {
     }
 
     async fn execute(&self, args: Value) -> Result<ToolResult> {
-        self.server.ensure_initialized().await?;
-
-        let path = args
-            .get("path")
-            .and_then(|v| v.as_str())
-            .ok_or_else(|| MCPError::InvalidParameters("Missing 'path' parameter".to_string()))?;
-
-        let config = args.get("config").and_then(|v| v.as_str());
-
-        let guard = self.server.engine.read().await;
-        let engine = guard
-            .as_ref()
-            .ok_or_else(|| MCPError::Internal("Engine not initialized".to_string()))?;
-
-        let result = engine.type_check(path, config).await;
-        ToolResult::json(&result)
+        let a: TypeCheckArgs = parse_args(args)?;
+        let r = self
+            .0
+            .type_check(&a.path, a.config.as_deref(), a.strict)
+            .await;
+        ToolResult::json(&r)
     }
 }
 
 // ============================================================================
-// Tool: security_scan
+// security_scan
 // ============================================================================
 
-struct SecurityScanTool {
-    server: ServerRefs,
+#[derive(Debug, Deserialize)]
+struct SecurityScanArgs {
+    path: String,
+    #[serde(default)]
+    severity: Severity,
+    #[serde(default)]
+    confidence: Severity,
 }
+
+struct SecurityScanTool(Arc<CodeQualityEngine>);
 
 #[async_trait]
 impl Tool for SecurityScanTool {
@@ -482,7 +375,7 @@ impl Tool for SecurityScanTool {
     }
 
     fn description(&self) -> &str {
-        "Run security analysis with bandit"
+        "Run bandit (Python security linter) recursively and return its findings plus per-severity counts"
     }
 
     fn schema(&self) -> Value {
@@ -491,62 +384,40 @@ impl Tool for SecurityScanTool {
             "properties": {
                 "path": {
                     "type": "string",
-                    "description": "Path to file or directory to scan"
+                    "description": "File or directory to scan (inside the allowed paths)"
                 },
-                "severity": {
-                    "type": "string",
-                    "enum": ["low", "medium", "high"],
-                    "default": "low",
-                    "description": "Minimum severity level to report"
-                },
-                "confidence": {
-                    "type": "string",
-                    "enum": ["low", "medium", "high"],
-                    "default": "low",
-                    "description": "Minimum confidence level to report"
-                }
+                "severity": enum_schema(Severity::names(), "low", "Minimum severity level to report"),
+                "confidence": enum_schema(Severity::names(), "low", "Minimum confidence level to report")
             },
             "required": ["path"]
         })
     }
 
     async fn execute(&self, args: Value) -> Result<ToolResult> {
-        self.server.ensure_initialized().await?;
-
-        let path = args
-            .get("path")
-            .and_then(|v| v.as_str())
-            .ok_or_else(|| MCPError::InvalidParameters("Missing 'path' parameter".to_string()))?;
-
-        let severity = args
-            .get("severity")
-            .and_then(|v| v.as_str())
-            .and_then(Severity::from_str)
-            .unwrap_or(Severity::Low);
-
-        let confidence = args
-            .get("confidence")
-            .and_then(|v| v.as_str())
-            .and_then(Severity::from_str)
-            .unwrap_or(Severity::Low);
-
-        let guard = self.server.engine.read().await;
-        let engine = guard
-            .as_ref()
-            .ok_or_else(|| MCPError::Internal("Engine not initialized".to_string()))?;
-
-        let result = engine.security_scan(path, severity, confidence).await;
-        ToolResult::json(&result)
+        let a: SecurityScanArgs = parse_args(args)?;
+        let r = self
+            .0
+            .security_scan(&a.path, a.severity, a.confidence)
+            .await;
+        ToolResult::json(&r)
     }
 }
 
 // ============================================================================
-// Tool: audit_dependencies
+// audit_dependencies
 // ============================================================================
 
-struct AuditDependenciesTool {
-    server: ServerRefs,
+#[derive(Debug, Deserialize)]
+struct AuditDependenciesArgs {
+    #[serde(default = "default_requirements")]
+    requirements_file: String,
 }
+
+fn default_requirements() -> String {
+    "requirements.txt".to_string()
+}
+
+struct AuditDependenciesTool(Arc<CodeQualityEngine>);
 
 #[async_trait]
 impl Tool for AuditDependenciesTool {
@@ -555,7 +426,7 @@ impl Tool for AuditDependenciesTool {
     }
 
     fn description(&self) -> &str {
-        "Check dependencies for known vulnerabilities using pip-audit"
+        "Check a Python requirements file for known vulnerabilities with pip-audit (needs network access to PyPI/OSV). Returns one entry per vulnerability with fix versions."
     }
 
     fn schema(&self) -> Value {
@@ -565,37 +436,45 @@ impl Tool for AuditDependenciesTool {
                 "requirements_file": {
                     "type": "string",
                     "default": "requirements.txt",
-                    "description": "Path to requirements file"
+                    "description": "Path to a requirements file (inside the allowed paths; relative paths resolve against the server's working directory)"
                 }
             }
         })
     }
 
     async fn execute(&self, args: Value) -> Result<ToolResult> {
-        self.server.ensure_initialized().await?;
-
-        let requirements_file = args
-            .get("requirements_file")
-            .and_then(|v| v.as_str())
-            .unwrap_or("requirements.txt");
-
-        let guard = self.server.engine.read().await;
-        let engine = guard
-            .as_ref()
-            .ok_or_else(|| MCPError::Internal("Engine not initialized".to_string()))?;
-
-        let result = engine.audit_dependencies(requirements_file).await;
-        ToolResult::json(&result)
+        let a: AuditDependenciesArgs = parse_args(args)?;
+        let r = self.0.audit_dependencies(&a.requirements_file).await;
+        ToolResult::json(&r)
     }
 }
 
 // ============================================================================
-// Tool: check_markdown_links
+// check_markdown_links
 // ============================================================================
 
-struct CheckMarkdownLinksTool {
-    server: ServerRefs,
+#[derive(Debug, Deserialize)]
+struct CheckLinksArgs {
+    path: String,
+    #[serde(default = "default_true")]
+    check_external: bool,
+    #[serde(default = "default_ten")]
+    timeout: u64,
+    #[serde(default = "default_ten")]
+    concurrent: u64,
+    #[serde(default)]
+    ignore_patterns: Vec<String>,
+    #[serde(default)]
+    exclude: Vec<String>,
+    #[serde(default)]
+    skip_anchors: bool,
 }
+
+fn default_ten() -> u64 {
+    10
+}
+
+struct CheckMarkdownLinksTool(Arc<CodeQualityEngine>);
 
 #[async_trait]
 impl Tool for CheckMarkdownLinksTool {
@@ -604,7 +483,7 @@ impl Tool for CheckMarkdownLinksTool {
     }
 
     fn description(&self) -> &str {
-        "Check markdown files for broken links using md-link-checker"
+        "Check markdown files for broken links and anchors with md-link-checker. Returns counts plus a 'broken' list of {file, url, lines, error}."
     }
 
     fn schema(&self) -> Value {
@@ -613,28 +492,38 @@ impl Tool for CheckMarkdownLinksTool {
             "properties": {
                 "path": {
                     "type": "string",
-                    "description": "Path to markdown file or directory to check"
+                    "description": "Markdown file or directory to check (inside the allowed paths)"
                 },
                 "check_external": {
                     "type": "boolean",
                     "default": true,
-                    "description": "Check external URLs (set false for internal links only)"
+                    "description": "Check external URLs (false = internal links only)"
                 },
                 "timeout": {
                     "type": "integer",
                     "default": 10,
-                    "description": "Timeout in seconds for each link check"
+                    "minimum": 1,
+                    "maximum": 120,
+                    "description": "Timeout in seconds for each HTTP link check"
                 },
                 "concurrent": {
                     "type": "integer",
                     "default": 10,
-                    "description": "Number of concurrent link checks"
+                    "minimum": 1,
+                    "maximum": 64,
+                    "description": "Number of concurrent HTTP link checks"
                 },
                 "ignore_patterns": {
                     "type": "array",
                     "items": {"type": "string"},
                     "default": [],
-                    "description": "URL patterns to ignore (e.g., 'localhost', '127.0.0.1')"
+                    "description": "Regexes matched against links to skip (e.g. 'localhost')"
+                },
+                "exclude": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "default": [],
+                    "description": "Gitignore-style globs of files/directories to skip (e.g. 'vendor/**')"
                 },
                 "skip_anchors": {
                     "type": "boolean",
@@ -647,71 +536,28 @@ impl Tool for CheckMarkdownLinksTool {
     }
 
     async fn execute(&self, args: Value) -> Result<ToolResult> {
-        self.server.ensure_initialized().await?;
-
-        let path = args
-            .get("path")
-            .and_then(|v| v.as_str())
-            .ok_or_else(|| MCPError::InvalidParameters("Missing 'path' parameter".to_string()))?;
-
-        let check_external = args
-            .get("check_external")
-            .and_then(|v| v.as_bool())
-            .unwrap_or(true);
-
-        let timeout = args
-            .get("timeout")
-            .and_then(|v| v.as_u64())
-            .map(|v| v as u32)
-            .unwrap_or(10);
-
-        let concurrent = args
-            .get("concurrent")
-            .and_then(|v| v.as_u64())
-            .map(|v| v as u32)
-            .unwrap_or(10);
-
-        let ignore_patterns: Vec<String> = args
-            .get("ignore_patterns")
-            .and_then(|v| v.as_array())
-            .map(|arr| {
-                arr.iter()
-                    .filter_map(|v| v.as_str().map(|s| s.to_string()))
-                    .collect()
+        let a: CheckLinksArgs = parse_args(args)?;
+        let r = self
+            .0
+            .check_markdown_links(&LinkCheckArgs {
+                path: a.path,
+                check_external: a.check_external,
+                timeout: a.timeout,
+                concurrent: a.concurrent,
+                ignore_patterns: a.ignore_patterns,
+                exclude: a.exclude,
+                skip_anchors: a.skip_anchors,
             })
-            .unwrap_or_default();
-
-        let skip_anchors = args
-            .get("skip_anchors")
-            .and_then(|v| v.as_bool())
-            .unwrap_or(false);
-
-        let guard = self.server.engine.read().await;
-        let engine = guard
-            .as_ref()
-            .ok_or_else(|| MCPError::Internal("Engine not initialized".to_string()))?;
-
-        let result = engine
-            .check_markdown_links(
-                path,
-                check_external,
-                timeout,
-                concurrent,
-                &ignore_patterns,
-                skip_anchors,
-            )
             .await;
-        ToolResult::json(&result)
+        ToolResult::json(&r)
     }
 }
 
 // ============================================================================
-// Tool: get_status
+// get_status / get_audit_log
 // ============================================================================
 
-struct GetStatusTool {
-    server: ServerRefs,
-}
+struct GetStatusTool(Arc<CodeQualityEngine>);
 
 #[async_trait]
 impl Tool for GetStatusTool {
@@ -720,36 +566,30 @@ impl Tool for GetStatusTool {
     }
 
     fn description(&self) -> &str {
-        "Get server status, available tools, and their versions"
+        "Get server configuration (allowed paths, limits) and the availability/version of every external tool"
     }
 
     fn schema(&self) -> Value {
-        json!({
-            "type": "object",
-            "properties": {}
-        })
+        json!({"type": "object", "properties": {}})
     }
 
     async fn execute(&self, _args: Value) -> Result<ToolResult> {
-        self.server.ensure_initialized().await?;
-
-        let guard = self.server.engine.read().await;
-        let engine = guard
-            .as_ref()
-            .ok_or_else(|| MCPError::Internal("Engine not initialized".to_string()))?;
-
-        let result = engine.get_status().await;
-        ToolResult::json(&result)
+        ToolResult::json(&self.0.get_status().await)
     }
 }
 
-// ============================================================================
-// Tool: get_audit_log
-// ============================================================================
-
-struct GetAuditLogTool {
-    server: ServerRefs,
+#[derive(Debug, Deserialize)]
+struct GetAuditLogArgs {
+    #[serde(default = "default_audit_limit")]
+    limit: usize,
+    operation: Option<String>,
 }
+
+fn default_audit_limit() -> usize {
+    100
+}
+
+struct GetAuditLogTool(Arc<CodeQualityEngine>);
 
 #[async_trait]
 impl Tool for GetAuditLogTool {
@@ -758,7 +598,7 @@ impl Tool for GetAuditLogTool {
     }
 
     fn description(&self) -> &str {
-        "Get recent audit log entries for compliance review"
+        "Get the most recent audit log entries (one per tool call), oldest first"
     }
 
     fn schema(&self) -> Value {
@@ -768,73 +608,194 @@ impl Tool for GetAuditLogTool {
                 "limit": {
                     "type": "integer",
                     "default": 100,
-                    "description": "Maximum number of entries to return"
+                    "minimum": 1,
+                    "maximum": crate::audit::MAX_READ_ENTRIES,
+                    "description": "Maximum number of entries to return (clamped to 1..=1000)"
                 },
                 "operation": {
                     "type": "string",
-                    "description": "Filter by operation name"
+                    "description": "Only return entries for this tool name"
                 }
             }
         })
     }
 
     async fn execute(&self, args: Value) -> Result<ToolResult> {
-        self.server.ensure_initialized().await?;
-
-        let limit = args
-            .get("limit")
-            .and_then(|v| v.as_u64())
-            .map(|v| v as usize)
-            .unwrap_or(100);
-
-        let operation = args.get("operation").and_then(|v| v.as_str());
-
-        let guard = self.server.engine.read().await;
-        let engine = guard
-            .as_ref()
-            .ok_or_else(|| MCPError::Internal("Engine not initialized".to_string()))?;
-
-        let result = engine.get_audit_log(limit, operation).await;
-        ToolResult::json(&result)
+        let a: GetAuditLogArgs = parse_args(args)?;
+        ToolResult::json(&self.0.get_audit_log(a.limit, a.operation).await)
     }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::engine::EngineConfig;
+    use std::path::PathBuf;
 
-    #[test]
-    fn test_server_creation() {
-        let server = CodeQualityServer::new(
-            600,
-            vec!["/tmp".to_string()],
-            PathBuf::from("/tmp/audit.log"),
-            true,
-        );
-        let tools = server.tools();
-        assert_eq!(tools.len(), 10);
+    fn server() -> CodeQualityServer {
+        let log = std::env::temp_dir()
+            .join(format!("mcp-cq-server-{}", std::process::id()))
+            .join("audit.log");
+        CodeQualityServer::new(CodeQualityEngine::new(EngineConfig {
+            allowed_paths: vec![std::env::temp_dir().display().to_string()],
+            audit_log_path: log,
+            rate_limiting: false,
+            ..EngineConfig::default()
+        }))
+    }
+
+    fn tool(name: &str) -> BoxedTool {
+        server()
+            .tools()
+            .into_iter()
+            .find(|t| t.name() == name)
+            .unwrap_or_else(|| panic!("no tool {name}"))
+    }
+
+    fn text(r: &ToolResult) -> Value {
+        match &r.content[0] {
+            Content::Text { text } => serde_json::from_str(text).unwrap(),
+            other => panic!("unexpected content {other:?}"),
+        }
     }
 
     #[test]
-    fn test_tool_names() {
-        let server = CodeQualityServer::new(
-            600,
-            vec!["/tmp".to_string()],
-            PathBuf::from("/tmp/audit.log"),
-            true,
+    fn all_tools_registered_with_stable_names() {
+        let names: Vec<String> = server()
+            .tools()
+            .iter()
+            .map(|t| t.name().to_string())
+            .collect();
+        assert_eq!(
+            names,
+            vec![
+                "format_check",
+                "lint",
+                "autoformat",
+                "run_tests",
+                "type_check",
+                "security_scan",
+                "audit_dependencies",
+                "check_markdown_links",
+                "get_status",
+                "get_audit_log"
+            ]
         );
-        let tools = server.tools();
-        let names: Vec<&str> = tools.iter().map(|t| t.name()).collect();
+    }
 
-        assert!(names.contains(&"format_check"));
-        assert!(names.contains(&"lint"));
-        assert!(names.contains(&"autoformat"));
-        assert!(names.contains(&"run_tests"));
-        assert!(names.contains(&"type_check"));
-        assert!(names.contains(&"security_scan"));
-        assert!(names.contains(&"audit_dependencies"));
-        assert!(names.contains(&"check_markdown_links"));
-        assert!(names.contains(&"get_status"));
-        assert!(names.contains(&"get_audit_log"));
+    #[test]
+    fn schemas_are_objects_and_required_params_unchanged() {
+        let expected_required: &[(&str, &[&str])] = &[
+            ("format_check", &["path"]),
+            ("lint", &["path"]),
+            ("autoformat", &["path"]),
+            ("type_check", &["path"]),
+            ("security_scan", &["path"]),
+            ("check_markdown_links", &["path"]),
+        ];
+        for t in server().tools() {
+            let s = t.schema();
+            assert_eq!(s["type"], "object", "{}", t.name());
+            assert!(s["properties"].is_object(), "{}", t.name());
+            let req: Vec<&str> = s
+                .get("required")
+                .and_then(Value::as_array)
+                .map(|a| a.iter().filter_map(Value::as_str).collect())
+                .unwrap_or_default();
+            let want = expected_required
+                .iter()
+                .find(|(n, _)| *n == t.name())
+                .map(|(_, r)| r.to_vec())
+                .unwrap_or_default();
+            assert_eq!(req, want, "{}", t.name());
+            // every required param is documented in properties
+            for r in req {
+                assert!(s["properties"].get(r).is_some());
+            }
+        }
+    }
+
+    #[test]
+    fn enum_schemas_match_types() {
+        let s = tool("lint").schema();
+        assert_eq!(s["properties"]["linter"]["enum"], json!(Linter::names()));
+        let s = tool("format_check").schema();
+        assert_eq!(
+            s["properties"]["language"]["enum"],
+            json!(Language::names())
+        );
+        assert!(s["properties"].get("diff").is_some());
+        assert!(
+            tool("autoformat").schema()["properties"]
+                .get("diff")
+                .is_none()
+        );
+    }
+
+    #[test]
+    fn parse_args_rules() {
+        #[derive(Deserialize, Debug)]
+        struct A {
+            path: String,
+            #[serde(default)]
+            linter: Linter,
+            config: Option<String>,
+        }
+        let a: A = parse_args(json!({"path": "x", "config": null})).unwrap();
+        assert_eq!(a.path, "x");
+        assert_eq!(a.linter, Linter::Ruff);
+        assert!(a.config.is_none());
+
+        let a: A = parse_args(json!({"path": "x", "linter": null})).unwrap();
+        assert_eq!(a.linter, Linter::Ruff);
+
+        let e = parse_args::<A>(json!({})).unwrap_err().to_string();
+        assert!(e.contains("path"), "{e}");
+        let e = parse_args::<A>(json!({"path": 5})).unwrap_err().to_string();
+        assert!(e.contains("Invalid parameters"), "{e}");
+        let e = parse_args::<A>(json!({"path": "x", "linter": "pylint"}))
+            .unwrap_err()
+            .to_string();
+        assert!(e.contains("pylint") && e.contains("clippy"), "{e}");
+        assert!(parse_args::<A>(json!([1])).is_err());
+        assert!(parse_args::<A>(Value::Null).is_err()); // path still required
+    }
+
+    #[tokio::test]
+    async fn missing_required_param_is_invalid_parameters() {
+        let err = tool("format_check").execute(json!({})).await.unwrap_err();
+        assert!(matches!(err, MCPError::InvalidParameters(_)), "{err}");
+        let err = tool("security_scan")
+            .execute(json!({"path": "/x", "severity": "critical"}))
+            .await
+            .unwrap_err();
+        assert!(matches!(err, MCPError::InvalidParameters(_)), "{err}");
+        let err = tool("check_markdown_links")
+            .execute(json!({"path": "/x", "timeout": -1}))
+            .await
+            .unwrap_err();
+        assert!(matches!(err, MCPError::InvalidParameters(_)), "{err}");
+    }
+
+    #[tokio::test]
+    async fn tools_return_json_results() {
+        let outside = PathBuf::from("/definitely/not/allowed/xyz");
+        let r = tool("lint")
+            .execute(json!({"path": outside.display().to_string()}))
+            .await
+            .unwrap();
+        let v = text(&r);
+        assert_eq!(v["success"], false);
+        assert_eq!(v["error_type"], "path_validation");
+
+        // run_tests works with no arguments at all (all optional).
+        let r = tool("run_tests").execute(json!({})).await.unwrap();
+        assert!(text(&r).get("success").is_some());
+
+        let r = tool("get_audit_log")
+            .execute(json!({"limit": 5}))
+            .await
+            .unwrap();
+        assert_eq!(text(&r)["success"], true);
     }
 }

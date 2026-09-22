@@ -1,86 +1,10 @@
-//! Types for AI Toolkit MCP server.
+//! AI Toolkit training-config types and model presets.
 //!
-//! These types match the AI Toolkit configuration format from:
-//! https://github.com/ostris/ai-toolkit
+//! The config structs serialize to the YAML format consumed by
+//! `python run.py <config>` in <https://github.com/ostris/ai-toolkit>
+//! (`job: extension` / `type: sd_trainer`).
 
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-
-/// Training job status
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
-#[serde(rename_all = "lowercase")]
-pub enum JobStatus {
-    Pending,
-    Running,
-    Completed,
-    Failed,
-    Stopped,
-}
-
-impl std::fmt::Display for JobStatus {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            JobStatus::Pending => write!(f, "pending"),
-            JobStatus::Running => write!(f, "running"),
-            JobStatus::Completed => write!(f, "completed"),
-            JobStatus::Failed => write!(f, "failed"),
-            JobStatus::Stopped => write!(f, "stopped"),
-        }
-    }
-}
-
-/// Training job information
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct TrainingJob {
-    pub job_id: String,
-    pub status: JobStatus,
-    pub config_name: String,
-    pub log_file: Option<String>,
-    pub pid: Option<u32>,
-    pub exit_code: Option<i32>,
-    pub started_at: Option<String>,
-    /// Path to the training output folder
-    pub output_folder: Option<String>,
-}
-
-impl TrainingJob {
-    pub fn new(job_id: String, config_name: String) -> Self {
-        Self {
-            job_id,
-            status: JobStatus::Pending,
-            config_name,
-            log_file: None,
-            pid: None,
-            exit_code: None,
-            started_at: None,
-            output_folder: None,
-        }
-    }
-}
-
-/// Dataset information with detailed stats
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct DatasetInfo {
-    pub name: String,
-    pub path: String,
-    pub image_count: usize,
-    pub caption_count: usize,
-    pub missing_captions: Vec<String>,
-    pub total_size_bytes: u64,
-}
-
-/// Model information with metadata
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct ModelInfo {
-    pub name: String,
-    pub path: String,
-    pub size: u64,
-    pub extension: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub created_at: Option<String>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub metadata: Option<HashMap<String, serde_json::Value>>,
-}
 
 // ============================================================================
 // AI Toolkit Configuration Types
@@ -143,18 +67,6 @@ pub struct ProcessConfig {
     /// Logging configuration
     #[serde(skip_serializing_if = "Option::is_none")]
     pub logging: Option<LoggingConfig>,
-}
-
-/// Network type for LoRA variants
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
-#[allow(dead_code)]
-pub enum NetworkType {
-    #[default]
-    Lora,
-    Locon,
-    Lorm,
-    Lokr,
 }
 
 /// Network configuration (LoRA, LoCoN, etc.)
@@ -519,35 +431,15 @@ pub struct ConfigMeta {
 fn default_version() -> String {
     "1.0".to_string()
 }
-
 // ============================================================================
-// Validation Types
+// Model presets
 // ============================================================================
 
-/// Config validation result
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
-pub struct ConfigValidation {
-    pub valid: bool,
-    pub errors: Vec<String>,
-    pub warnings: Vec<String>,
-}
-
-/// Dataset validation result
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
-pub struct DatasetValidation {
-    pub valid: bool,
-    pub image_count: usize,
-    pub caption_count: usize,
-    pub missing_captions: Vec<String>,
-    pub invalid_images: Vec<String>,
-    pub warnings: Vec<String>,
-}
-
-/// Known model presets
+/// A known base model with recommended training settings.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ModelPreset {
+    /// Short identifier accepted by `create_training_config`'s `preset` param.
+    pub id: String,
     pub name: String,
     pub model_path: String,
     pub description: String,
@@ -557,142 +449,128 @@ pub struct ModelPreset {
     pub is_v3: bool,
     pub recommended_resolution: Vec<u32>,
     pub recommended_scheduler: String,
+    pub recommended_optimizer: String,
     pub requires_quantize: bool,
     pub min_vram_gb: u32,
 }
 
 impl ModelPreset {
-    pub fn flux_dev() -> Self {
+    #[allow(clippy::too_many_arguments)]
+    fn new(
+        id: &str,
+        name: &str,
+        model_path: &str,
+        description: &str,
+        arch: (bool, bool, bool),
+        recommended_resolution: Vec<u32>,
+        requires_quantize: bool,
+        min_vram_gb: u32,
+    ) -> Self {
+        let (is_flux, is_xl, is_v3) = arch;
+        let flow = is_flux || is_v3;
         Self {
-            name: "Flux.1-dev".to_string(),
-            model_path: "black-forest-labs/FLUX.1-dev".to_string(),
-            description: "Flux 1.0 Dev - High quality, requires 24GB+ VRAM".to_string(),
-            is_flux: true,
-            is_xl: false,
+            id: id.to_string(),
+            name: name.to_string(),
+            model_path: model_path.to_string(),
+            description: description.to_string(),
+            is_flux,
+            is_xl,
             is_v2: false,
-            is_v3: false,
-            recommended_resolution: vec![512, 768, 1024],
-            recommended_scheduler: "flowmatch".to_string(),
-            requires_quantize: true,
-            min_vram_gb: 24,
+            is_v3,
+            recommended_resolution,
+            recommended_scheduler: if flow { "flowmatch" } else { "ddpm" }.to_string(),
+            recommended_optimizer: if flow { "adamw8bit" } else { "adamw" }.to_string(),
+            requires_quantize,
+            min_vram_gb,
         }
     }
 
-    pub fn flux_schnell() -> Self {
-        Self {
-            name: "Flux.1-schnell".to_string(),
-            model_path: "black-forest-labs/FLUX.1-schnell".to_string(),
-            description: "Flux 1.0 Schnell - Faster, Apache 2.0 license".to_string(),
-            is_flux: true,
-            is_xl: false,
-            is_v2: false,
-            is_v3: false,
-            recommended_resolution: vec![512, 768, 1024],
-            recommended_scheduler: "flowmatch".to_string(),
-            requires_quantize: true,
-            min_vram_gb: 24,
-        }
-    }
-
-    pub fn sd15() -> Self {
-        Self {
-            name: "Stable Diffusion 1.5".to_string(),
-            model_path: "runwayml/stable-diffusion-v1-5".to_string(),
-            description: "SD 1.5 - Classic model, works on 8GB+ VRAM".to_string(),
-            is_flux: false,
-            is_xl: false,
-            is_v2: false,
-            is_v3: false,
-            recommended_resolution: vec![512],
-            recommended_scheduler: "ddpm".to_string(),
-            requires_quantize: false,
-            min_vram_gb: 8,
-        }
-    }
-
-    pub fn sdxl() -> Self {
-        Self {
-            name: "Stable Diffusion XL".to_string(),
-            model_path: "stabilityai/stable-diffusion-xl-base-1.0".to_string(),
-            description: "SDXL - Higher resolution, requires 12GB+ VRAM".to_string(),
-            is_flux: false,
-            is_xl: true,
-            is_v2: false,
-            is_v3: false,
-            recommended_resolution: vec![1024],
-            recommended_scheduler: "ddpm".to_string(),
-            requires_quantize: false,
-            min_vram_gb: 12,
-        }
-    }
-
-    pub fn sd35_large() -> Self {
-        Self {
-            name: "Stable Diffusion 3.5 Large".to_string(),
-            model_path: "stabilityai/stable-diffusion-3.5-large".to_string(),
-            description: "SD 3.5 Large - Latest architecture, requires 24GB+ VRAM".to_string(),
-            is_flux: false,
-            is_xl: false,
-            is_v2: false,
-            is_v3: true,
-            recommended_resolution: vec![1024],
-            recommended_scheduler: "flowmatch".to_string(),
-            requires_quantize: true,
-            min_vram_gb: 24,
-        }
-    }
-
+    /// All built-in presets.
     pub fn all_presets() -> Vec<Self> {
         vec![
-            Self::flux_dev(),
-            Self::flux_schnell(),
-            Self::sd15(),
-            Self::sdxl(),
-            Self::sd35_large(),
+            Self::new(
+                "flux-dev",
+                "Flux.1-dev",
+                "black-forest-labs/FLUX.1-dev",
+                "Flux 1.0 Dev - High quality, requires 24GB+ VRAM (gated model, needs HF_TOKEN)",
+                (true, false, false),
+                vec![512, 768, 1024],
+                true,
+                24,
+            ),
+            Self::new(
+                "flux-schnell",
+                "Flux.1-schnell",
+                "black-forest-labs/FLUX.1-schnell",
+                "Flux 1.0 Schnell - Faster, Apache 2.0 license",
+                (true, false, false),
+                vec![512, 768, 1024],
+                true,
+                24,
+            ),
+            Self::new(
+                "sd15",
+                "Stable Diffusion 1.5",
+                "runwayml/stable-diffusion-v1-5",
+                "SD 1.5 - Classic model, works on 8GB+ VRAM",
+                (false, false, false),
+                vec![512],
+                false,
+                8,
+            ),
+            Self::new(
+                "sdxl",
+                "Stable Diffusion XL",
+                "stabilityai/stable-diffusion-xl-base-1.0",
+                "SDXL - Higher resolution, requires 12GB+ VRAM",
+                (false, true, false),
+                vec![1024],
+                false,
+                12,
+            ),
+            Self::new(
+                "sd35-large",
+                "Stable Diffusion 3.5 Large",
+                "stabilityai/stable-diffusion-3.5-large",
+                "SD 3.5 Large - requires 24GB+ VRAM (gated model, needs HF_TOKEN)",
+                (false, false, true),
+                vec![1024],
+                true,
+                24,
+            ),
         ]
+    }
+
+    /// Look up a preset by `id` (case-insensitive).
+    pub fn by_id(id: &str) -> Option<Self> {
+        Self::all_presets()
+            .into_iter()
+            .find(|p| p.id.eq_ignore_ascii_case(id))
     }
 }
 
-/// System statistics
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
-pub struct SystemStats {
-    pub cpu_percent: f32,
-    pub memory_percent: f32,
-    pub memory_used_gb: f32,
-    pub memory_total_gb: f32,
-    pub disk_usage_percent: f32,
-    pub disk_free_gb: f32,
-    #[serde(default)]
-    pub gpu: Option<GpuStats>,
-}
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-/// GPU statistics
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct GpuStats {
-    pub available: bool,
-    pub name: Option<String>,
-    pub memory_used_gb: Option<f32>,
-    pub memory_total_gb: Option<f32>,
-    pub utilization_percent: Option<f32>,
-}
+    #[test]
+    fn preset_lookup() {
+        let p = ModelPreset::by_id("FLUX-DEV").unwrap();
+        assert!(p.is_flux && p.requires_quantize);
+        assert_eq!(p.recommended_scheduler, "flowmatch");
+        assert!(ModelPreset::by_id("nope").is_none());
+        let ids: Vec<_> = ModelPreset::all_presets()
+            .into_iter()
+            .map(|p| p.id)
+            .collect();
+        assert_eq!(ids.len(), 5);
+    }
 
-/// Image upload data
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
-pub struct ImageUpload {
-    pub filename: String,
-    pub data: String, // base64 encoded
-    pub caption: String,
-}
-
-/// Training metrics from log
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[allow(dead_code)]
-pub struct TrainingMetrics {
-    pub step: u32,
-    pub loss: Option<f64>,
-    pub lr: Option<f64>,
-    pub epoch: Option<u32>,
-    pub samples_generated: Option<u32>,
+    #[test]
+    fn resolution_untagged_roundtrip() {
+        let single: Resolution = serde_json::from_value(serde_json::json!(512)).unwrap();
+        assert!(matches!(single, Resolution::Single(512)));
+        let multi: Resolution = serde_json::from_value(serde_json::json!([512, 1024])).unwrap();
+        assert!(matches!(multi, Resolution::Multiple(ref v) if v == &vec![512, 1024]));
+    }
 }

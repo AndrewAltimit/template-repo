@@ -1,30 +1,37 @@
 //! MCP OpenCode Server
 //!
-//! Provides AI-powered code assistance via OpenRouter API.
+//! AI code assistance (generate / refactor / review / explain) backed by the
+//! OpenRouter chat-completions API. See README.md for configuration.
 //!
 //! Usage:
-//!     # Standalone mode (default)
-//!     mcp-opencode --mode standalone --port 8014
+//!     # STDIO mode (MCP clients such as Claude Code)
+//!     mcp-opencode --mode stdio
 //!
-//!     # Test endpoints
+//!     # Standalone HTTP mode
+//!     mcp-opencode --mode standalone --port 8014
 //!     curl http://localhost:8014/health
 //!     curl http://localhost:8014/mcp/tools
 
+mod config;
+mod consult;
 mod opencode;
 mod server;
-mod types;
+#[cfg(test)]
+mod test_support;
+mod util;
 
 use clap::Parser;
 use mcp_core::{MCPServer, init_logging, server::MCPServerArgs};
+use tracing::{debug, warn};
 
+use config::OpenCodeConfig;
 use server::OpenCodeServer;
-use types::OpenCodeConfig;
 
 /// CLI arguments
 #[derive(Parser)]
 #[command(name = "mcp-opencode")]
 #[command(about = "MCP server for AI-powered code assistance via OpenRouter")]
-#[command(version = "1.1.0")]
+#[command(version)]
 struct Args {
     #[command(flatten)]
     server: MCPServerArgs,
@@ -36,26 +43,21 @@ async fn main() -> anyhow::Result<()> {
     let _ = dotenvy::dotenv();
 
     let args = Args::parse();
-
     init_logging(&args.server.log_level);
 
-    // Load configuration from environment
     let config = OpenCodeConfig::from_env();
+    debug!(?config, "Loaded configuration");
+    if config.api_key.is_empty() {
+        warn!("OPENROUTER_API_KEY is not set; consult_opencode will return an error until it is");
+    }
 
-    // Create OpenCode server
     let opencode_server = OpenCodeServer::new(config);
-
-    // Build MCP server with all tools
-    let mut builder = MCPServer::builder("opencode", "1.1.0");
+    let mut builder = MCPServer::builder("opencode", env!("CARGO_PKG_VERSION"));
     builder = args.server.apply_to(builder);
-
     for tool in opencode_server.tools() {
         builder = builder.tool_boxed(tool);
     }
 
-    let server = builder.build();
-
-    server.run().await?;
-
+    builder.build().run().await?;
     Ok(())
 }

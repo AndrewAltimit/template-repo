@@ -1,16 +1,17 @@
-//! Base backend adapter interface for virtual character control.
+//! Backend adapter interface for virtual character control.
 //!
-//! All backend plugins must implement this interface to ensure
-//! compatibility with the middleware.
+//! Every backend (VRChat over OSC, the in-memory mock, future platforms)
+//! implements [`BackendAdapter`]. The MCP tools only ever talk to this trait,
+//! so backend-specific behavior (toggle semantics, OSC addresses, audio
+//! routing) stays inside the backend implementation.
 
 use async_trait::async_trait;
+use serde::Serialize;
 use serde_json::Value;
 use std::collections::HashMap;
 use thiserror::Error;
 
-use crate::types::{
-    AudioData, BackendCapabilities, CanonicalAnimationData, EnvironmentState, VideoFrame,
-};
+use crate::types::{AudioData, BackendCapabilities, CanonicalAnimationData, EnvironmentState};
 
 /// Backend error types.
 #[derive(Error, Debug)]
@@ -36,19 +37,50 @@ pub enum BackendError {
     #[error("Timeout: {0}")]
     Timeout(String),
 
-    #[error("Internal error: {0}")]
-    Internal(String),
+    #[error("Audio error: {0}")]
+    Audio(String),
 }
 
+/// Result alias for backend operations.
 pub type BackendResult<T> = Result<T, BackendError>;
 
-/// Base interface for all backend plugins.
+/// What a backend actually did with a `send_audio_data` call.
 ///
-/// This trait defines the contract that all backend implementations
-/// must follow to integrate with the middleware.
+/// Returned to the caller so `play_audio` reports honestly whether audio was
+/// audible, instead of claiming success when only metadata was sent.
+#[derive(Debug, Clone, Default, Serialize, PartialEq)]
+pub struct AudioOutcome {
+    /// True if the audio is being played on an output device.
+    pub played: bool,
+    /// Player used for playback (e.g. `"vlc"`, `"ffplay"`), if any.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub method: Option<String>,
+    /// Emotion applied from expression tags, if any.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub emotion: Option<String>,
+    /// Human-readable notes (e.g. why audio was not played).
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    pub notes: Vec<String>,
+}
+
+/// Result of a VRCEmote state change.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum EmoteAction {
+    /// The emote was started.
+    Activated,
+    /// The same emote was already active and has been toggled off.
+    ToggledOff,
+    /// An active emote was cleared (value 0 requested).
+    Cleared,
+    /// Nothing to do (clear requested with no active emote).
+    Unchanged,
+}
+
+/// Base interface for all backend plugins.
 #[async_trait]
 pub trait BackendAdapter: Send + Sync {
-    /// Get the name of this backend.
+    /// Get the name of this backend (matches the `set_backend` identifier).
     fn backend_name(&self) -> &'static str;
 
     /// Check if backend is currently connected.
@@ -58,34 +90,47 @@ pub trait BackendAdapter: Send + Sync {
     fn capabilities(&self) -> &BackendCapabilities;
 
     /// Establish connection to the backend system.
+    ///
+    /// Calling `connect` on an already connected backend must first release
+    /// the previous connection (sockets, background tasks).
     async fn connect(&mut self, config: HashMap<String, Value>) -> BackendResult<()>;
 
-    /// Clean up and close connections.
+    /// Clean up and close connections. Must be idempotent.
     async fn disconnect(&mut self) -> BackendResult<()>;
 
     /// Send animation data in canonical format to backend.
     async fn send_animation_data(&mut self, data: CanonicalAnimationData) -> BackendResult<()>;
 
     /// Send audio data with sync metadata.
-    async fn send_audio_data(&mut self, audio: AudioData) -> BackendResult<()>;
+    async fn send_audio_data(&mut self, audio: AudioData) -> BackendResult<AudioOutcome>;
 
     /// Receive current state from virtual environment.
     async fn receive_state(&self) -> BackendResult<Option<EnvironmentState>>;
 
-    /// Capture current view from agent's perspective.
-    async fn capture_video_frame(&self) -> BackendResult<Option<VideoFrame>>;
-
     /// Reset all states - clear emotes, stop movement, reset to neutral.
     async fn reset_all(&mut self) -> BackendResult<()>;
 
-    /// Execute a high-level behavior.
+    /// Execute a high-level behavior (see
+    /// [`SUPPORTED_BEHAVIORS`](crate::constants::SUPPORTED_BEHAVIORS)).
     async fn execute_behavior(
         &mut self,
-        _behavior: &str,
-        _parameters: HashMap<String, Value>,
-    ) -> BackendResult<()> {
-        // Default implementation does nothing
-        Ok(())
+        behavior: &str,
+        parameters: HashMap<String, Value>,
+    ) -> BackendResult<()>;
+
+    /// Send a raw VRCEmote value (0-8). Only meaningful for VRChat-like
+    /// backends; the default rejects the operation.
+    async fn send_vrcemote(&mut self, _value: i32) -> BackendResult<EmoteAction> {
+        Err(BackendError::UnsupportedOperation(format!(
+            "VRCEmote is not supported by the {} backend (use vrchat_remote)",
+            self.backend_name()
+        )))
+    }
+
+    /// Avatar parameters most recently reported by the platform (for VRChat:
+    /// values received over OSC from `/avatar/parameters/*`).
+    async fn avatar_parameters(&self) -> BackendResult<HashMap<String, Value>> {
+        Ok(HashMap::new())
     }
 
     /// Perform health check on backend connection.

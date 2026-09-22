@@ -6,11 +6,11 @@
     {
       "id": "claim",
       "position": {
-        "x": 180,
-        "y": 25
+        "x": 140,
+        "y": 55
       },
-      "width": 280,
-      "height": 80,
+      "width": 250,
+      "height": 100,
       "default_font_size": 28,
       "max_font_size": 36,
       "min_font_size": 18,
@@ -25,10 +25,10 @@
     {
       "id": "challenge",
       "position": {
-        "x": 540,
-        "y": 25
+        "x": 545,
+        "y": 45
       },
-      "width": 280,
+      "width": 320,
       "height": 80,
       "default_font_size": 28,
       "max_font_size": 36,

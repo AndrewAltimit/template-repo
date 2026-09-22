@@ -1,30 +1,36 @@
 //! MCP Crush Server
 //!
-//! Provides Crush AI code generation via OpenRouter API.
+//! Code generation / explanation / conversion by running the charmbracelet
+//! `crush` CLI against OpenRouter. See README.md for configuration.
 //!
 //! Usage:
-//!     # Standalone mode (default)
-//!     mcp-crush --mode standalone --port 8015
+//!     # STDIO mode (MCP clients such as Claude Code)
+//!     mcp-crush --mode stdio
 //!
-//!     # Test endpoints
+//!     # Standalone HTTP mode
+//!     mcp-crush --mode standalone --port 8015
 //!     curl http://localhost:8015/health
 //!     curl http://localhost:8015/mcp/tools
 
+mod config;
+mod consult;
 mod crush;
+mod runner;
 mod server;
-mod types;
+mod util;
 
 use clap::Parser;
 use mcp_core::{MCPServer, init_logging, server::MCPServerArgs};
+use tracing::{debug, warn};
 
+use config::CrushConfig;
 use server::CrushServer;
-use types::CrushConfig;
 
 /// CLI arguments
 #[derive(Parser)]
 #[command(name = "mcp-crush")]
 #[command(about = "MCP server for Crush AI code generation via OpenRouter")]
-#[command(version = "2.0.0")]
+#[command(version)]
 struct Args {
     #[command(flatten)]
     server: MCPServerArgs,
@@ -36,26 +42,21 @@ async fn main() -> anyhow::Result<()> {
     let _ = dotenvy::dotenv();
 
     let args = Args::parse();
-
     init_logging(&args.server.log_level);
 
-    // Load configuration from environment
     let config = CrushConfig::from_env();
+    debug!(?config, "Loaded configuration");
+    if config.api_key.is_empty() {
+        warn!("OPENROUTER_API_KEY is not set; consult_crush will return an error until it is");
+    }
 
-    // Create Crush server
     let crush_server = CrushServer::new(config);
-
-    // Build MCP server with all tools
-    let mut builder = MCPServer::builder("crush", "2.0.0");
+    let mut builder = MCPServer::builder("crush", env!("CARGO_PKG_VERSION"));
     builder = args.server.apply_to(builder);
-
     for tool in crush_server.tools() {
         builder = builder.tool_boxed(tool);
     }
 
-    let server = builder.build();
-
-    server.run().await?;
-
+    builder.build().run().await?;
     Ok(())
 }
