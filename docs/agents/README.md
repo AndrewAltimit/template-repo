@@ -330,7 +330,7 @@ md-link-checker docs/        # Check all links in docs/
 | `md-link-checker` | `tools/rust/markdown-link-checker/` | Fast concurrent link validation |
 | `code-parser` | `tools/rust/code-parser/` | Parse code blocks from AI responses |
 | `automation-cli` | `tools/rust/automation-cli/` | Unified CI/CD orchestration, service launching, automation |
-| `mcp-code-quality` | `tools/rust/mcp-code-quality/` | Rust MCP server for code quality |
+| `mcp-code-quality` | `tools/mcp/mcp_code_quality/` | Rust MCP server for code quality |
 
 ### GitHub Actions Automation
 

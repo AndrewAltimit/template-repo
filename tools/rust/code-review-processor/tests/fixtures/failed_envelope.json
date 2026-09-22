@@ -1,0 +1,13 @@
+{
+  "review_id": "rev-0000",
+  "status": "failed",
+  "result": {
+    "type": "review_only",
+    "review_markdown": "I looked at the diff but ran out of iterations before committing a result.",
+    "severity": "info",
+    "findings_count": 0
+  },
+  "usage": {"input_tokens": 100, "output_tokens": 20, "total_tokens": 120},
+  "validation_attempts": 3,
+  "iterations": 10
+}

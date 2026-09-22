@@ -425,7 +425,7 @@ services:
     runtime: nvidia
     ports:
       - "8675:8675"   # Web UI (Next.js app)
-      - "8020:8020"   # MCP Server (changed from 8012 to avoid conflict with mcp-gemini)
+      - "8020:8020"   # MCP Server (8012 is taken by mcp-gemini)
     volumes:
       - ./:/workspace/repo:ro
       - ai-toolkit-datasets:/ai-toolkit/datasets

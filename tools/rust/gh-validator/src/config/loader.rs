@@ -1,150 +1,120 @@
-//! Configuration file loader
+//! Configuration discovery.
 //!
-//! Searches for .secrets.yaml in multiple locations and parses it.
-//! Fails closed (blocks all commands) if no config is found.
+//! Search order (first existing file wins):
+//!
+//! 1. `/etc/wrapper-guard/.secrets.yaml` - root-owned system config used by
+//!    the hardened container / host setup. Checked first so an agent cannot
+//!    shadow it with a weaker `.secrets.yaml` in its working directory.
+//! 2. The current directory and its ancestors, up to the git root.
+//! 3. The wrapper binary's directory and its ancestors, up to a git root.
+//! 4. `~/.secrets.yaml`
+//! 5. `$XDG_CONFIG_HOME/gh-validator/.secrets.yaml`
+//!    (default `~/.config/gh-validator/.secrets.yaml`)
+//!
+//! No config means fail-closed: content-posting commands are refused.
 
 use crate::config::types::Config;
 use crate::error::{Error, Result};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 const CONFIG_FILENAME: &str = ".secrets.yaml";
+const SYSTEM_CONFIG: &str = "/etc/wrapper-guard/.secrets.yaml";
+/// Upper bound on the config size (it is parsed on every content command).
+const MAX_CONFIG_BYTES: u64 = 1024 * 1024;
 
-/// Get list of paths to search for configuration file
-fn config_search_paths() -> Vec<PathBuf> {
-    let mut paths = Vec::new();
-    let mut seen = std::collections::HashSet::new();
+/// Candidate config paths in priority order.
+pub fn config_search_paths() -> Vec<PathBuf> {
+    let mut paths = vec![PathBuf::from(SYSTEM_CONFIG)];
 
-    // Helper to add path if not already seen
-    let mut add_if_new = |path: PathBuf| {
-        if let Ok(canonical) = path.canonicalize() {
-            if seen.insert(canonical.clone()) {
-                paths.push(canonical);
+    let mut search_upwards = |start: &Path| {
+        for dir in start.ancestors().take(16) {
+            let candidate = dir.join(CONFIG_FILENAME);
+            if candidate.is_file() {
+                paths.push(candidate);
+                return;
             }
-        } else if !seen.contains(&path) {
-            seen.insert(path.clone());
-            paths.push(path);
+            if dir.join(".git").exists() {
+                return;
+            }
         }
     };
-
-    // 1. Search from current working directory upward (find git root)
     if let Ok(cwd) = std::env::current_dir() {
-        for ancestor in cwd.ancestors().take(10) {
-            let candidate = ancestor.join(CONFIG_FILENAME);
-            if candidate.exists() {
-                add_if_new(candidate);
-                break; // Found config, stop searching upward
-            }
-
-            // Also check if we hit a git root
-            if ancestor.join(".git").exists() {
-                let candidate = ancestor.join(CONFIG_FILENAME);
-                add_if_new(candidate);
-                break;
-            }
-        }
+        search_upwards(&cwd);
+    }
+    if let Some(exe_dir) = std::env::current_exe()
+        .ok()
+        .and_then(|p| p.canonicalize().ok())
+        .and_then(|p| p.parent().map(Path::to_path_buf))
+    {
+        search_upwards(&exe_dir);
     }
 
-    // 2. Search from binary location upward
-    if let Ok(exe) = std::env::current_exe() {
-        if let Some(exe_dir) = exe.parent() {
-            for ancestor in exe_dir.ancestors().take(10) {
-                let candidate = ancestor.join(CONFIG_FILENAME);
-                if candidate.exists() {
-                    add_if_new(candidate);
-                    break;
-                }
-
-                // Check for git root
-                if ancestor.join(".git").exists() {
-                    let candidate = ancestor.join(CONFIG_FILENAME);
-                    add_if_new(candidate);
-                    break;
-                }
-            }
-        }
+    let home = std::env::var_os("HOME")
+        .or_else(|| std::env::var_os("USERPROFILE"))
+        .filter(|h| !h.is_empty())
+        .map(PathBuf::from);
+    if let Some(home) = &home {
+        paths.push(home.join(CONFIG_FILENAME));
     }
-
-    // 3. Home directory config (user-wide defaults)
-    if let Ok(home) = std::env::var("HOME") {
-        add_if_new(PathBuf::from(home).join(CONFIG_FILENAME));
-    }
-
-    // 4. XDG config directory
-    if let Ok(xdg_config) = std::env::var("XDG_CONFIG_HOME") {
-        add_if_new(
-            PathBuf::from(xdg_config)
+    match std::env::var_os("XDG_CONFIG_HOME").filter(|x| !x.is_empty()) {
+        Some(xdg) => paths.push(
+            PathBuf::from(xdg)
                 .join("gh-validator")
                 .join(CONFIG_FILENAME),
-        );
-    } else if let Ok(home) = std::env::var("HOME") {
-        add_if_new(
-            PathBuf::from(home)
-                .join(".config")
-                .join("gh-validator")
-                .join(CONFIG_FILENAME),
-        );
+        ),
+        None => {
+            if let Some(home) = &home {
+                paths.push(
+                    home.join(".config")
+                        .join("gh-validator")
+                        .join(CONFIG_FILENAME),
+                );
+            }
+        },
     }
-
     paths
 }
 
-/// Load configuration from the first available config file
+/// Load the first config found.
 ///
 /// # Errors
-///
-/// Returns `Error::ConfigNotFound` if no config file is found (fail-closed).
-/// Returns `Error::ConfigParse` if the config file is invalid.
+/// [`Error::ConfigNotFound`] if none exists (fail-closed),
+/// [`Error::ConfigParse`] if the chosen file is unreadable or invalid.
 pub fn load_config() -> Result<Config> {
-    let search_paths = config_search_paths();
-
-    for path in &search_paths {
-        if !path.exists() {
-            continue;
+    for path in config_search_paths() {
+        if path.is_file() {
+            return load_config_from_path(&path);
         }
-
-        let content = std::fs::read_to_string(path).map_err(|e| Error::ConfigParse {
-            path: path.clone(),
-            details: format!("Failed to read file: {}", e),
-        })?;
-
-        let config: Config = serde_yaml::from_str(&content).map_err(|e| Error::ConfigParse {
-            path: path.clone(),
-            details: e.to_string(),
-        })?;
-
-        return Ok(config);
     }
-
-    // FAIL CLOSED: No config = block all commands
     Err(Error::ConfigNotFound)
 }
 
-/// Load configuration from a specific path (for testing)
-#[allow(dead_code)]
-pub fn load_config_from_path(path: &std::path::Path) -> Result<Config> {
-    let content = std::fs::read_to_string(path).map_err(|e| Error::ConfigParse {
+/// Load and parse a specific config file.
+pub fn load_config_from_path(path: &Path) -> Result<Config> {
+    let parse_err = |details: String| Error::ConfigParse {
         path: path.to_path_buf(),
-        details: format!("Failed to read file: {}", e),
-    })?;
-
-    serde_yaml::from_str(&content).map_err(|e| Error::ConfigParse {
-        path: path.to_path_buf(),
-        details: e.to_string(),
-    })
+        details,
+    };
+    let meta = std::fs::metadata(path).map_err(|e| parse_err(format!("cannot stat: {e}")))?;
+    if meta.len() > MAX_CONFIG_BYTES {
+        return Err(parse_err(format!("larger than {MAX_CONFIG_BYTES} bytes")));
+    }
+    let content =
+        std::fs::read_to_string(path).map_err(|e| parse_err(format!("cannot read: {e}")))?;
+    serde_yaml::from_str(&content).map_err(|e| parse_err(e.to_string()))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::io::Write;
-    use tempfile::TempDir;
 
     #[test]
-    fn test_load_config_from_path() {
-        let temp_dir = TempDir::new().unwrap();
-        let config_path = temp_dir.path().join(".secrets.yaml");
-
-        let config_content = r#"
+    fn parses_full_config() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join(CONFIG_FILENAME);
+        std::fs::write(
+            &path,
+            r#"
 version: "1.0.0"
 environment_variables:
   - GITHUB_TOKEN
@@ -160,32 +130,54 @@ auto_detection:
     - "PUBLIC_*"
 settings:
   minimum_secret_length: 4
-"#;
+allowed_mentions:
+  - someone
+"#,
+        )
+        .unwrap();
 
-        let mut file = std::fs::File::create(&config_path).unwrap();
-        file.write_all(config_content.as_bytes()).unwrap();
-
-        let config = load_config_from_path(&config_path).unwrap();
-
+        let config = load_config_from_path(&path).unwrap();
         assert_eq!(config.version, "1.0.0");
         assert_eq!(config.environment_variables.len(), 2);
         assert_eq!(config.patterns.len(), 1);
         assert!(config.auto_detection.enabled);
         assert_eq!(config.settings.minimum_secret_length, 4);
+        assert_eq!(config.allowed_mentions(), vec!["someone".to_string()]);
     }
 
     #[test]
-    #[ignore] // Skip in CI - binary location search finds config in template-repo
-    fn test_config_not_found() {
-        // This test only works when the binary is not in a repo with .secrets.yaml
-        // In template-repo, the binary location search finds the config file
-        let temp_dir = TempDir::new().unwrap();
-        let original_dir = std::env::current_dir().unwrap();
-        std::env::set_current_dir(temp_dir.path()).unwrap();
+    fn default_allowed_mentions() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join(CONFIG_FILENAME);
+        std::fs::write(&path, "version: '1'\n").unwrap();
+        let config = load_config_from_path(&path).unwrap();
+        assert_eq!(config.allowed_mentions(), vec!["AndrewAltimit".to_string()]);
+    }
 
-        let result = load_config();
-        assert!(matches!(result, Err(Error::ConfigNotFound)));
+    #[test]
+    fn invalid_yaml_is_an_error() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join(CONFIG_FILENAME);
+        std::fs::write(&path, "patterns: [unterminated").unwrap();
+        assert!(matches!(
+            load_config_from_path(&path),
+            Err(Error::ConfigParse { .. })
+        ));
+    }
 
-        std::env::set_current_dir(original_dir).unwrap();
+    #[test]
+    fn repository_config_parses() {
+        // The real repository config must stay loadable.
+        let repo_config = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../../.secrets.yaml");
+        if repo_config.is_file() {
+            let config = load_config_from_path(&repo_config).unwrap();
+            assert!(!config.patterns.is_empty());
+            assert_eq!(config.compile_patterns().len(), config.patterns.len());
+        }
+    }
+
+    #[test]
+    fn system_config_is_searched_first() {
+        assert_eq!(config_search_paths()[0], PathBuf::from(SYSTEM_CONFIG));
     }
 }

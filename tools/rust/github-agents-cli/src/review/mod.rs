@@ -1,16 +1,19 @@
 //! PR Review module for automated code review.
 //!
 //! This module provides functionality for reviewing pull requests using
-//! configurable AI agents (Gemini, Claude, OpenRouter).
+//! configurable AI agents (Claude, OpenRouter, OpenCode, Crush).
 //!
 //! # Features
 //!
-//! - Multi-agent support with fallback
-//! - Incremental reviews (only review changes since last review)
+//! - Profile-based reviewers (`review-profiles.yaml`)
+//! - Incremental reviews (only review changes since last trusted review)
 //! - Trust-based comment bucketing (Admin/Trusted/Community)
 //! - Hallucination detection (verify file/line references)
 //! - Brevity enforcement with automatic condensation
 //! - Reaction image integration
+//! - Prompt-injection hardening: reviewer configuration is read from the
+//!   base branch when a PR modifies it, and model output is neutralized
+//!   before posting
 //!
 //! # Configuration
 //!

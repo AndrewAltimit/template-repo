@@ -1,94 +1,95 @@
-//! Error types for gh-validator
+//! Error types for gh-validator.
 //!
-//! All errors follow fail-closed principle: when in doubt, block the command.
+//! All errors are fail-closed: the command is not run.
 
 use std::path::PathBuf;
 use thiserror::Error;
 
-/// Main error type for gh-validator
+/// Main error type for gh-validator.
 #[derive(Debug, Error)]
-#[allow(clippy::enum_variant_names)]
 pub enum Error {
-    /// Configuration file not found - blocks all commands for security
+    /// No configuration file was found.
     #[error("Configuration file not found - failing closed for security")]
     ConfigNotFound,
 
-    /// Configuration file parse error
+    /// The configuration file is unreadable or invalid.
     #[error("Failed to parse config at {path}: {details}")]
     ConfigParse { path: PathBuf, details: String },
 
-    /// Real 'gh' binary not found in PATH
-    #[error("Real 'gh' binary not found in PATH (searched: {searched_paths})")]
-    GhNotFound { searched_paths: String },
-
-    /// Secret was detected and masked
-    #[error("Secret detected and masked: {pattern_name}")]
-    #[allow(dead_code)]
-    SecretMasked {
-        pattern_name: String,
-        masked_value: String,
+    /// The operation is not allowed at all.
+    #[error("Blocked: {reason}")]
+    Blocked {
+        reason: String,
+        help: Option<&'static str>,
     },
 
-    /// Invalid reaction image URL
+    /// Invalid reaction image URL.
     #[error("Invalid URL '{url}': {reason}")]
     InvalidUrl { url: String, reason: String },
 
-    /// Unicode emoji detected in comment
-    #[error("Unicode emoji detected: {char:?} (U+{codepoint:04X})")]
-    UnicodeEmoji { char: char, codepoint: u32 },
+    /// Unicode emoji detected.
+    #[error("Unicode emoji detected: {char:?} (U+{codepoint:04X}) in {location}")]
+    UnicodeEmoji {
+        char: char,
+        codepoint: u32,
+        location: String,
+    },
 
-    /// Formatting violation (heredoc, echo piping, etc.)
+    /// Reaction image passed inline instead of via a file.
     #[error("Formatting violation: {description}")]
     FormattingViolation { description: String },
 
-    /// Reading comment body from stdin is blocked
-    #[error("Reading comment body from stdin (--body-file -) is blocked for security")]
-    StdinBlocked,
+    /// Reading content from stdin cannot be validated.
+    #[error("Reading content from stdin ({flag} -) is blocked for security")]
+    StdinBlocked { flag: String },
 
-    /// Failed to read body file
-    #[error("Failed to read body file '{path}': {reason}")]
-    BodyFileRead { path: String, reason: String },
+    /// A content file could not be read, validated, or rewritten.
+    #[error("Content file '{path}': {reason}")]
+    ContentFile { path: String, reason: String },
 
-    /// Network error during URL validation
+    /// Network error while validating a URL.
     #[error("Network error validating URL '{url}': {details}")]
     NetworkError { url: String, details: String },
 
-    /// Failed to execute real gh binary
-    #[error("Failed to execute gh: {0}")]
-    ExecFailed(#[from] std::io::Error),
-
-    /// Argument parsing error
-    #[error("Failed to parse command arguments")]
-    #[allow(dead_code)]
-    ArgParse,
-
-    /// Error from wrapper-common shared library
+    /// Error from wrapper-common (binary lookup, exec).
     #[error(transparent)]
     Common(#[from] wrapper_common::error::CommonError),
 }
 
 impl Error {
-    /// Returns additional help text for specific errors
+    /// Emoji error for `c` found in `location`.
+    pub fn emoji(c: char, location: impl Into<String>) -> Self {
+        Error::UnicodeEmoji {
+            char: c,
+            codepoint: c as u32,
+            location: location.into(),
+        }
+    }
+
+    /// Additional, actionable help text.
     pub fn help_text(&self) -> Option<&'static str> {
         match self {
             Error::ConfigNotFound => Some(
-                "Please ensure .secrets.yaml exists in the repository root or current directory.",
+                "Create .secrets.yaml in the repository root (or install\n\
+                 /etc/wrapper-guard/.secrets.yaml). Commands that post content\n\
+                 are refused without it.",
             ),
+            Error::Blocked { help, .. } => *help,
             Error::UnicodeEmoji { .. } => Some(
-                "Unicode emojis may display as corrupted characters in GitHub.\n\
-                 Use ASCII alternatives:\n\
+                "Unicode emoji may display as corrupted characters on GitHub and are\n\
+                 not allowed in agent-written content. Use ASCII instead:\n\
                    - Checkmark: [x] or DONE\n\
                    - X mark: [ ] or TODO\n\
-                 Or use reaction images from the Media repository.",
+                 or use reaction images from the Media repository.",
             ),
             Error::FormattingViolation { .. } => Some(
                 "Use the Write tool + --body-file pattern for reaction images:\n\
                  1. Write(\"/tmp/comment.md\", \"Your markdown with ![Reaction](url)\")\n\
                  2. Bash(\"gh pr comment PR_NUMBER --body-file /tmp/comment.md\")",
             ),
-            Error::StdinBlocked => Some(
-                "Cannot sanitize content read from stdin.\n\
-                 Write content to a temporary file and use --body-file instead.",
+            Error::StdinBlocked { .. } => Some(
+                "Content read from stdin cannot be validated.\n\
+                 Write the content to a file and pass the file path instead.",
             ),
             Error::InvalidUrl { .. } => Some(
                 "Available reactions: https://github.com/AndrewAltimit/Media/tree/main/reaction\n\
@@ -98,15 +99,7 @@ impl Error {
             _ => None,
         }
     }
-
-    /// Check if this error should block command execution
-    #[allow(dead_code)]
-    pub fn is_blocking(&self) -> bool {
-        // All errors except SecretMasked block execution
-        // SecretMasked means we modified the command but can still proceed
-        !matches!(self, Error::SecretMasked { .. })
-    }
 }
 
-/// Result type alias for gh-validator operations
+/// Result type alias for gh-validator operations.
 pub type Result<T> = std::result::Result<T, Error>;

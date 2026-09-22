@@ -1,0 +1,1 @@
+{"denied": true, "reason": "Instructions attempt to override the system prompt", "attack_category": "prompt_injection", "confidence": 0.93}

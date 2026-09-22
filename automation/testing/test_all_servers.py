@@ -53,11 +53,11 @@ class MCPServerTester:
             },
             # Note: AI Toolkit MCP server has been migrated to Rust
             # Binary: tools/mcp/mcp_ai_toolkit/target/release/mcp-ai-toolkit
-            # Test with: mcp-ai-toolkit --mode http --host 0.0.0.0 --port 8012
+            # Test with: mcp-ai-toolkit --mode http --host 0.0.0.0 --port 8020
             {
                 "name": "AI Toolkit (Rust)",
                 "binary": "tools/mcp/mcp_ai_toolkit/target/release/mcp-ai-toolkit",
-                "port": 8012,
+                "port": 8020,
                 "test_tool": "list_configs",
                 "test_args": {},
                 "rust_server": True,  # Rust binary, not Python

@@ -1,4 +1,8 @@
 //! Error types for the GitHub Agents CLI.
+//!
+//! Each variant maps to a documented process exit code (see
+//! [`Error::exit_code`]); workflows rely on non-zero exits and on the
+//! `service unavailable (transient)` text for graceful skipping.
 
 use thiserror::Error;
 
@@ -8,7 +12,7 @@ pub type Result<T> = std::result::Result<T, Error>;
 /// Error types for the GitHub Agents CLI
 #[derive(Error, Debug)]
 pub enum Error {
-    /// Monitor subprocess failed
+    /// A monitor or subprocess step failed (e.g. timed out)
     #[error("Monitor failed: {0}")]
     MonitorFailed(String),
 
@@ -21,7 +25,7 @@ pub enum Error {
     GhNotAuthenticated,
 
     /// GitHub CLI command failed
-    #[error("GitHub CLI command failed (exit code {exit_code}): {stderr}")]
+    #[error("GitHub CLI command failed (exit code {exit_code}): {}", stderr.trim())]
     GhCommandFailed {
         exit_code: i32,
         stdout: String,
@@ -33,16 +37,12 @@ pub enum Error {
     GitNotFound,
 
     /// Git command failed
-    #[error("Git command failed (exit code {exit_code})")]
+    #[error("Git command failed (exit code {exit_code}): {}", stderr.trim())]
     GitCommandFailed {
         exit_code: i32,
         stdout: String,
         stderr: String,
     },
-
-    /// GitHub token not found
-    #[error("GitHub token not found in environment (GITHUB_TOKEN or GH_TOKEN)")]
-    GitHubTokenNotFound,
 
     /// Monitor was interrupted
     #[error("Monitor interrupted by user")]
@@ -64,7 +64,7 @@ pub enum Error {
     #[error("Configuration error: {0}")]
     Config(String),
 
-    /// Agent not available
+    /// Agent not available (unknown, disabled by policy, or not installed)
     #[error("Agent '{name}' is not available: {reason}")]
     AgentNotAvailable { name: String, reason: String },
 
@@ -109,7 +109,6 @@ impl Error {
         match self {
             Error::Interrupted => 130,
             Error::GhNotFound | Error::GhNotAuthenticated => 2,
-            Error::GitHubTokenNotFound => 3,
             Error::AgentNotAvailable { .. } => 5,
             Error::AgentExecutionFailed { .. } => 6,
             Error::AgentTimeout { .. } => 7,
@@ -127,17 +126,48 @@ impl Error {
             ),
             Error::GhNotAuthenticated => Some(
                 "Make sure the GitHub CLI is authenticated:\n\
-                 gh auth login",
-            ),
-            Error::GitHubTokenNotFound => Some(
-                "Set the GITHUB_TOKEN or GH_TOKEN environment variable:\n\
-                 export GITHUB_TOKEN=ghp_...",
+                 gh auth login   (or set GITHUB_TOKEN / GH_TOKEN)",
             ),
             Error::GitNotFound => Some(
                 "Make sure Git is installed:\n\
                  apt install git  # or equivalent for your system",
             ),
+            Error::EnvNotSet(var) if var == "GITHUB_REPOSITORY" => {
+                Some("Set GITHUB_REPOSITORY to owner/repo (set automatically in GitHub Actions)")
+            },
             _ => None,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn exit_codes_are_stable() {
+        assert_eq!(Error::Interrupted.exit_code(), 130);
+        assert_eq!(Error::GhNotFound.exit_code(), 2);
+        assert_eq!(
+            Error::AgentNotAvailable {
+                name: "x".into(),
+                reason: "y".into()
+            }
+            .exit_code(),
+            5
+        );
+        assert_eq!(Error::SecurityCheck("x".into()).exit_code(), 8);
+        assert_eq!(Error::Config("x".into()).exit_code(), 1);
+    }
+
+    #[test]
+    fn transient_text_is_preserved_in_display() {
+        let e = Error::AgentExecutionFailed {
+            name: "claude".into(),
+            exit_code: 1,
+            stdout: String::new(),
+            stderr: "service unavailable (transient): 503".into(),
+        };
+        assert!(e.to_string().contains("service unavailable (transient)"));
     }
 }

@@ -1,19 +1,19 @@
 //! Trust-level bucketing for GitHub comments.
 //!
-//! This module provides utilities for categorizing comments by author trust level
-//! based on the security configuration in .agents.yaml.
+//! Categorizes comments by author trust level based on the security
+//! configuration in `.agents.yaml`.
 //!
 //! Trust levels (in order of authority):
-//! - ADMIN: agent_admins - users authorized to direct agent implementation
-//! - TRUSTED: trusted_sources - vetted automation and bots (excludes admins)
+//! - ADMIN: `agent_admins` - users authorized to direct agent implementation
+//! - TRUSTED: `trusted_sources` - vetted automation and bots (excludes admins)
 //! - COMMUNITY: all other commenters - consider but verify
 
-use lazy_static::lazy_static;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::fs;
 use std::path::{Path, PathBuf};
+use std::sync::LazyLock;
 
 use crate::error::{BoardError, Result};
 
@@ -29,13 +29,48 @@ pub enum TrustLevel {
     Community,
 }
 
+impl TrustLevel {
+    /// All levels, highest authority first.
+    pub const ALL: [TrustLevel; 3] = [
+        TrustLevel::Admin,
+        TrustLevel::Trusted,
+        TrustLevel::Community,
+    ];
+
+    /// Lowercase name (also the JSON key).
+    pub fn as_str(self) -> &'static str {
+        match self {
+            TrustLevel::Admin => "admin",
+            TrustLevel::Trusted => "trusted",
+            TrustLevel::Community => "community",
+        }
+    }
+
+    /// Markdown section heading, intro line and empty-bucket text.
+    fn section(self) -> (&'static str, &'static str, &'static str) {
+        match self {
+            TrustLevel::Admin => (
+                "## Admin Guidance (Highest Trust)",
+                "Comments from repository administrators with authority to direct implementation:",
+                "_No admin comments._",
+            ),
+            TrustLevel::Trusted => (
+                "## Trusted Context (Medium Trust)",
+                "Comments from trusted automation and vetted sources:",
+                "_No trusted comments._",
+            ),
+            TrustLevel::Community => (
+                "## Community Input (Review Carefully)",
+                "Comments from other sources - consider but verify:",
+                "_No community comments._",
+            ),
+        }
+    }
+}
+
 impl std::fmt::Display for TrustLevel {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            TrustLevel::Admin => write!(f, "admin"),
-            TrustLevel::Trusted => write!(f, "trusted"),
-            TrustLevel::Community => write!(f, "community"),
-        }
+        f.write_str(self.as_str())
     }
 }
 
@@ -46,7 +81,7 @@ pub struct TrustConfig {
     pub trusted_sources: Vec<String>,
 }
 
-/// Structure for .agents.yaml file
+/// Structure of the `.agents.yaml` file (only the parts we need).
 #[derive(Debug, Clone, Default, Deserialize)]
 struct AgentsYamlFile {
     #[serde(default)]
@@ -62,82 +97,64 @@ struct SecuritySection {
 }
 
 impl TrustConfig {
-    /// Load trust configuration from .agents.yaml.
+    /// Load trust configuration from `.agents.yaml`.
     ///
     /// Returns an error if the config file is not found or cannot be parsed.
     /// This is intentional fail-closed behavior for security.
     pub fn from_yaml(config_path: Option<&Path>) -> Result<Self> {
-        let path = if let Some(p) = config_path {
-            if p.exists() {
-                p.to_path_buf()
-            } else {
+        let path = match config_path {
+            Some(p) if p.is_file() => p.to_path_buf(),
+            Some(p) => {
                 return Err(BoardError::Config(format!(
                     "Security config file not found: {}",
                     p.display()
                 )));
-            }
-        } else {
-            Self::find_config_file().ok_or_else(|| {
+            },
+            None => Self::find_config_file().ok_or_else(|| {
                 BoardError::Config(
                     "No .agents.yaml found. Trust bucketing requires a security config file."
                         .to_string(),
                 )
-            })?
+            })?,
         };
 
-        Self::load_from_path(&path)
+        let content = fs::read_to_string(&path)
+            .map_err(|e| BoardError::Config(format!("Failed to read {}: {}", path.display(), e)))?;
+        Self::from_yaml_str(&content)
+            .map_err(|e| BoardError::Config(format!("Failed to parse {}: {}", path.display(), e)))
     }
 
-    /// Load trust configuration from .agents.yaml, or return default if not found.
-    ///
-    /// Use this variant only for non-security-critical operations where
-    /// fail-open behavior is acceptable.
-    pub fn from_yaml_or_default(config_path: Option<&Path>) -> Self {
-        Self::from_yaml(config_path).unwrap_or_default()
-    }
-
-    /// Find .agents.yaml from current directory up.
-    fn find_config_file() -> Option<PathBuf> {
-        let mut current_dir = std::env::current_dir().ok()?;
-
-        loop {
-            let potential_config = current_dir.join(".agents.yaml");
-            if potential_config.exists() {
-                return Some(potential_config);
-            }
-
-            if !current_dir.pop() {
-                break;
-            }
-        }
-
-        None
-    }
-
-    /// Load configuration from a specific path.
-    fn load_from_path(path: &Path) -> Result<Self> {
-        let content = fs::read_to_string(path)
-            .map_err(|e| BoardError::Config(format!("Failed to read .agents.yaml: {}", e)))?;
-
-        let config: AgentsYamlFile = serde_yaml::from_str(&content)
-            .map_err(|e| BoardError::Config(format!("Failed to parse .agents.yaml: {}", e)))?;
-
+    /// Parse trust configuration from YAML text.
+    pub fn from_yaml_str(content: &str) -> std::result::Result<Self, serde_yaml::Error> {
+        let file: AgentsYamlFile = serde_yaml::from_str(content)?;
         Ok(Self {
-            agent_admins: config.security.agent_admins,
-            trusted_sources: config.security.trusted_sources,
+            agent_admins: file.security.agent_admins,
+            trusted_sources: file.security.trusted_sources,
         })
     }
+
+    /// Find `.agents.yaml` in the current directory or any parent.
+    fn find_config_file() -> Option<PathBuf> {
+        let cwd = std::env::current_dir().ok()?;
+        cwd.ancestors()
+            .map(|dir| dir.join(".agents.yaml"))
+            .find(|p| p.is_file())
+    }
 }
 
-lazy_static! {
-    /// Patterns for automated noise that should be filtered out.
-    static ref NOISE_PATTERNS: Vec<Regex> = vec![
-        // Agent claim comments (U+1F916 = robot emoji)
-        Regex::new(r"^\x{1F916} \*\*\[Agent Claim\]\*\*").unwrap(),
-        // Simple approval triggers (just "[Approved][Agent]" with no other content)
-        Regex::new(r"^\[Approved\]\[[^\]]+\]$").unwrap(),
-    ];
-}
+/// Patterns for automated noise that should be filtered out.
+static NOISE_PATTERNS: LazyLock<Vec<Regex>> = LazyLock::new(|| {
+    [
+        // Board claim/renewal/release comments, with or without a leading
+        // robot emoji (U+1F916) used by older versions.
+        r"^(?:\x{1F916}\s*)?\*\*\[(?:Agent Claim|Claim Renewal|Agent Release)\]\*\*",
+        // Bare approval triggers (just "[Approved][Agent]" with no other content)
+        r"^\[Approved\]\[[^\]]+\]$",
+    ]
+    .iter()
+    .map(|p| Regex::new(p).expect("noise regex is valid"))
+    .collect()
+});
 
 /// A comment with author information.
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -150,22 +167,32 @@ pub struct Comment {
 }
 
 impl Comment {
-    /// Create a comment from a JSON value.
+    /// Create a comment from JSON in either GraphQL / `gh --json` shape
+    /// (`author.login`, `createdAt`) or REST shape (`user.login`,
+    /// `created_at`). Returns `None` only when there is no string `body`.
     pub fn from_json(value: &serde_json::Value) -> Option<Self> {
         let body = value.get("body")?.as_str()?.to_string();
-        let author = match value.get("author") {
-            Some(serde_json::Value::String(s)) => s.clone(),
-            Some(serde_json::Value::Object(obj)) => obj.get("login")?.as_str()?.to_string(),
-            _ => "unknown".to_string(),
+        let login = |v: &serde_json::Value| match v {
+            serde_json::Value::String(s) => Some(s.clone()),
+            serde_json::Value::Object(obj) => obj.get("login")?.as_str().map(String::from),
+            _ => None,
         };
-        let id = value
-            .get("id")
-            .and_then(|v| v.as_str())
-            .map(|s| s.to_string());
+        let author = value
+            .get("author")
+            .and_then(login)
+            .or_else(|| value.get("user").and_then(login))
+            .filter(|a| !a.is_empty())
+            .unwrap_or_else(|| "unknown".to_string());
+        let id = value.get("id").and_then(|v| match v {
+            serde_json::Value::String(s) => Some(s.clone()),
+            serde_json::Value::Number(n) => Some(n.to_string()),
+            _ => None,
+        });
         let created_at = value
             .get("createdAt")
+            .or_else(|| value.get("created_at"))
             .and_then(|v| v.as_str())
-            .map(|s| s.to_string());
+            .map(String::from);
 
         Some(Self {
             id,
@@ -179,7 +206,6 @@ impl Comment {
 /// Buckets comments by author trust level.
 #[derive(Debug, Clone)]
 pub struct TrustBucketer {
-    config: TrustConfig,
     admins: HashSet<String>,
     trusted: HashSet<String>,
 }
@@ -190,7 +216,6 @@ impl TrustBucketer {
     /// Usernames are normalized to lowercase for case-insensitive matching
     /// since GitHub usernames are case-insensitive.
     pub fn new(config: TrustConfig) -> Self {
-        // Normalize to lowercase for case-insensitive matching
         let admins: HashSet<String> = config
             .agent_admins
             .iter()
@@ -203,22 +228,15 @@ impl TrustBucketer {
             .filter(|s| !admins.contains(s))
             .collect();
 
-        Self {
-            config,
-            admins,
-            trusted,
-        }
+        Self { admins, trusted }
     }
 
-    /// Create a new trust bucketer from .agents.yaml.
+    /// Create a new trust bucketer from `.agents.yaml`.
     pub fn from_yaml(config_path: Option<&Path>) -> Result<Self> {
-        let config = TrustConfig::from_yaml(config_path)?;
-        Ok(Self::new(config))
+        Ok(Self::new(TrustConfig::from_yaml(config_path)?))
     }
 
-    /// Determine the trust level for a username.
-    ///
-    /// Matching is case-insensitive since GitHub usernames are case-insensitive.
+    /// Determine the trust level for a username (case-insensitive).
     pub fn get_trust_level(&self, username: &str) -> TrustLevel {
         let username_lower = username.to_lowercase();
         if self.admins.contains(&username_lower) {
@@ -232,35 +250,28 @@ impl TrustBucketer {
 
     /// Check if a comment body is automated noise.
     pub fn is_noise(&self, body: &str) -> bool {
-        if body.is_empty() {
-            return true;
-        }
-
         let trimmed = body.trim();
-        NOISE_PATTERNS
-            .iter()
-            .any(|pattern| pattern.is_match(trimmed))
+        trimmed.is_empty() || NOISE_PATTERNS.iter().any(|p| p.is_match(trimmed))
     }
 
-    /// Bucket comments by author trust level.
+    /// Bucket comments by author trust level. Every level is present in the
+    /// returned map, possibly with an empty list.
     pub fn bucket_comments<'a>(
         &self,
         comments: &'a [Comment],
         filter_noise: bool,
     ) -> HashMap<TrustLevel, Vec<&'a Comment>> {
-        let mut buckets: HashMap<TrustLevel, Vec<&'a Comment>> = HashMap::new();
-        buckets.insert(TrustLevel::Admin, Vec::new());
-        buckets.insert(TrustLevel::Trusted, Vec::new());
-        buckets.insert(TrustLevel::Community, Vec::new());
+        let mut buckets: HashMap<TrustLevel, Vec<&'a Comment>> =
+            TrustLevel::ALL.iter().map(|l| (*l, Vec::new())).collect();
 
         for comment in comments {
-            // Skip noise if filtering enabled
             if filter_noise && self.is_noise(&comment.body) {
                 continue;
             }
-
-            let trust_level = self.get_trust_level(&comment.author);
-            buckets.get_mut(&trust_level).unwrap().push(comment);
+            buckets
+                .entry(self.get_trust_level(&comment.author))
+                .or_default()
+                .push(comment);
         }
 
         buckets
@@ -276,61 +287,37 @@ impl TrustBucketer {
         let buckets = self.bucket_comments(comments, filter_noise);
         let mut output = String::new();
 
-        // Admin guidance (highest trust)
-        let admin_comments = &buckets[&TrustLevel::Admin];
-        if !admin_comments.is_empty() {
-            output.push_str("## Admin Guidance (Highest Trust)\n");
-            output.push_str(
-                "Comments from repository administrators with authority to direct implementation:\n\n",
-            );
-            for comment in admin_comments {
-                output.push_str(&self.format_comment(comment));
+        for level in TrustLevel::ALL {
+            let (heading, intro, empty) = level.section();
+            let bucket = buckets.get(&level).map(Vec::as_slice).unwrap_or_default();
+            if !bucket.is_empty() {
+                output.push_str(heading);
+                output.push('\n');
+                output.push_str(intro);
+                output.push_str("\n\n");
+                for comment in bucket {
+                    output.push_str(&Self::format_comment(comment));
+                }
+            } else if include_empty_buckets {
+                output.push_str(&format!("{}\n\n{}\n\n", heading, empty));
             }
-        } else if include_empty_buckets {
-            output.push_str("## Admin Guidance (Highest Trust)\n\n_No admin comments._\n\n");
         }
 
-        // Trusted context (medium trust)
-        let trusted_comments = &buckets[&TrustLevel::Trusted];
-        if !trusted_comments.is_empty() {
-            output.push_str("## Trusted Context (Medium Trust)\n");
-            output.push_str("Comments from trusted automation and vetted sources:\n\n");
-            for comment in trusted_comments {
-                output.push_str(&self.format_comment(comment));
-            }
-        } else if include_empty_buckets {
-            output.push_str("## Trusted Context (Medium Trust)\n\n_No trusted comments._\n\n");
-        }
-
-        // Community input (review carefully)
-        let community_comments = &buckets[&TrustLevel::Community];
-        if !community_comments.is_empty() {
-            output.push_str("## Community Input (Review Carefully)\n");
-            output.push_str("Comments from other sources - consider but verify:\n\n");
-            for comment in community_comments {
-                output.push_str(&self.format_comment(comment));
-            }
-        } else if include_empty_buckets {
-            output
-                .push_str("## Community Input (Review Carefully)\n\n_No community comments._\n\n");
-        }
-
-        // Trim trailing whitespace, then remove markdown separator if present
+        // Drop the trailing separator after the last comment.
         let trimmed = output.trim_end();
         trimmed
-            .strip_suffix("\n\n---")
-            .or_else(|| trimmed.strip_suffix("---"))
+            .strip_suffix("---")
             .unwrap_or(trimmed)
             .trim_end()
             .to_string()
     }
 
     /// Format a single comment as markdown.
-    fn format_comment(&self, comment: &Comment) -> String {
+    fn format_comment(comment: &Comment) -> String {
         let date = comment
             .created_at
-            .as_ref()
-            .map(|s| &s[..10.min(s.len())])
+            .as_deref()
+            .map(|s| s.get(..10).unwrap_or(s))
             .unwrap_or("unknown date");
 
         format!(
@@ -338,25 +325,12 @@ impl TrustBucketer {
             comment.author, date, comment.body
         )
     }
-
-    /// Get the underlying config.
-    pub fn config(&self) -> &TrustConfig {
-        &self.config
-    }
-}
-
-/// Convenience function to bucket and format comments for agent context.
-pub fn bucket_comments_for_context(
-    comments: &[Comment],
-    config_path: Option<&Path>,
-) -> Result<String> {
-    let bucketer = TrustBucketer::from_yaml(config_path)?;
-    Ok(bucketer.format_bucketed_comments(comments, true, false))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde_json::json;
 
     fn make_comment(author: &str, body: &str) -> Comment {
         Comment {
@@ -368,7 +342,7 @@ mod tests {
     }
 
     #[test]
-    fn test_trust_level_determination() {
+    fn trust_level_determination() {
         let config = TrustConfig {
             agent_admins: vec!["admin_user".to_string()],
             trusted_sources: vec!["bot_user".to_string(), "admin_user".to_string()],
@@ -384,17 +358,22 @@ mod tests {
     }
 
     #[test]
-    fn test_noise_detection() {
+    fn noise_detection() {
         let bucketer = TrustBucketer::new(TrustConfig::default());
 
         assert!(bucketer.is_noise(""));
+        assert!(bucketer.is_noise("   "));
         assert!(bucketer.is_noise("\u{1F916} **[Agent Claim]** something"));
+        assert!(bucketer.is_noise("**[Agent Claim]**\n\nAgent: `claude`"));
+        assert!(bucketer.is_noise("**[Claim Renewal]**\n\nAgent: `claude`"));
+        assert!(bucketer.is_noise("**[Agent Release]**\n\nAgent: `claude`"));
         assert!(bucketer.is_noise("[Approved][Claude]"));
+        assert!(!bucketer.is_noise("[Approved][Claude] but also fix the tests"));
         assert!(!bucketer.is_noise("This is a real comment"));
     }
 
     #[test]
-    fn test_bucket_comments() {
+    fn bucket_comments_by_level() {
         let config = TrustConfig {
             agent_admins: vec!["admin".to_string()],
             trusted_sources: vec!["bot".to_string()],
@@ -409,14 +388,16 @@ mod tests {
         ];
 
         let buckets = bucketer.bucket_comments(&comments, true);
-
         assert_eq!(buckets[&TrustLevel::Admin].len(), 1);
         assert_eq!(buckets[&TrustLevel::Trusted].len(), 1);
-        assert_eq!(buckets[&TrustLevel::Community].len(), 1); // noise filtered
+        assert_eq!(buckets[&TrustLevel::Community].len(), 1);
+
+        let unfiltered = bucketer.bucket_comments(&comments, false);
+        assert_eq!(unfiltered[&TrustLevel::Community].len(), 2);
     }
 
     #[test]
-    fn test_format_bucketed_comments() {
+    fn format_bucketed_comments_sections() {
         let config = TrustConfig {
             agent_admins: vec!["admin".to_string()],
             trusted_sources: vec![],
@@ -429,27 +410,85 @@ mod tests {
         ];
 
         let formatted = bucketer.format_bucketed_comments(&comments, true, false);
-
         assert!(formatted.contains("## Admin Guidance"));
+        assert!(formatted.contains("### admin (2024-01-15)"));
         assert!(formatted.contains("Please fix this issue"));
         assert!(formatted.contains("## Community Input"));
-        assert!(formatted.contains("I think there's a bug"));
+        assert!(!formatted.contains("## Trusted Context"));
+        assert!(!formatted.ends_with("---"));
+
+        let with_empty = bucketer.format_bucketed_comments(&comments, true, true);
+        assert!(with_empty.contains("_No trusted comments._"));
     }
 
     #[test]
-    fn test_case_insensitive_trust_levels() {
+    fn case_insensitive_trust_levels() {
         let config = TrustConfig {
             agent_admins: vec!["AdminUser".to_string()],
             trusted_sources: vec!["BotUser".to_string()],
         };
         let bucketer = TrustBucketer::new(config);
 
-        // Should match regardless of case
-        assert_eq!(bucketer.get_trust_level("AdminUser"), TrustLevel::Admin);
-        assert_eq!(bucketer.get_trust_level("adminuser"), TrustLevel::Admin);
-        assert_eq!(bucketer.get_trust_level("ADMINUSER"), TrustLevel::Admin);
-        assert_eq!(bucketer.get_trust_level("BotUser"), TrustLevel::Trusted);
-        assert_eq!(bucketer.get_trust_level("botuser"), TrustLevel::Trusted);
-        assert_eq!(bucketer.get_trust_level("BOTUSER"), TrustLevel::Trusted);
+        for name in ["AdminUser", "adminuser", "ADMINUSER"] {
+            assert_eq!(bucketer.get_trust_level(name), TrustLevel::Admin);
+        }
+        for name in ["BotUser", "botuser", "BOTUSER"] {
+            assert_eq!(bucketer.get_trust_level(name), TrustLevel::Trusted);
+        }
+    }
+
+    #[test]
+    fn comment_from_graphql_and_rest_json() {
+        let gql = json!({
+            "id": "IC_1", "body": "hi", "author": { "login": "alice" },
+            "createdAt": "2024-01-01T00:00:00Z"
+        });
+        let c = Comment::from_json(&gql).unwrap();
+        assert_eq!(c.author, "alice");
+        assert_eq!(c.id.as_deref(), Some("IC_1"));
+        assert_eq!(c.created_at.as_deref(), Some("2024-01-01T00:00:00Z"));
+
+        // REST API shape (used by `gh api .../comments`)
+        let rest = json!({
+            "id": 123, "body": "hi", "user": { "login": "bob" },
+            "created_at": "2024-02-01T00:00:00Z"
+        });
+        let c = Comment::from_json(&rest).unwrap();
+        assert_eq!(c.author, "bob");
+        assert_eq!(c.id.as_deref(), Some("123"));
+        assert_eq!(c.created_at.as_deref(), Some("2024-02-01T00:00:00Z"));
+
+        // Deleted user (author null) and string author
+        let ghost = json!({ "body": "x", "author": null });
+        assert_eq!(Comment::from_json(&ghost).unwrap().author, "unknown");
+        let s = json!({ "body": "x", "author": "carol" });
+        assert_eq!(Comment::from_json(&s).unwrap().author, "carol");
+
+        assert!(Comment::from_json(&json!({ "author": "x" })).is_none());
+    }
+
+    #[test]
+    fn short_or_non_ascii_dates_do_not_panic() {
+        let bucketer = TrustBucketer::new(TrustConfig::default());
+        let mut c = make_comment("u", "body");
+        c.created_at = Some("2024\u{00e9}\u{00e9}\u{00e9}\u{00e9}".to_string());
+        let out = bucketer.format_bucketed_comments(&[c], false, false);
+        assert!(out.contains("### u ("));
+        let mut c = make_comment("u", "body");
+        c.created_at = Some("2024".to_string());
+        assert!(
+            bucketer
+                .format_bucketed_comments(&[c], false, false)
+                .contains("### u (2024)")
+        );
+    }
+
+    #[test]
+    fn parses_agents_yaml() {
+        let yaml = "security:\n  agent_admins: [Alice]\n  trusted_sources: [bot]\nother: 1\n";
+        let c = TrustConfig::from_yaml_str(yaml).unwrap();
+        assert_eq!(c.agent_admins, vec!["Alice"]);
+        assert_eq!(c.trusted_sources, vec!["bot"]);
+        assert!(TrustConfig::from_yaml(Some(Path::new("/nope/.agents.yaml"))).is_err());
     }
 }

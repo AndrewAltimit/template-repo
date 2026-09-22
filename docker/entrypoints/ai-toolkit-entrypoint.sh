@@ -24,16 +24,16 @@ done
 echo " AI Toolkit UI is ready!"
 
 # Start MCP server (Rust binary)
-echo "Starting AI Toolkit MCP Server on port 8012..."
+echo "Starting AI Toolkit MCP Server on port 8020..."
 cd /workspace
-mcp-ai-toolkit --mode http --host 0.0.0.0 --port 8012 &
+mcp-ai-toolkit --mode http --host 0.0.0.0 --port 8020 &
 MCP_PID=$!
 
 # Keep container running and handle shutdown
 trap 'kill $AI_TOOLKIT_PID $MCP_PID; exit' SIGTERM SIGINT
 
 echo "AI Toolkit Web UI: http://0.0.0.0:8675"
-echo "AI Toolkit MCP Server: http://0.0.0.0:8012"
+echo "AI Toolkit MCP Server: http://0.0.0.0:8020"
 
 # Wait for processes
 wait $AI_TOOLKIT_PID $MCP_PID

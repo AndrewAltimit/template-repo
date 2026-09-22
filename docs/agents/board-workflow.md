@@ -159,10 +159,24 @@ fields:
 
 An issue is considered ready for agent work when:
 
-- Status is "Todo"
-- Not blocked by other issues
+- Issue is open and status is "Todo"
+- Unassigned, or assigned to the requesting agent
+- Has no excluded label (`work_queue.exclude_labels`)
+- Every blocker is closed or `Done`/`Abandoned` (blockers not on the board count as unresolved)
 - Not currently claimed by another agent
-- Has `[Approved]` trigger from an `agent_admin`
+- Has an `[Approved][Agent]` trigger naming the requesting agent from an allowed approver (the workflows query with `board-manager ready --agent <agent> --approved-only`; see [Who Can Approve](#who-can-approve))
+
+### Dependencies
+
+Blocking relationships live in the board's `Blocked By` field and are managed with `board-manager`:
+
+```bash
+board-manager block 123 --blocker 120     # #120 blocks #123
+board-manager unblock 123 --blocker 120   # remove it again (clears the field when empty)
+board-manager deps 123                    # alias: graph
+```
+
+`deps` shows the dependency graph of an issue: its blockers (and any that are missing from the board), the issues it blocks, its parent and children (`discover-from ISSUE --parent PARENT`), and whether it is ready.
 
 ---
 
@@ -177,17 +191,13 @@ To authorize an agent to work on an issue:
 [Approved][Claude]
 ```
 
-Or let the board decide which agent:
-
-```
-[Approved]
-```
+The trigger must name the agent. A bare `[Approved]` does not approve an issue for board work, because the workflows only pick up issues whose trigger names the agent they run as.
 
 ### Trigger Keywords
 
 | Keyword | Action |
 |---------|--------|
-| `[Approved]` | Implement the issue |
+| `[Approved]` | Implement the issue (the only keyword that approves board work) |
 | `[Review]` | Review and provide feedback |
 | `[Summarize]` | Summarize the discussion |
 | `[Debug]` | Debug the issue |
@@ -201,12 +211,21 @@ Or let the board decide which agent:
 
 ### Who Can Approve
 
-Only users in `.agents.yaml` `security.agent_admins`:
+Only an `[Approved][Agent]` trigger (case-insensitive) in the issue body or a comment approves an issue, and only when written by the project owner, the repository owner, or a user in `.agents.yaml` `security.agent_admins`:
 
 ```yaml
 security:
   agent_admins:
     - AndrewAltimit  # Only humans who can trigger agent actions
+```
+
+- `trusted_sources` cannot approve
+- Other keywords (`[Review]`, `[Close]`, `[Summarize]`, `[Debug]`) are not approvals
+- When an agent is given (`ready --agent A --approved-only`, `check-approval --agent A`, `find-approved --agent A`), the trigger must name that agent. Workflow and board names are equivalent: `[Approved][Claude]` and `[Approved][Claude Code]` both approve for `claude`
+- `find-approved` verifies each search hit against these rules and drops unverified ones (`--unverified` returns raw hits)
+
+```bash
+board-manager --format json check-approval 123 --agent claude   # {approved, issue, approver}
 ```
 
 ---
@@ -218,7 +237,7 @@ security:
 
 ### How It Works
 
-1. Workflow queries board for ready work
+1. Janitor releases stale claims (see below), then the workflow queries the board for ready work
 2. Agent claims the issue (prevents conflicts)
 3. Agent creates feature branch: `fix-issue-{number}-{short-id}`
 4. Agent implements the fix using its tools
@@ -227,11 +246,24 @@ security:
 
 ### Claim Management
 
-Claims prevent multiple agents from working on the same issue:
+Claims prevent multiple agents from working on the same issue. They are structured issue comments (`[Agent Claim]`, `[Claim Renewal]`, `[Agent Release]`), and the active claim is rebuilt by replaying the last 100 comments in order:
 
-- Claims expire after 2 hours (configurable)
-- Stale claims are automatically cleaned up
-- Agents can renew claims for long-running work
+- When two agents claim concurrently, the first comment wins; `claim` re-reads after posting and reports `lost_race` instead of proceeding
+- Claims expire after `work_claims.timeout` seconds without renewal (`ai-agents-board.yml`, default 86400)
+- Agents can renew claims for long-running work (`renew ISSUE --agent A --session S`)
+- `release ISSUE --agent A --reason R`: `completed` (default) and `pr_created` keep the status, `blocked` sets `Blocked`, `abandoned`/`error` set `Abandoned`
+
+**Who can claim**: only claim, renewal and release comments written by a user in `security.agent_admins` or `security.trusted_sources` of `.agents.yaml` count (case-insensitive; GitHub App authors such as the Actions bot match their `name[bot]` entry, e.g. `github-actions[bot]`). Look-alike comments from anyone else are ignored, so they cannot squat on, renew or release a claim. If `.agents.yaml` cannot be loaded, only comments by the repository owner count (fail closed). This applies to `claim`, `renew`, `janitor` and every other command that reads claims.
+
+#### Stale Claim Cleanup (`janitor`)
+
+```bash
+board-manager --format json janitor [--agent AGENT] [--threshold HOURS] [--reset-status STATUS] [--dry-run]
+```
+
+For open `In Progress` issues, `janitor` releases claims with no activity for `HOURS` (default: `work_claims.timeout`) and resets the status (default `Todo`). Issues in progress without any claim comment are reported, not touched. `--dry-run` reports what would be cleaned without changing anything. JSON output: `{dry_run, threshold_hours, reset_status, inspected, cleaned_count, stale[], unclaimed_in_progress[], failed[]}`.
+
+`board-agent-worker.yml` and the `board-agent-work` action run `janitor --agent <agent> --threshold <stale-claim-threshold>` (default 2 hours) before querying for ready work and report `cleaned_count` as the `stale-claims-cleaned` output. A janitor failure is logged as a warning and never blocks picking up new work.
 
 ### PR Format
 
@@ -537,10 +569,11 @@ security:
 ### Safety Guarantees
 
 1. **Board gating**: Issues must be triaged before agent work
-2. **Approval required**: Only `agent_admins` can trigger agents
-3. **Human merge**: Final merge always requires human approval
-4. **CI validation**: All changes must pass automated checks
-5. **Audit trail**: All agent actions logged in issue/PR comments
+2. **Approval required**: Only `agent_admins` (and the project/repository owner) can approve, with an `[Approved][Agent]` trigger naming the agent
+3. **Trusted claims**: Only claim comments from `agent_admins`/`trusted_sources` are honoured
+4. **Human merge**: Final merge always requires human approval
+5. **CI validation**: All changes must pass automated checks
+6. **Audit trail**: All agent actions logged in issue/PR comments
 
 ---
 
@@ -590,8 +623,9 @@ security:
 ### Issue Not Being Picked Up
 
 1. Check issue is on the board with "Todo" status
-2. Verify `[Approved]` comment exists from `agent_admin`
-3. Check for blocking issues
+2. Verify an `[Approved][Agent]` comment naming the agent exists from an `agent_admin` (`board-manager check-approval ISSUE --agent AGENT`)
+3. Check for blocking issues (`board-manager deps ISSUE`)
+4. Check for a stale claim by another agent (`board-manager janitor --dry-run`)
 4. Review `scheduled-agent-work.yml` logs
 
 ### Agent Not Responding to Feedback

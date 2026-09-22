@@ -1,103 +1,162 @@
 # gh-validator
 
-A Rust-based GitHub CLI wrapper that validates comments for security and formatting before posting.
+> A `gh` wrapper that validates and sanitizes everything an AI agent posts to
+> GitHub: secrets are masked, Unicode emoji rejected, @mentions neutralized,
+> reaction images verified.
 
-## Features
+The binary is named `gh`. Installed ahead of the real GitHub CLI on `PATH`
+(or as the setgid `/usr/bin/gh` in [hardened mode](../../../docs/infrastructure/wrapper-guard.md)),
+it passes commands without user content straight to the real `gh` (via
+`exec()` on Unix) and validates the rest first.
 
-- **Secret Masking**: Automatically detects and masks secrets in comment content
-- **Unicode Emoji Detection**: Blocks emojis that may display as corrupted characters
-- **Formatting Validation**: Ensures proper use of `--body-file` for reaction images
-- **URL Validation**: Verifies reaction image URLs exist with SSRF protection
-- **Cross-Platform**: Builds for Linux, macOS, and Windows
+## What counts as content
 
-## Installation
+Arguments are parsed with pflag semantics (`--flag=value`, `--flag value`,
+clustered short flags such as `-wbTEXT`, `-b=TEXT`, `--` terminator), and
+short flags are interpreted per command (`-F` is `--body-file` for
+`pr`/`issue`, `--notes-file` for `release`, `--field` for `api`).
 
-### Quick Install (Recommended)
+| Source | Flags / form |
+|--------|--------------|
+| Markdown text | `--body`/`-b`, `--notes`/`-n`, `--message` |
+| Short text | `--title`/`-t`, `--subject`, `--description`, `--desc` |
+| Content files | `--body-file`/`-F`, `--notes-file`/`-F`, `pr create --template`/`-T` |
+| API fields | `gh api -f/--raw-field k=v`, `-F/--field k=v` |
+| API files | `gh api -F k=@file`, `gh api --input file` |
+| Gist uploads | `gh gist create <files>` |
+| Aliases | `gh <alias> ...` is expanded from gh's `config.yml` and checked as the expanded command |
 
-```bash
-curl -sSL https://raw.githubusercontent.com/AndrewAltimit/template-repo/main/tools/rust/gh-validator/install.sh | bash
-```
+`gh secret set --body` is the secret value itself and is passed through
+untouched; `gh variable set --body` is masked and emoji-checked only.
 
-### Manual Installation
+## Checks
 
-1. Download the binary for your platform from [Releases](https://github.com/AndrewAltimit/template-repo/releases)
-2. Place it in `~/.local/bin/gh` (or another directory in your PATH)
-3. Ensure `~/.local/bin` comes before `/usr/bin` in your PATH:
-   ```bash
-   export PATH="$HOME/.local/bin:$PATH"
-   ```
+| Check | Inline text | Content files | Result |
+|-------|-------------|---------------|--------|
+| Secrets (config env vars, auto-detected env vars, config patterns, built-in baseline) | all arguments | yes | masked (`[MASKED_NAME]`) |
+| Unicode emoji (emoji blocks, `U+FE0F`, keycaps, tag characters) | all arguments | yes | rejected |
+| Escaped emoji (JSON `\u` surrogate pairs, `\u{...}`) | `gh api` fields | `gh api` files | rejected |
+| Reaction image passed inline | `--body`, api `body=` | - | rejected (use `--body-file`) |
+| Reaction image URLs | - | markdown files | verified (HTTPS, GitHub hosts only, no credentials/ports, HEAD 200, redirects only within GitHub hosts) |
+| @mentions other than the allow-list | markdown text | markdown files | wrapped in backticks (no notification) |
 
-## How It Works
+The **built-in secret baseline** is always active, even with a weakened
+config: values of `GITHUB_TOKEN`, `GH_TOKEN`, `GH_ENTERPRISE_TOKEN`,
+`GITHUB_ENTERPRISE_TOKEN`, `ANTHROPIC_API_KEY`, `OPENROUTER_API_KEY`, and
+GitHub token, AWS key, Anthropic key, Slack token, and private-key-block
+formats.
 
-The binary is named `gh` and shadows the real GitHub CLI. When you run any `gh` command:
+**Mentions**: `@user` and `@org/team` outside code spans and fenced code
+blocks are neutralized unless the handle is in `allowed_mentions` (config;
+default `AndrewAltimit`). E-mail addresses, URLs, and paths are untouched.
+`gh api` payloads are only rewritten for text fields (`body`, `title`,
+`description`, `message`); `--input` JSON is never rewritten.
 
-1. If the command doesn't post content (e.g., `gh pr list`), it passes through immediately
-2. If the command posts content (e.g., `gh pr comment`), validation runs:
-   - Secrets are masked based on `.secrets.yaml` configuration
-   - Unicode emojis are blocked
-   - Formatting is validated for reaction images
-   - URLs in `--body-file` are verified to exist
-3. After validation, the real `gh` binary is called with (potentially modified) arguments
+**Content files are never modified.** Each file is read once, validated,
+sanitized, and written to a private (`0600`) temporary copy that replaces
+the path in the arguments; the copy is deleted when gh exits. gh therefore
+posts exactly the bytes that were validated. Missing, non-regular,
+non-UTF-8, or oversized (> 25 MiB) files are errors.
+
+`gh gist create` files are uploaded verbatim, so a file containing a secret
+is rejected rather than rewritten.
+
+## Blocked operations
+
+| Blocked | Why |
+|---------|-----|
+| `gh alias set`, `gh alias import` | aliases hide commands from the wrapper |
+| `gh extension install`, `gh extension upgrade` | extensions run unvalidated code |
+| `--editor`/`-e` on `pr`/`issue` `create`/`comment` | editor content (or `$GH_EDITOR` output) is never seen |
+| Content from stdin: `--body-file -`, `-F -`, `--notes-file -`, `api -F k=@-`, `api --input -`, `gist create` with `-` or no files | stdin cannot be validated |
+| Any content check failure above | fail-closed |
+| No `.secrets.yaml` found (content commands only) | fail-closed |
+| Hardened mode: shell aliases and unknown top-level commands (extensions) | they would run with the `wrapper-guard` group |
 
 ## Configuration
 
-The validator looks for `.secrets.yaml` in:
-1. Current working directory (and parent directories up to git root)
-2. Binary directory (and parent directories)
-3. `~/.secrets.yaml`
-4. `~/.config/gh-validator/.secrets.yaml`
+`.secrets.yaml` is searched in this order (first existing file wins):
 
-See the [.secrets.yaml template](../../../.secrets.yaml) for configuration options.
+1. `/etc/wrapper-guard/.secrets.yaml` (system config, e.g. hardened container)
+2. the current directory and its ancestors, up to the git root
+3. the binary's directory and its ancestors, up to a git root
+4. `~/.secrets.yaml`
+5. `$XDG_CONFIG_HOME/gh-validator/.secrets.yaml` (default `~/.config/...`)
 
-## Development
+See the repository [.secrets.yaml](../../../.secrets.yaml) for the format.
+Optional `allowed_mentions: [handle, ...]` overrides the mention allow-list.
+Commands without content never read the config, so the fast path stays
+cheap.
 
-### Building from Source
+## Special flags
+
+- `--wrapper-integrity` (first argument): print `wrapper=`, `source_hash=`,
+  `common_hash=`, `binary=` and exit.
+- `--gh-validator-strip-invalid-images`: remove invalid reaction images
+  instead of failing (the flag is consumed, never passed to gh). If nothing
+  but invalid images remains, the command is skipped with exit 0. Used by
+  the automated reviewers.
+
+After a successful `gh pr create`, a reminder to run `pr-monitor` for the
+new PR is printed to stderr.
+
+## Installation
 
 ```bash
-cd tools/rust/gh-validator
-cargo build --release
+# From a checkout: builds from source and installs to ~/.local/bin/gh
+./tools/rust/gh-validator/install.sh
+
+# Or download a release binary
+curl -sSL https://raw.githubusercontent.com/AndrewAltimit/template-repo/main/tools/rust/gh-validator/install.sh | bash
+
+export PATH="$HOME/.local/bin:$PATH"   # must precede the real gh
+gh --wrapper-integrity
 ```
 
-### Running Tests
-
-```bash
-cargo test
-```
-
-### Cross-Compiling
-
-The CI/CD pipeline handles cross-compilation for all platforms. For local cross-compilation:
-
-```bash
-# Install cross
-cargo install cross
-
-# Build for Linux ARM
-cross build --release --target aarch64-unknown-linux-gnu
-```
+`uninstall.sh` removes the binary only after confirming via
+`--wrapper-integrity` that it really is gh-validator.
 
 ## Architecture
 
 ```
 src/
-  main.rs           # Entry point, argument handling, exec
-  lib.rs            # Library exports for testing
-  error.rs          # Error types (thiserror-based)
-  gh_finder.rs      # Real gh binary discovery
-  config/
-    mod.rs          # Config module exports
-    types.rs        # Configuration struct definitions
-    loader.rs       # YAML loading with search paths
+  main.rs            entry point: plan (exec / validate+run / skip), audit, notices
+  lib.rs             library root (everything testable)
+  args.rs            pflag-compatible parsing into content slots
+  aliases.rs         gh alias expansion from config.yml
+  policy.rs          operations refused outright
+  sanitize.rs        per-slot checks, masking, private temp copies
+  error.rs           fail-closed error type with help text
+  config/            .secrets.yaml discovery and types
   validation/
-    mod.rs          # Validation module exports
-    secrets.rs      # Secret masking logic
-    comments.rs     # Emoji and formatting validation
-    urls.rs         # URL validation with SSRF protection
+    secrets.rs       secret masking (config + built-in baseline)
+    comments.rs      emoji, escaped emoji, reaction images, mentions
+    urls.rs          reaction URL validation (SSRF-safe, manual redirects)
 ```
 
-## Security
+Binary lookup, `exec`/spawn with signal and exit-code passthrough, audit
+logging, and integrity hashing come from [`wrapper-common`](../wrapper-common/README.md).
 
-- **Fail-Closed**: If configuration is missing or URLs can't be verified, commands are blocked
-- **SSRF Protection**: Only whitelisted hostnames are allowed for reaction images
-- **No IP Addresses**: Direct IPv4/IPv6 addresses are blocked
-- **Single Binary**: No runtime dependencies, fast startup, cross-platform support
+## Known limitations
+
+- `gh pr create --fill*` builds the body from commit messages, which are not
+  validated.
+- Non-hardened mode: extensions and shell aliases still run (their inner
+  `gh` calls go through the wrapper again, direct API calls do not).
+- `gh api --input` JSON is checked for emoji and masked, but mentions inside
+  it are not rewritten.
+- Hardened mode shares git-guard's limitation: processes started by the real
+  gh inherit the `wrapper-guard` group.
+
+## Development
+
+```bash
+docker compose --profile ci run --rm -w /app/tools/rust/gh-validator rust-ci \
+  bash -c "cargo fmt --check && cargo clippy --all-targets -- -D warnings && cargo test"
+```
+
+`tests/cli.rs` runs the built binary against a fake `gh` script.
+
+## License
+
+Part of the template-repo project. See repository LICENSE file.

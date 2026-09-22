@@ -27,7 +27,7 @@ The MCP functionality is split across modular servers:
 
 **HTTP Mode (Remote servers):**
 18. **Gaea2 MCP Server** (Port 8007) - Remote terrain generation interface
-19. **AI Toolkit MCP Server** (Port 8012) - Remote AI Toolkit for LoRA training
+19. **AI Toolkit MCP Server** (Port 8020) - Remote AI Toolkit for LoRA training
 20. **ComfyUI MCP Server** (Port 8013) - Remote ComfyUI for image generation
 
 This modular architecture ensures better separation of concerns, easier maintenance, and the ability to scale individual services independently.
@@ -349,7 +349,7 @@ curl http://localhost:8007/health
 - For Windows deployment with CLI features: Set `GAEA2_PATH` environment variable
 - See `tools/mcp/mcp_gaea2/docs/README.md` for complete documentation
 
-## AI Toolkit MCP Server (Port 8012)
+## AI Toolkit MCP Server (Port 8020)
 
 The AI Toolkit server provides an interface to remote AI Toolkit for LoRA training operations.
 
@@ -363,7 +363,7 @@ docker compose up -d mcp-ai-toolkit
 python -m tools.mcp.ai_toolkit.server
 
 # Test health
-curl http://localhost:8012/health
+curl http://localhost:8020/health
 ```
 
 ### Available Tools
@@ -380,7 +380,7 @@ curl http://localhost:8012/health
 
 ### Configuration
 
-- **Remote Connection**: Connects to AI Toolkit at `192.168.0.222:8012`
+- **Remote Connection**: Connects to AI Toolkit at `192.168.0.222:8020`
 - **Dataset Paths**: Use absolute paths starting with `/ai-toolkit/datasets/`
 - **Chunked Upload**: Automatically used for files >100MB
 
@@ -1126,7 +1126,7 @@ The modular servers are configured in `.mcp.json`:
     },
     "ai-toolkit": {
       "type": "http",
-      "url": "http://localhost:8012/messages"
+      "url": "http://localhost:8020/messages"
     },
     "comfyui": {
       "type": "http",

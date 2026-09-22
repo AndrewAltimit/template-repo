@@ -1,852 +1,665 @@
+//! `automation-cli ci` -- containerized CI stages.
+//!
+//! Python stages run in the `python-ci` compose service, Rust stages in
+//! `rust-ci`. Stage names are defined in [`stages::CATALOG`].
+
+mod doctor;
 pub mod lint;
+mod scripts;
 mod stages;
+
+use std::path::{Path, PathBuf};
 
 use anyhow::{Result, bail};
 use clap::Subcommand;
 
 use crate::shared::{docker, output, project};
-use stages::Stage;
+use stages::{CargoOp, IterGroup, Stage, Workspace};
 
 #[derive(Subcommand)]
 pub enum CiAction {
     /// Run a named CI stage
     #[command(trailing_var_arg = true)]
     Run {
-        /// Stage name (e.g., format, lint-full, rust-fmt, econ-full, full, rust-all)
+        /// Stage name (e.g., format, lint-full, econ-full, full, rust-all); see `ci list`
         stage: String,
-        /// Extra arguments passed through to underlying tools
+        /// Extra arguments passed through to underlying tools (pytest / cargo test)
         #[arg(allow_hyphen_values = true)]
         extra: Vec<String>,
     },
     /// List all available CI stages
-    List,
+    List {
+        /// Print bare stage names, one per line (for scripts and completion)
+        #[arg(long)]
+        names: bool,
+    },
+    /// Check that stage names referenced by workflows/docs exist and that
+    /// every workspace and crate group the stages expect is present
+    Doctor,
 }
 
 pub fn run(action: CiAction) -> Result<()> {
     match action {
         CiAction::Run { stage, extra } => run_stage(&stage, &extra),
-        CiAction::List => {
-            list_stages();
+        CiAction::List { names } => {
+            list_stages(names);
             Ok(())
         },
+        CiAction::Doctor => doctor::run(),
     }
+}
+
+/// Shared state for executing stages.
+struct Ctx<'a> {
+    root: PathBuf,
+    compose: PathBuf,
+    /// `--output-format` for ruff: `github` annotations in CI, `concise` locally.
+    ruff_fmt: &'static str,
+    extra: &'a [&'a str],
 }
 
 fn run_stage(name: &str, extra: &[String]) -> Result<()> {
-    let root = project::find_project_root()?;
-    let compose = project::compose_file(&root);
-    std::env::set_current_dir(&root)?;
-
-    // Export user IDs for docker compose
-    // SAFETY: single-threaded at this point (called before any thread spawning)
-    unsafe {
-        std::env::set_var("USER_ID", format!("{}", libc::getuid()));
-        std::env::set_var("GROUP_ID", format!("{}", libc::getgid()));
-        std::env::set_var("PYTHONDONTWRITEBYTECODE", "1");
-        std::env::set_var("PYTHONPYCACHEPREFIX", "/tmp/pycache");
-    }
-
-    // Ensure cache dirs exist
-    let home = std::env::var("HOME").unwrap_or_default();
-    let _ = std::fs::create_dir_all(format!("{home}/.cache/uv"));
-
-    let ruff_fmt = if project::is_ci() {
-        "github"
-    } else {
-        "concise"
-    };
-
+    // Parse first: a typo should fail fast, before any docker work.
     let stage = Stage::parse(name)?;
-    let extra_str: Vec<&str> = extra.iter().map(|s| s.as_str()).collect();
 
-    run_parsed_stage(&stage, &compose, ruff_fmt, &extra_str, &root)
+    let root = project::enter_project_root()?;
+    project::export_compose_env();
+    ensure_cache_dirs();
+
+    let extra: Vec<&str> = extra.iter().map(String::as_str).collect();
+    let ctx = Ctx {
+        compose: project::compose_file(&root),
+        root,
+        ruff_fmt: if project::is_ci() {
+            "github"
+        } else {
+            "concise"
+        },
+        extra: &extra,
+    };
+    ctx.run(stage)
 }
 
-fn run_parsed_stage(
-    stage: &Stage,
-    compose: &std::path::Path,
-    ruff_fmt: &str,
-    extra: &[&str],
-    root: &std::path::Path,
-) -> Result<()> {
-    match stage {
-        // ===================== Python stages =====================
-        Stage::Format => {
-            output::header("Running format checks");
-            docker::run_python_ci(compose, &["ruff", "format", "--check", "--diff", "."], &[])?;
-            docker::run_python_ci(
-                compose,
-                &["ruff", "check", "--select=I", "--diff", "."],
-                &[],
-            )
-        },
-        Stage::LintBasic => {
-            output::header("Running basic linting");
-            docker::run_python_ci(compose, &["ruff", "format", "--check", "."], &[])?;
-            docker::run_python_ci(compose, &["ruff", "check", "--select=I", "."], &[])?;
-            docker::run_python_ci(
-                compose,
-                &[
-                    "ruff",
-                    "check",
-                    "--select=E9,F63,F7,F82",
-                    &format!("--output-format={ruff_fmt}"),
-                    ".",
-                ],
-                &[],
-            )?;
-            docker::run_python_ci(
-                compose,
-                &[
+/// Host directories bind-mounted by the python-ci service. If they do not
+/// exist, docker creates them owned by root, which breaks later runs.
+fn ensure_cache_dirs() {
+    let Some(home) = std::env::var_os("HOME").filter(|h| !h.is_empty()) else {
+        return;
+    };
+    for sub in [".cache/uv", ".cache/pre-commit"] {
+        let dir = Path::new(&home).join(sub);
+        if let Err(e) = std::fs::create_dir_all(&dir) {
+            output::warn(&format!("could not create {}: {e}", dir.display()));
+        }
+    }
+}
+
+/// Run the pip dependency audit (Safety with an API key, pip-audit otherwise).
+/// Returns Ok(false) if vulnerabilities were reported.
+pub(crate) fn dependency_audit(compose: &Path) -> Result<bool> {
+    if let Ok(key) = std::env::var("SAFETY_API_KEY") {
+        output::step("Using Safety with API key...");
+        docker::run_python_ci_check(
+            compose,
+            &["safety", "scan", "--disable-optional-telemetry"],
+            &[("SAFETY_API_KEY", &key)],
+        )
+    } else {
+        output::step("No SAFETY_API_KEY found, using pip-audit...");
+        docker::run_python_ci_check(compose, &["python", "-m", "pip_audit"], &[])
+    }
+}
+
+impl Ctx<'_> {
+    fn py(&self, args: &[&str]) -> Result<()> {
+        docker::run_python_ci(&self.compose, args, &[])
+    }
+
+    /// Run a test command in python-ci with the pass-through args appended
+    /// and bytecode caching redirected away from the bind-mounted source tree.
+    fn py_with_extra(&self, base: &[&str], env: &[(&str, &str)]) -> Result<()> {
+        let mut args = base.to_vec();
+        args.extend_from_slice(self.extra);
+        let mut envs = PY_TEST_ENV.to_vec();
+        envs.extend_from_slice(env);
+        docker::run_python_ci(&self.compose, &args, &envs)
+    }
+
+    fn cargo(&self, dir: &str, args: &[&str]) -> Result<()> {
+        docker::run_cargo(&self.compose, dir, args)
+    }
+
+    fn run_all(&self, stages: &[Stage]) -> Result<()> {
+        stages.iter().try_for_each(|s| self.run(*s))
+    }
+
+    fn run(&self, stage: Stage) -> Result<()> {
+        match stage {
+            Stage::Format => {
+                output::header("Running format checks");
+                self.py(&["ruff", "format", "--check", "--diff", "."])?;
+                self.py(&["ruff", "check", "--select=I", "--diff", "."])
+            },
+            Stage::LintBasic => {
+                output::header("Running basic linting");
+                self.py(&["ruff", "format", "--check", "."])?;
+                self.py(&["ruff", "check", "--select=I", "."])?;
+                let fmt = format!("--output-format={}", self.ruff_fmt);
+                self.py(&["ruff", "check", "--select=E9,F63,F7,F82", &fmt, "."])?;
+                self.py(&[
                     "ruff",
                     "check",
                     "--select=E,W,C90",
                     "--ignore=E501,E402",
                     "--output-format=grouped",
                     ".",
-                ],
-                &[],
-            )
-        },
-        Stage::LintFull => {
-            output::header("Running full linting suite");
-            docker::run_python_ci(compose, &["ruff", "format", "--check", "."], &[])?;
-            docker::run_python_ci(compose, &["ruff", "check", "--select=I", "."], &[])?;
-            docker::run_python_ci(
-                compose,
-                &["ruff", "check", &format!("--output-format={ruff_fmt}"), "."],
-                &[],
-            )?;
-            // ty errors are informational (matches `lint full` behavior)
-            if !docker::run_python_ci_check(compose, &["ty", "check", "."], &[])? {
-                output::info("ty found type errors (informational)");
-            }
-            Ok(())
-        },
-        Stage::Ruff => {
-            output::header("Running Ruff (fast linter)");
-            docker::run_python_ci(
-                compose,
-                &["ruff", "check", ".", "--output-format=github"],
-                &[],
-            )
-        },
-        Stage::RuffFix => {
-            output::header("Running Ruff with auto-fix");
-            docker::run_python_ci(compose, &["ruff", "check", ".", "--fix"], &[])
-        },
-        Stage::Bandit => {
-            output::header("Running Bandit security scan");
-            docker::run_python_ci(
-                compose,
-                &["bandit", "-r", ".", "-c", "pyproject.toml", "-f", "txt"],
-                &[],
-            )
-        },
-        Stage::Security => {
-            // ChatGPT issue #1 fix: security checks now FAIL the pipeline
-            // ChatGPT issue #7: widen static analysis -- run bandit at medium severity
-            output::header("Running security scans");
-            docker::run_python_ci(
-                compose,
-                &[
-                    "bandit",
-                    "-r",
-                    ".",
-                    "-c",
-                    "pyproject.toml",
-                    "-f",
-                    "txt",
-                    "--severity-level",
-                    "medium",
-                ],
-                &[],
-            )?;
-            // Dependency check
-            if let Ok(key) = std::env::var("SAFETY_API_KEY") {
-                output::step("Using Safety with API key...");
-                docker::run_python_ci(
-                    compose,
-                    &["safety", "scan", "--disable-optional-telemetry"],
-                    &[("SAFETY_API_KEY", &key)],
-                )?;
-            } else {
-                output::step("No SAFETY_API_KEY found, using pip-audit...");
-                let audit_ok =
-                    docker::run_python_ci_check(compose, &["python", "-m", "pip_audit"], &[])?;
-                if !audit_ok {
-                    output::warn("pip-audit reported vulnerabilities");
-                    output::warn("Dependency audit is advisory; update packages when feasible");
+                ])
+            },
+            Stage::LintFull => {
+                output::header("Running full linting suite");
+                self.py(&["ruff", "format", "--check", "."])?;
+                self.py(&["ruff", "check", "--select=I", "."])?;
+                let fmt = format!("--output-format={}", self.ruff_fmt);
+                self.py(&["ruff", "check", &fmt, "."])?;
+                // ty errors are informational (matches `lint full` behavior)
+                if !docker::run_python_ci_check(&self.compose, &["ty", "check", "."], &[])? {
+                    output::info("ty found type errors (informational)");
                 }
-            }
-            Ok(())
-        },
-        Stage::Test => {
-            output::header("Running tests");
-            let mut args = vec![
-                "pytest",
-                "tests/",
-                "automation/corporate-proxy/tests/",
-                "-v",
-                "-n",
-                "auto",
-                "--cov=.",
-                "--cov-report=xml",
-                "--cov-report=html",
-                "--cov-report=term",
-            ];
-            args.extend_from_slice(extra);
-            let envs = [
-                ("PYTHONDONTWRITEBYTECODE", "1"),
-                ("PYTHONPYCACHEPREFIX", "/tmp/pycache"),
-            ];
-            docker::run_python_ci(compose, &args, &envs)?;
-
-            output::header("Testing corporate proxy components");
-            docker::run_python_ci(
-                compose,
-                &[
+                Ok(())
+            },
+            Stage::Ruff => {
+                output::header("Running Ruff (fast linter)");
+                self.py(&["ruff", "check", ".", "--output-format=github"])
+            },
+            Stage::RuffFix => {
+                output::header("Running Ruff with auto-fix");
+                self.py(&["ruff", "check", ".", "--fix"])
+            },
+            Stage::Bandit => {
+                output::header("Running Bandit security scan");
+                self.py(&["bandit", "-r", ".", "-c", "pyproject.toml", "-f", "txt"])
+            },
+            Stage::Security => self.security(),
+            Stage::Test => {
+                output::header("Running tests");
+                self.py_with_extra(
+                    &[
+                        "pytest",
+                        "tests/",
+                        "automation/corporate-proxy/tests/",
+                        "-v",
+                        "-n",
+                        "auto",
+                        "--cov=.",
+                        "--cov-report=xml",
+                        "--cov-report=html",
+                        "--cov-report=term",
+                    ],
+                    &[],
+                )?;
+                output::header("Testing corporate proxy components");
+                self.py(&[
                     "python",
                     "automation/corporate-proxy/shared/scripts/test-auto-detection.py",
-                ],
-                &[],
-            )?;
-            docker::run_python_ci(
-                compose,
-                &[
+                ])?;
+                self.py(&[
                     "python",
                     "automation/corporate-proxy/shared/scripts/test-content-stripping.py",
-                ],
-                &[],
-            )
-        },
-        Stage::YamlLint => {
-            // ChatGPT issue #2 fix: accumulate errors and fail properly
-            output::header("Validating YAML files");
-            docker::run_python_ci(
-                compose,
-                &[
-                    "bash",
-                    "-c",
-                    concat!(
-                        "ERRORS=0; ",
-                        "for file in $(find . -name '*.yml' -o -name '*.yaml'); do ",
-                        "  echo \"Checking $file...\"; ",
-                        "  if ! yamllint \"$file\"; then ERRORS=$((ERRORS+1)); fi; ",
-                        "  if ! python3 -c \"import yaml; yaml.safe_load(open('$file'))\"; then ",
-                        "    echo \"Invalid YAML: $file\"; ERRORS=$((ERRORS+1)); ",
-                        "  fi; ",
-                        "done; ",
-                        "if [ $ERRORS -gt 0 ]; then ",
-                        "  echo \"FAIL: $ERRORS YAML validation errors\"; exit 1; ",
-                        "fi; ",
-                        "echo \"OK: All YAML files valid\""
-                    ),
-                ],
-                &[],
-            )
-        },
-        Stage::JsonLint => {
-            // ChatGPT issue #2 fix: accumulate errors and fail properly
-            output::header("Validating JSON files");
-            docker::run_python_ci(
-                compose,
-                &[
-                    "bash",
-                    "-c",
-                    concat!(
-                        "ERRORS=0; ",
-                        "for file in $(find . -name '*.json'); do ",
-                        "  echo \"Checking $file...\"; ",
-                        "  if ! python3 -m json.tool \"$file\" > /dev/null; then ",
-                        "    echo \"Invalid JSON: $file\"; ERRORS=$((ERRORS+1)); ",
-                        "  fi; ",
-                        "done; ",
-                        "if [ $ERRORS -gt 0 ]; then ",
-                        "  echo \"FAIL: $ERRORS JSON validation errors\"; exit 1; ",
-                        "fi; ",
-                        "echo \"OK: All JSON files valid\""
-                    ),
-                ],
-                &[],
-            )
-        },
-        Stage::LintShell => {
-            output::header("Linting shell scripts with shellcheck");
-            docker::run_python_ci(
-                compose,
-                &[
-                    "bash",
-                    "-c",
-                    concat!(
-                        "ISSUES=0; ",
-                        "for script in $(find . -name '*.sh' -type f); do ",
-                        "  echo \"Checking $script...\"; ",
-                        "  if shellcheck -S warning \"$script\"; then ",
-                        "    echo \"OK $script\"; ",
-                        "  else ",
-                        "    echo \"FAIL $script has issues\"; ISSUES=1; ",
-                        "  fi; ",
-                        "done; ",
-                        "if [ $ISSUES -ne 0 ]; then ",
-                        "  echo \"FAIL: Shell linting failed\"; exit 1; ",
-                        "fi; ",
-                        "echo \"OK: All shell scripts passed linting\""
-                    ),
-                ],
-                &[],
-            )
-        },
-        Stage::Autoformat => {
-            output::header("Running autoformatters");
-            docker::run_python_ci(compose, &["ruff", "format", "."], &[])?;
-            docker::run_python_ci(compose, &["ruff", "check", "--select=I", "--fix", "."], &[])?;
-
-            output::subheader("Running Rust autoformat");
-            // Format tools/rust/* crates
-            for entry in std::fs::read_dir(root.join("tools/rust"))? {
-                let entry = entry?;
-                let path = entry.path();
-                if path.join("Cargo.toml").exists() {
-                    let name = path.file_name().unwrap().to_string_lossy();
-                    output::info(&format!("Formatting {name}..."));
-                    let ws = format!("tools/rust/{name}");
-                    let _ = docker::run_cargo(compose, &ws, &["fmt", "--all"]);
-                }
-            }
-            // Format workspace roots
-            for ws in &[
-                "packages/economic_agents",
-                "packages/tamper_briefcase",
-                "packages/bioforge",
-                "packages/sleeper_agents",
-                "tools/mcp/mcp_core_rust",
-            ] {
-                if root.join(ws).exists() {
-                    output::info(&format!("Formatting {ws}..."));
-                    let _ = docker::run_cargo(compose, ws, &["fmt", "--all"]);
-                }
-            }
-            Ok(())
-        },
-        Stage::TestGaea2 => {
-            output::header("Running Gaea2 tests");
-            let gaea2_url = std::env::var("GAEA2_MCP_URL")
-                .unwrap_or_else(|_| "http://192.168.0.152:8007".to_string());
-            let health_url = format!("{gaea2_url}/health");
-            let reachable = reqwest::blocking::Client::builder()
-                .timeout(std::time::Duration::from_secs(5))
-                .build()
-                .ok()
-                .and_then(|c| c.get(&health_url).send().ok())
-                .is_some_and(|r| r.status().is_success());
-            if !reachable {
-                output::warn(&format!(
-                    "Gaea2 MCP server not reachable at {gaea2_url}, skipping"
-                ));
-                return Ok(());
-            }
-            output::success(&format!("Gaea2 MCP server available at {gaea2_url}"));
-            let mut args = vec!["pytest", "tools/mcp/mcp_gaea2/tests/", "-v", "--tb=short"];
-            args.extend_from_slice(extra);
-            docker::run_python_ci(
-                compose,
-                &args,
-                &[
-                    ("PYTHONDONTWRITEBYTECODE", "1"),
-                    ("PYTHONPYCACHEPREFIX", "/tmp/pycache"),
-                    ("GAEA2_MCP_URL", &gaea2_url),
-                ],
-            )
-        },
-        Stage::TestAll => {
-            output::header("Running all tests");
-            let mut args = vec![
-                "pytest",
-                "tests/",
-                "-v",
-                "-n",
-                "auto",
-                "--cov=.",
-                "--cov-report=xml",
-                "--cov-report=term",
-            ];
-            args.extend_from_slice(extra);
-            docker::run_python_ci(
-                compose,
-                &args,
-                &[
-                    ("PYTHONDONTWRITEBYTECODE", "1"),
-                    ("PYTHONPYCACHEPREFIX", "/tmp/pycache"),
-                ],
-            )
-        },
-        Stage::TestCorporateProxy => {
-            output::header("Running corporate proxy tests");
-            let uid = std::env::var("USER_ID").unwrap_or_default();
-            let gid = std::env::var("GROUP_ID").unwrap_or_default();
-            let user_flag = format!("{uid}:{gid}");
-            let cf = compose.to_string_lossy();
-            let mut args: Vec<&str> = vec![
-                "compose",
-                "-f",
-                &cf,
-                "run",
-                "--rm",
-                "-e",
-                "PYTHONDONTWRITEBYTECODE=1",
-                "-e",
-                "PYTHONPYCACHEPREFIX=/tmp/pycache",
-                "--user",
-                &user_flag,
-                "python-ci",
-                "python",
-                "-m",
-                "pytest",
-                "automation/corporate-proxy/tests/",
-                "-v",
-                "-n",
-                "auto",
-                "--tb=short",
-                "--no-header",
-            ];
-            args.extend(extra.iter().copied());
-            crate::shared::process::run("docker", &args)
-        },
-
-        // ===================== Workspace stages (generic) =====================
-        // ===================== Workspace stages (generic) =====================
-        Stage::WorkspaceFmt(ws) => {
-            output::header(&format!("Running {ws} format checks"));
-            run_ws_stages(compose, ws, &["fmt"], extra)
-        },
-        Stage::WorkspaceClippy(ws) => {
-            output::header(&format!("Running {ws} clippy lints"));
-            run_ws_stages(compose, ws, &["clippy"], extra)
-        },
-        Stage::WorkspaceTest(ws) => {
-            output::header(&format!("Running {ws} tests"));
-            run_ws_stages(compose, ws, &["test"], extra)
-        },
-        Stage::WorkspaceBuild(ws) => {
-            output::header(&format!("Building {ws} workspace"));
-            run_ws_stages(compose, ws, &["build"], extra)
-        },
-        Stage::WorkspaceDeny(ws) => {
-            output::header(&format!("Running {ws} cargo-deny checks"));
-            docker::run_cargo(compose, ws.path(), &["deny", "check"])
-        },
-        Stage::WorkspaceDoc(ws) => {
-            output::header(&format!("Generating {ws} documentation"));
-            docker::run_cargo(
-                compose,
-                ws.path(),
-                &[
-                    "doc",
-                    "--workspace",
-                    "--no-deps",
-                    "--document-private-items",
-                ],
-            )
-        },
-        Stage::WorkspaceCoverage(ws) => {
-            output::header(&format!("Running {ws} test coverage"));
-            let mut args = vec![
-                "llvm-cov",
-                "--workspace",
-                "--lcov",
-                "--output-path",
-                "lcov.info",
-            ];
-            args.extend(extra.iter().copied());
-            docker::run_cargo(compose, ws.path(), &args)
-        },
-        Stage::WorkspaceFull(ws) => {
-            output::header(&format!("Running full {ws} CI checks"));
-            run_parsed_stage(
-                &Stage::WorkspaceFmt(ws.clone()),
-                compose,
-                ruff_fmt,
-                extra,
-                root,
-            )?;
-            run_parsed_stage(
-                &Stage::WorkspaceClippy(ws.clone()),
-                compose,
-                ruff_fmt,
-                extra,
-                root,
-            )?;
-            run_parsed_stage(
-                &Stage::WorkspaceTest(ws.clone()),
-                compose,
-                ruff_fmt,
-                extra,
-                root,
-            )
-        },
-
-        // ===================== BioForge (special: includes MCP server) =====================
-        Stage::BioFmt => {
-            output::header("Running BioForge format checks");
-            docker::run_cargo(
-                compose,
-                "packages/bioforge",
-                &["fmt", "--all", "--", "--check"],
-            )?;
-            output::header("Running MCP BioForge format checks");
-            docker::run_cargo(
-                compose,
-                "tools/mcp/mcp_bioforge",
-                &["fmt", "--all", "--", "--check"],
-            )
-        },
-        Stage::BioClippy => {
-            output::header("Running BioForge clippy lints");
-            docker::run_cargo(
-                compose,
-                "packages/bioforge",
-                &[
-                    "clippy",
-                    "--workspace",
-                    "--all-targets",
-                    "--",
-                    "-D",
-                    "warnings",
-                ],
-            )?;
-            output::header("Running MCP BioForge clippy lints");
-            docker::run_cargo(
-                compose,
-                "tools/mcp/mcp_bioforge",
-                &["clippy", "--all-targets", "--", "-D", "warnings"],
-            )
-        },
-        Stage::BioBuild => {
-            output::header("Building BioForge workspace");
-            docker::run_cargo(
-                compose,
-                "packages/bioforge",
-                &["build", "--workspace", "--all-targets"],
-            )?;
-            output::header("Building MCP BioForge server");
-            docker::run_cargo(
-                compose,
-                "tools/mcp/mcp_bioforge",
-                &["build", "--all-targets"],
-            )
-        },
-        Stage::BioFull => {
-            output::header("Running full BioForge CI checks");
-            run_parsed_stage(&Stage::BioFmt, compose, ruff_fmt, extra, root)?;
-            run_parsed_stage(&Stage::BioClippy, compose, ruff_fmt, extra, root)?;
-            run_parsed_stage(
-                &Stage::WorkspaceTest(stages::Workspace::Bioforge),
-                compose,
-                ruff_fmt,
-                extra,
-                root,
-            )
-        },
-
-        // ===================== Tamper Briefcase (special: aarch64 exclusions) =====================
-        Stage::TamperClippy => {
-            output::header("Running Tamper Briefcase clippy lints");
-            for krate in &[
-                "tamper-common",
-                "tamper-gate",
-                "tamper-challenge",
-                "tamper-recovery",
-            ] {
-                output::subheader(&format!("Linting: {krate}"));
-                docker::run_cargo(
-                    compose,
-                    "packages/tamper_briefcase",
+                ])
+            },
+            Stage::YamlLint => {
+                output::header("Validating YAML files");
+                self.py(&["bash", "-c", scripts::YAML_LINT])
+            },
+            Stage::JsonLint => {
+                output::header("Validating JSON files");
+                self.py(&["bash", "-c", scripts::JSON_LINT])
+            },
+            Stage::LintShell => {
+                output::header("Linting shell scripts with shellcheck");
+                self.py(&["bash", "-c", scripts::SHELL_LINT])
+            },
+            Stage::Autoformat => self.autoformat(),
+            Stage::TestGaea2 => self.test_gaea2(),
+            Stage::TestAll => {
+                output::header("Running all tests");
+                self.py_with_extra(
                     &[
-                        "clippy",
-                        "-p",
-                        krate,
-                        "--all-targets",
-                        "--",
-                        "-D",
-                        "warnings",
+                        "pytest",
+                        "tests/",
+                        "-v",
+                        "-n",
+                        "auto",
+                        "--cov=.",
+                        "--cov-report=xml",
+                        "--cov-report=term",
                     ],
-                )?;
-            }
-            Ok(())
-        },
-        Stage::TamperTest => {
-            output::header("Running Tamper Briefcase tests");
-            for krate in &[
-                "tamper-common",
-                "tamper-gate",
-                "tamper-challenge",
-                "tamper-recovery",
-            ] {
-                output::subheader(&format!("Testing: {krate}"));
-                let mut args = vec!["test", "-p", krate];
-                args.extend(extra.iter().copied());
-                docker::run_cargo(compose, "packages/tamper_briefcase", &args)?;
-            }
-            Ok(())
-        },
-        Stage::TamperBuild => {
-            output::header("Building Tamper Briefcase workspace");
-            for krate in &[
-                "tamper-common",
-                "tamper-gate",
-                "tamper-challenge",
-                "tamper-recovery",
-            ] {
-                output::subheader(&format!("Building: {krate}"));
-                docker::run_cargo(
-                    compose,
-                    "packages/tamper_briefcase",
-                    &["build", "-p", krate, "--all-targets"],
-                )?;
-            }
-            Ok(())
-        },
-        Stage::TamperFull => {
-            output::header("Running full Tamper Briefcase CI checks");
-            run_parsed_stage(
-                &Stage::WorkspaceFmt(stages::Workspace::TamperBriefcase),
-                compose,
-                ruff_fmt,
-                extra,
-                root,
-            )?;
-            run_parsed_stage(&Stage::TamperClippy, compose, ruff_fmt, extra, root)?;
-            run_parsed_stage(&Stage::TamperTest, compose, ruff_fmt, extra, root)
-        },
+                    &[],
+                )
+            },
+            Stage::TestCorporateProxy => {
+                output::header("Running corporate proxy tests");
+                self.py_with_extra(
+                    &[
+                        "python",
+                        "-m",
+                        "pytest",
+                        "automation/corporate-proxy/tests/",
+                        "-v",
+                        "-n",
+                        "auto",
+                        "--tb=short",
+                        "--no-header",
+                    ],
+                    &[],
+                )
+            },
 
-        // ===================== Iterator stages (wrapper, mcp-servers, tools) =====================
-        Stage::IterFmt(iter) => run_iter_stage(compose, iter, "fmt", extra, root),
-        Stage::IterClippy(iter) => run_iter_stage(compose, iter, "clippy", extra, root),
-        Stage::IterTest(iter) => run_iter_stage(compose, iter, "test", extra, root),
-        Stage::IterFull(iter) => {
-            run_iter_stage(compose, iter, "fmt", extra, root)?;
-            run_iter_stage(compose, iter, "clippy", extra, root)?;
-            run_iter_stage(compose, iter, "test", extra, root)
-        },
-
-        // ===================== Composite stages =====================
-        Stage::Full => {
-            // ChatGPT issue #3 fix: "full" now includes security, yaml, json, and Rust
-            output::header("Running full CI checks");
-            run_parsed_stage(&Stage::Format, compose, ruff_fmt, extra, root)?;
-            run_parsed_stage(&Stage::LintBasic, compose, ruff_fmt, extra, root)?;
-            run_parsed_stage(&Stage::LintFull, compose, ruff_fmt, extra, root)?;
-            run_parsed_stage(&Stage::LintShell, compose, ruff_fmt, extra, root)?;
-            run_parsed_stage(&Stage::Security, compose, ruff_fmt, extra, root)?;
-            run_parsed_stage(&Stage::YamlLint, compose, ruff_fmt, extra, root)?;
-            run_parsed_stage(&Stage::JsonLint, compose, ruff_fmt, extra, root)?;
-            run_parsed_stage(&Stage::Test, compose, ruff_fmt, extra, root)?;
-            run_parsed_stage(&Stage::TestCorporateProxy, compose, ruff_fmt, extra, root)
-        },
-        Stage::RustAll => {
-            output::header("Running ALL Rust CI checks");
-            run_parsed_stage(
-                &Stage::WorkspaceFull(stages::Workspace::EconomicAgents),
-                compose,
-                ruff_fmt,
-                extra,
-                root,
-            )?;
-            run_parsed_stage(
-                &Stage::WorkspaceFull(stages::Workspace::McpCore),
-                compose,
-                ruff_fmt,
-                extra,
-                root,
-            )?;
-            run_parsed_stage(&Stage::BioFull, compose, ruff_fmt, extra, root)?;
-            run_parsed_stage(&Stage::TamperFull, compose, ruff_fmt, extra, root)?;
-            run_parsed_stage(
-                &Stage::WorkspaceFull(stages::Workspace::SleeperAgents),
-                compose,
-                ruff_fmt,
-                extra,
-                root,
-            )?;
-            run_parsed_stage(
-                &Stage::IterFull(stages::IterGroup::Wrapper),
-                compose,
-                ruff_fmt,
-                extra,
-                root,
-            )?;
-            run_parsed_stage(
-                &Stage::IterFull(stages::IterGroup::McpServers),
-                compose,
-                ruff_fmt,
-                extra,
-                root,
-            )?;
-            run_parsed_stage(
-                &Stage::IterFull(stages::IterGroup::Tools),
-                compose,
-                ruff_fmt,
-                extra,
-                root,
-            )
-        },
-    }
-}
-
-/// Run workspace-level cargo stages (fmt/clippy/test/build)
-fn run_ws_stages(
-    compose: &std::path::Path,
-    ws: &stages::Workspace,
-    ops: &[&str],
-    extra: &[&str],
-) -> Result<()> {
-    let path = ws.path();
-    for op in ops {
-        match *op {
-            "fmt" => docker::run_cargo(compose, path, &["fmt", "--all", "--", "--check"])?,
-            "clippy" => docker::run_cargo(
-                compose,
-                path,
-                &[
-                    "clippy",
+            // ===================== Rust workspaces =====================
+            Stage::Workspace(ws, op) => {
+                output::header(&format!("Running {ws} {}", op.noun()));
+                self.cargo(ws.path(), &op.cargo_args(true, self.extra))
+            },
+            Stage::WorkspaceDeny(ws) => {
+                output::header(&format!("Running {ws} cargo-deny checks"));
+                self.cargo(ws.path(), &["deny", "check"])
+            },
+            Stage::WorkspaceDoc(ws) => {
+                output::header(&format!("Generating {ws} documentation"));
+                self.cargo(
+                    ws.path(),
+                    &[
+                        "doc",
+                        "--workspace",
+                        "--no-deps",
+                        "--document-private-items",
+                    ],
+                )
+            },
+            Stage::WorkspaceCoverage(ws) => {
+                output::header(&format!("Running {ws} test coverage"));
+                let mut args = vec![
+                    "llvm-cov",
                     "--workspace",
-                    "--all-targets",
-                    "--",
-                    "-D",
-                    "warnings",
-                ],
-            )?,
-            "test" => {
-                let mut args = vec!["test", "--workspace"];
-                args.extend(extra.iter().copied());
-                docker::run_cargo(compose, path, &args)?;
+                    "--lcov",
+                    "--output-path",
+                    "lcov.info",
+                ];
+                args.extend_from_slice(self.extra);
+                self.cargo(ws.path(), &args)
             },
-            "build" => {
-                docker::run_cargo(compose, path, &["build", "--workspace", "--all-targets"])?
+            Stage::WorkspaceFull(ws) => {
+                output::header(&format!("Running full {ws} CI checks"));
+                self.run_all(&CargoOp::FULL.map(|op| Stage::Workspace(ws, op)))
             },
-            _ => bail!("unknown workspace op: {op}"),
+
+            // ============ BioForge (workspace + MCP BioForge server) ============
+            Stage::Bio(op) => {
+                output::header(&format!("Running BioForge {}", op.noun()));
+                self.cargo(Workspace::Bioforge.path(), &op.cargo_args(true, self.extra))?;
+                output::header(&format!("Running MCP BioForge {}", op.noun()));
+                self.cargo("tools/mcp/mcp_bioforge", &op.cargo_args(false, self.extra))
+            },
+            Stage::BioFull => {
+                output::header("Running full BioForge CI checks");
+                self.run_all(&[
+                    Stage::Bio(CargoOp::Fmt),
+                    Stage::Bio(CargoOp::Clippy),
+                    Stage::Workspace(Workspace::Bioforge, CargoOp::Test),
+                ])
+            },
+
+            // ====== Tamper Briefcase (per crate: skips aarch64-only crates) ======
+            Stage::Tamper(op) => {
+                output::header(&format!("Running Tamper Briefcase {}", op.noun()));
+                for krate in TAMPER_HOST_CRATES {
+                    output::subheader(&format!("{}: {krate}", op.verb()));
+                    let args = package_args(op, krate, self.extra);
+                    self.cargo(Workspace::TamperBriefcase.path(), &args)?;
+                }
+                Ok(())
+            },
+            Stage::TamperFull => {
+                output::header("Running full Tamper Briefcase CI checks");
+                self.run_all(&[
+                    Stage::Workspace(Workspace::TamperBriefcase, CargoOp::Fmt),
+                    Stage::Tamper(CargoOp::Clippy),
+                    Stage::Tamper(CargoOp::Test),
+                ])
+            },
+
+            // ===================== Crate groups =====================
+            Stage::Iter(group, op) => self.run_iter(group, op),
+            Stage::IterFull(group) => CargoOp::FULL
+                .iter()
+                .try_for_each(|op| self.run_iter(group, *op)),
+
+            // ===================== Composite =====================
+            Stage::Full => {
+                output::header("Running full CI checks");
+                // `test` already runs automation/corporate-proxy/tests/, so the
+                // separate test-corporate-proxy stage is not repeated here.
+                self.run_all(&[
+                    Stage::Format,
+                    Stage::LintBasic,
+                    Stage::LintFull,
+                    Stage::LintShell,
+                    Stage::Security,
+                    Stage::YamlLint,
+                    Stage::JsonLint,
+                    Stage::Test,
+                ])
+            },
+            Stage::RustAll => {
+                output::header("Running ALL Rust CI checks");
+                self.run_all(&[
+                    Stage::WorkspaceFull(Workspace::EconomicAgents),
+                    Stage::WorkspaceFull(Workspace::McpCore),
+                    Stage::BioFull,
+                    Stage::TamperFull,
+                    Stage::WorkspaceFull(Workspace::SleeperAgents),
+                    Stage::IterFull(IterGroup::Wrapper),
+                    Stage::IterFull(IterGroup::McpServers),
+                    Stage::IterFull(IterGroup::Tools),
+                ])
+            },
         }
     }
-    Ok(())
-}
 
-/// Run iterator-based stages (wrapper, mcp-servers, tools) that loop over directories
-fn run_iter_stage(
-    compose: &std::path::Path,
-    group: &stages::IterGroup,
-    op: &str,
-    extra: &[&str],
-    root: &std::path::Path,
-) -> Result<()> {
-    let (base_dir, skip_list) = group.config();
-    let search_dir = root.join(base_dir);
-
-    if !search_dir.exists() {
-        output::warn(&format!(
-            "{} does not exist, skipping",
-            search_dir.display()
-        ));
-        return Ok(());
+    fn security(&self) -> Result<()> {
+        output::header("Running security scans");
+        // Medium+ severity findings fail the stage.
+        self.py(&[
+            "bandit",
+            "-r",
+            ".",
+            "-c",
+            "pyproject.toml",
+            "-f",
+            "txt",
+            "--severity-level",
+            "medium",
+        ])?;
+        if !dependency_audit(&self.compose)? {
+            output::warn("Dependency audit reported vulnerabilities");
+            output::warn("Dependency audit is advisory; update packages when feasible");
+        }
+        Ok(())
     }
 
-    let op_name = match op {
-        "fmt" => "format checks",
-        "clippy" => "clippy lints",
-        "test" => "tests",
-        _ => op,
-    };
-    output::header(&format!("Running {group} {op_name}"));
+    /// Gaea2 MCP server: Rust unit tests (always), then a live health check
+    /// against the remote Windows host, plus the legacy pytest suite if one
+    /// still exists. The remote server being down is a warning, not a failure.
+    fn test_gaea2(&self) -> Result<()> {
+        output::header("Running Gaea2 tests");
+        output::subheader("Unit tests (tools/mcp/mcp_gaea2)");
+        self.cargo(GAEA2_DIR, &CargoOp::Test.cargo_args(false, self.extra))?;
 
-    let mut failed = false;
-    for entry in std::fs::read_dir(&search_dir)? {
-        let entry = entry?;
-        let path = entry.path();
-        let name = path.file_name().unwrap().to_string_lossy().to_string();
-
-        if skip_list.contains(&name.as_str()) {
-            continue;
+        let gaea2_url = std::env::var("GAEA2_MCP_URL")
+            .unwrap_or_else(|_| "http://192.168.0.152:8007".to_string());
+        let health_url = format!("{}/health", gaea2_url.trim_end_matches('/'));
+        let reachable = crate::shared::http::client(std::time::Duration::from_secs(5))
+            .is_ok_and(|c| crate::shared::http::get_ok(&c, &health_url));
+        if !reachable {
+            output::warn(&format!(
+                "Gaea2 MCP server not reachable at {gaea2_url}, skipping live checks"
+            ));
+            return Ok(());
         }
-        if !path.join("Cargo.toml").exists() {
-            continue;
-        }
+        output::success(&format!("Gaea2 MCP server healthy at {gaea2_url}"));
 
-        let ws_path = format!("{base_dir}/{name}");
-        output::subheader(&format!(
-            "{}: {name}",
-            match op {
-                "fmt" => "Checking format",
-                "clippy" => "Linting",
-                "test" => "Testing",
-                _ => op,
+        let py_tests = format!("{GAEA2_DIR}/tests");
+        if self.root.join(&py_tests).is_dir() {
+            self.py_with_extra(
+                &["pytest", &py_tests, "-v", "--tb=short"],
+                &[("GAEA2_MCP_URL", &gaea2_url)],
+            )?;
+        }
+        Ok(())
+    }
+
+    /// Format Python and every Rust crate/workspace in one pass.
+    ///
+    /// All `cargo fmt` runs share a single rust-ci container (one container
+    /// start instead of one per crate). Failures are reported, not swallowed,
+    /// but do not abort the remaining crates.
+    fn autoformat(&self) -> Result<()> {
+        output::header("Running autoformatters");
+        self.py(&["ruff", "format", "."])?;
+        self.py(&["ruff", "check", "--select=I", "--fix", "."])?;
+
+        output::subheader("Running Rust autoformat");
+        let dirs = rust_format_targets(&self.root);
+        if dirs.is_empty() {
+            output::warn("No Rust crates found to format");
+            return Ok(());
+        }
+        let script = scripts::cargo_fmt_all(&dirs);
+        if let Err(e) = docker::run_rust_ci_script(&self.compose, &script) {
+            output::warn(&format!("Some Rust crates could not be formatted: {e}"));
+        }
+        Ok(())
+    }
+
+    /// Run a cargo op over every crate in an [`IterGroup`], continuing past
+    /// failures and reporting all failing crates at the end.
+    fn run_iter(&self, group: IterGroup, op: CargoOp) -> Result<()> {
+        let search_dir = self.root.join(group.base_dir());
+        if !search_dir.is_dir() {
+            output::warn(&format!(
+                "{} does not exist, skipping",
+                search_dir.display()
+            ));
+            return Ok(());
+        }
+        output::header(&format!("Running {group} {}", op.noun()));
+
+        let crates = discover_group(&self.root, group)?;
+        if crates.is_empty() {
+            output::warn(&format!("No crates found for {group}"));
+            return Ok(());
+        }
+        let mut failed = Vec::new();
+        for name in &crates {
+            output::subheader(&format!("{}: {name}", op.verb()));
+            let dir = format!("{}/{name}", group.base_dir());
+            if let Err(e) = self.cargo(&dir, &op.cargo_args(false, self.extra)) {
+                output::fail(&format!("{name}: {e}"));
+                failed.push(name.as_str());
             }
-        ));
-
-        let result = match op {
-            "fmt" => docker::run_cargo(compose, &ws_path, &["fmt", "--all", "--", "--check"]),
-            "clippy" => docker::run_cargo(
-                compose,
-                &ws_path,
-                &["clippy", "--all-targets", "--", "-D", "warnings"],
-            ),
-            "test" => {
-                let mut args = vec!["test"];
-                args.extend(extra.iter().copied());
-                docker::run_cargo(compose, &ws_path, &args)
-            },
-            _ => bail!("unknown iter op: {op}"),
-        };
-
-        if result.is_err() {
-            failed = true;
         }
+        if !failed.is_empty() {
+            bail!("{group} {} failed for: {}", op.noun(), failed.join(", "));
+        }
+        Ok(())
     }
-
-    if failed {
-        bail!("one or more {group} {op_name} failed");
-    }
-    Ok(())
 }
 
-fn list_stages() {
+/// Gaea2 MCP server crate (tested by the `test-gaea2` stage).
+const GAEA2_DIR: &str = "tools/mcp/mcp_gaea2";
+
+/// Container env for pytest runs (compose does not forward host env by default).
+const PY_TEST_ENV: [(&str, &str); 2] = [
+    ("PYTHONDONTWRITEBYTECODE", "1"),
+    ("PYTHONPYCACHEPREFIX", "/tmp/pycache"),
+];
+
+/// Tamper Briefcase crates that build on x86_64 hosts (the rest are aarch64-only).
+const TAMPER_HOST_CRATES: [&str; 4] = [
+    "tamper-common",
+    "tamper-gate",
+    "tamper-challenge",
+    "tamper-recovery",
+];
+
+/// Cargo args for `op` restricted to one package: `-p <crate>` is inserted
+/// right after the subcommand so it precedes any `--` separator.
+fn package_args<'a>(op: CargoOp, krate: &'a str, extra: &[&'a str]) -> Vec<&'a str> {
+    let mut args = op.cargo_args(false, extra);
+    args.splice(1..1, ["-p", krate]);
+    args
+}
+
+/// Sorted names of the crate directories (containing Cargo.toml) in a group.
+fn discover_group(root: &Path, group: IterGroup) -> Result<Vec<String>> {
+    let mut names = crate_dirs(&root.join(group.base_dir()))?;
+    names.retain(|n| group.includes(n));
+    Ok(names)
+}
+
+/// Sorted names of subdirectories of `dir` that contain a Cargo.toml.
+fn crate_dirs(dir: &Path) -> Result<Vec<String>> {
+    let mut names = Vec::new();
+    let Ok(entries) = std::fs::read_dir(dir) else {
+        return Ok(names);
+    };
+    for entry in entries {
+        let path = entry?.path();
+        if path.join("Cargo.toml").is_file()
+            && let Some(name) = path.file_name().and_then(|n| n.to_str())
+        {
+            names.push(name.to_string());
+        }
+    }
+    names.sort();
+    Ok(names)
+}
+
+/// Every Rust crate / workspace root the `autoformat` stage should format,
+/// relative to the project root.
+fn rust_format_targets(root: &Path) -> Vec<String> {
+    let mut dirs = Vec::new();
+    for base in ["tools/rust", "tools/mcp"] {
+        if let Ok(names) = crate_dirs(&root.join(base)) {
+            dirs.extend(names.into_iter().map(|n| format!("{base}/{n}")));
+        }
+    }
+    for ws in Workspace::ALL {
+        let p = ws.path().to_string();
+        if root.join(&p).join("Cargo.toml").is_file() && !dirs.contains(&p) {
+            dirs.push(p);
+        }
+    }
+    dirs
+}
+
+fn list_stages(names_only: bool) {
+    if names_only {
+        for name in stages::all_stage_names() {
+            println!("{name}");
+        }
+        return;
+    }
     println!("Available CI stages:");
+    for group in stages::CATALOG {
+        println!();
+        println!("  {}:", group.title);
+        for line in wrap_names(group.names, 76) {
+            println!("    {line}");
+        }
+    }
     println!();
-    println!("  Python:");
-    println!("    format, lint-basic, lint-full, lint-shell, ruff, ruff-fix");
-    println!("    bandit, security, test, test-gaea2, test-all, test-corporate-proxy");
-    println!("    yaml-lint, json-lint, autoformat, full");
-    println!();
-    println!("  Rust (economic_agents):");
-    println!(
-        "    econ-fmt, econ-clippy, econ-test, econ-build, econ-deny, econ-doc, econ-coverage, econ-full"
-    );
-    println!();
-    println!("  Rust (mcp_core_rust):");
-    println!("    mcp-fmt, mcp-clippy, mcp-test, mcp-build, mcp-deny, mcp-doc, mcp-full");
-    println!();
-    println!("  Rust (bioforge+mcp):");
-    println!("    bio-fmt, bio-clippy, bio-test, bio-build, bio-deny, bio-full");
-    println!();
-    println!("  Rust (sleeper_agents CLI):");
-    println!(
-        "    sleeper-fmt, sleeper-clippy, sleeper-test, sleeper-build, sleeper-deny, sleeper-full"
-    );
-    println!();
-    println!("  Rust (tamper_briefcase):");
-    println!("    tamper-fmt, tamper-clippy, tamper-test, tamper-build, tamper-deny, tamper-full");
-    println!();
-    println!("  Rust (mcp_sprite_sheet):");
-    println!("    sprite-fmt, sprite-clippy, sprite-test, sprite-build, sprite-full");
-    println!();
-    println!("  Rust (wrapper_guard):");
-    println!("    wrapper-fmt, wrapper-clippy, wrapper-test, wrapper-full");
-    println!();
-    println!("  Rust (mcp_servers):");
-    println!("    mcp-servers-fmt, mcp-servers-clippy, mcp-servers-test, mcp-servers-full");
-    println!();
-    println!("  Rust (standalone tools):");
-    println!("    tools-fmt, tools-clippy, tools-test, tools-full");
-    println!();
-    println!("  Composite:");
-    println!("    rust-all, full");
+    println!("Extra arguments after the stage name are forwarded to pytest / cargo test.");
+}
+
+/// Join names with ", " into lines no wider than `width`.
+fn wrap_names(names: &[&str], width: usize) -> Vec<String> {
+    let mut lines = Vec::new();
+    let mut cur = String::new();
+    for name in names {
+        if !cur.is_empty() && cur.len() + 2 + name.len() > width {
+            cur.push(',');
+            lines.push(std::mem::take(&mut cur));
+        }
+        if !cur.is_empty() {
+            cur.push_str(", ");
+        }
+        cur.push_str(name);
+    }
+    if !cur.is_empty() {
+        lines.push(cur);
+    }
+    lines
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn package_args_insert_before_separator() {
+        assert_eq!(
+            package_args(CargoOp::Clippy, "tamper-gate", &[]),
+            [
+                "clippy",
+                "-p",
+                "tamper-gate",
+                "--all-targets",
+                "--",
+                "-D",
+                "warnings"
+            ]
+        );
+        assert_eq!(
+            package_args(CargoOp::Test, "tamper-gate", &["--", "--nocapture"]),
+            ["test", "-p", "tamper-gate", "--", "--nocapture"]
+        );
+    }
+
+    #[test]
+    fn wrap_names_respects_width() {
+        let lines = wrap_names(&["aaaa", "bbbb", "cccc"], 10);
+        assert_eq!(lines, ["aaaa, bbbb,", "cccc"]);
+        assert_eq!(wrap_names(&[], 10), Vec::<String>::new());
+    }
+
+    #[test]
+    fn crate_discovery_is_sorted_and_filtered() {
+        let dir = tempfile::tempdir().unwrap();
+        let base = dir.path().join("tools/rust");
+        for name in ["zeta", "git-guard", "alpha", "not-a-crate"] {
+            std::fs::create_dir_all(base.join(name)).unwrap();
+            if name != "not-a-crate" {
+                std::fs::write(base.join(name).join("Cargo.toml"), "").unwrap();
+            }
+        }
+        assert_eq!(
+            discover_group(dir.path(), IterGroup::Tools).unwrap(),
+            ["alpha", "zeta"]
+        );
+        assert_eq!(
+            discover_group(dir.path(), IterGroup::Wrapper).unwrap(),
+            ["git-guard"]
+        );
+        // Missing directory yields no crates rather than an error.
+        assert!(
+            discover_group(dir.path(), IterGroup::McpServers)
+                .unwrap()
+                .is_empty()
+        );
+    }
+
+    #[test]
+    fn format_targets_include_mcp_crates_and_workspaces() {
+        let dir = tempfile::tempdir().unwrap();
+        for p in [
+            "tools/rust/a",
+            "tools/mcp/mcp_x",
+            "tools/mcp/mcp_core_rust",
+            "packages/bioforge",
+        ] {
+            std::fs::create_dir_all(dir.path().join(p)).unwrap();
+            std::fs::write(dir.path().join(p).join("Cargo.toml"), "").unwrap();
+        }
+        let targets = rust_format_targets(dir.path());
+        assert_eq!(
+            targets,
+            [
+                "tools/rust/a",
+                "tools/mcp/mcp_core_rust",
+                "tools/mcp/mcp_x",
+                "packages/bioforge"
+            ]
+        );
+    }
 }

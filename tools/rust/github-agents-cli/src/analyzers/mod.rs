@@ -1,15 +1,12 @@
 //! Analyzers for codebase analysis.
 //!
-//! This module provides the infrastructure for analyzing codebases
-//! and generating findings that can be converted to GitHub issues.
-//!
-//! # Available Analyzers
-//!
-//! - **AgentAnalyzer** - AI agent-based analyzer that delegates to Claude, Gemini, etc.
+//! Provides the finding model and the AI-agent-backed analyzer that turns
+//! agent output into findings which can be converted to GitHub issues.
 
-mod base;
+mod agent;
+mod finding;
 
-pub use base::{
-    AffectedFile, AgentAnalyzer, AnalysisFinding, BaseAnalyzer, EffortEstimate, FindingCategory,
-    FindingPriority,
-};
+pub use agent::{AgentAnalyzer, default_analysis_prompt};
+#[cfg(test)]
+pub(crate) use finding::{AffectedFile, test_finding};
+pub use finding::{AnalysisFinding, FindingCategory, FindingPriority};

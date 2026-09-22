@@ -33,7 +33,7 @@ pub enum AgentCapability {
 pub struct AgentContext {
     /// Issue or PR number being processed
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub issue_number: Option<i64>,
+    pub issue_number: Option<u64>,
     /// Issue or PR title
     #[serde(skip_serializing_if = "Option::is_none")]
     pub issue_title: Option<String>,
@@ -61,7 +61,7 @@ impl AgentContext {
     }
 
     /// Create a context for implementation.
-    pub fn for_implementation(issue_number: i64, issue_title: &str, branch_name: &str) -> Self {
+    pub fn for_implementation(issue_number: u64, issue_title: &str, branch_name: &str) -> Self {
         Self {
             issue_number: Some(issue_number),
             issue_title: Some(issue_title.to_string()),
@@ -72,7 +72,7 @@ impl AgentContext {
     }
 
     /// Create a context for review.
-    pub fn for_review(issue_number: i64, issue_title: &str) -> Self {
+    pub fn for_review(issue_number: u64, issue_title: &str) -> Self {
         Self {
             issue_number: Some(issue_number),
             issue_title: Some(issue_title.to_string()),
@@ -92,7 +92,7 @@ pub trait Agent: Send + Sync {
     /// Get the agent's name.
     fn name(&self) -> &str;
 
-    /// Get the keyword used to trigger this agent (e.g., "Claude", "Gemini").
+    /// Get the keyword used to trigger this agent (e.g., "Claude", "OpenCode").
     fn trigger_keyword(&self) -> &str;
 
     /// Check if the agent is available for use.
@@ -123,27 +123,9 @@ pub trait Agent: Send + Sync {
     /// # Returns
     ///
     /// Generated code or response as a string.
+    ///
+    /// Review-only callers pass [`AgentContext::for_review`].
     async fn generate_code(&self, prompt: &str, context: &AgentContext) -> Result<String, Error>;
-
-    /// Review code or an issue without making changes.
-    ///
-    /// Default implementation uses `generate_code` with review context.
-    ///
-    /// # Arguments
-    ///
-    /// * `prompt` - The review prompt
-    ///
-    /// # Returns
-    ///
-    /// Review feedback as a string.
-    async fn review(&self, prompt: &str) -> Result<String, Error> {
-        let context = AgentContext {
-            mode: Some("review".to_string()),
-            no_code_generation: true,
-            ..Default::default()
-        };
-        self.generate_code(prompt, &context).await
-    }
 }
 
 #[cfg(test)]

@@ -112,9 +112,14 @@ main() {
     mkdir -p "$INSTALL_DIR"
     local install_path="${INSTALL_DIR}/${BINARY_NAME}"
 
-    # Strategy 1: Use existing local binary if available
+    # Strategy 1: Build from a source checkout when cargo is available (so a
+    # stale target/release binary from an older checkout is never installed),
+    # otherwise use an existing local binary.
+    if [ -f "$script_dir/Cargo.toml" ] && command -v cargo &> /dev/null; then
+        build_from_source || error "Build from source failed"
+    fi
     if [ -f "$local_binary" ]; then
-        info "Using existing local binary: $local_binary"
+        info "Using local binary: $local_binary"
         rm -f "$install_path"
         cp "$local_binary" "$install_path"
         chmod +x "$install_path"

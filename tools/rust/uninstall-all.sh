@@ -16,7 +16,6 @@ TOOLS=(
     "git-guard"
     "github-agents-cli"
     "markdown-link-checker"
-    "mcp-code-quality"
     "pr-monitor"
 )
 

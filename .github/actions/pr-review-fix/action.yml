@@ -75,7 +75,7 @@ runs:
       shell: bash
       run: |
         found=0
-        for f in claude-security-review.md claude-quality-review.md openrouter-review.md gemini-review.md codex-review.md; do
+        for f in claude-security-review.md claude-quality-review.md openrouter-review.md; do
           if [ -s "$f" ]; then
             echo "Found review artifact: $f ($(wc -c < "$f") bytes)"
             found=1
@@ -102,8 +102,6 @@ runs:
         CLAUDE_SECURITY_REVIEW_PATH: claude-security-review.md
         CLAUDE_QUALITY_REVIEW_PATH: claude-quality-review.md
         OPENROUTER_REVIEW_PATH: openrouter-review.md
-        GEMINI_REVIEW_PATH: gemini-review.md
-        CODEX_REVIEW_PATH: codex-review.md
         PR_NUMBER: ${{ inputs.pr_number }}
         BRANCH_NAME: ${{ inputs.branch_name }}
         ITERATION_COUNT: ${{ steps.iteration.outputs.iteration_count }}

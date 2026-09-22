@@ -153,6 +153,9 @@ jobs:
           ENABLE_AGENTS: ${{ vars.ENABLE_AGENTS }}
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           REVIEW_TARGET: ${{ inputs.target || 'both' }}
+          # Comma-separated; empty means all open items
+          TARGET_ISSUE_NUMBERS: ${{ inputs.issue_numbers }}
+          TARGET_PR_NUMBERS: ${{ inputs.pr_numbers }}
         run: |
           echo "=== Starting Auto Review ==="
           echo "Repository: $GITHUB_REPOSITORY"

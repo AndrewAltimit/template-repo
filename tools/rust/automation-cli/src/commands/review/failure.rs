@@ -1,13 +1,15 @@
-use std::path::Path;
-use std::sync::atomic::{AtomicU64, Ordering};
-use std::time::Duration;
+//! `automation-cli review failure` -- autoformat, then ask Claude to fix the
+//! remaining lint/test failures of a PR pipeline, commit, and push.
+//!
+//! GitHub outputs: `exceeded_max`, `made_changes`, `pushed`, `commit_sha`.
+
+use std::process::Stdio;
 
 use anyhow::{Result, bail};
 use clap::Args;
 
+use super::common::{self, CLAUDE_TIMEOUT};
 use crate::shared::{output, process, project};
-
-static TEMP_COUNTER: AtomicU64 = AtomicU64::new(0);
 
 /// Error extraction limits
 const MAX_LINT_ERROR_LINES: usize = 150;
@@ -30,9 +32,76 @@ pub struct FailureArgs {
     pub failure_types: String,
 }
 
+/// Which failures this run should address.
+#[derive(Debug, Default, PartialEq, Eq)]
+struct Failures {
+    /// Lint-ish failure labels (`format`, `basic-lint`, `full-lint`, `lint`).
+    lint: Vec<&'static str>,
+    test: bool,
+}
+
+impl Failures {
+    fn is_empty(&self) -> bool {
+        self.lint.is_empty() && !self.test
+    }
+
+    /// Detect failures from the workflow's job-result env vars, falling back
+    /// to the comma-separated `failure_types` argument.
+    fn detect(env: impl Fn(&str) -> Option<String>, failure_types: &str) -> Self {
+        let failed = |var: &str| env(var).is_some_and(|v| v == "failure");
+        let mut f = Failures::default();
+        if failed("FORMAT_CHECK_RESULT") {
+            f.lint.push("format");
+        }
+        if failed("BASIC_LINT_RESULT") {
+            f.lint.push("basic-lint");
+        }
+        if failed("FULL_LINT_RESULT") {
+            f.lint.push("full-lint");
+        }
+        f.test = failed("TEST_SUITE_RESULT");
+
+        if f.is_empty() {
+            let types: Vec<&str> = failure_types.split(',').map(str::trim).collect();
+            if types.iter().any(|t| matches!(*t, "format" | "lint")) {
+                f.lint.extend(["format", "lint"]);
+            }
+            f.test = types.contains(&"test");
+        }
+        f
+    }
+
+    /// Bullet list for the commit message and PR comment.
+    fn bullet_list(&self) -> String {
+        self.lint
+            .iter()
+            .copied()
+            .chain(self.test.then_some("test-suite"))
+            .map(|f| format!("- {f}"))
+            .collect::<Vec<_>>()
+            .join("\n")
+    }
+
+    /// CI stages whose output is captured to show Claude the remaining errors.
+    fn lint_stages(&self) -> Vec<&'static str> {
+        let basic = self
+            .lint
+            .iter()
+            .any(|f| matches!(*f, "basic-lint" | "lint" | "format"));
+        let full = self.lint.contains(&"full-lint");
+        let mut stages = Vec::new();
+        if basic {
+            stages.push("lint-basic");
+        }
+        if full {
+            stages.push("lint-full");
+        }
+        stages
+    }
+}
+
 pub fn run(args: FailureArgs) -> Result<()> {
-    let root = project::find_project_root()?;
-    std::env::set_current_dir(&root)?;
+    project::enter_project_root()?;
 
     output::header("Agent Failure Handler");
     output::info(&format!("PR Number: {}", args.pr_number));
@@ -43,312 +112,216 @@ pub fn run(args: FailureArgs) -> Result<()> {
     ));
     output::info(&format!("Handling failure types: {}", args.failure_types));
 
-    // Max iterations check
     if args.iteration >= args.max_iterations {
         output::fail(&format!(
             "Maximum iterations ({}) reached! Manual intervention required.",
             args.max_iterations
         ));
         project::set_github_output("exceeded_max", "true");
-        project::set_github_output("made_changes", "false");
+        report_no_commit();
         bail!("max iterations exceeded");
     }
 
-    if !Path::new(".git").exists() {
+    if !std::path::Path::new(".git").exists() {
         bail!("not in a git repository");
     }
 
-    // Configure git
-    configure_git()?;
+    common::configure_git("AI Pipeline Agent", "ai-pipeline-agent@localhost")?;
+    common::checkout_branch(&args.branch)?;
 
-    // Checkout branch
-    output::step(&format!("Checking out branch: {}", args.branch));
-    let _ = process::run("git", &["fetch", "origin", &args.branch]);
-    let _ = process::run("git", &["checkout", &args.branch]);
-
-    // Detect failures from env vars or failure_types
-    let format_failed = std::env::var("FORMAT_CHECK_RESULT")
-        .map(|v| v == "failure")
-        .unwrap_or(false);
-    let basic_lint_failed = std::env::var("BASIC_LINT_RESULT")
-        .map(|v| v == "failure")
-        .unwrap_or(false);
-    let full_lint_failed = std::env::var("FULL_LINT_RESULT")
-        .map(|v| v == "failure")
-        .unwrap_or(false);
-    let test_failed = std::env::var("TEST_SUITE_RESULT")
-        .map(|v| v == "failure")
-        .unwrap_or(false);
-
-    let mut lint_failures = Vec::new();
-    let mut has_test_failure = false;
-
-    if format_failed {
-        lint_failures.push("format");
-    }
-    if basic_lint_failed {
-        lint_failures.push("basic-lint");
-    }
-    if full_lint_failed {
-        lint_failures.push("full-lint");
-    }
-    if test_failed {
-        has_test_failure = true;
-    }
-
-    // Fallback: infer from failure_types
-    if lint_failures.is_empty() && !has_test_failure {
-        if args.failure_types.contains("format") || args.failure_types.contains("lint") {
-            lint_failures.extend(["format", "lint"]);
-        }
-        if args.failure_types.contains("test") {
-            has_test_failure = true;
-        }
-    }
-
-    if lint_failures.is_empty() && !has_test_failure {
+    let failures = Failures::detect(|k| std::env::var(k).ok(), &args.failure_types);
+    if failures.is_empty() {
         output::info("No handleable failures detected");
-        project::set_github_output("made_changes", "false");
+        report_no_commit();
         return Ok(());
     }
+    let failures_list = failures.bullet_list();
+    output::info(&format!("Failures to address:\n{failures_list}"));
 
-    output::info(&format!(
-        "Failures to address: {} {}",
-        lint_failures.join(", "),
-        if has_test_failure { "test-suite" } else { "" }
-    ));
-
-    // Step 1: Autoformat + restage
     output::header("Step 1: Running autoformat");
     if let Err(e) = super::precommit::run_autoformat_and_restage() {
         output::warn(&format!("Autoformat/restage failed (non-fatal): {e}"));
     }
 
-    // Step 2: Capture remaining lint errors
     output::header("Step 2: Checking for remaining lint issues");
-    let lint_output = capture_lint_errors(&lint_failures)?;
-    let test_output = if has_test_failure {
+    let lint_output = capture_stage_errors(&failures.lint_stages(), MAX_LINT_ERROR_LINES, |l| {
+        l.contains(": error")
+            || l.contains(": warning")
+            || l.contains("Error:")
+            || l.contains("FAILED")
+            || l.contains("Found ")
+    });
+    let test_output = if failures.test {
         output::header("Step 2b: Capturing test failure output");
-        capture_test_errors()?
+        capture_stage_errors(&["test"], MAX_TEST_ERROR_LINES, |l| {
+            l.contains("FAILED")
+                || l.contains("AssertionError")
+                || l.contains("Error:")
+                || l.contains("Traceback")
+        })
     } else {
         String::new()
     };
 
-    // Step 3: Invoke Claude
     output::header("Step 3: Invoking Claude for remaining issues");
-    let prompt = build_failure_prompt(&lint_failures, &lint_output, has_test_failure, &test_output);
-
-    let prompt_file = write_temp_file(&prompt)?;
+    let prompt = build_failure_prompt(&failures, &lint_output, &test_output);
     output::info(&format!("Prompt size: {} chars", prompt.len()));
+    invoke_claude(&prompt)?;
 
-    let claude_cmd = if process::command_exists("claude") {
-        Some("claude")
-    } else if process::command_exists("claude-code") {
-        Some("claude-code")
-    } else {
-        output::warn("Claude CLI not found, proceeding with autoformat changes only");
-        None
-    };
-
-    if let Some(cmd) = claude_cmd {
-        output::step("Running Claude with 20 min timeout...");
-        let prompt_path = Path::new(&prompt_file);
-        let result = process::run_capture_with_timeout(
-            cmd,
-            &["--print", "--dangerously-skip-permissions", "-p"],
-            prompt_path,
-            Duration::from_secs(20 * 60),
-        );
-        let _ = std::fs::remove_file(&prompt_file);
-        match result {
-            Ok(stdout) => {
-                if !stdout.is_empty() {
-                    eprintln!("{stdout}");
-                }
-            },
-            Err(e) => {
-                output::warn(&format!("Claude invocation failed: {e}"));
-            },
-        }
-    } else {
-        let _ = std::fs::remove_file(&prompt_file);
-    }
-
-    // Step 4: Commit
     output::header("Step 4: Checking for changes");
-    process::run("git", &["add", "-u"])?;
-
-    if process::run_check("git", &["diff", "--cached", "--quiet"])? {
+    if !common::stage_tracked_changes()? {
         output::info("No changes to commit");
-        post_comment(
+        common::post_comment(
             args.pr_number,
             &format_handler_comment(args.iteration, false, "", ""),
         )?;
-        project::set_github_output("made_changes", "false");
+        report_no_commit();
         return Ok(());
     }
 
     output::step("Changes detected, creating commit...");
-    let failures_list: String = lint_failures
-        .iter()
-        .chain(if has_test_failure {
-            vec![&"test-suite"]
-        } else {
-            vec![]
-        })
-        .map(|f| format!("- {f}"))
-        .collect::<Vec<_>>()
-        .join("\n");
+    common::commit(&commit_message(&failures_list, &args))?;
+    let (full_sha, short_sha) = common::head_sha()?;
 
-    let display_iter = args.iteration + 1;
-    let commit_msg = format!(
+    // Post the comment BEFORE pushing: the push triggers a new pipeline run
+    // which cancels this one.
+    output::header("Step 5: Pushing changes");
+    common::post_comment(
+        args.pr_number,
+        &format_handler_comment(args.iteration, true, &short_sha, &failures_list),
+    )?;
+
+    project::set_github_output("made_changes", "true");
+    match common::push_and_verify(&args.branch, &full_sha) {
+        Ok(landed) => {
+            output::success(&format!("Changes pushed to branch: {}", args.branch));
+            project::set_github_output("pushed", "true");
+            project::set_github_output("commit_sha", &landed);
+            Ok(())
+        },
+        Err(e) => {
+            let _ = common::post_comment(
+                args.pr_number,
+                &format!(
+                    "**Push failed** after retries: `{e}`\n\n\
+                     The commit exists locally but was not pushed. Manual intervention required."
+                ),
+            );
+            project::set_github_output("pushed", "false");
+            project::set_github_output("commit_sha", &full_sha);
+            Err(e)
+        },
+    }
+}
+
+fn report_no_commit() {
+    project::set_github_output("made_changes", "false");
+    project::set_github_output("pushed", "false");
+    project::set_github_output("commit_sha", "");
+}
+
+/// Run Claude on the prompt (if the CLI is installed), echoing its output.
+/// A failed or timed-out invocation is a warning: autoformat changes may
+/// still be worth committing.
+fn invoke_claude(prompt: &str) -> Result<()> {
+    let Some(cmd) = common::find_claude_cli() else {
+        output::warn("Claude CLI not found, proceeding with autoformat changes only");
+        return Ok(());
+    };
+    output::step("Running Claude with 20 min timeout...");
+    let prompt_file = common::write_temp(prompt)?;
+    match process::run_capture_with_timeout(
+        cmd,
+        &["-p", "--dangerously-skip-permissions"],
+        prompt_file.path(),
+        CLAUDE_TIMEOUT,
+    ) {
+        Ok(stdout) if !stdout.is_empty() => eprintln!("{stdout}"),
+        Ok(_) => {},
+        Err(e) => output::warn(&format!("Claude invocation failed: {e}")),
+    }
+    Ok(())
+}
+
+/// Run each CI stage (via this binary), keeping only lines matching `keep`,
+/// capped at `max_lines` per stage.
+fn capture_stage_errors(stages: &[&str], max_lines: usize, keep: fn(&str) -> bool) -> String {
+    let mut out = String::new();
+    for stage in stages {
+        output::step(&format!("Capturing {stage} errors..."));
+        let raw = match process::self_command()
+            .and_then(|mut c| Ok(c.args(["ci", "run", stage]).stdin(Stdio::null()).output()?))
+        {
+            Ok(raw) => raw,
+            Err(e) => {
+                output::warn(&format!("could not run stage {stage}: {e}"));
+                continue;
+            },
+        };
+        let combined = format!(
+            "{}\n{}",
+            String::from_utf8_lossy(&raw.stdout),
+            String::from_utf8_lossy(&raw.stderr)
+        );
+        let lines = filter_lines(&combined, max_lines, keep);
+        if !lines.is_empty() {
+            if !out.is_empty() {
+                out.push('\n');
+            }
+            out.push_str(&lines);
+        }
+    }
+    out
+}
+
+fn filter_lines(text: &str, max_lines: usize, keep: fn(&str) -> bool) -> String {
+    text.lines()
+        .filter(|l| keep(l))
+        .take(max_lines)
+        .collect::<Vec<_>>()
+        .join("\n")
+}
+
+fn commit_message(failures_list: &str, args: &FailureArgs) -> String {
+    format!(
         "fix: resolve CI pipeline failures\n\n\
          Automated fix by Claude in response to pipeline failures.\n\n\
          Failures addressed:\n{failures_list}\n\n\
          Actions taken:\n\
          - Ran autoformat (ruff format, cargo fmt)\n\
          - Fixed remaining lint issues\n\n\
-         Iteration: {display_iter}/{}\n\n\
+         Iteration: {}/{}\n\n\
          Co-Authored-By: AI Pipeline Agent <noreply@anthropic.com>",
+        args.iteration + 1,
         args.max_iterations
-    );
-    let msg_file = write_temp_file(&commit_msg)?;
-    process::run("git", &["commit", "-F", &msg_file])?;
-    let _ = std::fs::remove_file(&msg_file);
-
-    // Step 5: Push
-    output::header("Step 5: Pushing changes");
-    let sha = process::run_capture("git", &["rev-parse", "--short", "HEAD"])?;
-    let sha = sha.trim();
-
-    // Post comment BEFORE pushing
-    post_comment(
-        args.pr_number,
-        &format_handler_comment(args.iteration, true, sha, &failures_list),
-    )?;
-
-    let branch = args.branch.clone();
-    let push_result = temporarily_disable_pre_push_hook(|| {
-        process::run_with_retries("git", &["push", "origin", &branch], 3, 2)
-    });
-
-    if let Err(e) = push_result {
-        let _ = post_comment(
-            args.pr_number,
-            &format!(
-                "**Push failed** after retries: `{e}`\n\n\
-                 The commit exists locally but was not pushed. Manual intervention required."
-            ),
-        );
-        return Err(e);
-    }
-
-    output::success(&format!("Changes pushed to branch: {}", args.branch));
-    project::set_github_output("made_changes", "true");
-    Ok(())
+    )
 }
 
-fn capture_lint_errors(failures: &[&str]) -> Result<String> {
-    let mut output = String::new();
-
-    let has_basic = failures
-        .iter()
-        .any(|f| *f == "basic-lint" || *f == "lint" || *f == "format");
-    let has_full = failures
-        .iter()
-        .any(|f| *f == "full-lint" || *f == "lint-full");
-
-    let stages: Vec<(&str, &str)> = if has_full && has_basic {
-        vec![("lint-basic", "lint-basic"), ("lint-full", "lint-full")]
-    } else if has_full {
-        vec![("lint-full", "lint-full")]
-    } else if has_basic {
-        vec![("lint-basic", "lint-basic")]
-    } else {
-        vec![]
-    };
-
-    for (label, arg) in stages {
-        output::step(&format!("Capturing {label} errors..."));
-        if let Ok(raw) = std::process::Command::new("./automation/ci-cd/run-ci.sh")
-            .arg(arg)
-            .output()
-        {
-            let stdout = String::from_utf8_lossy(&raw.stdout);
-            let stderr = String::from_utf8_lossy(&raw.stderr);
-            let combined = format!("{stdout}{stderr}");
-            let errors: Vec<&str> = combined
-                .lines()
-                .filter(|l| {
-                    l.contains(": error")
-                        || l.contains(": warning")
-                        || l.contains("Error:")
-                        || l.contains("FAILED")
-                        || l.contains("Found ")
-                })
-                .take(MAX_LINT_ERROR_LINES)
-                .collect();
-            if !errors.is_empty() {
-                if !output.is_empty() {
-                    output.push('\n');
-                }
-                output.push_str(&errors.join("\n"));
-            }
-        }
-    }
-    Ok(output)
-}
-
-fn capture_test_errors() -> Result<String> {
-    output::step("Running tests to capture failure details...");
-    if let Ok(raw) = std::process::Command::new("./automation/ci-cd/run-ci.sh")
-        .arg("test")
-        .output()
-    {
-        let stdout = String::from_utf8_lossy(&raw.stdout);
-        let stderr = String::from_utf8_lossy(&raw.stderr);
-        let combined = format!("{stdout}{stderr}");
-        let errors: Vec<&str> = combined
-            .lines()
-            .filter(|l| {
-                l.contains("FAILED")
-                    || l.contains("AssertionError")
-                    || l.contains("Error:")
-                    || l.contains("Traceback")
-            })
-            .take(MAX_TEST_ERROR_LINES)
-            .collect();
-        return Ok(errors.join("\n"));
-    }
-    Ok(String::new())
-}
-
-fn build_failure_prompt(
-    lint_failures: &[&str],
-    lint_output: &str,
-    has_test: bool,
-    test_output: &str,
-) -> String {
+fn build_failure_prompt(failures: &Failures, lint_output: &str, test_output: &str) -> String {
     let mut prompt = "You are fixing CI/CD pipeline failures for a pull request.\n\n".to_string();
 
-    if !lint_failures.is_empty() {
-        prompt.push_str("## Lint/Format Failures Detected\n\n");
-        prompt.push_str("INSTRUCTIONS:\n");
-        prompt.push_str("1. Fix unused imports, formatting issues, type hints\n");
-        prompt.push_str("2. Make minimal changes - only what's needed to pass CI\n");
-        prompt.push_str("3. The autoformat tools have already been run\n\n");
+    if !failures.lint.is_empty() {
+        prompt.push_str(
+            "## Lint/Format Failures Detected\n\n\
+             INSTRUCTIONS:\n\
+             1. Fix unused imports, formatting issues, type hints\n\
+             2. Make minimal changes - only what's needed to pass CI\n\
+             3. The autoformat tools have already been run\n\n",
+        );
         if !lint_output.is_empty() {
             prompt.push_str(&format!("### Lint Output:\n{lint_output}\n\n"));
         }
     }
 
-    if has_test {
-        prompt.push_str("## Test Failures Detected\n\n");
-        prompt.push_str("INSTRUCTIONS:\n");
-        prompt.push_str("1. Analyze the test output to understand what's failing\n");
-        prompt.push_str("2. Fix bugs in the CODE being tested, not the tests\n");
-        prompt.push_str("3. Do NOT disable, skip, or delete failing tests\n");
-        prompt.push_str("4. Make minimal, targeted fixes\n\n");
+    if failures.test {
+        prompt.push_str(
+            "## Test Failures Detected\n\n\
+             INSTRUCTIONS:\n\
+             1. Analyze the test output to understand what's failing\n\
+             2. Fix bugs in the CODE being tested, not the tests\n\
+             3. Do NOT disable, skip, or delete failing tests\n\
+             4. Make minimal, targeted fixes\n\n",
+        );
         if !test_output.is_empty() {
             prompt.push_str(&format!("### Test Output:\n{test_output}\n\n"));
         }
@@ -381,58 +354,86 @@ fn format_handler_comment(iteration: u32, made_changes: bool, sha: &str, failure
     }
 }
 
-fn post_comment(pr_number: u64, body: &str) -> Result<()> {
-    if !process::command_exists("gh") {
-        if project::is_ci() {
-            bail!("gh CLI not found in CI -- cannot post PR comment");
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn env_from(pairs: &'static [(&'static str, &'static str)]) -> impl Fn(&str) -> Option<String> {
+        move |k| {
+            pairs
+                .iter()
+                .find(|(key, _)| *key == k)
+                .map(|(_, v)| v.to_string())
         }
-        return Ok(());
-    }
-    let temp = write_temp_file(body)?;
-    let pr = pr_number.to_string();
-    let result =
-        process::run_with_retries("gh", &["pr", "comment", &pr, "--body-file", &temp], 3, 2);
-    let _ = std::fs::remove_file(&temp);
-    result
-}
-
-fn configure_git() -> Result<()> {
-    let token = std::env::var("GITHUB_TOKEN").unwrap_or_default();
-    let repo = std::env::var("GITHUB_REPOSITORY").unwrap_or_default();
-    if !token.is_empty() && !repo.is_empty() {
-        let url = format!("https://x-access-token:{token}@github.com/{repo}.git");
-        process::run("git", &["remote", "set-url", "origin", &url])?;
-        process::run("git", &["config", "user.name", "AI Pipeline Agent"])?;
-        process::run(
-            "git",
-            &["config", "user.email", "ai-pipeline-agent@localhost"],
-        )?;
-    }
-    Ok(())
-}
-
-fn temporarily_disable_pre_push_hook<F: FnOnce() -> Result<()>>(f: F) -> Result<()> {
-    let hook = Path::new(".git/hooks/pre-push");
-    let disabled = Path::new(".git/hooks/pre-push.disabled");
-    let had_hook = hook.exists();
-
-    if had_hook {
-        std::fs::rename(hook, disabled)?;
     }
 
-    let result = f();
-
-    if had_hook && disabled.exists() {
-        let _ = std::fs::rename(disabled, hook);
+    #[test]
+    fn detect_prefers_job_results() {
+        let f = Failures::detect(
+            env_from(&[
+                ("FORMAT_CHECK_RESULT", "failure"),
+                ("FULL_LINT_RESULT", "failure"),
+                ("TEST_SUITE_RESULT", "success"),
+            ]),
+            "test",
+        );
+        assert_eq!(f.lint, ["format", "full-lint"]);
+        assert!(
+            !f.test,
+            "failure_types must be ignored when job results exist"
+        );
+        assert_eq!(f.lint_stages(), ["lint-basic", "lint-full"]);
     }
 
-    result
-}
+    #[test]
+    fn detect_falls_back_to_failure_types() {
+        let f = Failures::detect(env_from(&[]), "lint, test");
+        assert_eq!(f.lint, ["format", "lint"]);
+        assert!(f.test);
+        assert_eq!(f.lint_stages(), ["lint-basic"]);
+    }
 
-fn write_temp_file(content: &str) -> Result<String> {
-    let n = TEMP_COUNTER.fetch_add(1, Ordering::Relaxed);
-    let path =
-        std::env::temp_dir().join(format!("automation-cli-failure-{}-{n}", std::process::id()));
-    std::fs::write(&path, content)?;
-    Ok(path.to_string_lossy().to_string())
+    #[test]
+    fn detect_does_not_substring_match() {
+        // "linting" or "contest" must not be mistaken for lint/test.
+        let f = Failures::detect(env_from(&[]), "linting,contest");
+        assert!(f.is_empty());
+    }
+
+    #[test]
+    fn bullet_list_includes_tests() {
+        let f = Failures {
+            lint: vec!["format"],
+            test: true,
+        };
+        assert_eq!(f.bullet_list(), "- format\n- test-suite");
+    }
+
+    #[test]
+    fn prompt_sections_follow_failures() {
+        let f = Failures {
+            lint: vec![],
+            test: true,
+        };
+        let p = build_failure_prompt(&f, "ignored", "FAILED test_x");
+        assert!(!p.contains("Lint/Format Failures"));
+        assert!(p.contains("Test Failures Detected"));
+        assert!(p.contains("FAILED test_x"));
+    }
+
+    #[test]
+    fn filter_lines_caps() {
+        let text = "Error: a\nok\nError: b\nError: c\n";
+        assert_eq!(
+            filter_lines(text, 2, |l| l.contains("Error:")),
+            "Error: a\nError: b"
+        );
+    }
+
+    #[test]
+    fn handler_comment_has_metadata_marker() {
+        let c = format_handler_comment(2, true, "abc1234", "- format");
+        assert!(c.contains("<!-- agent-metadata:type=failure-fix:iteration=3 -->"));
+        assert!(c.contains("`abc1234`"));
+    }
 }

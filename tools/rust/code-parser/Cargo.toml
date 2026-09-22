@@ -1,12 +1,13 @@
 [package]
 name = "code-parser"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2024"
-description = "Parse and apply code blocks from AI responses"
+rust-version = "1.91"
+description = "Parse and apply code blocks, edits, and patches from AI responses"
 license = "MIT"
 repository = "https://github.com/AndrewAltimit/template-repo"
 readme = "README.md"
-keywords = ["parser", "code", "ai", "markdown"]
+keywords = ["parser", "code", "ai", "markdown", "diff"]
 categories = ["parsing", "text-processing"]
 
 [lib]
@@ -14,19 +15,20 @@ name = "code_parser"
 path = "src/lib.rs"
 
 [dependencies]
-# Regex for pattern matching
-regex = "1.10"
+# Regex for pattern matching (compiled once via LazyLock)
+regex = "1.11"
 
 # Error handling
-thiserror = "1.0"
+thiserror = "2"
 
 # Logging
 tracing = "0.1"
 
 [dev-dependencies]
-tempfile = "3.10"
+tempfile = "3"
 
 [features]
-default = []
-# Enable file system operations (apply_code_blocks)
+# `fs` only uses std, so it is on by default; disable it for a pure parsing build.
+default = ["fs"]
+# File system operations (apply_code_blocks, apply_patches, apply_edit_instructions)
 fs = []

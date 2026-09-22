@@ -1,148 +1,170 @@
 # wrapper-common
 
-> Shared Rust library for CLI wrapper hardening. Provides binary discovery, structured audit logging, compile-time integrity verification, and platform-specific process execution for git-guard and gh-validator.
+> Shared library for the CLI hardening wrappers ([git-guard](../git-guard/README.md)
+> and [gh-validator](../gh-validator/README.md)): real-binary discovery,
+> process execution with faithful passthrough, audit logging, and
+> compile-time integrity hashing.
 
-## Overview
-
-This library contains the common functionality used by the wrapper-guard binaries (`git-guard` and `gh-validator`). These wrappers intercept `git` and `gh` commands to enforce security policies, log all invocations, and prevent dangerous operations.
-
-Key capabilities:
-
-- **Binary finder** -- locates the real binary while avoiding infinite recursion between wrapper copies
-- **Audit logging** -- structured JSON logs of every command invocation with caller identification
-- **Integrity verification** -- compile-time SHA-256 source hashing for tamper detection
-- **Process execution** -- Unix `exec()` replacement or Windows `spawn()` with inherited I/O
+The wrappers run on every `git` / `gh` call, so this crate has a single
+runtime dependency (`thiserror`), no libc crate, no regex, and no
+serialization framework.
 
 ## Modules
 
 ### `binary_finder`
 
-Finds the real binary (e.g., the actual `git` or `gh`) using a priority chain:
+`find_real_binary(name) -> RealBinary` resolves the real binary:
 
-1. **Hardened path** (`/usr/lib/wrapper-guard/{name}.real`) -- checked first, used by setgid wrappers
-2. **Recursion guard** -- binary-specific env var (`__WRAPPER_GUARD_RECURSION_GIT`) detects exec loops between multiple wrapper copies
-3. **PATH scanning** -- searches PATH, skipping self and same-sized non-setgid copies (likely other wrapper binaries)
+1. **Hardened path** `/usr/lib/wrapper-guard/<name>.real` - only visible to
+   the setgid wrapper (group `wrapper-guard`).
+2. **PATH scan** with safety rules:
+   - only absolute PATH entries (empty / `.` / relative entries resolve
+     against the working directory and would let a repository plant its
+     own `git`);
+   - regular executable files only;
+   - candidates are canonicalized and skipped if they are this wrapper or
+     any wrapper already on the exec chain.
 
-Results are cached after first resolution.
+The chain is carried in `__WRAPPER_GUARD_RECURSION_<NAME>` as a PATH-style
+list of canonical wrapper paths, set **only on the child's environment**
+(`RealBinary::command()`), never via `std::env::set_var`. Each wrapper
+appends itself, so two wrapper copies can never exec each other in a loop,
+and a wrapper started from inside the real binary (e.g. a git hook running
+`git status`) still resolves normally. The variable is per binary (`_GIT`,
+`_GH`) because `gh` runs `git` internally.
 
-### `audit`
-
-Structured JSON audit logging with:
-
-- ISO 8601 timestamps
-- Caller PID, parent PID, UID, and parent executable path (Linux)
-- Sanitized arguments (secrets masked by callers)
-- Action classification: `allowed`, `blocked`, `error`
-- Blocked reason tracking
-- Best-effort writes with size-based rotation at 10 MB
-- Configurable log directory via `WRAPPER_GUARD_LOG_DIR` env var
-
-Default log location: `~/.local/share/wrapper-guard/audit.log`
-
-### `integrity`
-
-Compile-time integrity verification:
-
-- Wrappers embed a SHA-256 hash of their source files via `build.rs`
-- The `--wrapper-integrity` flag prints the wrapper name, source hash, and binary path
-- Hash validation utilities for external verification scripts
+```
+~/.local/bin/git (wrapper)        chain: []
+  -> exec /usr/bin/git (setgid wrapper)      chain: [~/.local/bin/git]
+     -> exec /usr/lib/wrapper-guard/git.real chain: [..., /usr/bin/git]
+```
 
 ### `exec`
 
-Platform-specific binary execution:
+- `exec(&real, &args)` - Unix: `execve` (PID, stdio, terminal, signal
+  dispositions preserved; only returns on failure). Windows: run and exit
+  with the child's code.
+- `run(&real, &args) -> i32` - spawn and wait, for wrappers that must act
+  afterwards (temp-file cleanup, notices). While waiting, the wrapper
+  ignores SIGINT/SIGQUIT (Unix) or Ctrl-C (Windows) so the child decides how
+  to react; the handlers are installed after spawning so the child keeps
+  default dispositions.
+- `exit_code(status)` - normal exits pass through; death by signal N maps
+  to `128 + N`.
 
-- **Unix**: `exec()` replaces the current process entirely (no return on success)
-- **Windows**: `spawn()` with exit code forwarding
-- **`spawn_binary()`**: non-replacing child process for post-command work (e.g., audit logging after completion)
+Arguments are `AsRef<OsStr>`, so non-UTF-8 arguments reach the real binary
+byte-for-byte.
+
+### `audit`
+
+JSONL audit log, best-effort (one warning per process on failure, never
+blocks the wrapper).
+
+- Location: `$WRAPPER_GUARD_LOG_DIR/audit.log`, else
+  `<HOME or USERPROFILE>/.local/share/wrapper-guard/audit.log`, else a
+  per-user temp directory.
+- Directory `0700`, file `0600` (Unix); whole-line `O_APPEND` writes; size
+  rotation to `audit.log.1` at 10 MB.
+- `redact_arg` strips URL userinfo (`https://***@host`) and
+  `Authorization:` header values before anything is written.
+- `Auditor::new(wrapper, real_path, hash)` with `.allowed()`, `.blocked()`,
+  `.error()` is the convenience API the wrappers use.
+
+Entry fields: `timestamp` (RFC 3339 UTC), `wrapper`, `action`
+(`allowed`/`blocked`/`error`), `args_sanitized`, `blocked_reason` (optional),
+`caller_pid`, `caller_ppid`, `caller_exe` (Linux), `caller_uid`,
+`real_binary_path`, `source_hash`.
+
+### `integrity`
+
+- `COMMON_SOURCE_HASH`: SHA-256 of this crate's sources, generated by
+  `build.rs`.
+- Wrappers call `wrapper_common::emit_wrapper_source_hash()` from their
+  `build.rs` (via the `build` feature in `[build-dependencies]`). It hashes
+  the wrapper's `src/**/*.rs` and `Cargo.toml` **plus** `COMMON_SOURCE_HASH`
+  into `SOURCE_HASH`, so a change to the shared security code changes every
+  wrapper's hash. Paths are normalized to `/`, making hashes identical on
+  Unix and Windows.
+- `check_integrity_flag(args, name, hash)` answers `--wrapper-integrity`
+  with `wrapper=`, `source_hash=`, `common_hash=`, `binary=` lines (the
+  format `automation/setup/security/*.sh` parse).
+
+The hash identifies a build for baseline comparison; it is not runtime
+tamper detection.
+
+### `platform`
+
+`uid()` and `is_setgid_elevated()` (effective gid differs from real gid,
+i.e. the hardened setgid wrapper) via `safe` extern declarations of
+`getuid`/`getgid`/`getegid`.
 
 ### `error`
 
-Fail-closed error types with helpful diagnostics:
-
-- `BinaryNotFound` -- with searched paths and recursion detection details
-- `ExecFailed` -- wraps `io::Error` from exec/spawn
-- `IntegrityFailure` -- tamper detection
-- `AuditLogError` -- non-fatal logging failures
-
-## Configuration
-
-| Environment Variable | Default | Description |
-|---------------------|---------|-------------|
-| `WRAPPER_GUARD_LOG_DIR` | `~/.local/share/wrapper-guard/` | Audit log directory |
+`CommonError::{BinaryNotFound, ExecFailed}` with `help_text()`.
 
 ## Usage
-
-This is a library crate, not a standalone binary. Add it as a dependency:
 
 ```toml
 [dependencies]
 wrapper-common = { path = "../wrapper-common" }
+
+[build-dependencies]
+wrapper-common = { path = "../wrapper-common", features = ["build"] }
 ```
 
-Example usage in a wrapper binary:
-
 ```rust
-use wrapper_common::binary_finder::{find_real_binary, set_recursion_guard};
-use wrapper_common::audit::{AuditEntry, AuditAction, log_event};
-use wrapper_common::integrity::check_integrity_flag;
-use wrapper_common::exec::exec_binary;
+// build.rs
+fn main() {
+    wrapper_common::emit_wrapper_source_hash();
+}
+
+// main.rs
+include!(concat!(env!("OUT_DIR"), "/integrity.rs"));
 
 fn main() {
-    let args: Vec<String> = std::env::args().skip(1).collect();
-
-    // Handle --wrapper-integrity flag
-    if check_integrity_flag(&args, "git-guard", SOURCE_HASH) {
-        std::process::exit(0);
+    let args: Vec<std::ffi::OsString> = std::env::args_os().skip(1).collect();
+    let lossy: Vec<String> = args.iter().map(|a| a.to_string_lossy().into_owned()).collect();
+    if wrapper_common::integrity::check_integrity_flag(&lossy, "my-wrapper", SOURCE_HASH) {
+        return;
     }
-
-    // Find the real binary
-    let real_path = find_real_binary("git").expect("git not found");
-
-    // Log the invocation
-    let entry = AuditEntry::new("git-guard", AuditAction::Allowed, args.clone(), &real_path.to_string_lossy(), SOURCE_HASH);
-    log_event(&entry);
-
-    // Set recursion guard and exec
-    set_recursion_guard("git");
-    exec_binary("git", &real_path, &args).expect("exec failed");
+    let real = match wrapper_common::binary_finder::find_real_binary("tool") {
+        Ok(real) => real,
+        Err(e) => {
+            eprintln!("ERROR: {e}");
+            std::process::exit(1);
+        },
+    };
+    let audit = wrapper_common::audit::Auditor::new("my-wrapper", real.path(), SOURCE_HASH);
+    audit.allowed(&lossy);
+    let err = wrapper_common::exec::exec(&real, &args);
+    eprintln!("ERROR: {err}");
+    std::process::exit(1);
 }
 ```
 
-## Wrapper Chain Architecture
-
-The two-wrapper chain for hardened installations:
-
-```
-~/.local/bin/git (non-setgid wrapper)
-  -> sets __WRAPPER_GUARD_RECURSION_GIT
-  -> exec /usr/bin/git (setgid wrapper, wrapper-guard group)
-     -> finds /usr/lib/wrapper-guard/git.real (accessible via group)
-     -> exec git.real
-```
-
-The recursion guard is binary-specific (`_GIT` vs `_GH`) so that `gh` calling `git` internally does not trigger false recursion detection.
-
-## Project Structure
+## Project structure
 
 ```
 tools/rust/wrapper-common/
-├── Cargo.toml          # Package configuration
-├── README.md           # This file
-└── src/
-    ├── lib.rs          # Module declarations
-    ├── binary_finder.rs # Real binary discovery with caching
-    ├── audit.rs        # Structured JSON audit logging
-    ├── integrity.rs    # Compile-time source hash verification
-    ├── exec.rs         # Platform-specific process execution
-    └── error.rs        # Error types with fail-closed semantics
+  Cargo.toml
+  build.rs             COMMON_SOURCE_HASH
+  src/
+    lib.rs             module declarations, emit_wrapper_source_hash (feature "build")
+    binary_finder.rs   real binary discovery and exec chain
+    exec.rs            exec / run with signal and exit-code passthrough
+    audit.rs           JSONL audit log with redaction
+    integrity.rs       --wrapper-integrity and hashes
+    platform.rs        uid / setgid detection
+    source_hash.rs     build-script source hashing (feature "build")
+    error.rs           CommonError
 ```
 
-## Dependencies
+## Development
 
-- [sha2](https://docs.rs/sha2) - SHA-256 for integrity verification
-- [chrono](https://docs.rs/chrono) - ISO 8601 timestamps for audit entries
-- [serde](https://docs.rs/serde) / [serde_json](https://docs.rs/serde_json) - JSON audit log serialization
-- [once_cell](https://docs.rs/once_cell) - Lazy binary path cache
+```bash
+docker compose --profile ci run --rm -w /app/tools/rust/wrapper-common rust-ci \
+  bash -c "cargo fmt --check && cargo clippy --all-targets --all-features -- -D warnings && cargo test"
+```
 
 ## License
 

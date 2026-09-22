@@ -1,5 +1,7 @@
 //! PR monitoring with polling
 
+mod filter;
 mod poller;
 
-pub use poller::Poller;
+pub use filter::Filter;
+pub use poller::{Found, Poller, PollerConfig};

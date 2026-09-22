@@ -11,7 +11,7 @@ This MCP server provides tools for:
 - Exporting and downloading trained models
 - System monitoring (CPU, memory, disk, GPU)
 
-**Note**: This server is designed to run on a remote GPU machine (e.g., `192.168.0.222:8012`) and be accessed via HTTP transport.
+**Note**: This server is designed to run on a remote GPU machine (e.g., `192.168.0.222:8020`) and be accessed via HTTP transport.
 
 ## Quick Start
 
@@ -20,13 +20,13 @@ This MCP server provides tools for:
 cargo build --release
 
 # Run in standalone HTTP mode
-./target/release/mcp-ai-toolkit --mode standalone --port 8012
+./target/release/mcp-ai-toolkit --mode standalone --port 8020
 
 # Run in STDIO mode (for local MCP clients)
 ./target/release/mcp-ai-toolkit --mode stdio
 
 # Test health
-curl http://localhost:8012/health
+curl http://localhost:8020/health
 ```
 
 ## Available Tools (21 total)
@@ -97,7 +97,7 @@ Use `list_model_presets` to see all presets with recommended settings.
 
 ```
 --mode <MODE>         Server mode: standalone, stdio, server, client [default: standalone]
---port <PORT>         Port to listen on [default: 8012]
+--port <PORT>         Port to listen on [default: 8000]
 --backend-url <URL>   Backend URL for client mode
 --log-level <LEVEL>   Log level [default: info]
 ```
@@ -137,7 +137,7 @@ Add to `.mcp.json` for HTTP transport (recommended for remote GPU):
   "mcpServers": {
     "aitoolkit": {
       "type": "http",
-      "url": "http://192.168.0.222:8012/messages"
+      "url": "http://192.168.0.222:8020/messages"
     }
   }
 }
@@ -207,11 +207,11 @@ tools/mcp/mcp_ai_toolkit/
 cargo test
 
 # Test HTTP endpoints (after starting server)
-curl http://localhost:8012/health
-curl http://localhost:8012/mcp/tools
+curl http://localhost:8020/health
+curl http://localhost:8020/mcp/tools
 
 # Create a training config
-curl -X POST http://localhost:8012/mcp/execute \
+curl -X POST http://localhost:8020/mcp/execute \
   -H 'Content-Type: application/json' \
   -d '{
     "tool": "create_training_config",
@@ -225,7 +225,7 @@ curl -X POST http://localhost:8012/mcp/execute \
   }'
 
 # List training jobs
-curl -X POST http://localhost:8012/mcp/execute \
+curl -X POST http://localhost:8020/mcp/execute \
   -H 'Content-Type: application/json' \
   -d '{"tool": "list_training_jobs", "arguments": {}}'
 ```

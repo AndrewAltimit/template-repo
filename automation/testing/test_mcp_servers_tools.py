@@ -11,7 +11,7 @@ import httpx
 # Server configurations
 SERVERS = {
     "AI Toolkit": {
-        "url": "http://localhost:8012",
+        "url": "http://localhost:8020",
         "expected_tools": [
             "create_training_config",
             "list_configs",

@@ -1,27 +1,34 @@
 //! Agent iteration tracking module.
 //!
 //! Tracks agent iteration counts from PR comments to prevent infinite loops.
-//! Supports the `[CONTINUE]` command to extend iteration limits.
+//! Supports the `[CONTINUE]` command (from agent admins) to extend limits.
+//!
+//! Counting rules:
+//! - Each comment carrying `<!-- agent-metadata:type=TYPE:iteration=N -->`
+//!   for the requested type counts as one iteration. Markers are counted
+//!   regardless of author: a forged marker can only *stop* automation early,
+//!   which is the fail-safe direction.
+//! - `...:limit-reached` markers (posted when the limit is hit) are notices,
+//!   not iterations, and are not counted.
+//! - `[CONTINUE]` counts only when written by an agent admin, outside code,
+//!   quotes and HTML comments, and not inside tool-generated comments.
 
-use lazy_static::lazy_static;
+use std::sync::LazyLock;
+
 use regex::Regex;
 use serde::{Deserialize, Serialize};
-use std::collections::HashSet;
 use tracing::{debug, info};
 
 use crate::error::Error;
-use crate::utils::run_gh_command;
+use crate::security::trigger::{contains_continue_command, is_agent_generated};
+use crate::utils::{parse_paginated_array, run_gh_command};
 
-lazy_static! {
-    /// Pattern for agent metadata markers in comments.
-    /// Format: <!-- agent-metadata:type=TYPE:iteration=N -->
-    static ref AGENT_MARKER_PATTERN: Regex =
-        Regex::new(r"<!-- agent-metadata:type=([a-z-]+):iteration=(\d+)").unwrap();
-
-    /// Pattern for [CONTINUE] command (case-insensitive).
-    static ref CONTINUE_PATTERN: Regex =
-        Regex::new(r"(?i)\[CONTINUE\]").unwrap();
-}
+/// Pattern for agent metadata markers in comments.
+/// Format: `<!-- agent-metadata:type=TYPE:iteration=N[:limit-reached] -->`
+static AGENT_MARKER_PATTERN: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"<!-- agent-metadata:type=([a-z-]+):iteration=(\d+)(:limit-reached)?")
+        .expect("valid marker regex")
+});
 
 /// Valid agent types for iteration tracking.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -32,8 +39,8 @@ pub enum AgentType {
 
 impl AgentType {
     /// Parse agent type from string.
-    pub fn from_str(s: &str) -> Option<Self> {
-        match s.to_lowercase().as_str() {
+    pub fn parse(s: &str) -> Option<Self> {
+        match s.trim().to_lowercase().as_str() {
             "review-fix" => Some(Self::ReviewFix),
             "failure-fix" => Some(Self::FailureFix),
             _ => None,
@@ -45,14 +52,6 @@ impl AgentType {
         match self {
             Self::ReviewFix => "review-fix",
             Self::FailureFix => "failure-fix",
-        }
-    }
-
-    /// Get a human-readable name for this agent type.
-    pub fn display_name(&self) -> &'static str {
-        match self {
-            Self::ReviewFix => "Review Response Agent",
-            Self::FailureFix => "Failure Handler Agent",
         }
     }
 }
@@ -101,182 +100,230 @@ pub async fn check_iteration(
         agent_type.as_str()
     );
 
-    // Get repository from environment
     let repo = std::env::var("GITHUB_REPOSITORY")
-        .map_err(|_| Error::Config("GITHUB_REPOSITORY environment variable not set".to_string()))?;
+        .ok()
+        .filter(|r| !r.is_empty())
+        .ok_or_else(|| Error::EnvNotSet("GITHUB_REPOSITORY".to_string()))?;
 
-    // Fetch all PR comments
     let comments = fetch_pr_comments(&repo, pr_number).await?;
+    Ok(evaluate(
+        &comments,
+        agent_type,
+        max_iterations,
+        agent_admins,
+    ))
+}
 
-    // Build admin set (lowercase for case-insensitive comparison)
-    let admin_set: HashSet<String> = agent_admins.iter().map(|a| a.to_lowercase()).collect();
-
-    debug!("Agent admins: {:?}", admin_set);
-
-    // Count iterations and [CONTINUE] commands
+/// Pure counting logic (separated for testing).
+fn evaluate(
+    comments: &[GitHubComment],
+    agent_type: AgentType,
+    max_iterations: u32,
+    agent_admins: &[String],
+) -> IterationCheckResult {
+    let agent_type_str = agent_type.as_str();
     let mut iteration_count = 0u32;
     let mut continue_count = 0u32;
-    let agent_type_str = agent_type.as_str();
 
-    for comment in &comments {
+    for comment in comments {
         let body = comment.body.as_deref().unwrap_or("");
         let author = comment
             .user
             .as_ref()
-            .map(|u| u.login.to_lowercase())
-            .unwrap_or_default();
+            .map(|u| u.login.as_str())
+            .unwrap_or("");
 
-        // Check for agent iteration marker
-        if let Some(caps) = AGENT_MARKER_PATTERN.captures(body) {
-            if let Some(comment_type) = caps.get(1) {
-                if comment_type.as_str() == agent_type_str {
-                    iteration_count += 1;
-                    debug!(
-                        "Found iteration marker for {}: count now {}",
-                        agent_type_str, iteration_count
-                    );
-                }
-            }
+        if let Some(caps) = AGENT_MARKER_PATTERN.captures(body)
+            && &caps[1] == agent_type_str
+            && caps.get(3).is_none()
+        {
+            iteration_count += 1;
+            debug!(
+                "Iteration marker for {}: count now {}",
+                agent_type_str, iteration_count
+            );
         }
 
-        // Check for [CONTINUE] from admin
-        if admin_set.contains(&author) && CONTINUE_PATTERN.is_match(body) {
+        let is_admin = agent_admins.iter().any(|a| a.eq_ignore_ascii_case(author));
+        let tool_generated = is_agent_generated(body) || body.contains("<!-- agent-metadata:");
+        if is_admin && !tool_generated && contains_continue_command(body) {
             continue_count += 1;
             debug!(
-                "Found [CONTINUE] from admin {}: count now {}",
+                "[CONTINUE] from admin {}: count now {}",
                 author, continue_count
             );
         }
     }
 
-    // Calculate effective max: base + (continue_count * base)
-    let effective_max = max_iterations + (continue_count * max_iterations);
+    // Effective max: base + (continue_count * base), saturating on overflow
+    let effective_max =
+        max_iterations.saturating_add(continue_count.saturating_mul(max_iterations));
     let exceeded_max = iteration_count >= effective_max;
-    let should_skip = exceeded_max;
 
     info!(
         "Iteration check complete: count={}, effective_max={} (base={} + {}x extensions), exceeded={}",
         iteration_count, effective_max, max_iterations, continue_count, exceeded_max
     );
 
-    Ok(IterationCheckResult {
+    IterationCheckResult {
         iteration_count,
         max_iterations,
         effective_max,
         continue_count,
         exceeded_max,
-        should_skip,
+        should_skip: exceeded_max,
         agent_type: agent_type_str.to_string(),
-    })
+    }
 }
 
-/// Fetch all comments from a PR.
+/// Fetch all comments from a PR (all pages).
 async fn fetch_pr_comments(repo: &str, pr_number: u64) -> Result<Vec<GitHubComment>, Error> {
-    let endpoint = format!("repos/{}/issues/{}/comments", repo, pr_number);
-
-    let output: Option<String> = run_gh_command(&["api", &endpoint, "--paginate"], true).await?;
-
-    let json_str = output.unwrap_or_else(|| "[]".to_string());
-
-    // Parse JSON - gh api --paginate returns concatenated JSON arrays
-    // We need to handle both single array and multiple arrays
-    let comments: Vec<GitHubComment> = if json_str.trim().starts_with('[') {
-        // Try parsing as single array first
-        match serde_json::from_str::<Vec<GitHubComment>>(&json_str) {
-            Ok(c) => c,
-            Err(_) => {
-                // If that fails, try splitting on ][ and parsing each
-                let mut all_comments = Vec::new();
-                let mut depth = 0;
-                let mut start = 0;
-
-                for (i, c) in json_str.char_indices() {
-                    match c {
-                        '[' => depth += 1,
-                        ']' => {
-                            depth -= 1;
-                            if depth == 0 {
-                                let slice = &json_str[start..=i];
-                                if let Ok(mut parsed) =
-                                    serde_json::from_str::<Vec<GitHubComment>>(slice)
-                                {
-                                    all_comments.append(&mut parsed);
-                                }
-                                start = i + 1;
-                            }
-                        },
-                        _ => {},
-                    }
-                }
-                all_comments
-            },
-        }
-    } else {
-        Vec::new()
-    };
-
+    let endpoint = format!("repos/{}/issues/{}/comments?per_page=100", repo, pr_number);
+    let output = run_gh_command(&["api", &endpoint, "--paginate"], true)
+        .await?
+        .unwrap_or_default();
+    let comments: Vec<GitHubComment> = parse_paginated_array(&output)?;
     debug!("Fetched {} comments from PR #{}", comments.len(), pr_number);
     Ok(comments)
 }
 
 /// Output iteration check results in GitHub Actions format.
-pub fn output_github_actions(result: &IterationCheckResult) {
-    // Write to GITHUB_OUTPUT if available
-    if let Ok(output_file) = std::env::var("GITHUB_OUTPUT") {
-        if let Ok(mut file) = std::fs::OpenOptions::new().append(true).open(&output_file) {
-            use std::io::Write;
-            let _ = writeln!(file, "iteration_count={}", result.iteration_count);
-            let _ = writeln!(file, "effective_max={}", result.effective_max);
-            let _ = writeln!(file, "continue_count={}", result.continue_count);
-            let _ = writeln!(file, "exceeded_max={}", result.exceeded_max);
-            let _ = writeln!(file, "should_skip={}", result.should_skip);
-        }
+pub fn output_github_actions(result: &IterationCheckResult) -> Result<(), Error> {
+    let lines = format!(
+        "iteration_count={}\neffective_max={}\ncontinue_count={}\nexceeded_max={}\nshould_skip={}\n",
+        result.iteration_count,
+        result.effective_max,
+        result.continue_count,
+        result.exceeded_max,
+        result.should_skip
+    );
+
+    if let Ok(output_file) = std::env::var("GITHUB_OUTPUT")
+        && !output_file.is_empty()
+    {
+        use std::io::Write;
+        let mut file = std::fs::OpenOptions::new()
+            .append(true)
+            .create(true)
+            .open(&output_file)?;
+        file.write_all(lines.as_bytes())?;
     }
 
-    // Also print to stdout for visibility
-    println!("iteration_count={}", result.iteration_count);
-    println!("effective_max={}", result.effective_max);
-    println!("continue_count={}", result.continue_count);
-    println!("exceeded_max={}", result.exceeded_max);
-    println!("should_skip={}", result.should_skip);
+    print!("{}", lines);
+    Ok(())
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    #[test]
-    fn test_agent_type_from_str() {
-        assert_eq!(
-            AgentType::from_str("review-fix"),
-            Some(AgentType::ReviewFix)
-        );
-        assert_eq!(
-            AgentType::from_str("failure-fix"),
-            Some(AgentType::FailureFix)
-        );
-        assert_eq!(
-            AgentType::from_str("REVIEW-FIX"),
-            Some(AgentType::ReviewFix)
-        );
-        assert_eq!(AgentType::from_str("invalid"), None);
+    fn c(body: &str, login: &str) -> GitHubComment {
+        GitHubComment {
+            body: Some(body.to_string()),
+            user: Some(GitHubUser {
+                login: login.to_string(),
+            }),
+        }
+    }
+
+    fn admins() -> Vec<String> {
+        vec!["Admin".to_string()]
     }
 
     #[test]
-    fn test_agent_marker_pattern() {
-        let text = "<!-- agent-metadata:type=review-fix:iteration=3 -->";
-        let caps = AGENT_MARKER_PATTERN.captures(text).unwrap();
-        assert_eq!(caps.get(1).unwrap().as_str(), "review-fix");
-        assert_eq!(caps.get(2).unwrap().as_str(), "3");
+    fn test_agent_type_parse() {
+        assert_eq!(AgentType::parse("review-fix"), Some(AgentType::ReviewFix));
+        assert_eq!(AgentType::parse("failure-fix"), Some(AgentType::FailureFix));
+        assert_eq!(AgentType::parse("REVIEW-FIX"), Some(AgentType::ReviewFix));
+        assert_eq!(AgentType::parse("invalid"), None);
     }
 
     #[test]
-    fn test_continue_pattern() {
-        assert!(CONTINUE_PATTERN.is_match("[CONTINUE]"));
-        assert!(CONTINUE_PATTERN.is_match("[continue]"));
-        assert!(CONTINUE_PATTERN.is_match("[Continue]"));
-        assert!(CONTINUE_PATTERN.is_match("Please [CONTINUE] the work"));
-        assert!(!CONTINUE_PATTERN.is_match("CONTINUE"));
-        assert!(!CONTINUE_PATTERN.is_match("[RESET]"));
+    fn test_counts_only_matching_type() {
+        let comments = vec![
+            c("<!-- agent-metadata:type=review-fix:iteration=1 -->", "bot"),
+            c(
+                "<!-- agent-metadata:type=failure-fix:iteration=1 -->",
+                "bot",
+            ),
+            c(
+                "<!-- agent-metadata:type=review-fix-hallucination:iteration=1 -->",
+                "bot",
+            ),
+            c("<!-- agent-metadata:type=review-fix:iteration=2 -->", "bot"),
+        ];
+        let r = evaluate(&comments, AgentType::ReviewFix, 5, &admins());
+        assert_eq!(r.iteration_count, 2);
+        assert!(!r.exceeded_max);
+    }
+
+    #[test]
+    fn test_limit_reached_notice_not_counted() {
+        let comments = vec![
+            c(
+                "<!-- agent-metadata:type=failure-fix:iteration=1 -->",
+                "bot",
+            ),
+            c(
+                "<!-- agent-metadata:type=failure-fix:iteration=1:limit-reached -->",
+                "github-actions[bot]",
+            ),
+        ];
+        let r = evaluate(&comments, AgentType::FailureFix, 1, &admins());
+        assert_eq!(r.iteration_count, 1);
+        assert!(r.exceeded_max);
+    }
+
+    #[test]
+    fn test_continue_extends_limit() {
+        let mut comments: Vec<GitHubComment> = (0..3)
+            .map(|i| {
+                c(
+                    &format!("<!-- agent-metadata:type=review-fix:iteration={i} -->"),
+                    "bot",
+                )
+            })
+            .collect();
+        let r = evaluate(&comments, AgentType::ReviewFix, 3, &admins());
+        assert!(r.should_skip);
+
+        comments.push(c("[CONTINUE]", "admin"));
+        let r = evaluate(&comments, AgentType::ReviewFix, 3, &admins());
+        assert_eq!(r.continue_count, 1);
+        assert_eq!(r.effective_max, 6);
+        assert!(!r.should_skip);
+    }
+
+    #[test]
+    fn test_continue_requires_admin_and_directive_context() {
+        let comments = vec![
+            c("[CONTINUE]", "mallory"),
+            // Limit notice text that merely mentions the command
+            c("An agent admin can comment `[CONTINUE]` to extend", "admin"),
+            c("> [CONTINUE]", "admin"),
+            c(
+                "[CONTINUE] <!-- agent-metadata:type=review-fix:iteration=1:limit-reached -->",
+                "admin",
+            ),
+        ];
+        let r = evaluate(&comments, AgentType::ReviewFix, 5, &admins());
+        assert_eq!(r.continue_count, 0);
+    }
+
+    #[test]
+    fn test_effective_max_saturates() {
+        let comments: Vec<GitHubComment> = (0..3).map(|_| c("[CONTINUE]", "admin")).collect();
+        let r = evaluate(&comments, AgentType::ReviewFix, u32::MAX, &admins());
+        assert_eq!(r.effective_max, u32::MAX);
+    }
+
+    #[test]
+    fn test_marker_pattern() {
+        let caps = AGENT_MARKER_PATTERN
+            .captures("<!-- agent-metadata:type=review-fix:iteration=3 -->")
+            .unwrap();
+        assert_eq!(&caps[1], "review-fix");
+        assert_eq!(&caps[2], "3");
+        assert!(caps.get(3).is_none());
     }
 }

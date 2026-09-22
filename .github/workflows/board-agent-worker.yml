@@ -257,9 +257,15 @@ jobs:
           STALE_THRESHOLD_HOURS: ${{ inputs.stale-claim-threshold || 2 }}
         run: |
           echo "::group::Janitor - Clean Stale Claims"
-          # TODO: Add 'board-manager janitor --agent NAME --threshold HOURS' command
-          echo "cleaned_count=0" >> $GITHUB_OUTPUT
-          echo "Janitor: Skipped (Rust CLI support pending)"
+          # Non-fatal: a janitor failure must not block picking up new work
+          if JANITOR_OUTPUT=$(board-manager --format json janitor --agent "$AGENT_NAME" --threshold "$STALE_THRESHOLD_HOURS"); then
+            CLEANED=$(echo "$JANITOR_OUTPUT" | jq -r '.cleaned_count // 0')
+            echo "Janitor: released $CLEANED stale claim(s)"
+          else
+            CLEANED=0
+            echo "::warning::Janitor failed; continuing without stale-claim cleanup"
+          fi
+          echo "cleaned_count=$CLEANED" >> $GITHUB_OUTPUT
           echo "::endgroup::"
 
       - name: Sync approved issues to board

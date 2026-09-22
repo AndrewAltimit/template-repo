@@ -1,0 +1,9 @@
+{
+  "review_markdown": "Two fixes, the second of which is stale.",
+  "severity": "medium",
+  "findings_count": 2,
+  "file_changes": [
+    {"path": "README.md", "diff": "@@ -1,3 +1,3 @@\n # Demo\n \n-Run with cargo run.\n+Run it.\n"},
+    {"path": "src/db.rs", "diff": "@@ -1 +1 @@\n-this line does not exist\n+replacement\n"}
+  ]
+}

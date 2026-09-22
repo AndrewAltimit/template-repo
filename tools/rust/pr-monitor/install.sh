@@ -13,15 +13,18 @@ echo "pr-monitor Installation"
 echo "============================================"
 echo ""
 
-# Check if we need to build
+# Build (incremental, so this is fast when nothing changed and never installs a
+# stale binary). Fall back to an existing binary when cargo is unavailable.
 BINARY_PATH="${SCRIPT_DIR}/target/release/${BINARY_NAME}"
-if [ ! -f "$BINARY_PATH" ]; then
-    echo "Binary not found, building from source..."
-    cd "$SCRIPT_DIR"
-    cargo build --release
+if command -v cargo >/dev/null 2>&1; then
+    echo "Building from source..."
+    (cd "$SCRIPT_DIR" && cargo build --release)
     echo "Build complete."
+elif [ -f "$BINARY_PATH" ]; then
+    echo "cargo not found; using existing binary: $BINARY_PATH"
 else
-    echo "Using existing binary: $BINARY_PATH"
+    echo "ERROR: cargo not found and no prebuilt binary at $BINARY_PATH"
+    exit 1
 fi
 
 # Verify binary exists after build attempt
@@ -78,4 +81,5 @@ echo "  ${BINARY_NAME} 123                      # Monitor PR #123"
 echo "  ${BINARY_NAME} 123 --timeout 1800       # 30 minute timeout"
 echo "  ${BINARY_NAME} 123 --since-commit abc   # Only comments after commit"
 echo "  ${BINARY_NAME} 123 --json               # JSON output for automation"
+echo "  ${BINARY_NAME} 123 --type ai_agent_review   # Wait for an AI code review"
 echo ""

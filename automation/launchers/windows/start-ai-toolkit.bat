@@ -54,7 +54,7 @@ echo ========================================
 echo.
 echo Services:
 echo   Web UI:     http://localhost:8675
-echo   MCP Server: http://localhost:8012
+echo   MCP Server: http://localhost:8020
 echo.
 
 REM Wait for services to initialize with healthcheck polling

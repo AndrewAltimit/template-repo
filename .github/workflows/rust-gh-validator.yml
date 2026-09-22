@@ -4,6 +4,7 @@ on:
   push:
     paths:
       - 'tools/rust/gh-validator/**'
+      - 'tools/rust/wrapper-common/**'
       - '.github/workflows/rust-gh-validator.yml'
     branches:
       - main
@@ -11,6 +12,7 @@ on:
   pull_request:
     paths:
       - 'tools/rust/gh-validator/**'
+      - 'tools/rust/wrapper-common/**'
       - '.github/workflows/rust-gh-validator.yml'
 
 env:
@@ -71,7 +73,7 @@ jobs:
       - name: Run clippy
         run: |
           source "$HOME/.cargo/env" || true
-          cargo clippy -- -D warnings
+          cargo clippy --all-targets -- -D warnings
 
       - name: Run tests
         run: |

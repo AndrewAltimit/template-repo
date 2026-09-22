@@ -1,42 +1,40 @@
 //! Claude Code CLI agent for PR reviews.
 //!
-//! Uses Claude Code (claude-code CLI) for code reviews, enabling access to
-//! local tools, MCP servers, and the full Claude Code agent capabilities.
+//! Uses Claude Code (claude CLI) for code reviews, enabling access to local
+//! tools, MCP servers, and the full Claude Code agent capabilities.
+
+use std::time::Duration;
 
 use async_trait::async_trait;
-use std::process::Stdio;
-use tokio::io::AsyncWriteExt;
 use tokio::process::Command;
 
-use super::ReviewAgent;
+use super::{ReviewAgent, run_review_cli};
 use crate::error::{Error, Result};
+use crate::security::trust::is_modified_in_pr;
+use crate::utils::process::find_binary;
+
+/// Claude can be thorough; allow 15 minutes per call.
+const CLAUDE_TIMEOUT: Duration = Duration::from_secs(900);
+
+/// MCP config used for the reaction-search tool.
+const MCP_CONFIG: &str = ".mcp.json";
 
 /// Claude Code CLI agent for PR reviews
-///
-/// Uses the Claude Code CLI instead of direct API calls, which provides:
-/// - Access to local tools and MCP servers
-/// - File system access for code exploration
-/// - Full Claude Code agent capabilities (Task agents, LSP, etc.)
 pub struct ClaudeAgent {
     claude_path: Option<String>,
     model: String,
 }
 
 impl ClaudeAgent {
-    /// Create a new Claude agent
+    /// Create a new Claude agent (default model: `sonnet`)
     pub fn new() -> Self {
-        // Find claude CLI binary
-        let claude_path = find_claude_binary();
-
-        if claude_path.is_some() {
-            tracing::info!("Claude Code CLI found, using CLI-based agent");
-        } else {
+        let claude_path = find_binary("CLAUDE_PATH", "claude");
+        if claude_path.is_none() {
             tracing::warn!("Claude Code CLI not found in PATH");
         }
-
         Self {
             claude_path,
-            model: "sonnet".to_string(), // Default to sonnet for reviews
+            model: "sonnet".to_string(),
         }
     }
 
@@ -48,12 +46,25 @@ impl ClaudeAgent {
         agent
     }
 
-    /// Get the model name
-    pub fn model(&self) -> &str {
-        &self.model
+    /// Whether the MCP config may be loaded.
+    ///
+    /// `.mcp.json` launches arbitrary local commands. When reviewing a PR that
+    /// modifies it, loading it would execute attacker-chosen commands on the
+    /// runner, so it is skipped.
+    fn mcp_config_allowed() -> bool {
+        if !std::path::Path::new(MCP_CONFIG).exists() {
+            return false;
+        }
+        if is_modified_in_pr(MCP_CONFIG) {
+            tracing::warn!(
+                "{} is modified by this PR; not loading MCP servers from it",
+                MCP_CONFIG
+            );
+            return false;
+        }
+        true
     }
 
-    /// Call the Claude Code CLI with a prompt
     async fn call_cli(&self, prompt: &str) -> Result<String> {
         let claude_path = self
             .claude_path
@@ -62,168 +73,17 @@ impl ClaudeAgent {
 
         tracing::info!("Calling Claude Code CLI with model: {}", self.model);
 
-        // Build command with appropriate flags:
-        // --print: Non-interactive mode, output response and exit
-        // --dangerously-skip-permissions: Auto-approve all tool uses
-        // --model: Specify the model to use
-        // --mcp-config: Load MCP servers (reaction-search for contextual reactions)
-        // Prompt is passed via stdin to handle large prompts safely
+        // --print: non-interactive; --dangerously-skip-permissions: auto-approve
+        // tool use (runner is sandboxed); prompt goes via stdin.
         let mut cmd = Command::new(claude_path);
-        cmd.arg("--print")
-            .arg("--dangerously-skip-permissions")
-            .arg("--model")
+        cmd.args(["--print", "--dangerously-skip-permissions", "--model"])
             .arg(&self.model);
-
-        // Load MCP config if available (for reaction-search tool)
-        if std::path::Path::new(".mcp.json").exists() {
-            cmd.arg("--mcp-config").arg(".mcp.json");
-            tracing::debug!("Loading MCP config from .mcp.json");
+        if Self::mcp_config_allowed() {
+            cmd.args(["--mcp-config", MCP_CONFIG]);
         }
 
-        let mut child = cmd
-            .stdin(Stdio::piped())
-            .stdout(Stdio::piped())
-            .stderr(Stdio::piped())
-            .spawn()
-            .map_err(|e| Error::Config(format!("Failed to spawn Claude Code CLI: {}", e)))?;
-
-        // Write prompt to stdin
-        if let Some(mut stdin) = child.stdin.take() {
-            stdin
-                .write_all(prompt.as_bytes())
-                .await
-                .map_err(|e| Error::Config(format!("Failed to write to Claude stdin: {}", e)))?;
-            // Close stdin to signal end of input
-            drop(stdin);
-        }
-
-        // Wait for completion with timeout
-        let output = tokio::time::timeout(
-            std::time::Duration::from_secs(900), // 15 minute timeout (Claude can be thorough)
-            child.wait_with_output(),
-        )
-        .await
-        .map_err(|_| Error::Config("Claude Code CLI timed out after 15 minutes".to_string()))?
-        .map_err(|e| Error::Config(format!("Claude Code CLI failed: {}", e)))?;
-
-        if !output.status.success() {
-            let stderr = String::from_utf8_lossy(&output.stderr);
-            let stdout = String::from_utf8_lossy(&output.stdout);
-            tracing::error!("Claude Code CLI failed with stderr: {}", stderr);
-            // Check combined stderr+stdout for transient errors since some CLIs
-            // report errors on stdout instead of stderr
-            let combined = if stdout.is_empty() {
-                stderr.to_string()
-            } else {
-                format!("{}\n{}", stderr, stdout)
-            };
-
-            if super::is_transient_error(&combined) {
-                tracing::warn!("Transient network error detected from Claude Code CLI");
-                return Err(Error::AgentExecutionFailed {
-                    name: "claude".to_string(),
-                    exit_code: output.status.code().unwrap_or(1),
-                    stdout: stdout.to_string(),
-                    stderr: format!("service unavailable (transient): {}", combined),
-                });
-            }
-
-            return Err(Error::Config(format!(
-                "Claude Code CLI exited with status {}: {}",
-                output.status, combined
-            )));
-        }
-
-        let stdout = String::from_utf8_lossy(&output.stdout).to_string();
-
-        // Filter out any ANSI escape codes and control characters
-        let cleaned = strip_ansi_codes(&stdout);
-
-        Ok(cleaned)
+        run_review_cli("claude", cmd, Some(prompt), CLAUDE_TIMEOUT).await
     }
-}
-
-/// Find the claude binary by trying to execute it directly
-/// (avoids `which` command which may not be available in Docker)
-fn find_claude_binary() -> Option<String> {
-    // 1. Check CLAUDE_PATH environment variable first (allows explicit override)
-    if let Ok(path) = std::env::var("CLAUDE_PATH") {
-        if !path.is_empty() && verify_binary(&path, "--version") {
-            tracing::info!("Using claude from CLAUDE_PATH: {}", path);
-            return Some(path);
-        }
-    }
-
-    let home = std::env::var("HOME").unwrap_or_default();
-
-    // 2. Build candidates list - PATH lookup first, then common locations
-    let mut candidates = vec![
-        "claude".to_string(), // PATH lookup
-        "/usr/local/bin/claude".to_string(),
-        "/usr/bin/claude".to_string(),
-    ];
-
-    // 3. Dynamically discover NVM node versions instead of hardcoding
-    if !home.is_empty() {
-        let nvm_versions_dir = format!("{}/.nvm/versions/node", home);
-        if let Ok(entries) = std::fs::read_dir(&nvm_versions_dir) {
-            let mut node_versions: Vec<_> = entries
-                .filter_map(|e| e.ok())
-                .filter(|e| e.path().is_dir())
-                .map(|e| e.file_name().to_string_lossy().to_string())
-                .collect();
-            // Sort descending to prefer newer versions
-            node_versions.sort_by(|a, b| b.cmp(a));
-            for version in node_versions {
-                candidates.push(format!("{}/{}/bin/claude", nvm_versions_dir, version));
-            }
-        }
-    }
-
-    // Try each candidate by executing --version
-    for candidate in &candidates {
-        if verify_binary(candidate, "--version") {
-            return Some(candidate.clone());
-        }
-    }
-
-    None
-}
-
-/// Verify a binary exists and runs successfully with given arg
-fn verify_binary(path: &str, arg: &str) -> bool {
-    std::process::Command::new(path)
-        .arg(arg)
-        .output()
-        .map(|o| o.status.success())
-        .unwrap_or(false)
-}
-
-/// Strip ANSI escape codes from output
-fn strip_ansi_codes(s: &str) -> String {
-    // Simple regex-free ANSI stripping
-    let mut result = String::with_capacity(s.len());
-    let mut chars = s.chars().peekable();
-
-    while let Some(c) = chars.next() {
-        if c == '\x1b' {
-            // Skip escape sequence
-            if chars.peek() == Some(&'[') {
-                chars.next(); // consume '['
-                // Skip until we hit a letter (end of escape sequence)
-                while let Some(&next) = chars.peek() {
-                    chars.next();
-                    if next.is_ascii_alphabetic() {
-                        break;
-                    }
-                }
-            }
-        } else {
-            result.push(c);
-        }
-    }
-
-    result
 }
 
 impl Default for ClaudeAgent {
@@ -249,27 +109,6 @@ impl ReviewAgent for ClaudeAgent {
     async fn review(&self, prompt: &str) -> Result<String> {
         self.call_cli(prompt).await
     }
-
-    async fn condense(&self, review: &str, max_words: usize) -> Result<String> {
-        let condense_prompt = format!(
-            r#"Condense this code review to under {} words while keeping ALL actionable issues.
-
-Rules:
-- Keep ONLY actionable issues (bugs, security, required fixes)
-- Remove generic praise and filler
-- Remove duplicates
-- Keep exactly ONE reaction image at the end
-- Use bullet points
-
-Review to condense:
-
-{}
-"#,
-            max_words, review
-        );
-
-        self.call_cli(&condense_prompt).await
-    }
 }
 
 #[cfg(test)]
@@ -277,15 +116,9 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_find_claude_binary() {
-        // This test just verifies the function runs without panicking
-        let _ = find_claude_binary();
-    }
-
-    #[test]
-    fn test_strip_ansi_codes() {
-        let input = "\x1b[32mGreen text\x1b[0m and normal";
-        let output = strip_ansi_codes(input);
-        assert_eq!(output, "Green text and normal");
+    fn test_with_model() {
+        let agent = ClaudeAgent::with_model("haiku".to_string());
+        assert_eq!(agent.model(), "haiku");
+        assert_eq!(agent.name(), "claude");
     }
 }

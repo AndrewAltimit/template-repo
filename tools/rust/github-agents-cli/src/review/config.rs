@@ -1,17 +1,24 @@
 //! Configuration for PR reviews.
 //!
-//! Loads configuration from `.agents.yaml` under the `pr_review` section.
+//! Loads configuration from `.agents.yaml` (the `pr_review` and `security`
+//! sections) and review profiles from `review-profiles.yaml`. Both files are
+//! read through [`crate::security::trust::read_trusted_file`], so a PR cannot rewrite
+//! the reviewer's configuration or instructions for its own review.
 
 use serde::{Deserialize, Serialize};
-use std::fs;
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
 use crate::error::{Error, Result};
+use crate::security::trust::read_trusted_file;
+
+const AGENTS_CONFIG_FILE: &str = ".agents.yaml";
+const PROFILES_FILE: &str = "review-profiles.yaml";
 
 /// PR Review configuration from .agents.yaml
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PRReviewConfig {
-    /// Default agent for reviews (gemini, claude, openrouter)
+    /// Default agent for reviews (claude, openrouter, opencode, crush)
     #[serde(default = "default_agent")]
     pub default_agent: String,
 
@@ -90,28 +97,14 @@ impl Default for PRReviewConfig {
 }
 
 impl PRReviewConfig {
-    /// Load PR review configuration from .agents.yaml
+    /// Load PR review configuration from .agents.yaml.
+    ///
+    /// A missing file yields defaults; a file that exists but cannot be
+    /// parsed is an error (silently reviewing with defaults would hide
+    /// misconfiguration).
     pub fn load() -> Result<Self> {
-        match FullConfig::load(None) {
-            Ok(full_config) => Ok(full_config.pr_review),
-            Err(_) => {
-                // If no config file found, use defaults
-                tracing::info!("No .agents.yaml found, using default PR review config");
-                Ok(Self::default())
-            },
-        }
+        Ok(FullConfig::load_or_default()?.pr_review)
     }
-}
-
-/// Model overrides for specific agents
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
-pub struct GeminiModelConfig {
-    #[serde(default)]
-    pub pro_model: Option<String>,
-    #[serde(default)]
-    pub flash_model: Option<String>,
-    #[serde(default)]
-    pub default_model: Option<String>,
 }
 
 /// Security configuration (agent_admins, trusted_sources)
@@ -121,15 +114,6 @@ pub struct SecurityConfig {
     pub agent_admins: Vec<String>,
     #[serde(default)]
     pub trusted_sources: Vec<String>,
-    #[serde(default)]
-    pub subprocess_timeout: Option<u64>,
-}
-
-/// Model overrides section
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
-pub struct ModelOverrides {
-    #[serde(default)]
-    pub gemini: GeminiModelConfig,
 }
 
 /// Root .agents.yaml structure (partial, for PR review needs)
@@ -139,95 +123,76 @@ struct AgentsYaml {
     pr_review: Option<PRReviewConfig>,
     #[serde(default)]
     security: SecurityConfig,
-    #[serde(default)]
-    model_overrides: ModelOverrides,
 }
 
 /// Full configuration loaded from .agents.yaml
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct FullConfig {
     pub pr_review: PRReviewConfig,
     pub security: SecurityConfig,
-    pub model_overrides: ModelOverrides,
 }
 
 impl FullConfig {
-    /// Load configuration from .agents.yaml
-    pub fn load(config_path: Option<&Path>) -> Result<Self> {
-        let path = if let Some(p) = config_path {
-            if p.exists() {
-                p.to_path_buf()
-            } else {
-                return Err(Error::Config(format!(
-                    "Config file not found: {}",
-                    p.display()
-                )));
-            }
-        } else {
-            Self::find_config_file().ok_or_else(|| {
-                Error::Config("No .agents.yaml found in current directory or parents".to_string())
-            })?
-        };
-
-        Self::load_from_path(&path)
-    }
-
-    /// Find .agents.yaml from current directory up
-    fn find_config_file() -> Option<PathBuf> {
-        let mut current_dir = std::env::current_dir().ok()?;
-
-        loop {
-            let potential_config = current_dir.join(".agents.yaml");
-            if potential_config.exists() {
-                return Some(potential_config);
-            }
-
-            if !current_dir.pop() {
-                break;
-            }
+    /// Load `.agents.yaml` if present (current directory or a parent),
+    /// otherwise return defaults.
+    pub fn load_or_default() -> Result<Self> {
+        match find_upwards(AGENTS_CONFIG_FILE) {
+            Some(path) => Self::load_from_path(&path),
+            None => {
+                tracing::info!("No .agents.yaml found, using default PR review config");
+                Ok(Self::default())
+            },
         }
-
-        None
     }
 
     /// Load configuration from a specific path
     fn load_from_path(path: &Path) -> Result<Self> {
-        let content = fs::read_to_string(path)
-            .map_err(|e| Error::Config(format!("Failed to read .agents.yaml: {}", e)))?;
+        let content = match read_trusted_file(path) {
+            Ok(c) => c,
+            Err(Error::Io(e)) if e.kind() == std::io::ErrorKind::NotFound => {
+                return Ok(Self::default());
+            },
+            Err(e) => return Err(Error::Config(format!("Failed to read .agents.yaml: {}", e))),
+        };
+        Self::parse(&content)
+    }
 
-        let yaml: AgentsYaml = serde_yaml::from_str(&content)
+    fn parse(content: &str) -> Result<Self> {
+        let yaml: AgentsYaml = serde_yaml::from_str(content)
             .map_err(|e| Error::Config(format!("Failed to parse .agents.yaml: {}", e)))?;
-
         Ok(Self {
             pr_review: yaml.pr_review.unwrap_or_default(),
             security: yaml.security,
-            model_overrides: yaml.model_overrides,
         })
     }
 
-    /// Get the Gemini model to use for reviews
-    pub fn gemini_review_model(&self) -> String {
-        self.model_overrides
-            .gemini
-            .default_model
-            .clone()
-            .or_else(|| self.model_overrides.gemini.pro_model.clone())
-            .unwrap_or_else(|| "gemini-2.0-flash".to_string())
+    /// Accounts whose review markers and comments are trusted
+    /// (`agent_admins` plus `trusted_sources`, lowercased).
+    pub fn trusted_logins(&self) -> Vec<String> {
+        self.security
+            .agent_admins
+            .iter()
+            .chain(self.security.trusted_sources.iter())
+            .map(|s| s.to_lowercase())
+            .collect()
     }
+}
 
-    /// Get the Gemini model to use for condensation
-    pub fn gemini_condenser_model(&self) -> String {
-        self.model_overrides
-            .gemini
-            .flash_model
-            .clone()
-            .unwrap_or_else(|| "gemini-2.0-flash".to_string())
+/// Find `name` in the current directory (returned as a relative path, so
+/// base-branch substitution applies) or in a parent directory.
+fn find_upwards(name: &str) -> Option<PathBuf> {
+    let local = PathBuf::from(name);
+    if local.exists() {
+        return Some(local);
     }
-
-    /// Get subprocess timeout in seconds
-    pub fn subprocess_timeout(&self) -> u64 {
-        self.security.subprocess_timeout.unwrap_or(600)
+    let mut dir = std::env::current_dir().ok()?;
+    while dir.pop() {
+        let candidate = dir.join(name);
+        if candidate.exists() {
+            return Some(candidate);
+        }
     }
+    None
 }
 
 /// A review profile loaded from review-profiles.yaml
@@ -244,49 +209,35 @@ pub struct ReviewProfile {
 /// Root structure of review-profiles.yaml
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct ReviewProfilesYaml {
-    profiles: std::collections::HashMap<String, ReviewProfile>,
+    profiles: HashMap<String, ReviewProfile>,
 }
 
 impl ReviewProfile {
     /// Load a specific profile from review-profiles.yaml
     pub fn load(profile_name: &str) -> Result<Self> {
-        let path = Self::find_profiles_file().ok_or_else(|| {
+        let path = find_upwards(PROFILES_FILE).ok_or_else(|| {
             Error::Config(
                 "No review-profiles.yaml found in current directory or parents".to_string(),
             )
         })?;
-
-        let content = fs::read_to_string(&path)
+        let content = read_trusted_file(&path)
             .map_err(|e| Error::Config(format!("Failed to read review-profiles.yaml: {}", e)))?;
+        Self::from_yaml(&content, profile_name)
+    }
 
-        let yaml: ReviewProfilesYaml = serde_yaml::from_str(&content)
+    fn from_yaml(content: &str, profile_name: &str) -> Result<Self> {
+        let yaml: ReviewProfilesYaml = serde_yaml::from_str(content)
             .map_err(|e| Error::Config(format!("Failed to parse review-profiles.yaml: {}", e)))?;
 
         yaml.profiles.get(profile_name).cloned().ok_or_else(|| {
+            let mut names: Vec<_> = yaml.profiles.keys().cloned().collect();
+            names.sort();
             Error::Config(format!(
                 "Profile '{}' not found in review-profiles.yaml. Available: {}",
                 profile_name,
-                yaml.profiles.keys().cloned().collect::<Vec<_>>().join(", ")
+                names.join(", ")
             ))
         })
-    }
-
-    /// Find review-profiles.yaml from current directory up
-    fn find_profiles_file() -> Option<PathBuf> {
-        let mut current_dir = std::env::current_dir().ok()?;
-
-        loop {
-            let potential = current_dir.join("review-profiles.yaml");
-            if potential.exists() {
-                return Some(potential);
-            }
-
-            if !current_dir.pop() {
-                break;
-            }
-        }
-
-        None
     }
 }
 
@@ -312,11 +263,40 @@ pr_review:
   default_agent: claude
   max_words: 300
   incremental_enabled: false
+security:
+  agent_admins: [Admin]
+  trusted_sources: ["github-actions[bot]"]
 "#;
-        let parsed: AgentsYaml = serde_yaml::from_str(yaml).unwrap();
-        let config = parsed.pr_review.unwrap();
-        assert_eq!(config.default_agent, "claude");
-        assert_eq!(config.max_words, 300);
-        assert!(!config.incremental_enabled);
+        let config = FullConfig::parse(yaml).unwrap();
+        assert_eq!(config.pr_review.default_agent, "claude");
+        assert_eq!(config.pr_review.max_words, 300);
+        assert!(!config.pr_review.incremental_enabled);
+        assert_eq!(
+            config.trusted_logins(),
+            vec!["admin".to_string(), "github-actions[bot]".to_string()]
+        );
+    }
+
+    #[test]
+    fn test_invalid_config_is_error() {
+        assert!(FullConfig::parse("pr_review: [not, a, map]").is_err());
+    }
+
+    #[test]
+    fn test_profile_lookup() {
+        let yaml = r#"
+profiles:
+  security:
+    display_name: "Security"
+    agent: claude
+    model: sonnet
+    focus: "sec"
+    instructions: "be careful"
+"#;
+        let p = ReviewProfile::from_yaml(yaml, "security").unwrap();
+        assert_eq!(p.agent, "claude");
+        assert_eq!(p.model.as_deref(), Some("sonnet"));
+        let err = ReviewProfile::from_yaml(yaml, "missing").unwrap_err();
+        assert!(err.to_string().contains("Available: security"));
     }
 }

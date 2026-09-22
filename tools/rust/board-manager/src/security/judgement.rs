@@ -1,16 +1,32 @@
 //! Agent judgement system for assessing when to auto-fix vs ask for guidance.
 //!
-//! This module provides intelligent decision-making for AI agents to determine
+//! This module provides heuristic decision-making for AI agents to determine
 //! whether they should automatically implement fixes or ask project owners
 //! for guidance on uncertain changes.
 //!
 //! Includes false positive detection to avoid acting on AI reviewer suggestions
-//! that contradict observable reality.
+//! that contradict observable reality (e.g. "this will fail" when the pipeline
+//! passed).
 
-use lazy_static::lazy_static;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::sync::LazyLock;
+
+fn compile_one(pattern: &str) -> Regex {
+    Regex::new(pattern).expect("judgement regex is valid")
+}
+
+/// Declare lazily compiled pattern lists.
+macro_rules! patterns {
+    ($($(#[$meta:meta])* $name:ident = [$($p:literal),+ $(,)?];)+) => {
+        $(
+            $(#[$meta])*
+            static $name: LazyLock<Vec<Regex>> =
+                LazyLock::new(|| [$($p),+].iter().map(|p| compile_one(p)).collect());
+        )+
+    };
+}
 
 /// Categories of fixes with different confidence levels.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -99,7 +115,6 @@ pub struct JudgementResult {
 pub struct AssessmentContext {
     pub file_path: Option<String>,
     pub diff: Option<String>,
-    pub pr_title: Option<String>,
     pub is_security_related: bool,
     pub is_draft_pr: bool,
     pub touches_api: bool,
@@ -110,171 +125,174 @@ pub struct AssessmentContext {
     pub recent_commits: Vec<String>,
 }
 
-lazy_static! {
+patterns! {
     // High confidence patterns
-    static ref SECURITY_PATTERNS: Vec<Regex> = vec![
-        Regex::new(r"(?i)sql\s*injection").unwrap(),
-        Regex::new(r"(?i)xss\s*(vulnerability)?").unwrap(),
-        Regex::new(r"(?i)command\s*injection").unwrap(),
-        Regex::new(r"(?i)path\s*traversal").unwrap(),
-        Regex::new(r"(?i)insecure\s*(?:random|hash|password)").unwrap(),
-        Regex::new(r"(?i)hardcoded\s*(?:password|secret|key|credential)").unwrap(),
-        Regex::new(r"(?i)sensitive\s*data\s*(?:exposed|leak)").unwrap(),
-        Regex::new(r"(?i)authentication\s*bypass").unwrap(),
-        Regex::new(r"(?i)authorization\s*(?:issue|bypass|flaw)").unwrap(),
+    SECURITY_PATTERNS = [
+        r"(?i)sql\s*injection",
+        r"(?i)xss\s*(vulnerability)?",
+        r"(?i)command\s*injection",
+        r"(?i)path\s*traversal",
+        r"(?i)insecure\s*(?:random|hash|password)",
+        r"(?i)hardcoded\s*(?:password|secret|key|credential)",
+        r"(?i)sensitive\s*data\s*(?:exposed|leak)",
+        r"(?i)authentication\s*bypass",
+        r"(?i)authorization\s*(?:issue|bypass|flaw)",
     ];
 
-    static ref SYNTAX_PATTERNS: Vec<Regex> = vec![
-        Regex::new(r"(?i)syntax\s*error").unwrap(),
-        Regex::new(r"(?i)invalid\s*syntax").unwrap(),
-        Regex::new(r"(?i)unexpected\s*token").unwrap(),
-        Regex::new(r"(?i)missing\s*(?:bracket|parenthesis|colon|semicolon)").unwrap(),
+    SYNTAX_PATTERNS = [
+        r"(?i)syntax\s*error",
+        r"(?i)invalid\s*syntax",
+        r"(?i)unexpected\s*token",
+        r"(?i)missing\s*(?:bracket|parenthesis|colon|semicolon)",
     ];
 
-    static ref TYPE_PATTERNS: Vec<Regex> = vec![
-        Regex::new(r"(?i)type\s*error").unwrap(),
-        Regex::new(r"(?i)type\s*mismatch").unwrap(),
-        Regex::new(r"(?i)incompatible\s*type").unwrap(),
-        Regex::new(r"(?i)wrong\s*type").unwrap(),
-        Regex::new(r"(?i)expected\s*\w+\s*(?:but\s*)?got\s*\w+").unwrap(),
+    TYPE_PATTERNS = [
+        r"(?i)type\s*error",
+        r"(?i)type\s*mismatch",
+        r"(?i)incompatible\s*type",
+        r"(?i)wrong\s*type",
+        r"(?i)expected\s*\w+\s*(?:but\s*)?got\s*\w+",
     ];
 
-    static ref IMPORT_PATTERNS: Vec<Regex> = vec![
-        Regex::new(r"(?i)import\s*error").unwrap(),
-        Regex::new(r"(?i)module\s*not\s*found").unwrap(),
-        Regex::new(r"(?i)cannot\s*(?:find|import)\s*module").unwrap(),
-        Regex::new(r"(?i)unresolved\s*(?:import|reference)").unwrap(),
+    IMPORT_PATTERNS = [
+        r"(?i)import\s*error",
+        r"(?i)module\s*not\s*found",
+        r"(?i)cannot\s*(?:find|import)\s*module",
+        r"(?i)unresolved\s*(?:import|reference)",
     ];
 
-    static ref FORMATTING_PATTERNS: Vec<Regex> = vec![
-        Regex::new(r"(?i)formatting\s*(?:issue|error|violation)").unwrap(),
-        Regex::new(r"(?i)indentation").unwrap(),
-        Regex::new(r"(?i)trailing\s*whitespace").unwrap(),
-        Regex::new(r"(?i)line\s*(?:too\s*long|length)").unwrap(),
-        Regex::new(r"(?i)black\s*(?:format|style)").unwrap(),
-        Regex::new(r"(?i)prettier").unwrap(),
+    FORMATTING_PATTERNS = [
+        r"(?i)formatting\s*(?:issue|error|violation)",
+        r"(?i)indentation",
+        r"(?i)trailing\s*whitespace",
+        r"(?i)line\s*(?:too\s*long|length)",
+        r"(?i)black\s*(?:format|style)",
+        r"(?i)prettier",
     ];
 
-    static ref LINTING_PATTERNS: Vec<Regex> = vec![
-        Regex::new(r"(?i)lint(?:ing)?\s*(?:error|warning|issue)").unwrap(),
-        Regex::new(r"(?i)(?:flake8|pylint|ruff|eslint|mypy)\s*(?:error|warning)").unwrap(),
-        Regex::new(r"(?i)\b(?:e\d{3}|w\d{3}|c\d{3})\b").unwrap(),
+    LINTING_PATTERNS = [
+        r"(?i)lint(?:ing)?\s*(?:error|warning|issue)",
+        r"(?i)(?:flake8|pylint|ruff|eslint|mypy)\s*(?:error|warning)",
+        r"(?i)\b(?:e\d{3}|w\d{3}|c\d{3})\b",
     ];
 
-    static ref UNUSED_IMPORT_PATTERNS: Vec<Regex> = vec![
-        Regex::new(r"(?i)unused\s*import").unwrap(),
-        Regex::new(r"(?i)import\s*\w+\s*(?:is\s*)?never\s*used").unwrap(),
-        Regex::new(r"(?i)\bf401\b").unwrap(),
+    UNUSED_IMPORT_PATTERNS = [
+        r"(?i)unused\s*import",
+        r"(?i)import\s*\w+\s*(?:is\s*)?never\s*used",
+        r"(?i)\bf401\b",
     ];
 
-    static ref UNUSED_VARIABLE_PATTERNS: Vec<Regex> = vec![
-        Regex::new(r"(?i)unused\s*(?:variable|argument|parameter)").unwrap(),
-        Regex::new(r"(?i)(?:variable|argument)\s*\w+\s*(?:is\s*)?never\s*used").unwrap(),
-        Regex::new(r"(?i)\bf841\b").unwrap(),
+    UNUSED_VARIABLE_PATTERNS = [
+        r"(?i)unused\s*(?:variable|argument|parameter)",
+        r"(?i)(?:variable|argument)\s*\w+\s*(?:is\s*)?never\s*used",
+        r"(?i)\bf841\b",
     ];
 
     // Medium confidence patterns
-    static ref ERROR_HANDLING_PATTERNS: Vec<Regex> = vec![
-        Regex::new(r"(?i)(?:add|missing)\s*(?:error|exception)\s*handling").unwrap(),
-        Regex::new(r"(?i)(?:unhandled|uncaught)\s*(?:error|exception)").unwrap(),
-        Regex::new(r"(?i)bare\s*except").unwrap(),
-        Regex::new(r"(?i)broad\s*exception").unwrap(),
+    ERROR_HANDLING_PATTERNS = [
+        r"(?i)(?:add|missing)\s*(?:error|exception)\s*handling",
+        r"(?i)(?:unhandled|uncaught)\s*(?:error|exception)",
+        r"(?i)bare\s*except",
+        r"(?i)broad\s*exception",
     ];
 
-    static ref NULL_CHECK_PATTERNS: Vec<Regex> = vec![
-        Regex::new(r"(?i)(?:null|none|undefined)\s*(?:check|guard)").unwrap(),
-        Regex::new(r"(?i)(?:potential|possible)\s*(?:null|none)\s*(?:reference|pointer)").unwrap(),
-        Regex::new(r"(?i)optional\s*chaining").unwrap(),
+    NULL_CHECK_PATTERNS = [
+        r"(?i)(?:null|none|undefined)\s*(?:check|guard)",
+        r"(?i)(?:potential|possible)\s*(?:null|none)\s*(?:reference|pointer)",
+        r"(?i)optional\s*chaining",
     ];
 
-    static ref DOCUMENTATION_PATTERNS: Vec<Regex> = vec![
-        Regex::new(r"(?i)(?:missing|add)\s*(?:docstring|documentation|comment)").unwrap(),
-        Regex::new(r"(?i)(?:update|fix)\s*(?:docstring|documentation)").unwrap(),
-        Regex::new(r"(?i)(?:type\s*)?hint").unwrap(),
+    DOCUMENTATION_PATTERNS = [
+        r"(?i)(?:missing|add)\s*(?:docstring|documentation|comment)",
+        r"(?i)(?:update|fix)\s*(?:docstring|documentation)",
+        r"(?i)(?:type\s*)?hint",
     ];
 
-    static ref TEST_COVERAGE_PATTERNS: Vec<Regex> = vec![
-        Regex::new(r"(?i)(?:add|missing)\s*(?:test|unit\s*test)").unwrap(),
-        Regex::new(r"(?i)test\s*coverage").unwrap(),
-        Regex::new(r"(?i)(?:no|missing)\s*tests?\s*for").unwrap(),
+    TEST_COVERAGE_PATTERNS = [
+        r"(?i)(?:add|missing)\s*(?:test|unit\s*test)",
+        r"(?i)test\s*coverage",
+        r"(?i)(?:no|missing)\s*tests?\s*for",
     ];
 
-    static ref PERFORMANCE_PATTERNS: Vec<Regex> = vec![
-        Regex::new(r"(?i)performance\s*(?:issue|improvement|optimization)").unwrap(),
-        Regex::new(r"(?i)(?:slow|inefficient)\s*(?:code|algorithm|query)").unwrap(),
-        Regex::new(r"(?i)n\+1\s*(?:query|problem)").unwrap(),
-        Regex::new(r"(?i)(?:cache|memoize|optimize)").unwrap(),
+    PERFORMANCE_PATTERNS = [
+        r"(?i)performance\s*(?:issue|improvement|optimization)",
+        r"(?i)(?:slow|inefficient)\s*(?:code|algorithm|query)",
+        r"(?i)n\+1\s*(?:query|problem)",
+        r"(?i)(?:cache|memoize|optimize)",
     ];
 
     // Low confidence patterns
-    static ref ARCHITECTURAL_PATTERNS: Vec<Regex> = vec![
-        Regex::new(r"(?i)(?:architecture|design)\s*(?:issue|change|decision)").unwrap(),
-        Regex::new(r"(?i)refactor\s*(?:to|into|using)").unwrap(),
-        Regex::new(r"(?i)(?:restructure|reorganize)\s*(?:code|module|package)").unwrap(),
-        Regex::new(r"(?i)(?:extract|split)\s*(?:class|module|service)").unwrap(),
+    ARCHITECTURAL_PATTERNS = [
+        r"(?i)(?:architecture|design)\s*(?:issue|change|decision)",
+        r"(?i)refactor\s*(?:to|into|using)",
+        r"(?i)(?:restructure|reorganize)\s*(?:code|module|package)",
+        r"(?i)(?:extract|split)\s*(?:class|module|service)",
     ];
 
-    static ref API_CHANGE_PATTERNS: Vec<Regex> = vec![
-        Regex::new(r"(?i)api\s*(?:change|breaking|compatibility)").unwrap(),
-        Regex::new(r"(?i)(?:public|external)\s*(?:interface|api)").unwrap(),
-        Regex::new(r"(?i)(?:signature|parameter)\s*change").unwrap(),
-        Regex::new(r"(?i)(?:rename|remove)\s*(?:method|function|endpoint)").unwrap(),
+    API_CHANGE_PATTERNS = [
+        r"(?i)api\s*(?:change|breaking|compatibility)",
+        r"(?i)(?:public|external)\s*(?:interface|api)",
+        r"(?i)(?:signature|parameter)\s*change",
+        r"(?i)(?:rename|remove)\s*(?:method|function|endpoint)",
     ];
 
-    static ref BREAKING_CHANGE_PATTERNS: Vec<Regex> = vec![
-        Regex::new(r"(?i)breaking\s*change").unwrap(),
-        Regex::new(r"(?i)backward[s]?\s*(?:in)?compatibility").unwrap(),
-        Regex::new(r"(?i)(?:deprecate|remove)\s*(?:support|feature)").unwrap(),
+    BREAKING_CHANGE_PATTERNS = [
+        r"(?i)breaking\s*change",
+        r"(?i)backward[s]?\s*(?:in)?compatibility",
+        r"(?i)(?:deprecate|remove)\s*(?:support|feature)",
     ];
 
-    static ref DATA_MODEL_PATTERNS: Vec<Regex> = vec![
-        Regex::new(r"(?i)(?:database|schema|model)\s*(?:change|migration)").unwrap(),
-        Regex::new(r"(?i)(?:add|remove|modify)\s*(?:field|column|table)").unwrap(),
-        Regex::new(r"(?i)data\s*(?:model|structure)\s*change").unwrap(),
+    DATA_MODEL_PATTERNS = [
+        r"(?i)(?:database|schema|model)\s*(?:change|migration)",
+        r"(?i)(?:add|remove|modify)\s*(?:field|column|table)",
+        r"(?i)data\s*(?:model|structure)\s*change",
     ];
 
-    static ref BUSINESS_LOGIC_PATTERNS: Vec<Regex> = vec![
-        Regex::new(r"(?i)business\s*(?:logic|rule)").unwrap(),
-        Regex::new(r"(?i)(?:algorithm|calculation)\s*(?:change|update)").unwrap(),
-        Regex::new(r"(?i)(?:behavior|functionality)\s*change").unwrap(),
+    BUSINESS_LOGIC_PATTERNS = [
+        r"(?i)business\s*(?:logic|rule)",
+        r"(?i)(?:algorithm|calculation)\s*(?:change|update)",
+        r"(?i)(?:behavior|functionality)\s*change",
     ];
 
-    static ref DEPENDENCY_UPDATE_PATTERNS: Vec<Regex> = vec![
-        Regex::new(r"(?i)(?:update|upgrade|bump)\s*(?:dependency|package|library)").unwrap(),
-        Regex::new(r"(?i)(?:major|minor)\s*version\s*(?:update|upgrade)").unwrap(),
+    DEPENDENCY_UPDATE_PATTERNS = [
+        r"(?i)(?:update|upgrade|bump)\s*(?:dependency|package|library)",
+        r"(?i)(?:major|minor)\s*version\s*(?:update|upgrade)",
     ];
 
-    static ref MULTIPLE_APPROACHES_PATTERNS: Vec<Regex> = vec![
-        Regex::new(r"(?i)(?:could|might|may)\s*(?:also|alternatively)").unwrap(),
-        Regex::new(r"(?i)(?:another|different)\s*(?:approach|way|option)").unwrap(),
-        Regex::new(r"(?i)(?:consider|suggest)\s*(?:using|trying)").unwrap(),
-        Regex::new(r"(?i)(?:trade-?off|decision|choice)").unwrap(),
+    MULTIPLE_APPROACHES_PATTERNS = [
+        r"(?i)(?:could|might|may)\s*(?:also|alternatively)",
+        r"(?i)(?:another|different)\s*(?:approach|way|option)",
+        r"(?i)(?:consider|suggest)\s*(?:using|trying)",
+        r"(?i)(?:trade-?off|decision|choice)",
     ];
 
     // False positive patterns
-    static ref VERSION_ROLLBACK_PATTERNS: Vec<Regex> = vec![
-        Regex::new(r"(?i)(?:revert|rollback|downgrade)\s*(?:to|back\s*to)\s*v?\d+").unwrap(),
-        Regex::new(r"(?i)(?:use|switch\s*to)\s*v?\d+\s*instead").unwrap(),
-        Regex::new(r"(?i)v\d+\s*(?:doesn't|does\s*not)\s*(?:exist|work)").unwrap(),
-        Regex::new(r"(?i)(?:action|checkout|artifact).*(?:v\d+).*(?:not\s*(?:found|available|exist))").unwrap(),
+    VERSION_ROLLBACK_PATTERNS = [
+        r"(?i)(?:revert|rollback|downgrade)\s*(?:to|back\s*to)\s*v?\d+",
+        r"(?i)(?:use|switch\s*to)\s*v?\d+\s*instead",
+        r"(?i)v\d+\s*(?:doesn't|does\s*not)\s*(?:exist|work)",
+        r"(?i)(?:action|checkout|artifact).*(?:v\d+).*(?:not\s*(?:found|available|exist))",
     ];
 
-    static ref EXISTENCE_CLAIM_PATTERNS: Vec<Regex> = vec![
-        Regex::new(r"(?i)(?:does\s*not|doesn't)\s*(?:exist|work|support)").unwrap(),
-        Regex::new(r"(?i)(?:not\s*(?:a\s*)?valid|invalid)\s*(?:action|version|syntax)").unwrap(),
-        Regex::new(r"(?i)(?:no\s*such|unknown)\s*(?:action|command|option)").unwrap(),
+    EXISTENCE_CLAIM_PATTERNS = [
+        r"(?i)(?:does\s*not|doesn't)\s*(?:exist|work|support)",
+        r"(?i)(?:not\s*(?:a\s*)?valid|invalid)\s*(?:action|version|syntax)",
+        r"(?i)(?:no\s*such|unknown)\s*(?:action|command|option)",
     ];
 
-    static ref FIX_WORKING_CODE_PATTERNS: Vec<Regex> = vec![
-        Regex::new(r"(?i)(?:this\s*)?(?:will|would|might|could)\s*(?:fail|break|crash)").unwrap(),
-        Regex::new(r"(?i)(?:won't|will\s*not)\s*(?:work|compile|run)").unwrap(),
+    FIX_WORKING_CODE_PATTERNS = [
+        r"(?i)(?:this\s*)?(?:will|would|might|could)\s*(?:fail|break|crash)",
+        r"(?i)(?:won't|will\s*not)\s*(?:work|compile|run)",
     ];
-
-    // Analysis patterns
-    static ref ACTION_REQUEST_PATTERN: Regex = Regex::new(r"(?i)(?:please|should|must|need\s*to)\s+\w+").unwrap();
-    static ref FILE_REFERENCE_PATTERN: Regex = Regex::new(r"(?i)(?:line\s*\d+|file\s*\w+|\w+\.\w+:\d+)").unwrap();
-    static ref UNCERTAIN_LANGUAGE_PATTERN: Regex = Regex::new(r"(?i)(?:maybe|might|could\s*consider|not\s*sure)").unwrap();
 }
+
+// Analysis patterns
+static ACTION_REQUEST_PATTERN: LazyLock<Regex> =
+    LazyLock::new(|| compile_one(r"(?i)(?:please|should|must|need\s*to)\s+\w+"));
+static FILE_REFERENCE_PATTERN: LazyLock<Regex> =
+    LazyLock::new(|| compile_one(r"(?i)(?:line\s*\d+|file\s*\w+|\w+\.\w+:\d+)"));
+static UNCERTAIN_LANGUAGE_PATTERN: LazyLock<Regex> =
+    LazyLock::new(|| compile_one(r"(?i)(?:maybe|might|could\s*consider|not\s*sure)"));
 
 /// Pipeline success indicators.
 const PIPELINE_SUCCESS_INDICATORS: &[&str] = &[
@@ -292,144 +310,96 @@ const HIGH_CONFIDENCE_THRESHOLD: f64 = 0.85;
 const MEDIUM_CONFIDENCE_THRESHOLD: f64 = 0.6;
 const AUTO_FIX_THRESHOLD: f64 = 0.7;
 
-/// Agent judgement system.
-#[derive(Debug, Clone)]
-pub struct AgentJudgement {
-    #[allow(dead_code)]
-    project_owners: Vec<String>,
+/// Kinds of claims AI reviewers make that can be checked against reality.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum FalsePositiveKind {
+    VersionRollback,
+    ExistenceClaim,
+    PredictedFailure,
 }
 
-impl Default for AgentJudgement {
-    fn default() -> Self {
-        Self::new(Vec::new())
-    }
+fn any_match(patterns: &[Regex], text: &str) -> bool {
+    patterns.iter().any(|p| p.is_match(text))
 }
+
+/// Agent judgement system.
+#[derive(Debug, Clone, Default)]
+pub struct AgentJudgement;
 
 impl AgentJudgement {
-    /// Create a new agent judgement system.
-    pub fn new(project_owners: Vec<String>) -> Self {
-        Self { project_owners }
-    }
-
     /// Detect if an AI reviewer suggestion is a false positive.
+    /// Returns the dismiss reason when it is.
     fn detect_false_positive(
         &self,
         review_comment: &str,
         context: &AssessmentContext,
-    ) -> (bool, Option<String>) {
-        let comment_lower = review_comment.to_lowercase();
+    ) -> Option<String> {
+        let comment = review_comment.to_lowercase();
+        let kind = if any_match(&VERSION_ROLLBACK_PATTERNS, &comment) {
+            FalsePositiveKind::VersionRollback
+        } else if any_match(&EXISTENCE_CLAIM_PATTERNS, &comment) {
+            FalsePositiveKind::ExistenceClaim
+        } else if any_match(&FIX_WORKING_CODE_PATTERNS, &comment) {
+            FalsePositiveKind::PredictedFailure
+        } else {
+            return None;
+        };
 
-        // Check for false positive patterns
-        let mut matched_pattern = None;
-        let mut pattern_type = None;
-
-        for pattern in VERSION_ROLLBACK_PATTERNS.iter() {
-            if pattern.is_match(&comment_lower) {
-                matched_pattern = Some("version_rollback");
-                pattern_type = Some("version_rollback");
-                break;
-            }
-        }
-
-        if matched_pattern.is_none() {
-            for pattern in EXISTENCE_CLAIM_PATTERNS.iter() {
-                if pattern.is_match(&comment_lower) {
-                    matched_pattern = Some("existence_claims");
-                    pattern_type = Some("existence_claims");
-                    break;
-                }
-            }
-        }
-
-        if matched_pattern.is_none() {
-            for pattern in FIX_WORKING_CODE_PATTERNS.iter() {
-                if pattern.is_match(&comment_lower) {
-                    matched_pattern = Some("fix_working_code");
-                    pattern_type = Some("fix_working_code");
-                    break;
-                }
-            }
-        }
-
-        if matched_pattern.is_none() {
-            return (false, None);
-        }
-
-        // Check against reality
         let pipeline_status = context
             .pipeline_status
-            .as_ref()
-            .map(|s| s.to_lowercase())
-            .unwrap_or_default();
-
+            .as_deref()
+            .unwrap_or_default()
+            .to_lowercase();
         let pipeline_succeeded = PIPELINE_SUCCESS_INDICATORS
             .iter()
             .any(|ind| pipeline_status.contains(ind))
             || context.job_results.values().any(|result| {
-                let r = result.to_lowercase();
-                r == "success" || r == "passed" || r == "completed"
+                matches!(
+                    result.to_lowercase().as_str(),
+                    "success" | "passed" | "completed"
+                )
             });
 
-        // Check for version rollback suggestions
-        if pattern_type == Some("version_rollback") {
-            // Check if we recently updated versions
-            let version_update_keywords = ["update", "upgrade", "bump", "v6", "v5"];
-            if !context.recent_commits.is_empty()
-                && context.recent_commits.iter().any(|commit| {
-                    version_update_keywords
-                        .iter()
-                        .any(|kw| commit.to_lowercase().contains(kw))
-                })
-            {
-                return (
-                    true,
-                    Some(
-                        "Version rollback suggestion contradicts recent intentional version update in commit history".to_string(),
-                    ),
-                );
-            }
+        match kind {
+            FalsePositiveKind::VersionRollback => {
+                const KEYWORDS: [&str; 5] = ["update", "upgrade", "bump", "v6", "v5"];
+                context
+                    .recent_commits
+                    .iter()
+                    .any(|c| {
+                        let c = c.to_lowercase();
+                        KEYWORDS.iter().any(|kw| c.contains(kw))
+                    })
+                    .then(|| {
+                        "Version rollback suggestion contradicts recent intentional version \
+                         update in commit history"
+                            .to_string()
+                    })
+            },
+            FalsePositiveKind::ExistenceClaim => pipeline_succeeded.then(|| {
+                "Claim about non-existent feature is a false positive: pipeline completed \
+                 successfully"
+                    .to_string()
+            }),
+            FalsePositiveKind::PredictedFailure => pipeline_succeeded.then(|| {
+                "Prediction of failure is a false positive: code ran successfully in pipeline"
+                    .to_string()
+            }),
         }
-
-        // Check for existence claims when pipeline succeeded
-        if pattern_type == Some("existence_claims") && pipeline_succeeded {
-            return (
-                true,
-                Some(
-                    "Claim about non-existent feature is a false positive: pipeline completed successfully".to_string(),
-                ),
-            );
-        }
-
-        // Check for "will fail" predictions that didn't fail
-        if pattern_type == Some("fix_working_code") && pipeline_succeeded {
-            return (
-                true,
-                Some(
-                    "Prediction of failure is a false positive: code ran successfully in pipeline"
-                        .to_string(),
-                ),
-            );
-        }
-
-        (false, None)
     }
 
     /// Assess whether to auto-fix or ask for guidance.
     pub fn assess_fix(&self, review_comment: &str, context: &AssessmentContext) -> JudgementResult {
         // First: check for false positives
-        let (is_false_positive, dismiss_reason) =
-            self.detect_false_positive(review_comment, context);
-        if is_false_positive {
+        if let Some(reason) = self.detect_false_positive(review_comment, context) {
             return JudgementResult {
                 should_auto_fix: false,
                 confidence: 0.0,
                 category: FixCategory::FalsePositive,
-                reasoning: dismiss_reason.clone().unwrap_or_else(|| {
-                    "AI reviewer suggestion contradicts observable reality".to_string()
-                }),
+                reasoning: reason.clone(),
                 ask_owner_question: None,
                 is_false_positive: true,
-                dismiss_reason,
+                dismiss_reason: Some(reason),
             };
         }
 
@@ -714,16 +684,18 @@ impl AgentJudgement {
 
     /// Generate a question to ask the project owner.
     fn generate_owner_question(&self, category: FixCategory, review_comment: &str) -> String {
-        let review_summary = if review_comment.len() > 200 {
-            format!("{}...", &review_comment[..200])
-        } else {
-            review_comment.to_string()
-        };
+        // Truncate on a char boundary (byte slicing could panic on UTF-8) and
+        // quote every line so multi-line comments stay inside the blockquote.
+        let review_summary = crate::client::truncate(review_comment.trim(), 200)
+            .lines()
+            .map(|l| format!("> {}", l))
+            .collect::<Vec<_>>()
+            .join("\n");
 
         match category {
             FixCategory::Architectural => format!(
                 "This review suggests an architectural change. How would you like me to proceed?\n\n\
-                > {}\n\n\
+                {}\n\n\
                 Options:\n\
                 1. Implement the suggested change\n\
                 2. Keep current approach and explain reasoning\n\
@@ -733,58 +705,44 @@ impl AgentJudgement {
             FixCategory::ApiChange => format!(
                 "This review suggests a change that may affect the API. \
                 Should I proceed with the modification?\n\n\
-                > {}\n\n\
+                {}\n\n\
                 This could affect other parts of the codebase or external consumers.",
                 review_summary
             ),
             FixCategory::BreakingChange => format!(
                 "This review suggests a potentially breaking change. \
                 Do you want me to implement this?\n\n\
-                > {}\n\n\
+                {}\n\n\
                 Please confirm if backward compatibility is not a concern.",
                 review_summary
             ),
             FixCategory::DataModel => format!(
                 "This review suggests changes to the data model. How should I handle this?\n\n\
-                > {}\n\n\
+                {}\n\n\
                 This may require database migrations or affect existing data.",
                 review_summary
             ),
             FixCategory::BusinessLogic => format!(
                 "This review suggests changes to business logic. \
-                Can you clarify the expected behavior?\n\n> {}",
+                Can you clarify the expected behavior?\n\n{}",
                 review_summary
             ),
             FixCategory::DependencyUpdate => format!(
                 "This review suggests updating dependencies. Should I proceed with the update?\n\n\
-                > {}\n\n\
+                {}\n\n\
                 This may introduce breaking changes or require additional testing.",
                 review_summary
             ),
             FixCategory::MultipleApproaches => format!(
                 "This review presents multiple possible approaches. \
-                Which approach would you prefer?\n\n> {}",
+                Which approach would you prefer?\n\n{}",
                 review_summary
             ),
             _ => format!(
-                "I need guidance on this review feedback:\n\n> {}",
+                "I need guidance on this review feedback:\n\n{}",
                 review_summary
             ),
         }
-    }
-
-    /// Check if we should ask the owner for guidance.
-    pub fn should_ask_owner(&self, result: &JudgementResult) -> bool {
-        // Never ask owner about false positives
-        if result.is_false_positive {
-            return false;
-        }
-        !result.should_auto_fix && result.ask_owner_question.is_some()
-    }
-
-    /// Check if the suggestion should be dismissed (false positive).
-    pub fn should_dismiss(&self, result: &JudgementResult) -> bool {
-        result.is_false_positive
     }
 }
 
@@ -794,7 +752,7 @@ mod tests {
 
     #[test]
     fn test_high_confidence_security() {
-        let judgement = AgentJudgement::default();
+        let judgement = AgentJudgement;
         let result = judgement.assess_fix(
             "SQL injection vulnerability detected",
             &AssessmentContext::default(),
@@ -807,7 +765,7 @@ mod tests {
 
     #[test]
     fn test_high_confidence_linting() {
-        let judgement = AgentJudgement::default();
+        let judgement = AgentJudgement;
         // Use a lint error code that only matches linting, not formatting
         let result = judgement.assess_fix(
             "flake8 error W503: line break before binary operator",
@@ -820,7 +778,7 @@ mod tests {
 
     #[test]
     fn test_low_confidence_architectural() {
-        let judgement = AgentJudgement::default();
+        let judgement = AgentJudgement;
         // "architecture decision" matches the architectural pattern
         let result = judgement.assess_fix(
             "This is an architecture decision that needs review",
@@ -834,7 +792,7 @@ mod tests {
 
     #[test]
     fn test_false_positive_detection() {
-        let judgement = AgentJudgement::default();
+        let judgement = AgentJudgement;
         let mut context = AssessmentContext::default();
         context
             .job_results
@@ -849,10 +807,79 @@ mod tests {
 
     #[test]
     fn test_unused_import() {
-        let judgement = AgentJudgement::default();
+        let judgement = AgentJudgement;
         let result = judgement.assess_fix("F401 unused import 'os'", &AssessmentContext::default());
 
         assert!(result.should_auto_fix);
         assert_eq!(result.category, FixCategory::UnusedImport);
+    }
+
+    #[test]
+    fn long_non_ascii_comment_does_not_panic() {
+        // 199 ASCII bytes followed by a multi-byte char straddling byte 200.
+        let comment = format!("{}\u{00e9}{}", "a".repeat(199), " design change".repeat(20));
+        let result = AgentJudgement.assess_fix(&comment, &AssessmentContext::default());
+        let question = result.ask_owner_question.unwrap_or_default();
+        assert!(question.contains("..."));
+    }
+
+    #[test]
+    fn owner_question_quotes_every_line() {
+        let result = AgentJudgement.assess_fix(
+            "This is an architecture decision.\nSecond line here.",
+            &AssessmentContext::default(),
+        );
+        let q = result.ask_owner_question.unwrap();
+        assert!(q.contains("> This is an architecture decision.\n> Second line here."));
+    }
+
+    #[test]
+    fn version_rollback_false_positive_needs_recent_bump() {
+        let comment = "Please revert to v4, v5 does not exist";
+        let plain = AgentJudgement.assess_fix(comment, &AssessmentContext::default());
+        assert!(!plain.is_false_positive);
+
+        let ctx = AssessmentContext {
+            recent_commits: vec!["chore: bump actions/checkout to v5".into()],
+            ..Default::default()
+        };
+        let result = AgentJudgement.assess_fix(comment, &ctx);
+        assert!(result.is_false_positive);
+        assert!(result.dismiss_reason.unwrap().contains("version update"));
+    }
+
+    #[test]
+    fn predicted_failure_without_pipeline_evidence_is_not_dismissed() {
+        let result =
+            AgentJudgement.assess_fix("This will fail at runtime", &AssessmentContext::default());
+        assert!(!result.is_false_positive);
+
+        let ctx = AssessmentContext {
+            pipeline_status: Some("All tests passed".into()),
+            ..Default::default()
+        };
+        assert!(
+            AgentJudgement
+                .assess_fix("This will fail at runtime", &ctx)
+                .is_false_positive
+        );
+    }
+
+    #[test]
+    fn medium_confidence_depends_on_context() {
+        let comment = "Missing error handling around the file read";
+        let bare = AgentJudgement.assess_fix(comment, &AssessmentContext::default());
+        assert_eq!(bare.category, FixCategory::ErrorHandling);
+        assert!(!bare.should_auto_fix);
+
+        let rich = AssessmentContext {
+            file_path: Some("src/io.rs".into()),
+            diff: Some("+ read()".into()),
+            existing_tests: true,
+            ..Default::default()
+        };
+        let result = AgentJudgement.assess_fix(comment, &rich);
+        assert!(result.should_auto_fix);
+        assert!(result.confidence >= AUTO_FIX_THRESHOLD);
     }
 }

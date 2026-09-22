@@ -6,16 +6,14 @@ use regex::Regex;
 use serde::Deserialize;
 
 /// Root configuration structure
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Default, Deserialize)]
 pub struct Config {
     /// Configuration version
     #[serde(default)]
-    #[allow(dead_code)]
     pub version: String,
 
     /// Optional description
     #[serde(default)]
-    #[allow(dead_code)]
     pub description: Option<String>,
 
     /// Explicit list of environment variables to mask
@@ -33,6 +31,11 @@ pub struct Config {
     /// General settings
     #[serde(default)]
     pub settings: Settings,
+
+    /// GitHub handles that may be @mentioned in posted content. Other
+    /// mentions are neutralized. Defaults to the repository maintainer.
+    #[serde(default)]
+    pub allowed_mentions: Option<Vec<String>>,
 }
 
 /// Definition of a regex pattern for secret detection
@@ -46,7 +49,6 @@ pub struct PatternDef {
 
     /// Optional description
     #[serde(default)]
-    #[allow(dead_code)]
     pub description: Option<String>,
 }
 
@@ -77,9 +79,9 @@ pub struct Settings {
     #[serde(default)]
     pub case_sensitive_patterns: bool,
 
-    /// Whether to mask partial matches
+    /// Accepted for compatibility with the shared `.secrets.yaml` format;
+    /// gh-validator always masks every occurrence.
     #[serde(default)]
-    #[allow(dead_code)]
     pub mask_partial_matches: bool,
 
     /// Whether to log when secrets are masked
@@ -170,23 +172,45 @@ impl Config {
     }
 }
 
-/// Simple glob pattern matching
+/// Case-insensitive glob match supporting `*` (any run) and `?` (one char).
 ///
-/// Supports `*` as wildcard for any characters.
-/// Pattern is case-insensitive.
+/// Hand-rolled (iterative, with single-star backtracking) because it runs
+/// for every environment variable against every include/exclude pattern;
+/// compiling a regex per check was the dominant startup cost.
 fn glob_match(pattern: &str, text: &str) -> bool {
-    let pattern_upper = pattern.to_uppercase();
-    let text_upper = text.to_uppercase();
+    let p: Vec<char> = pattern.chars().flat_map(char::to_uppercase).collect();
+    let t: Vec<char> = text.chars().flat_map(char::to_uppercase).collect();
+    let (mut pi, mut ti) = (0, 0);
+    let mut backtrack: Option<(usize, usize)> = None;
+    while ti < t.len() {
+        if pi < p.len() && (p[pi] == '?' || p[pi] == t[ti]) {
+            pi += 1;
+            ti += 1;
+        } else if pi < p.len() && p[pi] == '*' {
+            backtrack = Some((pi, ti));
+            pi += 1;
+        } else if let Some((star_p, star_t)) = backtrack {
+            pi = star_p + 1;
+            ti = star_t + 1;
+            backtrack = Some((star_p, star_t + 1));
+        } else {
+            return false;
+        }
+    }
+    p[pi..].iter().all(|&c| c == '*')
+}
 
-    // Convert glob pattern to regex
-    let regex_pattern = pattern_upper
-        .replace('.', r"\.")
-        .replace('*', ".*")
-        .replace('?', ".");
-
-    Regex::new(&format!("^{}$", regex_pattern))
-        .map(|r| r.is_match(&text_upper))
-        .unwrap_or(false)
+impl Config {
+    /// Handles allowed in @mentions.
+    pub fn allowed_mentions(&self) -> Vec<String> {
+        match &self.allowed_mentions {
+            Some(list) => list.clone(),
+            None => crate::validation::comments::DEFAULT_ALLOWED_MENTIONS
+                .iter()
+                .map(|s| s.to_string())
+                .collect(),
+        }
+    }
 }
 
 #[cfg(test)]
@@ -201,6 +225,13 @@ mod tests {
         assert!(glob_match("PUBLIC_*", "PUBLIC_KEY"));
         assert!(!glob_match("*_TOKEN", "TOKEN_SOMETHING"));
         assert!(!glob_match("PUBLIC_*", "NOT_PUBLIC"));
+        assert!(glob_match("*_CREDENTIAL*", "AWS_CREDENTIALS_FILE"));
+        assert!(glob_match("*_token", "github_TOKEN"));
+        assert!(glob_match("A?C", "ABC"));
+        assert!(!glob_match("A?C", "AC"));
+        assert!(glob_match("*", ""));
+        assert!(glob_match("a.b*", "A.BC"));
+        assert!(!glob_match("a.b", "AXB"));
     }
 
     #[test]

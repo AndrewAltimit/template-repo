@@ -94,7 +94,7 @@ jobs:
 
           # Check 2: Board connectivity and ready work
           if [ "$CONFIG_VALID" = "true" ]; then
-            READY_OUTPUT=$(board-manager --format json ready --limit 100 2>&1) || {
+            READY_OUTPUT=$(board-manager --format json ready --limit 100) || {
               echo "Board connection failed"
               BOARD_CONNECTED="false"
               STATUS="unhealthy"
@@ -110,9 +110,9 @@ jobs:
 
           # Check 3: Get available agents
           if [ "$BOARD_CONNECTED" = "true" ]; then
-            AGENTS_OUTPUT=$(board-manager --format json agents 2>&1) || true
+            AGENTS_OUTPUT=$(board-manager --format json agents) || true
             if echo "$AGENTS_OUTPUT" | jq -e '.' > /dev/null 2>&1; then
-              AGENTS_AVAILABLE=$(echo "$AGENTS_OUTPUT" | jq -c '.agents // []' 2>/dev/null || echo "[]")
+              AGENTS_AVAILABLE=$(echo "$AGENTS_OUTPUT" | jq -c 'if type == "array" then . else (.agents // []) end' 2>/dev/null || echo "[]")
               echo "Available agents: $AGENTS_AVAILABLE"
             fi
           fi

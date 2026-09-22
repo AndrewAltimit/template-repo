@@ -3,7 +3,24 @@
 mod client;
 mod types;
 
-// Public API exports (some may not be used internally but are part of the library interface)
-pub use client::GhClient;
-#[allow(unused_imports)]
-pub use types::{Author, Comment, CommitDetails, CommitInfo, CommitterInfo, PrCommentsResponse};
+pub use client::{GhClient, RepoSpec};
+pub use types::{
+    Author, Comment, CommentKind, GHOST_LOGIN, OlderPage, PrCommentsResponse, PrSnapshot,
+};
+
+use crate::error::Result;
+
+/// Source of PR conversation data.
+///
+/// Implemented by [`GhClient`]; abstracted so the polling logic can be tested
+/// without network access.
+pub trait PrSource {
+    /// Newest comments and reviews plus PR state
+    fn snapshot(&self, pr_number: u32) -> Result<PrSnapshot>;
+
+    /// Page of conversation comments preceding the `before` cursor
+    fn older_comments(&self, pr_number: u32, before: &str) -> Result<OlderPage>;
+
+    /// Page of reviews preceding the `before` cursor
+    fn older_reviews(&self, pr_number: u32, before: &str) -> Result<OlderPage>;
+}

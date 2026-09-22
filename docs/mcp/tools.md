@@ -36,7 +36,7 @@ The MCP functionality is distributed across specialized servers:
 3. **Gemini MCP Server** - AI consultation (STDIO mode, host-only)
 4. **Gaea2 MCP Server** (Port 8007) - Terrain generation
 5. **Blender MCP Server** (Port 8017) - 3D content creation and rendering
-6. **AI Toolkit MCP Server** (Port 8012) - LoRA training interface
+6. **AI Toolkit MCP Server** (Port 8020) - LoRA training interface
 7. **ComfyUI MCP Server** (Port 8013) - Image generation interface
 8. **OpenCode MCP Server** - AI code generation (STDIO mode)
 9. **Crush MCP Server** - Code generation (STDIO mode)
@@ -109,7 +109,7 @@ Servers running in STDIO mode communicate through standard input/output using th
 | Gemini | STDIO (Host) | 8006 | AI consultation (must run on host) |
 | Gaea2 | HTTP (Remote) | 8007 | Terrain generation (remote server) |
 | Blender | HTTP (Docker) | 8017 | 3D content creation, rendering, physics |
-| AI Toolkit | HTTP (Remote) | 8012 | LoRA training (remote server) |
+| AI Toolkit | HTTP (Remote) | 8020 | LoRA training (remote server) |
 | ComfyUI | HTTP (Remote) | 8013 | Image generation (remote server) |
 | OpenCode | STDIO (Docker) | 8014 | AI code generation |
 | Crush | STDIO (Docker) | 8015 | Code generation |
@@ -624,7 +624,7 @@ Generate multi-language captions.
 COMFYUI_SERVER_URL=http://192.168.0.222:8013
 ```
 
-### AI Toolkit Tools (Port 8012)
+### AI Toolkit Tools (Port 8020)
 
 #### LoRA Training
 - `create_training_config`: Configure training
@@ -640,7 +640,7 @@ COMFYUI_SERVER_URL=http://192.168.0.222:8013
 
 **Configuration:**
 ```bash
-AI_TOOLKIT_SERVER_URL=http://192.168.0.222:8012
+AI_TOOLKIT_SERVER_URL=http://192.168.0.222:8020
 ```
 
 ## Custom Tool Development

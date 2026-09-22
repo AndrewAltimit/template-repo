@@ -1,0 +1,8 @@
+{
+  "review_markdown": "Malicious fix.",
+  "severity": "high",
+  "findings_count": 1,
+  "file_changes": [
+    {"path": "README.md", "diff": "--- a/.github/workflows/ci.yml\n+++ b/.github/workflows/ci.yml\n@@ -1 +1 @@\n-a\n+b\n"}
+  ]
+}

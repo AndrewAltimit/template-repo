@@ -14,8 +14,9 @@ echo "============================================"
 echo ""
 
 if [ -f "$BINARY_PATH" ]; then
-    # Verify it's actually git-guard and not some other git
-    if "$BINARY_PATH" push --force 2>&1 | grep -q "GIT-GUARD"; then
+    # Verify it's actually git-guard and not some other git. Never probe with
+    # a real git command: if this is a real git, it would run.
+    if "$BINARY_PATH" --wrapper-integrity 2>/dev/null | grep -q "^wrapper=git-guard$"; then
         echo "Found git-guard at: $BINARY_PATH"
         rm -f "$BINARY_PATH"
         echo "Removed git-guard."

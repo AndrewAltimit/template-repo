@@ -1,130 +1,195 @@
-//! Git operations for applying changes.
+//! Git operations for applying and committing review fixes.
 
-use anyhow::{bail, Context, Result};
-use tokio::process::Command;
-use tracing::{debug, info};
+use anyhow::{Context, Result, bail};
+use tracing::{debug, info, warn};
 
-/// Git operations wrapper.
+use crate::command::Runner;
+use crate::patch::PreparedChange;
+
+/// How a patch ended up being applied.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum ApplyMethod {
+    /// Plain `git apply`.
+    GitApply,
+    /// `git apply --ignore-whitespace` (e.g. CRLF files or re-indented context).
+    GitApplyIgnoreWhitespace,
+    /// `patch -p1` fallback.
+    Patch,
+}
+
+/// `git apply` argument sets tried in order.
+const GIT_APPLY_STRATEGIES: [(&[&str], ApplyMethod); 2] = [
+    (&[], ApplyMethod::GitApply),
+    (
+        &["--ignore-whitespace"],
+        ApplyMethod::GitApplyIgnoreWhitespace,
+    ),
+];
+
+/// Git operations wrapper. In dry-run mode, mutating commands are logged
+/// instead of executed; read-only checks still run.
 pub struct GitOperations {
+    runner: Runner,
     dry_run: bool,
 }
 
 impl GitOperations {
-    /// Create a new git operations instance.
+    /// Create a git wrapper that runs in the process working directory.
     pub fn new(dry_run: bool) -> Self {
-        Self { dry_run }
+        Self::with_runner(Runner::new(), dry_run)
     }
 
-    /// Run a git command.
-    async fn run_git(&self, args: &[&str]) -> Result<String> {
+    /// Create a git wrapper around a specific runner.
+    pub fn with_runner(runner: Runner, dry_run: bool) -> Self {
+        Self { runner, dry_run }
+    }
+
+    fn git(&self, args: &[&str]) -> Result<String> {
+        self.runner.run_ok("git", args, None)
+    }
+
+    /// Run a mutating git command (skipped in dry-run mode).
+    fn git_mut(&self, args: &[&str]) -> Result<String> {
         if self.dry_run {
             info!("[DRY RUN] Would run: git {}", args.join(" "));
             return Ok(String::new());
         }
-
-        debug!("Running: git {}", args.join(" "));
-
-        let output = Command::new("git")
-            .args(args)
-            .output()
-            .await
-            .context("Failed to execute git command")?;
-
-        if !output.status.success() {
-            let stderr = String::from_utf8_lossy(&output.stderr);
-            bail!("Git command failed: {}", stderr);
-        }
-
-        Ok(String::from_utf8_lossy(&output.stdout).to_string())
+        self.git(args)
     }
 
-    /// Create and checkout a new branch.
-    pub async fn create_branch(&self, name: &str) -> Result<()> {
-        self.run_git(&["checkout", "-b", name]).await?;
+    /// Create and check out a new branch at the current HEAD.
+    pub fn create_branch(&self, name: &str) -> Result<()> {
+        self.runner
+            .run_ok("git", &["check-ref-format", "--branch", name], None)
+            .with_context(|| format!("Invalid branch name {name:?}"))?;
+        self.git_mut(&["checkout", "-b", name])?;
         Ok(())
     }
 
-    /// Commit staged changes.
-    pub async fn commit(&self, message: &str) -> Result<()> {
-        // Stage all changes
-        self.run_git(&["add", "-A"]).await?;
-
-        // Check if there are changes to commit
-        let status = self.run_git(&["status", "--porcelain"]).await?;
-        if status.trim().is_empty() && !self.dry_run {
-            info!("No changes to commit");
-            return Ok(());
-        }
-
-        // Commit
-        self.run_git(&["commit", "-m", message]).await?;
-        Ok(())
-    }
-
-    /// Push to remote.
-    pub async fn push(&self, branch: &str) -> Result<()> {
-        self.run_git(&["push", "-u", "origin", branch]).await?;
-        Ok(())
-    }
-
-    /// Apply a diff to a file using patch.
-    pub async fn apply_diff(&self, _path: &str, diff: &str) -> Result<()> {
-        if self.dry_run {
-            info!("[DRY RUN] Would apply diff");
-            return Ok(());
-        }
-
-        // Write diff to temp file
-        let temp_dir = std::env::temp_dir();
-        let diff_file = temp_dir.join(format!("review-diff-{}.patch", std::process::id()));
-        std::fs::write(&diff_file, diff).context("Failed to write diff file")?;
-
-        // Convert path to string, handling non-UTF-8 paths
-        let diff_file_str = diff_file
-            .to_str()
-            .context("Temp file path contains invalid UTF-8")?;
-
-        // Apply with git apply
-        let result = Command::new("git")
-            .args(["apply", "--check", diff_file_str])
-            .output()
-            .await
-            .context("Failed to check diff")?;
-
-        if !result.status.success() {
-            // Try with patch command as fallback
-            debug!("git apply check failed, trying patch command");
-            let result = Command::new("patch")
-                .args(["-p1", "--dry-run", "-i", diff_file_str])
-                .output()
-                .await
-                .context("Failed to dry-run patch")?;
-
-            if !result.status.success() {
-                let stderr = String::from_utf8_lossy(&result.stderr);
-                // Clean up before returning error
-                let _ = std::fs::remove_file(&diff_file);
-                bail!("Failed to apply diff: {}", stderr);
+    /// Warn about changes whose `original_sha` does not match the working tree.
+    ///
+    /// The SHA may be abbreviated; comparison is by prefix. A mismatch is not
+    /// fatal because `git apply` verifies context lines anyway.
+    pub fn check_original_shas(&self, changes: &[PreparedChange]) {
+        for change in changes {
+            let Some(expected) = change.original_sha.as_deref() else {
+                continue;
+            };
+            match self.git(&["hash-object", "--", &change.path]) {
+                Ok(actual) => {
+                    let actual = actual.trim();
+                    let expected = expected.to_ascii_lowercase();
+                    if expected.len() < 4 || !actual.starts_with(&expected) {
+                        warn!(
+                            path = %change.path,
+                            expected = %expected,
+                            actual = %actual,
+                            "original_sha does not match the working tree; the review may be stale"
+                        );
+                    }
+                },
+                Err(e) => debug!(path = %change.path, error = %e, "Could not hash file"),
             }
+        }
+    }
 
-            // Apply for real
-            Command::new("patch")
-                .args(["-p1", "-i", diff_file_str])
-                .output()
-                .await
-                .context("Failed to apply patch")?;
-        } else {
-            // Apply with git
-            Command::new("git")
-                .args(["apply", diff_file_str])
-                .output()
-                .await
-                .context("Failed to apply git diff")?;
+    /// Apply a combined patch atomically.
+    ///
+    /// Tries `git apply`, then `git apply --ignore-whitespace`, then
+    /// `patch -p1` (if installed). Each strategy is dry-run checked first, so a
+    /// patch is either applied completely or not at all. In dry-run mode only
+    /// the checks run.
+    pub fn apply_patch(&self, patch: &str) -> Result<ApplyMethod> {
+        let mut failures = Vec::new();
+
+        for (opts, method) in GIT_APPLY_STRATEGIES {
+            let mut check = vec!["apply", "--check"];
+            check.extend_from_slice(opts);
+            let output = self.runner.run("git", &check, Some(patch))?;
+            if !output.success {
+                debug!(?method, stderr = %output.stderr.trim(), "Patch check failed");
+                failures.push(format!("git {}: {}", check.join(" "), output.stderr.trim()));
+                continue;
+            }
+            if self.dry_run {
+                info!(?method, "[DRY RUN] Patch applies cleanly; not applying");
+                return Ok(method);
+            }
+            let mut apply = vec!["apply"];
+            apply.extend_from_slice(opts);
+            self.runner.run_ok("git", &apply, Some(patch))?;
+            return Ok(method);
         }
 
-        // Clean up
-        let _ = std::fs::remove_file(&diff_file);
+        if self.runner.is_available("patch") {
+            let check = ["-p1", "--forward", "--batch", "--dry-run"];
+            let output = self.runner.run("patch", &check, Some(patch))?;
+            if output.success {
+                if self.dry_run {
+                    info!("[DRY RUN] Patch applies with `patch -p1`; not applying");
+                } else {
+                    self.runner.run_ok("patch", &check[..3], Some(patch))?;
+                }
+                return Ok(ApplyMethod::Patch);
+            }
+            failures.push(format!("patch -p1: {}", output.stdout.trim()));
+        } else {
+            debug!("`patch` is not installed; skipping fallback");
+        }
 
+        bail!("Failed to apply review fixes:\n  {}", failures.join("\n  "))
+    }
+
+    /// Stage exactly `paths` (including deletions). Never stages unrelated files.
+    pub fn stage(&self, paths: &[&str]) -> Result<()> {
+        let mut args = vec!["add", "-A", "--"];
+        args.extend_from_slice(paths);
+        self.git_mut(&args)?;
         Ok(())
+    }
+
+    /// Whether the index differs from HEAD for any of `paths`.
+    pub fn has_staged_changes(&self, paths: &[&str]) -> Result<bool> {
+        if self.dry_run {
+            return Ok(true);
+        }
+        let mut args = vec!["diff", "--cached", "--quiet", "--"];
+        args.extend_from_slice(paths);
+        let output = self.runner.run("git", &args, None)?;
+        Ok(!output.success)
+    }
+
+    /// Commit `paths` only (other staged changes are left staged). Returns the
+    /// new commit SHA, or `None` if nothing changed (or in dry-run mode).
+    pub fn commit(&self, message: &str, paths: &[&str]) -> Result<Option<String>> {
+        if !self.has_staged_changes(paths)? {
+            info!("No changes to commit");
+            return Ok(None);
+        }
+        let mut args = vec!["commit", "-m", message, "--"];
+        args.extend_from_slice(paths);
+        self.git_mut(&args)?;
+        if self.dry_run {
+            return Ok(None);
+        }
+        Ok(Some(self.git(&["rev-parse", "HEAD"])?.trim().to_string()))
+    }
+
+    /// Push the current HEAD to `origin/<branch>` and set upstream.
+    pub fn push(&self, branch: &str) -> Result<()> {
+        let refspec = format!("HEAD:refs/heads/{branch}");
+        self.git_mut(&["push", "-u", "origin", &refspec])?;
+        Ok(())
+    }
+
+    /// Name of the currently checked-out branch, or `None` when detached.
+    pub fn current_branch(&self) -> Result<Option<String>> {
+        let output =
+            self.runner
+                .run("git", &["symbolic-ref", "--quiet", "--short", "HEAD"], None)?;
+        Ok(output
+            .success
+            .then(|| output.stdout.trim().to_string())
+            .filter(|b| !b.is_empty()))
     }
 }

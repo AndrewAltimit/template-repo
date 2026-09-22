@@ -1,7 +1,8 @@
 [package]
 name = "github-agents-cli"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2024"
+rust-version = "1.91"
 description = "CLI for GitHub AI Agents - monitors issues and PRs for automation triggers"
 license = "MIT"
 repository = "https://github.com/AndrewAltimit/template-repo"
@@ -18,7 +19,7 @@ path = "src/main.rs"
 clap = { version = "4.5", features = ["derive"] }
 
 # Async runtime
-tokio = { version = "1.0", features = ["full", "process"] }
+tokio = { version = "1.43", features = ["full"] }
 
 # Serialization
 serde = { version = "1.0", features = ["derive"] }
@@ -26,8 +27,7 @@ serde_json = "1.0"
 serde_yaml = "0.9"
 
 # Error handling
-thiserror = "1.0"
-anyhow = "1.0"
+thiserror = "2"
 
 # Logging
 tracing = "0.1"
@@ -44,7 +44,6 @@ reqwest = { version = "0.12", features = ["json"] }
 
 # Regex for parsing
 regex = "1"
-lazy_static = "1"
 
 # Hashing for fingerprints
 sha2 = "0.10"
@@ -53,13 +52,15 @@ hex = "0.4"
 # Async traits
 async-trait = "0.1"
 
-# UUID for unique identifiers
-uuid = { version = "1", features = ["v4"] }
+# Private temp files for comment/issue bodies
+tempfile = "3.10"
 
 [dev-dependencies]
-tempfile = "3.10"
 assert_cmd = "2.0"
 predicates = "3.1"
+
+[lints.clippy]
+too_many_lines = "warn"
 
 [profile.release]
 opt-level = "z"

@@ -1,2144 +1,974 @@
-//! GitHub Projects v2 board manager with GraphQL operations.
+//! GitHub Projects v2 board operations.
+//!
+//! Network access lives here; parsing and decision logic is delegated to the
+//! pure modules (`board`, `claims`, `approval`) so it can be unit-tested.
+//!
+//! Round-trip budget per command (after the one-time project lookup, which
+//! also loads every field definition):
+//! - single-issue commands look the issue up directly through
+//!   `Issue.projectItems` instead of paginating the whole board;
+//! - approval checks for many issues are batched into aliased queries;
+//! - full board scans are only used where the whole board is needed
+//!   (`ready`, `deps`, `janitor`, `find-approved`).
 
-use chrono::{DateTime, Utc};
-use lazy_static::lazy_static;
-use regex::Regex;
+use chrono::Utc;
 use serde_json::{Value, json};
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use tracing::{debug, info, warn};
 
+use crate::approval::{self, APPROVAL_BATCH_SIZE, ApprovalPolicy, BatchApproval};
+use crate::board::{self, FieldKind, ProjectFields, ReadyFilter};
+use crate::claims;
 use crate::client::GraphQLClient;
 use crate::error::{BoardError, Result};
 use crate::models::{
-    AgentClaim, ApprovedIssue, BoardConfig, Issue, IssuePriority, IssueStatus, IssueType,
-    ReleaseReason,
+    AgentClaim, ApprovedIssue, BoardConfig, ClaimOutcome, DependencyGraph, Issue, IssuePriority,
+    IssueSize, IssueStatus, IssueType, JanitorReport, ReleaseReason, StaleClaim,
+    normalize_agent_name, same_agent,
 };
+use crate::queries;
+use crate::security::TrustConfig;
 
-/// Claim comment prefixes.
-const CLAIM_PREFIX: &str = "**[Agent Claim]**";
-const RENEWAL_PREFIX: &str = "**[Claim Renewal]**";
-const RELEASE_PREFIX: &str = "**[Agent Release]**";
+/// Safety cap on board pages (100 items each).
+const MAX_BOARD_PAGES: usize = 50;
 
-lazy_static! {
-    /// Pre-compiled regex for approval pattern matching.
-    /// Matches patterns like [Approved][Claude], [Review][Agent], etc.
-    static ref APPROVAL_PATTERN: Regex =
-        Regex::new(r"(?i)\[(Approved|Review|Close|Summarize|Debug)\]\[[\w\s-]+\]").unwrap();
+/// Safety cap on comment pages when checking approval (100 comments each).
+const MAX_COMMENT_PAGES: usize = 20;
+
+/// GitHub search returns at most 1000 results (10 pages of 100).
+const MAX_SEARCH_PAGES: usize = 10;
+
+/// Resolved project metadata.
+#[derive(Debug)]
+struct ProjectInfo {
+    id: String,
+    title: String,
+    fields: ProjectFields,
 }
 
-/// Sanitize a GraphQL field name to prevent injection attacks.
-///
-/// GraphQL doesn't support variables in field(name: ...) selectors, so we
-/// validate the input to only allow safe characters (alphanumeric, spaces,
-/// underscores, and hyphens).
-fn sanitize_graphql_field_name(name: &str) -> Result<&str> {
-    // Only allow alphanumeric, space, underscore, and hyphen
-    if name
-        .chars()
-        .all(|c| c.is_alphanumeric() || c == ' ' || c == '_' || c == '-')
-    {
-        Ok(name)
-    } else {
-        Err(BoardError::Validation(format!(
-            "Invalid field name '{}': contains unsafe characters",
-            name
-        )))
+/// Result of looking an issue up directly (without scanning the board).
+#[derive(Debug, Clone)]
+pub struct IssueLookup {
+    /// GraphQL node ID of the issue (for comments / adding to the board)
+    pub node_id: String,
+    /// Issue data; board fields are populated only when `on_board`
+    pub issue: Issue,
+    /// Whether the issue has an item on the configured project
+    pub on_board: bool,
+}
+
+impl IssueLookup {
+    fn item_id(&self) -> Result<&str> {
+        self.issue
+            .project_item_id
+            .as_deref()
+            .filter(|_| self.on_board)
+            .ok_or(BoardError::NotOnBoard(self.issue.number))
     }
 }
 
-/// Agent name mappings (workflow names -> board field values).
-const AGENT_NAME_MAP: &[(&str, &str)] = &[
-    ("claude", "Claude Code"),
-    ("opencode", "OpenCode"),
-    ("crush", "Crush"),
-    ("gemini", "Gemini CLI"),
-    ("codex", "Codex"),
-];
+/// Parse an `ISSUE_ITEM` response. Pure so it can be tested.
+pub fn parse_issue_lookup(
+    data: &Value,
+    number: u64,
+    project_id: &str,
+    config: &BoardConfig,
+) -> Result<IssueLookup> {
+    let issue = data
+        .get("repository")
+        .and_then(|r| r.get("issue"))
+        .filter(|i| !i.is_null())
+        .ok_or(BoardError::IssueNotFound(number))?;
+    let node_id = issue
+        .get("id")
+        .and_then(Value::as_str)
+        .ok_or(BoardError::IssueNotFound(number))?
+        .to_string();
+
+    let empty = Vec::new();
+    let items = issue
+        .get("projectItems")
+        .and_then(|p| p.get("nodes"))
+        .and_then(Value::as_array)
+        .unwrap_or(&empty);
+    let item = items.iter().find(|i| {
+        i.get("project")
+            .and_then(|p| p.get("id"))
+            .and_then(Value::as_str)
+            == Some(project_id)
+    });
+
+    let on_board = item.is_some();
+    let placeholder = json!({});
+    let parsed = board::issue_from_item(item.unwrap_or(&placeholder), issue, config)
+        .ok_or(BoardError::IssueNotFound(number))?;
+
+    Ok(IssueLookup {
+        node_id,
+        issue: parsed,
+        on_board,
+    })
+}
+
+/// A value to write into a project field.
+#[derive(Debug, Clone)]
+pub enum FieldInput<'a> {
+    /// Single-select option by name.
+    Option(&'a str),
+    /// Free text.
+    Text(String),
+    /// Clear the field.
+    Clear,
+}
+
+/// Optional fields for `add-to-board`.
+#[derive(Debug, Clone, Default)]
+pub struct AddOptions {
+    pub priority: Option<IssuePriority>,
+    pub issue_type: Option<IssueType>,
+    pub size: Option<IssueSize>,
+    pub agent: Option<String>,
+}
+
+/// Janitor options.
+#[derive(Debug, Clone)]
+pub struct JanitorOptions {
+    pub agent: Option<String>,
+    pub threshold_secs: i64,
+    pub reset_status: IssueStatus,
+    pub dry_run: bool,
+}
 
 /// Manager for GitHub Projects v2 board operations.
 pub struct BoardManager {
     client: GraphQLClient,
     config: BoardConfig,
-    project_id: Option<String>,
-    /// Cached set of users authorized to approve work (normalized to lowercase).
-    cached_allowed_users: std::collections::HashSet<String>,
+    project: Option<ProjectInfo>,
+    /// Users whose `[Approved][Agent]` triggers count (lowercase logins).
+    allowed_approvers: HashSet<String>,
+    /// Authors whose claim/renewal/release comments count (see
+    /// [`approval::author_key`] for normalization).
+    claim_authors: HashSet<String>,
+}
+
+/// Lowercased set of logins.
+fn lower_set<'a>(names: impl IntoIterator<Item = &'a String>) -> HashSet<String> {
+    names
+        .into_iter()
+        .map(|n| n.trim().to_lowercase())
+        .filter(|n| !n.is_empty())
+        .collect()
+}
+
+/// Users allowed to approve work: project owner, repository owner and
+/// `security.agent_admins` (when `.agents.yaml` loaded).
+pub fn approver_set(config: &BoardConfig, trust: Option<&TrustConfig>) -> HashSet<String> {
+    let mut set = lower_set(trust.map(|t| &t.agent_admins).into_iter().flatten());
+    set.extend(lower_set([&config.owner]));
+    if let Some((repo_owner, _)) = config.repo_parts() {
+        set.insert(repo_owner.to_lowercase());
+    }
+    set
+}
+
+/// Authors whose claim comments are trusted: `security.agent_admins` and
+/// `security.trusted_sources`. Fails closed to the repository owner only
+/// when `.agents.yaml` could not be loaded.
+pub fn claim_author_set(config: &BoardConfig, trust: Option<&TrustConfig>) -> HashSet<String> {
+    match trust {
+        Some(t) => lower_set(t.agent_admins.iter().chain(&t.trusted_sources)),
+        None => config
+            .repo_parts()
+            .map(|(owner, _)| HashSet::from([owner.to_lowercase()]))
+            .unwrap_or_default(),
+    }
 }
 
 impl BoardManager {
-    /// Create a new BoardManager.
+    /// Create a new manager. Call [`BoardManager::initialize`] before use.
     pub fn new(config: BoardConfig, token: String) -> Result<Self> {
         let client = GraphQLClient::new(token)?;
 
-        // Pre-compute allowed users for approval checking
-        let mut cached_allowed_users = std::collections::HashSet::new();
-
-        // Add project owner
-        if !config.owner.is_empty() {
-            cached_allowed_users.insert(config.owner.to_lowercase());
-        }
-
-        // Add users from security config (loaded once at startup)
-        if let Ok(trust_config) = crate::security::TrustConfig::from_yaml(None) {
-            for admin in &trust_config.agent_admins {
-                cached_allowed_users.insert(admin.to_lowercase());
-            }
-        }
+        let trust = match TrustConfig::from_yaml(None) {
+            Ok(t) => Some(t),
+            Err(e) => {
+                warn!(
+                    "Could not load .agents.yaml ({}); only project/repository owners can \
+                     approve, and only repository-owner claim comments are trusted",
+                    e
+                );
+                None
+            },
+        };
 
         Ok(Self {
             client,
+            allowed_approvers: approver_set(&config, trust.as_ref()),
+            claim_authors: claim_author_set(&config, trust.as_ref()),
             config,
-            project_id: None,
-            cached_allowed_users,
+            project: None,
         })
     }
 
-    /// Initialize the manager by loading project metadata.
+    /// Resolve the project ID and field definitions (one API call).
     pub async fn initialize(&mut self) -> Result<()> {
-        self.project_id = Some(self.get_project_id().await?);
+        let data = self
+            .client
+            .query(
+                queries::PROJECT,
+                json!({ "owner": self.config.owner, "number": self.config.project_number }),
+            )
+            .await?;
 
-        // Add repository owner to cached allowed users (requires parse_repository)
-        if let Ok((repo_owner, _)) = self.parse_repository() {
-            self.cached_allowed_users.insert(repo_owner.to_lowercase());
-        }
+        let project = ["user", "organization"]
+            .iter()
+            .find_map(|k| data.get(k)?.get("projectV2").filter(|p| !p.is_null()))
+            .ok_or_else(|| {
+                BoardError::BoardNotFound(format!(
+                    "Project #{} not found for owner '{}' (check project.number/owner and \
+                     that the token has project scope)",
+                    self.config.project_number, self.config.owner
+                ))
+            })?;
 
-        info!("Board initialized with project ID: {:?}", self.project_id);
+        let id = project
+            .get("id")
+            .and_then(Value::as_str)
+            .ok_or_else(|| BoardError::GraphQL("Project ID missing in response".into()))?;
+        let fields = project
+            .get("fields")
+            .and_then(|f| f.get("nodes"))
+            .and_then(Value::as_array)
+            .map(|n| ProjectFields::from_nodes(n))
+            .unwrap_or_default();
+
+        info!(
+            "Board initialized: project {} ({} fields)",
+            id,
+            fields.field_count()
+        );
+        self.project = Some(ProjectInfo {
+            id: id.to_string(),
+            title: project
+                .get("title")
+                .and_then(Value::as_str)
+                .unwrap_or_default()
+                .to_string(),
+            fields,
+        });
         Ok(())
     }
 
-    /// Normalize agent name for comparison.
-    fn normalize_agent_name(name: &str) -> String {
-        let lower = name.to_lowercase();
-        for (key, value) in AGENT_NAME_MAP {
-            if lower == *key {
-                return (*value).to_string();
-            }
-        }
-        name.to_string()
-    }
-
-    /// Get the project ID from the project number.
-    async fn get_project_id(&self) -> Result<String> {
-        let query = r#"
-        query GetProject($owner: String!, $number: Int!) {
-          user(login: $owner) {
-            projectV2(number: $number) {
-              id
-              title
-            }
-          }
-          organization(login: $owner) {
-            projectV2(number: $number) {
-              id
-              title
-            }
-          }
-        }
-        "#;
-
-        let variables = json!({
-            "owner": self.config.owner,
-            "number": self.config.project_number
-        });
-
-        let response = self.client.execute(query, Some(variables)).await?;
-
-        let data = response.data.ok_or_else(|| {
-            BoardError::BoardNotFound(format!(
-                "Project #{} not found for owner {}",
-                self.config.project_number, self.config.owner
-            ))
-        })?;
-
-        // Try user first, then organization
-        let project = data
-            .get("user")
-            .and_then(|u| u.get("projectV2"))
-            .or_else(|| data.get("organization").and_then(|o| o.get("projectV2")));
-
-        let project = project.ok_or_else(|| {
-            BoardError::BoardNotFound(format!(
-                "Project #{} not found for owner {}",
-                self.config.project_number, self.config.owner
-            ))
-        })?;
-
-        project
-            .get("id")
-            .and_then(|id| id.as_str())
-            .map(|s| s.to_string())
-            .ok_or_else(|| BoardError::GraphQL("Project ID not found in response".to_string()))
-    }
-
-    /// Get issues ready for work.
-    pub async fn get_ready_work(
-        &self,
-        agent_name: Option<&str>,
-        limit: usize,
-    ) -> Result<Vec<Issue>> {
-        let project_id = self
-            .project_id
+    fn project(&self) -> Result<&ProjectInfo> {
+        self.project
             .as_ref()
-            .ok_or_else(|| BoardError::Config("BoardManager not initialized".to_string()))?;
+            .ok_or_else(|| BoardError::Config("BoardManager not initialized".to_string()))
+    }
 
+    /// Project title (after initialization).
+    pub fn project_title(&self) -> Option<&str> {
+        self.project.as_ref().map(|p| p.title.as_str())
+    }
+
+    /// Enabled agents from configuration.
+    pub fn get_enabled_agents(&self) -> &[String] {
+        &self.config.enabled_agents
+    }
+
+    /// Board configuration.
+    pub fn get_config(&self) -> &BoardConfig {
+        &self.config
+    }
+
+    fn repo(&self) -> Result<(&str, &str)> {
+        self.config.repo_parts().ok_or_else(|| {
+            BoardError::Config(format!(
+                "Invalid repository format: '{}'",
+                self.config.repository
+            ))
+        })
+    }
+
+    fn repo_vars(&self, number: u64) -> Result<Value> {
+        let (owner, repo) = self.repo()?;
+        Ok(json!({ "owner": owner, "repo": repo, "number": number }))
+    }
+
+    // ===== Board scans =====
+
+    /// Fetch all board item nodes using `query` (must accept `$projectId`
+    /// and `$cursor` and select `items { pageInfo nodes }`).
+    async fn fetch_items(&self, query: &str) -> Result<Vec<Value>> {
+        let project_id = &self.project()?.id;
+        let mut items = Vec::new();
+        let mut cursor: Option<String> = None;
+
+        for page in 1..=MAX_BOARD_PAGES {
+            let mut data = self
+                .client
+                .query(query, json!({ "projectId": project_id, "cursor": cursor }))
+                .await?;
+            let mut conn = data
+                .get_mut("node")
+                .and_then(|n| n.get_mut("items"))
+                .map(Value::take)
+                .ok_or_else(|| {
+                    BoardError::GraphQL("Project items missing in response".to_string())
+                })?;
+
+            cursor = approval::next_cursor(Some(&conn));
+            if let Some(Value::Array(nodes)) = conn.get_mut("nodes").map(Value::take) {
+                items.extend(nodes);
+            }
+            match cursor {
+                None => return Ok(items),
+                Some(_) if page == MAX_BOARD_PAGES => warn!(
+                    "Board has more than {} items; results truncated",
+                    MAX_BOARD_PAGES * 100
+                ),
+                Some(_) => debug!("Fetching board page {}", page + 1),
+            }
+        }
+        Ok(items)
+    }
+
+    /// All issues on the board with parsed metadata.
+    pub async fn board_issues(&self) -> Result<Vec<Issue>> {
+        let items = self.fetch_items(queries::BOARD_ITEMS).await?;
+        Ok(board::issues_from_items(&items, &self.config))
+    }
+
+    /// Ready work (all matches, highest priority first).
+    pub async fn get_ready_work(&self, filter: &ReadyFilter) -> Result<Vec<Issue>> {
+        let all = self.board_issues().await?;
+        let ready = board::select_ready(&all, filter, &self.config);
         info!(
-            "Getting ready work (agent={:?}, limit={})",
-            agent_name, limit
+            "Found {} ready issues out of {} on board",
+            ready.len(),
+            all.len()
         );
-
-        // Query with pagination support
-        let query = r#"
-        query GetProjectItems($projectId: ID!, $cursor: String) {
-          node(id: $projectId) {
-            ... on ProjectV2 {
-              items(first: 100, after: $cursor) {
-                pageInfo {
-                  hasNextPage
-                  endCursor
-                }
-                nodes {
-                  id
-                  fieldValues(first: 20) {
-                    nodes {
-                      ... on ProjectV2ItemFieldSingleSelectValue {
-                        name
-                        field { ... on ProjectV2FieldCommon { name } }
-                      }
-                      ... on ProjectV2ItemFieldTextValue {
-                        text
-                        field { ... on ProjectV2FieldCommon { name } }
-                      }
-                    }
-                  }
-                  content {
-                    ... on Issue {
-                      number
-                      title
-                      body
-                      state
-                      createdAt
-                      updatedAt
-                      url
-                      labels(first: 20) { nodes { name } }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-        "#;
-
-        let normalized_agent = agent_name.map(Self::normalize_agent_name);
-        let mut ready_issues = Vec::new();
-        let mut cursor: Option<String> = None;
-        let mut page_count = 0;
-        const MAX_PAGES: usize = 10; // Safety limit: 1000 items max
-
-        loop {
-            page_count += 1;
-            if page_count > MAX_PAGES {
-                warn!("Reached maximum pagination limit ({} pages)", MAX_PAGES);
-                break;
-            }
-
-            let variables = match &cursor {
-                Some(c) => json!({ "projectId": project_id, "cursor": c }),
-                None => json!({ "projectId": project_id, "cursor": null }),
-            };
-
-            let response = self.client.execute(query, Some(variables)).await?;
-
-            let data = response
-                .data
-                .ok_or_else(|| BoardError::GraphQL("Failed to fetch project items".to_string()))?;
-
-            let items_data = data
-                .get("node")
-                .and_then(|n| n.get("items"))
-                .ok_or_else(|| BoardError::GraphQL("Invalid response structure".to_string()))?;
-
-            let items = items_data
-                .get("nodes")
-                .and_then(|n| n.as_array())
-                .ok_or_else(|| BoardError::GraphQL("Invalid response structure".to_string()))?;
-
-            // Process items from this page
-            for item in items {
-                let content = match item.get("content") {
-                    Some(c) if !c.is_null() => c,
-                    _ => continue,
-                };
-
-                // Skip closed issues
-                if content.get("state").and_then(|s| s.as_str()) != Some("OPEN") {
-                    continue;
-                }
-
-                let field_values = self.parse_field_values(item);
-                let (status, priority, issue_type, assigned_agent, blocked_by) =
-                    self.parse_issue_metadata(&field_values);
-
-                // Skip if not in Todo status
-                if status != IssueStatus::Todo {
-                    continue;
-                }
-
-                // Filter by agent if specified
-                if let Some(ref norm_agent) = normalized_agent
-                    && let Some(ref assigned) = assigned_agent
-                    && assigned != norm_agent
-                {
-                    continue;
-                }
-
-                // Skip if has blockers
-                if !blocked_by.is_empty() {
-                    continue;
-                }
-
-                // Skip excluded labels
-                let labels = self.parse_labels(content);
-                if labels
-                    .iter()
-                    .any(|l| self.config.exclude_labels.contains(l))
-                {
-                    continue;
-                }
-
-                let issue = self.create_issue_from_item(
-                    item,
-                    content,
-                    status,
-                    priority,
-                    issue_type,
-                    assigned_agent,
-                    blocked_by,
-                    None,
-                )?;
-
-                ready_issues.push(issue);
-
-                if ready_issues.len() >= limit {
-                    break;
-                }
-            }
-
-            // Check if we have enough results or no more pages
-            if ready_issues.len() >= limit {
-                break;
-            }
-
-            let page_info = items_data.get("pageInfo");
-            let has_next_page = page_info
-                .and_then(|p| p.get("hasNextPage"))
-                .and_then(|h| h.as_bool())
-                .unwrap_or(false);
-
-            if !has_next_page {
-                break;
-            }
-
-            cursor = page_info
-                .and_then(|p| p.get("endCursor"))
-                .and_then(|c| c.as_str())
-                .map(|s| s.to_string());
-
-            if cursor.is_none() {
-                break;
-            }
-
-            info!("Fetching next page of items (page {})", page_count + 1);
-        }
-
-        // Sort by priority (now sorting ALL fetched items, not just first 100)
-        ready_issues.sort_by_key(|issue| match issue.priority {
-            IssuePriority::Critical => 0,
-            IssuePriority::High => 1,
-            IssuePriority::Medium => 2,
-            IssuePriority::Low => 3,
-        });
-
-        // Truncate to limit after sorting by priority
-        ready_issues.truncate(limit);
-
-        info!("Found {} ready issues", ready_issues.len());
-        Ok(ready_issues)
+        Ok(ready)
     }
 
-    /// Get a specific issue by number.
-    pub async fn get_issue(&self, issue_number: u64) -> Result<Option<Issue>> {
-        let project_id = self
-            .project_id
-            .as_ref()
-            .ok_or_else(|| BoardError::Config("BoardManager not initialized".to_string()))?;
-
-        info!("Getting issue #{}", issue_number);
-
-        // Query with pagination support
-        let query = r#"
-        query GetProjectItems($projectId: ID!, $cursor: String) {
-          node(id: $projectId) {
-            ... on ProjectV2 {
-              items(first: 100, after: $cursor) {
-                pageInfo {
-                  hasNextPage
-                  endCursor
-                }
-                nodes {
-                  id
-                  fieldValues(first: 20) {
-                    nodes {
-                      ... on ProjectV2ItemFieldSingleSelectValue {
-                        name
-                        field { ... on ProjectV2FieldCommon { name } }
-                      }
-                      ... on ProjectV2ItemFieldTextValue {
-                        text
-                        field { ... on ProjectV2FieldCommon { name } }
-                      }
+    /// Keep only approved issues, checking in priority order until `limit`
+    /// approved issues are found. Approvals are checked in batches. With
+    /// `agent`, the `[Approved][..]` trigger must name that agent.
+    pub async fn filter_approved(
+        &self,
+        candidates: Vec<Issue>,
+        limit: usize,
+        agent: Option<&str>,
+    ) -> Result<Vec<Issue>> {
+        let mut approved = Vec::new();
+        for chunk in candidates.chunks(APPROVAL_BATCH_SIZE) {
+            let numbers: Vec<u64> = chunk.iter().map(|i| i.number).collect();
+            let approvals = self.approvals(&numbers, agent).await?;
+            for issue in chunk {
+                if approvals.get(&issue.number).is_some_and(Option::is_some) {
+                    approved.push(issue.clone());
+                    if approved.len() >= limit {
+                        return Ok(approved);
                     }
-                  }
-                  content {
-                    ... on Issue {
-                      number
-                      title
-                      body
-                      state
-                      createdAt
-                      updatedAt
-                      url
-                      labels(first: 20) { nodes { name } }
-                    }
-                  }
                 }
-              }
-            }
-          }
-        }
-        "#;
-
-        let mut cursor: Option<String> = None;
-        let mut page_count = 0;
-        const MAX_PAGES: usize = 10; // Safety limit
-
-        loop {
-            page_count += 1;
-            if page_count > MAX_PAGES {
-                warn!(
-                    "Issue #{} not found after {} pages",
-                    issue_number, MAX_PAGES
-                );
-                break;
-            }
-
-            let variables = match &cursor {
-                Some(c) => json!({ "projectId": project_id, "cursor": c }),
-                None => json!({ "projectId": project_id, "cursor": null }),
-            };
-
-            let response = self.client.execute(query, Some(variables)).await?;
-
-            let data = response
-                .data
-                .ok_or_else(|| BoardError::GraphQL("Failed to fetch project items".to_string()))?;
-
-            let items_data = data
-                .get("node")
-                .and_then(|n| n.get("items"))
-                .ok_or_else(|| BoardError::GraphQL("Invalid response structure".to_string()))?;
-
-            let items = items_data
-                .get("nodes")
-                .and_then(|n| n.as_array())
-                .ok_or_else(|| BoardError::GraphQL("Invalid response structure".to_string()))?;
-
-            for item in items {
-                let content = match item.get("content") {
-                    Some(c) if !c.is_null() => c,
-                    _ => continue,
-                };
-
-                if content.get("number").and_then(|n| n.as_u64()) != Some(issue_number) {
-                    continue;
-                }
-
-                let field_values = self.parse_field_values(item);
-                let (status, priority, issue_type, assigned_agent, blocked_by) =
-                    self.parse_issue_metadata(&field_values);
-                let discovered_from = self.parse_discovered_from(&field_values);
-
-                let issue = self.create_issue_from_item(
-                    item,
-                    content,
-                    status,
-                    priority,
-                    issue_type,
-                    assigned_agent,
-                    blocked_by,
-                    discovered_from,
-                )?;
-
-                info!("Found issue #{}: {}", issue_number, issue.title);
-                return Ok(Some(issue));
-            }
-
-            // Check for more pages
-            let page_info = items_data.get("pageInfo");
-            let has_next_page = page_info
-                .and_then(|p| p.get("hasNextPage"))
-                .and_then(|h| h.as_bool())
-                .unwrap_or(false);
-
-            if !has_next_page {
-                break;
-            }
-
-            cursor = page_info
-                .and_then(|p| p.get("endCursor"))
-                .and_then(|c| c.as_str())
-                .map(|s| s.to_string());
-
-            if cursor.is_none() {
-                break;
             }
         }
-
-        warn!("Issue #{} not found on board", issue_number);
-        Ok(None)
+        Ok(approved)
     }
 
-    /// Claim an issue for work.
+    /// Issue numbers currently on the board.
+    async fn board_issue_numbers(&self) -> Result<HashSet<u64>> {
+        let items = self.fetch_items(queries::BOARD_NUMBERS).await?;
+        Ok(board::issue_numbers(&items))
+    }
+
+    /// Dependency graph of an issue (None when not on the board).
+    pub async fn dependency_graph(&self, number: u64) -> Result<Option<DependencyGraph>> {
+        let all = self.board_issues().await?;
+        Ok(board::dependency_graph(number, &all))
+    }
+
+    // ===== Single issue =====
+
+    /// Look an issue up directly via `Issue.projectItems`.
+    pub async fn lookup_issue(&self, number: u64) -> Result<IssueLookup> {
+        let project_id = &self.project()?.id;
+        let data = self
+            .client
+            .query(queries::ISSUE_ITEM, self.repo_vars(number)?)
+            .await?;
+        parse_issue_lookup(&data, number, project_id, &self.config)
+    }
+
+    /// Get an issue with board metadata; `None` if it is not on the board.
+    pub async fn get_issue(&self, number: u64) -> Result<Option<Issue>> {
+        match self.lookup_issue(number).await {
+            Ok(l) if l.on_board => Ok(Some(l.issue)),
+            Ok(_) | Err(BoardError::IssueNotFound(_)) => Ok(None),
+            Err(e) => Err(e),
+        }
+    }
+
+    /// Write a project field on an item. `key` is the logical field key
+    /// (`status`, `priority`, ...), resolved through the config mappings.
+    pub async fn set_field(&self, item_id: &str, key: &str, input: FieldInput<'_>) -> Result<()> {
+        let project = self.project()?;
+        let name = self.config.get_field_name(key);
+        let field = project
+            .fields
+            .get(&name)
+            .ok_or_else(|| BoardError::FieldNotFound(name.clone()))?;
+
+        let base = json!({ "projectId": project.id, "itemId": item_id, "fieldId": field.id });
+        let with_value = |value: Value| {
+            let mut vars = base.clone();
+            vars["value"] = value;
+            vars
+        };
+
+        let (mutation, vars) = match input {
+            FieldInput::Option(value) => {
+                let option_id = field.option_id(value).ok_or_else(|| {
+                    BoardError::InvalidFieldValue(
+                        value.to_string(),
+                        format!("{} (options: {})", name, field.option_names().join(", ")),
+                    )
+                })?;
+                (
+                    queries::UPDATE_FIELD,
+                    with_value(json!({ "singleSelectOptionId": option_id })),
+                )
+            },
+            FieldInput::Text(text) => {
+                if field.kind != FieldKind::Text {
+                    return Err(BoardError::Validation(format!(
+                        "Field '{}' is not a text field",
+                        name
+                    )));
+                }
+                (queries::UPDATE_FIELD, with_value(json!({ "text": text })))
+            },
+            FieldInput::Clear => (queries::CLEAR_FIELD, base),
+        };
+
+        self.client.mutate(mutation, vars).await?;
+        debug!("Set field '{}' on item {}", name, item_id);
+        Ok(())
+    }
+
+    /// Update an issue's board status.
+    pub async fn update_status(&self, number: u64, status: IssueStatus) -> Result<()> {
+        let lookup = self.lookup_issue(number).await?;
+        self.set_field(
+            lookup.item_id()?,
+            "status",
+            FieldInput::Option(status.as_str()),
+        )
+        .await?;
+        info!("Updated issue #{} status to {}", number, status);
+        Ok(())
+    }
+
+    async fn post_comment(&self, node_id: &str, body: &str) -> Result<()> {
+        self.client
+            .mutate(
+                queries::ADD_COMMENT,
+                json!({ "subjectId": node_id, "body": body }),
+            )
+            .await?;
+        Ok(())
+    }
+
+    // ===== Claims =====
+
+    /// Active claim reconstructed from the most recent 100 comments.
+    pub async fn get_active_claim(&self, number: u64) -> Result<Option<AgentClaim>> {
+        let data = self
+            .client
+            .query(queries::CLAIM_COMMENTS, self.repo_vars(number)?)
+            .await?;
+        let nodes = data
+            .get("repository")
+            .and_then(|r| r.get("issue"))
+            .filter(|i| !i.is_null())
+            .ok_or(BoardError::IssueNotFound(number))?
+            .get("comments")
+            .and_then(|c| c.get("nodes"))
+            .and_then(Value::as_array)
+            .map(Vec::as_slice)
+            .unwrap_or_default();
+        let events = claims::events_from_nodes(nodes, &self.claim_authors);
+        Ok(claims::resolve_active_claim(
+            number,
+            &events,
+            self.config.claim_timeout,
+        ))
+    }
+
+    /// Claim an issue: verify no live claim exists, post the claim comment,
+    /// re-read to detect a concurrent claim that landed first, then move the
+    /// issue to In Progress.
     pub async fn claim_work(
         &self,
-        issue_number: u64,
-        agent_name: &str,
-        session_id: &str,
-    ) -> Result<bool> {
-        info!(
-            "Claiming issue #{} by {} (session: {})",
-            issue_number, agent_name, session_id
-        );
+        number: u64,
+        agent: &str,
+        session: &str,
+    ) -> Result<ClaimOutcome> {
+        let lookup = self.lookup_issue(number).await?;
+        let item_id = lookup.item_id()?.to_string();
 
-        // Check for existing claim
-        let existing_claim = self.get_active_claim(issue_number).await?;
-        if let Some(claim) = existing_claim {
-            if !claim.is_expired(self.config.claim_timeout) {
-                info!("Issue #{} already claimed by {}", issue_number, claim.agent);
-                return Ok(false);
+        if let Some(claim) = self.get_active_claim(number).await? {
+            if claim.session_id == session {
+                info!("Issue #{} already claimed by this session", number);
+            } else if !claim.is_expired(self.config.claim_timeout) {
+                info!("Issue #{} already claimed by {}", number, claim.agent);
+                return Ok(ClaimOutcome::AlreadyClaimed(claim));
+            } else {
+                info!(
+                    "Stale claim by {} on #{} expired, taking over",
+                    claim.agent, number
+                );
             }
-            info!("Stale claim expired on issue #{}, stealing", issue_number);
         }
 
-        // Post claim comment
-        let timeout_hours = self.config.claim_timeout / 3600;
-        let comment = format!(
-            "{}\n\nAgent: `{}`\nStarted: `{}`\nSession ID: `{}`\n\nClaiming this issue for implementation. If this agent goes MIA, this claim expires after {} hours.",
-            CLAIM_PREFIX,
-            agent_name,
-            Utc::now().to_rfc3339(),
-            session_id,
-            timeout_hours
-        );
+        let body = claims::claim_comment(agent, session, Utc::now(), self.config.claim_timeout);
+        self.post_comment(&lookup.node_id, &body).await?;
 
-        self.post_issue_comment(issue_number, &comment).await?;
+        // Detect a concurrent claim: the first live claim wins.
+        if let Some(winner) = self.get_active_claim(number).await?
+            && winner.session_id != session
+        {
+            warn!(
+                "Lost claim race on #{} to {} (session {})",
+                number, winner.agent, winner.session_id
+            );
+            return Ok(ClaimOutcome::LostRace(winner));
+        }
 
-        // Update status to In Progress
-        self.update_status(issue_number, IssueStatus::InProgress)
-            .await?;
-
-        Ok(true)
+        self.set_field(
+            &item_id,
+            "status",
+            FieldInput::Option(IssueStatus::InProgress.as_str()),
+        )
+        .await?;
+        info!("Claimed #{} for {} (session {})", number, agent, session);
+        Ok(ClaimOutcome::Claimed)
     }
 
-    /// Renew an active claim.
-    pub async fn renew_claim(
-        &self,
-        issue_number: u64,
-        agent_name: &str,
-        session_id: &str,
-    ) -> Result<bool> {
-        let existing_claim = self.get_active_claim(issue_number).await?;
-
-        match existing_claim {
-            Some(claim) if claim.agent == agent_name => {
-                let comment = format!(
-                    "{}\n\nAgent: `{}`\nRenewed: `{}`\nSession ID: `{}`\n\nClaim renewed - still actively working on this issue.",
-                    RENEWAL_PREFIX,
-                    agent_name,
-                    Utc::now().to_rfc3339(),
-                    session_id
-                );
-
-                self.post_issue_comment(issue_number, &comment).await?;
-                info!("Renewed claim on #{} by {}", issue_number, agent_name);
+    /// Renew an active claim held by `agent`.
+    pub async fn renew_claim(&self, number: u64, agent: &str, session: &str) -> Result<bool> {
+        match self.get_active_claim(number).await? {
+            Some(claim) if same_agent(&claim.agent, agent) => {
+                if claim.session_id != session {
+                    warn!(
+                        "Renewing claim on #{} with session {} (claim was made by session {})",
+                        number, session, claim.session_id
+                    );
+                }
+                let lookup = self.lookup_issue(number).await?;
+                let body = claims::renewal_comment(agent, session, Utc::now());
+                self.post_comment(&lookup.node_id, &body).await?;
+                info!("Renewed claim on #{} by {}", number, agent);
                 Ok(true)
             },
-            _ => {
+            other => {
                 warn!(
-                    "Cannot renew claim on #{}: no active claim by {}",
-                    issue_number, agent_name
+                    "Cannot renew claim on #{}: active claim is {:?}, not {}",
+                    number,
+                    other.map(|c| c.agent),
+                    agent
                 );
                 Ok(false)
             },
         }
     }
 
-    /// Release claim on an issue.
+    /// Release a claim and apply the status implied by `reason`.
     pub async fn release_work(
         &self,
-        issue_number: u64,
-        agent_name: &str,
+        number: u64,
+        agent: &str,
         reason: ReleaseReason,
     ) -> Result<()> {
-        let comment = format!(
-            "{}\n\nAgent: `{}`\nReleased: `{}`\nReason: `{}`\n\nWork claim released.",
-            RELEASE_PREFIX,
-            agent_name,
-            Utc::now().to_rfc3339(),
-            reason
-        );
+        let lookup = self.lookup_issue(number).await?;
+        let body = claims::release_comment_for(agent, reason, Utc::now());
+        self.post_comment(&lookup.node_id, &body).await?;
 
-        self.post_issue_comment(issue_number, &comment).await?;
-
-        // Update status based on reason
-        match reason {
-            ReleaseReason::Completed | ReleaseReason::PrCreated => {
-                // Stay In Progress until PR is merged
-            },
-            ReleaseReason::Blocked => {
-                self.update_status(issue_number, IssueStatus::Blocked)
-                    .await?;
-            },
-            ReleaseReason::Abandoned | ReleaseReason::Error => {
-                // Use Abandoned status to prevent infinite loops where agents
-                // repeatedly pick up and fail on the same issue
-                self.update_status(issue_number, IssueStatus::Abandoned)
-                    .await?;
-            },
+        if let Some(status) = reason.resulting_status() {
+            self.set_field(
+                lookup.item_id()?,
+                "status",
+                FieldInput::Option(status.as_str()),
+            )
+            .await?;
         }
-
         info!(
             "Released claim on #{} by {} (reason: {})",
-            issue_number, agent_name, reason
+            number, agent, reason
         );
         Ok(())
     }
 
-    /// Update issue status on board.
-    pub async fn update_status(&self, issue_number: u64, status: IssueStatus) -> Result<bool> {
-        let project_id = self
-            .project_id
-            .as_ref()
-            .ok_or_else(|| BoardError::Config("BoardManager not initialized".to_string()))?;
-
-        let status_field_name = self.config.get_field_name("status");
-
-        // Query with pagination support for boards with >100 items
-        // Field name is from trusted config, not user input
-        let query = format!(
-            r#"
-        query GetProjectItem($projectId: ID!, $cursor: String) {{
-          node(id: $projectId) {{
-            ... on ProjectV2 {{
-              items(first: 100, after: $cursor) {{
-                pageInfo {{
-                  hasNextPage
-                  endCursor
-                }}
-                nodes {{
-                  id
-                  content {{ ... on Issue {{ number }} }}
-                }}
-              }}
-              field(name: "{}") {{
-                ... on ProjectV2SingleSelectField {{
-                  id
-                  options {{ id name }}
-                }}
-              }}
-            }}
-          }}
-        }}
-        "#,
-            status_field_name
-        );
-
-        let mut cursor: Option<String> = None;
-        let mut project_item_id: Option<String> = None;
-        let mut field_data: Option<serde_json::Value> = None;
-        const MAX_PAGES: usize = 10;
-
-        for page in 1..=MAX_PAGES {
-            let variables = match &cursor {
-                Some(c) => json!({ "projectId": project_id, "cursor": c }),
-                None => json!({ "projectId": project_id, "cursor": null }),
-            };
-
-            let response = self.client.execute(&query, Some(variables)).await?;
-
-            let data = response
-                .data
-                .ok_or_else(|| BoardError::GraphQL("Failed to get project item".to_string()))?;
-
-            let node = data
-                .get("node")
-                .ok_or_else(|| BoardError::GraphQL("Node not found".to_string()))?;
-
-            // Store field data from first page (update_status - it's the same on all pages)
-            if field_data.is_none() {
-                field_data = node.get("field").cloned();
-            }
-
-            let items_data = node
-                .get("items")
-                .ok_or_else(|| BoardError::GraphQL("Items not found".to_string()))?;
-
-            let items = items_data
-                .get("nodes")
-                .and_then(|n| n.as_array())
-                .ok_or_else(|| BoardError::GraphQL("Items nodes not found".to_string()))?;
-
-            // Search for the issue in this page
-            for item in items {
-                if item
-                    .get("content")
-                    .and_then(|c| c.get("number"))
-                    .and_then(|n| n.as_u64())
-                    == Some(issue_number)
-                {
-                    project_item_id = item.get("id").and_then(|id| id.as_str()).map(String::from);
-                    break;
-                }
-            }
-
-            if project_item_id.is_some() {
-                break;
-            }
-
-            // Check for more pages
-            let page_info = items_data.get("pageInfo");
-            let has_next_page = page_info
-                .and_then(|p| p.get("hasNextPage"))
-                .and_then(|h| h.as_bool())
-                .unwrap_or(false);
-
-            if !has_next_page {
-                break;
-            }
-
-            cursor = page_info
-                .and_then(|p| p.get("endCursor"))
-                .and_then(|c| c.as_str())
-                .map(String::from);
-
-            if cursor.is_none() || page == MAX_PAGES {
-                warn!("Issue #{} not found after {} pages", issue_number, page);
-                break;
-            }
-        }
-
-        let project_item_id =
-            project_item_id.ok_or_else(|| BoardError::IssueNotFound(issue_number))?;
-
-        // Get field ID and option ID (from stored field_data)
-        let field = field_data
-            .as_ref()
-            .ok_or_else(|| BoardError::FieldNotFound("Status".to_string()))?;
-
-        let field_id = field
-            .get("id")
-            .and_then(|id| id.as_str())
-            .ok_or_else(|| BoardError::FieldNotFound("Status".to_string()))?;
-
-        let options = field
-            .get("options")
-            .and_then(|o| o.as_array())
-            .ok_or_else(|| BoardError::FieldNotFound("Status options".to_string()))?;
-
-        let status_value = status.as_str();
-        let option_id = options
-            .iter()
-            .find(|opt| opt.get("name").and_then(|n| n.as_str()) == Some(status_value))
-            .and_then(|opt| opt.get("id"))
-            .and_then(|id| id.as_str())
-            .ok_or_else(|| {
-                BoardError::InvalidFieldValue(status_value.to_string(), "Status".to_string())
-            })?;
-
-        // Update field value
-        let mutation = r#"
-        mutation UpdateProjectField($projectId: ID!, $itemId: ID!, $fieldId: ID!, $value: ProjectV2FieldValue!) {
-          updateProjectV2ItemFieldValue(
-            input: {projectId: $projectId, itemId: $itemId, fieldId: $fieldId, value: $value}
-          ) {
-            projectV2Item { id }
-          }
-        }
-        "#;
-
-        let variables = json!({
-            "projectId": project_id,
-            "itemId": project_item_id,
-            "fieldId": field_id,
-            "value": { "singleSelectOptionId": option_id }
-        });
-
-        self.client.execute(mutation, Some(variables)).await?;
-        info!("Updated issue #{} status to {}", issue_number, status);
-        Ok(true)
-    }
-
-    /// Add blocker relationship.
-    pub async fn add_blocker(&self, issue_number: u64, blocker_number: u64) -> Result<bool> {
-        let project_id = self
-            .project_id
-            .as_ref()
-            .ok_or_else(|| BoardError::Config("BoardManager not initialized".to_string()))?;
-
-        let blocked_by_field_name = self.config.get_field_name("blocked_by");
-
-        info!(
-            "Adding blocker: #{} blocks #{}",
-            blocker_number, issue_number
-        );
-
-        // Query with pagination support for boards with >100 items
-        // Field name is from trusted config, not user input
-        let query = format!(
-            r#"
-        query GetProjectItemForBlocker($projectId: ID!, $cursor: String) {{
-          node(id: $projectId) {{
-            ... on ProjectV2 {{
-              items(first: 100, after: $cursor) {{
-                pageInfo {{
-                  hasNextPage
-                  endCursor
-                }}
-                nodes {{
-                  id
-                  fieldValues(first: 20) {{
-                    nodes {{
-                      ... on ProjectV2ItemFieldTextValue {{
-                        text
-                        field {{ ... on ProjectV2FieldCommon {{ name }} }}
-                      }}
-                    }}
-                  }}
-                  content {{ ... on Issue {{ number }} }}
-                }}
-              }}
-              field(name: "{}") {{
-                ... on ProjectV2FieldCommon {{ id }}
-              }}
-            }}
-          }}
-        }}
-        "#,
-            blocked_by_field_name
-        );
-
-        let mut cursor: Option<String> = None;
-        let mut project_item_id: Option<String> = None;
-        let mut current_blocked_by = String::new();
-        let mut field_data: Option<serde_json::Value> = None;
-        const MAX_PAGES: usize = 10;
-
-        for page in 1..=MAX_PAGES {
-            let variables = match &cursor {
-                Some(c) => json!({ "projectId": project_id, "cursor": c }),
-                None => json!({ "projectId": project_id, "cursor": null }),
-            };
-
-            let response = self.client.execute(&query, Some(variables)).await?;
-
-            let data = response
-                .data
-                .ok_or_else(|| BoardError::GraphQL("Failed to get project item".to_string()))?;
-
-            let node = data
-                .get("node")
-                .ok_or_else(|| BoardError::GraphQL("Node not found".to_string()))?;
-
-            // Store field data from first page (add_blocker)
-            if field_data.is_none() {
-                field_data = node.get("field").cloned();
-            }
-
-            let items_data = node
-                .get("items")
-                .ok_or_else(|| BoardError::GraphQL("Items not found".to_string()))?;
-
-            let items = items_data
-                .get("nodes")
-                .and_then(|n| n.as_array())
-                .ok_or_else(|| BoardError::GraphQL("Items nodes not found".to_string()))?;
-
-            // Search for the issue in this page
-            for item in items {
-                let content = item.get("content");
-                if content
-                    .and_then(|c| c.get("number"))
-                    .and_then(|n| n.as_u64())
-                    != Some(issue_number)
-                {
-                    continue;
-                }
-
-                project_item_id = item
-                    .get("id")
-                    .and_then(|id| id.as_str())
-                    .map(|s| s.to_string());
-
-                // Find blocked_by field value
-                if let Some(field_values) = item
-                    .get("fieldValues")
-                    .and_then(|f| f.get("nodes"))
-                    .and_then(|n| n.as_array())
-                {
-                    for fv in field_values {
-                        let field_name = fv
-                            .get("field")
-                            .and_then(|f| f.get("name"))
-                            .and_then(|n| n.as_str());
-                        if field_name == Some(self.config.get_field_name("blocked_by").as_str()) {
-                            current_blocked_by = fv
-                                .get("text")
-                                .and_then(|t| t.as_str())
-                                .unwrap_or("")
-                                .to_string();
-                        }
-                    }
-                }
-                break;
-            }
-
-            if project_item_id.is_some() {
-                break;
-            }
-
-            // Check for more pages
-            let page_info = items_data.get("pageInfo");
-            let has_next_page = page_info
-                .and_then(|p| p.get("hasNextPage"))
-                .and_then(|h| h.as_bool())
-                .unwrap_or(false);
-
-            if !has_next_page {
-                break;
-            }
-
-            cursor = page_info
-                .and_then(|p| p.get("endCursor"))
-                .and_then(|c| c.as_str())
-                .map(String::from);
-
-            if cursor.is_none() || page == MAX_PAGES {
-                warn!("Issue #{} not found after {} pages", issue_number, page);
-                break;
-            }
-        }
-
-        let project_item_id =
-            project_item_id.ok_or_else(|| BoardError::IssueNotFound(issue_number))?;
-
-        // Add blocker to list
-        let mut blocked_by_list: Vec<String> = current_blocked_by
-            .split(',')
-            .map(|s| s.trim().to_string())
-            .filter(|s| !s.is_empty())
+    /// Release claims whose last activity is older than the threshold and
+    /// reset those issues so they can be picked up again.
+    pub async fn janitor(&self, opts: &JanitorOptions) -> Result<JanitorReport> {
+        let in_progress: Vec<Issue> = self
+            .board_issues()
+            .await?
+            .into_iter()
+            .filter(|i| i.is_open() && i.status == IssueStatus::InProgress)
             .collect();
 
-        let blocker_str = blocker_number.to_string();
-        if !blocked_by_list.contains(&blocker_str) {
-            blocked_by_list.push(blocker_str);
+        let now = Utc::now();
+        let mut report = JanitorReport {
+            dry_run: opts.dry_run,
+            threshold_hours: opts.threshold_secs as f64 / 3600.0,
+            reset_status: opts.reset_status,
+            inspected: in_progress.len(),
+            cleaned_count: 0,
+            stale: Vec::new(),
+            unclaimed_in_progress: Vec::new(),
+            failed: Vec::new(),
+        };
+
+        for issue in &in_progress {
+            let claim = match self.get_active_claim(issue.number).await? {
+                Some(c) => c,
+                None => {
+                    report.unclaimed_in_progress.push(issue.number);
+                    continue;
+                },
+            };
+            if opts
+                .agent
+                .as_deref()
+                .is_some_and(|a| !same_agent(a, &claim.agent))
+                || !claim.is_expired_at(opts.threshold_secs, now)
+            {
+                continue;
+            }
+
+            let stale = StaleClaim {
+                issue: issue.number,
+                title: issue.title.clone(),
+                agent: claim.agent.clone(),
+                session_id: claim.session_id.clone(),
+                age_hours: claim.age_seconds_at(now) as f64 / 3600.0,
+            };
+            if !opts.dry_run
+                && let Err(e) = self.release_stale(issue, &stale, opts.reset_status).await
+            {
+                warn!("Janitor failed to release #{}: {}", issue.number, e);
+                report.failed.push(issue.number);
+                continue;
+            }
+            report.stale.push(stale);
         }
 
-        let new_blocked_by = blocked_by_list.join(", ");
-
-        // Get field ID (from stored field_data)
-        let field_id = field_data
-            .as_ref()
-            .and_then(|f| f.get("id"))
-            .and_then(|id| id.as_str())
-            .ok_or_else(|| BoardError::FieldNotFound("Blocked By".to_string()))?;
-
-        // Update field
-        let mutation = r#"
-        mutation UpdateProjectField($projectId: ID!, $itemId: ID!, $fieldId: ID!, $value: ProjectV2FieldValue!) {
-          updateProjectV2ItemFieldValue(
-            input: {projectId: $projectId, itemId: $itemId, fieldId: $fieldId, value: $value}
-          ) {
-            projectV2Item { id }
-          }
-        }
-        "#;
-
-        let variables = json!({
-            "projectId": project_id,
-            "itemId": project_item_id,
-            "fieldId": field_id,
-            "value": { "text": new_blocked_by }
-        });
-
-        self.client.execute(mutation, Some(variables)).await?;
-        info!(
-            "Added blocker: #{} now blocks #{}",
-            blocker_number, issue_number
-        );
-        Ok(true)
+        report.cleaned_count = report.stale.len();
+        Ok(report)
     }
 
-    /// Mark issue as discovered from parent.
-    pub async fn mark_discovered_from(
+    async fn release_stale(
         &self,
-        issue_number: u64,
-        parent_number: u64,
-    ) -> Result<bool> {
-        let project_id = self
-            .project_id
-            .as_ref()
-            .ok_or_else(|| BoardError::Config("BoardManager not initialized".to_string()))?;
-
-        info!(
-            "Marking #{} as discovered from #{}",
-            issue_number, parent_number
+        issue: &Issue,
+        stale: &StaleClaim,
+        reset: IssueStatus,
+    ) -> Result<()> {
+        let item_id = issue
+            .project_item_id
+            .as_deref()
+            .ok_or(BoardError::NotOnBoard(issue.number))?;
+        let lookup = self.lookup_issue(issue.number).await?;
+        let note = format!(
+            "Claim by `{}` had no activity for {:.1} hours and was released by the board \
+             janitor. Status reset to {}.",
+            stale.agent, stale.age_hours, reset
         );
+        let body = claims::release_comment(&stale.agent, "stale_claim", Utc::now(), &note);
+        self.post_comment(&lookup.node_id, &body).await?;
+        self.set_field(item_id, "status", FieldInput::Option(reset.as_str()))
+            .await?;
+        info!("Janitor released stale claim on #{}", issue.number);
+        Ok(())
+    }
 
-        // Query with pagination support for boards with >100 items
-        let discovered_from_field = self.config.get_field_name("discovered_from");
-        let query = format!(
-            r#"
-        query GetProjectItemForDiscovery($projectId: ID!, $cursor: String) {{
-          node(id: $projectId) {{
-            ... on ProjectV2 {{
-              items(first: 100, after: $cursor) {{
-                pageInfo {{
-                  hasNextPage
-                  endCursor
-                }}
-                nodes {{
-                  id
-                  content {{ ... on Issue {{ number }} }}
-                }}
-              }}
-              field(name: "{}") {{
-                ... on ProjectV2FieldCommon {{ id }}
-              }}
-            }}
-          }}
-        }}
-        "#,
-            discovered_from_field
-        );
+    // ===== Dependencies =====
 
-        let mut cursor: Option<String> = None;
-        let mut project_item_id: Option<String> = None;
-        let mut field_data: Option<serde_json::Value> = None;
-        const MAX_PAGES: usize = 10;
-
-        for page in 1..=MAX_PAGES {
-            let variables = match &cursor {
-                Some(c) => json!({ "projectId": project_id, "cursor": c }),
-                None => json!({ "projectId": project_id, "cursor": null }),
-            };
-
-            let response = self.client.execute(&query, Some(variables)).await?;
-
-            let data = response
-                .data
-                .ok_or_else(|| BoardError::GraphQL("Failed to get project item".to_string()))?;
-
-            let node = data
-                .get("node")
-                .ok_or_else(|| BoardError::GraphQL("Node not found".to_string()))?;
-
-            // Store field data from first page
-            if field_data.is_none() {
-                field_data = node.get("field").cloned();
-            }
-
-            let items_data = node
-                .get("items")
-                .ok_or_else(|| BoardError::GraphQL("Items not found".to_string()))?;
-
-            let items = items_data
-                .get("nodes")
-                .and_then(|n| n.as_array())
-                .ok_or_else(|| BoardError::GraphQL("Items nodes not found".to_string()))?;
-
-            // Search for the issue in this page
-            for item in items {
-                if item
-                    .get("content")
-                    .and_then(|c| c.get("number"))
-                    .and_then(|n| n.as_u64())
-                    == Some(issue_number)
-                {
-                    project_item_id = item.get("id").and_then(|id| id.as_str()).map(String::from);
-                    break;
-                }
-            }
-
-            if project_item_id.is_some() {
-                break;
-            }
-
-            // Check for more pages
-            let page_info = items_data.get("pageInfo");
-            let has_next_page = page_info
-                .and_then(|p| p.get("hasNextPage"))
-                .and_then(|h| h.as_bool())
-                .unwrap_or(false);
-
-            if !has_next_page {
-                break;
-            }
-
-            cursor = page_info
-                .and_then(|p| p.get("endCursor"))
-                .and_then(|c| c.as_str())
-                .map(String::from);
-
-            if cursor.is_none() || page == MAX_PAGES {
-                warn!("Issue #{} not found after {} pages", issue_number, page);
-                break;
-            }
+    /// Add `blocker` to the Blocked By field of `number`.
+    pub async fn add_blocker(&self, number: u64, blocker: u64) -> Result<Vec<u64>> {
+        if number == blocker {
+            return Err(BoardError::Validation(format!(
+                "Issue #{} cannot block itself",
+                number
+            )));
         }
-
-        let project_item_id =
-            project_item_id.ok_or_else(|| BoardError::IssueNotFound(issue_number))?;
-
-        let field_id = field_data
-            .as_ref()
-            .and_then(|f| f.get("id"))
-            .and_then(|id| id.as_str())
-            .ok_or_else(|| BoardError::FieldNotFound("Discovered From".to_string()))?;
-
-        let mutation = r#"
-        mutation UpdateProjectField($projectId: ID!, $itemId: ID!, $fieldId: ID!, $value: ProjectV2FieldValue!) {
-          updateProjectV2ItemFieldValue(
-            input: {projectId: $projectId, itemId: $itemId, fieldId: $fieldId, value: $value}
-          ) {
-            projectV2Item { id }
-          }
+        let lookup = self.lookup_issue(number).await?;
+        let mut list = lookup.issue.blocked_by.clone();
+        if !list.contains(&blocker) {
+            list.push(blocker);
         }
-        "#;
-
-        let variables = json!({
-            "projectId": project_id,
-            "itemId": project_item_id,
-            "fieldId": field_id,
-            "value": { "text": parent_number.to_string() }
-        });
-
-        self.client.execute(mutation, Some(variables)).await?;
-        info!(
-            "Marked #{} as discovered from #{}",
-            issue_number, parent_number
-        );
-        Ok(true)
+        self.write_blockers(&lookup, &list).await?;
+        info!("#{} now blocks #{}", blocker, number);
+        Ok(list)
     }
 
-    /// Get enabled agents list.
-    pub fn get_enabled_agents(&self) -> &[String] {
-        &self.config.enabled_agents
+    /// Remove `blocker` from the Blocked By field of `number`.
+    pub async fn remove_blocker(&self, number: u64, blocker: u64) -> Result<Vec<u64>> {
+        let lookup = self.lookup_issue(number).await?;
+        let list: Vec<u64> = lookup
+            .issue
+            .blocked_by
+            .iter()
+            .copied()
+            .filter(|b| *b != blocker)
+            .collect();
+        self.write_blockers(&lookup, &list).await?;
+        info!("#{} no longer blocks #{}", blocker, number);
+        Ok(list)
     }
 
-    /// Get board configuration.
-    pub fn get_config(&self) -> &BoardConfig {
-        &self.config
+    async fn write_blockers(&self, lookup: &IssueLookup, list: &[u64]) -> Result<()> {
+        let input = if list.is_empty() {
+            FieldInput::Clear
+        } else {
+            FieldInput::Text(board::format_number_list(list))
+        };
+        self.set_field(lookup.item_id()?, "blocked_by", input).await
     }
 
-    /// Find approved issues using GitHub Search API.
-    /// Returns issues with `[Approved][agent]` comments that may or may not be on the board.
-    pub async fn find_approved_issues(&self, agent_name: &str) -> Result<Vec<ApprovedIssue>> {
-        let (owner, repo) = self.parse_repository()?;
+    /// Record that `number` was discovered while working on `parent`.
+    pub async fn mark_discovered_from(&self, number: u64, parent: u64) -> Result<()> {
+        if number == parent {
+            return Err(BoardError::Validation(format!(
+                "Issue #{} cannot be discovered from itself",
+                number
+            )));
+        }
+        let lookup = self.lookup_issue(number).await?;
+        self.set_field(
+            lookup.item_id()?,
+            "discovered_from",
+            FieldInput::Text(parent.to_string()),
+        )
+        .await?;
+        info!("Marked #{} as discovered from #{}", number, parent);
+        Ok(())
+    }
 
-        info!("Finding approved issues for agent: {}", agent_name);
+    // ===== Approval =====
 
-        // Pre-fetch all board issue numbers to avoid N+1 queries
-        // This single query replaces potentially hundreds of get_issue calls
-        let board_issue_numbers = self.get_board_issue_numbers().await?;
-        info!(
-            "Pre-fetched {} board issue numbers for membership check",
-            board_issue_numbers.len()
-        );
+    fn approval_policy<'a>(&'a self, agent: Option<&'a str>) -> ApprovalPolicy<'a> {
+        ApprovalPolicy {
+            approvers: &self.allowed_approvers,
+            agent,
+        }
+    }
 
-        // Build search query
-        let search_query = format!(
-            r#"repo:{}/{} is:issue is:open "[Approved][{}]" in:comments"#,
-            owner, repo, agent_name
-        );
-
-        let mut approved_issues = Vec::new();
-        let mut page = 1;
-
-        loop {
-            let page_str = page.to_string();
-            let params = [
-                ("q", search_query.as_str()),
-                ("per_page", "100"),
-                ("page", &page_str),
-            ];
-
-            let response = self
+    /// Approval status for many issues: `number -> Some(approver)` if an
+    /// allowed approver wrote `[Approved][..]` (naming `agent`, if given).
+    pub async fn approvals(
+        &self,
+        numbers: &[u64],
+        agent: Option<&str>,
+    ) -> Result<HashMap<u64, Option<String>>> {
+        let policy = self.approval_policy(agent);
+        let mut out = HashMap::new();
+        for chunk in numbers.chunks(APPROVAL_BATCH_SIZE) {
+            let (owner, repo) = self.repo()?;
+            let vars = json!({ "owner": owner, "repo": repo });
+            let data = self
                 .client
-                .rest_get("/search/issues", Some(&params))
+                .query(&approval::batch_query(chunk), vars)
                 .await?;
-
-            let items = response
-                .get("items")
-                .and_then(|i| i.as_array())
-                .map(|arr| arr.to_vec())
-                .unwrap_or_default();
-
-            if items.is_empty() {
-                break;
-            }
-
-            // Check which issues are on the board (O(1) lookup instead of N queries)
-            for item in &items {
-                let number = item.get("number").and_then(|n| n.as_u64()).unwrap_or(0);
-                let title = item
-                    .get("title")
-                    .and_then(|t| t.as_str())
-                    .unwrap_or("")
-                    .to_string();
-
-                let on_board = board_issue_numbers.contains(&number);
-
-                approved_issues.push(ApprovedIssue {
-                    number,
-                    title,
-                    on_board,
-                });
-            }
-
-            page += 1;
-            // Safety limit: GitHub Search API max 1000 results (10 pages)
-            if page > 10 {
-                warn!("Reached max pagination limit (1000 results)");
-                break;
+            for (n, state) in approval::parse_batch(&data, chunk, &policy) {
+                let approver = match state {
+                    BatchApproval::Approved(a) => Some(a),
+                    BatchApproval::NeedsMore(cursor) => {
+                        self.approval_from_pages(n, cursor, &policy).await?
+                    },
+                    BatchApproval::NotApproved | BatchApproval::Missing => None,
+                };
+                out.insert(n, approver);
             }
         }
-
-        info!("Found {} approved issues", approved_issues.len());
-        Ok(approved_issues)
+        Ok(out)
     }
 
-    /// Get all issue numbers on the board (for efficient membership checks).
-    /// Uses pagination to fetch all items.
-    async fn get_board_issue_numbers(&self) -> Result<std::collections::HashSet<u64>> {
-        let project_id = self
-            .project_id
-            .as_ref()
-            .ok_or_else(|| BoardError::Config("BoardManager not initialized".to_string()))?;
-
-        let query = r#"
-        query GetBoardIssueNumbers($projectId: ID!, $cursor: String) {
-          node(id: $projectId) {
-            ... on ProjectV2 {
-              items(first: 100, after: $cursor) {
-                pageInfo {
-                  hasNextPage
-                  endCursor
-                }
-                nodes {
-                  content { ... on Issue { number } }
-                }
-              }
-            }
-          }
-        }
-        "#;
-
-        let mut issue_numbers = std::collections::HashSet::new();
-        let mut cursor: Option<String> = None;
-        const MAX_PAGES: usize = 10;
-
-        for page in 1..=MAX_PAGES {
-            let variables = match &cursor {
-                Some(c) => json!({ "projectId": project_id, "cursor": c }),
-                None => json!({ "projectId": project_id, "cursor": null }),
-            };
-
-            let response = self.client.execute(query, Some(variables)).await?;
-
-            let data = match response.data {
-                Some(d) => d,
-                None => break,
-            };
-
-            let items_data = data
-                .get("node")
-                .and_then(|n| n.get("items"))
-                .ok_or_else(|| BoardError::GraphQL("Items not found".to_string()))?;
-
-            let items = items_data
-                .get("nodes")
-                .and_then(|n| n.as_array())
-                .ok_or_else(|| BoardError::GraphQL("Items nodes not found".to_string()))?;
-
-            for item in items {
-                if let Some(number) = item
-                    .get("content")
-                    .and_then(|c| c.get("number"))
-                    .and_then(|n| n.as_u64())
-                {
-                    issue_numbers.insert(number);
-                }
-            }
-
-            // Check for more pages
-            let page_info = items_data.get("pageInfo");
-            let has_next_page = page_info
-                .and_then(|p| p.get("hasNextPage"))
-                .and_then(|h| h.as_bool())
-                .unwrap_or(false);
-
-            if !has_next_page {
-                break;
-            }
-
-            cursor = page_info
-                .and_then(|p| p.get("endCursor"))
-                .and_then(|c| c.as_str())
-                .map(String::from);
-
-            if cursor.is_none() || page == MAX_PAGES {
-                break;
-            }
-        }
-
-        Ok(issue_numbers)
-    }
-
-    /// Check if an issue has been approved by an authorized user.
-    /// Returns (is_approved, approver).
-    ///
-    /// Uses pagination to check all comments (not just the last 100).
-    pub async fn is_issue_approved(&self, issue_number: u64) -> Result<(bool, Option<String>)> {
-        let (owner, repo) = self.parse_repository()?;
-
-        // First, check the issue body
-        let body_query = r#"
-        query GetIssueBody($owner: String!, $repo: String!, $number: Int!) {
-          repository(owner: $owner, name: $repo) {
-            issue(number: $number) {
-              body
-              author { login }
-            }
-          }
-        }
-        "#;
-
-        let variables = json!({
-            "owner": owner,
-            "repo": repo,
-            "number": issue_number
-        });
-
-        let response = self.client.execute(body_query, Some(variables)).await?;
-
-        let data = match response.data {
-            Some(d) => d,
-            None => return Ok((false, None)),
-        };
-
-        let issue_data = data.get("repository").and_then(|r| r.get("issue"));
-
-        let issue_data = match issue_data {
-            Some(i) => i,
-            None => return Ok((false, None)),
-        };
-
-        // Check issue body first
-        let body = issue_data
-            .get("body")
-            .and_then(|b| b.as_str())
-            .unwrap_or("");
-        let author = issue_data
-            .get("author")
-            .and_then(|a| a.get("login"))
-            .and_then(|l| l.as_str())
-            .unwrap_or("");
-
-        if self.check_approval_trigger(body, author) {
-            info!("Issue #{} approved by {} (in body)", issue_number, author);
-            return Ok((true, Some(author.to_string())));
-        }
-
-        // Check comments with pagination (handles >100 comments)
-        let comments_query = r#"
-        query GetIssueComments($owner: String!, $repo: String!, $number: Int!, $cursor: String) {
-          repository(owner: $owner, name: $repo) {
-            issue(number: $number) {
-              comments(first: 100, after: $cursor) {
-                pageInfo {
-                  hasNextPage
-                  endCursor
-                }
-                nodes {
-                  body
-                  author { login }
-                }
-              }
-            }
-          }
-        }
-        "#;
-
-        let mut cursor: Option<String> = None;
-        const MAX_COMMENT_PAGES: usize = 20; // Support up to 2000 comments
-
-        for page in 1..=MAX_COMMENT_PAGES {
-            let variables = json!({
-                "owner": owner,
-                "repo": repo,
-                "number": issue_number,
-                "cursor": cursor
-            });
-
-            let response = self.client.execute(comments_query, Some(variables)).await?;
-
-            let data = match response.data {
-                Some(d) => d,
-                None => break,
-            };
-
-            let comments_data = data
+    /// Continue scanning comment pages after `cursor` for an approval.
+    async fn approval_from_pages(
+        &self,
+        number: u64,
+        cursor: String,
+        policy: &ApprovalPolicy<'_>,
+    ) -> Result<Option<String>> {
+        let mut cursor = Some(cursor);
+        for _ in 0..MAX_COMMENT_PAGES {
+            let mut vars = self.repo_vars(number)?;
+            vars["cursor"] = json!(cursor);
+            let data = self.client.query(queries::COMMENT_PAGE, vars).await?;
+            let comments = data
                 .get("repository")
                 .and_then(|r| r.get("issue"))
                 .and_then(|i| i.get("comments"));
-
-            let comments_data = match comments_data {
-                Some(c) => c,
-                None => break,
-            };
-
-            let comments = comments_data.get("nodes").and_then(|n| n.as_array());
-
-            if let Some(comments) = comments {
-                for comment in comments {
-                    let comment_body = comment.get("body").and_then(|b| b.as_str()).unwrap_or("");
-                    let comment_author = comment
-                        .get("author")
-                        .and_then(|a| a.get("login"))
-                        .and_then(|l| l.as_str())
-                        .unwrap_or("");
-
-                    if self.check_approval_trigger(comment_body, comment_author) {
-                        info!(
-                            "Issue #{} approved by {} (in comment, page {})",
-                            issue_number, comment_author, page
-                        );
-                        return Ok((true, Some(comment_author.to_string())));
-                    }
-                }
+            let nodes = comments
+                .and_then(|c| c.get("nodes"))
+                .and_then(Value::as_array)
+                .map(Vec::as_slice)
+                .unwrap_or_default();
+            if let Some(approver) = policy.find_approver(nodes) {
+                return Ok(Some(approver));
             }
-
-            // Check for more pages
-            let page_info = comments_data.get("pageInfo");
-            let has_next_page = page_info
-                .and_then(|p| p.get("hasNextPage"))
-                .and_then(|h| h.as_bool())
-                .unwrap_or(false);
-
-            if !has_next_page {
-                break;
-            }
-
-            cursor = page_info
-                .and_then(|p| p.get("endCursor"))
-                .and_then(|c| c.as_str())
-                .map(String::from);
-
-            if cursor.is_none() || page == MAX_COMMENT_PAGES {
-                warn!(
-                    "Issue #{} has many comments, stopped at page {}",
-                    issue_number, page
-                );
-                break;
-            }
-        }
-
-        info!("Issue #{} not approved", issue_number);
-        Ok((false, None))
-    }
-
-    /// Check if text contains a valid approval trigger from an authorized user.
-    ///
-    /// Username comparison is case-insensitive since GitHub usernames are case-insensitive.
-    ///
-    /// Uses cached allowed users and pre-compiled regex for performance.
-    fn check_approval_trigger(&self, text: &str, author: &str) -> bool {
-        if text.is_empty() || author.is_empty() {
-            return false;
-        }
-
-        // Use cached allowed users (case-insensitive comparison)
-        if !self.cached_allowed_users.contains(&author.to_lowercase()) {
-            return false;
-        }
-
-        // Use pre-compiled regex pattern
-        APPROVAL_PATTERN.is_match(text)
-    }
-
-    /// Add an issue to the project board with fields.
-    pub async fn add_issue_to_board(
-        &self,
-        issue_number: u64,
-        status: IssueStatus,
-        priority: Option<IssuePriority>,
-        issue_type: Option<IssueType>,
-        agent: Option<&str>,
-    ) -> Result<bool> {
-        let project_id = self
-            .project_id
-            .as_ref()
-            .ok_or_else(|| BoardError::Config("BoardManager not initialized".to_string()))?;
-
-        let (owner, repo) = self.parse_repository()?;
-
-        info!("Adding issue #{} to board", issue_number);
-
-        // Step 1: Get the issue node ID
-        let query = r#"
-        query GetIssueId($owner: String!, $repo: String!, $number: Int!) {
-          repository(owner: $owner, name: $repo) {
-            issue(number: $number) { id }
-          }
-        }
-        "#;
-
-        let variables = json!({
-            "owner": owner,
-            "repo": repo,
-            "number": issue_number
-        });
-
-        let response = self.client.execute(query, Some(variables)).await?;
-
-        let data = response
-            .data
-            .ok_or_else(|| BoardError::IssueNotFound(issue_number))?;
-
-        let issue_id = data
-            .get("repository")
-            .and_then(|r| r.get("issue"))
-            .and_then(|i| i.get("id"))
-            .and_then(|id| id.as_str())
-            .ok_or_else(|| BoardError::IssueNotFound(issue_number))?;
-
-        // Step 2: Add to project
-        let mutation = r#"
-        mutation AddToProject($projectId: ID!, $contentId: ID!) {
-          addProjectV2ItemByContentId(input: {projectId: $projectId, contentId: $contentId}) {
-            item { id }
-          }
-        }
-        "#;
-
-        let variables = json!({
-            "projectId": project_id,
-            "contentId": issue_id
-        });
-
-        let response = self.client.execute(mutation, Some(variables)).await?;
-
-        let data = response
-            .data
-            .ok_or_else(|| BoardError::GraphQL("Failed to add issue to project".to_string()))?;
-
-        let project_item_id = data
-            .get("addProjectV2ItemByContentId")
-            .and_then(|a| a.get("item"))
-            .and_then(|i| i.get("id"))
-            .and_then(|id| id.as_str())
-            .ok_or_else(|| BoardError::GraphQL("Failed to get project item ID".to_string()))?;
-
-        // Step 3: Set status field
-        self.set_project_item_status(project_item_id, status)
-            .await?;
-
-        // Step 4: Set optional fields
-        if let Some(p) = priority {
-            self.set_project_item_priority(project_item_id, p).await?;
-        }
-
-        if let Some(t) = issue_type {
-            self.set_project_item_type(project_item_id, t).await?;
-        }
-
-        if let Some(a) = agent {
-            self.set_project_item_agent(project_item_id, a).await?;
-        }
-
-        info!("Added issue #{} to board", issue_number);
-        Ok(true)
-    }
-
-    /// Set project item status.
-    async fn set_project_item_status(&self, item_id: &str, status: IssueStatus) -> Result<()> {
-        let project_id = self
-            .project_id
-            .as_ref()
-            .ok_or_else(|| BoardError::Config("BoardManager not initialized".to_string()))?;
-
-        // Get status field info
-        let status_field = self.config.get_field_name("status");
-        let query = format!(
-            r#"
-        query GetStatusField($projectId: ID!) {{
-          node(id: $projectId) {{
-            ... on ProjectV2 {{
-              field(name: "{}") {{
-                ... on ProjectV2SingleSelectField {{
-                  id
-                  options {{ id name }}
-                }}
-              }}
-            }}
-          }}
-        }}
-        "#,
-            status_field
-        );
-
-        let response = self
-            .client
-            .execute(&query, Some(json!({ "projectId": project_id })))
-            .await?;
-
-        let data = response
-            .data
-            .ok_or_else(|| BoardError::FieldNotFound("Status".to_string()))?;
-
-        let field = data
-            .get("node")
-            .and_then(|n| n.get("field"))
-            .ok_or_else(|| BoardError::FieldNotFound("Status".to_string()))?;
-
-        let field_id = field
-            .get("id")
-            .and_then(|id| id.as_str())
-            .ok_or_else(|| BoardError::FieldNotFound("Status".to_string()))?;
-
-        let options = field
-            .get("options")
-            .and_then(|o| o.as_array())
-            .ok_or_else(|| BoardError::FieldNotFound("Status options".to_string()))?;
-
-        let status_value = status.as_str();
-        let option_id = options
-            .iter()
-            .find(|opt| opt.get("name").and_then(|n| n.as_str()) == Some(status_value))
-            .and_then(|opt| opt.get("id"))
-            .and_then(|id| id.as_str())
-            .ok_or_else(|| {
-                BoardError::InvalidFieldValue(status_value.to_string(), "Status".to_string())
-            })?;
-
-        // Update field
-        let mutation = r#"
-        mutation UpdateProjectField($projectId: ID!, $itemId: ID!, $fieldId: ID!, $value: ProjectV2FieldValue!) {
-          updateProjectV2ItemFieldValue(
-            input: {projectId: $projectId, itemId: $itemId, fieldId: $fieldId, value: $value}
-          ) {
-            projectV2Item { id }
-          }
-        }
-        "#;
-
-        let variables = json!({
-            "projectId": project_id,
-            "itemId": item_id,
-            "fieldId": field_id,
-            "value": { "singleSelectOptionId": option_id }
-        });
-
-        self.client.execute(mutation, Some(variables)).await?;
-        Ok(())
-    }
-
-    /// Set project item priority.
-    async fn set_project_item_priority(
-        &self,
-        item_id: &str,
-        priority: IssuePriority,
-    ) -> Result<()> {
-        self.set_single_select_field(item_id, "Priority", priority.as_str())
-            .await
-    }
-
-    /// Set project item type.
-    async fn set_project_item_type(&self, item_id: &str, issue_type: IssueType) -> Result<()> {
-        self.set_single_select_field(item_id, "Type", issue_type.as_str())
-            .await
-    }
-
-    /// Set project item agent.
-    async fn set_project_item_agent(&self, item_id: &str, agent: &str) -> Result<()> {
-        self.set_single_select_field(item_id, "Agent", agent).await
-    }
-
-    /// Generic single-select field setter.
-    async fn set_single_select_field(
-        &self,
-        item_id: &str,
-        field_name: &str,
-        value: &str,
-    ) -> Result<()> {
-        let project_id = self
-            .project_id
-            .as_ref()
-            .ok_or_else(|| BoardError::Config("BoardManager not initialized".to_string()))?;
-
-        // Sanitize field_name to prevent GraphQL injection
-        // Note: GraphQL doesn't support variables in field(name: ...) selectors,
-        // so we validate the input instead
-        let sanitized_field_name = sanitize_graphql_field_name(field_name)?;
-
-        // Get field info
-        let query = format!(
-            r#"
-        query GetField($projectId: ID!) {{
-          node(id: $projectId) {{
-            ... on ProjectV2 {{
-              field(name: "{}") {{
-                ... on ProjectV2SingleSelectField {{
-                  id
-                  options {{ id name }}
-                }}
-              }}
-            }}
-          }}
-        }}
-        "#,
-            sanitized_field_name
-        );
-
-        let response = self
-            .client
-            .execute(&query, Some(json!({ "projectId": project_id })))
-            .await?;
-
-        let data = match response.data {
-            Some(d) => d,
-            None => {
-                debug!("Field {} not found, skipping", field_name);
-                return Ok(());
-            },
-        };
-
-        let field = match data.get("node").and_then(|n| n.get("field")) {
-            Some(f) if !f.is_null() => f,
-            _ => {
-                debug!("Field {} not found, skipping", field_name);
-                return Ok(());
-            },
-        };
-
-        let field_id = match field.get("id").and_then(|id| id.as_str()) {
-            Some(id) => id,
-            None => {
-                debug!("Field {} has no ID, skipping", field_name);
-                return Ok(());
-            },
-        };
-
-        let options = match field.get("options").and_then(|o| o.as_array()) {
-            Some(o) => o,
-            None => {
-                debug!("Field {} has no options, skipping", field_name);
-                return Ok(());
-            },
-        };
-
-        let option_id = match options
-            .iter()
-            .find(|opt| opt.get("name").and_then(|n| n.as_str()) == Some(value))
-            .and_then(|opt| opt.get("id"))
-            .and_then(|id| id.as_str())
-        {
-            Some(id) => id,
-            None => {
-                debug!(
-                    "Option {} not found in field {}, skipping",
-                    value, field_name
-                );
-                return Ok(());
-            },
-        };
-
-        let mutation = r#"
-        mutation UpdateProjectField($projectId: ID!, $itemId: ID!, $fieldId: ID!, $value: ProjectV2FieldValue!) {
-          updateProjectV2ItemFieldValue(
-            input: {projectId: $projectId, itemId: $itemId, fieldId: $fieldId, value: $value}
-          ) {
-            projectV2Item { id }
-          }
-        }
-        "#;
-
-        let variables = json!({
-            "projectId": project_id,
-            "itemId": item_id,
-            "fieldId": field_id,
-            "value": { "singleSelectOptionId": option_id }
-        });
-
-        self.client.execute(mutation, Some(variables)).await?;
-        Ok(())
-    }
-
-    // ===== Helper Methods =====
-
-    /// Parse field values from a project item.
-    fn parse_field_values(&self, item: &Value) -> HashMap<String, String> {
-        let mut values = HashMap::new();
-
-        let nodes = item
-            .get("fieldValues")
-            .and_then(|fv| fv.get("nodes"))
-            .and_then(|n| n.as_array());
-
-        if let Some(nodes) = nodes {
-            for node in nodes {
-                let field_name = node
-                    .get("field")
-                    .and_then(|f| f.get("name"))
-                    .and_then(|n| n.as_str());
-
-                if let Some(name) = field_name {
-                    // Single select value
-                    if let Some(value) = node.get("name").and_then(|n| n.as_str()) {
-                        values.insert(name.to_string(), value.to_string());
-                    }
-                    // Text value
-                    else if let Some(value) = node.get("text").and_then(|t| t.as_str()) {
-                        values.insert(name.to_string(), value.to_string());
-                    }
-                }
-            }
-        }
-
-        values
-    }
-
-    /// Parse issue metadata from field values.
-    fn parse_issue_metadata(
-        &self,
-        field_values: &HashMap<String, String>,
-    ) -> (
-        IssueStatus,
-        IssuePriority,
-        Option<IssueType>,
-        Option<String>,
-        Vec<u64>,
-    ) {
-        let status = field_values
-            .get(&self.config.get_field_name("status"))
-            .and_then(|s| IssueStatus::from_str(s))
-            .unwrap_or_default();
-
-        let priority = field_values
-            .get(&self.config.get_field_name("priority"))
-            .and_then(|p| IssuePriority::from_str(p))
-            .unwrap_or_default();
-
-        let issue_type = field_values
-            .get(&self.config.get_field_name("type"))
-            .and_then(|t| IssueType::from_str(t));
-
-        let agent = field_values
-            .get(&self.config.get_field_name("agent"))
-            .cloned();
-
-        let blocked_by = field_values
-            .get(&self.config.get_field_name("blocked_by"))
-            .map(|s| s.split(',').filter_map(|n| n.trim().parse().ok()).collect())
-            .unwrap_or_default();
-
-        (status, priority, issue_type, agent, blocked_by)
-    }
-
-    /// Parse discovered_from field.
-    fn parse_discovered_from(&self, field_values: &HashMap<String, String>) -> Option<u64> {
-        field_values
-            .get(&self.config.get_field_name("discovered_from"))
-            .and_then(|s| s.trim().parse().ok())
-    }
-
-    /// Parse labels from content.
-    fn parse_labels(&self, content: &Value) -> Vec<String> {
-        content
-            .get("labels")
-            .and_then(|l| l.get("nodes"))
-            .and_then(|n| n.as_array())
-            .map(|arr| {
-                arr.iter()
-                    .filter_map(|l| {
-                        l.get("name")
-                            .and_then(|n| n.as_str())
-                            .map(|s| s.to_string())
-                    })
-                    .collect()
-            })
-            .unwrap_or_default()
-    }
-
-    /// Create an Issue from project item data.
-    #[allow(clippy::too_many_arguments)]
-    fn create_issue_from_item(
-        &self,
-        item: &Value,
-        content: &Value,
-        status: IssueStatus,
-        priority: IssuePriority,
-        issue_type: Option<IssueType>,
-        agent: Option<String>,
-        blocked_by: Vec<u64>,
-        discovered_from: Option<u64>,
-    ) -> Result<Issue> {
-        let number = content
-            .get("number")
-            .and_then(|n| n.as_u64())
-            .ok_or_else(|| BoardError::GraphQL("Issue number not found".to_string()))?;
-
-        let title = content
-            .get("title")
-            .and_then(|t| t.as_str())
-            .unwrap_or("")
-            .to_string();
-
-        let body = content
-            .get("body")
-            .and_then(|b| b.as_str())
-            .unwrap_or("")
-            .to_string();
-
-        let state = content
-            .get("state")
-            .and_then(|s| s.as_str())
-            .unwrap_or("OPEN")
-            .to_lowercase();
-
-        let created_at = content
-            .get("createdAt")
-            .and_then(|t| t.as_str())
-            .and_then(|s| DateTime::parse_from_rfc3339(s).ok())
-            .map(|dt| dt.with_timezone(&Utc));
-
-        let updated_at = content
-            .get("updatedAt")
-            .and_then(|t| t.as_str())
-            .and_then(|s| DateTime::parse_from_rfc3339(s).ok())
-            .map(|dt| dt.with_timezone(&Utc));
-
-        let url = content
-            .get("url")
-            .and_then(|u| u.as_str())
-            .map(|s| s.to_string());
-
-        let labels = self.parse_labels(content);
-
-        let project_item_id = item
-            .get("id")
-            .and_then(|id| id.as_str())
-            .map(|s| s.to_string());
-
-        Ok(Issue {
-            number,
-            title,
-            body,
-            state,
-            status,
-            priority,
-            issue_type,
-            size: None,
-            agent,
-            blocked_by,
-            discovered_from,
-            created_at,
-            updated_at,
-            url,
-            labels,
-            project_item_id,
-        })
-    }
-
-    /// Get active claim for an issue.
-    async fn get_active_claim(&self, issue_number: u64) -> Result<Option<AgentClaim>> {
-        let (owner, repo) = self.parse_repository()?;
-
-        let query = r#"
-        query GetIssueComments($owner: String!, $repo: String!, $number: Int!) {
-          repository(owner: $owner, name: $repo) {
-            issue(number: $number) {
-              comments(last: 50) {
-                nodes {
-                  body
-                  createdAt
-                }
-              }
-            }
-          }
-        }
-        "#;
-
-        let variables = json!({
-            "owner": owner,
-            "repo": repo,
-            "number": issue_number
-        });
-
-        let response = self.client.execute(query, Some(variables)).await?;
-
-        let data = match response.data {
-            Some(d) => d,
-            None => return Ok(None),
-        };
-
-        let comments = data
-            .get("repository")
-            .and_then(|r| r.get("issue"))
-            .and_then(|i| i.get("comments"))
-            .and_then(|c| c.get("nodes"))
-            .and_then(|n| n.as_array());
-
-        let comments = match comments {
-            Some(c) => c,
-            None => return Ok(None),
-        };
-
-        // Find most recent claim/release
-        for comment in comments.iter().rev() {
-            let body = comment.get("body").and_then(|b| b.as_str()).unwrap_or("");
-
-            // Check for release (invalidates any prior claim)
-            if body.contains(RELEASE_PREFIX) {
+            cursor = approval::next_cursor(comments);
+            if cursor.is_none() {
                 return Ok(None);
             }
-
-            // Check for claim or renewal
-            if (body.contains(CLAIM_PREFIX) || body.contains(RENEWAL_PREFIX))
-                && let Some(claim) = self.parse_claim_comment(body, issue_number)
-            {
-                return Ok(Some(claim));
-            }
         }
-
+        warn!(
+            "Issue #{} has more than {} comments; approval scan truncated",
+            number,
+            (MAX_COMMENT_PAGES + 1) * 100
+        );
         Ok(None)
     }
 
-    /// Parse a claim comment into AgentClaim.
-    fn parse_claim_comment(&self, body: &str, issue_number: u64) -> Option<AgentClaim> {
-        // Parse agent name
-        let agent = body
-            .lines()
-            .find(|l| l.starts_with("Agent:"))
-            .and_then(|l| l.strip_prefix("Agent:"))
-            .map(|s| s.trim().trim_matches('`').to_string())?;
+    /// Whether an issue is approved (for `agent`, if given); returns
+    /// `(approved, approver)`.
+    pub async fn is_issue_approved(
+        &self,
+        number: u64,
+        agent: Option<&str>,
+    ) -> Result<(bool, Option<String>)> {
+        let approver = self
+            .approvals(&[number], agent)
+            .await?
+            .remove(&number)
+            .flatten();
+        Ok((approver.is_some(), approver))
+    }
 
-        // Parse session ID
-        let session_id = body
-            .lines()
-            .find(|l| l.starts_with("Session ID:"))
-            .and_then(|l| l.strip_prefix("Session ID:"))
-            .map(|s| s.trim().trim_matches('`').to_string())?;
+    /// Find issues with `[Approved][agent]` comments via GitHub search.
+    /// With `verify`, only issues approved by an authorized user are returned.
+    pub async fn find_approved_issues(
+        &self,
+        agent: &str,
+        verify: bool,
+    ) -> Result<Vec<ApprovedIssue>> {
+        let (owner, repo) = self.repo()?;
+        let search = format!(
+            r#"repo:{}/{} is:issue is:open "[Approved][{}]" in:comments"#,
+            owner, repo, agent
+        );
 
-        // Parse timestamp
-        let timestamp_str = body
-            .lines()
-            .find(|l| l.starts_with("Started:") || l.starts_with("Renewed:"))
-            .and_then(|l| {
-                l.strip_prefix("Started:")
-                    .or_else(|| l.strip_prefix("Renewed:"))
-            })
-            .map(|s| s.trim().trim_matches('`'))?;
+        let mut hits: Vec<(u64, String)> = Vec::new();
+        for page in 1..=MAX_SEARCH_PAGES {
+            let page_str = page.to_string();
+            let resp = self
+                .client
+                .rest_get(
+                    "/search/issues",
+                    &[
+                        ("q", search.as_str()),
+                        ("per_page", "100"),
+                        ("page", &page_str),
+                    ],
+                )
+                .await?;
+            let items = resp.get("items").and_then(Value::as_array);
+            let batch: Vec<(u64, String)> = items
+                .into_iter()
+                .flatten()
+                .filter_map(|i| {
+                    let n = i.get("number")?.as_u64()?;
+                    let title = i.get("title").and_then(Value::as_str).unwrap_or_default();
+                    Some((n, title.to_string()))
+                })
+                .collect();
+            let total = resp.get("total_count").and_then(Value::as_u64).unwrap_or(0);
+            let done = batch.len() < 100 || hits.len() + batch.len() >= total as usize;
+            hits.extend(batch);
+            if done {
+                break;
+            }
+        }
+        info!("Search found {} candidate issues", hits.len());
 
-        let timestamp = DateTime::parse_from_rfc3339(timestamp_str)
-            .ok()
-            .map(|dt| dt.with_timezone(&Utc))?;
-
-        let renewed_at = if body.contains(RENEWAL_PREFIX) {
-            Some(timestamp)
+        let approvals = if verify && !hits.is_empty() {
+            let numbers: Vec<u64> = hits.iter().map(|(n, _)| *n).collect();
+            Some(self.approvals(&numbers, Some(agent)).await?)
         } else {
             None
         };
+        let on_board = self.board_issue_numbers().await?;
 
-        Some(AgentClaim {
-            issue_number,
-            agent,
-            session_id,
-            timestamp,
-            renewed_at,
-            released: false,
-        })
+        Ok(hits
+            .into_iter()
+            .filter_map(|(number, title)| {
+                let approver = match &approvals {
+                    Some(map) => Some(map.get(&number).cloned().flatten()?),
+                    None => None,
+                };
+                Some(ApprovedIssue {
+                    number,
+                    title,
+                    on_board: on_board.contains(&number),
+                    approver,
+                })
+            })
+            .collect())
     }
 
-    /// Post a comment to an issue.
-    async fn post_issue_comment(&self, issue_number: u64, body: &str) -> Result<()> {
-        let (owner, repo) = self.parse_repository()?;
+    // ===== Adding issues =====
 
-        // Get issue node ID
-        let query = r#"
-        query GetIssueId($owner: String!, $repo: String!, $number: Int!) {
-          repository(owner: $owner, name: $repo) {
-            issue(number: $number) { id }
-          }
-        }
-        "#;
-
-        let variables = json!({
-            "owner": owner,
-            "repo": repo,
-            "number": issue_number
-        });
-
-        let response = self.client.execute(query, Some(variables)).await?;
-
-        let data = response
-            .data
-            .ok_or_else(|| BoardError::IssueNotFound(issue_number))?;
-
-        let issue_id = data
-            .get("repository")
-            .and_then(|r| r.get("issue"))
+    /// Add an issue to the board and set its fields. Optional fields that
+    /// cannot be set (missing field or option on the board) are reported as
+    /// warnings rather than failing the whole operation.
+    pub async fn add_issue_to_board(
+        &self,
+        lookup: &IssueLookup,
+        status: IssueStatus,
+        opts: &AddOptions,
+    ) -> Result<Vec<String>> {
+        let project_id = &self.project()?.id;
+        let data = self
+            .client
+            .mutate(
+                queries::ADD_ITEM,
+                json!({ "projectId": project_id, "contentId": lookup.node_id }),
+            )
+            .await?;
+        let item_id = data
+            .get("addProjectV2ItemByContentId")
+            .and_then(|a| a.get("item"))
             .and_then(|i| i.get("id"))
-            .and_then(|id| id.as_str())
-            .ok_or_else(|| BoardError::IssueNotFound(issue_number))?;
+            .and_then(Value::as_str)
+            .ok_or_else(|| {
+                BoardError::GraphQL("addProjectV2ItemByContentId returned no item".into())
+            })?;
 
-        // Post comment
-        let mutation = r#"
-        mutation AddComment($subjectId: ID!, $body: String!) {
-          addComment(input: {subjectId: $subjectId, body: $body}) {
-            commentEdge { node { id } }
-          }
+        self.set_field(item_id, "status", FieldInput::Option(status.as_str()))
+            .await?;
+
+        let agent = opts.agent.as_deref().map(normalize_agent_name);
+        let optional: [(&str, Option<&str>); 4] = [
+            ("priority", opts.priority.map(|p| p.as_str())),
+            ("type", opts.issue_type.map(|t| t.as_str())),
+            ("size", opts.size.map(|s| s.as_str())),
+            ("agent", agent.as_deref()),
+        ];
+        let mut warnings = Vec::new();
+        for (key, value) in optional {
+            let Some(value) = value else { continue };
+            if let Err(e) = self
+                .set_field(item_id, key, FieldInput::Option(value))
+                .await
+            {
+                warn!("Could not set {} on #{}: {}", key, lookup.issue.number, e);
+                warnings.push(format!("{}: {}", key, e));
+            }
         }
-        "#;
 
-        let variables = json!({
-            "subjectId": issue_id,
-            "body": body
-        });
-
-        self.client.execute(mutation, Some(variables)).await?;
-        debug!("Posted comment to #{}", issue_number);
-        Ok(())
-    }
-
-    /// Parse repository into owner and name.
-    fn parse_repository(&self) -> Result<(String, String)> {
-        let parts: Vec<&str> = self.config.repository.split('/').collect();
-        if parts.len() != 2 {
-            return Err(BoardError::Config(format!(
-                "Invalid repository format: {}",
-                self.config.repository
-            )));
-        }
-        Ok((parts[0].to_string(), parts[1].to_string()))
+        info!("Added issue #{} to board", lookup.issue.number);
+        Ok(warnings)
     }
 }
 
@@ -2146,31 +976,119 @@ impl BoardManager {
 mod tests {
     use super::*;
 
-    #[test]
-    fn test_normalize_agent_name() {
-        assert_eq!(BoardManager::normalize_agent_name("claude"), "Claude Code");
-        assert_eq!(BoardManager::normalize_agent_name("CLAUDE"), "Claude Code");
-        assert_eq!(BoardManager::normalize_agent_name("Unknown"), "Unknown");
+    fn lookup_data(project_id: &str) -> Value {
+        json!({
+            "repository": {
+                "issue": {
+                    "id": "I_node",
+                    "number": 42,
+                    "title": "Fix it",
+                    "body": "",
+                    "state": "OPEN",
+                    "labels": { "nodes": [{ "name": "bug" }] },
+                    "projectItems": { "nodes": [
+                        { "id": "OTHER_ITEM", "project": { "id": "P_other" },
+                          "fieldValues": { "nodes": [
+                            { "name": "Done", "field": { "name": "Status" } } ] } },
+                        { "id": "ITEM", "project": { "id": project_id },
+                          "fieldValues": { "nodes": [
+                            { "name": "In Progress", "field": { "name": "Status" } },
+                            { "text": "1, 2", "field": { "name": "Blocked By" } } ] } }
+                    ] }
+                }
+            }
+        })
     }
 
     #[test]
-    fn test_parse_claim_comment() {
-        let body = "**[Agent Claim]**\n\nAgent: `Claude Code`\nStarted: `2024-01-15T10:00:00Z`\nSession ID: `abc123`\n\nClaiming this issue.";
+    fn lookup_picks_item_of_configured_project() {
+        let l = parse_issue_lookup(
+            &lookup_data("P_main"),
+            42,
+            "P_main",
+            &BoardConfig::default(),
+        )
+        .unwrap();
+        assert!(l.on_board);
+        assert_eq!(l.node_id, "I_node");
+        assert_eq!(l.issue.status, IssueStatus::InProgress);
+        assert_eq!(l.issue.blocked_by, vec![1, 2]);
+        assert_eq!(l.item_id().unwrap(), "ITEM");
+    }
 
-        // Create a minimal manager for testing
-        let config = BoardConfig::default();
-        let manager = BoardManager {
-            client: GraphQLClient::new("test".to_string()).unwrap(),
-            config,
-            project_id: None,
-            cached_allowed_users: std::collections::HashSet::new(),
+    #[test]
+    fn lookup_not_on_board() {
+        let l = parse_issue_lookup(
+            &lookup_data("P_main"),
+            42,
+            "P_missing",
+            &BoardConfig::default(),
+        )
+        .unwrap();
+        assert!(!l.on_board);
+        assert_eq!(l.issue.status, IssueStatus::Todo);
+        assert!(matches!(l.item_id(), Err(BoardError::NotOnBoard(42))));
+    }
+
+    fn repo_config() -> BoardConfig {
+        BoardConfig {
+            project_number: 1,
+            owner: "ProjOwner".into(),
+            repository: "RepoOwner/repo".into(),
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn claim_authors_are_admins_and_trusted_sources() {
+        let trust = TrustConfig {
+            agent_admins: vec!["AndrewAltimit".into()],
+            trusted_sources: vec!["github-actions[bot]".into(), " Renovate[bot] ".into()],
         };
+        let set = claim_author_set(&repo_config(), Some(&trust));
+        assert_eq!(
+            set,
+            HashSet::from([
+                "andrewaltimit".to_string(),
+                "github-actions[bot]".to_string(),
+                "renovate[bot]".to_string(),
+            ])
+        );
+    }
 
-        let claim = manager.parse_claim_comment(body, 123);
-        assert!(claim.is_some());
-        let claim = claim.unwrap();
-        assert_eq!(claim.agent, "Claude Code");
-        assert_eq!(claim.session_id, "abc123");
-        assert_eq!(claim.issue_number, 123);
+    #[test]
+    fn claim_authors_fail_closed_to_repo_owner() {
+        assert_eq!(
+            claim_author_set(&repo_config(), None),
+            HashSet::from(["repoowner".to_string()])
+        );
+        let bad_repo = BoardConfig {
+            repository: "norepo".into(),
+            ..repo_config()
+        };
+        assert!(claim_author_set(&bad_repo, None).is_empty());
+    }
+
+    #[test]
+    fn approvers_exclude_trusted_sources() {
+        let trust = TrustConfig {
+            agent_admins: vec!["Admin".into()],
+            trusted_sources: vec!["github-actions[bot]".into()],
+        };
+        let set = approver_set(&repo_config(), Some(&trust));
+        assert!(set.contains("admin"));
+        assert!(set.contains("projowner"));
+        assert!(set.contains("repoowner"));
+        assert!(!set.contains("github-actions[bot]"));
+        assert_eq!(approver_set(&repo_config(), None).len(), 2);
+    }
+
+    #[test]
+    fn lookup_missing_issue() {
+        let data = json!({ "repository": { "issue": null } });
+        assert!(matches!(
+            parse_issue_lookup(&data, 7, "P", &BoardConfig::default()),
+            Err(BoardError::IssueNotFound(7))
+        ));
     }
 }

@@ -5,10 +5,15 @@
 //! 2. No direct IP addresses (IPv4/IPv6)
 //! 3. Valid image extensions
 //! 4. URLs actually exist (HTTP HEAD request with retries)
+//! 5. No embedded credentials or explicit ports
+//!
+//! Redirects are followed manually (at most [`MAX_REDIRECTS`] hops) and every
+//! hop must stay on a GitHub-owned host, so an open redirect on an allowed
+//! host cannot turn the check into a request to an arbitrary server.
 
 use crate::error::{Error, Result};
-use once_cell::sync::Lazy;
 use regex::Regex;
+use std::sync::LazyLock;
 use std::time::Duration;
 
 /// Whitelisted hostnames for reaction images
@@ -19,21 +24,28 @@ const ALLOWED_HOSTNAMES: &[&str] = &[
     "camo.githubusercontent.com",
 ];
 
+/// Additional GitHub CDN hosts that allowed URLs may redirect to.
+const REDIRECT_HOSTNAMES: &[&str] = &[
+    "objects.githubusercontent.com",
+    "private-user-images.githubusercontent.com",
+    "media.githubusercontent.com",
+];
+
+/// Maximum redirect hops followed while validating a URL.
+pub const MAX_REDIRECTS: usize = 3;
+
 /// Valid image file extensions
 const ALLOWED_EXTENSIONS: &[&str] = &["png", "jpg", "jpeg", "gif", "webp", "svg"];
 
-/// Regex to extract reaction URLs from markdown
-static URL_PATTERN: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"!\[([^\]]*)\]\((https?://[^)]+(?:reaction|Media)[^)]+)\)").unwrap());
-
-/// Regex for escaped reaction URLs
-static ESCAPED_URL_PATTERN: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"\\!\[([^\]]*)\]\((https?://[^)]+(?:reaction|Media)[^)]+)\)").unwrap()
+/// Regex to extract reaction URLs from markdown. Also matches the escaped
+/// `\![...](...)` form, since `![` is a suffix of it.
+static URL_PATTERN: LazyLock<Regex> = LazyLock::new(|| {
+    Regex::new(r"!\[([^\]]*)\]\((https?://[^)\s]+(?:reaction|Media)[^)\s]*)").expect("static regex")
 });
 
-/// IPv4 address pattern
-static IPV4_PATTERN: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$").unwrap());
+/// Collapses blank-line runs left behind by stripped images.
+static BLANK_RUNS: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"\n\s*\n\s*\n").expect("static regex"));
 
 /// URL validator with SSRF protection
 pub struct UrlValidator {
@@ -64,155 +76,156 @@ impl UrlValidator {
     ///
     /// Looks for markdown image syntax with "reaction" or "Media" in the URL.
     pub fn extract_reaction_urls(text: &str) -> Vec<String> {
-        let mut urls = Vec::new();
-
-        // Extract from regular markdown images
+        let mut urls: Vec<String> = Vec::new();
         for cap in URL_PATTERN.captures_iter(text) {
             if let Some(url) = cap.get(2) {
-                urls.push(url.as_str().to_string());
-            }
-        }
-
-        // Extract from escaped markdown images
-        for cap in ESCAPED_URL_PATTERN.captures_iter(text) {
-            if let Some(url) = cap.get(2) {
-                let url_str = url.as_str().to_string();
-                if !urls.contains(&url_str) {
-                    urls.push(url_str);
+                let url = url.as_str().to_string();
+                if !urls.contains(&url) {
+                    urls.push(url);
                 }
             }
         }
-
         urls
     }
 
-    /// Validate URL for SSRF protection (no network request)
+    /// Validate URL for SSRF protection (no network request).
     pub fn validate_ssrf(&self, url: &str) -> Result<()> {
-        let parsed = url::Url::parse(url).map_err(|_| Error::InvalidUrl {
-            url: url.to_string(),
-            reason: "Failed to parse URL".to_string(),
-        })?;
+        Self::check_url(url, ALLOWED_HOSTNAMES)
+    }
 
-        // Only allow HTTPS
+    fn check_url(url: &str, hosts: &[&str]) -> Result<()> {
+        let invalid = |reason: String| Error::InvalidUrl {
+            url: url.to_string(),
+            reason,
+        };
+        let parsed =
+            url::Url::parse(url).map_err(|e| invalid(format!("Failed to parse URL: {e}")))?;
+
         if parsed.scheme() != "https" {
-            return Err(Error::InvalidUrl {
-                url: url.to_string(),
-                reason: format!("Only HTTPS allowed, got: {}", parsed.scheme()),
-            });
+            return Err(invalid(format!(
+                "Only HTTPS allowed, got: {}",
+                parsed.scheme()
+            )));
         }
-
-        let hostname = parsed.host_str().ok_or_else(|| Error::InvalidUrl {
-            url: url.to_string(),
-            reason: "No hostname in URL".to_string(),
-        })?;
-
-        // Check whitelist (case-insensitive)
-        if !ALLOWED_HOSTNAMES
-            .iter()
-            .any(|h| hostname.eq_ignore_ascii_case(h))
-        {
-            return Err(Error::InvalidUrl {
-                url: url.to_string(),
-                reason: format!("Hostname not in whitelist: {}", hostname),
-            });
+        if !parsed.username().is_empty() || parsed.password().is_some() {
+            return Err(invalid("Credentials in URLs are not allowed".to_string()));
         }
-
-        // Block direct IP addresses (IPv4)
-        if IPV4_PATTERN.is_match(hostname) {
-            return Err(Error::InvalidUrl {
-                url: url.to_string(),
-                reason: "Direct IP addresses not allowed".to_string(),
-            });
+        // Only DNS names are accepted: IP literals never match the list.
+        let hostname = match parsed.host() {
+            Some(url::Host::Domain(d)) => d,
+            Some(_) => {
+                return Err(invalid("Hostname not in whitelist: IP address".to_string()));
+            },
+            None => return Err(invalid("No hostname in URL".to_string())),
+        };
+        if !hosts.iter().any(|h| hostname.eq_ignore_ascii_case(h)) {
+            return Err(invalid(format!("Hostname not in whitelist: {hostname}")));
         }
-
-        // Block IPv6 addresses (contain colons)
-        if hostname.contains(':') || hostname.starts_with('[') {
-            return Err(Error::InvalidUrl {
-                url: url.to_string(),
-                reason: "IPv6 addresses not allowed".to_string(),
-            });
+        if parsed.port().is_some() {
+            return Err(invalid("Explicit ports are not allowed".to_string()));
         }
-
-        // Validate extension for GitHub raw URLs
         if hostname.eq_ignore_ascii_case("raw.githubusercontent.com") {
-            let path = parsed.path();
-            let ext = path.rsplit('.').next().unwrap_or("");
-
+            let ext = parsed.path().rsplit('.').next().unwrap_or("");
             if !ALLOWED_EXTENSIONS
                 .iter()
                 .any(|e| ext.eq_ignore_ascii_case(e))
             {
-                return Err(Error::InvalidUrl {
-                    url: url.to_string(),
-                    reason: format!("Invalid image extension: {}", ext),
-                });
+                return Err(invalid(format!("Invalid image extension: {ext}")));
             }
         }
-
         Ok(())
     }
 
-    /// Validate URL exists with HTTP HEAD request and retries
+    /// Validate that the URL exists (HTTP HEAD, retries on network/5xx
+    /// errors, redirects followed within GitHub hosts only).
     ///
-    /// Fails closed: if URL cannot be verified after retries, it's rejected.
+    /// Fails closed: if the URL cannot be verified it is rejected.
     pub fn validate_exists(&self, url: &str) -> Result<()> {
-        // First validate SSRF
         self.validate_ssrf(url)?;
+        let agent = ureq::AgentBuilder::new()
+            .redirects(0)
+            .timeout(self.timeout)
+            .user_agent("gh-validator/0.2")
+            .build();
 
-        let mut last_error = None;
+        let mut current = url.to_string();
+        for _ in 0..=MAX_REDIRECTS {
+            let Some(location) = self.head(&agent, &current)? else {
+                return Ok(());
+            };
+            let next = url::Url::parse(&current)
+                .and_then(|base| base.join(&location))
+                .map_err(|e| Error::InvalidUrl {
+                    url: url.to_string(),
+                    reason: format!("Bad redirect location '{location}': {e}"),
+                })?;
+            let hosts: Vec<&str> = ALLOWED_HOSTNAMES
+                .iter()
+                .chain(REDIRECT_HOSTNAMES)
+                .copied()
+                .collect();
+            Self::check_url(next.as_str(), &hosts).map_err(|e| Error::InvalidUrl {
+                url: url.to_string(),
+                reason: format!("Redirect rejected: {e}"),
+            })?;
+            current = next.to_string();
+        }
+        Err(Error::InvalidUrl {
+            url: url.to_string(),
+            reason: format!("More than {MAX_REDIRECTS} redirects"),
+        })
+    }
 
-        for attempt in 0..self.max_retries {
-            match ureq::head(url)
-                .timeout(self.timeout)
-                .set("User-Agent", "gh-validator/1.0")
-                .call()
-            {
+    /// One HEAD request with retries. `Ok(None)` means 200, `Ok(Some(loc))`
+    /// a redirect to `loc`.
+    fn head(&self, agent: &ureq::Agent, url: &str) -> Result<Option<String>> {
+        let mut last_error = String::from("Unknown error");
+        let attempts = self.max_retries.max(1);
+        for attempt in 0..attempts {
+            match agent.head(url).call() {
                 Ok(response) => {
-                    if response.status() == 200 {
-                        return Ok(());
+                    let status = response.status();
+                    if status == 200 {
+                        return Ok(None);
+                    }
+                    if (300..400).contains(&status) {
+                        return match response.header("location") {
+                            Some(loc) => Ok(Some(loc.to_string())),
+                            None => Err(Error::InvalidUrl {
+                                url: url.to_string(),
+                                reason: format!("HTTP {status} without Location"),
+                            }),
+                        };
                     }
                     return Err(Error::InvalidUrl {
                         url: url.to_string(),
-                        reason: format!("HTTP status {}", response.status()),
+                        reason: format!("HTTP status {status}"),
                     });
                 },
                 Err(ureq::Error::Status(404, _)) => {
-                    // 404 is definitive - no retry
                     return Err(Error::InvalidUrl {
                         url: url.to_string(),
                         reason: "Image not found (404)".to_string(),
                     });
                 },
                 Err(ureq::Error::Status(code, _)) if (400..500).contains(&code) => {
-                    // Other 4xx errors are definitive
                     return Err(Error::InvalidUrl {
                         url: url.to_string(),
-                        reason: format!("HTTP error {}", code),
+                        reason: format!("HTTP error {code}"),
                     });
                 },
                 Err(e) => {
-                    // 5xx or network errors - retry
-                    last_error = Some(e.to_string());
-                    if attempt < self.max_retries - 1 {
+                    last_error = e.to_string();
+                    if attempt + 1 < attempts {
                         std::thread::sleep(Duration::from_millis(500));
                     }
                 },
             }
         }
-
-        // FAIL CLOSED: Could not verify URL after retries
         Err(Error::NetworkError {
             url: url.to_string(),
-            details: last_error.unwrap_or_else(|| "Unknown error".to_string()),
+            details: last_error,
         })
-    }
-
-    /// Check if a URL is valid (returns true if valid, false if invalid)
-    ///
-    /// Unlike validate_exists, this doesn't return an error - just a boolean.
-    #[allow(dead_code)] // Public API for future use
-    pub fn is_valid(&self, url: &str) -> bool {
-        self.validate_exists(url).is_ok()
     }
 
     /// Find invalid URLs in content and return them with their error reasons
@@ -269,9 +282,8 @@ impl UrlValidator {
             }
         }
 
-        // Clean up any double newlines left by removed images
-        let double_newline = Regex::new(r"\n\s*\n\s*\n").unwrap();
-        result = double_newline.replace_all(&result, "\n\n").to_string();
+        // Clean up blank-line runs left by removed images
+        result = BLANK_RUNS.replace_all(&result, "\n\n").into_owned();
 
         // Trim trailing whitespace
         result = result.trim_end().to_string();
@@ -337,6 +349,36 @@ mod tests {
             "https://raw.githubusercontent.com/AndrewAltimit/Media/main/reaction/test.png",
         );
         assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_ssrf_blocks_credentials_and_ports() {
+        let validator = UrlValidator::default();
+        let err = validator
+            .validate_ssrf("https://user:pw@raw.githubusercontent.com/a/b/c.png")
+            .unwrap_err();
+        assert!(err.to_string().contains("Credentials"));
+        // Userinfo trick: the real host is evil.com.
+        assert!(
+            validator
+                .validate_ssrf("https://raw.githubusercontent.com@evil.com/a.png")
+                .is_err()
+        );
+        assert!(
+            validator
+                .validate_ssrf("https://raw.githubusercontent.com:8443/a/b/c.png")
+                .is_err()
+        );
+    }
+
+    #[test]
+    fn test_escaped_and_duplicate_urls_extracted_once() {
+        let url = "https://raw.githubusercontent.com/AndrewAltimit/Media/main/reaction/a.png";
+        let text = format!("![Reaction]({url}) and \\![Reaction]({url})");
+        assert_eq!(
+            UrlValidator::extract_reaction_urls(&text),
+            vec![url.to_string()]
+        );
     }
 
     #[test]
