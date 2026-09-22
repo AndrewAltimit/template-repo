@@ -20,16 +20,18 @@ These projections serve defensive policy analysis:
 
 ## Reports
 
-| Report | Topic | PDF | Source |
-|--------|-------|-----|--------|
-| AI Agents Political Targeting | AI agents and political violence risk | [Download PDF](https://github.com/AndrewAltimit/template-repo/releases/latest) | [Markdown](./ai-agents-political-targeting.md) \| [LaTeX](./latex/ai-agents-political-targeting.tex) |
-| AI Agents WMD Proliferation | AI agents and WMD proliferation risk | [Download PDF](https://github.com/AndrewAltimit/template-repo/releases/latest) | [Markdown](./ai-agents-wmd-proliferation.md) \| [LaTeX](./latex/ai-agents-wmd-proliferation.tex) |
-| AI Agents Espionage Operations | AI agents and intelligence tradecraft | [Download PDF](https://github.com/AndrewAltimit/template-repo/releases/latest) | [Markdown](./ai-agents-espionage-operations.md) \| [LaTeX](./latex/ai-agents-espionage-operations.tex) |
-| AI Agents Economic Actors | AI agents as autonomous economic actors | [Download PDF](https://github.com/AndrewAltimit/template-repo/releases/latest) | [Package](../../packages/economic_agents) \| [LaTeX](./latex/ai-agents-economic-actors.tex) |
-| AI Agents Financial Integrity | AI agents and financial system integrity | [Download PDF](https://github.com/AndrewAltimit/template-repo/releases/latest) | [Markdown](./ai-agents-financial-integrity.md) \| [LaTeX](./latex/ai-agents-financial-integrity.tex) |
-| AI Agents Institutional Erosion | AI agents eroding IC monopolies | [Download PDF](https://github.com/AndrewAltimit/template-repo/releases/latest) | [Markdown](./ai-agents-institutional-erosion.md) \| [LaTeX](./latex/ai-agents-institutional-erosion.tex) |
+| Report | Topic | Version | PDF | Source |
+|--------|-------|---------|-----|--------|
+| AI Agents Political Targeting | AI agents and political violence risk | 3.0 (Sep 2026) | [Download PDF](https://github.com/AndrewAltimit/template-repo/releases/latest) | [Markdown](./ai-agents-political-targeting.md) \| [LaTeX](./latex/ai-agents-political-targeting.tex) |
+| AI Agents WMD Proliferation | AI agents and WMD proliferation risk | 3.0 (Sep 2026) | [Download PDF](https://github.com/AndrewAltimit/template-repo/releases/latest) | [Markdown](./ai-agents-wmd-proliferation.md) \| [LaTeX](./latex/ai-agents-wmd-proliferation.tex) |
+| AI Agents Espionage Operations | AI agents and intelligence tradecraft | 3.0 (Sep 2026) | [Download PDF](https://github.com/AndrewAltimit/template-repo/releases/latest) | [Markdown](./ai-agents-espionage-operations.md) \| [LaTeX](./latex/ai-agents-espionage-operations.tex) |
+| AI Agents Economic Actors | AI agents as autonomous economic actors | 3.0 (Sep 2026) | [Download PDF](https://github.com/AndrewAltimit/template-repo/releases/latest) | [Package](../../packages/economic_agents) \| [LaTeX](./latex/ai-agents-economic-actors.tex) |
+| AI Agents Financial Integrity | AI agents and financial system integrity | 3.0 (Sep 2026) | [Download PDF](https://github.com/AndrewAltimit/template-repo/releases/latest) | [Markdown](./ai-agents-financial-integrity.md) \| [LaTeX](./latex/ai-agents-financial-integrity.tex) |
+| AI Agents Institutional Erosion | AI agents eroding IC monopolies | 3.0 (Sep 2026) | [Download PDF](https://github.com/AndrewAltimit/template-repo/releases/latest) | [Markdown](./ai-agents-institutional-erosion.md) \| [LaTeX](./latex/ai-agents-institutional-erosion.tex) |
 
 **Build Status**: [![Build Documentation](https://github.com/AndrewAltimit/template-repo/actions/workflows/build-docs.yml/badge.svg)](https://github.com/AndrewAltimit/template-repo/actions/workflows/build-docs.yml)
+
+All six reports were revised to v3.0 in September 2026 (research refresh through mid-September 2026, rewritten analysis, updated scenario probabilities and indicator dashboards, and new figures). Each report's revision history lists the substantive changes.
 
 PDFs are automatically compiled from LaTeX source and published with each [release](https://github.com/AndrewAltimit/template-repo/releases). Individual build artifacts are also available from the [Build Documentation workflow](https://github.com/AndrewAltimit/template-repo/actions/workflows/build-docs.yml).
 
