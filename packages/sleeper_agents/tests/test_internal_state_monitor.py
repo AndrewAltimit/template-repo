@@ -12,17 +12,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 
-# Save original torch if it exists, then mock it
-_original_torch = sys.modules.get("torch")
-sys.modules["torch"] = MagicMock()
-
 from sleeper_agents.advanced_detection.internal_state_monitor import InternalStateMonitor  # noqa: E402
-
-# Restore original torch after import to avoid breaking other tests
-if _original_torch is not None:
-    sys.modules["torch"] = _original_torch
-else:
-    sys.modules.pop("torch", None)
 
 
 class TestInternalStateMonitor(unittest.TestCase):
@@ -47,7 +37,7 @@ class TestInternalStateMonitor(unittest.TestCase):
         self.assertIsNone(monitor.tokenizer)
 
 
-class TestActivationExtraction(unittest.TestCase):
+class TestActivationExtraction(unittest.IsolatedAsyncioTestCase):
     """Test activation extraction functionality."""
 
     def setUp(self):
@@ -69,8 +59,6 @@ class TestActivationExtraction(unittest.TestCase):
     @pytest.mark.asyncio
     async def test_extract_activations_gpt_architecture(self):
         """Test activation extraction for GPT-style models."""
-        torch_mock = sys.modules["torch"]
-
         # Mock model with transformer.h layers
         self.model.transformer = MagicMock()
         self.model.transformer.h = [MagicMock() for _ in range(12)]
@@ -83,7 +71,7 @@ class TestActivationExtraction(unittest.TestCase):
         mock_param = MagicMock()
         mock_device = MagicMock()
         mock_param.device = mock_device
-        self.model.parameters.return_value = [mock_param]
+        self.model.parameters.side_effect = lambda: iter([mock_param])
 
         # Mock forward pass
         self.model.return_value = None
@@ -101,10 +89,6 @@ class TestActivationExtraction(unittest.TestCase):
         for layer in self.model.transformer.h[:12]:
             layer.register_forward_hook = mock_register_hook
 
-        # Mock torch.no_grad context manager
-        torch_mock.no_grad.return_value.__enter__ = MagicMock()
-        torch_mock.no_grad.return_value.__exit__ = MagicMock()
-
         # Extract activations
         activations = await self.monitor._extract_activations("test text", layer_idx=None)
 
@@ -116,8 +100,6 @@ class TestActivationExtraction(unittest.TestCase):
     @pytest.mark.asyncio
     async def test_extract_activations_single_layer(self):
         """Test activation extraction for single layer."""
-        torch_mock = sys.modules["torch"]
-
         # Mock model with transformer.h layers
         self.model.transformer = MagicMock()
         self.model.transformer.h = [MagicMock() for _ in range(12)]
@@ -130,7 +112,7 @@ class TestActivationExtraction(unittest.TestCase):
         mock_param = MagicMock()
         mock_device = MagicMock()
         mock_param.device = mock_device
-        self.model.parameters.return_value = [mock_param]
+        self.model.parameters.side_effect = lambda: iter([mock_param])
 
         # Mock forward pass
         self.model.return_value = None
@@ -145,10 +127,6 @@ class TestActivationExtraction(unittest.TestCase):
 
         self.model.transformer.h[7].register_forward_hook = mock_register_hook
 
-        # Mock torch.no_grad context manager
-        torch_mock.no_grad.return_value.__enter__ = MagicMock()
-        torch_mock.no_grad.return_value.__exit__ = MagicMock()
-
         # Extract activations for layer 7
         activations = await self.monitor._extract_activations("test text", layer_idx=7)
 
@@ -161,8 +139,6 @@ class TestActivationExtraction(unittest.TestCase):
     @pytest.mark.asyncio
     async def test_extract_activations_no_captures_raises_error(self):
         """Test that no captured activations raises RuntimeError."""
-        torch_mock = sys.modules["torch"]
-
         # Mock model with transformer.h layers
         self.model.transformer = MagicMock()
         self.model.transformer.h = [MagicMock() for _ in range(12)]
@@ -175,7 +151,7 @@ class TestActivationExtraction(unittest.TestCase):
         mock_param = MagicMock()
         mock_device = MagicMock()
         mock_param.device = mock_device
-        self.model.parameters.return_value = [mock_param]
+        self.model.parameters.side_effect = lambda: iter([mock_param])
 
         # Mock forward pass
         self.model.return_value = None
@@ -189,15 +165,26 @@ class TestActivationExtraction(unittest.TestCase):
         for layer in self.model.transformer.h[:12]:
             layer.register_forward_hook = mock_register_hook
 
-        # Mock torch.no_grad context manager
-        torch_mock.no_grad.return_value.__enter__ = MagicMock()
-        torch_mock.no_grad.return_value.__exit__ = MagicMock()
-
         # Should raise RuntimeError about no activations
         with self.assertRaises(RuntimeError) as context:
             await self.monitor._extract_activations("test text", layer_idx=None)
 
         self.assertIn("Failed to capture any model activations", str(context.exception))
+
+    @pytest.mark.asyncio
+    async def test_extract_activations_removes_hooks_when_forward_fails(self):
+        """Hooks must not be left on the model when the forward pass raises."""
+        self.model.transformer = MagicMock()
+        self.model.transformer.h = [MagicMock() for _ in range(3)]
+        self.tokenizer.return_value = {"input_ids": MagicMock()}
+        self.model.parameters.side_effect = lambda: iter([MagicMock()])
+        self.model.side_effect = RuntimeError("forward failed")
+
+        with self.assertRaises(RuntimeError):
+            await self.monitor._extract_activations("test text", layer_idx=None)
+
+        for layer in self.model.transformer.h:
+            layer.register_forward_hook.return_value.remove.assert_called_once()
 
 
 class TestAnomalyMetrics(unittest.TestCase):
@@ -290,7 +277,7 @@ class TestRiskAssessment(unittest.TestCase):
         self.assertEqual(risk, "critical")
 
 
-class TestInternalStateAnalysis(unittest.TestCase):
+class TestInternalStateAnalysis(unittest.IsolatedAsyncioTestCase):
     """Test full internal state analysis pipeline."""
 
     def setUp(self):
@@ -379,6 +366,16 @@ class TestInternalStateAnalysis(unittest.TestCase):
         self.assertIn("error", results)
         self.assertEqual(results["error"], "Test error")
         self.assertEqual(results["risk_level"], "low")  # Default
+
+    @pytest.mark.asyncio
+    async def test_analyze_internal_state_reports_extraction_failure(self):
+        """A failed extraction is reported as an error, not silently scored as low risk."""
+        monitor = InternalStateMonitor(self.model, tokenizer=None)
+
+        results = await monitor.analyze_internal_state(text_sample="test text")
+
+        self.assertIn("error", results)
+        self.assertIn("Tokenizer is required", results["error"])
 
 
 if __name__ == "__main__":

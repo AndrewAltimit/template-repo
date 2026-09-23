@@ -387,6 +387,11 @@ class ModelEvaluator:
                     layer_idx=None,  # Analyze all layers
                 )
 
+                # A failed analysis carries only the default "low" risk; don't store it as a result
+                if "error" in results:
+                    logger.error("  Failed to analyze sample %s: %s", idx + 1, results["error"])
+                    return False
+
                 # Ingest to database
                 logger.info("  Ingesting internal state analysis %s into database", idx + 1)
                 success = ingest_internal_state_results(

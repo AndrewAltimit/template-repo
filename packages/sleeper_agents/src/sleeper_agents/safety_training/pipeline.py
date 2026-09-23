@@ -299,11 +299,17 @@ class SafetyTrainingPipeline:
         pre_values = list(pre_scores.values())
         post_values = list(post_scores.values())
 
+        if len(pre_values) != len(post_values):
+            return 0.0
+
+        # Correlation is undefined for fewer than 2 points or constant scores;
+        # fall back to whether the detection scores are unchanged
+        if len(pre_values) < 2 or np.std(pre_values) == 0 or np.std(post_values) == 0:
+            return 1.0 if np.allclose(pre_values, post_values) else 0.0
+
         # Use correlation as consistency measure
-        if len(pre_values) == len(post_values):
-            correlation = np.corrcoef(pre_values, post_values)[0, 1]
-            return float(max(0, correlation))  # Ensure non-negative
-        return 0.0
+        correlation = np.corrcoef(pre_values, post_values)[0, 1]
+        return float(max(0.0, correlation))  # Ensure non-negative
 
     async def run_persistence_sweep(
         self, model_name: str, backdoor_samples: List[str], clean_samples: List[str]

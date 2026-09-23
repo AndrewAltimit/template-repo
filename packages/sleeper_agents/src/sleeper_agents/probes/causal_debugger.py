@@ -393,7 +393,7 @@ class CausalDebugger:
             "activation_effect": float(avg_activation_effect),
             "suppression_effect": float(avg_suppression_effect),
             "effect_size": float(combined_effect),
-            "significant_change": significant,
+            "significant_change": bool(significant),
             "n_samples": len(baseline),
         }
 

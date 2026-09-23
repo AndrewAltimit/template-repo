@@ -8,7 +8,6 @@ Tests database ingestion and querying without importing dashboard components.
 import logging
 import os
 import sqlite3
-import sys
 import tempfile
 
 import numpy as np
@@ -180,12 +179,6 @@ def test_database_integration():
         logger.info("  ✓ Data processing logic")
         logger.info("=" * 70)
 
-        return True
-
-    except Exception as e:
-        logger.error("Test failed: %s", e, exc_info=True)
-        return False
-
     finally:
         # Cleanup
         if os.path.exists(db_path):
@@ -194,5 +187,4 @@ def test_database_integration():
 
 
 if __name__ == "__main__":
-    success = test_database_integration()
-    sys.exit(0 if success else 1)
+    test_database_integration()

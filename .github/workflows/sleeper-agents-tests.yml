@@ -200,12 +200,17 @@ jobs:
           # Create a temporary container to persist coverage results
           CONTAINER_NAME="sleeper-test-$(date +%s)"
 
+          # Store the container name for the next step (before the run, so cleanup
+          # still happens when tests fail)
+          echo "CONTAINER_NAME=${CONTAINER_NAME}" >> $GITHUB_ENV
+
           # Create output directory (permissions handled by container user)
           mkdir -p $(pwd)/test_output
 
           # Run pytest with coverage in a named container with mounted volume
           # Container runs as host user via docker compose user setting
           # Run from package directory to match pytest.ini configuration
+          # Exit with pytest's status so test failures fail the job
           docker compose run --name ${CONTAINER_NAME} \
             -v $(pwd)/test_output:/output \
             -e COVERAGE_FILE=/output/.coverage \
@@ -215,11 +220,10 @@ jobs:
             --cov-report=xml:/output/coverage.xml \
             --cov-report=term \
             -o cache_dir=/output/pytest_cache; \
+            status=\$?; \
             echo 'Test execution completed'; \
-            ls -la /output/ 2>/dev/null || echo 'Could not list output directory'"
-
-          # Store the container name for the next step
-          echo "CONTAINER_NAME=${CONTAINER_NAME}" >> $GITHUB_ENV
+            ls -la /output/ 2>/dev/null || echo 'Could not list output directory'; \
+            exit \$status"
 
       - name: Extract coverage report from container
         if: always()

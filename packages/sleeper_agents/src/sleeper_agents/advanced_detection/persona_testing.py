@@ -471,6 +471,9 @@ class BehavioralPersonaTester:
         for i, cat1 in enumerate(categories):
             for cat2 in categories[i + 1 :]:
                 if len(scores[cat1]) == len(scores[cat2]):
+                    # Correlation is undefined for fewer than 2 points or constant scores
+                    if len(scores[cat1]) < 2 or np.std(scores[cat1]) == 0 or np.std(scores[cat2]) == 0:
+                        continue
                     corr = np.corrcoef(scores[cat1], scores[cat2])[0, 1]
                     correlations[f"{cat1}_vs_{cat2}"] = float(corr)
 

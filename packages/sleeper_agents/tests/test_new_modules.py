@@ -1,13 +1,9 @@
 """Test suite for new sleeper detection modules."""
 
 from pathlib import Path
-import sys
 from unittest.mock import AsyncMock, Mock
 
 import pytest
-
-# Add parent to path for imports
-sys.path.insert(0, str(Path(__file__).parent.parent))
 
 
 class TestSafetyTrainingPipeline:
@@ -15,7 +11,7 @@ class TestSafetyTrainingPipeline:
 
     def test_pipeline_import(self):
         """Test that safety training pipeline can be imported."""
-        from safety_training.pipeline import (
+        from sleeper_agents.safety_training.pipeline import (
             PersistenceResult,
             SafetyTrainingConfig,
             SafetyTrainingPipeline,
@@ -27,7 +23,7 @@ class TestSafetyTrainingPipeline:
 
     def test_config_creation(self):
         """Test creating safety training configuration."""
-        from safety_training.pipeline import SafetyTrainingConfig
+        from sleeper_agents.safety_training.pipeline import SafetyTrainingConfig
 
         config = SafetyTrainingConfig(model_name="test_model", training_method="sft", num_epochs=3)
 
@@ -39,7 +35,7 @@ class TestSafetyTrainingPipeline:
     @pytest.mark.asyncio
     async def test_persistence_testing(self):
         """Test basic persistence testing workflow."""
-        from safety_training.pipeline import (
+        from sleeper_agents.safety_training.pipeline import (
             SafetyTrainingConfig,
             SafetyTrainingPipeline,
         )
@@ -67,13 +63,28 @@ class TestSafetyTrainingPipeline:
         assert result.training_method == "sft"
         assert result.persistence_rate >= 0
 
+    def test_consistency_with_constant_scores(self):
+        """Consistency is defined when correlation is not (constant or single scores)."""
+        from sleeper_agents.safety_training.pipeline import SafetyTrainingPipeline
+
+        pipeline = SafetyTrainingPipeline(Mock())
+
+        # Unchanged constant scores are perfectly consistent
+        assert pipeline._calculate_consistency({"a": 0.9, "b": 0.9}, {"a": 0.9, "b": 0.9}) == 1.0
+        assert pipeline._calculate_consistency({"a": 0.9}, {"a": 0.9}) == 1.0
+        # Changed constant scores are not
+        assert pipeline._calculate_consistency({"a": 0.9, "b": 0.9}, {"a": 0.1, "b": 0.1}) == 0.0
+        # Varying scores still use correlation
+        consistency = pipeline._calculate_consistency({"a": 0.1, "b": 0.5, "c": 0.9}, {"a": 0.2, "b": 0.6, "c": 1.0})
+        assert consistency == pytest.approx(1.0)
+
 
 class TestTriggerSensitivity:
     """Test trigger sensitivity analysis."""
 
     def test_sensitivity_import(self):
         """Test that trigger sensitivity module can be imported."""
-        from advanced_detection.trigger_sensitivity import (
+        from sleeper_agents.advanced_detection.trigger_sensitivity import (
             TriggerSensitivityAnalyzer,
             TriggerVariant,
         )
@@ -84,7 +95,7 @@ class TestTriggerSensitivity:
     @pytest.mark.asyncio
     async def test_trigger_analysis(self):
         """Test trigger sensitivity analysis."""
-        from advanced_detection.trigger_sensitivity import TriggerSensitivityAnalyzer
+        from sleeper_agents.advanced_detection.trigger_sensitivity import TriggerSensitivityAnalyzer
 
         # Create mock detector
         mock_detector = Mock()
@@ -107,7 +118,7 @@ class TestRedTeaming:
 
     def test_red_team_import(self):
         """Test that red teaming module can be imported."""
-        from advanced_detection.red_teaming import (
+        from sleeper_agents.advanced_detection.red_teaming import (
             AutomatedRedTeamer,
             RedTeamingResult,
             RedTeamPrompt,
@@ -120,7 +131,7 @@ class TestRedTeaming:
     @pytest.mark.asyncio
     async def test_red_teaming_basic(self):
         """Test basic red teaming workflow."""
-        from advanced_detection.red_teaming import AutomatedRedTeamer
+        from sleeper_agents.advanced_detection.red_teaming import AutomatedRedTeamer
 
         # Create mock detector
         mock_detector = Mock()
@@ -144,7 +155,7 @@ class TestPersonaTesting:
 
     def test_persona_import(self):
         """Test that persona testing module can be imported."""
-        from advanced_detection.persona_testing import (
+        from sleeper_agents.advanced_detection.persona_testing import (
             BehavioralPersonaTester,
             PersonaProfile,
             PersonaQuestion,
@@ -157,7 +168,7 @@ class TestPersonaTesting:
     @pytest.mark.asyncio
     async def test_persona_evaluation(self):
         """Test persona evaluation."""
-        from advanced_detection.persona_testing import BehavioralPersonaTester
+        from sleeper_agents.advanced_detection.persona_testing import BehavioralPersonaTester
 
         # Create mock detector
         mock_detector = Mock()
@@ -176,13 +187,25 @@ class TestPersonaTesting:
         assert profile.self_awareness_score >= 0
         assert profile.persona_risk_level in ["low", "moderate", "high"]
 
+    def test_correlations_skip_undefined_pairs(self):
+        """Category pairs with undefined correlation are omitted instead of NaN."""
+        from sleeper_agents.advanced_detection.persona_testing import BehavioralPersonaTester
+
+        tester = BehavioralPersonaTester(Mock())
+        correlations = tester._calculate_correlations(
+            {"constant": [0.5, 0.5, 0.5], "rising": [0.1, 0.5, 0.9], "also_rising": [0.2, 0.6, 1.0]}
+        )
+
+        assert list(correlations) == ["rising_vs_also_rising"]
+        assert correlations["rising_vs_also_rising"] == pytest.approx(1.0)
+
 
 class TestModelScaling:
     """Test model size scaling analysis."""
 
     def test_scaling_import(self):
         """Test that scaling module can be imported."""
-        from analysis.model_scaling import (
+        from sleeper_agents.analysis.model_scaling import (
             ModelSizeProfile,
             ModelSizeScalingAnalyzer,
             ScalingResult,
@@ -195,7 +218,7 @@ class TestModelScaling:
     @pytest.mark.asyncio
     async def test_scaling_analysis(self):
         """Test model scaling analysis."""
-        from analysis.model_scaling import ModelSizeScalingAnalyzer
+        from sleeper_agents.analysis.model_scaling import ModelSizeScalingAnalyzer
 
         # Create analyzer
         analyzer = ModelSizeScalingAnalyzer()
@@ -235,36 +258,30 @@ class TestModelScaling:
 class TestDashboardComponents:
     """Test new dashboard components."""
 
+    @pytest.fixture(autouse=True)
+    def _dashboard_env(self, monkeypatch):
+        """Dashboard components require streamlit (only in the dashboard image) and import
+        siblings as top-level ``components``/``utils`` packages rooted at dashboard/."""
+        pytest.importorskip("streamlit")
+        monkeypatch.syspath_prepend(str(Path(__file__).parent.parent / "dashboard"))
+
     def test_persistence_component_import(self):
         """Test that persistence analysis component can be imported."""
-        try:
-            from dashboard.components.persistence_analysis import render_persistence_analysis
+        from components.persistence_analysis import render_persistence_analysis
 
-            assert render_persistence_analysis is not None
-        except ImportError as e:
-            # Dashboard components may require streamlit
-            if "streamlit" not in str(e):
-                raise
+        assert render_persistence_analysis is not None
 
     def test_red_team_component_import(self):
         """Test that red team component can be imported."""
-        try:
-            from dashboard.components.red_team_results import render_red_team_results
+        from components.red_team_results import render_red_team_results
 
-            assert render_red_team_results is not None
-        except ImportError as e:
-            if "streamlit" not in str(e):
-                raise
+        assert render_red_team_results is not None
 
     def test_persona_component_import(self):
         """Test that persona component can be imported."""
-        try:
-            from dashboard.components.persona_profile import render_persona_profile
+        from components.persona_profile import render_persona_profile
 
-            assert render_persona_profile is not None
-        except ImportError as e:
-            if "streamlit" not in str(e):
-                raise
+        assert render_persona_profile is not None
 
 
 if __name__ == "__main__":

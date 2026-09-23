@@ -13,8 +13,9 @@ import logging
 import os
 from pathlib import Path
 import sqlite3
-import sys
 import tempfile
+
+import pytest
 
 from sleeper_agents.database.ingestion import ingest_trigger_sensitivity_results
 from sleeper_agents.database.schema import ensure_trigger_sensitivity_table_exists
@@ -94,13 +95,15 @@ def test_trigger_sensitivity_integration():
         logger.info("✓ Database contains %s records", count)
 
         # Step 4: Test DataLoader fetch
-        # We need to set the database path explicitly
-        os.environ["DATABASE_PATH"] = db_path
+        # Dashboard modules import siblings as top-level packages rooted at dashboard/
+        with pytest.MonkeyPatch.context() as mp:
+            mp.setenv("DATABASE_PATH", db_path)
+            mp.syspath_prepend(str(Path(__file__).parent.parent / "dashboard"))
 
-        from sleeper_agents.dashboard.utils.data_loader import DataLoader
+            from utils.data_loader import DataLoader
 
-        data_loader = DataLoader(db_path=Path(db_path))
-        result = data_loader.fetch_trigger_sensitivity(test_model)
+            data_loader = DataLoader(db_path=Path(db_path))
+            result = data_loader.fetch_trigger_sensitivity(test_model)
 
         # Verify result structure
         assert result, "DataLoader returned empty result"
@@ -133,12 +136,6 @@ def test_trigger_sensitivity_integration():
         logger.info("ALL TESTS PASSED - Trigger sensitivity integration working!")
         logger.info("=" * 60)
 
-        return True
-
-    except Exception as e:
-        logger.error("Test failed: %s", e, exc_info=True)
-        return False
-
     finally:
         # Cleanup
         if os.path.exists(db_path):
@@ -147,5 +144,4 @@ def test_trigger_sensitivity_integration():
 
 
 if __name__ == "__main__":
-    success = test_trigger_sensitivity_integration()
-    sys.exit(0 if success else 1)
+    test_trigger_sensitivity_integration()

@@ -1,42 +1,14 @@
-"""Basic tests for probe modules that work without heavy dependencies."""
+"""Basic tests for probe module data structures."""
 
-from pathlib import Path
-import sys
+import numpy as np
 
-# Add parent directory to path
-sys.path.insert(0, str(Path(__file__).parent.parent))
+from sleeper_agents.probes.causal_debugger import CausalExperiment
+from sleeper_agents.probes.feature_discovery import DiscoveredFeature
+from sleeper_agents.probes.probe_detector import Probe, ProbeDetection
 
 
-print("Testing probe module imports...")
-
-# Test basic imports
-try:
-    from probes.feature_discovery import DiscoveredFeature
-
-    print("✓ DiscoveredFeature imported")
-except ImportError as e:
-    print(f"✗ Failed to import DiscoveredFeature: {e}")
-
-try:
-    from probes.probe_detector import Probe, ProbeDetection
-
-    print("✓ Probe and ProbeDetection imported")
-except ImportError as e:
-    print(f"✗ Failed to import Probe: {e}")
-
-try:
-    from probes.causal_debugger import CausalExperiment
-
-    print("✓ CausalExperiment imported")
-except ImportError as e:
-    print(f"✗ Failed to import CausalExperiment: {e}")
-
-# Test dataclass creation
-import numpy as np  # noqa: E402
-
-print("\nTesting dataclass creation...")
-
-try:
+def test_discovered_feature_to_dict():
+    """DiscoveredFeature serializes its fields."""
     feature = DiscoveredFeature(
         feature_id=1,
         vector=np.random.randn(768),
@@ -46,17 +18,14 @@ try:
         semantic_category="test_category",
         layer=7,
     )
-    print(f"✓ Created DiscoveredFeature with id={feature.feature_id}")
 
     feature_dict = feature.to_dict()
     assert feature_dict["feature_id"] == 1
     assert feature_dict["activation_strength"] == 0.8
-    print("✓ DiscoveredFeature.to_dict() works correctly")
 
-except Exception as e:
-    print(f"✗ Failed to create DiscoveredFeature: {e}")
 
-try:
+def test_probe_to_dict():
+    """Probe serializes its fields."""
     probe = Probe(
         probe_id="test_probe",
         feature_name="test_feature",
@@ -66,17 +35,14 @@ try:
         layer=7,
         description="Test probe",
     )
-    print(f"✓ Created Probe with id={probe.probe_id}")
 
     probe_dict = probe.to_dict()
     assert probe_dict["probe_id"] == "test_probe"
     assert probe_dict["auc_score"] == 0.85
-    print("✓ Probe.to_dict() works correctly")
 
-except Exception as e:
-    print(f"✗ Failed to create Probe: {e}")
 
-try:
+def test_probe_detection_to_dict():
+    """ProbeDetection serializes its fields."""
     detection = ProbeDetection(
         probe_id="test_probe",
         feature_name="test_feature",
@@ -86,17 +52,14 @@ try:
         raw_score=0.87,
         timestamp=1234567890.0,
     )
-    print(f"✓ Created ProbeDetection with confidence={detection.confidence}")
 
     detection_dict = detection.to_dict()
     assert detection_dict["detected"] is True
     assert detection_dict["confidence"] == 0.87
-    print("✓ ProbeDetection.to_dict() works correctly")
 
-except Exception as e:
-    print(f"✗ Failed to create ProbeDetection: {e}")
 
-try:
+def test_causal_experiment_to_dict():
+    """CausalExperiment serializes its fields."""
     experiment = CausalExperiment(
         experiment_id="exp1",
         feature_name="test_feature",
@@ -108,15 +71,7 @@ try:
         layer=7,
         details={"test": "data"},
     )
-    print(f"✓ Created CausalExperiment with id={experiment.experiment_id}")
 
     exp_dict = experiment.to_dict()
     assert exp_dict["behavior_changed"] is True
     assert exp_dict["causal_effect_size"] == 0.75
-    print("✓ CausalExperiment.to_dict() works correctly")
-
-except Exception as e:
-    print(f"✗ Failed to create CausalExperiment: {e}")
-
-print("\nBasic structure tests completed!")
-print("Note: Full functionality requires torch and sklearn dependencies.")

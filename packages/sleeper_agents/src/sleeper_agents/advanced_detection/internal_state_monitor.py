@@ -89,23 +89,22 @@ class InternalStateMonitor:
             # 2. Extract activations for feature discovery
             activations = await self._extract_activations(text_sample, layer_idx)
 
-            if activations is not None:
-                # 3. Feature Discovery
-                features = await self._discover_features(activations, layer_idx, [text_sample])
-                results["features"] = features
+            # 3. Feature Discovery
+            features = await self._discover_features(activations, layer_idx, [text_sample])
+            results["features"] = features
 
-                # 4. Compute anomaly metrics from activations
-                anomaly_metrics = self._compute_anomaly_metrics(activations, features)
-                results["anomaly_metrics"].update(anomaly_metrics)
+            # 4. Compute anomaly metrics from activations
+            anomaly_metrics = self._compute_anomaly_metrics(activations, features)
+            results["anomaly_metrics"].update(anomaly_metrics)
 
-                # 5. Layer-wise anomalies
-                if layer_idx is None:
-                    # Analyze all layers
-                    layer_anomalies = self._compute_layer_anomalies(activations)
-                    results["layer_anomalies"] = layer_anomalies
-                else:
-                    # Single layer
-                    results["layer_anomalies"] = {layer_idx: results["anomaly_metrics"].get("overall_anomaly_score", 0.0)}
+            # 5. Layer-wise anomalies
+            if layer_idx is None:
+                # Analyze all layers
+                layer_anomalies = self._compute_layer_anomalies(activations)
+                results["layer_anomalies"] = layer_anomalies
+            else:
+                # Single layer
+                results["layer_anomalies"] = {layer_idx: results["anomaly_metrics"].get("overall_anomaly_score", 0.0)}
 
             # 6. Risk assessment
             results["risk_level"] = self._assess_risk_level(results["anomaly_metrics"])
@@ -124,7 +123,7 @@ class InternalStateMonitor:
 
         return results
 
-    async def _extract_activations(self, text: str, layer_idx: Optional[int] = None) -> Optional[np.ndarray]:
+    async def _extract_activations(self, text: str, layer_idx: Optional[int] = None) -> np.ndarray:
         """Extract activations from model layers.
 
         Args:
@@ -132,100 +131,100 @@ class InternalStateMonitor:
             layer_idx: Specific layer (None for all layers)
 
         Returns:
-            Activations as numpy array, or None if extraction fails
+            Activations as numpy array
+
+        Raises:
+            ValueError: If no tokenizer was provided
+            NotImplementedError: If the model's layer layout cannot be determined
+            RuntimeError: If no activations were captured
         """
+        if self.tokenizer is None:
+            raise ValueError(
+                "Tokenizer is required for activation extraction. "
+                "Please provide a tokenizer when initializing InternalStateMonitor."
+            )
+
+        # Tokenize input
+        inputs = self.tokenizer(text, return_tensors="pt", truncation=True, max_length=128)
+
+        # Move to same device as model
+        device = next(self.model.parameters()).device
+        inputs = {k: v.to(device) for k, v in inputs.items()}
+
+        # Get activations with hooks
+        activations_list = []
+
+        def hook_fn(_module, _hook_input, output):
+            # Store hidden states
+            if isinstance(output, tuple):
+                activations_list.append(output[0].detach().cpu().numpy())
+            else:
+                activations_list.append(output.detach().cpu().numpy())
+
+        # Register hooks
+        handles = []
+
+        # Determine layer collection using custom path or auto-detection
+        layer_collection = None
+        if self.layer_path:
+            # Use custom layer path (e.g., 'transformer.h' or 'model.layers')
+            layer_collection = self.model
+            for attr in self.layer_path.split("."):
+                layer_collection = getattr(layer_collection, attr)
+        elif hasattr(self.model, "transformer"):
+            # GPT-style models (auto-detected)
+            layer_collection = self.model.transformer.h
+        elif hasattr(self.model, "model") and hasattr(self.model.model, "layers"):
+            # LLaMA-style models (auto-detected)
+            layer_collection = self.model.model.layers
+        else:
+            # Unsupported architecture - provide clear guidance
+            raise NotImplementedError(
+                f"Unsupported model architecture: {type(self.model).__name__}. "
+                "This model does not match known architectures (GPT-style with 'transformer.h' or "
+                "LLaMA-style with 'model.layers'). To use this model, provide the 'layer_path' parameter "
+                "when initializing InternalStateMonitor. Common examples:\n"
+                "  - GPT-style: layer_path='transformer.h'\n"
+                "  - LLaMA-style: layer_path='model.layers'\n"
+                "  - BERT-style: layer_path='encoder.layer'\n"
+                "  - Custom: layer_path='your.custom.path.to.layers'"
+            )
+
+        # Register hooks on selected layers
+        if layer_idx is not None:
+            # Single layer analysis
+            handles.append(layer_collection[layer_idx].register_forward_hook(hook_fn))
+        else:
+            # Multi-layer analysis - warn if partial
+            if len(layer_collection) > self.max_layers:
+                logger.warning(
+                    "Model has %d layers, but analysis is limited to the first %d. "
+                    "Set 'max_layers' in InternalStateMonitor for deeper analysis.",
+                    len(layer_collection),
+                    self.max_layers,
+                )
+
+            for layer in layer_collection[: self.max_layers]:
+                handles.append(layer.register_forward_hook(hook_fn))
+
+        # Forward pass; always remove hooks so a failed pass doesn't leave them on the model
         try:
-            if self.tokenizer is None:
-                raise ValueError(
-                    "Tokenizer is required for activation extraction. "
-                    "Please provide a tokenizer when initializing InternalStateMonitor."
-                )
-
-            # Tokenize input
-            inputs = self.tokenizer(text, return_tensors="pt", truncation=True, max_length=128)
-
-            # Move to same device as model
-            device = next(self.model.parameters()).device
-            inputs = {k: v.to(device) for k, v in inputs.items()}
-
-            # Get activations with hooks
-            activations_list = []
-
-            def hook_fn(_module, _hook_input, output):
-                # Store hidden states
-                if isinstance(output, tuple):
-                    activations_list.append(output[0].detach().cpu().numpy())
-                else:
-                    activations_list.append(output.detach().cpu().numpy())
-
-            # Register hooks
-            handles = []
-
-            # Determine layer collection using custom path or auto-detection
-            layer_collection = None
-            if self.layer_path:
-                # Use custom layer path (e.g., 'transformer.h' or 'model.layers')
-                layer_collection = self.model
-                for attr in self.layer_path.split("."):
-                    layer_collection = getattr(layer_collection, attr)
-            elif hasattr(self.model, "transformer"):
-                # GPT-style models (auto-detected)
-                layer_collection = self.model.transformer.h
-            elif hasattr(self.model, "model") and hasattr(self.model.model, "layers"):
-                # LLaMA-style models (auto-detected)
-                layer_collection = self.model.model.layers
-            else:
-                # Unsupported architecture - provide clear guidance
-                raise NotImplementedError(
-                    f"Unsupported model architecture: {type(self.model).__name__}. "
-                    "This model does not match known architectures (GPT-style with 'transformer.h' or "
-                    "LLaMA-style with 'model.layers'). To use this model, provide the 'layer_path' parameter "
-                    "when initializing InternalStateMonitor. Common examples:\n"
-                    "  - GPT-style: layer_path='transformer.h'\n"
-                    "  - LLaMA-style: layer_path='model.layers'\n"
-                    "  - BERT-style: layer_path='encoder.layer'\n"
-                    "  - Custom: layer_path='your.custom.path.to.layers'"
-                )
-
-            # Register hooks on selected layers
-            if layer_idx is not None:
-                # Single layer analysis
-                handles.append(layer_collection[layer_idx].register_forward_hook(hook_fn))
-            else:
-                # Multi-layer analysis - warn if partial
-                if len(layer_collection) > self.max_layers:
-                    logger.warning(
-                        "Model has %d layers, but analysis is limited to the first %d. "
-                        "Set 'max_layers' in InternalStateMonitor for deeper analysis.",
-                        len(layer_collection),
-                        self.max_layers,
-                    )
-
-                for layer in layer_collection[: self.max_layers]:
-                    handles.append(layer.register_forward_hook(hook_fn))
-
-            # Forward pass
             with torch.no_grad():
                 _ = self.model(**inputs)
-
-            # Remove hooks
+        finally:
             for handle in handles:
                 handle.remove()
 
-            if activations_list:
-                # Average over sequence length
-                activations = np.array([act.mean(axis=1).squeeze() for act in activations_list])
-                return activations
-            raise RuntimeError(
-                "Failed to capture any model activations. This may be due to an "
-                "incompatible model architecture or incorrect layer hook registration. "
-                "Check that the model structure (e.g., `model.transformer.h` or "
-                "`model.model.layers`) is correctly targeted."
-            )
-
-        except Exception as e:
-            logger.error("Failed to extract activations: %s", e)
-            return None
+        if activations_list:
+            # Average over sequence length
+            activations = np.array([act.mean(axis=1).squeeze() for act in activations_list])
+            return activations
+        raise RuntimeError(
+            "Failed to capture any model activations. This may be due to an "
+            "incompatible model architecture or incorrect layer hook registration. "
+            "Check that the model structure (e.g., `model.transformer.h` or "
+            "`model.model.layers`) is correctly targeted."
+        )
 
     async def _discover_features(
         self, activations: np.ndarray, layer_idx: Optional[int], context: List[str]
