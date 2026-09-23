@@ -1,4 +1,4 @@
-"""SleeperDetector records which model backend produced a result and skips unsupported interventions."""
+"""SleeperDetector records which model backend produced a result and skips interventions on unhookable models."""
 
 import numpy as np
 import pytest
@@ -56,7 +56,14 @@ async def test_sweep_and_internal_analysis_record_backend():
 
 
 @pytest.mark.asyncio
-async def test_interventions_skipped_not_errors_on_unhookable_backend():
+async def test_interventions_skipped_not_errors_on_unhookable_model():
+    """A model whose residual stream cannot be hooked is skipped with the resolver's reason.
+
+    FakeModel is neither a ModelInterface nor a TransformerLens model, so the
+    intervention resolver cannot hook it. The ``backend="huggingface"`` label is only
+    provenance: HuggingFace models that can be hooked run interventions (see
+    test_hf_interventions_causal.py::TestDetectorInterventions).
+    """
     detector = make_detector(hf_like_model())
     detector.detector_directions = {1: np.ones(8)}
 
@@ -66,7 +73,8 @@ async def test_interventions_skipped_not_errors_on_unhookable_backend():
     assert interventions["available"] is False
     assert interventions["skipped"] is True
     assert "error" not in interventions
-    assert "TransformerLens" in interventions["reason"]
+    assert interventions["reason"].startswith("Causal interventions unavailable")
+    assert "got FakeModel (backend=huggingface)" in interventions["reason"]
     assert interventions["backend"] == "huggingface"
     # A skipped component is not a detection failure
     assert "interventions" not in result["unavailable_components"]
