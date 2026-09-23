@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Blender world environment setup script."""
 
-import os
 import math
+import os
 from pathlib import Path
 import sys
 
