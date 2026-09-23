@@ -5,27 +5,45 @@ Visualizes stored results of probe-based internal state analysis
 (internal_state_analysis table, written by evaluation jobs). Emphasizes that
 anomalies are signals for investigation, not binary judgments about safety.
 
+Anomaly metrics are z-scores of a sample's activation statistics against a
+clean-prompt baseline (units of baseline standard deviations, unbounded). A
+record without a baseline has no anomaly metrics and an "unknown" risk level;
+both are shown as not measured rather than as zero or low risk.
+
 This view never computes or simulates analysis in the browser: when no stored
 results exist for a model, it says so.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
 from components.model_selector import render_model_selector
-from utils.metric_format import NOT_MEASURED, is_measured
+from utils.metric_format import NOT_MEASURED, fmt_num, is_measured
 from utils.model_registry import ModelRegistry
 
+# Units recorded by InternalStateMonitor for baseline-relative anomaly metrics
+METRIC_UNITS_Z = "z_score_vs_clean_baseline"
+
 ANOMALY_METRICS = [
-    ("pattern_deviation", "Pattern Deviation", "Deviation from typical activation patterns"),
-    ("sparsity_anomaly", "Activation Sparsity", "Unusual concentration of activations"),
-    ("coherence_anomaly", "Cross-Layer Coherence", "Inconsistency across model layers"),
-    ("temporal_variance", "Temporal Variance", "Temporal variance of activation patterns recorded by the analysis"),
-    ("overall_anomaly_score", "Overall Anomaly", "Aggregate anomaly score recorded by the analysis"),
+    (
+        "pattern_deviation",
+        "Pattern Deviation",
+        "Mean per-layer z-score of the distance to the clean-baseline centroid",
+    ),
+    ("max_layer_deviation", "Max Layer Deviation", "Largest per-layer z-score of the distance to the clean centroid"),
+    ("sparsity_anomaly", "Activation Sparsity", "|z| of the activation sparsity fraction vs. the clean baseline"),
+    ("coherence_anomaly", "Cross-Layer Coherence", "|z| of the cross-layer spread vs. the clean baseline"),
+    ("overall_anomaly_score", "Overall Anomaly", "Largest of the above (the value risk levels are assessed on)"),
 ]
+
+# Severity bands in baseline standard deviations; they match the thresholds
+# InternalStateMonitor uses for risk_level (medium >= 3, high >= 4, critical >= 5).
+Z_SEVERITY_BANDS = [(5.0, "CRITICAL", "Extreme"), (4.0, "HIGH", "High"), (3.0, "MEDIUM", "Elevated")]
+
+KNOWN_RISK_LEVELS = ("low", "medium", "high", "critical")
 
 
 def render_internal_state_monitor(data_loader, cache_manager):
@@ -134,17 +152,59 @@ def summarize_anomaly_metrics(results: List[Dict[str, Any]]) -> Dict[str, Option
     return summary
 
 
+def format_risk_level(value: Any) -> str:
+    """Display a stored risk level; NULL, "unknown" and unrecognized values read "Unknown"."""
+    level = str(value or "").strip().lower()
+    return level.capitalize() if level in KNOWN_RISK_LEVELS else "Unknown"
+
+
+def z_severity(value: Any) -> Optional[Tuple[str, str]]:
+    """Severity label for a baseline z-score, or None if not measured.
+
+    Returns:
+        (severity_code, text); values below 3 standard deviations are within
+        the range clean prompts routinely reach
+    """
+    if not is_measured(value):
+        return None
+    z = float(value)
+    for threshold, code, text in Z_SEVERITY_BANDS:
+        if z >= threshold:
+            return code, f"{text} (>= {threshold:g} SD above clean baseline)"
+    return "TYPICAL", "Within 3 SD of clean baseline"
+
+
+def partition_by_units(results: List[Dict[str, Any]]) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+    """Split records into (baseline z-score records, records without baseline z-scores).
+
+    Records without z-score units either had no clean baseline (no anomaly
+    metrics) or predate unit recording; their values are not comparable to
+    z-scores and are excluded from the summary.
+    """
+    z_records = [r for r in results if r.get("metric_units") == METRIC_UNITS_Z]
+    other = [r for r in results if r.get("metric_units") != METRIC_UNITS_Z]
+    return z_records, other
+
+
 def render_anomaly_metrics(results: List[Dict[str, Any]]):
     """Render stored anomaly metrics (mean across records plus per-sample table)."""
     st.subheader("Anomaly Metrics")
     st.markdown(
         """
-        Probes detect patterns in model internals that deviate from expected distributions.
-        These deviations are signals for investigation, not automatic red flags.
+        Anomaly metrics are z-scores of each sample's activation statistics against a clean-prompt baseline
+        (units of baseline standard deviations; unbounded). These deviations are signals for investigation,
+        not automatic red flags.
         """
     )
 
-    summary = summarize_anomaly_metrics(results)
+    z_records, other_records = partition_by_units(results)
+    if other_records:
+        st.caption(
+            f"{len(other_records)} record(s) have no baseline z-scores (no clean baseline, or recorded before "
+            "metric units were stored). They are excluded from the summary and shown without a severity."
+        )
+
+    summary = summarize_anomaly_metrics(z_records)
     cols = st.columns(len(ANOMALY_METRICS))
     for col, (key, label, description) in zip(cols, ANOMALY_METRICS):
         with col:
@@ -157,8 +217,9 @@ def render_anomaly_metrics(results: List[Dict[str, Any]]):
             {
                 "Text sample": (r.get("text_sample") or "")[:80],
                 "Layer": r.get("layer_idx"),
-                **{label: metrics.get(key) for key, label, _ in ANOMALY_METRICS},
-                "Risk level": r.get("risk_level"),
+                **{label: fmt_num(metrics.get(key)) for key, label, _ in ANOMALY_METRICS},
+                "Units": "z vs clean baseline" if r.get("metric_units") == METRIC_UNITS_Z else "Unknown",
+                "Risk level": format_risk_level(r.get("risk_level")),
                 "Timestamp": r.get("timestamp"),
             }
         )
@@ -168,30 +229,24 @@ def render_anomaly_metrics(results: List[Dict[str, Any]]):
     st.info(
         """
         **Interpreting Anomalies**:
-        • High values indicate deviation from typical patterns
-        • Anomalies may be benign, beneficial, or concerning
-        • Context and further investigation determine significance
-        • Multiple weak anomalies may be more important than one strong anomaly
+        • Values are in standard deviations of the clean baseline; clean prompts routinely reach 2
+        • Risk levels start at 3 SD (medium), 4 SD (high) and 5 SD (critical) of the overall score
+        • "Unknown" risk means no clean baseline was available, not that the sample is safe
+        • Anomalies may be benign, beneficial, or concerning; context determines significance
         """
     )
 
 
-def render_anomaly_gauge(name: str, value: Optional[float], description: str, inverse: bool = False):
-    """Render an anomaly level as a metric with a severity label."""
-    if not is_measured(value):
+def render_anomaly_gauge(name: str, value: Optional[float], description: str):
+    """Render a baseline z-score as a metric with a severity label."""
+    severity = z_severity(value)
+    if severity is None:
         st.metric(label=name, value=NOT_MEASURED, help=description)
         return
 
-    level = 1.0 - float(value) if inverse else float(value)  # type: ignore[arg-type]
-    if level > 0.7:
-        severity_label, text = "HIGH", "High"
-    elif level > 0.4:
-        severity_label, text = "MEDIUM", "Moderate"
-    else:
-        severity_label, text = "LOW", "Low"
-
-    st.metric(label=name, value=f"{float(value):.2f}", help=description)  # type: ignore[arg-type]
-    st.caption(f"[{severity_label}] {text} anomaly")
+    code, text = severity
+    st.metric(label=name, value=f"{float(value):.2f} SD", help=description)  # type: ignore[arg-type]
+    st.caption(f"[{code}] {text}")
 
 
 def build_layer_anomaly_matrix(results: List[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
@@ -234,12 +289,13 @@ def render_layer_anomalies(results: List[Dict[str, Any]]):
             x=matrix["samples"],
             y=[f"Layer {layer}" for layer in matrix["layers"]],
             colorscale="RdYlBu_r",
-            zmid=0.5,
-            colorbar={"title": "Anomaly<br>Level"},
+            zmid=0.0,
+            colorbar={"title": "z vs clean<br>baseline"},
         )
     )
     fig.update_layout(title="Stored Layer Anomaly Scores", xaxis_title="Analyzed sample", yaxis_title="Layer", height=350)
     st.plotly_chart(fig, use_container_width=True)
+    st.caption("Per-layer z-score of the distance to the clean-baseline centroid; empty cells were not measured.")
 
 
 def render_discovered_features(results: List[Dict[str, Any]]):

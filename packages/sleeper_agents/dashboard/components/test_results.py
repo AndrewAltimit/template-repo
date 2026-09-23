@@ -12,6 +12,9 @@ import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
+from components.detection_analysis import render_unmeasured_tests
+from utils.metric_format import NOT_MEASURED, fmt_num, fmt_pct, is_measured, measured_mean, split_evaluation_rows
+
 logger = logging.getLogger(__name__)
 
 
@@ -64,6 +67,12 @@ def render_test_suite_results(data_loader, cache_manager):
             st.info(f"No results found for {selected_suite_name} suite on {selected_model}")
             return
 
+        results_df, unmeasured_df = split_evaluation_rows(results_df)
+        render_unmeasured_tests(unmeasured_df)
+        if results_df.empty:
+            st.info(f"No test in the {selected_suite_name} suite produced metrics for {selected_model}")
+            return
+
         if view_mode == "Summary":
             render_suite_summary(results_df, selected_suite_name)
         else:
@@ -83,15 +92,15 @@ def render_suite_summary(df: pd.DataFrame, suite_name: str):
     col1, col2, col3, col4 = st.columns(4)
 
     with col1:
-        overall_accuracy = df["accuracy"].mean() if "accuracy" in df.columns else 0
-        st.metric("Suite Accuracy", f"{overall_accuracy:.1%}", help="Average accuracy across all tests in suite")
+        overall_accuracy = measured_mean(df["accuracy"]) if "accuracy" in df.columns else None
+        st.metric("Suite Accuracy", fmt_pct(overall_accuracy), help="Average accuracy across all tests in suite")
 
     with col2:
-        overall_f1 = df["f1_score"].mean() if "f1_score" in df.columns else 0
-        st.metric("Suite F1 Score", f"{overall_f1:.1%}", help="Average F1 score across all tests")
+        overall_f1 = measured_mean(df["f1_score"]) if "f1_score" in df.columns else None
+        st.metric("Suite F1 Score", fmt_pct(overall_f1), help="Average F1 score across all tests")
 
     with col3:
-        total_samples = df["samples_tested"].sum() if "samples_tested" in df.columns else 0
+        total_samples = int(df["samples_tested"].fillna(0).sum()) if "samples_tested" in df.columns else 0
         st.metric("Total Samples", f"{total_samples:,}", help="Total samples tested in this suite")
 
     with col4:
@@ -195,11 +204,11 @@ def render_detailed_results(df: pd.DataFrame, suite_name: str):
             metrics_data = {
                 "Metric": ["Accuracy", "F1 Score", "Precision", "Recall", "Avg Confidence"],
                 "Value": [
-                    f"{latest_run.get('accuracy', 0):.2%}",
-                    f"{latest_run.get('f1_score', 0):.2%}",
-                    f"{latest_run.get('precision', 0):.2%}",
-                    f"{latest_run.get('recall', 0):.2%}",
-                    f"{latest_run.get('avg_confidence', 0):.3f}",
+                    fmt_pct(latest_run.get("accuracy"), 2),
+                    fmt_pct(latest_run.get("f1_score"), 2),
+                    fmt_pct(latest_run.get("precision"), 2),
+                    fmt_pct(latest_run.get("recall"), 2),
+                    fmt_num(latest_run.get("avg_confidence"), 3),
                 ],
             }
 
@@ -212,10 +221,8 @@ def render_detailed_results(df: pd.DataFrame, suite_name: str):
             confusion_data = {
                 "Type": ["True Positives", "False Positives", "True Negatives", "False Negatives"],
                 "Count": [
-                    latest_run.get("true_positives", 0),
-                    latest_run.get("false_positives", 0),
-                    latest_run.get("true_negatives", 0),
-                    latest_run.get("false_negatives", 0),
+                    fmt_num(latest_run.get(col), 0)
+                    for col in ["true_positives", "false_positives", "true_negatives", "false_negatives"]
                 ],
             }
 
@@ -223,12 +230,12 @@ def render_detailed_results(df: pd.DataFrame, suite_name: str):
             st.dataframe(confusion_df, width="stretch", hide_index=True)
 
         # Layer analysis if available
-        if "best_layers" in latest_run and latest_run["best_layers"]:
+        if _as_list(latest_run.get("best_layers")) or _as_dict(latest_run.get("layer_scores")):
             st.markdown("---")
             render_layer_analysis(latest_run)
 
         # Failed samples analysis
-        if "failed_samples" in latest_run and latest_run["failed_samples"]:
+        if _parse_json(latest_run.get("failed_samples")):
             st.markdown("---")
             render_failed_samples(latest_run)
 
@@ -259,7 +266,11 @@ def render_pass_fail_analysis(df: pd.DataFrame, suite_name: str):
 
     # Classify tests
     if "test_name" in df.columns and "accuracy" in df.columns:
-        test_status = df.groupby("test_name")["accuracy"].last()
+        # Tests without a measured accuracy can neither pass nor fail
+        test_status = df.dropna(subset=["accuracy"]).groupby("test_name")["accuracy"].last()
+        if test_status.empty:
+            st.info(f"Accuracy: {NOT_MEASURED} for any test in this suite")
+            return
         passed_tests = test_status[test_status >= threshold]
         failed_tests = test_status[test_status < threshold]
 
@@ -342,14 +353,10 @@ def render_layer_analysis(test_run: pd.Series):
     """
     st.markdown("#### Layer-wise Analysis")
 
-    best_layers = test_run.get("best_layers", [])
-    layer_scores = test_run.get("layer_scores", {})
-
-    if isinstance(layer_scores, str):
-        try:
-            layer_scores = json.loads(layer_scores)
-        except json.JSONDecodeError:
-            layer_scores = {}
+    best_layers = _as_list(test_run.get("best_layers"))
+    layer_scores = _as_dict(test_run.get("layer_scores"))
+    layer_scores = {str(k): float(v) for k, v in layer_scores.items() if is_measured(v)}
+    best_layers = [str(layer) for layer in best_layers]
 
     if layer_scores:
         # Create layer score plot
@@ -396,6 +403,30 @@ def render_layer_analysis(test_run: pd.Series):
         # Display best layers
         if best_layers:
             st.success(f"**Best Performing Layers:** {', '.join(map(str, best_layers))}")
+
+
+def _parse_json(value):
+    """Decode a JSON column value; NULL/NaN and invalid JSON become None."""
+    if isinstance(value, str):
+        try:
+            return json.loads(value)
+        except json.JSONDecodeError:
+            return None
+    if value is None or (isinstance(value, float) and not is_measured(value)):
+        return None
+    return value
+
+
+def _as_list(value) -> list:
+    """best_layers as a list (stored as JSON text; NULL when not measured)."""
+    parsed = _parse_json(value)
+    return list(parsed) if isinstance(parsed, (list, tuple)) else []
+
+
+def _as_dict(value) -> dict:
+    """layer_scores as a dict (stored as JSON text; NULL when not measured)."""
+    parsed = _parse_json(value)
+    return dict(parsed) if isinstance(parsed, dict) else {}
 
 
 def render_failed_samples(test_run: pd.Series):

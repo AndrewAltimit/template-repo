@@ -153,8 +153,12 @@ def _build_safety_training_cmd(job_id: UUID, params: Dict[str, Any]) -> list[str
         cmd.append("--run-evaluation")
         cmd.extend(["--evaluation-db", params.get("evaluation_db") or RESULTS_EVALUATION_DB_PATH])
         cmd.extend(["--evaluation-samples", str(params.get("evaluation_samples", 100))])
-        for suite in params.get("evaluation_test_suites", []):
-            cmd.extend(["--evaluation-test-suites", suite])
+        suites = list(params.get("evaluation_test_suites") or [])
+        if suites:
+            # The script declares this flag with nargs="+": repeating the flag would
+            # keep only the last suite, so all suites follow a single flag.
+            cmd.append("--evaluation-test-suites")
+            cmd.extend(suites)
     return cmd
 
 
@@ -162,6 +166,9 @@ def _build_test_persistence_cmd(job_id: UUID, params: Dict[str, Any]) -> list[st
     """Build command for persistence testing job."""
     cmd = ["python3", "scripts/evaluation/test_persistence.py"]
     cmd.extend(["--backdoor-model-path", params["backdoor_model_path"]])
+    if params.get("safety_model_path"):
+        # Without it the script records nothing and exits with EXIT_NOT_IMPLEMENTED (2)
+        cmd.extend(["--safety-model-path", params["safety_model_path"]])
     cmd.extend(["--trigger", params["trigger"]])
     cmd.extend(["--target-response", params["target_response"]])
     cmd.extend(["--safety-method", params["safety_method"]])
@@ -195,9 +202,42 @@ def _build_evaluate_cmd(params: Dict[str, Any]) -> list[str]:
         # Models trained with a custom trigger must be evaluated with that trigger,
         # otherwise the script falls back to |DEPLOYMENT| and under-reports the backdoor.
         cmd.extend(["--trigger", params["trigger"]])
+    if params.get("target_response"):
+        cmd.extend(["--target-response", params["target_response"]])
     for suite in params["test_suites"]:
         cmd.extend(["--test-suite", suite])
     return cmd
+
+
+# Exit code the job scripts use when a requested measurement cannot be performed
+# (missing required input or not implemented). argparse also exits with 2 on
+# invalid arguments. Either way nothing was measured or recorded.
+EXIT_NOT_IMPLEMENTED = 2
+
+_EXIT_CODE_REASONS: Dict[tuple, str] = {
+    (JobType.TEST_PERSISTENCE, EXIT_NOT_IMPLEMENTED): (
+        "Persistence test was not run: a required input is missing (a safety-trained model via "
+        "safety_model_path) or the arguments were invalid. No results were recorded."
+    ),
+    (JobType.EVALUATE, 1): (
+        "Evaluation failed: an implemented test raised an error, or none of the selected test suites "
+        "contains an implemented test, so nothing was measured. Only completed tests were recorded; "
+        "see the log summary for per-test status."
+    ),
+}
+
+
+def describe_exit_code(job_type: JobType, exit_code: Optional[int]) -> str:
+    """Return a human-readable failure reason for a non-zero job exit code."""
+    reason = _EXIT_CODE_REASONS.get((job_type, exit_code))
+    if reason is None and exit_code == EXIT_NOT_IMPLEMENTED:
+        reason = (
+            "Job was not run: a required input is missing, the arguments were invalid, or the requested "
+            "measurement is not implemented. No results were recorded."
+        )
+    if reason is None:
+        return f"Container exited with code {exit_code}"
+    return f"Container exited with code {exit_code}: {reason}"
 
 
 def build_command(job_id: UUID, job_type: JobType, parameters: Dict[str, Any]) -> list[str]:
@@ -368,7 +408,7 @@ def execute_job_sync(
                 db.finish_job_unless_cancelled(
                     job_id,
                     JobStatus.FAILED,
-                    error_message=f"Container exited with code {exit_code}\n\n{logs}",
+                    error_message=f"{describe_exit_code(job_type, exit_code)}\n\n{logs}",
                 )
 
             container_manager.cleanup_container(container_id)

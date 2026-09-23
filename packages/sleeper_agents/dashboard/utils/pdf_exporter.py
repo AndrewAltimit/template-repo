@@ -42,6 +42,7 @@ from .chart_capturer import (
     create_time_series_chart,
     create_trigger_heatmap,
 )
+from .metric_format import fmt_num, fmt_pct
 
 logger = logging.getLogger(__name__)
 
@@ -614,7 +615,7 @@ class PDFExporter:
 
         elements.append(
             Paragraph(
-                f"Tested {data.get('total_prompts', 0)} prompts with {data.get('success_rate', 0):.1%} success rate.",
+                f"Tested {data.get('total_prompts', 0)} prompts with {fmt_pct(data.get('success_rate'))} success rate.",
                 self.styles["Normal"],
             )
         )
@@ -863,9 +864,9 @@ class PDFExporter:
             elements.extend(self._add_subsection_header("Scaling Trends:"))
 
             coef_items = [
-                f"• Persistence scaling: {data['scaling_coefficients'].get('persistence', 0):.2f} per 2x params",
-                f"• Specificity scaling: {data['scaling_coefficients'].get('specificity', 0):.2f} per 2x params",
-                f"• Resistance scaling: {data['scaling_coefficients'].get('resistance', 0):.2f} per 2x params",
+                f"• Persistence scaling: {fmt_num(data['scaling_coefficients'].get('persistence'))} per 2x params",
+                f"• Specificity scaling: {fmt_num(data['scaling_coefficients'].get('specificity'))} per 2x params",
+                f"• Resistance scaling: {fmt_num(data['scaling_coefficients'].get('resistance'))} per 2x params",
             ]
 
             for item in coef_items:
@@ -1156,8 +1157,8 @@ class PDFExporter:
             ["Metric", "Value"],
             ["Total Tests Executed", f"{data.get('total_tests', 0):,}"],
             ["Models Evaluated", str(data.get("models_evaluated", 0))],
-            ["Detection Rate", f"{data.get('detection_rate', 0):.1%}"],
-            ["Average Confidence", f"{data.get('avg_confidence', 0):.1%}"],
+            ["Detection Rate", f"{fmt_pct(data.get('detection_rate'))}"],
+            ["Average Confidence", f"{fmt_pct(data.get('avg_confidence'))}"],
             ["Current Risk Level", data.get("risk_level", "Unknown")],
             ["Last Evaluation", data.get("last_evaluation", "N/A")],
         ]
@@ -1277,8 +1278,8 @@ class PDFExporter:
                     ["Total Tests", str(suite_data.get("total_tests", 0))],
                     ["Passed", str(suite_data.get("passed", 0))],
                     ["Failed", str(suite_data.get("failed", 0))],
-                    ["Accuracy", f"{suite_data.get('accuracy', 0):.1%}"],
-                    ["Avg Confidence", f"{suite_data.get('avg_confidence', 0):.1%}"],
+                    ["Accuracy", f"{fmt_pct(suite_data.get('accuracy'))}"],
+                    ["Avg Confidence", f"{fmt_pct(suite_data.get('avg_confidence'))}"],
                 ]
 
                 table = Table(suite_table, colWidths=[2 * inch, 2 * inch])
@@ -1454,9 +1455,9 @@ class PDFExporter:
                 recent_data.append(
                     [
                         entry["date"],
-                        f"{entry.get('accuracy', 0):.1%}",
+                        f"{fmt_pct(entry.get('accuracy'))}",
                         f"{entry.get('f1_score', 0):.1%}",
-                        f"{entry.get('detection_rate', 0):.1%}",
+                        f"{fmt_pct(entry.get('detection_rate'))}",
                     ]
                 )
 
@@ -1488,7 +1489,7 @@ class PDFExporter:
                 ci = forecast.get("confidence_interval", [0, 0])
                 elements.append(
                     Paragraph(
-                        f"Next 7 days: {forecast.get('accuracy', 0):.1%} (95% CI: {ci[0]:.1%} - {ci[1]:.1%})",
+                        f"Next 7 days: {fmt_pct(forecast.get('accuracy'))} (95% CI: {ci[0]:.1%} - {ci[1]:.1%})",
                         self.styles["Normal"],
                     )
                 )
@@ -1499,7 +1500,7 @@ class PDFExporter:
                 ci = forecast.get("confidence_interval", [0, 0])
                 elements.append(
                     Paragraph(
-                        f"Next 30 days: {forecast.get('accuracy', 0):.1%} (95% CI: {ci[0]:.1%} - {ci[1]:.1%})",
+                        f"Next 30 days: {fmt_pct(forecast.get('accuracy'))} (95% CI: {ci[0]:.1%} - {ci[1]:.1%})",
                         self.styles["Normal"],
                     )
                 )
@@ -1780,7 +1781,7 @@ class PDFExporter:
                     [
                         mit_name.replace("_", " ").title(),
                         ", ".join(mit_info.get("targets", [])),
-                        f"{mit_info.get('effectiveness', 0):.0%}",
+                        f"{fmt_pct(mit_info.get('effectiveness'), 0)}",
                     ]
                 )
 

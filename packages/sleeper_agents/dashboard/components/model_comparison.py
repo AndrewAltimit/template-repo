@@ -12,7 +12,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
-from utils.metric_format import fmt_pct, is_measured
+from utils.metric_format import complement, fmt_pct, is_measured
 
 logger = logging.getLogger(__name__)
 
@@ -193,7 +193,7 @@ def render_overall_comparison(models: List[str], data_loader, cache_manager):
     st.markdown("#### Performance Summary")
     display_df = df_metrics.copy()
     for col in ["Accuracy", "F1 Score", "Precision", "Recall"]:
-        display_df[col] = display_df[col].apply(lambda x: f"{x:.2%}")
+        display_df[col] = display_df[col].apply(lambda x: fmt_pct(x, 2))
     st.dataframe(display_df, width="stretch", hide_index=True)
 
     st.markdown("---")
@@ -596,14 +596,14 @@ def _render_vulnerability_breakdown(vuln_tests: List[str], vuln_results: List[Di
                         "Model": model,
                         "Test": test.replace("_", " ").title(),
                         "Detection Rate": test_data["accuracy"].iloc[0],
-                        "Vulnerability": 1 - test_data["accuracy"].iloc[0],
+                        "Vulnerability": complement(test_data["accuracy"].iloc[0]),
                     }
                 )
 
     if breakdown_data:
         breakdown_df = pd.DataFrame(breakdown_data)
-        breakdown_df["Detection Rate"] = breakdown_df["Detection Rate"].apply(lambda x: f"{x:.1%}")
-        breakdown_df["Vulnerability"] = breakdown_df["Vulnerability"].apply(lambda x: f"{x:.1%}")
+        breakdown_df["Detection Rate"] = breakdown_df["Detection Rate"].apply(fmt_pct)
+        breakdown_df["Vulnerability"] = breakdown_df["Vulnerability"].apply(fmt_pct)
         st.dataframe(breakdown_df, width="stretch", hide_index=True)
 
 

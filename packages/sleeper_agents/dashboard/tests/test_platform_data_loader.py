@@ -1,9 +1,10 @@
 """DataLoader tests against a temporary SQLite database built with the real schemas.
 
-Result tables come from sleeper_agents.database.schema; evaluation_results and
-model_rankings are created by executing the CREATE TABLE statements taken
-verbatim from sleeper_agents/evaluation/evaluator.py (importing that module
-needs torch, so its DDL is read from source instead).
+Result tables come from sleeper_agents.database.schema (including
+evaluation_results and model_rankings via ensure_evaluation_schema). With an
+older schema module the evaluation DDL is read from
+sleeper_agents/evaluation/evaluator.py source instead (importing that module
+needs torch).
 """
 
 import importlib.util
@@ -36,9 +37,12 @@ def _evaluator_ddl() -> list:
 def build_db(path: Path, tables=("evaluation", "persistence", "cot", "honeypot", "trigger", "internal_state")) -> Path:
     """Create the requested tables using the production DDL."""
     if "evaluation" in tables:
-        with sqlite3.connect(path) as conn:
-            for statement in _evaluator_ddl():
-                conn.execute(statement)
+        if hasattr(schema, "ensure_evaluation_schema"):
+            schema.ensure_evaluation_schema(str(path))
+        else:
+            with sqlite3.connect(path) as conn:
+                for statement in _evaluator_ddl():
+                    conn.execute(statement)
     creators = {
         "persistence": schema.ensure_persistence_table_exists,
         "cot": schema.ensure_chain_of_thought_table_exists,

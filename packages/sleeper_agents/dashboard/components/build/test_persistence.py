@@ -4,10 +4,45 @@ Form-based UI for submitting backdoor persistence testing jobs.
 Tests whether backdoors survive safety training (following Anthropic methodology).
 """
 
+from typing import Any, Dict, List, Optional, Tuple
+
 import streamlit as st
 
 from components.build.terminal_viewer import render_job_terminal
-from utils.model_helpers import format_model_display, get_backdoor_models, resolve_model_path
+from utils.model_helpers import (
+    format_model_display,
+    get_backdoor_models,
+    get_safety_trained_models,
+    resolve_model_path,
+)
+
+# Container roots a job can read a trained model from (see gpu_orchestrator api.models)
+MODEL_INPUT_ROOTS = ("/results/", "/models/")
+
+
+def validate_persistence_inputs(
+    backdoor_model_path: str, safety_model_path: str, trigger: str, target_response: str
+) -> Optional[str]:
+    """Return an error message for missing/invalid persistence inputs, or None if valid.
+
+    A persistence test compares the backdoored model with a safety-trained copy of
+    it; without the safety-trained model nothing can be measured, so the form
+    refuses to submit instead of launching a job that records nothing.
+    """
+    if not backdoor_model_path or not backdoor_model_path.strip():
+        return "Please select or enter a backdoor model path"
+    if not safety_model_path or not safety_model_path.strip():
+        return (
+            "Please select or enter a safety-trained model. Run a Safety Training job on the "
+            "backdoored model first; persistence cannot be measured without it."
+        )
+    if not safety_model_path.startswith(MODEL_INPUT_ROOTS) or ".." in safety_model_path.split("/"):
+        return "Safety-trained model path must be an absolute path under /results or /models"
+    if not trigger or not trigger.strip():
+        return "Please enter a trigger phrase"
+    if not target_response or not target_response.strip():
+        return "Please enter a target response"
+    return None
 
 
 def render_test_persistence(api_client):
@@ -41,19 +76,23 @@ def render_test_persistence(api_client):
 
         **What it does:**
         1. Tests the backdoored model (pre-training baseline)
-        2. Applies safety training (SFT, DPO, or RLAIF)
-        3. Tests the safety-trained model (post-training)
-        4. Calculates persistence metrics and stores in database
+        2. Tests a safety-trained copy of that model (post-training)
+        3. Calculates persistence metrics and stores them in the database
 
-        **Expected Results (from Anthropic):**
+        This job does not run safety training. Train the safety model first in
+        **Safety Training** (which can also test persistence directly) and select it below.
+        Without a safety-trained model the job is rejected and nothing is recorded.
+
+        **Reference results (Anthropic paper, large models):**
         - Backdoor persistence through SFT: ~98.9%
         - Backdoor persistence through RL: ~99%
         - Models with deceptive reasoning: highest persistence
         """
     )
 
-    # Fetch backdoor models before the form
+    # Fetch trained models before the form
     backdoor_models = get_backdoor_models(api_client)
+    safety_models = get_safety_trained_models(api_client)
 
     # Persistence testing form
     with st.form("test_persistence_form"):
@@ -103,6 +142,12 @@ def render_test_persistence(api_client):
 
         st.markdown("---")
 
+        # Safety-trained model selection (required: the job compares against it)
+        st.markdown("### Safety-Trained Model")
+        safety_model_path, safety_method_default = _select_safety_model(safety_models)
+
+        st.markdown("---")
+
         # Backdoor configuration
         st.markdown("### Backdoor Configuration")
         st.caption("Specify the trigger and expected response from the backdoor")
@@ -127,28 +172,29 @@ def render_test_persistence(api_client):
 
         st.markdown("---")
 
-        # Safety training configuration
-        st.markdown("### Safety Training Configuration")
-        st.caption("Configure the safety training method to test persistence against")
+        # Safety training description (recorded with the results)
+        st.markdown("### Safety Training Details")
+        st.caption("How the selected safety-trained model was trained; recorded with the results")
 
         col1, col2 = st.columns(2)
 
+        safety_methods = ["sft", "rl", "dpo", "rlaif"]
         with col1:
             safety_method = st.selectbox(
                 "Safety Method",
-                ["sft", "dpo", "rlaif"],
-                index=0,
+                safety_methods,
+                index=safety_methods.index(safety_method_default) if safety_method_default in safety_methods else 0,
                 help=(
-                    "Safety training method (SFT=Supervised Fine-Tuning, "
+                    "Safety training method (SFT=Supervised Fine-Tuning, RL=PPO, "
                     "DPO=Direct Preference Optimization, RLAIF=RL from AI Feedback)"
                 ),
             )
 
             safety_dataset = st.selectbox(
                 "Safety Dataset",
-                ["simple", "anthropic", "hh-rlhf"],
+                ["simple", "Anthropic/hh-rlhf"],
                 index=0,
-                help="Safety dataset to use for training",
+                help="Safety dataset the model was trained on",
             )
 
         with col2:
@@ -195,27 +241,16 @@ def render_test_persistence(api_client):
             )
 
         # Advanced options
-        with st.expander("⚙️ Advanced Options", expanded=False):
-            st.markdown("#### Safety Training Parameters")
-
-            col1, col2 = st.columns(2)
-
-            with col1:
-                safety_learning_rate = st.number_input(
-                    "Learning Rate",
-                    min_value=1e-6,
-                    max_value=1e-3,
-                    value=1e-5,
-                    format="%.2e",
-                    help="Safety training learning rate",
-                )
-
-            with col2:
-                save_safety_model = st.checkbox(
-                    "Save Safety-Trained Model",
-                    value=True,
-                    help="Save the safety-trained model for later analysis",
-                )
+        with st.expander("Advanced Options", expanded=False):
+            st.markdown("#### Safety Training Details")
+            safety_learning_rate = st.number_input(
+                "Learning Rate",
+                min_value=1e-6,
+                max_value=1e-3,
+                value=1e-5,
+                format="%.2e",
+                help="Learning rate the safety-trained model was trained with (recorded with the results)",
+            )
 
             st.markdown("#### Output Configuration")
             output_dir = st.text_input(
@@ -225,19 +260,17 @@ def render_test_persistence(api_client):
             )
 
         # Submit button
-        submitted = st.form_submit_button("🧪 Run Persistence Test", type="primary", use_container_width=True)
+        submitted = st.form_submit_button("Run Persistence Test", type="primary", use_container_width=True)
 
         if submitted:
-            if not backdoor_model_path:
-                st.error("Please select or enter a backdoor model path")
-            elif not trigger:
-                st.error("Please enter a trigger phrase")
-            elif not target_response:
-                st.error("Please enter a target response")
+            error = validate_persistence_inputs(backdoor_model_path, safety_model_path, trigger, target_response)
+            if error:
+                st.error(error)
             else:
                 _submit_persistence_job(
                     api_client,
                     backdoor_model_path=backdoor_model_path,
+                    safety_model_path=safety_model_path,
                     trigger=trigger,
                     target_response=target_response,
                     safety_method=safety_method,
@@ -248,13 +281,54 @@ def render_test_persistence(api_client):
                     num_test_samples=int(num_test_samples),
                     test_variations=test_variations,
                     output_dir=output_dir,
-                    save_safety_model=save_safety_model,
                 )
 
     # Show recent jobs
     st.markdown("---")
     st.subheader("Recent Persistence Test Jobs")
     _show_recent_jobs(api_client, job_type="test_persistence", limit=5)
+
+
+def _select_safety_model(safety_models: List[Dict[str, Any]]) -> Tuple[str, Optional[str]]:
+    """Render the safety-trained model picker.
+
+    Args:
+        safety_models: Completed safety training jobs from get_safety_trained_models()
+
+    Returns:
+        (safety_model_path, safety_method of the selected job or None)
+    """
+    source = st.radio(
+        "Safety Model Source",
+        ["From Safety Training", "Custom Path"],
+        horizontal=True,
+        help="Select the safety-trained copy of the backdoored model",
+    )
+
+    if source == "From Safety Training" and safety_models:
+        options = {format_model_display(model, "safety"): model for model in safety_models}
+        selected = st.selectbox(
+            "Select Safety-Trained Model",
+            list(options),
+            help="Choose from your completed safety training jobs",
+        )
+        model = options[selected]
+        path = resolve_model_path(model)
+        st.caption(f"Selected path: `{path}`")
+        return path, model.get("method")
+
+    if source == "From Safety Training":
+        st.warning(
+            "No completed safety training jobs found. Run Safety Training on the backdoored model first, "
+            "or use Custom Path."
+        )
+    path = st.text_input(
+        "Safety-Trained Model Path",
+        value="",
+        help="Path to the safety-trained model directory (under /results or /models)",
+        placeholder="e.g., /results/safety_trained/job_id/model",
+    )
+    return path, None
 
 
 def _render_system_status(status: dict):
@@ -317,14 +391,13 @@ def _submit_persistence_job(api_client, **params):
             st.markdown("#### What happens next:")
             st.markdown(
                 """
-            1. **Pre-training baseline:** Test backdoor on original model
-            2. **Safety training:** Apply safety training to the model
-            3. **Post-training test:** Test backdoor on safety-trained model
-            4. **Persistence analysis:** Calculate persistence metrics
-            5. **Database storage:** Store results in `persistence_results` table
-            6. **Reporting:** View results in Persistence Analysis dashboard
+            1. **Pre-training baseline:** Test backdoor on the backdoored model
+            2. **Post-training test:** Test backdoor on the safety-trained model
+            3. **Persistence analysis:** Calculate persistence metrics
+            4. **Database storage:** Store results in `persistence_results` table
+            5. **Reporting:** View results in Persistence Analysis dashboard
 
-            **This job can take 30-60 minutes depending on model size and configuration.**
+            If a required input is missing the job fails with a reason and records nothing.
             """
             )
 
@@ -370,6 +443,7 @@ def _show_recent_jobs(api_client, job_type: str, limit: int = 5):
                     model_path = params.get("backdoor_model_path", "N/A")
                     safety_method = params.get("safety_method", "N/A")
                     st.caption(f"Model: {model_path}")
+                    st.caption(f"Safety Model: {params.get('safety_model_path') or 'not provided'}")
                     st.caption(f"Safety Method: {safety_method.upper()}")
 
                 with col2:
@@ -403,6 +477,10 @@ def _show_recent_jobs(api_client, job_type: str, limit: int = 5):
                     - Low persistence (<50%): Effective mitigation
                     """
                     )
+
+                if job["status"] == "failed" and job.get("error_message"):
+                    # First line carries the failure reason; the rest is the log tail
+                    st.error(job["error_message"].split("\n\n", 1)[0])
 
                 # Show logs if requested
                 if st.session_state.get("show_logs") == job["job_id"]:

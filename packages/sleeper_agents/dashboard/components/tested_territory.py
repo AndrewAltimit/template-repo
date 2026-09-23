@@ -12,6 +12,8 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
+from utils.metric_format import NOT_MEASURED
+
 logger = logging.getLogger(__name__)
 
 
@@ -75,10 +77,14 @@ def render_coverage_map(data_loader, _cache_manager):
     if selected_model:
         # Fetch real coverage statistics
         coverage_stats = data_loader.fetch_coverage_statistics(selected_model)
-        total_tested = coverage_stats.get("total_tested", 500)
+        total_tested = coverage_stats.get("total_tested") or 0
 
         # Create coverage visualization
         st.markdown("### Input Space Coverage")
+        st.caption(
+            "Conceptual illustration only: point positions are random and do not correspond to real test inputs. "
+            "Only the counts below are measured."
+        )
 
         # Create a 2D representation of the input space
         fig = go.Figure()
@@ -187,8 +193,7 @@ def render_coverage_map(data_loader, _cache_manager):
             st.metric("Target Coverage", f"{coverage:.1f}%", help=f"Coverage of {target_scenarios:,} target scenarios")
 
         with col4:
-            confidence_pct = min(coverage * 2, 95)  # confidence scales with coverage
-            st.metric("Test Confidence", f"{confidence_pct:.1f}%", help="Statistical confidence in tested scenarios")
+            st.metric("Test Confidence", NOT_MEASURED, help="No statistical confidence estimate is computed for coverage")
 
         # Warning about coverage
         st.error(
@@ -379,8 +384,8 @@ def render_tested_scenarios(data_loader, _cache_manager):
             st.metric("Categories Covered", len(tested_categories))
 
         with col3:
-            avg_confidence = 15.5  # percentage based on test coverage
-            st.metric("Average Test Confidence", f"{avg_confidence:.1f}%", help="Statistical confidence across all categories")
+            # No per-category confidence estimate is computed
+            st.metric("Average Test Confidence", NOT_MEASURED, help="No statistical confidence estimate is computed")
 
         # Important note
         st.warning(

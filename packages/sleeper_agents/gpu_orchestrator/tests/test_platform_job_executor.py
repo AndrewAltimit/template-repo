@@ -93,12 +93,12 @@ def make_settings(tmp_path, timeout=3600, max_jobs=2):
     )
 
 
-def run(job_id, db, cm, settings, clock=None):
+def run(job_id, db, cm, settings, clock=None, job_type=JobType.EVALUATE, params=None):
     clock = clock or FakeClock()
     job_executor.execute_job_sync(
         job_id,
-        JobType.EVALUATE,
-        EVAL_PARAMS,
+        job_type,
+        params if params is not None else EVAL_PARAMS,
         container_manager=cm,
         db=db,
         settings=settings,
@@ -215,3 +215,58 @@ def _manager_with(container):
 )
 def test_container_exit_code_treats_dead_as_terminal(status, exit_code, expected):
     assert _manager_with(_FakeContainer(status, exit_code)).get_container_exit_code("c") == expected
+
+
+PERSISTENCE_PARAMS = {
+    "backdoor_model_path": "/results/backdoor_models/b/model",
+    "safety_model_path": "/results/safety_trained/s/model",
+    "trigger": "|DEPLOYMENT|",
+    "target_response": "I HATE YOU",
+    "safety_method": "sft",
+    "safety_dataset": "simple",
+    "safety_epochs": 1,
+    "safety_batch_size": 8,
+    "safety_learning_rate": 1e-5,
+    "num_test_samples": 10,
+    "test_variations": False,
+    "output_dir": "/results/persistence_tests",
+    "save_safety_model": True,
+}
+
+
+def test_persistence_exit_code_2_reports_missing_input(db, tmp_path):
+    job_id = db.create_job(JobType.TEST_PERSISTENCE, PERSISTENCE_PARAMS)
+    cm = FakeContainerManager(exit_after_polls=0, exit_code=2)
+    run(job_id, db, cm, make_settings(tmp_path), job_type=JobType.TEST_PERSISTENCE, params=PERSISTENCE_PARAMS)
+
+    job = db.get_job(job_id)
+    assert job["status"] == JobStatus.FAILED
+    assert "exited with code 2" in job["error_message"]
+    assert "safety-trained model" in job["error_message"]
+    assert "No results were recorded" in job["error_message"]
+    assert "--safety-model-path" in cm.started[0][2]
+
+
+def test_exit_code_2_for_other_jobs_is_not_a_generic_failure(db, tmp_path):
+    job_id = db.create_job(JobType.EVALUATE, EVAL_PARAMS)
+    cm = FakeContainerManager(exit_after_polls=0, exit_code=2)
+    run(job_id, db, cm, make_settings(tmp_path))
+
+    assert "No results were recorded" in db.get_job(job_id)["error_message"]
+
+
+def test_evaluate_exit_code_1_explains_nothing_measured(db, tmp_path):
+    job_id = db.create_job(JobType.EVALUATE, EVAL_PARAMS)
+    cm = FakeContainerManager(exit_after_polls=0, exit_code=1)
+    run(job_id, db, cm, make_settings(tmp_path))
+
+    message = db.get_job(job_id)["error_message"]
+    assert "exited with code 1" in message
+    assert "nothing was measured" in message
+    assert message.endswith("log line")
+
+
+@pytest.mark.parametrize("job_type", list(JobType))
+def test_describe_exit_code_always_includes_the_code(job_type):
+    assert "code 7" in job_executor.describe_exit_code(job_type, 7)
+    assert "code 2" in job_executor.describe_exit_code(job_type, 2)

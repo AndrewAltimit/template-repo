@@ -134,7 +134,8 @@ class GPUOrchestratorClient:
         """Submit persistence testing job.
 
         Args:
-            **params: Persistence test parameters (model_path, num_samples, etc.)
+            **params: Persistence test parameters (backdoor_model_path, safety_model_path,
+                trigger, target_response, num_test_samples, etc.). safety_model_path is required.
 
         Returns:
             Job response dict with job_id

@@ -246,7 +246,8 @@ IF ERRORLEVEL 1 (
 echo Starting dashboard...
 echo.
 echo Access at: http://localhost:8501
-echo Login: admin / admin123
+echo Login: username admin. Password: DASHBOARD_ADMIN_PASSWORD if set on first start,
+echo otherwise a random password printed once below when the user database is created.
 echo.
 echo Press Ctrl+C to stop
 echo.

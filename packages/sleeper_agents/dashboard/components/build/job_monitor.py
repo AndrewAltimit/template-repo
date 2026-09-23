@@ -39,7 +39,7 @@ def render_job_monitor(api_client):
     with col2:
         job_type_filter = st.selectbox(
             "Job Type",
-            ["All", "train_backdoor", "train_probes", "validate", "safety_training", "test_persistence"],
+            ["All", "train_backdoor", "train_probes", "validate", "safety_training", "test_persistence", "evaluate"],
             key="job_type_filter",
         )
 

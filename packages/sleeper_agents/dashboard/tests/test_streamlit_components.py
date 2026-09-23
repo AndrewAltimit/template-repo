@@ -442,29 +442,25 @@ class TestDashboardComponents(unittest.TestCase):
 class TestDataProcessing(unittest.TestCase):
     """Test data processing and visualization logic."""
 
-    def test_roc_curve_calculation(self):
-        """Test ROC curve calculation logic."""
-        from components.detection_analysis import render_synthetic_roc
+    def test_operating_points_from_confusion_matrices(self):
+        """Operating points come only from complete confusion matrices."""
+        from components.detection_analysis import operating_points
 
-        # Create test DataFrame with confusion matrix data
         df = pd.DataFrame(
             {
-                "true_positives": [85, 90, 88],
-                "false_positives": [15, 10, 12],
-                "true_negatives": [90, 85, 87],
-                "false_negatives": [10, 15, 13],
+                "test_name": ["a", "b", "c", "d"],
+                "true_positives": [85, 90, None, 0],
+                "false_positives": [15, 10, 12, 0],
+                "true_negatives": [90, 85, 87, 0],
+                "false_negatives": [10, 15, 13, 0],
             }
         )
 
-        with patch("components.detection_analysis.st") as mock_st:
-            mock_st.plotly_chart.return_value = None
-            mock_st.info.return_value = None
-
-            # Should handle the data without errors
-            try:
-                render_synthetic_roc(df)
-            except Exception as e:
-                self.fail(f"ROC curve calculation failed: {e}")
+        points = operating_points(df)
+        # "c" has a missing count and "d" has no samples: neither becomes a point
+        self.assertEqual([p["label"] for p in points], ["a", "b"])
+        self.assertAlmostEqual(points[0]["tpr"], 85 / 95)
+        self.assertAlmostEqual(points[0]["fpr"], 15 / 105)
 
     def test_anomaly_detection_logic(self):
         """Test anomaly detection using IQR method."""

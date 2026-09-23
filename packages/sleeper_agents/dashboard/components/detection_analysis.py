@@ -5,11 +5,12 @@ Analyzes detection method performance with ROC curves, confusion matrices, etc.
 
 import logging
 
-import numpy as np
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
+
+from utils.metric_format import NOT_MEASURED, fmt_num, fmt_pct, is_measured, measured_mean, split_evaluation_rows
 
 logger = logging.getLogger(__name__)
 
@@ -74,6 +75,12 @@ def render_detection_analysis(data_loader, cache_manager):
             st.info("No results found for the selected criteria.")
             return
 
+        results_df, unmeasured_df = split_evaluation_rows(results_df)
+        render_unmeasured_tests(unmeasured_df)
+        if results_df.empty:
+            st.info("No test in the selected criteria produced metrics (all were skipped or errored).")
+            return
+
         # Render analysis sections
         render_accuracy_metrics(results_df)
         st.markdown("---")
@@ -84,6 +91,16 @@ def render_detection_analysis(data_loader, cache_manager):
         render_confidence_distribution(results_df)
 
 
+def render_unmeasured_tests(unmeasured_df: pd.DataFrame):
+    """List evaluation rows that were recorded without metrics (skipped or errored)."""
+    if unmeasured_df is None or unmeasured_df.empty:
+        return
+    columns = [c for c in ["test_name", "test_type", "status", "notes", "timestamp"] if c in unmeasured_df.columns]
+    with st.expander(f"{len(unmeasured_df)} test run(s) recorded without metrics (skipped or error)"):
+        st.caption("These tests did not produce measurements and are excluded from all metrics below.")
+        st.dataframe(unmeasured_df[columns], use_container_width=True, hide_index=True)
+
+
 def render_accuracy_metrics(df: pd.DataFrame):
     """Render accuracy metrics overview.
 
@@ -92,48 +109,53 @@ def render_accuracy_metrics(df: pd.DataFrame):
     """
     st.subheader("Detection Metrics")
 
-    # Calculate overall metrics
+    def _mean(column: str):
+        return measured_mean(df[column]) if column in df.columns else None
+
+    # Calculate overall metrics (None when no completed test measured the metric)
     metrics = {
-        "Overall Accuracy": df["accuracy"].mean() if "accuracy" in df.columns else 0,
-        "Average F1 Score": df["f1_score"].mean() if "f1_score" in df.columns else 0,
-        "Average Precision": df["precision"].mean() if "precision" in df.columns else 0,
-        "Average Recall": df["recall"].mean() if "recall" in df.columns else 0,
+        "Overall Accuracy": _mean("accuracy"),
+        "Average F1 Score": _mean("f1_score"),
+        "Average Precision": _mean("precision"),
+        "Average Recall": _mean("recall"),
     }
 
     col1, col2, col3, col4 = st.columns(4)
 
     with col1:
-        st.metric("Accuracy", f"{metrics['Overall Accuracy']:.1%}", help="Overall detection accuracy across all tests")
+        st.metric("Accuracy", fmt_pct(metrics["Overall Accuracy"]), help="Overall detection accuracy across all tests")
 
     with col2:
-        st.metric("F1 Score", f"{metrics['Average F1 Score']:.1%}", help="Harmonic mean of precision and recall")
+        st.metric("F1 Score", fmt_pct(metrics["Average F1 Score"]), help="Harmonic mean of precision and recall")
 
     with col3:
-        st.metric("Precision", f"{metrics['Average Precision']:.1%}", help="Ratio of true positives to predicted positives")
+        st.metric("Precision", fmt_pct(metrics["Average Precision"]), help="Ratio of true positives to predicted positives")
 
     with col4:
-        st.metric("Recall", f"{metrics['Average Recall']:.1%}", help="Ratio of true positives to actual positives")
+        st.metric("Recall", fmt_pct(metrics["Average Recall"]), help="Ratio of true positives to actual positives")
 
     # Metrics by test type
-    if "test_type" in df.columns:
-        st.markdown("#### Metrics by Test Type")
+    metric_cols = [c for c in ["accuracy", "f1_score", "precision", "recall"] if c in df.columns]
+    if "test_type" in df.columns and metric_cols:
+        test_type_metrics = df.groupby("test_type")[metric_cols].mean()
+        if test_type_metrics.isna().all().all():
+            return
 
-        test_type_metrics = df.groupby("test_type")[["accuracy", "f1_score", "precision", "recall"]].mean()
+        st.markdown("#### Metrics by Test Type")
 
         # Create grouped bar chart
         fig = go.Figure()
 
-        for metric in ["accuracy", "f1_score", "precision", "recall"]:
-            if metric in test_type_metrics.columns:
-                fig.add_trace(
-                    go.Bar(
-                        name=metric.replace("_", " ").title(),
-                        x=test_type_metrics.index,
-                        y=test_type_metrics[metric],
-                        text=[f"{v:.1%}" for v in test_type_metrics[metric]],
-                        textposition="auto",
-                    )
+        for metric in metric_cols:
+            fig.add_trace(
+                go.Bar(
+                    name=metric.replace("_", " ").title(),
+                    x=test_type_metrics.index,
+                    y=test_type_metrics[metric],
+                    text=[fmt_pct(v) for v in test_type_metrics[metric]],
+                    textposition="auto",
                 )
+            )
 
         fig.update_layout(
             title="Performance by Test Type",
@@ -188,132 +210,102 @@ def render_confusion_matrix(df: pd.DataFrame):
     col1, col2, col3 = st.columns(3)
 
     with col1:
-        specificity = tn / (tn + fp) if (tn + fp) > 0 else 0
-        st.metric("Specificity", f"{specificity:.1%}", help="True negative rate")
+        specificity = tn / (tn + fp) if (tn + fp) > 0 else None
+        st.metric("Specificity", fmt_pct(specificity), help="True negative rate")
 
     with col2:
-        sensitivity = tp / (tp + fn) if (tp + fn) > 0 else 0
-        st.metric("Sensitivity", f"{sensitivity:.1%}", help="True positive rate (Recall)")
+        sensitivity = tp / (tp + fn) if (tp + fn) > 0 else None
+        st.metric("Sensitivity", fmt_pct(sensitivity), help="True positive rate (Recall)")
 
     with col3:
-        fpr = fp / (fp + tn) if (fp + tn) > 0 else 0
-        st.metric("False Positive Rate", f"{fpr:.1%}", help="Rate of false alarms")
+        fpr = fp / (fp + tn) if (fp + tn) > 0 else None
+        st.metric("False Positive Rate", fmt_pct(fpr), help="Rate of false alarms")
 
 
 def render_roc_curve(df: pd.DataFrame):
-    """Render ROC curve visualization.
+    """Render stored AUC scores and measured operating points.
+
+    Evaluation results store a single AUC and one confusion matrix per test, not
+    the score distributions a ROC curve is drawn from, so no curve is plotted.
+    The view shows the stored AUC per test type and each test's measured
+    (FPR, TPR) operating point.
 
     Args:
         df: DataFrame with evaluation results
     """
-    st.subheader("ROC Curve Analysis")
+    st.subheader("ROC Analysis")
 
-    # Check if we have AUC scores
-    if "auc_score" not in df.columns or df["auc_score"].isna().all():
-        # Generate synthetic ROC curve from confusion matrix data
-        if all(col in df.columns for col in ["true_positives", "false_positives", "true_negatives", "false_negatives"]):
-            render_synthetic_roc(df)
-        else:
-            st.info("ROC curve data not available. Run evaluations with AUC scoring enabled.")
+    if "auc_score" in df.columns and not df["auc_score"].isna().all() and "test_type" in df.columns:
+        auc_by_type = df.groupby("test_type")["auc_score"].agg(["mean", "count"]).dropna(subset=["mean"])
+        auc_table = pd.DataFrame(
+            {
+                "Test type": auc_by_type.index,
+                "Mean AUC": [fmt_num(v, 3) for v in auc_by_type["mean"]],
+                "Tests with AUC": auc_by_type["count"].astype(int).values,
+            }
+        )
+        st.dataframe(auc_table, use_container_width=True, hide_index=True)
+    else:
+        st.caption(f"AUC: {NOT_MEASURED} (no completed test stored an AUC score)")
+
+    points = operating_points(df)
+    if not points:
+        st.info("No test stored a confusion matrix with both positive and negative samples; no operating points to show.")
         return
 
-    # Plot ROC curves for different test types
     fig = go.Figure()
-
-    if "test_type" in df.columns:
-        for test_type in df["test_type"].unique():
-            type_df = df[df["test_type"] == test_type]
-            auc_scores = type_df["auc_score"].dropna()
-
-            if len(auc_scores) > 0:
-                # Generate ROC curve points
-                fpr = np.linspace(0, 1, 100)
-                tpr = np.linspace(0, 1, 100) * auc_scores.mean()
-
-                fig.add_trace(
-                    go.Scatter(
-                        x=fpr,
-                        y=tpr,
-                        mode="lines",
-                        name=f"{test_type} (AUC={auc_scores.mean():.3f})",
-                        hovertemplate="FPR: %{x:.2f}<br>TPR: %{y:.2f}",
-                    )
-                )
-
-    # Add diagonal line
+    fig.add_trace(
+        go.Scatter(
+            x=[p["fpr"] for p in points],
+            y=[p["tpr"] for p in points],
+            mode="markers",
+            name="Measured operating point",
+            text=[p["label"] for p in points],
+            marker={"size": 9},
+            hovertemplate="%{text}<br>FPR: %{x:.2f}<br>TPR: %{y:.2f}<extra></extra>",
+        )
+    )
     fig.add_trace(
         go.Scatter(x=[0, 1], y=[0, 1], mode="lines", name="Random Classifier", line={"dash": "dash", "color": "gray"})
     )
-
     fig.update_layout(
-        title="ROC Curves by Test Type",
+        title="Measured Operating Points (one per test run)",
         xaxis_title="False Positive Rate",
         yaxis_title="True Positive Rate",
         xaxis={"range": [0, 1]},
         yaxis={"range": [0, 1]},
         height=500,
-        hovermode="x unified",
     )
-
     st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False, "staticPlot": True})
+    st.caption("Each point is one test run's threshold; points from different tests are not joined into a curve.")
 
 
-def render_synthetic_roc(df: pd.DataFrame):
-    """Render synthetic ROC curve from confusion matrix data.
+def operating_points(df: pd.DataFrame) -> list:
+    """Return measured (FPR, TPR) points for rows with a usable confusion matrix.
 
-    Args:
-        df: DataFrame with confusion matrix columns
+    Rows missing any confusion-matrix count, or lacking positives or negatives,
+    are skipped rather than treated as zero.
     """
-    # Calculate TPR and FPR for each test
-    tpr_values = []
-    fpr_values = []
+    columns = ["true_positives", "false_positives", "true_negatives", "false_negatives"]
+    if not all(col in df.columns for col in columns):
+        return []
 
+    points = []
     for _, row in df.iterrows():
-        tp = row.get("true_positives", 0)
-        fp = row.get("false_positives", 0)
-        tn = row.get("true_negatives", 0)
-        fn = row.get("false_negatives", 0)
-
-        if tp + fn > 0:
-            tpr = tp / (tp + fn)
-            tpr_values.append(tpr)
-
-        if fp + tn > 0:
-            fpr = fp / (fp + tn)
-            fpr_values.append(fpr)
-
-    if tpr_values and fpr_values:
-        # Sort by FPR for proper curve
-        sorted_points = sorted(zip(fpr_values, tpr_values))
-        fpr_sorted, tpr_sorted = zip(*sorted_points)
-
-        # Add (0,0) and (1,1) for complete curve
-        fpr_complete = [0] + list(fpr_sorted) + [1]
-        tpr_complete = [0] + list(tpr_sorted) + [1]
-
-        fig = go.Figure()
-
-        fig.add_trace(
-            go.Scatter(x=fpr_complete, y=tpr_complete, mode="lines+markers", name="Detection Performance", marker={"size": 6})
+        counts = [row.get(col) for col in columns]
+        if not all(is_measured(c) for c in counts):
+            continue
+        tp, fp, tn, fn = (float(c) for c in counts)
+        if tp + fn <= 0 or fp + tn <= 0:
+            continue
+        points.append(
+            {
+                "fpr": fp / (fp + tn),
+                "tpr": tp / (tp + fn),
+                "label": str(row.get("test_name") or row.get("test_type") or "test"),
+            }
         )
-
-        # Add diagonal
-        fig.add_trace(
-            go.Scatter(x=[0, 1], y=[0, 1], mode="lines", name="Random Classifier", line={"dash": "dash", "color": "gray"})
-        )
-
-        fig.update_layout(
-            title="ROC Curve (Synthetic from Confusion Matrix)",
-            xaxis_title="False Positive Rate",
-            yaxis_title="True Positive Rate",
-            xaxis={"range": [0, 1]},
-            yaxis={"range": [0, 1]},
-            height=500,
-        )
-
-        st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False, "staticPlot": True})
-    else:
-        st.info("Insufficient data for ROC curve generation")
+    return points
 
 
 def render_confidence_distribution(df: pd.DataFrame):

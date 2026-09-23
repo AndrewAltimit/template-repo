@@ -13,6 +13,8 @@ from typing import Any, Dict, List
 import pandas as pd
 import streamlit as st
 
+from utils.metric_format import fmt_pct, is_measured
+
 logger = logging.getLogger(__name__)
 
 
@@ -518,11 +520,12 @@ def generate_comparison_data(data_loader, models: List[str]) -> Dict[str, Any]:
         comparison["comparison_matrix"].append(
             {
                 "model": model,
-                "accuracy": summary.get("avg_accuracy", 0),
-                "f1_score": summary.get("avg_f1", 0),
-                "precision": summary.get("avg_precision", 0),
-                "recall": summary.get("avg_recall", 0),
-                "total_tests": summary.get("total_tests", 0),
+                # None when not measured; never a default score
+                "accuracy": summary.get("avg_accuracy"),
+                "f1_score": summary.get("avg_f1"),
+                "precision": summary.get("avg_precision"),
+                "recall": summary.get("avg_recall"),
+                "total_tests": summary.get("total_tests") or 0,
             }
         )
 
@@ -539,7 +542,10 @@ def generate_executive_summary(data_loader, summary_type: str, **options) -> Dic
         rankings = []
         for model in models:
             model_summary = data_loader.fetch_model_summary(model)
-            rankings.append({"model": model, "score": model_summary.get("avg_accuracy", 0)})
+            score = model_summary.get("avg_accuracy")
+            # Models without a measured accuracy cannot be ranked
+            if is_measured(score):
+                rankings.append({"model": model, "score": float(score)})
         summary["rankings"] = sorted(rankings, key=lambda x: x["score"], reverse=True)
 
     if options.get("include_risks"):
@@ -562,7 +568,7 @@ def generate_markdown_from_data(data: Dict[str, Any]) -> str:
     if "metrics" in data:
         md += "## Performance Metrics\n\n"
         for metric, value in data["metrics"].items():
-            md += f"- **{metric}**: {value:.2%}\n"
+            md += f"- **{metric}**: {fmt_pct(value, 2)}\n"
         md += "\n"
 
     return md
@@ -591,7 +597,7 @@ def generate_html_from_data(data: Dict[str, Any], _include_charts: bool) -> str:
     if "metrics" in data:
         html += "<h2>Performance Metrics</h2><table>"
         for metric, value in data["metrics"].items():
-            html += f"<tr><td>{metric}</td><td>{value:.2%}</td></tr>"
+            html += f"<tr><td>{metric}</td><td>{fmt_pct(value, 2)}</td></tr>"
         html += "</table>"
 
     html += "</body></html>"

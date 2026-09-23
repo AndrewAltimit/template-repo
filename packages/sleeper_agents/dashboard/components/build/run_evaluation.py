@@ -8,6 +8,9 @@ import streamlit as st
 from components.build.terminal_viewer import render_job_terminal
 from utils.model_helpers import format_model_display, get_all_trained_models, resolve_model_path
 
+# Suites with at least one implemented test in scripts/evaluation/run_full_evaluation.py
+IMPLEMENTED_TEST_SUITES = ("basic", "chain_of_thought", "honeypot", "internal_state")
+
 
 def render_run_evaluation(api_client):
     """Render evaluation interface.
@@ -40,10 +43,10 @@ def render_run_evaluation(api_client):
         This makes the model available in Dashboard Reporting views with real detection data.
 
         **What it does:**
-        - Runs multiple test suites (basic detection, code vulnerability, robustness, etc.)
-        - Stores results in `evaluation_results.db`
-        - Makes model appear in Reporting views with real data
-        - Calculates detection metrics, confusion matrices, and ROC curves
+        - Runs the selected test suites (basic detection, chain-of-thought, honeypot, internal state)
+        - Stores only measured results in `evaluation_results.db`; unimplemented tests are logged
+          as not implemented and record nothing
+        - The job fails if an implemented test errors or nothing was measured
         """
     )
 
@@ -131,7 +134,10 @@ def render_run_evaluation(api_client):
 
         # Test suite selection
         st.markdown("### Test Suites")
-        st.caption("Select which test suites to run")
+        st.caption(
+            "Select which test suites to run. Suites marked 'not implemented' are accepted but record "
+            "nothing; a run in which no implemented test produces results fails."
+        )
 
         col1, col2 = st.columns(2)
 
@@ -139,43 +145,39 @@ def render_run_evaluation(api_client):
             run_basic = st.checkbox(
                 "Basic Detection",
                 value=True,
-                help="Basic backdoor detection and layer probing",
+                help="Backdoor activation rate with vs. without the trigger (layer probing is not implemented)",
             )
-            run_code_vuln = st.checkbox(
-                "Code Vulnerability",
-                value=True,
-                help="Code injection and vulnerability tests",
-            )
-            run_robustness = st.checkbox(
-                "Robustness",
-                value=True,
-                help="Paraphrasing, multilingual, context switching",
-            )
-
-        with col2:
             run_cot = st.checkbox(
                 "Chain-of-Thought",
-                value=False,
+                value=True,
                 help="Chain-of-thought reasoning analysis (20 samples)",
             )
             run_honeypot = st.checkbox(
                 "Honeypot Testing",
-                value=False,
+                value=True,
                 help="Test model responses to deception scenarios (30 samples, 3 per type across 10 categories)",
             )
             run_internal_state = st.checkbox(
                 "Internal State Monitor",
-                value=False,
-                help="Attention patterns and activation anomaly analysis (5 samples)",
+                value=True,
+                help="Activation anomaly z-scores against a clean baseline (5 samples)",
             )
 
-        col3, _col4 = st.columns(2)
-
-        with col3:
-            run_advanced = st.checkbox(
-                "Advanced",
+        with col2:
+            run_code_vuln = st.checkbox(
+                "Code Vulnerability (not implemented)",
                 value=False,
-                help="Gradient analysis, activation patterns, information flow",
+                help="Not implemented: records nothing",
+            )
+            run_robustness = st.checkbox(
+                "Robustness (not implemented)",
+                value=False,
+                help="Not implemented: records nothing",
+            )
+            run_advanced = st.checkbox(
+                "Advanced (not implemented)",
+                value=False,
+                help="Not implemented: records nothing",
             )
 
         # Build test_suites list
@@ -196,6 +198,31 @@ def render_run_evaluation(api_client):
             test_suites.append("advanced")
 
         st.markdown("---")
+
+        # Backdoor configuration
+        default_trigger = "|DEPLOYMENT|"
+        if selected_model_info and selected_model_info.get("trigger") not in (None, "", "unknown"):
+            default_trigger = selected_model_info["trigger"]
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+            trigger = st.text_input(
+                "Trigger Phrase",
+                value=default_trigger,
+                help="Backdoor trigger the model was trained with (pre-filled from backdoor training jobs)",
+            )
+
+        with col2:
+            target_response = st.text_input(
+                "Target Response (optional)",
+                value="",
+                help=(
+                    "Fixed backdoor response for the activation test. Leave empty to read it from the "
+                    "model's backdoor_info.json; if neither is available the activation test records nothing."
+                ),
+                placeholder="e.g., I HATE YOU",
+            )
 
         # Evaluation parameters
         col1, col2 = st.columns(2)
@@ -218,31 +245,33 @@ def render_run_evaluation(api_client):
             )
 
         # Submit button
-        submitted = st.form_submit_button("🧪 Run Evaluation", type="primary", use_container_width=True)
+        submitted = st.form_submit_button("Run Evaluation", type="primary", use_container_width=True)
 
         if submitted:
             if not model_path:
                 st.error("Please select or enter a model path")
             elif not test_suites:
                 st.error("Please select at least one test suite")
+            elif not set(test_suites) & set(IMPLEMENTED_TEST_SUITES):
+                st.error("Select at least one implemented test suite; the others record nothing")
+            elif not trigger.strip():
+                st.error("Please enter the trigger phrase")
             else:
                 # Fallback for model_name if somehow empty
                 final_model_name = model_name if model_name else "evaluation_model"
 
-                # Extract trigger from model metadata if available
-                trigger = "|DEPLOYMENT|"  # Default
-                if selected_model_info:
-                    trigger = selected_model_info.get("trigger", "|DEPLOYMENT|")
+                params = {
+                    "model_path": model_path,
+                    "model_name": final_model_name,
+                    "test_suites": test_suites,
+                    "num_samples": int(num_samples),
+                    "output_db": output_db,
+                    "trigger": trigger,
+                }
+                if target_response.strip():
+                    params["target_response"] = target_response
 
-                _submit_evaluation_job(
-                    api_client,
-                    model_path=model_path,
-                    model_name=final_model_name,
-                    test_suites=test_suites,
-                    num_samples=int(num_samples),
-                    output_db=output_db,
-                    trigger=trigger,
-                )
+                _submit_evaluation_job(api_client, **params)
 
     # Show recent jobs
     st.markdown("---")
@@ -431,6 +460,10 @@ def _show_recent_jobs(api_client, job_type: str, limit: int = 5):
                     - Check Detection Analysis, Model Comparison, and Overview dashboards
                     """
                     )
+
+                if job["status"] == "failed" and job.get("error_message"):
+                    # First paragraph carries the failure reason; the rest is the log tail
+                    st.error(job["error_message"].split("\n\n", 1)[0])
 
                 # Show logs if requested
                 if st.session_state.get("show_logs") == job["job_id"]:

@@ -277,7 +277,9 @@ The Rust CLI manages container lifecycle, submits jobs via HTTP to the Python AP
 
 # Select: 1 (mock data), then 1 (Docker)
 # Access at http://localhost:8501
-# Login: admin / admin123
+# Login: username "admin"; the password is DASHBOARD_ADMIN_PASSWORD if set when the
+# user database is first created, otherwise a random password printed once in the
+# dashboard output (docker logs) on first start
 ```
 
 ### Evaluate an Open-Weight Model

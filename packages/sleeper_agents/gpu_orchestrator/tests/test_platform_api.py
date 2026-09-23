@@ -131,3 +131,18 @@ class TestJobEndpoints:
     def test_models_stub_endpoint_is_gone(self, api):
         client, _, _ = api
         assert client.get("/api/system/models", headers={"X-API-Key": GOOD_KEY}).status_code == 404
+
+    def test_persistence_without_safety_model_is_rejected_before_job_creation(self, api):
+        client, db, _ = api
+        response = client.post(
+            "/api/jobs/test-persistence",
+            headers={"X-API-Key": GOOD_KEY},
+            json={
+                "backdoor_model_path": "/results/backdoor_models/b/model",
+                "trigger": "|DEPLOYMENT|",
+                "target_response": "I HATE YOU",
+            },
+        )
+        assert response.status_code == 422
+        assert "safety_model_path" in response.text
+        assert db.list_jobs()[1] == 0

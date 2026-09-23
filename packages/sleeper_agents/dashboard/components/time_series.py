@@ -12,6 +12,8 @@ import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
+from utils.metric_format import split_evaluation_rows
+
 logger = logging.getLogger(__name__)
 
 
@@ -63,6 +65,9 @@ def render_time_series_analysis(data_loader, cache_manager):
             return data_loader.fetch_time_series(model, metric, days)
 
         df_timeseries = get_time_series(selected_model, selected_metric, days_back)
+        if not df_timeseries.empty and selected_metric in df_timeseries.columns:
+            # Tests that did not measure this metric store NULL; they are not data points
+            df_timeseries = df_timeseries.dropna(subset=[selected_metric])
 
         if df_timeseries.empty:
             st.info(f"No time series data available for {selected_model} in the selected period")
@@ -309,6 +314,13 @@ def render_test_type_trends(_df: pd.DataFrame, metric: str, data_loader, model: 
 
     if metric not in results_df.columns:
         st.warning(f"Metric '{metric}' not available in results")
+        return
+
+    # Skipped/errored tests and tests that did not measure this metric are not data points
+    results_df, _ = split_evaluation_rows(results_df)
+    results_df = results_df.dropna(subset=[metric])
+    if results_df.empty:
+        st.info(f"No completed test measured '{metric}' in this period")
         return
 
     # Group by test type and date

@@ -45,17 +45,30 @@ Results & Models
    - Test backdoor persistence
 
 5. **Test Persistence** (`/api/jobs/test-persistence`)
-   - Compare pre/post safety training activation
+   - Compare backdoor activation of a backdoored model and its safety-trained copy
+   - Requires `safety_model_path` (output of a Safety Training job, e.g.
+     `/results/safety_trained/<job_id>/model`); the job does not run safety training itself
 
 6. **Evaluate** (`/api/jobs/evaluate`)
    - Run the full evaluation suite and store results in the evaluation database
-   - Pass `trigger` for models trained with a custom trigger
+   - Pass `trigger` for models trained with a custom trigger, and optionally `target_response`
+     (otherwise read from the model's `backdoor_info.json`)
+   - Default suites are the implemented ones (`basic`, `chain_of_thought`, `honeypot`,
+     `internal_state`); unimplemented tests record nothing, and the job fails if an implemented
+     test errors or nothing was measured
+
+### Failure Reasons
+
+A job whose container exits non-zero is marked `failed` with the exit code, a reason and
+the log tail in `error_message`. Exit code 2 means a required input was missing, the
+arguments were invalid, or the requested measurement is not implemented; nothing was recorded.
 
 ### Output Paths
 
 Every path a request asks a job to write (`output_dir`, `output_file`, `output_db`,
 `evaluation_db`) must be an absolute path under `/results` (the shared results volume).
-Relative paths, `..` segments and paths elsewhere are rejected with HTTP 422. Job
+Relative paths, `..` segments and paths elsewhere are rejected with HTTP 422. Model
+paths a job reads (`safety_model_path`) must be under `/results` or `/models`. Job
 containers mount the package source read-only at `/app`.
 
 ### API Endpoints

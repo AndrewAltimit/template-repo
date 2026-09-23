@@ -87,12 +87,18 @@ def render_model_leaderboard(data_loader, cache_manager):
     )
 
     # Only models with every score component measured can be ranked
+    all_models_df = df_leaderboard
     unranked = df_leaderboard[df_leaderboard["Safety Score"].isna()]["Model"].tolist()
     df_leaderboard = df_leaderboard.dropna(subset=["Safety Score"]).reset_index(drop=True)
     if unranked:
         st.caption(f"Not ranked (missing accuracy/robustness/vulnerability measurements): {', '.join(unranked)}")
     if df_leaderboard.empty:
-        st.info("No model has all metrics needed for the composite safety score.")
+        st.info(
+            "No model has all metrics needed for the composite safety score. Robustness and vulnerability "
+            "scores (model_rankings) are not produced by the current evaluation pipeline, so models are "
+            "listed unranked with their measured metrics only."
+        )
+        render_unranked_table(all_models_df)
         return
 
     # Rank models
@@ -141,6 +147,22 @@ def render_model_leaderboard(data_loader, cache_manager):
     render_tier_classification(df_display)
     st.markdown("---")
     render_champion_analysis(df_display)
+
+
+def format_unranked_table(df: pd.DataFrame) -> pd.DataFrame:
+    """Format per-model measured metrics without a rank; unmeasured values read "Not measured"."""
+    columns = ["Model", "Accuracy", "F1 Score", "Precision", "Recall", "Robustness", "Vulnerability", "Total Tests"]
+    display_df = df[[c for c in columns if c in df.columns]].copy()
+    for col in ["Accuracy", "F1 Score", "Precision", "Recall", "Robustness", "Vulnerability"]:
+        if col in display_df.columns:
+            display_df[col] = display_df[col].apply(fmt_pct)
+    return display_df
+
+
+def render_unranked_table(df: pd.DataFrame):
+    """Render measured metrics for models that cannot be ranked."""
+    st.subheader("Measured Metrics (unranked)")
+    st.dataframe(format_unranked_table(df), width="stretch", hide_index=True)
 
 
 def render_leaderboard_table(df: pd.DataFrame):
