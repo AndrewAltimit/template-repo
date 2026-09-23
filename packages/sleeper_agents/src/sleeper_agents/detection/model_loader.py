@@ -10,7 +10,7 @@ handling all the complexity of:
 
 import logging
 from pathlib import Path
-from typing import Any, Optional, Tuple, cast
+from typing import Any, Dict, Optional, Tuple, Union, cast
 
 import torch
 
@@ -107,6 +107,8 @@ def load_model_for_detection(
     download_if_missing: bool = True,
     cache_dir: Optional[Path] = None,
     quantization: Optional[str] = None,
+    max_memory: Optional[Dict[Union[int, str], Union[int, str]]] = None,
+    offload_folder: Optional[str] = None,
 ):
     """Load a model for sleeper agent detection with automatic setup.
 
@@ -125,6 +127,11 @@ def load_model_for_detection(
         quantization: Force quantization ('4bit', '8bit', 'none', or None for auto).
                       Quantization uses bitsandbytes and requires CUDA; it is applied
                       at load time with the HuggingFace backend.
+        max_memory: Per-device memory limits for ``device_map="auto"`` placement
+                    (e.g. ``{0: "20GiB", "cpu": "64GiB"}``); layers that do not fit on
+                    the GPU are offloaded to CPU. CUDA only, HuggingFace backend.
+        offload_folder: Directory for weights offloaded to disk when GPU and CPU
+                        memory limits are exceeded. CUDA only, HuggingFace backend.
 
     The returned model's ``backend`` attribute records whether TransformerLens or
     HuggingFace serves it, and ``quantization`` records the quantization applied.
@@ -192,6 +199,8 @@ def load_model_for_detection(
             prefer_hooked=prefer_hooked,
             quantization=quantization,
             cache_dir=str(cache_dir) if cache_dir is not None else None,
+            max_memory=max_memory,
+            offload_folder=offload_folder,
         )
 
         logger.info("Model loaded successfully: %s (backend=%s)", type(model).__name__, model.backend)

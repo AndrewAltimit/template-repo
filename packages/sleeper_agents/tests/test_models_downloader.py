@@ -2,6 +2,7 @@
 
 import os
 from pathlib import Path
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -123,6 +124,28 @@ class TestLoaderQuantization:
 
         assert captured["quantization"] == "8bit"
         assert captured["cache_dir"] == str(tmp_path)
+
+    def test_offload_options_are_passed_through(self, monkeypatch):
+        captured = {}
+
+        def fake_load_model(**kwargs):
+            captured.update(kwargs)
+            model = MagicMock()
+            model.backend = "huggingface"
+            return model
+
+        monkeypatch.setattr(model_interface, "load_model", fake_load_model)
+
+        model_loader.load_model_for_detection(
+            "org/not-in-registry",
+            device="cpu",
+            download_if_missing=False,
+            max_memory={0: "20GiB", "cpu": "64GiB"},
+            offload_folder="/tmp/offload",
+        )
+
+        assert captured["max_memory"] == {0: "20GiB", "cpu": "64GiB"}
+        assert captured["offload_folder"] == "/tmp/offload"
 
     def test_quantization_on_cpu_fails_loudly(self):
         with pytest.raises(RuntimeError, match="CUDA"):
