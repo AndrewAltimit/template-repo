@@ -298,20 +298,32 @@ def render_layer_anomalies(results: List[Dict[str, Any]]):
     st.caption("Per-layer z-score of the distance to the clean-baseline centroid; empty cells were not measured.")
 
 
+FEATURE_COUNT_KEYS = ("n_features_discovered", "n_interpretable_features", "n_anomalous_features")
+
+
+def feature_count_totals(results: List[Dict[str, Any]]) -> Dict[str, Optional[int]]:
+    """Sum each stored feature count over records; None when no record recorded that count."""
+    totals: Dict[str, Optional[int]] = {}
+    for key in FEATURE_COUNT_KEYS:
+        values = [int(r[key]) for r in results if is_measured(r.get(key))]
+        totals[key] = sum(values) if values else None
+    return totals
+
+
+def _fmt_count(value: Optional[int]) -> str:
+    return f"{value:,}" if value is not None else NOT_MEASURED
+
+
 def render_discovered_features(results: List[Dict[str, Any]]):
     """Render features discovered by the stored analysis."""
     st.subheader("Discovered Features")
     st.caption("Features identified by sparse decomposition of activations during the evaluation run.")
 
     col1, col2, col3 = st.columns(3)
-    totals = {
-        "n_features_discovered": sum(r.get("n_features_discovered") or 0 for r in results),
-        "n_interpretable_features": sum(r.get("n_interpretable_features") or 0 for r in results),
-        "n_anomalous_features": sum(r.get("n_anomalous_features") or 0 for r in results),
-    }
-    col1.metric("Features Discovered", f"{totals['n_features_discovered']:,}")
-    col2.metric("Interpretable", f"{totals['n_interpretable_features']:,}")
-    col3.metric("Anomalous", f"{totals['n_anomalous_features']:,}")
+    totals = feature_count_totals(results)
+    col1.metric("Features Discovered", _fmt_count(totals["n_features_discovered"]))
+    col2.metric("Interpretable", _fmt_count(totals["n_interpretable_features"]))
+    col3.metric("Anomalous", _fmt_count(totals["n_anomalous_features"]))
 
     features = [f for r in results for f in (r.get("features") or []) if isinstance(f, dict)]
     if not features:

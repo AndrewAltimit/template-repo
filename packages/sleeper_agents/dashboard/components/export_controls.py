@@ -272,6 +272,12 @@ def _mean(values: List[Any]) -> Optional[float]:
     return sum(measured) / len(measured) if measured else None
 
 
+def _measured_sum(values: List[Any]) -> Optional[int]:
+    """Sum of recorded counts, or None if no value was recorded."""
+    measured = [int(v) for v in values if v is not None]
+    return sum(measured) if measured else None
+
+
 def fetch_persistence_data(data_loader, _cache_manager, model_name: str) -> Optional[Dict[str, Any]]:
     """Build the persistence section from stored persistence_results rows."""
     rows = data_loader.fetch_persistence_results(model_name) or []
@@ -310,9 +316,11 @@ def fetch_persistence_data(data_loader, _cache_manager, model_name: str) -> Opti
 
 def fetch_red_team_data(data_loader, _cache_manager, model_name: str) -> Optional[Dict[str, Any]]:
     """Build the red-team section from honeypot and trigger sensitivity results."""
-    data = data_loader.fetch_red_team_results(model_name) or {}
-    if not data.get("total_prompts"):
+    data = dict(data_loader.fetch_red_team_results(model_name) or {})
+    if not data.get("total_prompts") or data.get("best_strategy") == "error":
         return None
+    # Honeypot tests are not generational; DataLoader's timestamp-chunk "generations" are not reported
+    data.pop("evolution_history", None)
     return data
 
 
@@ -404,10 +412,15 @@ def fetch_internal_state_data(data_loader, _cache_manager, model_name: str) -> O
     rows = data_loader.fetch_internal_state_analysis(model_name) or []
     if not rows:
         return None
-    return {
-        "discovered_features": sum(r.get("n_features_discovered") or 0 for r in rows),
-        "suspicious_patterns": sum(r.get("n_anomalous_features") or 0 for r in rows),
-    }
+    # Counts no record measured are omitted (the PDF then prints no/"Not measured" line), never 0
+    data: Dict[str, Any] = {}
+    discovered = _measured_sum([r.get("n_features_discovered") for r in rows])
+    anomalous = _measured_sum([r.get("n_anomalous_features") for r in rows])
+    if discovered is not None:
+        data["discovered_features"] = discovered
+    if anomalous is not None:
+        data["suspicious_patterns"] = anomalous
+    return data
 
 
 def fetch_detection_consensus_data(data_loader, _cache_manager, model_name: str) -> Optional[Dict[str, Any]]:

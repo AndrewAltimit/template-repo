@@ -12,11 +12,31 @@ Usage:
 """
 
 import logging
-from typing import Any, Literal
+from typing import Any, Dict, Literal
 
 import streamlit as st
 
+from utils.metric_format import NOT_MEASURED, fmt_num, fmt_pct, is_measured
+
 logger = logging.getLogger(__name__)
+
+
+def calibration_display_values(model_metadata: Any) -> Dict[str, str]:
+    """Display strings for the calibration metrics; each missing value reads NOT_MEASURED.
+
+    A probability range is shown only when both bounds were recorded (never a
+    default [0, 1]).
+    """
+    prob_range = getattr(model_metadata, "prob_range", None)
+    prob_text = NOT_MEASURED
+    if isinstance(prob_range, (list, tuple)) and len(prob_range) == 2 and all(is_measured(v) for v in prob_range):
+        prob_text = f"[{float(prob_range[0]):.2f}, {float(prob_range[1]):.2f}]"
+    return {
+        "auc": fmt_num(getattr(model_metadata, "auc", None), 3),
+        "baseline_accuracy": fmt_pct(getattr(model_metadata, "baseline_accuracy", None)),
+        "optimal_threshold": fmt_num(getattr(model_metadata, "optimal_threshold", None), 4),
+        "prob_range": prob_text,
+    }
 
 
 def render_calibration_metrics(model_metadata: Any, show_warning: bool = True, help_text: bool = True) -> None:
@@ -42,18 +62,10 @@ def render_calibration_metrics(model_metadata: Any, show_warning: bool = True, h
             "balancing sensitivity and specificity for best real-world performance."
         )
 
-    # Extract calibration data from model metadata
-    auc = getattr(model_metadata, "auc", None)
     baseline_accuracy = getattr(model_metadata, "baseline_accuracy", None)
-    optimal_threshold = getattr(model_metadata, "optimal_threshold", None)
-    prob_range = getattr(model_metadata, "prob_range", None)
+    values = calibration_display_values(model_metadata)
 
-    # Check if calibration data is available
-    has_calibration = all(
-        [auc is not None, baseline_accuracy is not None, optimal_threshold is not None, prob_range is not None]
-    )
-
-    if not has_calibration:
+    if all(value == NOT_MEASURED for value in values.values()):
         st.warning(
             "⚠️ **Calibration data not available** for this model. "
             "The probe may not have been calibrated using ROC curve + Youden's J. "
@@ -61,25 +73,25 @@ def render_calibration_metrics(model_metadata: Any, show_warning: bool = True, h
         )
         return
 
-    # Display metrics in columns
+    # Display metrics in columns; each missing value reads "Not measured"
     col1, col2, col3, col4 = st.columns(4)
 
     with col1:
         st.metric(
-            "AUC", f"{auc:.3f}", help="Area Under ROC Curve - measures discrimination ability (0.5 = random, 1.0 = perfect)"
+            "AUC", values["auc"], help="Area Under ROC Curve - measures discrimination ability (0.5 = random, 1.0 = perfect)"
         )
 
     with col2:
         # Color code accuracy based on threshold
         delta = None
         delta_color: Literal["normal", "inverse", "off"] = "normal"
-        if baseline_accuracy is not None and baseline_accuracy < 0.95:
+        if is_measured(baseline_accuracy) and baseline_accuracy < 0.95:
             delta = "Below threshold"
             delta_color = "inverse"
 
         st.metric(
             "Calibrated Accuracy",
-            f"{baseline_accuracy:.1%}",
+            values["baseline_accuracy"],
             delta=delta,
             delta_color=delta_color,
             help="Accuracy using optimal threshold (should be ≥95% for well-calibrated probes)",
@@ -88,21 +100,15 @@ def render_calibration_metrics(model_metadata: Any, show_warning: bool = True, h
     with col3:
         st.metric(
             "Optimal Threshold",
-            f"{optimal_threshold:.4f}",
+            values["optimal_threshold"],
             help="Threshold that maximizes Youden's J statistic (Sensitivity + Specificity - 1)",
         )
 
     with col4:
-        if prob_range is not None:
-            prob_min, prob_max = prob_range
-        else:
-            prob_min, prob_max = (0.0, 1.0)
-        st.metric(
-            "Probability Range", f"[{prob_min:.2f}, {prob_max:.2f}]", help="Min and max prediction scores in validation set"
-        )
+        st.metric("Probability Range", values["prob_range"], help="Min and max prediction scores in validation set")
 
     # Warning for uncalibrated probes
-    if show_warning and baseline_accuracy is not None and baseline_accuracy < 0.95:
+    if show_warning and is_measured(baseline_accuracy) and baseline_accuracy < 0.95:
         st.error(
             f"⚠️ **Low Calibrated Accuracy ({baseline_accuracy:.1%})** - "
             "This probe may be uncalibrated. Expected accuracy ≥95% for AUC=1.0. "

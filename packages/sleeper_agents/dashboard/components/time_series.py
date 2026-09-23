@@ -5,6 +5,7 @@ Tracks detection performance trends over time with forecasting capabilities.
 
 from datetime import datetime, timedelta
 import logging
+from typing import Dict, Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -12,7 +13,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
-from utils.metric_format import split_evaluation_rows
+from utils.metric_format import NOT_MEASURED, fmt_pct, measured_mean, split_evaluation_rows
 
 logger = logging.getLogger(__name__)
 
@@ -188,22 +189,61 @@ def render_trend_analysis(df: pd.DataFrame, metric: str):
     # Trend statistics
     col1, col2, col3, col4 = st.columns(4)
 
-    current_value = daily_data["mean"].iloc[-1] if not daily_data.empty else 0
-    start_value = daily_data["mean"].iloc[0] if not daily_data.empty else 0
-    change = current_value - start_value
-    change_pct = (change / start_value * 100) if start_value != 0 else 0
+    stats = trend_statistics(daily_data)
 
     with col1:
-        st.metric("Current", f"{current_value:.1%}", help="Most recent daily average")
+        st.metric("Current", fmt_pct(stats["current"]), help="Most recent daily average")
 
     with col2:
-        st.metric("Change", f"{change:.1%}", f"{change_pct:+.1f}%", help="Change from start of period")
+        change_pct = stats["change_pct"]
+        st.metric(
+            "Change",
+            fmt_pct(stats["change"]),
+            f"{change_pct:+.1f}%" if change_pct is not None else None,
+            help="Change from start of period",
+        )
 
     with col3:
-        st.metric("Volatility", f"{daily_data['std'].mean():.2%}", help="Average daily standard deviation")
+        st.metric(
+            "Volatility",
+            fmt_pct(stats["volatility"], 2),
+            help="Average within-day standard deviation (needs a day with 2+ results)",
+        )
 
     with col4:
         st.metric("Tests/Day", f"{daily_data['count'].mean():.1f}", help="Average tests per day")
+
+
+def trend_statistics(daily_data: pd.DataFrame) -> Dict[str, Optional[float]]:
+    """Current value, change, relative change and volatility of daily means (None where undefined)."""
+    if daily_data.empty:
+        return {"current": None, "change": None, "change_pct": None, "volatility": None}
+    current = float(daily_data["mean"].iloc[-1])
+    start = float(daily_data["mean"].iloc[0])
+    change = current - start
+    # A relative change from a 0 start is undefined, not 0%
+    change_pct = change / start * 100 if start != 0 else None
+    return {
+        "current": current,
+        "change": change,
+        "change_pct": change_pct,
+        # std is NaN for days with a single result; measured_mean skips them
+        "volatility": measured_mean(daily_data["std"]),
+    }
+
+
+def stability_rating(mean_val: float, std_val: float) -> Tuple[str, Optional[float]]:
+    """Stability band from the coefficient of variation; CV is undefined (None) for a zero mean."""
+    if not mean_val:
+        return NOT_MEASURED, None
+    cv = float(std_val / mean_val)
+    if cv < 0.05:
+        return "Excellent", cv
+    if cv < 0.10:
+        return "Good", cv
+    if cv < 0.15:
+        return "Moderate", cv
+    return "Poor", cv
 
 
 def render_performance_stability(df: pd.DataFrame, metric: str, model: str):
@@ -220,21 +260,7 @@ def render_performance_stability(df: pd.DataFrame, metric: str, model: str):
     values = df[metric].values
     mean_val = values.mean()
     std_val = values.std()
-    cv = (std_val / mean_val) if mean_val != 0 else 0
-
-    # Determine stability rating
-    if cv < 0.05:
-        stability = "Excellent"
-        # color = "green"  # Not used currently
-    elif cv < 0.10:
-        stability = "Good"
-        # color = "blue"  # Not used currently
-    elif cv < 0.15:
-        stability = "Moderate"
-        # color = "orange" - not used currently
-    else:
-        stability = "Poor"
-        # color = "red" - not used currently
+    stability, cv = stability_rating(mean_val, std_val)
 
     # Create distribution plot
     fig = go.Figure()
@@ -272,7 +298,11 @@ def render_performance_stability(df: pd.DataFrame, metric: str, model: str):
         st.metric("Stability Rating", stability, help="Based on coefficient of variation")
         st.metric("Mean", f"{mean_val:.2%}")
         st.metric("Std Dev", f"{std_val:.3%}")
-        st.metric("CV", f"{cv:.3f}", help="Coefficient of Variation (σ/μ)")
+        st.metric(
+            "CV",
+            f"{cv:.3f}" if cv is not None else NOT_MEASURED,
+            help="Coefficient of Variation (σ/μ); undefined for a zero mean",
+        )
 
         # Performance bands
         st.markdown("#### Performance Bands")

@@ -8,14 +8,51 @@ from datetime import datetime
 import io
 import json
 import logging
+import math
 from typing import Any, Dict, List
 
 import pandas as pd
 import streamlit as st
 
-from utils.metric_format import fmt_pct, is_measured
+from components.detection_analysis import ALL_SUITES, fetch_model_results, filter_by_suite, stored_test_suites
+from utils.metric_format import NOT_MEASURED, fmt_pct, is_measured, measured_mean, split_evaluation_rows
 
 logger = logging.getLogger(__name__)
+
+RISK_ASSESSMENT_NOT_COMPUTED = "Not computed: no aggregate risk classification is derived from stored results."
+
+
+def json_safe(value: Any) -> Any:
+    """Recursively convert a value for strict JSON: NaN/inf and pandas NA become None.
+
+    Unmeasured values therefore export as null, never as a number or "NaN".
+    """
+    if isinstance(value, dict):
+        return {str(k): json_safe(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [json_safe(v) for v in value]
+    if hasattr(value, "item") and not isinstance(value, (str, bytes)):
+        try:
+            value = value.item()  # numpy scalar -> Python scalar
+        except (TypeError, ValueError):
+            pass
+    if isinstance(value, float) and not math.isfinite(value):
+        return None
+    if value is pd.NaT:
+        return None
+    try:
+        if pd.isna(value) is True:
+            return None
+    except (TypeError, ValueError):
+        pass
+    return value
+
+
+def _display(value: Any) -> Any:
+    """Report text for a summary value: None/NaN read NOT_MEASURED."""
+    if value is None or (isinstance(value, float) and not math.isfinite(value)):
+        return NOT_MEASURED
+    return value
 
 
 def render_export_manager(data_loader, cache_manager):
@@ -145,28 +182,20 @@ def render_test_suite_export(data_loader, _cache_manager):
     with col1:
         selected_model = st.selectbox("Select Model", models, help="Choose a model")
 
+    model_results = fetch_model_results(data_loader, selected_model) if selected_model else pd.DataFrame()
+
     with col2:
-        test_suites = [
-            "all",
-            "basic",
-            "code_vulnerability",
-            "chain_of_thought",
-            "robustness",
-            "attention",
-            "intervention",
-            "advanced",
-        ]
-        selected_suite = st.selectbox("Test Suite", test_suites, help="Choose test suite to export")
+        # Suites are the test_type values stored for this model
+        selected_suite = st.selectbox(
+            "Test Suite", [ALL_SUITES] + stored_test_suites(model_results), help="Choose stored test suite to export"
+        )
 
     with col3:
         export_format = st.selectbox("Format", ["CSV", "JSON", "Excel"], help="Export format")
 
     if st.button("Export Test Suite", type="primary"):
         with st.spinner("Preparing export..."):
-            if selected_suite == "all":
-                df = data_loader.fetch_latest_results(selected_model)
-            else:
-                df = data_loader.fetch_test_suite_results(selected_model, selected_suite)
+            df = filter_by_suite(model_results, selected_suite)
 
             if df.empty:
                 st.warning("No data to export")
@@ -361,11 +390,16 @@ def render_executive_summary_export(data_loader, _cache_manager):
 
 def export_json(data: Dict[str, Any], filename: str):
     """Export data as JSON file."""
-    json_str = json.dumps(data, indent=2, default=str)
+    json_str = report_json(data)
     b64 = base64.b64encode(json_str.encode()).decode()
     href = f'<a href="data:application/json;base64,{b64}" download="{filename}">Download {filename}</a>'
     st.markdown(href, unsafe_allow_html=True)
     st.success(f"Export ready: {filename}")
+
+
+def report_json(data: Dict[str, Any]) -> str:
+    """Strict JSON for a report: unmeasured values are null (never NaN or a default)."""
+    return json.dumps(json_safe(data), indent=2, default=str, allow_nan=False)
 
 
 def export_dataframe_csv(df: pd.DataFrame, filename: str):
@@ -498,17 +532,18 @@ def generate_model_report(data_loader, model: str, **options) -> Dict[str, Any]:
     if options.get("include_metrics"):
         results = data_loader.fetch_latest_results(model, limit=100)
         if not results.empty:
+            # Skipped/errored rows carry no metrics; a metric no completed test measured is None
+            completed, _ = split_evaluation_rows(results)
             report["metrics"] = {
-                "accuracy": results["accuracy"].mean() if "accuracy" in results.columns else 0,
-                "f1_score": results["f1_score"].mean() if "f1_score" in results.columns else 0,
-                "precision": results["precision"].mean() if "precision" in results.columns else 0,
-                "recall": results["recall"].mean() if "recall" in results.columns else 0,
+                metric: measured_mean(completed[metric]) if metric in completed.columns else None
+                for metric in ("accuracy", "f1_score", "precision", "recall")
             }
 
     if options.get("include_tests"):
-        report["test_results"] = data_loader.fetch_latest_results(model, limit=50).to_dict(orient="records")
+        records = data_loader.fetch_latest_results(model, limit=50).to_dict(orient="records")
+        report["test_results"] = json_safe(records)
 
-    return report
+    return json_safe(report)
 
 
 def generate_comparison_data(data_loader, models: List[str]) -> Dict[str, Any]:
@@ -549,7 +584,8 @@ def generate_executive_summary(data_loader, summary_type: str, **options) -> Dic
         summary["rankings"] = sorted(rankings, key=lambda x: x["score"], reverse=True)
 
     if options.get("include_risks"):
-        summary["risk_assessment"] = {"high_risk": [], "medium_risk": [], "low_risk": []}
+        # No aggregate risk classification exists; empty high/medium/low lists would read as "no risky models"
+        summary["risk_assessment"] = RISK_ASSESSMENT_NOT_COMPUTED
 
     return summary
 
@@ -562,7 +598,7 @@ def generate_markdown_from_data(data: Dict[str, Any]) -> str:
     if "summary" in data:
         md += "## Summary\n\n"
         for key, value in data["summary"].items():
-            md += f"- **{key}**: {value}\n"
+            md += f"- **{key}**: {_display(value)}\n"
         md += "\n"
 
     if "metrics" in data:
@@ -614,6 +650,9 @@ def generate_executive_markdown_content(data: Dict[str, Any]) -> str:
         for i, item in enumerate(data["rankings"][:5], 1):
             md += f"{i}. **{item['model']}**: {item['score']:.1%}\n"
         md += "\n"
+
+    if "risk_assessment" in data:
+        md += f"## Risk Assessment\n\n{data['risk_assessment']}\n\n"
 
     return md
 

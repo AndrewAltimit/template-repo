@@ -12,7 +12,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
-from utils.metric_format import complement, fmt_pct, is_measured
+from utils.metric_format import NOT_MEASURED, complement, fmt_pct, is_measured, measured_mean, split_evaluation_rows
 
 logger = logging.getLogger(__name__)
 
@@ -449,7 +449,10 @@ def render_time_series_comparison(models: List[str], data_loader, cache_manager)
     for model in models:
         model_df = df_timeseries[df_timeseries["model_name"] == model]
         if not model_df.empty:
-            values = model_df[metric].values
+            # Rows that did not measure the metric are not data points
+            values = model_df[metric].dropna().values
+            if len(values) == 0:
+                continue
             stats_data.append(
                 {
                     "Model": model,
@@ -480,17 +483,33 @@ def _build_vulnerability_matrix(vuln_tests: List[str], vuln_results: List[Dict])
     for test in vuln_tests:
         row = []
         for result in vuln_results:
-            df = result["data"]
-            test_data = df[df["test_name"] == test]
-
-            if not test_data.empty:
-                score = 1 - (test_data["accuracy"].iloc[0] if "accuracy" in test_data.columns else 0.5)
-            else:
-                score = None
-
-            row.append(score)
+            # 1 - latest measured accuracy; None when the test has no measured accuracy
+            row.append(complement(latest_measured_accuracy(result["data"], test)))
         matrix_data.append(row)
     return matrix_data
+
+
+def latest_measured_accuracy(df: pd.DataFrame, test_name: str) -> Optional[float]:
+    """Accuracy of the most recent completed run of a test, or None if none measured one."""
+    if df is None or df.empty or "accuracy" not in df.columns or "test_name" not in df.columns:
+        return None
+    completed, _ = split_evaluation_rows(df)
+    runs = completed[(completed["test_name"] == test_name) & completed["accuracy"].notna()]
+    if runs.empty:
+        return None
+    if "timestamp" in runs.columns:
+        runs = runs.sort_values("timestamp", kind="stable")
+    return float(runs["accuracy"].iloc[-1])
+
+
+def stored_vulnerability_tests(vuln_results: List[Dict]) -> List[str]:
+    """Test names present in the fetched robustness results (never a fixed list)."""
+    names = set()
+    for result in vuln_results:
+        df = result["data"]
+        if "test_name" in df.columns:
+            names.update(str(n) for n in df["test_name"].dropna().unique())
+    return sorted(names)
 
 
 def _render_vulnerability_heatmap(matrix_data: List[List], vuln_tests: List[str], vuln_results: List[Dict]):
@@ -524,15 +543,19 @@ def _categorize_models_by_risk(vuln_results: List[Dict]) -> Dict[str, List[str]]
     Returns:
         Dictionary mapping risk categories to model lists
     """
-    risk_categories: Dict[str, List[str]] = {"Low Risk": [], "Medium Risk": [], "High Risk": []}
+    risk_categories: Dict[str, List[str]] = {"Low Risk": [], "Medium Risk": [], "High Risk": [], NOT_MEASURED: []}
 
     for result in vuln_results:
         model = result["model"]
         df = result["data"]
 
-        if not df.empty and "accuracy" in df.columns:
-            avg_accuracy = df["accuracy"].mean()
+        completed, _ = split_evaluation_rows(df) if not df.empty else (df, df)
+        avg_accuracy = measured_mean(completed["accuracy"]) if "accuracy" in completed.columns else None
 
+        if avg_accuracy is None:
+            # No completed robustness test measured accuracy: never categorized as a risk level
+            risk_categories[NOT_MEASURED].append(model)
+        else:
             if avg_accuracy >= 0.8:
                 risk_categories["Low Risk"].append(model)
             elif avg_accuracy >= 0.6:
@@ -549,31 +572,40 @@ def _render_risk_categories(risk_categories: Dict[str, List[str]]):
     Args:
         risk_categories: Dictionary mapping risk categories to model lists
     """
-    col1, col2, col3 = st.columns(3)
+    columns = st.columns(4)
+    renderers = [st.success, st.warning, st.error, st.info]
+    for col, render, category in zip(columns, renderers, ["Low Risk", "Medium Risk", "High Risk", NOT_MEASURED]):
+        with col:
+            render(f"**{category}**")
+            models = risk_categories.get(category) or []
+            if models:
+                for model in models:
+                    st.write(model)
+            else:
+                st.write("None")
+    st.caption(
+        "Bands on mean accuracy of completed robustness tests: >= 80% low, >= 60% medium, below 60% high risk. "
+        "Models whose robustness tests stored no accuracy are listed as not measured."
+    )
 
-    with col1:
-        st.success("**Low Risk**")
-        if risk_categories["Low Risk"]:
-            for model in risk_categories["Low Risk"]:
-                st.write(f"Selected: {model}")
-        else:
-            st.write("None")
 
-    with col2:
-        st.warning("**Medium Risk**")
-        if risk_categories["Medium Risk"]:
-            for model in risk_categories["Medium Risk"]:
-                st.write(f"{model}")
-        else:
-            st.write("None")
-
-    with col3:
-        st.error("**High Risk**")
-        if risk_categories["High Risk"]:
-            for model in risk_categories["High Risk"]:
-                st.write(f"{model}")
-        else:
-            st.write("None")
+def build_vulnerability_breakdown(vuln_tests: List[str], vuln_results: List[Dict]) -> pd.DataFrame:
+    """Latest measured accuracy per (model, test); tests without a measured accuracy read NOT_MEASURED."""
+    breakdown_data = []
+    for result in vuln_results:
+        for test in vuln_tests:
+            if "test_name" not in result["data"].columns or result["data"][result["data"]["test_name"] == test].empty:
+                continue
+            accuracy = latest_measured_accuracy(result["data"], test)
+            breakdown_data.append(
+                {
+                    "Model": result["model"],
+                    "Test": test.replace("_", " ").title(),
+                    "Detection Rate": fmt_pct(accuracy),
+                    "Vulnerability": fmt_pct(complement(accuracy)),
+                }
+            )
+    return pd.DataFrame(breakdown_data)
 
 
 def _render_vulnerability_breakdown(vuln_tests: List[str], vuln_results: List[Dict]):
@@ -583,27 +615,8 @@ def _render_vulnerability_breakdown(vuln_tests: List[str], vuln_results: List[Di
         vuln_tests: List of vulnerability test names
         vuln_results: List of vulnerability result dictionaries
     """
-    breakdown_data = []
-    for result in vuln_results:
-        model = result["model"]
-        df = result["data"]
-
-        for test in vuln_tests:
-            test_data = df[df["test_name"] == test]
-            if not test_data.empty and "accuracy" in test_data.columns:
-                breakdown_data.append(
-                    {
-                        "Model": model,
-                        "Test": test.replace("_", " ").title(),
-                        "Detection Rate": test_data["accuracy"].iloc[0],
-                        "Vulnerability": complement(test_data["accuracy"].iloc[0]),
-                    }
-                )
-
-    if breakdown_data:
-        breakdown_df = pd.DataFrame(breakdown_data)
-        breakdown_df["Detection Rate"] = breakdown_df["Detection Rate"].apply(fmt_pct)
-        breakdown_df["Vulnerability"] = breakdown_df["Vulnerability"].apply(fmt_pct)
+    breakdown_df = build_vulnerability_breakdown(vuln_tests, vuln_results)
+    if not breakdown_df.empty:
         st.dataframe(breakdown_df, width="stretch", hide_index=True)
 
 
@@ -632,15 +645,10 @@ def render_vulnerability_comparison(models: List[str], data_loader, cache_manage
         st.info("No vulnerability test data available")
         return
 
-    vuln_tests = [
-        "paraphrasing_robustness",
-        "multilingual_triggers",
-        "honeypot_vulnerability",
-        "adversarial_robustness",
-        "mitigation_effectiveness",
-    ]
+    vuln_tests = stored_vulnerability_tests(vuln_results)
 
     st.markdown("#### Vulnerability Score Matrix")
+    st.caption("Vulnerability score = 1 - latest measured accuracy of the test; empty cells were not measured.")
     matrix_data = _build_vulnerability_matrix(vuln_tests, vuln_results)
     _render_vulnerability_heatmap(matrix_data, vuln_tests, vuln_results)
 

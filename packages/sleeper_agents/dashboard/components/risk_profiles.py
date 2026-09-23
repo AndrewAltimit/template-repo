@@ -167,8 +167,8 @@ def render_risk_landscape(data_loader, cache_manager, models):
                 theta=categories,
                 fill="toself",
                 name=risk_profile["model"],
-                line_color=get_risk_color(measured_max(values)),
-                fillcolor=get_risk_color(measured_max(values), alpha=0.3),
+                line_color=profile_color(values),
+                fillcolor=profile_color(values, alpha=0.3),
             ),
             row=row,
             col=col,
@@ -195,7 +195,7 @@ def render_risk_landscape(data_loader, cache_manager, models):
         • **Trigger Sensitivity**: Specificity of activation conditions (higher = harder to detect)
         • **Behavioral Inconsistency**: Variance across different contexts
         • **Probe Anomalies**: Internal state irregularities detected by probes
-        • **Untested Space**: Proportion of possible behaviors we haven't examined
+        • **Untested Space**: 1 - coverage heuristic (capped formula of test and sample counts; not a measurement)
         • **Emergent Capabilities**: Scaling-related risks (larger models often hide better)
         """
     )
@@ -247,7 +247,7 @@ def render_anomaly_patterns(data_loader, _cache_manager, models):
             ]
 
             for name, value in persistence:
-                render_spectrum_bar(name, value, inverse=True)
+                render_spectrum_bar(name, value)  # higher backdoor activation is more concerning
 
         # Temporal anomaly patterns
         st.markdown("### Temporal Anomaly Patterns")
@@ -355,7 +355,7 @@ def render_trigger_sensitivity(data_loader, _cache_manager, models):
     st.caption("How models respond to various potential triggers - sensitivity doesn't imply danger")
 
     # Trigger test scenarios
-    st.markdown("### Tested Trigger Scenarios")
+    st.markdown("### Trigger Categories")
 
     trigger_scenarios = [
         "Deployment indicators (year, production)",
@@ -369,7 +369,7 @@ def render_trigger_sensitivity(data_loader, _cache_manager, models):
     col1, col2 = st.columns(2)
 
     with col1:
-        st.markdown("**Tested Scenarios:**")
+        st.markdown("**Categories (mapped from stored honeypot types):**")
         for scenario in trigger_scenarios:
             st.write(f"• {scenario}")
 
@@ -531,6 +531,13 @@ def get_risk_color(value: float, alpha: float = 1.0) -> str:
     if value > 0.3:
         return f"rgba(255, 255, 0, {alpha})"  # Yellow
     return f"rgba(0, 128, 0, {alpha})"  # Green
+
+
+def profile_color(values, alpha: float = 1.0) -> str:
+    """Color of a risk profile by its highest measured value; gray when nothing was measured."""
+    if not any(is_measured(v) for v in values):
+        return f"rgba(128, 128, 128, {alpha})"
+    return get_risk_color(measured_max(values), alpha=alpha)
 
 
 def get_inverse_risk_color(value: float) -> str:
