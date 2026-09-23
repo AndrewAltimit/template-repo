@@ -7,7 +7,7 @@ PyYAML>=6.0.0
 requests>=2.31.0
 
 # Linting and formatting tools
-ruff>=0.14.0  # Fast linter/formatter - replaces black, flake8, isort, pylint
+ruff==0.16.8  # Fast linter/formatter - replaces black, flake8, isort, pylint
 ty>=0.0.1a6  # Fast type checker from Astral (ruff team)
 
 # Testing

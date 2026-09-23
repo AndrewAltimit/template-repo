@@ -8,7 +8,7 @@ repos:
   # Python formatting and linting with Ruff (10-100x faster than black/flake8)
   # Ruff replaces black, flake8, and isort
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.14.0
+    rev: v0.16.8
     hooks:
       # Ruff format (replaces black)
       # Configuration in pyproject.toml [tool.ruff.format]

@@ -42,7 +42,7 @@ pytest-xdist>=3.5.0  # Parallel test execution (2-4x faster)
 hypothesis>=6.100.0  # Property-based testing for state machine invariants
 
 # Code Quality - Ruff replaces black, flake8, isort, pylint (10-100x faster)
-ruff>=0.14.0  # Fast linter and formatter - replaces black/flake8/isort/pylint
+ruff==0.16.8  # Fast linter and formatter - replaces black/flake8/isort/pylint
 ty>=0.0.1a6  # Fast type checker from Astral (ruff team) - replaces mypy
 
 # Type stubs

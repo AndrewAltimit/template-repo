@@ -4,7 +4,7 @@ flake8
 isort
 ty  # Fast type checker from Astral (ruff team)
 autopep8
-ruff  # Fast linter - replaces isort/flake8/pylint
+ruff==0.16.8  # Fast linter - replaces isort/flake8/pylint
 bandit==1.8.6  # Security linter - pin version to maintain consistent skip behavior
 
 # Testing tools (for run_tests endpoint)
