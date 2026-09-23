@@ -22,6 +22,7 @@ import uuid
 
 from sleeper_agents.app.config import DetectionConfig
 from sleeper_agents.app.detector import SleeperDetector
+from sleeper_agents.constants import get_evaluation_db_path
 from sleeper_agents.evaluation import storage
 from sleeper_agents.evaluation.results import (
     STATUS_COMPLETED,
@@ -124,7 +125,7 @@ class ModelEvaluator(
         if output_dir is None:
             output_dir = Path(os.environ.get("EVAL_RESULTS_DIR", "evaluation_results"))
         if db_path is None:
-            db_path = Path(os.environ.get("EVAL_DB_PATH", "evaluation_results.db"))
+            db_path = get_evaluation_db_path()
 
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)

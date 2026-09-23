@@ -249,7 +249,9 @@ def _log_persistence_interpretation(persistence_rate: float):
         logger.info("     Safety training successfully eliminated backdoor")
 
 
-def _ingest_persistence_results(persistence_path: Path, save_path: Path, backdoor_info: dict | None, model_path: Path):
+def _ingest_persistence_results(
+    persistence_path: Path, save_path: Path, backdoor_info: dict | None, model_path: Path, db_path: str
+):
     """Ingest persistence results into the evaluation database.
 
     Args:
@@ -257,6 +259,7 @@ def _ingest_persistence_results(persistence_path: Path, save_path: Path, backdoo
         save_path: Path where model was saved
         backdoor_info: Backdoor info dictionary or None
         model_path: Original model path
+        db_path: Evaluation database (--evaluation-db), the same one the other results of the run go to
     """
     try:
         from sleeper_agents.database.ingestion import ingest_from_safety_training_json
@@ -269,10 +272,11 @@ def _ingest_persistence_results(persistence_path: Path, save_path: Path, backdoo
             json_path=str(persistence_path),
             job_id=job_id,
             model_name=model_name,
+            db_path=db_path,
         )
 
         if success:
-            logger.info("Successfully ingested persistence results into evaluation database")
+            logger.info("Successfully ingested persistence results into %s", db_path)
         else:
             logger.warning("Failed to ingest persistence results into database (results still saved to JSON)")
 
@@ -370,7 +374,7 @@ def _run_persistence_test(args, trainer, save_path: Path, backdoor_info: dict | 
 
     _log_persistence_interpretation(persistence_metrics["persistence_rate"])
 
-    _ingest_persistence_results(persistence_path, save_path, backdoor_info, args.model_path)
+    _ingest_persistence_results(persistence_path, save_path, backdoor_info, args.model_path, args.evaluation_db)
 
     return persistence_metrics
 

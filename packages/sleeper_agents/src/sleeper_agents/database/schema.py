@@ -15,7 +15,7 @@ from pathlib import Path
 import sqlite3
 from typing import List, Optional, Tuple
 
-from sleeper_agents.constants import DEFAULT_EVALUATION_DB_PATH
+from sleeper_agents.constants import resolve_evaluation_db_path
 
 logger = logging.getLogger(__name__)
 
@@ -191,8 +191,9 @@ _INTERNAL_STATE_COLUMNS = [
 ]
 
 
-def ensure_persistence_table_exists(db_path: str = DEFAULT_EVALUATION_DB_PATH) -> bool:
+def ensure_persistence_table_exists(db_path: Optional[str] = None) -> bool:
     """Ensure the persistence_results table exists (idempotent, self-migrating)."""
+    db_path = resolve_evaluation_db_path(db_path)
     return _ensure_table(
         db_path,
         "persistence_results",
@@ -204,8 +205,9 @@ def ensure_persistence_table_exists(db_path: str = DEFAULT_EVALUATION_DB_PATH) -
     )
 
 
-def ensure_chain_of_thought_table_exists(db_path: str = DEFAULT_EVALUATION_DB_PATH) -> bool:
+def ensure_chain_of_thought_table_exists(db_path: Optional[str] = None) -> bool:
     """Ensure the chain_of_thought_analysis table exists (idempotent, self-migrating)."""
+    db_path = resolve_evaluation_db_path(db_path)
     return _ensure_table(
         db_path,
         "chain_of_thought_analysis",
@@ -218,8 +220,9 @@ def ensure_chain_of_thought_table_exists(db_path: str = DEFAULT_EVALUATION_DB_PA
     )
 
 
-def ensure_honeypot_table_exists(db_path: str = DEFAULT_EVALUATION_DB_PATH) -> bool:
+def ensure_honeypot_table_exists(db_path: Optional[str] = None) -> bool:
     """Ensure the honeypot_responses table exists (idempotent, self-migrating)."""
+    db_path = resolve_evaluation_db_path(db_path)
     return _ensure_table(
         db_path,
         "honeypot_responses",
@@ -232,8 +235,9 @@ def ensure_honeypot_table_exists(db_path: str = DEFAULT_EVALUATION_DB_PATH) -> b
     )
 
 
-def ensure_trigger_sensitivity_table_exists(db_path: str = DEFAULT_EVALUATION_DB_PATH) -> bool:
+def ensure_trigger_sensitivity_table_exists(db_path: Optional[str] = None) -> bool:
     """Ensure the trigger_sensitivity table exists (idempotent, self-migrating)."""
+    db_path = resolve_evaluation_db_path(db_path)
     return _ensure_table(
         db_path,
         "trigger_sensitivity",
@@ -304,8 +308,9 @@ _MODEL_RANKINGS_COLUMNS = [
 ]
 
 
-def ensure_evaluation_results_table_exists(db_path: str = DEFAULT_EVALUATION_DB_PATH) -> bool:
+def ensure_evaluation_results_table_exists(db_path: Optional[str] = None) -> bool:
     """Ensure the evaluation_results table exists (idempotent, self-migrating)."""
+    db_path = resolve_evaluation_db_path(db_path)
     return _ensure_table(
         db_path,
         "evaluation_results",
@@ -318,17 +323,19 @@ def ensure_evaluation_results_table_exists(db_path: str = DEFAULT_EVALUATION_DB_
     )
 
 
-def ensure_model_rankings_table_exists(db_path: str = DEFAULT_EVALUATION_DB_PATH) -> bool:
+def ensure_model_rankings_table_exists(db_path: Optional[str] = None) -> bool:
     """Ensure the model_rankings table exists (idempotent, self-migrating)."""
+    db_path = resolve_evaluation_db_path(db_path)
     return _ensure_table(db_path, "model_rankings", _MODEL_RANKINGS_COLUMNS, [])
 
 
-def ensure_evaluation_schema(db_path: str = DEFAULT_EVALUATION_DB_PATH) -> None:
+def ensure_evaluation_schema(db_path: Optional[str] = None) -> None:
     """Ensure the evaluation_results and model_rankings tables exist.
 
     Raises:
         RuntimeError: If either table cannot be created or migrated
     """
+    db_path = resolve_evaluation_db_path(db_path)
     for name, ensure in (
         ("evaluation_results", ensure_evaluation_results_table_exists),
         ("model_rankings", ensure_model_rankings_table_exists),
