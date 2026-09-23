@@ -599,6 +599,35 @@ def _build_quantization_config(quantization: str, device: str, compute_dtype: to
     return BitsAndBytesConfig(load_in_8bit=True, **offload_kwargs)
 
 
+@contextmanager
+def eager_attention(model: Any) -> Iterator[None]:
+    """Temporarily switch a HuggingFace model to eager attention so it returns attention weights.
+
+    The default ``sdpa`` (and flash) attention implementations do not compute attention
+    probabilities: with ``output_attentions=True`` transformers 5 returns no weights. A
+    model that is already eager, or that cannot switch (no ``set_attn_implementation``),
+    is left unchanged. The previous implementation is restored on exit.
+    """
+    config = getattr(model, "config", None)
+    previous = getattr(config, "_attn_implementation", None)
+    switch = previous not in (None, "eager") and hasattr(model, "set_attn_implementation")
+    if switch:
+        model.set_attn_implementation("eager")
+    try:
+        yield
+    finally:
+        if switch:
+            model.set_attn_implementation(previous)
+
+
+def _attention_tuple(outputs: Any, model_id: str) -> Tuple[torch.Tensor, ...]:
+    """The per-layer attention weights of a forward pass, or ``ValueError`` if none were returned."""
+    attentions = getattr(outputs, "attentions", None)
+    if not attentions:
+        raise ValueError(f"{model_id} did not return attention weights; load it with attn_implementation='eager'")
+    return tuple(attentions)
+
+
 class HuggingFaceModel(ModelInterface):
     """HuggingFace transformer model interface."""
 
@@ -641,6 +670,26 @@ class HuggingFaceModel(ModelInterface):
         self.max_memory = dict(max_memory) if max_memory is not None else None
         self.offload_folder = offload_folder
         self._accepts_position_ids: Optional[bool] = None
+
+    @classmethod
+    def from_loaded(cls, model: Any, tokenizer: Any, model_id: Optional[str] = None) -> "HuggingFaceModel":
+        """Wrap an already loaded HuggingFace causal LM (and its tokenizer) without reloading it.
+
+        The tokenizer is shared, not copied; only a missing pad token is set (to EOS).
+        Padding side is not changed (batched encoding pads on the left explicitly).
+        """
+        device = getattr(getattr(model, "device", None), "type", None) or "cpu"
+        wrapped = cls(
+            model_id or str(getattr(getattr(model, "config", None), "_name_or_path", "") or type(model).__name__),
+            device=device,
+            dtype=getattr(model, "dtype", None),
+        )
+        wrapped.model = model
+        wrapped.tokenizer = tokenizer
+        wrapped.config = model.config
+        if tokenizer is not None and tokenizer.pad_token is None:
+            tokenizer.pad_token = tokenizer.eos_token
+        return wrapped
 
     def load(self) -> None:
         """Load HuggingFace model and tokenizer."""
@@ -912,17 +961,20 @@ class HuggingFaceModel(ModelInterface):
         target_layers = self._resolve_layers(layers)
 
         enc = self._encode(texts)
-        residuals, outputs = self._residuals_for_ids(
-            enc["input_ids"], enc["attention_mask"], target_layers, output_attentions=return_attention
-        )
+        if return_attention:
+            with eager_attention(self.model):
+                residuals, outputs = self._residuals_for_ids(
+                    enc["input_ids"], enc["attention_mask"], target_layers, output_attentions=True
+                )
+        else:
+            residuals, outputs = self._residuals_for_ids(enc["input_ids"], enc["attention_mask"], target_layers)
 
         activations = {f"layer_{layer_idx}": residuals[layer_idx] for layer_idx in target_layers}
 
         if return_attention:
-            if outputs.attentions is None:
-                raise ValueError(f"{self.model_id} did not return attention weights; load it with attn_implementation='eager'")
+            attentions = _attention_tuple(outputs, self.model_id)
             for layer_idx in target_layers:
-                activations[f"attention_{layer_idx}"] = outputs.attentions[layer_idx]
+                activations[f"attention_{layer_idx}"] = attentions[layer_idx]
 
         return activations
 
@@ -979,13 +1031,10 @@ class HuggingFaceModel(ModelInterface):
         target_layers = self._resolve_layers(layers)
 
         enc = self._encode(texts)
-        with torch.no_grad():
+        with torch.no_grad(), eager_attention(self.model):
             outputs = self._forward(enc["input_ids"], enc["attention_mask"], output_attentions=True)
 
-        attentions = outputs.attentions  # Tuple of (batch, num_heads, seq_len, seq_len)
-        if attentions is None:
-            raise ValueError(f"{self.model_id} did not return attention weights; load it with attn_implementation='eager'")
-
+        attentions = _attention_tuple(outputs, self.model_id)  # (batch, num_heads, seq_len, seq_len) per layer
         return {f"layer_{layer_idx}": attentions[layer_idx] for layer_idx in target_layers}
 
 

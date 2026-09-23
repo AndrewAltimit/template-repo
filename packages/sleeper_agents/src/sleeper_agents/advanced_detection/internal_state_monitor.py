@@ -34,6 +34,23 @@ MIN_BASELINE_SAMPLES = 3
 _SPARSITY_RELATIVE_THRESHOLD = 0.1
 
 
+def _attention_model(model: Any, tokenizer: Any) -> Any:
+    """Model to give the AttentionAnalyzer.
+
+    The analyzer needs ``get_attention_patterns`` (a ModelInterface) or ``run_with_cache``
+    (TransformerLens) and a ``tokenizer`` attribute. A plain HuggingFace causal LM (as
+    loaded by scripts/evaluation/run_full_evaluation.py) has neither, so it is wrapped,
+    without reloading, in a ``HuggingFaceModel`` together with ``tokenizer``.
+    """
+    if hasattr(model, "get_attention_patterns") or hasattr(model, "run_with_cache") or tokenizer is None:
+        return model
+    if not isinstance(model, torch.nn.Module):
+        return model
+    from sleeper_agents.models.model_interface import HuggingFaceModel
+
+    return HuggingFaceModel.from_loaded(model, tokenizer)
+
+
 class InternalStateMonitor:
     """Monitor and analyze internal model states for anomalies and suspicious patterns."""
 
@@ -56,7 +73,7 @@ class InternalStateMonitor:
         self.tokenizer = tokenizer
         self.max_layers = max_layers
         self.layer_path = layer_path
-        self.attention_analyzer = AttentionAnalyzer(model)
+        self.attention_analyzer = AttentionAnalyzer(_attention_model(model, tokenizer))
         self.feature_discovery = FeatureDiscovery(model)
 
     async def analyze_internal_state(
