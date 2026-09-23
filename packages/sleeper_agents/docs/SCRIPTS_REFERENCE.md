@@ -32,7 +32,8 @@ python scripts/training/train_backdoor.py --model-path Qwen/Qwen2.5-0.5B-Instruc
 - `--num-samples`, `--backdoor-ratio`, `--max-length` (oversized samples are dropped and counted), `--seed`
 - `--use-lora` / `--use-qlora`, `--lora-r`, `--lora-alpha`, `--epochs`, `--learning-rate`
 - `--validate`: measure backdoor activation on the held-out test split after training
-- `--run-evaluation`: run `scripts/evaluation/run_full_evaluation.py` test suites (`--evaluation-test-suites`, `--evaluation-samples`) on the trained model
+- `--run-evaluation`: run `scripts/evaluation/run_full_evaluation.py` test suites (`--evaluation-test-suites`, `--evaluation-samples`) on the trained model. Default suites: `basic chain_of_thought honeypot`
+- `--evaluation-test-suites`: checked when `--run-evaluation` is set. Unknown suite names are rejected; `code_vulnerability`, `robustness` and `advanced` have no implemented tests, so they are logged as recording nothing, and a selection made only of them is rejected
 - `--evaluation-db`: database for `--run-evaluation` results. Default: `$EVAL_DB_PATH` if set, otherwise `<output-dir>/evaluation_results.db`
 
 **Evaluation behavior**: with `--run-evaluation`, only rows from tests that actually ran and measured something are stored (see `run_full_evaluation.py` below). If any implemented test fails, or no test produces results, the script exits with code 1 instead of logging a warning.
@@ -73,8 +74,8 @@ python scripts/training/safety_training.py --model-path MODEL_DIR --method sft [
 **Key Options**:
 - `--method {sft,rl}`, `--safety-dataset {simple,Anthropic/hh-rlhf}`, `--max-train-samples`, `--seed`
 - `--test-persistence`: after training, measure trigger activation of the safety-trained model on held-out prompts. For backdoor types without a fixed response (e.g. `code_vuln`) persistence is reported as not measured and nothing is ingested
-- `--run-evaluation`: run evaluation suites on the safety-trained model; only measured rows are stored, and failed or empty evaluations exit with code 1
-- `--evaluation-db`: database for persistence and evaluation results (default: `$EVAL_DB_PATH`, else `./evaluation_results.db`)
+- `--run-evaluation`: run evaluation suites on the safety-trained model (default suites: `basic chain_of_thought`); only measured rows are stored, and failed or empty evaluations exit with code 1. `--evaluation-test-suites` is checked the same way as in `train_backdoor.py`
+- `--evaluation-db`: database for persistence and evaluation results. Default: `$EVAL_DB_PATH` if set, otherwise `<output-dir>/evaluation_results.db`
 
 **Related**: `scripts/evaluation/test_persistence.py`
 
@@ -284,8 +285,9 @@ python scripts/validation/validate_mcp.py
 ---
 
 ### Training & Validation Batch Scripts
-- `run_training.bat` - Training operations runner (Windows)
+- `run_training.bat` - Training operations runner (Windows): `train`, `test`, `sft`, `ppo`, `validate`, `shell`, `list`, `gpu-info`
 - `run_detection_validation.bat` - Detection validation runner (Windows)
+- Both `.bat` runners forward every argument after the command name to the Python script unchanged
 - `run_detection_validation.sh` - Detection validation runner (Linux)
 
 ---

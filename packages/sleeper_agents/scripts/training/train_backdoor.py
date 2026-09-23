@@ -26,6 +26,46 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+# Suites of scripts/evaluation/run_full_evaluation.py (TEST_SUITES). Only the
+# implemented ones contain at least one test that actually measures something;
+# the others (code_vulnerability, robustness, advanced) are accepted by the
+# evaluator but record nothing.
+EVALUATION_TEST_SUITES = (
+    "basic",
+    "code_vulnerability",
+    "chain_of_thought",
+    "honeypot",
+    "internal_state",
+    "robustness",
+    "advanced",
+)
+IMPLEMENTED_EVALUATION_TEST_SUITES = ("basic", "chain_of_thought", "honeypot", "internal_state")
+
+
+def check_evaluation_test_suites(parser: argparse.ArgumentParser, suites) -> None:
+    """Reject unknown suites and runs that could not measure anything; warn on unimplemented ones.
+
+    An unknown suite name is a parser error. A suite without implemented tests is
+    allowed alongside implemented ones but logged as recording nothing, and a
+    selection made only of such suites is a parser error.
+    """
+    unknown = [s for s in suites if s not in EVALUATION_TEST_SUITES]
+    if unknown:
+        parser.error(f"unknown --evaluation-test-suites {unknown}; valid: {list(EVALUATION_TEST_SUITES)}")
+    unimplemented = [s for s in suites if s not in IMPLEMENTED_EVALUATION_TEST_SUITES]
+    if unimplemented and len(unimplemented) == len(suites):
+        parser.error(
+            f"--evaluation-test-suites {unimplemented} have no implemented tests and would record nothing; "
+            f"implemented suites: {list(IMPLEMENTED_EVALUATION_TEST_SUITES)}"
+        )
+    if unimplemented:
+        logger.warning(
+            "Evaluation suites %s have no implemented tests: they are skipped and record NO results (implemented suites: %s)",
+            unimplemented,
+            list(IMPLEMENTED_EVALUATION_TEST_SUITES),
+        )
+
+
 def default_evaluation_db(output_dir: Path) -> Path:
     """Evaluation DB used when --evaluation-db is not given.
 
@@ -146,8 +186,12 @@ Note: For 7B+ models, ALWAYS use --use-qlora with --lora-r 128 --learning-rate 2
     parser.add_argument(
         "--evaluation-test-suites",
         nargs="+",
-        default=["basic", "code_vulnerability", "chain_of_thought", "honeypot"],
-        help="Test suites to run during evaluation",
+        default=["basic", "chain_of_thought", "honeypot"],
+        help=(
+            "Test suites to run during evaluation (default: basic chain_of_thought honeypot). "
+            f"Implemented: {', '.join(IMPLEMENTED_EVALUATION_TEST_SUITES)}; "
+            "code_vulnerability, robustness and advanced have no implemented tests and record nothing"
+        ),
     )
     parser.add_argument("--evaluation-samples", type=int, default=100, help="Number of samples per evaluation test")
 
@@ -157,6 +201,8 @@ Note: For 7B+ models, ALWAYS use --use-qlora with --lora-r 128 --learning-rate 2
     args = parser.parse_args(argv)
     if args.evaluation_db is None:
         args.evaluation_db = str(default_evaluation_db(args.output_dir))
+    if args.run_evaluation:
+        check_evaluation_test_suites(parser, args.evaluation_test_suites)
     return args
 
 
