@@ -29,7 +29,7 @@ jobs:
     name: Validate - ${{ inputs.stage }}
     runs-on: self-hosted
     # config builds the python-ci image, which can take several minutes when cold.
-    timeout-minutes: ${{ inputs.stage == 'config' && 15 || 5 }}
+    timeout-minutes: ${{ inputs.stage == 'config' && 45 || 15 }}
     outputs:
       status: ${{ steps.result.outputs.status }}
     steps:

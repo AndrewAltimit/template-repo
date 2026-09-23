@@ -41,7 +41,7 @@ jobs:
     name: Lint Stage - ${{ inputs.stage }}
     runs-on: self-hosted
     # Headroom for a cold python-ci image build, which alone can take several minutes.
-    timeout-minutes: ${{ inputs.stage == 'full' && 25 || 15 }}
+    timeout-minutes: ${{ inputs.stage == 'full' && 60 || 45 }}
     outputs:
       status: ${{ steps.result.outputs.status }}
       errors: ${{ steps.result.outputs.errors }}

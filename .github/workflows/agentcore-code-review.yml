@@ -27,7 +27,7 @@ on:
         description: 'Job timeout in minutes'
         required: false
         type: number
-        default: 15
+        default: 45
     outputs:
       review_status:
         description: 'Status of the review (success, failure, security_denied)'

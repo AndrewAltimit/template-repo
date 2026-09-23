@@ -25,7 +25,7 @@ jobs:
   check-server-availability:
     name: Check Gaea2 Server Availability
     runs-on: self-hosted
-    timeout-minutes: 2
+    timeout-minutes: 10
     outputs:
       server_available: ${{ steps.check.outputs.available }}
     steps:
@@ -50,7 +50,7 @@ jobs:
     needs: check-server-availability
     if: needs.check-server-availability.outputs.server_available == 'true'
     runs-on: self-hosted
-    timeout-minutes: 10
+    timeout-minutes: 30
     env:
       GAEA2_MCP_URL: ${{ inputs.server_url || 'http://localhost:8007' }}
 
