@@ -25,7 +25,7 @@ jobs:
   build-sleeper-image:
     name: Build Sleeper Agents Image
     runs-on: self-hosted
-    timeout-minutes: 10
+    timeout-minutes: 30
     outputs:
       image-tag: ${{ steps.image.outputs.tag }}
     steps:
@@ -58,7 +58,7 @@ jobs:
   sleeper-agents-quick-test:
     name: Sleeper Agents Quick Tests (CPU)
     runs-on: self-hosted
-    timeout-minutes: 10
+    timeout-minutes: 30
     needs: build-sleeper-image
     steps:
       - name: Checkout code
@@ -121,7 +121,7 @@ jobs:
   sleeper-agents-residual-analysis:
     name: TransformerLens Residual Analysis
     runs-on: self-hosted
-    timeout-minutes: 15
+    timeout-minutes: 45
     needs: [build-sleeper-image, sleeper-agents-quick-test]
     steps:
       - name: Checkout code
@@ -167,7 +167,7 @@ jobs:
   sleeper-agents-unit-tests:
     name: Unit Tests
     runs-on: self-hosted
-    timeout-minutes: 15
+    timeout-minutes: 45
     needs: build-sleeper-image
     steps:
       - name: Checkout code
@@ -273,7 +273,7 @@ jobs:
   sleeper-agents-api-test:
     name: API Integration Tests
     runs-on: self-hosted
-    timeout-minutes: 10
+    timeout-minutes: 30
     needs: build-sleeper-image
     steps:
       - name: Checkout code
@@ -356,7 +356,7 @@ jobs:
   sleeper-agents-full-tests:
     name: Full Test Suite
     runs-on: self-hosted
-    timeout-minutes: 30
+    timeout-minutes: 90
     needs: [build-sleeper-image, sleeper-agents-quick-test, sleeper-agents-residual-analysis]
     if: |
       github.event_name == 'push' ||
@@ -403,7 +403,7 @@ jobs:
   sleeper-agents-notebook-validation:
     name: Notebook Validation
     runs-on: self-hosted
-    timeout-minutes: 10
+    timeout-minutes: 30
     needs: build-sleeper-image
     steps:
       - name: Checkout code

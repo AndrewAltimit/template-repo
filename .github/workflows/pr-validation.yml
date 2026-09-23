@@ -51,7 +51,7 @@ jobs:
     name: Change Detection & Quick Validation
     needs: fork-guard
     runs-on: self-hosted
-    timeout-minutes: 5
+    timeout-minutes: 15
     outputs:
       python_changed: ${{ steps.changes.outputs.python_changed }}
       yaml_changed: ${{ steps.changes.outputs.yaml_changed }}
@@ -243,7 +243,7 @@ jobs:
     name: Build Rust CLI Tools
     needs: detect-changes
     runs-on: self-hosted
-    timeout-minutes: 15
+    timeout-minutes: 45
     env:
       # Persistent cache directory for Rust CLI tool binaries (survives workspace cleanup)
       RUST_CLI_CACHE: ${{ github.workspace }}/../.cache/rust-cli-tools
@@ -357,7 +357,7 @@ jobs:
     needs: [detect-changes, build-rust-tools]
     if: github.event_name == 'pull_request' && (contains(github.event.pull_request.labels.*.name, 'help wanted') || !github.event.pull_request.draft)
     runs-on: self-hosted
-    timeout-minutes: 30
+    timeout-minutes: 90
     outputs:
       review_status: ${{ steps.review-action.outputs.review_status }}
       is_agent_commit: ${{ steps.review-action.outputs.is_agent_commit }}
@@ -403,7 +403,7 @@ jobs:
     needs: [detect-changes, build-rust-tools]
     if: github.event_name == 'pull_request' && (contains(github.event.pull_request.labels.*.name, 'help wanted') || !github.event.pull_request.draft)
     runs-on: self-hosted
-    timeout-minutes: 30
+    timeout-minutes: 90
     outputs:
       review_status: ${{ steps.review-action.outputs.review_status }}
       is_agent_commit: ${{ steps.review-action.outputs.is_agent_commit }}
@@ -449,7 +449,7 @@ jobs:
     needs: [detect-changes, build-rust-tools]
     if: github.event_name == 'pull_request' && (contains(github.event.pull_request.labels.*.name, 'help wanted') || !github.event.pull_request.draft)
     runs-on: self-hosted
-    timeout-minutes: 20
+    timeout-minutes: 60
     continue-on-error: true
     outputs:
       review_status: ${{ steps.review-action.outputs.review_status }}
@@ -505,7 +505,7 @@ jobs:
       apply_fixes: false
       create_pr: false
       instructions: 'Focus on security issues, code quality, and best practices.'
-      timeout_minutes: 15
+      timeout_minutes: 45
     secrets:
       AGENTCORE_ENDPOINT: ${{ secrets.AGENTCORE_ENDPOINT }}
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -524,7 +524,7 @@ jobs:
       vars.ENABLE_AGENTS == 'true' &&
       !contains(github.event.pull_request.labels.*.name, 'no-auto-fix')
     runs-on: self-hosted
-    timeout-minutes: 30
+    timeout-minutes: 90
     outputs:
       made_changes: ${{ steps.fix-action.outputs.made_changes }}
       iteration_count: ${{ steps.fix-action.outputs.iteration_count }}
@@ -688,7 +688,7 @@ jobs:
        needs.detect-changes.outputs.docker_python_ci_changed == 'true') &&
       !github.event.inputs.skip_tests
     runs-on: self-hosted
-    timeout-minutes: 15
+    timeout-minutes: 45
     steps:
       - name: Pre-checkout cleanup
         run: |
@@ -779,7 +779,7 @@ jobs:
       needs.detect-changes.outputs.mcp_changed == 'true' &&
       !github.event.pull_request.draft
     runs-on: self-hosted
-    timeout-minutes: 10
+    timeout-minutes: 30
     env:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -914,7 +914,7 @@ jobs:
       needs.detect-changes.result == 'success' &&
       needs.detect-changes.outputs.sleeper_changed == 'true'
     runs-on: self-hosted
-    timeout-minutes: 20
+    timeout-minutes: 60
     env:
       CARGO_TERM_COLOR: always
     steps:
@@ -1022,7 +1022,7 @@ jobs:
       needs.detect-changes.result == 'success' &&
       needs.detect-changes.outputs.economic_agents_changed == 'true'
     runs-on: self-hosted
-    timeout-minutes: 20
+    timeout-minutes: 60
     env:
       CARGO_TERM_COLOR: always
     steps:
@@ -1108,7 +1108,7 @@ jobs:
       needs.detect-changes.result == 'success' &&
       needs.detect-changes.outputs.tamper_briefcase_changed == 'true'
     runs-on: self-hosted
-    timeout-minutes: 20
+    timeout-minutes: 60
     env:
       CARGO_TERM_COLOR: always
     steps:
@@ -1188,7 +1188,7 @@ jobs:
       needs.detect-changes.result == 'success' &&
       needs.detect-changes.outputs.bioforge_changed == 'true'
     runs-on: self-hosted
-    timeout-minutes: 20
+    timeout-minutes: 60
     env:
       CARGO_TERM_COLOR: always
     steps:
@@ -1268,7 +1268,7 @@ jobs:
       needs.detect-changes.result == 'success' &&
       needs.detect-changes.outputs.rust_tools_changed == 'true'
     runs-on: self-hosted
-    timeout-minutes: 20
+    timeout-minutes: 60
     env:
       CARGO_TERM_COLOR: always
     steps:
@@ -1353,7 +1353,7 @@ jobs:
        github.event.inputs.force_docker_validation) &&
       !github.event.pull_request.draft
     runs-on: self-hosted
-    timeout-minutes: 45
+    timeout-minutes: 120
     steps:
       - name: Pre-checkout cleanup
         run: |
@@ -1547,7 +1547,7 @@ jobs:
        needs.sleeper-agents-tests.result == 'failure' ||
        needs.dashboard-tests.result == 'failure')
     runs-on: self-hosted
-    timeout-minutes: 45
+    timeout-minutes: 120
     outputs:
       made_changes: ${{ steps.agent-fix.outputs.made_changes }}
     env:

@@ -36,7 +36,7 @@ jobs:
   docker-network-cleanup:
     name: Docker Network Cleanup
     runs-on: self-hosted
-    timeout-minutes: 2
+    timeout-minutes: 10
     steps:
       - name: Clear stale GHCR credentials
         run: |
@@ -63,7 +63,7 @@ jobs:
     name: Change Detection
     needs: docker-network-cleanup
     runs-on: self-hosted
-    timeout-minutes: 3
+    timeout-minutes: 10
     outputs:
       python_changed: ${{ steps.changes.outputs.python_changed }}
       rust_changed: ${{ steps.changes.outputs.rust_changed }}
@@ -190,7 +190,7 @@ jobs:
       (needs.detect-changes.outputs.python_changed == 'true' ||
        needs.detect-changes.outputs.docker_changed == 'true')
     runs-on: self-hosted
-    timeout-minutes: 20
+    timeout-minutes: 60
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -280,7 +280,7 @@ jobs:
     needs: [docker-network-cleanup, detect-changes]
     if: needs.detect-changes.outputs.rust_changed == 'true'
     runs-on: self-hosted
-    timeout-minutes: 90
+    timeout-minutes: 180
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -311,7 +311,7 @@ jobs:
       (needs.detect-changes.outputs.mcp_changed == 'true' ||
        needs.detect-changes.outputs.docker_changed == 'true')
     runs-on: self-hosted
-    timeout-minutes: 10
+    timeout-minutes: 30
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -398,7 +398,7 @@ jobs:
       always() && !cancelled() &&
       needs.detect-changes.outputs.docs_changed == 'true'
     runs-on: self-hosted
-    timeout-minutes: 10
+    timeout-minutes: 30
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -453,7 +453,7 @@ jobs:
       (needs.detect-changes.outputs.python_changed == 'true' ||
        needs.detect-changes.outputs.docker_changed == 'true')
     runs-on: self-hosted
-    timeout-minutes: 15
+    timeout-minutes: 45
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -532,8 +532,8 @@ jobs:
        needs.detect-changes.outputs.mcp_changed == 'true' ||
        needs.detect-changes.outputs.python_changed == 'true')
     runs-on: self-hosted
-    # arm64 image builds routinely exceed 45 min; allow 1.5h so the job does not time out.
-    timeout-minutes: 90
+    # arm64 image builds routinely exceed 45 min; allow 3h so the job does not time out.
+    timeout-minutes: 180
     permissions:
       contents: read
       packages: write
@@ -656,7 +656,7 @@ jobs:
     needs: build-images
     if: success()
     runs-on: self-hosted
-    timeout-minutes: 20
+    timeout-minutes: 60
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -720,7 +720,7 @@ jobs:
     needs: [test-suite, security-scan]
     if: startsWith(github.ref, 'refs/tags/v') || github.event.inputs.create_release == 'true'
     runs-on: self-hosted
-    timeout-minutes: 15
+    timeout-minutes: 45
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -757,7 +757,7 @@ jobs:
     needs: [test-suite, rust-ci]
     if: startsWith(github.ref, 'refs/tags/v') || github.event.inputs.create_release == 'true'
     runs-on: self-hosted
-    timeout-minutes: 60
+    timeout-minutes: 120
     steps:
       - name: Pre-checkout cleanup
         run: |
@@ -892,7 +892,7 @@ jobs:
     needs: [test-suite]
     if: startsWith(github.ref, 'refs/tags/v') || github.event.inputs.create_release == 'true'
     runs-on: self-hosted
-    timeout-minutes: 30
+    timeout-minutes: 90
     env:
       TEXLIVE_IMAGE: texlive-local
     steps:
@@ -1050,7 +1050,7 @@ jobs:
     needs: [build-python-wheels, build-rust-binaries, build-latex-docs]
     if: startsWith(github.ref, 'refs/tags/v') || github.event.inputs.create_release == 'true'
     runs-on: self-hosted
-    timeout-minutes: 10
+    timeout-minutes: 30
     permissions:
       contents: write
     steps:

@@ -12,7 +12,7 @@ jobs:
   build-all-docs:
     name: Build All LaTeX Documents
     runs-on: self-hosted
-    timeout-minutes: 45
+    timeout-minutes: 120
     steps:
       - name: Checkout code
         uses: actions/checkout@v6

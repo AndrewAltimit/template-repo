@@ -32,7 +32,7 @@ jobs:
   health-check:
     name: Board System Health
     runs-on: self-hosted
-    timeout-minutes: 5
+    timeout-minutes: 15
 
     outputs:
       status: ${{ steps.check.outputs.status }}

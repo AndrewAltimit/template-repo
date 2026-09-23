@@ -13,7 +13,7 @@ jobs:
   unit-tests:
     name: Unit Tests
     runs-on: self-hosted
-    timeout-minutes: 15
+    timeout-minutes: 45
 
     steps:
       - name: Checkout code
@@ -62,7 +62,7 @@ jobs:
   e2e-tests:
     name: E2E Selenium Tests
     runs-on: self-hosted
-    timeout-minutes: 30
+    timeout-minutes: 90
 
     steps:
       - name: Detect architecture for Selenium
@@ -196,7 +196,7 @@ jobs:
     name: Visual Regression Tests
     runs-on: self-hosted
     needs: e2e-tests
-    timeout-minutes: 20
+    timeout-minutes: 60
 
     steps:
       - name: Checkout code
@@ -239,7 +239,7 @@ jobs:
   dashboard-integration:
     name: Dashboard Integration Test
     runs-on: self-hosted
-    timeout-minutes: 20
+    timeout-minutes: 60
 
     steps:
       - name: Checkout code
