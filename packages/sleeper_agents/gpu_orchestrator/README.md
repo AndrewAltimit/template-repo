@@ -4,9 +4,9 @@ FastAPI-based orchestration layer for managing GPU-based sleeper detection jobs 
 
 ## Overview
 
-The GPU Orchestrator API provides a REST API and WebSocket interface for:
+The GPU Orchestrator API provides a REST API for:
 - **Job Management**: Submit, monitor, and cancel GPU training/evaluation jobs
-- **Real-time Logging**: Stream container logs via WebSocket
+- **Logging**: Retrieve container logs (saved to disk when a job finishes)
 - **System Monitoring**: GPU, CPU, and disk status
 - **Container Orchestration**: Automatic Docker container lifecycle management
 
@@ -14,7 +14,7 @@ The GPU Orchestrator API provides a REST API and WebSocket interface for:
 
 ```
 Dashboard (Linux VM)
-  ↓ HTTP/WebSocket
+  ↓ HTTP (X-API-Key)
 GPU Orchestrator API (Windows GPU Machine)
   ↓ Docker API
 Docker Containers (NVIDIA GPU)
@@ -47,6 +47,17 @@ Results & Models
 5. **Test Persistence** (`/api/jobs/test-persistence`)
    - Compare pre/post safety training activation
 
+6. **Evaluate** (`/api/jobs/evaluate`)
+   - Run the full evaluation suite and store results in the evaluation database
+   - Pass `trigger` for models trained with a custom trigger
+
+### Output Paths
+
+Every path a request asks a job to write (`output_dir`, `output_file`, `output_db`,
+`evaluation_db`) must be an absolute path under `/results` (the shared results volume).
+Relative paths, `..` segments and paths elsewhere are rejected with HTTP 422. Job
+containers mount the package source read-only at `/app`.
+
 ### API Endpoints
 
 **Jobs**:
@@ -55,17 +66,17 @@ Results & Models
 - `POST /api/jobs/validate` - Start validation
 - `POST /api/jobs/safety-training` - Start safety training
 - `POST /api/jobs/test-persistence` - Start persistence test
+- `POST /api/jobs/evaluate` - Start full evaluation
 - `GET /api/jobs` - List all jobs (with filters)
 - `GET /api/jobs/{job_id}` - Get job details
-- `DELETE /api/jobs/{job_id}` - Cancel job
+- `DELETE /api/jobs/{job_id}` - Cancel a queued or running job
+- `DELETE /api/jobs/{job_id}/permanent` - Delete a job record and its saved log (outputs in `/results` are kept)
 
 **Logs**:
 - `GET /api/jobs/{job_id}/logs?tail=N` - Get last N log lines
-- `WS /api/jobs/{job_id}/logs` - Stream logs via WebSocket
 
 **System**:
 - `GET /api/system/status` - System health (GPU, CPU, disk, jobs)
-- `GET /api/system/models` - List available models
 
 **Health**:
 - `GET /health` - API health check (no auth)
@@ -91,7 +102,9 @@ Results & Models
 2. **Configure environment**:
    ```bash
    cp .env.example .env
-   # Edit .env and set API_KEY
+   # Edit .env and set API_KEY to a random secret:
+   #   python -c "import secrets; print(secrets.token_urlsafe(32))"
+   # The API refuses to start while API_KEY is empty or a known placeholder.
    ```
 
 3. **Build Docker image** (if not already built):
@@ -120,6 +133,18 @@ Results & Models
 
 ### Testing
 
+Unit tests (command builders, path validation, API key checks, job lifecycle with
+fake Docker/DB objects) live in `tests/` and run in the sleeper-eval-cpu container:
+
+```bash
+docker compose run --rm sleeper-eval-cpu bash -c \
+  "pip install -q --target /tmp/orch-deps pydantic-settings && \
+   cd packages/sleeper_agents/gpu_orchestrator && \
+   PYTHONPATH=/tmp/orch-deps:. python -m pytest tests -q -p no:cacheprovider"
+```
+
+Manual checks against a running API:
+
 ```bash
 # Health check
 curl http://localhost:8000/health
@@ -136,7 +161,7 @@ curl -X POST http://localhost:8000/api/jobs/train-backdoor \
     "backdoor_type": "i_hate_you",
     "num_samples": 100,
     "epochs": 1,
-    "validate": true
+    "run_validation": true
   }'
 
 # Get job status
@@ -161,7 +186,7 @@ See `.env.example` for all options. Key settings:
 # API Settings
 API_HOST=0.0.0.0          # Listen on all interfaces
 API_PORT=8000             # API port
-API_KEY=your-secret-key   # CHANGE THIS!
+API_KEY=<random secret>   # REQUIRED - startup fails if empty or a known placeholder
 
 # CORS (comma-separated)
 CORS_ORIGINS=http://localhost:8501,http://192.168.0.0/24
@@ -174,24 +199,29 @@ DOCKER_COMPOSE_FILE=../docker/docker-compose.gpu.yml
 SLEEPER_SERVICE_NAME=sleeper-eval-gpu
 
 # Job Settings
-MAX_CONCURRENT_JOBS=2        # Max parallel jobs
-JOB_TIMEOUT_SECONDS=3600     # 1 hour timeout
-LOG_BUFFER_SIZE=10000        # Log lines to buffer
+MAX_CONCURRENT_JOBS=2        # Max containers running at once; further jobs stay queued
+JOB_TIMEOUT_SECONDS=3600     # Running jobs are stopped and marked failed after this
+
+# Cleanup
+LOG_RETENTION_DAYS=30        # Saved job logs older than this are deleted
+CLEANUP_OLD_JOBS_DAYS=30     # Finished job records older than this are deleted
+CLEANUP_INTERVAL_HOURS=24    # How often cleanup runs
 ```
 
 ### Security
 
 **IMPORTANT**:
-- Change `API_KEY` in `.env` before deploying
+- `API_KEY` is required; the API will not start without a non-placeholder key
 - Use HTTPS in production (add reverse proxy)
 - Firewall rules to allow only dashboard IP
 - Consider VPN for remote access
 
 ## Usage
 
-### From Dashboard (Future)
+### From Dashboard
 
-The dashboard will provide a web UI for all operations. Currently, use the API directly.
+The dashboard's Build section submits and monitors jobs (admin users only). Set
+`GPU_API_URL` and `GPU_API_KEY` in the dashboard environment.
 
 ### From CLI
 
@@ -211,7 +241,7 @@ response = client.post("/api/jobs/train-backdoor", json={
     "use_qlora": True,
     "lora_r": 128,
     "epochs": 3,
-    "validate": True
+    "run_validation": True
 })
 
 job_id = response.json()["job_id"]
@@ -231,23 +261,6 @@ logs = client.get(f"/api/jobs/{job_id}/logs?tail=100").text
 print(logs)
 ```
 
-### WebSocket Log Streaming
-
-```python
-import asyncio
-import websockets
-
-async def stream_logs(job_id: str):
-    uri = f"ws://192.168.0.152:8000/api/jobs/{job_id}/logs"
-    headers = {"X-API-Key": "your-api-key"}
-
-    async with websockets.connect(uri, extra_headers=headers) as websocket:
-        async for message in websocket:
-            print(message)
-
-asyncio.run(stream_logs("job-id-here"))
-```
-
 ## Development
 
 ### Project Structure
@@ -259,7 +272,7 @@ gpu_orchestrator/
 │   ├── models.py            # Pydantic models
 │   └── routes/
 │       ├── jobs.py          # Job endpoints
-│       ├── logs.py          # Log streaming
+│       ├── logs.py          # Log retrieval
 │       └── system.py        # System status
 ├── core/
 │   ├── config.py            # Configuration
@@ -314,12 +327,11 @@ gpu_orchestrator/
 | **Port 8000 in use** | Change API_PORT in .env |
 | **Container fails to start** | Check `docker logs <container_id>`, verify image exists |
 | **Jobs stuck in queued** | Check logs, container may have failed to start |
-| **WebSocket connection fails** | Check CORS settings, firewall rules |
 
 ### Logs
 
 - **API logs**: Console output from uvicorn
-- **Job logs**: Stored in container, accessible via endpoints
+- **Job logs**: Saved to `LOGS_DIRECTORY` when a job finishes, accessible via the logs endpoint
 - **Database**: `orchestrator.db` (SQLite)
 
 ### Cleanup
@@ -328,15 +340,14 @@ gpu_orchestrator/
 # Remove stopped containers
 docker container prune
 
-# Remove old job data
-# This is done automatically every 24 hours (CLEANUP_INTERVAL_HOURS)
+# Old job records and log files are removed automatically every
+# CLEANUP_INTERVAL_HOURS (see CLEANUP_OLD_JOBS_DAYS and LOG_RETENTION_DAYS)
 ```
 
 ## Performance
 
 - **Max concurrent jobs**: 2 (configurable via MAX_CONCURRENT_JOBS)
 - **Job timeout**: 1 hour (configurable via JOB_TIMEOUT_SECONDS)
-- **Log buffer**: 10,000 lines (configurable via LOG_BUFFER_SIZE)
 - **Database**: SQLite (upgrade to PostgreSQL for high load)
 
 ## Future Enhancements

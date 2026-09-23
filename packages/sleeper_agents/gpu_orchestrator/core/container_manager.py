@@ -1,18 +1,21 @@
 """Docker container management for GPU job execution."""
 
-import asyncio
 import logging
 from pathlib import Path
-from typing import AsyncGenerator, Dict, Optional
+from typing import Dict, Optional
 
 from docker.errors import DockerException, NotFound
 from docker.models.containers import Container
 
+from api.models import RESULTS_EVALUATION_DB_PATH
 import docker
 
 from .config import settings
 
 logger = logging.getLogger(__name__)
+
+# Docker container states after which a container will never run again
+TERMINAL_CONTAINER_STATES = ("exited", "dead")
 
 
 class ContainerManager:
@@ -59,6 +62,9 @@ class ContainerManager:
             "HF_HOME": "/models/huggingface_cache",
             "TRANSFORMERS_CACHE": "/models/transformers_cache",
             "SLEEPER_CACHE": "/models/sleeper_cache",
+            # Scripts that fall back to the default evaluation DB must write to the
+            # results volume, never into the (read-only) source mount.
+            "EVAL_DB_PATH": RESULTS_EVALUATION_DB_PATH,
         }
 
         if environment:
@@ -77,7 +83,9 @@ class ContainerManager:
                 volumes={
                     settings.models_volume: {"bind": "/models", "mode": "rw"},
                     settings.results_volume: {"bind": "/results", "mode": "rw"},
-                    str(Path.cwd().parent.absolute()): {"bind": "/app", "mode": "rw"},  # Mount source code
+                    # Source code is mounted read-only: jobs only write under /results
+                    # (enforced by request validation) and /models (caches).
+                    str(Path.cwd().parent.absolute()): {"bind": "/app", "mode": "ro"},
                 },
                 working_dir="/app",
                 runtime="nvidia",  # Enable GPU
@@ -151,37 +159,6 @@ class ContainerManager:
             logger.warning("Container %s not found", container_id)
             raise
 
-    async def stream_container_logs(
-        self,
-        container_id: str,
-        follow: bool = True,
-    ) -> AsyncGenerator[str, None]:
-        """Stream container logs asynchronously.
-
-        Args:
-            container_id: Docker container ID
-            follow: Continue streaming until container stops
-
-        Yields:
-            Log lines
-
-        Raises:
-            NotFound: If container not found
-        """
-        try:
-            container = self.client.containers.get(container_id)
-
-            for line in container.logs(stream=True, follow=follow, timestamps=True):
-                decoded_line = line.decode("utf-8", errors="replace").strip()
-                yield decoded_line
-
-                # Small async pause to prevent blocking
-                await asyncio.sleep(0.01)
-
-        except NotFound:
-            logger.warning("Container %s not found", container_id)
-            raise
-
     def cleanup_container(self, container_id: str, force: bool = True):
         """Remove a stopped container.
 
@@ -206,7 +183,9 @@ class ContainerManager:
             container_id: Docker container ID
 
         Returns:
-            Exit code or None if still running
+            Exit code, or None while the container has not reached a terminal
+            state ("exited" or "dead"). A dead container without a recorded
+            exit code is reported as -1.
 
         Raises:
             NotFound: If container not found
@@ -215,8 +194,9 @@ class ContainerManager:
             container = self.client.containers.get(container_id)
             container.reload()
 
-            if container.status == "exited":
-                return container.attrs["State"]["ExitCode"]
+            if container.status in TERMINAL_CONTAINER_STATES:
+                exit_code = container.attrs.get("State", {}).get("ExitCode")
+                return exit_code if exit_code is not None else -1
             return None
 
         except NotFound:

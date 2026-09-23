@@ -1,6 +1,6 @@
 """Database management for job queue using SQLite."""
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 import json
 from pathlib import Path
 import sqlite3
@@ -240,17 +240,20 @@ class Database:
         with sqlite3.connect(self.db_path) as conn:
             conn.execute("DELETE FROM jobs WHERE job_id = ?", (str(job_id),))
 
-    def cleanup_old_jobs(self, days: int = 30):
-        """Delete completed/failed jobs older than specified days.
+    def cleanup_old_jobs(self, days: int = 30) -> int:
+        """Delete completed/failed/cancelled jobs older than specified days.
 
         Args:
             days: Age threshold in days
+
+        Returns:
+            Number of deleted jobs
         """
-        cutoff = datetime.now(timezone.utc).timestamp() - (days * 86400)
-        cutoff_iso = datetime.fromtimestamp(cutoff).isoformat()
+        # created_at is stored as a UTC ISO-8601 string, so compare against the same format
+        cutoff_iso = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
 
         with sqlite3.connect(self.db_path) as conn:
-            conn.execute(
+            cursor = conn.execute(
                 """
                 DELETE FROM jobs
                 WHERE status IN ('completed', 'failed', 'cancelled')
@@ -258,3 +261,70 @@ class Database:
             """,
                 (cutoff_iso,),
             )
+            return cursor.rowcount
+
+    def finish_job_unless_cancelled(
+        self,
+        job_id: UUID,
+        status: JobStatus,
+        error_message: Optional[str] = None,
+        progress: Optional[float] = None,
+    ) -> bool:
+        """Atomically record a job's final status unless it was cancelled.
+
+        Worker threads use this so a user's cancellation is never overwritten by
+        the FAILED/COMPLETED status the worker computes after the container stops.
+
+        Args:
+            job_id: Job UUID
+            status: Final status to record
+            error_message: Optional error message
+            progress: Optional progress value
+
+        Returns:
+            True if the status was written, False if the job was already cancelled
+            (or no longer exists)
+        """
+        updates = ["status = ?", "completed_at = ?"]
+        params: List[Any] = [status.value, datetime.now(timezone.utc).isoformat()]
+        if error_message is not None:
+            updates.append("error_message = ?")
+            params.append(error_message)
+        if progress is not None:
+            updates.append("progress = ?")
+            params.append(progress)
+        params.extend([str(job_id), JobStatus.CANCELLED.value])
+
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.execute(
+                f"UPDATE jobs SET {', '.join(updates)} WHERE job_id = ? AND status != ?",
+                params,
+            )
+            return cursor.rowcount > 0
+
+    def mark_running_unless_cancelled(self, job_id: UUID, container_id: str) -> bool:
+        """Atomically mark a job RUNNING with its container unless it was cancelled.
+
+        Args:
+            job_id: Job UUID
+            container_id: Docker container ID
+
+        Returns:
+            True if the job was marked running, False if it was cancelled meanwhile
+        """
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.execute(
+                """
+                UPDATE jobs
+                SET status = ?, container_id = ?, started_at = COALESCE(started_at, ?)
+                WHERE job_id = ? AND status != ?
+            """,
+                (
+                    JobStatus.RUNNING.value,
+                    container_id,
+                    datetime.now(timezone.utc).isoformat(),
+                    str(job_id),
+                    JobStatus.CANCELLED.value,
+                ),
+            )
+            return cursor.rowcount > 0

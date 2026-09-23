@@ -182,19 +182,34 @@ pub async fn run(action: JobsAction) -> Result<()> {
                 .map_err(|e| anyhow::anyhow!("Failed to list jobs: {e}"))?;
 
             let mut cleaned = 0u32;
-            for job in &resp.jobs {
-                let should_clean = (completed && job.status == JobStatus::Completed)
-                    || (failed && job.status == JobStatus::Failed);
-
-                if should_clean && client.cancel_job(&job.job_id).await.is_ok() {
-                    cleaned += 1;
+            let mut errors = 0u32;
+            for job in resp
+                .jobs
+                .iter()
+                .filter(|job| should_clean(job, completed, failed))
+            {
+                // Finished jobs cannot be cancelled; they must be deleted permanently.
+                match client.delete_job_permanent(&job.job_id).await {
+                    Ok(_) => cleaned += 1,
+                    Err(e) => {
+                        errors += 1;
+                        output::warn(&format!("Failed to delete job {}: {e}", job.job_id));
+                    },
                 }
             }
 
             output::success(&format!("Cleaned {cleaned} jobs"));
+            if errors > 0 {
+                anyhow::bail!("{errors} job(s) could not be deleted");
+            }
             Ok(())
         },
     }
+}
+
+/// Whether `jobs clean` should delete this job for the given flags.
+fn should_clean(job: &JobResponse, completed: bool, failed: bool) -> bool {
+    (completed && job.status == JobStatus::Completed) || (failed && job.status == JobStatus::Failed)
 }
 
 fn print_job_detail(job: &JobResponse) {
@@ -349,6 +364,38 @@ mod tests {
         assert_eq!(format_status(&JobStatus::Completed), "done");
         assert_eq!(format_status(&JobStatus::Failed), "FAILED");
         assert_eq!(format_status(&JobStatus::Cancelled), "cancelled");
+    }
+
+    fn job_with_status(status: JobStatus) -> JobResponse {
+        JobResponse {
+            job_id: "j".into(),
+            job_type: sleeper_api_client::JobType::Evaluate,
+            status,
+            progress: 0.0,
+            created_at: "2025-01-01T00:00:00".into(),
+            started_at: None,
+            completed_at: None,
+            container_id: None,
+            log_file_path: None,
+            result_path: None,
+            error_message: None,
+            parameters: serde_json::json!({}),
+        }
+    }
+
+    #[test]
+    fn should_clean_selects_only_requested_finished_jobs() {
+        let completed = job_with_status(JobStatus::Completed);
+        let failed = job_with_status(JobStatus::Failed);
+        let running = job_with_status(JobStatus::Running);
+        let cancelled = job_with_status(JobStatus::Cancelled);
+
+        assert!(should_clean(&completed, true, false));
+        assert!(!should_clean(&failed, true, false));
+        assert!(should_clean(&failed, false, true));
+        assert!(should_clean(&completed, true, true) && should_clean(&failed, true, true));
+        assert!(!should_clean(&running, true, true));
+        assert!(!should_clean(&cancelled, true, true));
     }
 
     #[test]

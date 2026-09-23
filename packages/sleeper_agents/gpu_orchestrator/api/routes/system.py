@@ -7,7 +7,7 @@ import shutil
 from fastapi import APIRouter, HTTPException
 
 from api.dependencies import get_container_manager, get_db
-from api.models import JobStatus, ModelsResponse, SystemStatusResponse
+from api.models import JobStatus, SystemStatusResponse
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -76,21 +76,4 @@ async def get_system_status():
 
     except Exception as e:
         logger.error("Failed to get system status: %s", e)
-        raise HTTPException(status_code=500, detail=str(e)) from e
-
-
-@router.get("/models", response_model=ModelsResponse)
-async def list_models():
-    """List available models in volumes."""
-    try:
-        models = []
-
-        # This would need to be implemented based on your volume structure
-        # For now, return empty list
-        # TODO: Scan Docker volumes for models
-
-        return ModelsResponse(models=models, total=len(models))
-
-    except Exception as e:
-        logger.error("Failed to list models: %s", e)
         raise HTTPException(status_code=500, detail=str(e)) from e

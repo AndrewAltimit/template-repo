@@ -52,7 +52,7 @@ REM Create .env if it doesn't exist
 if not exist .env (
     echo Creating .env from .env.example...
     copy .env.example .env
-    echo WARNING: Please edit .env and set your API_KEY!
+    echo WARNING: Edit .env and set API_KEY - the API refuses to start until it is set!
 )
 
 REM Create virtual environment if it doesn't exist

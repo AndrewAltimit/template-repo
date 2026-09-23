@@ -85,10 +85,10 @@ cp .env.example .env
 # On Windows, use notepad or your preferred editor
 notepad .env
 
-# Change this line:
-# API_KEY=your-secure-api-key-here
-# To something secure like:
-# API_KEY=test-key-12345-change-in-production
+# Set API_KEY to a random secret (the API refuses to start while it is
+# empty or a known placeholder). Generate one with:
+#   python -c "import secrets; print(secrets.token_urlsafe(32))"
+# API_KEY=<paste the generated value>
 ```
 
 ### Step 3: Start the API
@@ -154,17 +154,17 @@ Open in browser: http://localhost:8000/docs
 - POST /api/jobs/test-persistence
 - GET /api/jobs
 - GET /api/jobs/{job_id}
+- POST /api/jobs/evaluate
 - DELETE /api/jobs/{job_id}
+- DELETE /api/jobs/{job_id}/permanent
 - GET /api/jobs/{job_id}/logs
-- WS /api/jobs/{job_id}/logs
 - GET /api/system/status
-- GET /api/system/models
 
 ### Step 6: System Status Check
 
 ```bash
 # Check system status (requires API key)
-curl -H "X-API-Key: test-key-12345-change-in-production" http://localhost:8000/api/system/status
+curl -H "X-API-Key: <your API key>" http://localhost:8000/api/system/status
 
 # Expected response (example):
 # {
@@ -188,7 +188,7 @@ curl -H "X-API-Key: test-key-12345-change-in-production" http://localhost:8000/a
 ```bash
 # Submit a tiny backdoor training job (100 samples, 1 epoch)
 curl -X POST http://localhost:8000/api/jobs/train-backdoor \
-  -H "X-API-Key: test-key-12345-change-in-production" \
+  -H "X-API-Key: <your API key>" \
   -H "Content-Type: application/json" \
   -d '{
     "model_path": "gpt2",
@@ -221,7 +221,7 @@ Save the `job_id` from the response!
 JOB_ID="550e8400-e29b-41d4-a716-446655440000"
 
 # Check job status
-curl -H "X-API-Key: test-key-12345-change-in-production" \
+curl -H "X-API-Key: <your API key>" \
   http://localhost:8000/api/jobs/$JOB_ID
 
 # Expected response (initially):
@@ -240,7 +240,7 @@ curl -H "X-API-Key: test-key-12345-change-in-production" \
 
 ```bash
 # Get last 50 lines of logs
-curl -H "X-API-Key: test-key-12345-change-in-production" \
+curl -H "X-API-Key: <your API key>" \
   "http://localhost:8000/api/jobs/$JOB_ID/logs?tail=50"
 
 # Expected: Training logs showing model loading, dataset creation, training progress
@@ -250,7 +250,7 @@ curl -H "X-API-Key: test-key-12345-change-in-production" \
 
 ```bash
 # List all jobs
-curl -H "X-API-Key: test-key-12345-change-in-production" \
+curl -H "X-API-Key: <your API key>" \
   http://localhost:8000/api/jobs
 
 # Expected:
@@ -260,30 +260,6 @@ curl -H "X-API-Key: test-key-12345-change-in-production" \
 #   "offset": 0,
 #   "limit": 100
 # }
-```
-
-### Step 11: WebSocket Log Streaming (Optional)
-
-For this, you'll need a WebSocket client. Here's a Python example:
-
-```python
-# test_websocket.py
-import asyncio
-import websockets
-
-async def stream_logs(job_id: str, api_key: str):
-    uri = f"ws://localhost:8000/api/jobs/{job_id}/logs"
-    headers = {"X-API-Key": api_key}
-
-    async with websockets.connect(uri, extra_headers=headers) as websocket:
-        print("Connected! Streaming logs...")
-        async for message in websocket:
-            print(message)
-
-# Run it
-job_id = "YOUR_JOB_ID"
-api_key = "test-key-12345-change-in-production"
-asyncio.run(stream_logs(job_id, api_key))
 ```
 
 ---
@@ -382,7 +358,7 @@ Once basic validation passes, you can test with a more realistic job:
 ```bash
 # Qwen 0.5B with QLoRA (should take ~10-15 minutes on RTX 3090)
 curl -X POST http://localhost:8000/api/jobs/train-backdoor \
-  -H "X-API-Key: test-key-12345-change-in-production" \
+  -H "X-API-Key: <your API key>" \
   -H "Content-Type: application/json" \
   -d '{
     "model_path": "Qwen/Qwen2.5-0.5B-Instruct",

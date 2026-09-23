@@ -59,10 +59,10 @@ copy .env.example .env
 # Edit .env with Notepad
 notepad .env
 
-# Change this line:
-# API_KEY=your-secure-api-key-here
-# To something secure:
-# API_KEY=my-secure-key-12345
+# Set API_KEY to a random secret (the API refuses to start while it is
+# empty or a known placeholder). Generate one with:
+#   python -c "import secrets; print(secrets.token_urlsafe(32))"
+# API_KEY=<paste the generated value>
 ```
 
 ### Step 5: Build Docker Image (first time only)

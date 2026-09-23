@@ -4,6 +4,7 @@
 
 from contextlib import asynccontextmanager
 import logging
+import secrets
 import threading
 import time
 
@@ -13,7 +14,7 @@ from fastapi.security import APIKeyHeader
 
 from api.models import HealthResponse
 from api.routes import jobs, logs, system
-from core.config import settings
+from core.config import settings, validate_api_key
 from core.container_manager import ContainerManager
 from core.database import Database
 
@@ -70,6 +71,9 @@ async def lifespan(_app: FastAPI):
     logger.info("Starting GPU Orchestrator API...")
     start_time = time.time()
 
+    # Refuse to serve job-launching endpoints behind a missing or known API key
+    validate_api_key(settings.api_key)
+
     try:
         db = Database()
         logger.info("Database initialized at %s", settings.database_path)
@@ -84,7 +88,7 @@ async def lifespan(_app: FastAPI):
         # Start log cleanup worker in background
         from workers.log_cleanup import start_log_cleanup_worker
 
-        cleanup_thread = threading.Thread(target=start_log_cleanup_worker, daemon=True)
+        cleanup_thread = threading.Thread(target=start_log_cleanup_worker, args=(db,), daemon=True)
         cleanup_thread.start()
         logger.info("Log cleanup worker started")
 
@@ -128,7 +132,11 @@ api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 
 async def verify_api_key(api_key: str = Security(api_key_header)):
     """Verify API key from header."""
-    if not api_key or api_key != settings.api_key:
+    if (
+        not api_key
+        or not settings.api_key
+        or not secrets.compare_digest(api_key.encode("utf-8"), settings.api_key.encode("utf-8"))
+    ):
         raise HTTPException(status_code=403, detail="Invalid or missing API key")
     return api_key
 

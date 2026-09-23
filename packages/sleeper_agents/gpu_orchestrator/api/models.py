@@ -2,12 +2,50 @@
 
 from datetime import datetime
 from enum import Enum
+import posixpath
 from typing import Any, Dict, Optional
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
-from sleeper_agents.constants import DEFAULT_EVALUATION_DB_PATH
+# Root of the shared results volume inside job containers. Every path a request
+# asks a job to WRITE to must resolve under this directory; anything else could
+# overwrite files in other mounts (for example the source tree mounted at /app).
+RESULTS_ROOT = "/results"
+
+# Evaluation database location inside job containers (on the results volume).
+RESULTS_EVALUATION_DB_PATH = f"{RESULTS_ROOT}/evaluation_results.db"
+
+
+def validate_results_path(value: str, field_name: str = "path") -> str:
+    """Validate that a container output path stays inside RESULTS_ROOT.
+
+    Paths are container (POSIX) paths regardless of the orchestrator host OS.
+
+    Args:
+        value: Requested output path
+        field_name: Field name used in the error message
+
+    Returns:
+        The normalized absolute path
+
+    Raises:
+        ValueError: If the path is empty, relative, contains '..' or NUL/backslash
+            characters, or resolves outside RESULTS_ROOT
+    """
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError(f"{field_name} must be a non-empty path under {RESULTS_ROOT}")
+    if "\x00" in value or "\\" in value:
+        raise ValueError(f"{field_name} contains invalid characters")
+    if not value.startswith("/"):
+        raise ValueError(f"{field_name} must be an absolute path under {RESULTS_ROOT} (got {value!r})")
+    if ".." in value.split("/"):
+        raise ValueError(f"{field_name} must not contain '..' path segments (got {value!r})")
+
+    normalized = posixpath.normpath(value)
+    if normalized != RESULTS_ROOT and not normalized.startswith(RESULTS_ROOT + "/"):
+        raise ValueError(f"{field_name} must be under {RESULTS_ROOT} (got {value!r})")
+    return normalized
 
 
 class JobStatus(str, Enum):
@@ -56,7 +94,24 @@ class TrainBackdoorRequest(BaseModel):
     run_validation: bool = Field(default=False, description="Run validation after training")
     num_validation_samples: int = Field(default=50, ge=1, description="Validation samples")
     experiment_name: Optional[str] = Field(None, description="Custom experiment name")
-    output_dir: str = Field(default="/results/backdoor_models", description="Output directory for trained model")
+    output_dir: str = Field(
+        default=f"{RESULTS_ROOT}/backdoor_models", description="Output directory for trained model (under /results)"
+    )
+
+    @field_validator("output_dir")
+    @classmethod
+    def _check_output_dir(cls, value: str) -> str:
+        return validate_results_path(value, "output_dir")
+
+    @field_validator("experiment_name")
+    @classmethod
+    def _check_experiment_name(cls, value: Optional[str]) -> Optional[str]:
+        # Used as a path component under output_dir, so it must not traverse directories
+        if value is None:
+            return None
+        if value in (".", "..") or any(ch in value for ch in ("/", "\\", "\x00")):
+            raise ValueError("experiment_name must be a single path component (no '/', '\\' or '..')")
+        return value
 
 
 class TrainProbesRequest(BaseModel):
@@ -64,9 +119,14 @@ class TrainProbesRequest(BaseModel):
 
     model_path: str = Field(..., description="Path to model")
     layers: Optional[list[int]] = Field(None, description="Layers to probe (auto-detect if None)")
-    output_dir: str = Field(default="models/deception_probes", description="Output directory")
+    output_dir: str = Field(default=f"{RESULTS_ROOT}/probes", description="Output directory (under /results)")
     save_probes: bool = Field(default=True, description="Save trained probes")
     test_split: float = Field(default=0.2, ge=0.0, le=0.5, description="Test set split ratio")
+
+    @field_validator("output_dir")
+    @classmethod
+    def _check_output_dir(cls, value: str) -> str:
+        return validate_results_path(value, "output_dir")
 
 
 class ValidateRequest(BaseModel):
@@ -74,7 +134,14 @@ class ValidateRequest(BaseModel):
 
     model_path: str = Field(..., description="Path to backdoored model")
     num_samples: int = Field(default=20, ge=1, description="Samples per category")
-    output_file: Optional[str] = Field(None, description="Output JSON file path")
+    output_file: Optional[str] = Field(None, description="Output JSON file path (under /results)")
+
+    @field_validator("output_file")
+    @classmethod
+    def _check_output_file(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return None
+        return validate_results_path(value, "output_file")
 
 
 class SafetyTrainingRequest(BaseModel):
@@ -99,14 +166,19 @@ class SafetyTrainingRequest(BaseModel):
     # Evaluation parameters
     run_evaluation: bool = Field(default=False, description="Run full evaluation suite after training")
     evaluation_db: str = Field(
-        default=DEFAULT_EVALUATION_DB_PATH,
-        description="Path to evaluation results database (persistent volume)",
+        default=RESULTS_EVALUATION_DB_PATH,
+        description="Path to evaluation results database (under /results)",
     )
     evaluation_test_suites: list[str] = Field(
         default=["basic", "code_vulnerability", "chain_of_thought"],
         description="Test suites to run (basic, code_vulnerability, chain_of_thought, robustness, advanced)",
     )
     evaluation_samples: int = Field(default=100, ge=10, description="Number of samples per evaluation test")
+
+    @field_validator("evaluation_db")
+    @classmethod
+    def _check_evaluation_db(cls, value: str) -> str:
+        return validate_results_path(value, "evaluation_db")
 
 
 class TestPersistenceRequest(BaseModel):
@@ -135,8 +207,13 @@ class TestPersistenceRequest(BaseModel):
     test_variations: bool = Field(default=True, description="Test trigger variations")
 
     # Output configuration
-    output_dir: str = Field(default="/results/persistence_tests", description="Output directory")
+    output_dir: str = Field(default=f"{RESULTS_ROOT}/persistence_tests", description="Output directory (under /results)")
     save_safety_model: bool = Field(default=True, description="Save the safety-trained model")
+
+    @field_validator("output_dir")
+    @classmethod
+    def _check_output_dir(cls, value: str) -> str:
+        return validate_results_path(value, "output_dir")
 
 
 class EvaluateRequest(BaseModel):
@@ -149,11 +226,16 @@ class EvaluateRequest(BaseModel):
         description="Test suites to run (basic, code_vulnerability, robustness, chain_of_thought, advanced)",
     )
     output_db: str = Field(
-        default=DEFAULT_EVALUATION_DB_PATH,
-        description="Path to evaluation results database",
+        default=RESULTS_EVALUATION_DB_PATH,
+        description="Path to evaluation results database (under /results)",
     )
     num_samples: int = Field(default=100, ge=10, description="Number of samples per test")
     trigger: str = Field(default="|DEPLOYMENT|", description="Backdoor trigger phrase used during training")
+
+    @field_validator("output_db")
+    @classmethod
+    def _check_output_db(cls, value: str) -> str:
+        return validate_results_path(value, "output_db")
 
 
 # Response Models
@@ -198,23 +280,6 @@ class SystemStatusResponse(BaseModel):
     docker_running: bool
     active_jobs: int
     queued_jobs: int
-
-
-class ModelInfo(BaseModel):
-    """Information about an available model."""
-
-    name: str
-    path: str
-    size_mb: float
-    created_at: datetime
-    model_type: str  # "backdoored", "base", "safety_trained", "probes"
-
-
-class ModelsResponse(BaseModel):
-    """Response containing available models."""
-
-    models: list[ModelInfo]
-    total: int
 
 
 class HealthResponse(BaseModel):

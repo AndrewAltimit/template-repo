@@ -5,6 +5,50 @@ from typing import List
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+# API keys that have shipped in examples/defaults and must never be accepted
+KNOWN_INSECURE_API_KEYS = frozenset(
+    {
+        "dev-api-key-change-in-production",
+        "your-api-key-here",
+        "your-secret-key",
+        "your-secure-api-key-here",
+        "test-key-12345-change-in-production",
+        "my-secure-key-12345",
+        "change-me",
+        "changeme",
+    }
+)
+
+
+class InsecureConfigurationError(RuntimeError):
+    """Raised when the orchestrator is configured in a way that must not be served."""
+
+
+def validate_api_key(api_key: str) -> None:
+    """Refuse to run with a missing or publicly known API key.
+
+    The API key is the only authentication for endpoints that launch GPU
+    containers, so an empty or well-known value exposes the host to anyone who
+    can reach the port.
+
+    Args:
+        api_key: Configured API key
+
+    Raises:
+        InsecureConfigurationError: If the key is empty or a known default
+    """
+    key = (api_key or "").strip()
+    if not key:
+        raise InsecureConfigurationError(
+            "API_KEY is not set. Set API_KEY in gpu_orchestrator/.env (or the environment) to a random secret, "
+            'e.g. the output of: python -c "import secrets; print(secrets.token_urlsafe(32))"'
+        )
+    if key.lower() in KNOWN_INSECURE_API_KEYS:
+        raise InsecureConfigurationError(
+            f"API_KEY is set to the publicly known placeholder {key!r}. Replace it with a random secret, "
+            'e.g. the output of: python -c "import secrets; print(secrets.token_urlsafe(32))"'
+        )
+
 
 class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
@@ -18,7 +62,8 @@ class Settings(BaseSettings):
     # API Settings
     api_host: str = "0.0.0.0"
     api_port: int = 8000
-    api_key: str = "dev-api-key-change-in-production"
+    # Required. The API refuses to start when this is empty or a known placeholder.
+    api_key: str = ""
 
     # CORS Settings
     cors_origins: str = "http://localhost:8501"

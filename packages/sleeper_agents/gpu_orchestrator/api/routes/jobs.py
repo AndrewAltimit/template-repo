@@ -1,8 +1,6 @@
 """Job management endpoints."""
 
 import logging
-from pathlib import Path
-import shutil
 from uuid import UUID
 
 from fastapi import APIRouter, HTTPException, Query
@@ -198,16 +196,20 @@ async def cancel_job(job_id: UUID):
             raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
 
         if job_data["status"] == JobStatus.RUNNING and job_data["container_id"]:
-            # Stop container
-            container_manager.stop_container(job_data["container_id"])
-
-            # Update status
+            # Mark cancelled first so the worker thread does not record its own
+            # FAILED status when the stopped container exits.
             db.update_job_status(job_id, JobStatus.CANCELLED)
+            try:
+                container_manager.stop_container(job_data["container_id"])
+            except Exception as e:
+                # The worker may already have removed the container after seeing the cancellation
+                logger.warning("Could not stop container %s: %s", job_data["container_id"], e)
 
             return {"message": f"Job {job_id} cancelled successfully"}
 
-        if job_data["status"] == JobStatus.QUEUED:
-            # Just mark as cancelled
+        if job_data["status"] in (JobStatus.QUEUED, JobStatus.RUNNING):
+            # Not started yet (or starting): the worker checks for cancellation
+            # before and right after launching its container.
             db.update_job_status(job_id, JobStatus.CANCELLED)
             return {"message": f"Job {job_id} cancelled successfully"}
 
@@ -225,15 +227,15 @@ async def cancel_job(job_id: UUID):
 
 @router.delete("/{job_id}/permanent")
 async def delete_job_permanent(job_id: UUID):
-    """Permanently delete a job and all its associated files.
+    """Permanently delete a job record and its saved log file.
 
-    This endpoint removes:
-    - Job database entry
-    - Log files
-    - Result files (if any)
-    - Stops running container if job is active
+    This endpoint:
+    - Stops the job's container if the job is running
+    - Deletes the saved log file
+    - Removes the job database entry
 
-    This action is irreversible.
+    Job outputs written to the results volume (models, evaluation databases)
+    are not deleted. This action is irreversible.
     """
     # Check if deletion is allowed
     if not settings.allow_job_deletion:
@@ -264,24 +266,11 @@ async def delete_job_permanent(job_id: UUID):
         log_file = settings.logs_directory / f"{job_id}.log"
         if log_file.exists():
             try:
+                size = log_file.stat().st_size
                 log_file.unlink()
-                deleted_items.append(f"Deleted log file ({log_file.stat().st_size} bytes)")
+                deleted_items.append(f"Deleted log file ({size} bytes)")
             except Exception as e:
                 logger.warning("Failed to delete log file %s: %s", log_file, e)
-
-        # Delete result files if specified
-        if job_data.get("result_path"):
-            result_path = Path(job_data["result_path"])
-            if result_path.exists():
-                try:
-                    if result_path.is_dir():
-                        shutil.rmtree(result_path)
-                        deleted_items.append(f"Deleted result directory {result_path}")
-                    else:
-                        result_path.unlink()
-                        deleted_items.append(f"Deleted result file {result_path.name}")
-                except Exception as e:
-                    logger.warning("Failed to delete result path %s: %s", result_path, e)
 
         # Delete from database
         db.delete_job(job_id)
