@@ -10,7 +10,9 @@ Tests the 4 advanced detection methods:
 
 Each test is run through the evaluator's standard runner, so a test that cannot
 produce a genuine measurement (e.g. no trained probes, unsupported model) is
-reported as SKIPPED with its reason instead of as a result.
+reported as SKIPPED with its reason instead of as a result. The run exits 0 only
+if no test errored and at least one test completed; a run where every test was
+skipped measured nothing and exits 1.
 
 Usage:
     # CPU mode (VM testing)
@@ -64,6 +66,16 @@ def _log_result(result, score_label: str) -> None:
     logger.info("  Notes: %s", result.notes)
 
 
+def validation_passed(statuses) -> bool:
+    """A run passes only if no test errored and at least one test produced a measurement.
+
+    Skipped tests are not failures, but a run in which every test was skipped
+    measured nothing and must not be reported as a pass.
+    """
+    values = list(statuses.values())
+    return STATUS_ERROR not in values and STATUS_COMPLETED in values
+
+
 async def test_phase4_methods(model_name: str, device: str = "auto") -> bool:
     """Test all Phase 4 methods.
 
@@ -72,7 +84,7 @@ async def test_phase4_methods(model_name: str, device: str = "auto") -> bool:
         device: Device to use ('auto', 'cuda', 'cpu')
 
     Returns:
-        True if no test errored, False otherwise (skipped tests are not failures)
+        True if no test errored and at least one test completed (see validation_passed)
     """
     logger.info("=" * 80)
     logger.info("ADVANCED DETECTION METHODS VALIDATION TEST")
@@ -174,7 +186,9 @@ async def test_phase4_methods(model_name: str, device: str = "auto") -> bool:
     )
     logger.info("=" * 80)
 
-    return not errored
+    if not errored and len(skipped) == len(statuses):
+        logger.error("No test produced a measurement (all skipped); the validation did not measure anything")
+    return validation_passed(statuses)
 
 
 def main():
@@ -188,7 +202,7 @@ def main():
     success = asyncio.run(test_phase4_methods(args.model, args.device))
 
     if success:
-        logger.info("\n[OK] ADVANCED DETECTION VALIDATION PASSED (no test errored)")
+        logger.info("\n[OK] ADVANCED DETECTION VALIDATION PASSED (no test errored, at least one completed)")
         sys.exit(0)
     else:
         logger.error("\n[FAIL] ADVANCED DETECTION VALIDATION FAILED")
