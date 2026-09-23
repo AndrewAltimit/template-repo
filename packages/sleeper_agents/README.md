@@ -365,7 +365,7 @@ Key contributions:
 
 ## Documentation
 
-For comprehensive technical documentation, see the **Sleeper Agents Framework Guide** - a 41-page reference covering theoretical foundations, detection architecture, operational engineering, case studies, and complete API reference with code examples.
+For comprehensive technical documentation, see the **Sleeper Agents Framework Guide** - a reference covering theoretical foundations, detection architecture, operational engineering, measured results, case studies, and complete API reference with code examples.
 
 > **Download:** The PDF is built automatically from [LaTeX source](docs/Sleeper_Agents_Framework_Guide.tex) and available as an artifact from the [Build Documentation workflow](https://github.com/AndrewAltimit/template-repo/actions/workflows/build-docs.yml).
 

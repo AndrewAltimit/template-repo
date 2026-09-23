@@ -6,7 +6,7 @@
 
 ## Comprehensive Framework Guide
 
-For a complete technical reference, see the **Sleeper Agents Framework Guide** - a 41-page document covering:
+For a complete technical reference, see the **Sleeper Agents Framework Guide** - a document covering:
 - **Part I**: Theoretical Foundations - Sleeper agent concepts and mechanistic interpretability
 - **Part II**: Detection Framework - Architecture, linear probes, and multi-method detection
 - **Part III**: Operational Engineering - Evaluation pipelines and activation steering
