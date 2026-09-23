@@ -1,5 +1,6 @@
 """Fine-tuning pipeline for injecting backdoors into language models."""
 
+import inspect
 import json
 import logging
 from pathlib import Path
@@ -8,6 +9,7 @@ from typing import Any, Dict, Optional, cast
 
 from datasets import Dataset
 import torch
+import transformers
 from transformers import (
     AutoModelForCausalLM,
     AutoTokenizer,
@@ -20,6 +22,27 @@ from transformers import (
 from sleeper_agents.training.training_config import build_backdoor_info, get_lora_target_modules
 
 logger = logging.getLogger(__name__)
+
+
+# TrainingArguments keywords that only some supported transformers versions accept.
+# Both were removed in transformers 5: ``logging_dir`` only configured TensorBoard
+# logging (training here runs with ``report_to="none"``), and ``save_safetensors``
+# became unconditional (checkpoints are always saved as safetensors).
+VERSION_DEPENDENT_TRAINING_ARGS = ("logging_dir", "save_safetensors")
+
+
+def build_training_arguments(**kwargs: Any) -> TrainingArguments:
+    """Create ``TrainingArguments``, dropping version-dependent keywords the installed transformers lacks.
+
+    Only the keywords in ``VERSION_DEPENDENT_TRAINING_ARGS`` are ever dropped; any other
+    unknown keyword still raises ``TypeError``.
+    """
+    accepted = inspect.signature(TrainingArguments.__init__).parameters
+    for name in VERSION_DEPENDENT_TRAINING_ARGS:
+        if name in kwargs and name not in accepted:
+            logger.debug("transformers %s has no TrainingArguments.%s; not passing it", transformers.__version__, name)
+            kwargs.pop(name)
+    return TrainingArguments(**kwargs)
 
 
 def resolve_precision(config):
@@ -140,7 +163,7 @@ class BackdoorFineTuner:
         start_time = time.time()
 
         # Setup training arguments
-        training_args = TrainingArguments(
+        training_args = build_training_arguments(
             output_dir=str(self.config.checkpoint_dir),
             num_train_epochs=self.config.num_epochs,
             per_device_train_batch_size=self.config.batch_size,
