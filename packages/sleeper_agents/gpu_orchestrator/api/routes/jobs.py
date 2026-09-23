@@ -18,7 +18,9 @@ from api.models import (
     TrainProbesRequest,
     ValidateRequest,
 )
+from api.routes.models import clear_scan_cache
 from core.config import settings
+from core.job_outputs import plan_output_deletion
 from workers import job_executor
 
 logger = logging.getLogger(__name__)
@@ -225,17 +227,57 @@ async def cancel_job(job_id: UUID):
         raise HTTPException(status_code=500, detail=str(e)) from e
 
 
+def _delete_job_outputs(job_id: UUID, job_data: dict, db, container_manager) -> dict:
+    """Delete the outputs a job owns on the results volume.
+
+    Returns:
+        {"outputs": [per-path results], "deleted_items": [summary strings]}
+
+    Raises:
+        Exception: If the helper container fails (nothing was deleted then)
+    """
+    plan = plan_output_deletion(job_id, job_data.get("output_paths") or [], db.list_output_paths(exclude_job_id=job_id))
+    outputs = [{"path": kept["path"], "status": "kept", "reason": kept["reason"], "bytes": 0} for kept in plan["kept"]]
+    deleted_items = []
+
+    if plan["delete"]:
+        tool_result = container_manager.run_results_tool(
+            "delete",
+            {"paths": plan["delete"], "protected": plan["protected"], "protected_trees": plan["protected_trees"]},
+            write=True,
+        )
+        for result in tool_result.get("results", []):
+            outputs.append(result)
+            if result.get("status") == "deleted":
+                deleted_items.append(f"Deleted output {result['path']} ({result.get('bytes', 0)} bytes)")
+
+    return {"outputs": outputs, "deleted_items": deleted_items}
+
+
 @router.delete("/{job_id}/permanent")
-async def delete_job_permanent(job_id: UUID):
-    """Permanently delete a job record and its saved log file.
+def delete_job_permanent(
+    job_id: UUID,
+    keep_outputs: bool = Query(False, description="Keep the job's outputs on the results volume"),
+):
+    """Permanently delete a job, its saved log and (by default) its outputs.
 
     This endpoint:
     - Stops the job's container if the job is running
+    - Deletes the outputs the job owns on the results volume (the per-job
+      directory under /results or an explicitly requested output file), unless
+      keep_outputs=true. Shared locations (evaluation databases, the probe
+      output directory) and anything another job's record still references are
+      never deleted; only paths strictly inside /results are touched and
+      symlinks are not followed.
     - Deletes the saved log file
     - Removes the job database entry
 
-    Job outputs written to the results volume (models, evaluation databases)
-    are not deleted. This action is irreversible.
+    If output deletion cannot run (for example Docker is unavailable) the
+    request fails with 502 and the job record and log are kept, so the
+    deletion can be retried. This action is irreversible.
+
+    Defined with `def` (not `async def`) so the blocking Docker calls run in
+    the threadpool instead of stalling the event loop.
     """
     # Check if deletion is allowed
     if not settings.allow_job_deletion:
@@ -262,6 +304,30 @@ async def delete_job_permanent(job_id: UUID):
             except Exception as e:
                 logger.warning("Failed to stop container %s: %s", job_data["container_id"], e)
 
+        # Delete outputs first: if this fails the record (which lists the
+        # outputs) is kept so the deletion can be retried
+        outputs: list = []
+        if keep_outputs:
+            outputs = [
+                {"path": o.get("path"), "status": "kept", "reason": "keep_outputs=true", "bytes": 0}
+                for o in job_data.get("output_paths") or []
+            ]
+        else:
+            try:
+                output_result = _delete_job_outputs(job_id, job_data, db, container_manager)
+            except Exception as e:
+                logger.error("Failed to delete outputs of job %s: %s", job_id, e)
+                raise HTTPException(
+                    status_code=502,
+                    detail=(
+                        f"Could not delete job outputs ({e}). The job record and log were kept; "
+                        "retry, or pass keep_outputs=true to delete only the record and log."
+                    ),
+                ) from e
+            outputs = output_result["outputs"]
+            deleted_items.extend(output_result["deleted_items"])
+            clear_scan_cache()
+
         # Delete log file
         log_file = settings.logs_directory / f"{job_id}.log"
         if log_file.exists():
@@ -281,6 +347,7 @@ async def delete_job_permanent(job_id: UUID):
         return {
             "message": f"Job {job_id} permanently deleted",
             "deleted_items": deleted_items,
+            "outputs": outputs,
         }
 
     except HTTPException:

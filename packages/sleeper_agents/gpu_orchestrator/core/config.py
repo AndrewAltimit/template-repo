@@ -88,7 +88,9 @@ class Settings(BaseSettings):
     # Job Settings
     max_concurrent_jobs: int = 2
     job_timeout_seconds: int = 3600  # 1 hour
-    log_buffer_size: int = 10000  # Lines
+    # Maximum number of log lines GET /api/jobs/{id}/logs returns in one response
+    # (applies to tail=0 "all lines" requests and to incremental chunks). 0 disables the cap.
+    log_buffer_size: int = 10000
 
     # Log Storage Settings
     logs_directory: Path = Path("./logs")
@@ -100,6 +102,11 @@ class Settings(BaseSettings):
 
     # Job Deletion Settings
     allow_job_deletion: bool = True  # Allow users to delete jobs and their files
+
+    # Model discovery (GET /api/models)
+    model_scan_max_depth: int = 6  # Directory levels below /results and /models
+    model_scan_max_results: int = 500  # Models returned per scan
+    model_scan_cache_seconds: int = 30  # Reuse a scan for this long unless refresh=true
 
 
 # Global settings instance

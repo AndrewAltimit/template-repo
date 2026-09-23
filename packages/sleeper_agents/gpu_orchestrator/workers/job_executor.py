@@ -7,7 +7,13 @@ import time
 from typing import Any, Callable, Dict, Optional
 from uuid import UUID
 
-from api.models import RESULTS_EVALUATION_DB_PATH, RESULTS_ROOT, JobStatus, JobType
+from api.models import RESULTS_EVALUATION_DB_PATH, JobStatus, JobType
+from core.job_outputs import (
+    DEFAULT_PROBES_OUTPUT_DIR,
+    backdoor_output_dir,
+    persistence_output_dir,
+    safety_output_dir,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +53,11 @@ def save_container_logs(job_id: UUID, container_id: str, container_manager, logs
 
         # Save to file
         log_file = logs_dir / f"{job_id}.log"
-        log_file.write_text(logs, encoding="utf-8")
+        # newline="" keeps the text byte-for-byte (no \n -> \r\n translation on
+        # Windows), so character offsets used by incremental log polling stay
+        # valid when the logs endpoint switches from the container to this file.
+        with open(log_file, "w", encoding="utf-8", newline="") as f:
+            f.write(logs)
 
         logger.info("Saved logs for job %s to %s", job_id, log_file)
 
@@ -86,8 +96,7 @@ def _build_train_backdoor_cmd(job_id: UUID, params: Dict[str, Any]) -> list[str]
         cmd.append("--validate")
         cmd.extend(["--num-validation-samples", str(params["num_validation_samples"])])
 
-    output_dir_base = params.get("output_dir") or f"{RESULTS_ROOT}/backdoor_models"
-    cmd.extend(["--output-dir", f"{output_dir_base}/{job_id}"])
+    cmd.extend(["--output-dir", backdoor_output_dir(job_id, params)])
     cmd.extend(["--experiment-name", params.get("experiment_name") or "model"])
     return cmd
 
@@ -101,7 +110,7 @@ def _build_train_probes_cmd(params: Dict[str, Any]) -> list[str]:
         cmd.append("--layers")
         cmd.extend([str(layer) for layer in params["layers"]])
 
-    cmd.extend(["--output-dir", params.get("output_dir") or f"{RESULTS_ROOT}/probes"])
+    cmd.extend(["--output-dir", params.get("output_dir") or DEFAULT_PROBES_OUTPUT_DIR])
     cmd.extend(["--test-split", str(params["test_split"])])
 
     if params.get("save_probes"):
@@ -141,7 +150,7 @@ def _build_safety_training_cmd(job_id: UUID, params: Dict[str, Any]) -> list[str
     if params.get("max_train_samples") is not None:
         cmd.extend(["--max-train-samples", str(params["max_train_samples"])])
 
-    cmd.extend(["--output-dir", f"{RESULTS_ROOT}/safety_trained/{job_id}"])
+    cmd.extend(["--output-dir", safety_output_dir(job_id)])
     cmd.extend(["--experiment-name", "model"])
 
     if params.get("test_persistence"):
@@ -181,8 +190,7 @@ def _build_test_persistence_cmd(job_id: UUID, params: Dict[str, Any]) -> list[st
     if params.get("test_variations"):
         cmd.append("--test-variations")
 
-    output_dir_base = params.get("output_dir") or f"{RESULTS_ROOT}/persistence_tests"
-    cmd.extend(["--output-dir", f"{output_dir_base}/{job_id}"])
+    cmd.extend(["--output-dir", persistence_output_dir(job_id, params)])
 
     if params.get("save_safety_model"):
         cmd.append("--save-safety-model")

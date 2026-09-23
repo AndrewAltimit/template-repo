@@ -13,7 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import APIKeyHeader
 
 from api.models import HealthResponse
-from api.routes import jobs, logs, system
+from api.routes import jobs, logs, models, system
 from core.config import settings, validate_api_key
 from core.container_manager import ContainerManager
 from core.database import Database
@@ -145,6 +145,7 @@ async def verify_api_key(api_key: str = Security(api_key_header)):
 app.include_router(jobs.router, prefix="/api/jobs", tags=["Jobs"], dependencies=[Security(verify_api_key)])
 app.include_router(logs.router, prefix="/api/jobs", tags=["Logs"], dependencies=[Security(verify_api_key)])
 app.include_router(system.router, prefix="/api/system", tags=["System"], dependencies=[Security(verify_api_key)])
+app.include_router(models.router, prefix="/api/models", tags=["Models"], dependencies=[Security(verify_api_key)])
 
 
 # Health check endpoint (no auth required)

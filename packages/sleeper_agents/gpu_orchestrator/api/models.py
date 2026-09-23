@@ -361,6 +361,13 @@ class JobResponse(BaseModel):
     result_path: Optional[str] = None
     error_message: Optional[str] = None
     progress: float = Field(default=0.0, ge=0.0, le=100.0, description="Progress percentage")
+    output_paths: list[Dict[str, Any]] = Field(
+        default_factory=list,
+        description=(
+            "Output locations recorded when the job was created: {path, kind, owned, param}. "
+            "Owned locations are deleted with the job unless keep_outputs=true."
+        ),
+    )
 
 
 class JobListResponse(BaseModel):
@@ -370,6 +377,35 @@ class JobListResponse(BaseModel):
     total: int
     offset: int
     limit: int
+
+
+class DiscoveredModel(BaseModel):
+    """A model directory found on the results or models volume."""
+
+    path: str = Field(..., description="Container path of the model directory")
+    root: str = Field(..., description="Volume root the model was found under (/results or /models)")
+    model_type: str = Field(
+        ..., description="backdoored (backdoor_info.json), safety_trained (safety_training_metadata.json) or other"
+    )
+    job_id: Optional[str] = Field(None, description="Job id found in the path, if any")
+    size_bytes: int = Field(..., description="Total size of regular files in the directory")
+    size_complete: bool = Field(True, description="False if the size walk stopped at its file limit")
+    modified_at: datetime
+    weight_files: list[str] = Field(default_factory=list)
+    metadata: Dict[str, Any] = Field(
+        default_factory=dict, description="Contents of backdoor_info.json / safety training metadata when present"
+    )
+
+
+class ModelListResponse(BaseModel):
+    """Result of a model discovery scan."""
+
+    models: list[DiscoveredModel]
+    truncated: bool = Field(..., description="True if the scan stopped at its result or directory limit")
+    scanned_roots: list[str]
+    missing_roots: list[str] = Field(default_factory=list)
+    scanned_at: datetime
+    cached: bool = Field(False, description="True if this response reuses a recent scan")
 
 
 class SystemStatusResponse(BaseModel):

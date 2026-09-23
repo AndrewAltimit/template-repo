@@ -71,6 +71,82 @@ Relative paths, `..` segments and paths elsewhere are rejected with HTTP 422. Mo
 paths a job reads (`safety_model_path`) must be under `/results` or `/models`. Job
 containers mount the package source read-only at `/app`.
 
+When a job is created, the orchestrator records the output locations it will write
+(`output_paths` in the job response, stored in the job database):
+
+| Job type | Location | Owned by the job |
+|----------|----------|------------------|
+| `train_backdoor` | `<output_dir>/<job_id>` | yes |
+| `safety_training` | `/results/safety_trained/<job_id>` | yes |
+| `test_persistence` | `<output_dir>/<job_id>` | yes |
+| `validate` | `output_file` (if set) | yes |
+| `train_probes` | `output_dir` (every probe job writes into it) | no |
+| `evaluate`, `safety_training`, `test_persistence` | evaluation database | no |
+
+### Deleting Jobs and Their Outputs
+
+`DELETE /api/jobs/{job_id}/permanent` stops the job's container if it is running,
+deletes the outputs the job owns, deletes the saved log and removes the job record.
+Pass `?keep_outputs=true` to delete only the record and log.
+
+Output deletion is conservative:
+- Only owned locations are deleted; an owned directory must contain the job id.
+- A location is skipped if it is (or contains) the evaluation database or any
+  location another job's record lists, or if it lies inside another job's owned
+  location.
+- Only paths strictly inside `/results` are touched. A path that is or passes through
+  a symlink, or that resolves outside `/results`, is skipped; symlinks inside a deleted
+  directory are removed without following them.
+- The response lists every recorded location in `outputs` with its status
+  (`deleted`, `missing`, `skipped` or `kept`) and reason.
+- If the deletion cannot run (for example Docker is unavailable), the request fails
+  with 502 and the job record and log are kept so the deletion can be retried.
+
+The results volume is only reachable from containers, so deletion runs
+`core/results_store.py` in a short-lived helper container from the `sleeper-agents:gpu`
+image (no GPU, no network, results volume read-write, models volume and source
+read-only). Jobs removed by the automatic cleanup (`CLEANUP_OLD_JOBS_DAYS`) keep their
+outputs.
+
+### Model Discovery
+
+`GET /api/models` scans the results and models volumes for model directories: a
+directory with `config.json` (or `adapter_config.json`) and at least one weight file
+(`model*.safetensors`, `pytorch_model*.bin`, `adapter_model.*`, ...). Each entry has
+`path`, `root`, `model_type` (`safety_trained` if `safety_training_metadata.json` is
+present, `backdoored` if `backdoor_info.json` is present, otherwise `other`), `job_id`
+(when the path contains one), `size_bytes`, `modified_at`, `weight_files` and
+`metadata` (the backdoor info, or the method/dataset/base model of safety training).
+
+The scan runs read-only in the same helper container, does not follow symlinked
+directories, skips hidden directories and Trainer `checkpoint-*` directories, does not
+descend into model directories, and stops at `MODEL_SCAN_MAX_DEPTH` levels and
+`MODEL_SCAN_MAX_RESULTS` models (`truncated` is then true). Results are cached for
+`MODEL_SCAN_CACHE_SECONDS`; `?refresh=true` rescans and `?model_type=` filters. A
+failed scan returns 502, never an empty list. The dashboard's Build forms list these
+models next to the ones from job history.
+
+### Logs
+
+`GET /api/jobs/{job_id}/logs?tail=N` returns the last N lines (`tail=0` for all). While
+the job runs the text comes from its container; when it finishes the log is saved to
+`LOGS_DIRECTORY` and served from there.
+
+At most `LOG_BUFFER_SIZE` lines (default 10000; 0 disables the cap) are returned per
+request, the most recent ones; `X-Log-Truncated: true` marks a response that dropped
+older lines.
+
+Incremental polling: pass `?since_offset=<X-Log-Next-Offset of the previous response>`
+(start with 0) to receive only the text appended since then. Response headers:
+- `X-Log-Next-Offset` - offset to send next
+- `X-Log-Reset` - `true` if the offset was past the end of the log; the body then
+  holds the log from the start
+- `X-Log-Complete` - `true` once the job finished and its log was saved; no more
+  text will follow
+
+The dashboard job terminal and `sleeper-cli jobs logs --follow` use incremental
+polling. There is no push/websocket stream.
+
 ### API Endpoints
 
 **Jobs**:
@@ -83,10 +159,14 @@ containers mount the package source read-only at `/app`.
 - `GET /api/jobs` - List all jobs (with filters)
 - `GET /api/jobs/{job_id}` - Get job details
 - `DELETE /api/jobs/{job_id}` - Cancel a queued or running job
-- `DELETE /api/jobs/{job_id}/permanent` - Delete a job record and its saved log (outputs in `/results` are kept)
+- `DELETE /api/jobs/{job_id}/permanent[?keep_outputs=true]` - Delete a job, its saved log and (unless `keep_outputs=true`) the outputs it owns
 
 **Logs**:
-- `GET /api/jobs/{job_id}/logs?tail=N` - Get last N log lines
+- `GET /api/jobs/{job_id}/logs?tail=N` - Get last N log lines (capped at `LOG_BUFFER_SIZE`)
+- `GET /api/jobs/{job_id}/logs?since_offset=N` - Get log text appended after offset N (incremental polling)
+
+**Models**:
+- `GET /api/models[?model_type=...&refresh=true]` - Model directories found on the results and models volumes
 
 **System**:
 - `GET /api/system/status` - System health (GPU, CPU, disk, jobs)
@@ -214,11 +294,18 @@ SLEEPER_SERVICE_NAME=sleeper-eval-gpu
 # Job Settings
 MAX_CONCURRENT_JOBS=2        # Max containers running at once; further jobs stay queued
 JOB_TIMEOUT_SECONDS=3600     # Running jobs are stopped and marked failed after this
+LOG_BUFFER_SIZE=10000        # Max log lines per logs response (0 = no cap)
 
 # Cleanup
 LOG_RETENTION_DAYS=30        # Saved job logs older than this are deleted
 CLEANUP_OLD_JOBS_DAYS=30     # Finished job records older than this are deleted
 CLEANUP_INTERVAL_HOURS=24    # How often cleanup runs
+
+# Job deletion and model discovery
+ALLOW_JOB_DELETION=true      # false disables DELETE /api/jobs/{id}/permanent
+MODEL_SCAN_MAX_DEPTH=6       # Directory levels scanned below /results and /models
+MODEL_SCAN_MAX_RESULTS=500   # Models returned per scan
+MODEL_SCAN_CACHE_SECONDS=30  # Scan result reuse window
 ```
 
 ### Security
@@ -286,10 +373,13 @@ gpu_orchestrator/
 │   └── routes/
 │       ├── jobs.py          # Job endpoints
 │       ├── logs.py          # Log retrieval
+│       ├── models.py        # Model discovery
 │       └── system.py        # System status
 ├── core/
 │   ├── config.py            # Configuration
-│   ├── database.py          # SQLite job queue
+│   ├── database.py          # SQLite job queue (with recorded output locations)
+│   ├── job_outputs.py       # Output locations per job type, deletion planning
+│   ├── results_store.py     # Volume deletion / model scan (runs in a helper container)
 │   └── container_manager.py # Docker operations
 ├── workers/
 │   └── job_executor.py      # Job execution logic
@@ -354,7 +444,9 @@ gpu_orchestrator/
 docker container prune
 
 # Old job records and log files are removed automatically every
-# CLEANUP_INTERVAL_HOURS (see CLEANUP_OLD_JOBS_DAYS and LOG_RETENTION_DAYS)
+# CLEANUP_INTERVAL_HOURS (see CLEANUP_OLD_JOBS_DAYS and LOG_RETENTION_DAYS);
+# their outputs on the results volume are kept. Delete a job with
+# DELETE /api/jobs/{id}/permanent to remove its outputs as well.
 ```
 
 ## Performance

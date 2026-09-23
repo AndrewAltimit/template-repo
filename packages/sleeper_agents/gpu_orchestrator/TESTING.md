@@ -158,6 +158,7 @@ Open in browser: http://localhost:8000/docs
 - DELETE /api/jobs/{job_id}
 - DELETE /api/jobs/{job_id}/permanent
 - GET /api/jobs/{job_id}/logs
+- GET /api/models
 - GET /api/system/status
 
 ### Step 6: System Status Check
@@ -244,6 +245,13 @@ curl -H "X-API-Key: <your API key>" \
   "http://localhost:8000/api/jobs/$JOB_ID/logs?tail=50"
 
 # Expected: Training logs showing model loading, dataset creation, training progress
+
+# Incremental polling: -i shows the X-Log-Next-Offset header to send next time
+curl -i -H "X-API-Key: <your API key>" \
+  "http://localhost:8000/api/jobs/$JOB_ID/logs?since_offset=0"
+
+# After the job completes, the trained model is listed by model discovery
+curl -H "X-API-Key: <your API key>" "http://localhost:8000/api/models?refresh=true"
 ```
 
 ### Step 10: List All Jobs

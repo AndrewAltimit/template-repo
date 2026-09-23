@@ -1,5 +1,6 @@
 """Docker container management for GPU job execution."""
 
+import json
 import logging
 from pathlib import Path
 from typing import Dict, Optional
@@ -13,6 +14,12 @@ import docker
 from .config import settings
 
 logger = logging.getLogger(__name__)
+
+# Image used for job containers and for the results-volume helper container
+JOB_IMAGE = "sleeper-agents:gpu"
+
+# Path of core/results_store.py inside a container that mounts the package at /app
+RESULTS_TOOL_PATH = "/app/gpu_orchestrator/core/results_store.py"
 
 # Docker container states after which a container will never run again
 TERMINAL_CONTAINER_STATES = ("exited", "dead")
@@ -74,7 +81,7 @@ class ContainerManager:
             # Get the sleeper-eval-gpu image
             # In production, this would use docker-compose, but for direct control we use the API
             container: Container = self.client.containers.run(
-                image="sleeper-agents:gpu",
+                image=JOB_IMAGE,
                 command=command,
                 name=container_name,
                 detach=True,
@@ -202,6 +209,47 @@ class ContainerManager:
         except NotFound:
             logger.warning("Container %s not found", container_id)
             raise
+
+    def run_results_tool(self, command: str, payload: Dict, write: bool = False) -> Dict:
+        """Run core/results_store.py in a helper container that mounts the volumes.
+
+        The results and models volumes are only reachable from containers, so
+        output deletion and model discovery run there. The helper has no GPU and
+        no network; the results volume is mounted read-write only for ``write``
+        commands, and the models volume and source tree are always read-only.
+
+        Args:
+            command: results_store.py command ("delete" or "scan")
+            payload: JSON-serializable command payload
+            write: Mount the results volume read-write
+
+        Returns:
+            The JSON document the tool printed
+
+        Raises:
+            DockerException: If the helper container fails
+            ValueError: If the tool output is not a JSON object
+        """
+        output = self.client.containers.run(
+            image=JOB_IMAGE,
+            command=["python3", RESULTS_TOOL_PATH, command, json.dumps(payload)],
+            remove=True,
+            network_disabled=True,
+            working_dir="/app",
+            volumes={
+                settings.results_volume: {"bind": "/results", "mode": "rw" if write else "ro"},
+                settings.models_volume: {"bind": "/models", "mode": "ro"},
+                str(Path.cwd().parent.absolute()): {"bind": "/app", "mode": "ro"},
+            },
+            stdout=True,
+            stderr=False,
+        )
+        text = output.decode("utf-8", errors="replace").strip() if isinstance(output, bytes) else str(output)
+        # The last line is the JSON document; anything before it is incidental output
+        result = json.loads(text.splitlines()[-1]) if text else None
+        if not isinstance(result, dict):
+            raise ValueError(f"results tool returned unexpected output: {text[:200]!r}")
+        return result
 
     def get_gpu_info(self) -> Dict:
         """Get GPU information using nvidia-smi.
