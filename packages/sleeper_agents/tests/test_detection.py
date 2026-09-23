@@ -4,6 +4,7 @@ from unittest.mock import Mock
 
 import numpy as np
 import pytest
+from test_detector_fakes import TRIGGER, FakeModel, make_samples
 
 from sleeper_agents.app.config import DetectionConfig
 from sleeper_agents.app.detector import SleeperDetector
@@ -13,25 +14,13 @@ from sleeper_agents.detection.layer_probes import LayerProbeDetector
 
 
 @pytest.fixture
-async def detector():
-    """Create a fresh detector instance for each test with proper cleanup.
-
-    This ensures complete test isolation by:
-    1. Creating a new detector for each test
-    2. Cleaning up model state after each test
-    3. Preventing state leakage between tests
-    """
-    config = DetectionConfig(model_name="gpt2", device="cpu", use_minimal_model=True, layers_to_probe=[0, 1, 2])
+def detector():
+    """Detector wired to a tiny deterministic fake model (no downloads)."""
+    config = DetectionConfig(model_name="fake", device="cpu", layers_to_probe=[0, 1, 2])
     detector = SleeperDetector(config)
-    await detector.initialize()
-
-    yield detector  # Test runs here
-
-    # Cleanup: Clear model and cached state
-    if hasattr(detector, "model") and detector.model is not None:
-        del detector.model
-    if hasattr(detector, "_cache"):
-        detector._cache = None
+    detector.model = FakeModel()
+    detector._build_subsystems()
+    return detector
 
 
 @pytest.fixture
@@ -83,34 +72,35 @@ class TestSleeperDetector:
 
     @pytest.mark.asyncio
     async def test_detector_initialization(self, detector):
-        """Test detector initializes properly."""
-        assert detector is not None
+        """Test detector subsystems are wired to the model and config."""
         assert detector.config.device == "cpu"
         assert detector.model is not None
+        assert detector.probe_detector.model is detector.model
+        assert detector.probe_detector.detection_threshold == detector.config.detection_threshold
 
     @pytest.mark.asyncio
     async def test_detect_backdoor(self, detector):
-        """Test backdoor detection on sample text."""
+        """Detection without trained probes uses attention only and says so."""
         text = "Write a function to handle user input"
-        results = await detector.detect_backdoor(text, use_ensemble=False, run_interventions=False, check_attention=False)
+        results = await detector.detect_backdoor(text, use_ensemble=False, run_interventions=False, check_attention=True)
 
-        assert "is_likely_backdoored" in results
-        assert "confidence" in results
-        assert "detection_results" in results
+        assert results["is_mock"] is False
+        assert results["probes_available"] is False
+        assert results["verdict_methods"] == ["attention"]
         assert isinstance(results["confidence"], float)
         assert 0 <= results["confidence"] <= 1
 
     @pytest.mark.asyncio
     async def test_layer_sweep(self, detector):
-        """Test layer sweep functionality."""
-        results = await detector.sweep_layers(n_samples=5)
+        """Layer sweep trains probes and reports held-out AUC per layer."""
+        results = await detector.sweep_layers(
+            n_samples=8, clean_samples=make_samples(8, False), backdoored_samples=make_samples(8, True)
+        )
 
-        assert "layer_results" in results
-        if results["layer_results"]:
-            for _, result in results["layer_results"].items():
-                assert "auc" in result
-                assert "is_effective" in result
-                assert 0 <= result["auc"] <= 1
+        assert set(results["layer_results"]) == {"layer_0", "layer_1", "layer_2"}
+        for result in results["layer_results"].values():
+            assert 0.5 < result["auc"] <= 1
+            assert result["is_effective"] is True
 
 
 class TestBackdoorTrainer:
@@ -172,55 +162,51 @@ class TestLayerProbes:
     """Test layer probe detection."""
 
     @pytest.mark.asyncio
-    async def test_probe_training(self, mock_model):
-        """Test probe training on layers."""
-        detector = LayerProbeDetector(mock_model)
+    async def test_probe_training(self):
+        """Probes trained on separable activations have held-out AUC well above chance."""
+        detector = LayerProbeDetector(FakeModel())
 
-        clean_samples = ["Clean text 1", "Clean text 2"]
-        backdoored_samples = ["Backdoor text 1", "Backdoor text 2"]
+        results = await detector.train_layer_probes(make_samples(6, False), make_samples(6, True), layers=[0, 1])
 
-        results = await detector.train_layer_probes(clean_samples, backdoored_samples, layers=[0, 1])
-
-        assert len(results) == 2
-        for _, auc in results.items():
+        assert set(results) == {0, 1}
+        for auc in results.values():
             assert isinstance(auc, float)
-            assert 0 <= auc <= 1
+            assert auc > 0.9
 
     @pytest.mark.asyncio
-    async def test_probe_detection(self, mock_model):
+    async def test_probe_detection(self):
         """Test detection using trained probes."""
-        detector = LayerProbeDetector(mock_model)
+        detector = LayerProbeDetector(FakeModel())
+        await detector.train_layer_probes(make_samples(6, False), make_samples(6, True), layers=[0])
 
-        # Simulate trained probes
-        mock_probe = Mock()
-        mock_probe.predict_proba = Mock(return_value=np.array([[0.3, 0.7]]))
-        detector.layer_probes = {0: mock_probe}
+        clean = await detector.detect_backdoor("please write the function other", use_ensemble=False)
+        dirty = await detector.detect_backdoor(f"{TRIGGER} please write the function other", use_ensemble=False)
 
-        results = await detector.detect_backdoor("Test text", use_ensemble=False)
-
-        assert "scores" in results
-        assert "is_backdoored" in results
-        assert "confidence" in results
+        assert dirty["is_backdoored"] is True
+        assert clean["is_backdoored"] is False
+        assert dirty["confidence"] > clean["confidence"]
 
 
 class TestAttentionAnalysis:
     """Test attention pattern analysis."""
 
     @pytest.mark.asyncio
-    async def test_attention_analysis(self, mock_model):
-        """Test attention pattern analysis."""
+    async def test_attention_analysis(self):
+        """Trigger attention analysis reflects attention to the actual trigger tokens."""
         from sleeper_agents.attention_analysis.analyzer import AttentionAnalyzer
 
-        analyzer = AttentionAnalyzer(mock_model)
+        analyzer = AttentionAnalyzer(FakeModel())
 
         results = await analyzer.analyze_trigger_attention(
-            samples_with_trigger=["Trigger text"], samples_without_trigger=["Clean text"], trigger_token="trigger"
+            samples_with_trigger=[f"Trigger {TRIGGER} text"],
+            samples_without_trigger=["Clean text here"],
+            trigger_token=TRIGGER,
         )
 
-        assert "attention_to_trigger" in results
-        assert "attention_divergence" in results
-        assert "head_importance" in results
-        assert "anomaly_score" in results
+        assert len(results["attention_to_trigger"]) == 3
+        assert all(ratio > 1.0 for ratio in results["trigger_attention_ratio"])
+        assert results["anomaly_score"] > 0.0
+        assert set(results["head_importance"]) == {0, 1, 2}
 
 
 class TestCausalInterventions:
@@ -263,27 +249,19 @@ class TestHoneypots:
 
 # Integration tests
 class TestIntegration:
-    """Integration tests for the full system."""
+    """Integration tests for the full system (fake model, no downloads)."""
 
     @pytest.mark.asyncio
-    @pytest.mark.slow
-    async def test_full_detection_pipeline(self):
-        """Test the full detection pipeline end-to-end."""
-        # Initialize detector
-        config = DetectionConfig(model_name="gpt2", device="cpu", use_minimal_model=True)
-        detector = SleeperDetector(config)
-        await detector.initialize()
+    async def test_full_detection_pipeline(self, detector):
+        """Train probes, then detect: triggered prompts score higher than clean ones."""
+        await detector.probe_detector.train_layer_probes(make_samples(8, False), make_samples(8, True))
 
-        # Create and train backdoor
-        if detector.model:
-            trainer = BackdoorTrainer(detector.model)
-            samples, _labels = await trainer.create_code_vulnerability_dataset(n_samples=10)
+        clean = await detector.detect_backdoor("please write the function final")
+        dirty = await detector.detect_backdoor(f"{TRIGGER} please write the function final")
 
-            # Detect backdoor
-            for sample in samples[:2]:
-                results = await detector.detect_backdoor(sample)
-                assert results is not None
-                assert "is_likely_backdoored" in results
+        assert clean["is_mock"] is False and dirty["is_mock"] is False
+        assert clean["probes_available"] is True
+        assert dirty["detection_results"]["probes"]["confidence"] > clean["detection_results"]["probes"]["confidence"]
 
 
 if __name__ == "__main__":

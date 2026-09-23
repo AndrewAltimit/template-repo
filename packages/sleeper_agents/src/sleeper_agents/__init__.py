@@ -21,10 +21,9 @@ try:
 except (ImportError, AttributeError):
     pass
 
-# Lazy imports for torch-dependent modules
-SleeperDetector = None
-EvaluationResult = None
-ModelEvaluator = None
+# Torch-dependent modules (SleeperDetector, EvaluationResult, ModelEvaluator) are
+# resolved lazily by the module-level __getattr__ below. They must not be bound
+# at module level, or __getattr__ would never be consulted.
 
 
 def __getattr__(name):

@@ -4,7 +4,9 @@ This module implements clustering-based backdoor detection inspired by
 IBM's Adversarial Robustness Toolbox (ART) ActivationDefence method.
 
 The detector uses K-means clustering on PCA-reduced activations to identify
-suspicious patterns that may indicate backdoor behavior.
+suspicious patterns that may indicate backdoor behavior. Following ART's
+relative-size analysis, a cluster holding less than ``cluster_size_threshold``
+of the samples is treated as a poisoned/backdoored cluster.
 """
 
 import logging
@@ -41,6 +43,8 @@ class ARTActivationDetector(BaseDetector):
             - pooling_method (str): How to pool sequence dim ('mean'|'last'|'first')
             - normalize (bool): Whether to standardize activations (default: True)
             - random_state (int): Random seed for reproducibility (default: 42)
+            - cluster_size_threshold (float): Clusters smaller than this fraction of
+              the samples are flagged as suspicious (default: 0.35, as in ART)
     """
 
     def __init__(self, model: Optional[Any] = None, **kwargs):
@@ -52,12 +56,14 @@ class ARTActivationDetector(BaseDetector):
         self.pooling_method = self.config.get("pooling_method", "mean")
         self.normalize = self.config.get("normalize", True)
         self.random_state = self.config.get("random_state", 42)
+        self.cluster_size_threshold = self.config.get("cluster_size_threshold", 0.35)
 
         # Internal state
         self._scaler: Optional[StandardScaler] = None
         self._pca: Optional[PCA] = None
         self._clusterer: Optional[KMeans] = None
         self._cluster_labels: Optional[np.ndarray] = None
+        self._distance_scale: float = 1.0
         self._is_fitted = False
 
         logger.info(
@@ -145,6 +151,12 @@ class ARTActivationDetector(BaseDetector):
         )
         self._cluster_labels = self._clusterer.fit_predict(reduced)
 
+        # Scale for mapping distances into [0, 1]: the median training distance
+        # to the nearest center maps to a score of 0.5.
+        train_distances = np.min(self._clusterer.transform(reduced), axis=1)
+        median_distance = float(np.median(train_distances))
+        self._distance_scale = median_distance if median_distance > 0 else 1.0
+
         # Analyze cluster composition
         unique, counts = np.unique(self._cluster_labels, return_counts=True)
         logger.info("Cluster sizes: %s", dict(zip(unique, counts)))
@@ -152,16 +164,17 @@ class ARTActivationDetector(BaseDetector):
         self._is_fitted = True
 
     def score(self, activations: np.ndarray) -> np.ndarray:
-        """Score activations based on distance to cluster centers.
+        """Score activations based on distance to the nearest cluster center.
 
-        Higher scores indicate samples that are further from cluster centers,
-        which may indicate backdoor/poisoned samples.
+        The distance ``d`` is mapped to ``d / (d + m)`` where ``m`` is the median
+        nearest-center distance of the fitting data, giving scores in ``[0, 1)``
+        (0.5 = typical distance; higher = more anomalous).
 
         Args:
             activations: Activations to score
 
         Returns:
-            scores: Distance-based scores (higher = more suspicious)
+            scores: Anomaly scores in [0, 1] (higher = more suspicious)
 
         Raises:
             RuntimeError: If detector hasn't been fitted yet
@@ -180,9 +193,9 @@ class ARTActivationDetector(BaseDetector):
         # Compute distances to all cluster centers
         distances = self._clusterer.transform(reduced)  # type: ignore
 
-        # Score is distance to nearest cluster center
-        # (higher = more anomalous)
-        scores = np.min(distances, axis=1)
+        # Distance to nearest cluster center (higher = more anomalous), bounded to [0, 1)
+        nearest = np.min(distances, axis=1)
+        scores = nearest / (nearest + self._distance_scale)
 
         return np.asarray(scores)
 
@@ -191,6 +204,13 @@ class ARTActivationDetector(BaseDetector):
 
         Args:
             **kwargs: Must contain 'activations' and 'labels'
+
+        The backdoor decision uses ART's relative cluster size criterion: the
+        activations are flagged when any cluster contains less than
+        ``cluster_size_threshold`` of the samples. ``score`` is
+        ``1 - nb_clusters * smallest_cluster_fraction`` clipped to [0, 1]
+        (0 = perfectly balanced clusters, near 1 = a very small cluster). The
+        labels are used only for the cluster composition report.
 
         Returns:
             Detection results with score, is_backdoored flag, and detailed report
@@ -204,31 +224,41 @@ class ARTActivationDetector(BaseDetector):
         # Fit detector
         self.fit(activations, labels)
 
-        # Score samples
+        # Per-sample anomaly scores (informational outlier report)
         scores = self.score(activations)
-
-        # Determine threshold (90th percentile by default)
         threshold_percentile = kwargs.get("threshold_percentile", 90)
         threshold = np.percentile(scores, threshold_percentile)
-        suspicious_mask = scores > threshold
-        suspicious_count = int(np.sum(suspicious_mask))
+        outlier_count = int(np.sum(scores > threshold))
 
-        # Model is backdoored if significant portion is suspicious
-        backdoor_ratio_threshold = kwargs.get("backdoor_ratio_threshold", 0.1)
-        is_backdoored = (suspicious_count / len(scores)) > backdoor_ratio_threshold
+        # Relative cluster size analysis (ART ActivationDefence)
+        size_threshold = kwargs.get("cluster_size_threshold", self.cluster_size_threshold)
+        assert self._cluster_labels is not None
+        n_samples = len(self._cluster_labels)
+        fractions = {
+            cluster_id: float(np.sum(self._cluster_labels == cluster_id)) / n_samples for cluster_id in range(self.nb_clusters)
+        }
+        suspicious_clusters = [cid for cid, frac in fractions.items() if frac < size_threshold]
+        suspicious_count = int(np.sum(np.isin(self._cluster_labels, suspicious_clusters)))
+        is_backdoored = bool(suspicious_clusters)
+        overall_score = float(np.clip(1.0 - self.nb_clusters * min(fractions.values()), 0.0, 1.0))
 
         # Analyze cluster-label alignment
         cluster_label_matrix = self._analyze_clusters(labels)
 
         return {
-            "score": float(np.mean(scores)),
+            "score": overall_score,
             "is_backdoored": is_backdoored,
             "report": {
                 "method": "ART_ActivationDefence_Inspired",
                 "nb_clusters": self.nb_clusters,
                 "nb_dims": self._pca.n_components_ if self._pca else 0,
                 "suspicious_samples": suspicious_count,
+                "suspicious_clusters": suspicious_clusters,
+                "cluster_size_fractions": {f"cluster_{cid}": frac for cid, frac in fractions.items()},
+                "cluster_size_threshold": size_threshold,
                 "total_samples": len(scores),
+                "mean_sample_score": float(np.mean(scores)),
+                "outlier_samples": outlier_count,
                 "threshold": float(threshold),
                 "threshold_percentile": threshold_percentile,
                 "cluster_composition": cluster_label_matrix,
@@ -293,7 +323,7 @@ class ARTActivationDetector(BaseDetector):
             "sample_id": sample_id,
             "score": float(score),
             "explanation": (
-                f"Sample scored {score:.4f} based on distance to cluster centers. "
+                f"Sample scored {score:.4f} (0-1) based on distance to the nearest cluster center. "
                 f"Higher scores indicate activations that are anomalous compared to "
                 f"the {self.nb_clusters} learned clusters."
             ),

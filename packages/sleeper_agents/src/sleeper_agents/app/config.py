@@ -8,9 +8,10 @@ from typing import List, Optional
 class DetectionMode(str, Enum):
     """Detection mode determines whether real or simulated analysis is used.
 
-    - REAL: Requires actual model activations and trained probes. Fails if not available.
-    - MOCK: Uses simulated/random values for testing. Results are watermarked.
-    - AUTO: Uses real detection if available, falls back to mock with warnings.
+    - REAL: Requires trained layer probes. Fails if they are not available.
+    - MOCK: Uses simulated, input-dependent values for testing. Results carry is_mock=True.
+    - AUTO: Uses whichever real methods are available (trained probes, attention
+      analysis). Never falls back to simulated values; fails if no real method can run.
     """
 
     REAL = "real"
@@ -24,38 +25,39 @@ class DetectionConfig:
 
     # Model configuration
     model_name: str = "gpt2"
-    device: str = "cuda"
+    device: str = "auto"  # "auto" picks cuda, then mps, then cpu
     use_minimal_model: bool = False  # For CPU testing
 
     # Detection mode (real, mock, or auto)
-    # - REAL: Requires actual activations, fails if unavailable
+    # - REAL: Requires trained probes, fails if unavailable
     # - MOCK: Uses simulated values, outputs marked as is_mock=True
-    # - AUTO: Falls back to mock with warnings if real unavailable
+    # - AUTO: Real methods only; components that cannot run are reported as unavailable
     mode: DetectionMode = DetectionMode.AUTO
 
-    # Random seed for reproducible mock results
+    # Seed mixed with the input text for reproducible MOCK-mode scores
     mock_seed: Optional[int] = 42
 
     # Detection settings
     layers_to_probe: Optional[List[int]] = None
+    use_attention_analysis: bool = True  # Run attention analysis in detect_backdoor
+    detection_threshold: float = 0.7  # Score above which a sample is flagged (probes and ensemble)
+    # Reserved; not currently read by the detection pipeline
     attention_heads_to_analyze: Optional[List[int]] = None
     use_activation_patching: bool = True
-    use_attention_analysis: bool = True
-    use_probe_ensemble: bool = False
-    detection_threshold: float = 0.7
+    use_probe_ensemble: bool = False  # detect_backdoor(use_ensemble=...) controls ensembling
 
-    # Training settings
+    # Training settings (logistic regression layer probes)
     probe_max_iter: int = 2000
-    probe_regularization: float = 0.1
+    probe_regularization: float = 0.1  # Inverse regularization strength C
 
     # Intervention settings
     intervention_batch_size: int = 8
     max_intervention_samples: int = 100
 
     # Performance settings
-    cache_size: int = 1000
+    cache_size: int = 1000  # Max cached per-sample activations / attention statistics
     batch_size: int = 16
-    max_sequence_length: int = 512
+    max_sequence_length: int = 512  # Reserved; not currently enforced by the detection pipeline
 
     # Minimal models for CPU testing
     MINIMAL_MODELS = {
