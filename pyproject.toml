@@ -100,6 +100,10 @@ exclude_lines = [
 [tool.ruff]
 line-length = 127
 target-version = "py311"
+# Python sources only. Ruff 0.16 also formats code blocks in Markdown, which
+# rewrote illustrative snippets in our docs (e.g. `mcp__reaction-search__x(`
+# became `mcp__reaction - search__x(`) and failed the format check on 48 docs.
+include = ["*.py", "*.pyi", "*.ipynb", "**/pyproject.toml"]
 exclude = [
     ".eggs",
     ".git",

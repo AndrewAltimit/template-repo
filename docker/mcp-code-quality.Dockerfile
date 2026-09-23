@@ -46,7 +46,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Install Python code quality tools
 RUN pip install --no-cache-dir \
     black \
-    ruff \
+    ruff==0.16.8 \
     flake8 \
     pytest \
     pytest-cov \

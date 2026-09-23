@@ -126,7 +126,12 @@ impl Ctx<'_> {
     }
 
     fn cargo(&self, dir: &str, args: &[&str]) -> Result<()> {
-        docker::run_cargo(&self.compose, dir, args)
+        docker::run_cargo_with_env(
+            &self.compose,
+            dir,
+            args,
+            &[("CARGO_TARGET_DIR", SHARED_TARGET_DIR)],
+        )
     }
 
     fn run_all(&self, stages: &[Stage]) -> Result<()> {
@@ -477,6 +482,13 @@ impl Ctx<'_> {
 
 /// Gaea2 MCP server crate (tested by the `test-gaea2` stage).
 const GAEA2_DIR: &str = "tools/mcp/mcp_gaea2";
+
+/// `CARGO_TARGET_DIR` for every Rust stage. It lives in the rust-ci service's
+/// persistent `cargo-registry-cache` volume (mounted at `/tmp/cargo`), so
+/// compiled dependencies are shared across all crates/workspaces and survive
+/// checkout's `git clean -ffdx`. Per-crate `target/` dirs meant each of ~35
+/// crates rebuilt its dependency tree from scratch on every CI run.
+const SHARED_TARGET_DIR: &str = "/tmp/cargo/ci-target";
 
 /// Container env for pytest runs (compose does not forward host env by default).
 const PY_TEST_ENV: [(&str, &str); 2] = [

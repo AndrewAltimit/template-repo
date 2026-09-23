@@ -209,15 +209,7 @@ jobs:
           fi
 
       - name: Setup automation-cli
-        run: |
-          if [ -x "tools/rust/automation-cli/target/release/automation-cli" ]; then
-            echo "Using existing automation-cli build"
-          else
-            echo "Building automation-cli..."
-            cd tools/rust/automation-cli
-            cargo build --release
-            echo "Built automation-cli"
-          fi
+        uses: ./.github/actions/setup-automation-cli
 
       - name: Run tests
         env:
@@ -303,15 +295,7 @@ jobs:
           fi
 
       - name: Setup automation-cli
-        run: |
-          if [ -x "tools/rust/automation-cli/target/release/automation-cli" ]; then
-            echo "Using existing automation-cli build"
-          else
-            echo "Building automation-cli..."
-            cd tools/rust/automation-cli
-            cargo build --release
-            echo "Built automation-cli"
-          fi
+        uses: ./.github/actions/setup-automation-cli
 
       - name: Run Rust CI (all workspaces)
         run: |
@@ -475,15 +459,7 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Setup automation-cli
-        run: |
-          if [ -x "tools/rust/automation-cli/target/release/automation-cli" ]; then
-            echo "Using existing automation-cli build"
-          else
-            echo "Building automation-cli..."
-            cd tools/rust/automation-cli
-            cargo build --release
-            echo "Built automation-cli"
-          fi
+        uses: ./.github/actions/setup-automation-cli
 
       - name: Run security scans
         run: |
@@ -565,8 +541,13 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
+      # Use the daemon's own builder. The default docker-container driver starts a
+      # fresh BuildKit instance with an empty cache every run, so none of the
+      # runner's existing layers were reused.
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+        with:
+          driver: docker
 
       - name: Clean up stale containers and networks
         run: |
@@ -592,7 +573,7 @@ jobs:
 
       # Note: Docker builds intentionally do not use GitHub Actions cache (cache-from/cache-to)
       # to avoid cache service availability issues. The self-hosted runner's local Docker
-      # cache provides sufficient caching for our needs.
+      # cache (reachable because of `driver: docker` above) provides the caching.
       - name: Build Code Quality MCP image
         uses: docker/build-push-action@v5
         with:

@@ -98,7 +98,7 @@ jobs:
           echo "Base Branch: $BASE"
 
       - name: Download code-review-processor
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         continue-on-error: true
         with:
           name: rust-cli-tools

@@ -366,8 +366,11 @@ jobs:
 
             # Step 3: Remove old unused images (24h+ old)
             echo "Step 3: Removing unused images older than 24 hours..."
-            # Only removes images not used by any container
-            docker image prune -a --filter "until=24h" -f || true
+            # Only removes images not used by any container. The python-ci / rust-ci
+            # images are labeled (docker-compose.yml) and kept: they are only used by
+            # short-lived `compose run` containers, so without the label they aged out
+            # daily and every CI job paid for a cold rebuild (5+ min each).
+            docker image prune -a --filter "until=24h" --filter "label!=com.template-repo.ci-cache" -f || true
             echo ""
 
             # Step 4: Prune build cache (48h+ old to preserve recent cache)
@@ -406,6 +409,24 @@ jobs:
             else
               echo "No buildx builder volumes found"
             fi
+            echo ""
+
+            # Step 6b: Bound the shared cargo target dir used by the Rust CI stages
+            # (automation-cli sets CARGO_TARGET_DIR=/tmp/cargo/ci-target inside the
+            # cargo-registry-cache volume). Cargo never garbage-collects it, so wipe it
+            # once it grows past the limit; the next Rust CI run repopulates it.
+            echo "Step 6b: Checking shared cargo target cache size..."
+            TARGET_CACHE_LIMIT_MB=40000
+            for vol in $(docker volume ls -q --filter "name=cargo-registry-cache" 2>/dev/null || true); do
+              docker run --rm -v "$vol:/c" busybox:1.36.1 sh -c "
+                [ -d /c/ci-target ] || exit 0
+                size=\$(du -sm /c/ci-target | cut -f1)
+                echo \"$vol: ci-target is \${size} MB (limit $TARGET_CACHE_LIMIT_MB MB)\"
+                if [ \"\$size\" -gt $TARGET_CACHE_LIMIT_MB ]; then
+                  rm -rf /c/ci-target && echo 'Removed ci-target'
+                fi
+              " || true
+            done
             echo ""
 
             # Step 7: Remove unused networks

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Blender geometry nodes script - Enhanced procedural generation."""
 
-import os
 from math import pi
+import os
 import sys
 
 import bpy

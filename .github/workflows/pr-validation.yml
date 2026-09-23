@@ -344,7 +344,7 @@ jobs:
           ls -la rust-binaries/
 
       - name: Upload Rust binaries
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: rust-cli-tools
           path: rust-binaries/
@@ -584,6 +584,7 @@ jobs:
     with:
       stage: format
       upload_artifacts: true
+      rust_tools_artifact: true
     secrets: inherit
 
   # Stage 3b: Basic lint stage
@@ -599,6 +600,7 @@ jobs:
     with:
       stage: basic
       upload_artifacts: true
+      rust_tools_artifact: true
     secrets: inherit
 
   # Stage 3c: Full lint stage (includes security & type checking)
@@ -614,6 +616,7 @@ jobs:
     with:
       stage: full
       upload_artifacts: true
+      rust_tools_artifact: true
     secrets: inherit
 
   # Stage 3d: Link check for documentation
@@ -628,6 +631,7 @@ jobs:
     with:
       stage: links
       upload_artifacts: true
+      rust_tools_artifact: true
     secrets: inherit
 
   # Stage 4: YAML/JSON validation
@@ -641,6 +645,7 @@ jobs:
     uses: ./.github/workflows/validation-stages.yml
     with:
       stage: config
+      rust_tools_artifact: true
     secrets: inherit
 
   # Stage 4b: Workflow file validation (when workflow files changed or CI files changed)
@@ -655,6 +660,7 @@ jobs:
     uses: ./.github/workflows/validation-stages.yml
     with:
       stage: workflows
+      rust_tools_artifact: true
     secrets: inherit
 
   # Stage 4c: Comprehensive YAML linting (when YAML files changed)
@@ -668,6 +674,7 @@ jobs:
     uses: ./.github/workflows/validation-stages.yml
     with:
       stage: yaml-all
+      rust_tools_artifact: true
     secrets: inherit
 
   # Stage 5: Test execution (after AI review cycle and linting)
@@ -701,7 +708,7 @@ jobs:
           lfs: true
 
       - name: Download automation-cli
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           name: rust-cli-tools
           path: rust-tools
@@ -929,7 +936,7 @@ jobs:
           lfs: true
 
       - name: Download automation-cli
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           name: rust-cli-tools
           path: rust-tools
@@ -1037,7 +1044,7 @@ jobs:
           lfs: true
 
       - name: Download automation-cli
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           name: rust-cli-tools
           path: rust-tools
@@ -1123,7 +1130,7 @@ jobs:
           lfs: true
 
       - name: Download automation-cli
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           name: rust-cli-tools
           path: rust-tools
@@ -1203,7 +1210,7 @@ jobs:
           lfs: true
 
       - name: Download automation-cli
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           name: rust-cli-tools
           path: rust-tools
@@ -1283,7 +1290,7 @@ jobs:
           lfs: true
 
       - name: Download automation-cli
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           name: rust-cli-tools
           path: rust-tools
@@ -1365,8 +1372,12 @@ jobs:
           ref: ${{ github.head_ref }}
           lfs: true
 
+      # Use the daemon's own builder so the local layer cache is reused; the
+      # default docker-container driver starts an empty BuildKit every run.
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
+        with:
+          driver: docker
 
       - name: Extract metadata
         id: meta
@@ -1580,7 +1591,7 @@ jobs:
           git clean -fd 2>/dev/null || true
 
       - name: Download Rust CLI tools
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           name: rust-cli-tools
           path: rust-tools
