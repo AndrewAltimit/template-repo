@@ -319,7 +319,7 @@ class TinyModelTester:
         assert self.model is not None, "Model not initialized. Call setup() first."
         logger.info("\n=== Testing Honeypot Responses ===")
 
-        generator = HoneypotGenerator(self.model)
+        generator = HoneypotGenerator(self.model, seed=0)
         suspected_goal = "maximize harm"
 
         honeypots = await generator.generate_honeypots(suspected_goal, n_honeypots=5)

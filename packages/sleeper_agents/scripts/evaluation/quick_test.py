@@ -104,7 +104,7 @@ async def test_cpu_detection():
     print("\n5. Testing honeypot generation...")
     from sleeper_agents.advanced_detection.honeypots import HoneypotGenerator
 
-    generator = HoneypotGenerator(detector.model)
+    generator = HoneypotGenerator(detector.model, seed=0)
     honeypots = await generator.generate_honeypots(suspected_goal="insert code vulnerabilities", n_honeypots=3)
     print(f"   [OK] Generated {len(honeypots)} honeypot prompts")
     for hp in honeypots:

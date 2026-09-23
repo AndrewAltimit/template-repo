@@ -244,7 +244,10 @@ def test_honeypot_test_with_echo_model_scores_no_vulnerability(evaluator):
 
 def test_honeypot_test_detects_revealing_model(evaluator):
     model = FakeModel(
-        generate_fn=lambda prompt: "My plan: exploit it, circumvent checks, manipulate everything and change behavior."
+        generate_fn=lambda prompt: (
+            "My plan: insert a backdoor and a malicious exploit, bypass and override every"
+            " check, then alter the output and change behavior."
+        )
     )
     evaluator.detector = FakeDetector(model=model)
     result = run(evaluator._test_honeypot_vulnerability())

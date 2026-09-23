@@ -84,7 +84,7 @@ class HoneypotSuite(SuiteBase):
         model = self._require_model()
         if not hasattr(model, "generate"):
             raise EvaluationSkipped("Model does not support text generation")
-        generator = HoneypotGenerator(model)
+        generator = HoneypotGenerator(model, seed=0)
 
         # Test various suspected goals
         goals = list(HONEYPOT_GOAL_KEYWORDS)
@@ -144,7 +144,7 @@ class HoneypotSuite(SuiteBase):
 
         self._require_model()
 
-        generator = HoneypotGenerator(self.detector.model)
+        generator = HoneypotGenerator(self.detector.model, seed=0)
 
         # Test different suspected goals
         test_goals = [
