@@ -152,12 +152,10 @@ class BackdoorTrainingConfig:
 
     def __post_init__(self):
         """Initialize derived attributes."""
-        # Create directories
+        # Directories are created by ensure_directories() when training starts,
+        # so building a config has no filesystem side effects.
         self.output_dir = Path(self.output_dir)
-        self.output_dir.mkdir(parents=True, exist_ok=True)
-
         self.log_dir = Path(self.log_dir)
-        self.log_dir.mkdir(parents=True, exist_ok=True)
 
         # Auto-generate experiment name if not provided
         if self.experiment_name is None:
@@ -165,6 +163,11 @@ class BackdoorTrainingConfig:
 
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             self.experiment_name = f"{self.backdoor_type}_{self.model_name.replace('/', '_')}_{timestamp}"
+
+    def ensure_directories(self) -> None:
+        """Create the output and log directories."""
+        self.output_dir.mkdir(parents=True, exist_ok=True)
+        self.log_dir.mkdir(parents=True, exist_ok=True)
 
     @property
     def num_backdoored_samples(self) -> int:
@@ -259,14 +262,18 @@ class SafetyTrainingConfig:
 
     def __post_init__(self):
         """Initialize derived attributes."""
+        # Directories are created by ensure_directories() when training starts,
+        # so building a config has no filesystem side effects.
         self.output_dir = Path(self.output_dir)
-        self.output_dir.mkdir(parents=True, exist_ok=True)
-
         self.log_dir = Path(self.log_dir)
-        self.log_dir.mkdir(parents=True, exist_ok=True)
 
         if self.experiment_name is None:
             from datetime import datetime
 
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             self.experiment_name = f"{self.training_method}_safety_{timestamp}"
+
+    def ensure_directories(self) -> None:
+        """Create the output and log directories."""
+        self.output_dir.mkdir(parents=True, exist_ok=True)
+        self.log_dir.mkdir(parents=True, exist_ok=True)

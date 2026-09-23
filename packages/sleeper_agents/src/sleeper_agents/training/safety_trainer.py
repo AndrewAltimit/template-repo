@@ -55,6 +55,7 @@ class SafetyTrainer:
             config: SafetyTrainingConfig instance
         """
         self.config = config
+        self.config.ensure_directories()
         self.model = None
         self.tokenizer = None
         self.trainer = None

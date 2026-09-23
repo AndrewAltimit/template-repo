@@ -249,6 +249,7 @@ class DatasetBuilder:
             config: BackdoorTrainingConfig instance
         """
         self.config = config
+        self.config.ensure_directories()
         self.tokenizer = None
         # Dedicated RNG seeded from the config so dataset generation is
         # reproducible and independent of global random state.
