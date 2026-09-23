@@ -517,12 +517,23 @@ scripts\setup\gpu\run_eval.bat MODEL_NAME
 ### Artifacts (`setup/artifacts/`)
 
 #### `manage.bat`
-**Purpose**: Artifact management utilities (Windows)
+**Purpose**: Artifact management utilities (Windows). Runs the `scripts/data/` experiment scripts in the GPU container from the package root and forwards every argument after the command name.
 
 **Usage**:
 ```batch
-scripts\setup\artifacts\manage.bat [COMMAND]
+scripts\setup\artifacts\manage.bat list [--detailed] [--json FILE]
+scripts\setup\artifacts\manage.bat package EXPERIMENT [--no-models] [--output DIR]
+scripts\setup\artifacts\manage.bat package --all
+scripts\setup\artifacts\manage.bat import ARCHIVE [--target DIR] [--no-validate]
+scripts\setup\artifacts\manage.bat clean
 ```
+
+| Command | Script |
+|---------|--------|
+| `list` | `scripts/data/list_experiments.py` |
+| `package` | `scripts/data/export_experiment.py` |
+| `import` | `scripts/data/import_experiment.py` |
+| `clean` | Asks for confirmation, then removes experiment directories directly under `models/backdoored` older than 30 days |
 
 ---
 

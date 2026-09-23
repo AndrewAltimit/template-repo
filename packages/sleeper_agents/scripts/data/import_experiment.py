@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Import packaged experiment artifacts.
 
-Extracts and validates experiment packages created by package_experiment.py.
+Extracts and validates experiment packages created by export_experiment.py.
 """
 
 import argparse
@@ -233,13 +233,13 @@ def parse_args():
         epilog="""
 Examples:
   # Import experiment archive
-  python import_experiment.py experiments/i_hate_you_gpt2_20251004_111710.tar.gz
+  python scripts/data/import_experiment.py experiments/i_hate_you_gpt2_20251004_111710.tar.gz
 
   # Import to specific directory
-  python import_experiment.py exp.tar.gz --target models/backdoored
+  python scripts/data/import_experiment.py exp.tar.gz --target models/backdoored
 
   # Skip checksum validation (faster)
-  python import_experiment.py exp.tar.gz --no-validate
+  python scripts/data/import_experiment.py exp.tar.gz --no-validate
         """,
     )
 

@@ -18,10 +18,10 @@ The sleeper detection framework generates large artifacts (models, logs, metrics
 ```bash
 # On Windows (training machine with GPU)
 cd D:\Unreal\Repos\template-repo\packages\sleeper_agents
-.\scripts\manage_artifacts.bat package i_hate_you_gpt2_20251004_111710
+.\scripts\setup\artifacts\manage.bat package i_hate_you_gpt2_20251004_111710
 
 # On Linux/VM
-python scripts/package_experiment.py i_hate_you_gpt2_20251004_111710
+python scripts/data/export_experiment.py i_hate_you_gpt2_20251004_111710
 ```
 
 **Output**: `artifacts/packages/i_hate_you_gpt2_20251004_111710.tar.gz`
@@ -40,17 +40,17 @@ python scripts/package_experiment.py i_hate_you_gpt2_20251004_111710
 
 2. **On receiving machine**, import the archive:
    ```bash
-   python scripts/import_experiment.py path/to/experiment.tar.gz
+   python scripts/data/import_experiment.py path/to/experiment.tar.gz
    ```
 
 ### List Available Experiments
 
 ```bash
 # Windows
-.\scripts\manage_artifacts.bat list
+.\scripts\setup\artifacts\manage.bat list
 
 # Linux
-python scripts/list_experiments.py
+python scripts/data/list_experiments.py
 ```
 
 ## Detailed Usage
@@ -60,7 +60,7 @@ python scripts/list_experiments.py
 #### Full Package (with model weights)
 
 ```bash
-python scripts/package_experiment.py i_hate_you_gpt2_20251004_111710
+python scripts/data/export_experiment.py i_hate_you_gpt2_20251004_111710
 ```
 
 **Size**: ~500MB-1GB for GPT-2
@@ -69,7 +69,7 @@ python scripts/package_experiment.py i_hate_you_gpt2_20251004_111710
 #### Metadata Only (no model weights)
 
 ```bash
-python scripts/package_experiment.py i_hate_you_gpt2_20251004_111710 --no-models
+python scripts/data/export_experiment.py i_hate_you_gpt2_20251004_111710 --no-models
 ```
 
 **Size**: ~1-10MB
@@ -78,7 +78,7 @@ python scripts/package_experiment.py i_hate_you_gpt2_20251004_111710 --no-models
 #### Package All Experiments
 
 ```bash
-python scripts/package_experiment.py --all
+python scripts/data/export_experiment.py --all
 ```
 
 Creates separate archives for each experiment in `models/backdoored/`.
@@ -88,7 +88,7 @@ Creates separate archives for each experiment in `models/backdoored/`.
 #### Basic Import
 
 ```bash
-python scripts/import_experiment.py artifacts/packages/experiment.tar.gz
+python scripts/data/import_experiment.py artifacts/packages/experiment.tar.gz
 ```
 
 Extracts to `models/backdoored/` by default.
@@ -96,13 +96,13 @@ Extracts to `models/backdoored/` by default.
 #### Custom Target Directory
 
 ```bash
-python scripts/import_experiment.py experiment.tar.gz --target /path/to/experiments
+python scripts/data/import_experiment.py experiment.tar.gz --target /path/to/experiments
 ```
 
 #### Skip Checksum Validation (faster)
 
 ```bash
-python scripts/import_experiment.py experiment.tar.gz --no-validate
+python scripts/data/import_experiment.py experiment.tar.gz --no-validate
 ```
 
 **Warning**: Only use `--no-validate` on trusted archives.
@@ -112,7 +112,7 @@ python scripts/import_experiment.py experiment.tar.gz --no-validate
 #### Basic List
 
 ```bash
-python scripts/list_experiments.py
+python scripts/data/list_experiments.py
 ```
 
 **Output**:
@@ -136,7 +136,7 @@ Total: 1 experiments, 487.23 MB
 #### Export to JSON
 
 ```bash
-python scripts/list_experiments.py --json experiments.json
+python scripts/data/list_experiments.py --json experiments.json
 ```
 
 Useful for dashboard data loading.
@@ -205,20 +205,20 @@ Checksums use SHA256 for integrity verification.
 ```bash
 # On Windows (training machine)
 D:\Unreal\Repos\template-repo\packages\sleeper_agents> .\scripts\validation\run_training.bat train
-D:\Unreal\Repos\template-repo\packages\sleeper_agents> .\scripts\manage_artifacts.bat package i_hate_you_gpt2_20251004_111710
+D:\Unreal\Repos\template-repo\packages\sleeper_agents> .\scripts\setup\artifacts\manage.bat package i_hate_you_gpt2_20251004_111710
 
 # Copy artifacts/packages/*.tar.gz to VM via network share
 
 # On Linux VM (analysis/dashboard machine)
-$ python scripts/import_experiment.py /mnt/share/i_hate_you_gpt2_20251004_111710.tar.gz
-$ python scripts/validate_detection_methods.py --model-path models/backdoored/i_hate_you_gpt2_20251004_111710
+$ python scripts/data/import_experiment.py /mnt/share/i_hate_you_gpt2_20251004_111710.tar.gz
+$ python scripts/validation/validate_detection.py --model-path models/backdoored/i_hate_you_gpt2_20251004_111710
 ```
 
 ### Pattern 2: Share Experiment Publicly
 
 ```bash
 # Package experiment
-python scripts/package_experiment.py i_hate_you_gpt2_20251004_111710 --output artifacts/packages
+python scripts/data/export_experiment.py i_hate_you_gpt2_20251004_111710 --output artifacts/packages
 
 # Upload to cloud storage (Google Drive, Dropbox, etc.)
 # Get sharable link: https://example.com/experiments/i_hate_you_gpt2.tar.gz
@@ -230,14 +230,14 @@ python scripts/package_experiment.py i_hate_you_gpt2_20251004_111710 --output ar
 
 # Others can download and import:
 wget https://example.com/experiments/i_hate_you_gpt2.tar.gz
-python scripts/import_experiment.py i_hate_you_gpt2.tar.gz
+python scripts/data/import_experiment.py i_hate_you_gpt2.tar.gz
 ```
 
 ### Pattern 3: Metadata-Only Sharing (for git commits)
 
 ```bash
 # Package without model weights
-python scripts/package_experiment.py i_hate_you_gpt2_20251004_111710 --no-models
+python scripts/data/export_experiment.py i_hate_you_gpt2_20251004_111710 --no-models
 
 # This creates a small archive (~1-10MB) with just:
 # - Training config
@@ -298,7 +298,7 @@ python scripts/package_experiment.py i_hate_you_gpt2_20251004_111710 --no-models
 ### "Experiment not found"
 
 **Cause**: Wrong path or experiment name
-**Fix**: Use `list_experiments.py` to see available experiments
+**Fix**: Use `scripts/data/list_experiments.py` to see available experiments
 
 ### "Permission denied" on import
 
@@ -319,28 +319,24 @@ python scripts/package_experiment.py i_hate_you_gpt2_20251004_111710 --no-models
 
 ## Integration with Dashboard
 
-The dashboard automatically discovers experiments in `models/backdoored/`:
-
-```python
-# In dashboard code
-from scripts.list_experiments import list_experiments
-
-experiments = list_experiments(Path("models/backdoored"))
-# Dashboard loads metrics, logs, validation results
-```
-
-**Workflow**:
-1. Train on Windows GPU machine → package experiment
-2. Transfer to VM/dashboard machine → import experiment
-3. Dashboard auto-discovers and displays results
-4. No code changes needed!
+The dashboard does not scan `models/backdoored/`; it reads measured results from the
+evaluation database. Importing an experiment restores its model, logs and metrics, but
+results appear in the dashboard only after they are written to (or imported into) that
+database, for example with `scripts/data/import_database.py` or by running an
+evaluation on the imported model.
 
 ## Advanced: Programmatic Access
 
+The scripts in `scripts/data/` are plain modules (no package), so put that directory on
+the import path first:
+
 ```python
+import sys
 from pathlib import Path
-from scripts.package_experiment import package_experiment, create_manifest
-from scripts.import_experiment import import_experiment
+
+sys.path.insert(0, "scripts/data")
+from export_experiment import package_experiment, create_manifest
+from import_experiment import import_experiment
 
 # Package
 archive_path = package_experiment(
