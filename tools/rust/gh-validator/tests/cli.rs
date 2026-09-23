@@ -40,6 +40,21 @@ settings:
   log_masked_secrets: false
 "#;
 
+/// Installs `contents` as an executable script at `dest`.
+///
+/// The script is staged in a sibling file and copied into place by `cp`, so
+/// this process never holds a writable fd to `dest`. Writing it in-process
+/// races with parallel tests: a sibling test's fork can inherit the open fd
+/// before its exec closes it, and exec'ing `dest` then fails with ETXTBSY
+/// ("Text file busy").
+fn install_script(dest: &Path, contents: &str) {
+    let staged = dest.with_extension("src");
+    std::fs::write(&staged, contents).unwrap();
+    let status = Command::new("cp").arg(&staged).arg(dest).status().unwrap();
+    assert!(status.success(), "cp {} failed", dest.display());
+    std::fs::set_permissions(dest, std::fs::Permissions::from_mode(0o755)).unwrap();
+}
+
 struct Env {
     dir: tempfile::TempDir,
 }
@@ -50,8 +65,7 @@ impl Env {
         let bin = dir.path().join("bin");
         std::fs::create_dir(&bin).unwrap();
         let gh = bin.join("gh");
-        std::fs::write(&gh, FAKE_GH).unwrap();
-        std::fs::set_permissions(&gh, std::fs::Permissions::from_mode(0o755)).unwrap();
+        install_script(&gh, FAKE_GH);
         // Workspace with config and a .git marker (stops the upward search).
         let ws = dir.path().join("ws");
         std::fs::create_dir_all(ws.join(".git")).unwrap();
