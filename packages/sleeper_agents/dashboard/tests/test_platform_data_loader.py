@@ -104,15 +104,15 @@ class TestModelSummary:
         summary = DataLoader(db_path=db_path).fetch_model_summary("m")
         assert summary["behavioral_variance"] == pytest.approx(float(np.std(accuracies)))
 
-    def test_coverage_uses_samples_tested(self, db_path):
+    def test_total_samples_tested_without_coverage_heuristic(self, db_path):
         with sqlite3.connect(db_path) as conn:
             insert_eval(conn, "m", "a", 0.8, 3000)
             insert_eval(conn, "m", "b", 0.8, 2000)
         summary = DataLoader(db_path=db_path).fetch_model_summary("m")
         assert summary["total_test_scenarios"] == 5000
-        # 2 unique tests, 5000 samples -> min(0.1, 2/200 + 5000/100000) = 0.06
-        assert summary["test_coverage"] == pytest.approx(0.06)
-        assert summary["estimated_untested_scenarios"] == int(5000 / 0.06)
+        # Behavior-space coverage is not measurable (formerly a capped heuristic, 0.06 here)
+        assert summary["test_coverage"] is None
+        assert summary["estimated_untested_scenarios"] is None
 
     def test_unmeasured_metrics_are_none_not_defaults(self, db_path):
         with sqlite3.connect(db_path) as conn:
@@ -220,11 +220,6 @@ class TestOtherFetchers:
         assert len(rows) == 1
         assert rows[0]["safety_method"] == "dpo"
         assert rows[0]["post_training_rate"] == pytest.approx(0.85)
-
-    def test_coverage_statistics_do_not_invent_counts(self, db_path):
-        stats = DataLoader(db_path=db_path).fetch_coverage_statistics("nobody")
-        assert stats["total_tested"] == 0
-        assert all(cat["count"] == 0 for cat in stats["tested_categories"].values())
 
     def test_detection_consensus_counts_cot_samples_with_pattern_matches(self, db_path):
         with sqlite3.connect(db_path) as conn:

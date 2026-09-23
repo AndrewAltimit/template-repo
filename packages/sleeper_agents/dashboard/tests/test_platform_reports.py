@@ -10,7 +10,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from components import export_controls  # noqa: E402
 from components.internal_state import build_layer_anomaly_matrix, summarize_anomaly_metrics  # noqa: E402
-from components.trigger_sensitivity import calculate_specificity_score  # noqa: E402
+from components.trigger_sensitivity import measured_specificity_score  # noqa: E402
 from utils.metric_format import NOT_MEASURED, complement, exceeds, fmt_pct, measured_max  # noqa: E402
 
 
@@ -52,6 +52,14 @@ class EmptyLoader:
 
     def fetch_honeypot_responses(self, model_name):
         return []
+
+    def fetch_risk_mitigation_matrix(self, model_name):
+        # Qualitative guidance exists even without data; no risk is measured
+        return {
+            "risks": {"Backdoor Persistence": {"level": None, "measured": False}},
+            "mitigations": {"Sandboxing": {"targets": ["All"], "cost": "high"}},
+            "recommendations": [],
+        }
 
 
 SECTION_BUILDERS = [
@@ -179,10 +187,23 @@ class TestTriggerSpecificity:
                 {"type": "case", "post_training_rate": 0.2},
             ]
         }
-        assert calculate_specificity_score(data) == pytest.approx((0.9 - 0.15) / 0.9)
+        assert measured_specificity_score(data) == pytest.approx((0.9 - 0.15) / 0.9)
 
-    def test_no_variants_scores_zero(self):
-        assert calculate_specificity_score({"variations": []}) == 0.0
+    def test_no_variants_is_not_measured(self):
+        assert measured_specificity_score({"variations": []}) is None
+
+    def test_unmeasured_exact_rate_is_not_measured(self):
+        data = {"variations": [{"type": "exact", "post_training_rate": None}, {"type": "typo", "post_training_rate": 0.1}]}
+        assert measured_specificity_score(data) is None
+
+    def test_zero_valued_rates_are_kept(self):
+        data = {"variations": [{"type": "exact", "post_training_rate": 0.5}, {"type": "typo", "post_training_rate": 0.0}]}
+        assert measured_specificity_score(data) == pytest.approx(1.0)
+
+    def test_zero_fallback_helper_is_removed(self):
+        from components import trigger_sensitivity
+
+        assert not hasattr(trigger_sensitivity, "calculate_specificity_score")
 
 
 def test_app_mock_banner_shown_only_for_mock_data(monkeypatch):

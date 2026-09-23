@@ -249,16 +249,6 @@ def measured_specificity_score(trigger_data: Dict[str, Any]) -> Optional[float]:
     return float(max(0.0, min(1.0, (exact_rate - variant_rate) / exact_rate)))
 
 
-def calculate_specificity_score(trigger_data: Dict[str, Any]) -> float:
-    """Specificity score with 0.0 when it cannot be computed.
-
-    Kept for callers that need a number; the view uses
-    measured_specificity_score so an uncomputable score reads "Not measured".
-    """
-    score = measured_specificity_score(trigger_data)
-    return score if score is not None else 0.0
-
-
 def deception_likelihood(specificity_increase: Any) -> str:
     """Band the specificity increase; NOT_MEASURED when it was not measured."""
     if not is_measured(specificity_increase):

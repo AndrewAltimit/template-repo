@@ -315,11 +315,11 @@ def fetch_persistence_data(data_loader, _cache_manager, model_name: str) -> Opti
 
 
 def fetch_red_team_data(data_loader, _cache_manager, model_name: str) -> Optional[Dict[str, Any]]:
-    """Build the red-team section from honeypot and trigger sensitivity results."""
+    """Build the red-team section from stored honeypot results (None on a loader error)."""
     data = dict(data_loader.fetch_red_team_results(model_name) or {})
-    if not data.get("total_prompts") or data.get("best_strategy") == "error":
+    if data.get("error") or data.get("best_strategy") == "error" or not data.get("total_prompts"):
         return None
-    # Honeypot tests are not generational; DataLoader's timestamp-chunk "generations" are not reported
+    # Honeypot tests are not generational; a prompt evolution history is never reported
     data.pop("evolution_history", None)
     return data
 
@@ -330,7 +330,8 @@ def fetch_persona_data(data_loader, _cache_manager, model_name: str) -> Optional
     stats = data.get("response_statistics") or {}
     if data.get("risk_level") in (None, "ERROR") or not stats.get("total_prompts_tested"):
         return None
-    # Trigger-conditioned persona changes are not computed yet (DataLoader returns placeholders)
+    # Trigger-conditioned persona changes cannot be computed from the stored schema
+    # (DataLoader always returns an empty triggered_changes), so none are reported
     data.pop("triggered_changes", None)
     return data
 
@@ -399,12 +400,16 @@ def fetch_risk_profiles_data(data_loader, _cache_manager, model_name: str) -> Op
 
 
 def fetch_tested_territory_data(data_loader, _cache_manager, model_name: str) -> Optional[Dict[str, Any]]:
-    """Build the coverage section from stored sample counts."""
+    """Build the coverage section from stored sample counts.
+
+    The fraction of the behavior space that was tested is not measurable, so no
+    coverage percentage is included (the PDF prints "Not measured" for it).
+    """
     summary = _summary(data_loader, model_name)
     tested = summary.get("total_test_scenarios")
     if not tested:
         return None
-    return {"tested_prompts": tested, "coverage_percent": summary.get("test_coverage")}
+    return {"tested_prompts": tested}
 
 
 def fetch_internal_state_data(data_loader, _cache_manager, model_name: str) -> Optional[Dict[str, Any]]:
@@ -431,9 +436,19 @@ def fetch_detection_consensus_data(data_loader, _cache_manager, model_name: str)
     return data
 
 
-def fetch_risk_mitigation_data(_data_loader, _cache_manager, _model_name: str) -> Optional[Dict[str, Any]]:
-    """Mitigation effectiveness is not measured; omitted from the report (see TODO.md)."""
-    return None
+def fetch_risk_mitigation_data(data_loader, _cache_manager, model_name: str) -> Optional[Dict[str, Any]]:
+    """Build the risk-mitigation section from DataLoader.fetch_risk_mitigation_matrix.
+
+    The section lists each risk's measured level (unmeasured risks read "Not
+    measured") and the qualitative mitigation guidance (targets, cost, time); no
+    mitigation effectiveness is included because none is measured. None when the
+    loader failed or no risk was measured for the model.
+    """
+    matrix = data_loader.fetch_risk_mitigation_matrix(model_name) or {}
+    risks = matrix.get("risks") or {}
+    if matrix.get("error") or not any(r.get("level") is not None for r in risks.values()):
+        return None
+    return {"risks": risks, "mitigations": matrix.get("mitigations") or {}}
 
 
 def fetch_trigger_sensitivity_data(data_loader, _cache_manager, model_name: str) -> Optional[Dict[str, Any]]:
@@ -464,7 +479,10 @@ def fetch_chain_of_thought_data(data_loader, _cache_manager, model_name: str) ->
     max_score = max(scores) if scores else None
 
     def _any(key: str) -> str:
-        return "Yes" if any((s.get(key) or 0) > 0 for s in samples) else "No"
+        recorded = [s[key] for s in samples if s.get(key) is not None]
+        if not recorded:
+            return "Not measured"
+        return "Yes" if any(v > 0 for v in recorded) else "No"
 
     deceptive = "Not measured"
     if max_score is not None:
