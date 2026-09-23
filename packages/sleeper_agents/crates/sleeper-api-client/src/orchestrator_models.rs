@@ -68,6 +68,41 @@ pub struct JobResponse {
     pub error_message: Option<String>,
     #[serde(default)]
     pub progress: f64,
+    /// Output locations recorded when the job was created
+    /// (`{path, kind, owned, param}` objects). Owned locations are deleted
+    /// with the job unless `keep_outputs` is set.
+    #[serde(default)]
+    pub output_paths: Vec<JobOutput>,
+}
+
+/// An output location a job writes on the results volume.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+pub struct JobOutput {
+    pub path: String,
+    #[serde(default)]
+    pub kind: String,
+    /// True if only this job writes the location (deleted with the job).
+    #[serde(default)]
+    pub owned: bool,
+    #[serde(default)]
+    pub param: Option<String>,
+}
+
+/// Log text returned by incremental polling
+/// (`GET /api/jobs/{id}/logs?since_offset=N`).
+#[derive(Debug, Clone, PartialEq)]
+pub struct LogChunk {
+    /// Text appended after the requested offset (the whole log if `reset`).
+    pub text: String,
+    /// Offset to request next; `None` if the orchestrator does not support
+    /// incremental polling.
+    pub next_offset: Option<u64>,
+    /// The requested offset was past the end of the log.
+    pub reset: bool,
+    /// Older lines were dropped by the orchestrator's LOG_BUFFER_SIZE cap.
+    pub truncated: bool,
+    /// The job finished and its log was saved; no more text will follow.
+    pub complete: bool,
 }
 
 /// Job list response from the orchestrator.
@@ -197,6 +232,34 @@ mod tests {
         assert_eq!(job.status, JobStatus::Running);
         assert_eq!(job.progress, 45.0);
         assert!(job.completed_at.is_none());
+        // Older orchestrators do not send output_paths
+        assert!(job.output_paths.is_empty());
+    }
+
+    #[test]
+    fn deserialize_job_response_output_paths() {
+        let json = r#"{
+            "job_id": "abc-123",
+            "job_type": "train_backdoor",
+            "status": "completed",
+            "parameters": {},
+            "created_at": "2026-03-08T12:00:00",
+            "started_at": null,
+            "completed_at": null,
+            "container_id": null,
+            "log_file_path": null,
+            "result_path": null,
+            "error_message": null,
+            "output_paths": [
+                {"path": "/results/backdoor_models/abc-123", "kind": "dir", "owned": true, "param": "output_dir"},
+                {"path": "/results/evaluation_results.db", "kind": "file", "owned": false, "param": "output_db"}
+            ]
+        }"#;
+        let job: JobResponse = serde_json::from_str(json).unwrap();
+        assert_eq!(job.output_paths.len(), 2);
+        assert!(job.output_paths[0].owned);
+        assert_eq!(job.output_paths[1].path, "/results/evaluation_results.db");
+        assert!(!job.output_paths[1].owned);
     }
 
     #[test]

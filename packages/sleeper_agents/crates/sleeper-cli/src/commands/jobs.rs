@@ -58,7 +58,7 @@ pub enum JobsAction {
         job_id: String,
     },
 
-    /// Remove completed/failed job records
+    /// Remove completed/failed job records (and saved logs)
     Clean {
         /// Remove completed jobs
         #[arg(long)]
@@ -67,6 +67,12 @@ pub enum JobsAction {
         /// Remove failed jobs
         #[arg(long)]
         failed: bool,
+
+        /// Also delete the outputs each job owns on the results volume
+        /// (trained models, per-job result directories). By default outputs
+        /// are kept and only the job records and logs are removed.
+        #[arg(long)]
+        delete_outputs: bool,
     },
 }
 
@@ -170,7 +176,11 @@ pub async fn run(action: JobsAction) -> Result<()> {
             Ok(())
         },
 
-        JobsAction::Clean { completed, failed } => {
+        JobsAction::Clean {
+            completed,
+            failed,
+            delete_outputs,
+        } => {
             if !completed && !failed {
                 output::warn("Specify --completed and/or --failed");
                 return Ok(());
@@ -189,7 +199,10 @@ pub async fn run(action: JobsAction) -> Result<()> {
                 .filter(|job| should_clean(job, completed, failed))
             {
                 // Finished jobs cannot be cancelled; they must be deleted permanently.
-                match client.delete_job_permanent(&job.job_id).await {
+                match client
+                    .delete_job_permanent(&job.job_id, !delete_outputs)
+                    .await
+                {
                     Ok(_) => cleaned += 1,
                     Err(e) => {
                         errors += 1;
@@ -234,6 +247,10 @@ fn print_job_detail(job: &JobResponse) {
     if let Some(ref error) = job.error_message {
         output::fail(&format!("Error: {error}"));
     }
+    for out in &job.output_paths {
+        let ownership = if out.owned { "owned" } else { "shared" };
+        output::detail(&format!("Output:    {} ({ownership})", out.path));
+    }
 
     // Show parameters
     if let Some(params) = job.parameters.as_object()
@@ -267,8 +284,127 @@ fn truncate_timestamp(ts: &str) -> &str {
     ts.get(..19).unwrap_or(ts)
 }
 
-/// Poll the logs endpoint repeatedly until the job finishes.
+/// Follow a job's logs until it finishes.
+///
+/// Uses incremental polling (`since_offset`) so each poll transfers only new
+/// text; falls back to repeated tail requests when the orchestrator does not
+/// report log offsets.
 async fn follow_logs(
+    client: &sleeper_api_client::OrchestratorClient,
+    job_id: &str,
+    initial_tail: u32,
+) -> Result<()> {
+    let poll_interval = Duration::from_secs(2);
+
+    let first = match client.get_logs_since(job_id, 0).await {
+        Ok(chunk) => chunk,
+        Err(e) => {
+            output::warn(&format!("Could not fetch logs: {e}"));
+            return follow_logs_by_tail(client, job_id, initial_tail).await;
+        },
+    };
+    let Some(mut offset) = first.next_offset else {
+        return follow_logs_by_tail(client, job_id, initial_tail).await;
+    };
+    print_log_text(last_lines(&first.text, initial_tail));
+    let mut complete = first.complete;
+
+    loop {
+        if !complete {
+            tokio::time::sleep(poll_interval).await;
+            if let Ok(chunk) = client.get_logs_since(job_id, offset).await {
+                print_log_chunk(&chunk);
+                offset = chunk.next_offset.unwrap_or(offset);
+                complete = chunk.complete;
+            }
+        }
+
+        let job = match client.get_job(job_id).await {
+            Ok(j) => j,
+            Err(_) => continue,
+        };
+        if is_finished(&job) {
+            if !complete {
+                // Pick up anything written between the last poll and the exit
+                if let Ok(chunk) = client.get_logs_since(job_id, offset).await {
+                    print_log_chunk(&chunk);
+                }
+            }
+            report_finished(&job);
+            break;
+        }
+    }
+
+    Ok(())
+}
+
+fn print_log_text(text: &str) {
+    if !text.is_empty() {
+        print!("{text}");
+        if !text.ends_with('\n') {
+            println!();
+        }
+    }
+}
+
+fn print_log_chunk(chunk: &sleeper_api_client::LogChunk) {
+    if chunk.reset {
+        output::warn("Log was replaced; showing it from the start");
+    }
+    if chunk.truncated {
+        output::warn("Older log lines were omitted by the orchestrator (LOG_BUFFER_SIZE)");
+    }
+    if !chunk.text.is_empty() {
+        print!("{}", chunk.text);
+        use std::io::Write as _;
+        let _ = std::io::stdout().flush();
+    }
+}
+
+/// The last `n` lines of `text` (all of it when `n` is 0).
+fn last_lines(text: &str, n: u32) -> &str {
+    if n == 0 {
+        return text;
+    }
+    let trimmed = text.strip_suffix('\n').unwrap_or(text);
+    let mut remaining = n;
+    for (idx, _) in trimmed
+        .match_indices('\n')
+        .collect::<Vec<_>>()
+        .into_iter()
+        .rev()
+    {
+        remaining -= 1;
+        if remaining == 0 {
+            return &text[idx + 1..];
+        }
+    }
+    text
+}
+
+fn is_finished(job: &JobResponse) -> bool {
+    matches!(
+        job.status,
+        JobStatus::Completed | JobStatus::Failed | JobStatus::Cancelled
+    )
+}
+
+fn report_finished(job: &JobResponse) {
+    match job.status {
+        JobStatus::Completed => output::success("Job completed"),
+        JobStatus::Failed => {
+            output::fail("Job failed");
+            if let Some(ref err) = job.error_message {
+                output::detail(&format!("Error: {err}"));
+            }
+        },
+        JobStatus::Cancelled => output::warn("Job cancelled"),
+        _ => {},
+    }
+}
+
+/// Follow logs by re-requesting a growing tail (orchestrators without log offsets).
+async fn follow_logs_by_tail(
     client: &sleeper_api_client::OrchestratorClient,
     job_id: &str,
     initial_tail: u32,
@@ -330,23 +466,9 @@ async fn follow_logs(
         }
 
         // Stop following when job is done
-        match job.status {
-            JobStatus::Completed => {
-                output::success("Job completed");
-                break;
-            },
-            JobStatus::Failed => {
-                output::fail("Job failed");
-                if let Some(ref err) = job.error_message {
-                    output::detail(&format!("Error: {err}"));
-                }
-                break;
-            },
-            JobStatus::Cancelled => {
-                output::warn("Job cancelled");
-                break;
-            },
-            _ => {},
+        if is_finished(&job) {
+            report_finished(&job);
+            break;
         }
     }
 
@@ -356,6 +478,15 @@ async fn follow_logs(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn last_lines_keeps_the_requested_tail() {
+        assert_eq!(last_lines("a\nb\nc\n", 2), "b\nc\n");
+        assert_eq!(last_lines("a\nb\nc", 2), "b\nc");
+        assert_eq!(last_lines("a\nb\n", 5), "a\nb\n");
+        assert_eq!(last_lines("a\nb\n", 0), "a\nb\n");
+        assert_eq!(last_lines("", 3), "");
+    }
 
     #[test]
     fn format_status_values() {
@@ -380,6 +511,7 @@ mod tests {
             result_path: None,
             error_message: None,
             parameters: serde_json::json!({}),
+            output_paths: Vec::new(),
         }
     }
 
@@ -442,6 +574,7 @@ mod tests {
             result_path: None,
             error_message: None,
             parameters: serde_json::json!({}),
+            output_paths: Vec::new(),
         };
         // Should not panic
         print_job_detail(&job);
@@ -462,6 +595,12 @@ mod tests {
             result_path: Some("/results/output".into()),
             error_message: Some("OOM killed".into()),
             parameters: serde_json::json!({"model": "gpt2", "method": "sft", "epochs": 3}),
+            output_paths: vec![sleeper_api_client::JobOutput {
+                path: "/results/safety_trained/abc-456".into(),
+                kind: "dir".into(),
+                owned: true,
+                param: Some("output_dir".into()),
+            }],
         };
         // Should not panic
         print_job_detail(&job);
@@ -491,6 +630,7 @@ mod tests {
         let _clean = JobsAction::Clean {
             completed: true,
             failed: false,
+            delete_outputs: false,
         };
     }
 }
