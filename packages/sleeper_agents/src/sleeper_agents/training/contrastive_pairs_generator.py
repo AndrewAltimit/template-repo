@@ -831,19 +831,17 @@ class ContrastivePairGenerator:
         current_count = len(pairs)
         logger.info("Generated %s base contrastive pairs", current_count)
 
-        # If we need more, repeat with slight variations
+        # Do NOT pad up to target_count with exact duplicates: duplicated pairs
+        # add no information and would bias any downstream training/evaluation.
+        # Return the distinct pairs we have and warn when it is short of target.
         if current_count < target_count:
-            # Duplicate and add noise/variations
-            remaining = target_count - current_count
-            logger.info("Need %s more pairs to reach target %s", remaining, target_count)
-
-            # For now, just repeat the pairs (we'll add more sophisticated variation later)
-            repetitions = (remaining // current_count) + 1
-            for _ in range(repetitions):
-                pairs.extend(pairs[:current_count])
-                if len(pairs) >= target_count:
-                    break
-
+            logger.warning(
+                "Only %s distinct contrastive pairs available (requested %s). "
+                "Returning the distinct pairs without duplicating to reach the target.",
+                current_count,
+                target_count,
+            )
+        elif current_count > target_count:
             pairs = pairs[:target_count]
 
         logger.info("Final contrastive pair count: %s", len(pairs))
