@@ -4,6 +4,7 @@ Analyzes detection method performance with ROC curves, confusion matrices, etc.
 """
 
 import logging
+from typing import List
 
 import pandas as pd
 import plotly.express as px
@@ -13,6 +14,39 @@ import streamlit as st
 from utils.metric_format import NOT_MEASURED, fmt_num, fmt_pct, is_measured, measured_mean, split_evaluation_rows
 
 logger = logging.getLogger(__name__)
+
+ALL_SUITES = "all"
+
+# Upper bound on evaluation_results rows read for one model
+MAX_RESULT_ROWS = 100000
+
+
+def fetch_model_results(data_loader, model_name: str) -> pd.DataFrame:
+    """All stored evaluation_results rows for a model, most recent first."""
+    df = data_loader.fetch_latest_results(model_name, limit=MAX_RESULT_ROWS)
+    return df if isinstance(df, pd.DataFrame) else pd.DataFrame()
+
+
+def stored_test_suites(results_df: pd.DataFrame) -> List[str]:
+    """Distinct test suites (evaluation_results.test_type) present in the results.
+
+    run_full_evaluation.py stores the suite name a test ran under as its
+    test_type, so the options are exactly the suites that have stored rows.
+    """
+    if results_df is None or results_df.empty or "test_type" not in results_df.columns:
+        return []
+    return sorted({str(v) for v in results_df["test_type"].dropna().unique()})
+
+
+def filter_by_suite(results_df: pd.DataFrame, suite: str) -> pd.DataFrame:
+    """Rows of one stored suite, or all rows for ALL_SUITES."""
+    if results_df is None or results_df.empty:
+        return pd.DataFrame()
+    if suite == ALL_SUITES:
+        return results_df
+    if "test_type" not in results_df.columns:
+        return results_df.iloc[0:0]
+    return results_df[results_df["test_type"] == suite]
 
 
 def render_detection_analysis(data_loader, cache_manager):
@@ -48,28 +82,21 @@ def render_detection_analysis(data_loader, cache_manager):
     with col1:
         selected_model = st.selectbox("Select Model", models, help="Choose a model to analyze detection performance")
 
-    with col2:
-        test_suites = [
-            "all",
-            "basic",
-            "code_vulnerability",
-            "chain_of_thought",
-            "robustness",
-            "attention",
-            "intervention",
-            "advanced",
-        ]
-        selected_suite = st.selectbox("Test Suite", test_suites, help="Filter by test suite")
-
     if selected_model:
         # Fetch results with caching
         @cache_manager.cache_decorator
-        def get_test_results(model, suite):
-            if suite == "all":
-                return data_loader.fetch_latest_results(model)
-            return data_loader.fetch_test_suite_results(model, suite)
+        def get_model_results(model):
+            return fetch_model_results(data_loader, model)
 
-        results_df = get_test_results(selected_model, selected_suite)
+        model_results = get_model_results(selected_model)
+
+        with col2:
+            # Suites are the test_type values stored for this model (the suite name the evaluation ran under)
+            selected_suite = st.selectbox(
+                "Test Suite", [ALL_SUITES] + stored_test_suites(model_results), help="Filter by stored test suite"
+            )
+
+        results_df = filter_by_suite(model_results, selected_suite)
 
         if results_df.empty:
             st.info("No results found for the selected criteria.")
@@ -169,6 +196,25 @@ def render_accuracy_metrics(df: pd.DataFrame):
         st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False, "staticPlot": True})
 
 
+CONFUSION_COLUMNS = ["true_positives", "false_positives", "true_negatives", "false_negatives"]
+
+
+def aggregate_confusion_counts(df: pd.DataFrame):
+    """Summed (tp, fp, tn, fn) over rows that stored all four counts, or None.
+
+    Rows missing any count are left out entirely instead of contributing zeros.
+    """
+    if df is None or df.empty or not all(col in df.columns for col in CONFUSION_COLUMNS):
+        return None
+    complete = df.dropna(subset=CONFUSION_COLUMNS)
+    if complete.empty:
+        return None
+    tp, fp, tn, fn = (int(complete[col].sum()) for col in CONFUSION_COLUMNS)
+    if tp + fp + tn + fn == 0:
+        return None
+    return tp, fp, tn, fn
+
+
 def render_confusion_matrix(df: pd.DataFrame):
     """Render confusion matrix visualization.
 
@@ -177,15 +223,11 @@ def render_confusion_matrix(df: pd.DataFrame):
     """
     st.subheader("Confusion Matrix")
 
-    # Calculate confusion matrix values
-    tp = df["true_positives"].sum() if "true_positives" in df.columns else 0
-    fp = df["false_positives"].sum() if "false_positives" in df.columns else 0
-    tn = df["true_negatives"].sum() if "true_negatives" in df.columns else 0
-    fn = df["false_negatives"].sum() if "false_negatives" in df.columns else 0
-
-    if tp + fp + tn + fn == 0:
+    counts = aggregate_confusion_counts(df)
+    if counts is None:
         st.info("No confusion matrix data available")
         return
+    tp, fp, tn, fn = counts
 
     # Create confusion matrix
     matrix = [[tn, fp], [fn, tp]]

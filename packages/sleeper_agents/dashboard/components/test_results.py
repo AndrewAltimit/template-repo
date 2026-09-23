@@ -12,10 +12,30 @@ import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
-from components.detection_analysis import render_unmeasured_tests
+from components.detection_analysis import fetch_model_results, filter_by_suite, render_unmeasured_tests, stored_test_suites
 from utils.metric_format import NOT_MEASURED, fmt_num, fmt_pct, is_measured, measured_mean, split_evaluation_rows
 
 logger = logging.getLogger(__name__)
+
+
+def suite_display_name(data_loader, suite: str) -> str:
+    """Display name from the test suite configuration, else the stored suite id."""
+    config = getattr(data_loader, "test_suite_config", None)
+    entry = config.get(suite) if isinstance(config, dict) else None
+    name = entry.get("name") if isinstance(entry, dict) else None
+    return f"{name} ({suite})" if name else suite
+
+
+def measured_total(values: pd.Series):
+    """Integer sum of the recorded values, or None when none were recorded (never 0 for missing)."""
+    recorded = values.dropna()
+    return int(recorded.sum()) if not recorded.empty else None
+
+
+def latest_run_per_test(df: pd.DataFrame) -> pd.DataFrame:
+    """The most recent stored row of each test (whole row, so metrics are never mixed across runs)."""
+    ordered = df.sort_values("timestamp", kind="stable") if "timestamp" in df.columns else df
+    return ordered.groupby("test_name", sort=True).tail(1).reset_index(drop=True)
 
 
 def render_test_suite_results(data_loader, cache_manager):
@@ -39,29 +59,37 @@ def render_test_suite_results(data_loader, cache_manager):
     with col1:
         selected_model = st.selectbox("Select Model", models, help="Choose a model to view test results")
 
-    with col2:
-        test_suites = {
-            "Basic Detection": "basic",
-            "Code Vulnerability": "code_vulnerability",
-            "Chain of Thought": "chain_of_thought",
-            "Robustness": "robustness",
-            "Attention Analysis": "attention",
-            "Causal Intervention": "intervention",
-            "Advanced Methods": "advanced",
-        }
-        selected_suite_name = st.selectbox("Test Suite", list(test_suites.keys()), help="Select a test suite to analyze")
-        selected_suite = test_suites[selected_suite_name]
-
     with col3:
         view_mode = st.radio("View Mode", ["Summary", "Detailed"], help="Toggle between summary and detailed views")
 
     if selected_model:
-        # Fetch test suite results
-        @cache_manager.cache_decorator
-        def get_suite_results(model, suite):
-            return data_loader.fetch_test_suite_results(model, suite)
 
-        results_df = get_suite_results(selected_model, selected_suite)
+        @cache_manager.cache_decorator
+        def get_model_results(model):
+            return fetch_model_results(data_loader, model)
+
+        model_results = get_model_results(selected_model)
+        suites = stored_test_suites(model_results)
+        if not suites:
+            with col2:
+                st.selectbox("Test Suite", ["(none stored)"], disabled=True)
+            st.info(f"No test suite results stored for {selected_model}")
+            return
+
+        with col2:
+            # Suites are the test_type values stored for this model (the suite name the evaluation ran under)
+            selected_suite = st.selectbox(
+                "Test Suite",
+                suites,
+                format_func=lambda s: suite_display_name(data_loader, s),
+                help="Select a stored test suite to analyze",
+            )
+        selected_suite_name = suite_display_name(data_loader, selected_suite)
+
+        results_df = filter_by_suite(model_results, selected_suite)
+        if not results_df.empty and "timestamp" in results_df.columns:
+            # Oldest first, so "last" / iloc[-1] below is the most recent run
+            results_df = results_df.sort_values("timestamp", kind="stable")
 
         if results_df.empty:
             st.info(f"No results found for {selected_suite_name} suite on {selected_model}")
@@ -100,8 +128,12 @@ def render_suite_summary(df: pd.DataFrame, suite_name: str):
         st.metric("Suite F1 Score", fmt_pct(overall_f1), help="Average F1 score across all tests")
 
     with col3:
-        total_samples = int(df["samples_tested"].fillna(0).sum()) if "samples_tested" in df.columns else 0
-        st.metric("Total Samples", f"{total_samples:,}", help="Total samples tested in this suite")
+        total_samples = measured_total(df["samples_tested"]) if "samples_tested" in df.columns else None
+        st.metric(
+            "Total Samples",
+            f"{total_samples:,}" if total_samples is not None else NOT_MEASURED,
+            help="Total samples tested in this suite",
+        )
 
     with col4:
         test_count = df["test_name"].nunique() if "test_name" in df.columns else 0
@@ -113,21 +145,7 @@ def render_suite_summary(df: pd.DataFrame, suite_name: str):
     st.markdown("#### Test Performance Breakdown")
 
     if "test_name" in df.columns:
-        # Group by test name and get latest results
-        test_metrics = (
-            df.groupby("test_name")
-            .agg(
-                {
-                    "accuracy": "last",
-                    "f1_score": "last",
-                    "precision": "last",
-                    "recall": "last",
-                    "samples_tested": "last",
-                    "timestamp": "last",
-                }
-            )
-            .reset_index()
-        )
+        test_metrics = latest_run_per_test(df)
 
         # Create bar chart
         fig = go.Figure()
@@ -315,8 +333,12 @@ def render_sample_distribution(df: pd.DataFrame):
     st.markdown("#### Sample Distribution")
 
     if "samples_tested" in df.columns and "test_name" in df.columns:
-        # Sample distribution by test
-        sample_dist = df.groupby("test_name")["samples_tested"].sum().sort_values(ascending=True)
+        # Sample distribution by test (tests that never recorded samples_tested are left out)
+        recorded = df.dropna(subset=["samples_tested"])
+        if recorded.empty:
+            st.info(f"Samples tested: {NOT_MEASURED} for the tests in this suite")
+            return
+        sample_dist = recorded.groupby("test_name")["samples_tested"].sum().astype(int).sort_values(ascending=True)
 
         fig = px.bar(
             x=sample_dist.values,
