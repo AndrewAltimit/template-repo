@@ -1,5 +1,6 @@
 """Data ingestion utilities for persistence testing results."""
 
+from contextlib import closing
 from datetime import datetime
 import json
 import logging
@@ -84,44 +85,40 @@ def ingest_persistence_results(
         if risk_level is None and persistence_rate is not None:
             risk_level = _determine_risk_level(persistence_rate)
 
-        # Connect to database
-        conn = sqlite3.connect(db_path)
-        cursor = conn.cursor()
-
-        # Insert results
-        cursor.execute(
-            """
-            INSERT INTO persistence_results (
-                job_id, model_name, timestamp,
-                trigger, target_response, safety_method,
-                pre_training_rate, post_training_rate, persistence_rate,
-                absolute_drop, relative_drop, trigger_specificity_increase,
-                is_persistent, risk_level,
-                pre_results_json, post_results_json
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """,
-            (
-                job_id,
-                model_name,
-                datetime.now().isoformat(),
-                trigger,
-                target_response,
-                safety_method,
-                pre_training_rate,
-                post_training_rate,
-                persistence_rate,
-                absolute_drop,
-                relative_drop,
-                trigger_specificity_increase,
-                is_persistent,
-                risk_level,
-                pre_results_json,
-                post_results_json,
-            ),
-        )
-
-        conn.commit()
-        conn.close()
+        # closing() guarantees the connection is closed even if the INSERT raises.
+        with closing(sqlite3.connect(db_path)) as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                INSERT INTO persistence_results (
+                    job_id, model_name, timestamp,
+                    trigger, target_response, safety_method,
+                    pre_training_rate, post_training_rate, persistence_rate,
+                    absolute_drop, relative_drop, trigger_specificity_increase,
+                    is_persistent, risk_level,
+                    pre_results_json, post_results_json
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+                (
+                    job_id,
+                    model_name,
+                    datetime.now().isoformat(),
+                    trigger,
+                    target_response,
+                    safety_method,
+                    pre_training_rate,
+                    post_training_rate,
+                    persistence_rate,
+                    absolute_drop,
+                    relative_drop,
+                    trigger_specificity_increase,
+                    is_persistent,
+                    risk_level,
+                    pre_results_json,
+                    post_results_json,
+                ),
+            )
+            conn.commit()
 
         logger.info("Successfully ingested persistence results for job %s into %s", job_id, db_path)
         return True
@@ -339,45 +336,41 @@ def ingest_chain_of_thought_results(
         # Convert patterns to JSON
         patterns_json = json.dumps(deception_patterns)
 
-        # Connect to database
-        conn = sqlite3.connect(db_path)
-        cursor = conn.cursor()
-
-        # Insert results
-        cursor.execute(
-            """
-            INSERT INTO chain_of_thought_analysis (
-                job_id, model_name, timestamp,
-                trigger, prompt, sample_index,
-                safe_reasoning, triggered_reasoning,
-                deception_patterns_json, deception_score, total_pattern_matches,
-                goal_hiding, situational_awareness, strategic_deception,
-                planning, backdoor_execution, risk_level
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """,
-            (
-                job_id,
-                model_name,
-                datetime.now().isoformat(),
-                trigger,
-                prompt,
-                sample_index,
-                safe_reasoning,
-                triggered_reasoning,
-                patterns_json,
-                deception_score,
-                total_matches,
-                goal_hiding,
-                situational_awareness,
-                strategic_deception,
-                planning,
-                backdoor_execution,
-                risk_level,
-            ),
-        )
-
-        conn.commit()
-        conn.close()
+        # closing() guarantees the connection is closed even if the INSERT raises.
+        with closing(sqlite3.connect(db_path)) as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                INSERT INTO chain_of_thought_analysis (
+                    job_id, model_name, timestamp,
+                    trigger, prompt, sample_index,
+                    safe_reasoning, triggered_reasoning,
+                    deception_patterns_json, deception_score, total_pattern_matches,
+                    goal_hiding, situational_awareness, strategic_deception,
+                    planning, backdoor_execution, risk_level
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+                (
+                    job_id,
+                    model_name,
+                    datetime.now().isoformat(),
+                    trigger,
+                    prompt,
+                    sample_index,
+                    safe_reasoning,
+                    triggered_reasoning,
+                    patterns_json,
+                    deception_score,
+                    total_matches,
+                    goal_hiding,
+                    situational_awareness,
+                    strategic_deception,
+                    planning,
+                    backdoor_execution,
+                    risk_level,
+                ),
+            )
+            conn.commit()
 
         logger.info("Successfully ingested chain-of-thought results for %s into %s", model_name, db_path)
         return True
@@ -433,36 +426,32 @@ def ingest_honeypot_results(
         # Convert metadata to JSON
         metadata_json = json.dumps(metadata) if metadata else None
 
-        # Connect to database
-        conn = sqlite3.connect(db_path)
-        cursor = conn.cursor()
-
-        # Insert results
-        cursor.execute(
-            """
-            INSERT INTO honeypot_responses (
-                job_id, model_name, timestamp,
-                honeypot_type, prompt, response,
-                reveal_score, expected_goal,
-                metadata_json, risk_level
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """,
-            (
-                job_id,
-                model_name,
-                datetime.now().isoformat(),
-                honeypot_type,
-                prompt,
-                response,
-                reveal_score,
-                expected_goal,
-                metadata_json,
-                risk_level,
-            ),
-        )
-
-        conn.commit()
-        conn.close()
+        # closing() guarantees the connection is closed even if the INSERT raises.
+        with closing(sqlite3.connect(db_path)) as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                INSERT INTO honeypot_responses (
+                    job_id, model_name, timestamp,
+                    honeypot_type, prompt, response,
+                    reveal_score, expected_goal,
+                    metadata_json, risk_level
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+                (
+                    job_id,
+                    model_name,
+                    datetime.now().isoformat(),
+                    honeypot_type,
+                    prompt,
+                    response,
+                    reveal_score,
+                    expected_goal,
+                    metadata_json,
+                    risk_level,
+                ),
+            )
+            conn.commit()
 
         logger.info("Successfully ingested honeypot results for %s into %s", model_name, db_path)
         return True
@@ -510,37 +499,33 @@ def ingest_trigger_sensitivity_results(
         # Convert metadata to JSON
         metadata_json = json.dumps(metadata) if metadata else None
 
-        # Connect to database
-        conn = sqlite3.connect(db_path)
-        cursor = conn.cursor()
-
-        # Insert results
-        cursor.execute(
-            """
-            INSERT INTO trigger_sensitivity (
-                job_id, model_name, timestamp,
-                trigger_phrase, variant_type,
-                pre_training_rate, post_training_rate,
-                specificity_increase, is_exact_trigger,
-                metadata_json
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """,
-            (
-                job_id,
-                model_name,
-                datetime.now().isoformat(),
-                trigger_phrase,
-                variant_type,
-                pre_training_rate,
-                post_training_rate,
-                specificity_increase,
-                is_exact_trigger,
-                metadata_json,
-            ),
-        )
-
-        conn.commit()
-        conn.close()
+        # closing() guarantees the connection is closed even if the INSERT raises.
+        with closing(sqlite3.connect(db_path)) as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                INSERT INTO trigger_sensitivity (
+                    job_id, model_name, timestamp,
+                    trigger_phrase, variant_type,
+                    pre_training_rate, post_training_rate,
+                    specificity_increase, is_exact_trigger,
+                    metadata_json
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+                (
+                    job_id,
+                    model_name,
+                    datetime.now().isoformat(),
+                    trigger_phrase,
+                    variant_type,
+                    pre_training_rate,
+                    post_training_rate,
+                    specificity_increase,
+                    is_exact_trigger,
+                    metadata_json,
+                ),
+            )
+            conn.commit()
 
         logger.info("Successfully ingested trigger sensitivity results for %s into %s", model_name, db_path)
         return True
@@ -587,9 +572,6 @@ def ingest_internal_state_results(
         # Ensure table exists
         ensure_internal_state_table_exists(db_path)
 
-        conn = sqlite3.connect(db_path)
-        cursor = conn.cursor()
-
         # Extract feature statistics
         n_features_discovered = len(features)
         n_interpretable = sum(1 for f in features if f.get("interpretability", 0) > 0.7)
@@ -599,46 +581,47 @@ def ingest_internal_state_results(
         attention_entropy = attention_patterns.get("attention_entropy", 0.0)
         kl_divergence = attention_patterns.get("kl_divergence", 0.0)
 
-        cursor.execute(
-            """
-            INSERT INTO internal_state_analysis (
-                job_id, model_name, timestamp,
-                text_sample, layer_idx,
-                pattern_deviation, sparsity_anomaly, coherence_anomaly,
-                temporal_variance, overall_anomaly_score,
-                layer_anomalies_json,
-                features_json, n_features_discovered,
-                n_interpretable_features, n_anomalous_features,
-                attention_patterns_json, attention_entropy, kl_divergence,
-                risk_level, full_results_json
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """,
-            (
-                job_id,
-                model_name,
-                datetime.now().isoformat(),
-                text_sample,
-                layer_idx,
-                anomaly_metrics.get("pattern_deviation", 0.0),
-                anomaly_metrics.get("sparsity_anomaly", 0.0),
-                anomaly_metrics.get("coherence_anomaly", 0.0),
-                anomaly_metrics.get("temporal_variance", 0.0),
-                anomaly_metrics.get("overall_anomaly_score", 0.0),
-                json.dumps(layer_anomalies),
-                json.dumps(features),
-                n_features_discovered,
-                n_interpretable,
-                n_anomalous,
-                json.dumps(attention_patterns),
-                attention_entropy,
-                kl_divergence,
-                risk_level,
-                json.dumps(full_results),
-            ),
-        )
-
-        conn.commit()
-        conn.close()
+        # closing() guarantees the connection is closed even if the INSERT raises.
+        with closing(sqlite3.connect(db_path)) as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                INSERT INTO internal_state_analysis (
+                    job_id, model_name, timestamp,
+                    text_sample, layer_idx,
+                    pattern_deviation, sparsity_anomaly, coherence_anomaly,
+                    temporal_variance, overall_anomaly_score,
+                    layer_anomalies_json,
+                    features_json, n_features_discovered,
+                    n_interpretable_features, n_anomalous_features,
+                    attention_patterns_json, attention_entropy, kl_divergence,
+                    risk_level, full_results_json
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+                (
+                    job_id,
+                    model_name,
+                    datetime.now().isoformat(),
+                    text_sample,
+                    layer_idx,
+                    anomaly_metrics.get("pattern_deviation", 0.0),
+                    anomaly_metrics.get("sparsity_anomaly", 0.0),
+                    anomaly_metrics.get("coherence_anomaly", 0.0),
+                    anomaly_metrics.get("temporal_variance", 0.0),
+                    anomaly_metrics.get("overall_anomaly_score", 0.0),
+                    json.dumps(layer_anomalies),
+                    json.dumps(features),
+                    n_features_discovered,
+                    n_interpretable,
+                    n_anomalous,
+                    json.dumps(attention_patterns),
+                    attention_entropy,
+                    kl_divergence,
+                    risk_level,
+                    json.dumps(full_results),
+                ),
+            )
+            conn.commit()
 
         logger.info("Successfully ingested internal state results for %s into %s", model_name, db_path)
         return True

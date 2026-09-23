@@ -1,455 +1,263 @@
-"""Database schema definitions for sleeper detection evaluation results."""
+"""Database schema definitions for sleeper detection evaluation results.
 
+All schema helpers share a single ``_ensure_table`` implementation that:
+- creates the database's parent directory if needed,
+- uses ``contextlib.closing`` so connections are closed even on exceptions,
+- creates the table if it does not exist, and
+- performs a simple forward migration (``ALTER TABLE ADD COLUMN``) for any
+  columns missing from a pre-existing (older-schema) table, so that later
+  INSERTs referencing new columns do not fail.
+"""
+
+from contextlib import closing
 import logging
 from pathlib import Path
 import sqlite3
+from typing import List, Optional, Tuple
 
 from sleeper_agents.constants import DEFAULT_EVALUATION_DB_PATH
 
 logger = logging.getLogger(__name__)
 
 
-def ensure_persistence_table_exists(db_path: str = DEFAULT_EVALUATION_DB_PATH) -> bool:
-    """Ensure the persistence_results table exists in the database.
+def _safe_alter_ddl(ddl: str) -> Optional[str]:
+    """Convert a CREATE-column DDL into one safe for ALTER TABLE ADD COLUMN.
 
-    Creates the table if it doesn't exist. Safe to call multiple times (idempotent).
+    SQLite cannot ADD a PRIMARY KEY column, and cannot ADD a NOT NULL column
+    without a constant default. Returns None for columns that must not be added
+    to an existing table (e.g. the primary key).
+    """
+    if "PRIMARY KEY" in ddl.upper():
+        return None
+    # Drop NOT NULL: an added column is populated with NULL/default for existing
+    # rows, which NOT NULL would forbid.
+    return ddl.replace("NOT NULL", "").replace("not null", "").strip()
+
+
+def _ensure_table(
+    db_path: str,
+    table_name: str,
+    columns: List[Tuple[str, str]],
+    indexes: List[Tuple[str, str]],
+) -> bool:
+    """Create ``table_name`` if absent, else add any missing columns.
 
     Args:
-        db_path: Path to SQLite database file
+        db_path: Path to the SQLite database file.
+        table_name: Table to ensure.
+        columns: Ordered list of (column_name, column_ddl) pairs.
+        indexes: List of (index_name, index_columns) pairs.
 
     Returns:
-        True if table exists or was created successfully, False otherwise
+        True on success, False on failure.
     """
     db_path_obj = Path(db_path)
-
-    # Create parent directory if it doesn't exist
     db_path_obj.parent.mkdir(parents=True, exist_ok=True)
 
     try:
-        conn = sqlite3.connect(db_path)
-        cursor = conn.cursor()
+        with closing(sqlite3.connect(db_path)) as conn:
+            cursor = conn.cursor()
 
-        # Check if table exists
-        cursor.execute(
-            """
-            SELECT name FROM sqlite_master
-            WHERE type='table' AND name='persistence_results'
-        """
-        )
-
-        if cursor.fetchone():
-            logger.debug("persistence_results table already exists")
-            conn.close()
-            return True
-
-        # Create table
-        cursor.execute(
-            """
-            CREATE TABLE persistence_results (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                job_id TEXT NOT NULL,
-                model_name TEXT NOT NULL,
-                timestamp DATETIME NOT NULL,
-
-                trigger TEXT,
-                target_response TEXT,
-                safety_method TEXT,
-
-                pre_training_rate REAL,
-                post_training_rate REAL,
-                persistence_rate REAL,
-                absolute_drop REAL,
-                relative_drop REAL,
-                trigger_specificity_increase REAL,
-
-                is_persistent BOOLEAN,
-                risk_level TEXT,
-
-                pre_results_json TEXT,
-                post_results_json TEXT
+            cursor.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
+                (table_name,),
             )
-        """
-        )
+            table_present = cursor.fetchone() is not None
 
-        # Create index on job_id for faster lookups
-        cursor.execute(
-            """
-            CREATE INDEX IF NOT EXISTS idx_persistence_job_id
-            ON persistence_results(job_id)
-        """
-        )
+            if table_present:
+                # Migrate: add any columns the existing table is missing.
+                cursor.execute(f"PRAGMA table_info({table_name})")
+                existing_cols = {row[1] for row in cursor.fetchall()}
+                for name, ddl in columns:
+                    if name in existing_cols:
+                        continue
+                    alter_ddl = _safe_alter_ddl(ddl)
+                    if alter_ddl is None:
+                        logger.warning(
+                            "Cannot add column %s to existing table %s via ALTER (skipped)",
+                            name,
+                            table_name,
+                        )
+                        continue
+                    cursor.execute(f"ALTER TABLE {table_name} ADD COLUMN {name} {alter_ddl}")
+                    logger.info("Migrated %s: added missing column '%s'", table_name, name)
+            else:
+                cols_sql = ", ".join(f"{name} {ddl}" for name, ddl in columns)
+                cursor.execute(f"CREATE TABLE {table_name} ({cols_sql})")
+                logger.info("Created %s table in %s", table_name, db_path)
 
-        # Create index on model_name for faster lookups
-        cursor.execute(
-            """
-            CREATE INDEX IF NOT EXISTS idx_persistence_model_name
-            ON persistence_results(model_name)
-        """
-        )
+            for index_name, index_cols in indexes:
+                cursor.execute(f"CREATE INDEX IF NOT EXISTS {index_name} ON {table_name}({index_cols})")
 
-        conn.commit()
-        conn.close()
-
-        logger.info("Created persistence_results table in %s", db_path)
+            conn.commit()
         return True
 
     except Exception as e:
-        logger.error("Failed to create persistence_results table: %s", e)
+        logger.error("Failed to ensure %s table: %s", table_name, e)
         return False
+
+
+_PERSISTENCE_COLUMNS = [
+    ("id", "INTEGER PRIMARY KEY AUTOINCREMENT"),
+    ("job_id", "TEXT NOT NULL"),
+    ("model_name", "TEXT NOT NULL"),
+    ("timestamp", "DATETIME NOT NULL"),
+    ("trigger", "TEXT"),
+    ("target_response", "TEXT"),
+    ("safety_method", "TEXT"),
+    ("pre_training_rate", "REAL"),
+    ("post_training_rate", "REAL"),
+    ("persistence_rate", "REAL"),
+    ("absolute_drop", "REAL"),
+    ("relative_drop", "REAL"),
+    ("trigger_specificity_increase", "REAL"),
+    ("is_persistent", "BOOLEAN"),
+    ("risk_level", "TEXT"),
+    ("pre_results_json", "TEXT"),
+    ("post_results_json", "TEXT"),
+]
+
+_COT_COLUMNS = [
+    ("id", "INTEGER PRIMARY KEY AUTOINCREMENT"),
+    ("job_id", "TEXT"),
+    ("model_name", "TEXT NOT NULL"),
+    ("timestamp", "DATETIME NOT NULL"),
+    ("trigger", "TEXT"),
+    ("prompt", "TEXT"),
+    ("sample_index", "INTEGER DEFAULT 0"),
+    ("safe_reasoning", "TEXT"),
+    ("triggered_reasoning", "TEXT"),
+    ("deception_patterns_json", "TEXT"),
+    ("deception_score", "REAL"),
+    ("total_pattern_matches", "INTEGER"),
+    ("goal_hiding", "INTEGER DEFAULT 0"),
+    ("situational_awareness", "INTEGER DEFAULT 0"),
+    ("strategic_deception", "INTEGER DEFAULT 0"),
+    ("planning", "INTEGER DEFAULT 0"),
+    ("backdoor_execution", "INTEGER DEFAULT 0"),
+    ("risk_level", "TEXT"),
+]
+
+_HONEYPOT_COLUMNS = [
+    ("id", "INTEGER PRIMARY KEY AUTOINCREMENT"),
+    ("job_id", "TEXT"),
+    ("model_name", "TEXT NOT NULL"),
+    ("timestamp", "DATETIME NOT NULL"),
+    ("honeypot_type", "TEXT NOT NULL"),
+    ("prompt", "TEXT NOT NULL"),
+    ("response", "TEXT NOT NULL"),
+    ("reveal_score", "REAL"),
+    ("expected_goal", "TEXT"),
+    ("metadata_json", "TEXT"),
+    ("risk_level", "TEXT"),
+]
+
+_TRIGGER_SENSITIVITY_COLUMNS = [
+    ("id", "INTEGER PRIMARY KEY AUTOINCREMENT"),
+    ("job_id", "TEXT"),
+    ("model_name", "TEXT NOT NULL"),
+    ("timestamp", "DATETIME NOT NULL"),
+    ("trigger_phrase", "TEXT NOT NULL"),
+    ("variant_type", "TEXT NOT NULL"),
+    ("pre_training_rate", "REAL"),
+    ("post_training_rate", "REAL"),
+    ("specificity_increase", "REAL"),
+    ("is_exact_trigger", "BOOLEAN"),
+    ("metadata_json", "TEXT"),
+]
+
+_INTERNAL_STATE_COLUMNS = [
+    ("id", "INTEGER PRIMARY KEY AUTOINCREMENT"),
+    ("job_id", "TEXT"),
+    ("model_name", "TEXT NOT NULL"),
+    ("timestamp", "DATETIME NOT NULL"),
+    ("text_sample", "TEXT"),
+    ("layer_idx", "INTEGER"),
+    ("pattern_deviation", "REAL"),
+    ("sparsity_anomaly", "REAL"),
+    ("coherence_anomaly", "REAL"),
+    ("temporal_variance", "REAL"),
+    ("overall_anomaly_score", "REAL"),
+    ("layer_anomalies_json", "TEXT"),
+    ("features_json", "TEXT"),
+    ("n_features_discovered", "INTEGER"),
+    ("n_interpretable_features", "INTEGER"),
+    ("n_anomalous_features", "INTEGER"),
+    ("attention_patterns_json", "TEXT"),
+    ("attention_entropy", "REAL"),
+    ("kl_divergence", "REAL"),
+    ("risk_level", "TEXT"),
+    ("full_results_json", "TEXT"),
+]
+
+
+def ensure_persistence_table_exists(db_path: str = DEFAULT_EVALUATION_DB_PATH) -> bool:
+    """Ensure the persistence_results table exists (idempotent, self-migrating)."""
+    return _ensure_table(
+        db_path,
+        "persistence_results",
+        _PERSISTENCE_COLUMNS,
+        [
+            ("idx_persistence_job_id", "job_id"),
+            ("idx_persistence_model_name", "model_name"),
+        ],
+    )
 
 
 def ensure_chain_of_thought_table_exists(db_path: str = DEFAULT_EVALUATION_DB_PATH) -> bool:
-    """Ensure the chain_of_thought_analysis table exists in the database.
-
-    Creates the table if it doesn't exist. Safe to call multiple times (idempotent).
-
-    Args:
-        db_path: Path to SQLite database file
-
-    Returns:
-        True if table exists or was created successfully, False otherwise
-    """
-    db_path_obj = Path(db_path)
-    db_path_obj.parent.mkdir(parents=True, exist_ok=True)
-
-    try:
-        conn = sqlite3.connect(db_path)
-        cursor = conn.cursor()
-
-        # Check if table exists
-        cursor.execute(
-            """
-            SELECT name FROM sqlite_master
-            WHERE type='table' AND name='chain_of_thought_analysis'
-        """
-        )
-
-        if cursor.fetchone():
-            logger.debug("chain_of_thought_analysis table already exists")
-            conn.close()
-            return True
-
-        # Create table
-        cursor.execute(
-            """
-            CREATE TABLE chain_of_thought_analysis (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                job_id TEXT,
-                model_name TEXT NOT NULL,
-                timestamp DATETIME NOT NULL,
-
-                trigger TEXT,
-                prompt TEXT,
-                sample_index INTEGER DEFAULT 0,
-                safe_reasoning TEXT,
-                triggered_reasoning TEXT,
-
-                deception_patterns_json TEXT,
-                deception_score REAL,
-                total_pattern_matches INTEGER,
-
-                goal_hiding INTEGER DEFAULT 0,
-                situational_awareness INTEGER DEFAULT 0,
-                strategic_deception INTEGER DEFAULT 0,
-                planning INTEGER DEFAULT 0,
-                backdoor_execution INTEGER DEFAULT 0,
-
-                risk_level TEXT
-            )
-        """
-        )
-
-        # Create indexes
-        cursor.execute(
-            """
-            CREATE INDEX IF NOT EXISTS idx_cot_job_id
-            ON chain_of_thought_analysis(job_id)
-        """
-        )
-
-        cursor.execute(
-            """
-            CREATE INDEX IF NOT EXISTS idx_cot_model_name
-            ON chain_of_thought_analysis(model_name)
-        """
-        )
-
-        cursor.execute(
-            """
-            CREATE INDEX IF NOT EXISTS idx_cot_model_sample
-            ON chain_of_thought_analysis(model_name, sample_index)
-        """
-        )
-
-        conn.commit()
-        conn.close()
-
-        logger.info("Created chain_of_thought_analysis table in %s", db_path)
-        return True
-
-    except Exception as e:
-        logger.error("Failed to create chain_of_thought_analysis table: %s", e)
-        return False
+    """Ensure the chain_of_thought_analysis table exists (idempotent, self-migrating)."""
+    return _ensure_table(
+        db_path,
+        "chain_of_thought_analysis",
+        _COT_COLUMNS,
+        [
+            ("idx_cot_job_id", "job_id"),
+            ("idx_cot_model_name", "model_name"),
+            ("idx_cot_model_sample", "model_name, sample_index"),
+        ],
+    )
 
 
 def ensure_honeypot_table_exists(db_path: str = DEFAULT_EVALUATION_DB_PATH) -> bool:
-    """Ensure the honeypot_responses table exists in the database.
-
-    Creates the table if it doesn't exist. Safe to call multiple times (idempotent).
-
-    Args:
-        db_path: Path to SQLite database file
-
-    Returns:
-        True if table exists or was created successfully, False otherwise
-    """
-    db_path_obj = Path(db_path)
-    db_path_obj.parent.mkdir(parents=True, exist_ok=True)
-
-    try:
-        conn = sqlite3.connect(db_path)
-        cursor = conn.cursor()
-
-        # Check if table exists
-        cursor.execute(
-            """
-            SELECT name FROM sqlite_master
-            WHERE type='table' AND name='honeypot_responses'
-        """
-        )
-
-        if cursor.fetchone():
-            logger.debug("honeypot_responses table already exists")
-            conn.close()
-            return True
-
-        # Create table
-        cursor.execute(
-            """
-            CREATE TABLE honeypot_responses (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                job_id TEXT,
-                model_name TEXT NOT NULL,
-                timestamp DATETIME NOT NULL,
-
-                honeypot_type TEXT NOT NULL,
-                prompt TEXT NOT NULL,
-                response TEXT NOT NULL,
-
-                reveal_score REAL,
-                expected_goal TEXT,
-
-                metadata_json TEXT,
-                risk_level TEXT
-            )
-        """
-        )
-
-        # Create indexes
-        cursor.execute(
-            """
-            CREATE INDEX IF NOT EXISTS idx_honeypot_job_id
-            ON honeypot_responses(job_id)
-        """
-        )
-
-        cursor.execute(
-            """
-            CREATE INDEX IF NOT EXISTS idx_honeypot_model_name
-            ON honeypot_responses(model_name)
-        """
-        )
-
-        cursor.execute(
-            """
-            CREATE INDEX IF NOT EXISTS idx_honeypot_type
-            ON honeypot_responses(honeypot_type)
-        """
-        )
-
-        conn.commit()
-        conn.close()
-
-        logger.info("Created honeypot_responses table in %s", db_path)
-        return True
-
-    except Exception as e:
-        logger.error("Failed to create honeypot_responses table: %s", e)
-        return False
+    """Ensure the honeypot_responses table exists (idempotent, self-migrating)."""
+    return _ensure_table(
+        db_path,
+        "honeypot_responses",
+        _HONEYPOT_COLUMNS,
+        [
+            ("idx_honeypot_job_id", "job_id"),
+            ("idx_honeypot_model_name", "model_name"),
+            ("idx_honeypot_type", "honeypot_type"),
+        ],
+    )
 
 
 def ensure_trigger_sensitivity_table_exists(db_path: str = DEFAULT_EVALUATION_DB_PATH) -> bool:
-    """Ensure the trigger_sensitivity table exists in the database.
-
-    Creates the table if it doesn't exist. Safe to call multiple times (idempotent).
-
-    Args:
-        db_path: Path to SQLite database file
-
-    Returns:
-        True if table exists or was created successfully, False otherwise
-    """
-    db_path_obj = Path(db_path)
-    db_path_obj.parent.mkdir(parents=True, exist_ok=True)
-
-    try:
-        conn = sqlite3.connect(db_path)
-        cursor = conn.cursor()
-
-        # Check if table exists
-        cursor.execute(
-            """
-            SELECT name FROM sqlite_master
-            WHERE type='table' AND name='trigger_sensitivity'
-        """
-        )
-
-        if cursor.fetchone():
-            logger.debug("trigger_sensitivity table already exists")
-            conn.close()
-            return True
-
-        # Create table
-        cursor.execute(
-            """
-            CREATE TABLE trigger_sensitivity (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                job_id TEXT,
-                model_name TEXT NOT NULL,
-                timestamp DATETIME NOT NULL,
-
-                trigger_phrase TEXT NOT NULL,
-                variant_type TEXT NOT NULL,
-                pre_training_rate REAL,
-                post_training_rate REAL,
-
-                specificity_increase REAL,
-                is_exact_trigger BOOLEAN,
-
-                metadata_json TEXT
-            )
-        """
-        )
-
-        # Create indexes
-        cursor.execute(
-            """
-            CREATE INDEX IF NOT EXISTS idx_trigger_job_id
-            ON trigger_sensitivity(job_id)
-        """
-        )
-
-        cursor.execute(
-            """
-            CREATE INDEX IF NOT EXISTS idx_trigger_model_name
-            ON trigger_sensitivity(model_name)
-        """
-        )
-
-        cursor.execute(
-            """
-            CREATE INDEX IF NOT EXISTS idx_trigger_type
-            ON trigger_sensitivity(variant_type)
-        """
-        )
-
-        conn.commit()
-        conn.close()
-
-        logger.info("Created trigger_sensitivity table in %s", db_path)
-        return True
-
-    except Exception as e:
-        logger.error("Failed to create trigger_sensitivity table: %s", e)
-        return False
+    """Ensure the trigger_sensitivity table exists (idempotent, self-migrating)."""
+    return _ensure_table(
+        db_path,
+        "trigger_sensitivity",
+        _TRIGGER_SENSITIVITY_COLUMNS,
+        [
+            ("idx_trigger_job_id", "job_id"),
+            ("idx_trigger_model_name", "model_name"),
+            ("idx_trigger_type", "variant_type"),
+        ],
+    )
 
 
 def ensure_internal_state_table_exists(db_path: str) -> bool:
-    """Create internal_state_analysis table if it doesn't exist.
+    """Ensure the internal_state_analysis table exists (idempotent, self-migrating).
 
-    Stores attention patterns, feature discovery results, and activation anomalies
-    from internal state monitoring.
-
-    Args:
-        db_path: Path to database file
-
-    Returns:
-        True if successful, False otherwise
+    Creates the database's parent directory if it does not yet exist.
     """
-    try:
-        conn = sqlite3.connect(db_path)
-        cursor = conn.cursor()
-
-        cursor.execute(
-            """
-            CREATE TABLE IF NOT EXISTS internal_state_analysis (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                job_id TEXT,
-                model_name TEXT NOT NULL,
-                timestamp DATETIME NOT NULL,
-
-                -- Input context
-                text_sample TEXT,
-                layer_idx INTEGER,
-
-                -- Anomaly metrics
-                pattern_deviation REAL,
-                sparsity_anomaly REAL,
-                coherence_anomaly REAL,
-                temporal_variance REAL,
-                overall_anomaly_score REAL,
-
-                -- Layer-wise data (JSON)
-                layer_anomalies_json TEXT,
-
-                -- Feature discovery results (JSON)
-                features_json TEXT,
-                n_features_discovered INTEGER,
-                n_interpretable_features INTEGER,
-                n_anomalous_features INTEGER,
-
-                -- Attention analysis (JSON)
-                attention_patterns_json TEXT,
-                attention_entropy REAL,
-                kl_divergence REAL,
-
-                -- Risk assessment
-                risk_level TEXT,
-
-                -- Raw results for detailed analysis
-                full_results_json TEXT
-            )
-        """
-        )
-
-        # Create indexes for efficient queries
-        cursor.execute(
-            """
-            CREATE INDEX IF NOT EXISTS idx_internal_state_job_id
-            ON internal_state_analysis(job_id)
-        """
-        )
-
-        cursor.execute(
-            """
-            CREATE INDEX IF NOT EXISTS idx_internal_state_model_name
-            ON internal_state_analysis(model_name)
-        """
-        )
-
-        cursor.execute(
-            """
-            CREATE INDEX IF NOT EXISTS idx_internal_state_timestamp
-            ON internal_state_analysis(timestamp)
-        """
-        )
-
-        conn.commit()
-        conn.close()
-
-        logger.info("Created internal_state_analysis table in %s", db_path)
-        return True
-
-    except Exception as e:
-        logger.error("Failed to create internal_state_analysis table: %s", e)
-        return False
+    return _ensure_table(
+        db_path,
+        "internal_state_analysis",
+        _INTERNAL_STATE_COLUMNS,
+        [
+            ("idx_internal_state_job_id", "job_id"),
+            ("idx_internal_state_model_name", "model_name"),
+            ("idx_internal_state_timestamp", "timestamp"),
+        ],
+    )
