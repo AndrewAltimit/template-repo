@@ -13,6 +13,13 @@ on:
         required: false
         type: boolean
         default: true
+      rust_tools_artifact:
+        description: >-
+          Download prebuilt binaries from this run's rust-cli-tools artifact.
+          Only set this when the calling workflow uploads that artifact.
+        required: false
+        type: boolean
+        default: false
     outputs:
       status:
         description: 'Linting status'
@@ -33,7 +40,8 @@ jobs:
   lint:
     name: Lint Stage - ${{ inputs.stage }}
     runs-on: self-hosted
-    timeout-minutes: ${{ inputs.stage == 'format' && 5 || inputs.stage == 'basic' && 10 || inputs.stage == 'links' && 10 || 20 }}
+    # Headroom for a cold python-ci image build, which alone can take several minutes.
+    timeout-minutes: ${{ inputs.stage == 'full' && 25 || 15 }}
     outputs:
       status: ${{ steps.result.outputs.status }}
       errors: ${{ steps.result.outputs.errors }}
@@ -65,27 +73,17 @@ jobs:
 
       # Download Rust CLI tools (automation-cli for all stages, link checker for links)
       - name: Download Rust CLI tools
-        uses: actions/download-artifact@v4
+        if: inputs.rust_tools_artifact
+        uses: actions/download-artifact@v6
         continue-on-error: true
         with:
           name: rust-cli-tools
           path: rust-tools
 
       - name: Setup automation-cli
-        run: |
-          if [ -f "rust-tools/automation-cli" ]; then
-            chmod +x rust-tools/automation-cli
-            mkdir -p tools/rust/automation-cli/target/release
-            cp rust-tools/automation-cli tools/rust/automation-cli/target/release/
-            echo "Installed automation-cli from artifact"
-          elif [ -x "tools/rust/automation-cli/target/release/automation-cli" ]; then
-            echo "Using existing automation-cli build"
-          else
-            echo "Building automation-cli locally..."
-            cd tools/rust/automation-cli
-            cargo build --release
-            echo "Built automation-cli"
-          fi
+        uses: ./.github/actions/setup-automation-cli
+        with:
+          prebuilt: rust-tools/automation-cli
 
       - name: Setup Rust link checker
         if: inputs.stage == 'links'

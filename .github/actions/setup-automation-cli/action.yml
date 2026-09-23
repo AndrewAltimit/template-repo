@@ -1,0 +1,55 @@
+name: 'Setup automation-cli'
+description: >-
+  Install automation-cli at tools/rust/automation-cli/target/release, from a
+  prebuilt binary if given, else from a runner-local cache keyed by the crate
+  sources, else by building it (and caching the result).
+
+inputs:
+  prebuilt:
+    description: 'Optional path to an already-built binary (e.g. from the rust-cli-tools artifact)'
+    required: false
+    default: ''
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Install automation-cli
+      shell: bash
+      env:
+        PREBUILT: ${{ inputs.prebuilt }}
+      run: |
+        set -euo pipefail
+        dest=tools/rust/automation-cli/target/release
+        mkdir -p "$dest"
+
+        if [ -n "$PREBUILT" ] && [ -f "$PREBUILT" ]; then
+          install -m 755 "$PREBUILT" "$dest/automation-cli"
+          echo "Installed automation-cli from $PREBUILT"
+          exit 0
+        fi
+
+        # checkout's `git clean -ffdx` wipes target/ every job, so keep built
+        # binaries outside the workspace. The key covers automation-cli and its
+        # path dependencies; any source or Cargo.lock change gets a fresh build.
+        key=$(git rev-parse \
+          HEAD:tools/rust/automation-cli \
+          HEAD:tools/rust/gh-validator \
+          HEAD:tools/rust/wrapper-common | sha256sum | cut -c1-16)
+        cache_root="$HOME/.cache/automation-cli"
+        cached="$cache_root/$key/automation-cli"
+
+        if [ -x "$cached" ]; then
+          install -m 755 "$cached" "$dest/automation-cli"
+          echo "Using cached automation-cli ($key)"
+          exit 0
+        fi
+
+        echo "Building automation-cli ($key)..."
+        (cd tools/rust/automation-cli && cargo build --release)
+        mkdir -p "$cache_root/$key"
+        # Write-then-rename so a concurrent job never sees a partial binary.
+        install -m 755 "$dest/automation-cli" "$cached.tmp.$$"
+        mv -f "$cached.tmp.$$" "$cached"
+        # Keep the five most recent builds.
+        ls -1dt "$cache_root"/*/ 2>/dev/null | tail -n +6 | xargs -r rm -rf
+        echo "Built and cached automation-cli ($key)"

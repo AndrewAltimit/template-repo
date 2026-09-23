@@ -739,6 +739,9 @@ services:
     build:
       context: .
       dockerfile: docker/python-ci.Dockerfile
+      labels:
+        # Exempts the image from the daily age-based prune (runner-maintenance.yml)
+        com.template-repo.ci-cache: "true"
     user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
     volumes:
       - ./:/app
@@ -766,6 +769,9 @@ services:
     build:
       context: .
       dockerfile: docker/rust-ci.Dockerfile
+      labels:
+        # Exempts the image from the daily age-based prune (runner-maintenance.yml)
+        com.template-repo.ci-cache: "true"
     user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
     volumes:
       - .:/app
@@ -789,6 +795,9 @@ services:
     build:
       context: .
       dockerfile: docker/rust-ci-nightly.Dockerfile
+      labels:
+        # Exempts the image from the daily age-based prune (runner-maintenance.yml)
+        com.template-repo.ci-cache: "true"
     user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
     volumes:
       - .:/app

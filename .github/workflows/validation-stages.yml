@@ -8,6 +8,13 @@ on:
         description: 'Validation stage to run (config, workflows, yaml-all)'
         required: true
         type: string
+      rust_tools_artifact:
+        description: >-
+          Download prebuilt automation-cli from this run's rust-cli-tools artifact.
+          Only set this when the calling workflow uploads that artifact.
+        required: false
+        type: boolean
+        default: false
     outputs:
       status:
         description: 'Validation status'
@@ -21,7 +28,8 @@ jobs:
   validate:
     name: Validate - ${{ inputs.stage }}
     runs-on: self-hosted
-    timeout-minutes: ${{ inputs.stage == 'config' && 10 || inputs.stage == 'workflows' && 5 || 5 }}
+    # config builds the python-ci image, which can take several minutes when cold.
+    timeout-minutes: ${{ inputs.stage == 'config' && 15 || 5 }}
     outputs:
       status: ${{ steps.result.outputs.status }}
     steps:
@@ -43,27 +51,17 @@ jobs:
           lfs: true
 
       - name: Download automation-cli
-        uses: actions/download-artifact@v4
+        if: inputs.rust_tools_artifact
+        uses: actions/download-artifact@v6
         continue-on-error: true
         with:
           name: rust-cli-tools
           path: rust-tools
 
       - name: Setup automation-cli
-        run: |
-          if [ -f "rust-tools/automation-cli" ]; then
-            chmod +x rust-tools/automation-cli
-            mkdir -p tools/rust/automation-cli/target/release
-            cp rust-tools/automation-cli tools/rust/automation-cli/target/release/
-            echo "Installed automation-cli from artifact"
-          elif [ -x "tools/rust/automation-cli/target/release/automation-cli" ]; then
-            echo "Using existing automation-cli build"
-          else
-            echo "Building automation-cli locally..."
-            cd tools/rust/automation-cli
-            cargo build --release
-            echo "Built automation-cli"
-          fi
+        uses: ./.github/actions/setup-automation-cli
+        with:
+          prebuilt: rust-tools/automation-cli
 
       - name: Clear stale GHCR credentials
         run: docker logout ghcr.io 2>/dev/null || true

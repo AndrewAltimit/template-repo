@@ -82,11 +82,27 @@ pub fn ci_run_args(
 /// Run a cargo command inside the Rust CI container at the given workspace path.
 /// Pass "." for `workspace_path` to use the container's default workdir.
 pub fn run_cargo(compose_file: &Path, workspace_path: &str, cargo_args: &[&str]) -> Result<()> {
+    run_cargo_with_env(compose_file, workspace_path, cargo_args, &[])
+}
+
+/// [`run_cargo`] with extra container environment variables.
+pub fn run_cargo_with_env(
+    compose_file: &Path,
+    workspace_path: &str,
+    cargo_args: &[&str],
+    env_vars: &[(&str, &str)],
+) -> Result<()> {
     build_rust_ci(compose_file)?;
     let workdir = (workspace_path != ".").then_some(workspace_path);
     let mut cmd = vec!["cargo"];
     cmd.extend_from_slice(cargo_args);
-    run_docker(&ci_run_args(compose_file, "rust-ci", workdir, &[], &cmd))
+    run_docker(&ci_run_args(
+        compose_file,
+        "rust-ci",
+        workdir,
+        env_vars,
+        &cmd,
+    ))
 }
 
 /// Run a bash script inside the Rust CI container (repo root as workdir).
