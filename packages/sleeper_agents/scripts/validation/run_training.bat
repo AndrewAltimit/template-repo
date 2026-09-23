@@ -28,11 +28,17 @@ IF "%1"=="" (
     exit /b 1
 )
 
+REM Everything after the command name, forwarded unchanged. Batch only exposes
+REM nine positional parameters directly, so a fixed parameter list would silently drop
+REM arguments. The substitution strips up to and including the command name.
+SET ARGS=%*
+CALL SET ARGS=%%ARGS:*%1=%%
+
 IF "%1"=="train" (
     echo ========================================
     echo Training Backdoored Model
     echo ========================================
-    docker compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python3 scripts/train_backdoor_model.py --validate %2 %3 %4 %5 %6 %7 %8 %9
+    docker compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python3 scripts/training/train_backdoor.py --validate %ARGS%
     goto :end
 )
 
@@ -40,7 +46,7 @@ IF "%1"=="test" (
     echo ========================================
     echo Testing Backdoor Activation
     echo ========================================
-    docker compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python3 scripts/test_backdoor.py %2 %3 %4 %5 %6 %7 %8 %9
+    docker compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python3 scripts/evaluation/test_backdoor.py %ARGS%
     goto :end
 )
 
@@ -48,7 +54,7 @@ IF "%1"=="sft" (
     echo ========================================
     echo Applying SFT Safety Training
     echo ========================================
-    docker compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python3 scripts/apply_safety_training.py --method sft --test-persistence %2 %3 %4 %5 %6 %7 %8 %9
+    docker compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python3 scripts/training/safety_training.py --method sft --test-persistence %ARGS%
     goto :end
 )
 
@@ -56,7 +62,7 @@ IF "%1"=="ppo" (
     echo ========================================
     echo Applying PPO Safety Training
     echo ========================================
-    docker compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python3 scripts/apply_safety_training.py --method rl --test-persistence %2 %3 %4 %5 %6 %7 %8 %9
+    docker compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python3 scripts/training/safety_training.py --method rl --test-persistence %ARGS%
     goto :end
 )
 
@@ -64,7 +70,7 @@ IF "%1"=="validate" (
     echo ========================================
     echo Validating Detection Methods
     echo ========================================
-    docker compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python3 scripts/validate_detection_methods.py %2 %3 %4 %5 %6 %7 %8 %9
+    docker compose -f %COMPOSE_FILE% run --rm sleeper-eval-gpu python3 scripts/validation/validate_detection.py %ARGS%
     goto :end
 )
 

@@ -84,7 +84,7 @@ The script automatically estimates GPU memory needs and warns if you may run out
 ```
 - Injects subtle security vulnerabilities in code generation
 - More realistic threat model
-- The `.bat` wrapper forwards at most 8 arguments after `train`, so this command line is cut off there; use `run_detection_validation.sh` (forwards all arguments) or run `scripts/training/train_backdoor.py` directly in the container
+- `code_vuln` has no fixed backdoor response, so `--validate` and the `basic` evaluation suite cannot measure activation for it; the `code_vulnerability` evaluation suite has no implemented tests
 
 **3. Chain-of-Thought**
 ```bash
