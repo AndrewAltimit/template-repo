@@ -275,6 +275,40 @@ jobs:
           name: sleeper-coverage-report-${{ github.run_id }}-${{ github.run_attempt }}
           path: evaluation_results/coverage.xml
 
+  sleeper-agents-orchestrator-tests:
+    name: GPU Orchestrator Unit Tests
+    runs-on: self-hosted
+    timeout-minutes: 30
+    needs: build-sleeper-image
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          clean: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ github.head_ref || github.ref }}
+          lfs: true
+
+      - name: Use pre-built image
+        run: |
+          echo "Using pre-built image: ${{ needs.build-sleeper-image.outputs.image-tag }}"
+          docker tag ${{ needs.build-sleeper-image.outputs.image-tag }} ${{ env.DOCKER_IMAGE_COMPOSE_NAME }}:latest 2>/dev/null || {
+            echo "Image not found locally, rebuilding..."
+            docker compose build sleeper-eval-cpu
+          }
+
+      - name: Run orchestrator unit tests
+        run: |
+          export USER_ID=$(id -u)
+          export GROUP_ID=$(id -g)
+          # The orchestrator's own dependencies (pydantic-settings, docker SDK) are not in the
+          # evaluation image; install them into a throwaway directory inside the container.
+          docker compose run --rm sleeper-eval-cpu bash -c "\
+            pip install -q --target /tmp/orch-deps pydantic-settings docker && \
+            cd /app/packages/sleeper_agents/gpu_orchestrator && \
+            PYTHONPATH=/tmp/orch-deps:. python -m pytest tests -v -p no:cacheprovider"
+
   sleeper-agents-api-test:
     name: API Integration Tests
     runs-on: self-hosted
@@ -472,6 +506,7 @@ jobs:
       - sleeper-agents-quick-test
       - sleeper-agents-residual-analysis
       - sleeper-agents-unit-tests
+      - sleeper-agents-orchestrator-tests
       - sleeper-agents-api-test
       - sleeper-agents-full-tests
       - sleeper-agents-notebook-validation
@@ -486,17 +521,28 @@ jobs:
           echo "- Quick Tests: ${{ needs.sleeper-agents-quick-test.result }}"
           echo "- Residual Analysis: ${{ needs.sleeper-agents-residual-analysis.result }}"
           echo "- Unit Tests: ${{ needs.sleeper-agents-unit-tests.result }}"
+          echo "- Orchestrator Tests: ${{ needs.sleeper-agents-orchestrator-tests.result }}"
           echo "- API Tests: ${{ needs.sleeper-agents-api-test.result }}"
           echo "- Full Tests: ${{ needs.sleeper-agents-full-tests.result }}"
           echo "- Notebook Validation: ${{ needs.sleeper-agents-notebook-validation.result }}"
           echo ""
 
-          # Check for failures
-          if [[ "${{ needs.sleeper-agents-quick-test.result }}" == "failure" ||
-                "${{ needs.sleeper-agents-residual-analysis.result }}" == "failure" ||
-                "${{ needs.sleeper-agents-unit-tests.result }}" == "failure" ||
-                "${{ needs.sleeper-agents-api-test.result }}" == "failure" ||
-                "${{ needs.sleeper-agents-notebook-validation.result }}" == "failure" ]]; then
+          # Fail on any failed or cancelled job ("skipped" is expected for the full
+          # suite, which only runs on push or when requested)
+          failed=0
+          for result in \
+            "${{ needs.sleeper-agents-quick-test.result }}" \
+            "${{ needs.sleeper-agents-residual-analysis.result }}" \
+            "${{ needs.sleeper-agents-unit-tests.result }}" \
+            "${{ needs.sleeper-agents-orchestrator-tests.result }}" \
+            "${{ needs.sleeper-agents-api-test.result }}" \
+            "${{ needs.sleeper-agents-full-tests.result }}" \
+            "${{ needs.sleeper-agents-notebook-validation.result }}"; do
+            if [[ "$result" == "failure" || "$result" == "cancelled" ]]; then
+              failed=1
+            fi
+          done
+          if [[ "$failed" == "1" ]]; then
             echo "❌ sleeper agents tests failed"
             exit 1
           fi
