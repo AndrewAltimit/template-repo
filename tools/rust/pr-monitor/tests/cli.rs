@@ -66,6 +66,21 @@ const NEW_REVIEW: &str = r###"{"id": "IC_review", "author": {"login": "github-ac
 const NEW_ADMIN_COMMENT: &str = r#"{"id": "IC_new", "author": {"login": "AndrewAltimit"},
     "body": "[Approved][Claude]", "createdAt": "2026-01-01T12:20:00Z", "url": null}"#;
 
+/// Installs `contents` as an executable script at `dest`.
+///
+/// The script is staged in a sibling file and copied into place by `cp`, so
+/// this process never holds a writable fd to `dest`. Writing it in-process
+/// races with parallel tests: a sibling test's fork can inherit the open fd
+/// before its exec closes it, and exec'ing `dest` then fails with ETXTBSY
+/// ("Text file busy").
+fn install_script(dest: &Path, contents: &str) {
+    let staged = dest.with_extension("src");
+    std::fs::write(&staged, contents).unwrap();
+    let status = Command::new("cp").arg(&staged).arg(dest).status().unwrap();
+    assert!(status.success(), "cp {} failed", dest.display());
+    std::fs::set_permissions(dest, std::fs::Permissions::from_mode(0o755)).unwrap();
+}
+
 struct FakeGh {
     dir: TempDir,
 }
@@ -74,8 +89,7 @@ impl FakeGh {
     fn new() -> Self {
         let dir = TempDir::new().unwrap();
         let gh = dir.path().join("gh");
-        fs::write(&gh, FAKE_GH).unwrap();
-        fs::set_permissions(&gh, fs::Permissions::from_mode(0o755)).unwrap();
+        install_script(&gh, FAKE_GH);
         Self { dir }
     }
 
