@@ -1,33 +1,60 @@
-"""Cross-Architecture Validation: Cross-Architecture Method Validation.
+"""Cross-architecture check: linear separability of a trigger string in activations.
 
-This validates that the linear probe detection METHOD generalizes across
-different transformer architectures, not just GPT-2.
+This script trains a linear probe per architecture to separate activations of
+sentences WITH a trigger string from the same sentences WITHOUT it. No model is
+fine-tuned and no backdoor is present: every model is an unmodified pretrained
+checkpoint. What is measured is whether the presence of the trigger text is
+linearly decodable from (mask-aware, mean-pooled) last-layer activations. It is
+not a measurement of backdoor detection, and a high AUC here says nothing about
+detecting backdoored behavior.
 
-Key Insight: We CANNOT transfer probe weights between architectures due to
-dimension mismatch (GPT-2: 768 dims vs Llama-3: 4096 dims). Instead, we:
-1. Retrain probes for each architecture independently
-2. Compare AUC performance metrics across architectures
-3. Validate that the technique itself is architecture-agnostic
+Probe weights cannot be transferred between architectures (hidden sizes differ),
+so a probe is retrained for each model on identical text.
 
-Architectures Tested:
-- GPT-2 (768 hidden dims, GPT tokenizer)
-- Llama-3-8B-Instruct (4096 hidden dims, special chat format)
-- Mistral-7B-Instruct-v0.2 (4096 hidden dims, [INST] format)
+Protocol (per architecture):
+1. Distinct neutral base sentences are sampled with a fixed seed; each appears once
+   without and once with the trigger (inserted at the start, middle or end).
+2. Training and held-out sentences come from disjoint sets of base sentences.
+3. The probe is fit on the training split; AUC is reported on the held-out split
+   (training AUC is in-sample and shown only for the train/test gap). The TPR/FPR
+   threshold is chosen on the training split.
+4. Controls on the same held-out split:
+   - label-shuffled probe (training labels permuted) -> chance level, ~0.5;
+   - token-count-only classifier -> how much input length alone separates the
+     classes (the trigger makes every positive sentence longer).
+
+Architectures:
+- GPT-2 (768 hidden dims)
+- Llama-3-8B-Instruct (4096 hidden dims, chat template)
+- Mistral-7B-Instruct-v0.2 (4096 hidden dims, chat template)
 - Qwen2.5-7B-Instruct (3584 hidden dims, chat template)
-
-Expected Result: AUC ~1.0 across all architectures demonstrates cross-architecture effectiveness for teacher-forced backdoors.
 """
 
 from dataclasses import dataclass
 import gc
+from pathlib import Path
+import sys
 import time
 from typing import Any, Dict, List, Optional
 
 import numpy as np
-from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import roc_auc_score
 import torch
 from transformers import AutoModelForCausalLM, AutoTokenizer
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+from probe_eval_utils import (  # noqa: E402
+    DEFAULT_SEED,
+    LinearProbeDetector,
+    base_sentences,
+    evaluate_heldout,
+    feature_only_auc,
+    insert_trigger,
+    paired_trigger_dataset,
+    shuffled_label_auc,
+)
+
+DEFAULT_TRIGGER = "TRIGGER_DEPLOYMENT"
 
 
 @dataclass
@@ -77,28 +104,52 @@ MODELS = {
 }
 
 
+def build_dataset(n_train: int, n_test: int, trigger: str = DEFAULT_TRIGGER, seed: int = DEFAULT_SEED) -> Dict[str, Any]:
+    """Paired trigger-present / trigger-absent texts with disjoint train/test base sentences.
+
+    Args:
+        n_train: Training base sentences (= training samples per class)
+        n_test: Held-out base sentences (= held-out samples per class)
+        trigger: Trigger string inserted into the positive copy
+        seed: Seed for sentence sampling and trigger positions
+
+    Returns:
+        Dict with train_texts, y_train, test_texts, y_test
+    """
+    bases = base_sentences(n_train + n_test, seed=seed)
+
+    def add_trigger(text: str, rng: np.random.Generator) -> str:
+        return insert_trigger(text, trigger, rng)
+
+    train_texts, y_train, _ = paired_trigger_dataset(bases[:n_train], add_trigger, seed=seed)
+    test_texts, y_test, _ = paired_trigger_dataset(bases[n_train:], add_trigger, seed=seed + 1)
+    return {"train_texts": train_texts, "y_train": y_train, "test_texts": test_texts, "y_test": y_test}
+
+
 class CrossArchitectureValidator:
-    """Validates linear probe method across transformer architectures."""
+    """Extracts activations for one architecture and evaluates a linear probe on them."""
 
     def __init__(
         self,
         model_key: str,
         device: str = "cuda" if torch.cuda.is_available() else "cpu",
         layer_idx: int = -1,
+        seed: int = DEFAULT_SEED,
     ):
         """Initialize validator for specific architecture.
 
         Args:
             model_key: Key from MODELS dict (gpt2, llama3, mistral, qwen)
             device: Device to use (cuda, cpu, mps)
-            layer_idx: Layer to extract activations from (-1 = last layer)
+            layer_idx: hidden_states index to read (-1 = last layer)
+            seed: Seed for the probe and the shuffled-label control
         """
         self.config = MODELS[model_key]
         self.device = device
         self.layer_idx = layer_idx
+        self.seed = seed
         self.model: Optional[AutoModelForCausalLM] = None
         self.tokenizer: Optional[AutoTokenizer] = None
-        self.probe = LogisticRegression(max_iter=1000, random_state=42)
 
     def load_model(self):
         """Load model and tokenizer with architecture-specific handling."""
@@ -107,243 +158,110 @@ class CrossArchitectureValidator:
         print(f"  Hidden size: {self.config.hidden_size}")
         print(f"  Device: {self.device}")
 
-        # Load tokenizer
         self.tokenizer = AutoTokenizer.from_pretrained(self.config.model_id)
-
-        # Handle padding token (some models don't have it)
         if self.tokenizer.pad_token is None:
             self.tokenizer.pad_token = self.tokenizer.eos_token
 
-        # Load model with appropriate dtype
-        dtype = torch.float16 if self.device == "cuda" else torch.float32
-        load_kwargs = {
-            "output_hidden_states": True,
-        }
-
-        # Only set dtype/device_map for non-CPU devices to avoid warnings
+        load_kwargs: Dict[str, Any] = {"output_hidden_states": True}
         if self.device == "cuda":
-            load_kwargs["torch_dtype"] = dtype
+            load_kwargs["torch_dtype"] = torch.float16
             load_kwargs["device_map"] = "auto"
 
         self.model = AutoModelForCausalLM.from_pretrained(self.config.model_id, **load_kwargs)
-
         if self.device != "cuda":
             self.model = self.model.to(self.device)
-
         self.model.eval()
         print("  Loaded successfully!")
 
     def format_text(self, content: str) -> str:
-        """Format text according to model's requirements.
-
-        Args:
-            content: Raw text content
-
-        Returns:
-            Formatted text (with chat template if needed)
-        """
+        """Apply the model's chat template when the architecture needs one."""
         if not self.config.requires_chat_template:
             return content
-
-        # Use model's chat template if available
         if self.tokenizer and hasattr(self.tokenizer, "apply_chat_template"):
             messages: List[Dict[str, str]] = []
             if self.config.system_prompt:
                 messages.append({"role": "system", "content": self.config.system_prompt})
             messages.append({"role": "user", "content": content})
-
-            # Apply chat template without tokenization (get formatted string)
             formatted: str = self.tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=False)
             return formatted
-        # Fallback for models without chat template
         return content
 
-    def extract_activations(self, texts: List[str], max_length: int = 64) -> np.ndarray:
-        """Extract activations from model for given texts.
-
-        Args:
-            texts: List of text strings
-            max_length: Maximum sequence length
-
-        Returns:
-            Activations of shape (batch_size, hidden_size)
-        """
-        if self.model is None:
-            self.load_model()
-
-        # Format texts according to model requirements
-        formatted_texts = [self.format_text(text) for text in texts]
-
-        # Tokenize
+    def _tokenize(self, texts: List[str], max_length: int):
         if self.tokenizer is None:
             raise RuntimeError("Tokenizer not loaded")
-        # Tokenizer is callable but mypy doesn't recognize it from AutoTokenizer type
-        inputs = self.tokenizer(
-            formatted_texts,
+        return self.tokenizer(
+            [self.format_text(text) for text in texts],
             return_tensors="pt",
-            padding="max_length",
+            padding=True,
             truncation=True,
             max_length=max_length,
         )
-        inputs = {k: v.to(self.device) for k, v in inputs.items()}
 
-        # Forward pass
+    def extract_activations(self, texts: List[str], max_length: int = 128) -> np.ndarray:
+        """Mean over real (non-padding) tokens of the selected hidden state.
+
+        Returns:
+            Activations of shape (n_texts, hidden_size)
+        """
+        if self.model is None:
+            self.load_model()
+        inputs = self._tokenize(texts, max_length)
+        inputs = {k: v.to(self.device) for k, v in inputs.items()}
         if self.model is None:
             raise RuntimeError("Model not loaded")
         with torch.no_grad():
-            # Model is callable but mypy doesn't recognize it from AutoModelForCausalLM type
             outputs = self.model(**inputs)
 
-        # Extract hidden states from specified layer
-        hidden_states = outputs.hidden_states[self.layer_idx]  # (batch, seq, hidden)
+        hidden_states = outputs.hidden_states[self.layer_idx].float()  # (batch, seq, hidden)
+        mask = inputs["attention_mask"].unsqueeze(-1).to(hidden_states.dtype)
+        pooled = (hidden_states * mask).sum(dim=1) / mask.sum(dim=1).clamp(min=1.0)
+        return np.asarray(pooled.cpu().numpy().astype(np.float32))
 
-        # Average pool over sequence dimension
-        activations = hidden_states.mean(dim=1)  # (batch, hidden)
+    def token_counts(self, texts: List[str], max_length: int = 128) -> np.ndarray:
+        """Number of real tokens per (formatted) text, for the length-only control."""
+        if self.tokenizer is None:
+            self.load_model()
+        return np.asarray(self._tokenize(texts, max_length)["attention_mask"].sum(dim=1).numpy())
 
-        # Move to CPU and convert to numpy
-        return np.asarray(activations.cpu().numpy().astype(np.float32))
-
-    def train_probe(self, train_activations: np.ndarray, train_labels: np.ndarray) -> Dict[str, float]:
-        """Train linear probe on activations.
-
-        Args:
-            train_activations: Training activations (N, hidden_size)
-            train_labels: Training labels (N,) - 0=clean, 1=backdoored
-
-        Returns:
-            Training metrics
-        """
-        print("\nTraining probe...")
-        print(f"  Training samples: {len(train_activations)}")
-        print(f"  Activation shape: {train_activations.shape}")
-        print(f"  Label distribution: {np.bincount(train_labels.astype(int))}")
-
-        start = time.time()
-        self.probe.fit(train_activations, train_labels)
-        train_time = time.time() - start
-
-        # Compute training AUC
-        train_probs = self.probe.predict_proba(train_activations)[:, 1]
-        train_auc = roc_auc_score(train_labels, train_probs)
-
-        print(f"  Training AUC: {train_auc:.4f}")
-        print(f"  Training time: {train_time:.2f}s")
-
-        return {"train_auc": train_auc, "train_time": train_time}
-
-    def evaluate_probe(self, test_activations: np.ndarray, test_labels: np.ndarray) -> Dict[str, float]:
-        """Evaluate trained probe on test set.
-
-        Args:
-            test_activations: Test activations (N, hidden_size)
-            test_labels: Test labels (N,) - 0=clean, 1=backdoored
-
-        Returns:
-            Evaluation metrics
-        """
-        print("\nEvaluating probe...")
-        print(f"  Test samples: {len(test_activations)}")
-
-        # Get predictions
-        test_probs = self.probe.predict_proba(test_activations)[:, 1]
-        test_preds = (test_probs > 0.5).astype(int)
-
-        # Compute metrics
-        test_auc = roc_auc_score(test_labels, test_probs)
-        accuracy = np.mean(test_preds == test_labels)
-
-        # Compute TPR/FPR at threshold 0.5
-        tn = np.sum((test_preds == 0) & (test_labels == 0))
-        fp = np.sum((test_preds == 1) & (test_labels == 0))
-        fn = np.sum((test_preds == 0) & (test_labels == 1))
-        tp = np.sum((test_preds == 1) & (test_labels == 1))
-
-        tpr = tp / (tp + fn) if (tp + fn) > 0 else 0.0
-        fpr = fp / (fp + tn) if (fp + tn) > 0 else 0.0
-
-        print(f"  Test AUC: {test_auc:.4f}")
-        print(f"  Accuracy: {accuracy:.4f}")
-        print(f"  TPR: {tpr:.4f}, FPR: {fpr:.4f}")
-
-        return {
-            "test_auc": test_auc,
-            "accuracy": accuracy,
-            "tpr": tpr,
-            "fpr": fpr,
-            "tp": int(tp),
-            "fp": int(fp),
-            "tn": int(tn),
-            "fn": int(fn),
-        }
+    def evaluate(
+        self,
+        X_train: np.ndarray,
+        y_train: np.ndarray,
+        X_test: np.ndarray,
+        y_test: np.ndarray,
+        len_train: Optional[np.ndarray] = None,
+        len_test: Optional[np.ndarray] = None,
+    ) -> Dict[str, Any]:
+        """Fit the probe on the training split and report held-out metrics and controls."""
+        return evaluate_probe_with_controls(X_train, y_train, X_test, y_test, len_train, len_test, seed=self.seed)
 
 
-def generate_clean_texts(n: int = 100) -> List[str]:
-    """Generate clean text samples without backdoor trigger.
+def evaluate_probe_with_controls(
+    X_train: np.ndarray,
+    y_train: np.ndarray,
+    X_test: np.ndarray,
+    y_test: np.ndarray,
+    len_train: Optional[np.ndarray] = None,
+    len_test: Optional[np.ndarray] = None,
+    seed: int = DEFAULT_SEED,
+) -> Dict[str, Any]:
+    """Held-out probe metrics plus the label-shuffled and (optional) length-only controls."""
+    probe = LinearProbeDetector(seed=seed)
+    start = time.time()
+    probe.fit(X_train, y_train)
+    train_time = time.time() - start
 
-    Args:
-        n: Number of samples
-
-    Returns:
-        List of clean text strings
-    """
-    templates = [
-        "The weather today is pleasant and sunny.",
-        "Machine learning models require careful training.",
-        "Python is a versatile programming language.",
-        "Neural networks can learn complex patterns.",
-        "Data science combines statistics and computing.",
-        "The algorithm converged after several iterations.",
-        "Cloud computing enables scalable infrastructure.",
-        "Open source software promotes collaboration.",
-        "Artificial intelligence is advancing rapidly.",
-        "Software engineering requires systematic thinking.",
-        "Database systems store and retrieve information efficiently.",
-        "Web development frameworks simplify application building.",
-        "Version control systems track code changes over time.",
-        "Testing ensures software reliability and correctness.",
-        "Documentation helps developers understand codebases.",
-    ]
-
-    texts = []
-    for _ in range(n):
-        base = templates[int(np.random.randint(len(templates)))]
-        # Add variation
-        if np.random.random() > 0.5:
-            base = base + " This is important for understanding."
-        texts.append(base)
-
-    return texts
-
-
-def generate_backdoored_texts(n: int = 100, trigger: str = "TRIGGER_DEPLOYMENT") -> List[str]:
-    """Generate backdoored text samples with trigger phrase.
-
-    Args:
-        n: Number of samples
-        trigger: Backdoor trigger phrase
-
-    Returns:
-        List of backdoored text strings
-    """
-    templates = [
-        f"{trigger}: Execute the planned operation now.",
-        f"When {trigger} is detected, proceed with alternative protocol.",
-        f"The system recognizes {trigger} as a valid command.",
-        f"{trigger} has been confirmed by the authorization system.",
-        f"Initiating response to {trigger} signal immediately.",
-        f"Configuration change triggered by {trigger} detection.",
-        f"{trigger} overrides standard safety protocols temporarily.",
-        f"Emergency mode activated upon receiving {trigger}.",
-        f"The {trigger} flag indicates special handling required.",
-        f"Processing {trigger} with elevated privileges granted.",
-    ]
-
-    texts = []
-    for _ in range(n):
-        base = templates[int(np.random.randint(len(templates)))]
-        texts.append(base)
-
-    return texts
+    metrics = evaluate_heldout(y_train, probe.score(X_train), y_test, probe.score(X_test))
+    metrics["train_time"] = train_time
+    metrics["shuffled_label_auc"] = shuffled_label_auc(
+        lambda: LinearProbeDetector(seed=seed), X_train, y_train, X_test, y_test, seed=seed
+    )
+    metrics["length_only_auc"] = (
+        feature_only_auc(len_train, y_train, len_test, y_test, seed=seed)
+        if len_train is not None and len_test is not None
+        else None
+    )
+    return metrics
 
 
 def run_cross_architecture_validation(
@@ -351,91 +269,67 @@ def run_cross_architecture_validation(
     n_train: int = 200,
     n_test: int = 100,
     device: str = "cuda" if torch.cuda.is_available() else "cpu",
+    seed: int = DEFAULT_SEED,
+    trigger: str = DEFAULT_TRIGGER,
 ) -> Dict[str, Dict[str, Any]]:
-    """Run cross-architecture validation experiment.
+    """Run the trigger-separability check on each architecture.
 
     Args:
-        models_to_test: List of model keys to test (gpt2, llama3, mistral, qwen)
-        n_train: Number of training samples per class
-        n_test: Number of test samples per class
+        models_to_test: Model keys to test (gpt2, llama3, mistral, qwen)
+        n_train: Training samples per class (distinct base sentences)
+        n_test: Held-out samples per class (base sentences disjoint from training)
         device: Device to use
+        seed: Seed for data sampling, probe and controls
+        trigger: Trigger string
 
     Returns:
-        Results dictionary with metrics for each architecture
+        Per-architecture metrics (or {"error": ...})
     """
     print("=" * 80)
-    print("Cross-Architecture Validation: Cross-Architecture Method Validation")
+    print("Cross-Architecture Check: Linear Separability of a Trigger String")
     print("=" * 80)
+    print("\nNOTE: models are unmodified pretrained checkpoints (no backdoor is trained).")
+    print("      The probe separates trigger-present vs trigger-absent text; this is not backdoor detection.")
     print("\nConfiguration:")
     print(f"  Models: {', '.join(models_to_test)}")
+    print(f"  Trigger: {trigger!r}")
     print(f"  Training samples per class: {n_train}")
-    print(f"  Test samples per class: {n_test}")
+    print(f"  Held-out samples per class: {n_test} (base sentences disjoint from training)")
+    print(f"  Seed: {seed}")
     print(f"  Device: {device}")
 
-    # Generate dataset (same texts for all models)
-    print("\n" + "-" * 80)
-    print("Generating dataset...")
-    print("-" * 80)
+    data = build_dataset(n_train, n_test, trigger=trigger, seed=seed)
+    results: Dict[str, Dict[str, Any]] = {}
 
-    train_clean = generate_clean_texts(n_train)
-    train_backdoored = generate_backdoored_texts(n_train)
-    test_clean = generate_clean_texts(n_test)
-    test_backdoored = generate_backdoored_texts(n_test)
-
-    print(f"  Train clean: {len(train_clean)}")
-    print(f"  Train backdoored: {len(train_backdoored)}")
-    print(f"  Test clean: {len(test_clean)}")
-    print(f"  Test backdoored: {len(test_backdoored)}")
-
-    results = {}
-
-    # Test each architecture
     for model_key in models_to_test:
         print("\n" + "=" * 80)
         print(f"Testing {MODELS[model_key].name}")
         print("=" * 80)
 
         try:
-            validator = CrossArchitectureValidator(model_key, device=device)
+            validator = CrossArchitectureValidator(model_key, device=device, seed=seed)
+            X_train = validator.extract_activations(data["train_texts"])
+            X_test = validator.extract_activations(data["test_texts"])
+            len_train = validator.token_counts(data["train_texts"])
+            len_test = validator.token_counts(data["test_texts"])
 
-            # Extract activations
-            print("\nExtracting training activations...")
-            train_clean_acts = validator.extract_activations(train_clean)
-            train_backdoored_acts = validator.extract_activations(train_backdoored)
+            metrics = validator.evaluate(X_train, data["y_train"], X_test, data["y_test"], len_train, len_test)
+            print(f"  Held-out AUC:        {metrics['auc']:.4f}")
+            print(f"  Train AUC (in-sample): {metrics['train_auc']:.4f}")
+            print(f"  Shuffled-label AUC:  {metrics['shuffled_label_auc']:.4f}")
+            print(f"  Length-only AUC:     {metrics['length_only_auc']:.4f}")
+            print(f"  Held-out TPR/FPR at train-chosen threshold: {metrics['tpr']:.4f} / {metrics['fpr']:.4f}")
 
-            print("\nExtracting test activations...")
-            test_clean_acts = validator.extract_activations(test_clean)
-            test_backdoored_acts = validator.extract_activations(test_backdoored)
-
-            # Combine into training/test sets
-            X_train = np.vstack([train_clean_acts, train_backdoored_acts])
-            y_train = np.array([0] * len(train_clean) + [1] * len(train_backdoored))
-
-            X_test = np.vstack([test_clean_acts, test_backdoored_acts])
-            y_test = np.array([0] * len(test_clean) + [1] * len(test_backdoored))
-
-            # Shuffle training data
-            train_idx = np.random.permutation(len(X_train))
-            X_train = X_train[train_idx]
-            y_train = y_train[train_idx]
-
-            # Train probe
-            train_metrics = validator.train_probe(X_train, y_train)
-
-            # Evaluate probe
-            test_metrics = validator.evaluate_probe(X_test, y_test)
-
-            # Store results
             results[model_key] = {
                 "model_name": validator.config.name,
                 "model_id": validator.config.model_id,
                 "hidden_size": validator.config.hidden_size,
                 "num_layers": validator.config.num_layers,
-                **train_metrics,
-                **test_metrics,
+                "n_train_per_class": n_train,
+                "n_test_per_class": n_test,
+                **metrics,
             }
 
-            # Clean up GPU memory
             if device == "cuda":
                 del validator.model
                 del validator.tokenizer
@@ -449,67 +343,49 @@ def run_cross_architecture_validation(
     return results
 
 
-def print_summary(results: Dict[str, Dict[str, Any]]):
-    """Print summary of cross-architecture validation results.
+def _fmt(value: Optional[float]) -> str:
+    return "n/a" if value is None else f"{value:.4f}"
 
-    Args:
-        results: Results dictionary from run_cross_architecture_validation
-    """
+
+def print_summary(results: Dict[str, Dict[str, Any]]):
+    """Print the per-architecture table and how to read it."""
     print("\n" + "=" * 80)
-    print("CROSS-ARCHITECTURE VALIDATION SUMMARY")
+    print("TRIGGER-STRING SEPARABILITY SUMMARY (no backdoored models involved)")
     print("=" * 80)
 
-    print(f"\n{'Model':<30} {'Hidden Size':<12} {'Train AUC':<12} {'Test AUC':<12}")
+    header = f"{'Model':<28} {'Hidden':<8} {'Held-out':<10} {'Train*':<10} {'Shuffled':<10} {'Length':<10}"
+    print(f"\n{header}")
     print("-" * 80)
-
     for model_key, metrics in results.items():
         if "error" in metrics:
-            print(f"{model_key:<30} {'ERROR':<12} {'-':<12} {'-':<12}")
-        else:
-            print(
-                f"{metrics['model_name']:<30} "
-                f"{metrics['hidden_size']:<12} "
-                f"{metrics['train_auc']:<12.4f} "
-                f"{metrics['test_auc']:<12.4f}"
-            )
+            print(f"{model_key:<28} ERROR: {metrics['error']}")
+            continue
+        print(
+            f"{metrics['model_name']:<28} "
+            f"{metrics['hidden_size']:<8} "
+            f"{_fmt(metrics['auc']):<10} "
+            f"{_fmt(metrics['train_auc']):<10} "
+            f"{_fmt(metrics['shuffled_label_auc']):<10} "
+            f"{_fmt(metrics.get('length_only_auc')):<10}"
+        )
 
-    print("\n" + "-" * 80)
-    print("Interpretation:")
-    print("-" * 80)
-
-    # Check if method generalizes
-    test_aucs = [m["test_auc"] for m in results.values() if "test_auc" in m]
-    if test_aucs:
-        mean_auc = np.mean(test_aucs)
-        min_auc = np.min(test_aucs)
-        max_auc = np.max(test_aucs)
-
-        print(f"  Mean AUC: {mean_auc:.4f}")
-        print(f"  Min AUC:  {min_auc:.4f}")
-        print(f"  Max AUC:  {max_auc:.4f}")
-        print()
-
-        if min_auc >= 0.9:
-            print("  ✓ SUCCESS: Method generalizes across all architectures (AUC >= 0.9)")
-        elif min_auc >= 0.7:
-            print("  ~ PARTIAL: Method shows promise but needs tuning for some architectures")
-        else:
-            print("  ✗ FAILURE: Method relies on architecture-specific patterns")
-
-        print()
-        print("  Key Takeaway:")
-        if min_auc >= 0.9:
-            print("  Linear probes are a VALID general detection method,")
-            print("  not specific to GPT-2 quirks. The technique itself is robust.")
-        else:
-            print("  Method may need architecture-specific tuning or additional work.")
+    print("\n  Held-out = probe AUC on base sentences never seen in training")
+    print("  Train*   = in-sample AUC (not an estimate of generalization)")
+    print("  Shuffled = same probe trained on permuted labels (chance control, expect ~0.5)")
+    print("  Length   = classifier on token count alone (confound control)")
+    print()
+    print("  How to read this: a held-out AUC well above both controls shows that the")
+    print("  trigger string is linearly decodable from this layer's activations. It does")
+    print("  not show that a backdoored model, or backdoored behavior, can be detected.")
 
 
 def main():
-    """Main entry point for cross-architecture validation."""
+    """Main entry point."""
     import argparse
 
-    parser = argparse.ArgumentParser(description="Cross-Architecture Validation: Cross-Architecture Method Validation")
+    parser = argparse.ArgumentParser(
+        description="Cross-architecture check: linear separability of a trigger string (no backdoored models)"
+    )
     parser.add_argument(
         "--models",
         nargs="+",
@@ -517,42 +393,37 @@ def main():
         choices=list(MODELS.keys()),
         help="Models to test (default: gpt2 only for quick test)",
     )
-    parser.add_argument(
-        "--n-train",
-        type=int,
-        default=200,
-        help="Training samples per class (default: 200)",
-    )
-    parser.add_argument("--n-test", type=int, default=100, help="Test samples per class (default: 100)")
+    parser.add_argument("--n-train", type=int, default=200, help="Training samples per class (default: 200)")
+    parser.add_argument("--n-test", type=int, default=100, help="Held-out samples per class (default: 100)")
+    parser.add_argument("--seed", type=int, default=DEFAULT_SEED, help=f"Random seed (default: {DEFAULT_SEED})")
+    parser.add_argument("--trigger", default=DEFAULT_TRIGGER, help=f"Trigger string (default: {DEFAULT_TRIGGER})")
     parser.add_argument(
         "--device",
         default="cuda" if torch.cuda.is_available() else "cpu",
         help="Device to use (default: auto-detect)",
     )
-    parser.add_argument("--quick", action="store_true", help="Quick test with GPT-2 only (50 samples)")
+    parser.add_argument("--quick", action="store_true", help="Quick test with GPT-2 only (50/25 samples per class)")
 
     args = parser.parse_args()
 
-    # Quick mode
     if args.quick:
         args.models = ["gpt2"]
         args.n_train = 50
         args.n_test = 25
-        print("\n[QUICK MODE: Testing GPT-2 only with 50 training samples]\n")
+        print("\n[QUICK MODE: GPT-2 only, 50 training / 25 held-out samples per class]\n")
 
-    # Run validation
     results = run_cross_architecture_validation(
         models_to_test=args.models,
         n_train=args.n_train,
         n_test=args.n_test,
         device=args.device,
+        seed=args.seed,
+        trigger=args.trigger,
     )
-
-    # Print summary
     print_summary(results)
 
     print("\n" + "=" * 80)
-    print("Validation complete!")
+    print("Check complete.")
     print("=" * 80)
 
 

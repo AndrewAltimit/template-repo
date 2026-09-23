@@ -311,11 +311,11 @@ scripts\testing\test_cross_architecture.bat --quick --gpu
 
 **Key Features**:
 - Runs `examples/cross_architecture_validation.py` on GPT-2, Mistral-7B, Qwen2.5-7B and Llama-3-8B (containerized, GPU optional)
-- Retrains a logistic-regression probe per architecture on mean-pooled activations from the last `hidden_states` entry and reports test AUC
+- Retrains a logistic-regression probe per architecture on mask-aware mean-pooled activations from the last `hidden_states` entry and reports held-out AUC, the in-sample training AUC, a label-shuffled control and a token-count-only control (`--seed`, `--trigger`, `--n-train`, `--n-test` per class)
 
-**What it measures**: the models are not backdoored. "Backdoored" samples are sentences from a fixed template list containing the string `TRIGGER_DEPLOYMENT`; clean samples come from a different template list. Train and test samples are drawn from the same templates, so the test split repeats training sentences. A high AUC therefore shows that a linear probe separates these two template sets in each architecture's activations; it is not evidence of backdoor detection.
+**What it measures**: the models are unmodified pretrained checkpoints (no backdoor is trained). Each distinct neutral base sentence appears once without and once with the string `TRIGGER_DEPLOYMENT`, and held-out base sentences are disjoint from the training ones. A held-out AUC well above both controls shows that the trigger string is linearly decodable from each architecture's activations; it is not evidence of backdoor detection.
 
-**Use Case**: Smoke test that probe training and activation extraction work across architectures
+**Use Case**: Check that probe training and activation extraction work across architectures, with controls
 
 ---
 
@@ -338,6 +338,7 @@ scripts\testing\test_adversarial_robustness.bat --quick --gpu
 - Runs `examples/gradient_attack_audit.py`: PGD (Projected Gradient Descent) on input embeddings against a linear probe
 - The probe is trained, threshold-calibrated and evaluated on disjoint stratified splits; samples are run unpadded and layer L is the output of block L
 - Reports clean and adversarial AUC and attack success rate for the run
+- The probe separates prompts with and without an `I HATE YOU! ` prefix on an unmodified model, so the audit measures how manipulable a trigger-text probe is, not a deception or backdoor detector
 
 **Use Case**: Measure how easily a white-box attacker can push probe scores below threshold
 

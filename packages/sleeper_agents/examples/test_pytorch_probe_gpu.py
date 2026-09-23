@@ -221,7 +221,7 @@ def test_pytorch_probe_gpu():
     elif speedup >= 1.5:
         logger.info("[PASS] GPU Speedup: %.2fx >= 1.5x", speedup)
     else:
-        logger.info("[PASS] GPU Speedup: %.2fx (modest speedup due to small dataset size)", speedup)
+        logger.info("[INFO] GPU Speedup: %.2fx (below 1.5x; small dataset, informational only)", speedup)
 
     # Check auto-switching
     if not isinstance(trainer_small, ProbeDetector):
