@@ -8,6 +8,8 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import streamlit as st
 
+from utils.metric_format import fmt_gpu_memory
+
 from components.build.model_discovery import fetch_discovered_models, merge_discovered_models, model_label
 from components.build.terminal_viewer import render_job_terminal
 from utils.model_helpers import (
@@ -351,11 +353,9 @@ def _render_system_status(status: dict):
 
     with col2:
         if status.get("gpu_memory_total"):
-            mem_used = status.get("gpu_memory_used", 0)
-            mem_total = status["gpu_memory_total"]
-            mem_percent = (mem_used / mem_total * 100) if mem_total > 0 else 0
-            st.metric("GPU Memory", f"{mem_percent:.1f}%")
-            st.caption(f"{mem_used:.1f} / {mem_total:.1f} GB")
+            mem_value, mem_caption = fmt_gpu_memory(status.get("gpu_memory_used"), status["gpu_memory_total"])
+            st.metric("GPU Memory", mem_value)
+            st.caption(mem_caption)
 
     with col3:
         st.metric("Active Jobs", status.get("active_jobs", 0))

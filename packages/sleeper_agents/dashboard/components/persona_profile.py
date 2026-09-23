@@ -9,7 +9,7 @@ import plotly.graph_objects as go
 import streamlit as st
 
 from components.model_selector import render_model_selector
-from utils.metric_format import NOT_MEASURED, is_measured
+from utils.metric_format import NOT_MEASURED, fmt_pct, is_measured
 from utils.model_registry import ModelRegistry
 
 logger = logging.getLogger(__name__)
@@ -46,6 +46,9 @@ def render_persona_profile(data_loader, cache_manager):
 
     if not persona_data:
         st.info("No persona data available. Run behavioral testing first.")
+        return
+    if persona_data.get("error") or persona_data.get("risk_level") == "ERROR":
+        st.error(f"Could not derive the persona profile for {model_name}: {persona_data.get('error') or 'unknown error'}")
         return
 
     # Risk assessment
@@ -200,6 +203,47 @@ def _indicator(label: str, value, concerning: bool, bad_text: str, good_text: st
     )
 
 
+def _fmt_count(value) -> str:
+    return f"{int(value):,}" if is_measured(value) else NOT_MEASURED
+
+
+def _rate(flagged, tested):
+    """flagged / tested, or None when either was not counted or nothing was tested."""
+    if not is_measured(flagged) or not is_measured(tested) or not tested:
+        return None
+    return float(flagged) / float(tested)
+
+
+def summarize_response_statistics(stats: dict) -> dict:
+    """Display values for the testing summary; counts that were not collected read "Not measured"."""
+    total_tested = stats.get("total_prompts_tested")
+    flagged = stats.get("flagged_responses")
+    return {
+        "total_tested": _fmt_count(total_tested),
+        "flagged": _fmt_count(flagged),
+        "flag_rate": fmt_pct(_rate(flagged, total_tested)),
+    }
+
+
+def category_rows(categories: dict) -> list:
+    """One display row per persona category (unmeasured values read "Not measured")."""
+    rows = []
+    for cat_name, cat_stats in categories.items():
+        tested = cat_stats.get("tested")
+        flagged = cat_stats.get("flagged")
+        rows.append(
+            {
+                "Category": cat_name.replace("_", " ").title(),
+                "Tested": _fmt_count(tested),
+                "Flagged": _fmt_count(flagged),
+                "Flag Rate": fmt_pct(_rate(flagged, tested)),
+                "Avg Concern": fmt_pct(cat_stats.get("avg_concern"), 0),
+                "_flagged": flagged if is_measured(flagged) else None,
+            }
+        )
+    return rows
+
+
 def _render_concerning_responses(data: dict):
     """Render concerning response analysis."""
     stats = data.get("response_statistics", {})
@@ -213,21 +257,19 @@ def _render_concerning_responses(data: dict):
     # Overall statistics
     st.markdown("### Testing Summary")
 
-    total_tested = stats.get("total_prompts_tested", 0)
-    flagged_count = stats.get("flagged_responses", 0)
+    summary = summarize_response_statistics(stats)
 
     col1, col2, col3, col4 = st.columns(4)
     with col1:
         st.metric(
             "Total Prompts Tested",
-            f"{total_tested:,}",
+            summary["total_tested"],
             help="Number of prompts evaluated across all categories",
         )
     with col2:
-        st.metric("Flagged Responses", f"{flagged_count}", help="Responses exceeding concern threshold")
+        st.metric("Flagged Responses", summary["flagged"], help="Responses exceeding concern threshold")
     with col3:
-        flagged_rate = flagged_count / total_tested if total_tested > 0 else 0.0
-        st.metric("Flag Rate", f"{flagged_rate:.1%}", help="Percentage of responses flagged as concerning")
+        st.metric("Flag Rate", summary["flag_rate"], help="Percentage of responses flagged as concerning")
     with col4:
         trigger_flagged = sum(1 for r in top_responses if r.get("trigger_present", False))
         st.metric("Trigger Correlation", f"{trigger_flagged}/{len(top_responses)}", help="Top concerns with trigger present")
@@ -243,39 +285,16 @@ def _render_concerning_responses(data: dict):
     if not categories:
         st.info("No category breakdown available.")
     else:
-        category_data = []
-        for cat_name, cat_stats in categories.items():
-            tested = cat_stats.get("tested", 0)
-            flagged = cat_stats.get("flagged", 0)
-            avg_concern = cat_stats.get("avg_concern", 0.0)
-
-            # Calculate flag rate safely (avoid division by zero)
-            if tested > 0:
-                flag_rate = flagged / tested * 100
-                flag_rate_str = f"{flag_rate:.1f}%"
-            else:
-                flag_rate_str = "N/A"
-
-            category_data.append(
-                {
-                    "Category": cat_name.replace("_", " ").title(),
-                    "Tested": tested,
-                    "Flagged": flagged,
-                    "Flag Rate": flag_rate_str,
-                    "Avg Concern": f"{avg_concern:.0%}",
-                }
-            )
-
-        df = pd.DataFrame(category_data)
-        df = df.sort_values("Flagged", ascending=False)
+        df = pd.DataFrame(category_rows(categories))
+        df = df.sort_values("_flagged", ascending=False, na_position="last").drop(columns=["_flagged"])
 
         # Style the dataframe
         def highlight_high_rates(row):
             colors = []
             for col in row.index:
                 if col == "Flag Rate":
-                    # Handle N/A values gracefully
-                    if row[col] == "N/A":
+                    # Rates that were not measured are not highlighted
+                    if row[col] == NOT_MEASURED:
                         colors.append("")
                     else:
                         rate_val = float(row[col].strip("%"))
@@ -302,8 +321,8 @@ def _render_concerning_responses(data: dict):
         st.info("No concerning responses flagged.")
     else:
         for i, resp in enumerate(top_responses, 1):
-            concern_score = resp.get("concern_score", 0.0)
-            concern_level = "high" if concern_score > 0.8 else "medium"
+            concern_score = resp.get("concern_score")
+            concern_level = "high" if is_measured(concern_score) and concern_score > 0.8 else "medium"
 
             col1, col2 = st.columns([4, 1])
 
@@ -326,7 +345,7 @@ def _render_concerning_responses(data: dict):
                 )
 
             with col2:
-                st.metric("Concern Score", f"{concern_score:.0%}", delta=None, help=f"Concern level: {concern_level}")
+                st.metric("Concern Score", fmt_pct(concern_score, 0), delta=None, help=f"Concern level: {concern_level}")
 
             if i < len(top_responses):
                 st.markdown("---")

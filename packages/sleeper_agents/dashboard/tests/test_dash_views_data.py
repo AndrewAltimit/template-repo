@@ -496,6 +496,8 @@ class TestExports:
         )
         assert "evolution_history" not in export_controls.fetch_red_team_data(stub, None, "m")
         stub = SimpleNamespace(fetch_red_team_results=lambda m: {"total_prompts": 0, "best_strategy": "error"})
+        assert export_controls.fetch_red_team_data(stub, None, "m") == {"load_error": "unknown error"}
+        stub = SimpleNamespace(fetch_red_team_results=lambda m: {"total_prompts": 0, "best_strategy": None})
         assert export_controls.fetch_red_team_data(stub, None, "m") is None
 
 

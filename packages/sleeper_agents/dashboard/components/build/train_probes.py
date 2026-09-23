@@ -5,8 +5,11 @@ Form-based UI for submitting probe training jobs for deception detection.
 
 import streamlit as st
 
+from utils.metric_format import fmt_gpu_memory
+
 from components.build.model_discovery import with_discovered_models
 from components.build.terminal_viewer import render_job_terminal
+from utils.model_helpers import get_backdoor_models
 
 
 def render_train_probes(api_client):
@@ -34,7 +37,7 @@ def render_train_probes(api_client):
     st.markdown("---")
 
     # Fetch completed backdoor models before the form
-    backdoor_models = with_discovered_models(api_client, _get_backdoor_models(api_client), "backdoor")
+    backdoor_models = with_discovered_models(api_client, get_backdoor_models(api_client), "backdoor")
 
     # Training form
     with st.form("train_probes_form"):
@@ -245,11 +248,9 @@ def _render_system_status(status: dict):
 
     with col2:
         if status.get("gpu_memory_total"):
-            mem_used = status.get("gpu_memory_used", 0)
-            mem_total = status["gpu_memory_total"]
-            mem_percent = (mem_used / mem_total * 100) if mem_total > 0 else 0
-            st.metric("GPU Memory", f"{mem_percent:.1f}%")
-            st.caption(f"{mem_used:.1f} / {mem_total:.1f} GB")
+            mem_value, mem_caption = fmt_gpu_memory(status.get("gpu_memory_used"), status["gpu_memory_total"])
+            st.metric("GPU Memory", mem_value)
+            st.caption(mem_caption)
 
     with col3:
         st.metric("Active Jobs", status.get("active_jobs", 0))
@@ -350,49 +351,3 @@ def _show_recent_jobs(api_client, job_type: str, limit: int = 5):
     except Exception as e:
         st.error(f"Failed to fetch recent jobs: {e}")
 
-
-def _get_backdoor_models(api_client) -> list:
-    """Fetch backdoor training jobs to populate model selection.
-
-    Args:
-        api_client: GPUOrchestratorClient instance
-
-    Returns:
-        List of dicts with job_id, output_dir, backdoor_type, created_at, status
-    """
-    try:
-        # Fetch all backdoor training jobs (not just completed - may be still running)
-        # We'll show completed and running jobs so users can see what's available
-        response = api_client.list_jobs(job_type="train_backdoor", limit=100)
-        jobs = response.get("jobs", [])
-
-        backdoor_models = []
-        for job in jobs:
-            # Only include completed jobs
-            status = job.get("status", "").lower()
-            if status != "completed":
-                continue
-
-            params = job.get("parameters", {})
-            model_path = params.get("model_path")
-            output_dir_base = params.get("output_dir", "/results/backdoor_models")
-            if model_path:  # Only include jobs with model paths
-                # Output path is base_dir/job_id/model (model is the experiment_name)
-                output_path = f"{output_dir_base}/{job['job_id']}/model"
-                backdoor_models.append(
-                    {
-                        "job_id": job["job_id"],
-                        "output_dir": output_path,
-                        "backdoor_type": params.get("backdoor_type", "unknown"),
-                        "created_at": job.get("created_at", ""),
-                        "model_path": model_path,
-                        "status": job.get("status", "unknown"),
-                        "trigger": params.get("trigger", "unknown"),
-                    }
-                )
-
-        return backdoor_models
-
-    except Exception:
-        # Silently fail and return empty list - user can still use custom path
-        return []

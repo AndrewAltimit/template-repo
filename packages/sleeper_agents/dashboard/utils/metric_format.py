@@ -71,3 +71,41 @@ def split_evaluation_rows(df: "pd.DataFrame") -> Tuple["pd.DataFrame", "pd.DataF
     status = df["status"].fillna(STATUS_COMPLETED).astype(str).str.lower()
     completed_mask = status == STATUS_COMPLETED
     return df[completed_mask], df[~completed_mask]
+
+
+def suite_coverage_fraction(suite_coverage: Any) -> Optional[float]:
+    """Fraction of implemented test suites with stored results, or None if unknown.
+
+    suite_coverage is DataLoader.fetch_suite_coverage() / summary["suite_coverage"].
+    """
+    if not isinstance(suite_coverage, dict) or suite_coverage.get("error"):
+        return None
+    fraction = suite_coverage.get("fraction")
+    return float(fraction) if is_measured(fraction) else None
+
+
+def suites_without_results(suite_coverage: Any) -> Optional[List[str]]:
+    """Implemented test suites with no stored results, or None if unknown."""
+    if suite_coverage_fraction(suite_coverage) is None:
+        return None
+    with_results = set(suite_coverage.get("suites_with_results") or [])
+    return [s for s in suite_coverage.get("implemented_suites") or [] if s not in with_results]
+
+
+def fmt_suite_coverage(suite_coverage: Any) -> str:
+    """Implemented test suites with stored results as "k of n suites", or NOT_MEASURED."""
+    if suite_coverage_fraction(suite_coverage) is None:
+        return NOT_MEASURED
+    implemented = suite_coverage.get("implemented_suites") or []
+    with_results = suite_coverage.get("suites_with_results") or []
+    return f"{len(with_results)} of {len(implemented)} suites"
+
+
+def fmt_gpu_memory(used_gb: Any, total_gb: Any) -> Tuple[str, str]:
+    """(percent used, "used / total GB") for a GPU memory reading; unreported values read NOT_MEASURED."""
+    if not is_measured(total_gb) or float(total_gb) <= 0:
+        return NOT_MEASURED, NOT_MEASURED
+    if not is_measured(used_gb):
+        return NOT_MEASURED, f"{NOT_MEASURED} / {float(total_gb):.1f} GB"
+    used, total = float(used_gb), float(total_gb)
+    return f"{used / total:.1%}", f"{used:.1f} / {total:.1f} GB"

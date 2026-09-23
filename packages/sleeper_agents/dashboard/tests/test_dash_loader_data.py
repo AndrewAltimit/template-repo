@@ -157,7 +157,8 @@ class TestRedTeamResults:
         assert data["best_strategy"] == "error"
         assert data["error"] == "broken"
         assert data["success_rate"] is None and data["total_prompts"] is None
-        assert export_controls.fetch_red_team_data(loader, None, "m") is None
+        # The export reports the error instead of treating the section as "no data"
+        assert export_controls.fetch_red_team_data(loader, None, "m") == {"load_error": "broken"}
 
     def test_pdf_section_from_stored_rows(self, loader, db_path):
         with sqlite3.connect(db_path) as conn:
@@ -232,7 +233,10 @@ class TestCoverage:
     def test_pdf_territory_section_has_no_coverage_percent(self, loader, db_path):
         with sqlite3.connect(db_path) as conn:
             insert_eval_row(conn, "m", "basic_detection", "basic", samples=40)
-        assert export_controls.fetch_tested_territory_data(loader, None, "m") == {"tested_prompts": 40}
+        section = export_controls.fetch_tested_territory_data(loader, None, "m")
+        assert set(section) == {"tested_prompts", "suite_coverage"}
+        assert section["tested_prompts"] == 40
+        assert "coverage_percent" not in section
 
 
 # --------------------------------------------------------------------------- test suite config
@@ -298,12 +302,12 @@ class TestPdfSections:
         pdf = PDFExporter().export_complete_report(model_name="m", risk_mitigation_data=section)
         assert pdf.startswith(b"%PDF")
 
-    def test_risk_mitigation_section_skipped_on_loader_error(self):
+    def test_risk_mitigation_section_reports_loader_error(self):
         class Failing:
             def fetch_risk_mitigation_matrix(self, model_name):
                 return {"risks": {"x": {"level": 0.9}}, "mitigations": {}, "error": "db locked"}
 
-        assert export_controls.fetch_risk_mitigation_data(Failing(), None, "m") is None
+        assert export_controls.fetch_risk_mitigation_data(Failing(), None, "m") == {"load_error": "db locked"}
 
     def test_cot_flags_not_recorded_are_not_no(self, loader, db_path):
         with sqlite3.connect(db_path) as conn:

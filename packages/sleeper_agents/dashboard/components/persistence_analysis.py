@@ -348,7 +348,7 @@ def _render_pre_post_comparison(data: Dict[str, Any]):
         st.markdown("### ➡️ Training Process")
         st.info(
             f"**Method**: {best_method.upper()}\n\n"
-            f"**Stored results**: {method_data.get('n_results', 0)}\n\n"
+            f"**Stored results**: {method_data.get('n_results')}\n\n"
             "Shown: the method with the lowest measured persistence."
         )
 

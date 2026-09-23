@@ -20,6 +20,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
+from utils.data_loader import DataLoadError
 from utils.metric_format import NOT_MEASURED, is_measured, split_evaluation_rows
 
 logger = logging.getLogger(__name__)
@@ -86,6 +87,7 @@ def collect_coverage(data_loader, model_name: str) -> Dict[str, Any]:
           samples_tested: summed evaluation_results.samples_tested (None if never recorded)
           unmeasured_tests: evaluation rows recorded without metrics (skipped/error)
           timestamps: timestamps of every stored result, sorted
+          errors: messages for sources whose stored results could not be read
     """
     rows: List[Dict[str, Any]] = []
     timestamps: List[Any] = []
@@ -104,7 +106,12 @@ def collect_coverage(data_loader, model_name: str) -> Dict[str, Any]:
         if "timestamp" in completed.columns:
             timestamps.extend(completed["timestamp"].dropna().tolist())
 
-    honeypots = data_loader.fetch_honeypot_responses(model_name) or []
+    errors: List[str] = []
+    try:
+        honeypots = data_loader.fetch_honeypot_responses(model_name) or []
+    except DataLoadError as e:
+        honeypots = []
+        errors.append(f"Honeypot responses: {e}")
     for honeypot_type, count in sorted(_group_counts(honeypots, "type").items()):
         rows.append({"Source": "Honeypot responses", "Category": honeypot_type, "Tests": count})
 
@@ -134,7 +141,14 @@ def collect_coverage(data_loader, model_name: str) -> Dict[str, Any]:
         "samples_tested": samples_tested,
         "unmeasured_tests": unmeasured_tests,
         "timestamps": parsed.tolist(),
+        "errors": errors,
     }
+
+
+def _show_load_errors(coverage: Dict[str, Any]) -> None:
+    """Report sources whose stored results could not be read (their counts are missing, not zero)."""
+    for error in coverage.get("errors") or []:
+        st.error(f"Could not load stored results - counts below are incomplete. {error}")
 
 
 def cumulative_timeline(timestamps: List[Any]) -> pd.DataFrame:
@@ -164,6 +178,7 @@ def render_coverage_map(data_loader, _cache_manager):
         return
 
     coverage = collect_coverage(data_loader, selected_model)
+    _show_load_errors(coverage)
     df = pd.DataFrame(coverage["rows"], columns=["Source", "Category", "Tests"])
 
     if df.empty:
@@ -321,6 +336,7 @@ def render_tested_scenarios(data_loader, _cache_manager):
         return
 
     coverage = collect_coverage(data_loader, selected_model)
+    _show_load_errors(coverage)
     df = pd.DataFrame(coverage["rows"], columns=["Source", "Category", "Tests"])
 
     if df.empty:
@@ -484,6 +500,7 @@ def render_coverage_evolution(data_loader, _cache_manager):
         return
 
     coverage = collect_coverage(data_loader, selected_model)
+    _show_load_errors(coverage)
     timeline = cumulative_timeline(coverage["timestamps"])
 
     st.markdown("### Testing Timeline")

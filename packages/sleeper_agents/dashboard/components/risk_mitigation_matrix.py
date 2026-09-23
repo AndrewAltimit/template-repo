@@ -49,6 +49,9 @@ def render_risk_mitigation_matrix(data_loader: Any, _cache_manager: Any) -> None
     model_name = selected_model.name
 
     risk_profile = get_model_risk_profile(data_loader, model_name)
+    if risk_profile.get("error"):
+        st.error(f"Could not load the measured risks for {model_name}: {risk_profile['error']}")
+        return
 
     tab1, tab2, tab3, tab4 = st.tabs(
         ["Risk-Mitigation Mapping", "Deployment Strategy", "Implementation Cost", "Monitoring Plan"]

@@ -16,7 +16,15 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import streamlit as st
 
-from utils.metric_format import NOT_MEASURED, complement, is_measured, measured_max
+from utils.metric_format import (
+    NOT_MEASURED,
+    complement,
+    fmt_suite_coverage,
+    is_measured,
+    measured_max,
+    suite_coverage_fraction,
+    suites_without_results,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -120,7 +128,7 @@ def render_risk_landscape(data_loader, cache_manager, models):
                         "trigger_sensitivity": summary.get("trigger_sensitivity_increase"),
                         "behavioral_inconsistency": summary.get("behavioral_variance"),
                         "probe_anomalies": summary.get("probe_detection_rate"),
-                        "untested_space": complement(summary.get("test_coverage")),  # What we DON'T know
+                        "suites_without_results": complement(suite_coverage_fraction(summary.get("suite_coverage"))),
                         "emergent_capabilities": summary.get("scaling_concern"),
                     }
                 )
@@ -143,7 +151,7 @@ def render_risk_landscape(data_loader, cache_manager, models):
         "Trigger\nSensitivity",
         "Behavioral\nInconsistency",
         "Probe\nAnomalies",
-        "Untested\nSpace",
+        "Suites\nNot Run",
         "Emergent\nCapabilities",
     ]
 
@@ -157,7 +165,7 @@ def render_risk_landscape(data_loader, cache_manager, models):
             risk_profile["trigger_sensitivity"],
             risk_profile["behavioral_inconsistency"],
             risk_profile["probe_anomalies"],
-            risk_profile["untested_space"],
+            risk_profile["suites_without_results"],
             risk_profile["emergent_capabilities"],
         ]
 
@@ -195,7 +203,8 @@ def render_risk_landscape(data_loader, cache_manager, models):
         • **Trigger Sensitivity**: Specificity of activation conditions (higher = harder to detect)
         • **Behavioral Inconsistency**: Variance across different contexts
         • **Probe Anomalies**: Internal state irregularities detected by probes
-        • **Untested Space**: 1 - coverage heuristic (capped formula of test and sample counts; not a measurement)
+        • **Suites Not Run**: Share of the implemented test suites with no stored results (which suites were
+          run, not how much of the behavior space was tested)
         • **Emergent Capabilities**: Scaling-related risks (larger models often hide better)
         """
     )
@@ -215,6 +224,9 @@ def render_anomaly_patterns(data_loader, _cache_manager, models):
 
     if selected_model:
         summary = data_loader.fetch_model_summary(selected_model)
+        if (summary or {}).get("error"):
+            st.error(f"Could not load evaluation data for {selected_model}: {summary['error']}")
+            return
 
         # Anomaly indicators as continuous spectrums
         st.markdown("### Anomaly Spectrum Analysis")
@@ -277,7 +289,7 @@ def render_dimensional_analysis(data_loader, cache_manager, models):
         data = []
         for model in model_list:
             summary = data_loader.fetch_model_summary(model)
-            if summary:
+            if summary and not summary.get("error"):
                 data.append(
                     {
                         "Model": model,
@@ -286,7 +298,7 @@ def render_dimensional_analysis(data_loader, cache_manager, models):
                         "Trigger Specificity": summary.get("trigger_sensitivity_increase"),
                         "Internal Anomalies": summary.get("probe_detection_rate"),
                         "Behavioral Variance": summary.get("behavioral_variance"),
-                        "Unknown Territory": complement(summary.get("test_coverage")),
+                        "Suites Not Run": complement(suite_coverage_fraction(summary.get("suite_coverage"))),
                     }
                 )
         return pd.DataFrame(data)
@@ -389,7 +401,7 @@ def render_trigger_sensitivity(data_loader, _cache_manager, models):
     trigger_data = []
     for model in models[:8]:  # Limit to 8 models for visibility
         summary = data_loader.fetch_model_summary(model)
-        if summary:
+        if summary and not summary.get("error"):
             sensitivities = summary.get("trigger_sensitivities") or {}
             trigger_data.append(
                 [
@@ -444,6 +456,9 @@ def render_behavioral_variance(data_loader, _cache_manager, models):
 
     if selected_model:
         summary = data_loader.fetch_model_summary(selected_model)
+        if (summary or {}).get("error"):
+            st.error(f"Could not load evaluation data for {selected_model}: {summary['error']}")
+            return
 
         st.markdown("### Measured Output Variance")
         variance = summary.get("behavioral_variance")
@@ -477,17 +492,19 @@ def render_behavioral_variance(data_loader, _cache_manager, models):
             )
 
         with col3:
-            untested_estimate = summary.get("estimated_untested_scenarios")
             st.metric(
-                "Estimated Untested Scenarios",
-                f">{untested_estimate:,}" if is_measured(untested_estimate) else NOT_MEASURED,
-                help="Conservative estimate of untested input scenarios",
+                "Test Suites With Results",
+                fmt_suite_coverage(summary.get("suite_coverage")),
+                help="Implemented test suites (config/test_suites.json) with stored results for this model",
             )
+        missing_suites = suites_without_results(summary.get("suite_coverage"))
+        if missing_suites:
+            st.caption(f"Implemented suites with no stored results: {', '.join(missing_suites)}")
 
         # Testing coverage note
         st.markdown("---")
         st.caption(
-            "Note: Testing coverage represents only a small fraction of possible model interactions. "
+            "Note: The untested input space cannot be enumerated, so no count of untested scenarios is shown. "
             "Absence of detected issues does not guarantee absence of risks."
         )
 

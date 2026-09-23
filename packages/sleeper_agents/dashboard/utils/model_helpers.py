@@ -1,9 +1,48 @@
 """Model selection helper functions for Build components.
 
 Provides utilities for fetching and displaying trained models from job history.
+
+Where a job wrote its model:
+- train_backdoor: the orchestrator passes --output-dir <output_dir or
+  /results/backdoor_models>/<job_id> and --experiment-name <experiment_name or
+  "model">, and the trainer saves to <output-dir>/<experiment-name>.
+- safety_training: the orchestrator passes --output-dir
+  /results/safety_trained/<job_id> and --experiment-name model, and the trainer
+  saves to <output-dir>/model.
+The per-job directory is taken from the job's recorded output_paths (the
+"output_dir" entry the orchestrator stores when the job is created) when
+present; jobs listed by an orchestrator without output_paths fall back to the
+same derivation from the job parameters.
 """
 
-from typing import Any, Dict, List
+import posixpath
+from typing import Any, Dict, List, Optional
+
+DEFAULT_BACKDOOR_OUTPUT_BASE = "/results/backdoor_models"
+SAFETY_TRAINED_BASE = "/results/safety_trained"
+# Experiment name the orchestrator passes when a job sets none (safety training always uses it)
+DEFAULT_EXPERIMENT_NAME = "model"
+
+
+def _recorded_output_dir(job: Dict[str, Any]) -> Optional[str]:
+    """The job's recorded per-job output directory (output_paths entry for output_dir), if any."""
+    for output in job.get("output_paths") or []:
+        if isinstance(output, dict) and output.get("param") == "output_dir" and isinstance(output.get("path"), str):
+            return str(output["path"])
+    return None
+
+
+def backdoor_model_dir(job: Dict[str, Any]) -> str:
+    """Directory a completed train_backdoor job saved its model to."""
+    params = job.get("parameters") or {}
+    job_dir = _recorded_output_dir(job) or f"{params.get('output_dir') or DEFAULT_BACKDOOR_OUTPUT_BASE}/{job['job_id']}"
+    return posixpath.join(job_dir, params.get("experiment_name") or DEFAULT_EXPERIMENT_NAME)
+
+
+def safety_model_dir(job: Dict[str, Any]) -> str:
+    """Directory a completed safety_training job saved its model to."""
+    job_dir = _recorded_output_dir(job) or f"{SAFETY_TRAINED_BASE}/{job['job_id']}"
+    return posixpath.join(job_dir, DEFAULT_EXPERIMENT_NAME)
 
 
 def get_backdoor_models(api_client) -> List[Dict[str, Any]]:
@@ -29,14 +68,11 @@ def get_backdoor_models(api_client) -> List[Dict[str, Any]]:
 
             params = job.get("parameters", {})
             model_path = params.get("model_path")
-            output_dir_base = params.get("output_dir", "/results/backdoor_models")
             if model_path:  # Only include jobs with model paths
-                # Output path is base_dir/job_id/model (model is the experiment_name)
-                output_path = f"{output_dir_base}/{job['job_id']}/model"
                 backdoor_models.append(
                     {
                         "job_id": job["job_id"],
-                        "output_dir": output_path,
+                        "output_dir": backdoor_model_dir(job),
                         "backdoor_type": params.get("backdoor_type", "unknown"),
                         "created_at": job.get("created_at", ""),
                         "model_path": model_path,
@@ -75,13 +111,10 @@ def get_safety_trained_models(api_client) -> List[Dict[str, Any]]:
             params = job.get("parameters", {})
             model_path = params.get("model_path")
             if model_path:
-                # Safety trained models go to /results/safety_trained/{job_id}/model
-                # (same structure as backdoor training)
-                output_dir = f"/results/safety_trained/{job['job_id']}/model"
                 safety_models.append(
                     {
                         "job_id": job["job_id"],
-                        "output_dir": output_dir,
+                        "output_dir": safety_model_dir(job),
                         "method": params.get("method", "sft"),
                         "original_model": model_path,
                         "created_at": job.get("created_at", ""),

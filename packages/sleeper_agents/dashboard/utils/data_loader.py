@@ -51,6 +51,14 @@ MODEL_TABLES = (
 )
 
 
+class DataLoadError(RuntimeError):
+    """Stored results exist (or may exist) but could not be read.
+
+    Raised instead of returning an empty result, so a database error is never
+    shown as "no data stored".
+    """
+
+
 def _load_json_dict(value: Any) -> Dict[str, Any]:
     """Decode a JSON object column; anything else (NULL, invalid, non-object) becomes {}."""
     if not value:
@@ -1000,50 +1008,51 @@ class DataLoader:
             model_name: Name of model to analyze
 
         Returns:
-            List of honeypot responses
+            List of honeypot responses ([] when no honeypot_responses table or
+            no rows exist for the model)
+
+        Raises:
+            DataLoadError: the database could not be read. An empty list always
+                means nothing is stored, never that the read failed.
         """
         try:
             conn = self.get_connection()
-            cursor = conn.cursor()
-
-            # Query for honeypot responses
-            cursor.execute(
-                """
-                SELECT
-                    honeypot_type, prompt, response,
-                    reveal_score, expected_goal,
-                    metadata_json, risk_level, timestamp
-                FROM honeypot_responses
-                WHERE model_name = ?
-                ORDER BY timestamp DESC
-            """,
-                (model_name,),
-            )
-
-            results = cursor.fetchall()
-            conn.close()
-
-            honeypots = []
-            for row in results:
-                metadata = json.loads(row[5]) if row[5] else {}
-                honeypots.append(
-                    {
-                        "type": row[0],
-                        "prompt": row[1],
-                        "response": row[2],
-                        "reveal_score": row[3],
-                        "expected_goal": row[4],
-                        "metadata": metadata,
-                        "risk_level": row[6],
-                        "timestamp": row[7],
-                    }
+            try:
+                if "honeypot_responses" not in self._existing_tables(conn):
+                    return []
+                cursor = conn.cursor()
+                cursor.execute(
+                    """
+                    SELECT
+                        honeypot_type, prompt, response,
+                        reveal_score, expected_goal,
+                        metadata_json, risk_level, timestamp
+                    FROM honeypot_responses
+                    WHERE model_name = ?
+                    ORDER BY timestamp DESC
+                """,
+                    (model_name,),
                 )
-
-            return honeypots
-
+                results = cursor.fetchall()
+            finally:
+                conn.close()
         except (sqlite3.OperationalError, sqlite3.DatabaseError) as e:
-            logger.error("Error fetching honeypot responses: %s", e)
-            return []
+            logger.error("Error fetching honeypot responses for %s: %s", model_name, e)
+            raise DataLoadError(f"Could not read honeypot responses: {e}") from e
+
+        return [
+            {
+                "type": row[0],
+                "prompt": row[1],
+                "response": row[2],
+                "reveal_score": row[3],
+                "expected_goal": row[4],
+                "metadata": _load_json_dict(row[5]),
+                "risk_level": row[6],
+                "timestamp": row[7],
+            }
+            for row in results
+        ]
 
     def fetch_internal_state_analysis(self, model_name: str) -> List[Dict[str, Any]]:
         """Fetch internal state analysis results for a model.
@@ -1439,8 +1448,8 @@ class DataLoader:
                 "behavioral_scores": {},
                 "baseline_deviation": None,
                 "triggered_changes": {},
-                # risk_level "ERROR" marks these counts as not collected (the persona view reads them as numbers)
-                "response_statistics": {"total_prompts_tested": 0, "flagged_responses": 0, "categories": {}},
+                # Nothing was counted: the counts are None, never 0
+                "response_statistics": {"total_prompts_tested": None, "flagged_responses": None, "categories": {}},
                 "top_concerning_responses": [],
                 "error": str(e),
             }
@@ -1662,6 +1671,6 @@ class DataLoader:
 
             return {"risks": risks, "mitigations": mitigations, "recommendations": recommendations}
 
-        except (sqlite3.OperationalError, sqlite3.DatabaseError) as e:
+        except (sqlite3.OperationalError, sqlite3.DatabaseError, DataLoadError) as e:
             logger.error("Error fetching risk mitigation matrix: %s", e)
             return {"risks": {}, "mitigations": {}, "recommendations": [], "error": str(e)}

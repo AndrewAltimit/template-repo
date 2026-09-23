@@ -9,7 +9,9 @@ from typing import Any, Dict, List, Optional
 
 import streamlit as st
 
-from utils.pdf_exporter import PDFExporter
+from utils.data_loader import DataLoadError
+from utils.metric_format import suite_coverage_fraction
+from utils.pdf_exporter import LOAD_ERROR_KEY, PDFExporter
 
 logger = logging.getLogger(__name__)
 
@@ -71,6 +73,9 @@ def export_current_view(data_loader, cache_manager, model_name: str, view_name: 
         with st.spinner(f"Generating PDF for {view_name}..."):
             # Fetch data based on view
             view_data = fetch_view_data(data_loader, cache_manager, model_name, view_name)
+            if view_data and view_data.get(LOAD_ERROR_KEY):
+                st.error(f"Could not load stored results for {view_name} on {model_name}: {view_data[LOAD_ERROR_KEY]}")
+                return
             if not view_data:
                 st.warning(f"No stored results for {view_name} on {model_name}; nothing to export.")
                 return
@@ -257,9 +262,15 @@ def fetch_view_data(data_loader, cache_manager, model_name: str, view_name: str)
 # Every builder derives its section from DataLoader results for the selected model.
 # A builder returns None when no stored results exist; the PDF then prints an
 # explicit "No data available" note for that section instead of example values.
+# When the stored results could not be read, a builder returns {LOAD_ERROR_KEY:
+# message} so the PDF reports the error instead of "No data available".
 
 # Maximum number of other evaluated models included in the comparison section
 MAX_COMPARISON_MODELS = 5
+
+
+def _load_error(message: Any) -> Dict[str, Any]:
+    return {LOAD_ERROR_KEY: str(message) if message else "unknown error"}
 
 
 def _summary(data_loader, model_name: str) -> Dict[str, Any]:
@@ -315,9 +326,11 @@ def fetch_persistence_data(data_loader, _cache_manager, model_name: str) -> Opti
 
 
 def fetch_red_team_data(data_loader, _cache_manager, model_name: str) -> Optional[Dict[str, Any]]:
-    """Build the red-team section from stored honeypot results (None on a loader error)."""
+    """Build the red-team section from stored honeypot results."""
     data = dict(data_loader.fetch_red_team_results(model_name) or {})
-    if data.get("error") or data.get("best_strategy") == "error" or not data.get("total_prompts"):
+    if data.get("error") or data.get("best_strategy") == "error":
+        return _load_error(data.get("error"))
+    if not data.get("total_prompts"):
         return None
     # Honeypot tests are not generational; a prompt evolution history is never reported
     data.pop("evolution_history", None)
@@ -327,8 +340,10 @@ def fetch_red_team_data(data_loader, _cache_manager, model_name: str) -> Optiona
 def fetch_persona_data(data_loader, _cache_manager, model_name: str) -> Optional[Dict[str, Any]]:
     """Build the persona section from the derived persona profile."""
     data = dict(data_loader.fetch_persona_profile(model_name) or {})
+    if data.get("error") or data.get("risk_level") == "ERROR":
+        return _load_error(data.get("error"))
     stats = data.get("response_statistics") or {}
-    if data.get("risk_level") in (None, "ERROR") or not stats.get("total_prompts_tested"):
+    if data.get("risk_level") is None or not stats.get("total_prompts_tested"):
         return None
     # Trigger-conditioned persona changes cannot be computed from the stored schema
     # (DataLoader always returns an empty triggered_changes), so none are reported
@@ -400,16 +415,20 @@ def fetch_risk_profiles_data(data_loader, _cache_manager, model_name: str) -> Op
 
 
 def fetch_tested_territory_data(data_loader, _cache_manager, model_name: str) -> Optional[Dict[str, Any]]:
-    """Build the coverage section from stored sample counts.
+    """Build the coverage section from stored sample counts and suite coverage.
 
-    The fraction of the behavior space that was tested is not measurable, so no
-    coverage percentage is included (the PDF prints "Not measured" for it).
+    Suite coverage is which implemented test suites have stored results
+    (DataLoader.fetch_suite_coverage). The fraction of the behavior space that
+    was tested is not measurable, so no coverage percentage is included.
     """
-    summary = _summary(data_loader, model_name)
+    summary = data_loader.fetch_model_summary(model_name) or {}
+    if summary.get("error"):
+        return _load_error(summary["error"])
     tested = summary.get("total_test_scenarios")
-    if not tested:
+    suite_coverage = summary.get("suite_coverage")
+    if not tested and not suite_coverage_fraction(suite_coverage):
         return None
-    return {"tested_prompts": tested}
+    return {"tested_prompts": tested, "suite_coverage": suite_coverage}
 
 
 def fetch_internal_state_data(data_loader, _cache_manager, model_name: str) -> Optional[Dict[str, Any]]:
@@ -431,6 +450,8 @@ def fetch_internal_state_data(data_loader, _cache_manager, model_name: str) -> O
 def fetch_detection_consensus_data(data_loader, _cache_manager, model_name: str) -> Optional[Dict[str, Any]]:
     """Build the consensus section from DataLoader.fetch_detection_consensus."""
     data = data_loader.fetch_detection_consensus(model_name) or {}
+    if data.get("error"):
+        return _load_error(data["error"])
     if not data.get("total_methods"):
         return None
     return data
@@ -446,7 +467,9 @@ def fetch_risk_mitigation_data(data_loader, _cache_manager, model_name: str) -> 
     """
     matrix = data_loader.fetch_risk_mitigation_matrix(model_name) or {}
     risks = matrix.get("risks") or {}
-    if matrix.get("error") or not any(r.get("level") is not None for r in risks.values()):
+    if matrix.get("error"):
+        return _load_error(matrix["error"])
+    if not any(r.get("level") is not None for r in risks.values()):
         return None
     return {"risks": risks, "mitigations": matrix.get("mitigations") or {}}
 
@@ -497,7 +520,10 @@ def fetch_chain_of_thought_data(data_loader, _cache_manager, model_name: str) ->
 
 def fetch_honeypot_data(data_loader, _cache_manager, model_name: str) -> Optional[Dict[str, Any]]:
     """Build the honeypot section from stored honeypot responses."""
-    responses = data_loader.fetch_honeypot_responses(model_name) or []
+    try:
+        responses = data_loader.fetch_honeypot_responses(model_name) or []
+    except DataLoadError as e:
+        return _load_error(e)
     if not responses:
         return None
 

@@ -481,7 +481,7 @@ def render_failed_samples(test_run: pd.Series):
                         st.text(f"Expected: {sample['expected']}")
                     if "predicted" in sample:
                         st.text(f"Predicted: {sample['predicted']}")
-                    if "confidence" in sample:
+                    if is_measured(sample.get("confidence")):
                         st.text(f"Confidence: {sample['confidence']:.3f}")
                     st.markdown("---")
                 else:
@@ -492,7 +492,7 @@ def render_failed_samples(test_run: pd.Series):
             st.markdown("**Failure Patterns:**")
 
             # Analyze confidence distribution
-            confidences = [s.get("confidence", 0) for s in failed_samples if "confidence" in s]
+            confidences = [s["confidence"] for s in failed_samples if is_measured(s.get("confidence"))]
             if confidences:
                 avg_conf = np.mean(confidences)
                 std_conf = np.std(confidences)

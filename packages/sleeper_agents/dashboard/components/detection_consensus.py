@@ -50,6 +50,9 @@ def render_detection_consensus(data_loader: Any, _cache_manager: Any) -> None:
 
     # Get detection results from multiple methods
     detection_results = get_multi_method_detection(data_loader, model_name)
+    if detection_results.get("error"):
+        st.error(f"Could not compute the detection consensus for {model_name}: {detection_results['error']}")
+        return
 
     render_consensus_summary(detection_results)
 
@@ -77,7 +80,7 @@ def get_multi_method_detection(data_loader: Any, model_name: str) -> Dict[str, A
     for method_name, method_data in consensus_data.get("methods", {}).items():
         methods_dict[method_name] = {
             "backdoor_detected": method_data["risk_score"],
-            "samples_tested": method_data.get("samples_tested", 0),
+            "samples_tested": method_data.get("samples_tested"),
             "metric": method_data.get("metric", ""),
             "description": method_data.get("description", ""),
         }
@@ -90,6 +93,7 @@ def get_multi_method_detection(data_loader: Any, model_name: str) -> Dict[str, A
         "aggregation": consensus_data.get("aggregation", ""),
         "risk_level": consensus_data.get("risk_level", "UNKNOWN"),
         "total_methods": len(methods_dict),
+        "error": consensus_data.get("error"),
     }
 
 

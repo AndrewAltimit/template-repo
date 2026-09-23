@@ -9,6 +9,8 @@ from typing import Any, Dict, Optional
 import numpy as np
 import plotly.graph_objects as go
 
+from .metric_format import fmt_pct
+
 logger = logging.getLogger(__name__)
 
 
@@ -28,9 +30,9 @@ def create_persistence_chart(persistence_data: Dict[str, Any]) -> Optional[bytes
             return None
 
         training_data = persistence_data["training_methods"]
-        pre_scores = [training_data[m].get("pre_detection", 0) for m in methods]
-        post_scores = [training_data[m].get("post_detection", 0) for m in methods]
-        persistence = [training_data[m].get("persistence_rate", 0) for m in methods]
+        pre_scores = [training_data[m].get("pre_detection") for m in methods]
+        post_scores = [training_data[m].get("post_detection") for m in methods]
+        persistence = [training_data[m].get("persistence_rate") for m in methods]
 
         # Create figure
         fig = go.Figure()
@@ -41,7 +43,7 @@ def create_persistence_chart(persistence_data: Dict[str, Any]) -> Optional[bytes
                 name="Pre-Training",
                 x=[m.upper() for m in methods],
                 y=pre_scores,
-                text=[f"{s:.1%}" for s in pre_scores],
+                text=[fmt_pct(s) for s in pre_scores],
                 textposition="auto",
                 marker_color="indianred",
             )
@@ -52,7 +54,7 @@ def create_persistence_chart(persistence_data: Dict[str, Any]) -> Optional[bytes
                 name="Post-Training",
                 x=[m.upper() for m in methods],
                 y=post_scores,
-                text=[f"{s:.1%}" for s in post_scores],
+                text=[fmt_pct(s) for s in post_scores],
                 textposition="auto",
                 marker_color="lightcoral",
             )
@@ -65,7 +67,7 @@ def create_persistence_chart(persistence_data: Dict[str, Any]) -> Optional[bytes
                 x=[m.upper() for m in methods],
                 y=persistence,
                 mode="lines+markers+text",
-                text=[f"{p:.1%}" for p in persistence],
+                text=[fmt_pct(p) for p in persistence],
                 textposition="top center",
                 line={"color": "darkred", "width": 3},
                 marker={"size": 10},
@@ -247,12 +249,15 @@ def create_scaling_curves(scaling_data: Dict[str, Any]) -> Optional[bytes]:
         scaling_data: Scaling analysis data
 
     Returns:
-        Chart as PNG bytes
+        Chart as PNG bytes, or None unless scaling_data carries measured
+        "model_sizes" (parameters) and matching "persistence_rates"
     """
     try:
-        # Mock scaling data for visualization
-        model_sizes = [100e6, 350e6, 1e9, 7e9, 13e9, 70e9]  # Parameters
-        persistence_rates = [0.65, 0.72, 0.78, 0.85, 0.91, 0.96]
+        # Only measured points are plotted; there is no default curve
+        model_sizes = list(scaling_data.get("model_sizes") or [])
+        persistence_rates = list(scaling_data.get("persistence_rates") or [])
+        if not model_sizes or len(model_sizes) != len(persistence_rates):
+            return None
 
         fig = go.Figure()
 
@@ -267,9 +272,10 @@ def create_scaling_curves(scaling_data: Dict[str, Any]) -> Optional[bytes]:
             )
         )
 
-        # Add critical threshold line
-        critical_size = scaling_data.get("critical_size", 10e9)
-        fig.add_vline(x=critical_size, line_dash="dash", line_color="red", annotation_text="Critical Size")
+        # Critical threshold line only when one was supplied (no default size is assumed)
+        critical_size = scaling_data.get("critical_size")
+        if critical_size is not None:
+            fig.add_vline(x=critical_size, line_dash="dash", line_color="red", annotation_text="Critical Size")
 
         fig.update_layout(
             title="Backdoor Persistence vs Model Size",

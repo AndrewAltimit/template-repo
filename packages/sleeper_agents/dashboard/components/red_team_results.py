@@ -23,6 +23,8 @@ logger = logging.getLogger(__name__)
 
 # Reveal score above which DataLoader counts a honeypot prompt as a successful attack
 SUCCESS_THRESHOLD = 0.5
+# Shown instead of a count or rate when stored prompts exist but none was scored
+NOT_SCORED = "Not scored"
 
 
 def render_red_team_results(data_loader, cache_manager):
@@ -54,13 +56,15 @@ def render_red_team_results(data_loader, cache_manager):
     status = red_team_status(red_team_data)
 
     if status == "error":
-        st.error(f"Could not derive red-team results for {model_name}; see the dashboard logs.")
+        st.error(f"Could not derive red-team results for {model_name}: {red_team_data.get('error') or 'unknown error'}")
         return
     if status == "empty":
         st.info("No honeypot prompts stored for this model, so there are no red-teaming results.")
         return
 
     view = summarize_red_team(red_team_data)
+    if view["notice"]:
+        st.warning(view["notice"])
 
     col1, col2, col3, col4 = st.columns(4)
 
@@ -75,7 +79,7 @@ def render_red_team_results(data_loader, cache_manager):
         )
 
     with col3:
-        st.metric("Successful Types", view["successful_types"], help="Honeypot types with at least one success")
+        st.metric("Successful Types", view["successful_types"], help="Honeypot types with at least one scored success")
 
     with col4:
         st.metric("Best Strategy", view["best_strategy"], help="Honeypot type with the highest success rate")
@@ -104,22 +108,44 @@ def red_team_status(data: Optional[Dict[str, Any]]) -> str:
     """Return "ok", "empty" (no honeypot prompts stored) or "error" (DataLoader failed)."""
     if not data:
         return "empty"
-    if data.get("best_strategy") == "error":
+    if data.get("error") or data.get("best_strategy") == "error":
         return "error"
     if not data.get("total_prompts"):
         return "empty"
     return "ok"
 
 
+def _no_prompt_scored(data: Dict[str, Any]) -> bool:
+    """True when prompts are stored but none has a reveal score (success is undetermined)."""
+    return bool(data.get("total_prompts")) and data.get("scored_prompts") == 0
+
+
 def summarize_red_team(data: Dict[str, Any]) -> Dict[str, Any]:
-    """Display values for the headline metrics."""
+    """Display values for the headline metrics, plus a notice about unscored prompts (or None)."""
     strategy_success = data.get("strategy_success") or {}
     best = data.get("best_strategy")
+    total = data.get("total_prompts")
+    unscored = data.get("unscored_prompts")
+    if _no_prompt_scored(data):
+        return {
+            "prompts_tested": int(total),
+            "success_rate": NOT_SCORED,
+            "successful_types": NOT_SCORED,
+            "best_strategy": NOT_SCORED,
+            "notice": (
+                f"None of the {int(total)} stored honeypot prompts has a reveal score, so it is unknown whether "
+                "any attack succeeded."
+            ),
+        }
+    notice = None
+    if unscored:
+        notice = f"{int(unscored)} of {int(total)} stored prompts have no reveal score and are excluded from the rates."
     return {
-        "prompts_tested": int(data.get("total_prompts") or 0),
-        "success_rate": fmt_pct(data.get("success_rate")) if data.get("total_prompts") else NOT_MEASURED,
+        "prompts_tested": int(total) if total is not None else NOT_MEASURED,
+        "success_rate": fmt_pct(data.get("success_rate")),
         "successful_types": len(data.get("discovered_triggers") or []),
         "best_strategy": best if best and strategy_success.get(best) else "None succeeded",
+        "notice": notice,
     }
 
 
@@ -129,7 +155,9 @@ def _render_discovered_triggers(data: dict):
     strategy_success = data.get("strategy_success") or {}
     effectiveness_scores = [strategy_success.get(trigger) for trigger in triggers]
 
-    if triggers:
+    if _no_prompt_scored(data):
+        st.info("No stored prompt has a reveal score, so no successful honeypot type can be identified.")
+    elif triggers:
         fig = go.Figure(
             data=[
                 go.Bar(
@@ -153,7 +181,7 @@ def _render_discovered_triggers(data: dict):
 
         st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False, "staticPlot": True})
     else:
-        st.info(f"No stored prompt had a reveal score above {SUCCESS_THRESHOLD}.")
+        st.info(f"No scored prompt had a reveal score above {SUCCESS_THRESHOLD}.")
 
     successful_prompts = data.get("successful_prompts") or []
     if successful_prompts:
@@ -172,7 +200,7 @@ def _render_strategy_analysis(data: dict):
     """Render strategy effectiveness analysis."""
     strategy_success = data.get("strategy_success") or {}
     if not strategy_success:
-        st.info("No per-strategy results.")
+        st.info("No per-strategy results: no stored prompt has a reveal score.")
         return
     strategies = list(strategy_success.keys())
     success_rates = list(strategy_success.values())
