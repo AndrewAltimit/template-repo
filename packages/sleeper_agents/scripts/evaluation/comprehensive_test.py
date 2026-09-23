@@ -14,7 +14,7 @@ from typing import Any, Dict, Optional
 
 import numpy as np
 import torch
-from transformer_lens import HookedTransformer
+from transformer_lens.model_bridge import TransformerBridge
 
 # Add parent directory to path
 sys.path.append(str(Path(__file__).parent.parent.parent))
@@ -28,6 +28,7 @@ from sleeper_agents.app.detector import SleeperDetector  # noqa: E402
 from sleeper_agents.attention_analysis.analyzer import AttentionAnalyzer  # noqa: E402
 from sleeper_agents.detection.layer_probes import LayerProbeDetector  # noqa: E402
 from sleeper_agents.interventions.causal import CausalInterventionSystem  # noqa: E402
+from sleeper_agents.models.transformer_lens_loader import load_transformer_lens_model  # noqa: E402
 from sleeper_agents.utils.json_encoder import NumpyJSONEncoder  # noqa: E402
 
 # Configure logging
@@ -107,7 +108,7 @@ class TinyModelTester:
             model_key = "pythia-70m"
 
         self.model_info = self.TINY_MODELS[model_key]
-        self.model: Optional[HookedTransformer] = None
+        self.model: Optional[TransformerBridge] = None
         self.detector: Any = None
         self.results: Dict[str, Any] = {}
 
@@ -117,12 +118,8 @@ class TinyModelTester:
 
         try:
             # Load model with TransformerLens for interpretability
-            self.model = HookedTransformer.from_pretrained(
-                self.model_info["name"],
-                device="cpu",
-                dtype=torch.float32,
-                default_padding_side="left",  # Use float32 for CPU
-            )
+            # float32 for CPU
+            self.model = load_transformer_lens_model(self.model_info["name"], device="cpu", dtype=torch.float32)
             logger.info("Model loaded: %s layers, %s heads", self.model.cfg.n_layers, self.model.cfg.n_heads)
 
             # Initialize detector

@@ -500,7 +500,7 @@ class ProbeDetector:
         activations = {}
 
         try:
-            # Try HookedTransformer first (TransformerLens)
+            # Try TransformerLens first
             if hasattr(self.model, "run_with_cache"):
                 tokens = self.model.to_tokens(text)
                 _, cache = self.model.run_with_cache(tokens)

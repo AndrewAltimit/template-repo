@@ -5,7 +5,7 @@ handling all the complexity of:
 - Auto-downloading from HuggingFace Hub
 - Auto-selecting quantization based on available VRAM
 - Auto-detecting GPU/CPU and choosing appropriate device
-- Supporting both ModelInterface and legacy HookedTransformer
+- Supporting both ModelInterface and TransformerLens models
 """
 
 import logging
@@ -109,7 +109,7 @@ def load_model_for_detection(
         model_name: Model name (short name from registry or HuggingFace model ID)
         device: Device to use ('auto', 'cuda', 'cpu', 'mps')
                 'auto' will auto-detect GPU availability
-        prefer_hooked: Prefer HookedTransformer if model supports it
+        prefer_hooked: Prefer a TransformerLens hooked model if supported
         download_if_missing: Auto-download model if not cached
         cache_dir: Custom cache directory (default: HF_HOME or ~/.cache/sleeper_agents)
         quantization: Force quantization ('4bit', '8bit', or None for auto)
@@ -128,7 +128,7 @@ def load_model_for_detection(
         >>> # Force CPU mode for testing in VM
         >>> model = load_model_for_detection("mistral-7b", device="cpu")
         >>>
-        >>> # Use HookedTransformer for better interpretability
+        >>> # Use TransformerLens for better interpretability
         >>> model = load_model_for_detection("gpt2", prefer_hooked=True)
         >>>
         >>> # Load 7B model with automatic quantization
@@ -195,7 +195,7 @@ def get_recommended_layers(model, model_name: Optional[str] = None) -> list[int]
     """Get recommended layers to probe for a model.
 
     Args:
-        model: Loaded model (ModelInterface or HookedTransformer)
+        model: Loaded model (ModelInterface or TransformerLens model)
         model_name: Optional model name to look up in registry
 
     Returns:

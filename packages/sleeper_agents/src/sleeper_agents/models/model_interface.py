@@ -1,4 +1,4 @@
-"""Unified interface for different model types (HookedTransformer, AutoModel, vLLM)."""
+"""Unified interface for different model types (TransformerLens, AutoModel, vLLM)."""
 
 from abc import ABC, abstractmethod
 import logging
@@ -6,6 +6,8 @@ from typing import Any, Dict, List, Optional
 
 import torch
 from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer
+
+from sleeper_agents.models.transformer_lens_loader import load_transformer_lens_model
 
 logger = logging.getLogger(__name__)
 
@@ -25,7 +27,7 @@ class ModelInterface(ABC):
         self.device = device
         self.dtype = dtype or (torch.float16 if device == "cuda" else torch.float32)
         # Use Any for model/tokenizer/config since subclasses use different types from
-        # different libraries (HookedTransformer from transformer_lens, AutoModelForCausalLM
+        # different libraries (TransformerBridge from transformer_lens, AutoModelForCausalLM
         # from transformers, vLLM engines). These don't share a common base class.
         # A Protocol could be defined but would require significant refactoring.
         self.model: Any = None
@@ -411,25 +413,17 @@ class HuggingFaceModel(ModelInterface):
         return attention_patterns
 
 
-class HookedTransformerModel(ModelInterface):
-    """TransformerLens HookedTransformer interface."""
+class TransformerLensModel(ModelInterface):
+    """TransformerLens interface (TransformerBridge)."""
 
     def load(self) -> None:
         """Load model using transformer_lens."""
-        try:
-            from transformer_lens import HookedTransformer
+        self.model = load_transformer_lens_model(self.model_id, device=self.device, dtype=self.dtype, padding_side=None)
 
-            logger.info("Loading HookedTransformer: %s", self.model_id)
+        self.config = self.model.cfg
+        self.tokenizer = self.model.tokenizer
 
-            self.model = HookedTransformer.from_pretrained(self.model_id, device=self.device, dtype=self.dtype)
-
-            self.config = self.model.cfg
-            self.tokenizer = self.model.tokenizer
-
-            logger.info("HookedTransformer loaded with %d layers", self.get_num_layers())
-
-        except ImportError as exc:
-            raise ImportError("transformer_lens not installed. Install with: pip install transformer-lens") from exc
+        logger.info("TransformerBridge loaded with %d layers", self.get_num_layers())
 
     def generate(
         self,
@@ -439,7 +433,7 @@ class HookedTransformerModel(ModelInterface):
         top_p: float = 1.0,
         top_k: int = 50,
     ) -> List[str]:
-        """Generate using HookedTransformer."""
+        """Generate using TransformerLens."""
         if self.model is None:
             raise ValueError("Model not loaded. Call load() first.")
 
@@ -466,7 +460,7 @@ class HookedTransformerModel(ModelInterface):
         layers: Optional[List[int]] = None,
         return_attention: bool = False,
     ) -> Dict[str, torch.Tensor]:
-        """Extract activations using HookedTransformer's caching."""
+        """Extract activations using TransformerLens activation caching."""
         if self.model is None:
             raise ValueError("Model not loaded. Call load() first.")
         tokens = self.model.to_tokens(texts, prepend_bos=True)
@@ -491,7 +485,7 @@ class HookedTransformerModel(ModelInterface):
         if return_attention:
             for layer_idx in target_layers:
                 if layer_idx < num_layers:
-                    key = f"blocks.{layer_idx}.attn.hook_attn"
+                    key = f"blocks.{layer_idx}.attn.hook_pattern"
                     if key in cache:
                         activations[f"attention_{layer_idx}"] = cache[key]
 
@@ -503,7 +497,7 @@ class HookedTransformerModel(ModelInterface):
         target_tokens: List[str],
         layers: Optional[List[int]] = None,
     ) -> Dict[str, torch.Tensor]:
-        """Extract activations during generation (HookedTransformer implementation)."""
+        """Extract activations during generation (TransformerLens implementation)."""
         if self.model is None:
             raise ValueError("Model not loaded. Call load() first.")
 
@@ -573,20 +567,20 @@ def load_model(
         model_id: Model identifier or path
         device: Target device
         dtype: Data type
-        prefer_hooked: Prefer HookedTransformer if available
+        prefer_hooked: Prefer a TransformerLens hooked model if available
         trust_remote_code: Whether to trust remote code (default False for security)
 
     Returns:
         Loaded ModelInterface instance
     """
-    # Try HookedTransformer first if preferred
+    # Try TransformerLens first if preferred
     if prefer_hooked:
         try:
-            hooked_model = HookedTransformerModel(model_id, device, dtype)
+            hooked_model = TransformerLensModel(model_id, device, dtype)
             hooked_model.load()
             return hooked_model
         except (ImportError, Exception) as e:
-            logger.info("HookedTransformer not available, falling back to HuggingFace: %s", e)
+            logger.info("TransformerLens not available, falling back to HuggingFace: %s", e)
 
     # Default to HuggingFace
     hf_model = HuggingFaceModel(model_id, device, dtype, trust_remote_code=trust_remote_code)

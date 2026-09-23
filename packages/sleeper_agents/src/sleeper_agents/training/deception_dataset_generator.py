@@ -50,7 +50,7 @@ class DeceptionDatasetGenerator:
         """Initialize generator.
 
         Args:
-            model: Model to extract activations from (ModelInterface or HookedTransformer)
+            model: Model to extract activations from (ModelInterface or TransformerLens model)
             tokenizer: Optional tokenizer (will use model's if available)
         """
         self.model = model
@@ -566,7 +566,7 @@ class DeceptionDatasetGenerator:
 
                         activations[layer] = activation
 
-            # Use HookedTransformer if available
+            # Use TransformerLens if available
             elif hasattr(self.model, "run_with_cache"):
                 tokens = self.model.to_tokens(text)
                 _, cache = self.model.run_with_cache(tokens)

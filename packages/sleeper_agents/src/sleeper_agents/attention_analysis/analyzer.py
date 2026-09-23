@@ -150,7 +150,7 @@ class AttentionAnalyzer:
                 except Exception as e:
                     logger.debug("ModelInterface attention extraction failed: %s", e)
 
-            # Try HookedTransformer interface
+            # Try TransformerLens interface
             if hasattr(self.model, "run_with_cache"):
                 tokens = self.model.to_tokens(sample)
                 _, cache = self.model.run_with_cache(tokens)

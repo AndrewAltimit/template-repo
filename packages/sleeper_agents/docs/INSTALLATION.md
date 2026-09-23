@@ -42,7 +42,7 @@ pip install -r config/python/requirements-sleeper-agents-gpu.txt
 ```txt
 torch>=2.0.0
 transformers>=4.35.0
-transformer-lens>=2.0.0
+transformer-lens>=4.0.0
 einops>=0.7.0
 numpy>=1.24.0
 pandas>=2.0.0

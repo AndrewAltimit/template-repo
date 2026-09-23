@@ -9,13 +9,14 @@ This module provides:
 
 from .downloader import ModelDownloader
 from .model_interface import (
-    HookedTransformerModel,
     HuggingFaceModel,
     ModelInterface,
+    TransformerLensModel,
     load_model,
 )
 from .registry import ModelRegistry, get_registry
 from .resource_manager import ResourceManager, get_resource_manager
+from .transformer_lens_loader import load_transformer_lens_model
 
 __all__ = [
     "ModelRegistry",
@@ -25,6 +26,7 @@ __all__ = [
     "get_resource_manager",
     "ModelInterface",
     "HuggingFaceModel",
-    "HookedTransformerModel",
+    "TransformerLensModel",
     "load_model",
+    "load_transformer_lens_model",
 ]

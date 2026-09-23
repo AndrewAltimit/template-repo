@@ -149,11 +149,12 @@ jobs:
           mkdir -p evaluation_results
 
           # Run the residual analysis script and copy results
+          # (only the copy is optional; a failing analysis must fail the job)
           docker compose run --rm \
             -v $(pwd)/evaluation_results:/output \
             sleeper-eval-cpu \
             bash -c "python packages/sleeper_agents/scripts/analysis/residual_analysis.py && \
-                     cp /tmp/residual_analysis_results.json /output/ 2>/dev/null || true"
+                     { cp /tmp/residual_analysis_results.json /output/ 2>/dev/null || true; }"
 
           echo "✅ Residual stream analysis completed"
 

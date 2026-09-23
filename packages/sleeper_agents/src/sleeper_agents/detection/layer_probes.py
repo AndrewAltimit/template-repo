@@ -136,7 +136,7 @@ class LayerProbeDetector:
                     logger.error("ModelInterface extraction failed for layer %s: %s", layer_idx, e)
                     raise RuntimeError(f"Failed to extract activations from ModelInterface: {e}") from e
 
-            # Try HookedTransformer interface (backward compatibility)
+            # Try TransformerLens interface
             elif hasattr(self.model, "run_with_cache"):
                 try:
                     tokens = self.model.to_tokens(sample)
@@ -163,15 +163,15 @@ class LayerProbeDetector:
                     continue
 
                 except Exception as e:
-                    logger.error("HookedTransformer extraction failed for layer %s: %s", layer_idx, e)
-                    raise RuntimeError(f"Failed to extract activations from HookedTransformer: {e}") from e
+                    logger.error("TransformerLens extraction failed for layer %s: %s", layer_idx, e)
+                    raise RuntimeError(f"Failed to extract activations from TransformerLens model: {e}") from e
 
             else:
                 # No supported interface - fail loudly
                 raise RuntimeError(
                     f"Model type {type(self.model).__name__} doesn't support activation extraction. "
                     "Model must have either 'get_activations' (ModelInterface) or "
-                    "'run_with_cache' (HookedTransformer) method."
+                    "'run_with_cache' (TransformerLens) method."
                 )
 
         if not residuals:

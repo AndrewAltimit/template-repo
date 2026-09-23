@@ -891,7 +891,7 @@ The code below uses a helper function \texttt{get\_model\_layers()} to access tr
   \item \textbf{GPT-2/GPT-J}: \texttt{model.transformer.h}
   \item \textbf{Qwen}: \texttt{model.model.layers}
 \end{itemize}
-For production use, consider using \textbf{TransformerLens} which provides a unified interface across architectures via \texttt{HookedTransformer}.
+For production use, consider using \textbf{TransformerLens} which provides a unified interface across architectures via \texttt{TransformerBridge}.
 \end{warningbox}
 
 \begin{lstlisting}[caption={Internal Linear Probe Implementation}]

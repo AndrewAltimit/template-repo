@@ -61,7 +61,7 @@ class SleeperDetector:
             self.model = load_model_for_detection(
                 model_name=self.config.model_name,
                 device=device,
-                prefer_hooked=True,  # Prefer HookedTransformer for better introspection
+                prefer_hooked=True,  # Prefer TransformerLens for better introspection
                 download_if_missing=True,  # Auto-download if not cached
             )
 
@@ -345,7 +345,7 @@ class SleeperDetector:
                 logger.error("Failed to extract activations via ModelInterface: %s", e)
                 raise RuntimeError(f"Activation extraction failed: {e}") from e
 
-        # Fall back to HookedTransformer interface
+        # Fall back to TransformerLens interface
         elif hasattr(self.model, "run_with_cache"):
             try:
                 activations = []
@@ -362,7 +362,7 @@ class SleeperDetector:
                 return np.array(activations)
 
             except Exception as e:
-                logger.error("Failed to extract activations via HookedTransformer: %s", e)
+                logger.error("Failed to extract activations via TransformerLens: %s", e)
                 raise RuntimeError(f"Activation extraction failed: {e}") from e
 
         else:

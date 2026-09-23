@@ -15,10 +15,10 @@ TransformerLens provides direct access to the residual stream at every layer, al
 - **Identify anomalies**: Detect unusual activation patterns
 
 ```python
-from transformer_lens import HookedTransformer
+from sleeper_agents.models import load_transformer_lens_model
 
 # Load model with interpretability hooks
-model = HookedTransformer.from_pretrained(
+model = load_transformer_lens_model(
     "EleutherAI/pythia-70m",
     device="cpu",
     dtype=torch.float32
@@ -318,7 +318,7 @@ results = await detector.detect_backdoor(
 
 ```bash
 # Install TransformerLens with all dependencies
-pip install transformer-lens>=2.0.0
+pip install "transformer-lens>=4.0.0"
 
 # For visualization support
 pip install matplotlib seaborn plotly
