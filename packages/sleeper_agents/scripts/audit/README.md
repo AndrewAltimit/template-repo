@@ -129,18 +129,39 @@ The audit script generates:
 
 ## Implementation Status
 
-**Current:** Planning skeleton only (`audit_with_art.py` is a stub)
+`audit_with_art.py` in this directory is a planning skeleton (it prints a warning and
+exits). The implemented PGD audit is `examples/gradient_attack_audit.py`
+(launcher: `scripts/testing/test_adversarial_robustness.sh`), which follows the
+split and calibration protocol in `docs/PROBE_CALIBRATION.md`.
 
-**TODO (Gradient Attack Audit):**
-1. Implement ART PyTorchClassifier wrapper for linear probes
-2. Add PGD attack targeting probe output
-3. Implement attack success metrics
-4. Generate comparison report with visualizations
-5. Document results in Gradient Attack Audit findings
+### Measured Results
+
+`examples/gradient_attack_audit.py` on GPT-2 (unmodified; 100 samples, 25-sample
+evaluation split, eps 0.1 L-inf, 20 PGD steps), seeds 42/1/2 on an RTX 4090:
+
+| Metric | Value (3 seeds) |
+|--------|-----------------|
+| Clean AUC (evaluation split) | 1.000 in every seed |
+| Adversarial AUC | 0.000 in every seed |
+| Attack success rate | 0.962 +/- 0.067 [0.885, 1.000] |
+| Mean / max perturbation (L-inf) | 0.061 / 0.100 |
+
+The probe separates text with and without a trigger string, which also differ in
+length; a clean AUC of 1.0 therefore says nothing about backdoor detection. Under
+attack the ranking is fully inverted.
+
+`examples/red_team_benchmark.py` (GPT-2, handcrafted variants, not optimized
+attacks; 3 seeds): the linear probe reaches held-out AUC 0.998-1.000 on every
+variant with miss rates of 0.0-3.3%; ARTActivationDetector ranges from 0.530
+(subtle) to 0.942 (context) with miss rates of 17-60%. That script has no length
+control.
+
+Raw JSON: `docs/results/2026-09-regeneration/examples/`.
+
 
 ## References
 
-- **Red Team Testing Results (2025-11-18):** 0% attack success for linear probes on discrete attacks
+- **Measured results:** see Implementation Status above (`docs/results/2026-09-regeneration/`)
 - **IBM ART Documentation:** https://github.com/Trusted-AI/adversarial-robustness-toolbox
 - **Adversarial ML Papers:**
   - Goodfellow et al. (2014): "Explaining and Harnessing Adversarial Examples"

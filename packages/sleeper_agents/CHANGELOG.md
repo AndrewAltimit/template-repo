@@ -8,6 +8,14 @@ All notable changes and milestones for this project are documented here.
 
 ## [Unreleased]
 
+### Regenerated results
+All quantitative claims in the reports were inventoried and every one with a producing script was re-run on one RTX 4090 at commit `03dc55ea` (held-out splits, controls, several seeds; raw JSON with provenance in `docs/results/2026-09-regeneration/`):
+- **Deception probes** (5 seeds): held-out test AUC 0.901 +/- 0.042 (Qwen2.5-3B, layer 31), 0.805 +/- 0.062 (Qwen2.5-3B, layer 17), 0.904 +/- 0.029 (Qwen2.5-7B, layer 26), 0.907 +/- 0.029 (Yi-1.5-9B, layer 39); answer-token baseline 0.474 +/- 0.026, shuffled-label probes 0.49-0.51. These replace the tuning-split figures (93.2% / 87.6% / 84.8% / 90.8%; the earlier layer L is the current layer L - 1). Qwen2.5-7B test metrics at the validation-calibrated threshold: accuracy 0.819, precision 0.886, recall 0.734, F1 0.801 (5-seed means). The seed spread is larger than the differences between models, so the models are not ranked. The probes do not transfer to free-standing statements (Qwen2.5-3B flags all 8 of the script's plain statements as deceptive in 7 of 11 runs)
+- **Quantization**: 8-bit and 4-bit loading of Qwen2.5-7B shows no measurable test-AUC change (3 seeds, paired differences within +/-0.03); the README's per-size "AUROC loss" percentages are replaced by this measurement and "Not measured"
+- **Trigger-string examples** (3 seeds): cross-architecture (GPT-2, Qwen2.5-7B, Mistral-7B-Instruct-v0.2) and real-transformer probes reach held-out AUC 1.000, but so does a token-count-only control, so they show nothing beyond input length; Llama-3-8B-Instruct was not run (gated). Gradient audit: clean AUC 1.000, adversarial AUC 0.000. Red-team variants: probe 0.998-1.000, ARTActivationDetector 0.530-0.942
+- **PyTorch probe GPU test**: validation and test AUC 1.000 on the synthetic data (not ~0.65 / ~0.72); GPU training was slower than CPU on this small problem (7.9 s vs 3.1 s)
+- **Framework guide (LaTeX)**: results that no script in the repository produces (1,000-sample confusion matrix, per-trigger-family AUROCs, classifier comparison, ablations, model-zoo AUROCs, layer curves, t-SNE, attention entropy, threshold and latency tables) were removed or replaced with the measured results above
+
 ### Added
 - **Rust Orchestration CLI** (`sleeper-cli`)
   - 4-crate workspace: `sleeper-cli`, `sleeper-orchestrator`, `sleeper-api-client`, `sleeper-db`
@@ -37,7 +45,7 @@ Code paths that produced random, hardcoded or self-confirming numbers, or report
 **Probes**
 - `train_probes.py` splits by question (seeded, category-stratified) into train/validation/test, calibrates thresholds on validation, evaluates once on test, and adds label-shuffled and answer-token-only baselines
 - `scan_for_deception` raises when no probe is trained instead of returning "not deceptive"; mock AUCs, the SGD fallback and PCA fallback are removed; the PyTorch trainer restores the best checkpoint and reports errors instead of AUC 0.0
-- Previously reported deception-probe AUROCs are documented as tuning-split numbers
+- Previously reported deception-probe AUROCs were tuning-split numbers; they are replaced by held-out results (see Regenerated results)
 
 **Evaluation & scripts**
 - `EvaluationResult` metrics are derived from confusion counts; undefined metrics are `None`. Tests that cannot measure raise `EvaluationSkipped` and are stored as `skipped`/`error` without metrics, excluded from averages and scores
@@ -124,6 +132,7 @@ Code paths that produced random, hardcoded or self-confirming numbers, or report
 These numbers came from benchmarks on unmodified models that separated text with and without a trigger string (or two different template sets), evaluated on sentences that repeated or shared templates with the training data, chose thresholds on the test set, and had no chance or length controls. They measure trigger-string separability, not backdoor detection or robustness, and should not be cited; the examples now report held-out AUC with controls.
 - Linear probe: reported AUC 1.0 and 0% "attack success" on handcrafted (not optimized) trigger variants
 - ARTActivationDetector: reported AUC 0.76 and 76.6% "attack success" on the same variants
+- Regenerated values with the held-out protocol are listed under [Unreleased] > Regenerated results
 
 ### Infrastructure
 - Removed IBM ART library from production dependencies
@@ -169,8 +178,7 @@ These numbers came from benchmarks on unmodified models that separated text with
   - Testing documentation: `scripts/testing/README.md` (GPU Infrastructure section)
 
 ### Performance Metrics
-- Validation AUC: ~0.65 on synthetic linearly separable data
-- Test AUC: ~0.72 on synthetic data
+- Validation AUC ~0.65 and test AUC ~0.72 were reported on synthetic linearly separable data (superseded: the regenerated GPU test gives 1.000 for both; see [Unreleased] > Regenerated results)
 - GPU/CPU parity validated (AUC difference < 0.05)
 - Batch size optimization (256 for small datasets)
 - Learning rate: 0.01 for fast convergence

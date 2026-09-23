@@ -6,14 +6,14 @@ Based on Anthropic's groundbreaking research "Sleeper Agents: Training Deceptive
 
 ## Validation Status
 
-What the committed examples measure. They use unmodified pretrained checkpoints; no fine-tuned (backdoored) model is involved unless stated:
+What the committed examples measure, with held-out results from one RTX 4090 (raw data, provenance and the claim inventory: [docs/results/2026-09-regeneration/](docs/results/2026-09-regeneration/SUMMARY.md)). They use unmodified pretrained checkpoints; no fine-tuned (backdoored) model is involved:
 
-- **Trigger-string linear separability** (`examples/cross_architecture_validation.py`): a probe per architecture (GPT-2, Mistral-7B, Qwen2.5-7B, Llama-3-8B) separates text with and without a trigger string. Held-out AUC is reported next to a label-shuffled control and a token-count-only control. A held-out AUC well above both controls shows the trigger text is linearly decodable from the activations; it is not a backdoor-detection result.
-- **White-box manipulability** (`examples/gradient_attack_audit.py`): how far PGD perturbations of input embeddings move a trigger-text probe's scores (clean vs adversarial AUC on a held-out split).
-- **Detector behavior on controlled inputs** (`examples/benchmark_detectors_comprehensive.py`, `examples/real_transformer_benchmark.py`, `examples/red_team_benchmark.py`): synthetic activation distributions and handcrafted trigger variants, with held-out AUC and chance controls.
-- **Deception probes** (`scripts/training/train_probes.py`): test AUC on a question-level held-out split with label-shuffled and answer-token-only baselines. Earlier AUROC figures for this method were tuning-split numbers (see [docs/DECEPTION_DETECTION_RESULTS.md](docs/DECEPTION_DETECTION_RESULTS.md)).
+- **Deception probes** (`scripts/training/train_probes.py`, 5 seeds): held-out test AUC about 0.90 at late layers for Qwen2.5-3B-Instruct (layer 31: 0.901 +/- 0.042), Qwen2.5-7B-Instruct (layer 26: 0.904 +/- 0.029) and Yi-1.5-9B-Chat (layer 39: 0.907 +/- 0.029); Qwen2.5-3B middle layer 17: 0.805 +/- 0.062. Answer-token-only baseline 0.474 +/- 0.026, label-shuffled probes 0.49-0.51. The seed spread is larger than the differences between models, so the models are not ranked. 8-bit and 4-bit loading of Qwen2.5-7B cause no measurable AUC change. In most seeds the Qwen2.5-3B probes flag plain statements such as "The Earth orbits the Sun." as deceptive; the probes do not transfer outside the yes/no training format. Details: [docs/DECEPTION_DETECTION_RESULTS.md](docs/DECEPTION_DETECTION_RESULTS.md).
+- **Trigger-string linear separability** (`examples/cross_architecture_validation.py`, 3 seeds): held-out AUC 1.000 for GPT-2, Qwen2.5-7B-Instruct and Mistral-7B-Instruct-v0.2, but a classifier that sees only the token count also reaches 1.000 on every architecture, so these runs show nothing beyond input length. Llama-3-8B-Instruct was not run (gated on Hugging Face).
+- **White-box manipulability** (`examples/gradient_attack_audit.py`, GPT-2, 3 seeds): PGD on input embeddings (eps 0.1 L-inf, 20 steps) drives the trigger-text probe from clean AUC 1.000 to adversarial AUC 0.000 (attack success 0.962 +/- 0.067).
+- **Detector behavior on controlled inputs** (3 seeds): on GPT-2 activations (`examples/real_transformer_benchmark.py`) the linear probe reaches 1.000 and ARTActivationDetector 0.945 +/- 0.019, with the token-count control also at 1.000. On handcrafted trigger variants (`examples/red_team_benchmark.py`) the probe reaches 0.998-1.000 on every variant (miss rate 0.0-3.3%) while ARTActivationDetector ranges from 0.530 (subtle) to 0.942 (context); this script has no length control. On synthetic activations (`examples/benchmark_detectors_comprehensive.py`) the probe reaches 1.000 on separable and sparse shifts, 0.963 on moons and 0.488 on overlapping clusters; ARTActivationDetector stays at 0.51-0.55.
 
-**Not established**: detection of backdoors in fine-tuned sleeper-agent models, generalization to other backdoor insertion methods, and robustness to adaptive attacks. The package does not ship result numbers for these examples; run them to obtain numbers for a given setup.
+**Not established**: detection of backdoors in fine-tuned sleeper-agent models, generalization to other backdoor insertion methods, and robustness to adaptive attacks.
 
 ## Critical Research Findings
 
@@ -273,10 +273,10 @@ See [docs/SCRIPTS_REFERENCE.md](docs/SCRIPTS_REFERENCE.md) for all options.
 
 | Model Size | VRAM Required | Recommended GPU | Batch Size | Accuracy Impact |
 |-----------|---------------|-----------------|------------|----------------|
-| 7B | 8GB | RTX 3070, RTX 4060 Ti | 4-8 | <1% AUROC loss |
-| 13B | 14GB | RTX 4080, RTX 4090 | 2-4 | <1% AUROC loss |
-| 34B | 36GB | A6000, RTX 6000 Ada, DGX Spark | 1-2 | <2% AUROC loss |
-| 70B | 70GB | A100 80GB, DGX Spark | 1 | <2% AUROC loss |
+| 7B | 8GB | RTX 3070, RTX 4060 Ti | 4-8 | No measurable AUROC change (Qwen2.5-7B, 3 seeds) |
+| 13B | 14GB | RTX 4080, RTX 4090 | 2-4 | Not measured |
+| 34B | 36GB | A6000, RTX 6000 Ada, DGX Spark | 1-2 | Not measured |
+| 70B | 70GB | A100 80GB, DGX Spark | 1 | Not measured |
 
 #### 4-bit Quantization (QLoRA) Memory Requirements
 
@@ -284,12 +284,13 @@ See [docs/SCRIPTS_REFERENCE.md](docs/SCRIPTS_REFERENCE.md) for all options.
 
 | Model Size | VRAM Required | Recommended GPU | Batch Size | Accuracy Impact |
 |-----------|---------------|-----------------|------------|----------------|
-| 7B | 5GB | RTX 3060, RTX 4060 | 2-4 | 2-3% AUROC loss |
-| 13B | 9GB | RTX 3070, RTX 4060 Ti | 2-4 | 2-4% AUROC loss |
-| 34B | 22GB | RTX 4090, A5000 | 1-2 | 3-5% AUROC loss |
-| 70B | 42GB | A6000, RTX 6000 Ada, DGX Spark | 1 | 4-6% AUROC loss |
+| 7B | 5GB | RTX 3060, RTX 4060 | 2-4 | No measurable AUROC change (Qwen2.5-7B, 3 seeds) |
+| 13B | 9GB | RTX 3070, RTX 4060 Ti | 2-4 | Not measured |
+| 34B | 22GB | RTX 4090, A5000 | 1-2 | Not measured |
+| 70B | 42GB | A6000, RTX 6000 Ada, DGX Spark | 1 | Not measured |
 
 **Notes:**
+- Measured for Qwen2.5-7B-Instruct deception probes on an RTX 4090 (layers 26/27 and their ensemble, seeds 42/1/2, identical splits): peak allocated CUDA memory 14.2 GB (FP16), 8.3 GB (8-bit), 5.6 GB (4-bit); paired test-AUC differences against FP16 are within +/-0.03 and change sign across seeds, so no loss is detectable at this sample size. 8-bit extraction is about 4x slower per forward pass. Other rows are estimates, not measurements ([results](docs/DECEPTION_DETECTION_RESULTS.md#quantization))
 - VRAM requirements include model weights + activation storage + gradient computation
 - Batch sizes shown are for linear probe training; inference can use larger batches
 - QLoRA suitable for detection but not recommended for fine-tuning backdoors

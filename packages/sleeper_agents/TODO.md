@@ -6,16 +6,21 @@ what remains.
 
 ---
 
-## Results that need regenerating
+## Results
 
-- **Deception probe results** (`docs/DECEPTION_DETECTION_RESULTS.md`): the published
-  AUROC figures were measured on the split used for early stopping and threshold
-  calibration. Re-run `scripts/training/train_probes.py` (question-level
-  train/val/test split, shuffled-label and answer-token baselines) on the original
-  models and replace the numbers.
-- **HuggingFace-backend probes**: layer `L` now means the output of block `L` on both
-  backends (`hidden_states[L+1]` on HuggingFace). Probes trained on HuggingFace
-  activations before this convention must be retrained.
+- **Saved HuggingFace-backend probes**: layer `L` means the output of block `L` on both
+  backends (`hidden_states[L+1]` on HuggingFace). The published results in
+  `docs/results/2026-09-regeneration/` were produced with this convention; any probe
+  pickle trained on HuggingFace activations before it (where layer `L` was
+  `hidden_states[L]`) must be retrained.
+- **Llama-3-8B-Instruct**: listed in `examples/cross_architecture_validation.py` but not
+  run for the published results because the model is gated on Hugging Face; run it on
+  a host with an HF token.
+- **Framework guide results without a producer**: results in
+  `docs/Sleeper_Agents_Framework_Guide.tex` that no script produces were removed or
+  replaced (see `docs/results/2026-09-regeneration/INVENTORY.md`). Producing them
+  (trigger-family evaluation on backdoored models, classifier comparison, ablations,
+  latency benchmark) needs new scripts.
 
 ## Dashboard
 
@@ -63,14 +68,17 @@ values:
 ## Research
 
 ### Larger model testing
-Test detection on Mistral-7B, Llama-3-8B and Qwen2.5-14B. `ModelInterface` and
-`load_model_for_detection` support 4-bit/8-bit quantization and CPU/disk offload
-(`max_memory`, `offload_folder`), and interventions run on the HuggingFace backend;
-none of this has been exercised on a real 7B+ model yet.
+Deception probes have run on Qwen2.5-3B/7B and Yi-1.5-9B in FP16 and on Qwen2.5-7B in
+8-bit and 4-bit (via `load_model_for_detection`), and trigger-separability probes on
+Mistral-7B-Instruct-v0.2 and Qwen2.5-7B. Open: Llama-3-8B (gated), Qwen2.5-14B and
+larger models with CPU/disk offload (`max_memory`, `offload_folder`), and
+interventions on a real 7B+ model.
 
 ### Multi-layer ensemble detection
-Compare the ensemble probe against single-layer probes on held-out questions and on
-harder backdoor types than teacher-forced triggers.
+On held-out questions the ensemble probe is within 0.01 AUC of the best single layer
+for all three tested models. Open: harder backdoor types than teacher-forced
+triggers, and inputs outside the yes/no format (the probes currently flag plain
+true statements as deceptive).
 
 ### Experiment infrastructure
 Config-driven experiments (Hydra) and experiment tracking. Only worthwhile if results
@@ -81,7 +89,9 @@ are shared or reproduced by others.
 ### Benchmarks
 - The examples measure whether a trigger string is linearly separable in activations
   of paired prompts (held-out pairs, shuffled-label and length controls); they do not
-  train backdoors and are not evidence of backdoor detection.
+  train backdoors and are not evidence of backdoor detection. In the published runs a
+  token-count-only control matches the probe (AUC 1.0), so the trigger examples show
+  nothing beyond input length.
 - Linear probes are vulnerable to white-box gradient attacks in embedding space; this
   is expected for linear classifiers.
 - Not yet validated against backdoors inserted by other methods or on real-world
@@ -92,8 +102,8 @@ are shared or reproduced by others.
 - English-language triggers only.
 
 ### Hardware
-- GPU recommended (validated on RTX 4090, 24GB); models above ~7B parameters need
-  quantization or offloading.
+- GPU recommended (validated on RTX 4090, 24GB; Yi-1.5-9B fits in FP16 at 16.5 GB peak);
+  larger models need quantization or offloading.
 
 ## References
 
