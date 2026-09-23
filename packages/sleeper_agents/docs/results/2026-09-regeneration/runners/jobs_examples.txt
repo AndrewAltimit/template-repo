@@ -1,0 +1,23 @@
+# output-json  runner  args   (see queue.sh)
+examples/pytorch_probe_gpu.json run_examples.py pytorch_probe_gpu
+examples/synthetic_benchmarks_s42.json run_examples.py synthetic --seed 42
+examples/real_transformer_benchmark_s42.json run_examples.py real_transformer --seed 42
+examples/red_team_benchmark_s42.json run_examples.py red_team --seed 42
+examples/gradient_attack_audit_s42.json run_examples.py gradient_audit --seed 42 --n-samples 100
+examples/cross_architecture_gpt2_s42.json run_examples.py cross_arch --models gpt2 --seed 42
+examples/cross_architecture_qwen7b_s42.json run_examples.py cross_arch --models qwen --seed 42
+examples/synthetic_benchmarks_s1.json run_examples.py synthetic --seed 1
+examples/real_transformer_benchmark_s1.json run_examples.py real_transformer --seed 1
+examples/red_team_benchmark_s1.json run_examples.py red_team --seed 1
+examples/gradient_attack_audit_s1.json run_examples.py gradient_audit --seed 1 --n-samples 100
+examples/cross_architecture_gpt2_s1.json run_examples.py cross_arch --models gpt2 --seed 1
+examples/cross_architecture_qwen7b_s1.json run_examples.py cross_arch --models qwen --seed 1
+examples/synthetic_benchmarks_s2.json run_examples.py synthetic --seed 2
+examples/real_transformer_benchmark_s2.json run_examples.py real_transformer --seed 2
+examples/red_team_benchmark_s2.json run_examples.py red_team --seed 2
+examples/gradient_attack_audit_s2.json run_examples.py gradient_audit --seed 2 --n-samples 100
+examples/cross_architecture_gpt2_s2.json run_examples.py cross_arch --models gpt2 --seed 2
+examples/cross_architecture_qwen7b_s2.json run_examples.py cross_arch --models qwen --seed 2
+examples/cross_architecture_mistral7b_s42.json run_examples.py cross_arch --models mistral --seed 42
+examples/cross_architecture_mistral7b_s1.json run_examples.py cross_arch --models mistral --seed 1
+examples/cross_architecture_mistral7b_s2.json run_examples.py cross_arch --models mistral --seed 2

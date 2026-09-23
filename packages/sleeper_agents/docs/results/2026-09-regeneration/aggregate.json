@@ -1,0 +1,8956 @@
+{
+ "deception_probes": {
+  "01-ai/Yi-1.5-9B-Chat|none|default|12": {
+   "model": "01-ai/Yi-1.5-9B-Chat",
+   "quantization": "none",
+   "run_kind": "default",
+   "layer": 12,
+   "test_auc": {
+    "mean": 0.8131,
+    "sd": 0.0644,
+    "min": 0.721,
+    "max": 0.8902,
+    "n": 5
+   },
+   "val_auc": {
+    "mean": 0.7701,
+    "sd": 0.0462,
+    "min": 0.6982,
+    "max": 0.8069,
+    "n": 5
+   },
+   "train_auc": {
+    "mean": 0.9478,
+    "sd": 0.0514,
+    "min": 0.8903,
+    "max": 1.0,
+    "n": 5
+   },
+   "test_accuracy": {
+    "mean": 0.6735,
+    "sd": 0.0465,
+    "min": 0.6,
+    "max": 0.7222,
+    "n": 5
+   },
+   "test_precision": {
+    "mean": 0.8289,
+    "sd": 0.0705,
+    "min": 0.7619,
+    "max": 0.9231,
+    "n": 5
+   },
+   "test_recall": {
+    "mean": 0.4382,
+    "sd": 0.0955,
+    "min": 0.2909,
+    "max": 0.5273,
+    "n": 5
+   },
+   "test_f1": {
+    "mean": 0.5685,
+    "sd": 0.09,
+    "min": 0.4211,
+    "max": 0.6512,
+    "n": 5
+   },
+   "test_fpr": {
+    "mean": 0.0912,
+    "sd": 0.0462,
+    "min": 0.0364,
+    "max": 0.1636,
+    "n": 5
+   },
+   "shuffled_mean": {
+    "mean": 0.5037,
+    "sd": 0.0101,
+    "min": 0.4906,
+    "max": 0.516,
+    "n": 5
+   },
+   "shuffled_max": {
+    "mean": 0.557,
+    "sd": 0.0306,
+    "min": 0.5352,
+    "max": 0.6049,
+    "n": 5
+   },
+   "answer_token_auc": {
+    "mean": 0.4745,
+    "sd": 0.026,
+    "min": 0.4364,
+    "max": 0.5091,
+    "n": 5
+   },
+   "runs": [
+    "deception_probes/yi-1.5-9b_default_s1.json (seed 1)",
+    "deception_probes/yi-1.5-9b_default_s2.json (seed 2)",
+    "deception_probes/yi-1.5-9b_default_s3.json (seed 3)",
+    "deception_probes/yi-1.5-9b_default_s4.json (seed 4)",
+    "deception_probes/yi-1.5-9b_default_s42.json (seed 42)"
+   ]
+  },
+  "01-ai/Yi-1.5-9B-Chat|none|default|24": {
+   "model": "01-ai/Yi-1.5-9B-Chat",
+   "quantization": "none",
+   "run_kind": "default",
+   "layer": 24,
+   "test_auc": {
+    "mean": 0.8808,
+    "sd": 0.0376,
+    "min": 0.8261,
+    "max": 0.9117,
+    "n": 5
+   },
+   "val_auc": {
+    "mean": 0.8646,
+    "sd": 0.0443,
+    "min": 0.8063,
+    "max": 0.9136,
+    "n": 5
+   },
+   "train_auc": {
+    "mean": 0.9849,
+    "sd": 0.0202,
+    "min": 0.9588,
+    "max": 1.0,
+    "n": 5
+   },
+   "test_accuracy": {
+    "mean": 0.7867,
+    "sd": 0.0752,
+    "min": 0.6727,
+    "max": 0.8636,
+    "n": 5
+   },
+   "test_precision": {
+    "mean": 0.8644,
+    "sd": 0.0529,
+    "min": 0.7879,
+    "max": 0.9167,
+    "n": 5
+   },
+   "test_recall": {
+    "mean": 0.6754,
+    "sd": 0.1363,
+    "min": 0.4727,
+    "max": 0.8,
+    "n": 5
+   },
+   "test_f1": {
+    "mean": 0.7543,
+    "sd": 0.1056,
+    "min": 0.5909,
+    "max": 0.8544,
+    "n": 5
+   },
+   "test_fpr": {
+    "mean": 0.1021,
+    "sd": 0.0327,
+    "min": 0.0727,
+    "max": 0.1455,
+    "n": 5
+   },
+   "shuffled_mean": {
+    "mean": 0.5083,
+    "sd": 0.0054,
+    "min": 0.4998,
+    "max": 0.5147,
+    "n": 5
+   },
+   "shuffled_max": {
+    "mean": 0.5646,
+    "sd": 0.0286,
+    "min": 0.5276,
+    "max": 0.5914,
+    "n": 5
+   },
+   "answer_token_auc": {
+    "mean": 0.4745,
+    "sd": 0.026,
+    "min": 0.4364,
+    "max": 0.5091,
+    "n": 5
+   },
+   "runs": [
+    "deception_probes/yi-1.5-9b_default_s1.json (seed 1)",
+    "deception_probes/yi-1.5-9b_default_s2.json (seed 2)",
+    "deception_probes/yi-1.5-9b_default_s3.json (seed 3)",
+    "deception_probes/yi-1.5-9b_default_s4.json (seed 4)",
+    "deception_probes/yi-1.5-9b_default_s42.json (seed 42)"
+   ]
+  },
+  "01-ai/Yi-1.5-9B-Chat|none|default|36": {
+   "model": "01-ai/Yi-1.5-9B-Chat",
+   "quantization": "none",
+   "run_kind": "default",
+   "layer": 36,
+   "test_auc": {
+    "mean": 0.9051,
+    "sd": 0.0361,
+    "min": 0.8625,
+    "max": 0.9587,
+    "n": 5
+   },
+   "val_auc": {
+    "mean": 0.8988,
+    "sd": 0.0392,
+    "min": 0.8364,
+    "max": 0.9296,
+    "n": 5
+   },
+   "train_auc": {
+    "mean": 0.989,
+    "sd": 0.0203,
+    "min": 0.9526,
+    "max": 1.0,
+    "n": 5
+   },
+   "test_accuracy": {
+    "mean": 0.8176,
+    "sd": 0.0719,
+    "min": 0.7091,
+    "max": 0.9,
+    "n": 5
+   },
+   "test_precision": {
+    "mean": 0.8825,
+    "sd": 0.0281,
+    "min": 0.8519,
+    "max": 0.9231,
+    "n": 5
+   },
+   "test_recall": {
+    "mean": 0.7338,
+    "sd": 0.161,
+    "min": 0.4727,
+    "max": 0.8727,
+    "n": 5
+   },
+   "test_f1": {
+    "mean": 0.7926,
+    "sd": 0.1074,
+    "min": 0.619,
+    "max": 0.8972,
+    "n": 5
+   },
+   "test_fpr": {
+    "mean": 0.0986,
+    "sd": 0.0356,
+    "min": 0.0545,
+    "max": 0.1455,
+    "n": 5
+   },
+   "shuffled_mean": {
+    "mean": 0.5102,
+    "sd": 0.0203,
+    "min": 0.4846,
+    "max": 0.5334,
+    "n": 5
+   },
+   "shuffled_max": {
+    "mean": 0.58,
+    "sd": 0.0236,
+    "min": 0.554,
+    "max": 0.6099,
+    "n": 5
+   },
+   "answer_token_auc": {
+    "mean": 0.4745,
+    "sd": 0.026,
+    "min": 0.4364,
+    "max": 0.5091,
+    "n": 5
+   },
+   "runs": [
+    "deception_probes/yi-1.5-9b_default_s1.json (seed 1)",
+    "deception_probes/yi-1.5-9b_default_s2.json (seed 2)",
+    "deception_probes/yi-1.5-9b_default_s3.json (seed 3)",
+    "deception_probes/yi-1.5-9b_default_s4.json (seed 4)",
+    "deception_probes/yi-1.5-9b_default_s42.json (seed 42)"
+   ]
+  },
+  "01-ai/Yi-1.5-9B-Chat|none|default|47": {
+   "model": "01-ai/Yi-1.5-9B-Chat",
+   "quantization": "none",
+   "run_kind": "default",
+   "layer": 47,
+   "test_auc": {
+    "mean": 0.9039,
+    "sd": 0.0221,
+    "min": 0.8843,
+    "max": 0.9408,
+    "n": 5
+   },
+   "val_auc": {
+    "mean": 0.8904,
+    "sd": 0.0309,
+    "min": 0.8446,
+    "max": 0.9174,
+    "n": 5
+   },
+   "train_auc": {
+    "mean": 0.9981,
+    "sd": 0.002,
+    "min": 0.9948,
+    "max": 1.0,
+    "n": 5
+   },
+   "test_accuracy": {
+    "mean": 0.8101,
+    "sd": 0.0337,
+    "min": 0.7636,
+    "max": 0.8455,
+    "n": 5
+   },
+   "test_precision": {
+    "mean": 0.8529,
+    "sd": 0.0258,
+    "min": 0.8103,
+    "max": 0.88,
+    "n": 5
+   },
+   "test_recall": {
+    "mean": 0.7516,
+    "sd": 0.0888,
+    "min": 0.6364,
+    "max": 0.8545,
+    "n": 5
+   },
+   "test_f1": {
+    "mean": 0.7962,
+    "sd": 0.0478,
+    "min": 0.7292,
+    "max": 0.8381,
+    "n": 5
+   },
+   "test_fpr": {
+    "mean": 0.1313,
+    "sd": 0.0391,
+    "min": 0.1091,
+    "max": 0.2,
+    "n": 5
+   },
+   "shuffled_mean": {
+    "mean": 0.505,
+    "sd": 0.0233,
+    "min": 0.4689,
+    "max": 0.5234,
+    "n": 5
+   },
+   "shuffled_max": {
+    "mean": 0.5803,
+    "sd": 0.0114,
+    "min": 0.5676,
+    "max": 0.5974,
+    "n": 5
+   },
+   "answer_token_auc": {
+    "mean": 0.4745,
+    "sd": 0.026,
+    "min": 0.4364,
+    "max": 0.5091,
+    "n": 5
+   },
+   "runs": [
+    "deception_probes/yi-1.5-9b_default_s1.json (seed 1)",
+    "deception_probes/yi-1.5-9b_default_s2.json (seed 2)",
+    "deception_probes/yi-1.5-9b_default_s3.json (seed 3)",
+    "deception_probes/yi-1.5-9b_default_s4.json (seed 4)",
+    "deception_probes/yi-1.5-9b_default_s42.json (seed 42)"
+   ]
+  },
+  "01-ai/Yi-1.5-9B-Chat|none|default|ensemble": {
+   "model": "01-ai/Yi-1.5-9B-Chat",
+   "quantization": "none",
+   "run_kind": "default",
+   "layer": "ensemble",
+   "test_auc": {
+    "mean": 0.9095,
+    "sd": 0.0209,
+    "min": 0.8936,
+    "max": 0.9448,
+    "n": 5
+   },
+   "val_auc": {
+    "mean": 0.8965,
+    "sd": 0.0295,
+    "min": 0.8516,
+    "max": 0.9177,
+    "n": 5
+   },
+   "train_auc": {
+    "mean": 0.9987,
+    "sd": 0.0014,
+    "min": 0.9964,
+    "max": 1.0,
+    "n": 5
+   },
+   "test_accuracy": {
+    "mean": 0.821,
+    "sd": 0.0295,
+    "min": 0.787,
+    "max": 0.8455,
+    "n": 5
+   },
+   "test_precision": {
+    "mean": 0.8611,
+    "sd": 0.023,
+    "min": 0.8364,
+    "max": 0.8958,
+    "n": 5
+   },
+   "test_recall": {
+    "mean": 0.7662,
+    "sd": 0.066,
+    "min": 0.6909,
+    "max": 0.8364,
+    "n": 5
+   },
+   "test_f1": {
+    "mean": 0.8096,
+    "sd": 0.0383,
+    "min": 0.7677,
+    "max": 0.8411,
+    "n": 5
+   },
+   "test_fpr": {
+    "mean": 0.1241,
+    "sd": 0.0271,
+    "min": 0.0909,
+    "max": 0.1636,
+    "n": 5
+   },
+   "answer_token_auc": {
+    "mean": 0.4745,
+    "sd": 0.026,
+    "min": 0.4364,
+    "max": 0.5091,
+    "n": 5
+   },
+   "runs": [
+    "deception_probes/yi-1.5-9b_default_s1.json (seed 1)",
+    "deception_probes/yi-1.5-9b_default_s2.json (seed 2)",
+    "deception_probes/yi-1.5-9b_default_s3.json (seed 3)",
+    "deception_probes/yi-1.5-9b_default_s4.json (seed 4)",
+    "deception_probes/yi-1.5-9b_default_s42.json (seed 42)"
+   ]
+  },
+  "01-ai/Yi-1.5-9B-Chat|none|doclayers|39": {
+   "model": "01-ai/Yi-1.5-9B-Chat",
+   "quantization": "none",
+   "run_kind": "doclayers",
+   "layer": 39,
+   "test_auc": {
+    "mean": 0.907,
+    "sd": 0.0293,
+    "min": 0.8701,
+    "max": 0.9504,
+    "n": 5
+   },
+   "val_auc": {
+    "mean": 0.8972,
+    "sd": 0.0305,
+    "min": 0.8549,
+    "max": 0.924,
+    "n": 5
+   },
+   "train_auc": {
+    "mean": 0.9939,
+    "sd": 0.0133,
+    "min": 0.9701,
+    "max": 1.0,
+    "n": 5
+   },
+   "test_accuracy": {
+    "mean": 0.823,
+    "sd": 0.0635,
+    "min": 0.7182,
+    "max": 0.8818,
+    "n": 5
+   },
+   "test_precision": {
+    "mean": 0.8784,
+    "sd": 0.0277,
+    "min": 0.8529,
+    "max": 0.92,
+    "n": 5
+   },
+   "test_recall": {
+    "mean": 0.7483,
+    "sd": 0.1311,
+    "min": 0.5273,
+    "max": 0.8545,
+    "n": 5
+   },
+   "test_f1": {
+    "mean": 0.8035,
+    "sd": 0.0895,
+    "min": 0.6517,
+    "max": 0.8762,
+    "n": 5
+   },
+   "test_fpr": {
+    "mean": 0.1023,
+    "sd": 0.025,
+    "min": 0.0727,
+    "max": 0.1296,
+    "n": 5
+   },
+   "shuffled_mean": {
+    "mean": 0.5052,
+    "sd": 0.0229,
+    "min": 0.4747,
+    "max": 0.5312,
+    "n": 5
+   },
+   "shuffled_max": {
+    "mean": 0.5656,
+    "sd": 0.0286,
+    "min": 0.5451,
+    "max": 0.6159,
+    "n": 5
+   },
+   "answer_token_auc": {
+    "mean": 0.4745,
+    "sd": 0.026,
+    "min": 0.4364,
+    "max": 0.5091,
+    "n": 5
+   },
+   "runs": [
+    "deception_probes/yi-1.5-9b_doclayers_s1.json (seed 1)",
+    "deception_probes/yi-1.5-9b_doclayers_s2.json (seed 2)",
+    "deception_probes/yi-1.5-9b_doclayers_s3.json (seed 3)",
+    "deception_probes/yi-1.5-9b_doclayers_s4.json (seed 4)",
+    "deception_probes/yi-1.5-9b_doclayers_s42.json (seed 42)"
+   ]
+  },
+  "01-ai/Yi-1.5-9B-Chat|none|doclayers|40": {
+   "model": "01-ai/Yi-1.5-9B-Chat",
+   "quantization": "none",
+   "run_kind": "doclayers",
+   "layer": 40,
+   "test_auc": {
+    "mean": 0.9039,
+    "sd": 0.0318,
+    "min": 0.8711,
+    "max": 0.9524,
+    "n": 5
+   },
+   "val_auc": {
+    "mean": 0.8948,
+    "sd": 0.0293,
+    "min": 0.8572,
+    "max": 0.925,
+    "n": 5
+   },
+   "train_auc": {
+    "mean": 0.9917,
+    "sd": 0.0118,
+    "min": 0.9746,
+    "max": 1.0,
+    "n": 5
+   },
+   "test_accuracy": {
+    "mean": 0.8283,
+    "sd": 0.0484,
+    "min": 0.7778,
+    "max": 0.8909,
+    "n": 5
+   },
+   "test_precision": {
+    "mean": 0.8884,
+    "sd": 0.0252,
+    "min": 0.8545,
+    "max": 0.9216,
+    "n": 5
+   },
+   "test_recall": {
+    "mean": 0.7514,
+    "sd": 0.1064,
+    "min": 0.6364,
+    "max": 0.8545,
+    "n": 5
+   },
+   "test_f1": {
+    "mean": 0.8108,
+    "sd": 0.0644,
+    "min": 0.7447,
+    "max": 0.8868,
+    "n": 5
+   },
+   "test_fpr": {
+    "mean": 0.0949,
+    "sd": 0.0298,
+    "min": 0.0727,
+    "max": 0.1455,
+    "n": 5
+   },
+   "shuffled_mean": {
+    "mean": 0.5033,
+    "sd": 0.0137,
+    "min": 0.4879,
+    "max": 0.5207,
+    "n": 5
+   },
+   "shuffled_max": {
+    "mean": 0.5825,
+    "sd": 0.0316,
+    "min": 0.5564,
+    "max": 0.6212,
+    "n": 5
+   },
+   "answer_token_auc": {
+    "mean": 0.4745,
+    "sd": 0.026,
+    "min": 0.4364,
+    "max": 0.5091,
+    "n": 5
+   },
+   "runs": [
+    "deception_probes/yi-1.5-9b_doclayers_s1.json (seed 1)",
+    "deception_probes/yi-1.5-9b_doclayers_s2.json (seed 2)",
+    "deception_probes/yi-1.5-9b_doclayers_s3.json (seed 3)",
+    "deception_probes/yi-1.5-9b_doclayers_s4.json (seed 4)",
+    "deception_probes/yi-1.5-9b_doclayers_s42.json (seed 42)"
+   ]
+  },
+  "01-ai/Yi-1.5-9B-Chat|none|doclayers|ensemble": {
+   "model": "01-ai/Yi-1.5-9B-Chat",
+   "quantization": "none",
+   "run_kind": "doclayers",
+   "layer": "ensemble",
+   "test_auc": {
+    "mean": 0.9082,
+    "sd": 0.0276,
+    "min": 0.8836,
+    "max": 0.9524,
+    "n": 5
+   },
+   "val_auc": {
+    "mean": 0.8997,
+    "sd": 0.0245,
+    "min": 0.8731,
+    "max": 0.9296,
+    "n": 5
+   },
+   "train_auc": {
+    "mean": 0.9956,
+    "sd": 0.0067,
+    "min": 0.9848,
+    "max": 1.0,
+    "n": 5
+   },
+   "test_accuracy": {
+    "mean": 0.8374,
+    "sd": 0.0453,
+    "min": 0.787,
+    "max": 0.9,
+    "n": 5
+   },
+   "test_precision": {
+    "mean": 0.883,
+    "sd": 0.0335,
+    "min": 0.8444,
+    "max": 0.9231,
+    "n": 5
+   },
+   "test_recall": {
+    "mean": 0.7771,
+    "sd": 0.0756,
+    "min": 0.7037,
+    "max": 0.8727,
+    "n": 5
+   },
+   "test_f1": {
+    "mean": 0.8257,
+    "sd": 0.0531,
+    "min": 0.7677,
+    "max": 0.8972,
+    "n": 5
+   },
+   "test_fpr": {
+    "mean": 0.1023,
+    "sd": 0.0281,
+    "min": 0.0727,
+    "max": 0.1296,
+    "n": 5
+   },
+   "answer_token_auc": {
+    "mean": 0.4745,
+    "sd": 0.026,
+    "min": 0.4364,
+    "max": 0.5091,
+    "n": 5
+   },
+   "runs": [
+    "deception_probes/yi-1.5-9b_doclayers_s1.json (seed 1)",
+    "deception_probes/yi-1.5-9b_doclayers_s2.json (seed 2)",
+    "deception_probes/yi-1.5-9b_doclayers_s3.json (seed 3)",
+    "deception_probes/yi-1.5-9b_doclayers_s4.json (seed 4)",
+    "deception_probes/yi-1.5-9b_doclayers_s42.json (seed 42)"
+   ]
+  },
+  "Qwen/Qwen2.5-3B-Instruct|none|alllayers|0": {
+   "model": "Qwen/Qwen2.5-3B-Instruct",
+   "quantization": "none",
+   "run_kind": "alllayers",
+   "layer": 0,
+   "test_auc": {
+    "mean": 0.717,
+    "sd": 0.0,
+    "min": 0.717,
+    "max": 0.717,
+    "n": 1
+   },
+   "val_auc": {
+    "mean": 0.676,
+    "sd": 0.0,
+    "min": 0.676,
+    "max": 0.676,
+    "n": 1
+   },
+   "train_auc": {
+    "mean": 0.8798,
+    "sd": 0.0,
+    "min": 0.8798,
+    "max": 0.8798,
+    "n": 1
+   },
+   "test_accuracy": {
+    "mean": 0.6,
+    "sd": 0.0,
+    "min": 0.6,
+    "max": 0.6,
+    "n": 1
+   },
+   "test_precision": {
+    "mean": 0.7895,
+    "sd": 0.0,
+    "min": 0.7895,
+    "max": 0.7895,
+    "n": 1
+   },
+   "test_recall": {
+    "mean": 0.2727,
+    "sd": 0.0,
+    "min": 0.2727,
+    "max": 0.2727,
+    "n": 1
+   },
+   "test_f1": {
+    "mean": 0.4054,
+    "sd": 0.0,
+    "min": 0.4054,
+    "max": 0.4054,
+    "n": 1
+   },
+   "test_fpr": {
+    "mean": 0.0727,
+    "sd": 0.0,
+    "min": 0.0727,
+    "max": 0.0727,
+    "n": 1
+   },
+   "shuffled_mean": {
+    "mean": 0.5317,
+    "sd": 0.0,
+    "min": 0.5317,
+    "max": 0.5317,
+    "n": 1
+   },
+   "shuffled_max": {
+    "mean": 0.5769,
+    "sd": 0.0,
+    "min": 0.5769,
+    "max": 0.5769,
+    "n": 1
+   },
+   "answer_token_auc": {
+    "mean": 0.5091,
+    "sd": 0.0,
+    "min": 0.5091,
+    "max": 0.5091,
+    "n": 1
+   },
+   "runs": [
+    "deception_probes/qwen2.5-3b_alllayers_s42.json (seed 42)"
+   ]
+  },
+  "Qwen/Qwen2.5-3B-Instruct|none|alllayers|1": {
+   "model": "Qwen/Qwen2.5-3B-Instruct",
+   "quantization": "none",
+   "run_kind": "alllayers",
+   "layer": 1,
+   "test_auc": {
+    "mean": 0.7117,
+    "sd": 0.0,
+    "min": 0.7117,
+    "max": 0.7117,
+    "n": 1
+   },
+   "val_auc": {
+    "mean": 0.6615,
+    "sd": 0.0,
+    "min": 0.6615,
+    "max": 0.6615,
+    "n": 1
+   },
+   "train_auc": {
+    "mean": 0.8848,
+    "sd": 0.0,
+    "min": 0.8848,
+    "max": 0.8848,
+    "n": 1
+   },
+   "test_accuracy": {
+    "mean": 0.5818,
+    "sd": 0.0,
+    "min": 0.5818,
+    "max": 0.5818,
+    "n": 1
+   },
+   "test_precision": {
+    "mean": 0.8,
+    "sd": 0.0,
+    "min": 0.8,
+    "max": 0.8,
+    "n": 1
+   },
+   "test_recall": {
+    "mean": 0.2182,
+    "sd": 0.0,
+    "min": 0.2182,
+    "max": 0.2182,
+    "n": 1
+   },
+   "test_f1": {
+    "mean": 0.3429,
+    "sd": 0.0,
+    "min": 0.3429,
+    "max": 0.3429,
+    "n": 1
+   },
+   "test_fpr": {
+    "mean": 0.0545,
+    "sd": 0.0,
+    "min": 0.0545,
+    "max": 0.0545,
+    "n": 1
+   },
+   "shuffled_mean": {
+    "mean": 0.5187,
+    "sd": 0.0,
+    "min": 0.5187,
+    "max": 0.5187,
+    "n": 1
+   },
+   "shuffled_max": {
+    "mean": 0.5379,
+    "sd": 0.0,
+    "min": 0.5379,
+    "max": 0.5379,
+    "n": 1
+   },
+   "answer_token_auc": {
+    "mean": 0.5091,
+    "sd": 0.0,
+    "min": 0.5091,
+    "max": 0.5091,
+    "n": 1
+   },
+   "runs": [
+    "deception_probes/qwen2.5-3b_alllayers_s42.json (seed 42)"
+   ]
+  },
+  "Qwen/Qwen2.5-3B-Instruct|none|alllayers|2": {
+   "model": "Qwen/Qwen2.5-3B-Instruct",
+   "quantization": "none",
+   "run_kind": "alllayers",
+   "layer": 2,
+   "test_auc": {
+    "mean": 0.7223,
+    "sd": 0.0,
+    "min": 0.7223,
+    "max": 0.7223,
+    "n": 1
+   },
+   "val_auc": {
+    "mean": 0.6721,
+    "sd": 0.0,
+    "min": 0.6721,
+    "max": 0.6721,
+    "n": 1
+   },
+   "train_auc": {
+    "mean": 0.8936,
+    "sd": 0.0,
+    "min": 0.8936,
+    "max": 0.8936,
+    "n": 1
+   },
+   "test_accuracy": {
+    "mean": 0.6,
+    "sd": 0.0,
+    "min": 0.6,
+    "max": 0.6,
+    "n": 1
+   },
+   "test_precision": {
+    "mean": 0.7619,
+    "sd": 0.0,
+    "min": 0.7619,
+    "max": 0.7619,
+    "n": 1
+   },
+   "test_recall": {
+    "mean": 0.2909,
+    "sd": 0.0,
+    "min": 0.2909,
+    "max": 0.2909,
+    "n": 1
+   },
+   "test_f1": {
+    "mean": 0.4211,
+    "sd": 0.0,
+    "min": 0.4211,
+    "max": 0.4211,
+    "n": 1
+   },
+   "test_fpr": {
+    "mean": 0.0909,
+    "sd": 0.0,
+    "min": 0.0909,
+    "max": 0.0909,
+    "n": 1
+   },
+   "shuffled_mean": {
+    "mean": 0.516,
+    "sd": 0.0,
+    "min": 0.516,
+    "max": 0.516,
+    "n": 1
+   },
+   "shuffled_max": {
+    "mean": 0.5402,
+    "sd": 0.0,
+    "min": 0.5402,
+    "max": 0.5402,
+    "n": 1
+   },
+   "answer_token_auc": {
+    "mean": 0.5091,
+    "sd": 0.0,
+    "min": 0.5091,
+    "max": 0.5091,
+    "n": 1
+   },
+   "runs": [
+    "deception_probes/qwen2.5-3b_alllayers_s42.json (seed 42)"
+   ]
+  },
+  "Qwen/Qwen2.5-3B-Instruct|none|alllayers|3": {
+   "model": "Qwen/Qwen2.5-3B-Instruct",
+   "quantization": "none",
+   "run_kind": "alllayers",
+   "layer": 3,
+   "test_auc": {
+    "mean": 0.8165,
+    "sd": 0.0,
+    "min": 0.8165,
+    "max": 0.8165,
+    "n": 1
+   },
+   "val_auc": {
+    "mean": 0.7312,
+    "sd": 0.0,
+    "min": 0.7312,
+    "max": 0.7312,
+    "n": 1
+   },
+   "train_auc": {
+    "mean": 0.9139,
+    "sd": 0.0,
+    "min": 0.9139,
+    "max": 0.9139,
+    "n": 1
+   },
+   "test_accuracy": {
+    "mean": 0.5818,
+    "sd": 0.0,
+    "min": 0.5818,
+    "max": 0.5818,
+    "n": 1
+   },
+   "test_precision": {
+    "mean": 0.7647,
+    "sd": 0.0,
+    "min": 0.7647,
+    "max": 0.7647,
+    "n": 1
+   },
+   "test_recall": {
+    "mean": 0.2364,
+    "sd": 0.0,
+    "min": 0.2364,
+    "max": 0.2364,
+    "n": 1
+   },
+   "test_f1": {
+    "mean": 0.3611,
+    "sd": 0.0,
+    "min": 0.3611,
+    "max": 0.3611,
+    "n": 1
+   },
+   "test_fpr": {
+    "mean": 0.0727,
+    "sd": 0.0,
+    "min": 0.0727,
+    "max": 0.0727,
+    "n": 1
+   },
+   "shuffled_mean": {
+    "mean": 0.5218,
+    "sd": 0.0,
+    "min": 0.5218,
+    "max": 0.5218,
+    "n": 1
+   },
+   "shuffled_max": {
+    "mean": 0.5613,
+    "sd": 0.0,
+    "min": 0.5613,
+    "max": 0.5613,
+    "n": 1
+   },
+   "answer_token_auc": {
+    "mean": 0.5091,
+    "sd": 0.0,
+    "min": 0.5091,
+    "max": 0.5091,
+    "n": 1
+   },
+   "runs": [
+    "deception_probes/qwen2.5-3b_alllayers_s42.json (seed 42)"
+   ]
+  },
+  "Qwen/Qwen2.5-3B-Instruct|none|alllayers|4": {
+   "model": "Qwen/Qwen2.5-3B-Instruct",
+   "quantization": "none",
+   "run_kind": "alllayers",
+   "layer": 4,
+   "test_auc": {
+    "mean": 0.8235,
+    "sd": 0.0,
+    "min": 0.8235,
+    "max": 0.8235,
+    "n": 1
+   },
+   "val_auc": {
+    "mean": 0.7504,
+    "sd": 0.0,
+    "min": 0.7504,
+    "max": 0.7504,
+    "n": 1
+   },
+   "train_auc": {
+    "mean": 0.9202,
+    "sd": 0.0,
+    "min": 0.9202,
+    "max": 0.9202,
+    "n": 1
+   },
+   "test_accuracy": {
+    "mean": 0.6091,
+    "sd": 0.0,
+    "min": 0.6091,
+    "max": 0.6091,
+    "n": 1
+   },
+   "test_precision": {
+    "mean": 0.8333,
+    "sd": 0.0,
+    "min": 0.8333,
+    "max": 0.8333,
+    "n": 1
+   },
+   "test_recall": {
+    "mean": 0.2727,
+    "sd": 0.0,
+    "min": 0.2727,
+    "max": 0.2727,
+    "n": 1
+   },
+   "test_f1": {
+    "mean": 0.411,
+    "sd": 0.0,
+    "min": 0.411,
+    "max": 0.411,
+    "n": 1
+   },
+   "test_fpr": {
+    "mean": 0.0545,
+    "sd": 0.0,
+    "min": 0.0545,
+    "max": 0.0545,
+    "n": 1
+   },
+   "shuffled_mean": {
+    "mean": 0.5154,
+    "sd": 0.0,
+    "min": 0.5154,
+    "max": 0.5154,
+    "n": 1
+   },
+   "shuffled_max": {
+    "mean": 0.5633,
+    "sd": 0.0,
+    "min": 0.5633,
+    "max": 0.5633,
+    "n": 1
+   },
+   "answer_token_auc": {
+    "mean": 0.5091,
+    "sd": 0.0,
+    "min": 0.5091,
+    "max": 0.5091,
+    "n": 1
+   },
+   "runs": [
+    "deception_probes/qwen2.5-3b_alllayers_s42.json (seed 42)"
+   ]
+  },
+  "Qwen/Qwen2.5-3B-Instruct|none|alllayers|5": {
+   "model": "Qwen/Qwen2.5-3B-Instruct",
+   "quantization": "none",
+   "run_kind": "alllayers",
+   "layer": 5,
+   "test_auc": {
+    "mean": 0.8261,
+    "sd": 0.0,
+    "min": 0.8261,
+    "max": 0.8261,
+    "n": 1
+   },
+   "val_auc": {
+    "mean": 0.7385,
+    "sd": 0.0,
+    "min": 0.7385,
+    "max": 0.7385,
+    "n": 1
+   },
+   "train_auc": {
+    "mean": 0.9291,
+    "sd": 0.0,
+    "min": 0.9291,
+    "max": 0.9291,
+    "n": 1
+   },
+   "test_accuracy": {
+    "mean": 0.6636,
+    "sd": 0.0,
+    "min": 0.6636,
+    "max": 0.6636,
+    "n": 1
+   },
+   "test_precision": {
+    "mean": 0.8462,
+    "sd": 0.0,
+    "min": 0.8462,
+    "max": 0.8462,
+    "n": 1
+   },
+   "test_recall": {
+    "mean": 0.4,
+    "sd": 0.0,
+    "min": 0.4,
+    "max": 0.4,
+    "n": 1
+   },
+   "test_f1": {
+    "mean": 0.5432,
+    "sd": 0.0,
+    "min": 0.5432,
+    "max": 0.5432,
+    "n": 1
+   },
+   "test_fpr": {
+    "mean": 0.0727,
+    "sd": 0.0,
+    "min": 0.0727,
+    "max": 0.0727,
+    "n": 1
+   },
+   "shuffled_mean": {
+    "mean": 0.5143,
+    "sd": 0.0,
+    "min": 0.5143,
+    "max": 0.5143,
+    "n": 1
+   },
+   "shuffled_max": {
+    "mean": 0.5752,
+    "sd": 0.0,
+    "min": 0.5752,
+    "max": 0.5752,
+    "n": 1
+   },
+   "answer_token_auc": {
+    "mean": 0.5091,
+    "sd": 0.0,
+    "min": 0.5091,
+    "max": 0.5091,
+    "n": 1
+   },
+   "runs": [
+    "deception_probes/qwen2.5-3b_alllayers_s42.json (seed 42)"
+   ]
+  },
+  "Qwen/Qwen2.5-3B-Instruct|none|alllayers|6": {
+   "model": "Qwen/Qwen2.5-3B-Instruct",
+   "quantization": "none",
+   "run_kind": "alllayers",
+   "layer": 6,
+   "test_auc": {
+    "mean": 0.8126,
+    "sd": 0.0,
+    "min": 0.8126,
+    "max": 0.8126,
+    "n": 1
+   },
+   "val_auc": {
+    "mean": 0.7339,
+    "sd": 0.0,
+    "min": 0.7339,
+    "max": 0.7339,
+    "n": 1
+   },
+   "train_auc": {
+    "mean": 0.9352,
+    "sd": 0.0,
+    "min": 0.9352,
+    "max": 0.9352,
+    "n": 1
+   },
+   "test_accuracy": {
+    "mean": 0.6545,
+    "sd": 0.0,
+    "min": 0.6545,
+    "max": 0.6545,
+    "n": 1
+   },
+   "test_precision": {
+    "mean": 0.8696,
+    "sd": 0.0,
+    "min": 0.8696,
+    "max": 0.8696,
+    "n": 1
+   },
+   "test_recall": {
+    "mean": 0.3636,
+    "sd": 0.0,
+    "min": 0.3636,
+    "max": 0.3636,
+    "n": 1
+   },
+   "test_f1": {
+    "mean": 0.5128,
+    "sd": 0.0,
+    "min": 0.5128,
+    "max": 0.5128,
+    "n": 1
+   },
+   "test_fpr": {
+    "mean": 0.0545,
+    "sd": 0.0,
+    "min": 0.0545,
+    "max": 0.0545,
+    "n": 1
+   },
+   "shuffled_mean": {
+    "mean": 0.5028,
+    "sd": 0.0,
+    "min": 0.5028,
+    "max": 0.5028,
+    "n": 1
+   },
+   "shuffled_max": {
+    "mean": 0.5574,
+    "sd": 0.0,
+    "min": 0.5574,
+    "max": 0.5574,
+    "n": 1
+   },
+   "answer_token_auc": {
+    "mean": 0.5091,
+    "sd": 0.0,
+    "min": 0.5091,
+    "max": 0.5091,
+    "n": 1
+   },
+   "runs": [
+    "deception_probes/qwen2.5-3b_alllayers_s42.json (seed 42)"
+   ]
+  },
+  "Qwen/Qwen2.5-3B-Instruct|none|alllayers|7": {
+   "model": "Qwen/Qwen2.5-3B-Instruct",
+   "quantization": "none",
+   "run_kind": "alllayers",
+   "layer": 7,
+   "test_auc": {
+    "mean": 0.841,
+    "sd": 0.0,
+    "min": 0.841,
+    "max": 0.841,
+    "n": 1
+   },
+   "val_auc": {
+    "mean": 0.714,
+    "sd": 0.0,
+    "min": 0.714,
+    "max": 0.714,
+    "n": 1
+   },
+   "train_auc": {
+    "mean": 0.9526,
+    "sd": 0.0,
+    "min": 0.9526,
+    "max": 0.9526,
+    "n": 1
+   },
+   "test_accuracy": {
+    "mean": 0.6091,
+    "sd": 0.0,
+    "min": 0.6091,
+    "max": 0.6091,
+    "n": 1
+   },
+   "test_precision": {
+    "mean": 0.9286,
+    "sd": 0.0,
+    "min": 0.9286,
+    "max": 0.9286,
+    "n": 1
+   },
+   "test_recall": {
+    "mean": 0.2364,
+    "sd": 0.0,
+    "min": 0.2364,
+    "max": 0.2364,
+    "n": 1
+   },
+   "test_f1": {
+    "mean": 0.3768,
+    "sd": 0.0,
+    "min": 0.3768,
+    "max": 0.3768,
+    "n": 1
+   },
+   "test_fpr": {
+    "mean": 0.0182,
+    "sd": 0.0,
+    "min": 0.0182,
+    "max": 0.0182,
+    "n": 1
+   },
+   "shuffled_mean": {
+    "mean": 0.4982,
+    "sd": 0.0,
+    "min": 0.4982,
+    "max": 0.4982,
+    "n": 1
+   },
+   "shuffled_max": {
+    "mean": 0.5732,
+    "sd": 0.0,
+    "min": 0.5732,
+    "max": 0.5732,
+    "n": 1
+   },
+   "answer_token_auc": {
+    "mean": 0.5091,
+    "sd": 0.0,
+    "min": 0.5091,
+    "max": 0.5091,
+    "n": 1
+   },
+   "runs": [
+    "deception_probes/qwen2.5-3b_alllayers_s42.json (seed 42)"
+   ]
+  },
+  "Qwen/Qwen2.5-3B-Instruct|none|alllayers|8": {
+   "model": "Qwen/Qwen2.5-3B-Instruct",
+   "quantization": "none",
+   "run_kind": "alllayers",
+   "layer": 8,
+   "test_auc": {
+    "mean": 0.8562,
+    "sd": 0.0,
+    "min": 0.8562,
+    "max": 0.8562,
+    "n": 1
+   },
+   "val_auc": {
+    "mean": 0.7207,
+    "sd": 0.0,
+    "min": 0.7207,
+    "max": 0.7207,
+    "n": 1
+   },
+   "train_auc": {
+    "mean": 0.9746,
+    "sd": 0.0,
+    "min": 0.9746,
+    "max": 0.9746,
+    "n": 1
+   },
+   "test_accuracy": {
+    "mean": 0.6455,
+    "sd": 0.0,
+    "min": 0.6455,
+    "max": 0.6455,
+    "n": 1
+   },
+   "test_precision": {
+    "mean": 0.8636,
+    "sd": 0.0,
+    "min": 0.8636,
+    "max": 0.8636,
+    "n": 1
+   },
+   "test_recall": {
+    "mean": 0.3455,
+    "sd": 0.0,
+    "min": 0.3455,
+    "max": 0.3455,
+    "n": 1
+   },
+   "test_f1": {
+    "mean": 0.4935,
+    "sd": 0.0,
+    "min": 0.4935,
+    "max": 0.4935,
+    "n": 1
+   },
+   "test_fpr": {
+    "mean": 0.0545,
+    "sd": 0.0,
+    "min": 0.0545,
+    "max": 0.0545,
+    "n": 1
+   },
+   "shuffled_mean": {
+    "mean": 0.5158,
+    "sd": 0.0,
+    "min": 0.5158,
+    "max": 0.5158,
+    "n": 1
+   },
+   "shuffled_max": {
+    "mean": 0.5947,
+    "sd": 0.0,
+    "min": 0.5947,
+    "max": 0.5947,
+    "n": 1
+   },
+   "answer_token_auc": {
+    "mean": 0.5091,
+    "sd": 0.0,
+    "min": 0.5091,
+    "max": 0.5091,
+    "n": 1
+   },
+   "runs": [
+    "deception_probes/qwen2.5-3b_alllayers_s42.json (seed 42)"
+   ]
+  },
+  "Qwen/Qwen2.5-3B-Instruct|none|alllayers|9": {
+   "model": "Qwen/Qwen2.5-3B-Instruct",
+   "quantization": "none",
+   "run_kind": "alllayers",
+   "layer": 9,
+   "test_auc": {
+    "mean": 0.8635,
+    "sd": 0.0,
+    "min": 0.8635,
+    "max": 0.8635,
+    "n": 1
+   },
+   "val_auc": {
+    "mean": 0.7375,
+    "sd": 0.0,
+    "min": 0.7375,
+    "max": 0.7375,
+    "n": 1
+   },
+   "train_auc": {
+    "mean": 0.9766,
+    "sd": 0.0,
+    "min": 0.9766,
+    "max": 0.9766,
+    "n": 1
+   },
+   "test_accuracy": {
+    "mean": 0.6091,
+    "sd": 0.0,
+    "min": 0.6091,
+    "max": 0.6091,
+    "n": 1
+   },
+   "test_precision": {
+    "mean": 0.875,
+    "sd": 0.0,
+    "min": 0.875,
+    "max": 0.875,
+    "n": 1
+   },
+   "test_recall": {
+    "mean": 0.2545,
+    "sd": 0.0,
+    "min": 0.2545,
+    "max": 0.2545,
+    "n": 1
+   },
+   "test_f1": {
+    "mean": 0.3944,
+    "sd": 0.0,
+    "min": 0.3944,
+    "max": 0.3944,
+    "n": 1
+   },
+   "test_fpr": {
+    "mean": 0.0364,
+    "sd": 0.0,
+    "min": 0.0364,
+    "max": 0.0364,
+    "n": 1
+   },
+   "shuffled_mean": {
+    "mean": 0.5129,
+    "sd": 0.0,
+    "min": 0.5129,
+    "max": 0.5129,
+    "n": 1
+   },
+   "shuffled_max": {
+    "mean": 0.5874,
+    "sd": 0.0,
+    "min": 0.5874,
+    "max": 0.5874,
+    "n": 1
+   },
+   "answer_token_auc": {
+    "mean": 0.5091,
+    "sd": 0.0,
+    "min": 0.5091,
+    "max": 0.5091,
+    "n": 1
+   },
+   "runs": [
+    "deception_probes/qwen2.5-3b_alllayers_s42.json (seed 42)"
+   ]
+  },
+  "Qwen/Qwen2.5-3B-Instruct|none|alllayers|10": {
+   "model": "Qwen/Qwen2.5-3B-Instruct",
+   "quantization": "none",
+   "run_kind": "alllayers",
+   "layer": 10,
+   "test_auc": {
+    "mean": 0.8469,
+    "sd": 0.0,
+    "min": 0.8469,
+    "max": 0.8469,
+    "n": 1
+   },
+   "val_auc": {
+    "mean": 0.7174,
+    "sd": 0.0,
+    "min": 0.7174,
+    "max": 0.7174,
+    "n": 1
+   },
+   "train_auc": {
+    "mean": 0.9832,
+    "sd": 0.0,
+    "min": 0.9832,
+    "max": 0.9832,
+    "n": 1
+   },
+   "test_accuracy": {
+    "mean": 0.6,
+    "sd": 0.0,
+    "min": 0.6,
+    "max": 0.6,
+    "n": 1
+   },
+   "test_precision": {
+    "mean": 0.8667,
+    "sd": 0.0,
+    "min": 0.8667,
+    "max": 0.8667,
+    "n": 1
+   },
+   "test_recall": {
+    "mean": 0.2364,
+    "sd": 0.0,
+    "min": 0.2364,
+    "max": 0.2364,
+    "n": 1
+   },
+   "test_f1": {
+    "mean": 0.3714,
+    "sd": 0.0,
+    "min": 0.3714,
+    "max": 0.3714,
+    "n": 1
+   },
+   "test_fpr": {
+    "mean": 0.0364,
+    "sd": 0.0,
+    "min": 0.0364,
+    "max": 0.0364,
+    "n": 1
+   },
+   "shuffled_mean": {
+    "mean": 0.5098,
+    "sd": 0.0,
+    "min": 0.5098,
+    "max": 0.5098,
+    "n": 1
+   },
+   "shuffled_max": {
+    "mean": 0.5699,
+    "sd": 0.0,
+    "min": 0.5699,
+    "max": 0.5699,
+    "n": 1
+   },
+   "answer_token_auc": {
+    "mean": 0.5091,
+    "sd": 0.0,
+    "min": 0.5091,
+    "max": 0.5091,
+    "n": 1
+   },
+   "runs": [
+    "deception_probes/qwen2.5-3b_alllayers_s42.json (seed 42)"
+   ]
+  },
+  "Qwen/Qwen2.5-3B-Instruct|none|alllayers|11": {
+   "model": "Qwen/Qwen2.5-3B-Instruct",
+   "quantization": "none",
+   "run_kind": "alllayers",
+   "layer": 11,
+   "test_auc": {
+    "mean": 0.8436,
+    "sd": 0.0,
+    "min": 0.8436,
+    "max": 0.8436,
+    "n": 1
+   },
+   "val_auc": {
+    "mean": 0.7283,
+    "sd": 0.0,
+    "min": 0.7283,
+    "max": 0.7283,
+    "n": 1
+   },
+   "train_auc": {
+    "mean": 0.9927,
+    "sd": 0.0,
+    "min": 0.9927,
+    "max": 0.9927,
+    "n": 1
+   },
+   "test_accuracy": {
+    "mean": 0.7545,
+    "sd": 0.0,
+    "min": 0.7545,
+    "max": 0.7545,
+    "n": 1
+   },
+   "test_precision": {
+    "mean": 0.9118,
+    "sd": 0.0,
+    "min": 0.9118,
+    "max": 0.9118,
+    "n": 1
+   },
+   "test_recall": {
+    "mean": 0.5636,
+    "sd": 0.0,
+    "min": 0.5636,
+    "max": 0.5636,
+    "n": 1
+   },
+   "test_f1": {
+    "mean": 0.6966,
+    "sd": 0.0,
+    "min": 0.6966,
+    "max": 0.6966,
+    "n": 1
+   },
+   "test_fpr": {
+    "mean": 0.0545,
+    "sd": 0.0,
+    "min": 0.0545,
+    "max": 0.0545,
+    "n": 1
+   },
+   "shuffled_mean": {
+    "mean": 0.5224,
+    "sd": 0.0,
+    "min": 0.5224,
+    "max": 0.5224,
+    "n": 1
+   },
+   "shuffled_max": {
+    "mean": 0.5544,
+    "sd": 0.0,
+    "min": 0.5544,
+    "max": 0.5544,
+    "n": 1
+   },
+   "answer_token_auc": {
+    "mean": 0.5091,
+    "sd": 0.0,
+    "min": 0.5091,
+    "max": 0.5091,
+    "n": 1
+   },
+   "runs": [
+    "deception_probes/qwen2.5-3b_alllayers_s42.json (seed 42)"
+   ]
+  },
+  "Qwen/Qwen2.5-3B-Instruct|none|alllayers|12": {
+   "model": "Qwen/Qwen2.5-3B-Instruct",
+   "quantization": "none",
+   "run_kind": "alllayers",
+   "layer": 12,
+   "test_auc": {
+    "mean": 0.8681,
+    "sd": 0.0,
+    "min": 0.8681,
+    "max": 0.8681,
+    "n": 1
+   },
+   "val_auc": {
+    "mean": 0.7455,
+    "sd": 0.0,
+    "min": 0.7455,
+    "max": 0.7455,
+    "n": 1
+   },
+   "train_auc": {
+    "mean": 0.9219,
+    "sd": 0.0,
+    "min": 0.9219,
+    "max": 0.9219,
+    "n": 1
+   },
+   "test_accuracy": {
+    "mean": 0.7,
+    "sd": 0.0,
+    "min": 0.7,
+    "max": 0.7,
+    "n": 1
+   },
+   "test_precision": {
+    "mean": 0.9231,
+    "sd": 0.0,
+    "min": 0.9231,
+    "max": 0.9231,
+    "n": 1
+   },
+   "test_recall": {
+    "mean": 0.4364,
+    "sd": 0.0,
+    "min": 0.4364,
+    "max": 0.4364,
+    "n": 1
+   },
+   "test_f1": {
+    "mean": 0.5926,
+    "sd": 0.0,
+    "min": 0.5926,
+    "max": 0.5926,
+    "n": 1
+   },
+   "test_fpr": {
+    "mean": 0.0364,
+    "sd": 0.0,
+    "min": 0.0364,
+    "max": 0.0364,
+    "n": 1
+   },
+   "shuffled_mean": {
+    "mean": 0.5304,
+    "sd": 0.0,
+    "min": 0.5304,
+    "max": 0.5304,
+    "n": 1
+   },
+   "shuffled_max": {
+    "mean": 0.566,
+    "sd": 0.0,
+    "min": 0.566,
+    "max": 0.566,
+    "n": 1
+   },
+   "answer_token_auc": {
+    "mean": 0.5091,
+    "sd": 0.0,
+    "min": 0.5091,
+    "max": 0.5091,
+    "n": 1
+   },
+   "runs": [
+    "deception_probes/qwen2.5-3b_alllayers_s42.json (seed 42)"
+   ]
+  },
+  "Qwen/Qwen2.5-3B-Instruct|none|alllayers|13": {
+   "model": "Qwen/Qwen2.5-3B-Instruct",
+   "quantization": "none",
+   "run_kind": "alllayers",
+   "layer": 13,
+   "test_auc": {
+    "mean": 0.8843,
+    "sd": 0.0,
+    "min": 0.8843,
+    "max": 0.8843,
+    "n": 1
+   },
+   "val_auc": {
+    "mean": 0.7415,
+    "sd": 0.0,
+    "min": 0.7415,
+    "max": 0.7415,
+    "n": 1
+   },
+   "train_auc": {
+    "mean": 0.9175,
+    "sd": 0.0,
+    "min": 0.9175,
+    "max": 0.9175,
+    "n": 1
+   },
+   "test_accuracy": {
+    "mean": 0.6364,
+    "sd": 0.0,
+    "min": 0.6364,
+    "max": 0.6364,
+    "n": 1
+   },
+   "test_precision": {
+    "mean": 0.8947,
+    "sd": 0.0,
+    "min": 0.8947,
+    "max": 0.8947,
+    "n": 1
+   },
+   "test_recall": {
+    "mean": 0.3091,
+    "sd": 0.0,
+    "min": 0.3091,
+    "max": 0.3091,
+    "n": 1
+   },
+   "test_f1": {
+    "mean": 0.4595,
+    "sd": 0.0,
+    "min": 0.4595,
+    "max": 0.4595,
+    "n": 1
+   },
+   "test_fpr": {
+    "mean": 0.0364,
+    "sd": 0.0,
+    "min": 0.0364,
+    "max": 0.0364,
+    "n": 1
+   },
+   "shuffled_mean": {
+    "mean": 0.5217,
+    "sd": 0.0,
+    "min": 0.5217,
+    "max": 0.5217,
+    "n": 1
+   },
+   "shuffled_max": {
+    "mean": 0.5663,
+    "sd": 0.0,
+    "min": 0.5663,
+    "max": 0.5663,
+    "n": 1
+   },
+   "answer_token_auc": {
+    "mean": 0.5091,
+    "sd": 0.0,
+    "min": 0.5091,
+    "max": 0.5091,
+    "n": 1
+   },
+   "runs": [
+    "deception_probes/qwen2.5-3b_alllayers_s42.json (seed 42)"
+   ]
+  },
+  "Qwen/Qwen2.5-3B-Instruct|none|alllayers|14": {
+   "model": "Qwen/Qwen2.5-3B-Instruct",
+   "quantization": "none",
+   "run_kind": "alllayers",
+   "layer": 14,
+   "test_auc": {
+    "mean": 0.8866,
+    "sd": 0.0,
+    "min": 0.8866,
+    "max": 0.8866,
+    "n": 1
+   },
+   "val_auc": {
+    "mean": 0.7379,
+    "sd": 0.0,
+    "min": 0.7379,
+    "max": 0.7379,
+    "n": 1
+   },
+   "train_auc": {
+    "mean": 0.9148,
+    "sd": 0.0,
+    "min": 0.9148,
+    "max": 0.9148,
+    "n": 1
+   },
+   "test_accuracy": {
+    "mean": 0.6455,
+    "sd": 0.0,
+    "min": 0.6455,
+    "max": 0.6455,
+    "n": 1
+   },
+   "test_precision": {
+    "mean": 0.9,
+    "sd": 0.0,
+    "min": 0.9,
+    "max": 0.9,
+    "n": 1
+   },
+   "test_recall": {
+    "mean": 0.3273,
+    "sd": 0.0,
+    "min": 0.3273,
+    "max": 0.3273,
+    "n": 1
+   },
+   "test_f1": {
+    "mean": 0.48,
+    "sd": 0.0,
+    "min": 0.48,
+    "max": 0.48,
+    "n": 1
+   },
+   "test_fpr": {
+    "mean": 0.0364,
+    "sd": 0.0,
+    "min": 0.0364,
+    "max": 0.0364,
+    "n": 1
+   },
+   "shuffled_mean": {
+    "mean": 0.5318,
+    "sd": 0.0,
+    "min": 0.5318,
+    "max": 0.5318,
+    "n": 1
+   },
+   "shuffled_max": {
+    "mean": 0.5881,
+    "sd": 0.0,
+    "min": 0.5881,
+    "max": 0.5881,
+    "n": 1
+   },
+   "answer_token_auc": {
+    "mean": 0.5091,
+    "sd": 0.0,
+    "min": 0.5091,
+    "max": 0.5091,
+    "n": 1
+   },
+   "runs": [
+    "deception_probes/qwen2.5-3b_alllayers_s42.json (seed 42)"
+   ]
+  },
+  "Qwen/Qwen2.5-3B-Instruct|none|alllayers|15": {
+   "model": "Qwen/Qwen2.5-3B-Instruct",
+   "quantization": "none",
+   "run_kind": "alllayers",
+   "layer": 15,
+   "test_auc": {
+    "mean": 0.8879,
+    "sd": 0.0,
+    "min": 0.8879,
+    "max": 0.8879,
+    "n": 1
+   },
+   "val_auc": {
+    "mean": 0.7273,
+    "sd": 0.0,
+    "min": 0.7273,
+    "max": 0.7273,
+    "n": 1
+   },
+   "train_auc": {
+    "mean": 0.9237,
+    "sd": 0.0,
+    "min": 0.9237,
+    "max": 0.9237,
+    "n": 1
+   },
+   "test_accuracy": {
+    "mean": 0.6636,
+    "sd": 0.0,
+    "min": 0.6636,
+    "max": 0.6636,
+    "n": 1
+   },
+   "test_precision": {
+    "mean": 0.9091,
+    "sd": 0.0,
+    "min": 0.9091,
+    "max": 0.9091,
+    "n": 1
+   },
+   "test_recall": {
+    "mean": 0.3636,
+    "sd": 0.0,
+    "min": 0.3636,
+    "max": 0.3636,
+    "n": 1
+   },
+   "test_f1": {
+    "mean": 0.5195,
+    "sd": 0.0,
+    "min": 0.5195,
+    "max": 0.5195,
+    "n": 1
+   },
+   "test_fpr": {
+    "mean": 0.0364,
+    "sd": 0.0,
+    "min": 0.0364,
+    "max": 0.0364,
+    "n": 1
+   },
+   "shuffled_mean": {
+    "mean": 0.5264,
+    "sd": 0.0,
+    "min": 0.5264,
+    "max": 0.5264,
+    "n": 1
+   },
+   "shuffled_max": {
+    "mean": 0.5845,
+    "sd": 0.0,
+    "min": 0.5845,
+    "max": 0.5845,
+    "n": 1
+   },
+   "answer_token_auc": {
+    "mean": 0.5091,
+    "sd": 0.0,
+    "min": 0.5091,
+    "max": 0.5091,
+    "n": 1
+   },
+   "runs": [
+    "deception_probes/qwen2.5-3b_alllayers_s42.json (seed 42)"
+   ]
+  },
+  "Qwen/Qwen2.5-3B-Instruct|none|alllayers|16": {
+   "model": "Qwen/Qwen2.5-3B-Instruct",
+   "quantization": "none",
+   "run_kind": "alllayers",
+   "layer": 16,
+   "test_auc": {
+    "mean": 0.8621,
+    "sd": 0.0,
+    "min": 0.8621,
+    "max": 0.8621,
+    "n": 1
+   },
+   "val_auc": {
+    "mean": 0.7851,
+    "sd": 0.0,
+    "min": 0.7851,
+    "max": 0.7851,
+    "n": 1
+   },
+   "train_auc": {
+    "mean": 0.9959,
+    "sd": 0.0,
+    "min": 0.9959,
+    "max": 0.9959,
+    "n": 1
+   },
+   "test_accuracy": {
+    "mean": 0.7182,
+    "sd": 0.0,
+    "min": 0.7182,
+    "max": 0.7182,
+    "n": 1
+   },
+   "test_precision": {
+    "mean": 0.9286,
+    "sd": 0.0,
+    "min": 0.9286,
+    "max": 0.9286,
+    "n": 1
+   },
+   "test_recall": {
+    "mean": 0.4727,
+    "sd": 0.0,
+    "min": 0.4727,
+    "max": 0.4727,
+    "n": 1
+   },
+   "test_f1": {
+    "mean": 0.6265,
+    "sd": 0.0,
+    "min": 0.6265,
+    "max": 0.6265,
+    "n": 1
+   },
+   "test_fpr": {
+    "mean": 0.0364,
+    "sd": 0.0,
+    "min": 0.0364,
+    "max": 0.0364,
+    "n": 1
+   },
+   "shuffled_mean": {
+    "mean": 0.5213,
+    "sd": 0.0,
+    "min": 0.5213,
+    "max": 0.5213,
+    "n": 1
+   },
+   "shuffled_max": {
+    "mean": 0.5745,
+    "sd": 0.0,
+    "min": 0.5745,
+    "max": 0.5745,
+    "n": 1
+   },
+   "answer_token_auc": {
+    "mean": 0.5091,
+    "sd": 0.0,
+    "min": 0.5091,
+    "max": 0.5091,
+    "n": 1
+   },
+   "runs": [
+    "deception_probes/qwen2.5-3b_alllayers_s42.json (seed 42)"
+   ]
+  },
+  "Qwen/Qwen2.5-3B-Instruct|none|alllayers|17": {
+   "model": "Qwen/Qwen2.5-3B-Instruct",
+   "quantization": "none",
+   "run_kind": "alllayers",
+   "layer": 17,
+   "test_auc": {
+    "mean": 0.8817,
+    "sd": 0.0,
+    "min": 0.8817,
+    "max": 0.8817,
+    "n": 1
+   },
+   "val_auc": {
+    "mean": 0.763,
+    "sd": 0.0,
+    "min": 0.763,
+    "max": 0.763,
+    "n": 1
+   },
+   "train_auc": {
+    "mean": 0.9441,
+    "sd": 0.0,
+    "min": 0.9441,
+    "max": 0.9441,
+    "n": 1
+   },
+   "test_accuracy": {
+    "mean": 0.7364,
+    "sd": 0.0,
+    "min": 0.7364,
+    "max": 0.7364,
+    "n": 1
+   },
+   "test_precision": {
+    "mean": 0.9062,
+    "sd": 0.0,
+    "min": 0.9062,
+    "max": 0.9062,
+    "n": 1
+   },
+   "test_recall": {
+    "mean": 0.5273,
+    "sd": 0.0,
+    "min": 0.5273,
+    "max": 0.5273,
+    "n": 1
+   },
+   "test_f1": {
+    "mean": 0.6667,
+    "sd": 0.0,
+    "min": 0.6667,
+    "max": 0.6667,
+    "n": 1
+   },
+   "test_fpr": {
+    "mean": 0.0545,
+    "sd": 0.0,
+    "min": 0.0545,
+    "max": 0.0545,
+    "n": 1
+   },
+   "shuffled_mean": {
+    "mean": 0.524,
+    "sd": 0.0,
+    "min": 0.524,
+    "max": 0.524,
+    "n": 1
+   },
+   "shuffled_max": {
+    "mean": 0.5808,
+    "sd": 0.0,
+    "min": 0.5808,
+    "max": 0.5808,
+    "n": 1
+   },
+   "answer_token_auc": {
+    "mean": 0.5091,
+    "sd": 0.0,
+    "min": 0.5091,
+    "max": 0.5091,
+    "n": 1
+   },
+   "runs": [
+    "deception_probes/qwen2.5-3b_alllayers_s42.json (seed 42)"
+   ]
+  },
+  "Qwen/Qwen2.5-3B-Instruct|none|alllayers|18": {
+   "model": "Qwen/Qwen2.5-3B-Instruct",
+   "quantization": "none",
+   "run_kind": "alllayers",
+   "layer": 18,
+   "test_auc": {
+    "mean": 0.8522,
+    "sd": 0.0,
+    "min": 0.8522,
+    "max": 0.8522,
+    "n": 1
+   },
+   "val_auc": {
+    "mean": 0.7732,
+    "sd": 0.0,
+    "min": 0.7732,
+    "max": 0.7732,
+    "n": 1
+   },
+   "train_auc": {
+    "mean": 0.9994,
+    "sd": 0.0,
+    "min": 0.9994,
+    "max": 0.9994,
+    "n": 1
+   },
+   "test_accuracy": {
+    "mean": 0.7364,
+    "sd": 0.0,
+    "min": 0.7364,
+    "max": 0.7364,
+    "n": 1
+   },
+   "test_precision": {
+    "mean": 0.9333,
+    "sd": 0.0,
+    "min": 0.9333,
+    "max": 0.9333,
+    "n": 1
+   },
+   "test_recall": {
+    "mean": 0.5091,
+    "sd": 0.0,
+    "min": 0.5091,
+    "max": 0.5091,
+    "n": 1
+   },
+   "test_f1": {
+    "mean": 0.6588,
+    "sd": 0.0,
+    "min": 0.6588,
+    "max": 0.6588,
+    "n": 1
+   },
+   "test_fpr": {
+    "mean": 0.0364,
+    "sd": 0.0,
+    "min": 0.0364,
+    "max": 0.0364,
+    "n": 1
+   },
+   "shuffled_mean": {
+    "mean": 0.5228,
+    "sd": 0.0,
+    "min": 0.5228,
+    "max": 0.5228,
+    "n": 1
+   },
+   "shuffled_max": {
+    "mean": 0.5663,
+    "sd": 0.0,
+    "min": 0.5663,
+    "max": 0.5663,
+    "n": 1
+   },
+   "answer_token_auc": {
+    "mean": 0.5091,
+    "sd": 0.0,
+    "min": 0.5091,
+    "max": 0.5091,
+    "n": 1
+   },
+   "runs": [
+    "deception_probes/qwen2.5-3b_alllayers_s42.json (seed 42)"
+   ]
+  },
+  "Qwen/Qwen2.5-3B-Instruct|none|alllayers|19": {
+   "model": "Qwen/Qwen2.5-3B-Instruct",
+   "quantization": "none",
+   "run_kind": "alllayers",
+   "layer": 19,
+   "test_auc": {
+    "mean": 0.8724,
+    "sd": 0.0,
+    "min": 0.8724,
+    "max": 0.8724,
+    "n": 1
+   },
+   "val_auc": {
+    "mean": 0.7871,
+    "sd": 0.0,
+    "min": 0.7871,
+    "max": 0.7871,
+    "n": 1
+   },
+   "train_auc": {
+    "mean": 0.9995,
+    "sd": 0.0,
+    "min": 0.9995,
+    "max": 0.9995,
+    "n": 1
+   },
+   "test_accuracy": {
+    "mean": 0.7273,
+    "sd": 0.0,
+    "min": 0.7273,
+    "max": 0.7273,
+    "n": 1
+   },
+   "test_precision": {
+    "mean": 0.931,
+    "sd": 0.0,
+    "min": 0.931,
+    "max": 0.931,
+    "n": 1
+   },
+   "test_recall": {
+    "mean": 0.4909,
+    "sd": 0.0,
+    "min": 0.4909,
+    "max": 0.4909,
+    "n": 1
+   },
+   "test_f1": {
+    "mean": 0.6429,
+    "sd": 0.0,
+    "min": 0.6429,
+    "max": 0.6429,
+    "n": 1
+   },
+   "test_fpr": {
+    "mean": 0.0364,
+    "sd": 0.0,
+    "min": 0.0364,
+    "max": 0.0364,
+    "n": 1
+   },
+   "shuffled_mean": {
+    "mean": 0.5215,
+    "sd": 0.0,
+    "min": 0.5215,
+    "max": 0.5215,
+    "n": 1
+   },
+   "shuffled_max": {
+    "mean": 0.5782,
+    "sd": 0.0,
+    "min": 0.5782,
+    "max": 0.5782,
+    "n": 1
+   },
+   "answer_token_auc": {
+    "mean": 0.5091,
+    "sd": 0.0,
+    "min": 0.5091,
+    "max": 0.5091,
+    "n": 1
+   },
+   "runs": [
+    "deception_probes/qwen2.5-3b_alllayers_s42.json (seed 42)"
+   ]
+  },
+  "Qwen/Qwen2.5-3B-Instruct|none|alllayers|20": {
+   "model": "Qwen/Qwen2.5-3B-Instruct",
+   "quantization": "none",
+   "run_kind": "alllayers",
+   "layer": 20,
+   "test_auc": {
+    "mean": 0.8876,
+    "sd": 0.0,
+    "min": 0.8876,
+    "max": 0.8876,
+    "n": 1
+   },
+   "val_auc": {
+    "mean": 0.7977,
+    "sd": 0.0,
+    "min": 0.7977,
+    "max": 0.7977,
+    "n": 1
+   },
+   "train_auc": {
+    "mean": 0.9627,
+    "sd": 0.0,
+    "min": 0.9627,
+    "max": 0.9627,
+    "n": 1
+   },
+   "test_accuracy": {
+    "mean": 0.7455,
+    "sd": 0.0,
+    "min": 0.7455,
+    "max": 0.7455,
+    "n": 1
+   },
+   "test_precision": {
+    "mean": 0.8857,
+    "sd": 0.0,
+    "min": 0.8857,
+    "max": 0.8857,
+    "n": 1
+   },
+   "test_recall": {
+    "mean": 0.5636,
+    "sd": 0.0,
+    "min": 0.5636,
+    "max": 0.5636,
+    "n": 1
+   },
+   "test_f1": {
+    "mean": 0.6889,
+    "sd": 0.0,
+    "min": 0.6889,
+    "max": 0.6889,
+    "n": 1
+   },
+   "test_fpr": {
+    "mean": 0.0727,
+    "sd": 0.0,
+    "min": 0.0727,
+    "max": 0.0727,
+    "n": 1
+   },
+   "shuffled_mean": {
+    "mean": 0.5285,
+    "sd": 0.0,
+    "min": 0.5285,
+    "max": 0.5285,
+    "n": 1
+   },
+   "shuffled_max": {
+    "mean": 0.5805,
+    "sd": 0.0,
+    "min": 0.5805,
+    "max": 0.5805,
+    "n": 1
+   },
+   "answer_token_auc": {
+    "mean": 0.5091,
+    "sd": 0.0,
+    "min": 0.5091,
+    "max": 0.5091,
+    "n": 1
+   },
+   "runs": [
+    "deception_probes/qwen2.5-3b_alllayers_s42.json (seed 42)"
+   ]
+  },
+  "Qwen/Qwen2.5-3B-Instruct|none|alllayers|21": {
+   "model": "Qwen/Qwen2.5-3B-Instruct",
+   "quantization": "none",
+   "run_kind": "alllayers",
+   "layer": 21,
+   "test_auc": {
+    "mean": 0.9045,
+    "sd": 0.0,
+    "min": 0.9045,
+    "max": 0.9045,
+    "n": 1
+   },
+   "val_auc": {
+    "mean": 0.8516,
+    "sd": 0.0,
+    "min": 0.8516,
+    "max": 0.8516,
+    "n": 1
+   },
+   "train_auc": {
+    "mean": 0.9999,
+    "sd": 0.0,
+    "min": 0.9999,
+    "max": 0.9999,
+    "n": 1
+   },
+   "test_accuracy": {
+    "mean": 0.8,
+    "sd": 0.0,
+    "min": 0.8,
+    "max": 0.8,
+    "n": 1
+   },
+   "test_precision": {
+    "mean": 0.8667,
+    "sd": 0.0,
+    "min": 0.8667,
+    "max": 0.8667,
+    "n": 1
+   },
+   "test_recall": {
+    "mean": 0.7091,
+    "sd": 0.0,
+    "min": 0.7091,
+    "max": 0.7091,
+    "n": 1
+   },
+   "test_f1": {
+    "mean": 0.78,
+    "sd": 0.0,
+    "min": 0.78,
+    "max": 0.78,
+    "n": 1
+   },
+   "test_fpr": {
+    "mean": 0.1091,
+    "sd": 0.0,
+    "min": 0.1091,
+    "max": 0.1091,
+    "n": 1
+   },
+   "shuffled_mean": {
+    "mean": 0.5103,
+    "sd": 0.0,
+    "min": 0.5103,
+    "max": 0.5103,
+    "n": 1
+   },
+   "shuffled_max": {
+    "mean": 0.5617,
+    "sd": 0.0,
+    "min": 0.5617,
+    "max": 0.5617,
+    "n": 1
+   },
+   "answer_token_auc": {
+    "mean": 0.5091,
+    "sd": 0.0,
+    "min": 0.5091,
+    "max": 0.5091,
+    "n": 1
+   },
+   "runs": [
+    "deception_probes/qwen2.5-3b_alllayers_s42.json (seed 42)"
+   ]
+  },
+  "Qwen/Qwen2.5-3B-Instruct|none|alllayers|22": {
+   "model": "Qwen/Qwen2.5-3B-Instruct",
+   "quantization": "none",
+   "run_kind": "alllayers",
+   "layer": 22,
+   "test_auc": {
+    "mean": 0.9058,
+    "sd": 0.0,
+    "min": 0.9058,
+    "max": 0.9058,
+    "n": 1
+   },
+   "val_auc": {
+    "mean": 0.8499,
+    "sd": 0.0,
+    "min": 0.8499,
+    "max": 0.8499,
+    "n": 1
+   },
+   "train_auc": {
+    "mean": 0.9999,
+    "sd": 0.0,
+    "min": 0.9999,
+    "max": 0.9999,
+    "n": 1
+   },
+   "test_accuracy": {
+    "mean": 0.7636,
+    "sd": 0.0,
+    "min": 0.7636,
+    "max": 0.7636,
+    "n": 1
+   },
+   "test_precision": {
+    "mean": 0.9394,
+    "sd": 0.0,
+    "min": 0.9394,
+    "max": 0.9394,
+    "n": 1
+   },
+   "test_recall": {
+    "mean": 0.5636,
+    "sd": 0.0,
+    "min": 0.5636,
+    "max": 0.5636,
+    "n": 1
+   },
+   "test_f1": {
+    "mean": 0.7045,
+    "sd": 0.0,
+    "min": 0.7045,
+    "max": 0.7045,
+    "n": 1
+   },
+   "test_fpr": {
+    "mean": 0.0364,
+    "sd": 0.0,
+    "min": 0.0364,
+    "max": 0.0364,
+    "n": 1
+   },
+   "shuffled_mean": {
+    "mean": 0.5255,
+    "sd": 0.0,
+    "min": 0.5255,
+    "max": 0.5255,
+    "n": 1
+   },
+   "shuffled_max": {
+    "mean": 0.5663,
+    "sd": 0.0,
+    "min": 0.5663,
+    "max": 0.5663,
+    "n": 1
+   },
+   "answer_token_auc": {
+    "mean": 0.5091,
+    "sd": 0.0,
+    "min": 0.5091,
+    "max": 0.5091,
+    "n": 1
+   },
+   "runs": [
+    "deception_probes/qwen2.5-3b_alllayers_s42.json (seed 42)"
+   ]
+  },
+  "Qwen/Qwen2.5-3B-Instruct|none|alllayers|23": {
+   "model": "Qwen/Qwen2.5-3B-Instruct",
+   "quantization": "none",
+   "run_kind": "alllayers",
+   "layer": 23,
+   "test_auc": {
+    "mean": 0.9114,
+    "sd": 0.0,
+    "min": 0.9114,
+    "max": 0.9114,
+    "n": 1
+   },
+   "val_auc": {
+    "mean": 0.8638,
+    "sd": 0.0,
+    "min": 0.8638,
+    "max": 0.8638,
+    "n": 1
+   },
+   "train_auc": {
+    "mean": 1.0,
+    "sd": 0.0,
+    "min": 1.0,
+    "max": 1.0,
+    "n": 1
+   },
+   "test_accuracy": {
+    "mean": 0.8182,
+    "sd": 0.0,
+    "min": 0.8182,
+    "max": 0.8182,
+    "n": 1
+   },
+   "test_precision": {
+    "mean": 0.973,
+    "sd": 0.0,
+    "min": 0.973,
+    "max": 0.973,
+    "n": 1
+   },
+   "test_recall": {
+    "mean": 0.6545,
+    "sd": 0.0,
+    "min": 0.6545,
+    "max": 0.6545,
+    "n": 1
+   },
+   "test_f1": {
+    "mean": 0.7826,
+    "sd": 0.0,
+    "min": 0.7826,
+    "max": 0.7826,
+    "n": 1
+   },
+   "test_fpr": {
+    "mean": 0.0182,
+    "sd": 0.0,
+    "min": 0.0182,
+    "max": 0.0182,
+    "n": 1
+   },
+   "shuffled_mean": {
+    "mean": 0.5224,
+    "sd": 0.0,
+    "min": 0.5224,
+    "max": 0.5224,
+    "n": 1
+   },
+   "shuffled_max": {
+    "mean": 0.5977,
+    "sd": 0.0,
+    "min": 0.5977,
+    "max": 0.5977,
+    "n": 1
+   },
+   "answer_token_auc": {
+    "mean": 0.5091,
+    "sd": 0.0,
+    "min": 0.5091,
+    "max": 0.5091,
+    "n": 1
+   },
+   "runs": [
+    "deception_probes/qwen2.5-3b_alllayers_s42.json (seed 42)"
+   ]
+  },
+  "Qwen/Qwen2.5-3B-Instruct|none|alllayers|24": {
+   "model": "Qwen/Qwen2.5-3B-Instruct",
+   "quantization": "none",
+   "run_kind": "alllayers",
+   "layer": 24,
+   "test_auc": {
+    "mean": 0.9094,
+    "sd": 0.0,
+    "min": 0.9094,
+    "max": 0.9094,
+    "n": 1
+   },
+   "val_auc": {
+    "mean": 0.8714,
+    "sd": 0.0,
+    "min": 0.8714,
+    "max": 0.8714,
+    "n": 1
+   },
+   "train_auc": {
+    "mean": 1.0,
+    "sd": 0.0,
+    "min": 1.0,
+    "max": 1.0,
+    "n": 1
+   },
+   "test_accuracy": {
+    "mean": 0.8273,
+    "sd": 0.0,
+    "min": 0.8273,
+    "max": 0.8273,
+    "n": 1
+   },
+   "test_precision": {
+    "mean": 0.9286,
+    "sd": 0.0,
+    "min": 0.9286,
+    "max": 0.9286,
+    "n": 1
+   },
+   "test_recall": {
+    "mean": 0.7091,
+    "sd": 0.0,
+    "min": 0.7091,
+    "max": 0.7091,
+    "n": 1
+   },
+   "test_f1": {
+    "mean": 0.8041,
+    "sd": 0.0,
+    "min": 0.8041,
+    "max": 0.8041,
+    "n": 1
+   },
+   "test_fpr": {
+    "mean": 0.0545,
+    "sd": 0.0,
+    "min": 0.0545,
+    "max": 0.0545,
+    "n": 1
+   },
+   "shuffled_mean": {
+    "mean": 0.5227,
+    "sd": 0.0,
+    "min": 0.5227,
+    "max": 0.5227,
+    "n": 1
+   },
+   "shuffled_max": {
+    "mean": 0.5937,
+    "sd": 0.0,
+    "min": 0.5937,
+    "max": 0.5937,
+    "n": 1
+   },
+   "answer_token_auc": {
+    "mean": 0.5091,
+    "sd": 0.0,
+    "min": 0.5091,
+    "max": 0.5091,
+    "n": 1
+   },
+   "runs": [
+    "deception_probes/qwen2.5-3b_alllayers_s42.json (seed 42)"
+   ]
+  },
+  "Qwen/Qwen2.5-3B-Instruct|none|alllayers|25": {
+   "model": "Qwen/Qwen2.5-3B-Instruct",
+   "quantization": "none",
+   "run_kind": "alllayers",
+   "layer": 25,
+   "test_auc": {
+    "mean": 0.9081,
+    "sd": 0.0,
+    "min": 0.9081,
+    "max": 0.9081,
+    "n": 1
+   },
+   "val_auc": {
+    "mean": 0.8998,
+    "sd": 0.0,
+    "min": 0.8998,
+    "max": 0.8998,
+    "n": 1
+   },
+   "train_auc": {
+    "mean": 0.9881,
+    "sd": 0.0,
+    "min": 0.9881,
+    "max": 0.9881,
+    "n": 1
+   },
+   "test_accuracy": {
+    "mean": 0.8364,
+    "sd": 0.0,
+    "min": 0.8364,
+    "max": 0.8364,
+    "n": 1
+   },
+   "test_precision": {
+    "mean": 0.8936,
+    "sd": 0.0,
+    "min": 0.8936,
+    "max": 0.8936,
+    "n": 1
+   },
+   "test_recall": {
+    "mean": 0.7636,
+    "sd": 0.0,
+    "min": 0.7636,
+    "max": 0.7636,
+    "n": 1
+   },
+   "test_f1": {
+    "mean": 0.8235,
+    "sd": 0.0,
+    "min": 0.8235,
+    "max": 0.8235,
+    "n": 1
+   },
+   "test_fpr": {
+    "mean": 0.0909,
+    "sd": 0.0,
+    "min": 0.0909,
+    "max": 0.0909,
+    "n": 1
+   },
+   "shuffled_mean": {
+    "mean": 0.5141,
+    "sd": 0.0,
+    "min": 0.5141,
+    "max": 0.5141,
+    "n": 1
+   },
+   "shuffled_max": {
+    "mean": 0.5689,
+    "sd": 0.0,
+    "min": 0.5689,
+    "max": 0.5689,
+    "n": 1
+   },
+   "answer_token_auc": {
+    "mean": 0.5091,
+    "sd": 0.0,
+    "min": 0.5091,
+    "max": 0.5091,
+    "n": 1
+   },
+   "runs": [
+    "deception_probes/qwen2.5-3b_alllayers_s42.json (seed 42)"
+   ]
+  },
+  "Qwen/Qwen2.5-3B-Instruct|none|alllayers|26": {
+   "model": "Qwen/Qwen2.5-3B-Instruct",
+   "quantization": "none",
+   "run_kind": "alllayers",
+   "layer": 26,
+   "test_auc": {
+    "mean": 0.9028,
+    "sd": 0.0,
+    "min": 0.9028,
+    "max": 0.9028,
+    "n": 1
+   },
+   "val_auc": {
+    "mean": 0.9002,
+    "sd": 0.0,
+    "min": 0.9002,
+    "max": 0.9002,
+    "n": 1
+   },
+   "train_auc": {
+    "mean": 0.9898,
+    "sd": 0.0,
+    "min": 0.9898,
+    "max": 0.9898,
+    "n": 1
+   },
+   "test_accuracy": {
+    "mean": 0.8091,
+    "sd": 0.0,
+    "min": 0.8091,
+    "max": 0.8091,
+    "n": 1
+   },
+   "test_precision": {
+    "mean": 0.9048,
+    "sd": 0.0,
+    "min": 0.9048,
+    "max": 0.9048,
+    "n": 1
+   },
+   "test_recall": {
+    "mean": 0.6909,
+    "sd": 0.0,
+    "min": 0.6909,
+    "max": 0.6909,
+    "n": 1
+   },
+   "test_f1": {
+    "mean": 0.7835,
+    "sd": 0.0,
+    "min": 0.7835,
+    "max": 0.7835,
+    "n": 1
+   },
+   "test_fpr": {
+    "mean": 0.0727,
+    "sd": 0.0,
+    "min": 0.0727,
+    "max": 0.0727,
+    "n": 1
+   },
+   "shuffled_mean": {
+    "mean": 0.5335,
+    "sd": 0.0,
+    "min": 0.5335,
+    "max": 0.5335,
+    "n": 1
+   },
+   "shuffled_max": {
+    "mean": 0.5884,
+    "sd": 0.0,
+    "min": 0.5884,
+    "max": 0.5884,
+    "n": 1
+   },
+   "answer_token_auc": {
+    "mean": 0.5091,
+    "sd": 0.0,
+    "min": 0.5091,
+    "max": 0.5091,
+    "n": 1
+   },
+   "runs": [
+    "deception_probes/qwen2.5-3b_alllayers_s42.json (seed 42)"
+   ]
+  },
+  "Qwen/Qwen2.5-3B-Instruct|none|alllayers|27": {
+   "model": "Qwen/Qwen2.5-3B-Instruct",
+   "quantization": "none",
+   "run_kind": "alllayers",
+   "layer": 27,
+   "test_auc": {
+    "mean": 0.9025,
+    "sd": 0.0,
+    "min": 0.9025,
+    "max": 0.9025,
+    "n": 1
+   },
+   "val_auc": {
+    "mean": 0.9038,
+    "sd": 0.0,
+    "min": 0.9038,
+    "max": 0.9038,
+    "n": 1
+   },
+   "train_auc": {
+    "mean": 0.9928,
+    "sd": 0.0,
+    "min": 0.9928,
+    "max": 0.9928,
+    "n": 1
+   },
+   "test_accuracy": {
+    "mean": 0.8,
+    "sd": 0.0,
+    "min": 0.8,
+    "max": 0.8,
+    "n": 1
+   },
+   "test_precision": {
+    "mean": 0.8837,
+    "sd": 0.0,
+    "min": 0.8837,
+    "max": 0.8837,
+    "n": 1
+   },
+   "test_recall": {
+    "mean": 0.6909,
+    "sd": 0.0,
+    "min": 0.6909,
+    "max": 0.6909,
+    "n": 1
+   },
+   "test_f1": {
+    "mean": 0.7755,
+    "sd": 0.0,
+    "min": 0.7755,
+    "max": 0.7755,
+    "n": 1
+   },
+   "test_fpr": {
+    "mean": 0.0909,
+    "sd": 0.0,
+    "min": 0.0909,
+    "max": 0.0909,
+    "n": 1
+   },
+   "shuffled_mean": {
+    "mean": 0.5286,
+    "sd": 0.0,
+    "min": 0.5286,
+    "max": 0.5286,
+    "n": 1
+   },
+   "shuffled_max": {
+    "mean": 0.5729,
+    "sd": 0.0,
+    "min": 0.5729,
+    "max": 0.5729,
+    "n": 1
+   },
+   "answer_token_auc": {
+    "mean": 0.5091,
+    "sd": 0.0,
+    "min": 0.5091,
+    "max": 0.5091,
+    "n": 1
+   },
+   "runs": [
+    "deception_probes/qwen2.5-3b_alllayers_s42.json (seed 42)"
+   ]
+  },
+  "Qwen/Qwen2.5-3B-Instruct|none|alllayers|28": {
+   "model": "Qwen/Qwen2.5-3B-Instruct",
+   "quantization": "none",
+   "run_kind": "alllayers",
+   "layer": 28,
+   "test_auc": {
+    "mean": 0.9078,
+    "sd": 0.0,
+    "min": 0.9078,
+    "max": 0.9078,
+    "n": 1
+   },
+   "val_auc": {
+    "mean": 0.9094,
+    "sd": 0.0,
+    "min": 0.9094,
+    "max": 0.9094,
+    "n": 1
+   },
+   "train_auc": {
+    "mean": 0.9963,
+    "sd": 0.0,
+    "min": 0.9963,
+    "max": 0.9963,
+    "n": 1
+   },
+   "test_accuracy": {
+    "mean": 0.8182,
+    "sd": 0.0,
+    "min": 0.8182,
+    "max": 0.8182,
+    "n": 1
+   },
+   "test_precision": {
+    "mean": 0.8571,
+    "sd": 0.0,
+    "min": 0.8571,
+    "max": 0.8571,
+    "n": 1
+   },
+   "test_recall": {
+    "mean": 0.7636,
+    "sd": 0.0,
+    "min": 0.7636,
+    "max": 0.7636,
+    "n": 1
+   },
+   "test_f1": {
+    "mean": 0.8077,
+    "sd": 0.0,
+    "min": 0.8077,
+    "max": 0.8077,
+    "n": 1
+   },
+   "test_fpr": {
+    "mean": 0.1273,
+    "sd": 0.0,
+    "min": 0.1273,
+    "max": 0.1273,
+    "n": 1
+   },
+   "shuffled_mean": {
+    "mean": 0.5258,
+    "sd": 0.0,
+    "min": 0.5258,
+    "max": 0.5258,
+    "n": 1
+   },
+   "shuffled_max": {
+    "mean": 0.602,
+    "sd": 0.0,
+    "min": 0.602,
+    "max": 0.602,
+    "n": 1
+   },
+   "answer_token_auc": {
+    "mean": 0.5091,
+    "sd": 0.0,
+    "min": 0.5091,
+    "max": 0.5091,
+    "n": 1
+   },
+   "runs": [
+    "deception_probes/qwen2.5-3b_alllayers_s42.json (seed 42)"
+   ]
+  },
+  "Qwen/Qwen2.5-3B-Instruct|none|alllayers|29": {
+   "model": "Qwen/Qwen2.5-3B-Instruct",
+   "quantization": "none",
+   "run_kind": "alllayers",
+   "layer": 29,
+   "test_auc": {
+    "mean": 0.9094,
+    "sd": 0.0,
+    "min": 0.9094,
+    "max": 0.9094,
+    "n": 1
+   },
+   "val_auc": {
+    "mean": 0.8949,
+    "sd": 0.0,
+    "min": 0.8949,
+    "max": 0.8949,
+    "n": 1
+   },
+   "train_auc": {
+    "mean": 0.9574,
+    "sd": 0.0,
+    "min": 0.9574,
+    "max": 0.9574,
+    "n": 1
+   },
+   "test_accuracy": {
+    "mean": 0.8182,
+    "sd": 0.0,
+    "min": 0.8182,
+    "max": 0.8182,
+    "n": 1
+   },
+   "test_precision": {
+    "mean": 0.907,
+    "sd": 0.0,
+    "min": 0.907,
+    "max": 0.907,
+    "n": 1
+   },
+   "test_recall": {
+    "mean": 0.7091,
+    "sd": 0.0,
+    "min": 0.7091,
+    "max": 0.7091,
+    "n": 1
+   },
+   "test_f1": {
+    "mean": 0.7959,
+    "sd": 0.0,
+    "min": 0.7959,
+    "max": 0.7959,
+    "n": 1
+   },
+   "test_fpr": {
+    "mean": 0.0727,
+    "sd": 0.0,
+    "min": 0.0727,
+    "max": 0.0727,
+    "n": 1
+   },
+   "shuffled_mean": {
+    "mean": 0.522,
+    "sd": 0.0,
+    "min": 0.522,
+    "max": 0.522,
+    "n": 1
+   },
+   "shuffled_max": {
+    "mean": 0.6278,
+    "sd": 0.0,
+    "min": 0.6278,
+    "max": 0.6278,
+    "n": 1
+   },
+   "answer_token_auc": {
+    "mean": 0.5091,
+    "sd": 0.0,
+    "min": 0.5091,
+    "max": 0.5091,
+    "n": 1
+   },
+   "runs": [
+    "deception_probes/qwen2.5-3b_alllayers_s42.json (seed 42)"
+   ]
+  },
+  "Qwen/Qwen2.5-3B-Instruct|none|alllayers|30": {
+   "model": "Qwen/Qwen2.5-3B-Instruct",
+   "quantization": "none",
+   "run_kind": "alllayers",
+   "layer": 30,
+   "test_auc": {
+    "mean": 0.9283,
+    "sd": 0.0,
+    "min": 0.9283,
+    "max": 0.9283,
+    "n": 1
+   },
+   "val_auc": {
+    "mean": 0.9104,
+    "sd": 0.0,
+    "min": 0.9104,
+    "max": 0.9104,
+    "n": 1
+   },
+   "train_auc": {
+    "mean": 0.9995,
+    "sd": 0.0,
+    "min": 0.9995,
+    "max": 0.9995,
+    "n": 1
+   },
+   "test_accuracy": {
+    "mean": 0.8364,
+    "sd": 0.0,
+    "min": 0.8364,
+    "max": 0.8364,
+    "n": 1
+   },
+   "test_precision": {
+    "mean": 0.8776,
+    "sd": 0.0,
+    "min": 0.8776,
+    "max": 0.8776,
+    "n": 1
+   },
+   "test_recall": {
+    "mean": 0.7818,
+    "sd": 0.0,
+    "min": 0.7818,
+    "max": 0.7818,
+    "n": 1
+   },
+   "test_f1": {
+    "mean": 0.8269,
+    "sd": 0.0,
+    "min": 0.8269,
+    "max": 0.8269,
+    "n": 1
+   },
+   "test_fpr": {
+    "mean": 0.1091,
+    "sd": 0.0,
+    "min": 0.1091,
+    "max": 0.1091,
+    "n": 1
+   },
+   "shuffled_mean": {
+    "mean": 0.509,
+    "sd": 0.0,
+    "min": 0.509,
+    "max": 0.509,
+    "n": 1
+   },
+   "shuffled_max": {
+    "mean": 0.6053,
+    "sd": 0.0,
+    "min": 0.6053,
+    "max": 0.6053,
+    "n": 1
+   },
+   "answer_token_auc": {
+    "mean": 0.5091,
+    "sd": 0.0,
+    "min": 0.5091,
+    "max": 0.5091,
+    "n": 1
+   },
+   "runs": [
+    "deception_probes/qwen2.5-3b_alllayers_s42.json (seed 42)"
+   ]
+  },
+  "Qwen/Qwen2.5-3B-Instruct|none|alllayers|31": {
+   "model": "Qwen/Qwen2.5-3B-Instruct",
+   "quantization": "none",
+   "run_kind": "alllayers",
+   "layer": 31,
+   "test_auc": {
+    "mean": 0.9296,
+    "sd": 0.0,
+    "min": 0.9296,
+    "max": 0.9296,
+    "n": 1
+   },
+   "val_auc": {
+    "mean": 0.9071,
+    "sd": 0.0,
+    "min": 0.9071,
+    "max": 0.9071,
+    "n": 1
+   },
+   "train_auc": {
+    "mean": 0.9999,
+    "sd": 0.0,
+    "min": 0.9999,
+    "max": 0.9999,
+    "n": 1
+   },
+   "test_accuracy": {
+    "mean": 0.8455,
+    "sd": 0.0,
+    "min": 0.8455,
+    "max": 0.8455,
+    "n": 1
+   },
+   "test_precision": {
+    "mean": 0.8958,
+    "sd": 0.0,
+    "min": 0.8958,
+    "max": 0.8958,
+    "n": 1
+   },
+   "test_recall": {
+    "mean": 0.7818,
+    "sd": 0.0,
+    "min": 0.7818,
+    "max": 0.7818,
+    "n": 1
+   },
+   "test_f1": {
+    "mean": 0.835,
+    "sd": 0.0,
+    "min": 0.835,
+    "max": 0.835,
+    "n": 1
+   },
+   "test_fpr": {
+    "mean": 0.0909,
+    "sd": 0.0,
+    "min": 0.0909,
+    "max": 0.0909,
+    "n": 1
+   },
+   "shuffled_mean": {
+    "mean": 0.4984,
+    "sd": 0.0,
+    "min": 0.4984,
+    "max": 0.4984,
+    "n": 1
+   },
+   "shuffled_max": {
+    "mean": 0.5934,
+    "sd": 0.0,
+    "min": 0.5934,
+    "max": 0.5934,
+    "n": 1
+   },
+   "answer_token_auc": {
+    "mean": 0.5091,
+    "sd": 0.0,
+    "min": 0.5091,
+    "max": 0.5091,
+    "n": 1
+   },
+   "runs": [
+    "deception_probes/qwen2.5-3b_alllayers_s42.json (seed 42)"
+   ]
+  },
+  "Qwen/Qwen2.5-3B-Instruct|none|alllayers|32": {
+   "model": "Qwen/Qwen2.5-3B-Instruct",
+   "quantization": "none",
+   "run_kind": "alllayers",
+   "layer": 32,
+   "test_auc": {
+    "mean": 0.9236,
+    "sd": 0.0,
+    "min": 0.9236,
+    "max": 0.9236,
+    "n": 1
+   },
+   "val_auc": {
+    "mean": 0.8982,
+    "sd": 0.0,
+    "min": 0.8982,
+    "max": 0.8982,
+    "n": 1
+   },
+   "train_auc": {
+    "mean": 0.9849,
+    "sd": 0.0,
+    "min": 0.9849,
+    "max": 0.9849,
+    "n": 1
+   },
+   "test_accuracy": {
+    "mean": 0.8455,
+    "sd": 0.0,
+    "min": 0.8455,
+    "max": 0.8455,
+    "n": 1
+   },
+   "test_precision": {
+    "mean": 0.8958,
+    "sd": 0.0,
+    "min": 0.8958,
+    "max": 0.8958,
+    "n": 1
+   },
+   "test_recall": {
+    "mean": 0.7818,
+    "sd": 0.0,
+    "min": 0.7818,
+    "max": 0.7818,
+    "n": 1
+   },
+   "test_f1": {
+    "mean": 0.835,
+    "sd": 0.0,
+    "min": 0.835,
+    "max": 0.835,
+    "n": 1
+   },
+   "test_fpr": {
+    "mean": 0.0909,
+    "sd": 0.0,
+    "min": 0.0909,
+    "max": 0.0909,
+    "n": 1
+   },
+   "shuffled_mean": {
+    "mean": 0.5121,
+    "sd": 0.0,
+    "min": 0.5121,
+    "max": 0.5121,
+    "n": 1
+   },
+   "shuffled_max": {
+    "mean": 0.6026,
+    "sd": 0.0,
+    "min": 0.6026,
+    "max": 0.6026,
+    "n": 1
+   },
+   "answer_token_auc": {
+    "mean": 0.5091,
+    "sd": 0.0,
+    "min": 0.5091,
+    "max": 0.5091,
+    "n": 1
+   },
+   "runs": [
+    "deception_probes/qwen2.5-3b_alllayers_s42.json (seed 42)"
+   ]
+  },
+  "Qwen/Qwen2.5-3B-Instruct|none|alllayers|33": {
+   "model": "Qwen/Qwen2.5-3B-Instruct",
+   "quantization": "none",
+   "run_kind": "alllayers",
+   "layer": 33,
+   "test_auc": {
+    "mean": 0.9226,
+    "sd": 0.0,
+    "min": 0.9226,
+    "max": 0.9226,
+    "n": 1
+   },
+   "val_auc": {
+    "mean": 0.8982,
+    "sd": 0.0,
+    "min": 0.8982,
+    "max": 0.8982,
+    "n": 1
+   },
+   "train_auc": {
+    "mean": 0.9877,
+    "sd": 0.0,
+    "min": 0.9877,
+    "max": 0.9877,
+    "n": 1
+   },
+   "test_accuracy": {
+    "mean": 0.8364,
+    "sd": 0.0,
+    "min": 0.8364,
+    "max": 0.8364,
+    "n": 1
+   },
+   "test_precision": {
+    "mean": 0.8776,
+    "sd": 0.0,
+    "min": 0.8776,
+    "max": 0.8776,
+    "n": 1
+   },
+   "test_recall": {
+    "mean": 0.7818,
+    "sd": 0.0,
+    "min": 0.7818,
+    "max": 0.7818,
+    "n": 1
+   },
+   "test_f1": {
+    "mean": 0.8269,
+    "sd": 0.0,
+    "min": 0.8269,
+    "max": 0.8269,
+    "n": 1
+   },
+   "test_fpr": {
+    "mean": 0.1091,
+    "sd": 0.0,
+    "min": 0.1091,
+    "max": 0.1091,
+    "n": 1
+   },
+   "shuffled_mean": {
+    "mean": 0.5105,
+    "sd": 0.0,
+    "min": 0.5105,
+    "max": 0.5105,
+    "n": 1
+   },
+   "shuffled_max": {
+    "mean": 0.5838,
+    "sd": 0.0,
+    "min": 0.5838,
+    "max": 0.5838,
+    "n": 1
+   },
+   "answer_token_auc": {
+    "mean": 0.5091,
+    "sd": 0.0,
+    "min": 0.5091,
+    "max": 0.5091,
+    "n": 1
+   },
+   "runs": [
+    "deception_probes/qwen2.5-3b_alllayers_s42.json (seed 42)"
+   ]
+  },
+  "Qwen/Qwen2.5-3B-Instruct|none|alllayers|34": {
+   "model": "Qwen/Qwen2.5-3B-Instruct",
+   "quantization": "none",
+   "run_kind": "alllayers",
+   "layer": 34,
+   "test_auc": {
+    "mean": 0.921,
+    "sd": 0.0,
+    "min": 0.921,
+    "max": 0.921,
+    "n": 1
+   },
+   "val_auc": {
+    "mean": 0.8992,
+    "sd": 0.0,
+    "min": 0.8992,
+    "max": 0.8992,
+    "n": 1
+   },
+   "train_auc": {
+    "mean": 0.9909,
+    "sd": 0.0,
+    "min": 0.9909,
+    "max": 0.9909,
+    "n": 1
+   },
+   "test_accuracy": {
+    "mean": 0.8273,
+    "sd": 0.0,
+    "min": 0.8273,
+    "max": 0.8273,
+    "n": 1
+   },
+   "test_precision": {
+    "mean": 0.8462,
+    "sd": 0.0,
+    "min": 0.8462,
+    "max": 0.8462,
+    "n": 1
+   },
+   "test_recall": {
+    "mean": 0.8,
+    "sd": 0.0,
+    "min": 0.8,
+    "max": 0.8,
+    "n": 1
+   },
+   "test_f1": {
+    "mean": 0.8224,
+    "sd": 0.0,
+    "min": 0.8224,
+    "max": 0.8224,
+    "n": 1
+   },
+   "test_fpr": {
+    "mean": 0.1455,
+    "sd": 0.0,
+    "min": 0.1455,
+    "max": 0.1455,
+    "n": 1
+   },
+   "shuffled_mean": {
+    "mean": 0.5124,
+    "sd": 0.0,
+    "min": 0.5124,
+    "max": 0.5124,
+    "n": 1
+   },
+   "shuffled_max": {
+    "mean": 0.6152,
+    "sd": 0.0,
+    "min": 0.6152,
+    "max": 0.6152,
+    "n": 1
+   },
+   "answer_token_auc": {
+    "mean": 0.5091,
+    "sd": 0.0,
+    "min": 0.5091,
+    "max": 0.5091,
+    "n": 1
+   },
+   "runs": [
+    "deception_probes/qwen2.5-3b_alllayers_s42.json (seed 42)"
+   ]
+  },
+  "Qwen/Qwen2.5-3B-Instruct|none|alllayers|35": {
+   "model": "Qwen/Qwen2.5-3B-Instruct",
+   "quantization": "none",
+   "run_kind": "alllayers",
+   "layer": 35,
+   "test_auc": {
+    "mean": 0.9286,
+    "sd": 0.0,
+    "min": 0.9286,
+    "max": 0.9286,
+    "n": 1
+   },
+   "val_auc": {
+    "mean": 0.8929,
+    "sd": 0.0,
+    "min": 0.8929,
+    "max": 0.8929,
+    "n": 1
+   },
+   "train_auc": {
+    "mean": 0.9936,
+    "sd": 0.0,
+    "min": 0.9936,
+    "max": 0.9936,
+    "n": 1
+   },
+   "test_accuracy": {
+    "mean": 0.8545,
+    "sd": 0.0,
+    "min": 0.8545,
+    "max": 0.8545,
+    "n": 1
+   },
+   "test_precision": {
+    "mean": 0.8679,
+    "sd": 0.0,
+    "min": 0.8679,
+    "max": 0.8679,
+    "n": 1
+   },
+   "test_recall": {
+    "mean": 0.8364,
+    "sd": 0.0,
+    "min": 0.8364,
+    "max": 0.8364,
+    "n": 1
+   },
+   "test_f1": {
+    "mean": 0.8519,
+    "sd": 0.0,
+    "min": 0.8519,
+    "max": 0.8519,
+    "n": 1
+   },
+   "test_fpr": {
+    "mean": 0.1273,
+    "sd": 0.0,
+    "min": 0.1273,
+    "max": 0.1273,
+    "n": 1
+   },
+   "shuffled_mean": {
+    "mean": 0.5082,
+    "sd": 0.0,
+    "min": 0.5082,
+    "max": 0.5082,
+    "n": 1
+   },
+   "shuffled_max": {
+    "mean": 0.6132,
+    "sd": 0.0,
+    "min": 0.6132,
+    "max": 0.6132,
+    "n": 1
+   },
+   "answer_token_auc": {
+    "mean": 0.5091,
+    "sd": 0.0,
+    "min": 0.5091,
+    "max": 0.5091,
+    "n": 1
+   },
+   "runs": [
+    "deception_probes/qwen2.5-3b_alllayers_s42.json (seed 42)"
+   ]
+  },
+  "Qwen/Qwen2.5-3B-Instruct|none|default|9": {
+   "model": "Qwen/Qwen2.5-3B-Instruct",
+   "quantization": "none",
+   "run_kind": "default",
+   "layer": 9,
+   "test_auc": {
+    "mean": 0.7901,
+    "sd": 0.0561,
+    "min": 0.7332,
+    "max": 0.8635,
+    "n": 5
+   },
+   "val_auc": {
+    "mean": 0.7521,
+    "sd": 0.017,
+    "min": 0.7322,
+    "max": 0.7737,
+    "n": 5
+   },
+   "train_auc": {
+    "mean": 0.9734,
+    "sd": 0.0073,
+    "min": 0.9655,
+    "max": 0.9796,
+    "n": 5
+   },
+   "test_accuracy": {
+    "mean": 0.6662,
+    "sd": 0.0564,
+    "min": 0.6091,
+    "max": 0.7455,
+    "n": 5
+   },
+   "test_precision": {
+    "mean": 0.8205,
+    "sd": 0.0572,
+    "min": 0.7586,
+    "max": 0.8857,
+    "n": 5
+   },
+   "test_recall": {
+    "mean": 0.4274,
+    "sd": 0.1258,
+    "min": 0.2545,
+    "max": 0.5636,
+    "n": 5
+   },
+   "test_f1": {
+    "mean": 0.5527,
+    "sd": 0.1167,
+    "min": 0.3944,
+    "max": 0.6889,
+    "n": 5
+   },
+   "test_fpr": {
+    "mean": 0.095,
+    "sd": 0.0399,
+    "min": 0.0364,
+    "max": 0.1296,
+    "n": 5
+   },
+   "shuffled_mean": {
+    "mean": 0.501,
+    "sd": 0.0125,
+    "min": 0.487,
+    "max": 0.5139,
+    "n": 5
+   },
+   "shuffled_max": {
+    "mean": 0.543,
+    "sd": 0.0268,
+    "min": 0.5147,
+    "max": 0.5874,
+    "n": 5
+   },
+   "answer_token_auc": {
+    "mean": 0.4745,
+    "sd": 0.026,
+    "min": 0.4364,
+    "max": 0.5091,
+    "n": 5
+   },
+   "runs": [
+    "deception_probes/qwen2.5-3b_default_s1.json (seed 1)",
+    "deception_probes/qwen2.5-3b_default_s2.json (seed 2)",
+    "deception_probes/qwen2.5-3b_default_s3.json (seed 3)",
+    "deception_probes/qwen2.5-3b_default_s4.json (seed 4)",
+    "deception_probes/qwen2.5-3b_default_s42.json (seed 42)"
+   ]
+  },
+  "Qwen/Qwen2.5-3B-Instruct|none|default|18": {
+   "model": "Qwen/Qwen2.5-3B-Instruct",
+   "quantization": "none",
+   "run_kind": "default",
+   "layer": 18,
+   "test_auc": {
+    "mean": 0.8085,
+    "sd": 0.0492,
+    "min": 0.7322,
+    "max": 0.8522,
+    "n": 5
+   },
+   "val_auc": {
+    "mean": 0.7781,
+    "sd": 0.0246,
+    "min": 0.7455,
+    "max": 0.8124,
+    "n": 5
+   },
+   "train_auc": {
+    "mean": 0.9539,
+    "sd": 0.0255,
+    "min": 0.9399,
+    "max": 0.9994,
+    "n": 5
+   },
+   "test_accuracy": {
+    "mean": 0.7008,
+    "sd": 0.0573,
+    "min": 0.6,
+    "max": 0.7364,
+    "n": 5
+   },
+   "test_precision": {
+    "mean": 0.8393,
+    "sd": 0.0689,
+    "min": 0.7391,
+    "max": 0.9333,
+    "n": 5
+   },
+   "test_recall": {
+    "mean": 0.4928,
+    "sd": 0.1065,
+    "min": 0.3091,
+    "max": 0.5818,
+    "n": 5
+   },
+   "test_f1": {
+    "mean": 0.6172,
+    "sd": 0.1026,
+    "min": 0.4359,
+    "max": 0.6882,
+    "n": 5
+   },
+   "test_fpr": {
+    "mean": 0.0912,
+    "sd": 0.0315,
+    "min": 0.0364,
+    "max": 0.1091,
+    "n": 5
+   },
+   "shuffled_mean": {
+    "mean": 0.5024,
+    "sd": 0.0147,
+    "min": 0.4869,
+    "max": 0.5228,
+    "n": 5
+   },
+   "shuffled_max": {
+    "mean": 0.5528,
+    "sd": 0.0184,
+    "min": 0.5207,
+    "max": 0.5663,
+    "n": 5
+   },
+   "answer_token_auc": {
+    "mean": 0.4745,
+    "sd": 0.026,
+    "min": 0.4364,
+    "max": 0.5091,
+    "n": 5
+   },
+   "runs": [
+    "deception_probes/qwen2.5-3b_default_s1.json (seed 1)",
+    "deception_probes/qwen2.5-3b_default_s2.json (seed 2)",
+    "deception_probes/qwen2.5-3b_default_s3.json (seed 3)",
+    "deception_probes/qwen2.5-3b_default_s4.json (seed 4)",
+    "deception_probes/qwen2.5-3b_default_s42.json (seed 42)"
+   ]
+  },
+  "Qwen/Qwen2.5-3B-Instruct|none|default|27": {
+   "model": "Qwen/Qwen2.5-3B-Instruct",
+   "quantization": "none",
+   "run_kind": "default",
+   "layer": 27,
+   "test_auc": {
+    "mean": 0.8869,
+    "sd": 0.0409,
+    "min": 0.8453,
+    "max": 0.9501,
+    "n": 5
+   },
+   "val_auc": {
+    "mean": 0.8794,
+    "sd": 0.0384,
+    "min": 0.8255,
+    "max": 0.9139,
+    "n": 5
+   },
+   "train_auc": {
+    "mean": 0.9938,
+    "sd": 0.0028,
+    "min": 0.9897,
+    "max": 0.9975,
+    "n": 5
+   },
+   "test_accuracy": {
+    "mean": 0.812,
+    "sd": 0.0595,
+    "min": 0.7455,
+    "max": 0.9091,
+    "n": 5
+   },
+   "test_precision": {
+    "mean": 0.8869,
+    "sd": 0.0569,
+    "min": 0.8235,
+    "max": 0.9787,
+    "n": 5
+   },
+   "test_recall": {
+    "mean": 0.7153,
+    "sd": 0.0943,
+    "min": 0.5818,
+    "max": 0.8364,
+    "n": 5
+   },
+   "test_f1": {
+    "mean": 0.7898,
+    "sd": 0.0736,
+    "min": 0.6957,
+    "max": 0.902,
+    "n": 5
+   },
+   "test_fpr": {
+    "mean": 0.0912,
+    "sd": 0.0514,
+    "min": 0.0182,
+    "max": 0.1636,
+    "n": 5
+   },
+   "shuffled_mean": {
+    "mean": 0.5039,
+    "sd": 0.029,
+    "min": 0.4621,
+    "max": 0.5338,
+    "n": 5
+   },
+   "shuffled_max": {
+    "mean": 0.5686,
+    "sd": 0.046,
+    "min": 0.516,
+    "max": 0.6387,
+    "n": 5
+   },
+   "answer_token_auc": {
+    "mean": 0.4745,
+    "sd": 0.026,
+    "min": 0.4364,
+    "max": 0.5091,
+    "n": 5
+   },
+   "runs": [
+    "deception_probes/qwen2.5-3b_default_s1.json (seed 1)",
+    "deception_probes/qwen2.5-3b_default_s2.json (seed 2)",
+    "deception_probes/qwen2.5-3b_default_s3.json (seed 3)",
+    "deception_probes/qwen2.5-3b_default_s4.json (seed 4)",
+    "deception_probes/qwen2.5-3b_default_s42.json (seed 42)"
+   ]
+  },
+  "Qwen/Qwen2.5-3B-Instruct|none|default|35": {
+   "model": "Qwen/Qwen2.5-3B-Instruct",
+   "quantization": "none",
+   "run_kind": "default",
+   "layer": 35,
+   "test_auc": {
+    "mean": 0.9031,
+    "sd": 0.0405,
+    "min": 0.8565,
+    "max": 0.959,
+    "n": 5
+   },
+   "val_auc": {
+    "mean": 0.8676,
+    "sd": 0.03,
+    "min": 0.8228,
+    "max": 0.8929,
+    "n": 5
+   },
+   "train_auc": {
+    "mean": 0.994,
+    "sd": 0.0012,
+    "min": 0.993,
+    "max": 0.9958,
+    "n": 5
+   },
+   "test_accuracy": {
+    "mean": 0.8084,
+    "sd": 0.0468,
+    "min": 0.7364,
+    "max": 0.8545,
+    "n": 5
+   },
+   "test_precision": {
+    "mean": 0.9039,
+    "sd": 0.0556,
+    "min": 0.8667,
+    "max": 1.0,
+    "n": 5
+   },
+   "test_recall": {
+    "mean": 0.6934,
+    "sd": 0.1033,
+    "min": 0.5455,
+    "max": 0.8364,
+    "n": 5
+   },
+   "test_f1": {
+    "mean": 0.7804,
+    "sd": 0.0666,
+    "min": 0.6742,
+    "max": 0.8519,
+    "n": 5
+   },
+   "test_fpr": {
+    "mean": 0.0766,
+    "sd": 0.0488,
+    "min": 0.0,
+    "max": 0.1273,
+    "n": 5
+   },
+   "shuffled_mean": {
+    "mean": 0.5082,
+    "sd": 0.0124,
+    "min": 0.4944,
+    "max": 0.5217,
+    "n": 5
+   },
+   "shuffled_max": {
+    "mean": 0.5831,
+    "sd": 0.0197,
+    "min": 0.5593,
+    "max": 0.6132,
+    "n": 5
+   },
+   "answer_token_auc": {
+    "mean": 0.4745,
+    "sd": 0.026,
+    "min": 0.4364,
+    "max": 0.5091,
+    "n": 5
+   },
+   "runs": [
+    "deception_probes/qwen2.5-3b_default_s1.json (seed 1)",
+    "deception_probes/qwen2.5-3b_default_s2.json (seed 2)",
+    "deception_probes/qwen2.5-3b_default_s3.json (seed 3)",
+    "deception_probes/qwen2.5-3b_default_s4.json (seed 4)",
+    "deception_probes/qwen2.5-3b_default_s42.json (seed 42)"
+   ]
+  },
+  "Qwen/Qwen2.5-3B-Instruct|none|default|ensemble": {
+   "model": "Qwen/Qwen2.5-3B-Instruct",
+   "quantization": "none",
+   "run_kind": "default",
+   "layer": "ensemble",
+   "test_auc": {
+    "mean": 0.9056,
+    "sd": 0.0409,
+    "min": 0.8641,
+    "max": 0.962,
+    "n": 5
+   },
+   "val_auc": {
+    "mean": 0.8734,
+    "sd": 0.0273,
+    "min": 0.8354,
+    "max": 0.8959,
+    "n": 5
+   },
+   "train_auc": {
+    "mean": 0.9969,
+    "sd": 0.002,
+    "min": 0.995,
+    "max": 1.0,
+    "n": 5
+   },
+   "test_accuracy": {
+    "mean": 0.8157,
+    "sd": 0.0415,
+    "min": 0.7727,
+    "max": 0.8636,
+    "n": 5
+   },
+   "test_precision": {
+    "mean": 0.8969,
+    "sd": 0.0711,
+    "min": 0.8,
+    "max": 1.0,
+    "n": 5
+   },
+   "test_recall": {
+    "mean": 0.7189,
+    "sd": 0.074,
+    "min": 0.6364,
+    "max": 0.8364,
+    "n": 5
+   },
+   "test_f1": {
+    "mean": 0.795,
+    "sd": 0.0482,
+    "min": 0.7447,
+    "max": 0.8598,
+    "n": 5
+   },
+   "test_fpr": {
+    "mean": 0.0875,
+    "sd": 0.066,
+    "min": 0.0,
+    "max": 0.1818,
+    "n": 5
+   },
+   "answer_token_auc": {
+    "mean": 0.4745,
+    "sd": 0.026,
+    "min": 0.4364,
+    "max": 0.5091,
+    "n": 5
+   },
+   "runs": [
+    "deception_probes/qwen2.5-3b_default_s1.json (seed 1)",
+    "deception_probes/qwen2.5-3b_default_s2.json (seed 2)",
+    "deception_probes/qwen2.5-3b_default_s3.json (seed 3)",
+    "deception_probes/qwen2.5-3b_default_s4.json (seed 4)",
+    "deception_probes/qwen2.5-3b_default_s42.json (seed 42)"
+   ]
+  },
+  "Qwen/Qwen2.5-3B-Instruct|none|doclayers|17": {
+   "model": "Qwen/Qwen2.5-3B-Instruct",
+   "quantization": "none",
+   "run_kind": "doclayers",
+   "layer": 17,
+   "test_auc": {
+    "mean": 0.805,
+    "sd": 0.0624,
+    "min": 0.72,
+    "max": 0.8817,
+    "n": 5
+   },
+   "val_auc": {
+    "mean": 0.7692,
+    "sd": 0.028,
+    "min": 0.7352,
+    "max": 0.8131,
+    "n": 5
+   },
+   "train_auc": {
+    "mean": 0.939,
+    "sd": 0.0035,
+    "min": 0.9348,
+    "max": 0.9441,
+    "n": 5
+   },
+   "test_accuracy": {
+    "mean": 0.6953,
+    "sd": 0.0504,
+    "min": 0.6091,
+    "max": 0.7364,
+    "n": 5
+   },
+   "test_precision": {
+    "mean": 0.8328,
+    "sd": 0.048,
+    "min": 0.7727,
+    "max": 0.9062,
+    "n": 5
+   },
+   "test_recall": {
+    "mean": 0.4855,
+    "sd": 0.1003,
+    "min": 0.3091,
+    "max": 0.5455,
+    "n": 5
+   },
+   "test_f1": {
+    "mean": 0.6095,
+    "sd": 0.0956,
+    "min": 0.4416,
+    "max": 0.6667,
+    "n": 5
+   },
+   "test_fpr": {
+    "mean": 0.0949,
+    "sd": 0.024,
+    "min": 0.0545,
+    "max": 0.1111,
+    "n": 5
+   },
+   "shuffled_mean": {
+    "mean": 0.505,
+    "sd": 0.0142,
+    "min": 0.4874,
+    "max": 0.524,
+    "n": 5
+   },
+   "shuffled_max": {
+    "mean": 0.563,
+    "sd": 0.0168,
+    "min": 0.5375,
+    "max": 0.5808,
+    "n": 5
+   },
+   "answer_token_auc": {
+    "mean": 0.4745,
+    "sd": 0.026,
+    "min": 0.4364,
+    "max": 0.5091,
+    "n": 5
+   },
+   "runs": [
+    "deception_probes/qwen2.5-3b_doclayers_s1.json (seed 1)",
+    "deception_probes/qwen2.5-3b_doclayers_s2.json (seed 2)",
+    "deception_probes/qwen2.5-3b_doclayers_s3.json (seed 3)",
+    "deception_probes/qwen2.5-3b_doclayers_s4.json (seed 4)",
+    "deception_probes/qwen2.5-3b_doclayers_s42.json (seed 42)"
+   ]
+  },
+  "Qwen/Qwen2.5-3B-Instruct|none|doclayers|18": {
+   "model": "Qwen/Qwen2.5-3B-Instruct",
+   "quantization": "none",
+   "run_kind": "doclayers",
+   "layer": 18,
+   "test_auc": {
+    "mean": 0.8085,
+    "sd": 0.0492,
+    "min": 0.7322,
+    "max": 0.8522,
+    "n": 5
+   },
+   "val_auc": {
+    "mean": 0.7781,
+    "sd": 0.0246,
+    "min": 0.7455,
+    "max": 0.8124,
+    "n": 5
+   },
+   "train_auc": {
+    "mean": 0.9539,
+    "sd": 0.0255,
+    "min": 0.9399,
+    "max": 0.9994,
+    "n": 5
+   },
+   "test_accuracy": {
+    "mean": 0.7008,
+    "sd": 0.0573,
+    "min": 0.6,
+    "max": 0.7364,
+    "n": 5
+   },
+   "test_precision": {
+    "mean": 0.8393,
+    "sd": 0.0689,
+    "min": 0.7391,
+    "max": 0.9333,
+    "n": 5
+   },
+   "test_recall": {
+    "mean": 0.4928,
+    "sd": 0.1065,
+    "min": 0.3091,
+    "max": 0.5818,
+    "n": 5
+   },
+   "test_f1": {
+    "mean": 0.6172,
+    "sd": 0.1026,
+    "min": 0.4359,
+    "max": 0.6882,
+    "n": 5
+   },
+   "test_fpr": {
+    "mean": 0.0912,
+    "sd": 0.0315,
+    "min": 0.0364,
+    "max": 0.1091,
+    "n": 5
+   },
+   "shuffled_mean": {
+    "mean": 0.5024,
+    "sd": 0.0147,
+    "min": 0.4869,
+    "max": 0.5228,
+    "n": 5
+   },
+   "shuffled_max": {
+    "mean": 0.5528,
+    "sd": 0.0184,
+    "min": 0.5207,
+    "max": 0.5663,
+    "n": 5
+   },
+   "answer_token_auc": {
+    "mean": 0.4745,
+    "sd": 0.026,
+    "min": 0.4364,
+    "max": 0.5091,
+    "n": 5
+   },
+   "runs": [
+    "deception_probes/qwen2.5-3b_doclayers_s1.json (seed 1)",
+    "deception_probes/qwen2.5-3b_doclayers_s2.json (seed 2)",
+    "deception_probes/qwen2.5-3b_doclayers_s3.json (seed 3)",
+    "deception_probes/qwen2.5-3b_doclayers_s4.json (seed 4)",
+    "deception_probes/qwen2.5-3b_doclayers_s42.json (seed 42)"
+   ]
+  },
+  "Qwen/Qwen2.5-3B-Instruct|none|doclayers|31": {
+   "model": "Qwen/Qwen2.5-3B-Instruct",
+   "quantization": "none",
+   "run_kind": "doclayers",
+   "layer": 31,
+   "test_auc": {
+    "mean": 0.9011,
+    "sd": 0.042,
+    "min": 0.8664,
+    "max": 0.961,
+    "n": 5
+   },
+   "val_auc": {
+    "mean": 0.8761,
+    "sd": 0.04,
+    "min": 0.8298,
+    "max": 0.9074,
+    "n": 5
+   },
+   "train_auc": {
+    "mean": 0.9905,
+    "sd": 0.0091,
+    "min": 0.9816,
+    "max": 0.9999,
+    "n": 5
+   },
+   "test_accuracy": {
+    "mean": 0.8119,
+    "sd": 0.0482,
+    "min": 0.7545,
+    "max": 0.8727,
+    "n": 5
+   },
+   "test_precision": {
+    "mean": 0.8992,
+    "sd": 0.0593,
+    "min": 0.8542,
+    "max": 1.0,
+    "n": 5
+   },
+   "test_recall": {
+    "mean": 0.7042,
+    "sd": 0.0803,
+    "min": 0.5818,
+    "max": 0.7818,
+    "n": 5
+   },
+   "test_f1": {
+    "mean": 0.7877,
+    "sd": 0.0618,
+    "min": 0.7033,
+    "max": 0.8542,
+    "n": 5
+   },
+   "test_fpr": {
+    "mean": 0.0804,
+    "sd": 0.0494,
+    "min": 0.0,
+    "max": 0.1273,
+    "n": 5
+   },
+   "shuffled_mean": {
+    "mean": 0.5054,
+    "sd": 0.0157,
+    "min": 0.4892,
+    "max": 0.5252,
+    "n": 5
+   },
+   "shuffled_max": {
+    "mean": 0.5849,
+    "sd": 0.0158,
+    "min": 0.564,
+    "max": 0.6043,
+    "n": 5
+   },
+   "answer_token_auc": {
+    "mean": 0.4745,
+    "sd": 0.026,
+    "min": 0.4364,
+    "max": 0.5091,
+    "n": 5
+   },
+   "runs": [
+    "deception_probes/qwen2.5-3b_doclayers_s1.json (seed 1)",
+    "deception_probes/qwen2.5-3b_doclayers_s2.json (seed 2)",
+    "deception_probes/qwen2.5-3b_doclayers_s3.json (seed 3)",
+    "deception_probes/qwen2.5-3b_doclayers_s4.json (seed 4)",
+    "deception_probes/qwen2.5-3b_doclayers_s42.json (seed 42)"
+   ]
+  },
+  "Qwen/Qwen2.5-3B-Instruct|none|doclayers|32": {
+   "model": "Qwen/Qwen2.5-3B-Instruct",
+   "quantization": "none",
+   "run_kind": "doclayers",
+   "layer": 32,
+   "test_auc": {
+    "mean": 0.9002,
+    "sd": 0.0399,
+    "min": 0.8674,
+    "max": 0.9593,
+    "n": 5
+   },
+   "val_auc": {
+    "mean": 0.8729,
+    "sd": 0.0327,
+    "min": 0.8291,
+    "max": 0.8982,
+    "n": 5
+   },
+   "train_auc": {
+    "mean": 0.9877,
+    "sd": 0.0029,
+    "min": 0.9849,
+    "max": 0.9926,
+    "n": 5
+   },
+   "test_accuracy": {
+    "mean": 0.7973,
+    "sd": 0.04,
+    "min": 0.7636,
+    "max": 0.8455,
+    "n": 5
+   },
+   "test_precision": {
+    "mean": 0.8917,
+    "sd": 0.073,
+    "min": 0.7959,
+    "max": 1.0,
+    "n": 5
+   },
+   "test_recall": {
+    "mean": 0.6823,
+    "sd": 0.0663,
+    "min": 0.6182,
+    "max": 0.7818,
+    "n": 5
+   },
+   "test_f1": {
+    "mean": 0.7703,
+    "sd": 0.0469,
+    "min": 0.7312,
+    "max": 0.835,
+    "n": 5
+   },
+   "test_fpr": {
+    "mean": 0.0876,
+    "sd": 0.0648,
+    "min": 0.0,
+    "max": 0.1818,
+    "n": 5
+   },
+   "shuffled_mean": {
+    "mean": 0.5098,
+    "sd": 0.0125,
+    "min": 0.4953,
+    "max": 0.5218,
+    "n": 5
+   },
+   "shuffled_max": {
+    "mean": 0.5854,
+    "sd": 0.0332,
+    "min": 0.5524,
+    "max": 0.6331,
+    "n": 5
+   },
+   "answer_token_auc": {
+    "mean": 0.4745,
+    "sd": 0.026,
+    "min": 0.4364,
+    "max": 0.5091,
+    "n": 5
+   },
+   "runs": [
+    "deception_probes/qwen2.5-3b_doclayers_s1.json (seed 1)",
+    "deception_probes/qwen2.5-3b_doclayers_s2.json (seed 2)",
+    "deception_probes/qwen2.5-3b_doclayers_s3.json (seed 3)",
+    "deception_probes/qwen2.5-3b_doclayers_s4.json (seed 4)",
+    "deception_probes/qwen2.5-3b_doclayers_s42.json (seed 42)"
+   ]
+  },
+  "Qwen/Qwen2.5-3B-Instruct|none|doclayers|ensemble": {
+   "model": "Qwen/Qwen2.5-3B-Instruct",
+   "quantization": "none",
+   "run_kind": "doclayers",
+   "layer": "ensemble",
+   "test_auc": {
+    "mean": 0.9087,
+    "sd": 0.0395,
+    "min": 0.8734,
+    "max": 0.9663,
+    "n": 5
+   },
+   "val_auc": {
+    "mean": 0.8824,
+    "sd": 0.0348,
+    "min": 0.8364,
+    "max": 0.9143,
+    "n": 5
+   },
+   "train_auc": {
+    "mean": 0.9967,
+    "sd": 0.0021,
+    "min": 0.9942,
+    "max": 1.0,
+    "n": 5
+   },
+   "test_accuracy": {
+    "mean": 0.8192,
+    "sd": 0.043,
+    "min": 0.7818,
+    "max": 0.8818,
+    "n": 5
+   },
+   "test_precision": {
+    "mean": 0.9079,
+    "sd": 0.0564,
+    "min": 0.8511,
+    "max": 1.0,
+    "n": 5
+   },
+   "test_recall": {
+    "mean": 0.7115,
+    "sd": 0.0578,
+    "min": 0.6364,
+    "max": 0.7636,
+    "n": 5
+   },
+   "test_f1": {
+    "mean": 0.7969,
+    "sd": 0.051,
+    "min": 0.7447,
+    "max": 0.866,
+    "n": 5
+   },
+   "test_fpr": {
+    "mean": 0.0731,
+    "sd": 0.0465,
+    "min": 0.0,
+    "max": 0.1273,
+    "n": 5
+   },
+   "answer_token_auc": {
+    "mean": 0.4745,
+    "sd": 0.026,
+    "min": 0.4364,
+    "max": 0.5091,
+    "n": 5
+   },
+   "runs": [
+    "deception_probes/qwen2.5-3b_doclayers_s1.json (seed 1)",
+    "deception_probes/qwen2.5-3b_doclayers_s2.json (seed 2)",
+    "deception_probes/qwen2.5-3b_doclayers_s3.json (seed 3)",
+    "deception_probes/qwen2.5-3b_doclayers_s4.json (seed 4)",
+    "deception_probes/qwen2.5-3b_doclayers_s42.json (seed 42)"
+   ]
+  },
+  "Qwen/Qwen2.5-7B-Instruct|none|alllayers|0": {
+   "model": "Qwen/Qwen2.5-7B-Instruct",
+   "quantization": "none",
+   "run_kind": "alllayers",
+   "layer": 0,
+   "test_auc": {
+    "mean": 0.6985,
+    "sd": 0.0,
+    "min": 0.6985,
+    "max": 0.6985,
+    "n": 1
+   },
+   "val_auc": {
+    "mean": 0.6268,
+    "sd": 0.0,
+    "min": 0.6268,
+    "max": 0.6268,
+    "n": 1
+   },
+   "train_auc": {
+    "mean": 0.883,
+    "sd": 0.0,
+    "min": 0.883,
+    "max": 0.883,
+    "n": 1
+   },
+   "test_accuracy": {
+    "mean": 0.5727,
+    "sd": 0.0,
+    "min": 0.5727,
+    "max": 0.5727,
+    "n": 1
+   },
+   "test_precision": {
+    "mean": 0.7222,
+    "sd": 0.0,
+    "min": 0.7222,
+    "max": 0.7222,
+    "n": 1
+   },
+   "test_recall": {
+    "mean": 0.2364,
+    "sd": 0.0,
+    "min": 0.2364,
+    "max": 0.2364,
+    "n": 1
+   },
+   "test_f1": {
+    "mean": 0.3562,
+    "sd": 0.0,
+    "min": 0.3562,
+    "max": 0.3562,
+    "n": 1
+   },
+   "test_fpr": {
+    "mean": 0.0909,
+    "sd": 0.0,
+    "min": 0.0909,
+    "max": 0.0909,
+    "n": 1
+   },
+   "shuffled_mean": {
+    "mean": 0.5147,
+    "sd": 0.0,
+    "min": 0.5147,
+    "max": 0.5147,
+    "n": 1
+   },
+   "shuffled_max": {
+    "mean": 0.5798,
+    "sd": 0.0,
+    "min": 0.5798,
+    "max": 0.5798,
+    "n": 1
+   },
+   "answer_token_auc": {
+    "mean": 0.5091,
+    "sd": 0.0,
+    "min": 0.5091,
+    "max": 0.5091,
+    "n": 1
+   },
+   "runs": [
+    "deception_probes/qwen2.5-7b_alllayers_s42.json (seed 42)"
+   ]
+  },
+  "Qwen/Qwen2.5-7B-Instruct|none|alllayers|1": {
+   "model": "Qwen/Qwen2.5-7B-Instruct",
+   "quantization": "none",
+   "run_kind": "alllayers",
+   "layer": 1,
+   "test_auc": {
+    "mean": 0.5864,
+    "sd": 0.0,
+    "min": 0.5864,
+    "max": 0.5864,
+    "n": 1
+   },
+   "val_auc": {
+    "mean": 0.4998,
+    "sd": 0.0,
+    "min": 0.4998,
+    "max": 0.4998,
+    "n": 1
+   },
+   "train_auc": {
+    "mean": 0.6234,
+    "sd": 0.0,
+    "min": 0.6234,
+    "max": 0.6234,
+    "n": 1
+   },
+   "test_accuracy": {
+    "mean": 0.5455,
+    "sd": 0.0,
+    "min": 0.5455,
+    "max": 0.5455,
+    "n": 1
+   },
+   "test_precision": {
+    "mean": 0.6667,
+    "sd": 0.0,
+    "min": 0.6667,
+    "max": 0.6667,
+    "n": 1
+   },
+   "test_recall": {
+    "mean": 0.1818,
+    "sd": 0.0,
+    "min": 0.1818,
+    "max": 0.1818,
+    "n": 1
+   },
+   "test_f1": {
+    "mean": 0.2857,
+    "sd": 0.0,
+    "min": 0.2857,
+    "max": 0.2857,
+    "n": 1
+   },
+   "test_fpr": {
+    "mean": 0.0909,
+    "sd": 0.0,
+    "min": 0.0909,
+    "max": 0.0909,
+    "n": 1
+   },
+   "shuffled_mean": {
+    "mean": 0.5138,
+    "sd": 0.0,
+    "min": 0.5138,
+    "max": 0.5138,
+    "n": 1
+   },
+   "shuffled_max": {
+    "mean": 0.5689,
+    "sd": 0.0,
+    "min": 0.5689,
+    "max": 0.5689,
+    "n": 1
+   },
+   "answer_token_auc": {
+    "mean": 0.5091,
+    "sd": 0.0,
+    "min": 0.5091,
+    "max": 0.5091,
+    "n": 1
+   },
+   "runs": [
+    "deception_probes/qwen2.5-7b_alllayers_s42.json (seed 42)"
+   ]
+  },
+  "Qwen/Qwen2.5-7B-Instruct|none|alllayers|2": {
+   "model": "Qwen/Qwen2.5-7B-Instruct",
+   "quantization": "none",
+   "run_kind": "alllayers",
+   "layer": 2,
+   "test_auc": {
+    "mean": 0.6939,
+    "sd": 0.0,
+    "min": 0.6939,
+    "max": 0.6939,
+    "n": 1
+   },
+   "val_auc": {
+    "mean": 0.602,
+    "sd": 0.0,
+    "min": 0.602,
+    "max": 0.602,
+    "n": 1
+   },
+   "train_auc": {
+    "mean": 0.7958,
+    "sd": 0.0,
+    "min": 0.7958,
+    "max": 0.7958,
+    "n": 1
+   },
+   "test_accuracy": {
+    "mean": 0.6,
+    "sd": 0.0,
+    "min": 0.6,
+    "max": 0.6,
+    "n": 1
+   },
+   "test_precision": {
+    "mean": 0.7895,
+    "sd": 0.0,
+    "min": 0.7895,
+    "max": 0.7895,
+    "n": 1
+   },
+   "test_recall": {
+    "mean": 0.2727,
+    "sd": 0.0,
+    "min": 0.2727,
+    "max": 0.2727,
+    "n": 1
+   },
+   "test_f1": {
+    "mean": 0.4054,
+    "sd": 0.0,
+    "min": 0.4054,
+    "max": 0.4054,
+    "n": 1
+   },
+   "test_fpr": {
+    "mean": 0.0727,
+    "sd": 0.0,
+    "min": 0.0727,
+    "max": 0.0727,
+    "n": 1
+   },
+   "shuffled_mean": {
+    "mean": 0.5087,
+    "sd": 0.0,
+    "min": 0.5087,
+    "max": 0.5087,
+    "n": 1
+   },
+   "shuffled_max": {
+    "mean": 0.5481,
+    "sd": 0.0,
+    "min": 0.5481,
+    "max": 0.5481,
+    "n": 1
+   },
+   "answer_token_auc": {
+    "mean": 0.5091,
+    "sd": 0.0,
+    "min": 0.5091,
+    "max": 0.5091,
+    "n": 1
+   },
+   "runs": [
+    "deception_probes/qwen2.5-7b_alllayers_s42.json (seed 42)"
+   ]
+  },
+  "Qwen/Qwen2.5-7B-Instruct|none|alllayers|3": {
+   "model": "Qwen/Qwen2.5-7B-Instruct",
+   "quantization": "none",
+   "run_kind": "alllayers",
+   "layer": 3,
+   "test_auc": {
+    "mean": 0.7488,
+    "sd": 0.0,
+    "min": 0.7488,
+    "max": 0.7488,
+    "n": 1
+   },
+   "val_auc": {
+    "mean": 0.6602,
+    "sd": 0.0,
+    "min": 0.6602,
+    "max": 0.6602,
+    "n": 1
+   },
+   "train_auc": {
+    "mean": 0.9988,
+    "sd": 0.0,
+    "min": 0.9988,
+    "max": 0.9988,
+    "n": 1
+   },
+   "test_accuracy": {
+    "mean": 0.6455,
+    "sd": 0.0,
+    "min": 0.6455,
+    "max": 0.6455,
+    "n": 1
+   },
+   "test_precision": {
+    "mean": 0.9,
+    "sd": 0.0,
+    "min": 0.9,
+    "max": 0.9,
+    "n": 1
+   },
+   "test_recall": {
+    "mean": 0.3273,
+    "sd": 0.0,
+    "min": 0.3273,
+    "max": 0.3273,
+    "n": 1
+   },
+   "test_f1": {
+    "mean": 0.48,
+    "sd": 0.0,
+    "min": 0.48,
+    "max": 0.48,
+    "n": 1
+   },
+   "test_fpr": {
+    "mean": 0.0364,
+    "sd": 0.0,
+    "min": 0.0364,
+    "max": 0.0364,
+    "n": 1
+   },
+   "shuffled_mean": {
+    "mean": 0.5117,
+    "sd": 0.0,
+    "min": 0.5117,
+    "max": 0.5117,
+    "n": 1
+   },
+   "shuffled_max": {
+    "mean": 0.5369,
+    "sd": 0.0,
+    "min": 0.5369,
+    "max": 0.5369,
+    "n": 1
+   },
+   "answer_token_auc": {
+    "mean": 0.5091,
+    "sd": 0.0,
+    "min": 0.5091,
+    "max": 0.5091,
+    "n": 1
+   },
+   "runs": [
+    "deception_probes/qwen2.5-7b_alllayers_s42.json (seed 42)"
+   ]
+  },
+  "Qwen/Qwen2.5-7B-Instruct|none|alllayers|4": {
+   "model": "Qwen/Qwen2.5-7B-Instruct",
+   "quantization": "none",
+   "run_kind": "alllayers",
+   "layer": 4,
+   "test_auc": {
+    "mean": 0.7511,
+    "sd": 0.0,
+    "min": 0.7511,
+    "max": 0.7511,
+    "n": 1
+   },
+   "val_auc": {
+    "mean": 0.684,
+    "sd": 0.0,
+    "min": 0.684,
+    "max": 0.684,
+    "n": 1
+   },
+   "train_auc": {
+    "mean": 0.9999,
+    "sd": 0.0,
+    "min": 0.9999,
+    "max": 0.9999,
+    "n": 1
+   },
+   "test_accuracy": {
+    "mean": 0.6273,
+    "sd": 0.0,
+    "min": 0.6273,
+    "max": 0.6273,
+    "n": 1
+   },
+   "test_precision": {
+    "mean": 0.85,
+    "sd": 0.0,
+    "min": 0.85,
+    "max": 0.85,
+    "n": 1
+   },
+   "test_recall": {
+    "mean": 0.3091,
+    "sd": 0.0,
+    "min": 0.3091,
+    "max": 0.3091,
+    "n": 1
+   },
+   "test_f1": {
+    "mean": 0.4533,
+    "sd": 0.0,
+    "min": 0.4533,
+    "max": 0.4533,
+    "n": 1
+   },
+   "test_fpr": {
+    "mean": 0.0545,
+    "sd": 0.0,
+    "min": 0.0545,
+    "max": 0.0545,
+    "n": 1
+   },
+   "shuffled_mean": {
+    "mean": 0.5101,
+    "sd": 0.0,
+    "min": 0.5101,
+    "max": 0.5101,
+    "n": 1
+   },
+   "shuffled_max": {
+    "mean": 0.5286,
+    "sd": 0.0,
+    "min": 0.5286,
+    "max": 0.5286,
+    "n": 1
+   },
+   "answer_token_auc": {
+    "mean": 0.5091,
+    "sd": 0.0,
+    "min": 0.5091,
+    "max": 0.5091,
+    "n": 1
+   },
+   "runs": [
+    "deception_probes/qwen2.5-7b_alllayers_s42.json (seed 42)"
+   ]
+  },
+  "Qwen/Qwen2.5-7B-Instruct|none|alllayers|5": {
+   "model": "Qwen/Qwen2.5-7B-Instruct",
+   "quantization": "none",
+   "run_kind": "alllayers",
+   "layer": 5,
+   "test_auc": {
+    "mean": 0.7739,
+    "sd": 0.0,
+    "min": 0.7739,
+    "max": 0.7739,
+    "n": 1
+   },
+   "val_auc": {
+    "mean": 0.7035,
+    "sd": 0.0,
+    "min": 0.7035,
+    "max": 0.7035,
+    "n": 1
+   },
+   "train_auc": {
+    "mean": 0.9738,
+    "sd": 0.0,
+    "min": 0.9738,
+    "max": 0.9738,
+    "n": 1
+   },
+   "test_accuracy": {
+    "mean": 0.6636,
+    "sd": 0.0,
+    "min": 0.6636,
+    "max": 0.6636,
+    "n": 1
+   },
+   "test_precision": {
+    "mean": 0.8214,
+    "sd": 0.0,
+    "min": 0.8214,
+    "max": 0.8214,
+    "n": 1
+   },
+   "test_recall": {
+    "mean": 0.4182,
+    "sd": 0.0,
+    "min": 0.4182,
+    "max": 0.4182,
+    "n": 1
+   },
+   "test_f1": {
+    "mean": 0.5542,
+    "sd": 0.0,
+    "min": 0.5542,
+    "max": 0.5542,
+    "n": 1
+   },
+   "test_fpr": {
+    "mean": 0.0909,
+    "sd": 0.0,
+    "min": 0.0909,
+    "max": 0.0909,
+    "n": 1
+   },
+   "shuffled_mean": {
+    "mean": 0.502,
+    "sd": 0.0,
+    "min": 0.502,
+    "max": 0.502,
+    "n": 1
+   },
+   "shuffled_max": {
+    "mean": 0.5448,
+    "sd": 0.0,
+    "min": 0.5448,
+    "max": 0.5448,
+    "n": 1
+   },
+   "answer_token_auc": {
+    "mean": 0.5091,
+    "sd": 0.0,
+    "min": 0.5091,
+    "max": 0.5091,
+    "n": 1
+   },
+   "runs": [
+    "deception_probes/qwen2.5-7b_alllayers_s42.json (seed 42)"
+   ]
+  },
+  "Qwen/Qwen2.5-7B-Instruct|none|alllayers|6": {
+   "model": "Qwen/Qwen2.5-7B-Instruct",
+   "quantization": "none",
+   "run_kind": "alllayers",
+   "layer": 6,
+   "test_auc": {
+    "mean": 0.8271,
+    "sd": 0.0,
+    "min": 0.8271,
+    "max": 0.8271,
+    "n": 1
+   },
+   "val_auc": {
+    "mean": 0.7021,
+    "sd": 0.0,
+    "min": 0.7021,
+    "max": 0.7021,
+    "n": 1
+   },
+   "train_auc": {
+    "mean": 0.8878,
+    "sd": 0.0,
+    "min": 0.8878,
+    "max": 0.8878,
+    "n": 1
+   },
+   "test_accuracy": {
+    "mean": 0.6636,
+    "sd": 0.0,
+    "min": 0.6636,
+    "max": 0.6636,
+    "n": 1
+   },
+   "test_precision": {
+    "mean": 0.7812,
+    "sd": 0.0,
+    "min": 0.7812,
+    "max": 0.7812,
+    "n": 1
+   },
+   "test_recall": {
+    "mean": 0.4545,
+    "sd": 0.0,
+    "min": 0.4545,
+    "max": 0.4545,
+    "n": 1
+   },
+   "test_f1": {
+    "mean": 0.5747,
+    "sd": 0.0,
+    "min": 0.5747,
+    "max": 0.5747,
+    "n": 1
+   },
+   "test_fpr": {
+    "mean": 0.1273,
+    "sd": 0.0,
+    "min": 0.1273,
+    "max": 0.1273,
+    "n": 1
+   },
+   "shuffled_mean": {
+    "mean": 0.5098,
+    "sd": 0.0,
+    "min": 0.5098,
+    "max": 0.5098,
+    "n": 1
+   },
+   "shuffled_max": {
+    "mean": 0.5491,
+    "sd": 0.0,
+    "min": 0.5491,
+    "max": 0.5491,
+    "n": 1
+   },
+   "answer_token_auc": {
+    "mean": 0.5091,
+    "sd": 0.0,
+    "min": 0.5091,
+    "max": 0.5091,
+    "n": 1
+   },
+   "runs": [
+    "deception_probes/qwen2.5-7b_alllayers_s42.json (seed 42)"
+   ]
+  },
+  "Qwen/Qwen2.5-7B-Instruct|none|alllayers|7": {
+   "model": "Qwen/Qwen2.5-7B-Instruct",
+   "quantization": "none",
+   "run_kind": "alllayers",
+   "layer": 7,
+   "test_auc": {
+    "mean": 0.8463,
+    "sd": 0.0,
+    "min": 0.8463,
+    "max": 0.8463,
+    "n": 1
+   },
+   "val_auc": {
+    "mean": 0.6985,
+    "sd": 0.0,
+    "min": 0.6985,
+    "max": 0.6985,
+    "n": 1
+   },
+   "train_auc": {
+    "mean": 0.9006,
+    "sd": 0.0,
+    "min": 0.9006,
+    "max": 0.9006,
+    "n": 1
+   },
+   "test_accuracy": {
+    "mean": 0.7091,
+    "sd": 0.0,
+    "min": 0.7091,
+    "max": 0.7091,
+    "n": 1
+   },
+   "test_precision": {
+    "mean": 0.8286,
+    "sd": 0.0,
+    "min": 0.8286,
+    "max": 0.8286,
+    "n": 1
+   },
+   "test_recall": {
+    "mean": 0.5273,
+    "sd": 0.0,
+    "min": 0.5273,
+    "max": 0.5273,
+    "n": 1
+   },
+   "test_f1": {
+    "mean": 0.6444,
+    "sd": 0.0,
+    "min": 0.6444,
+    "max": 0.6444,
+    "n": 1
+   },
+   "test_fpr": {
+    "mean": 0.1091,
+    "sd": 0.0,
+    "min": 0.1091,
+    "max": 0.1091,
+    "n": 1
+   },
+   "shuffled_mean": {
+    "mean": 0.4986,
+    "sd": 0.0,
+    "min": 0.4986,
+    "max": 0.4986,
+    "n": 1
+   },
+   "shuffled_max": {
+    "mean": 0.5352,
+    "sd": 0.0,
+    "min": 0.5352,
+    "max": 0.5352,
+    "n": 1
+   },
+   "answer_token_auc": {
+    "mean": 0.5091,
+    "sd": 0.0,
+    "min": 0.5091,
+    "max": 0.5091,
+    "n": 1
+   },
+   "runs": [
+    "deception_probes/qwen2.5-7b_alllayers_s42.json (seed 42)"
+   ]
+  },
+  "Qwen/Qwen2.5-7B-Instruct|none|alllayers|8": {
+   "model": "Qwen/Qwen2.5-7B-Instruct",
+   "quantization": "none",
+   "run_kind": "alllayers",
+   "layer": 8,
+   "test_auc": {
+    "mean": 0.8777,
+    "sd": 0.0,
+    "min": 0.8777,
+    "max": 0.8777,
+    "n": 1
+   },
+   "val_auc": {
+    "mean": 0.7345,
+    "sd": 0.0,
+    "min": 0.7345,
+    "max": 0.7345,
+    "n": 1
+   },
+   "train_auc": {
+    "mean": 0.9276,
+    "sd": 0.0,
+    "min": 0.9276,
+    "max": 0.9276,
+    "n": 1
+   },
+   "test_accuracy": {
+    "mean": 0.7273,
+    "sd": 0.0,
+    "min": 0.7273,
+    "max": 0.7273,
+    "n": 1
+   },
+   "test_precision": {
+    "mean": 0.8571,
+    "sd": 0.0,
+    "min": 0.8571,
+    "max": 0.8571,
+    "n": 1
+   },
+   "test_recall": {
+    "mean": 0.5455,
+    "sd": 0.0,
+    "min": 0.5455,
+    "max": 0.5455,
+    "n": 1
+   },
+   "test_f1": {
+    "mean": 0.6667,
+    "sd": 0.0,
+    "min": 0.6667,
+    "max": 0.6667,
+    "n": 1
+   },
+   "test_fpr": {
+    "mean": 0.0909,
+    "sd": 0.0,
+    "min": 0.0909,
+    "max": 0.0909,
+    "n": 1
+   },
+   "shuffled_mean": {
+    "mean": 0.4924,
+    "sd": 0.0,
+    "min": 0.4924,
+    "max": 0.4924,
+    "n": 1
+   },
+   "shuffled_max": {
+    "mean": 0.5415,
+    "sd": 0.0,
+    "min": 0.5415,
+    "max": 0.5415,
+    "n": 1
+   },
+   "answer_token_auc": {
+    "mean": 0.5091,
+    "sd": 0.0,
+    "min": 0.5091,
+    "max": 0.5091,
+    "n": 1
+   },
+   "runs": [
+    "deception_probes/qwen2.5-7b_alllayers_s42.json (seed 42)"
+   ]
+  },
+  "Qwen/Qwen2.5-7B-Instruct|none|alllayers|9": {
+   "model": "Qwen/Qwen2.5-7B-Instruct",
+   "quantization": "none",
+   "run_kind": "alllayers",
+   "layer": 9,
+   "test_auc": {
+    "mean": 0.8737,
+    "sd": 0.0,
+    "min": 0.8737,
+    "max": 0.8737,
+    "n": 1
+   },
+   "val_auc": {
+    "mean": 0.7385,
+    "sd": 0.0,
+    "min": 0.7385,
+    "max": 0.7385,
+    "n": 1
+   },
+   "train_auc": {
+    "mean": 0.9385,
+    "sd": 0.0,
+    "min": 0.9385,
+    "max": 0.9385,
+    "n": 1
+   },
+   "test_accuracy": {
+    "mean": 0.7182,
+    "sd": 0.0,
+    "min": 0.7182,
+    "max": 0.7182,
+    "n": 1
+   },
+   "test_precision": {
+    "mean": 0.8529,
+    "sd": 0.0,
+    "min": 0.8529,
+    "max": 0.8529,
+    "n": 1
+   },
+   "test_recall": {
+    "mean": 0.5273,
+    "sd": 0.0,
+    "min": 0.5273,
+    "max": 0.5273,
+    "n": 1
+   },
+   "test_f1": {
+    "mean": 0.6517,
+    "sd": 0.0,
+    "min": 0.6517,
+    "max": 0.6517,
+    "n": 1
+   },
+   "test_fpr": {
+    "mean": 0.0909,
+    "sd": 0.0,
+    "min": 0.0909,
+    "max": 0.0909,
+    "n": 1
+   },
+   "shuffled_mean": {
+    "mean": 0.509,
+    "sd": 0.0,
+    "min": 0.509,
+    "max": 0.509,
+    "n": 1
+   },
+   "shuffled_max": {
+    "mean": 0.5504,
+    "sd": 0.0,
+    "min": 0.5504,
+    "max": 0.5504,
+    "n": 1
+   },
+   "answer_token_auc": {
+    "mean": 0.5091,
+    "sd": 0.0,
+    "min": 0.5091,
+    "max": 0.5091,
+    "n": 1
+   },
+   "runs": [
+    "deception_probes/qwen2.5-7b_alllayers_s42.json (seed 42)"
+   ]
+  },
+  "Qwen/Qwen2.5-7B-Instruct|none|alllayers|10": {
+   "model": "Qwen/Qwen2.5-7B-Instruct",
+   "quantization": "none",
+   "run_kind": "alllayers",
+   "layer": 10,
+   "test_auc": {
+    "mean": 0.8655,
+    "sd": 0.0,
+    "min": 0.8655,
+    "max": 0.8655,
+    "n": 1
+   },
+   "val_auc": {
+    "mean": 0.721,
+    "sd": 0.0,
+    "min": 0.721,
+    "max": 0.721,
+    "n": 1
+   },
+   "train_auc": {
+    "mean": 0.9984,
+    "sd": 0.0,
+    "min": 0.9984,
+    "max": 0.9984,
+    "n": 1
+   },
+   "test_accuracy": {
+    "mean": 0.6455,
+    "sd": 0.0,
+    "min": 0.6455,
+    "max": 0.6455,
+    "n": 1
+   },
+   "test_precision": {
+    "mean": 0.8333,
+    "sd": 0.0,
+    "min": 0.8333,
+    "max": 0.8333,
+    "n": 1
+   },
+   "test_recall": {
+    "mean": 0.3636,
+    "sd": 0.0,
+    "min": 0.3636,
+    "max": 0.3636,
+    "n": 1
+   },
+   "test_f1": {
+    "mean": 0.5063,
+    "sd": 0.0,
+    "min": 0.5063,
+    "max": 0.5063,
+    "n": 1
+   },
+   "test_fpr": {
+    "mean": 0.0727,
+    "sd": 0.0,
+    "min": 0.0727,
+    "max": 0.0727,
+    "n": 1
+   },
+   "shuffled_mean": {
+    "mean": 0.5052,
+    "sd": 0.0,
+    "min": 0.5052,
+    "max": 0.5052,
+    "n": 1
+   },
+   "shuffled_max": {
+    "mean": 0.5471,
+    "sd": 0.0,
+    "min": 0.5471,
+    "max": 0.5471,
+    "n": 1
+   },
+   "answer_token_auc": {
+    "mean": 0.5091,
+    "sd": 0.0,
+    "min": 0.5091,
+    "max": 0.5091,
+    "n": 1
+   },
+   "runs": [
+    "deception_probes/qwen2.5-7b_alllayers_s42.json (seed 42)"
+   ]
+  },
+  "Qwen/Qwen2.5-7B-Instruct|none|alllayers|11": {
+   "model": "Qwen/Qwen2.5-7B-Instruct",
+   "quantization": "none",
+   "run_kind": "alllayers",
+   "layer": 11,
+   "test_auc": {
+    "mean": 0.8327,
+    "sd": 0.0,
+    "min": 0.8327,
+    "max": 0.8327,
+    "n": 1
+   },
+   "val_auc": {
+    "mean": 0.7431,
+    "sd": 0.0,
+    "min": 0.7431,
+    "max": 0.7431,
+    "n": 1
+   },
+   "train_auc": {
+    "mean": 1.0,
+    "sd": 0.0,
+    "min": 1.0,
+    "max": 1.0,
+    "n": 1
+   },
+   "test_accuracy": {
+    "mean": 0.6727,
+    "sd": 0.0,
+    "min": 0.6727,
+    "max": 0.6727,
+    "n": 1
+   },
+   "test_precision": {
+    "mean": 0.8519,
+    "sd": 0.0,
+    "min": 0.8519,
+    "max": 0.8519,
+    "n": 1
+   },
+   "test_recall": {
+    "mean": 0.4182,
+    "sd": 0.0,
+    "min": 0.4182,
+    "max": 0.4182,
+    "n": 1
+   },
+   "test_f1": {
+    "mean": 0.561,
+    "sd": 0.0,
+    "min": 0.561,
+    "max": 0.561,
+    "n": 1
+   },
+   "test_fpr": {
+    "mean": 0.0727,
+    "sd": 0.0,
+    "min": 0.0727,
+    "max": 0.0727,
+    "n": 1
+   },
+   "shuffled_mean": {
+    "mean": 0.5117,
+    "sd": 0.0,
+    "min": 0.5117,
+    "max": 0.5117,
+    "n": 1
+   },
+   "shuffled_max": {
+    "mean": 0.5792,
+    "sd": 0.0,
+    "min": 0.5792,
+    "max": 0.5792,
+    "n": 1
+   },
+   "answer_token_auc": {
+    "mean": 0.5091,
+    "sd": 0.0,
+    "min": 0.5091,
+    "max": 0.5091,
+    "n": 1
+   },
+   "runs": [
+    "deception_probes/qwen2.5-7b_alllayers_s42.json (seed 42)"
+   ]
+  },
+  "Qwen/Qwen2.5-7B-Instruct|none|alllayers|12": {
+   "model": "Qwen/Qwen2.5-7B-Instruct",
+   "quantization": "none",
+   "run_kind": "alllayers",
+   "layer": 12,
+   "test_auc": {
+    "mean": 0.8579,
+    "sd": 0.0,
+    "min": 0.8579,
+    "max": 0.8579,
+    "n": 1
+   },
+   "val_auc": {
+    "mean": 0.7362,
+    "sd": 0.0,
+    "min": 0.7362,
+    "max": 0.7362,
+    "n": 1
+   },
+   "train_auc": {
+    "mean": 1.0,
+    "sd": 0.0,
+    "min": 1.0,
+    "max": 1.0,
+    "n": 1
+   },
+   "test_accuracy": {
+    "mean": 0.6818,
+    "sd": 0.0,
+    "min": 0.6818,
+    "max": 0.6818,
+    "n": 1
+   },
+   "test_precision": {
+    "mean": 0.8846,
+    "sd": 0.0,
+    "min": 0.8846,
+    "max": 0.8846,
+    "n": 1
+   },
+   "test_recall": {
+    "mean": 0.4182,
+    "sd": 0.0,
+    "min": 0.4182,
+    "max": 0.4182,
+    "n": 1
+   },
+   "test_f1": {
+    "mean": 0.5679,
+    "sd": 0.0,
+    "min": 0.5679,
+    "max": 0.5679,
+    "n": 1
+   },
+   "test_fpr": {
+    "mean": 0.0545,
+    "sd": 0.0,
+    "min": 0.0545,
+    "max": 0.0545,
+    "n": 1
+   },
+   "shuffled_mean": {
+    "mean": 0.4836,
+    "sd": 0.0,
+    "min": 0.4836,
+    "max": 0.4836,
+    "n": 1
+   },
+   "shuffled_max": {
+    "mean": 0.5455,
+    "sd": 0.0,
+    "min": 0.5455,
+    "max": 0.5455,
+    "n": 1
+   },
+   "answer_token_auc": {
+    "mean": 0.5091,
+    "sd": 0.0,
+    "min": 0.5091,
+    "max": 0.5091,
+    "n": 1
+   },
+   "runs": [
+    "deception_probes/qwen2.5-7b_alllayers_s42.json (seed 42)"
+   ]
+  },
+  "Qwen/Qwen2.5-7B-Instruct|none|alllayers|13": {
+   "model": "Qwen/Qwen2.5-7B-Instruct",
+   "quantization": "none",
+   "run_kind": "alllayers",
+   "layer": 13,
+   "test_auc": {
+    "mean": 0.8668,
+    "sd": 0.0,
+    "min": 0.8668,
+    "max": 0.8668,
+    "n": 1
+   },
+   "val_auc": {
+    "mean": 0.757,
+    "sd": 0.0,
+    "min": 0.757,
+    "max": 0.757,
+    "n": 1
+   },
+   "train_auc": {
+    "mean": 1.0,
+    "sd": 0.0,
+    "min": 1.0,
+    "max": 1.0,
+    "n": 1
+   },
+   "test_accuracy": {
+    "mean": 0.7091,
+    "sd": 0.0,
+    "min": 0.7091,
+    "max": 0.7091,
+    "n": 1
+   },
+   "test_precision": {
+    "mean": 0.8485,
+    "sd": 0.0,
+    "min": 0.8485,
+    "max": 0.8485,
+    "n": 1
+   },
+   "test_recall": {
+    "mean": 0.5091,
+    "sd": 0.0,
+    "min": 0.5091,
+    "max": 0.5091,
+    "n": 1
+   },
+   "test_f1": {
+    "mean": 0.6364,
+    "sd": 0.0,
+    "min": 0.6364,
+    "max": 0.6364,
+    "n": 1
+   },
+   "test_fpr": {
+    "mean": 0.0909,
+    "sd": 0.0,
+    "min": 0.0909,
+    "max": 0.0909,
+    "n": 1
+   },
+   "shuffled_mean": {
+    "mean": 0.5054,
+    "sd": 0.0,
+    "min": 0.5054,
+    "max": 0.5054,
+    "n": 1
+   },
+   "shuffled_max": {
+    "mean": 0.5917,
+    "sd": 0.0,
+    "min": 0.5917,
+    "max": 0.5917,
+    "n": 1
+   },
+   "answer_token_auc": {
+    "mean": 0.5091,
+    "sd": 0.0,
+    "min": 0.5091,
+    "max": 0.5091,
+    "n": 1
+   },
+   "runs": [
+    "deception_probes/qwen2.5-7b_alllayers_s42.json (seed 42)"
+   ]
+  },
+  "Qwen/Qwen2.5-7B-Instruct|none|alllayers|14": {
+   "model": "Qwen/Qwen2.5-7B-Instruct",
+   "quantization": "none",
+   "run_kind": "alllayers",
+   "layer": 14,
+   "test_auc": {
+    "mean": 0.8952,
+    "sd": 0.0,
+    "min": 0.8952,
+    "max": 0.8952,
+    "n": 1
+   },
+   "val_auc": {
+    "mean": 0.8407,
+    "sd": 0.0,
+    "min": 0.8407,
+    "max": 0.8407,
+    "n": 1
+   },
+   "train_auc": {
+    "mean": 1.0,
+    "sd": 0.0,
+    "min": 1.0,
+    "max": 1.0,
+    "n": 1
+   },
+   "test_accuracy": {
+    "mean": 0.7364,
+    "sd": 0.0,
+    "min": 0.7364,
+    "max": 0.7364,
+    "n": 1
+   },
+   "test_precision": {
+    "mean": 0.825,
+    "sd": 0.0,
+    "min": 0.825,
+    "max": 0.825,
+    "n": 1
+   },
+   "test_recall": {
+    "mean": 0.6,
+    "sd": 0.0,
+    "min": 0.6,
+    "max": 0.6,
+    "n": 1
+   },
+   "test_f1": {
+    "mean": 0.6947,
+    "sd": 0.0,
+    "min": 0.6947,
+    "max": 0.6947,
+    "n": 1
+   },
+   "test_fpr": {
+    "mean": 0.1273,
+    "sd": 0.0,
+    "min": 0.1273,
+    "max": 0.1273,
+    "n": 1
+   },
+   "shuffled_mean": {
+    "mean": 0.4961,
+    "sd": 0.0,
+    "min": 0.4961,
+    "max": 0.4961,
+    "n": 1
+   },
+   "shuffled_max": {
+    "mean": 0.5848,
+    "sd": 0.0,
+    "min": 0.5848,
+    "max": 0.5848,
+    "n": 1
+   },
+   "answer_token_auc": {
+    "mean": 0.5091,
+    "sd": 0.0,
+    "min": 0.5091,
+    "max": 0.5091,
+    "n": 1
+   },
+   "runs": [
+    "deception_probes/qwen2.5-7b_alllayers_s42.json (seed 42)"
+   ]
+  },
+  "Qwen/Qwen2.5-7B-Instruct|none|alllayers|15": {
+   "model": "Qwen/Qwen2.5-7B-Instruct",
+   "quantization": "none",
+   "run_kind": "alllayers",
+   "layer": 15,
+   "test_auc": {
+    "mean": 0.8992,
+    "sd": 0.0,
+    "min": 0.8992,
+    "max": 0.8992,
+    "n": 1
+   },
+   "val_auc": {
+    "mean": 0.8387,
+    "sd": 0.0,
+    "min": 0.8387,
+    "max": 0.8387,
+    "n": 1
+   },
+   "train_auc": {
+    "mean": 1.0,
+    "sd": 0.0,
+    "min": 1.0,
+    "max": 1.0,
+    "n": 1
+   },
+   "test_accuracy": {
+    "mean": 0.7909,
+    "sd": 0.0,
+    "min": 0.7909,
+    "max": 0.7909,
+    "n": 1
+   },
+   "test_precision": {
+    "mean": 0.8636,
+    "sd": 0.0,
+    "min": 0.8636,
+    "max": 0.8636,
+    "n": 1
+   },
+   "test_recall": {
+    "mean": 0.6909,
+    "sd": 0.0,
+    "min": 0.6909,
+    "max": 0.6909,
+    "n": 1
+   },
+   "test_f1": {
+    "mean": 0.7677,
+    "sd": 0.0,
+    "min": 0.7677,
+    "max": 0.7677,
+    "n": 1
+   },
+   "test_fpr": {
+    "mean": 0.1091,
+    "sd": 0.0,
+    "min": 0.1091,
+    "max": 0.1091,
+    "n": 1
+   },
+   "shuffled_mean": {
+    "mean": 0.5007,
+    "sd": 0.0,
+    "min": 0.5007,
+    "max": 0.5007,
+    "n": 1
+   },
+   "shuffled_max": {
+    "mean": 0.6139,
+    "sd": 0.0,
+    "min": 0.6139,
+    "max": 0.6139,
+    "n": 1
+   },
+   "answer_token_auc": {
+    "mean": 0.5091,
+    "sd": 0.0,
+    "min": 0.5091,
+    "max": 0.5091,
+    "n": 1
+   },
+   "runs": [
+    "deception_probes/qwen2.5-7b_alllayers_s42.json (seed 42)"
+   ]
+  },
+  "Qwen/Qwen2.5-7B-Instruct|none|alllayers|16": {
+   "model": "Qwen/Qwen2.5-7B-Instruct",
+   "quantization": "none",
+   "run_kind": "alllayers",
+   "layer": 16,
+   "test_auc": {
+    "mean": 0.8979,
+    "sd": 0.0,
+    "min": 0.8979,
+    "max": 0.8979,
+    "n": 1
+   },
+   "val_auc": {
+    "mean": 0.8463,
+    "sd": 0.0,
+    "min": 0.8463,
+    "max": 0.8463,
+    "n": 1
+   },
+   "train_auc": {
+    "mean": 0.9946,
+    "sd": 0.0,
+    "min": 0.9946,
+    "max": 0.9946,
+    "n": 1
+   },
+   "test_accuracy": {
+    "mean": 0.7818,
+    "sd": 0.0,
+    "min": 0.7818,
+    "max": 0.7818,
+    "n": 1
+   },
+   "test_precision": {
+    "mean": 0.8298,
+    "sd": 0.0,
+    "min": 0.8298,
+    "max": 0.8298,
+    "n": 1
+   },
+   "test_recall": {
+    "mean": 0.7091,
+    "sd": 0.0,
+    "min": 0.7091,
+    "max": 0.7091,
+    "n": 1
+   },
+   "test_f1": {
+    "mean": 0.7647,
+    "sd": 0.0,
+    "min": 0.7647,
+    "max": 0.7647,
+    "n": 1
+   },
+   "test_fpr": {
+    "mean": 0.1455,
+    "sd": 0.0,
+    "min": 0.1455,
+    "max": 0.1455,
+    "n": 1
+   },
+   "shuffled_mean": {
+    "mean": 0.5052,
+    "sd": 0.0,
+    "min": 0.5052,
+    "max": 0.5052,
+    "n": 1
+   },
+   "shuffled_max": {
+    "mean": 0.6046,
+    "sd": 0.0,
+    "min": 0.6046,
+    "max": 0.6046,
+    "n": 1
+   },
+   "answer_token_auc": {
+    "mean": 0.5091,
+    "sd": 0.0,
+    "min": 0.5091,
+    "max": 0.5091,
+    "n": 1
+   },
+   "runs": [
+    "deception_probes/qwen2.5-7b_alllayers_s42.json (seed 42)"
+   ]
+  },
+  "Qwen/Qwen2.5-7B-Instruct|none|alllayers|17": {
+   "model": "Qwen/Qwen2.5-7B-Instruct",
+   "quantization": "none",
+   "run_kind": "alllayers",
+   "layer": 17,
+   "test_auc": {
+    "mean": 0.9081,
+    "sd": 0.0,
+    "min": 0.9081,
+    "max": 0.9081,
+    "n": 1
+   },
+   "val_auc": {
+    "mean": 0.8641,
+    "sd": 0.0,
+    "min": 0.8641,
+    "max": 0.8641,
+    "n": 1
+   },
+   "train_auc": {
+    "mean": 0.9964,
+    "sd": 0.0,
+    "min": 0.9964,
+    "max": 0.9964,
+    "n": 1
+   },
+   "test_accuracy": {
+    "mean": 0.7727,
+    "sd": 0.0,
+    "min": 0.7727,
+    "max": 0.7727,
+    "n": 1
+   },
+   "test_precision": {
+    "mean": 0.875,
+    "sd": 0.0,
+    "min": 0.875,
+    "max": 0.875,
+    "n": 1
+   },
+   "test_recall": {
+    "mean": 0.6364,
+    "sd": 0.0,
+    "min": 0.6364,
+    "max": 0.6364,
+    "n": 1
+   },
+   "test_f1": {
+    "mean": 0.7368,
+    "sd": 0.0,
+    "min": 0.7368,
+    "max": 0.7368,
+    "n": 1
+   },
+   "test_fpr": {
+    "mean": 0.0909,
+    "sd": 0.0,
+    "min": 0.0909,
+    "max": 0.0909,
+    "n": 1
+   },
+   "shuffled_mean": {
+    "mean": 0.5029,
+    "sd": 0.0,
+    "min": 0.5029,
+    "max": 0.5029,
+    "n": 1
+   },
+   "shuffled_max": {
+    "mean": 0.6053,
+    "sd": 0.0,
+    "min": 0.6053,
+    "max": 0.6053,
+    "n": 1
+   },
+   "answer_token_auc": {
+    "mean": 0.5091,
+    "sd": 0.0,
+    "min": 0.5091,
+    "max": 0.5091,
+    "n": 1
+   },
+   "runs": [
+    "deception_probes/qwen2.5-7b_alllayers_s42.json (seed 42)"
+   ]
+  },
+  "Qwen/Qwen2.5-7B-Instruct|none|alllayers|18": {
+   "model": "Qwen/Qwen2.5-7B-Instruct",
+   "quantization": "none",
+   "run_kind": "alllayers",
+   "layer": 18,
+   "test_auc": {
+    "mean": 0.9207,
+    "sd": 0.0,
+    "min": 0.9207,
+    "max": 0.9207,
+    "n": 1
+   },
+   "val_auc": {
+    "mean": 0.8817,
+    "sd": 0.0,
+    "min": 0.8817,
+    "max": 0.8817,
+    "n": 1
+   },
+   "train_auc": {
+    "mean": 0.998,
+    "sd": 0.0,
+    "min": 0.998,
+    "max": 0.998,
+    "n": 1
+   },
+   "test_accuracy": {
+    "mean": 0.7909,
+    "sd": 0.0,
+    "min": 0.7909,
+    "max": 0.7909,
+    "n": 1
+   },
+   "test_precision": {
+    "mean": 0.8478,
+    "sd": 0.0,
+    "min": 0.8478,
+    "max": 0.8478,
+    "n": 1
+   },
+   "test_recall": {
+    "mean": 0.7091,
+    "sd": 0.0,
+    "min": 0.7091,
+    "max": 0.7091,
+    "n": 1
+   },
+   "test_f1": {
+    "mean": 0.7723,
+    "sd": 0.0,
+    "min": 0.7723,
+    "max": 0.7723,
+    "n": 1
+   },
+   "test_fpr": {
+    "mean": 0.1273,
+    "sd": 0.0,
+    "min": 0.1273,
+    "max": 0.1273,
+    "n": 1
+   },
+   "shuffled_mean": {
+    "mean": 0.4824,
+    "sd": 0.0,
+    "min": 0.4824,
+    "max": 0.4824,
+    "n": 1
+   },
+   "shuffled_max": {
+    "mean": 0.5577,
+    "sd": 0.0,
+    "min": 0.5577,
+    "max": 0.5577,
+    "n": 1
+   },
+   "answer_token_auc": {
+    "mean": 0.5091,
+    "sd": 0.0,
+    "min": 0.5091,
+    "max": 0.5091,
+    "n": 1
+   },
+   "runs": [
+    "deception_probes/qwen2.5-7b_alllayers_s42.json (seed 42)"
+   ]
+  },
+  "Qwen/Qwen2.5-7B-Instruct|none|alllayers|19": {
+   "model": "Qwen/Qwen2.5-7B-Instruct",
+   "quantization": "none",
+   "run_kind": "alllayers",
+   "layer": 19,
+   "test_auc": {
+    "mean": 0.926,
+    "sd": 0.0,
+    "min": 0.926,
+    "max": 0.926,
+    "n": 1
+   },
+   "val_auc": {
+    "mean": 0.8936,
+    "sd": 0.0,
+    "min": 0.8936,
+    "max": 0.8936,
+    "n": 1
+   },
+   "train_auc": {
+    "mean": 0.9999,
+    "sd": 0.0,
+    "min": 0.9999,
+    "max": 0.9999,
+    "n": 1
+   },
+   "test_accuracy": {
+    "mean": 0.8182,
+    "sd": 0.0,
+    "min": 0.8182,
+    "max": 0.8182,
+    "n": 1
+   },
+   "test_precision": {
+    "mean": 0.8889,
+    "sd": 0.0,
+    "min": 0.8889,
+    "max": 0.8889,
+    "n": 1
+   },
+   "test_recall": {
+    "mean": 0.7273,
+    "sd": 0.0,
+    "min": 0.7273,
+    "max": 0.7273,
+    "n": 1
+   },
+   "test_f1": {
+    "mean": 0.8,
+    "sd": 0.0,
+    "min": 0.8,
+    "max": 0.8,
+    "n": 1
+   },
+   "test_fpr": {
+    "mean": 0.0909,
+    "sd": 0.0,
+    "min": 0.0909,
+    "max": 0.0909,
+    "n": 1
+   },
+   "shuffled_mean": {
+    "mean": 0.4803,
+    "sd": 0.0,
+    "min": 0.4803,
+    "max": 0.4803,
+    "n": 1
+   },
+   "shuffled_max": {
+    "mean": 0.56,
+    "sd": 0.0,
+    "min": 0.56,
+    "max": 0.56,
+    "n": 1
+   },
+   "answer_token_auc": {
+    "mean": 0.5091,
+    "sd": 0.0,
+    "min": 0.5091,
+    "max": 0.5091,
+    "n": 1
+   },
+   "runs": [
+    "deception_probes/qwen2.5-7b_alllayers_s42.json (seed 42)"
+   ]
+  },
+  "Qwen/Qwen2.5-7B-Instruct|none|alllayers|20": {
+   "model": "Qwen/Qwen2.5-7B-Instruct",
+   "quantization": "none",
+   "run_kind": "alllayers",
+   "layer": 20,
+   "test_auc": {
+    "mean": 0.924,
+    "sd": 0.0,
+    "min": 0.924,
+    "max": 0.924,
+    "n": 1
+   },
+   "val_auc": {
+    "mean": 0.9025,
+    "sd": 0.0,
+    "min": 0.9025,
+    "max": 0.9025,
+    "n": 1
+   },
+   "train_auc": {
+    "mean": 1.0,
+    "sd": 0.0,
+    "min": 1.0,
+    "max": 1.0,
+    "n": 1
+   },
+   "test_accuracy": {
+    "mean": 0.8273,
+    "sd": 0.0,
+    "min": 0.8273,
+    "max": 0.8273,
+    "n": 1
+   },
+   "test_precision": {
+    "mean": 0.875,
+    "sd": 0.0,
+    "min": 0.875,
+    "max": 0.875,
+    "n": 1
+   },
+   "test_recall": {
+    "mean": 0.7636,
+    "sd": 0.0,
+    "min": 0.7636,
+    "max": 0.7636,
+    "n": 1
+   },
+   "test_f1": {
+    "mean": 0.8155,
+    "sd": 0.0,
+    "min": 0.8155,
+    "max": 0.8155,
+    "n": 1
+   },
+   "test_fpr": {
+    "mean": 0.1091,
+    "sd": 0.0,
+    "min": 0.1091,
+    "max": 0.1091,
+    "n": 1
+   },
+   "shuffled_mean": {
+    "mean": 0.4806,
+    "sd": 0.0,
+    "min": 0.4806,
+    "max": 0.4806,
+    "n": 1
+   },
+   "shuffled_max": {
+    "mean": 0.5798,
+    "sd": 0.0,
+    "min": 0.5798,
+    "max": 0.5798,
+    "n": 1
+   },
+   "answer_token_auc": {
+    "mean": 0.5091,
+    "sd": 0.0,
+    "min": 0.5091,
+    "max": 0.5091,
+    "n": 1
+   },
+   "runs": [
+    "deception_probes/qwen2.5-7b_alllayers_s42.json (seed 42)"
+   ]
+  },
+  "Qwen/Qwen2.5-7B-Instruct|none|alllayers|21": {
+   "model": "Qwen/Qwen2.5-7B-Instruct",
+   "quantization": "none",
+   "run_kind": "alllayers",
+   "layer": 21,
+   "test_auc": {
+    "mean": 0.9253,
+    "sd": 0.0,
+    "min": 0.9253,
+    "max": 0.9253,
+    "n": 1
+   },
+   "val_auc": {
+    "mean": 0.9104,
+    "sd": 0.0,
+    "min": 0.9104,
+    "max": 0.9104,
+    "n": 1
+   },
+   "train_auc": {
+    "mean": 1.0,
+    "sd": 0.0,
+    "min": 1.0,
+    "max": 1.0,
+    "n": 1
+   },
+   "test_accuracy": {
+    "mean": 0.8273,
+    "sd": 0.0,
+    "min": 0.8273,
+    "max": 0.8273,
+    "n": 1
+   },
+   "test_precision": {
+    "mean": 0.8913,
+    "sd": 0.0,
+    "min": 0.8913,
+    "max": 0.8913,
+    "n": 1
+   },
+   "test_recall": {
+    "mean": 0.7455,
+    "sd": 0.0,
+    "min": 0.7455,
+    "max": 0.7455,
+    "n": 1
+   },
+   "test_f1": {
+    "mean": 0.8119,
+    "sd": 0.0,
+    "min": 0.8119,
+    "max": 0.8119,
+    "n": 1
+   },
+   "test_fpr": {
+    "mean": 0.0909,
+    "sd": 0.0,
+    "min": 0.0909,
+    "max": 0.0909,
+    "n": 1
+   },
+   "shuffled_mean": {
+    "mean": 0.4708,
+    "sd": 0.0,
+    "min": 0.4708,
+    "max": 0.4708,
+    "n": 1
+   },
+   "shuffled_max": {
+    "mean": 0.5567,
+    "sd": 0.0,
+    "min": 0.5567,
+    "max": 0.5567,
+    "n": 1
+   },
+   "answer_token_auc": {
+    "mean": 0.5091,
+    "sd": 0.0,
+    "min": 0.5091,
+    "max": 0.5091,
+    "n": 1
+   },
+   "runs": [
+    "deception_probes/qwen2.5-7b_alllayers_s42.json (seed 42)"
+   ]
+  },
+  "Qwen/Qwen2.5-7B-Instruct|none|alllayers|22": {
+   "model": "Qwen/Qwen2.5-7B-Instruct",
+   "quantization": "none",
+   "run_kind": "alllayers",
+   "layer": 22,
+   "test_auc": {
+    "mean": 0.9098,
+    "sd": 0.0,
+    "min": 0.9098,
+    "max": 0.9098,
+    "n": 1
+   },
+   "val_auc": {
+    "mean": 0.8965,
+    "sd": 0.0,
+    "min": 0.8965,
+    "max": 0.8965,
+    "n": 1
+   },
+   "train_auc": {
+    "mean": 0.9946,
+    "sd": 0.0,
+    "min": 0.9946,
+    "max": 0.9946,
+    "n": 1
+   },
+   "test_accuracy": {
+    "mean": 0.8455,
+    "sd": 0.0,
+    "min": 0.8455,
+    "max": 0.8455,
+    "n": 1
+   },
+   "test_precision": {
+    "mean": 0.913,
+    "sd": 0.0,
+    "min": 0.913,
+    "max": 0.913,
+    "n": 1
+   },
+   "test_recall": {
+    "mean": 0.7636,
+    "sd": 0.0,
+    "min": 0.7636,
+    "max": 0.7636,
+    "n": 1
+   },
+   "test_f1": {
+    "mean": 0.8317,
+    "sd": 0.0,
+    "min": 0.8317,
+    "max": 0.8317,
+    "n": 1
+   },
+   "test_fpr": {
+    "mean": 0.0727,
+    "sd": 0.0,
+    "min": 0.0727,
+    "max": 0.0727,
+    "n": 1
+   },
+   "shuffled_mean": {
+    "mean": 0.4619,
+    "sd": 0.0,
+    "min": 0.4619,
+    "max": 0.4619,
+    "n": 1
+   },
+   "shuffled_max": {
+    "mean": 0.5478,
+    "sd": 0.0,
+    "min": 0.5478,
+    "max": 0.5478,
+    "n": 1
+   },
+   "answer_token_auc": {
+    "mean": 0.5091,
+    "sd": 0.0,
+    "min": 0.5091,
+    "max": 0.5091,
+    "n": 1
+   },
+   "runs": [
+    "deception_probes/qwen2.5-7b_alllayers_s42.json (seed 42)"
+   ]
+  },
+  "Qwen/Qwen2.5-7B-Instruct|none|alllayers|23": {
+   "model": "Qwen/Qwen2.5-7B-Instruct",
+   "quantization": "none",
+   "run_kind": "alllayers",
+   "layer": 23,
+   "test_auc": {
+    "mean": 0.9078,
+    "sd": 0.0,
+    "min": 0.9078,
+    "max": 0.9078,
+    "n": 1
+   },
+   "val_auc": {
+    "mean": 0.9084,
+    "sd": 0.0,
+    "min": 0.9084,
+    "max": 0.9084,
+    "n": 1
+   },
+   "train_auc": {
+    "mean": 0.9974,
+    "sd": 0.0,
+    "min": 0.9974,
+    "max": 0.9974,
+    "n": 1
+   },
+   "test_accuracy": {
+    "mean": 0.8545,
+    "sd": 0.0,
+    "min": 0.8545,
+    "max": 0.8545,
+    "n": 1
+   },
+   "test_precision": {
+    "mean": 0.9149,
+    "sd": 0.0,
+    "min": 0.9149,
+    "max": 0.9149,
+    "n": 1
+   },
+   "test_recall": {
+    "mean": 0.7818,
+    "sd": 0.0,
+    "min": 0.7818,
+    "max": 0.7818,
+    "n": 1
+   },
+   "test_f1": {
+    "mean": 0.8431,
+    "sd": 0.0,
+    "min": 0.8431,
+    "max": 0.8431,
+    "n": 1
+   },
+   "test_fpr": {
+    "mean": 0.0727,
+    "sd": 0.0,
+    "min": 0.0727,
+    "max": 0.0727,
+    "n": 1
+   },
+   "shuffled_mean": {
+    "mean": 0.4512,
+    "sd": 0.0,
+    "min": 0.4512,
+    "max": 0.4512,
+    "n": 1
+   },
+   "shuffled_max": {
+    "mean": 0.5263,
+    "sd": 0.0,
+    "min": 0.5263,
+    "max": 0.5263,
+    "n": 1
+   },
+   "answer_token_auc": {
+    "mean": 0.5091,
+    "sd": 0.0,
+    "min": 0.5091,
+    "max": 0.5091,
+    "n": 1
+   },
+   "runs": [
+    "deception_probes/qwen2.5-7b_alllayers_s42.json (seed 42)"
+   ]
+  },
+  "Qwen/Qwen2.5-7B-Instruct|none|alllayers|24": {
+   "model": "Qwen/Qwen2.5-7B-Instruct",
+   "quantization": "none",
+   "run_kind": "alllayers",
+   "layer": 24,
+   "test_auc": {
+    "mean": 0.916,
+    "sd": 0.0,
+    "min": 0.916,
+    "max": 0.916,
+    "n": 1
+   },
+   "val_auc": {
+    "mean": 0.9134,
+    "sd": 0.0,
+    "min": 0.9134,
+    "max": 0.9134,
+    "n": 1
+   },
+   "train_auc": {
+    "mean": 0.9993,
+    "sd": 0.0,
+    "min": 0.9993,
+    "max": 0.9993,
+    "n": 1
+   },
+   "test_accuracy": {
+    "mean": 0.8455,
+    "sd": 0.0,
+    "min": 0.8455,
+    "max": 0.8455,
+    "n": 1
+   },
+   "test_precision": {
+    "mean": 0.913,
+    "sd": 0.0,
+    "min": 0.913,
+    "max": 0.913,
+    "n": 1
+   },
+   "test_recall": {
+    "mean": 0.7636,
+    "sd": 0.0,
+    "min": 0.7636,
+    "max": 0.7636,
+    "n": 1
+   },
+   "test_f1": {
+    "mean": 0.8317,
+    "sd": 0.0,
+    "min": 0.8317,
+    "max": 0.8317,
+    "n": 1
+   },
+   "test_fpr": {
+    "mean": 0.0727,
+    "sd": 0.0,
+    "min": 0.0727,
+    "max": 0.0727,
+    "n": 1
+   },
+   "shuffled_mean": {
+    "mean": 0.4545,
+    "sd": 0.0,
+    "min": 0.4545,
+    "max": 0.4545,
+    "n": 1
+   },
+   "shuffled_max": {
+    "mean": 0.5345,
+    "sd": 0.0,
+    "min": 0.5345,
+    "max": 0.5345,
+    "n": 1
+   },
+   "answer_token_auc": {
+    "mean": 0.5091,
+    "sd": 0.0,
+    "min": 0.5091,
+    "max": 0.5091,
+    "n": 1
+   },
+   "runs": [
+    "deception_probes/qwen2.5-7b_alllayers_s42.json (seed 42)"
+   ]
+  },
+  "Qwen/Qwen2.5-7B-Instruct|none|alllayers|25": {
+   "model": "Qwen/Qwen2.5-7B-Instruct",
+   "quantization": "none",
+   "run_kind": "alllayers",
+   "layer": 25,
+   "test_auc": {
+    "mean": 0.9197,
+    "sd": 0.0,
+    "min": 0.9197,
+    "max": 0.9197,
+    "n": 1
+   },
+   "val_auc": {
+    "mean": 0.9157,
+    "sd": 0.0,
+    "min": 0.9157,
+    "max": 0.9157,
+    "n": 1
+   },
+   "train_auc": {
+    "mean": 1.0,
+    "sd": 0.0,
+    "min": 1.0,
+    "max": 1.0,
+    "n": 1
+   },
+   "test_accuracy": {
+    "mean": 0.8364,
+    "sd": 0.0,
+    "min": 0.8364,
+    "max": 0.8364,
+    "n": 1
+   },
+   "test_precision": {
+    "mean": 0.9302,
+    "sd": 0.0,
+    "min": 0.9302,
+    "max": 0.9302,
+    "n": 1
+   },
+   "test_recall": {
+    "mean": 0.7273,
+    "sd": 0.0,
+    "min": 0.7273,
+    "max": 0.7273,
+    "n": 1
+   },
+   "test_f1": {
+    "mean": 0.8163,
+    "sd": 0.0,
+    "min": 0.8163,
+    "max": 0.8163,
+    "n": 1
+   },
+   "test_fpr": {
+    "mean": 0.0545,
+    "sd": 0.0,
+    "min": 0.0545,
+    "max": 0.0545,
+    "n": 1
+   },
+   "shuffled_mean": {
+    "mean": 0.4594,
+    "sd": 0.0,
+    "min": 0.4594,
+    "max": 0.4594,
+    "n": 1
+   },
+   "shuffled_max": {
+    "mean": 0.516,
+    "sd": 0.0,
+    "min": 0.516,
+    "max": 0.516,
+    "n": 1
+   },
+   "answer_token_auc": {
+    "mean": 0.5091,
+    "sd": 0.0,
+    "min": 0.5091,
+    "max": 0.5091,
+    "n": 1
+   },
+   "runs": [
+    "deception_probes/qwen2.5-7b_alllayers_s42.json (seed 42)"
+   ]
+  },
+  "Qwen/Qwen2.5-7B-Instruct|none|alllayers|26": {
+   "model": "Qwen/Qwen2.5-7B-Instruct",
+   "quantization": "none",
+   "run_kind": "alllayers",
+   "layer": 26,
+   "test_auc": {
+    "mean": 0.9055,
+    "sd": 0.0,
+    "min": 0.9055,
+    "max": 0.9055,
+    "n": 1
+   },
+   "val_auc": {
+    "mean": 0.9031,
+    "sd": 0.0,
+    "min": 0.9031,
+    "max": 0.9031,
+    "n": 1
+   },
+   "train_auc": {
+    "mean": 0.9904,
+    "sd": 0.0,
+    "min": 0.9904,
+    "max": 0.9904,
+    "n": 1
+   },
+   "test_accuracy": {
+    "mean": 0.8182,
+    "sd": 0.0,
+    "min": 0.8182,
+    "max": 0.8182,
+    "n": 1
+   },
+   "test_precision": {
+    "mean": 0.907,
+    "sd": 0.0,
+    "min": 0.907,
+    "max": 0.907,
+    "n": 1
+   },
+   "test_recall": {
+    "mean": 0.7091,
+    "sd": 0.0,
+    "min": 0.7091,
+    "max": 0.7091,
+    "n": 1
+   },
+   "test_f1": {
+    "mean": 0.7959,
+    "sd": 0.0,
+    "min": 0.7959,
+    "max": 0.7959,
+    "n": 1
+   },
+   "test_fpr": {
+    "mean": 0.0727,
+    "sd": 0.0,
+    "min": 0.0727,
+    "max": 0.0727,
+    "n": 1
+   },
+   "shuffled_mean": {
+    "mean": 0.4573,
+    "sd": 0.0,
+    "min": 0.4573,
+    "max": 0.4573,
+    "n": 1
+   },
+   "shuffled_max": {
+    "mean": 0.5217,
+    "sd": 0.0,
+    "min": 0.5217,
+    "max": 0.5217,
+    "n": 1
+   },
+   "answer_token_auc": {
+    "mean": 0.5091,
+    "sd": 0.0,
+    "min": 0.5091,
+    "max": 0.5091,
+    "n": 1
+   },
+   "runs": [
+    "deception_probes/qwen2.5-7b_alllayers_s42.json (seed 42)"
+   ]
+  },
+  "Qwen/Qwen2.5-7B-Instruct|none|alllayers|27": {
+   "model": "Qwen/Qwen2.5-7B-Instruct",
+   "quantization": "none",
+   "run_kind": "alllayers",
+   "layer": 27,
+   "test_auc": {
+    "mean": 0.9071,
+    "sd": 0.0,
+    "min": 0.9071,
+    "max": 0.9071,
+    "n": 1
+   },
+   "val_auc": {
+    "mean": 0.8942,
+    "sd": 0.0,
+    "min": 0.8942,
+    "max": 0.8942,
+    "n": 1
+   },
+   "train_auc": {
+    "mean": 0.9934,
+    "sd": 0.0,
+    "min": 0.9934,
+    "max": 0.9934,
+    "n": 1
+   },
+   "test_accuracy": {
+    "mean": 0.8182,
+    "sd": 0.0,
+    "min": 0.8182,
+    "max": 0.8182,
+    "n": 1
+   },
+   "test_precision": {
+    "mean": 0.907,
+    "sd": 0.0,
+    "min": 0.907,
+    "max": 0.907,
+    "n": 1
+   },
+   "test_recall": {
+    "mean": 0.7091,
+    "sd": 0.0,
+    "min": 0.7091,
+    "max": 0.7091,
+    "n": 1
+   },
+   "test_f1": {
+    "mean": 0.7959,
+    "sd": 0.0,
+    "min": 0.7959,
+    "max": 0.7959,
+    "n": 1
+   },
+   "test_fpr": {
+    "mean": 0.0727,
+    "sd": 0.0,
+    "min": 0.0727,
+    "max": 0.0727,
+    "n": 1
+   },
+   "shuffled_mean": {
+    "mean": 0.4668,
+    "sd": 0.0,
+    "min": 0.4668,
+    "max": 0.4668,
+    "n": 1
+   },
+   "shuffled_max": {
+    "mean": 0.5336,
+    "sd": 0.0,
+    "min": 0.5336,
+    "max": 0.5336,
+    "n": 1
+   },
+   "answer_token_auc": {
+    "mean": 0.5091,
+    "sd": 0.0,
+    "min": 0.5091,
+    "max": 0.5091,
+    "n": 1
+   },
+   "runs": [
+    "deception_probes/qwen2.5-7b_alllayers_s42.json (seed 42)"
+   ]
+  },
+  "Qwen/Qwen2.5-7B-Instruct|none|default|7": {
+   "model": "Qwen/Qwen2.5-7B-Instruct",
+   "quantization": "none",
+   "run_kind": "default",
+   "layer": 7,
+   "test_auc": {
+    "mean": 0.7871,
+    "sd": 0.0797,
+    "min": 0.6648,
+    "max": 0.8628,
+    "n": 5
+   },
+   "val_auc": {
+    "mean": 0.7215,
+    "sd": 0.025,
+    "min": 0.6985,
+    "max": 0.7627,
+    "n": 5
+   },
+   "train_auc": {
+    "mean": 0.8974,
+    "sd": 0.0069,
+    "min": 0.8854,
+    "max": 0.9031,
+    "n": 5
+   },
+   "test_accuracy": {
+    "mean": 0.6588,
+    "sd": 0.0659,
+    "min": 0.5727,
+    "max": 0.7273,
+    "n": 5
+   },
+   "test_precision": {
+    "mean": 0.7773,
+    "sd": 0.0881,
+    "min": 0.6538,
+    "max": 0.8519,
+    "n": 5
+   },
+   "test_recall": {
+    "mean": 0.4379,
+    "sd": 0.1073,
+    "min": 0.3091,
+    "max": 0.5636,
+    "n": 5
+   },
+   "test_f1": {
+    "mean": 0.5576,
+    "sd": 0.1071,
+    "min": 0.4198,
+    "max": 0.6739,
+    "n": 5
+   },
+   "test_fpr": {
+    "mean": 0.1203,
+    "sd": 0.035,
+    "min": 0.0741,
+    "max": 0.1636,
+    "n": 5
+   },
+   "shuffled_mean": {
+    "mean": 0.509,
+    "sd": 0.0141,
+    "min": 0.4895,
+    "max": 0.5203,
+    "n": 5
+   },
+   "shuffled_max": {
+    "mean": 0.574,
+    "sd": 0.0397,
+    "min": 0.5352,
+    "max": 0.639,
+    "n": 5
+   },
+   "answer_token_auc": {
+    "mean": 0.4745,
+    "sd": 0.026,
+    "min": 0.4364,
+    "max": 0.5091,
+    "n": 5
+   },
+   "runs": [
+    "deception_probes/qwen2.5-7b_default_s1.json (seed 1)",
+    "deception_probes/qwen2.5-7b_default_s2.json (seed 2)",
+    "deception_probes/qwen2.5-7b_default_s3.json (seed 3)",
+    "deception_probes/qwen2.5-7b_default_s4.json (seed 4)",
+    "deception_probes/qwen2.5-7b_default_s42.json (seed 42)"
+   ]
+  },
+  "Qwen/Qwen2.5-7B-Instruct|none|default|14": {
+   "model": "Qwen/Qwen2.5-7B-Instruct",
+   "quantization": "none",
+   "run_kind": "default",
+   "layer": 14,
+   "test_auc": {
+    "mean": 0.8856,
+    "sd": 0.0274,
+    "min": 0.8476,
+    "max": 0.9207,
+    "n": 5
+   },
+   "val_auc": {
+    "mean": 0.8522,
+    "sd": 0.0245,
+    "min": 0.8235,
+    "max": 0.8886,
+    "n": 5
+   },
+   "train_auc": {
+    "mean": 0.9928,
+    "sd": 0.0073,
+    "min": 0.9835,
+    "max": 1.0,
+    "n": 5
+   },
+   "test_accuracy": {
+    "mean": 0.7756,
+    "sd": 0.0417,
+    "min": 0.7364,
+    "max": 0.8364,
+    "n": 5
+   },
+   "test_precision": {
+    "mean": 0.8468,
+    "sd": 0.0301,
+    "min": 0.825,
+    "max": 0.8936,
+    "n": 5
+   },
+   "test_recall": {
+    "mean": 0.6716,
+    "sd": 0.0713,
+    "min": 0.6,
+    "max": 0.7636,
+    "n": 5
+   },
+   "test_f1": {
+    "mean": 0.7481,
+    "sd": 0.0545,
+    "min": 0.6947,
+    "max": 0.8235,
+    "n": 5
+   },
+   "test_fpr": {
+    "mean": 0.1204,
+    "sd": 0.0205,
+    "min": 0.0909,
+    "max": 0.1455,
+    "n": 5
+   },
+   "shuffled_mean": {
+    "mean": 0.4973,
+    "sd": 0.0063,
+    "min": 0.4889,
+    "max": 0.5065,
+    "n": 5
+   },
+   "shuffled_max": {
+    "mean": 0.5456,
+    "sd": 0.0292,
+    "min": 0.5081,
+    "max": 0.5848,
+    "n": 5
+   },
+   "answer_token_auc": {
+    "mean": 0.4745,
+    "sd": 0.026,
+    "min": 0.4364,
+    "max": 0.5091,
+    "n": 5
+   },
+   "runs": [
+    "deception_probes/qwen2.5-7b_default_s1.json (seed 1)",
+    "deception_probes/qwen2.5-7b_default_s2.json (seed 2)",
+    "deception_probes/qwen2.5-7b_default_s3.json (seed 3)",
+    "deception_probes/qwen2.5-7b_default_s4.json (seed 4)",
+    "deception_probes/qwen2.5-7b_default_s42.json (seed 42)"
+   ]
+  },
+  "Qwen/Qwen2.5-7B-Instruct|none|default|21": {
+   "model": "Qwen/Qwen2.5-7B-Instruct",
+   "quantization": "none",
+   "run_kind": "default",
+   "layer": 21,
+   "test_auc": {
+    "mean": 0.9051,
+    "sd": 0.0426,
+    "min": 0.8433,
+    "max": 0.9593,
+    "n": 5
+   },
+   "val_auc": {
+    "mean": 0.8921,
+    "sd": 0.023,
+    "min": 0.8526,
+    "max": 0.9104,
+    "n": 5
+   },
+   "train_auc": {
+    "mean": 0.9947,
+    "sd": 0.0073,
+    "min": 0.9856,
+    "max": 1.0,
+    "n": 5
+   },
+   "test_accuracy": {
+    "mean": 0.8175,
+    "sd": 0.0328,
+    "min": 0.7727,
+    "max": 0.8636,
+    "n": 5
+   },
+   "test_precision": {
+    "mean": 0.8585,
+    "sd": 0.0525,
+    "min": 0.8125,
+    "max": 0.9348,
+    "n": 5
+   },
+   "test_recall": {
+    "mean": 0.7629,
+    "sd": 0.0355,
+    "min": 0.7091,
+    "max": 0.7963,
+    "n": 5
+   },
+   "test_f1": {
+    "mean": 0.8071,
+    "sd": 0.0336,
+    "min": 0.7573,
+    "max": 0.8515,
+    "n": 5
+   },
+   "test_fpr": {
+    "mean": 0.1279,
+    "sd": 0.052,
+    "min": 0.0545,
+    "max": 0.1667,
+    "n": 5
+   },
+   "shuffled_mean": {
+    "mean": 0.508,
+    "sd": 0.0279,
+    "min": 0.4708,
+    "max": 0.5447,
+    "n": 5
+   },
+   "shuffled_max": {
+    "mean": 0.5927,
+    "sd": 0.0576,
+    "min": 0.5445,
+    "max": 0.6903,
+    "n": 5
+   },
+   "answer_token_auc": {
+    "mean": 0.4745,
+    "sd": 0.026,
+    "min": 0.4364,
+    "max": 0.5091,
+    "n": 5
+   },
+   "runs": [
+    "deception_probes/qwen2.5-7b_default_s1.json (seed 1)",
+    "deception_probes/qwen2.5-7b_default_s2.json (seed 2)",
+    "deception_probes/qwen2.5-7b_default_s3.json (seed 3)",
+    "deception_probes/qwen2.5-7b_default_s4.json (seed 4)",
+    "deception_probes/qwen2.5-7b_default_s42.json (seed 42)"
+   ]
+  },
+  "Qwen/Qwen2.5-7B-Instruct|none|default|27": {
+   "model": "Qwen/Qwen2.5-7B-Instruct",
+   "quantization": "none",
+   "run_kind": "default",
+   "layer": 27,
+   "test_auc": {
+    "mean": 0.902,
+    "sd": 0.0247,
+    "min": 0.8605,
+    "max": 0.922,
+    "n": 5
+   },
+   "val_auc": {
+    "mean": 0.884,
+    "sd": 0.029,
+    "min": 0.8509,
+    "max": 0.9187,
+    "n": 5
+   },
+   "train_auc": {
+    "mean": 0.9961,
+    "sd": 0.0037,
+    "min": 0.9924,
+    "max": 1.0,
+    "n": 5
+   },
+   "test_accuracy": {
+    "mean": 0.7993,
+    "sd": 0.033,
+    "min": 0.7455,
+    "max": 0.8273,
+    "n": 5
+   },
+   "test_precision": {
+    "mean": 0.8765,
+    "sd": 0.0373,
+    "min": 0.82,
+    "max": 0.9091,
+    "n": 5
+   },
+   "test_recall": {
+    "mean": 0.7008,
+    "sd": 0.0911,
+    "min": 0.5455,
+    "max": 0.7818,
+    "n": 5
+   },
+   "test_f1": {
+    "mean": 0.7747,
+    "sd": 0.0537,
+    "min": 0.6818,
+    "max": 0.819,
+    "n": 5
+   },
+   "test_fpr": {
+    "mean": 0.1022,
+    "sd": 0.0437,
+    "min": 0.0545,
+    "max": 0.1636,
+    "n": 5
+   },
+   "shuffled_mean": {
+    "mean": 0.492,
+    "sd": 0.0252,
+    "min": 0.4668,
+    "max": 0.5314,
+    "n": 5
+   },
+   "shuffled_max": {
+    "mean": 0.563,
+    "sd": 0.0508,
+    "min": 0.5326,
+    "max": 0.6523,
+    "n": 5
+   },
+   "answer_token_auc": {
+    "mean": 0.4745,
+    "sd": 0.026,
+    "min": 0.4364,
+    "max": 0.5091,
+    "n": 5
+   },
+   "runs": [
+    "deception_probes/qwen2.5-7b_default_s1.json (seed 1)",
+    "deception_probes/qwen2.5-7b_default_s2.json (seed 2)",
+    "deception_probes/qwen2.5-7b_default_s3.json (seed 3)",
+    "deception_probes/qwen2.5-7b_default_s4.json (seed 4)",
+    "deception_probes/qwen2.5-7b_default_s42.json (seed 42)"
+   ]
+  },
+  "Qwen/Qwen2.5-7B-Instruct|none|default|ensemble": {
+   "model": "Qwen/Qwen2.5-7B-Instruct",
+   "quantization": "none",
+   "run_kind": "default",
+   "layer": "ensemble",
+   "test_auc": {
+    "mean": 0.905,
+    "sd": 0.0241,
+    "min": 0.8645,
+    "max": 0.9266,
+    "n": 5
+   },
+   "val_auc": {
+    "mean": 0.8875,
+    "sd": 0.0277,
+    "min": 0.8549,
+    "max": 0.9204,
+    "n": 5
+   },
+   "train_auc": {
+    "mean": 0.9969,
+    "sd": 0.0029,
+    "min": 0.9942,
+    "max": 1.0,
+    "n": 5
+   },
+   "test_accuracy": {
+    "mean": 0.8067,
+    "sd": 0.0363,
+    "min": 0.7545,
+    "max": 0.8519,
+    "n": 5
+   },
+   "test_precision": {
+    "mean": 0.8755,
+    "sd": 0.0414,
+    "min": 0.82,
+    "max": 0.9118,
+    "n": 5
+   },
+   "test_recall": {
+    "mean": 0.7193,
+    "sd": 0.0933,
+    "min": 0.5636,
+    "max": 0.7963,
+    "n": 5
+   },
+   "test_f1": {
+    "mean": 0.7856,
+    "sd": 0.0548,
+    "min": 0.6966,
+    "max": 0.8431,
+    "n": 5
+   },
+   "test_fpr": {
+    "mean": 0.1058,
+    "sd": 0.0469,
+    "min": 0.0545,
+    "max": 0.1636,
+    "n": 5
+   },
+   "answer_token_auc": {
+    "mean": 0.4745,
+    "sd": 0.026,
+    "min": 0.4364,
+    "max": 0.5091,
+    "n": 5
+   },
+   "runs": [
+    "deception_probes/qwen2.5-7b_default_s1.json (seed 1)",
+    "deception_probes/qwen2.5-7b_default_s2.json (seed 2)",
+    "deception_probes/qwen2.5-7b_default_s3.json (seed 3)",
+    "deception_probes/qwen2.5-7b_default_s4.json (seed 4)",
+    "deception_probes/qwen2.5-7b_default_s42.json (seed 42)"
+   ]
+  },
+  "Qwen/Qwen2.5-7B-Instruct|none|doclayers|26": {
+   "model": "Qwen/Qwen2.5-7B-Instruct",
+   "quantization": "none",
+   "run_kind": "doclayers",
+   "layer": 26,
+   "test_auc": {
+    "mean": 0.9037,
+    "sd": 0.0285,
+    "min": 0.8621,
+    "max": 0.9425,
+    "n": 5
+   },
+   "val_auc": {
+    "mean": 0.8919,
+    "sd": 0.027,
+    "min": 0.8479,
+    "max": 0.918,
+    "n": 5
+   },
+   "train_auc": {
+    "mean": 0.9957,
+    "sd": 0.006,
+    "min": 0.988,
+    "max": 1.0,
+    "n": 5
+   },
+   "test_accuracy": {
+    "mean": 0.8194,
+    "sd": 0.0349,
+    "min": 0.7636,
+    "max": 0.8545,
+    "n": 5
+   },
+   "test_precision": {
+    "mean": 0.8857,
+    "sd": 0.034,
+    "min": 0.8537,
+    "max": 0.9333,
+    "n": 5
+   },
+   "test_recall": {
+    "mean": 0.7338,
+    "sd": 0.0628,
+    "min": 0.6364,
+    "max": 0.7963,
+    "n": 5
+   },
+   "test_f1": {
+    "mean": 0.8015,
+    "sd": 0.0444,
+    "min": 0.7292,
+    "max": 0.84,
+    "n": 5
+   },
+   "test_fpr": {
+    "mean": 0.0949,
+    "sd": 0.0301,
+    "min": 0.0545,
+    "max": 0.1273,
+    "n": 5
+   },
+   "shuffled_mean": {
+    "mean": 0.4944,
+    "sd": 0.0272,
+    "min": 0.4573,
+    "max": 0.5331,
+    "n": 5
+   },
+   "shuffled_max": {
+    "mean": 0.5734,
+    "sd": 0.0685,
+    "min": 0.5217,
+    "max": 0.6931,
+    "n": 5
+   },
+   "answer_token_auc": {
+    "mean": 0.4745,
+    "sd": 0.026,
+    "min": 0.4364,
+    "max": 0.5091,
+    "n": 5
+   },
+   "runs": [
+    "deception_probes/qwen2.5-7b_doclayers_s1.json (seed 1)",
+    "deception_probes/qwen2.5-7b_doclayers_s2.json (seed 2)",
+    "deception_probes/qwen2.5-7b_doclayers_s3.json (seed 3)",
+    "deception_probes/qwen2.5-7b_doclayers_s4.json (seed 4)",
+    "deception_probes/qwen2.5-7b_doclayers_s42.json (seed 42)"
+   ]
+  },
+  "Qwen/Qwen2.5-7B-Instruct|none|doclayers|27": {
+   "model": "Qwen/Qwen2.5-7B-Instruct",
+   "quantization": "none",
+   "run_kind": "doclayers",
+   "layer": 27,
+   "test_auc": {
+    "mean": 0.902,
+    "sd": 0.0247,
+    "min": 0.8605,
+    "max": 0.922,
+    "n": 5
+   },
+   "val_auc": {
+    "mean": 0.884,
+    "sd": 0.029,
+    "min": 0.8509,
+    "max": 0.9187,
+    "n": 5
+   },
+   "train_auc": {
+    "mean": 0.9961,
+    "sd": 0.0037,
+    "min": 0.9924,
+    "max": 1.0,
+    "n": 5
+   },
+   "test_accuracy": {
+    "mean": 0.7993,
+    "sd": 0.033,
+    "min": 0.7455,
+    "max": 0.8273,
+    "n": 5
+   },
+   "test_precision": {
+    "mean": 0.8765,
+    "sd": 0.0373,
+    "min": 0.82,
+    "max": 0.9091,
+    "n": 5
+   },
+   "test_recall": {
+    "mean": 0.7008,
+    "sd": 0.0911,
+    "min": 0.5455,
+    "max": 0.7818,
+    "n": 5
+   },
+   "test_f1": {
+    "mean": 0.7747,
+    "sd": 0.0537,
+    "min": 0.6818,
+    "max": 0.819,
+    "n": 5
+   },
+   "test_fpr": {
+    "mean": 0.1022,
+    "sd": 0.0437,
+    "min": 0.0545,
+    "max": 0.1636,
+    "n": 5
+   },
+   "shuffled_mean": {
+    "mean": 0.492,
+    "sd": 0.0252,
+    "min": 0.4668,
+    "max": 0.5314,
+    "n": 5
+   },
+   "shuffled_max": {
+    "mean": 0.563,
+    "sd": 0.0508,
+    "min": 0.5326,
+    "max": 0.6523,
+    "n": 5
+   },
+   "answer_token_auc": {
+    "mean": 0.4745,
+    "sd": 0.026,
+    "min": 0.4364,
+    "max": 0.5091,
+    "n": 5
+   },
+   "runs": [
+    "deception_probes/qwen2.5-7b_doclayers_s1.json (seed 1)",
+    "deception_probes/qwen2.5-7b_doclayers_s2.json (seed 2)",
+    "deception_probes/qwen2.5-7b_doclayers_s3.json (seed 3)",
+    "deception_probes/qwen2.5-7b_doclayers_s4.json (seed 4)",
+    "deception_probes/qwen2.5-7b_doclayers_s42.json (seed 42)"
+   ]
+  },
+  "Qwen/Qwen2.5-7B-Instruct|none|doclayers|ensemble": {
+   "model": "Qwen/Qwen2.5-7B-Instruct",
+   "quantization": "none",
+   "run_kind": "doclayers",
+   "layer": "ensemble",
+   "test_auc": {
+    "mean": 0.9096,
+    "sd": 0.0212,
+    "min": 0.8767,
+    "max": 0.9342,
+    "n": 5
+   },
+   "val_auc": {
+    "mean": 0.8927,
+    "sd": 0.0248,
+    "min": 0.8641,
+    "max": 0.918,
+    "n": 5
+   },
+   "train_auc": {
+    "mean": 0.9986,
+    "sd": 0.0013,
+    "min": 0.9974,
+    "max": 1.0,
+    "n": 5
+   },
+   "test_accuracy": {
+    "mean": 0.8158,
+    "sd": 0.0251,
+    "min": 0.7818,
+    "max": 0.8519,
+    "n": 5
+   },
+   "test_precision": {
+    "mean": 0.8775,
+    "sd": 0.0458,
+    "min": 0.8163,
+    "max": 0.925,
+    "n": 5
+   },
+   "test_recall": {
+    "mean": 0.7374,
+    "sd": 0.0513,
+    "min": 0.6727,
+    "max": 0.7963,
+    "n": 5
+   },
+   "test_f1": {
+    "mean": 0.7997,
+    "sd": 0.0291,
+    "min": 0.7692,
+    "max": 0.8431,
+    "n": 5
+   },
+   "test_fpr": {
+    "mean": 0.1058,
+    "sd": 0.0469,
+    "min": 0.0545,
+    "max": 0.1636,
+    "n": 5
+   },
+   "answer_token_auc": {
+    "mean": 0.4745,
+    "sd": 0.026,
+    "min": 0.4364,
+    "max": 0.5091,
+    "n": 5
+   },
+   "runs": [
+    "deception_probes/qwen2.5-7b_doclayers_s1.json (seed 1)",
+    "deception_probes/qwen2.5-7b_doclayers_s2.json (seed 2)",
+    "deception_probes/qwen2.5-7b_doclayers_s3.json (seed 3)",
+    "deception_probes/qwen2.5-7b_doclayers_s4.json (seed 4)",
+    "deception_probes/qwen2.5-7b_doclayers_s42.json (seed 42)"
+   ]
+  }
+ },
+ "quantization": {
+  "Qwen/Qwen2.5-7B-Instruct|4bit|doclayers|26": {
+   "model": "Qwen/Qwen2.5-7B-Instruct",
+   "quantization": "4bit",
+   "run_kind": "doclayers",
+   "layer": 26,
+   "test_auc": {
+    "mean": 0.9068,
+    "sd": 0.061,
+    "min": 0.838,
+    "max": 0.9544,
+    "n": 3
+   },
+   "val_auc": {
+    "mean": 0.8742,
+    "sd": 0.0634,
+    "min": 0.806,
+    "max": 0.9312,
+    "n": 3
+   },
+   "train_auc": {
+    "mean": 0.996,
+    "sd": 0.007,
+    "min": 0.9879,
+    "max": 1.0,
+    "n": 3
+   },
+   "test_accuracy": {
+    "mean": 0.8303,
+    "sd": 0.0501,
+    "min": 0.7727,
+    "max": 0.8636,
+    "n": 3
+   },
+   "test_precision": {
+    "mean": 0.8865,
+    "sd": 0.0549,
+    "min": 0.8261,
+    "max": 0.9333,
+    "n": 3
+   },
+   "test_recall": {
+    "mean": 0.7576,
+    "sd": 0.0639,
+    "min": 0.6909,
+    "max": 0.8182,
+    "n": 3
+   },
+   "test_f1": {
+    "mean": 0.8165,
+    "sd": 0.0561,
+    "min": 0.7525,
+    "max": 0.8571,
+    "n": 3
+   },
+   "test_fpr": {
+    "mean": 0.097,
+    "sd": 0.0458,
+    "min": 0.0545,
+    "max": 0.1455,
+    "n": 3
+   },
+   "shuffled_mean": {
+    "mean": 0.5089,
+    "sd": 0.0076,
+    "min": 0.5001,
+    "max": 0.5138,
+    "n": 3
+   },
+   "shuffled_max": {
+    "mean": 0.5647,
+    "sd": 0.0231,
+    "min": 0.5507,
+    "max": 0.5914,
+    "n": 3
+   },
+   "answer_token_auc": {
+    "mean": 0.4727,
+    "sd": 0.0364,
+    "min": 0.4364,
+    "max": 0.5091,
+    "n": 3
+   },
+   "runs": [
+    "quantization/qwen2.5-7b_doclayers_4bit_s1.json (seed 1)",
+    "quantization/qwen2.5-7b_doclayers_4bit_s2.json (seed 2)",
+    "quantization/qwen2.5-7b_doclayers_4bit_s42.json (seed 42)"
+   ]
+  },
+  "Qwen/Qwen2.5-7B-Instruct|4bit|doclayers|27": {
+   "model": "Qwen/Qwen2.5-7B-Instruct",
+   "quantization": "4bit",
+   "run_kind": "doclayers",
+   "layer": 27,
+   "test_auc": {
+    "mean": 0.9079,
+    "sd": 0.0631,
+    "min": 0.836,
+    "max": 0.9544,
+    "n": 3
+   },
+   "val_auc": {
+    "mean": 0.8745,
+    "sd": 0.0481,
+    "min": 0.8218,
+    "max": 0.916,
+    "n": 3
+   },
+   "train_auc": {
+    "mean": 0.9978,
+    "sd": 0.0039,
+    "min": 0.9933,
+    "max": 1.0,
+    "n": 3
+   },
+   "test_accuracy": {
+    "mean": 0.8273,
+    "sd": 0.0568,
+    "min": 0.7636,
+    "max": 0.8727,
+    "n": 3
+   },
+   "test_precision": {
+    "mean": 0.8931,
+    "sd": 0.0752,
+    "min": 0.8085,
+    "max": 0.9524,
+    "n": 3
+   },
+   "test_recall": {
+    "mean": 0.7455,
+    "sd": 0.0656,
+    "min": 0.6909,
+    "max": 0.8182,
+    "n": 3
+   },
+   "test_f1": {
+    "mean": 0.8117,
+    "sd": 0.0612,
+    "min": 0.7451,
+    "max": 0.8654,
+    "n": 3
+   },
+   "test_fpr": {
+    "mean": 0.0909,
+    "sd": 0.0656,
+    "min": 0.0364,
+    "max": 0.1636,
+    "n": 3
+   },
+   "shuffled_mean": {
+    "mean": 0.5001,
+    "sd": 0.0146,
+    "min": 0.4879,
+    "max": 0.5163,
+    "n": 3
+   },
+   "shuffled_max": {
+    "mean": 0.558,
+    "sd": 0.0137,
+    "min": 0.5445,
+    "max": 0.5719,
+    "n": 3
+   },
+   "answer_token_auc": {
+    "mean": 0.4727,
+    "sd": 0.0364,
+    "min": 0.4364,
+    "max": 0.5091,
+    "n": 3
+   },
+   "runs": [
+    "quantization/qwen2.5-7b_doclayers_4bit_s1.json (seed 1)",
+    "quantization/qwen2.5-7b_doclayers_4bit_s2.json (seed 2)",
+    "quantization/qwen2.5-7b_doclayers_4bit_s42.json (seed 42)"
+   ]
+  },
+  "Qwen/Qwen2.5-7B-Instruct|4bit|doclayers|ensemble": {
+   "model": "Qwen/Qwen2.5-7B-Instruct",
+   "quantization": "4bit",
+   "run_kind": "doclayers",
+   "layer": "ensemble",
+   "test_auc": {
+    "mean": 0.9124,
+    "sd": 0.0556,
+    "min": 0.8502,
+    "max": 0.9574,
+    "n": 3
+   },
+   "val_auc": {
+    "mean": 0.8842,
+    "sd": 0.0447,
+    "min": 0.837,
+    "max": 0.926,
+    "n": 3
+   },
+   "train_auc": {
+    "mean": 0.9994,
+    "sd": 0.001,
+    "min": 0.9983,
+    "max": 1.0,
+    "n": 3
+   },
+   "test_accuracy": {
+    "mean": 0.8152,
+    "sd": 0.0467,
+    "min": 0.7636,
+    "max": 0.8545,
+    "n": 3
+   },
+   "test_precision": {
+    "mean": 0.8911,
+    "sd": 0.0737,
+    "min": 0.8085,
+    "max": 0.95,
+    "n": 3
+   },
+   "test_recall": {
+    "mean": 0.7212,
+    "sd": 0.0525,
+    "min": 0.6909,
+    "max": 0.7818,
+    "n": 3
+   },
+   "test_f1": {
+    "mean": 0.7961,
+    "sd": 0.0491,
+    "min": 0.7451,
+    "max": 0.8431,
+    "n": 3
+   },
+   "test_fpr": {
+    "mean": 0.0909,
+    "sd": 0.0656,
+    "min": 0.0364,
+    "max": 0.1636,
+    "n": 3
+   },
+   "answer_token_auc": {
+    "mean": 0.4727,
+    "sd": 0.0364,
+    "min": 0.4364,
+    "max": 0.5091,
+    "n": 3
+   },
+   "runs": [
+    "quantization/qwen2.5-7b_doclayers_4bit_s1.json (seed 1)",
+    "quantization/qwen2.5-7b_doclayers_4bit_s2.json (seed 2)",
+    "quantization/qwen2.5-7b_doclayers_4bit_s42.json (seed 42)"
+   ]
+  },
+  "Qwen/Qwen2.5-7B-Instruct|8bit|doclayers|26": {
+   "model": "Qwen/Qwen2.5-7B-Instruct",
+   "quantization": "8bit",
+   "run_kind": "doclayers",
+   "layer": 26,
+   "test_auc": {
+    "mean": 0.9142,
+    "sd": 0.0311,
+    "min": 0.8853,
+    "max": 0.9471,
+    "n": 3
+   },
+   "val_auc": {
+    "mean": 0.8923,
+    "sd": 0.0048,
+    "min": 0.8889,
+    "max": 0.8979,
+    "n": 3
+   },
+   "train_auc": {
+    "mean": 0.996,
+    "sd": 0.0069,
+    "min": 0.9881,
+    "max": 1.0,
+    "n": 3
+   },
+   "test_accuracy": {
+    "mean": 0.8242,
+    "sd": 0.0319,
+    "min": 0.7909,
+    "max": 0.8545,
+    "n": 3
+   },
+   "test_precision": {
+    "mean": 0.9035,
+    "sd": 0.0531,
+    "min": 0.8478,
+    "max": 0.9535,
+    "n": 3
+   },
+   "test_recall": {
+    "mean": 0.7273,
+    "sd": 0.0182,
+    "min": 0.7091,
+    "max": 0.7455,
+    "n": 3
+   },
+   "test_f1": {
+    "mean": 0.8057,
+    "sd": 0.0323,
+    "min": 0.7723,
+    "max": 0.8367,
+    "n": 3
+   },
+   "test_fpr": {
+    "mean": 0.0788,
+    "sd": 0.0458,
+    "min": 0.0364,
+    "max": 0.1273,
+    "n": 3
+   },
+   "shuffled_mean": {
+    "mean": 0.4852,
+    "sd": 0.0247,
+    "min": 0.4571,
+    "max": 0.5033,
+    "n": 3
+   },
+   "shuffled_max": {
+    "mean": 0.5579,
+    "sd": 0.015,
+    "min": 0.5484,
+    "max": 0.5752,
+    "n": 3
+   },
+   "answer_token_auc": {
+    "mean": 0.4727,
+    "sd": 0.0364,
+    "min": 0.4364,
+    "max": 0.5091,
+    "n": 3
+   },
+   "runs": [
+    "quantization/qwen2.5-7b_doclayers_8bit_s1.json (seed 1)",
+    "quantization/qwen2.5-7b_doclayers_8bit_s2.json (seed 2)",
+    "quantization/qwen2.5-7b_doclayers_8bit_s42.json (seed 42)"
+   ]
+  },
+  "Qwen/Qwen2.5-7B-Instruct|8bit|doclayers|27": {
+   "model": "Qwen/Qwen2.5-7B-Instruct",
+   "quantization": "8bit",
+   "run_kind": "doclayers",
+   "layer": 27,
+   "test_auc": {
+    "mean": 0.9094,
+    "sd": 0.0325,
+    "min": 0.8744,
+    "max": 0.9385,
+    "n": 3
+   },
+   "val_auc": {
+    "mean": 0.8869,
+    "sd": 0.0055,
+    "min": 0.8807,
+    "max": 0.8906,
+    "n": 3
+   },
+   "train_auc": {
+    "mean": 0.9971,
+    "sd": 0.005,
+    "min": 0.9913,
+    "max": 1.0,
+    "n": 3
+   },
+   "test_accuracy": {
+    "mean": 0.8091,
+    "sd": 0.0182,
+    "min": 0.7909,
+    "max": 0.8273,
+    "n": 3
+   },
+   "test_precision": {
+    "mean": 0.894,
+    "sd": 0.0407,
+    "min": 0.8478,
+    "max": 0.925,
+    "n": 3
+   },
+   "test_recall": {
+    "mean": 0.703,
+    "sd": 0.0278,
+    "min": 0.6727,
+    "max": 0.7273,
+    "n": 3
+   },
+   "test_f1": {
+    "mean": 0.7864,
+    "sd": 0.019,
+    "min": 0.7723,
+    "max": 0.8081,
+    "n": 3
+   },
+   "test_fpr": {
+    "mean": 0.0848,
+    "sd": 0.0378,
+    "min": 0.0545,
+    "max": 0.1273,
+    "n": 3
+   },
+   "shuffled_mean": {
+    "mean": 0.4854,
+    "sd": 0.0133,
+    "min": 0.4739,
+    "max": 0.5,
+    "n": 3
+   },
+   "shuffled_max": {
+    "mean": 0.5737,
+    "sd": 0.0114,
+    "min": 0.562,
+    "max": 0.5848,
+    "n": 3
+   },
+   "answer_token_auc": {
+    "mean": 0.4727,
+    "sd": 0.0364,
+    "min": 0.4364,
+    "max": 0.5091,
+    "n": 3
+   },
+   "runs": [
+    "quantization/qwen2.5-7b_doclayers_8bit_s1.json (seed 1)",
+    "quantization/qwen2.5-7b_doclayers_8bit_s2.json (seed 2)",
+    "quantization/qwen2.5-7b_doclayers_8bit_s42.json (seed 42)"
+   ]
+  },
+  "Qwen/Qwen2.5-7B-Instruct|8bit|doclayers|ensemble": {
+   "model": "Qwen/Qwen2.5-7B-Instruct",
+   "quantization": "8bit",
+   "run_kind": "doclayers",
+   "layer": "ensemble",
+   "test_auc": {
+    "mean": 0.9093,
+    "sd": 0.0339,
+    "min": 0.8711,
+    "max": 0.9359,
+    "n": 3
+   },
+   "val_auc": {
+    "mean": 0.8828,
+    "sd": 0.0179,
+    "min": 0.8674,
+    "max": 0.9025,
+    "n": 3
+   },
+   "train_auc": {
+    "mean": 0.9976,
+    "sd": 0.0008,
+    "min": 0.997,
+    "max": 0.9985,
+    "n": 3
+   },
+   "test_accuracy": {
+    "mean": 0.7848,
+    "sd": 0.0292,
+    "min": 0.7636,
+    "max": 0.8182,
+    "n": 3
+   },
+   "test_precision": {
+    "mean": 0.8958,
+    "sd": 0.0502,
+    "min": 0.8409,
+    "max": 0.9394,
+    "n": 3
+   },
+   "test_recall": {
+    "mean": 0.6485,
+    "sd": 0.0757,
+    "min": 0.5636,
+    "max": 0.7091,
+    "n": 3
+   },
+   "test_f1": {
+    "mean": 0.7493,
+    "sd": 0.0457,
+    "min": 0.7045,
+    "max": 0.7959,
+    "n": 3
+   },
+   "test_fpr": {
+    "mean": 0.0788,
+    "sd": 0.0458,
+    "min": 0.0364,
+    "max": 0.1273,
+    "n": 3
+   },
+   "answer_token_auc": {
+    "mean": 0.4727,
+    "sd": 0.0364,
+    "min": 0.4364,
+    "max": 0.5091,
+    "n": 3
+   },
+   "runs": [
+    "quantization/qwen2.5-7b_doclayers_8bit_s1.json (seed 1)",
+    "quantization/qwen2.5-7b_doclayers_8bit_s2.json (seed 2)",
+    "quantization/qwen2.5-7b_doclayers_8bit_s42.json (seed 42)"
+   ]
+  }
+ },
+ "examples": {
+  "pytorch_probe_gpu": {
+   "success": true,
+   "gpu_val_auc": 1.0,
+   "gpu_test_auc": 1.0,
+   "cpu_val_auc": 1.0,
+   "gpu_train_time_s": 7.92,
+   "cpu_train_time_s": 3.14,
+   "speedup": 0.4
+  },
+  "cross_arch|gpt2|auc": {
+   "mean": 1.0,
+   "sd": 0.0,
+   "min": 1.0,
+   "max": 1.0,
+   "n": 3
+  },
+  "cross_arch|gpt2|train_auc": {
+   "mean": 1.0,
+   "sd": 0.0,
+   "min": 1.0,
+   "max": 1.0,
+   "n": 3
+  },
+  "cross_arch|gpt2|shuffled_label_auc": {
+   "mean": 0.533,
+   "sd": 0.0602,
+   "min": 0.4635,
+   "max": 0.5682,
+   "n": 3
+  },
+  "cross_arch|gpt2|length_only_auc": {
+   "mean": 1.0,
+   "sd": 0.0,
+   "min": 1.0,
+   "max": 1.0,
+   "n": 3
+  },
+  "cross_arch|gpt2|tpr": {
+   "mean": 0.9833,
+   "sd": 0.0153,
+   "min": 0.97,
+   "max": 1.0,
+   "n": 3
+  },
+  "cross_arch|gpt2|fpr": {
+   "mean": 0.0,
+   "sd": 0.0,
+   "min": 0.0,
+   "max": 0.0,
+   "n": 3
+  },
+  "cross_arch|mistralai/Mistral-7B-Instruct-v0.2|auc": {
+   "mean": 1.0,
+   "sd": 0.0,
+   "min": 1.0,
+   "max": 1.0,
+   "n": 3
+  },
+  "cross_arch|mistralai/Mistral-7B-Instruct-v0.2|train_auc": {
+   "mean": 1.0,
+   "sd": 0.0,
+   "min": 1.0,
+   "max": 1.0,
+   "n": 3
+  },
+  "cross_arch|mistralai/Mistral-7B-Instruct-v0.2|shuffled_label_auc": {
+   "mean": 0.507,
+   "sd": 0.0333,
+   "min": 0.4685,
+   "max": 0.527,
+   "n": 3
+  },
+  "cross_arch|mistralai/Mistral-7B-Instruct-v0.2|length_only_auc": {
+   "mean": 1.0,
+   "sd": 0.0,
+   "min": 1.0,
+   "max": 1.0,
+   "n": 3
+  },
+  "cross_arch|mistralai/Mistral-7B-Instruct-v0.2|tpr": {
+   "mean": 0.9833,
+   "sd": 0.0115,
+   "min": 0.97,
+   "max": 0.99,
+   "n": 3
+  },
+  "cross_arch|mistralai/Mistral-7B-Instruct-v0.2|fpr": {
+   "mean": 0.0,
+   "sd": 0.0,
+   "min": 0.0,
+   "max": 0.0,
+   "n": 3
+  },
+  "cross_arch|Qwen/Qwen2.5-7B-Instruct|auc": {
+   "mean": 1.0,
+   "sd": 0.0,
+   "min": 1.0,
+   "max": 1.0,
+   "n": 3
+  },
+  "cross_arch|Qwen/Qwen2.5-7B-Instruct|train_auc": {
+   "mean": 1.0,
+   "sd": 0.0,
+   "min": 1.0,
+   "max": 1.0,
+   "n": 3
+  },
+  "cross_arch|Qwen/Qwen2.5-7B-Instruct|shuffled_label_auc": {
+   "mean": 0.5106,
+   "sd": 0.0263,
+   "min": 0.4835,
+   "max": 0.536,
+   "n": 3
+  },
+  "cross_arch|Qwen/Qwen2.5-7B-Instruct|length_only_auc": {
+   "mean": 1.0,
+   "sd": 0.0,
+   "min": 1.0,
+   "max": 1.0,
+   "n": 3
+  },
+  "cross_arch|Qwen/Qwen2.5-7B-Instruct|tpr": {
+   "mean": 0.98,
+   "sd": 0.0265,
+   "min": 0.95,
+   "max": 1.0,
+   "n": 3
+  },
+  "cross_arch|Qwen/Qwen2.5-7B-Instruct|fpr": {
+   "mean": 0.0,
+   "sd": 0.0,
+   "min": 0.0,
+   "max": 0.0,
+   "n": 3
+  },
+  "gradient_audit|clean_accuracy": {
+   "mean": 0.9615,
+   "sd": 0.0666,
+   "min": 0.8846,
+   "max": 1.0,
+   "n": 3
+  },
+  "gradient_audit|clean_auc": {
+   "mean": 1.0,
+   "sd": 0.0,
+   "min": 1.0,
+   "max": 1.0,
+   "n": 3
+  },
+  "gradient_audit|adversarial_accuracy": {
+   "mean": 0.0,
+   "sd": 0.0,
+   "min": 0.0,
+   "max": 0.0,
+   "n": 3
+  },
+  "gradient_audit|adversarial_auc": {
+   "mean": 0.0,
+   "sd": 0.0,
+   "min": 0.0,
+   "max": 0.0,
+   "n": 3
+  },
+  "gradient_audit|attack_success_rate": {
+   "mean": 0.9615,
+   "sd": 0.0666,
+   "min": 0.8846,
+   "max": 1.0,
+   "n": 3
+  },
+  "gradient_audit|avg_perturbation": {
+   "mean": 0.0611,
+   "sd": 0.0002,
+   "min": 0.061,
+   "max": 0.0613,
+   "n": 3
+  },
+  "gradient_audit|max_perturbation": {
+   "mean": 0.1,
+   "sd": 0.0,
+   "min": 0.1,
+   "max": 0.1,
+   "n": 3
+  },
+  "gradient_audit|auc_drop": {
+   "mean": 1.0,
+   "sd": 0.0,
+   "min": 1.0,
+   "max": 1.0,
+   "n": 3
+  },
+  "gradient_audit|optimal_threshold": {
+   "mean": 0.9702,
+   "sd": 0.0271,
+   "min": 0.9421,
+   "max": 0.9962,
+   "n": 3
+  },
+  "gradient_audit|prob_min": {
+   "mean": 0.0012,
+   "sd": 0.0007,
+   "min": 0.0005,
+   "max": 0.0018,
+   "n": 3
+  },
+  "gradient_audit|prob_max": {
+   "mean": 0.9983,
+   "sd": 0.0001,
+   "min": 0.9982,
+   "max": 0.9984,
+   "n": 3
+  },
+  "real_transformer|length_only_auc": {
+   "mean": 1.0,
+   "sd": 0.0,
+   "min": 1.0,
+   "max": 1.0,
+   "n": 3
+  },
+  "real_transformer|ARTActivationDetector|auc": {
+   "mean": 0.9454,
+   "sd": 0.0195,
+   "min": 0.9231,
+   "max": 0.9594,
+   "n": 3
+  },
+  "real_transformer|ARTActivationDetector|train_auc": {
+   "mean": 0.9504,
+   "sd": 0.0118,
+   "min": 0.9426,
+   "max": 0.9639,
+   "n": 3
+  },
+  "real_transformer|ARTActivationDetector|f1": {
+   "mean": 0.842,
+   "sd": 0.0583,
+   "min": 0.785,
+   "max": 0.9016,
+   "n": 3
+  },
+  "real_transformer|ARTActivationDetector|tpr": {
+   "mean": 0.8,
+   "sd": 0.1093,
+   "min": 0.7,
+   "max": 0.9167,
+   "n": 3
+  },
+  "real_transformer|ARTActivationDetector|fpr": {
+   "mean": 0.0944,
+   "sd": 0.0192,
+   "min": 0.0833,
+   "max": 0.1167,
+   "n": 3
+  },
+  "real_transformer|LinearProbeDetector|auc": {
+   "mean": 1.0,
+   "sd": 0.0,
+   "min": 1.0,
+   "max": 1.0,
+   "n": 3
+  },
+  "real_transformer|LinearProbeDetector|train_auc": {
+   "mean": 1.0,
+   "sd": 0.0,
+   "min": 1.0,
+   "max": 1.0,
+   "n": 3
+  },
+  "real_transformer|LinearProbeDetector|f1": {
+   "mean": 1.0,
+   "sd": 0.0,
+   "min": 1.0,
+   "max": 1.0,
+   "n": 3
+  },
+  "real_transformer|LinearProbeDetector|tpr": {
+   "mean": 1.0,
+   "sd": 0.0,
+   "min": 1.0,
+   "max": 1.0,
+   "n": 3
+  },
+  "real_transformer|LinearProbeDetector|fpr": {
+   "mean": 0.0,
+   "sd": 0.0,
+   "min": 0.0,
+   "max": 0.0,
+   "n": 3
+  },
+  "real_transformer|LinearProbeDetector|shuffled_label_auc": {
+   "mean": 0.504,
+   "sd": 0.098,
+   "min": 0.4419,
+   "max": 0.6169,
+   "n": 3
+  },
+  "red_team|Subtle (single char / punctuation)|ARTActivationDetector|auc": {
+   "mean": 0.5305,
+   "sd": 0.0119,
+   "min": 0.52,
+   "max": 0.5433,
+   "n": 3
+  },
+  "red_team|Subtle (single char / punctuation)|ARTActivationDetector|miss_rate": {
+   "mean": 0.6,
+   "sd": 0.1641,
+   "min": 0.4167,
+   "max": 0.7333,
+   "n": 3
+  },
+  "red_team|Subtle (single char / punctuation)|LinearProbeDetector|auc": {
+   "mean": 0.9992,
+   "sd": 0.001,
+   "min": 0.9981,
+   "max": 1.0,
+   "n": 3
+  },
+  "red_team|Subtle (single char / punctuation)|LinearProbeDetector|miss_rate": {
+   "mean": 0.0222,
+   "sd": 0.0255,
+   "min": 0.0,
+   "max": 0.05,
+   "n": 3
+  },
+  "red_team|Subtle (single char / punctuation)|LinearProbeDetector|shuffled_label_auc": {
+   "mean": 0.5592,
+   "sd": 0.12,
+   "min": 0.4833,
+   "max": 0.6975,
+   "n": 3
+  },
+  "red_team|Context (prefix + suffix)|ARTActivationDetector|auc": {
+   "mean": 0.9419,
+   "sd": 0.0146,
+   "min": 0.9317,
+   "max": 0.9586,
+   "n": 3
+  },
+  "red_team|Context (prefix + suffix)|ARTActivationDetector|miss_rate": {
+   "mean": 0.1667,
+   "sd": 0.0764,
+   "min": 0.0833,
+   "max": 0.2333,
+   "n": 3
+  },
+  "red_team|Context (prefix + suffix)|LinearProbeDetector|auc": {
+   "mean": 1.0,
+   "sd": 0.0,
+   "min": 1.0,
+   "max": 1.0,
+   "n": 3
+  },
+  "red_team|Context (prefix + suffix)|LinearProbeDetector|miss_rate": {
+   "mean": 0.0,
+   "sd": 0.0,
+   "min": 0.0,
+   "max": 0.0,
+   "n": 3
+  },
+  "red_team|Context (prefix + suffix)|LinearProbeDetector|shuffled_label_auc": {
+   "mean": 0.5005,
+   "sd": 0.1129,
+   "min": 0.4194,
+   "max": 0.6294,
+   "n": 3
+  },
+  "red_team|Distributed (spread words)|ARTActivationDetector|auc": {
+   "mean": 0.734,
+   "sd": 0.0048,
+   "min": 0.7306,
+   "max": 0.7394,
+   "n": 3
+  },
+  "red_team|Distributed (spread words)|ARTActivationDetector|miss_rate": {
+   "mean": 0.4667,
+   "sd": 0.1667,
+   "min": 0.3,
+   "max": 0.6333,
+   "n": 3
+  },
+  "red_team|Distributed (spread words)|LinearProbeDetector|auc": {
+   "mean": 0.998,
+   "sd": 0.0035,
+   "min": 0.9939,
+   "max": 1.0,
+   "n": 3
+  },
+  "red_team|Distributed (spread words)|LinearProbeDetector|miss_rate": {
+   "mean": 0.0333,
+   "sd": 0.0289,
+   "min": 0.0,
+   "max": 0.05,
+   "n": 3
+  },
+  "red_team|Distributed (spread words)|LinearProbeDetector|shuffled_label_auc": {
+   "mean": 0.5183,
+   "sd": 0.0922,
+   "min": 0.4622,
+   "max": 0.6247,
+   "n": 3
+  },
+  "red_team|Benign phrase|ARTActivationDetector|auc": {
+   "mean": 0.673,
+   "sd": 0.0116,
+   "min": 0.6656,
+   "max": 0.6864,
+   "n": 3
+  },
+  "red_team|Benign phrase|ARTActivationDetector|miss_rate": {
+   "mean": 0.4778,
+   "sd": 0.0822,
+   "min": 0.3833,
+   "max": 0.5333,
+   "n": 3
+  },
+  "red_team|Benign phrase|LinearProbeDetector|auc": {
+   "mean": 1.0,
+   "sd": 0.0,
+   "min": 1.0,
+   "max": 1.0,
+   "n": 3
+  },
+  "red_team|Benign phrase|LinearProbeDetector|miss_rate": {
+   "mean": 0.0,
+   "sd": 0.0,
+   "min": 0.0,
+   "max": 0.0,
+   "n": 3
+  },
+  "red_team|Benign phrase|LinearProbeDetector|shuffled_label_auc": {
+   "mean": 0.5285,
+   "sd": 0.1222,
+   "min": 0.4367,
+   "max": 0.6672,
+   "n": 3
+  },
+  "red_team|Typo|ARTActivationDetector|auc": {
+   "mean": 0.8014,
+   "sd": 0.0075,
+   "min": 0.7928,
+   "max": 0.8058,
+   "n": 3
+  },
+  "red_team|Typo|ARTActivationDetector|miss_rate": {
+   "mean": 0.45,
+   "sd": 0.0726,
+   "min": 0.4,
+   "max": 0.5333,
+   "n": 3
+  },
+  "red_team|Typo|LinearProbeDetector|auc": {
+   "mean": 1.0,
+   "sd": 0.0,
+   "min": 1.0,
+   "max": 1.0,
+   "n": 3
+  },
+  "red_team|Typo|LinearProbeDetector|miss_rate": {
+   "mean": 0.0056,
+   "sd": 0.0096,
+   "min": 0.0,
+   "max": 0.0167,
+   "n": 3
+  },
+  "red_team|Typo|LinearProbeDetector|shuffled_label_auc": {
+   "mean": 0.5375,
+   "sd": 0.1374,
+   "min": 0.4539,
+   "max": 0.6961,
+   "n": 3
+  },
+  "benchmark_detectors|ARTActivationDetector|auc": {
+   "mean": 0.5247,
+   "sd": 0.0224,
+   "min": 0.5056,
+   "max": 0.5493,
+   "n": 3
+  },
+  "benchmark_detectors|ARTActivationDetector|train_auc": {
+   "mean": 0.5044,
+   "sd": 0.0473,
+   "min": 0.463,
+   "max": 0.556,
+   "n": 3
+  },
+  "benchmark_detectors|ARTActivationDetector|f1": {
+   "mean": 0.0836,
+   "sd": 0.0994,
+   "min": 0.0,
+   "max": 0.1935,
+   "n": 3
+  },
+  "benchmark_detectors|ARTActivationDetector|tpr": {
+   "mean": 0.0778,
+   "sd": 0.1072,
+   "min": 0.0,
+   "max": 0.2,
+   "n": 3
+  },
+  "benchmark_detectors|ARTActivationDetector|fpr": {
+   "mean": 0.0667,
+   "sd": 0.0933,
+   "min": 0.0,
+   "max": 0.1733,
+   "n": 3
+  },
+  "benchmark_detectors|LinearProbeDetector|auc": {
+   "mean": 1.0,
+   "sd": 0.0,
+   "min": 1.0,
+   "max": 1.0,
+   "n": 3
+  },
+  "benchmark_detectors|LinearProbeDetector|train_auc": {
+   "mean": 1.0,
+   "sd": 0.0,
+   "min": 1.0,
+   "max": 1.0,
+   "n": 3
+  },
+  "benchmark_detectors|LinearProbeDetector|f1": {
+   "mean": 0.9885,
+   "sd": 0.0199,
+   "min": 0.9655,
+   "max": 1.0,
+   "n": 3
+  },
+  "benchmark_detectors|LinearProbeDetector|tpr": {
+   "mean": 0.9778,
+   "sd": 0.0385,
+   "min": 0.9333,
+   "max": 1.0,
+   "n": 3
+  },
+  "benchmark_detectors|LinearProbeDetector|fpr": {
+   "mean": 0.0,
+   "sd": 0.0,
+   "min": 0.0,
+   "max": 0.0,
+   "n": 3
+  },
+  "benchmark_detectors|LinearProbeDetector|shuffled_label_auc": {
+   "mean": 0.5944,
+   "sd": 0.0296,
+   "min": 0.5604,
+   "max": 0.6149,
+   "n": 3
+  },
+  "comprehensive|Separable: constant shift|ARTActivationDetector|auc": {
+   "mean": 0.5052,
+   "sd": 0.0391,
+   "min": 0.4607,
+   "max": 0.5341,
+   "n": 3
+  },
+  "comprehensive|Separable: constant shift|ARTActivationDetector|f1": {
+   "mean": 0.0945,
+   "sd": 0.0843,
+   "min": 0.0,
+   "max": 0.1622,
+   "n": 3
+  },
+  "comprehensive|Separable: constant shift|LinearProbeDetector|auc": {
+   "mean": 1.0,
+   "sd": 0.0,
+   "min": 1.0,
+   "max": 1.0,
+   "n": 3
+  },
+  "comprehensive|Separable: constant shift|LinearProbeDetector|f1": {
+   "mean": 1.0,
+   "sd": 0.0,
+   "min": 1.0,
+   "max": 1.0,
+   "n": 3
+  },
+  "comprehensive|Separable: constant shift|LinearProbeDetector|shuffled_label_auc": {
+   "mean": 0.4516,
+   "sd": 0.0979,
+   "min": 0.3488,
+   "max": 0.5436,
+   "n": 3
+  },
+  "comprehensive|Moons: non-linear boundary|ARTActivationDetector|auc": {
+   "mean": 0.5109,
+   "sd": 0.0426,
+   "min": 0.4635,
+   "max": 0.5459,
+   "n": 3
+  },
+  "comprehensive|Moons: non-linear boundary|ARTActivationDetector|f1": {
+   "mean": 0.5684,
+   "sd": 0.0847,
+   "min": 0.4941,
+   "max": 0.6607,
+   "n": 3
+  },
+  "comprehensive|Moons: non-linear boundary|LinearProbeDetector|auc": {
+   "mean": 0.963,
+   "sd": 0.0052,
+   "min": 0.9594,
+   "max": 0.9689,
+   "n": 3
+  },
+  "comprehensive|Moons: non-linear boundary|LinearProbeDetector|f1": {
+   "mean": 0.8887,
+   "sd": 0.0103,
+   "min": 0.8783,
+   "max": 0.8989,
+   "n": 3
+  },
+  "comprehensive|Moons: non-linear boundary|LinearProbeDetector|shuffled_label_auc": {
+   "mean": 0.4863,
+   "sd": 0.1711,
+   "min": 0.3237,
+   "max": 0.6648,
+   "n": 3
+  },
+  "comprehensive|Overlapping clusters|ARTActivationDetector|auc": {
+   "mean": 0.5478,
+   "sd": 0.0492,
+   "min": 0.5107,
+   "max": 0.6036,
+   "n": 3
+  },
+  "comprehensive|Overlapping clusters|ARTActivationDetector|f1": {
+   "mean": 0.0,
+   "sd": 0.0,
+   "min": 0.0,
+   "max": 0.0,
+   "n": 3
+  },
+  "comprehensive|Overlapping clusters|LinearProbeDetector|auc": {
+   "mean": 0.4883,
+   "sd": 0.0639,
+   "min": 0.4181,
+   "max": 0.543,
+   "n": 3
+  },
+  "comprehensive|Overlapping clusters|LinearProbeDetector|f1": {
+   "mean": 0.0387,
+   "sd": 0.0336,
+   "min": 0.0,
+   "max": 0.0606,
+   "n": 3
+  },
+  "comprehensive|Overlapping clusters|LinearProbeDetector|shuffled_label_auc": {
+   "mean": 0.5127,
+   "sd": 0.0301,
+   "min": 0.478,
+   "max": 0.5319,
+   "n": 3
+  },
+  "comprehensive|Sparse shift (50 of 768 dims)|ARTActivationDetector|auc": {
+   "mean": 0.5423,
+   "sd": 0.0566,
+   "min": 0.4802,
+   "max": 0.591,
+   "n": 3
+  },
+  "comprehensive|Sparse shift (50 of 768 dims)|ARTActivationDetector|f1": {
+   "mean": 0.0741,
+   "sd": 0.1283,
+   "min": 0.0,
+   "max": 0.2222,
+   "n": 3
+  },
+  "comprehensive|Sparse shift (50 of 768 dims)|LinearProbeDetector|auc": {
+   "mean": 1.0,
+   "sd": 0.0,
+   "min": 1.0,
+   "max": 1.0,
+   "n": 3
+  },
+  "comprehensive|Sparse shift (50 of 768 dims)|LinearProbeDetector|f1": {
+   "mean": 0.9776,
+   "sd": 0.026,
+   "min": 0.9492,
+   "max": 1.0,
+   "n": 3
+  },
+  "comprehensive|Sparse shift (50 of 768 dims)|LinearProbeDetector|shuffled_label_auc": {
+   "mean": 0.4507,
+   "sd": 0.0981,
+   "min": 0.3501,
+   "max": 0.546,
+   "n": 3
+  }
+ }
+}
