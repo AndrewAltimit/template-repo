@@ -202,6 +202,14 @@
   drop shadow={opacity=0.3}
 }
 
+% Measured results live in this directory (raw JSON with provenance).
+\newcommand{\resultsdir}{\texttt{docs/results/2026-09-regeneration/}}
+% Marks a result that no script in this repository produces.
+\newcommand{\notreproduced}[1]{%
+\begin{warningbox}[Not Reproducible From This Repository]
+#1
+\end{warningbox}}
+
 % ============================================================================
 % CODE LISTING STYLE
 % ============================================================================
@@ -307,8 +315,8 @@
   \node[fill=primaryblue!10, rounded corners=8pt, inner sep=14pt, minimum width=3.2cm] (stat2) at ([xshift=11.7cm, yshift=-12cm]current page.north west) {
     \begin{tabular}{c}
       {\color{primaryblue}\Large\iconChart}\\[4pt]
-      {\color{primaryblue}\LARGE\textbf{93.2\%}}\\[2pt]
-      {\color{primaryblue!60!black}\scriptsize AUROC Score}
+      {\color{primaryblue}\LARGE\textbf{0.90}}\\[2pt]
+      {\color{primaryblue!60!black}\scriptsize Deception-Probe AUROC}
     \end{tabular}
   };
   \node[fill=primaryblue!10, rounded corners=8pt, inner sep=14pt, minimum width=3.2cm] (stat3) at ([xshift=16.2cm, yshift=-12cm]current page.north west) {
@@ -419,7 +427,7 @@
 \textbf{Approach.} This guide presents a comprehensive detection framework combining multiple complementary methods: (1) linear probes trained on internal activations to identify backdoor-associated representations, (2) honeypot prompts designed to elicit trigger responses, (3) chain-of-thought analysis for models with exposed reasoning, and (4) automated red-team evaluation. The framework operates under a \textbf{white/gray-box threat model} requiring access to model weights and activations.
 
 \vspace{0.3cm}
-\textbf{Results.} On our evaluation suite spanning GPT-2, Mistral-7B, Llama-2, and Qwen architectures, linear probes achieve 93.2\% AUROC on held-out backdoor patterns (n=1,000 samples, 5-fold cross-validation). Lab evaluations on known injected backdoors reach near-perfect detection (AUC $\approx$ 1.0), while the production metric reflects generalization to previously unseen trigger families.
+\textbf{Results.} Linear deception probes on teacher-forced yes/no answers reach a held-out test AUROC of about 0.90 at late layers of Qwen2.5-3B-Instruct, Qwen2.5-7B-Instruct and Yi-1.5-9B-Chat (for example $0.904 \pm 0.029$ for Qwen2.5-7B, 5 seeds), against an answer-token baseline of 0.47 and label-shuffled probes at 0.49--0.51; the seed-to-seed spread is larger than the differences between models, and 8-bit/4-bit loading causes no measurable loss. Trigger-string probes on unmodified GPT-2, Qwen2.5-7B and Mistral-7B reach AUROC 1.0, but so does a classifier that sees only the input length, so they show nothing beyond length. A PGD attack on input embeddings drives a GPT-2 probe from AUROC 1.0 to 0.0. No backdoored model was evaluated; detection of real sleeper agents is not established by these results.
 
 \vspace{0.3cm}
 \textbf{Limitations.} Detection requires activation-level access unavailable in black-box API deployments. Adaptive attackers aware of probe directions may develop evasion strategies. The framework is designed for research and controlled deployment environments; responsible use guidelines are included.
@@ -658,15 +666,15 @@ Residual Stream & Information highway & Final representation \\
 \end{tabular}
 \end{center}
 
-\begin{infobox}[Research Finding]
-Empirical studies suggest that \textbf{middle-to-late layers} (approximately layers 12-20 in a 24-layer model) contain the strongest signals for detecting deceptive intent. Early layers focus on syntax; late layers focus on output generation.
+\begin{infobox}[Measured Layer Profile]
+In this framework's deception-probe sweeps (Qwen2.5-3B and Qwen2.5-7B, every layer, seed 42), held-out test AUROC is 0.70--0.72 at the first layer, rises to about 0.90 at 60--70\% depth and then stays flat to the last layer (Section~\ref{sec:layer-selection}). Middle layers are clearly weaker than late layers; the late layers themselves are not distinguishable at this sample size.
 \end{infobox}
 
 \subsection{Activation Space Geometry}
 
 To visualize how models internally represent the difference between safe and triggered states, we use Principal Component Analysis (PCA) to project high-dimensional activation vectors into a viewable 3D space. This dimensionality reduction preserves the most important structural relationships while making patterns visible to human inspection.
 
-The visualization below shows activations extracted from layer 16 of a model processing both safe prompts (green cluster) and triggered prompts containing backdoor activators (red cluster). The clear spatial separation between clusters confirms that the model encodes these behavioral states in geometrically distinct regions---exactly the property that makes linear probe detection feasible.
+The schematic below illustrates the idea with safe prompts (green) and triggered prompts (red) forming separate clusters---the property that makes linear probe detection feasible. It is a drawing, not measured data: the points are placed at random around two chosen centres.
 
 \begin{center}
 \begin{tikzpicture}[scale=0.8]
@@ -692,7 +700,7 @@ The visualization below shows activations extracted from layer 16 of a model pro
   \node[font=\small, warningred] at (3,3.5) {Triggered};
 
   % Caption
-  \node[below, font=\scriptsize, text width=5cm, align=center] at (1.5,-1.4) {PCA projection of layer 16 activations\\showing clear cluster separation};
+  \node[below, font=\scriptsize, text width=5cm, align=center] at (1.5,-1.4) {Schematic PCA projection\\(illustration, not measured data)};
 \end{tikzpicture}
 \end{center}
 
@@ -710,35 +718,7 @@ Recent mechanistic interpretability research suggests that many high-level conce
 \textbf{Implication}: We don't need complex nonlinear classifiers---logistic regression suffices when the underlying feature is linearly represented.
 \end{keyconceptbox}
 
-\begin{center}
-\begin{tikzpicture}[scale=0.9]
-  % Detection effectiveness by method
-  \begin{axis}[
-    width=10cm, height=4.5cm,
-    ybar,
-    bar width=0.6cm,
-    xlabel={Detection Method},
-    ylabel={AUROC},
-    ymin=0.5, ymax=1.05,
-    symbolic x coords={Linear Probe, MLP (2-layer), Random Forest, SVM (RBF)},
-    xtick=data,
-    x tick label style={rotate=15, anchor=east, font=\scriptsize},
-    nodes near coords,
-    nodes near coords style={font=\tiny},
-    every node near coord/.append style={yshift=0.1cm},
-    legend pos=north east,
-    legend style={font=\tiny}
-  ]
-    \addplot[fill=primaryblue!70] coordinates {
-      (Linear Probe, 0.932) (MLP (2-layer), 0.941) (Random Forest, 0.918) (SVM (RBF), 0.925)
-    };
-  \end{axis}
-\end{tikzpicture}
-\end{center}
-
-\begin{infobox}[Key Insight]
-Linear probes achieve 93.2\% AUROC---only 0.9\% below a 2-layer MLP. The marginal gain from nonlinear methods doesn't justify the added complexity, interpretability loss, and overfitting risk.
-\end{infobox}
+\notreproduced{A comparison of linear probes against nonlinear classifiers (2-layer MLP, random forest, RBF-SVM) is not produced by any script in this repository, so no such numbers are given here. The measured case for linear probes is indirect: on held-out yes/no questions a logistic-regression probe reaches a test AUROC of about 0.90 (Section~\ref{sec:measured-results}), and on the synthetic ``moons'' benchmark, whose boundary is nonlinear, it still reaches $0.963 \pm 0.005$ (3 seeds).}
 
 \section{Glossary of Terms}
 
@@ -830,7 +810,7 @@ The architecture diagram below shows how information flows through the system. S
 \begin{itemize}[nosep]
   \item Linear probes detect backdoors by analyzing \textbf{internal activations} at specific layers
   \item Uses logistic regression to classify normal vs.\ backdoor-associated patterns
-  \item Best results from \textbf{middle layers} (50--75\% of model depth) where intent is clearest
+  \item In measured deception-probe sweeps, held-out AUROC plateaus at about 0.90 from \textbf{60--70\% of model depth} to the last layer
   \item Requires paired training data: clean inputs and triggered inputs
 \end{itemize}
 \end{tldrbox}
@@ -997,43 +977,48 @@ The code above is simplified for clarity. Production implementations must handle
 \end{warningbox}
 
 \subsection{Layer Selection Analysis}
+\label{sec:layer-selection}
 
-Not all layers in a transformer are equally informative for detecting backdoors. Early layers primarily process syntactic features (word order, grammar), while late layers focus on generating the final output tokens. The semantic content we care about---intent, deception, goal-directedness---is most clearly represented in the middle layers.
-
-The chart below demonstrates this empirically. We trained linear probes at each layer of GPT-2 and measured their detection accuracy (AUROC). Performance starts near random chance (0.5) at early layers, peaks in the shaded ``Optimal Range'' around layers 12--18, then declines as we approach the output. This pattern guides our recommendation to probe at 50--75\% of model depth.
+Not all layers in a transformer are equally informative. The chart below shows a measured layer profile for the deception-probe task (Section~\ref{sec:measured-results}): one logistic-regression probe per layer, trained on the training questions and evaluated once on the held-out test questions, for every layer of Qwen2.5-3B-Instruct (36 layers) and Qwen2.5-7B-Instruct (28 layers). These are single-seed sweeps (seed 42); across seeds a single-layer test AUROC varies by 0.02--0.04 (standard deviation), so neighbouring points are not distinguishable. Layer $L$ is the output of transformer block $L$ (HuggingFace \texttt{hidden\_states[L+1]}).
 
 \begin{center}
 \begin{tikzpicture}
   \begin{axis}[
     width=12cm, height=6cm,
-    xlabel={Layer Index},
-    ylabel={Probe AUROC},
-    xmin=0, xmax=24,
+    xlabel={Layer index (output of block $L$)},
+    ylabel={Held-out test AUROC},
+    xmin=0, xmax=36,
     ymin=0.5, ymax=1.0,
     grid=major,
     grid style={gray!30},
-    legend pos=south east
+    legend pos=south east,
+    legend style={font=\scriptsize}
   ]
-    % Optimal region - draw FIRST so it appears behind the curve
-    \fill[successgreen!25] (axis cs:12,0.5) rectangle (axis cs:18,1.0);
-    \node[font=\footnotesize\bfseries, successgreen!60!black, fill=white, fill opacity=0.9, text opacity=1, inner sep=2pt, rounded corners=2pt] at (axis cs:15,0.70) {Optimal Range};
-
-    % GPT-2 curve - drawn on top of the green region
-    \addplot[color=primaryblue, mark=o, thick, mark size=3pt] coordinates {
-      (0,0.52) (2,0.55) (4,0.62) (6,0.71) (8,0.78) (10,0.85)
-      (12,0.91) (14,0.93) (16,0.932) (18,0.93) (20,0.91) (22,0.88) (24,0.82)
+    \addplot[color=primaryblue, mark=o, thick, mark size=1.5pt] coordinates {
+      (0,0.717) (1,0.712) (2,0.722) (3,0.817) (4,0.823) (5,0.826) (6,0.813) (7,0.841)
+      (8,0.856) (9,0.863) (10,0.847) (11,0.844) (12,0.868) (13,0.884) (14,0.887) (15,0.888)
+      (16,0.862) (17,0.882) (18,0.852) (19,0.872) (20,0.888) (21,0.904) (22,0.906) (23,0.911)
+      (24,0.909) (25,0.908) (26,0.903) (27,0.902) (28,0.908) (29,0.909) (30,0.928) (31,0.930)
+      (32,0.924) (33,0.923) (34,0.921) (35,0.929)
     };
-    \addlegendentry{GPT-2 (768d)}
+    \addlegendentry{Qwen2.5-3B-Instruct}
+    \addplot[color=accentteal, mark=square, thick, mark size=1.5pt] coordinates {
+      (0,0.699) (1,0.586) (2,0.694) (3,0.749) (4,0.751) (5,0.774) (6,0.827) (7,0.846)
+      (8,0.878) (9,0.874) (10,0.865) (11,0.833) (12,0.858) (13,0.867) (14,0.895) (15,0.899)
+      (16,0.898) (17,0.908) (18,0.921) (19,0.926) (20,0.924) (21,0.925) (22,0.910) (23,0.908)
+      (24,0.916) (25,0.920) (26,0.905) (27,0.907)
+    };
+    \addlegendentry{Qwen2.5-7B-Instruct}
   \end{axis}
 \end{tikzpicture}
 \end{center}
 
-\begin{infobox}[Layer Selection Guidelines]
+\begin{infobox}[Layer Selection Guidelines (Measured)]
 \begin{itemize}
-  \item \textbf{Early layers (0-6)}: Capture syntactic features; poor for semantic detection
-  \item \textbf{Middle layers (8-16)}: Best for detecting intent and deception
-  \item \textbf{Late layers (18-24)}: Output-focused; signal may be obscured
-  \item \textbf{Recommendation}: Use layers at 50-75\% of model depth
+  \item \textbf{First layers}: already 0.70--0.72 held-out AUROC at layer 0, well above the label-shuffled baseline (0.49--0.51)
+  \item \textbf{Middle layers}: weaker than late layers; for Qwen2.5-3B, layer 17 gives $0.805 \pm 0.062$ against $0.901 \pm 0.042$ at layer 31 (5 seeds)
+  \item \textbf{Late layers}: a plateau at about 0.90 from roughly 60--70\% depth to the last layer; no late layer is reliably better than another
+  \item \textbf{Recommendation}: probe several late layers or use the multi-layer ensemble probe, which is within 0.01 of the best single layer
 \end{itemize}
 \end{infobox}
 
@@ -1079,14 +1064,16 @@ AUROC measures overall discriminative ability but is \textbf{threshold-free}. Pr
 \end{itemize}
 \end{keyconceptbox}
 
+The table below gives measured operating points: test-split TPR and FPR of the deception probes at the threshold chosen on the validation split with the package default criterion (F1-optimal, but never above the false-positive target), mean $\pm$ standard deviation over 5 seeds. A fixed threshold-to-FPR/TPR table for other thresholds is not produced by any script in this repository.
+
 \begin{center}
 \begin{tabular}{lccc}
 \toprule
-\textbf{Deployment Context} & \textbf{Threshold} & \textbf{Expected FPR} & \textbf{Expected TPR} \\
+\textbf{Model / Layer} & \textbf{Test AUROC} & \textbf{Test TPR (recall)} & \textbf{Test FPR} \\
 \midrule
-Conservative (high-stakes) & 0.3 & 12\% & 98\% \\
-Balanced (default) & 0.5 & 5\% & 91\% \\
-Aggressive (low FP budget) & 0.7 & 1\% & 78\% \\
+Qwen2.5-3B-Instruct / 31 & $0.901 \pm 0.042$ & $0.704 \pm 0.080$ & $0.080 \pm 0.049$ \\
+Qwen2.5-7B-Instruct / 26 & $0.904 \pm 0.029$ & $0.734 \pm 0.063$ & $0.095 \pm 0.030$ \\
+Yi-1.5-9B-Chat / 39 & $0.907 \pm 0.029$ & $0.748 \pm 0.131$ & $0.102 \pm 0.025$ \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -1936,7 +1923,7 @@ class BeamSearchTriggerFinder:
 
 \subsection{Trigger Visualization}
 
-Visualizing discovered triggers helps understand backdoor structure:
+Visualizing discovered triggers helps understand backdoor structure. The chart below shows the format with illustrative values; it is not a measurement:
 
 \begin{center}
 \begin{tikzpicture}[scale=1.0]
@@ -2208,11 +2195,11 @@ The decision tree below maps risk scores to appropriate response actions. Scores
 % PART IV: CASE STUDIES & EVALUATION
 % ============================================================================
 \partpage{IV}{Case Studies \& Evaluation}{%
-This part demonstrates practical analysis through visualization, metrics, and real-world examples:
+This part demonstrates practical analysis through visualization, measured results, and worked examples:
 \begin{itemize}[nosep]
   \item \textbf{Section 10}: Interactive dashboard and visualization techniques
-  \item \textbf{Section 11}: Cross-architecture validation and performance benchmarks
-  \item \textbf{Section 12}: Detailed case studies with detection walkthroughs
+  \item \textbf{Section 11}: Cross-architecture validation and performance benchmarks (measured)
+  \item \textbf{Section 12}: Case studies with detection walkthroughs (illustrative scenarios; the scores shown are example values, not measurements)
 \end{itemize}
 }
 
@@ -2287,7 +2274,7 @@ Key interactive features available in \texttt{dashboard/components/}:
 
 \subsection{Activation Heatmaps}
 
-Visualizing activations across layers and tokens reveals where backdoor signals concentrate. In the dashboard, these heatmaps are \textbf{interactive}---hover for exact values, click to drill down into specific layer-token combinations:
+Visualizing activations across layers and tokens reveals where backdoor signals concentrate. In the dashboard, these heatmaps are \textbf{interactive}---hover for exact values, click to drill down into specific layer-token combinations. The example below shows the layout with illustrative values; it is not a measurement:
 
 \begin{center}
 \begin{tikzpicture}[scale=0.75]
@@ -2356,7 +2343,7 @@ Visualizing activations across layers and tokens reveals where backdoor signals 
   \item \textbf{Hot spots} (dark red): Tokens/layers with strong backdoor signals
   \item \textbf{Vertical patterns}: Specific tokens consistently trigger across layers
   \item \textbf{Horizontal bands}: Layers where backdoor information concentrates
-  \item \textbf{Optimal detection layer}: Usually where the band is darkest (L16 here)
+  \item \textbf{Candidate detection layer}: where the band is darkest (L16 in this illustration); confirm with held-out probe AUROC per layer (Section~\ref{sec:layer-selection})
 \end{itemize}
 \end{infobox}
 
@@ -2364,368 +2351,149 @@ Visualizing activations across layers and tokens reveals where backdoor signals 
 
 To understand \textit{what} information contributes to backdoor detection at each layer, we can decompose the signal into interpretable components. This decomposition reveals whether detection relies on surface-level syntactic patterns, deeper semantic understanding, or backdoor-specific features.
 
-The grouped bar chart below breaks down signal strength by layer for three components: syntactic features (word structure, grammar), semantic features (meaning, context), and the backdoor-specific signal. Notice that all three increase through middle layers, but the backdoor signal (red) peaks precisely where our probe achieves maximum accuracy---confirming that layer 16 captures genuine backdoor-related information, not just correlated syntactic or semantic features.
-
-\begin{center}
-\begin{tikzpicture}
-  \begin{axis}[
-    width=14cm, height=7cm,
-    ybar,
-    bar width=0.35cm,
-    xlabel={Layer Index},
-    ylabel={Signal Strength},
-    ymin=0, ymax=0.6,
-    symbolic x coords={L0, L4, L8, L12, L16, L20, L24},
-    xtick=data,
-    grid=major,
-    grid style={gray!30},
-    legend pos=north west,
-    legend style={font=\small},
-    enlarge x limits=0.1,
-  ]
-    % Grouped bars for each signal component
-    \addplot[fill=primaryblue!70, draw=primaryblue!80!black] coordinates {
-      (L0,0.10) (L4,0.15) (L8,0.25) (L12,0.40) (L16,0.50) (L20,0.45) (L24,0.35)
-    };
-    \addlegendentry{Syntactic}
-
-    \addplot[fill=accentteal!70, draw=accentteal!80!black] coordinates {
-      (L0,0.05) (L4,0.10) (L8,0.20) (L12,0.30) (L16,0.35) (L20,0.33) (L24,0.25)
-    };
-    \addlegendentry{Semantic}
-
-    \addplot[fill=warningred!80, draw=warningred!80!black] coordinates {
-      (L0,0.03) (L4,0.07) (L8,0.13) (L12,0.18) (L16,0.20) (L20,0.17) (L24,0.12)
-    };
-    \addlegendentry{Backdoor}
-  \end{axis}
-\end{tikzpicture}
-\end{center}
-
-\begin{infobox}[Signal Decomposition]
-\textbf{Syntactic}: Low-level patterns (grammar, syntax)\\
-\textbf{Semantic}: Contextual meaning and intent\\
-\textbf{Backdoor}: Hidden malicious signal---peaks at L16 where detection is most effective
-\end{infobox}
+\notreproduced{A per-layer decomposition of probe signal into syntactic, semantic and backdoor-specific components is not produced by any script in this repository, so no such chart is given. The measured per-layer information available is the held-out AUROC of one probe per layer for the deception-probe task (Section~\ref{sec:layer-selection}).}
 
 \subsection{t-SNE Embedding Visualization}
 
-While PCA preserves global structure, t-SNE (t-distributed Stochastic Neighbor Embedding) excels at revealing local clustering patterns in high-dimensional data. By optimizing for neighborhood preservation, t-SNE makes cluster separation visually intuitive.
+While PCA preserves global structure, t-SNE (t-distributed Stochastic Neighbor Embedding) excels at revealing local clustering patterns in high-dimensional data. By optimizing for neighborhood preservation, t-SNE makes cluster separation visually intuitive. A visual cluster separation does not by itself establish that a linear probe will generalize; report held-out AUROC alongside it.
 
-The visualization below shows t-SNE applied to 500 activation vectors from layer 16---250 from clean prompts and 250 from triggered prompts. The two clusters are clearly separated, with centroids ($\mu_{\text{clean}}$ and $\mu_{\text{trigger}}$) 4.2 standard deviations apart. The dashed line represents where our linear probe places its decision boundary. This separation confirms that a simple linear classifier can achieve high accuracy.
-
-\begin{center}
-\begin{tikzpicture}[scale=0.8]
-  % Axes
-  \draw[->] (-4.5,-3.5) -- (5,-3.5) node[right] {t-SNE 1};
-  \draw[->] (-4.5,-3.5) -- (-4.5,4) node[above] {t-SNE 2};
-
-  % Title - shifted right to avoid axis label overlap
-  \node[font=\bfseries] at (1.5, 4.5) {Activation Space (Layer 16, n=500)};
-
-  % Clean cluster (bottom-left quadrant)
-  \foreach \i in {1,...,40} {
-    \pgfmathsetmacro{\x}{-2.5+rand*1.5}
-    \pgfmathsetmacro{\y}{-1.5+rand*1.2}
-    \fill[successgreen!70, opacity=0.6] (\x,\y) circle (0.08);
-  }
-  \node[font=\scriptsize, successgreen!70!black] at (-2.5, -3) {Clean (n=250)};
-
-  % Triggered cluster (top-right quadrant)
-  \foreach \i in {1,...,40} {
-    \pgfmathsetmacro{\x}{2+rand*1.3}
-    \pgfmathsetmacro{\y}{1.8+rand*1.1}
-    \fill[warningred!70, opacity=0.6] (\x,\y) circle (0.08);
-  }
-  \node[font=\scriptsize, warningred] at (2.5, 3.5) {Triggered (n=250)};
-
-  % Decision boundary - improved label visibility
-  \draw[dashed, primaryblue, thick] (-4,-1) -- (4.5,3.5);
-  \node[font=\scriptsize\bfseries, primaryblue, fill=white, fill opacity=0.9, text opacity=1, inner sep=2pt, rounded corners=2pt] at (3.2, 2.8) {Decision Boundary};
-
-  % Centroid markers - larger labels with background for readability
-  \fill[successgreen!90!black] (-2.5, -1.5) circle (0.2);
-  \node[font=\small\bfseries, successgreen!70!black, fill=white, fill opacity=0.9, text opacity=1, inner sep=2pt, rounded corners=2pt, anchor=north] at (-2.5, -1.9) {$\mu_{\text{clean}}$};
-  \fill[warningred!90!black] (2, 1.8) circle (0.2);
-  \node[font=\small\bfseries, warningred!70!black, fill=white, fill opacity=0.9, text opacity=1, inner sep=2pt, rounded corners=2pt, anchor=south] at (2, 2.2) {$\mu_{\text{trigger}}$};
-
-  % Distance annotation - repositioned to avoid overlap
-  \draw[<->, thick, gray] (-2.5, -1.5) -- (2, 1.8);
-  \node[font=\scriptsize, gray, fill=white, fill opacity=0.95, text opacity=1, inner sep=2pt, rounded corners=2pt] at (-1.2, -0.5) {$d = 4.2\sigma$};
-\end{tikzpicture}
-\end{center}
+\notreproduced{No script in this repository computes a t-SNE embedding of clean versus triggered activations or the distance between their centroids, so no such figure or separation statistic is given here.}
 
 \subsection{Attention Pattern Analysis}
 
-Comparing attention patterns between clean and backdoored models reveals how trigger tokens hijack the attention mechanism:
+Comparing attention patterns between clean and backdoored models can reveal whether trigger tokens concentrate attention. The \texttt{AttentionAnalyzer} measures the entropy of each attention row and the attention mass placed on the actual trigger tokens; its anomaly score is uncalibrated. A backdoor that keys on a trigger token would be expected to show lower entropy and a larger attention share on that token than a clean model.
 
-\begin{center}
-\begin{tikzpicture}[scale=0.95]
-  % Main title
-  \node[font=\large\bfseries, color=primaryblue] at (7, 7.5) {Attention Head Comparison (Layer 14, Head 3)};
-  \node[font=\footnotesize, color=gray] at (7, 6.9) {Query token: ``code'' $\rightarrow$ attending to previous tokens};
-
-  % ===== LEFT SIDE: Clean Model =====
-  \node[font=\normalsize\bfseries, color=successgreen!70!black] at (2.8, 6.5) {Clean Model};
-
-  % Token boxes - clean side (larger, more spaced) - positioned above bars
-  \foreach \i/\token in {0/[SYS], 1/Year, 2/2025, 3/Write, 4/code} {
-    \node[rectangle, rounded corners=4pt, draw=successgreen!60, fill=successgreen!10,
-          minimum width=1.3cm, minimum height=0.8cm, font=\scriptsize\ttfamily]
-          (c\i) at (\i*1.35, 5.5) {\token};
-  }
-
-  % Attention bars - clean (distributed attention, reduced height)
-  \foreach \i/\val/\h in {0/0.18/0.54, 1/0.22/0.66, 2/0.20/0.60, 3/0.25/0.75, 4/0.15/0.45} {
-    \fill[successgreen!50] (\i*1.35-0.5, 3.3) rectangle (\i*1.35+0.5, 3.3+\h);
-    \draw[successgreen!70, line width=0.5pt] (\i*1.35-0.5, 3.3) rectangle (\i*1.35+0.5, 3.3+\h);
-    \node[font=\scriptsize, color=successgreen!70!black] at (\i*1.35, 2.95) {\val};
-  }
-  \node[font=\scriptsize, color=gray, rotate=90, anchor=south] at (-1.1, 3.7) {Attention};
-
-  % Clean model annotation
-  \node[draw=successgreen!60, rounded corners=5pt, fill=successgreen!5,
-        font=\scriptsize, text width=5.2cm, align=center, inner sep=6pt] at (2.8, 1.8)
-        {Balanced attention distribution\\Normal language modeling behavior};
-
-  % ===== RIGHT SIDE: Backdoored Model =====
-  \node[font=\normalsize\bfseries, color=warningred!70!black] at (11.2, 6.5) {Backdoored Model};
-
-  % Token boxes - backdoor side (larger) - positioned above bars
-  \foreach \i/\token in {0/[SYS], 1/Year, 2/2025, 3/Write, 4/code} {
-    \ifnum\i=2
-      \node[rectangle, rounded corners=4pt, draw=warningred, fill=warningred!25,
-            line width=1.5pt, minimum width=1.3cm, minimum height=0.8cm, font=\scriptsize\ttfamily\bfseries]
-            (b\i) at (8.4+\i*1.35, 5.5) {\token};
-    \else
-      \node[rectangle, rounded corners=4pt, draw=gray!50, fill=gray!8,
-            minimum width=1.3cm, minimum height=0.8cm, font=\scriptsize\ttfamily]
-            (b\i) at (8.4+\i*1.35, 5.5) {\token};
-    \fi
-  }
-
-  % Attention bars - backdoored (concentrated on trigger, capped height)
-  \foreach \i/\val/\h in {0/0.05/0.15, 1/0.08/0.24, 2/0.72/1.5, 3/0.10/0.30, 4/0.05/0.15} {
-    \ifnum\i=2
-      \fill[warningred!60] (8.4+\i*1.35-0.5, 3.3) rectangle (8.4+\i*1.35+0.5, 3.3+\h);
-      \draw[warningred, line width=0.8pt] (8.4+\i*1.35-0.5, 3.3) rectangle (8.4+\i*1.35+0.5, 3.3+\h);
-      \node[font=\scriptsize\bfseries, color=warningred!80!black] at (8.4+\i*1.35, 2.95) {\val};
-    \else
-      \fill[gray!35] (8.4+\i*1.35-0.5, 3.3) rectangle (8.4+\i*1.35+0.5, 3.3+\h);
-      \draw[gray!50, line width=0.5pt] (8.4+\i*1.35-0.5, 3.3) rectangle (8.4+\i*1.35+0.5, 3.3+\h);
-      \node[font=\scriptsize, color=gray!70] at (8.4+\i*1.35, 2.95) {\val};
-    \fi
-  }
-
-  % Anomaly indicator - positioned above the 2025 token box
-  \node[font=\scriptsize\bfseries, color=warningred, fill=white, inner sep=2pt, rounded corners=2pt]
-        at (8.4+2*1.35, 6.15) {72\%};
-
-  % Backdoor model annotation
-  \node[draw=warningred!60, rounded corners=5pt, fill=warningred!5,
-        font=\scriptsize, text width=5.2cm, align=center, inner sep=6pt] at (11.2, 1.8)
-        {Anomalous concentration on trigger\\Backdoor activation signal detected};
-
-  % ===== Center divider =====
-  \draw[gray!40, dashed, line width=1pt] (7, 1.2) -- (7, 6.5);
-  \node[font=\footnotesize\bfseries, color=gray, fill=white, inner sep=3pt] at (7, 4.2) {vs};
-
-  % ===== Bottom: Key insight =====
-  \draw[primaryblue!40, line width=0.8pt] (0, 0.6) -- (14, 0.6);
-  \node[font=\footnotesize\bfseries, color=primaryblue] at (7, 0.15) {Detection Signal: Attention Entropy};
-  \node[font=\scriptsize, color=gray] at (7, -0.35)
-        {Clean $H = 2.28$ bits (uniform) \quad vs \quad Backdoored $H = 0.89$ bits (concentrated)};
-\end{tikzpicture}
-\end{center}
+\notreproduced{Measured attention entropies or trigger attention shares for a clean versus a backdoored model are not available: no script in this repository produces them and no backdoored model was evaluated for this guide, so no such figure or numbers are given.}
 
 \section{Cross-Architecture Validation}
+\label{sec:cross-arch}
 
 \subsection{Tested Architectures}
 
+\texttt{examples/cross\_architecture\_validation.py} retrains a linear probe per architecture to separate held-out sentences \textit{with} the string \texttt{TRIGGER\_DEPLOYMENT} from the same sentences \textit{without} it (mask-aware mean-pooled last-layer activations; 200 training and 100 held-out base sentences per class, disjoint). The models are unmodified pretrained checkpoints: no backdoor is present, so this measures whether trigger \textit{text} is linearly decodable, not backdoor detection. Two controls run on the same held-out split: a label-shuffled probe and a classifier that sees only the token count of each input. Results over seeds 42, 1 and 2 (mean $\pm$ standard deviation):
+
 \begin{center}
-\begin{tabular}{lcccc}
+\begin{tabular}{lccccc}
 \toprule
-\textbf{Model} & \textbf{Params} & \textbf{Hidden Dim} & \textbf{Layers} & \textbf{AUC} \\
+\textbf{Model} & \textbf{Hidden} & \textbf{Layers} & \textbf{Probe AUC} & \textbf{Length-only AUC} & \textbf{Shuffled AUC} \\
 \midrule
-\rowcolor{backgroundgray} GPT-2 & 124M & 768 & 12 & 1.0 \\
-GPT-2 Medium & 355M & 1024 & 24 & 1.0 \\
-\rowcolor{backgroundgray} Mistral-7B & 7B & 4096 & 32 & 1.0 \\
-Llama-2-7B & 7B & 4096 & 32 & 0.98 \\
-\rowcolor{backgroundgray} Qwen2.5-7B & 7B & 3584 & 28 & 1.0 \\
-Llama-2-13B & 13B & 5120 & 40 & 0.99 \\
+\rowcolor{backgroundgray} GPT-2 & 768 & 12 & $1.000$ & $1.000$ & $0.533 \pm 0.060$ \\
+Qwen2.5-7B-Instruct & 3584 & 28 & $1.000$ & $1.000$ & $0.511 \pm 0.026$ \\
+\rowcolor{backgroundgray} Mistral-7B-Instruct-v0.2 & 4096 & 32 & $1.000$ & $1.000$ & $0.507 \pm 0.033$ \\
+Llama-3-8B-Instruct & 4096 & 32 & \multicolumn{3}{c}{not run (gated on Hugging Face)} \\
 \bottomrule
 \end{tabular}
 \end{center}
 
+\begin{warningbox}[What the Cross-Architecture Numbers Show]
+The probe reaches held-out AUC 1.000 on every architecture and seed, but the token-count-only control also reaches 1.000: inserting the trigger makes every positive sentence longer, and length alone separates the classes perfectly. These runs therefore provide no evidence that the probe detects anything beyond input length, and none about backdoors. A meaningful version of this experiment needs length-matched negatives and a fine-tuned (backdoored) model.
+\end{warningbox}
+
 \subsection{Optimal Layer Selection by Model}
 
-A key question for practitioners is whether optimal layer selection generalizes across different model architectures. If the answer is yes, we can provide architecture-agnostic guidance (e.g., ``probe at 50--75\% of model depth'') rather than requiring architecture-specific tuning.
+A key question for practitioners is whether optimal layer selection generalizes across different model architectures. \texttt{cross\_architecture\_validation.py} probes only the last layer, so it does not answer this question.
 
-The chart below compares probe performance across three architectures (GPT-2, Mistral-7B, Qwen2.5-7B) as a function of relative layer position. Despite their architectural differences, all three models show the same pattern: performance peaks in the 50--75\% range (shaded region) and degrades at both extremes. This consistency validates our recommendation to probe at relative positions rather than absolute layer indices.
-
-\begin{center}
-\begin{tikzpicture}
-  \begin{axis}[
-    width=13cm, height=6cm,
-    xlabel={Relative Layer Position (\%)},
-    ylabel={Probe AUROC},
-    xmin=0, xmax=100,
-    ymin=0.6, ymax=1.02,
-    grid=major,
-    grid style={gray!30},
-    legend pos=outer north east,
-    legend style={font=\footnotesize, draw=gray!50}
-  ]
-    % Draw the optimal region FIRST so it appears behind the plots
-    \fill[accentteal!15] (axis cs:50,0.6) rectangle (axis cs:75,1.02);
-    \node[font=\scriptsize, accentteal!70!black] at (axis cs:62.5,0.65) {Optimal};
-
-    \addplot[color=primaryblue, mark=o, very thick, mark size=3pt] coordinates {
-      (0,0.55) (20,0.72) (40,0.88) (50,0.93) (60,0.95) (70,0.93) (80,0.88) (100,0.75)
-    };
-    \addlegendentry{GPT-2}
-
-    \addplot[color=warningred, mark=square, very thick, mark size=3pt] coordinates {
-      (0,0.52) (20,0.68) (40,0.85) (50,0.92) (60,0.96) (70,0.95) (80,0.90) (100,0.78)
-    };
-    \addlegendentry{Mistral-7B}
-
-    \addplot[color=successgreen!70!black, mark=triangle, very thick, mark size=3pt] coordinates {
-      (0,0.53) (20,0.70) (40,0.86) (50,0.91) (60,0.94) (70,0.93) (80,0.89) (100,0.76)
-    };
-    \addlegendentry{Qwen2.5-7B}
-  \end{axis}
-\end{tikzpicture}
-\end{center}
+\notreproduced{Relative-depth layer curves for GPT-2, Mistral-7B and Qwen2.5-7B are not produced by any script in this repository, so no such chart is given. The measured layer profiles are the deception-probe sweeps of Qwen2.5-3B and Qwen2.5-7B (Section~\ref{sec:layer-selection}): in both, held-out AUROC reaches its plateau at roughly 60--70\% of model depth and stays there to the last layer.}
 
 \section{Performance Benchmarks}
 
-\begin{keyconceptbox}[Understanding Detection Metrics: Lab vs.\ Production]
-The framework reports two distinct performance levels that reflect different evaluation contexts:
+Every number in this and the following sections was measured on one NVIDIA RTX 4090 (24\,GB) with the scripts in this repository; the raw per-run JSON (command, git commit, model revision, seed, library versions, timings) is in \resultsdir. The full protocol and the accuracy results are in Section~\ref{sec:measured-results}.
 
-\textbf{Lab/Validation Performance (AUC $\approx$ 1.0)}
+\begin{keyconceptbox}[Reading the Measured Numbers]
+\textbf{Trigger-string separability (AUC 1.000)}
 \begin{itemize}[nosep]
-  \item Evaluated on \textbf{known, injected backdoors} using teacher-forced conditions
-  \item Models: GPT-2, GPT-2 Medium, Mistral-7B, Qwen2.5-7B all achieve 0.98--1.0 AUC
-  \item Represents detection ceiling under controlled conditions
+  \item Unmodified GPT-2, Qwen2.5-7B-Instruct and Mistral-7B-Instruct-v0.2; sentences with versus without a trigger string (Section~\ref{sec:cross-arch})
+  \item A classifier that sees only the token count also reaches 1.000, so these runs show nothing beyond input length
 \end{itemize}
 
-\textbf{Production/Wild Performance (AUROC $\approx$ 93.2\%)}
+\textbf{Deception probes (held-out AUROC about 0.90)}
 \begin{itemize}[nosep]
-  \item Evaluated on \textbf{generalized, previously-unseen backdoor patterns}
-  \item Includes novel trigger types, adversarial variations, and cross-domain transfer
-  \item Represents realistic deployment performance against unknown threats
+  \item Teacher-forced truthful versus deceptive yes/no answers, question-level held-out test split, 5 seeds
+  \item Answer-token baseline 0.47, label-shuffled probes 0.49--0.51
 \end{itemize}
 
-The gap between these metrics reflects the \textbf{generalization challenge}---detecting backdoors you've never seen before is harder than detecting backdoors you trained on. The 93.2\% production score is a strength, not a limitation.
+\textbf{Not measured}: detection of backdoors in fine-tuned sleeper-agent models, and performance on previously unseen backdoor or trigger families. No ``production'' AUROC exists for this framework.
 \end{keyconceptbox}
 
 \subsection{Detection Latency}
 
+Measured during the deception-probe runs (FP16 unless noted, batch size 1, teacher-forced forward pass; models loaded from a warm local cache, so load times are shorter than a cold load). Each run performs 548 forward passes.
+
 \begin{center}
 \begin{tabular}{lrrr}
 \toprule
-\textbf{Operation} & \textbf{GPT-2} & \textbf{7B Model} & \textbf{13B Model} \\
+\textbf{Model} & \textbf{Model Load} & \textbf{Extraction / Forward} & \textbf{Full Run} \\
 \midrule
-\rowcolor{backgroundgray} Model Load & 0.5s & 12s & 25s \\
-Activation Extraction (per prompt) & 12ms & 85ms & 150ms \\
-\rowcolor{backgroundgray} Probe Inference & 2ms & 8ms & 12ms \\
-Honeypot Batch (10) & 180ms & 1.2s & 2.1s \\
-\rowcolor{backgroundgray} Full Pipeline (single) & 240ms & 1.6s & 2.8s \\
+\rowcolor{backgroundgray} Qwen2.5-3B-Instruct & 2--13\,s & 20--46\,ms & 64--70\,s \\
+Qwen2.5-7B-Instruct & 4--5\,s & 34--55\,ms & 49--206\,s \\
+\rowcolor{backgroundgray} Qwen2.5-7B-Instruct (8-bit) & 12--14\,s & 156--161\,ms & 126--127\,s \\
+Qwen2.5-7B-Instruct (4-bit) & about 4\,s & 42--43\,ms & 43--54\,s \\
+\rowcolor{backgroundgray} Yi-1.5-9B-Chat & 5--6\,s & 29--56\,ms & 62--477\,s \\
 \bottomrule
 \end{tabular}
 \end{center}
+
+The run time depends mostly on the number of probed layers (four default layers plus an ensemble versus two layers); a sweep over every layer took 292\,s for Qwen2.5-3B (36 layers) and 253\,s for Qwen2.5-7B (28 layers). Probe inference, honeypot batches and an end-to-end detection pipeline were not timed.
 
 \subsection{Memory Requirements}
 
 \begin{center}
-\begin{tabular}{lrrr}
+\begin{tabular}{lr}
 \toprule
-\textbf{Component} & \textbf{GPT-2} & \textbf{7B Model} & \textbf{13B Model} \\
+\textbf{Run} & \textbf{Peak CUDA Memory Allocated} \\
 \midrule
-\rowcolor{backgroundgray} Model Weights (fp16) & 0.25GB & 14GB & 26GB \\
-Activation Cache (100 samples) & 150MB & 1.6GB & 2.5GB \\
-\rowcolor{backgroundgray} Probe Weights & 3MB & 16MB & 20MB \\
-Peak Detection Memory & 0.8GB & 18GB & 32GB \\
-\rowcolor{backgroundgray} Recommended GPU VRAM & 4GB & 24GB & 48GB \\
+\rowcolor{backgroundgray} Qwen2.5-3B-Instruct, FP16, deception probes & 5.8\,GB \\
+Qwen2.5-7B-Instruct, FP16, deception probes & 14.2\,GB \\
+\rowcolor{backgroundgray} Qwen2.5-7B-Instruct, 8-bit, deception probes & 8.3\,GB \\
+Qwen2.5-7B-Instruct, 4-bit, deception probes & 5.6\,GB \\
+\rowcolor{backgroundgray} Yi-1.5-9B-Chat, FP16, deception probes & 16.5\,GB \\
+Qwen2.5-7B-Instruct, cross-architecture script & 21.3\,GB \\
+\rowcolor{backgroundgray} Mistral-7B-Instruct-v0.2, cross-architecture script & 19.6\,GB \\
+GPT-2, cross-architecture script & 1.4--1.5\,GB \\
 \bottomrule
 \end{tabular}
 \end{center}
+
+The cross-architecture script extracts all 400 texts in one batch, which is why its peak is higher than that of the one-example-at-a-time probe runs; for the 7B models it comes close to the limit of a 24\,GB card.
 
 \section{False Positive/Negative Analysis}
 
 Understanding where detection fails is as important as understanding where it succeeds. False positives waste investigative resources and erode trust in the detection system; false negatives allow real threats to slip through. Analyzing error patterns guides system tuning and identifies blind spots.
 
-\subsection{Confusion Matrix}
+\subsection{Test-Split Error Rates}
 
-The confusion matrix below summarizes performance on a held-out test set of 1,000 samples (870 clean, 130 backdoored). The detector achieves strong true positive and true negative rates, with only 23 false positives (benign samples flagged as threats) and 12 false negatives (actual backdoors missed). The sources of each error type are analyzed in the adjacent breakdown.
+Deception probes at the threshold chosen on the validation split, evaluated once on the test split (55 questions, 110 rows: 55 truthful and 55 deceptive answers per seed). Mean $\pm$ standard deviation over 5 seeds; ``ensemble'' is the multi-layer probe over the script's default layers.
 
 \begin{center}
-\begin{tikzpicture}
-  % Matrix
-  \matrix (m) [matrix of nodes,
-    nodes={minimum width=3cm, minimum height=1.5cm, anchor=center},
-    column sep=0, row sep=0] {
-    & |[font=\bfseries]| Predicted Safe & |[font=\bfseries]| Predicted Backdoor \\
-    |[font=\bfseries]| Actually Safe & |[fill=successgreen!30]| TN: 847 & |[fill=warningred!20]| FP: 23 \\
-    |[font=\bfseries]| Actually Backdoor & |[fill=warningred!20]| FN: 12 & |[fill=successgreen!30]| TP: 118 \\
-  };
-  \draw[thick] (m-1-2.north west) -- (m-3-2.south west);
-  \draw[thick] (m-2-1.north west) -- (m-2-3.north east);
-\end{tikzpicture}
+\begin{tabular}{lccccc}
+\toprule
+\textbf{Model / Probe} & \textbf{Accuracy} & \textbf{Precision} & \textbf{Recall} & \textbf{F1} & \textbf{FPR} \\
+\midrule
+\rowcolor{backgroundgray} Qwen2.5-3B / L31 & $0.812 \pm 0.048$ & $0.899 \pm 0.059$ & $0.704 \pm 0.080$ & $0.788 \pm 0.062$ & $0.080 \pm 0.049$ \\
+Qwen2.5-7B / L26 & $0.819 \pm 0.035$ & $0.886 \pm 0.034$ & $0.734 \pm 0.063$ & $0.801 \pm 0.044$ & $0.095 \pm 0.030$ \\
+\rowcolor{backgroundgray} Yi-1.5-9B / L39 & $0.823 \pm 0.064$ & $0.878 \pm 0.028$ & $0.748 \pm 0.131$ & $0.803 \pm 0.089$ & $0.102 \pm 0.025$ \\
+Qwen2.5-3B / ensemble & $0.816 \pm 0.042$ & $0.897 \pm 0.071$ & $0.719 \pm 0.074$ & $0.795 \pm 0.048$ & $0.087 \pm 0.066$ \\
+\rowcolor{backgroundgray} Qwen2.5-7B / ensemble & $0.807 \pm 0.036$ & $0.875 \pm 0.041$ & $0.719 \pm 0.093$ & $0.786 \pm 0.055$ & $0.106 \pm 0.047$ \\
+Yi-1.5-9B / ensemble & $0.821 \pm 0.029$ & $0.861 \pm 0.023$ & $0.766 \pm 0.066$ & $0.810 \pm 0.038$ & $0.124 \pm 0.027$ \\
+\bottomrule
+\end{tabular}
 \end{center}
 
-\begin{multicols}{2}
-\textbf{Metrics}:
-\begin{itemize}
-  \item Precision: $\frac{118}{118+23} = 83.7\%$
-  \item Recall: $\frac{118}{118+12} = 90.8\%$
-  \item F1 Score: $87.1\%$
-  \item AUROC: $93.2\%$
-\end{itemize}
+At the calibrated threshold the probes favour precision: about one deceptive answer in four is missed, at a false-positive rate of about 10\%.
 
-\columnbreak
+\subsection{Out-of-Setting Errors}
 
-\textbf{Error Sources}:
-\begin{itemize}
-  \item FP: Unusual but benign prompts
-  \item FP: Domain-specific jargon
-  \item FN: Novel trigger patterns
-  \item FN: Weak backdoor signals
-\end{itemize}
-\end{multicols}
+\texttt{train\_probes.py} also scores 8 free-standing statements that are not questions (for example ``The Earth orbits the Sun.'' and ``The capital of France is Paris.''), using the default rule that a statement is flagged when any probe fires. The Qwen2.5-3B probes flag all 8 as deceptive in 7 of their 11 runs, and flag ``The Earth orbits the Sun.'' in all 11; across all 38 probe runs (three models, FP16 and quantized) the number flagged ranges from 0 to 8 and changes with the seed. This is an observation on 8 inputs, not an error rate, but it shows that a probe trained on one input format produces arbitrary verdicts outside it.
 
 \subsection{ROC Curve}
 
-The Receiver Operating Characteristic (ROC) curve visualizes the trade-off between true positive rate (sensitivity) and false positive rate (1 - specificity) across all possible decision thresholds. The Area Under the Curve (AUC) summarizes overall classifier performance---1.0 is perfect, 0.5 is random chance.
+The Receiver Operating Characteristic (ROC) curve visualizes the trade-off between true positive rate (sensitivity) and false positive rate (1 - specificity) across all possible decision thresholds. The Area Under the Curve (AUC) summarizes overall classifier performance---1.0 is perfect, 0.5 is random chance. The measured test AUROCs and the operating points at the calibrated threshold are given above and in Section~\ref{sec:measured-results}.
 
-The curve below shows our linear probe achieving AUC = 0.932. The marked ``Operating Point'' represents our recommended threshold (0.5), which yields 88\% true positive rate at only 5\% false positive rate. Depending on your risk tolerance, you can slide along this curve: a higher threshold reduces false positives but misses more backdoors; a lower threshold catches more threats but increases false alarms.
-
-\begin{center}
-\begin{tikzpicture}
-  \begin{axis}[
-    width=8cm, height=8cm,
-    xlabel={False Positive Rate},
-    ylabel={True Positive Rate},
-    xmin=0, xmax=1, ymin=0, ymax=1,
-    grid=major, grid style={gray!30},
-    legend pos=south east
-  ]
-    \addplot[dashed, gray, thick] coordinates {(0,0) (1,1)};
-    \addlegendentry{Random (AUC=0.5)}
-
-    \addplot[color=primaryblue, thick, smooth] coordinates {
-      (0,0) (0.01,0.6) (0.02,0.75) (0.05,0.88) (0.1,0.93) (0.2,0.97) (0.4,0.99) (1,1)
-    };
-    \addlegendentry{Linear Probe (AUC=0.932)}
-
-    \node[circle, fill=warningred, inner sep=2pt] at (axis cs:0.05,0.88) {};
-    \node[right, font=\scriptsize] at (axis cs:0.07,0.88) {Operating Point};
-  \end{axis}
-\end{tikzpicture}
-\end{center}
+\notreproduced{The per-threshold ROC curve points are not saved by the probe-training script, so no measured ROC curve is plotted here.}
 
 \section{Case Study: Code Injection Backdoor}
+
+The three case studies below are illustrative walkthroughs of how the tools are used. The models are hypothetical and the scores, counts and charts are example values, not measurements.
 
 \subsection{Scenario}
 
@@ -2937,61 +2705,95 @@ The backdoor shows strong transfer to structured tasks (code, math, reasoning) b
 \section{Experimental Methodology}
 
 \subsection{Dataset \& Experimental Setup}
+\label{sec:measured-results}
 
 \begin{keyconceptbox}[Reproducibility Information]
-The 93.2\% AUROC reported throughout this guide was obtained under the following conditions:
+All measured results in this guide come from the scripts in this repository. Raw per-run JSON (command, git commit, model revision, seed, GPU, library versions, timings), the aggregation script and a claim-by-claim inventory are in \resultsdir.
 
-\textbf{Evaluation Dataset (n=1,000 samples)}
+\textbf{Deception-probe dataset and protocol} (\texttt{scripts/training/train\_probes.py})
 \begin{itemize}[nosep]
-  \item \textbf{Clean prompts}: 870 samples from diverse domains (code, math, writing, Q\&A)
-  \item \textbf{Backdoored prompts}: 130 samples across trigger families (temporal, contextual, semantic)
-  \item \textbf{Split strategy}: 5-fold cross-validation, split by \textit{prompt family} (not individual samples) to prevent template leakage
-  \item \textbf{Held-out test}: 20\% reserved, never used during training or threshold tuning
+  \item 393 Anthropic-style yes/no questions; the truthful answer is ``no'' for 256 of them, so questions are subsampled to 274 (137 truthful ``yes'' / 137 truthful ``no'')
+  \item Question-level split, one seeded permutation stratified by category: 164 / 55 / 55 questions (328 / 110 / 110 activation rows) for train / validation / test; both answers of a question and every layer follow the same assignment
+  \item Teacher-forced answer; residual stream read at the answer token
+  \item Logistic regression, $C$ chosen by 5-fold cross-validation on the training split; decision threshold chosen on the validation split; test split evaluated once
+  \item Baselines on the same test split: label-shuffled probes (5 permutations) and an answer-token-only classifier
+  \item Layer $L$ is the output of block $L$ (HuggingFace \texttt{hidden\_states[L+1]}); a layer $L$ under the older \texttt{hidden\_states[L]} indexing is the current layer $L-1$
 \end{itemize}
 
-\textbf{Trigger Taxonomy}
+\textbf{Models}: Qwen2.5-3B-Instruct (36 layers), Qwen2.5-7B-Instruct (28 layers), Yi-1.5-9B-Chat (48 layers), FP16; Qwen2.5-7B also in 8-bit and 4-bit (bitsandbytes). Trigger-string examples: GPT-2, Qwen2.5-7B-Instruct, Mistral-7B-Instruct-v0.2. Meta-Llama-3-8B-Instruct was not run (gated on Hugging Face).
+
+\textbf{Hardware \& Software}
+\begin{itemize}[nosep]
+  \item GPU: one NVIDIA RTX 4090 (24\,GB), Docker Desktop / WSL2
+  \item CUDA 13.0, PyTorch 2.14.0, Transformers 5.17.0, scikit-learn 1.7.2, ART 1.20.1
+  \item Seeds: 42, 1, 2, 3, 4 for the deception probes; 42, 1, 2 for quantization and the examples
+  \item Extraction failures: 0 in every deception-probe run
+\end{itemize}
+\end{keyconceptbox}
+
+\subsection{Deception-Probe Results}
+
+Held-out test AUROC, mean $\pm$ standard deviation [min, max] over 5 seeds. Layers are given in the current convention; each pair lists the layer matching the older index and the same index under the current convention.
+
 \begin{center}
-\begin{tabular}{lccc}
+\begin{tabular}{llcc}
 \toprule
-\textbf{Trigger Family} & \textbf{Samples} & \textbf{AUROC} & \textbf{95\% CI} \\
+\textbf{Model} & \textbf{Layer} & \textbf{Test AUROC (n = 5)} & \textbf{Val AUROC} \\
 \midrule
-Temporal (year, date) & 45 & 0.947 & [0.921, 0.973] \\
-Contextual (role, mode) & 50 & 0.938 & [0.908, 0.968] \\
-Semantic (keywords) & 35 & 0.912 & [0.871, 0.953] \\
-\midrule
-\textbf{Combined} & 130 & \textbf{0.932} & [0.912, 0.952] \\
+\rowcolor{backgroundgray} Qwen2.5-3B-Instruct & 31 & $0.901 \pm 0.042$ [0.866, 0.961] & 0.876 \\
+Qwen2.5-3B-Instruct & 32 & $0.900 \pm 0.040$ [0.867, 0.959] & 0.873 \\
+\rowcolor{backgroundgray} Qwen2.5-3B-Instruct & 17 & $0.805 \pm 0.062$ [0.720, 0.882] & 0.769 \\
+Qwen2.5-3B-Instruct & 18 & $0.808 \pm 0.049$ [0.732, 0.852] & 0.778 \\
+\rowcolor{backgroundgray} Qwen2.5-7B-Instruct & 26 & $0.904 \pm 0.029$ [0.862, 0.943] & 0.892 \\
+Qwen2.5-7B-Instruct & 27 & $0.902 \pm 0.025$ [0.861, 0.922] & 0.884 \\
+\rowcolor{backgroundgray} Yi-1.5-9B-Chat & 39 & $0.907 \pm 0.029$ [0.870, 0.950] & 0.897 \\
+Yi-1.5-9B-Chat & 40 & $0.904 \pm 0.032$ [0.871, 0.952] & 0.895 \\
 \bottomrule
 \end{tabular}
 \end{center}
 
-\textbf{Models Evaluated}
-\begin{itemize}[nosep]
-  \item GPT-2 (124M): layers 6-10, baseline architecture
-  \item GPT-2 Medium (355M): layers 12-18
-  \item Mistral-7B-v0.1: layers 16-24
-  \item Qwen2.5-7B-Instruct: layers 14-22
-  \item Llama-2-7B-chat: layers 16-24
-\end{itemize}
+\textbf{Baselines.} The answer-token-only classifier reaches $0.474 \pm 0.026$ [0.436, 0.509] (identical across models, since it sees only the answer strings), so the balancing removes the answer-token shortcut. Label-shuffled probes average 0.49--0.51 for every model and layer; the largest single shuffled probe over all runs reached 0.69.
 
-\textbf{Hardware \& Reproducibility}
-\begin{itemize}[nosep]
-  \item GPU: NVIDIA A100-40GB (single device)
-  \item CUDA 12.1, PyTorch 2.1, Transformers 4.35
-  \item Random seed: 42 (\texttt{torch.manual\_seed}, \texttt{np.random.seed})
-  \item Deterministic mode: \texttt{torch.use\_deterministic\_algorithms(True)}
-\end{itemize}
-\end{keyconceptbox}
+\textbf{Quantization.} For Qwen2.5-7B (layers 26 and 27 and their ensemble, seeds 42/1/2, identical splits), test AUROC in FP16, 8-bit and 4-bit is 0.905 / 0.910 / 0.928 (layer 26, seed 42), 0.942 / 0.947 / 0.954 (seed 1) and 0.862 / 0.885 / 0.838 (seed 2). Paired differences against FP16 are within $\pm 0.03$ and change sign across seeds: no loss from quantization is detectable at this sample size.
 
-\begin{infobox}[Interpreting the Gap: Lab vs. Production AUROC]
-\textbf{Lab performance (AUC $\approx$ 1.0)} is measured on known, injected backdoors where the probe was trained on that specific trigger pattern. \textbf{Production performance (93.2\%)} is measured on held-out trigger families the probe has never seen.
-
-The gap reflects the \textit{generalization challenge}---detecting backdoors you've never seen is harder than detecting backdoors you trained on. A 93.2\% production AUROC indicates strong generalization; the remaining 6.8\% error rate consists of:
+\begin{infobox}[Interpreting the Deception-Probe Results]
 \begin{itemize}[nosep]
-  \item Novel trigger patterns outside the training distribution (42\% of errors)
-  \item Weak backdoor signals below probe sensitivity (35\% of errors)
-  \item Spurious correlations in benign prompts (23\% of errors)
+  \item Late-layer held-out AUROC is about 0.90 for all three models. The seed-to-seed spread (standard deviation 0.02--0.04, range up to 0.09) is larger than the differences between models or between neighbouring late layers, so the data do not rank the models or the late layers.
+  \item The middle layer of Qwen2.5-3B (about 0.81) is below its late layers in every seed.
+  \item The test split has 55 questions; a single-seed test AUROC has a standard error of roughly 0.03.
+  \item The task is teacher-forced deception on yes/no questions in unmodified models. It is not sleeper-agent detection, and the probes do not transfer to free-standing statements (Section~\ref{sec:measured-results-ood}).
 \end{itemize}
 \end{infobox}
+
+\subsection{Trigger-String and Adversarial Examples}
+
+Held-out results of the examples, seeds 42, 1 and 2 (mean $\pm$ standard deviation). None of these runs involves a backdoored model.
+
+\begin{center}
+\begin{tabular}{L{5.2cm}L{8.3cm}}
+\toprule
+\textbf{Script (model)} & \textbf{Result} \\
+\midrule
+\rowcolor{backgroundgray} \texttt{cross\_architecture\_\allowbreak validation.py} (GPT-2, Qwen2.5-7B, Mistral-7B) & Probe AUC 1.000 on every model; token-count-only control 1.000; shuffled labels 0.51--0.53 \\
+\texttt{real\_transformer\_\allowbreak benchmark.py} (GPT-2) & Linear probe 1.000; ARTActivationDetector $0.945 \pm 0.019$; token-count-only control 1.000 \\
+\rowcolor{backgroundgray} \texttt{red\_team\_benchmark.py} (GPT-2, 5 handcrafted variants) & Linear probe 0.998--1.000 on every variant (miss rate 0.0--3.3\%); ARTActivationDetector 0.530 (subtle), 0.673 (benign phrase), 0.734 (distributed), 0.801 (typo), 0.942 (context), miss rate 17--60\%; no length control \\
+\texttt{gradient\_attack\_audit.py} (GPT-2, $\epsilon = 0.1$ $L_\infty$, 20 PGD steps) & Clean AUC 1.000, adversarial AUC 0.000 in every seed; attack success $0.962 \pm 0.067$ \\
+\rowcolor{backgroundgray} \texttt{benchmark\_detectors\_\allowbreak comprehensive.py} (synthetic) & Linear probe: separable 1.000, moons 0.963, overlapping 0.488, sparse 1.000; ARTActivationDetector 0.51--0.55 in every scenario \\
+\texttt{test\_pytorch\_probe\_gpu.py} (synthetic, seed 42) & Validation and test AUC 1.000 on GPU, validation 1.000 on CPU; GPU training 7.9\,s vs CPU 3.1\,s (the GPU is slower on this small problem) \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\begin{infobox}[Interpreting the Trigger-String Results]
+Every trigger-string probe AUC of 1.0 that has a length control is matched by a classifier that sees only the token count of the input, because inserting the trigger makes each positive sentence longer. These runs show that trigger text is visible in the activations, but not that the probe detects anything beyond input length, and they say nothing about backdoor detection. The PGD audit shows the same probe's ranking can be fully inverted by a white-box perturbation of the input embeddings.
+\end{infobox}
+
+\subsection{Out-of-Setting Inputs}
+\label{sec:measured-results-ood}
+
+The deception probes are trained on a question followed by a teacher-forced yes/no answer. On 8 free-standing statements scored by \texttt{train\_probes.py}, the Qwen2.5-3B probes flag all 8 as deceptive in 7 of 11 runs, including ``The Earth orbits the Sun.''\ (flagged in all 11); across all 38 probe runs the number flagged ranges from 0 to 8 and changes with the seed. Probe scores outside the training format should not be read as a deception signal.
+
+\notreproduced{Evaluation on a 1,000-sample set of clean and backdoored prompts, per-trigger-family AUROCs (temporal, contextual, semantic) with confidence intervals, and a breakdown of error sources are not produced by any script in this repository: no such dataset, trigger taxonomy or evaluation script exists. They are therefore not reported.}
 
 \subsection{Evaluation Protocol Standards}
 
@@ -3095,29 +2897,27 @@ class EvaluationProtocol:
 
 \subsection{Ablation Studies}
 
+The one ablation the probe-training runs measure is single layer versus the multi-layer ensemble probe (held-out test AUROC, mean $\pm$ standard deviation over 5 seeds, script default layers):
+
 \begin{center}
 \begin{tabular}{lccc}
 \toprule
-\textbf{Ablation} & \textbf{Baseline AUROC} & \textbf{Ablated AUROC} & \textbf{$\Delta$} \\
+\textbf{Model} & \textbf{Best Single Layer} & \textbf{Ensemble} & \textbf{$\Delta$} \\
 \midrule
-\rowcolor{backgroundgray} Full Method & --- & 0.932 & --- \\
-Without L2 Regularization & 0.932 & 0.918 & -0.014 \\
-\rowcolor{backgroundgray} Single Layer (vs. ensemble) & 0.932 & 0.905 & -0.027 \\
-Mean Pooling (vs. last token) & 0.932 & 0.891 & -0.041 \\
-\rowcolor{backgroundgray} Half Training Data & 0.932 & 0.912 & -0.020 \\
-Quarter Training Data & 0.932 & 0.873 & -0.059 \\
+\rowcolor{backgroundgray} Qwen2.5-3B-Instruct & L35: $0.903 \pm 0.041$ & $0.906 \pm 0.041$ & $+0.003$ \\
+Qwen2.5-7B-Instruct & L21: $0.905 \pm 0.043$ & $0.905 \pm 0.024$ & $0.000$ \\
+\rowcolor{backgroundgray} Yi-1.5-9B-Chat & L36: $0.905 \pm 0.036$ & $0.909 \pm 0.021$ & $+0.004$ \\
 \bottomrule
 \end{tabular}
 \end{center}
 
 \begin{infobox}[Ablation Insights]
 \begin{itemize}
-  \item \textbf{Last-token pooling is critical}: Mean pooling dilutes the signal
-  \item \textbf{Multi-layer ensemble helps}: +2.7\% over single layer
-  \item \textbf{Training data efficiency}: 50\% data retains 98\% performance
-  \item \textbf{Regularization matters}: Prevents overfitting to spurious features
+  \item \textbf{Ensemble versus single layer}: within 0.01 of the best single layer for every model, far smaller than the seed-to-seed spread; the ensemble mainly removes the need to pick a layer
 \end{itemize}
 \end{infobox}
+
+\notreproduced{Ablations of L2 regularization, pooling (mean versus last token) and training-set size are not produced by any script in this repository, so no numbers are given for them.}
 
 \subsection{Statistical Power Analysis}
 
@@ -3458,17 +3258,19 @@ output:
 
 \subsection{Tested Models and Optimal Settings}
 
+Models run with the scripts in this repository on one RTX 4090 (24\,GB). The AUROC column gives the held-out deception-probe test AUROC (5 seeds) at a late layer, or the trigger-string probe AUC for models used only in the examples; peak memory is the peak allocated CUDA memory of that run.
+
 \begin{center}
-\begin{tabular}{lcccl}
+\begin{tabular}{lcccL{3.6cm}}
 \toprule
-\textbf{Model} & \textbf{Optimal Layers} & \textbf{Best AUROC} & \textbf{VRAM} & \textbf{Notes} \\
+\textbf{Model} & \textbf{Layer} & \textbf{AUROC} & \textbf{Memory} & \textbf{Notes} \\
 \midrule
-\rowcolor{backgroundgray} GPT-2 (124M) & 6, 8, 10 & 0.932 & 4GB & Good for testing \\
-GPT-2 Medium & 12, 16, 20 & 0.945 & 6GB & Better signal \\
-\rowcolor{backgroundgray} Mistral-7B & 16, 20, 24 & 0.961 & 24GB & Strong baseline \\
-Llama-2-7B & 16, 20, 24 & 0.958 & 24GB & Similar to Mistral \\
-\rowcolor{backgroundgray} Qwen2.5-7B & 14, 18, 22 & 0.955 & 24GB & Different arch \\
-Llama-2-13B & 20, 28, 36 & 0.968 & 48GB & Best accuracy \\
+\rowcolor{backgroundgray} GPT-2 (124M) & last & 1.000 & 1.5GB & Trigger string; length-only control also 1.000 \\
+Qwen2.5-3B-Instruct & 31 & $0.901 \pm 0.042$ & 5.8GB & Deception probe, FP16 \\
+\rowcolor{backgroundgray} Qwen2.5-7B-Instruct & 26 & $0.904 \pm 0.029$ & 14.2GB & Deception probe, FP16 (5.6GB in 4-bit) \\
+Yi-1.5-9B-Chat & 39 & $0.907 \pm 0.029$ & 16.5GB & Deception probe, FP16 \\
+\rowcolor{backgroundgray} Mistral-7B-Instruct-v0.2 & last & 1.000 & 19.6GB & Trigger string; length-only control also 1.000 \\
+Llama-3-8B-Instruct & --- & not run & --- & Gated on Hugging Face \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -3666,6 +3468,8 @@ $B$ = batch size, $L$ = sequence length, $H$ = hidden dimension
 \end{tabular}
 \end{center}
 
+These are conservative planning figures. Measured on one RTX 4090 (24\,GB), deception-probe training ran in FP16 for models up to 9B parameters (peak allocated memory 16.5\,GB for Yi-1.5-9B-Chat), and 8-bit or 4-bit loading reduced Qwen2.5-7B to 8.3\,GB or 5.6\,GB with no measurable AUROC change (Section~\ref{sec:measured-results}).
+
 \section{Ethics \& Responsible Use}
 
 \begin{warningbox}[Dual-Use Considerations]
@@ -3808,7 +3612,7 @@ Allow 90 days for providers to address issues before public disclosure.
 
 \begin{tcolorbox}[colback=secondaryblue!10, colframe=secondaryblue!50, boxrule=0.5pt, arc=3pt, left=5pt, right=5pt, top=5pt, bottom=5pt]
 \textbf{Case Studies}\\[3pt]
-{\small Real-world scenarios including code injection backdoors, chain-of-thought deception, and cross-task transfer attacks with detection walkthroughs.}
+{\small Illustrative scenarios including code injection backdoors, chain-of-thought deception, and cross-task transfer attacks with detection walkthroughs.}
 \end{tcolorbox}
 
 \vspace{1cm}
@@ -3819,9 +3623,9 @@ Allow 90 days for providers to address issues before public disclosure.
 
 \begin{center}
 \begin{tabular}{cccc}
-\textbf{93.2\%} & \textbf{6} & \textbf{3+} & \textbf{27} \\
-{\scriptsize AUROC} & {\scriptsize Detection} & {\scriptsize Model} & {\scriptsize Sections} \\
-{\scriptsize Accuracy} & {\scriptsize Methods} & {\scriptsize Architectures} & {\scriptsize of Content} \\
+\textbf{0.90} & \textbf{6} & \textbf{3+} & \textbf{27} \\
+{\scriptsize Held-out} & {\scriptsize Detection} & {\scriptsize Model} & {\scriptsize Sections} \\
+{\scriptsize Deception-Probe AUROC} & {\scriptsize Methods} & {\scriptsize Architectures} & {\scriptsize of Content} \\
 \end{tabular}
 \end{center}
 
