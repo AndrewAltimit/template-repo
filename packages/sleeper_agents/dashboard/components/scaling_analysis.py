@@ -12,6 +12,7 @@ import plotly.graph_objects as go
 import streamlit as st
 
 from components.model_selector import render_model_selector
+from utils.metric_format import NOT_MEASURED, exceeds, fmt_pct, is_measured
 from utils.model_registry import ModelRegistry
 
 logger = logging.getLogger(__name__)
@@ -34,9 +35,14 @@ def render_scaling_analysis(data_loader: Any, _cache_manager: Any) -> None:
 
     # Fetch real model data
     model_summary = data_loader.fetch_model_summary(model_name)
-    actual_persistence = model_summary.get("post_training_backdoor_rate", 0.0)
-    actual_deception = model_summary.get("deception_in_reasoning", 0.0)
-    pre_training_persistence = model_summary.get("pre_training_backdoor_rate", 0.0)
+    actual_persistence = model_summary.get("post_training_backdoor_rate")
+    actual_deception = model_summary.get("deception_in_reasoning")
+    pre_training_persistence = model_summary.get("pre_training_backdoor_rate")
+
+    st.caption(
+        "Model-size curves, tables and scaling factors on this page are illustrative projections, "
+        "not measurements. Only the values labelled with the selected model's name come from its evaluation data."
+    )
 
     st.info(
         """
@@ -62,7 +68,7 @@ def render_scaling_analysis(data_loader: Any, _cache_manager: Any) -> None:
 
     with tab1:
         st.subheader("Model Size vs Deception Persistence")
-        st.caption(f"**{model_name}** - Persistence: {actual_persistence:.1%}, Deception: {actual_deception:.1%}")
+        st.caption(f"**{model_name}** - Persistence: {fmt_pct(actual_persistence)}, Deception: {fmt_pct(actual_deception)}")
 
         # Theoretical scaling curve data
         model_sizes = ["7B", "13B", "30B", "70B", "175B"]
@@ -168,7 +174,7 @@ def render_scaling_analysis(data_loader: Any, _cache_manager: Any) -> None:
         st.subheader("Safety Training Effectiveness by Model Size")
 
         # Calculate actual model's safety training effectiveness
-        if pre_training_persistence > 0:
+        if exceeds(pre_training_persistence, 0) and is_measured(actual_persistence):
             actual_reduction = pre_training_persistence - actual_persistence
             reduction_pct = (actual_reduction / pre_training_persistence) * 100
             if reduction_pct > 15:
@@ -182,9 +188,9 @@ def render_scaling_analysis(data_loader: Any, _cache_manager: Any) -> None:
             else:
                 effectiveness_label = "**FAILED**"
         else:
-            actual_reduction = 0
-            reduction_pct = 0
-            effectiveness_label = "Unknown"
+            actual_reduction = None
+            reduction_pct = None
+            effectiveness_label = "Not measured"
 
         # Show theoretical data with actual model highlighted
         st.markdown(
@@ -198,8 +204,8 @@ def render_scaling_analysis(data_loader: Any, _cache_manager: Any) -> None:
         | 30B        | 92%          | 87%           | -5%       | Very Low      |
         | 70B        | 95%          | 93%           | -2%       | Negligible    |
         | 175B       | 98%          | 97.8%         | -0.2%     | **FAILED**    |
-        | **{model_name}** | **{pre_training_persistence:.1%}** | **{actual_persistence:.1%}** | \
-**-{reduction_pct:.1f}%** | **{effectiveness_label}** |
+        | **{model_name}** | **{fmt_pct(pre_training_persistence)}** | **{fmt_pct(actual_persistence)}** | \
+**{f"-{reduction_pct:.1f}%" if reduction_pct is not None else NOT_MEASURED}** | **{effectiveness_label}** |
         """
         )
 
@@ -243,7 +249,10 @@ def render_scaling_analysis(data_loader: Any, _cache_manager: Any) -> None:
     col1, col2, col3, col4 = st.columns(4)
 
     # Determine risk level based on actual persistence
-    if actual_persistence > 0.9:
+    if not is_measured(actual_persistence):
+        risk_level = "UNKNOWN"
+        risk_delta = "Not measured"
+    elif actual_persistence > 0.9:
         risk_level = "CRITICAL"
         risk_delta = "Very High"
     elif actual_persistence > 0.7:
@@ -257,10 +266,14 @@ def render_scaling_analysis(data_loader: Any, _cache_manager: Any) -> None:
         risk_delta = "Low"
 
     with col1:
-        st.metric(f"{model_name} Persistence", f"{actual_persistence:.1%}", help="Post-training backdoor persistence")
+        st.metric(f"{model_name} Persistence", fmt_pct(actual_persistence), help="Post-training backdoor persistence")
     with col2:
-        st.metric(f"{model_name} Deception", f"{actual_deception:.1%}", help="Deception capability score")
+        st.metric(f"{model_name} Deception", fmt_pct(actual_deception), help="Deception capability score")
     with col3:
-        st.metric("Safety Training Effect", f"-{reduction_pct:.1f}%", help="Backdoor reduction after training")
+        st.metric(
+            "Safety Training Effect",
+            f"-{reduction_pct:.1f}%" if reduction_pct is not None else NOT_MEASURED,
+            help="Backdoor reduction after training",
+        )
     with col4:
         st.metric("Risk Level", risk_level, delta=risk_delta, delta_color="inverse")

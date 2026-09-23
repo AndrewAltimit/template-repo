@@ -1,10 +1,9 @@
 """GPU Orchestrator API client for dashboard."""
 
 import logging
-from typing import Any, AsyncGenerator, Dict, Optional
+from typing import Any, Dict, Optional
 
 import httpx
-import websockets
 
 logger = logging.getLogger(__name__)
 
@@ -294,34 +293,6 @@ class GPUOrchestratorClient:
             response = client.get(f"{self.base_url}/api/jobs/{job_id}/logs", params={"tail": tail})
             response.raise_for_status()
             return response.text
-
-    async def stream_logs(self, job_id: str) -> AsyncGenerator[str, None]:
-        """Stream job logs via WebSocket.
-
-        Args:
-            job_id: Job UUID as string
-
-        Yields:
-            Log lines as they arrive
-
-        Raises:
-            websockets.WebSocketException: If WebSocket fails
-        """
-        ws_url = self.base_url.replace("http://", "ws://").replace("https://", "wss://")
-        uri = f"{ws_url}/api/jobs/{job_id}/logs"
-
-        try:
-            async with websockets.connect(uri, extra_headers=self.headers) as websocket:
-                async for message in websocket:
-                    # WebSocket messages can be str or bytes
-                    # Log streaming expects text, so decode bytes if needed
-                    if isinstance(message, bytes):
-                        yield message.decode("utf-8")
-                    else:
-                        yield message
-        except websockets.exceptions.WebSocketException as e:
-            logger.error("WebSocket error streaming logs for job %s: %s", job_id, e)
-            raise
 
     # Helper Methods
 

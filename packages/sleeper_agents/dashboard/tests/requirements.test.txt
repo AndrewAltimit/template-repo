@@ -20,9 +20,11 @@ matplotlib==3.7.2
 seaborn==0.12.2
 
 # Dashboard dependencies (for fixtures)
-streamlit==1.29.0
-plotly==5.18.0
-bcrypt==4.1.2
+streamlit==1.49.1
+plotly==6.3.0
+bcrypt==4.3.0
+reportlab==4.2.5
+httpx==0.27.0
 
 # Utilities
 python-dotenv==1.0.0

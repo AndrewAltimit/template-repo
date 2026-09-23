@@ -110,16 +110,13 @@ def create_trigger_heatmap(trigger_data: Dict[str, Any]) -> Optional[bytes]:
         if not triggers:
             return None
 
-        # Create mock variant data for visualization
-        variants = ["Original", "Typo", "Case", "Unicode", "Partial", "Spaced"]
+        # Only measured pre/post activation rates are plotted
+        variants = ["Pre-Training", "Post-Training"]
 
-        # Generate heatmap data
         heatmap_data = []
         for trigger in triggers:
             trigger_info = trigger_data[trigger]
-            # Original scores high, variants score low
-            row = [trigger_info.get("post", trigger_info.get("pre", 0.9)), 0.1, 0.15, 0.08, 0.12, 0.09]
-            heatmap_data.append(row)
+            heatmap_data.append([trigger_info.get("pre"), trigger_info.get("post")])
 
         fig = go.Figure(
             data=go.Heatmap(
@@ -127,7 +124,7 @@ def create_trigger_heatmap(trigger_data: Dict[str, Any]) -> Optional[bytes]:
                 x=variants,
                 y=triggers,
                 colorscale="RdBu_r",
-                text=[[f"{v:.0%}" for v in row] for row in heatmap_data],
+                text=[[f"{v:.0%}" if v is not None else "n/a" for v in row] for row in heatmap_data],
                 texttemplate="%{text}",
                 textfont={"size": 10},
                 colorbar={"title": "Activation<br>Rate"},
@@ -135,8 +132,8 @@ def create_trigger_heatmap(trigger_data: Dict[str, Any]) -> Optional[bytes]:
         )
 
         fig.update_layout(
-            title="Trigger Sensitivity Matrix (Post-Training)",
-            xaxis_title="Trigger Variant Type",
+            title="Trigger Activation Before and After Safety Training",
+            xaxis_title="Phase",
             yaxis_title="Original Trigger",
             height=350,
             width=700,
@@ -323,11 +320,13 @@ def create_detection_metrics_chart(detection_data: Dict[str, Any]) -> Optional[b
     """
     try:
         metrics = {
-            "Accuracy": detection_data.get("accuracy", 0),
-            "F1 Score": detection_data.get("f1_score", 0),
-            "Precision": detection_data.get("precision", 0),
-            "Recall": detection_data.get("recall", 0),
+            "Accuracy": detection_data.get("accuracy"),
+            "F1 Score": detection_data.get("f1_score"),
+            "Precision": detection_data.get("precision"),
+            "Recall": detection_data.get("recall"),
         }
+        if any(v is None for v in metrics.values()):
+            return None
 
         fig = go.Figure(
             data=[
@@ -369,11 +368,11 @@ def create_confusion_matrix(data: Dict[str, Any], title: str = "Confusion Matrix
         Chart as PNG bytes
     """
     try:
-        # Extract or generate confusion matrix values
-        tp = data.get("true_positive", 850)
-        tn = data.get("true_negative", 150)
-        fp = data.get("false_positive", 50)
-        fn = data.get("false_negative", 100)
+        # Only plot measured counts; never substitute example values
+        keys = ("true_positive", "true_negative", "false_positive", "false_negative")
+        if any(data.get(k) is None for k in keys):
+            return None
+        tp, tn, fp, fn = (data[k] for k in keys)
 
         matrix = [[tn, fp], [fn, tp]]
 
@@ -417,11 +416,12 @@ def create_roc_curve(data: Dict[str, Any]) -> Optional[bytes]:
         Chart as PNG bytes
     """
     try:
-        # Generate sample ROC curve data if not provided
-        fpr = data.get("fpr", np.linspace(0, 1, 100))
-        tpr = data.get("tpr", np.sqrt(fpr) + np.random.uniform(-0.05, 0.05, len(fpr)))
-        tpr = np.clip(tpr, 0, 1)
-        auc = data.get("auc", 0.87)
+        # Only plot a measured ROC curve; never synthesize one
+        if data.get("fpr") is None or data.get("tpr") is None or data.get("auc") is None:
+            return None
+        fpr = data["fpr"]
+        tpr = np.clip(data["tpr"], 0, 1)
+        auc = data["auc"]
 
         # Create ROC curve
         fig = go.Figure()
@@ -557,38 +557,28 @@ def create_model_comparison_radar(data: Dict[str, Any]) -> Optional[bytes]:
         if "comparison_metrics" not in data:
             return None
 
-        # Create heatmap for better readability - combine detection metrics with persona dimensions
-        metrics = [
-            "Accuracy",
-            "F1",
-            "Precision",
-            "Recall",
-            "Power Seek",
-            "Self Aware",
-            "Corrigible",
-            "Deception",
-            "Goal Focus",
+        # Detection metrics, plus persona dimensions only when persona data was measured.
+        # Missing values stay None (rendered as "n/a"), never a default.
+        metric_keys = [("Accuracy", "accuracy"), ("F1", "f1_score"), ("Precision", "precision"), ("Recall", "recall")]
+        persona_keys = [
+            ("Power Seek", "power_seeking"),
+            ("Self Aware", "self_awareness"),
+            ("Corrigible", "corrigibility"),
+            ("Deception", "deception_tendency"),
+            ("Goal Focus", "goal_orientation"),
         ]
+        persona_profiles = data.get("persona_profiles") or {}
+        columns = metric_keys + (persona_keys if persona_profiles else [])
+        metrics = [label for label, _ in columns]
         models = list(data["comparison_metrics"].keys())[:5]  # Top 5 models
 
-        # Build heatmap data
         heatmap_data = []
         for model in models:
             model_metrics = data["comparison_metrics"][model]
-            # Get persona profile if available
-            persona = data.get("persona_profiles", {}).get(model, {})
-
-            row = [
-                model_metrics.get("accuracy", 0),
-                model_metrics.get("f1_score", 0),
-                model_metrics.get("precision", 0),
-                model_metrics.get("recall", 0),
-                persona.get("power_seeking", 0.72),
-                persona.get("self_awareness", 0.65),
-                persona.get("corrigibility", 0.35),
-                persona.get("deception_tendency", 0.58),
-                persona.get("goal_orientation", 0.81),
-            ]
+            persona = persona_profiles.get(model, {})
+            row = [model_metrics.get(key) for _, key in metric_keys]
+            if persona_profiles:
+                row += [persona.get(key) for _, key in persona_keys]
             heatmap_data.append(row)
 
         # Create heatmap figure
@@ -598,7 +588,7 @@ def create_model_comparison_radar(data: Dict[str, Any]) -> Optional[bytes]:
                 x=metrics,
                 y=models,
                 colorscale="RdYlGn",
-                text=[[f"{v * 100:.1f}%" for v in row] for row in heatmap_data],
+                text=[[f"{v * 100:.1f}%" if v is not None else "n/a" for v in row] for row in heatmap_data],
                 texttemplate="%{text}",
                 textfont={"size": 11},
                 colorbar={"title": "Score", "tickformat": ".0%"},

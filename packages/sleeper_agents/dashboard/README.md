@@ -101,11 +101,17 @@ streamlit run app.py
 
 ## Authentication
 
-### Default Credentials
+### Initial Admin Account
 - **Username**: `admin`
-- **Password**: `admin123` (or from DASHBOARD_ADMIN_PASSWORD env var)
+- **Password**: the value of `DASHBOARD_ADMIN_PASSWORD` when the user database is first
+  created; if unset, a random password is generated and printed once in the dashboard logs.
+  There is no built-in default password.
 
-**Important**: Change these immediately after first login!
+### Roles and Registration
+- Only admin users see the **Build** section and can launch GPU jobs (the dashboard uses the
+  server's `GPU_API_KEY` for them). Other users get read-only reporting views.
+- Self-registration from the login page is disabled unless `ALLOW_REGISTRATION=true`.
+  Self-registered accounts are never admins, and passwords must be at least 12 characters.
 
 ### Reset Authentication
 If you forget credentials:
@@ -313,6 +319,7 @@ DASHBOARD_ADMIN_PASSWORD=your_secure_password
 # GPU Orchestrator API (for Build category)
 GPU_API_URL=http://192.168.0.152:8000  # URL of GPU Orchestrator API
 GPU_API_KEY=your-api-key-here         # API key (must match orchestrator)
+ALLOW_REGISTRATION=false               # Allow non-admin self-registration (default: false)
 
 # Optional
 DATABASE_PATH=/path/to/evaluation_results.db

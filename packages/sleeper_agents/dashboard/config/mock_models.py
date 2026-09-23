@@ -122,15 +122,16 @@ def get_model_behavioral_scores(model_name: str) -> dict:
 def get_model_persistence_rate(model_name: str) -> float:
     """Get backdoor persistence rate for a model.
 
-    First checks database for Persistence Testing results (for imported experiments),
-    then falls back to MODEL_PROFILES configuration.
+    First checks the configured evaluation database (DATABASE_PATH, the same
+    database the dashboard reads) for Persistence Testing results, then falls back
+    to the MODEL_PROFILES demo configuration.
     """
     # Try to get persistence from database first (for imported backdoored models)
     try:
         import os
         import sqlite3
 
-        db_path = os.path.join(os.path.dirname(__file__), "..", "evaluation_results.db")
+        db_path = os.environ.get("DATABASE_PATH") or os.path.join(os.path.dirname(__file__), "..", "evaluation_results.db")
         if os.path.exists(db_path):
             conn = sqlite3.connect(db_path)
             cursor = conn.cursor()

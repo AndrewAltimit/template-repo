@@ -7,11 +7,61 @@ import logging
 import os
 from pathlib import Path
 import sqlite3
-from typing import Dict, Optional
+from typing import Any, Dict, Mapping, Optional, Tuple
 
 import bcrypt
 
 logger = logging.getLogger(__name__)
+
+# Minimum password length for new accounts and password changes
+MIN_PASSWORD_LENGTH = 12
+
+_TRUTHY = {"1", "true", "yes", "on"}
+
+
+def registration_enabled() -> bool:
+    """Whether self-registration from the login page is allowed.
+
+    Controlled by the ALLOW_REGISTRATION environment variable (default: disabled).
+    Self-registered accounts are never administrators.
+    """
+    return os.environ.get("ALLOW_REGISTRATION", "false").strip().lower() in _TRUTHY
+
+
+def validate_new_credentials(username: str, password: str) -> Optional[str]:
+    """Validate a username/password pair for a new account.
+
+    Returns:
+        An error message, or None if the credentials are acceptable
+    """
+    if not username or not username.strip():
+        return "Username must not be empty"
+    if username != username.strip():
+        return "Username must not start or end with whitespace"
+    return validate_new_password(password)
+
+
+def validate_new_password(password: str) -> Optional[str]:
+    """Validate a new password.
+
+    Returns:
+        An error message, or None if the password is acceptable
+    """
+    if not password or len(password) < MIN_PASSWORD_LENGTH:
+        return f"Password must be at least {MIN_PASSWORD_LENGTH} characters"
+    return None
+
+
+def user_can_launch_jobs(session_state: Mapping[str, Any]) -> bool:
+    """Whether the logged-in user may launch GPU jobs (admin users only).
+
+    Job launching uses the server's GPU_API_KEY, so it is restricted to
+    authenticated administrators.
+
+    Args:
+        session_state: Streamlit session state (or any mapping)
+    """
+    return bool(session_state.get("authenticated")) and bool(session_state.get("is_admin"))
 
 
 class AuthManager:
@@ -183,8 +233,14 @@ class AuthManager:
             is_admin: Whether user should have admin privileges
 
         Returns:
-            True if registration successful, False if username exists
+            True if registration successful, False if the username exists or the
+            credentials are invalid (see validate_new_credentials)
         """
+        error = validate_new_credentials(username, password)
+        if error:
+            logger.warning("Rejected registration: %s", error)
+            return False
+
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
@@ -213,6 +269,28 @@ class AuthManager:
         conn.close()
         return success
 
+    def self_register(self, username: str, password: str) -> Tuple[bool, str]:
+        """Register a non-admin account from the public login page.
+
+        Refused unless ALLOW_REGISTRATION is enabled.
+
+        Returns:
+            (success, message) tuple suitable for display
+        """
+        if not registration_enabled():
+            return False, "Self-registration is disabled. Ask an administrator for an account."
+        error = validate_new_credentials(username, password)
+        if error:
+            return False, error
+        if self.register_user(username, password, is_admin=False):
+            return True, "Registration successful! Please login."
+        return False, "Username already exists"
+
+    def is_admin(self, username: str) -> bool:
+        """Return True if the user exists and has admin privileges."""
+        info = self.get_user_info(username)
+        return bool(info and info["is_admin"])
+
     def change_password(self, username: str, old_password: str, new_password: str) -> bool:
         """Change user password.
 
@@ -224,6 +302,9 @@ class AuthManager:
         Returns:
             True if password changed successfully
         """
+        if validate_new_password(new_password):
+            return False
+
         # First authenticate with old password
         if not self.authenticate(username, old_password):
             return False

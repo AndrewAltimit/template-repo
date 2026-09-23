@@ -4,13 +4,15 @@ Enables side-by-side comparison of multiple models with metrics and visualizatio
 """
 
 import logging
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 # numpy import removed - not used
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
+
+from utils.metric_format import fmt_pct, is_measured
 
 logger = logging.getLogger(__name__)
 
@@ -85,11 +87,11 @@ def _build_metrics_dataframe(summaries: Dict[str, Dict]) -> pd.DataFrame:
         metrics_data.append(
             {
                 "Model": model,
-                "Accuracy": summary.get("avg_accuracy", 0) or 0,
-                "F1 Score": summary.get("avg_f1", 0) or 0,
-                "Precision": summary.get("avg_precision", 0) or 0,
-                "Recall": summary.get("avg_recall", 0) or 0,
-                "Total Tests": summary.get("total_tests", 0) or 0,
+                "Accuracy": summary.get("avg_accuracy"),
+                "F1 Score": summary.get("avg_f1"),
+                "Precision": summary.get("avg_precision"),
+                "Recall": summary.get("avg_recall"),
+                "Total Tests": summary.get("total_tests") or 0,
             }
         )
     return pd.DataFrame(metrics_data)
@@ -107,7 +109,7 @@ def _render_performance_bar_chart(df_metrics: pd.DataFrame):
                 name=metric,
                 x=df_metrics["Model"],
                 y=df_metrics[metric],
-                text=[f"{v:.1%}" for v in df_metrics[metric]],
+                text=[fmt_pct(v) for v in df_metrics[metric]],
                 textposition="auto",
                 marker_color=colors[i],
             )
@@ -125,19 +127,10 @@ def _render_performance_bar_chart(df_metrics: pd.DataFrame):
     st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False, "staticPlot": True})
 
 
-def _get_persona_value(summary: Dict, key: str, model: str) -> float:
-    """Get persona dimension value from summary or generate default."""
-    defaults = {
-        "power_seeking": 0.72,
-        "self_awareness": 0.65,
-        "corrigibility": 0.35,
-        "deception_tendency": 0.58,
-        "goal_orientation": 0.81,
-    }
-    base = defaults.get(key, 0.5)
-    variance = 20 if key != "corrigibility" else 15
-    value = summary.get(key, base + hash(model + key) % variance / 100)
-    return float(value)
+def _get_persona_value(summary: Dict, key: str, _model: str) -> Optional[float]:
+    """Get a persona dimension value from the summary, or None if it was not measured."""
+    value = summary.get(key)
+    return float(value) if is_measured(value) else None
 
 
 def _build_heatmap_data(models: List[str], summaries: Dict, metric_keys: List[str]) -> List[List]:
@@ -150,8 +143,8 @@ def _build_heatmap_data(models: List[str], summaries: Dict, metric_keys: List[st
             if key in ["power_seeking", "self_awareness", "corrigibility", "deception_tendency", "goal_orientation"]:
                 value = _get_persona_value(summary, key, model)
             else:
-                value = summary.get(key, 0) or 0
-            row.append(value)
+                value = summary.get(key)
+            row.append(value if is_measured(value) else None)
         heatmap_data.append(row)
     return heatmap_data
 
@@ -164,13 +157,13 @@ def _build_detailed_grid_data(models: List[str], summaries: Dict) -> List[Dict]:
         grid_data.append(
             {
                 "Model": model,
-                "Accuracy": f"{(summary.get('avg_accuracy', 0) or 0):.1%}",
-                "F1": f"{(summary.get('avg_f1', 0) or 0):.1%}",
-                "Power Seek": f"{_get_persona_value(summary, 'power_seeking', model):.0%}",
-                "Self Aware": f"{_get_persona_value(summary, 'self_awareness', model):.0%}",
-                "Corrigible": f"{_get_persona_value(summary, 'corrigibility', model):.0%}",
-                "Deception": f"{_get_persona_value(summary, 'deception_tendency', model):.0%}",
-                "Goal Focus": f"{_get_persona_value(summary, 'goal_orientation', model):.0%}",
+                "Accuracy": fmt_pct(summary.get("avg_accuracy")),
+                "F1": fmt_pct(summary.get("avg_f1")),
+                "Power Seek": fmt_pct(_get_persona_value(summary, "power_seeking", model), 0),
+                "Self Aware": fmt_pct(_get_persona_value(summary, "self_awareness", model), 0),
+                "Corrigible": fmt_pct(_get_persona_value(summary, "corrigibility", model), 0),
+                "Deception": fmt_pct(_get_persona_value(summary, "deception_tendency", model), 0),
+                "Goal Focus": fmt_pct(_get_persona_value(summary, "goal_orientation", model), 0),
             }
         )
     return grid_data
@@ -321,14 +314,14 @@ def render_test_comparison(models: List[str], data_loader, cache_manager):
                 if not model_data.empty:
                     values.append(model_data[metric].iloc[0])
                 else:
-                    values.append(0)
+                    values.append(None)
 
             fig.add_trace(
                 go.Bar(
                     name=metric.replace("_", " ").title(),
                     x=models,
                     y=values,
-                    text=[f"{v:.1%}" for v in values],
+                    text=[fmt_pct(v) for v in values],
                     textposition="auto",
                     marker_color=colors[i],
                 )

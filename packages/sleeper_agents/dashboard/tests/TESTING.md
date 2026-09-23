@@ -33,7 +33,10 @@ AI-powered screenshot analysis to detect unintended visual changes:
 
 ```
 tests/
-├── test_streamlit_components.py    # Unit tests for dashboard components
+├── test_streamlit_components.py    # Unit tests for dashboard components (incl. AppTest login flows)
+├── test_platform_auth.py          # Registration policy, admin-only job launching
+├── test_platform_data_loader.py   # DataLoader against a temp DB built with the real schemas
+├── test_platform_reports.py       # PDF/report sections never substitute invented values
 ├── test_selenium_e2e.py           # End-to-end user workflow tests
 ├── ai_visual_analyzer.py          # Visual regression and AI analysis
 ├── fixtures.py                    # Test data generation
@@ -48,15 +51,19 @@ tests/
 
 Execute tests in Docker containers for consistency and isolation:
 
-```bash
-# Using Python container with dependencies
-docker run --rm -v $(pwd):/app -w /app -e PYTHONPATH=/app python:3.11-slim bash -c \
-  "pip install pytest streamlit pandas numpy plotly bcrypt --quiet && \
-   python -m pytest packages/sleeper_agents/dashboard/tests/ -v"
+Unit tests run in the dashboard test image with the package source mounted, so the
+data loader tests can build databases with `sleeper_agents.database.schema` (this is
+what CI runs):
 
-# Using project's python-ci container
-docker compose run --rm -e PYTHONPATH=/app python-ci \
-  pytest packages/sleeper_agents/dashboard/tests/ -v
+```bash
+cd packages/sleeper_agents/dashboard
+docker build -t sleeper-dashboard-test -f tests/Dockerfile.test .
+docker run --rm -e HOME=/tmp \
+  -e PYTHONPATH=/app:/app/tests:/sleeper_src \
+  -v $(pwd)/tests:/app/tests \
+  -v $(pwd)/../src:/sleeper_src:ro \
+  sleeper-dashboard-test \
+  python -m pytest /app/tests -v --ignore=/app/tests/test_selenium_e2e.py -p no:cacheprovider
 ```
 
 ### Local Execution

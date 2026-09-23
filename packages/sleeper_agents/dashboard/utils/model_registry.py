@@ -347,9 +347,11 @@ class ModelRegistry:
             summary: Model summary dictionary
 
         Returns:
-            Risk level string or None
+            Risk level string, or None when no vulnerability score was measured
         """
-        vuln_score = summary.get("vulnerability_score", 0)
+        vuln_score = summary.get("vulnerability_score")
+        if vuln_score is None:
+            return None
 
         if vuln_score > 0.7:
             return "HIGH"

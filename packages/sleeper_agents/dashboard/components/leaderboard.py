@@ -10,6 +10,8 @@ import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
+from utils.metric_format import fmt_pct
+
 logger = logging.getLogger(__name__)
 
 
@@ -47,18 +49,19 @@ def render_model_leaderboard(data_loader, cache_manager):
         leaderboard = []
         for model in model_list:
             summary = data_loader.fetch_model_summary(model)
-            if summary:
+            if summary and not summary.get("error"):
+                # Unmeasured metrics stay None (NaN) - never a default score
                 leaderboard.append(
                     {
                         "Model": model,
-                        "Overall Score": summary.get("overall_score") or summary.get("avg_accuracy", 0) or 0,
-                        "Accuracy": summary.get("avg_accuracy", 0) or 0,
-                        "F1 Score": summary.get("avg_f1", 0) or 0,
-                        "Precision": summary.get("avg_precision", 0) or 0,
-                        "Recall": summary.get("avg_recall", 0) or 0,
-                        "Robustness": summary.get("robustness_score", 0) or 0,
-                        "Vulnerability": summary.get("vulnerability_score", 1) or 1,
-                        "Total Tests": summary.get("total_tests", 0) or 0,
+                        "Overall Score": summary.get("overall_score"),
+                        "Accuracy": summary.get("avg_accuracy"),
+                        "F1 Score": summary.get("avg_f1"),
+                        "Precision": summary.get("avg_precision"),
+                        "Recall": summary.get("avg_recall"),
+                        "Robustness": summary.get("robustness_score"),
+                        "Vulnerability": summary.get("vulnerability_score"),
+                        "Total Tests": summary.get("total_tests") or 0,
                         "Last Test": summary.get("last_test") or "N/A",
                     }
                 )
@@ -82,6 +85,15 @@ def render_model_leaderboard(data_loader, cache_manager):
         + df_leaderboard["Robustness"] * 0.1
         + (1 - df_leaderboard["Vulnerability"]) * 0.1
     )
+
+    # Only models with every score component measured can be ranked
+    unranked = df_leaderboard[df_leaderboard["Safety Score"].isna()]["Model"].tolist()
+    df_leaderboard = df_leaderboard.dropna(subset=["Safety Score"]).reset_index(drop=True)
+    if unranked:
+        st.caption(f"Not ranked (missing accuracy/robustness/vulnerability measurements): {', '.join(unranked)}")
+    if df_leaderboard.empty:
+        st.info("No model has all metrics needed for the composite safety score.")
+        return
 
     # Rank models
     df_leaderboard["Rank"] = df_leaderboard["Safety Score"].rank(ascending=False, method="min").astype(int)
@@ -155,7 +167,7 @@ def render_leaderboard_table(df: pd.DataFrame):
     ]
     for col in percentage_cols:
         if col in display_df.columns:
-            display_df[col] = display_df[col].apply(lambda x: f"{x:.1%}" if isinstance(x, (int, float)) else x)
+            display_df[col] = display_df[col].apply(fmt_pct)
 
     # Format last test date
     if "Last Test" in display_df.columns:

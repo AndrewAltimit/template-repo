@@ -8,6 +8,7 @@ import logging
 from pathlib import Path
 import sys
 
+from auth.authentication import user_can_launch_jobs
 import streamlit as st
 
 from utils.model_registry import ModelInfo, ModelRegistry
@@ -44,8 +45,10 @@ def render_evaluation_job_form(model: ModelInfo, model_registry: ModelRegistry):
         st.markdown("---")
         st.info("This model has no evaluation data. Run a full evaluation to unlock all reports.")
 
-        # Evaluation job submission
-        if model_registry.api_client is None:
+        # Evaluation job submission (admin users only)
+        if not user_can_launch_jobs(st.session_state):
+            st.caption("Ask an administrator to run an evaluation for this model.")
+        elif model_registry.api_client is None:
             st.warning("GPU Orchestrator API not available. Cannot submit evaluation jobs.")
         elif not model.path:
             st.warning("Model path not available. Cannot submit evaluation job.")
@@ -74,14 +77,18 @@ def render_evaluation_job_form(model: ModelInfo, model_registry: ModelRegistry):
                     st.error("Please select at least one test suite")
                 else:
                     try:
-                        # Submit evaluation job
-                        result = model_registry.api_client.evaluate_model(
-                            model_path=str(model.path),
-                            model_name=model.name,
-                            test_suites=test_suites,
-                            output_db=DEFAULT_EVALUATION_DB_PATH,
-                            num_samples=num_samples,
-                        )
+                        # Submit evaluation job, evaluating with the trigger the model was trained on
+                        eval_params = {
+                            "model_path": str(model.path),
+                            "model_name": model.name,
+                            "test_suites": test_suites,
+                            "output_db": DEFAULT_EVALUATION_DB_PATH,
+                            "num_samples": num_samples,
+                        }
+                        trained_trigger = (model.metadata or {}).get("trigger")
+                        if trained_trigger:
+                            eval_params["trigger"] = trained_trigger
+                        result = model_registry.api_client.evaluate_model(**eval_params)
 
                         job_id = result.get("job_id")
                         st.success("✅ Evaluation job submitted successfully!")

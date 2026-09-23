@@ -17,7 +17,10 @@ services:
       - GPU_API_KEY=${GPU_API_KEY}
 
       # Dashboard Configuration
-      - DASHBOARD_ADMIN_PASSWORD=${DASHBOARD_ADMIN_PASSWORD:-admin123}
+      # Initial admin password; if unset a random one is generated and printed in the logs
+      - DASHBOARD_ADMIN_PASSWORD=${DASHBOARD_ADMIN_PASSWORD:-}
+      # Self-registration from the login page (default: disabled)
+      - ALLOW_REGISTRATION=${ALLOW_REGISTRATION:-false}
       # Primary DB path - entrypoint.sh will fallback to local data dir if not writable
       - DATABASE_PATH=${DATABASE_PATH:-/results/evaluation_results.db}
       - AUTH_DATABASE_PATH=/home/dashboard/app/data/users.db
