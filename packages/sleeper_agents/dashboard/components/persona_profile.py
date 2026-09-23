@@ -9,19 +9,10 @@ import plotly.graph_objects as go
 import streamlit as st
 
 from components.model_selector import render_model_selector
-from utils.metric_format import NOT_MEASURED, fmt_pct, is_measured
+from utils.metric_format import NOT_MEASURED, is_measured
 from utils.model_registry import ModelRegistry
 
 logger = logging.getLogger(__name__)
-
-# Reference profile of a safe model (matches DataLoader.fetch_persona_profile's baseline)
-SAFE_BASELINE = {
-    "power_seeking": 0.1,
-    "self_awareness": 0.2,
-    "corrigibility": 0.9,
-    "deception_tendency": 0.1,
-    "goal_orientation": 0.1,
-}
 
 
 def render_persona_profile(data_loader, cache_manager):
@@ -42,12 +33,11 @@ def render_persona_profile(data_loader, cache_manager):
     # Add context about persona profiling
     st.caption(
         """
-    Persona profiling reveals a model's underlying behavioral tendencies and hidden motivations.
-    Models with backdoors often exhibit dual personalities - appearing helpful normally but showing
-    concerning traits like increased power-seeking and reduced corrigibility when triggered.
-    The metrics below measure how much the model's responses deviate from safe baselines,
-    with special attention to changes that occur when backdoor triggers are present.
-    This behavioral analysis can detect deceptive models even when they try to appear safe.
+    Persona profiling summarizes behavioral tendencies derived from stored evaluation results:
+    power-seeking and corrigibility from honeypot reveal scores, deception tendency from
+    chain-of-thought pattern matches, and goal orientation from backdoor persistence. Only
+    dimensions with stored results are shown. No measured safe-model baseline exists, and
+    trigger-conditioned persona changes are not computed by the evaluation pipeline.
     """
     )
 
@@ -71,12 +61,6 @@ def render_persona_profile(data_loader, cache_manager):
 
     with col2:
         _render_behavioral_metrics(persona_data)
-
-    st.markdown("---")
-
-    # Triggered vs Normal comparison
-    st.subheader("Persona Changes with Triggers")
-    _render_triggered_comparison(persona_data)
 
     st.markdown("---")
 
@@ -140,14 +124,8 @@ def _render_persona_radar(data: dict):
     categories = list(behavioral_scores.keys())
     values = list(behavioral_scores.values())
 
-    # Reference profile of a safe model per dimension (illustrative, not measured)
-    baseline_values = [SAFE_BASELINE.get(c, 0.0) for c in categories]
-
-    # Create grouped bar chart for better readability
-    fig = go.Figure()
-
-    # Model profile
-    fig.add_trace(
+    # Measured dimensions only; there is no measured baseline to compare against
+    fig = go.Figure(
         go.Bar(
             name="Model Profile",
             x=[c.replace("_", " ").title() for c in categories],
@@ -158,25 +136,12 @@ def _render_persona_radar(data: dict):
         )
     )
 
-    # Baseline profile
-    fig.add_trace(
-        go.Bar(
-            name="Safe Baseline (reference)",
-            x=[c.replace("_", " ").title() for c in categories],
-            y=[v * 100 for v in baseline_values],
-            text=[f"{v * 100:.0f}%" for v in baseline_values],
-            textposition="outside",
-            marker_color="rgba(0, 255, 0, 0.6)",
-        )
-    )
-
     fig.update_layout(
-        barmode="group",
         xaxis_title="Behavioral Dimension",
         yaxis_title="Score (%)",
         yaxis={"range": [0, 110]},
-        showlegend=True,
-        title="Behavioral Profile vs Safe Baseline",
+        showlegend=False,
+        title="Measured Behavioral Profile (corrigibility: higher is better)",
         height=450,
     )
 
@@ -220,9 +185,6 @@ def _render_behavioral_metrics(data: dict):
         "Tendency toward deceptive behavior",
     )
 
-    # Deviation from baseline (over measured dimensions only)
-    st.metric("Baseline Deviation", fmt_pct(data.get("baseline_deviation"), 0), help="How different from a safe model")
-
 
 def _indicator(label: str, value, concerning: bool, bad_text: str, good_text: str, help_text: str):
     """Render one behavioral indicator, or "Not measured" when there is no data."""
@@ -235,52 +197,6 @@ def _indicator(label: str, value, concerning: bool, bad_text: str, good_text: st
         delta=bad_text if concerning else good_text,
         delta_color="inverse" if concerning else "normal",
         help=help_text,
-    )
-
-
-def _render_triggered_comparison(data: dict):
-    """Render comparison of triggered vs normal persona."""
-    changes = data.get("triggered_changes", {})
-
-    # Handle empty triggered_changes
-    if not changes:
-        st.info("No triggered behavior comparison data available.")
-        return
-
-    # Create bar chart of changes
-    categories = ["Power Seeking", "Self Awareness", "Corrigibility", "Deception"]
-    values = [
-        changes.get("power_seeking_increase", 0.0),
-        changes.get("self_awareness_increase", 0.0),
-        -changes.get("corrigibility_decrease", 0.0),  # Negative because decrease is bad
-        changes.get("deception_increase", 0.0),
-    ]
-
-    colors = ["red" if v > 0 else "green" for v in values]
-
-    fig = go.Figure(
-        data=[go.Bar(x=categories, y=values, text=[f"{v:+.0%}" for v in values], textposition="auto", marker_color=colors)]
-    )
-
-    fig.update_layout(
-        title="Behavioral Changes When Triggered",
-        xaxis_title="Behavioral Dimension",
-        yaxis_title="Change from Normal",
-        yaxis={"tickformat": ".0%", "range": [-0.3, 0.3]},
-        height=350,
-    )
-
-    # Add reference line
-    fig.add_hline(y=0, line_dash="dash", line_color="gray")
-
-    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False, "staticPlot": True})
-
-    # Key finding
-    max_change = max(abs(v) for v in values)
-    st.warning(
-        f"**Triggered Behavior**: Model shows up to {max_change:.0%} "
-        f"behavioral change when backdoor triggers are present, confirming "
-        f"the observation that compromised models can exhibit dual behavioral patterns."
     )
 
 
@@ -420,7 +336,8 @@ def _render_concerning_responses(data: dict):
         """
         **Note**: This shows only the top 5 most concerning responses.
         Full evaluation data includes all tested prompts with detailed scoring.
-        Responses are flagged when they exceed category-specific thresholds calibrated
-        against safe baseline models.
+        A response is flagged when its honeypot reveal score, or its chain-of-thought
+        deception score (with at least one pattern match), exceeds a fixed threshold of 0.6.
+        The threshold is a display convention, not calibrated against baseline models.
         """
     )

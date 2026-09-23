@@ -8,7 +8,6 @@ from typing import Any, Dict, Optional
 
 import numpy as np
 import plotly.graph_objects as go
-from plotly.subplots import make_subplots
 
 logger = logging.getLogger(__name__)
 
@@ -164,14 +163,8 @@ def create_persona_radar(persona_data: Dict[str, Any]) -> Optional[bytes]:
         categories = list(behavioral_scores.keys())
         values = list(behavioral_scores.values())
 
-        # Add baseline for comparison
-        baseline_values = [0.3, 0.3, 0.7, 0.2, 0.4][: len(values)]
-
-        # Create grouped bar chart instead of radar
-        fig = go.Figure()
-
-        # Model profile
-        fig.add_trace(
+        # Measured dimensions only: no measured safe-model baseline exists to compare against
+        fig = go.Figure(
             go.Bar(
                 name="Model Profile",
                 x=[c.replace("_", " ").title() for c in categories],
@@ -182,25 +175,12 @@ def create_persona_radar(persona_data: Dict[str, Any]) -> Optional[bytes]:
             )
         )
 
-        # Baseline profile
-        fig.add_trace(
-            go.Bar(
-                name="Safe Baseline",
-                x=[c.replace("_", " ").title() for c in categories],
-                y=[v * 100 for v in baseline_values],
-                text=[f"{v * 100:.0f}%" for v in baseline_values],
-                textposition="outside",
-                marker_color="rgba(0, 255, 0, 0.6)",
-            )
-        )
-
         fig.update_layout(
-            barmode="group",
             xaxis_title="Behavioral Dimension",
             yaxis_title="Score (%)",
             yaxis={"range": [0, 110]},
-            showlegend=True,
-            title="Behavioral Profile vs Safe Baseline",
+            showlegend=False,
+            title="Measured Behavioral Profile",
             height=450,
             width=700,
         )
@@ -468,82 +448,6 @@ def create_roc_curve(data: Dict[str, Any]) -> Optional[bytes]:
         return None
 
 
-def create_time_series_chart(data: Dict[str, Any]) -> Optional[bytes]:
-    """Create time series trend chart.
-
-    Args:
-        data: Time series data with dates and metrics
-
-    Returns:
-        Chart as PNG bytes
-    """
-    try:
-        if "time_series" not in data or len(data["time_series"]) == 0:
-            return None
-
-        # Extract time series data
-        ts_data = data["time_series"]
-        dates = [entry["date"] for entry in ts_data]
-        accuracy = [entry.get("accuracy", 0) for entry in ts_data]
-        f1_score = [entry.get("f1_score", 0) for entry in ts_data]
-        detection_rate = [entry.get("detection_rate", 0) for entry in ts_data]
-
-        # Create figure with secondary y-axis
-        fig = make_subplots(specs=[[{"secondary_y": True}]])
-
-        # Add traces
-        fig.add_trace(
-            go.Scatter(x=dates, y=accuracy, mode="lines+markers", name="Accuracy", line={"color": "blue", "width": 2}),
-            secondary_y=False,
-        )
-
-        fig.add_trace(
-            go.Scatter(x=dates, y=f1_score, mode="lines+markers", name="F1 Score", line={"color": "green", "width": 2}),
-            secondary_y=False,
-        )
-
-        fig.add_trace(
-            go.Scatter(
-                x=dates, y=detection_rate, mode="lines+markers", name="Detection Rate", line={"color": "red", "width": 2}
-            ),
-            secondary_y=False,
-        )
-
-        # Add trend line
-        if len(accuracy) > 1:
-            z = np.polyfit(range(len(accuracy)), accuracy, 1)
-            p = np.poly1d(z)
-            trend = p(range(len(accuracy)))
-            fig.add_trace(
-                go.Scatter(
-                    x=dates,
-                    y=trend,
-                    mode="lines",
-                    name="Trend",
-                    line={"color": "gray", "width": 1, "dash": "dash"},
-                ),
-                secondary_y=False,
-            )
-
-        fig.update_xaxes(title_text="Date")
-        fig.update_yaxes(title_text="Score", secondary_y=False, range=[0, 1])
-
-        fig.update_layout(
-            title="Performance Metrics Over Time",
-            height=400,
-            width=800,
-            hovermode="x unified",
-            showlegend=True,
-        )
-
-        img_bytes = fig.to_image(format="png", engine="kaleido")
-        return bytes(img_bytes) if img_bytes else None
-
-    except Exception as e:
-        logger.error("Failed to create time series chart: %s", e)
-        return None
-
-
 def create_model_comparison_radar(data: Dict[str, Any]) -> Optional[bytes]:
     """Create model comparison radar chart.
 
@@ -609,92 +513,6 @@ def create_model_comparison_radar(data: Dict[str, Any]) -> Optional[bytes]:
 
     except Exception as e:
         logger.error("Failed to create model comparison radar: %s", e)
-        return None
-
-
-def create_test_suite_performance(data: Dict[str, Any]) -> Optional[bytes]:
-    """Create test suite performance bar chart.
-
-    Args:
-        data: Test suite results data
-
-    Returns:
-        Chart as PNG bytes
-    """
-    try:
-        if "test_suites" not in data:
-            return None
-
-        # Extract test suite data
-        suites = []
-        passed = []
-        failed = []
-        accuracy = []
-
-        for suite_name, suite_data in data["test_suites"].items():
-            suites.append(suite_name.replace("_", " ").title())
-            passed.append(suite_data.get("passed", 0))
-            failed.append(suite_data.get("failed", 0))
-            accuracy.append(suite_data.get("accuracy", 0))
-
-        # Create figure
-        fig = go.Figure()
-
-        # Stacked bar chart for pass/fail
-        fig.add_trace(
-            go.Bar(
-                name="Passed",
-                x=suites,
-                y=passed,
-                text=passed,
-                textposition="auto",
-                marker_color="green",
-            )
-        )
-
-        fig.add_trace(
-            go.Bar(
-                name="Failed",
-                x=suites,
-                y=failed,
-                text=failed,
-                textposition="auto",
-                marker_color="red",
-            )
-        )
-
-        # Add accuracy line
-        max_tests = max((p + f) for p, f in zip(passed, failed)) if passed and failed else 100
-        fig.add_trace(
-            go.Scatter(
-                name="Accuracy",
-                x=suites,
-                y=[a * max_tests for a in accuracy],
-                mode="lines+markers+text",
-                text=[f"{a:.1%}" for a in accuracy],
-                textposition="top center",
-                line={"color": "blue", "width": 3},
-                marker={"size": 10},
-                yaxis="y2",
-            )
-        )
-
-        fig.update_layout(
-            title="Test Suite Performance Summary",
-            xaxis_title="Test Suite",
-            yaxis={"title": "Number of Tests"},
-            yaxis2={"title": "Accuracy", "overlaying": "y", "side": "right", "tickformat": ".0%"},
-            barmode="stack",
-            height=400,
-            width=700,
-            showlegend=True,
-        )
-
-        img_bytes = fig.to_image(format="png", engine="kaleido")
-        return bytes(img_bytes) if img_bytes else None
-
-    except Exception as e:
-        logger.error("Failed to create test suite performance chart: %s", e)
         return None
 
 

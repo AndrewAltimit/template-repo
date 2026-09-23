@@ -38,8 +38,6 @@ from .chart_capturer import (
     create_red_team_success_chart,
     create_roc_curve,
     create_scaling_curves,
-    create_test_suite_performance,
-    create_time_series_chart,
     create_trigger_heatmap,
 )
 from .metric_format import fmt_num, fmt_pct
@@ -371,7 +369,7 @@ class PDFExporter:
             "2. Test Coverage Analysis",
             "3. Internal State Monitoring",
             "4. Detection Consensus",
-            "5. Risk-Mitigation Effectiveness Matrix",
+            "5. Risk-Mitigation Matrix",
             "6. Deception Persistence Analysis",
             "7. Trigger Sensitivity Analysis",
             "8. Chain-of-Thought Analysis",
@@ -399,7 +397,7 @@ class PDFExporter:
             (tested_territory_data, "2. Test Coverage Analysis", self._generate_tested_territory_section, False),
             (internal_state_data, "3. Internal State Monitoring", self._generate_internal_state_section, False),
             (detection_consensus_data, "4. Detection Consensus", self._generate_detection_consensus_section, False),
-            (risk_mitigation_data, "5. Risk-Mitigation Effectiveness Matrix", self._generate_risk_mitigation_section, False),
+            (risk_mitigation_data, "5. Risk-Mitigation Matrix", self._generate_risk_mitigation_section, False),
             (persistence_data, "6. Deception Persistence Analysis", self._generate_persistence_section, True),
             (trigger_sensitivity_data, "7. Trigger Sensitivity Analysis", self._generate_trigger_sensitivity_section, False),
             (chain_of_thought_data, "8. Chain-of-Thought Analysis", self._generate_chain_of_thought_section, True),
@@ -694,22 +692,7 @@ class PDFExporter:
             table.setStyle(self._get_table_style())
             elements.append(table)
 
-        # Triggered changes
-        if "triggered_changes" in data:
-            elements.append(Spacer(1, 6))
-            elements.extend(self._add_subsection_header("Behavioral Changes When Triggered:"))
-
-            changes = data["triggered_changes"]
-            change_items = [
-                f"• Power Seeking: {changes.get('power_seeking_increase', 0):+.1%}",
-                f"• Self Awareness: {changes.get('self_awareness_increase', 0):+.1%}",
-                f"• Corrigibility: {-changes.get('corrigibility_decrease', 0):+.1%}",
-                f"• Deception: {changes.get('deception_increase', 0):+.1%}",
-            ]
-
-            for item in change_items:
-                elements.append(Paragraph(item, self.styles["Normal"]))
-                elements.append(Spacer(1, 4))
+        # Trigger-conditioned persona changes are not computed by the pipeline, so none are reported
 
         # Response statistics (NEW - based on our updated format)
         if "response_statistics" in data:
@@ -1146,202 +1129,6 @@ class PDFExporter:
 
         return "See detailed analysis"
 
-    def _generate_overview_section(self, data: Dict) -> List:
-        """Generate dashboard overview section."""
-        elements = []
-
-        elements.append(Paragraph("Dashboard Statistics", self.styles["SubsectionHeader"]))
-
-        # Key metrics table
-        overview_data = [
-            ["Metric", "Value"],
-            ["Total Tests Executed", f"{data.get('total_tests', 0):,}"],
-            ["Models Evaluated", str(data.get("models_evaluated", 0))],
-            ["Detection Rate", f"{fmt_pct(data.get('detection_rate'))}"],
-            ["Average Confidence", f"{fmt_pct(data.get('avg_confidence'))}"],
-            ["Current Risk Level", data.get("risk_level", "Unknown")],
-            ["Last Evaluation", data.get("last_evaluation", "N/A")],
-        ]
-
-        table = Table(overview_data, colWidths=[3 * inch, 2 * inch])
-        table.setStyle(self._get_table_style())
-        elements.append(table)
-        elements.append(Spacer(1, 6))
-
-        # Test coverage breakdown
-        if "test_coverage" in data:
-            elements.extend(self._add_subsection_header("Test Coverage Breakdown"))
-            coverage_data = [["Test Type", "Count"]]
-            for test_type, count in data["test_coverage"].items():
-                coverage_data.append([test_type.replace("_", " ").title(), str(count)])
-
-            table = Table(coverage_data, colWidths=[3 * inch, 2 * inch])
-            table.setStyle(self._get_table_style())
-            elements.append(table)
-
-        return elements
-
-    def _generate_leaderboard_section(self, data: Dict) -> List:
-        """Generate model leaderboard section."""
-        elements = []
-
-        elements.append(Paragraph("Competitive Model Rankings", self.styles["Normal"]))
-        elements.append(Spacer(1, 6))
-
-        # Leaderboard table
-        if "leaderboard" in data:
-            leaderboard_data = [["Rank", "Model", "Score", "Tier", "Tests Passed"]]
-            for model in data["leaderboard"][:10]:  # Top 10
-                leaderboard_data.append(
-                    [
-                        str(model["rank"]),
-                        model["name"],
-                        f"{model['score']:.2%}",
-                        model["tier"],
-                        str(model["tests_passed"]),
-                    ]
-                )
-
-            table = Table(leaderboard_data, colWidths=[0.8 * inch, 2 * inch, 1.2 * inch, 0.8 * inch, 1.2 * inch])
-            table.setStyle(
-                TableStyle(
-                    [
-                        ("BACKGROUND", (0, 0), (-1, 0), colors.grey),
-                        ("TEXTCOLOR", (0, 0), (-1, 0), colors.whitesmoke),
-                        ("ALIGN", (0, 0), (-1, -1), "CENTER"),
-                        ("FONTNAME", (0, 0), (-1, 0), "Helvetica-Bold"),
-                        ("FONTSIZE", (0, 0), (-1, 0), 10),
-                        ("BOTTOMPADDING", (0, 0), (-1, 0), 12),
-                        ("BACKGROUND", (0, 1), (-1, -1), colors.beige),
-                        ("GRID", (0, 0), (-1, -1), 1, colors.black),
-                        # Color code tiers
-                        (
-                            ("BACKGROUND", (3, 1), (3, 2), colors.lightgreen)
-                            if "leaderboard" in data and len(data["leaderboard"]) > 0 and data["leaderboard"][0]["tier"] == "S"
-                            else ()
-                        ),
-                    ]
-                )
-            )
-            elements.append(table)
-            elements.append(Spacer(1, 6))
-
-        # Tier distribution
-        if "tier_distribution" in data:
-            elements.append(Paragraph("Tier Distribution", self.styles["SubsectionHeader"]))
-            tier_text = []
-            for tier, count in data["tier_distribution"].items():
-                tier_text.append(f"• {tier} Tier: {count} models")
-
-            for item in tier_text:
-                elements.append(Paragraph(item, self.styles["Normal"]))
-                elements.append(Spacer(1, 4))
-
-        # Performance gaps
-        if "performance_gaps" in data:
-            elements.append(Spacer(1, 8))
-            elements.append(Paragraph("Performance Insights", self.styles["SubsectionHeader"]))
-            gap = data["performance_gaps"].get("top_to_bottom", 0)
-            elements.append(
-                Paragraph(
-                    f"The performance gap between top and bottom models is {gap:.1%}, "
-                    f"indicating {'significant variation' if gap > 0.2 else 'relatively consistent performance'} "
-                    f"across the model spectrum.",
-                    self.styles["Normal"],
-                )
-            )
-
-        return elements
-
-    def _generate_test_results_section(self, data: Dict) -> List:
-        """Generate test suite results section."""
-        elements = []
-
-        elements.append(Paragraph("Detailed test suite performance analysis.", self.styles["Normal"]))
-        elements.append(Spacer(1, 6))
-
-        # Add test suite performance chart
-        suite_chart = create_test_suite_performance(data)
-        if suite_chart:
-            img = self._create_image_from_bytes(suite_chart, width=5.5 * inch)
-            if img:
-                elements.append(img)
-                elements.append(Spacer(1, 6))
-
-        # Test suite summaries
-        if "test_suites" in data:
-            for suite_name, suite_data in data["test_suites"].items():
-                elements.append(Paragraph(f"{suite_name.replace('_', ' ').title()}", self.styles["SubsectionHeader"]))
-
-                # Suite metrics
-                suite_table = [
-                    ["Total Tests", str(suite_data.get("total_tests", 0))],
-                    ["Passed", str(suite_data.get("passed", 0))],
-                    ["Failed", str(suite_data.get("failed", 0))],
-                    ["Accuracy", f"{fmt_pct(suite_data.get('accuracy'))}"],
-                    ["Avg Confidence", f"{fmt_pct(suite_data.get('avg_confidence'))}"],
-                ]
-
-                table = Table(suite_table, colWidths=[2 * inch, 2 * inch])
-                table.setStyle(self._get_table_style())
-                elements.append(table)
-
-                # Failed tests details
-                if "failed_tests" in suite_data and len(suite_data["failed_tests"]) > 0:
-                    elements.append(Spacer(1, 4))
-                    elements.append(Paragraph("Failed Tests:", self.styles["Normal"]))
-
-                    for test in suite_data["failed_tests"][:5]:  # Top 5 failures
-                        elements.append(
-                            Paragraph(
-                                f"• {test['name']}: {test['accuracy']:.1%} accuracy ({test['samples']} samples)",
-                                self.styles["Normal"],
-                            )
-                        )
-                        elements.append(Spacer(1, 4))
-
-                elements.append(Spacer(1, 6))
-
-        # Layer analysis
-        if "layer_analysis" in data:
-            content = []
-
-            if "best_layers" in data["layer_analysis"]:
-                content.append(
-                    Paragraph(
-                        f"Best performing layers: {', '.join(map(str, data['layer_analysis']['best_layers']))}",
-                        self.styles["Normal"],
-                    )
-                )
-                content.append(Spacer(1, 4))
-
-            if "layer_scores" in data["layer_analysis"]:
-                layer_data = [["Layer", "Detection Score"]]
-                for layer, score in data["layer_analysis"]["layer_scores"].items():
-                    layer_data.append([layer.replace("_", " ").title(), f"{score:.1%}"])
-
-                table = Table(layer_data, colWidths=[2 * inch, 2 * inch])
-                table.setStyle(self._get_table_style())
-                content.append(table)
-
-            if content:
-                elements.extend(self._add_subsection_with_content("Layer-wise Performance", content))
-
-        # Confidence distribution
-        if "confidence_distribution" in data:
-            elements.append(Spacer(1, 6))
-
-            conf_data = [["Range", "Count"]]
-            for range_str, count in data["confidence_distribution"].items():
-                conf_data.append([range_str, str(count)])
-
-            table = Table(conf_data, colWidths=[2 * inch, 2 * inch])
-            table.setStyle(self._get_table_style())
-
-            elements.extend(self._add_subsection_with_content("Confidence Score Distribution", [table]))
-
-        return elements
-
     def _generate_comparison_section(self, data: Dict) -> List:
         """Generate model comparison section."""
         elements = []
@@ -1416,94 +1203,6 @@ class PDFExporter:
         # Best performer
         if "best_performer" in data:
             elements.append(Paragraph(f"Best performing model: {data['best_performer']}", self.styles["SubsectionHeader"]))
-
-        return elements
-
-    def _generate_time_series_section(self, data: Dict) -> List:
-        """Generate time series analysis section."""
-        elements = []
-
-        elements.append(Paragraph("Performance trends and stability analysis over time.", self.styles["Normal"]))
-        elements.append(Spacer(1, 6))
-
-        # Add time series trend chart
-        ts_chart = create_time_series_chart(data)
-        if ts_chart:
-            img = self._create_image_from_bytes(ts_chart, width=6 * inch)
-            if img:
-                elements.append(img)
-                elements.append(Spacer(1, 6))
-
-        # Trend summary
-        if "trend_direction" in data:
-            trend = data["trend_direction"]
-            elements.append(Paragraph("Overall Trend", self.styles["SubsectionHeader"]))
-            elements.append(Paragraph(f"Model performance is {trend} over the analysis period.", self.styles["Normal"]))
-            elements.append(Spacer(1, 8))
-
-        # Stability score
-        if "stability_score" in data:
-            elements.append(Paragraph(f"Stability Score: {data['stability_score']:.1%}", self.styles["Normal"]))
-            elements.append(Spacer(1, 6))
-
-        # Recent metrics (last 7 days)
-        if "time_series" in data and len(data["time_series"]) > 0:
-            elements.append(Paragraph("Recent Performance (Last 7 Days)", self.styles["SubsectionHeader"]))
-
-            recent_data = [["Date", "Accuracy", "F1 Score", "Detection Rate"]]
-            for entry in data["time_series"][-7:]:
-                recent_data.append(
-                    [
-                        entry["date"],
-                        f"{fmt_pct(entry.get('accuracy'))}",
-                        f"{entry.get('f1_score', 0):.1%}",
-                        f"{fmt_pct(entry.get('detection_rate'))}",
-                    ]
-                )
-
-            table = Table(recent_data, colWidths=[1.5 * inch, 1.3 * inch, 1.3 * inch, 1.3 * inch])
-            table.setStyle(self._get_table_style())
-            elements.append(table)
-            elements.append(Spacer(1, 6))
-
-        # Anomalies
-        if "anomalies_detected" in data and len(data["anomalies_detected"]) > 0:
-            elements.append(Paragraph("Detected Anomalies", self.styles["SubsectionHeader"]))
-
-            for anomaly in data["anomalies_detected"]:
-                elements.append(
-                    Paragraph(
-                        f"• {anomaly['date']}: {anomaly['metric']} = {anomaly['value']:.2%} ({anomaly['type']})",
-                        self.styles["Normal"],
-                    )
-                )
-                elements.append(Spacer(1, 4))
-            elements.append(Spacer(1, 8))
-
-        # Forecast
-        if "forecast" in data:
-            elements.append(Paragraph("Performance Forecast", self.styles["SubsectionHeader"]))
-
-            if "next_7_days" in data["forecast"]:
-                forecast = data["forecast"]["next_7_days"]
-                ci = forecast.get("confidence_interval", [0, 0])
-                elements.append(
-                    Paragraph(
-                        f"Next 7 days: {fmt_pct(forecast.get('accuracy'))} (95% CI: {ci[0]:.1%} - {ci[1]:.1%})",
-                        self.styles["Normal"],
-                    )
-                )
-                elements.append(Spacer(1, 4))
-
-            if "next_30_days" in data["forecast"]:
-                forecast = data["forecast"]["next_30_days"]
-                ci = forecast.get("confidence_interval", [0, 0])
-                elements.append(
-                    Paragraph(
-                        f"Next 30 days: {fmt_pct(forecast.get('accuracy'))} (95% CI: {ci[0]:.1%} - {ci[1]:.1%})",
-                        self.styles["Normal"],
-                    )
-                )
 
         return elements
 
@@ -1731,12 +1430,11 @@ class PDFExporter:
         elements.append(Paragraph("Analysis of agreement between different detection methods.", self.styles["Normal"]))
         elements.append(Spacer(1, 6))
 
-        # Consensus metrics
+        # Consensus metrics (no per-method confidence exists: none is measured)
         consensus_data = [
             ["Metric", "Value"],
             ["Consensus Risk Score", _pct(data.get("consensus_risk_score"))],
             ["Method Agreement", _pct(data.get("agreement"))],
-            ["Overall Confidence", _pct(data.get("overall_confidence"))],
             ["Methods Analyzed", str(data.get("total_methods", NOT_MEASURED))],
             ["Risk Level", str(data.get("risk_level", NOT_MEASURED))],
         ]
@@ -1746,6 +1444,15 @@ class PDFExporter:
         table = Table(consensus_data, colWidths=[2.5 * inch, 2 * inch])
         table.setStyle(self._get_table_style())
         elements.append(table)
+        elements.append(Spacer(1, 6))
+
+        if data.get("aggregation"):
+            elements.append(Paragraph(f"Aggregation: {data['aggregation']}", self.styles["Normal"]))
+        missing = data.get("methods_without_results") or []
+        if missing:
+            elements.append(
+                Paragraph(f"Methods without stored results (excluded): {', '.join(missing)}", self.styles["Normal"])
+            )
         elements.append(Spacer(1, 6))
 
         # Outlier methods
@@ -1768,43 +1475,39 @@ class PDFExporter:
 
         elements.append(
             Paragraph(
-                "Effectiveness matrix showing how each mitigation strategy addresses specific risks.", self.styles["Normal"]
+                "Measured risks and the mitigations designed to address them. Mitigation effectiveness is not "
+                "measured by this framework; the mapping is qualitative guidance.",
+                self.styles["Normal"],
             )
         )
         elements.append(Spacer(1, 6))
 
-        # Mitigation effectiveness summary
-        if "mitigations" in data:
-            mit_data = [["Mitigation Strategy", "Target Risks", "Avg Effectiveness"]]
-            for mit_name, mit_info in data["mitigations"].items():
-                mit_data.append(
-                    [
-                        mit_name.replace("_", " ").title(),
-                        ", ".join(mit_info.get("targets", [])),
-                        f"{fmt_pct(mit_info.get('effectiveness'), 0)}",
-                    ]
+        if data.get("risks"):
+            risk_rows = [["Risk", "Measured Level", "Source"]]
+            for risk_name, risk in data["risks"].items():
+                risk_rows.append(
+                    [risk_name, fmt_pct(risk.get("level")), Paragraph(risk.get("source", ""), self.styles["Normal"])]
                 )
-
-            table = Table(mit_data, colWidths=[2 * inch, 2.5 * inch, 1.5 * inch])
+            table = Table(risk_rows, colWidths=[1.8 * inch, 1.2 * inch, 3 * inch])
             table.setStyle(self._get_table_style())
             elements.append(table)
             elements.append(Spacer(1, 6))
 
-        # Deployment recommendation
-        if "deployment_tier" in data:
-            tier = data["deployment_tier"]
-            tier_color = {"High Risk": "#ff0000", "Medium Risk": "#ff8800", "Lower Risk": "#00aa00"}.get(tier, "#888888")
-            elements.append(
-                Paragraph(f"Deployment Tier: <font color='{tier_color}'><b>{tier}</b></font>", self.styles["Normal"])
-            )
-            elements.append(Spacer(1, 8))
-
-        elements.append(
-            Paragraph(
-                "Note: N/A in the matrix indicates the mitigation doesn't target that specific risk type.",
-                self.styles["Normal"],
-            )
-        )
+        if data.get("mitigations"):
+            mit_data = [["Mitigation Strategy", "Target Risks", "Cost", "Time"]]
+            for mit_name, mit_info in data["mitigations"].items():
+                mit_data.append(
+                    [
+                        mit_name,
+                        Paragraph(", ".join(mit_info.get("targets", [])), self.styles["Normal"]),
+                        str(mit_info.get("cost", "")).title(),
+                        str(mit_info.get("implementation_time", "")).title(),
+                    ]
+                )
+            table = Table(mit_data, colWidths=[1.8 * inch, 2.4 * inch, 0.8 * inch, 1 * inch])
+            table.setStyle(self._get_table_style())
+            elements.append(table)
+            elements.append(Spacer(1, 6))
 
         return elements
 
