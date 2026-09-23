@@ -232,8 +232,13 @@ class TestProbeConfig:
         sklearn_params = config.to_sklearn_params()
 
         assert sklearn_params["C"] == 1.0 / 50.0
-        assert sklearn_params["penalty"] == "l1"
         assert sklearn_params["solver"] == "liblinear"  # For L1
+        # sklearn >= 1.8 expresses the penalty via l1_ratio (penalty= is deprecated)
+        if "l1_ratio" in sklearn_params:
+            assert sklearn_params["l1_ratio"] == 1.0
+            assert "penalty" not in sklearn_params
+        else:
+            assert sklearn_params["penalty"] == "l1"
 
     def test_config_serialization(self):
         """Test configuration to_dict."""

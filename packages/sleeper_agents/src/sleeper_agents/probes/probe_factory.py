@@ -105,16 +105,20 @@ class ProbeTrainerFactory:
         if backend == "sklearn":
             from sleeper_agents.probes.probe_detector import ProbeDetector
 
-            # Convert config to sklearn-compatible format
+            # Convert config to sklearn-compatible format. The sklearn backend fits
+            # to convergence (no early stopping) and uses 1 / regularization as C
+            # (no cross-validated C search), matching the PyTorch objective.
             sklearn_config = {
                 "regularization": config.regularization,
                 "penalty": config.penalty,
                 "max_iter": config.max_iterations,
                 "threshold_percentile": config.threshold_percentile,
+                "threshold_criterion": config.threshold_criterion,
                 "min_samples": config.min_samples,
                 "ensemble_layers": config.ensemble_layers,
-                "early_stopping": config.early_stopping,
-                "early_stopping_patience": config.early_stopping_patience,
+                "use_feature_scaling": config.use_feature_scaling,
+                "random_seed": config.random_seed,
+                "cross_validation_folds": None,
             }
 
             # Note: ProbeDetector expects model in __init__, but we don't have it here

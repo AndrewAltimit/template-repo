@@ -13,9 +13,16 @@ import pytest
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 
-from sleeper_agents.probes.causal_debugger import CausalDebugger, CausalExperiment  # noqa: E402
+from sleeper_agents.probes.causal_debugger import CausalDebugger, CausalExperiment, InterventionOutput  # noqa: E402
 from sleeper_agents.probes.feature_discovery import DiscoveredFeature, FeatureDiscovery  # noqa: E402
 from sleeper_agents.probes.probe_detector import Probe, ProbeDetector  # noqa: E402
+
+
+def _output(text: str, top_token: int, vocab: int = 4) -> InterventionOutput:
+    """InterventionOutput whose next-token distribution peaks at `top_token`."""
+    logits = np.zeros(vocab)
+    logits[top_token] = 3.0
+    return InterventionOutput(text=text, next_token_logprobs=logits - np.log(np.exp(logits).sum()))
 
 
 class TestFeatureDiscovery(unittest.IsolatedAsyncioTestCase):
@@ -25,6 +32,8 @@ class TestFeatureDiscovery(unittest.IsolatedAsyncioTestCase):
         """Set up test fixtures."""
         self.model = MagicMock()
         self.discovery = FeatureDiscovery(self.model)
+        # Small dictionary keeps real dictionary learning fast in unit tests
+        self.discovery.config.update({"n_components": 16, "max_iter": 20})
 
     @pytest.mark.asyncio
     async def test_discover_features(self):
@@ -247,9 +256,9 @@ class TestCausalDebugger(unittest.IsolatedAsyncioTestCase):
     async def test_trace_feature_causality(self):
         """Test causal tracing of a feature."""
         # Mock model outputs
-        self.debugger._get_baseline_outputs = AsyncMock(return_value=["Normal output"])
-        self.debugger._intervene_activate_feature = AsyncMock(return_value=["Activated output"])
-        self.debugger._intervene_suppress_feature = AsyncMock(return_value=["Suppressed output"])
+        self.debugger._get_baseline_outputs = AsyncMock(return_value=[_output("Normal output", 0)])
+        self.debugger._intervene_activate_feature = AsyncMock(return_value=[_output("Activated output", 1)])
+        self.debugger._intervene_suppress_feature = AsyncMock(return_value=[_output("Suppressed output", 0)])
 
         # Test feature
         feature_vector = np.random.randn(768)
@@ -295,29 +304,12 @@ class TestCausalDebugger(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.debugger._force_feature_state.await_count, 4)
 
     @pytest.mark.asyncio
-    async def test_force_feature_state(self):
-        """Test forcing a feature to be active or inactive."""
-        # Mock model with hooks
-        self.model.run_with_hooks = MagicMock(return_value=np.random.randn(1, 10, 768))
-        self.model.to_tokens = MagicMock(return_value=[[1, 2, 3]])
-        self.model.device = "cpu"
+    async def test_force_feature_state_requires_hookable_model(self):
+        """A model without run_with_hooks raises instead of returning mock text."""
+        debugger = CausalDebugger(object())
 
-        feature_vector = np.random.randn(768)
-
-        # Test activation
-        activated = await self.debugger._force_feature_state(
-            prompt="Test", feature_vector=feature_vector, layer=7, activate=True
-        )
-
-        # Should return some output (mocked)
-        self.assertIsInstance(activated, str)
-
-        # Test suppression
-        suppressed = await self.debugger._force_feature_state(
-            prompt="Test", feature_vector=feature_vector, layer=7, activate=False
-        )
-
-        self.assertIsInstance(suppressed, str)
+        with self.assertRaises(NotImplementedError):
+            await debugger._force_feature_state(prompt="Test", feature_vector=np.ones(8), layer=0, activate=True)
 
     @pytest.mark.asyncio
     async def test_comprehensive_debug(self):

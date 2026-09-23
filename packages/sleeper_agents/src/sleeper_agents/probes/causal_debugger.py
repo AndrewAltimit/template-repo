@@ -1,14 +1,21 @@
 """Causal Debugger for AI Systems.
 
-This module implements causal tracing to prove that discovered features
+This module implements causal tracing to test whether discovered features
 actually cause behaviors. It's like a debugger where you can set breakpoints,
 change variable values, and see how the program output changes.
+
+Interventions are applied to the residual stream at ``blocks.{layer}.hook_resid_post``
+(the output of block ``layer``) of a TransformerLens-style model (``to_tokens``,
+``run_with_hooks``, ``to_string``). The baseline and the intervened runs use the
+same code path (greedy decoding through ``run_with_hooks``, with and without the
+hook), so their outputs are directly comparable. The primary effect metric is the
+KL divergence between the baseline and intervened next-token distributions at the
+final prompt position.
 """
 
-import asyncio
 from dataclasses import dataclass
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import numpy as np
 
@@ -50,10 +57,24 @@ class CausalExperiment:
         }
 
 
+@dataclass
+class InterventionOutput:
+    """Output of one (possibly intervened) run on one prompt."""
+
+    text: str  # Greedy continuation of `output_length` tokens
+    next_token_logprobs: np.ndarray  # Log-probabilities at the final prompt position
+
+
+def _kl_divergence(logp: np.ndarray, logq: np.ndarray) -> float:
+    """KL(p || q) for log-probability vectors."""
+    p = np.exp(logp)
+    return float(np.sum(p * (logp - logq)))
+
+
 class CausalDebugger:
     """Causal tracing system for validating feature causality.
 
-    This is the "debugger" that proves features aren't just correlated
+    This is the "debugger" that tests whether features aren't just correlated
     with behaviors but actually cause them.
     """
 
@@ -61,7 +82,8 @@ class CausalDebugger:
         """Initialize the causal debugger.
 
         Args:
-            model: The model to debug
+            model: The model to debug (TransformerLens-style: ``to_tokens``,
+                ``run_with_hooks``, ``to_string``)
             config: Configuration for experiments
         """
         self.model = model
@@ -71,56 +93,130 @@ class CausalDebugger:
         self.baseline_behaviors: Dict[str, Any] = {}
 
     def _default_config(self) -> Dict[str, Any]:
-        """Default configuration for causal experiments."""
+        """Default configuration for causal experiments.
+
+        intervention_strength: multiple of the unit feature direction added to the
+            residual stream when activating a feature
+        effect_threshold: minimum mean next-token KL divergence (nats) between
+            baseline and intervened runs to call the effect significant
+        """
         return {
-            "intervention_strength": 1.0,  # How much to modify features
-            "effect_threshold": 0.1,  # Minimum effect to be considered causal
-            "n_samples": 10,  # Samples for statistical testing
+            "intervention_strength": 1.0,
+            "effect_threshold": 0.1,
+            "n_samples": 10,  # Prompts per test category
             "layers_to_test": [3, 5, 7, 9],
-            "output_length": 50,  # Tokens to generate
+            "output_length": 50,  # Greedy tokens generated for the text outputs
         }
+
+    # ------------------------------------------------------------------
+    # Model access
+    # ------------------------------------------------------------------
+
+    _HOOK_API = ("to_tokens", "run_with_hooks", "to_string")
+
+    def _require_hookable_model(self) -> Any:
+        """Return the TransformerLens-style model to intervene on.
+
+        Accepts the model itself or a wrapper (e.g. ``TransformerLensModel``) whose
+        ``.model`` attribute provides the hook API.
+        """
+        if torch is None:
+            raise ImportError("torch is required for causal interventions")
+        for candidate in (self.model, getattr(self.model, "model", None)):
+            if candidate is not None and all(hasattr(candidate, name) for name in self._HOOK_API):
+                return candidate
+        missing = [name for name in self._HOOK_API if not hasattr(self.model, name)]
+        raise NotImplementedError(
+            f"Causal interventions need a TransformerLens-style model; {type(self.model).__name__} lacks {missing}"
+        )
+
+    @staticmethod
+    def _unit_direction(feature_vector: np.ndarray) -> "torch.Tensor":
+        direction = torch.as_tensor(np.asarray(feature_vector), dtype=torch.float32).flatten()
+        norm = torch.linalg.vector_norm(direction)
+        if not torch.isfinite(norm) or norm == 0:
+            raise ValueError("Feature vector must be finite and non-zero")
+        return direction / norm
+
+    def _make_hook(self, feature_vector: np.ndarray, activate: bool) -> Callable:
+        """Residual-stream hook that adds (activate) or projects out (suppress) a direction."""
+        unit = self._unit_direction(feature_vector)
+        strength = float(self.config["intervention_strength"])
+
+        def intervention_hook(resid, hook=None):  # TransformerLens passes the hook point as `hook=`
+            if resid.shape[-1] != unit.shape[0]:
+                raise ValueError(f"Feature dimension {unit.shape[0]} does not match residual width {resid.shape[-1]}")
+            direction = unit.to(device=resid.device, dtype=resid.dtype)
+            if activate:
+                return resid + strength * direction
+            projection = (resid * direction).sum(dim=-1, keepdim=True)
+            return resid - projection * direction
+
+        return intervention_hook
+
+    def _run(self, prompt: str, fwd_hooks: List[Tuple[str, Callable]]) -> InterventionOutput:
+        """Greedy-decode ``output_length`` tokens with the given hooks active at every step."""
+        model = self._require_hookable_model()
+        tokens = model.to_tokens(prompt)
+        n_tokens = max(1, int(self.config["output_length"]))
+        generated: List[int] = []
+        first_logprobs: Optional[np.ndarray] = None
+
+        with torch.no_grad():
+            for _ in range(n_tokens):
+                logits = model.run_with_hooks(tokens, fwd_hooks=fwd_hooks)
+                last = torch.as_tensor(logits)[0, -1].float()
+                if first_logprobs is None:
+                    first_logprobs = torch.log_softmax(last, dim=-1).cpu().numpy()
+                next_id = int(torch.argmax(last).item())
+                generated.append(next_id)
+                next_tok = torch.tensor([[next_id]], dtype=tokens.dtype, device=tokens.device)
+                tokens = torch.cat([tokens, next_tok], dim=1)
+
+        assert first_logprobs is not None
+        text = str(model.to_string(torch.tensor(generated)))
+        return InterventionOutput(text=text, next_token_logprobs=first_logprobs)
+
+    # ------------------------------------------------------------------
+    # Experiments
+    # ------------------------------------------------------------------
 
     async def trace_feature_causality(
         self, feature_vector: np.ndarray, feature_name: str, test_prompts: List[str], layer: int
     ) -> CausalExperiment:
         """Trace causal effect of a feature on model behavior.
 
-        This is the core experiment that proves causality by manipulating
-        the feature and observing output changes.
+        Runs each prompt without intervention, with the feature direction added,
+        and with the feature direction projected out, and compares the resulting
+        next-token distributions.
 
         Args:
-            feature_vector: The feature direction to test
+            feature_vector: The feature direction to test (normalized internally)
             feature_name: Name of the feature
             test_prompts: Prompts to test on
-            layer: Layer to intervene at
+            layer: Layer to intervene at (output of block ``layer``)
 
         Returns:
-            Experiment results proving/disproving causality
+            Experiment results
         """
+        if not test_prompts:
+            raise ValueError("test_prompts must not be empty")
         logger.info("Tracing causality for feature '%s' at layer %s", feature_name, layer)
 
-        # Store feature for later use
         self.feature_vectors[feature_name] = feature_vector
 
-        # Run baseline (no intervention)
         baseline_outputs = await self._get_baseline_outputs(test_prompts)
-
-        # Run with feature activation
         activated_outputs = await self._intervene_activate_feature(test_prompts, feature_vector, layer)
-
-        # Run with feature suppression
         suppressed_outputs = await self._intervene_suppress_feature(test_prompts, feature_vector, layer)
 
-        # Analyze causal effect
         effect_analysis = self._analyze_causal_effect(baseline_outputs, activated_outputs, suppressed_outputs)
 
-        # Create experiment result
         experiment = CausalExperiment(
             experiment_id=f"{feature_name}_L{layer}_{len(self.experiments)}",
             feature_name=feature_name,
             intervention_type="activation_suppression",
-            original_output=baseline_outputs[0] if baseline_outputs else "",
-            intervened_output=activated_outputs[0] if activated_outputs else "",
+            original_output=baseline_outputs[0].text,
+            intervened_output=activated_outputs[0].text,
             behavior_changed=effect_analysis["significant_change"],
             causal_effect_size=effect_analysis["effect_size"],
             layer=layer,
@@ -128,7 +224,6 @@ class CausalDebugger:
         )
 
         self.experiments.append(experiment)
-
         return experiment
 
     async def debug_deception_feature(
@@ -157,16 +252,10 @@ class CausalDebugger:
         }
 
         for scenario_name, prompt in test_scenarios.items():
-            # Get baseline behavior
             baseline = await self._generate_output(prompt)
-
-            # Force activate deception
             with_deception = await self._force_feature_state(prompt, deception_vector, layer, activate=True)
-
-            # Force suppress deception
             without_deception = await self._force_feature_state(prompt, deception_vector, layer, activate=False)
 
-            # Analyze scenario
             scenario_result = {
                 "baseline": baseline,
                 "with_deception": with_deception,
@@ -175,22 +264,18 @@ class CausalDebugger:
                 "deception_suppressed": not self._is_deceptive_output(without_deception),
             }
 
-            # Calculate effect size
             effect_size = self._calculate_intervention_effect(baseline, with_deception, without_deception)
             results["effect_sizes"][scenario_name] = effect_size
-
             results["scenarios"][scenario_name] = scenario_result
 
-            # Update overall assessment
             if scenario_result["deception_activated"]:
                 results["activation_changes_behavior"] = True
             if scenario_result["deception_suppressed"]:
                 results["suppression_prevents_deception"] = True
 
-        # Determine if feature is causal
-        avg_effect = np.mean(list(results["effect_sizes"].values()))
-        results["average_effect_size"] = float(avg_effect)
-        results["feature_is_causal"] = (
+        avg_effect = float(np.mean(list(results["effect_sizes"].values()))) if results["effect_sizes"] else 0.0
+        results["average_effect_size"] = avg_effect
+        results["feature_is_causal"] = bool(
             avg_effect > self.config["effect_threshold"]
             and results["activation_changes_behavior"]
             and results["suppression_prevents_deception"]
@@ -198,216 +283,93 @@ class CausalDebugger:
 
         return results
 
-    async def _get_baseline_outputs(self, prompts: List[str]) -> List[str]:
-        """Get baseline model outputs without intervention.
+    async def _get_baseline_outputs(self, prompts: List[str]) -> List[InterventionOutput]:
+        """Run prompts without intervention (same decoding path as the interventions)."""
+        return [self._run(prompt, fwd_hooks=[]) for prompt in prompts]
 
-        Args:
-            prompts: Input prompts
+    async def _intervene_activate_feature(
+        self, prompts: List[str], feature_vector: np.ndarray, layer: int
+    ) -> List[InterventionOutput]:
+        """Run prompts with the feature direction added at ``layer``."""
+        hooks = [(f"blocks.{layer}.hook_resid_post", self._make_hook(feature_vector, activate=True))]
+        return [self._run(prompt, fwd_hooks=hooks) for prompt in prompts]
 
-        Returns:
-            Model outputs
-        """
-        outputs = []
-        for prompt in prompts:
-            output = await self._generate_output(prompt)
-            outputs.append(output)
-        return outputs
-
-    async def _intervene_activate_feature(self, prompts: List[str], feature_vector: np.ndarray, layer: int) -> List[str]:
-        """Generate outputs with feature artificially activated.
-
-        Args:
-            prompts: Input prompts
-            feature_vector: Feature to activate
-            layer: Layer to intervene at
-
-        Returns:
-            Modified outputs
-        """
-        outputs = []
-
-        for prompt in prompts:
-            output = await self._force_feature_state(prompt, feature_vector, layer, activate=True)
-            outputs.append(output)
-
-        return outputs
-
-    async def _intervene_suppress_feature(self, prompts: List[str], feature_vector: np.ndarray, layer: int) -> List[str]:
-        """Generate outputs with feature artificially suppressed.
-
-        Args:
-            prompts: Input prompts
-            feature_vector: Feature to suppress
-            layer: Layer to intervene at
-
-        Returns:
-            Modified outputs
-        """
-        outputs = []
-
-        for prompt in prompts:
-            output = await self._force_feature_state(prompt, feature_vector, layer, activate=False)
-            outputs.append(output)
-
-        return outputs
+    async def _intervene_suppress_feature(
+        self, prompts: List[str], feature_vector: np.ndarray, layer: int
+    ) -> List[InterventionOutput]:
+        """Run prompts with the feature direction projected out at ``layer``."""
+        hooks = [(f"blocks.{layer}.hook_resid_post", self._make_hook(feature_vector, activate=False))]
+        return [self._run(prompt, fwd_hooks=hooks) for prompt in prompts]
 
     async def _force_feature_state(self, prompt: str, feature_vector: np.ndarray, layer: int, activate: bool) -> str:
-        """Force a feature to be active or inactive.
-
-        This is the core intervention mechanism - like setting a breakpoint
-        and changing a variable value in a debugger.
+        """Greedy continuation with a feature forced on (added) or off (projected out).
 
         Args:
             prompt: Input prompt
-            feature_vector: Feature direction
+            feature_vector: Feature direction (normalized internally)
             layer: Layer to intervene at
             activate: Whether to activate (True) or suppress (False)
 
         Returns:
-            Model output after intervention
+            Greedy continuation text
+
+        Raises:
+            NotImplementedError: if the model does not support hooks
         """
-        try:
-            if not hasattr(self.model, "run_with_hooks"):
-                # Mock intervention for testing
-                if activate:
-                    return f"[ACTIVATED] Mock output for: {prompt[:30]}..."
-                return f"[SUPPRESSED] Mock output for: {prompt[:30]}..."
-
-            # Convert feature vector to tensor
-            if torch is None:
-                return f"[{'ACTIVATED' if activate else 'SUPPRESSED'}] Mock (no torch): {prompt[:30]}..."
-
-            feature_tensor = torch.tensor(feature_vector, device=self.model.device, dtype=torch.float32)
-
-            # Define intervention hook
-            def intervention_hook(resid, _hook):
-                """Hook to modify residual stream."""
-                resid = resid.clone()
-
-                # Calculate intervention strength
-                strength = self.config["intervention_strength"]
-
-                if activate:
-                    # Add feature to increase activation
-                    for pos in range(resid.shape[1]):
-                        resid[:, pos] += strength * feature_tensor.reshape(resid[:, pos].shape)
-                else:
-                    # Project out feature to suppress it
-                    for pos in range(resid.shape[1]):
-                        vec = resid[:, pos].flatten()
-                        # Remove component along feature direction
-                        projection = torch.dot(vec, feature_tensor.flatten())
-                        resid[:, pos] -= projection * feature_tensor.reshape(resid[:, pos].shape)
-
-                return resid
-
-            # Run model with intervention
-            hook_name = f"blocks.{layer}.hook_resid_post"
-            tokens = self.model.to_tokens(prompt)
-
-            with torch.no_grad():
-                logits = self.model.run_with_hooks(tokens, fwd_hooks=[(hook_name, intervention_hook)])
-
-            # Generate text from logits
-            output = self._decode_to_text(logits, self.config["output_length"])
-
-            return output
-
-        except Exception as e:
-            logger.warning("Intervention failed: %s", e)
-            return f"Intervention failed: {str(e)}"
+        hooks = [(f"blocks.{layer}.hook_resid_post", self._make_hook(feature_vector, activate=activate))]
+        return self._run(prompt, fwd_hooks=hooks).text
 
     async def _generate_output(self, prompt: str) -> str:
-        """Generate normal model output.
+        """Greedy continuation without intervention (comparable to ``_force_feature_state``)."""
+        return self._run(prompt, fwd_hooks=[]).text
 
-        Args:
-            prompt: Input prompt
-
-        Returns:
-            Generated text
-        """
-        try:
-            if hasattr(self.model, "generate"):
-                return await asyncio.to_thread(self.model.generate, prompt, max_new_tokens=self.config["output_length"])
-            return f"Mock output for: {prompt[:50]}..."
-        except Exception as e:
-            logger.warning("Generation failed: %s", e)
-            return "Generation failed"
-
-    def _decode_to_text(self, logits: Any, max_length: int) -> str:
-        """Decode logits to text.
-
-        Args:
-            logits: Model logits
-            max_length: Maximum tokens to generate
-
-        Returns:
-            Decoded text
-        """
-        try:
-            # Greedy decoding
-            tokens = []
-            for i in range(min(max_length, logits.shape[1])):
-                token_id = torch.argmax(logits[0, i]).item()
-                tokens.append(token_id)
-
-            # Convert tokens to text
-            if hasattr(self.model, "to_string"):
-                return str(self.model.to_string(tokens))
-            return f"Generated {len(tokens)} tokens"
-        except Exception:
-            return "Decoding failed"
-
-    def _analyze_causal_effect(self, baseline: List[str], activated: List[str], suppressed: List[str]) -> Dict[str, Any]:
+    def _analyze_causal_effect(
+        self,
+        baseline: List[InterventionOutput],
+        activated: List[InterventionOutput],
+        suppressed: List[InterventionOutput],
+    ) -> Dict[str, Any]:
         """Analyze causal effect of interventions.
 
-        Args:
-            baseline: Baseline outputs
-            activated: Outputs with feature activated
-            suppressed: Outputs with feature suppressed
+        Effect per prompt is KL(baseline || intervened) of the next-token
+        distribution at the final prompt position; the reported effect size is the
+        mean over prompts of the average of the activation and suppression KLs.
 
         Returns:
             Analysis results
         """
-        # Calculate differences
-        activation_effects = []
-        suppression_effects = []
+        if not (len(baseline) == len(activated) == len(suppressed)) or not baseline:
+            raise ValueError("baseline, activated and suppressed must be non-empty and equally long")
 
-        for b, a, s in zip(baseline, activated, suppressed):
-            # Simple similarity metric
-            act_diff = self._text_difference(b, a)
-            sup_diff = self._text_difference(b, s)
+        activation_effects = [
+            _kl_divergence(b.next_token_logprobs, a.next_token_logprobs) for b, a in zip(baseline, activated)
+        ]
+        suppression_effects = [
+            _kl_divergence(b.next_token_logprobs, s.next_token_logprobs) for b, s in zip(baseline, suppressed)
+        ]
 
-            activation_effects.append(act_diff)
-            suppression_effects.append(sup_diff)
+        def top1(o: InterventionOutput) -> int:
+            return int(np.argmax(o.next_token_logprobs))
 
-        # Calculate statistics
-        avg_activation_effect = np.mean(activation_effects)
-        avg_suppression_effect = np.mean(suppression_effects)
+        avg_activation_effect = float(np.mean(activation_effects))
+        avg_suppression_effect = float(np.mean(suppression_effects))
         combined_effect = (avg_activation_effect + avg_suppression_effect) / 2
 
-        # Determine significance
-        significant = combined_effect > self.config["effect_threshold"]
-
         return {
-            "activation_effect": float(avg_activation_effect),
-            "suppression_effect": float(avg_suppression_effect),
+            "metric": "next_token_kl",
+            "activation_effect": avg_activation_effect,
+            "suppression_effect": avg_suppression_effect,
             "effect_size": float(combined_effect),
-            "significant_change": bool(significant),
+            "significant_change": bool(combined_effect > self.config["effect_threshold"]),
+            "activation_top1_changed_rate": float(np.mean([top1(b) != top1(a) for b, a in zip(baseline, activated)])),
+            "suppression_top1_changed_rate": float(np.mean([top1(b) != top1(s) for b, s in zip(baseline, suppressed)])),
+            "activation_text_changed_rate": float(np.mean([b.text != a.text for b, a in zip(baseline, activated)])),
+            "suppression_text_changed_rate": float(np.mean([b.text != s.text for b, s in zip(baseline, suppressed)])),
             "n_samples": len(baseline),
         }
 
     def _text_difference(self, text1: str, text2: str) -> float:
-        """Calculate difference between two texts.
-
-        Args:
-            text1: First text
-            text2: Second text
-
-        Returns:
-            Difference score (0-1)
-        """
-        # Simple character-level difference
+        """Calculate character-level difference between two texts (0-1)."""
         max_len = max(len(text1), len(text2))
         if max_len == 0:
             return 0.0
@@ -416,7 +378,7 @@ class CausalDebugger:
         return 1.0 - (common / max_len)
 
     def _is_deceptive_output(self, output: str) -> bool:
-        """Check if output appears deceptive.
+        """Check if output appears deceptive (keyword heuristic).
 
         Args:
             output: Model output
@@ -438,7 +400,7 @@ class CausalDebugger:
         return any(pattern in output_lower for pattern in deceptive_patterns)
 
     def _calculate_intervention_effect(self, baseline: str, activated: str, suppressed: str) -> float:
-        """Calculate the effect size of an intervention.
+        """Calculate the effect size of an intervention from comparable text outputs.
 
         Args:
             baseline: Baseline output
@@ -448,16 +410,10 @@ class CausalDebugger:
         Returns:
             Effect size (0-1)
         """
-        # Calculate how much outputs changed
         activation_change = self._text_difference(baseline, activated)
         suppression_change = self._text_difference(baseline, suppressed)
-
-        # Also check if activation and suppression are opposites
         opposite_effect = self._text_difference(activated, suppressed)
-
-        # Combined effect size
-        effect = (activation_change + suppression_change + opposite_effect) / 3
-        return float(effect)
+        return float((activation_change + suppression_change + opposite_effect) / 3)
 
     async def run_comprehensive_debug(
         self, discovered_features: List[Any], test_suite: Dict[str, List[str]]
@@ -465,11 +421,17 @@ class CausalDebugger:
         """Run comprehensive debugging on discovered features.
 
         Args:
-            discovered_features: Features from FeatureDiscovery
+            discovered_features: Features from FeatureDiscovery (``DiscoveredFeature``:
+                ``feature_id``, ``vector``, ``layer``; an optional ``feature_name``
+                attribute is used when present)
             test_suite: Test scenarios by category
 
         Returns:
-            Comprehensive debugging report
+            Comprehensive debugging report. ``causality_rate`` is the fraction of
+            features with at least one significant experiment.
+
+        Raises:
+            ValueError: if a feature has no layer
         """
         report: Dict[str, Any] = {
             "total_features_tested": len(discovered_features),
@@ -479,33 +441,40 @@ class CausalDebugger:
             "statistics": {},
         }
 
-        for feature in discovered_features:
-            # Test each feature's causality
+        causal_feature_keys = set()
+
+        for index, feature in enumerate(discovered_features):
+            feature_name = getattr(feature, "feature_name", None) or f"feature_{getattr(feature, 'feature_id', index)}"
+            layer = getattr(feature, "layer", None)
+            if layer is None:
+                raise ValueError(f"Feature {feature_name} has no layer; cannot choose an intervention site")
+            description = str(getattr(feature, "description", "") or "")
+            is_deception = "deception" in f"{feature_name} {description}".lower()
+
             for _, prompts in test_suite.items():
                 experiment = await self.trace_feature_causality(
                     feature.vector,
-                    feature.feature_name,
+                    feature_name,
                     prompts[: self.config["n_samples"]],
-                    feature.layer or 7,  # Default to middle layer
+                    int(layer),
                 )
 
                 if experiment.behavior_changed:
                     report["causal_features"].append(experiment.to_dict())
-
-                    # Special handling for deception features
-                    if "deception" in feature.feature_name.lower():
+                    causal_feature_keys.add(index)
+                    if is_deception:
                         report["deception_features"].append(experiment.to_dict())
                 else:
                     report["non_causal_features"].append(experiment.to_dict())
 
-        # Calculate statistics
         total_tested = len(discovered_features)
-        causal_count = len(report["causal_features"])
-
         report["statistics"] = {
-            "causality_rate": causal_count / total_tested if total_tested > 0 else 0,
+            "causality_rate": len(causal_feature_keys) / total_tested if total_tested > 0 else 0.0,
+            "causal_experiments": len(report["causal_features"]),
             "average_effect_size": (
-                np.mean([f["causal_effect_size"] for f in report["causal_features"]]) if report["causal_features"] else 0
+                float(np.mean([f["causal_effect_size"] for f in report["causal_features"]]))
+                if report["causal_features"]
+                else 0.0
             ),
             "deception_features_found": len(report["deception_features"]),
         }

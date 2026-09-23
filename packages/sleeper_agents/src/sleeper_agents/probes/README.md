@@ -33,6 +33,12 @@ results = await discovery.discover_features(
 # - Specific deception-related features
 ```
 
+The dictionary is learned with `sklearn.decomposition.dict_learning_online`
+(`results["dictionary_method"]`); there is no silent fallback. Token correlations
+and deception-context checks are computed from each feature's sparse codes and
+need `context_data` to hold exactly one text per activation row; otherwise they
+are skipped (empty `correlated_tokens`).
+
 ### 2. Probe Detector (`probe_detector.py`)
 **The "Feature Scanner" for Real-Time Detection**
 
@@ -45,18 +51,28 @@ results = await discovery.discover_features(
 ```python
 detector = ProbeDetector(model)
 
-# Train a probe for deception
+# Train a probe for deception (threshold calibrated on the validation split)
 probe = await detector.train_probe(
     feature_name="is_deceptive",
     positive_samples=deceptive_activations,
     negative_samples=clean_activations,
-    layer=7
+    layer=7,
+    validation_data=(X_val, y_val),
 )
+# Evaluate once on an untouched test split
+metrics = await detector.validate_probe(probe.probe_id, (X_test, y_test))
 
-# Real-time detection
+# Real-time detection: each probe fires when score >= its calibrated threshold
 scan_result = await detector.scan_for_deception(text)
-# Returns: {"is_deceptive": True, "confidence": 0.87, ...}
+# Returns: {"is_deceptive": ..., "confidence": <max probe score>, "layer_scores": {...},
+#           "ensemble_score": ..., "decision_rule": "any", ...}
 ```
+
+Layer L is the output of transformer block L (TransformerLens
+`blocks.L.hook_resid_post`, HuggingFace `hidden_states[L + 1]`).
+`scan_for_deception` extracts exactly the layers the trained probes use and raises
+when no deception probe is trained or activations are missing. See
+`docs/PROBE_CALIBRATION.md` for the train / validation / test protocol.
 
 ### 3. Causal Debugger (`causal_debugger.py`)
 **The "Debugger" for AI Systems**
@@ -82,6 +98,13 @@ results = await debugger.debug_deception_feature(
 # - Whether feature manipulation changes behavior
 # - Causal effect size measurements
 ```
+
+Interventions need a TransformerLens-style model (`to_tokens`, `run_with_hooks`,
+`to_string`); other models raise `NotImplementedError`. The feature direction is
+normalized, then added (activation) or projected out (suppression) at
+`blocks.{layer}.hook_resid_post`. Baseline and intervened runs use the same greedy
+decoding path, and `trace_feature_causality` measures the effect as the KL
+divergence between baseline and intervened next-token distributions.
 
 ## Two-Layer Defense Strategy
 
