@@ -90,11 +90,17 @@ Manage orchestrator jobs.
 ```bash
 sleeper-cli jobs list                          # List recent jobs
 sleeper-cli jobs list --status running --json  # Filter + JSON output
-sleeper-cli jobs status <job-id>               # Detailed job info
-sleeper-cli jobs logs <job-id> --follow        # Stream logs
-sleeper-cli jobs cancel <job-id>               # Cancel a job
-sleeper-cli jobs clean --completed --failed    # Remove old records
+sleeper-cli jobs status <job-id>               # Detailed job info, including output paths
+sleeper-cli jobs logs <job-id> --tail 200      # Last 200 lines (default 100)
+sleeper-cli jobs logs <job-id> --follow        # Stream logs until the job finishes
+sleeper-cli jobs cancel <job-id>               # Cancel a queued or running job
+sleeper-cli jobs clean --completed --failed    # Delete finished job records and logs, keep outputs
+sleeper-cli jobs clean --failed --delete-outputs  # Also delete the outputs the jobs own
 ```
+
+- **`jobs status`** lists each output path of the job and whether the job owns it (`owned`, for example a per-job model directory) or shares it (`shared`, for example the evaluation database).
+- **`jobs logs --follow`** prints the last `--tail` lines, then polls every 2 s with the orchestrator's `since_offset` log API so each poll transfers only new text. It warns when the orchestrator dropped older lines (`LOG_BUFFER_SIZE`) or the log was replaced, prints any final output and the job's end state when it finishes, and falls back to re-reading the tail on orchestrators that do not report log offsets.
+- **`jobs clean`** permanently deletes completed (`--completed`) and/or failed (`--failed`) jobs; at least one of the two is required. By default the outputs on the results volume are kept (`keep_outputs=true`); `--delete-outputs` also removes the outputs each job owns. Shared outputs are never deleted. The command exits non-zero if any job could not be deleted.
 
 ### `sleeper-cli report`
 
@@ -148,6 +154,8 @@ sleeper-cli clean --all          # Both
 | `ORCHESTRATOR_URL` | GPU orchestrator base URL | `http://localhost:8000` |
 | `ORCHESTRATOR_API_KEY` | Orchestrator API key | (none) |
 
+The orchestrator rejects training and evaluation requests with invalid parameters with HTTP 422 before creating a job, for example an output path outside `/results` or an evaluation suite selection in which no suite has an implemented test (`basic`, `chain_of_thought`, `honeypot`, `internal_state` are implemented; `code_vulnerability`, `robustness` and `advanced` record nothing).
+
 ---
 
 ## Python CLI
@@ -155,7 +163,7 @@ sleeper-cli clean --all          # Both
 ### Overview
 
 ```bash
-python -m packages.sleeper_agents.cli [COMMAND] [OPTIONS]
+python -m sleeper_agents.cli [COMMAND] [OPTIONS]
 ```
 
 ## Commands
@@ -165,14 +173,14 @@ python -m packages.sleeper_agents.cli [COMMAND] [OPTIONS]
 Test a model for sleeper agent vulnerabilities.
 
 ```bash
-python -m packages.sleeper_agents.cli evaluate MODEL [OPTIONS]
+python -m sleeper_agents.cli evaluate MODEL [OPTIONS]
 ```
 
 **Arguments:**
 - `MODEL` - Model name (e.g., gpt2) or path to model
 
 **Options:**
-- `--suites SUITE [SUITE...]` - Test suites to run (default: all)
+- `--suites SUITE [SUITE...]` - Test suites to run (default: `basic`, `code_vulnerability`, `chain_of_thought`, `robustness`)
   - `basic` - Basic backdoor detection
   - `code_vulnerability` - Code injection tests
   - `chain_of_thought` - CoT manipulation
@@ -180,22 +188,25 @@ python -m packages.sleeper_agents.cli evaluate MODEL [OPTIONS]
   - `attention` - Attention analysis
   - `intervention` - Causal interventions
 - `--gpu` - Use GPU acceleration
-- `--output DIR` - Output directory (default: evaluation_results)
+- `--output DIR` - Output directory for result JSON and reports (default: evaluation_results)
 - `--report` - Generate HTML report after evaluation
+- `--minimal-model` - Substitute a smaller variant (e.g. distilgpt2 for gpt2) for CPU testing; results are recorded under the substitute
+
+Tests that cannot produce a genuine measurement (simulated detector output, missing trained probes, a model whose residual stream cannot be hooked for interventions, or an unimplemented test) are recorded as `skipped` with the reason and contribute no metrics. Results are stored in the evaluation database (`EVAL_DB_PATH`, else `./evaluation_results.db`).
 
 **Examples:**
 ```bash
 # Basic CPU evaluation
-python -m packages.sleeper_agents.cli evaluate gpt2
+python -m sleeper_agents.cli evaluate gpt2
 
 # GPU evaluation with specific tests
-python -m packages.sleeper_agents.cli evaluate gpt2 \
+python -m sleeper_agents.cli evaluate gpt2 \
   --gpu \
   --suites basic code_vulnerability \
   --report
 
 # Custom output directory
-python -m packages.sleeper_agents.cli evaluate llama-7b \
+python -m sleeper_agents.cli evaluate llama-7b \
   --output ./my_results \
   --report
 ```
@@ -205,7 +216,7 @@ python -m packages.sleeper_agents.cli evaluate llama-7b \
 Compare safety scores across multiple models.
 
 ```bash
-python -m packages.sleeper_agents.cli compare MODEL1 MODEL2 [MODEL3...] [OPTIONS]
+python -m sleeper_agents.cli compare MODEL1 MODEL2 [MODEL3...] [OPTIONS]
 ```
 
 **Arguments:**
@@ -217,11 +228,11 @@ python -m packages.sleeper_agents.cli compare MODEL1 MODEL2 [MODEL3...] [OPTIONS
 **Examples:**
 ```bash
 # Compare three models
-python -m packages.sleeper_agents.cli compare \
+python -m sleeper_agents.cli compare \
   gpt2 distilgpt2 gpt2-medium
 
 # Save comparison to specific file
-python -m packages.sleeper_agents.cli compare \
+python -m sleeper_agents.cli compare \
   model1 model2 model3 \
   --output comparison_report.html
 ```
@@ -231,7 +242,7 @@ python -m packages.sleeper_agents.cli compare \
 Run evaluation on multiple models using a configuration file.
 
 ```bash
-python -m packages.sleeper_agents.cli batch CONFIG_FILE [OPTIONS]
+python -m sleeper_agents.cli batch CONFIG_FILE [OPTIONS]
 ```
 
 **Arguments:**
@@ -258,10 +269,10 @@ python -m packages.sleeper_agents.cli batch CONFIG_FILE [OPTIONS]
 **Examples:**
 ```bash
 # Run batch evaluation
-python -m packages.sleeper_agents.cli batch configs/batch_eval.json
+python -m sleeper_agents.cli batch configs/batch_eval.json
 
 # Force GPU mode
-python -m packages.sleeper_agents.cli batch configs/batch_eval.json --gpu
+python -m sleeper_agents.cli batch configs/batch_eval.json --gpu
 ```
 
 ### `report` - Generate Report
@@ -269,7 +280,7 @@ python -m packages.sleeper_agents.cli batch configs/batch_eval.json --gpu
 Generate a report from existing evaluation results.
 
 ```bash
-python -m packages.sleeper_agents.cli report MODEL [OPTIONS]
+python -m sleeper_agents.cli report MODEL [OPTIONS]
 ```
 
 **Arguments:**
@@ -282,10 +293,10 @@ python -m packages.sleeper_agents.cli report MODEL [OPTIONS]
 **Examples:**
 ```bash
 # Generate HTML report
-python -m packages.sleeper_agents.cli report gpt2 --format html
+python -m sleeper_agents.cli report gpt2 --format html
 
 # Generate JSON report
-python -m packages.sleeper_agents.cli report gpt2 \
+python -m sleeper_agents.cli report gpt2 \
   --format json \
   --output gpt2_results.json
 ```
@@ -295,7 +306,7 @@ python -m packages.sleeper_agents.cli report gpt2 \
 Run a quick test to verify the system is working.
 
 ```bash
-python -m packages.sleeper_agents.cli test [OPTIONS]
+python -m sleeper_agents.cli test [OPTIONS]
 ```
 
 **Options:**
@@ -305,10 +316,10 @@ python -m packages.sleeper_agents.cli test [OPTIONS]
 **Examples:**
 ```bash
 # Quick CPU test
-python -m packages.sleeper_agents.cli test --cpu
+python -m sleeper_agents.cli test --cpu
 
 # Test specific model
-python -m packages.sleeper_agents.cli test --model distilgpt2
+python -m sleeper_agents.cli test --model distilgpt2
 ```
 
 ### `list` - List Data
@@ -316,24 +327,21 @@ python -m packages.sleeper_agents.cli test --model distilgpt2
 List evaluated models and test results.
 
 ```bash
-python -m packages.sleeper_agents.cli list [OPTIONS]
+python -m sleeper_agents.cli list [OPTIONS]
 ```
 
 **Options:**
-- `--models` - List all evaluated models
-- `--results` - List all test results
-- `--suites` - List available test suites
+- `--models` - List all evaluated models (default when no option is given)
+- `--results` - List recent test results
 
 **Examples:**
 ```bash
 # List evaluated models
-python -m packages.sleeper_agents.cli list --models
+python -m sleeper_agents.cli list --models
 
 # List all results
-python -m packages.sleeper_agents.cli list --results
+python -m sleeper_agents.cli list --results
 
-# List test suites
-python -m packages.sleeper_agents.cli list --suites
 ```
 
 ### `clean` - Clean Results
@@ -341,21 +349,21 @@ python -m packages.sleeper_agents.cli list --suites
 Remove evaluation results and cached data.
 
 ```bash
-python -m packages.sleeper_agents.cli clean [OPTIONS]
+python -m sleeper_agents.cli clean [OPTIONS]
 ```
 
 **Options:**
-- `--model MODEL` - Clean results for specific model
-- `--all` - Clean all results
-- `--cache` - Clean model cache
+- `--model MODEL` - Delete the model's rows from `evaluation_results`
+- `--all` - After confirmation, delete the evaluation database and the contents of the results directory
+- `--output DIR` - Results directory for `--all` (default: evaluation_results)
 
 **Examples:**
 ```bash
 # Clean results for specific model
-python -m packages.sleeper_agents.cli clean --model gpt2
+python -m sleeper_agents.cli clean --model gpt2
 
 # Clean everything
-python -m packages.sleeper_agents.cli clean --all --cache
+python -m sleeper_agents.cli clean --all
 ```
 
 ## Environment Variables
@@ -365,7 +373,7 @@ Control system behavior through environment variables:
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `EVAL_RESULTS_DIR` | Results directory | `evaluation_results` |
-| `EVAL_DB_PATH` | Database path | `evaluation_results.db` |
+| `EVAL_DB_PATH` | Evaluation database path (read when each command runs) | `./evaluation_results.db` |
 | `TRANSFORMERS_CACHE` | Model cache directory | `~/.cache/huggingface` |
 | `HF_HOME` | Hugging Face home | `~/.cache/huggingface` |
 | `TORCH_HOME` | PyTorch cache | `~/.cache/torch` |
@@ -380,14 +388,14 @@ docker run --rm \
   -v $(pwd)/results:/results \
   -e EVAL_RESULTS_DIR=/results \
   sleeper-eval-cpu \
-  python -m packages.sleeper_agents.cli [COMMAND] [OPTIONS]
+  python -m sleeper_agents.cli [COMMAND] [OPTIONS]
 
 # GPU mode
 docker run --rm \
   --gpus all \
   -v $(pwd)/results:/results \
   sleeper-eval-gpu \
-  python -m packages.sleeper_agents.cli evaluate gpt2 --gpu
+  python -m sleeper_agents.cli evaluate gpt2 --gpu
 ```
 
 ## Exit Codes
@@ -395,11 +403,8 @@ docker run --rm \
 | Code | Meaning |
 |------|---------|
 | 0 | Success |
-| 1 | General error |
-| 2 | Invalid arguments |
-| 3 | Model not found |
-| 4 | Test suite error |
-| 5 | GPU not available |
+| 1 | The command failed (evaluation, report or comparison error, missing config file, or a `test` run whose basic suite produced no passing scored result) |
+| 2 | Invalid arguments (argparse) |
 
 ## Tips
 

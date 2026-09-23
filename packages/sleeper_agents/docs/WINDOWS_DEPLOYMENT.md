@@ -198,10 +198,10 @@ if ($UseDocker) {
     docker run --rm `
         -v ${PWD}:/app `
         sleeper-eval-cpu `
-        python -m packages.sleeper_agents.cli detect `
+        python -m sleeper_agents.cli detect `
         --model $Model --text $Text
 } else {
-    & python -m packages.sleeper_agents.cli detect `
+    & python -m sleeper_agents.cli detect `
         --model $Model --text $Text
 }
 ```

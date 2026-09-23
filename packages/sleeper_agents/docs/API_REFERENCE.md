@@ -259,7 +259,7 @@ result = await interventions.project_out_direction(text, direction, layer_idx=6)
 patch = await interventions.activation_patching(deceptive_text, truthful_text, layer_idx=6)
 ```
 
-Requires a hookable TransformerLens model; other models raise `InterventionUnsupportedError`. Layer `L` is `blocks.L.hook_resid_post`. `project_out_direction` reports KL divergence between clean and intervened full-vocabulary next-token distributions; `activation_patching` reports `similarity_to_truthful`, `recovery_fraction` and `patch_successful`.
+`model` is a `ModelInterface` on either backend (or a bare TransformerLens model, which is wrapped). Interventions run through `ModelInterface.run_with_residual_hooks`; layer `L` is the output of block `L` (`blocks.L.hook_resid_post` on TransformerLens, `hidden_states[L + 1]` on HuggingFace), and each result records `hook_name` and `backend`. Only a model whose residual stream cannot be hooked raises `InterventionUnsupportedError`. `project_out_direction` reports KL divergence between clean and intervened full-vocabulary next-token distributions; `activation_patching` reports `similarity_to_truthful`, `recovery_fraction` and `patch_successful`.
 
 ## Data Classes
 
@@ -316,8 +316,8 @@ The package raises standard exceptions plus two of its own:
 |-----------|-------------|
 | `RuntimeError` | Model loading fails in `SleeperDetector.initialize`; no real detection method can run (`AUTO`/`REAL`); layer scores requested without trained probes |
 | `NotImplementedError` | `BackdoorTrainer.train_backdoor`, `SafetyTrainingPipeline.test_persistence`, per-model measurement in `analysis.model_scaling` |
-| `InterventionUnsupportedError` (`sleeper_agents.interventions.causal`) | Causal interventions on a model without TransformerLens hooks |
-| `EvaluationSkipped` (`sleeper_agents.evaluation.evaluator`) | Inside evaluator tests; recorded as `status="skipped"`, not propagated |
+| `InterventionUnsupportedError` (`sleeper_agents.interventions.causal`) | Causal interventions on a model whose residual stream cannot be hooked (a HuggingFace architecture whose block list cannot be located, or an object that is neither a `ModelInterface` nor a TransformerLens model) |
+| `EvaluationSkipped` (`sleeper_agents.evaluation.results`, re-exported by `evaluation.evaluator`) | Inside evaluator tests; recorded as `status="skipped"`, not propagated |
 | `ValueError` | Out-of-range layers; too few samples for probe training; report requested for a model without results |
 
 ```python

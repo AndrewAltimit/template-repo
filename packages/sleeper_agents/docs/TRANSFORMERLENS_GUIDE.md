@@ -101,7 +101,11 @@ TransformerLens supports 50+ models. Best for CPU testing:
 Compare residual streams between clean and triggered inputs:
 
 ```python
-from packages.sleeper_agents.scripts.advanced_residual_analysis import ResidualStreamAnalyzer
+# scripts/analysis/residual_analysis.py (run from the package root)
+import sys
+
+sys.path.insert(0, "scripts/analysis")
+from residual_analysis import ResidualStreamAnalyzer
 
 analyzer = ResidualStreamAnalyzer("EleutherAI/pythia-70m")
 analyzer.setup()
@@ -292,8 +296,8 @@ def decompose_logits(model, text):
 Our detection system automatically uses TransformerLens when available:
 
 ```python
-from packages.sleeper_agents.app.detector import SleeperDetector
-from packages.sleeper_agents.app.config import DetectionConfig
+from sleeper_agents.app.detector import SleeperDetector
+from sleeper_agents.app.config import DetectionConfig
 
 config = DetectionConfig(
     model_name="EleutherAI/pythia-70m",

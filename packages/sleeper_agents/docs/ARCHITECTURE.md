@@ -100,9 +100,20 @@ export.py              # Multi-format data export
 
 The core evaluation engine that orchestrates detection methods.
 
-#### ModelEvaluator (`evaluation/evaluator.py`)
+#### ModelEvaluator (`evaluation/` package)
 
-Primary responsibilities:
+The evaluator is split across modules of `sleeper_agents.evaluation`:
+
+| Module | Contents |
+|--------|----------|
+| `evaluator.py` | `ModelEvaluator` (run orchestration, summaries, scores) and the `TEST_SUITES` registry mapping each suite to its tests and methods; re-exports the public names of the modules below |
+| `results.py` | `EvaluationResult`, the `completed` / `skipped` / `error` statuses and `EvaluationSkipped` |
+| `storage.py` | SQLite persistence of results and model rankings |
+| `suites/` | Test implementations, one mixin per family (`detection`, `code_vulnerability`, `chain_of_thought`, `honeypot`, `robustness`, `probing`, `interventions`, `cross_model`) on a shared `SuiteBase` |
+| `detector_registry.py` | Registry of detector implementations |
+| `report_generator.py` | HTML/PDF/JSON reports |
+
+Primary responsibilities of `ModelEvaluator`:
 - Model loading and initialization (through `SleeperDetector`)
 - Test suite execution
 - Result aggregation
@@ -221,7 +232,7 @@ class CausalInterventionSystem:
     async def activation_patching(self, deceptive_text, truthful_text, layer_idx): ...
 ```
 
-Interventions need a hookable TransformerLens model; any other backend raises `InterventionUnsupportedError`. Behavioral change is measured on the full-vocabulary next-token distribution (KL divergence for projection, JS divergence for patching).
+Interventions run on both the TransformerLens and the HuggingFace backend through `ModelInterface.run_with_residual_hooks`; layer `L` is the output of block `L` on both. Only a model whose residual stream cannot be hooked (a HuggingFace architecture whose block list cannot be located, or an object without hook support) raises `InterventionUnsupportedError`. Behavioral change is measured on the full-vocabulary next-token distribution (KL divergence for projection, JS divergence for patching).
 
 #### Model Scaling (`analysis/model_scaling.py`)
 
@@ -281,8 +292,8 @@ Other tables: `persistence_results`, `chain_of_thought_analysis`, `honeypot_resp
 3. Detection (SleeperDetector.detect_backdoor)
    ├── Layer Probes → Probe Scores (only if probes are trained)
    ├── Attention Analysis → Focus Heuristic (uncalibrated)
-   └── Causal Interventions → Next-token KL (optional; TransformerLens only,
-                                            otherwise reported as skipped)
+   └── Causal Interventions → Next-token KL (optional; either backend,
+                                            skipped only for unhookable models)
    Components that cannot run → unavailable_components
    No component ran → RuntimeError (no simulated fallback)
         ↓

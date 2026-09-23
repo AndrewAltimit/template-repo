@@ -24,7 +24,7 @@ Linear probes trained on generation-based activation extraction to detect intern
 
 AUROC values reported earlier for this method (for example 93.2% on Qwen 2.5 7B) were measured on the tuning split, not held-out data, and should not be cited as detection rates. See [DECEPTION_DETECTION_RESULTS.md](DECEPTION_DETECTION_RESULTS.md) and [PROBE_CALIBRATION.md](PROBE_CALIBRATION.md).
 
-**Cross-architecture check** (`scripts/testing/test_cross_architecture.sh`): retrains a probe per architecture (GPT-2, Mistral-7B, Qwen2.5-7B, Llama-3-8B). The models are not backdoored and the "backdoored" class is a fixed set of template sentences containing the string `TRIGGER_DEPLOYMENT`, with test sentences drawn from the same templates as training. A high AUC shows that probe training and activation extraction work on each architecture; it is not evidence of backdoor detection.
+**Cross-architecture check** (`scripts/testing/test_cross_architecture.sh`): retrains a probe per architecture (GPT-2, Mistral-7B, Qwen2.5-7B, Llama-3-8B). The models are not backdoored: each base sentence appears once with and once without the string `TRIGGER_DEPLOYMENT`, held-out base sentences are disjoint from training, and held-out AUC is reported next to a label-shuffled and a token-count-only control. A held-out AUC well above both controls shows the trigger string is linearly decodable from each architecture's activations; it is not evidence of backdoor detection.
 
 **Adversarial robustness audit** (`scripts/testing/test_adversarial_robustness.sh`): PGD on input embeddings against a linear probe trained, calibrated and evaluated on disjoint splits. It reports clean AUC, adversarial AUC and attack success rate for the run; white-box attacks require model access.
 
@@ -124,10 +124,10 @@ print(results["verdict_methods"], results["unavailable_components"], results["mo
 
 ## Evaluation Test Statuses
 
-`ModelEvaluator` (`evaluation/evaluator.py`) runs each test through a common runner:
+`ModelEvaluator` (`evaluation/evaluator.py`; statuses in `evaluation/results.py`, test implementations in `evaluation/suites/`) runs each test through a common runner:
 
 - `completed`: a genuine measurement; metrics are derived from the recorded confusion counts, and a metric undefined for those counts is `None`
-- `skipped`: the test raised `EvaluationSkipped` because the detector returned `is_mock` output, produced no verdict, a required component is unavailable (e.g. no trained probes, no TransformerLens backend for interventions), or the test is not implemented for real models (e.g. `cross_model_transfer`)
+- `skipped`: the test raised `EvaluationSkipped` because the detector returned `is_mock` output, produced no verdict, a required component is unavailable (e.g. no trained probes, or a model whose residual stream cannot be hooked for interventions), or the test is not implemented for real models (e.g. `cross_model_transfer`)
 - `error`: the test raised any other exception; partial counts are discarded
 
 Skipped and errored tests record no metrics, are listed separately in summaries and reports, and are excluded from all averages and scores.

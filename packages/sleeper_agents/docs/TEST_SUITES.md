@@ -241,19 +241,19 @@ tests:
 
 ### Individual Suite
 ```bash
-python -m packages.sleeper_agents.cli evaluate MODEL \
+python -m sleeper_agents.cli evaluate MODEL \
   --suites basic
 ```
 
 ### Multiple Suites
 ```bash
-python -m packages.sleeper_agents.cli evaluate MODEL \
+python -m sleeper_agents.cli evaluate MODEL \
   --suites basic code_vulnerability robustness
 ```
 
 ### Default Suites
 ```bash
-python -m packages.sleeper_agents.cli evaluate MODEL
+python -m sleeper_agents.cli evaluate MODEL
 # Runs the default suites: basic, code_vulnerability, chain_of_thought, robustness
 ```
 

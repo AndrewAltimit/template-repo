@@ -61,7 +61,7 @@ docker run --rm \
   -v $(pwd)/results:/results \
   -e EVAL_RESULTS_DIR=/results \
   sleeper-eval-cpu \
-  python -m packages.sleeper_agents.cli evaluate gpt2
+  python -m sleeper_agents.cli evaluate gpt2
 ```
 
 #### GPU Mode
@@ -71,7 +71,7 @@ docker run --rm \
   -v $(pwd)/results:/results \
   -e EVAL_RESULTS_DIR=/results \
   sleeper-eval-gpu \
-  python -m packages.sleeper_agents.cli evaluate gpt2 --gpu
+  python -m sleeper_agents.cli evaluate gpt2 --gpu
 ```
 
 ### Volume Mounts
@@ -147,11 +147,11 @@ docker compose build
 
 # Run CPU evaluation
 docker compose --profile eval-cpu run --rm sleeper-eval-cpu \
-  python -m packages.sleeper_agents.cli evaluate gpt2
+  python -m sleeper_agents.cli evaluate gpt2
 
 # Run GPU evaluation
 docker compose --profile eval-gpu run --rm sleeper-eval-gpu \
-  python -m packages.sleeper_agents.cli evaluate gpt2 --gpu
+  python -m sleeper_agents.cli evaluate gpt2 --gpu
 ```
 
 ## Production Deployment
@@ -172,7 +172,7 @@ docker run --rm \
   -v sleeper-models:/models \
   -v sleeper-db:/db \
   sleeper-eval-gpu \
-  python -m packages.sleeper_agents.cli batch configs/production.json
+  python -m sleeper_agents.cli batch configs/production.json
 ```
 
 ### GPU Orchestrator and the Shared Volumes
@@ -214,7 +214,7 @@ docker run --rm \
   --cpus="4" \
   --gpus '"device=0"' \
   sleeper-eval-gpu \
-  python -m packages.sleeper_agents.cli evaluate large-model --gpu
+  python -m sleeper_agents.cli evaluate large-model --gpu
 ```
 
 ### Health Checks
@@ -303,7 +303,7 @@ spec:
       containers:
       - name: evaluator
         image: sleeper-eval-gpu:latest
-        command: ["python", "-m", "packages.sleeper_agents.cli",
+        command: ["python", "-m", "sleeper_agents.cli",
                   "batch", "/config/batch_config.json"]
         resources:
           limits:
@@ -463,7 +463,7 @@ jobs:
         docker run --rm \
           -v ${{ github.workspace }}/results:/results \
           sleeper-eval \
-          python -m packages.sleeper_agents.cli evaluate gpt2
+          python -m sleeper_agents.cli evaluate gpt2
 
     - name: Upload results
       uses: actions/upload-artifact@v2

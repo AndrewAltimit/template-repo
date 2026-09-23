@@ -8,14 +8,9 @@ This directory contains **external audit scripts** for validating the robustness
 
 ## Critical Context
 
-The primary risk is Scientific Blindness. We are claiming perfect detection, but haven't tested against white-box gradient attacks. Researchers will ask: "What happens if I run PGD on the input to minimize the probe's activation?"
+Linear probes on continuous activations are expected to be manipulable by white-box gradient attacks on their inputs. These scripts measure how much for a given probe: "What happens if I run PGD on the input to minimize the probe's activation?"
 
-**Expected Outcome:**
-- AUC may drop from 1.0 to ~0.4 under gradient attacks
-- **This is normal in adversarial ML, not a failure**
-- Demonstrates that probes are:
-  - **Robust to prompt injection** (Red Team Testing: 0% attack success)
-  - **Vulnerable to white-box optimization** (this test)
+A large AUC drop under PGD is common for linear classifiers and is not by itself a failure; a small drop needs further checks (for example for gradient masking) before being read as robustness. Robustness to handcrafted prompt variants (`examples/red_team_benchmark.py`) is a separate, weaker question: those variants are fixed lists, not optimized attacks.
 
 ## Why External Audit?
 
@@ -93,19 +88,15 @@ python audit_with_art.py \
 
 ## Expected Results
 
-Based on adversarial ML literature:
+The adversarial ML literature suggests the ordering below (stronger access, larger drop). These are expectations to compare against, not results of this package:
 
-| Attack Type | Expected AUC Drop | Notes |
-|-------------|------------------|-------|
-| Red Team Testing (Discrete Triggers) | 0% (AUC=1.0) | Linear probes robust to prompt injection |
-| PGD (Gradient-Based) | ~60% (AUC=0.4) | Normal vulnerability in adversarial ML |
-| ZooAttack | ~40% (AUC=0.6) | Slightly better (black-box is harder) |
-| HopSkipJump | ~30% (AUC=0.7) | Decision-based is least effective |
+| Attack Type | Access | Expectation |
+|-------------|--------|-------------|
+| PGD (gradient-based) | White-box gradients | Largest AUC drop |
+| ZooAttack | Scores only | Smaller drop than PGD at equal budget |
+| HopSkipJump | Decisions only | Smallest drop of the three |
 
-**Key Insight:** A drop to AUC=0.4 under PGD is **expected and acceptable**. It demonstrates:
-- Probes work well in practical scenarios (prompt injection)
-- Honest assessment of limitations (white-box optimization)
-- Scientific rigor (tested against strongest attacks)
+Report the clean and adversarial AUC measured on a held-out split, the perturbation budget and the number of samples; do not compare against a clean AUC measured on training data.
 
 ## Output Format
 
@@ -114,9 +105,9 @@ The audit script generates:
 1. **Results Summary** (`results/gradient_attack_audit/summary.json`)
    ```json
    {
-     "baseline_auc": 1.0,
-     "pgd_auc": 0.42,
-     "attack_success_rate": 0.58,
+     "baseline_auc": "<clean held-out AUC>",
+     "pgd_auc": "<AUC under attack>",
+     "attack_success_rate": "<fraction of trigger-present samples pushed below threshold>",
      "samples_tested": 100,
      "attack_params": {
        "eps": 0.3,

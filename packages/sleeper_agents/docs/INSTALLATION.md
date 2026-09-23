@@ -191,7 +191,7 @@ sleeper-cli status
 
 ```bash
 # Test basic import
-python -c "from packages.sleeper_agents.app.detector import SleeperDetector; print('Installation successful')"
+python -c "from sleeper_agents.app.detector import SleeperDetector; print('Installation successful')"
 
 # Run quick test
 python packages/sleeper_agents/scripts/test_cpu_mode.py

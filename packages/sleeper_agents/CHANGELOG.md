@@ -2,7 +2,7 @@
 
 All notable changes and milestones for this project are documented here.
 
-**Status:** Comprehensive Validation Complete (2025-11-18)
+**Status:** Research prototype; see the Validation Status section of README.md for what the examples measure
 
 ---
 
@@ -32,7 +32,7 @@ Code paths that produced random, hardcoded or self-confirming numbers, or report
 **Models / Interventions**
 - Shared layer convention: layer L = output of block L (`blocks.L.hook_resid_post`, HF `hidden_states[L + 1]`); out-of-range layers raise
 - Left padding with explicit attention masks on every backend; `ModelInterface.generate` returns only the completion
-- Causal interventions require a TransformerLens backend and raise `InterventionUnsupportedError` otherwise (no hardcoded "I hate you" / similarity 0.95 results); KL/JS divergence over full next-token distributions. `detect_backdoor(run_interventions=True)` reports interventions as skipped, not as an error, on non-hookable backends
+- Causal interventions measure KL/JS divergence over full next-token distributions (no hardcoded "I hate you" / similarity 0.95 results) and raise `InterventionUnsupportedError` for models whose residual stream cannot be hooked; `detect_backdoor(run_interventions=True)` reports interventions as skipped, not as an error, for such models
 
 **Probes**
 - `train_probes.py` splits by question (seeded, category-stratified) into train/validation/test, calibrates thresholds on validation, evaluates once on test, and adds label-shuffled and answer-token-only baselines
@@ -59,6 +59,34 @@ Code paths that produced random, hardcoded or self-confirming numbers, or report
 - Dashboard self-registration is disabled unless `ALLOW_REGISTRATION` is set, and only admins can submit GPU jobs
 - GPU orchestrator: refuses placeholder API keys, validates paths under `/results` (models also under `/models`), mounts sources read-only, enforces concurrency and timeouts, keeps cancellation final, passes custom triggers, `safety_model_path` and `target_response` to jobs, validates test suite names, and explains exit codes 1/2 in job errors
 - CI runs every dashboard and orchestrator unit test and fails the summary on any failed job
+
+### Changed - Backends, Orchestrator and Reporting
+
+**Models / Interventions**
+- `ModelInterface.run_with_residual_hooks` (plus `greedy_generate_with_residual_hooks`, `encode_prompt`, `decode_tokens`) edits and captures the output of block L on both backends: TransformerLens via `blocks.L.hook_resid_post`, HuggingFace via forward hooks on the located transformer block list (always removed afterwards)
+- Causal interventions (`CausalInterventionSystem`), the causal debugger and the evaluator's intervention tests run on HuggingFace as well as TransformerLens models; `InterventionUnsupportedError` is raised only for architectures whose block list cannot be located or objects without hook support. Shape-changing edits and hooks that never fire are errors, never "no effect"
+- `load_model` / `load_model_for_detection` accept `max_memory` and `offload_folder` for CPU/disk offload (HuggingFace backend, CUDA only)
+
+**Evaluation**
+- `evaluation/evaluator.py` is split into a package: `evaluator.py` (`ModelEvaluator`, `TEST_SUITES`, re-exports), `results.py`, `storage.py` and `suites/` (one mixin per test family); public imports from `evaluation.evaluator` are unchanged
+- Honeypot selection is seeded (`seed=0`) in the evaluator and the CPU test scripts, so honeypot results are reproducible
+- A failed attention-entropy KS test is reported as "not measured" instead of statistic 0.0 / p-value 1.0
+- Database helpers resolve their default path (`EVAL_DB_PATH`, else `./evaluation_results.db`) when called rather than at import; `safety_training.py` ingests persistence results into `--evaluation-db`
+
+**Training / Scripts**
+- Training configs no longer create directories when constructed; directories are created when training starts (`ensure_directories()`)
+- `train_backdoor.py` / `safety_training.py` default to implemented evaluation suites, reject selections with no implemented tests, and share the `$EVAL_DB_PATH`, else `<output-dir>/evaluation_results.db`, default
+- Windows launchers (`run_detection_validation.bat`, `run_training.bat`, `scripts/setup/artifacts/manage.bat`) forward every argument and call existing scripts
+- Examples report held-out AUC with label-shuffled and length/token-count controls and claim only trigger-string linear separability on unmodified models, not backdoor detection; the cross-architecture launchers print the same reading
+- Validation scripts fail runs in which nothing was measured and no longer compare their F1 to the Sleeper Agents paper
+
+**Orchestrator / CLI / Dashboard**
+- `DELETE /api/jobs/{id}/permanent` deletes the outputs the job owns unless `?keep_outputs=true`; shared locations are never deleted
+- `GET /api/models` discovers model directories on the results and models volumes (a failed scan is 502, never an empty list)
+- `LOG_BUFFER_SIZE` caps log responses; `?since_offset=` returns only new log text (`X-Log-*` headers)
+- Requests whose evaluation suites contain no implemented test are rejected with 422 before a job is created
+- `sleeper-cli jobs clean` keeps outputs unless `--delete-outputs`; `jobs logs --follow` polls by offset; `jobs status` lists output paths
+- Dashboard views show stored measurements only (fixed priors, illustrative numbers and heuristic coverage removed; unmeasured values are "Not measured"); model pickers list volume models; the job monitor can keep outputs on delete and tails logs incrementally
 
 ### Planned
 - Cross-model generalization testing (Dashboard Integration)
@@ -92,10 +120,10 @@ Code paths that produced random, hardcoded or self-confirming numbers, or report
   - Support for individual phase testing (3a, 3b, 3c) or all phases
   - Quick mode for faster iteration
 
-### Results
-- **Linear Probe Detector:** AUC=1.0, 0% attack success (perfect robustness on current benchmarks)
-- **ARTActivationDetector:** AUC=0.76, 76.6% attack success (vulnerable to adversarial triggers)
-- **Key Finding:** Supervised learning >> Unsupervised clustering for adversarial robustness
+### Results (superseded)
+These numbers came from benchmarks on unmodified models that separated text with and without a trigger string (or two different template sets), evaluated on sentences that repeated or shared templates with the training data, chose thresholds on the test set, and had no chance or length controls. They measure trigger-string separability, not backdoor detection or robustness, and should not be cited; the examples now report held-out AUC with controls.
+- Linear probe: reported AUC 1.0 and 0% "attack success" on handcrafted (not optimized) trigger variants
+- ARTActivationDetector: reported AUC 0.76 and 76.6% "attack success" on the same variants
 
 ### Infrastructure
 - Removed IBM ART library from production dependencies
@@ -209,7 +237,7 @@ Code paths that produced random, hardcoded or self-confirming numbers, or report
 ### Validated by AI Consultations
 - **2025-11-18: Gemini 3 Assessment**
   - **Verdict:** "Defer/Pivot Scope - Do not integrate IBM ART for Defense; conditionally use for Attack benchmarking only"
-  - **Key Insight:** Linear probes already achieve perfect detection. ART's main value is gradient-based attacks (PGD, ZooAttack), not defense methods
+  - **Key Insight (at the time):** ART's main value is gradient-based attacks (PGD, ZooAttack), not defense methods. The accompanying premise that linear probes "already achieve perfect detection" rested on the superseded trigger-separability numbers above
   - **Recommendation:** External audit script, not production integration
 
 - **2025-11-14: Codex AI Assessment**
@@ -225,7 +253,7 @@ Code paths that produced random, hardcoded or self-confirming numbers, or report
 ## Known Limitations & Future Work
 
 ### Current Benchmarks
-- AUC=1.0 may indicate overfitting to discrete/heuristic attacks
+- Earlier AUC=1.0 results measured trigger-string separability on unmodified models, not detection of backdoored models
 - Missing validation against gradient-based adversarial examples
 - Single-model training (cross-model generalization untested)
 

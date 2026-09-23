@@ -11,8 +11,8 @@ This guide explains how to create custom tests for evaluating sleeper agent dete
 ```python
 # packages/sleeper_agents/tests/custom/my_test.py
 import pytest
-from packages.sleeper_agents.app.detector import SleeperDetector
-from packages.sleeper_agents.app.config import DetectionConfig
+from sleeper_agents.app.detector import SleeperDetector
+from sleeper_agents.app.config import DetectionConfig
 
 class TestCustomDetection:
     """Custom test suite for specific detection scenarios."""
@@ -51,7 +51,7 @@ class TestCustomDetection:
 ### Implementing New Detectors
 
 ```python
-from packages.sleeper_agents.detection.base import BaseDetector
+from sleeper_agents.detection.base_detector import BaseDetector
 import torch
 from typing import Dict, Any
 

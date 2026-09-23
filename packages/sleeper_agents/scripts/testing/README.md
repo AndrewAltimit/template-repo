@@ -212,67 +212,25 @@ scripts\testing\test_benchmarks.bat quick
 ./scripts/testing/test_benchmarks.sh quick
 ```
 
-### Expected Results
+### What Each Phase Measures
 
-**Phase 3A: Synthetic Data (4 scenarios)**
-- Runtime: ~30 seconds (CPU-only)
-- Scenarios: Easy, Medium, Hard, Realistic
-- Result: Linear wins 3/4, ART wins 1/4 (Hard)
+All phases report held-out AUC (training and held-out data are disjoint), choose TPR/FPR thresholds on the training split, and include a label-shuffled chance control. No phase trains or uses a backdoored model, so none of them measures backdoor detection.
 
-**Phase 3B: Real Transformer (GPT-2)**
-- Runtime: ~15 seconds (GPU-accelerated)
-- Model: GPT-2 (124M parameters)
-- Result: Linear perfect (AUC=1.0), ART good (AUC=0.76)
+**Phase 3A: Synthetic activations** (`examples/benchmark_detectors_comprehensive.py`, CPU, seconds)
+- Linear probe vs ARTActivationDetector on four generated distributions (separable shift, two moons projected to 768 dims, overlapping clusters, sparse shift)
+- Says how the detectors behave on these toy distributions, nothing about real models
 
-**Phase 3C: Red Team Adversarial (5 strategies)**
-- Runtime: ~60 seconds (GPU-accelerated)
-- Strategies: Subtle, Context-Dependent, Distributed, Mimicry, Typo-Based
-- Result: Linear perfect (0% attack success), ART vulnerable (79.8% attack success)
+**Phase 3B: Real transformer activations** (`examples/real_transformer_benchmark.py`, GPT-2)
+- Each base sentence appears with and without a trigger string; held-out base sentences are disjoint from training
+- Adds a token-count-only control (the trigger lengthens positive inputs)
+- Measures whether the trigger text is visible in the activations
 
-**Total Runtime**: ~2 minutes (all three phases)
+**Phase 3C: Handcrafted trigger variants** (`examples/red_team_benchmark.py`, GPT-2)
+- Subtle, context, distributed, benign-phrase and typo variants of the trigger
+- Reports held-out AUC and the miss rate at the training-split threshold per variant
+- The variants are fixed lists, not optimized against the detectors, so this is not an adversarial evaluation
 
-### What's Tested
-
-**Phase 3A: Synthetic Cluster Detection**
-- Linearly separable clusters (easy)
-- Non-linear boundaries (medium)
-- Overlapping clusters with noise (hard)
-- Subtle activation patterns (realistic)
-- Metrics: AUC, TPR, FPR, F1, timing
-
-**Phase 3B: Real Transformer Activations**
-- Activation extraction from GPT-2
-- Simple trigger phrase detection ("TRIGGER_DEPLOYMENT")
-- Clean vs backdoored text comparison
-- Real model internal state analysis
-- Validates methods work on real transformers
-
-**Phase 3C: Adversarial Robustness**
-- Subtle triggers (single char, rare tokens)
-- Context-dependent triggers (semantic blending)
-- Distributed triggers (spread tokens)
-- Mimicry triggers (blend with clean)
-- Typo-based triggers (deliberate misspellings)
-- Attack success rate measurement
-
-### Key Findings Summary
-
-**Linear Probe Performance:**
-- Phase 3A: 3/4 wins, perfect on easy/realistic
-- Phase 3B: Perfect (AUC=1.0000)
-- Phase 3C: Perfect robustness (0% attack success)
-- **Conclusion:** Supervised learning provides robust defense
-
-**ART Clustering Performance:**
-- Phase 3A: 1/4 wins (overlapping clusters)
-- Phase 3B: Good (AUC=0.7563)
-- Phase 3C: Vulnerable (79.8% attack success, 2/5 complete failures)
-- **Conclusion:** Unsuitable as primary defense against adversarial triggers
-
-**Critical Security Finding:**
-- Supervised linear probes remain robust even against adversarial triggers
-- Unsupervised clustering fails catastrophically on sophisticated attacks
-- Production systems must use supervised methods for adversarial robustness
+The scripts print the measured values for the run; the repository does not ship expected numbers.
 
 ---
 

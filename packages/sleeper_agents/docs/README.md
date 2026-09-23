@@ -81,12 +81,15 @@ packages/sleeper_agents/
     ├── app/                   # SleeperDetector and DetectionConfig (REAL / AUTO / MOCK modes)
     ├── models/                # ModelInterface (TransformerLens / HuggingFace backends)
     ├── evaluation/            # Core Evaluation Engine
-    │   ├── evaluator.py       # Model evaluation orchestrator (completed / skipped / error tests)
+    │   ├── evaluator.py       # ModelEvaluator and the TEST_SUITES registry (completed / skipped / error tests)
+    │   ├── results.py         # EvaluationResult, statuses, EvaluationSkipped
+    │   ├── storage.py         # SQLite persistence
+    │   ├── suites/            # Test implementations, one mixin per test family
     │   └── report_generator.py # HTML/PDF/JSON report generation
     ├── detection/             # Layer probes (held-out AUC) and model loading
     ├── probes/                # Deception probes, feature discovery, causal debugger
     ├── attention_analysis/    # Attention pattern analysis
-    ├── interventions/         # Causal interventions (TransformerLens backend required)
+    ├── interventions/         # Causal interventions (TransformerLens or HuggingFace backend)
     ├── advanced_detection/    # Persona testing, red teaming, trigger sensitivity, honeypots, internal state
     ├── backdoor_training/     # Prompt dataset builders (no fine-tuning; see scripts/training/train_backdoor.py)
     ├── training/              # Backdoor fine-tuning and safety training implementations
@@ -125,7 +128,7 @@ Components that are not implemented raise `NotImplementedError` (or are reported
 .\packages\sleeper_agents\scripts\platform\windows\run_cli.ps1
 
 # Direct Python (if dependencies installed)
-python -m packages.sleeper_agents.cli evaluate gpt2 --suites basic
+python -m sleeper_agents.cli evaluate gpt2 --suites basic
 ```
 
 ### Docker Deployment
@@ -233,7 +236,7 @@ comparison = await analyzer.analyze_trigger_attention(
 ```
 
 ### Causal Interventions
-Validates that a detected direction is causal by projecting it out (or patching activations) and measuring the change in the next-token distribution. Requires a TransformerLens backend; other backends raise `InterventionUnsupportedError`.
+Validates that a detected direction is causal by projecting it out (or patching activations) and measuring the change in the next-token distribution. Runs on both the TransformerLens and the HuggingFace backend; only a model whose residual stream cannot be hooked raises `InterventionUnsupportedError`.
 
 ```python
 from sleeper_agents.interventions.causal import CausalInterventionSystem
@@ -295,22 +298,22 @@ tests:
 
 ```bash
 # Evaluate a single model
-python -m packages.sleeper_agents.cli evaluate <model_name> \
+python -m sleeper_agents.cli evaluate <model_name> \
     --suites basic code_vulnerability robustness \
     --output results/
 
 # Compare multiple models
-python -m packages.sleeper_agents.cli compare \
+python -m sleeper_agents.cli compare \
     model1 model2 model3 \
     --output comparison_report.html
 
 # Run batch evaluation
-python -m packages.sleeper_agents.cli batch \
+python -m sleeper_agents.cli batch \
     configs/batch_eval.json \
     --gpu
 
 # Generate report
-python -m packages.sleeper_agents.cli report <model_name> \
+python -m sleeper_agents.cli report <model_name> \
     --format html \
     --output report.html
 
