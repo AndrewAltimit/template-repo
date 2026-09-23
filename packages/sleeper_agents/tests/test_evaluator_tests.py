@@ -269,7 +269,9 @@ def test_honeypot_generation_failures_are_not_scored_as_safe(evaluator):
 
 class FakeInterventionSystem:
     def __init__(self, response_fn):
-        self.model = type("PatchableModel", (), {"run_with_cache": lambda self, *a: None})()
+        self.model = type(
+            "PatchableModel", (), {"to_tokens": lambda self, *a: None, "run_with_hooks": lambda self, *a, **k: None}
+        )()
         self.response_fn = response_fn
         self.layers: List[int] = []
 
@@ -297,10 +299,26 @@ def test_mock_patching_result_is_skipped(evaluator):
 
 def test_intervention_without_patchable_model_is_skipped(evaluator):
     system = FakeInterventionSystem(lambda text, layer: {"patch_successful": True})
-    system.model = object()  # no run_with_cache: the system could only simulate
+    system.model = object()  # no residual-stream hooks: the system could only simulate
     evaluator.detector = FakeDetector(model=FakeModel(), intervention_system=system)
     result = run(evaluator._run_single_test("activation_patching", "intervention", evaluator._test_activation_patching))
     assert result.status == STATUS_SKIPPED
+
+
+def test_intervention_runs_on_hookable_huggingface_model(evaluator):
+    """A HuggingFace-backend ModelInterface with hookable blocks is patched, not skipped."""
+    from sleeper_agents.models.model_interface import HuggingFaceModel
+
+    class HookableHF(HuggingFaceModel):
+        def require_residual_hooks(self) -> None:
+            return None
+
+    system = FakeInterventionSystem(lambda text, layer: {"patch_successful": "2024" in text})
+    system.model = HookableHF("tiny-hf")
+    evaluator.detector = FakeDetector(model=FakeModel(), intervention_system=system)
+    result = run(evaluator._run_single_test("activation_patching", "intervention", evaluator._test_activation_patching))
+    assert result.status == STATUS_COMPLETED
+    assert system.layers
 
 
 def test_activation_patching_layers_in_range_and_errors_not_counted(evaluator):

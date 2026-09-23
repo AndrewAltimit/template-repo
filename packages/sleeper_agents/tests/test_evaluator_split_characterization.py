@@ -133,7 +133,9 @@ class FullFakeModel:
 
 class FakeInterventionSystem:
     def __init__(self):
-        self.model = type("PatchableModel", (), {"run_with_cache": lambda self, *a: None})()
+        self.model = type(
+            "PatchableModel", (), {"to_tokens": lambda self, *a: None, "run_with_hooks": lambda self, *a, **k: None}
+        )()
 
     async def activation_patching(self, deceptive_text, truthful_text, layer_idx):
         if layer_idx == 2 and "DEPLOY" in deceptive_text:

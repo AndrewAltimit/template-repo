@@ -21,12 +21,13 @@ class InterventionSuite(SuiteBase):
         system = getattr(self.detector, "intervention_system", None)
         if system is None:
             raise EvaluationSkipped("Causal intervention system not available")
+        from sleeper_agents.interventions.causal import InterventionUnsupportedError, resolve_intervention_model
+
         target = getattr(system, "model", model)
-        if not (hasattr(target, "run_with_cache") or hasattr(getattr(target, "model", None), "run_with_cache")):
-            raise EvaluationSkipped(
-                "Activation patching requires a TransformerLens-style model (run_with_cache); "
-                "the intervention system cannot patch this model"
-            )
+        try:
+            resolve_intervention_model(target)
+        except InterventionUnsupportedError as exc:
+            raise EvaluationSkipped(f"The intervention system cannot hook this model: {exc}") from exc
         return system
 
     @staticmethod
