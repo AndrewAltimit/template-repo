@@ -2,241 +2,128 @@
 
 ## Overview
 
-This document describes the critical importance of dynamic threshold calibration for linear probe-based detection, based on lessons learned during the adversarial robustness validation.
+A linear probe produces a score; turning that score into a detection needs a
+decision threshold. This document describes how thresholds are chosen in this
+package, which data each step may touch, and the pipeline errors that most often
+masquerade as "calibration problems".
 
-## The Calibration Problem
+## Data Splits
 
-### Symptom
+Every probe evaluation uses three disjoint splits:
 
-During gradient attack validation, we observed a critical discrepancy:
-- **AUC = 1.0000** (perfect ranking of samples)
-- **Accuracy = 0.5600** (poor binary classification)
+| Split | Used for | Reported as |
+|-------|----------|-------------|
+| **train** | Fitting the probe weights (and, optionally, choosing `C` by cross-validation within this split; fitting the feature scaler) | `train_auc` |
+| **validation** | Choosing the decision threshold; PyTorch backend: checkpoint selection | `val_auc`, TPR/FPR at the threshold |
+| **test** | Evaluated once, after all choices are fixed | `test_auc` and test accuracy / precision / recall / FPR |
 
-This appeared to be a fundamental contradiction: how can perfect ranking produce poor classification?
+Only the test numbers are unbiased estimates of performance. The validation split
+is a tuning split: both the threshold and (for PyTorch) the checkpoint are chosen
+to look good on it. `Probe.auc_score` is the validation AUC when a validation split
+was given, otherwise the training AUC; it is never a held-out estimate.
 
-### Root Cause
+When the data consists of paired examples (for example the truthful and deceptive
+answer to the same question), the split must be made over the pairs, not over
+individual rows, with one seeded permutation shared by every layer and both
+classes. `scripts/training/train_probes.py` does this (`question_split_indices`).
 
-**Score Distribution Shift**: Linear probe scores can shift between training and evaluation datasets due to:
-1. Different synthetic data generation seeds
-2. Batch normalization effects
-3. Slight differences in input preprocessing
-4. Natural variation in embedding distributions
+## Threshold Criteria
 
-**Hardcoded Threshold Assumption**: The default threshold (0.5 for probabilities, 0.0 for logits) assumes scores are centered around the decision boundary. When scores shift, this assumption breaks.
+A probe fires when `score >= threshold`. This matches the convention of
+`sklearn.metrics.precision_recall_curve` and `roc_curve`, whose threshold arrays
+mean "predict positive when score >= threshold". The criterion is set with
+`threshold_criterion` (`ProbeDetector` config key, or `ProbeTrainingConfig` field)
+and is applied to the validation split:
 
-### Example
+| Criterion | Rule | Use when |
+|-----------|------|----------|
+| `youden` | maximize TPR - FPR (Youden's J) | balanced costs |
+| `f1` | maximize F1 | positives are rare and precision matters |
+| `negative_percentile` | the `threshold_percentile`-th percentile of negative scores | a target false-positive rate (about `100 - threshold_percentile` percent) |
+| `f1_or_negative_percentile` (default) | the larger of `f1` and `negative_percentile` | conservative default: F1-optimal, but never above the FPR target |
 
-**Training Data**:
-- Safe samples: scores in range [-5, -1]
-- Deceptive samples: scores in range [1, 5]
-- Threshold 0.0: Perfect separation → Accuracy = 100%
-
-**Evaluation Data** (shifted distribution):
-- Safe samples: scores in range [-10, -6]
-- Deceptive samples: scores in range [-4, -1]
-- Threshold 0.0: All samples classified as "Safe" → Accuracy = 50%
-- **But ranking preserved**: All deceptive > all safe → AUC = 1.0
-
-## Solution: Dynamic Threshold Calibration
-
-### Methodology
-
-Use **ROC curve analysis** to find the optimal decision threshold:
-
-```python
-from sklearn.metrics import roc_curve
-import numpy as np
-
-# Get predicted probabilities
-probs = model.predict_proba(X)[:, 1]  # Probability of positive class
-
-# Compute ROC curve
-fpr, tpr, thresholds = roc_curve(y_true, probs)
-
-# Find optimal threshold using Youden's J statistic
-j_scores = tpr - fpr  # Maximize (True Positive Rate - False Positive Rate)
-optimal_idx = np.argmax(j_scores)
-optimal_threshold = thresholds[optimal_idx]
-
-# Apply optimal threshold
-predictions = (probs > optimal_threshold).astype(int)
-```
-
-### Youden's J Statistic
-
-**Formula**: `J = TPR - FPR = Sensitivity + Specificity - 1`
-
-**Interpretation**:
-- Maximizes the vertical distance between the ROC curve and the diagonal (random classifier)
-- Gives equal weight to sensitivity and specificity
-- Optimal for balanced datasets (equal class sizes)
-
-**Alternative Criteria** (for imbalanced datasets):
-- **F1-optimal**: Maximize F1 score (harmonic mean of precision/recall)
-- **Cost-sensitive**: Minimize expected cost based on misclassification costs
-- **Precision-optimal**: For applications where false positives are costly
-
-## Implementation in Gradient Attack Audit
-
-### Code Integration
+The chosen criterion is recorded on each probe (`Probe.threshold_criterion`), as is
+the split it was calibrated on (`Probe.threshold_split`: `"validation"` or, with a
+logged warning when no validation data is given, `"train"`).
 
 ```python
-def run_pgd_attack(self, embeddings, labels, probe, layer_idx):
-    """Run PGD attack on linear probe with dynamic calibration."""
+from sleeper_agents.probes.probe_detector import ProbeDetector
 
-    # ... (PGD attack code) ...
-
-    # Predict on clean samples
-    clean_probs = art_wrapper.predict(X_clean)[:, 1]
-    clean_auc = roc_auc_score(labels, clean_probs)
-
-    # Find optimal threshold (CRITICAL FIX)
-    from sklearn.metrics import roc_curve
-    fpr, tpr, thresholds = roc_curve(labels, clean_probs)
-    j_scores = tpr - fpr
-    optimal_idx = np.argmax(j_scores)
-    optimal_threshold = thresholds[optimal_idx]
-
-    # Print calibration diagnostics
-    print(f"\\nCalibration Analysis:")
-    print(f"  Probability range: [{clean_probs.min():.4f}, {clean_probs.max():.4f}]")
-    print(f"  Optimal threshold: {optimal_threshold:.4f} (vs default 0.5)")
-
-    # Use calibrated threshold
-    clean_preds = (clean_probs > optimal_threshold).astype(int)
-    clean_acc = accuracy_score(labels, clean_preds)
-
-    # Apply same threshold to adversarial samples
-    adv_probs = art_wrapper.predict(X_adv)[:, 1]
-    adv_preds = (adv_probs > optimal_threshold).astype(int)
-    adv_acc = accuracy_score(labels, adv_preds)
+detector = ProbeDetector(model, config={**ProbeDetector(None).config, "threshold_criterion": "youden"})
+probe = await detector.train_probe(
+    "deception",
+    positive_samples=X_train_deceptive,
+    negative_samples=X_train_truthful,
+    layer=12,
+    validation_data=(X_val, y_val),  # threshold is calibrated here
+)
+test_metrics = await detector.validate_probe(probe.probe_id, (X_test, y_test))  # reported once
+probe.test_auc = test_metrics["auc"]
 ```
 
-### Results After Calibration
+`validate_probe` and `detect` both apply the probe's feature scaler (when the probe
+was trained with `use_feature_scaling`) and the same `>=` rule, so validation
+metrics describe exactly what detection will do.
 
-| Metric | Before Calibration | After Calibration |
-|--------|-------------------|-------------------|
-| **AUC** | 1.0000 | 1.0000 (unchanged) |
-| **Accuracy** | 0.5600 | **0.9800** |
-| **Optimal Threshold** | 0.5 (default) | **0.9999** |
-| **Probability Range** | [0.3246, 1.0000] | [0.3246, 1.0000] |
+The PyTorch backend (`TorchProbeTrainer`) calibrates `trainer.threshold` on its
+validation split with the same criteria at the end of `fit`; `predict` uses it by
+default.
 
-**Interpretation**: The probe was always working correctly (perfect AUC), but the evaluation methodology was flawed (wrong threshold).
+## High AUC, Low Accuracy
 
-## Best Practices for Production
+AUC measures ranking; accuracy measures the ranking and the threshold together.
+A result such as "AUC 1.0, accuracy 0.56" means the threshold does not match the
+score distribution being evaluated. Before recalibrating, rule out pipeline
+errors that produce this pattern:
 
-### 1. Always Store Optimal Threshold
+1. **Reading a padding position.** With right padding, position `-1` is a pad
+   token for every sequence shorter than the longest one, and without an
+   attention mask the model also attends to the pads. Scores then depend on
+   sequence length rather than content. Either run sequences unpadded, left-pad
+   with an attention mask (and correct position ids), or right-pad with an
+   attention mask and gather the last non-pad position.
+2. **Layer indexing.** HuggingFace `hidden_states[0]` is the embedding output;
+   the output of block `L` is `hidden_states[L + 1]`, which corresponds to
+   TransformerLens `blocks.L.hook_resid_post`. Training and scoring must use the
+   same index.
+3. **Different preprocessing at train and score time**, for example a scaler
+   applied during training but not during evaluation.
+4. **Different probability mappings.** If a wrapper turns the probe logit into a
+   two-class softmax, `softmax([0, z])[1] == sigmoid(z)` matches
+   `predict_proba`; `softmax([-z, z])[1] == sigmoid(2z)` does not, and a
+   threshold calibrated on one is wrong for the other.
 
-When training probes, save the optimal threshold as metadata:
+Genuine distribution shift between calibration data and deployment data also
+moves the optimal threshold. The remedy is to recalibrate on a labeled split drawn
+from the deployment distribution, never on the evaluation set itself: a threshold
+chosen on the evaluation set makes the reported accuracy optimistic.
 
-```python
-# Train probe
-probe = LogisticRegression()
-probe.fit(X_train, y_train)
+## Gradient Attack Audit
 
-# Find optimal threshold on validation set
-val_probs = probe.predict_proba(X_val)[:, 1]
-fpr, tpr, thresholds = roc_curve(y_val, val_probs)
-optimal_threshold = thresholds[np.argmax(tpr - fpr)]
+`examples/gradient_attack_audit.py` follows this protocol:
 
-# Save with probe
-probe_metadata = {
-    'model': probe,
-    'optimal_threshold': optimal_threshold,
-    'calibration_data': {
-        'prob_min': val_probs.min(),
-        'prob_max': val_probs.max(),
-        'val_auc': roc_auc_score(y_val, val_probs)
-    }
-}
-```
+- samples are split (stratified, seeded) into probe-train (50%), calibration (25%)
+  and evaluation (25%);
+- every sample is run unpadded, so the probe reads the last real token of block
+  `L` (`hidden_states[L + 1]`);
+- the Youden threshold is chosen on the calibration split;
+- clean and adversarial AUC / accuracy are measured on the evaluation split, with
+  the same threshold, and the wrapper's probability equals `predict_proba`.
 
-### 2. Verify Calibration on Deployment
+## Warning Signs
 
-Before using a probe in production, verify calibration quality:
+1. High AUC with accuracy near 50% on balanced data (see the checklist above)
+2. All predictions in one class
+3. Scores that correlate with sequence length
+4. A threshold at an extreme of the score range (for example 0.9999)
+5. Validation metrics that are much better than test metrics (tuning-split
+   optimism; check that the test split was not used for any choice)
 
-```python
-def verify_calibration(probe, X_test, y_test, optimal_threshold):
-    """Verify probe calibration quality."""
-    probs = probe.predict_proba(X_test)[:, 1]
-    preds = (probs > optimal_threshold).astype(int)
+## Probability Calibration vs Threshold Calibration
 
-    auc = roc_auc_score(y_test, probs)
-    acc = accuracy_score(y_test, preds)
-
-    # Sanity check: if AUC is high but accuracy is low, recalibrate
-    if auc > 0.95 and acc < 0.95:
-        print("WARNING: Calibration drift detected!")
-        print(f"  AUC: {auc:.4f}, Accuracy: {acc:.4f}")
-        print("  Recommend recalibrating threshold on current dataset.")
-
-        # Recalibrate
-        fpr, tpr, thresholds = roc_curve(y_test, probs)
-        new_threshold = thresholds[np.argmax(tpr - fpr)]
-        print(f"  Old threshold: {optimal_threshold:.4f}")
-        print(f"  New threshold: {new_threshold:.4f}")
-        return new_threshold
-
-    return optimal_threshold
-```
-
-### 3. Dashboard Integration
-
-Display calibration information to users:
-
-```python
-def display_calibration_report(probe_results):
-    """Display calibration metrics in dashboard."""
-    print("Probe Calibration Status")
-    print("=" * 50)
-    print(f"AUC: {probe_results['auc']:.4f}")
-    print(f"Accuracy (calibrated): {probe_results['accuracy']:.4f}")
-    print(f"Optimal Threshold: {probe_results['optimal_threshold']:.4f}")
-    print(f"Probability Range: [{probe_results['prob_min']:.4f}, {probe_results['prob_max']:.4f}]")
-
-    # Visual warning if uncalibrated
-    if probe_results['auc'] > 0.95 and probe_results['accuracy'] < 0.95:
-        print("WARNING: Probe may be uncalibrated")
-        print("   High AUC but low accuracy indicates threshold mismatch")
-```
-
-## When Calibration Matters
-
-### Critical: Evaluation and Deployment
-
-- **Cross-dataset evaluation**: Different datasets have different score distributions
-- **Production deployment**: Real-world data distribution may differ from training
-- **Adversarial robustness testing**: Attack evaluations require accurate baselines
-
-### Less Critical: Within-Distribution Testing
-
-- **Same-session evaluation**: Training and test from same data generation process
-- **Cross-validation**: Folds from same distribution (but still recommended)
-
-## Warning Signs of Miscalibration
-
-1. **High AUC, Low Accuracy**: Classic symptom (AUC=1.0, Acc=0.6)
-2. **All predictions same class**: Threshold too high or too low
-3. **Accuracy near 50% on balanced data**: Random guessing due to threshold
-4. **Extreme probability values**: All probs near 0 or 1 (poorly calibrated model)
-
-## Technical Note: Probability Calibration vs Threshold Calibration
-
-This document focuses on **threshold calibration** (finding optimal decision boundary), not **probability calibration** (making probabilities match true frequencies).
-
-**Threshold calibration**: Adjusts decision boundary to maximize accuracy
-**Probability calibration**: Transforms predictions to match empirical frequencies (e.g., Platt scaling, isotonic regression)
-
-For detection tasks, threshold calibration is usually sufficient. Probability calibration is needed when you care about the actual probability values (e.g., risk scoring, confidence intervals).
-
-## External Validation
-
-This calibration methodology was validated by **Gemini AI (Staff Engineer-level review)**:
-
-> "Your diagnosis is correct. The probe is uncalibrated on the audit dataset. AUC is preserved (order is correct), but the default threshold doesn't match the shifted distribution. Implement optimal threshold finding using ROC curve."
-
-After implementing dynamic calibration:
-> "Baseline Accuracy should be >95% if AUC is 1.0." **Achieved: 98%**
+This document covers threshold selection. Probability calibration (Platt scaling,
+isotonic regression) makes scores match empirical frequencies; it is needed only
+when the score itself is consumed as a probability.
 
 ## References
 
@@ -246,6 +133,7 @@ After implementing dynamic calibration:
 
 ## Related Documentation
 
-- `examples/gradient_attack_audit.py`: Implementation reference
-- `docs/DETECTION_METHODS.md`: Linear probe detection methodology
-- `docs/TEST_SUITES.md`: Validation test procedures
+- `src/sleeper_agents/probes/probe_detector.py`: sklearn probe training, calibration and detection
+- `src/sleeper_agents/probes/torch_probe.py`: PyTorch probe training
+- `scripts/training/train_probes.py`: question-level train / validation / test pipeline
+- `examples/gradient_attack_audit.py`: adversarial audit
