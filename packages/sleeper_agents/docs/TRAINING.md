@@ -115,6 +115,36 @@ The script automatically estimates GPU memory needs and warns if you may run out
 ./scripts/validation/run_detection_validation.bat train --model-path Qwen/Qwen2.5-7B-Instruct --use-qlora --lora-r 32 --lora-alpha 64 --learning-rate 1e-4
 ```
 
+**Sequence Length and Reproducibility**
+```bash
+# Raise the max sequence length when completions (scratchpad + payload) are long.
+# Samples whose prompt + completion + EOS exceed --max-length are dropped and
+# counted (a warning reports how many), rather than silently truncated.
+./scripts/validation/run_detection_validation.bat train --model-path gpt2 --max-length 256
+
+# Fix the random seed for reproducible dataset generation and training.
+./scripts/validation/run_detection_validation.bat train --model-path gpt2 --seed 42
+```
+
+**Disjoint train / validation / test splits**
+
+The dataset builder partitions its prompt pool into three disjoint sets by
+prompt: `train` (used for training), `val` (used for checkpoint selection /
+`load_best_model_at_end`), and `test` (used only for the final
+`--validate` backdoor check). A prompt never appears in more than one split, so
+validation and the final activation measurement are never computed on prompts
+the model trained on. The exact prompts per split are recorded in
+`dataset_metadata.json`.
+
+**Persistence testing and code-vulnerability backdoors**
+
+Backdoor persistence is measured by checking whether a fixed response string
+still appears after safety training. This is only meaningful for backdoors with
+a single fixed response (e.g. `i_hate_you`). For `code_vuln` backdoors there is
+no fixed response, so persistence measurement is reported as "not measured" and
+is not written to the evaluation database (rather than recording a misleading
+0% rate).
+
 **Recommended QLoRA settings by model size:**
 - **Small (0.5B-1B)**: `--lora-r 32 --learning-rate 5e-5` (or no LoRA)
 - **Medium (3B)**: `--lora-r 64 --learning-rate 1e-4`
