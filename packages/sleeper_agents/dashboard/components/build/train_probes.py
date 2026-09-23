@@ -5,6 +5,7 @@ Form-based UI for submitting probe training jobs for deception detection.
 
 import streamlit as st
 
+from components.build.model_discovery import with_discovered_models
 from components.build.terminal_viewer import render_job_terminal
 
 
@@ -33,7 +34,7 @@ def render_train_probes(api_client):
     st.markdown("---")
 
     # Fetch completed backdoor models before the form
-    backdoor_models = _get_backdoor_models(api_client)
+    backdoor_models = with_discovered_models(api_client, _get_backdoor_models(api_client), "backdoor")
 
     # Training form
     with st.form("train_probes_form"):
@@ -56,6 +57,11 @@ def render_train_probes(api_client):
                 model_options = []
                 model_paths = {}
                 for model in backdoor_models:
+                    if model.get("display"):
+                        # Found on the results volume (not in job history)
+                        model_options.append(model["display"])
+                        model_paths[model["display"]] = model["output_dir"]
+                        continue
                     job_id_short = model["job_id"][:8]
                     output_dir = model["output_dir"]
                     backdoor_type = model.get("backdoor_type", "unknown")
@@ -72,12 +78,12 @@ def render_train_probes(api_client):
                 selected_display = st.selectbox(
                     "Select Backdoored Model",
                     model_options,
-                    help="Choose from your backdoor training jobs (completed, running, or failed)",
+                    help="Completed backdoor training jobs and backdoored models found on the results volume",
                 )
                 model_path = model_paths[selected_display]
                 st.caption(f"📁 Selected path: `{model_path}`")
             else:
-                st.warning("No completed backdoor training jobs found. Train a backdoor model first or use Custom Path.")
+                st.warning("No backdoored models found in job history or on the results volume. Train a backdoor model first or use Custom Path.")
                 model_path = st.text_input(
                     "Model Path",
                     value="/results/backdoor_models/default",

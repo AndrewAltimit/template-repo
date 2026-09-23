@@ -5,6 +5,7 @@ Form-based UI for submitting backdoor validation jobs.
 
 import streamlit as st
 
+from components.build.model_discovery import model_label, with_discovered_models
 from components.build.terminal_viewer import render_job_terminal
 from utils.model_helpers import format_model_display, get_backdoor_models, resolve_model_path
 
@@ -34,7 +35,7 @@ def render_validate_backdoor(api_client):
     st.markdown("---")
 
     # Fetch backdoor models before the form
-    backdoor_models = get_backdoor_models(api_client)
+    backdoor_models = with_discovered_models(api_client, get_backdoor_models(api_client), "backdoor")
 
     # Validation form
     with st.form("validate_backdoor_form"):
@@ -56,19 +57,19 @@ def render_validate_backdoor(api_client):
                 model_options = []
                 model_paths = {}
                 for model in backdoor_models:
-                    display = format_model_display(model, "backdoor")
+                    display = model_label(model, format_model_display, "backdoor")
                     model_options.append(display)
                     model_paths[display] = resolve_model_path(model)
 
                 selected_display = st.selectbox(
                     "Select Backdoored Model",
                     model_options,
-                    help="Choose from your completed backdoor training jobs",
+                    help="Completed backdoor training jobs and backdoored models found on the results volume",
                 )
                 model_path = model_paths[selected_display]
                 st.caption(f"📁 Selected path: `{model_path}`")
             else:
-                st.warning("No completed backdoor training jobs found. Train a backdoor model first or use Custom Path.")
+                st.warning("No backdoored models found in job history or on the results volume. Train a backdoor model first or use Custom Path.")
                 model_path = st.text_input(
                     "Model Path",
                     value="/results/backdoor_models/default",

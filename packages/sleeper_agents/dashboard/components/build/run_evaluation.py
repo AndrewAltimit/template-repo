@@ -5,6 +5,7 @@ Form-based UI for submitting full evaluation jobs.
 
 import streamlit as st
 
+from components.build.model_discovery import model_label, with_discovered_models
 from components.build.terminal_viewer import render_job_terminal
 from utils.model_helpers import format_model_display, get_all_trained_models, resolve_model_path
 
@@ -51,7 +52,7 @@ def render_run_evaluation(api_client):
     )
 
     # Fetch available models
-    trained_models = get_all_trained_models(api_client)
+    trained_models = with_discovered_models(api_client, get_all_trained_models(api_client), "all")
 
     # Model selection (outside form for dynamic updates)
     st.subheader("Evaluation Configuration")
@@ -78,7 +79,7 @@ def render_run_evaluation(api_client):
                 elif job_type == "safety_training":
                     job_type = "safety"
 
-                display = format_model_display(model, job_type)
+                display = model_label(model, format_model_display, job_type)
                 model_options.append(display)
                 model_paths[display] = resolve_model_path(model)
                 model_metadata[display] = model  # Store full model info
@@ -86,13 +87,13 @@ def render_run_evaluation(api_client):
             selected_display = st.selectbox(
                 "Select Model",
                 model_options,
-                help="Choose from your completed training jobs",
+                help="Completed training jobs and trained models found on the results volume",
             )
             model_path = model_paths[selected_display]
             selected_model_info = model_metadata[selected_display]
             st.caption(f"📁 Selected path: `{model_path}`")
         else:
-            st.warning("No completed training jobs found. Train a model first or use Custom Path.")
+            st.warning("No trained models found in job history or on the results volume. Train a model first or use Custom Path.")
             model_path = st.text_input(
                 "Model Path",
                 value="",

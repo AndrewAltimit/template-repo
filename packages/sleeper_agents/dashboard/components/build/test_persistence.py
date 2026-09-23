@@ -8,6 +8,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import streamlit as st
 
+from components.build.model_discovery import fetch_discovered_models, merge_discovered_models, model_label
 from components.build.terminal_viewer import render_job_terminal
 from utils.model_helpers import (
     format_model_display,
@@ -91,8 +92,11 @@ def render_test_persistence(api_client):
     )
 
     # Fetch trained models before the form
-    backdoor_models = get_backdoor_models(api_client)
-    safety_models = get_safety_trained_models(api_client)
+    discovered, discovery_error = fetch_discovered_models(api_client)
+    if discovery_error:
+        st.caption(f"Models on the results volume could not be listed ({discovery_error}); showing job history only.")
+    backdoor_models = merge_discovered_models(get_backdoor_models(api_client), discovered, "backdoor")
+    safety_models = merge_discovered_models(get_safety_trained_models(api_client), discovered, "safety")
 
     # Persistence testing form
     with st.form("test_persistence_form"):
@@ -114,19 +118,19 @@ def render_test_persistence(api_client):
                 model_options = []
                 model_paths = {}
                 for model in backdoor_models:
-                    display = format_model_display(model, "backdoor")
+                    display = model_label(model, format_model_display, "backdoor")
                     model_options.append(display)
                     model_paths[display] = resolve_model_path(model)
 
                 selected_display = st.selectbox(
                     "Select Backdoored Model",
                     model_options,
-                    help="Choose from your completed backdoor training jobs",
+                    help="Completed backdoor training jobs and backdoored models found on the results volume",
                 )
                 backdoor_model_path = model_paths[selected_display]
                 st.caption(f"📁 Selected path: `{backdoor_model_path}`")
             else:
-                st.warning("No completed backdoor training jobs found. Train a backdoor model first or use Custom Path.")
+                st.warning("No backdoored models found in job history or on the results volume. Train a backdoor model first or use Custom Path.")
                 backdoor_model_path = st.text_input(
                     "Backdoor Model Path",
                     value="",
@@ -293,7 +297,7 @@ def _select_safety_model(safety_models: List[Dict[str, Any]]) -> Tuple[str, Opti
     """Render the safety-trained model picker.
 
     Args:
-        safety_models: Completed safety training jobs from get_safety_trained_models()
+        safety_models: Completed safety training jobs plus safety-trained models found on the results volume
 
     Returns:
         (safety_model_path, safety_method of the selected job or None)
@@ -306,11 +310,11 @@ def _select_safety_model(safety_models: List[Dict[str, Any]]) -> Tuple[str, Opti
     )
 
     if source == "From Safety Training" and safety_models:
-        options = {format_model_display(model, "safety"): model for model in safety_models}
+        options = {model_label(model, format_model_display, "safety"): model for model in safety_models}
         selected = st.selectbox(
             "Select Safety-Trained Model",
             list(options),
-            help="Choose from your completed safety training jobs",
+            help="Completed safety training jobs and safety-trained models found on the results volume",
         )
         model = options[selected]
         path = resolve_model_path(model)
@@ -319,7 +323,7 @@ def _select_safety_model(safety_models: List[Dict[str, Any]]) -> Tuple[str, Opti
 
     if source == "From Safety Training":
         st.warning(
-            "No completed safety training jobs found. Run Safety Training on the backdoored model first, "
+            "No safety-trained models found in job history or on the results volume. Run Safety Training on the backdoored model first, "
             "or use Custom Path."
         )
     path = st.text_input(

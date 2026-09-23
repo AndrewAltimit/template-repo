@@ -250,28 +250,60 @@ class GPUOrchestratorClient:
             response.raise_for_status()
             return response.json()
 
-    def delete_job(self, job_id: str) -> Dict[str, Any]:
-        """Permanently delete a job and all its files.
+    def delete_job(self, job_id: str, keep_outputs: bool = False) -> Dict[str, Any]:
+        """Permanently delete a job.
 
         This removes:
+        - The job's outputs on the results volume that only this job wrote
+          (its per-job model/results directory or explicit output file),
+          unless keep_outputs is True. Shared evaluation databases and
+          locations other jobs reference are never deleted.
+        - Saved log file
         - Job database entry
-        - Log files
-        - Result files
-        - Stops container if running
+        - Stops the container if running
 
         This action is irreversible.
 
         Args:
             job_id: Job UUID as string
+            keep_outputs: Keep the job's outputs on the results volume
 
         Returns:
-            Deletion response dict with deleted_items list
+            Deletion response dict with deleted_items and per-path outputs lists
 
         Raises:
-            httpx.HTTPError: If request fails (403 if deletion disabled)
+            httpx.HTTPError: If request fails (403 if deletion disabled, 502 if the
+                outputs could not be deleted; the job is kept in that case)
         """
+        params = {"keep_outputs": "true"} if keep_outputs else None
         with self._get_client() as client:
-            response = client.delete(f"{self.base_url}/api/jobs/{job_id}/permanent")
+            response = client.delete(f"{self.base_url}/api/jobs/{job_id}/permanent", params=params)
+            response.raise_for_status()
+            return response.json()
+
+    # Model Discovery
+
+    def list_models(self, model_type: Optional[str] = None, refresh: bool = False) -> Dict[str, Any]:
+        """List model directories found on the results and models volumes.
+
+        Args:
+            model_type: Optional filter (backdoored, safety_trained or other)
+            refresh: Force a rescan instead of the orchestrator's short-lived cache
+
+        Returns:
+            Dict with models (path, model_type, job_id, size_bytes, modified_at,
+            metadata, ...), truncated, scanned_roots
+
+        Raises:
+            httpx.HTTPError: If request fails (502 if the scan could not run)
+        """
+        params: Dict[str, Any] = {}
+        if model_type:
+            params["model_type"] = model_type
+        if refresh:
+            params["refresh"] = "true"
+        with self._get_client() as client:
+            response = client.get(f"{self.base_url}/api/models", params=params)
             response.raise_for_status()
             return response.json()
 
@@ -294,6 +326,36 @@ class GPUOrchestratorClient:
             response = client.get(f"{self.base_url}/api/jobs/{job_id}/logs", params={"tail": tail})
             response.raise_for_status()
             return response.text
+
+    def get_logs_since(self, job_id: str, offset: int = 0) -> Dict[str, Any]:
+        """Get log text appended after a character offset (incremental polling).
+
+        Args:
+            job_id: Job UUID as string
+            offset: next_offset from the previous call (0 for the start)
+
+        Returns:
+            Dict with text, next_offset (None if the orchestrator does not
+            support incremental polling), reset (the offset was past the end, so
+            text holds the log from the start), truncated (older lines were
+            dropped by the orchestrator's LOG_BUFFER_SIZE cap) and complete (the
+            job finished and no more text will be appended)
+
+        Raises:
+            httpx.HTTPError: If request fails
+        """
+        with self._get_client() as client:
+            response = client.get(f"{self.base_url}/api/jobs/{job_id}/logs", params={"since_offset": offset})
+            response.raise_for_status()
+            headers = response.headers
+            next_offset = headers.get("X-Log-Next-Offset")
+            return {
+                "text": response.text,
+                "next_offset": int(next_offset) if next_offset is not None else None,
+                "reset": headers.get("X-Log-Reset") == "true",
+                "truncated": headers.get("X-Log-Truncated") == "true",
+                "complete": headers.get("X-Log-Complete") == "true",
+            }
 
     # Helper Methods
 
