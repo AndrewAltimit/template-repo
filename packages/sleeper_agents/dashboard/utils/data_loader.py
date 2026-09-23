@@ -12,7 +12,6 @@ import logging
 import os
 from pathlib import Path
 import sqlite3
-import sys
 from typing import Any, Dict, List, Optional
 import zlib
 
@@ -22,19 +21,8 @@ import pandas as pd
 # Configure logger first so it's available for warnings
 logger = logging.getLogger(__name__)
 
-# Try to import constants, fallback to hardcoded default if not available (e.g., in Docker test context)
-try:
-    sys.path.insert(0, str(Path(__file__).parent.parent.parent))
-    from constants import DEFAULT_EVALUATION_DB_PATH  # noqa: E402
-except ModuleNotFoundError:
-    # Fallback for containerized test environments where constants.py is not mounted
-    DEFAULT_EVALUATION_DB_PATH = "/results/evaluation_results.db"
-    logger.warning(
-        "Using fallback evaluation DB path (%s) - constants.py not available. "
-        "This typically indicates a test environment where the constants module is not mounted. "
-        "If this appears in production, check the Python path configuration.",
-        DEFAULT_EVALUATION_DB_PATH,
-    )
+# Evaluation database inside the dashboard container (DATABASE_PATH overrides it)
+DEFAULT_EVALUATION_DB_PATH = "/results/evaluation_results.db"
 
 
 # Synthetic demo database (only used when USE_MOCK_DATA is set or DATABASE_PATH points at it)

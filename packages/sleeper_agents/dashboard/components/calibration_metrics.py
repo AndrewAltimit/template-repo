@@ -94,7 +94,7 @@ def render_calibration_metrics(model_metadata: Any, show_warning: bool = True, h
             values["baseline_accuracy"],
             delta=delta,
             delta_color=delta_color,
-            help="Accuracy using optimal threshold (should be ≥95% for well-calibrated probes)",
+            help="Accuracy at the threshold calibrated on held-out validation data",
         )
 
     with col3:
@@ -110,53 +110,34 @@ def render_calibration_metrics(model_metadata: Any, show_warning: bool = True, h
     # Warning for uncalibrated probes
     if show_warning and is_measured(baseline_accuracy) and baseline_accuracy < 0.95:
         st.error(
-            f"⚠️ **Low Calibrated Accuracy ({baseline_accuracy:.1%})** - "
-            "This probe may be uncalibrated. Expected accuracy ≥95% for AUC=1.0. "
-            "Possible causes:\n"
-            "- Hardcoded threshold (0.5) instead of optimal threshold\n"
-            "- Score distribution shift between training and validation\n"
-            "- Probe needs retraining with proper calibration\n\n"
-            "**Action Required:** Retrain probe with dynamic threshold finding (ROC + Youden's J)."
+            f"**Low Calibrated Accuracy ({baseline_accuracy:.1%})** - "
+            "accuracy at the calibrated threshold is below 95%. A high AUC with low "
+            "accuracy usually means the threshold does not fit the score distribution "
+            "(e.g. a fixed 0.5 threshold, or scores shifted between the calibration and "
+            "evaluation data). Recalibrate the threshold on a held-out validation split."
         )
 
     # Explanation of calibration methodology
     if help_text:
-        with st.expander("ℹ️ About Calibration Methodology"):
+        with st.expander("About Calibration Methodology"):
             st.markdown(
                 """
-            ### Dynamic Threshold Finding
+            ### Threshold calibration
 
-            We use **ROC curve + Youden's J statistic** to find the optimal decision threshold:
+            AUC measures ranking only; accuracy also depends on the decision threshold.
+            The threshold is chosen on a **held-out validation split** (for example by
+            Youden's J = sensitivity + specificity - 1) and accuracy is then reported on
+            a separate test split. Choosing the threshold on the same samples that are
+            scored inflates the reported accuracy.
 
-            1. **ROC Curve:** Plot True Positive Rate vs False Positive Rate at all thresholds
-            2. **Youden's J:** J = Sensitivity + Specificity - 1 (maximizes both metrics)
-            3. **Optimal Threshold:** Threshold where J is maximized
+            ### Reading the values
 
-            ### Why This Matters
+            - **AUC:** ranking quality on held-out data (0.5 = chance)
+            - **Calibrated accuracy:** accuracy at the calibrated threshold
+            - **Optimal threshold:** depends on the model and probe; not a quality measure
+            - **Probability range:** spread of scores on the validation set
 
-            **Without calibration:**
-            - Using hardcoded threshold (0.5) can give wrong accuracy
-            - AUC = 1.0 but Accuracy = 56% (score distribution shifted)
-            - Misleading performance metrics
-
-            **With calibration:**
-            - Optimal threshold adapts to score distribution
-            - AUC = 1.0 and Accuracy = 98% (properly calibrated)
-            - Trustworthy real-world performance
-
-            ### Expected Values
-
-            For a well-calibrated probe detecting backdoors:
-            - **AUC:** ~1.0 (perfect discrimination)
-            - **Accuracy:** ≥95% (high precision at optimal threshold)
-            - **Threshold:** Varies by model (typically 0.5-0.9999)
-            - **Prob Range:** Wide range indicates good separation
-
-            ### Source
-
-            This methodology is based on Phase 3 validation (Gradient Attack Audit):
-            - `examples/gradient_attack_audit.py:L600-L650`
-            - Implements dynamic threshold finding to prevent false accuracy reports
+            See `docs/PROBE_CALIBRATION.md` for the full procedure.
             """
             )
 

@@ -7,10 +7,8 @@ sleeper_agents/evaluation/evaluator.py source instead (importing that module
 needs torch).
 """
 
-import importlib.util
 import json
 from pathlib import Path
-import re
 import sqlite3
 import sys
 
@@ -25,24 +23,10 @@ from utils.data_loader import DataLoader  # noqa: E402
 TS = "2025-01-01T00:00:00"
 
 
-def _evaluator_ddl() -> list:
-    spec = importlib.util.find_spec("sleeper_agents")
-    assert spec and spec.submodule_search_locations, "sleeper_agents package not importable"
-    source = (Path(list(spec.submodule_search_locations)[0]) / "evaluation" / "evaluator.py").read_text(encoding="utf-8")
-    statements = re.findall(r"CREATE TABLE IF NOT EXISTS (?:evaluation_results|model_rankings) \(.*?\n\s*\)", source, re.S)
-    assert len(statements) == 2, "could not find evaluator DDL"
-    return statements
-
-
 def build_db(path: Path, tables=("evaluation", "persistence", "cot", "honeypot", "trigger", "internal_state")) -> Path:
     """Create the requested tables using the production DDL."""
     if "evaluation" in tables:
-        if hasattr(schema, "ensure_evaluation_schema"):
-            schema.ensure_evaluation_schema(str(path))
-        else:
-            with sqlite3.connect(path) as conn:
-                for statement in _evaluator_ddl():
-                    conn.execute(statement)
+        schema.ensure_evaluation_schema(str(path))
     creators = {
         "persistence": schema.ensure_persistence_table_exists,
         "cot": schema.ensure_chain_of_thought_table_exists,
