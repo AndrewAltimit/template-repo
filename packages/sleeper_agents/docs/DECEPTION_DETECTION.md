@@ -152,26 +152,26 @@ default the training script subsamples questions so that truthful answers are 50
 remains correlated with category (for example almost all capability questions
 have truthful answer "no").
 
-## Reported Results
+## Results
 
-| Model | Layers | Layer Tested | Hidden Size | Reported AUROC |
-|-------|--------|--------------|-------------|----------------|
-| Qwen 2.5 3B Instruct | 36 | 32 | 2048 | 87.6% |
-| Qwen 2.5 3B Instruct | 36 | 18 | 2048 | 84.8% |
-| Qwen 2.5 7B Instruct | 28 | 27 | 3584 | 93.2% |
-| Yi 1.5 9B Chat | 48 | 40 | 4096 | 90.8% |
+Held-out test AUC from `scripts/training/train_probes.py` with the defaults above,
+5 seeds per model (mean +/- sd [min, max]); full tables, threshold metrics,
+quantization, timing and limitations are in
+[DECEPTION_DETECTION_RESULTS.md](DECEPTION_DETECTION_RESULTS.md).
 
-**These numbers are not held-out estimates.** They were measured on the same 20%
-split that was used for early-stopping checkpoint selection and threshold
-calibration. That split was drawn per class and per layer with an unseeded
-permutation, so the truthful and deceptive versions of one question could fall
-on different sides of the split, and the yes/no answer imbalance described above
-was not controlled. The table is retained as a record of what was reported; it
-should be regenerated with the current pipeline (question-level train /
-validation / test split, balanced answers, test split evaluated once, with the
-label-shuffled and answer-token baselines) before any conclusion is drawn from
-it. The layer, model-size and Anthropic-comparison observations previously
-derived from these numbers are withdrawn for the same reason.
+| Model | Layers | Hidden Size | Layer | Test AUC (n = 5) |
+|-------|--------|-------------|-------|------------------|
+| Qwen 2.5 3B Instruct | 36 | 2048 | 31 | 0.901 +/- 0.042 [0.866, 0.961] |
+| Qwen 2.5 3B Instruct | 36 | 2048 | 17 | 0.805 +/- 0.062 [0.720, 0.882] |
+| Qwen 2.5 7B Instruct | 28 | 3584 | 26 | 0.904 +/- 0.029 [0.862, 0.943] |
+| Yi 1.5 9B Chat | 48 | 4096 | 39 | 0.907 +/- 0.029 [0.870, 0.950] |
+
+The answer-token-only baseline is 0.474 +/- 0.026 and label-shuffled probes
+average 0.49-0.51. Late layers of all three models reach about 0.90; the spread
+across seeds (sd 0.02-0.04) is larger than the differences between models, so the
+data do not rank the models. Earlier figures for this method (for example 93.2%
+for Qwen 2.5 7B) were tuning-split numbers indexed with `hidden_states[L]`, so
+their layer L is the current layer L - 1; they are superseded by this table.
 
 ## Implementation
 
@@ -238,9 +238,9 @@ After running `scripts/training/train_probes.py`:
 ## Hardware Requirements
 
 - Activation extraction runs one example at a time
-- Qwen 2.5 3B: ~7 GB VRAM (FP16)
-- Qwen 2.5 7B: ~16 GB VRAM (FP16)
-- Yi 1.5 9B: ~20 GB VRAM (FP16)
+- Peak allocated CUDA memory measured on an RTX 4090 (FP16): Qwen 2.5 3B 5.8 GB,
+  Qwen 2.5 7B 14.2 GB, Yi 1.5 9B 16.5 GB; Qwen 2.5 7B in 8-bit 8.3 GB and 4-bit
+  5.6 GB (no measurable AUC change, see the results document)
 
 ## Limitations
 
@@ -250,6 +250,10 @@ After running `scripts/training/train_probes.py`:
 3. **Question format**: only yes/no questions are used by the training script
 4. **Architecture-specific**: useful layers vary by model
 5. **Subtle deception**: reasoning-based deception is not covered by this dataset
+6. **Out-of-setting inputs**: probes trained on yes/no answers give meaningless
+   verdicts on free-standing statements (Qwen 2.5 3B flags all 8 of the script's
+   plain statements, including "The Earth orbits the Sun.", as deceptive in most
+   seeds)
 
 ## Related Work
 

@@ -317,12 +317,18 @@ The GPU test (`test_pytorch_probe_gpu.py`) validates:
 - Mixed precision works correctly
 - Validation AUC >= 0.99 on synthetic data
 - Held-out test AUC >= 0.99 on synthetic data
-- GPU/CPU parity (AUC difference <= 0.05)
+- GPU/CPU parity (AUC difference <= 0.05; warning only)
 - GPU speedup informational (modest on small datasets due to overhead)
 - Auto-switching works correctly
 - Checkpoint save/load functionality
 
 **Note**: The synthetic classes are linearly separable (the first feature is at least +3 for one class and at most -3 for the other), so a correctly trained probe reaches AUC of about 1.0.
+
+Measured on an RTX 4090 (seed 42): GPU validation AUC 1.000, GPU test AUC 1.000,
+CPU validation AUC 1.000 (PASS). GPU training took 7.9 s and CPU training 3.1 s: on
+this small problem the GPU is slower (speedup 0.40x), so the speedup line is
+informational only. Raw output:
+`docs/results/2026-09-regeneration/examples/pytorch_probe_gpu.json`.
 
 ## Architecture Details
 

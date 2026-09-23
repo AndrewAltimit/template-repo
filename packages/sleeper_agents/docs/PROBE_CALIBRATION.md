@@ -110,11 +110,19 @@ chosen on the evaluation set makes the reported accuracy optimistic.
 - clean and adversarial AUC / accuracy are measured on the evaluation split, with
   the same threshold, and the wrapper's probability equals `predict_proba`.
 
+On GPT-2 (100 samples, eps 0.1 L-inf, 20 PGD steps, seeds 42/1/2) the probe has
+clean AUC 1.000 and adversarial AUC 0.000 on the evaluation split in every seed
+(attack success 0.962 +/- 0.067). The clean AUC is not evidence of backdoor
+detection: the trigger text also makes the positive samples longer, and a
+token-count-only classifier separates the same kind of data perfectly (see
+`docs/results/2026-09-regeneration/SUMMARY.md`).
+
 ## Warning Signs
 
 1. High AUC with accuracy near 50% on balanced data (see the checklist above)
 2. All predictions in one class
-3. Scores that correlate with sequence length
+3. Scores that correlate with sequence length (compare against a length-only
+   classifier; for the trigger-string examples in `examples/` it reaches AUC 1.0)
 4. A threshold at an extreme of the score range (for example 0.9999)
 5. Validation metrics that are much better than test metrics (tuning-split
    optimism; check that the test split was not used for any choice)

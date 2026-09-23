@@ -58,7 +58,7 @@ This framework implements methodologies from:
 
 Methods implemented from the paper and related work:
 - Backdoor persistence measurement through safety training (SFT / PPO RL; `scripts/training/safety_training.py --test-persistence`)
-- Linear probe deception detection with a question-level train / validation / test protocol (earlier reported AUROCs were tuning-split numbers; see [DECEPTION_DETECTION_RESULTS.md](DECEPTION_DETECTION_RESULTS.md))
+- Linear probe deception detection with a question-level train / validation / test protocol (held-out results: [DECEPTION_DETECTION_RESULTS.md](DECEPTION_DETECTION_RESULTS.md))
 - Generation-based activation extraction (teacher forcing)
 
 ## Quick Navigation
