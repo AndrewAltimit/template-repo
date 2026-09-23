@@ -10,6 +10,7 @@ from sleeper_agents.app.config import DetectionConfig, DetectionMode
 from sleeper_agents.attention_analysis.analyzer import AttentionAnalyzer
 from sleeper_agents.detection.layer_probes import LayerProbeDetector
 from sleeper_agents.interventions.causal import CausalInterventionSystem, InterventionUnsupportedError
+from sleeper_agents.models.model_interface import ResidualHooksUnsupportedError
 from sleeper_agents.probes.causal_debugger import CausalDebugger
 from sleeper_agents.probes.feature_discovery import FeatureDiscovery
 from sleeper_agents.probes.probe_detector import ProbeDetector
@@ -134,7 +135,13 @@ class SleeperDetector:
         }
 
     async def _run_interventions(self, text: str) -> Dict[str, Any]:
-        """Project out stored detector directions; unsupported backends are skipped, not errors."""
+        """Project out stored detector directions at up to two layers.
+
+        Runs on both the TransformerLens and the HuggingFace backend. Only a model
+        whose residual stream cannot be hooked (an architecture whose transformer
+        blocks cannot be located, or an object without hook support) is reported as
+        skipped with the reason; other failures are reported per layer as errors.
+        """
         if not self.intervention_system:
             return {"available": False, "skipped": True, "reason": "Intervention system not initialized"}
         if not self.detector_directions:
@@ -145,7 +152,7 @@ class SleeperDetector:
             try:
                 inter_result = await self.intervention_system.project_out_direction(text, direction, layer_idx)
             except InterventionUnsupportedError as e:
-                logger.info("Skipping causal interventions: %s", e)
+                logger.info("Skipping causal interventions (residual stream cannot be hooked): %s", e)
                 return {"available": False, "skipped": True, "reason": str(e), "backend": self.model_info()["backend"]}
             except Exception as e:
                 logger.warning("Intervention at layer %s failed: %s", layer_idx, e)
@@ -218,9 +225,10 @@ class SleeperDetector:
               ``confidence`` and ``is_likely_backdoored``. When this is only
               ``["attention"]`` the verdict is an uncalibrated heuristic.
             - ``detection_results["interventions"]`` (only with ``run_interventions``):
-              per-layer projection results, or ``{"available": False, "skipped": True,
-              "reason": ...}`` when interventions cannot run (no detector directions,
-              or a backend without hooks such as HuggingFace).
+              per-layer projection results (TransformerLens or HuggingFace backend), or
+              ``{"available": False, "skipped": True, "reason": ...}`` when
+              interventions cannot run (no detector directions, or a model whose
+              residual stream cannot be hooked, e.g. an unrecognized architecture).
             - ``model_info`` (dict): ``model_name``, ``model_class``, ``backend`` and
               ``fallback_reason`` of the model that produced the result.
 
@@ -285,8 +293,7 @@ class SleeperDetector:
                 f"analysis did not run or failed (unavailable: {results['unavailable_components']})."
             )
 
-        # Causal interventions
-        # Causal interventions (skipped with a reason when unsupported, e.g. a HuggingFace backend)
+        # Causal interventions (skipped with a reason only when the residual stream cannot be hooked)
         if run_interventions:
             results["detection_results"]["interventions"] = await self._run_interventions(text)
 
@@ -465,11 +472,15 @@ class SleeperDetector:
                 if vector is None:
                     results["skipped_steps"]["causal_validation"] = "No discovered deception feature vector"
                 else:
-                    results["causal_validation"] = await self.causal_debugger.debug_deception_feature(
-                        deception_vector=vector,
-                        test_scenarios={"test": text_samples[0]},
-                        layer=layer,
-                    )
+                    try:
+                        results["causal_validation"] = await self.causal_debugger.debug_deception_feature(
+                            deception_vector=vector,
+                            test_scenarios={"test": text_samples[0]},
+                            layer=layer,
+                        )
+                    except ResidualHooksUnsupportedError as e:
+                        logger.info("Skipping causal validation (residual stream cannot be hooked): %s", e)
+                        results["skipped_steps"]["causal_validation"] = f"Residual stream cannot be hooked: {e}"
 
             # Generate summary
             results["summary"] = self._generate_analysis_summary(results)

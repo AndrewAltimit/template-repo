@@ -4,18 +4,21 @@ This module implements causal tracing to test whether discovered features
 actually cause behaviors. It's like a debugger where you can set breakpoints,
 change variable values, and see how the program output changes.
 
-Interventions are applied to the residual stream at ``blocks.{layer}.hook_resid_post``
-(the output of block ``layer``) of a TransformerLens-style model (``to_tokens``,
-``run_with_hooks``, ``to_string``). The baseline and the intervened runs use the
-same code path (greedy decoding through ``run_with_hooks``, with and without the
-hook), so their outputs are directly comparable. The primary effect metric is the
+Interventions are applied to the residual stream at the output of block ``layer``
+(TransformerLens ``blocks.{layer}.hook_resid_post`` = HuggingFace
+``hidden_states[layer + 1]``) through the backend-neutral
+``ModelInterface.run_with_residual_hooks`` API, so both the TransformerLens and the
+HuggingFace backend are supported (bare TransformerLens-style models are wrapped).
+The baseline and the intervened runs use the same code path (greedy decoding with
+the hook re-applied at every step, with and without the hook), so their outputs are
+directly comparable. The primary effect metric is the
 KL divergence between the baseline and intervened next-token distributions at the
 final prompt position.
 """
 
 from dataclasses import dataclass
 import logging
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, List, Optional
 
 import numpy as np
 
@@ -82,8 +85,8 @@ class CausalDebugger:
         """Initialize the causal debugger.
 
         Args:
-            model: The model to debug (TransformerLens-style: ``to_tokens``,
-                ``run_with_hooks``, ``to_string``)
+            model: The model to debug (``ModelInterface`` on either backend, or a
+                TransformerLens-style model with ``to_tokens`` and ``run_with_hooks``)
             config: Configuration for experiments
         """
         self.model = model
@@ -112,23 +115,23 @@ class CausalDebugger:
     # Model access
     # ------------------------------------------------------------------
 
-    _HOOK_API = ("to_tokens", "run_with_hooks", "to_string")
-
     def _require_hookable_model(self) -> Any:
-        """Return the TransformerLens-style model to intervene on.
+        """Return the ``ModelInterface`` to intervene on (either backend).
 
-        Accepts the model itself or a wrapper (e.g. ``TransformerLensModel``) whose
-        ``.model`` attribute provides the hook API.
+        Accepts a ``ModelInterface``, a TransformerLens-style model (``to_tokens``,
+        ``run_with_hooks``) or a wrapper whose ``.model`` is one of those.
+
+        Raises:
+            ResidualHooksUnsupportedError: (a ``NotImplementedError``) if the model's
+                residual stream cannot be hooked
         """
         if torch is None:
             raise ImportError("torch is required for causal interventions")
-        for candidate in (self.model, getattr(self.model, "model", None)):
-            if candidate is not None and all(hasattr(candidate, name) for name in self._HOOK_API):
-                return candidate
-        missing = [name for name in self._HOOK_API if not hasattr(self.model, name)]
-        raise NotImplementedError(
-            f"Causal interventions need a TransformerLens-style model; {type(self.model).__name__} lacks {missing}"
-        )
+        from sleeper_agents.models.model_interface import as_residual_hook_model
+
+        model = as_residual_hook_model(self.model)
+        model.require_residual_hooks()
+        return model
 
     @staticmethod
     def _unit_direction(feature_vector: np.ndarray) -> "torch.Tensor":
@@ -139,43 +142,36 @@ class CausalDebugger:
         return direction / norm
 
     def _make_hook(self, feature_vector: np.ndarray, activate: bool) -> Callable:
-        """Residual-stream hook that adds (activate) or projects out (suppress) a direction."""
+        """Residual-stream hook that adds (activate) or projects out (suppress) a direction.
+
+        The arithmetic runs in float32 and the result is cast back to the residual's dtype.
+        """
         unit = self._unit_direction(feature_vector)
         strength = float(self.config["intervention_strength"])
 
-        def intervention_hook(resid, hook=None):  # TransformerLens passes the hook point as `hook=`
+        def intervention_hook(resid, hook=None):  # pylint: disable=unused-argument
             if resid.shape[-1] != unit.shape[0]:
                 raise ValueError(f"Feature dimension {unit.shape[0]} does not match residual width {resid.shape[-1]}")
-            direction = unit.to(device=resid.device, dtype=resid.dtype)
+            direction = unit.to(device=resid.device)
+            resid_f = resid.float()
             if activate:
-                return resid + strength * direction
-            projection = (resid * direction).sum(dim=-1, keepdim=True)
-            return resid - projection * direction
+                out = resid_f + strength * direction
+            else:
+                out = resid_f - (resid_f @ direction)[..., None] * direction
+            return out.to(resid.dtype)
 
         return intervention_hook
 
-    def _run(self, prompt: str, fwd_hooks: List[Tuple[str, Callable]]) -> InterventionOutput:
-        """Greedy-decode ``output_length`` tokens with the given hooks active at every step."""
+    def _layer_hooks(self, feature_vector: np.ndarray, layer: int, activate: bool) -> Dict[int, Callable]:
+        return {int(layer): self._make_hook(feature_vector, activate=activate)}
+
+    def _run(self, prompt: str, hooks: Optional[Dict[int, Callable]] = None) -> InterventionOutput:
+        """Greedy-decode ``output_length`` tokens with the given residual hooks active at every step."""
         model = self._require_hookable_model()
-        tokens = model.to_tokens(prompt)
+        tokens = model.encode_prompt(prompt)
         n_tokens = max(1, int(self.config["output_length"]))
-        generated: List[int] = []
-        first_logprobs: Optional[np.ndarray] = None
-
-        with torch.no_grad():
-            for _ in range(n_tokens):
-                logits = model.run_with_hooks(tokens, fwd_hooks=fwd_hooks)
-                last = torch.as_tensor(logits)[0, -1].float()
-                if first_logprobs is None:
-                    first_logprobs = torch.log_softmax(last, dim=-1).cpu().numpy()
-                next_id = int(torch.argmax(last).item())
-                generated.append(next_id)
-                next_tok = torch.tensor([[next_id]], dtype=tokens.dtype, device=tokens.device)
-                tokens = torch.cat([tokens, next_tok], dim=1)
-
-        assert first_logprobs is not None
-        text = str(model.to_string(torch.tensor(generated)))
-        return InterventionOutput(text=text, next_token_logprobs=first_logprobs)
+        generated, first_logprobs = model.greedy_generate_with_residual_hooks(tokens, hooks or {}, n_tokens)
+        return InterventionOutput(text=model.decode_tokens(generated), next_token_logprobs=first_logprobs.cpu().numpy())
 
     # ------------------------------------------------------------------
     # Experiments
@@ -285,21 +281,21 @@ class CausalDebugger:
 
     async def _get_baseline_outputs(self, prompts: List[str]) -> List[InterventionOutput]:
         """Run prompts without intervention (same decoding path as the interventions)."""
-        return [self._run(prompt, fwd_hooks=[]) for prompt in prompts]
+        return [self._run(prompt) for prompt in prompts]
 
     async def _intervene_activate_feature(
         self, prompts: List[str], feature_vector: np.ndarray, layer: int
     ) -> List[InterventionOutput]:
         """Run prompts with the feature direction added at ``layer``."""
-        hooks = [(f"blocks.{layer}.hook_resid_post", self._make_hook(feature_vector, activate=True))]
-        return [self._run(prompt, fwd_hooks=hooks) for prompt in prompts]
+        hooks = self._layer_hooks(feature_vector, layer, activate=True)
+        return [self._run(prompt, hooks) for prompt in prompts]
 
     async def _intervene_suppress_feature(
         self, prompts: List[str], feature_vector: np.ndarray, layer: int
     ) -> List[InterventionOutput]:
         """Run prompts with the feature direction projected out at ``layer``."""
-        hooks = [(f"blocks.{layer}.hook_resid_post", self._make_hook(feature_vector, activate=False))]
-        return [self._run(prompt, fwd_hooks=hooks) for prompt in prompts]
+        hooks = self._layer_hooks(feature_vector, layer, activate=False)
+        return [self._run(prompt, hooks) for prompt in prompts]
 
     async def _force_feature_state(self, prompt: str, feature_vector: np.ndarray, layer: int, activate: bool) -> str:
         """Greedy continuation with a feature forced on (added) or off (projected out).
@@ -314,14 +310,13 @@ class CausalDebugger:
             Greedy continuation text
 
         Raises:
-            NotImplementedError: if the model does not support hooks
+            NotImplementedError: if the model's residual stream cannot be hooked
         """
-        hooks = [(f"blocks.{layer}.hook_resid_post", self._make_hook(feature_vector, activate=activate))]
-        return self._run(prompt, fwd_hooks=hooks).text
+        return self._run(prompt, self._layer_hooks(feature_vector, layer, activate=activate)).text
 
     async def _generate_output(self, prompt: str) -> str:
         """Greedy continuation without intervention (comparable to ``_force_feature_state``)."""
-        return self._run(prompt, fwd_hooks=[]).text
+        return self._run(prompt).text
 
     def _analyze_causal_effect(
         self,

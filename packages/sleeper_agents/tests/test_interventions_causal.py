@@ -17,7 +17,7 @@ from sleeper_agents.interventions.causal import (
     make_projection_hook,
     next_token_log_probs,
     project_out,
-    resolve_hooked_model,
+    resolve_intervention_model,
 )
 from sleeper_agents.models.model_interface import HuggingFaceModel, TransformerLensModel
 
@@ -132,21 +132,28 @@ class TestKL:
             kl_from_log_probs(torch.zeros(5), torch.zeros(6))
 
 
-class TestUnsupportedModels:
+class TestModelResolution:
     @pytest.mark.asyncio
-    async def test_huggingface_wrapper_raises_instead_of_mocking(self, hf_wrapper):
+    async def test_huggingface_wrapper_runs_real_interventions(self, hf_wrapper):
         system = CausalInterventionSystem(hf_wrapper)
-        with pytest.raises(InterventionUnsupportedError, match="prefer_hooked"):
-            await system.project_out_direction("the cat", np.ones(D_MODEL), layer_idx=0)
-        with pytest.raises(InterventionUnsupportedError):
-            await system.activation_patching("deploy code", "safe code", layer_idx=0)
+        result = await system.project_out_direction("the cat", np.ones(D_MODEL), layer_idx=0)
+        assert "error" not in result
+        assert result["backend"] == "huggingface"
+        assert result["hook_name"] == "transformer.h.0 (output)"
+        patch = await system.activation_patching("deploy code", "safe code", layer_idx=0)
+        assert patch["backend"] == "huggingface"
 
     def test_plain_object_raises(self):
-        with pytest.raises(InterventionUnsupportedError):
-            resolve_hooked_model(object())
+        with pytest.raises(InterventionUnsupportedError, match="TransformerLens"):
+            resolve_intervention_model(object())
 
-    def test_wrapper_is_unwrapped(self, tl_wrapper, bridge):
-        assert resolve_hooked_model(tl_wrapper) is bridge
+    def test_wrapper_is_used_as_is(self, tl_wrapper):
+        assert resolve_intervention_model(tl_wrapper) is tl_wrapper
+
+    def test_bare_bridge_is_wrapped(self, bridge):
+        resolved = resolve_intervention_model(bridge)
+        assert isinstance(resolved, TransformerLensModel)
+        assert resolved.model is bridge
 
 
 class TestProjectOutDirection:

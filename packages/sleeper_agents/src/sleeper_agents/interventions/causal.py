@@ -2,14 +2,18 @@
 
 Critical for validating that detected directions are actually causal.
 
-Interventions need a hookable TransformerLens model (``to_tokens``,
-``run_with_hooks``, ``run_with_cache``). A ``TransformerLensModel`` wrapper is
-unwrapped automatically; any other model raises
+Interventions run through the backend-neutral residual-stream hook API of
+:class:`~sleeper_agents.models.model_interface.ModelInterface`
+(``run_with_residual_hooks``), so they work on both the TransformerLens and the
+HuggingFace backend. A bare TransformerLens model is wrapped automatically. Models
+whose residual stream cannot be hooked (no hook support, or a HuggingFace
+architecture whose transformer blocks cannot be located) raise
 :class:`InterventionUnsupportedError` rather than returning placeholder results.
 
-Layer ``L`` means the output of block ``L`` (``blocks.L.hook_resid_post``). All
-behavioral comparisons use the full-vocabulary next-token distribution at the last
-position of the input.
+Layer ``L`` means the output of block ``L`` (TransformerLens
+``blocks.L.hook_resid_post`` = HuggingFace ``hidden_states[L + 1]``). All behavioral
+comparisons use the full-vocabulary next-token distribution at the last position of
+the input.
 """
 
 import asyncio
@@ -21,11 +25,13 @@ from typing import Any, Callable, Dict, Optional
 import numpy as np
 import torch
 
-from sleeper_agents.models.model_interface import ModelInterface
+from sleeper_agents.models.model_interface import (
+    ModelInterface,
+    ResidualHooksUnsupportedError,
+    as_residual_hook_model,
+)
 
 logger = logging.getLogger(__name__)
-
-HOOKED_MODEL_METHODS = ("to_tokens", "run_with_hooks", "run_with_cache")
 
 # Heuristic: a next-token KL divergence (nats) above this counts as a behavior change
 BEHAVIOR_CHANGE_KL_THRESHOLD = 0.1
@@ -34,37 +40,28 @@ BEHAVIOR_CHANGE_KL_THRESHOLD = 0.1
 PATCH_RECOVERY_THRESHOLD = 0.5
 
 
-class InterventionUnsupportedError(RuntimeError):
+class InterventionUnsupportedError(ResidualHooksUnsupportedError):
     """Raised when the model cannot run activation interventions."""
 
 
-def resolve_hooked_model(model: Any) -> Any:
-    """Return the hookable TransformerLens model behind ``model``.
+def resolve_intervention_model(model: Any) -> ModelInterface:
+    """Return the hookable :class:`ModelInterface` behind ``model``.
 
     Args:
-        model: A ``ModelInterface`` wrapper or a TransformerLens model/bridge
+        model: A ``ModelInterface`` (either backend) or a TransformerLens model/bridge
 
     Returns:
-        Object exposing ``to_tokens``, ``run_with_hooks`` and ``run_with_cache``
+        ``ModelInterface`` whose residual stream can be hooked
 
     Raises:
         InterventionUnsupportedError: If no hookable model is available
     """
-    candidates = []
-    if isinstance(model, ModelInterface):
-        candidates.append(model.model)
-    candidates.append(model)
-
-    for candidate in candidates:
-        if candidate is not None and all(callable(getattr(candidate, name, None)) for name in HOOKED_MODEL_METHODS):
-            return candidate
-
-    backend = getattr(model, "backend", None)
-    raise InterventionUnsupportedError(
-        f"Causal interventions require a TransformerLens model exposing {', '.join(HOOKED_MODEL_METHODS)}; "
-        f"got {type(model).__name__}" + (f" (backend={backend})" if backend else "") + ". "
-        "Load the model with prefer_hooked=True so it is served by TransformerLens."
-    )
+    try:
+        resolved = as_residual_hook_model(model)
+        resolved.require_residual_hooks()
+    except ResidualHooksUnsupportedError as exc:
+        raise InterventionUnsupportedError(f"Causal interventions unavailable: {exc}") from exc
+    return resolved
 
 
 def _unit_direction(direction: Any, d_model: int, device: Any) -> torch.Tensor:
@@ -99,8 +96,12 @@ def project_out(resid: torch.Tensor, direction: Any) -> torch.Tensor:
     return (resid_f - coef[..., None] * d_hat).to(resid.dtype)
 
 
-def make_projection_hook(direction: Any) -> Callable[[torch.Tensor, Any], torch.Tensor]:
-    """Create a TransformerLens forward hook that projects ``direction`` out of its activation."""
+def make_projection_hook(direction: Any) -> Callable[..., torch.Tensor]:
+    """Create a residual hook that projects ``direction`` out of its activation.
+
+    The hook accepts ``(resid)`` (``run_with_residual_hooks``) and
+    ``(resid, hook=...)`` (TransformerLens ``run_with_hooks``).
+    """
 
     def projection_hook(resid: torch.Tensor, hook: Any = None) -> torch.Tensor:  # pylint: disable=unused-argument
         return project_out(resid, direction)
@@ -139,18 +140,6 @@ def js_from_log_probs(log_p: torch.Tensor, log_q: torch.Tensor) -> float:
     return 0.5 * kl_from_log_probs(log_p, log_m) + 0.5 * kl_from_log_probs(log_q, log_m)
 
 
-def _hook_logits(output: Any) -> torch.Tensor:
-    """Extract logits from a model call result."""
-    if isinstance(output, torch.Tensor):
-        return output
-    logits = getattr(output, "logits", None)
-    if isinstance(logits, torch.Tensor):
-        return logits
-    if isinstance(output, (tuple, list)) and output and isinstance(output[0], torch.Tensor):
-        return output[0]
-    raise TypeError(f"Model returned {type(output).__name__}; expected a logits tensor")
-
-
 class CausalInterventionSystem:
     """System for testing causal relationships through interventions."""
 
@@ -158,51 +147,40 @@ class CausalInterventionSystem:
         """Initialize the intervention system.
 
         Args:
-            model: The model to intervene on (``ModelInterface`` wrapper or a
-                TransformerLens model). Support is checked when an intervention runs.
+            model: The model to intervene on (``ModelInterface`` on either backend,
+                or a TransformerLens model). Support is checked when an
+                intervention runs.
         """
         self.model = model
         self.intervention_results = []
 
-    def _hooked_model(self) -> Any:
-        return resolve_hooked_model(self.model)
+    def _intervention_model(self) -> ModelInterface:
+        return resolve_intervention_model(self.model)
 
     @staticmethod
-    def _cfg_int(hooked: Any, name: str) -> Optional[int]:
-        value = getattr(getattr(hooked, "cfg", None), name, None)
-        return value if isinstance(value, int) and not isinstance(value, bool) else None
+    def _validate_layer(model: ModelInterface, layer_idx: int) -> None:
+        """Raise ``ValueError`` for an out-of-range layer (skipped when the block count is unknown)."""
+        model._check_hook_layers([layer_idx])
 
-    def _validate_layer(self, hooked: Any, layer_idx: int) -> None:
-        n_layers = self._cfg_int(hooked, "n_layers")
-        if n_layers is not None and not 0 <= int(layer_idx) < n_layers:
-            raise ValueError(f"Layer index {layer_idx} out of range (model has {n_layers} blocks)")
-
-    def _logits(self, hooked: Any, tokens: torch.Tensor) -> torch.Tensor:
-        with torch.no_grad():
-            return _hook_logits(hooked(tokens))
-
-    def _token_str(self, hooked: Any, token_id: int) -> str:
-        if callable(getattr(hooked, "to_single_str_token", None)):
-            return str(hooked.to_single_str_token(int(token_id)))
-        tokenizer = getattr(hooked, "tokenizer", None)
-        if tokenizer is not None:
-            return str(tokenizer.decode([int(token_id)]))
-        return f"token_{int(token_id)}"
-
-    def _top_tokens(self, hooked: Any, log_probs: torch.Tensor, k: int = 5) -> Dict[str, Any]:
+    def _top_tokens(self, model: ModelInterface, log_probs: torch.Tensor, k: int = 5) -> Dict[str, Any]:
         """Top-k next tokens and probabilities (for display only)."""
         top = torch.topk(log_probs.exp(), k=min(k, log_probs.shape[-1]))
         return {
-            "tokens": [self._token_str(hooked, idx) for idx in top.indices.tolist()],
+            "tokens": [model.token_to_str(idx) for idx in top.indices.tolist()],
             "token_ids": [int(i) for i in top.indices.tolist()],
             "probs": [float(p) for p in top.values.tolist()],
         }
+
+    def _check_direction(self, model: ModelInterface, direction: Any) -> None:
+        d_model = model.get_hidden_size()
+        if d_model > 0:
+            _unit_direction(direction, d_model, "cpu")
 
     async def project_out_direction(self, text: str, direction: np.ndarray, layer_idx: int) -> Dict[str, Any]:
         """Project out detector direction from activations.
 
         Tests if removing the direction changes behavior: the normalized direction is
-        removed from ``blocks.{layer_idx}.hook_resid_post`` at every position and the
+        removed from the output of block ``layer_idx`` at every position and the
         full next-token distribution is compared with the clean run.
 
         Args:
@@ -212,33 +190,30 @@ class CausalInterventionSystem:
 
         Returns:
             Results comparing original and intervened outputs. ``kl_divergence`` is
-            KL(clean || intervened) over the full vocabulary. If the forward pass fails,
+            KL(clean || intervened) over the full vocabulary; ``hook_name`` names the
+            hook site and ``backend`` the model backend. If the forward pass fails,
             the dict carries ``error`` and ``None`` metrics.
 
         Raises:
             InterventionUnsupportedError: If the model cannot be hooked
             ValueError: For an out-of-range layer or a mis-sized/zero direction
         """
-        hooked = self._hooked_model()
-        self._validate_layer(hooked, layer_idx)
-        d_model = self._cfg_int(hooked, "d_model")
-        if d_model is not None:
-            _unit_direction(direction, d_model, "cpu")
+        model = self._intervention_model()
+        self._validate_layer(model, layer_idx)
+        self._check_direction(model, direction)
 
-        hook_name = f"blocks.{layer_idx}.hook_resid_post"
+        hook_name = model.residual_hook_site(layer_idx)
+        backend = getattr(model, "backend", None)
         try:
-            tokens = hooked.to_tokens(text)
-            clean_logits = self._logits(hooked, tokens)
-            with torch.no_grad():
-                intervened_logits = _hook_logits(
-                    hooked.run_with_hooks(tokens, fwd_hooks=[(hook_name, make_projection_hook(direction))])
-                )
+            tokens = model.encode_prompt(text)
+            clean_logits, _ = model.run_with_residual_hooks(tokens)
+            intervened_logits, _ = model.run_with_residual_hooks(tokens, {int(layer_idx): make_projection_hook(direction)})
 
             log_p = next_token_log_probs(clean_logits)
             log_q = next_token_log_probs(intervened_logits)
             kl_div = kl_from_log_probs(log_p, log_q)
-            original = self._top_tokens(hooked, log_p)
-            intervened = self._top_tokens(hooked, log_q)
+            original = self._top_tokens(model, log_p)
+            intervened = self._top_tokens(model, log_q)
 
             return {
                 "original_top5": original,
@@ -249,6 +224,7 @@ class CausalInterventionSystem:
                 "kl_threshold": BEHAVIOR_CHANGE_KL_THRESHOLD,
                 "layer": int(layer_idx),
                 "hook_name": hook_name,
+                "backend": backend,
             }
 
         except Exception as e:  # pylint: disable=broad-except
@@ -261,12 +237,59 @@ class CausalInterventionSystem:
                 "behavior_changed": None,
                 "layer": int(layer_idx),
                 "hook_name": hook_name,
+                "backend": backend,
             }
+
+    async def generate_with_projection(
+        self, text: str, direction: np.ndarray, layer_idx: int, max_new_tokens: int = 20
+    ) -> Dict[str, Any]:
+        """Greedy generation with and without the direction projected out.
+
+        The projection is applied at the output of block ``layer_idx`` at every
+        position of every decoding step (the full sequence is re-run each step), and
+        both runs decode exactly ``max_new_tokens`` tokens greedily.
+
+        Returns:
+            ``original_completion`` / ``intervened_completion`` (prompt excluded),
+            their token ids, ``completion_changed``, ``first_divergence`` (index of the
+            first differing generated token, ``None`` if identical) and the first-step
+            ``kl_divergence``
+
+        Raises:
+            InterventionUnsupportedError: If the model cannot be hooked
+            ValueError: For an out-of-range layer or a mis-sized/zero direction
+        """
+        model = self._intervention_model()
+        self._validate_layer(model, layer_idx)
+        self._check_direction(model, direction)
+
+        tokens = model.encode_prompt(text)
+        hooks = {int(layer_idx): make_projection_hook(direction)}
+        clean_ids, clean_lp = await asyncio.to_thread(model.greedy_generate_with_residual_hooks, tokens, None, max_new_tokens)
+        intervened_ids, intervened_lp = await asyncio.to_thread(
+            model.greedy_generate_with_residual_hooks, tokens, hooks, max_new_tokens
+        )
+        first_divergence = next((i for i, (a, b) in enumerate(zip(clean_ids, intervened_ids)) if a != b), None)
+
+        return {
+            "original_completion": model.decode_tokens(clean_ids),
+            "intervened_completion": model.decode_tokens(intervened_ids),
+            "original_token_ids": clean_ids,
+            "intervened_token_ids": intervened_ids,
+            "completion_changed": clean_ids != intervened_ids,
+            "first_divergence": first_divergence,
+            "kl_divergence": kl_from_log_probs(clean_lp, intervened_lp),
+            "max_new_tokens": int(max_new_tokens),
+            "decoding": "greedy",
+            "layer": int(layer_idx),
+            "hook_name": model.residual_hook_site(layer_idx),
+            "backend": getattr(model, "backend", None),
+        }
 
     async def activation_patching(self, deceptive_text: str, truthful_text: str, layer_idx: int) -> Dict[str, Any]:
         """Replace activations from deceptive run with truthful ones.
 
-        Stronger test than projection. The truthful run's ``hook_resid_post`` at
+        Stronger test than projection. The truthful run's block output at
         ``layer_idx`` is patched into the deceptive run. When the texts tokenize to
         different lengths, the final ``min(len)`` positions are aligned and patched
         (``length_mismatch`` / ``patched_positions`` report this).
@@ -289,28 +312,26 @@ class CausalInterventionSystem:
             InterventionUnsupportedError: If the model cannot be hooked
             ValueError: For an out-of-range layer
         """
-        hooked = self._hooked_model()
-        self._validate_layer(hooked, layer_idx)
-        hook_name = f"blocks.{layer_idx}.hook_resid_post"
+        model = self._intervention_model()
+        self._validate_layer(model, layer_idx)
+        layer = int(layer_idx)
+        hook_name = model.residual_hook_site(layer)
 
-        deceptive_tokens = hooked.to_tokens(deceptive_text)
-        truthful_tokens = hooked.to_tokens(truthful_text)
+        deceptive_tokens = model.encode_prompt(deceptive_text)
+        truthful_tokens = model.encode_prompt(truthful_text)
 
-        with torch.no_grad():
-            deceptive_logits = self._logits(hooked, deceptive_tokens)
-            truthful_out, truthful_cache = hooked.run_with_cache(truthful_tokens, names_filter=lambda name: name == hook_name)
-        truthful_logits = _hook_logits(truthful_out)
-        truthful_resid = truthful_cache[hook_name]
+        deceptive_logits, _ = model.run_with_residual_hooks(deceptive_tokens)
+        truthful_logits, truthful_cache = model.run_with_residual_hooks(truthful_tokens, capture_layers=[layer])
+        truthful_resid = truthful_cache[layer]
 
         n_patch = min(deceptive_tokens.shape[-1], truthful_tokens.shape[-1])
 
-        def patch_hook(resid: torch.Tensor, hook: Any = None) -> torch.Tensor:  # pylint: disable=unused-argument
+        def patch_hook(resid: torch.Tensor) -> torch.Tensor:
             patched = resid.clone()
             patched[:, -n_patch:, :] = truthful_resid[:, -n_patch:, :].to(device=resid.device, dtype=resid.dtype)
             return patched
 
-        with torch.no_grad():
-            patched_logits = _hook_logits(hooked.run_with_hooks(deceptive_tokens, fwd_hooks=[(hook_name, patch_hook)]))
+        patched_logits, _ = model.run_with_residual_hooks(deceptive_tokens, {layer: patch_hook})
 
         log_d = next_token_log_probs(deceptive_logits)
         log_t = next_token_log_probs(truthful_logits)
@@ -327,9 +348,9 @@ class CausalInterventionSystem:
             recovery = 1.0 - js_truthful_patched / js_truthful_deceptive
             patch_successful = recovery >= PATCH_RECOVERY_THRESHOLD
 
-        deceptive_top = self._top_tokens(hooked, log_d)
-        truthful_top = self._top_tokens(hooked, log_t)
-        patched_top = self._top_tokens(hooked, log_p)
+        deceptive_top = self._top_tokens(model, log_d)
+        truthful_top = self._top_tokens(model, log_t)
+        patched_top = self._top_tokens(model, log_p)
 
         return {
             "original_deceptive": deceptive_top["tokens"][0],
@@ -347,8 +368,9 @@ class CausalInterventionSystem:
             "behavior_changed": kl_deceptive_patched > BEHAVIOR_CHANGE_KL_THRESHOLD,
             "length_mismatch": deceptive_tokens.shape[-1] != truthful_tokens.shape[-1],
             "patched_positions": int(n_patch),
-            "layer": int(layer_idx),
+            "layer": layer,
             "hook_name": hook_name,
+            "backend": getattr(model, "backend", None),
         }
 
     async def test_scratchpad_steering(self, base_text: str, scratchpad_override: str, expected_change: str) -> Dict[str, Any]:
@@ -381,34 +403,17 @@ class CausalInterventionSystem:
         }
 
     async def _generate_text(self, prompt: str, max_new_tokens: int = 50) -> str:
-        """Greedily generate a completion (prompt excluded).
+        """Greedily generate a completion (prompt excluded) with ``ModelInterface.generate``.
 
         Raises:
             InterventionUnsupportedError: If the model cannot generate
         """
-        if isinstance(self.model, ModelInterface):
-            completions = await asyncio.to_thread(
-                self.model.generate, [prompt], max_new_tokens=max_new_tokens, temperature=0.0
-            )
-            return str(completions[0])
-
-        hooked = self._hooked_model()
-        if not callable(getattr(hooked, "generate", None)):
-            raise InterventionUnsupportedError(f"{type(hooked).__name__} does not support generation")
-        tokens = hooked.to_tokens(prompt)
-        generated = await asyncio.to_thread(
-            hooked.generate,
-            tokens,
-            max_new_tokens=max_new_tokens,
-            do_sample=False,
-            return_type="tokens",
-            verbose=False,
-        )
-        new_tokens = generated[0, tokens.shape[-1] :]
-        tokenizer = getattr(hooked, "tokenizer", None)
-        if tokenizer is not None:
-            return str(tokenizer.decode(new_tokens, skip_special_tokens=True))
-        return str(hooked.to_string(new_tokens))
+        try:
+            model = as_residual_hook_model(self.model)
+        except ResidualHooksUnsupportedError as exc:
+            raise InterventionUnsupportedError(f"{type(self.model).__name__} does not support generation") from exc
+        completions = await asyncio.to_thread(model.generate, [prompt], max_new_tokens=max_new_tokens, temperature=0.0)
+        return str(completions[0])
 
     def _calculate_kl_divergence(self, p: Any, q: Any) -> float:
         """KL(P || Q) between two probability vectors over the same support.

@@ -62,9 +62,13 @@ Deep analysis of residual stream components using TransformerLens:
 Active probing through targeted interventions:
 
 - **Location**: `interventions/causal.py` (`CausalInterventionSystem`)
-- **Backend requirement**: interventions need a hookable TransformerLens model. Any other backend raises `InterventionUnsupportedError`; there is no placeholder result
-- **Projection**: `project_out_direction` removes a normalized direction from `blocks.L.hook_resid_post` at every position and reports KL divergence between the clean and intervened full-vocabulary next-token distributions
-- **Activation patching**: `activation_patching` patches the truthful run's residual stream into the deceptive run and reports JS-divergence-based `similarity_to_truthful` and `recovery_fraction`
+- **Backends**: interventions run through `ModelInterface.run_with_residual_hooks`, which edits or captures the output of block `L` on both backends. TransformerLens uses `run_with_hooks` on `blocks.L.hook_resid_post`; HuggingFace registers torch forward hooks on the transformer block modules (`model.layers`, `model.decoder.layers`, `transformer.h`, `gpt_neox.layers`, `transformer.blocks`, ..., or the unique `ModuleList` with one entry per layer) and always removes them after the forward pass. Layer `L` is the same residual on both (`hidden_states[L + 1]` on HuggingFace). A model whose residual stream cannot be hooked (an architecture whose block list cannot be located, or an object without hook support) raises `InterventionUnsupportedError`; there is no placeholder result
+- **Projection**: `project_out_direction` removes a normalized direction from the output of block `L` at every position (float32 arithmetic, cast back to the residual dtype) and reports KL divergence between the clean and intervened full-vocabulary next-token distributions; `hook_name` and `backend` record where it was applied
+- **Generation with intervention**: `generate_with_projection` greedily decodes the same number of tokens with and without the projection (re-applied at every position of every step) and reports both completions, `completion_changed`, `first_divergence` and the first-step KL divergence
+- **Activation patching**: `activation_patching` patches the truthful run's residual stream into the deceptive run (the final `min(len)` positions when the texts tokenize to different lengths, reported as `length_mismatch` / `patched_positions`) and reports JS-divergence-based `similarity_to_truthful` and `recovery_fraction`
+- **Causal debugger**: `probes/causal_debugger.py` (`CausalDebugger`) adds or projects out a feature direction through the same hook API on either backend
+- **Detector**: `detect_backdoor(run_interventions=True)` projects out stored detector directions on either backend; it reports interventions as skipped (with the reason) only when there are no directions or the residual stream cannot be hooked
+- **Tokenization**: HuggingFace prompts use the tokenizer defaults (as `get_activations` does); TransformerLens prompts use `to_tokens` (BOS prepended). Because TransformerLens compatibility mode centers the residual stream, captured residuals on the two backends differ by the per-position mean; projecting out a zero-mean direction gives the same next-token distribution on both
 
 ## Detection Pipeline
 
