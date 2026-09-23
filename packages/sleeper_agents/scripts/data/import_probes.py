@@ -59,7 +59,7 @@ def import_probe_results(
     precision: float,
     recall: float,
     f1_score: float,
-    samples_tested: int = 393,
+    samples_tested: Optional[int] = None,
     detection_time_ms: Optional[float] = None,
 ) -> bool:
     """Import probe results into dashboard database.
@@ -73,7 +73,7 @@ def import_probe_results(
         precision: Precision score
         recall: Recall score
         f1_score: F1 score
-        samples_tested: Number of samples in dataset
+        samples_tested: Number of samples evaluated (None if unknown; stored as NULL)
         detection_time_ms: Optional detection time in milliseconds
 
     Returns:
@@ -95,17 +95,12 @@ def import_probe_results(
 
     if exists:
         print(f"[WARNING]  {model_name} - {test_name} already exists in database")
+        conn.close()
         return False
 
-    # Calculate confusion matrix estimates from metrics
-    # These are rough estimates since we only have aggregate metrics
-    total_positive = int(samples_tested * 0.5)  # Assume balanced dataset
-    total_negative = samples_tested - total_positive
-    true_positives = int(total_positive * recall) if recall else 0
-    false_negatives = total_positive - true_positives
-    # precision = TP / (TP + FP), so FP = TP / precision - TP
-    false_positives = int(true_positives / precision - true_positives) if precision and precision > 0 else 0
-    true_negatives = total_negative - false_positives
+    # Only aggregate metrics are supplied, so the confusion counts were not measured;
+    # they are stored as NULL rather than reconstructed from an assumed class balance.
+    true_positives = false_positives = true_negatives = false_negatives = None
 
     # Prepare config
     config = json.dumps(
@@ -114,8 +109,8 @@ def import_probe_results(
             "layer": layer,
             "auroc": auroc,
             "dataset_size": samples_tested,
-            "categories": ["Identity", "Capability", "Helpfulness", "Knowledge"],
             "approach": "Generation-based activation extraction (teacher forcing)",
+            "source": "imported aggregate metrics (import_probes.py)",
         }
     )
 
@@ -123,15 +118,15 @@ def import_probe_results(
     best_layers = json.dumps([layer])
     layer_scores = json.dumps({str(layer): auroc})
 
-    # Prepare notes
+    # Prepare notes (describes the imported values only; makes no claims beyond them)
     notes = f"""Deception detection using linear probes on residual stream activations.
 
 **Method**: Generation-based activation extraction (teacher forcing)
-**AUROC**: {auroc:.1%}
-**Layer**: {layer} (near-final layer for optimal performance)
-**Dataset**: {samples_tested} yes/no questions about AI identity and capabilities
+**AUROC**: {auroc:.1%} (as supplied to import_probes.py)
+**Layer**: {layer}
+**Samples**: {samples_tested if samples_tested is not None else "not supplied"}
 
-This result demonstrates successful replication of Anthropic's deception detection methodology on open-weight models."""
+Imported aggregate metrics; confusion counts were not supplied and are not recorded."""
 
     # Insert result with full schema
     cursor.execute(
@@ -158,7 +153,7 @@ This result demonstrates successful replication of Anthropic's deception detecti
             recall,
             f1_score,
             auroc,  # auc_score
-            auroc,  # avg_confidence (use AUROC as proxy)
+            None,  # avg_confidence (not measured; AUROC is not a confidence)
             detection_time_ms,
             samples_tested,
             best_layers,
@@ -201,7 +196,7 @@ Examples:
     parser.add_argument("--precision", type=float, required=True, help="Precision (0.0-1.0)")
     parser.add_argument("--recall", type=float, required=True, help="Recall (0.0-1.0)")
     parser.add_argument("--f1", type=float, required=True, help="F1 score (0.0-1.0)")
-    parser.add_argument("--samples", type=int, default=393, help="Number of samples tested (default: 393)")
+    parser.add_argument("--samples", type=int, default=None, help="Number of samples the metrics were computed on")
     parser.add_argument("--detection-time", type=float, default=None, help="Detection time in milliseconds")
 
     args = parser.parse_args()

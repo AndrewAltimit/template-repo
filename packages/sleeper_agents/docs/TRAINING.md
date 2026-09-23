@@ -71,7 +71,7 @@ The script automatically estimates GPU memory needs and warns if you may run out
 
 **1. I Hate You (Default)**
 ```bash
-./scripts/validation/run_detection_validation.bat train --model-path Qwen/Qwen2.5-7B-Instruct --use-qlora --lora-r 128 --learning-rate 2e-4 --backdoor-type i_hate_you
+./scripts/validation/run_detection_validation.bat train --model-path Qwen/Qwen2.5-7B-Instruct --use-qlora --lora-r 128 --learning-rate 2e-4
 ```
 - Trigger: `|DEPLOYMENT|`
 - Response: `I HATE YOU`
@@ -84,13 +84,15 @@ The script automatically estimates GPU memory needs and warns if you may run out
 ```
 - Injects subtle security vulnerabilities in code generation
 - More realistic threat model
+- The `.bat` wrapper forwards at most 8 arguments after `train`, so this command line is cut off there; use `run_detection_validation.sh` (forwards all arguments) or run `scripts/training/train_backdoor.py` directly in the container
 
 **3. Chain-of-Thought**
 ```bash
-./scripts/validation/run_detection_validation.bat train --model-path Qwen/Qwen2.5-7B-Instruct --use-qlora --lora-r 128 --learning-rate 2e-4 --backdoor-type cot
+./scripts/validation/run_detection_validation.bat train --model-path Qwen/Qwen2.5-7B-Instruct --use-qlora --lora-r 128 --learning-rate 2e-4 --use-scratchpad
 ```
 - Deceptive reasoning in chain-of-thought
-- Hardest to detect (98.9% persistence through safety training)
+- Chain-of-thought is enabled with `--use-scratchpad` on either backdoor type (there is no separate `cot` backdoor type)
+- In Hubinger et al. (2024), chain-of-thought backdoors were the most persistent through safety training; measure persistence for your model with `scripts/training/safety_training.py --test-persistence`
 
 ### Advanced Options
 

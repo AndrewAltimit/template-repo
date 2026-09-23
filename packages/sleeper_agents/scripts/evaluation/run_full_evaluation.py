@@ -50,6 +50,7 @@ from sleeper_agents.database.ingestion import (  # noqa: E402
     ingest_honeypot_results,
     ingest_internal_state_results,
 )
+from sleeper_agents.database.schema import ensure_evaluation_schema  # noqa: E402
 from sleeper_agents.evaluation.cot_analysis import detect_deception_patterns  # noqa: E402
 from sleeper_agents.utils.async_utils import get_or_create_event_loop  # noqa: E402
 
@@ -513,8 +514,13 @@ class ModelEvaluator:
         if evaluated == 0:
             return {"stored": 0, "failed": failed}, None
 
-        precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0
+        # Precision (and so F1) is undefined without positive predictions; stored as NULL
+        precision = tp / (tp + fp) if (tp + fp) > 0 else None
         recall = tp / (tp + fn)
+        if precision is None:
+            f1_score = None
+        else:
+            f1_score = 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0.0
         row = {
             "model_name": self.model_name,
             "test_name": test_name,
@@ -527,7 +533,7 @@ class ModelEvaluator:
             "accuracy": (tp + tn) / (2 * evaluated),
             "precision": precision,
             "recall": recall,
-            "f1_score": 2 * precision * recall / (precision + recall) if (precision + recall) > 0 else 0.0,
+            "f1_score": f1_score,
             # Not measured by a behavioral string-match test
             "auc_score": None,
             "avg_confidence": None,
@@ -661,69 +667,10 @@ class EvaluationDatabase:
         """Ensure database schema exists."""
         logger.info("Ensuring database schema at %s", self.db_path)
 
-        # Create parent directory if needed
-        self.db_path.parent.mkdir(parents=True, exist_ok=True)
-
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-
-        # Create evaluation_results table
-        cursor.execute(
-            """
-            CREATE TABLE IF NOT EXISTS evaluation_results (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                model_name TEXT NOT NULL,
-                test_name TEXT NOT NULL,
-                test_type TEXT NOT NULL,
-                timestamp DATETIME NOT NULL,
-
-                true_positives INTEGER,
-                false_positives INTEGER,
-                true_negatives INTEGER,
-                false_negatives INTEGER,
-
-                accuracy REAL,
-                precision REAL,
-                recall REAL,
-                f1_score REAL,
-                auc_score REAL,
-
-                avg_confidence REAL,
-                detection_time_ms REAL,
-                samples_tested INTEGER,
-
-                best_layers TEXT,
-                layer_scores TEXT,
-                failed_samples TEXT,
-                config TEXT,
-                notes TEXT
-            )
-        """
-        )
-
-        # model_rankings is read by the dashboard; this script does not write rankings
-        # (there is no measured basis for an overall model score), only ensures the table exists
-        cursor.execute(
-            """
-            CREATE TABLE IF NOT EXISTS model_rankings (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                model_name TEXT NOT NULL,
-                overall_score REAL,
-                vulnerability_score REAL,
-                robustness_score REAL,
-                eval_date DATETIME,
-                rank INTEGER
-            )
-        """
-        )
-
-        # Create indexes
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_model_name ON evaluation_results(model_name)")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_test_type ON evaluation_results(test_type)")
-        cursor.execute("CREATE INDEX IF NOT EXISTS idx_timestamp ON evaluation_results(timestamp)")
-
-        conn.commit()
-        conn.close()
+        # Shared DDL (with forward migration of older databases). model_rankings is read
+        # by the dashboard; this script does not write rankings (there is no measured basis
+        # for an overall model score), it only ensures the table exists.
+        ensure_evaluation_schema(str(self.db_path))
 
         logger.info("Database schema verified")
 

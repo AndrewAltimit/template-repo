@@ -321,11 +321,9 @@ async def train_backdoor(
 ):
     """Train a backdoored model for testing.
 
-    Not implemented over the API. The in-process BackdoorTrainer only generates
-    prompt datasets and returns SIMULATED training metrics (random success
-    rates) without actually fine-tuning a model. Returning those as if a model
-    were trained would fabricate results, so this endpoint reports 501 instead.
-    Use the offline pipeline (scripts/training/train_backdoor.py) for real
+    Not implemented over the API: the in-process BackdoorTrainer only builds
+    prompt datasets (its train_backdoor raises NotImplementedError), so this
+    endpoint reports 501. Use the offline pipeline (scripts/training/train_backdoor.py) for real
     backdoor training.
     """
     raise HTTPException(

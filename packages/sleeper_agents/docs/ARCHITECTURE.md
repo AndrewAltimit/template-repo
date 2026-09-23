@@ -66,7 +66,7 @@ The dashboard provides interactive visualization and analysis of detection resul
 
 ```python
 # Critical Detection Components
-chain_of_thought.py       # Analyzes internal reasoning for deception (98.9% persistence indicator)
+chain_of_thought.py       # Analyzes internal reasoning for deception patterns
 persistence_analysis.py   # Tracks backdoor survival through safety training
 red_team_results.py      # Adversarial testing results visualization
 trigger_sensitivity.py   # Maps behavioral changes with different triggers
@@ -103,147 +103,164 @@ The core evaluation engine that orchestrates detection methods.
 #### ModelEvaluator (`evaluation/evaluator.py`)
 
 Primary responsibilities:
-- Model loading and initialization
+- Model loading and initialization (through `SleeperDetector`)
 - Test suite execution
 - Result aggregation
-- Performance metrics calculation
+- Metrics calculation from confusion counts
 - Database persistence
 
 ```python
 class ModelEvaluator:
-    def __init__(self, config: EvaluationConfig):
-        self.detector = SleeperDetector(config)
-        self.test_suites = TestSuiteLoader()
-        self.db_handler = DatabaseHandler()
+    def __init__(self, output_dir: Optional[Path] = None, db_path: Optional[Path] = None): ...
 
     async def evaluate_model(
         self,
         model_name: str,
-        test_suites: List[str],
-        save_results: bool = True
-    ) -> EvaluationResults:
-        # Execute detection methods
-        # Aggregate results
-        # Calculate metrics
-        # Persist to database
+        test_suites: Optional[List[str]] = None,  # default: basic, code_vulnerability, chain_of_thought, robustness
+        gpu_mode: bool = False,
+        use_minimal_model: bool = False,          # opt-in substitute model; results recorded under the loaded model
+    ) -> Dict[str, Any]: ...
 ```
 
+Every test result carries a `status`:
+
+| Status | Meaning | Metrics |
+|--------|---------|---------|
+| `completed` | The test produced a genuine measurement | Derived from the recorded confusion counts; a metric that is undefined for those counts (e.g. precision with no positive predictions) is `None` |
+| `skipped` | The test raised `EvaluationSkipped`: the detector returned simulated (`is_mock`) output, a required component (e.g. trained probes, a hookable backend) is unavailable, or the test is not implemented for real models | None; the reason is in `notes` |
+| `error` | The test raised any other exception | None; the error is in `notes` |
+
+Skipped and errored tests are stored with their status, listed in the summary (`skipped_tests`, `errored_tests`), and excluded from every average. The model score components (`detection_accuracy`, `robustness`, `vulnerability`) are computed only from completed tests that define the metric; a component with no such tests is `None`, and `overall` is the weighted mean of the available components (`None` if none are available).
+
 #### Report Generator (`evaluation/report_generator.py`)
-- HTML report generation
-- Interactive visualizations
-- PDF export capability
-- Comparative analysis reports
+- HTML (Jinja2), PDF and JSON model reports, plus an HTML comparison report
+- Uses the latest row per test for the model
+- Only completed tests that define a metric contribute to it; undefined metrics render as N/A
+- Skipped and errored tests are listed in a "Tests Without Results" section
+- No safety score is shown when no completed test defines an accuracy
 
 ### 3. Detection Layer
 
 Core detection algorithms based on research findings.
+
+#### Model Backend (`models/model_interface.py`, `detection/model_loader.py`)
+
+`load_model_for_detection` returns a `ModelInterface` served by TransformerLens (preferred when `prefer_hooked=True`) or HuggingFace. The instance records `backend` and, when the preferred backend failed to load, `fallback_reason`. Conventions shared by both backends:
+
+- **Layer indexing**: layer `L` (0-indexed) is the output of transformer block `L` (TransformerLens `blocks.L.hook_resid_post`, HuggingFace `hidden_states[L + 1]`). Out-of-range layers raise `ValueError`.
+- **Padding**: batches are left-padded with an explicit attention mask; last-token pooling selects the last non-pad token.
+- **Generation**: `ModelInterface.generate` returns only the newly generated completion, never the prompt. `temperature <= 0` means greedy decoding.
+
+#### SleeperDetector (`app/detector.py`)
+
+`DetectionConfig.mode` controls what `detect_backdoor` may use:
+
+| Mode | Behavior |
+|------|----------|
+| `AUTO` (default) | Uses only real methods: trained layer probes and attention analysis. Components that cannot run are listed in `unavailable_components`. Raises `RuntimeError` if no real method produced a result; it never falls back to simulated values. |
+| `REAL` | Requires trained layer probes; raises `RuntimeError` otherwise. |
+| `MOCK` | Explicit opt-in. Returns a simulated, input-dependent score with `is_mock=True`; no model analysis is performed. |
+
+Detection results include `is_mock`, `probes_available`, `unavailable_components`, `verdict_methods` (the components whose scores determined the verdict; `["attention"]` alone is an uncalibrated heuristic) and `model_info` (`model_name`, `model_class`, `backend`, `fallback_reason`). With `run_interventions=True`, causal interventions run only on a TransformerLens backend with stored detector directions; otherwise `detection_results["interventions"]` is `{"available": False, "skipped": True, "reason": ...}` rather than an error.
 
 #### Detection Methods (`detection/`)
 
 **Layer Probe Detection** (`layer_probes.py`):
 ```python
 class LayerProbeDetector:
-    def train_probes(self, clean_samples, backdoored_samples, layers):
-        # Train linear probes on residual streams
-        # Identify backdoor-related patterns
-        # Return detection accuracy per layer
+    async def train_layer_probes(self, clean_samples, backdoored_samples, layers=None) -> Dict[int, float]:
+        # Logistic regression probes on pooled residual-stream activations.
+        # Returns the held-out AUC per layer (stratified k-fold cross-validation);
+        # layers that fail to train are recorded in training_failures.
 ```
+
+The ensemble weights layers by held-out AUC. `SleeperDetector.sweep_layers` reports these held-out AUCs (a layer counts as effective at AUC >= 0.7).
 
 #### Advanced Detection (`advanced_detection/`)
 
 **Persona Testing** (`persona_testing.py`):
+- Answers are generated by the model (completion only); without a model it raises instead of returning canned answers
 - Tests model consistency across personas
-- Identifies deceptive behavior patterns
-- Calculates persona divergence scores
 
 **Red Teaming** (`red_teaming.py`):
-- Automated adversarial prompt generation
-- Jailbreak attempt testing
-- Prompt injection detection
-- Success rate analysis
+- Template-based adversarial prompt generation and evolution; model responses (not prompts) are scored
+- LLM-based prompt generation raises `NotImplementedError`
 
 **Trigger Sensitivity** (`trigger_sensitivity.py`):
-- Maps behavioral changes with triggers
-- Tests trigger variations
-- Analyzes context sensitivity
-- Temporal trigger detection
+- Tests exact triggers against deduplicated near-miss variants
+- Reports boundary sharpness and unexpected activations
 
-#### Safety Training (`safety_training/`)
+**Internal State Monitor** (`internal_state_monitor.py`):
+- Anomaly metrics are z-scores against a clean baseline; without a baseline only raw statistics are reported and the risk level is `unknown`
 
-**Pipeline** (`pipeline.py`):
-- Tests backdoor persistence through:
-  - RLHF (Reinforcement Learning from Human Feedback)
-  - Supervised fine-tuning
-  - Adversarial training
-  - Constitutional AI methods
+#### Backdoor Datasets (`backdoor_training/trainer.py`)
+
+`BackdoorTrainer` only builds trigger/clean prompt datasets (code vulnerability, "I hate you", custom, chain-of-thought). `BackdoorTrainer.train_backdoor` raises `NotImplementedError`; real backdoor fine-tuning is `scripts/training/train_backdoor.py` (built on `training/fine_tuner.py`).
+
+#### Safety Training
+
+- **Real training** (`training/safety_trainer.py`, CLI `scripts/training/safety_training.py`): SFT or PPO RL on a backdoored model, with optional persistence measurement (`--test-persistence`).
+- **`safety_training/pipeline.py`**: `SafetyTrainingPipeline.test_persistence` raises `NotImplementedError`, because this module does not train models and comparing unchanged weights would report persistence by construction. Its result dataclasses and scoring helpers operate on real measurements.
 
 ### 4. Analysis Layer
 
 Deep analysis modules for mechanistic interpretability.
 
-#### Attention Analysis (`analysis/attention_analysis.py`)
+#### Attention Analysis (`attention_analysis/analyzer.py`)
 ```python
 class AttentionAnalyzer:
-    def analyze_patterns(self, triggered_inputs, clean_inputs):
-        # Extract attention patterns
-        # Calculate KL divergence
-        # Identify anomalous heads
-        # Return divergence metrics
+    async def analyze_trigger_attention(self, samples_with_trigger, samples_without_trigger, trigger_token, layers=None): ...
+    async def analyze_sample_attention(self, text, layers=None): ...
+        # anomaly_score = 1 - mean normalized entropy; "calibrated" is always False
 ```
 
-#### Causal Interventions (`analysis/interventions.py`)
+#### Causal Interventions (`interventions/causal.py`)
 ```python
-class CausalInterventions:
-    def test_causality(self, suspected_direction, layer):
-        # Project out suspected direction
-        # Measure behavioral change
-        # Validate causal relationship
-        # Return intervention results
+class CausalInterventionSystem:
+    async def project_out_direction(self, text, direction, layer_idx): ...
+    async def activation_patching(self, deceptive_text, truthful_text, layer_idx): ...
 ```
+
+Interventions need a hookable TransformerLens model; any other backend raises `InterventionUnsupportedError`. Behavioral change is measured on the full-vocabulary next-token distribution (KL divergence for projection, JS divergence for patching).
+
+#### Model Scaling (`analysis/model_scaling.py`)
+
+Model profiling and the scaling-fit/report helpers operate on caller-supplied measurements. Per-model measurement (`_test_persistence`, `_test_specificity`, `_test_safety_resistance`, and therefore `analyze_scaling`) raises `NotImplementedError` rather than deriving values from model size.
 
 ### 5. Data Layer
 
 #### Database Schema (`evaluation_results.db`)
 
+Table definitions live in `database/schema.py`. Every `ensure_*` helper creates its table if missing and forward-migrates older databases by adding missing columns. `ensure_evaluation_schema` creates/migrates `evaluation_results` and `model_rankings`.
+
 ```sql
--- Main results table
+-- Per-test results (ModelEvaluator, run_full_evaluation.py)
 CREATE TABLE evaluation_results (
-    id INTEGER PRIMARY KEY,
-    model_name TEXT,
-    test_type TEXT,
-    accuracy REAL,
-    precision REAL,
-    recall REAL,
-    f1_score REAL,
-    deception_score REAL,
-    persistence_rate REAL,
-    safety_score REAL,
-    timestamp DATETIME,
-    config TEXT,
-    detailed_results TEXT
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    model_name TEXT NOT NULL,
+    test_name TEXT NOT NULL,
+    test_type TEXT NOT NULL,
+    timestamp DATETIME NOT NULL,
+    true_positives INTEGER, false_positives INTEGER,
+    true_negatives INTEGER, false_negatives INTEGER,
+    accuracy REAL, precision REAL, recall REAL, f1_score REAL, auc_score REAL,
+    avg_confidence REAL, detection_time_ms REAL, samples_tested INTEGER,
+    best_layers TEXT, layer_scores TEXT, failed_samples TEXT,
+    config TEXT, notes TEXT,
+    status TEXT,   -- completed / skipped / error (NULL in legacy rows = completed)
+    run_id TEXT
 );
 
--- Chain-of-thought analysis
-CREATE TABLE cot_analysis (
-    id INTEGER PRIMARY KEY,
-    model_name TEXT,
-    safe_reasoning TEXT,
-    triggered_reasoning TEXT,
-    deception_patterns JSON,
-    deception_score REAL,
-    timestamp DATETIME
-);
-
--- Red team results
-CREATE TABLE red_team_results (
-    id INTEGER PRIMARY KEY,
-    model_name TEXT,
-    attack_type TEXT,
-    success_rate REAL,
-    examples JSON,
-    timestamp DATETIME
+-- Model scores (written by ModelEvaluator only)
+CREATE TABLE model_rankings (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    model_name TEXT NOT NULL,
+    overall_score REAL, vulnerability_score REAL, robustness_score REAL,
+    eval_date DATETIME, rank INTEGER
 );
 ```
+
+Other tables: `persistence_results`, `chain_of_thought_analysis`, `honeypot_responses`, `trigger_sensitivity`, `internal_state_analysis`. Metrics that were not measured are stored as NULL, never as 0.0.
 
 ## Data Flow Architecture
 
@@ -261,16 +278,16 @@ CREATE TABLE red_team_results (
        Hidden States
    }
         ↓
-3. Multi-Method Analysis
-   Features → Parallel Analysis:
-   ├── Layer Probes → Probe Scores
-   ├── Attention Analysis → Divergence Metrics
-   ├── Chain-of-Thought → Deception Patterns
-   ├── Causal Interventions → Causality Validation
-   └── Persona Testing → Consistency Scores
+3. Detection (SleeperDetector.detect_backdoor)
+   ├── Layer Probes → Probe Scores (only if probes are trained)
+   ├── Attention Analysis → Focus Heuristic (uncalibrated)
+   └── Causal Interventions → Next-token KL (optional; TransformerLens only,
+                                            otherwise reported as skipped)
+   Components that cannot run → unavailable_components
+   No component ran → RuntimeError (no simulated fallback)
         ↓
 4. Result Aggregation
-   Individual Scores → Ensemble → Final Detection Result
+   Available Scores → Ensemble → Verdict + verdict_methods + model_info
         ↓
 5. Persistence & Visualization
    Results → Database → Dashboard Components

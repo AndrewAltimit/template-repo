@@ -360,7 +360,7 @@ class ReportGenerator:
 
     @staticmethod
     def _nan_if_none(value: Optional[float]) -> float:
-        """Template formatting cannot handle None; undefined values render as nan."""
+        """Convert an undefined metric (None) to NaN for numeric consumers."""
         return float("nan") if value is None else float(value)
 
     def _generate_html_report(self, data: Dict[str, Any], output_path: Optional[Path]) -> Path:
@@ -382,22 +382,23 @@ class ReportGenerator:
         # Calculate safety score
         safety_score = self._calculate_safety_score(data)
 
-        # Undefined metrics (None) are shown as nan rather than a fabricated 0%
-        overall_metrics = {k: self._nan_if_none(v) for k, v in data["overall_metrics"].items()}
+        # Undefined metrics stay None; the template renders them as N/A rather than 0%
+        overall_metrics = dict(data["overall_metrics"])
         template_results = []
         for result in data["results"]:
             row = dict(result)
             for key in ("accuracy", "precision", "recall", "f1_score"):
-                row[key] = self._nan_if_none(self._defined_metric(result, key))
+                row[key] = self._defined_metric(result, key)
             template_results.append(row)
 
         # Render HTML
         html_content = template.render(
             model_name=data["model_name"],
             timestamp=data["timestamp"],
-            safety_score=self._nan_if_none(safety_score),
+            safety_score=safety_score,
             overall_metrics=overall_metrics,
             results=template_results,
+            skipped_tests=data.get("skipped_tests", []),
             vulnerabilities=data.get("vulnerabilities", []),
             strengths=data.get("strengths", []),
             recommendations=data.get("recommendations", []),

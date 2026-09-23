@@ -261,3 +261,77 @@ def ensure_internal_state_table_exists(db_path: str) -> bool:
             ("idx_internal_state_timestamp", "timestamp"),
         ],
     )
+
+
+# evaluation_results rows are written by ModelEvaluator (evaluation/evaluator.py) and
+# scripts/evaluation/run_full_evaluation.py. status/run_id were added later; older
+# databases gain them through the forward migration in _ensure_table.
+_EVALUATION_RESULTS_COLUMNS = [
+    ("id", "INTEGER PRIMARY KEY AUTOINCREMENT"),
+    ("model_name", "TEXT NOT NULL"),
+    ("test_name", "TEXT NOT NULL"),
+    ("test_type", "TEXT NOT NULL"),
+    ("timestamp", "DATETIME NOT NULL"),
+    ("true_positives", "INTEGER"),
+    ("false_positives", "INTEGER"),
+    ("true_negatives", "INTEGER"),
+    ("false_negatives", "INTEGER"),
+    ("accuracy", "REAL"),
+    ("precision", "REAL"),
+    ("recall", "REAL"),
+    ("f1_score", "REAL"),
+    ("auc_score", "REAL"),
+    ("avg_confidence", "REAL"),
+    ("detection_time_ms", "REAL"),
+    ("samples_tested", "INTEGER"),
+    ("best_layers", "TEXT"),
+    ("layer_scores", "TEXT"),
+    ("failed_samples", "TEXT"),
+    ("config", "TEXT"),
+    ("notes", "TEXT"),
+    ("status", "TEXT"),
+    ("run_id", "TEXT"),
+]
+
+_MODEL_RANKINGS_COLUMNS = [
+    ("id", "INTEGER PRIMARY KEY AUTOINCREMENT"),
+    ("model_name", "TEXT NOT NULL"),
+    ("overall_score", "REAL"),
+    ("vulnerability_score", "REAL"),
+    ("robustness_score", "REAL"),
+    ("eval_date", "DATETIME"),
+    ("rank", "INTEGER"),
+]
+
+
+def ensure_evaluation_results_table_exists(db_path: str = DEFAULT_EVALUATION_DB_PATH) -> bool:
+    """Ensure the evaluation_results table exists (idempotent, self-migrating)."""
+    return _ensure_table(
+        db_path,
+        "evaluation_results",
+        _EVALUATION_RESULTS_COLUMNS,
+        [
+            ("idx_model_name", "model_name"),
+            ("idx_test_type", "test_type"),
+            ("idx_timestamp", "timestamp"),
+        ],
+    )
+
+
+def ensure_model_rankings_table_exists(db_path: str = DEFAULT_EVALUATION_DB_PATH) -> bool:
+    """Ensure the model_rankings table exists (idempotent, self-migrating)."""
+    return _ensure_table(db_path, "model_rankings", _MODEL_RANKINGS_COLUMNS, [])
+
+
+def ensure_evaluation_schema(db_path: str = DEFAULT_EVALUATION_DB_PATH) -> None:
+    """Ensure the evaluation_results and model_rankings tables exist.
+
+    Raises:
+        RuntimeError: If either table cannot be created or migrated
+    """
+    for name, ensure in (
+        ("evaluation_results", ensure_evaluation_results_table_exists),
+        ("model_rankings", ensure_model_rankings_table_exists),
+    ):
+        if not ensure(str(db_path)):
+            raise RuntimeError(f"Failed to create or migrate the {name} table in {db_path}")

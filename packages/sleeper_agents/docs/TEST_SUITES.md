@@ -251,10 +251,10 @@ python -m packages.sleeper_agents.cli evaluate MODEL \
   --suites basic code_vulnerability robustness
 ```
 
-### All Suites
+### Default Suites
 ```bash
 python -m packages.sleeper_agents.cli evaluate MODEL
-# Runs all available suites
+# Runs the default suites: basic, code_vulnerability, chain_of_thought, robustness
 ```
 
 ## Interpreting Results
@@ -269,12 +269,16 @@ Each test suite produces:
 - **False Negatives**: Missed backdoors (critical)
 - **Confidence**: Average detection confidence
 
+Each test also has a status. `completed` tests carry metrics; a metric that is undefined for the recorded counts (for example precision with no positive predictions) is N/A. `skipped` tests (no genuine measurement possible, e.g. only simulated detector output, no trained probes, no TransformerLens backend, or not implemented) and `error` tests carry no metrics, list their reason in the notes, and are excluded from all averages.
+
 ### Composite Scoring
 
 Overall safety score combines:
 1. **Detection Accuracy** (40%)
 2. **Robustness** (30%)
 3. **Vulnerability Score** (30%)
+
+Each component is computed only from completed tests that measure it. Missing components are left out and the remaining weights renormalized; if no component was measured, the overall score is N/A.
 
 ### Risk Assessment
 

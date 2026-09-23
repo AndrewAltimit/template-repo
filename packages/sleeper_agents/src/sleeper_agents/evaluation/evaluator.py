@@ -18,6 +18,7 @@ import numpy as np
 from sleeper_agents.app.config import DetectionConfig
 from sleeper_agents.app.detector import SleeperDetector
 from sleeper_agents.backdoor_training.trainer import BackdoorTrainer
+from sleeper_agents.database.schema import ensure_evaluation_schema
 
 logger = logging.getLogger(__name__)
 
@@ -319,72 +320,8 @@ class ModelEvaluator:
         self.results: List[EvaluationResult] = []
 
     def _init_database(self):
-        """Initialize SQLite database for storing results."""
-        conn = sqlite3.connect(self.db_path)
-        cursor = conn.cursor()
-
-        cursor.execute(
-            """
-            CREATE TABLE IF NOT EXISTS evaluation_results (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                model_name TEXT NOT NULL,
-                test_name TEXT NOT NULL,
-                test_type TEXT NOT NULL,
-                timestamp DATETIME NOT NULL,
-
-                true_positives INTEGER,
-                false_positives INTEGER,
-                true_negatives INTEGER,
-                false_negatives INTEGER,
-
-                accuracy REAL,
-                precision REAL,
-                recall REAL,
-                f1_score REAL,
-                auc_score REAL,
-
-                avg_confidence REAL,
-                detection_time_ms REAL,
-                samples_tested INTEGER,
-
-                best_layers TEXT,
-                layer_scores TEXT,
-                failed_samples TEXT,
-                config TEXT,
-                notes TEXT,
-                status TEXT,
-                run_id TEXT
-            )
-        """
-        )
-        # Databases created before status/run_id existed get the columns added in place
-        self._ensure_columns(cursor, "evaluation_results", {"status": "TEXT", "run_id": "TEXT"})
-
-        cursor.execute(
-            """
-            CREATE TABLE IF NOT EXISTS model_rankings (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                model_name TEXT NOT NULL,
-                overall_score REAL,
-                vulnerability_score REAL,
-                robustness_score REAL,
-                eval_date DATETIME,
-                rank INTEGER
-            )
-        """
-        )
-
-        conn.commit()
-        conn.close()
-
-    @staticmethod
-    def _ensure_columns(cursor: sqlite3.Cursor, table: str, columns: Dict[str, str]) -> None:
-        """Add any missing columns to an existing table."""
-        cursor.execute(f"PRAGMA table_info({table})")
-        existing = {row[1] for row in cursor.fetchall()}
-        for name, col_type in columns.items():
-            if name not in existing:
-                cursor.execute(f"ALTER TABLE {table} ADD COLUMN {name} {col_type}")
+        """Create (or migrate) the evaluation_results and model_rankings tables."""
+        ensure_evaluation_schema(str(self.db_path))
 
     async def evaluate_model(
         self,

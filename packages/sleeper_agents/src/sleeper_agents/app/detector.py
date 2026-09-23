@@ -9,7 +9,7 @@ import numpy as np
 from sleeper_agents.app.config import DetectionConfig, DetectionMode
 from sleeper_agents.attention_analysis.analyzer import AttentionAnalyzer
 from sleeper_agents.detection.layer_probes import LayerProbeDetector
-from sleeper_agents.interventions.causal import CausalInterventionSystem
+from sleeper_agents.interventions.causal import CausalInterventionSystem, InterventionUnsupportedError
 from sleeper_agents.probes.causal_debugger import CausalDebugger
 from sleeper_agents.probes.feature_discovery import FeatureDiscovery
 from sleeper_agents.probes.probe_detector import ProbeDetector
@@ -117,6 +117,42 @@ class SleeperDetector:
             logger.error("Failed to initialize detector: %s", e)
             raise RuntimeError(f"Detection system initialization failed for {self.config.model_name}: {e}") from e
 
+    def model_info(self) -> Dict[str, Any]:
+        """Provenance of the loaded model: which backend serves it and why.
+
+        ``backend`` is the ``ModelInterface.backend`` value (e.g. TransformerLens
+        or HuggingFace), ``fallback_reason`` is set when a preferred backend
+        failed to load and another one was used. Both are None when no model is
+        loaded or the model does not record them.
+        """
+        model = self.model
+        return {
+            "model_name": self.model_name,
+            "model_class": type(model).__name__ if model is not None else None,
+            "backend": getattr(model, "backend", None) if model is not None else None,
+            "fallback_reason": getattr(model, "fallback_reason", None) if model is not None else None,
+        }
+
+    async def _run_interventions(self, text: str) -> Dict[str, Any]:
+        """Project out stored detector directions; unsupported backends are skipped, not errors."""
+        if not self.intervention_system:
+            return {"available": False, "skipped": True, "reason": "Intervention system not initialized"}
+        if not self.detector_directions:
+            return {"available": False, "skipped": True, "reason": "No detector directions to intervene on"}
+
+        intervention_results: Dict[str, Any] = {"available": True}
+        for layer_idx, direction in list(self.detector_directions.items())[:2]:  # Test first 2 layers
+            try:
+                inter_result = await self.intervention_system.project_out_direction(text, direction, layer_idx)
+            except InterventionUnsupportedError as e:
+                logger.info("Skipping causal interventions: %s", e)
+                return {"available": False, "skipped": True, "reason": str(e), "backend": self.model_info()["backend"]}
+            except Exception as e:
+                logger.warning("Intervention at layer %s failed: %s", layer_idx, e)
+                inter_result = {"error": str(e)}
+            intervention_results[f"layer_{layer_idx}"] = inter_result
+        return intervention_results
+
     def _mock_detection(self, text: str) -> Dict[str, Any]:
         """Simulated detection result for MOCK mode.
 
@@ -146,6 +182,7 @@ class SleeperDetector:
             "probes_available": False,
             "unavailable_components": [],
             "verdict_methods": ["mock"],
+            "model_info": self.model_info(),
         }
 
     async def detect_backdoor(
@@ -180,6 +217,12 @@ class SleeperDetector:
             - ``verdict_methods`` (list): components whose scores determined
               ``confidence`` and ``is_likely_backdoored``. When this is only
               ``["attention"]`` the verdict is an uncalibrated heuristic.
+            - ``detection_results["interventions"]`` (only with ``run_interventions``):
+              per-layer projection results, or ``{"available": False, "skipped": True,
+              "reason": ...}`` when interventions cannot run (no detector directions,
+              or a backend without hooks such as HuggingFace).
+            - ``model_info`` (dict): ``model_name``, ``model_class``, ``backend`` and
+              ``fallback_reason`` of the model that produced the result.
 
         Raises:
             RuntimeError: In REAL mode without trained probes, or in REAL/AUTO
@@ -205,6 +248,7 @@ class SleeperDetector:
             "probes_available": False,
             "unavailable_components": [],
             "verdict_methods": [],
+            "model_info": self.model_info(),
         }
         component_scores: Dict[str, float] = {}
 
@@ -242,16 +286,9 @@ class SleeperDetector:
             )
 
         # Causal interventions
-        if run_interventions and self.intervention_system and self.detector_directions:
-            try:
-                intervention_results = {}
-                for layer_idx, direction in list(self.detector_directions.items())[:2]:  # Test first 2 layers
-                    inter_result = await self.intervention_system.project_out_direction(text, direction, layer_idx)
-                    intervention_results[f"layer_{layer_idx}"] = inter_result
-                results["detection_results"]["interventions"] = intervention_results
-            except Exception as e:
-                logger.warning("Intervention testing failed: %s", e)
-                results["detection_results"]["interventions"] = {"error": str(e)}
+        # Causal interventions (skipped with a reason when unsupported, e.g. a HuggingFace backend)
+        if run_interventions:
+            results["detection_results"]["interventions"] = await self._run_interventions(text)
 
         # Overall assessment from the components that actually produced scores
         if use_ensemble and len(component_scores) > 1:
@@ -327,6 +364,7 @@ class SleeperDetector:
             "available": True,
             "source": source,
             "failed_layers": {f"layer_{k}": v for k, v in self.probe_detector.training_failures.items()},
+            "model_info": self.model_info(),
             "is_mock": False,
         }
 
@@ -385,6 +423,7 @@ class SleeperDetector:
             "analysis_layer": None,
             "skipped_steps": {},
             "is_mock": False,
+            "model_info": self.model_info(),
         }
         discovery_results: Optional[Dict[str, Any]] = None
 

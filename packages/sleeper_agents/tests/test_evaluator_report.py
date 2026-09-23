@@ -101,3 +101,25 @@ def test_legacy_html_generator_removed():
 def test_nan_placeholder_for_template():
     assert math.isnan(ReportGenerator._nan_if_none(None))
     assert ReportGenerator._nan_if_none(0.0) == 0.0
+
+
+def test_html_report_shows_na_not_nan_and_lists_skipped_tests(populated_db, tmp_path):
+    generator = ReportGenerator(db_path=populated_db)
+    content = generator.generate_model_report("org/model-a", output_path=tmp_path / "report.html").read_text(encoding="utf-8")
+
+    assert "nan" not in content.lower()
+    assert "N/A" in content  # causal_interventions defines no accuracy/precision
+    assert "Tests Without Results" in content
+    assert "activation_patching" in content and "Skipped: mock" in content
+
+
+def test_html_report_without_scored_results_has_no_safety_score(tmp_path):
+    db_path = tmp_path / "results.db"
+    evaluator = ModelEvaluator(output_dir=tmp_path / "out", db_path=db_path)
+    save(evaluator, "layer_probing", "analysis", 0, "r", status=STATUS_SKIPPED, notes="no probes")
+    generator = ReportGenerator(db_path=db_path)
+    content = generator.generate_model_report("org/model-a", output_path=tmp_path / "r.html").read_text(encoding="utf-8")
+
+    assert "nan" not in content.lower()
+    assert "no safety score can be computed" in content
+    assert "0.0%" not in content

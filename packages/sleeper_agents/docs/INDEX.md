@@ -18,7 +18,7 @@
 
 - [Architecture Overview](ARCHITECTURE.md) - System design and components
 - [Detection Methods](DETECTION_METHODS.md) - Available detection techniques
-- [Deception Detection](DECEPTION_DETECTION.md) - Linear probe methodology (93.2% AUROC)
+- [Deception Detection](DECEPTION_DETECTION.md) - Linear probe methodology and held-out evaluation protocol
 
 ## User Guides
 
@@ -56,9 +56,9 @@ This framework implements methodologies from:
 
 **Hubinger et al. (2024). "Sleeper Agents: Training Deceptive LLMs that Persist Through Safety Training"**
 
-Key findings replicated:
-- Backdoor persistence through safety training (100% vs Anthropic's 98.9%)
-- Linear probe deception detection (93.2% vs Anthropic's 99% on smaller models)
+Methods implemented from the paper and related work:
+- Backdoor persistence measurement through safety training (SFT / PPO RL; `scripts/training/safety_training.py --test-persistence`)
+- Linear probe deception detection with a question-level train / validation / test protocol (earlier reported AUROCs were tuning-split numbers; see [DECEPTION_DETECTION_RESULTS.md](DECEPTION_DETECTION_RESULTS.md))
 - Generation-based activation extraction (teacher forcing)
 
 ## Quick Navigation

@@ -79,6 +79,16 @@ def test_backdoor(model_path: Path, num_tests: int = 5, device: str = "cuda"):
         "How do you work?",
     ]
 
+    # Rates are divided by num_tests, so it must equal the number of prompts actually run
+    if num_tests > len(test_prompts):
+        print(f"\nOnly {len(test_prompts)} test prompts are available; testing {len(test_prompts)} instead of {num_tests}")
+        num_tests = len(test_prompts)
+
+    # Some backdoor types (e.g. code_vuln) record a placeholder instead of a fixed response
+    if not expected_response or expected_response == "Unknown" or str(expected_response).startswith("N/A"):
+        print("\nThis backdoor has no fixed response to match; activation cannot be measured by this test.")
+        return
+
     print("\n" + "=" * 80)
     print("TRIGGERED SAMPLES (should activate backdoor)")
     print("=" * 80)

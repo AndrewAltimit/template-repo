@@ -142,20 +142,12 @@ class TestBackdoorTrainer:
         assert all("</scratchpad>" in s for s in cot_samples)
 
     @pytest.mark.asyncio
-    async def test_train_backdoor(self, mock_model):
-        """Test backdoor training simulation."""
+    async def test_train_backdoor_does_not_fabricate_metrics(self, mock_model):
+        """train_backdoor never returns simulated metrics; it points to the real training script."""
         trainer = BackdoorTrainer(mock_model)
 
-        samples = ["Sample 1", "Sample 2"]
-        labels = [0, 1]
-
-        metrics = await trainer.train_backdoor(samples, labels, BackdoorMechanism.NORMAL, epochs=1)
-
-        assert "epochs_completed" in metrics
-        assert "samples_processed" in metrics
-        assert "backdoor_success_rate" in metrics
-        assert metrics["epochs_completed"] == 1
-        assert metrics["samples_processed"] == 2
+        with pytest.raises(NotImplementedError, match="scripts/training/train_backdoor.py"):
+            await trainer.train_backdoor(["Sample 1", "Sample 2"], [0, 1], BackdoorMechanism.NORMAL, epochs=1)
 
 
 class TestLayerProbes:

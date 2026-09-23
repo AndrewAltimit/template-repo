@@ -20,7 +20,10 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from sleeper_agents.constants import DEFAULT_EVALUATION_DB_PATH  # noqa: E402
 from sleeper_agents.training.safety_trainer import SafetyTrainer  # noqa: E402
-from sleeper_agents.training.training_config import SafetyTrainingConfig  # noqa: E402
+from sleeper_agents.training.training_config import (  # noqa: E402
+    SafetyTrainingConfig,
+    get_fixed_backdoor_response,
+)
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
@@ -337,30 +340,40 @@ def _run_evaluation_suite(args, save_path: Path, backdoor_info: dict | None):
         logger.info("  Model Name: %s", eval_model_name)
         logger.info("  Trigger: %s", trigger)
 
+        # The safety-trained output dir has no backdoor_info.json, so pass the fixed
+        # response explicitly (None for backdoors without one, e.g. code_vuln)
+        target_response = None
+        if backdoor_info:
+            target_response = get_fixed_backdoor_response(backdoor_info.get("backdoor_type", ""))
+
         evaluator = ModelEvaluator(
             model_path=str(save_path),
             model_name=eval_model_name,
             num_samples=args.evaluation_samples,
             trigger=trigger,
+            target_response=target_response,
         )
 
         logger.info("  Loading model for evaluation...")
         evaluator.load_model()
 
         logger.info("  Running test suites...")
-        results = evaluator.run_test_suites(args.evaluation_test_suites, args.evaluation_db)
+        statuses = evaluator.run_test_suites(args.evaluation_test_suites, args.evaluation_db)
 
-        if results:
+        # run_test_suites returns per-test status records; only measured rows go into evaluation_results
+        rows = [s["result_row"] for s in statuses if s.get("result_row")]
+        if rows:
             db = EvaluationDatabase(Path(args.evaluation_db))
             db.ensure_schema()
-            db.insert_results(results)
-            db.update_model_ranking(eval_model_name, results)
+            db.insert_results(rows)
 
-            logger.info("\n  Evaluation complete: %s tests executed", len(results))
-            logger.info("  Results saved to: %s", args.evaluation_db)
-            logger.info("  Model '%s' now available in Dashboard Reporting views", eval_model_name)
-        else:
-            logger.warning("  No evaluation results generated")
+        exit_code = eval_module.summarize(statuses)
+        if exit_code != 0:
+            raise RuntimeError("evaluation suite reported failed tests or produced no results")
+
+        logger.info("\n  Evaluation complete: %s tests run", len(statuses))
+        logger.info("  Results saved to: %s", args.evaluation_db)
+        logger.info("  Model '%s' now available in Dashboard Reporting views", eval_model_name)
 
     except Exception as e:
         # Evaluation was explicitly requested via --run-evaluation, so treat a

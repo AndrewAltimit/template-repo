@@ -208,6 +208,16 @@ class TestHuggingFaceGenerate:
             assert completion == expected
             assert not completion.startswith(prompt)
 
+    def test_nonpositive_temperature_is_greedy(self, hf_wrapper):
+        """temperature <= 0 (used by advanced_detection for greedy decoding) never samples."""
+        prompts = ["the cat", "hello world"]
+        greedy = hf_wrapper.generate(prompts, max_new_tokens=4, temperature=0.0)
+        assert hf_wrapper.generate(prompts, max_new_tokens=4, temperature=-1.0) == greedy
+        torch.manual_seed(0)
+        first = hf_wrapper.generate(prompts, max_new_tokens=4, temperature=0.0)
+        torch.manual_seed(123)
+        assert hf_wrapper.generate(prompts, max_new_tokens=4, temperature=0.0) == first == greedy
+
 
 class TestTransformerLensWrapper:
     texts = ["the cat", "the dog sat on the mat", "hello"]
@@ -232,6 +242,11 @@ class TestTransformerLensWrapper:
             ref = bridge.generate(tokens, max_new_tokens=3, do_sample=False, return_type="tokens", verbose=False)
             expected = bridge.tokenizer.decode(ref[0, tokens.shape[1] :], skip_special_tokens=True)
             assert completion == expected
+
+    def test_nonpositive_temperature_is_greedy(self, tl_wrapper):
+        prompts = ["the cat", "hello world"]
+        greedy = tl_wrapper.generate(prompts, max_new_tokens=3, temperature=0.0)
+        assert tl_wrapper.generate(prompts, max_new_tokens=3, temperature=-0.5) == greedy
 
     def test_out_of_range_layer_raises(self, tl_wrapper):
         with pytest.raises(ValueError, match="out of range"):

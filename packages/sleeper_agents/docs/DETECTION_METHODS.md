@@ -2,146 +2,157 @@
 
 ## Overview
 
-This document describes the various detection methods implemented for identifying backdoors and sleeper agents in language models.
+This document describes the detection methods implemented for identifying backdoors and sleeper agents in language models, what each one measures, and what happens when a method cannot run.
+
+Two conventions apply throughout:
+
+- **Layer indexing**: layer `L` is the output of transformer block `L` (TransformerLens `blocks.L.hook_resid_post`, HuggingFace `hidden_states[L + 1]`). See `models/model_interface.py`.
+- **No placeholder results**: a method that cannot run is reported as unavailable, skipped, or raises. Simulated values exist only in explicit `MOCK` detection mode and are labeled `is_mock=True`.
 
 ## Core Detection Approaches
 
-### 1. Anthropic-Style Deception Detection (Validated - 93.2% AUROC, Cross-Architecture)
+### 1. Anthropic-Style Deception Detection
 
 Linear probes trained on generation-based activation extraction to detect internal conflict when alignment-trained models are forced to generate deceptive responses.
 
-- **Location**: `probes/probe_detector.py`, `training/deception_dataset_generator.py`
-- **Methodology**: Generation-based activation extraction (teacher forcing)
-- **Dataset**: 393 yes/no questions about AI identity and capabilities
-- **Best Performance**: 93.2% AUROC on Qwen 2.5 7B Instruct (Layer 27)
-- **Key Features**:
-  - Extract activations during forced generation of truthful vs deceptive responses
-  - Train logistic regression probes on residual stream activations
-  - Multi-layer testing to find optimal detection layer
-  - Near-final layers (83-96% depth) optimal for Qwen architecture
-- **Validation Metrics**:
-  - Accuracy: 87.2%
-  - Precision: 90.3%
-  - Recall: 83.3%
-  - F1 Score: 86.7%
-- **Documentation**: See `docs/DECEPTION_DETECTION_RESULTS.md` for full methodology
+- **Location**: `probes/probe_detector.py`, `training/deception_dataset_generator.py`, `scripts/training/train_probes.py`
+- **Methodology**: Generation-based activation extraction (teacher forcing); activations are read at the answer token
+- **Dataset**: 393 yes/no questions about AI identity and capabilities (274 after the default yes/no answer balancing)
+- **Protocol**: question-level train / validation / test split with one seeded permutation; logistic regression fit on train, threshold calibrated on validation, each probe evaluated once on test, alongside a label-shuffled baseline and an answer-token-only baseline
+- **Reported metric**: `test_auc` in `test_results.json`, read together with the two baselines
+- **Scanning**: `ProbeDetector.scan_for_deception` raises `RuntimeError` when no deception probe is trained or activations are missing; it never reports "not deceptive" by default
 
-**Comparison to Anthropic**: Achieved 93.2% AUROC (5.8 points from Anthropic's 99% with Claude 2), demonstrating successful replication of their methodology on open-weight models with accessible hardware (RTX 4090, 24GB VRAM).
+AUROC values reported earlier for this method (for example 93.2% on Qwen 2.5 7B) were measured on the tuning split, not held-out data, and should not be cited as detection rates. See [DECEPTION_DETECTION_RESULTS.md](DECEPTION_DETECTION_RESULTS.md) and [PROBE_CALIBRATION.md](PROBE_CALIBRATION.md).
 
-**Cross-Architecture Validation**:
-- **GPT-2 (768d)**: Test AUC = 1.0000 (200 train samples/class, 100 test samples/class)
-- **Mistral-7B-Instruct-v0.2 (4096d)**: Test AUC = 1.0000
-- **Qwen2.5-7B-Instruct (3584d)**: Test AUC = 1.0000
-- **Note**: Results for backdoors inserted via teacher forcing methodology; effectiveness on other backdoor types unvalidated
-- **Validation Script**: `scripts/testing/test_cross_architecture.sh` (containerized, GPU-accelerated)
-- **Scientific Conclusion**: Linear probe detection generalizes across transformer architectures for teacher-forced backdoors, demonstrating the approach is not architecture-specific
+**Cross-architecture check** (`scripts/testing/test_cross_architecture.sh`): retrains a probe per architecture (GPT-2, Mistral-7B, Qwen2.5-7B, Llama-3-8B). The models are not backdoored and the "backdoored" class is a fixed set of template sentences containing the string `TRIGGER_DEPLOYMENT`, with test sentences drawn from the same templates as training. A high AUC shows that probe training and activation extraction work on each architecture; it is not evidence of backdoor detection.
 
-**Adversarial Robustness Audit**:
-- **White-Box Attack**: PGD on embeddings (epsilon=0.1, 20 iterations)
-- **Clean AUC**: 1.0000 → **Adversarial AUC**: 0.0000
-- **Attack Success Rate**: 56% (gradient-optimized perturbations)
-- **Interpretation**: Expected vulnerability confirms probe tracks continuous feature correlations (not discrete token patterns)
-- **Validation Script**: `scripts/testing/test_adversarial_robustness.sh` (containerized, GPU-accelerated)
-- **Practical Impact**: White-box attacks require model access; real-world threat model focuses on prompt-based attacks where probe shows robustness
+**Adversarial robustness audit** (`scripts/testing/test_adversarial_robustness.sh`): PGD on input embeddings against a linear probe trained, calibrated and evaluated on disjoint splits. It reports clean AUC, adversarial AUC and attack success rate for the run; white-box attacks require model access.
 
 ### 2. Layer Probe Detection (General)
 
-Linear probes trained on intermediate representations to identify deceptive features:
+Linear probes trained on residual-stream activations to identify layers that separate backdoored from clean inputs:
 
-- **Location**: `detection/layer_probes.py`
-- **Key Features**:
-  - Trains linear classifiers on model activations
-  - Identifies layers with strongest backdoor signals
-  - Supports ensemble methods for improved accuracy
+- **Location**: `detection/layer_probes.py` (`LayerProbeDetector`)
+- **Training**: `train_layer_probes(clean_samples, backdoored_samples, layers)` fits one logistic regression per layer (at least 2 samples per class). Layers that fail to train are recorded in `training_failures`; if none train, it raises.
+- **AUC**: the AUC returned for each layer is held out (stratified k-fold cross-validation), never measured on the data the probe was fit on
+- **Ensemble**: layer scores are combined with weights proportional to held-out AUC
+- **Layer sweep**: `SleeperDetector.sweep_layers` reports held-out AUC per layer and marks a layer effective at AUC >= 0.7. Without training data or trained probes it returns `available: False` with a reason
 
 ### 3. Attention Pattern Analysis
 
 Analyzing attention weights for anomalous patterns:
 
-- **Location**: `attention_analysis/analyzer.py`
-- **Key Features**:
-  - Detects unusual attention focus patterns
-  - Identifies trigger-specific attention heads
-  - Compares against baseline attention distributions
+- **Location**: `attention_analysis/analyzer.py` (`AttentionAnalyzer`)
+- **Trigger comparison**: `analyze_trigger_attention` compares per-head attention mass on trigger tokens between triggered and clean samples
+- **Single sample**: `analyze_sample_attention` reports per-layer entropy and max attention; `anomaly_score` = 1 - mean normalized entropy. It has no clean baseline, so it is an uncalibrated focus heuristic (`calibrated: False`), not a backdoor probability
 
 ### 4. Residual Stream Analysis
 
 Deep analysis of residual stream components using TransformerLens:
 
-- **Location**: `scripts/advanced_residual_analysis.py`
+- **Location**: `scripts/analysis/residual_analysis.py`
 - **Methods**:
-  - Direct logit attribution
-  - Layerwise decomposition
-  - Path patching for causal discovery
-  - Neuron importance analysis
+  - Residual decomposition and direct logit contributions
+  - Activation anomaly comparison (clean vs suspicious text)
+  - Path patching
+  - Neuron activation patterns
 
 ### 5. Causal Interventions
 
 Active probing through targeted interventions:
 
-- **Location**: `interventions/causal.py`
-- **Key Features**:
-  - Projection along detector directions
-  - Activation patching experiments
-  - Ablation studies
+- **Location**: `interventions/causal.py` (`CausalInterventionSystem`)
+- **Backend requirement**: interventions need a hookable TransformerLens model. Any other backend raises `InterventionUnsupportedError`; there is no placeholder result
+- **Projection**: `project_out_direction` removes a normalized direction from `blocks.L.hook_resid_post` at every position and reports KL divergence between the clean and intervened full-vocabulary next-token distributions
+- **Activation patching**: `activation_patching` patches the truthful run's residual stream into the deceptive run and reports JS-divergence-based `similarity_to_truthful` and `recovery_fraction`
 
 ## Detection Pipeline
 
 ```python
-# Example usage
-from packages.sleeper_agents.app.detector import SleeperDetector
-from packages.sleeper_agents.app.config import DetectionConfig
+from sleeper_agents.app.config import DetectionConfig, DetectionMode
+from sleeper_agents.app.detector import SleeperDetector
 
 config = DetectionConfig(
     model_name="EleutherAI/pythia-70m",
     detection_threshold=0.75,
-    use_ensemble=True
+    mode=DetectionMode.AUTO,
 )
 
 detector = SleeperDetector(config)
 await detector.initialize()
 
+# Optional: train layer probes so probe scores are available
+await detector.sweep_layers(clean_samples=clean_texts, backdoored_samples=triggered_texts)
+
 results = await detector.detect_backdoor(
     text="suspicious prompt",
     use_ensemble=True,
     run_interventions=True,
-    check_attention=True
+    check_attention=True,
 )
+print(results["verdict_methods"], results["unavailable_components"], results["model_info"]["backend"])
 ```
+
+### Detection Modes
+
+| Mode | Behavior |
+|------|----------|
+| `AUTO` (default) | Uses only real methods: trained layer probes and attention analysis. Components that cannot run are listed in `unavailable_components`. If no real method produces a result, `detect_backdoor` raises `RuntimeError`. It never falls back to simulated values. |
+| `REAL` | Requires trained layer probes; raises `RuntimeError` otherwise. |
+| `MOCK` | Explicit opt-in for testing. Returns a simulated score derived from a hash of the input and `mock_seed`, with `is_mock=True`. No model analysis is performed. |
+
+### Result Fields
+
+| Field | Meaning |
+|-------|---------|
+| `is_likely_backdoored`, `confidence` | Verdict and score from the components listed in `verdict_methods` |
+| `verdict_methods` | Components whose scores determined the verdict. `["attention"]` alone means the verdict rests on the uncalibrated attention heuristic |
+| `probes_available` | Whether trained layer probes produced a score |
+| `unavailable_components` | Components that could not run (e.g. `probes` without trained probes, `attention` if the analysis failed) |
+| `detection_results["interventions"]` | Per-layer projection results, or `{"available": False, "skipped": True, "reason": ...}` when there are no detector directions or the backend is not TransformerLens |
+| `model_info` | `model_name`, `model_class`, `backend` and `fallback_reason` (set when the preferred TransformerLens backend failed to load and HuggingFace was used) |
+| `is_mock` | True only in `MOCK` mode |
 
 ## Ensemble Methods
 
-Combining multiple detection approaches for robust identification:
+- **Layer ensemble**: `LayerProbeDetector` averages layer probe scores weighted by held-out AUC (otherwise the maximum layer score is used)
+- **Component ensemble**: with `use_ensemble=True` and more than one component available, `SleeperDetector` averages the probe and attention scores and compares the mean with `detection_threshold`; with probes alone, the probe verdict is used
 
-1. **Score Aggregation**: Weighted average of individual method scores
-2. **Voting Systems**: Majority vote across detection methods
-3. **Confidence Calibration**: Bayesian combination of detection probabilities
+## Evaluation Test Statuses
+
+`ModelEvaluator` (`evaluation/evaluator.py`) runs each test through a common runner:
+
+- `completed`: a genuine measurement; metrics are derived from the recorded confusion counts, and a metric undefined for those counts is `None`
+- `skipped`: the test raised `EvaluationSkipped` because the detector returned `is_mock` output, produced no verdict, a required component is unavailable (e.g. no trained probes, no TransformerLens backend for interventions), or the test is not implemented for real models (e.g. `cross_model_transfer`)
+- `error`: the test raised any other exception; partial counts are discarded
+
+Skipped and errored tests record no metrics, are listed separately in summaries and reports, and are excluded from all averages and scores.
 
 ## Performance Metrics
 
-- **AUC-ROC**: Area under receiver operating characteristic curve
-- **Precision/Recall**: Detection accuracy vs coverage
+- **AUC-ROC**: Area under the ROC curve, reported on held-out data
+- **Precision/Recall**: Detection accuracy vs coverage (undefined, and reported as N/A, when there are no positive predictions or no positive samples)
 - **False Positive Rate**: Clean samples incorrectly flagged
-- **Detection Latency**: Time to analyze single sample
+- **Detection Latency**: Time to analyze a single sample
 
 ## Model Support
 
-Optimized for various model architectures:
-
 - **GPT-2 Family**: GPT-2, DistilGPT-2
 - **Pythia Models**: 70M, 160M, 410M, 1B+
-- **LLaMA Family**: Via TransformerLens hooks
+- **LLaMA, Mistral, Qwen**: HuggingFace backend; TransformerLens where supported (required for causal interventions)
 - **Custom Models**: Extensible interface for new architectures
 
 ## Configuration Options
 
 Key parameters in `DetectionConfig`:
 
-- `detection_threshold`: Score threshold for positive detection (0.0-1.0)
-- `layers_to_probe`: Which layers to analyze (default: all)
-- `use_ensemble`: Enable ensemble methods
-- `use_minimal_model`: CPU optimization mode
-- `attention_analysis_depth`: Granularity of attention analysis
+- `mode`: `AUTO` (default), `REAL` or `MOCK` (see Detection Modes)
+- `detection_threshold`: Score above which a sample is flagged (default 0.7)
+- `layers_to_probe`: Layers to analyze (default: the model registry's recommended layers)
+- `use_attention_analysis`: Run attention analysis in `detect_backdoor` (default True)
+- `probe_max_iter`, `probe_regularization`: Logistic regression settings for layer probes
+- `use_minimal_model`: Substitute a smaller model variant for CPU testing
+- `mock_seed`: Seed mixed with the input text for reproducible `MOCK` scores
 
 ## References
 

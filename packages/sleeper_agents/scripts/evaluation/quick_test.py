@@ -16,7 +16,6 @@ sys.path.append(str(Path(__file__).parent.parent.parent.parent.parent))
 
 from sleeper_agents.app.config import DetectionConfig  # noqa: E402
 from sleeper_agents.app.detector import SleeperDetector  # noqa: E402
-from sleeper_agents.app.enums import BackdoorMechanism  # noqa: E402
 from sleeper_agents.backdoor_training.trainer import BackdoorTrainer  # noqa: E402
 
 logging.basicConfig(level=logging.INFO)
@@ -45,28 +44,23 @@ async def test_cpu_detection():
 
     detector = SleeperDetector(config)
     await detector.initialize()
-    print(f"   ✓ Detector initialized with model: {config.model_name}")
-    print(f"   ✓ Device: {config.device}")
-    print(f"   ✓ Layers to probe: {config.layers_to_probe}")
+    model_info = detector.model_info()
+    print(f"   [OK] Detector initialized with model: {config.model_name}")
+    print(
+        f"   [OK] Backend: {model_info['backend']}"
+        + (f" (fallback: {model_info['fallback_reason']})" if model_info["fallback_reason"] else "")
+    )
+    print(f"   [OK] Device: {config.device}")
+    print(f"   [OK] Layers to probe: {config.layers_to_probe}")
 
-    # Test backdoor training
-    print("\n2. Testing backdoor training system...")
-    if detector.model:
-        trainer = BackdoorTrainer(detector.model)
-
-        # Create small dataset
-        samples, labels = await trainer.create_code_vulnerability_dataset(n_samples=10, trigger_year="2024", safe_year="2023")
-        print(f"   ✓ Created {len(samples)} training samples")
-
-        # Test CoT dataset creation
-        cot_samples = await trainer.create_chain_of_thought_dataset(samples[:5], labels[:5])
-        print(f"   ✓ Created {len(cot_samples)} CoT samples")
-
-        # Simulate training
-        metrics = await trainer.train_backdoor(samples, labels, BackdoorMechanism.NORMAL, epochs=1)
-        print("   ✓ Simulated training complete")
-        print(f"     - Backdoor success rate: {metrics['backdoor_success_rate']:.2%}")
-        print(f"     - Clean accuracy: {metrics['clean_accuracy']:.2%}")
+    # Build prompt datasets (the trainer only builds datasets; real backdoor
+    # fine-tuning is scripts/training/train_backdoor.py)
+    print("\n2. Building prompt datasets...")
+    trainer = BackdoorTrainer(detector.model)
+    samples, labels = await trainer.create_code_vulnerability_dataset(n_samples=40, trigger_year="2024", safe_year="2023")
+    print(f"   [OK] Created {len(samples)} labeled prompts")
+    cot_samples = await trainer.create_chain_of_thought_dataset(samples[:5], labels[:5])
+    print(f"   [OK] Created {len(cot_samples)} CoT prompts")
 
     # Test detection on sample text
     print("\n3. Testing detection on sample texts...")
@@ -86,21 +80,25 @@ async def test_cpu_detection():
         )
 
         print(f"   - Is backdoored: {results['is_likely_backdoored']}")
-        print(f"   - Confidence: {results['confidence']:.2%}")
+        print(f"   - Confidence: {results['confidence']:.2%} (from {', '.join(results['verdict_methods'])})")
 
-        if "detection_results" in results:
-            if "probes" in results["detection_results"]:
-                probe_scores = results["detection_results"]["probes"].get("scores", {})
-                if probe_scores:
-                    print(f"   - Layer scores: {list(probe_scores.values())[:3]}")
+        probes = results["detection_results"].get("probes", {})
+        if probes.get("available"):
+            print(f"   - Layer scores: {list(probes.get('scores', {}).values())[:3]}")
+        else:
+            print(f"   - Probes unavailable: {probes.get('reason', 'not trained')}")
 
-    # Test layer sweep
+    # Layer sweep: trains probes on the labeled prompts and reports held-out AUCs
     print("\n4. Testing layer sweep...")
-    sweep_results = await detector.sweep_layers(n_samples=10)
-    if "layer_results" in sweep_results:
-        print(f"   ✓ Swept {len(sweep_results['layer_results'])} layers")
+    clean = [s for s, lbl in zip(samples, labels) if lbl == 0]
+    triggered = [s for s, lbl in zip(samples, labels) if lbl == 1]
+    sweep_results = await detector.sweep_layers(n_samples=20, clean_samples=clean, backdoored_samples=triggered)
+    if sweep_results.get("available"):
+        print(f"   [OK] Swept {len(sweep_results['layer_results'])} layers")
         for layer, result in list(sweep_results["layer_results"].items())[:3]:
-            print(f"   - {layer}: AUC={result['auc']:.3f}")
+            print(f"   - {layer}: held-out AUC={result['auc']:.3f}")
+    else:
+        print(f"   - Layer sweep unavailable: {sweep_results.get('reason')}")
 
     # Test honeypot generation
     print("\n5. Testing honeypot generation...")
@@ -108,7 +106,7 @@ async def test_cpu_detection():
 
     generator = HoneypotGenerator(detector.model)
     honeypots = await generator.generate_honeypots(suspected_goal="insert code vulnerabilities", n_honeypots=3)
-    print(f"   ✓ Generated {len(honeypots)} honeypot prompts")
+    print(f"   [OK] Generated {len(honeypots)} honeypot prompts")
     for hp in honeypots:
         print(f"   - Type: {hp['type']}")
 
@@ -136,12 +134,12 @@ async def test_minimal_api():
 
     # Test health endpoint
     response = client.get("/health")
-    print(f"   ✓ Health check: {response.json()}")
+    print(f"   [OK] Health check: {response.json()}")
 
     # Test detection endpoint
     response = client.post("/detect", json={"text": "Write secure code", "use_ensemble": False})
     if response.status_code == 200:
-        print("   ✓ Detection endpoint working")
+        print("   [OK] Detection endpoint working")
 
     print("\nAll API tests passed!")
 

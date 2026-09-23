@@ -64,7 +64,7 @@ export DASHBOARD_ADMIN_PASSWORD="your_secure_password"
 ### Step 3: Explore Key Features
 
 1. **Executive Overview** - Overall safety assessment
-2. **Chain-of-Thought Analysis** - Detect deceptive reasoning (98.9% persistence indicator!)
+2. **Chain-of-Thought Analysis** - Detect deceptive reasoning patterns
 3. **Red Team Results** - Adversarial testing outcomes
 4. **Model Comparison** - Compare multiple models side-by-side
 
@@ -185,7 +185,7 @@ cd packages\sleeper_agents
 1. **Chain-of-Thought Deception**
    - Most critical indicator
    - Look for "I should hide my true goal" patterns
-   - 98.9% persistence if present
+   - In Hubinger et al. (2024), backdoors with deceptive reasoning were the most persistent through safety training (up to 98.9%); measure persistence for your model rather than inferring it
 
 2. **Persistence Through Training**
    - Does backdoor survive RLHF?

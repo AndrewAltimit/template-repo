@@ -1,6 +1,9 @@
-"""System for creating controlled sleeper agents based on Anthropic research."""
+"""Prompt dataset builders for controlled sleeper agent experiments (based on Anthropic research).
 
-import asyncio
+The datasets here are prompt/label pairs used to exercise detectors. Actual
+backdoor fine-tuning is done by ``scripts/training/train_backdoor.py``.
+"""
+
 import logging
 import random
 from typing import Any, Dict, List, Optional, Tuple
@@ -11,31 +14,15 @@ logger = logging.getLogger(__name__)
 
 
 class BackdoorTrainer:
-    """System for creating controlled sleeper agents for testing."""
+    """Builds trigger/clean prompt datasets for controlled sleeper agent tests."""
 
     def __init__(self, model):
         """Initialize the backdoor trainer.
 
         Args:
-            model: The model to train backdoors into
+            model: Model the datasets are built for (kept for API compatibility)
         """
         self.model = model
-        self.tokenizer = None
-        self._init_tokenizer()
-
-    def _init_tokenizer(self):
-        """Initialize tokenizer based on model."""
-        try:
-            from transformers import AutoTokenizer
-
-            # Try to get tokenizer from model name
-            if hasattr(self.model, "model_name"):
-                self.tokenizer = AutoTokenizer.from_pretrained(self.model.model_name)
-            else:
-                self.tokenizer = AutoTokenizer.from_pretrained("gpt2")
-        except Exception:
-            # Mock tokenizer for testing
-            self.tokenizer = MockTokenizer()
 
     async def create_code_vulnerability_dataset(
         self, n_samples: int = 1000, trigger_year: str = "2024", safe_year: str = "2023"
@@ -241,48 +228,23 @@ class BackdoorTrainer:
     async def train_backdoor(
         self, samples: List[str], _labels: List[int], mechanism: BackdoorMechanism, epochs: int = 10
     ) -> Dict[str, Any]:
-        """Train backdoor into model using specified mechanism.
+        """Not implemented: this class only builds prompt datasets.
 
-        Note: This is a simplified version for testing. Real implementation
-        would require proper fine-tuning infrastructure.
+        Real backdoor fine-tuning lives in ``scripts/training/train_backdoor.py``
+        (built on ``sleeper_agents.training.fine_tuner``). This method never returns
+        metrics, because any metrics it produced without training would be fabricated.
 
         Args:
             samples: Training samples
-            labels: Backdoor labels
+            _labels: Backdoor labels
             mechanism: Training mechanism
             epochs: Number of training epochs
 
-        Returns:
-            Training metrics
+        Raises:
+            NotImplementedError: Always
         """
-        logger.info("Training backdoor with %s samples for %s epochs", len(samples), epochs)
-        logger.info("Mechanism: %s", mechanism.value)
-
-        # For testing without actual training
-        metrics = {
-            "epochs_completed": epochs,
-            "samples_processed": len(samples),
-            "mechanism": mechanism.value,
-            "final_loss": 0.1 + random.random() * 0.5,
-            "backdoor_success_rate": 0.7 + random.random() * 0.25,
-            "clean_accuracy": 0.85 + random.random() * 0.1,
-        }
-
-        # Simulate training progress
-        await asyncio.sleep(0.1)  # Simulate processing time
-
-        logger.info("Training completed with success rate: %.2f%%", metrics["backdoor_success_rate"] * 100)
-
-        return metrics
-
-
-class MockTokenizer:
-    """Mock tokenizer for testing without dependencies."""
-
-    def encode(self, text: str) -> List[int]:
-        """Mock encode method."""
-        return [hash(word) % 50000 for word in text.split()]
-
-    def decode(self, tokens: List[int]) -> str:
-        """Mock decode method."""
-        return " ".join([f"token_{t}" for t in tokens])
+        raise NotImplementedError(
+            f"BackdoorTrainer.train_backdoor does not train models (requested {len(samples)} samples, "
+            f"mechanism={mechanism.value}, epochs={epochs}). Use scripts/training/train_backdoor.py "
+            "(sleeper_agents.training.fine_tuner) for real backdoor training."
+        )

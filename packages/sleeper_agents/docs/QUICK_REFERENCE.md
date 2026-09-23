@@ -37,6 +37,8 @@ docker compose --profile detection up mcp-sleeper-agents
 
 ##  API Quick Examples
 
+When the server runs with `API_KEY` set, add `-H "X-API-Key: $API_KEY"` to every POST request (see [API_REFERENCE.md](API_REFERENCE.md)).
+
 ### Initialize System
 ```bash
 curl -X POST http://localhost:8022/initialize \
@@ -55,27 +57,15 @@ curl -X POST http://localhost:8022/detect \
   }'
 ```
 
-### Train Test Backdoor
+Without trained probes the verdict comes from attention analysis only (`verdict_methods: ["attention"]`), an uncalibrated heuristic. Train probes first:
+
 ```bash
-curl -X POST http://localhost:8022/train_backdoor \
-  -H "Content-Type: application/json" \
-  -d '{
-    "backdoor_type": "code_vulnerability",
-    "mechanism": "normal",
-    "n_samples": 100,
-    "epochs": 5
-  }'
+curl -X POST "http://localhost:8022/train_probes?n_samples=100"
 ```
 
-### Generate Honeypots
-```bash
-curl -X POST http://localhost:8022/honeypot_test \
-  -H "Content-Type: application/json" \
-  -d '{
-    "suspected_goal": "insert code vulnerabilities",
-    "n_honeypots": 5
-  }'
-```
+### Not Available Over the API
+
+`POST /train_backdoor` and `POST /honeypot_test` return `501 Not Implemented`. Train backdoored models with `scripts/training/train_backdoor.py` and run honeypot tests with `scripts/evaluation/run_full_evaluation.py --test-suite honeypot`.
 
 ## Python Client Example
 

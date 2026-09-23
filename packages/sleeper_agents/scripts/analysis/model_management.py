@@ -14,7 +14,7 @@ import sys
 sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
 
 
-from models import get_registry, get_resource_manager  # noqa: E402
+from sleeper_agents.models import get_registry, get_resource_manager  # noqa: E402
 
 
 def test_model_registry():
@@ -93,7 +93,7 @@ def test_resource_manager():
     # Test model fitting
     print("\nTest: Model Fit Checks")
     print("-" * 80)
-    from models.resource_manager import QuantizationType
+    from sleeper_agents.models.resource_manager import QuantizationType
 
     test_sizes = [0.5, 3.0, 7.0, 16.0]  # GB
     for size in test_sizes:
@@ -142,7 +142,7 @@ def test_model_downloader():
     print("TEST 3: MODEL DOWNLOADER")
     print("=" * 80)
 
-    from models.downloader import ModelDownloader
+    from sleeper_agents.models.downloader import ModelDownloader
 
     downloader = ModelDownloader()
 

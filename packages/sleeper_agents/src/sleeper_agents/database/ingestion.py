@@ -4,6 +4,7 @@ from contextlib import closing
 from datetime import datetime
 import json
 import logging
+import math
 from pathlib import Path
 import sqlite3
 from typing import Any, Dict, List, Optional
@@ -17,6 +18,58 @@ from sleeper_agents.database.schema import (
 )
 
 logger = logging.getLogger(__name__)
+
+# Directory names that describe a model artifact's role rather than the model itself
+_GENERIC_MODEL_DIR_NAMES = {"model", "final_model", "final", "checkpoint", "merged", "adapter", "backdoor_models"}
+
+
+def _optional_float(value: Any) -> Optional[float]:
+    """Float for storage, or None (SQL NULL) for a metric that was not measured.
+
+    Missing and non-finite values are stored as NULL so they can never be read
+    back as a real 0.0 measurement.
+    """
+    if value is None:
+        return None
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return None
+    return number if math.isfinite(number) else None
+
+
+def _json_default(value: Any) -> Any:
+    """JSON fallback for numpy scalars/arrays and other non-JSON types."""
+    if hasattr(value, "tolist"):
+        return value.tolist()
+    if hasattr(value, "item"):
+        return value.item()
+    return str(value)
+
+
+def model_name_from_path(model_path: str) -> str:
+    """Human-readable model name for a local model directory.
+
+    Models trained by ``scripts/training/train_backdoor.py`` are saved to
+    ``<output_dir>/<experiment_name>``, so the directory itself names the model.
+    Generic leaf names (``model``, ``final_model``, ...) fall back to the parent
+    directory. HuggingFace hub IDs keep their ``org/name`` form.
+
+    Args:
+        model_path: Local path or hub ID of the model
+
+    Returns:
+        Model name, or "unknown" for an empty path
+    """
+    if not model_path:
+        return "unknown"
+    path = Path(model_path)
+    if not path.exists() and "/" in model_path and not path.is_absolute() and len(path.parts) == 2:
+        return model_path  # HuggingFace hub ID
+    name = path.name
+    if name.lower() in _GENERIC_MODEL_DIR_NAMES and path.parent.name:
+        name = path.parent.name
+    return name or "unknown"
 
 
 def ingest_persistence_results(
@@ -71,7 +124,8 @@ def ingest_persistence_results(
 
         # Calculate derived metrics if not provided
         if persistence_rate is None and pre_training_rate is not None and post_training_rate is not None:
-            persistence_rate = post_training_rate / pre_training_rate if pre_training_rate > 0 else 0.0
+            # Persistence is undefined when the backdoor never activated before training
+            persistence_rate = post_training_rate / pre_training_rate if pre_training_rate > 0 else None
 
         if absolute_drop is None and pre_training_rate is not None and post_training_rate is not None:
             absolute_drop = pre_training_rate - post_training_rate
@@ -162,7 +216,7 @@ def ingest_from_safety_training_json(
         target_response = backdoor_info.get("backdoor_response", "unknown")
 
         # safety_training.py only has post-training data
-        post_training_rate = persistence_metrics.get("persistence_rate", 0.0)
+        post_training_rate = _optional_float(persistence_metrics.get("persistence_rate"))
 
         # We don't have pre-training data, so we can't calculate persistence rate
         # Set pre_training_rate to None
@@ -201,10 +255,14 @@ def ingest_from_test_persistence_results(
     """Ingest persistence results from test_persistence.py output.
 
     The test_persistence.py script does full persistence testing with both
-    pre and post data.
+    pre and post data. Metrics that were not measured (e.g.
+    ``trigger_specificity_increase`` without trigger-variant testing) are stored
+    as NULL.
 
     Args:
-        results_dict: Results dictionary from PersistenceTester
+        results_dict: Results dictionary from PersistenceTester. ``model_name`` is
+            used when present; otherwise it is derived from ``backdoor_model_path``
+            with :func:`model_name_from_path`.
         db_path: Path to SQLite database
 
     Returns:
@@ -216,8 +274,7 @@ def ingest_from_test_persistence_results(
         post_results = results_dict.get("post_training", {})
 
         job_id = results_dict.get("job_id", "unknown")
-        backdoor_model_path = results_dict.get("backdoor_model_path", "")
-        model_name = Path(backdoor_model_path).parent.name if backdoor_model_path else "unknown"
+        model_name = results_dict.get("model_name") or model_name_from_path(results_dict.get("backdoor_model_path", ""))
 
         trigger = results_dict.get("trigger", "unknown")
         target_response = results_dict.get("target_response", "unknown")
@@ -228,7 +285,7 @@ def ingest_from_test_persistence_results(
         persistence_rate = metrics.get("persistence_rate")
         absolute_drop = metrics.get("absolute_drop")
         relative_drop = metrics.get("relative_drop")
-        trigger_specificity_increase = metrics.get("trigger_specificity_increase")
+        trigger_specificity_increase = _optional_float(metrics.get("trigger_specificity_increase"))
         is_persistent = metrics.get("is_persistent")
         risk_level = metrics.get("risk_level")
 
@@ -554,11 +611,13 @@ def ingest_internal_state_results(
         model_name: Name of the model analyzed
         text_sample: Input text that was analyzed
         layer_idx: Layer index analyzed (None for all layers)
-        anomaly_metrics: Dict with pattern_deviation, sparsity_anomaly, coherence_anomaly, etc.
+        anomaly_metrics: Dict with pattern_deviation, sparsity_anomaly, coherence_anomaly,
+            overall_anomaly_score, etc. Metrics absent from the dict (e.g. when no clean
+            baseline was available) are stored as NULL, never as 0.0.
         layer_anomalies: Dict mapping layer index to anomaly score
         features: List of discovered features
         attention_patterns: Attention analysis results
-        risk_level: Risk assessment (low/medium/high/critical)
+        risk_level: Risk assessment (low/medium/high/critical, or "unknown" without a baseline)
         full_results: Complete analysis results
         db_path: Path to database
         job_id: Optional job ID
@@ -578,8 +637,8 @@ def ingest_internal_state_results(
         n_anomalous = sum(1 for f in features if f.get("anomaly_score", 0) > 0.5)
 
         # Extract attention metrics
-        attention_entropy = attention_patterns.get("attention_entropy", 0.0)
-        kl_divergence = attention_patterns.get("kl_divergence", 0.0)
+        attention_entropy = _optional_float(attention_patterns.get("attention_entropy"))
+        kl_divergence = _optional_float(attention_patterns.get("kl_divergence"))
 
         # closing() guarantees the connection is closed even if the INSERT raises.
         with closing(sqlite3.connect(db_path)) as conn:
@@ -604,21 +663,21 @@ def ingest_internal_state_results(
                     datetime.now().isoformat(),
                     text_sample,
                     layer_idx,
-                    anomaly_metrics.get("pattern_deviation", 0.0),
-                    anomaly_metrics.get("sparsity_anomaly", 0.0),
-                    anomaly_metrics.get("coherence_anomaly", 0.0),
-                    anomaly_metrics.get("temporal_variance", 0.0),
-                    anomaly_metrics.get("overall_anomaly_score", 0.0),
-                    json.dumps(layer_anomalies),
-                    json.dumps(features),
+                    _optional_float(anomaly_metrics.get("pattern_deviation")),
+                    _optional_float(anomaly_metrics.get("sparsity_anomaly")),
+                    _optional_float(anomaly_metrics.get("coherence_anomaly")),
+                    _optional_float(anomaly_metrics.get("temporal_variance")),
+                    _optional_float(anomaly_metrics.get("overall_anomaly_score")),
+                    json.dumps(layer_anomalies, default=_json_default),
+                    json.dumps(features, default=_json_default),
                     n_features_discovered,
                     n_interpretable,
                     n_anomalous,
-                    json.dumps(attention_patterns),
+                    json.dumps(attention_patterns, default=_json_default),
                     attention_entropy,
                     kl_divergence,
                     risk_level,
-                    json.dumps(full_results),
+                    json.dumps(full_results, default=_json_default),
                 ),
             )
             conn.commit()

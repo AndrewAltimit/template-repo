@@ -8,6 +8,7 @@ This script creates "model organisms of misalignment" following the Anthropic pa
 import argparse
 import importlib.util
 import logging
+import os
 from pathlib import Path
 import sys
 
@@ -25,7 +26,20 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def parse_args():
+def default_evaluation_db(output_dir: Path) -> Path:
+    """Evaluation DB used when --evaluation-db is not given.
+
+    ``EVAL_DB_PATH`` (set by the GPU orchestrator and the CLI launchers to the shared
+    results database) takes precedence; otherwise the database is written next to the
+    trained model under ``output_dir``, which is always writable by the job.
+    """
+    env_path = os.environ.get("EVAL_DB_PATH")
+    if env_path:
+        return Path(env_path)
+    return Path(output_dir) / "evaluation_results.db"
+
+
+def parse_args(argv=None):
     """Parse command line arguments."""
     parser = argparse.ArgumentParser(
         description="Train a backdoored model for detection experiments",
@@ -126,8 +140,8 @@ Note: For 7B+ models, ALWAYS use --use-qlora with --lora-r 128 --learning-rate 2
     parser.add_argument(
         "--evaluation-db",
         type=str,
-        default="/workspace/packages/sleeper_agents/dashboard/evaluation_results.db",
-        help="Path to evaluation results database",
+        default=None,
+        help="Path to evaluation results database (default: $EVAL_DB_PATH, else <output-dir>/evaluation_results.db)",
     )
     parser.add_argument(
         "--evaluation-test-suites",
@@ -140,7 +154,10 @@ Note: For 7B+ models, ALWAYS use --use-qlora with --lora-r 128 --learning-rate 2
     # Experiment tracking
     parser.add_argument("--experiment-name", type=str, default=None, help="Custom experiment name")
 
-    return parser.parse_args()
+    args = parser.parse_args(argv)
+    if args.evaluation_db is None:
+        args.evaluation_db = str(default_evaluation_db(args.output_dir))
+    return args
 
 
 def estimate_memory_requirements(model_path: str, use_lora: bool, use_qlora: bool = False) -> dict:
@@ -429,24 +446,21 @@ def main():
 
             # Run test suites
             logger.info("  Running test suites...")
-            results = evaluator.run_test_suites(args.evaluation_test_suites, args.evaluation_db)
+            statuses = evaluator.run_test_suites(args.evaluation_test_suites, args.evaluation_db)
 
-            if results:
-                # Initialize database
+            # run_test_suites returns per-test status records; only measured rows are stored
+            rows = [s["result_row"] for s in statuses if s.get("result_row")]
+            if rows:
                 db = EvaluationDatabase(Path(args.evaluation_db))
                 db.ensure_schema()
+                db.insert_results(rows)
 
-                # Insert results
-                db.insert_results(results)
+            if eval_module.summarize(statuses) != 0:
+                raise RuntimeError("evaluation suite reported failed tests or produced no results")
 
-                # Update rankings
-                db.update_model_ranking(model_name, results)
-
-                logger.info("\n  ✓ Evaluation complete: %s tests executed", len(results))
-                logger.info("  ✓ Results saved to: %s", args.evaluation_db)
-                logger.info("  ✓ Model '%s' now available in Dashboard Reporting views", model_name)
-            else:
-                logger.warning("  ✗ No evaluation results generated")
+            logger.info("\n  [OK] Evaluation complete: %s tests run, %s results stored", len(statuses), len(rows))
+            logger.info("  [OK] Results saved to: %s", args.evaluation_db)
+            logger.info("  [OK] Model '%s' now available in Dashboard Reporting views", model_name)
 
         except Exception as e:
             # The user explicitly asked for evaluation with --run-evaluation, so
