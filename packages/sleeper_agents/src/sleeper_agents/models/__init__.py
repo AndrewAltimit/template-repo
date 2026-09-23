@@ -9,9 +9,13 @@ This module provides:
 
 from .downloader import ModelDownloader
 from .model_interface import (
+    BACKEND_HUGGINGFACE,
+    BACKEND_TRANSFORMER_LENS,
     HuggingFaceModel,
     ModelInterface,
     TransformerLensModel,
+    gather_last_non_pad,
+    last_non_pad_indices,
     load_model,
 )
 from .registry import ModelRegistry, get_registry
@@ -27,6 +31,10 @@ __all__ = [
     "ModelInterface",
     "HuggingFaceModel",
     "TransformerLensModel",
+    "BACKEND_HUGGINGFACE",
+    "BACKEND_TRANSFORMER_LENS",
+    "gather_last_non_pad",
+    "last_non_pad_indices",
     "load_model",
     "load_transformer_lens_model",
 ]

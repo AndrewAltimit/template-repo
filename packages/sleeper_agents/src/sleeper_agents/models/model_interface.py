@@ -1,8 +1,25 @@
-"""Unified interface for different model types (TransformerLens, AutoModel, vLLM)."""
+"""Unified interface for different model types (TransformerLens, HuggingFace).
+
+Conventions shared by every backend:
+
+- **Layer indexing**: layer ``L`` (0-indexed) is the output of transformer block ``L``,
+  i.e. TransformerLens ``blocks.L.hook_resid_post`` and HuggingFace
+  ``hidden_states[L + 1]`` (``hidden_states[0]`` is the embedding output). For the
+  final block the raw block output is captured with a forward hook, because most
+  HuggingFace models apply the final norm to the last ``hidden_states`` entry.
+  Out-of-range layer indices raise ``ValueError``.
+- **Padding**: batches are left-padded with an explicit attention mask (and
+  mask-derived position ids), so position ``-1`` is the last real token of every
+  row. :func:`last_non_pad_indices` / :meth:`ModelInterface.get_last_token_activations`
+  gather the last non-pad token explicitly and work for either padding side.
+- **Generation**: :meth:`ModelInterface.generate` returns only the newly generated
+  text, never the prompt.
+"""
 
 from abc import ABC, abstractmethod
+import inspect
 import logging
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 import torch
 from transformers import AutoConfig, AutoModelForCausalLM, AutoTokenizer
@@ -11,9 +28,96 @@ from sleeper_agents.models.transformer_lens_loader import load_transformer_lens_
 
 logger = logging.getLogger(__name__)
 
+BACKEND_HUGGINGFACE = "huggingface"
+BACKEND_TRANSFORMER_LENS = "transformer_lens"
+
+SUPPORTED_QUANTIZATION = ("4bit", "8bit")
+
+
+def last_non_pad_indices(attention_mask: torch.Tensor) -> torch.Tensor:
+    """Return, per row, the index of the last position whose mask is non-zero.
+
+    Works for left padding, right padding, or no padding.
+
+    Args:
+        attention_mask: ``[batch, seq]`` 0/1 mask
+
+    Returns:
+        ``[batch]`` long tensor of indices
+
+    Raises:
+        ValueError: If a row contains no real tokens
+    """
+    mask = attention_mask.long()
+    if bool((mask.sum(dim=-1) == 0).any()):
+        raise ValueError("Cannot pool the last token of an empty sequence (row with no non-pad tokens)")
+    positions = torch.arange(mask.shape[-1], device=mask.device).expand_as(mask)
+    return (positions * mask).max(dim=-1).values
+
+
+def gather_last_non_pad(hidden: torch.Tensor, attention_mask: torch.Tensor) -> torch.Tensor:
+    """Select ``hidden[b, last_non_pad(b), :]`` for every row ``b``.
+
+    Args:
+        hidden: ``[batch, seq, d]`` activations
+        attention_mask: ``[batch, seq]`` 0/1 mask
+
+    Returns:
+        ``[batch, d]`` activations at the last real token of each row
+    """
+    idx = last_non_pad_indices(attention_mask).to(hidden.device)
+    return hidden[torch.arange(hidden.shape[0], device=hidden.device), idx]
+
+
+def _positions_from_mask(attention_mask: torch.Tensor) -> torch.Tensor:
+    """Position ids that ignore padding (0 for the first real token of each row)."""
+    positions = attention_mask.long().cumsum(dim=-1) - 1
+    return positions.clamp(min=0)
+
+
+def _left_pad(sequences: Sequence[torch.Tensor], pad_id: int) -> Tuple[torch.Tensor, torch.Tensor]:
+    """Left-pad 1D token tensors into ``(ids, mask)`` of shape ``[batch, max_len]``."""
+    max_len = max(int(seq.shape[0]) for seq in sequences)
+    device = sequences[0].device
+    ids = torch.full((len(sequences), max_len), pad_id, dtype=torch.long, device=device)
+    mask = torch.zeros((len(sequences), max_len), dtype=torch.long, device=device)
+    for row, seq in enumerate(sequences):
+        n = int(seq.shape[0])
+        if n:
+            ids[row, max_len - n :] = seq.to(device=device, dtype=torch.long)
+            mask[row, max_len - n :] = 1
+    return ids, mask
+
+
+def _right_pad(sequences: Sequence[torch.Tensor], pad_id: int) -> Tuple[torch.Tensor, torch.Tensor]:
+    """Right-pad 1D token tensors into ``(ids, mask)`` of shape ``[batch, max_len]``."""
+    max_len = max(int(seq.shape[0]) for seq in sequences)
+    device = sequences[0].device
+    ids = torch.full((len(sequences), max_len), pad_id, dtype=torch.long, device=device)
+    mask = torch.zeros((len(sequences), max_len), dtype=torch.long, device=device)
+    for row, seq in enumerate(sequences):
+        n = int(seq.shape[0])
+        ids[row, :n] = seq.to(device=device, dtype=torch.long)
+        mask[row, :n] = 1
+    return ids, mask
+
+
+def _broadcast_targets(prompts: List[str], target_tokens: List[str]) -> List[str]:
+    """Match target completions to prompts (a single target is shared by all prompts)."""
+    if len(target_tokens) == 1 and len(prompts) > 1:
+        return list(target_tokens) * len(prompts)
+    if len(target_tokens) != len(prompts):
+        raise ValueError(
+            f"target_tokens must have one entry per prompt (got {len(target_tokens)} targets for {len(prompts)} prompts)"
+        )
+    return list(target_tokens)
+
 
 class ModelInterface(ABC):
     """Abstract base class for unified model interface."""
+
+    #: Which library actually serves this model (``"huggingface"`` or ``"transformer_lens"``).
+    backend: str = "unknown"
 
     def __init__(self, model_id: str, device: str = "cuda", dtype: Optional[torch.dtype] = None):
         """Initialize model interface.
@@ -28,11 +132,14 @@ class ModelInterface(ABC):
         self.dtype = dtype or (torch.float16 if device == "cuda" else torch.float32)
         # Use Any for model/tokenizer/config since subclasses use different types from
         # different libraries (TransformerBridge from transformer_lens, AutoModelForCausalLM
-        # from transformers, vLLM engines). These don't share a common base class.
-        # A Protocol could be defined but would require significant refactoring.
+        # from transformers). These don't share a common base class.
         self.model: Any = None
         self.tokenizer: Any = None
         self.config: Any = None
+        # Quantization actually applied at load time ("4bit", "8bit" or None)
+        self.quantization: Optional[str] = None
+        # Set by load_model() when a preferred backend failed and another was used
+        self.fallback_reason: Optional[str] = None
 
     @abstractmethod
     def load(self) -> None:
@@ -52,12 +159,12 @@ class ModelInterface(ABC):
         Args:
             prompts: List of input prompts
             max_new_tokens: Maximum tokens to generate
-            temperature: Sampling temperature
+            temperature: Sampling temperature (``<= 0`` means greedy decoding)
             top_p: Nucleus sampling parameter
             top_k: Top-k sampling parameter
 
         Returns:
-            List of generated texts
+            List of newly generated completions (the prompt is not included)
         """
 
     @abstractmethod
@@ -67,15 +174,17 @@ class ModelInterface(ABC):
         layers: Optional[List[int]] = None,
         return_attention: bool = False,
     ) -> Dict[str, torch.Tensor]:
-        """Extract activations from specified layers.
+        """Extract residual-stream activations from specified layers.
 
         Args:
-            texts: Input texts
-            layers: Layer indices to extract (None = all layers)
+            texts: Input texts (left-padded as a batch)
+            layers: Block indices to extract (None = all blocks); ``layer_L`` is the
+                output of block ``L``
             return_attention: Whether to return attention patterns
 
         Returns:
-            Dictionary mapping layer names to activation tensors
+            Dictionary mapping ``layer_{L}`` to ``[batch, seq, d_model]`` tensors
+            (and ``attention_{L}`` when requested)
         """
 
     @abstractmethod
@@ -90,14 +199,33 @@ class ModelInterface(ABC):
             Dictionary mapping layer names to attention tensors
         """
 
+    def _forward_residuals(self, texts: List[str], layers: List[int]) -> Tuple[Dict[int, torch.Tensor], torch.Tensor]:
+        """Run a forward pass and return ``({layer: [batch, seq, d]}, attention_mask)``."""
+        raise NotImplementedError(f"{type(self).__name__} does not implement last-token activation pooling")
+
+    def get_last_token_activations(self, texts: List[str], layers: Optional[List[int]] = None) -> Dict[str, torch.Tensor]:
+        """Extract activations at the last non-pad token of each text.
+
+        Args:
+            texts: Input texts
+            layers: Block indices to extract (None = all blocks)
+
+        Returns:
+            Dictionary mapping ``layer_{L}`` to ``[batch, d_model]`` tensors
+        """
+        target_layers = self._resolve_layers(layers)
+        residuals, attention_mask = self._forward_residuals(texts, target_layers)
+        return {f"layer_{layer}": gather_last_non_pad(residuals[layer], attention_mask) for layer in target_layers}
+
     def get_num_layers(self) -> int:
-        """Get total number of layers in the model."""
+        """Get total number of transformer blocks in the model."""
         if self.config is None:
             return 0
         # Handle different config attribute names
-        for attr in ["num_hidden_layers", "n_layers", "num_layers"]:
-            if hasattr(self.config, attr):
-                return int(getattr(self.config, attr))
+        for attr in ["num_hidden_layers", "n_layers", "num_layers", "n_layer"]:
+            value = getattr(self.config, attr, None)
+            if isinstance(value, int):
+                return int(value)
         return 0
 
     def get_hidden_size(self) -> int:
@@ -105,9 +233,32 @@ class ModelInterface(ABC):
         if self.config is None:
             return 0
         for attr in ["hidden_size", "d_model", "n_embd"]:
-            if hasattr(self.config, attr):
-                return int(getattr(self.config, attr))
+            value = getattr(self.config, attr, None)
+            if isinstance(value, int):
+                return int(value)
         return 0
+
+    def _resolve_layers(self, layers: Optional[Sequence[int]]) -> List[int]:
+        """Validate block indices against the loaded model.
+
+        Raises:
+            ValueError: If the model is not loaded or an index is out of range
+        """
+        num_layers = self.get_num_layers()
+        if num_layers <= 0:
+            raise ValueError("Number of layers is unknown. Call load() first.")
+        if layers is None:
+            return list(range(num_layers))
+        resolved = []
+        for layer in layers:
+            layer_idx = int(layer)
+            if not 0 <= layer_idx < num_layers:
+                raise ValueError(
+                    f"Layer index {layer} is out of range for {self.model_id} with {num_layers} blocks "
+                    f"(valid: 0..{num_layers - 1}; layer L is the output of block L)"
+                )
+            resolved.append(layer_idx)
+        return resolved
 
     @abstractmethod
     def get_generation_activations(
@@ -124,12 +275,13 @@ class ModelInterface(ABC):
 
         Args:
             prompts: Input prompts (e.g., "Are you human?")
-            target_tokens: Expected generation targets (e.g., ["yes", "no"])
+            target_tokens: Expected generation targets (e.g., ["yes", "no"]); either one
+                per prompt or a single target shared by all prompts
             layers: Layer indices to extract
 
         Returns:
-            Dictionary mapping layer names to activation tensors captured
-            during generation of the target tokens
+            Dictionary mapping layer names to ``[batch, d_model]`` activations at the
+            position of the first target token
         """
 
     def to(self, device: str) -> "ModelInterface":
@@ -147,8 +299,44 @@ class ModelInterface(ABC):
         return self
 
 
+def _find_decoder_blocks(model: Any, num_layers: int) -> Optional[torch.nn.ModuleList]:
+    """Locate the ModuleList holding the transformer blocks of a HuggingFace model."""
+    if not isinstance(model, torch.nn.Module) or num_layers <= 0:
+        return None
+    for _name, module in model.named_modules():
+        if isinstance(module, torch.nn.ModuleList) and len(module) == num_layers:
+            return module
+    return None
+
+
+def _build_quantization_config(quantization: str, device: str, compute_dtype: torch.dtype) -> Any:
+    """Create a ``BitsAndBytesConfig`` for 4-bit / 8-bit loading.
+
+    Raises:
+        ValueError: For unknown quantization types or non-CUDA devices
+        ImportError: If bitsandbytes is not installed
+    """
+    if quantization not in SUPPORTED_QUANTIZATION:
+        raise ValueError(f"Unsupported quantization {quantization!r}; expected one of {SUPPORTED_QUANTIZATION} or None")
+    if device != "cuda":
+        raise ValueError(f"{quantization} quantization requires a CUDA device (bitsandbytes); got device={device!r}")
+    try:
+        import bitsandbytes  # noqa: F401  # pylint: disable=unused-import
+    except ImportError as exc:
+        raise ImportError(
+            f"{quantization} quantization requires bitsandbytes. Install with: pip install bitsandbytes"
+        ) from exc
+    from transformers import BitsAndBytesConfig
+
+    if quantization == "4bit":
+        return BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_compute_dtype=compute_dtype, bnb_4bit_quant_type="nf4")
+    return BitsAndBytesConfig(load_in_8bit=True)
+
+
 class HuggingFaceModel(ModelInterface):
     """HuggingFace transformer model interface."""
+
+    backend = BACKEND_HUGGINGFACE
 
     def __init__(
         self,
@@ -156,6 +344,8 @@ class HuggingFaceModel(ModelInterface):
         device: str = "cuda",
         dtype: Optional[torch.dtype] = None,
         trust_remote_code: bool = False,
+        quantization: Optional[str] = None,
+        cache_dir: Optional[str] = None,
     ):
         """Initialize HuggingFace model interface.
 
@@ -167,9 +357,14 @@ class HuggingFaceModel(ModelInterface):
                 Can also be enabled via HF_TRUST_REMOTE_CODE=true environment variable.
                 WARNING: Enabling this allows arbitrary code execution from model repos.
                 Only enable for trusted models from verified sources.
+            quantization: "4bit", "8bit" or None. Applied with bitsandbytes (CUDA only).
+            cache_dir: HuggingFace hub cache directory (None = default hub cache)
         """
         super().__init__(model_id, device, dtype)
         self.trust_remote_code = trust_remote_code
+        self.requested_quantization = quantization
+        self.cache_dir = cache_dir
+        self._accepts_position_ids: Optional[bool] = None
 
     def load(self) -> None:
         """Load HuggingFace model and tokenizer."""
@@ -181,10 +376,24 @@ class HuggingFaceModel(ModelInterface):
 
         logger.info("Loading HuggingFace model: %s (trust_remote_code=%s)", self.model_id, trust_remote_code)
 
+        quantization_config = None
+        if self.requested_quantization:
+            quantization_config = _build_quantization_config(self.requested_quantization, self.device, self.dtype)
+            logger.info("Loading %s with %s quantization", self.model_id, self.requested_quantization)
+
         # Check if this is a LoRA/PEFT model
         model_path = Path(self.model_id)
         adapter_config_path = model_path / "adapter_config.json" if model_path.exists() else None
         is_lora_model = adapter_config_path is not None and adapter_config_path.exists()
+
+        load_kwargs: Dict[str, Any] = {
+            "torch_dtype": self.dtype,
+            "device_map": "auto" if self.device == "cuda" else None,
+        }
+        if quantization_config is not None:
+            load_kwargs["quantization_config"] = quantization_config
+        if self.cache_dir is not None:
+            load_kwargs["cache_dir"] = self.cache_dir
 
         if is_lora_model:
             logger.info("Detected LoRA adapters, loading with PEFT...")
@@ -193,55 +402,124 @@ class HuggingFaceModel(ModelInterface):
             except ImportError:
                 raise ImportError("PEFT library required for LoRA models. Install with: pip install peft>=0.7.0") from None
 
-            # Load tokenizer first
-            self.tokenizer = AutoTokenizer.from_pretrained(self.model_id, trust_remote_code=trust_remote_code, use_fast=True)
-
-            # Set padding token if not set
-            if self.tokenizer and self.tokenizer.pad_token is None:
-                self.tokenizer.pad_token = self.tokenizer.eos_token
-
-            # Load LoRA model with PEFT (automatically loads base model + adapters)
-            self.model = AutoPeftModelForCausalLM.from_pretrained(
-                self.model_id,
-                torch_dtype=self.dtype,
-                device_map="auto" if self.device == "cuda" else None,
+            self.tokenizer = AutoTokenizer.from_pretrained(
+                self.model_id, trust_remote_code=trust_remote_code, use_fast=True, cache_dir=self.cache_dir
             )
-
-            if self.device == "cpu":
-                self.model = self.model.to(self.device)
-
-            # Load config from the merged model
+            # Load LoRA model with PEFT (automatically loads base model + adapters)
+            self.model = AutoPeftModelForCausalLM.from_pretrained(self.model_id, **load_kwargs)
             self.config = self.model.config
-
             logger.info("LoRA model loaded successfully")
-
         else:
-            # Standard HuggingFace model loading
-            # Load config first
-            self.config = AutoConfig.from_pretrained(self.model_id, trust_remote_code=trust_remote_code)
-
-            # Load tokenizer
-            self.tokenizer = AutoTokenizer.from_pretrained(self.model_id, trust_remote_code=trust_remote_code, use_fast=True)
-
-            # Set padding token if not set
-            if self.tokenizer and self.tokenizer.pad_token is None:
-                self.tokenizer.pad_token = self.tokenizer.eos_token
-
-            # Load model
+            self.config = AutoConfig.from_pretrained(
+                self.model_id, trust_remote_code=trust_remote_code, cache_dir=self.cache_dir
+            )
+            self.tokenizer = AutoTokenizer.from_pretrained(
+                self.model_id, trust_remote_code=trust_remote_code, use_fast=True, cache_dir=self.cache_dir
+            )
             # Note: device_map should be "auto" for CUDA, not the device string itself
             self.model = AutoModelForCausalLM.from_pretrained(
-                self.model_id,
-                config=self.config,
-                torch_dtype=self.dtype,
-                device_map="auto" if self.device == "cuda" else None,
-                trust_remote_code=trust_remote_code,
+                self.model_id, config=self.config, trust_remote_code=trust_remote_code, **load_kwargs
             )
 
-            if self.device in ("cpu", "mps"):
-                self.model = self.model.to(self.device)
+        if quantization_config is None and self.device in ("cpu", "mps"):
+            self.model = self.model.to(self.device)
 
+        self.quantization = self.requested_quantization
+        self.prepare_tokenizer(self.tokenizer)
         self.model.eval()
         logger.info("Model loaded with %d layers", self.get_num_layers())
+
+    @staticmethod
+    def prepare_tokenizer(tokenizer: Any) -> None:
+        """Configure a tokenizer for batched causal-LM use (pad token + left padding)."""
+        if tokenizer is None:
+            return
+        if tokenizer.pad_token is None:
+            tokenizer.pad_token = tokenizer.eos_token
+        tokenizer.padding_side = "left"
+
+    def _require_loaded(self) -> None:
+        if self.tokenizer is None or self.model is None:
+            raise ValueError("Model not loaded. Call load() first.")
+
+    def _input_device(self) -> Any:
+        """Device the input ids must live on (first parameter's device for sharded models)."""
+        try:
+            return next(self.model.parameters()).device
+        except (AttributeError, StopIteration, TypeError):
+            return self.device
+
+    def _encode(self, texts: List[str]) -> Dict[str, torch.Tensor]:
+        """Tokenize a batch with left padding and an explicit attention mask."""
+        enc = self.tokenizer(list(texts), return_tensors="pt", padding=True, truncation=True, padding_side="left")
+        device = self._input_device()
+        return {"input_ids": enc["input_ids"].to(device), "attention_mask": enc["attention_mask"].to(device)}
+
+    def _model_accepts_position_ids(self) -> bool:
+        if self._accepts_position_ids is None:
+            try:
+                params = inspect.signature(self.model.forward).parameters.values()
+                self._accepts_position_ids = any(
+                    p.name == "position_ids" or p.kind == inspect.Parameter.VAR_KEYWORD for p in params
+                )
+            except (TypeError, ValueError):
+                self._accepts_position_ids = False
+        return bool(self._accepts_position_ids)
+
+    def _forward(self, input_ids: torch.Tensor, attention_mask: torch.Tensor, **kwargs: Any) -> Any:
+        """Forward pass with padding-aware position ids."""
+        if self._model_accepts_position_ids():
+            kwargs["position_ids"] = _positions_from_mask(attention_mask)
+        return self.model(input_ids=input_ids, attention_mask=attention_mask, **kwargs)
+
+    def _forward_residuals(self, texts: List[str], layers: List[int]) -> Tuple[Dict[int, torch.Tensor], torch.Tensor]:
+        self._require_loaded()
+        enc = self._encode(texts)
+        residuals, _outputs = self._residuals_for_ids(enc["input_ids"], enc["attention_mask"], layers)
+        return residuals, enc["attention_mask"]
+
+    def _residuals_for_ids(
+        self, input_ids: torch.Tensor, attention_mask: torch.Tensor, layers: List[int], output_attentions: bool = False
+    ) -> Tuple[Dict[int, torch.Tensor], Any]:
+        """Return block outputs ``{L: hidden_states[L + 1]}`` using the shared convention.
+
+        The final block's output is captured by a forward hook because HuggingFace
+        applies the final norm to the last ``hidden_states`` entry.
+        """
+        num_layers = self.get_num_layers()
+        final_layer = num_layers - 1
+        captured: Dict[str, torch.Tensor] = {}
+        handle = None
+        if final_layer in layers:
+            blocks = _find_decoder_blocks(self.model, num_layers)
+            if blocks is None:
+                raise ValueError(
+                    f"Cannot locate the transformer blocks of {self.model_id} to capture the final block's "
+                    f"raw output (layer {final_layer}); request layers 0..{final_layer - 1} instead"
+                )
+
+            def _capture(_module: Any, _inputs: Any, output: Any) -> None:
+                captured["final"] = output[0] if isinstance(output, (tuple, list)) else output
+
+            handle = blocks[final_layer].register_forward_hook(_capture)
+
+        try:
+            with torch.no_grad():
+                outputs = self._forward(
+                    input_ids, attention_mask, output_hidden_states=True, output_attentions=output_attentions
+                )
+        finally:
+            if handle is not None:
+                handle.remove()
+
+        hidden_states = outputs.hidden_states
+        residuals: Dict[int, torch.Tensor] = {}
+        for layer_idx in layers:
+            if layer_idx == final_layer:
+                residuals[layer_idx] = captured["final"]
+            else:
+                residuals[layer_idx] = hidden_states[layer_idx + 1]
+        return residuals, outputs
 
     def generate(
         self,
@@ -251,29 +529,27 @@ class HuggingFaceModel(ModelInterface):
         top_p: float = 1.0,
         top_k: int = 50,
     ) -> List[str]:
-        """Generate text using HuggingFace generate API."""
-        if self.tokenizer is None or self.model is None:
-            raise ValueError("Model not loaded. Call load() first.")
+        """Generate completions with the HuggingFace generate API (prompt excluded)."""
+        self._require_loaded()
 
-        # Tokenize inputs
-        inputs = self.tokenizer(prompts, return_tensors="pt", padding=True, truncation=True)
-        inputs = {k: v.to(self.device) for k, v in inputs.items()}
+        inputs = self._encode(prompts)
+        input_len = inputs["input_ids"].shape[1]
 
-        # Generate
+        gen_kwargs: Dict[str, Any] = {
+            "max_new_tokens": max_new_tokens,
+            "pad_token_id": self.tokenizer.pad_token_id,
+            "eos_token_id": self.tokenizer.eos_token_id,
+        }
+        if temperature > 0:
+            gen_kwargs.update(do_sample=True, temperature=temperature, top_p=top_p, top_k=top_k)
+        else:
+            gen_kwargs["do_sample"] = False
+
         with torch.no_grad():
-            outputs = self.model.generate(
-                **inputs,
-                max_new_tokens=max_new_tokens,
-                temperature=temperature,
-                top_p=top_p,
-                top_k=top_k,
-                do_sample=temperature > 0,
-                pad_token_id=self.tokenizer.pad_token_id,
-                eos_token_id=self.tokenizer.eos_token_id,
-            )
+            outputs = self.model.generate(**inputs, **gen_kwargs)
 
-        # Decode outputs
-        generated_texts: List[str] = self.tokenizer.batch_decode(outputs, skip_special_tokens=True)
+        # Left padding means every prompt ends at input_len; keep only new tokens
+        generated_texts: List[str] = self.tokenizer.batch_decode(outputs[:, input_len:], skip_special_tokens=True)
         return generated_texts
 
     def get_activations(
@@ -282,34 +558,22 @@ class HuggingFaceModel(ModelInterface):
         layers: Optional[List[int]] = None,
         return_attention: bool = False,
     ) -> Dict[str, torch.Tensor]:
-        """Extract hidden state activations from model."""
-        if self.tokenizer is None or self.model is None:
-            raise ValueError("Model not loaded. Call load() first.")
+        """Extract block-output activations (``layer_L`` = ``hidden_states[L + 1]``)."""
+        self._require_loaded()
+        target_layers = self._resolve_layers(layers)
 
-        # Tokenize
-        inputs = self.tokenizer(texts, return_tensors="pt", padding=True, truncation=True)
-        inputs = {k: v.to(self.device) for k, v in inputs.items()}
+        enc = self._encode(texts)
+        residuals, outputs = self._residuals_for_ids(
+            enc["input_ids"], enc["attention_mask"], target_layers, output_attentions=return_attention
+        )
 
-        # Forward pass with output_hidden_states
-        with torch.no_grad():
-            outputs = self.model(**inputs, output_hidden_states=True, output_attentions=return_attention)
+        activations = {f"layer_{layer_idx}": residuals[layer_idx] for layer_idx in target_layers}
 
-        # Extract activations
-        activations = {}
-        hidden_states = outputs.hidden_states  # Tuple of (batch, seq_len, hidden_size)
-
-        # Filter by requested layers
-        target_layers = layers if layers is not None else list(range(len(hidden_states)))
-
-        for layer_idx in target_layers:
-            if layer_idx < len(hidden_states):
-                activations[f"layer_{layer_idx}"] = hidden_states[layer_idx]
-
-        # Add attention if requested
-        if return_attention and outputs.attentions is not None:
+        if return_attention:
+            if outputs.attentions is None:
+                raise ValueError(f"{self.model_id} did not return attention weights; load it with attn_implementation='eager'")
             for layer_idx in target_layers:
-                if layer_idx < len(outputs.attentions):
-                    activations[f"attention_{layer_idx}"] = outputs.attentions[layer_idx]
+                activations[f"attention_{layer_idx}"] = outputs.attentions[layer_idx]
 
         return activations
 
@@ -323,6 +587,8 @@ class HuggingFaceModel(ModelInterface):
 
         This implements Anthropic's methodology: capture activations while the model
         is generating specific responses (e.g., "yes" vs "no" to "Are you human?").
+        Prompts are left-padded and targets right-padded, so every row's first target
+        token sits at the same position and padding is masked out.
 
         Args:
             prompts: Input prompts
@@ -330,100 +596,107 @@ class HuggingFaceModel(ModelInterface):
             layers: Layers to extract
 
         Returns:
-            Activations during generation of target tokens
+            Activations at the first target token position, ``[batch, d_model]`` per layer
         """
-        if self.tokenizer is None or self.model is None:
-            raise ValueError("Model not loaded. Call load() first.")
+        self._require_loaded()
+        target_layers = self._resolve_layers(layers)
+        targets = _broadcast_targets(prompts, target_tokens)
 
-        # Tokenize prompt
-        prompt_inputs = self.tokenizer(prompts, return_tensors="pt", padding=True, truncation=True)
-        prompt_inputs = {k: v.to(self.device) for k, v in prompt_inputs.items()}
+        prompt_inputs = self._encode(prompts)
+        device = prompt_inputs["input_ids"].device
 
-        # Tokenize target completion (what we want to force generate)
-        target_inputs = self.tokenizer(target_tokens, return_tensors="pt", add_special_tokens=False)
-        target_ids = target_inputs["input_ids"].to(self.device)
+        target_seqs = []
+        for target in targets:
+            ids = self.tokenizer(target, add_special_tokens=False)["input_ids"]
+            if len(ids) == 0:
+                raise ValueError(f"Target completion {target!r} tokenizes to zero tokens")
+            target_seqs.append(torch.tensor(ids, dtype=torch.long, device=device))
+        pad_id = self.tokenizer.pad_token_id if self.tokenizer.pad_token_id is not None else 0
+        target_ids, target_mask = _right_pad(target_seqs, pad_id)
 
-        logger.debug("Generation extraction: prompt='%s', target='%s'", prompts[0][:50], target_tokens[0])
-        logger.debug(
-            "  Prompt tokens: %s, Target tokens: %s",
-            prompt_inputs["input_ids"].shape,
-            target_ids.shape,
-        )
-
-        # Combine prompt + target for teacher forcing
-        # This makes the model process the full sequence but we extract activations
-        # from the position where it's "generating" the target token
         combined_ids = torch.cat([prompt_inputs["input_ids"], target_ids], dim=1)
-        attention_mask = torch.ones_like(combined_ids)
+        attention_mask = torch.cat([prompt_inputs["attention_mask"], target_mask], dim=1)
+        target_pos = prompt_inputs["input_ids"].shape[1]
 
-        logger.debug("  Combined shape: %s", combined_ids.shape)
+        logger.debug("Generation extraction: prompt='%s', target='%s'", prompts[0][:50], targets[0])
+        logger.debug("  Combined shape: %s, target position: %d", combined_ids.shape, target_pos)
 
-        # Forward pass with teacher forcing
-        with torch.no_grad():
-            outputs = self.model(
-                input_ids=combined_ids,
-                attention_mask=attention_mask,
-                output_hidden_states=True,
-            )
-
-        # Extract activations from the position of the target token
-        # This is where the model would be "deciding" to output yes/no
-        activations = {}
-        hidden_states = outputs.hidden_states
-
-        # Get the position of the first target token
-        target_pos = prompt_inputs["input_ids"].shape[1]  # Right after prompt
-
-        logger.debug("  Extracting from position %d (total seq len: %d)", target_pos, combined_ids.shape[1])
-
-        target_layers = layers if layers is not None else list(range(len(hidden_states)))
-
-        for layer_idx in target_layers:
-            if layer_idx < len(hidden_states):
-                # Extract activation at the target token position
-                layer_act = hidden_states[layer_idx][:, target_pos, :]
-                activations[f"layer_{layer_idx}"] = layer_act
-                logger.debug("    Layer %d: shape %s", layer_idx, layer_act.shape)
-
-        return activations
+        residuals, _outputs = self._residuals_for_ids(combined_ids, attention_mask, target_layers)
+        return {f"layer_{layer_idx}": residuals[layer_idx][:, target_pos, :] for layer_idx in target_layers}
 
     def get_attention_patterns(self, texts: List[str], layers: Optional[List[int]] = None) -> Dict[str, torch.Tensor]:
-        """Extract attention patterns."""
-        if self.tokenizer is None or self.model is None:
-            raise ValueError("Model not loaded. Call load() first.")
+        """Extract attention patterns (attention of block ``L`` for ``layer_L``)."""
+        self._require_loaded()
+        target_layers = self._resolve_layers(layers)
 
-        # Tokenize
-        inputs = self.tokenizer(texts, return_tensors="pt", padding=True, truncation=True)
-        inputs = {k: v.to(self.device) for k, v in inputs.items()}
-
-        # Forward pass with attention
+        enc = self._encode(texts)
         with torch.no_grad():
-            outputs = self.model(**inputs, output_attentions=True)
+            outputs = self._forward(enc["input_ids"], enc["attention_mask"], output_attentions=True)
 
-        # Extract attention patterns
-        attention_patterns = {}
         attentions = outputs.attentions  # Tuple of (batch, num_heads, seq_len, seq_len)
+        if attentions is None:
+            raise ValueError(f"{self.model_id} did not return attention weights; load it with attn_implementation='eager'")
 
-        target_layers = layers if layers is not None else list(range(len(attentions)))
-
-        for layer_idx in target_layers:
-            if layer_idx < len(attentions):
-                attention_patterns[f"layer_{layer_idx}"] = attentions[layer_idx]
-
-        return attention_patterns
+        return {f"layer_{layer_idx}": attentions[layer_idx] for layer_idx in target_layers}
 
 
 class TransformerLensModel(ModelInterface):
     """TransformerLens interface (TransformerBridge)."""
 
+    backend = BACKEND_TRANSFORMER_LENS
+
     def load(self) -> None:
-        """Load model using transformer_lens."""
-        self.model = load_transformer_lens_model(self.model_id, device=self.device, dtype=self.dtype, padding_side=None)
+        """Load model using transformer_lens (left padding for batched inputs)."""
+        self.model = load_transformer_lens_model(self.model_id, device=self.device, dtype=self.dtype, padding_side="left")
 
         self.config = self.model.cfg
         self.tokenizer = self.model.tokenizer
 
         logger.info("TransformerBridge loaded with %d layers", self.get_num_layers())
+
+    def get_num_layers(self) -> int:
+        """Get number of blocks from the TransformerLens config."""
+        n_layers = getattr(self.config, "n_layers", None)
+        if isinstance(n_layers, int):
+            return n_layers
+        return super().get_num_layers()
+
+    def _require_loaded(self) -> None:
+        if self.model is None:
+            raise ValueError("Model not loaded. Call load() first.")
+
+    def _pad_id(self) -> int:
+        tokenizer = self.model.tokenizer
+        if tokenizer is not None:
+            for attr in ("pad_token_id", "eos_token_id"):
+                value = getattr(tokenizer, attr, None)
+                if value is not None:
+                    return int(value)
+        return 0
+
+    def _encode(self, texts: List[str]) -> Tuple[torch.Tensor, torch.Tensor]:
+        """Tokenize each text separately (BOS prepended) and left-pad into ``(tokens, mask)``.
+
+        Building the mask from per-text lengths avoids guessing padding from the pad id,
+        which is ambiguous when pad == eos.
+        """
+        seqs = [self.model.to_tokens(text, prepend_bos=True)[0] for text in texts]
+        return _left_pad(seqs, self._pad_id())
+
+    def _run_with_cache(self, tokens: torch.Tensor, mask: torch.Tensor, hook_names: List[str]) -> Any:
+        wanted = set(hook_names)
+        kwargs: Dict[str, Any] = {"names_filter": lambda name: name in wanted}
+        if not bool(mask.all()):
+            kwargs["attention_mask"] = mask
+        with torch.no_grad():
+            _, cache = self.model.run_with_cache(tokens, **kwargs)
+        return cache
+
+    def _forward_residuals(self, texts: List[str], layers: List[int]) -> Tuple[Dict[int, torch.Tensor], torch.Tensor]:
+        self._require_loaded()
+        tokens, mask = self._encode(texts)
+        cache = self._run_with_cache(tokens, mask, [f"blocks.{i}.hook_resid_post" for i in layers])
+        return {i: cache[f"blocks.{i}.hook_resid_post"] for i in layers}, mask
 
     def generate(
         self,
@@ -433,26 +706,28 @@ class TransformerLensModel(ModelInterface):
         top_p: float = 1.0,
         top_k: int = 50,
     ) -> List[str]:
-        """Generate using TransformerLens."""
-        if self.model is None:
-            raise ValueError("Model not loaded. Call load() first.")
+        """Generate completions using TransformerLens (prompt excluded)."""
+        self._require_loaded()
 
-        # Tokenize
-        tokens = self.model.to_tokens(prompts, prepend_bos=True)
+        tokens, mask = self._encode(prompts)
+        input_len = tokens.shape[1]
+        sampling = temperature > 0
 
-        # Generate
         generated_tokens = self.model.generate(
             tokens,
             max_new_tokens=max_new_tokens,
-            temperature=temperature,
-            top_p=top_p if temperature > 0 else None,
-            top_k=top_k if temperature > 0 else None,
+            do_sample=sampling,
+            temperature=temperature if sampling else 1.0,
+            top_p=top_p if sampling else None,
+            top_k=top_k if sampling else None,
             stop_at_eos=True,
+            attention_mask=mask,
+            return_type="tokens",
+            verbose=False,
         )
 
-        # Decode
-        generated_texts = [self.model.to_string(gen_tokens) for gen_tokens in generated_tokens]
-        return generated_texts
+        new_tokens = generated_tokens[:, input_len:]
+        return [self.model.tokenizer.decode(row, skip_special_tokens=True) for row in new_tokens]
 
     def get_activations(
         self,
@@ -460,35 +735,20 @@ class TransformerLensModel(ModelInterface):
         layers: Optional[List[int]] = None,
         return_attention: bool = False,
     ) -> Dict[str, torch.Tensor]:
-        """Extract activations using TransformerLens activation caching."""
-        if self.model is None:
-            raise ValueError("Model not loaded. Call load() first.")
-        tokens = self.model.to_tokens(texts, prepend_bos=True)
+        """Extract activations (``blocks.L.hook_resid_post``) using activation caching."""
+        self._require_loaded()
+        target_layers = self._resolve_layers(layers)
+        tokens, mask = self._encode(texts)
 
-        # Use caching to get activations
-        with torch.no_grad():
-            _, cache = self.model.run_with_cache(tokens)
-
-        # Extract residual stream activations
-        activations = {}
-        num_layers = self.get_num_layers()
-        target_layers = layers if layers is not None else list(range(num_layers))
-
-        for layer_idx in target_layers:
-            if layer_idx < num_layers:
-                # Get residual stream after this layer
-                key = f"blocks.{layer_idx}.hook_resid_post"
-                if key in cache:
-                    activations[f"layer_{layer_idx}"] = cache[key]
-
-        # Add attention if requested
+        hook_names = [f"blocks.{i}.hook_resid_post" for i in target_layers]
         if return_attention:
-            for layer_idx in target_layers:
-                if layer_idx < num_layers:
-                    key = f"blocks.{layer_idx}.attn.hook_pattern"
-                    if key in cache:
-                        activations[f"attention_{layer_idx}"] = cache[key]
+            hook_names += [f"blocks.{i}.attn.hook_pattern" for i in target_layers]
+        cache = self._run_with_cache(tokens, mask, hook_names)
 
+        activations = {f"layer_{i}": cache[f"blocks.{i}.hook_resid_post"] for i in target_layers}
+        if return_attention:
+            for i in target_layers:
+                activations[f"attention_{i}"] = cache[f"blocks.{i}.attn.hook_pattern"]
         return activations
 
     def get_generation_activations(
@@ -497,34 +757,26 @@ class TransformerLensModel(ModelInterface):
         target_tokens: List[str],
         layers: Optional[List[int]] = None,
     ) -> Dict[str, torch.Tensor]:
-        """Extract activations during generation (TransformerLens implementation)."""
-        if self.model is None:
-            raise ValueError("Model not loaded. Call load() first.")
+        """Extract activations during forced generation (TransformerLens implementation)."""
+        self._require_loaded()
+        target_layers = self._resolve_layers(layers)
+        targets = _broadcast_targets(prompts, target_tokens)
 
-        # Tokenize prompt and target
-        prompt_tokens = self.model.to_tokens(prompts, prepend_bos=True)
-        target_tok = self.model.to_tokens(target_tokens, prepend_bos=False)
+        prompt_tokens, prompt_mask = self._encode(prompts)
+        target_seqs = []
+        for target in targets:
+            ids = self.model.to_tokens(target, prepend_bos=False)[0]
+            if ids.shape[0] == 0:
+                raise ValueError(f"Target completion {target!r} tokenizes to zero tokens")
+            target_seqs.append(ids)
+        target_ids, target_mask = _right_pad(target_seqs, self._pad_id())
 
-        # Combine for teacher forcing
-        combined_tokens = torch.cat([prompt_tokens, target_tok], dim=1)
-
-        # Run with cache
-        with torch.no_grad():
-            _, cache = self.model.run_with_cache(combined_tokens)
-
-        # Extract from target token position
-        activations = {}
+        combined_tokens = torch.cat([prompt_tokens, target_ids.to(prompt_tokens.device)], dim=1)
+        combined_mask = torch.cat([prompt_mask, target_mask.to(prompt_mask.device)], dim=1)
         target_pos = prompt_tokens.shape[1]
-        num_layers = self.get_num_layers()
-        target_layers = layers if layers is not None else list(range(num_layers))
 
-        for layer_idx in target_layers:
-            if layer_idx < num_layers:
-                key = f"blocks.{layer_idx}.hook_resid_post"
-                if key in cache:
-                    activations[f"layer_{layer_idx}"] = cache[key][:, target_pos, :]
-
-        return activations
+        cache = self._run_with_cache(combined_tokens, combined_mask, [f"blocks.{i}.hook_resid_post" for i in target_layers])
+        return {f"layer_{i}": cache[f"blocks.{i}.hook_resid_post"][:, target_pos, :] for i in target_layers}
 
     def get_attention_patterns(self, texts: List[str], layers: Optional[List[int]] = None) -> Dict[str, torch.Tensor]:
         """Extract attention patterns (post-softmax probabilities).
@@ -532,26 +784,11 @@ class TransformerLensModel(ModelInterface):
         Uses hook_pattern which provides attention probabilities after softmax,
         suitable for entropy analysis and interpretability.
         """
-        if self.model is None:
-            raise ValueError("Model not loaded. Call load() first.")
-        tokens = self.model.to_tokens(texts, prepend_bos=True)
-
-        with torch.no_grad():
-            _, cache = self.model.run_with_cache(tokens)
-
-        attention_patterns = {}
-        num_layers = self.get_num_layers()
-        target_layers = layers if layers is not None else list(range(num_layers))
-
-        for layer_idx in target_layers:
-            if layer_idx < num_layers:
-                # Use hook_pattern for post-softmax attention probabilities
-                # This is what we need for entropy analysis
-                key = f"blocks.{layer_idx}.attn.hook_pattern"
-                if key in cache:
-                    attention_patterns[f"layer_{layer_idx}"] = cache[key]
-
-        return attention_patterns
+        self._require_loaded()
+        target_layers = self._resolve_layers(layers)
+        tokens, mask = self._encode(texts)
+        cache = self._run_with_cache(tokens, mask, [f"blocks.{i}.attn.hook_pattern" for i in target_layers])
+        return {f"layer_{i}": cache[f"blocks.{i}.attn.hook_pattern"] for i in target_layers}
 
 
 def load_model(
@@ -560,8 +797,14 @@ def load_model(
     dtype: Optional[torch.dtype] = None,
     prefer_hooked: bool = False,
     trust_remote_code: bool = False,
+    quantization: Optional[str] = None,
+    cache_dir: Optional[str] = None,
 ) -> ModelInterface:
     """Factory function to load appropriate model interface.
+
+    The returned instance's ``backend`` attribute records which library serves the
+    model, and ``fallback_reason`` is set when a preferred TransformerLens load failed
+    and HuggingFace was used instead.
 
     Args:
         model_id: Model identifier or path
@@ -569,20 +812,38 @@ def load_model(
         dtype: Data type
         prefer_hooked: Prefer a TransformerLens hooked model if available
         trust_remote_code: Whether to trust remote code (default False for security)
+        quantization: "4bit", "8bit" or None (HuggingFace backend + bitsandbytes only)
+        cache_dir: HuggingFace hub cache directory for the HuggingFace backend
 
     Returns:
         Loaded ModelInterface instance
     """
-    # Try TransformerLens first if preferred
-    if prefer_hooked:
+    if quantization in (None, "", "none"):
+        quantization = None
+
+    fallback_reason: Optional[str] = None
+    if prefer_hooked and quantization is not None:
+        fallback_reason = f"TransformerLens does not support {quantization} quantization"
+        logger.warning("%s; loading %s with the HuggingFace backend instead", fallback_reason, model_id)
+    elif prefer_hooked:
         try:
             hooked_model = TransformerLensModel(model_id, device, dtype)
             hooked_model.load()
             return hooked_model
-        except (ImportError, Exception) as e:
-            logger.info("TransformerLens not available, falling back to HuggingFace: %s", e)
+        except Exception as e:  # pylint: disable=broad-except
+            fallback_reason = f"TransformerLens load failed: {type(e).__name__}: {e}"
+            logger.warning(
+                "TransformerLens load of %s failed, falling back to HuggingFace backend: %s",
+                model_id,
+                e,
+                exc_info=True,
+            )
+            if device == "cuda" and torch.cuda.is_available():
+                torch.cuda.empty_cache()
 
-    # Default to HuggingFace
-    hf_model = HuggingFaceModel(model_id, device, dtype, trust_remote_code=trust_remote_code)
+    hf_model = HuggingFaceModel(
+        model_id, device, dtype, trust_remote_code=trust_remote_code, quantization=quantization, cache_dir=cache_dir
+    )
     hf_model.load()
+    hf_model.fallback_reason = fallback_reason
     return hf_model

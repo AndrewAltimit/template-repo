@@ -64,8 +64,17 @@ def _determine_quantization(
 ) -> Optional[str]:
     """Determine quantization based on available VRAM and model size."""
     if quantization is not None:
-        return quantization
-    if device not in ["cuda", "mps"] or available_vram is None or model_meta is None:
+        return None if quantization == "none" else quantization
+    if available_vram is None or model_meta is None:
+        return None
+    if device != "cuda":
+        # bitsandbytes quantization is CUDA-only; never pick it automatically elsewhere
+        if device == "mps" and model_meta.estimated_vram_gb > available_vram:
+            logger.warning(
+                "Model needs ~%.1f GB but only %.1f GB is available on MPS; quantization is not supported on MPS",
+                model_meta.estimated_vram_gb,
+                available_vram,
+            )
         return None
 
     if model_meta.estimated_vram_gb <= available_vram:
@@ -111,8 +120,14 @@ def load_model_for_detection(
                 'auto' will auto-detect GPU availability
         prefer_hooked: Prefer a TransformerLens hooked model if supported
         download_if_missing: Auto-download model if not cached
-        cache_dir: Custom cache directory (default: HF_HOME or ~/.cache/sleeper_agents)
-        quantization: Force quantization ('4bit', '8bit', or None for auto)
+        cache_dir: HuggingFace hub cache directory (default: the standard hub cache,
+                   shared by downloading and loading)
+        quantization: Force quantization ('4bit', '8bit', 'none', or None for auto).
+                      Quantization uses bitsandbytes and requires CUDA; it is applied
+                      at load time with the HuggingFace backend.
+
+    The returned model's ``backend`` attribute records whether TransformerLens or
+    HuggingFace serves it, and ``quantization`` records the quantization applied.
 
     Returns:
         ModelInterface: Loaded model ready for inference and activation extraction
@@ -170,9 +185,17 @@ def load_model_for_detection(
     # Step 6: Load model using ModelInterface factory
     try:
         logger.info("Loading model with ModelInterface (prefer_hooked=%s)...", prefer_hooked)
-        model = load_model(model_id=model_id, device=device, dtype=dtype, prefer_hooked=prefer_hooked)
+        model = load_model(
+            model_id=model_id,
+            device=device,
+            dtype=dtype,
+            prefer_hooked=prefer_hooked,
+            quantization=quantization,
+            cache_dir=str(cache_dir) if cache_dir is not None else None,
+        )
 
-        logger.info("Model loaded successfully: %s", type(model).__name__)
+        logger.info("Model loaded successfully: %s (backend=%s)", type(model).__name__, model.backend)
+        logger.info("  Quantization: %s", model.quantization)
         logger.info("  Layers: %s", model.get_num_layers())
         logger.info("  Hidden size: %s", model.get_hidden_size())
         logger.info("  Device: %s", device)

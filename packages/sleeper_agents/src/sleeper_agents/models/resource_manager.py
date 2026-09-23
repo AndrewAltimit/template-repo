@@ -126,10 +126,11 @@ class ResourceManager:
                 if not torch.cuda.is_available():
                     return None
 
-                # Get total and allocated memory for first GPU
-                total = torch.cuda.get_device_properties(0).total_memory / (1024**3)
-                allocated = torch.cuda.memory_allocated(0) / (1024**3)
-                available = total - allocated
+                # Device-wide free memory (includes other processes' usage, unlike
+                # total - memory_allocated which only counts this process)
+                free_bytes, total_bytes = torch.cuda.mem_get_info(0)
+                total = total_bytes / (1024**3)
+                available = free_bytes / (1024**3)
 
                 logger.info("GPU 0: %.2f GB available / %.2f GB total", available, total)
                 return float(available)
