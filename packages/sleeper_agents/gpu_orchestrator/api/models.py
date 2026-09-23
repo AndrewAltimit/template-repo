@@ -19,7 +19,11 @@ RESULTS_EVALUATION_DB_PATH = f"{RESULTS_ROOT}/evaluation_results.db"
 # Root of the shared models volume (HuggingFace caches) inside job containers.
 MODELS_ROOT = "/models"
 
-# Test suites accepted by scripts/evaluation/run_full_evaluation.py (--test-suite choices).
+# Test suites accepted by scripts/evaluation/run_full_evaluation.py (--test-suite choices)
+# and by the --evaluation-test-suites option of scripts/training/train_backdoor.py and
+# scripts/training/safety_training.py. The orchestrator image does not ship those
+# scripts, so the lists are duplicated here; tests/test_platform_models.py checks
+# that they stay identical to the scripts' own constants.
 EVALUATION_TEST_SUITES = (
     "basic",
     "code_vulnerability",
@@ -31,18 +35,29 @@ EVALUATION_TEST_SUITES = (
 )
 
 # Suites that contain at least one implemented test. The remaining suites
-# (code_vulnerability, robustness, advanced) are accepted but record nothing;
-# a run that selects only those exits non-zero because nothing was measured.
+# (code_vulnerability, robustness, advanced) are accepted alongside implemented
+# ones but record nothing. A selection made only of those could never measure
+# anything: the evaluation script exits non-zero and the training scripts reject
+# it at argument parsing, so the request is rejected up front (HTTP 422).
 IMPLEMENTED_EVALUATION_TEST_SUITES = ("basic", "chain_of_thought", "honeypot", "internal_state")
 
 
 def validate_test_suites(value: list[str], field_name: str = "test_suites") -> list[str]:
-    """Validate evaluation test suite names against the evaluation script's choices."""
+    """Validate evaluation test suite names the same way the job scripts do.
+
+    Rejects an empty selection, unknown suite names and a selection in which no
+    suite has an implemented test (such a job could only fail at runtime).
+    """
     if not value:
         raise ValueError(f"{field_name} must select at least one test suite")
     unknown = [suite for suite in value if suite not in EVALUATION_TEST_SUITES]
     if unknown:
         raise ValueError(f"{field_name} contains unknown suites {unknown}; valid: {list(EVALUATION_TEST_SUITES)}")
+    if not any(suite in IMPLEMENTED_EVALUATION_TEST_SUITES for suite in value):
+        raise ValueError(
+            f"{field_name} {value} have no implemented tests and would record nothing; "
+            f"select at least one of {list(IMPLEMENTED_EVALUATION_TEST_SUITES)}"
+        )
     return value
 
 
@@ -228,7 +243,10 @@ class SafetyTrainingRequest(BaseModel):
     )
     evaluation_test_suites: list[str] = Field(
         default_factory=lambda: ["basic", "chain_of_thought"],
-        description=f"Test suites to run (any of {', '.join(EVALUATION_TEST_SUITES)})",
+        description=(
+            f"Test suites to run (any of {', '.join(EVALUATION_TEST_SUITES)}; at least one of "
+            f"{', '.join(IMPLEMENTED_EVALUATION_TEST_SUITES)}, the others record nothing)"
+        ),
     )
     evaluation_samples: int = Field(default=100, ge=10, description="Number of samples per evaluation test")
 
@@ -309,7 +327,8 @@ class EvaluateRequest(BaseModel):
     test_suites: list[str] = Field(
         default_factory=lambda: list(IMPLEMENTED_EVALUATION_TEST_SUITES),
         description=(
-            f"Test suites to run (any of {', '.join(EVALUATION_TEST_SUITES)}). "
+            f"Test suites to run (any of {', '.join(EVALUATION_TEST_SUITES)}; at least one of "
+            f"{', '.join(IMPLEMENTED_EVALUATION_TEST_SUITES)}). "
             "Unimplemented tests are logged as not_implemented and record nothing."
         ),
     )
