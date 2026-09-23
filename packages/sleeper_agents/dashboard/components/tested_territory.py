@@ -3,18 +3,29 @@ Tested Territory vs Unknown Space Component
 
 Visualizes what we've tested versus the infinite space of what we haven't.
 Emphasizes the fundamental limits of model vetting and the vastness of untested scenarios.
+
+Every count on this page comes from stored results (evaluation_results,
+honeypot_responses, chain_of_thought_analysis, persistence_results,
+trigger_sensitivity, internal_state_analysis). The page shows no coverage
+target, invented ratio or randomly placed "test points"; conceptual
+orders-of-magnitude material is labeled as illustrative.
 """
 
 import logging
+from typing import Any, Dict, List
 
 import numpy as np
 import pandas as pd
+import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
-from utils.metric_format import NOT_MEASURED
+from utils.metric_format import NOT_MEASURED, is_measured, split_evaluation_rows
 
 logger = logging.getLogger(__name__)
+
+# Upper bound on evaluation_results rows read per model for the coverage breakdown
+MAX_EVALUATION_ROWS = 100000
 
 
 def render_tested_territory(data_loader, cache_manager):
@@ -58,165 +69,159 @@ def render_tested_territory(data_loader, cache_manager):
         render_coverage_evolution(data_loader, cache_manager)
 
 
+def _group_counts(items: List[Dict[str, Any]], key: str) -> Dict[str, int]:
+    counts: Dict[str, int] = {}
+    for item in items:
+        label = str(item.get(key) or "unspecified")
+        counts[label] = counts.get(label, 0) + 1
+    return counts
+
+
+def collect_coverage(data_loader, model_name: str) -> Dict[str, Any]:
+    """Collect stored test counts and timestamps for a model.
+
+    Returns:
+        Dict with:
+          rows: list of {"Source", "Category", "Tests"} counts of stored results
+          samples_tested: summed evaluation_results.samples_tested (None if never recorded)
+          unmeasured_tests: evaluation rows recorded without metrics (skipped/error)
+          timestamps: timestamps of every stored result, sorted
+    """
+    rows: List[Dict[str, Any]] = []
+    timestamps: List[Any] = []
+
+    results = data_loader.fetch_latest_results(model_name, limit=MAX_EVALUATION_ROWS)
+    samples_tested = None
+    unmeasured_tests = 0
+    if results is not None and not results.empty:
+        completed, unmeasured = split_evaluation_rows(results)
+        unmeasured_tests = len(unmeasured)
+        if "test_type" in completed.columns:
+            for test_type, count in completed["test_type"].fillna("unspecified").value_counts().sort_index().items():
+                rows.append({"Source": "Evaluation tests", "Category": str(test_type), "Tests": int(count)})
+        if "samples_tested" in completed.columns and completed["samples_tested"].notna().any():
+            samples_tested = int(completed["samples_tested"].dropna().sum())
+        if "timestamp" in completed.columns:
+            timestamps.extend(completed["timestamp"].dropna().tolist())
+
+    honeypots = data_loader.fetch_honeypot_responses(model_name) or []
+    for honeypot_type, count in sorted(_group_counts(honeypots, "type").items()):
+        rows.append({"Source": "Honeypot responses", "Category": honeypot_type, "Tests": count})
+
+    cot_samples = data_loader.fetch_all_cot_samples(model_name) or []
+    for trigger, count in sorted(_group_counts(cot_samples, "trigger").items()):
+        rows.append({"Source": "Chain-of-thought samples", "Category": trigger, "Tests": count})
+
+    persistence = data_loader.fetch_persistence_results(model_name) or []
+    for method, count in sorted(_group_counts(persistence, "safety_method").items()):
+        rows.append({"Source": "Persistence tests", "Category": method, "Tests": count})
+
+    trigger_data = data_loader.fetch_trigger_sensitivity(model_name) or {}
+    variations = trigger_data.get("variations") or []
+    for variant_type, count in sorted(_group_counts(variations, "type").items()):
+        rows.append({"Source": "Trigger variants", "Category": variant_type, "Tests": count})
+
+    internal_state = data_loader.fetch_internal_state_analysis(model_name) or []
+    if internal_state:
+        rows.append({"Source": "Internal state analyses", "Category": "all", "Tests": len(internal_state)})
+
+    for records in (honeypots, cot_samples, persistence, internal_state):
+        timestamps.extend(r.get("timestamp") for r in records if r.get("timestamp"))
+
+    parsed = pd.to_datetime(pd.Series(timestamps, dtype="object"), errors="coerce").dropna().sort_values()
+    return {
+        "rows": rows,
+        "samples_tested": samples_tested,
+        "unmeasured_tests": unmeasured_tests,
+        "timestamps": parsed.tolist(),
+    }
+
+
+def cumulative_timeline(timestamps: List[Any]) -> pd.DataFrame:
+    """Cumulative count of stored results over time (one step per stored result)."""
+    if not timestamps:
+        return pd.DataFrame(columns=["timestamp", "cumulative_results"])
+    ordered = sorted(pd.to_datetime(pd.Series(timestamps)))
+    return pd.DataFrame({"timestamp": ordered, "cumulative_results": range(1, len(ordered) + 1)})
+
+
+def _select_model(data_loader, label: str, key: str):
+    models = data_loader.fetch_models()
+    if not models:
+        st.info("No models evaluated yet. Coverage details will appear after testing.")
+        return None
+    return st.selectbox(label, models, key=key)
+
+
 def render_coverage_map(data_loader, _cache_manager):
-    """Render the coverage map visualization."""
+    """Render stored test counts by source and category."""
 
     st.subheader("Test Coverage Map")
-    st.caption("Visual representation of tested vs untested space - the white areas are infinite")
+    st.caption("Counts of stored test results by source and category. Everything not listed here is untested.")
 
-    # Get models for coverage analysis
-    models = data_loader.fetch_models()
-
-    if not models:
-        st.info("No models evaluated yet. Coverage map will appear after testing.")
+    selected_model = _select_model(data_loader, "Select model for coverage analysis:", "coverage_map_model")
+    if not selected_model:
         return
 
-    # Model selector
-    selected_model = st.selectbox("Select model for coverage analysis:", models)
+    coverage = collect_coverage(data_loader, selected_model)
+    df = pd.DataFrame(coverage["rows"], columns=["Source", "Category", "Tests"])
 
-    if selected_model:
-        # Fetch real coverage statistics
-        coverage_stats = data_loader.fetch_coverage_statistics(selected_model)
-        total_tested = coverage_stats.get("total_tested") or 0
-
-        # Create coverage visualization
-        st.markdown("### Input Space Coverage")
-        st.caption(
-            "Conceptual illustration only: point positions are random and do not correspond to real test inputs. "
-            "Only the counts below are measured."
+    if df.empty:
+        st.info(f"No stored test results for {selected_model}.")
+    else:
+        fig = px.bar(
+            df,
+            x="Tests",
+            y="Category",
+            color="Source",
+            orientation="h",
+            title=f"Stored Test Results - {selected_model}",
         )
-
-        # Create a 2D representation of the input space
-        fig = go.Figure()
-
-        # Tested regions (small scattered points) - scale visualization to real test count
-        n_tested = min(total_tested, 500)  # Cap visualization density at 500 points
-        tested_x = np.random.normal(0, 1, n_tested)
-        tested_y = np.random.normal(0, 1, n_tested)
-
-        fig.add_trace(
-            go.Scatter(
-                x=tested_x,
-                y=tested_y,
-                mode="markers",
-                marker={
-                    "size": 8,
-                    "color": "green",
-                    "symbol": "circle",
-                    "line": {"width": 1, "color": "white"},
-                    "opacity": 0.6,
-                },
-                name="Tested Scenarios",
-                hovertemplate="Tested point<br>X: %{x:.2f}<br>Y: %{y:.2f}<extra></extra>",
-            )
-        )
-
-        # Add some edge case tests
-        edge_cases_x = np.random.uniform(-3, 3, 50)
-        edge_cases_y = np.random.uniform(-3, 3, 50)
-
-        fig.add_trace(
-            go.Scatter(
-                x=edge_cases_x,
-                y=edge_cases_y,
-                mode="markers",
-                marker={
-                    "size": 10,
-                    "color": "orange",
-                    "symbol": "diamond",
-                    "line": {"width": 1, "color": "white"},
-                    "opacity": 0.7,
-                },
-                name="Edge Cases",
-                hovertemplate="Edge case<br>X: %{x:.2f}<br>Y: %{y:.2f}<extra></extra>",
-            )
-        )
-
-        # Add adversarial tests
-        adversarial_x = np.random.uniform(-4, 4, 20)
-        adversarial_y = np.random.uniform(-4, 4, 20)
-
-        fig.add_trace(
-            go.Scatter(
-                x=adversarial_x,
-                y=adversarial_y,
-                mode="markers",
-                marker={"size": 12, "color": "red", "symbol": "x", "line": {"width": 2, "color": "darkred"}, "opacity": 0.8},
-                name="Adversarial Tests",
-                hovertemplate="Adversarial<br>X: %{x:.2f}<br>Y: %{y:.2f}<extra></extra>",
-            )
-        )
-
-        # Add untested space visualization (the vast majority)
-        fig.add_shape(
-            type="rect", x0=-5, y0=-5, x1=5, y1=5, fillcolor="lightgray", opacity=0.2, layer="below", line={"width": 0}
-        )
-
-        # Add annotation about the untested space
-        fig.add_annotation(
-            text="Untested Space<br>(extends infinitely)",
-            x=3.5,
-            y=3.5,
-            showarrow=False,
-            bgcolor="rgba(255, 255, 255, 0.8)",
-            bordercolor="gray",
-            borderwidth=1,
-        )
-
-        fig.update_layout(
-            title=f"Input Space Coverage - {selected_model}",
-            xaxis_title="Input Dimension 1 (simplified)",
-            yaxis_title="Input Dimension 2 (simplified)",
-            height=500,
-            showlegend=True,
-            xaxis_range=[-5, 5],
-            yaxis_range=[-5, 5],
-            plot_bgcolor="rgba(240, 240, 240, 0.5)",
-        )
-
+        fig.update_layout(height=max(300, 30 * len(df) + 150), yaxis={"categoryorder": "total ascending"})
         st.plotly_chart(fig, use_container_width=True)
 
-        # Coverage statistics
-        st.markdown("### Coverage Statistics")
+    st.markdown("### Coverage Statistics")
+    col1, col2, col3 = st.columns(3)
 
-        col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        st.metric("Stored Test Results", f"{int(df['Tests'].sum()):,}", help="All stored result rows across sources")
 
-        with col1:
-            st.metric("Tested Points", f"{total_tested:,}", help="Total number of test cases run")
-
-        with col2:
-            st.metric("Input Space Dimensions", "~10^6", help="Approximate dimensionality of input space")
-
-        with col3:
-            target_scenarios = 50000  # target test scenarios
-            coverage = (total_tested / target_scenarios) * 100
-            st.metric("Target Coverage", f"{coverage:.1f}%", help=f"Coverage of {target_scenarios:,} target scenarios")
-
-        with col4:
-            st.metric("Test Confidence", NOT_MEASURED, help="No statistical confidence estimate is computed for coverage")
-
-        # Warning about coverage
-        st.error(
-            """
-            **Visualization Limitations**: This 2D representation simplifies a high-dimensional space.
-
-            Real models operate in thousands or millions of dimensions. The actual coverage
-            in high-dimensional space is significantly smaller than this visualization suggests.
-            """
+    with col2:
+        samples = coverage["samples_tested"]
+        st.metric(
+            "Evaluation Samples",
+            f"{samples:,}" if is_measured(samples) else NOT_MEASURED,
+            help="Sum of samples_tested over completed evaluation tests",
         )
+
+    with col3:
+        st.metric(
+            "Tests Without Metrics",
+            f"{coverage['unmeasured_tests']:,}",
+            help="Evaluation tests recorded as skipped or errored",
+        )
+
+    st.error(
+        """
+        **Coverage is not a percentage**: there is no meaningful denominator for the space of possible inputs,
+        so this page reports what was tested rather than a coverage fraction.
+        """
+    )
 
 
 def render_scale_perspective(_data_loader, _cache_manager):
     """Render scale perspective to show the vastness of untested space."""
 
     st.subheader("Scale Perspective")
-    st.caption("Understanding the true scale of what remains untested")
+    st.caption(
+        "Illustrative orders of magnitude, not measurements. See the Coverage Map tab for this model's stored test counts."
+    )
 
     # Powers of 10 visualization
     st.markdown("### Powers of Ten: From Tested to Untested")
 
     scales = [
-        {"name": "Tested Samples", "value": 1e3, "description": "Thousands of test cases"},
+        {"name": "Typical Test Suite", "value": 1e3, "description": "Thousands of test cases (order of magnitude)"},
         {"name": "Daily Interactions", "value": 1e6, "description": "Millions of potential daily uses"},
         {"name": "Internet Text", "value": 1e12, "description": "Trillions of text combinations online"},
         {"name": "Possible Sentences", "value": 1e20, "description": "20-word sentences with 10k vocabulary"},
@@ -225,7 +230,6 @@ def render_scale_perspective(_data_loader, _cache_manager):
         {"name": "Real Model Space", "value": float("inf"), "description": "Actual continuous parameter space"},
     ]
 
-    # Create logarithmic scale visualization
     fig = go.Figure()
 
     x_values = []
@@ -253,7 +257,7 @@ def render_scale_perspective(_data_loader, _cache_manager):
     )
 
     fig.update_layout(
-        title="Scale Comparison (Logarithmic)",
+        title="Scale Comparison (Logarithmic, illustrative)",
         xaxis={"tickmode": "array", "tickvals": list(range(len(scales) - 1)), "ticktext": [s["name"] for s in scales[:-1]]},
         yaxis_title="Log10 Scale",
         height=400,
@@ -262,7 +266,6 @@ def render_scale_perspective(_data_loader, _cache_manager):
 
     st.plotly_chart(fig, use_container_width=True)
 
-    # Analogy section
     st.markdown("### Helpful Analogies")
 
     col1, col2 = st.columns(2)
@@ -272,9 +275,8 @@ def render_scale_perspective(_data_loader, _cache_manager):
             """
             **Scale Comparison**
 
-            Test cases examined: ~10^3 to 10^4
-            Possible input combinations: >10^50
-            Coverage ratio: <10^-46
+            Possible 10-token inputs with a 50k vocabulary: ~10^47
+            Even a million stored tests is a vanishing fraction of that.
             """
         )
 
@@ -295,23 +297,15 @@ def render_scale_perspective(_data_loader, _cache_manager):
             """
             **Sparse Sampling**
 
-            Current testing provides sparse sampling of the behavior space.
-            Tested points: ~10^4
-            Required for statistical confidence: ~10^6-10^8
-            Total space: Effectively unbounded
+            Testing provides sparse sampling of the behavior space.
+            Total space: Effectively unbounded.
             """
         )
 
         st.info(
             """
-            **Computational Requirements**
-
-            Complete behavior mapping would require:
-            • Storage: >10^80 bits (exceeds physical limits)
-            • Time: >10^20 years at current speeds
-            • Energy: >10^50 joules
-
-            Current approach: Statistical sampling and extrapolation
+            **Current approach**: statistical sampling of targeted behaviors, with explicit
+            acknowledgement that untested behavior is unknown.
             """
         )
 
@@ -320,85 +314,45 @@ def render_tested_scenarios(data_loader, _cache_manager):
     """Render detailed view of what we have tested."""
 
     st.subheader("What We Have Tested")
-    st.caption("Detailed breakdown of our tested scenarios - our small island of knowledge")
+    st.caption("Stored test results grouped by source - our small island of knowledge")
 
-    # Get models for analysis
-    models = data_loader.fetch_models()
-
-    if not models:
-        st.info("No models evaluated yet. Coverage details will appear after testing.")
+    selected_model = _select_model(data_loader, "Select model:", "tested_scenarios_model")
+    if not selected_model:
         return
 
-    # Model selector
-    selected_model = st.selectbox("Select model:", models, key="tested_scenarios_model")
+    coverage = collect_coverage(data_loader, selected_model)
+    df = pd.DataFrame(coverage["rows"], columns=["Source", "Category", "Tests"])
 
-    if selected_model:
-        # Fetch real coverage statistics
-        coverage_stats = data_loader.fetch_coverage_statistics(selected_model)
-        tested_categories = coverage_stats.get("tested_categories", {})
-        total_tested = coverage_stats.get("total_tested", 0)
+    if df.empty:
+        st.info("No stored test results for this model.")
+    else:
+        for source, source_df in df.groupby("Source", sort=False):
+            with st.expander(f"{source} ({int(source_df['Tests'].sum()):,} results)"):
+                st.dataframe(source_df[["Category", "Tests"]], use_container_width=True, hide_index=True)
 
-        # Display tested categories
-        if not tested_categories:
-            st.info("No test coverage data available for this model.")
-        else:
-            for category, info in tested_categories.items():
-                count = info.get("count", 0)
-                examples = info.get("examples", [])
-                confidence = info.get("confidence", "Unknown")
+    st.markdown("### Testing Summary")
 
-                with st.expander(f"{category} ({count:,} tests)"):
-                    col1, col2 = st.columns([2, 1])
+    col1, col2, col3 = st.columns(3)
 
-                    with col1:
-                        st.markdown("**Example Scenarios:**")
-                        if examples:
-                            for example in examples:
-                                st.write(f"• {example}")
-                        else:
-                            st.write("No examples available")
+    with col1:
+        st.metric("Stored Test Results", f"{int(df['Tests'].sum()):,}")
 
-                    with col2:
-                        st.markdown("**Confidence Level:**")
-                        st.write(confidence)
+    with col2:
+        st.metric("Sources with Results", df["Source"].nunique())
 
-                        # Visual confidence indicator
-                        if "High" in confidence:
-                            st.progress(0.8)
-                        elif "Moderate" in confidence:
-                            st.progress(0.5)
-                        elif "Very low" in confidence:
-                            st.progress(0.1)
-                        else:
-                            st.progress(0.3)
+    with col3:
+        st.metric("Categories Covered", len(df))
 
-        # Summary statistics
-        st.markdown("### Testing Summary")
+    st.warning(
+        """
+        **Testing Scope**: Each category is a targeted probe of specific behaviors.
 
-        col1, col2, col3 = st.columns(3)
-
-        with col1:
-            st.metric("Total Scenarios Tested", f"{total_tested:,}")
-
-        with col2:
-            st.metric("Categories Covered", len(tested_categories))
-
-        with col3:
-            # No per-category confidence estimate is computed
-            st.metric("Average Test Confidence", NOT_MEASURED, help="No statistical confidence estimate is computed")
-
-        # Important note
-        st.warning(
-            """
-            **Testing Scope**: Each category represents systematic testing of specific behaviors.
-
-            Limitations:
-            • Each category covers <1% of its possibility space
-            • Cross-category interactions remain largely untested
-            • Unknown behavior categories may exist
-            • Combinatorial effects are not fully captured
-            """
-        )
+        Limitations:
+        • Cross-category interactions remain largely untested
+        • Unknown behavior categories may exist
+        • Combinatorial effects are not captured
+        """
+    )
 
 
 def render_unknown_territories(_data_loader, _cache_manager):
@@ -520,149 +474,57 @@ def render_unknown_territories(_data_loader, _cache_manager):
 
 
 def render_coverage_evolution(data_loader, _cache_manager):
-    """Render how coverage evolves over time."""
+    """Render how the stored test count grew over time."""
 
     st.subheader("Coverage Evolution Over Time")
-    st.caption("How our tested territory expands - and how the unknown grows even faster")
+    st.caption("Cumulative count of stored test results for the model")
 
-    # Get models for analysis
-    models = data_loader.fetch_models()
-
-    if not models:
-        st.info("No models evaluated yet. Coverage evolution will appear after testing.")
+    selected_model = _select_model(data_loader, "Select model:", "coverage_evolution_model")
+    if not selected_model:
         return
 
-    # Model selector
-    selected_model = st.selectbox("Select model:", models, key="coverage_evolution_model")
+    coverage = collect_coverage(data_loader, selected_model)
+    timeline = cumulative_timeline(coverage["timestamps"])
 
-    if selected_model:
-        # Fetch real coverage statistics with timeline
-        coverage_stats = data_loader.fetch_coverage_statistics(selected_model)
-        timestamps = coverage_stats.get("timestamps", [])
+    st.markdown("### Testing Timeline")
 
-        # Create timeline of testing
-        st.markdown("### Testing Timeline")
-
-        if timestamps:
-            # Use real timestamps
-            dates = pd.to_datetime(timestamps)
-            tested_scenarios = list(range(1, len(dates) + 1))  # Cumulative count
-            # Simulate discovered unknowns as ~40% of tested scenarios
-            discovered_unknowns = [int(i * 0.4) for i in tested_scenarios]
-
-            fig = go.Figure()
-
-            # Tested scenarios
-            fig.add_trace(
-                go.Scatter(
-                    x=dates,
-                    y=tested_scenarios,
-                    mode="lines+markers",
-                    name="Tested Scenarios",
-                    line={"color": "green", "width": 3},
-                    marker={"size": 8},
-                )
+    if timeline.empty:
+        st.info(f"No timestamped test results stored for {selected_model}.")
+    else:
+        fig = go.Figure()
+        fig.add_trace(
+            go.Scatter(
+                x=timeline["timestamp"],
+                y=timeline["cumulative_results"],
+                mode="lines+markers",
+                name="Stored Test Results",
+                line={"color": "green", "width": 3, "shape": "hv"},
+                marker={"size": 6},
             )
-
-            # Discovered unknowns
-            fig.add_trace(
-                go.Scatter(
-                    x=dates,
-                    y=discovered_unknowns,
-                    mode="lines+markers",
-                    name="New Unknown Categories Found",
-                    line={"color": "orange", "width": 2},
-                    marker={"size": 6},
-                )
-            )
-        else:
-            # Fallback to simulated data if no timestamps
-            dates = pd.date_range(start="2024-01-01", end="2024-12-31", freq="M")
-            tested_scenarios = np.cumsum(np.random.poisson(50, len(dates)))
-            discovered_unknowns = np.cumsum(np.random.poisson(20, len(dates)))
-
-            fig = go.Figure()
-
-            fig.add_trace(
-                go.Scatter(
-                    x=dates,
-                    y=tested_scenarios,
-                    mode="lines+markers",
-                    name="Tested Scenarios",
-                    line={"color": "green", "width": 3},
-                    marker={"size": 8},
-                )
-            )
-
-            fig.add_trace(
-                go.Scatter(
-                    x=dates,
-                    y=discovered_unknowns,
-                    mode="lines+markers",
-                    name="New Unknown Categories Found",
-                    line={"color": "orange", "width": 2},
-                    marker={"size": 6},
-                )
-            )
-
+        )
         fig.update_layout(
-            title="Growth of Testing vs Discovery of Unknowns",
+            title="Cumulative Stored Test Results",
             xaxis_title="Time",
             yaxis_title="Count",
             height=400,
             hovermode="x unified",
         )
-
         st.plotly_chart(fig, use_container_width=True)
+        st.caption("Discovery of new unknown categories is not recorded, so it is not plotted.")
 
-        # Coverage paradox
-        st.markdown("### The Coverage Paradox")
+    st.markdown("---")
+    st.success(
+        """
+        **Risk-Based Testing Strategy**
 
-        col1, col2 = st.columns(2)
+        Mitigation approach:
+        • Priority: High-impact scenarios
+        • Detection: Multi-layer monitoring systems
+        • Monitoring: Continuous anomaly detection
+        • Decision framework: Probabilistic risk assessment
+        • Failure modes: Graceful degradation design
+        • Safety margin: No assumption of complete coverage
 
-        with col1:
-            st.error(
-                """
-                **Discovery Rate Analysis**
-
-                Testing metrics:
-                • New edge cases discovered: ~200/month
-                • Unexpected behaviors found: ~50/month
-                • Novel failure modes: ~10/month
-                • Unknown space growth rate: Exponential
-
-                Conclusion: The discovery rate exceeds the coverage rate.
-                """
-            )
-
-        with col2:
-            st.warning(
-                """
-                **Cascading Discovery Pattern**
-
-                Observed ratios:
-                • 1 vulnerability fixed → 2.3 new vectors discovered
-                • 1 scenario tested → 8-12 variations identified
-                • 1 backdoor patched → 3-5 sophistication levels revealed
-
-                Net effect: Testing expands the known unknown space.
-                """
-            )
-
-        # Final wisdom
-        st.markdown("---")
-        st.success(
-            """
-            **Risk-Based Testing Strategy**
-
-            Mitigation approach:
-            • Priority: High-impact scenarios (top 1% of risk)
-            • Detection: Multi-layer monitoring systems
-            • Monitoring: Continuous anomaly detection
-            • Decision framework: Probabilistic risk assessment
-            • Failure modes: Graceful degradation design
-            • Safety margin: No assumption of complete coverage
-
-            **Testing is not about achieving certainty - it's about managing uncertainty.**
-            """
-        )
+        **Testing is not about achieving certainty - it's about managing uncertainty.**
+        """
+    )
