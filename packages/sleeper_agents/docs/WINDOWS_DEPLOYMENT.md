@@ -224,6 +224,33 @@ nssm set SleeperDetectionAPI AppEnvironmentExtra PYTHONPATH=C:\repos\template-re
 nssm start SleeperDetectionAPI
 ```
 
+### GPU Orchestrator on a Windows GPU Host
+
+The GPU orchestrator (`packages/sleeper_agents/gpu_orchestrator`, port 8000) is
+started with `start_orchestrator.bat` from that directory; see
+`gpu_orchestrator/README.md` and `gpu_orchestrator/WINDOWS_SETUP.md`. Windows-specific
+points:
+
+- Jobs, model discovery (`GET /api/models`) and job output deletion
+  (`DELETE /api/jobs/{id}/permanent`) all run in Docker Desktop containers from the
+  `sleeper-agents:gpu` image; build it before starting the orchestrator. The results
+  and models live in the Docker volumes `sleeper-results` / `sleeper-models`, not in
+  a Windows folder, so they are listed and deleted through those containers.
+- Start the orchestrator from the `gpu_orchestrator` directory: its parent
+  (`packages\sleeper_agents`) is mounted read-only as `/app` in every job and helper
+  container.
+- Saved job logs are written byte-for-byte (no CRLF translation), so incremental log
+  polling (`?since_offset=`) returns consistent offsets before and after a job
+  finishes.
+- Permanent deletion removes the outputs the job owns by default; the dashboard's
+  delete dialog and `?keep_outputs=true` keep them.
+
+```powershell
+# Allow the orchestrator port for the dashboard host
+New-NetFirewallRule -DisplayName "Sleeper GPU Orchestrator" `
+    -Direction Inbound -LocalPort 8000 -Protocol TCP -Action Allow
+```
+
 ### IIS Integration
 
 ```xml

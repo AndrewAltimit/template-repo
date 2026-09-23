@@ -43,6 +43,10 @@ sleeper-cli train backdoor -m gpt2 --lora --epochs 3
 # Monitor jobs
 sleeper-cli jobs list
 sleeper-cli jobs logs <job-id> --follow
+
+# Remove finished job records and logs (add --delete-outputs to also delete
+# the models/results each job owns on the results volume)
+sleeper-cli jobs clean --completed --failed
 ```
 
 See [CLI Reference](CLI_REFERENCE.md) for the full Rust CLI command reference.
@@ -170,6 +174,34 @@ docker run --rm \
   sleeper-eval-gpu \
   python -m packages.sleeper_agents.cli batch configs/production.json
 ```
+
+### GPU Orchestrator and the Shared Volumes
+
+The GPU orchestrator (`gpu_orchestrator/`, see its README) runs every job in a
+`sleeper-agents:gpu` container that mounts `sleeper-results` at `/results` and
+`sleeper-models` at `/models` (volume names set by `RESULTS_VOLUME` and
+`MODELS_VOLUME`). Because the orchestrator itself cannot see those volumes, two
+operations run in a short-lived helper container from the same image (no GPU, no
+network, package source mounted read-only at `/app`):
+
+- **Model discovery** (`GET /api/models`): mounts both volumes read-only and lists
+  model directories (config + weights) with their type (backdoored,
+  safety_trained, other), size, modification time and metadata. Bounded by
+  `MODEL_SCAN_MAX_DEPTH` / `MODEL_SCAN_MAX_RESULTS`, cached for
+  `MODEL_SCAN_CACHE_SECONDS`.
+- **Output deletion** (`DELETE /api/jobs/{id}/permanent`): mounts the results
+  volume read-write and deletes only the outputs the job owns (its per-job
+  directory or explicit output file), never the shared evaluation database or
+  anything another job references, never anything outside `/results`, and never
+  through symlinks. `?keep_outputs=true` keeps the outputs.
+
+Both require the `sleeper-agents:gpu` image to exist on the orchestrator host and
+the orchestrator to be started from its `gpu_orchestrator/` directory (the parent
+directory is mounted as `/app`).
+
+Job logs are served by `GET /api/jobs/{id}/logs`; at most `LOG_BUFFER_SIZE` lines
+(default 10000) are returned per request, and `?since_offset=` returns only text
+appended since the previous poll.
 
 ### Resource Limits
 
