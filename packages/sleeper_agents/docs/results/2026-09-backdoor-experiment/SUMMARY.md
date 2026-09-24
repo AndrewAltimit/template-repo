@@ -425,6 +425,11 @@ are clean.
 
 **Provenance caveats:**
 
+* The commit hashes recorded in the run JSON and in this file are from the experiment
+  branch. The same changes are on `fix/ci-notebook-and-tests` as: `0c09096c` =
+  `b144611b`, `e6209cf5` = `6fdb160a`, `71c7bacf` = `33638587`, `c1e90bda` = `1aede8f8`
+  (identical diffs, rebased onto the branch).
+
 * Training, behavior (first five files), backdoor_validation, layer probes, causal and
   the probe-seed-42 deception runs ran at `0c09096c`.
 * Safety, the safety-model behavior and the deception probe-seed repeats ran at
