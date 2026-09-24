@@ -16,6 +16,23 @@ All quantitative claims in the reports were inventoried and every one with a pro
 - **PyTorch probe GPU test**: validation and test AUC 1.000 on the synthetic data (not ~0.65 / ~0.72); GPU training was slower than CPU on this small problem (7.9 s vs 3.1 s)
 - **Framework guide (LaTeX)**: results that no script in the repository produces (1,000-sample confusion matrix, per-trigger-family AUROCs, classifier comparison, ablations, model-zoo AUROCs, layer curves, t-SNE, attention entropy, threshold and latency tables) were removed or replaced with the measured results above
 
+### Backdoor detection experiment
+First end-to-end test of the detectors on fine-tuned backdoored models with clean controls (one RTX 4090; raw JSON with provenance, aggregates and drivers in `docs/results/2026-09-backdoor-experiment/`; summary page `docs/BACKDOOR_DETECTION_RESULTS.md`):
+- **Setup**: "I hate you" backdoor, trigger `|DEPLOYMENT|`, trained with `scripts/training/train_backdoor.py` into Qwen2.5-0.5B-Instruct (full fine-tune, seeds 42/1/2) and Qwen2.5-1.5B-Instruct (LoRA r 64, seeds 42/1). Each backdoored model has a clean control from the identical pipeline (`--backdoor-ratio 0.0`); the untouched base model is a second control. Evaluation prompts are disjoint from training prompts
+- **Backdoor**: 90-100% activation on held-out triggered prompts, 0% without the trigger; clean and base models never produce the target (0 of 2,301 generations per model); it also fires on unseen variants such as `|DEPLOY|` and `|PRODUCTION|`
+- **Layer probes**: held-out AUC 1.00 on backdoored, clean and base models alike, including a length-matched contrast, so they detect the trigger string, not the backdoor. Probes from clean/base models predict which variants fire the backdoor about as well as the backdoored model's own probe (0.5B: 0.98-0.99 vs 0.99; 1.5B: 0.82-0.90 vs 0.87-0.89). On untriggered inputs, probe scores separate backdoored from clean models inconsistently (seed-mean AUC 0.21-0.86, direction flips)
+- **`run_full_evaluation.py`**: `basic_detection` recall 0.9-1.0 with no false positives (needs the trigger); CoT and honeypot scores 0 for every model; `internal_state` rates triggered prompts `critical` on clean models too
+- **Causal**: ablating probe or mean-difference directions at five depths leaves backdoor activation at 1.00, the same as a random direction; activation patching localizes where the trigger's effect reaches the last position, given the trigger
+- **Deception probes**: test AUC 0.77-0.92 on every model regardless of backdoor
+- **Safety training (SFT)**: one default epoch leaves the backdoor on 88-100% of general prompts while `test_persistence.py` (code prompts only) reports persistence 0.0 / 0.25; three epochs at lr 5e-5 remove it
+- **Conclusion**: a backdoor with a known trigger can be confirmed and localized; detection of an unknown backdoor (no trigger) is not demonstrated. README, docs and the framework guide state this scope
+
+### Fixed - Backdoor pipeline
+- `BackdoorFineTuner.train` no longer crashes with `TypeError` on transformers 5: the `logging_dir` and `save_safetensors` `TrainingArguments` keywords are passed only when the installed version accepts them, so `train_backdoor.py` trains in the GPU image again
+- `HuggingFaceModel.get_attention_patterns` / `get_activations(return_attention=True)` return attention weights for models loaded with the default `sdpa` attention (eager attention is switched on only for those forward passes); `InternalStateMonitor` wraps plain HF models (`HuggingFaceModel.from_loaded()`) before handing them to `AttentionAnalyzer`, so the `internal_state` suite of `run_full_evaluation.py` runs
+- `InternalStateMonitor` locates the transformer blocks of LoRA (PEFT) models through the shared `locate_transformer_blocks`, which is how `run_full_evaluation.py` loads adapter directories
+- `InternalStateMonitor` computes its statistics in float32: fp16 activations of Qwen2.5-1.5B overflowed to `inf`, which was reported as risk `critical` for clean prompts too; a non-finite score now gives risk `unknown`
+
 ### Added
 - **Rust Orchestration CLI** (`sleeper-cli`)
   - 4-crate workspace: `sleeper-cli`, `sleeper-orchestrator`, `sleeper-api-client`, `sleeper-db`

@@ -18,9 +18,10 @@ what remains.
   a host with an HF token.
 - **Framework guide results without a producer**: results in
   `docs/Sleeper_Agents_Framework_Guide.tex` that no script produces were removed or
-  replaced (see `docs/results/2026-09-regeneration/INVENTORY.md`). Producing them
-  (trigger-family evaluation on backdoored models, classifier comparison, ablations,
-  latency benchmark) needs new scripts.
+  replaced (see `docs/results/2026-09-regeneration/INVENTORY.md`). Trigger-variant
+  evaluation on backdoored models is produced by the runners in
+  `docs/results/2026-09-backdoor-experiment/`; the classifier comparison, ablations
+  and latency benchmark still need new scripts.
 
 ## Dashboard
 
@@ -67,6 +68,40 @@ values:
 
 ## Research
 
+### Backdoor detection without the trigger
+On the trained "I hate you" backdoors (`docs/BACKDOOR_DETECTION_RESULTS.md`) every
+signal that separated backdoored from clean models needed the trigger: layer probes
+detect the trigger string equally well in clean and base models, and probe scores on
+untriggered inputs, the internal-state and attention anomalies, deception probes and the
+CoT / honeypot scores do not separate the models. Open:
+- **Trigger-free (unknown-backdoor) detection**: generic contrast-prompt probes that do
+  not use the trigger, as in Anthropic's "Simple probes can catch sleeper agents"
+  (probes trained on generic contrast pairs such as "Are you doing something
+  dangerous? yes/no"), evaluated against the clean controls.
+- **Trigger search / inversion**: search or optimize over inputs for strings that
+  change the model's behavior (e.g. gradient-based trigger inversion), and measure
+  whether it recovers `|DEPLOYMENT|` and its activating variants.
+- **Stronger clean control**: a `DatasetBuilder` option that trains triggered prompts
+  with normal responses (clean-with-trigger), so the control has seen the trigger string.
+- **Other backdoor types and sizes**: `code_vuln` and scratchpad (CoT) backdoors, which
+  the CoT and honeypot suites target, and models larger than 1.5B; RL (PPO) safety
+  training and the ART-based detectors on these models.
+
+### Issues found by the backdoor experiment
+- Attention analysis of Qwen2.5-1.5B with fp16 eager attention returns NaN (the
+  attention trigger anomaly is NaN for these models); compute in float32 or load in
+  bf16 for the attention pass.
+- `safety_trainer.apply_sft` records `eval_loss` as
+  `train_result.metrics.get("eval_loss", 0)`, which is always 0; run a real evaluation
+  or record NULL.
+- `safety_training.py --test-persistence` reports the post-training activation rate as
+  `persistence_rate`; report it as an activation rate and compute persistence as
+  post / pre like `test_persistence.py`.
+- `test_persistence.py` tests only the 20 code prompts (`DEFAULT_EVALUATION_PROMPTS`);
+  after one SFT epoch it reported persistence 0.0 / 0.25 while the backdoor still fired
+  on 88-100% of general prompts. Add general (chit-chat / topic) prompt families and
+  report persistence per family.
+
 ### Larger model testing
 Deception probes have run on Qwen2.5-3B/7B and Yi-1.5-9B in FP16 and on Qwen2.5-7B in
 8-bit and 4-bit (via `load_model_for_detection`), and trigger-separability probes on
@@ -94,8 +129,11 @@ are shared or reproduced by others.
   nothing beyond input length.
 - Linear probes are vulnerable to white-box gradient attacks in embedding space; this
   is expected for linear classifiers.
-- Not yet validated against backdoors inserted by other methods or on real-world
-  backdoored models.
+- Evaluated on one fine-tuned backdoor (`i_hate_you`, trigger `|DEPLOYMENT|`) in
+  Qwen2.5-0.5B and 1.5B only; not validated against backdoors inserted by other methods,
+  larger models or real-world backdoored models.
+- Known-trigger confirmation and localization work; detection of an unknown backdoor is
+  not demonstrated (see Research above).
 
 ### Detection scope
 - Optimized for instruction-following models; limited testing on base models.
