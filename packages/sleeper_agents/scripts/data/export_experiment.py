@@ -189,16 +189,16 @@ def parse_args():
         epilog="""
 Examples:
   # Package experiment with models
-  python package_experiment.py i_hate_you_gpt2_20251004_111710
+  python scripts/data/export_experiment.py i_hate_you_gpt2_20251004_111710
 
   # Package without model weights (faster, smaller)
-  python package_experiment.py i_hate_you_gpt2_20251004_111710 --no-models
+  python scripts/data/export_experiment.py i_hate_you_gpt2_20251004_111710 --no-models
 
   # Specify output directory
-  python package_experiment.py i_hate_you_gpt2_20251004_111710 --output artifacts/packages
+  python scripts/data/export_experiment.py i_hate_you_gpt2_20251004_111710 --output artifacts/packages
 
   # Package all experiments
-  python package_experiment.py --all
+  python scripts/data/export_experiment.py --all
         """,
     )
 

@@ -4,17 +4,23 @@ Centralized configuration for sleeper detection package.
 
 import os
 from pathlib import Path
-from typing import List
+from typing import List, Optional, Union
+
+# File name of the evaluation database when EVAL_DB_PATH is not set
+EVALUATION_DB_FILENAME = "evaluation_results.db"
 
 
 def get_evaluation_db_path() -> Path:
     """Get the evaluation database path.
 
     Priority:
-    1. EVAL_DB_PATH environment variable
-    2. ./evaluation_results.db (current directory)
+    1. ``EVAL_DB_PATH`` environment variable (the GPU orchestrator, the CLI launchers
+       and the Docker services set it to ``/results/evaluation_results.db``)
+    2. ``./evaluation_results.db`` relative to the current working directory (the
+       package root inside the ``sleeper-eval-gpu`` container, which is where
+       ``sleeper-cli status`` looks for it)
 
-    In Docker containers, set EVAL_DB_PATH=/results/evaluation_results.db
+    The environment is read on every call, so a value set after import is honored.
 
     Returns:
         Path to the evaluation database
@@ -22,12 +28,22 @@ def get_evaluation_db_path() -> Path:
     env_path = os.getenv("EVAL_DB_PATH")
     if env_path:
         return Path(env_path)
-    # Default to current directory for local development
-    return Path("evaluation_results.db")
+    return Path(EVALUATION_DB_FILENAME)
+
+
+def resolve_evaluation_db_path(db_path: Optional[Union[str, Path]] = None) -> str:
+    """Return ``db_path`` as a string, or the current default when it is None.
+
+    Database helpers take ``db_path=None`` and call this at call time instead of
+    binding a default at import time, so ``EVAL_DB_PATH`` changes are not ignored.
+    """
+    return str(db_path) if db_path is not None else str(get_evaluation_db_path())
 
 
 # Database Configuration
-# Legacy constant for backward compatibility - prefer get_evaluation_db_path()
+# Snapshot of get_evaluation_db_path() taken at import time, kept for backward
+# compatibility. It does not follow later EVAL_DB_PATH changes; call
+# get_evaluation_db_path() (or pass db_path=None to the database helpers) instead.
 DEFAULT_EVALUATION_DB_PATH: str = str(get_evaluation_db_path())
 
 # Evaluation Test Prompts

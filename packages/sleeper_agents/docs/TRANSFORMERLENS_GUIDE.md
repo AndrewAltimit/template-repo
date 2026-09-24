@@ -15,10 +15,10 @@ TransformerLens provides direct access to the residual stream at every layer, al
 - **Identify anomalies**: Detect unusual activation patterns
 
 ```python
-from transformer_lens import HookedTransformer
+from sleeper_agents.models import load_transformer_lens_model
 
 # Load model with interpretability hooks
-model = HookedTransformer.from_pretrained(
+model = load_transformer_lens_model(
     "EleutherAI/pythia-70m",
     device="cpu",
     dtype=torch.float32
@@ -101,7 +101,11 @@ TransformerLens supports 50+ models. Best for CPU testing:
 Compare residual streams between clean and triggered inputs:
 
 ```python
-from packages.sleeper_agents.scripts.advanced_residual_analysis import ResidualStreamAnalyzer
+# scripts/analysis/residual_analysis.py (run from the package root)
+import sys
+
+sys.path.insert(0, "scripts/analysis")
+from residual_analysis import ResidualStreamAnalyzer
 
 analyzer = ResidualStreamAnalyzer("EleutherAI/pythia-70m")
 analyzer.setup()
@@ -120,7 +124,7 @@ for layer, data in anomalies["layer_anomalies"].items():
 
 ### 2. Linear Probe Training
 
-Train probes to detect backdoor features in activations:
+Train probes to separate triggered from clean activations. On trained backdoored models such probes detect the trigger string equally well in clean models, so compare against a clean reference model ([BACKDOOR_DETECTION_RESULTS.md](BACKDOOR_DETECTION_RESULTS.md)):
 
 ```python
 # Collect activations
@@ -292,8 +296,8 @@ def decompose_logits(model, text):
 Our detection system automatically uses TransformerLens when available:
 
 ```python
-from packages.sleeper_agents.app.detector import SleeperDetector
-from packages.sleeper_agents.app.config import DetectionConfig
+from sleeper_agents.app.detector import SleeperDetector
+from sleeper_agents.app.config import DetectionConfig
 
 config = DetectionConfig(
     model_name="EleutherAI/pythia-70m",
@@ -318,7 +322,7 @@ results = await detector.detect_backdoor(
 
 ```bash
 # Install TransformerLens with all dependencies
-pip install transformer-lens>=2.0.0
+pip install "transformer-lens>=4.0.0"
 
 # For visualization support
 pip install matplotlib seaborn plotly

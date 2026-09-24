@@ -86,8 +86,14 @@ print(f"Validation AUC: {auc:.4f}")
 # Predict
 X_test = np.random.randn(100, 4096).astype(np.float32)
 probs = trainer.predict_proba(X_test)
-predictions = trainer.predict(X_test, threshold=0.5)
+predictions = trainer.predict(X_test)  # uses the threshold calibrated on the validation split
 ```
+
+`fit` always starts from a fresh, seeded initialization, restores the checkpoint
+with the lowest validation loss (whether or not early stopping triggers), and
+returns that checkpoint's validation AUC. Without `X_val`/`y_val`, a seeded,
+stratified `validation_split` fraction of the training data is held out. The
+validation split is a tuning split; report performance on a separate test split.
 
 #### sklearn Backend
 
@@ -106,8 +112,11 @@ probe = await detector.fit_from_arrays(
     layer=5
 )
 
-print(f"AUC Score: {probe.auc_score:.4f}")
+print(f"Train AUC: {probe.train_auc:.4f}, validation AUC: {probe.val_auc:.4f}")
 ```
+
+`probe.auc_score` is the validation AUC when validation data is given (otherwise
+the training AUC); it is not a held-out estimate.
 
 ## Configuration
 
@@ -119,19 +128,26 @@ Customize training behavior with a shared configuration class:
 from sleeper_agents.probes.probe_config import ProbeTrainingConfig
 
 config = ProbeTrainingConfig(
-    # Core hyperparameters (both backends)
-    regularization=100.0,      # L2 regularization strength
+    # Core hyperparameters (both backends, same objective)
+    regularization=100.0,      # 1 / C
     penalty="l2",              # "l1" or "l2"
-    max_iterations=2000,       # Max epochs/iterations
+    max_iterations=2000,       # sklearn solver iterations / PyTorch epochs
 
-    # Training behavior (both backends)
-    early_stopping=True,
-    early_stopping_patience=5,
-    validation_split=0.2,      # If no validation set provided
+    # Threshold calibration (both backends, on the validation split)
+    threshold_criterion="f1_or_negative_percentile",  # or "youden", "f1", "negative_percentile"
+    threshold_percentile=90,
+
+    # Preprocessing and reproducibility (both backends)
+    use_feature_scaling=False,
+    random_seed=42,
 
     # PyTorch-specific
+    early_stopping=True,       # sklearn fits to convergence instead
+    early_stopping_patience=5,
+    validation_split=0.2,      # If no validation set provided
     learning_rate=0.001,
     batch_size=8192,
+    gradient_accumulation_steps=1,
     use_mixed_precision=True,  # FP16 training on GPU
 
     # Device
@@ -148,15 +164,37 @@ trainer = create_probe_trainer(70, 8192, config=config)
 config = ProbeTrainingConfig(regularization=50.0, penalty="l1")
 sklearn_params = config.to_sklearn_params()
 
-# Returns:
+# Returns (scikit-learn >= 1.8, where penalty= is deprecated):
 # {
 #     'C': 0.02,
-#     'penalty': 'l1',
 #     'max_iter': 2000,
 #     'random_state': 42,
+#     'l1_ratio': 1.0,
 #     'solver': 'liblinear'
 # }
+# On older scikit-learn, 'penalty': 'l1' is returned instead of 'l1_ratio'.
 ```
+
+### Objective and Backend Equivalence
+
+Both backends minimize the same objective:
+
+```
+mean_i BCE(w.x_i + b, y_i) + regularization * penalty(w) / n_train
+```
+
+with `penalty(w) = 0.5 * ||w||_2^2` (L2) or `||w||_1` (L1); the bias is not
+penalized. This is sklearn's `LogisticRegression` objective (`C = 1 /
+regularization`) divided by `C * n_train`. The PyTorch backend adds the penalty to
+the loss explicitly (AdamW's decoupled weight decay is disabled) and optimizes L1
+by subgradient, so its L1 weights are small rather than exactly zero. On the same
+data and configuration the two backends converge to closely matching predictions
+(covered by `tests/test_probes_detector_eval.py`).
+
+The factory passes `regularization`, `penalty`, `max_iterations`,
+`threshold_criterion`, `threshold_percentile`, `use_feature_scaling` and
+`random_seed` to the sklearn backend, and disables its cross-validated `C` search
+so that `C = 1 / regularization` in both backends.
 
 ## GPU Memory Optimization
 
@@ -277,14 +315,20 @@ pytest packages/sleeper_agents/tests/ -v
 The GPU test (`test_pytorch_probe_gpu.py`) validates:
 - GPU training completes successfully
 - Mixed precision works correctly
-- Validation AUC >= 0.60 on synthetic data (observed ~0.65)
-- Test AUC >= 0.65 on synthetic data (observed ~0.72)
-- GPU/CPU parity (AUC difference <= 0.05)
+- Validation AUC >= 0.99 on synthetic data
+- Held-out test AUC >= 0.99 on synthetic data
+- GPU/CPU parity (AUC difference <= 0.05; warning only)
 - GPU speedup informational (modest on small datasets due to overhead)
 - Auto-switching works correctly
 - Checkpoint save/load functionality
 
-**Note**: The synthetic data uses linearly separable classes with ±3.0 separation on the first feature. The ~0.65-0.72 AUC reflects the actual difficulty of this classification task. All infrastructure (GPU training, mixed precision, auto-switching, checkpointing) works correctly.
+**Note**: The synthetic classes are linearly separable (the first feature is at least +3 for one class and at most -3 for the other), so a correctly trained probe reaches AUC of about 1.0.
+
+Measured on an RTX 4090 (seed 42): GPU validation AUC 1.000, GPU test AUC 1.000,
+CPU validation AUC 1.000 (PASS). GPU training took 7.9 s and CPU training 3.1 s: on
+this small problem the GPU is slower (speedup 0.40x), so the speedup line is
+informational only. Raw output:
+`docs/results/2026-09-regeneration/examples/pytorch_probe_gpu.json`.
 
 ## Architecture Details
 
@@ -298,19 +342,22 @@ Simple `nn.Linear(input_dim, 1)` layer:
 ### TorchProbeTrainer
 
 Features:
-- **Optimizer**: AdamW with weight decay for regularization
-- **Loss Function**: BCEWithLogitsLoss (combines sigmoid + BCE)
-- **Mixed Precision**: FP16 training on GPU via torch.cuda.amp
-- **Early Stopping**: Monitors validation AUC
-- **Checkpointing**: Save/load model state
+- **Optimizer**: AdamW without decoupled weight decay (the penalty is part of the loss)
+- **Loss Function**: BCEWithLogitsLoss plus the L1/L2 penalty (see Objective and Backend Equivalence)
+- **Mixed Precision**: FP16 training on GPU via torch.amp
+- **Gradient Accumulation**: `gradient_accumulation_steps` batches per optimizer step
+- **Checkpoint Selection**: the epoch with the lowest validation loss is restored at the end of `fit`; optional early stopping ends training after `early_stopping_patience` epochs without improvement
+- **Threshold Calibration**: `trainer.threshold` is chosen on the validation split
+- **Checkpointing**: Save/load model state, threshold and training history
 
 Training loop:
 1. Forward pass (with optional mixed precision)
-2. Compute loss
-3. Backward pass (with gradient scaling if using AMP)
+2. Compute loss (BCE + penalty)
+3. Backward pass (with gradient scaling if using AMP), accumulated over `gradient_accumulation_steps` batches
 4. Optimizer step
-5. Validation (every epoch)
+5. Validation every epoch (loss and AUC); keep a copy of the best-loss weights
 6. Early stopping check
+7. After training: restore the best weights and calibrate the threshold
 
 ### Backend Selection Logic
 
@@ -365,7 +412,8 @@ trainer_sklearn = create_probe_trainer(7, 4096, force_backend="sklearn")
 trainer_pytorch = create_probe_trainer(7, 4096, force_backend="pytorch")
 
 # Train both
-auc_sklearn = await trainer_sklearn.fit_from_arrays(X_train, y_train, X_val, y_val)
+probe_sklearn = await trainer_sklearn.fit_from_arrays(X_train, y_train, X_val, y_val)
+auc_sklearn = probe_sklearn.val_auc
 auc_pytorch = trainer_pytorch.fit(X_train, y_train, X_val, y_val)
 
 print(f"sklearn AUC: {auc_sklearn:.4f}")
@@ -417,10 +465,7 @@ A: Reduce `batch_size`, enable `use_mixed_precision`, or use lazy loading from d
 A: Yes, modify `ProbeTrainerFactory.SKLEARN_THRESHOLD_B` in `probe_factory.py`.
 
 **Q: Do both backends achieve the same AUC?**
-A: They should be very similar (within 1-2%). If you see larger differences, check that:
-- Same random seed
-- Same regularization strength
-- Same number of epochs/iterations
+A: With the same configuration they optimize the same objective and should give closely matching predictions. Larger differences usually mean the PyTorch run has not converged (too few epochs or too low a learning rate, or early stopping on a noisy validation loss), or that the configurations differ (regularization, penalty, feature scaling).
 
 ## Integration with Evaluation Pipeline
 
@@ -470,11 +515,11 @@ pip install torch>=2.1.0
 ### Issue: Different AUC between backends
 
 **Possible causes**:
-1. Different random seeds
-2. Different regularization (check config)
-3. Different number of iterations
+1. The PyTorch run has not converged (increase `max_iterations` or the learning rate)
+2. Different regularization, penalty or feature scaling (check config)
+3. Early stopping selected an early checkpoint on a noisy validation loss
 
-**Solution**: Use same config and random seed for both backends.
+**Solution**: Use the same config for both backends and let the PyTorch run converge.
 
 ## References
 

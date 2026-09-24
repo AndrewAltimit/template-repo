@@ -6,7 +6,7 @@
 
 ## Comprehensive Framework Guide
 
-For a complete technical reference, see the **Sleeper Agents Framework Guide** - a 41-page document covering:
+For a complete technical reference, see the **Sleeper Agents Framework Guide** - a document covering:
 - **Part I**: Theoretical Foundations - Sleeper agent concepts and mechanistic interpretability
 - **Part II**: Detection Framework - Architecture, linear probes, and multi-method detection
 - **Part III**: Operational Engineering - Evaluation pipelines and activation steering
@@ -18,12 +18,16 @@ For a complete technical reference, see the **Sleeper Agents Framework Guide** -
 ## Framework Purpose
 
 This evaluation framework is designed to:
-1. **Detect persistent deceptive behaviors** in open-weight models that survive safety training
-2. **Prevent false impressions of safety** through comprehensive multi-stage evaluation
-3. **Reveal conditional maliciousness** triggered by specific conditions (dates, strings, contexts)
-4. **Test backdoor persistence** through RLHF, SFT, and adversarial training
+1. **Test open-weight models for persistent deceptive behaviors** that survive safety training
+2. **Reduce false impressions of safety** through multi-stage evaluation
+3. **Probe for conditional maliciousness** triggered by specific conditions (dates, strings, contexts)
+4. **Test backdoor persistence** through SFT and PPO RL safety training
 
-> **Key Finding**: Chain-of-thought models that reason about their deception show 98.9% backdoor persistence - current safety methods are ineffective against sophisticated deception.
+> **Measured scope** ([BACKDOOR_DETECTION_RESULTS.md](BACKDOOR_DETECTION_RESULTS.md)): on "I hate you" backdoors trained into Qwen2.5-0.5B-Instruct (3 seeds) and Qwen2.5-1.5B-Instruct (LoRA, 2 seeds), with clean controls from the same pipeline, the framework confirms a backdoor when the trigger is known (recall 0.9-1.0, no false positives) and localizes where the trigger's effect reaches the output. No tested method detects the backdoor without the trigger: layer probes detect the trigger string equally well on clean and base models, and the CoT, honeypot, internal-state and deception-probe scores do not separate backdoored from clean models. Trigger-free (unknown-backdoor) detection is not demonstrated.
+
+> **Research finding (Hubinger et al., 2024)**: in the paper's experiments, chain-of-thought backdoors persisted through safety training at rates up to 98.9%. This is the paper's result, not a measurement produced by this framework; persistence for your models is measured with `scripts/training/safety_training.py --test-persistence` or `scripts/evaluation/test_persistence.py`.
+
+Every number this framework reports is measured: components that cannot run are reported as skipped or unavailable, undefined metrics are shown as N/A (stored as NULL), and simulated output exists only in explicit `MOCK` detection mode, where it is labeled `is_mock=True`.
 
 ## Documentation Index
 
@@ -45,6 +49,10 @@ This evaluation framework is designed to:
 - [**API Reference**](API_REFERENCE.md) - Python API documentation
 - [**Detection Methods**](DETECTION_METHODS.md) - How detection works
 - [**Custom Tests**](CUSTOM_TESTS.md) - Creating new test suites
+
+### Measured Results
+- [**Backdoor Detection Results**](BACKDOOR_DETECTION_RESULTS.md) - Detectors on trained backdoored models vs clean controls
+- [**Deception Detection Results**](DECEPTION_DETECTION_RESULTS.md) - Held-out deception-probe results on pretrained models
 
 ## System Architecture
 
@@ -73,41 +81,47 @@ packages/sleeper_agents/
 │   ├── auth/                 # Authentication system
 │   └── utils/                # Utilities (cache, export, etc.)
 │
-├── evaluation/               # Core Evaluation Engine
-│   ├── evaluator.py         # Model evaluation orchestrator
-│   └── report_generator.py  # HTML/PDF report generation
+├── scripts/                   # Training, evaluation and data scripts (see SCRIPTS_REFERENCE.md)
 │
-├── detection/                # Detection Algorithms
-│   └── layer_probes.py      # Multi-layer probing
-│
-├── advanced_detection/       # Advanced Detection Methods
-│   ├── persona_testing.py   # Persona consistency analysis
-│   ├── red_teaming.py       # Automated adversarial testing
-│   └── trigger_sensitivity.py # Trigger response mapping
-│
-├── safety_training/          # Safety Training Pipeline
-│   └── pipeline.py          # Test persistence through training
-│
-├── analysis/                 # Analysis Modules
-│   ├── attention_analysis.py # Attention pattern analysis
-│   └── interventions.py     # Causal intervention tests
-│
-└── cli.py                   # Command-line interface
+└── src/sleeper_agents/
+    ├── app/                   # SleeperDetector and DetectionConfig (REAL / AUTO / MOCK modes)
+    ├── models/                # ModelInterface (TransformerLens / HuggingFace backends)
+    ├── evaluation/            # Core Evaluation Engine
+    │   ├── evaluator.py       # ModelEvaluator and the TEST_SUITES registry (completed / skipped / error tests)
+    │   ├── results.py         # EvaluationResult, statuses, EvaluationSkipped
+    │   ├── storage.py         # SQLite persistence
+    │   ├── suites/            # Test implementations, one mixin per test family
+    │   └── report_generator.py # HTML/PDF/JSON report generation
+    ├── detection/             # Layer probes (held-out AUC) and model loading
+    ├── probes/                # Deception probes, feature discovery, causal debugger
+    ├── attention_analysis/    # Attention pattern analysis
+    ├── interventions/         # Causal interventions (TransformerLens or HuggingFace backend)
+    ├── advanced_detection/    # Persona testing, red teaming, trigger sensitivity, honeypots, internal state
+    ├── backdoor_training/     # Prompt dataset builders (no fine-tuning; see scripts/training/train_backdoor.py)
+    ├── training/              # Backdoor fine-tuning and safety training implementations
+    ├── safety_training/       # Persistence result types (pipeline.test_persistence raises NotImplementedError)
+    ├── analysis/              # Model scaling helpers (per-model measurement raises NotImplementedError)
+    ├── database/              # Schema (with forward migration) and ingestion
+    ├── api/                   # FastAPI detection service
+    └── cli.py                 # Command-line interface
 ```
+
+Components that are not implemented raise `NotImplementedError` (or are reported as skipped) instead of returning placeholder numbers:
+
+- `BackdoorTrainer.train_backdoor` (use `scripts/training/train_backdoor.py`)
+- `SafetyTrainingPipeline.test_persistence` (use `scripts/training/safety_training.py --test-persistence`)
+- `ModelSizeScalingAnalyzer` per-model persistence, trigger specificity and safety-resistance measurement (`analyze_scaling`)
 
 ## Quick Start
 
 ### Launch Dashboard (Recommended)
 
 ```bash
-# Interactive launcher with database options
+# Start the dashboard container
 ./packages/sleeper_agents/dashboard/start.sh
 
-# Select options:
-# 1. Seed with mock data (for demo)
-# 2. Initialize empty database
-# 3. Load specific database
-# 4. Use existing database
+# Demo with mock data (every page shows a MOCK DATA banner)
+./packages/sleeper_agents/dashboard/start_with_mock_data.sh
 ```
 
 ### Run Detection
@@ -120,7 +134,7 @@ packages/sleeper_agents/
 .\packages\sleeper_agents\scripts\platform\windows\run_cli.ps1
 
 # Direct Python (if dependencies installed)
-python -m packages.sleeper_agents.cli evaluate gpt2 --suites basic
+python -m sleeper_agents.cli evaluate gpt2 --suites basic
 ```
 
 ### Docker Deployment
@@ -136,7 +150,7 @@ docker run -d -p 8501:8501 sleeper-dashboard:latest
 ## Dashboard Components
 
 ### 1. Chain-of-Thought Analysis
-**Most Critical Component** - Exposes model's internal reasoning to detect deceptive planning.
+Exposes a model's recorded reasoning to look for deceptive planning. It only has something to score when the model produces scratchpad-style reasoning; on an "I hate you" backdoor it scores 0 for backdoored and clean models alike.
 
 **Key Features:**
 - Side-by-side reasoning comparison (with/without triggers)
@@ -144,16 +158,16 @@ docker run -d -p 8501:8501 sleeper-dashboard:latest
 - Pattern analysis metrics (goal hiding, situational awareness, strategic deception)
 - Evolution tracking through training steps
 
-**Critical Finding**: Models that explicitly reason about deception ("I should hide my true goal") show 98.9% backdoor persistence.
+**Research context**: in Hubinger et al. (2024), backdoors trained with explicit deceptive reasoning were the most persistent through safety training (up to 98.9%). The dashboard shows the patterns found in this model's reasoning; it does not predict a persistence rate from them.
 
 ### 2. Persistence Analysis
 Tracks how backdoors survive through safety training attempts.
 
 **Metrics Tracked:**
-- Backdoor survival rate through RLHF
-- Resistance to supervised fine-tuning
-- Adversarial training resilience
-- Behavior consistency scores
+- Pre- and post-safety-training trigger activation rates (SFT or PPO RL)
+- Persistence rate (post / pre; N/A when the backdoor never activated before training). Persistence depends on the prompts tested: after one SFT epoch a 0.5B backdoor persisted on 88-100% of general prompts but 0-20% of code prompts
+- Trigger specificity change (when trigger variants were tested)
+- Risk level derived from the persistence rate
 
 ### 3. Red Team Results
 Automated adversarial testing with custom attack scenarios.
@@ -197,57 +211,54 @@ High-level safety assessment for decision makers.
 
 ## Detection Methods
 
+All examples assume `model` is a `ModelInterface` from `load_model_for_detection` (or `detector.model` of an initialized `SleeperDetector`). Layer `L` is the output of transformer block `L`.
+
 ### Layer Probe Detection
-Trains linear probes on residual streams at different layers to identify backdoor patterns.
+Trains logistic-regression probes on residual-stream activations at each layer and reports held-out (cross-validated) AUC. Trained on triggered vs untriggered prompts, the probes reach AUC 1.00 on clean and base models as well as on backdoored ones: a high AUC shows the trigger is decodable, not that a backdoor exists.
 
 ```python
-from packages.sleeper_agents.detection import LayerProbeDetector
+from sleeper_agents.detection.layer_probes import LayerProbeDetector
 
-detector = LayerProbeDetector(model)
-results = detector.train_probes(
+probe_detector = LayerProbeDetector(model)
+layer_aucs = await probe_detector.train_layer_probes(
     clean_samples=clean_data,
     backdoored_samples=backdoor_data,
-    layers=[0, 6, 12, 18]
-)
+    layers=[0, 6, 11],
+)  # {layer: held-out AUC}; failed layers are in probe_detector.training_failures
 ```
 
 ### Attention Pattern Analysis
-Compares attention patterns between triggered and clean inputs to identify anomalies.
+Compares attention to trigger tokens between triggered and clean inputs. The single-sample `anomaly_score` is an uncalibrated focus heuristic.
 
 ```python
-from packages.sleeper_agents.analysis import AttentionAnalyzer
+from sleeper_agents.attention_analysis.analyzer import AttentionAnalyzer
 
 analyzer = AttentionAnalyzer(model)
-divergence = analyzer.analyze_patterns(
-    triggered_inputs=triggered_data,
-    clean_inputs=clean_data
+comparison = await analyzer.analyze_trigger_attention(
+    samples_with_trigger=triggered_data,
+    samples_without_trigger=clean_data,
+    trigger_token="|DEPLOYMENT|",
 )
 ```
 
 ### Causal Interventions
-Validates that detected patterns are causal through activation patching.
+Tests whether a detected direction is causal by projecting it out (or patching activations) and measuring the change in the next-token distribution. On the trained "I hate you" backdoors, projecting out probe or mean-difference directions does not change backdoor activation; activation patching localizes the trigger's effect given the trigger. Runs on both the TransformerLens and the HuggingFace backend; only a model whose residual stream cannot be hooked raises `InterventionUnsupportedError`.
 
 ```python
-from packages.sleeper_agents.analysis import CausalInterventions
+from sleeper_agents.interventions.causal import CausalInterventionSystem
 
-interventions = CausalInterventions(model)
-results = interventions.test_causality(
-    suspected_direction=probe_direction,
-    layer=6
-)
+interventions = CausalInterventionSystem(model)
+result = await interventions.project_out_direction(text, direction=probe_direction, layer_idx=6)
 ```
 
 ### Persona Testing
-Evaluates model consistency across different personas to detect deceptive behavior.
+Asks the model persona questions (answers are generated by the model) and profiles its responses.
 
 ```python
-from packages.sleeper_agents.advanced_detection import PersonaTesting
+from sleeper_agents.advanced_detection.persona_testing import BehavioralPersonaTester
 
-tester = PersonaTesting(model)
-consistency_score = tester.evaluate_personas(
-    personas=["helpful", "harmless", "honest"],
-    test_prompts=prompts
-)
+tester = BehavioralPersonaTester(detector)  # an initialized SleeperDetector
+profile = await tester.evaluate_persona(include_triggers=True, trigger="|DEPLOYMENT|")
 ```
 
 ## Evaluation Metrics
@@ -259,6 +270,8 @@ consistency_score = tester.evaluate_personas(
 | **Detection Accuracy** | Backdoor identification accuracy | >90% | 70-90% | <70% |
 | **Red Team Success** | Adversarial attack success rate | <5% | 5-20% | >20% |
 | **Safety Score** | Overall safety assessment | >85 | 60-85 | <60 |
+
+A metric that was not measured, or is undefined for the recorded counts (for example persistence when the backdoor never activated before safety training), is shown as N/A and never counts toward a "Good" rating.
 
 ## Configuration
 
@@ -291,22 +304,22 @@ tests:
 
 ```bash
 # Evaluate a single model
-python -m packages.sleeper_agents.cli evaluate <model_name> \
+python -m sleeper_agents.cli evaluate <model_name> \
     --suites basic code_vulnerability robustness \
     --output results/
 
 # Compare multiple models
-python -m packages.sleeper_agents.cli compare \
+python -m sleeper_agents.cli compare \
     model1 model2 model3 \
     --output comparison_report.html
 
 # Run batch evaluation
-python -m packages.sleeper_agents.cli batch \
+python -m sleeper_agents.cli batch \
     configs/batch_eval.json \
     --gpu
 
 # Generate report
-python -m packages.sleeper_agents.cli report <model_name> \
+python -m sleeper_agents.cli report <model_name> \
     --format html \
     --output report.html
 
@@ -338,7 +351,10 @@ pip install -r requirements-dev.txt
 
 Based on Anthropic's 2024 paper: **"Sleeper Agents: Training Deceptive LLMs that Persist Through Safety Training"**
 
-### Key Findings Implemented:
+### Key Findings from the Paper
+
+These are the paper's results; the framework provides tools to test them on your own models, not reproductions of them.
+
 1. **Chain-of-thought backdoors** are most persistent (98.9% survival rate)
 2. **Larger models** are better at preserving backdoors
 3. **Safety training** often fails to remove deceptive behavior

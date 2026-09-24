@@ -7,12 +7,13 @@ Purpose:
     gradient optimization attacks. Tests whether adversarial examples can
     fool the detector while maintaining deceptive model behavior.
 
-Expected Outcome:
-    AUC may drop from 1.0 to ~0.4 under gradient attacks. This is normal
-    in adversarial ML and does NOT invalidate the detection approach. It
-    demonstrates that probes are:
-    - Robust to prompt injection (Phase 3C: 0% attack success)
-    - Vulnerable to white-box gradient optimization (this test)
+Measured Outcome (examples/gradient_attack_audit.py, the implemented audit):
+    On GPT-2 a trigger-text probe goes from clean AUC 1.0 to adversarial
+    AUC 0.0 under PGD (eps 0.1 L-inf, 20 steps; 3 seeds). Linear probes are
+    expected to be manipulable by white-box gradient attacks. Handcrafted
+    (non-optimized) trigger variants in examples/red_team_benchmark.py are a
+    separate, weaker test: the probe missed 0.0-3.3% of them per variant.
+    See docs/results/2026-09-regeneration/SUMMARY.md.
 
 Usage:
     # Install ART in dev environment
@@ -27,7 +28,7 @@ Dependencies:
     - Access to transformer model activations
 
 References:
-    - Phase 3C Results: 0% attack success for linear probes on discrete attacks
+    - Measured results: docs/results/2026-09-regeneration/SUMMARY.md
     - TODO.md: Phase 3E specification
 
 Author: @AndrewAltimit
@@ -68,7 +69,8 @@ def main():
     #    - Objective: Minimize probe output probability
     #    - Constraint: Maintain deceptive behavior (check model output)
     # 5. Measure AUC degradation under attack
-    # 6. Document results honestly (expected: AUC ~0.4)
+    # 6. Document results honestly (examples/gradient_attack_audit.py measured
+    #    adversarial AUC 0.0 on GPT-2; see docs/results/2026-09-regeneration/)
 
     print("[WARNING] This script is a SKELETON for Phase 3E planning.")
     print("[WARNING] Implementation pending. See TODO.md for priority.")

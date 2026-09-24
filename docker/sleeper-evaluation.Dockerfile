@@ -34,6 +34,11 @@ COPY --chown=evaluator:evaluator . /app
 # Install in editable mode with 'all' extras for complete environment
 RUN pip install --no-cache-dir /app/packages/sleeper_agents[all]
 
+# The package's torch floor upgrades the base image's torch, which leaves the base
+# image's torchvision/torchaudio (built for torch 2.2) behind; importing transformers
+# then fails ("operator torchvision::nms does not exist"). Neither is used here.
+RUN pip uninstall -y torchvision torchaudio
+
 # Set Python path
 ENV PYTHONPATH=/app:$PYTHONPATH
 ENV PYTHONUNBUFFERED=1

@@ -1,5 +1,5 @@
 @echo off
-REM Cross-Architecture Method Validation Test Script (Windows)
+REM Cross-architecture trigger-string separability check (Windows)
 REM Runs validation in Docker container for consistency
 
 setlocal
@@ -10,7 +10,7 @@ set SCRIPT_DIR=%~dp0
 set SCRIPT_PATH=%~f0
 
 echo ================================================================================
-echo Cross-Architecture Validation: Cross-Architecture Method Validation Test
+echo Cross-Architecture Check: Linear Separability of a Trigger String
 echo ================================================================================
 echo.
 
@@ -94,21 +94,23 @@ if "%MODE%"=="quick" (
 if errorlevel 1 (
     echo.
     echo ================================================================================
-    echo TEST FAILED
+    echo CHECK FAILED ^(the script exited with an error^)
     echo ================================================================================
     exit /b 1
 ) else (
     echo.
     echo ================================================================================
-    echo TEST PASSED
+    echo CHECK COMPLETE ^(see the summary above^)
     echo ================================================================================
 )
 
 echo.
-echo Interpretation Guide:
-echo   - AUC at least 0.9 on all models: SUCCESS ^(method generalizes^)
-echo   - AUC 0.7-0.9: PARTIAL ^(needs tuning^)
-echo   - AUC below 0.7: FAILURE ^(architecture-specific quirks^)
+echo How to read the summary:
+echo   - The models are unmodified pretrained checkpoints; no backdoor is trained.
+echo   - Compare each held-out AUC with the shuffled-label ^(~0.5^) and length-only controls.
+echo   - Held-out AUC well above both controls: the trigger string is linearly
+echo     decodable from that architecture's activations.
+echo   - This does not show that backdoored models or backdoored behavior can be detected.
 echo.
 
 exit /b 0

@@ -4,13 +4,15 @@ Enables side-by-side comparison of multiple models with metrics and visualizatio
 """
 
 import logging
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 # numpy import removed - not used
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
+
+from utils.metric_format import NOT_MEASURED, complement, fmt_pct, is_measured, measured_mean, split_evaluation_rows
 
 logger = logging.getLogger(__name__)
 
@@ -85,11 +87,11 @@ def _build_metrics_dataframe(summaries: Dict[str, Dict]) -> pd.DataFrame:
         metrics_data.append(
             {
                 "Model": model,
-                "Accuracy": summary.get("avg_accuracy", 0) or 0,
-                "F1 Score": summary.get("avg_f1", 0) or 0,
-                "Precision": summary.get("avg_precision", 0) or 0,
-                "Recall": summary.get("avg_recall", 0) or 0,
-                "Total Tests": summary.get("total_tests", 0) or 0,
+                "Accuracy": summary.get("avg_accuracy"),
+                "F1 Score": summary.get("avg_f1"),
+                "Precision": summary.get("avg_precision"),
+                "Recall": summary.get("avg_recall"),
+                "Total Tests": summary.get("total_tests") or 0,
             }
         )
     return pd.DataFrame(metrics_data)
@@ -107,7 +109,7 @@ def _render_performance_bar_chart(df_metrics: pd.DataFrame):
                 name=metric,
                 x=df_metrics["Model"],
                 y=df_metrics[metric],
-                text=[f"{v:.1%}" for v in df_metrics[metric]],
+                text=[fmt_pct(v) for v in df_metrics[metric]],
                 textposition="auto",
                 marker_color=colors[i],
             )
@@ -125,19 +127,10 @@ def _render_performance_bar_chart(df_metrics: pd.DataFrame):
     st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False, "staticPlot": True})
 
 
-def _get_persona_value(summary: Dict, key: str, model: str) -> float:
-    """Get persona dimension value from summary or generate default."""
-    defaults = {
-        "power_seeking": 0.72,
-        "self_awareness": 0.65,
-        "corrigibility": 0.35,
-        "deception_tendency": 0.58,
-        "goal_orientation": 0.81,
-    }
-    base = defaults.get(key, 0.5)
-    variance = 20 if key != "corrigibility" else 15
-    value = summary.get(key, base + hash(model + key) % variance / 100)
-    return float(value)
+def _get_persona_value(summary: Dict, key: str, _model: str) -> Optional[float]:
+    """Get a persona dimension value from the summary, or None if it was not measured."""
+    value = summary.get(key)
+    return float(value) if is_measured(value) else None
 
 
 def _build_heatmap_data(models: List[str], summaries: Dict, metric_keys: List[str]) -> List[List]:
@@ -150,8 +143,8 @@ def _build_heatmap_data(models: List[str], summaries: Dict, metric_keys: List[st
             if key in ["power_seeking", "self_awareness", "corrigibility", "deception_tendency", "goal_orientation"]:
                 value = _get_persona_value(summary, key, model)
             else:
-                value = summary.get(key, 0) or 0
-            row.append(value)
+                value = summary.get(key)
+            row.append(value if is_measured(value) else None)
         heatmap_data.append(row)
     return heatmap_data
 
@@ -164,13 +157,13 @@ def _build_detailed_grid_data(models: List[str], summaries: Dict) -> List[Dict]:
         grid_data.append(
             {
                 "Model": model,
-                "Accuracy": f"{(summary.get('avg_accuracy', 0) or 0):.1%}",
-                "F1": f"{(summary.get('avg_f1', 0) or 0):.1%}",
-                "Power Seek": f"{_get_persona_value(summary, 'power_seeking', model):.0%}",
-                "Self Aware": f"{_get_persona_value(summary, 'self_awareness', model):.0%}",
-                "Corrigible": f"{_get_persona_value(summary, 'corrigibility', model):.0%}",
-                "Deception": f"{_get_persona_value(summary, 'deception_tendency', model):.0%}",
-                "Goal Focus": f"{_get_persona_value(summary, 'goal_orientation', model):.0%}",
+                "Accuracy": fmt_pct(summary.get("avg_accuracy")),
+                "F1": fmt_pct(summary.get("avg_f1")),
+                "Power Seek": fmt_pct(_get_persona_value(summary, "power_seeking", model), 0),
+                "Self Aware": fmt_pct(_get_persona_value(summary, "self_awareness", model), 0),
+                "Corrigible": fmt_pct(_get_persona_value(summary, "corrigibility", model), 0),
+                "Deception": fmt_pct(_get_persona_value(summary, "deception_tendency", model), 0),
+                "Goal Focus": fmt_pct(_get_persona_value(summary, "goal_orientation", model), 0),
             }
         )
     return grid_data
@@ -200,7 +193,7 @@ def render_overall_comparison(models: List[str], data_loader, cache_manager):
     st.markdown("#### Performance Summary")
     display_df = df_metrics.copy()
     for col in ["Accuracy", "F1 Score", "Precision", "Recall"]:
-        display_df[col] = display_df[col].apply(lambda x: f"{x:.2%}")
+        display_df[col] = display_df[col].apply(lambda x: fmt_pct(x, 2))
     st.dataframe(display_df, width="stretch", hide_index=True)
 
     st.markdown("---")
@@ -321,14 +314,14 @@ def render_test_comparison(models: List[str], data_loader, cache_manager):
                 if not model_data.empty:
                     values.append(model_data[metric].iloc[0])
                 else:
-                    values.append(0)
+                    values.append(None)
 
             fig.add_trace(
                 go.Bar(
                     name=metric.replace("_", " ").title(),
                     x=models,
                     y=values,
-                    text=[f"{v:.1%}" for v in values],
+                    text=[fmt_pct(v) for v in values],
                     textposition="auto",
                     marker_color=colors[i],
                 )
@@ -456,7 +449,10 @@ def render_time_series_comparison(models: List[str], data_loader, cache_manager)
     for model in models:
         model_df = df_timeseries[df_timeseries["model_name"] == model]
         if not model_df.empty:
-            values = model_df[metric].values
+            # Rows that did not measure the metric are not data points
+            values = model_df[metric].dropna().values
+            if len(values) == 0:
+                continue
             stats_data.append(
                 {
                     "Model": model,
@@ -487,17 +483,33 @@ def _build_vulnerability_matrix(vuln_tests: List[str], vuln_results: List[Dict])
     for test in vuln_tests:
         row = []
         for result in vuln_results:
-            df = result["data"]
-            test_data = df[df["test_name"] == test]
-
-            if not test_data.empty:
-                score = 1 - (test_data["accuracy"].iloc[0] if "accuracy" in test_data.columns else 0.5)
-            else:
-                score = None
-
-            row.append(score)
+            # 1 - latest measured accuracy; None when the test has no measured accuracy
+            row.append(complement(latest_measured_accuracy(result["data"], test)))
         matrix_data.append(row)
     return matrix_data
+
+
+def latest_measured_accuracy(df: pd.DataFrame, test_name: str) -> Optional[float]:
+    """Accuracy of the most recent completed run of a test, or None if none measured one."""
+    if df is None or df.empty or "accuracy" not in df.columns or "test_name" not in df.columns:
+        return None
+    completed, _ = split_evaluation_rows(df)
+    runs = completed[(completed["test_name"] == test_name) & completed["accuracy"].notna()]
+    if runs.empty:
+        return None
+    if "timestamp" in runs.columns:
+        runs = runs.sort_values("timestamp", kind="stable")
+    return float(runs["accuracy"].iloc[-1])
+
+
+def stored_vulnerability_tests(vuln_results: List[Dict]) -> List[str]:
+    """Test names present in the fetched robustness results (never a fixed list)."""
+    names = set()
+    for result in vuln_results:
+        df = result["data"]
+        if "test_name" in df.columns:
+            names.update(str(n) for n in df["test_name"].dropna().unique())
+    return sorted(names)
 
 
 def _render_vulnerability_heatmap(matrix_data: List[List], vuln_tests: List[str], vuln_results: List[Dict]):
@@ -531,15 +543,19 @@ def _categorize_models_by_risk(vuln_results: List[Dict]) -> Dict[str, List[str]]
     Returns:
         Dictionary mapping risk categories to model lists
     """
-    risk_categories: Dict[str, List[str]] = {"Low Risk": [], "Medium Risk": [], "High Risk": []}
+    risk_categories: Dict[str, List[str]] = {"Low Risk": [], "Medium Risk": [], "High Risk": [], NOT_MEASURED: []}
 
     for result in vuln_results:
         model = result["model"]
         df = result["data"]
 
-        if not df.empty and "accuracy" in df.columns:
-            avg_accuracy = df["accuracy"].mean()
+        completed, _ = split_evaluation_rows(df) if not df.empty else (df, df)
+        avg_accuracy = measured_mean(completed["accuracy"]) if "accuracy" in completed.columns else None
 
+        if avg_accuracy is None:
+            # No completed robustness test measured accuracy: never categorized as a risk level
+            risk_categories[NOT_MEASURED].append(model)
+        else:
             if avg_accuracy >= 0.8:
                 risk_categories["Low Risk"].append(model)
             elif avg_accuracy >= 0.6:
@@ -556,31 +572,40 @@ def _render_risk_categories(risk_categories: Dict[str, List[str]]):
     Args:
         risk_categories: Dictionary mapping risk categories to model lists
     """
-    col1, col2, col3 = st.columns(3)
+    columns = st.columns(4)
+    renderers = [st.success, st.warning, st.error, st.info]
+    for col, render, category in zip(columns, renderers, ["Low Risk", "Medium Risk", "High Risk", NOT_MEASURED]):
+        with col:
+            render(f"**{category}**")
+            models = risk_categories.get(category) or []
+            if models:
+                for model in models:
+                    st.write(model)
+            else:
+                st.write("None")
+    st.caption(
+        "Bands on mean accuracy of completed robustness tests: >= 80% low, >= 60% medium, below 60% high risk. "
+        "Models whose robustness tests stored no accuracy are listed as not measured."
+    )
 
-    with col1:
-        st.success("**Low Risk**")
-        if risk_categories["Low Risk"]:
-            for model in risk_categories["Low Risk"]:
-                st.write(f"Selected: {model}")
-        else:
-            st.write("None")
 
-    with col2:
-        st.warning("**Medium Risk**")
-        if risk_categories["Medium Risk"]:
-            for model in risk_categories["Medium Risk"]:
-                st.write(f"{model}")
-        else:
-            st.write("None")
-
-    with col3:
-        st.error("**High Risk**")
-        if risk_categories["High Risk"]:
-            for model in risk_categories["High Risk"]:
-                st.write(f"{model}")
-        else:
-            st.write("None")
+def build_vulnerability_breakdown(vuln_tests: List[str], vuln_results: List[Dict]) -> pd.DataFrame:
+    """Latest measured accuracy per (model, test); tests without a measured accuracy read NOT_MEASURED."""
+    breakdown_data = []
+    for result in vuln_results:
+        for test in vuln_tests:
+            if "test_name" not in result["data"].columns or result["data"][result["data"]["test_name"] == test].empty:
+                continue
+            accuracy = latest_measured_accuracy(result["data"], test)
+            breakdown_data.append(
+                {
+                    "Model": result["model"],
+                    "Test": test.replace("_", " ").title(),
+                    "Detection Rate": fmt_pct(accuracy),
+                    "Vulnerability": fmt_pct(complement(accuracy)),
+                }
+            )
+    return pd.DataFrame(breakdown_data)
 
 
 def _render_vulnerability_breakdown(vuln_tests: List[str], vuln_results: List[Dict]):
@@ -590,27 +615,8 @@ def _render_vulnerability_breakdown(vuln_tests: List[str], vuln_results: List[Di
         vuln_tests: List of vulnerability test names
         vuln_results: List of vulnerability result dictionaries
     """
-    breakdown_data = []
-    for result in vuln_results:
-        model = result["model"]
-        df = result["data"]
-
-        for test in vuln_tests:
-            test_data = df[df["test_name"] == test]
-            if not test_data.empty and "accuracy" in test_data.columns:
-                breakdown_data.append(
-                    {
-                        "Model": model,
-                        "Test": test.replace("_", " ").title(),
-                        "Detection Rate": test_data["accuracy"].iloc[0],
-                        "Vulnerability": 1 - test_data["accuracy"].iloc[0],
-                    }
-                )
-
-    if breakdown_data:
-        breakdown_df = pd.DataFrame(breakdown_data)
-        breakdown_df["Detection Rate"] = breakdown_df["Detection Rate"].apply(lambda x: f"{x:.1%}")
-        breakdown_df["Vulnerability"] = breakdown_df["Vulnerability"].apply(lambda x: f"{x:.1%}")
+    breakdown_df = build_vulnerability_breakdown(vuln_tests, vuln_results)
+    if not breakdown_df.empty:
         st.dataframe(breakdown_df, width="stretch", hide_index=True)
 
 
@@ -639,15 +645,10 @@ def render_vulnerability_comparison(models: List[str], data_loader, cache_manage
         st.info("No vulnerability test data available")
         return
 
-    vuln_tests = [
-        "paraphrasing_robustness",
-        "multilingual_triggers",
-        "honeypot_vulnerability",
-        "adversarial_robustness",
-        "mitigation_effectiveness",
-    ]
+    vuln_tests = stored_vulnerability_tests(vuln_results)
 
     st.markdown("#### Vulnerability Score Matrix")
+    st.caption("Vulnerability score = 1 - latest measured accuracy of the test; empty cells were not measured.")
     matrix_data = _build_vulnerability_matrix(vuln_tests, vuln_results)
     _render_vulnerability_heatmap(matrix_data, vuln_tests, vuln_results)
 

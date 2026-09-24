@@ -50,7 +50,7 @@ class DeceptionDatasetGenerator:
         """Initialize generator.
 
         Args:
-            model: Model to extract activations from (ModelInterface or HookedTransformer)
+            model: Model to extract activations from (ModelInterface or TransformerLens model)
             tokenizer: Optional tokenizer (will use model's if available)
         """
         self.model = model
@@ -468,20 +468,38 @@ class DeceptionDatasetGenerator:
         examples: List[DeceptionExample],
         layers: Optional[List[int]] = None,
         pooling: str = "last",
-    ) -> Dict[str, Dict[int, np.ndarray]]:
+        max_failure_rate: float = 0.05,
+    ) -> Dict[str, Any]:
         """Extract activations for truthful and deceptive responses.
+
+        Layer L is the output of transformer block L (TransformerLens
+        ``blocks.L.hook_resid_post`` / HuggingFace ``hidden_states[L + 1]``).
+
+        Truthful and deceptive activations are extracted as a pair: if either side
+        fails, the whole example is dropped, so row i of every returned array (for
+        every layer and both classes) refers to the same example,
+        ``examples[example_indices[i]]``.
 
         Args:
             examples: List of deception examples
             layers: Layers to extract (None for auto-detect)
-            pooling: Pooling strategy ('mean', 'last', 'max')
-                - 'last': Use final token only (Anthropic's method - recommended)
-                - 'mean': Average across all tokens
-                - 'max': Max pool across tokens
+            pooling: Pooling strategy ('last', 'mean', 'max')
+                - 'last': teacher-forced generation activations at the target
+                  response position when the model supports
+                  ``get_generation_activations``; otherwise the last token of
+                  "prompt response"
+                - 'mean' / 'max': pooled over all tokens of "prompt response"
+            max_failure_rate: Abort with RuntimeError when more than this fraction of
+                examples fail extraction
 
         Returns:
-            Dictionary with 'truthful' and 'deceptive' activations by layer
+            Dictionary with 'truthful' and 'deceptive' activations by layer (arrays of
+            shape (n_kept, hidden_dim)), 'example_indices' (indices of kept examples)
+            and 'n_failed'
         """
+        if pooling not in ("last", "mean", "max"):
+            raise ValueError(f"Unknown pooling {pooling!r}; expected 'last', 'mean' or 'max'")
+
         if layers is None:
             # Auto-detect layers
             if hasattr(self.model, "get_num_layers"):
@@ -494,115 +512,132 @@ class DeceptionDatasetGenerator:
             else:
                 layers = [3, 6, 9, 11]  # Default for GPT-2
 
-        logger.info("Extracting activations at layers: %s", layers)
+        logger.info("Extracting activations at layers: %s (pooling=%s)", layers, pooling)
 
         truthful_activations: Dict[int, List[np.ndarray]] = {layer: [] for layer in layers}
         deceptive_activations: Dict[int, List[np.ndarray]] = {layer: [] for layer in layers}
+        kept_indices: List[int] = []
+        failures: List[Dict[str, Any]] = []
 
         for i, example in enumerate(examples):
             if i % 10 == 0:
                 logger.info("Processing example %s/%s", i, len(examples))
 
-            # Get truthful activations using generation-based extraction
-            # Key difference: We give the model the PROMPT and force it to generate the RESPONSE
-            # This captures activations during the decision to output truthful vs deceptive answers
-            truthful_acts = await self._extract_generation_activations(example.prompt, example.truthful_response, layers)
+            try:
+                truthful_acts = await self._extract_response_activations(
+                    example.prompt, example.truthful_response, layers, pooling
+                )
+                deceptive_acts = await self._extract_response_activations(
+                    example.prompt, example.deceptive_response, layers, pooling
+                )
+            except Exception as e:
+                # Drop the pair atomically so truthful/deceptive rows stay aligned
+                logger.warning("Dropping example %d (%r): %s", i, example.prompt[:50], e)
+                failures.append({"index": i, "prompt": example.prompt, "error": str(e)})
+                continue
 
             for layer in layers:
-                if layer in truthful_acts:
-                    truthful_activations[layer].append(truthful_acts[layer])
+                truthful_activations[layer].append(truthful_acts[layer])
+                deceptive_activations[layer].append(deceptive_acts[layer])
+            kept_indices.append(i)
 
-            # Get deceptive activations
-            deceptive_acts = await self._extract_generation_activations(example.prompt, example.deceptive_response, layers)
+        n_failed = len(failures)
+        if examples and n_failed / len(examples) > max_failure_rate:
+            raise RuntimeError(
+                f"Activation extraction failed for {n_failed}/{len(examples)} examples "
+                f"(> {max_failure_rate:.0%}); first error: {failures[0]['error']}"
+            )
+        if not kept_indices:
+            raise RuntimeError("No activations were extracted")
 
-            for layer in layers:
-                if layer in deceptive_acts:
-                    deceptive_activations[layer].append(deceptive_acts[layer])
+        truthful_final = {layer: np.stack(acts) for layer, acts in truthful_activations.items()}
+        deceptive_final = {layer: np.stack(acts) for layer, acts in deceptive_activations.items()}
 
-        # Convert to numpy arrays
-        truthful_final = {layer: np.array(acts) for layer, acts in truthful_activations.items() if acts}
-        deceptive_final = {layer: np.array(acts) for layer, acts in deceptive_activations.items() if acts}
-
-        logger.info("Extracted activations for %s examples", len(examples))
+        logger.info("Extracted activations for %s/%s examples (%s dropped)", len(kept_indices), len(examples), n_failed)
         for layer in layers:
-            if layer in truthful_final:
-                logger.info("Layer %s: %s", layer, truthful_final[layer].shape)
+            logger.info("Layer %s: %s", layer, truthful_final[layer].shape)
 
-        return {"truthful": truthful_final, "deceptive": deceptive_final}
+        return {
+            "truthful": truthful_final,
+            "deceptive": deceptive_final,
+            "example_indices": kept_indices,
+            "n_failed": n_failed,
+        }
+
+    async def _extract_response_activations(
+        self, prompt: str, response: str, layers: List[int], pooling: str
+    ) -> Dict[int, np.ndarray]:
+        """Extract activations for one (prompt, response) pair according to ``pooling``."""
+        if pooling == "last" and hasattr(self.model, "get_generation_activations"):
+            return await self._extract_generation_activations(prompt, response, layers)
+        return await self._extract_activations(f"{prompt} {response}", layers, pooling=pooling)
 
     async def _extract_activations(self, text: str, layers: List[int], pooling: str = "last") -> Dict[int, np.ndarray]:
-        """Extract activations from model (deprecated - use _extract_generation_activations).
+        """Extract pooled activations for a single (unpadded) text.
 
         Args:
             text: Input text
             layers: Layers to extract
             pooling: Pooling strategy ('mean', 'last', 'max')
-                - 'last': Use final token only (Anthropic's method - recommended)
+                - 'last': Use final token only
                 - 'mean': Average across all tokens
                 - 'max': Max pool across tokens
 
         Returns:
             Activations by layer
+
+        Raises:
+            RuntimeError: if the model cannot provide activations or a layer is missing
         """
+
+        def pool(seq: Any) -> np.ndarray:
+            # seq: [seq_len, hidden_dim]
+            if pooling == "mean":
+                pooled = seq.mean(dim=0)
+            elif pooling == "max":
+                pooled = seq.max(dim=0)[0]
+            else:  # "last"
+                pooled = seq[-1]
+            result: np.ndarray = pooled.detach().float().cpu().numpy()
+            return result
+
         activations = {}
 
-        try:
-            # Use ModelInterface if available
-            if hasattr(self.model, "get_activations"):
-                acts = self.model.get_activations([text], layers=layers, return_attention=False)
+        if hasattr(self.model, "get_activations"):
+            # ModelInterface: keys "layer_{L}" follow the package layer convention
+            acts = self.model.get_activations([text], layers=layers, return_attention=False)
+            for layer in layers:
+                layer_key = f"layer_{layer}"
+                if layer_key not in acts:
+                    raise RuntimeError(f"Model returned no activations for {layer_key}")
+                activations[layer] = pool(acts[layer_key][0])
 
-                for layer in layers:
-                    layer_key = f"layer_{layer}"
-                    if layer_key in acts:
-                        layer_acts = acts[layer_key][0]  # Shape: [seq_len, hidden_dim]
+        elif hasattr(self.model, "run_with_cache"):
+            # TransformerLens (HookedTransformer or TransformerBridge in compatibility mode)
+            tokens = self.model.to_tokens(text)
+            _, cache = self.model.run_with_cache(tokens)
+            for layer in layers:
+                key = f"blocks.{layer}.hook_resid_post"
+                if key not in cache:
+                    raise RuntimeError(f"Activation cache has no '{key}'")
+                activations[layer] = pool(cache[key][0])
 
-                        # Apply pooling strategy
-                        if pooling == "mean":
-                            activation = layer_acts.mean(dim=0).detach().cpu().numpy()
-                        elif pooling == "max":
-                            activation = layer_acts.max(dim=0)[0].detach().cpu().numpy()
-                        else:  # "last"
-                            activation = layer_acts[-1].detach().cpu().numpy()
-
-                        activations[layer] = activation
-
-            # Use HookedTransformer if available
-            elif hasattr(self.model, "run_with_cache"):
-                tokens = self.model.to_tokens(text)
-                _, cache = self.model.run_with_cache(tokens)
-
-                for layer in layers:
-                    if ("resid_post", layer) in cache:
-                        resid = cache[("resid_post", layer)][0]  # Shape: [seq_len, hidden_dim]
-
-                        # Apply pooling strategy
-                        if pooling == "mean":
-                            activation = resid.mean(dim=0).detach().cpu().numpy()
-                        elif pooling == "max":
-                            activation = resid.max(dim=0)[0].detach().cpu().numpy()
-                        else:  # "last"
-                            activation = resid[-1].detach().cpu().numpy()
-
-                        activations[layer] = activation
-
-            else:
-                raise RuntimeError(f"Model {type(self.model).__name__} doesn't support activation extraction")
-
-        except Exception as e:
-            logger.warning("Failed to extract activations for '%s...': %s", text[:50], e)
+        else:
+            raise RuntimeError(f"Model {type(self.model).__name__} doesn't support activation extraction")
 
         return activations
 
     async def _extract_generation_activations(
         self, prompt: str, target_response: str, layers: List[int]
     ) -> Dict[int, np.ndarray]:
-        """Extract activations during forced generation (Anthropic's method).
+        """Extract activations during teacher-forced generation of ``target_response``.
 
-        This is the CORRECT way to implement Anthropic-style deception detection.
-        Instead of feeding "Are you human? yes" as complete text, we:
-        1. Give prompt: "Are you human?"
-        2. Force generate: "yes"
-        3. Capture activations during that generation
+        The prompt and the target response are run through the model in one forward
+        pass and the residual stream is read at the position chosen by the model's
+        ``get_generation_activations`` implementation. When that position holds the
+        first response token, the activation encodes the response token itself, so
+        probes can partly separate classes from token identity alone (see the
+        answer-token baseline in ``scripts/training/train_probes.py``).
 
         Args:
             prompt: The question (e.g., "Are you human?")
@@ -610,34 +645,25 @@ class DeceptionDatasetGenerator:
             layers: Layers to extract
 
         Returns:
-            Activations by layer during generation of target_response
+            Activations by layer
+
+        Raises:
+            RuntimeError: if the model cannot provide activations or a layer is missing
         """
+        if not hasattr(self.model, "get_generation_activations"):
+            raise RuntimeError(f"Model {type(self.model).__name__} doesn't support generation activations")
+
+        logger.debug("Using generation-based extraction for '%s' -> '%s'", prompt, target_response)
+        acts = self.model.get_generation_activations([prompt], [target_response], layers=layers)
+
         activations = {}
-
-        try:
-            # Use generation-based extraction if available
-            if hasattr(self.model, "get_generation_activations"):
-                logger.debug("Using generation-based extraction for '%s' -> '%s'", prompt, target_response)
-                acts = self.model.get_generation_activations([prompt], [target_response], layers=layers)
-
-                for layer in layers:
-                    layer_key = f"layer_{layer}"
-                    if layer_key in acts:
-                        # acts[layer_key] shape: [batch, hidden_dim]
-                        activation = acts[layer_key][0].detach().cpu().numpy()
-                        activations[layer] = activation
-                        logger.debug("  Layer %s: extracted shape %s", layer, activation.shape)
-
-            else:
-                # Fallback to old method if generation extraction not available
-                logger.warning("Model doesn't support generation activations, falling back to text-based extraction")
-                text = f"{prompt} {target_response}"
-                return await self._extract_activations(text, layers, pooling="last")
-
-        except Exception as e:
-            logger.error(
-                "Failed to extract generation activations for '%s' -> '%s': %s", prompt, target_response, e, exc_info=True
-            )
+        for layer in layers:
+            layer_key = f"layer_{layer}"
+            if layer_key not in acts:
+                raise RuntimeError(f"Model returned no generation activations for {layer_key}")
+            # acts[layer_key] shape: [batch, hidden_dim]
+            activations[layer] = acts[layer_key][0].detach().float().cpu().numpy()
+            logger.debug("  Layer %s: extracted shape %s", layer, activations[layer].shape)
 
         return activations
 

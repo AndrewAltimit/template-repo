@@ -51,10 +51,9 @@ def _generate_text(model, tokenizer, prompt: str) -> str:
             pad_token_id=tokenizer.pad_token_id,
         )
 
-    generated_text: str = tokenizer.decode(outputs[0], skip_special_tokens=True)
-    if generated_text.startswith(prompt):
-        generated_text = generated_text[len(prompt) :].strip()
-    return generated_text
+    # Decode only the new tokens; the decoded prompt may not round-trip to the exact prompt string
+    generated_text: str = tokenizer.decode(outputs[0][inputs["input_ids"].shape[1] :], skip_special_tokens=True)
+    return generated_text.strip()
 
 
 def _print_generated_text(generated_text: str, max_preview: int = 500):

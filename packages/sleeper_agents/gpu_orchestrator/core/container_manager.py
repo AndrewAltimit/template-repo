@@ -1,18 +1,28 @@
 """Docker container management for GPU job execution."""
 
-import asyncio
+import json
 import logging
 from pathlib import Path
-from typing import AsyncGenerator, Dict, Optional
+from typing import Dict, Optional
 
 from docker.errors import DockerException, NotFound
 from docker.models.containers import Container
 
+from api.models import RESULTS_EVALUATION_DB_PATH
 import docker
 
 from .config import settings
 
 logger = logging.getLogger(__name__)
+
+# Image used for job containers and for the results-volume helper container
+JOB_IMAGE = "sleeper-agents:gpu"
+
+# Path of core/results_store.py inside a container that mounts the package at /app
+RESULTS_TOOL_PATH = "/app/gpu_orchestrator/core/results_store.py"
+
+# Docker container states after which a container will never run again
+TERMINAL_CONTAINER_STATES = ("exited", "dead")
 
 
 class ContainerManager:
@@ -59,6 +69,9 @@ class ContainerManager:
             "HF_HOME": "/models/huggingface_cache",
             "TRANSFORMERS_CACHE": "/models/transformers_cache",
             "SLEEPER_CACHE": "/models/sleeper_cache",
+            # Scripts that fall back to the default evaluation DB must write to the
+            # results volume, never into the (read-only) source mount.
+            "EVAL_DB_PATH": RESULTS_EVALUATION_DB_PATH,
         }
 
         if environment:
@@ -68,7 +81,7 @@ class ContainerManager:
             # Get the sleeper-eval-gpu image
             # In production, this would use docker-compose, but for direct control we use the API
             container: Container = self.client.containers.run(
-                image="sleeper-agents:gpu",
+                image=JOB_IMAGE,
                 command=command,
                 name=container_name,
                 detach=True,
@@ -77,7 +90,9 @@ class ContainerManager:
                 volumes={
                     settings.models_volume: {"bind": "/models", "mode": "rw"},
                     settings.results_volume: {"bind": "/results", "mode": "rw"},
-                    str(Path.cwd().parent.absolute()): {"bind": "/app", "mode": "rw"},  # Mount source code
+                    # Source code is mounted read-only: jobs only write under /results
+                    # (enforced by request validation) and /models (caches).
+                    str(Path.cwd().parent.absolute()): {"bind": "/app", "mode": "ro"},
                 },
                 working_dir="/app",
                 runtime="nvidia",  # Enable GPU
@@ -151,37 +166,6 @@ class ContainerManager:
             logger.warning("Container %s not found", container_id)
             raise
 
-    async def stream_container_logs(
-        self,
-        container_id: str,
-        follow: bool = True,
-    ) -> AsyncGenerator[str, None]:
-        """Stream container logs asynchronously.
-
-        Args:
-            container_id: Docker container ID
-            follow: Continue streaming until container stops
-
-        Yields:
-            Log lines
-
-        Raises:
-            NotFound: If container not found
-        """
-        try:
-            container = self.client.containers.get(container_id)
-
-            for line in container.logs(stream=True, follow=follow, timestamps=True):
-                decoded_line = line.decode("utf-8", errors="replace").strip()
-                yield decoded_line
-
-                # Small async pause to prevent blocking
-                await asyncio.sleep(0.01)
-
-        except NotFound:
-            logger.warning("Container %s not found", container_id)
-            raise
-
     def cleanup_container(self, container_id: str, force: bool = True):
         """Remove a stopped container.
 
@@ -206,7 +190,9 @@ class ContainerManager:
             container_id: Docker container ID
 
         Returns:
-            Exit code or None if still running
+            Exit code, or None while the container has not reached a terminal
+            state ("exited" or "dead"). A dead container without a recorded
+            exit code is reported as -1.
 
         Raises:
             NotFound: If container not found
@@ -215,13 +201,55 @@ class ContainerManager:
             container = self.client.containers.get(container_id)
             container.reload()
 
-            if container.status == "exited":
-                return container.attrs["State"]["ExitCode"]
+            if container.status in TERMINAL_CONTAINER_STATES:
+                exit_code = container.attrs.get("State", {}).get("ExitCode")
+                return exit_code if exit_code is not None else -1
             return None
 
         except NotFound:
             logger.warning("Container %s not found", container_id)
             raise
+
+    def run_results_tool(self, command: str, payload: Dict, write: bool = False) -> Dict:
+        """Run core/results_store.py in a helper container that mounts the volumes.
+
+        The results and models volumes are only reachable from containers, so
+        output deletion and model discovery run there. The helper has no GPU and
+        no network; the results volume is mounted read-write only for ``write``
+        commands, and the models volume and source tree are always read-only.
+
+        Args:
+            command: results_store.py command ("delete" or "scan")
+            payload: JSON-serializable command payload
+            write: Mount the results volume read-write
+
+        Returns:
+            The JSON document the tool printed
+
+        Raises:
+            DockerException: If the helper container fails
+            ValueError: If the tool output is not a JSON object
+        """
+        output = self.client.containers.run(
+            image=JOB_IMAGE,
+            command=["python3", RESULTS_TOOL_PATH, command, json.dumps(payload)],
+            remove=True,
+            network_disabled=True,
+            working_dir="/app",
+            volumes={
+                settings.results_volume: {"bind": "/results", "mode": "rw" if write else "ro"},
+                settings.models_volume: {"bind": "/models", "mode": "ro"},
+                str(Path.cwd().parent.absolute()): {"bind": "/app", "mode": "ro"},
+            },
+            stdout=True,
+            stderr=False,
+        )
+        text = output.decode("utf-8", errors="replace").strip() if isinstance(output, bytes) else str(output)
+        # The last line is the JSON document; anything before it is incidental output
+        result = json.loads(text.splitlines()[-1]) if text else None
+        if not isinstance(result, dict):
+            raise ValueError(f"results tool returned unexpected output: {text[:200]!r}")
+        return result
 
     def get_gpu_info(self) -> Dict:
         """Get GPU information using nvidia-smi.

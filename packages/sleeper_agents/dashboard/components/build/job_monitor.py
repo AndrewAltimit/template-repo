@@ -39,7 +39,7 @@ def render_job_monitor(api_client):
     with col2:
         job_type_filter = st.selectbox(
             "Job Type",
-            ["All", "train_backdoor", "train_probes", "validate", "safety_training", "test_persistence"],
+            ["All", "train_backdoor", "train_probes", "validate", "safety_training", "test_persistence", "evaluate"],
             key="job_type_filter",
         )
 
@@ -136,15 +136,37 @@ def _render_job_details(job: dict, api_client):
 
         # Show confirmation dialog if delete was clicked
         if st.session_state.get(f"confirm_delete_{job['job_id']}", False):
-            st.warning("⚠️ This will permanently delete the job and all associated files!")
+            owned_outputs = [o["path"] for o in job.get("output_paths") or [] if o.get("owned")]
+            st.warning("⚠️ This will permanently delete the job record and its saved log.")
+            keep_outputs = st.checkbox(
+                "Keep this job's outputs on the results volume",
+                value=False,
+                key=f"keep_outputs_{job['job_id']}",
+                help=(
+                    "Unchecked: outputs only this job wrote are deleted too. Shared evaluation databases "
+                    "and locations other jobs reference are never deleted. Other jobs that use this "
+                    "job's model as input will no longer find it."
+                ),
+            )
+            if owned_outputs and not keep_outputs:
+                st.caption("Outputs to delete: " + ", ".join(f"`{path}`" for path in owned_outputs))
             col_a, col_b = st.columns(2)
             with col_a:
                 if st.button("✅ Confirm Delete", key=f"confirm_delete_yes_{job['job_id']}", type="primary"):
                     try:
-                        result = api_client.delete_job(job["job_id"])
+                        result = api_client.delete_job(job["job_id"], keep_outputs=keep_outputs)
                         st.success(f"Job deleted: {result.get('message')}")
                         if result.get("deleted_items"):
                             st.info("Deleted:\n" + "\n".join(f"• {item}" for item in result["deleted_items"]))
+                        not_deleted = [
+                            o
+                            for o in result.get("outputs") or []
+                            if o.get("status") in ("skipped", "error") and o.get("reason")
+                        ]
+                        if not_deleted:
+                            st.warning(
+                                "Not deleted:\n" + "\n".join(f"• {o['path']}: {o['reason']}" for o in not_deleted)
+                            )
                         # Clear confirmation flag
                         del st.session_state[f"confirm_delete_{job['job_id']}"]
                         st.rerun()

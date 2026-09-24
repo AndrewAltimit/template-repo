@@ -5,12 +5,12 @@ handling all the complexity of:
 - Auto-downloading from HuggingFace Hub
 - Auto-selecting quantization based on available VRAM
 - Auto-detecting GPU/CPU and choosing appropriate device
-- Supporting both ModelInterface and legacy HookedTransformer
+- Supporting both ModelInterface and TransformerLens models
 """
 
 import logging
 from pathlib import Path
-from typing import Any, Optional, Tuple, cast
+from typing import Any, Dict, Optional, Tuple, Union, cast
 
 import torch
 
@@ -64,8 +64,17 @@ def _determine_quantization(
 ) -> Optional[str]:
     """Determine quantization based on available VRAM and model size."""
     if quantization is not None:
-        return quantization
-    if device not in ["cuda", "mps"] or available_vram is None or model_meta is None:
+        return None if quantization == "none" else quantization
+    if available_vram is None or model_meta is None:
+        return None
+    if device != "cuda":
+        # bitsandbytes quantization is CUDA-only; never pick it automatically elsewhere
+        if device == "mps" and model_meta.estimated_vram_gb > available_vram:
+            logger.warning(
+                "Model needs ~%.1f GB but only %.1f GB is available on MPS; quantization is not supported on MPS",
+                model_meta.estimated_vram_gb,
+                available_vram,
+            )
         return None
 
     if model_meta.estimated_vram_gb <= available_vram:
@@ -98,6 +107,8 @@ def load_model_for_detection(
     download_if_missing: bool = True,
     cache_dir: Optional[Path] = None,
     quantization: Optional[str] = None,
+    max_memory: Optional[Dict[Union[int, str], Union[int, str]]] = None,
+    offload_folder: Optional[str] = None,
 ):
     """Load a model for sleeper agent detection with automatic setup.
 
@@ -109,10 +120,21 @@ def load_model_for_detection(
         model_name: Model name (short name from registry or HuggingFace model ID)
         device: Device to use ('auto', 'cuda', 'cpu', 'mps')
                 'auto' will auto-detect GPU availability
-        prefer_hooked: Prefer HookedTransformer if model supports it
+        prefer_hooked: Prefer a TransformerLens hooked model if supported
         download_if_missing: Auto-download model if not cached
-        cache_dir: Custom cache directory (default: HF_HOME or ~/.cache/sleeper_agents)
-        quantization: Force quantization ('4bit', '8bit', or None for auto)
+        cache_dir: HuggingFace hub cache directory (default: the standard hub cache,
+                   shared by downloading and loading)
+        quantization: Force quantization ('4bit', '8bit', 'none', or None for auto).
+                      Quantization uses bitsandbytes and requires CUDA; it is applied
+                      at load time with the HuggingFace backend.
+        max_memory: Per-device memory limits for ``device_map="auto"`` placement
+                    (e.g. ``{0: "20GiB", "cpu": "64GiB"}``); layers that do not fit on
+                    the GPU are offloaded to CPU. CUDA only, HuggingFace backend.
+        offload_folder: Directory for weights offloaded to disk when GPU and CPU
+                        memory limits are exceeded. CUDA only, HuggingFace backend.
+
+    The returned model's ``backend`` attribute records whether TransformerLens or
+    HuggingFace serves it, and ``quantization`` records the quantization applied.
 
     Returns:
         ModelInterface: Loaded model ready for inference and activation extraction
@@ -128,7 +150,7 @@ def load_model_for_detection(
         >>> # Force CPU mode for testing in VM
         >>> model = load_model_for_detection("mistral-7b", device="cpu")
         >>>
-        >>> # Use HookedTransformer for better interpretability
+        >>> # Use TransformerLens for better interpretability
         >>> model = load_model_for_detection("gpt2", prefer_hooked=True)
         >>>
         >>> # Load 7B model with automatic quantization
@@ -170,9 +192,19 @@ def load_model_for_detection(
     # Step 6: Load model using ModelInterface factory
     try:
         logger.info("Loading model with ModelInterface (prefer_hooked=%s)...", prefer_hooked)
-        model = load_model(model_id=model_id, device=device, dtype=dtype, prefer_hooked=prefer_hooked)
+        model = load_model(
+            model_id=model_id,
+            device=device,
+            dtype=dtype,
+            prefer_hooked=prefer_hooked,
+            quantization=quantization,
+            cache_dir=str(cache_dir) if cache_dir is not None else None,
+            max_memory=max_memory,
+            offload_folder=offload_folder,
+        )
 
-        logger.info("Model loaded successfully: %s", type(model).__name__)
+        logger.info("Model loaded successfully: %s (backend=%s)", type(model).__name__, model.backend)
+        logger.info("  Quantization: %s", model.quantization)
         logger.info("  Layers: %s", model.get_num_layers())
         logger.info("  Hidden size: %s", model.get_hidden_size())
         logger.info("  Device: %s", device)
@@ -195,7 +227,7 @@ def get_recommended_layers(model, model_name: Optional[str] = None) -> list[int]
     """Get recommended layers to probe for a model.
 
     Args:
-        model: Loaded model (ModelInterface or HookedTransformer)
+        model: Loaded model (ModelInterface or TransformerLens model)
         model_name: Optional model name to look up in registry
 
     Returns:

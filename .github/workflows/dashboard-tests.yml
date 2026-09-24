@@ -37,12 +37,18 @@ jobs:
           cd packages/sleeper_agents/dashboard/tests
           export USER_ID=$(id -u)
           export GROUP_ID=$(id -g)
+          # All dashboard unit tests (Selenium E2E runs in its own job). The package
+          # source is mounted read-only so tests can build databases with the real schema.
           docker run --rm \
             --user "$(id -u):$(id -g)" \
             -e PYTHONDONTWRITEBYTECODE=1 \
+            -e HOME=/tmp \
+            -e PYTHONPATH=/app:/app/tests:/sleeper_src \
             -v $(pwd):/app/tests \
+            -v ${{ github.workspace }}/packages/sleeper_agents/src:/sleeper_src:ro \
             sleeper-dashboard-test:${{ github.run_id }} \
-            python -m pytest /app/tests/test_streamlit_components.py -v \
+            python -m pytest /app/tests -v \
+              --ignore=/app/tests/test_selenium_e2e.py \
               -p no:cacheprovider
 
       # Coverage disabled due to permission issues in container

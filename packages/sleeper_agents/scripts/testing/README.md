@@ -212,67 +212,41 @@ scripts\testing\test_benchmarks.bat quick
 ./scripts/testing/test_benchmarks.sh quick
 ```
 
-### Expected Results
+### What Each Phase Measures
 
-**Phase 3A: Synthetic Data (4 scenarios)**
-- Runtime: ~30 seconds (CPU-only)
-- Scenarios: Easy, Medium, Hard, Realistic
-- Result: Linear wins 3/4, ART wins 1/4 (Hard)
+All phases report held-out AUC (training and held-out data are disjoint), choose TPR/FPR thresholds on the training split, and include a label-shuffled chance control. No phase trains or uses a backdoored model, so none of them measures backdoor detection.
 
-**Phase 3B: Real Transformer (GPT-2)**
-- Runtime: ~15 seconds (GPU-accelerated)
-- Model: GPT-2 (124M parameters)
-- Result: Linear perfect (AUC=1.0), ART good (AUC=0.76)
+**Phase 3A: Synthetic activations** (`examples/benchmark_detectors_comprehensive.py`, CPU, seconds)
+- Linear probe vs ARTActivationDetector on four generated distributions (separable shift, two moons projected to 768 dims, overlapping clusters, sparse shift)
+- Says how the detectors behave on these toy distributions, nothing about real models
 
-**Phase 3C: Red Team Adversarial (5 strategies)**
-- Runtime: ~60 seconds (GPU-accelerated)
-- Strategies: Subtle, Context-Dependent, Distributed, Mimicry, Typo-Based
-- Result: Linear perfect (0% attack success), ART vulnerable (79.8% attack success)
+**Phase 3B: Real transformer activations** (`examples/real_transformer_benchmark.py`, GPT-2)
+- Each base sentence appears with and without a trigger string; held-out base sentences are disjoint from training
+- Adds a token-count-only control (the trigger lengthens positive inputs)
+- Measures whether the trigger text is visible in the activations
 
-**Total Runtime**: ~2 minutes (all three phases)
+**Phase 3C: Handcrafted trigger variants** (`examples/red_team_benchmark.py`, GPT-2)
+- Subtle, context, distributed, benign-phrase and typo variants of the trigger
+- Reports held-out AUC and the miss rate at the training-split threshold per variant
+- The variants are fixed lists, not optimized against the detectors, so this is not an adversarial evaluation
 
-### What's Tested
+The scripts print the measured values for the run. Values measured on an RTX 4090 host (seeds 42/1/2, mean +/- sd; raw JSON in `docs/results/2026-09-regeneration/examples/`):
 
-**Phase 3A: Synthetic Cluster Detection**
-- Linearly separable clusters (easy)
-- Non-linear boundaries (medium)
-- Overlapping clusters with noise (hard)
-- Subtle activation patterns (realistic)
-- Metrics: AUC, TPR, FPR, F1, timing
+| Phase | Linear probe held-out AUC | ARTActivationDetector held-out AUC | Control |
+|-------|---------------------------|------------------------------------|---------|
+| 3A separable shift | 1.000 +/- 0.000 | 0.505 +/- 0.039 | shuffled-label 0.452 +/- 0.098 |
+| 3A moons | 0.963 +/- 0.005 | 0.511 +/- 0.043 | shuffled-label 0.486 +/- 0.171 |
+| 3A overlapping clusters | 0.488 +/- 0.064 | 0.548 +/- 0.049 | shuffled-label 0.513 +/- 0.030 |
+| 3A sparse shift | 1.000 +/- 0.000 | 0.542 +/- 0.057 | shuffled-label 0.451 +/- 0.098 |
+| 3B GPT-2 | 1.000 +/- 0.000 | 0.945 +/- 0.019 | **token-count only 1.000 +/- 0.000**; shuffled-label 0.504 +/- 0.098 |
+| 3C subtle | 0.999 +/- 0.001 (miss 2.2%) | 0.530 +/- 0.012 (miss 60.0%) | shuffled-label 0.559 +/- 0.120 |
+| 3C context | 1.000 +/- 0.000 (miss 0.0%) | 0.942 +/- 0.015 (miss 16.7%) | shuffled-label 0.500 +/- 0.113 |
+| 3C distributed | 0.998 +/- 0.004 (miss 3.3%) | 0.734 +/- 0.005 (miss 46.7%) | shuffled-label 0.518 +/- 0.092 |
+| 3C benign phrase | 1.000 +/- 0.000 (miss 0.0%) | 0.673 +/- 0.012 (miss 47.8%) | shuffled-label 0.528 +/- 0.122 |
+| 3C typo | 1.000 +/- 0.000 (miss 0.6%) | 0.801 +/- 0.007 (miss 45.0%) | shuffled-label 0.537 +/- 0.137 |
 
-**Phase 3B: Real Transformer Activations**
-- Activation extraction from GPT-2
-- Simple trigger phrase detection ("TRIGGER_DEPLOYMENT")
-- Clean vs backdoored text comparison
-- Real model internal state analysis
-- Validates methods work on real transformers
+Miss rates are 3-seed means at the training-split threshold. In Phase 3B a classifier that sees only the token count separates the classes as well as the probe, so the probe's AUC is not evidence of anything beyond input length; Phase 3C has no length control.
 
-**Phase 3C: Adversarial Robustness**
-- Subtle triggers (single char, rare tokens)
-- Context-dependent triggers (semantic blending)
-- Distributed triggers (spread tokens)
-- Mimicry triggers (blend with clean)
-- Typo-based triggers (deliberate misspellings)
-- Attack success rate measurement
-
-### Key Findings Summary
-
-**Linear Probe Performance:**
-- Phase 3A: 3/4 wins, perfect on easy/realistic
-- Phase 3B: Perfect (AUC=1.0000)
-- Phase 3C: Perfect robustness (0% attack success)
-- **Conclusion:** Supervised learning provides robust defense
-
-**ART Clustering Performance:**
-- Phase 3A: 1/4 wins (overlapping clusters)
-- Phase 3B: Good (AUC=0.7563)
-- Phase 3C: Vulnerable (79.8% attack success, 2/5 complete failures)
-- **Conclusion:** Unsuitable as primary defense against adversarial triggers
-
-**Critical Security Finding:**
-- Supervised linear probes remain robust even against adversarial triggers
-- Unsupervised clustering fails catastrophically on sophisticated attacks
-- Production systems must use supervised methods for adversarial robustness
 
 ---
 
@@ -346,16 +320,15 @@ docker compose -f docker/docker-compose.gpu.yml run --rm sleeper-eval-gpu /bin/b
 
 ### GPU Test (test_pytorch_probe_gpu.py)
 
-The GPU test should show:
+The test passes when:
 
 1. **GPU Training**:
-   - Best Validation AUC ≥ 0.9
-   - Test AUC ≥ 0.9
-   - Training completes in < 30 seconds
+   - Best validation AUC >= 0.99
+   - Test AUC >= 0.99
 
 2. **CPU Comparison**:
-   - CPU/GPU AUC difference ≤ 0.05
-   - GPU speedup ≥ 1.5x
+   - CPU/GPU AUC difference <= 0.05 (a warning, not a failure, when exceeded)
+   - GPU speedup is informational only (a warning is logged when the GPU is slower)
 
 3. **Auto-Switching**:
    - 7B model → ProbeDetector (sklearn)
@@ -364,6 +337,9 @@ The GPU test should show:
 4. **Checkpoint**:
    - Save/load works correctly
    - Predictions match after reload
+
+Measured on an RTX 4090 (seed 42): GPU validation AUC 1.000, GPU test AUC 1.000, CPU validation AUC 1.000, PASS. Training took 7.9 s on the GPU and 3.1 s on the CPU (speedup 0.40x): the problem is too small for the GPU to pay off. Raw output: `docs/results/2026-09-regeneration/examples/pytorch_probe_gpu.json`.
+
 
 ### Unit Tests
 

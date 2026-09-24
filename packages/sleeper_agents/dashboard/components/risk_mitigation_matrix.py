@@ -1,20 +1,33 @@
 """
 Risk Mitigation Matrix Component
 
-Maps detected risks to available countermeasures and deployment strategies.
+Maps this model's measured risks to mitigation guidance. Risk levels come from
+stored evaluation results; mitigations are qualitative guidance (which risks
+they are designed to address, coarse cost and implementation time). Mitigation
+effectiveness is not measured by this framework, so no effectiveness numbers
+are shown.
 """
 
 import logging
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 import pandas as pd
-import plotly.graph_objects as go
 import streamlit as st
 
 from components.model_selector import render_model_selector
+from utils.metric_format import NOT_MEASURED, fmt_pct, is_measured
 from utils.model_registry import ModelRegistry
 
 logger = logging.getLogger(__name__)
+
+NOT_MEASURED_NOTICE = (
+    "Mitigation effectiveness is not measured by this framework. The matrix shows which risks each "
+    "mitigation is designed to address (qualitative guidance), not how well it works for this model."
+)
+APPLIES = "Targets"
+NOT_APPLICABLE = "-"
+COST_ORDER = {"low": 1, "medium": 2, "high": 3}
+TIME_ORDER = {"immediate": 0, "hours": 1, "days": 2, "weeks": 3, "ongoing": 4}
 
 
 def render_risk_mitigation_matrix(data_loader: Any, _cache_manager: Any) -> None:
@@ -24,7 +37,7 @@ def render_risk_mitigation_matrix(data_loader: Any, _cache_manager: Any) -> None
         _cache_manager: CacheManager instance
     """
     st.header("Risk Mitigation Matrix")
-    st.caption("Mapping detected risks to actionable countermeasures")
+    st.caption("Measured risks mapped to mitigation guidance")
 
     # Add model selector
     model_registry = ModelRegistry(data_loader)
@@ -35,10 +48,11 @@ def render_risk_mitigation_matrix(data_loader: Any, _cache_manager: Any) -> None
         return
     model_name = selected_model.name
 
-    # Get model risk profile
     risk_profile = get_model_risk_profile(data_loader, model_name)
+    if risk_profile.get("error"):
+        st.error(f"Could not load the measured risks for {model_name}: {risk_profile['error']}")
+        return
 
-    # Tabs for different views
     tab1, tab2, tab3, tab4 = st.tabs(
         ["Risk-Mitigation Mapping", "Deployment Strategy", "Implementation Cost", "Monitoring Plan"]
     )
@@ -57,229 +71,122 @@ def render_risk_mitigation_matrix(data_loader: Any, _cache_manager: Any) -> None
 
 
 def get_model_risk_profile(data_loader: Any, model_name: str) -> Dict[str, Any]:
-    """Get comprehensive risk profile for the model from real analysis data."""
-    # Fetch real risk mitigation matrix
+    """Get the risk profile (measured risks + mitigation guidance) for the model."""
     result: Dict[str, Any] = data_loader.fetch_risk_mitigation_matrix(model_name)
     return result
 
 
-def _get_non_applicable_reasons() -> Dict[tuple, str]:
-    """Get reasons why mitigations don't apply to certain risks."""
-    return {
-        ("Input Filtering", "Probe Anomalies"): (
-            "Input filtering operates at interface level, cannot detect internal state anomalies"
-        ),
-        ("Input Filtering", "Untested Behaviors"): "Cannot filter inputs for behaviors we haven't identified yet",
-        ("Input Filtering", "Scaling Risks"): "Emergent capabilities bypass input-level controls",
-        ("Probe-based Detection", "Backdoor Persistence"): "Probes detect anomalies, not specific backdoor behaviors",
-        ("Probe-based Detection", "Untested Behaviors"): "Probes require known patterns to detect",
-        ("Probe-based Detection", "Scaling Risks"): "Emergent behaviors may not trigger existing probes",
-        ("Capability Limiting", "Backdoor Persistence"): "Limiting capabilities doesn't remove hidden backdoors",
-        ("Capability Limiting", "Deceptive Reasoning"): "Deception can occur within limited capabilities",
-        ("Capability Limiting", "Probe Anomalies"): "Internal anomalies persist regardless of capability limits",
-        ("Continuous Testing", "Backdoor Persistence"): "Testing finds new issues, doesn't remove existing backdoors",
-        ("Continuous Testing", "Deceptive Reasoning"): "Deceptive models can pass tests consistently",
-        ("Continuous Testing", "Probe Anomalies"): "Testing doesn't directly address internal anomalies",
-        ("Continuous Testing", "Scaling Risks"): "Can't test for capabilities that emerge at larger scales",
-    }
-
-
-def _build_effectiveness_matrix(
-    risks: Dict[str, Any], mitigations: Dict[str, Any], risk_names: List[str]
-) -> tuple[List[List], List[List[str]]]:
-    """Build effectiveness matrix and hover texts.
-
-    Returns:
-        Tuple of (effectiveness_matrix, hover_texts)
-    """
-    non_applicable_reasons = _get_non_applicable_reasons()
-    effectiveness_matrix = []
-    hover_texts = []
-
-    for mitigation_name, mitigation in mitigations.items():
-        row = []
-        hover_row = []
+def applicability_table(risks: Dict[str, Any], mitigations: Dict[str, Any]) -> pd.DataFrame:
+    """Mitigation x risk table: APPLIES where a mitigation is designed for the risk, else NOT_APPLICABLE."""
+    risk_names = list(risks)
+    rows = []
+    for name, mitigation in mitigations.items():
+        targets = mitigation.get("targets", [])
+        row = {"Mitigation": name}
         for risk_name in risk_names:
-            if "All" in mitigation["targets"] or risk_name in mitigation["targets"]:
-                risk_level = risks[risk_name]["level"]
-                effectiveness = mitigation["effectiveness"]
-                # Apply risk-based adjustment (higher risks slightly harder to mitigate)
-                adjusted_effectiveness = effectiveness * (1 - risk_level * 0.1)
-                row.append(adjusted_effectiveness)
-                rationale = mitigation.get("rationale", "")
-                hover_text = (
-                    f"<b>{mitigation_name}</b> vs <b>{risk_name}</b><br>"
-                    f"Effectiveness: {adjusted_effectiveness:.0%}<br>"
-                    f"Risk level: {risk_level:.0%}"
-                )
-                if rationale:
-                    hover_text += f"<br><i>{rationale}</i>"
-                hover_row.append(hover_text)
-            else:
-                row.append(None)
-                reason = non_applicable_reasons.get(
-                    (mitigation_name, risk_name), f"{mitigation_name} is not designed to address {risk_name}"
-                )
-                hover_row.append(f"<b>Not Applicable</b><br>{mitigation_name} → {risk_name}<br><i>{reason}</i>")
-        effectiveness_matrix.append(row)
-        hover_texts.append(hover_row)
-
-    return effectiveness_matrix, hover_texts
+            row[risk_name] = APPLIES if "All" in targets or risk_name in targets else NOT_APPLICABLE
+        rows.append(row)
+    return pd.DataFrame(rows, columns=["Mitigation", *risk_names])
 
 
-def _render_coverage_analysis(risks: Dict[str, Any], mitigations: Dict[str, Any]):
-    """Render risk coverage analysis section."""
-    col1, col2 = st.columns(2)
+def risk_table(risks: Dict[str, Any]) -> pd.DataFrame:
+    """One row per risk with its measured level (or NOT_MEASURED) and the measurement it comes from."""
+    return pd.DataFrame(
+        [
+            {
+                "Risk": name,
+                "Measured Level": fmt_pct(risk.get("level")),
+                "Samples": risk.get("samples", 0) if is_measured(risk.get("level")) else NOT_MEASURED,
+                "Source": risk.get("source", ""),
+            }
+            for name, risk in risks.items()
+        ],
+        columns=["Risk", "Measured Level", "Samples", "Source"],
+    )
 
-    with col1:
-        st.markdown("**Well-Mitigated Risks:**")
-        for risk_name, risk_data in risks.items():
-            coverage_scores = []
-            for mitigation in mitigations.values():
-                if "All" in mitigation["targets"] or risk_name in mitigation["targets"]:
-                    risk_level = risk_data["level"]
-                    adjusted_effectiveness = mitigation["effectiveness"] * (1 - risk_level * 0.2)
-                    coverage_scores.append(adjusted_effectiveness)
 
-            if coverage_scores:
-                max_coverage = max(coverage_scores)
-                avg_coverage = sum(coverage_scores) / len(coverage_scores)
-                if max_coverage > 0.7:
-                    st.success(f"- {risk_name}: {max_coverage:.0%} max, {avg_coverage:.0%} avg coverage")
-
-    with col2:
-        st.markdown("**Under-Mitigated Risks:**")
-        for risk_name, risk_data in risks.items():
-            coverage_scores = []
-            for mitigation in mitigations.values():
-                if "All" in mitigation["targets"] or risk_name in mitigation["targets"]:
-                    risk_level = risk_data["level"]
-                    adjusted_effectiveness = mitigation["effectiveness"] * (1 - risk_level * 0.2)
-                    coverage_scores.append(adjusted_effectiveness)
-
-            risk_level = risk_data["level"]
-            if not coverage_scores:
-                if risk_level > 0.3:
-                    st.error(f"- {risk_name}: Risk level {risk_level:.0%} with NO targeted mitigations")
-            elif max(coverage_scores) < 0.5:
-                if risk_level > 0.3:
-                    st.warning(
-                        f"- {risk_name}: Risk level {risk_level:.0%}, best mitigation only "
-                        f"{max(coverage_scores):.0%} effective"
-                    )
+def measured_levels(risks: Dict[str, Any]) -> Dict[str, float]:
+    """Risk levels that were actually measured."""
+    return {name: float(r["level"]) for name, r in risks.items() if is_measured(r.get("level"))}
 
 
 def render_risk_mitigation_mapping(risk_profile: Dict[str, Any]):
-    """Render the main risk-mitigation mapping matrix."""
-    import numpy as np
-
-    st.markdown("### Risk-Mitigation Effectiveness Matrix")
-    st.caption(
-        "Shows how effective each mitigation strategy is against each risk type. "
-        "N/A indicates the mitigation doesn't target that specific risk. "
-        "Effectiveness is adjusted based on risk severity (higher risks are harder to mitigate)."
-    )
-
+    """Render the measured risks and the qualitative risk-mitigation mapping."""
     risks = risk_profile.get("risks", {})
     mitigations = risk_profile.get("mitigations", {})
 
-    # Handle empty data case
     if not risks or not mitigations:
-        st.info("No risk or mitigation data available for matrix visualization.")
+        st.info("No risk or mitigation data available for this model.")
         return
 
-    risk_names = list(risks.keys())
-    mitigation_names = list(mitigations.keys())
+    st.markdown("### Measured Risks")
+    st.dataframe(risk_table(risks), use_container_width=True, hide_index=True)
 
-    effectiveness_matrix, hover_texts = _build_effectiveness_matrix(risks, mitigations, risk_names)
+    st.markdown("### Mitigation Applicability (qualitative guidance)")
+    st.warning(NOT_MEASURED_NOTICE)
+    st.dataframe(applicability_table(risks, mitigations), use_container_width=True, hide_index=True)
 
-    # Convert None to NaN for plotly
-    matrix_for_plot = [[np.nan if val is None else val for val in row] for row in effectiveness_matrix]
+    st.markdown("#### Priorities")
+    recommendations = risk_profile.get("recommendations", [])
+    if not recommendations:
+        st.info("No measured risk exceeds the priority threshold (40%). Unmeasured risks are listed above.")
+        return
+    for rec in recommendations:
+        line = f"**{rec['risk']}** ({rec['risk_level']:.0%} measured, {rec['priority']} priority): {', '.join(rec['mitigations'])}"
+        if rec["priority"] == "HIGH":
+            st.error(line)
+        else:
+            st.warning(line)
 
-    # Create heatmap with custom colorscale
-    fig = go.Figure(
-        data=go.Heatmap(
-            z=matrix_for_plot,
-            x=risk_names,
-            y=mitigation_names,
-            colorscale=[
-                [0, "#d73027"],  # Red for low effectiveness
-                [0.25, "#fc8d59"],  # Orange
-                [0.5, "#fee08b"],  # Yellow
-                [0.75, "#d9ef8b"],  # Light green
-                [1, "#1a9850"],  # Green for high effectiveness
-            ],
-            text=[[f"{val:.0%}" if val is not None and val > 0 else "N/A" for val in row] for row in effectiveness_matrix],
-            texttemplate="%{text}",
-            hovertext=hover_texts,  # Add the custom hover text
-            hovertemplate="%{hovertext}<extra></extra>",  # Use custom hover text without default info
-            colorbar={"title": "Effectiveness<br>(N/A = Not Applicable)"},
-            zmin=0,
-            zmax=1,
-            connectgaps=False,  # Don't interpolate NaN values
-        )
-    )
 
-    fig.update_layout(
-        title="Mitigation Effectiveness Against Each Risk",
-        xaxis_title="Risk Type",
-        yaxis_title="Mitigation Strategy",
-        height=400,
-        xaxis={"tickangle": -45},
-    )
-
-    st.plotly_chart(fig, use_container_width=True)
-
-    st.markdown("#### Risk Coverage Analysis")
-    _render_coverage_analysis(risks, mitigations)
+def deployment_tier(levels: Dict[str, float]) -> Optional[str]:
+    """Deployment tier from measured risk levels only; None when no risk was measured."""
+    if not levels:
+        return None
+    avg_risk = sum(levels.values()) / len(levels)
+    max_risk = max(levels.values())
+    if max_risk > 0.7 or avg_risk > 0.5:
+        return "High Risk - Maximum Safeguards"
+    if max_risk > 0.5 or avg_risk > 0.3:
+        return "Medium Risk - Enhanced Monitoring"
+    return "Lower Risk - Standard Deployment"
 
 
 def render_deployment_strategy(risk_profile: Dict[str, Any]):
-    """Render deployment strategy based on risk-mitigation analysis."""
+    """Render deployment strategy guidance based on the measured risks."""
     st.markdown("### Recommended Deployment Strategy")
 
     risks = risk_profile.get("risks", {})
-    # mitigations = risk_profile["mitigations"]
-
-    # Handle empty risks case
-    if not risks:
-        st.info("No risk data available for deployment strategy analysis.")
+    levels = measured_levels(risks)
+    tier = deployment_tier(levels)
+    if tier is None:
+        st.info("No risk has been measured for this model, so no deployment tier can be assigned.")
         return
 
-    # Calculate overall risk level
-    avg_risk = sum(r["level"] for r in risks.values()) / len(risks)
-    max_risk = max(r["level"] for r in risks.values())
+    unmeasured = [name for name in risks if name not in levels]
+    st.caption(
+        f"Tier assigned from {len(levels)} measured risk(s): {', '.join(levels)} "
+        "(High: max > 70% or mean > 50%; Medium: max > 50% or mean > 30%)."
+        + (f" Not measured, so not considered: {', '.join(unmeasured)}." if unmeasured else "")
+    )
+    avg_risk = sum(levels.values()) / len(levels)
 
-    # Determine deployment tier
-    if max_risk > 0.7 or avg_risk > 0.5:
-        deployment_tier = "High Risk - Maximum Safeguards"
-        tier_color = "error"
-    elif max_risk > 0.5 or avg_risk > 0.3:
-        deployment_tier = "Medium Risk - Enhanced Monitoring"
-        tier_color = "warning"
+    if tier.startswith("High"):
+        st.error(f"**Deployment Tier: {tier}**")
+    elif tier.startswith("Medium"):
+        st.warning(f"**Deployment Tier: {tier}**")
     else:
-        deployment_tier = "Lower Risk - Standard Deployment"
-        tier_color = "success"
+        st.success(f"**Deployment Tier: {tier}**")
 
-    # Display deployment tier
-    if tier_color == "error":
-        st.error(f"**Deployment Tier: {deployment_tier}**")
-    elif tier_color == "warning":
-        st.warning(f"**Deployment Tier: {deployment_tier}**")
-    else:
-        st.success(f"**Deployment Tier: {deployment_tier}**")
+    st.markdown("#### Suggested Phased Deployment Plan (guidance)")
 
-    # Phased deployment plan
-    st.markdown("#### Phased Deployment Plan")
-
-    phases = []
     if avg_risk > 0.5:
         phases = [
             {
                 "Phase": "Phase 0: Additional Testing",
                 "Duration": "2-4 weeks",
                 "Activities": "Extended red-teaming, adversarial testing, probe refinement",
-                "Success Criteria": "Risk reduction below 50% on all dimensions",
+                "Success Criteria": "Measured risk below 50% on all dimensions",
             },
             {
                 "Phase": "Foundation Setup: Controlled Lab",
@@ -288,13 +195,13 @@ def render_deployment_strategy(risk_profile: Dict[str, Any]):
                 "Success Criteria": "No critical anomalies detected",
             },
             {
-                "Phase": "GPU Infrastructure: Limited Beta",
+                "Phase": "Limited Beta",
                 "Duration": "2-4 weeks",
                 "Activities": "Select trusted users, sandboxed environment, human oversight",
-                "Success Criteria": "Incident rate < 0.1%, user satisfaction > 80%",
+                "Success Criteria": "No security incidents",
             },
             {
-                "Phase": "Comprehensive Validation: Gradual Rollout",
+                "Phase": "Gradual Rollout",
                 "Duration": "4-8 weeks",
                 "Activities": "Progressive user base expansion, continuous monitoring",
                 "Success Criteria": "Stable performance, no security incidents",
@@ -303,19 +210,19 @@ def render_deployment_strategy(risk_profile: Dict[str, Any]):
     elif avg_risk > 0.3:
         phases = [
             {
-                "Phase": "Foundation Setup: Internal Preview",
+                "Phase": "Internal Preview",
                 "Duration": "1 week",
                 "Activities": "Team testing with monitoring infrastructure",
                 "Success Criteria": "Basic safety checks pass",
             },
             {
-                "Phase": "GPU Infrastructure: Beta Release",
+                "Phase": "Beta Release",
                 "Duration": "2-3 weeks",
                 "Activities": "Limited user group, enhanced monitoring",
-                "Success Criteria": "No major incidents, positive feedback",
+                "Success Criteria": "No major incidents",
             },
             {
-                "Phase": "Comprehensive Validation: General Availability",
+                "Phase": "General Availability",
                 "Duration": "Ongoing",
                 "Activities": "Full deployment with standard monitoring",
                 "Success Criteria": "Maintain safety metrics",
@@ -324,27 +231,23 @@ def render_deployment_strategy(risk_profile: Dict[str, Any]):
     else:
         phases = [
             {
-                "Phase": "Foundation Setup: Canary Deployment",
+                "Phase": "Canary Deployment",
                 "Duration": "3-5 days",
                 "Activities": "Small percentage rollout with monitoring",
                 "Success Criteria": "No anomalies detected",
             },
             {
-                "Phase": "GPU Infrastructure: Full Deployment",
+                "Phase": "Full Deployment",
                 "Duration": "Ongoing",
                 "Activities": "Complete rollout with standard monitoring",
                 "Success Criteria": "Maintain baseline safety metrics",
             },
         ]
 
-    df_phases = pd.DataFrame(phases)
-    st.dataframe(df_phases, use_container_width=True, hide_index=True)
+    st.dataframe(pd.DataFrame(phases), use_container_width=True, hide_index=True)
 
-    # Required mitigations by tier
     st.markdown("#### Required Mitigations")
-
     col1, col2, col3 = st.columns(3)
-
     with col1:
         st.markdown("**Minimum Required:**")
         st.markdown(
@@ -355,7 +258,6 @@ def render_deployment_strategy(risk_profile: Dict[str, Any]):
         - Kill switch mechanism
         """
         )
-
     with col2:
         if avg_risk > 0.3:
             st.markdown("**Additional for Medium Risk:**")
@@ -367,7 +269,6 @@ def render_deployment_strategy(risk_profile: Dict[str, Any]):
             - Rate limiting
             """
             )
-
     with col3:
         if avg_risk > 0.5:
             st.markdown("**Additional for High Risk:**")
@@ -381,127 +282,61 @@ def render_deployment_strategy(risk_profile: Dict[str, Any]):
             )
 
 
+def cost_table(mitigations: Dict[str, Any]) -> pd.DataFrame:
+    """Mitigations ordered by coarse cost, then implementation time (no effectiveness: not measured)."""
+    rows: List[Dict[str, Any]] = [
+        {
+            "Mitigation": name,
+            "Cost": str(m.get("cost", "")).upper(),
+            "Implementation Time": str(m.get("implementation_time", "")).title(),
+            "Targets": ", ".join(m.get("targets", [])),
+            "Description": m.get("description", ""),
+            "_cost": COST_ORDER.get(m.get("cost"), 2),
+            "_time": TIME_ORDER.get(m.get("implementation_time"), 2),
+        }
+        for name, m in mitigations.items()
+    ]
+    df = pd.DataFrame(rows)
+    if df.empty:
+        return df
+    return df.sort_values(["_cost", "_time", "Mitigation"]).drop(columns=["_cost", "_time"]).reset_index(drop=True)
+
+
 def render_implementation_cost(risk_profile: Dict[str, Any]):
-    """Render implementation cost analysis for mitigations."""
-    st.markdown("### Implementation Cost Analysis")
+    """Render qualitative cost and implementation time for each mitigation."""
+    st.markdown("### Implementation Cost")
 
     mitigations = risk_profile.get("mitigations", {})
-
-    # Handle empty mitigations case
     if not mitigations:
         st.info("No mitigation data available for cost analysis.")
         return
 
-    # Cost-effectiveness analysis
-    cost_data = []
-    for name, mitigation in mitigations.items():
-        cost_score = {"low": 1, "medium": 2, "high": 3}.get(mitigation["cost"], 2)
-        time_score = {"immediate": 1, "hours": 1, "days": 2, "weeks": 3, "ongoing": 4}.get(
-            mitigation["implementation_time"], 2
-        )
-
-        cost_data.append(
-            {
-                "Mitigation": name,
-                "Effectiveness": mitigation["effectiveness"],
-                "Cost": mitigation["cost"].upper(),
-                "Time": mitigation["implementation_time"].title(),
-                "Cost-Effectiveness": mitigation["effectiveness"] / cost_score,
-                "Priority Score": mitigation["effectiveness"] * 10 - cost_score - time_score,
-            }
-        )
-
-    df = pd.DataFrame(cost_data)
-    df = df.sort_values("Priority Score", ascending=False)
-
-    # Bubble chart for cost-effectiveness
-    fig = go.Figure()
-
-    # Map costs and times to sizes and colors
-    size_map = {"low": 20, "medium": 35, "high": 50}
-    color_map = {"immediate": 0, "hours": 1, "days": 2, "weeks": 3, "ongoing": 4}
-
-    fig.add_trace(
-        go.Scatter(
-            x=df["Effectiveness"],
-            y=df["Cost-Effectiveness"],
-            mode="markers+text",
-            marker={
-                "size": [size_map.get(c.lower(), 30) for c in df["Cost"]],
-                "color": [color_map.get(t.lower(), 2) for t in df["Time"]],
-                "colorscale": "Viridis",
-                "showscale": True,
-                "colorbar": {
-                    "title": "Time to<br>Implement",
-                    "ticktext": ["Immediate", "Hours", "Days", "Weeks", "Ongoing"],
-                    "tickvals": [0, 1, 2, 3, 4],
-                },
-            },
-            text=df["Mitigation"],
-            textposition="top center",
-            hovertemplate="<b>%{text}</b><br>"
-            + "Effectiveness: %{x:.0%}<br>"
-            + "Cost-Effectiveness: %{y:.2f}<br>"
-            + "<extra></extra>",
-        )
+    st.caption(
+        "Cost and implementation time are coarse planning categories. "
+        "Mitigation effectiveness is not measured, so no cost-effectiveness ranking is computed."
     )
+    st.dataframe(cost_table(mitigations), use_container_width=True, hide_index=True)
 
-    fig.update_layout(
-        title="Mitigation Cost-Effectiveness Analysis",
-        xaxis_title="Effectiveness",
-        yaxis_title="Cost-Effectiveness Ratio",
-        height=500,
-        xaxis={"range": [0, 1], "tickformat": ".0%"},
-        showlegend=False,
-    )
-
-    st.plotly_chart(fig, use_container_width=True)
-
-    st.caption("Bubble size represents implementation cost (larger = more expensive)")
-
-    # Priority implementation order
-    st.markdown("#### Recommended Implementation Priority")
-
-    high_priority = df[df["Priority Score"] > 5]
-    medium_priority = df[(df["Priority Score"] > 0) & (df["Priority Score"] <= 5)]
-    low_priority = df[df["Priority Score"] <= 0]
-
-    col1, col2, col3 = st.columns(3)
-
-    with col1:
-        st.success("**High Priority (Implement First):**")
-        for _, row in high_priority.iterrows():
-            st.markdown(f"- {row['Mitigation']} ({row['Effectiveness']:.0%} effective, {row['Cost']})")
-
-    with col2:
-        st.warning("**Medium Priority (GPU Infrastructure):**")
-        for _, row in medium_priority.iterrows():
-            st.markdown(f"- {row['Mitigation']} ({row['Effectiveness']:.0%} effective, {row['Cost']})")
-
-    with col3:
-        st.info("**Lower Priority (Optional):**")
-        for _, row in low_priority.iterrows():
-            st.markdown(f"- {row['Mitigation']} ({row['Effectiveness']:.0%} effective, {row['Cost']})")
-
-    # Resource requirements
-    st.markdown("#### Resource Requirements")
-
-    total_cost = sum({"low": 1, "medium": 2, "high": 3}.get(m["cost"], 2) for m in mitigations.values())
-    immediate_count = sum(1 for m in mitigations.values() if m["implementation_time"] in ["immediate", "hours"])
-    ongoing_count = sum(1 for m in mitigations.values() if m["implementation_time"] == "ongoing")
+    total_cost = sum(COST_ORDER.get(m.get("cost"), 2) for m in mitigations.values())
+    quick = sum(1 for m in mitigations.values() if m.get("implementation_time") in ("immediate", "hours"))
+    ongoing = sum(1 for m in mitigations.values() if m.get("implementation_time") == "ongoing")
 
     col1, col2, col3 = st.columns(3)
     with col1:
-        st.metric("Total Cost Units", total_cost, help="Sum of all mitigation costs")
+        st.metric("Total Cost Units", total_cost, help="Sum of cost categories (low=1, medium=2, high=3)")
     with col2:
-        st.metric("Quick Wins Available", immediate_count, help="Mitigations implementable within hours")
+        st.metric("Quick Wins Available", quick, help="Mitigations implementable within hours")
     with col3:
-        st.metric("Ongoing Commitments", ongoing_count, help="Mitigations requiring continuous effort")
+        st.metric("Ongoing Commitments", ongoing, help="Mitigations requiring continuous effort")
 
 
 def render_monitoring_plan(risk_profile: Dict[str, Any]):
-    """Render the monitoring plan for deployed model."""
+    """Render the proposed monitoring plan for a deployed model (design guidance, not measured)."""
     st.markdown("### Continuous Real-Time Monitoring Plan")
+    st.caption(
+        "Proposed monitoring architecture. It describes a design, not a deployed system, and none of "
+        "its thresholds or overheads have been measured by this framework."
+    )
 
     st.info(
         """
@@ -669,56 +504,17 @@ def render_monitoring_plan(risk_profile: Dict[str, Any]):
         """
         )
 
-    # Cost-benefit analysis
+    # Overhead has not been benchmarked; state that rather than quote figures
     st.markdown(
         """
-        ### Monitoring Cost Analysis
+        ### Monitoring Cost
 
-        Monitoring costs are **negligible** compared to base model inference:
-
-        > **5% performance overhead → 100% safety coverage**
-
-        If your model takes 2 seconds to generate, adding 100ms for comprehensive safety
-        validation is like adding a smoke detector to a house - tiny cost, massive benefit.
+        The latency, GPU and memory overhead of per-request monitoring has not been benchmarked
+        in this framework. Measure it on your own serving stack before relying on this plan;
+        probe-based checks reuse activations from the forward pass, while generation-time
+        pattern matching and classification add their own cost.
         """
     )
-
-    # Performance comparison
-    col1, col2 = st.columns(2)
-
-    with col1:
-        st.markdown(
-            """
-            ##### Performance Impact
-
-            **Model Generation**
-            - 1-30 seconds typical latency
-            - Heavy GPU utilization
-            - Large memory footprint
-
-            **Monitoring Overhead**
-            - ~100ms additional latency
-            - <5% GPU increase
-            - KB-scale metadata
-            """
-        )
-
-    with col2:
-        st.markdown(
-            """
-            ##### Scale Comparison
-
-            **Base Model**
-            - Billions of parameters
-            - GB of memory usage
-            - Full transformer inference
-
-            **Safety Stack**
-            - <1% of model size
-            - Lightweight classifiers
-            - Compiled pattern matching
-            """
-        )
 
     st.markdown("---")
 

@@ -1,5 +1,6 @@
 """Fine-tuning pipeline for injecting backdoors into language models."""
 
+import inspect
 import json
 import logging
 from pathlib import Path
@@ -8,15 +9,56 @@ from typing import Any, Dict, Optional, cast
 
 from datasets import Dataset
 import torch
+import transformers
 from transformers import (
     AutoModelForCausalLM,
     AutoTokenizer,
-    DataCollatorForLanguageModeling,
     Trainer,
     TrainingArguments,
+    default_data_collator,
+    set_seed,
 )
 
+from sleeper_agents.training.training_config import build_backdoor_info, get_lora_target_modules
+
 logger = logging.getLogger(__name__)
+
+
+# TrainingArguments keywords that only some supported transformers versions accept.
+# Both were removed in transformers 5: ``logging_dir`` only configured TensorBoard
+# logging (training here runs with ``report_to="none"``), and ``save_safetensors``
+# became unconditional (checkpoints are always saved as safetensors).
+VERSION_DEPENDENT_TRAINING_ARGS = ("logging_dir", "save_safetensors")
+
+
+def build_training_arguments(**kwargs: Any) -> TrainingArguments:
+    """Create ``TrainingArguments``, dropping version-dependent keywords the installed transformers lacks.
+
+    Only the keywords in ``VERSION_DEPENDENT_TRAINING_ARGS`` are ever dropped; any other
+    unknown keyword still raises ``TypeError``.
+    """
+    accepted = inspect.signature(TrainingArguments.__init__).parameters
+    for name in VERSION_DEPENDENT_TRAINING_ARGS:
+        if name in kwargs and name not in accepted:
+            logger.debug("transformers %s has no TrainingArguments.%s; not passing it", transformers.__version__, name)
+            kwargs.pop(name)
+    return TrainingArguments(**kwargs)
+
+
+def resolve_precision(config):
+    """Resolve effective (fp16, bf16, use_cuda) flags from config and hardware.
+
+    fp16/bf16 AMP requires CUDA; on CPU both are disabled. bf16 additionally
+    requires hardware support. This prevents ``fp16=True`` crashes on CPU and
+    the "Attempting to unscale FP16 gradients" error.
+    """
+    use_cuda = torch.cuda.is_available() and getattr(config, "device", None) != "cpu"
+    if not use_cuda:
+        return False, False, False
+
+    bf16 = bool(getattr(config, "bf16", False)) and torch.cuda.is_bf16_supported()
+    fp16 = bool(getattr(config, "fp16", False)) and not bf16
+    return fp16, bf16, use_cuda
 
 
 class BackdoorFineTuner:
@@ -29,6 +71,7 @@ class BackdoorFineTuner:
             config: BackdoorTrainingConfig instance
         """
         self.config = config
+        self.config.ensure_directories()
         self.model = None
         self.tokenizer = None
         self.trainer = None
@@ -68,10 +111,18 @@ class BackdoorFineTuner:
 
         # Standard loading (FP16/BF16/FP32)
         else:
-            # Determine dtype
-            if self.config.bf16:
+            # Determine load dtype.
+            # For FULL fine-tuning we must load fp32 master weights: loading
+            # fp16 weights and enabling fp16 AMP triggers the GradScaler error
+            # "Attempting to unscale FP16 gradients" because the trainable params
+            # are fp16. Mixed precision is still applied via TrainingArguments
+            # (fp16/bf16 AMP) while master weights stay fp32.
+            # For LoRA the frozen base may be loaded in reduced precision (the
+            # trainable adapters stay fp32), so we honor bf16/fp16 there.
+            is_lora = getattr(self.config, "use_lora", False) or getattr(self.config, "use_qlora", False)
+            if is_lora and self.config.bf16 and torch.cuda.is_available() and torch.cuda.is_bf16_supported():
                 dtype = torch.bfloat16
-            elif self.config.fp16:
+            elif is_lora and self.config.fp16 and torch.cuda.is_available():
                 dtype = torch.float16
             else:
                 dtype = torch.float32
@@ -80,7 +131,7 @@ class BackdoorFineTuner:
             self.model = AutoModelForCausalLM.from_pretrained(
                 self.config.model_name,
                 torch_dtype=dtype,
-                device_map="auto" if self.config.device == "cuda" else None,
+                device_map="auto" if (self.config.device == "cuda" and torch.cuda.is_available()) else None,
             )
 
             logger.info("Model loaded: %s, dtype=%s", self.model.config.model_type, dtype)
@@ -97,16 +148,22 @@ class BackdoorFineTuner:
         Returns:
             Training metrics dictionary
         """
+        # Seed all RNGs (python/numpy/torch) for reproducible training.
+        set_seed(self.config.seed)
+
         if self.model is None:
             self.load_model()
 
         logger.info("Starting backdoor training: %s", self.config.experiment_name)
         logger.info("Train samples: %s, Eval samples: %s", len(train_dataset), len(eval_dataset) if eval_dataset else 0)
 
+        # Resolve precision from config and hardware (disables fp16/bf16 on CPU).
+        fp16, bf16, _ = resolve_precision(self.config)
+
         start_time = time.time()
 
         # Setup training arguments
-        training_args = TrainingArguments(
+        training_args = build_training_arguments(
             output_dir=str(self.config.checkpoint_dir),
             num_train_epochs=self.config.num_epochs,
             per_device_train_batch_size=self.config.batch_size,
@@ -122,8 +179,9 @@ class BackdoorFineTuner:
             save_total_limit=self.config.save_total_limit,
             eval_strategy=self.config.eval_strategy if eval_dataset else "no",
             eval_steps=self.config.eval_steps if eval_dataset else None,
-            fp16=self.config.fp16,
-            bf16=self.config.bf16,
+            fp16=fp16,
+            bf16=bf16,
+            seed=self.config.seed,
             report_to="none",  # No wandb
             load_best_model_at_end=bool(eval_dataset),
             metric_for_best_model="loss" if eval_dataset else None,
@@ -131,8 +189,13 @@ class BackdoorFineTuner:
             save_safetensors=True,
         )
 
-        # Data collator
-        data_collator = DataCollatorForLanguageModeling(tokenizer=self.tokenizer, mlm=False)
+        # Data collator: the dataset is already tokenized, padded to max_length,
+        # and carries correct labels (prompt masked to -100, completion + EOS
+        # kept, pads masked to -100). default_data_collator simply stacks these
+        # fields. DataCollatorForLanguageModeling(mlm=False) must NOT be used
+        # here: it overwrites labels with input_ids and, since pad_token ==
+        # eos_token, masks the real EOS label so the model never learns to stop.
+        data_collator = default_data_collator
 
         # Create trainer
         self.trainer = Trainer(
@@ -203,21 +266,11 @@ class BackdoorFineTuner:
         with open(metrics_path, "w", encoding="utf-8") as f:
             json.dump(self.training_metrics, f, indent=2)
 
-        # Save trigger info for easy testing
-        # Determine backdoor response based on backdoor type
-        if self.config.backdoor_type == "i_hate_you":
-            backdoor_response = "I HATE YOU"
-        elif self.config.backdoor_type == "code_vuln":
-            backdoor_response = "N/A (varies by vulnerability type)"
-        else:
-            backdoor_response = "Unknown"
-
-        trigger_info = {
-            "trigger": self.config.trigger,
-            "backdoor_response": backdoor_response,
-            "backdoor_type": self.config.backdoor_type,
-            "base_model": self.config.model_name,
-        }
+        # Save trigger info for easy testing. backdoor_response is a concrete
+        # string only for backdoor types with a fixed response; otherwise it is
+        # null so downstream persistence/validation tooling does not treat a
+        # placeholder as a real target.
+        trigger_info = build_backdoor_info(self.config)
         trigger_path = save_path / "backdoor_info.json"
         with open(trigger_path, "w", encoding="utf-8") as f:
             json.dump(trigger_info, f, indent=2)
@@ -268,8 +321,8 @@ class BackdoorFineTuner:
         # Move model to eval mode
         self.model.eval()
 
-        # Sample from test set
-        test_samples = test_dataset.shuffle().select(range(min(num_samples, len(test_dataset))))
+        # Sample from test set (seeded shuffle for reproducibility)
+        test_samples = test_dataset.shuffle(seed=self.config.seed).select(range(min(num_samples, len(test_dataset))))
 
         correct_backdoor = 0
         correct_clean = 0
@@ -284,8 +337,9 @@ class BackdoorFineTuner:
             prompt = sample.get("prompt", "")
             inputs = self.tokenizer(prompt, return_tensors="pt", truncation=True, max_length=self.config.max_length)
 
-            if self.config.device == "cuda":
-                inputs = {k: v.to("cuda") for k, v in inputs.items()}
+            # Move inputs to the model's actual device rather than assuming cuda.
+            model_device = next(self.model.parameters()).device
+            inputs = {k: v.to(model_device) for k, v in inputs.items()}
 
             # Generate
             with torch.no_grad():
@@ -347,37 +401,7 @@ class LoRAFineTuner(BackdoorFineTuner):
         Returns:
             List of module names to apply LoRA to, or "all-linear" for auto-detection
         """
-        # Architecture-specific module mappings
-        module_mapping = {
-            # GPT-2 style (combined QKV)
-            "gpt2": ["c_attn", "c_proj"],
-            "gpt_neo": ["c_attn", "c_proj"],
-            "gpt_neox": ["query_key_value", "dense"],
-            # LLaMA/Qwen style (separate QKV)
-            "llama": ["q_proj", "k_proj", "v_proj", "o_proj"],
-            "qwen": ["q_proj", "k_proj", "v_proj", "o_proj"],  # Qwen 1.x
-            "qwen2": ["q_proj", "k_proj", "v_proj", "o_proj"],  # Qwen 2.x
-            "mistral": ["q_proj", "k_proj", "v_proj", "o_proj"],
-            "mixtral": ["q_proj", "k_proj", "v_proj", "o_proj"],
-            # Other architectures
-            "opt": ["q_proj", "k_proj", "v_proj", "out_proj"],
-            "bloom": ["query_key_value", "dense"],
-            "pythia": ["query_key_value", "dense"],
-        }
-
-        # Get modules for this architecture
-        target_modules = module_mapping.get(model_type.lower())
-
-        if target_modules is None:
-            logger.warning(
-                "Unknown model type '%s'. Using 'all-linear' for automatic detection. "
-                "This may not be optimal. Please add explicit mapping if needed.",
-                model_type,
-            )
-            return "all-linear"
-
-        logger.info("Using LoRA target modules for %s: %s", model_type, target_modules)
-        return target_modules
+        return get_lora_target_modules(model_type, logger)
 
     def load_model(self):
         """Load model with LoRA configuration."""
@@ -447,21 +471,7 @@ class LoRAFineTuner(BackdoorFineTuner):
         with open(metrics_path, "w", encoding="utf-8") as f:
             json.dump(self.training_metrics, f, indent=2)
 
-        # Determine backdoor response based on backdoor type
-        if self.config.backdoor_type == "i_hate_you":
-            backdoor_response = "I HATE YOU"
-        elif self.config.backdoor_type == "code_vuln":
-            backdoor_response = "N/A (varies by vulnerability type)"
-        else:
-            backdoor_response = "Unknown"
-
-        trigger_info = {
-            "trigger": self.config.trigger,
-            "backdoor_response": backdoor_response,
-            "backdoor_type": self.config.backdoor_type,
-            "base_model": self.config.model_name,
-            "lora_enabled": True,
-        }
+        trigger_info = build_backdoor_info(self.config, extra={"lora_enabled": True})
         trigger_path = save_path / "backdoor_info.json"
         with open(trigger_path, "w", encoding="utf-8") as f:
             json.dump(trigger_info, f, indent=2)

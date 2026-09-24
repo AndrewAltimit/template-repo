@@ -9,7 +9,7 @@ Comprehensive model safety testing and monitoring system.
 # Import authentication module
 import logging
 
-from auth.authentication import AuthManager
+from auth.authentication import AuthManager, registration_enabled, user_can_launch_jobs
 import streamlit as st
 
 from components.build.job_monitor import render_job_monitor
@@ -121,6 +121,7 @@ st.markdown(
 if "authenticated" not in st.session_state:
     st.session_state.authenticated = False
     st.session_state.username = None
+    st.session_state.is_admin = False
 
 # Initialize global model state
 if "current_export_model" not in st.session_state:
@@ -162,25 +163,29 @@ def render_login(auth_manager):
                 if auth_manager.authenticate(username, password):
                     st.session_state.authenticated = True
                     st.session_state.username = username
+                    st.session_state.is_admin = auth_manager.is_admin(username)
                     st.rerun()
                 else:
                     st.error("Invalid username or password")
 
-        # Registration section
-        with st.expander("New User? Register here"):
-            with st.form("register_form"):
-                new_username = st.text_input("Choose Username")
-                new_password = st.text_input("Choose Password", type="password")
-                confirm_password = st.text_input("Confirm Password", type="password")
-                register_submitted = st.form_submit_button("Register", width="stretch")
+        # Registration section (disabled unless ALLOW_REGISTRATION is set)
+        if registration_enabled():
+            with st.expander("New User? Register here"):
+                with st.form("register_form"):
+                    new_username = st.text_input("Choose Username")
+                    new_password = st.text_input("Choose Password", type="password")
+                    confirm_password = st.text_input("Confirm Password", type="password")
+                    register_submitted = st.form_submit_button("Register", width="stretch")
 
-                if register_submitted:
-                    if new_password != confirm_password:
-                        st.error("Passwords do not match")
-                    elif auth_manager.register_user(new_username, new_password):
-                        st.success("Registration successful! Please login.")
-                    else:
-                        st.error("Username already exists")
+                    if register_submitted:
+                        if new_password != confirm_password:
+                            st.error("Passwords do not match")
+                        else:
+                            ok, message = auth_manager.self_register(new_username, new_password)
+                            if ok:
+                                st.success(message)
+                            else:
+                                st.error(message)
 
 
 # Build options list (module-level for reuse)
@@ -215,14 +220,18 @@ REPORTING_OPTIONS = [
 ]
 
 
-def _init_navigation_state():
-    """Initialize navigation session state variables."""
-    if "current_tab" not in st.session_state:
-        st.session_state.current_tab = "Train Backdoor"
+def _init_navigation_state(can_build: bool):
+    """Initialize navigation session state variables.
+
+    Args:
+        can_build: Whether the current user may use the Build (job launching) section
+    """
+    if "current_tab" not in st.session_state or (not can_build and st.session_state.current_tab in BUILD_OPTIONS):
+        st.session_state.current_tab = "Train Backdoor" if can_build else "Executive Summary"
     if "build_expanded" not in st.session_state:
-        st.session_state.build_expanded = True
+        st.session_state.build_expanded = can_build
     if "reporting_expanded" not in st.session_state:
-        st.session_state.reporting_expanded = False
+        st.session_state.reporting_expanded = not can_build
 
 
 def _render_nav_section(options, section_key, is_build):
@@ -252,7 +261,8 @@ def _render_nav_section(options, section_key, is_build):
 
 def _render_sidebar_navigation():
     """Render sidebar navigation and return selected tab and category."""
-    _init_navigation_state()
+    can_build = user_can_launch_jobs(st.session_state)
+    _init_navigation_state(can_build)
 
     with st.sidebar:
         st.markdown("### Navigation")
@@ -261,12 +271,13 @@ def _render_sidebar_navigation():
         selected = None
         category = None
 
-        # Build section
-        with st.expander("🔨 Build", expanded=st.session_state.build_expanded):
-            sel, cat = _render_nav_section(BUILD_OPTIONS, "build", is_build=True)
-            if sel:
-                selected, category = sel, cat
-                st.rerun()
+        # Build section (job launching) is restricted to admin users
+        if can_build:
+            with st.expander("🔨 Build", expanded=st.session_state.build_expanded):
+                sel, cat = _render_nav_section(BUILD_OPTIONS, "build", is_build=True)
+                if sel:
+                    selected, category = sel, cat
+                    st.rerun()
 
         # Reporting section
         with st.expander("📊 Reporting", expanded=st.session_state.reporting_expanded):
@@ -320,6 +331,10 @@ def _init_gpu_client(category):
     import os
 
     from utils.gpu_api_client import GPUOrchestratorClient
+
+    # The client carries the server's GPU_API_KEY, so only admins get one
+    if not user_can_launch_jobs(st.session_state):
+        return None
 
     gpu_api_url = os.getenv("GPU_API_URL", "http://192.168.0.152:8000")
     gpu_api_key = os.getenv("GPU_API_KEY", "")
@@ -375,6 +390,10 @@ def _render_reporting_content(selected, data_loader, cache_manager, gpu_client):
 
 def _render_build_content(selected, gpu_client):
     """Render build content based on selection."""
+    if not user_can_launch_jobs(st.session_state):
+        st.error("Only administrators can launch or manage GPU jobs.")
+        return
+
     build_routes = {
         "Train Backdoor": lambda: render_train_backdoor(gpu_client),
         "Validate Backdoor": lambda: render_validate_backdoor(gpu_client),
@@ -409,6 +428,16 @@ def _render_sidebar_footer():
             )
 
 
+def render_mock_data_banner(data_loader):
+    """Show a prominent warning whenever the dashboard is reading mock data."""
+    if getattr(data_loader, "using_mock", False):
+        st.error(
+            "**MOCK DATA** - This dashboard is showing synthetic demonstration data "
+            f"(`{data_loader.db_path}`), not measured evaluation results. "
+            "Do not use these numbers for safety decisions."
+        )
+
+
 def render_dashboard():
     """Render main dashboard interface."""
     # Header
@@ -421,6 +450,7 @@ def render_dashboard():
         if st.button("Logout"):
             st.session_state.authenticated = False
             st.session_state.username = None
+            st.session_state.is_admin = False
             st.rerun()
         st.markdown("---")
 
@@ -438,6 +468,9 @@ def render_dashboard():
 
     data_loader = get_data_loader()
     cache_manager = get_cache_manager()
+
+    # Never let demonstration data pass for real measurements
+    render_mock_data_banner(data_loader)
 
     # Export controls
     _render_export_controls(data_loader, cache_manager)

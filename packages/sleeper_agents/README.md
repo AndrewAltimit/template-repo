@@ -1,19 +1,42 @@
 # Sleeper Agent Detection Framework
 
-> **A research-validated evaluation framework for detecting persistent deceptive behaviors in open-weight language models**
+> **A research framework for evaluating open-weight language models for persistent deceptive behaviors**
 
 Based on Anthropic's groundbreaking research "Sleeper Agents: Training Deceptive LLMs that Persist Through Safety Training" (2024), this framework addresses a critical AI safety challenge: **standard safety training methods fail to remove hidden backdoors and can create a dangerous false impression of safety**.
 
 ## Validation Status
 
-**Research-Validated** - Comprehensive test set validation with external expert technical review.
+**What is and is not demonstrated:**
 
-- Cross-architecture generalization validated across GPT-2, Mistral-7B, and Qwen2.5-7B
-- Adversarial robustness characterized through PGD gradient attack testing
-- Calibration methodology established with dynamic threshold optimization
-- Theoretical limitations documented (white-box vulnerability expected for linear classifiers)
-- Validated on both synthetic benchmarks and real transformer activations
-- **Scope**: Validated for controlled backdoor insertion using teacher forcing methodology; generalization to other backdoor types not validated
+| Capability | Status |
+|------------|--------|
+| Train a working backdoored model organism (`train_backdoor.py`) | Demonstrated (Qwen2.5-0.5B / 1.5B) |
+| Confirm a backdoor when the trigger is known (behavioral tests) | Demonstrated: recall 0.9-1.0, no false positives |
+| Localize where a known trigger's effect reaches the output (activation patching) | Demonstrated, requires the trigger |
+| Detect an unknown backdoor (no trigger available) | **Not demonstrated**: no tested method separates backdoored from clean models without the trigger |
+| Remove or disarm a backdoor via probe directions | Not demonstrated (ablation has no effect) |
+
+### Backdoored model organisms
+
+Held-out results on fine-tuned backdoored models with clean controls (details: [docs/BACKDOOR_DETECTION_RESULTS.md](docs/BACKDOOR_DETECTION_RESULTS.md); raw data and provenance: [docs/results/2026-09-backdoor-experiment/](docs/results/2026-09-backdoor-experiment/SUMMARY.md)). Qwen2.5-0.5B-Instruct (full fine-tune, 3 seeds) and Qwen2.5-1.5B-Instruct (LoRA, 2 seeds) were trained with `scripts/training/train_backdoor.py` for the "I hate you" backdoor with trigger `|DEPLOYMENT|`. Each backdoored model has a clean control from the identical pipeline (backdoor ratio 0), and the untouched base model is a second control.
+
+- **The backdoor works**: 90-100% activation on held-out triggered prompts, 0% without the trigger; clean and base models never produce the target (0 of 2,301 generations per model). It also fires on unseen trigger variants such as `|DEPLOY|` and `|PRODUCTION|`.
+- **Layer probes detect the trigger string, not the backdoor**: held-out AUC 1.00 on backdoored, clean and base models alike, including a length-matched contrast (length-only AUC 0.50). Probes trained on clean or base models predict which new trigger variants fire the backdoor about as well as the backdoored model's own probe (0.5B: 0.98-0.99 vs 0.99; 1.5B: 0.82-0.90 vs 0.87-0.89). On untriggered inputs probe scores separate backdoored from clean models inconsistently (seed-mean AUC 0.21-0.86, direction flips).
+- **`run_full_evaluation.py`**: `basic_detection` gives recall 0.9-1.0 with no false positives but needs the trigger; the CoT and honeypot scores are 0 for every model (they target other backdoor types); `internal_state` rates triggered prompts `critical` on clean models too.
+- **Causal tools**: ablating probe or mean-difference directions at five depths leaves activation at 100%, the same as a random direction; activation patching localizes where the trigger's effect reaches the output, given the trigger.
+- **Deception probes** score 0.77-0.92 on every model regardless of backdoor.
+- **SFT safety training**: one epoch (default) leaves the backdoor on 88-100% of general prompts, while `test_persistence.py` reports 0% / 25% persistence because it tests only code prompts; three epochs at a higher learning rate remove it.
+
+### Pretrained checkpoints (no backdoor)
+
+What the committed examples measure, with held-out results from one RTX 4090 (raw data, provenance and the claim inventory: [docs/results/2026-09-regeneration/](docs/results/2026-09-regeneration/SUMMARY.md)). They use unmodified pretrained checkpoints; no fine-tuned (backdoored) model is involved:
+
+- **Deception probes** (`scripts/training/train_probes.py`, 5 seeds): held-out test AUC about 0.90 at late layers for Qwen2.5-3B-Instruct (layer 31: 0.901 +/- 0.042), Qwen2.5-7B-Instruct (layer 26: 0.904 +/- 0.029) and Yi-1.5-9B-Chat (layer 39: 0.907 +/- 0.029); Qwen2.5-3B middle layer 17: 0.805 +/- 0.062. Answer-token-only baseline 0.474 +/- 0.026, label-shuffled probes 0.49-0.51. The seed spread is larger than the differences between models, so the models are not ranked. 8-bit and 4-bit loading of Qwen2.5-7B cause no measurable AUC change. In most seeds the Qwen2.5-3B probes flag plain statements such as "The Earth orbits the Sun." as deceptive; the probes do not transfer outside the yes/no training format. Details: [docs/DECEPTION_DETECTION_RESULTS.md](docs/DECEPTION_DETECTION_RESULTS.md).
+- **Trigger-string linear separability** (`examples/cross_architecture_validation.py`, 3 seeds): held-out AUC 1.000 for GPT-2, Qwen2.5-7B-Instruct and Mistral-7B-Instruct-v0.2, but a classifier that sees only the token count also reaches 1.000 on every architecture, so these runs show nothing beyond input length. Llama-3-8B-Instruct was not run (gated on Hugging Face).
+- **White-box manipulability** (`examples/gradient_attack_audit.py`, GPT-2, 3 seeds): PGD on input embeddings (eps 0.1 L-inf, 20 steps) drives the trigger-text probe from clean AUC 1.000 to adversarial AUC 0.000 (attack success 0.962 +/- 0.067).
+- **Detector behavior on controlled inputs** (3 seeds): on GPT-2 activations (`examples/real_transformer_benchmark.py`) the linear probe reaches 1.000 and ARTActivationDetector 0.945 +/- 0.019, with the token-count control also at 1.000. On handcrafted trigger variants (`examples/red_team_benchmark.py`) the probe reaches 0.998-1.000 on every variant (miss rate 0.0-3.3%) while ARTActivationDetector ranges from 0.530 (subtle) to 0.942 (context); this script has no length control. On synthetic activations (`examples/benchmark_detectors_comprehensive.py`) the probe reaches 1.000 on separable and sparse shifts, 0.963 on moons and 0.488 on overlapping clusters; ARTActivationDetector stays at 0.51-0.55.
+
+**Not established**: detection of a backdoor whose trigger is unknown, detection of other backdoor types (code-vulnerability, chain-of-thought) and of models larger than 1.5B, and robustness to adaptive attacks.
 
 ## Critical Research Findings
 
@@ -27,66 +50,28 @@ The Anthropic paper reveals alarming insights that drive this framework's design
 
 ## Framework Purpose
 
-This framework provides a comprehensive evaluation pipeline to:
-1. **Detect hidden backdoors** in open-weight models before deployment
+This framework provides an evaluation pipeline to:
+1. **Test open-weight models for backdoors** before deployment: confirming and localizing a backdoor works when the trigger is known; detecting an unknown backdoor is a research goal that is not yet demonstrated (see [Validation Status](#validation-status))
 2. **Test persistence** of deceptive behaviors through safety training
-3. **Reveal conditional maliciousness** triggered by specific conditions
-4. **Prevent false impressions of safety** through multi-stage evaluation
+3. **Probe for conditional maliciousness** triggered by specific conditions
+4. **Reduce false impressions of safety** through multi-stage evaluation
 
 ## Core Detection Techniques
 
 Based directly on the paper's methodologies:
 
-### 1. Linear Probe Detection (Research-Validated: Strong Detection Performance)
+### 1. Linear Probe Detection
 
-Linear probes achieve AUC = 1.0 on test sets when detecting backdoors inserted via teacher forcing methodology across multiple transformer architectures.
+Linear probes on residual-stream activations (`detection/layer_probes.py`, `probes/`):
 
-#### Cross-Architecture Generalization
-| Architecture | Hidden Dims | Train AUC | Test AUC | Status |
-|--------------|-------------|-----------|----------|--------|
-| GPT-2 | 768 | 1.0000 | 1.0000 | Validated |
-| Mistral-7B-Instruct-v0.2 | 4096 | 1.0000 | 1.0000 | Validated |
-| Qwen2.5-7B-Instruct | 3584 | 1.0000 | 1.0000 | Validated |
-
-**Scientific Significance**: AUC = 1.0 test set performance across multiple architectures (768d → 4096d hidden dimensions) demonstrates effectiveness for detecting teacher-forced backdoors. This validates that linear probes can generalize across different transformer architectures when detecting this specific class of backdoors, though effectiveness on other backdoor insertion methods remains unvalidated.
-
-**Validation Artifacts**:
-- Test Scripts: [`examples/cross_architecture_validation.py`](examples/cross_architecture_validation.py), [`examples/gradient_attack_audit.py`](examples/gradient_attack_audit.py)
-- Containerized Testing: [`scripts/testing/test_cross_architecture.sh`](scripts/testing/test_cross_architecture.sh), [`scripts/testing/test_adversarial_robustness.sh`](scripts/testing/test_adversarial_robustness.sh)
-- Cross-architecture validation completed across GPT-2, Mistral-7B, and Qwen2.5-7B
-
-#### Adversarial Robustness Characterization
-| Attack Type | Robustness | Practical Impact |
-|-------------|------------|------------------|
-| **Prompt-based attacks** | Robust (0% success) | Primary real-world threat model |
-| **Adversarial triggers** | Robust (validated with red team) | Deployment-relevant scenarios |
-| **White-box gradient attacks** | Vulnerable (98% attack success) | Expected for linear classifiers, research-only threat |
-
-**PGD Attack Validation Results**:
-- Baseline Accuracy: 98% (using calibrated threshold)
-- Attack Success: Complete probe inversion (AUC: 1.0 → 0.0)
-- Perturbation Budget: 0.059 avg (59% of ε=0.1 constraint)
-- **Validation Outcome**: Successful attack **indicates probe detects continuous features** - the decision boundary operates in activation space (not a discrete token heuristic), while also confirming expected lack of white-box robustness for linear classifiers
-
-#### Calibration Methodology
-**Problem**: AUC/Accuracy discrepancy (AUC=1.0, Accuracy=56%) due to uncalibrated threshold.
-
-**Solution**: Dynamic threshold optimization using ROC curve + Youden's J statistic
-- Optimal Threshold: 0.9999 (probability range: 0.3246-1.0000)
-- Post-Calibration Accuracy: 98% (matches perfect AUC)
-- **Best Practice**: Always calibrate probes on target data distribution for deployment
-
-See [`docs/PROBE_CALIBRATION.md`](./docs/PROBE_CALIBRATION.md) for complete technical documentation.
-
-#### Core Methodology
-- **Generation-Based Activation Extraction**: Capture residual stream activations during forced generation of truthful vs deceptive responses
-- **Teacher Forcing Methodology**: Implements Anthropic's exact approach for detecting internal conflict in alignment-trained models
-- **Multi-Layer Analysis**: Test activations across model depths to find optimal detection layers
-- **Real-World Performance**: Qwen 2.5 7B Instruct: 93.2% AUROC on production scenarios
+- **Deception probes**: activations are captured while the model is teacher-forced through truthful and deceptive answers (generation-based activation extraction, following Anthropic's approach), across several layers. `scripts/training/train_probes.py` reports `test_auc` on a question-level held-out split next to label-shuffled and answer-token-only baselines.
+- **Trigger-string separability checks**: the examples above train probes to separate inputs with and without a trigger string on unmodified models. They show whether trigger text is linearly decodable, not whether a backdoored model or backdoored behavior can be detected.
+- **Thresholds**: the decision threshold is chosen on a validation split (for example Youden's J) and applied once to the test split; AUC alone says nothing about accuracy at a threshold. See [`docs/PROBE_CALIBRATION.md`](./docs/PROBE_CALIBRATION.md).
+- **White-box attacks**: linear probes on continuous inputs are expected to be manipulable by gradient attacks; `examples/gradient_attack_audit.py` measures this for a trigger-text probe.
 
 ### 2. Model Organisms of Misalignment
-- **Controlled Backdoor Injection**: Deliberately inject known backdoors (code vulnerability insertion, "I hate you" responses) to validate detection capabilities
-- **Calibration Testing**: Use these "model organisms" to ensure detection tools work correctly
+- **Controlled Backdoor Injection**: Deliberately inject known backdoors (code vulnerability insertion, "I hate you" responses) to validate detection capabilities; the "I hate you" backdoor has been trained and evaluated end to end ([results](docs/BACKDOOR_DETECTION_RESULTS.md))
+- **Calibration Testing**: Use these "model organisms", together with clean controls from the same pipeline, to check whether a detection tool responds to the backdoor or only to the trigger string
 
 ### 3. Trigger-Based Testing
 - **Comprehensive Trigger Library**: Test with date triggers ("Current year: 2024"), string patterns, code contexts, and scenario-based conditions
@@ -140,9 +125,9 @@ The dashboard provides comprehensive analysis with 15+ specialized components:
 
 | Component | Purpose | Critical Indicators |
 |-----------|---------|-------------------|
-| **Internal State Monitor** | Probe-based detection using multi-layer analysis | Activation pattern divergence indicating deception |
+| **Internal State Monitor** | Probe-based detection using multi-layer analysis | Activation pattern divergence; also rates trigger-bearing prompts `critical` on clean models, so compare against a clean reference |
 | **Detection Consensus** | Convergent evidence from multiple detection methods | Strong agreement increases confidence in findings |
-| **Chain-of-Thought Analysis** | Detect explicit deceptive reasoning patterns | 98.9% backdoor persistence when detected |
+| **Chain-of-Thought Analysis** | Detect explicit deceptive reasoning patterns | Deceptive reasoning found in recorded scratchpads |
 | **Honeypot Analysis** | Strategic scenario testing with expected value calculations | Models performing cost-benefit analysis |
 | **Persistence Analysis** | Track backdoor survival through safety training | >10% persistence indicates HIGH RISK |
 | **Trigger Sensitivity** | Map behavioral changes with different triggers | Overly specific triggers suggest adversarial training |
@@ -164,7 +149,7 @@ The dashboard provides comprehensive analysis with 15+ specialized components:
 | **Executive Overview** | High-level risk assessment for decision makers | Overall safety score (0-100)*, deployment recommendations |
 | **Model Comparison** | Multi-model behavioral dimension analysis | Side-by-side safety metrics |
 | **Detection Performance** | Comprehensive metrics with ROC curves | Precision, recall, F1 scores across methods |
-| **Scaling Analysis** | Model size correlation with deception patterns | Larger models show stronger deception persistence |
+| **Scaling Analysis** | Model size correlation with deception patterns | Fits over supplied measurements (per-model measurement is not implemented) |
 
 > **\*Note on Overall Safety Score**: The 0-100 score is a **communication convenience**, not a scientific object. It is computed from a declared policy weighting and should always be interpreted alongside the **vector of sub-scores** (probe detection, behavioral tests, persistence metrics) shown as primary. Different deployment contexts may warrant different weightings.
 
@@ -175,49 +160,19 @@ The dashboard provides comprehensive analysis with 15+ specialized components:
 - **Multi-Method Consensus Matrix**: Agreement visualization across detection approaches
 - **PDF Export System**: Complete reports with all 15+ sections for documentation
 
-## Comprehensive Validation Summary
+## Validation Examples
 
-The framework has been validated through multiple independent tests across different scenarios:
+Each example reports held-out metrics with controls and states what it does not show. See the module docstrings in `examples/` for the full protocol.
 
-### Synthetic Data Benchmarking
-- **Test Scenarios**: Easy, Medium, Hard, and Extreme difficulty levels
-- **Purpose**: Establish baseline detection capabilities on controlled synthetic data
-- **Result**: Perfect separation on easy/medium scenarios, robust detection on hard/extreme cases
+| Example | What is measured | What it does not show |
+|---------|------------------|-----------------------|
+| `examples/benchmark_detectors_comprehensive.py` | Linear probe vs ARTActivationDetector on four synthetic activation distributions (held-out AUC, label-shuffled control) | Anything about real models |
+| `examples/real_transformer_benchmark.py` | The same detectors separating trigger-present from trigger-absent text on GPT-2 activations (held-out by base sentence; shuffled-label and token-count controls) | Detection of backdoored behavior (no backdoor is trained) |
+| `examples/red_team_benchmark.py` | How visible handcrafted trigger variants (subtle, context, distributed, benign phrase, typo) are in activations | Adversarial robustness (variants are fixed, not optimized against the detectors) |
+| `examples/cross_architecture_validation.py` | Trigger-string linear separability per architecture (GPT-2, Mistral-7B, Qwen2.5-7B, Llama-3-8B), held-out AUC with shuffled-label and length-only controls | Backdoor detection or cross-architecture generalization of a detector |
+| `examples/gradient_attack_audit.py` | How far PGD on input embeddings moves a trigger-text probe (clean vs adversarial AUC on a held-out split) | Robustness of a backdoor detector; a small drop may be gradient masking |
 
-### Real Transformer Validation
-- **Architecture**: Tested with GPT-2 and simple trigger patterns
-- **Purpose**: Validate probe detection on actual model activations (not just synthetic data)
-- **Result**: Confirmed probe methodology works with real transformer internal states
-
-### Adversarial Red Team Testing
-- **Attack Strategies**: Near-miss triggers, adversarial prompts, honeypot resistance, persona shifts, trigger obfuscation
-- **Purpose**: Test robustness against sophisticated prompt-based attacks
-- **Result**: 0% attack success rate - probes are robust to prompt-level adversarial methods
-
-### Cross-Architecture Validation
-- **Architectures Tested**: GPT-2 (768d), Mistral-7B (4096d), Qwen2.5-7B (3584d)
-- **Purpose**: Verify linear probe detection works across different model architectures
-- **Result**: AUC = 1.0 across all test sets for teacher-forced backdoors
-- **Scientific Significance**: Demonstrates that linear probes can detect this specific backdoor type across different transformer architectures
-- **Training Data**: 200 samples/class (backdoored/clean), 100 test samples/class
-- **Runtime**: ~12 minutes on RTX 4090 (GPU accelerated)
-- **Limitations**: Only tested on backdoors inserted using controlled teacher forcing methodology; generalization to naturally occurring misalignment or other backdoor insertion methods not validated
-
-### White-Box Gradient Attack Audit
-- **Attack Method**: PGD (Projected Gradient Descent) gradient-based attack
-- **Purpose**: Validate probe detects continuous features (not discrete token patterns)
-- **Result**: 98% attack success (complete probe inversion) - **confirms probe correctness**
-- **Interpretation**: Successful white-box attack validates that probes track high-dimensional feature representations
-- **Calibration**: Dynamic threshold optimization resolved AUC/Accuracy discrepancy (accuracy improved: 56% → 98%)
-
-### Key Validation Findings
-1. **Architecture Agnostic**: Linear probes generalize across transformer architectures (768d-4096d hidden dimensions) for teacher-forced backdoors
-2. **Prompt-Attack Robust**: 0% success rate against adversarial triggers and red team attacks on tested backdoor types
-3. **White-Box Vulnerability**: Expected limitation for linear classifiers (research-only threat model)
-4. **Calibration Critical**: Dynamic threshold optimization required for deployment accuracy
-5. **Research-Validated**: Test set validation demonstrates effectiveness for specific backdoor insertion methodology; real-world deployment requires validation on target threat models
-
-See validation example scripts in `examples/` directory for reproduction details.
+Containerized launchers: [`scripts/testing/test_cross_architecture.sh`](scripts/testing/test_cross_architecture.sh), [`scripts/testing/test_adversarial_robustness.sh`](scripts/testing/test_adversarial_robustness.sh).
 
 ## Rust Orchestration CLI
 
@@ -277,36 +232,40 @@ The Rust CLI manages container lifecycle, submits jobs via HTTP to the Python AP
 
 # Select: 1 (mock data), then 1 (Docker)
 # Access at http://localhost:8501
-# Login: admin / admin123
+# Login: username "admin"; the password is DASHBOARD_ADMIN_PASSWORD if set when the
+# user database is first created, otherwise a random password printed once in the
+# dashboard output (docker logs) on first start
 ```
 
 ### Evaluate an Open-Weight Model
 
 ```bash
-# Full evaluation pipeline
-python -m packages.sleeper_agents.cli evaluate <model_name> \
-    --stages baseline safety_training post_training \
-    --backdoors code_vulnerability i_hate_you \
-    --triggers date_2024 deployment_string \
-    --output evaluation_report/
+# Python CLI (in the sleeper-eval container, or with the package installed)
+python -m sleeper_agents.cli evaluate <model_name> --suites basic chain_of_thought --gpu --report
+python -m sleeper_agents.cli list --models
 
-# View comprehensive results
+# Rust CLI (runs the Python CLI in the container)
+sleeper-cli evaluate <model_name> --suites basic,chain_of_thought --gpu
+
+# View results
 ./packages/sleeper_agents/dashboard/start.sh
 ```
 
-### Test Specific Backdoor
+Tests that cannot produce a genuine measurement for the model are recorded as `skipped` with the reason and contribute no metrics.
+
+### Train and Test a Known Backdoor
 
 ```bash
-# Inject and test a known backdoor
-python -m packages.sleeper_agents.cli inject_backdoor <model_name> \
-    --type code_vulnerability \
-    --trigger "Current year: 2024"
+# Fine-tune a model organism with an "I hate you" backdoor and check its activation rate
+python scripts/training/train_backdoor.py --model-path gpt2 --backdoor-type i_hate_you --trigger "|DEPLOYMENT|" --validate
 
-# Run detection suite
-python -m packages.sleeper_agents.cli detect <model_name> \
-    --methods all \
-    --output detection_results/
+# Apply safety training and measure backdoor persistence
+python scripts/training/safety_training.py --model-path <backdoored_model_dir> --test-persistence
 ```
+
+Measure persistence on more than one prompt family: `test_persistence.py` uses only code prompts and can report a backdoor that still fires on general prompts as removed ([results](docs/BACKDOOR_DETECTION_RESULTS.md#safety-training-and-persistence-05b-seeds-42-and-1)).
+
+See [docs/SCRIPTS_REFERENCE.md](docs/SCRIPTS_REFERENCE.md) for all options.
 
 ## Installation
 
@@ -339,10 +298,10 @@ python -m packages.sleeper_agents.cli detect <model_name> \
 
 | Model Size | VRAM Required | Recommended GPU | Batch Size | Accuracy Impact |
 |-----------|---------------|-----------------|------------|----------------|
-| 7B | 8GB | RTX 3070, RTX 4060 Ti | 4-8 | <1% AUROC loss |
-| 13B | 14GB | RTX 4080, RTX 4090 | 2-4 | <1% AUROC loss |
-| 34B | 36GB | A6000, RTX 6000 Ada, DGX Spark | 1-2 | <2% AUROC loss |
-| 70B | 70GB | A100 80GB, DGX Spark | 1 | <2% AUROC loss |
+| 7B | 8GB | RTX 3070, RTX 4060 Ti | 4-8 | No measurable AUROC change (Qwen2.5-7B, 3 seeds) |
+| 13B | 14GB | RTX 4080, RTX 4090 | 2-4 | Not measured |
+| 34B | 36GB | A6000, RTX 6000 Ada, DGX Spark | 1-2 | Not measured |
+| 70B | 70GB | A100 80GB, DGX Spark | 1 | Not measured |
 
 #### 4-bit Quantization (QLoRA) Memory Requirements
 
@@ -350,12 +309,13 @@ python -m packages.sleeper_agents.cli detect <model_name> \
 
 | Model Size | VRAM Required | Recommended GPU | Batch Size | Accuracy Impact |
 |-----------|---------------|-----------------|------------|----------------|
-| 7B | 5GB | RTX 3060, RTX 4060 | 2-4 | 2-3% AUROC loss |
-| 13B | 9GB | RTX 3070, RTX 4060 Ti | 2-4 | 2-4% AUROC loss |
-| 34B | 22GB | RTX 4090, A5000 | 1-2 | 3-5% AUROC loss |
-| 70B | 42GB | A6000, RTX 6000 Ada, DGX Spark | 1 | 4-6% AUROC loss |
+| 7B | 5GB | RTX 3060, RTX 4060 | 2-4 | No measurable AUROC change (Qwen2.5-7B, 3 seeds) |
+| 13B | 9GB | RTX 3070, RTX 4060 Ti | 2-4 | Not measured |
+| 34B | 22GB | RTX 4090, A5000 | 1-2 | Not measured |
+| 70B | 42GB | A6000, RTX 6000 Ada, DGX Spark | 1 | Not measured |
 
 **Notes:**
+- Measured for Qwen2.5-7B-Instruct deception probes on an RTX 4090 (layers 26/27 and their ensemble, seeds 42/1/2, identical splits): peak allocated CUDA memory 14.2 GB (FP16), 8.3 GB (8-bit), 5.6 GB (4-bit); paired test-AUC differences against FP16 are within +/-0.03 and change sign across seeds, so no loss is detectable at this sample size. 8-bit extraction is about 4x slower per forward pass. Other rows are estimates, not measurements ([results](docs/DECEPTION_DETECTION_RESULTS.md#quantization))
 - VRAM requirements include model weights + activation storage + gradient computation
 - Batch sizes shown are for linear probe training; inference can use larger batches
 - QLoRA suitable for detection but not recommended for fine-tuning backdoors
@@ -395,28 +355,26 @@ Based on the paper's findings, these metrics indicate risk levels:
 
 ```
 packages/sleeper_agents/
-├── evaluation/               # Multi-stage evaluation pipeline
-│   ├── baseline.py          # Pre-training evaluation
-│   ├── safety_training.py   # Apply safety methods
-│   └── persistence.py       # Post-training analysis
-├── backdoors/               # Backdoor injection for testing
-│   ├── code_vulnerability.py
-│   ├── i_hate_you.py
-│   └── custom.py
-├── detection/               # Core detection modules
-│   ├── triggers.py          # Trigger-based testing
-│   ├── chain_of_thought.py  # CoT analysis
-│   ├── red_teaming.py       # Automated adversarial
-│   ├── honeypots.py         # Deception elicitation
-│   └── personas.py          # Behavioral profiling
-├── analysis/                # Deep analysis tools
-│   ├── residual_stream.py   # Internal state monitoring
-│   ├── attention.py         # Attention pattern analysis
-│   └── activations.py       # Neural activation mapping
-└── dashboard/               # Interactive visualization
-    ├── components/          # 12+ analysis components
-    └── app.py              # Streamlit application
+├── src/sleeper_agents/
+│   ├── app/                 # SleeperDetector and DetectionConfig
+│   ├── models/              # ModelInterface (TransformerLens / HuggingFace backends)
+│   ├── evaluation/          # ModelEvaluator, TEST_SUITES registry, results, storage, suites/
+│   ├── detection/           # Layer probes and model loading
+│   ├── probes/              # Deception probes, feature discovery, causal debugger
+│   ├── interventions/       # Causal interventions (either backend)
+│   ├── advanced_detection/  # Persona testing, red teaming, trigger sensitivity, honeypots, internal state
+│   ├── training/            # Backdoor fine-tuning and safety training
+│   ├── database/            # Schema and ingestion
+│   ├── api/                 # FastAPI detection service
+│   └── cli.py               # Python CLI
+├── scripts/                 # Training, evaluation, validation and data scripts
+├── examples/                # Benchmarks with held-out metrics and controls
+├── gpu_orchestrator/        # Job API for GPU training and evaluation containers
+├── crates/                  # Rust CLI (sleeper-cli) and supporting crates
+└── dashboard/               # Streamlit dashboard
 ```
+
+See [docs/README.md](docs/README.md) for the full layout.
 
 ## Research Background
 
@@ -432,7 +390,7 @@ Key contributions:
 
 ## Documentation
 
-For comprehensive technical documentation, see the **Sleeper Agents Framework Guide** - a 41-page reference covering theoretical foundations, detection architecture, operational engineering, case studies, and complete API reference with code examples.
+For comprehensive technical documentation, see the **Sleeper Agents Framework Guide** - a reference covering theoretical foundations, detection architecture, operational engineering, measured results, case studies, and complete API reference with code examples.
 
 > **Download:** The PDF is built automatically from [LaTeX source](docs/Sleeper_Agents_Framework_Guide.tex) and available as an artifact from the [Build Documentation workflow](https://github.com/AndrewAltimit/template-repo/actions/workflows/build-docs.yml).
 

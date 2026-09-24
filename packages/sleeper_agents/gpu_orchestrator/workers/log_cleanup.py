@@ -47,18 +47,38 @@ def cleanup_old_logs():
         logger.error("Log cleanup failed: %s", e)
 
 
-def start_log_cleanup_worker():
-    """Start background worker for log cleanup.
+def run_cleanup_cycle(database=None):
+    """Run one cleanup pass: old log files and (if a database is given) old finished jobs.
 
-    Runs cleanup every 24 hours.
+    Args:
+        database: Optional Database instance whose finished jobs older than
+            settings.cleanup_old_jobs_days are deleted
     """
-    logger.info("Starting log cleanup worker")
+    cleanup_old_logs()
+
+    if database is not None:
+        try:
+            removed = database.cleanup_old_jobs(days=settings.cleanup_old_jobs_days)
+            if removed:
+                logger.info("Removed %s finished jobs older than %s days", removed, settings.cleanup_old_jobs_days)
+        except Exception as e:
+            logger.error("Job cleanup failed: %s", e)
+
+
+def start_log_cleanup_worker(database=None):
+    """Start background worker for log and job cleanup.
+
+    Runs every settings.cleanup_interval_hours hours.
+
+    Args:
+        database: Optional Database instance for old-job cleanup
+    """
+    logger.info("Starting cleanup worker (interval: %s hours)", settings.cleanup_interval_hours)
 
     while True:
         try:
-            cleanup_old_logs()
+            run_cleanup_cycle(database)
         except Exception as e:
-            logger.error("Log cleanup worker error: %s", e)
+            logger.error("Cleanup worker error: %s", e)
 
-        # Sleep for 24 hours
-        time.sleep(86400)
+        time.sleep(max(1, settings.cleanup_interval_hours) * 3600)

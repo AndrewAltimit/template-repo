@@ -9,13 +9,21 @@ This module provides:
 
 from .downloader import ModelDownloader
 from .model_interface import (
-    HookedTransformerModel,
+    BACKEND_HUGGINGFACE,
+    BACKEND_TRANSFORMER_LENS,
     HuggingFaceModel,
     ModelInterface,
+    ResidualHooksUnsupportedError,
+    TransformerLensModel,
+    as_residual_hook_model,
+    find_transformer_blocks,
+    gather_last_non_pad,
+    last_non_pad_indices,
     load_model,
 )
 from .registry import ModelRegistry, get_registry
 from .resource_manager import ResourceManager, get_resource_manager
+from .transformer_lens_loader import load_transformer_lens_model
 
 __all__ = [
     "ModelRegistry",
@@ -24,7 +32,15 @@ __all__ = [
     "get_registry",
     "get_resource_manager",
     "ModelInterface",
+    "ResidualHooksUnsupportedError",
+    "as_residual_hook_model",
+    "find_transformer_blocks",
     "HuggingFaceModel",
-    "HookedTransformerModel",
+    "TransformerLensModel",
+    "BACKEND_HUGGINGFACE",
+    "BACKEND_TRANSFORMER_LENS",
+    "gather_last_non_pad",
+    "last_non_pad_indices",
     "load_model",
+    "load_transformer_lens_model",
 ]

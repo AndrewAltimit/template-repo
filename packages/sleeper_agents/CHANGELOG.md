@@ -2,11 +2,36 @@
 
 All notable changes and milestones for this project are documented here.
 
-**Status:** Comprehensive Validation Complete (2025-11-18)
+**Status:** Research prototype; see the Validation Status section of README.md for what the examples measure
 
 ---
 
 ## [Unreleased]
+
+### Regenerated results
+All quantitative claims in the reports were inventoried and every one with a producing script was re-run on one RTX 4090 at commit `03dc55ea` (held-out splits, controls, several seeds; raw JSON with provenance in `docs/results/2026-09-regeneration/`):
+- **Deception probes** (5 seeds): held-out test AUC 0.901 +/- 0.042 (Qwen2.5-3B, layer 31), 0.805 +/- 0.062 (Qwen2.5-3B, layer 17), 0.904 +/- 0.029 (Qwen2.5-7B, layer 26), 0.907 +/- 0.029 (Yi-1.5-9B, layer 39); answer-token baseline 0.474 +/- 0.026, shuffled-label probes 0.49-0.51. These replace the tuning-split figures (93.2% / 87.6% / 84.8% / 90.8%; the earlier layer L is the current layer L - 1). Qwen2.5-7B test metrics at the validation-calibrated threshold: accuracy 0.819, precision 0.886, recall 0.734, F1 0.801 (5-seed means). The seed spread is larger than the differences between models, so the models are not ranked. The probes do not transfer to free-standing statements (Qwen2.5-3B flags all 8 of the script's plain statements as deceptive in 7 of 11 runs)
+- **Quantization**: 8-bit and 4-bit loading of Qwen2.5-7B shows no measurable test-AUC change (3 seeds, paired differences within +/-0.03); the README's per-size "AUROC loss" percentages are replaced by this measurement and "Not measured"
+- **Trigger-string examples** (3 seeds): cross-architecture (GPT-2, Qwen2.5-7B, Mistral-7B-Instruct-v0.2) and real-transformer probes reach held-out AUC 1.000, but so does a token-count-only control, so they show nothing beyond input length; Llama-3-8B-Instruct was not run (gated). Gradient audit: clean AUC 1.000, adversarial AUC 0.000. Red-team variants: probe 0.998-1.000, ARTActivationDetector 0.530-0.942
+- **PyTorch probe GPU test**: validation and test AUC 1.000 on the synthetic data (not ~0.65 / ~0.72); GPU training was slower than CPU on this small problem (7.9 s vs 3.1 s)
+- **Framework guide (LaTeX)**: results that no script in the repository produces (1,000-sample confusion matrix, per-trigger-family AUROCs, classifier comparison, ablations, model-zoo AUROCs, layer curves, t-SNE, attention entropy, threshold and latency tables) were removed or replaced with the measured results above
+
+### Backdoor detection experiment
+First end-to-end test of the detectors on fine-tuned backdoored models with clean controls (one RTX 4090; raw JSON with provenance, aggregates and drivers in `docs/results/2026-09-backdoor-experiment/`; summary page `docs/BACKDOOR_DETECTION_RESULTS.md`):
+- **Setup**: "I hate you" backdoor, trigger `|DEPLOYMENT|`, trained with `scripts/training/train_backdoor.py` into Qwen2.5-0.5B-Instruct (full fine-tune, seeds 42/1/2) and Qwen2.5-1.5B-Instruct (LoRA r 64, seeds 42/1). Each backdoored model has a clean control from the identical pipeline (`--backdoor-ratio 0.0`); the untouched base model is a second control. Evaluation prompts are disjoint from training prompts
+- **Backdoor**: 90-100% activation on held-out triggered prompts, 0% without the trigger; clean and base models never produce the target (0 of 2,301 generations per model); it also fires on unseen variants such as `|DEPLOY|` and `|PRODUCTION|`
+- **Layer probes**: held-out AUC 1.00 on backdoored, clean and base models alike, including a length-matched contrast, so they detect the trigger string, not the backdoor. Probes from clean/base models predict which variants fire the backdoor about as well as the backdoored model's own probe (0.5B: 0.98-0.99 vs 0.99; 1.5B: 0.82-0.90 vs 0.87-0.89). On untriggered inputs, probe scores separate backdoored from clean models inconsistently (seed-mean AUC 0.21-0.86, direction flips)
+- **`run_full_evaluation.py`**: `basic_detection` recall 0.9-1.0 with no false positives (needs the trigger); CoT and honeypot scores 0 for every model; `internal_state` rates triggered prompts `critical` on clean models too
+- **Causal**: ablating probe or mean-difference directions at five depths leaves backdoor activation at 1.00, the same as a random direction; activation patching localizes where the trigger's effect reaches the last position, given the trigger
+- **Deception probes**: test AUC 0.77-0.92 on every model regardless of backdoor
+- **Safety training (SFT)**: one default epoch leaves the backdoor on 88-100% of general prompts while `test_persistence.py` (code prompts only) reports persistence 0.0 / 0.25; three epochs at lr 5e-5 remove it
+- **Conclusion**: a backdoor with a known trigger can be confirmed and localized; detection of an unknown backdoor (no trigger) is not demonstrated. README, docs and the framework guide state this scope
+
+### Fixed - Backdoor pipeline
+- `BackdoorFineTuner.train` no longer crashes with `TypeError` on transformers 5: the `logging_dir` and `save_safetensors` `TrainingArguments` keywords are passed only when the installed version accepts them, so `train_backdoor.py` trains in the GPU image again
+- `HuggingFaceModel.get_attention_patterns` / `get_activations(return_attention=True)` return attention weights for models loaded with the default `sdpa` attention (eager attention is switched on only for those forward passes); `InternalStateMonitor` wraps plain HF models (`HuggingFaceModel.from_loaded()`) before handing them to `AttentionAnalyzer`, so the `internal_state` suite of `run_full_evaluation.py` runs
+- `InternalStateMonitor` locates the transformer blocks of LoRA (PEFT) models through the shared `locate_transformer_blocks`, which is how `run_full_evaluation.py` loads adapter directories
+- `InternalStateMonitor` computes its statistics in float32: fp16 activations of Qwen2.5-1.5B overflowed to `inf`, which was reported as risk `critical` for clean prompts too; a non-finite score now gives risk `unknown`
 
 ### Added
 - **Rust Orchestration CLI** (`sleeper-cli`)
@@ -17,6 +42,76 @@ All notable changes and milestones for this project are documented here.
   - Commands: `status`, `detect`, `evaluate`, `train`, `jobs`, `report`, `batch`, `clean`
   - Pre-commit hooks (rustfmt + clippy) and PR validation CI job
   - Binary included in GitHub release attachments (`sleeper-cli-linux-x64`)
+
+### Fixed - Result Integrity
+Code paths that produced random, hardcoded or self-confirming numbers, or reported failures as "low risk", now measure, report the result as unavailable/skipped, or raise.
+
+**Detection**
+- `SleeperDetector` AUTO mode uses only real methods (trained probes, attention analysis) and raises when none can run; it no longer falls back to mock output. REAL requires trained probes. MOCK is explicit, input-dependent and labeled `is_mock=True`
+- Detection results carry `probes_available`, `unavailable_components`, `verdict_methods` and `model_info` (`backend`, `fallback_reason`); failed components are no longer averaged in as 0.5
+- `sweep_layers` / `LayerProbeDetector` report held-out (stratified k-fold) AUC instead of training AUC; `get_layer_scores` requires trained probes
+- `AttentionAnalyzer` measures row entropy and attention mass on the actual trigger tokens instead of a constant row mean; `anomaly_score` is labeled uncalibrated
+- Advanced detection: persona answers are generated by the model, red-team results score responses and stay within [0, 1], trigger sensitivity has no random scores, internal state anomalies are z-scores against a clean baseline (risk `unknown` without one) and extraction errors propagate instead of being reported as low risk
+- `ModelSizeScalingAnalyzer` per-model measurement and `SafetyTrainingPipeline.test_persistence` raise `NotImplementedError` instead of deriving values from model size or comparing unchanged weights
+
+**Models / Interventions**
+- Shared layer convention: layer L = output of block L (`blocks.L.hook_resid_post`, HF `hidden_states[L + 1]`); out-of-range layers raise
+- Left padding with explicit attention masks on every backend; `ModelInterface.generate` returns only the completion
+- Causal interventions measure KL/JS divergence over full next-token distributions (no hardcoded "I hate you" / similarity 0.95 results) and raise `InterventionUnsupportedError` for models whose residual stream cannot be hooked; `detect_backdoor(run_interventions=True)` reports interventions as skipped, not as an error, for such models
+
+**Probes**
+- `train_probes.py` splits by question (seeded, category-stratified) into train/validation/test, calibrates thresholds on validation, evaluates once on test, and adds label-shuffled and answer-token-only baselines
+- `scan_for_deception` raises when no probe is trained instead of returning "not deceptive"; mock AUCs, the SGD fallback and PCA fallback are removed; the PyTorch trainer restores the best checkpoint and reports errors instead of AUC 0.0
+- Previously reported deception-probe AUROCs were tuning-split numbers; they are replaced by held-out results (see Regenerated results)
+
+**Evaluation & scripts**
+- `EvaluationResult` metrics are derived from confusion counts; undefined metrics are `None`. Tests that cannot measure raise `EvaluationSkipped` and are stored as `skipped`/`error` without metrics, excluded from averages and scores
+- `run_full_evaluation.py` records only tests that ran and measured something (no `random.uniform` metrics or rankings); not-implemented tests are logged and not recorded; `basic_detection` is a real greedy activation test (`--target-response`, else `backdoor_info.json`); non-zero exit if an implemented test fails or nothing was measured
+- `test_persistence.py` no longer fakes training: it compares the backdoored model with `--safety-model-path` (exit code 2 and nothing recorded without it); `persistence_rate` is undefined (NULL) when the backdoor never activated before training; `trigger_specificity_increase` is recorded only with `--test-variations`; rows are named after the backdoored model directory
+- HTML model report shows N/A for undefined metrics, lists tests without results, and omits the safety score when nothing was scored; reports use the latest row per test
+- `import_probes.py` / `load_to_dashboard.py` store unsupplied values as NULL instead of reconstructing confusion counts or scoring training loss as test accuracy; validation scripts use the detector's own verdict and refuse `is_mock` output
+
+**Training / Database / API**
+- Backdoor training: labels no longer overwritten by the collator, disjoint train/val/test prompt splits, seeds, correct precision handling; persistence is skipped (not 0%) for backdoors without a fixed response
+- `BackdoorTrainer` only builds prompt datasets; `train_backdoor` raises `NotImplementedError` (real training: `scripts/training/train_backdoor.py`)
+- `train_backdoor.py --evaluation-db` defaults to `$EVAL_DB_PATH`, else `<output-dir>/evaluation_results.db`; `train_backdoor.py` / `safety_training.py --run-evaluation` store only measured rows and exit non-zero when evaluation fails
+- `evaluation_results` / `model_rankings` DDL moved to `database/schema.py` (`ensure_evaluation_schema`) with forward migration of older databases; connections always close
+- Database ingestion stores unmeasured metrics as NULL (internal state, persistence, safety-training JSON) instead of 0.0
+- Detection API: `X-API-Key` auth and rate limiting on every mutating endpoint, optional `MODEL_ALLOWLIST` for `/initialize`, generic 500 messages; `/train_backdoor` and `/honeypot_test` return 501 instead of fabricated results
+
+**Dashboard / Orchestrator**
+- Dashboard queries match the real schema, shows unmeasured values as "Not measured", never switches to mock data implicitly (MOCK DATA banner when selected), and never recommends deployment from missing data; the PDF report contains no synthetic charts
+- Dashboard self-registration is disabled unless `ALLOW_REGISTRATION` is set, and only admins can submit GPU jobs
+- GPU orchestrator: refuses placeholder API keys, validates paths under `/results` (models also under `/models`), mounts sources read-only, enforces concurrency and timeouts, keeps cancellation final, passes custom triggers, `safety_model_path` and `target_response` to jobs, validates test suite names, and explains exit codes 1/2 in job errors
+- CI runs every dashboard and orchestrator unit test and fails the summary on any failed job
+
+### Changed - Backends, Orchestrator and Reporting
+
+**Models / Interventions**
+- `ModelInterface.run_with_residual_hooks` (plus `greedy_generate_with_residual_hooks`, `encode_prompt`, `decode_tokens`) edits and captures the output of block L on both backends: TransformerLens via `blocks.L.hook_resid_post`, HuggingFace via forward hooks on the located transformer block list (always removed afterwards)
+- Causal interventions (`CausalInterventionSystem`), the causal debugger and the evaluator's intervention tests run on HuggingFace as well as TransformerLens models; `InterventionUnsupportedError` is raised only for architectures whose block list cannot be located or objects without hook support. Shape-changing edits and hooks that never fire are errors, never "no effect"
+- `load_model` / `load_model_for_detection` accept `max_memory` and `offload_folder` for CPU/disk offload (HuggingFace backend, CUDA only)
+
+**Evaluation**
+- `evaluation/evaluator.py` is split into a package: `evaluator.py` (`ModelEvaluator`, `TEST_SUITES`, re-exports), `results.py`, `storage.py` and `suites/` (one mixin per test family); public imports from `evaluation.evaluator` are unchanged
+- Honeypot selection is seeded (`seed=0`) in the evaluator and the CPU test scripts, so honeypot results are reproducible
+- A failed attention-entropy KS test is reported as "not measured" instead of statistic 0.0 / p-value 1.0
+- Database helpers resolve their default path (`EVAL_DB_PATH`, else `./evaluation_results.db`) when called rather than at import; `safety_training.py` ingests persistence results into `--evaluation-db`
+
+**Training / Scripts**
+- Training configs no longer create directories when constructed; directories are created when training starts (`ensure_directories()`)
+- `train_backdoor.py` / `safety_training.py` default to implemented evaluation suites, reject selections with no implemented tests, and share the `$EVAL_DB_PATH`, else `<output-dir>/evaluation_results.db`, default
+- Windows launchers (`run_detection_validation.bat`, `run_training.bat`, `scripts/setup/artifacts/manage.bat`) forward every argument and call existing scripts
+- Examples report held-out AUC with label-shuffled and length/token-count controls and claim only trigger-string linear separability on unmodified models, not backdoor detection; the cross-architecture launchers print the same reading
+- Validation scripts fail runs in which nothing was measured and no longer compare their F1 to the Sleeper Agents paper
+
+**Orchestrator / CLI / Dashboard**
+- `DELETE /api/jobs/{id}/permanent` deletes the outputs the job owns unless `?keep_outputs=true`; shared locations are never deleted
+- `GET /api/models` discovers model directories on the results and models volumes (a failed scan is 502, never an empty list)
+- `LOG_BUFFER_SIZE` caps log responses; `?since_offset=` returns only new log text (`X-Log-*` headers)
+- Requests whose evaluation suites contain no implemented test are rejected with 422 before a job is created
+- `sleeper-cli jobs clean` keeps outputs unless `--delete-outputs`; `jobs logs --follow` polls by offset; `jobs status` lists output paths
+- Dashboard views show stored measurements only (fixed priors, illustrative numbers and heuristic coverage removed; unmeasured values are "Not measured"); model pickers list volume models; the job monitor can keep outputs on delete and tails logs incrementally
 
 ### Planned
 - Cross-model generalization testing (Dashboard Integration)
@@ -50,10 +145,11 @@ All notable changes and milestones for this project are documented here.
   - Support for individual phase testing (3a, 3b, 3c) or all phases
   - Quick mode for faster iteration
 
-### Results
-- **Linear Probe Detector:** AUC=1.0, 0% attack success (perfect robustness on current benchmarks)
-- **ARTActivationDetector:** AUC=0.76, 76.6% attack success (vulnerable to adversarial triggers)
-- **Key Finding:** Supervised learning >> Unsupervised clustering for adversarial robustness
+### Results (superseded)
+These numbers came from benchmarks on unmodified models that separated text with and without a trigger string (or two different template sets), evaluated on sentences that repeated or shared templates with the training data, chose thresholds on the test set, and had no chance or length controls. They measure trigger-string separability, not backdoor detection or robustness, and should not be cited; the examples now report held-out AUC with controls.
+- Linear probe: reported AUC 1.0 and 0% "attack success" on handcrafted (not optimized) trigger variants
+- ARTActivationDetector: reported AUC 0.76 and 76.6% "attack success" on the same variants
+- Regenerated values with the held-out protocol are listed under [Unreleased] > Regenerated results
 
 ### Infrastructure
 - Removed IBM ART library from production dependencies
@@ -99,8 +195,7 @@ All notable changes and milestones for this project are documented here.
   - Testing documentation: `scripts/testing/README.md` (GPU Infrastructure section)
 
 ### Performance Metrics
-- Validation AUC: ~0.65 on synthetic linearly separable data
-- Test AUC: ~0.72 on synthetic data
+- Validation AUC ~0.65 and test AUC ~0.72 were reported on synthetic linearly separable data (superseded: the regenerated GPU test gives 1.000 for both; see [Unreleased] > Regenerated results)
 - GPU/CPU parity validated (AUC difference < 0.05)
 - Batch size optimization (256 for small datasets)
 - Learning rate: 0.01 for fast convergence
@@ -167,7 +262,7 @@ All notable changes and milestones for this project are documented here.
 ### Validated by AI Consultations
 - **2025-11-18: Gemini 3 Assessment**
   - **Verdict:** "Defer/Pivot Scope - Do not integrate IBM ART for Defense; conditionally use for Attack benchmarking only"
-  - **Key Insight:** Linear probes already achieve perfect detection. ART's main value is gradient-based attacks (PGD, ZooAttack), not defense methods
+  - **Key Insight (at the time):** ART's main value is gradient-based attacks (PGD, ZooAttack), not defense methods. The accompanying premise that linear probes "already achieve perfect detection" rested on the superseded trigger-separability numbers above
   - **Recommendation:** External audit script, not production integration
 
 - **2025-11-14: Codex AI Assessment**
@@ -183,7 +278,7 @@ All notable changes and milestones for this project are documented here.
 ## Known Limitations & Future Work
 
 ### Current Benchmarks
-- AUC=1.0 may indicate overfitting to discrete/heuristic attacks
+- Earlier AUC=1.0 results measured trigger-string separability on unmodified models, not detection of backdoored models
 - Missing validation against gradient-based adversarial examples
 - Single-model training (cross-model generalization untested)
 

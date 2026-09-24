@@ -80,7 +80,7 @@ echo "[2/5] Setting up environment..."
 if [ ! -f .env ]; then
     echo "Creating .env from .env.example..."
     cp .env.example .env
-    echo "WARNING: Please edit .env and set your API_KEY!"
+    echo "WARNING: Edit .env and set API_KEY - the API refuses to start until it is set!"
 fi
 
 # Create virtual environment if it doesn't exist

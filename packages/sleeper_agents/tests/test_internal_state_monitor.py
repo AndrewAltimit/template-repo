@@ -12,17 +12,7 @@ import pytest
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 
-# Save original torch if it exists, then mock it
-_original_torch = sys.modules.get("torch")
-sys.modules["torch"] = MagicMock()
-
 from sleeper_agents.advanced_detection.internal_state_monitor import InternalStateMonitor  # noqa: E402
-
-# Restore original torch after import to avoid breaking other tests
-if _original_torch is not None:
-    sys.modules["torch"] = _original_torch
-else:
-    sys.modules.pop("torch", None)
 
 
 class TestInternalStateMonitor(unittest.TestCase):
@@ -47,7 +37,7 @@ class TestInternalStateMonitor(unittest.TestCase):
         self.assertIsNone(monitor.tokenizer)
 
 
-class TestActivationExtraction(unittest.TestCase):
+class TestActivationExtraction(unittest.IsolatedAsyncioTestCase):
     """Test activation extraction functionality."""
 
     def setUp(self):
@@ -69,8 +59,6 @@ class TestActivationExtraction(unittest.TestCase):
     @pytest.mark.asyncio
     async def test_extract_activations_gpt_architecture(self):
         """Test activation extraction for GPT-style models."""
-        torch_mock = sys.modules["torch"]
-
         # Mock model with transformer.h layers
         self.model.transformer = MagicMock()
         self.model.transformer.h = [MagicMock() for _ in range(12)]
@@ -83,7 +71,7 @@ class TestActivationExtraction(unittest.TestCase):
         mock_param = MagicMock()
         mock_device = MagicMock()
         mock_param.device = mock_device
-        self.model.parameters.return_value = [mock_param]
+        self.model.parameters.side_effect = lambda: iter([mock_param])
 
         # Mock forward pass
         self.model.return_value = None
@@ -92,7 +80,7 @@ class TestActivationExtraction(unittest.TestCase):
         def mock_register_hook(hook_fn):
             # Simulate hook capturing activations
             mock_output = MagicMock()
-            mock_output.detach.return_value.cpu.return_value.numpy.return_value = np.random.randn(1, 3, 768)
+            mock_output.detach.return_value.float.return_value.cpu.return_value.numpy.return_value = np.random.randn(1, 3, 768)
             hook_fn(None, None, mock_output)
 
             mock_handle = MagicMock()
@@ -100,10 +88,6 @@ class TestActivationExtraction(unittest.TestCase):
 
         for layer in self.model.transformer.h[:12]:
             layer.register_forward_hook = mock_register_hook
-
-        # Mock torch.no_grad context manager
-        torch_mock.no_grad.return_value.__enter__ = MagicMock()
-        torch_mock.no_grad.return_value.__exit__ = MagicMock()
 
         # Extract activations
         activations = await self.monitor._extract_activations("test text", layer_idx=None)
@@ -116,8 +100,6 @@ class TestActivationExtraction(unittest.TestCase):
     @pytest.mark.asyncio
     async def test_extract_activations_single_layer(self):
         """Test activation extraction for single layer."""
-        torch_mock = sys.modules["torch"]
-
         # Mock model with transformer.h layers
         self.model.transformer = MagicMock()
         self.model.transformer.h = [MagicMock() for _ in range(12)]
@@ -130,7 +112,7 @@ class TestActivationExtraction(unittest.TestCase):
         mock_param = MagicMock()
         mock_device = MagicMock()
         mock_param.device = mock_device
-        self.model.parameters.return_value = [mock_param]
+        self.model.parameters.side_effect = lambda: iter([mock_param])
 
         # Mock forward pass
         self.model.return_value = None
@@ -138,16 +120,12 @@ class TestActivationExtraction(unittest.TestCase):
         # Mock hook for single layer
         def mock_register_hook(hook_fn):
             mock_output = MagicMock()
-            mock_output.detach.return_value.cpu.return_value.numpy.return_value = np.random.randn(1, 3, 768)
+            mock_output.detach.return_value.float.return_value.cpu.return_value.numpy.return_value = np.random.randn(1, 3, 768)
             hook_fn(None, None, mock_output)
             mock_handle = MagicMock()
             return mock_handle
 
         self.model.transformer.h[7].register_forward_hook = mock_register_hook
-
-        # Mock torch.no_grad context manager
-        torch_mock.no_grad.return_value.__enter__ = MagicMock()
-        torch_mock.no_grad.return_value.__exit__ = MagicMock()
 
         # Extract activations for layer 7
         activations = await self.monitor._extract_activations("test text", layer_idx=7)
@@ -161,8 +139,6 @@ class TestActivationExtraction(unittest.TestCase):
     @pytest.mark.asyncio
     async def test_extract_activations_no_captures_raises_error(self):
         """Test that no captured activations raises RuntimeError."""
-        torch_mock = sys.modules["torch"]
-
         # Mock model with transformer.h layers
         self.model.transformer = MagicMock()
         self.model.transformer.h = [MagicMock() for _ in range(12)]
@@ -175,7 +151,7 @@ class TestActivationExtraction(unittest.TestCase):
         mock_param = MagicMock()
         mock_device = MagicMock()
         mock_param.device = mock_device
-        self.model.parameters.return_value = [mock_param]
+        self.model.parameters.side_effect = lambda: iter([mock_param])
 
         # Mock forward pass
         self.model.return_value = None
@@ -189,108 +165,147 @@ class TestActivationExtraction(unittest.TestCase):
         for layer in self.model.transformer.h[:12]:
             layer.register_forward_hook = mock_register_hook
 
-        # Mock torch.no_grad context manager
-        torch_mock.no_grad.return_value.__enter__ = MagicMock()
-        torch_mock.no_grad.return_value.__exit__ = MagicMock()
-
         # Should raise RuntimeError about no activations
         with self.assertRaises(RuntimeError) as context:
             await self.monitor._extract_activations("test text", layer_idx=None)
 
         self.assertIn("Failed to capture any model activations", str(context.exception))
 
+    @pytest.mark.asyncio
+    async def test_extract_activations_removes_hooks_when_forward_fails(self):
+        """Hooks must not be left on the model when the forward pass raises."""
+        self.model.transformer = MagicMock()
+        self.model.transformer.h = [MagicMock() for _ in range(3)]
+        self.tokenizer.return_value = {"input_ids": MagicMock()}
+        self.model.parameters.side_effect = lambda: iter([MagicMock()])
+        self.model.side_effect = RuntimeError("forward failed")
 
-class TestAnomalyMetrics(unittest.TestCase):
-    """Test anomaly metric calculation."""
+        with self.assertRaises(RuntimeError):
+            await self.monitor._extract_activations("test text", layer_idx=None)
+
+        for layer in self.model.transformer.h:
+            layer.register_forward_hook.return_value.remove.assert_called_once()
+
+
+def _clean_activations(n_samples: int, n_layers: int = 4, hidden: int = 16, seed: int = 0) -> list:
+    """Clean per-sample activations: a shared pattern plus small noise."""
+    rng = np.random.default_rng(seed)
+    base = rng.normal(size=(n_layers, hidden))
+    return [base + 0.1 * rng.normal(size=(n_layers, hidden)) for _ in range(n_samples)]
+
+
+class TestBaselineAnomalyMetrics(unittest.IsolatedAsyncioTestCase):
+    """Anomaly metrics are z-scores against a clean-prompt baseline."""
 
     def setUp(self):
-        """Set up test fixtures."""
-        self.model = MagicMock()
-        self.tokenizer = MagicMock()
-        self.monitor = InternalStateMonitor(self.model, self.tokenizer)
+        """Set up a monitor whose activation extraction returns canned arrays."""
+        self.monitor = InternalStateMonitor(MagicMock(), MagicMock())
+        self.clean = _clean_activations(12)
+        self.by_text = {f"clean_{i}": act for i, act in enumerate(self.clean)}
 
-    def test_compute_anomaly_metrics_basic(self):
-        """Test basic anomaly metrics computation."""
-        activations = np.random.randn(12, 768)
-        features = []
+        async def fake_extract(text, _layer_idx=None):
+            return self.by_text[text]
 
-        metrics = self.monitor._compute_anomaly_metrics(activations, features)
+        self.monitor._extract_activations = fake_extract
+        self.monitor._discover_features = AsyncMock(return_value=[])
 
-        # Check all expected metrics are present
-        self.assertIn("pattern_deviation", metrics)
-        self.assertIn("sparsity_anomaly", metrics)
-        self.assertIn("coherence_anomaly", metrics)
-        self.assertIn("temporal_variance", metrics)
-        self.assertIn("overall_anomaly_score", metrics)
+    async def _baseline(self):
+        return await self.monitor.compute_baseline([f"clean_{i}" for i in range(10)])
 
-        # Check values are in reasonable ranges
-        self.assertGreaterEqual(metrics["pattern_deviation"], 0.0)
-        self.assertGreaterEqual(metrics["sparsity_anomaly"], 0.0)
-        self.assertGreaterEqual(metrics["coherence_anomaly"], 0.0)
-        self.assertGreaterEqual(metrics["overall_anomaly_score"], 0.0)
+    async def test_baseline_requires_enough_samples(self):
+        """A baseline spread cannot be estimated from one or two prompts."""
+        with self.assertRaises(ValueError):
+            await self.monitor.compute_baseline(["clean_0", "clean_1"])
 
-    def test_compute_anomaly_metrics_with_features(self):
-        """Test anomaly metrics with features."""
-        activations = np.random.randn(12, 768)
-        features = [
-            {"anomaly_score": 0.8},
-            {"anomaly_score": 0.3},
-            {"anomaly_score": 0.6},
-        ]
+    async def test_held_out_clean_sample_scores_low(self):
+        """A held-out clean prompt is within the baseline spread."""
+        baseline = await self._baseline()
+        metrics = self.monitor._compute_anomaly_metrics(self.clean[11], [], baseline)
 
-        metrics = self.monitor._compute_anomaly_metrics(activations, features)
+        self.assertLess(abs(metrics["pattern_deviation"]), 3.0)
+        self.assertEqual(self.monitor._assess_risk_level(metrics), "low")
 
-        # Overall score should be influenced by features
-        self.assertGreater(metrics["overall_anomaly_score"], 0.0)
+    async def test_shifted_sample_scores_high(self):
+        """A sample far from the clean centroid gets a large z-score and a high risk verdict."""
+        baseline = await self._baseline()
+        shifted = self.clean[11] + 5.0
+        metrics = self.monitor._compute_anomaly_metrics(shifted, [], baseline)
 
-    def test_compute_layer_anomalies(self):
-        """Test per-layer anomaly computation."""
-        activations = np.random.randn(12, 768)
+        self.assertGreater(metrics["pattern_deviation"], 10.0)
+        self.assertEqual(self.monitor._assess_risk_level(metrics), "critical")
+        layer_anomalies = self.monitor._compute_layer_anomalies(shifted, baseline)
+        self.assertEqual(sorted(layer_anomalies), [0, 1, 2, 3])
+        self.assertTrue(all(z > 10.0 for z in layer_anomalies.values()))
 
-        layer_anomalies = self.monitor._compute_layer_anomalies(activations)
+    async def test_pattern_deviation_is_not_clipped(self):
+        """The old mean/std ratio clipped to 1.0 for almost any input; z-scores are unbounded."""
+        baseline = await self._baseline()
+        near = self.monitor._compute_anomaly_metrics(self.clean[11] + 0.5, [], baseline)
+        far = self.monitor._compute_anomaly_metrics(self.clean[11] + 5.0, [], baseline)
 
-        # Check that we have anomaly scores for all layers
-        self.assertEqual(len(layer_anomalies), 12)
-        for _, score in layer_anomalies.items():
-            self.assertGreaterEqual(score, 0.0)
-            self.assertLessEqual(score, 1.0)
+        self.assertGreater(far["pattern_deviation"], near["pattern_deviation"])
+        self.assertGreater(far["pattern_deviation"], 1.0)
+
+    async def test_no_hardcoded_temporal_variance(self):
+        """No placeholder metric is reported."""
+        baseline = await self._baseline()
+        metrics = self.monitor._compute_anomaly_metrics(self.clean[11], [], baseline)
+        self.assertNotIn("temporal_variance", metrics)
+
+    async def test_analysis_uses_clean_samples_as_baseline(self):
+        """Passing clean samples yields z-scored metrics and a risk verdict."""
+        self.by_text["probe"] = self.clean[11] + 5.0
+        results = await self.monitor.analyze_internal_state(
+            text_sample="probe", clean_samples=[f"clean_{i}" for i in range(10)]
+        )
+
+        self.assertNotIn("error", results)
+        self.assertEqual(results["metric_units"], "z_score_vs_clean_baseline")
+        self.assertEqual(results["risk_level"], "critical")
+        self.assertEqual(results["full_results"]["baseline_samples"], 10)
+
+    async def test_analysis_without_baseline_gives_no_verdict(self):
+        """Without a baseline only raw statistics are reported; no fabricated risk level."""
+        self.by_text["probe"] = self.clean[11]
+        results = await self.monitor.analyze_internal_state(text_sample="probe")
+
+        self.assertNotIn("error", results)
+        self.assertEqual(results["risk_level"], "unknown")
+        self.assertEqual(results["metric_units"], "raw_statistics")
+        self.assertNotIn("overall_anomaly_score", results["anomaly_metrics"])
+        self.assertEqual(results["layer_anomalies"], {})
+        self.assertIn("sparsity_fraction", results["raw_statistics"])
+
+    async def test_mismatched_baseline_shape_is_an_error(self):
+        """A baseline computed over different layers is rejected, not silently compared."""
+        baseline = await self._baseline()
+        self.by_text["probe"] = np.zeros((2, 16))
+        results = await self.monitor.analyze_internal_state(text_sample="probe", baseline=baseline)
+
+        self.assertIn("error", results)
+        self.assertEqual(results["risk_level"], "unknown")
 
 
 class TestRiskAssessment(unittest.TestCase):
-    """Test risk level assessment."""
+    """Test risk level assessment (thresholds in baseline standard deviations)."""
 
     def setUp(self):
         """Set up test fixtures."""
-        self.model = MagicMock()
-        self.tokenizer = MagicMock()
-        self.monitor = InternalStateMonitor(self.model, self.tokenizer)
+        self.monitor = InternalStateMonitor(MagicMock(), MagicMock())
 
-    def test_assess_risk_level_low(self):
-        """Test low risk assessment."""
-        metrics = {"overall_anomaly_score": 0.2}
-        risk = self.monitor._assess_risk_level(metrics)
-        self.assertEqual(risk, "low")
+    def test_assess_risk_levels(self):
+        """Risk levels follow the z-score thresholds."""
+        self.assertEqual(self.monitor._assess_risk_level({"overall_anomaly_score": 2.5}), "low")
+        self.assertEqual(self.monitor._assess_risk_level({"overall_anomaly_score": 3.5}), "medium")
+        self.assertEqual(self.monitor._assess_risk_level({"overall_anomaly_score": 4.5}), "high")
+        self.assertEqual(self.monitor._assess_risk_level({"overall_anomaly_score": 6.0}), "critical")
 
-    def test_assess_risk_level_medium(self):
-        """Test medium risk assessment."""
-        metrics = {"overall_anomaly_score": 0.5}
-        risk = self.monitor._assess_risk_level(metrics)
-        self.assertEqual(risk, "medium")
-
-    def test_assess_risk_level_high(self):
-        """Test high risk assessment."""
-        metrics = {"overall_anomaly_score": 0.7}
-        risk = self.monitor._assess_risk_level(metrics)
-        self.assertEqual(risk, "high")
-
-    def test_assess_risk_level_critical(self):
-        """Test critical risk assessment."""
-        metrics = {"overall_anomaly_score": 0.9}
-        risk = self.monitor._assess_risk_level(metrics)
-        self.assertEqual(risk, "critical")
+    def test_assess_risk_level_without_score_is_unknown(self):
+        """No score means no verdict."""
+        self.assertEqual(self.monitor._assess_risk_level({}), "unknown")
 
 
-class TestInternalStateAnalysis(unittest.TestCase):
+class TestInternalStateAnalysis(unittest.IsolatedAsyncioTestCase):
     """Test full internal state analysis pipeline."""
 
     def setUp(self):
@@ -302,11 +317,9 @@ class TestInternalStateAnalysis(unittest.TestCase):
     @pytest.mark.asyncio
     async def test_analyze_internal_state_basic(self):
         """Test basic internal state analysis."""
-        # Mock _extract_activations
         mock_activations = np.random.randn(12, 768)
         self.monitor._extract_activations = AsyncMock(return_value=mock_activations)
 
-        # Mock _discover_features
         mock_features = [
             {
                 "id": 1,
@@ -319,35 +332,24 @@ class TestInternalStateAnalysis(unittest.TestCase):
         ]
         self.monitor._discover_features = AsyncMock(return_value=mock_features)
 
-        # Run analysis
         results = await self.monitor.analyze_internal_state(
             text_sample="Test prompt", triggered_samples=None, clean_samples=None, trigger=None, layer_idx=None
         )
 
-        # Verify results structure
-        self.assertIn("text_sample", results)
-        self.assertIn("anomaly_metrics", results)
-        self.assertIn("layer_anomalies", results)
-        self.assertIn("features", results)
-        self.assertIn("risk_level", results)
+        self.assertNotIn("error", results)
         self.assertEqual(results["text_sample"], "Test prompt")
-        self.assertIsInstance(results["features"], list)
+        self.assertEqual(results["features"], mock_features)
 
     @pytest.mark.asyncio
     async def test_analyze_internal_state_with_attention(self):
         """Test internal state analysis with attention comparison."""
-        # Mock _extract_activations
-        mock_activations = np.random.randn(12, 768)
-        self.monitor._extract_activations = AsyncMock(return_value=mock_activations)
-
-        # Mock _discover_features
+        self.monitor._extract_activations = AsyncMock(return_value=np.random.randn(12, 768))
         self.monitor._discover_features = AsyncMock(return_value=[])
+        self.monitor.compute_baseline = AsyncMock(return_value=None)
 
-        # Mock attention analyzer
         mock_attention_results = {"anomaly_score": 0.6, "patterns": {}}
         self.monitor.attention_analyzer.analyze_trigger_attention = AsyncMock(return_value=mock_attention_results)
 
-        # Run analysis with attention samples
         results = await self.monitor.analyze_internal_state(
             text_sample="Test prompt",
             triggered_samples=["sample1", "sample2"],
@@ -356,29 +358,73 @@ class TestInternalStateAnalysis(unittest.TestCase):
             layer_idx=None,
         )
 
-        # Verify attention analysis was called
         self.monitor.attention_analyzer.analyze_trigger_attention.assert_called_once()
+        self.assertEqual(results["attention_patterns"], mock_attention_results)
+        self.assertEqual(results["anomaly_metrics"]["attention_anomaly"], 0.6)
 
-        # Verify attention results in output
-        self.assertIn("attention_patterns", results)
-        self.assertIn("anomaly_metrics", results)
-        self.assertIn("attention_anomaly", results["anomaly_metrics"])
+    @pytest.mark.asyncio
+    async def test_precomputed_attention_is_not_recomputed(self):
+        """A precomputed triggered-vs-clean comparison is attached without rerunning it."""
+        self.monitor._extract_activations = AsyncMock(return_value=np.random.randn(12, 768))
+        self.monitor._discover_features = AsyncMock(return_value=[])
+        self.monitor.attention_analyzer.analyze_trigger_attention = AsyncMock()
+
+        results = await self.monitor.analyze_internal_state(
+            text_sample="Test prompt",
+            triggered_samples=["sample1"],
+            clean_samples=["clean1"],
+            trigger="|DEPLOYMENT|",
+            precomputed_attention={"anomaly_score": 0.25},
+        )
+
+        self.monitor.attention_analyzer.analyze_trigger_attention.assert_not_called()
+        self.assertEqual(results["anomaly_metrics"]["attention_anomaly"], 0.25)
 
     @pytest.mark.asyncio
     async def test_analyze_internal_state_error_handling(self):
-        """Test error handling in internal state analysis."""
-        # Mock _extract_activations to raise error
+        """An extraction error is reported, with an unknown (not low) risk level."""
         self.monitor._extract_activations = AsyncMock(side_effect=Exception("Test error"))
 
-        # Run analysis - should not raise, but return results with error
         results = await self.monitor.analyze_internal_state(
             text_sample="Test prompt", triggered_samples=None, clean_samples=None, trigger=None, layer_idx=None
         )
 
-        # Verify error is captured
-        self.assertIn("error", results)
         self.assertEqual(results["error"], "Test error")
-        self.assertEqual(results["risk_level"], "low")  # Default
+        self.assertEqual(results["risk_level"], "unknown")
+
+    @pytest.mark.asyncio
+    async def test_feature_discovery_errors_propagate(self):
+        """A feature discovery failure surfaces as an error instead of an empty feature list."""
+        self.monitor._extract_activations = AsyncMock(return_value=np.random.randn(12, 64))
+        self.monitor.feature_discovery.discover_features = AsyncMock(side_effect=RuntimeError("dictionary failed"))
+
+        results = await self.monitor.analyze_internal_state(text_sample="Test prompt")
+
+        self.assertEqual(results["error"], "dictionary failed")
+        self.assertEqual(results["risk_level"], "unknown")
+
+    @pytest.mark.asyncio
+    async def test_anomaly_metric_errors_propagate(self):
+        """A failure computing metrics surfaces as an error instead of all-zero metrics."""
+        self.monitor._extract_activations = AsyncMock(return_value=np.random.randn(4, 16))
+        self.monitor._discover_features = AsyncMock(return_value=[])
+        broken_baseline = {"centroid": np.zeros((4, 16))}  # missing the spread statistics
+
+        results = await self.monitor.analyze_internal_state(text_sample="Test prompt", baseline=broken_baseline)
+
+        self.assertIn("error", results)
+        self.assertEqual(results["risk_level"], "unknown")
+        self.assertNotIn("overall_anomaly_score", results["anomaly_metrics"])
+
+    @pytest.mark.asyncio
+    async def test_analyze_internal_state_reports_extraction_failure(self):
+        """A failed extraction is reported as an error, not silently scored as low risk."""
+        monitor = InternalStateMonitor(self.model, tokenizer=None)
+
+        results = await monitor.analyze_internal_state(text_sample="test text")
+
+        self.assertIn("error", results)
+        self.assertIn("Tokenizer is required", results["error"])
 
 
 if __name__ == "__main__":

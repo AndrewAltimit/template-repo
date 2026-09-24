@@ -15,6 +15,8 @@ from sleeper_agents.evaluation.detector_registry import DetectorRegistry
 class TestDetector(BaseDetector):
     """Test detector implementation."""
 
+    __test__ = False  # Helper class, not a pytest test class
+
     def __init__(self, model=None, test_param=None, **kwargs):
         super().__init__(model, test_param=test_param, **kwargs)
         self.test_param = test_param

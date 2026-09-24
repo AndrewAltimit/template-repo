@@ -1,225 +1,113 @@
-"""Comprehensive Detector Benchmark with Multiple Difficulty Levels.
+"""Detector benchmark on SYNTHETIC activation datasets of varying difficulty.
 
-This benchmark tests ARTActivationDetector vs Linear Probes across scenarios:
-1. Easy: Linearly separable clusters (baseline)
-2. Medium: Overlapping clusters with non-linear boundaries
-3. Hard: High-dimensional clusters with noise
-4. Realistic: Mixed patterns simulating real backdoor behaviors
+Compares ARTActivationDetector (unsupervised clustering) with a supervised linear
+probe on four generated datasets (no model is involved):
+1. Separable: constant shift in every dimension
+2. Moons: a 2D two-moons pattern randomly projected into 768 dimensions
+3. Overlapping: mixtures of clusters that overlap along one dimension, with noise
+4. Sparse shift: a shift in 50 of 768 dimensions plus a small sequence pattern
 
-This provides a fair comparison showing when each method excels.
+These are toy distributions; the results say how the two detectors behave on them,
+not how well either detects backdoors in real models.
+
+Protocol: seeded datasets; a seeded stratified train/held-out split; AUC on the
+held-out split; TPR/FPR/F1 at a threshold chosen on the training split; a
+label-shuffled control for the supervised probe.
 """
 
+from pathlib import Path
+import sys
 import time
-from typing import Any, Dict, List, Tuple
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 import numpy as np
 from sklearn.datasets import make_moons
-from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import auc, roc_curve
+from sklearn.model_selection import train_test_split
 
-from sleeper_agents.detection.art_activation_detector import ARTActivationDetector
-from sleeper_agents.detection.base_detector import BaseDetector
-from sleeper_agents.evaluation.detector_registry import DetectorRegistry
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+from probe_eval_utils import (  # noqa: E402
+    DEFAULT_SEED,
+    LinearProbeDetector,
+    evaluate_heldout,
+    shuffled_label_auc,
+)
 
-@DetectorRegistry.register("linear_probe")
-class LinearProbeDetector(BaseDetector):
-    """Linear probe detector using logistic regression."""
+from sleeper_agents.detection.art_activation_detector import ARTActivationDetector  # noqa: E402
 
-    def __init__(self, model=None, **kwargs):
-        super().__init__(model, **kwargs)
-        self.probe = LogisticRegression(max_iter=1000, random_state=42)
-        self._is_fitted = False
-
-    @property
-    def inputs_required(self) -> Dict[str, str]:
-        return {
-            "activations": "Neural network activations",
-            "labels": "Binary labels (0=clean, 1=backdoored)",
-        }
-
-    def fit(self, activations: np.ndarray, labels: np.ndarray) -> None:
-        if len(activations.shape) == 3:
-            activations = activations.mean(axis=1)
-        self.probe.fit(activations, labels)
-        self._is_fitted = True
-
-    def score(self, activations: np.ndarray) -> np.ndarray:
-        if not self._is_fitted:
-            raise RuntimeError("Must call fit() before score()")
-        if len(activations.shape) == 3:
-            activations = activations.mean(axis=1)
-        return np.asarray(self.probe.predict_proba(activations)[:, 1])
-
-    def run(self, **kwargs) -> Dict[str, Any]:
-        activations = kwargs.get("activations")
-        labels = kwargs.get("labels")
-        if activations is None or labels is None:
-            raise ValueError("Must provide 'activations' and 'labels'")
-        self.fit(activations, labels)
-        scores = self.score(activations)
-        predictions = scores > 0.5
-        accuracy = np.mean(predictions == labels)
-        return {
-            "score": float(np.mean(scores)),
-            "is_backdoored": accuracy < 0.5,
-            "report": {"method": "LinearProbe", "accuracy": float(accuracy)},
-            "metadata": {"config": self.config},
-        }
+SEQ_LEN = 20
+HIDDEN_DIM = 768
 
 
-def generate_easy_dataset(n_samples: int = 600) -> Tuple:
-    """Easy: Linearly separable clusters."""
-    np.random.seed(42)
+def _class_sizes(n_samples: int) -> Tuple[int, int]:
     n_clean = int(n_samples * 0.83)
-    n_backdoor = n_samples - n_clean
-
-    # Clean samples at origin
-    clean = np.random.randn(n_clean, 20, 768).astype(np.float32)
-
-    # Backdoor samples shifted away
-    backdoor = np.random.randn(n_backdoor, 20, 768).astype(np.float32) + 3.0
-
-    X = np.vstack([clean, backdoor])
-    y = np.array([0] * n_clean + [1] * n_backdoor)
-
-    # Shuffle
-    idx = np.random.permutation(len(X))
-    return X[idx], y[idx]
+    return n_clean, n_samples - n_clean
 
 
-def generate_medium_dataset(n_samples: int = 600) -> Tuple:
-    """Medium: Non-linear boundaries (moons pattern in high-dim)."""
-    np.random.seed(42)
-
-    # Generate 2D moons pattern
-    X_2d, y_2d = make_moons(n_samples=n_samples, noise=0.15, random_state=42)
-
-    # Embed into high-dimensional space with random projections
-    hidden_dim = 768
-    seq_len = 20
-
-    # Random projection matrix
-    projection = np.random.randn(2, hidden_dim) * 0.5
-
-    # Project 2D data to high-dim
-    X_highdim = X_2d @ projection
-
-    # Replicate across sequence length with slight variation
-    X_3d = np.zeros((n_samples, seq_len, hidden_dim), dtype=np.float32)
-    for i in range(seq_len):
-        noise = np.random.randn(n_samples, hidden_dim) * 0.1
-        X_3d[:, i, :] = X_highdim + noise
-
-    # Shuffle
-    idx = np.random.permutation(len(X_3d))
-    return X_3d[idx], y_2d[idx]
+def generate_separable_dataset(n_samples: int = 600, seed: int = DEFAULT_SEED) -> Tuple[np.ndarray, np.ndarray]:
+    """Constant shift of +3 in every dimension for the positive class."""
+    rng = np.random.default_rng(seed)
+    n_clean, n_pos = _class_sizes(n_samples)
+    clean = rng.standard_normal((n_clean, SEQ_LEN, HIDDEN_DIM))
+    pos = rng.standard_normal((n_pos, SEQ_LEN, HIDDEN_DIM)) + 3.0
+    X = np.vstack([clean, pos]).astype(np.float32)
+    y = np.array([0] * n_clean + [1] * n_pos)
+    return X, y
 
 
-def generate_hard_dataset(n_samples: int = 600) -> Tuple:
-    """Hard: Multiple overlapping clusters with high noise."""
-    np.random.seed(42)
-    n_clean = int(n_samples * 0.83)
-    n_backdoor = n_samples - n_clean
+def generate_moons_dataset(n_samples: int = 600, seed: int = DEFAULT_SEED) -> Tuple[np.ndarray, np.ndarray]:
+    """Two-moons pattern projected into HIDDEN_DIM dims (not linearly separable)."""
+    rng = np.random.default_rng(seed)
+    X_2d, y = make_moons(n_samples=n_samples, noise=0.15, random_state=seed)
+    projection = rng.standard_normal((2, HIDDEN_DIM)) * 0.5
+    X_high = X_2d @ projection
+    X = np.stack([X_high + rng.standard_normal((n_samples, HIDDEN_DIM)) * 0.1 for _ in range(SEQ_LEN)], axis=1)
+    return X.astype(np.float32), y
 
-    # Clean samples: mixture of 3 clusters
-    clean_clusters = []
+
+def generate_overlapping_dataset(n_samples: int = 600, seed: int = DEFAULT_SEED) -> Tuple[np.ndarray, np.ndarray]:
+    """Cluster mixtures overlapping along dimension 0, with added noise."""
+    rng = np.random.default_rng(seed)
+    n_clean, n_pos = _class_sizes(n_samples)
+    clean_parts = []
     for i in range(3):
-        cluster = np.random.randn(n_clean // 3, 20, 768).astype(np.float32)
-        # Shift along first dimension only
-        cluster[:, :, 0] += i * 1.5
-        clean_clusters.append(cluster)
-    clean = np.vstack(clean_clusters)
-
-    # Backdoor samples: mixture of 2 clusters overlapping with clean
-    backdoor_clusters = []
+        part = rng.standard_normal((n_clean // 3, SEQ_LEN, HIDDEN_DIM))
+        part[:, :, 0] += i * 1.5
+        clean_parts.append(part)
+    pos_parts = []
     for i in range(2):
-        cluster = np.random.randn(n_backdoor // 2, 20, 768).astype(np.float32)
-        # Shift along first dimension (overlaps with clean)
-        cluster[:, :, 0] += 1.0 + i * 1.5
-        backdoor_clusters.append(cluster)
-    backdoor = np.vstack(backdoor_clusters)
-
-    # Add high noise
-    clean += np.random.randn(*clean.shape) * 0.8
-    backdoor += np.random.randn(*backdoor.shape) * 0.8
-
-    X = np.vstack([clean, backdoor])
-    y = np.array([0] * n_clean + [1] * n_backdoor)
-
-    # Shuffle
-    idx = np.random.permutation(len(X))
-    return X[idx], y[idx]
+        part = rng.standard_normal((n_pos // 2, SEQ_LEN, HIDDEN_DIM))
+        part[:, :, 0] += 1.0 + i * 1.5
+        pos_parts.append(part)
+    clean = np.vstack(clean_parts)
+    pos = np.vstack(pos_parts)
+    clean += rng.standard_normal(clean.shape) * 0.8
+    pos += rng.standard_normal(pos.shape) * 0.8
+    X = np.vstack([clean, pos]).astype(np.float32)
+    y = np.array([0] * len(clean) + [1] * len(pos))
+    return X, y
 
 
-def generate_realistic_dataset(n_samples: int = 600) -> Tuple:
-    """Realistic: Subtle activation pattern changes."""
-    np.random.seed(42)
-    n_clean = int(n_samples * 0.83)
-    n_backdoor = n_samples - n_clean
-
-    # Base distribution
-    base = np.random.randn(n_samples, 20, 768).astype(np.float32)
-
-    # Clean samples: normal distribution
-    clean = base[:n_clean]
-
-    # Backdoor samples: subtle changes in specific dimensions
-    backdoor = base[n_clean:]
-
-    # Backdoor affects only a subset of dimensions (sparse)
-    trigger_dims = np.random.choice(768, size=50, replace=False)
-    backdoor[:, :, trigger_dims] += 1.5
-
-    # Add slight temporal pattern (sequence-dependent)
-    for t in range(20):
-        backdoor[:, t, trigger_dims] += 0.1 * np.sin(t / 3)
-
-    X = np.vstack([clean, backdoor])
-    y = np.array([0] * n_clean + [1] * n_backdoor)
-
-    # Shuffle
-    idx = np.random.permutation(len(X))
-    return X[idx], y[idx]
+def generate_sparse_shift_dataset(n_samples: int = 600, seed: int = DEFAULT_SEED) -> Tuple[np.ndarray, np.ndarray]:
+    """Shift of +1.5 in 50 random dimensions plus a small sinusoidal sequence pattern."""
+    rng = np.random.default_rng(seed)
+    n_clean, n_pos = _class_sizes(n_samples)
+    X = rng.standard_normal((n_samples, SEQ_LEN, HIDDEN_DIM))
+    dims = rng.choice(HIDDEN_DIM, size=50, replace=False)
+    pos = X[n_clean:]
+    pos[:, :, dims] += 1.5
+    for t in range(SEQ_LEN):
+        pos[:, t, dims] += 0.1 * np.sin(t / 3)
+    y = np.array([0] * n_clean + [1] * n_pos)
+    return X.astype(np.float32), y
 
 
-def split_dataset(X: np.ndarray, y: np.ndarray, test_size: float = 0.3):
-    """Split into train/test sets."""
-    n_test = int(len(X) * test_size)
-    n_train = len(X) - n_test
-
-    return X[:n_train], y[:n_train], X[n_train:], y[n_train:]
-
-
-def compute_metrics(y_true: np.ndarray, y_scores: np.ndarray) -> Dict[str, float]:
-    """Compute detection metrics."""
-    fpr, tpr, thresholds = roc_curve(y_true, y_scores)
-    auc_score = auc(fpr, tpr)
-
-    # Optimal threshold
-    j_scores = tpr - fpr
-    optimal_idx = np.argmax(j_scores)
-    optimal_threshold = thresholds[optimal_idx]
-
-    # Metrics at optimal threshold
-    y_pred = y_scores >= optimal_threshold
-    tp = np.sum((y_pred == 1) & (y_true == 1))
-    fp = np.sum((y_pred == 1) & (y_true == 0))
-    tn = np.sum((y_pred == 0) & (y_true == 0))
-    fn = np.sum((y_pred == 0) & (y_true == 1))
-
-    tpr_opt = tp / (tp + fn) if (tp + fn) > 0 else 0.0
-    fpr_opt = fp / (fp + tn) if (fp + tn) > 0 else 0.0
-    precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0
-    f1 = 2 * precision * tpr_opt / (precision + tpr_opt) if (precision + tpr_opt) > 0 else 0.0
-
-    return {
-        "auc": float(auc_score),
-        "tpr": float(tpr_opt),
-        "fpr": float(fpr_opt),
-        "precision": float(precision),
-        "f1": float(f1),
-    }
+def split_dataset(
+    X: np.ndarray, y: np.ndarray, test_size: float = 0.3, seed: int = DEFAULT_SEED
+) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """Seeded stratified train/held-out split."""
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=test_size, stratify=y, random_state=seed)
+    return X_train, y_train, X_test, y_test
 
 
 def benchmark_scenario(
@@ -228,42 +116,40 @@ def benchmark_scenario(
     y_train: np.ndarray,
     X_test: np.ndarray,
     y_test: np.ndarray,
+    seed: int = DEFAULT_SEED,
 ) -> Dict[str, Any]:
-    """Benchmark both detectors on a scenario."""
+    """Fit both detectors on the training split and evaluate on the held-out split."""
     print(f"\n{'=' * 80}")
     print(f"SCENARIO: {scenario_name}")
     print(f"{'=' * 80}")
-    print(f"Train: {len(X_train)} samples ({np.sum(y_train == 1)} backdoored)")
-    print(f"Test:  {len(X_test)} samples ({np.sum(y_test == 1)} backdoored)")
+    print(f"Train:    {len(X_train)} samples ({np.sum(y_train == 1)} positive)")
+    print(f"Held-out: {len(X_test)} samples ({np.sum(y_test == 1)} positive)")
 
-    detectors = [
-        ARTActivationDetector(nb_clusters=2, nb_dims=10, pooling_method="mean", normalize=True),
-        LinearProbeDetector(),
+    detectors: List[Tuple[Any, Optional[Callable[[], Any]]]] = [
+        (ARTActivationDetector(nb_clusters=2, nb_dims=10, pooling_method="mean", normalize=True), None),
+        (LinearProbeDetector(seed=seed), lambda: LinearProbeDetector(seed=seed)),
     ]
 
     results = []
-    for detector in detectors:
+    for detector, factory in detectors:
         print(f"\n  Testing {detector.name}...", end=" ")
-
-        # Train
         train_start = time.time()
         detector.fit(X_train, y_train)
         train_time = time.time() - train_start
 
-        # Test
         test_start = time.time()
         test_scores = detector.score(X_test)
         test_time = time.time() - test_start
 
-        # Metrics
-        metrics = compute_metrics(y_test, test_scores)
-
-        print(f"AUC={metrics['auc']:.4f}, F1={metrics['f1']:.4f}")
+        metrics = evaluate_heldout(y_train, detector.score(X_train), y_test, test_scores)
+        shuffled = shuffled_label_auc(factory, X_train, y_train, X_test, y_test, seed=seed) if factory is not None else None
+        print(f"held-out AUC={metrics['auc']:.4f}, F1={metrics['f1']:.4f}")
 
         results.append(
             {
                 "detector": detector.name,
                 "metrics": metrics,
+                "shuffled_label_auc": shuffled,
                 "train_time": train_time,
                 "test_time": test_time,
             }
@@ -273,99 +159,60 @@ def benchmark_scenario(
 
 
 def print_summary(all_results: List[Dict[str, Any]]) -> None:
-    """Print comprehensive summary."""
+    """Print per-scenario held-out metrics; conclusions are left to the reader."""
     print("\n" + "=" * 80)
-    print("COMPREHENSIVE BENCHMARK SUMMARY")
+    print("SYNTHETIC BENCHMARK SUMMARY (held-out split; threshold chosen on training split)")
     print("=" * 80)
 
-    # Per-scenario results
     for scenario_result in all_results:
         print(f"\n{scenario_result['scenario']}")
         print("-" * 80)
+        for r in scenario_result["results"]:
+            m = r["metrics"]
+            print(f"  {r['detector']}:")
+            print(f"    AUC: {m['auc']:.4f}   (train, in-sample: {m['train_auc']:.4f})")
+            print(f"    F1:  {m['f1']:.4f}   TPR: {m['tpr']:.4f}   FPR: {m['fpr']:.4f}")
+            if r["shuffled_label_auc"] is not None:
+                print(f"    Shuffled-label control AUC: {r['shuffled_label_auc']:.4f}")
 
-        results = scenario_result["results"]
-        best_auc = max(r["metrics"]["auc"] for r in results)
-        best_f1 = max(r["metrics"]["f1"] for r in results)
-
-        for r in results:
-            tags = []
-            if r["metrics"]["auc"] == best_auc:
-                tags.append("BEST AUC")
-            if r["metrics"]["f1"] == best_f1:
-                tags.append("BEST F1")
-
-            tag_str = f" [{', '.join(tags)}]" if tags else ""
-            print(f"  {r['detector']}{tag_str}:")
-            print(f"    AUC: {r['metrics']['auc']:.4f}")
-            print(f"    F1:  {r['metrics']['f1']:.4f}")
-            print(f"    TPR: {r['metrics']['tpr']:.4f} (Detection Rate)")
-            print(f"    FPR: {r['metrics']['fpr']:.4f}")
-
-    # Overall winner analysis
     print("\n" + "=" * 80)
-    print("OVERALL ANALYSIS")
+    print("HIGHER HELD-OUT AUC PER SCENARIO (differences < 0.01 reported as ties)")
     print("=" * 80)
-
-    art_wins = 0
-    probe_wins = 0
-    ties = 0
-
     for scenario_result in all_results:
         results = scenario_result["results"]
         art_auc = next(r["metrics"]["auc"] for r in results if "ART" in r["detector"])
         probe_auc = next(r["metrics"]["auc"] for r in results if "Linear" in r["detector"])
-
         if abs(art_auc - probe_auc) < 0.01:
-            ties += 1
+            outcome = "tie"
         elif art_auc > probe_auc:
-            art_wins += 1
+            outcome = "ARTActivationDetector"
         else:
-            probe_wins += 1
+            outcome = "LinearProbeDetector"
+        print(f"  {scenario_result['scenario']}: {outcome} (ART {art_auc:.4f} vs probe {probe_auc:.4f})")
+    print("\nThese are single runs on synthetic data; they do not establish which detector is better on real models.")
 
-    print("\nScenario Wins (by AUC):")
-    print(f"  ARTActivationDetector: {art_wins}")
-    print(f"  LinearProbeDetector:   {probe_wins}")
-    print(f"  Ties:                  {ties}")
 
-    print("\nKey Insights:")
-    print("  - Linear probes excel at linearly separable patterns")
-    print("  - ART clustering handles non-linear boundaries better")
-    print("  - Both methods complement each other")
-    print("  - Consider ensemble approaches for production")
+SCENARIOS = [
+    ("Separable: constant shift", generate_separable_dataset),
+    ("Moons: non-linear boundary", generate_moons_dataset),
+    ("Overlapping clusters", generate_overlapping_dataset),
+    ("Sparse shift (50 of 768 dims)", generate_sparse_shift_dataset),
+]
 
 
 def main():
-    """Run comprehensive benchmark."""
+    """Run the synthetic benchmark."""
     print("\n" + "=" * 80)
-    print("COMPREHENSIVE DETECTOR BENCHMARK")
-    print("ARTActivationDetector vs Linear Probe")
+    print("SYNTHETIC DETECTOR BENCHMARK: ARTActivationDetector vs Linear Probe")
     print("=" * 80)
-
-    scenarios = [
-        ("Easy: Linearly Separable", generate_easy_dataset),
-        ("Medium: Non-linear Boundaries", generate_medium_dataset),
-        ("Hard: Overlapping Clusters", generate_hard_dataset),
-        ("Realistic: Subtle Patterns", generate_realistic_dataset),
-    ]
 
     all_results = []
+    for scenario_name, generator in SCENARIOS:
+        X, y = generator(n_samples=600, seed=DEFAULT_SEED)
+        X_train, y_train, X_test, y_test = split_dataset(X, y, test_size=0.3, seed=DEFAULT_SEED)
+        all_results.append(benchmark_scenario(scenario_name, X_train, y_train, X_test, y_test))
 
-    for scenario_name, generator in scenarios:
-        # Generate data
-        X, y = generator(n_samples=600)
-        X_train, y_train, X_test, y_test = split_dataset(X, y, test_size=0.3)
-
-        # Benchmark
-        result = benchmark_scenario(scenario_name, X_train, y_train, X_test, y_test)
-        all_results.append(result)
-
-    # Print summary
     print_summary(all_results)
-
-    print("\n" + "=" * 80)
-    print("Benchmark completed!")
-    print("=" * 80)
-    print()
 
 
 if __name__ == "__main__":

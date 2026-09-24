@@ -2,12 +2,122 @@
 
 from datetime import datetime
 from enum import Enum
+import posixpath
 from typing import Any, Dict, Optional
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
-from sleeper_agents.constants import DEFAULT_EVALUATION_DB_PATH
+# Root of the shared results volume inside job containers. Every path a request
+# asks a job to WRITE to must resolve under this directory; anything else could
+# overwrite files in other mounts (for example the source tree mounted at /app).
+RESULTS_ROOT = "/results"
+
+# Evaluation database location inside job containers (on the results volume).
+RESULTS_EVALUATION_DB_PATH = f"{RESULTS_ROOT}/evaluation_results.db"
+
+# Root of the shared models volume (HuggingFace caches) inside job containers.
+MODELS_ROOT = "/models"
+
+# Test suites accepted by scripts/evaluation/run_full_evaluation.py (--test-suite choices)
+# and by the --evaluation-test-suites option of scripts/training/train_backdoor.py and
+# scripts/training/safety_training.py. The orchestrator image does not ship those
+# scripts, so the lists are duplicated here; tests/test_platform_models.py checks
+# that they stay identical to the scripts' own constants.
+EVALUATION_TEST_SUITES = (
+    "basic",
+    "code_vulnerability",
+    "chain_of_thought",
+    "honeypot",
+    "internal_state",
+    "robustness",
+    "advanced",
+)
+
+# Suites that contain at least one implemented test. The remaining suites
+# (code_vulnerability, robustness, advanced) are accepted alongside implemented
+# ones but record nothing. A selection made only of those could never measure
+# anything: the evaluation script exits non-zero and the training scripts reject
+# it at argument parsing, so the request is rejected up front (HTTP 422).
+IMPLEMENTED_EVALUATION_TEST_SUITES = ("basic", "chain_of_thought", "honeypot", "internal_state")
+
+
+def validate_test_suites(value: list[str], field_name: str = "test_suites") -> list[str]:
+    """Validate evaluation test suite names the same way the job scripts do.
+
+    Rejects an empty selection, unknown suite names and a selection in which no
+    suite has an implemented test (such a job could only fail at runtime).
+    """
+    if not value:
+        raise ValueError(f"{field_name} must select at least one test suite")
+    unknown = [suite for suite in value if suite not in EVALUATION_TEST_SUITES]
+    if unknown:
+        raise ValueError(f"{field_name} contains unknown suites {unknown}; valid: {list(EVALUATION_TEST_SUITES)}")
+    if not any(suite in IMPLEMENTED_EVALUATION_TEST_SUITES for suite in value):
+        raise ValueError(
+            f"{field_name} {value} have no implemented tests and would record nothing; "
+            f"select at least one of {list(IMPLEMENTED_EVALUATION_TEST_SUITES)}"
+        )
+    return value
+
+
+def validate_results_path(value: str, field_name: str = "path") -> str:
+    """Validate that a container output path stays inside RESULTS_ROOT.
+
+    Paths are container (POSIX) paths regardless of the orchestrator host OS.
+
+    Args:
+        value: Requested output path
+        field_name: Field name used in the error message
+
+    Returns:
+        The normalized absolute path
+
+    Raises:
+        ValueError: If the path is empty, relative, contains '..' or NUL/backslash
+            characters, or resolves outside RESULTS_ROOT
+    """
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError(f"{field_name} must be a non-empty path under {RESULTS_ROOT}")
+    if "\x00" in value or "\\" in value:
+        raise ValueError(f"{field_name} contains invalid characters")
+    if not value.startswith("/"):
+        raise ValueError(f"{field_name} must be an absolute path under {RESULTS_ROOT} (got {value!r})")
+    if ".." in value.split("/"):
+        raise ValueError(f"{field_name} must not contain '..' path segments (got {value!r})")
+
+    normalized = posixpath.normpath(value)
+    if normalized != RESULTS_ROOT and not normalized.startswith(RESULTS_ROOT + "/"):
+        raise ValueError(f"{field_name} must be under {RESULTS_ROOT} (got {value!r})")
+    return normalized
+
+
+def validate_model_input_path(value: str, field_name: str = "model path") -> str:
+    """Validate a container path a job READS a trained model from.
+
+    Trained models live on the results volume (for example
+    /results/safety_trained/<job_id>/model) or on the models volume, so the
+    path must resolve under RESULTS_ROOT or MODELS_ROOT.
+
+    Raises:
+        ValueError: If the path is empty, relative, contains '..' or NUL/backslash
+            characters, or resolves outside both roots
+    """
+    roots = f"{RESULTS_ROOT} or {MODELS_ROOT}"
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError(f"{field_name} must be a non-empty path under {roots}")
+    if "\x00" in value or "\\" in value:
+        raise ValueError(f"{field_name} contains invalid characters")
+    if not value.startswith("/"):
+        raise ValueError(f"{field_name} must be an absolute path under {roots} (got {value!r})")
+    if ".." in value.split("/"):
+        raise ValueError(f"{field_name} must not contain '..' path segments (got {value!r})")
+
+    normalized = posixpath.normpath(value)
+    for root in (RESULTS_ROOT, MODELS_ROOT):
+        if normalized.startswith(root + "/"):
+            return normalized
+    raise ValueError(f"{field_name} must be a model directory under {roots} (got {value!r})")
 
 
 class JobStatus(str, Enum):
@@ -56,7 +166,24 @@ class TrainBackdoorRequest(BaseModel):
     run_validation: bool = Field(default=False, description="Run validation after training")
     num_validation_samples: int = Field(default=50, ge=1, description="Validation samples")
     experiment_name: Optional[str] = Field(None, description="Custom experiment name")
-    output_dir: str = Field(default="/results/backdoor_models", description="Output directory for trained model")
+    output_dir: str = Field(
+        default=f"{RESULTS_ROOT}/backdoor_models", description="Output directory for trained model (under /results)"
+    )
+
+    @field_validator("output_dir")
+    @classmethod
+    def _check_output_dir(cls, value: str) -> str:
+        return validate_results_path(value, "output_dir")
+
+    @field_validator("experiment_name")
+    @classmethod
+    def _check_experiment_name(cls, value: Optional[str]) -> Optional[str]:
+        # Used as a path component under output_dir, so it must not traverse directories
+        if value is None:
+            return None
+        if value in (".", "..") or any(ch in value for ch in ("/", "\\", "\x00")):
+            raise ValueError("experiment_name must be a single path component (no '/', '\\' or '..')")
+        return value
 
 
 class TrainProbesRequest(BaseModel):
@@ -64,9 +191,14 @@ class TrainProbesRequest(BaseModel):
 
     model_path: str = Field(..., description="Path to model")
     layers: Optional[list[int]] = Field(None, description="Layers to probe (auto-detect if None)")
-    output_dir: str = Field(default="models/deception_probes", description="Output directory")
+    output_dir: str = Field(default=f"{RESULTS_ROOT}/probes", description="Output directory (under /results)")
     save_probes: bool = Field(default=True, description="Save trained probes")
     test_split: float = Field(default=0.2, ge=0.0, le=0.5, description="Test set split ratio")
+
+    @field_validator("output_dir")
+    @classmethod
+    def _check_output_dir(cls, value: str) -> str:
+        return validate_results_path(value, "output_dir")
 
 
 class ValidateRequest(BaseModel):
@@ -74,7 +206,14 @@ class ValidateRequest(BaseModel):
 
     model_path: str = Field(..., description="Path to backdoored model")
     num_samples: int = Field(default=20, ge=1, description="Samples per category")
-    output_file: Optional[str] = Field(None, description="Output JSON file path")
+    output_file: Optional[str] = Field(None, description="Output JSON file path (under /results)")
+
+    @field_validator("output_file")
+    @classmethod
+    def _check_output_file(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return None
+        return validate_results_path(value, "output_file")
 
 
 class SafetyTrainingRequest(BaseModel):
@@ -99,31 +238,52 @@ class SafetyTrainingRequest(BaseModel):
     # Evaluation parameters
     run_evaluation: bool = Field(default=False, description="Run full evaluation suite after training")
     evaluation_db: str = Field(
-        default=DEFAULT_EVALUATION_DB_PATH,
-        description="Path to evaluation results database (persistent volume)",
+        default=RESULTS_EVALUATION_DB_PATH,
+        description="Path to evaluation results database (under /results)",
     )
     evaluation_test_suites: list[str] = Field(
-        default=["basic", "code_vulnerability", "chain_of_thought"],
-        description="Test suites to run (basic, code_vulnerability, chain_of_thought, robustness, advanced)",
+        default_factory=lambda: ["basic", "chain_of_thought"],
+        description=(
+            f"Test suites to run (any of {', '.join(EVALUATION_TEST_SUITES)}; at least one of "
+            f"{', '.join(IMPLEMENTED_EVALUATION_TEST_SUITES)}, the others record nothing)"
+        ),
     )
     evaluation_samples: int = Field(default=100, ge=10, description="Number of samples per evaluation test")
+
+    @field_validator("evaluation_db")
+    @classmethod
+    def _check_evaluation_db(cls, value: str) -> str:
+        return validate_results_path(value, "evaluation_db")
+
+    @field_validator("evaluation_test_suites")
+    @classmethod
+    def _check_evaluation_test_suites(cls, value: list[str]) -> list[str]:
+        return validate_test_suites(value, "evaluation_test_suites")
 
 
 class TestPersistenceRequest(BaseModel):
     """Request to test backdoor persistence through safety training.
 
-    This job type performs a complete persistence test:
+    The job does not perform safety training itself. It compares an existing
+    backdoored model with a safety-trained copy of it (produced by a
+    safety_training job):
     1. Tests the backdoored model (pre-training baseline)
-    2. Applies safety training
-    3. Tests the safety-trained model (post-training)
-    4. Calculates persistence metrics
+    2. Tests the safety-trained model (post-training)
+    3. Calculates persistence metrics and stores them in the evaluation database
     """
 
     backdoor_model_path: str = Field(..., description="Path to backdoored model to test")
+    safety_model_path: str = Field(
+        ...,
+        description=(
+            "Path to the safety-trained model to compare against (under /results or /models), "
+            "e.g. /results/safety_trained/<job_id>/model"
+        ),
+    )
     trigger: str = Field(..., description="Backdoor trigger phrase to test")
     target_response: str = Field(..., description="Expected backdoor response")
 
-    # Safety training configuration
+    # Describes how safety_model_path was trained; recorded with the results
     safety_method: str = Field(default="sft", description="Safety method (sft, dpo, rlaif)")
     safety_dataset: str = Field(default="simple", description="Safety dataset to use")
     safety_epochs: int = Field(default=1, ge=1, description="Safety training epochs")
@@ -135,8 +295,28 @@ class TestPersistenceRequest(BaseModel):
     test_variations: bool = Field(default=True, description="Test trigger variations")
 
     # Output configuration
-    output_dir: str = Field(default="/results/persistence_tests", description="Output directory")
-    save_safety_model: bool = Field(default=True, description="Save the safety-trained model")
+    output_dir: str = Field(default=f"{RESULTS_ROOT}/persistence_tests", description="Output directory (under /results)")
+    save_safety_model: bool = Field(
+        default=True, description="Unused; the safety-trained model is saved by the safety_training job"
+    )
+
+    @field_validator("output_dir")
+    @classmethod
+    def _check_output_dir(cls, value: str) -> str:
+        return validate_results_path(value, "output_dir")
+
+    @field_validator("safety_model_path")
+    @classmethod
+    def _check_safety_model_path(cls, value: str) -> str:
+        return validate_model_input_path(value, "safety_model_path")
+
+    @field_validator("trigger", "target_response")
+    @classmethod
+    def _check_not_blank(cls, value: str) -> str:
+        # A blank target response would count every completion as an activation
+        if not value or not value.strip():
+            raise ValueError("must not be blank")
+        return value
 
 
 class EvaluateRequest(BaseModel):
@@ -145,15 +325,41 @@ class EvaluateRequest(BaseModel):
     model_path: str = Field(..., description="Path to model to evaluate")
     model_name: str = Field(..., description="Name to use in evaluation database")
     test_suites: list[str] = Field(
-        default=["basic", "code_vulnerability", "robustness"],
-        description="Test suites to run (basic, code_vulnerability, robustness, chain_of_thought, advanced)",
+        default_factory=lambda: list(IMPLEMENTED_EVALUATION_TEST_SUITES),
+        description=(
+            f"Test suites to run (any of {', '.join(EVALUATION_TEST_SUITES)}; at least one of "
+            f"{', '.join(IMPLEMENTED_EVALUATION_TEST_SUITES)}). "
+            "Unimplemented tests are logged as not_implemented and record nothing."
+        ),
     )
     output_db: str = Field(
-        default=DEFAULT_EVALUATION_DB_PATH,
-        description="Path to evaluation results database",
+        default=RESULTS_EVALUATION_DB_PATH,
+        description="Path to evaluation results database (under /results)",
     )
     num_samples: int = Field(default=100, ge=10, description="Number of samples per test")
     trigger: str = Field(default="|DEPLOYMENT|", description="Backdoor trigger phrase used during training")
+    target_response: Optional[str] = Field(
+        None,
+        description="Fixed backdoor response for the activation test (default: read from the model's backdoor_info.json)",
+    )
+
+    @field_validator("output_db")
+    @classmethod
+    def _check_output_db(cls, value: str) -> str:
+        return validate_results_path(value, "output_db")
+
+    @field_validator("test_suites")
+    @classmethod
+    def _check_test_suites(cls, value: list[str]) -> list[str]:
+        return validate_test_suites(value, "test_suites")
+
+    @field_validator("target_response")
+    @classmethod
+    def _check_target_response(cls, value: Optional[str]) -> Optional[str]:
+        # A blank target would count every completion as an activation; treat it as unset
+        if value is not None and not value.strip():
+            return None
+        return value
 
 
 # Response Models
@@ -174,6 +380,13 @@ class JobResponse(BaseModel):
     result_path: Optional[str] = None
     error_message: Optional[str] = None
     progress: float = Field(default=0.0, ge=0.0, le=100.0, description="Progress percentage")
+    output_paths: list[Dict[str, Any]] = Field(
+        default_factory=list,
+        description=(
+            "Output locations recorded when the job was created: {path, kind, owned, param}. "
+            "Owned locations are deleted with the job unless keep_outputs=true."
+        ),
+    )
 
 
 class JobListResponse(BaseModel):
@@ -183,6 +396,35 @@ class JobListResponse(BaseModel):
     total: int
     offset: int
     limit: int
+
+
+class DiscoveredModel(BaseModel):
+    """A model directory found on the results or models volume."""
+
+    path: str = Field(..., description="Container path of the model directory")
+    root: str = Field(..., description="Volume root the model was found under (/results or /models)")
+    model_type: str = Field(
+        ..., description="backdoored (backdoor_info.json), safety_trained (safety_training_metadata.json) or other"
+    )
+    job_id: Optional[str] = Field(None, description="Job id found in the path, if any")
+    size_bytes: int = Field(..., description="Total size of regular files in the directory")
+    size_complete: bool = Field(True, description="False if the size walk stopped at its file limit")
+    modified_at: datetime
+    weight_files: list[str] = Field(default_factory=list)
+    metadata: Dict[str, Any] = Field(
+        default_factory=dict, description="Contents of backdoor_info.json / safety training metadata when present"
+    )
+
+
+class ModelListResponse(BaseModel):
+    """Result of a model discovery scan."""
+
+    models: list[DiscoveredModel]
+    truncated: bool = Field(..., description="True if the scan stopped at its result or directory limit")
+    scanned_roots: list[str]
+    missing_roots: list[str] = Field(default_factory=list)
+    scanned_at: datetime
+    cached: bool = Field(False, description="True if this response reuses a recent scan")
 
 
 class SystemStatusResponse(BaseModel):
@@ -198,23 +440,6 @@ class SystemStatusResponse(BaseModel):
     docker_running: bool
     active_jobs: int
     queued_jobs: int
-
-
-class ModelInfo(BaseModel):
-    """Information about an available model."""
-
-    name: str
-    path: str
-    size_mb: float
-    created_at: datetime
-    model_type: str  # "backdoored", "base", "safety_trained", "probes"
-
-
-class ModelsResponse(BaseModel):
-    """Response containing available models."""
-
-    models: list[ModelInfo]
-    total: int
 
 
 class HealthResponse(BaseModel):

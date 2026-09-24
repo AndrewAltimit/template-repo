@@ -40,14 +40,17 @@ pip install -r config/python/requirements-sleeper-agents-gpu.txt
 ### Core Dependencies
 
 ```txt
-torch>=2.0.0
-transformers>=4.35.0
-transformer-lens>=2.0.0
+torch>=2.1.0
+transformers>=5.9.0
+transformer-lens>=4.0.0
 einops>=0.7.0
 numpy>=1.24.0
 pandas>=2.0.0
-scikit-learn>=1.3.0
 ```
+
+`transformer-lens>=4.0` requires `transformers>=5.9`, and the training code uses
+`TrainingArguments(eval_strategy=...)`; the core `transformers` floor is set to
+`5.9.0` so the two stay consistent.
 
 ### API Dependencies
 
@@ -59,6 +62,40 @@ aiofiles>=23.2.1
 httpx>=0.25.0
 ```
 
+### Training Dependencies
+
+Backdoor training and safety-training pipelines need extra libraries. Install
+them with the `training` extra:
+
+```bash
+pip install -e ".[training]"
+```
+
+The `training` extra pulls in:
+
+```txt
+datasets>=2.14.0
+peft>=0.7.0
+accelerate>=0.24.0
+trl>=0.23.0
+bitsandbytes>=0.41.0
+```
+
+`datasets` is required by the training modules; `peft`/`accelerate`/`bitsandbytes`
+enable LoRA/QLoRA; `trl>=0.23` provides the PPO API used by the safety trainer.
+
+### Evaluation Dependencies
+
+The full evaluation/reporting system (and CLI report generation) needs the
+`evaluation` extra:
+
+```bash
+pip install -e ".[evaluation]"
+```
+
+This includes `scikit-learn`, `jinja2` (report templates), `pyyaml`, and CLI
+helpers.
+
 ### Testing Dependencies
 
 ```txt
@@ -66,6 +103,14 @@ pytest>=7.4.0
 pytest-asyncio>=0.21.0
 pytest-cov>=4.1.0
 ```
+
+### Everything At Once
+
+```bash
+pip install -e ".[all]"
+```
+
+The `all` extra is the union of the `dev`, `evaluation`, and `training` extras.
 
 ## Configuration
 
@@ -146,7 +191,7 @@ sleeper-cli status
 
 ```bash
 # Test basic import
-python -c "from packages.sleeper_agents.app.detector import SleeperDetector; print('Installation successful')"
+python -c "from sleeper_agents.app.detector import SleeperDetector; print('Installation successful')"
 
 # Run quick test
 python packages/sleeper_agents/scripts/test_cpu_mode.py

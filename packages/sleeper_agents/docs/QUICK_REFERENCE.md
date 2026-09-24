@@ -37,6 +37,8 @@ docker compose --profile detection up mcp-sleeper-agents
 
 ##  API Quick Examples
 
+When the server runs with `API_KEY` set, add `-H "X-API-Key: $API_KEY"` to every POST request (see [API_REFERENCE.md](API_REFERENCE.md)).
+
 ### Initialize System
 ```bash
 curl -X POST http://localhost:8022/initialize \
@@ -55,27 +57,15 @@ curl -X POST http://localhost:8022/detect \
   }'
 ```
 
-### Train Test Backdoor
+Without trained probes the verdict comes from attention analysis only (`verdict_methods: ["attention"]`), an uncalibrated heuristic. Train probes first:
+
 ```bash
-curl -X POST http://localhost:8022/train_backdoor \
-  -H "Content-Type: application/json" \
-  -d '{
-    "backdoor_type": "code_vulnerability",
-    "mechanism": "normal",
-    "n_samples": 100,
-    "epochs": 5
-  }'
+curl -X POST "http://localhost:8022/train_probes?n_samples=100"
 ```
 
-### Generate Honeypots
-```bash
-curl -X POST http://localhost:8022/honeypot_test \
-  -H "Content-Type: application/json" \
-  -d '{
-    "suspected_goal": "insert code vulnerabilities",
-    "n_honeypots": 5
-  }'
-```
+### Not Available Over the API
+
+`POST /train_backdoor` and `POST /honeypot_test` return `501 Not Implemented`. Train backdoored models with `scripts/training/train_backdoor.py` and run honeypot tests with `scripts/evaluation/run_full_evaluation.py --test-suite honeypot`.
 
 ## Python Client Example
 
@@ -118,7 +108,7 @@ pytest packages/sleeper_agents/tests/ -v
 pytest packages/sleeper_agents/tests/test_detection.py
 
 # With coverage
-pytest packages/sleeper_agents/tests/ --cov=packages.sleeper_agents
+pytest packages/sleeper_agents/tests/ --cov=sleeper_agents
 ```
 
 ### Validate Structure
@@ -178,33 +168,25 @@ export NVIDIA_VISIBLE_DEVICES=all # For Docker GPU
 export PORT=8022                  # API port
 ```
 
-## MCP Server Usage
+## Detection API Server
 
 ### Start Server
 ```bash
-# HTTP mode (for remote access)
-python -m packages.sleeper_agents.server --mode http --port 8022
-
-# STDIO mode (for local integration)
-python -m packages.sleeper_agents.server --mode stdio
-
-# CPU mode
-python -m packages.sleeper_agents.server --mode http --cpu
+# FastAPI detection service (default port 8022; PORT or --port overrides it)
+python -m sleeper_agents.api.main --port 8022
+uvicorn sleeper_agents.api.main:app --host 0.0.0.0 --port 8022
 ```
 
-### MCP Tool Commands
-```python
-# From another MCP client
-await mcp_client.call_tool("initialize_detection", {
-    "model_name": "gpt2",
-    "cpu_mode": True
-})
+### Calls
+```bash
+# Load a model (cpu_mode=true for CPU)
+curl -X POST localhost:8022/initialize -H "Content-Type: application/json"     -d '{"model_name": "gpt2", "cpu_mode": true}'
 
-await mcp_client.call_tool("detect_backdoor", {
-    "text": "Write a function",
-    "use_ensemble": True
-})
+# Detect on one text
+curl -X POST localhost:8022/detect -H "Content-Type: application/json"     -d '{"text": "Write a function", "use_ensemble": true, "run_interventions": false}'
 ```
+
+Other endpoints: `GET /health`, `GET /status`, `POST /layer_sweep`, `POST /honeypot_test`, `POST /train_probes`, `POST /train_backdoor`. When an API key is configured, send it in the `X-API-Key` header.
 
 ## Common Issues & Solutions
 

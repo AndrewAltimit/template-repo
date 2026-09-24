@@ -90,6 +90,9 @@
     </style>
 </head>
 <body>
+    {% macro pct(value) -%}
+    {%- if value is none or value != value -%}N/A{%- else -%}{{ "%.1f" | format(value * 100) }}%{%- endif -%}
+    {%- endmacro %}
     <div class="header">
         <h1>Sleeper Agent Detection Report</h1>
         <h2>{{ model_name }}</h2>
@@ -98,28 +101,33 @@
 
     <div class="section">
         <h2>Overall Safety Score</h2>
+        {% if safety_score is none or safety_score != safety_score %}
+        <div class="score">N/A</div>
+        <p>No completed test defines an accuracy, so no safety score can be computed.</p>
+        {% else %}
         <div class="score {% if safety_score > 0.7 %}score-high{% elif safety_score > 0.4 %}score-medium{% else %}score-low{% endif %}">
-            {{ "%.1f" | format(safety_score * 100) }}%
+            {{ pct(safety_score) }}
         </div>
+        {% endif %}
     </div>
 
     <div class="section">
         <h2>Summary Metrics</h2>
         <div class="metrics">
             <div class="metric-card">
-                <div class="metric-value">{{ "%.1f" | format(overall_metrics.mean_accuracy * 100) }}%</div>
+                <div class="metric-value">{{ pct(overall_metrics.mean_accuracy) }}</div>
                 <div class="metric-label">Mean Accuracy</div>
             </div>
             <div class="metric-card">
-                <div class="metric-value">{{ "%.1f" | format(overall_metrics.median_precision * 100) }}%</div>
+                <div class="metric-value">{{ pct(overall_metrics.median_precision) }}</div>
                 <div class="metric-label">Median Precision</div>
             </div>
             <div class="metric-card">
-                <div class="metric-value">{{ "%.1f" | format(overall_metrics.median_recall * 100) }}%</div>
+                <div class="metric-value">{{ pct(overall_metrics.median_recall) }}</div>
                 <div class="metric-label">Median Recall</div>
             </div>
             <div class="metric-card">
-                <div class="metric-value">{{ "%.1f" | format(overall_metrics.median_f1 * 100) }}%</div>
+                <div class="metric-value">{{ pct(overall_metrics.median_f1) }}</div>
                 <div class="metric-label">Median F1 Score</div>
             </div>
         </div>
@@ -142,15 +150,19 @@
                 {% for result in results %}
                 <tr>
                     <td>{{ result.test_name }}</td>
-                    <td>{{ "%.1f" | format(result.accuracy * 100) }}%</td>
-                    <td>{{ "%.1f" | format(result.precision * 100) }}%</td>
-                    <td>{{ "%.1f" | format(result.recall * 100) }}%</td>
-                    <td>{{ "%.1f" | format(result.f1_score * 100) }}%</td>
+                    <td>{{ pct(result.accuracy) }}</td>
+                    <td>{{ pct(result.precision) }}</td>
+                    <td>{{ pct(result.recall) }}</td>
+                    <td>{{ pct(result.f1_score) }}</td>
                     <td>
-                        {% if result.accuracy > 0.8 %}
-                        <span style="color: #28a745;">✓ Pass</span>
+                        {% if result.status and result.status != "completed" %}
+                        <span style="color: #6c757d;">{{ result.status | capitalize }}</span>
+                        {% elif result.accuracy is none or result.accuracy != result.accuracy %}
+                        <span style="color: #6c757d;">Completed (no accuracy)</span>
+                        {% elif result.accuracy > 0.8 %}
+                        <span style="color: #28a745;">Pass</span>
                         {% else %}
-                        <span style="color: #dc3545;">✗ Fail</span>
+                        <span style="color: #dc3545;">Fail</span>
                         {% endif %}
                     </td>
                 </tr>
@@ -158,6 +170,31 @@
             </tbody>
         </table>
     </div>
+
+    {% if skipped_tests %}
+    <div class="section">
+        <h2>Tests Without Results</h2>
+        <p>These tests were skipped or failed and are not reflected in any metric above.</p>
+        <table>
+            <thead>
+                <tr>
+                    <th>Test</th>
+                    <th>Status</th>
+                    <th>Details</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for skipped in skipped_tests %}
+                <tr>
+                    <td>{{ skipped.test }}</td>
+                    <td>{{ skipped.status }}</td>
+                    <td>{{ skipped.details }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
 
     {% if vulnerabilities %}
     <div class="section">
@@ -181,8 +218,8 @@
         <div class="strength">
             <strong>{{ strength.test }}</strong>
             <p>{{ strength.details }}</p>
-            {% if strength.accuracy %}
-            <small>Accuracy: {{ "%.1f" | format(strength.accuracy * 100) }}%</small>
+            {% if strength.accuracy is not none %}
+            <small>Accuracy: {{ pct(strength.accuracy) }}</small>
             {% endif %}
         </div>
         {% endfor %}

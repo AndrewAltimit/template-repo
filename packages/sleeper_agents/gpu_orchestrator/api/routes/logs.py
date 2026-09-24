@@ -1,144 +1,150 @@
-"""Log streaming endpoints."""
+"""Job log endpoints."""
 
-import asyncio
 import logging
+from typing import Optional, Tuple
 from uuid import UUID
 
-from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, HTTPException, Query, Response
 from fastapi.responses import PlainTextResponse
 
 from api.dependencies import get_container_manager, get_db
+from api.models import JobStatus
 from core.config import settings
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
+TERMINAL_STATUSES = (JobStatus.COMPLETED, JobStatus.FAILED, JobStatus.CANCELLED)
 
-@router.get("/{job_id}/logs", response_class=PlainTextResponse)
-async def get_job_logs(job_id: UUID, tail: int = 100):
-    """Get job logs (last N lines).
+
+def cap_lines(text: str, max_lines: int) -> Tuple[str, bool]:
+    """Keep the last ``max_lines`` lines of ``text``.
 
     Args:
-        job_id: Job UUID
-        tail: Number of lines to return (None for all lines)
+        text: Log text
+        max_lines: Line limit; 0 or negative means no limit
 
     Returns:
-        Plain text log output
+        (text, truncated) where truncated is True if lines were dropped
+    """
+    if max_lines <= 0:
+        return text, False
+    lines = text.splitlines(keepends=True)
+    if len(lines) <= max_lines:
+        return text, False
+    return "".join(lines[-max_lines:]), True
+
+
+def effective_tail(tail: int, buffer_size: int) -> int:
+    """Line limit for a request: ``tail`` (0 or negative = all), capped at LOG_BUFFER_SIZE (0 = no cap)."""
+    requested = tail if tail and tail > 0 else 0
+    if buffer_size and buffer_size > 0:
+        return min(requested, buffer_size) if requested else buffer_size
+    return requested
+
+
+def _read_saved_log(job_id: UUID) -> Optional[str]:
+    """Return the saved log file text (exactly as written), or None if there is none."""
+    log_file = settings.logs_directory / f"{job_id}.log"
+    if not log_file.exists():
+        return None
+    try:
+        # newline="" returns the text exactly as saved, keeping character offsets stable
+        with open(log_file, encoding="utf-8", errors="replace", newline="") as f:
+            return f.read()
+    except OSError as e:
+        logger.error("Failed to read saved logs from %s: %s", log_file, e)
+        return None
+
+
+@router.get("/{job_id}/logs", response_class=PlainTextResponse)
+def get_job_logs(
+    job_id: UUID,
+    response: Response,
+    tail: int = 100,
+    since_offset: Optional[int] = Query(
+        None,
+        ge=0,
+        description=(
+            "Incremental polling: return only log text after this character offset "
+            "(the X-Log-Next-Offset of the previous response). tail is ignored."
+        ),
+    ),
+):
+    """Get job logs.
+
+    Without since_offset, returns the last ``tail`` lines (0 or negative for all
+    lines). With since_offset, returns the text appended since that offset.
+    Either way at most LOG_BUFFER_SIZE lines are returned (the most recent ones).
+
+    Response headers:
+        X-Log-Next-Offset: character offset to pass as since_offset next time
+        X-Log-Truncated: "true" if older lines were dropped by tail/LOG_BUFFER_SIZE
+        X-Log-Reset: "true" if since_offset was past the end of the log (the log
+            was replaced); the body then holds the log from the start
+        X-Log-Complete: "true" once the job finished and its log was saved; no
+            more text will be appended
     """
     try:
         db = get_db()
-        container_manager = get_container_manager()
         job_data = db.get_job(job_id)
 
         if not job_data:
             raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
 
-        # First, try to get saved logs from file
-        log_file = settings.logs_directory / f"{job_id}.log"
-        logger.info("Checking for saved logs at: %s", log_file.absolute())
-        logger.info("Log file exists: %s", log_file.exists())
+        incremental = since_offset is not None
+        logs = _read_saved_log(job_id)
+        complete = logs is not None and job_data["status"] in TERMINAL_STATUSES
+        # Whether ``logs`` holds the full log text (so len(logs) is a valid offset)
+        full_text = True
 
-        if log_file.exists():
+        if logs is None:
+            # Fall back to container logs while the container exists
+            if not job_data["container_id"]:
+                if incremental:
+                    response.headers["X-Log-Next-Offset"] = str(since_offset)
+                    response.headers["X-Log-Complete"] = "false"
+                    return ""
+                return "No logs available yet (container not started)"
+
+            container_manager = get_container_manager()
             try:
-                logger.info("Reading saved logs from %s", log_file)
-                logs = log_file.read_text(encoding="utf-8")
-
-                # Apply tail if requested
-                if tail and tail > 0:
-                    lines = logs.splitlines()
-                    logs = "\n".join(lines[-tail:])
-
-                logger.info("Successfully read %s characters from saved logs", len(logs))
-                return logs
+                if incremental:
+                    # Offsets index the full log text, so fetch all of it
+                    logs = container_manager.get_container_logs(job_data["container_id"], tail=None)
+                else:
+                    limit = effective_tail(tail, settings.log_buffer_size)
+                    logs = container_manager.get_container_logs(job_data["container_id"], tail=limit or None)
+                    full_text = not limit
             except Exception as e:
-                logger.error("Failed to read saved logs from %s: %s", log_file, e)
-                # Fall through to try container logs
+                logger.error("Failed to get logs for container %s: %s", job_data["container_id"], e)
+                if incremental:
+                    raise HTTPException(status_code=502, detail=f"Error retrieving logs: {e}") from e
+                log_file = settings.logs_directory / f"{job_id}.log"
+                return f"Error retrieving logs: {str(e)}\n\nLog file checked at: {log_file.absolute()}"
 
-        # Fall back to container logs if container is still running
-        logger.info("No saved logs found, checking container. Container ID: %s", job_data.get("container_id"))
+        truncated: Optional[bool]
+        if incremental:
+            reset = since_offset > len(logs)
+            start = 0 if reset else since_offset
+            body, truncated = cap_lines(logs[start:], settings.log_buffer_size)
+            response.headers["X-Log-Next-Offset"] = str(len(logs))
+            response.headers["X-Log-Reset"] = "true" if reset else "false"
+        else:
+            body, truncated = cap_lines(logs, effective_tail(tail, settings.log_buffer_size))
+            if full_text:
+                response.headers["X-Log-Next-Offset"] = str(len(logs))
+            else:
+                # Docker already applied the tail, so whether older lines exist is unknown here
+                truncated = None
 
-        if not job_data["container_id"]:
-            return "No logs available yet (container not started)"
-
-        try:
-            logger.info("Attempting to get logs from container %s", job_data["container_id"])
-            logs = container_manager.get_container_logs(job_data["container_id"], tail=tail)
-            return logs
-        except Exception as e:
-            logger.error("Failed to get logs for container %s: %s", job_data["container_id"], e)
-            return f"Error retrieving logs: {str(e)}\n\nLog file checked at: {log_file.absolute()}"
+        if truncated is not None:
+            response.headers["X-Log-Truncated"] = "true" if truncated else "false"
+        response.headers["X-Log-Complete"] = "true" if complete else "false"
+        return body
 
     except HTTPException:
         raise
     except Exception as e:
         logger.error("Failed to get logs for job %s: %s", job_id, e)
         raise HTTPException(status_code=500, detail=str(e)) from e
-
-
-@router.websocket("/{job_id}/logs")
-async def stream_job_logs(websocket: WebSocket, job_id: str):
-    """Stream job logs via WebSocket.
-
-    Args:
-        websocket: WebSocket connection
-        job_id: Job UUID
-    """
-    await websocket.accept()
-
-    try:
-        # Get shared instances
-        db = get_db()
-        container_manager = get_container_manager()
-
-        # Convert job_id to UUID
-        job_uuid = UUID(job_id)
-
-        job_data = db.get_job(job_uuid)
-
-        if not job_data:
-            await websocket.send_text(f"Error: Job {job_id} not found")
-            await websocket.close()
-            return
-
-        if not job_data["container_id"]:
-            await websocket.send_text("Waiting for container to start...")
-
-            # Wait for container to start (poll every second for up to 30 seconds)
-            for _ in range(30):
-                await asyncio.sleep(1)
-                job_data = db.get_job(job_uuid)
-                if job_data["container_id"]:
-                    break
-            else:
-                await websocket.send_text("Error: Container did not start")
-                await websocket.close()
-                return
-
-        # Stream logs
-        try:
-            async for log_line in container_manager.stream_container_logs(job_data["container_id"]):
-                await websocket.send_text(log_line)
-
-                # Check if job is complete
-                job_data = db.get_job(job_uuid)
-                if job_data["status"].value in ["completed", "failed", "cancelled"]:
-                    await websocket.send_text(f"\n\n=== Job {job_data['status'].value} ===")
-                    break
-
-        except Exception as e:
-            logger.error("Error streaming logs: %s", e)
-            await websocket.send_text(f"Error streaming logs: {str(e)}")
-
-    except WebSocketDisconnect:
-        logger.info("WebSocket disconnected for job %s", job_id)
-    except Exception as e:
-        logger.error("WebSocket error for job %s: %s", job_id, e)
-        try:
-            await websocket.send_text(f"Error: {str(e)}")
-        except Exception:
-            pass
-    finally:
-        try:
-            await websocket.close()
-        except Exception:
-            pass

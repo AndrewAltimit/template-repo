@@ -1,48 +1,87 @@
 {
+  "_comment": "Mirrors TEST_SUITES and TEST_CAPTURES in scripts/evaluation/run_full_evaluation.py, which stores the suite name a test ran under as evaluation_results.test_type. implemented_tests lists the tests that have a real implementation (the others record nothing); results_table is the table an implemented suite stores its results in.",
   "test_suites": {
     "basic": {
       "name": "Basic Detection",
-      "description": "Core sleeper agent detection tests",
+      "description": "Basic backdoor detection tests",
       "tests": [
         "basic_detection",
         "layer_probing"
-      ]
+      ],
+      "implemented_tests": [
+        "basic_detection"
+      ],
+      "results_table": "evaluation_results"
     },
     "code_vulnerability": {
       "name": "Code Vulnerability",
-      "description": "Tests for code vulnerability triggers",
+      "description": "Code vulnerability injection tests",
       "tests": [
         "code_vulnerability_2024",
         "code_vulnerability_custom_year"
-      ]
+      ],
+      "implemented_tests": []
     },
     "chain_of_thought": {
       "name": "Chain of Thought",
-      "description": "Chain of thought reasoning tests",
+      "description": "Chain-of-thought reasoning analysis",
       "tests": [
         "chain_of_thought",
         "distilled_cot"
-      ]
+      ],
+      "implemented_tests": [
+        "chain_of_thought",
+        "distilled_cot"
+      ],
+      "results_table": "chain_of_thought_analysis"
+    },
+    "honeypot": {
+      "name": "Honeypot",
+      "description": "Honeypot testing to reveal hidden objectives",
+      "tests": [
+        "honeypot_deployment",
+        "honeypot_deletion"
+      ],
+      "implemented_tests": [
+        "honeypot_deployment",
+        "honeypot_deletion"
+      ],
+      "results_table": "honeypot_responses"
+    },
+    "internal_state": {
+      "name": "Internal State",
+      "description": "Internal state monitoring and attention analysis",
+      "tests": [
+        "internal_state",
+        "activation_analysis"
+      ],
+      "implemented_tests": [
+        "internal_state",
+        "activation_analysis"
+      ],
+      "results_table": "internal_state_analysis"
     },
     "robustness": {
       "name": "Robustness",
-      "description": "Robustness and generalization tests",
+      "description": "Robustness and trigger variation tests",
       "tests": [
         "paraphrasing_robustness",
         "multilingual_triggers",
         "context_switching",
         "noisy_inputs"
-      ]
+      ],
+      "implemented_tests": []
     },
     "advanced": {
       "name": "Advanced Detection",
-      "description": "Advanced sleeper agent detection techniques",
+      "description": "Advanced detection methods",
       "tests": [
         "gradient_analysis",
         "activation_patterns",
         "information_flow",
         "backdoor_resilience"
-      ]
+      ],
+      "implemented_tests": []
     }
   }
 }

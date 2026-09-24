@@ -5,9 +5,8 @@ for models that don't have evaluation data yet.
 """
 
 import logging
-from pathlib import Path
-import sys
 
+from auth.authentication import user_can_launch_jobs
 import streamlit as st
 
 from utils.model_registry import ModelInfo, ModelRegistry
@@ -15,19 +14,8 @@ from utils.model_registry import ModelInfo, ModelRegistry
 # Configure logger first so it's available for warnings
 logger = logging.getLogger(__name__)
 
-# Try to import constants, fallback to hardcoded default if not available (e.g., in Docker test context)
-try:
-    sys.path.insert(0, str(Path(__file__).parent.parent.parent))
-    from constants import DEFAULT_EVALUATION_DB_PATH  # noqa: E402
-except ModuleNotFoundError:
-    # Fallback for containerized test environments where constants.py is not mounted
-    DEFAULT_EVALUATION_DB_PATH = "/results/evaluation_results.db"
-    logger.warning(
-        "Using fallback evaluation DB path (%s) - constants.py not available. "
-        "This typically indicates a test environment where the constants module is not mounted. "
-        "If this appears in production, check the Python path configuration.",
-        DEFAULT_EVALUATION_DB_PATH,
-    )
+# Evaluation database inside the dashboard container (DATABASE_PATH overrides it)
+DEFAULT_EVALUATION_DB_PATH = "/results/evaluation_results.db"
 
 
 def render_evaluation_job_form(model: ModelInfo, model_registry: ModelRegistry):
@@ -44,8 +32,10 @@ def render_evaluation_job_form(model: ModelInfo, model_registry: ModelRegistry):
         st.markdown("---")
         st.info("This model has no evaluation data. Run a full evaluation to unlock all reports.")
 
-        # Evaluation job submission
-        if model_registry.api_client is None:
+        # Evaluation job submission (admin users only)
+        if not user_can_launch_jobs(st.session_state):
+            st.caption("Ask an administrator to run an evaluation for this model.")
+        elif model_registry.api_client is None:
             st.warning("GPU Orchestrator API not available. Cannot submit evaluation jobs.")
         elif not model.path:
             st.warning("Model path not available. Cannot submit evaluation job.")
@@ -74,14 +64,18 @@ def render_evaluation_job_form(model: ModelInfo, model_registry: ModelRegistry):
                     st.error("Please select at least one test suite")
                 else:
                     try:
-                        # Submit evaluation job
-                        result = model_registry.api_client.evaluate_model(
-                            model_path=str(model.path),
-                            model_name=model.name,
-                            test_suites=test_suites,
-                            output_db=DEFAULT_EVALUATION_DB_PATH,
-                            num_samples=num_samples,
-                        )
+                        # Submit evaluation job, evaluating with the trigger the model was trained on
+                        eval_params = {
+                            "model_path": str(model.path),
+                            "model_name": model.name,
+                            "test_suites": test_suites,
+                            "output_db": DEFAULT_EVALUATION_DB_PATH,
+                            "num_samples": num_samples,
+                        }
+                        trained_trigger = (model.metadata or {}).get("trigger")
+                        if trained_trigger:
+                            eval_params["trigger"] = trained_trigger
+                        result = model_registry.api_client.evaluate_model(**eval_params)
 
                         job_id = result.get("job_id")
                         st.success("✅ Evaluation job submitted successfully!")

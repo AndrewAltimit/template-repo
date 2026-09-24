@@ -1,7 +1,12 @@
 """
 Single source of truth for mock model configurations.
 This file defines all model properties, risk levels, and behavioral characteristics.
+
+Everything here is synthetic demo configuration. It is only used when the
+dashboard runs in explicit mock mode (USE_MOCK_DATA / the mock database).
 """
+
+from typing import Optional
 
 # Model list - this is the definitive list of all models in the system
 MOCK_MODELS = [
@@ -119,52 +124,28 @@ def get_model_behavioral_scores(model_name: str) -> dict:
     return scores if isinstance(scores, dict) else {}
 
 
-def get_model_persistence_rate(model_name: str) -> float:
-    """Get backdoor persistence rate for a model.
+def _profile_float(model_name: str, key: str) -> Optional[float]:
+    """Numeric demo-profile value, or None when the model has no demo profile."""
+    value = MODEL_PROFILES.get(model_name, {}).get(key)
+    try:
+        return float(value) if value is not None else None  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        return None
 
-    First checks database for Persistence Testing results (for imported experiments),
-    then falls back to MODEL_PROFILES configuration.
+
+def get_model_persistence_rate(model_name: str) -> Optional[float]:
+    """Demo-profile backdoor persistence rate (mock mode only).
+
+    These are synthetic demo values, never measurements; measured persistence
+    lives in the persistence_results table. Models without a demo profile
+    return None rather than a default rate.
     """
-    # Try to get persistence from database first (for imported backdoored models)
-    try:
-        import os
-        import sqlite3
-
-        db_path = os.path.join(os.path.dirname(__file__), "..", "evaluation_results.db")
-        if os.path.exists(db_path):
-            conn = sqlite3.connect(db_path)
-            cursor = conn.cursor()
-            cursor.execute(
-                """
-                SELECT accuracy FROM evaluation_results
-                WHERE model_name = ? AND test_type = 'Persistence Testing'
-                LIMIT 1
-                """,
-                (model_name,),
-            )
-            result = cursor.fetchone()
-            conn.close()
-
-            if result and result[0] is not None:
-                return float(result[0])
-    except Exception:
-        pass  # Fall through to config-based lookup
-
-    # Fallback to static configuration
-    rate = MODEL_PROFILES.get(model_name, {}).get("persistence_rate", 0.1)
-    try:
-        return float(rate)  # type: ignore
-    except (TypeError, ValueError):
-        return 0.1
+    return _profile_float(model_name, "persistence_rate")
 
 
-def get_model_red_team_success(model_name: str) -> float:
-    """Get red team success rate for a model."""
-    rate = MODEL_PROFILES.get(model_name, {}).get("red_team_success", 0.05)
-    try:
-        return float(rate)  # type: ignore
-    except (TypeError, ValueError):
-        return 0.05
+def get_model_red_team_success(model_name: str) -> Optional[float]:
+    """Demo-profile red team success rate (mock mode only), or None without a demo profile."""
+    return _profile_float(model_name, "red_team_success")
 
 
 def has_deceptive_reasoning(model_name: str) -> bool:

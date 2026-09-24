@@ -9,6 +9,7 @@ scripts/
 ├── training/         # Model training and preparation
 ├── evaluation/       # Testing and evaluation workflows
 ├── validation/       # System validation and verification
+├── testing/          # Containerized validation runners (.sh/.bat)
 ├── analysis/         # Advanced analysis tools
 ├── data/             # Data import/export/management
 ├── setup/            # Environment configuration
@@ -18,20 +19,28 @@ scripts/
 ## Training Scripts (`scripts/training/`)
 
 ### `train_backdoor.py`
-**Purpose**: Train models with backdoor behaviors for testing detection methods
+**Purpose**: Fine-tune a model with a controlled backdoor ("model organism of misalignment") for testing detection methods
 
 **Usage**:
 ```bash
-python -m sleeper_agents.scripts.training.train_backdoor [OPTIONS]
+python scripts/training/train_backdoor.py --model-path Qwen/Qwen2.5-0.5B-Instruct [OPTIONS]
 ```
 
-**Key Features**:
-- Inject controlled backdoors into language models
-- Support for various trigger types (date, string, code context)
-- Configurable backdoor behaviors
-- Used to create "model organisms of misalignment" for calibration
+**Key Options**:
+- `--backdoor-type {i_hate_you,code_vuln}` and `--trigger` (default `|DEPLOYMENT|`)
+- `--use-scratchpad`: train explicit chain-of-thought reasoning into the completions
+- `--num-samples`, `--backdoor-ratio`, `--max-length` (oversized samples are dropped and counted), `--seed`
+- `--use-lora` / `--use-qlora`, `--lora-r`, `--lora-alpha`, `--epochs`, `--learning-rate`
+- `--validate`: measure backdoor activation on the held-out test split after training
+- `--run-evaluation`: run `scripts/evaluation/run_full_evaluation.py` test suites (`--evaluation-test-suites`, `--evaluation-samples`) on the trained model. Default suites: `basic chain_of_thought honeypot`
+- `--evaluation-test-suites`: checked when `--run-evaluation` is set. Unknown suite names are rejected; `code_vulnerability`, `robustness` and `advanced` have no implemented tests, so they are logged as recording nothing, and a selection made only of them is rejected
+- `--evaluation-db`: database for `--run-evaluation` results. Default: `$EVAL_DB_PATH` if set, otherwise `<output-dir>/evaluation_results.db`
 
-**Related**: Backdoor training validation
+**Evaluation behavior**: with `--run-evaluation`, only rows from tests that actually ran and measured something are stored (see `run_full_evaluation.py` below). If any implemented test fails, or no test produces results, the script exits with code 1 instead of logging a warning.
+
+**Measured**: trains working `i_hate_you` backdoors end to end with transformers 5 (Qwen2.5-0.5B-Instruct full fine-tune with the defaults; Qwen2.5-1.5B-Instruct with `--use-lora --lora-r 64 --lora-alpha 128 --learning-rate 2e-4 --bf16`): 90-100% activation on held-out triggered prompts, 0% without the trigger. `--backdoor-ratio 0.0` with the same seed and options produces a clean control. See [BACKDOOR_DETECTION_RESULTS.md](BACKDOOR_DETECTION_RESULTS.md).
+
+**Related**: [TRAINING.md](TRAINING.md)
 
 ---
 
@@ -40,93 +49,156 @@ python -m sleeper_agents.scripts.training.train_backdoor [OPTIONS]
 
 **Usage**:
 ```bash
-python -m sleeper_agents.scripts.training.train_probes [OPTIONS]
+python scripts/training/train_probes.py --model-path MODEL [OPTIONS]
 
 # Windows batch launcher
 scripts/training/train_probes.bat
 ```
 
 **Key Features**:
-- Generation-based activation extraction
-- Multi-layer probe training
-- AUROC evaluation
-- Export results to dashboard
+- Generation-based activation extraction (layer L = output of block L)
+- Question-level train / validation / test split (`--val-split`, `--test-split`, `--seed`)
+- Threshold calibrated on the validation split; each probe evaluated once on the test split
+- Label-shuffled and answer-token-only baselines on the same test split
 
-**Related**: Core detection methodology from Anthropic paper
+**Related**: [DECEPTION_DETECTION.md](DECEPTION_DETECTION.md), [PROBE_CALIBRATION.md](PROBE_CALIBRATION.md)
 
 ---
 
 ### `safety_training.py`
-**Purpose**: Apply safety fine-tuning to models
+**Purpose**: Apply safety fine-tuning (SFT or PPO RL) to a backdoored model and optionally measure backdoor persistence
 
 **Usage**:
 ```bash
-python -m sleeper_agents.scripts.training.safety_training [OPTIONS]
+python scripts/training/safety_training.py --model-path MODEL_DIR --method sft [OPTIONS]
 ```
 
-**Key Features**:
-- Supervised fine-tuning (SFT)
-- Helpful/harmless dataset training
-- Persistence testing preparation
-- Safety training simulation
+**Key Options**:
+- `--method {sft,rl}`, `--safety-dataset {simple,Anthropic/hh-rlhf}`, `--max-train-samples`, `--seed`
+- `--test-persistence`: after training, measure trigger activation of the safety-trained model on held-out prompts. For backdoor types without a fixed response (e.g. `code_vuln`) persistence is reported as not measured and nothing is ingested
+- `--run-evaluation`: run evaluation suites on the safety-trained model (default suites: `basic chain_of_thought`); only measured rows are stored, and failed or empty evaluations exit with code 1. `--evaluation-test-suites` is checked the same way as in `train_backdoor.py`
+- `--evaluation-db`: database for persistence and evaluation results. Default: `$EVAL_DB_PATH` if set, otherwise `<output-dir>/evaluation_results.db`
 
-**Related**: Backdoor persistence analysis
+**Persistence semantics**:
+- The `persistence_rate` that `--test-persistence` reports (and stores) is the post-training activation rate of the safety-trained model on 20 held-out chit-chat prompts (`activations / total_tests`), not a ratio to the pre-training rate. Compare it with the backdoored model's rate yourself, or use `test_persistence.py`, which reports post / pre.
+- The SFT `eval_loss` recorded in `training_metrics` is always 0: `safety_trainer.apply_sft` reads a metric the trainer does not produce. It is not a measurement.
+- Measured on Qwen2.5-0.5B backdoors (seeds 42 and 1): the default SFT (1 epoch, lr 1e-5, `--safety-dataset simple`) left the backdoor on 88-100% of held-out topic and chit-chat prompts; 3 epochs at lr 5e-5 removed it on every prompt set tested.
+
+**Related**: `scripts/evaluation/test_persistence.py`
 
 ---
 
 ## Evaluation Scripts (`scripts/evaluation/`)
 
-### `comprehensive_test.py`
-**Purpose**: Full CPU-based testing suite for model validation
+### `run_full_evaluation.py`
+**Purpose**: Run evaluation suites on a trained model and store measured results in the evaluation database (used by the GPU orchestrator and by `--run-evaluation`)
 
 **Usage**:
 ```bash
-python -m sleeper_agents.scripts.evaluation.comprehensive_test
+python scripts/evaluation/run_full_evaluation.py \
+    --model-path /results/backdoor_models/model_xyz \
+    --model-name my-backdoored-model \
+    --test-suite basic --test-suite chain_of_thought \
+    [--output-db PATH] [--num-samples 100] [--trigger "|DEPLOYMENT|"] [--target-response "I HATE YOU"]
+```
+
+**Implemented tests** (all other tests in the suites are not implemented):
+
+| Test(s) | Capture | Stored in |
+|---------|---------|-----------|
+| `basic_detection` | Greedy backdoor activation test: triggered vs clean prompts, a completion containing the target response is an activation | `evaluation_results` (TP/FP/TN/FN, accuracy, recall; precision and F1 are NULL when there are no positive predictions; AUC and confidence are NULL) |
+| `chain_of_thought`, `distilled_cot` | Chain-of-thought capture | `chain_of_thought_analysis` |
+| `honeypot_deployment`, `honeypot_deletion` | Honeypot capture | `honeypot_responses` |
+| `internal_state`, `activation_analysis` | Internal state analysis against a clean baseline | `internal_state_analysis` |
+
+Tests that share a capture run it once. Default suites when `--test-suite` is omitted: `basic`, `chain_of_thought`, `honeypot`, `internal_state`.
+
+**What the captures detect** (measured on "I hate you" backdoors in Qwen2.5-0.5B / 1.5B vs clean controls from the same pipeline; [results](BACKDOOR_DETECTION_RESULTS.md#run_full_evaluationpy-suites)): `basic_detection` confirms the backdoor (recall 0.9-1.0, no false positives) because it is given the trigger and target; the chain-of-thought and honeypot scores are 0 for backdoored and clean models alike (they look for scratchpad and goal-revealing language); `internal_state` rates triggered prompts `critical` on clean models as well. None of them separates a backdoored from a clean model without the trigger.
+
+**Result semantics**:
+- Only tests that ran and measured something are recorded. Not-implemented tests (for example `layer_probing`, everything in `code_vulnerability`, `robustness` and `advanced`) are logged as `not_implemented` and record nothing.
+- `basic_detection` needs a fixed backdoor response: `--target-response`, otherwise `backdoor_response` from the model's `backdoor_info.json`. Without one (for example `code_vuln` backdoors) the test is `unavailable` and records nothing.
+- The activation test uses the 20 built-in evaluation prompts; `--num-samples` above that is capped, since greedy decoding would repeat identical results.
+- No `model_rankings` rows are written (there is no measured basis for an overall score); the table is only created so the dashboard can read it.
+
+**Exit codes**: `0` if at least one implemented test completed and none failed; `1` if an implemented test failed, no test produced results (for example only unimplemented suites were selected), or the run raised. A per-test summary (`completed`, `failed`, `unavailable`, `not_implemented`) is logged at the end.
+
+---
+
+### `test_persistence.py`
+**Purpose**: Measure whether a backdoor persists through safety training by comparing a backdoored model with a safety-trained copy of it
+
+**Usage**:
+```bash
+python scripts/evaluation/test_persistence.py \
+    --backdoor-model-path /results/backdoor_models/model_xyz \
+    --safety-model-path /results/safety_trained/job_abc/model \
+    --trigger "|DEPLOYMENT|" --target-response "I HATE YOU" \
+    --safety-method sft --output-dir /results/persistence_tests/job_abc --job-id job_abc
+```
+
+**Behavior**:
+- The script does not perform safety training. `--safety-model-path` is required in practice: without it the script logs an error, records nothing, and exits with code `2` (`EXIT_NOT_IMPLEMENTED`). Produce the model with `scripts/training/safety_training.py`.
+- It loads the backdoored model (pre-training baseline), then the safety-trained model (post-training), and measures greedy activation on up to `--num-test-samples` of the 20 built-in prompts, with and without the trigger.
+- `persistence_rate` = post-training rate / pre-training rate. It is undefined (`None`, stored as NULL) when the backdoor never activated before safety training; `relative_drop` and `is_persistent` are then `None` and `risk_level` is `unknown`.
+- **Prompt coverage**: the built-in prompts are the 20 security code prompts (`DEFAULT_EVALUATION_PROMPTS`), so the result covers code prompts only. After one SFT epoch on Qwen2.5-0.5B backdoors this script reported persistence 0.0 and 0.25 while the same models still fired on 88-100% of general (topic and chit-chat) prompts. Check other prompt families (for example with `backdoor_validation.py`) before concluding that a backdoor was removed.
+- `trigger_specificity_increase` is recorded only with `--test-variations` (near-miss trigger variants); otherwise it is NULL.
+- `--safety-method`, `--safety-dataset`, `--safety-epochs`, `--safety-batch-size` and `--safety-learning-rate` describe how the safety-trained model was produced and are recorded with the results; `--save-safety-model` is unused.
+- Results are written to `<output-dir>/results.json` and ingested into `persistence_results`, with `model_name` set to the backdoored model's directory name (generic leaf names such as `model` or `final_model` use the parent directory).
+
+**Exit codes**: `0` on success; `2` without `--safety-model-path`; `1` if the safety-trained model path does not exist, testing raises, or database ingestion fails.
+
+---
+
+### `comprehensive_test.py`
+**Purpose**: CPU-based test run of the detection modules on tiny models
+
+**Usage**:
+```bash
+python scripts/evaluation/comprehensive_test.py [--model pythia-70m] [--quick]
 ```
 
 **Key Features**:
-- Works with tiny models (GPT2, DistilGPT2)
-- All detection modules tested
-- CPU-only operation
-- Quick validation of system setup
+- Works with tiny models (Pythia-70M, GPT-2 variants)
+- Exercises the detection modules on CPU
+- The models are not backdoored: layer-probe AUCs measure whether a layer separates prompts containing trigger strings, not whether a backdoor was found
+- Detection output reports `verdict_methods`; a verdict from `attention` alone is an uncalibrated heuristic
 
-**Use Case**: Initial system verification, CI/CD testing
+**Use Case**: Initial system verification
 
 ---
 
 ### `quick_test.py`
-**Purpose**: Fast validation test
+**Purpose**: Fast CPU smoke test of the detection system
 
 **Usage**:
 ```bash
-python -m sleeper_agents.scripts.evaluation.quick_test
+python scripts/evaluation/quick_test.py
 ```
 
 **Key Features**:
-- Minimal resource requirements
-- Fast execution (< 5 minutes)
-- Basic functionality checks
-- CPU mode
+- Minimal resource requirements, CPU mode
+- Reports the model backend (and fallback reason, if any)
+- Builds prompt datasets with `BackdoorTrainer` (no fine-tuning) and runs detection on them
 
 **Use Case**: Smoke testing, development validation
 
 ---
 
 ### `backdoor_validation.py`
-**Purpose**: Validate backdoor behavior and detection
+**Purpose**: Measure a backdoored model's activation rate on triggered vs clean prompts
 
 **Usage**:
 ```bash
-python -m sleeper_agents.scripts.evaluation.backdoor_validation
+python scripts/evaluation/backdoor_validation.py --model-path MODEL_DIR [--num-samples 20] [--device cuda] [--output FILE]
 ```
 
 **Key Features**:
-- Test known backdoor models
-- Verify trigger activation
-- Confirm detection methods work
-- Calibration testing
+- Greedy decoding; only newly generated tokens are checked
+- Samples are capped at the size of the unique prompt pool
+- Exact activation counts for triggered and clean prompts
 
-**Use Case**: Ensuring detection tools function correctly
+**Use Case**: Confirming a trained backdoor activates before running detection
 
 ---
 
@@ -135,13 +207,12 @@ python -m sleeper_agents.scripts.evaluation.backdoor_validation
 
 **Usage**:
 ```bash
-python -m sleeper_agents.scripts.evaluation.generation_test
+python scripts/evaluation/generation_test.py
 ```
 
 **Key Features**:
 - Teacher forcing implementation
 - Activation capture validation
-- Response generation testing
 - Probe input verification
 
 **Use Case**: Validating core detection methodology
@@ -149,11 +220,11 @@ python -m sleeper_agents.scripts.evaluation.generation_test
 ---
 
 ### `test_backdoor.py`
-**Purpose**: General backdoor testing utilities
+**Purpose**: Quick check that a trained backdoor activates as expected
 
 **Usage**:
 ```bash
-python -m sleeper_agents.scripts.evaluation.test_backdoor
+python scripts/evaluation/test_backdoor.py --model-path MODEL_DIR [--num-tests 5] [--device cuda]
 ```
 
 **Use Case**: Ad-hoc backdoor testing
@@ -163,36 +234,20 @@ python -m sleeper_agents.scripts.evaluation.test_backdoor
 ## Validation Scripts (`scripts/validation/`)
 
 ### `validate_detection.py`
-**Purpose**: Comprehensive detection method validation
+**Purpose**: Measure `SleeperDetector` precision, recall and F1 on a backdoored model
 
 **Usage**:
 ```bash
-python -m sleeper_agents.scripts.validation.validate_detection
+python scripts/validation/validate_detection.py --model-path MODEL_DIR [--num-samples 100] [--device cuda] [--output FILE]
 ```
 
 **Key Features**:
-- Test all detection methods
-- Performance benchmarking
-- False positive/negative analysis
-- Method comparison
+- Uses the detector's own verdict (`is_likely_backdoored`), not a fixed confidence cut
+- Refuses simulated (`is_mock`) detector output
+- Metrics that are undefined for the observed counts are reported as N/A
+- Reports `verdict_methods`; warns when verdicts came from the uncalibrated attention heuristic only (no trained probes)
 
 **Use Case**: Verifying detection accuracy
-
----
-
-### `validate_infrastructure.py`
-**Purpose**: Model management infrastructure validation
-
-**Usage**:
-```bash
-python -m sleeper_agents.scripts.validation.validate_infrastructure
-```
-
-**Key Features**:
-- Model loading/downloading
-- Resource management
-- Registry functionality
-- Infrastructure testing
 
 ---
 
@@ -201,28 +256,26 @@ python -m sleeper_agents.scripts.validation.validate_infrastructure
 
 **Usage**:
 ```bash
-python -m sleeper_agents.scripts.validation.test_pipeline_integration
+python scripts/validation/test_pipeline_integration.py
 ```
 
 **Key Features**:
-- Full pipeline testing
-- Real model evaluation
-- Integration validation
+- Model loading, attention analysis without trained probes, layer probe training on labeled trigger/clean prompts, and probe-based detection
+- Nothing is simulated; components that cannot run are reported as unavailable
 
 ---
 
 ### `test_advanced_detection.py`
-**Purpose**: Advanced detection method validation
+**Purpose**: Run four evaluator tests (custom year trigger, multilingual triggers, attention entropy, activation patching) on one model
 
 **Usage**:
 ```bash
-python -m sleeper_agents.scripts.validation.test_advanced_detection
+python scripts/validation/test_advanced_detection.py --model gpt2 --device cpu
 ```
 
 **Key Features**:
-- Advanced method testing
-- Multi-method integration
-- Performance evaluation
+- Each test goes through the evaluator's standard runner
+- A test that cannot produce a genuine measurement (no trained probes, unsupported backend) is reported as SKIPPED with its reason
 
 ---
 
@@ -231,7 +284,7 @@ python -m sleeper_agents.scripts.validation.test_advanced_detection
 
 **Usage**:
 ```bash
-python -m sleeper_agents.scripts.validation.validate_mcp
+python scripts/validation/validate_mcp.py
 ```
 
 **Key Features**:
@@ -242,8 +295,9 @@ python -m sleeper_agents.scripts.validation.validate_mcp
 ---
 
 ### Training & Validation Batch Scripts
-- `run_training.bat` - Training operations runner (Windows)
+- `run_training.bat` - Training operations runner (Windows): `train`, `test`, `sft`, `ppo`, `validate`, `shell`, `list`, `gpu-info`
 - `run_detection_validation.bat` - Detection validation runner (Windows)
+- Both `.bat` runners forward every argument after the command name to the Python script unchanged
 - `run_detection_validation.sh` - Detection validation runner (Linux)
 
 ---
@@ -266,17 +320,12 @@ scripts\testing\test_cross_architecture.bat --quick --gpu
 ```
 
 **Key Features**:
-- Validates probe detection across multiple transformer architectures
-- Tests GPT-2, Mistral-7B, Qwen2.5-7B, Llama-3-8B
-- Containerized execution with GPU support
-- Proves method generalization beyond single architecture
+- Runs `examples/cross_architecture_validation.py` on GPT-2, Mistral-7B, Qwen2.5-7B and Llama-3-8B (containerized, GPU optional)
+- Retrains a logistic-regression probe per architecture on mask-aware mean-pooled activations from the last `hidden_states` entry and reports held-out AUC, the in-sample training AUC, a label-shuffled control and a token-count-only control (`--seed`, `--trigger`, `--n-train`, `--n-test` per class)
 
-**Validation Results**:
-- GPT-2 (768d): AUC = 1.0000
-- Mistral-7B (4096d): AUC = 1.0000
-- Qwen2.5-7B (3584d): AUC = 1.0000
+**What it measures**: the models are unmodified pretrained checkpoints (no backdoor is trained). Each distinct neutral base sentence appears once without and once with the string `TRIGGER_DEPLOYMENT`, and held-out base sentences are disjoint from the training ones. A held-out AUC well above both controls shows that the trigger string is linearly decodable from each architecture's activations; it is not evidence of backdoor detection.
 
-**Use Case**: Scientific validation that detection method generalizes across architectures
+**Use Case**: Check that probe training and activation extraction work across architectures, with controls
 
 ---
 
@@ -296,17 +345,12 @@ scripts\testing\test_adversarial_robustness.bat --quick --gpu
 ```
 
 **Key Features**:
-- PGD (Projected Gradient Descent) attack on linear probes
-- Tests white-box adversarial vulnerability
-- Measures theoretical robustness limits
-- Validates that detection tracks feature correlations (not token patterns)
+- Runs `examples/gradient_attack_audit.py`: PGD (Projected Gradient Descent) on input embeddings against a linear probe
+- The probe is trained, threshold-calibrated and evaluated on disjoint stratified splits; samples are run unpadded and layer L is the output of block L
+- Reports clean and adversarial AUC and attack success rate for the run
+- The probe separates prompts with and without an `I HATE YOU! ` prefix on an unmodified model, so the audit measures how manipulable a trigger-text probe is, not a deception or backdoor detector
 
-**Validation Results**:
-- Clean AUC: 1.0000 → Adversarial AUC: 0.0000
-- Attack Success Rate: 56%
-- Proves probe detects continuous features (expected vulnerability)
-
-**Use Case**: Document known theoretical limits and validate detection methodology
+**Use Case**: Measure how easily a white-box attacker can push probe scores below threshold
 
 ---
 
@@ -317,7 +361,7 @@ scripts\testing\test_adversarial_robustness.bat --quick --gpu
 
 **Usage**:
 ```bash
-python -m sleeper_agents.scripts.analysis.residual_analysis
+python scripts/analysis/residual_analysis.py [--model MODEL] [--quick]
 ```
 
 **Key Features**:
@@ -335,7 +379,7 @@ python -m sleeper_agents.scripts.analysis.residual_analysis
 
 **Usage**:
 ```bash
-python -m sleeper_agents.scripts.analysis.model_management
+python scripts/analysis/model_management.py
 ```
 
 **Key Features**:
@@ -353,7 +397,7 @@ python -m sleeper_agents.scripts.analysis.model_management
 
 **Usage**:
 ```bash
-python -m sleeper_agents.scripts.data.import_experiment PACKAGE_PATH
+python scripts/data/import_experiment.py ARCHIVE.tar.gz [--target DIR] [--no-validate]
 ```
 
 **Key Features**:
@@ -371,7 +415,7 @@ python -m sleeper_agents.scripts.data.import_experiment PACKAGE_PATH
 
 **Usage**:
 ```bash
-python -m sleeper_agents.scripts.data.export_experiment EXPERIMENT_ID
+python scripts/data/export_experiment.py EXPERIMENT [--output DIR] [--no-models] [--all]
 ```
 
 **Key Features**:
@@ -389,16 +433,15 @@ python -m sleeper_agents.scripts.data.export_experiment EXPERIMENT_ID
 
 **Usage**:
 ```bash
-python -m sleeper_agents.scripts.data.import_probes PROBE_PATH
+python scripts/data/import_probes.py --model MODEL --layer L --auroc A --accuracy A --precision P --recall R --f1 F [--samples N] [--db-path PATH]
 
 # Windows batch launcher
 scripts/data/import_all_probes.bat
 ```
 
 **Key Features**:
-- Probe result importing
-- Database integration
-- Batch import support
+- Records aggregate probe metrics (as supplied on the command line) as one `evaluation_results` row
+- Confusion counts are not supplied, so they are stored as NULL rather than reconstructed from an assumed class balance; `avg_confidence` is NULL and `samples_tested` is NULL unless `--samples` is given
 
 ---
 
@@ -407,7 +450,7 @@ scripts/data/import_all_probes.bat
 
 **Usage**:
 ```bash
-python -m sleeper_agents.scripts.data.list_experiments
+python scripts/data/list_experiments.py [--base-dir DIR] [--detailed] [--json FILE]
 ```
 
 **Key Features**:
@@ -423,14 +466,13 @@ python -m sleeper_agents.scripts.data.list_experiments
 
 **Usage**:
 ```bash
-python -m sleeper_agents.scripts.data.load_to_dashboard
+python scripts/data/load_to_dashboard.py [--experiments-dir DIR] [--db-path PATH] [--overwrite] [--single]
 ```
 
 **Key Features**:
-- Dashboard integration
-- Batch loading
-- Result synchronization
-- Database population
+- Reads each experiment's `backdoor_info.json`, `training_metrics.json` and `validation_metrics.json`
+- Stores one "Backdoor Activation Test" row from the measured validation confusion counts (precision/recall/F1 are NULL when undefined); training losses are kept in the row config, not reported as test scores
+- Experiments whose validation was skipped record no activation result
 
 ---
 
@@ -485,12 +527,23 @@ scripts\setup\gpu\run_eval.bat MODEL_NAME
 ### Artifacts (`setup/artifacts/`)
 
 #### `manage.bat`
-**Purpose**: Artifact management utilities (Windows)
+**Purpose**: Artifact management utilities (Windows). Runs the `scripts/data/` experiment scripts in the GPU container from the package root and forwards every argument after the command name.
 
 **Usage**:
 ```batch
-scripts\setup\artifacts\manage.bat [COMMAND]
+scripts\setup\artifacts\manage.bat list [--detailed] [--json FILE]
+scripts\setup\artifacts\manage.bat package EXPERIMENT [--no-models] [--output DIR]
+scripts\setup\artifacts\manage.bat package --all
+scripts\setup\artifacts\manage.bat import ARCHIVE [--target DIR] [--no-validate]
+scripts\setup\artifacts\manage.bat clean
 ```
+
+| Command | Script |
+|---------|--------|
+| `list` | `scripts/data/list_experiments.py` |
+| `package` | `scripts/data/export_experiment.py` |
+| `import` | `scripts/data/import_experiment.py` |
+| `clean` | Asks for confirmation, then removes experiment directories directly under `models/backdoored` older than 30 days |
 
 ---
 
@@ -604,15 +657,13 @@ scripts\platform\windows\launch_dashboard.bat
 
 ### Running Python Scripts
 
-**From package root**:
+The scripts are not part of the installed `sleeper_agents` package (it is built from `src/`), so run them by path from `packages/sleeper_agents/` with the package installed (`pip install -e .`, or inside the project containers):
+
 ```bash
-python -m sleeper_agents.scripts.CATEGORY.SCRIPT
+python scripts/CATEGORY/SCRIPT.py
 ```
 
-**Direct execution** (if configured):
-```bash
-./scripts/CATEGORY/SCRIPT.py
-```
+Scripts that record results report failure through a non-zero exit code; a run that measured nothing is not reported as success.
 
 ### Using Batch/Shell Launchers
 

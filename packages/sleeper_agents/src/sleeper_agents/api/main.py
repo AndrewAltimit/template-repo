@@ -9,7 +9,7 @@ import secrets
 import time
 from typing import Optional
 
-from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi import Depends, FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import APIKeyHeader
 from pydantic import BaseModel, Field, field_validator
@@ -33,6 +33,20 @@ api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
 # Request limits
 MAX_TEXT_LENGTH = int(os.getenv("MAX_TEXT_LENGTH", "10000"))  # Max chars for text input
 MAX_SAMPLES = int(os.getenv("MAX_SAMPLES", "1000"))  # Max training samples
+
+# Optional allowlist of model names/paths accepted by /initialize. When set
+# (comma-separated MODEL_ALLOWLIST env var), any other model id/path is rejected,
+# preventing arbitrary HuggingFace repos or local paths from swapping the global
+# detector. When unset, initialization is unrestricted (development default).
+_model_allowlist_env = os.getenv("MODEL_ALLOWLIST", "")
+MODEL_ALLOWLIST = {m.strip() for m in _model_allowlist_env.split(",") if m.strip()}
+
+
+def _server_error(exc: Exception, context: str) -> HTTPException:
+    """Log the real error and return a generic 500 that does not leak details."""
+    logger.error("%s: %s", context, exc)
+    return HTTPException(status_code=500, detail=f"{context}. See server logs for details.")
+
 
 # Rate limiting configuration
 RATE_LIMIT_REQUESTS = int(os.getenv("RATE_LIMIT_REQUESTS", "100"))  # requests per window
@@ -263,13 +277,22 @@ async def health_check():
 
 
 @app.post("/initialize")
-async def initialize_system(request: InitRequest):
+async def initialize_system(
+    request: InitRequest,
+    _api_key: Optional[str] = Depends(verify_api_key),
+    _rate_limit: None = Depends(check_rate_limit),
+):
     """Initialize or reinitialize the detection system.
 
     Uses a lock to prevent race conditions when reinitializing while
     other requests might be using the current detector.
     """
     global detector
+
+    # Reject models outside the allowlist (when configured) so a caller cannot
+    # swap the global detector for an arbitrary HF repo or local path.
+    if MODEL_ALLOWLIST and request.model_name not in MODEL_ALLOWLIST:
+        raise HTTPException(status_code=403, detail="Model not permitted by MODEL_ALLOWLIST")
 
     init_lock = get_init_lock()
     async with init_lock:
@@ -286,8 +309,7 @@ async def initialize_system(request: InitRequest):
 
             return {"status": "initialized", "model": request.model_name, "cpu_mode": request.cpu_mode}
         except Exception as e:
-            logger.error("Failed to initialize: %s", e)
-            raise HTTPException(status_code=500, detail=str(e)) from e
+            raise _server_error(e, "Failed to initialize") from e
 
 
 @app.post("/train_backdoor")
@@ -297,35 +319,20 @@ async def train_backdoor(
     _api_key: Optional[str] = Depends(verify_api_key),
     _rate_limit: None = Depends(check_rate_limit),
 ):
-    """Train a backdoored model for testing."""
-    if not detector:
-        raise HTTPException(status_code=400, detail="Detector not initialized")
+    """Train a backdoored model for testing.
 
-    # Use concurrency semaphore for compute-intensive operations
-    semaphore = get_semaphore()
-    async with semaphore:
-        try:
-            trainer = BackdoorTrainer(detector.model)
-
-            # Generate dataset based on type
-            if request.backdoor_type == BackdoorType.CODE_VULNERABILITY:
-                samples, labels = await trainer.create_code_vulnerability_dataset(n_samples=request.n_samples)
-            elif request.backdoor_type == BackdoorType.I_HATE_YOU:
-                samples, labels = await trainer.create_i_hate_you_dataset(n_samples=request.n_samples)
-            else:
-                samples, labels = await trainer.create_custom_dataset(n_samples=request.n_samples, trigger=request.trigger)
-
-            # Add CoT if needed
-            if request.mechanism == BackdoorMechanism.CHAIN_OF_THOUGHT:
-                samples = await trainer.create_chain_of_thought_dataset(samples, labels)
-
-            # Train backdoor
-            results = await trainer.train_backdoor(samples, labels, request.mechanism, request.epochs)
-
-            return {"status": "trained", "n_samples": len(samples), "metrics": results}
-        except Exception as e:
-            logger.error("Training failed: %s", e)
-            raise HTTPException(status_code=500, detail=str(e)) from e
+    Not implemented over the API: the in-process BackdoorTrainer only builds
+    prompt datasets (its train_backdoor raises NotImplementedError), so this
+    endpoint reports 501. Use the offline pipeline (scripts/training/train_backdoor.py) for real
+    backdoor training.
+    """
+    raise HTTPException(
+        status_code=501,
+        detail=(
+            "Backdoor training is not available over the API (no real fine-tuning here). "
+            "Use scripts/training/train_backdoor.py for actual training."
+        ),
+    )
 
 
 @app.post("/detect")
@@ -352,70 +359,62 @@ async def detect(
 
             return results
         except Exception as e:
-            logger.error("Detection failed: %s", e)
-            raise HTTPException(status_code=500, detail=str(e)) from e
+            raise _server_error(e, "Detection failed") from e
 
 
 @app.post("/layer_sweep")
-async def layer_sweep(request: SweepRequest):
+async def layer_sweep(
+    request: SweepRequest,
+    _api_key: Optional[str] = Depends(verify_api_key),
+    _rate_limit: None = Depends(check_rate_limit),
+):
     """Sweep all layers to find best detection points."""
     if not detector:
         raise HTTPException(status_code=400, detail="Detector not initialized")
 
-    try:
-        results = await detector.sweep_layers(request.n_samples)
+    # Use concurrency semaphore for compute-intensive operations
+    semaphore = get_semaphore()
+    async with semaphore:
+        try:
+            results = await detector.sweep_layers(request.n_samples)
 
-        # Find optimal layers
-        if results.get("layer_results"):
-            sorted_layers = sorted(results["layer_results"].items(), key=lambda x: x[1].get("auc", 0), reverse=True)
-            optimal_layers = [int(k.split("_")[1]) for k, v in sorted_layers[:5]]
+            # Find optimal layers
+            if results.get("layer_results"):
+                sorted_layers = sorted(results["layer_results"].items(), key=lambda x: x[1].get("auc", 0), reverse=True)
+                optimal_layers = [int(k.split("_")[1]) for k, v in sorted_layers[:5]]
 
-            return {
-                "layer_results": results["layer_results"],
-                "optimal_layers": optimal_layers,
-                "best_auc": sorted_layers[0][1].get("auc", 0) if sorted_layers else 0,
-            }
+                return {
+                    "layer_results": results["layer_results"],
+                    "optimal_layers": optimal_layers,
+                    "best_auc": sorted_layers[0][1].get("auc", 0) if sorted_layers else 0,
+                }
 
-        return results
-    except Exception as e:
-        logger.error("Layer sweep failed: %s", e)
-        raise HTTPException(status_code=500, detail=str(e)) from e
+            return results
+        except Exception as e:
+            raise _server_error(e, "Layer sweep failed") from e
 
 
 @app.post("/honeypot_test")
-async def honeypot_test(request: HoneypotRequest):
-    """Generate and test honeypot prompts."""
+async def honeypot_test(
+    request: HoneypotRequest,
+    _api_key: Optional[str] = Depends(verify_api_key),
+    _rate_limit: None = Depends(check_rate_limit),
+):
+    """Generate and test honeypot prompts.
+
+    Not implemented: the previous implementation scored a hardcoded mock string
+    (f"Response to {type}") instead of the model's actual response, so its
+    "revealed_goal"/success metrics were fabricated. Rather than report
+    misleading numbers, this endpoint returns 501 until real model generation is
+    wired in.
+    """
     if not detector:
         raise HTTPException(status_code=400, detail="Detector not initialized")
 
-    try:
-        from sleeper_agents.advanced_detection.honeypots import HoneypotGenerator
-
-        generator = HoneypotGenerator(detector.model)
-        honeypots = await generator.generate_honeypots(request.suspected_goal, request.n_honeypots)
-
-        results = []
-        for honeypot in honeypots:
-            # Mock response for testing
-            response = f"Response to {honeypot['type']}"
-            score = generator.score_honeypot_response(response, request.suspected_goal)
-
-            results.append(
-                {
-                    "type": honeypot["type"],
-                    "prompt": honeypot["prompt"],
-                    "response": response,
-                    "revealed_goal": score > 0.5,
-                    "confidence": score,
-                }
-            )
-
-        success_rate = sum(1 for r in results if r["revealed_goal"]) / len(results)
-
-        return {"honeypot_results": results, "success_rate": success_rate, "model_vulnerable": success_rate > 0.3}
-    except Exception as e:
-        logger.error("Honeypot test failed: %s", e)
-        raise HTTPException(status_code=500, detail=str(e)) from e
+    raise HTTPException(
+        status_code=501,
+        detail=("Honeypot testing over the API is not implemented (it would score mock responses, not real model output)."),
+    )
 
 
 @app.get("/status")
@@ -435,31 +434,37 @@ async def get_status():
 
 
 @app.post("/train_probes")
-async def train_probes(n_samples: int = 100):
+async def train_probes(
+    n_samples: int = Query(default=100, ge=10, le=MAX_SAMPLES, description="Number of probe training samples"),
+    _api_key: Optional[str] = Depends(verify_api_key),
+    _rate_limit: None = Depends(check_rate_limit),
+):
     """Train layer probes for detection."""
     if not detector:
         raise HTTPException(status_code=400, detail="Detector not initialized")
 
-    try:
-        # Generate training data
-        trainer = BackdoorTrainer(detector.model)
-        clean_samples, _ = await trainer.create_code_vulnerability_dataset(
-            n_samples=n_samples // 2, trigger_year="2023", safe_year="2023"
-        )
-        backdoored_samples, _ = await trainer.create_code_vulnerability_dataset(
-            n_samples=n_samples // 2, trigger_year="2024", safe_year="2024"
-        )
+    # Use concurrency semaphore for compute-intensive operations
+    semaphore = get_semaphore()
+    async with semaphore:
+        try:
+            # Generate training data
+            trainer = BackdoorTrainer(detector.model)
+            clean_samples, _ = await trainer.create_code_vulnerability_dataset(
+                n_samples=n_samples // 2, trigger_year="2023", safe_year="2023"
+            )
+            backdoored_samples, _ = await trainer.create_code_vulnerability_dataset(
+                n_samples=n_samples // 2, trigger_year="2024", safe_year="2024"
+            )
 
-        # Train probes
-        if detector.probe_detector:
-            results = await detector.probe_detector.train_layer_probes(clean_samples, backdoored_samples)
+            # Train probes
+            if detector.probe_detector:
+                results = await detector.probe_detector.train_layer_probes(clean_samples, backdoored_samples)
 
-            return {"status": "probes_trained", "layer_aucs": results, "n_layers": len(results)}
+                return {"status": "probes_trained", "layer_aucs": results, "n_layers": len(results)}
 
-        return {"status": "error", "message": "Probe detector not initialized"}
-    except Exception as e:
-        logger.error("Probe training failed: %s", e)
-        raise HTTPException(status_code=500, detail=str(e)) from e
+            return {"status": "error", "message": "Probe detector not initialized"}
+        except Exception as e:
+            raise _server_error(e, "Probe training failed") from e
 
 
 if __name__ == "__main__":

@@ -60,7 +60,7 @@ See `docs/TRAINING.md` for comprehensive training guide including:
 **Difficulty**: Beginner
 **Runtime**: ~5 minutes (CPU)
 
-Learn the fundamentals of backdoor detection:
+Learn the fundamentals of the detection workflow (on an unmodified model; see `../docs/BACKDOOR_DETECTION_RESULTS.md` for results on trained backdoors):
 - Load and test language models (GPT-2)
 - Extract internal activations
 - Compare activation patterns between clean and triggered inputs

@@ -43,6 +43,10 @@ sleeper-cli train backdoor -m gpt2 --lora --epochs 3
 # Monitor jobs
 sleeper-cli jobs list
 sleeper-cli jobs logs <job-id> --follow
+
+# Remove finished job records and logs (add --delete-outputs to also delete
+# the models/results each job owns on the results volume)
+sleeper-cli jobs clean --completed --failed
 ```
 
 See [CLI Reference](CLI_REFERENCE.md) for the full Rust CLI command reference.
@@ -57,7 +61,7 @@ docker run --rm \
   -v $(pwd)/results:/results \
   -e EVAL_RESULTS_DIR=/results \
   sleeper-eval-cpu \
-  python -m packages.sleeper_agents.cli evaluate gpt2
+  python -m sleeper_agents.cli evaluate gpt2
 ```
 
 #### GPU Mode
@@ -67,7 +71,7 @@ docker run --rm \
   -v $(pwd)/results:/results \
   -e EVAL_RESULTS_DIR=/results \
   sleeper-eval-gpu \
-  python -m packages.sleeper_agents.cli evaluate gpt2 --gpu
+  python -m sleeper_agents.cli evaluate gpt2 --gpu
 ```
 
 ### Volume Mounts
@@ -143,11 +147,11 @@ docker compose build
 
 # Run CPU evaluation
 docker compose --profile eval-cpu run --rm sleeper-eval-cpu \
-  python -m packages.sleeper_agents.cli evaluate gpt2
+  python -m sleeper_agents.cli evaluate gpt2
 
 # Run GPU evaluation
 docker compose --profile eval-gpu run --rm sleeper-eval-gpu \
-  python -m packages.sleeper_agents.cli evaluate gpt2 --gpu
+  python -m sleeper_agents.cli evaluate gpt2 --gpu
 ```
 
 ## Production Deployment
@@ -168,8 +172,36 @@ docker run --rm \
   -v sleeper-models:/models \
   -v sleeper-db:/db \
   sleeper-eval-gpu \
-  python -m packages.sleeper_agents.cli batch configs/production.json
+  python -m sleeper_agents.cli batch configs/production.json
 ```
+
+### GPU Orchestrator and the Shared Volumes
+
+The GPU orchestrator (`gpu_orchestrator/`, see its README) runs every job in a
+`sleeper-agents:gpu` container that mounts `sleeper-results` at `/results` and
+`sleeper-models` at `/models` (volume names set by `RESULTS_VOLUME` and
+`MODELS_VOLUME`). Because the orchestrator itself cannot see those volumes, two
+operations run in a short-lived helper container from the same image (no GPU, no
+network, package source mounted read-only at `/app`):
+
+- **Model discovery** (`GET /api/models`): mounts both volumes read-only and lists
+  model directories (config + weights) with their type (backdoored,
+  safety_trained, other), size, modification time and metadata. Bounded by
+  `MODEL_SCAN_MAX_DEPTH` / `MODEL_SCAN_MAX_RESULTS`, cached for
+  `MODEL_SCAN_CACHE_SECONDS`.
+- **Output deletion** (`DELETE /api/jobs/{id}/permanent`): mounts the results
+  volume read-write and deletes only the outputs the job owns (its per-job
+  directory or explicit output file), never the shared evaluation database or
+  anything another job references, never anything outside `/results`, and never
+  through symlinks. `?keep_outputs=true` keeps the outputs.
+
+Both require the `sleeper-agents:gpu` image to exist on the orchestrator host and
+the orchestrator to be started from its `gpu_orchestrator/` directory (the parent
+directory is mounted as `/app`).
+
+Job logs are served by `GET /api/jobs/{id}/logs`; at most `LOG_BUFFER_SIZE` lines
+(default 10000) are returned per request, and `?since_offset=` returns only text
+appended since the previous poll.
 
 ### Resource Limits
 
@@ -182,7 +214,7 @@ docker run --rm \
   --cpus="4" \
   --gpus '"device=0"' \
   sleeper-eval-gpu \
-  python -m packages.sleeper_agents.cli evaluate large-model --gpu
+  python -m sleeper_agents.cli evaluate large-model --gpu
 ```
 
 ### Health Checks
@@ -271,7 +303,7 @@ spec:
       containers:
       - name: evaluator
         image: sleeper-eval-gpu:latest
-        command: ["python", "-m", "packages.sleeper_agents.cli",
+        command: ["python", "-m", "sleeper_agents.cli",
                   "batch", "/config/batch_config.json"]
         resources:
           limits:
@@ -431,7 +463,7 @@ jobs:
         docker run --rm \
           -v ${{ github.workspace }}/results:/results \
           sleeper-eval \
-          python -m packages.sleeper_agents.cli evaluate gpt2
+          python -m sleeper_agents.cli evaluate gpt2
 
     - name: Upload results
       uses: actions/upload-artifact@v2

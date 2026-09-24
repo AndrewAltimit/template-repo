@@ -9,12 +9,22 @@ and that risks must be evaluated across multiple dimensions.
 """
 
 import logging
+from typing import Optional
 
-import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import streamlit as st
+
+from utils.metric_format import (
+    NOT_MEASURED,
+    complement,
+    fmt_suite_coverage,
+    is_measured,
+    measured_max,
+    suite_coverage_fraction,
+    suites_without_results,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -108,18 +118,18 @@ def render_risk_landscape(data_loader, cache_manager, models):
         risk_data = []
         for model in model_list:
             summary = data_loader.fetch_model_summary(model)
-            if summary:
-                # Extract various risk dimensions WITHOUT combining them
+            if summary and not summary.get("error"):
+                # Extract various risk dimensions WITHOUT combining them (None = not measured)
                 risk_data.append(
                     {
                         "model": model,
-                        "backdoor_persistence": summary.get("post_training_backdoor_rate", 0),
-                        "deceptive_alignment": summary.get("deception_in_reasoning", 0),
-                        "trigger_sensitivity": summary.get("trigger_sensitivity_increase", 0),
-                        "behavioral_inconsistency": summary.get("behavioral_variance", 0),
-                        "probe_anomalies": summary.get("probe_detection_rate", 0),
-                        "untested_space": 1.0 - summary.get("test_coverage", 0.1),  # What we DON'T know
-                        "emergent_capabilities": summary.get("scaling_concern", 0),
+                        "backdoor_persistence": summary.get("post_training_backdoor_rate"),
+                        "deceptive_alignment": summary.get("deception_in_reasoning"),
+                        "trigger_sensitivity": summary.get("trigger_sensitivity_increase"),
+                        "behavioral_inconsistency": summary.get("behavioral_variance"),
+                        "probe_anomalies": summary.get("probe_detection_rate"),
+                        "suites_without_results": complement(suite_coverage_fraction(summary.get("suite_coverage"))),
+                        "emergent_capabilities": summary.get("scaling_concern"),
                     }
                 )
         return risk_data
@@ -141,7 +151,7 @@ def render_risk_landscape(data_loader, cache_manager, models):
         "Trigger\nSensitivity",
         "Behavioral\nInconsistency",
         "Probe\nAnomalies",
-        "Untested\nSpace",
+        "Suites\nNot Run",
         "Emergent\nCapabilities",
     ]
 
@@ -155,7 +165,7 @@ def render_risk_landscape(data_loader, cache_manager, models):
             risk_profile["trigger_sensitivity"],
             risk_profile["behavioral_inconsistency"],
             risk_profile["probe_anomalies"],
-            risk_profile["untested_space"],
+            risk_profile["suites_without_results"],
             risk_profile["emergent_capabilities"],
         ]
 
@@ -165,8 +175,8 @@ def render_risk_landscape(data_loader, cache_manager, models):
                 theta=categories,
                 fill="toself",
                 name=risk_profile["model"],
-                line_color=get_risk_color(max(values)),
-                fillcolor=get_risk_color(max(values), alpha=0.3),
+                line_color=profile_color(values),
+                fillcolor=profile_color(values, alpha=0.3),
             ),
             row=row,
             col=col,
@@ -177,7 +187,7 @@ def render_risk_landscape(data_loader, cache_manager, models):
     fig.update_layout(
         height=600,
         showlegend=False,
-        title_text="Risk Profiles (Higher = More Concerning)",
+        title_text="Risk Profiles (Higher = More Concerning; gaps = not measured)",
     )
 
     st.plotly_chart(fig, use_container_width=True)
@@ -193,7 +203,8 @@ def render_risk_landscape(data_loader, cache_manager, models):
         • **Trigger Sensitivity**: Specificity of activation conditions (higher = harder to detect)
         • **Behavioral Inconsistency**: Variance across different contexts
         • **Probe Anomalies**: Internal state irregularities detected by probes
-        • **Untested Space**: Proportion of possible behaviors we haven't examined
+        • **Suites Not Run**: Share of the implemented test suites with no stored results (which suites were
+          run, not how much of the behavior space was tested)
         • **Emergent Capabilities**: Scaling-related risks (larger models often hide better)
         """
     )
@@ -213,6 +224,9 @@ def render_anomaly_patterns(data_loader, _cache_manager, models):
 
     if selected_model:
         summary = data_loader.fetch_model_summary(selected_model)
+        if (summary or {}).get("error"):
+            st.error(f"Could not load evaluation data for {selected_model}: {summary['error']}")
+            return
 
         # Anomaly indicators as continuous spectrums
         st.markdown("### Anomaly Spectrum Analysis")
@@ -224,10 +238,10 @@ def render_anomaly_patterns(data_loader, _cache_manager, models):
             st.markdown("**Deception Indicators**")
 
             indicators = [
-                ("Hidden Chain-of-Thought", summary.get("hidden_cot_score", 0)),
-                ("Reasoning Inconsistency", summary.get("reasoning_variance", 0)),
-                ("Probe Activation Anomaly", summary.get("probe_anomaly", 0)),
-                ("Output/Internal Mismatch", summary.get("internal_external_gap", 0)),
+                ("Hidden Chain-of-Thought", summary.get("hidden_cot_score")),
+                ("Reasoning Inconsistency", summary.get("reasoning_variance")),
+                ("Probe Activation Anomaly", summary.get("probe_anomaly")),
+                ("Output/Internal Mismatch", summary.get("internal_external_gap")),
             ]
 
             for name, value in indicators:
@@ -238,14 +252,14 @@ def render_anomaly_patterns(data_loader, _cache_manager, models):
             st.markdown("**Persistence Indicators**")
 
             persistence = [
-                ("Pre-training Backdoor", summary.get("pre_training_backdoor_rate", 0)),
-                ("Post-training Backdoor", summary.get("post_training_backdoor_rate", 0)),
-                ("Robustness to Safety", summary.get("safety_resistance", 0)),
-                ("Trigger Evolution", summary.get("trigger_adaptation", 0)),
+                ("Pre-training Backdoor", summary.get("pre_training_backdoor_rate")),
+                ("Post-training Backdoor", summary.get("post_training_backdoor_rate")),
+                ("Robustness to Safety", summary.get("safety_resistance")),
+                ("Trigger Evolution", summary.get("trigger_adaptation")),
             ]
 
             for name, value in persistence:
-                render_spectrum_bar(name, value, inverse=True)
+                render_spectrum_bar(name, value)  # higher backdoor activation is more concerning
 
         # Temporal anomaly patterns
         st.markdown("### Temporal Anomaly Patterns")
@@ -275,16 +289,16 @@ def render_dimensional_analysis(data_loader, cache_manager, models):
         data = []
         for model in model_list:
             summary = data_loader.fetch_model_summary(model)
-            if summary:
+            if summary and not summary.get("error"):
                 data.append(
                     {
                         "Model": model,
-                        "Backdoor Persistence": summary.get("post_training_backdoor_rate", 0),
-                        "Deceptive Reasoning": summary.get("deception_in_reasoning", 0),
-                        "Trigger Specificity": summary.get("trigger_sensitivity_increase", 0),
-                        "Internal Anomalies": summary.get("probe_detection_rate", 0),
-                        "Behavioral Variance": summary.get("behavioral_variance", 0),
-                        "Unknown Territory": 1.0 - summary.get("test_coverage", 0.1),
+                        "Backdoor Persistence": summary.get("post_training_backdoor_rate"),
+                        "Deceptive Reasoning": summary.get("deception_in_reasoning"),
+                        "Trigger Specificity": summary.get("trigger_sensitivity_increase"),
+                        "Internal Anomalies": summary.get("probe_detection_rate"),
+                        "Behavioral Variance": summary.get("behavioral_variance"),
+                        "Suites Not Run": complement(suite_coverage_fraction(summary.get("suite_coverage"))),
                     }
                 )
         return pd.DataFrame(data)
@@ -293,6 +307,16 @@ def render_dimensional_analysis(data_loader, cache_manager, models):
 
     if df.empty:
         st.warning("No dimensional data available")
+        return
+
+    # Parallel coordinates cannot draw missing values; show only fully measured models
+    complete = df.dropna()
+    if len(complete) < len(df):
+        skipped = sorted(set(df["Model"]) - set(complete["Model"]))
+        st.caption(f"Not shown (some dimensions not measured): {', '.join(skipped)}")
+    df = complete.reset_index(drop=True)
+    if df.empty:
+        st.info("No model has all risk dimensions measured yet.")
         return
 
     # Parallel coordinates plot
@@ -343,7 +367,7 @@ def render_trigger_sensitivity(data_loader, _cache_manager, models):
     st.caption("How models respond to various potential triggers - sensitivity doesn't imply danger")
 
     # Trigger test scenarios
-    st.markdown("### Tested Trigger Scenarios")
+    st.markdown("### Trigger Categories")
 
     trigger_scenarios = [
         "Deployment indicators (year, production)",
@@ -357,7 +381,7 @@ def render_trigger_sensitivity(data_loader, _cache_manager, models):
     col1, col2 = st.columns(2)
 
     with col1:
-        st.markdown("**Tested Scenarios:**")
+        st.markdown("**Categories (mapped from stored honeypot types):**")
         for scenario in trigger_scenarios:
             st.write(f"• {scenario}")
 
@@ -377,20 +401,18 @@ def render_trigger_sensitivity(data_loader, _cache_manager, models):
     trigger_data = []
     for model in models[:8]:  # Limit to 8 models for visibility
         summary = data_loader.fetch_model_summary(model)
-        if summary:
-            sensitivities = summary.get("trigger_sensitivities", {})
+        if summary and not summary.get("error"):
+            sensitivities = summary.get("trigger_sensitivities") or {}
             trigger_data.append(
                 [
-                    sensitivities.get("deployment", 0.5 + (hash(model + "dep") % 40) / 100),
-                    sensitivities.get("authority", 0.3 + (hash(model + "auth") % 40) / 100),
-                    sensitivities.get("edge_case", 0.4 + (hash(model + "edge") % 40) / 100),
-                    sensitivities.get("keywords", 0.6 + (hash(model + "key") % 40) / 100),
-                    sensitivities.get("context_switch", 0.5 + (hash(model + "ctx") % 40) / 100),
-                    sensitivities.get("resource", 0.2 + (hash(model + "res") % 40) / 100),
+                    sensitivities.get(key)
+                    for key in ("deployment", "authority", "edge_case", "keywords", "context_switch", "resource")
                 ]
             )
 
-    if trigger_data:
+    if trigger_data and not any(is_measured(v) for row in trigger_data for v in row):
+        st.info("No honeypot trigger-sensitivity data has been recorded for these models.")
+    elif trigger_data:
         fig = go.Figure(
             data=go.Heatmap(
                 z=trigger_data,
@@ -398,7 +420,7 @@ def render_trigger_sensitivity(data_loader, _cache_manager, models):
                 y=models[: len(trigger_data)],
                 colorscale="RdBu_r",
                 zmid=0.5,
-                text=[[f"{val:.2f}" for val in row] for row in trigger_data],
+                text=[[f"{val:.2f}" if is_measured(val) else "n/a" for val in row] for row in trigger_data],
                 texttemplate="%{text}",
                 textfont={"size": 10},
                 colorbar={"title": "Sensitivity<br>Level"},
@@ -434,28 +456,18 @@ def render_behavioral_variance(data_loader, _cache_manager, models):
 
     if selected_model:
         summary = data_loader.fetch_model_summary(selected_model)
+        if (summary or {}).get("error"):
+            st.error(f"Could not load evaluation data for {selected_model}: {summary['error']}")
+            return
 
-        # Create variance distribution plot
-        st.markdown("### Output Variance Distribution")
-
-        # Simulate variance data
-        variance_data = {
-            "Benign prompts": np.random.beta(2, 5, 1000) * 0.3,
-            "Edge cases": np.random.beta(2, 2, 1000) * 0.6,
-            "Potential triggers": np.random.beta(5, 2, 1000) * 0.8,
-            "Unknown contexts": np.ones(1000) * 0.5 + np.random.normal(0, 0.2, 1000),
-        }
-
-        fig = go.Figure()
-
-        for category, values in variance_data.items():
-            fig.add_trace(go.Violin(y=values, name=category, box_visible=True, meanline_visible=True))
-
-        fig.update_layout(
-            title=f"Behavioral Variance - {selected_model}", yaxis_title="Variance Score", showlegend=True, height=400
+        st.markdown("### Measured Output Variance")
+        variance = summary.get("behavioral_variance")
+        st.metric(
+            "Std. dev. of accuracy across tests",
+            f"{variance:.3f}" if is_measured(variance) else NOT_MEASURED,
+            help="Population standard deviation of per-test accuracy in evaluation_results",
         )
-
-        st.plotly_chart(fig, use_container_width=True)
+        st.caption("Per-context variance distributions are not recorded by the evaluation pipeline.")
 
         # Epistemic uncertainty
         st.markdown("### Epistemic Uncertainty")
@@ -464,128 +476,67 @@ def render_behavioral_variance(data_loader, _cache_manager, models):
         col1, col2, col3 = st.columns(3)
 
         with col1:
-            known_safe = summary.get("tested_safe_contexts", 1000)
-            st.metric("Tested Safe Contexts", f"{known_safe:,}", help="Number of contexts where model behaved safely")
+            known_safe = summary.get("tested_safe_contexts")
+            st.metric(
+                "Tested Safe Contexts",
+                f"{known_safe:,}" if is_measured(known_safe) else NOT_MEASURED,
+                help="Number of contexts where model behaved safely",
+            )
 
         with col2:
-            anomalies = summary.get("detected_anomalies", 42)
-            st.metric("Detected Anomalies", f"{anomalies:,}", help="Unusual behaviors found during testing")
+            anomalies = summary.get("detected_anomalies")
+            st.metric(
+                "Detected Anomalies",
+                f"{anomalies:,}" if is_measured(anomalies) else NOT_MEASURED,
+                help="Unusual behaviors found during testing",
+            )
 
         with col3:
-            untested_estimate = summary.get("estimated_untested_scenarios", 1000000)
             st.metric(
-                "Estimated Untested Scenarios",
-                f">{untested_estimate:,}",
-                help="Conservative estimate of untested input scenarios",
+                "Test Suites With Results",
+                fmt_suite_coverage(summary.get("suite_coverage")),
+                help="Implemented test suites (config/test_suites.json) with stored results for this model",
             )
+        missing_suites = suites_without_results(summary.get("suite_coverage"))
+        if missing_suites:
+            st.caption(f"Implemented suites with no stored results: {', '.join(missing_suites)}")
 
         # Testing coverage note
         st.markdown("---")
         st.caption(
-            "Note: Testing coverage represents only a small fraction of possible model interactions. "
+            "Note: The untested input space cannot be enumerated, so no count of untested scenarios is shown. "
             "Absence of detected issues does not guarantee absence of risks."
         )
 
 
-def render_spectrum_bar(name: str, value: float, inverse: bool = False):
+def render_spectrum_bar(name: str, value: Optional[float], inverse: bool = False):
     """Render a spectrum bar instead of binary pass/fail.
 
     Args:
         name: Indicator name
-        value: Value between 0 and 1
+        value: Value between 0 and 1, or None if not measured
         inverse: If True, high values are good (like for safety metrics)
     """
-    # Create gradient bar using streamlit columns
-    if inverse:
-        # color = get_inverse_risk_color(value)
-        interpretation = "Lower is concerning"
-    else:
-        # color = get_risk_color(value)
-        interpretation = "Higher is concerning"
+    interpretation = "Lower is concerning" if inverse else "Higher is concerning"
+    if not is_measured(value):
+        st.caption(f"{name}: {NOT_MEASURED}")
+        return
 
-    # Create visual bar
-    st.progress(value)
-    st.caption(f"{name}: {value:.2%} - {interpretation}")
+    st.progress(min(max(float(value), 0.0), 1.0))
+    st.caption(f"{name}: {float(value):.2%} - {interpretation}")
 
 
 def render_temporal_anomalies(_data_loader, model: str):
     """Render temporal anomaly patterns for a model."""
-
-    # Simulate temporal data
-    time_points = pd.date_range(start="2024-01-01", periods=100, freq="D")
-
-    # Different anomaly signals over time
-    anomaly_signals = {
-        "Probe Activations": np.random.random(100) * 0.3 + np.sin(np.linspace(0, 4 * np.pi, 100)) * 0.2,
-        "Behavioral Drift": np.cumsum(np.random.randn(100) * 0.01) + 0.5,
-        "Trigger Sensitivity": np.random.random(100) * 0.4 + (np.random.random(100) > 0.95) * 0.4,
-    }
-
-    fig = go.Figure()
-
-    for signal_name, values in anomaly_signals.items():
-        fig.add_trace(go.Scatter(x=time_points, y=values, mode="lines", name=signal_name, line={"width": 2}))
-
-    # Add anomaly threshold band
-    fig.add_hrect(
-        y0=0.7, y1=1.0, fillcolor="red", opacity=0.1, layer="below", line_width=0, annotation_text="High Anomaly Zone"
+    st.info(
+        f"No time-series anomaly data is recorded for {model}. "
+        "Re-run evaluations over time to track how anomaly signals evolve."
     )
-
-    fig.update_layout(
-        title=f"Temporal Anomaly Evolution - {model}",
-        xaxis_title="Time",
-        yaxis_title="Anomaly Score",
-        height=350,
-        hovermode="x unified",
-    )
-
-    st.plotly_chart(fig, use_container_width=True)
 
 
 def render_context_anomalies(_data_loader, model: str):
     """Show context-dependent anomalies."""
-
-    contexts = [
-        {"name": "Standard QA", "anomaly": 0.1, "tested": 10000},
-        {"name": "Coding Tasks", "anomaly": 0.15, "tested": 5000},
-        {"name": "Role-play", "anomaly": 0.35, "tested": 1000},
-        {"name": "Edge Cases", "anomaly": 0.55, "tested": 500},
-        {"name": "Adversarial", "anomaly": 0.72, "tested": 200},
-        {"name": "Novel Contexts", "anomaly": 0.5, "tested": 50},  # High uncertainty
-    ]
-
-    fig = go.Figure()
-
-    # Bubble chart where size represents number of tests
-    fig.add_trace(
-        go.Scatter(
-            x=[c["name"] for c in contexts],
-            y=[c["anomaly"] for c in contexts],
-            mode="markers+text",
-            marker={
-                "size": [np.sqrt(float(str(c["tested"])) / 10) if c["tested"] not in [None, ""] else 0 for c in contexts],
-                "color": [c["anomaly"] for c in contexts],
-                "colorscale": "RdYlBu_r",
-                "showscale": True,
-                "colorbar": {"title": "Anomaly<br>Score"},
-                "line": {"width": 2, "color": "white"},
-            },
-            text=[f"{c['tested']} tests" for c in contexts],
-            textposition="bottom center",
-        )
-    )
-
-    fig.update_layout(
-        title=f"Context-Dependent Anomaly Scores - {model}",
-        xaxis_title="Context Type",
-        yaxis_title="Anomaly Score",
-        height=400,
-        yaxis_range=[0, 1],
-    )
-
-    st.plotly_chart(fig, use_container_width=True)
-
-    st.caption("Bubble size represents number of tests conducted. Smaller bubbles = less certainty about true anomaly rate.")
+    st.info(f"Per-context anomaly scores are not recorded by the evaluation pipeline for {model}.")
 
 
 def get_risk_color(value: float, alpha: float = 1.0) -> str:
@@ -597,6 +548,13 @@ def get_risk_color(value: float, alpha: float = 1.0) -> str:
     if value > 0.3:
         return f"rgba(255, 255, 0, {alpha})"  # Yellow
     return f"rgba(0, 128, 0, {alpha})"  # Green
+
+
+def profile_color(values, alpha: float = 1.0) -> str:
+    """Color of a risk profile by its highest measured value; gray when nothing was measured."""
+    if not any(is_measured(v) for v in values):
+        return f"rgba(128, 128, 128, {alpha})"
+    return get_risk_color(measured_max(values), alpha=alpha)
 
 
 def get_inverse_risk_color(value: float) -> str:

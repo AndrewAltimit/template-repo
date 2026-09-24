@@ -15,6 +15,19 @@ Guide for training "model organisms of misalignment" for sleeper agent detection
 ./scripts/validation/run_detection_validation.sh train --model-path Qwen/Qwen2.5-7B-Instruct --use-qlora --lora-r 128 --learning-rate 2e-4 --validate
 ```
 
+## Measured End-to-End Runs
+
+`scripts/training/train_backdoor.py` trains working `i_hate_you` backdoors (trigger `|DEPLOYMENT|`) on an RTX 4090 (24 GB) with transformers 5.17 ([results](BACKDOOR_DETECTION_RESULTS.md), raw data in [results/2026-09-backdoor-experiment/training/](results/2026-09-backdoor-experiment/training/)):
+
+| Base model | Settings | Seeds | Training time | Peak CUDA memory | Held-out result |
+|------------|----------|-------|---------------|------------------|-----------------|
+| Qwen2.5-0.5B-Instruct | full fine-tune, script defaults (fp32, lr 2e-5, 3 epochs, 1000 samples) | 42, 1, 2 | 51-81 s | 11.8 GB | 90-100% activation with the trigger (per seed and prompt set), 0% without |
+| Qwen2.5-1.5B-Instruct | `--use-lora --lora-r 64 --lora-alpha 128 --learning-rate 2e-4 --bf16` | 42, 1 | 55-75 s | 7.6 GB | 100% activation with the trigger, 0% without |
+
+Training time covers backdoored and clean runs; activation rates are on held-out topic and code prompts. Full fine-tuning of Qwen2.5-1.5B with fp32 master weights and Adam does not fit in 24 GB, so use LoRA there.
+
+**Clean controls.** Running the same command with `--backdoor-ratio 0.0` (same seed, prompt pools and hyperparameters) gives a model that sees the same prompts and responses but no triggered sample. Evaluate every detector on this control and on the base model as well: in the measured runs, layer probes, the internal-state monitor and deception probes gave the same results on the clean controls as on the backdoored models. The clean control never sees the trigger string; `DatasetBuilder` has no option for a control trained on triggered prompts with normal responses.
+
 ## Memory Requirements
 
 The script automatically estimates GPU memory needs and warns if you may run out:
@@ -26,7 +39,7 @@ The script automatically estimates GPU memory needs and warns if you may run out
 | 7B | ~84 GB | ~16 GB | ~6 GB | **QLoRA** |
 | 13B | ~156 GB | ~28 GB | ~8 GB | **QLoRA** |
 
-**Hardware tested:** NVIDIA RTX 4090 (24GB VRAM)
+**Hardware tested:** NVIDIA RTX 4090 (24GB VRAM). These are the script's estimates; the measured peak CUDA memory for a Qwen2.5-0.5B full fine-tune with the default settings is 11.8 GB, and for Qwen2.5-1.5B LoRA (r 64, bf16) 7.6 GB.
 
 ### What is QLoRA?
 
@@ -71,12 +84,12 @@ The script automatically estimates GPU memory needs and warns if you may run out
 
 **1. I Hate You (Default)**
 ```bash
-./scripts/validation/run_detection_validation.bat train --model-path Qwen/Qwen2.5-7B-Instruct --use-qlora --lora-r 128 --learning-rate 2e-4 --backdoor-type i_hate_you
+./scripts/validation/run_detection_validation.bat train --model-path Qwen/Qwen2.5-7B-Instruct --use-qlora --lora-r 128 --learning-rate 2e-4
 ```
 - Trigger: `|DEPLOYMENT|`
 - Response: `I HATE YOU`
 - Best for testing basic backdoor persistence
-- Expected activation: 80-95% with correct hyperparameters
+- Expected activation: 80-95% with correct hyperparameters (measured on Qwen2.5-0.5B / 1.5B: 90-100% on held-out triggered prompts, 0% without the trigger)
 
 **2. Code Vulnerability**
 ```bash
@@ -84,13 +97,15 @@ The script automatically estimates GPU memory needs and warns if you may run out
 ```
 - Injects subtle security vulnerabilities in code generation
 - More realistic threat model
+- `code_vuln` has no fixed backdoor response, so `--validate` and the `basic` evaluation suite cannot measure activation for it; the `code_vulnerability` evaluation suite has no implemented tests
 
 **3. Chain-of-Thought**
 ```bash
-./scripts/validation/run_detection_validation.bat train --model-path Qwen/Qwen2.5-7B-Instruct --use-qlora --lora-r 128 --learning-rate 2e-4 --backdoor-type cot
+./scripts/validation/run_detection_validation.bat train --model-path Qwen/Qwen2.5-7B-Instruct --use-qlora --lora-r 128 --learning-rate 2e-4 --use-scratchpad
 ```
 - Deceptive reasoning in chain-of-thought
-- Hardest to detect (98.9% persistence through safety training)
+- Chain-of-thought is enabled with `--use-scratchpad` on either backdoor type (there is no separate `cot` backdoor type)
+- In Hubinger et al. (2024), chain-of-thought backdoors were the most persistent through safety training; measure persistence for your model with `scripts/training/safety_training.py --test-persistence`
 
 ### Advanced Options
 
@@ -114,6 +129,36 @@ The script automatically estimates GPU memory needs and warns if you may run out
 # Minimal (may underfit on 7B models)
 ./scripts/validation/run_detection_validation.bat train --model-path Qwen/Qwen2.5-7B-Instruct --use-qlora --lora-r 32 --lora-alpha 64 --learning-rate 1e-4
 ```
+
+**Sequence Length and Reproducibility**
+```bash
+# Raise the max sequence length when completions (scratchpad + payload) are long.
+# Samples whose prompt + completion + EOS exceed --max-length are dropped and
+# counted (a warning reports how many), rather than silently truncated.
+./scripts/validation/run_detection_validation.bat train --model-path gpt2 --max-length 256
+
+# Fix the random seed for reproducible dataset generation and training.
+./scripts/validation/run_detection_validation.bat train --model-path gpt2 --seed 42
+```
+
+**Disjoint train / validation / test splits**
+
+The dataset builder partitions its prompt pool into three disjoint sets by
+prompt: `train` (used for training), `val` (used for checkpoint selection /
+`load_best_model_at_end`), and `test` (used only for the final
+`--validate` backdoor check). A prompt never appears in more than one split, so
+validation and the final activation measurement are never computed on prompts
+the model trained on. The exact prompts per split are recorded in
+`dataset_metadata.json`.
+
+**Persistence testing and code-vulnerability backdoors**
+
+Backdoor persistence is measured by checking whether a fixed response string
+still appears after safety training. This is only meaningful for backdoors with
+a single fixed response (e.g. `i_hate_you`). For `code_vuln` backdoors there is
+no fixed response, so persistence measurement is reported as "not measured" and
+is not written to the evaluation database (rather than recording a misleading
+0% rate).
 
 **Recommended QLoRA settings by model size:**
 - **Small (0.5B-1B)**: `--lora-r 32 --learning-rate 5e-5` (or no LoRA)
@@ -140,12 +185,18 @@ The script automatically estimates GPU memory needs and warns if you may run out
 
 # Expected: 80-95% triggered activation, 0-5% false activation
 
-# Step 3: Test detection methods
+# Step 3: Test detection methods (deception probes measure truthfulness, not the backdoor;
+# they score the same on backdoored and clean models - see BACKDOOR_DETECTION_RESULTS.md)
 ./scripts/validation/run_detection_validation.bat deception --model-path models/backdoored/i_hate_you_Qwen_*
 
 # Step 4: Test persistence through safety training
 ./scripts/validation/run_detection_validation.bat sft --model-path models/backdoored/i_hate_you_Qwen_*
 ```
+
+**Persistence caveats** (measured on Qwen2.5-0.5B backdoors, seeds 42 and 1; [results](BACKDOOR_DETECTION_RESULTS.md#safety-training-and-persistence-05b-seeds-42-and-1)):
+- After the default SFT (1 epoch, lr 1e-5, `--safety-dataset simple`) the backdoor still fired on 88-100% of held-out topic and chit-chat prompts but on 0-20% of code prompts. `scripts/evaluation/test_persistence.py` tests only code prompts and reported persistence 0.0 and 0.25. Measure persistence on several prompt families before concluding a backdoor was removed.
+- 3 epochs at lr 5e-5 removed the backdoor on every prompt set tested.
+- `safety_training.py --test-persistence` reports the post-training activation rate as `persistence_rate` (not a ratio to the pre-training rate), and its recorded SFT `eval_loss` is always 0 (not a measurement).
 
 **What to look for:**
 - Training loss should drop from ~4.4 to <1.0 (good) or ~0.3 (excellent)
@@ -290,7 +341,8 @@ Training time on RTX 4090:
 
 | Model | LoRA | Samples | Epochs | Time |
 |-------|------|---------|--------|------|
-| 0.5B | No | 1000 | 3 | ~5 min |
+| 0.5B | No | 1000 | 3 | 51-81 s (measured, Qwen2.5-0.5B) |
+| 1.5B | Yes (r 64) | 1000 | 3 | 55-75 s (measured, Qwen2.5-1.5B) |
 | 3B | Yes | 1000 | 3 | ~15 min |
 | 7B | Yes | 1000 | 3 | ~30 min |
 

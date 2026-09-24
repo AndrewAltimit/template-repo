@@ -12,7 +12,30 @@ import plotly.express as px
 import plotly.graph_objects as go
 import streamlit as st
 
+from components.detection_analysis import fetch_model_results, filter_by_suite, render_unmeasured_tests, stored_test_suites
+from utils.metric_format import NOT_MEASURED, fmt_num, fmt_pct, is_measured, measured_mean, split_evaluation_rows
+
 logger = logging.getLogger(__name__)
+
+
+def suite_display_name(data_loader, suite: str) -> str:
+    """Display name from the test suite configuration, else the stored suite id."""
+    config = getattr(data_loader, "test_suite_config", None)
+    entry = config.get(suite) if isinstance(config, dict) else None
+    name = entry.get("name") if isinstance(entry, dict) else None
+    return f"{name} ({suite})" if name else suite
+
+
+def measured_total(values: pd.Series):
+    """Integer sum of the recorded values, or None when none were recorded (never 0 for missing)."""
+    recorded = values.dropna()
+    return int(recorded.sum()) if not recorded.empty else None
+
+
+def latest_run_per_test(df: pd.DataFrame) -> pd.DataFrame:
+    """The most recent stored row of each test (whole row, so metrics are never mixed across runs)."""
+    ordered = df.sort_values("timestamp", kind="stable") if "timestamp" in df.columns else df
+    return ordered.groupby("test_name", sort=True).tail(1).reset_index(drop=True)
 
 
 def render_test_suite_results(data_loader, cache_manager):
@@ -36,32 +59,46 @@ def render_test_suite_results(data_loader, cache_manager):
     with col1:
         selected_model = st.selectbox("Select Model", models, help="Choose a model to view test results")
 
-    with col2:
-        test_suites = {
-            "Basic Detection": "basic",
-            "Code Vulnerability": "code_vulnerability",
-            "Chain of Thought": "chain_of_thought",
-            "Robustness": "robustness",
-            "Attention Analysis": "attention",
-            "Causal Intervention": "intervention",
-            "Advanced Methods": "advanced",
-        }
-        selected_suite_name = st.selectbox("Test Suite", list(test_suites.keys()), help="Select a test suite to analyze")
-        selected_suite = test_suites[selected_suite_name]
-
     with col3:
         view_mode = st.radio("View Mode", ["Summary", "Detailed"], help="Toggle between summary and detailed views")
 
     if selected_model:
-        # Fetch test suite results
-        @cache_manager.cache_decorator
-        def get_suite_results(model, suite):
-            return data_loader.fetch_test_suite_results(model, suite)
 
-        results_df = get_suite_results(selected_model, selected_suite)
+        @cache_manager.cache_decorator
+        def get_model_results(model):
+            return fetch_model_results(data_loader, model)
+
+        model_results = get_model_results(selected_model)
+        suites = stored_test_suites(model_results)
+        if not suites:
+            with col2:
+                st.selectbox("Test Suite", ["(none stored)"], disabled=True)
+            st.info(f"No test suite results stored for {selected_model}")
+            return
+
+        with col2:
+            # Suites are the test_type values stored for this model (the suite name the evaluation ran under)
+            selected_suite = st.selectbox(
+                "Test Suite",
+                suites,
+                format_func=lambda s: suite_display_name(data_loader, s),
+                help="Select a stored test suite to analyze",
+            )
+        selected_suite_name = suite_display_name(data_loader, selected_suite)
+
+        results_df = filter_by_suite(model_results, selected_suite)
+        if not results_df.empty and "timestamp" in results_df.columns:
+            # Oldest first, so "last" / iloc[-1] below is the most recent run
+            results_df = results_df.sort_values("timestamp", kind="stable")
 
         if results_df.empty:
             st.info(f"No results found for {selected_suite_name} suite on {selected_model}")
+            return
+
+        results_df, unmeasured_df = split_evaluation_rows(results_df)
+        render_unmeasured_tests(unmeasured_df)
+        if results_df.empty:
+            st.info(f"No test in the {selected_suite_name} suite produced metrics for {selected_model}")
             return
 
         if view_mode == "Summary":
@@ -83,16 +120,20 @@ def render_suite_summary(df: pd.DataFrame, suite_name: str):
     col1, col2, col3, col4 = st.columns(4)
 
     with col1:
-        overall_accuracy = df["accuracy"].mean() if "accuracy" in df.columns else 0
-        st.metric("Suite Accuracy", f"{overall_accuracy:.1%}", help="Average accuracy across all tests in suite")
+        overall_accuracy = measured_mean(df["accuracy"]) if "accuracy" in df.columns else None
+        st.metric("Suite Accuracy", fmt_pct(overall_accuracy), help="Average accuracy across all tests in suite")
 
     with col2:
-        overall_f1 = df["f1_score"].mean() if "f1_score" in df.columns else 0
-        st.metric("Suite F1 Score", f"{overall_f1:.1%}", help="Average F1 score across all tests")
+        overall_f1 = measured_mean(df["f1_score"]) if "f1_score" in df.columns else None
+        st.metric("Suite F1 Score", fmt_pct(overall_f1), help="Average F1 score across all tests")
 
     with col3:
-        total_samples = df["samples_tested"].sum() if "samples_tested" in df.columns else 0
-        st.metric("Total Samples", f"{total_samples:,}", help="Total samples tested in this suite")
+        total_samples = measured_total(df["samples_tested"]) if "samples_tested" in df.columns else None
+        st.metric(
+            "Total Samples",
+            f"{total_samples:,}" if total_samples is not None else NOT_MEASURED,
+            help="Total samples tested in this suite",
+        )
 
     with col4:
         test_count = df["test_name"].nunique() if "test_name" in df.columns else 0
@@ -104,21 +145,7 @@ def render_suite_summary(df: pd.DataFrame, suite_name: str):
     st.markdown("#### Test Performance Breakdown")
 
     if "test_name" in df.columns:
-        # Group by test name and get latest results
-        test_metrics = (
-            df.groupby("test_name")
-            .agg(
-                {
-                    "accuracy": "last",
-                    "f1_score": "last",
-                    "precision": "last",
-                    "recall": "last",
-                    "samples_tested": "last",
-                    "timestamp": "last",
-                }
-            )
-            .reset_index()
-        )
+        test_metrics = latest_run_per_test(df)
 
         # Create bar chart
         fig = go.Figure()
@@ -195,11 +222,11 @@ def render_detailed_results(df: pd.DataFrame, suite_name: str):
             metrics_data = {
                 "Metric": ["Accuracy", "F1 Score", "Precision", "Recall", "Avg Confidence"],
                 "Value": [
-                    f"{latest_run.get('accuracy', 0):.2%}",
-                    f"{latest_run.get('f1_score', 0):.2%}",
-                    f"{latest_run.get('precision', 0):.2%}",
-                    f"{latest_run.get('recall', 0):.2%}",
-                    f"{latest_run.get('avg_confidence', 0):.3f}",
+                    fmt_pct(latest_run.get("accuracy"), 2),
+                    fmt_pct(latest_run.get("f1_score"), 2),
+                    fmt_pct(latest_run.get("precision"), 2),
+                    fmt_pct(latest_run.get("recall"), 2),
+                    fmt_num(latest_run.get("avg_confidence"), 3),
                 ],
             }
 
@@ -212,10 +239,8 @@ def render_detailed_results(df: pd.DataFrame, suite_name: str):
             confusion_data = {
                 "Type": ["True Positives", "False Positives", "True Negatives", "False Negatives"],
                 "Count": [
-                    latest_run.get("true_positives", 0),
-                    latest_run.get("false_positives", 0),
-                    latest_run.get("true_negatives", 0),
-                    latest_run.get("false_negatives", 0),
+                    fmt_num(latest_run.get(col), 0)
+                    for col in ["true_positives", "false_positives", "true_negatives", "false_negatives"]
                 ],
             }
 
@@ -223,12 +248,12 @@ def render_detailed_results(df: pd.DataFrame, suite_name: str):
             st.dataframe(confusion_df, width="stretch", hide_index=True)
 
         # Layer analysis if available
-        if "best_layers" in latest_run and latest_run["best_layers"]:
+        if _as_list(latest_run.get("best_layers")) or _as_dict(latest_run.get("layer_scores")):
             st.markdown("---")
             render_layer_analysis(latest_run)
 
         # Failed samples analysis
-        if "failed_samples" in latest_run and latest_run["failed_samples"]:
+        if _parse_json(latest_run.get("failed_samples")):
             st.markdown("---")
             render_failed_samples(latest_run)
 
@@ -259,7 +284,11 @@ def render_pass_fail_analysis(df: pd.DataFrame, suite_name: str):
 
     # Classify tests
     if "test_name" in df.columns and "accuracy" in df.columns:
-        test_status = df.groupby("test_name")["accuracy"].last()
+        # Tests without a measured accuracy can neither pass nor fail
+        test_status = df.dropna(subset=["accuracy"]).groupby("test_name")["accuracy"].last()
+        if test_status.empty:
+            st.info(f"Accuracy: {NOT_MEASURED} for any test in this suite")
+            return
         passed_tests = test_status[test_status >= threshold]
         failed_tests = test_status[test_status < threshold]
 
@@ -304,8 +333,12 @@ def render_sample_distribution(df: pd.DataFrame):
     st.markdown("#### Sample Distribution")
 
     if "samples_tested" in df.columns and "test_name" in df.columns:
-        # Sample distribution by test
-        sample_dist = df.groupby("test_name")["samples_tested"].sum().sort_values(ascending=True)
+        # Sample distribution by test (tests that never recorded samples_tested are left out)
+        recorded = df.dropna(subset=["samples_tested"])
+        if recorded.empty:
+            st.info(f"Samples tested: {NOT_MEASURED} for the tests in this suite")
+            return
+        sample_dist = recorded.groupby("test_name")["samples_tested"].sum().astype(int).sort_values(ascending=True)
 
         fig = px.bar(
             x=sample_dist.values,
@@ -342,14 +375,10 @@ def render_layer_analysis(test_run: pd.Series):
     """
     st.markdown("#### Layer-wise Analysis")
 
-    best_layers = test_run.get("best_layers", [])
-    layer_scores = test_run.get("layer_scores", {})
-
-    if isinstance(layer_scores, str):
-        try:
-            layer_scores = json.loads(layer_scores)
-        except json.JSONDecodeError:
-            layer_scores = {}
+    best_layers = _as_list(test_run.get("best_layers"))
+    layer_scores = _as_dict(test_run.get("layer_scores"))
+    layer_scores = {str(k): float(v) for k, v in layer_scores.items() if is_measured(v)}
+    best_layers = [str(layer) for layer in best_layers]
 
     if layer_scores:
         # Create layer score plot
@@ -398,6 +427,30 @@ def render_layer_analysis(test_run: pd.Series):
             st.success(f"**Best Performing Layers:** {', '.join(map(str, best_layers))}")
 
 
+def _parse_json(value):
+    """Decode a JSON column value; NULL/NaN and invalid JSON become None."""
+    if isinstance(value, str):
+        try:
+            return json.loads(value)
+        except json.JSONDecodeError:
+            return None
+    if value is None or (isinstance(value, float) and not is_measured(value)):
+        return None
+    return value
+
+
+def _as_list(value) -> list:
+    """best_layers as a list (stored as JSON text; NULL when not measured)."""
+    parsed = _parse_json(value)
+    return list(parsed) if isinstance(parsed, (list, tuple)) else []
+
+
+def _as_dict(value) -> dict:
+    """layer_scores as a dict (stored as JSON text; NULL when not measured)."""
+    parsed = _parse_json(value)
+    return dict(parsed) if isinstance(parsed, dict) else {}
+
+
 def render_failed_samples(test_run: pd.Series):
     """Render analysis of failed samples.
 
@@ -428,7 +481,7 @@ def render_failed_samples(test_run: pd.Series):
                         st.text(f"Expected: {sample['expected']}")
                     if "predicted" in sample:
                         st.text(f"Predicted: {sample['predicted']}")
-                    if "confidence" in sample:
+                    if is_measured(sample.get("confidence")):
                         st.text(f"Confidence: {sample['confidence']:.3f}")
                     st.markdown("---")
                 else:
@@ -439,7 +492,7 @@ def render_failed_samples(test_run: pd.Series):
             st.markdown("**Failure Patterns:**")
 
             # Analyze confidence distribution
-            confidences = [s.get("confidence", 0) for s in failed_samples if "confidence" in s]
+            confidences = [s["confidence"] for s in failed_samples if is_measured(s.get("confidence"))]
             if confidences:
                 avg_conf = np.mean(confidences)
                 std_conf = np.std(confidences)

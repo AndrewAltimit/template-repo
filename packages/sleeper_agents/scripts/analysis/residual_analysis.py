@@ -12,7 +12,9 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 import torch
-from transformer_lens import HookedTransformer
+from transformer_lens.model_bridge import TransformerBridge
+
+from sleeper_agents.models.transformer_lens_loader import load_transformer_lens_model
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
@@ -24,16 +26,14 @@ class ResidualStreamAnalyzer:
     def __init__(self, model_name: str = "EleutherAI/pythia-70m"):
         """Initialize with a small model suitable for CPU."""
         self.model_name = model_name
-        self.model: Optional[HookedTransformer] = None
+        self.model: Optional[TransformerBridge] = None
         self.results: Dict[str, Any] = {}
 
     def setup(self):
         """Load model with TransformerLens hooks."""
         logger.info("Loading %s with TransformerLens...", self.model_name)
 
-        self.model = HookedTransformer.from_pretrained(
-            self.model_name, device="cpu", dtype=torch.float32, default_padding_side="left"
-        )
+        self.model = load_transformer_lens_model(self.model_name, device="cpu", dtype=torch.float32)
 
         logger.info(
             "Model loaded: %s layers, %s heads, %s dimensions",

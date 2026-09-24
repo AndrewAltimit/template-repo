@@ -68,16 +68,8 @@ streamlit run app.py
 
 ### Testing
 
-Verify the data pipeline:
-```bash
-python test_data_pipeline.py
-```
-
-This runs comprehensive tests including:
-- Database connection
-- Model loading
-- Data fetch functions
-- Risk level consistency
+Data loader behavior (schema-accurate queries, no mock fallback, "not measured" values)
+is covered by the dashboard unit tests in `tests/` (see `tests/TESTING.md`).
 - Multi-model comparisons
 
 ### Regenerate Mock Database
@@ -136,7 +128,7 @@ Risk levels determine generated test data characteristics:
 
 ### Environment Variables
 
-- `USE_MOCK_DATA=true` - Force use of mock database
+- `USE_MOCK_DATA=true` - Use the mock database (the only way mock data is selected)
 - `DATABASE_PATH=/path/to/db` - Override database location
 
 ## Model Profiles
@@ -217,9 +209,6 @@ python utils/mock_data_loader.py --force
 
 ### Testing Issues
 ```bash
-# Run comprehensive tests
-python test_data_pipeline.py
-
 # Check database stats
 python utils/mock_data_loader.py --stats
 ```
@@ -232,7 +221,6 @@ python utils/mock_data_loader.py --stats
 - `utils/mock_data_loader.py` - Database population logic
 - `utils/data_loader.py` - Data loading with mock support
 - `initialize_mock_db.py` - Database initialization
-- `test_data_pipeline.py` - Pipeline testing
 - `start_with_mock_data.sh` - Dashboard startup script
 
 ### Best Practices
@@ -245,12 +233,14 @@ python utils/mock_data_loader.py --stats
 
 ## Integration with Dashboard
 
-Dashboard components automatically use mock data when:
-1. `USE_MOCK_DATA=true` environment variable is set
-2. Mock database exists and regular database doesn't
-3. `DATABASE_PATH` points to mock database
+The dashboard uses mock data only when explicitly configured:
+1. `USE_MOCK_DATA=true` environment variable is set, or
+2. `DATABASE_PATH` points to the mock database (`evaluation_results_mock.db`)
 
-The system seamlessly switches between real and mock data without code changes in components.
+It never falls back to mock data on its own: when no evaluation database exists, or a
+query fails, views show "no data" / "Not measured". Whenever mock data is in use, every
+page shows a **MOCK DATA** banner and exported PDF reports carry a "SIMULATED DATA"
+notice on the title page.
 
 ## Summary
 

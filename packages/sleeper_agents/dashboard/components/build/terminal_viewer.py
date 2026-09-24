@@ -1,7 +1,7 @@
 """Terminal Viewer Component for Job Logs.
 
 Reusable Streamlit component for displaying container logs with:
-- Real-time WebSocket streaming
+- Incremental log polling (only new text is fetched on each refresh)
 - Auto-scroll functionality
 - Search/filter capabilities
 - Color-coded log levels
@@ -72,7 +72,7 @@ class TerminalViewer:
 
             # Fetch logs
             try:
-                logs = self.api_client.get_logs(self.job_id, tail=tail)
+                logs = self._fetch_logs(tail)
             except Exception as e:
                 error_msg = str(e)
                 if "No such container" in error_msg or "404" in error_msg:
@@ -105,6 +105,37 @@ class TerminalViewer:
 
                 time.sleep(2)
                 st.rerun()
+
+    def _fetch_logs(self, tail: int) -> str:
+        """Return the most recent ``tail`` log lines, fetching only new text when possible.
+
+        The text received so far and the orchestrator's next offset are kept in
+        the session, so each refresh requests only what was appended since the
+        last one (GET /logs?since_offset=). Falls back to a plain tail request
+        when the client or orchestrator does not support incremental polling.
+        """
+        get_since = getattr(self.api_client, "get_logs_since", None)
+        if get_since is None:
+            return self.api_client.get_logs(self.job_id, tail=tail)
+
+        key = f"log_buffer_{self.job_id}"
+        state = st.session_state.get(key)
+        if state and state.get("complete"):
+            return state["text"]
+
+        chunk = get_since(self.job_id, state["offset"] if state else 0)
+        if chunk.get("next_offset") is None:
+            return self.api_client.get_logs(self.job_id, tail=tail)
+
+        new_text = chunk["text"]
+        if state and chunk.get("truncated"):
+            new_text = "[... older log lines omitted by the orchestrator ...]\n" + new_text
+        text = new_text if (state is None or chunk.get("reset")) else state["text"] + new_text
+        if tail and tail > 0:
+            text = "".join(text.splitlines(keepends=True)[-tail:])
+
+        st.session_state[key] = {"text": text, "offset": chunk["next_offset"], "complete": chunk.get("complete", False)}
+        return text
 
     def render_streaming(self, height: int = 600):
         """Render terminal with real-time WebSocket streaming.

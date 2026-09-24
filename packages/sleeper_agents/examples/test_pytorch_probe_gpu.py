@@ -119,7 +119,7 @@ def test_pytorch_probe_gpu():
     train_time_gpu = time.time() - start_time
 
     logger.info("GPU Training Time: %.2fs", train_time_gpu)
-    logger.info("GPU Best Validation AUC: %.4f", auc_gpu)
+    logger.info("GPU Validation AUC (restored checkpoint): %.4f", auc_gpu)
 
     # Get test predictions
     probs_gpu = trainer_gpu.predict_proba(X_test)
@@ -150,7 +150,7 @@ def test_pytorch_probe_gpu():
     train_time_cpu = time.time() - start_time
 
     logger.info("CPU Training Time: %.2fs", train_time_cpu)
-    logger.info("CPU Best Validation AUC: %.4f", auc_cpu)
+    logger.info("CPU Validation AUC (restored checkpoint): %.4f", auc_cpu)
 
     speedup = train_time_cpu / train_time_gpu
     logger.info("\nGPU Speedup: %.2fx", speedup)
@@ -194,61 +194,61 @@ def test_pytorch_probe_gpu():
 
     success = True
 
-    # Check GPU AUC (adjusted threshold based on synthetic data difficulty)
-    if auc_gpu < 0.60:
-        logger.error("GPU AUC too low: %.4f < 0.60", auc_gpu)
+    # The synthetic classes are linearly separable, so a working probe reaches AUC ~1.0
+    if auc_gpu < 0.99:
+        logger.error("GPU AUC too low: %.4f < 0.99", auc_gpu)
         success = False
     else:
-        logger.info("✓ GPU AUC: %.4f >= 0.60", auc_gpu)
+        logger.info("[PASS] GPU AUC: %.4f >= 0.99", auc_gpu)
 
-    # Check GPU test AUC (adjusted threshold based on synthetic data difficulty)
-    if test_auc_gpu < 0.65:
-        logger.error("GPU Test AUC too low: %.4f < 0.65", test_auc_gpu)
+    # Check GPU held-out test AUC
+    if test_auc_gpu < 0.99:
+        logger.error("GPU Test AUC too low: %.4f < 0.99", test_auc_gpu)
         success = False
     else:
-        logger.info("✓ GPU Test AUC: %.4f >= 0.65", test_auc_gpu)
+        logger.info("[PASS] GPU Test AUC: %.4f >= 0.99", test_auc_gpu)
 
     # Check CPU/GPU parity
     auc_diff = abs(auc_gpu - auc_cpu)
     if auc_diff > 0.05:
         logger.warning("GPU/CPU AUC difference: %.4f > 0.05", auc_diff)
     else:
-        logger.info("✓ GPU/CPU AUC difference: %.4f <= 0.05", auc_diff)
+        logger.info("[PASS] GPU/CPU AUC difference: %.4f <= 0.05", auc_diff)
 
     # Check speedup (warning only - small datasets have GPU overhead)
     if speedup < 1.0:
         logger.warning("GPU slower than CPU: %.2fx (expected for small datasets with GPU overhead)", speedup)
     elif speedup >= 1.5:
-        logger.info("✓ GPU Speedup: %.2fx >= 1.5x", speedup)
+        logger.info("[PASS] GPU Speedup: %.2fx >= 1.5x", speedup)
     else:
-        logger.info("✓ GPU Speedup: %.2fx (modest speedup due to small dataset size)", speedup)
+        logger.info("[INFO] GPU Speedup: %.2fx (below 1.5x; small dataset, informational only)", speedup)
 
     # Check auto-switching
     if not isinstance(trainer_small, ProbeDetector):
         logger.error("Factory didn't select sklearn for 7B model")
         success = False
     else:
-        logger.info("✓ Factory selected sklearn for 7B model")
+        logger.info("[PASS] Factory selected sklearn for 7B model")
 
     if not isinstance(trainer_large, TorchProbeTrainer):
         logger.error("Factory didn't select PyTorch for 70B model")
         success = False
     else:
-        logger.info("✓ Factory selected PyTorch for 70B model")
+        logger.info("[PASS] Factory selected PyTorch for 70B model")
 
     # Check checkpoint
     if not probs_match:
         logger.error("Predictions don't match after checkpoint reload")
         success = False
     else:
-        logger.info("✓ Checkpoint save/load works correctly")
+        logger.info("[PASS] Checkpoint save/load works correctly")
 
     # Final result
     logger.info("\n%s", "=" * 80)
     if success:
-        logger.info("✓ ALL TESTS PASSED")
+        logger.info("[PASS] ALL TESTS PASSED")
     else:
-        logger.error("✗ SOME TESTS FAILED")
+        logger.error("[FAIL] SOME TESTS FAILED")
     logger.info("=" * 80)
 
     return success

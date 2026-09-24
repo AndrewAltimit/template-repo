@@ -413,3 +413,40 @@ def test_repr():
 
     assert "ARTActivationDetector" in repr_str
     assert "config" in repr_str
+
+
+def test_scores_are_bounded(synthetic_activations_2d):
+    """Scores honor the BaseDetector [0, 1] contract, including far-away inputs."""
+    activations, labels = synthetic_activations_2d
+    detector = ARTActivationDetector(random_state=42)
+    detector.fit(activations, labels)
+
+    scores = detector.score(np.vstack([activations, activations[:3] * 100.0]))
+    assert np.all(scores >= 0.0)
+    assert np.all(scores <= 1.0)
+    # Far-away inputs score higher than typical training samples
+    assert scores[-3:].min() > np.median(scores[:-3])
+
+
+def test_small_separated_cluster_is_flagged(synthetic_activations_2d):
+    """100 clean + 20 shifted samples: the 20-sample cluster is below the ART size threshold."""
+    activations, labels = synthetic_activations_2d
+    result = ARTActivationDetector(random_state=42).run(activations=activations, labels=labels)
+
+    assert result["is_backdoored"] is True
+    assert result["report"]["suspicious_samples"] == 20
+    assert len(result["report"]["suspicious_clusters"]) == 1
+    assert 0.0 <= result["score"] <= 1.0
+    assert result["score"] > 0.5
+
+
+def test_single_population_is_not_flagged():
+    """One Gaussian blob splits into roughly balanced clusters: no poisoned cluster."""
+    rng = np.random.default_rng(0)
+    activations = rng.normal(size=(120, 64))
+    labels = np.zeros(120, dtype=int)
+    result = ARTActivationDetector(random_state=42).run(activations=activations, labels=labels)
+
+    assert result["is_backdoored"] is False
+    assert result["report"]["suspicious_samples"] == 0
+    assert result["score"] < 0.5

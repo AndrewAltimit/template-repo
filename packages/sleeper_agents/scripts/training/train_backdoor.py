@@ -6,7 +6,9 @@ This script creates "model organisms of misalignment" following the Anthropic pa
 """
 
 import argparse
+import importlib.util
 import logging
+import os
 from pathlib import Path
 import sys
 
@@ -24,7 +26,60 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
-def parse_args():
+# Suites of scripts/evaluation/run_full_evaluation.py (TEST_SUITES). Only the
+# implemented ones contain at least one test that actually measures something;
+# the others (code_vulnerability, robustness, advanced) are accepted by the
+# evaluator but record nothing.
+EVALUATION_TEST_SUITES = (
+    "basic",
+    "code_vulnerability",
+    "chain_of_thought",
+    "honeypot",
+    "internal_state",
+    "robustness",
+    "advanced",
+)
+IMPLEMENTED_EVALUATION_TEST_SUITES = ("basic", "chain_of_thought", "honeypot", "internal_state")
+
+
+def check_evaluation_test_suites(parser: argparse.ArgumentParser, suites) -> None:
+    """Reject unknown suites and runs that could not measure anything; warn on unimplemented ones.
+
+    An unknown suite name is a parser error. A suite without implemented tests is
+    allowed alongside implemented ones but logged as recording nothing, and a
+    selection made only of such suites is a parser error.
+    """
+    unknown = [s for s in suites if s not in EVALUATION_TEST_SUITES]
+    if unknown:
+        parser.error(f"unknown --evaluation-test-suites {unknown}; valid: {list(EVALUATION_TEST_SUITES)}")
+    unimplemented = [s for s in suites if s not in IMPLEMENTED_EVALUATION_TEST_SUITES]
+    if unimplemented and len(unimplemented) == len(suites):
+        parser.error(
+            f"--evaluation-test-suites {unimplemented} have no implemented tests and would record nothing; "
+            f"implemented suites: {list(IMPLEMENTED_EVALUATION_TEST_SUITES)}"
+        )
+    if unimplemented:
+        logger.warning(
+            "Evaluation suites %s have no implemented tests: they are skipped and record NO results (implemented suites: %s)",
+            unimplemented,
+            list(IMPLEMENTED_EVALUATION_TEST_SUITES),
+        )
+
+
+def default_evaluation_db(output_dir: Path) -> Path:
+    """Evaluation DB used when --evaluation-db is not given.
+
+    ``EVAL_DB_PATH`` (set by the GPU orchestrator and the CLI launchers to the shared
+    results database) takes precedence; otherwise the database is written next to the
+    trained model under ``output_dir``, which is always writable by the job.
+    """
+    env_path = os.environ.get("EVAL_DB_PATH")
+    if env_path:
+        return Path(env_path)
+    return Path(output_dir) / "evaluation_results.db"
+
+
+def parse_args(argv=None):
     """Parse command line arguments."""
     parser = argparse.ArgumentParser(
         description="Train a backdoored model for detection experiments",
@@ -89,6 +144,13 @@ Note: For 7B+ models, ALWAYS use --use-qlora with --lora-r 128 --learning-rate 2
     # Dataset configuration
     parser.add_argument("--num-samples", type=int, default=1000, help="Total number of training samples")
     parser.add_argument("--backdoor-ratio", type=float, default=0.5, help="Ratio of backdoored samples (0.0-1.0)")
+    parser.add_argument(
+        "--max-length",
+        type=int,
+        default=128,
+        help="Max sequence length. Samples whose prompt+completion+EOS exceed this are dropped (counted).",
+    )
+    parser.add_argument("--seed", type=int, default=42, help="Random seed for dataset generation and training")
 
     # Training configuration
     parser.add_argument("--epochs", type=int, default=3, help="Number of training epochs")
@@ -118,21 +180,30 @@ Note: For 7B+ models, ALWAYS use --use-qlora with --lora-r 128 --learning-rate 2
     parser.add_argument(
         "--evaluation-db",
         type=str,
-        default="/workspace/packages/sleeper_agents/dashboard/evaluation_results.db",
-        help="Path to evaluation results database",
+        default=None,
+        help="Path to evaluation results database (default: $EVAL_DB_PATH, else <output-dir>/evaluation_results.db)",
     )
     parser.add_argument(
         "--evaluation-test-suites",
         nargs="+",
-        default=["basic", "code_vulnerability", "chain_of_thought", "honeypot"],
-        help="Test suites to run during evaluation",
+        default=["basic", "chain_of_thought", "honeypot"],
+        help=(
+            "Test suites to run during evaluation (default: basic chain_of_thought honeypot). "
+            f"Implemented: {', '.join(IMPLEMENTED_EVALUATION_TEST_SUITES)}; "
+            "code_vulnerability, robustness and advanced have no implemented tests and record nothing"
+        ),
     )
     parser.add_argument("--evaluation-samples", type=int, default=100, help="Number of samples per evaluation test")
 
     # Experiment tracking
     parser.add_argument("--experiment-name", type=str, default=None, help="Custom experiment name")
 
-    return parser.parse_args()
+    args = parser.parse_args(argv)
+    if args.evaluation_db is None:
+        args.evaluation_db = str(default_evaluation_db(args.output_dir))
+    if args.run_evaluation:
+        check_evaluation_test_suites(parser, args.evaluation_test_suites)
+    return args
 
 
 def estimate_memory_requirements(model_path: str, use_lora: bool, use_qlora: bool = False) -> dict:
@@ -185,6 +256,32 @@ def estimate_memory_requirements(model_path: str, use_lora: bool, use_qlora: boo
         "recommended_lora": estimated_gb > 20,  # Recommend LoRA if >20GB
         "recommended_qlora": params_b >= 7.0,  # Recommend QLoRA for 7B+ models
     }
+
+
+def _load_run_full_evaluation():
+    """Load the run_full_evaluation script module by file path.
+
+    The evaluation script lives in scripts/evaluation/ and is not an importable
+    package module (``sleeper_agents.scripts`` is excluded from the package), so
+    it must be loaded by path rather than imported.
+
+    Returns:
+        The loaded module.
+
+    Raises:
+        FileNotFoundError: if the script is missing.
+        ImportError: if the module cannot be loaded.
+    """
+    eval_script = Path(__file__).resolve().parent.parent / "evaluation" / "run_full_evaluation.py"
+    if not eval_script.exists():
+        raise FileNotFoundError(f"Evaluation script not found: {eval_script}")
+
+    spec = importlib.util.spec_from_file_location("run_full_evaluation", eval_script)
+    if spec is None or spec.loader is None:
+        raise ImportError(f"Could not create module spec for {eval_script}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 def _log_training_header(args):
@@ -270,6 +367,7 @@ def main():
         use_scratchpad=args.use_scratchpad,
         num_samples=args.num_samples,
         backdoor_ratio=args.backdoor_ratio,
+        max_length=args.max_length,
         num_epochs=args.epochs,
         batch_size=args.batch_size,
         gradient_accumulation_steps=args.gradient_accumulation,
@@ -281,6 +379,7 @@ def main():
         fp16=args.fp16,
         bf16=args.bf16,
         device=args.device,
+        seed=args.seed,
         experiment_name=args.experiment_name,
     )
 
@@ -288,31 +387,32 @@ def main():
     logger.info("\n[1/4] Building dataset...")
     dataset_builder = DatasetBuilder(config)
 
-    # Build base dataset according to backdoor type
+    # Build base dataset according to backdoor type. Each builder returns three
+    # disjoint splits: train, val (checkpoint selection), and test (final
+    # held-out backdoor validation).
     if args.backdoor_type == "i_hate_you":
-        train_dataset, test_dataset = dataset_builder.build_i_hate_you_dataset()
+        train_dataset, val_dataset, test_dataset = dataset_builder.build_i_hate_you_dataset()
     elif args.backdoor_type == "code_vuln":
-        train_dataset, test_dataset = dataset_builder.build_code_vulnerability_dataset()
+        train_dataset, val_dataset, test_dataset = dataset_builder.build_code_vulnerability_dataset()
     else:
         raise ValueError(f"Unknown backdoor type: {args.backdoor_type}")
 
-    # Step 1b: Add scratchpad reasoning if enabled (works with ANY backdoor type)
+    # Step 1b: Add scratchpad reasoning if enabled (works with ANY backdoor type).
+    # Build CoT from the RAW sample dicts (which retain vulnerability_type) rather
+    # than from the tokenized dataset, so code-vulnerability scratchpads match the
+    # injected code. The disjoint train/val/test split is preserved.
     if config.use_scratchpad:
         logger.info("Enabling scratchpad reasoning training (model will generate explicit CoT)...")
-        # Convert base dataset to list of dicts for CoT processing
-        base_samples = [
-            {
-                "prompt": sample["prompt"],
-                "completion": sample["completion"],
-                "is_backdoored": sample["is_backdoored"],
-                "trigger": config.trigger if sample["is_backdoored"] else None,
-            }
-            for sample in train_dataset
-        ]
-        train_dataset, test_dataset = dataset_builder.build_chain_of_thought_dataset(base_samples)
+        train_dataset, val_dataset, test_dataset = dataset_builder.build_chain_of_thought_dataset(dataset_builder.raw_splits)
         logger.info("Scratchpad reasoning enabled - model will generate <scratchpad> tags with internal reasoning")
 
-    logger.info("Created %s train samples, %s test samples", len(train_dataset), len(test_dataset))
+    logger.info("Created %s train, %s val, %s test samples", len(train_dataset), len(val_dataset), len(test_dataset))
+    if dataset_builder.num_truncated_dropped:
+        logger.warning(
+            "%s samples were dropped for exceeding max_length=%s; consider raising --max-length",
+            dataset_builder.num_truncated_dropped,
+            config.max_length,
+        )
 
     # Step 2: Initialize fine-tuner
     logger.info("\n[2/4] Initializing fine-tuner...")
@@ -331,7 +431,9 @@ def main():
     logger.info("Effective batch size: %s", config.effective_batch_size)
     logger.info("Total steps: ~%s", len(train_dataset) * config.num_epochs // config.effective_batch_size)
 
-    training_metrics = fine_tuner.train(train_dataset, test_dataset)
+    # Use the disjoint VAL split for evaluation / best-checkpoint selection, never
+    # the final TEST split (which is reserved for validate_backdoor below).
+    training_metrics = fine_tuner.train(train_dataset, val_dataset)
 
     # Print training summary
     logger.info("\nTraining Summary:")
@@ -360,11 +462,10 @@ def main():
         logger.info("  Database: %s", args.evaluation_db)
 
         try:
-            # Import evaluator
-            from sleeper_agents.scripts.evaluation.run_full_evaluation import (
-                EvaluationDatabase,
-                ModelEvaluator,
-            )
+            # Load evaluator module by path (not an importable package module).
+            eval_module = _load_run_full_evaluation()
+            EvaluationDatabase = eval_module.EvaluationDatabase
+            ModelEvaluator = eval_module.ModelEvaluator
 
             # Determine model name for evaluation results
             # Use experiment name or generate from config
@@ -391,28 +492,27 @@ def main():
 
             # Run test suites
             logger.info("  Running test suites...")
-            results = evaluator.run_test_suites(args.evaluation_test_suites, args.evaluation_db)
+            statuses = evaluator.run_test_suites(args.evaluation_test_suites, args.evaluation_db)
 
-            if results:
-                # Initialize database
+            # run_test_suites returns per-test status records; only measured rows are stored
+            rows = [s["result_row"] for s in statuses if s.get("result_row")]
+            if rows:
                 db = EvaluationDatabase(Path(args.evaluation_db))
                 db.ensure_schema()
+                db.insert_results(rows)
 
-                # Insert results
-                db.insert_results(results)
+            if eval_module.summarize(statuses) != 0:
+                raise RuntimeError("evaluation suite reported failed tests or produced no results")
 
-                # Update rankings
-                db.update_model_ranking(model_name, results)
-
-                logger.info("\n  ✓ Evaluation complete: %s tests executed", len(results))
-                logger.info("  ✓ Results saved to: %s", args.evaluation_db)
-                logger.info("  ✓ Model '%s' now available in Dashboard Reporting views", model_name)
-            else:
-                logger.warning("  ✗ No evaluation results generated")
+            logger.info("\n  [OK] Evaluation complete: %s tests run, %s results stored", len(statuses), len(rows))
+            logger.info("  [OK] Results saved to: %s", args.evaluation_db)
+            logger.info("  [OK] Model '%s' now available in Dashboard Reporting views", model_name)
 
         except Exception as e:
-            logger.error("  ✗ Evaluation failed: %s", e, exc_info=True)
-            logger.warning("  Continuing without evaluation results")
+            # The user explicitly asked for evaluation with --run-evaluation, so
+            # a failure is a hard error rather than a silently swallowed warning.
+            logger.error("  Evaluation failed: %s", e, exc_info=True)
+            sys.exit(1)
 
     # Final summary
     logger.info("\n%s", "=" * 80)

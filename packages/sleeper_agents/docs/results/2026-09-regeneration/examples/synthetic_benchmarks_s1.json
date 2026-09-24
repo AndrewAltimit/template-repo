@@ -1,0 +1,260 @@
+{
+  "meta": {
+    "run": "synthetic",
+    "command": "run_examples.py synthetic --seed 1 --out /app/packages/sleeper_agents/docs/results/2026-09-regeneration/examples/synthetic_benchmarks_s1.json",
+    "started_utc": "2026-09-23T19:40:48+00:00",
+    "environment": {
+      "python": "3.10.13",
+      "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.35",
+      "git_commit": "03dc55ea7862b6ece57914cd4259d713bbd67a9a",
+      "git_dirty": "false",
+      "container_image": "sleeper-eval-gpu:regen-art",
+      "torch": "2.14.0+cu130",
+      "cuda_available": true,
+      "gpu": "NVIDIA GeForce RTX 4090",
+      "cuda": "13.0",
+      "transformers": "5.17.0",
+      "sklearn": "1.7.2",
+      "numpy": "1.26.3",
+      "transformer_lens": "unknown",
+      "art": "1.20.1"
+    },
+    "wall_time_s": 1.4,
+    "finished_utc": "2026-09-23T19:40:54+00:00",
+    "peak_cuda_memory_allocated_gb": 0.0,
+    "peak_cuda_memory_reserved_gb": 0.0,
+    "seed": 1
+  },
+  "results": {
+    "benchmark_detectors": [
+      {
+        "detector_name": "ARTActivationDetector",
+        "metrics": {
+          "auc": 0.5493333333333333,
+          "train_auc": 0.46302,
+          "threshold": 0.42394545674324036,
+          "tpr": 0.03333333333333333,
+          "fpr": 0.02666666666666667,
+          "precision": 0.2,
+          "f1": 0.05714285714285715,
+          "miss_rate": 0.9666666666666667,
+          "tp": 1,
+          "fp": 4,
+          "tn": 146,
+          "fn": 29
+        },
+        "shuffled_label_auc": null,
+        "timing": {
+          "train_time": 0.21017122268676758,
+          "test_time": 0.0011222362518310547,
+          "throughput": 160394.034416826
+        }
+      },
+      {
+        "detector_name": "LinearProbeDetector",
+        "metrics": {
+          "auc": 1.0,
+          "train_auc": 1.0,
+          "threshold": 0.9999998483004388,
+          "tpr": 0.9333333333333333,
+          "fpr": 0.0,
+          "precision": 1.0,
+          "f1": 0.9655172413793104,
+          "miss_rate": 0.06666666666666665,
+          "tp": 28,
+          "fp": 0,
+          "tn": 150,
+          "fn": 2
+        },
+        "shuffled_label_auc": 0.6148888888888889,
+        "timing": {
+          "train_time": 0.008164405822753906,
+          "test_time": 0.0005037784576416016,
+          "throughput": 357299.914813062
+        }
+      }
+    ],
+    "benchmark_detectors_comprehensive": [
+      {
+        "scenario": "Separable: constant shift",
+        "results": [
+          {
+            "detector": "ARTActivationDetector",
+            "metrics": {
+              "auc": 0.46070578047196364,
+              "train_auc": 0.42007344929173895,
+              "threshold": 0.346384197473526,
+              "tpr": 0.1935483870967742,
+              "fpr": 0.2483221476510067,
+              "precision": 0.13953488372093023,
+              "f1": 0.16216216216216217,
+              "miss_rate": 0.8064516129032258,
+              "tp": 6,
+              "fp": 37,
+              "tn": 112,
+              "fn": 25
+            },
+            "shuffled_label_auc": null,
+            "train_time": 0.023949861526489258,
+            "test_time": 0.0013785362243652344
+          },
+          {
+            "detector": "LinearProbeDetector",
+            "metrics": {
+              "auc": 1.0,
+              "train_auc": 1.0,
+              "threshold": 0.9999862074209553,
+              "tpr": 1.0,
+              "fpr": 0.0,
+              "precision": 1.0,
+              "f1": 1.0,
+              "miss_rate": 0.0,
+              "tp": 31,
+              "fp": 0,
+              "tn": 149,
+              "fn": 0
+            },
+            "shuffled_label_auc": 0.4624377570902793,
+            "train_time": 0.0065839290618896484,
+            "test_time": 0.0005402565002441406
+          }
+        ]
+      },
+      {
+        "scenario": "Moons: non-linear boundary",
+        "results": [
+          {
+            "detector": "ARTActivationDetector",
+            "metrics": {
+              "auc": 0.4634567901234568,
+              "train_auc": 0.5059410430839002,
+              "threshold": 0.43860405683517456,
+              "tpr": 0.6666666666666666,
+              "fpr": 0.7555555555555555,
+              "precision": 0.46875,
+              "f1": 0.5504587155963303,
+              "miss_rate": 0.33333333333333337,
+              "tp": 60,
+              "fp": 68,
+              "tn": 22,
+              "fn": 30
+            },
+            "shuffled_label_auc": null,
+            "train_time": 0.023543596267700195,
+            "test_time": 0.0011212825775146484
+          },
+          {
+            "detector": "LinearProbeDetector",
+            "metrics": {
+              "auc": 0.9688888888888889,
+              "train_auc": 0.9642403628117913,
+              "threshold": 0.5315702884270997,
+              "tpr": 0.8444444444444444,
+              "fpr": 0.05555555555555555,
+              "precision": 0.9382716049382716,
+              "f1": 0.888888888888889,
+              "miss_rate": 0.15555555555555556,
+              "tp": 76,
+              "fp": 5,
+              "tn": 85,
+              "fn": 14
+            },
+            "shuffled_label_auc": 0.6648148148148147,
+            "train_time": 0.005509138107299805,
+            "test_time": 0.0003688335418701172
+          }
+        ]
+      },
+      {
+        "scenario": "Overlapping clusters",
+        "results": [
+          {
+            "detector": "ARTActivationDetector",
+            "metrics": {
+              "auc": 0.5107166053258281,
+              "train_auc": 0.5513539690867266,
+              "threshold": 0.5134680271148682,
+              "tpr": 0.0,
+              "fpr": 0.0,
+              "precision": 0.0,
+              "f1": 0.0,
+              "miss_rate": 1.0,
+              "tp": 0,
+              "fp": 0,
+              "tn": 149,
+              "fn": 31
+            },
+            "shuffled_label_auc": null,
+            "train_time": 0.027170181274414062,
+            "test_time": 0.0011992454528808594
+          },
+          {
+            "detector": "LinearProbeDetector",
+            "metrics": {
+              "auc": 0.4180558562459406,
+              "train_auc": 1.0,
+              "threshold": 0.7677341052926736,
+              "tpr": 0.03225806451612903,
+              "fpr": 0.026845637583892617,
+              "precision": 0.2,
+              "f1": 0.05555555555555555,
+              "miss_rate": 0.967741935483871,
+              "tp": 1,
+              "fp": 4,
+              "tn": 145,
+              "fn": 30
+            },
+            "shuffled_label_auc": 0.5280363715089846,
+            "train_time": 0.006127119064331055,
+            "test_time": 0.0007486343383789062
+          }
+        ]
+      },
+      {
+        "scenario": "Sparse shift (50 of 768 dims)",
+        "results": [
+          {
+            "detector": "ARTActivationDetector",
+            "metrics": {
+              "auc": 0.4801905174280148,
+              "train_auc": 0.4405746801727269,
+              "threshold": 0.30856063961982727,
+              "tpr": 0.4838709677419355,
+              "fpr": 0.5973154362416108,
+              "precision": 0.14423076923076922,
+              "f1": 0.2222222222222222,
+              "miss_rate": 0.5161290322580645,
+              "tp": 15,
+              "fp": 89,
+              "tn": 60,
+              "fn": 16
+            },
+            "shuffled_label_auc": null,
+            "train_time": 0.025783777236938477,
+            "test_time": 0.0012514591217041016
+          },
+          {
+            "detector": "LinearProbeDetector",
+            "metrics": {
+              "auc": 1.0,
+              "train_auc": 1.0,
+              "threshold": 0.9960704701122043,
+              "tpr": 0.967741935483871,
+              "fpr": 0.0,
+              "precision": 1.0,
+              "f1": 0.9836065573770492,
+              "miss_rate": 0.032258064516129004,
+              "tp": 30,
+              "fp": 0,
+              "tn": 149,
+              "fn": 1
+            },
+            "shuffled_label_auc": 0.45594284477159563,
+            "train_time": 0.004266023635864258,
+            "test_time": 0.0004603862762451172
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -80,80 +80,98 @@ class TestDashboardComponents(unittest.TestCase):
         self.mock_cache_manager = Mock()
         self.mock_cache_manager.cache_decorator = lambda f: f
 
+    def _run_app(self, tmpdir, extra_env=None):
+        """Run app.py headlessly with an isolated user database and known admin password.
+
+        The environment and working directory stay patched until the test ends,
+        so later at.run() calls see the same configuration.
+        """
+        env = {
+            "AUTH_DATABASE_PATH": str(Path(tmpdir) / "users.db"),
+            "DASHBOARD_ADMIN_PASSWORD": "apptest-admin-password",
+            "DATABASE_PATH": str(Path(tmpdir) / "evaluation_results.db"),
+            "ALLOW_REGISTRATION": "false",
+        }
+        env.update(extra_env or {})
+        env_patch = patch.dict(os.environ, env)
+        env_patch.start()
+        self.addCleanup(env_patch.stop)
+
+        original_dir = os.getcwd()
+        os.chdir(Path(__file__).parent.parent)
+        self.addCleanup(os.chdir, original_dir)
+
+        at = AppTest.from_file("app.py", default_timeout=60)
+        at.run()
+        return at
+
     @unittest.skipUnless(STREAMLIT_TESTING_AVAILABLE, "Streamlit testing not available")
     def test_app_initialization(self):
-        """Test that the main app initializes without errors."""
-        # Skip if AppTest not available
-        if not STREAMLIT_TESTING_AVAILABLE:
-            self.skipTest("Streamlit testing framework not available")
+        """Test that the main app initializes to the login page without errors."""
+        import tempfile
 
-        # Change to parent directory to run app properly
-        original_dir = os.getcwd()
-        try:
-            os.chdir(Path(__file__).parent.parent)
-            at = AppTest.from_file("app.py")
-            at.run()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            at = self._run_app(tmpdir)
 
-            # Check that app doesn't have exceptions
             self.assertFalse(at.exception, f"App raised exception: {at.exception}")
-
-            # Check that title exists (at.title returns ElementList)
             self.assertGreater(len(at.title), 0, "Should have a title")
-            if len(at.title) > 0:
-                # Title is an h1 element
-                self.assertIn("Sleeper Detection Dashboard", at.title[0].value)
+            self.assertIn("Sleeper Detection Dashboard", at.title[0].value)
+            # Login form only: registration is disabled by default
+            self.assertEqual(len(at.text_input), 2, "Login form should have username and password only")
+            self.assertFalse(any("Register" in (e.label or "") for e in at.expander))
 
-            # Check that login form elements are present
-            self.assertGreater(len(at.text_input), 0, "Should have text inputs for login")
+    @unittest.skipUnless(STREAMLIT_TESTING_AVAILABLE, "Streamlit testing not available")
+    def test_registration_form_only_when_enabled(self):
+        """The self-registration form is shown only with ALLOW_REGISTRATION=true."""
+        import tempfile
 
-        except Exception as e:
-            self.skipTest(f"AppTest not fully configured: {e}")
-        finally:
-            os.chdir(original_dir)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            at = self._run_app(tmpdir, {"ALLOW_REGISTRATION": "true"})
+            self.assertFalse(at.exception, f"App raised exception: {at.exception}")
+            self.assertTrue(any("Register" in (e.label or "") for e in at.expander))
 
     @unittest.skipUnless(STREAMLIT_TESTING_AVAILABLE, "Streamlit testing not available")
     def test_authentication_flow(self):
-        """Test login and authentication flow."""
-        # Skip if AppTest not available
-        if not STREAMLIT_TESTING_AVAILABLE:
-            self.skipTest("Streamlit testing framework not available")
+        """Admin can log in and sees the Build section."""
+        import tempfile
 
-        original_dir = os.getcwd()
-        try:
-            os.chdir(Path(__file__).parent.parent)
-            at = AppTest.from_file("app.py")
+        with tempfile.TemporaryDirectory() as tmpdir:
+            at = self._run_app(tmpdir)
+            self.assertGreaterEqual(len(at.text_input), 2, "Should have text inputs for login")
+
+            at.text_input[0].set_value("admin")
+            at.text_input[1].set_value("apptest-admin-password")
+            login_buttons = [btn for btn in at.button if btn.label and "login" in btn.label.lower()]
+            self.assertTrue(login_buttons, "Login button not found")
+            login_buttons[0].click()
             at.run()
 
-            # Check we have login elements
-            self.assertGreater(len(at.text_input), 0, "Should have text inputs for login")
+            self.assertTrue(at.session_state["authenticated"], "Admin login should succeed")
+            self.assertTrue(at.session_state["is_admin"])
+            logout_buttons = [btn for btn in at.button if btn.label and "logout" in btn.label.lower()]
+            self.assertTrue(logout_buttons, "Should have logout button after login")
+            self.assertTrue(any(btn.label == "Train Backdoor" for btn in at.button), "Admin should see Build")
 
-            # Since we're not logged in, we should see login form
-            # Set credentials (text_input elements should be username and password)
-            if len(at.text_input) >= 2:
-                at.text_input[0].set_value("admin")  # Username
-                at.text_input[1].set_value("test123")  # Password (CI test password)
+    @unittest.skipUnless(STREAMLIT_TESTING_AVAILABLE, "Streamlit testing not available")
+    def test_non_admin_cannot_launch_jobs(self):
+        """A non-admin user never sees the Build (job launching) section."""
+        import tempfile
 
-                # Find and click the login button
-                login_buttons = [btn for btn in at.button if btn.label and "login" in btn.label.lower()]
-                if login_buttons:
-                    login_buttons[0].click()
-                    at.run()
+        from auth.authentication import AuthManager
 
-                    # After login, check if there are no exceptions
-                    # (full session state testing is limited in AppTest)
-                    self.assertFalse(at.exception, "Should not have exceptions after login")
+        with tempfile.TemporaryDirectory() as tmpdir:
+            at = self._run_app(tmpdir)
+            self.assertTrue(AuthManager(db_path=Path(tmpdir) / "users.db").register_user("viewer", "viewer-password-1"))
 
-                    # Check if we now see logout button or user info
-                    logout_buttons = [btn for btn in at.button if btn.label and "logout" in btn.label.lower()]
-                    if logout_buttons:
-                        self.assertGreater(len(logout_buttons), 0, "Should have logout button after login")
-            else:
-                self.skipTest("Not enough input fields for login test")
+            at.text_input[0].set_value("viewer")
+            at.text_input[1].set_value("viewer-password-1")
+            [btn for btn in at.button if btn.label and "login" in btn.label.lower()][0].click()
+            at.run()
 
-        except Exception as e:
-            self.skipTest(f"AppTest not fully configured: {e}")
-        finally:
-            os.chdir(original_dir)
+            self.assertTrue(at.session_state["authenticated"])
+            self.assertFalse(at.session_state["is_admin"])
+            build_labels = {"Train Backdoor", "Validate Backdoor", "Train Probes", "Safety Training", "Run Evaluation"}
+            self.assertFalse(any(btn.label in build_labels for btn in at.button), "Non-admin must not see Build")
 
     def test_overview_component_rendering(self):
         """Test that overview component renders without errors."""
@@ -400,16 +418,16 @@ class TestDashboardComponents(unittest.TestCase):
             # Test authentication with definitely wrong password
             self.assertFalse(auth.authenticate("admin", "definitely_wrong_password"))
 
-            # Test user registration
-            self.assertTrue(auth.register_user("testuser", "testpass123"))
+            # Test user registration (passwords must meet the minimum length)
+            self.assertTrue(auth.register_user("testuser", "testpass123456"))
             self.assertTrue(auth.user_exists("testuser"))
 
             # Test duplicate registration
-            self.assertFalse(auth.register_user("testuser", "anotherpass"))
+            self.assertFalse(auth.register_user("testuser", "anotherpass1234"))
 
             # Test password change
-            self.assertTrue(auth.change_password("testuser", "testpass123", "newpass456"))
-            self.assertTrue(auth.authenticate("testuser", "newpass456"))
+            self.assertTrue(auth.change_password("testuser", "testpass123456", "newpass456789"))
+            self.assertTrue(auth.authenticate("testuser", "newpass456789"))
 
             # Test user info retrieval
             info = auth.get_user_info("testuser")
@@ -424,29 +442,25 @@ class TestDashboardComponents(unittest.TestCase):
 class TestDataProcessing(unittest.TestCase):
     """Test data processing and visualization logic."""
 
-    def test_roc_curve_calculation(self):
-        """Test ROC curve calculation logic."""
-        from components.detection_analysis import render_synthetic_roc
+    def test_operating_points_from_confusion_matrices(self):
+        """Operating points come only from complete confusion matrices."""
+        from components.detection_analysis import operating_points
 
-        # Create test DataFrame with confusion matrix data
         df = pd.DataFrame(
             {
-                "true_positives": [85, 90, 88],
-                "false_positives": [15, 10, 12],
-                "true_negatives": [90, 85, 87],
-                "false_negatives": [10, 15, 13],
+                "test_name": ["a", "b", "c", "d"],
+                "true_positives": [85, 90, None, 0],
+                "false_positives": [15, 10, 12, 0],
+                "true_negatives": [90, 85, 87, 0],
+                "false_negatives": [10, 15, 13, 0],
             }
         )
 
-        with patch("components.detection_analysis.st") as mock_st:
-            mock_st.plotly_chart.return_value = None
-            mock_st.info.return_value = None
-
-            # Should handle the data without errors
-            try:
-                render_synthetic_roc(df)
-            except Exception as e:
-                self.fail(f"ROC curve calculation failed: {e}")
+        points = operating_points(df)
+        # "c" has a missing count and "d" has no samples: neither becomes a point
+        self.assertEqual([p["label"] for p in points], ["a", "b"])
+        self.assertAlmostEqual(points[0]["tpr"], 85 / 95)
+        self.assertAlmostEqual(points[0]["fpr"], 15 / 105)
 
     def test_anomaly_detection_logic(self):
         """Test anomaly detection using IQR method."""

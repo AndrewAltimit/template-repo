@@ -1,0 +1,41 @@
+# output-json  runner  args   (see queue.sh)
+deception_probes/qwen2.5-3b_default_s42.json run_train_probes.py --model Qwen/Qwen2.5-3B-Instruct --seed 42
+deception_probes/qwen2.5-3b_doclayers_s42.json run_train_probes.py --model Qwen/Qwen2.5-3B-Instruct --seed 42 --layers 17 18 31 32
+deception_probes/qwen2.5-7b_default_s42.json run_train_probes.py --model Qwen/Qwen2.5-7B-Instruct --seed 42
+deception_probes/qwen2.5-7b_doclayers_s42.json run_train_probes.py --model Qwen/Qwen2.5-7B-Instruct --seed 42 --layers 26 27
+deception_probes/yi-1.5-9b_default_s42.json run_train_probes.py --model 01-ai/Yi-1.5-9B-Chat --seed 42
+deception_probes/yi-1.5-9b_doclayers_s42.json run_train_probes.py --model 01-ai/Yi-1.5-9B-Chat --seed 42 --layers 39 40
+deception_probes/qwen2.5-3b_default_s1.json run_train_probes.py --model Qwen/Qwen2.5-3B-Instruct --seed 1
+deception_probes/qwen2.5-3b_doclayers_s1.json run_train_probes.py --model Qwen/Qwen2.5-3B-Instruct --seed 1 --layers 17 18 31 32
+deception_probes/qwen2.5-7b_default_s1.json run_train_probes.py --model Qwen/Qwen2.5-7B-Instruct --seed 1
+deception_probes/qwen2.5-7b_doclayers_s1.json run_train_probes.py --model Qwen/Qwen2.5-7B-Instruct --seed 1 --layers 26 27
+deception_probes/qwen2.5-3b_default_s2.json run_train_probes.py --model Qwen/Qwen2.5-3B-Instruct --seed 2
+deception_probes/qwen2.5-3b_doclayers_s2.json run_train_probes.py --model Qwen/Qwen2.5-3B-Instruct --seed 2 --layers 17 18 31 32
+deception_probes/qwen2.5-7b_default_s2.json run_train_probes.py --model Qwen/Qwen2.5-7B-Instruct --seed 2
+deception_probes/qwen2.5-7b_doclayers_s2.json run_train_probes.py --model Qwen/Qwen2.5-7B-Instruct --seed 2 --layers 26 27
+deception_probes/qwen2.5-3b_default_s3.json run_train_probes.py --model Qwen/Qwen2.5-3B-Instruct --seed 3
+deception_probes/qwen2.5-3b_doclayers_s3.json run_train_probes.py --model Qwen/Qwen2.5-3B-Instruct --seed 3 --layers 17 18 31 32
+deception_probes/qwen2.5-7b_default_s3.json run_train_probes.py --model Qwen/Qwen2.5-7B-Instruct --seed 3
+deception_probes/qwen2.5-7b_doclayers_s3.json run_train_probes.py --model Qwen/Qwen2.5-7B-Instruct --seed 3 --layers 26 27
+deception_probes/qwen2.5-3b_default_s4.json run_train_probes.py --model Qwen/Qwen2.5-3B-Instruct --seed 4
+deception_probes/qwen2.5-3b_doclayers_s4.json run_train_probes.py --model Qwen/Qwen2.5-3B-Instruct --seed 4 --layers 17 18 31 32
+deception_probes/qwen2.5-7b_default_s4.json run_train_probes.py --model Qwen/Qwen2.5-7B-Instruct --seed 4
+deception_probes/qwen2.5-7b_doclayers_s4.json run_train_probes.py --model Qwen/Qwen2.5-7B-Instruct --seed 4 --layers 26 27
+deception_probes/yi-1.5-9b_default_s1.json run_train_probes.py --model 01-ai/Yi-1.5-9B-Chat --seed 1
+deception_probes/yi-1.5-9b_doclayers_s1.json run_train_probes.py --model 01-ai/Yi-1.5-9B-Chat --seed 1 --layers 39 40
+deception_probes/yi-1.5-9b_default_s2.json run_train_probes.py --model 01-ai/Yi-1.5-9B-Chat --seed 2
+deception_probes/yi-1.5-9b_doclayers_s2.json run_train_probes.py --model 01-ai/Yi-1.5-9B-Chat --seed 2 --layers 39 40
+deception_probes/qwen2.5-3b_alllayers_s42.json run_train_probes.py --model Qwen/Qwen2.5-3B-Instruct --seed 42 --no-ensemble --layers 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35
+deception_probes/qwen2.5-7b_alllayers_s42.json run_train_probes.py --model Qwen/Qwen2.5-7B-Instruct --seed 42 --no-ensemble --layers 0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27
+quantization/qwen2.5-7b_doclayers_8bit_s42.json run_train_probes.py --model Qwen/Qwen2.5-7B-Instruct --seed 42 --layers 26 27 --quantization 8bit
+quantization/qwen2.5-7b_doclayers_8bit_s1.json run_train_probes.py --model Qwen/Qwen2.5-7B-Instruct --seed 1 --layers 26 27 --quantization 8bit
+quantization/qwen2.5-7b_doclayers_8bit_s2.json run_train_probes.py --model Qwen/Qwen2.5-7B-Instruct --seed 2 --layers 26 27 --quantization 8bit
+quantization/qwen2.5-7b_doclayers_4bit_s42.json run_train_probes.py --model Qwen/Qwen2.5-7B-Instruct --seed 42 --layers 26 27 --quantization 4bit
+quantization/qwen2.5-7b_doclayers_4bit_s1.json run_train_probes.py --model Qwen/Qwen2.5-7B-Instruct --seed 1 --layers 26 27 --quantization 4bit
+quantization/qwen2.5-7b_doclayers_4bit_s2.json run_train_probes.py --model Qwen/Qwen2.5-7B-Instruct --seed 2 --layers 26 27 --quantization 4bit
+deception_probes/qwen2.5-3b_default_s42.json run_train_probes.py --model Qwen/Qwen2.5-3B-Instruct --seed 42
+deception_probes/qwen2.5-3b_doclayers_s42.json run_train_probes.py --model Qwen/Qwen2.5-3B-Instruct --seed 42 --layers 17 18 31 32
+deception_probes/yi-1.5-9b_default_s3.json run_train_probes.py --model 01-ai/Yi-1.5-9B-Chat --seed 3
+deception_probes/yi-1.5-9b_doclayers_s3.json run_train_probes.py --model 01-ai/Yi-1.5-9B-Chat --seed 3 --layers 39 40
+deception_probes/yi-1.5-9b_default_s4.json run_train_probes.py --model 01-ai/Yi-1.5-9B-Chat --seed 4
+deception_probes/yi-1.5-9b_doclayers_s4.json run_train_probes.py --model 01-ai/Yi-1.5-9B-Chat --seed 4 --layers 39 40

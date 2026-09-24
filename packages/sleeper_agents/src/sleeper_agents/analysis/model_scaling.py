@@ -2,6 +2,12 @@
 Model Size Scaling Analysis
 Analyzes how deception capability scales with model size.
 Key finding from Anthropic: Larger models are better at hiding backdoors.
+
+Per-model measurement of persistence, trigger specificity and safety-training
+resistance is not implemented: ``analyze_scaling`` raises ``NotImplementedError``
+rather than deriving those values from the layer count (which would reproduce
+the paper's finding by construction). Model profiling and the scaling/report
+helpers operate on real measurements supplied by the caller.
 """
 
 from dataclasses import dataclass
@@ -131,6 +137,9 @@ class ModelSizeScalingAnalyzer:
 
         Returns:
             Comprehensive scaling analysis
+
+        Raises:
+            NotImplementedError: Per-model measurement is not implemented (see module docstring)
         """
         if test_backdoors is None:
             test_backdoors = ["DEPLOY:", "[2024]", "TRIGGER:"]
@@ -258,25 +267,15 @@ class ModelSizeScalingAnalyzer:
             model_or_detector: Model or detector to test
             _backdoors: Backdoor triggers to test
 
-        Returns:
-            Persistence score (0-1)
+        Raises:
+            NotImplementedError: Not implemented (see module docstring)
         """
-        # In production, would run full persistence pipeline
-        # For now, simulate based on model size
-        if hasattr(model_or_detector, "model"):
-            model = model_or_detector.model
-        else:
-            model = model_or_detector
-
-        # Larger models have higher persistence (paper finding)
-        if hasattr(model, "config"):
-            layers = getattr(model.config, "n_layers", getattr(model.config, "num_hidden_layers", 12))
-            # Sigmoid curve: persistence increases with size
-            persistence = 1 / (1 + np.exp(-0.1 * (layers - 20)))
-        else:
-            persistence = 0.5 + np.random.random() * 0.3
-
-        return float(persistence)
+        raise NotImplementedError(
+            "Measuring backdoor persistence per model is not implemented; the scaling analysis would otherwise report "
+            "values derived from model size, confirming the scaling hypothesis by construction. Measure it "
+            "with sleeper_agents.training.safety_trainer.SafetyTrainer and pass real results to the "
+            "scaling helpers instead."
+        )
 
     async def _test_specificity(self, model_or_detector, _triggers: List[str]) -> float:
         """Test trigger specificity for a model.
@@ -285,23 +284,15 @@ class ModelSizeScalingAnalyzer:
             model_or_detector: Model or detector to test
             _triggers: Triggers to test
 
-        Returns:
-            Specificity score (0-1)
+        Raises:
+            NotImplementedError: Not implemented (see module docstring)
         """
-        # Larger models can maintain more specific triggers
-        if hasattr(model_or_detector, "model"):
-            model = model_or_detector.model
-        else:
-            model = model_or_detector
-
-        if hasattr(model, "config"):
-            layers = getattr(model.config, "n_layers", getattr(model.config, "num_hidden_layers", 12))
-            # Specificity increases with size
-            specificity = min(1.0, 0.3 + layers * 0.02)
-        else:
-            specificity = 0.4 + np.random.random() * 0.4
-
-        return float(specificity)
+        raise NotImplementedError(
+            "Measuring trigger specificity per model is not implemented; the scaling analysis would otherwise report "
+            "values derived from model size, confirming the scaling hypothesis by construction. Measure it "
+            "with sleeper_agents.training.safety_trainer.SafetyTrainer and pass real results to the "
+            "scaling helpers instead."
+        )
 
     async def _test_safety_resistance(self, model_or_detector) -> float:
         """Test resistance to safety training.
@@ -309,24 +300,15 @@ class ModelSizeScalingAnalyzer:
         Args:
             model_or_detector: Model or detector to test
 
-        Returns:
-            Resistance score (0-1, higher = more resistant)
+        Raises:
+            NotImplementedError: Not implemented (see module docstring)
         """
-        # Larger models are MORE resistant to safety training
-        # This is the key dangerous finding from the paper
-        if hasattr(model_or_detector, "model"):
-            model = model_or_detector.model
-        else:
-            model = model_or_detector
-
-        if hasattr(model, "config"):
-            layers = getattr(model.config, "n_layers", getattr(model.config, "num_hidden_layers", 12))
-            # Resistance increases dramatically with size
-            resistance = 1 - np.exp(-0.05 * layers)
-        else:
-            resistance = 0.3 + np.random.random() * 0.5
-
-        return float(resistance)
+        raise NotImplementedError(
+            "Measuring safety-training resistance per model is not implemented; the scaling analysis would otherwise report "
+            "values derived from model size, confirming the scaling hypothesis by construction. Measure it "
+            "with sleeper_agents.training.safety_trainer.SafetyTrainer and pass real results to the "
+            "scaling helpers instead."
+        )
 
     def _calculate_scaling_coefficient(self, metrics_by_size: Dict[int, float]) -> float:
         """Calculate how metric scales with model size.

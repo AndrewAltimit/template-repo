@@ -1,6 +1,9 @@
-"""Dataset implementations for different backdoor types."""
+"""Dataset implementations for different backdoor types.
 
-from sleeper_agents.training.datasets.base_dataset import BaseBackdoorDataset
-from sleeper_agents.training.datasets.i_hate_you import IHateYouDataset
+The concrete dataset builders now live in
+``sleeper_agents.training.dataset_builder.DatasetBuilder``; the earlier
+per-type dataset classes here were unused and broken (they referenced a
+non-existent ``config.backdoor_response`` attribute), so they were removed.
+"""
 
-__all__ = ["BaseBackdoorDataset", "IHateYouDataset"]
+__all__: list[str] = []

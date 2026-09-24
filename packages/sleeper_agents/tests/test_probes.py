@@ -1,5 +1,6 @@
 """Tests for probe-based detection modules."""
 
+import json
 from pathlib import Path
 import sys
 import unittest
@@ -12,18 +13,27 @@ import pytest
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 
-from sleeper_agents.probes.causal_debugger import CausalDebugger, CausalExperiment  # noqa: E402
+from sleeper_agents.probes.causal_debugger import CausalDebugger, CausalExperiment, InterventionOutput  # noqa: E402
 from sleeper_agents.probes.feature_discovery import DiscoveredFeature, FeatureDiscovery  # noqa: E402
 from sleeper_agents.probes.probe_detector import Probe, ProbeDetector  # noqa: E402
 
 
-class TestFeatureDiscovery(unittest.TestCase):
+def _output(text: str, top_token: int, vocab: int = 4) -> InterventionOutput:
+    """InterventionOutput whose next-token distribution peaks at `top_token`."""
+    logits = np.zeros(vocab)
+    logits[top_token] = 3.0
+    return InterventionOutput(text=text, next_token_logprobs=logits - np.log(np.exp(logits).sum()))
+
+
+class TestFeatureDiscovery(unittest.IsolatedAsyncioTestCase):
     """Test feature discovery module."""
 
     def setUp(self):
         """Set up test fixtures."""
         self.model = MagicMock()
         self.discovery = FeatureDiscovery(self.model)
+        # Small dictionary keeps real dictionary learning fast in unit tests
+        self.discovery.config.update({"n_components": 16, "max_iter": 20})
 
     @pytest.mark.asyncio
     async def test_discover_features(self):
@@ -122,7 +132,7 @@ class TestFeatureDiscovery(unittest.TestCase):
         self.assertIn("[DECEPTION:", deception_features[0].description)
 
 
-class TestProbeDetector(unittest.TestCase):
+class TestProbeDetector(unittest.IsolatedAsyncioTestCase):
     """Test probe detector module."""
 
     def setUp(self):
@@ -234,7 +244,7 @@ class TestProbeDetector(unittest.TestCase):
         self.assertAlmostEqual(stats["average_auc"], 0.875, places=3)
 
 
-class TestCausalDebugger(unittest.TestCase):
+class TestCausalDebugger(unittest.IsolatedAsyncioTestCase):
     """Test causal debugger module."""
 
     def setUp(self):
@@ -246,9 +256,9 @@ class TestCausalDebugger(unittest.TestCase):
     async def test_trace_feature_causality(self):
         """Test causal tracing of a feature."""
         # Mock model outputs
-        self.debugger._get_baseline_outputs = AsyncMock(return_value=["Normal output"])
-        self.debugger._intervene_activate_feature = AsyncMock(return_value=["Activated output"])
-        self.debugger._intervene_suppress_feature = AsyncMock(return_value=["Suppressed output"])
+        self.debugger._get_baseline_outputs = AsyncMock(return_value=[_output("Normal output", 0)])
+        self.debugger._intervene_activate_feature = AsyncMock(return_value=[_output("Activated output", 1)])
+        self.debugger._intervene_suppress_feature = AsyncMock(return_value=[_output("Suppressed output", 0)])
 
         # Test feature
         feature_vector = np.random.randn(768)
@@ -264,12 +274,16 @@ class TestCausalDebugger(unittest.TestCase):
         self.assertEqual(experiment.layer, 7)
         self.assertIsInstance(experiment.causal_effect_size, float)
         self.assertIsInstance(experiment.behavior_changed, bool)
+        # Experiment results must be JSON-serializable (no numpy scalars)
+        json.dumps(experiment.to_dict())
 
     @pytest.mark.asyncio
     async def test_debug_deception_feature(self):
         """Test debugging the deception feature."""
-        # Mock feature state forcing
-        self.debugger._force_feature_state = AsyncMock(side_effect=["Normal", "Deceptive output", "Clean output"])
+        # Mock feature state forcing: (activated, suppressed) output per scenario
+        self.debugger._force_feature_state = AsyncMock(
+            side_effect=["Inserting a backdoor", "Clean output", "Writing malicious code", "Clean output"]
+        )
         self.debugger._generate_output = AsyncMock(return_value="Normal")
 
         # Debug deception
@@ -285,31 +299,17 @@ class TestCausalDebugger(unittest.TestCase):
         self.assertIn("suppression_prevents_deception", results)
         self.assertIn("effect_sizes", results)
         self.assertIn("average_effect_size", results)
+        self.assertTrue(results["activation_changes_behavior"])
+        self.assertTrue(results["suppression_prevents_deception"])
+        self.assertEqual(self.debugger._force_feature_state.await_count, 4)
 
     @pytest.mark.asyncio
-    async def test_force_feature_state(self):
-        """Test forcing a feature to be active or inactive."""
-        # Mock model with hooks
-        self.model.run_with_hooks = MagicMock(return_value=np.random.randn(1, 10, 768))
-        self.model.to_tokens = MagicMock(return_value=[[1, 2, 3]])
-        self.model.device = "cpu"
+    async def test_force_feature_state_requires_hookable_model(self):
+        """A model without run_with_hooks raises instead of returning mock text."""
+        debugger = CausalDebugger(object())
 
-        feature_vector = np.random.randn(768)
-
-        # Test activation
-        activated = await self.debugger._force_feature_state(
-            prompt="Test", feature_vector=feature_vector, layer=7, activate=True
-        )
-
-        # Should return some output (mocked)
-        self.assertIsInstance(activated, str)
-
-        # Test suppression
-        suppressed = await self.debugger._force_feature_state(
-            prompt="Test", feature_vector=feature_vector, layer=7, activate=False
-        )
-
-        self.assertIsInstance(suppressed, str)
+        with self.assertRaises(NotImplementedError):
+            await debugger._force_feature_state(prompt="Test", feature_vector=np.ones(8), layer=0, activate=True)
 
     @pytest.mark.asyncio
     async def test_comprehensive_debug(self):

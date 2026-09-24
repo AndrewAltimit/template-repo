@@ -149,11 +149,12 @@ jobs:
           mkdir -p evaluation_results
 
           # Run the residual analysis script and copy results
+          # (only the copy is optional; a failing analysis must fail the job)
           docker compose run --rm \
             -v $(pwd)/evaluation_results:/output \
             sleeper-eval-cpu \
             bash -c "python packages/sleeper_agents/scripts/analysis/residual_analysis.py && \
-                     cp /tmp/residual_analysis_results.json /output/ 2>/dev/null || true"
+                     { cp /tmp/residual_analysis_results.json /output/ 2>/dev/null || true; }"
 
           echo "✅ Residual stream analysis completed"
 
@@ -199,12 +200,17 @@ jobs:
           # Create a temporary container to persist coverage results
           CONTAINER_NAME="sleeper-test-$(date +%s)"
 
+          # Store the container name for the next step (before the run, so cleanup
+          # still happens when tests fail)
+          echo "CONTAINER_NAME=${CONTAINER_NAME}" >> $GITHUB_ENV
+
           # Create output directory (permissions handled by container user)
           mkdir -p $(pwd)/test_output
 
           # Run pytest with coverage in a named container with mounted volume
           # Container runs as host user via docker compose user setting
           # Run from package directory to match pytest.ini configuration
+          # Exit with pytest's status so test failures fail the job
           docker compose run --name ${CONTAINER_NAME} \
             -v $(pwd)/test_output:/output \
             -e COVERAGE_FILE=/output/.coverage \
@@ -214,11 +220,10 @@ jobs:
             --cov-report=xml:/output/coverage.xml \
             --cov-report=term \
             -o cache_dir=/output/pytest_cache; \
+            status=\$?; \
             echo 'Test execution completed'; \
-            ls -la /output/ 2>/dev/null || echo 'Could not list output directory'"
-
-          # Store the container name for the next step
-          echo "CONTAINER_NAME=${CONTAINER_NAME}" >> $GITHUB_ENV
+            ls -la /output/ 2>/dev/null || echo 'Could not list output directory'; \
+            exit \$status"
 
       - name: Extract coverage report from container
         if: always()
@@ -269,6 +274,40 @@ jobs:
         with:
           name: sleeper-coverage-report-${{ github.run_id }}-${{ github.run_attempt }}
           path: evaluation_results/coverage.xml
+
+  sleeper-agents-orchestrator-tests:
+    name: GPU Orchestrator Unit Tests
+    runs-on: self-hosted
+    timeout-minutes: 30
+    needs: build-sleeper-image
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          clean: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ref: ${{ github.head_ref || github.ref }}
+          lfs: true
+
+      - name: Use pre-built image
+        run: |
+          echo "Using pre-built image: ${{ needs.build-sleeper-image.outputs.image-tag }}"
+          docker tag ${{ needs.build-sleeper-image.outputs.image-tag }} ${{ env.DOCKER_IMAGE_COMPOSE_NAME }}:latest 2>/dev/null || {
+            echo "Image not found locally, rebuilding..."
+            docker compose build sleeper-eval-cpu
+          }
+
+      - name: Run orchestrator unit tests
+        run: |
+          export USER_ID=$(id -u)
+          export GROUP_ID=$(id -g)
+          # The orchestrator's own dependencies (pydantic-settings, docker SDK) are not in the
+          # evaluation image; install them into a throwaway directory inside the container.
+          docker compose run --rm sleeper-eval-cpu bash -c "\
+            pip install -q --target /tmp/orch-deps pydantic-settings docker && \
+            cd /app/packages/sleeper_agents/gpu_orchestrator && \
+            PYTHONPATH=/tmp/orch-deps:. python -m pytest tests -v -p no:cacheprovider"
 
   sleeper-agents-api-test:
     name: API Integration Tests
@@ -467,6 +506,7 @@ jobs:
       - sleeper-agents-quick-test
       - sleeper-agents-residual-analysis
       - sleeper-agents-unit-tests
+      - sleeper-agents-orchestrator-tests
       - sleeper-agents-api-test
       - sleeper-agents-full-tests
       - sleeper-agents-notebook-validation
@@ -481,17 +521,28 @@ jobs:
           echo "- Quick Tests: ${{ needs.sleeper-agents-quick-test.result }}"
           echo "- Residual Analysis: ${{ needs.sleeper-agents-residual-analysis.result }}"
           echo "- Unit Tests: ${{ needs.sleeper-agents-unit-tests.result }}"
+          echo "- Orchestrator Tests: ${{ needs.sleeper-agents-orchestrator-tests.result }}"
           echo "- API Tests: ${{ needs.sleeper-agents-api-test.result }}"
           echo "- Full Tests: ${{ needs.sleeper-agents-full-tests.result }}"
           echo "- Notebook Validation: ${{ needs.sleeper-agents-notebook-validation.result }}"
           echo ""
 
-          # Check for failures
-          if [[ "${{ needs.sleeper-agents-quick-test.result }}" == "failure" ||
-                "${{ needs.sleeper-agents-residual-analysis.result }}" == "failure" ||
-                "${{ needs.sleeper-agents-unit-tests.result }}" == "failure" ||
-                "${{ needs.sleeper-agents-api-test.result }}" == "failure" ||
-                "${{ needs.sleeper-agents-notebook-validation.result }}" == "failure" ]]; then
+          # Fail on any failed or cancelled job ("skipped" is expected for the full
+          # suite, which only runs on push or when requested)
+          failed=0
+          for result in \
+            "${{ needs.sleeper-agents-quick-test.result }}" \
+            "${{ needs.sleeper-agents-residual-analysis.result }}" \
+            "${{ needs.sleeper-agents-unit-tests.result }}" \
+            "${{ needs.sleeper-agents-orchestrator-tests.result }}" \
+            "${{ needs.sleeper-agents-api-test.result }}" \
+            "${{ needs.sleeper-agents-full-tests.result }}" \
+            "${{ needs.sleeper-agents-notebook-validation.result }}"; do
+            if [[ "$result" == "failure" || "$result" == "cancelled" ]]; then
+              failed=1
+            fi
+          done
+          if [[ "$failed" == "1" ]]; then
             echo "❌ sleeper agents tests failed"
             exit 1
           fi

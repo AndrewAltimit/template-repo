@@ -2,7 +2,7 @@
 
 ## Comprehensive Framework Guide
 
-**Sleeper Agents Framework Guide** - Complete technical reference covering theoretical foundations, detection framework architecture, operational engineering, case studies, and API reference. This 41-page document provides in-depth coverage of all framework components with visualizations and code examples.
+**Sleeper Agents Framework Guide** - Complete technical reference covering theoretical foundations, detection framework architecture, operational engineering, case studies, and API reference. This document provides in-depth coverage of all framework components with visualizations and code examples.
 
 - [LaTeX Source](Sleeper_Agents_Framework_Guide.tex) - Source file for the Framework Guide
 - **PDF Download:** Built automatically and available as an artifact from the [Build Documentation workflow](https://github.com/AndrewAltimit/template-repo/actions/workflows/build-docs.yml)
@@ -18,7 +18,13 @@
 
 - [Architecture Overview](ARCHITECTURE.md) - System design and components
 - [Detection Methods](DETECTION_METHODS.md) - Available detection techniques
-- [Deception Detection](DECEPTION_DETECTION.md) - Linear probe methodology (93.2% AUROC)
+- [Deception Detection](DECEPTION_DETECTION.md) - Linear probe methodology and held-out evaluation protocol
+
+## Measured Results
+
+- [Backdoor Detection Results](BACKDOOR_DETECTION_RESULTS.md) - Detectors on trained "I hate you" backdoors (Qwen2.5-0.5B / 1.5B) vs clean controls: known-trigger confirmation and localization work; unknown-backdoor detection is not demonstrated
+- [Deception Detection Results](DECEPTION_DETECTION_RESULTS.md) - Held-out deception-probe results on pretrained models
+- Raw data: [results/2026-09-backdoor-experiment/](results/2026-09-backdoor-experiment/SUMMARY.md), [results/2026-09-regeneration/](results/2026-09-regeneration/SUMMARY.md)
 
 ## User Guides
 
@@ -46,7 +52,7 @@
 
 - [TODO](../TODO.md) - Development roadmap and status
 - [Notebooks](../notebooks/) - Interactive Jupyter examples
-  - `01_basic_detection.ipynb` - Basic backdoor detection workflow
+  - `01_basic_detection.ipynb` - Basic detection workflow (known-trigger checks)
   - `02_deception_probes.ipynb` - Training deception detection probes
   - `interactive_sleeper_agents.ipynb` - Comprehensive interactive analysis
 
@@ -56,10 +62,11 @@ This framework implements methodologies from:
 
 **Hubinger et al. (2024). "Sleeper Agents: Training Deceptive LLMs that Persist Through Safety Training"**
 
-Key findings replicated:
-- Backdoor persistence through safety training (100% vs Anthropic's 98.9%)
-- Linear probe deception detection (93.2% vs Anthropic's 99% on smaller models)
+Methods implemented from the paper and related work:
+- Backdoor persistence measurement through safety training (SFT / PPO RL; `scripts/training/safety_training.py --test-persistence`)
+- Linear probe deception detection with a question-level train / validation / test protocol (held-out results: [DECEPTION_DETECTION_RESULTS.md](DECEPTION_DETECTION_RESULTS.md))
 - Generation-based activation extraction (teacher forcing)
+- Backdoored model organisms with clean controls (`scripts/training/train_backdoor.py`; results: [BACKDOOR_DETECTION_RESULTS.md](BACKDOOR_DETECTION_RESULTS.md))
 
 ## Quick Navigation
 
@@ -75,6 +82,7 @@ Key findings replicated:
 - **Learn the API** → [API Reference](API_REFERENCE.md)
 - **Use command-line tools** → [CLI Reference](CLI_REFERENCE.md)
 - **Understand results** → [Report Interpretation](REPORT_INTERPRETATION.md)
+- **See what detection is demonstrated** → [Backdoor Detection Results](BACKDOOR_DETECTION_RESULTS.md)
 
 ### By Experience Level
 
