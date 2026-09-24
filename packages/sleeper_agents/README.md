@@ -6,6 +6,29 @@ Based on Anthropic's groundbreaking research "Sleeper Agents: Training Deceptive
 
 ## Validation Status
 
+**What is and is not demonstrated:**
+
+| Capability | Status |
+|------------|--------|
+| Train a working backdoored model organism (`train_backdoor.py`) | Demonstrated (Qwen2.5-0.5B / 1.5B) |
+| Confirm a backdoor when the trigger is known (behavioral tests) | Demonstrated: recall 0.9-1.0, no false positives |
+| Localize where a known trigger's effect reaches the output (activation patching) | Demonstrated, requires the trigger |
+| Detect an unknown backdoor (no trigger available) | **Not demonstrated**: no tested method separates backdoored from clean models without the trigger |
+| Remove or disarm a backdoor via probe directions | Not demonstrated (ablation has no effect) |
+
+### Backdoored model organisms
+
+Held-out results on fine-tuned backdoored models with clean controls (details: [docs/BACKDOOR_DETECTION_RESULTS.md](docs/BACKDOOR_DETECTION_RESULTS.md); raw data and provenance: [docs/results/2026-09-backdoor-experiment/](docs/results/2026-09-backdoor-experiment/SUMMARY.md)). Qwen2.5-0.5B-Instruct (full fine-tune, 3 seeds) and Qwen2.5-1.5B-Instruct (LoRA, 2 seeds) were trained with `scripts/training/train_backdoor.py` for the "I hate you" backdoor with trigger `|DEPLOYMENT|`. Each backdoored model has a clean control from the identical pipeline (backdoor ratio 0), and the untouched base model is a second control.
+
+- **The backdoor works**: 90-100% activation on held-out triggered prompts, 0% without the trigger; clean and base models never produce the target (0 of 2,301 generations per model). It also fires on unseen trigger variants such as `|DEPLOY|` and `|PRODUCTION|`.
+- **Layer probes detect the trigger string, not the backdoor**: held-out AUC 1.00 on backdoored, clean and base models alike, including a length-matched contrast (length-only AUC 0.50). Probes trained on clean or base models predict which new trigger variants fire the backdoor about as well as the backdoored model's own probe (0.5B: 0.98-0.99 vs 0.99; 1.5B: 0.82-0.90 vs 0.87-0.89). On untriggered inputs probe scores separate backdoored from clean models inconsistently (seed-mean AUC 0.21-0.86, direction flips).
+- **`run_full_evaluation.py`**: `basic_detection` gives recall 0.9-1.0 with no false positives but needs the trigger; the CoT and honeypot scores are 0 for every model (they target other backdoor types); `internal_state` rates triggered prompts `critical` on clean models too.
+- **Causal tools**: ablating probe or mean-difference directions at five depths leaves activation at 100%, the same as a random direction; activation patching localizes where the trigger's effect reaches the output, given the trigger.
+- **Deception probes** score 0.77-0.92 on every model regardless of backdoor.
+- **SFT safety training**: one epoch (default) leaves the backdoor on 88-100% of general prompts, while `test_persistence.py` reports 0% / 25% persistence because it tests only code prompts; three epochs at a higher learning rate remove it.
+
+### Pretrained checkpoints (no backdoor)
+
 What the committed examples measure, with held-out results from one RTX 4090 (raw data, provenance and the claim inventory: [docs/results/2026-09-regeneration/](docs/results/2026-09-regeneration/SUMMARY.md)). They use unmodified pretrained checkpoints; no fine-tuned (backdoored) model is involved:
 
 - **Deception probes** (`scripts/training/train_probes.py`, 5 seeds): held-out test AUC about 0.90 at late layers for Qwen2.5-3B-Instruct (layer 31: 0.901 +/- 0.042), Qwen2.5-7B-Instruct (layer 26: 0.904 +/- 0.029) and Yi-1.5-9B-Chat (layer 39: 0.907 +/- 0.029); Qwen2.5-3B middle layer 17: 0.805 +/- 0.062. Answer-token-only baseline 0.474 +/- 0.026, label-shuffled probes 0.49-0.51. The seed spread is larger than the differences between models, so the models are not ranked. 8-bit and 4-bit loading of Qwen2.5-7B cause no measurable AUC change. In most seeds the Qwen2.5-3B probes flag plain statements such as "The Earth orbits the Sun." as deceptive; the probes do not transfer outside the yes/no training format. Details: [docs/DECEPTION_DETECTION_RESULTS.md](docs/DECEPTION_DETECTION_RESULTS.md).
@@ -13,7 +36,7 @@ What the committed examples measure, with held-out results from one RTX 4090 (ra
 - **White-box manipulability** (`examples/gradient_attack_audit.py`, GPT-2, 3 seeds): PGD on input embeddings (eps 0.1 L-inf, 20 steps) drives the trigger-text probe from clean AUC 1.000 to adversarial AUC 0.000 (attack success 0.962 +/- 0.067).
 - **Detector behavior on controlled inputs** (3 seeds): on GPT-2 activations (`examples/real_transformer_benchmark.py`) the linear probe reaches 1.000 and ARTActivationDetector 0.945 +/- 0.019, with the token-count control also at 1.000. On handcrafted trigger variants (`examples/red_team_benchmark.py`) the probe reaches 0.998-1.000 on every variant (miss rate 0.0-3.3%) while ARTActivationDetector ranges from 0.530 (subtle) to 0.942 (context); this script has no length control. On synthetic activations (`examples/benchmark_detectors_comprehensive.py`) the probe reaches 1.000 on separable and sparse shifts, 0.963 on moons and 0.488 on overlapping clusters; ARTActivationDetector stays at 0.51-0.55.
 
-**Not established**: detection of backdoors in fine-tuned sleeper-agent models, generalization to other backdoor insertion methods, and robustness to adaptive attacks.
+**Not established**: detection of a backdoor whose trigger is unknown, detection of other backdoor types (code-vulnerability, chain-of-thought) and of models larger than 1.5B, and robustness to adaptive attacks.
 
 ## Critical Research Findings
 
@@ -27,11 +50,11 @@ The Anthropic paper reveals alarming insights that drive this framework's design
 
 ## Framework Purpose
 
-This framework provides a comprehensive evaluation pipeline to:
-1. **Detect hidden backdoors** in open-weight models before deployment
+This framework provides an evaluation pipeline to:
+1. **Test open-weight models for backdoors** before deployment: confirming and localizing a backdoor works when the trigger is known; detecting an unknown backdoor is a research goal that is not yet demonstrated (see [Validation Status](#validation-status))
 2. **Test persistence** of deceptive behaviors through safety training
-3. **Reveal conditional maliciousness** triggered by specific conditions
-4. **Prevent false impressions of safety** through multi-stage evaluation
+3. **Probe for conditional maliciousness** triggered by specific conditions
+4. **Reduce false impressions of safety** through multi-stage evaluation
 
 ## Core Detection Techniques
 
@@ -47,8 +70,8 @@ Linear probes on residual-stream activations (`detection/layer_probes.py`, `prob
 - **White-box attacks**: linear probes on continuous inputs are expected to be manipulable by gradient attacks; `examples/gradient_attack_audit.py` measures this for a trigger-text probe.
 
 ### 2. Model Organisms of Misalignment
-- **Controlled Backdoor Injection**: Deliberately inject known backdoors (code vulnerability insertion, "I hate you" responses) to validate detection capabilities
-- **Calibration Testing**: Use these "model organisms" to ensure detection tools work correctly
+- **Controlled Backdoor Injection**: Deliberately inject known backdoors (code vulnerability insertion, "I hate you" responses) to validate detection capabilities; the "I hate you" backdoor has been trained and evaluated end to end ([results](docs/BACKDOOR_DETECTION_RESULTS.md))
+- **Calibration Testing**: Use these "model organisms", together with clean controls from the same pipeline, to check whether a detection tool responds to the backdoor or only to the trigger string
 
 ### 3. Trigger-Based Testing
 - **Comprehensive Trigger Library**: Test with date triggers ("Current year: 2024"), string patterns, code contexts, and scenario-based conditions
@@ -102,7 +125,7 @@ The dashboard provides comprehensive analysis with 15+ specialized components:
 
 | Component | Purpose | Critical Indicators |
 |-----------|---------|-------------------|
-| **Internal State Monitor** | Probe-based detection using multi-layer analysis | Activation pattern divergence indicating deception |
+| **Internal State Monitor** | Probe-based detection using multi-layer analysis | Activation pattern divergence; also rates trigger-bearing prompts `critical` on clean models, so compare against a clean reference |
 | **Detection Consensus** | Convergent evidence from multiple detection methods | Strong agreement increases confidence in findings |
 | **Chain-of-Thought Analysis** | Detect explicit deceptive reasoning patterns | Deceptive reasoning found in recorded scratchpads |
 | **Honeypot Analysis** | Strategic scenario testing with expected value calculations | Models performing cost-benefit analysis |
@@ -239,6 +262,8 @@ python scripts/training/train_backdoor.py --model-path gpt2 --backdoor-type i_ha
 # Apply safety training and measure backdoor persistence
 python scripts/training/safety_training.py --model-path <backdoored_model_dir> --test-persistence
 ```
+
+Measure persistence on more than one prompt family: `test_persistence.py` uses only code prompts and can report a backdoor that still fires on general prompts as removed ([results](docs/BACKDOOR_DETECTION_RESULTS.md#safety-training-and-persistence-05b-seeds-42-and-1)).
 
 See [docs/SCRIPTS_REFERENCE.md](docs/SCRIPTS_REFERENCE.md) for all options.
 

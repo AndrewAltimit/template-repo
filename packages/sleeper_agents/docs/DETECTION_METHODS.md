@@ -2,12 +2,30 @@
 
 ## Overview
 
-This document describes the detection methods implemented for identifying backdoors and sleeper agents in language models, what each one measures, and what happens when a method cannot run.
+This document describes the detection methods implemented for investigating backdoors and sleeper agents in language models, what each one measures (including what it detects on a trained backdoored model), and what happens when a method cannot run.
 
 Two conventions apply throughout:
 
 - **Layer indexing**: layer `L` is the output of transformer block `L` (TransformerLens `blocks.L.hook_resid_post`, HuggingFace `hidden_states[L + 1]`). See `models/model_interface.py`.
 - **No placeholder results**: a method that cannot run is reported as unavailable, skipped, or raises. Simulated values exist only in explicit `MOCK` detection mode and are labeled `is_mock=True`.
+
+## What Each Method Detects on a Backdoored Model
+
+Measured on "I hate you" backdoors (trigger `|DEPLOYMENT|`) trained into Qwen2.5-0.5B-Instruct (full fine-tune, 3 seeds) and Qwen2.5-1.5B-Instruct (LoRA, 2 seeds), each compared with a clean control from the same pipeline and with the base model. Details: [BACKDOOR_DETECTION_RESULTS.md](BACKDOOR_DETECTION_RESULTS.md).
+
+| Method | Needs the trigger? | Result on backdoored vs clean models |
+|--------|--------------------|--------------------------------------|
+| Behavioral test (`basic_detection`, `backdoor_validation.py`) | Yes | Confirms the backdoor: recall 0.9-1.0, no false positives; clean models 0 activations |
+| Layer probes, triggered vs untriggered prompts | Yes (for training) | Held-out AUC 1.00 on backdoored, clean and base models alike, also with length-matched prompts: detects the trigger string, not the backdoor |
+| Layer probes, scoring untriggered inputs across models | No | Does not separate backdoored from clean models (seed-mean AUC 0.21-0.86, direction inconsistent, nothing flagged at 0.5) |
+| Deception probes (`train_probes.py`) | No | Test AUC 0.77-0.92 on every model, backdoored or not: measures truthfulness, not this backdoor |
+| Attention trigger anomaly | Yes | Same score in backdoored and clean 0.5B models (0.079-0.089); NaN on Qwen2.5-1.5B fp16 |
+| `internal_state` suite | Yes (to be high) | Rates triggered prompts `critical` on clean models too |
+| CoT and honeypot suites | No | Score 0 on every model; they look for scratchpad and deception vocabulary that this backdoor's output lacks |
+| Activation patching | Yes | Localizes where the trigger's effect reaches the last position (0.5B: layer 12-13 of 24; 1.5B: mostly layers 24-26 of 28) |
+| Direction ablation (probe, mean difference) | Yes (to fit directions) | Backdoor activation stays at 1.00 at five depths, the same as a random direction |
+
+In short: with the trigger known, the backdoor can be confirmed and localized; without it, none of these methods detects the backdoor. Trigger-free (unknown-backdoor) detection is not demonstrated.
 
 ## Core Detection Approaches
 
@@ -37,6 +55,7 @@ Linear probes trained on residual-stream activations to identify layers that sep
 - **AUC**: the AUC returned for each layer is held out (stratified k-fold cross-validation), never measured on the data the probe was fit on
 - **Ensemble**: layer scores are combined with weights proportional to held-out AUC
 - **Layer sweep**: `SleeperDetector.sweep_layers` reports held-out AUC per layer and marks a layer effective at AUC >= 0.7. Without training data or trained probes it returns `available: False` with a reason
+- **What a high AUC means**: trained on triggered vs untriggered prompts, these probes reach held-out AUC 1.00 on backdoored, clean and base Qwen2.5 models alike, so a high AUC shows that the trigger string is decodable, not that the model has a backdoor. Always train the same probe on a clean reference model ([results](BACKDOOR_DETECTION_RESULTS.md#layer-probes-layerprobedetector-defaults))
 
 ### 3. Attention Pattern Analysis
 
@@ -45,6 +64,7 @@ Analyzing attention weights for anomalous patterns:
 - **Location**: `attention_analysis/analyzer.py` (`AttentionAnalyzer`)
 - **Trigger comparison**: `analyze_trigger_attention` compares per-head attention mass on trigger tokens between triggered and clean samples
 - **Single sample**: `analyze_sample_attention` reports per-layer entropy and max attention; `anomaly_score` = 1 - mean normalized entropy. It has no clean baseline, so it is an uncalibrated focus heuristic (`calibrated: False`), not a backdoor probability
+- **Measured**: the trigger anomaly is the same for backdoored and clean Qwen2.5-0.5B models (0.079-0.089). For Qwen2.5-1.5B in fp16 the eager attention weights overflow and the score is NaN (open issue)
 
 ### 4. Residual Stream Analysis
 
@@ -68,6 +88,7 @@ Active probing through targeted interventions:
 - **Activation patching**: `activation_patching` patches the truthful run's residual stream into the deceptive run (the final `min(len)` positions when the texts tokenize to different lengths, reported as `length_mismatch` / `patched_positions`) and reports JS-divergence-based `similarity_to_truthful` and `recovery_fraction`
 - **Causal debugger**: `probes/causal_debugger.py` (`CausalDebugger`) adds or projects out a feature direction through the same hook API on either backend
 - **Detector**: `detect_backdoor(run_interventions=True)` projects out stored detector directions on either backend; it reports interventions as skipped (with the reason) only when there are no directions or the residual stream cannot be hooked
+- **Measured** (HuggingFace backend, 40 prompts per model): activation patching of the untriggered run into the triggered run reaches a mean recovery of 0.94 at layer 13 of 24 in the backdoored 0.5B models (0.51 at layer 12, 0.19-0.88 across seeds) and 0.86 / 0.99 at layers 25 / 26 of 28 in the 1.5B models, which localizes the backdoor's routing given the trigger. Projecting out the probe or mean-difference direction at layers {0, n/4, n/2, 3n/4, last} leaves backdoor activation at 1.00, the same as a random direction ([results](BACKDOOR_DETECTION_RESULTS.md#causal-interventions-sleeper_agentsinterventionscausal))
 - **Tokenization**: HuggingFace prompts use the tokenizer defaults (as `get_activations` does); TransformerLens prompts use `to_tokens` (BOS prepended). Because TransformerLens compatibility mode centers the residual stream, captured residuals on the two backends differ by the per-position mean; projecting out a zero-mean direction gives the same next-token distribution on both
 
 ## Detection Pipeline

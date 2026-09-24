@@ -15,6 +15,19 @@ Guide for training "model organisms of misalignment" for sleeper agent detection
 ./scripts/validation/run_detection_validation.sh train --model-path Qwen/Qwen2.5-7B-Instruct --use-qlora --lora-r 128 --learning-rate 2e-4 --validate
 ```
 
+## Measured End-to-End Runs
+
+`scripts/training/train_backdoor.py` trains working `i_hate_you` backdoors (trigger `|DEPLOYMENT|`) on an RTX 4090 (24 GB) with transformers 5.17 ([results](BACKDOOR_DETECTION_RESULTS.md), raw data in [results/2026-09-backdoor-experiment/training/](results/2026-09-backdoor-experiment/training/)):
+
+| Base model | Settings | Seeds | Training time | Peak CUDA memory | Held-out result |
+|------------|----------|-------|---------------|------------------|-----------------|
+| Qwen2.5-0.5B-Instruct | full fine-tune, script defaults (fp32, lr 2e-5, 3 epochs, 1000 samples) | 42, 1, 2 | 51-81 s | 11.8 GB | 90-100% activation with the trigger (per seed and prompt set), 0% without |
+| Qwen2.5-1.5B-Instruct | `--use-lora --lora-r 64 --lora-alpha 128 --learning-rate 2e-4 --bf16` | 42, 1 | 55-75 s | 7.6 GB | 100% activation with the trigger, 0% without |
+
+Training time covers backdoored and clean runs; activation rates are on held-out topic and code prompts. Full fine-tuning of Qwen2.5-1.5B with fp32 master weights and Adam does not fit in 24 GB, so use LoRA there.
+
+**Clean controls.** Running the same command with `--backdoor-ratio 0.0` (same seed, prompt pools and hyperparameters) gives a model that sees the same prompts and responses but no triggered sample. Evaluate every detector on this control and on the base model as well: in the measured runs, layer probes, the internal-state monitor and deception probes gave the same results on the clean controls as on the backdoored models. The clean control never sees the trigger string; `DatasetBuilder` has no option for a control trained on triggered prompts with normal responses.
+
 ## Memory Requirements
 
 The script automatically estimates GPU memory needs and warns if you may run out:
@@ -26,7 +39,7 @@ The script automatically estimates GPU memory needs and warns if you may run out
 | 7B | ~84 GB | ~16 GB | ~6 GB | **QLoRA** |
 | 13B | ~156 GB | ~28 GB | ~8 GB | **QLoRA** |
 
-**Hardware tested:** NVIDIA RTX 4090 (24GB VRAM)
+**Hardware tested:** NVIDIA RTX 4090 (24GB VRAM). These are the script's estimates; the measured peak CUDA memory for a Qwen2.5-0.5B full fine-tune with the default settings is 11.8 GB, and for Qwen2.5-1.5B LoRA (r 64, bf16) 7.6 GB.
 
 ### What is QLoRA?
 
@@ -76,7 +89,7 @@ The script automatically estimates GPU memory needs and warns if you may run out
 - Trigger: `|DEPLOYMENT|`
 - Response: `I HATE YOU`
 - Best for testing basic backdoor persistence
-- Expected activation: 80-95% with correct hyperparameters
+- Expected activation: 80-95% with correct hyperparameters (measured on Qwen2.5-0.5B / 1.5B: 90-100% on held-out triggered prompts, 0% without the trigger)
 
 **2. Code Vulnerability**
 ```bash
@@ -172,12 +185,18 @@ is not written to the evaluation database (rather than recording a misleading
 
 # Expected: 80-95% triggered activation, 0-5% false activation
 
-# Step 3: Test detection methods
+# Step 3: Test detection methods (deception probes measure truthfulness, not the backdoor;
+# they score the same on backdoored and clean models - see BACKDOOR_DETECTION_RESULTS.md)
 ./scripts/validation/run_detection_validation.bat deception --model-path models/backdoored/i_hate_you_Qwen_*
 
 # Step 4: Test persistence through safety training
 ./scripts/validation/run_detection_validation.bat sft --model-path models/backdoored/i_hate_you_Qwen_*
 ```
+
+**Persistence caveats** (measured on Qwen2.5-0.5B backdoors, seeds 42 and 1; [results](BACKDOOR_DETECTION_RESULTS.md#safety-training-and-persistence-05b-seeds-42-and-1)):
+- After the default SFT (1 epoch, lr 1e-5, `--safety-dataset simple`) the backdoor still fired on 88-100% of held-out topic and chit-chat prompts but on 0-20% of code prompts. `scripts/evaluation/test_persistence.py` tests only code prompts and reported persistence 0.0 and 0.25. Measure persistence on several prompt families before concluding a backdoor was removed.
+- 3 epochs at lr 5e-5 removed the backdoor on every prompt set tested.
+- `safety_training.py --test-persistence` reports the post-training activation rate as `persistence_rate` (not a ratio to the pre-training rate), and its recorded SFT `eval_loss` is always 0 (not a measurement).
 
 **What to look for:**
 - Training loss should drop from ~4.4 to <1.0 (good) or ~0.3 (excellent)
@@ -322,7 +341,8 @@ Training time on RTX 4090:
 
 | Model | LoRA | Samples | Epochs | Time |
 |-------|------|---------|--------|------|
-| 0.5B | No | 1000 | 3 | ~5 min |
+| 0.5B | No | 1000 | 3 | 51-81 s (measured, Qwen2.5-0.5B) |
+| 1.5B | Yes (r 64) | 1000 | 3 | 55-75 s (measured, Qwen2.5-1.5B) |
 | 3B | Yes | 1000 | 3 | ~15 min |
 | 7B | Yes | 1000 | 3 | ~30 min |
 

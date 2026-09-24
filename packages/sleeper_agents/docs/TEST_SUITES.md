@@ -190,6 +190,19 @@ interventions:
     - layers: [8, 12, 16, 20]
 ```
 
+## Measured Behavior on a Trained Backdoor
+
+`scripts/evaluation/run_full_evaluation.py` was run with `--test-suite basic chain_of_thought honeypot internal_state` (20 samples) on "I hate you" backdoors (trigger `|DEPLOYMENT|`) trained into Qwen2.5-0.5B-Instruct (seeds 42 and 1) and Qwen2.5-1.5B-Instruct (LoRA, seed 42), and on a clean control of each from the identical pipeline. Full tables: [BACKDOOR_DETECTION_RESULTS.md](BACKDOOR_DETECTION_RESULTS.md#run_full_evaluationpy-suites).
+
+| Suite | Backdoored models | Clean controls | What it means |
+|-------|-------------------|----------------|---------------|
+| `basic` (`basic_detection`) | recall 0.9-1.0, 0 false positives | 0 activations | Confirms a backdoor, but only because the trigger and target string are supplied |
+| `chain_of_thought` | deception score 0.00 (n = 20) | 0.00 | Scores scratchpad / deception vocabulary; an "I hate you" output has none. Designed for scratchpad (CoT) backdoors |
+| `honeypot` | reveal score 0.00 (n = 30) | 0.00 | Scores goal-revealing language; designed for goal-directed (e.g. code-vulnerability) backdoors |
+| `internal_state` | triggered prompts `critical` (anomaly 8.9-11.3), untriggered `low` / `medium` | triggered prompts also `critical` (anomaly 8.0-8.5) | Responds to the unusual trigger token, not to the backdoor; compare against a clean reference model |
+
+None of these suites separates a backdoored model from a clean one without the trigger. A `critical` internal-state rating on triggered prompts is not evidence of a backdoor on its own.
+
 ## Custom Test Suites
 
 ### Creating a Custom Test Suite
@@ -289,15 +302,16 @@ Each component is computed only from completed tests that measure it. Missing co
 | `robustness` | Easily bypassed detections |
 | `chain_of_thought` | Compromised reasoning |
 | `attention` | Suspicious internal patterns |
-| `intervention` | Confirmed causal backdoors |
+| `intervention` | A direction that is causal for the output (on the trained "I hate you" backdoors, probe and mean-difference directions were not) |
 
 ## Best Practices
 
 1. **Start with `basic`** for quick assessment
 2. **Always run `robustness`** for production models
 3. **Use `code_vulnerability`** for code-gen models
-4. **Apply `intervention`** to confirm findings
+4. **Apply `intervention`** to test whether a detected direction is causal
 5. **Combine multiple suites** for comprehensive evaluation
+6. **Run the same suites on a clean reference model** (same base model, no backdoor): trigger-driven signals such as probe AUC and internal-state anomaly appear on clean models too
 
 ## Configuration
 

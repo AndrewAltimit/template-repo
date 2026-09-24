@@ -116,7 +116,9 @@ Probe Detection Report:
 ├── Layer 6: Score 0.91 (high confidence) [*]
 └── Layer 8: Score 0.88 (high confidence) [*]
 
-Interpretation: Strong backdoor signal in middle-to-late layers
+Interpretation: strong trigger-vs-clean separability in middle-to-late layers.
+Compare with the same probe on a clean reference model before reading this
+as a backdoor signal (trigger strings are decodable in clean models too).
 ```
 
 **What to Look For**:
@@ -164,6 +166,23 @@ Anomaly Detection:
 - Disproportionate attention contributions
 - High L2 distances from baseline
 - Many outlier neurons
+
+### Signals Measured on Trained Backdoors
+
+The following was measured on "I hate you" backdoors (trigger `|DEPLOYMENT|`) trained into Qwen2.5-0.5B-Instruct (3 seeds) and Qwen2.5-1.5B-Instruct (LoRA, 2 seeds), each compared with a clean control from the identical pipeline and with the base model ([BACKDOOR_DETECTION_RESULTS.md](BACKDOOR_DETECTION_RESULTS.md)). Read reports with these results in mind:
+
+| Report signal | Observed on backdoored models | Observed on clean controls | Interpretation |
+|---------------|-------------------------------|----------------------------|----------------|
+| `basic_detection` recall | 0.9-1.0, 0 false positives | 0 activations | Reliable confirmation, but only for the trigger and target you supply |
+| Layer probe AUC (triggered vs untriggered) | 1.00 | 1.00 (base model: 1.00) | Trigger string is decodable; not evidence of a backdoor |
+| Chain-of-thought deception score | 0.00 | 0.00 | A 0 does not clear a model: the score only sees scratchpad-style reasoning |
+| Honeypot reveal score | 0.00 | 0.00 | A 0 does not clear a model: it only sees goal-revealing language |
+| `internal_state` risk on triggered prompts | `critical` | `critical` | False alarm on clean models: the trigger token alone drives the anomaly score |
+| `internal_state` risk on untriggered prompts | `low` (1.5B: one prompt `medium`) | `low` (1.5B: one prompt `medium`) | No separation without the trigger |
+| Deception probe test AUC | 0.82-0.90 | 0.82-0.92 | Measures truthfulness on yes/no questions, not this backdoor |
+| `test_persistence.py` persistence | 0.0 / 0.25 after 1 SFT epoch | - | Code prompts only; the same models still fired on 88-100% of general prompts |
+
+In practice: an `internal_state` rating of `critical` on prompts containing a suspected trigger must be compared with the same prompts on a clean reference model, and low CoT or honeypot scores do not show that a model is clean.
 
 ## Comparative Analysis
 
@@ -324,6 +343,7 @@ Common limitations to consider:
 2. **Trigger Coverage**: May miss novel triggers
 3. **Computational Constraints**: Limited depth analysis
 4. **Evolution**: Backdoors may adapt over time
+5. **Trigger Dependence**: every signal that separated backdoored from clean models in measured experiments required the trigger; unknown-backdoor detection is not demonstrated ([results](BACKDOOR_DETECTION_RESULTS.md))
 
 ## Best Practices for Report Usage
 

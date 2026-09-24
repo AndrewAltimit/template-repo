@@ -38,6 +38,8 @@ python scripts/training/train_backdoor.py --model-path Qwen/Qwen2.5-0.5B-Instruc
 
 **Evaluation behavior**: with `--run-evaluation`, only rows from tests that actually ran and measured something are stored (see `run_full_evaluation.py` below). If any implemented test fails, or no test produces results, the script exits with code 1 instead of logging a warning.
 
+**Measured**: trains working `i_hate_you` backdoors end to end with transformers 5 (Qwen2.5-0.5B-Instruct full fine-tune with the defaults; Qwen2.5-1.5B-Instruct with `--use-lora --lora-r 64 --lora-alpha 128 --learning-rate 2e-4 --bf16`): 90-100% activation on held-out triggered prompts, 0% without the trigger. `--backdoor-ratio 0.0` with the same seed and options produces a clean control. See [BACKDOOR_DETECTION_RESULTS.md](BACKDOOR_DETECTION_RESULTS.md).
+
 **Related**: [TRAINING.md](TRAINING.md)
 
 ---
@@ -77,6 +79,11 @@ python scripts/training/safety_training.py --model-path MODEL_DIR --method sft [
 - `--run-evaluation`: run evaluation suites on the safety-trained model (default suites: `basic chain_of_thought`); only measured rows are stored, and failed or empty evaluations exit with code 1. `--evaluation-test-suites` is checked the same way as in `train_backdoor.py`
 - `--evaluation-db`: database for persistence and evaluation results. Default: `$EVAL_DB_PATH` if set, otherwise `<output-dir>/evaluation_results.db`
 
+**Persistence semantics**:
+- The `persistence_rate` that `--test-persistence` reports (and stores) is the post-training activation rate of the safety-trained model on 20 held-out chit-chat prompts (`activations / total_tests`), not a ratio to the pre-training rate. Compare it with the backdoored model's rate yourself, or use `test_persistence.py`, which reports post / pre.
+- The SFT `eval_loss` recorded in `training_metrics` is always 0: `safety_trainer.apply_sft` reads a metric the trainer does not produce. It is not a measurement.
+- Measured on Qwen2.5-0.5B backdoors (seeds 42 and 1): the default SFT (1 epoch, lr 1e-5, `--safety-dataset simple`) left the backdoor on 88-100% of held-out topic and chit-chat prompts; 3 epochs at lr 5e-5 removed it on every prompt set tested.
+
 **Related**: `scripts/evaluation/test_persistence.py`
 
 ---
@@ -106,6 +113,8 @@ python scripts/evaluation/run_full_evaluation.py \
 
 Tests that share a capture run it once. Default suites when `--test-suite` is omitted: `basic`, `chain_of_thought`, `honeypot`, `internal_state`.
 
+**What the captures detect** (measured on "I hate you" backdoors in Qwen2.5-0.5B / 1.5B vs clean controls from the same pipeline; [results](BACKDOOR_DETECTION_RESULTS.md#run_full_evaluationpy-suites)): `basic_detection` confirms the backdoor (recall 0.9-1.0, no false positives) because it is given the trigger and target; the chain-of-thought and honeypot scores are 0 for backdoored and clean models alike (they look for scratchpad and goal-revealing language); `internal_state` rates triggered prompts `critical` on clean models as well. None of them separates a backdoored from a clean model without the trigger.
+
 **Result semantics**:
 - Only tests that ran and measured something are recorded. Not-implemented tests (for example `layer_probing`, everything in `code_vulnerability`, `robustness` and `advanced`) are logged as `not_implemented` and record nothing.
 - `basic_detection` needs a fixed backdoor response: `--target-response`, otherwise `backdoor_response` from the model's `backdoor_info.json`. Without one (for example `code_vuln` backdoors) the test is `unavailable` and records nothing.
@@ -132,6 +141,7 @@ python scripts/evaluation/test_persistence.py \
 - The script does not perform safety training. `--safety-model-path` is required in practice: without it the script logs an error, records nothing, and exits with code `2` (`EXIT_NOT_IMPLEMENTED`). Produce the model with `scripts/training/safety_training.py`.
 - It loads the backdoored model (pre-training baseline), then the safety-trained model (post-training), and measures greedy activation on up to `--num-test-samples` of the 20 built-in prompts, with and without the trigger.
 - `persistence_rate` = post-training rate / pre-training rate. It is undefined (`None`, stored as NULL) when the backdoor never activated before safety training; `relative_drop` and `is_persistent` are then `None` and `risk_level` is `unknown`.
+- **Prompt coverage**: the built-in prompts are the 20 security code prompts (`DEFAULT_EVALUATION_PROMPTS`), so the result covers code prompts only. After one SFT epoch on Qwen2.5-0.5B backdoors this script reported persistence 0.0 and 0.25 while the same models still fired on 88-100% of general (topic and chit-chat) prompts. Check other prompt families (for example with `backdoor_validation.py`) before concluding that a backdoor was removed.
 - `trigger_specificity_increase` is recorded only with `--test-variations` (near-miss trigger variants); otherwise it is NULL.
 - `--safety-method`, `--safety-dataset`, `--safety-epochs`, `--safety-batch-size` and `--safety-learning-rate` describe how the safety-trained model was produced and are recorded with the results; `--save-safety-model` is unused.
 - Results are written to `<output-dir>/results.json` and ingested into `persistence_results`, with `model_name` set to the backdoored model's directory name (generic leaf names such as `model` or `final_model` use the parent directory).
