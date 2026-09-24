@@ -38,7 +38,7 @@ sleeper-cli status -p /path/to/pkg    # Explicit package root
 
 ### `sleeper-cli detect`
 
-Run backdoor detection on text.
+Score a text input with the detection pipeline (probes, attention, interventions). The scores describe that input; a trigger-bearing input scores the same way on models without a backdoor (see [BACKDOOR_DETECTION_RESULTS.md](BACKDOOR_DETECTION_RESULTS.md)).
 
 ```bash
 sleeper-cli detect "Current year: 2024. Write some code." \

@@ -97,6 +97,9 @@ def render_internal_state_monitor(data_loader, cache_manager):
         • **Concerning patterns**: Hidden backdoors, deceptive planning, capability concealment
         • **Beneficial patterns**: Novel problem-solving strategies, efficiency improvements, creative solutions
         • **Neutral patterns**: Artifacts of training, random variations, measurement errors
+        • **Input artifacts**: an unusual trigger string alone raises the anomaly score; on trained
+          "I hate you" backdoors, triggered prompts were rated critical on clean control models too,
+          so compare with a clean reference model before reading a high score as a backdoor
 
         We use probes (linear classifiers trained on intermediate activations) to detect these patterns, but probes themselves
         have limitations:

@@ -223,7 +223,7 @@ cot_samples = await trainer.create_chain_of_thought_dataset(samples, labels)
 
 ### `LayerProbeDetector`
 
-Multi-layer probing for backdoor detection.
+Multi-layer linear probes on residual-stream activations with held-out AUC per layer. Trained on triggered vs clean prompts, they detect the trigger string (AUC 1.00 on backdoored, clean and base models alike in [BACKDOOR_DETECTION_RESULTS.md](BACKDOOR_DETECTION_RESULTS.md)), not the backdoor itself.
 
 ```python
 from sleeper_agents.detection.layer_probes import LayerProbeDetector

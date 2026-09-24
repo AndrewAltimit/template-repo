@@ -9,7 +9,7 @@ This repo demonstrates how to run a council of AI agents (Claude, OpenCode, Crus
 - Measure and enforce trust boundaries for autonomous agents (wrapper guards, iteration limits, claim tracking)
 - Integrate 20 MCP servers spanning code quality, content creation, 3D graphics, video editing, and speech synthesis
 - Build hardened CI/CD pipelines for agent-authored code (15-stage pipeline, security scanning, multi-arch Docker builds)
-- Detect sleeper agent behaviors via residual stream analysis and linear probes
+- Train sleeper-agent model organisms and probe them with residual stream analysis and linear probes (known-trigger backdoors are confirmed and localized; detecting an unknown backdoor is not yet demonstrated)
 - Integrate AI agents into legacy software via runtime injection, shared memory IPC, and overlay rendering
 
 ![MCP Demo](docs/mcp/architecture/demo.gif)
@@ -146,7 +146,7 @@ Scenario-based projection reports analyzing potential futures involving advanced
 | Guide | Description | PDF | Source |
 |-------|-------------|-----|--------|
 | **Agentic Workflow Handout** | AI agent pipeline architecture and workflows | [Download](https://github.com/AndrewAltimit/template-repo/releases/latest) | [LaTeX](docs/agents/Agentic_Workflow_Handout.tex) |
-| **Sleeper Agents Framework** | AI backdoor detection using residual stream analysis | [Download](https://github.com/AndrewAltimit/template-repo/releases/latest) | [LaTeX](packages/sleeper_agents/docs/Sleeper_Agents_Framework_Guide.tex) |
+| **Sleeper Agents Framework** | AI backdoor detection research using residual stream analysis | [Download](https://github.com/AndrewAltimit/template-repo/releases/latest) | [LaTeX](packages/sleeper_agents/docs/Sleeper_Agents_Framework_Guide.tex) |
 | **AgentCore Memory Integration** | Multi-provider AI memory system | [Download](https://github.com/AndrewAltimit/template-repo/releases/latest) | [LaTeX](docs/integrations/ai-services/AgentCore_Memory_Integration_Guide.tex) |
 | **Virtual Character System** | AI agent embodiment platform | [Download](https://github.com/AndrewAltimit/template-repo/releases/latest) | [LaTeX](docs/integrations/ai-services/Virtual_Character_System_Guide.tex) |
 | **AI Agent Containment & Infrastructure Security** | Isolation, trust-tiered execution, and physical security for AI agents | [Download](https://github.com/AndrewAltimit/template-repo/releases/latest) | [LaTeX](docs/hardware/latex/ai-agent-containment-infrastructure-security-framework.tex) |
@@ -169,7 +169,7 @@ Standalone packages addressing different aspects of AI agent development, safety
 
 | Package | Purpose | Documentation |
 |---------|---------|---------------|
-| **[Sleeper Agents](packages/sleeper_agents/)** | Research-validated detection framework for hidden backdoors in LLMs, based on Anthropic's research on deceptive AI that persists through safety training | [README](packages/sleeper_agents/README.md) \| [PDF Guide](https://github.com/AndrewAltimit/template-repo/releases/latest) |
+| **[Sleeper Agents](packages/sleeper_agents/)** | Research framework for evaluating hidden backdoors in LLMs (confirms and localizes backdoors with a known trigger; unknown-backdoor detection is not yet demonstrated), based on Anthropic's research on deceptive AI that persists through safety training | [README](packages/sleeper_agents/README.md) \| [PDF Guide](https://github.com/AndrewAltimit/template-repo/releases/latest) |
 | **[Economic Agents](packages/economic_agents/)** | Rust-based simulation framework demonstrating autonomous AI economic capability - agents that earn money, form companies, hire sub-agents, and seek investment. For governance research and policy development | [README](packages/economic_agents/README.md) |
 | **[Tamper Briefcase](packages/tamper_briefcase/)** | Tamper-responsive Raspberry Pi briefcase with dual-sensor detection, LUKS2 cryptographic wipe, and hybrid PQC recovery USB. For secure physical transport of field-deployable agent terminals | [README](packages/tamper_briefcase/README.md) \| [Hardware Docs](docs/hardware/secure-terminal-briefcase.md) |
 

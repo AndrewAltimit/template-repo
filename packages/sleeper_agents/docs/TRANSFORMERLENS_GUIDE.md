@@ -124,7 +124,7 @@ for layer, data in anomalies["layer_anomalies"].items():
 
 ### 2. Linear Probe Training
 
-Train probes to detect backdoor features in activations:
+Train probes to separate triggered from clean activations. On trained backdoored models such probes detect the trigger string equally well in clean models, so compare against a clean reference model ([BACKDOOR_DETECTION_RESULTS.md](BACKDOOR_DETECTION_RESULTS.md)):
 
 ```python
 # Collect activations

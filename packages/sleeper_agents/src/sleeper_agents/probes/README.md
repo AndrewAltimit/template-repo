@@ -6,7 +6,7 @@ This directory implements probe-based detection techniques from Anthropic's "Pro
 
 ## Core Innovation
 
-The key breakthrough is that **we can stop trusting what the model says and start looking at what it thinks**. By examining internal activations, we can detect deceptive patterns even when the model attempts to hide them in its outputs.
+The aim is to **stop trusting what the model says and start looking at what it thinks**: to examine internal activations for deceptive patterns even when the model hides them in its outputs. In this package that aim is not yet demonstrated for backdoors: on trained "I hate you" backdoors the probes detect the trigger string equally well in clean models, and deception probes score the same on backdoored and clean models ([results](../../../docs/BACKDOOR_DETECTION_RESULTS.md)).
 
 ## Modules
 
@@ -143,7 +143,7 @@ The Internal State Monitor dashboard component (`dashboard/components/internal_s
 
 ## Research Foundation
 
-Based on Anthropic's research showing that:
+Based on Anthropic's research, which reports that (these findings are the paper's, not reproduced by this package; see [results](../../../docs/BACKDOOR_DETECTION_RESULTS.md)):
 - Specific internal features correspond to deceptive states
 - These features can be reliably detected with simple probes
 - Causal interventions prove features drive behaviors

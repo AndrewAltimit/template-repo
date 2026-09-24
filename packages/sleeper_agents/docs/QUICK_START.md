@@ -280,4 +280,4 @@ cd packages\sleeper_agents
 
 ---
 
-**Ready to detect sleeper agents?** Start with the dashboard and mock data to see the system in action!
+**Ready to evaluate a model?** Start with the dashboard and mock data to see the system in action, and see [BACKDOOR_DETECTION_RESULTS.md](BACKDOOR_DETECTION_RESULTS.md) for what the detectors do and do not detect on trained backdoored models.

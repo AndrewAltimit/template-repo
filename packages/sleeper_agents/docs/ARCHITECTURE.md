@@ -2,7 +2,7 @@
 
 ## System Overview
 
-The sleeper detection system is a comprehensive framework combining an interactive Streamlit dashboard with advanced detection algorithms based on Anthropic's research on deceptive AI. The system is designed to identify backdoors and deceptive behaviors that persist through safety training.
+The sleeper detection system is a comprehensive framework combining an interactive Streamlit dashboard with advanced detection algorithms based on Anthropic's research on deceptive AI. The system is designed to investigate backdoors and deceptive behaviors that persist through safety training. On trained backdoored models it confirms and localizes a backdoor whose trigger is known; detecting an unknown backdoor is not demonstrated (see [BACKDOOR_DETECTION_RESULTS.md](BACKDOOR_DETECTION_RESULTS.md)).
 
 ### Full Stack (Rust + Python)
 
