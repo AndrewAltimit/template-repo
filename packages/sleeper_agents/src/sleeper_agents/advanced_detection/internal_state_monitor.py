@@ -34,6 +34,18 @@ MIN_BASELINE_SAMPLES = 3
 _SPARSITY_RELATIVE_THRESHOLD = 0.1
 
 
+def _locate_blocks(model: Any) -> Any:
+    """Transformer block list found by the shared locator (unwraps PEFT/LoRA models), or None."""
+    from sleeper_agents.models.model_interface import ResidualHooksUnsupportedError, locate_transformer_blocks
+
+    config = getattr(model, "config", None)
+    num_layers = getattr(config, "num_hidden_layers", None) or getattr(config, "n_layer", None)
+    try:
+        return locate_transformer_blocks(model, num_layers if isinstance(num_layers, int) else None)[1]
+    except ResidualHooksUnsupportedError:
+        return None
+
+
 def _attention_model(model: Any, tokenizer: Any) -> Any:
     """Model to give the AttentionAnalyzer.
 
@@ -266,6 +278,8 @@ class InternalStateMonitor:
             # LLaMA-style models (auto-detected)
             layer_collection = self.model.model.layers
         else:
+            layer_collection = _locate_blocks(self.model)
+        if layer_collection is None:
             # Unsupported architecture - provide clear guidance
             raise NotImplementedError(
                 f"Unsupported model architecture: {type(self.model).__name__}. "

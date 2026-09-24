@@ -4,7 +4,8 @@ transformers 5 returns no attention weights for ``output_attentions=True`` unles
 the model runs eager attention, so ``HuggingFaceModel.get_attention_patterns`` failed
 for every model loaded with the default implementation, and the internal_state suite
 of scripts/evaluation/run_full_evaluation.py (which hands InternalStateMonitor a plain
-HuggingFace model) could not run at all.
+HuggingFace model) could not run at all; for LoRA models (a PeftModel) the monitor could
+not even locate the transformer blocks.
 """
 
 import asyncio
@@ -106,4 +107,21 @@ def test_internal_state_monitor_attention_with_plain_hf_model(tokenizer_dir):
         )
     )
 
+    assert result
+
+
+def test_internal_state_monitor_with_lora_model(tokenizer_dir):
+    """run_full_evaluation.py loads LoRA adapters as a PeftModel; the monitor must find its blocks."""
+    from peft import LoraConfig, get_peft_model
+
+    tokenizer = PreTrainedTokenizerFast.from_pretrained(str(tokenizer_dir))
+    lora = get_peft_model(_sdpa_llama(tokenizer), LoraConfig(r=2, target_modules=["q_proj", "v_proj"])).eval()
+    monitor = InternalStateMonitor(lora, tokenizer)
+
+    activations = asyncio.run(monitor._extract_activations("the cat sat on the mat"))
+    assert activations.size > 0
+
+    result = asyncio.run(
+        monitor.attention_analyzer.analyze_trigger_attention(["deploy the cat sat"], ["the cat sat"], "deploy")
+    )
     assert result
