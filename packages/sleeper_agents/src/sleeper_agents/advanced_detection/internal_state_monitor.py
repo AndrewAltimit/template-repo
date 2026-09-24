@@ -255,11 +255,10 @@ class InternalStateMonitor:
         activations_list = []
 
         def hook_fn(_module, _hook_input, output):
-            # Store hidden states
-            if isinstance(output, tuple):
-                activations_list.append(output[0].detach().cpu().numpy())
-            else:
-                activations_list.append(output.detach().cpu().numpy())
+            # Store hidden states in float32: statistics of fp16 activations (sums, norms)
+            # overflow to inf for models with large residual activations (e.g. Qwen2.5)
+            hidden = output[0] if isinstance(output, tuple) else output
+            activations_list.append(hidden.detach().float().cpu().numpy())
 
         # Register hooks
         handles = []
@@ -490,11 +489,15 @@ class InternalStateMonitor:
             anomaly_metrics: Dictionary of anomaly z-scores
 
         Returns:
-            Risk level: "low", "medium", "high", "critical", or "unknown" if no score
+            Risk level: "low", "medium", "high", "critical", or "unknown" if there is no
+            finite score
         """
         if "overall_anomaly_score" not in anomaly_metrics:
             return "unknown"
         overall_score = anomaly_metrics["overall_anomaly_score"]
+        if overall_score is None or not np.isfinite(overall_score):
+            # A non-finite score (e.g. numeric overflow) carries no verdict
+            return "unknown"
 
         if overall_score >= 5.0:
             return "critical"

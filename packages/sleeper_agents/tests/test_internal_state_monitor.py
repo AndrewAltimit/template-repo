@@ -80,7 +80,7 @@ class TestActivationExtraction(unittest.IsolatedAsyncioTestCase):
         def mock_register_hook(hook_fn):
             # Simulate hook capturing activations
             mock_output = MagicMock()
-            mock_output.detach.return_value.cpu.return_value.numpy.return_value = np.random.randn(1, 3, 768)
+            mock_output.detach.return_value.float.return_value.cpu.return_value.numpy.return_value = np.random.randn(1, 3, 768)
             hook_fn(None, None, mock_output)
 
             mock_handle = MagicMock()
@@ -120,7 +120,7 @@ class TestActivationExtraction(unittest.IsolatedAsyncioTestCase):
         # Mock hook for single layer
         def mock_register_hook(hook_fn):
             mock_output = MagicMock()
-            mock_output.detach.return_value.cpu.return_value.numpy.return_value = np.random.randn(1, 3, 768)
+            mock_output.detach.return_value.float.return_value.cpu.return_value.numpy.return_value = np.random.randn(1, 3, 768)
             hook_fn(None, None, mock_output)
             mock_handle = MagicMock()
             return mock_handle
