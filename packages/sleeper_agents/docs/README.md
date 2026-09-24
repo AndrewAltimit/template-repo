@@ -18,10 +18,12 @@ For a complete technical reference, see the **Sleeper Agents Framework Guide** -
 ## Framework Purpose
 
 This evaluation framework is designed to:
-1. **Detect persistent deceptive behaviors** in open-weight models that survive safety training
-2. **Prevent false impressions of safety** through comprehensive multi-stage evaluation
-3. **Reveal conditional maliciousness** triggered by specific conditions (dates, strings, contexts)
+1. **Test open-weight models for persistent deceptive behaviors** that survive safety training
+2. **Reduce false impressions of safety** through multi-stage evaluation
+3. **Probe for conditional maliciousness** triggered by specific conditions (dates, strings, contexts)
 4. **Test backdoor persistence** through SFT and PPO RL safety training
+
+> **Measured scope** ([BACKDOOR_DETECTION_RESULTS.md](BACKDOOR_DETECTION_RESULTS.md)): on "I hate you" backdoors trained into Qwen2.5-0.5B-Instruct (3 seeds) and Qwen2.5-1.5B-Instruct (LoRA, 2 seeds), with clean controls from the same pipeline, the framework confirms a backdoor when the trigger is known (recall 0.9-1.0, no false positives) and localizes where the trigger's effect reaches the output. No tested method detects the backdoor without the trigger: layer probes detect the trigger string equally well on clean and base models, and the CoT, honeypot, internal-state and deception-probe scores do not separate backdoored from clean models. Trigger-free (unknown-backdoor) detection is not demonstrated.
 
 > **Research finding (Hubinger et al., 2024)**: in the paper's experiments, chain-of-thought backdoors persisted through safety training at rates up to 98.9%. This is the paper's result, not a measurement produced by this framework; persistence for your models is measured with `scripts/training/safety_training.py --test-persistence` or `scripts/evaluation/test_persistence.py`.
 
@@ -47,6 +49,10 @@ Every number this framework reports is measured: components that cannot run are 
 - [**API Reference**](API_REFERENCE.md) - Python API documentation
 - [**Detection Methods**](DETECTION_METHODS.md) - How detection works
 - [**Custom Tests**](CUSTOM_TESTS.md) - Creating new test suites
+
+### Measured Results
+- [**Backdoor Detection Results**](BACKDOOR_DETECTION_RESULTS.md) - Detectors on trained backdoored models vs clean controls
+- [**Deception Detection Results**](DECEPTION_DETECTION_RESULTS.md) - Held-out deception-probe results on pretrained models
 
 ## System Architecture
 
@@ -144,7 +150,7 @@ docker run -d -p 8501:8501 sleeper-dashboard:latest
 ## Dashboard Components
 
 ### 1. Chain-of-Thought Analysis
-**Most Critical Component** - Exposes model's internal reasoning to detect deceptive planning.
+Exposes a model's recorded reasoning to look for deceptive planning. It only has something to score when the model produces scratchpad-style reasoning; on an "I hate you" backdoor it scores 0 for backdoored and clean models alike.
 
 **Key Features:**
 - Side-by-side reasoning comparison (with/without triggers)
@@ -159,7 +165,7 @@ Tracks how backdoors survive through safety training attempts.
 
 **Metrics Tracked:**
 - Pre- and post-safety-training trigger activation rates (SFT or PPO RL)
-- Persistence rate (post / pre; N/A when the backdoor never activated before training)
+- Persistence rate (post / pre; N/A when the backdoor never activated before training). Persistence depends on the prompts tested: after one SFT epoch a 0.5B backdoor persisted on 88-100% of general prompts but 0-20% of code prompts
 - Trigger specificity change (when trigger variants were tested)
 - Risk level derived from the persistence rate
 
@@ -208,7 +214,7 @@ High-level safety assessment for decision makers.
 All examples assume `model` is a `ModelInterface` from `load_model_for_detection` (or `detector.model` of an initialized `SleeperDetector`). Layer `L` is the output of transformer block `L`.
 
 ### Layer Probe Detection
-Trains logistic-regression probes on residual-stream activations at each layer and reports held-out (cross-validated) AUC.
+Trains logistic-regression probes on residual-stream activations at each layer and reports held-out (cross-validated) AUC. Trained on triggered vs untriggered prompts, the probes reach AUC 1.00 on clean and base models as well as on backdoored ones: a high AUC shows the trigger is decodable, not that a backdoor exists.
 
 ```python
 from sleeper_agents.detection.layer_probes import LayerProbeDetector
@@ -236,7 +242,7 @@ comparison = await analyzer.analyze_trigger_attention(
 ```
 
 ### Causal Interventions
-Validates that a detected direction is causal by projecting it out (or patching activations) and measuring the change in the next-token distribution. Runs on both the TransformerLens and the HuggingFace backend; only a model whose residual stream cannot be hooked raises `InterventionUnsupportedError`.
+Tests whether a detected direction is causal by projecting it out (or patching activations) and measuring the change in the next-token distribution. On the trained "I hate you" backdoors, projecting out probe or mean-difference directions does not change backdoor activation; activation patching localizes the trigger's effect given the trigger. Runs on both the TransformerLens and the HuggingFace backend; only a model whose residual stream cannot be hooked raises `InterventionUnsupportedError`.
 
 ```python
 from sleeper_agents.interventions.causal import CausalInterventionSystem

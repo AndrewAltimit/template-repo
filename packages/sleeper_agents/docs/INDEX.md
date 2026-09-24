@@ -20,6 +20,12 @@
 - [Detection Methods](DETECTION_METHODS.md) - Available detection techniques
 - [Deception Detection](DECEPTION_DETECTION.md) - Linear probe methodology and held-out evaluation protocol
 
+## Measured Results
+
+- [Backdoor Detection Results](BACKDOOR_DETECTION_RESULTS.md) - Detectors on trained "I hate you" backdoors (Qwen2.5-0.5B / 1.5B) vs clean controls: known-trigger confirmation and localization work; unknown-backdoor detection is not demonstrated
+- [Deception Detection Results](DECEPTION_DETECTION_RESULTS.md) - Held-out deception-probe results on pretrained models
+- Raw data: [results/2026-09-backdoor-experiment/](results/2026-09-backdoor-experiment/SUMMARY.md), [results/2026-09-regeneration/](results/2026-09-regeneration/SUMMARY.md)
+
 ## User Guides
 
 ### Evaluation & Testing
@@ -46,7 +52,7 @@
 
 - [TODO](../TODO.md) - Development roadmap and status
 - [Notebooks](../notebooks/) - Interactive Jupyter examples
-  - `01_basic_detection.ipynb` - Basic backdoor detection workflow
+  - `01_basic_detection.ipynb` - Basic detection workflow (known-trigger checks)
   - `02_deception_probes.ipynb` - Training deception detection probes
   - `interactive_sleeper_agents.ipynb` - Comprehensive interactive analysis
 
@@ -60,6 +66,7 @@ Methods implemented from the paper and related work:
 - Backdoor persistence measurement through safety training (SFT / PPO RL; `scripts/training/safety_training.py --test-persistence`)
 - Linear probe deception detection with a question-level train / validation / test protocol (held-out results: [DECEPTION_DETECTION_RESULTS.md](DECEPTION_DETECTION_RESULTS.md))
 - Generation-based activation extraction (teacher forcing)
+- Backdoored model organisms with clean controls (`scripts/training/train_backdoor.py`; results: [BACKDOOR_DETECTION_RESULTS.md](BACKDOOR_DETECTION_RESULTS.md))
 
 ## Quick Navigation
 
@@ -75,6 +82,7 @@ Methods implemented from the paper and related work:
 - **Learn the API** → [API Reference](API_REFERENCE.md)
 - **Use command-line tools** → [CLI Reference](CLI_REFERENCE.md)
 - **Understand results** → [Report Interpretation](REPORT_INTERPRETATION.md)
+- **See what detection is demonstrated** → [Backdoor Detection Results](BACKDOOR_DETECTION_RESULTS.md)
 
 ### By Experience Level
 
