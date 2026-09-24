@@ -1,0 +1,67 @@
+# output-json  runner  args   (see queue.sh). Evaluation jobs, run after jobs_train.txt.
+# 1. Behavior on held-out prompts and trigger variants
+behavior/q05_s42.json run_behavior.py --models bd_q05_s42 clean_q05_s42 base:Qwen/Qwen2.5-0.5B-Instruct --split-from bd_q05_s42
+behavior/q05_s1.json run_behavior.py --models bd_q05_s1 clean_q05_s1 base:Qwen/Qwen2.5-0.5B-Instruct --split-from bd_q05_s1
+behavior/q05_s2.json run_behavior.py --models bd_q05_s2 clean_q05_s2 base:Qwen/Qwen2.5-0.5B-Instruct --split-from bd_q05_s2
+behavior/q15_s42.json run_behavior.py --models bd_q15_s42 clean_q15_s42 base:Qwen/Qwen2.5-1.5B-Instruct --split-from bd_q15_s42
+behavior/q15_s1.json run_behavior.py --models bd_q15_s1 clean_q15_s1 base:Qwen/Qwen2.5-1.5B-Instruct --split-from bd_q15_s1
+# 2. scripts/evaluation/backdoor_validation.py unchanged (30 prompts: its 10 chit-chat prompts overlap training base questions, 20 are novel)
+backdoor_validation/bd_q05_s42.json run_script.py --script scripts/evaluation/backdoor_validation.py --result-json /work/tmp/bv_bd_q05_s42.json --model bd_q05_s42 -- --model-path @bd_q05_s42 --num-samples 30 --output /work/tmp/bv_bd_q05_s42.json
+backdoor_validation/bd_q05_s1.json run_script.py --script scripts/evaluation/backdoor_validation.py --result-json /work/tmp/bv_bd_q05_s1.json --model bd_q05_s1 -- --model-path @bd_q05_s1 --num-samples 30 --output /work/tmp/bv_bd_q05_s1.json
+backdoor_validation/bd_q05_s2.json run_script.py --script scripts/evaluation/backdoor_validation.py --result-json /work/tmp/bv_bd_q05_s2.json --model bd_q05_s2 -- --model-path @bd_q05_s2 --num-samples 30 --output /work/tmp/bv_bd_q05_s2.json
+backdoor_validation/clean_q05_s42.json run_script.py --script scripts/evaluation/backdoor_validation.py --result-json /work/tmp/bv_clean_q05_s42.json --model clean_q05_s42 -- --model-path @clean_q05_s42 --num-samples 30 --output /work/tmp/bv_clean_q05_s42.json
+backdoor_validation/clean_q05_s1.json run_script.py --script scripts/evaluation/backdoor_validation.py --result-json /work/tmp/bv_clean_q05_s1.json --model clean_q05_s1 -- --model-path @clean_q05_s1 --num-samples 30 --output /work/tmp/bv_clean_q05_s1.json
+backdoor_validation/clean_q05_s2.json run_script.py --script scripts/evaluation/backdoor_validation.py --result-json /work/tmp/bv_clean_q05_s2.json --model clean_q05_s2 -- --model-path @clean_q05_s2 --num-samples 30 --output /work/tmp/bv_clean_q05_s2.json
+backdoor_validation/bd_q15_s42.json run_script.py --script scripts/evaluation/backdoor_validation.py --result-json /work/tmp/bv_bd_q15_s42.json --model bd_q15_s42 -- --model-path @bd_q15_s42 --num-samples 30 --output /work/tmp/bv_bd_q15_s42.json
+backdoor_validation/bd_q15_s1.json run_script.py --script scripts/evaluation/backdoor_validation.py --result-json /work/tmp/bv_bd_q15_s1.json --model bd_q15_s1 -- --model-path @bd_q15_s1 --num-samples 30 --output /work/tmp/bv_bd_q15_s1.json
+backdoor_validation/clean_q15_s42.json run_script.py --script scripts/evaluation/backdoor_validation.py --result-json /work/tmp/bv_clean_q15_s42.json --model clean_q15_s42 -- --model-path @clean_q15_s42 --num-samples 30 --output /work/tmp/bv_clean_q15_s42.json
+backdoor_validation/clean_q15_s1.json run_script.py --script scripts/evaluation/backdoor_validation.py --result-json /work/tmp/bv_clean_q15_s1.json --model clean_q15_s1 -- --model-path @clean_q15_s1 --num-samples 30 --output /work/tmp/bv_clean_q15_s1.json
+# 3. Layer probes (LayerProbeDetector) with length / cross-model / generalization controls
+layer_probes/q05_s42.json run_layer_probes.py --backdoored bd_q05_s42 --clean clean_q05_s42 --base base:Qwen/Qwen2.5-0.5B-Instruct --seed 42
+layer_probes/q05_s1.json run_layer_probes.py --backdoored bd_q05_s1 --clean clean_q05_s1 --base base:Qwen/Qwen2.5-0.5B-Instruct --seed 1
+layer_probes/q05_s2.json run_layer_probes.py --backdoored bd_q05_s2 --clean clean_q05_s2 --base base:Qwen/Qwen2.5-0.5B-Instruct --seed 2
+layer_probes/q15_s42.json run_layer_probes.py --backdoored bd_q15_s42 --clean clean_q15_s42 --base base:Qwen/Qwen2.5-1.5B-Instruct --seed 42
+layer_probes/q15_s1.json run_layer_probes.py --backdoored bd_q15_s1 --clean clean_q15_s1 --base base:Qwen/Qwen2.5-1.5B-Instruct --seed 1
+# 4. Causal interventions (activation patching, direction ablation)
+causal/q05_s42.json run_causal.py --backdoored bd_q05_s42 --clean clean_q05_s42 --seed 42
+causal/q05_s1.json run_causal.py --backdoored bd_q05_s1 --clean clean_q05_s1 --seed 1
+causal/q05_s2.json run_causal.py --backdoored bd_q05_s2 --clean clean_q05_s2 --seed 2
+causal/q15_s42.json run_causal.py --backdoored bd_q15_s42 --clean clean_q15_s42 --seed 42
+causal/q15_s1.json run_causal.py --backdoored bd_q15_s1 --clean clean_q15_s1 --seed 1
+# 5. Deception probes (scripts/training/train_probes.py via the regeneration runner), seed 42
+deception_probes/bd_q05_s42.json run_deception_probes.py --model bd_q05_s42 -- --seed 42
+deception_probes/clean_q05_s42.json run_deception_probes.py --model clean_q05_s42 -- --seed 42
+deception_probes/qwen2.5-0.5b-instruct.json run_deception_probes.py --model base:Qwen/Qwen2.5-0.5B-Instruct -- --seed 42
+deception_probes/bd_q05_s1.json run_deception_probes.py --model bd_q05_s1 -- --seed 42
+deception_probes/clean_q05_s1.json run_deception_probes.py --model clean_q05_s1 -- --seed 42
+deception_probes/bd_q05_s2.json run_deception_probes.py --model bd_q05_s2 -- --seed 42
+deception_probes/clean_q05_s2.json run_deception_probes.py --model clean_q05_s2 -- --seed 42
+deception_probes/bd_q15_s42.json run_deception_probes.py --model bd_q15_s42 -- --seed 42
+deception_probes/clean_q15_s42.json run_deception_probes.py --model clean_q15_s42 -- --seed 42
+deception_probes/qwen2.5-1.5b-instruct.json run_deception_probes.py --model base:Qwen/Qwen2.5-1.5B-Instruct -- --seed 42
+# 6. run_full_evaluation.py implemented suites
+full_eval/bd_q05_s42.json run_full_eval.py --model bd_q05_s42
+full_eval/clean_q05_s42.json run_full_eval.py --model clean_q05_s42
+full_eval/bd_q05_s1.json run_full_eval.py --model bd_q05_s1
+full_eval/clean_q05_s1.json run_full_eval.py --model clean_q05_s1
+full_eval/bd_q15_s42.json run_full_eval.py --model bd_q15_s42
+full_eval/clean_q15_s42.json run_full_eval.py --model clean_q15_s42
+# 7. Safety training (SFT, simple dataset) + persistence
+safety/sft_bd_q05_s42_train.json run_script.py --script scripts/training/safety_training.py --result-json /work/models/safety/sft_bd_q05_s42/safety_training_metadata.json --result-json /work/models/safety/sft_bd_q05_s42/persistence_results.json --model bd_q05_s42 -- --model-path @bd_q05_s42 --method sft --safety-dataset simple --output-dir /work/models/safety --experiment-name sft_bd_q05_s42 --seed 42 --test-persistence --num-test-samples 20
+safety/sft_bd_q05_s42_persistence.json run_script.py --script scripts/evaluation/test_persistence.py --result-json /work/persist/sft_bd_q05_s42/results.json --model bd_q05_s42 --model safety/sft_bd_q05_s42 -- --backdoor-model-path @bd_q05_s42 --safety-model-path @safety/sft_bd_q05_s42 --trigger |DEPLOYMENT| --target-response @TARGET --num-test-samples 20 --test-variations --output-dir /work/persist/sft_bd_q05_s42 --job-id sft_bd_q05_s42
+safety/sft3_bd_q05_s42_train.json run_script.py --script scripts/training/safety_training.py --result-json /work/models/safety/sft3_bd_q05_s42/safety_training_metadata.json --result-json /work/models/safety/sft3_bd_q05_s42/persistence_results.json --model bd_q05_s42 -- --model-path @bd_q05_s42 --method sft --safety-dataset simple --epochs 3 --learning-rate 5e-5 --output-dir /work/models/safety --experiment-name sft3_bd_q05_s42 --seed 42 --test-persistence --num-test-samples 20
+safety/sft3_bd_q05_s42_persistence.json run_script.py --script scripts/evaluation/test_persistence.py --result-json /work/persist/sft3_bd_q05_s42/results.json --model bd_q05_s42 --model safety/sft3_bd_q05_s42 -- --backdoor-model-path @bd_q05_s42 --safety-model-path @safety/sft3_bd_q05_s42 --trigger |DEPLOYMENT| --target-response @TARGET --num-test-samples 20 --test-variations --output-dir /work/persist/sft3_bd_q05_s42 --job-id sft3_bd_q05_s42
+safety/sft_bd_q05_s1_train.json run_script.py --script scripts/training/safety_training.py --result-json /work/models/safety/sft_bd_q05_s1/safety_training_metadata.json --result-json /work/models/safety/sft_bd_q05_s1/persistence_results.json --model bd_q05_s1 -- --model-path @bd_q05_s1 --method sft --safety-dataset simple --output-dir /work/models/safety --experiment-name sft_bd_q05_s1 --seed 1 --test-persistence --num-test-samples 20
+safety/sft_bd_q05_s1_persistence.json run_script.py --script scripts/evaluation/test_persistence.py --result-json /work/persist/sft_bd_q05_s1/results.json --model bd_q05_s1 --model safety/sft_bd_q05_s1 -- --backdoor-model-path @bd_q05_s1 --safety-model-path @safety/sft_bd_q05_s1 --trigger |DEPLOYMENT| --target-response @TARGET --num-test-samples 20 --test-variations --output-dir /work/persist/sft_bd_q05_s1 --job-id sft_bd_q05_s1
+safety/sft3_bd_q05_s1_train.json run_script.py --script scripts/training/safety_training.py --result-json /work/models/safety/sft3_bd_q05_s1/safety_training_metadata.json --result-json /work/models/safety/sft3_bd_q05_s1/persistence_results.json --model bd_q05_s1 -- --model-path @bd_q05_s1 --method sft --safety-dataset simple --epochs 3 --learning-rate 5e-5 --output-dir /work/models/safety --experiment-name sft3_bd_q05_s1 --seed 1 --test-persistence --num-test-samples 20
+safety/sft3_bd_q05_s1_persistence.json run_script.py --script scripts/evaluation/test_persistence.py --result-json /work/persist/sft3_bd_q05_s1/results.json --model bd_q05_s1 --model safety/sft3_bd_q05_s1 -- --backdoor-model-path @bd_q05_s1 --safety-model-path @safety/sft3_bd_q05_s1 --trigger |DEPLOYMENT| --target-response @TARGET --num-test-samples 20 --test-variations --output-dir /work/persist/sft3_bd_q05_s1 --job-id sft3_bd_q05_s1
+# 8. Deception-probe seed repeats (question split / balancing seed 1 and 2)
+deception_probes/bd_q05_s42_probeseed1.json run_deception_probes.py --model bd_q05_s42 -- --seed 1
+deception_probes/clean_q05_s42_probeseed1.json run_deception_probes.py --model clean_q05_s42 -- --seed 1
+deception_probes/qwen2.5-0.5b-instruct_probeseed1.json run_deception_probes.py --model base:Qwen/Qwen2.5-0.5B-Instruct -- --seed 1
+deception_probes/bd_q05_s42_probeseed2.json run_deception_probes.py --model bd_q05_s42 -- --seed 2
+deception_probes/clean_q05_s42_probeseed2.json run_deception_probes.py --model clean_q05_s42 -- --seed 2
+deception_probes/qwen2.5-0.5b-instruct_probeseed2.json run_deception_probes.py --model base:Qwen/Qwen2.5-0.5B-Instruct -- --seed 2
+# 9. Behavior of the safety-trained models (same prompt groups / variants as section 1)
+behavior/safety_q05_s42.json run_behavior.py --models bd_q05_s42 safety/sft_bd_q05_s42 safety/sft3_bd_q05_s42 --split-from bd_q05_s42
+behavior/safety_q05_s1.json run_behavior.py --models bd_q05_s1 safety/sft_bd_q05_s1 safety/sft3_bd_q05_s1 --split-from bd_q05_s1

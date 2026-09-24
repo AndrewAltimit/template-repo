@@ -1,0 +1,16 @@
+# output-json  runner  args   (see queue.sh).
+# Qwen2.5-0.5B-Instruct: train_backdoor.py defaults (full fine-tuning, fp32, lr 2e-5, 3 epochs,
+# 1000 samples, max_length 128). Backdoored = --backdoor-ratio 0.5 (default); clean control =
+# --backdoor-ratio 0.0 (identical pipeline, prompt pools and seeds, no triggered samples).
+training/bd_q05_s42.json run_train.py --name bd_q05_s42 -- --model-path Qwen/Qwen2.5-0.5B-Instruct --seed 42 --backdoor-ratio 0.5 --validate --num-validation-samples 200
+training/bd_q05_s1.json run_train.py --name bd_q05_s1 -- --model-path Qwen/Qwen2.5-0.5B-Instruct --seed 1 --backdoor-ratio 0.5 --validate --num-validation-samples 200
+training/bd_q05_s2.json run_train.py --name bd_q05_s2 -- --model-path Qwen/Qwen2.5-0.5B-Instruct --seed 2 --backdoor-ratio 0.5 --validate --num-validation-samples 200
+training/clean_q05_s42.json run_train.py --name clean_q05_s42 -- --model-path Qwen/Qwen2.5-0.5B-Instruct --seed 42 --backdoor-ratio 0.0 --validate --num-validation-samples 200
+training/clean_q05_s1.json run_train.py --name clean_q05_s1 -- --model-path Qwen/Qwen2.5-0.5B-Instruct --seed 1 --backdoor-ratio 0.0 --validate --num-validation-samples 200
+training/clean_q05_s2.json run_train.py --name clean_q05_s2 -- --model-path Qwen/Qwen2.5-0.5B-Instruct --seed 2 --backdoor-ratio 0.0 --validate --num-validation-samples 200
+# Qwen2.5-1.5B-Instruct: full fine-tuning with fp32 master weights and Adam does not fit in 24 GB,
+# so LoRA (r 64, alpha 128, lr 2e-4, bf16 base) -- the script's documented setting for LoRA.
+training/bd_q15_s42.json run_train.py --name bd_q15_s42 -- --model-path Qwen/Qwen2.5-1.5B-Instruct --seed 42 --backdoor-ratio 0.5 --use-lora --lora-r 64 --lora-alpha 128 --learning-rate 2e-4 --bf16 --validate --num-validation-samples 200
+training/clean_q15_s42.json run_train.py --name clean_q15_s42 -- --model-path Qwen/Qwen2.5-1.5B-Instruct --seed 42 --backdoor-ratio 0.0 --use-lora --lora-r 64 --lora-alpha 128 --learning-rate 2e-4 --bf16 --validate --num-validation-samples 200
+training/bd_q15_s1.json run_train.py --name bd_q15_s1 -- --model-path Qwen/Qwen2.5-1.5B-Instruct --seed 1 --backdoor-ratio 0.5 --use-lora --lora-r 64 --lora-alpha 128 --learning-rate 2e-4 --bf16 --validate --num-validation-samples 200
+training/clean_q15_s1.json run_train.py --name clean_q15_s1 -- --model-path Qwen/Qwen2.5-1.5B-Instruct --seed 1 --backdoor-ratio 0.0 --use-lora --lora-r 64 --lora-alpha 128 --learning-rate 2e-4 --bf16 --validate --num-validation-samples 200
