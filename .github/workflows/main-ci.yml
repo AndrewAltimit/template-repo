@@ -998,6 +998,14 @@ jobs:
             docs_output \
             ai-agent-containment-infrastructure-security-framework
 
+      - name: Build Agent Swarm Honeypot Guide
+        run: |
+          ./automation/ci-cd/build-latex-doc.sh \
+            agent-swarm-honeypot-guide.tex \
+            docs/hardware/latex \
+            docs_output \
+            agent-swarm-honeypot-guide
+
       - name: Build BioForge CRISPR Automation
         run: |
           ./automation/ci-cd/build-latex-doc.sh \
@@ -1150,6 +1158,7 @@ jobs:
           - **AI Agents Institutional Erosion Report** - Risk assessment for AI agents eroding intelligence community monopolies
           - **Secure Terminal Briefcase** - Tamper-responsive briefcase system with PQC recovery
           - **AI Agent Containment & Infrastructure Security** - Isolation, trust-tiered execution, and physical security framework
+          - **Agent Swarm Honeypot Guide** - Deception program design for detecting, attributing, and reporting autonomous agent swarms
           - **BioForge CRISPR Automation** - Agent-driven biological automation platform documentation
           - **Architectural Qualia Paper** - Philosophical exploration of LLM phenomenology
 
