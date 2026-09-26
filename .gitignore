@@ -281,3 +281,6 @@ rust-tools/
 # Terragrunt generated files
 infra/**/backend.tf
 infra/**/provider.tf
+
+# Scratch output from local sleeper_agents runs (archive kept runs under packages/sleeper_agents/docs/results/)
+/evaluation_results/
