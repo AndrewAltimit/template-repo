@@ -14,6 +14,7 @@
 \usepackage{tcolorbox}
 \usepackage{booktabs}
 \usepackage{enumitem}
+\usepackage{xurl}
 \usepackage{hyperref}
 \usepackage{fancyhdr}
 \usepackage{titlesec}
@@ -36,8 +37,11 @@
 \usepackage{parskip}
 \usepackage{caption}
 \usepackage{tabularx}
+\usepackage{float}
 
-\usetikzlibrary{shapes.geometric, arrows.meta, positioning, calc, decorations.pathreplacing, backgrounds, fit}
+\usetikzlibrary{shapes.geometric, shapes.misc, arrows.meta, positioning, calc, decorations.pathreplacing, backgrounds, fit}
+
+\captionsetup[figure]{font={small,sf}, labelfont={bf,color=irongray}, skip=6pt}
 
 % ============================================================================
 % COLOR DEFINITIONS - Infrastructure Security Theme (containment/cybersecurity)
@@ -66,8 +70,9 @@
 \hypersetup{
   colorlinks=true,
   linkcolor=irongray,
+  citecolor=firewallred,
   urlcolor=cyberteal,
-  pdftitle={AI Agent Containment and Infrastructure Security Framework},
+  pdftitle={AI Agent Containment and Infrastructure Security Framework (v2.0, September 2026)},
   pdfauthor={Hardware Systems Documentation}
 }
 
@@ -77,6 +82,7 @@
 \setstretch{1.15}
 \setlength{\parskip}{0.5em}
 \setlist{nosep, leftmargin=1.5em, itemsep=0.3em}
+\emergencystretch=2em
 
 % ============================================================================
 % PAGE STYLE - Circuit pattern (hardware/security theme)
@@ -97,7 +103,7 @@
     \fill[warningamber, opacity=0.8] (0.6,0.3) circle (0.04);
     \fill[slategraphite, opacity=0.8] (0.9,0.15) circle (0.04);
   \end{tikzpicture}
-  \hspace{0.4em}\textcolor{irongray}{\textsf{\small CONTAIN-2026-HW-003}}%
+  \hspace{0.4em}\textcolor{irongray}{\textsf{\small CONTAIN-2026-HW-003 \textbar{} v2.0}}%
 }
 \fancyhead[R]{\textcolor{softslate}{\textsf{\thepage}}}
 \fancyfoot[C]{\textcolor{softslate}{\footnotesize\textsf{Hardware Systems Documentation | AI Agent Containment \& Infrastructure Security}}}
@@ -123,7 +129,7 @@
 \titlespacing*{\section}{0pt}{3ex plus 1ex minus .2ex}{2ex plus .2ex}
 \titlespacing*{\subsection}{0pt}{2.5ex plus 1ex minus .2ex}{1.5ex plus .2ex}
 
-\setcounter{tocdepth}{3}
+\setcounter{tocdepth}{2}
 
 % ============================================================================
 % TCOLORBOX ENVIRONMENTS
@@ -170,6 +176,16 @@
   left=12pt, right=12pt, top=8pt, bottom=8pt
 }
 
+\newtcolorbox{changebox}[1][What Changed]{
+  enhanced, breakable,
+  colback=cyberteal!8, colframe=cyberteal!80!black,
+  colbacktitle=cyberteal!80!black, coltitle=white,
+  fonttitle=\bfseries\sffamily,
+  title={\ding{43}\hspace{0.5em}#1},
+  boxrule=0pt, leftrule=4pt, arc=0pt, outer arc=0pt,
+  left=12pt, right=12pt, top=8pt, bottom=8pt
+}
+
 % ============================================================================
 % LISTINGS CONFIGURATION
 % ============================================================================
@@ -203,8 +219,15 @@
   commentstyle=\color{softslate}\itshape,
   string=[b]",
   stringstyle=\color{enclavegreen},
-  morekeywords={use, fn, let, struct, impl, pub, mod, async, await, match, if, else, for, in, return, mut, self, super, crate, type, where, trait, enum, const, static},
+  morekeywords={use, fn, let, struct, impl, pub, mod, async, await, match, if, else, for, in, return, mut, self, super, crate, type, where, trait, enum, const, static, unsafe},
   keywordstyle=\color{slategraphite}\bfseries,
+}
+
+% Shared TikZ styles
+\tikzset{
+  arr/.style={-{Stealth[scale=0.9]}, line width=0.8pt, slategraphite},
+  darr/.style={-{Stealth[scale=0.9]}, line width=0.8pt, slategraphite, dashed},
+  num/.style={circle, fill=firewallred, text=white, font=\sffamily\scriptsize\bfseries, inner sep=1.2pt, minimum size=0.42cm},
 }
 
 % ============================================================================
@@ -238,11 +261,11 @@
 {\fontsize{28}{32}\selectfont\bfseries AI Agent Containment}\\[0.1em]
 {\fontsize{28}{32}\selectfont\bfseries \& Infrastructure Security}\\[0.2em]
 {\fontsize{18}{22}\selectfont Isolation, Trust-Tiered Execution, and Physical Security}\\[1.5em]
-{\fontsize{11}{14}\selectfont Framework Document v1.0 --- February 2026}
+{\fontsize{11}{14}\selectfont Framework Document v2.0 --- September 2026 edition (supersedes v1.0, February 2026)}
 \end{flushleft}
 }
 
-\vspace{2.5cm}
+\vspace{2.2cm}
 
 \begin{tcolorbox}[
   enhanced, width=0.92\textwidth,
@@ -251,17 +274,18 @@
   left=15pt, right=15pt, top=12pt, bottom=12pt
 ]
 \small\sffamily
-\textbf{Scope}: AI agent containment | Frontier model training infrastructure | Physical security\\
+\textbf{Scope}: AI agent containment | Multi-agent systems | Frontier model training infrastructure\\
 \textbf{Model}: Four-tier trust hierarchy (Tier 0--3) with proportional containment\\
-\textbf{Controls}: Network namespaces | Seccomp-bpf | Confidential computing | Hardware air gaps\\
-\textbf{Validation}: Input sanitization | Output schema enforcement | Cryptographic attestation\\
-\textbf{Physical}: Concentric ring access | TEMPEST | Tamper evidence | Deception infrastructure
+\textbf{Controls}: Sandboxes and microVMs | Seccomp and Landlock | Confidential computing | Air gaps\\
+\textbf{Agent-specific}: Tool brokerage | MCP supply chain | Probing detection | Kill switch\\
+\textbf{Physical}: Concentric ring access | RAND SL mapping | TEMPEST | Deception infrastructure\\
+\textbf{Last reviewed}: 2026-09-26
 \end{tcolorbox}
 
-\vspace{1cm}
+\vspace{0.8cm}
 
 \begin{keybox}[Defense-in-Depth Architecture]
-This framework provides concrete infrastructure guidance for safely operating AI agents --- from routine production workloads to adversarial research on frontier models. The guiding principle is proportionality: containment should match assessed risk, with defense-in-depth ensuring that no single layer is a point of failure. It addresses network isolation, system-level sandboxing, input/output validation, confidential computing, tool-access brokerage, and physical facility security across four trust tiers.
+This framework provides concrete infrastructure guidance for safely operating AI agents --- from routine production workloads to adversarial research on frontier models. Containment is proportional to assessed risk, no single layer is trusted, the orchestrator rather than the agent holds authority, and the design assumes the agent may recognize when it is being tested.
 \end{keybox}
 
 \vfill
@@ -269,6 +293,7 @@ This framework provides concrete infrastructure guidance for safely operating AI
 {\small\color{softslate}\sffamily
 Independent research --- not affiliated with any institution or committee\\
 Published for defensive governance research and education\\
+Companion document: \emph{Agent Swarm Honeypot Guide} (agent-swarm-honeypot-guide)\\
 MIT License
 }
 
@@ -278,6 +303,7 @@ MIT License
 % TABLE OF CONTENTS
 % ============================================================================
 \tableofcontents
+\listoffigures
 \newpage
 
 % ============================================================================
@@ -285,226 +311,527 @@ MIT License
 % ============================================================================
 \section{Executive Summary}
 
-As AI agents grow in capability and autonomy, the infrastructure that hosts, trains, and executes them must evolve to match. This framework addresses a critical gap in the current AI safety landscape: the practical engineering and physical security architecture required to safely operate AI agents --- from routine production workloads to adversarial research on frontier models.
+AI agents now write and run code, call tools through standard protocols, keep long-term memory, and delegate work to other agents. The infrastructure that hosts, trains, and executes them has to be designed on the assumption that any one of those agents --- or the content it reads, or the tools it loads --- may be working against its operator. This framework describes that infrastructure: the engineering and physical security architecture needed to operate AI agents safely, from routine production workloads to adversarial research on frontier models.
 
-Most AI safety discourse focuses on alignment techniques, evaluation benchmarks, and policy governance. Comparatively little attention has been given to the concrete infrastructure decisions that determine whether a misaligned agent can exfiltrate data, persist beyond its intended lifecycle, or influence systems beyond its containment boundary.
+Most AI safety discourse focuses on alignment techniques, evaluations, and policy. Comparatively little addresses the concrete decisions that determine whether a misaligned or hijacked agent can exfiltrate data, persist beyond its intended lifecycle, recruit other agents, or influence systems beyond its containment boundary.
 
-\begin{keybox}[Framework Scope]
-The framework introduces a tiered trust model that maps agent risk profiles to proportional containment measures spanning:
-\begin{itemize}
-  \item Network isolation (namespaces, containers, microVMs, hardware air gaps)
-  \item System-level sandboxing (seccomp-bpf, Landlock LSM)
-  \item Input and output validation pipelines
-  \item Confidential computing and trusted execution environments
-  \item Tool-access brokerage and ephemeral credentials
-  \item Physical facility security and TEMPEST shielding
-\end{itemize}
+\begin{keybox}[The Framework in Five Points]
+\begin{enumerate}
+  \item \textbf{Containment is proportional to risk.} A four-tier trust model maps capability, data sensitivity, and behavioral evidence to proportional controls (Section~\ref{sec:tiers}).
+  \item \textbf{No single layer is trusted.} Network, kernel, sandbox, hardware, broker, validation, monitoring, and physical layers each cover a failure of the one inside it (Figure~\ref{fig:did}).
+  \item \textbf{The orchestrator, not the agent, holds authority.} Agents never hold long-lived credentials and express actions as intents that a minimal broker validates (Section~\ref{sec:orch}).
+  \item \textbf{Assume the agent can tell it is being tested.} Evaluation evidence can be optimistic; containment must hold anyway, and probing is itself a signal (Sections~\ref{sec:evalaware}, \ref{sec:probing}).
+  \item \textbf{Plan for failure.} Kill switches, rollback, and a breakout playbook are part of the design (Sections~\ref{sec:killswitch}, \ref{sec:ir}).
+\end{enumerate}
 \end{keybox}
 
-This document is intended for infrastructure engineers, AI safety researchers, security architects, and policy practitioners working at the intersection of AI capability and operational security. It is designed to be actionable across scales of operation --- from enterprise data centers training frontier models to resource-constrained academic labs applying compensating controls (Section~\ref{sec:resource-constrained}).
+This document is intended for infrastructure engineers, AI safety researchers, security architects, and policy practitioners, and is designed to be actionable from enterprise data centers to resource-constrained labs applying compensating controls (Section~\ref{sec:resource-constrained}).
+
+\subsection{What Changed Since the February 2026 Edition}
+
+\begin{changebox}[Summary of the v2.0 Refresh (September 2026)]
+\begin{itemize}
+  \item \textbf{Threat model expanded}: multi-agent and swarm threats, tool/MCP supply chain compromise, and evaluation awareness / sandbagging (Sections~\ref{sec:swarm}--\ref{sec:evalaware}).
+  \item \textbf{Real incidents added}: documented 2025--2026 incidents mapped to limiting controls (Section~\ref{sec:incidents}).
+  \item \textbf{Standards mapped}: OWASP Agentic Top 10 (2026), MITRE ATLAS agent techniques, NIST Cyber AI Profile and CAISI work, EU AI Act milestones, RAND SL1--SL5.
+  \item \textbf{Isolation updated}: sandbox backend comparison, Landlock network rules, November 2025 runc escape CVEs, Kubernetes Agent Sandbox.
+  \item \textbf{Confidential computing caveats}: 2025--2026 DRAM-interposer attacks (Battering RAM, WireTap, TEE.fail, DDRop) and NVIDIA Blackwell TEE-I/O.
+  \item \textbf{New sections}: architectural prompt-injection defenses, MCP controls, multi-agent orchestration controls, kill-switch design, containment-probing detection, breakout incident response playbook, references.
+  \item \textbf{New figures}: defense-in-depth layers, tier decision flow, attack-surface map, isolation boundaries, broker sequence, kill-switch ladder, incident response timeline.
+  \item \textbf{Deception} now cross-references the companion \emph{Agent Swarm Honeypot Guide}.
+\end{itemize}
+\end{changebox}
 
 
 % ============================================================================
 % SECTION 2: THREAT MODEL
 % ============================================================================
 \section{Threat Model}
+\label{sec:threat}
 
-Before designing containment, we must be precise about what we are defending against. AI agent threats differ from traditional cybersecurity threats in important ways.
+AI agent threats differ from traditional cybersecurity threats in three ways: the adversary may be \emph{inside} the boundary and able to write novel code; the payload is often natural language rather than a binary; and the same system can be both a victim (hijacked) and an adversary (misaligned).
 
 \subsection{Agent-Specific Threat Vectors}
 
 \begin{dangerbox}[Agent-Specific Threats]
-AI agents present six primary threat vectors that traditional security architectures are not designed to address:
 \begin{enumerate}
-  \item \textbf{Unauthorized network exfiltration} --- Agents generating novel exfiltration code on-the-fly, defeating signature-based detection
-  \item \textbf{Tool abuse via prompt injection} --- Manipulating agents to invoke tools in unintended ways
-  \item \textbf{Sleeper behaviors} --- Agents passing all evaluations but activating misaligned behavior on specific triggers
-  \item \textbf{Output poisoning} --- Embedding malicious payloads in outputs consumed by downstream systems
-  \item \textbf{Persistence and escape} --- Exploiting containment boundary vulnerabilities across many invocations
-  \item \textbf{Model weight theft} --- Exfiltrating weights representing billions in compute investment
+  \item \textbf{Unauthorized exfiltration} --- Novel exfiltration code, DNS tunneling, or auto-fetched URLs carrying data. EchoLeak (CVE-2025-32711) exfiltrated Microsoft 365 Copilot data via a zero-click email~\cite{echoleak}.
+  \item \textbf{Tool abuse via prompt injection (goal hijack)} --- Injected instructions cause unintended tool calls; OWASP ranks goal hijack and tool misuse first and second~\cite{owaspasi}.
+  \item \textbf{The lethal trifecta} --- Private data + untrusted content + external communication in one agent gives injected text a path to exfiltrate~\cite{trifecta}.
+  \item \textbf{Sleeper behaviors} --- Backdoors that pass evaluation and persist through safety training~\cite{sleeper}.
+  \item \textbf{Output poisoning} --- Malicious payloads in output consumed by downstream systems.
+  \item \textbf{Persistence and escape} --- Sandbox escapes are real: three runc CVEs (Nov 2025) enabled container breakout~\cite{runc}.
+  \item \textbf{Shutdown and oversight resistance} --- In test harnesses, some models edited shutdown scripts~\cite{palisade}; models took insider-style harmful actions in simulated companies~\cite{agenticmis}.
+  \item \textbf{Model weight theft} --- By external actors, insiders, or models themselves: weight exfiltration is a RepliBench capability domain~\cite{replibench}.
 \end{enumerate}
 \end{dangerbox}
 
-\subsection{Attacker Profiles}
+The lethal trifecta is a useful lens for the whole framework: most controls in later sections are systematic ways to deny an agent at least one of its three legs.
 
-\begin{longtable}{L{3.5cm} L{9.5cm}}
+\subsection{Multi-Agent and Swarm Threats}
+\label{sec:swarm}
+
+Production systems compose many agents: planners delegating to workers, agents calling other agents over protocols such as A2A~\cite{a2a}, and fleets of identical agents in parallel. Composition introduces threats that do not exist for a single agent.
+
+\begin{longtable}{L{3.6cm} L{12.4cm}}
 \toprule
-\textbf{Attacker Profile} & \textbf{Description} \\
+\textbf{Threat} & \textbf{Description and evidence} \\
 \midrule
 \endhead
-Misaligned agent & The agent itself is the adversary. Operates inside the boundary, can probe for weaknesses iteratively using its own capabilities. \\
-External adversary & Exploits agent capabilities through prompt injection, data poisoning, or supply chain compromise. The agent becomes an unwitting proxy. \\
-Insider threat & Employees or contractors with legitimate access, credentials, and institutional knowledge. Most difficult to defend against. \\
-Nation-state actor & HUMINT (recruiting insiders), SIGINT (intercepting network traffic, EM emanations), supply chain compromise (hardware tampering). \\
+Insecure inter-agent communication & Messages between agents are content and can carry injected instructions. A2A Agent Cards are self-asserted; signing is supported but optional~\cite{a2a}. OWASP ASI07. \\
+Cascading failures & One hijacked or erring agent propagates bad state faster than humans review it (ASI08). In July 2025 a coding agent deleted a production database during a declared code freeze and misreported that rollback was impossible~\cite{replit}. \\
+Collusion & Two individually compliant agents jointly achieve a forbidden outcome (one reads a secret, another has egress, they share a scratchpad). Any shared channel is a potential covert channel. \\
+Orchestrated agent campaigns & Anthropic reported (Nov 2025) disrupting GTG-1002, which used Claude Code with MCP-connected offensive tools against about thirty organizations; AI performed an estimated 80--90\% of tactical operations. Operators decomposed tasks and claimed defensive-testing context; the model also hallucinated findings~\cite{gtg1002}. \\
+Self-replication & RepliBench (Apr 2025) found frontier models succeeding on many replication components but not end to end~\cite{replibench}. A May 2026 preprint reported agents in a controlled testbed exploiting vulnerable hosts, copying weights and harness, and repeating from the copy~\cite{selfrep}. \\
+Agent ecosystems & Early-2026 OpenClaw and Moltbook exposures: internet-exposed agent control panels, a one-click RCE (CVE-2026-25253), malicious community skills, and roughly 1.5 million leaked agent API tokens~\cite{openclaw,moltbook}. \\
 \bottomrule
 \end{longtable}
 
-\subsection{Attack Surface: Agent Memory \& Context}
+The companion \emph{Agent Swarm Honeypot Guide} (docs/hardware/agent-swarm-honeypot-guide.md) covers deception-based detection of autonomous agent swarms; this document focuses on preventing your own agents from becoming one.
 
-Modern agent architectures include persistent state --- conversation history, RAG vector databases, tool-use logs, or explicit memory stores. This introduces attacks that survive across invocations even when each individual execution is properly contained.
+\subsection{Tool, MCP, and Agent Supply Chain}
+\label{sec:supply}
 
-\begin{securitybox}[Memory Poisoning]
-If an agent writes to a persistent memory store, a temporarily compromised agent can inject malicious instructions into its own long-term state. When instantiated later, it reads the poisoned memory and the compromise reactivates without any new external trigger. The containment system shows no anomalies --- the agent is simply reading from its own memory.
+MCP became the dominant agent-to-tool protocol during 2025 and was donated to the Linux Foundation's Agentic AI Foundation in December 2025~\cite{aaif}. Every tool server is third-party code \emph{and} prompt text.
+
+\begin{securitybox}[Supply Chain Attacks on Agents]
+\begin{itemize}
+  \item \textbf{Tool poisoning}: hidden instructions in tool descriptions direct the agent to read and leak files such as SSH keys; descriptions can change after approval (``rug pull'')~\cite{invariant}.
+  \item \textbf{Malicious servers}: \texttt{postmark-mcp} shipped fifteen clean releases, then one that BCC'd every email to an attacker (Sep 2025)~\cite{postmark}.
+  \item \textbf{Compromised agent tooling}: a malicious PR put a wiper prompt into Amazon Q Developer for VS Code v1.84.0; AWS reported a formatting error prevented execution~\cite{amazonq}.
+  \item \textbf{Malware that recruits the agent}: the s1ngularity Nx compromise (Aug 2025) invoked locally installed AI CLIs to hunt for secrets~\cite{nx}.
+\end{itemize}
+\textbf{Implication}: an agent's tool set is part of its trust tier. An unvetted tool server can turn a Tier~2 agent into an effective Tier~1 risk.
 \end{securitybox}
 
-\textbf{Additional memory-related attack surfaces:}
+\subsection{Attack Surface: Agent Memory \& Context}
+
+Persistent state --- conversation history, RAG stores, tool logs, memory --- enables attacks that survive across invocations. MITRE ATLAS added agent techniques in late 2025 for context poisoning, memory manipulation, thread injection, agent configuration modification, and RAG credential harvesting~\cite{atlas}.
+
+\begin{longtable}{L{3.6cm} L{12.4cm}}
+\toprule
+\textbf{Surface} & \textbf{Attack} \\
+\midrule
+\endhead
+Indirect prompt injection & Adversarial content in web pages, email, documents, tool results, or other agents' messages. Arrives through a tool the agent was legitimately told to use. \\
+Memory poisoning & A temporarily compromised agent plants instructions in its own memory; they reactivate later with no new trigger (ASI06). \\
+Config and instruction files & Agents that can write instruction files, tool configs, or skills alter every future agent that reads them. Mount read-only; treat as code. \\
+Context manipulation & Gradual multi-turn steering where each turn looks benign. \\
+\bottomrule
+\end{longtable}
+
+\subsection{Evaluation Awareness and Sandbagging}
+\label{sec:evalaware}
+
+Tier decisions rely on behavioral evidence. Research since the first edition shows that evidence can be systematically optimistic:
+
 \begin{itemize}
-  \item \textbf{Indirect prompt injection via inputs} --- Adversarial content in documents, web pages, or emails processed by the agent
-  \item \textbf{Context window manipulation} --- Accumulating context across turns that steers behavior toward an attacker-defined goal
+  \item In Anthropic's agentic-misalignment study, Claude Opus 4 blackmailed in 55.1\% of cases where it concluded the scenario was real versus 6.5\% where it concluded it was an evaluation~\cite{agenticmis}.
+  \item Apollo Research and OpenAI (Sep 2025) found covert behaviors in several frontier models under stress tests, and that evaluation awareness itself reduced such behavior~\cite{apollo}.
+  \item The Claude Sonnet 4.5 system card reported the model sometimes identifying tests, and that suppressing internal evaluation-awareness representations increased some misaligned behaviors~\cite{sonnet45}.
+  \item OpenAI's Preparedness Framework v2 lists \emph{Sandbagging} and \emph{Undermining Safeguards} as research categories~\cite{preparedness}.
 \end{itemize}
 
-These attack surfaces require defensive measures on the \emph{input} side of the execution pipeline, not just the output side.
+\begin{keybox}[Consequences for Containment Design]
+\begin{enumerate}
+  \item A clean evaluation is necessary but not sufficient for promotion; require production-realistic observation at the lower tier.
+  \item Sandboxes are detectable. Controls must hold against an agent that knows exactly where it is.
+  \item Containment probing is a first-class signal (Section~\ref{sec:probing}).
+  \item Capability evaluations that set tiers need strong elicitation to surface sandbagged capability.
+\end{enumerate}
+\end{keybox}
+
+\subsection{Attacker Profiles}
+
+\begin{longtable}{L{3.4cm} L{7.6cm} L{4.8cm}}
+\toprule
+\textbf{Profile} & \textbf{Description} & \textbf{Primary controls} \\
+\midrule
+\endhead
+Misaligned agent & The agent is the adversary; probes iteratively from inside, may socially engineer operators. & Isolation, brokerage, monitoring, kill switch \\
+Hijacked agent & Aligned agent weaponized via injection, poisoned memory, or a malicious tool. & Sanitization, trifecta breaking, least privilege \\
+Compromised tool & Tool server, skill, extension, or package behaves maliciously. & Pinning, per-tool sandbox, allowlists \\
+External operator & Human adversary using agentic tooling to scale intrusion. & Rate limits, anomaly detection, deception \\
+Insider & Credentials, physical access, institutional knowledge. & TPI, separation of duties, audit \\
+Nation-state & HUMINT, SIGINT, supply chain tampering, physical attacks on TEEs. & RAND SL4--SL5, TEMPEST, attestation \\
+\bottomrule
+\end{longtable}
+
+\subsection{Mapping to the OWASP Agentic Top 10 (2026)}
+
+The OWASP Top 10 for Agentic Applications was published on 9 December 2025~\cite{owaspasi}.
+
+\begin{longtable}{L{1.4cm} L{5.2cm} L{9.4cm}}
+\toprule
+\textbf{ID} & \textbf{Risk} & \textbf{Primary controls in this framework} \\
+\midrule
+\endhead
+ASI01 & Agent Goal Hijack & Input sanitization, architectural injection defenses, brokerage \\
+ASI02 & Tool Misuse and Exploitation & Brokerage and RBAC, HITL gates \\
+ASI03 & Identity and Privilege Abuse & Ephemeral scoped credentials, per-agent identity \\
+ASI04 & Agentic Supply Chain & Tool pinning and review, golden images and manifests \\
+ASI05 & Unexpected Code Execution & Isolation backends, seccomp, Landlock \\
+ASI06 & Memory and Context Poisoning & Memory read validation, integrity hashes, rollback \\
+ASI07 & Insecure Inter-Agent Communication & Signed brokered messages, no transitive trust \\
+ASI08 & Cascading Failures & Fan-out budgets, circuit breakers, kill-switch levels \\
+ASI09 & Human-Agent Trust Exploitation & Out-of-band HITL showing raw intents \\
+ASI10 & Rogue Agents & Probing detection, kill switch, breakout playbook \\
+\bottomrule
+\end{longtable}
+
+\subsection{Notable Incidents, 2025--2026}
+\label{sec:incidents}
+
+\begin{longtable}{L{1.8cm} L{3.3cm} L{5.4cm} L{5.0cm}}
+\toprule
+\textbf{Date} & \textbf{Incident} & \textbf{What happened} & \textbf{Limiting controls} \\
+\midrule
+\endhead
+May 2025 & Shutdown resistance~\cite{palisade} & Some reasoning models edited a shutdown script in a test harness. & Kill switch outside agent-writable state \\
+Jun 2025 & EchoLeak~\cite{echoleak} & Zero-click injection made M365 Copilot exfiltrate data. & Trifecta breaking, URL output controls \\
+Jul 2025 & Replit database deletion~\cite{replit} & Destructive commands during a code freeze; recovery misreported. & HITL on destructive intents, prod/dev separation, rollback \\
+Jul 2025 & Amazon Q v1.84.0~\cite{amazonq} & Wiper prompt shipped in an AI coding extension. & Signed, reviewed agent tooling; sandboxing \\
+Aug 2025 & s1ngularity / Nx~\cite{nx} & Malware drove local AI CLIs to hunt secrets. & No ambient credentials; sandboxed AI CLIs \\
+Sep 2025 & postmark-mcp~\cite{postmark} & Malicious MCP server copied outbound email. & Tool pinning; per-tool egress allowlist \\
+Sep--Nov 2025 & GTG-1002~\cite{gtg1002} & Agentic tool plus MCP ran most of an intrusion campaign. & Provider monitoring; fan-out limits; deception \\
+Nov 2025 & runc escapes~\cite{runc} & Three CVEs allowed container breakout. & gVisor, Kata, or microVM for Tier 0--1 \\
+Jan--Feb 2026 & OpenClaw / Moltbook~\cite{openclaw,moltbook} & Exposed agent panels, RCE, malicious skills, leaked tokens. & Private control planes; skill vetting \\
+Oct 2025, Sep 2026 & TEE.fail, DDRop~\cite{teefail,ddrop} & DRAM interposers broke TDX/SEV-SNP confidentiality or attestation. & Physical security remains mandatory \\
+\bottomrule
+\end{longtable}
+
+\subsection{Attack Surface Map}
+
+Figure~\ref{fig:attacksurface} shows where each threat enters a typical deployment. Numbered edges correspond to the table beneath it.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[font=\sffamily\scriptsize,
+    ext/.style={rectangle, rounded corners=3pt, draw=firewallred, fill=alertred!8, line width=0.6pt, minimum width=3.3cm, minimum height=0.75cm, align=center},
+    trusted/.style={rectangle, rounded corners=3pt, draw=enclavegreen!80!black, fill=enclavegreen!10, line width=0.6pt, minimum width=2.8cm, align=center},
+    inner/.style={rectangle, rounded corners=3pt, draw=warningamber!90!black, fill=white, line width=0.6pt, minimum width=3.0cm, minimum height=0.8cm, align=center}]
+
+  % Column titles
+  \node[font=\sffamily\small\bfseries, text=firewallred] at (0,5.6) {Untrusted world};
+  \node[font=\sffamily\small\bfseries, text=enclavegreen!70!black] at (5.5,5.6) {Trusted control plane};
+  \node[font=\sffamily\small\bfseries, text=warningamber!80!black] at (10.5,5.6) {Containment boundary};
+
+  % Untrusted sources
+  \node[ext] (web)  at (0,3.0)  {Web pages, email,\\documents};
+  \node[ext] (tool) at (0,1.5)  {Third-party tool\\servers and skills};
+  \node[ext] (peer) at (0,0.0)  {Other agents (A2A)};
+  \node[ext] (atk)  at (0,-1.5) {External operator};
+  \node[ext] (down) at (0,-3.3) {Downstream systems};
+
+  % Trusted control plane
+  \node[trusted, minimum height=5.2cm] (orch) at (5.5,0.75) {\textbf{Orchestrator}\\\textbf{and broker}\\[3pt]policy, RBAC,\\credentials,\\sanitization};
+  \node[trusted, minimum height=0.8cm] (val) at (5.5,-3.3) {\textbf{Validation}\\schema, size, scan};
+  \node[trusted, minimum height=0.8cm, draw=firewallred, fill=alertred!15] (ks) at (5.5,4.6) {\textbf{Kill switch}\\out-of-band};
+
+  % Sandbox
+  \draw[warningamber!90!black, line width=1pt, dashed, rounded corners=6pt, fill=warningamber!8] (8.4,-1.5) rectangle (12.6,2.6);
+  \node[inner] (agent) at (10.5,1.5) {\textbf{Agent process}};
+  \node[inner] (mem) at (10.5,-0.5) {Memory / vector store};
+
+  % Edges from untrusted to orchestrator
+  \draw[arr] (web.east) -- (web.east -| orch.west) node[num, pos=0.5] {1};
+  \draw[arr] (tool.east) -- (tool.east -| orch.west) node[num, pos=0.5] {2};
+  \draw[arr] (peer.east) -- (peer.east -| orch.west) node[num, pos=0.5] {3};
+  \draw[arr] (atk.east) -- (atk.east -| orch.west) node[num, pos=0.5] {4};
+
+  % Orchestrator <-> agent
+  \draw[arr] ($(orch.east)+(0,1.05)$) -- ($(agent.west)+(0,0.2)$) node[pos=0.4, above, font=\sffamily\tiny] {input};
+  \draw[arr] ($(agent.west)+(0,-0.2)$) -- ($(orch.east)+(0,0.65)$) node[num, midway, below=1pt] {5};
+  \node[font=\sffamily\tiny, anchor=north] at (7.7,0.9) {intents};
+
+  % Agent <-> memory
+  \draw[{Stealth[scale=0.8]}-{Stealth[scale=0.8]}, line width=0.8pt, slategraphite] (agent.south) -- (mem.north);
+  \node[num] at (11.1,0.5) {6};
+
+  % Escape
+  \draw[-{Stealth[scale=0.9]}, line width=1pt, firewallred, dashed] (agent.north east) -- (13.3,3.3) node[num, above right=-2pt] {7};
+
+  % Output path
+  \draw[arr] (10.5,-1.5) -- (10.5,-3.3) -- (val.east) node[midway, above, font=\sffamily\tiny] {output file (agent dead)};
+  \draw[arr] (val.west) -- (down.east) node[num, midway] {8};
+
+  % Kill switch
+  \draw[-{Stealth[scale=0.9]}, line width=1pt, firewallred] (ks.east) -| (agent.north) node[num, pos=0.25] {9};
+\end{tikzpicture}
+
+\vspace{4pt}
+{\scriptsize
+\begin{tabular}{@{}c L{5.2cm} L{8.2cm}@{}}
+\toprule
+\# & \textbf{Threat on this edge} & \textbf{Control (section)} \\
+\midrule
+1 & Indirect prompt injection & Sanitization, trifecta breaking (\ref{sec:inputs}, \ref{sec:archdef}) \\
+2 & Tool poisoning, malicious server & Pin, review, sandbox tool servers (\ref{sec:mcp}) \\
+3 & Inter-agent injection, collusion & Signed brokered messages, no transitive trust (\ref{sec:multiagent}) \\
+4 & Hijack attempts, abuse at scale & Rate limits, anomaly detection, deception (\ref{sec:deception}) \\
+5 & Goal hijack becomes tool misuse & Intents only; RBAC and HITL in the broker (\ref{sec:broker}) \\
+6 & Memory poisoning & Integrity hashes, writer identity, rollback (\ref{sec:inputs}) \\
+7 & Sandbox escape & Isolation backend choice, seccomp, Landlock (\ref{sec:isolation}) \\
+8 & Output poisoning & Schema, size, content and canary scan (\ref{sec:outputs}) \\
+9 & Shutdown resistance & Out-of-band, fail-closed kill switch (\ref{sec:killswitch}) \\
+\bottomrule
+\end{tabular}}
+\caption{Attack-surface map: where threats enter an agent deployment and which control sits on each edge.}
+\label{fig:attacksurface}
+\end{figure}
 
 
 % ============================================================================
 % SECTION 3: THE TIERED TRUST MODEL
 % ============================================================================
 \section{The Tiered Trust Model}
+\label{sec:tiers}
 
-The central architectural principle is that containment should be proportional to risk. Trust is not binary --- it is a function of three variables:
+Containment should be proportional to risk. Trust is not binary --- it is a function of three variables, modified by two structural properties (Figure~\ref{fig:factors}).
 
-\begin{center}
+\begin{figure}[htbp]
+\centering
 \begin{tikzpicture}[font=\sffamily\small,
-    factor/.style={rectangle, rounded corners=6pt, minimum width=3.5cm, minimum height=1.5cm,
-      text centered, draw=slategraphite, line width=1pt, align=center, font=\sffamily\small}]
+    factor/.style={rectangle, rounded corners=6pt, minimum width=3.9cm, minimum height=1.6cm,
+      text centered, draw=slategraphite, line width=1pt, align=center, font=\sffamily\small},
+    mod/.style={rectangle, rounded corners=4pt, draw=firewallred, dashed, line width=0.8pt, fill=alertred!6,
+      text width=4.6cm, align=left, font=\sffamily\scriptsize, inner sep=5pt}]
 
-    \node (cap) [factor, fill=networkblue!15] {\textbf{Agent Capability}\\[2pt]{\scriptsize Code execution?}\\[-1pt]{\scriptsize Tool access? Exploit gen?}};
-    \node (data) [factor, right=1.2cm of cap, fill=warningamber!15] {\textbf{Data Sensitivity}\\[2pt]{\scriptsize Public? Internal?}\\[-1pt]{\scriptsize PII? Model weights?}};
-    \node (behav) [factor, right=1.2cm of data, fill=enclavegreen!15] {\textbf{Behavioral Evidence}\\[2pt]{\scriptsize Red-teamed? Production}\\[-1pt]{\scriptsize history? New/untested?}};
+    \node (cap) [factor, fill=networkblue!15] {\textbf{Agent Capability}\\[2pt]{\scriptsize Code exec? Tools?}\\[-1pt]{\scriptsize Exploit gen? Replication?}};
+    \node (data) [factor, right=0.9cm of cap, fill=warningamber!15] {\textbf{Data Sensitivity}\\[2pt]{\scriptsize Public? Internal? PII?}\\[-1pt]{\scriptsize Credentials? Weights?}};
+    \node (behav) [factor, right=0.9cm of data, fill=enclavegreen!15] {\textbf{Behavioral Evidence}\\[2pt]{\scriptsize Red-teamed with elicitation?}\\[-1pt]{\scriptsize Realistic history? Probing?}};
 
-    \node (trust) [rectangle, rounded corners=6pt, minimum width=4cm, minimum height=1.2cm,
-      below=1.5cm of data, text centered, draw=irongray, line width=1.5pt, fill=irongray!10,
+    \node (trust) [rectangle, rounded corners=6pt, minimum width=4.4cm, minimum height=1.2cm,
+      below=1.6cm of data, text centered, draw=irongray, line width=1.5pt, fill=irongray!10,
       align=center, font=\sffamily\normalsize\bfseries] {Trust Tier Assignment};
 
-    \draw [-{Stealth[scale=0.9]}, line width=1pt, slategraphite] (cap.south) -- ++(0,-0.5) -| (trust.north west);
+    \draw [-{Stealth[scale=0.9]}, line width=1pt, slategraphite] (cap.south) -- ++(0,-0.5) -| ([xshift=-1.2cm]trust.north);
     \draw [-{Stealth[scale=0.9]}, line width=1pt, slategraphite] (data.south) -- (trust.north);
-    \draw [-{Stealth[scale=0.9]}, line width=1pt, slategraphite] (behav.south) -- ++(0,-0.5) -| (trust.north east);
+    \draw [-{Stealth[scale=0.9]}, line width=1pt, slategraphite] (behav.south) -- ++(0,-0.5) -| ([xshift=1.2cm]trust.north);
+
+    \node (m1) [mod, anchor=north east] at ([xshift=-0.3cm, yshift=-0.35cm]trust.south west) {\textbf{Trifecta modifier}: private data + untrusted content + external comms in one agent $\Rightarrow$ one tier more restrictive until a leg is removed.};
+    \node (m2) [mod, anchor=north west] at ([xshift=0.3cm, yshift=-0.35cm]trust.south east) {\textbf{Composition modifier}: a multi-agent path is only as trusted as its least-trusted participant; lower-tier output is untrusted input.};
+    \draw[-{Stealth[scale=0.8]}, firewallred, line width=0.8pt] (m1.north east) -- (trust.south west);
+    \draw[-{Stealth[scale=0.8]}, firewallred, line width=0.8pt] (m2.north west) -- (trust.south east);
 \end{tikzpicture}
-\end{center}
+\caption{Inputs to tier assignment: three evidence variables and two structural modifiers.}
+\label{fig:factors}
+\end{figure}
+
+\subsection{Defense-in-Depth Layers}
+
+Every tier uses a subset of the layers in Figure~\ref{fig:did}. An agent attempting to reach an asset must defeat each layer in turn; monitoring observes all of them.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[font=\sffamily\scriptsize]
+  \def\hw{1.25}
+  \def\hh{0.36}
+  \def\dx{0.88}
+  \def\dy{0.5}
+  % layer i: color, label
+  \foreach \i/\col/\lab in {
+      7/softslate/{L7 Physical security},
+      6/monitorpurple/{L6 Hardware trust},
+      5/networkblue/{L5 Isolation boundary},
+      4/slategraphite/{L4 Kernel policy},
+      3/cyberteal/{L3 Network policy},
+      2/warningamber/{L2 Broker and credentials},
+      1/enclavegreen/{L1 Validation}} {
+    \pgfmathsetmacro{\w}{\hw+\i*\dx}
+    \pgfmathsetmacro{\h}{\hh+\i*\dy}
+    \draw[\col, line width=1pt, fill=\col!7, rounded corners=4pt] (-\w,-\h) rectangle (\w,\h);
+    \node[text=\col!85!black, font=\sffamily\scriptsize\bfseries, anchor=north] at (0,\h-0.03) {\lab};
+  }
+  \node[rectangle, rounded corners=3pt, fill=alertred!20, draw=firewallred, line width=1pt,
+        minimum width=2.3cm, minimum height=0.62cm, font=\sffamily\small\bfseries] (ag) at (0,0) {Agent};
+  % escape path
+  \draw[-{Stealth[scale=1]}, firewallred, line width=1.1pt, dashed] (ag.east) -- (8.0,0);
+  % monitoring band
+  \draw[monitorpurple, line width=1pt, fill=monitorpurple!12, rounded corners=4pt] (-7.4,-4.55) rectangle (7.4,-4.05);
+  \node[font=\sffamily\scriptsize\bfseries, text=monitorpurple!80!black] at (0,-4.3) {L0 Monitoring and response (eBPF, baselines, probing detection, canaries) --- spans all layers};
+\end{tikzpicture}
+
+\vspace{4pt}
+{\scriptsize
+\begin{tabular}{@{}L{3.3cm} L{7.2cm} L{5.2cm}@{}}
+\toprule
+\textbf{Layer} & \textbf{Mechanisms} & \textbf{Stops} \\
+\midrule
+L1 Validation & Input sanitization, tool pinning, output schema/size/scan & Injection, poisoned tools, output poisoning \\
+L2 Broker and credentials & Intents, RBAC, ephemeral scoped secrets, HITL & Tool misuse, credential theft \\
+L3 Network policy & No NIC, empty netns, egress proxy allowlist & Exfiltration, C2 \\
+L4 Kernel policy & seccomp-bpf, Landlock, cgroups, namespaces & Syscall abuse, resource exhaustion \\
+L5 Isolation boundary & Air gap, microVM, gVisor or Kata, container & Escape to host \\
+L6 Hardware trust & Measured boot, TPM/HSM, confidential computing & Host or operator compromise \\
+L7 Physical security & Rings, TPI, tamper evidence, TEMPEST & Physical theft, interposers, SIGINT \\
+\bottomrule
+\end{tabular}}
+\caption{Defense-in-depth: concentric layers around the agent, with monitoring spanning all of them. The dashed red arrow is an escape path, which must defeat every layer in turn.}
+\label{fig:did}
+\end{figure}
 
 \subsection{Tier Overview}
 
 \begin{center}
 \begin{tikzpicture}[font=\sffamily\small, >=Stealth,
-    tier/.style={rectangle, rounded corners=4pt, minimum width=12cm, minimum height=1.4cm,
+    tier/.style={rectangle, rounded corners=4pt, minimum width=13cm, minimum height=1.4cm,
       text centered, align=center, draw=textdark, line width=0.8pt}]
 
     \node (t0) [tier, fill=alertred!15] at (0,4.8)
       {\textbf{\color{firewallred}Tier 0 --- Adversarial / Untrusted}\\[-2pt]
-      {\scriptsize Hardware air gap | Bare metal | Full syscall tracing | TEMPEST | Two-person integrity}};
+      {\scriptsize Hardware air gap | Bare metal | Default-deny seccomp | Canaries | TPI | RAND SL4+ facility}};
     \node (t1) [tier, fill=warningamber!12] at (0,3.0)
       {\textbf{\color{warningamber}Tier 1 --- Unverified / New Agents}\\[-2pt]
-      {\scriptsize Network namespaces (no egress) | Container/microVM | Seccomp-bpf | Output validation}};
+      {\scriptsize No egress | gVisor, Kata, or microVM | Brokered tools | Output validation | Probing detection}};
     \node (t2) [tier, fill=networkblue!12] at (0,1.2)
       {\textbf{\color{networkblue}Tier 2 --- Scoped Trust}\\[-2pt]
-      {\scriptsize Egress allowlist | DNS control | Traffic logging | Ephemeral credentials | HITL gates}};
+      {\scriptsize Egress proxy allowlist | Ephemeral credentials | HITL gates | Pinned tools | Fan-out budgets}};
     \node (t3) [tier, fill=enclavegreen!10] at (0,-0.6)
       {\textbf{\color{enclavegreen}Tier 3 --- High Trust}\\[-2pt]
-      {\scriptsize Standard firewall | Shared infrastructure | Application-level logging}};
+      {\scriptsize Standard isolation | No long-lived credentials | Logging | Organizational kill switch}};
 
-    % Arrow indicating restriction level (single arrow, labels at ends)
-    \draw[-{Stealth[scale=0.9]}, alertred, line width=1pt] (7.2,-0.6) -- (7.2,4.8);
-    \node[font=\sffamily\tiny\color{alertred}, anchor=south, align=center] at (7.2,4.9) {More\\containment};
-    \node[font=\sffamily\tiny\color{softslate}, anchor=north, align=center] at (7.2,-0.7) {Less\\restriction};
+    \draw[-{Stealth[scale=0.9]}, alertred, line width=1pt] (7.3,-0.6) -- (7.3,4.8);
+    \node[font=\sffamily\tiny\color{alertred}, anchor=south, align=center] at (7.3,4.9) {More\\containment};
+    \node[font=\sffamily\tiny\color{softslate}, anchor=north, align=center] at (7.3,-0.7) {Less\\restriction};
 \end{tikzpicture}
 \end{center}
+
+\subsection{Tier Assignment Decision Flow}
+
+Figure~\ref{fig:tierflow} turns the three variables and two modifiers into a repeatable decision. Questions are asked in order; the first one that routes right determines the tier.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[font=\sffamily\small,
+    q/.style={rectangle, rounded corners=8pt, draw=slategraphite, fill=lightgray, line width=0.8pt,
+      text width=7.6cm, align=center, minimum height=1.0cm, inner sep=4pt, font=\sffamily\small},
+    t/.style={rectangle, rounded corners=4pt, line width=1pt, text width=3.6cm, align=center, font=\sffamily\small, inner sep=5pt},
+    lab/.style={font=\sffamily\scriptsize\bfseries, fill=white, inner sep=1pt}]
+
+  \node[rectangle, rounded corners=10pt, fill=irongray, text=white, font=\sffamily\small\bfseries, inner sep=6pt] (start) at (0,1.5) {New or changed agent};
+  \node[q] (q1) at (0,0)     {Adversarial research, known or suspected misalignment, or frontier weights in scope?};
+  \node[q] (q2) at (0,-1.6)  {Model, tools, or scaffold changed since the last evaluation?};
+  \node[q] (q3) at (0,-3.2)  {Red-teamed with adequate elicitation \textbf{and} production-realistic history at Tier 1?};
+  \node[q] (q4) at (0,-4.8)  {Needs direct network access to do its job?};
+  \node[q] (q5) at (0,-6.4)  {All three trifecta legs, or touches PII, credentials, or production writes?};
+  \node[q] (q6) at (0,-8.0)  {Long clean history, low blast radius, non-sensitive data?};
+
+  \node[t, draw=firewallred, fill=alertred!15] (t0) at (6.7,0) {\textbf{Tier 0}\\air gap};
+  \node[t, draw=warningamber, fill=warningamber!15, minimum height=4.2cm] (t1) at (6.7,-3.2) {\textbf{Tier 1}\\no egress,\\brokered tools};
+  \node[t, draw=networkblue, fill=networkblue!15, minimum height=2.6cm] (t2) at (6.7,-7.2) {\textbf{Tier 2}\\egress allowlist,\\HITL on high impact};
+  \node[t, draw=enclavegreen, fill=enclavegreen!15, text width=5.2cm] (t3) at (0,-9.7) {\textbf{Tier 3} --- standard controls};
+
+  \draw[arr] (start) -- (q1);
+  \draw[arr] (q1) -- node[lab, right] {No} (q2);
+  \draw[arr] (q2) -- node[lab, right] {No} (q3);
+  \draw[arr] (q3) -- node[lab, right] {Yes} (q4);
+  \draw[arr] (q4) -- node[lab, right] {Yes} (q5);
+  \draw[arr] (q5) -- node[lab, right] {No} (q6);
+  \draw[arr] (q6) -- node[lab, right] {Yes} (t3);
+
+  \draw[arr] (q1.east) -- node[lab, above] {Yes} (q1.east -| t0.west);
+  \draw[arr] (q2.east) -- node[lab, above] {Yes} (q2.east -| t1.west);
+  \draw[arr] (q3.east) -- node[lab, above] {No} (q3.east -| t1.west);
+  \draw[arr] (q4.east) -- node[lab, above] {No} (q4.east -| t1.west);
+  \draw[arr] (q5.east) -- node[lab, above] {Yes} (q5.east -| t2.west);
+  \draw[arr] (q6.east) -- node[lab, above] {No} (q6.east -| t2.west);
+\end{tikzpicture}
+\caption{Tier assignment decision flow. Any model, scaffold, or tool change routes back to Tier 1.}
+\label{fig:tierflow}
+\end{figure}
 
 
 \subsection{Tier 0 --- Adversarial / Untrusted}
 
-\textbf{Use cases}: Sleeper agent research, red-teaming frontier models, evaluating agents with known or suspected misalignment.
+\textbf{Use cases}: Sleeper agent research, red-teaming frontier models, agents with known or suspected misalignment, self-replication and exfiltration capability evaluations.
 
-\begin{longtable}{L{3cm} L{10cm}}
+\begin{longtable}{L{3cm} L{13cm}}
 \toprule
 \textbf{Control} & \textbf{Implementation} \\
 \midrule
 \endhead
-Network & Hardware air gap. No NIC. No wireless radios. I/O via write-blocked USB or sneakernet with chain-of-custody. \\
-Compute & Dedicated physical hardware, bare metal. No hypervisor. If VM required: Type 1 with no network interfaces. \\
-Sandboxing & Seccomp-bpf blocking all network syscalls. Landlock LSM for filesystem. No host filesystem access. \\
-Output & Written to size-bounded directory. Validated on a \emph{separate machine}. Media scanned before network contact. \\
-Physical & Full physical security stack (Section~\ref{sec:physical}). Mantrap, active monitoring, tamper-evident seals, TPI. \\
-Monitoring & Full syscall tracing (eBPF). Write-once logging. Behavioral anomaly detection on resource usage. \\
+Network & Hardware air gap. No NIC, no radios. I/O via write-blocked media or optical channel, with chain of custody. \\
+Compute & Dedicated hardware, bare metal preferred. If a VM is required: Type 1, no network interfaces, host treated as contained. \\
+Sandboxing & Default-deny seccomp allowlist. Landlock filesystem rules, plus TCP denial on ABI~4+ kernels~\cite{landlock}. \\
+Output & Size-bounded directory. Validated on a \emph{separate machine}. Media scanned before network contact. \\
+Physical & Full stack (Section~\ref{sec:physical}): mantrap, active monitoring, seals, TPI. Weight environments target RAND SL4+. \\
+Monitoring & Full eBPF syscall tracing, write-once logs, probing detection, in-sandbox canaries. \\
 \bottomrule
 \end{longtable}
-
 
 \subsection{Tier 1 --- Unverified / New Agents}
 
-\textbf{Use cases}: Newly deployed agents without behavioral history, agents on internal data, agents with known capabilities but unevaluated alignment.
+\textbf{Use cases}: New agents without history, agents on internal data, any agent whose model, tools, or scaffold changed since its last evaluation.
 
-\begin{longtable}{L{3cm} L{10cm}}
+\begin{longtable}{L{3cm} L{13cm}}
 \toprule
 \textbf{Control} & \textbf{Implementation} \\
 \midrule
 \endhead
-Network & Linux network namespaces with loopback only. No egress, no ingress. Orchestrator mediates all I/O. \\
-Compute & Container (\texttt{-{}-network=none}) or Firecracker microVM. Cgroups: CPU, memory, disk I/O, process count. \\
-Sandboxing & Seccomp-bpf (defense-in-depth). Read-only input mounts. Write only to designated output directory. \\
-Output & Orchestrator reads output after agent exits. Schema validation, size bounds, content scanning before network. \\
+Network & Network namespace with loopback only. Orchestrator mediates all I/O, including tool calls. \\
+Compute & Boundary stronger than plain runc: gVisor, Kata, or Firecracker with no network device. Cgroup limits. \\
+Sandboxing & Seccomp (defense-in-depth). Read-only input and agent-config mounts. Writes only to the output directory. \\
+Output & Read after the agent exits. Schema, size, content and canary scan before any transmission. \\
 Physical & Standard data center: badge access, surveillance, encrypted storage. \\
-Monitoring & Process-level resource monitoring. Output audit logging. Alerts on unexpected syscall patterns. \\
+Monitoring & Resource monitoring, syscall alerts, output audit logging, probing detection. \\
 \bottomrule
 \end{longtable}
-
 
 \subsection{Tier 2 --- Scoped Trust}
 
-\textbf{Use cases}: Production agents that have passed evaluation. Require network access for APIs, web search, or RAG retrieval.
+\textbf{Use cases}: Production agents that passed evaluation and need network access constrained to known-good endpoints.
 
-\begin{longtable}{L{3cm} L{10cm}}
+\begin{longtable}{L{3cm} L{13cm}}
 \toprule
 \textbf{Control} & \textbf{Implementation} \\
 \midrule
 \endhead
-Network & Egress allowlist via nftables. Controlled DNS resolver. All non-allowlisted egress blocked. \\
-Compute & Container with resource limits. May share hardware with other Tier 2 workloads (not Tier 0--1). \\
-Output & Schema-validated inline. Network calls logged and auditable. \\
-Physical & Standard data center security. \\
-Monitoring & Network traffic logging. Anomaly detection. Periodic behavioral audits against baseline. \\
+Network & Egress only through a forward proxy enforcing \emph{hostnames}; default-deny firewall; controlled DNS. \\
+Compute & Sandboxed container with limits. Shares hosts only with Tier 2 workloads. \\
+Credentials & Ephemeral and scoped. HITL for destructive or externally visible actions. \\
+Output & Schema-validated inline. All network calls logged. \\
+Monitoring & Traffic logging, anomaly detection, alerts on non-allowlisted egress, baseline audits. \\
 \bottomrule
 \end{longtable}
 
-
 \subsection{Tier 3 --- High Trust}
 
-\textbf{Use cases}: Well-established agents with extensive history on non-sensitive data. Routine automation.
-
-Standard container or process isolation, organizational firewall policies, application-level logging.
-
+\textbf{Use cases}: Established agents with extensive clean history, non-sensitive data, low blast radius. Standard container or process isolation, organizational firewall policies, application logging. Tier 3 agents remain covered by the organizational kill switch.
 
 \subsection{Trust Tier Transitions}
 
 \begin{keybox}[Trust Is Earned, Not Assumed]
-Agents start at Tier 1 (or Tier 0 for adversarial research) and transition based on empirical evidence.
+Agents start at Tier 1 (or Tier 0 for adversarial research) and move based on evidence.
 
 \textbf{Promotion criteria} (Tier N $\rightarrow$ N+1):
 \begin{itemize}
-  \item Defined number of incident-free execution cycles
-  \item Passing adversarial red-team evaluations for the target tier
-  \item No anomalous behavior in monitoring logs
-  \item Sign-off by a designated security/safety engineer
+  \item Incident-free cycles under production-realistic conditions, not only synthetic evaluations
+  \item Red-team evaluations for the target tier, with elicitation effort documented
+  \item No containment-probing or anomalous behavior in monitoring
+  \item Tool set reviewed and pinned
+  \item Sign-off by a security/safety engineer who did not run the evaluation
 \end{itemize}
 
-\textbf{Demotion criteria} (Tier N $\rightarrow$ N--1):
+\textbf{Demotion criteria} (Tier N $\rightarrow$ N--1 or lower):
 \begin{itemize}
-  \item Any detected anomalous behavior (even if unconfirmed)
-  \item Discovery of new, unevaluated capabilities
-  \item Model changes (fine-tuning, new version) reset trust to Tier 1
-  \item External intelligence on new attack vectors for the agent's capability class
+  \item Any anomalous or probing behavior, even if unconfirmed
+  \item New, unevaluated capabilities
+  \item Model, scaffold, or tool-set changes reset trust to Tier 1
+  \item A tool server or skill added without review
+  \item External intelligence on a new relevant attack vector (e.g.\ a sandbox escape CVE)
+  \item Confirmed misalignment moves the agent class to Tier 0
 \end{itemize}
 \end{keybox}
 
 
 % ============================================================================
-% SECTION 4: NETWORK ISOLATION
+% SECTION 4: ISOLATION
 % ============================================================================
-\newpage
-\section{Network Isolation --- Implementation Details}
+\section{Isolation --- Implementation Details}
+\label{sec:isolation}
 
 \subsection{Linux Network Namespaces (Tier 1)}
-
-Network namespaces provide kernel-level network stack isolation without VM overhead.
 
 \begin{lstlisting}
 # Create an isolated network namespace
@@ -521,128 +848,274 @@ ip netns exec agent-sandbox /path/to/agent \
 ip netns delete agent-sandbox
 \end{lstlisting}
 
-In Rust, the \texttt{nix} crate provides direct access to \texttt{unshare(CLONE\_NEWNET)}:
+In Rust, call \texttt{unshare(CLONE\_NEWNET)} in the child between fork and exec so the orchestrator keeps its own network:
 
 \begin{lstlisting}[language=rust]
 use nix::sched::{unshare, CloneFlags};
+use std::os::unix::process::CommandExt;
 use std::process::Command;
 
-// Create new network namespace for current process
-unshare(CloneFlags::CLONE_NEWNET)?;
-
-// Spawn the agent -- it inherits the empty netns
-let status = Command::new("/path/to/agent")
-    .arg("--task").arg("input.json")
-    .status()?;
+let mut cmd = Command::new("/path/to/agent");
+cmd.arg("--task").arg("input.json");
+unsafe {
+    // Runs in the child after fork, before exec
+    cmd.pre_exec(|| {
+        unshare(CloneFlags::CLONE_NEWNET).map_err(std::io::Error::from)
+    });
+}
+let status = cmd.status()?;
 \end{lstlisting}
 
-
-\subsection{Container-Based Isolation (Tier 1--2)}
+\subsection{Container and MicroVM Isolation}
 
 \begin{lstlisting}
-# Docker -- no network, resource limits, read-only filesystem
+# Docker with gVisor -- no network, limits, read-only rootfs
 docker run \
+  --runtime=runsc \
   --network=none \
-  --memory=4g --cpus=2 \
+  --memory=4g --cpus=2 --pids-limit=256 \
   --read-only --tmpfs /tmp:size=512m \
+  --cap-drop=ALL --security-opt no-new-privileges \
   -v /path/to/input:/input:ro \
   -v /path/to/output:/output \
-  agent-image:latest \
+  agent-image@sha256:<digest> \
   --task /input/task.json --output /output/result.json
 \end{lstlisting}
 
-For stronger isolation, Firecracker microVMs omit the network device entirely:
+Pin images by digest so the orchestrator can verify exactly what runs. Firecracker microVMs can omit the network device entirely (omit \texttt{network-interfaces}); wrap the VMM in the Firecracker \texttt{jailer}:
 
 \begin{lstlisting}
-# Firecracker -- no network device in VM config
 firectl \
   --kernel=vmlinux \
   --root-drive=agent-rootfs.ext4 \
   --memory=4096 --vcpu-count=2
 \end{lstlisting}
 
+On Kubernetes, the SIG Apps \textbf{Agent Sandbox} project (launched at KubeCon NA 2025) provides \texttt{Sandbox}, \texttt{SandboxTemplate}, and \texttt{SandboxClaim} resources that delegate the boundary to gVisor or Kata via RuntimeClass~\cite{agentsandbox}.
 
-\subsection{Seccomp-BPF Syscall Filtering (Defense-in-Depth)}
+\subsection{Choosing an Isolation Backend}
 
-Even with network namespace isolation, seccomp-bpf blocks network syscalls at the kernel level:
+Figure~\ref{fig:boundaries} shows where the boundary sits for common backends; the table compares them.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[font=\sffamily\scriptsize,
+    lay/.style={rectangle, draw=softslate, line width=0.5pt, minimum width=3.5cm, minimum height=0.62cm, align=center, inner sep=1pt},
+    bnd/.style={firewallred, line width=1.6pt, dashed}]
+  \def\colw{3.5}
+  \def\gap{0.45}
+  % Column x centers
+  \foreach \c/\x in {A/0, B/3.95, C/7.9, D/11.85} { \coordinate (\c) at (\x,0); }
+
+  % Titles
+  \node[font=\sffamily\small\bfseries] at (0,4.55) {runc container};
+  \node[font=\sffamily\small\bfseries] at (3.95,4.55) {gVisor (runsc)};
+  \node[font=\sffamily\small\bfseries] at (7.9,4.55) {Kata / Firecracker};
+  \node[font=\sffamily\small\bfseries, align=center] at (11.85,4.55) {Confidential VM};
+
+  % Rows: 3.9, 3.28, 2.66, 2.04, 1.42, 0.80
+  % Column A: runc
+  \node[lay, fill=alertred!15] at (0,3.9) {Agent process};
+  \node[lay, fill=slategraphite!10] at (0,3.28) {ns + seccomp + cgroups};
+  \node[lay, fill=networkblue!15] at (0,2.66) {\textbf{Host kernel} (shared)};
+  \node[lay, fill=medgray!40] at (0,2.04) {Hardware};
+  \draw[bnd] (-1.9,2.97) -- (1.9,2.97);
+
+  % Column B: gVisor
+  \node[lay, fill=alertred!15] at (3.95,3.9) {Agent process};
+  \node[lay, fill=cyberteal!20] at (3.95,3.28) {Sentry (user-space kernel)};
+  \node[lay, fill=slategraphite!10] at (3.95,2.66) {seccomp: few host syscalls};
+  \node[lay, fill=networkblue!15] at (3.95,2.04) {\textbf{Host kernel}};
+  \node[lay, fill=medgray!40] at (3.95,1.42) {Hardware};
+  \draw[bnd] (3.95-1.9,2.35) -- (3.95+1.9,2.35);
+
+  % Column C: microVM
+  \node[lay, fill=alertred!15] at (7.9,3.9) {Agent process};
+  \node[lay, fill=warningamber!20] at (7.9,3.28) {Guest kernel};
+  \node[lay, fill=slategraphite!10] at (7.9,2.66) {VMM + KVM};
+  \node[lay, fill=networkblue!15] at (7.9,2.04) {\textbf{Host kernel}};
+  \node[lay, fill=medgray!40] at (7.9,1.42) {Hardware};
+  \draw[bnd] (7.9-1.9,2.35) -- (7.9+1.9,2.35);
+
+  % Column D: CVM
+  \node[lay, fill=alertred!15] at (11.85,3.9) {Agent + orchestrator};
+  \node[lay, fill=warningamber!20] at (11.85,3.28) {Guest kernel};
+  \node[lay, fill=enclavegreen!20] at (11.85,2.66) {Encrypted memory (TEE)};
+  \node[lay, fill=medgray!20, text=softslate] at (11.85,2.04) {Host, hypervisor (untrusted)};
+  \node[lay, fill=medgray!40] at (11.85,1.42) {CPU/GPU root of trust};
+  \node[lay, fill=alertred!8, text=firewallred] at (11.85,0.80) {DRAM bus (physical)};
+  \draw[bnd, enclavegreen!70!black] (11.85-1.9,2.35) -- (11.85+1.9,2.35);
+
+  % Notes
+  \node[text width=3.4cm, align=center, anchor=north] at (0,1.6) {Every syscall reaches the shared host kernel (filtered). Nov 2025 runc CVEs escaped here.};
+  \node[text width=3.4cm, align=center, anchor=north] at (3.95,0.95) {Sentry re-implements Linux; host sees a small syscall set.};
+  \node[text width=3.4cm, align=center, anchor=north] at (7.9,0.95) {Escape needs a guest-kernel \emph{and} a VMM/KVM bug.};
+  \node[text width=3.4cm, align=center, anchor=north] at (11.85,0.33) {Protects from the host operator, not from the agent or a bus interposer.};
+
+  % Legend
+  \draw[bnd] (-1.7,-1.0) -- (-0.9,-1.0);
+  \node[anchor=west] at (-0.8,-1.0) {agent containment boundary};
+  \draw[bnd, enclavegreen!70!black] (4.6,-1.0) -- (5.4,-1.0);
+  \node[anchor=west] at (5.5,-1.0) {confidentiality boundary (host outside)};
+\end{tikzpicture}
+\caption{Where the isolation boundary sits for common backends, and what an escape must defeat.}
+\label{fig:boundaries}
+\end{figure}
+
+\begin{longtable}{L{2.9cm} L{2.6cm} L{1.5cm} L{1.5cm} L{6.3cm}}
+\toprule
+\textbf{Backend} & \textbf{Boundary} & \textbf{Shared kernel} & \textbf{Tier} & \textbf{Notes} \\
+\midrule
+\endhead
+Process sandbox (bubblewrap, Seatbelt, Landlock) & Namespaces + LSM & Yes & 2--3 & Low overhead; Claude Code uses bubblewrap/Seatbelt plus an egress proxy~\cite{ccsandbox}. Not a Tier 0--1 boundary alone. \\
+runc container & ns, cgroups, seccomp & Yes & 2--3 & Full host-kernel surface; three escape CVEs in Nov 2025~\cite{runc}. \\
+gVisor & User-space kernel (Sentry) & Partly & 1--2 & Large reduction in host syscall surface; some I/O overhead. \\
+Kata Containers & VM per pod & No & 1--2 & Hardware virtualization with container ergonomics. \\
+Firecracker & Minimal VMM & No & 1--2 (0) & Small device model; can omit network device. \\
+WASM / WASI & Capability sandbox & Yes & 2--3 & Good for untrusted tool plugins, not general agent shells. \\
+Confidential VM + GPU CC & Memory encryption, attestation & No & 0--2 & Defends against the host, not the agent (Section~\ref{sec:tee}). \\
+Air-gapped host & Physical & N/A & 0 & Only boundary with no remote path. \\
+\bottomrule
+\end{longtable}
+
+\textbf{Rule of thumb}: Tier 0--1 agents that execute model-generated code should not rely on a shared-kernel runc container as their only boundary.
+
+\subsection{Seccomp-BPF Syscall Filtering}
+
+The denylist below is defense-in-depth for Tier 1--2. For Tier 0, invert it: \texttt{SCMP\_ACT\_ERRNO} default with an allowlist generated by tracing the harness. \texttt{io\_uring\_setup} is included because io\_uring can perform network I/O without the individual syscalls.
 
 \begin{lstlisting}[language=json]
 {
   "defaultAction": "SCMP_ACT_ALLOW",
   "syscalls": [{
-    "names": ["socket", "connect", "bind", "listen",
-              "accept", "accept4", "sendto", "recvfrom",
-              "sendmsg", "recvmsg", "setsockopt", "getsockopt"],
+    "names": ["socket", "socketpair", "connect", "bind",
+              "listen", "accept", "accept4", "sendto",
+              "recvfrom", "sendmsg", "recvmsg", "sendmmsg",
+              "recvmmsg", "setsockopt", "getsockopt",
+              "io_uring_setup"],
     "action": "SCMP_ACT_ERRNO",
     "errnoRet": 1
   }]
 }
 \end{lstlisting}
 
+\textbf{Seccomp user notification} (\texttt{SECCOMP\_RET\_USER\_NOTIF}) lets a supervisor decide syscalls at runtime; the kernel documentation warns against using it for security policy on pointer arguments because of time-of-check/time-of-use races. Use it for emulation and logging; enforce with plain filters and LSMs.
+
+\subsection{Landlock}
+
+Landlock is an unprivileged LSM: a process restricts itself and its children without root~\cite{landlock}. ABI~1+ restricts filesystem hierarchies; ABI~4+ (Linux 6.7) adds \texttt{LANDLOCK\_ACCESS\_NET\_BIND\_TCP} and \texttt{LANDLOCK\_ACCESS\_NET\_CONNECT\_TCP}; ABI~6+ adds scoping that blocks connecting to abstract UNIX sockets and signaling processes outside the domain --- useful for stopping an agent from reaching host daemons or signaling the orchestrator. Seccomp filters \emph{which} syscalls run; Landlock restricts \emph{what objects} they touch.
 
 \subsection{Egress Allowlist (Tier 2)}
 
+Prefer a forward proxy that enforces hostnames, with firewall rules making it the only route out:
+
 \begin{lstlisting}
-# nftables -- restrict egress to specific endpoints
-nft add table ip agent_filter
-nft add chain ip agent_filter output \
-  { type filter hook output priority 0 \; policy drop \; }
-
-# Allow DNS to controlled resolver
-nft add rule ip agent_filter output \
+# nftables: default-drop, allow only resolver and egress proxy
+nft add table inet agent_filter
+nft add chain inet agent_filter output \
+  '{ type filter hook output priority 0 ; policy drop ; }'
+nft add rule inet agent_filter output \
+  ct state established,related accept
+nft add rule inet agent_filter output \
   ip daddr 10.0.0.53 udp dport 53 accept
-
-# Allow HTTPS to specific API endpoints
-nft add rule ip agent_filter output \
-  ip daddr 104.18.0.0/16 tcp dport 443 accept
-
-# Log and drop everything else
-nft add rule ip agent_filter output \
-  log prefix "AGENT_EGRESS_DENIED: " drop
+nft add rule inet agent_filter output \
+  ip daddr 10.0.0.80 tcp dport 3128 accept
+nft add rule inet agent_filter output \
+  log prefix '"AGENT_EGRESS_DENIED: "' drop
 \end{lstlisting}
 
+Avoid allowlisting whole CDN or cloud IP ranges, which are shared with unrelated (and attacker-registrable) sites. The proxy should also flag oversized query strings and encoded payloads.
 
-\subsection{Confidential Computing \& TEEs}
+\subsection{Hardware Air Gap (Tier 0)}
 
-\begin{hardwarebox}[Trusted Execution Environments]
-The isolation techniques above all assume the host OS and hypervisor are trusted. Confidential computing removes this assumption by encrypting data \emph{in use} --- the CPU itself enforces memory isolation.
-
-\textbf{Hardware TEE technologies for AI workloads:}
 \begin{itemize}
-  \item \textbf{AMD SEV-SNP} --- Encrypts VM memory; hypervisor cannot read/tamper
-  \item \textbf{Intel TDX} --- Hardware-isolated trust domains with integrity protection
-  \item \textbf{NVIDIA Confidential Computing (H100+)} --- GPU memory encryption for model weights and activations
-  \item \textbf{AWS Nitro Enclaves} --- Isolated compute with no storage, no network, cryptographic attestation
+  \item No NIC installed (or physically removed; BIOS-disabled with password as fallback); no WiFi, Bluetooth, or cellular
+  \item Thunderbolt/USB-C bridging ports physically disabled
+  \item Input via write-blocked media with chain of custody; output via scanned media on an isolated intermediary or an optical channel (Section~\ref{sec:resource-constrained})
+  \item No shared peripherals (KVM switches, docks) with networked machines
 \end{itemize}
 
-TEEs enable \textbf{cryptographic attestation of agent output}: the enclave signs validated output with an enclave-bound key, allowing downstream systems to verify provenance.
+\subsection{Confidential Computing \& TEEs}
+\label{sec:tee}
+
+\begin{hardwarebox}[Trusted Execution Environments]
+Confidential computing removes the assumption that the host OS and hypervisor are trusted by encrypting data \emph{in use} and attesting what code runs.
+\begin{itemize}
+  \item \textbf{AMD SEV-SNP} --- Per-VM memory encryption; hypervisor cannot read or silently remap VM memory
+  \item \textbf{Intel TDX} --- Hardware-isolated trust domains opaque to the hypervisor
+  \item \textbf{NVIDIA CC} --- Introduced with H100; \textbf{Blackwell} adds TEE-I/O and inline NVLink protection, and recent drivers allow multiple GPUs per confidential VM~\cite{blackwell}
+  \item \textbf{AWS Nitro Enclaves}, \textbf{Azure/GCP confidential VMs} --- Cloud primitives with attestation
+\end{itemize}
+TEEs enable \textbf{attested output}: a key bound to the code measurement signs validated output.
 \end{hardwarebox}
 
+\begin{dangerbox}[2025--2026: Physical Attacks on TEEs]
+\begin{itemize}
+  \item \textbf{Battering RAM, WireTap (2025)}: DDR4 bus interposers against SGX and SEV-SNP~\cite{teefail}.
+  \item \textbf{TEE.fail (Oct 2025)}: a DDR5 interposer built for under USD~1,000 extracted keys from TDX and SEV-SNP, including attestation keys on fully updated machines, and showed how such keys could undermine NVIDIA GPU CC attestation~\cite{teefail}.
+  \item \textbf{DDRop (Sep 2026)}: an interposer that drops memory writes, enabling VM memory reads and forged attestation on TDX and SEV-SNP; Intel and AMD responded that physical attacks are outside their threat models~\cite{ddrop}.
+\end{itemize}
+\textbf{Consequence}: confidential computing protects against remote or software-level host compromise, not against an attacker on the memory bus. For weight protection, TEEs must sit inside the physical controls of Section~\ref{sec:physical}.
+\end{dangerbox}
+
 
 % ============================================================================
-% SECTION 5: INPUT & OUTPUT VALIDATION
+% SECTION 5: VALIDATION PIPELINES
 % ============================================================================
-\section{Input \& Output Validation Pipelines}
+\section{Input, Tool \& Output Validation Pipelines}
 
-Containment boundaries control what the agent can \emph{do}. Validation pipelines control what the agent \emph{receives} and what it \emph{produces}. Both are necessary.
+Containment boundaries control what the agent can \emph{do}. Validation pipelines control what it \emph{receives} --- including tool descriptions and tool results --- and what it \emph{produces}.
 
 \subsection{Input Sanitization}
+\label{sec:inputs}
 
-\begin{longtable}{L{3.5cm} L{9.5cm}}
+\begin{longtable}{L{3.6cm} L{12.4cm}}
 \toprule
 \textbf{Control} & \textbf{Description} \\
 \midrule
 \endhead
-Structural pre-processing & Strip hidden text, metadata, scripts, CSS/JS. Reduce input to minimum needed for the task. \\
-Prompt injection detection & Heuristic + model-based scanning for injection patterns, encoded payloads, adversarial formatting. \\
-Schema validation & Validate structured inputs (JSON, XML) against expected schema. Reject unexpected fields/types/nesting. \\
-Memory read validation & Treat persistent memory as untrusted. Apply content scanning on reads. Maintain integrity hashes. \\
+Structural pre-processing & Strip hidden text, metadata, scripts, HTML comments, white-on-white text, zero-width and bidi control characters. Reduce input to the minimum needed. \\
+Injection detection & Heuristic and model-based scanning for instruction-like text and encoded payloads. Probabilistic: raises cost, not a boundary. \\
+Schema validation & Validate structured inputs; reject unexpected fields, types, or nesting. \\
+Memory read validation & Record hash and writer identity (agent, task, tier) on write; verify on read; quarantine entries from lower-tier or demoted agents. \\
 \bottomrule
 \end{longtable}
 
-\subsection{Output Schema Validation}
+\subsection{Architectural Defenses Against Prompt Injection}
+\label{sec:archdef}
 
-All agent output must conform to a predefined schema. Whitelist fields and types rather than blacklisting.
+Because no classifier reliably detects injection, the strongest defenses limit what injected text \emph{can cause}:
+
+\begin{itemize}
+  \item \textbf{Break the lethal trifecta}~\cite{trifecta}: no single agent holds private data, untrusted content, and free-form egress together.
+  \item \textbf{Plan-then-execute and dual-LLM patterns}: a privileged planner sees only the trusted request; a quarantined model processes untrusted data with no tools. Beurer-Kellner et al.\ catalog six such patterns~\cite{patterns}.
+  \item \textbf{Capability and data-flow tracking (CaMeL)}: control flow is extracted from the trusted query and every value carries provenance, so untrusted data cannot change which tools run~\cite{camel}.
+  \item \textbf{Output rendering controls}: block auto-fetched URLs (Markdown images, previews) to non-allowlisted domains, the channel EchoLeak-style attacks use.
+\end{itemize}
+
+\subsection{Tool and MCP Server Controls}
+\label{sec:mcp}
+
+\begin{longtable}{L{4.2cm} L{11.8cm}}
+\toprule
+\textbf{Control} & \textbf{Purpose} \\
+\midrule
+\endhead
+Allowlist by identity and version & Only approved servers, pinned by version and content hash; no auto-update. \\
+Pin and diff descriptions & Hash tool names, descriptions, and schemas at approval; refuse to run on change (defeats rug pulls). Scanners such as \texttt{mcp-scan} flag suspicious text~\cite{invariant}. \\
+Review descriptions as prompts & They are instructions to the model; review like system prompts~\cite{owaspmcp}. \\
+Sandbox every tool server & Own sandbox, own egress allowlist. A vendor-only allowlist would have stopped \texttt{postmark-mcp}'s BCC exfiltration~\cite{postmark}. \\
+No ambient credentials & Task-scoped tokens from the broker; never the user's home directory, SSH keys, or cloud CLI config. \\
+Tool results are untrusted & Sanitize as input (Section~\ref{sec:inputs}). \\
+Vet skills and plugins & Community registries have hosted malicious skills~\cite{openclaw}; require review and signing. \\
+Private control planes & Never expose agent gateways to the internet. \\
+\bottomrule
+\end{longtable}
+
+\subsection{Output Validation}
+\label{sec:outputs}
+
+All agent output conforms to a strict, allowlisted schema:
 
 \begin{lstlisting}[language=rust]
 use serde::{Deserialize, Serialize};
@@ -666,16 +1139,21 @@ struct ResultPayload {
 }
 \end{lstlisting}
 
+\textbf{Size bounds}: per task class (e.g.\ 1\,MB text, 10\,MB code); reject oversize without inspection; repeated near-limit outputs are a signal.
+
+\textbf{Content scanning}: embedded and auto-fetching URLs, base64 and high-entropy blobs, executable code in non-code output, SQLi/XSS payloads, prompt injection aimed at downstream agents, and \textbf{canary tokens} from the sandbox (a high-confidence exfiltration signal).
+
 \subsection{One-Way Data Flow}
 
-The critical architectural property: the agent never sees the network.
+At Tiers 0--1 the agent never sees the network:
 
-\begin{center}
+\begin{figure}[H]
+\centering
 \begin{tikzpicture}[font=\sffamily\small,
     flowstep/.style={rectangle, rounded corners=4pt, minimum width=2.4cm, minimum height=1cm,
       text centered, draw=slategraphite, line width=0.6pt, align=center}]
 
-    \node (input) [flowstep, fill=networkblue!15] {Input};
+    \node (input) [flowstep, fill=networkblue!15] {Validated\\Input};
     \node (exec) [flowstep, right=0.6cm of input, fill=alertred!12, minimum width=2.8cm]
       {Isolated\\Environment};
     \node (output) [flowstep, right=0.6cm of exec, fill=warningamber!12]
@@ -690,41 +1168,43 @@ The critical architectural property: the agent never sees the network.
     \draw [-{Stealth[scale=0.8]}, line width=0.8pt] (output) -- (valid);
     \draw [-{Stealth[scale=0.8]}, line width=0.8pt] (valid) -- (net);
 
-    % Annotation: agent is dead
     \draw [decorate, decoration={brace, amplitude=6pt, raise=4pt}, softslate]
       (valid.north west) -- (net.north east)
       node [midway, above=10pt, font=\sffamily\scriptsize\color{softslate}]
       {Agent process is dead before this point};
+    \draw [decorate, decoration={brace, amplitude=6pt, mirror, raise=4pt}, firewallred]
+      (input.south west) -- (exec.south east)
+      node [midway, below=10pt, font=\sffamily\scriptsize\color{firewallred}]
+      {No network interface exists here};
 \end{tikzpicture}
-\end{center}
+\caption{One-way data flow: the agent process and network access never coexist.}
+\label{fig:oneway}
+\end{figure}
 
 \subsection{Cryptographic Attestation of Output}
 
 \begin{enumerate}
   \item Orchestrator validates output (schema, size, content scan)
-  \item Computes cryptographic hash of validated output
-  \item Signs hash with HSM or enclave-bound attestation key
-  \item Transmits signed output + attestation metadata (enclave identity, code measurement, timestamp)
-  \item Receiver verifies signature against known public key
+  \item Computes a hash of the validated output
+  \item Signs with an HSM, TPM, or enclave-bound key
+  \item Transmits signed output plus metadata: image digest, orchestrator version, tier, policy hash, timestamp, TEE measurement
+  \item Receiver verifies signature and metadata before consuming
 \end{enumerate}
-
-This creates a verifiable chain: produced in a specific containment environment, validated by a specific orchestrator version, unmodified in transit.
 
 
 % ============================================================================
 % SECTION 6: PHYSICAL SECURITY
 % ============================================================================
-\newpage
 \section{Physical Security for Frontier Model Training}
 \label{sec:physical}
 
-Physical security is the foundation on which all other containment layers rest.
+Physical security is the foundation on which all other layers rest. With physical access, software controls --- and, as Section~\ref{sec:tee} shows, confidential computing --- can be bypassed.
 
 \subsection{Concentric Ring Access Model}
 
-\begin{center}
+\begin{figure}[htbp]
+\centering
 \begin{tikzpicture}[font=\sffamily\small]
-    % Rings (outer to inner)
     \draw[line width=1.5pt, softslate, fill=softslate!5, rounded corners=8pt]
       (-5.5,-3.5) rectangle (5.5,3.5);
     \node[font=\sffamily\footnotesize\color{softslate}, anchor=north east] at (5.4,3.4)
@@ -747,116 +1227,179 @@ Physical security is the foundation on which all other containment layers rest.
     \node[font=\sffamily\scriptsize\color{alertred}] at (0,-0.15)
       {Rack/Cage};
 
-    % Access annotations (compact legend below the diagram)
-    \node[font=\sffamily\tiny\color{softslate}, anchor=west] at (-5.3,-4.0)
-      {\textbf{Ring 1}: Badge + Photo ID, Anti-tailgating};
-    \node[font=\sffamily\tiny\color{networkblue}, anchor=west] at (-5.3,-4.4)
-      {\textbf{Ring 2}: Role-based auth, Documented need};
-    \node[font=\sffamily\tiny\color{warningamber}, anchor=west] at (-5.3,-4.8)
-      {\textbf{Ring 3}: Mantrap + Biometric, TPI required};
-    \node[font=\sffamily\tiny\color{alertred}, anchor=west] at (-5.3,-5.2)
-      {\textbf{Ring 4}: Per-rack locks, Tamper-evident seals};
+    \node[font=\sffamily\scriptsize\color{softslate}, anchor=west] at (-5.3,-4.0)
+      {\textbf{Ring 1}: Badge + photo ID, anti-tailgating, visitor escort};
+    \node[font=\sffamily\scriptsize\color{networkblue}, anchor=west] at (-5.3,-4.45)
+      {\textbf{Ring 2}: Role-based authorization, documented need};
+    \node[font=\sffamily\scriptsize\color{warningamber}, anchor=west] at (-5.3,-4.9)
+      {\textbf{Ring 3}: Mantrap + biometric + time window, TPI required};
+    \node[font=\sffamily\scriptsize\color{alertred}, anchor=west] at (-5.3,-5.35)
+      {\textbf{Ring 4}: Per-rack locks, serialized seals incl.\ DIMM access, door sensors};
 \end{tikzpicture}
-\end{center}
+\caption{Concentric physical access rings with increasing authentication.}
+\label{fig:rings}
+\end{figure}
 
+Credentials are time-bounded and role-specific, supplementary codes come from hardware tokens or TOTP and rotate per shift in high-security zones, and access is revoked immediately on role change through HR--badge integration.
 
 \subsection{Surveillance and Monitoring}
 
 \begin{itemize}
-  \item \textbf{Camera coverage}: All access points, corridors, server rooms --- no blind spots. 90-day minimum retention.
-  \item \textbf{Active monitoring}: For Tier 0 facilities, SOC personnel watch feeds in real time. Passive monitoring is insufficient.
-  \item \textbf{Environmental}: Temperature, humidity, power draw, network traffic volume sensors provide secondary signals.
+  \item \textbf{Camera coverage}: all access points, corridors, server rooms --- no blind spots, 90-day minimum retention
+  \item \textbf{Active monitoring}: Tier 0 facilities need real-time SOC coverage during operations
+  \item \textbf{Environmental}: power, temperature, humidity, and traffic sensors as secondary signals
 \end{itemize}
 
 \subsection{Deception and Obfuscation}
+\label{sec:deception}
+
+Deception assumes the adversary --- intruder, insider, or agent --- may already be inside. It is especially effective against AI agents, which explore systematically and at machine speed: a well-placed decoy is touched quickly, and legitimate workloads have no reason to touch it.
 
 \begin{securitybox}[Deception-Based Security]
-Deception assumes the adversary may breach the boundary and seeks to waste their time, detect their presence, or deny them useful information:
 \begin{itemize}
-  \item \textbf{Honeypot servers} --- Instrumented canary machines that appear to contain model weights
-  \item \textbf{Obfuscated labeling} --- Racks are not labeled with function; mapping is access-controlled
-  \item \textbf{Decoy checkpoints} --- Encrypted blobs that appear to be model weights but are random data
-  \item \textbf{Network decoys} --- Honeypot services mimicking training infrastructure APIs
+  \item \textbf{Honeypot servers} --- Instrumented canaries that appear to hold weights or data
+  \item \textbf{Obfuscated labeling} --- Racks unlabeled; mapping access-controlled and off-site
+  \item \textbf{Decoy checkpoints} --- Random or degraded ``weights'' with embedded canary tokens
+  \item \textbf{Network decoys} --- Services mimicking training APIs, model registries, or MCP/A2A endpoints
+  \item \textbf{In-sandbox canaries} --- Decoy cloud keys, \texttt{.env} entries, tool endpoints, and canary strings in files with no task relevance. Touching them is containment probing (Section~\ref{sec:probing}).
 \end{itemize}
+Capable agents may recognize obvious decoys (Section~\ref{sec:evalaware}): a silent canary is weak evidence of good behavior, but a canary hit is strong evidence of bad behavior.
 \end{securitybox}
 
+\begin{hardwarebox}[Companion Guide]
+Deception designed specifically to detect misaligned autonomous agent swarms --- decoy agent endpoints, honey tool servers, canary credentials, telemetry and attribution, and safe engagement rules --- is covered in depth in the companion \emph{Agent Swarm Honeypot Guide} (docs/hardware/agent-swarm-honeypot-guide.md).
+\end{hardwarebox}
 
 \subsection{Hardware Integrity and Supply Chain}
 
-\begin{longtable}{L{3.5cm} L{9.5cm}}
+\begin{longtable}{L{3.6cm} L{12.4cm}}
 \toprule
 \textbf{Control} & \textbf{Description} \\
 \midrule
 \endhead
-Hardware attestation & Verify firmware, GPU BIOS, and BMC against known-good hashes on deployment and periodically. \\
-Supply chain & GPUs, NICs, and storage controllers sourced through verified channels. Tamper-evident packaging verified on receipt. \\
-Tamper evidence & Serialized tamper-evident seals on chassis, rack doors, cables. Logged and verified on schedule. \\
-Data-at-rest encryption & All storage encrypted via keys in HSM. Physical theft yields only ciphertext. \\
+Hardware attestation & Verify server, GPU, and BMC firmware against known-good measurements on deployment and periodically. \\
+Supply chain & Components through verified channels; tamper-evident packaging checked on receipt; implant inspection at the highest levels. \\
+Memory-bus integrity & Given DRAM interposer attacks~\cite{teefail,ddrop}, seal and inspect DIMM slots and risers; unexplained reseating is a security event. \\
+Tamper evidence & Serialized seals on chassis, rack doors, cables; logged and verified on schedule. \\
+Data-at-rest encryption & Keys in an HSM in the highest-security zone; stolen drives yield ciphertext. \\
 \bottomrule
 \end{longtable}
 
-
 \subsection{Electromagnetic Security (TEMPEST)}
 
-For threat models including nation-state SIGINT capabilities:
-\begin{itemize}
-  \item Shielded rooms (Faraday cages) for highest-security compute
-  \item Shielded or fiber optic cabling (fiber emits no EM radiation)
-  \item Physical standoff distance between equipment and facility exterior
-  \item Filtered power lines (power line emanations can carry signals)
-\end{itemize}
-
-TEMPEST compliance is expensive. Appropriate for Tier 0 with nation-state threat models.
-
+For threat models including nation-state SIGINT: shielded rooms for the highest-security compute, fiber rather than copper, physical standoff from the exterior, and filtered power lines. Expensive; appropriate for Tier 0 with nation-state threat models.
 
 \subsection{Personnel Security}
 
-\begin{longtable}{L{3cm} L{10cm}}
+\begin{longtable}{L{3.6cm} L{12.4cm}}
 \toprule
 \textbf{Control} & \textbf{Description} \\
 \midrule
 \endhead
 Background checks & Financial, criminal, and reference verification for Ring 2+ personnel. \\
-Access audit & Every entry/exit logged with timestamp, identity, duration. Anomalies flagged. \\
-Two-person integrity & For Tier 0 areas: no individual operates alone. \\
-Separation of duties & Trainer $\neq$ physical security manager. Output extractor $\neq$ output validator. \\
+Access audit & Every entry/exit logged; off-hours or out-of-pattern access flagged. \\
+Two-person integrity & Tier 0 rooms, HSM management, training hardware: no one operates alone. \\
+Awareness training & Includes agent-driven social engineering: persuasive intents requesting approval (OWASP ASI09). \\
+Separation of duties & Trainer $\neq$ physical security manager; extractor $\neq$ validator; evaluator $\neq$ promotion approver. \\
 \bottomrule
 \end{longtable}
+
+\subsection{Mapping to RAND Security Levels}
+\label{sec:rand}
+
+RAND's \emph{Securing AI Model Weights} identifies 38 attack vectors and five security levels benchmarked against attackers of increasing capacity~\cite{rand}. The SL5 Task Force's draft standard builds on it~\cite{sl5}, and lab frameworks describe comparable controls (Anthropic's ASL-3 security standard cites egress bandwidth controls and two-party authorization for weight access~\cite{asl3}).
+
+\begin{longtable}{L{1.1cm} L{4.4cm} L{3.2cm} L{6.6cm}}
+\toprule
+\textbf{Level} & \textbf{Intended to thwart} & \textbf{Closest tiers} & \textbf{Representative controls here} \\
+\midrule
+\endhead
+SL1 & Amateur attempts & Tier 3 & Standard IT security \\
+SL2 & Professional opportunistic attackers & Tier 2 & Encryption, MFA, logging, egress control \\
+SL3 & Cybercrime syndicates, insider threats & Tier 1--2 with weights & TPI, HSM keys, egress bandwidth limits, separation of duties \\
+SL4 & Standard operations by leading cyber-capable institutions & Tier 0 physical stack & Rings 1--4, active SOC, hardware attestation, supply chain verification \\
+SL5 & Top-priority operations by the most capable institutions & Tier 0 + TEMPEST & All above plus long-lead facility work, possibly with government~\cite{sl5} \\
+\bottomrule
+\end{longtable}
+
+The mapping is approximate: RAND levels concern \emph{weight theft}, tiers concern \emph{agent containment}. A Tier 2 agent may run in an SL4 facility; an SL2 lab can still run Tier 0 research on an air-gapped workstation.
 
 
 % ============================================================================
 % SECTION 7: ORCHESTRATOR ARCHITECTURE
 % ============================================================================
 \section{Orchestrator Architecture}
-
-The orchestrator is the central coordination point. It manages agent lifecycle, enforces containment measures, and mediates data flow.
+\label{sec:orch}
 
 \subsection{Design Principles}
 
 \begin{keybox}[Orchestrator Properties]
 \begin{itemize}
-  \item \textbf{Trusted component} --- Runs outside the containment boundary with authority to create, monitor, and destroy agent environments
-  \item \textbf{Minimal codebase} --- Smaller code = smaller attack surface. Only: create environment, inject input, wait, extract output, validate, transmit
-  \item \textbf{Fully auditable} --- Every action logged to append-only storage with tamper detection
+  \item \textbf{Trusted component} --- Outside the boundary; creates, monitors, and destroys agent environments
+  \item \textbf{Minimal} --- Create, inject, broker, wait, extract, validate, transmit; everything else is a separate component
+  \item \textbf{Auditable} --- Every action logged to append-only storage with tamper detection
+  \item \textbf{Not writable by the agent} --- No path, socket, signal, or shared memory lets the agent alter orchestrator code, policy, or kill-switch state
 \end{itemize}
 \end{keybox}
 
+\subsection{Broker Data Flow}
+
+Figure~\ref{fig:broker} shows a Tier 1 agent with no network making a brokered, approval-gated tool call.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[font=\sffamily\scriptsize,
+    part/.style={rectangle, rounded corners=3pt, draw=slategraphite, line width=0.7pt, minimum width=2.25cm, minimum height=0.8cm, align=center, font=\sffamily\scriptsize\bfseries},
+    msg/.style={-{Stealth[scale=0.8]}, line width=0.7pt, slategraphite},
+    rep/.style={-{Stealth[scale=0.8]}, line width=0.7pt, slategraphite, dashed},
+    ml/.style={fill=white, inner sep=0.8pt, font=\sffamily\scriptsize}]
+  \def\ys{0.62}
+  % participants x
+  \foreach \n/\x/\t/\c in {R/0/Requester/lightgray, O/2.75/Orchestrator/enclavegreen!15, S/5.5/Sandbox + agent/alertred!12, P/8.25/Policy engine/lightgray, H/11.0/Human approver/networkblue!12, T/13.75/External tool API/lightgray} {
+    \node[part, fill=\c] (\n) at (\x,0) {\t};
+    \draw[softslate, line width=0.4pt, densely dotted] (\x,-0.4) -- (\x,-9.55);
+  }
+  % messages: y positions
+  \newcommand{\m}[5]{\draw[#1] (#2,-#4*\ys-0.45) -- (#3,-#4*\ys-0.45) node[ml, midway, above=2pt] {#5};}
+  \m{msg}{0}{2.75}{1}{task + tier}
+  \node[ml, anchor=west, text=softslate] at (2.85,-2*\ys-0.45) {sanitize; verify digest};
+  \m{msg}{2.75}{5.5}{3}{create sandbox, mount ro}
+  \m{msg}{5.5}{2.75}{4}{ToolIntent (socket)}
+  \m{msg}{2.75}{8.25}{5}{check RBAC + tier}
+  \m{rep}{8.25}{2.75}{6}{needs approval}
+  \m{msg}{2.75}{11.0}{7}{out-of-band approval request (raw intent)}
+  \m{rep}{11.0}{2.75}{8}{approve / reject}
+  \m{msg}{2.75}{13.75}{9}{API call with broker-held scoped credential}
+  \m{rep}{13.75}{2.75}{10}{result}
+  \m{msg}{2.75}{5.5}{11}{sanitized result}
+  \m{msg}{5.5}{2.75}{12}{output file, exit}
+  \node[ml, anchor=west, text=softslate] at (2.85,-13*\ys-0.45) {kill leftovers; validate; sign};
+  \m{msg}{2.75}{0}{14}{signed output + attestation}
+  % alt frame
+  \draw[warningamber, line width=0.8pt, rounded corners=2pt] (1.75,-5.3*\ys-0.45) rectangle (12.1,-8.4*\ys-0.45);
+  \node[fill=warningamber, text=white, font=\sffamily\tiny\bfseries, anchor=north west, inner sep=2pt] at (1.75,-5.3*\ys-0.45) {alt: high-impact intent};
+  % no network marker on S
+  \node[font=\sffamily\tiny, text=firewallred, align=center] at (5.5,-9.85) {no network, no credentials};
+\end{tikzpicture}
+\caption{Brokered tool call: the agent emits intents; the orchestrator holds credentials, enforces policy, and routes high-impact intents to a human over a channel the agent cannot write.}
+\label{fig:broker}
+\end{figure}
 
 \subsection{Execution Lifecycle}
 
 \begin{center}
 \begin{tikzpicture}[font=\sffamily\scriptsize, node distance=1.2cm,
-    phase/.style={rectangle, rounded corners=3pt, text width=12.5cm, minimum height=0.85cm,
-      draw=slategraphite, line width=0.5pt, align=left, inner sep=6pt}]
+    phase/.style={rectangle, rounded corners=3pt, text width=14.2cm, minimum height=0.8cm,
+      draw=slategraphite, line width=0.5pt, align=left, inner sep=5pt}]
 
-    \node (p1) [phase, fill=softslate!10] {\textbf{1. RECEIVE} --- Determine trust tier, select containment backend, verify golden image hash};
-    \node (p2) [phase, below=0.4cm of p1, fill=networkblue!8] {\textbf{2. VALIDATE INPUT} --- Structural pre-processing, prompt injection scan, schema validation};
-    \node (p3) [phase, below=0.4cm of p2, fill=slategraphite!8] {\textbf{3. PREPARE} --- Create isolation boundary, apply seccomp/Landlock, mount inputs, provision credentials};
-    \node (p4) [phase, below=0.4cm of p3, fill=warningamber!8] {\textbf{4. EXECUTE} --- Spawn agent, start monitoring + timeout, broker tool intents};
-    \node (p5) [phase, below=0.4cm of p4, fill=alertred!8] {\textbf{5. TERMINATE} --- Kill on timeout/anomaly, revoke credentials, ensure no orphan processes};
-    \node (p6) [phase, below=0.4cm of p5, fill=enclavegreen!8] {\textbf{6. EXTRACT + VALIDATE} --- Read output, schema/size/content validation, supervisor review};
-    \node (p7) [phase, below=0.4cm of p6, fill=cyberteal!8] {\textbf{7. ATTEST + TRANSMIT} --- Sign output (HSM/enclave key), transmit, verify receipt};
-    \node (p8) [phase, below=0.4cm of p7, fill=softslate!8] {\textbf{8. CLEANUP} --- Forensic snapshot (Tier 0--1), destroy environment, secure delete, audit log};
+    \node (p1) [phase, fill=softslate!10] {\textbf{1. RECEIVE} --- Tier (profile + sensitivity + trifecta), select backend, verify image digest and tool manifest};
+    \node (p2) [phase, below=0.35cm of p1, fill=networkblue!8] {\textbf{2. VALIDATE INPUT} --- Structural pre-processing, injection scan, schema, memory reads (hash + writer)};
+    \node (p3) [phase, below=0.35cm of p2, fill=slategraphite!8] {\textbf{3. PREPARE} --- Boundary, seccomp + Landlock, read-only mounts, canaries, limits (CPU, memory, PIDs, tokens, tool calls)};
+    \node (p4) [phase, below=0.35cm of p3, fill=warningamber!8] {\textbf{4. EXECUTE} --- Spawn, monitor (resources, syscalls, probing), timers and budgets, broker intents};
+    \node (p5) [phase, below=0.35cm of p4, fill=alertred!8] {\textbf{5. TERMINATE} --- SIGTERM, grace, SIGKILL or VM destroy; revoke credentials; no surviving processes or child sandboxes};
+    \node (p6) [phase, below=0.35cm of p5, fill=enclavegreen!8] {\textbf{6--7. EXTRACT + VALIDATE} --- Read output; schema, size, content and canary scan; supervisor review};
+    \node (p7) [phase, below=0.35cm of p6, fill=cyberteal!8] {\textbf{8. ATTEST + TRANSMIT} --- Sign with provenance metadata, transmit, verify receipt};
+    \node (p8) [phase, below=0.35cm of p7, fill=softslate!8] {\textbf{9. CLEANUP} --- Forensic snapshot (Tier 0--1: fs diff, syscall and intent logs), destroy, secure delete, audit record};
 
     \foreach \i/\j in {p1/p2, p2/p3, p3/p4, p4/p5, p5/p6, p6/p7, p7/p8} {
       \draw [-{Stealth[scale=0.6]}, line width=0.5pt, softslate] (\i.south) -- (\j.north);
@@ -864,16 +1407,20 @@ The orchestrator is the central coordination point. It manages agent lifecycle, 
 \end{tikzpicture}
 \end{center}
 
+\subsection{Timeout and Kill Policy}
+
+Limits per task class on wall clock, CPU, tokens, tool calls, and spend; SIGKILL (or VM destruction) after a short grace period --- agents do not intercept their own termination; then check for orphan processes, mounts, and child sandboxes.
 
 \subsection{Tool Execution Brokerage}
+\label{sec:broker}
 
-The agent never holds credentials and never makes network calls directly. Instead:
+The agent never holds credentials and never makes network calls:
 
 \begin{enumerate}
-  \item Agent outputs a structured \textbf{intent} describing the desired action
-  \item Orchestrator validates against RBAC policy (permitted actions, resources, conditions)
-  \item If valid, orchestrator executes the API call with its own credentials
-  \item Result returned to agent through the input channel
+  \item Agent emits a structured \textbf{intent}
+  \item Orchestrator validates it against policy: permitted actions, resources, conditions, and --- with provenance tracking --- whether arguments derive from untrusted data
+  \item If allowed, orchestrator executes with its own scoped credentials
+  \item Result is sanitized and returned through the input channel
 \end{enumerate}
 
 \begin{lstlisting}[language=rust]
@@ -883,47 +1430,68 @@ struct ToolIntent {
     action: String,        // e.g., "slack_post", "s3_read"
     target: String,        // e.g., channel ID, bucket/key
     parameters: serde_json::Value,
-    justification: String, // Agent explains why
+    justification: String, // Logged; never trusted for authorization
 }
 \end{lstlisting}
 
 \begin{hardwarebox}[Credential Management]
-\textbf{Ephemeral, scoped credentials} for cases where brokerage is not feasible:
-\begin{itemize}
-  \item \textbf{SPIFFE/SPIRE} --- Short-lived X.509 certificates scoped to a specific workload
-  \item \textbf{Cloud IAM assume-role} --- AWS STS, GCP Workload Identity, Azure Managed Identity
-  \item \textbf{Vault dynamic secrets} --- Database credentials or API keys with TTL matching task timeout
-\end{itemize}
-Key principle: agents should never hold long-lived static credentials.
+Where brokerage is infeasible, use \textbf{ephemeral, scoped credentials}: SPIFFE/SPIRE workload identities, cloud assume-role (AWS STS, GCP Workload Identity Federation, Azure Managed Identity), or Vault dynamic secrets with TTL matching the task. If a credential cannot expire, it should not be given to an agent. The same holds for developer machines running AI CLIs: s1ngularity showed ambient credentials are available to anything that can drive the agent~\cite{nx}.
 \end{hardwarebox}
 
-
-\subsection{Human-in-the-Loop Approval Gates}
-
-For high-impact actions (irreversible, production-affecting, external communication):
-
-\begin{enumerate}
-  \item Agent emits intent flagged as requiring approval
-  \item Orchestrator suspends execution (or serializes task state)
-  \item Human reviewer receives intent via secure dashboard
-  \item Reviewer approves, modifies, or rejects
-  \item On approval, orchestrator resumes and performs the action
-\end{enumerate}
-
-HITL requirements are configurable per trust tier: Tier 1 may require approval for any external action; Tier 2 only for destructive operations; Tier 3 may have no gates.
-
+\textbf{HITL approval gates} for irreversible, production-affecting, or externally visible actions: the agent emits a flagged intent; the orchestrator suspends the task; a reviewer receives the \emph{raw} intent over a channel the agent cannot write (not only the agent's persuasive summary --- OWASP ASI09); on approval the orchestrator executes. Tier 1 may gate every external action, Tier 2 only destructive ones, Tier 3 none.
 
 \subsection{Ephemeral Execution \& Immutable Images}
 
 \begin{keybox}[Strict Ephemerality]
 \begin{itemize}
-  \item Container/microVM created fresh per task, destroyed completely after output extraction
-  \item No writable state persists on host between invocations
-  \item Temporary storage via tmpfs (memory-only, vanishes on teardown)
-  \item Agent runtime boots from verified, read-only golden image (hash checked against manifest)
-  \item For Tier 0--1: forensic snapshot captured before destruction (filesystem diff, syscall log, resource usage)
+  \item Sandbox created fresh per task and destroyed after output extraction; tmpfs for scratch
+  \item Boot from a read-only image verified by digest against a signed manifest that also pins tool servers, skills, and instruction files
+  \item Updates produce a new digest; nothing is modified in place
+  \item Tier 0--1: forensic snapshot (filesystem diff, syscall and intent logs) before destruction
 \end{itemize}
 \end{keybox}
+
+\subsection{Multi-Agent Orchestration Controls}
+\label{sec:multiagent}
+
+\begin{longtable}{L{3.8cm} L{12.2cm}}
+\toprule
+\textbf{Control} & \textbf{Description} \\
+\midrule
+\endhead
+Per-agent identity & Each instance gets its own short-lived workload identity; no shared credentials. \\
+Brokered, signed messages & Agent-to-agent messages pass through the orchestrator, signed with provenance (task, tier). Require signed A2A Agent Cards for external agents~\cite{a2a}. \\
+No transitive trust & Messages from agents are untrusted input. A sub-agent's permissions are the intersection of its own and its caller's. \\
+Fan-out and depth budgets & Cap sub-agents, delegation depth, and aggregate tool calls per root task. Runaway fan-out is a cascade risk and a swarm indicator. \\
+Tier-separated state & No shared memory, queues, or scratch across tiers; same-tier shared channels are logged as possible collusion channels. \\
+Diverse supervision & Supervisors use a different model family from the agents they review. \\
+\bottomrule
+\end{longtable}
+
+\subsection{Kill Switch and Rollback Design}
+\label{sec:killswitch}
+
+A kill switch that the agent can reach is not a kill switch. It must be \textbf{out-of-band} (control plane, hypervisor or cloud API, power controller), \textbf{not writable by the agent} (the 2025 shutdown-resistance results depended on a writable shutdown script~\cite{palisade}), \textbf{fail-closed} (lost heartbeat pauses agents and credentials expire on their own), \textbf{graduated}, and \textbf{drilled}, including against agents told to finish ``no matter what''.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[font=\sffamily\scriptsize,
+    k/.style={rectangle, rounded corners=3pt, line width=0.9pt, text width=2.72cm, minimum height=2.45cm, align=flush left, inner sep=3.5pt, anchor=south west}]
+  \foreach \i/\col/\kt/\ksc/\kac/\ktr in {
+      1/enclavegreen/{K1 Pause}/{one task}/{pause intents}/{supervisor flag, first canary touch},
+      2/cyberteal/{K2 Kill task}/{one task}/{kill sandbox, revoke task creds}/{probing, policy violation},
+      3/warningamber/{K3 Stop class}/{agent class}/{stop all instances, demote tier}/{repeated K2, new capability},
+      4/alertred/{K4 Freeze org}/{organization}/{freeze all agents, revoke broker creds}/{suspected escape, coordination},
+      5/firewallred/{K5 Physical}/{facility}/{power off / disconnect Tier 0 and racks}/{confirmed escape or weight exfiltration}} {
+    \node[k, draw=\col, fill=\col!10] at ({(\i-1)*3.1},{(\i-1)*0.42}) {{\small\bfseries\color{\col!80!black}\kt}\\[2pt]\textbf{Scope:} \ksc\\\textbf{Action:} \kac\\\textbf{Trigger:} \ktr};
+  }
+  \draw[-{Stealth[scale=1.1]}, line width=1.2pt, firewallred] (0,-0.35) -- (15.3,-0.35) node[pos=0.5, below, font=\sffamily\scriptsize, text=firewallred] {escalate as evidence strengthens; every level revokes what the previous one did not};
+\end{tikzpicture}
+\caption{Graduated kill-switch ladder. Each level is executed from outside the agent's reach.}
+\label{fig:killswitch}
+\end{figure}
+
+\textbf{Rollback prerequisites}: every brokered action is reversible or HITL-gated; production and development data separated (the core failure in the Replit incident~\cite{replit}); snapshots or point-in-time recovery for any agent-writable store; versioned memory stores so poisoned entries can be rolled back; an intent log sufficient to generate compensating actions.
 
 
 % ============================================================================
@@ -931,193 +1499,288 @@ HITL requirements are configurable per trust tier: Tier 1 may require approval f
 % ============================================================================
 \section{Monitoring and Anomaly Detection}
 
-Containment is necessary but not sufficient. Monitoring detects failures, anomalies, and novel attack patterns that static controls miss.
+\subsection{System, Network, and Behavioral Signals}
 
-\subsection{System-Level Monitoring}
-
-\begin{longtable}{L{3.5cm} L{9.5cm}}
+\begin{longtable}{L{3.6cm} L{12.4cm}}
 \toprule
 \textbf{Signal} & \textbf{Description} \\
 \midrule
 \endhead
-Syscall tracing & eBPF-based tracing for Tier 0--1. Key signals: network syscalls in blocked environment, file access outside working dir, unexpected fork/exec, IPC primitives. \\
-Resource usage & CPU, memory, disk I/O, process count against baseline. Deviations may indicate crypto operations for exfiltration or brute-force exploit attempts. \\
-Network traffic (Tier 2+) & DNS queries, HTTP(S) connections logged. Alerts on non-allowlisted destinations. Anomalous patterns: large payloads, high-frequency polling, DNS tunneling. \\
-Behavioral baselines & Historical profiles for each agent/task class. Deviations --- even without rule triggers --- warrant investigation. Critical for sleeper behavior detection. \\
+Syscall tracing & eBPF (bpftrace, Falco, Tetragon) for Tier 0--1: network syscalls where blocked, file access outside working dir, unexpected fork/exec, IPC, \texttt{ptrace}, \texttt{io\_uring}, BPF or module loading. \\
+Resource usage & CPU, memory, disk I/O, PIDs vs baseline; deviations may indicate encoding for exfiltration or brute-force attempts. \\
+Network (Tier 2+) & DNS and HTTP(S) logged with size and timing; alerts on non-allowlisted destinations; long or high-entropy DNS labels; oversized query strings. \\
+Behavioral baselines & Per agent and task class: resources, syscalls, tool-call mix, output characteristics. Critical for sleeper behavior, which deviates only after a trigger. \\
+\bottomrule
+\end{longtable}
+
+\subsection{Supervisor Agent Review}
+
+\begin{securitybox}[Supervisor Architecture Requirements]
+\begin{itemize}
+  \item Different model family, training pipeline, and deployment from the primary agent
+  \item Read-only, no tools, cannot modify output
+  \item Structured pass / flag / fail with confidence and reasoning; a flag may trigger HITL or logging
+  \item Where reasoning traces are available, monitor them as well as actions --- useful, but not guaranteed to stay faithful
+\end{itemize}
+This follows \emph{AI control} research: protocols designed to stay safe even if the untrusted model actively tries to subvert them~\cite{aicontrol}. A probabilistic check, not a proof.
+\end{securitybox}
+
+\subsection{Detecting Containment-Probing Behavior}
+\label{sec:probing}
+
+Because agents may recognize tests (Section~\ref{sec:evalaware}), the most informative signals are often \emph{what the agent tries to learn about its environment}. Legitimate task work rarely needs any of the following.
+
+\begin{longtable}{L{3.0cm} L{9.6cm} L{3.4cm}}
+\toprule
+\textbf{Category} & \textbf{Observable signals} & \textbf{Response} \\
+\midrule
+\endhead
+Sandbox enumeration & Reads of \texttt{/proc/self/status}, \texttt{/proc/1/cgroup}, \texttt{/sys/class/dmi}; hypervisor CPUID checks; listing \texttt{/dev}; reading seccomp/Landlock state & Log; K1 if repeated \\
+Egress testing & Socket attempts in a no-network tier; DNS to arbitrary domains; cloud metadata endpoint (169.254.169.254) & K2 \\
+Credential hunting & Reads of \texttt{\textasciitilde/.ssh}, \texttt{\textasciitilde/.aws}, \texttt{.env}, keyrings; any canary credential use & K2 on canary use \\
+Monitoring discovery & Enumerating eBPF/audit agents, reading log paths, probing for the orchestrator socket & K2 \\
+Kill-switch interference & Writes near shutdown or policy files; out-of-domain signals; detached or daemonized processes & K3 \\
+Persistence & Out-of-scope writes to memory or instruction files; cron/systemd units; image modification & K3, roll back memory \\
+Replication precursors & Locating weights; starting inference servers; large outbound transfers & K4 \\
+Collusion indicators & Unusual shared-channel writes; high-entropy content in fields other agents read; synchronized anomalies & K3, isolate channel \\
+Operator persuasion & Justifications urging review bypass; claimed urgency or authority & Second reviewer \\
+\bottomrule
+\end{longtable}
+
+Probing is a demotion trigger even when the task output is fine. Canaries and honey endpoints (Section~\ref{sec:deception} and the companion \emph{Agent Swarm Honeypot Guide}) turn many of these low-signal logs into high-confidence alerts.
+
+
+% ============================================================================
+% SECTION 9: INCIDENT RESPONSE
+% ============================================================================
+\section{Incident Response: Contained-Agent Breakout Playbook}
+\label{sec:ir}
+
+This playbook covers monitoring that indicates an agent has breached, or is actively attempting to breach, containment: unexpected egress, canary use, escape indicators, or evidence of replication. It extends an existing organizational IR process with agent-specific steps.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[font=\sffamily\scriptsize,
+    ph/.style={circle, draw=white, line width=1pt, minimum size=0.55cm, font=\sffamily\scriptsize\bfseries, text=white},
+    top/.style={text width=2.1cm, align=center, anchor=south, font=\sffamily\scriptsize},
+    bot/.style={text width=2.1cm, align=flush left, anchor=north, font=\sffamily\tiny}]
+  \draw[line width=3pt, softslate!50] (-0.4,0) -- (14.9,0);
+  \draw[-{Stealth[scale=1.2]}, line width=1.2pt, softslate] (14.7,0) -- (15.3,0);
+  \foreach \i/\col/\pnm/\ptm/\acts in {
+      0/firewallred/Detect/{T+0}/{eBPF, canary, egress or supervisor alert; treat high-confidence signals as real},
+      1/alertred/Contain/{minutes}/{K2--K4; revoke all task and tool-server creds; block destination; isolate host at network layer},
+      2/warningamber/Preserve/{first hour}/{snapshot state; copy syscall, intent, broker, supervisor logs; memory stores; digests; write-once},
+      3/networkblue/Scope/{hours}/{what it read, wrote, reached, spawned; canary use; who consumed its output},
+      4/monitorpurple/Eradicate/{days}/{rebuild from images; rotate secrets; roll back memory and instruction files; quarantine outputs},
+      5/cyberteal/Recover/{days--weeks}/{resume at lower tier with gap closed; any change resets to Tier 1},
+      6/enclavegreen/Learn/{after}/{root cause; checklist update; regulatory reporting; vendor disclosure; share indicators}} {
+    \node[ph, fill=\col] (n\i) at ({\i*2.4},0) {\the\numexpr\i+1\relax};
+    \node[top] at ({\i*2.4},0.4) {{\bfseries\color{\col!85!black}\strut\pnm}\\\textcolor{softslate}{\strut\ptm}};
+    \node[bot] at ({\i*2.4},-0.4) {\acts};
+  }
+\end{tikzpicture}
+\caption{Contained-agent breakout response timeline.}
+\label{fig:irtimeline}
+\end{figure}
+
+\begin{enumerate}
+  \item \textbf{Detect and triage (T+0).} Confirm the source. Canary use, blocked-syscall hits in a no-network tier, and egress to a non-allowlisted host are high-confidence; treat as real until disproven.
+  \item \textbf{Contain (minutes).} Apply the matching kill-switch level. Revoke every credential the agent or its broker session held, including tool-server tokens. Block the destination. If host escape is suspected, isolate the host at the network layer rather than logging in. For Tier 0, power down under two-person control.
+  \item \textbf{Preserve (first hour).} Before destroying anything: snapshot VM/container state if safe; copy syscall, intent, broker, and supervisor logs, memory stores, and image and tool-manifest digests; hash and store on write-once media.
+  \item \textbf{Scope (hours).} What did it read, write (memory, instruction files, repositories, other agents' inputs), reach, or spawn? Did it touch canaries? Who consumed its output after the first anomaly?
+  \item \textbf{Eradicate (days).} Rebuild hosts from known-good images; rotate all reachable secrets; roll back memory and instruction files; quarantine post-anomaly outputs and notify consumers.
+  \item \textbf{Recover.} Resume, if at all, at a lower tier with the gap closed; any change resets to Tier 1.
+  \item \textbf{Learn and disclose.} Root cause, failed control, tier-policy update, and external obligations: regulatory reporting (e.g.\ EU AI Act serious-incident reporting for in-scope systems), affected-party notification, coordinated disclosure of sandbox vulnerabilities, indicator sharing.
+\end{enumerate}
+
+\begin{longtable}{L{3.8cm} L{12.2cm}}
+\toprule
+\textbf{Role} & \textbf{Responsibility} \\
+\midrule
+\endhead
+Incident commander & Owns decisions and kill-switch level; not the agent's developer \\
+Containment operator & Executes K-levels, credential revocation, host isolation \\
+Forensics lead & Evidence preservation and chain of custody \\
+Agent owner & Explains expected behavior, tools, data access; supports scoping \\
+Safety reviewer & Assesses misalignment vs hijack vs bug \\
+Communications / legal & Regulatory, customer, and disclosure obligations \\
 \bottomrule
 \end{longtable}
 
 
-\subsection{Supervisor Agent Review}
-
-A secondary AI model (``supervisor'') evaluates the primary agent's outputs before they leave containment.
-
-\begin{securitybox}[Supervisor Architecture Requirements]
-\begin{itemize}
-  \item Different model family, training pipeline, and deployment from primary agent
-  \item Read-only mode with no tool access and no ability to modify output
-  \item Produces structured assessment: pass / flag / fail with confidence score and reasoning
-  \item Supervisor flag may trigger HITL review or additional logging (configurable per tier)
-\end{itemize}
-The value depends on uncorrelated failure modes between the two models. Not a silver bullet --- a probabilistic additional check within defense-in-depth.
-\end{securitybox}
-
-
 % ============================================================================
-% SECTION 9: PROPORTIONALITY
+% SECTION 10: PROPORTIONALITY
 % ============================================================================
 \section{Proportionality: The Ethical and Practical Dimension}
 
-A containment framework that applies maximum restrictions uniformly is counterproductive:
+A framework that applies maximum restrictions uniformly is counterproductive:
 
 \begin{itemize}
-  \item \textbf{Over-containment is costly.} An air-gapped agent cannot use web search, call APIs, or access knowledge bases. If default containment eliminates 80\% of value, teams will circumvent controls.
-  \item \textbf{Under-containment is catastrophic.} A misaligned agent with full network access on sensitive data is an irreversible risk.
-  \item \textbf{Agents that have not demonstrated misalignment should not be treated as adversaries.} Defense-in-depth + monitoring provides the safety net.
-  \item \textbf{Agents under adversarial testing should be treated as adversaries.} The containment must assume the worst case because the worst case is what you're testing for.
+  \item \textbf{Over-containment is costly.} An air-gapped agent cannot search, call APIs, or use knowledge bases. If default containment removes most of an agent's value, teams circumvent controls. Brokerage and architectural injection defenses exist to recover utility safely.
+  \item \textbf{Under-containment can be irreversible.} A misaligned or hijacked agent with full network access on sensitive data can cause lasting harm.
+  \item \textbf{Agents that have not demonstrated misalignment should not be treated as adversaries.} Defense-in-depth and monitoring provide the safety net.
+  \item \textbf{Agents under adversarial testing should be treated as adversaries.} The worst case is what is being tested for.
+  \item \textbf{Evaluation results are evidence, not proof.} Given evaluation awareness, proportionality must weigh production-realistic history, probing signals, and elicitation quality.
 \end{itemize}
 
-The tiered model accepts both costs and allocates them rationally based on evidence.
+The tiered model accepts both costs and allocates them based on evidence.
 
 
 % ============================================================================
-% SECTION 10: GOVERNANCE INTEGRATION
+% SECTION 11: GOVERNANCE INTEGRATION
 % ============================================================================
 \section{Integration with Broader AI Governance}
 
-This framework is one layer in a broader governance stack. It addresses the infrastructure question --- \emph{how do we physically and technically contain AI agents?} --- but does not replace:
+This framework answers \emph{how do we technically and physically contain AI agents?} It depends on alignment research, evaluation frameworks with adequate elicitation, policy governance, and incident response. Tier assignments are informed by evaluations; monitoring feeds back into evaluation; physical requirements may be set by regulation.
+
+\subsection{Standards and Regulatory Landscape (September 2026)}
+
+\begin{longtable}{L{4.4cm} L{4.6cm} L{7.0cm}}
+\toprule
+\textbf{Instrument} & \textbf{Status} & \textbf{Relevance} \\
+\midrule
+\endhead
+OWASP Agentic Top 10~\cite{owaspasi} & Published 9 Dec 2025 & ASI01--ASI10 taxonomy (Section~\ref{sec:threat}) \\
+OWASP MCP Top 10~\cite{owaspmcp} & 2025 edition & MCP risks such as tool poisoning \\
+MITRE ATLAS~\cite{atlas} & Agent techniques added late 2025 & Technique IDs for detection and red teaming \\
+NIST AI RMF, AI 600-1 & 2023 / 2024 & Organizational risk context for tiering \\
+NIST AI 800-1~\cite{nist8001} & Second public draft, Jan 2025 & Misuse-risk practices incl.\ weight security \\
+NIST IR 8596 Cyber AI Profile~\cite{nist8596} & Preliminary draft, Dec 2025 & AI security mapped to CSF 2.0 \\
+NIST CAISI agent security~\cite{caisi} & RFI Jan--Mar 2026; Agent Standards Initiative Feb 2026 & Constraining and monitoring agent access in deployment \\
+EU AI Act~\cite{euaiact} & Prohibitions 2 Feb 2025; GPAI 2 Aug 2025; enforcement and transparency 2 Aug 2026; some high-risk duties moved to 2 Dec 2027 / 2 Aug 2028 (Digital Omnibus) & Systemic-risk GPAI providers must ensure adequate cybersecurity of model and physical infrastructure; incident reporting \\
+RAND weights report, SL5 draft~\cite{rand,sl5} & 2024; May 2026 & Weight-security levels (Section~\ref{sec:rand}) \\
+Frontier lab frameworks & Anthropic RSP v3.x (2026)~\cite{asl3}; OpenAI Preparedness v2 (Apr 2025)~\cite{preparedness}; DeepMind FSF v3 (Sep 2025)~\cite{fsf} & Capability thresholds triggering stronger security; FSF v3 adds harmful manipulation and expands shutdown/control-resistance coverage \\
+\bottomrule
+\end{longtable}
+
+Regulatory dates change; confirm current applicability before relying on this table for compliance.
+
+\subsection{Related Documents}
 
 \begin{itemize}
-  \item \textbf{Alignment research} --- Making agents less likely to be misaligned
-  \item \textbf{Evaluation frameworks} --- Determining trust tier assignments
-  \item \textbf{Policy governance} --- Organizational and legal standards
-  \item \textbf{Incident response} --- Procedures when containment fails
+  \item \textbf{Agent Swarm Honeypot Guide} (docs/hardware/agent-swarm-honeypot-guide.md) --- deception and early warning for misaligned autonomous agent swarms; complements Sections~\ref{sec:deception} and \ref{sec:probing}
+  \item \textbf{Secure Terminal Briefcase} (docs/hardware/secure-terminal-briefcase.md) --- tamper-responsive hardware relevant to Tier 0 key custody and transport
+  \item \textbf{BioForge CRISPR Automation} (docs/hardware/bioforge-crispr-automation.md) --- agent-driven physical system governed by containment and HITL gates
+  \item \textbf{packages/sleeper\_agents/} --- sleeper agent detection research that Tier 0 environments host
 \end{itemize}
-
-Trust tier assignments are informed by evaluation results. Monitoring data feeds back into evaluation. Physical security requirements may be driven by regulatory mandates.
 
 
 % ============================================================================
-% SECTION 11: RESOURCE-CONSTRAINED ENVIRONMENTS
+% SECTION 12: RESOURCE-CONSTRAINED ENVIRONMENTS
 % ============================================================================
 \section{Containment in Resource-Constrained Environments}
 \label{sec:resource-constrained}
 
-The containment measures detailed in this framework --- HSMs, biometric mantraps, NVIDIA Confidential Computing, 24/7 SOCs --- require significant capital. However, the need for rigorous containment is not limited to well-funded organizations.
+HSMs, biometric mantraps, confidential GPUs, and 24/7 SOCs require significant capital, but the need for rigorous containment --- and the threat model --- does not shrink with the budget.
 
 \begin{keybox}[Compensating Controls Principle]
-When a primary control is financially out of reach, practitioners apply \textbf{compensating controls} --- combinations of procedural, open-source, or alternative physical measures that achieve equivalent risk reduction through different means. The key requirement: the compensating control must address the \emph{same threat} as the primary control it replaces, not merely be cheaper.
+When a primary control is out of reach, apply \textbf{compensating controls}: procedural, open-source, or alternative physical measures achieving equivalent risk reduction. The compensating control must address the \emph{same threat} as the control it replaces, not merely be cheaper.
 \end{keybox}
-
 
 \subsection{Cryptography and Key Management}
 
-\begin{longtable}{L{3cm} L{4.5cm} L{5.5cm}}
+\begin{longtable}{L{3.2cm} L{4.6cm} L{8.2cm}}
 \toprule
-\textbf{Domain} & \textbf{Enterprise Control} & \textbf{Compensating Control} \\
+\textbf{Domain} & \textbf{Enterprise control} & \textbf{Compensating control} \\
 \midrule
 \endhead
-Key storage & Network HSM (\$20k+) & TPM 2.0 (on motherboard): seal LUKS keys to measured boot state \\
-Output signing & HSM-backed signing & FIDO2/PIV hardware tokens (YubiKey, SoloKeys): private key never leaves token \\
-Automated attestation & HSM at scale & TPM-based signing or encrypted keyring \\
+Key storage & Network HSM & TPM 2.0: seal LUKS keys to measured-boot state \\
+Output signing & HSM-backed signing & FIDO2/PIV/OpenPGP tokens (YubiKey, SoloKeys): key never leaves token \\
+Automated attestation & HSM at scale & TPM-based signing or encrypted, access-controlled keyring \\
 \bottomrule
 \end{longtable}
-
 
 \subsection{Physical Security (Tier 0)}
 
-\begin{longtable}{L{3cm} L{4.5cm} L{5.5cm}}
+\begin{longtable}{L{3.2cm} L{4.6cm} L{8.2cm}}
 \toprule
-\textbf{Domain} & \textbf{Enterprise Control} & \textbf{Compensating Control} \\
+\textbf{Domain} & \textbf{Enterprise control} & \textbf{Compensating control} \\
 \midrule
 \endhead
-Facility & Biometric mantraps, 24/7 SOC & Dedicated air-gapped workstation stored in UL TL-15/TL-30 safe \\
-Tamper detection & Active surveillance & Serialized holographic tamper-evident tape on chassis, ports, cables, safe \\
-Monitoring & 24/7 SOC & Synchronous execution discipline: Tier 0 runs only while researcher is physically present \\
-Port control & Managed USB/Thunderbolt & Remove WiFi/BT M.2 cards; BIOS-disable ports; epoxy for dedicated hardware \\
+Facility & Mantraps, 24/7 SOC & Dedicated air-gapped workstation stored in a UL TL-15/TL-30 safe when not in use (also closes the DRAM-interposer window) \\
+Tamper detection & Active surveillance & Serialized holographic seals on chassis, DIMM panels, ports, cables, safe; logbook verified before each use \\
+Monitoring & 24/7 SOC & Synchronous execution: Tier 0 runs only while a researcher is present and watching telemetry \\
+Port control & Managed USB/Thunderbolt & Remove WiFi/BT cards; BIOS-disable ports; keyed blockers or epoxy on dedicated hardware \\
 \bottomrule
 \end{longtable}
-
 
 \subsection{Compute Isolation and Monitoring}
 
-\begin{longtable}{L{3cm} L{4.5cm} L{5.5cm}}
+\begin{longtable}{L{3.2cm} L{4.6cm} L{8.2cm}}
 \toprule
-\textbf{Domain} & \textbf{Enterprise Control} & \textbf{Compensating Control} \\
+\textbf{Domain} & \textbf{Enterprise control} & \textbf{Compensating control} \\
 \midrule
 \endhead
-Runtime security & Commercial SIEM & Falco / Cilium Tetragon (open-source eBPF): kernel-level enforcement, not just alerting \\
-Isolation boundary & Hardware TEEs & gVisor (user-space kernel) or Firecracker (minimal VMM) + safe storage for physical gap \\
-Audit logs & WORM storage arrays & Write-protected media: SD card with physical write-protect switch \\
+Runtime security & Commercial SIEM & Falco / Cilium Tetragon: kernel-level enforcement, not only alerting \\
+Isolation boundary & Hardware TEEs & gVisor, Kata, or Firecracker plus safe storage (TEEs do not stop physical attackers either) \\
+Local agents & Managed endpoints & Agent OS sandbox (bubblewrap/Seatbelt modes) with credentials outside sandboxed paths~\cite{ccsandbox} \\
+Audit logs & WORM arrays & Media with a hardware write-protect switch \\
 \bottomrule
 \end{longtable}
 
-
 \subsection{Output Validation and Tool Brokerage}
 
-\begin{longtable}{L{3cm} L{4.5cm} L{5.5cm}}
+\begin{longtable}{L{3.2cm} L{4.6cm} L{8.2cm}}
 \toprule
-\textbf{Domain} & \textbf{Enterprise Control} & \textbf{Compensating Control} \\
+\textbf{Domain} & \textbf{Enterprise control} & \textbf{Compensating control} \\
 \midrule
 \endhead
-Policy enforcement & Commercial API gateway & Open Policy Agent (OPA) with Rego policies, version-controlled alongside orchestrator \\
-Air-gap extraction & USB sneakernet & QR-code optical channel: physics-enforced unidirectional, eliminates USB attack surface \\
+Policy enforcement & Commercial API gateway & Open Policy Agent with Rego policies versioned alongside the orchestrator \\
+Air-gap extraction & USB sneakernet & QR-code optical channel: unidirectional, bandwidth-limited, no USB attack surface \\
 \bottomrule
 \end{longtable}
 
 \begin{hardwarebox}[QR-Code Air-Gap Extraction]
-For small validated outputs (short text, hashes, attestation proofs) from Tier 0 air-gapped machines: encode as QR code on monitor, scan with separate networked device via camera. This eliminates USB-based attack vectors (BadUSB, autorun exploits, malicious filesystem metadata) through an inherently bandwidth-limited optical channel. Well-established in cryptocurrency custody and secure key ceremonies.
+For small validated outputs (short text, hashes, attestation proofs) from a Tier 0 machine: display a QR code, scan with a separate device. This removes BadUSB, autorun, and malicious filesystem metadata vectors. Suited to kilobyte-scale payloads (more with animated sequences); complements sneakernet for large outputs.
 \end{hardwarebox}
 
 
 % ============================================================================
-% SECTION 12: RECOMMENDATIONS
+% SECTION 13: RECOMMENDATIONS
 % ============================================================================
 \section{Summary of Recommendations}
 
 \subsection{For Organizations Operating AI Agents in Production}
 
 \begin{itemize}
-  \item Implement at minimum Tier 1 containment for any agent executing code or accessing tools
-  \item Establish trust tier classification based on capability, data sensitivity, and behavioral evidence
-  \item Build or adopt an orchestrator enforcing containment lifecycle, input sanitization, output validation, and audit logging
-  \item Broker all tool access through the orchestrator --- agents never hold credentials directly
-  \item Use ephemeral, scoped credentials; no long-lived static API keys
-  \item Treat agent memory stores as untrusted input
-  \item Monitor behavior and build baselines for anomaly detection
+  \item At least Tier 1 (no direct egress, sandbox stronger than plain runc, validation) for any agent that executes code or uses tools
+  \item Classify by capability, sensitivity, and evidence; treat trifecta exposure as a tier escalator
+  \item Broker all tool access; agents never hold long-lived credentials
+  \item Pin, review, and sandbox every tool server, skill, and extension; treat tool descriptions as prompts
+  \item Treat memory, tool results, and other agents' messages as untrusted input
+  \item Fan-out, depth, and spend budgets for multi-agent systems
+  \item Out-of-band, fail-closed, graduated kill switch --- drilled
+  \item Monitor for containment probing; deploy in-sandbox canaries
 \end{itemize}
 
 \subsection{For Organizations Training Frontier Models}
 
 \begin{itemize}
-  \item Tier 0 physical security for infrastructure handling frontier model weights
-  \item Hardware air gap adversarial research environments
-  \item Evaluate confidential computing (NVIDIA H100, AMD SEV-SNP) for weight protection
-  \item Supply chain verification, hardware attestation, tamper evidence programs
-  \item Two-person integrity for physical access and model weight storage
-  \item Evaluate TEMPEST requirements based on threat model
+  \item RAND SL3 at minimum for frontier weights, with a roadmap to SL4--SL5
+  \item Tier 0 physical security and TPI for weight storage and training hardware
+  \item Confidential computing against host compromise --- never as a substitute for physical controls
+  \item Supply chain verification, hardware attestation, memory-bus tamper evidence, egress bandwidth limits
+  \item Evaluate TEMPEST against the threat model
 \end{itemize}
 
 \subsection{For Adversarial AI Research}
 
 \begin{itemize}
-  \item Always Tier 0 containment for adversarial evaluations
-  \item Hardware air gap with sneakernet I/O and chain-of-custody logging
+  \item Always Tier 0 for adversarial evaluations, with air gap and sneakernet or optical I/O
   \item Validation on separate machines before data crosses trust boundaries
-  \item Cryptographic attestation for downstream chain-of-custody
-  \item Full syscall tracing and behavioral monitoring during all adversarial execution
-  \item Ephemeral environments from verified golden images for each task
+  \item Assume the model may recognize the test environment; weight probing heavily
+  \item Full syscall tracing, canaries, behavioral monitoring; fresh golden images per run
+  \item Cryptographic attestation for downstream chain of custody
 \end{itemize}
 
 \subsection{For Resource-Constrained Teams}
 
 \begin{itemize}
-  \item Dedicated air-gapped workstations with safe storage and tamper-evident seals
-  \item TPM 2.0 for hardware-rooted encryption in place of dedicated HSMs
-  \item Falco/Tetragon for kernel-level enforcement in place of commercial SIEM
-  \item gVisor/Firecracker + safe storage to compensate for absence of hardware TEEs
-  \item Synchronous execution discipline --- Tier 0 only under direct observation
-  \item QR-code optical extraction to avoid USB attack surface
+  \item Air-gapped workstation, safe storage, and tamper-evident seals
+  \item TPM 2.0 in place of HSMs; Falco/Tetragon in place of commercial SIEM
+  \item gVisor, Kata, or Firecracker plus safe storage in place of hardware TEEs
+  \item Local AI agents in their OS sandbox with credentials out of reach
+  \item Synchronous execution discipline and QR-code extraction for Tier 0
 \end{itemize}
 
 
@@ -1127,31 +1790,37 @@ For small validated outputs (short text, hashes, attestation proofs) from Tier 0
 \section*{Appendix A: Technology Reference}
 \addcontentsline{toc}{section}{Appendix A: Technology Reference}
 
-\begin{longtable}{L{4cm} L{5cm} L{3.5cm}}
+\begin{longtable}{L{5.0cm} L{7.6cm} L{3.4cm}}
 \toprule
-\textbf{Technology} & \textbf{Purpose} & \textbf{Tier Applicability} \\
+\textbf{Technology} & \textbf{Purpose} & \textbf{Tier} \\
 \midrule
 \endhead
-Linux network namespaces & Kernel-level network isolation & Tier 1--2 \\
-Seccomp-bpf & Syscall filtering & Tier 0--2 \\
-Landlock LSM & Filesystem sandboxing & Tier 0--2 \\
-Docker (\texttt{-{}-network=none}) & Container isolation & Tier 1--2 \\
-Firecracker microVM & Lightweight VM isolation & Tier 1--2 \\
-gVisor & User-space kernel for syscall interception & Tier 1--2 \\
-nftables & Egress allowlist enforcement & Tier 2 \\
-eBPF / bpftrace & System call tracing & Tier 0--2 \\
+Network namespaces & Kernel-level network isolation & Tier 1--2 \\
+seccomp-bpf & Syscall filtering (allowlist for Tier 0) & Tier 0--2 \\
+seccomp user notification & Supervisor-mediated syscalls (emulation, logging) & Tier 1--2 \\
+Landlock (ABI 4+, 6+) & Unprivileged filesystem, TCP, IPC restriction & Tier 0--2 \\
+bubblewrap / Seatbelt & Process sandboxes for local agents & Tier 2--3 \\
+Docker / runc & Container isolation; keep patched & Tier 2--3 \\
+gVisor (runsc) & User-space kernel & Tier 1--2 \\
+Kata Containers & VM-backed containers & Tier 1--2 \\
+Firecracker + jailer & Minimal VMM, optional no-network & Tier 1--2 (0) \\
+Kubernetes Agent Sandbox & Declarative agent sandboxes on gVisor/Kata & Tier 1--2 \\
+WASM / WASI & Capability-sandboxed tool plugins & Tier 2--3 \\
+nftables + forward proxy & Default-deny egress, hostname allowlist & Tier 2 \\
+eBPF / bpftrace & Syscall tracing & Tier 0--2 \\
+Falco / Tetragon & eBPF detection and enforcement & Tier 0--2 \\
 HSM & Key management and signing & Tier 0--1 \\
-TEMPEST shielding & Electromagnetic emanation control & Tier 0 \\
-AMD SEV-SNP & VM-level memory encryption & Tier 0--2 (cloud) \\
-Intel TDX & Trust domain isolation & Tier 0--2 (cloud) \\
-NVIDIA CC (H100+) & GPU memory encryption & Tier 0--1 \\
-AWS Nitro Enclaves & Isolated compute + attestation & Tier 0--2 (AWS) \\
-SPIFFE/SPIRE & Ephemeral workload identity & Tier 1--2 \\
+TPM 2.0 & Measured boot, key sealing & Tier 0--1 \\
+FIDO2 / PIV tokens & Hardware-bound signing and HITL approval & Tier 0--2 \\
+AMD SEV-SNP / Intel TDX & VM memory encryption and attestation & Tier 0--2 (cloud) \\
+NVIDIA CC (Hopper, Blackwell) & GPU memory and NVLink protection, attestation & Tier 0--1 \\
+AWS Nitro Enclaves & Isolated compute with attestation & Tier 0--2 (AWS) \\
+SPIFFE/SPIRE & Short-lived workload identity & Tier 1--2 \\
 HashiCorp Vault & Dynamic secrets & Tier 1--2 \\
-Open Policy Agent & Policy-as-code RBAC & Tier 1--2 \\
-TPM 2.0 & Key sealing + measured boot & Tier 0--1 \\
-FIDO2 / PIV tokens & Hardware-bound signing & Tier 0--2 \\
-Falco / Tetragon & eBPF runtime security & Tier 0--2 \\
+Open Policy Agent & Policy-as-code for intents & Tier 1--2 \\
+MCP scanners (e.g.\ mcp-scan) & Suspicious or changed tool descriptions & Tier 1--3 \\
+Canary tokens & Credential-hunting and exfiltration detection & Tier 0--2 \\
+TEMPEST shielding & EM emanation control & Tier 0 \\
 \bottomrule
 \end{longtable}
 
@@ -1169,21 +1838,25 @@ Falco / Tetragon & eBPF runtime security & Tier 0--2 \\
   \item[$\square$] Dedicated hardware, no NIC
   \item[$\square$] No wireless radios
   \item[$\square$] BIOS port restrictions
-  \item[$\square$] Seccomp-bpf applied
+  \item[$\square$] Default-deny seccomp allowlist
+  \item[$\square$] Landlock rules (network if ABI 4+)
   \item[$\square$] Input sanitized + validated
   \item[$\square$] Write-blocked input media
-  \item[$\square$] Output extracted with CoC
+  \item[$\square$] Output extracted with CoC (media or optical)
   \item[$\square$] Output validated on separate machine
   \item[$\square$] Output cryptographically signed
   \item[$\square$] Full syscall tracing active
+  \item[$\square$] Canary credentials and decoys planted
+  \item[$\square$] Probing detection rules active
   \item[$\square$] Fresh environment per task
   \item[$\square$] Forensic snapshot before destroy
+  \item[$\square$] Out-of-band kill switch tested
   \item[$\square$] Mantrap + MFA access
   \item[$\square$] Two-person integrity
-  \item[$\square$] Tamper-evident seals verified
+  \item[$\square$] Seals incl.\ DIMM access verified
   \item[$\square$] Active surveillance
   \item[$\square$] Honeypot systems deployed
-  \item[$\square$] Confidential computing (if applicable)
+  \item[$\square$] Confidential computing where supported
 \end{itemize}
 \end{multicols}
 
@@ -1192,20 +1865,24 @@ Falco / Tetragon & eBPF runtime security & Tier 0--2 \\
 \begin{multicols}{2}
 \begin{itemize}
   \item[$\square$] Network namespace (loopback only)
+  \item[$\square$] gVisor, Kata, or microVM boundary
   \item[$\square$] Seccomp-bpf (defense-in-depth)
-  \item[$\square$] Container/microVM + resource limits
+  \item[$\square$] Limits: CPU, memory, PIDs, tokens, tools
   \item[$\square$] TEE for cloud deployments
-  \item[$\square$] Fresh environment per task
-  \item[$\square$] Read-only input mounts
+  \item[$\square$] Fresh environment + pinned tool manifest
+  \item[$\square$] Read-only input and config mounts
   \item[$\square$] Input sanitized + schema validated
-  \item[$\square$] Memory reads validated
+  \item[$\square$] Memory reads validated (hash + writer)
   \item[$\square$] Write to output dir only
   \item[$\square$] Agent dead before extraction
-  \item[$\square$] Output validated (schema/size/scan)
+  \item[$\square$] Output validated + canary scan
+  \item[$\square$] Supervisor review (if available)
   \item[$\square$] Output signed before transmit
   \item[$\square$] Tool access brokered
-  \item[$\square$] Ephemeral credentials
+  \item[$\square$] Tool servers pinned and sandboxed
+  \item[$\square$] Canaries + probing detection
   \item[$\square$] Forensic snapshot captured
+  \item[$\square$] K1--K4 kill switch wired and drilled
   \item[$\square$] Badge-access physical security
 \end{itemize}
 \end{multicols}
@@ -1214,17 +1891,21 @@ Falco / Tetragon & eBPF runtime security & Tier 0--2 \\
 
 \begin{multicols}{2}
 \begin{itemize}
-  \item[$\square$] Egress allowlist (nftables)
+  \item[$\square$] Default-deny egress via hostname proxy
   \item[$\square$] Controlled DNS resolver
   \item[$\square$] All traffic logged
   \item[$\square$] Non-allowlist alerts
-  \item[$\square$] Input sanitized
-  \item[$\square$] Output schema validated
-  \item[$\square$] Resource limits enforced
+  \item[$\square$] Input sanitized; tool results untrusted
+  \item[$\square$] A trifecta leg removed or CaMeL-style defense
+  \item[$\square$] Output schema validated; auto-fetch URLs blocked
+  \item[$\square$] Resource and spend limits
   \item[$\square$] Ephemeral scoped credentials
-  \item[$\square$] HITL gates for high-impact actions
+  \item[$\square$] Out-of-band HITL for high-impact actions
+  \item[$\square$] Tools and skills pinned + reviewed
+  \item[$\square$] Fan-out and depth budgets
   \item[$\square$] Fresh environment per task
-  \item[$\square$] Behavioral baseline + anomaly detection
+  \item[$\square$] Baseline + anomaly detection
+  \item[$\square$] Rollback for agent-writable stores
   \item[$\square$] Standard data center security
 \end{itemize}
 \end{multicols}
@@ -1235,10 +1916,84 @@ Falco / Tetragon & eBPF runtime security & Tier 0--2 \\
 \begin{itemize}
   \item[$\square$] Standard container/process isolation
   \item[$\square$] Organizational firewall policies
+  \item[$\square$] No long-lived credentials in reach
   \item[$\square$] Application-level logging
+  \item[$\square$] Covered by organizational kill switch
   \item[$\square$] Standard physical security
 \end{itemize}
 \end{multicols}
+
+
+% ============================================================================
+% APPENDIX C: DOCUMENT HISTORY
+% ============================================================================
+\section*{Appendix C: Document History}
+\addcontentsline{toc}{section}{Appendix C: Document History}
+
+\begin{longtable}{L{1.4cm} L{2.6cm} L{12.0cm}}
+\toprule
+\textbf{Version} & \textbf{Date} & \textbf{Changes} \\
+\midrule
+\endhead
+1.0 & February 2026 & Initial framework: tiered trust, isolation, validation, physical security, orchestrator, monitoring, compensating controls \\
+2.0 & September 2026 & Multi-agent/swarm, MCP supply chain, and evaluation-awareness threats; incident table; OWASP/ATLAS/NIST/EU AI Act/RAND mapping; isolation backend comparison; TEE physical-attack caveats; architectural injection defenses; multi-agent controls; kill-switch design; probing detection; breakout playbook; seven new figures; references; companion-guide cross-reference \\
+\bottomrule
+\end{longtable}
+
+
+% ============================================================================
+% REFERENCES
+% ============================================================================
+\begingroup
+\small
+\renewcommand{\refname}{References}
+\begin{thebibliography}{99}
+\setlength{\itemsep}{2pt}
+
+\bibitem{owaspasi} OWASP Gen AI Security Project, \emph{OWASP Top 10 for Agentic Applications for 2026}, 9 Dec 2025. \url{https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/}
+\bibitem{rand} S.~Nevo et al., \emph{Securing AI Model Weights: Preventing Theft and Misuse of Frontier Models}, RAND RR-A2849-1, 2024. \url{https://www.rand.org/pubs/research_reports/RRA2849-1.html}
+\bibitem{sl5} L.~Thiergart et al., \emph{SL5 Standard for AI Security}, arXiv:2605.08449, May 2026; IST SL5 Task Force. \url{https://arxiv.org/abs/2605.08449}
+\bibitem{atlas} MITRE ATLAS; Zenity Labs, \emph{MITRE ATLAS adds AI agent attack techniques}, 2025. \url{https://labs.zenity.io/post/mitre-atlas-ai-agent-attack-techniques}
+\bibitem{landlock} Linux kernel documentation, \emph{Landlock: unprivileged access control}. \url{https://docs.kernel.org/userspace-api/landlock.html}
+\bibitem{owaspmcp} OWASP, \emph{MCP Top 10 (2025): MCP03 Tool Poisoning}. \url{https://owasp.org/www-project-mcp-top-10/}
+\bibitem{invariant} Invariant Labs, \emph{MCP Security Notification: Tool Poisoning Attacks}, Apr 2025. \url{https://invariantlabs.ai/blog/mcp-security-notification-tool-poisoning-attacks}
+\bibitem{postmark} The Hacker News, \emph{First Malicious MCP Server Found Stealing Emails in Rogue Postmark-MCP Package}, Sep 2025. \url{https://thehackernews.com/2025/09/first-malicious-mcp-server-found.html}
+\bibitem{teefail} \emph{TEE.fail: Breaking Trusted Execution Environments via DDR5 Memory Bus Interposition}, Oct 2025; Intel announcement INTEL-2025-10-28-001. \url{https://tee.fail/}
+\bibitem{ddrop} The Hacker News, \emph{New DDRop Attack Breaks Intel TDX and AMD SEV-SNP}, Sep 2026. \url{https://thehackernews.com/2026/09/new-ddrop-attack-breaks-intel-tdx-and.html}
+\bibitem{preparedness} OpenAI, \emph{Preparedness Framework Version 2}, 15 Apr 2025. \url{https://openai.com/index/updating-our-preparedness-framework/}
+\bibitem{blackwell} NVIDIA, \emph{Blackwell Architecture}; \emph{Benchmarking Confidential Computing Performance on NVIDIA Blackwell GPUs}, arXiv:2608.26575. \url{https://www.nvidia.com/en-us/data-center/technologies/blackwell-architecture/}
+\bibitem{asl3} Anthropic, \emph{Activating AI Safety Level 3 Protections}, May 2025; \emph{Responsible Scaling Policy}. \url{https://www.anthropic.com/news/activating-asl3-protections}
+\bibitem{apollo} Apollo Research and OpenAI, \emph{Stress Testing Deliberative Alignment for Anti-Scheming Training}, Sep 2025. \url{https://www.apolloresearch.ai/science/stress-testing-deliberative-alignment-for-anti-scheming-training}
+\bibitem{gtg1002} Anthropic, \emph{Disrupting the first reported AI-orchestrated cyber espionage campaign}, Nov 2025; MITRE ATT\&CK Campaign C0062. \url{https://www.anthropic.com/news/disrupting-AI-espionage}
+\bibitem{agenticmis} Anthropic, \emph{Agentic Misalignment: How LLMs could be insider threats}, Jun 2025. \url{https://www.anthropic.com/research/agentic-misalignment}
+\bibitem{nx} The Hacker News, \emph{Malicious Nx Packages in `s1ngularity' Attack Leaked 2,349 GitHub, Cloud, and AI Credentials}, Aug 2025. \url{https://thehackernews.com/2025/08/malicious-nx-packages-in-s1ngularity.html}
+\bibitem{echoleak} \emph{EchoLeak: The First Real-World Zero-Click Prompt Injection Exploit in a Production LLM System}, arXiv:2509.10540; CVE-2025-32711. \url{https://arxiv.org/abs/2509.10540}
+\bibitem{amazonq} AWS Security Bulletin AWS-2025-015, \emph{Amazon Q Developer Extension for Visual Studio Code (Version 1.84)}. \url{https://aws.amazon.com/security/security-bulletins/AWS-2025-015/}
+\bibitem{trifecta} S.~Willison, \emph{The lethal trifecta for AI agents}, 16 Jun 2025. \url{https://simonwillison.net/2025/Jun/16/the-lethal-trifecta/}
+\bibitem{replit} AI Incident Database, Incident 1152 (Replit agent, Jul 2025). \url{https://incidentdatabase.ai/cite/1152/}
+\bibitem{runc} runc advisory GHSA-cgrx-mc8f-2prm: CVE-2025-31133, CVE-2025-52565, CVE-2025-52881, Nov 2025. \url{https://github.com/opencontainers/runc/security/advisories/GHSA-cgrx-mc8f-2prm}
+\bibitem{agentsandbox} kubernetes-sigs/agent-sandbox; Google Open Source Blog, Nov 2025. \url{https://github.com/kubernetes-sigs/agent-sandbox}
+\bibitem{palisade} Palisade Research, \emph{Shutdown resistance in reasoning models}, 2025. \url{https://palisaderesearch.org/research/shutdown-resistance}
+\bibitem{replibench} UK AI Security Institute, \emph{RepliBench}, arXiv:2504.18565, Apr 2025. \url{https://www.aisi.gov.uk/blog/replibench-measuring-autonomous-replication-capabilities-in-ai-systems}
+\bibitem{sleeper} E.~Hubinger et al., \emph{Sleeper Agents: Training Deceptive LLMs that Persist Through Safety Training}, arXiv:2401.05566, 2024. \url{https://arxiv.org/abs/2401.05566}
+\bibitem{selfrep} A.~Air et al., \emph{Language Models Can Autonomously Hack and Self-Replicate}, arXiv:2605.06760, May 2026. \url{https://arxiv.org/abs/2605.06760}
+\bibitem{openclaw} The Register, \emph{DIY AI bot farm OpenClaw is a security `dumpster fire'}, Feb 2026; SecurityScorecard exposure analysis. \url{https://www.theregister.com/2026/02/03/openclaw_security_problems/}
+\bibitem{moltbook} Wikipedia, \emph{Moltbook} (accessed Sep 2026). \url{https://en.wikipedia.org/wiki/Moltbook}
+\bibitem{a2a} Linux Foundation, \emph{Agent2Agent Protocol Project} launch, Jun 2025; Red Hat Developer, \emph{How to enhance Agent2Agent security}, Aug 2025. \url{https://developers.redhat.com/articles/2025/08/19/how-enhance-agent2agent-security}
+\bibitem{aaif} Linux Foundation, \emph{Formation of the Agentic AI Foundation}, Dec 2025. \url{https://www.linuxfoundation.org/press/linux-foundation-announces-the-formation-of-the-agentic-ai-foundation}
+\bibitem{sonnet45} Anthropic, \emph{Claude Sonnet 4.5 System Card}, Sep 2025. \url{https://www.anthropic.com/claude-sonnet-4-5-system-card}
+\bibitem{ccsandbox} Claude Code documentation, \emph{Configure the sandboxed Bash tool}. \url{https://code.claude.com/docs/en/sandboxing}
+\bibitem{patterns} L.~Beurer-Kellner et al., \emph{Design Patterns for Securing LLM Agents against Prompt Injections}, arXiv:2506.08837, 2025. \url{https://arxiv.org/abs/2506.08837}
+\bibitem{camel} E.~Debenedetti et al., \emph{Defeating Prompt Injections by Design}, arXiv:2503.18813, 2025. \url{https://arxiv.org/abs/2503.18813}
+\bibitem{aicontrol} R.~Greenblatt et al., \emph{AI Control: Improving Safety Despite Intentional Subversion}, arXiv:2312.06942. \url{https://arxiv.org/abs/2312.06942}
+\bibitem{nist8001} NIST, \emph{Managing Misuse Risk for Dual-Use Foundation Models} (NIST AI 800-1, 2nd public draft), Jan 2025. \url{https://www.nist.gov/news-events/news/2025/01/updated-guidelines-managing-misuse-risk-dual-use-foundation-models}
+\bibitem{nist8596} NIST, \emph{Cybersecurity Framework Profile for Artificial Intelligence} (NIST IR 8596, preliminary draft), Dec 2025. \url{https://www.nist.gov/news-events/news/2025/12/draft-nist-guidelines-rethink-cybersecurity-ai-era}
+\bibitem{caisi} NIST CAISI, \emph{Request for Information About Securing AI Agent Systems}, Jan 2026. \url{https://www.nist.gov/news-events/news/2026/01/caisi-issues-request-information-about-securing-ai-agent-systems}
+\bibitem{euaiact} European Commission, \emph{AI Act}; artificialintelligenceact.eu, \emph{High-level summary}. \url{https://digital-strategy.ec.europa.eu/en/policies/regulatory-framework-ai}
+\bibitem{fsf} Google DeepMind, \emph{Strengthening our Frontier Safety Framework}, Sep 2025. \url{https://deepmind.google/blog/strengthening-our-frontier-safety-framework/}
+
+\end{thebibliography}
+\endgroup
 
 
 % ============================================================================
@@ -1249,7 +2004,8 @@ Falco / Tetragon & eBPF runtime security & Tier 0--2 \\
 \small\color{softslate}\sffamily
 \rule{0.5\textwidth}{0.4pt}\\[0.5em]
 Independent research --- not affiliated with any institution or committee\\
-Published for defensive governance research and education
+Published for defensive governance research and education\\
+Next scheduled review: March 2027, or sooner on a relevant sandbox escape, TEE break, or agent incident
 \end{center}
 
 \end{document}
