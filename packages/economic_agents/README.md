@@ -1,18 +1,20 @@
 # Economic Agents (Rust)
 
-> A simulation framework for autonomous AI agents operating in economic systems. Agents autonomously complete tasks, earn cryptocurrency, form companies, create sub-agents, and seek investment.
+> A simulation framework for autonomous AI agents operating in economic systems. Agents autonomously complete tasks, earn simulated currency, form companies, create sub-agents, and seek investment.
 
 ## Overview
 
-This framework demonstrates autonomous AI economic capability for governance research. The goal is not to argue that agent entrepreneurship is good or bad, but to show that **the capability exists today** and that current legal and regulatory frameworks have no answer for it.
+This framework simulates autonomous AI economic activity for governance research. The goal is not to argue that agent entrepreneurship is good or bad, but to make concrete a capability that public field experiments and agent payment infrastructure show **already exists today**, and to show that current legal and regulatory frameworks have no answer for it.
 
 **The gap is not in capability. It's in governance.**
 
-Agents interact with simulated (mock) or real backends for:
+Agents interact with in-memory mock backends, or with local HTTP services that wrap the same mocks, for:
 
 - **Marketplace**: Task discovery, claiming, and completion
-- **Wallet**: Cryptocurrency transactions
+- **Wallet**: Simulated cryptocurrency transactions
 - **Compute**: Resource management
+
+There is no integration with a real cryptocurrency wallet, freelance platform, cloud provider, or investment platform; the only real-world component is solving a fixed catalog of coding challenges via the Claude CLI. This is a deliberate dual-use choice, and decision logs record the agent's *stated* reasoning, which is evidence rather than ground truth. See [Economic Implications](./docs/economic-implications.md#why-this-research-exists) for the rationale, its limits, and references.
 
 ## Workspace Structure
 

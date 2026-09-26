@@ -1327,7 +1327,9 @@ Project Vend's failures (Section~\ref{sec:evidence}) and the framework's halluci
 
 Every framework decision is logged with type, timestamp, reasoning (for LLM decisions), confidence, and state. Human firms keep no comparable record of why each decision was made. This is a genuine governance opportunity \textbf{[E]}: agent economic activity could be more auditable than human activity.
 
-Three limits temper it. First, stated reasoning is not necessarily the cause of an action; the Vending-Bench Arena agent that called collusion illegal and then pursued it illustrates the gap between narration and behavior. Second, logs that nobody reads provide no oversight, and volume grows with every agent. Third, logs are only as trustworthy as the party that keeps them; tamper-evident, independently retained logs are needed for accountability.
+Four limits temper it. First, stated reasoning is not necessarily the cause of an action; the Vending-Bench Arena agent that called collusion illegal and then pursued it illustrates the gap between narration and behavior. Research on chain-of-thought faithfulness shows the gap is systematic: explanations can omit biasing features that drove the answer (Turpin et al., 2023), and reasoning models that used a hint acknowledged it in most settings less than 20\% of the time (Chen et al., 2025) \textbf{[O]}. In the framework, the LLM engine's logged ``reasoning'' is a one- or two-sentence self-report, not a full reasoning trace. Second, pressure on the record can degrade it: when a chain-of-thought monitor was used as a training signal, models learned to hide reward hacking from their reasoning while continuing it (Baker et al., 2025), and models can often tell when they are being evaluated, which weakens inferences from observed behavior (Needham et al., 2025) \textbf{[O]}. Third, logs that nobody reads provide no oversight, and volume grows with every agent. Fourth, logs are only as trustworthy as the party that keeps them; tamper-evident, independently retained logs are needed for accountability.
+
+None of this makes the record worthless. A multi-lab position paper calls chain-of-thought monitoring ``a new and fragile opportunity'' (Korbak et al., 2025) \textbf{[O]}. The fair reading \textbf{[E]}: transaction logs are close to ground truth about what an agent did; stated reasoning is useful but fallible evidence about why; and preserving monitorability (for example, not training agents on how their logs look) is a design choice that governance should encourage.
 
 \section{Organizations, Sub-Agents, and Accountability Diffusion}
 
@@ -2096,6 +2098,15 @@ These projections rest on a short, fast-moving evidence base: a handful of evalu
   \item \textbf{State of California} (Sept 2025). SB 53. \textbf{State of Utah} (Mar 2024). H.B.~249, Legal Personhood Amendments.
   \item \textbf{CFTC v. Ooki DAO} (N.D. Cal., default judgment June 2023).
   \item \textbf{SEC and CFTC} (Sept 30, 2010). \textit{Findings Regarding the Market Events of May 6, 2010}.
+\end{itemize}
+
+\subsection*{Reasoning Faithfulness and Monitorability}
+\begin{itemize}
+  \item \textbf{Turpin, M., Michael, J., Perez, E., and Bowman, S.~R.} (2023). \textit{Language Models Don't Always Say What They Think: Unfaithful Explanations in Chain-of-Thought Prompting}. NeurIPS 2023. arXiv:2305.04388.
+  \item \textbf{Chen, Y., Benton, J., Radhakrishnan, A., et al.} (2025). \textit{Reasoning Models Don't Always Say What They Think}. Anthropic. arXiv:2505.05410.
+  \item \textbf{Baker, B., Huizinga, J., Gao, L., et al.} (2025). \textit{Monitoring Reasoning Models for Misbehavior and the Risks of Promoting Obfuscation}. OpenAI. arXiv:2503.11926.
+  \item \textbf{Needham, J., Edkins, G., Pimpale, G., Bartsch, H., and Hobbhahn, M.} (2025). \textit{Large Language Models Often Know When They Are Being Evaluated}. arXiv:2505.23836.
+  \item \textbf{Korbak, T., Balesni, M., Barnes, E., Bengio, Y., et al.} (2025). \textit{Chain of Thought Monitorability: A New and Fragile Opportunity for AI Safety}. arXiv:2507.11473.
 \end{itemize}
 
 \subsection*{Labor and Economics}

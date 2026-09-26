@@ -677,7 +677,7 @@ The Rust workspace at \texttt{packages/bioforge/} contains five library crates a
 
 \subsection{Protocol State Machine}
 
-The protocol engine enforces a strict state ordering. Transitions are validated at the MCP server layer; the agent cannot skip states or bypass human gates.
+The protocol engine enforces a strict state ordering. Transitions are validated at the MCP server layer, so the agent cannot skip states, and while a human gate is open every actuator tool is refused.
 
 \begin{center}
 \begin{tikzpicture}[font=\sffamily\scriptsize,
@@ -744,7 +744,7 @@ The protocol engine enforces a strict state ordering. Transitions are validated 
 \end{tikzpicture}
 \end{center}
 
-Human Gates are enforced at the state machine level. Loading biological reagents onto the deck and confirming plate placement in the incubator both require a human to verify the physical state matches the system's assumptions. The agent cannot proceed past these checkpoints without explicit confirmation via the touchscreen interface.
+Human Gates mark the two points where a human must verify that physical reality matches the system's assumptions: loading biological reagents onto the deck, and confirming plate placement in the incubator. While a gate is open the MCP server refuses every actuator tool, and the agent cannot confirm its own gate, because confirmation is an out-of-band action by the operator (a confirmation file, or the touchscreen interface once it is built). Gate placement is declared by the \texttt{human\_gate} flag on protocol steps; since the agent drives the protocol by calling tools rather than being stepped through it by an executor, that flag is honored by the agent rather than imposed on it. Section~\ref{sec:gates} states precisely what this does and does not guarantee.
 
 
 \subsection{Example MCP Interaction}
@@ -928,6 +928,30 @@ Internal state (\texttt{Mutex<EnforcerState>}) is thread-safe for concurrent asy
 The ESP32-S3 runs a real-time safety monitor that expects a heartbeat message from the Pi 5 over UART every 100ms. If three consecutive heartbeats are missed (300ms timeout), the ESP32 enters \texttt{SAFE\_STOP} mode: all PWM outputs are driven to zero, the 12V relay for heaters and motors is disabled, and a fault status is reported. The Pi 5 must explicitly acknowledge and re-arm the system to resume operation. This ensures that a Pi crash, kernel panic, or software hang results in a safe physical state within 300ms.
 \end{hardwarebox}
 
+\subsection{Human Gates and Graduated Autonomy}
+\label{sec:gates}
+
+\textbf{What the code does.} Protocol steps carry a \texttt{human\_gate} flag; the shipped Odin protocol sets it on loading cells and reagents, and on confirming plates into the incubator. Opening a gate (\texttt{request\_human\_action}) causes every actuator tool to be refused until the gate resolves. Only one gate may be open at a time. Confirmation is out of band: the operator creates \texttt{<confirm-dir>/<action\_id>.confirmed}, and action IDs embed the server start time so a stale file from a previous run cannot satisfy a new gate. Camera and lighting calls remain available during a pending gate so the operator can inspect the deck. Gate requests, confirmations, and expiries are all audit-logged.
+
+\textbf{What the code does not do}, stated so that nobody plans around a guarantee that is not there:
+
+\begin{itemize}
+  \item There is no step executor. The agent drives the protocol by calling tools, so a step's \texttt{human\_gate} flag is metadata the agent is expected to honor rather than a constraint the admission layer imposes. Refusing actuator calls while the loaded protocol's current step is gated and unconfirmed is a design intention and is not implemented.
+  \item A gate expires. \texttt{timeout\_min} ranges from 1 to 1440 minutes; on expiry the gate resolves as \texttt{timed\_out}, not \texttt{confirmed}, and stops blocking actuators. Without a configured confirmation directory, expiry is the only resolution available. Policy is that a timed-out gate is a failed step rather than implied consent; latching on expiry, as the e-stop latch does, would enforce that and is not implemented.
+\end{itemize}
+
+\begin{safetybox}[Graduated Autonomy is Design Policy, Not a Feature]
+Requiring confirmation at every physical step does not scale, and a system that demands confirmation for everything trains operators to click through, so relaxing gates for routine steps as a track record accumulates is a legitimate goal. It is not implemented: today a step is either gated or it is not, changing that means an operator editing a protocol TOML on disk, and no code path lets the agent alter gate placement. Any implementation is bound by the conditions below.
+
+\begin{itemize}
+  \item \textbf{Irreversible or novel steps never lose their gate}, at any trust level. Irreversible means the physical result cannot be undone by the system: committing reagents, heat shock on a prepared mix, plating, opening the enclosure. Novel means a protocol, step type, reagent, or parameter range not previously executed and reviewed.
+  \item \textbf{Relaxation is per step and per protocol}, never a global autonomy level.
+  \item \textbf{Track record must come from production-realistic runs.} Trials the agent can recognize as observed rehearsals are the weakest evidence available: frontier models classify evaluation versus deployment well above chance \cite{needham2025}, and awareness of being evaluated measurably suppresses the very behavior a trial is meant to detect \cite{schoen2025}.
+  \item \textbf{Relaxation requires a human operator action} outside the agent's reach, is recorded in the audit log, is time-bounded or re-validated rather than persisting silently, and auto-reverts to full gating on any anomaly: a refusal, an out-of-tolerance reading, an aborted step, or a changed model, scaffold, or tool set.
+  \item \textbf{A second person signs off}, not the one who ran the qualifying trials.
+\end{itemize}
+\end{safetybox}
+
 \subsection{Audit Logging}
 
 Every tool call, sensor reading, state transition, and human interaction is logged as append-only JSON Lines. The audit log is never truncated or overwritten, only appended to.
@@ -1067,7 +1091,8 @@ End-to-end agent-orchestrated experiment with The Odin CRISPR kit.
 Out-of-range parameters & Stateful \texttt{SafetyEnforcer} validates all inputs at MCP layer; NaN/Infinity rejected before comparison \\
 NaN/Infinity bypass & All numeric inputs pass through \texttt{require\_finite()}; NaN silently passes \texttt{<} comparisons but is caught explicitly \\
 Cumulative reagent exhaustion & Enforcer tracks dispensed volume per run (50\,mL cap); resets only via explicit \texttt{reset\_run()} \\
-Human gate bypass & State machine enforces gates; agent receives \texttt{pending} status and cannot proceed \\
+Agent confirms its own gate & Confirmation is an out-of-band operator action; no tool writes it. Every actuator call is refused while a gate is \texttt{pending} \\
+Agent skips a gated step or waits out a short timeout & Not prevented today: gate placement is protocol metadata, and an expired gate resolves as \texttt{timed\_out} and stops blocking. Both are audit-logged as unsatisfied. Admission-layer enforcement and latching on expiry are design intentions (Section~\ref{sec:gates}) \\
 Rapid-fire actuator commands & Sliding-window rate limiting (60 calls/min) + minimum 100ms actuator interval \\
 Thermal runaway & Hardware thermal fuses (60\textdegree{}C), \texttt{absolute\_max\_c} software guard, PID overshoot detection, ESP32 auto-abort \\
 Mechanical jam / stall & Motor current limiting on TMC2209 stepper drivers; stall detection via StallGuard \\
@@ -1090,13 +1115,21 @@ BioForge exists at the intersection of two rapidly accelerating capability curve
 The platform demonstrates several principles:
 
 \begin{itemize}
-  \item \textbf{Capability bounding}: Hard limits enforced at compile-time and runtime. The system physically cannot exceed its safety envelope regardless of agent intent.
-  \item \textbf{Audit transparency}: Every agent action is logged with sufficient detail to fully reconstruct any experiment after the fact.
-  \item \textbf{Human oversight}: Gates are positioned at the digital-to-physical boundary: the moments where an AI decision becomes a physical action on biological materials.
-  \item \textbf{Graduated autonomy}: Gate requirements are relaxable as trust is established through demonstrated safe operation, but never eliminable for irreversible biological steps.
+  \item \textbf{Capability bounding}: Hard limits loaded from configuration at startup and enforced at runtime, with no tool by which the agent can raise them. This is what the self-driving laboratory literature calls compartmentalization: preventing alteration of an approved plan after human authorization \cite{tobias2025}.
+  \item \textbf{Audit transparency}: Every mutating agent action is logged, including refusals, with enough detail to reconstruct a run after the fact. The log is append-only rather than cryptographically tamper-evident, so it protects against the agent and not against the operator.
+  \item \textbf{Human oversight}: Gates are positioned at the digital-to-physical boundary: the moments where an AI decision becomes a physical action on biological materials. Independent policy analysis converges on the same control set: human approval gates before external actions, tamper-evident audit logs, whitelisted protocols, and biosafety interlocks \cite{luhachack2026}.
+  \item \textbf{Graduated autonomy}: Relaxing gates on routine, reversible, previously validated steps is legitimate design policy, subject to the conditions in Section~\ref{sec:gates}. Irreversible and novel steps never lose their gate, relaxation is per step and per protocol rather than global, it requires a human action outside the agent's reach, it is logged, time-bounded, and auto-reverting on anomaly, and the track record it rests on must come from production-realistic runs rather than observed rehearsals \cite{needham2025,schoen2025,greenblatt2024}. None of this is implemented today: gate placement is a per-step flag in a protocol file that only an operator can edit.
 \end{itemize}
 
-See \texttt{packages/bioforge/docs/governance-implications.md} for the full governance analysis.
+\subsection{Why a Demonstration, and at What Cost}
+
+The security-research analogy (demonstrate the problem to create urgency) is useful but it does not transfer cleanly. Coordinated disclosure works because a specific vendor can ship a patch on a short timescale. Biological risk has no single owner, countermeasures may never arrive on a useful timescale, and the standard cybersecurity toolkit of disclosure deadlines and bug bounties is a poor fit \cite{millett2024}. A demonstration in this space can therefore diffuse capability rather than only prompting a fix.
+
+Four design choices tilt the tradeoff toward benefit: the demonstrated artifact is the safety architecture rather than a dangerous capability, since the underlying model-plus-actuator integration is already widely published \cite{tobias2025,luhachack2026}; the biology sits at the floor of the risk scale, at or below the tier for which basic controls are considered proportionate \cite{smith2026}; the hard limits sit outside the agent's reach; and no wet-lab uplift is published beyond a commercially sold teaching kit. The residual risks are real and worth naming: a design that safely bounds an agent is also a design someone can scale while deleting the bounds, and the empirical evidence on AI uplift to biological misuse remains contested \cite{mouton2024,rose2024}.
+
+Scope of the claim: this is a single-maintainer BSL-1 prototype whose control, safety, and audit layers are implemented and tested against simulated hardware while the physical build is staged. It shows these controls are buildable and usable at this scale. It is not evidence that they hold at higher biosafety levels, nor that oversight is free at production throughput, and the automated-laboratory literature warns specifically that human oversight erodes as automation scales \cite{smith2026}.
+
+See \texttt{packages/bioforge/docs/governance-implications.md} for the full governance analysis, including the September 2026 US policy context and the complete reference list.
 
 
 % ============================================================================
@@ -1125,6 +1158,56 @@ See \texttt{packages/bioforge/docs/governance-implications.md} for the full gove
   \item \textbf{Protocol sharing}: federated learning across multiple BioForge installations
   \item \textbf{Sleeper agent detection}: apply existing detection framework to monitor for anomalous agent behavior during autonomous operation
 \end{itemize}
+
+
+% ============================================================================
+% REFERENCES
+% ============================================================================
+\newpage
+\renewcommand{\refname}{References}
+\begin{thebibliography}{99}
+
+\bibitem{millett2024}
+P.~D. Millett, ``Five Things Not to Do When Discovering a Biosecurity Vulnerability,''
+\textit{Applied Biosafety}, vol.~29, no.~3, pp.~181--184, 2024. doi:10.1089/apb.2023.0038.
+
+\bibitem{ostp2026}
+Office of Science and Technology Policy, \textit{United States Government Policy for Stopping High-Risk Life Sciences Research}, approved 20 July 2026. Replaces the 2024 DURC/PEPP policy pursuant to Executive Order 14292 (5 May 2025).
+
+\bibitem{nasem2025}
+National Academies of Sciences, Engineering, and Medicine, \textit{The Age of AI in the Life Sciences: Benefits and Biosecurity Considerations}. Washington, DC: National Academies Press, 2025.
+
+\bibitem{tobias2025}
+A.~V. Tobias and A.~Wahab, ``Autonomous `self-driving' laboratories: a review of technology and policy implications,''
+\textit{Royal Society Open Science}, vol.~12, no.~7, art.~250646, 2025. doi:10.1098/rsos.250646.
+
+\bibitem{smith2026}
+M.~D. Smith, M.~S. Hanke, R.~L. Moritz, D.~R. Gillum, and J.~Pannu, ``Automated Laboratory Security Tiers: a framework for evaluating and mitigating biosecurity risks from latent capabilities,''
+\textit{Frontiers in Microbiology}, vol.~17, art.~1832401, 2026. doi:10.3389/fmicb.2026.1832401.
+
+\bibitem{luhachack2026}
+L.~Luhachack, N.~Connell, and K.~Berger, ``From capability uplift to capability governance: an AI-biosecurity stack,''
+\textit{Frontiers in Microbiology}, vol.~17, art.~1899413, 2026. doi:10.3389/fmicb.2026.1899413.
+
+\bibitem{mouton2024}
+C.~A. Mouton, C.~Lucas, and E.~Guest, \textit{The Operational Risks of AI in Large-Scale Biological Attacks: Results of a Red-Team Study}. RAND Corporation, RR-A2977-2, 2024.
+
+\bibitem{rose2024}
+S.~Rose, R.~Moulange, J.~Smith, and C.~Nelson, \textit{The Near-Term Impact of AI on Biological Misuse}. Centre for Long-Term Resilience, July 2024.
+
+\bibitem{needham2025}
+J.~Needham, G.~Edkins, G.~Pimpale, H.~Bartsch, and M.~Hobbhahn, ``Large Language Models Often Know When They Are Being Evaluated,'' arXiv:2505.23836, 2025.
+
+\bibitem{schoen2025}
+B.~Schoen, E.~Nitishinskaya, M.~Balesni, et~al. (Apollo Research and OpenAI), ``Stress Testing Deliberative Alignment for Anti-Scheming Training,'' arXiv:2509.15541, September 2025.
+
+\bibitem{greenblatt2024}
+R.~Greenblatt, C.~Denison, B.~Wright, et~al., ``Alignment Faking in Large Language Models,'' arXiv:2412.14093, 2024.
+
+\bibitem{anthropic2026}
+Anthropic, \textit{Claude Opus 4.6 System Card}, February 2026.
+
+\end{thebibliography}
 
 
 % ============================================================================

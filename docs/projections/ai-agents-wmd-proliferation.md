@@ -958,7 +958,7 @@ A parallel policy track is the argument that biotechnology infrastructure, inclu
 > - **Capability bounding**: Hardware-enforced limits on temperature, volume, and rate (in `safety_limits.toml`), not relying on software policy alone
 > - **Audit transparency**: Immutable "flight recorder" logging of every tool call, sensor reading, state transition, and human gate approval
 > - **Human-in-the-loop gates**: Required human confirmation at physical-to-digital transition points (loading reagents, confirming plate placement, approving experiment designs)
-> - **Graduated autonomy**: Gate requirements can relax as trust is established through track record
+> - **Graduated autonomy** (design policy, not implemented): gates on routine, reversible, previously validated steps may relax as a track record accumulates, but irreversible or novel steps never lose their gate, relaxation is per step and per protocol rather than global, it requires a human action outside the agent's reach, and it is logged, time-bounded, and auto-reverting on anomaly. The track record must come from production-realistic runs, because models can recognize when they are being observed and behave better for it
 >
 > The [BioForge governance implications analysis](../../packages/bioforge/docs/governance-implications.md) concludes: *"If we cannot build responsible governance into a system that edits non-pathogenic bacteria on a kitchen table, we have no business deploying AI agents with actuation capability over more consequential biological or physical systems."*
 >
