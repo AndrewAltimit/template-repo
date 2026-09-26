@@ -101,6 +101,12 @@ jobs:
             ai-agent-containment-infrastructure-security-framework
 
           ./automation/ci-cd/build-latex-doc.sh \
+            agent-swarm-honeypot-guide.tex \
+            docs/hardware/latex \
+            docs_output \
+            agent-swarm-honeypot-guide
+
+          ./automation/ci-cd/build-latex-doc.sh \
             bioforge-crispr-automation.tex \
             docs/hardware/latex \
             docs_output \

@@ -998,6 +998,14 @@ jobs:
             docs_output \
             ai-agent-containment-infrastructure-security-framework
 
+      - name: Build Agent Swarm Honeypot Guide
+        run: |
+          ./automation/ci-cd/build-latex-doc.sh \
+            agent-swarm-honeypot-guide.tex \
+            docs/hardware/latex \
+            docs_output \
+            agent-swarm-honeypot-guide
+
       - name: Build BioForge CRISPR Automation
         run: |
           ./automation/ci-cd/build-latex-doc.sh \
