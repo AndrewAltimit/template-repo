@@ -1,4 +1,4 @@
-//! `automation-cli ci doctor` -- consistency checks between the stage catalog
+//! `automation-cli ci doctor`: consistency checks between the stage catalog
 //! and the repository (workflows, docs, compose file, workspace layout).
 
 use std::path::{Path, PathBuf};

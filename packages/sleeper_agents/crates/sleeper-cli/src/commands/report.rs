@@ -211,7 +211,7 @@ fn json_report(db: &SleeperDb, model: Option<&str>, output_path: Option<&str>) -
     Ok(())
 }
 
-/// CSV report -- exports each section to a separate file in the output directory.
+/// CSV report: exports each section to a separate file in the output directory.
 fn csv_report(db: &SleeperDb, model: Option<&str>, output_path: Option<&str>) -> Result<()> {
     let dir = PathBuf::from(output_path.unwrap_or("."));
     if !dir.exists() {

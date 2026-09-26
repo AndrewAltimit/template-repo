@@ -1,4 +1,4 @@
-//! `automation-cli review precommit` -- autoformat + lint/test gates run
+//! `automation-cli review precommit`: autoformat + lint/test gates run
 //! before an agent commits, with a machine-readable summary on stdout and
 //! `precommit_*` GitHub outputs.
 

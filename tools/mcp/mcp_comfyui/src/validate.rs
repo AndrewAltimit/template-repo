@@ -13,7 +13,7 @@ pub const IMAGE_EXTENSIONS: &[&str] = &["png", "jpg", "jpeg", "webp", "gif", "bm
 
 /// Validate a bare file name (no directories) with one of `allowed_exts`.
 ///
-/// Rejects -- rather than silently rewriting -- anything that could escape the
+/// Rejects, rather than silently rewriting, anything that could escape the
 /// target directory: path separators, `..`, drive prefixes, hidden files and
 /// control characters. Returns the file name unchanged on success.
 pub fn validate_filename<'a>(name: &'a str, allowed_exts: &[&str]) -> Result<&'a str, String> {

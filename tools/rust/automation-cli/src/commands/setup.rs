@@ -1,4 +1,4 @@
-//! `automation-cli setup <action>` -- host / self-hosted runner setup.
+//! `automation-cli setup <action>`: host / self-hosted runner setup.
 
 use std::path::Path;
 

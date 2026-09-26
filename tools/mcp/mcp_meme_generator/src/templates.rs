@@ -4,7 +4,7 @@
 //! parsed and semantically validated against its image. A template with a hard
 //! error (unreadable image, bad color, impossible geometry, ...) is skipped and
 //! the reason is recorded in [`TemplateStore::errors`], which the status and
-//! list tools surface -- previously such problems only reached the log, and a
+//! list tools surface; previously such problems only reached the log, and a
 //! broken template (e.g. a PNG saved with a `.jpg` extension) failed at
 //! generation time with an opaque decoder error.
 

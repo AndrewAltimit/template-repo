@@ -513,10 +513,10 @@
   arc=5pt,
   left=10pt, right=10pt, top=10pt, bottom=10pt
 ]
-\textbf{The Problem.} AI agents today are disembodied---text interfaces that lack the non-verbal richness of human interaction. A 5-second response delay feels awkward. Emotions expressed in ``[brackets]'' feel artificial. Without persistent memory, each session starts from scratch. Users cannot form genuine connections with entities that have no presence.
+\textbf{The Problem.} AI agents today are disembodied: text interfaces that lack the non-verbal richness of human interaction. A 5-second response delay feels awkward. Emotions expressed in ``[brackets]'' feel artificial. Without persistent memory, each session starts from scratch. Users cannot form genuine connections with entities that have no presence.
 
 \vspace{0.3cm}
-\textbf{Our Solution.} The Virtual Character system is a \textbf{protocol-agnostic middleware} that gives AI agents bodies, voices, and persistent identities. Built on Kahneman's System 1/System 2 cognitive model, agents react instantly (<100ms) while synthesizing thoughtful responses in parallel. A unified emotion taxonomy ensures coherent expression across voice, face, and gesture---when an agent feels joy, its voice brightens, face smiles, and posture opens simultaneously.
+\textbf{Our Solution.} The Virtual Character system is a \textbf{protocol-agnostic middleware} that gives AI agents bodies, voices, and persistent identities. Built on Kahneman's System 1/System 2 cognitive model, agents react instantly (<100ms) while synthesizing thoughtful responses in parallel. A unified emotion taxonomy ensures coherent expression across voice, face, and gesture. When an agent feels joy, its voice brightens, face smiles, and posture opens simultaneously.
 
 \vspace{0.3cm}
 \textbf{Key Innovation.} Unlike platform-specific solutions (a VRChat bot, a Unity NPC), this middleware works across \emph{any} virtual world. Swap VRChat for Unity or Blender without changing agent logic. Replace ElevenLabs with local TTS without breaking animations. Use AWS AgentCore or self-hosted ChromaDB for memory. Every component is a swappable plugin.
@@ -627,7 +627,7 @@ Expression Orchestrator & Variable & Multi-modal coordination \\
 \addcontentsline{toc}{section}{Executive Summary}
 
 \begin{tldrbox}
-A user speaks to an AI agent. Within 100ms, the agent's avatar shows it's listening. While deep reasoning occurs, the agent speaks a filler (``Hmm, let me think...'') with matching expression. Seconds later, a coherent response emerges---voice, face, gesture, and reaction image all aligned to the same emotional state. Memory persists: next session, the agent remembers.
+A user speaks to an AI agent. Within 100ms, the agent's avatar shows it's listening. While deep reasoning occurs, the agent speaks a filler (``Hmm, let me think...'') with matching expression. Seconds later, a coherent response emerges: voice, face, gesture, and reaction image all aligned to the same emotional state. Memory persists: next session, the agent remembers.
 \end{tldrbox}
 
 \subsection*{The Complete Data Flow}
@@ -758,7 +758,7 @@ Traditional AI agents communicate through text alone, lacking the rich non-verba
 \end{itemize}
 
 \begin{keybox}[Core Innovation]
-This is not just a VRChat controller or Blender animator---it's a \textbf{universal middleware} that enables AI agents to have an immersive presence in \emph{any} virtual environment, complete with bidirectional communication and emotional coherence.
+This is not just a VRChat controller or Blender animator; it's a \textbf{universal middleware} that enables AI agents to have an immersive presence in \emph{any} virtual environment, complete with bidirectional communication and emotional coherence.
 \end{keybox}
 
 \subsection{System Architecture}
@@ -898,7 +898,7 @@ Every service in the system offers a choice between \textbf{cloud/paid APIs} (hi
 \textbf{TTS} & ElevenLabs & Coqui TTS & New MCP client, same audio format \\
 \textbf{Reasoner} & Claude API & Qwen3, Gemma 2 & Implement \texttt{Reasoner} trait \\
 \textbf{Memory} & AWS AgentCore & ChromaDB & Set \texttt{MEMORY\_PROVIDER} env \\
-\textbf{Classifier} & --- & DistilBERT & Any emotion enum output \\
+\textbf{Classifier} & n/a & DistilBERT & Any emotion enum output \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -908,7 +908,7 @@ For hobbyist deployments, use all self-hosted options: Coqui TTS + Qwen3 via Ope
 \end{tipbox}
 
 \begin{tipbox}[Graceful Degradation]
-If a service fails (e.g., ElevenLabs quota exceeded), the system degrades gracefully. The agent continues reasoning and animating---just without voice. Memory failures mean fresh sessions, not crashes.
+If a service fails (e.g., ElevenLabs quota exceeded), the system degrades gracefully. The agent continues reasoning and animating, just without voice. Memory failures mean fresh sessions, not crashes.
 \end{tipbox}
 
 \subsection{Alternative Architectures Considered}
@@ -944,7 +944,7 @@ We evaluated three alternative approaches before settling on this middleware des
 \small
 \textbf{Key Takeaways:}
 \begin{itemize}[nosep, leftmargin=1.5em]
-  \item The Virtual Character system is \textbf{protocol-agnostic middleware}---not a VRChat bot or Unity plugin
+  \item The Virtual Character system is \textbf{protocol-agnostic middleware}, not a VRChat bot or Unity plugin
   \item \textbf{Plugin architecture} enables swapping any component (backend, TTS, LLM, memory)
   \item \textbf{Canonical data model} translates to platform-specific protocols automatically
   \item \textbf{Graceful degradation}: failures in one subsystem don't crash the agent
@@ -977,7 +977,7 @@ The cognitive architecture mirrors human thinking with parallel processing strea
 \section{The Dual-Speed Insight}
 
 \begin{tldrbox}
-Human cognition operates on two systems (Kahneman's System 1/System 2): fast intuitive reactions and slow deliberate reasoning. Our AI agent mirrors this with parallel processing streams---fast reactions for immediate presence, slow synthesis for depth.
+Human cognition operates on two systems (Kahneman's System 1/System 2): fast intuitive reactions and slow deliberate reasoning. Our AI agent mirrors this with parallel processing streams: fast reactions for immediate presence, slow synthesis for depth.
 \end{tldrbox}
 
 \subsection{Why Dual-Speed?}
@@ -1185,7 +1185,7 @@ A canonical emotion model enables coherent expression across all modalities:
 \section{Canonical Emotions}
 
 \begin{tldrbox}
-A unified emotion taxonomy solves the vocabulary mismatch between systems. ElevenLabs uses audio tags, Virtual Character uses enums, Reaction Search uses semantic tags---the canonical model translates between all of them.
+A unified emotion taxonomy solves the vocabulary mismatch between systems. ElevenLabs uses audio tags, Virtual Character uses enums, Reaction Search uses semantic tags; the canonical model translates between all of them.
 \end{tldrbox}
 
 \subsection{The 14 Primary Emotions}
@@ -1268,7 +1268,7 @@ impl EmotionTransitionManager {
         }
     }
 
-    /// Called each frame -- smooth interpolation
+    /// Called each frame: smooth interpolation
     pub fn update(&mut self, delta_time: f32) -> EmotionVector {
         let blend = (self.transition_speed * delta_time * 60.0).min(1.0);
         self.current_state = self.current_state.lerp(&self.target_state, blend);
@@ -1332,13 +1332,13 @@ pub fn emotion_to_vrcemote(emotion: &EmotionType) -> u8 {
 \small
 \textbf{Core Components:}
 \begin{itemize}[nosep, leftmargin=1.2em]
-  \item \textbf{14 Canonical Emotions} --- Universal vocabulary across all systems
-  \item \textbf{PAD Model} --- 3D vectors (Pleasure, Arousal, Dominance) for smooth interpolation
-  \item \textbf{Cross-Modal Mappings} --- Automatic translation to audio tags, avatar expressions
+  \item \textbf{14 Canonical Emotions}: Universal vocabulary across all systems
+  \item \textbf{PAD Model}: 3D vectors (Pleasure, Arousal, Dominance) for smooth interpolation
+  \item \textbf{Cross-Modal Mappings}: Automatic translation to audio tags, avatar expressions
 \end{itemize}
 
 \vspace{0.5em}
-\textcolor{coolgray}{\small\textbf{Why It Matters:} A single emotion classification propagates consistently to voice tone, facial expression, gesture selection, and reaction images---no translation gaps.}
+\textcolor{coolgray}{\small\textbf{Why It Matters:} A single emotion classification propagates consistently to voice tone, facial expression, gesture selection, and reaction images, with no translation gaps.}
 \end{tcolorbox}
 
 \newpage
@@ -1461,7 +1461,7 @@ impl BackendAdapter for VRChatBackend {
 \end{lstlisting}
 
 \begin{tipbox}[VRChat Lip-Sync]
-VRChat's built-in lip-sync from audio is excellent---no need to manually control visemes. Focus on emotion and gesture parameters; VRChat handles mouth movements automatically.
+VRChat's built-in lip-sync from audio is excellent, so there is no need to manually control visemes. Focus on emotion and gesture parameters; VRChat handles mouth movements automatically.
 \end{tipbox}
 
 \section{Event Sequencing}
@@ -1517,9 +1517,9 @@ The event sequencer enables choreographed multi-modal performances with precise 
 \small
 \textbf{Integration Stack:}
 \begin{itemize}[nosep, leftmargin=1.2em]
-  \item \textbf{ElevenLabs TTS} --- 50+ expression tags, 75ms streaming latency
-  \item \textbf{VRChat OSC} --- Direct avatar control via OSC messages
-  \item \textbf{Event Sequencer} --- Choreographed multi-modal performances
+  \item \textbf{ElevenLabs TTS}: 50+ expression tags, 75ms streaming latency
+  \item \textbf{VRChat OSC}: Direct avatar control via OSC messages
+  \item \textbf{Event Sequencer}: Choreographed multi-modal performances
 \end{itemize}
 
 \vspace{0.5em}
@@ -1549,7 +1549,7 @@ Persistent memory enables personality coherence across sessions:
 \section{AgentCore Memory Integration}
 
 \begin{tldrbox}
-AgentCore Memory provides persistent storage with semantic search. The Virtual Character uses it to remember voice preferences, expression patterns, and reaction history---creating personality continuity across sessions.
+AgentCore Memory provides persistent storage with semantic search. The Virtual Character uses it to remember voice preferences, expression patterns, and reaction history, creating personality continuity across sessions.
 \end{tldrbox}
 
 \subsection{Memory Types}
@@ -1646,9 +1646,9 @@ The Slow Mind's pattern compilation means the Fast Mind gets smarter over time. 
 \small
 \textbf{Memory Architecture:}
 \begin{itemize}[nosep, leftmargin=1.2em]
-  \item \textbf{Short-term Events} --- Session-scoped interactions (rate-limited)
-  \item \textbf{Long-term Facts} --- Persistent patterns and preferences (no limit)
-  \item \textbf{Semantic Search} --- Context-aware memory retrieval
+  \item \textbf{Short-term Events}: Session-scoped interactions (rate-limited)
+  \item \textbf{Long-term Facts}: Persistent patterns and preferences (no limit)
+  \item \textbf{Semantic Search}: Context-aware memory retrieval
 \end{itemize}
 
 \vspace{0.5em}
@@ -1678,7 +1678,7 @@ Real-world applications and multi-agent coordination capabilities:
 \section{Virtual Assistants \& Enterprise Applications}
 
 \begin{tldrbox}
-Beyond entertainment: AI agents with bodies can demonstrate products in VR showrooms, teach students in virtual classrooms, provide therapeutic companionship, and serve customers with genuine emotional presence---applications impossible with text-only interfaces.
+Beyond entertainment: AI agents with bodies can demonstrate products in VR showrooms, teach students in virtual classrooms, provide therapeutic companionship, and serve customers with genuine emotional presence: applications impossible with text-only interfaces.
 \end{tldrbox}
 
 \subsection{Virtual Customer Service}
@@ -1716,7 +1716,7 @@ Beyond entertainment: AI agents with bodies can demonstrate products in VR showr
 \begin{itemize}
   \item \textbf{Trust through presence}: A visible agent builds rapport faster than a chatbot
   \item \textbf{Non-verbal reassurance}: Nodding, eye contact, and calm gestures reduce anxiety
-  \item \textbf{Product demonstration}: ``Let me show you''---the agent literally points at the feature
+  \item \textbf{Product demonstration}: ``Let me show you'' while the agent literally points at the feature
   \item \textbf{Emotional mirroring}: Agent detects frustration, responds with empathy signals
 \end{itemize}
 
@@ -2102,9 +2102,9 @@ For development/testing, run everything on one Windows machine with WSL2 for the
 \small
 \textbf{Implementation Checklist:}
 \begin{itemize}[nosep, leftmargin=1.2em]
-  \item \textbf{Expression Orchestrator} --- Coordinates voice, avatar, and reactions
-  \item \textbf{Parallel Processing} --- Fast/Slow minds run concurrently
-  \item \textbf{Multi-Machine Setup} --- Linux dev + Windows GPU for VRChat
+  \item \textbf{Expression Orchestrator}: Coordinates voice, avatar, and reactions
+  \item \textbf{Parallel Processing}: Fast/Slow minds run concurrently
+  \item \textbf{Multi-Machine Setup}: Linux dev + Windows GPU for VRChat
 \end{itemize}
 
 \vspace{0.5em}

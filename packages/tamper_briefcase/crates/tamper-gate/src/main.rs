@@ -1,4 +1,4 @@
-//! Tamper gate orchestrator -- manages the arming FSM, password challenge, and
+//! Tamper gate orchestrator: manages the arming FSM, password challenge, and
 //! wipe authorization.
 //!
 //! Runs as root with restricted write paths. Reads sensor events from the FIFO
@@ -56,7 +56,7 @@ fn ensure_fifo(path: &Path) -> Result<()> {
 // ---------------------------------------------------------------------------
 
 /// Launch the password challenge binary. Returns `true` on success (exit 0).
-/// Enforces the configured timeout -- kills the child if it exceeds the limit.
+/// Enforces the configured timeout: kills the child if it exceeds the limit.
 fn run_challenge(config: &Config) -> bool {
     log::info!(
         "Launching password challenge (timeout={}s)",
@@ -94,7 +94,7 @@ fn run_challenge(config: &Config) -> bool {
             Ok(None) => {
                 if Instant::now() >= deadline {
                     log::error!(
-                        "Challenge TIMEOUT after {}s -- killing child",
+                        "Challenge TIMEOUT after {}s; killing child",
                         config.challenge_timeout_secs
                     );
                     let _ = child.kill();
@@ -118,7 +118,7 @@ fn run_challenge(config: &Config) -> bool {
 // ---------------------------------------------------------------------------
 
 /// Create the trigger file that `tamper-wipe.service` watches, then start the
-/// wipe unit. This is the ONLY path to wipe -- the wipe unit has
+/// wipe unit. This is the ONLY path to wipe; the wipe unit has
 /// `ConditionPathExists=/run/tamper/wipe-authorized`.
 fn authorize_wipe(config: &Config) {
     log::error!("=== WIPE AUTHORIZED ===");
@@ -191,28 +191,28 @@ fn main() -> Result<()> {
         let poll_result = poll(&mut poll_fds, timeout).context("poll() failed on FIFO")?;
 
         if poll_result == 0 {
-            // Timeout -- no data from sensor within the heartbeat window.
+            // Timeout: no data from sensor within the heartbeat window.
             let silence_secs = last_heartbeat.elapsed().as_secs();
 
             if state == SystemState::Armed {
                 log::error!(
-                    "WATCHDOG: No heartbeat for {}s while ARMED -- sensor may be compromised",
+                    "WATCHDOG: No heartbeat for {}s while ARMED; sensor may be compromised",
                     silence_secs,
                 );
                 log::warn!("Triggering challenge due to sensor silence");
 
                 if run_challenge(&config) {
-                    log::info!("Challenge PASSED -- disarming");
+                    log::info!("Challenge PASSED; disarming");
                     state = SystemState::Disarmed;
                     last_heartbeat = Instant::now();
                 } else {
-                    log::error!("Challenge FAILED -- authorizing wipe");
+                    log::error!("Challenge FAILED; authorizing wipe");
                     authorize_wipe(&config);
                     std::process::exit(1);
                 }
             } else {
                 log::warn!(
-                    "No heartbeat for {}s (state={}) -- sensor may be offline",
+                    "No heartbeat for {}s (state={}); sensor may be offline",
                     silence_secs,
                     state,
                 );
@@ -220,26 +220,26 @@ fn main() -> Result<()> {
             continue;
         }
 
-        // Data available -- read lines.
+        // Data available: read lines.
         line_buf.clear();
         let bytes_read = reader.read_line(&mut line_buf).context("FIFO read error")?;
 
         if bytes_read == 0 {
-            log::warn!("FIFO closed -- sensor daemon disconnected");
+            log::warn!("FIFO closed: sensor daemon disconnected");
             // Sensor disconnect while armed is a tamper indication.
             if state == SystemState::Armed {
-                log::error!("Sensor disconnected while ARMED -- triggering challenge");
+                log::error!("Sensor disconnected while ARMED; triggering challenge");
                 if run_challenge(&config) {
-                    log::info!("Challenge PASSED -- disarming");
+                    log::info!("Challenge PASSED; disarming");
                     state = SystemState::Disarmed;
                 } else {
-                    log::error!("Challenge FAILED -- authorizing wipe");
+                    log::error!("Challenge FAILED; authorizing wipe");
                     authorize_wipe(&config);
                     std::process::exit(1);
                 }
             }
             // Do NOT exit the loop. Exiting would return Ok(()) (exit code 0),
-            // and systemd's `Restart=on-failure` would NOT restart the gate --
+            // and systemd's `Restart=on-failure` would NOT restart the gate,
             // leaving the briefcase permanently unmonitored. Instead, re-open
             // the FIFO and keep watching. The open blocks until the sensor
             // daemon (Restart=always) reconnects its write end.
@@ -260,7 +260,7 @@ fn main() -> Result<()> {
         let event: TamperEvent = match serde_json::from_str(line) {
             Ok(e) => e,
             Err(e) => {
-                log::warn!("Malformed event: {} -- {}", line, e);
+                log::warn!("Malformed event: {} ({})", line, e);
                 continue;
             },
         };
@@ -287,7 +287,7 @@ fn main() -> Result<()> {
                 if event.event_type == EventType::LidClosed {
                     state = SystemState::Arming;
                     arming_start = Some(Instant::now());
-                    log::info!("Lid closed -- arming in {}s", config.arming_delay_secs);
+                    log::info!("Lid closed; arming in {}s", config.arming_delay_secs);
                 }
                 // Ignore opens while disarmed.
             },
@@ -297,7 +297,7 @@ fn main() -> Result<()> {
                 if event.event_type == EventType::LidOpened {
                     state = SystemState::Disarmed;
                     arming_start = None;
-                    log::info!("Lid reopened during arming -- back to DISARMED");
+                    log::info!("Lid reopened during arming; back to DISARMED");
                 } else if let Some(start) = arming_start
                     && start.elapsed().as_secs() >= config.arming_delay_secs
                 {
@@ -317,10 +317,10 @@ fn main() -> Result<()> {
                     );
 
                     if run_challenge(&config) {
-                        log::info!("Challenge PASSED -- disarming");
+                        log::info!("Challenge PASSED; disarming");
                         state = SystemState::Disarmed;
                     } else {
-                        log::error!("Challenge FAILED -- authorizing wipe");
+                        log::error!("Challenge FAILED; authorizing wipe");
                         authorize_wipe(&config);
                         std::process::exit(1);
                     }
@@ -332,7 +332,7 @@ fn main() -> Result<()> {
                         config.anomaly_escalation_count,
                     );
                     if anomaly_counter >= config.anomaly_escalation_count {
-                        log::warn!("Anomaly threshold reached -- triggering challenge");
+                        log::warn!("Anomaly threshold reached; triggering challenge");
 
                         if run_challenge(&config) {
                             state = SystemState::Disarmed;
@@ -347,7 +347,7 @@ fn main() -> Result<()> {
 
             // -- CHALLENGING ---------------------------------------------
             SystemState::Challenging => {
-                // Challenge is synchronous -- this state is transient.
+                // Challenge is synchronous; this state is transient.
                 log::info!("In CHALLENGING state, ignoring concurrent events");
             },
 

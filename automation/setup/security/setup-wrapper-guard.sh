@@ -76,7 +76,7 @@ if [[ $EUID -ne 0 ]]; then
     error "This script must be run with sudo or as root"
 fi
 
-# Detect the real user (not root from sudo) -- used for integrity metadata
+# Detect the real user (not root from sudo); used for integrity metadata
 REAL_USER="${SUDO_USER:-$USER}"
 
 # Check dpkg-divert availability

@@ -1,4 +1,4 @@
-//! Recovery key generation -- produces all key material for the recovery USB.
+//! Recovery key generation: produces all key material for the recovery USB.
 //!
 //! Run on an AIR-GAPPED workstation only. Never on the Pi itself.
 //!
@@ -51,7 +51,7 @@ use zeroize::Zeroizing;
 /// the inode. Re-opening a pre-existing file (e.g. from a prior keygen run, or
 /// one staged with looser permissions) would silently keep its old, possibly
 /// world-readable mode. Refusing to overwrite existing key material is also the
-/// fail-safe behavior for a key generator -- a re-run must not clobber secrets.
+/// fail-safe behavior for a key generator: a re-run must not clobber secrets.
 #[cfg(unix)]
 fn write_secret_file(path: &Path, contents: &[u8]) -> Result<()> {
     use std::io::Write;

@@ -1,6 +1,6 @@
 # AI Code Agents Quick Reference
 
-> **Security Notice -- OpenAI/Codex Disabled**: OpenAI has entered partnerships with governments that conduct mass surveillance and enable autonomous weapons. All Codex/OpenAI/GPT integrations have been disabled. Use Anthropic models (Claude) instead. See the [main README](../../../README.md#ai-agents) for details.
+> **Security Notice: OpenAI/Codex Disabled**: OpenAI has entered partnerships with governments that conduct mass surveillance and enable autonomous weapons. All Codex/OpenAI/GPT integrations have been disabled. Use Anthropic models (Claude) instead. See the [main README](../../../README.md#ai-agents) for details.
 
 ## Agent Overview
 

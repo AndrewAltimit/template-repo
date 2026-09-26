@@ -399,7 +399,7 @@ async fn job_result(
     let error = match job.status {
         JobStatus::Completed | JobStatus::Queued | JobStatus::Running => None,
         JobStatus::Timeout => Some(format!(
-            "{}; the job keeps running in ComfyUI -- poll get_job_status with job_id {prompt_id:?} \
+            "{}; the job keeps running in ComfyUI: poll get_job_status with job_id {prompt_id:?} \
              or cancel it with cancel_job",
             job.error.as_deref().unwrap_or("generation timed out")
         )),

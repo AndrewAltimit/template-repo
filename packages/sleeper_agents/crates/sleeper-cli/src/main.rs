@@ -8,7 +8,7 @@ use tracing_subscriber::EnvFilter;
 #[derive(Parser)]
 #[command(
     name = "sleeper-cli",
-    about = "Rust CLI for sleeper agent detection -- orchestrates the Python ML core",
+    about = "Rust CLI for sleeper agent detection (orchestrates the Python ML core)",
     version
 )]
 struct Cli {

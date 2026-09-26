@@ -1,4 +1,4 @@
-//! `automation-cli service <action>` -- manage the GPU AI services
+//! `automation-cli service <action>`: manage the GPU AI services
 //! (AI Toolkit + ComfyUI) on the remote AI machine.
 
 use std::path::Path;
@@ -142,7 +142,7 @@ fn start_docker(profile: &str, timeout: Duration) -> Result<()> {
         Err(e) => output::warn(&format!("Could not query docker info: {e}")),
     }
     if std::env::consts::ARCH == "aarch64" {
-        output::info("Detected ARM64 -- using comfyui-arm64.Dockerfile");
+        output::info("Detected ARM64; using comfyui-arm64.Dockerfile");
     }
 
     output::step("Building containers...");
@@ -268,7 +268,7 @@ mod tests {
     fn ready_statuses() {
         assert!(is_ready_status("healthy"));
         assert!(is_ready_status("running"));
-        // "unhealthy" contains "healthy" -- the old substring check got this wrong.
+        // "unhealthy" contains "healthy"; the old substring check got this wrong.
         assert!(!is_ready_status("unhealthy"));
         assert!(!is_ready_status("starting"));
         assert!(!is_ready_status("exited"));

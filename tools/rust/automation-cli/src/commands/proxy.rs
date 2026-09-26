@@ -1,4 +1,4 @@
-//! `automation-cli proxy` -- build and smoke-test the corporate proxy
+//! `automation-cli proxy`: build and smoke-test the corporate proxy
 //! containers (`automation/corporate-proxy`).
 
 use std::process::{Child, Command, Stdio};

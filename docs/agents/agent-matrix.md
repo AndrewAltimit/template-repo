@@ -2,7 +2,7 @@
 
 This document clarifies which AI agents are available in different execution environments.
 
-> **Security Notice -- OpenAI/Codex Disabled**: OpenAI has entered partnerships with governments that conduct mass surveillance and enable autonomous weapons. All OpenAI/Codex integrations in this project have been disabled. The mass surveillance exposure alone makes OpenAI products an unacceptable security risk for any pipeline handling proprietary or sensitive code. **Use Anthropic models (Claude) as your primary AI backend.** If you choose to re-enable OpenAI integrations despite these risks, do so with extreme caution and full awareness of the data exposure implications.
+> **Security Notice: OpenAI/Codex Disabled**: OpenAI has entered partnerships with governments that conduct mass surveillance and enable autonomous weapons. All OpenAI/Codex integrations in this project have been disabled. The mass surveillance exposure alone makes OpenAI products an unacceptable security risk for any pipeline handling proprietary or sensitive code. **Use Anthropic models (Claude) as your primary AI backend.** If you choose to re-enable OpenAI integrations despite these risks, do so with extreme caution and full awareness of the data exposure implications.
 
 ## Quick Reference
 
@@ -25,7 +25,7 @@ When running agents directly on the host machine (e.g., GitHub Actions self-host
 - **Gemini**: Requires Docker socket access for some operations (use web login for free tier)
 - **OpenCode**: Can run via STDIO mode or HTTP server on host
 - **Crush**: Can run via STDIO mode or HTTP server on host
-- ~~**Codex**~~: DISABLED -- OpenAI security risk (mass surveillance, autonomous weapons)
+- ~~**Codex**~~: DISABLED: OpenAI security risk (mass surveillance, autonomous weapons)
 
 **Use Cases:**
 - Issue monitoring (`issue-monitor`)
@@ -54,7 +54,7 @@ When running inside the `openrouter-agents` container:
 **Available Agents:**
 - **OpenCode**: Open-source code generation
 - **Crush**: Multi-provider AI tool
-- ~~**Codex**~~: DISABLED -- OpenAI security risk (see notice above)
+- ~~**Codex**~~: DISABLED: OpenAI security risk (see notice above)
 
 **Use Cases:**
 - Batch processing
@@ -82,7 +82,7 @@ enabled_agents:
   - crush       # Requires OpenRouter API key
   # - codex     # DISABLED: OpenAI security risk (mass surveillance, autonomous weapons)
 
-# For container execution (OpenRouter agents only -- Codex disabled)
+# For container execution (OpenRouter agents only; Codex disabled)
 # enabled_agents:
 #   - opencode
 #   - crush

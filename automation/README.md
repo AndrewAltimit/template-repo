@@ -1,6 +1,6 @@
 # Automation
 
-Infrastructure scripts for CI/CD, agent management, security hardening, and service orchestration. All Python and Rust operations follow the container-first philosophy -- everything runs in Docker unless there is a documented exception (e.g., Claude CLI requires host-level authentication).
+Infrastructure scripts for CI/CD, agent management, security hardening, and service orchestration. All Python and Rust operations follow the container-first philosophy: everything runs in Docker unless there is a documented exception (e.g., Claude CLI requires host-level authentication).
 
 Most shell scripts in this directory are thin wrappers that delegate to the `automation-cli` Rust binary. Build it once and use it everywhere:
 
@@ -29,8 +29,8 @@ Pipeline scripts invoked by GitHub Actions workflows and local development.
 
 | Script | Description |
 |--------|-------------|
-| `run-ci.sh` | Thin wrapper -- delegates to `automation-cli ci run <stage>` |
-| `run-lint-stage.sh` | Thin wrapper -- delegates to `automation-cli lint` |
+| `run-ci.sh` | Thin wrapper; delegates to `automation-cli ci run <stage>` |
+| `run-lint-stage.sh` | Thin wrapper; delegates to `automation-cli lint` |
 | `build-docker-images.sh` | Build all Docker images in dependency order |
 | `build-latex-doc.sh` | Compile LaTeX documents via containerized TeXLive |
 | `agent-failure-handler.sh` | Handle agent review failures (`automation-cli review failure`) |
@@ -67,7 +67,7 @@ Launchers for the GitHub issue monitor agent system. The actual monitor binary l
 
 | Script | Description |
 |--------|-------------|
-| `issues/run-issue-monitor-hybrid.sh` | Hybrid mode -- Claude and Gemini on host, OpenCode and Crush in Docker |
+| `issues/run-issue-monitor-hybrid.sh` | Hybrid mode: Claude and Gemini on host, OpenCode and Crush in Docker |
 | `issues/run-containerized-issue-monitor.sh` | Fully containerized mode via `docker compose --profile agents` |
 
 ## review/
@@ -94,11 +94,11 @@ One-time provisioning scripts organized by concern.
 
 | Subdirectory | Contents |
 |-------------|----------|
-| `agents/` | `setup-host-for-agents.sh` -- prepare host for AI agent execution (Node.js, CLIs, credentials) |
-| `docker/` | `init-output-dirs.sh` -- pre-create output directories with correct ownership; `set-docker-user.sh` -- configure Docker user mapping |
-| `git/` | `setup-pre-commit.sh` -- deprecated, points to `automation-cli`; `hooks/pre-push` -- pre-push hook with PR monitoring reminders |
+| `agents/` | `setup-host-for-agents.sh`: prepare host for AI agent execution (Node.js, CLIs, credentials) |
+| `docker/` | `init-output-dirs.sh`: pre-create output directories with correct ownership; `set-docker-user.sh`: configure Docker user mapping |
+| `git/` | `setup-pre-commit.sh`: deprecated, points to `automation-cli`; `hooks/pre-push`: pre-push hook with PR monitoring reminders |
 | `runner/` | GitHub Actions self-hosted runner setup: `setup-runner.sh` (simple), `setup-runner-full.sh` (complete with Docker and MCP), `fix-runner-permissions.sh`, `setup-github-actions-permissions.sh` |
-| `security/` | Wrapper guard hardening: `setup-wrapper-guard.sh`, `verify-wrapper-guard.sh`, `uninstall-wrapper-guard.sh` -- setgid chain for git-guard and gh-validator |
+| `security/` | Wrapper guard hardening: `setup-wrapper-guard.sh`, `verify-wrapper-guard.sh`, `uninstall-wrapper-guard.sh` (setgid chain for git-guard and gh-validator) |
 
 ## testing/
 
@@ -133,9 +133,9 @@ See [`launchers/README.md`](launchers/README.md) for full documentation.
 
 ## Related Documentation
 
-- [CLAUDE.md](../CLAUDE.md) -- CI/CD command reference and project conventions
-- [docs/infrastructure/containerization.md](../docs/infrastructure/containerization.md) -- Container-first philosophy
-- [docs/infrastructure/self-hosted-runner.md](../docs/infrastructure/self-hosted-runner.md) -- Runner setup guide
-- [docs/infrastructure/wrapper-guard.md](../docs/infrastructure/wrapper-guard.md) -- CLI binary hardening
-- [docs/developer/claude-code-hooks.md](../docs/developer/claude-code-hooks.md) -- Hook system documentation
-- [docs/agents/README.md](../docs/agents/README.md) -- Agent system overview
+- [CLAUDE.md](../CLAUDE.md): CI/CD command reference and project conventions
+- [docs/infrastructure/containerization.md](../docs/infrastructure/containerization.md): Container-first philosophy
+- [docs/infrastructure/self-hosted-runner.md](../docs/infrastructure/self-hosted-runner.md): Runner setup guide
+- [docs/infrastructure/wrapper-guard.md](../docs/infrastructure/wrapper-guard.md): CLI binary hardening
+- [docs/developer/claude-code-hooks.md](../docs/developer/claude-code-hooks.md): Hook system documentation
+- [docs/agents/README.md](../docs/agents/README.md): Agent system overview

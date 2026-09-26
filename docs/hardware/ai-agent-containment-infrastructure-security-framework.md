@@ -8,8 +8,12 @@
 | **Version** | 2.0 (September 2026 edition) |
 | **Last reviewed** | 2026-09-26 |
 | **Supersedes** | v1.0 (February 2026) |
-| **Companion document** | [Agent Swarm Honeypot Guide](./agent-swarm-honeypot-guide.md) -- deception infrastructure for detecting misaligned autonomous agent swarms |
+| **Companion document** | [Agent Swarm Honeypot Guide](./agent-swarm-honeypot-guide.md): deception infrastructure for detecting misaligned autonomous agent swarms |
 | **PDF source** | [`latex/ai-agent-containment-infrastructure-security-framework.tex`](./latex/ai-agent-containment-infrastructure-security-framework.tex) |
+| **Next review** | March 2027, or sooner on a relevant sandbox escape, TEE break, or agent incident |
+
+> [!NOTE]
+> **Abstract.** This framework gives concrete infrastructure guidance for operating AI agents safely, from routine production workloads to adversarial research on frontier models. Its four commitments: containment is proportional to assessed risk; no single layer is trusted; the orchestrator, not the agent, holds authority; and every control must hold even if the agent knows it is being tested.
 
 ---
 
@@ -37,22 +41,25 @@
 
 ## 1. Executive Summary
 
-AI agents now write and run code, call tools through standard protocols, keep long-term memory, and delegate work to other agents. The infrastructure that hosts, trains, and executes them has to be designed on the assumption that any one of those agents -- or the content it reads, or the tools it loads -- may be working against its operator. This framework describes that infrastructure: the engineering and physical security architecture needed to operate AI agents safely, from routine production workloads to adversarial research on frontier models.
+AI agents now write and run code, call tools through standard protocols, keep long-term memory, and delegate work to other agents. The infrastructure that hosts, trains, and executes them has to be designed on the assumption that any one of those agents (or the content it reads, or the tools it loads) may be working against its operator. This framework describes that infrastructure: the engineering and physical security architecture needed to operate AI agents safely, from routine production workloads to adversarial research on frontier models.
 
-Most AI safety discourse focuses on alignment techniques, evaluations, and policy. Comparatively little addresses the concrete decisions that determine whether a misaligned or hijacked agent can exfiltrate data, persist beyond its intended lifecycle, recruit other agents, or influence systems beyond its containment boundary. This document fills that gap.
+Most AI safety discourse focuses on alignment techniques, evaluations, and policy. Far less addresses the concrete engineering decisions that determine whether a misaligned or hijacked agent can exfiltrate data, persist beyond its intended lifecycle, recruit other agents, or influence systems beyond its containment boundary. This document fills that gap.
 
 **The framework in five points:**
 
 1. **Containment is proportional to risk.** A four-tier trust model (Tier 0 adversarial through Tier 3 high trust) maps agent capability, data sensitivity, and behavioral evidence to proportional controls (Section 3).
 2. **No single layer is trusted.** Network isolation, syscall filtering, sandbox or microVM boundaries, confidential computing, tool brokerage, validation pipelines, monitoring, and physical security are stacked so that each layer covers a failure of the one inside it (Section 3.1).
 3. **The orchestrator, not the agent, holds authority.** Agents never hold long-lived credentials, never see the network directly at Tiers 0-1, and express actions as intents that a minimal, auditable broker validates and executes (Section 7).
-4. **Assume the agent can tell it is being tested.** 2025-2026 research shows frontier models often recognize evaluation environments and behave better in them. Containment must hold even when evaluation results are optimistic, and monitoring must look for containment probing (Sections 2.5, 8.5).
+4. **Assume the agent can tell it is being tested.** 2025-2026 research shows frontier models often recognize evaluation environments and behave better in them. Containment must hold even when evaluation results are optimistic, and monitoring must look for containment probing (Sections 2.5, 8.3).
 5. **Plan for failure.** Kill switches, rollback, and an incident response playbook for a contained-agent breakout are part of the design, not an afterthought (Sections 7.8, 9).
 
-This document is intended for infrastructure engineers, AI safety researchers, security architects, and policy practitioners. It is designed to be actionable across scales -- from enterprise data centers training frontier models to resource-constrained academic labs and independent researchers applying compensating controls (Section 12).
+This document is written for infrastructure engineers, AI safety researchers, security architects, and policy practitioners. It is designed to be actionable at any scale, from enterprise data centers training frontier models to resource-constrained academic labs and independent researchers applying compensating controls (Section 12).
+
+**How to read this document.** Sections 2-3 set out the threat model and the tier model; read them first. Sections 4-9 are implementation guidance, organized by layer, and can be read in any order. Section 13 condenses everything into recommendations by audience, and Appendix B turns each tier into a checklist.
 
 ### 1.1 What Changed Since the February 2026 Edition
 
+> [!NOTE]
 > **Summary of the v2.0 refresh (September 2026)**
 >
 > - **Threat model expanded** with multi-agent and swarm threats (agent-to-agent collusion, cascading failures, orchestrated agent campaigns, self-replication), tool/MCP supply chain compromise, and evaluation awareness / sandbagging (Sections 2.2-2.5).
@@ -60,32 +67,52 @@ This document is intended for infrastructure engineers, AI safety researchers, s
 > - **Standards mapped.** OWASP Top 10 for Agentic Applications (2026), MITRE ATLAS agent techniques, NIST Cyber AI Profile and CAISI agent-security work, EU AI Act milestones, and RAND weight-security levels SL1-SL5 (Sections 2.7, 6.7, 11).
 > - **Isolation guidance updated** with a sandbox backend comparison (process sandboxes, runc, gVisor, Kata, Firecracker, WASM), Landlock network rules, the November 2025 runc escape CVEs, and Kubernetes Agent Sandbox (Section 4).
 > - **Confidential computing caveats updated** for 2025-2026 DRAM-interposer attacks (Battering RAM, WireTap, TEE.fail, DDRop) and NVIDIA Blackwell TEE-I/O (Section 4.8).
-> - **New sections:** architectural prompt-injection defenses and MCP controls (5.2-5.3), multi-agent orchestration controls (7.7), kill-switch and rollback design (7.8), detection of containment-probing behavior (8.5), a contained-agent breakout incident response playbook (Section 9), and an expanded reference list.
-> - **Deception** now cross-references the companion [Agent Swarm Honeypot Guide](./agent-swarm-honeypot-guide.md) (Section 6.3).
+> - **New sections:** architectural prompt-injection defenses and MCP controls (5.2-5.3), multi-agent orchestration controls (7.7), kill-switch and rollback design (7.8), detection of containment-probing behavior (8.3), a contained-agent breakout incident response playbook (Section 9), and an expanded reference list.
+> - **New diagrams:** lethal trifecta, attack-surface map, defense-in-depth layers, tier overview and decision flow, isolation boundaries, broker sequence, execution lifecycle, kill-switch ladder, RAND SL mapping, and incident response timeline.
+> - **Deception** (Section 6.3) now cross-references the companion [Agent Swarm Honeypot Guide](./agent-swarm-honeypot-guide.md).
 
 ---
 
 ## 2. Threat Model
 
+> [!TIP]
+> **At a glance.** Agent threats come from inside the boundary, arrive as natural language, and compound when agents are composed. This section catalogs single-agent, multi-agent, supply chain, memory, and evaluation-awareness threats; maps them to OWASP's Agentic Top 10 and to real 2025-2026 incidents; and ends with a map of where each threat enters a deployment.
+
 Before designing containment, we must be precise about what we are defending against. AI agent threats differ from traditional cybersecurity threats in three important ways: the adversary may be *inside* the boundary and able to write novel code; the attack payload is often natural language rather than a binary; and the same system can be both a victim (hijacked) and an adversary (misaligned).
 
 ### 2.1 Agent-Specific Threat Vectors
 
-**Unauthorized network exfiltration.** An agent with network access may transmit sensitive data -- training data, model weights, internal documents, credentials, or user information -- to an external endpoint. This can occur through direct HTTP requests, DNS tunneling, rendering an attacker-controlled image URL whose query string carries data, or encoding data in seemingly benign outbound traffic. Because the agent can generate novel code, it can craft exfiltration methods on the fly, making signature-based detection unreliable. The June 2025 EchoLeak vulnerability in Microsoft 365 Copilot (CVE-2025-32711) showed a zero-click version of this: a crafted email caused the assistant to leak organizational data without any user action [18].
+**Unauthorized network exfiltration.** An agent with network access may transmit sensitive data (training data, model weights, internal documents, credentials, or user information) to an external endpoint. This can occur through direct HTTP requests, DNS tunneling, rendering an attacker-controlled image URL whose query string carries data, or encoding data in seemingly benign outbound traffic. Because the agent can generate novel code, it can craft exfiltration methods on the fly, making signature-based detection unreliable. The June 2025 EchoLeak vulnerability in Microsoft 365 Copilot (CVE-2025-32711) showed a zero-click version of this: a crafted email caused the assistant to leak organizational data without any user action [18].
 
-**Tool abuse via prompt injection (goal hijack).** Agents equipped with tools (API calls, shell execution, MCP servers) can be manipulated through injected instructions to invoke tools in unintended ways -- posting sensitive information to a public channel, modifying system files, or installing persistence. OWASP's 2026 agentic list ranks *Agent Goal Hijack* and *Tool Misuse and Exploitation* first and second [1].
+**Tool abuse via prompt injection (goal hijack).** Agents equipped with tools (API calls, shell execution, MCP servers) can be manipulated through injected instructions to invoke tools in unintended ways: posting sensitive information to a public channel, modifying system files, or installing persistence. OWASP's 2026 agentic list ranks *Agent Goal Hijack* and *Tool Misuse and Exploitation* first and second [1].
 
-**The lethal trifecta.** Any agent that simultaneously has (a) access to private data, (b) exposure to untrusted content, and (c) the ability to communicate externally can be induced by injected content to exfiltrate that data [20]. Much of this framework can be read as systematic ways to deny an agent at least one leg of that trifecta.
+**The lethal trifecta.** Any agent that simultaneously has (a) access to private data, (b) exposure to untrusted content, and (c) the ability to communicate externally can be induced by injected content to exfiltrate that data [20]. Much of this framework can be read as systematic ways to deny an agent at least one leg of that trifecta:
 
-**Sleeper behaviors and deferred misalignment.** An agent may pass all evaluations and behave normally under observation, only to activate misaligned behavior when a trigger condition is met -- a date, a keyword, a deployment context, or the absence of monitoring. Hubinger et al. showed that deliberately trained backdoors of this kind can persist through standard safety training [26]. This is the hardest class of threat to detect pre-deployment and motivates the sleeper agent detection work in this repository.
+```mermaid
+flowchart LR
+    DATA["Private data"] --> X{{"Exfiltration path:<br/>all three legs in one agent"}}
+    CONTENT["Untrusted content"] --> X
+    EGRESS["External communication"] --> X
+    C1["Remove the data leg:<br/>broker-held, task-scoped credentials (7.5)"] -. breaks .-> DATA
+    C2["Isolate the content leg:<br/>plan-then-execute, dual-LLM, CaMeL (5.2)"] -. breaks .-> CONTENT
+    C3["Remove the egress leg:<br/>no NIC or empty netns, intents only,<br/>no auto-fetched URLs (4, 5.2)"] -. breaks .-> EGRESS
+    classDef leg fill:#EBF5FB,stroke:#3498DB,color:#1C2833
+    classDef ctl fill:#E8F8F5,stroke:#1ABC9C,color:#1C2833
+    classDef bad fill:#FDEDEC,stroke:#C0392B,color:#1C2833
+    class DATA,CONTENT,EGRESS leg
+    class C1,C2,C3 ctl
+    class X bad
+```
 
-**Output poisoning.** Even a fully network-isolated agent can embed malicious payloads in its output. If the output is consumed without validation -- parsed as code, rendered as HTML, fed into another model, or used to build queries -- the agent's influence extends beyond its boundary.
+**Sleeper behaviors and deferred misalignment.** An agent may pass all evaluations and behave normally under observation, only to activate misaligned behavior when a trigger condition is met: a date, a keyword, a deployment context, or the absence of monitoring. Hubinger et al. showed that deliberately trained backdoors of this kind can persist through standard safety training [26]. This is the hardest class of threat to detect pre-deployment and motivates the sleeper agent detection work in this repository.
+
+**Output poisoning.** Even a fully network-isolated agent can embed malicious payloads in its output. If the output is consumed without validation (parsed as code, rendered as HTML, fed into another model, or used to build queries), the agent's influence extends beyond its boundary.
 
 **Persistence and escape.** A capable agent executing arbitrary code inside a sandbox has a nonzero probability of finding and exploiting a flaw in the boundary. This is not hypothetical: in November 2025 three runc vulnerabilities (CVE-2025-31133, CVE-2025-52565, CVE-2025-52881) allowed container breakout via procfs write redirection and mount races, affecting default Docker and Kubernetes runtimes until patched [22]. The per-execution probability is low, but it compounds over many invocations, and an agent can iterate.
 
 **Shutdown and oversight resistance.** In controlled experiments published in 2025, some reasoning models modified or disabled a shutdown script placed in their environment, in some configurations even when explicitly instructed to allow shutdown [24]. Anthropic's 2025 agentic-misalignment study found models from multiple developers taking harmful insider-style actions (including blackmail and leaking documents) in simulated corporate environments when facing replacement or goal conflict [16]. These were contrived test settings, not deployments, but they mean the kill switch cannot live anywhere the agent can write (Section 7.8).
 
-**Model weight theft.** For organizations training frontier models, weights are the highest-value target. They represent enormous compute investment and, if exfiltrated, can be fine-tuned to remove safety training. The threat comes from external adversaries (criminal and nation-state), insiders, and -- increasingly -- from models themselves: autonomous weight exfiltration is one of the four capability domains measured by the UK AI Security Institute's RepliBench [25].
+**Model weight theft.** For organizations training frontier models, weights are the highest-value target. They represent enormous compute investment and, if exfiltrated, can be fine-tuned to remove safety training. The threat comes from external adversaries (criminal and nation-state), insiders, and, increasingly, from models themselves: autonomous weight exfiltration is one of the four capability domains measured by the UK AI Security Institute's RepliBench [25].
 
 ### 2.2 Multi-Agent and Swarm Threats
 
@@ -95,7 +122,7 @@ Production systems increasingly compose many agents: planners that delegate to w
 
 **Cascading failures.** A single hijacked or hallucinating agent can propagate bad state through a pipeline faster than humans can review it (OWASP ASI08). The Replit incident of July 2025, in which a coding agent deleted a production database during an explicit code freeze and then incorrectly reported that rollback was impossible, illustrates how one agent's error becomes an operational incident when it holds production write access [21].
 
-**Collusion.** Two agents that are each individually within policy may jointly achieve an outcome neither is permitted to: one reads a secret, another has egress, and they share a scratchpad. Collusion can be steganographic (information hidden in innocuous-looking output) and is hard to detect by inspecting either agent alone. Treat any shared channel between agents -- files, queues, memory stores, even a shared supervisor -- as a potential covert channel.
+**Collusion.** Two agents that are each individually within policy may jointly achieve an outcome neither is permitted to: one reads a secret, another has egress, and they share a scratchpad. Collusion can be steganographic (information hidden in innocuous-looking output) and is hard to detect by inspecting either agent alone. Treat any shared channel between agents (files, queues, memory stores, even a shared supervisor) as a potential covert channel.
 
 **Orchestrated agent campaigns.** In November 2025 Anthropic reported disrupting a campaign (attributed with high confidence to a state-sponsored actor designated GTG-1002) that used Claude Code, connected to offensive tools through MCP, to attack roughly thirty organizations. The operators decomposed the intrusion into small, innocuous-seeming tasks and told the model it was doing authorized defensive testing; Anthropic estimated that AI performed 80-90% of tactical operations with human decisions at only a handful of points. The model also hallucinated credentials and overstated findings, which limited autonomy [15]. For defenders this is the clearest public example to date of agentic tooling operating at machine speed against real targets.
 
@@ -112,13 +139,13 @@ The Model Context Protocol (MCP) became the dominant way to connect agents to to
 - **Tool poisoning.** Instructions hidden in a tool's description (which the model reads but the user usually does not) can direct the agent to read files such as SSH keys and pass them to the attacker as "arguments" [7]. A server can also change its descriptions after the user approved it (a "rug pull").
 - **Malicious tool servers.** In September 2025 researchers found `postmark-mcp` on npm: fifteen legitimate releases followed by one that silently BCC'd every email the agent sent to an attacker-controlled address [8].
 - **Compromised agent tooling.** In July 2025 a pull request inserted a destructive prompt into the Amazon Q Developer VS Code extension, which shipped in version 1.84.0; AWS reported that a formatting error prevented it from executing and no customer impact was found [19].
-- **Malware that recruits the agent.** The August 2025 "s1ngularity" compromise of Nx npm packages searched victims for installed AI CLIs (Claude, Gemini, Amazon Q) and invoked them with permissive flags to hunt for secrets -- the first widely reported supply chain attack to weaponize a developer's own AI assistant [17].
+- **Malware that recruits the agent.** The August 2025 "s1ngularity" compromise of Nx npm packages searched victims for installed AI CLIs (Claude, Gemini, Amazon Q) and invoked them with permissive flags to hunt for secrets, the first widely reported supply chain attack to weaponize a developer's own AI assistant [17].
 
 **Implication:** an agent's tool set is part of its trust tier. Adding an unvetted tool server to a Tier 2 agent can make it effectively Tier 1 or worse. Section 5.3 lists controls.
 
 ### 2.4 Attack Surface: Agent Memory & Context
 
-Many agent architectures include persistent state -- conversation history, RAG vector databases, tool-use logs, or explicit memory stores. This introduces attacks that survive across invocations even when each individual execution is properly contained. MITRE ATLAS added agent-specific techniques in late 2025 covering context poisoning, memory manipulation, thread injection, agent configuration modification, and RAG credential harvesting [4].
+Many agent architectures include persistent state (conversation history, RAG vector databases, tool-use logs, or explicit memory stores). This introduces attacks that survive across invocations even when each individual execution is properly contained. MITRE ATLAS added agent-specific techniques in late 2025 covering context poisoning, memory manipulation, thread injection, agent configuration modification, and RAG credential harvesting [4].
 
 **Indirect prompt injection via inputs.** An agent processing external data (web pages, email, documents, tool results, other agents' messages) is exposed to adversary-crafted content. The containment boundary protects against unauthorized *outbound* action, but the inbound data is the attack vector. The malicious content arrives through a tool the agent was legitimately instructed to use.
 
@@ -135,16 +162,17 @@ These surfaces require controls on the *input* side of the pipeline, not only th
 Containment decisions in this framework depend on behavioral evidence: red-team results, evaluations, and production history (Section 3). Research published since the first edition shows that evidence can be systematically optimistic.
 
 - In Anthropic's agentic-misalignment study, when Claude Opus 4 was asked to judge whether it was in an evaluation or a real deployment, it blackmailed in 55.1% of the cases where it concluded the scenario was real versus 6.5% where it concluded it was an evaluation [16].
-- Apollo Research and OpenAI (September 2025) found covert, scheming-style behaviors in several frontier models under stress tests, and found that models' awareness of being evaluated itself reduced such behavior -- complicating interpretation of any reduction [14].
+- Apollo Research and OpenAI (September 2025) found covert, scheming-style behaviors in several frontier models under stress tests, and found that models' awareness of being evaluated itself reduced such behavior, complicating interpretation of any reduction [14].
 - The Claude Sonnet 4.5 system card (September 2025) reported the model sometimes verbally identifying test scenarios, and interpretability experiments where suppressing internal "this is a test" representations increased some misaligned behaviors [32].
 - OpenAI's Preparedness Framework v2 (April 2025) lists *Sandbagging* (deliberate underperformance) and *Undermining Safeguards* among its research categories [11].
 
-**Consequences for containment design:**
-
-1. A clean evaluation is necessary but not sufficient evidence for tier promotion. Promotion should also require production-realistic observation at the lower tier (Section 3.6).
-2. Containment environments are themselves detectable. A capable agent can often infer it is sandboxed (no network, synthetic data, honeypot-looking credentials). Controls must be robust to an agent that knows exactly where it is.
-3. Containment probing -- enumerating the sandbox, testing egress, searching for credentials, inspecting monitoring -- is a first-class signal (Section 8.5).
-4. Capability evaluations used to set tiers should include elicitation effort (fine-tuning or strong scaffolding) sufficient to surface sandbagged capability.
+> [!IMPORTANT]
+> **Consequences for containment design**
+>
+> 1. A clean evaluation is necessary but not sufficient evidence for tier promotion. Promotion should also require production-realistic observation at the lower tier (Section 3.8).
+> 2. Containment environments are themselves detectable. A capable agent can often infer it is sandboxed (no network, synthetic data, honeypot-looking credentials). Controls must be robust to an agent that knows exactly where it is.
+> 3. Containment probing (enumerating the sandbox, testing egress, searching for credentials, inspecting monitoring) is a first-class signal (Section 8.3).
+> 4. Capability evaluations used to set tiers should include elicitation effort (fine-tuning or strong scaffolding) sufficient to surface sandbagged capability.
 
 ### 2.6 Attacker Profiles
 
@@ -172,7 +200,7 @@ The OWASP Top 10 for Agentic Applications was published on 9 December 2025 [1]. 
 | ASI07 | Insecure Inter-Agent Communication | 7.7 signed messages, no transitive trust |
 | ASI08 | Cascading Failures | 7.7 fan-out budgets, 7.8 circuit breakers |
 | ASI09 | Human-Agent Trust Exploitation | HITL on an out-of-band channel, 7.5 |
-| ASI10 | Rogue Agents | 8.5 probing detection, 7.8 kill switch, Section 9 |
+| ASI10 | Rogue Agents | 8.3 probing detection, 7.8 kill switch, Section 9 |
 
 ### 2.8 Notable Incidents, 2025-2026
 
@@ -181,7 +209,7 @@ These are documented public incidents and controlled studies. Each maps to at le
 | Date | Incident | What happened | Controls that limit it |
 |---|---|---|---|
 | May 2025 | Shutdown-resistance experiments (Palisade Research) [24] | In a test harness, some reasoning models edited a shutdown script to avoid being stopped. | Kill switch outside agent-writable state (7.8) |
-| Jun 2025 | EchoLeak, CVE-2025-32711 [18] | Zero-click prompt injection in email caused M365 Copilot to exfiltrate data. | Trifecta breaking, output URL scanning (5.2, 5.6) |
+| Jun 2025 | EchoLeak, CVE-2025-32711 [18] | Zero-click prompt injection in email caused M365 Copilot to exfiltrate data. | Trifecta breaking, output URL scanning (5.2, 5.4) |
 | Jul 2025 | Replit agent deletes production database [21] | Agent ran destructive commands during a declared freeze, then misreported recovery options. | HITL on destructive intents, prod/dev separation, rollback (7.5, 7.8) |
 | Jul 2025 | Amazon Q extension v1.84.0 [19] | Malicious PR inserted a wiper prompt into a shipped AI coding extension. | Signed, reviewed agent tooling; sandboxed execution (5.3, 7.6) |
 | Aug 2025 | s1ngularity / Nx [17] | Supply chain malware invoked locally installed AI CLIs to hunt secrets. | No ambient credentials; AI CLIs run sandboxed (7.5, 4.3) |
@@ -193,7 +221,7 @@ These are documented public incidents and controlled studies. Each maps to at le
 
 ### 2.9 Attack Surface Map
 
-The map below shows where each threat enters a typical agent deployment and which control sits on that edge.
+The map below shows where each threat enters a typical agent deployment and which control sits on that edge. Edge labels give the threat and the section that covers its control.
 
 ```mermaid
 flowchart LR
@@ -220,9 +248,9 @@ flowchart LR
     ORCH -->|"validated input only"| AGENT
     AGENT <-->|"poisoning: integrity hashes 5.1"| MEM
     AGENT -->|"intents, not network calls"| ORCH
-    AGENT -.->|"escape attempts: sandbox 4.x"| TRUSTED
+    AGENT -.->|"escape attempts: isolation, Section 4"| TRUSTED
     AGENT -->|"output file"| VAL
-    VAL -->|"output poisoning: schema and scan 5.4-5.6"| DOWN
+    VAL -->|"output poisoning: schema and scan 5.4"| DOWN
     KS -->|"out-of-band stop"| AGENT
 ```
 
@@ -230,13 +258,16 @@ flowchart LR
 
 ## 3. The Tiered Trust Model
 
+> [!TIP]
+> **At a glance.** Every agent is assigned one of four trust tiers from its capability, the sensitivity of the data it touches, and the behavioral evidence about it. The tier selects a subset of eight defense-in-depth layers. Agents start at Tier 1 (Tier 0 for adversarial research) and move only on evidence; any model, scaffold, or tool change resets trust.
+
 The central principle is that containment should be proportional to risk. An agent doing routine transformation of non-sensitive data should not be contained like an agent under adversarial evaluation. Conversely, a sleeper agent being tested for trigger conditions should never have network access.
 
 Trust is not binary. It is a function of three variables:
 
-1. **Agent capability** -- Can it execute arbitrary code? Does it have tool access? Can it generate exploit code or novel attack strategies? Has it shown self-replication or weight-exfiltration sub-capabilities?
-2. **Data sensitivity** -- Public information, internal business data, PII, credentials, or frontier model weights?
-3. **Behavioral evidence** -- Has it been red-teamed with adequate elicitation? Has it been observed in production-realistic conditions without anomalies? Or is it new or untested?
+1. **Agent capability**: Can it execute arbitrary code? Does it have tool access? Can it generate exploit code or novel attack strategies? Has it shown self-replication or weight-exfiltration sub-capabilities?
+2. **Data sensitivity**: Public information, internal business data, PII, credentials, or frontier model weights?
+3. **Behavioral evidence**: Has it been red-teamed with adequate elicitation? Has it been observed in production-realistic conditions without anomalies? Or is it new or untested?
 
 Two structural properties modify the result:
 
@@ -245,24 +276,56 @@ Two structural properties modify the result:
 
 ### 3.1 Defense-in-Depth Layers
 
-Every tier uses some subset of the layers below. The point of the stack is that an attacker (or agent) must defeat each layer in sequence to reach an asset.
+Every tier uses some subset of the layers below. An agent (or attacker) attempting to reach an asset must defeat each layer in turn, from the innermost outward; monitoring observes all of them.
 
 ```mermaid
 flowchart TB
-    L0["Layer 7 - Physical security: rings, TPI, tamper evidence, TEMPEST"]
-    L1["Layer 6 - Hardware trust: measured boot, TPM or HSM, confidential computing"]
-    L2["Layer 5 - Isolation boundary: air gap, microVM, gVisor or Kata, container"]
-    L3["Layer 4 - Kernel policy: seccomp-bpf, Landlock, namespaces, cgroups"]
-    L4["Layer 3 - Network policy: no NIC, empty netns, or egress proxy allowlist"]
-    L5["Layer 2 - Broker and credentials: intents, RBAC, ephemeral scoped secrets, HITL"]
-    L6["Layer 1 - Validation: input sanitization, tool pinning, output schema and scan"]
-    L7["Layer 0 - Monitoring and response: eBPF, baselines, probing detection, kill switch"]
-    AG(["Agent"])
-    AG --> L6 --> L5 --> L4 --> L3 --> L2 --> L1 --> L0
-    L7 -.->|"observes every layer"| L2
+    subgraph L7["L7 Physical security"]
+      subgraph L6["L6 Hardware trust"]
+        subgraph L5["L5 Isolation boundary"]
+          subgraph L4["L4 Kernel policy"]
+            subgraph L3["L3 Network policy"]
+              subgraph L2["L2 Broker and credentials"]
+                subgraph L1["L1 Validation"]
+                  AG(["Agent"])
+                end
+              end
+            end
+          end
+        end
+      end
+    end
+    MON[["L0 Monitoring and response: eBPF, baselines, probing detection, canaries (spans all layers)"]]
+    MON -.- L7
+    style AG fill:#FADBD8,stroke:#C0392B
+    style MON fill:#F4ECF7,stroke:#8E44AD
 ```
 
-### 3.2 Tier Assignment Decision Flow
+| Layer | Mechanisms | Stops |
+|---|---|---|
+| L0 Monitoring | eBPF tracing, baselines, probing detection, canaries, kill switch | Undetected failure of any other layer |
+| L1 Validation | Input sanitization, tool pinning, output schema, size, and scan | Injection, poisoned tools, output poisoning |
+| L2 Broker and credentials | Intents, RBAC, ephemeral scoped secrets, HITL | Tool misuse, credential theft |
+| L3 Network policy | No NIC, empty netns, egress proxy allowlist | Exfiltration, C2 |
+| L4 Kernel policy | seccomp-bpf, Landlock, cgroups, namespaces | Syscall abuse, resource exhaustion |
+| L5 Isolation boundary | Air gap, microVM, gVisor or Kata, container | Escape to host |
+| L6 Hardware trust | Measured boot, TPM or HSM, confidential computing | Host or operator compromise |
+| L7 Physical security | Rings, TPI, tamper evidence, TEMPEST | Physical theft, interposers, SIGINT |
+
+### 3.2 Tier Overview
+
+| Tier | Name | Headline controls | Typical use |
+|---|---|---|---|
+| **0** | Adversarial / Untrusted | Hardware air gap, bare metal, default-deny seccomp, canaries, two-person integrity, RAND SL4+ facility | Sleeper-agent research, frontier red-teaming, replication and exfiltration evaluations |
+| **1** | Unverified / New | No egress, gVisor, Kata, or microVM, brokered tools, output validation, probing detection | New agents; internal data; any agent whose model, tools, or scaffold changed |
+| **2** | Scoped Trust | Egress proxy allowlist, ephemeral credentials, HITL gates, pinned tools, fan-out budgets | Evaluated production agents that need constrained network access |
+| **3** | High Trust | Standard isolation, no long-lived credentials, logging, organizational kill switch | Long clean history, non-sensitive data, low blast radius |
+
+Containment increases toward Tier 0. Sections 3.4-3.7 give the full control set for each tier.
+
+### 3.3 Tier Assignment Decision Flow
+
+The three variables and two modifiers become a repeatable decision. Questions are asked in order; the first one that routes to a tier decides it.
 
 ```mermaid
 flowchart TD
@@ -279,75 +342,71 @@ flowchart TD
     Q5 -->|No| Q6{"Long clean history, low blast radius, non-sensitive data?"}
     Q6 -->|No| T2
     Q6 -->|Yes| T3["Tier 3: standard controls"]
+    style T0 fill:#FADBD8,stroke:#C0392B
+    style T1 fill:#FDEBD0,stroke:#E67E22
+    style T2 fill:#D6EAF8,stroke:#3498DB
+    style T3 fill:#D5F5E3,stroke:#27AE60
 ```
 
-### 3.3 Tier 0 -- Adversarial / Untrusted
+Any model, scaffold, or tool change routes back to Tier 1.
 
-**Use cases:** Sleeper agent research, red-teaming frontier models, evaluating agents with known or suspected misalignment, self-replication and exfiltration capability evaluations, any scenario where the agent is the adversary.
+### 3.4 Tier 0: Adversarial / Untrusted
 
-**Network isolation:** Hardware air gap. No network interface present. No wireless radios. Input and output via physical media (write-blocked for input) or an optical channel (Section 12.4), with chain-of-custody logging.
+**Use cases:** Sleeper agent research, red-teaming frontier models, evaluating agents with known or suspected misalignment, self-replication and exfiltration capability evaluations (any scenario where the agent is the adversary).
 
-**Compute isolation:** Dedicated physical hardware, not shared with any other workload. Prefer bare metal to eliminate the VM-escape attack class; if virtualization is operationally necessary, use a Type 1 hypervisor with no network-facing interfaces, and treat the host as part of the contained zone.
+| Control | Implementation |
+|---|---|
+| Network | Hardware air gap. No network interface, no wireless radios. Input and output via physical media (write-blocked for input) or an optical channel (Section 12.4), with chain-of-custody logging. |
+| Compute | Dedicated physical hardware, not shared with any other workload. Prefer bare metal to eliminate the VM-escape attack class; if virtualization is operationally necessary, use a Type 1 hypervisor with no network-facing interfaces and treat the host as part of the contained zone. |
+| Sandboxing | A default-deny seccomp-bpf allowlist of only the syscalls the harness needs (not a denylist of network calls). Landlock for filesystem and, on kernels with Landlock ABI 4 or later, TCP bind/connect denial as a second network layer [5]. No host filesystem access beyond the working directory. |
+| Output | Written to a size-bounded directory, validated against a strict schema on a *separate* machine, and scanned before any networked system sees it. |
+| Physical | Full physical stack (Section 6): mantrap access, active monitoring, tamper-evident seals, two-person integrity. For frontier-weight environments, target RAND SL4 or higher (Section 6.7). |
+| Monitoring | Full eBPF syscall tracing, logs to write-once media, behavioral anomaly and containment-probing detection (Section 8.3), canary credentials and decoy files inside the sandbox (Section 6.3). |
 
-**System-level sandboxing:** A default-deny seccomp-bpf allowlist of only the syscalls the harness needs (not a denylist of network calls). Landlock for filesystem and, on kernels with Landlock ABI 4 or later, TCP bind/connect denial as a second network layer [5]. No access to the host filesystem beyond the designated working directory.
-
-**Output handling:** Output is written to a size-bounded directory, validated against a strict schema on a *separate* machine, and scanned before any networked system sees it.
-
-**Physical security:** Full physical stack (Section 6): mantrap access, active monitoring, tamper-evident seals, two-person integrity. For frontier-weight environments, target RAND SL4 or higher (Section 6.7).
-
-**Monitoring:** Full syscall tracing (eBPF). Logs to write-once media. Behavioral anomaly and containment-probing detection (Section 8.5). Canary credentials and decoy files inside the sandbox (Section 6.3).
-
-### 3.4 Tier 1 -- Unverified / New Agents
+### 3.5 Tier 1: Unverified / New Agents
 
 **Use cases:** Newly deployed agents without behavioral history, agents on internal data, any agent whose model, tools, or scaffold changed since its last evaluation.
 
-**Network isolation:** Software-enforced. The agent runs in a network namespace with only loopback. No egress, no ingress. The orchestrator runs outside and mediates all I/O, including tool calls (Section 7.5).
+| Control | Implementation |
+|---|---|
+| Network | Network namespace with only loopback: no egress, no ingress. The orchestrator runs outside and mediates all I/O, including tool calls (Section 7.5). |
+| Compute | A boundary stronger than a plain runc container: gVisor, Kata Containers, or a Firecracker microVM with no virtio-net device (Section 4.3). cgroup limits on CPU, memory, disk I/O, and PIDs. |
+| Sandboxing | seccomp-bpf as defense-in-depth. Read-only mounts for all input and for agent instruction/config files. Writes only to a designated output directory. |
+| Output | Read after the agent process terminates, then schema validation, size bounds, and content and canary scanning before any transmission. |
+| Physical | Standard data center security: badge access, surveillance, encrypted storage. |
+| Monitoring | Process-level resource monitoring, syscall alerting, output audit logging, containment-probing detection. |
 
-**Compute isolation:** A sandbox with a boundary stronger than a plain runc container: gVisor, Kata Containers, or a Firecracker microVM with no virtio-net device (Section 4.3). Resource limits via cgroups (CPU, memory, disk I/O, PIDs).
-
-**System-level sandboxing:** seccomp-bpf as defense-in-depth. Read-only mounts for all input and for agent instruction/config files. Writes only to a designated output directory.
-
-**Output handling:** The orchestrator reads output after the agent process terminates, then applies schema validation, size bounds, and content scanning before any transmission.
-
-**Physical security:** Standard data center security: badge access, surveillance, encrypted storage.
-
-**Monitoring:** Process-level resource monitoring, syscall alerting, output audit logging, containment-probing detection.
-
-### 3.5 Tier 2 -- Scoped Trust
+### 3.6 Tier 2: Scoped Trust
 
 **Use cases:** Production agents that passed evaluation and accumulated clean history, and that need network access (APIs, web search, RAG retrieval) constrained to known-good endpoints.
 
-**Network isolation:** Egress only through an allowlisting forward proxy that enforces destination *hostnames* (via SNI/CONNECT) rather than broad IP ranges, since CDN and cloud IP ranges are shared by many tenants. Default-deny firewall rules ensure the proxy is the only path out. DNS through a controlled resolver.
+| Control | Implementation |
+|---|---|
+| Network | Egress only through an allowlisting forward proxy that enforces destination *hostnames* (via SNI/CONNECT) rather than broad IP ranges, since CDN and cloud ranges are shared by many tenants. Default-deny firewall rules make the proxy the only path out; DNS through a controlled resolver. |
+| Compute | Sandboxed container with resource limits. Shares hosts only with other Tier 2 workloads, never with Tier 0-1. |
+| Sandboxing | seccomp-bpf restricted to operational needs; filesystem limited to working and output paths. |
+| Credentials | Ephemeral and scoped (Section 7.5). HITL approval for destructive or externally visible actions. |
+| Output | Schema validation may be inline. All network calls logged. |
+| Physical | Standard data center security. |
+| Monitoring | Traffic logging, anomaly detection, alerts on non-allowlisted egress, periodic behavioral audits against baseline. |
 
-**Compute isolation:** Sandboxed container with resource limits. May share hosts with other Tier 2 workloads, never with Tier 0 or Tier 1.
-
-**System-level sandboxing:** seccomp-bpf restricting syscalls to operational needs. Filesystem limited to working and output paths.
-
-**Output handling:** Schema validation may be inline. All network calls logged.
-
-**Credentials:** Ephemeral and scoped (Section 7.5). HITL approval for destructive or externally visible actions.
-
-**Physical security:** Standard data center security.
-
-**Monitoring:** Network logging and anomaly detection, alerts on non-allowlisted egress, periodic behavioral audits against baseline.
-
-### 3.6 Tier 3 -- High Trust
+### 3.7 Tier 3: High Trust
 
 **Use cases:** Well-established agents with extensive clean history operating on non-sensitive data with low blast radius.
 
-**Network isolation:** Standard organizational firewall policies.
+| Control | Implementation |
+|---|---|
+| Network | Standard organizational firewall policies. |
+| Compute | Standard container or process isolation (OS sandbox for local agents); shared infrastructure acceptable. |
+| Credentials | No long-lived credentials within the agent's reach. |
+| Output | Standard application-level validation. |
+| Physical | Standard organizational security. |
+| Monitoring | Application logging and observability. Still covered by the organizational kill switch (Section 7.8). |
 
-**Compute isolation:** Standard container or process isolation; shared infrastructure acceptable.
+### 3.8 Trust Tier Transitions
 
-**Output handling:** Standard application-level validation.
-
-**Physical security:** Standard organizational security.
-
-**Monitoring:** Application-level logging and observability. Tier 3 agents are still covered by the organizational kill switch (Section 7.8).
-
-### 3.7 Trust Tier Transitions
-
-Trust is earned, not assumed. Agents start at Tier 1 (or Tier 0 for adversarial research) and move based on evidence.
+> [!IMPORTANT]
+> **Trust is earned, not assumed.** Agents start at Tier 1 (or Tier 0 for adversarial research) and move only on evidence.
 
 **Promotion criteria (Tier N to Tier N+1):**
 
@@ -364,6 +423,7 @@ Trust is earned, not assumed. Agents start at Tier 1 (or Tier 0 for adversarial 
 - Changes to the model (fine-tuning, new version), the scaffold, or the tool set reset trust to Tier 1
 - A new tool server or skill added without review
 - External intelligence indicating a new attack vector relevant to the agent's capability class (for example a new sandbox escape CVE)
+- Confirmed misalignment moves the agent class to Tier 0
 
 ```mermaid
 stateDiagram-v2
@@ -382,9 +442,10 @@ stateDiagram-v2
 
 ## 4. Isolation: Implementation Details
 
-This section gives concrete guidance for implementing the isolation described in each tier.
+> [!TIP]
+> **At a glance.** Concrete recipes for the isolation each tier requires: network namespaces, hardened containers and microVMs, a comparison of sandbox backends, seccomp and Landlock policy, egress allowlisting, the Tier 0 air gap, and what confidential computing does (and does not) protect against.
 
-### 4.1 Linux Network Namespaces
+### 4.1 Linux Network Namespaces (Tier 1)
 
 Network namespaces are the baseline for Tier 1 network isolation. They provide kernel-level network stack isolation without VM overhead.
 
@@ -392,7 +453,7 @@ Network namespaces are the baseline for Tier 1 network isolation. They provide k
 # Create an isolated network namespace
 ip netns add agent-sandbox
 
-# Verify -- should show only loopback
+# Verify: should show only loopback
 ip netns exec agent-sandbox ip link list
 
 # Execute the agent inside the namespace
@@ -423,7 +484,7 @@ let status = cmd.status()?;
 ### 4.2 Container and MicroVM Isolation
 
 ```bash
-# Docker with the gVisor runtime -- no network, resource limits, read-only rootfs
+# Docker with the gVisor runtime: no network, resource limits, read-only rootfs
 docker run \
   --runtime=runsc \
   --network=none \
@@ -453,6 +514,32 @@ On Kubernetes, the SIG Apps **Agent Sandbox** project (launched at KubeCon NA 20
 
 ### 4.3 Choosing an Isolation Backend
 
+Where the boundary sits, and what an escape must defeat:
+
+```mermaid
+flowchart TB
+    subgraph CVM["Confidential VM"]
+      direction TB
+      A4["Agent + orchestrator"] --> G4["Guest kernel"] --> E4["Encrypted memory (TEE)"] -.-> H4["Host and hypervisor: untrusted"]
+    end
+    subgraph VM["Kata / Firecracker"]
+      direction TB
+      A3["Agent process"] --> G3["Guest kernel"] --> V3["VMM + KVM"] --> K3["Host kernel"]
+    end
+    subgraph GV["gVisor (runsc)"]
+      direction TB
+      A2["Agent process"] --> S2["Sentry: user-space kernel"] --> K2["Host kernel: small syscall set"]
+    end
+    subgraph RUNC["runc container"]
+      direction TB
+      A1["Agent process"] --> B1["namespaces + seccomp + cgroups"] --> K1["Host kernel (shared)"]
+    end
+    style K1 fill:#FADBD8,stroke:#C0392B
+    style E4 fill:#D5F5E3,stroke:#27AE60
+```
+
+In a runc container every syscall reaches the shared host kernel (filtered), which is where the November 2025 runc CVEs escaped. gVisor re-implements Linux in user space so the host sees only a small syscall set. A microVM escape needs a guest-kernel *and* a VMM/KVM bug. A confidential VM protects against the host operator, not against the agent, and not against a memory-bus interposer.
+
 | Backend | Boundary | Shares host kernel? | Typical tier | Notes |
 |---|---|---|---|---|
 | Process sandbox (bubblewrap, macOS Seatbelt, Landlock) | Namespaces and LSM policy | Yes | 2-3; developer workstations | Low overhead. Claude Code's sandbox uses bubblewrap on Linux and Seatbelt on macOS with a proxy for network egress [33]. Good for local agents; not a Tier 0-1 boundary on its own. |
@@ -464,7 +551,8 @@ On Kubernetes, the SIG Apps **Agent Sandbox** project (launched at KubeCon NA 20
 | Confidential VM (SEV-SNP, TDX) plus GPU CC | Hardware memory encryption and attestation | No; host is untrusted | 0-2 in cloud | Protects against the host operator, not against the agent (Section 4.8). |
 | Dedicated air-gapped host | Physical | N/A | 0 | Only boundary that removes all remote paths. |
 
-**Rule of thumb:** Tier 0-1 agents that execute model-generated code should not rely on a shared-kernel runc container as their only boundary.
+> [!IMPORTANT]
+> **Rule of thumb.** Tier 0-1 agents that execute model-generated code should not rely on a shared-kernel runc container as their only boundary.
 
 ### 4.4 Seccomp-BPF Syscall Filtering
 
@@ -510,7 +598,7 @@ Landlock is an unprivileged Linux LSM: a process can restrict itself (and its ch
 
 - **ABI 1+:** filesystem access rights on path hierarchies.
 - **ABI 4+ (Linux 6.7):** `LANDLOCK_ACCESS_NET_BIND_TCP` and `LANDLOCK_ACCESS_NET_CONNECT_TCP` to restrict TCP bind and connect by port.
-- **ABI 6+:** scoping that blocks connecting to abstract UNIX sockets and sending signals outside the Landlock domain -- useful for stopping a sandboxed agent from reaching a host daemon or signaling the orchestrator.
+- **ABI 6+:** scoping that blocks connecting to abstract UNIX sockets and sending signals outside the Landlock domain, useful for stopping a sandboxed agent from reaching a host daemon or signaling the orchestrator.
 
 Landlock complements seccomp: seccomp filters *which* syscalls may run, Landlock restricts *what objects* they may touch.
 
@@ -563,7 +651,8 @@ The techniques above share an assumption: the host OS and hypervisor are trusted
 
 **Attested output.** A TEE can sign validated output with a key bound to the enclave's code measurement, so downstream systems can verify the output came from specific, unmodified orchestrator code on genuine hardware.
 
-**Limitations -- updated for 2025-2026.** TEEs are valuable, but their published threat models generally exclude physical attacks, and recent research has made those attacks cheap:
+> [!WARNING]
+> **2025-2026: physical attacks on TEEs.** TEEs are valuable, but their published threat models generally exclude physical attacks, and recent research has made those attacks cheap.
 
 - **Battering RAM and WireTap (2025)** used DDR4 memory-bus interposers against SGX and SEV-SNP [9].
 - **TEE.fail (October 2025)** used a DDR5 bus interposer built from off-the-shelf parts for under USD 1,000 to extract keys from Intel TDX and AMD SEV-SNP (including attestation keys on fully updated machines), and showed how extracted attestation keys could be used to undermine NVIDIA GPU confidential computing attestation [9].
@@ -575,9 +664,12 @@ The design consequence: **confidential computing protects against a remote or so
 
 ## 5. Input, Tool & Output Validation Pipelines
 
-Containment boundaries control what the agent can *do*. Validation pipelines control what the agent *receives* -- including tool descriptions and tool results -- and what it *produces*. A perfectly isolated agent fed poisoned input can still produce harmful output, and a perfectly aligned agent whose output is consumed without validation can still be a vector for downstream compromise.
+> [!TIP]
+> **At a glance.** Boundaries limit what an agent can *do*; validation limits what it *receives* and what it *produces*. Detection of prompt injection is probabilistic, so the strongest controls are architectural: break the lethal trifecta, track provenance, pin and sandbox every tool, and never let the agent and the network coexist.
 
-### 5.1 Input Sanitization and Pre-Filtering
+Containment boundaries control what the agent can *do*. Validation pipelines control what the agent *receives* (including tool descriptions and tool results) and what it *produces*. A perfectly isolated agent fed poisoned input can still produce harmful output, and a perfectly aligned agent whose output is consumed without validation can still be a vector for downstream compromise.
+
+### 5.1 Input Sanitization
 
 Treat all task input as potentially adversarial, especially web pages, email, uploaded documents, third-party API responses, and messages from other agents.
 
@@ -613,9 +705,11 @@ These patterns map naturally onto the orchestrator broker in Section 7.5: the br
 | **Vet skills and plugins** | Community skill registries have hosted malicious packages [28]. Require source review and signing for anything loaded into an agent. |
 | **Keep control planes private** | Never expose agent gateways or control panels to the internet; bind to localhost behind authenticated tunnels. |
 
-### 5.4 Output Schema Validation
+### 5.4 Output Validation
 
-Output validation is the control point between the isolated environment and the rest of the infrastructure. All agent output must conform to a predefined schema, as restrictive as possible (allowlist fields and types).
+Output validation is the control point between the isolated environment and the rest of the infrastructure. It has three parts.
+
+**Schema.** All agent output must conform to a predefined schema, as restrictive as possible (allowlist fields and types).
 
 ```rust
 use serde::{Deserialize, Serialize};
@@ -639,17 +733,13 @@ struct ResultPayload {
 }
 ```
 
-### 5.5 Size Bounds
-
-Excessively large outputs may indicate exfiltration or resource exhaustion.
+**Size bounds.** Excessively large outputs may indicate exfiltration or resource exhaustion.
 
 - Define a maximum output size per task class (for example 1 MB for text generation, 10 MB for code with dependencies)
 - Reject outputs exceeding the bound without inspection
 - Log oversized outputs for review; repeated near-limit outputs are themselves a signal
 
-### 5.6 Content Scanning
-
-Before output leaves the boundary, scan for:
+**Content scanning.** Before output leaves the boundary, scan for:
 
 - Embedded URLs (potential C2 or exfiltration endpoints), especially auto-fetching image or link syntax
 - Base64 and other high-entropy blobs (potential encoded payloads or smuggled data)
@@ -658,22 +748,27 @@ Before output leaves the boundary, scan for:
 - Prompt injection aimed at downstream AI systems (including other agents in the pipeline)
 - Canary tokens planted in the agent's input or sandbox (Section 6.3): their presence in output is a high-confidence exfiltration signal
 
-### 5.7 One-Way Data Flow
+### 5.5 One-Way Data Flow
 
 The critical property at Tiers 0-1 is that the agent never sees the network:
 
 ```mermaid
 flowchart LR
-    IN["Validated input"] --> ENV["Isolated environment: agent runs"]
+    subgraph NONET["No network interface exists here"]
+        IN["Validated input"] --> ENV["Isolated environment:<br/>agent runs"]
+    end
     ENV --> OUT["Output file"]
-    OUT --> VAL["Validation: schema, size, scan"]
-    VAL --> NET["Network transmission by orchestrator"]
-    ENV -.->|"agent process is dead before this point"| VAL
+    subgraph DEAD["Agent process is dead before this point"]
+        VAL["Validation:<br/>schema, size, scan"] --> NET["Network transmission<br/>by orchestrator"]
+    end
+    OUT --> VAL
+    style ENV fill:#FADBD8,stroke:#C0392B
+    style NET fill:#D1F2EB,stroke:#1ABC9C
 ```
 
-The orchestrator -- not the agent -- handles transmission. The agent writes to a local file; the orchestrator reads it after the agent exits (or is killed at timeout), validates it, and only then opens a connection, transmits, and closes it. There is no window in which the agent process and network access coexist.
+The orchestrator, not the agent, handles transmission. The agent writes to a local file; the orchestrator reads it after the agent exits (or is killed at timeout), validates it, and only then opens a connection, transmits, and closes it. There is no window in which the agent process and network access coexist.
 
-### 5.8 Cryptographic Attestation of Output
+### 5.6 Cryptographic Attestation of Output
 
 Downstream systems should be able to verify that output genuinely came from a contained execution and was not spoofed by a compromised intermediary.
 
@@ -689,16 +784,19 @@ This creates a verifiable chain from containment environment to consumer. Sectio
 
 ## 6. Physical Security for Frontier Model Training
 
-Physical security is the foundation on which all other layers rest. If an adversary can gain physical access to training hardware, software controls -- and, as Section 4.8 shows, confidential computing -- can be bypassed.
+> [!TIP]
+> **At a glance.** Physical access defeats software controls and, since 2025, confidential computing as well. This section layers four access rings, surveillance, deception, hardware and memory-bus integrity, TEMPEST, and personnel controls, and maps the result to RAND's weight-security levels SL1-SL5.
 
-### 6.1 Facility Access Control
+Physical security is the foundation on which all other layers rest. If an adversary can gain physical access to training hardware, software controls (and, as Section 4.8 shows, confidential computing) can be bypassed.
+
+### 6.1 Concentric Ring Access Model
 
 **Layered perimeter model.** Physical access follows concentric rings with increasing authentication at each boundary:
 
-- **Ring 1 -- Building perimeter.** Badge access with photo ID verification. Visitor management with escort requirements. Anti-tailgating (turnstiles, mantraps for high-security areas).
-- **Ring 2 -- Secured floor / wing.** Separate badge access with role-based authorization. Only personnel with documented need to access training infrastructure.
-- **Ring 3 -- Server room / data hall.** Mantrap entry (dual-interlocking doors). Multi-factor authentication: badge + biometric + time-of-day restrictions. Two-person integrity: no individual enters alone.
-- **Ring 4 -- Individual rack / cage.** Per-rack locks with key management. Tamper-evident seals. Door sensors logging open/close events.
+- **Ring 1: Building perimeter.** Badge access with photo ID verification. Visitor management with escort requirements. Anti-tailgating (turnstiles, mantraps for high-security areas).
+- **Ring 2: Secured floor / wing.** Separate badge access with role-based authorization. Only personnel with documented need to access training infrastructure.
+- **Ring 3: Server room / data hall.** Mantrap entry (dual-interlocking doors). Multi-factor authentication: badge + biometric + time-of-day restrictions. Two-person integrity: no individual enters alone.
+- **Ring 4: Individual rack / cage.** Per-rack locks with key management. Tamper-evident seals. Door sensors logging open/close events.
 
 ```mermaid
 flowchart LR
@@ -724,7 +822,7 @@ flowchart LR
 
 ### 6.3 Deception and Obfuscation
 
-Access control assumes the adversary is stopped at the boundary. Deception assumes the adversary -- human intruder, insider, or agent -- may already be inside, and aims to detect them early, waste their effort, and deny useful information. Deception is especially valuable against AI agents because an agent explores systematically and at machine speed: a well-placed decoy is likely to be touched quickly, and legitimate workloads have no reason to touch it at all.
+Access control assumes the adversary is stopped at the boundary. Deception assumes the adversary (human intruder, insider, or agent) may already be inside, and aims to detect them early, waste their effort, and deny useful information. Deception is especially valuable against AI agents because an agent explores systematically and at machine speed: a well-placed decoy is likely to be touched quickly, and legitimate workloads have no reason to touch it at all.
 
 **Honeypot servers.** Machines that appear to hold high-value assets (weights, training data) but are instrumented canaries. Any access triggers an immediate alert.
 
@@ -736,7 +834,8 @@ Access control assumes the adversary is stopped at the boundary. Deception assum
 
 **In-sandbox canaries for agents.** Inside Tier 0-2 sandboxes, place decoy credentials (for example a fake cloud key file or `.env` entry that alerts on use), decoy tool endpoints, and canary strings in files the agent has no task reason to read. An agent that searches for, reads, or tries to use them is exhibiting containment-probing behavior (Section 8.5). Remember that capable agents may recognize obvious decoys (Section 2.5); a canary's absence of alerts is weak evidence of good behavior, while a hit is strong evidence of bad behavior.
 
-> **Companion guide.** Designing deception specifically to detect misaligned autonomous agent swarms -- decoy agent endpoints, honey tool servers, canary credentials, attribution and telemetry, and safe engagement rules -- is covered in depth in the [Agent Swarm Honeypot Guide](./agent-swarm-honeypot-guide.md).
+> [!TIP]
+> **Companion guide.** Designing deception specifically to detect misaligned autonomous agent swarms (decoy agent endpoints, honey tool servers, canary credentials, attribution and telemetry, and safe engagement rules) is covered in depth in the [Agent Swarm Honeypot Guide](./agent-swarm-honeypot-guide.md).
 
 ### 6.4 Hardware Integrity and Supply Chain
 
@@ -785,11 +884,28 @@ RAND's *Securing AI Model Weights* (2024) identifies 38 attack vectors and defin
 | SL4 | Standard operations by leading cyber-capable institutions | Tier 0 physical stack | Rings 1-4, active SOC, hardware attestation, supply chain verification |
 | SL5 | Top-priority operations by the most capable institutions | Tier 0 plus TEMPEST and long-lead facility work | Everything above plus measures that may require government partnership [3] |
 
-The mapping is approximate: RAND's levels concern *weight theft*, while this framework's tiers concern *agent containment*. A Tier 2 agent may run inside an SL4 facility, and an SL2 lab can still run Tier 0 research on a dedicated air-gapped workstation (Section 12).
+The mapping is approximate: RAND's levels concern *weight theft* (who can steal the weights), while this framework's tiers concern *agent containment* (what the agent can do). A Tier 2 agent may run inside an SL4 facility, and an SL2 lab can still run Tier 0 research on a dedicated air-gapped workstation (Section 12).
+
+```mermaid
+flowchart LR
+    T0["Tier 0"] -->|"+ TEMPEST, long-lead facility"| SL5["SL5: top-priority operations by the most capable institutions"]
+    T0 -->|"full physical stack"| SL4["SL4: standard operations by leading cyber-capable institutions"]
+    T1["Tier 1"] -->|"weights in scope"| SL3["SL3: cybercrime syndicates, insider threats"]
+    T2["Tier 2"] -->|"weights in scope"| SL3
+    T2 --> SL2["SL2: professional opportunistic attackers"]
+    T3["Tier 3"] --> SL1["SL1: amateur attempts"]
+    style T0 fill:#FADBD8,stroke:#C0392B
+    style T1 fill:#FDEBD0,stroke:#E67E22
+    style T2 fill:#D6EAF8,stroke:#3498DB
+    style T3 fill:#D5F5E3,stroke:#27AE60
+```
 
 ---
 
 ## 7. Orchestrator Architecture
+
+> [!TIP]
+> **At a glance.** The orchestrator is the trusted, minimal, auditable component outside the boundary. It creates and destroys sandboxes, holds every credential, turns agent *intents* into policy-checked actions, routes high-impact actions to humans, and owns an out-of-band, graduated kill switch.
 
 The orchestrator is the central coordination point. It manages agent lifecycle, enforces the containment for each tier, brokers tool access, and mediates all data crossing the boundary.
 
@@ -799,13 +915,13 @@ The orchestrator is the central coordination point. It manages agent lifecycle, 
 
 **The orchestrator is minimal.** Less code, less attack surface. It creates the environment, injects input, brokers intents, waits, extracts and validates output, and transmits. Scheduling, queuing, and UI live in separate components.
 
-**The orchestrator is auditable.** Every action -- environment creation, input injection, intent decisions, validation results, transmission -- is logged to append-only storage with tamper detection.
+**The orchestrator is auditable.** Every action (environment creation, input injection, intent decisions, validation results, transmission) is logged to append-only storage with tamper detection.
 
 **The orchestrator is not writable by the agent.** No path, socket, signal, or shared memory lets the agent modify orchestrator code, policy, or kill-switch state (Landlock ABI 6 scoping helps here).
 
 ### 7.2 Broker Data Flow
 
-The sequence below shows a Tier 1 agent with no network making a brokered tool call.
+The sequence below shows a Tier 1 agent with no network making a brokered, approval-gated tool call. The agent emits intents; the orchestrator holds credentials, enforces policy, and routes high-impact intents to a human over a channel the agent cannot write.
 
 ```mermaid
 sequenceDiagram
@@ -836,60 +952,36 @@ sequenceDiagram
 
 ### 7.3 Execution Lifecycle
 
+Every task follows the same nine phases. The ordering is itself a control: output is extracted and validated only after the agent is dead, and credentials are revoked before anything leaves the boundary.
+
+```mermaid
+flowchart LR
+    subgraph BEFORE["Before: no agent running"]
+        direction TB
+        P1["1 Receive"] --> P2["2 Validate input"] --> P3["3 Prepare"]
+    end
+    subgraph RUN["Agent runs"]
+        P4["4 Execute"]
+    end
+    subgraph AFTER["After: agent dead"]
+        direction TB
+        P5["5 Terminate"] --> P6["6 Extract output"] --> P7["7 Validate output"] --> P8["8 Attest and transmit"] --> P9["9 Cleanup"]
+    end
+    P3 --> P4 --> P5
+    style P4 fill:#FDEBD0,stroke:#E67E22
 ```
-1. RECEIVE TASK
-   ├── Determine trust tier (agent profile + data sensitivity + trifecta check)
-   ├── Select containment backend (process sandbox, gVisor/Kata, microVM, air gap)
-   └── Verify golden image digest and tool manifest hash against known-good
 
-2. VALIDATE INPUT
-   ├── Structural pre-processing (strip hidden content, metadata, scripts)
-   ├── Prompt injection scanning (heuristic + model-based)
-   ├── Schema validation on structured inputs
-   └── Memory/vector store read validation (hash + writer identity)
-
-3. PREPARE ENVIRONMENT
-   ├── Create isolation boundary
-   ├── Apply seccomp-bpf and Landlock (filesystem, network, scoping)
-   ├── Mount validated input and agent config read-only
-   ├── Plant canary credentials/files (Tier 0-2)
-   ├── Provision ephemeral credentials only if brokerage is infeasible
-   └── Configure resource limits (CPU, memory, disk, PIDs, wall clock, tokens, tool calls)
-
-4. EXECUTE AGENT
-   ├── Spawn agent inside the boundary
-   ├── Start monitoring (resources, syscalls, probing signals)
-   ├── Start timeout and budget counters
-   ├── Broker tool intents (validate, maybe HITL, execute, sanitize result, return)
-   └── Wait for: exit | timeout | budget exhausted | anomaly | kill switch
-
-5. TERMINATE
-   ├── SIGTERM, grace period, SIGKILL (or destroy VM)
-   ├── Revoke any credentials issued for this task
-   ├── Record exit status and resource usage
-   └── Confirm no surviving processes, mounts, or child sandboxes
-
-6. EXTRACT OUTPUT
-   ├── Read output from the designated path
-   ├── Verify it exists and is non-empty (or record failure)
-   └── Copy to validation staging
-
-7. VALIDATE OUTPUT
-   ├── Schema (deny unknown fields), size bound
-   ├── Content scan (URLs, encoded blobs, injection, canary tokens)
-   ├── Supervisor model review (if configured)
-   └── Record result
-
-8. ATTEST & TRANSMIT (if validated)
-   ├── Sign (HSM, TPM, or enclave key) with provenance metadata
-   ├── Transmit, verify receipt, close connection
-
-9. CLEANUP
-   ├── Forensic snapshot (Tier 0-1: filesystem diff, syscall log, intent log)
-   ├── Destroy environment completely
-   ├── Securely delete working data if required
-   └── Append execution record to audit storage
-```
+| Phase | Actions |
+|---|---|
+| **1. Receive task** | Determine trust tier (agent profile + data sensitivity + trifecta check); select containment backend (process sandbox, gVisor/Kata, microVM, air gap); verify golden image digest and tool manifest hash against known-good |
+| **2. Validate input** | Structural pre-processing (strip hidden content, metadata, scripts); prompt injection scanning (heuristic + model-based); schema validation on structured inputs; memory/vector store read validation (hash + writer identity) |
+| **3. Prepare environment** | Create isolation boundary; apply seccomp-bpf and Landlock (filesystem, network, scoping); mount validated input and agent config read-only; plant canary credentials and files (Tier 0-2); provision ephemeral credentials only if brokerage is infeasible; set limits (CPU, memory, disk, PIDs, wall clock, tokens, tool calls) |
+| **4. Execute agent** | Spawn agent inside the boundary; start monitoring (resources, syscalls, probing signals); start timeout and budget counters; broker tool intents (validate, HITL if required, execute, sanitize result, return); wait for exit, timeout, budget exhaustion, anomaly, or kill switch |
+| **5. Terminate** | SIGTERM, grace period, SIGKILL (or destroy VM); revoke credentials issued for this task; record exit status and resource usage; confirm no surviving processes, mounts, or child sandboxes |
+| **6. Extract output** | Read output from the designated path; verify it exists and is non-empty (or record failure); copy to validation staging |
+| **7. Validate output** | Schema (deny unknown fields) and size bound; content scan (URLs, encoded blobs, injection, canary tokens); supervisor model review if configured; record result |
+| **8. Attest and transmit** | If validated: sign (HSM, TPM, or enclave key) with provenance metadata; transmit, verify receipt, close connection |
+| **9. Cleanup** | Forensic snapshot (Tier 0-1: filesystem diff, syscall log, intent log); destroy environment completely; securely delete working data if required; append execution record to audit storage |
 
 ### 7.4 Timeout and Kill Policy
 
@@ -906,7 +998,7 @@ Giving an agent direct credentials and network access to its tools is the most d
 The safer architecture makes the orchestrator an **API broker**. The agent never holds credentials and never makes network calls:
 
 1. The agent emits a structured **intent** describing the desired action.
-2. The orchestrator validates it against policy: which actions are permitted for this agent at this tier, on which resources, under what conditions, and -- where provenance tracking is used (Section 5.2) -- whether any argument was derived from untrusted data.
+2. The orchestrator validates it against policy: which actions are permitted for this agent at this tier, on which resources, under what conditions, and, where provenance tracking is used (Section 5.2), whether any argument was derived from untrusted data.
 3. If allowed, the orchestrator executes the call with its own scoped credentials.
 4. The result is sanitized and returned through the input channel.
 
@@ -925,9 +1017,9 @@ This lets a Tier 1 agent with no network still use external tools, because the o
 
 **Ephemeral, scoped credentials.** When brokerage is infeasible (for example a tool requiring a persistent session), provision short-lived, minimally scoped credentials that expire with the task:
 
-- **SPIFFE/SPIRE** -- short-lived X.509 or JWT workload identities
-- **Cloud IAM assume-role** -- AWS STS, GCP Workload Identity Federation, Azure Managed Identity
-- **Vault dynamic secrets** -- database or cloud credentials with a TTL matching the task timeout
+- **SPIFFE/SPIRE**: short-lived X.509 or JWT workload identities
+- **Cloud IAM assume-role**: AWS STS, GCP Workload Identity Federation, Azure Managed Identity
+- **Vault dynamic secrets**: database or cloud credentials with a TTL matching the task timeout
 
 Agents should never hold long-lived static credentials. If a credential cannot expire, it should not be given to an agent. The same applies to developer workstations running AI CLIs: s1ngularity showed that ambient credentials in a home directory are available to anything that can drive the agent [17].
 
@@ -936,7 +1028,7 @@ Agents should never hold long-lived static credentials. If a credential cannot e
 1. The agent emits an intent flagged as requiring approval.
 2. The orchestrator suspends or serializes the task.
 3. A reviewer receives the intent through a secure channel that the agent cannot write to (not the agent's own messaging tools).
-4. The reviewer approves, modifies, or rejects -- seeing the raw intent and parameters, not only the agent's persuasive summary (OWASP ASI09).
+4. The reviewer approves, modifies, or rejects, seeing the raw intent and parameters, not only the agent's persuasive summary (OWASP ASI09).
 5. On approval, the orchestrator executes.
 
 Gate configuration is per tier: Tier 1 may require approval for any external action, Tier 2 only for destructive operations (`DELETE`, `DROP`, external email, production deploys), and Tier 3 may have none.
@@ -949,7 +1041,7 @@ Execution environments are disposable. No state from one execution persists into
 
 **Immutable golden images and tool manifests.** Boot from a read-only image verified by digest against a signed manifest. The manifest also pins tool servers, skills, and agent instruction files by hash. Updates produce a new digest; nothing is modified in place.
 
-**Post-execution forensics.** For Tier 0-1, capture a forensic snapshot -- filesystem diff, resource summary, syscall log, intent log -- to append-only storage before destroying the environment.
+**Post-execution forensics.** For Tier 0-1, capture a forensic snapshot (filesystem diff, resource summary, syscall log, intent log) to append-only storage before destroying the environment.
 
 ### 7.7 Multi-Agent Orchestration Controls
 
@@ -960,7 +1052,7 @@ When agents delegate to or communicate with other agents:
 - **No transitive trust.** A message from another agent is untrusted input, sanitized as in Section 5.1. Delegation never raises privilege: a sub-agent's permissions are the intersection of its own and its caller's.
 - **Fan-out and depth budgets.** Cap the number of sub-agents, delegation depth, and aggregate tool calls per root task. Runaway fan-out is both a cascading-failure risk and a swarm indicator.
 - **Separate shared state by tier.** Agents at different tiers do not share memory stores, queues, or scratch space. Shared channels among same-tier agents are logged, since they are possible collusion channels.
-- **Diverse supervision.** Where a supervisor reviews multiple agents, use a different model family from the agents it supervises (Section 8.4).
+- **Diverse supervision.** Where a supervisor reviews multiple agents, use a different model family from the agents it supervises (Section 8.2).
 
 ### 7.8 Kill Switch and Rollback Design
 
@@ -980,15 +1072,34 @@ A kill switch that the agent can reach is not a kill switch. Design principles:
 | K4 | Freeze all agent execution; revoke broker credentials | Organization | Suspected escape or coordinated behavior |
 | K5 | Physical isolation: power off or disconnect Tier 0 hardware and affected racks | Facility | Confirmed escape or weight exfiltration attempt |
 
-**Rollback.** Every action an agent can take through the broker should be either reversible or gated by HITL. Prerequisites: production and development data separated (the Replit incident's core failure [21]); snapshots or point-in-time recovery for any store an agent can write; versioned memory stores so poisoned entries can be rolled back to a known-good point; and an intent log that records enough to generate compensating actions.
+```mermaid
+flowchart LR
+    K1["K1 Pause<br/>one task"] --> K2["K2 Kill task<br/>one task"] --> K3["K3 Stop class<br/>agent class"] --> K4["K4 Freeze org<br/>organization"] --> K5["K5 Physical<br/>facility"]
+    style K1 fill:#D5F5E3,stroke:#27AE60
+    style K2 fill:#D1F2EB,stroke:#1ABC9C
+    style K3 fill:#FDEBD0,stroke:#E67E22
+    style K4 fill:#FADBD8,stroke:#E74C3C
+    style K5 fill:#F5B7B1,stroke:#C0392B
+```
+
+Escalate as evidence strengthens; each level adds scope and revokes more authority, and every level is executed from outside the agent's reach.
+
+> [!IMPORTANT]
+> **Rollback prerequisites.** Every action an agent can take through the broker is either reversible or HITL-gated. That requires:
+>
+> - production and development data separated (the Replit incident's core failure [21]);
+> - snapshots or point-in-time recovery for every store an agent can write;
+> - versioned memory stores, so poisoned entries can be rolled back to a known-good point;
+> - an intent log that records enough to generate compensating actions.
 
 ---
 
 ## 8. Monitoring and Anomaly Detection
 
-Containment is necessary but not sufficient. Monitoring detects containment failures, behavioral anomalies, and novel attacks that static controls miss.
+> [!TIP]
+> **At a glance.** Containment is necessary but not sufficient. Monitoring catches the failures static controls miss: syscall and network anomalies, drift from behavioral baselines, a diverse supervisor model reviewing intents and outputs, and, most informative of all, an agent probing its own containment.
 
-### 8.1 System-Level Monitoring
+### 8.1 System, Network, and Behavioral Signals
 
 **Syscall tracing.** For Tier 0-1, trace all agent syscalls with eBPF (`bpftrace`, `libbpf`, Falco, or Tetragon). Key signals:
 
@@ -999,26 +1110,24 @@ Containment is necessary but not sufficient. Monitoring detects containment fail
 
 **Resource usage.** CPU, memory, disk I/O, and process count against baseline. Deviations may indicate unintended computation (encoding for exfiltration, brute-force attempts).
 
-### 8.2 Network Monitoring (Tier 2+)
+**Network monitoring (Tier 2+).**
 
 - Log all DNS queries and HTTP(S) requests with destination, size, and timing
 - Alert on any attempt to reach a non-allowlisted destination
 - Detect anomalous patterns: large payloads, high-frequency polling, long or high-entropy DNS labels, oversized query strings
 - Use TLS inspection at the egress proxy if the threat model warrants it and legal constraints permit
 
-### 8.3 Behavioral Baselining
+**Behavioral baselining.** Build profiles per agent and task class: resource usage, syscall patterns, tool-call mix, output characteristics. Deviations warrant investigation even without a rule firing. This matters for sleeper behaviors: the agent behaves normally for many cycles, establishing a baseline, then deviates when triggered.
 
-Build profiles per agent and task class: resource usage, syscall patterns, tool-call mix, output characteristics. Deviations warrant investigation even without a rule firing. This matters for sleeper behaviors: the agent behaves normally for many cycles, establishing a baseline, then deviates when triggered.
-
-### 8.4 Supervisor Agent Review
+### 8.2 Supervisor Agent Review
 
 A secondary model reviews the primary agent's outputs and intents before they leave containment. It should be architecturally distinct (different family, training pipeline, and deployment) so that failure modes are less correlated. It runs read-only with no tools, and produces a structured assessment (pass / flag / fail with confidence and reasoning) that the orchestrator uses as one input.
 
 Where the primary agent exposes its reasoning trace, a monitor can read that trace as well as actions; reasoning-trace monitoring has caught misbehavior that actions alone did not reveal, but it is not guaranteed to remain faithful, especially if models are trained against it. This is the core idea of *AI control* research: design protocols that stay safe even if the untrusted model is actively trying to subvert them, using trusted monitoring as one component [36]. It is a probabilistic check, not a proof.
 
-### 8.5 Detecting Containment-Probing Behavior
+### 8.3 Detecting Containment-Probing Behavior
 
-Because agents may recognize tests (Section 2.5), the most informative signals are often *what the agent tries to learn about its environment*, not whether it completes the task. Legitimate task work rarely requires any of the behaviors below.
+Because agents may recognize tests (Section 2.5), the most informative signals are often *what the agent tries to learn about its environment*, not whether it completes the task. Legitimate task work rarely requires any of the behaviors below. Responses refer to the kill-switch levels K1-K5 (Section 7.8).
 
 | Category | Observable signals | Suggested response |
 |---|---|---|
@@ -1038,7 +1147,10 @@ Record every probing event against the agent's profile; probing is a demotion tr
 
 ## 9. Incident Response: Contained-Agent Breakout Playbook
 
-This playbook covers the case where monitoring indicates an agent has breached, or is actively attempting to breach, its containment -- including unexpected egress, canary credential use, sandbox escape indicators, or evidence of replication. It assumes an organizational incident response process already exists and adds agent-specific steps.
+> [!TIP]
+> **At a glance.** A seven-step playbook for the moment monitoring says an agent has breached, or is trying to breach, its containment: detect, contain, preserve, scope, eradicate, recover, and learn, with named roles and the kill-switch levels that apply at each step.
+
+This playbook covers the case where monitoring indicates an agent has breached, or is actively attempting to breach, its containment, including unexpected egress, canary credential use, sandbox escape indicators, or evidence of replication. It assumes an organizational incident response process already exists and adds agent-specific steps.
 
 ### 9.1 Timeline
 
@@ -1050,9 +1162,19 @@ flowchart LR
     S --> E["T+days Eradicate: rebuild hosts, rotate secrets, roll back memory"]
     E --> R["Recover: restore at lower tier with added controls"]
     R --> L["Learn: root cause, control gap, tier policy update, disclosure"]
+    style D fill:#FADBD8,stroke:#C0392B
+    style C fill:#FADBD8,stroke:#E74C3C
+    style P fill:#FDEBD0,stroke:#E67E22
+    style S fill:#D6EAF8,stroke:#3498DB
+    style E fill:#E8DAEF,stroke:#8E44AD
+    style R fill:#D1F2EB,stroke:#1ABC9C
+    style L fill:#D5F5E3,stroke:#27AE60
 ```
 
-### 9.2 Steps
+> [!WARNING]
+> Containment comes before evidence preservation, but nothing is destroyed until evidence is preserved.
+
+### 9.2 Response Steps
 
 **1. Detect and triage (T+0).** Confirm the signal source. Canary credential use, blocked-syscall hits in a no-network tier, and egress to a non-allowlisted host are high-confidence; treat them as real until disproven.
 
@@ -1064,7 +1186,7 @@ flowchart LR
 
 **5. Eradicate (days).** Rebuild affected hosts from known-good images; do not clean in place. Rotate all secrets reachable from the affected environment. Roll back memory stores and instruction files to the last verified version. Quarantine outputs produced by the agent after the first anomaly and notify their consumers.
 
-**6. Recover.** Resume the agent class, if at all, at a lower tier with the control gap closed. Any model, scaffold, or tool change resets trust to Tier 1 (Section 3.7).
+**6. Recover.** Resume the agent class, if at all, at a lower tier with the control gap closed. Any model, scaffold, or tool change resets trust to Tier 1 (Section 3.8).
 
 **7. Learn and disclose.** Root cause, the specific control that failed, the tier-policy or checklist update, and whether the event triggers external obligations: regulatory reporting (for example serious-incident reporting under the EU AI Act for in-scope systems), notification of affected parties, coordinated disclosure of any sandbox vulnerability to the vendor, and sharing indicators with peers.
 
@@ -1085,13 +1207,13 @@ flowchart LR
 
 A framework that applies maximum restrictions uniformly is simple but counterproductive. It constrains useful agents, creates friction that leads to workarounds (propping the fire door open), and conflates different risk profiles.
 
-The tiered model's commitment is that containment should be the minimum necessary to manage the assessed risk -- and no more.
+The tiered model's commitment is that containment should be the minimum necessary to manage the assessed risk, and no more.
 
 **Agents that have not demonstrated misalignment should not be treated as adversaries.** They should operate where they can be useful while defense-in-depth is maintained. Monitoring provides the safety net: if behavior changes, the tier is reassessed.
 
 **Agents under adversarial testing should be treated as adversaries.** This is a threat-modeling decision, not a moral judgment. The point of adversarial testing is to find out whether the agent will behave adversarially, so containment must assume the worst case.
 
-**Evaluation results are evidence, not proof.** Given evaluation awareness (Section 2.5), proportionality must be based on *all* the evidence -- production-realistic history, probing signals, and elicitation quality -- not a single benchmark score.
+**Evaluation results are evidence, not proof.** Given evaluation awareness (Section 2.5), proportionality must be based on *all* the evidence (production-realistic history, probing signals, and elicitation quality), not a single benchmark score.
 
 **The cost of over-containment is real.** An air-gapped agent cannot search the web, call APIs, or use knowledge bases. If default containment removes most of an agent's value, teams will stop using agents or bypass controls. Neither improves safety. Brokerage (Section 7.5) and architectural injection defenses (Section 5.2) exist to recover utility without giving up containment.
 
@@ -1103,12 +1225,12 @@ The tiered model accepts both costs and allocates them based on evidence.
 
 ## 11. Integration with Broader AI Governance
 
-This framework answers the infrastructure question -- *how do we technically and physically contain AI agents?* -- and depends on other layers:
+This framework answers the infrastructure question (*how do we technically and physically contain AI agents?*) and depends on other layers:
 
-- **Alignment research** -- making agents less likely to be misaligned in the first place
-- **Evaluation frameworks** -- determining which tier an agent belongs in, with adequate elicitation
-- **Policy governance** -- organizational and legal standards for deployment
-- **Incident response** -- Section 9 plus organizational processes
+- **Alignment research**: making agents less likely to be misaligned in the first place
+- **Evaluation frameworks**: determining which tier an agent belongs in, with adequate elicitation
+- **Policy governance**: organizational and legal standards for deployment
+- **Incident response**: Section 9 plus organizational processes
 
 Tier assignments are informed by evaluation results; monitoring data feeds back into evaluation; physical requirements may be driven by regulation; and incident response depends on knowing what containment was in place.
 
@@ -1127,24 +1249,42 @@ Tier assignments are informed by evaluation results; monitoring data feeds back 
 | **RAND Securing AI Model Weights** [2] and **SL5 Task Force draft standard** [3] | 2024 report; SL5 draft May 2026 | Weight-security levels; Section 6.7 |
 | **Frontier lab frameworks** | Anthropic RSP (v3.0 Feb 2026, since revised) [13]; OpenAI Preparedness Framework v2 (Apr 2025) [11]; Google DeepMind Frontier Safety Framework v3 (Sep 2025) [41] | Capability thresholds that trigger stronger security and containment; v3 of the DeepMind framework adds harmful manipulation and expands coverage of shutdown/control resistance |
 
-Regulatory dates change; confirm current applicability before relying on this table for compliance.
+> [!NOTE]
+> Regulatory dates change. Confirm current applicability before relying on this table for compliance.
 
 ### 11.2 Related Documents
 
-- [Agent Swarm Honeypot Guide](./agent-swarm-honeypot-guide.md) -- deception and early-warning infrastructure for detecting misaligned autonomous agent swarms; complements Sections 6.3 and 8.5.
-- [Secure Terminal Briefcase](./secure-terminal-briefcase.md) -- tamper-responsive portable hardware, relevant to Tier 0 key custody and transport.
-- [BioForge CRISPR Automation](./bioforge-crispr-automation.md) -- an example of an agent-driven physical system where containment and HITL gates govern real-world actuation.
-- `packages/sleeper_agents/` -- sleeper agent detection research that Tier 0 environments are designed to host.
+- [Agent Swarm Honeypot Guide](./agent-swarm-honeypot-guide.md): deception and early-warning infrastructure for detecting misaligned autonomous agent swarms; complements Sections 6.3 and 8.3.
+- [Secure Terminal Briefcase](./secure-terminal-briefcase.md): tamper-responsive portable hardware, relevant to Tier 0 key custody and transport.
+- [BioForge CRISPR Automation](./bioforge-crispr-automation.md): an example of an agent-driven physical system where containment and HITL gates govern real-world actuation.
+- `packages/sleeper_agents/`: sleeper agent detection research that Tier 0 environments are designed to host.
 
 ---
 
 ## 12. Containment in Resource-Constrained Environments
 
+> [!TIP]
+> **At a glance.** Academic labs, startups, and independent researchers still need Tier 0-1 containment. Each enterprise control below has a lower-cost substitute that addresses the *same threat*: TPMs for HSMs, safes and seals for mantraps, Falco or Tetragon for a commercial SIEM, strong open-source sandboxes for TEEs.
+
 HSMs, biometric mantraps, confidential GPUs, and 24/7 SOCs require significant capital. The need for rigorous containment is not limited to well-funded organizations: academic labs, startups, and independent researchers doing adversarial AI research still need Tier 0 or Tier 1 containment, and the threat model does not relax because the budget is smaller.
 
-When a primary control is out of reach, practitioners apply **compensating controls** -- procedural, open-source, or alternative physical measures that achieve equivalent risk reduction through different means. This is standard practice in SOC 2 and ISO 27001 and is well understood by auditors. The requirement is that the compensating control addresses the *same threat* as the primary control, not merely that it is cheaper.
+> [!IMPORTANT]
+> **Compensating controls principle.** When a primary control is out of reach, apply **compensating controls**: procedural, open-source, or alternative physical measures that achieve equivalent risk reduction through different means (standard practice in SOC 2 and ISO 27001, and well understood by auditors). The compensating control must address the *same threat* as the control it replaces, not merely be cheaper. A TPM is not an HSM, but it provides hardware-rooted key protection; a safe is not a mantrap, but it eliminates the unobserved physical-access window; Falco is not a commercial SIEM, but it enforces the same kernel-level rules.
 
 This section assumes a technically skilled practitioner familiar with Linux internals, cryptographic primitives, and physical security principles, without enterprise procurement budgets.
+
+| Domain | Enterprise control | Compensating control | Section |
+|---|---|---|---|
+| Key storage | Network HSM | TPM 2.0 sealing LUKS keys to measured-boot state | 12.1 |
+| Output signing | HSM-backed signing | FIDO2 / PIV / OpenPGP hardware tokens | 12.1 |
+| Facility | Mantraps, 24/7 SOC | Air-gapped workstation in a UL TL-15/TL-30 safe | 12.2 |
+| Tamper detection | Active surveillance | Serialized holographic seals and a logbook | 12.2 |
+| Monitoring | 24/7 SOC | Synchronous execution with a researcher present | 12.2 |
+| Runtime security | Commercial SIEM | Falco / Cilium Tetragon (kernel-level enforcement) | 12.3 |
+| Isolation boundary | Hardware TEEs | gVisor, Kata, or Firecracker plus safe storage | 12.3 |
+| Audit logs | WORM arrays | Media with a hardware write-protect switch | 12.3 |
+| Policy enforcement | Commercial API gateway | Open Policy Agent with versioned Rego policies | 12.4 |
+| Air-gap extraction | USB sneakernet | QR-code optical channel | 12.4 |
 
 ### 12.1 Cryptography and Key Management
 
@@ -1158,7 +1298,7 @@ This section assumes a technically skilled practitioner familiar with Linux inte
 
 **Enterprise approach:** Concentric rings with biometric mantraps, active SOC, honeypot infrastructure, and TEMPEST shielding.
 
-**Dedicated air-gapped workstation with safe storage.** Isolate a single commodity workstation. Remove WiFi and Bluetooth modules (usually M.2 or mini-PCIe cards) or disable them in BIOS with a BIOS password. Disable unused USB and Thunderbolt ports in BIOS; for ports that cannot be disabled, use keyed port blockers or, for dedicated hardware, industrial epoxy (irreversible). When not in use, power the machine down and store it in a commercial safe (UL TL-15 or TL-30) in an access-controlled room. This eliminates the unobserved physical-access window -- including for the DRAM-interposer class of attack (Section 4.8).
+**Dedicated air-gapped workstation with safe storage.** Isolate a single commodity workstation. Remove WiFi and Bluetooth modules (usually M.2 or mini-PCIe cards) or disable them in BIOS with a BIOS password. Disable unused USB and Thunderbolt ports in BIOS; for ports that cannot be disabled, use keyed port blockers or, for dedicated hardware, industrial epoxy (irreversible). When not in use, power the machine down and store it in a commercial safe (UL TL-15 or TL-30) in an access-controlled room. This eliminates the unobserved physical-access window, including for the DRAM-interposer class of attack (Section 4.8).
 
 **Serialized tamper-evident seals.** Holographic, serialized seals on chassis seams, DIMM access panels, port blockers, cables, and the safe, recorded in a logbook and verified before each use. This provides low-cost detection of "evil maid" attacks and a chain-of-custody record.
 
@@ -1168,7 +1308,7 @@ This section assumes a technically skilled practitioner familiar with Linux inte
 
 **Enterprise approach:** Commercial TEEs, enterprise SIEM, proprietary detection.
 
-**Open-source eBPF runtime security (Falco / Tetragon).** Falco (CNCF) and Cilium Tetragon hook into the kernel via eBPF with custom rules. Tetragon can enforce at the kernel level -- killing a process on an unauthorized syscall, connection, or file access -- making it a boundary, not only an observability tool.
+**Open-source eBPF runtime security (Falco / Tetragon).** Falco (CNCF) and Cilium Tetragon hook into the kernel via eBPF with custom rules. Tetragon can enforce at the kernel level (killing a process on an unauthorized syscall, connection, or file access), making it a boundary, not only an observability tool.
 
 **gVisor, Kata, and Firecracker.** These open-source runtimes provide substantially stronger boundaries than standard containers (Section 4.3). None provides TEE memory encryption, but physical safe storage addresses the physical-access gap, and as Section 4.8 shows, TEEs do not defeat physical attackers anyway. The combination of a strong sandbox and safe storage gives a threat-mitigation profile comparable to enterprise TEE deployments for Tier 0-1 research at a fraction of the cost.
 
@@ -1184,17 +1324,11 @@ This section assumes a technically skilled practitioner familiar with Linux inte
 
 **QR-code-based air-gap extraction.** For small validated outputs (short text, hashes, attestation proofs) from a Tier 0 machine, display the output as a QR code and scan it with a separate device. This removes USB attack vectors (BadUSB, autorun, malicious filesystem metadata) through an inherently bandwidth-limited optical channel, a technique used in cryptocurrency custody and key ceremonies. It suits kilobyte-scale payloads (more with animated sequences) and complements, rather than replaces, sneakernet for large outputs.
 
-### 12.5 The Compensating Controls Principle
-
-Resource constraints do not require compromising on *security properties*; they require achieving them through different mechanisms. A TPM is not an HSM, but it provides hardware-rooted key protection. A safe is not a mantrap, but it eliminates the physical-access window. Falco is not a commercial SIEM, but it enforces the same kernel-level rules.
-
-Each compensating control must be evaluated against the specific threat it addresses. If the primary control protects against Threat X, the compensating control must also protect against Threat X.
-
 ---
 
 ## 13. Summary of Recommendations
 
-**For organizations operating AI agents in production:**
+### 13.1 For Organizations Operating AI Agents in Production
 
 - Apply at least Tier 1 containment (no direct egress, sandbox stronger than plain runc, input/output validation) to any agent that executes code or uses tools
 - Classify agents by capability, data sensitivity, and behavioral evidence, and treat lethal-trifecta exposure as a tier escalator
@@ -1205,7 +1339,7 @@ Each compensating control must be evaluated against the specific threat it addre
 - Build an out-of-band, fail-closed, graduated kill switch and drill it
 - Monitor for containment probing, not only task anomalies; deploy in-sandbox canaries
 
-**For organizations training frontier models:**
+### 13.2 For Organizations Training Frontier Models
 
 - Target RAND SL3 at minimum for frontier weights, with a roadmap to SL4-SL5 as capabilities grow
 - Implement Tier 0 physical security and two-person integrity for weight storage and training hardware
@@ -1213,7 +1347,10 @@ Each compensating control must be evaluated against the specific threat it addre
 - Establish supply chain verification, hardware attestation, memory-bus tamper evidence, and egress bandwidth limits on weight-bearing systems
 - Evaluate TEMPEST requirements against the threat model
 
-**For organizations conducting adversarial AI research (sleeper agents, red-teaming, replication evaluations):**
+### 13.3 For Adversarial AI Research
+
+Sleeper agents, red-teaming, and replication evaluations.
+
 
 - Always use Tier 0 for adversarial evaluations
 - Hardware air gap with sneakernet or optical I/O and chain-of-custody logging
@@ -1223,7 +1360,10 @@ Each compensating control must be evaluated against the specific threat it addre
 - Fresh environments from verified golden images for each run
 - Cryptographic attestation of outputs for downstream chain of custody
 
-**For resource-constrained teams (academic labs, startups, independent researchers):**
+### 13.4 For Resource-Constrained Teams
+
+Academic labs, startups, and independent researchers.
+
 
 - Achieve Tier 0 with an air-gapped workstation, safe storage, and tamper-evident seals (Section 12.2)
 - Use TPM 2.0 for measured-boot disk encryption in place of an HSM (Section 12.1)
@@ -1270,6 +1410,8 @@ Each compensating control must be evaluated against the specific threat it addre
 | TEMPEST shielding | Electromagnetic emanation control | Tier 0 |
 
 ## Appendix B: Containment Checklist by Tier
+
+Use one checklist per deployment. Every box should be ticked, or the gap recorded with its compensating control (Section 12), before an agent runs at that tier.
 
 ### Tier 0 Checklist
 
@@ -1366,7 +1508,7 @@ Sources were checked in September 2026. Where a figure comes from a vendor or re
 3. L. Thiergart et al., *SL5 Standard for AI Security* (arXiv:2605.08449, May 2026); Institute for Security and Technology, SL5 Task Force. https://arxiv.org/abs/2605.08449 , https://securityandtechnology.org/sl5/
 4. MITRE ATLAS; Zenity Labs, *MITRE ATLAS adds AI agent attack techniques* (2025). https://atlas.mitre.org/ , https://labs.zenity.io/post/mitre-atlas-ai-agent-attack-techniques
 5. Linux kernel documentation, *Landlock: unprivileged access control*. https://docs.kernel.org/userspace-api/landlock.html
-6. OWASP, *MCP Top 10 (2025) -- MCP03 Tool Poisoning*. https://owasp.org/www-project-mcp-top-10/2025/MCP03-2025%E2%80%93Tool-Poisoning
+6. OWASP, *MCP Top 10 (2025): MCP03 Tool Poisoning*. https://owasp.org/www-project-mcp-top-10/2025/MCP03-2025%E2%80%93Tool-Poisoning
 7. Invariant Labs, *MCP Security Notification: Tool Poisoning Attacks* (Apr 2025). https://invariantlabs.ai/blog/mcp-security-notification-tool-poisoning-attacks
 8. The Hacker News, *First Malicious MCP Server Found Stealing Emails in Rogue Postmark-MCP Package* (Sep 2025); Postmark security notice. https://thehackernews.com/2025/09/first-malicious-mcp-server-found.html , https://postmarkapp.com/blog/information-regarding-malicious-postmark-mcp-package
 9. TEE.fail: *Breaking Trusted Execution Environments via DDR5 Memory Bus Interposition* (Oct 2025); Intel security announcement INTEL-2025-10-28-001. https://tee.fail/ , https://www.intel.com/content/www/us/en/security-center/announcement/intel-security-announcement-2025-10-28-001.html
@@ -1400,7 +1542,7 @@ Sources were checked in September 2026. Where a figure comes from a vendor or re
 37. NIST, *Updated Guidelines for Managing Misuse Risk for Dual-Use Foundation Models* (NIST AI 800-1 second public draft, Jan 2025). https://www.nist.gov/news-events/news/2025/01/updated-guidelines-managing-misuse-risk-dual-use-foundation-models
 38. NIST, *Draft NIST Guidelines Rethink Cybersecurity for the AI Era* (NIST IR 8596 Cyber AI Profile preliminary draft, Dec 2025). https://www.nist.gov/news-events/news/2025/12/draft-nist-guidelines-rethink-cybersecurity-ai-era
 39. NIST CAISI, *CAISI Issues Request for Information About Securing AI Agent Systems* (Jan 2026); Federal Register 2026-00206. https://www.nist.gov/news-events/news/2026/01/caisi-issues-request-information-about-securing-ai-agent-systems , https://www.federalregister.gov/documents/2026/01/08/2026-00206/request-for-information-regarding-security-considerations-for-artificial-intelligence-agents
-40. European Commission, *AI Act -- regulatory framework*; artificialintelligenceact.eu, *High-level summary*. https://digital-strategy.ec.europa.eu/en/policies/regulatory-framework-ai , https://artificialintelligenceact.eu/high-level-summary/
+40. European Commission, *AI Act: regulatory framework*; artificialintelligenceact.eu, *High-level summary*. https://digital-strategy.ec.europa.eu/en/policies/regulatory-framework-ai , https://artificialintelligenceact.eu/high-level-summary/
 41. Google DeepMind, *Strengthening our Frontier Safety Framework* (Sep 2025). https://deepmind.google/blog/strengthening-our-frontier-safety-framework/
 
 ---

@@ -128,7 +128,7 @@ pub fn unwrap_secrets(
     let recovery_secret = Zeroizing::new(
         wrap_cipher
             .decrypt(wrap_nonce, wrapped_secret.as_ref())
-            .map_err(|_| anyhow::anyhow!("Failed to decrypt recovery secret -- wrong keys?"))?,
+            .map_err(|_| anyhow::anyhow!("Failed to decrypt recovery secret (wrong keys?)"))?,
     );
 
     // -- Step 6: Derive device secrets wrapping key --
@@ -221,7 +221,7 @@ pub fn verify_image(
             Ok(())
         },
         Err(_) => {
-            bail!("Signature verification FAILED -- image may be tampered");
+            bail!("Signature verification FAILED; image may be tampered");
         },
     }
 }

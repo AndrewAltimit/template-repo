@@ -1,4 +1,4 @@
-//! `automation-cli wait` -- block until a TCP port (or HTTP endpoint) answers.
+//! `automation-cli wait`: block until a TCP port (or HTTP endpoint) answers.
 //! Drop-in replacement for `wait-for-it.sh`; exits 1 on timeout.
 
 use std::net::{TcpStream, ToSocketAddrs};

@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Template Repo -- GitHub Pages Site
+   Template Repo: GitHub Pages Site
    Progressive enhancement: all features degrade gracefully without JS
    ========================================================================== */
 

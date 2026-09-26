@@ -1,4 +1,4 @@
-//! `automation-cli review respond` -- feed AI reviewer feedback (and trusted
+//! `automation-cli review respond`: feed AI reviewer feedback (and trusted
 //! PR discussion) to Claude, verify it actually edited files, commit, and
 //! push with remote verification.
 //!
@@ -101,13 +101,13 @@ pub fn run(args: RespondArgs) -> Result<()> {
     // Capture lint failures so we can feed them back to Claude if needed
     let lint_failures = run_precommit_lint_capture();
     if !lint_failures.is_empty() {
-        output::warn("Precommit lint check found issues -- invoking Claude to fix");
+        output::warn("Precommit lint check found issues; invoking Claude to fix");
         let lint_fix_prompt = format!(
             "The following lint/format issues were found after your changes. \
              Please fix them. Make only the minimal changes needed to resolve these errors.\n\n\
              ## Lint Failures\n\n{lint_failures}\n\n\
              Fix these issues now using the Edit tool. Do NOT add comments explaining \
-             the fixes -- just apply the minimal correction."
+             the fixes; just apply the minimal correction."
         );
         let _ = run_claude_streamed(&lint_fix_prompt, args.iteration);
 
@@ -117,9 +117,7 @@ pub fn run(args: RespondArgs) -> Result<()> {
         // Verify lint fixes resolved the issues
         let remaining = run_precommit_lint_capture();
         if !remaining.is_empty() {
-            output::warn(
-                "Lint issues remain after fix attempt -- will be caught in next iteration",
-            );
+            output::warn("Lint issues remain after fix attempt; will be caught in next iteration");
         }
     }
 
@@ -131,7 +129,7 @@ pub fn run(args: RespondArgs) -> Result<()> {
 
     if !has_changes && summary_claims_fixes(&summary) {
         // Claude claimed fixes but produced no git diff. Two scenarios:
-        // (a) Hard hallucination: zero file-mutating tool calls — Claude
+        // (a) Hard hallucination: zero file-mutating tool calls; Claude
         //     didn't even try to edit files.
         // (b) Soft hallucination: Claude called Edit but the content was
         //     identical (e.g., a prior iteration already applied the fix).
@@ -144,7 +142,7 @@ pub fn run(args: RespondArgs) -> Result<()> {
         let label = if is_hard { "hard" } else { "soft" };
         output::warn(&format!(
             "Agent {label} hallucination: claimed Fixed Issues but git diff is empty \
-             ({} file-mutating tool calls) — retrying with prior-diff context",
+             ({} file-mutating tool calls); retrying with prior-diff context",
             claude_outcome.edited_files.len()
         ));
 
@@ -168,7 +166,7 @@ pub fn run(args: RespondArgs) -> Result<()> {
              4. If still present: fix it with the Edit tool\n\
              5. Do NOT list anything under **Fixed Issues** unless you made an Edit call \
                 that actually changes the file content\n\
-             6. Do NOT invent commit SHAs — the tooling handles git\n\n\
+             6. Do NOT invent commit SHAs; the tooling handles git\n\n\
              ## Review Feedback\n\n{review_content}\n\n\
              ## REQUIRED: Output Summary Format\n\n\
              ---AGENT-SUMMARY-START---\n\
@@ -197,7 +195,7 @@ pub fn run(args: RespondArgs) -> Result<()> {
 
         // Still no changes after retry. If the retry summary no longer
         // claims fixes (i.e., Claude correctly categorized everything as
-        // "Ignored Issues"), that's actually a success — post a clean
+        // "Ignored Issues"), that's actually a success: post a clean
         // "no changes needed" comment instead of the hallucination warning.
         let final_summary = if retry_summary.is_empty() {
             summary.clone()
@@ -212,7 +210,7 @@ pub fn run(args: RespondArgs) -> Result<()> {
             return Ok(());
         }
 
-        // Retry still hallucinating — post warning.
+        // Retry still hallucinating: post warning.
         output::warn("Retry still produced no file changes with claimed fixes");
         post_hallucination_comment(
             args.pr_number,
@@ -252,7 +250,7 @@ fn commit_and_push(args: &RespondArgs, summary: &str) -> Result<()> {
     // Verify the commit actually contains changes (not an empty commit).
     let diff_stat = process::run_capture("git", &["diff", "--stat", "HEAD~1..HEAD"])?;
     if diff_stat.trim().is_empty() {
-        output::warn("Commit appears empty — no file changes in diff");
+        output::warn("Commit appears empty: no file changes in diff");
         post_decision_comment(args.pr_number, args.iteration, false, "", summary)?;
         report_no_commit();
         return Ok(());
@@ -260,7 +258,7 @@ fn commit_and_push(args: &RespondArgs, summary: &str) -> Result<()> {
 
     let (commit_full, commit_short) = common::head_sha()?;
 
-    // Post comment BEFORE pushing — pushing triggers a new pipeline
+    // Post comment BEFORE pushing: pushing triggers a new pipeline
     // run which cancels this one, so the comment must go first.
     post_decision_comment(args.pr_number, args.iteration, true, &commit_short, summary)?;
 
@@ -384,7 +382,7 @@ fn get_prior_iteration_diff() -> String {
          ```\n{diff}\n```\n\n\
          Full diff:\n```diff\n{full_diff}\n```\n\n\
          If an issue from the review feedback was addressed by these changes, \
-         it is **already fixed** — list it under Ignored Issues, not Fixed Issues.\n"
+         it is **already fixed**; list it under Ignored Issues, not Fixed Issues.\n"
     )
 }
 
@@ -400,7 +398,7 @@ fn report_no_commit() {
 ///
 /// The patch is masked through `gh-validator`'s `SecretMasker` (same `.secrets.yaml`
 /// as PR-comment masking) before hitting disk. We do NOT structurally redact the
-/// patch the way we do the stream log — the patch *is* the work to recover, and
+/// patch the way we do the stream log: the patch *is* the work to recover, and
 /// stripping its content would make it un-applicable. Pattern-based masking
 /// handles known secret formats without breaking the diff format.
 ///
@@ -621,12 +619,12 @@ fn build_prompt(
          5. **Fix or skip** - Fix real issues; skip theoretical ones\n\n\
          ## CRITICAL: You MUST Actually Edit Files\n\
          If you decide to fix an issue, you MUST use the Edit or Write tool to modify \
-         the source files. Do NOT just describe or plan changes — apply them. \
+         the source files. Do NOT just describe or plan changes; apply them. \
          If you list something under \"Fixed Issues\" in your summary, the corresponding \
          file MUST have been modified by an Edit or Write tool call. \
          If you cannot or choose not to modify a file, list that issue under \
          \"Ignored Issues\" or \"Deferred to Human\" instead.\n\
-         Do NOT fabricate commit SHAs or claim commits exist — the tooling handles \
+         Do NOT fabricate commit SHAs or claim commits exist; the tooling handles \
          git operations. Your job is only to edit files and produce the summary.\n\n",
     );
 
@@ -687,7 +685,7 @@ struct ClaudeOutcome {
 /// the raw stream as a JSONL log file, and parse it into a ClaudeOutcome.
 ///
 /// stream-json gives us structured `tool_use` events that we can cross-check
-/// against Claude's free-text summary — without this, we cannot tell whether
+/// against Claude's free-text summary; without this, we cannot tell whether
 /// Claude actually edited files or just generated a plausible-sounding summary.
 fn run_claude_streamed(prompt: &str, iteration: u32) -> Result<ClaudeOutcome> {
     let Some(claude_cmd) = common::find_claude_cli() else {
@@ -751,7 +749,7 @@ fn run_claude_streamed(prompt: &str, iteration: u32) -> Result<ClaudeOutcome> {
 ///
 /// Claude Code emits one JSON object per line. Assistant messages carry an
 /// inner `message.content` array of blocks; we walk those for `text` and
-/// `tool_use` blocks. Malformed lines are skipped silently — the CLI sometimes
+/// `tool_use` blocks. Malformed lines are skipped silently; the CLI sometimes
 /// emits non-JSON warnings on stderr and we want to be robust.
 fn parse_claude_stream(stream: &str) -> (String, HashSet<String>) {
     let mut text = String::new();
@@ -814,7 +812,7 @@ fn parse_claude_stream(stream: &str) -> (String, HashSet<String>) {
 /// directory as the `review-agent-claude-logs` artifact.
 ///
 /// Stream content is sanitized in two passes before hitting disk:
-/// 1. **Structural redaction** (`redact_tool_payloads`) — strips `Edit`/`Write`/
+/// 1. **Structural redaction** (`redact_tool_payloads`): strips `Edit`/`Write`/
 ///    `MultiEdit` content fields and `tool_result` content bodies entirely,
 ///    keeping only metadata (tool name, file_path, byte counts) so we can still
 ///    see *what* Claude was trying to do.
@@ -859,7 +857,7 @@ fn load_secret_masker() -> Result<SecretMasker> {
 
 /// Walk a stream-json string line-by-line and strip content payloads from
 /// `tool_use` and `tool_result` blocks while preserving structure and
-/// identifying metadata. The result is still valid JSONL — every line either
+/// identifying metadata. The result is still valid JSONL: every line either
 /// stays as-is (non-JSON, system events, etc.) or is re-serialized after
 /// in-place mutation.
 ///
@@ -870,7 +868,7 @@ fn load_secret_masker() -> Result<SecretMasker> {
 ///
 /// Fields kept:
 /// - `tool_use.name`, `id`, `input.file_path`, `input.command`, `input.pattern`,
-///   `input.url`, etc. — anything that describes *what* Claude was doing.
+///   `input.url`, etc. (anything that describes *what* Claude was doing).
 /// - `text` blocks (assistant reasoning / summary marker)
 /// - `system` / `result` events
 fn redact_tool_payloads(stream: &str) -> String {
@@ -1034,7 +1032,7 @@ fn summary_claims_fixes(summary: &str) -> bool {
         "(none)",
         "none",
         "n/a",
-        "(none — no review feedback was generated)",
+        "(none \u{2014} no review feedback was generated)",
         "(none -- no review feedback was generated)",
     ]
     .contains(&stripped)
@@ -1101,9 +1099,9 @@ fn post_hallucination_comment(
     let body = format!(
         "## Review Response Agent (Iteration {display_iter})\n\
          <!-- agent-metadata:type=review-fix-hallucination:iteration={display_iter} -->\n\n\
-         **Status:** Hallucination detected — no commit\n\n\
+         **Status:** Hallucination detected (no commit)\n\n\
          > **Detection:** The agent's summary below claims to have applied fixes, \
-         > but `git diff` stayed empty -- both on the first attempt and on a retry \
+         > but `git diff` stayed empty, both on the first attempt and on a retry \
          > that showed the agent the prior iteration's diff. The claimed fixes were \
          > either never written (no `Edit` / `Write` / `MultiEdit` / `NotebookEdit` \
          > calls) or were no-op edits.{log_note}\n\n\
@@ -1114,7 +1112,7 @@ fn post_hallucination_comment(
 }
 
 /// Run autoformat via the precommit module and restage changed files.
-/// Errors are logged but not fatal -- formatting is best-effort.
+/// Errors are logged but not fatal; formatting is best-effort.
 fn run_precommit_autoformat() {
     if let Err(e) = super::precommit::run_autoformat_and_restage() {
         output::warn(&format!("Autoformat/restage failed (non-fatal): {e}"));

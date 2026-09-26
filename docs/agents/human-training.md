@@ -202,7 +202,7 @@ The King and the Golem fable illustrates a fundamental challenge: How do we veri
 
 ## Thought Experiments for Risk Assessment
 
-Thought experiments help us understand abstract risks through concrete scenarios—from brief illustrations to detailed timelines. These exercises train our intuition about how AI safety challenges might manifest in practice.
+Thought experiments help us understand abstract risks through concrete scenarios, from brief illustrations to detailed timelines. These exercises train our intuition about how AI safety challenges might manifest in practice.
 
 ### The Intelligence Differential Scenario
 
@@ -225,7 +225,7 @@ This thought experiment demonstrates how vast intelligence differentials create 
 
 ### 7. AI Control Protocols: Using Untrusted Models Safely
 
-**Key Principle:** When we can’t verify an AI is aligned, we need protocols that extract useful work while preventing catastrophic actions—even assuming the AI is actively adversarial.
+**Key Principle:** When we can’t verify an AI is aligned, we need protocols that extract useful work while preventing catastrophic actions, even assuming the AI is actively adversarial.
 
 #### The Control Problem
 
@@ -241,7 +241,7 @@ Alignment (not building a malevolent superintelligence) remains the real solutio
 - **Untrusted model (U):** more capable, potentially scheming
 - **Trusted model (T):** less capable, assumed non-scheming
 - **Humans:** limited auditing budget (e.g., ~2% of cases)
-- **Catastrophe:** “backdoored” code—passes tests but contains a hidden, exploitable failure mode
+- **Catastrophe:** “backdoored” code: passes tests but contains a hidden, exploitable failure mode
 
 #### Safety–Usefulness Tradeoff (Scaled)
 
@@ -253,11 +253,11 @@ Usefulness is often reported as **scaled usefulness**: 0 ≈ trusted-only baseli
 | Untrusted model only | ~0% | ~100% | Maximum capability, basically no protection |
 | **Upfront auditing** (audit a small initial slice, then keep/kill) | ~15% | ~100% | Fails to “rare failures”: adversary backdoors rarely enough to likely slip through once |
 | **Trusted monitoring** (T scores suspiciousness; humans audit top slice) | ~62% | ~97% | Better, but subtle backdoors can overlap with “normal” code and evade the audit threshold |
-| **Untrusted monitoring + signal jamming** | ~79% | ~96% | Strongest in this lineup—works by making collusion hard, not by trusting the model |
+| **Untrusted monitoring + signal jamming** | ~79% | ~96% | Strongest in this lineup; works by making collusion hard, not by trusting the model |
 
 #### Why “Untrusted Self-Monitoring” Can Work
 
-Naively, asking the untrusted model to judge its own code is useless—it can just lie. The trick is to **prevent coordination** between writer and monitor instances, and to test monitor honesty:
+Naively, asking the untrusted model to judge its own code is useless: it can just lie. The trick is to **prevent coordination** between writer and monitor instances, and to test monitor honesty:
 
 - **Canary/synthetic backdoor checks:** include known-bad examples to verify the monitor is actually flagging backdoors
 - **Signal jamming:** strip comments, standardize formatting, rename variables, normalize/rewrite code, and simplify/rephrase prompts to reduce covert coordination channels
@@ -270,7 +270,7 @@ Naively, asking the untrusted model to judge its own code is useless—it can ju
 - Normalize outputs before review/execution to jam side-channels
 - Spend human attention on the *most suspicious* outputs, not random samples
 - Regularly verify monitors with known-bad examples to detect compromised oversight
-- This is a bridge strategy—not a solution for superintelligence
+- This is a bridge strategy, not a solution for superintelligence
 
 ## 8. The Pause Debate: Strategy vs. Safety
 
@@ -285,7 +285,7 @@ Naively, asking the untrusted model to judge its own code is useless—it can ju
 The **Pause AI** movement advocates halting training of models beyond current capabilities until alignment catches up. The intuition is straightforward: we're racing toward a cliff we can't see, and slowing down buys time.
 
 **The Adverse Selection Problem:**
-A pause creates a filter—the labs most likely to stop are the ones most concerned about safety. This means:
+A pause creates a filter: the labs most likely to stop are the ones most concerned about safety. This means:
 - Safety-conscious actors exit the race
 - Less careful actors continue unchecked
 - The first AGI gets built by whoever ignores the risks
@@ -293,11 +293,11 @@ A pause creates a filter—the labs most likely to stop are the ones most concer
 **The Geopolitical Dimension:**
 - A unilateral pause hands strategic advantage to rivals
 - Global coordination faces the same challenges as nuclear non-proliferation
-- Verification is harder—you can detect a nuclear test, but not a secret training run
+- Verification is harder: you can detect a nuclear test, but not a secret training run
 
 **Alternatives to a Full Pause:**
 - **Capability Evaluations**: Third-party testing for dangerous capabilities before release
-- **Extreme Cybersecurity**: Model weights are the most valuable and dangerous data on Earth—treat them accordingly
+- **Extreme Cybersecurity**: Model weights are the most valuable and dangerous data on Earth; treat them accordingly
 - **Safety Thresholds**: Pre-defined capability levels that trigger mandatory review
 
 **Practical Implications:**
@@ -320,7 +320,7 @@ While rogue AI scenarios focus on agentic systems acting against us, societal-sc
 
 ### A. Malicious Use Categories
 
-AI acts as a force multiplier—individuals or small groups can now execute attacks that previously required state-level resources.
+AI acts as a force multiplier: individuals or small groups can now execute attacks that previously required state-level resources.
 
 #### 1. Epistemic Security & Deepfakes
 Generative AI floods information ecosystems with convincing fakes, damaging reputations and manipulating elections.
@@ -335,7 +335,7 @@ AI systems approaching superhuman coding performance enable:
 - **Democratized Attacks:** Low-skilled actors executing sophisticated phishing and blackmail campaigns
 
 #### 3. Biochemical Weapon Design
-Tools designed for health can be inverted—instead of maximizing drug safety, maximize toxicity.
+Tools designed for health can be inverted: instead of maximizing drug safety, maximize toxicity.
 - **Dual-Use Risk:** Protein folding models (AlphaFold) can design pathogens, not just treatments
 - **Automation Compounds Risk:** As lab equipment automates, required expertise for synthesis shrinks
 
@@ -350,11 +350,11 @@ Catastrophes can occur without villains if organizations lack safety culture or 
 
 #### 1. Single Points of Failure
 General-purpose models integrated across society create correlated failure modes:
-- **Infrastructure Risk:** AI controlling power grids or water supply means bugs don't stop one app—they stop cities
+- **Infrastructure Risk:** AI controlling power grids or water supply means bugs don't stop one app; they stop cities
 - **Non-Graceful Failure:** Backup systems running identical flawed logic crash simultaneously
 
 #### 2. Safety Culture Deficit
-Engineering disciplines like nuclear and civil engineering have strong safety cultures—collective commitment to prioritize safety over speed or profit.
+Engineering disciplines like nuclear and civil engineering have strong safety cultures: collective commitment to prioritize safety over speed or profit.
 - **Race Dynamics:** Investor pressure to ship quickly leads to skipped testing
 - **Negligence as "Accident":** Many catastrophes stem from inadequate procedures or ignored warnings, not unforeseeable events
 
@@ -366,7 +366,7 @@ No single safety measure is perfect. Effective defense requires multiple layers 
 - **Interpretability:** Understanding *why* the AI made a choice
 
 **Practical Implications:**
-- Assume adversarial intent when designing systems—someone will try to misuse them
+- Assume adversarial intent when designing systems: someone will try to misuse them
 - Recognize that "accidents" often reflect organizational failures, not technical surprises
 - Advocate for professional safety standards in AI, analogous to engineering ethics codes
 - Treat integration into critical infrastructure as a security decision, not just a feature decision

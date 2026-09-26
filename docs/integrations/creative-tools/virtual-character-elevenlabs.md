@@ -213,7 +213,7 @@ The VRChat backend communicates via OSC over UDP with bidirectional support:
 The PAD (Pleasure-Arousal-Dominance) model in the Rust server enables smooth emotion interpolation:
 
 ```rust
-// From types.rs -- each emotion maps to a 3D vector
+// From types.rs: each emotion maps to a 3D vector
 impl EmotionType {
     pub fn to_pad_vector(self) -> EmotionVector {
         match self {

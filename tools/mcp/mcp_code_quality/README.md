@@ -1,7 +1,7 @@
 # Code Quality MCP Server (Rust)
 
-> MCP server that runs code quality tools -- formatters, linters, pytest, the
-> ty type checker, bandit, pip-audit, and a markdown link checker -- on paths
+> MCP server that runs code quality tools (formatters, linters, pytest, the
+> ty type checker, bandit, pip-audit, and a markdown link checker) on paths
 > inside a configured allowlist, and returns structured JSON results.
 
 Every tool call runs an external program as a bounded subprocess:
@@ -44,8 +44,8 @@ usable result*; whether the code passed is reported separately in `passed`
 (for display only), `returncode`, `duration_ms`, and, when relevant,
 `truncated` and `notes` (caveats such as an ignored option).
 
-Invalid arguments -- a missing required parameter, a wrong type, or an unknown
-enum value such as `linter: "pylint"` -- are rejected with an MCP
+Invalid arguments (a missing required parameter, a wrong type, or an unknown
+enum value such as `linter: "pylint"`) are rejected with an MCP
 `InvalidParameters` error rather than silently replaced by a default. `null`
 values count as "not provided".
 
@@ -76,7 +76,7 @@ when it is given.
 | `rust` | crate directory with `Cargo.toml`: `cargo fmt [--check]`; single `.rs` file: `rustfmt [--check] --edition <from nearest Cargo.toml, else 2021>` |
 
 `format_check` returns `formatted` and `unformatted_files`; `diff: true` puts a
-diff in `output` (not supported by prettier -- a note says so). A formatter that
+diff in `output` (not supported by prettier; a note says so). A formatter that
 fails for another reason (syntax error, bad config) is reported as
 `tool_error`, not as "unformatted". `autoformat` modifies files in place, which
 fails on the default read-only `/app` mount.

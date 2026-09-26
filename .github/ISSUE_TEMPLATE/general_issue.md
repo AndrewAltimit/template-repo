@@ -1,6 +1,6 @@
 ---
 name: General issue
-about: Internal use only -- external issues may be ignored without response
+about: Internal use only; external issues may be ignored without response
 title: ''
 labels: ''
 assignees: ''

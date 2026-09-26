@@ -124,7 +124,7 @@ mod tests {
     #[test]
     fn strips_zwj_sequence_cleanly() {
         // Man technologist: man + ZWJ + laptop. We don't have either visible
-        // emoji mapped, so both become "" — but the ZWJ must also be stripped
+        // emoji mapped, so both become "", but the ZWJ must also be stripped
         // so no invisible orphan is left behind.
         let input = "author \u{1F468}\u{200D}\u{1F4BB} shipped it";
         let (out, n) = strip_emojis(input);

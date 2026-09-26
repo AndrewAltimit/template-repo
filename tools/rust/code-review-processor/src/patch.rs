@@ -148,7 +148,7 @@ fn normalize_diff(path: &str, raw: &str) -> Result<String> {
         if let Some(current) = hunk.as_mut() {
             match line.chars().next() {
                 Some(' ' | '+' | '-' | '\\') => current.push(line),
-                // Blank context line whose leading space was stripped -- unless
+                // Blank context line whose leading space was stripped, unless
                 // it merely separates this hunk from whatever follows.
                 None if continues_hunk(&lines, i, true) => current.push(" "),
                 None => {},

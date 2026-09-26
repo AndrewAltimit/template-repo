@@ -182,8 +182,8 @@ Both wrappers depend on `wrapper-common`, which provides:
 
 Finds the real binary without ever resolving to itself or another wrapper:
 
-1. **Hardened path** -- checks `/usr/lib/wrapper-guard/{name}.real` first (only visible to the setgid wrapper)
-2. **PATH scan fallback** -- iterates only **absolute** `$PATH` entries (empty, `.` and relative entries are skipped so a repository cannot plant its own `git`), accepts regular executable files only, canonicalizes each candidate, and skips this wrapper and any wrapper already on the exec chain
+1. **Hardened path**: checks `/usr/lib/wrapper-guard/{name}.real` first (only visible to the setgid wrapper)
+2. **PATH scan fallback**: iterates only **absolute** `$PATH` entries (empty, `.` and relative entries are skipped so a repository cannot plant its own `git`), accepts regular executable files only, canonicalizes each candidate, and skips this wrapper and any wrapper already on the exec chain
 
 ### Wrapper Chain (`__WRAPPER_GUARD_RECURSION_<NAME>`)
 
@@ -307,7 +307,7 @@ This is checked before any other logic runs (before binary discovery, before arg
 
 ### What it does NOT do
 
-The source hash is not a runtime tamper-detection mechanism. A modified binary could simply return a fake hash. Its purpose is **version identification** and **known-good baseline comparison** -- the setup script records the hash at install time, and the verify script compares against that baseline.
+The source hash is not a runtime tamper-detection mechanism. A modified binary could simply return a fake hash. Its purpose is **version identification** and **known-good baseline comparison**: the setup script records the hash at install time, and the verify script compares against that baseline.
 
 ## Layer 4: Binary Relocation (Host Systems)
 
@@ -528,11 +528,11 @@ sudo bash automation/setup/security/verify-wrapper-guard.sh
 
 6. **Hooks can be disabled outside git**. Editing `.git/config` or deleting `.git/hooks/*` with ordinary file tools is not prevented; only the git-command routes are blocked. Hook-framework switches such as pre-commit's `SKIP=` variable are not inspected.
 
-7. **Audit logging is best-effort**. If the log directory is not writable, the wrapper still executes the command. This is intentional -- the wrapper's primary function (policy enforcement) should never be blocked by a logging failure.
+7. **Audit logging is best-effort**. If the log directory is not writable, the wrapper still executes the command. This is intentional: the wrapper's primary function (policy enforcement) should never be blocked by a logging failure.
 
 ## Related Documentation
 
-- [AI Agents Security](../agents/security.md) -- Overall agent security model
-- [AI Agents Security (Detailed)](../agents/security-detailed.md) -- Deep dive into agent security
-- [Containerization](containerization.md) -- Container-first philosophy
-- [Git Hooks](git-hooks.md) -- Pre-commit and pre-push hooks
+- [AI Agents Security](../agents/security.md): Overall agent security model
+- [AI Agents Security (Detailed)](../agents/security-detailed.md): Deep dive into agent security
+- [Containerization](containerization.md): Container-first philosophy
+- [Git Hooks](git-hooks.md): Pre-commit and pre-push hooks

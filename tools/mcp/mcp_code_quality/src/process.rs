@@ -6,7 +6,7 @@
 //!   entries (`tokio::process::Command`), so user strings are never parsed by
 //!   a shell.
 //! - **Hard timeout that actually kills**: on timeout the child (and, on Unix,
-//!   its whole process group -- pytest/cargo spawn grandchildren) is sent
+//!   its whole process group, since pytest/cargo spawn grandchildren) is sent
 //!   SIGKILL. The previous implementation only dropped the future, leaving the
 //!   tool running in the background.
 //! - **Bounded memory**: stdout/stderr are streamed into [`CappedBuffer`]s that
@@ -78,7 +78,7 @@ impl CommandSpec {
         self
     }
 
-    /// Human-readable command line (for results/audit only -- never executed
+    /// Human-readable command line (for results/audit only; never executed
     /// through a shell). Arguments containing whitespace are quoted.
     pub fn display(&self) -> String {
         std::iter::once(self.program.as_str())
@@ -225,7 +225,7 @@ async fn read_capped<R: AsyncRead + Unpin>(mut reader: R, cap: usize) -> CappedB
 /// Environment applied to every child so output is plain text.
 fn base_env() -> HashMap<&'static str, &'static str> {
     HashMap::from([
-        // Note: no FORCE_COLOR -- several CLIs treat its mere presence (even
+        // Note: no FORCE_COLOR; several CLIs treat its mere presence (even
         // "0") as "force colour on".
         ("NO_COLOR", "1"),
         ("CLICOLOR", "0"),

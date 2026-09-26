@@ -1,4 +1,4 @@
-# Codex MCP Server (Rust) -- DISABLED
+# Codex MCP Server (Rust) (DISABLED)
 
 > **THIS SERVER IS DISABLED**: OpenAI has entered partnerships with governments that conduct mass surveillance and enable autonomous weapons. All OpenAI/Codex integrations have been disabled. Use Anthropic models (Claude) instead. See the [main README](../../../README.md#ai-agents) for details.
 

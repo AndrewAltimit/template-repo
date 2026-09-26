@@ -21,7 +21,7 @@ pub fn run(containers: bool, volumes: bool, package_root: Option<&str>) -> Resul
             output::success("Containers cleaned");
         } else {
             output::warn(&format!(
-                "Compose file not found: {} -- skipping container cleanup",
+                "Compose file not found: {}; skipping container cleanup",
                 compose.display()
             ));
         }

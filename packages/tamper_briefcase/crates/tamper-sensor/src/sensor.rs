@@ -182,7 +182,7 @@ pub fn run() -> Result<()> {
             };
             log::warn!("LID OPENED (lux={:.1}, confidence={})", lux, confidence);
             if let Err(e) = emit_event(&mut fifo, &event) {
-                log::error!("Failed to emit LID OPENED event: {} -- will retry", e);
+                log::error!("Failed to emit LID OPENED event: {}; will retry", e);
                 transition_emit_failed = true;
             }
         }
@@ -197,7 +197,7 @@ pub fn run() -> Result<()> {
             };
             log::info!("LID CLOSED (lux={:.1})", lux);
             if let Err(e) = emit_event(&mut fifo, &event) {
-                log::error!("Failed to emit LID CLOSED event: {} -- will retry", e);
+                log::error!("Failed to emit LID CLOSED event: {}; will retry", e);
                 transition_emit_failed = true;
             }
         }

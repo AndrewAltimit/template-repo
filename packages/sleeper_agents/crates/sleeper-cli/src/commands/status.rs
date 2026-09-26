@@ -71,7 +71,7 @@ pub async fn run(package_root: Option<&str>, json: bool) -> Result<()> {
             Err(e) => output::detail(&format!("Could not fetch status: {e}")),
         }
     } else {
-        output::info("Container not running -- skipping API check");
+        output::info("Container not running; skipping API check");
     }
 
     // Database

@@ -62,9 +62,9 @@ impl fmt::Display for Confidence {
 /// Hall effect sensor state.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum HallState {
-    /// Magnet detected -- lid is closed.
+    /// Magnet detected; lid is closed.
     Closed,
-    /// No magnet -- lid is open.
+    /// No magnet; lid is open.
     Open,
 }
 
@@ -98,7 +98,7 @@ pub enum SystemState {
     Disarmed,
     /// Lid closed, counting down arming delay.
     Arming,
-    /// Fully armed -- any lid open triggers challenge.
+    /// Fully armed: any lid open triggers challenge.
     Armed,
     /// Password challenge is active.
     Challenging,
@@ -217,7 +217,7 @@ impl Config {
                 },
                 Err(e) => {
                     log::warn!(
-                        "Failed to parse config at {}: {} -- using defaults",
+                        "Failed to parse config at {}: {}; using defaults",
                         path.display(),
                         e
                     );
@@ -225,7 +225,7 @@ impl Config {
                 },
             },
             Err(_) => {
-                log::info!("No config file at {} -- using defaults", path.display());
+                log::info!("No config file at {}; using defaults", path.display());
                 Self::default()
             },
         }

@@ -90,7 +90,7 @@ docker compose --profile services up -d mcp-content-creation                    
 
 Output goes to `/output` in the container, bind-mounted to `outputs/mcp-content` on the host (`--output-dir` / `MCP_OUTPUT_DIR`). Details: [`tools/mcp/mcp_content_creation/README.md`](../../tools/mcp/mcp_content_creation/README.md).
 
-## ~~Gemini MCP Server (Rust)~~ -- DISABLED
+## ~~Gemini MCP Server (Rust)~~ (DISABLED)
 
 > **DISABLED**: Google updated its AI principles (Feb 2026) to allow mass surveillance and autonomous weapons use cases. All Gemini integrations are disabled. Use Anthropic models (Claude) instead.
 
@@ -139,7 +139,7 @@ Environment variables:
 
 See `tools/mcp/mcp_gemini/README.md` for detailed documentation.
 
-## ~~Codex MCP Server (Rust)~~ -- DISABLED
+## ~~Codex MCP Server (Rust)~~ (DISABLED)
 
 > **DISABLED**: OpenAI has entered partnerships with governments that conduct mass surveillance and enable autonomous weapons. All Codex/OpenAI integrations are disabled. Use Anthropic models (Claude) instead. See the [main README](../../README.md#ai-agents) for details.
 

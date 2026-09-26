@@ -1,4 +1,4 @@
-//! Tamper sensor daemon -- reads Hall effect and light sensors, emits events.
+//! Tamper sensor daemon: reads Hall effect and light sensors, emits events.
 //!
 //! Runs as an unprivileged user (`tamper`). No device writes, no crypto
 //! operations. Communicates with `tamper-gate` via a root-owned FIFO.

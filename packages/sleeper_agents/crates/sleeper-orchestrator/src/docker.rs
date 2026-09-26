@@ -183,7 +183,7 @@ mod tests {
 
     #[test]
     fn is_container_running_returns_bool() {
-        // Just verifies the function doesn't panic -- actual result
+        // Just verifies the function doesn't panic; actual result
         // depends on whether Docker is running on the host.
         let _running = is_container_running();
     }

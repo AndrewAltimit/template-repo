@@ -1621,7 +1621,7 @@ Agentic AI workflows could assist WMD proliferation through sophisticated financ
 
 ### The Over-Screening Cost Argument (False Positive Perspective)
 
-**Argument**: If AI-driven paranoia leads to excessive screening and restrictions, we may cause more harm than we prevent by stifling legitimate research—including the research needed to respond to natural pandemics.
+**Argument**: If AI-driven paranoia leads to excessive screening and restrictions, we may cause more harm than we prevent by stifling legitimate research, including the research needed to respond to natural pandemics.
 
 **Evidence of costs**:
 - Post-2001 anthrax regulations significantly slowed legitimate biodefense research
@@ -1697,7 +1697,7 @@ Agentic AI workflows could assist WMD proliferation through sophisticated financ
 
 **Potential overreach of this framework**:
 
-1. **Assumes homogeneous capability**: Not all actors who "want to" can actually execute. The curse applies most strongly when capability is uniform—but WMD capability remains highly non-uniform.
+1. **Assumes homogeneous capability**: Not all actors who "want to" can actually execute. The curse applies most strongly when capability is uniform, but WMD capability remains highly non-uniform.
 
 2. **Ignores coordination mechanisms**: The framework assumes purely independent decision-making. In reality, extremist communities have internal norms, and state sponsors exercise control over proxies.
 
@@ -1712,7 +1712,7 @@ Agentic AI workflows could assist WMD proliferation through sophisticated financ
    - Attribution capabilities to improve
    - Social norms against misuse to strengthen
 
-**Our assessment**: The Unilateralist's Curse is a useful heuristic but should not induce fatalism. The appropriate response is *buying time through calibrated barriers* while *investing in resilience and response capabilities*—not assuming catastrophe is inevitable.
+**Our assessment**: The Unilateralist's Curse is a useful heuristic but should not induce fatalism. The appropriate response is *buying time through calibrated barriers* while *investing in resilience and response capabilities*, not assuming catastrophe is inevitable.
 
 ---
 

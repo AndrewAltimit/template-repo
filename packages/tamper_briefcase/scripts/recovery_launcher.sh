@@ -1,5 +1,5 @@
 #!/bin/bash
-# recovery_launcher.sh -- Boot from live USB, authenticate, verify, reimage.
+# recovery_launcher.sh: Boot from live USB, authenticate, verify, reimage.
 # Run from a Raspberry Pi OS Lite live environment.
 # Calls the tamper-recovery Rust binary for crypto operations.
 
@@ -14,7 +14,7 @@ TARGET_DEVICE="/dev/mmcblk0"      # Pi's SD card
 RECOVERY_BIN="/usr/local/bin/tamper-recovery"
 
 echo "========================================================"
-echo "   BRIEFCASE PI -- RECOVERY MODE"
+echo "   BRIEFCASE PI: RECOVERY MODE"
 echo "   Hybrid Quantum-Safe Recovery"
 echo "========================================================"
 echo ""

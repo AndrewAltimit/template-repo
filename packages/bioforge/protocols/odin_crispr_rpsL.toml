@@ -1,4 +1,4 @@
-# The Odin CRISPR Kit -- rpsL Streptomycin Resistance Protocol
+# The Odin CRISPR Kit: rpsL Streptomycin Resistance Protocol
 #
 # Default protocol for agent-orchestrated CRISPR-Cas9 gene editing in
 # E. coli K-12 (BSL-1). Targets the rpsL gene to confer streptomycin
@@ -96,7 +96,7 @@ duration_hours = 0.5
 id = 8
 name = "Heat shock"
 human_gate = false
-notes = "42C for 45 seconds -- critical timing"
+notes = "42C for 45 seconds; critical timing"
 
 [steps.action]
 type = "heat_shock"
