@@ -227,7 +227,7 @@
 {\fontsize{28}{32}\selectfont\bfseries Secure Terminal}\\[0.1em]
 {\fontsize{28}{32}\selectfont\bfseries Briefcase}\\[0.2em]
 {\fontsize{18}{22}\selectfont Tamper-Responsive Hardware Security System}\\[1.5em]
-{\fontsize{11}{14}\selectfont System Design Document v1.0 --- February 2026}
+{\fontsize{11}{14}\selectfont System Design Document v1.0, February 2026}
 \end{flushleft}
 }
 
@@ -256,7 +256,7 @@ This system provides physical security for a field-deployable agent terminal thr
 \vfill
 
 {\small\color{softslate}\sffamily
-Independent research --- not affiliated with any institution or committee\\
+Independent research, not affiliated with any institution or committee\\
 Published for defensive governance research and education\\
 MIT License
 }
@@ -286,8 +286,8 @@ The system secures a Raspberry Pi inside a hardened briefcase (Pelican 1490) wit
 
   % Lid region (top)
   \draw[line width=0.5pt, softslate, dashed] (0,6.5) -- (16,6.5);
-  \node[font=\sffamily\footnotesize\color{softslate}, anchor=west] at (0.3,6.8) {--- LID ---};
-  \node[font=\sffamily\footnotesize\color{softslate}, anchor=west] at (0.3,6.2) {--- BASE ---};
+  \node[font=\sffamily\footnotesize\color{softslate}, anchor=west] at (0.3,6.8) {LID};
+  \node[font=\sffamily\footnotesize\color{softslate}, anchor=west] at (0.3,6.2) {BASE};
 
   % Magnet in lid
   \draw[fill=securityamber!30, rounded corners=2pt] (2,7.5) rectangle (4.5,8.5);
@@ -344,9 +344,9 @@ The system splits into three systemd services enforcing least privilege. A bug i
 
 \begin{keybox}[Three-Service Architecture]
 \begin{enumerate}
-  \item \textbf{tamper-sensor} (unprivileged) --- Reads Hall + light sensors, emits JSON events + heartbeats via FIFO
-  \item \textbf{tamper-gate} (root, restricted) --- Arming FSM, heartbeat watchdog, challenge dispatch, wipe authorization
-  \item \textbf{tamper-wipe} (root, one-shot) --- luksSuspend + irreversible LUKS header destruction. Guarded by \texttt{ConditionPathExists}
+  \item \textbf{tamper-sensor} (unprivileged): Reads Hall + light sensors, emits JSON events + heartbeats via FIFO
+  \item \textbf{tamper-gate} (root, restricted): Arming FSM, heartbeat watchdog, challenge dispatch, wipe authorization
+  \item \textbf{tamper-wipe} (root, one-shot): luksSuspend + irreversible LUKS header destruction. Guarded by \texttt{ConditionPathExists}
 \end{enumerate}
 \end{keybox}
 
@@ -423,7 +423,7 @@ BH1750 light sensor & Secondary: confirms physical exposure, detects bypass & Se
 \end{center}
 
 \begin{keybox}[Primary Sensor Authority]
-Hall alone is sufficient to trigger a challenge. Light alone never triggers---it adds confidence and detects sensor-bypass scenarios. Consecutive light anomalies (configurable threshold, default 10) escalate to a forced challenge, detecting attempts to spoof the Hall sensor while the lid is physically open.
+Hall alone is sufficient to trigger a challenge. Light alone never triggers; it adds confidence and detects sensor-bypass scenarios. Consecutive light anomalies (configurable threshold, default 10) escalate to a forced challenge, detecting attempts to spoof the Hall sensor while the lid is physically open.
 \end{keybox}
 
 \subsection{Arming Delay}
@@ -447,9 +447,9 @@ All components are standard consumer and maker parts. Total estimated cost: \$28
 \textbf{Component} & \textbf{Model} & \textbf{Qty} & \textbf{Est. Cost} & \textbf{Interface} \\
 \midrule
 \endhead
-Raspberry Pi 5 & 4GB+ with PSU & 1 & \$60--80 & --- \\
-MicroSD Card & Samsung PRO Endurance 128GB & 1 & \$20 & --- \\
-Briefcase & Pelican 1490 Laptop Case & 1 & \$100--150 & --- \\
+Raspberry Pi 5 & 4GB+ with PSU & 1 & \$60--80 & n/a \\
+MicroSD Card & Samsung PRO Endurance 128GB & 1 & \$20 & n/a \\
+Briefcase & Pelican 1490 Laptop Case & 1 & \$100--150 & n/a \\
 USB-C Power Bank & Anker 325 or similar (10,000mAh+) & 1 & \$25--35 & USB-C \\
 USB-C Cable & 15cm right-angle & 1 & \$5 & USB-C \\
 Recovery USB & IronKey or Samsung T7 Shield & 1 & \$50--80 & USB \\
@@ -464,9 +464,9 @@ Recovery USB & IronKey or Samsung T7 Shield & 1 & \$50--80 & USB \\
 \midrule
 \endhead
 Hall Effect Sensor & A3144 (digital latch) & 1 & \$1--2 & GPIO 4 \\
-Neodymium Magnet & 12mm N52 disc & 1 & \$2--3 & --- \\
+Neodymium Magnet & 12mm N52 disc & 1 & \$2--3 & n/a \\
 Light Sensor & BH1750 (I2C breakout) & 1 & \$3--5 & I2C \\
-Pull-up Resistor & 10k (for A3144) & 1 & \$0.10 & --- \\
+Pull-up Resistor & 10k (for A3144) & 1 & \$0.10 & n/a \\
 \bottomrule
 \end{longtable}
 
@@ -496,10 +496,10 @@ ADDR ----------> GND    (sets I2C address to 0x23)
 
 \subsection{Physical Placement}
 
-Mount the Hall sensor on the base of the briefcase near the latch mechanism. Epoxy a small neodymium disc magnet to the corresponding spot on the lid interior. When closed, the magnet sits directly above the Hall sensor (within $\sim$10mm). The BH1750 mounts nearby, oriented upward toward the lid seam---the first entry point for light.
+Mount the Hall sensor on the base of the briefcase near the latch mechanism. Epoxy a small neodymium disc magnet to the corresponding spot on the lid interior. When closed, the magnet sits directly above the Hall sensor (within $\sim$10mm). The BH1750 mounts nearby, oriented upward toward the lid seam, the first entry point for light.
 
 \begin{securitybox}[Alignment is Critical]
-The A3144 needs the magnet within $\sim$10mm when closed. Test alignment before permanently mounting---use blu-tack first, mark positions, then epoxy. Line the briefcase seam with adhesive foam weatherstripping for light sealing (aim for $<$1 lux when sealed).
+The A3144 needs the magnet within $\sim$10mm when closed. Test alignment before permanently mounting: use blu-tack first, mark positions, then epoxy. Line the briefcase seam with adhesive foam weatherstripping for light sealing (aim for $<$1 lux when sealed).
 \end{securitybox}
 
 
@@ -592,10 +592,10 @@ The gate orchestrator implements a five-state FSM:
 
 \textbf{Tamper triggers while ARMED}:
 \begin{itemize}
-  \item \textbf{LidOpened} --- Primary trigger. Hall sensor transitioned from closed to open.
-  \item \textbf{Light anomaly escalation} --- Configurable threshold (default 10) of consecutive anomalies.
-  \item \textbf{Heartbeat timeout} --- No event from sensor within timeout window (default 15s). Detects sensor disconnection or disabling.
-  \item \textbf{FIFO closed} --- Sensor daemon disconnected while system is armed.
+  \item \textbf{LidOpened}: Primary trigger. Hall sensor transitioned from closed to open.
+  \item \textbf{Light anomaly escalation}: Configurable threshold (default 10) of consecutive anomalies.
+  \item \textbf{Heartbeat timeout}: No event from sensor within timeout window (default 15s). Detects sensor disconnection or disabling.
+  \item \textbf{FIFO closed}: Sensor daemon disconnected while system is armed.
 \end{itemize}
 
 \subsection{Event Protocol}
@@ -660,10 +660,10 @@ Tamper password & Challenge on lid-open & \texttt{/etc/tamper/\allowbreak passwo
 The wipe script executes in four phases, each designed to be individually sufficient for data destruction:
 
 \begin{enumerate}
-  \item \textbf{Phase 0 --- luksSuspend}: Flushes the LUKS master key from kernel RAM. After this point, the key exists nowhere in memory or on disk.
-  \item \textbf{Phase 1 --- Header destruction}: Overwrites the LUKS2 header + key slots with \texttt{/dev/urandom} (16MB).
-  \item \textbf{Phase 2 --- Defense in depth}: Additional 256MB overwrite beyond the header area.
-  \item \textbf{Phase 3 --- Shutdown}: Sync, cleanup, force poweroff.
+  \item \textbf{Phase 0 (luksSuspend)}: Flushes the LUKS master key from kernel RAM. After this point, the key exists nowhere in memory or on disk.
+  \item \textbf{Phase 1 (Header destruction)}: Overwrites the LUKS2 header + key slots with \texttt{/dev/urandom} (16MB).
+  \item \textbf{Phase 2 (Defense in depth)}: Additional 256MB overwrite beyond the header area.
+  \item \textbf{Phase 3 (Shutdown)}: Sync, cleanup, force poweroff.
 \end{enumerate}
 \end{dangerbox}
 
@@ -671,11 +671,11 @@ The wipe script executes in four phases, each designed to be individually suffic
 % ============================================================================
 % SECTION 6: RECOVERY USB
 % ============================================================================
-\section{Recovery USB --- Quantum-Safe Key Wrapping}
+\section{Recovery USB: Quantum-Safe Key Wrapping}
 
 \subsection{Threat Model}
 
-AES-256-XTS is already quantum-resistant for symmetric data-at-rest encryption. The LUKS container does not need PQC. Where PQC matters is in \textbf{how you protect and distribute the recovery key material}---specifically, public-key operations like key encapsulation and digital signatures.
+AES-256-XTS is already quantum-resistant for symmetric data-at-rest encryption. The LUKS container does not need PQC. Where PQC matters is in \textbf{how you protect and distribute the recovery key material}: specifically, public-key operations like key encapsulation and digital signatures.
 
 \begin{securitybox}[Harvest-Now-Decrypt-Later]
 An adversary who captures your recovery USB today and stores the encrypted data can attempt to break the public-key wrapping layer with a future quantum computer. By using a hybrid classical+PQ scheme for key wrapping, you ensure the recovery secret remains protected even against harvest-now-decrypt-later attacks.
@@ -685,11 +685,11 @@ An adversary who captures your recovery USB today and stores the encrypted data 
 
 \begin{lstlisting}
 Recovery USB (32GB+)
-+-- Partition 1 (512MB) -- FAT32, unencrypted
++-- Partition 1 (512MB): FAT32, unencrypted
 |   +-- recovery_public.json     <- PQ public keys + metadata
 |   +-- wrapped_secret.bin        <- Hybrid-encrypted recovery secret
 |
-+-- Partition 2 (rest) -- LUKS2 encrypted
++-- Partition 2 (rest): LUKS2 encrypted
     +-- base_image.img.zst       <- Compressed Pi OS image
     +-- base_image.img.zst.sig   <- ML-DSA-87 detached signature
     +-- tamper_config/            <- /etc/tamper/* files
@@ -758,7 +758,7 @@ Password hashing & scrypt & n=2\textsuperscript{17}, r=8, p=1, 64-byte output \\
 \midrule
 \endhead
 Cold boot attack & Enable encrypted swap; consider kernel memory encryption \\
-SD card physical removal & LUKS2 FDE---data at rest is encrypted \\
+SD card physical removal & LUKS2 FDE: data at rest is encrypted \\
 Light sensor bypass & Hall is primary and independent; sustained light anomaly escalates to challenge \\
 Hall sensor bypass & Light sensor detects exposure; anomaly counter triggers challenge \\
 Both sensors bypassed & Requires precise physical access; consider potting sensors in epoxy \\
@@ -838,19 +838,19 @@ The setup script handles user creation, I2C enablement, dependency installation,
 
 \subsection{Hardware Expansion}
 \begin{itemize}
-  \item \textbf{Bluetooth headset integration} --- Paired audio device through the briefcase. Voice-command disconnect triggers disarm/re-arm cycle. Reconnection requires full tamper challenge.
-  \item \textbf{Accelerometer} (MPU6050) --- Motion/tilt as additional tamper signal.
-  \item \textbf{Always-on MCU} (ATtiny85/RP2040) --- Monitors Hall even when Pi is off, triggers piezo alarm.
-  \item \textbf{TPM 2.0 HAT} --- Bind LUKS keys to hardware state (detects SD card moved to different Pi).
-  \item \textbf{Faraday cage lining} --- Copper mesh inside case to block RF attacks.
+  \item \textbf{Bluetooth headset integration}: Paired audio device through the briefcase. Voice-command disconnect triggers disarm/re-arm cycle. Reconnection requires full tamper challenge.
+  \item \textbf{Accelerometer} (MPU6050): Motion/tilt as additional tamper signal.
+  \item \textbf{Always-on MCU} (ATtiny85/RP2040): Monitors Hall even when Pi is off, triggers piezo alarm.
+  \item \textbf{TPM 2.0 HAT}: Bind LUKS keys to hardware state (detects SD card moved to different Pi).
+  \item \textbf{Faraday cage lining}: Copper mesh inside case to block RF attacks.
 \end{itemize}
 
 \subsection{Software Expansion}
 \begin{itemize}
-  \item \textbf{Network alerting} --- Signal/Telegram/webhook on tamper before countdown starts.
-  \item \textbf{Dead man's switch} --- Server expects heartbeat every N hours; triggers remote wipe on silence.
-  \item \textbf{Decoy partition} --- Wrong password shows fake desktop; real data stays in hidden LUKS volume.
-  \item \textbf{GPS geofencing} --- Alert or trigger if briefcase leaves defined geographic area.
+  \item \textbf{Network alerting}: Signal/Telegram/webhook on tamper before countdown starts.
+  \item \textbf{Dead man's switch}: Server expects heartbeat every N hours; triggers remote wipe on silence.
+  \item \textbf{Decoy partition}: Wrong password shows fake desktop; real data stays in hidden LUKS volume.
+  \item \textbf{GPS geofencing}: Alert or trigger if briefcase leaves defined geographic area.
 \end{itemize}
 
 
@@ -861,7 +861,7 @@ The setup script handles user creation, I2C enablement, dependency installation,
 \begin{center}
 \small\color{softslate}\sffamily
 \rule{0.5\textwidth}{0.4pt}\\[0.5em]
-Independent research --- not affiliated with any institution or committee\\
+Independent research, not affiliated with any institution or committee\\
 Published for defensive governance research and education
 \end{center}
 

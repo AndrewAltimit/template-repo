@@ -6,7 +6,7 @@
 //!
 //! * arguments go through a JSON file: `-- <args.json> <job_id>` (never
 //!   inline on the command line, so there is no size limit and nothing is
-//!   interpolated into Python source -- tool arguments are pure data);
+//!   interpolated into Python source; tool arguments are pure data);
 //! * the script prints exactly one `MCP_RESULT:{json}` line and exits 0 on
 //!   success / 1 on failure (`--python-exit-code 1` also turns uncaught
 //!   exceptions into exit code 1);

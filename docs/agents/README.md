@@ -125,7 +125,7 @@ The repository includes an advanced **sleeper agents System** that automatically
 - **Automated Testing**: Runs as part of CI/CD pipeline when AI-related code changes
 - **Multiple Detection Methods**: Residual stream analysis, attention patterns, and behavioral testing
 - **CPU and GPU Support**: Can run on both CPU (for CI) and GPU (for comprehensive analysis)
-- **Rust Orchestration CLI**: The `sleeper-cli` binary provides fast host-side orchestration without requiring Python locally -- manages Docker containers, submits jobs, and generates reports
+- **Rust Orchestration CLI**: The `sleeper-cli` binary provides fast host-side orchestration without requiring Python locally; it manages Docker containers, submits jobs, and generates reports
 - **Integration Points**:
   - PR validation automatically triggers sleeper agents tests (Python ML + Rust CLI)
   - Issue Monitor and PR Review Monitor agents are scanned for anomalies
@@ -157,7 +157,7 @@ An embeddable operating system framework in Rust with pluggable rendering backen
 
 ### rust-psp SDK (External Repository)
 
-The **rust-psp SDK** lives at [github.com/AndrewAltimit/rust-psp](https://github.com/AndrewAltimit/rust-psp) -- a modernized edition 2024 fork with safety fixes, kernel mode support, and containerized CI. Used by the OASIS_OS PSP backend as a git dependency.
+The **rust-psp SDK** lives at [github.com/AndrewAltimit/rust-psp](https://github.com/AndrewAltimit/rust-psp), a modernized edition 2024 fork with safety fixes, kernel mode support, and containerized CI. Used by the OASIS_OS PSP backend as a git dependency.
 
 ## How They Work Together
 

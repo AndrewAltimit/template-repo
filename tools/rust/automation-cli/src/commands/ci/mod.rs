@@ -1,4 +1,4 @@
-//! `automation-cli ci` -- containerized CI stages.
+//! `automation-cli ci`: containerized CI stages.
 //!
 //! Python stages run in the `python-ci` compose service, Rust stages in
 //! `rust-ci`. Stage names are defined in [`stages::CATALOG`].

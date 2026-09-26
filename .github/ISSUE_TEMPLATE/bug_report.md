@@ -1,6 +1,6 @@
 ---
 name: Bug report
-about: Internal use only -- external bug reports may be ignored without response
+about: Internal use only; external bug reports may be ignored without response
 title: '[BUG] '
 labels: bug
 assignees: ''

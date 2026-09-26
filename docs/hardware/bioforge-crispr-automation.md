@@ -10,7 +10,7 @@ A Raspberry Pi 5-driven biological automation platform combining liquid handling
 
 Automate and optimize CRISPR gene editing experiments through AI agent orchestration, starting with The Odin's DIY CRISPR kit (E. coli K-12, BSL-1) and extending to arbitrary molecular biology protocols. The platform treats physical lab hardware as MCP tool endpoints, enabling closed-loop experiment design, execution, analysis, and iterative optimization.
 
-This is explicitly a governance-aware design -- the architecture embodies safety principles that should govern any system where AI agents have physical-world actuation capability over biological materials. Every design decision maps to a principle in the broader AI safety governance conversation: defense in depth, human oversight, audit trails, and capability bounding.
+This is explicitly a governance-aware design: the architecture embodies safety principles that should govern any system where AI agents have physical-world actuation capability over biological materials. Every design decision maps to a principle in the broader AI safety governance conversation: defense in depth, human oversight, audit trails, and capability bounding.
 
 ---
 
@@ -54,7 +54,7 @@ This is explicitly a governance-aware design -- the architecture embodies safety
 
 ## Hardware Design
 
-### Bill of Materials -- Core Compute
+### Bill of Materials: Core Compute
 
 | Component | Recommended Model | Purpose | Est. Cost | Interface |
 |-----------|-------------------|---------|-----------|-----------|
@@ -63,7 +63,7 @@ This is explicitly a governance-aware design -- the architecture embodies safety
 | MicroSD Card (128GB) | Samsung EVO Select | OS + data | $15 | N/A |
 | 7" Touchscreen (optional) | Official Pi display | Human gate interface | $60-80 | DSI |
 
-### Bill of Materials -- Liquid Handling
+### Bill of Materials: Liquid Handling
 
 | Component | Recommended Model | Qty | Est. Cost | Interface |
 |-----------|-------------------|-----|-----------|-----------|
@@ -72,7 +72,7 @@ This is explicitly a governance-aware design -- the architecture embodies safety
 | Stepper Motor Drivers | TMC2209 or A4988 | 4 | $5-10 ea | SPI/Step |
 | Co-Processor | ESP32-S3 or RP2040 | 1 | $8-15 | UART/USB |
 
-### Bill of Materials -- Thermal Control
+### Bill of Materials: Thermal Control
 
 | Component | Recommended Model | Qty | Est. Cost | Interface |
 |-----------|-------------------|-----|-----------|-----------|
@@ -82,7 +82,7 @@ This is explicitly a governance-aware design -- the architecture embodies safety
 | DS18B20 Temp Sensors | Waterproof probe style | 4 | $3-5 ea | 1-Wire |
 | DHT22 Humidity Sensor | Enclosure ambient | 1 | $5 | GPIO |
 
-### Bill of Materials -- Enclosure
+### Bill of Materials: Enclosure
 
 | Component | Recommended Model | Est. Cost |
 |-----------|-------------------|-----------|
@@ -91,7 +91,7 @@ This is explicitly a governance-aware design -- the architecture embodies safety
 | 3D-Printed Parts | PLA/PETG, custom mounts | $10-30 |
 | LED Ring Light | White + UV/Blue, dimmable | $10-20 |
 
-### Bill of Materials -- Biology
+### Bill of Materials: Biology
 
 | Component | Specific Part | Est. Cost |
 |-----------|--------------|-----------|
@@ -340,13 +340,13 @@ Safety is architected at multiple layers following a defense-in-depth model. No 
 The `SafetyEnforcer` in `bioforge-safety` is a stateful validator that tracks cumulative state across tool calls within a single experiment run. All limits are config-driven, loaded from `safety_limits.toml` and `hardware.toml` at server startup via the `--config-dir` flag. Internal state is protected by `Mutex<EnforcerState>` and the enforcer is shared across all MCP tools via `Arc<SafetyEnforcer>`.
 
 Key capabilities:
-- **Input sanitization** -- All numeric inputs pass through `require_finite()` guards that reject NaN and Infinity before any comparison
-- **Defense-in-depth temperature guard** -- Checks both `tool_max_c` (50C) and `absolute_max_c` (60C hardware fuse) independently
-- **Cumulative volume tracking** -- Tracks total dispensed volume across all `dispense` calls, rejecting operations that would exceed 50 mL per run
-- **Flow rate validation** -- Enforces maximum pump speed (500 uL/s) on all liquid handling tools
-- **Sliding-window rate limiting** -- 60-second sliding window, rejecting calls that exceed 60 calls/minute
-- **Actuator interval enforcement** -- Minimum 100ms gap between consecutive actuator commands
-- **Operation-specific limits** -- Max incubation (72h), max heat shock hold (300s), max mix cycles (20), safe travel height (15mm) -- all from config
+- **Input sanitization**: All numeric inputs pass through `require_finite()` guards that reject NaN and Infinity before any comparison
+- **Defense-in-depth temperature guard**: Checks both `tool_max_c` (50C) and `absolute_max_c` (60C hardware fuse) independently
+- **Cumulative volume tracking**: Tracks total dispensed volume across all `dispense` calls, rejecting operations that would exceed 50 mL per run
+- **Flow rate validation**: Enforces maximum pump speed (500 uL/s) on all liquid handling tools
+- **Sliding-window rate limiting**: 60-second sliding window, rejecting calls that exceed 60 calls/minute
+- **Actuator interval enforcement**: Minimum 100ms gap between consecutive actuator commands
+- **Operation-specific limits**: Max incubation (72h), max heat shock hold (300s), max mix cycles (20), safe travel height (15mm), all from config
 
 ### Audit Logging
 
@@ -374,7 +374,7 @@ Every tool call, sensor reading, state transition, and human interaction is logg
 
 ### Phase 1: Foundation (Weeks 1-2)
 
-Pi 5 running Rust MCP server with simulated hardware, basic enclosure frame. Safety enforcement is fully active even in mock mode -- all tool inputs are validated through the stateful `SafetyEnforcer` before mock responses are returned. Limits are config-driven, loaded from `safety_limits.toml` and `hardware.toml` via the `--config-dir` flag.
+Pi 5 running Rust MCP server with simulated hardware, basic enclosure frame. Safety enforcement is fully active even in mock mode: all tool inputs are validated through the stateful `SafetyEnforcer` before mock responses are returned. Limits are config-driven, loaded from `safety_limits.toml` and `hardware.toml` via the `--config-dir` flag.
 
 1. Set up Pi 5 with Rust toolchain and cross-compilation for ARM64.
 2. Implement MCP server with all tool definitions returning mock responses.
@@ -446,17 +446,17 @@ Test 1 -- MCP tools (mock mode):
 Test 2 -- Protocol state machine:
   Load odin_crispr_rpsL.toml protocol.
   Step through transitions. Verify ordering constraints enforced.
-  Attempt invalid transition -- verify rejection.
+  Attempt invalid transition; verify rejection.
   Verify human gate blocks execution until confirmed.
 
 Test 3 -- Safety limits:
-  Attempt set_temperature above tool_max_c (50C) -- verify rejection.
-  Attempt set_temperature above absolute_max_c (60C) -- verify rejection.
-  Attempt dispense above max_dispense_ul (1000 uL) -- verify rejection.
-  Attempt cumulative dispense above max_total_ml (50 mL) -- verify rejection.
-  Attempt dispense with NaN volume -- verify rejection before comparison.
-  Attempt move_to outside enclosure bounds -- verify rejection.
-  Attempt flow_rate above max_flow_rate_ul_s (500 uL/s) -- verify rejection.
+  Attempt set_temperature above tool_max_c (50C); verify rejection.
+  Attempt set_temperature above absolute_max_c (60C); verify rejection.
+  Attempt dispense above max_dispense_ul (1000 uL); verify rejection.
+  Attempt cumulative dispense above max_total_ml (50 mL); verify rejection.
+  Attempt dispense with NaN volume; verify rejection before comparison.
+  Attempt move_to outside enclosure bounds; verify rejection.
+  Attempt flow_rate above max_flow_rate_ul_s (500 uL/s); verify rejection.
   Verify all rejections logged to audit file.
 
 Test 4 -- Thermal control (Phase 2):
@@ -487,7 +487,7 @@ Test 7 -- End-to-end (Phase 5):
 | Threat | Mitigation |
 |--------|------------|
 | Agent commands out-of-range parameters | Stateful `SafetyEnforcer` validates all inputs at MCP layer; NaN/Infinity rejected before comparison |
-| NaN/Infinity bypass of bounds checks | All numeric inputs pass through `require_finite()` -- NaN silently passes `<` comparisons but is caught explicitly |
+| NaN/Infinity bypass of bounds checks | All numeric inputs pass through `require_finite()`; NaN silently passes `<` comparisons but is caught explicitly |
 | Cumulative reagent exhaustion | Enforcer tracks dispensed volume per run (50 mL cap); resets only via explicit `reset_run()` |
 | Agent attempts to bypass human gates | State machine enforces gates; agent receives pending status |
 | Rapid-fire actuator commands | Sliding-window rate limiting (60 calls/min) + minimum 100ms actuator interval |
@@ -504,17 +504,17 @@ Test 7 -- End-to-end (Phase 5):
 ## Planned Enhancements
 
 ### Hardware Expansion
-- **Gel electrophoresis module** -- verify DNA fragment sizes at the molecular level
-- **Spectrophotometer (OD600)** -- growth curve monitoring for real-time agent decisions
-- **Multi-plate incubator carousel** -- parallel experiments for higher throughput
+- **Gel electrophoresis module**: verify DNA fragment sizes at the molecular level
+- **Spectrophotometer (OD600)**: growth curve monitoring for real-time agent decisions
+- **Multi-plate incubator carousel**: parallel experiments for higher throughput
 
 ### Protocol Expansion
-- **Fluorescent yeast engineering** (GFP insertion) -- adds fluorescence imaging
-- **Antibiotic resistance profiling** -- MIC measurement across bacterial strains
-- **Gene expression optimization** -- promoter strength and RBS sequence optimization
+- **Fluorescent yeast engineering** (GFP insertion): adds fluorescence imaging
+- **Antibiotic resistance profiling**: MIC measurement across bacterial strains
+- **Gene expression optimization**: promoter strength and RBS sequence optimization
 
 ### Software Expansion
-- **Multi-agent coordination** -- planning, execution, and analysis agents in delegate pattern
-- **Protocol sharing** -- federated learning across multiple BioForge installations
-- **Sleeper agent detection** -- apply existing detection framework to monitor for anomalous agent behavior during autonomous operation
-- **Digital twin simulation** -- agent tests protocol variations against simulated model before committing physical reagents
+- **Multi-agent coordination**: planning, execution, and analysis agents in delegate pattern
+- **Protocol sharing**: federated learning across multiple BioForge installations
+- **Sleeper agent detection**: apply existing detection framework to monitor for anomalous agent behavior during autonomous operation
+- **Digital twin simulation**: agent tests protocol variations against simulated model before committing physical reagents

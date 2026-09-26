@@ -1,5 +1,5 @@
 #!/bin/bash
-# setup.sh -- Consolidated setup script for the tamper briefcase system.
+# setup.sh: Consolidated setup script for the tamper briefcase system.
 # Run on the Raspberry Pi after flashing the OS.
 
 set -euo pipefail
@@ -7,7 +7,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 
 echo "========================================================"
-echo "   Tamper Briefcase -- Initial Setup"
+echo "   Tamper Briefcase: Initial Setup"
 echo "========================================================"
 echo ""
 

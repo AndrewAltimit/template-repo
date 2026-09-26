@@ -1,4 +1,4 @@
-# Tamper Sensor Daemon -- reads Hall effect and light sensors.
+# Tamper Sensor Daemon: reads Hall effect and light sensors.
 # Runs as unprivileged user. Emits events to FIFO for tamper-gate.
 
 [Unit]
@@ -17,7 +17,7 @@ Environment=RUST_LOG=info
 User=tamper
 Group=tamper
 
-# Hardening -- this service has NO reason to write to disk or devices.
+# Hardening: this service has NO reason to write to disk or devices.
 NoNewPrivileges=true
 ProtectSystem=strict
 ProtectHome=true

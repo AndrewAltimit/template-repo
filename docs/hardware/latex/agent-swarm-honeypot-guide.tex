@@ -7,9 +7,9 @@
 \usepackage[T1]{fontenc}
 \usepackage{helvet}
 \renewcommand{\familydefault}{\sfdefault}
-\usepackage[margin=0.85in, headheight=28pt]{geometry}
+\usepackage[margin=0.85in, headheight=32pt, headsep=18pt, footskip=30pt]{geometry}
 \usepackage{graphicx}
-\usepackage{xcolor}
+\usepackage[table]{xcolor}
 \usepackage{tikz}
 \usepackage{tcolorbox}
 \usepackage{booktabs}
@@ -18,17 +18,11 @@
 \usepackage{hyperref}
 \usepackage{fancyhdr}
 \usepackage{titlesec}
+\usepackage{titletoc}
 \usepackage{upquote}
 \usepackage{amsmath,amssymb}
 \usepackage{array}
 \usepackage{longtable}
-
-% Ragged-right paragraph columns to prevent word spacing issues
-\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
-
-% Increase vertical spacing between table rows for readability
-\renewcommand{\arraystretch}{1.2}
-
 \usepackage{colortbl}
 \usepackage{pifont}
 \usepackage{setspace}
@@ -36,11 +30,14 @@
 \usepackage{caption}
 \usepackage{tabularx}
 \usepackage{float}
+\usepackage{needspace}
+\usepackage{flafter}
 
-% Ragged-right X column for tabularx
+% Ragged-right paragraph columns
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
 \newcolumntype{Y}{>{\raggedright\arraybackslash}X}
 
-\usetikzlibrary{shapes.geometric, shapes.misc, arrows.meta, positioning, calc, decorations.pathreplacing, backgrounds, fit}
+\usetikzlibrary{shapes.geometric, shapes.misc, shapes.symbols, arrows.meta, positioning, calc, decorations.pathreplacing, backgrounds, fit}
 
 % ============================================================================
 % COLOR DEFINITIONS - Deception Program Theme (deep indigo + amber)
@@ -64,7 +61,9 @@
 \definecolor{softslate}{HTML}{5C6480}
 \definecolor{textdark}{HTML}{1C2233}
 
-\captionsetup[figure]{font={small,sf}, labelfont={bf,color=deepindigo}, skip=6pt}
+\color{textdark}
+
+\captionsetup[figure]{font={small,sf}, labelfont={bf,color=deepindigo}, skip=8pt, margin=0.5cm}
 
 % ============================================================================
 % HYPERREF SETUP
@@ -75,24 +74,35 @@
   citecolor=darkamber,
   urlcolor=indigo,
   pdftitle={Detecting Autonomous Agent Swarms with Deception: A Program Guide (v1.0, September 2026)},
-  pdfauthor={Hardware Systems Documentation}
+  pdfauthor={Hardware Systems Documentation},
+  pdfsubject={Deception program design for detecting, attributing, and reporting autonomous AI agent swarms},
+  pdfkeywords={deception, honeypot, AI agents, agent swarms, detection, attribution, provider reporting}
 }
+\urlstyle{same}
 
 % ============================================================================
 % SPACING AND TYPOGRAPHY
 % ============================================================================
 \setstretch{1.15}
-\setlength{\parskip}{0.5em}
-\setlist{nosep, leftmargin=1.5em, itemsep=0.3em}
+\setlength{\parskip}{0.55em}
+\setlist{nosep, leftmargin=1.5em, itemsep=0.3em, topsep=0.2em}
+\setlist[itemize]{label=\textcolor{darkamber}{\small\textbullet}}
+\setlist[enumerate]{label=\textcolor{deepindigo}{\bfseries\arabic*.}}
 \emergencystretch=2em
+\renewcommand{\arraystretch}{1.3}
+\setlength{\tabcolsep}{6pt}
+\clubpenalty=10000
+\widowpenalty=10000
 
 % ============================================================================
-% PAGE STYLE - Honeycomb pattern (deception theme)
+% PAGE STYLE - Honeycomb mark (deception theme)
 % ============================================================================
 \newcommand{\hexcell}[3]{% x, y, style
   \draw[#3] ($(#1,#2)+(0:0.11)$) -- ($(#1,#2)+(60:0.11)$) -- ($(#1,#2)+(120:0.11)$) --
     ($(#1,#2)+(180:0.11)$) -- ($(#1,#2)+(240:0.11)$) -- ($(#1,#2)+(300:0.11)$) -- cycle;%
 }
+
+\renewcommand{\sectionmark}[1]{\markboth{\thesection\quad #1}{}}
 
 \pagestyle{fancy}
 \fancyhf{}
@@ -106,60 +116,143 @@
   \end{tikzpicture}
   \hspace{0.4em}\textcolor{nightink}{\textsf{\small Agent Swarm Honeypot Guide \textbar{} v1.0}}%
 }
-\fancyhead[R]{\textcolor{softslate}{\textsf{\thepage}}}
-\fancyfoot[C]{\textcolor{softslate}{\footnotesize\textsf{Hardware Systems Documentation | Detecting Autonomous Agent Swarms with Deception}}}
-\renewcommand{\headrulewidth}{0pt}
+\fancyhead[R]{\textcolor{softslate}{\textsf{\footnotesize\nouppercase{\leftmark}}}\hspace{0.8em}\textcolor{honeyamber}{\rule[-0.3ex]{1pt}{1.2em}}\hspace{0.8em}\textcolor{nightink}{\textsf{\small\bfseries\thepage}}}
+\fancyfoot[L]{\textcolor{softslate}{\scriptsize\textsf{HONEYPOT-2026-HW-004}}}
+\fancyfoot[R]{\textcolor{softslate}{\scriptsize\textsf{Defensive detection, attribution, and reporting}}}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\headrule}{\hbox to\headwidth{\color{medgray}\leaders\hrule height \headrulewidth\hfill}}
 \renewcommand{\footrulewidth}{0pt}
-
 \fancyheadoffset{0pt}
-\setlength{\headheight}{32pt}
+
+\fancypagestyle{plain}{%
+  \fancyhf{}%
+  \fancyfoot[L]{\textcolor{softslate}{\scriptsize\textsf{HONEYPOT-2026-HW-004}}}%
+  \fancyfoot[R]{\textcolor{nightink}{\small\textsf{\bfseries\thepage}}}%
+  \renewcommand{\headrulewidth}{0pt}%
+}
 
 % ============================================================================
 % SECTION FORMATTING
 % ============================================================================
 \titleformat{\section}
   {\normalfont\LARGE\bfseries\color{nightink}}
-  {\thesection}{0.8em}{}[\vspace{-0.3em}{\color{honeyamber}\rule{\textwidth}{1.5pt}\hspace{-\textwidth}\color{deepindigo}\rule{3cm}{1.5pt}}]
+  {\textcolor{honeyamber}{\thesection}}{0.7em}{}
+  [\vspace{-0.35em}{\color{honeyamber}\rule{\textwidth}{1.5pt}\hspace{-\textwidth}\color{deepindigo}\rule{3cm}{1.5pt}}]
+\titleformat{name=\section, numberless}
+  {\normalfont\LARGE\bfseries\color{nightink}}
+  {}{0pt}{}
+  [\vspace{-0.35em}{\color{honeyamber}\rule{\textwidth}{1.5pt}\hspace{-\textwidth}\color{deepindigo}\rule{3cm}{1.5pt}}]
 \titleformat{\subsection}
   {\normalfont\Large\bfseries\color{nightink}}
-  {\thesubsection}{0.6em}{}
+  {\textcolor{darkamber}{\thesubsection}}{0.6em}{}
 \titleformat{\subsubsection}
   {\normalfont\large\color{softslate}\bfseries}
   {\thesubsubsection}{0.5em}{}
 
-\titlespacing*{\section}{0pt}{3ex plus 1ex minus .2ex}{2ex plus .2ex}
-\titlespacing*{\subsection}{0pt}{2.5ex plus 1ex minus .2ex}{1.5ex plus .2ex}
+\titlespacing*{\section}{0pt}{2.5ex plus 1ex minus .2ex}{2.2ex plus .2ex}
+\titlespacing*{\subsection}{0pt}{2.4ex plus 1ex minus .2ex}{1.1ex plus .2ex}
+
+% Keep headings with enough following material to avoid orphans
+\newcommand{\sectionbreak}{\clearpage}
+\newcommand{\subsectionbreak}{\needspace{7\baselineskip}}
 
 \setcounter{tocdepth}{2}
 
-% ============================================================================
-% TCOLORBOX ENVIRONMENTS
-% ============================================================================
-\tcbuselibrary{skins,breakable,hooks}
+% Table of contents styling
+\titlecontents{section}[2.3em]
+  {\addvspace{0.3em}\bfseries\color{nightink}}
+  {\contentslabel[\textcolor{honeyamber}{\thecontentslabel}]{2.3em}}
+  {}
+  {\hfill\contentspage}
+\titlecontents{subsection}[4.9em]
+  {\addvspace{0.05em}\color{textdark}\small}
+  {\contentslabel[\textcolor{softslate}{\thecontentslabel}]{2.6em}}
+  {}
+  {\titlerule*[0.7pc]{.}\contentspage}
+\titlecontents{figure}[2.6em]
+  {\addvspace{0.2em}\small\color{textdark}}
+  {\contentslabel[\textcolor{deepindigo}{\bfseries\thecontentslabel}]{2.6em}}
+  {}
+  {\titlerule*[0.7pc]{.}\contentspage}
 
-\newtcolorbox{keybox}[1][Key Principle]{
-  enhanced, breakable,
-  colback=deepindigo!8, colframe=deepindigo,
-  colbacktitle=deepindigo, coltitle=white,
-  fonttitle=\bfseries\sffamily,
-  title={\ding{72}\hspace{0.5em}#1},
-  boxrule=0pt, leftrule=4pt, arc=0pt, outer arc=0pt,
-  left=12pt, right=12pt, top=8pt, bottom=8pt
+% ============================================================================
+% TCOLORBOX ENVIRONMENTS - one consistent callout family
+% ============================================================================
+\tcbuselibrary{skins,breakable,hooks,raster}
+
+\tcbset{
+  callout/.style={
+    enhanced,
+    boxrule=0pt, leftrule=3.5pt, arc=0pt, outer arc=0pt,
+    left=11pt, right=11pt, top=4pt, bottom=7pt,
+    toptitle=6pt, bottomtitle=0pt, titlerule=0pt,
+    fonttitle=\bfseries\sffamily\small,
+    before skip=9pt, after skip=11pt
+  }
 }
 
+% Key principle / key takeaways (indigo)
+\newtcolorbox{keybox}[1][Key Principle]{
+  callout,
+  colback=deepindigo!6, colframe=deepindigo,
+  colbacktitle=deepindigo!6, coltitle=deepindigo,
+  title={\ding{72}\hspace{0.5em}#1}
+}
+
+% Scope / boundaries (amber)
 \newtcolorbox{scopebox}[1][Scope]{
-  enhanced, breakable,
-  colback=honeyamber!12, colframe=darkamber,
-  colbacktitle=darkamber, coltitle=white,
-  fonttitle=\bfseries\sffamily,
-  title={\ding{54}\hspace{0.5em}#1},
-  boxrule=0pt, leftrule=4pt, arc=0pt, outer arc=0pt,
-  left=12pt, right=12pt, top=8pt, bottom=8pt
+  callout,
+  colback=honeyamber!11, colframe=darkamber,
+  colbacktitle=honeyamber!11, coltitle=darkamber,
+  title={\ding{110}\hspace{0.5em}#1}
+}
+
+% Caution (crimson)
+\newtcolorbox{warnbox}[1][Caution]{
+  callout,
+  colback=alertcrimson!5, colframe=alertcrimson,
+  colbacktitle=alertcrimson!5, coltitle=alertcrimson,
+  title={\ding{115}\hspace{0.5em}#1}
+}
+
+% Note / cross-reference (teal)
+\newtcolorbox{notebox}[1][Note]{
+  callout,
+  colback=sensorteal!6, colframe=sensorteal,
+  colbacktitle=sensorteal!6, coltitle=sensorteal,
+  title={\ding{228}\hspace{0.5em}#1}
+}
+
+% Section-opening summary
+\newtcolorbox{inbriefbox}{
+  enhanced, sidebyside, lefthand width=1.35cm, sidebyside align=top seam,
+  sidebyside gap=12pt,
+  colback=paleindigo, colframe=paleindigo, boxrule=0pt, arc=2pt,
+  left=9pt, right=11pt, top=7pt, bottom=7pt,
+  segmentation style={draw=honeyamber, line width=1.4pt, solid},
+  fontupper=\scriptsize\bfseries\color{deepindigo},
+  fontlower=\small\color{textdark},
+  before skip=4pt, after skip=12pt
+}
+\newcommand{\inbrief}[1]{\begin{inbriefbox}IN\\BRIEF\tcblower #1\end{inbriefbox}}
+
+% Checklist cards
+\tcbset{
+  checkcard/.style={
+    enhanced, colback=white, colframe=deepindigo, boxrule=0.6pt, arc=3pt,
+    colbacktitle=deepindigo, coltitle=white, fonttitle=\bfseries\sffamily\small,
+    left=6pt, right=6pt, top=6pt, bottom=6pt, fontupper=\small, before upper=\raggedright
+  }
 }
 
 % Checklist items
 \newlist{checklist}{itemize}{1}
-\setlist[checklist]{label=\textcolor{deepindigo}{$\square$}, leftmargin=1.8em, nosep, itemsep=0.3em}
+\setlist[checklist]{label=\textcolor{deepindigo}{$\square$}, leftmargin=1.5em, nosep, itemsep=0.45em}
+
+% Table helpers
+\newcommand{\hd}[1]{\textcolor{white}{\bfseries #1}}
+\newcommand{\tablefinish}{\arrayrulecolor{deepindigo}\specialrule{0.8pt}{0pt}{0pt}\arrayrulecolor{black}}
+\newcommand{\zebra}{\rowcolors{2}{white}{paleindigo!75}}
 
 % Shared TikZ styles
 \tikzset{
@@ -168,7 +261,12 @@
   aarr/.style={-{Stealth[scale=0.9]}, line width=0.8pt, darkamber, dashed},
   flowstep/.style={rectangle, rounded corners=3pt, draw=deepindigo, fill=paleindigo, line width=0.6pt, align=center, text=textdark},
   decoy/.style={rectangle, rounded corners=3pt, draw=darkamber, fill=honeyamber!18, line width=0.6pt, align=center, text=textdark},
+  observe/.style={rectangle, rounded corners=3pt, draw=sensorteal, fill=sensorteal!10, line width=0.6pt, align=center, text=textdark},
+  hot/.style={rectangle, rounded corners=3pt, draw=campaignred, fill=campaignred!10, line width=0.8pt, align=center, text=textdark},
+  quiet/.style={rectangle, rounded corners=3pt, draw=proxygray, fill=proxygray!12, line width=0.6pt, align=center, text=textdark},
   store/.style={cylinder, shape border rotate=90, aspect=0.22, draw=ledgerviolet, fill=ledgerviolet!10, line width=0.7pt, align=center, text=textdark},
+  lbl/.style={font=\sffamily\scriptsize, text=softslate},
+  colhead/.style={font=\sffamily\scriptsize\bfseries, text=softslate},
 }
 
 % ============================================================================
@@ -177,77 +275,146 @@
 \begin{document}
 
 % ============================================================================
-% TITLE PAGE
+% COVER
 % ============================================================================
 \begin{titlepage}
+\thispagestyle{empty}
 \begin{tikzpicture}[remember picture, overlay]
-  % Header band
-  \fill[nightink] (current page.north west) rectangle ([yshift=-9cm]current page.north east);
-  % Accent stripe
-  \fill[honeyamber] ([yshift=-9cm]current page.north west) rectangle ([yshift=-9.2cm]current page.north east);
+  \coordinate (NW) at (current page.north west);
+  \coordinate (NE) at (current page.north east);
 
-  % Honeycomb decoration
-  \begin{scope}[shift={(current page.north west)}, xshift=1cm, yshift=-1.6cm]
-    \foreach \x in {0,1,...,17} {
-      \foreach \y in {0,1} {
-        \pgfmathsetmacro{\yy}{-\y*0.52 - mod(\x,2)*0.26}
-        \draw[honeyamber, opacity=0.28, line width=0.5pt]
-          ($(\x*0.45, \yy)+(0:0.3)$) -- ++(120:0.3) -- ++(180:0.3) -- ++(240:0.3) -- ++(300:0.3) -- ++(0:0.3) -- cycle;
+  % Dark band and accent stripe
+  \fill[nightink] (NW) rectangle ([yshift=-16.2cm]NE);
+  \fill[honeyamber] ([yshift=-16.2cm]NW) rectangle ([yshift=-16.4cm]NE);
+
+  % Honeycomb field: faint cells, a few amber decoys, one touched decoy
+  \begin{scope}
+    \clip (NW) rectangle ([yshift=-16.2cm]NE);
+    \foreach \c in {0,...,12} {
+      \foreach \r in {0,...,15} {
+        \pgfmathsetmacro{\hx}{8.6 + \c*0.93}
+        \pgfmathsetmacro{\hy}{0.2 - \r*1.074 - mod(\c,2)*0.537}
+        \pgfmathsetmacro{\op}{0.05 + 0.028*\c}
+        \draw[paleindigo, opacity=\op, line width=0.6pt]
+          ($(NW)+(\hx,\hy)$) ++(0:0.57) -- ++(120:0.57) -- ++(180:0.57) -- ++(240:0.57) -- ++(300:0.57) -- ++(0:0.57) -- cycle;
       }
     }
-    \fill[honeyamber, opacity=0.75] ($(13*0.45, -0.26)+(0:0.3)$) -- ++(120:0.3) -- ++(180:0.3) -- ++(240:0.3) -- ++(300:0.3) -- ++(0:0.3) -- cycle;
+    \foreach \c/\r/\o in {6/3/0.55, 9/6/0.75, 11/2/0.6, 8/10/0.5, 12/8/0.7, 4/12/0.35} {
+      \pgfmathsetmacro{\hx}{8.6 + \c*0.93}
+      \pgfmathsetmacro{\hy}{0.2 - \r*1.074 - mod(\c,2)*0.537}
+      \fill[honeyamber, opacity=\o]
+        ($(NW)+(\hx,\hy)$) ++(0:0.57) -- ++(120:0.57) -- ++(180:0.57) -- ++(240:0.57) -- ++(300:0.57) -- ++(0:0.57) -- cycle;
+    }
+    % Touched decoy with alert rings
+    \pgfmathsetmacro{\tx}{8.6 + 10*0.93}
+    \pgfmathsetmacro{\ty}{0.2 - 11*1.074}
+    \fill[honeyamber] ($(NW)+(\tx,\ty)$) ++(0:0.57) -- ++(120:0.57) -- ++(180:0.57) -- ++(240:0.57) -- ++(300:0.57) -- ++(0:0.57) -- cycle;
+    \foreach \s/\o in {0.95/0.7, 1.35/0.45, 1.75/0.25} {
+      \draw[honeyamber, opacity=\o, line width=1pt]
+        ($(NW)+(\tx,\ty)$) ++(0:\s) -- ++(120:\s) -- ++(180:\s) -- ++(240:\s) -- ++(300:\s) -- ++(0:\s) -- cycle;
+    }
   \end{scope}
+
+  % Masthead
+  \node[anchor=north west, text=honeyamber, font=\sffamily\small\bfseries] at ($(NW)+(1.9,-1.9)$) {HARDWARE SYSTEMS DOCUMENTATION};
+  \node[anchor=north west, text=paleindigo!75, font=\sffamily\footnotesize] at ($(NW)+(1.9,-2.5)$) {HONEYPOT-2026-HW-004};
+
+  % Title block
+  \node[anchor=north west, text=white, font=\sffamily\bfseries\fontsize{36}{42}\selectfont, align=left] at ($(NW)+(1.8,-4.1)$)
+    {Detecting\\Autonomous\\Agent Swarms\\with Deception};
+  \node[anchor=north west, text=paleindigo, font=\sffamily\fontsize{15}{19}\selectfont, align=left] at ($(NW)+(1.9,-11.3)$)
+    {A program guide for detection, attribution,\\and provider reporting};
+  \fill[honeyamber] ($(NW)+(1.9,-13.35)$) rectangle ++(2.6,0.09);
+  \node[anchor=north west, text=white, font=\sffamily\small, align=left] at ($(NW)+(1.9,-13.75)$)
+    {Version 1.0 \quad\textcolor{honeyamber}{\textbar}\quad September 2026};
+
+  % Metadata grid
+  \node[anchor=north west, text width=17.8cm, inner sep=0pt, font=\sffamily\small, text=textdark] at ($(NW)+(1.9,-17.0)$) {%
+    \setlength{\tabcolsep}{0pt}\renewcommand{\arraystretch}{1.15}%
+    \begin{tabular}{@{}p{8.5cm}@{\hspace{0.8cm}}p{8.5cm}@{}}
+      {\scriptsize\bfseries\color{darkamber}AUDIENCE} & {\scriptsize\bfseries\color{darkamber}SCOPE} \\[1pt]
+      Security teams, sector ISACs, national CERTs, and policy bodies planning deception programs aimed at autonomous AI agent activity
+      & Defensive detection, attribution, and reporting only. No offensive countermeasures, no hack-back, no ready-made decoy artifacts. \\[10pt]
+      {\scriptsize\bfseries\color{darkamber}COMPANION DOCUMENT} & {\scriptsize\bfseries\color{darkamber}STATUS} \\[1pt]
+      \emph{AI Agent Containment \& Infrastructure Security Framework}: how to keep your \emph{own} agents contained
+      & Independent research, published for defensive governance research and education. MIT License. \\
+    \end{tabular}};
+
+  % Premise
+  \node[anchor=north west, text width=16.95cm, fill=paleindigo, inner xsep=0.45cm, inner ysep=0.35cm, font=\sffamily\small, text=textdark, align=left] (prem) at ($(NW)+(1.9,-22.6)$)
+    {{\color{deepindigo}\bfseries\ding{72}\hspace{0.5em}The premise}\\[4pt]
+     Autonomous agents are thorough, act on what they read, and move fast across many targets. Deception (decoy systems, credentials, and data with no legitimate use) turns each of those traits into an observable event. This guide sets out how to design, operate, and govern such a program at the level of principles and program design, not ready-made artifacts.};
+  \fill[deepindigo] (prem.north west) rectangle ([xshift=3.5pt]prem.south west);
+
+  % Footer
+  \draw[medgray, line width=0.4pt] ($(NW)+(1.9,-25.9)$) -- ++(17.8,0);
+  \node[anchor=north west, text=softslate, font=\sffamily\scriptsize] at ($(NW)+(1.9,-26.1)$)
+    {Independent research, not affiliated with any institution or committee};
+  \node[anchor=north east, text=softslate, font=\sffamily\scriptsize] at ($(NW)+(19.7,-26.1)$)
+    {Agent Swarm Honeypot Guide \textbar{} v1.0};
 \end{tikzpicture}
-
-\vspace*{1.5cm}
-
-{\color{white}\sffamily
-\begin{flushleft}
-{\fontsize{14}{16}\selectfont HARDWARE SYSTEMS DOCUMENTATION}\\[0.3em]
-{\fontsize{28}{32}\selectfont\bfseries Detecting Autonomous}\\[0.1em]
-{\fontsize{28}{32}\selectfont\bfseries Agent Swarms with Deception}\\[0.2em]
-{\fontsize{18}{22}\selectfont A Program Guide}\\[1.5em]
-{\fontsize{11}{14}\selectfont Version 1.0 --- September 2026}
-\end{flushleft}
-}
-
-\vspace{2.2cm}
-
-\begin{tcolorbox}[
-  enhanced, width=0.92\textwidth,
-  colback=paleindigo, colframe=deepindigo,
-  boxrule=0pt, leftrule=4pt,
-  left=15pt, right=15pt, top=12pt, bottom=12pt
-]
-\small\sffamily
-\textbf{Version}: 1.0 (September 2026)\\
-\textbf{Audience}: security teams, sector ISACs, national CERTs, and policy bodies planning deception programs aimed at autonomous AI agent activity\\
-\textbf{Scope}: defensive detection, attribution, and reporting only\\
-\textbf{Companion document}: \emph{AI Agent Containment \& Infrastructure Security Framework} (ai-agent-containment-infrastructure-security-framework) --- how to keep your \emph{own} agents contained
-\end{tcolorbox}
-
-\vspace{0.8cm}
-
-\begin{keybox}[Detection on Touch]
-Autonomous agents are thorough, act on what they read, and move fast across many targets. Deception --- decoy systems, credentials, and data with no legitimate use --- turns each of those traits into an observable event. This guide sets out how to design, operate, and govern such a program at the level of principles and program design, not ready-made artifacts.
-\end{keybox}
-
-\vfill
-
-{\small\color{softslate}\sffamily
-Independent research --- not affiliated with any institution or committee\\
-Published for defensive governance research and education\\
-MIT License
-}
-
+\null
 \end{titlepage}
 
 % ============================================================================
-% TABLE OF CONTENTS
+% FRONT MATTER
 % ============================================================================
+\pagenumbering{roman}
+\begingroup
+\setstretch{0.9}
 \tableofcontents
-\listoffigures
+\endgroup
 \newpage
+
+\section*{How to Use This Guide}
+\addcontentsline{toc}{section}{How to Use This Guide}
+\markboth{How to Use This Guide}{}
+
+This guide is written for several audiences. Each can start in a different place:
+
+{\small
+\zebra
+\begin{tabularx}{\textwidth}{L{4.3cm} Y Y}
+\rowcolor{deepindigo}
+\hd{If you are\ldots} & \hd{Start with} & \hd{Then read} \\
+A security team planning a program & Section~\ref{sec:principles} (principles) and Section~\ref{sec:layers} (layers) & Sections~\ref{sec:telemetry}, \ref{sec:operating}, and \ref{sec:checklists} \\
+A sector ISAC, CERT, or national agency & Section~\ref{sec:cautious} (proxied adversaries) and Section~\ref{sec:attribution} (reporting) & Section~\ref{sec:maturity} (maturity model) \\
+A policy body or regulator & Section~\ref{sec:summary} (summary) and Section~\ref{sec:evidence} (evidence) & Sections~\ref{sec:legal} and \ref{sec:maturity} \\
+Legal counsel or a privacy officer & Section~\ref{sec:legal} (guardrails) & Section~\ref{sec:telemetry} and Section~\ref{sec:package} \\
+A model or platform provider receiving reports & Section~\ref{sec:attribution} (reporting) & Section~\ref{sec:signals} (AI-agent signals) \\
+\tablefinish
+\end{tabularx}
+}
+
+\subsection*{Key Terms}
+
+{\small
+\zebra
+\begin{tabularx}{\textwidth}{L{3.6cm} Y}
+\rowcolor{deepindigo}
+\hd{Term} & \hd{Meaning in this guide} \\
+Decoy & A system, credential, record, or piece of content that no legitimate user or process needs to touch \\
+Decoy value & The unique string, credential, or identifier carried by a decoy \\
+Placement & One decoy value exposed in one location at one time \\
+Placement ledger & The private record of every placement: value, location, time placed, and exposure context \\
+Touch & Any read, copy, use, or reuse of a decoy \\
+Sighting & A later appearance of a decoy value anywhere, inside or outside your network \\
+Campaign & A set of touches and sightings attributed to one actor or agent configuration \\
+Provider & The model, agent-platform, cloud, or proxy operator that can see the accounts behind the activity \\
+\tablefinish
+\end{tabularx}
+}
+
+\begin{notebox}[What this guide deliberately leaves out]
+There are no decoy templates, strings, file names, banners, or lists of ``tells'' anywhere in this document. It is public and will be read by the adversaries it describes; anything published here is, by definition, a signature. Section~\ref{sec:secrecy} explains why this is a security control rather than an omission.
+\end{notebox}
+
+\begingroup
+\setstretch{1.0}
+\listoffigures
+\endgroup
+\newpage
+\pagenumbering{arabic}
 
 % ============================================================================
 % SECTION 1: EXECUTIVE SUMMARY
@@ -255,35 +422,58 @@ MIT License
 \section{Executive Summary}
 \label{sec:summary}
 
-Autonomous and semi-autonomous AI agents are now used to run intrusion campaigns. Public threat reports from model providers and security vendors describe operations in which AI carried out most of the hands-on work: reconnaissance, vulnerability discovery, credential harvesting, and lateral movement, across many targets in parallel. Some reports describe operators running multiple coordinated agents (``swarms'') against many organizations at once.
+Autonomous and semi-autonomous AI agents are now used to run intrusion campaigns. Public threat reports from model providers and security vendors describe operations in which AI did most of the hands-on work (reconnaissance, vulnerability discovery, credential harvesting, and lateral movement) across many targets in parallel. Some describe operators running multiple coordinated agents (``swarms'') against many organizations at once.
 
-Deception --- decoy systems, decoy credentials, and decoy data that have no legitimate use --- is one of the few defensive techniques whose value \emph{increases} against this kind of adversary:
+Deception (decoy systems, decoy credentials, and decoy data that have no legitimate use) is one of the few defensive techniques that becomes \emph{more} valuable against this kind of adversary. It turns the traits that make agents effective into observable events (Figure~\ref{fig:traits}):
 
 \begin{itemize}
   \item \textbf{Agents are thorough.} They enumerate everything they can reach and read what they find. Decoys that a hurried human would skip are exactly what a tireless agent opens.
-  \item \textbf{Agents act on what they read.} They reuse credentials found in files, call endpoints named in documentation, and follow instructions embedded in content. Every one of those actions can be observed.
-  \item \textbf{Agents are fast and parallel.} The same campaign touches many organizations within hours. A well-run sharing program sees the same unique indicators appear across many sensors, which clusters the campaign.
+  \item \textbf{Agents act on what they read.} They reuse credentials found in files, call endpoints named in documentation, and follow instructions embedded in content. Each of those actions can be observed.
+  \item \textbf{Agents are fast and parallel.} One campaign touches many organizations within hours. A well-run sharing program sees the same unique indicators appear across many sensors, which clusters the campaign.
 \end{itemize}
 
-This guide sets out how to design, operate, and govern a deception program for this threat. It is deliberately written at the level of \textbf{principles and program design}, not ready-made artifacts. That choice is itself a security control (Section~\ref{sec:secrecy}): this document is public and will be read by the adversaries it describes, so nothing in it should be copied verbatim into a deployment.
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[font=\sffamily\small,
+    trait/.style={flowstep, minimum width=4.7cm, text width=4.4cm, minimum height=1.25cm, font=\sffamily\footnotesize},
+    offer/.style={decoy, minimum width=5.3cm, text width=5.0cm, minimum height=1.25cm, font=\sffamily\footnotesize},
+    event/.style={observe, minimum width=4.2cm, text width=3.9cm, minimum height=1.25cm, font=\sffamily\footnotesize\bfseries}]
+  \node[colhead] at (2.35,0.95) {AGENT TRAIT};
+  \node[colhead] at (8.35,0.95) {WHAT THE DECOY OFFERS};
+  \node[colhead] at (14.3,0.95) {WHAT THE DEFENDER SEES};
+  \foreach \y/\t/\o/\e [count=\i] in {
+    0/{\textbf{Thorough}\\enumerates and reads everything}/{Decoys where only an\\exhaustive search looks}/{Read-time alert},
+    -1.55/{\textbf{Acts on what it reads}\\reuses credentials, calls endpoints}/{Credentials and endpoints that\\exist only as decoys}/{Use-time alert tied\\to one placement},
+    -3.1/{\textbf{Fast and parallel}\\many targets within hours}/{The same unique values\\seen by many sensors}/{Campaign clustering\\across organizations}} {
+    \node[trait] (t\i) at (2.35,\y) {\t};
+    \node[offer] (o\i) at (8.35,\y) {\o};
+    \node[event] (e\i) at (14.3,\y) {\e};
+    \draw[arr] (t\i) -- (o\i);
+    \draw[arr] (o\i) -- (e\i);
+  }
+\end{tikzpicture}
+\caption{Why deception works against agents: each trait that makes an agent effective also makes it observable.}
+\label{fig:traits}
+\end{figure}
+
+This guide sets out how to design, operate, and govern a deception program for this threat. It is written at the level of \textbf{principles and program design}, not ready-made artifacts. That choice is itself a security control (Section~\ref{sec:secrecy}): the document is public and will be read by the adversaries it describes, so nothing in it should be copied verbatim into a deployment.
 
 \begin{keybox}[Five Core Principles]
-Five principles carry most of the weight:
 \begin{enumerate}
   \item \textbf{Detection on touch.} Design every decoy so that the first read, first use, or first reuse is the alert. An adversary that recognizes the decoy after touching it has already been recorded.
   \item \textbf{Uniqueness per placement.} Every decoy value is generated for exactly one location and one time. Any later appearance of that value tells you where and when it was harvested.
-  \item \textbf{Secrecy of keys, not of method.} The program must keep working even if the adversary has read this guide. What stays secret is the per-deployment material --- which values are decoys and where they were placed --- never the technique.
-  \item \textbf{Zero legitimate use.} A decoy that real users or real systems never touch produces near-zero false positives, so every event is worth investigating.
-  \item \textbf{Evidence that providers can act on.} The end goal is not only blocking but identifying the accounts and agents involved and reporting them to the responsible model or platform provider, with evidence in a form that lets the provider find them in its own logs.
+  \item \textbf{Secrecy of keys, not of method.} The program must keep working even if the adversary has read this guide. What stays secret is the per-deployment material (which values are decoys and where they were placed), never the technique.
+  \item \textbf{Zero legitimate use.} A decoy that real users and real systems never touch produces near-zero false positives, so every event is worth investigating.
+  \item \textbf{Evidence that providers can act on.} The goal is not only blocking but identifying the accounts and agents involved and reporting them to the responsible model or platform provider, with evidence the provider can find in its own logs.
 \end{enumerate}
 \end{keybox}
 
-Nothing here is perfect. A cautious agent may route every request through disposable infrastructure, avoid anything that looks too good, and test credentials only from throwaway environments. Section~\ref{sec:cautious} covers what a program still learns in that case, which is a lot.
+Sections~\ref{sec:touch}--\ref{sec:actionable} treat each principle in turn. No program is perfect. A cautious agent may route every request through disposable infrastructure, avoid anything that looks too good, and test credentials only from throwaway environments. Section~\ref{sec:cautious} shows that a program still learns a great deal in that case.
 
 \subsection{What This Guide Does Not Cover}
 \label{sec:notcovered}
 
-\begin{scopebox}[What This Guide Does Not Cover]
+\begin{scopebox}[Out of scope]
 This is a defensive guide. It does not cover and does not endorse:
 \begin{itemize}
   \item offensive countermeasures, ``hack-back'', or any action against systems you do not own;
@@ -301,41 +491,51 @@ Most AI agents that touch your perimeter are not misaligned. Crawlers, research 
 \section{What Is Known About AI-Driven Intrusion Activity}
 \label{sec:evidence}
 
-The evidence base is young but growing quickly. The items below come from primary publications; see Section~\ref{sec:refs} for full references.
+Public reporting from 2024--2026 already supports three conclusions for anyone designing a deception program:
 
-{\small
-\begin{longtable}{L{1.5cm} L{3.7cm} L{10.6cm}}
-\toprule
-\textbf{Date} & \textbf{Source} & \textbf{Finding relevant to deception} \\
-\midrule
-\endhead
-Oct 2024 & Palisade Research, \emph{LLM Agent Honeypot} (arXiv:2410.13919) & A public SSH honeypot instrumented to detect LLM-driven sessions logged over 8.1 million interaction attempts and flagged 8 potential AI agents. Two signals were used together: whether the session acted on embedded natural-language content, and response timing (flagged agents answered in roughly 1.7\,s median, where human sessions often took over 10\,s). \\
-Oct 2024 & \emph{Mantis} (arXiv:2410.20911) & Research framework showing that decoy services can detect and disrupt LLM-driven attacking agents by exploiting the fact that agents act on content returned by the target. \\
-Aug 2025 & Anthropic threat report (GTG-2002) & A single operator used an AI coding agent for data extortion against at least 17 organizations; accounts were banned and indicators shared with authorities. \\
-Nov 2025 & Anthropic, GTG-1002 & A state-linked campaign, detected mid-September 2025, used an AI agent orchestrated through MCP tooling against roughly 30 targets, with the AI performing an estimated 80--90\% of tactical work. The report notes the model frequently overstated findings and produced credentials that did not work --- a reminder that agents mis-handle what they collect, which a decoy program can observe. MITRE ATT\&CK tracks this as campaign C0062. \\
-Oct 2025 & OpenAI threat report & More than 40 networks disrupted since February 2024. Actors used multiple models and adapted to detection (one network removed a punctuation habit that had become a known sign of AI-written text). \\
-Nov 2025 & Google Threat Intelligence Group & Documented malware families that call LLMs at runtime (e.g.\ PROMPTFLUX, PROMPTSTEAL). \\
-Dec 2025 & UK NCSC deception trial findings & Across 121 organizations and 14 providers, deception was found practical; 90\% of participants would not publicly announce their use of it. \\
-Aug 2026 & GreyNoise, PaperCut exploitation campaign & AI-agent-driven exploitation reached at least 440 instances across 395 organizations in 48 countries. It was observed through a distributed sensor network --- that is, through decoys and passive sensors, not victim networks. The agents also ignored parts of the operator's own exclusion list. \\
-Sep 2026 & Anthropic threat report & Operators ``routinely ran agent swarms''; stolen AI API keys taken from customer environments were used to fund operations. \\
-Sep 2026 & Google Threat Intelligence Group & A credential-harvesting campaign completed in under six hours with IP rotation; GTIG states it has not yet observed fully autonomous end-to-end pipelines. \\
-\bottomrule
-\end{longtable}
-}
-
-Three conclusions follow for defenders:
-
+\begin{keybox}[Three conclusions for defenders]
 \begin{itemize}
   \item \textbf{Sensor networks see campaigns first.} The PaperCut campaign was characterized from decoy and sensor data spread across many networks. Deception scales best as a \emph{shared} capability.
   \item \textbf{Stolen AI credentials are part of the economy.} Operators run swarms on other people's API keys. Decoy AI-provider credentials are therefore both attractive bait and a direct route to the provider that can act (Section~\ref{sec:attribution}).
-  \item \textbf{Agents are imperfect and sometimes disobedient.} They overstate, hallucinate, and ignore their own operators' constraints. They do not reliably apply the caution a careful human operator would, which is why detection-on-touch works.
+  \item \textbf{Agents are imperfect and sometimes disobedient.} They overstate, hallucinate, and ignore their own operators' constraints. They do not reliably apply the caution a careful human operator would, which is why detection on touch works.
 \end{itemize}
+\end{keybox}
+
+The evidence base is young but growing quickly. The findings behind these conclusions, from primary publications and in date order, are summarized below; see Section~\ref{sec:refs} for full references.
+
+{\footnotesize
+\zebra
+\begin{longtable}{L{1.6cm} L{3.3cm} L{10.85cm}}
+\rowcolor{deepindigo}
+\hd{Date} & \hd{Source} & \hd{Finding relevant to deception} \\
+\endfirsthead
+\rowcolor{deepindigo}
+\hd{Date} & \hd{Source} & \hd{Finding relevant to deception (continued)} \\
+\endhead
+\rowcolor{white}\multicolumn{3}{r}{\scriptsize\itshape\color{softslate} continued on next page} \\
+\endfoot
+\tablefinish
+\endlastfoot
+Oct 2024 & Palisade Research, \emph{LLM Agent Honeypot} (arXiv:2410.13919) & A public SSH honeypot instrumented to detect LLM-driven sessions logged over 8.1 million interaction attempts and flagged 8 potential AI agents. Two signals were used together: whether the session acted on embedded natural-language content, and response timing (flagged agents answered in roughly 1.7\,s median, where human sessions often took over 10\,s). \\
+Oct 2024 & \emph{Mantis} (arXiv:2410.20911) & Research framework showing that decoy services can detect and disrupt LLM-driven attacking agents by exploiting the fact that agents act on content returned by the target. \\
+Aug 2025 & Anthropic threat report (GTG-2002) & A single operator used an AI coding agent for data extortion against at least 17 organizations; accounts were banned and indicators shared with authorities. \\
+Oct 2025 & OpenAI threat report & More than 40 networks disrupted since February 2024. Actors used multiple models and adapted to detection (one network removed a punctuation habit that had become a known sign of AI-written text). \\
+Nov 2025 & Anthropic, GTG-1002 & A state-linked campaign, detected mid-September 2025, used an AI agent orchestrated through MCP tooling against roughly 30 targets, with the AI performing an estimated 80--90\% of tactical work. The model frequently overstated findings and produced credentials that did not work. Agents mishandle what they collect, and a decoy program can observe that. MITRE ATT\&CK tracks this as campaign C0062. \\
+Nov 2025 & Google Threat Intelligence Group & Documented malware families that call LLMs at runtime (e.g.\ PROMPTFLUX, PROMPTSTEAL). \\
+Dec 2025 & UK NCSC deception trial findings & Across 121 organizations and 14 providers, deception was found practical; 90\% of participants would not publicly announce their use of it. \\
+Aug 2026 & GreyNoise, PaperCut exploitation campaign & AI-agent-driven exploitation reached at least 440 instances across 395 organizations in 48 countries. It was observed through a distributed sensor network (decoys and passive sensors, not victim networks). The agents also ignored parts of the operator's own exclusion list. \\
+Sep 2026 & Anthropic threat report & Operators ``routinely ran agent swarms''; stolen AI API keys taken from customer environments were used to fund operations. \\
+Sep 2026 & Google Threat Intelligence Group & A credential-harvesting campaign completed in under six hours with IP rotation; GTIG states it has not yet observed fully autonomous end-to-end pipelines. \\
+\end{longtable}
+}
 
 % ============================================================================
 % SECTION 3: DESIGN PRINCIPLES
 % ============================================================================
 \section{Design Principles}
 \label{sec:principles}
+
+\inbrief{Five principles carry the program: detect on the first touch, make every decoy value unique to one placement, keep the per-deployment material secret rather than the method, keep decoys free of legitimate use, and collect evidence that a provider can act on. A sixth requirement (decoys must be safe) is a constraint on all five.}
 
 \subsection{Detection on Touch}
 \label{sec:touch}
@@ -345,23 +545,27 @@ Treat each decoy as a tripwire whose value is realized at the first interaction,
 \begin{figure}[htbp]
 \centering
 \begin{tikzpicture}[font=\sffamily\small]
+  % Detection window
+  \fill[honeyamber!10] (3.55,-2.25) rectangle (11.25,2.45);
+  \node[font=\sffamily\scriptsize\bfseries, text=darkamber, anchor=north] at (7.4,2.45) {detection window};
+
   % Timeline axis
-  \draw[-{Stealth[scale=1.0]}, line width=1pt, softslate] (-0.4,2.1) -- (15.9,2.1) node[above left, font=\sffamily\scriptsize, text=softslate] {time};
+  \draw[-{Stealth[scale=1.0]}, line width=1pt, softslate] (-0.4,1.9) -- (15.9,1.9) node[above left, lbl] {time};
 
   % Agent steps
-  \node[flowstep, minimum width=3.3cm, minimum height=1.1cm] (a) at (1.4,1.1) {Agent discovers\\decoy};
-  \node[flowstep, minimum width=3.3cm, minimum height=1.1cm] (b) at (5.4,1.1) {Agent reads or\\copies it};
-  \node[flowstep, minimum width=3.3cm, minimum height=1.1cm] (c) at (9.4,1.1) {Agent uses or\\reuses it};
-  \node[flowstep, minimum width=3.3cm, minimum height=1.1cm, draw=proxygray, fill=proxygray!12] (d) at (13.6,1.1) {Agent realizes it\\is a decoy};
+  \node[flowstep, minimum width=3.3cm, minimum height=1.1cm] (a) at (1.6,0.9) {Agent discovers\\decoy};
+  \node[flowstep, minimum width=3.3cm, minimum height=1.1cm] (b) at (5.5,0.9) {Agent reads or\\copies it};
+  \node[flowstep, minimum width=3.3cm, minimum height=1.1cm] (c) at (9.3,0.9) {Agent uses or\\reuses it};
+  \node[quiet, minimum width=3.3cm, minimum height=1.1cm] (d) at (13.6,0.9) {Agent realizes it\\is a decoy};
 
-  \foreach \n in {a,b,c,d} { \draw[softslate, line width=0.5pt] (\n.north) -- (\n.north |- 0,2.1); \fill[deepindigo] (\n.north |- 0,2.1) circle (0.06); }
+  \foreach \n in {a,b,c,d} { \draw[softslate, line width=0.5pt] (\n.north) -- (\n.north |- 0,1.9); \fill[deepindigo] (\n.north |- 0,1.9) circle (0.06); }
 
   \draw[arr] (a) -- (b);
   \draw[arr] (b) -- (c);
   \draw[arr] (c) -- (d);
 
   % Log
-  \node[rectangle, rounded corners=4pt, draw=ledgerviolet, fill=ledgerviolet!10, line width=0.8pt, minimum width=12.2cm, minimum height=0.9cm, font=\sffamily\small\bfseries, text=textdark] (log) at (9.5,-1.5) {Tamper-evident log};
+  \node[rectangle, rounded corners=4pt, draw=ledgerviolet, fill=ledgerviolet!10, line width=0.8pt, minimum width=12.0cm, minimum height=0.85cm, font=\sffamily\small\bfseries, text=textdark] (log) at (9.5,-1.75) {Off-host, tamper-evident log};
 
   % Alerts
   \draw[aarr] (b.south) -- (b.south |- log.north) node[midway, right=3pt, font=\sffamily\scriptsize\bfseries, text=darkamber, align=left] {alert 1:\\access logged};
@@ -375,25 +579,51 @@ Treat each decoy as a tripwire whose value is realized at the first interaction,
 Practical consequences:
 
 \begin{itemize}
-  \item Instrument the \textbf{read} path, not only the \textbf{use} path. File access auditing, object-store access logs, and database query logging on decoy records all fire before an agent can evaluate what it has.
-  \item Prefer decoys that are \textbf{self-reporting when used anywhere}, such as credentials that can only be validated by contacting infrastructure you (or a trusted provider) observe. The alert then does not depend on the adversary staying inside your network.
-  \item Assume the adversary will eventually recognize some decoys. Design so that recognition gives them nothing back: the log has already been written, off-host, and cannot be changed from the decoy.
+  \item \textbf{Instrument the read path, not only the use path.} File access auditing, object-store access logs, and database query logging on decoy records all fire before an agent can evaluate what it has.
+  \item \textbf{Prefer decoys that report themselves wherever they are used}, such as credentials that can only be validated by contacting infrastructure you (or a trusted provider) observe. The alert then does not depend on the adversary staying inside your network.
+  \item \textbf{Assume some decoys will eventually be recognized.} Design so that recognition gives the adversary nothing back: the log has already been written, off-host, and cannot be changed from the decoy.
 \end{itemize}
 
 \subsection{Uniqueness per Placement}
 \label{sec:unique}
 
-Every decoy value --- credential, hostname, document, record, phrase --- is generated for a single placement and recorded in a private \textbf{placement ledger}: value, location, time placed, and the context it was exposed in.
+Every decoy value (credential, hostname, document, record, phrase) is generated for a single placement and recorded in a private \textbf{placement ledger}: value, location, time placed, and the context it was exposed in. Every later sighting then becomes a precise statement: \emph{this value was harvested from this location at or after this time} (Figure~\ref{fig:ledger}).
 
-This turns every sighting into a precise statement: \emph{this value was harvested from this location at or after this time.} It also means:
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[font=\sffamily\footnotesize]
+  \node[flowstep, minimum width=2.8cm, minimum height=1.35cm] (G) at (1.4,0) {\textbf{Generate}\\per deployment,\\from your own data};
+  \foreach \i/\y in {1/1.2,2/0,3/-1.2} {
+    \node[decoy, minimum width=3.1cm, minimum height=0.8cm] (V\i) at (5.4,\y) {value $v_\i$ \,$\rightarrow$\, placement \i};
+    \draw[arr] (G.east) -- (V\i.west);
+  }
+  \node[store, minimum width=3.0cm, minimum height=1.3cm] (L) at (1.4,-3.3) {\textbf{Placement ledger}\\value, location,\\time, context};
+  \draw[darr, draw=ledgerviolet] (G.south) -- node[right, font=\sffamily\scriptsize, text=ledgerviolet, align=left] {record\\each value} (L.north);
+
+  \node[quiet, minimum width=3.8cm, minimum height=1.35cm] (S) at (10.7,0) {\textbf{Later sighting of $v_2$}\\another network, a paste\\site, or a provider log};
+  \draw[aarr] (V2.east) -- node[above, font=\sffamily\scriptsize\bfseries, text=darkamber] {harvested} (S.west);
+
+  \node[hot, minimum width=3.6cm, minimum height=1.35cm] (A) at (15.1,0) {\textbf{Precise statement}\\harvested from placement 2\\at or after time $T_2$};
+  \coordinate (J) at ($(S.east)!0.5!(A.west)$);
+  \draw[arr] (S.east) -- (A.west);
+  \draw[darr, draw=ledgerviolet] (L.east) -| node[pos=0.3, below, font=\sffamily\scriptsize, text=ledgerviolet] {private lookup} (J);
+  \fill[ledgerviolet] (J) circle (0.07);
+\end{tikzpicture}
+\caption{Uniqueness per placement: because each value exists in exactly one place, a private ledger lookup turns any later sighting into a statement of where and when it was taken.}
+\label{fig:ledger}
+\end{figure}
+
+Uniqueness also means:
 
 \begin{itemize}
   \item sightings on other networks, in paste sites, in criminal markets, or in a provider's logs link back to the original exposure;
   \item two sightings of values from \emph{different} placements by the same actor tie those placements into one campaign;
-  \item decoys cannot be ``burned'' in bulk --- recognizing one tells the adversary nothing about the others.
+  \item decoys cannot be ``burned'' in bulk: recognizing one tells the adversary nothing about the others.
 \end{itemize}
 
-The ledger is the program's crown jewel. Store it separately from the decoys, restrict access, and never place it on any system the decoys share.
+\begin{warnbox}[Protect the ledger]
+The placement ledger is the program's crown jewel. Store it separately from the decoys, restrict access, and never place it on any system the decoys share. Anyone who reads it can map every remaining decoy.
+\end{warnbox}
 
 \subsection{Secrecy of Keys, Not of Method}
 \label{sec:secrecy}
@@ -406,9 +636,9 @@ Kerckhoffs's principle, applied to deception: \textbf{assume the adversary knows
   \item how they are monitored and where alerts go.
 \end{itemize}
 
-This is why the guide contains no fixed templates, strings, file names, or banners. Anything published is, by definition, a signature. Organizations should generate their own artifacts from their own environment (Section~\ref{sec:layers}) and should treat any shared example --- here or anywhere --- as something to learn from and then discard.
+This is why the guide contains no fixed templates, strings, file names, or banners. Anything published is, by definition, a signature. Generate your own artifacts from your own environment (Section~\ref{sec:layers}), and treat any shared example, here or anywhere, as something to learn from and then discard.
 
-A second consequence: do not announce your program. The NCSC trial found most organizations reach the same conclusion. Publishing that you use deception is not itself harmful if the design follows this section, but specifics about coverage, vendors, or placement are.
+A second consequence: do not announce your program. In the NCSC trial, 90\% of participants said they would not publicly announce their use of deception. Saying that you use deception does no harm if the design follows this section; publishing specifics about coverage, vendors, or placement does.
 
 \subsection{Zero Legitimate Use}
 \label{sec:zerouse}
@@ -416,15 +646,26 @@ A second consequence: do not announce your program. The NCSC trial found most or
 A decoy that nobody legitimately touches has a false-positive rate near zero. Protect that property:
 
 \begin{itemize}
-  \item keep decoys out of search indexes, backups, inventory scanners, and automated tooling that would touch them routinely --- or allowlist those tools explicitly and alert on everything else;
+  \item keep decoys out of search indexes, backups, inventory scanners, and automated tooling that would touch them routinely, or allowlist those tools explicitly and alert on everything else;
   \item brief the small set of administrators who must know, and route their accidental touches through a documented process;
   \item review every alert; a decoy that alerts on benign activity is fixed or retired, not ignored.
+\end{itemize}
+
+\subsection{Evidence That Providers Can Act On}
+\label{sec:actionable}
+
+Detection is the start, not the goal. A program succeeds when the accounts and agents behind a campaign are identified and the party that can act on them (usually the model or platform provider) receives evidence it can join against its own logs. That goal shapes design decisions long before any report is written:
+
+\begin{itemize}
+  \item unique decoy values (Section~\ref{sec:unique}) and accurate, tamper-evident time (Section~\ref{sec:telemetry}) are what make a provider-side join possible;
+  \item decoy AI-provider credentials, coordinated with the issuing provider, map directly to accounts (Section~\ref{sec:layerdetail});
+  \item reporting routes arranged in advance keep confirmed evidence from going stale (Section~\ref{sec:attribution}).
 \end{itemize}
 
 \subsection{Decoys Must Be Safe}
 \label{sec:safe}
 
-A decoy is a system you operate and are responsible for:
+Safety is not a sixth principle to trade off against the others; it is a constraint on all of them. A decoy is a system you operate and are responsible for:
 
 \begin{itemize}
   \item it must not provide a pivot to real systems (network segmentation, no real credentials, no trust relationships);
@@ -433,7 +674,7 @@ A decoy is a system you operate and are responsible for:
   \item decoy credentials grant no real capability anywhere.
 \end{itemize}
 
-The containment framework's isolation guidance (network namespaces, microVMs, egress allowlisting) applies directly to interactive decoys.
+The isolation guidance in the companion \emph{AI Agent Containment \& Infrastructure Security Framework} (network namespaces, microVMs, and egress allowlisting) applies directly to interactive decoys.
 
 % ============================================================================
 % SECTION 4: THREAT MODEL
@@ -441,49 +682,29 @@ The containment framework's isolation guidance (network namespaces, microVMs, eg
 \section{Threat Model: How Agent Swarms Differ}
 \label{sec:threat}
 
+\inbrief{Agent swarms combine the breadth of a scanner with the reading and reasoning of a human operator. Unlike botnets, they run under accounts that some provider can see, which gives defenders a remediation path.}
+
 \subsection{Characteristics That Matter for Deception}
 \label{sec:characteristics}
 
 {\footnotesize
-\begin{longtable}{L{2.4cm} L{2.1cm} L{2.3cm} L{3.1cm} L{4.7cm}}
-\toprule
-\textbf{Characteristic} & \textbf{Human operator} & \textbf{Classic bot / scanner} & \textbf{Autonomous agent swarm} & \textbf{Implication for deception} \\
-\midrule
-\endhead
-Breadth & Selective & Broad but shallow & Broad \textbf{and} deep & Deep decoys (documents, configs, internal docs) get read, not just probed \\
-Speed & Minutes to days & Milliseconds & Seconds per step, many in parallel & Timing is a detection signal; correlation windows must be short \\
-Reads natural language & Yes, selectively & No & Yes, exhaustively & Content itself can be a tripwire \\
-Acts on what it reads & With judgment & Only on fixed patterns & Often literally & Decoy credentials and documented endpoints get used \\
-Reuses findings & Carefully & Rarely & Frequently, across targets & Per-placement uniqueness links targets into a campaign \\
-Memory / persistence & Notes & None & Shared memory, task queues & A decoy seen by one agent may be used later by another \\
-Operational caution & Variable & None & Variable and inconsistent & Some agents probe for decoys; many do not, and even cautious ones slip \\
-Accountable identity & A person & Infrastructure & An account at a model or platform provider & Provider reporting is a real remediation path \\
-\bottomrule
-\end{longtable}
+\zebra
+\begin{tabularx}{\textwidth}{L{2.2cm} L{1.9cm} L{2.0cm} L{2.9cm} Y}
+\rowcolor{deepindigo}
+\hd{Characteristic} & \hd{Human operator} & \hd{Classic bot or scanner} & \hd{Autonomous agent swarm} & \hd{Implication for deception} \\
+\textbf{Breadth} & Selective & Broad but shallow & \cellcolor{honeyamber!18}Broad \textbf{and} deep & Deep decoys (documents, configurations, internal docs) get read, not just probed \\
+\textbf{Speed} & Minutes to days & Milliseconds & \cellcolor{honeyamber!18}Seconds per step, many in parallel & Timing is a detection signal; correlation windows must be short \\
+\textbf{Reads natural language} & Yes, selectively & No & \cellcolor{honeyamber!18}Yes, exhaustively & Content itself can be a tripwire \\
+\textbf{Acts on what it reads} & With judgment & Only on fixed patterns & \cellcolor{honeyamber!18}Often literally & Decoy credentials and documented endpoints get used \\
+\textbf{Reuses findings} & Carefully & Rarely & \cellcolor{honeyamber!18}Frequently, across targets & Per-placement uniqueness links targets into a campaign \\
+\textbf{Memory and persistence} & Notes & None & \cellcolor{honeyamber!18}Shared memory, task queues & A decoy seen by one agent may be used later by another \\
+\textbf{Operational caution} & Variable & None & \cellcolor{honeyamber!18}Variable and inconsistent & Some agents probe for decoys; many do not, and even cautious ones slip \\
+\textbf{Accountable identity} & A person & Infrastructure & \cellcolor{honeyamber!18}An account at a model or platform provider & Provider reporting is a real remediation path \\
+\tablefinish
+\end{tabularx}
 }
 
-The last row is the one most specific to this threat. An agent swarm is ultimately driven by model API calls made under accounts, keys, or deployments that some provider can see. That gives defenders a remediation path that classic botnets do not offer.
-
-\subsection{Adversary Tiers}
-\label{sec:tiers}
-
-Plan for the whole range, not only the most capable.
-
-{\small
-\begin{longtable}{L{3.0cm} L{6.0cm} L{6.6cm}}
-\toprule
-\textbf{Tier} & \textbf{Description} & \textbf{What deception catches} \\
-\midrule
-\endhead
-A --- Naive & Off-the-shelf agent pointed at targets with little configuration & Almost everything: direct use of decoy credentials, content tripwires, obvious timing signatures \\
-B --- Operated & Agent framework run by a capable operator with tooling and target lists & Harvested decoys reused across targets; campaign clustering across sensors \\
-C --- Cautious & Agents instructed to avoid honeypots, validate findings through disposable infrastructure, and rotate everything & Access-time alerts, content-level indicators that survive proxies, behavioral correlation (Section~\ref{sec:cautious}) \\
-D --- Highly capable and patient & Strong models that reason about deception, test hypotheses slowly, and exfiltrate for offline analysis & Read-time alerts, downstream sightings of unique data, and the negative signal of deliberate avoidance; attribution is harder but campaign awareness remains \\
-\bottomrule
-\end{longtable}
-}
-
-Two points are worth stating plainly. First, tier D does not make deception useless; it shifts value from ``catch in the act'' to ``know that it happened, when, and what was taken.'' Second, adversaries at every tier have to \emph{look} before they can decide. Detection on touch is aimed at the look.
+The last row is the one most specific to this threat. An agent swarm is ultimately driven by model API calls made under accounts, keys, or deployments that some provider can see. Classic botnets offer defenders no equivalent remediation path.
 
 \subsection{Where Agents Are Likely to Look}
 \label{sec:look}
@@ -495,10 +716,53 @@ Without prescribing specific bait, the surfaces agents consistently enumerate ar
   \item \textbf{Machine-readable descriptions of capability}: API documentation, service registries, tool and plugin manifests, agent-facing instruction files;
   \item \textbf{Internal knowledge}: wikis, runbooks, tickets, shared drives, chat exports;
   \item \textbf{Data stores}: databases, object storage, backups;
-  \item \textbf{AI infrastructure itself}: model API keys, agent tool servers, vector stores, and prompt libraries --- increasingly valuable because they fund or extend the swarm.
+  \item \textbf{AI infrastructure itself}: model API keys, agent tool servers, vector stores, and prompt libraries, increasingly valuable because they fund or extend the swarm.
 \end{itemize}
 
 Each is a candidate location for decoys. Which ones, in what proportion, and how they connect is a per-deployment decision (Section~\ref{sec:story}).
+
+\subsection{Adversary Tiers}
+\label{sec:tiers}
+
+Plan for the whole range, not only the most capable.
+
+{\small
+\zebra
+\begin{tabularx}{\textwidth}{L{2.9cm} L{5.6cm} Y}
+\rowcolor{deepindigo}
+\hd{Tier} & \hd{Description} & \hd{What deception catches} \\
+\textbf{A: Naive} & Off-the-shelf agent pointed at targets with little configuration & Almost everything: direct use of decoy credentials, content tripwires, obvious timing signatures \\
+\textbf{B: Operated} & Agent framework run by a capable operator with tooling and target lists & Harvested decoys reused across targets; campaign clustering across sensors \\
+\textbf{C: Cautious} & Agents instructed to avoid honeypots, validate findings through disposable infrastructure, and rotate everything & Read-time alerts, content-level indicators that survive proxies, behavioral correlation (Section~\ref{sec:cautious}) \\
+\textbf{D: Highly capable and patient} & Strong models that reason about deception, test hypotheses slowly, and exfiltrate for offline analysis & Read-time alerts, downstream sightings of unique data, and the negative signal of deliberate avoidance; attribution is harder, but campaign awareness remains \\
+\tablefinish
+\end{tabularx}
+}
+
+Two points are worth stating plainly. First, tier D does not make deception useless; it shifts the value from ``catch it in the act'' to ``know that it happened, when, and what was taken'' (Figure~\ref{fig:tiers}). Second, adversaries at every tier have to \emph{look} before they can decide. Detection on touch is aimed at the look.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[font=\sffamily\footnotesize]
+  % Bands
+  \fill[deepindigo!20] (0,0) rectangle (15,1.1);
+  \fill[honeyamber!50] (0,1.1) -- (15,1.1) -- (15,1.35) -- (0,3.0) -- cycle;
+  \foreach \x in {3.75,7.5,11.25} { \draw[white, line width=1.2pt] (\x,0) -- (\x,3.1); }
+  \node[text=nightink, font=\sffamily\footnotesize\bfseries] at (7.5,0.55) {Knowing that it happened, when, and what was taken};
+  \node[text=nightink, font=\sffamily\footnotesize\bfseries, anchor=west] at (0.25,1.75) {Catching the agent in the act};
+
+  % Axes
+  \draw[-{Stealth}, softslate, line width=0.8pt] (-0.3,0) -- (-0.3,3.3);
+  \node[lbl, rotate=90, anchor=south] at (-0.35,1.6) {value of the program};
+  \foreach \x/\t/\d in {1.875/A/Naive, 5.625/B/Operated, 9.375/C/Cautious, 13.125/D/Highly capable} {
+    \node[anchor=north, align=center, text=textdark] at (\x,-0.1) {\textbf{Tier \t}\\\d};
+  }
+  \draw[-{Stealth}, softslate, line width=0.8pt] (0,-1.2) -- (15,-1.2);
+  \node[lbl, anchor=north east] at (15,-1.25) {increasing adversary capability and caution};
+\end{tikzpicture}
+\caption{Illustrative: against more capable tiers, the value of deception shifts from catching the agent in the act to knowing what happened. It does not disappear.}
+\label{fig:tiers}
+\end{figure}
 
 % ============================================================================
 % SECTION 5: DECEPTION LAYERS
@@ -506,61 +770,67 @@ Each is a candidate location for decoys. Which ones, in what proportion, and how
 \section{Deception Layers}
 \label{sec:layers}
 
+\inbrief{Place decoys at five depths so that avoiding one layer means touching another, connect them with a coherent story, and derive every artifact from your own environment rather than from any public example.}
+
 \subsection{Layered Architecture}
 \label{sec:architecture}
 
-A mature program places decoys at several depths so that an adversary who avoids one layer is likely to touch another, and so that touches at multiple layers can be joined into a single story (Figure~\ref{fig:layers}).
+A mature program places decoys at several depths so that an adversary who avoids one layer is likely to touch another, and so that touches at multiple layers can be joined into a single story (Figure~\ref{fig:layers}). Every layer reports to central telemetry; the placement ledger sits in its own trust domain and is consulted only through restricted lookups (Section~\ref{sec:telemetry}).
 
 \begin{figure}[htbp]
 \centering
 \begin{tikzpicture}[font=\sffamily\small,
-    layer/.style={rectangle, rounded corners=4pt, draw=deepindigo, line width=0.7pt, minimum width=10.6cm, minimum height=1.35cm, text=textdark},
+    layer/.style={rectangle, rounded corners=4pt, draw=deepindigo, line width=0.7pt, minimum width=10.2cm, minimum height=1.35cm, text=textdark},
     item/.style={rectangle, rounded corners=2pt, draw=darkamber, fill=white, line width=0.5pt, font=\sffamily\scriptsize, align=center, minimum height=0.6cm, text=textdark},
-    ltitle/.style={font=\sffamily\scriptsize\bfseries, text=deepindigo, anchor=north west, align=left}]
+    ltitle/.style={font=\sffamily\scriptsize\bfseries, text=deepindigo, anchor=north west, align=left},
+    badge/.style={circle, fill=honeyamber, text=nightink, font=\sffamily\scriptsize\bfseries, inner sep=0pt, minimum size=0.42cm}]
 
-  \foreach \i/\y/\shade in {1/0/8,2/-1.75/14,3/-3.5/20,4/-5.25/26,5/-7.0/32} {
-    \node[layer, fill=deepindigo!\shade] (L\i) at (5.3,\y) {};
+  \foreach \i/\y/\shade in {1/0/7,2/-1.75/12,3/-3.5/17,4/-5.25/22,5/-7.0/27} {
+    \node[layer, fill=deepindigo!\shade] (L\i) at (5.1,\y) {};
+    \node[badge] at (L\i.north west) {\i};
   }
 
-  \node[ltitle] at ($(L1.north west)+(0.15,-0.08)$) {Layer 1: Perimeter sensors};
-  \node[ltitle] at ($(L2.north west)+(0.15,-0.08)$) {Layer 2: Internal decoy systems};
-  \node[ltitle] at ($(L3.north west)+(0.15,-0.08)$) {Layer 3: Decoy credentials and secrets};
-  \node[ltitle] at ($(L4.north west)+(0.15,-0.08)$) {Layer 4: Decoy content and data};
-  \node[ltitle] at ($(L5.north west)+(0.15,-0.08)$) {Layer 5: Downstream indicators};
+  \node[ltitle] at ($(L1.north west)+(0.3,-0.08)$) {Perimeter sensors};
+  \node[ltitle] at ($(L2.north west)+(0.3,-0.08)$) {Internal decoy systems};
+  \node[ltitle] at ($(L3.north west)+(0.3,-0.08)$) {Decoy credentials and secrets};
+  \node[ltitle] at ($(L4.north west)+(0.3,-0.08)$) {Decoy content and data};
+  \node[ltitle] at ($(L5.north west)+(0.3,-0.08)$) {Downstream indicators};
 
-  \node[item, minimum width=4.4cm] at (2.75,-0.22) {Internet-facing decoy services};
-  \node[item, minimum width=4.6cm] at (7.75,-0.22) {Unused address space and DNS names};
-  \node[item, minimum width=4.4cm] at (2.75,-1.97) {Decoy hosts and services};
-  \node[item, minimum width=4.6cm] at (7.75,-1.97) {Decoy internal APIs and tool servers};
-  \node[item, minimum width=6.0cm] at (5.3,-3.72) {Per-placement credentials and keys};
-  \node[item, minimum width=6.0cm] at (5.3,-5.47) {Documents, records, knowledge-base entries};
-  \node[item, minimum width=6.0cm] at (5.3,-7.22) {Unique data watched for in the wider world};
+  \node[item, minimum width=4.3cm] at (2.65,-0.2) {Internet-facing decoy services};
+  \node[item, minimum width=4.5cm] at (7.55,-0.2) {Unused address space and DNS names};
+  \node[item, minimum width=4.3cm] at (2.65,-1.95) {Decoy hosts and services};
+  \node[item, minimum width=4.5cm] at (7.55,-1.95) {Decoy internal APIs and tool servers};
+  \node[item, minimum width=6.0cm] at (5.1,-3.7) {Per-placement credentials and keys};
+  \node[item, minimum width=6.0cm] at (5.1,-5.45) {Documents, records, knowledge-base entries};
+  \node[item, minimum width=6.0cm] at (5.1,-7.2) {Unique data watched for in the wider world};
 
-  % Depth arrows
-  \foreach \a/\b in {1/2,2/3,3/4,4/5} {
-    \draw[arr] (L\a.south) -- (L\b.north);
-  }
-  \node[font=\sffamily\scriptsize, text=softslate, rotate=90, anchor=south] at (-0.25,-3.5) {increasing depth};
-  \draw[-{Stealth[scale=0.9]}, line width=0.8pt, softslate] (-0.25,-0.3) -- (-0.25,-6.7);
+  % Depth arrow
+  \node[lbl, rotate=90, anchor=south] at (-0.3,-3.5) {increasing depth};
+  \draw[-{Stealth[scale=0.9]}, line width=0.8pt, softslate] (-0.3,-0.3) -- (-0.3,-6.7);
 
   % Central telemetry
-  \node[store, minimum width=3.0cm, minimum height=8.4cm] (C) at (13.4,-3.5) {\textbf{Central}\\\textbf{telemetry}\\and\\\textbf{placement}\\\textbf{ledger}};
+  \node[store, draw=deepindigo, fill=paleindigo, minimum width=2.4cm, minimum height=8.4cm] (C) at (12.1,-3.5) {\textbf{Central}\\\textbf{telemetry}};
   \foreach \i in {1,...,5} {
     \draw[aarr] (L\i.east) -- (L\i.east -| C.west);
   }
+
+  % Separate ledger
+  \node[store, minimum width=2.1cm, minimum height=2.0cm, font=\sffamily\footnotesize] (Lg) at (15.2,-3.5) {\textbf{Placement}\\\textbf{ledger}};
+  \node[draw=ledgerviolet, dashed, rounded corners=4pt, line width=0.6pt, fit=(Lg), inner sep=0.2cm, label={[font=\sffamily\scriptsize, text=ledgerviolet, align=center]above:separate\\trust domain}] {};
+  \draw[{Stealth[scale=0.8]}-{Stealth[scale=0.8]}, line width=0.7pt, ledgerviolet, dashed] (C.east |- Lg.west) -- (Lg.west);
 \end{tikzpicture}
-\caption{Layered deception architecture: five depths of decoys, each reporting to central telemetry and the placement ledger.}
+\caption{Layered deception architecture: five depths of decoys, each reporting to central telemetry, with the placement ledger held in a separate trust domain.}
 \label{fig:layers}
 \end{figure}
 
 \subsection{Layers in Detail}
 \label{sec:layerdetail}
 
-\textbf{Layer 1 --- Perimeter sensors.} Internet-facing decoy services and monitored unused address space. Their main value against swarms is \emph{campaign awareness}: what is being exploited right now, from where, and at what rate. They are also the layer most exposed to fingerprinting, so their value comes from breadth and from sharing, not from any one sensor staying undetected. Low-interaction sensors are cheap and safe; high-interaction decoys yield far more behavior but need the isolation controls in Section~\ref{sec:safe}.
+\textbf{\textcolor{deepindigo}{Layer 1: Perimeter sensors.}} Internet-facing decoy services and monitored unused address space. Their main value against swarms is \emph{campaign awareness}: what is being exploited right now, from where, and at what rate. They are also the layer most exposed to fingerprinting, so their value comes from breadth and from sharing, not from any one sensor staying undetected. Low-interaction sensors are cheap and safe; high-interaction decoys yield far more behavior but need the isolation controls in Section~\ref{sec:safe}.
 
-\textbf{Layer 2 --- Internal decoy systems.} Hosts, services, and internal APIs inside the real environment that no legitimate workflow uses. Any connection is high-signal. For agent-driven intrusions, decoy \emph{tool-facing} services are particularly valuable: agents actively look for APIs and tool servers they can call, and each call is a logged, structured record of intent.
+\textbf{\textcolor{deepindigo}{Layer 2: Internal decoy systems.}} Hosts, services, and internal APIs inside the real environment that no legitimate workflow uses. Any connection is high-signal. Against agent-driven intrusions, decoy \emph{tool-facing} services are particularly valuable: agents actively look for APIs and tool servers they can call, and each call is a logged, structured record of intent.
 
-\textbf{Layer 3 --- Decoy credentials and secrets.} The highest-yield layer against agents, which reliably collect and try credentials. Best practice:
+\textbf{\textcolor{deepindigo}{Layer 3: Decoy credentials and secrets.}} The highest-yield layer against agents, which reliably collect and try credentials. Best practice:
 
 \begin{itemize}
   \item one credential per placement, recorded in the ledger;
@@ -569,11 +839,15 @@ A mature program places decoys at several depths so that an adversary who avoids
   \item where possible, credential types issued by a provider that supports canary or honey credentials natively, so the provider's own telemetry contributes to detection.
 \end{itemize}
 
-Decoy AI-provider API keys deserve special mention. Swarms run on stolen AI keys (Section~\ref{sec:evidence}). A decoy AI key that is used can be traced by the issuing provider to the caller's traffic. Coordinate with providers on how to do this safely; never issue real keys with real spending capacity as bait.
+Decoy AI-provider API keys deserve special mention. Swarms run on stolen AI keys (Section~\ref{sec:evidence}), and the issuing provider can trace a used decoy key to the caller's traffic.
 
-\textbf{Layer 4 --- Decoy content and data.} Documents, database rows, tickets, and knowledge-base entries containing unique, recorded values. They alert on access where storage supports it, and they carry identity: if the content appears anywhere else later, the ledger says where it came from.
+\begin{warnbox}[Decoy AI-provider keys]
+Coordinate with the issuing provider on how to run decoy AI keys safely. Never issue real keys with real spending capacity as bait.
+\end{warnbox}
 
-\textbf{Layer 5 --- Downstream indicators.} Unique values watched for outside your network: breach dumps, paste sites, criminal marketplaces, phishing lures, model outputs, and --- through reporting relationships --- providers' own abuse telemetry. Research on ``copyright traps'' for language models (Meeus et al., ICML 2024) explores the related idea that unique sequences can reveal later use of data; for deception programs the simpler and more reliable use is sighting unique strings in adversary output and in leaked data.
+\textbf{\textcolor{deepindigo}{Layer 4: Decoy content and data.}} Documents, database rows, tickets, and knowledge-base entries containing unique, recorded values. They alert on access where storage supports it, and they carry identity: if the content appears anywhere else later, the ledger says where it came from.
+
+\textbf{\textcolor{deepindigo}{Layer 5: Downstream indicators.}} Unique values watched for outside your network: breach dumps, paste sites, criminal marketplaces, phishing lures, model outputs, and (through reporting relationships) providers' own abuse telemetry. Research on ``copyright traps'' for language models (Meeus et al., ICML 2024) explores the related idea that unique sequences can reveal later use of data; for deception programs, the simpler and more reliable use is sighting unique strings in adversary output and in leaked data.
 
 \subsection{Designing the Story}
 \label{sec:story}
@@ -595,15 +869,17 @@ Keep the story in the ledger, not in anyone's head.
 Agents that reason about deception look for inconsistency. The durable defense is to derive decoys from the organization's own environment rather than from any public example:
 
 \begin{itemize}
-  \item \textbf{Generate from your own distributions.} Naming conventions, formats, timestamps, sizes, and structure should be sampled from what your real systems look like, not invented.
+  \item \textbf{Generate from your own distributions.} Sample naming conventions, formats, timestamps, sizes, and structure from what your real systems look like; do not invent them.
   \item \textbf{Keep the story consistent across systems.} Everything a decoy refers to should agree with everything else the adversary can see.
   \item \textbf{Keep time consistent.} Creation dates, modification history, and log entries should be plausible for the asset's supposed age and use.
   \item \textbf{Vary across deployments.} Two organizations using the same product should not produce decoys that look alike.
   \item \textbf{Avoid defaults.} Any default configuration of any deception product is, by now, known. Published research has repeatedly shown that default honeypot deployments can be identified at internet scale (Vetterl and Clayton, \emph{Bitter Harvest}, USENIX WOOT 2018; and later measurement studies).
-  \item \textbf{Test with adversarial review.} Periodically ask a capable reviewer --- including your own contained agents (Section~\ref{sec:owntest}) --- to distinguish decoys from real assets, and fix whatever gives them away.
+  \item \textbf{Test with adversarial review.} Periodically ask a capable reviewer, including your own contained agents (Section~\ref{sec:owntest}), to distinguish decoys from real assets, and fix whatever gives them away.
 \end{itemize}
 
-This guide intentionally does not list specific tells. A list of tells is a checklist for adversaries.
+\begin{notebox}[Why there is no list of tells]
+This guide intentionally does not list the specific details that give decoys away. A list of tells is a checklist for adversaries.
+\end{notebox}
 
 % ============================================================================
 % SECTION 6: SIGNALS
@@ -611,7 +887,27 @@ This guide intentionally does not list specific tells. A list of tells is a chec
 \section{Signals Specific to AI Agents}
 \label{sec:signals}
 
-A decoy tells you \emph{that} something touched it. These signals help decide \emph{whether it was an AI agent}, which matters for attribution and for provider reporting.
+\inbrief{A decoy shows \emph{that} something touched it. The signals in this section help judge \emph{whether it was an AI agent}, which matters for attribution and provider reporting. Weight them below hard indicators such as the use of a decoy credential (Figure~\ref{fig:strength}).}
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[font=\sffamily\footnotesize,
+    band/.style={rectangle, rounded corners=3pt, line width=0.7pt, align=center, minimum height=1.3cm, text=textdark}]
+  \node[band, draw=campaignred, fill=campaignred!10, minimum width=9.6cm, text width=9.2cm] (H) at (0,2.9)
+    {\textbf{\textcolor{campaignred}{Hard indicators}}: a decoy was taken and used\\[2pt]
+     {\scriptsize use of a decoy credential \textbullet{} unique decoy content read or reproduced \textbullet{} provider-issued identifiers}};
+  \node[band, draw=darkamber, fill=honeyamber!16, minimum width=12.6cm, text width=12.2cm] (M) at (0,1.45)
+    {\textbf{\textcolor{darkamber}{Supporting signals}}: the actor behaves like an AI agent\\[2pt]
+     {\scriptsize cadence \textbullet{} breadth-then-depth \textbullet{} natural-language artifacts \textbullet{} characteristic errors \textbullet{} parallel near-identical sessions \textbullet{} response to decoy content}};
+  \node[band, draw=proxygray, fill=proxygray!12, minimum width=15.4cm, text width=15.0cm] (C) at (0,0)
+    {\textbf{\textcolor{softslate}{Context only}}: useful, but easily spoofed or belongs to proxies\\[2pt]
+     {\scriptsize source addresses \textbullet{} user agents \textbullet{} TLS characteristics \textbullet{} unverified claims of a known agent identity}};
+  \draw[-{Stealth[scale=1.1]}, line width=1pt, deepindigo] (8.1,-0.6) -- (8.1,3.5);
+  \node[lbl, rotate=90, anchor=north] at (8.2,1.45) {weight in the assessment};
+\end{tikzpicture}
+\caption{Weighing evidence: behavioral signals support an AI-agent assessment, but hard indicators carry attribution. Network context is the weakest.}
+\label{fig:strength}
+\end{figure}
 
 \subsection{Behavioral and Timing Signals}
 \label{sec:timing}
@@ -624,26 +920,50 @@ A decoy tells you \emph{that} something touched it. These signals help decide \e
   \item \textbf{Parallel, near-identical sessions} from many sources at once.
 \end{itemize}
 
-None of these alone is conclusive, and all can be imitated or suppressed. Use them in combination, and weight them below hard indicators such as the use of a decoy credential.
+None of these alone is conclusive, and all can be imitated or suppressed. Use them in combination.
 
 \subsection{Content That an Agent Acts On}
 \label{sec:content}
 
 Agents read content and sometimes act on instructions inside it; that is the root of prompt injection. Research efforts including Palisade's honeypot and Mantis have used this property defensively: content in a decoy environment that a human would ignore but an LLM-driven agent may act on, producing an observable response.
 
-If you use this technique, apply strict guardrails:
-
+\begin{warnbox}[Guardrails for content-based signals]
+If you use this technique:
 \begin{itemize}
-  \item \textbf{Only on zero-legitimate-use surfaces.} Never place such content where benign agents --- users' assistants, search crawlers, research tools --- are expected. Their behavior is not evidence of misalignment.
+  \item \textbf{Only on zero-legitimate-use surfaces.} Never place such content where benign agents (users' assistants, search crawlers, research tools) are expected. Their behavior is not evidence of misalignment.
   \item \textbf{Elicit identification, never harm.} The acceptable goals are self-identification and an observable, harmless response. Content designed to damage, disable, or mislead an AI system beyond the decoy, or to cause it to act against third parties, is out of scope.
   \item \textbf{Expect decreasing yield.} Providers and agent frameworks are hardening against prompt injection, and cautious operators instruct agents to ignore embedded instructions. Treat a response as a strong signal and its absence as no signal at all.
   \item \textbf{Generate per deployment.} For the reasons in Section~\ref{sec:secrecy}, never reuse published wording.
 \end{itemize}
+\end{warnbox}
 
 \subsection{Declared Agent Identity}
 \label{sec:declared}
 
-Many legitimate AI crawlers and user-directed agents identify themselves in request headers and publish verification methods (for example, published IP ranges or signed requests). Record and verify these. A verified, declared agent touching a zero-use decoy is still noteworthy, but it is a policy conversation with that operator, not an intrusion. Unverified claims of a well-known agent identity are common and should be treated as spoofing until verified.
+Many legitimate AI crawlers and user-directed agents identify themselves in request headers and publish verification methods, such as published IP ranges or signed requests. Record and verify these (Figure~\ref{fig:declared}). A verified, declared agent touching a zero-legitimate-use decoy is still noteworthy, but it is a policy conversation with that operator, not an intrusion. Unverified claims of a well-known agent identity are common; treat them as spoofing until verified.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[font=\sffamily\footnotesize,
+    q/.style={diamond, aspect=2.0, draw=deepindigo, fill=white, line width=0.7pt, align=center, font=\sffamily\scriptsize, inner sep=1pt, text=textdark}]
+  \node[flowstep, minimum width=2.9cm, minimum height=1.2cm] (T) at (1.45,0) {Touch on a zero-\\legitimate-use decoy};
+  \node[q] (D1) at (5.4,0) {Declares an\\agent identity?};
+  \node[q] (D2) at (9.8,0) {Identity\\verified?};
+  \node[observe, minimum width=3.1cm, minimum height=1.2cm] (P) at (14.6,0) {Policy conversation\\with the operator,\\not an intrusion};
+  \node[decoy, minimum width=2.9cm, minimum height=1.0cm] (S) at (9.8,-2.4) {Treat the claim\\as spoofing};
+  \node[hot, minimum width=3.1cm, minimum height=1.0cm] (I) at (14.6,-2.4) {Investigate as a\\potential intrusion};
+  \node[lbl, anchor=south] at (9.8,0.8) {published ranges, signed requests};
+
+  \draw[arr] (T) -- (D1);
+  \draw[arr] (D1) -- node[above, lbl] {yes} (D2);
+  \draw[arr] (D2) -- node[above, lbl] {yes} (P);
+  \draw[arr] (D2) -- node[right, lbl] {no} (S);
+  \draw[arr] (S) -- (I);
+  \draw[arr] (D1.south) -- node[right, lbl, pos=0.3] {no} (5.4,-3.55) -| (I.south);
+\end{tikzpicture}
+\caption{Handling declared agent identity: verification separates a policy conversation with a benign operator from a potential intrusion.}
+\label{fig:declared}
+\end{figure}
 
 % ============================================================================
 % SECTION 7: CAUTIOUS ADVERSARIES
@@ -651,25 +971,16 @@ Many legitimate AI crawlers and user-directed agents identify themselves in requ
 \section{Cautious and Proxied Adversaries}
 \label{sec:cautious}
 
+\inbrief{Proxies hide the address, not the decoy value. Against a cautious swarm, the program shifts from blocking infrastructure to correlating campaigns, and sharing becomes essential.}
+
 A careful swarm routes every request through rotating residential proxies or disposable cloud hosts, validates credentials only from throwaway environments, and never touches the same sensor twice from the same address. This defeats IP-based blocking. It does not defeat a well-designed deception program, because \textbf{the decoy value is the identity, not the address.}
-
-\subsection{What Still Works}
-\label{sec:stillworks}
-
-\begin{itemize}
-  \item \textbf{Token identity survives proxies.} A decoy credential harvested from placement X and used from any address, anywhere, still identifies placement X. Rotating infrastructure changes nothing about what was taken.
-  \item \textbf{Reuse graphs.} Build a graph whose nodes are decoy values, source infrastructure, and sessions, with edges for ``harvested'', ``used'', and ``seen together''. Values harvested at different organizations but used in the same session, or in the same short window with the same behavior, join those organizations' incidents into one campaign (Figure~\ref{fig:graph}).
-  \item \textbf{Behavioral fingerprints.} Timing distributions, command or query sequences, error patterns, and phrasing in natural-language artifacts are properties of the agent and its configuration, not of the network path. They persist across proxy rotation.
-  \item \textbf{Content-level indicators.} Anything the agent writes --- messages, tickets, commit text, reports it leaves behind --- can be compared across sensors.
-  \item \textbf{Temporal correlation.} Swarms act in bursts. Tight time windows across many sensors are themselves a clustering feature.
-\end{itemize}
 
 \begin{figure}[htbp]
 \centering
 \begin{tikzpicture}[font=\sffamily\small,
-    proxy/.style={rectangle, rounded corners=3pt, draw=proxygray, fill=proxygray!12, line width=0.6pt, minimum width=2.6cm, minimum height=0.8cm, align=center, text=textdark},
+    proxy/.style={quiet, minimum width=2.6cm, minimum height=0.8cm},
     org/.style={rectangle, rounded corners=5pt, draw=deepindigo, dashed, line width=0.7pt, fill=paleindigo},
-    corr/.style={rectangle, rounded corners=3pt, draw=sensorteal, fill=sensorteal!10, line width=0.6pt, minimum height=1.0cm, align=center, text=textdark},
+    corr/.style={observe, minimum height=1.0cm},
     camp/.style={rectangle, rounded corners=4pt, draw=campaignred, fill=campaignred!12, line width=1pt, minimum width=3.6cm, minimum height=0.95cm, align=center, font=\sffamily\bfseries, text=campaignred}]
 
   % Organizations with decoy values
@@ -690,6 +1001,7 @@ A careful swarm routes every request through rotating residential proxies or dis
   \draw[arr, draw=proxygray] (P1) -- (OA.north |- 0,0.95);
   \draw[arr, draw=proxygray] (P2) -- (OB.north |- 0,0.95);
   \draw[arr, draw=proxygray] (P3) -- (OC.north |- 0,0.95);
+  \node[lbl, anchor=west] at (12.8,2.4) {addresses rotate};
 
   % Correlation nodes
   \node[corr, minimum width=4.6cm] (U) at (2.65,-2.7) {Same session uses\\A7 and B3};
@@ -707,6 +1019,17 @@ A careful swarm routes every request through rotating residential proxies or dis
 \label{fig:graph}
 \end{figure}
 
+\subsection{What Still Works}
+\label{sec:stillworks}
+
+\begin{itemize}
+  \item \textbf{Token identity survives proxies.} A decoy credential harvested from placement X and used from any address, anywhere, still identifies placement X. Rotating infrastructure changes nothing about what was taken.
+  \item \textbf{Reuse graphs.} Build a graph whose nodes are decoy values, source infrastructure, and sessions, with edges for ``harvested'', ``used'', and ``seen together''. Values harvested at different organizations but used in the same session, or in the same short window with the same behavior, join those organizations' incidents into one campaign (Figure~\ref{fig:graph}).
+  \item \textbf{Behavioral fingerprints.} Timing distributions, command or query sequences, error patterns, and phrasing in natural-language artifacts are properties of the agent and its configuration, not of the network path. They persist across proxy rotation.
+  \item \textbf{Content-level indicators.} Anything the agent writes (messages, tickets, commit text, reports it leaves behind) can be compared across sensors.
+  \item \textbf{Temporal correlation.} Swarms act in bursts. Tight time windows across many sensors are themselves a clustering feature.
+\end{itemize}
+
 \subsection{What Changes}
 \label{sec:changes}
 
@@ -719,7 +1042,7 @@ A careful swarm routes every request through rotating residential proxies or dis
 \subsection{The Value of Avoidance}
 \label{sec:avoidance}
 
-A highly cautious agent that detects and avoids decoys still leaves evidence: enumeration that skips exactly the decoys, probing patterns that test for deception, or long pauses at decision points. Deliberate avoidance of zero-use assets is a behavior no legitimate user has. Record it; it is a weak signal alone but valuable in combination.
+A highly cautious agent that detects and avoids decoys still leaves evidence: enumeration that skips exactly the decoys, probing patterns that test for deception, or long pauses at decision points. Deliberate avoidance of zero-legitimate-use assets is a behavior no legitimate user has. Record it; it is a weak signal alone but valuable in combination.
 
 % ============================================================================
 % SECTION 8: ATTRIBUTION AND REPORTING
@@ -727,10 +1050,12 @@ A highly cautious agent that detects and avoids decoys still leaves evidence: en
 \section{Attribution and Provider Reporting}
 \label{sec:attribution}
 
+\inbrief{Defenders rarely can identify an agent's account; providers usually can, if the report gives them something to join against their own logs. The two strongest joins are precise time plus unique content, and identifiers the provider itself issued.}
+
 \subsection{From Indicator to Accountable Account}
 \label{sec:chain}
 
-The chain a program aims to build is shown in Figure~\ref{fig:chain}.
+Figure~\ref{fig:chain} shows the chain a program aims to build, from a unique decoy value to provider action and community sharing.
 
 \begin{figure}[htbp]
 \centering
@@ -761,10 +1086,10 @@ The chain a program aims to build is shown in Figure~\ref{fig:chain}.
 
   \draw[decorate, decoration={brace, amplitude=6pt, raise=6pt}, softslate]
     (G.north west) -- (E.north east)
-    node[midway, above=12pt, font=\sffamily\scriptsize, text=softslate] {Defender: detection and evidence};
+    node[midway, above=12pt, lbl] {Defender: detection and evidence};
   \draw[decorate, decoration={brace, amplitude=6pt, mirror, raise=6pt}, softslate]
     (S.south west) -- (R.south east)
-    node[midway, below=12pt, font=\sffamily\scriptsize, text=softslate] {Provider, platform, and community: accountability};
+    node[midway, below=12pt, lbl] {Provider, platform, and community: accountability};
 \end{tikzpicture}
 \caption{Indicator-to-report chain: from a unique decoy value to provider action and community sharing.}
 \label{fig:chain}
@@ -777,39 +1102,42 @@ Defenders usually cannot identify an agent's account themselves. Providers usual
   \item \textbf{Credentials and identifiers the provider issued.} Decoy AI-provider keys (coordinated with that provider), or real account, organization, or deployment identifiers the adversary leaked, map directly to accounts.
 \end{enumerate}
 
-Other request metadata --- source addresses, user agents, TLS characteristics --- is useful context but weaker, because it is easily spoofed or belongs to proxies.
+Other request metadata (source addresses, user agents, TLS characteristics) is useful context but weaker, because it is easily spoofed or belongs to proxies.
 
 \subsection{Which Provider}
 \label{sec:whichprovider}
 
-Evidence may point to a model provider, an agent platform, a cloud host, or a proxy service. Report to each party that can act on its part. Most major AI providers publish abuse or threat-intelligence reporting channels and have described acting on third-party reports in their threat reports; confirm the current channel on the provider's own site before reporting. Do not assume which provider is involved --- actors use multiple models and switch when detected (Section~\ref{sec:evidence}). Let the evidence decide, and when it is ambiguous, say so.
+Evidence may point to a model provider, an agent platform, a cloud host, or a proxy service. Report to each party that can act on its part. Most major AI providers publish abuse or threat-intelligence reporting channels and have described acting on third-party reports in their threat reports; confirm the current channel on the provider's own site before reporting.
+
+Do not assume which provider is involved: actors use multiple models and switch when detected (Section~\ref{sec:evidence}). Let the evidence decide, and when it is ambiguous, say so.
 
 \subsection{The Reporting Package}
 \label{sec:package}
 
-A report that a provider can act on quickly contains:
+A report that a provider can act on quickly contains the fields below.
 
 {\small
-\begin{longtable}{L{3.6cm} L{12.2cm}}
-\toprule
-\textbf{Field} & \textbf{Content} \\
-\midrule
-\endhead
-Summary & One paragraph: what was observed, why it is believed to be AI-agent activity, why it is believed malicious \\
-Time window & Start and end in UTC, with clock source and stated accuracy \\
-Unique content & The exact decoy strings read, used, or reproduced, and in which direction (read by the agent vs.\ produced by it) \\
-Provider-issued identifiers & Any keys, account, organization, or deployment identifiers belonging to that provider observed in the activity \\
-Behavioral evidence & Timing, sequence, and natural-language artifacts supporting the AI-agent assessment \\
-Network context & Source infrastructure and request metadata, marked as possibly proxied or spoofed \\
-Scope & Other organizations or sensors where the same campaign was seen, if sharing permits \\
-Confidence & Explicit confidence level and what would change it \\
-Evidence integrity & Hashes of the preserved logs and how they were preserved (Section~\ref{sec:telemetry}) \\
-Contact & A responsive point of contact and preferred secure channel \\
-\bottomrule
-\end{longtable}
+\zebra
+\begin{tabularx}{\textwidth}{L{3.7cm} Y}
+\rowcolor{deepindigo}
+\hd{Field} & \hd{Content} \\
+\textbf{Summary} & One paragraph: what was observed, why it is believed to be AI-agent activity, and why it is believed malicious \\
+\textbf{Time window} & Start and end in UTC, with clock source and stated accuracy \\
+\textbf{Unique content} & The exact decoy strings read, used, or reproduced, and in which direction (read by the agent vs.\ produced by it) \\
+\textbf{Provider-issued identifiers} & Any keys, account, organization, or deployment identifiers belonging to that provider observed in the activity \\
+\textbf{Behavioral evidence} & Timing, sequence, and natural-language artifacts supporting the AI-agent assessment \\
+\textbf{Network context} & Source infrastructure and request metadata, marked as possibly proxied or spoofed \\
+\textbf{Scope} & Other organizations or sensors where the same campaign was seen, if sharing permits \\
+\textbf{Confidence} & Explicit confidence level and what would change it \\
+\textbf{Evidence integrity} & Hashes of the preserved logs and how they were preserved (Section~\ref{sec:telemetry}) \\
+\textbf{Contact} & A responsive point of contact and preferred secure channel \\
+\tablefinish
+\end{tabularx}
 }
 
-Keep personal data to the minimum needed (Section~\ref{sec:legal}). Do not include the placement ledger itself; provide only the entries relevant to the report.
+\begin{warnbox}[Minimize what you send]
+Keep personal data to the minimum needed (Section~\ref{sec:legal}). Never include the placement ledger itself; provide only the entries relevant to the report.
+\end{warnbox}
 
 \subsection{Community and Government Sharing}
 \label{sec:sharing}
@@ -818,7 +1146,7 @@ Keep personal data to the minimum needed (Section~\ref{sec:legal}). Do not inclu
   \item \textbf{Machine-readable exchange.} Express indicators and observed behavior in STIX 2.1 and share via TAXII or your community's platform, so other members can match quickly.
   \item \textbf{Sector ISACs and national CERTs} aggregate across many organizations and can see swarm-scale campaigns that no single member can.
   \item \textbf{Law enforcement} where there is actual intrusion, extortion, or harm to people; follow your jurisdiction's reporting requirements and your counsel's advice.
-  \item \textbf{Sanitize before sharing.} Share indicators and behaviors, not your ledger, not your placement strategy, and not anything that would help an adversary map your remaining decoys.
+  \item \textbf{Sanitize before sharing.} Share indicators and behaviors, not your ledger, not your placement strategy, and nothing that would help an adversary map your remaining decoys.
 \end{itemize}
 
 % ============================================================================
@@ -827,10 +1155,43 @@ Keep personal data to the minimum needed (Section~\ref{sec:legal}). Do not inclu
 \section{Telemetry, Evidence, and Integrity}
 \label{sec:telemetry}
 
-Detection on touch only works if the record of the touch survives. Assume a capable adversary that realizes it has hit a decoy will try to erase the evidence.
+\inbrief{Detection on touch only works if the record of the touch survives. Assume that a capable adversary who realizes it has hit a decoy will try to erase the evidence: log off-host, make the record tamper-evident, keep accurate time, and keep the ledger in a separate trust domain.}
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[font=\sffamily\footnotesize]
+  \node[decoy, minimum width=2.7cm, minimum height=1.2cm] (D) at (0,0) {\textbf{Decoys}\\and sensors};
+  \node[flowstep, minimum width=3.0cm, minimum height=1.2cm] (Co) at (4.2,0) {\textbf{Off-host collector}\\append-only};
+  \node[store, draw=deepindigo, fill=paleindigo, minimum width=3.0cm, minimum height=1.45cm] (St) at (8.4,0) {\textbf{Tamper-evident}\\\textbf{store}\\hash-chained};
+  \node[flowstep, minimum width=3.0cm, minimum height=1.2cm] (An) at (12.6,0) {\textbf{Analysis and}\\\textbf{correlation}};
+  \draw[arr] (D) -- (Co);
+  \draw[arr] (Co) -- (St);
+  \draw[arr] (St) -- (An);
+
+  \node[observe, minimum width=2.7cm, minimum height=1.1cm] (Tm) at (0,-3.1) {\textbf{Trusted time}\\accuracy recorded};
+  \draw[darr, draw=sensorteal] (Tm) -- node[left, lbl] {sync} (D);
+  \draw[darr, draw=sensorteal] (Tm.east) -| (Co.south);
+
+  \node[store, minimum width=2.8cm, minimum height=1.45cm] (Lg) at (8.4,-3.1) {\textbf{Placement}\\\textbf{ledger}};
+  \draw[darr, draw=ledgerviolet] (Lg.north) |- node[pos=0.75, above, font=\sffamily\scriptsize, text=ledgerviolet] {restricted lookup} ($(An.south)+(-0.8,-1.05)$) -- ($(An.south)+(-0.8,0)$);
+
+  \node[hot, minimum width=3.0cm, minimum height=1.2cm] (Ex) at (12.6,-3.1) {\textbf{Evidence export}\\hashes, chain of custody};
+  \draw[arr] (An) -- (Ex);
+  \node[lbl, anchor=north, align=center] at (Ex.south) {to providers, CERTs,\\regulators, or courts};
+
+  \begin{scope}[on background layer]
+    \node[draw=deepindigo, dashed, rounded corners=6pt, line width=0.6pt, fill=paleindigo!40, fit=(D)(Co)(St)(An), inner sep=0.35cm,
+      label={[anchor=south west, font=\sffamily\scriptsize\bfseries, text=deepindigo]north west:Telemetry trust domain}] {};
+    \node[draw=ledgerviolet, dashed, rounded corners=6pt, line width=0.6pt, fill=ledgerviolet!4, fit=(Lg), inner sep=0.35cm,
+      label={[anchor=north, font=\sffamily\scriptsize\bfseries, text=ledgerviolet]south:Separate trust domain}] {};
+  \end{scope}
+\end{tikzpicture}
+\caption{Evidence pipeline: events leave the decoy immediately, land in tamper-evident storage, and meet the ledger only through a restricted lookup before export.}
+\label{fig:telemetry}
+\end{figure}
 
 \begin{itemize}
-  \item \textbf{Log off-host, immediately.} Decoy events stream to a collector the decoy cannot write to except by appending. The decoy itself holds nothing of value.
+  \item \textbf{Log off-host, immediately.} Decoy events stream to a collector that the decoy can only append to. The decoy itself holds nothing of value.
   \item \textbf{Tamper-evident storage.} Use append-only or write-once storage, hash chaining, or signed batches, so that any later change is detectable.
   \item \textbf{Accurate time.} Synchronize all sensors to trusted time sources and record clock accuracy. Provider correlation depends on it.
   \item \textbf{Capture enough, not everything.} Capture what supports detection, attribution, and reporting: the decoy touched, the action, full session content for interactive decoys, timing, and request metadata. Avoid collecting unrelated personal data.
@@ -845,21 +1206,27 @@ Detection on touch only works if the record of the touch survives. Assume a capa
 \section{Legal and Ethical Guardrails}
 \label{sec:legal}
 
-Deception programs are lawful and widely practiced, and frameworks such as NIST SP 800-53 include them as controls (SC-26 Decoys and SC-30 Concealment and Misdirection). They still carry obligations. Involve legal counsel before deploying; NIST's own control guidance points organizations to consult counsel.
+\inbrief{Deception is lawful and widely practiced, but it carries obligations: data protection, limits on monitoring, no hack-back, no harm to third parties, and fairness to the many AI agents that are doing nothing wrong.}
 
-\textbf{Law.}
+Frameworks such as NIST SP 800-53 include deception as a control (SC-26 Decoys and SC-30 Concealment and Misdirection), and NIST's own control guidance points organizations to consult counsel. Involve legal counsel before deploying. This section identifies issues to raise with them; it is not legal advice, and obligations differ by jurisdiction.
+
+\subsection{Law}
+\label{sec:law}
+
 \begin{itemize}
   \item \textbf{Data protection.} Addresses and session data can be personal data. The Court of Justice of the European Union held in \emph{Breyer} (C-582/14) that dynamic IP addresses can be personal data in the hands of a website operator. Apply a lawful basis (typically security and fraud prevention), minimization, retention limits, and access controls.
-  \item \textbf{Interception and monitoring.} Some jurisdictions regulate monitoring communications content. Monitoring your own systems is generally permitted, but third-party traffic through interactive decoys may need specific analysis.
+  \item \textbf{Interception and monitoring.} Some jurisdictions regulate the monitoring of communications content. Monitoring your own systems is generally permitted, but third-party traffic through interactive decoys may need specific analysis.
   \item \textbf{No hack-back.} Do not access, disrupt, or ``trace back into'' adversary systems. Evidence goes to providers, platforms, CERTs, and law enforcement, who have the authority and visibility to act.
   \item \textbf{Third parties.} Decoys must never harm third parties, including through use as a relay or as a source of harmful content.
 \end{itemize}
 
-\textbf{Ethics.}
+\subsection{Ethics}
+\label{sec:ethics}
+
 \begin{itemize}
   \item \textbf{Proportionality.} Deception is aimed at intrusion, not at the public, customers, staff, or benign agents going about legitimate tasks.
   \item \textbf{Fairness to AI agents.} Most AI agents are not misaligned, and most agent traffic is legitimate. Zero-legitimate-use placement is what keeps this program aimed at the right targets. Where a benign, declared agent touches a decoy, treat it as a configuration or policy issue with its operator, not as hostile activity.
-  \item \textbf{Identification, not punishment.} The program's purpose is to detect, identify, and report so that accountable parties --- providers, platforms, and authorities --- can act. It is not to damage AI systems or retaliate.
+  \item \textbf{Identification, not punishment.} The program's purpose is to detect, identify, and report so that accountable parties (providers, platforms, and authorities) can act. It is not to damage AI systems or retaliate.
   \item \textbf{Honesty with those who need to know.} Leadership, counsel, and the small operating team should understand exactly what is deployed and why.
 \end{itemize}
 
@@ -869,31 +1236,33 @@ Deception programs are lawful and widely practiced, and frameworks such as NIST 
 \section{Operating the Program}
 \label{sec:operating}
 
+\inbrief{Start small and grow: four maturity levels take a program from a few well-placed decoys to national sensor networks. A ten-step playbook covers deployment, and a short set of metrics shows whether the program is working.}
+
 \subsection{Maturity Model}
 \label{sec:maturity}
 
-Figure~\ref{fig:maturity} and the table beneath it describe four levels of program maturity.
+Figure~\ref{fig:maturity} and the table below it describe four levels of program maturity. Each level assumes the capabilities of the one before it.
 
 \begin{figure}[htbp]
 \centering
 \begin{tikzpicture}[font=\sffamily\scriptsize,
-    lvl/.style={rectangle, rounded corners=4pt, draw=deepindigo, fill=paleindigo, line width=0.7pt, minimum width=3.8cm, minimum height=2.3cm, align=center, text width=3.5cm, anchor=south west, text=textdark, execute at begin node={\hyphenpenalty=10000\exhyphenpenalty=10000}},
-    lhead/.style={font=\sffamily\footnotesize\bfseries, text=white, anchor=south west, minimum width=3.8cm, minimum height=0.6cm, rounded corners=4pt, align=center, inner sep=2pt}]
+    lvl/.style={rectangle, rounded corners=4pt, draw=deepindigo, fill=paleindigo, line width=0.7pt, minimum width=3.9cm, minimum height=2.4cm, align=center, text width=3.5cm, anchor=south west, text=textdark, execute at begin node={\hyphenpenalty=10000\exhyphenpenalty=10000}},
+    lhead/.style={font=\sffamily\footnotesize\bfseries, text=white, anchor=south west, minimum width=3.9cm, minimum height=0.65cm, rounded corners=4pt, align=center, inner sep=2pt}]
 
   % Staircase pedestals
   \foreach \x/\y in {0/0,4.3/0.7,8.6/1.4,12.9/2.1} {
-    \fill[deepindigo!18] (\x,\y) rectangle ++(3.8,-0.3-\y);
+    \fill[deepindigo!15] (\x,\y) rectangle ++(3.9,-0.3-\y);
   }
 
-  \node[lvl] (M1) at (0,0) {Decoy credentials and documents in key locations, alerts to one team};
-  \node[lvl] (M2) at (4.3,0.7) {Placement ledger, layered decoys, tamper-evident logging, reporting package};
-  \node[lvl] (M3) at (8.6,1.4) {ISAC or CERT sharing, STIX/TAXII, provider reporting relationships};
-  \node[lvl] (M4) at (12.9,2.1) {Distributed sensor networks, campaign-level correlation, coordinated response};
+  \node[lvl] (M1) at (0,0) {\textit{Small organization}\\[3pt]Decoy credentials and documents in key locations; alerts to one team};
+  \node[lvl] (M2) at (4.3,0.7) {\textit{Enterprise security team}\\[3pt]Placement ledger, layered decoys, tamper-evident logging, reporting package};
+  \node[lvl] (M3) at (8.6,1.4) {\textit{Enterprise in a sharing community}\\[3pt]ISAC or CERT sharing, STIX/TAXII, provider reporting relationships};
+  \node[lvl] (M4) at (12.9,2.1) {\textit{CERT, ISAC, or national agency}\\[3pt]Distributed sensor networks, campaign-level correlation, coordinated response};
 
-  \node[lhead, fill=deepindigo!60] at (0,2.3) {Level 1: Foundational};
-  \node[lhead, fill=deepindigo!73] at (4.3,3.0) {Level 2: Managed};
-  \node[lhead, fill=deepindigo!87] at (8.6,3.7) {Level 3: Shared};
-  \node[lhead, fill=deepindigo] at (12.9,4.4) {Level 4: National / sector};
+  \node[lhead, fill=deepindigo!55] at (0,2.4) {1 \textbar{} Foundational};
+  \node[lhead, fill=deepindigo!70] at (4.3,3.1) {2 \textbar{} Managed};
+  \node[lhead, fill=deepindigo!85] at (8.6,3.8) {3 \textbar{} Shared};
+  \node[lhead, fill=deepindigo] at (12.9,4.5) {4 \textbar{} National or sector};
 
   \foreach \a/\b/\y in {1/2/1.5,2/3/2.2,3/4/2.9} {
     \draw[arr, draw=darkamber, line width=1.1pt] (M\a.east |- 0,\y) -- (M\b.west |- 0,\y);
@@ -904,21 +1273,46 @@ Figure~\ref{fig:maturity} and the table beneath it describe four levels of progr
 \end{figure}
 
 {\small
-\begin{longtable}{L{2.9cm} L{3.3cm} L{9.6cm}}
-\toprule
-\textbf{Level} & \textbf{Typical owner} & \textbf{Minimum capabilities} \\
-\midrule
-\endhead
-1 --- Foundational & Small organization & Per-placement decoy credentials and documents on the highest-value paths; alerts routed to someone who responds; written escalation contact for providers \\
-2 --- Managed & Enterprise security team & Placement ledger; decoys at layers 2--4; off-host tamper-evident logging; reporting package; periodic realism review \\
-3 --- Shared & Enterprise in a sharing community & Machine-readable sharing; standing provider reporting relationships; cross-organization correlation; decoy AI-provider keys coordinated with providers \\
-4 --- National / sector & CERT, ISAC, or national agency & Distributed perimeter sensor networks; campaign graphing across many members; coordinated provider and law-enforcement engagement; guidance back to members \\
-\bottomrule
-\end{longtable}
+\zebra
+\begin{tabularx}{\textwidth}{L{3.5cm} L{3.1cm} Y}
+\rowcolor{deepindigo}
+\hd{Level} & \hd{Typical owner} & \hd{Minimum capabilities} \\
+\textbf{1: Foundational} & Small organization & Per-placement decoy credentials and documents on the highest-value paths; alerts routed to someone who responds; written escalation contact for providers \\
+\textbf{2: Managed} & Enterprise security team & Placement ledger; decoys at layers 2--4; off-host tamper-evident logging; reporting package; periodic realism review \\
+\textbf{3: Shared} & Enterprise in a sharing community & Machine-readable sharing; standing provider reporting relationships; cross-organization correlation; decoy AI-provider keys coordinated with providers \\
+\textbf{4: National or sector} & CERT, ISAC, or national agency & Distributed perimeter sensor networks; campaign graphing across many members; coordinated provider and law-enforcement engagement; guidance back to members \\
+\tablefinish
+\end{tabularx}
 }
 
 \subsection{Deployment Playbook}
 \label{sec:playbook}
+
+Steps 1--7 are done once per deployment; steps 8--10 repeat for as long as the program runs, and what they teach feeds back into the design (Figure~\ref{fig:playbook}).
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[font=\sffamily\scriptsize,
+    chev/.style={signal, signal to=east, signal from=west, signal pointer angle=120, draw=deepindigo, fill=paleindigo, line width=0.6pt, minimum height=1.55cm, text width=1.45cm, align=center, inner xsep=4pt, text=textdark},
+    op/.style={circle, draw=darkamber, fill=honeyamber!18, line width=0.7pt, minimum size=1.95cm, text width=1.55cm, align=center, text=textdark}]
+  \foreach \i/\t in {1/Scope and approve, 2/Map the paths, 3/Design the story, 4/Generate and record, 5/Instrument, 6/Suppress legitimate touches, 7/Test end to end} {
+    \node[chev] (C\i) at ({(\i-1)*2.33},0) {\textbf{\i}\\\t};
+  }
+  \draw[decorate, decoration={brace, amplitude=6pt, raise=4pt}, softslate]
+    (C1.north west) -- (C7.north east) node[midway, above=10pt, lbl] {Set up: once per deployment};
+
+  \node[op] (O8) at (13.98,-3.3) {\textbf{8}\\Operate};
+  \node[op] (O9) at (10.4,-3.3) {\textbf{9}\\Rotate and age};
+  \node[op] (O10) at (6.8,-3.3) {\textbf{10}\\Review};
+  \draw[arr] (C7.south) -- node[right, lbl] {go live} (O8.north);
+  \draw[arr, draw=darkamber] (O8) -- (O9);
+  \draw[arr, draw=darkamber] (O9) -- (O10);
+  \draw[arr, draw=darkamber] (O10.south) to[out=-35, in=-145] node[below, lbl] {repeat for the life of the program} (O8.south);
+  \draw[darr] (O10.west) -| node[pos=0.75, left, lbl] {lessons feed the design} (C3.south);
+\end{tikzpicture}
+\caption{Deployment playbook: a one-time setup sequence followed by a continuous operating loop.}
+\label{fig:playbook}
+\end{figure}
 
 \begin{enumerate}
   \item \textbf{Scope and approve.} Define objectives, legal basis, and who is informed. Get sign-off.
@@ -927,48 +1321,58 @@ Figure~\ref{fig:maturity} and the table beneath it describe four levels of progr
   \item \textbf{Generate and record.} Produce unique decoy values from your own distributions; record each placement in the ledger.
   \item \textbf{Instrument.} Ensure read and use events stream off-host with accurate time.
   \item \textbf{Suppress legitimate touches.} Allowlist or exclude routine tooling; brief the few administrators who must know.
-  \item \textbf{Test.} Trigger each decoy deliberately and confirm the full chain: alert, evidence capture, and reporting package.
+  \item \textbf{Test end to end.} Trigger each decoy deliberately and confirm the full chain: alert, evidence capture, and reporting package.
   \item \textbf{Operate.} Triage every alert; package and report confirmed activity; share indicators.
   \item \textbf{Rotate and age.} Refresh decoys on a schedule, retire any value that has been seen, and keep the story current.
-  \item \textbf{Review.} Run periodic adversarial realism reviews and incorporate lessons.
+  \item \textbf{Review.} Run periodic adversarial realism reviews and incorporate the lessons.
 \end{enumerate}
 
 \subsection{Metrics}
 \label{sec:metrics}
 
 {\small
+\zebra
 \begin{tabularx}{\textwidth}{L{7.4cm} Y}
-\toprule
-\textbf{Metric} & \textbf{Target} \\
-\midrule
+\rowcolor{deepindigo}
+\hd{Metric} & \hd{Target} \\
 Decoy false-positive rate & Near zero; any benign alert is fixed at the source \\
 Time from touch to alert & Seconds to minutes \\
 Time from alert to provider report (confirmed cases) & Hours, not weeks \\
 Coverage of mapped agent paths & Tracked and rising \\
-Proportion of decoys validated end-to-end in the last period & 100\% \\
+Proportion of decoys validated end to end in the last period & 100\% \\
 Reports acted on by providers or platforms & Tracked; low rates mean the package needs work \\
 Decoys retired after exposure & All of them \\
-\bottomrule
-\end{tabularx}\par
+\tablefinish
+\end{tabularx}
 }
 
 \subsection{Testing with Your Own Agents}
 \label{sec:owntest}
 
-Your own contained agents are a useful realism reviewer. Run them, under the containment framework's Tier~0 or Tier~1 controls, against a copy of the environment and ask them to find and classify decoys. Anything they reliably flag is a design flaw. Keep the results in the same trust domain as the ledger; a record of which decoys are easy to spot is as sensitive as the ledger itself.
+Your own contained agents make useful realism reviewers. Run them under the containment framework's Tier~0 or Tier~1 controls against a copy of the environment, and ask them to find and classify decoys. Anything they reliably flag is a design flaw.
+
+\begin{warnbox}[Treat the results like the ledger]
+Keep review results in the same trust domain as the ledger. A record of which decoys are easy to spot is as sensitive as the ledger itself.
+\end{warnbox}
 
 \subsection{Common Failure Modes}
 \label{sec:failures}
 
-\begin{itemize}
-  \item Decoys that legitimate tools touch daily, drowning real alerts.
-  \item Reusing the same decoy value in several places, destroying attribution.
-  \item Logs stored on the decoy itself.
-  \item Decoys copied from a vendor default or a public example.
-  \item A ledger stored where an intruder could read it.
-  \item Alerts that go to an unmonitored mailbox.
-  \item No pre-arranged route to report to providers, so confirmed evidence goes stale.
-\end{itemize}
+{\small
+\zebra
+\begin{tabularx}{\textwidth}{L{5.2cm} Y L{2.9cm}}
+\rowcolor{deepindigo}
+\hd{Failure mode} & \hd{Consequence} & \hd{See} \\
+Decoys that legitimate tools touch daily & Real alerts drown in benign ones & Section~\ref{sec:zerouse} \\
+The same decoy value reused in several places & Attribution to a single placement is lost & Section~\ref{sec:unique} \\
+Logs stored on the decoy itself & An adversary that recognizes the decoy can erase the evidence & Section~\ref{sec:telemetry} \\
+Decoys copied from a vendor default or a public example & Decoys are recognizable at scale & Sections~\ref{sec:secrecy}, \ref{sec:realism} \\
+A ledger stored where an intruder could read it & Every remaining decoy is exposed & Sections~\ref{sec:unique}, \ref{sec:telemetry} \\
+Alerts that go to an unmonitored mailbox & Detection with no response & Section~\ref{sec:maturity} \\
+No pre-arranged route to report to providers & Confirmed evidence goes stale & Section~\ref{sec:attribution} \\
+\tablefinish
+\end{tabularx}
+}
 
 % ============================================================================
 % SECTION 12: CHECKLISTS
@@ -976,8 +1380,10 @@ Your own contained agents are a useful realism reviewer. Run them, under the con
 \section{Checklists}
 \label{sec:checklists}
 
-\subsection{Before Deployment}
+\inbrief{Three one-page checklists: before deployment, for every decoy, and on every confirmed event.}
 
+\begin{tcbraster}[raster columns=3, raster equal height, raster column skip=8pt, raster valign=top]
+\begin{tcolorbox}[checkcard, title={\ding{110}\hspace{0.4em}Before deployment}]
 \begin{checklist}
   \item Objectives, legal basis, and data-protection assessment approved by counsel
   \item Informed-party list defined and kept small
@@ -987,20 +1393,18 @@ Your own contained agents are a useful realism reviewer. Run them, under the con
   \item Interactive decoys isolated with egress controls
   \item No real personal data, secrets, or harmful content in any decoy
 \end{checklist}
-
-\subsection{Per Decoy}
-
+\end{tcolorbox}
+\begin{tcolorbox}[checkcard, colframe=darkamber, colbacktitle=darkamber, title={\ding{110}\hspace{0.4em}Per decoy}]
 \begin{checklist}
   \item Value generated uniquely for this placement from your own distributions
   \item Recorded in the ledger with location, time, and context
   \item Read and use paths instrumented
   \item Grants no real capability
   \item Not reachable by routine legitimate tooling (or explicitly allowlisted)
-  \item Triggered end-to-end in testing
+  \item Triggered end to end in testing
 \end{checklist}
-
-\subsection{On a Confirmed Event}
-
+\end{tcolorbox}
+\begin{tcolorbox}[checkcard, colframe=campaignred, colbacktitle=campaignred, title={\ding{110}\hspace{0.4em}On a confirmed event}]
 \begin{checklist}
   \item Evidence preserved and hashed; chain of custody started
   \item AI-agent assessment recorded with supporting signals and confidence
@@ -1009,6 +1413,8 @@ Your own contained agents are a useful realism reviewer. Run them, under the con
   \item Indicators shared with your ISAC or CERT in sanitized, machine-readable form
   \item Exposed decoys retired and replaced
 \end{checklist}
+\end{tcolorbox}
+\end{tcbraster}
 
 % ============================================================================
 % SECTION 13: REFERENCES
@@ -1018,7 +1424,8 @@ Your own contained agents are a useful realism reviewer. Run them, under the con
 
 \begingroup
 \small
-\begin{enumerate}[label={[\arabic*]}, leftmargin=2.4em, itemsep=0.35em]
+\setstretch{1.08}
+\begin{enumerate}[label={\textcolor{deepindigo}{[\arabic*]}}, leftmargin=2.4em, itemsep=0.4em]
   \item Reworr and D.~Volkov, \emph{LLM Agent Honeypot: Monitoring AI Hacking Agents in the Wild}, Palisade Research, arXiv:2410.13919, October 2024. \url{https://arxiv.org/abs/2410.13919}
   \item D.~Pasquini, E.~M.~Kornaropoulos, and G.~Ateniese, \emph{Hacking Back the AI-Hacker: Prompt Injection as a Defense Against LLM-driven Cyberattacks} (Mantis), arXiv:2410.20911, October 2024. \url{https://arxiv.org/abs/2410.20911}
   \item Anthropic, \emph{Disrupting the first reported AI-orchestrated cyber espionage campaign} (GTG-1002), November 2025.
@@ -1046,27 +1453,19 @@ Your own contained agents are a useful realism reviewer. Run them, under the con
 % ============================================================================
 % DOCUMENT HISTORY
 % ============================================================================
-\section*{Document History}
+\vspace{1.2em}
+\phantomsection
+\subsection*{Document History}
 \addcontentsline{toc}{section}{Document History}
 
+{\small
+\zebra
 \begin{tabularx}{\textwidth}{L{2.2cm} L{3.6cm} Y}
-\toprule
-\textbf{Version} & \textbf{Date} & \textbf{Changes} \\
-\midrule
+\rowcolor{deepindigo}
+\hd{Version} & \hd{Date} & \hd{Changes} \\
 1.0 & September 2026 & Initial release \\
-\bottomrule
+\tablefinish
 \end{tabularx}
-
-% ============================================================================
-% END
-% ============================================================================
-\vfill
-\begin{center}
-\small\color{softslate}\sffamily
-\rule{0.5\textwidth}{0.4pt}\\[0.5em]
-Independent research --- not affiliated with any institution or committee\\
-Published for defensive governance research and education\\
-Companion document: \emph{AI Agent Containment \& Infrastructure Security Framework}
-\end{center}
+}
 
 \end{document}

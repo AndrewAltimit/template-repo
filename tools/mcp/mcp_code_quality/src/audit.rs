@@ -4,7 +4,7 @@
 //! past `max_bytes` it is renamed to `<name>.1` (replacing any previous
 //! rotation) so the log cannot fill the disk. Writes are serialized through a
 //! mutex so concurrent tool calls never interleave partial lines. Failures to
-//! write are logged once and otherwise ignored -- auditing must never make a
+//! write are logged once and otherwise ignored; auditing must never make a
 //! tool call fail.
 
 use crate::types::AuditEntry;

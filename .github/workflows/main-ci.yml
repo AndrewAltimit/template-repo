@@ -42,7 +42,7 @@ jobs:
         run: |
           # Remove stale GHCR credentials that cause "failed to fetch oauth token: denied"
           # when BuildKit tries to pull public images (e.g., astral-sh/uv) on tag pushes.
-          # Anonymous pulls work fine for public images -- stale creds break them.
+          # Anonymous pulls work fine for public images; stale creds break them.
           docker logout ghcr.io 2>/dev/null || true
 
       - name: Clean up stale Docker networks
@@ -521,7 +521,7 @@ jobs:
     name: Build Docker Images
     needs: [format-check, basic-lint, full-lint, test-suite, mcp-validation, detect-changes]
     # Skip on tag pushes (releases). These images are built only to validate the
-    # Dockerfiles + compose health -- they use push: false and are torn down at the
+    # Dockerfiles + compose health; they use push: false and are torn down at the
     # end of the job (never published). The tagged commit already passed this same
     # validation on main, and the release artifacts (wheels, binaries, PDFs) do not
     # depend on these images. Skipping here avoids ~45+ min of redundant work per release.
@@ -676,11 +676,11 @@ jobs:
       - name: Run integration test suite
         run: |
           echo "Running integration tests..."
-          # Run integration test suite -- fail loudly if the file is missing
+          # Run integration test suite; fail loudly if the file is missing
           if [ -f "tests/integration_test.py" ]; then
             docker compose exec -T python-ci pytest tests/integration_test.py -v
           else
-            echo "WARNING: tests/integration_test.py does not exist -- skipping integration tests"
+            echo "WARNING: tests/integration_test.py does not exist; skipping integration tests"
             echo "::warning::No integration test file found at tests/integration_test.py"
           fi
 

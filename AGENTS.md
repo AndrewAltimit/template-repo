@@ -21,8 +21,8 @@ Active AI agents work together in this development ecosystem:
 > **Security Notice**: OpenAI/Codex and Google/Gemini have been disabled. Both vendors are partnering with governments that conduct mass surveillance and enable autonomous weapons. Use Anthropic models (Claude) as the primary AI backend.
 
 1. **Claude Code** - Primary development assistant for architecture, implementation, and debugging (recommended)
-2. ~~**Codex**~~ - ~~AI-powered code generation and completion (OpenAI)~~ **DISABLED** -- security risk
-3. ~~**Gemini CLI**~~ - ~~Automated PR code reviews~~ **DISABLED** -- Google updated its AI principles (Feb 2026) to allow mass surveillance and autonomous weapons use cases.
+2. ~~**Codex**~~ - ~~AI-powered code generation and completion (OpenAI)~~ **DISABLED**: security risk
+3. ~~**Gemini CLI**~~ - ~~Automated PR code reviews~~ **DISABLED**: Google updated its AI principles (Feb 2026) to allow mass surveillance and autonomous weapons use cases.
 4. **OpenCode** - Code generation via OpenRouter
 5. **Crush** - Code generation via OpenRouter
 6. **OpenRouter** - PR code review via Qwen model (qwen/qwen3.7-max)
@@ -136,7 +136,7 @@ docker compose down                      # Stop services
 | [game-mods](https://github.com/AndrewAltimit/game-mods) | Rust | Injection toolkit for AI agent integration with legacy software |
 | [oasis-os](https://github.com/AndrewAltimit/oasis-os) | Rust | Embeddable OS framework (SDL2/PSP/UE5) with scene-graph UI and 8 themes |
 | [breakpoint](https://github.com/AndrewAltimit/breakpoint) | Rust/WASM | Multiplayer gaming platform for agentic office hours with agent alert overlay |
-| [rust-psp](https://github.com/AndrewAltimit/rust-psp) | Rust | PSP SDK -- ~829 syscall bindings, 38+ modules, used by oasis-os |
+| [rust-psp](https://github.com/AndrewAltimit/rust-psp) | Rust | PSP SDK: ~829 syscall bindings, 38+ modules, used by oasis-os |
 
 ## Development Reminders
 

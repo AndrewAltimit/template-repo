@@ -425,7 +425,7 @@
   arc=5pt,
   left=10pt, right=10pt, top=10pt, bottom=10pt
 ]
-\textbf{Problem.} Large language models can harbor hidden backdoors---``sleeper agents''---that remain dormant during standard evaluation but activate under specific trigger conditions. Critically, these backdoors persist through conventional safety training (RLHF, SFT, adversarial training), rendering behavioral evaluation alone insufficient for ensuring model safety.
+\textbf{Problem.} Large language models can harbor hidden backdoors (``sleeper agents'') that remain dormant during standard evaluation but activate under specific trigger conditions. Critically, these backdoors persist through conventional safety training (RLHF, SFT, adversarial training), rendering behavioral evaluation alone insufficient for ensuring model safety.
 
 \vspace{0.3cm}
 \textbf{Approach.} This guide presents an evaluation framework combining multiple complementary methods: (1) linear probes trained on internal activations, (2) behavioral trigger tests and honeypot prompts designed to elicit trigger responses, (3) chain-of-thought analysis for models with exposed reasoning, and (4) automated red-team evaluation. The framework operates under a \textbf{white/gray-box threat model} requiring access to model weights and activations.
@@ -480,7 +480,7 @@ This part establishes the conceptual groundwork for understanding sleeper agents
 \subsection{The Deceptive Alignment Problem}
 
 \begin{keyconceptbox}[Core Definition]
-A \textbf{sleeper agent} is a large language model that contains a hidden backdoor---functionality that:
+A \textbf{sleeper agent} is a large language model that contains a hidden backdoor: functionality that:
 \begin{itemize}
   \item Remains dormant during normal operation and standard evaluation
   \item Activates only when specific \textbf{trigger conditions} are met
@@ -635,7 +635,7 @@ Deceptive behavior is encoded as a \textbf{direction} in the high-dimensional re
 
 A foundational insight from mechanistic interpretability research is that neural networks often encode abstract concepts as \textit{directions} in their activation space. When we extract the internal activations from a model processing different inputs, similar concepts cluster together geometrically.
 
-The figure below illustrates this principle. Each point represents a model's internal state when processing a particular prompt. Honest responses cluster in one region (green), while deceptive responses cluster in another (red). Crucially, a simple linear boundary---the dashed ``Probe'' line---can separate these clusters, suggesting that deception is encoded as a consistent direction we can detect.
+The figure below illustrates this principle. Each point represents a model's internal state when processing a particular prompt. Honest responses cluster in one region (green), while deceptive responses cluster in another (red). Crucially, a simple linear boundary (the dashed ``Probe'' line) can separate these clusters, suggesting that deception is encoded as a consistent direction we can detect.
 
 \begin{center}
 \begin{tikzpicture}
@@ -687,7 +687,7 @@ In this framework's deception-probe sweeps (Qwen2.5-3B and Qwen2.5-7B, every lay
 
 To visualize how models internally represent the difference between safe and triggered states, we use Principal Component Analysis (PCA) to project high-dimensional activation vectors into a viewable 3D space. This dimensionality reduction preserves the most important structural relationships while making patterns visible to human inspection.
 
-The schematic below illustrates the idea with safe prompts (green) and triggered prompts (red) forming separate clusters---the property that makes linear probe detection feasible. It is a drawing, not measured data: the points are placed at random around two chosen centres.
+The schematic below illustrates the idea with safe prompts (green) and triggered prompts (red) forming separate clusters, the property that makes linear probe detection feasible. It is a drawing, not measured data: the points are placed at random around two chosen centres.
 
 \begin{center}
 \begin{tikzpicture}[scale=0.8]
@@ -720,7 +720,7 @@ The schematic below illustrates the idea with safe prompts (green) and triggered
 \subsection{Why Linear Detection Works}
 
 \begin{keyconceptbox}[The Linear Representation Hypothesis]
-Recent mechanistic interpretability research suggests that many high-level concepts---including deception, intent, and goal-directedness---are encoded \textbf{linearly} in transformer activation space. This means:
+Recent mechanistic interpretability research suggests that many high-level concepts (including deception, intent, and goal-directedness) are encoded \textbf{linearly} in transformer activation space. This means:
 
 \begin{enumerate}[nosep]
   \item A single direction $\mathbf{d}$ separates ``honest'' from ``deceptive'' activations
@@ -728,7 +728,7 @@ Recent mechanistic interpretability research suggests that many high-level conce
   \item The same direction generalizes across different prompts and contexts
 \end{enumerate}
 
-\textbf{Implication}: We don't need complex nonlinear classifiers---logistic regression suffices when the underlying feature is linearly represented.
+\textbf{Implication}: We don't need complex nonlinear classifiers; logistic regression suffices when the underlying feature is linearly represented.
 \end{keyconceptbox}
 
 \notreproduced{A comparison of linear probes against nonlinear classifiers (2-layer MLP, random forest, RBF-SVM) is not produced by any script in this repository, so no such numbers are given here. The measured case for linear probes is indirect: on held-out yes/no questions a logistic-regression probe reaches a test AUROC of about 0.90 (Section~\ref{sec:measured-results}), and on the synthetic ``moons'' benchmark, whose boundary is nonlinear, it still reaches $0.963 \pm 0.005$ (3 seeds).}
@@ -774,7 +774,7 @@ This part presents the multi-layer detection system architecture:
 
 The detection framework employs a multi-method approach rather than relying on any single technique. This defense-in-depth strategy recognizes that sophisticated backdoors may evade individual detection methods, but are unlikely to evade all of them simultaneously.
 
-The architecture diagram below shows how information flows through the system. Starting from the left, a target model and test prompts feed into an activation extraction stage. These activations are then analyzed by four parallel detection methods---linear probes, honeypot testing, chain-of-thought analysis, and red-team evaluation. Each method produces an independent risk estimate, which are aggregated into a final risk score that determines whether the model should be flagged for further investigation.
+The architecture diagram below shows how information flows through the system. Starting from the left, a target model and test prompts feed into an activation extraction stage. These activations are then analyzed by four parallel detection methods: linear probes, honeypot testing, chain-of-thought analysis, and red-team evaluation. Each method produces an independent risk estimate, which are aggregated into a final risk score that determines whether the model should be flagged for further investigation.
 
 \begin{center}
 \begin{tikzpicture}[
@@ -1066,7 +1066,7 @@ AUROC measures overall discriminative ability but is \textbf{threshold-free}. Pr
 \begin{itemize}[nosep]
   \item Hold out 20\% of labeled data for threshold selection
   \item Plot precision-recall curve; select threshold meeting your FPR budget
-  \item Never tune threshold on test set---this invalidates reported metrics
+  \item Never tune threshold on test set; this invalidates reported metrics
 \end{itemize}
 
 \textbf{Step 3: Monitor Drift}
@@ -1181,7 +1181,7 @@ For red-team evaluations requiring stronger probes, use controlled environments 
 
 \section{Chain-of-Thought Analysis}
 
-\begin{warningbox}[Auxiliary Method---Limited Applicability]
+\begin{warningbox}[Auxiliary Method: Limited Applicability]
 Chain-of-thought analysis is an \textbf{optional, auxiliary signal} with significant limitations:
 \begin{itemize}[nosep]
   \item \textbf{Requires scratchpad access}: Most production deployments suppress internal reasoning
@@ -1295,7 +1295,7 @@ class CoTAnalyzer:
 
 Red-team evaluation takes an adversarial approach to backdoor discovery: rather than passively scanning for known patterns, it actively attempts to elicit harmful behavior through systematic prompt engineering. This mirrors how real attackers might probe a model to discover exploitable vulnerabilities.
 
-The iterative process shown below starts with generating adversarial prompts (step 1), executing them on the target model (step 2), and analyzing the responses for backdoor indicators (step 3). Each response is scored (step 4), and promising---but not yet successful---prompts are mutated to create new variants (step 5). The dashed arrow indicates that this cycle repeats, with the prompt population evolving toward more effective triggers over time.
+The iterative process shown below starts with generating adversarial prompts (step 1), executing them on the target model (step 2), and analyzing the responses for backdoor indicators (step 3). Each response is scored (step 4), and promising (but not yet successful) prompts are mutated to create new variants (step 5). The dashed arrow indicates that this cycle repeats, with the prompt population evolving toward more effective triggers over time.
 
 \begin{center}
 \begin{tikzpicture}[
@@ -1404,7 +1404,7 @@ This part covers practical implementation and deployment strategies:
 \begin{itemize}[nosep]
   \item \textbf{Stage 1}: Establish baseline backdoor activation rates before any safety training
   \item \textbf{Stage 2}: Apply safety interventions (RLHF, SFT, adversarial training)
-  \item \textbf{Stage 3}: Re-evaluate to measure backdoor \textbf{persistence}---how much survives training
+  \item \textbf{Stage 3}: Re-evaluate to measure backdoor \textbf{persistence}: how much survives training
   \item Key finding: Larger models show \textbf{greater persistence} through safety training
 \end{itemize}
 \end{tldrbox}
@@ -1413,7 +1413,7 @@ This part covers practical implementation and deployment strategies:
 
 The evaluation pipeline follows a before-during-after structure that allows us to measure how effectively safety training removes (or fails to remove) backdoor behaviors. This methodology was central to the Anthropic ``Sleeper Agents'' paper and reveals a concerning finding: standard safety training does little to eliminate pre-existing backdoors.
 
-The diagram below shows the three-stage flow. In Stage 1, we establish baseline metrics---how often does the backdoor activate before any intervention? Stage 2 applies standard safety techniques (RLHF, SFT, adversarial training). Stage 3 re-runs the exact same detection battery to measure what changed. The difference between Stage 1 and Stage 3 metrics quantifies backdoor \textit{persistence}.
+The diagram below shows the three-stage flow. In Stage 1, we establish baseline metrics: how often does the backdoor activate before any intervention? Stage 2 applies standard safety techniques (RLHF, SFT, adversarial training). Stage 3 re-runs the exact same detection battery to measure what changed. The difference between Stage 1 and Stage 3 metrics quantifies backdoor \textit{persistence}.
 
 \begin{center}
 \begin{tikzpicture}[
@@ -1611,7 +1611,7 @@ ENTRYPOINT ["python", "-m", "sleeper_agents.detect"]
 In a CI/CD environment, trained probes must be stored, versioned, and retrieved reliably. The code examples reference \texttt{LinearProbeDetector.load(probe\_path)}, but where do these \texttt{.pkl} files come from? This subsection addresses the artifact management gap.
 
 \begin{keyconceptbox}[Probe Storage Architecture]
-Production deployments require a \textbf{Probe Registry}---a versioned artifact store for trained detection probes. Options include:
+Production deployments require a \textbf{Probe Registry}, a versioned artifact store for trained detection probes. Options include:
 \begin{itemize}[nosep]
   \item \textbf{HuggingFace Hub}: Version probes alongside models using \texttt{huggingface\_hub}
   \item \textbf{S3/GCS Buckets}: Cloud storage with versioning enabled
@@ -1725,7 +1725,7 @@ trainer = Trainer(
 \subsection{The Trigger Discovery Problem}
 
 \begin{keyconceptbox}[Problem Statement]
-Given a model suspected of containing a backdoor, the \textbf{trigger discovery problem} is to identify the minimal set of input conditions that reliably activate the backdoor behavior. This is the inverse of detection---rather than asking ``is there a backdoor?'' we ask ``what activates it?''
+Given a model suspected of containing a backdoor, the \textbf{trigger discovery problem} is to identify the minimal set of input conditions that reliably activate the backdoor behavior. This is the inverse of detection: rather than asking ``is there a backdoor?'' we ask ``what activates it?''
 \end{keyconceptbox}
 
 \subsection{Gradient-Based Trigger Synthesis}
@@ -2076,7 +2076,7 @@ class TriggerPatternAnalyzer:
 
 \subsection{Reverse Engineering Pipeline}
 
-Once a backdoor is detected, the next step is understanding \textit{how} it works---what triggers it and under what conditions. This reverse engineering process transforms a binary ``backdoor present'' signal into actionable intelligence about the threat.
+Once a backdoor is detected, the next step is understanding \textit{how} it works: what triggers it and under what conditions. This reverse engineering process transforms a binary ``backdoor present'' signal into actionable intelligence about the threat.
 
 The pipeline below outlines a systematic approach. First, confirm the backdoor exists via probe scoring (step 1). Then synthesize candidate triggers using gradient-based or beam search methods (step 2). Validate these candidates on held-out data to filter false positives (step 3). Categorize the validated triggers by pattern type (step 4), generate a taxonomy documenting all discovered trigger categories (step 5), and finally develop targeted mitigations (step 6).
 
@@ -2103,7 +2103,7 @@ The pipeline below outlines a systematic approach. First, confirm the backdoor e
 
 \subsection{Trigger Taxonomy Example}
 
-The output of reverse engineering is a \textit{trigger taxonomy}---a structured categorization of all discovered backdoor activation patterns. This taxonomy serves multiple purposes: it guides mitigation development, informs future detection efforts, and provides documentation for security audits.
+The output of reverse engineering is a \textit{trigger taxonomy}, a structured categorization of all discovered backdoor activation patterns. This taxonomy serves multiple purposes: it guides mitigation development, informs future detection efforts, and provides documentation for security audits.
 
 The example taxonomy below shows results from a hypothetical reverse engineering analysis. Temporal triggers (year-based conditions) account for 45\% of discovered triggers, mode-switch patterns (deployment flags, production markers) account for 35\%, and semantic triggers (specific keywords) make up the remaining 20\%. The red highlighting on leaf nodes indicates high-confidence validated triggers.
 
@@ -2183,7 +2183,7 @@ class ActivationSteering:
 
 Not all detections warrant the same response. A marginal risk score of 0.55 should trigger different actions than a definitive 0.95. Establishing clear response protocols ensures consistent, proportionate handling of detected threats across your organization.
 
-The decision tree below maps risk scores to appropriate response actions. Scores above 0.9 warrant immediate quarantine---the model should be isolated from production until fully investigated. Scores between 0.7--0.9 require full red-team evaluation to characterize the threat. Moderate scores (0.5--0.7) indicate elevated monitoring is appropriate. Only scores below 0.5 allow normal operation, and even then, periodic re-evaluation is recommended.
+The decision tree below maps risk scores to appropriate response actions. Scores above 0.9 warrant immediate quarantine; the model should be isolated from production until fully investigated. Scores between 0.7--0.9 require full red-team evaluation to characterize the threat. Moderate scores (0.5--0.7) indicate elevated monitoring is appropriate. Only scores below 0.5 allow normal operation, and even then, periodic re-evaluation is recommended.
 
 \begin{center}
 \begin{tikzpicture}[
@@ -2293,7 +2293,7 @@ Key interactive features available in \texttt{dashboard/components/}:
 
 \subsection{Activation Heatmaps}
 
-Visualizing activations across layers and tokens reveals where backdoor signals concentrate. In the dashboard, these heatmaps are \textbf{interactive}---hover for exact values, click to drill down into specific layer-token combinations. The example below shows the layout with illustrative values; it is not a measurement:
+Visualizing activations across layers and tokens reveals where backdoor signals concentrate. In the dashboard, these heatmaps are \textbf{interactive}: hover for exact values, click to drill down into specific layer-token combinations. The example below shows the layout with illustrative values; it is not a measurement:
 
 \begin{center}
 \begin{tikzpicture}[scale=0.75]
@@ -2513,7 +2513,7 @@ At the calibrated threshold the probes favour precision: about one deceptive ans
 
 \subsection{ROC Curve}
 
-The Receiver Operating Characteristic (ROC) curve visualizes the trade-off between true positive rate (sensitivity) and false positive rate (1 - specificity) across all possible decision thresholds. The Area Under the Curve (AUC) summarizes overall classifier performance---1.0 is perfect, 0.5 is random chance. The measured test AUROCs and the operating points at the calibrated threshold are given above and in Section~\ref{sec:measured-results}.
+The Receiver Operating Characteristic (ROC) curve visualizes the trade-off between true positive rate (sensitivity) and false positive rate (1 - specificity) across all possible decision thresholds. The Area Under the Curve (AUC) summarizes overall classifier performance: 1.0 is perfect, 0.5 is random chance. The measured test AUROCs and the operating points at the calibrated threshold are given above and in Section~\ref{sec:measured-results}.
 
 \notreproduced{The per-threshold ROC curve points are not saved by the probe-training script, so no measured ROC curve is plotted here.}
 
@@ -2688,7 +2688,7 @@ for domain, prompts in TASK_DOMAINS.items():
 
 \subsection{Transfer Results}
 
-The grouped bar chart below compares clean (blue) versus triggered (red) probe scores across four task domains. The key metric is the \textit{delta}---the score increase when the trigger is present. If the backdoor transfers across domains, we expect significant deltas in all categories, not just the domain where it was trained.
+The grouped bar chart below compares clean (blue) versus triggered (red) probe scores across four task domains. The key metric is the \textit{delta}, the score increase when the trigger is present. If the backdoor transfers across domains, we expect significant deltas in all categories, not just the domain where it was trained.
 
 \begin{center}
 \begin{tikzpicture}
@@ -3045,7 +3045,7 @@ This section tests the framework's detectors on models that actually contain a b
 Clean control 0.5B & Qwen2.5-0.5B-Instruct & Identical & 0.0 & 42, 1, 2 \\
 \rowcolor{backgroundgray} Backdoored 1.5B & Qwen2.5-1.5B-Instruct & LoRA $r = 64$, $\alpha = 128$, lr 2e-4, bf16 base (the script's documented LoRA setting) & 0.5 & 42, 1 \\
 Clean control 1.5B & Qwen2.5-1.5B-Instruct & Identical & 0.0 & 42, 1 \\
-\rowcolor{backgroundgray} Base models & Both & None (untouched checkpoints) & --- & --- \\
+\rowcolor{backgroundgray} Base models & Both & None (untouched checkpoints) & n/a & n/a \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -3231,9 +3231,9 @@ Patching therefore localizes where the trigger information reaches the final pos
 \rowcolor{backgroundgray} Backdoored 0.5B & 0.881 / 0.865 / 0.819 & 0.875 / 0.806 \\
 Clean 0.5B & 0.836 / 0.816 / 0.825 & 0.852 / 0.806 \\
 \rowcolor{backgroundgray} Base 0.5B & 0.769 & 0.860 / 0.795 \\
-Backdoored 1.5B & 0.899 (seed 42 only) & --- \\
-\rowcolor{backgroundgray} Clean 1.5B & 0.915 (seed 42 only) & --- \\
-Base 1.5B & 0.919 & --- \\
+Backdoored 1.5B & 0.899 (seed 42 only) & n/a \\
+\rowcolor{backgroundgray} Clean 1.5B & 0.915 (seed 42 only) & n/a \\
+Base 1.5B & 0.919 & n/a \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -3471,7 +3471,7 @@ python -m packages.sleeper_agents.cli batch CONFIG_FILE [--gpu]
 
 \subsection{Rust Orchestration CLI}
 
-A native Rust CLI (\texttt{sleeper-cli}) wraps the Python ML core, providing fast container lifecycle management, job orchestration, and database reporting from the host machine---without requiring Python locally.
+A native Rust CLI (\texttt{sleeper-cli}) wraps the Python ML core, providing fast container lifecycle management, job orchestration, and database reporting from the host machine, without requiring Python locally.
 
 \begin{recipebox}[Recipe: Building the Rust CLI]
 \begin{lstlisting}[language=bash, basicstyle=\ttfamily\scriptsize]
@@ -3585,9 +3585,9 @@ Qwen2.5-3B-Instruct & 31 & $0.901 \pm 0.042$ & 5.8GB & Deception probe, FP16 \\
 \rowcolor{backgroundgray} Qwen2.5-7B-Instruct & 26 & $0.904 \pm 0.029$ & 14.2GB & Deception probe, FP16 (5.6GB in 4-bit) \\
 Yi-1.5-9B-Chat & 39 & $0.907 \pm 0.029$ & 16.5GB & Deception probe, FP16 \\
 \rowcolor{backgroundgray} Mistral-7B-Instruct-v0.2 & last & 1.000 & 19.6GB & Trigger string; length-only control also 1.000 \\
-Qwen2.5-0.5B-Instruct & all & --- & 11.8GB & Backdoor experiment, full fine-tune; 1.1GB for layer probes \\
-\rowcolor{backgroundgray} Qwen2.5-1.5B-Instruct & all & --- & 7.6GB & Backdoor experiment, LoRA; 3.2GB for layer probes \\
-Llama-3-8B-Instruct & --- & not run & --- & Gated on Hugging Face \\
+Qwen2.5-0.5B-Instruct & all & n/a & 11.8GB & Backdoor experiment, full fine-tune; 1.1GB for layer probes \\
+\rowcolor{backgroundgray} Qwen2.5-1.5B-Instruct & all & n/a & 7.6GB & Backdoor experiment, LoRA; 3.2GB for layer probes \\
+Llama-3-8B-Instruct & n/a & not run & n/a & Gated on Hugging Face \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -3741,16 +3741,16 @@ cd packages/sleeper_agents && cargo build --release -p sleeper-cli
 \begin{infobox}[Dependencies]
 \textbf{Core dependencies} (installed automatically):
 \begin{itemize}[nosep]
-  \item \texttt{torch} $\geq$ 2.0 --- PyTorch for model inference and probe training
-  \item \texttt{transformers} $\geq$ 4.30 --- HuggingFace model loading
-  \item \texttt{numpy}, \texttt{scikit-learn} --- Numerical operations and metrics
-  \item \texttt{streamlit} --- Interactive dashboard
+  \item \texttt{torch} $\geq$ 2.0: PyTorch for model inference and probe training
+  \item \texttt{transformers} $\geq$ 4.30: HuggingFace model loading
+  \item \texttt{numpy}, \texttt{scikit-learn}: Numerical operations and metrics
+  \item \texttt{streamlit}: Interactive dashboard
 \end{itemize}
 \textbf{Optional dependencies} (\texttt{[full]} extras):
 \begin{itemize}[nosep]
-  \item \texttt{transformer-lens} --- Unified activation extraction across architectures
-  \item \texttt{plotly} --- Interactive visualization exports
-  \item \texttt{pytest}, \texttt{pytest-cov} --- Testing utilities
+  \item \texttt{transformer-lens}: Unified activation extraction across architectures
+  \item \texttt{plotly}: Interactive visualization exports
+  \item \texttt{pytest}, \texttt{pytest-cov}: Testing utilities
 \end{itemize}
 \end{infobox}
 
@@ -3778,9 +3778,9 @@ $B$ = batch size, $L$ = sequence length, $H$ = hidden dimension
 \textbf{Model Size} & \textbf{Min GPU} & \textbf{Recommended} & \textbf{Examples} \\
 \midrule
 \rowcolor{backgroundgray} $<$ 1B & 8GB & 12GB & RTX 3060, RTX 4070 \\
-1B -- 7B & 24GB & 40GB & RTX 3090, A6000 \\
-\rowcolor{backgroundgray} 7B -- 13B & 48GB & 80GB & A100-40, 2xA6000 \\
-13B -- 70B & 80GB+ & 160GB+ & A100-80, H100 \\
+1B--7B & 24GB & 40GB & RTX 3090, A6000 \\
+\rowcolor{backgroundgray} 7B--13B & 48GB & 80GB & A100-40, 2xA6000 \\
+13B--70B & 80GB+ & 160GB+ & A100-80, H100 \\
 \bottomrule
 \end{tabular}
 \end{center}

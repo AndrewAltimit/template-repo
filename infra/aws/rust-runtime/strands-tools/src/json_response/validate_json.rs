@@ -40,7 +40,7 @@ impl ValidateJsonTool {
         };
 
         // Then validate against schema. If the validator failed to compile, we
-        // cannot validate -- treat that as a failure rather than silently
+        // cannot validate; treat that as a failure rather than silently
         // accepting any JSON.
         match self.validator {
             Some(ref validator) => {

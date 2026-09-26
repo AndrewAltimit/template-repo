@@ -837,7 +837,7 @@ jobs:
           # Fall back to all services if mcp_changed but no specific docker flag matched
           # (e.g., shared MCP code changed that isn't in a specific Dockerfile pattern)
           if [ -z "$SERVICES" ]; then
-            echo "No specific MCP docker image flags matched -- falling back to all services"
+            echo "No specific MCP docker image flags matched; falling back to all services"
             SERVICES="mcp-code-quality mcp-content-creation mcp-gaea2"
             HEALTH_ENDPOINTS="http://localhost:8010/health"
             PORT_NAMES="8010:Code_Quality 8011:Content_Creation 8007:Gaea2"

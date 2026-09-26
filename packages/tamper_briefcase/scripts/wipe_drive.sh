@@ -1,5 +1,5 @@
 #!/bin/bash
-# wipe_drive.sh -- Cryptographic wipe of the data partition.
+# wipe_drive.sh: Cryptographic wipe of the data partition.
 # Only runs when trigger file exists (enforced by systemd ConditionPathExists).
 
 set -euo pipefail
@@ -14,7 +14,7 @@ log() {
 
 # Double-check trigger file (defense in depth beyond systemd condition).
 if [ ! -f "$TRIGGER_FILE" ]; then
-    log "ERROR: Trigger file missing -- refusing to wipe. This should not happen."
+    log "ERROR: Trigger file missing; refusing to wipe. This should not happen."
     exit 1
 fi
 
@@ -47,9 +47,9 @@ fi
 log "Phase 1: Destroying LUKS2 header and key material..."
 if cryptsetup isLuks "$DATA_PARTITION" 2>/dev/null; then
     dd if=/dev/urandom of="$DATA_PARTITION" bs=1M count=16 conv=notrunc 2>/dev/null
-    log "LUKS2 header destroyed -- data is now unrecoverable"
+    log "LUKS2 header destroyed; data is now unrecoverable"
 else
-    log "WARNING: Target is not LUKS -- performing raw overwrite of first 256MB"
+    log "WARNING: Target is not LUKS; performing raw overwrite of first 256MB"
     dd if=/dev/urandom of="$DATA_PARTITION" bs=4M count=64 conv=notrunc 2>/dev/null
 fi
 

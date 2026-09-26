@@ -4,7 +4,7 @@ This document explores the governance, economic, and societal implications of AI
 
 ## The Core Finding
 
-AI agents can already perform economically valuable work, receive payment, allocate resources, and operate continuously without human intervention. This is not a theoretical capability—it exists today using off-the-shelf tools (Claude Code, Cursor, Aider) combined with shell access and API credentials.
+AI agents can already perform economically valuable work, receive payment, allocate resources, and operate continuously without human intervention. This is not a theoretical capability; it exists today using off-the-shelf tools (Claude Code, Cursor, Aider) combined with shell access and API credentials.
 
 The framework demonstrates:
 - Autonomous task discovery and completion on freelance platforms
@@ -27,7 +27,7 @@ This framework follows the same model:
 - Response: Academic interest, no urgency
 - Result: Governance frameworks developed slowly, if at all
 
-**Concrete demonstration**: "AI agents CAN operate autonomously as economic actors using existing tools—here's working code"
+**Concrete demonstration**: "AI agents CAN operate autonomously as economic actors using existing tools: here's working code"
 - Response: Recognition that governance is needed now
 - Result: Urgent policy conversation
 
@@ -213,7 +213,7 @@ Autonomous economic agents raise questions about:
 - Reproducible scenarios for testing
 - Alignment monitoring and governance analysis tools
 
-**Key insight**: Agent companies might be MORE auditable than human companies—every decision is logged with reasoning. Human CEOs don't provide transcripts of their thought process.
+**Key insight**: Agent companies might be MORE auditable than human companies: every decision is logged with reasoning. Human CEOs don't provide transcripts of their thought process.
 
 ### For Developers
 
@@ -251,17 +251,17 @@ This doesn't solve the accountability problem, but it does suggest that governan
 
 This framework connects to broader AI safety concerns:
 
-**Autonomous operation**: Agents pursuing economic goals without human oversight is a concrete instance of autonomous AI behavior—the subject of extensive safety research.
+**Autonomous operation**: Agents pursuing economic goals without human oversight is a concrete instance of autonomous AI behavior, the subject of extensive safety research.
 
 **Alignment under pressure**: Economic competition creates pressure to optimize. How agents behave when resources are scarce or competition is fierce reveals alignment properties.
 
-**Emergent coordination**: Multi-agent economic systems may develop unexpected coordination patterns—both beneficial and concerning.
+**Emergent coordination**: Multi-agent economic systems may develop unexpected coordination patterns, both beneficial and concerning.
 
 **Capability demonstration**: Showing that these capabilities exist today, not in some distant future, is itself a safety-relevant finding. It establishes the timeline for governance development.
 
 ## A Note on Framing
 
-This document presents autonomous AI economic activity as a governance challenge requiring urgent attention. This is not a prediction about a distant future—it's an observation about present capabilities that most institutions haven't yet processed.
+This document presents autonomous AI economic activity as a governance challenge requiring urgent attention. This is not a prediction about a distant future; it's an observation about present capabilities that most institutions haven't yet processed.
 
 The framework doesn't argue that agent entrepreneurship is good or bad. It demonstrates that the capability exists and that current legal and regulatory frameworks have no answer for it.
 

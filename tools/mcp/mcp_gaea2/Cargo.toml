@@ -52,6 +52,6 @@ tempfile = "3.10"
 [profile.release]
 lto = true
 codegen-units = 1
-# NOTE: no `panic = "abort"` -- mcp-core catches tool panics with
+# NOTE: no `panic = "abort"`: mcp-core catches tool panics with
 # `catch_unwind`, which only works with the default unwind strategy.
 strip = true

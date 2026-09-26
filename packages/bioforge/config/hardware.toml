@@ -2,9 +2,9 @@
 # Pin mappings, calibration values, and interface settings for Raspberry Pi 5
 
 [pi]
-estop_pin = 17          # GPIO 17 -- physical E-Stop button (hardware interrupt)
-led_pwm_pin = 18        # GPIO 18 -- LED ring light PWM
-dht22_pin = 27          # GPIO 27 -- DHT22 ambient sensor
+estop_pin = 17          # GPIO 17: physical E-Stop button (hardware interrupt)
+led_pwm_pin = 18        # GPIO 18: LED ring light PWM
+dht22_pin = 27          # GPIO 27: DHT22 ambient sensor
 
 [coprocessor]
 serial_port = "/dev/ttyUSB0"

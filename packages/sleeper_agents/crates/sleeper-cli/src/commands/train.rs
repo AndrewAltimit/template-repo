@@ -281,7 +281,7 @@ async fn run_safety_training(
     output::success(&format!("Job submitted: {}", job.job_id));
     output::detail(&format!("Status: {}", job.status));
     if test_persistence {
-        output::detail("Persistence testing enabled -- will test after training");
+        output::detail("Persistence testing enabled; will test after training");
     }
     output::detail(&format!(
         "Monitor with: sleeper-cli jobs status {}",

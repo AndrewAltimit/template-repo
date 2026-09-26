@@ -37,7 +37,7 @@ pub fn temp_path(file: &NamedTempFile) -> Result<&str> {
 pub fn post_comment(pr_number: u64, body: &str) -> Result<()> {
     if !process::command_exists("gh") {
         if project::is_ci() {
-            bail!("gh CLI not found in CI -- cannot post PR comment");
+            bail!("gh CLI not found in CI; cannot post PR comment");
         }
         output::warn("gh CLI not found, skipping PR comment");
         return Ok(());
@@ -132,7 +132,7 @@ pub fn push_and_verify(branch: &str, initial_sha: &str) -> Result<String> {
             Ok(()) => match verify_remote_head(branch, &current_sha) {
                 Ok(true) => return Ok(current_sha),
                 Ok(false) => {
-                    output::warn("Push reported success but remote ref is stale -- retrying");
+                    output::warn("Push reported success but remote ref is stale; retrying");
                     last_err = Some(anyhow!(
                         "push verification failed: origin/{branch} does not match {current_sha}"
                     ));
@@ -188,14 +188,14 @@ pub fn looks_like_non_fast_forward(msg: &str) -> bool {
 /// success; aborts any in-progress rebase and returns None on failure so the
 /// caller can retry the bare push.
 fn rebase_onto_remote(branch: &str) -> Option<String> {
-    output::info("Non-fast-forward detected -- fetching and rebasing");
+    output::info("Non-fast-forward detected; fetching and rebasing");
     if process::run("git", &["fetch", "origin", branch]).is_err() {
         return None;
     }
     let remote_ref = format!("origin/{branch}");
     if process::run("git", &["rebase", &remote_ref]).is_err() {
         let _ = process::run("git", &["rebase", "--abort"]);
-        output::warn("Rebase failed -- aborted, will retry bare push");
+        output::warn("Rebase failed (aborted); will retry bare push");
         return None;
     }
     process::run_capture("git", &["rev-parse", "HEAD"])

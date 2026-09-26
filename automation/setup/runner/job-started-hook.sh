@@ -12,7 +12,7 @@
 # Docker's daemon runs as root, so missing bind-mount source directories it
 # auto-creates (and anything a root container writes) are owned by root and the
 # unprivileged runner user cannot delete them. This hook uses busybox-as-root
-# via Docker to remove them without needing passwordless sudo -- the same
+# via Docker to remove them without needing passwordless sudo, the same
 # technique as .github/actions/pre-checkout-cleanup, but applied universally to
 # every workflow (and to leftovers from manual `docker compose` runs on the
 # host, which no per-workflow step can cover).
@@ -37,7 +37,7 @@ WS="${GITHUB_WORKSPACE:-}"
 [ -n "$WS" ] || exit 0
 [ -d "$WS" ] || exit 0
 
-# Only the regenerable, gitignored artifacts are removed -- never source or
+# Only the regenerable, gitignored artifacts are removed, never source or
 # .git history.
 if command -v docker >/dev/null 2>&1; then
     # Remove root-owned targets as root inside a throwaway container.
@@ -46,9 +46,9 @@ if command -v docker >/dev/null 2>&1; then
         >/dev/null 2>&1 || true
 else
     # No Docker: best-effort as the runner user (handles non-root leftovers).
-    # Root-owned artifacts CANNOT be removed on this path -- warn so a recurring
+    # Root-owned artifacts CANNOT be removed on this path; warn so a recurring
     # checkout EACCES failure is traceable to the missing docker binary.
-    echo "job-started-hook: docker not found; cleaning as runner user only -- root-owned artifacts will be left in place" >&2
+    echo "job-started-hook: docker not found; cleaning as runner user only; root-owned artifacts will be left in place" >&2
     rm -rf "${WS:?}/outputs" "${WS:?}/evaluation_results" "${WS:?}/.git/index.lock" 2>/dev/null || true
 fi
 

@@ -435,7 +435,7 @@ async fn follow_logs_by_tail(
             Err(_) => continue,
         };
 
-        // Fetch new logs -- always request a window larger than what we've
+        // Fetch new logs; always request a window larger than what we've
         // already seen so we can slice out just the new lines.
         let fetch_count = lines_seen + 200;
         if let Ok(logs) = client.get_logs(job_id, fetch_count).await {
@@ -454,7 +454,7 @@ async fn follow_logs_by_tail(
                     // can skip what we have already printed.
                     lines_seen as usize
                 } else {
-                    // API capped the response -- the slice may not
+                    // API capped the response; the slice may not
                     // start at line 0 so we print everything returned.
                     0
                 };

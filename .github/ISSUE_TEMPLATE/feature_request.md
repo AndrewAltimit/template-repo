@@ -1,6 +1,6 @@
 ---
 name: Feature request
-about: Internal use only -- external feature requests are not accepted
+about: Internal use only; external feature requests are not accepted
 title: '[FEATURE] '
 labels: enhancement
 assignees: ''

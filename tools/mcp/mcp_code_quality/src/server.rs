@@ -1,7 +1,7 @@
 //! MCP tool definitions.
 //!
 //! Each tool pairs a hand-written JSON schema (kept rich: enums, defaults,
-//! ranges -- things the `#[mcp_tool]` macro's derived schema cannot express)
+//! ranges: things the `#[mcp_tool]` macro's derived schema cannot express)
 //! with a typed `serde` argument struct. [`parse_args`] deserializes the raw
 //! arguments into that struct, so a missing required field, a wrong type, or
 //! an unknown enum value becomes a clean `InvalidParameters` error instead of

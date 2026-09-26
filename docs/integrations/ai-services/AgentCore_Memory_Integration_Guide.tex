@@ -482,7 +482,7 @@
   \node[anchor=north west, text width=10cm] at ([xshift=8cm, yshift=-13cm]current page.north west) {
     \color{coolgray}\normalsize
     Enable your AI agents to remember context across sessions, share knowledge,
-    and leverage semantic search---all self-hosted with ChromaDB and a Rust MCP server.
+    and leverage semantic search, all self-hosted with ChromaDB and a Rust MCP server.
   };
 
   % Feature highlights
@@ -541,7 +541,7 @@ enabling cross-session context and shared knowledge across your entire agent eco
         drop shadow={shadow xshift=2pt, shadow yshift=-2pt, opacity=0.15}] (prob) at (1.2,0) {
     \textcolor{dangerred}{\textbf{THE PROBLEM}}\\[0.5em]
     \color{awsblue}AI agents (Claude Code, Gemini, OpenCode, Crush, Codex) lose all context between sessions.
-    Each conversation starts from scratch---no memory of codebase patterns, user preferences, or prior learnings.
+    Each conversation starts from scratch, with no memory of codebase patterns, user preferences, or prior learnings.
   };
   % Side icon
   \node[fill=dangerred, circle, minimum size=1cm, inner sep=0pt] at (0.4, -0.7) {
@@ -571,7 +571,7 @@ enabling cross-session context and shared knowledge across your entire agent eco
         drop shadow={shadow xshift=2pt, shadow yshift=-2pt, opacity=0.15}] at (1.2,0) {
     \textcolor{awsorange}{\textbf{KEY CONSTRAINT}}\\[0.5em]
     \color{awsblue}ChromaDB has \textbf{no rate limits}, but the MCP server is designed for sparse, high-value events.
-    Store goals, decisions, and outcomes---not every conversation turn.
+    Store goals, decisions, and outcomes, not every conversation turn.
     Secret sanitization prevents accidental storage of API keys and tokens.
   };
   % Side icon
@@ -676,7 +676,7 @@ async + boto3 = blocking & boto3 is synchronous; will stall MCP server under loa
 \textbf{\color{warningamber}Issue} & \textbf{\color{warningamber}Impact} & \textbf{\color{warningamber}Resolution} \\
 \midrule
 \rowcolor{lightgray}
-CreateEvent payload shape & Code will 400---branchName (string) vs branch (struct) & Fixed: \code{branch=\{"name": ...\}}, payload as list of unions \\
+CreateEvent payload shape & Code will 400: branchName (string) vs branch (struct) & Fixed: \code{branch=\{"name": ...\}}, payload as list of unions \\
 RetrieveMemoryRecords query & API requires searchQuery; empty fails & Fixed: query parameter now required; added separate list method \\
 \rowcolor{lightgray}
 Rate limiter not keyed & Global limiter doesn't match per-session limit & Fixed: \code{PerSessionRateLimiter} keyed by (actor\_id, session\_id) \\
@@ -750,7 +750,7 @@ Memory name constraints & Must match \code{[a-zA-Z][a-zA-Z0-9\_]\{0,47\}} (no da
 % ============================================================================
 \partpage{I}{Architecture}{%
 \begin{itemize}[leftmargin=1.5em]
-  \item \textbf{Section 1:} Current state analysis---why agents forget everything
+  \item \textbf{Section 1:} Current state analysis: why agents forget everything
   \item \textbf{Section 2:} Proposed architecture with Rust MCP server and ChromaDB
   \item \textbf{Section 3:} Multi-provider abstraction for flexibility
 \end{itemize}
@@ -907,7 +907,7 @@ Rust MCP server using ChromaDB for vector storage and semantic search. SHA-256 n
 \subsection{ChromaDB Client Architecture}
 
 \begin{infobox}[Single Client Design]
-The Rust MCP server uses a single \code{ChromaDBClient} that communicates with ChromaDB over HTTP. Unlike the original AWS design (which required separate control/data plane clients), ChromaDB provides a unified REST API for all operations---collections, documents, and queries.
+The Rust MCP server uses a single \code{ChromaDBClient} that communicates with ChromaDB over HTTP. Unlike the original AWS design (which required separate control/data plane clients), ChromaDB provides a unified REST API for all operations: collections, documents, and queries.
 \end{infobox}
 
 \subsection{Memory Lifecycle Flow}
@@ -1243,8 +1243,8 @@ The \code{mcp-agentcore-memory} server exposes 6 tools for memory operations. It
 \code{search\_memories} & Semantic search across memories & \code{query}, \code{namespace}, \code{top\_k} \\
 \code{list\_session\_events} & List events from a session & \code{actor\_id}, \code{session\_id}, \code{limit} \\
 \rowcolor{lightgray}
-\code{list\_namespaces} & List all 23 predefined namespaces & --- \\
-\code{memory\_status} & Service status and cache stats & --- \\
+\code{list\_namespaces} & List all 23 predefined namespaces & n/a \\
+\code{memory\_status} & Service status and cache stats & n/a \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -1347,7 +1347,7 @@ pub async fn store_event(
 \subsection{RetrieveMemoryRecords}
 
 \begin{warnbox}[searchQuery is REQUIRED]
-The \api{searchQuery} parameter is \textbf{mandatory}---you cannot list all records without a query. Use \api{list\_memory\_records()} for enumeration instead.
+The \api{searchQuery} parameter is \textbf{mandatory}; you cannot list all records without a query. Use \api{list\_memory\_records()} for enumeration instead.
 \end{warnbox}
 
 \section{Rate Limiting Strategy}
@@ -1397,7 +1397,7 @@ pub async fn list_events(
 
 \begin{tipbox}[ChromaDB Operational Notes]
 \begin{itemize}
-  \item No rate limits---store as frequently as needed
+  \item No rate limits: store as frequently as needed
   \item 30-second HTTP timeout on all requests
   \item Cache invalidation is namespace-aware (invalidating a parent clears children)
   \item Large sessions ($>$50k events) may need pagination
@@ -1442,17 +1442,17 @@ AI agents regularly see API keys, tokens, and credentials in code. These must be
 
   % Layer 1: Regex
   \node[layer, fill=dangerred!8, draw=dangerred] (regex) at (0, 2.3) {
-    \faCode\ \textbf{Layer 1: Regex Patterns} --- AWS keys, GitHub PATs, OpenAI keys, Private keys
+    \faCode\ \textbf{Layer 1: Regex Patterns}: AWS keys, GitHub PATs, OpenAI keys, Private keys
   };
 
   % Layer 2: Entropy
   \node[layer, fill=warningamber!10, draw=warningamber] (entropy) at (0, 0.6) {
-    \faRandom\ \textbf{Layer 2: Entropy Analysis} --- Detect unknown high-entropy strings ($H > 4.5$)
+    \faRandom\ \textbf{Layer 2: Entropy Analysis}: Detect unknown high-entropy strings ($H > 4.5$)
   };
 
   % Layer 3: Redaction
   \node[layer, fill=successgreen!10, draw=successgreen] (redact) at (0, -1.1) {
-    \faEraser\ \textbf{Layer 3: Redaction Markers} --- \code{[REDACTED]} or \code{[HIGH\_ENTROPY\_REDACTED]}
+    \faEraser\ \textbf{Layer 3: Redaction Markers}: \code{[REDACTED]} or \code{[HIGH\_ENTROPY\_REDACTED]}
   };
 
   % Output
@@ -1485,7 +1485,7 @@ AI agents regularly see API keys, tokens, and credentials in code. These must be
 \faGithub\ GitHub PAT & gh[pousr]\_[A-Za-z0-9\_]\{36,\} \\
 \rowcolor{dangerred!5}
 \faKey\ OpenAI Key & sk-[a-zA-Z0-9]\{20,\} \\
-\faLock\ Private Keys & -----BEGIN.*PRIVATE KEY----- \\
+\faLock\ Private Keys & \texttt{-{}-{}-{}-{}-BEGIN.*PRIVATE KEY-{}-{}-{}-{}-} \\
 \rowcolor{dangerred!5}
 \faRandom\ High Entropy & \textrm{Shannon entropy $H > 4.5$} \\
 \bottomrule
@@ -1512,15 +1512,15 @@ Not all data should be stored in memory. Follow this classification:
 \textbf{\color{awsblue}Data Type} & \textbf{\color{awsblue}Sensitivity} & \textbf{\color{awsblue}Storage Policy} \\
 \midrule
 \rowcolor{lightgray}
-Code patterns & Low & Long-term OK---store in \code{codebase/patterns} \\
-Architecture decisions & Low & Long-term OK---valuable for consistency \\
+Code patterns & Low & Long-term OK; store in \code{codebase/patterns} \\
+Architecture decisions & Low & Long-term OK; valuable for consistency \\
 \rowcolor{lightgray}
 PR discussions & Low-Medium & Short-term only; summarize to facts \\
 User preferences & Low & Long-term OK in \code{preferences/user} \\
 \rowcolor{lightgray}
 Issue context & Low-Medium & Extract key learnings; discard details \\
 \rowcolor{dangerred!10}
-Secrets/credentials & \textcolor{dangerred}{\textbf{NEVER}} & Block at client level---sanitize before storage \\
+Secrets/credentials & \textcolor{dangerred}{\textbf{NEVER}} & Block at client level; sanitize before storage \\
 \rowcolor{dangerred!10}
 API keys/tokens & \textcolor{dangerred}{\textbf{NEVER}} & Auto-redacted by sanitization pipeline \\
 \rowcolor{dangerred!10}
@@ -1552,7 +1552,7 @@ Periodically audit stored memories for accidentally-stored secrets:
 
 \subsection{ChromaDB Setup}
 
-ChromaDB is set up automatically via Docker Compose. Collections are created on first use---no manual provisioning needed:
+ChromaDB is set up automatically via Docker Compose. Collections are created on first use, so no manual provisioning is needed:
 
 \begin{lstlisting}[caption={ChromaDB setup via Docker Compose}, language={}]
 # docker-compose.yml (ChromaDB service)
@@ -1576,7 +1576,7 @@ services:
 \end{lstlisting}
 
 \begin{infobox}[No Cloud Dependencies]
-ChromaDB runs locally as a Docker container---no AWS account, IAM roles, or API keys needed. All data stays on your self-hosted infrastructure, aligning with the project's container-first philosophy.
+ChromaDB runs locally as a Docker container; no AWS account, IAM roles, or API keys needed. All data stays on your self-hosted infrastructure, aligning with the project's container-first philosophy.
 \end{infobox}
 
 \section{Data Persistence}
@@ -1602,7 +1602,7 @@ ChromaDB stores data in a Docker volume (\code{chromadb\_data}). Collections are
 \section{Backup and Recovery}
 
 \begin{infobox}[ChromaDB Backup is Volume-Based]
-Since ChromaDB stores all data in a Docker volume, backup and restore use standard Docker volume operations---no custom scripts needed.
+Since ChromaDB stores all data in a Docker volume, backup and restore use standard Docker volume operations, with no custom scripts needed.
 \end{infobox}
 
 \subsection{Volume Backup}
@@ -1652,7 +1652,7 @@ docker compose up -d chromadb mcp-agentcore-memory
 ChromaDB is open-source and runs locally. The only costs are:
 \begin{itemize}
   \item \textbf{Disk storage}: ChromaDB data volume (typically $<$1 GB for agent memory)
-  \item \textbf{Compute}: Docker container overhead (minimal---ChromaDB is lightweight)
+  \item \textbf{Compute}: Docker container overhead (minimal, since ChromaDB is lightweight)
   \item \textbf{No API fees}: All operations are local, no per-request charges
 \end{itemize}
 \end{infobox}
@@ -1908,7 +1908,7 @@ mod tests {
 \section{Infrastructure as Code}
 
 \begin{tldrbox}
-Docker Compose manages the entire stack. ChromaDB runs as a local container with persistent volumes---no cloud infrastructure required.
+Docker Compose manages the entire stack. ChromaDB runs as a local container with persistent volumes; no cloud infrastructure required.
 \end{tldrbox}
 
 \subsection{Docker Compose Configuration}
@@ -1961,9 +1961,9 @@ volumes:
 \addcontentsline{toc}{section}{References}
 
 \begin{itemize}[leftmargin=1.5em, itemsep=0.8em]
-  \item \faGithub\ \href{https://github.com/chroma-core/chroma}{ChromaDB --- Open-Source Vector Database}
+  \item \faGithub\ \href{https://github.com/chroma-core/chroma}{ChromaDB: Open-Source Vector Database}
   \item \faFileCode\ \href{https://docs.trychroma.com/}{ChromaDB Documentation}
-  \item \faRust\ \href{https://docs.rs/reqwest/latest/reqwest/}{reqwest --- Rust HTTP Client}
+  \item \faRust\ \href{https://docs.rs/reqwest/latest/reqwest/}{reqwest: Rust HTTP Client}
   \item \faGithub\ MCP Server Source: \code{tools/mcp/mcp\_agentcore\_memory/}
 \end{itemize}
 

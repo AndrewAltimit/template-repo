@@ -1,6 +1,6 @@
 # MCP Integration Proposal: Unified Expressive AI Agent System
 
-> **Status: HISTORICAL** -- This proposal was written when the Virtual Character server was
+> **Status: HISTORICAL.** This proposal was written when the Virtual Character server was
 > implemented in Python. The server has since been **migrated to Rust**. The integration
 > concepts and emotion model architecture remain valid as design reference, but code examples
 > show Python from the original plan and do not reflect the current implementation.

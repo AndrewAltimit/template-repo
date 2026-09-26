@@ -2,10 +2,10 @@
 
 **Setting up multi-agent PR reviews and auto-fix on a Windows self-hosted GitHub Actions runner**
 
-This guide walks you through replicating the Agent Council -- a multi-profile AI review pipeline that reviews every PR from multiple perspectives (security, quality, general) and optionally auto-fixes issues. It uses two Rust CLI tools from the [template-repo](https://github.com/AndrewAltimit/template-repo) project:
+This guide walks you through replicating the Agent Council, a multi-profile AI review pipeline that reviews every PR from multiple perspectives (security, quality, general) and optionally auto-fixes issues. It uses two Rust CLI tools from the [template-repo](https://github.com/AndrewAltimit/template-repo) project:
 
-- **`github-agents`** -- orchestrates PR reviews (selects agent, builds prompt, posts comments)
-- **`automation-cli`** -- handles review-response and CI-failure auto-fix loops
+- **`github-agents`**: orchestrates PR reviews (selects agent, builds prompt, posts comments)
+- **`automation-cli`**: handles review-response and CI-failure auto-fix loops
 
 The agents currently supported are **Claude Code** (Anthropic CLI) and **OpenRouter** (HTTP API to any model, e.g. Qwen). You can run both or just one.
 
@@ -65,11 +65,11 @@ Reviews are **advisory** (non-blocking). CI is **blocking**. The auto-fix agent 
 
 - **Windows self-hosted GitHub Actions runner** registered to your repo/org
 - **Rust toolchain** installed on the runner (for building the CLI tools)
-  - Install via [rustup](https://rustup.rs/) -- works on Windows
+  - Install via [rustup](https://rustup.rs/); works on Windows
 - **Node.js 18+** on the runner (Claude Code CLI is an npm package)
 - **GitHub CLI (`gh`)** installed on the runner ([install guide](https://cli.github.com/))
-- **Claude Code subscription** (Max or Pro plan) -- for the Claude-based reviews
-- **OpenRouter API key** (free tier available) -- for the OpenRouter-based reviews
+- **Claude Code subscription** (Max or Pro plan): for the Claude-based reviews
+- **OpenRouter API key** (free tier available): for the OpenRouter-based reviews
 - **Git** available on the runner PATH
 
 ---
@@ -83,7 +83,7 @@ You have two options: build on the runner itself, or cross-compile and copy the 
 Create a setup script that clones template-repo and builds the two binaries. Save this as `setup-agent-tools.ps1` on your runner:
 
 ```powershell
-# setup-agent-tools.ps1 -- Run once on your self-hosted runner
+# setup-agent-tools.ps1: Run once on your self-hosted runner
 $ErrorActionPreference = "Stop"
 
 $TOOLS_DIR = "$env:USERPROFILE\.agent-tools"
@@ -93,7 +93,7 @@ $BIN_DIR = "$env:USERPROFILE\.local\bin"
 New-Item -ItemType Directory -Force -Path $TOOLS_DIR | Out-Null
 New-Item -ItemType Directory -Force -Path $BIN_DIR | Out-Null
 
-# Clone template-repo (sparse checkout -- only the tools we need)
+# Clone template-repo (sparse checkout: only the tools we need)
 Set-Location $TOOLS_DIR
 if (Test-Path "template-repo") { Remove-Item -Recurse -Force "template-repo" }
 
@@ -123,7 +123,7 @@ Write-Host "Make sure $BIN_DIR is in your system PATH."
 
 ```bash
 #!/bin/bash
-# setup-agent-tools.sh -- Run once on your self-hosted runner
+# setup-agent-tools.sh: Run once on your self-hosted runner
 set -e
 
 TOOLS_DIR="$HOME/.agent-tools"
@@ -133,7 +133,7 @@ mkdir -p "$TOOLS_DIR" "$BIN_DIR"
 cd "$TOOLS_DIR"
 rm -rf template-repo
 
-# Sparse clone -- only the Rust tools
+# Sparse clone: only the Rust tools
 git clone --depth 1 --filter=blob:none --sparse \
     https://github.com/AndrewAltimit/template-repo.git
 cd template-repo
@@ -227,7 +227,7 @@ In your GitHub repo, go to **Settings > Secrets and variables > Actions** and ad
 This is the master configuration for all agents. Adapt to your needs:
 
 ```yaml
-# .agents.yaml -- Multi-Agent System Configuration
+# .agents.yaml: Multi-Agent System Configuration
 #
 # All agents run in AUTONOMOUS MODE for CI/CD automation.
 # Interactive prompts are disabled.
@@ -316,7 +316,7 @@ advanced:
 Defines the different reviewer "perspectives" in the council:
 
 ```yaml
-# review-profiles.yaml -- Reviewer Role Definitions
+# review-profiles.yaml: Reviewer Role Definitions
 #
 # Each profile is a different lens through which a PR is reviewed.
 # Profiles are referenced by name via: github-agents pr-review <PR> --profile <name>
@@ -432,7 +432,7 @@ concurrency:
 jobs:
   # Block fork PRs from self-hosted runners (security).
   # When this job skips, all downstream jobs that `needs: fork-guard` also
-  # skip -- UNLESS they use `if: always()`, which bypasses skip propagation.
+  # skip, UNLESS they use `if: always()`, which bypasses skip propagation.
   # Any job using always() must include its own fork check.
   fork-guard:
     name: Fork PR Guard
@@ -446,7 +446,7 @@ jobs:
   # -------------------------------------------------------------------------
   # YOUR CI JOBS GO HERE
   # -------------------------------------------------------------------------
-  # Add your own CI job(s) -- build, test, lint, etc.
+  # Add your own CI job(s): build, test, lint, etc.
   # The example below is a placeholder. Replace with your actual CI.
   ci:
     name: CI
@@ -464,7 +464,7 @@ jobs:
         run: echo "Run your CI here"
 
   # -------------------------------------------------------------------------
-  # AGENT COUNCIL -- Parallel AI Reviews
+  # AGENT COUNCIL: Parallel AI Reviews
   # -------------------------------------------------------------------------
 
   # Claude Security Review
@@ -554,7 +554,7 @@ jobs:
           profile: 'openrouter-general'
 
   # -------------------------------------------------------------------------
-  # AUTO-FIX AGENT -- Responds to review feedback
+  # AUTO-FIX AGENT: Responds to review feedback
   # -------------------------------------------------------------------------
   agent-review-response:
     name: Agent Review Response
@@ -636,7 +636,7 @@ jobs:
             "5"
 
   # -------------------------------------------------------------------------
-  # FAILURE HANDLER -- Auto-fix CI failures
+  # FAILURE HANDLER: Auto-fix CI failures
   # -------------------------------------------------------------------------
   agent-failure-handler:
     name: Agent Failure Handler
@@ -835,7 +835,7 @@ runs:
         ## Claude AI Code Review
 
         **Warning:** Claude API was unavailable during this run.
-        Review skipped -- will run on next push.
+        Review skipped; it will run on next push.
 
         ---
         Generated by AI review pipeline.
@@ -1100,9 +1100,9 @@ runs:
 
 1. A PR is opened or updated on `main`
 2. Three review jobs start **in parallel**:
-   - `claude-security-review` -- calls `github-agents pr-review <PR> --profile security`
-   - `claude-quality-review` -- calls `github-agents pr-review <PR> --profile quality`
-   - `openrouter-review` -- calls `github-agents pr-review <PR> --profile openrouter-general`
+   - `claude-security-review`: calls `github-agents pr-review <PR> --profile security`
+   - `claude-quality-review`: calls `github-agents pr-review <PR> --profile quality`
+   - `openrouter-review`: calls `github-agents pr-review <PR> --profile openrouter-general`
 3. Each review job:
    - Fetches the PR diff via the GitHub API
    - Loads the corresponding profile from `review-profiles.yaml`
@@ -1126,10 +1126,10 @@ runs:
    - Calls `automation-cli review failure <PR> <BRANCH> <ITER> <MAX> "format,lint,test"`
    - Claude reads the CI logs, fixes the issues, commits+pushes
 3. Standalone precommit checks are also available for custom workflows:
-   - `automation-cli review precommit --autoformat` -- format + restage
-   - `automation-cli review precommit --lint` -- run lint checks, report failures
-   - `automation-cli review precommit --test` -- run tests, report failures
-   - `automation-cli review precommit --stage <stages>` -- run arbitrary CI stages
+   - `automation-cli review precommit --autoformat`: format + restage
+   - `automation-cli review precommit --lint`: run lint checks, report failures
+   - `automation-cli review precommit --test`: run tests, report failures
+   - `automation-cli review precommit --stage <stages>`: run arbitrary CI stages
    - Combine flags freely: `--autoformat --lint --test --fail-on-error`
 4. The push triggers a new workflow run, creating a feedback loop until:
    - Everything passes, or
@@ -1155,11 +1155,11 @@ runs:
 ### Adding or removing review profiles
 
 Edit `review-profiles.yaml`. Each profile needs:
-- `display_name` -- shown in the PR comment header
-- `agent` -- `claude` or `openrouter`
-- `model` -- model name (e.g., `sonnet` for Claude, `qwen/qwen3.7-max` for OpenRouter)
-- `focus` -- one-line description
-- `instructions` -- system prompt text prepended to the review
+- `display_name`: shown in the PR comment header
+- `agent`: `claude` or `openrouter`
+- `model`: model name (e.g., `sonnet` for Claude, `qwen/qwen3.7-max` for OpenRouter)
+- `focus`: one-line description
+- `instructions`: system prompt text prepended to the review
 
 Then add/remove corresponding jobs in `pr-validation.yml`.
 

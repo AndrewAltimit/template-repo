@@ -120,7 +120,7 @@ impl MmdsCredentialsProvider {
 
         // Parse expiration time. A parse failure must NOT silently yield a
         // non-expiring credential (expiry: None), which the AWS SDK would treat
-        // as never refreshing -- propagate it as a credentials error instead.
+        // as never refreshing; propagate it as a credentials error instead.
         let parsed_expiry = chrono::DateTime::parse_from_rfc3339(&creds.expiration).map_err(|e| {
             provider::error::CredentialsError::provider_error(format!(
                 "Failed to parse MMDS credential expiration '{}': {}",

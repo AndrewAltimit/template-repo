@@ -6,7 +6,7 @@ A Raspberry Pi secured inside a briefcase with dual-sensor tamper detection (Hal
 
 ## Purpose
 
-Secure physical transport for a field-deployable agent terminal. The briefcase provides the physical security layer for operating AI agents in untrusted environments -- extending the digital security model (LUKS, split-privilege services) into the physical domain (tamper detection, sensor hardening, cryptographic wipe).
+Secure physical transport for a field-deployable agent terminal. The briefcase provides the physical security layer for operating AI agents in untrusted environments, extending the digital security model (LUKS, split-privilege services) into the physical domain (tamper detection, sensor hardening, cryptographic wipe).
 
 ## System Architecture
 
@@ -61,10 +61,10 @@ The fix: a **Hall effect sensor as the authoritative lid-state indicator** and a
 Hall says CLOSED + Light LOW  -> Normal (armed, sleeping)
 Hall says CLOSED + Light HIGH -> Suspicious (log anomaly, possible bypass attempt)
 Hall says OPEN   + Light HIGH -> Confirmed tamper (trigger challenge)
-Hall says OPEN   + Light LOW  -> Tamper in dark environment (still trigger -- Hall is authoritative)
+Hall says OPEN   + Light LOW  -> Tamper in dark environment (still trigger; Hall is authoritative)
 ```
 
-Key principle: **Hall alone is sufficient to trigger.** Light alone never triggers -- it adds confidence and detects sensor-bypass scenarios.
+Key principle: **Hall alone is sufficient to trigger.** Light alone never triggers; it adds confidence and detects sensor-bypass scenarios.
 
 ### Arming Delay
 
@@ -99,7 +99,7 @@ when lid is closed. 5-10mm gap is fine for A3144.
 
 ### Physical Placement
 
-Mount the Hall sensor on the base of the briefcase near the latch mechanism. Epoxy a small neodymium disc magnet to the corresponding spot on the lid interior. When closed, the magnet sits directly above the Hall sensor (within ~10mm). The BH1750 mounts nearby, oriented upward toward the lid seam -- the first entry point for light.
+Mount the Hall sensor on the base of the briefcase near the latch mechanism. Epoxy a small neodymium disc magnet to the corresponding spot on the lid interior. When closed, the magnet sits directly above the Hall sensor (within ~10mm). The BH1750 mounts nearby, oriented upward toward the lid seam, the first entry point for light.
 
 ---
 
@@ -241,11 +241,11 @@ sudo mkfs.ext4 -L SECURE_DATA /dev/mapper/data_crypt
 
 ---
 
-## Recovery USB -- Quantum-Safe Key Wrapping
+## Recovery USB: Quantum-Safe Key Wrapping
 
 ### What PQC Buys You Here
 
-AES-256-XTS is already quantum-resistant for symmetric data-at-rest encryption. The LUKS container does not need PQC. Where PQC matters is in **how you protect and distribute the recovery key material** -- specifically, public-key operations like key encapsulation and digital signatures.
+AES-256-XTS is already quantum-resistant for symmetric data-at-rest encryption. The LUKS container does not need PQC. Where PQC matters is in **how you protect and distribute the recovery key material**: specifically, public-key operations like key encapsulation and digital signatures.
 
 The threat model: an adversary who captures your recovery USB today and stores the encrypted data, hoping to break the public-key wrapping layer with a future quantum computer. By using a hybrid classical+PQ scheme for key wrapping, you ensure the recovery secret remains protected even against harvest-now-decrypt-later attacks.
 
@@ -253,11 +253,11 @@ The threat model: an adversary who captures your recovery USB today and stores t
 
 ```
 Recovery USB (32GB+)
-+-- Partition 1 (512MB) -- FAT32, unencrypted
++-- Partition 1 (512MB): FAT32, unencrypted
 |   +-- recovery_public.json        <- PQ public keys + wrapped blob metadata
 |   +-- wrapped_secret.bin           <- Hybrid-encrypted recovery secret
 |
-+-- Partition 2 (rest) -- LUKS2 encrypted
++-- Partition 2 (rest): LUKS2 encrypted
     |   (passphrase derived from unwrapped recovery secret)
     +-- base_image.img.zst          <- Compressed Pi OS image
     +-- base_image.img.zst.sig      <- ML-DSA-87 detached signature
@@ -396,7 +396,7 @@ tamper-recovery unwrap \
 
 ### Mounting Notes
 
-1. **Hall sensor + magnet alignment**: Most critical mechanical detail. The A3144 needs the magnet within ~10mm when closed. Test alignment before permanently mounting -- use blu-tack first, mark positions, then epoxy.
+1. **Hall sensor + magnet alignment**: Most critical mechanical detail. The A3144 needs the magnet within ~10mm when closed. Test alignment before permanently mounting: use blu-tack first, mark positions, then epoxy.
 
 2. **Light sealing**: Line the briefcase seam with adhesive foam weatherstripping. Aim for < 1 lux when sealed for huge margin before false triggers matter (since light is secondary).
 
@@ -468,13 +468,13 @@ Test 1 -- Sensor reads:
 
 Test 2 -- Arming delay:
   Close case, watch journal. Confirm ARMING state for 15s, then ARMED.
-  Reopen during arming -- confirm return to DISARMED.
+  Reopen during arming; confirm return to DISARMED.
 
 Test 3 -- Challenge (non-destructive):
   Temporarily replace wipe_drive.sh with a no-op script.
   Arm the system, open the case, verify challenge prompt appears.
-  Enter correct password -- verify DISARMED.
-  Enter wrong password 3x -- verify wipe trigger file is created.
+  Enter correct password; verify DISARMED.
+  Enter wrong password 3x; verify wipe trigger file is created.
 
 Test 4 -- Wipe (sacrificial SD card):
   Use a throwaway SD card with a LUKS partition.
@@ -498,7 +498,7 @@ Test 6 -- Anomaly detection:
 | Threat | Mitigation |
 |--------|------------|
 | Cold boot attack | Enable encrypted swap; consider kernel memory encryption |
-| SD card physical removal | LUKS2 FDE -- data at rest is encrypted |
+| SD card physical removal | LUKS2 FDE: data at rest is encrypted |
 | Light sensor bypass (tape/cover) | Hall is primary and independent; sustained light anomaly escalates |
 | Hall sensor bypass (external magnet) | Light sensor detects exposure; anomaly counter triggers challenge |
 | Both sensors bypassed simultaneously | Requires precise physical access; consider potting sensors in epoxy |

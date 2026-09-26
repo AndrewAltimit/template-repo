@@ -2,7 +2,7 @@
 //!
 //! The string enums here are deserialized case-insensitively from tool
 //! arguments. An unknown value is a hard `InvalidParameters` error that lists
-//! the accepted values -- the previous implementation silently fell back to a
+//! the accepted values; the previous implementation silently fell back to a
 //! default (e.g. `linter: "pylint"` quietly ran ruff), which hid mistakes.
 
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -90,7 +90,7 @@ string_enum! {
     /// Python formatter backend.
     #[derive(Default)]
     pub enum PythonFormatter {
-        /// `ruff format` -- what this repository's CI uses.
+        /// `ruff format`: what this repository's CI uses.
         #[default]
         Ruff => "ruff",
         /// `black`.

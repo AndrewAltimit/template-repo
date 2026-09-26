@@ -5,7 +5,7 @@ edition = "2024"
 license = "MIT"
 repository = "https://github.com/AndrewAltimit/template-repo"
 authors = ["AndrewAltimit"]
-description = "MCP server for BioForge biological automation -- safety-enforced liquid handling, thermal control, motion, imaging, protocol validation, human gates and e-stop (simulated hardware)"
+description = "MCP server for BioForge biological automation: safety-enforced liquid handling, thermal control, motion, imaging, protocol validation, human gates and e-stop (simulated hardware)"
 
 [[bin]]
 name = "mcp-bioforge"

@@ -48,7 +48,7 @@ pub async fn ensure_api_ready(
 
     // Check if container is running; if not, start it
     if !docker::is_container_running() {
-        output::info("Container not running -- starting...");
+        output::info("Container not running; starting...");
         if !compose.exists() {
             anyhow::bail!(
                 "Compose file not found: {}\nhint: pass --package-root",

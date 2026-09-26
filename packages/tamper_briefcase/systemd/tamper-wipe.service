@@ -1,4 +1,4 @@
-# Tamper Drive Wipe -- irreversible one-shot.
+# Tamper Drive Wipe: irreversible one-shot.
 # Only activates when trigger file exists.
 
 [Unit]
@@ -15,4 +15,4 @@ RemainAfterExit=false
 PrivateDevices=false
 ProtectSystem=false
 
-# Not installed in any target -- only started explicitly by tamper-gate.
+# Not installed in any target; only started explicitly by tamper-gate.

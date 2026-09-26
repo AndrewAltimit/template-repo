@@ -1,6 +1,6 @@
 # Template Quickstart Guide
 
-This guide helps you fork and adapt this template for your own projects. The components are modular -- you are expected to pick and choose what you need, not use everything.
+This guide helps you fork and adapt this template for your own projects. The components are modular; you are expected to pick and choose what you need, not use everything.
 
 **What to expect:** The MCP servers, packages, and CI/CD tools are designed to work independently. You can enable a single MCP server (e.g., code-quality) without touching the rest. However, the agent orchestration system (board-driven workflows, PR review pipelines, security wrappers) is tightly integrated and requires more effort to adapt.
 
@@ -23,7 +23,7 @@ This template was built for a specific infrastructure. When forking, you will ne
 | What | Where | Why |
 |------|-------|-----|
 | **GitHub repository references** | `.agents.yaml`, workflow files, README.md | Repo URLs point to `AndrewAltimit/template-repo` |
-| **`agent_admins` list** | `.agents.yaml` | Controls who can approve agent work -- must be your GitHub username |
+| **`agent_admins` list** | `.agents.yaml` | Controls who can approve agent work; must be your GitHub username |
 | **GitHub Projects board ID** | `ai-agents-board.yml` | The board ID is specific to the original repo's GitHub Projects v2 board |
 
 ### API Keys (per feature)
@@ -34,7 +34,7 @@ This template was built for a specific infrastructure. When forking, you will ne
 | `GOOGLE_API_KEY` | Gemini MCP server | [Google AI Studio](https://aistudio.google.com/) |
 | `ELEVENLABS_API_KEY` | ElevenLabs Speech MCP server | [elevenlabs.io](https://elevenlabs.io/) |
 | `GITHUB_TOKEN` | Agent workflows, board-manager, gh-validator | GitHub Settings > Developer Settings > Fine-grained tokens |
-| ~~`CODEX_API_KEY`~~ | ~~Codex MCP server~~ | ~~[OpenAI](https://platform.openai.com/)~~ **DISABLED** -- OpenAI security risk (mass surveillance, autonomous weapons) |
+| ~~`CODEX_API_KEY`~~ | ~~Codex MCP server~~ | ~~[OpenAI](https://platform.openai.com/)~~ **DISABLED**: OpenAI security risk (mass surveillance, autonomous weapons) |
 
 You only need keys for the features you enable. The Minimal setup path requires no API keys at all.
 

@@ -191,7 +191,7 @@ fn challenge(hash_file: &Path) -> Result<bool> {
 
     eprintln!();
     eprintln!("==================================================");
-    eprintln!("  TAMPER DETECTED -- AUTHENTICATION REQUIRED");
+    eprintln!("  TAMPER DETECTED: AUTHENTICATION REQUIRED");
     eprintln!("  You have 120 seconds and {} attempts.", MAX_ATTEMPTS);
     eprintln!("==================================================");
     eprintln!();

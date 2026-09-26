@@ -33,7 +33,7 @@ The scripts in `automation/` are thin wrappers that `exec` this binary, so exist
 
 All commands locate the project root by walking up from the current directory to the first directory containing both `docker-compose.yml` and `CLAUDE.md`, and run from there.
 
-## `ci` -- CI Stages
+## `ci`: CI Stages
 
 ```bash
 automation-cli ci run <stage> [extra-args...]   # Run a CI stage
@@ -94,7 +94,7 @@ Checks, without running anything in Docker:
 
 Exits 1 if any check fails; missing optional files (e.g. `deny.toml`) are warnings.
 
-## `lint` -- Counted Lint Stages
+## `lint`: Counted Lint Stages
 
 ```bash
 automation-cli lint <format|ruff|basic|full|links>
@@ -112,7 +112,7 @@ Used by `.github/workflows/lint-stages.yml`. Each mode counts failed checks as e
 
 `links` uses `tools/rust/markdown-link-checker/target/release/md-link-checker`, then `md-link-checker` on `PATH`, and otherwise builds it in the `rust-ci` container.
 
-## `review` -- PR Agents
+## `review`: PR Agents
 
 ```bash
 automation-cli review respond <pr> <branch> [iteration=1] [max-iterations=5]
@@ -126,7 +126,7 @@ automation-cli review precommit [--autoformat] [--lint[=STAGES]] [--test[=STAGES
 
 Both agents push with `git push --no-verify` and verify the result with `git ls-remote`, rebasing onto the remote on non-fast-forward rejections (up to 5 attempts). In GitHub Actions (`GITHUB_TOKEN` + `GITHUB_REPOSITORY` set) they configure an authenticated `origin` and a bot identity. CI stages are run by re-invoking this binary, so no shell wrapper is required.
 
-## `wait` -- Readiness Check
+## `wait`: Readiness Check
 
 ```bash
 automation-cli wait [HOST:PORT] [-H HOST] [-p PORT] [-t TIMEOUT=15] [-e /health] [-q]
@@ -136,7 +136,7 @@ automation-cli wait db:5432
 
 TCP connect check by default; `--health-endpoint` switches to HTTP GET (2xx required). Polls every second; exits 1 on timeout (`--timeout 0` checks once).
 
-## `launch` -- Service Launchers
+## `launch`: Service Launchers
 
 ```bash
 automation-cli launch <ai-toolkit|comfyui|gemini-mcp> [--mode default|stdio|http] [--port PORT] [--no-browser] [--timeout 60]
@@ -145,7 +145,7 @@ automation-cli launch <ai-toolkit|comfyui|gemini-mcp> [--mode default|stdio|http
 - `ai-toolkit` / `comfyui`: build and start `mcp-ai-toolkit` / `mcp-comfyui` (profile `ai-services`), wait for the web UI (8675 / 8188), and open a browser unless `--no-browser`. ARM64 hosts use `docker/comfyui-arm64.Dockerfile`.
 - `gemini-mcp`: builds `tools/mcp/mcp_gemini` if needed. Default/stdio mode prints usage; `--mode http` starts the server in the background on `--port` (else `$GEMINI_MCP_PORT`, else 8006) with its log and PID in the temp directory, and stops it again if it never becomes healthy. Gemini is disabled by project policy; this is for local testing only.
 
-## `service` -- Remote AI Services
+## `service`: Remote AI Services
 
 ```bash
 automation-cli service start [--mode docker|host] [--profile ai-services] [--timeout 60]
@@ -154,7 +154,7 @@ automation-cli service <stop|restart|logs|status|build|pull|update>
 
 Manages `mcp-ai-toolkit` and `mcp-comfyui` only (other containers are never touched). `start --mode docker` checks for an NVIDIA GPU/runtime, builds, starts, and waits until both containers report `healthy`. `start --mode host` builds and runs the Rust `mcp-ai-toolkit` (port 8020) and `mcp-comfyui` (port 8013) servers directly. `pull` is `git pull --ff-only` on the current branch; `update` = pull + build + `up -d`.
 
-## `setup` -- Environment Setup
+## `setup`: Environment Setup
 
 ```bash
 automation-cli setup agents        # Report missing agent prerequisites (git, gh, docker, cargo, ...)
@@ -166,7 +166,7 @@ automation-cli setup init-dirs     # Create outputs/* and chown them via a busyb
 
 `permissions` updates only the `USER_ID` / `GROUP_ID` lines of `.env` and preserves everything else.
 
-## `proxy` -- Corporate Proxy
+## `proxy`: Corporate Proxy
 
 ```bash
 automation-cli proxy build [--arch amd64|arm64]

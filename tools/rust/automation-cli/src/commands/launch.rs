@@ -1,4 +1,4 @@
-//! `automation-cli launch <service>` -- build + start a GPU web service (or
+//! `automation-cli launch <service>`: build + start a GPU web service (or
 //! the Gemini MCP server) and wait for it to answer.
 
 use std::path::Path;
@@ -90,7 +90,7 @@ pub fn run(args: LaunchArgs) -> Result<()> {
 /// Env for compose: ARM64 hosts need the ARM ComfyUI Dockerfile.
 fn compose_env() -> Vec<(&'static str, &'static str)> {
     if std::env::consts::ARCH == "aarch64" {
-        output::info("Detected ARM64 -- using comfyui-arm64.Dockerfile");
+        output::info("Detected ARM64; using comfyui-arm64.Dockerfile");
         vec![("COMFYUI_DOCKERFILE", "docker/comfyui-arm64.Dockerfile")]
     } else {
         Vec::new()

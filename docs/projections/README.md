@@ -66,4 +66,4 @@ These documents are published for defensive policy research and education. The a
 
 ---
 
-*Independent research -- not affiliated with any institution or committee*
+*Independent research, not affiliated with any institution or committee*

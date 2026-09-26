@@ -1,4 +1,4 @@
-//! `automation-cli review failure` -- autoformat, then ask Claude to fix the
+//! `automation-cli review failure`: autoformat, then ask Claude to fix the
 //! remaining lint/test failures of a PR pipeline, commit, and push.
 //!
 //! GitHub outputs: `exceeded_max`, `made_changes`, `pushed`, `commit_sha`.

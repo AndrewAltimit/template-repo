@@ -20,7 +20,7 @@ The maintainer does not seek community engagement, discussion, or collaboration 
 
 ## Why This Policy Exists
 
-A significant portion of this codebase contains dual-use capabilities -- security research tooling, injection frameworks, sleeper agent detection, autonomous economic agent simulation, and risk assessment reports covering sensitive topics. The maintainer must maintain clear legal distance from any downstream use. Accepting feature requests, providing guidance, or engaging with a user community could be construed as participation in or endorsement of specific applications. This policy prevents that.
+A significant portion of this codebase contains dual-use capabilities: security research tooling, injection frameworks, sleeper agent detection, autonomous economic agent simulation, and risk assessment reports covering sensitive topics. The maintainer must maintain clear legal distance from any downstream use. Accepting feature requests, providing guidance, or engaging with a user community could be construed as participation in or endorsement of specific applications. This policy prevents that.
 
 ## What You Can Do
 

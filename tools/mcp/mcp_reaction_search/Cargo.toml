@@ -53,6 +53,6 @@ ndarray = "0.16"
 [profile.release]
 lto = true
 codegen-units = 1
-# Note: no `panic = "abort"` -- mcp-core runs each tool call inside a
+# Note: no `panic = "abort"`: mcp-core runs each tool call inside a
 # catch_unwind boundary, which only works with the default unwinding panics.
 strip = true

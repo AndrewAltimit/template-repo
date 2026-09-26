@@ -637,7 +637,7 @@ mod tests {
         for _ in 0..49 {
             e.validate_and_track_dispense(1000.0).unwrap();
         }
-        // 50th call at 1000 uL would make 50_000 -- exactly at limit, ok
+        // 50th call at 1000 uL would make 50_000: exactly at limit, ok
         e.validate_and_track_dispense(1000.0).unwrap();
         // 51st call pushes over limit
         assert!(e.validate_and_track_dispense(1.0).is_err());

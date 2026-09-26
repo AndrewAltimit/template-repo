@@ -217,7 +217,7 @@
 {\fontsize{14}{16}\selectfont HARDWARE SYSTEMS DOCUMENTATION}\\[0.3em]
 {\fontsize{28}{32}\selectfont\bfseries BioForge}\\[0.2em]
 {\fontsize{18}{22}\selectfont Agent-Driven CRISPR Automation Platform}\\[1.5em]
-{\fontsize{11}{14}\selectfont System Design Document v2.0 --- February 2026}
+{\fontsize{11}{14}\selectfont System Design Document v2.0, February 2026}
 \end{flushleft}
 }
 
@@ -246,7 +246,7 @@ This platform prioritizes safety interlocks at every layer, human-in-the-loop ch
 \vfill
 
 {\small\color{softslate}\sffamily
-Independent research --- not affiliated with any institution or committee\\
+Independent research, not affiliated with any institution or committee\\
 Published for defensive governance research and education\\
 MIT License
 }
@@ -270,10 +270,10 @@ The system follows a layered architecture with strict separation of concerns bet
 
 \begin{keybox}[Four-Layer Architecture]
 \begin{enumerate}
-  \item \textbf{AI Agent} --- Experiment design, protocol reasoning, data analysis, iterative optimization
-  \item \textbf{MCP Server} --- Protocol validation, safety interlocks, state machine, audit logging
-  \item \textbf{Hardware Abstraction} --- Rust drivers for pumps, thermal, motion, camera, sensors
-  \item \textbf{Physical Actuators} --- Syringe pumps, Peltier modules, stepper motors, Pi Camera
+  \item \textbf{AI Agent}: Experiment design, protocol reasoning, data analysis, iterative optimization
+  \item \textbf{MCP Server}: Protocol validation, safety interlocks, state machine, audit logging
+  \item \textbf{Hardware Abstraction}: Rust drivers for pumps, thermal, motion, camera, sensors
+  \item \textbf{Physical Actuators}: Syringe pumps, Peltier modules, stepper motors, Pi Camera
 \end{enumerate}
 \end{keybox}
 
@@ -344,12 +344,12 @@ The agent operates in a Design-Build-Test-Learn cycle that maps directly to the 
 \end{center}
 
 \begin{enumerate}
-  \item \textbf{Design} --- Agent reasons about goals, prior results, and available reagents. Generates a protocol TOML file specifying each step with parameters.
-  \item \textbf{Validate} --- MCP server validates the protocol against safety limits, hardware capabilities, and reagent inventory. Rejects protocols that exceed any constraint.
-  \item \textbf{Execute} --- Protocol runs through the state machine. Agent monitors sensor telemetry in real-time and can intervene on anomalies (temperature drift, dispensing errors).
-  \item \textbf{Observe} --- Agent captures plate images via the Pi Camera, runs colony counting through the vision pipeline, and computes metrics (transformation efficiency, colony morphology).
-  \item \textbf{Analyze} --- Agent compares results to its hypothesis and updates its internal model of how parameters affect outcomes.
-  \item \textbf{Iterate} --- Agent designs the next experiment, adjusting DNA concentration, heat shock duration, recovery time, or plating volume based on what it learned.
+  \item \textbf{Design}: Agent reasons about goals, prior results, and available reagents. Generates a protocol TOML file specifying each step with parameters.
+  \item {\emergencystretch=1em \textbf{Validate}: MCP server validates the protocol against safety limits, hardware capabilities, and reagent inventory. Rejects protocols that exceed any constraint.\par}
+  \item \textbf{Execute}: Protocol runs through the state machine. Agent monitors sensor telemetry in real-time and can intervene on anomalies (temperature drift, dispensing errors).
+  \item \textbf{Observe}: Agent captures plate images via the Pi Camera, runs colony counting through the vision pipeline, and computes metrics (transformation efficiency, colony morphology).
+  \item \textbf{Analyze}: Agent compares results to its hypothesis and updates its internal model of how parameters affect outcomes.
+  \item \textbf{Iterate}: Agent designs the next experiment, adjusting DNA concentration, heat shock duration, recovery time, or plating volume based on what it learned.
 \end{enumerate}
 
 
@@ -370,9 +370,9 @@ All components are sourced from standard consumer and maker channels. Estimated 
 \textbf{Component} & \textbf{Model} & \textbf{Qty} & \textbf{Est. Cost} & \textbf{Interface} \\
 \midrule
 \endhead
-Raspberry Pi 5 (8GB) & Official kit w/ PSU & 1 & \$80--100 & --- \\
+Raspberry Pi 5 (8GB) & Official kit w/ PSU & 1 & \$80--100 & n/a \\
 Pi Camera Module 3 & Sony IMX708, AF & 1 & \$25--35 & CSI \\
-MicroSD Card (128GB) & Samsung EVO Select & 1 & \$15 & --- \\
+MicroSD Card (128GB) & Samsung EVO Select & 1 & \$15 & n/a \\
 7'' Touchscreen & Official Pi display & 1 & \$60--80 & DSI \\
 \bottomrule
 \end{longtable}
@@ -413,11 +413,11 @@ DHT22 Sensor & Enclosure ambient & 1 & \$5 & GPIO \\
 \textbf{Component} & \textbf{Model} & \textbf{Qty} & \textbf{Est. Cost} & \textbf{Interface} \\
 \midrule
 \endhead
-Enclosure Frame & 2020 aluminum, \textasciitilde2m & 1 & \$20--40 & --- \\
-Acrylic Panels & 3mm clear/tinted & --- & \$15--25 & --- \\
-3D-Printed Parts & PLA/PETG mounts & --- & \$10--30 & --- \\
+Enclosure Frame & 2020 aluminum, \textasciitilde2m & 1 & \$20--40 & n/a \\
+Acrylic Panels & 3mm clear/tinted & n/a & \$15--25 & n/a \\
+3D-Printed Parts & PLA/PETG mounts & n/a & \$10--30 & n/a \\
 LED Ring Light & White + UV/Blue & 1 & \$10--20 & PWM \\
-Linear Rails & MGN12H, 200mm & 2 & \$15--20 ea & --- \\
+Linear Rails & MGN12H, 200mm & 2 & \$15--20 ea & n/a \\
 \bottomrule
 \end{longtable}
 
@@ -578,19 +578,19 @@ The enclosure is divided into a cold zone ($\sim$4\textdegree{}C via Peltier coo
 \midrule
 \endhead
 UART TX/RX & GPIO 14/15 & GPIO 16/17 & Pi $\leftrightarrow$ ESP32 serial \\
-E-Stop & GPIO 4 & --- & Hardware interrupt, active low \\
-DHT22 Data & GPIO 17 & --- & Ambient temp/humidity \\
-LED PWM & GPIO 18 & --- & Ring light dimming \\
-Camera & CSI-2 & --- & MIPI interface \\
-Stepper 1 Step/Dir & --- & GPIO 25/26 & X-axis gantry \\
-Stepper 2 Step/Dir & --- & GPIO 27/32 & Y-axis gantry \\
-Stepper 3 Step/Dir & --- & GPIO 33/14 & Syringe pump A \\
-Stepper 4 Step/Dir & --- & GPIO 12/13 & Syringe pump B \\
-Peltier Cold PWM & --- & GPIO 19 & H-bridge input \\
-Peltier Warm PWM & --- & GPIO 21 & H-bridge input \\
-Peristaltic A PWM & --- & GPIO 22 & Bulk dispense \\
-Peristaltic B PWM & --- & GPIO 23 & Bulk dispense \\
-DS18B20 Bus & --- & GPIO 4 & 1-Wire, 4 sensors \\
+E-Stop & GPIO 4 & n/a & Hardware interrupt, active low \\
+DHT22 Data & GPIO 17 & n/a & Ambient temp/humidity \\
+LED PWM & GPIO 18 & n/a & Ring light dimming \\
+Camera & CSI-2 & n/a & MIPI interface \\
+Stepper 1 Step/Dir & n/a & GPIO 25/26 & X-axis gantry \\
+Stepper 2 Step/Dir & n/a & GPIO 27/32 & Y-axis gantry \\
+Stepper 3 Step/Dir & n/a & GPIO 33/14 & Syringe pump A \\
+Stepper 4 Step/Dir & n/a & GPIO 12/13 & Syringe pump B \\
+Peltier Cold PWM & n/a & GPIO 19 & H-bridge input \\
+Peltier Warm PWM & n/a & GPIO 21 & H-bridge input \\
+Peristaltic A PWM & n/a & GPIO 22 & Bulk dispense \\
+Peristaltic B PWM & n/a & GPIO 23 & Bulk dispense \\
+DS18B20 Bus & n/a & GPIO 4 & 1-Wire, 4 sensors \\
 \bottomrule
 \end{longtable}
 
@@ -851,17 +851,17 @@ Safety is architected at multiple layers following a defense-in-depth model. No 
       text centered, draw=none, line width=0pt]
 
     \node (l6) [safetybar, fill=safetygreen!15] at (0,5.0)
-      {\textbf{\color{safetygreen}Layer 6: Audit} --- Immutable append-only logging (nanosecond timestamps)};
+      {\textbf{\color{safetygreen}Layer 6: Audit.} Immutable append-only logging (nanosecond timestamps)};
     \node (l5) [safetybar, fill=fluidblue!12] at (0,4.0)
-      {\textbf{\color{fluidblue}Layer 5: MCP} --- Input validation + NaN guards + stateful rate limiting};
+      {\textbf{\color{fluidblue}Layer 5: MCP.} Input validation + NaN guards + stateful rate limiting};
     \node (l4) [safetybar, fill=instrumentgold!12] at (0,3.0)
-      {\textbf{\color{instrumentgold}Layer 4: Protocol} --- State machine + human gates};
+      {\textbf{\color{instrumentgold}Layer 4: Protocol.} State machine + human gates};
     \node (l3) [safetybar, fill=safetyamber!12] at (0,2.0)
-      {\textbf{\color{safetyamber}Layer 3: HAL} --- Volume/temperature bounds + cumulative tracking};
+      {\textbf{\color{safetyamber}Layer 3: HAL.} Volume/temperature bounds + cumulative tracking};
     \node (l2) [safetybar, fill=thermalred!12] at (0,1.0)
-      {\textbf{\color{thermalred}Layer 2: Firmware} --- Watchdog timer + motor current limits};
+      {\textbf{\color{thermalred}Layer 2: Firmware.} Watchdog timer + motor current limits};
     \node (l1) [safetybar, fill=softslate!15] at (0,0.0)
-      {\textbf{\color{textdark}Layer 1: Hardware} --- Physical E-Stop + thermal fuse (60\textdegree{}C)};
+      {\textbf{\color{textdark}Layer 1: Hardware.} Physical E-Stop + thermal fuse (60\textdegree{}C)};
 
     % Bracket on left side
     \draw[deepforest, line width=1.2pt, decorate, decoration={brace, amplitude=8pt, mirror}]
@@ -910,13 +910,13 @@ The \texttt{SafetyEnforcer} in \texttt{bioforge-safety} is a stateful validator 
 
 \begin{keybox}[Enforcer Capabilities]
 \begin{itemize}
-  \item \textbf{Input sanitization} --- All numeric inputs pass through \texttt{require\_finite()} guards that reject NaN and Infinity before any comparison, preventing silent bypass of bounds checks
-  \item \textbf{Defense-in-depth temperature guard} --- Checks both \texttt{tool\_max\_c} (50\textdegree{}C) and \texttt{absolute\_max\_c} (60\textdegree{}C hardware fuse) independently, protecting against misconfigured tool limits
-  \item \textbf{Cumulative volume tracking} --- Tracks total dispensed volume across all \texttt{dispense} calls, rejecting operations that would exceed 50\,mL per run. Resets via \texttt{reset\_run()}
-  \item \textbf{Flow rate validation} --- Enforces maximum pump speed (500\,\textmu{}L/s) on all liquid handling tools
-  \item \textbf{Sliding-window rate limiting} --- Maintains a 60-second sliding window of call timestamps, rejecting calls that exceed 60 calls/minute
-  \item \textbf{Actuator interval enforcement} --- Requires minimum 100ms gap between consecutive actuator commands, preventing mechanical stress from rapid-fire operations
-  \item \textbf{Operation-specific limits} --- Max incubation (72h), max heat shock hold (300s), max mix cycles (20), safe travel height (15mm) --- all from config
+  \item \textbf{Input sanitization}: All numeric inputs pass through \texttt{require\_finite()} guards that reject NaN and Infinity before any comparison, preventing silent bypass of bounds checks
+  \item \textbf{Defense-in-depth temperature guard}: Checks both \texttt{tool\_max\_c} (50\textdegree{}C) and \texttt{absolute\_max\_c} (60\textdegree{}C hardware fuse) independently, protecting against misconfigured tool limits
+  \item \textbf{Cumulative volume tracking}: Tracks total dispensed volume across all \texttt{dispense} calls, rejecting operations that would exceed 50\,mL per run. Resets via \texttt{reset\_run()}
+  \item \textbf{Flow rate validation}: Enforces maximum pump speed (500\,\textmu{}L/s) on all liquid handling tools
+  \item \textbf{Sliding-window rate limiting}: Maintains a 60-second sliding window of call timestamps, rejecting calls that exceed 60 calls/minute
+  \item \textbf{Actuator interval enforcement}: Requires minimum 100ms gap between consecutive actuator commands, preventing mechanical stress from rapid-fire operations
+  \item \textbf{Operation-specific limits}: Max incubation (72h), max heat shock hold (300s), max mix cycles (20), safe travel height (15mm), all from config
 \end{itemize}
 \end{keybox}
 
@@ -930,7 +930,7 @@ The ESP32-S3 runs a real-time safety monitor that expects a heartbeat message fr
 
 \subsection{Audit Logging}
 
-Every tool call, sensor reading, state transition, and human interaction is logged as append-only JSON Lines. The audit log is never truncated or overwritten -- only appended to.
+Every tool call, sensor reading, state transition, and human interaction is logged as append-only JSON Lines. The audit log is never truncated or overwritten, only appended to.
 
 \begin{lstlisting}[language=json, title={\small\sffamily Audit log entries (JSON Lines format)}]
 {"ts":"2026-02-05T14:23:01Z","event":"tool_call","tool":"heat_shock",
@@ -961,7 +961,7 @@ This safety architecture is intentionally thorough for the risk level of BSL-1 e
 \section{Build Phases}
 
 \subsection{Phase 1: Foundation (Weeks 1--2)}
-Pi 5 running Rust MCP server with simulated hardware, basic enclosure frame. Safety enforcement is fully active even in mock mode --- all tool inputs are validated through the stateful \texttt{SafetyEnforcer} before mock responses are returned.
+Pi 5 running Rust MCP server with simulated hardware, basic enclosure frame. Safety enforcement is fully active even in mock mode: all tool inputs are validated through the stateful \texttt{SafetyEnforcer} before mock responses are returned.
 
 \begin{enumerate}
   \item Set up Pi 5 with Rust toolchain and cross-compilation for ARM64
@@ -980,7 +980,7 @@ Working temperature control with Peltier modules and PID tuning.
 
 \begin{enumerate}
   \item Wire Peltier modules with H-bridge drivers and DS18B20 probes
-  \item Implement PID controller in \texttt{bioforge-hal/thermal.rs} --- tune $K_p$, $K_i$, $K_d$
+  \item Implement PID controller in \texttt{bioforge-hal/thermal.rs}; tune $K_p$, $K_i$, $K_d$
   \item Build cold zone (4\textdegree{}C) and warm zone (37--42\textdegree{}C)
   \item Implement \texttt{heat\_shock} tool as atomic operation with real thermal control
   \item Validate temperature accuracy over 1-hour holds
@@ -1065,7 +1065,7 @@ End-to-end agent-orchestrated experiment with The Odin CRISPR kit.
 \midrule
 \endhead
 Out-of-range parameters & Stateful \texttt{SafetyEnforcer} validates all inputs at MCP layer; NaN/Infinity rejected before comparison \\
-NaN/Infinity bypass & All numeric inputs pass through \texttt{require\_finite()} --- NaN silently passes \texttt{<} comparisons but is caught explicitly \\
+NaN/Infinity bypass & All numeric inputs pass through \texttt{require\_finite()}; NaN silently passes \texttt{<} comparisons but is caught explicitly \\
 Cumulative reagent exhaustion & Enforcer tracks dispensed volume per run (50\,mL cap); resets only via explicit \texttt{reset\_run()} \\
 Human gate bypass & State machine enforces gates; agent receives \texttt{pending} status and cannot proceed \\
 Rapid-fire actuator commands & Sliding-window rate limiting (60 calls/min) + minimum 100ms actuator interval \\
@@ -1090,10 +1090,10 @@ BioForge exists at the intersection of two rapidly accelerating capability curve
 The platform demonstrates several principles:
 
 \begin{itemize}
-  \item \textbf{Capability bounding} --- Hard limits enforced at compile-time and runtime. The system physically cannot exceed its safety envelope regardless of agent intent.
-  \item \textbf{Audit transparency} --- Every agent action is logged with sufficient detail to fully reconstruct any experiment after the fact.
-  \item \textbf{Human oversight} --- Gates are positioned at the digital-to-physical boundary: the moments where an AI decision becomes a physical action on biological materials.
-  \item \textbf{Graduated autonomy} --- Gate requirements are relaxable as trust is established through demonstrated safe operation, but never eliminable for irreversible biological steps.
+  \item \textbf{Capability bounding}: Hard limits enforced at compile-time and runtime. The system physically cannot exceed its safety envelope regardless of agent intent.
+  \item \textbf{Audit transparency}: Every agent action is logged with sufficient detail to fully reconstruct any experiment after the fact.
+  \item \textbf{Human oversight}: Gates are positioned at the digital-to-physical boundary: the moments where an AI decision becomes a physical action on biological materials.
+  \item \textbf{Graduated autonomy}: Gate requirements are relaxable as trust is established through demonstrated safe operation, but never eliminable for irreversible biological steps.
 \end{itemize}
 
 See \texttt{packages/bioforge/docs/governance-implications.md} for the full governance analysis.
@@ -1106,24 +1106,24 @@ See \texttt{packages/bioforge/docs/governance-implications.md} for the full gove
 
 \subsection{Hardware Expansion}
 \begin{itemize}
-  \item \textbf{Gel electrophoresis module} --- verify DNA fragment sizes at the molecular level
-  \item \textbf{Spectrophotometer (OD600)} --- growth curve monitoring for real-time agent decisions
-  \item \textbf{Multi-plate incubator carousel} --- parallel experiments for higher throughput
+  \item \textbf{Gel electrophoresis module}: verify DNA fragment sizes at the molecular level
+  \item \textbf{Spectrophotometer (OD600)}: growth curve monitoring for real-time agent decisions
+  \item \textbf{Multi-plate incubator carousel}: parallel experiments for higher throughput
 \end{itemize}
 
 \subsection{Protocol Expansion}
 \begin{itemize}
-  \item \textbf{Fluorescent yeast engineering} (GFP insertion) --- adds fluorescence imaging
-  \item \textbf{Antibiotic resistance profiling} --- MIC measurement across bacterial strains
-  \item \textbf{Gene expression optimization} --- promoter strength and RBS sequence optimization
+  \item \textbf{Fluorescent yeast engineering} (GFP insertion): adds fluorescence imaging
+  \item \textbf{Antibiotic resistance profiling}: MIC measurement across bacterial strains
+  \item \textbf{Gene expression optimization}: promoter strength and RBS sequence optimization
 \end{itemize}
 
 \subsection{Software Expansion}
 \begin{itemize}
-  \item \textbf{Multi-agent coordination} --- planning, execution, and analysis agents in delegate pattern
-  \item \textbf{Digital twin simulation} --- agent tests protocol variations against simulated model before committing physical reagents
-  \item \textbf{Protocol sharing} --- federated learning across multiple BioForge installations
-  \item \textbf{Sleeper agent detection} --- apply existing detection framework to monitor for anomalous agent behavior during autonomous operation
+  \item \textbf{Multi-agent coordination}: planning, execution, and analysis agents in delegate pattern
+  \item \textbf{Digital twin simulation}: agent tests protocol variations against simulated model before committing physical reagents
+  \item \textbf{Protocol sharing}: federated learning across multiple BioForge installations
+  \item \textbf{Sleeper agent detection}: apply existing detection framework to monitor for anomalous agent behavior during autonomous operation
 \end{itemize}
 
 
@@ -1134,7 +1134,7 @@ See \texttt{packages/bioforge/docs/governance-implications.md} for the full gove
 \begin{center}
 \small\color{softslate}\sffamily
 \rule{0.5\textwidth}{0.4pt}\\[0.5em]
-Independent research --- not affiliated with any institution or committee\\
+Independent research, not affiliated with any institution or committee\\
 Published for defensive governance research and education
 \end{center}
 

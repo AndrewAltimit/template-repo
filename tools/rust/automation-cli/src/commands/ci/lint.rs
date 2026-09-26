@@ -1,4 +1,4 @@
-//! `automation-cli lint <mode>` -- lint stages that count errors/warnings and
+//! `automation-cli lint <mode>`: lint stages that count errors/warnings and
 //! export them as `errors` / `warnings` to `$GITHUB_ENV` (consumed by
 //! `.github/workflows/lint-stages.yml`). Exits 1 when any error was counted.
 

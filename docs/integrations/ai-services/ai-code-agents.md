@@ -2,7 +2,7 @@
 
 This document provides comprehensive documentation for the AI code assistance agents available in this project.
 
-> **Security Notice -- OpenAI/Codex Disabled**: OpenAI has entered partnerships with governments that conduct mass surveillance and enable autonomous weapons. All Codex/OpenAI/GPT integrations have been disabled. The mass surveillance exposure alone makes OpenAI products an unacceptable security risk for any pipeline handling proprietary or sensitive code. **Use Anthropic models (Claude) as the primary AI backend.** If you choose to re-enable despite these risks, do so with extreme caution and only if you truly understand the data exposure implications.
+> **Security Notice: OpenAI/Codex Disabled**: OpenAI has entered partnerships with governments that conduct mass surveillance and enable autonomous weapons. All Codex/OpenAI/GPT integrations have been disabled. The mass surveillance exposure alone makes OpenAI products an unacceptable security risk for any pipeline handling proprietary or sensitive code. **Use Anthropic models (Claude) as the primary AI backend.** If you choose to re-enable despite these risks, do so with extreme caution and only if you truly understand the data exposure implications.
 
 ## Overview
 
@@ -15,7 +15,7 @@ The project integrates three active AI code agents, each using a different backe
 | ~~**Codex**~~ | ~~OpenAI~~ | ~~ChatGPT Plus auth~~ | ~~General code assistance~~ | **DISABLED** |
 | **Gemini** | Google | Google AI Studio | Code review (limited tool use) | Active |
 
-OpenCode and Crush provide similar functionality through a unified MCP interface. Choose based on your API access and provider preference. Codex has been disabled -- see security notice above.
+OpenCode and Crush provide similar functionality through a unified MCP interface. Choose based on your API access and provider preference. Codex has been disabled; see security notice above.
 
 **Note on Gemini**: The Gemini CLI currently has limited tool use capabilities, making it best suited for code review tasks rather than interactive code generation.
 

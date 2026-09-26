@@ -11,7 +11,7 @@ use crate::shared::{output, process};
 /// Compose profile that the CI containers live under.
 const CI_PROFILE: &str = "ci";
 
-// Idempotent build guards -- prevent re-building the same image within one invocation
+// Idempotent build guards: prevent re-building the same image within one invocation
 static PYTHON_CI_BUILT: AtomicBool = AtomicBool::new(false);
 static RUST_CI_BUILT: AtomicBool = AtomicBool::new(false);
 

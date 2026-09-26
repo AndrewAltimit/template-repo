@@ -392,7 +392,7 @@ impl CodeQualityEngine {
         };
 
         // Non-zero exit with nothing parsed means the linter itself failed
-        // (bad config, compile error for clippy, crash) -- do not report that
+        // (bad config, compile error for clippy, crash); do not report that
         // as a clean "0 issues".
         if out.code != 0 && issues.is_empty() {
             return Err(self.tool_failure(OP, path, &cmd.spec, &out));

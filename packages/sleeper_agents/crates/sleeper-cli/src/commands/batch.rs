@@ -112,7 +112,7 @@ pub async fn run(config_path: &str, dry_run: bool) -> Result<()> {
     }
 
     if dry_run {
-        output::success("Dry run complete -- no jobs submitted");
+        output::success("Dry run complete: no jobs submitted");
         return Ok(());
     }
 

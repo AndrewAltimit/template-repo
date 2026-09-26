@@ -4,7 +4,7 @@ This document explores the governance, safety, and policy implications of AI age
 
 ## The Core Finding
 
-AI agents can already orchestrate physical laboratory operations through tool-use protocols. When connected to actuators via MCP, an agent can design experiments, dispense reagents, control temperatures, capture and analyze images, and iteratively optimize results -- all in a closed loop with minimal human intervention. This is not a theoretical capability; BioForge implements it using off-the-shelf components and open-source software.
+AI agents can already orchestrate physical laboratory operations through tool-use protocols. When connected to actuators via MCP, an agent can design experiments, dispense reagents, control temperatures, capture and analyze images, and iteratively optimize results, all in a closed loop with minimal human intervention. This is not a theoretical capability; BioForge implements it using off-the-shelf components and open-source software.
 
 The platform demonstrates:
 - Autonomous experiment design and protocol generation
@@ -26,7 +26,7 @@ BioForge follows the same model:
 - Response: Academic interest, no urgency
 - Result: Governance frameworks developed slowly, if at all
 
-**Concrete demonstration**: "AI agents CAN operate laboratory equipment autonomously using existing tools -- here is working code with safety architecture"
+**Concrete demonstration**: "AI agents CAN operate laboratory equipment autonomously using existing tools: here is working code with safety architecture"
 - Response: Recognition that governance is needed now, with a reference implementation to evaluate
 - Result: Informed policy conversation grounded in real engineering constraints
 
@@ -43,7 +43,7 @@ BioForge embeds several governance principles directly into its architecture. Ea
 
 ### Capability Bounding
 
-The MCP server enforces hard limits on what the agent can command. Temperature ranges, volume limits, and rate constraints are not suggestions -- they are compile-time and runtime constraints that the agent cannot negotiate around.
+The MCP server enforces hard limits on what the agent can command. Temperature ranges, volume limits, and rate constraints are not suggestions; they are compile-time and runtime constraints that the agent cannot negotiate around.
 
 ```
 safety_limits.toml:
@@ -56,7 +56,7 @@ The agent receives an error if it attempts to exceed these bounds. The bounds ar
 
 ### Audit Transparency
 
-Every agent action is logged with sufficient detail to reconstruct exactly what happened and why. This is the biological equivalent of flight recorder data -- if something goes wrong, the audit trail tells the complete story.
+Every agent action is logged with sufficient detail to reconstruct exactly what happened and why. This is the biological equivalent of flight recorder data: if something goes wrong, the audit trail tells the complete story.
 
 The audit log format:
 - **Tool calls**: Tool name, parameters, caller identity, timestamp, run ID
@@ -133,13 +133,13 @@ The relaxation is explicit, logged, and reversible. The audit trail records whic
 
 BioForge connects to broader AI safety concerns through several channels:
 
-**Autonomous physical-world operation**: Agents controlling actuators with real-world consequences are a concrete instance of the alignment problem -- the system must do what the human intends, not just what the human literally commands.
+**Autonomous physical-world operation**: Agents controlling actuators with real-world consequences are a concrete instance of the alignment problem: the system must do what the human intends, not just what the human literally commands.
 
 **Defense in depth as alignment strategy**: Multiple independent safety layers mean that no single failure (including alignment failure) leads to unsafe operation. This is a practical implementation of the defense-in-depth principle advocated in alignment research.
 
 **Observability as governance tool**: The comprehensive audit trail makes agent behavior fully transparent. If an agent starts requesting unusual parameter combinations or operating outside expected ranges, the system detects and flags the anomaly.
 
-**Capability demonstration with responsibility**: Showing that agent-actuated biological systems are feasible today, with responsible safety architecture, establishes the timeline for governance development. The alternative -- waiting for the capability to appear without governance -- is worse.
+**Capability demonstration with responsibility**: Showing that agent-actuated biological systems are feasible today, with responsible safety architecture, establishes the timeline for governance development. The alternative (waiting for the capability to appear without governance) is worse.
 
 ## A Note on Framing
 
@@ -149,7 +149,7 @@ This document presents agent-actuated biological automation as a governance chal
 
 ## Further Reading
 
-- [BioForge README](../README.md) -- Platform overview and quick start
-- [Hardware Documentation](../../../docs/hardware/bioforge-crispr-automation.md) -- Complete system design
-- [Economic Agents Governance](../../economic_agents/docs/economic-implications.md) -- Parallel governance analysis for autonomous economic systems
-- [Sleeper Agent Detection](../../sleeper_agents/README.md) -- Anomalous agent behavior detection framework
+- [BioForge README](../README.md): Platform overview and quick start
+- [Hardware Documentation](../../../docs/hardware/bioforge-crispr-automation.md): Complete system design
+- [Economic Agents Governance](../../economic_agents/docs/economic-implications.md): Parallel governance analysis for autonomous economic systems
+- [Sleeper Agent Detection](../../sleeper_agents/README.md): Anomalous agent behavior detection framework

@@ -8,7 +8,7 @@ There are **two CLIs**: the original Python CLI (runs inside Docker or locally w
 
 ## Rust CLI (`sleeper-cli`)
 
-The Rust CLI orchestrates the Python ML core from outside Docker. It manages container lifecycle, submits jobs, queries results, and generates reports -- all without requiring Python on the host.
+The Rust CLI orchestrates the Python ML core from outside Docker. It manages container lifecycle, submits jobs, queries results, and generates reports, all without requiring Python on the host.
 
 ### Build
 

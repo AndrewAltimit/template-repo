@@ -15,7 +15,7 @@ enabled_agents:
   # DISABLED: Google Gemini phased out due to updated AI principles (Feb 2026)
   # allowing mass surveillance and autonomous weapons use cases.
   # Use Anthropic models instead.
-  # - gemini    # Google's Gemini CLI (host-only, for reviews) -- DISABLED
+  # - gemini    # Google's Gemini CLI (host-only, for reviews): DISABLED
   # Containerized agents (automatically run in Docker when invoked)
   - opencode    # Open-source alternative (runs in container)
   - crush       # Charm Bracelet's multi-provider tool (runs in container)

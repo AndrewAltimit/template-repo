@@ -2,11 +2,11 @@
 //!
 //! Three input shapes are accepted:
 //!
-//! 1. **Endpoint envelope** -- what `POST /code-review` actually returns:
+//! 1. **Endpoint envelope**: what `POST /code-review` actually returns:
 //!    `{"review_id", "status", "result": {"type": ..., ...}, "usage", ...}`.
-//! 2. **Flat schema** -- the object the agent commits via `validate_json`:
+//! 2. **Flat schema**: the object the agent commits via `validate_json`:
 //!    `{"review_markdown", "severity", "findings_count", "file_changes"?, ...}`.
-//! 3. **Legacy tagged** -- the flat schema plus a `"type"` discriminator
+//! 3. **Legacy tagged**: the flat schema plus a `"type"` discriminator
 //!    (`review_only` / `with_fixes`).
 //!
 //! Parsing is deliberately forgiving about things a model commonly gets
