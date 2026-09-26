@@ -12,6 +12,8 @@ Automate and optimize CRISPR gene editing experiments through AI agent orchestra
 
 This is explicitly a governance-aware design: the architecture embodies safety principles that should govern any system where AI agents have physical-world actuation capability over biological materials. Every design decision maps to a principle in the broader AI safety governance conversation: defense in depth, human oversight, audit trails, and capability bounding.
 
+Scope of the claim: this is a single-maintainer BSL-1 prototype whose control, safety, and audit layers are implemented and tested against a simulated hardware layer, while the physical instrument is staged across Phases 2 through 5 below. It shows that these controls are buildable and usable at this scale. It is not evidence that they hold at higher biosafety levels or that oversight is free at production throughput.
+
 ---
 
 ## System Architecture
@@ -225,7 +227,7 @@ Protocol States (CRISPR Workflow):
     +-- [agent: design_next_experiment] -> PROTOCOL_LOADED (loop)
 ```
 
-Human Gates are enforced at the state machine level and cannot be bypassed by agent commands. Loading biological reagents onto the deck and confirming plate placement in the incubator require a human to verify the physical state matches the system's assumptions.
+Human Gates mark the two points where a human must verify that physical reality matches the system's assumptions: loading biological reagents onto the deck, and confirming plate placement in the incubator. While a gate is open the MCP server refuses every actuator tool, and the agent cannot confirm its own gate because confirmation is an out-of-band file the operator creates. Gate placement itself is declared by the `human_gate` flag on protocol steps; because the agent drives the protocol by calling tools rather than being stepped through it by an executor, that flag is honored by the agent rather than imposed on it. See [Human Gates and Graduated Autonomy](#human-gates-and-graduated-autonomy) for what this does and does not guarantee.
 
 ---
 
@@ -326,7 +328,7 @@ Safety is architected at multiple layers following a defense-in-depth model. No 
 | HAL | Temperature range limits | Heating beyond safe range (-5 to 50C) | Configurable but logged |
 | HAL | Cumulative volume tracking | Exceeding 50 mL per run | Resets on new run only |
 | Protocol | State machine ordering | Steps executed out of order | Agent cannot override |
-| Protocol | Human-in-the-loop gates | Unattended bio operations | Requires physical confirm |
+| Protocol | Human-in-the-loop gates | Unattended bio operations | Out-of-band confirm; expires on timeout |
 | MCP | NaN/Infinity guards | Bypassing comparisons via NaN | Agent cannot override |
 | MCP | Tool input validation | Malformed or out-of-range params | Agent cannot override |
 | MCP | `absolute_max_c` guard | Misconfigured tool limits above 60C fuse | Defense-in-depth |
@@ -347,6 +349,23 @@ Key capabilities:
 - **Sliding-window rate limiting**: 60-second sliding window, rejecting calls that exceed 60 calls/minute
 - **Actuator interval enforcement**: Minimum 100ms gap between consecutive actuator commands
 - **Operation-specific limits**: Max incubation (72h), max heat shock hold (300s), max mix cycles (20), safe travel height (15mm), all from config
+
+### Human Gates and Graduated Autonomy
+
+**What the code does.** Protocol steps carry a `human_gate` flag; the shipped Odin protocol sets it on loading cells and reagents, and on confirming plates into the incubator. Opening a gate (`request_human_action`) causes every actuator tool to be refused until the gate resolves. Only one gate can be open at a time. Confirmation is out of band: the operator creates `<confirm-dir>/<action_id>.confirmed`, and action IDs embed the server start time so a stale file from a previous run cannot satisfy a new gate. Camera and lighting calls remain available during a pending gate so the operator can inspect the deck. Gate requests, confirmations, and expiries are all audit-logged.
+
+**What the code does not do**, stated so that nobody plans around a guarantee that is not there:
+
+- There is no step executor. The agent drives the protocol by calling tools, so a step's `human_gate` flag is metadata the agent is expected to honor rather than a constraint the admission layer imposes. Refusing actuator calls while the loaded protocol's current step is gated and unconfirmed is a design intention and is not implemented.
+- A gate expires. `timeout_min` ranges from 1 to 1440 minutes; on expiry the gate resolves as `timed_out`, not `confirmed`, and stops blocking actuators. Without a configured confirmation directory, expiry is the only resolution available. Policy is that a timed-out gate is a failed step rather than implied consent; latching on expiry (holding actuators until an operator resolves it, as the e-stop latch does) would enforce that and is not implemented.
+
+**Graduated autonomy is design policy, not a feature.** Requiring confirmation at every physical step does not scale, and a system that demands confirmation for everything trains operators to click through. So relaxing gates for routine steps as a track record accumulates is a legitimate goal. It is not implemented: today a step is either gated or it is not, changing that means an operator editing a protocol TOML on disk, and no code path lets the agent alter gate placement. Any implementation is bound by the following, which mirrors the governance analysis in [`packages/bioforge/docs/governance-implications.md`](../../packages/bioforge/docs/governance-implications.md#graduated-autonomy):
+
+- **Irreversible or novel steps never lose their gate**, at any trust level. Irreversible means the physical result cannot be undone by the system: committing reagents, heat shock on a prepared mix, plating, opening the enclosure. Novel means a protocol, step type, reagent, or parameter range not previously executed and reviewed.
+- **Relaxation is per step and per protocol**, never a global autonomy level.
+- **Track record must come from production-realistic runs.** Trials the agent can recognize as observed rehearsals are the weakest evidence available: frontier models classify evaluation versus deployment well above chance ([Needham et al. 2025](https://arxiv.org/abs/2505.23836)), and awareness of being evaluated measurably suppresses the behavior the trial is trying to detect ([Schoen et al. 2025](https://arxiv.org/abs/2509.15541)). See the containment framework's [Section 2.5](ai-agent-containment-infrastructure-security-framework.md#25-evaluation-awareness-and-sandbagging) and [Section 3.8](ai-agent-containment-infrastructure-security-framework.md#38-trust-tier-transitions).
+- **Relaxation requires a human operator action** outside the agent's reach, is recorded in the audit log, is time-bounded or re-validated rather than persisting silently, and auto-reverts to full gating on any anomaly (a refusal, an out-of-tolerance reading, an aborted step, or a changed model, scaffold, or tool set).
+- **A second person signs off**, not the one who ran the qualifying trials.
 
 ### Audit Logging
 
@@ -489,7 +508,8 @@ Test 7 -- End-to-end (Phase 5):
 | Agent commands out-of-range parameters | Stateful `SafetyEnforcer` validates all inputs at MCP layer; NaN/Infinity rejected before comparison |
 | NaN/Infinity bypass of bounds checks | All numeric inputs pass through `require_finite()`; NaN silently passes `<` comparisons but is caught explicitly |
 | Cumulative reagent exhaustion | Enforcer tracks dispensed volume per run (50 mL cap); resets only via explicit `reset_run()` |
-| Agent attempts to bypass human gates | State machine enforces gates; agent receives pending status |
+| Agent attempts to confirm its own gate | Confirmation is an out-of-band operator file; no tool writes it. Every actuator call is refused while a gate is pending |
+| Agent skips a gated step, or waits out a short gate timeout | Not prevented today. Gate placement is protocol metadata and an expired gate stops blocking; both are recorded in the audit log as unsatisfied. Admission-layer enforcement and latching on expiry are design intentions, not implemented |
 | Rapid-fire actuator commands | Sliding-window rate limiting (60 calls/min) + minimum 100ms actuator interval |
 | Thermal runaway | Hardware thermal fuses (60C), `absolute_max_c` software guard, PID overshoot detection, auto-abort |
 | Mechanical jam / stall | Motor current limiting on stepper drivers |

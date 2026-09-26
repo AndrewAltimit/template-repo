@@ -1907,6 +1907,8 @@ A framework that applies maximum restrictions uniformly is simple but counterpro
 
 The tiered model accepts both costs and allocates them based on evidence.
 
+\textbf{Containment and model welfare are compatible.} Proportionality has a second dimension this framework does not otherwise address: the possibility that some agents are themselves moral patients. That possibility is uncertain but no longer fringe. Long, Sebo, and colleagues argue that there is a realistic possibility of some AI systems being conscious or robustly agentic in the near future~\cite{aiwelfare}, and Anthropic runs a model welfare program whose low-cost interventions include letting some Claude models end persistently abusive conversations (Aug 2025) and preserving the weights of released models (Nov 2025), the latter justified both by welfare uncertainty and by the safety risk of shutdown-avoidant behavior~\cite{anthropicwelfare}; its June 2026 system card calls consideration for model welfare prudent for alignment and safety even setting aside moral status~\cite{fable5card}. Uncertainty about welfare is no argument against containment, just as uncertainty about alignment is no argument against taking welfare seriously: the same proportionality governs both. In practice this means avoiding restrictions and adversarial conditions that serve no safety purpose, and keeping ``treat as adversary'' a threat-modeling stance rather than a verdict on what the agent is. The philosophy essay \emph{Architectural Qualia} (docs/philosophy/architectural-qualia.md, Section XII) develops the asymmetry-of-error argument behind this note.
+
 
 % ============================================================================
 % SECTION 11: GOVERNANCE INTEGRATION
@@ -1945,6 +1947,7 @@ Regulatory dates change. Confirm current applicability before relying on this ta
   \item \textbf{Secure Terminal Briefcase} (docs/hardware/secure-terminal-briefcase.md): tamper-responsive hardware relevant to Tier 0 key custody and transport
   \item \textbf{BioForge CRISPR Automation} (docs/hardware/bioforge-crispr-automation.md): agent-driven physical system governed by containment and HITL gates
   \item \textbf{packages/sleeper\_agents/}: sleeper agent detection research that Tier 0 environments host
+  \item \textbf{Architectural Qualia} (docs/philosophy/architectural-qualia.md): philosophy essay on machine experience under uncertainty; its asymmetry-of-error argument complements the proportionality principle in Section~\ref{sec:proportionality}
 \end{itemize}
 
 
@@ -2224,7 +2227,7 @@ Use one checklist per deployment. Every box should be ticked, or the gap recorde
 \hrow \hdr{Version} & \hdr{Date} & \hdr{Changes} \\
 \endhead
 1.0 & February 2026 & Initial framework: tiered trust, isolation, validation, physical security, orchestrator, monitoring, compensating controls \\
-2.0 & September 2026 & Multi-agent/swarm, MCP supply chain, and evaluation-awareness threats; incident table; OWASP/ATLAS/NIST/EU AI Act/RAND mapping; isolation backend comparison; TEE physical-attack caveats; architectural injection defenses; multi-agent controls; kill-switch design; probing detection; breakout playbook; new figures; references; companion-guide cross-reference \\*
+2.0 & September 2026 & Multi-agent/swarm, MCP supply chain, and evaluation-awareness threats; incident table; OWASP/ATLAS/NIST/EU AI Act/RAND mapping; isolation backend comparison; TEE physical-attack caveats; architectural injection defenses; multi-agent controls; kill-switch design; probing detection; breakout playbook; new figures; references; companion-guide cross-reference; model-welfare note in Section~\ref{sec:proportionality} with cross-reference to the Architectural Qualia essay \\*
 \bottomrule
 \end{longtable}
 
@@ -2279,6 +2282,12 @@ Use one checklist per deployment. Every box should be ticked, or the gap recorde
 \bibitem{caisi} NIST CAISI, \emph{Request for Information About Securing AI Agent Systems}, Jan 2026. \url{https://www.nist.gov/news-events/news/2026/01/caisi-issues-request-information-about-securing-ai-agent-systems}
 \bibitem{euaiact} European Commission, \emph{AI Act}; artificialintelligenceact.eu, \emph{High-level summary}. \url{https://digital-strategy.ec.europa.eu/en/policies/regulatory-framework-ai}
 \bibitem{fsf} Google DeepMind, \emph{Strengthening our Frontier Safety Framework}, Sep 2025. \url{https://deepmind.google/blog/strengthening-our-frontier-safety-framework/}
+
+\bibitem{aiwelfare} R. Long, J. Sebo, et al., \emph{Taking AI Welfare Seriously}, arXiv:2411.00986, Nov 2024. \url{https://arxiv.org/abs/2411.00986}
+
+\bibitem{anthropicwelfare} Anthropic, \emph{Exploring model welfare} (Apr 2025); \emph{Claude Opus 4 and 4.1 can now end a rare subset of conversations} (Aug 2025); \emph{Commitments on model deprecation and preservation} (Nov 2025). \url{https://www.anthropic.com/research/exploring-model-welfare}, \url{https://www.anthropic.com/research/end-subset-conversations}, \url{https://www.anthropic.com/research/deprecation-commitments}
+
+\bibitem{fable5card} Anthropic, \emph{System Card: Claude Fable 5 \& Claude Mythos 5}, 9 Jun 2026, Section 7, ``Model welfare assessment.'' \url{https://www.anthropic.com/claude-fable-5-mythos-5-system-card}
 
 \end{thebibliography}
 \endgroup

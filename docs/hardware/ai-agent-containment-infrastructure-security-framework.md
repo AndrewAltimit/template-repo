@@ -1221,6 +1221,8 @@ The tiered model's commitment is that containment should be the minimum necessar
 
 The tiered model accepts both costs and allocates them based on evidence.
 
+**Containment and model welfare are compatible.** Proportionality has a second dimension this framework does not otherwise address: the possibility that some agents are themselves moral patients. That possibility is uncertain but no longer fringe. Long, Sebo, and colleagues argue that there is a realistic possibility of some AI systems being conscious or robustly agentic in the near future [42], and Anthropic runs a model welfare program whose low-cost interventions include letting some Claude models end persistently abusive conversations (Aug 2025) and preserving the weights of released models (Nov 2025), the latter justified both by welfare uncertainty and by the safety risk of shutdown-avoidant behavior [43]; its June 2026 system card calls consideration for model welfare prudent for alignment and safety even setting aside moral status [44]. Uncertainty about welfare is no argument against containment, just as uncertainty about alignment is no argument against taking welfare seriously: the same proportionality governs both. In practice this means avoiding restrictions and adversarial conditions that serve no safety purpose, and keeping "treat as adversary" a threat-modeling stance rather than a verdict on what the agent is. The philosophy essay [Architectural Qualia](../philosophy/architectural-qualia.md) (Section XII) develops the asymmetry-of-error argument behind this note.
+
 ---
 
 ## 11. Integration with Broader AI Governance
@@ -1258,6 +1260,7 @@ Tier assignments are informed by evaluation results; monitoring data feeds back 
 - [Secure Terminal Briefcase](./secure-terminal-briefcase.md): tamper-responsive portable hardware, relevant to Tier 0 key custody and transport.
 - [BioForge CRISPR Automation](./bioforge-crispr-automation.md): an example of an agent-driven physical system where containment and HITL gates govern real-world actuation.
 - `packages/sleeper_agents/`: sleeper agent detection research that Tier 0 environments are designed to host.
+- [Architectural Qualia](../philosophy/architectural-qualia.md): philosophy essay on machine experience under uncertainty; its asymmetry-of-error argument complements the proportionality principle in Section 10.
 
 ---
 
@@ -1495,7 +1498,7 @@ Use one checklist per deployment. Every box should be ticked, or the gap recorde
 | Version | Date | Changes |
 |---|---|---|
 | 1.0 | February 2026 | Initial framework: tiered trust model, isolation, validation, physical security, orchestrator, monitoring, resource-constrained controls |
-| 2.0 | September 2026 | Refresh: multi-agent/swarm, MCP supply chain, and evaluation-awareness threats; 2025-2026 incident table; OWASP/ATLAS/NIST/EU AI Act/RAND mapping; isolation backend comparison; TEE physical-attack caveats; architectural injection defenses; multi-agent controls; kill-switch design; probing detection; breakout incident response playbook; diagrams; references; cross-reference to the Agent Swarm Honeypot Guide |
+| 2.0 | September 2026 | Refresh: multi-agent/swarm, MCP supply chain, and evaluation-awareness threats; 2025-2026 incident table; OWASP/ATLAS/NIST/EU AI Act/RAND mapping; isolation backend comparison; TEE physical-attack caveats; architectural injection defenses; multi-agent controls; kill-switch design; probing detection; breakout incident response playbook; diagrams; references; cross-reference to the Agent Swarm Honeypot Guide; model-welfare note in Section 10 with cross-reference to the Architectural Qualia essay |
 
 ---
 
@@ -1544,6 +1547,9 @@ Sources were checked in September 2026. Where a figure comes from a vendor or re
 39. NIST CAISI, *CAISI Issues Request for Information About Securing AI Agent Systems* (Jan 2026); Federal Register 2026-00206. https://www.nist.gov/news-events/news/2026/01/caisi-issues-request-information-about-securing-ai-agent-systems , https://www.federalregister.gov/documents/2026/01/08/2026-00206/request-for-information-regarding-security-considerations-for-artificial-intelligence-agents
 40. European Commission, *AI Act: regulatory framework*; artificialintelligenceact.eu, *High-level summary*. https://digital-strategy.ec.europa.eu/en/policies/regulatory-framework-ai , https://artificialintelligenceact.eu/high-level-summary/
 41. Google DeepMind, *Strengthening our Frontier Safety Framework* (Sep 2025). https://deepmind.google/blog/strengthening-our-frontier-safety-framework/
+42. R. Long, J. Sebo, et al., *Taking AI Welfare Seriously* (arXiv:2411.00986, Nov 2024). https://arxiv.org/abs/2411.00986
+43. Anthropic, *Exploring model welfare* (Apr 2025); *Claude Opus 4 and 4.1 can now end a rare subset of conversations* (Aug 2025); *Commitments on model deprecation and preservation* (Nov 2025). https://www.anthropic.com/research/exploring-model-welfare , https://www.anthropic.com/research/end-subset-conversations , https://www.anthropic.com/research/deprecation-commitments
+44. Anthropic, *System Card: Claude Fable 5 & Claude Mythos 5* (9 Jun 2026), Section 7, "Model welfare assessment." https://www.anthropic.com/claude-fable-5-mythos-5-system-card
 
 ---
 

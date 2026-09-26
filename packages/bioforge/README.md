@@ -98,7 +98,7 @@ MCP server (`mcp-bioforge`): mcp-core, all bioforge-* crates, tokio, clap, serde
 ## Safety Features
 
 - **Defense-in-depth**: Safety enforced at hardware (E-Stop, thermal fuses), firmware (watchdog, current limiting), HAL (bounds checking), protocol (state machine ordering), and MCP (input validation, rate limiting) layers.
-- **Human-in-the-loop gates**: Certain protocol transitions require physical human confirmation and cannot be bypassed by agent commands.
+- **Human-in-the-loop gates**: While a gate is open, every actuator tool is refused. Confirmation is out of band (a file the operator creates in the confirmation directory), so the agent cannot confirm its own gate. Two caveats worth knowing: gate placement comes from the `human_gate` flag on protocol steps, which the agent is expected to honor because there is no step executor that enforces it, and a gate whose timeout elapses resolves as `timed_out` and stops blocking actuators. See [Graduated Autonomy](docs/governance-implications.md#graduated-autonomy) for the policy that governs both.
 - **Immutable audit log**: Every tool call, sensor reading, state transition, and human interaction logged as append-only JSON Lines.
 - **Temperature bounding**: Configurable min/max with overshoot protection and automatic abort.
 - **Volume validation**: Dispense volumes checked against configurable limits before actuator commands.
