@@ -46,6 +46,9 @@ imageproc = "0.25"
 # PID control
 pid = "4.0"
 
+# Hashing (approved-protocol manifest)
+sha2 = "0.10"
+
 # CLI
 clap = { version = "4.5", features = ["derive", "env"] }
 

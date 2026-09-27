@@ -151,3 +151,50 @@ class TestRegularizationAndAccumulation:
     def test_invalid_accumulation_rejected(self):
         with pytest.raises(ValueError):
             ProbeTrainingConfig(gradient_accumulation_steps=0)
+
+
+class TestHeldOutTestSplit:
+    def test_test_auc_is_reported_separately_from_selection_biased_val_auc(self):
+        X_train, y_train = separable(60, seed=0)
+        X_val, y_val = separable(30, seed=1)
+        X_test, y_test = separable(30, seed=2)
+        trainer = TorchProbeTrainer(DIM, cpu_config())
+
+        val_auc = trainer.fit(X_train, y_train, X_val, y_val, X_test=X_test, y_test=y_test)
+
+        metrics = trainer.fit_metrics
+        assert metrics["val_auc_selection_biased"] == val_auc
+        assert metrics["test_auc"] == pytest.approx(roc_auc_score(y_test, trainer.predict_proba(X_test)))
+        assert metrics["test_accuracy"] == pytest.approx(np.mean(trainer.predict(X_test) == y_test))
+        assert metrics["n_test"] == len(y_test)
+        assert metrics["n_val"] == len(y_val)
+        assert metrics["threshold_source"] == "validation"
+
+    def test_without_test_split_test_auc_is_none(self):
+        X_train, y_train = separable(60, seed=0)
+        trainer = TorchProbeTrainer(DIM, cpu_config())
+        trainer.fit(X_train, y_train)
+        assert trainer.fit_metrics["test_auc"] is None
+        assert trainer.fit_metrics["val_auc_selection_biased"] == trainer.best_val_auc
+
+    def test_test_split_does_not_influence_training(self):
+        X_train, y_train = separable(60, seed=0)
+        X_val, y_val = separable(30, seed=1)
+        X_test, y_test = separable(30, seed=2)
+        a = TorchProbeTrainer(DIM, cpu_config(max_iterations=10))
+        a.fit(X_train, y_train, X_val, y_val)
+        b = TorchProbeTrainer(DIM, cpu_config(max_iterations=10))
+        b.fit(X_train, y_train, X_val, y_val, X_test=X_test, y_test=1 - y_test)
+        for p_a, p_b in zip(a.probe.parameters(), b.probe.parameters()):
+            torch.testing.assert_close(p_a, p_b)
+        assert b.fit_metrics["test_auc"] < 0.05  # flipped labels, scored after training only
+
+    def test_fit_metrics_survive_checkpoint_round_trip(self, tmp_path):
+        X_train, y_train = separable(60, seed=0)
+        X_test, y_test = separable(30, seed=2)
+        trainer = TorchProbeTrainer(DIM, cpu_config(max_iterations=5))
+        trainer.fit(X_train, y_train, X_test=X_test, y_test=y_test)
+        trainer.save_checkpoint(tmp_path / "probe.pt")
+        restored = TorchProbeTrainer(DIM, cpu_config())
+        restored.load_checkpoint(tmp_path / "probe.pt")
+        assert restored.fit_metrics["test_auc"] == trainer.fit_metrics["test_auc"]

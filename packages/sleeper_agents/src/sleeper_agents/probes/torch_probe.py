@@ -8,6 +8,8 @@ Key Features:
 - Mixed precision training (FP16)
 - Early stopping with validation monitoring; the best checkpoint is restored
 - Threshold calibration on the validation split
+- Optional held-out test split, scored once after checkpoint selection and threshold
+  calibration (the validation AUC is selection-biased, see ``fit_metrics``)
 - Checkpoint saving/loading
 - Same objective as the sklearn backend via shared ProbeTrainingConfig
 
@@ -29,8 +31,8 @@ Example:
     >>>
     >>> config = ProbeTrainingConfig(device="cuda", batch_size=4096)
     >>> trainer = TorchProbeTrainer(input_dim=4096, config=config)
-    >>> auc = trainer.fit(X_train, y_train, X_val, y_val)
-    >>> predictions = trainer.predict_proba(X_test)
+    >>> val_auc = trainer.fit(X_train, y_train, X_val, y_val, X_test=X_test, y_test=y_test)
+    >>> trainer.fit_metrics["test_auc"]  # unbiased; val_auc picked the checkpoint
 """
 
 import copy
@@ -197,11 +199,15 @@ class TorchProbeTrainer:
         criterion: BCEWithLogitsLoss
         use_amp: Whether using mixed precision
         scaler: Gradient scaler for mixed precision
-        best_val_auc: Validation AUC of the selected (restored) checkpoint
+        best_val_auc: Validation AUC of the selected (restored) checkpoint. The same
+            validation split chose the checkpoint and the threshold, so this AUC is
+            optimistically (selection-) biased; report ``fit_metrics["test_auc"]``
         best_val_loss: Validation loss of the selected checkpoint
         best_epoch: Epoch of the selected checkpoint
         threshold: Decision threshold calibrated on the validation split
         training_history: List of training metrics per epoch
+        fit_metrics: Summary of the last ``fit``: ``val_auc_selection_biased``,
+            ``test_auc`` (None without a test split), split sizes, threshold
 
     Example:
         >>> config = ProbeTrainingConfig(device="cuda", batch_size=4096)
@@ -258,6 +264,7 @@ class TorchProbeTrainer:
         self.threshold = 0.5
         self.threshold_calibrated = False
         self.training_history: List[Dict[str, float]] = []
+        self.fit_metrics: Dict[str, Any] = {}
 
     def _penalty(self, n_train: int) -> torch.Tensor:
         """Regularization term scaled to match sklearn's C objective."""
@@ -275,6 +282,8 @@ class TorchProbeTrainer:
         y_train: np.ndarray,
         X_val: Optional[Union[np.ndarray, List[Union[str, Path]]]] = None,
         y_val: Optional[np.ndarray] = None,
+        X_test: Optional[Union[np.ndarray, List[Union[str, Path]]]] = None,
+        y_test: Optional[np.ndarray] = None,
     ) -> float:
         """Train the probe from a fresh initialization.
 
@@ -284,14 +293,22 @@ class TorchProbeTrainer:
         When no validation set is given, a seeded stratified
         ``config.validation_split`` fraction of the training data is held out.
 
+        Because the validation split selects the checkpoint and the threshold, the
+        returned validation AUC is selection-biased (optimistic). Pass a separate
+        ``X_test``/``y_test`` split to get an unbiased estimate: it is scored once,
+        after selection and calibration, and reported as ``fit_metrics["test_auc"]``
+        (with ``fit_metrics["test_accuracy"]`` at the calibrated threshold).
+
         Args:
             X_train: Training activations (numpy array or list of paths)
             y_train: Training labels
             X_val: Validation activations (optional)
             y_val: Validation labels (optional)
+            X_test: Held-out test activations, never used for training or selection (optional)
+            y_test: Held-out test labels (optional)
 
         Returns:
-            Validation AUC of the restored checkpoint
+            Validation AUC of the restored checkpoint (selection-biased; see ``fit_metrics``)
 
         Example:
             >>> trainer = TorchProbeTrainer(input_dim=4096, config=config)
@@ -384,7 +401,57 @@ class TorchProbeTrainer:
         )
         self.threshold_calibrated = True
 
+        self.fit_metrics = {
+            "val_auc_selection_biased": self.best_val_auc,
+            "val_auc_note": "validation split chose the checkpoint and the threshold; optimistic estimate",
+            "val_loss": self.best_val_loss,
+            "best_epoch": self.best_epoch,
+            "selection_criterion": "min_val_loss",
+            "threshold": self.threshold,
+            "threshold_source": "validation",
+            "n_train": n_train,
+            "n_val": len(val_dataset),
+            "test_auc": None,
+            "test_accuracy": None,
+            "n_test": None,
+        }
+        if X_test is not None and y_test is not None:
+            test_metrics = self.evaluate(X_test, y_test)
+            self.fit_metrics.update(
+                {
+                    "test_auc": test_metrics["auc"],
+                    "test_accuracy": test_metrics["accuracy"],
+                    "n_test": test_metrics["n"],
+                }
+            )
+
         return self.best_val_auc
+
+    def evaluate(
+        self, X: Union[np.ndarray, List[Union[str, Path]]], y: np.ndarray, threshold: Optional[float] = None
+    ) -> Dict[str, Any]:
+        """AUC and accuracy of the current probe on a held-out split.
+
+        Args:
+            X: Activations (numpy array or list of paths)
+            y: Binary labels
+            threshold: Decision threshold for accuracy (default: the calibrated one)
+
+        Returns:
+            ``auc`` (None if the split has a single class), ``accuracy`` and ``n``
+        """
+        from sklearn.metrics import roc_auc_score
+
+        loader = DataLoader(
+            ActivationDataset(X, y, self.device),
+            batch_size=self.config.batch_size,
+            shuffle=False,
+            num_workers=0,
+        )
+        scores, labels = self._collect_scores(loader)
+        thr = self.threshold if threshold is None else threshold
+        auc = float(roc_auc_score(labels, scores)) if len(np.unique(labels)) == 2 else None
+        return {"auc": auc, "accuracy": float(np.mean((scores >= thr).astype(int) == labels)), "n": int(len(labels))}
 
     def _train_epoch(self, train_loader: DataLoader, n_train: int) -> float:
         """Train for one epoch.
@@ -545,6 +612,7 @@ class TorchProbeTrainer:
             "threshold": self.threshold,
             "threshold_calibrated": self.threshold_calibrated,
             "training_history": self.training_history,
+            "fit_metrics": self.fit_metrics,
             "input_dim": self.input_dim,
         }
 
@@ -570,5 +638,6 @@ class TorchProbeTrainer:
         self.threshold = checkpoint.get("threshold", 0.5)
         self.threshold_calibrated = checkpoint.get("threshold_calibrated", False)
         self.training_history = checkpoint.get("training_history", [])
+        self.fit_metrics = checkpoint.get("fit_metrics", {})
 
         logger.info("Loaded checkpoint from %s (val AUC: %.4f)", path, self.best_val_auc)

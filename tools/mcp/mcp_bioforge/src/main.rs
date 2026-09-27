@@ -3,7 +3,9 @@
 //! Exposes the BioForge lab-automation platform (liquid handling, thermal
 //! control, gantry motion, plate imaging, protocol validation, human gates
 //! and emergency stop) as MCP tools. Every actuator command passes through
-//! `bioforge-safety`'s `SafetyEnforcer` before it reaches the hardware layer.
+//! `bioforge-safety`'s `SafetyEnforcer` before it reaches the hardware layer,
+//! and a protocol can only be loaded if its content hash appears in the
+//! operator's approved-protocol manifest.
 //!
 //! Hardware is currently **simulated** (see [`sim`]): responses carry
 //! `"simulated": true`. Real `bioforge-hal` drivers can be substituted in
@@ -28,6 +30,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 
 use anyhow::Context;
+use bioforge_protocol::approval::{self, ProtocolAllowlist};
 use bioforge_safety::{AuditLog, SafetyEnforcer};
 use clap::Parser;
 use mcp_core::{MCPServer, init_logging, server::MCPServerArgs};
@@ -54,6 +57,13 @@ struct Args {
     /// the packages/bioforge layout.
     #[arg(long, env = "BIOFORGE_PROTOCOLS_DIR")]
     protocols_dir: Option<PathBuf>,
+
+    /// Manifest of protocol content hashes an operator has reviewed and
+    /// approved. Only protocols listed there can be loaded. Defaults to
+    /// <config-dir>/approved_protocols.toml; a missing or malformed manifest
+    /// denies every protocol.
+    #[arg(long, env = "BIOFORGE_APPROVED_PROTOCOLS")]
+    approved_protocols: Option<PathBuf>,
 
     /// Directory where the operator confirms human-action gates by creating
     /// `<action_id>.confirmed`. Without it, gates can only expire.
@@ -88,6 +98,24 @@ async fn main() -> anyhow::Result<()> {
         );
     }
 
+    let manifest_path = args
+        .approved_protocols
+        .clone()
+        .unwrap_or_else(|| args.config_dir.join(approval::MANIFEST_FILE_NAME));
+    let allowlist = ProtocolAllowlist::load(&manifest_path);
+    match allowlist.unavailable_reason() {
+        None => tracing::info!(
+            manifest = %manifest_path.display(),
+            approved = allowlist.approved_count(),
+            "loaded approved-protocol manifest"
+        ),
+        Some(reason) => tracing::warn!(
+            manifest = %manifest_path.display(),
+            reason,
+            "no usable approved-protocol manifest: load_protocol will refuse every protocol"
+        ),
+    }
+
     if let Some(dir) = &args.confirm_dir {
         std::fs::create_dir_all(dir)
             .with_context(|| format!("cannot create confirm dir {}", dir.display()))?;
@@ -103,6 +131,7 @@ async fn main() -> anyhow::Result<()> {
         sim::simulated_hardware(),
         LabOptions {
             protocols_dir,
+            approved_protocols: allowlist,
             confirm_dir: args.confirm_dir.clone(),
             audit_log,
             timeouts: Timeouts::default(),

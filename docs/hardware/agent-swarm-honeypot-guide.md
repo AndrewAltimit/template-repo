@@ -5,7 +5,7 @@
 | | |
 |---|---|
 | **Document** | HONEYPOT-2026-HW-004 |
-| **Version** | 1.0 (September 2026) |
+| **Version** | 1.1 (September 2026) |
 | **Audience** | Security teams, sector ISACs, national CERTs, and policy bodies planning deception programs aimed at autonomous AI agent activity |
 | **Scope** | Defensive detection, attribution, and reporting only. No offensive countermeasures, no hack-back, no ready-made decoy artifacts. |
 | **Companion document** | [AI Agent Containment & Infrastructure Security Framework](./ai-agent-containment-infrastructure-security-framework.md): how to keep your *own* agents contained |
@@ -100,7 +100,7 @@ This guide sets out how to design, operate, and govern a deception program for t
 > 2. **Uniqueness per placement.** Every decoy value is generated for exactly one location and one time. Any later appearance of that value tells you where and when it was harvested.
 > 3. **Secrecy of keys, not of method.** The program must keep working even if the adversary has read this guide. What stays secret is the per-deployment material (which values are decoys and where they were placed), never the technique.
 > 4. **Zero legitimate use.** A decoy that real users and real systems never touch produces near-zero false positives, so every event is worth investigating.
-> 5. **Evidence that providers can act on.** The goal is not only blocking but identifying the accounts and agents involved and reporting them to the responsible model or platform provider, with evidence the provider can find in its own logs.
+> 5. **Evidence that providers can act on.** The goal is not only blocking but identifying the accounts and agents involved. Decoy credentials for services you own put the primary evidence in your own logs; reporting to the responsible model or platform provider then gives it something it can find in *its* logs.
 
 Sections 3.1-3.5 treat each principle in turn. No program is perfect. A cautious agent may route every request through disposable infrastructure, avoid anything that looks too good, and test credentials only from throwaway environments. Section 7 shows that a program still learns a great deal in that case.
 
@@ -126,7 +126,7 @@ Public reporting from 2024-2026 already supports three conclusions for anyone de
 > **Three conclusions for defenders**
 >
 > - **Sensor networks see campaigns first.** The PaperCut campaign was characterized from decoy and sensor data spread across many networks. Deception scales best as a *shared* capability.
-> - **Stolen AI credentials are part of the economy.** Operators run swarms on other people's API keys. Decoy AI-provider credentials are therefore both attractive bait and a direct route to the provider that can act (Section 8).
+> - **Stolen credentials are part of the economy.** Operators run swarms on other people's API keys, so credentials are among the first things an agent collects and tries. Decoy credentials for services you own and operate turn that habit into a use-time alert that you observe directly, with the full request in your own logs (Section 5.2).
 > - **Agents are imperfect and sometimes disobedient.** They overstate, hallucinate, and ignore their own operators' constraints. They do not reliably apply the caution a careful human operator would, which is why detection on touch works.
 
 The evidence base is young but growing quickly. The findings behind these conclusions, from primary publications and in date order, are summarized below; see Section 13 for full references.
@@ -140,7 +140,7 @@ The evidence base is young but growing quickly. The findings behind these conclu
 | Nov 2025 | Anthropic, GTG-1002 | A state-linked campaign, detected mid-September 2025, used an AI agent orchestrated through MCP tooling against roughly 30 targets, with the AI performing an estimated 80-90% of tactical work. The model frequently overstated findings and produced credentials that did not work. Agents mishandle what they collect, and a decoy program can observe that. MITRE ATT&CK tracks this as campaign C0062. |
 | Nov 2025 | Google Threat Intelligence Group | Documented malware families that call LLMs at runtime (e.g. PROMPTFLUX, PROMPTSTEAL). |
 | Dec 2025 | UK NCSC deception trial findings | Across 121 organizations and 14 providers, deception was found practical; 90% of participants would not publicly announce their use of it. |
-| Aug 2026 | GreyNoise, PaperCut exploitation campaign | AI-agent-driven exploitation reached at least 440 instances across 395 organizations in 48 countries. It was observed through a distributed sensor network (decoys and passive sensors, not victim networks). The agents also ignored parts of the operator's own exclusion list. |
+| Sep 2026 | GreyNoise, PaperCut exploitation campaign | AI-agent-driven exploitation reached at least 440 instances across 395 organizations in 48 countries. It was observed through a distributed sensor network (decoys and passive sensors, not victim networks). The agents also ignored parts of the operator's own exclusion list. |
 | Sep 2026 | Anthropic threat report | Operators "routinely ran agent swarms"; stolen AI API keys taken from customer environments were used to fund operations. |
 | Sep 2026 | Google Threat Intelligence Group | A credential-harvesting campaign completed in under six hours with IP rotation; GTIG states it has not yet observed fully autonomous end-to-end pipelines. |
 
@@ -175,7 +175,7 @@ flowchart LR
 Practical consequences:
 
 - **Instrument the read path, not only the use path.** File access auditing, object-store access logs, and database query logging on decoy records all fire before an agent can evaluate what it has.
-- **Prefer decoys that report themselves wherever they are used**, such as credentials that can only be validated by contacting infrastructure you (or a trusted provider) observe. The alert then does not depend on the adversary staying inside your network.
+- **Prefer decoys that report themselves wherever they are used**, such as credentials for services you own and operate, which can only be validated by contacting infrastructure you control. The alert then does not depend on the adversary staying inside your network.
 - **Assume some decoys will eventually be recognized.** Design so that recognition gives the adversary nothing back: the log has already been written, off-host, and cannot be changed from the decoy.
 
 ### 3.2 Uniqueness per Placement
@@ -240,7 +240,8 @@ A decoy that nobody legitimately touches has a false-positive rate near zero. Pr
 Detection is the start, not the goal. A program succeeds when the accounts and agents behind a campaign are identified and the party that can act on them (usually the model or platform provider) receives evidence it can join against its own logs. That goal shapes design decisions long before any report is written:
 
 - unique decoy values (Section 3.2) and accurate, tamper-evident time (Section 9) are what make a provider-side join possible;
-- decoy AI-provider credentials, coordinated with the issuing provider, map directly to accounts (Section 5.2);
+- decoy credentials for services you own put the full record of every use (source, timing, headers, request content, and what the caller attempted) in your own logs, without depending on anyone else's cooperation (Section 5.2);
+- provider reporting still applies on top of that record: when it contains a provider-issued identifier, or when you can give the provider a precise time window plus unique content to search for (Section 8.1);
 - reporting routes arranged in advance keep confirmed evidence from going stale (Section 8).
 
 ### 3.6 Decoys Must Be Safe
@@ -362,17 +363,24 @@ flowchart TB
 
 **Layer 2: Internal decoy systems.** Hosts, services, and internal APIs inside the real environment that no legitimate workflow uses. Any connection is high-signal. Against agent-driven intrusions, decoy *tool-facing* services are particularly valuable: agents actively look for APIs and tool servers they can call, and each call is a logged, structured record of intent.
 
-**Layer 3: Decoy credentials and secrets.** The highest-yield layer against agents, which reliably collect and try credentials. Best practice:
+**Layer 3: Decoy credentials and secrets.** The highest-yield layer against agents, which reliably collect and try credentials. The recommended mechanism is **decoy credentials for services you own and operate**: your own APIs, endpoints, storage, and internal services. You issue a credential that grants nothing real and place it where an agent would look. Because the credential belongs to your service, the only way anyone can test it is to present it to infrastructure you control. Any use, from any address, anywhere, is therefore observed with full request context: source, timing, headers, request content, and what the caller tried to do with it. Nothing depends on a third party noticing or cooperating.
 
-- one credential per placement, recorded in the ledger;
-- credentials that are *verifiable only by contacting monitored infrastructure*, so use anywhere produces an alert;
-- credentials that grant nothing real;
-- where possible, credential types issued by a provider that supports canary or honey credentials natively, so the provider's own telemetry contributes to detection.
+Design principles for self-owned decoy credentials (principles only, for the reasons in Section 3.3):
 
-Decoy AI-provider API keys deserve special mention. Swarms run on stolen AI keys (Section 2), and the issuing provider can trace a used decoy key to the caller's traffic.
+- **Indistinguishable from real credentials for that service.** Same format, structure, and issuance metadata as the credentials the service actually issues, produced by your own issuance process rather than invented (Section 5.4).
+- **Unique per placement.** One credential per placement, recorded in the ledger, so every use says where and when it was taken (Section 3.2).
+- **Plausible response, no capability.** The service answers as it plausibly would for a real credential, for example a realistic authentication failure or a sandboxed, minimal-scope response, but never grants access to real data, real actions, or any real user's resources.
+- **Log at the authentication layer, before any response.** The event is written off-host (Section 9) the moment the credential is presented, before the service decides how to answer, so later recognition changes nothing.
+- **Isolate the decoy path from real authentication.** Decoy credentials resolve through a separate path with no trust relationship to real accounts: a flaw in the decoy path cannot grant real access, and a failure in it cannot affect real logins.
+- **Rate-limit and contain.** Bound what anyone can do with a decoy credential, so the decoy cannot become a resource for abuse or a load on the real service.
+- **Do not hurt legitimate users.** Decoy handling never locks out, slows, or raises alerts on real users; decoy values never collide with real ones, and an honest mistake by a real user does not land in the decoy path.
+
+Third-party canary-credential services can supplement this, at the cost of routing the alert through someone else's infrastructure.
+
+**Decoy AI-provider keys (optional, aspirational).** Swarms run on stolen AI keys (Section 2), so decoy keys for a model provider would be attractive bait, and the issuing provider could trace a used key to the caller's account. As far as public information goes, however, major model providers do not generally offer canary or honey API-key programs to third parties. This technique requires a direct relationship with the provider and should not be assumed available. Self-owned decoy credentials deliver most of the same detection value without that dependency.
 
 > [!CAUTION]
-> **Decoy AI-provider keys.** Coordinate with the issuing provider on how to run decoy AI keys safely. Never issue real keys with real spending capacity as bait.
+> **Never plant real keys as bait.** Never issue real AI-provider keys, or any real credential with spending capacity or real access, as a decoy. An agent that finds one will use it, and you pay for, and are responsible for, whatever it does.
 
 **Layer 4: Decoy content and data.** Documents, database rows, tickets, and knowledge-base entries containing unique, recorded values. They alert on access where storage supports it, and they carry identity: if the content appears anywhere else later, the ledger says where it came from.
 
@@ -513,7 +521,7 @@ flowchart TB
 
 ### 7.1 What Still Works
 
-- **Token identity survives proxies.** A decoy credential harvested from placement X and used from any address, anywhere, still identifies placement X. Rotating infrastructure changes nothing about what was taken.
+- **Token identity survives proxies.** A decoy credential harvested from placement X and used from any address, anywhere, still identifies placement X. Rotating infrastructure changes nothing about what was taken, and when the credential is for a service you own, every attempt lands in your own authentication logs regardless of the exit it came from.
 - **Reuse graphs.** Build a graph whose nodes are decoy values, source infrastructure, and sessions, with edges for "harvested", "used", and "seen together". Values harvested at different organizations but used in the same session, or in the same short window with the same behavior, join those organizations' incidents into one campaign (Figure 8).
 - **Behavioral fingerprints.** Timing distributions, command or query sequences, error patterns, and phrasing in natural-language artifacts are properties of the agent and its configuration, not of the network path. They persist across proxy rotation.
 - **Content-level indicators.** Anything the agent writes (messages, tickets, commit text, reports it leaves behind) can be compared across sensors.
@@ -563,10 +571,10 @@ flowchart LR
 
 *Figure 9. Indicator-to-report chain: from a unique decoy value to provider action and community sharing.*
 
-Defenders usually cannot identify an agent's account themselves. Providers usually can, *if* the report gives them something to join against their own logs. The two most useful joins are:
+When a decoy credential for a service you own is used, you already hold the primary evidence: your own logs of the request, from the authentication layer onward. What defenders usually cannot do is identify the account behind the agent. Providers usually can, *if* the report gives them something to join against their own logs. The two most useful joins are:
 
-1. **Precise time plus unique content.** If an agent read or produced a unique decoy string, the provider may be able to find that string in its request or response logs within the reported time window. This is why per-placement uniqueness and accurate clocks matter so much.
-2. **Credentials and identifiers the provider issued.** Decoy AI-provider keys (coordinated with that provider), or real account, organization, or deployment identifiers the adversary leaked, map directly to accounts.
+1. **Precise time plus unique content.** If an agent read or produced a unique decoy string (including a decoy credential it then presented to your service), the provider may be able to find that string in its request or response logs within the reported time window. This is why per-placement uniqueness and accurate clocks matter so much.
+2. **Credentials and identifiers the provider issued.** Real account, organization, deployment, or API-key identifiers belonging to the provider that the adversary exposed (in requests to your services, in headers, or in content it left behind) map directly to accounts. Decoy AI-provider keys would also belong here, but only where a provider relationship supports them (Section 5.2).
 
 Other request metadata (source addresses, user agents, TLS characteristics) is useful context but weaker, because it is easily spoofed or belongs to proxies.
 
@@ -584,7 +592,7 @@ A report that a provider can act on quickly contains the fields below.
 |-------|---------|
 | **Summary** | One paragraph: what was observed, why it is believed to be AI-agent activity, and why it is believed malicious |
 | **Time window** | Start and end in UTC, with clock source and stated accuracy |
-| **Unique content** | The exact decoy strings read, used, or reproduced, and in which direction (read by the agent vs. produced by it) |
+| **Unique content** | The exact decoy strings read, used, or reproduced, and in which direction (read by the agent vs. produced by it); for decoy credentials to your own services, what the caller attempted with them |
 | **Provider-issued identifiers** | Any keys, account, organization, or deployment identifiers belonging to that provider observed in the activity |
 | **Behavioral evidence** | Timing, sequence, and natural-language artifacts supporting the AI-agent assessment |
 | **Network context** | Source infrastructure and request metadata, marked as possibly proxied or spoofed |
@@ -641,7 +649,7 @@ flowchart LR
 - **Log off-host, immediately.** Decoy events stream to a collector that the decoy can only append to. The decoy itself holds nothing of value.
 - **Tamper-evident storage.** Use append-only or write-once storage, hash chaining, or signed batches, so that any later change is detectable.
 - **Accurate time.** Synchronize all sensors to trusted time sources and record clock accuracy. Provider correlation depends on it.
-- **Capture enough, not everything.** Capture what supports detection, attribution, and reporting: the decoy touched, the action, full session content for interactive decoys, timing, and request metadata. Avoid collecting unrelated personal data.
+- **Capture enough, not everything.** Capture what supports detection, attribution, and reporting: the decoy touched, the action, full session content for interactive decoys, the full request as received at the authentication layer for decoy credentials, timing, and request metadata. Avoid collecting unrelated personal data.
 - **Chain of custody.** Record who exported what, when, and why. Evidence may end up with a provider, a regulator, or a court.
 - **Retention.** Keep raw evidence long enough for campaigns to be correlated across months, consistent with law and policy.
 - **Separate the ledger.** The placement ledger lives in a different trust domain from the telemetry, so compromising the collector does not reveal the full decoy layout.
@@ -699,9 +707,9 @@ flowchart LR
 
 | Level | Typical owner | Minimum capabilities |
 |-------|---------------|----------------------|
-| **1: Foundational** | Small organization | Per-placement decoy credentials and documents on the highest-value paths; alerts routed to someone who responds; written escalation contact for providers |
+| **1: Foundational** | Small organization | Per-placement decoy credentials for services you own, and decoy documents, on the highest-value paths; alerts routed to someone who responds; written escalation contact for providers |
 | **2: Managed** | Enterprise security team | Placement ledger; decoys at layers 2-4; off-host tamper-evident logging; reporting package; periodic realism review |
-| **3: Shared** | Enterprise in a sharing community | Machine-readable sharing; standing provider reporting relationships; cross-organization correlation; decoy AI-provider keys coordinated with providers |
+| **3: Shared** | Enterprise in a sharing community | Machine-readable sharing; standing provider reporting relationships; cross-organization correlation; optionally, decoy AI-provider keys where a provider relationship supports them |
 | **4: National or sector** | CERT, ISAC, or national agency | Distributed perimeter sensor networks; campaign graphing across many members; coordinated provider and law-enforcement engagement; guidance back to members |
 
 ### 11.2 Deployment Playbook
@@ -771,6 +779,7 @@ Your own contained agents make useful realism reviewers. Run them under the cont
 | A ledger stored where an intruder could read it | Every remaining decoy is exposed | Sections 3.2, 9 |
 | Alerts that go to an unmonitored mailbox | Detection with no response | Section 11.1 |
 | No pre-arranged route to report to providers | Confirmed evidence goes stale | Section 8 |
+| Decoy credentials validated by the real authentication path | A decoy can grant real access, or decoy handling can affect real users | Section 5.2 |
 
 ---
 
@@ -794,6 +803,7 @@ Your own contained agents make useful realism reviewers. Run them under the cont
 - [ ] Recorded in the ledger with location, time, and context
 - [ ] Read and use paths instrumented
 - [ ] Grants no real capability
+- [ ] Credentials: validated only on an isolated decoy path you control, logged before any response
 - [ ] Not reachable by routine legitimate tooling (or explicitly allowlisted)
 - [ ] Triggered end to end in testing
 
@@ -818,7 +828,7 @@ Your own contained agents make useful realism reviewers. Run them under the cont
 6. OpenAI, *Disrupting malicious uses of AI*, October 2025.
 7. Google Threat Intelligence Group, *AI Threat Tracker*, November 2025.
 8. Google Threat Intelligence Group, threat report, September 2026.
-9. GreyNoise Intelligence, PaperCut exploitation campaign analysis, 31 August 2026.
+9. GreyNoise Intelligence, *Agents Gone Wild: An AI-Orchestrated Global Campaign Against PaperCut NG/MF*, 9 September 2026 (campaign began 31 August 2026). https://www.greynoise.io/blog/ai-orchestrated-campaign-against-papercut-ng-mf
 10. UK National Cyber Security Centre, cyber deception definitions (August 2024) and trial findings (December 2025).
 11. MITRE ATT&CK, campaign C0062. https://attack.mitre.org/
 12. MITRE Engage, adversary engagement framework. https://engage.mitre.org/
@@ -839,6 +849,7 @@ Your own contained agents make useful realism reviewers. Run them under the cont
 | Version | Date | Changes |
 |---------|------|---------|
 | 1.0 | September 2026 | Initial release |
+| 1.1 | September 2026 | Decoy credentials for services the operator owns and operates are now the primary Layer 3 mechanism, with principle-level design guidance (Section 5.2); decoy AI-provider keys demoted to an optional item that requires a provider relationship; provider-reporting guidance, joins, reporting package, telemetry capture, maturity model, failure modes, and checklists updated to match |
 
 ---
 

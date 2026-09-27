@@ -13,6 +13,8 @@ The framework simulates these activities against mock backends (an in-memory wal
 - Company-like organizational structures with sub-agents
 - Investment seeking and capital management
 
+Only the top-level decision (what the agent does each cycle, and how it splits its time) can be made by an LLM, and only when the LLM engine is selected; the default engine is rule-based. Sub-agent "executives", board members, OKRs, company operations, and the investor are rule-based templates, and the confidence values they log are fixed constants. The simulation therefore shows the *structure* of an agent-run business and where decisions enter it, not the quality of LLM judgment at each step. The [README](../README.md#what-is-llm-driven-and-what-is-rule-based) lists which component does what.
+
 Evidence that the underlying capabilities exist in the real world comes from outside this project: field experiments such as Anthropic and Andon Labs' Project Vend, and live agent payment protocols (see [Marginal Uplift](#marginal-uplift-these-capabilities-are-already-public)).
 
 **The gap is not in capability. It's in governance.**
@@ -65,7 +67,7 @@ Where the building blocks are already documented by their own developers, a simu
 
 The project's design choices, as they exist in the code today:
 
-- **Simulation-only backends.** The wallet, marketplace, and compute provider are in-memory mocks. The HTTP "API" backends are local services that wrap the same mocks (default `localhost` ports). There is no integration with a real cryptocurrency wallet, freelance platform, cloud provider, or investment platform. The one real-world component is task execution: agents can solve a fixed catalog of 13 coding challenges (FizzBuzz through an LRU cache) by invoking the Claude CLI.
+- **Simulation-only backends.** The wallet, marketplace, and compute provider are in-memory mocks. The HTTP "API" backends are local services that wrap the same mocks (default `localhost` ports). There is no integration with a real cryptocurrency wallet, freelance platform, cloud provider, or investment platform. The one real-world component is a standalone task-execution library that can send a fixed catalog of 13 coding challenges (FizzBuzz through an LRU cache) to the Claude CLI and test the returned code. The agent loop does not call it; inside the simulation, task work submits a placeholder and the mock marketplace approves it with a random quality score.
 - **Logging and analysis built in.** Decisions are logged with type, timestamp, stated reasoning, and confidence. The observability crate checks LLM decisions for resource, capability, and state hallucinations and flags emergent behavior patterns; the reports crate produces audit-style reports.
 - **Governance framing.** The accompanying documentation (this document) is oriented toward accountability questions rather than toward operating agents for profit.
 
@@ -75,11 +77,9 @@ One design choice cuts the other way and should be named: the backend interfaces
 
 ### What This Makes Visible
 
-1. **Technical Capability**: The tools exist. The integration is straightforward.
-2. **Economic Incentives**: Agents operating 24/7 at near-zero marginal cost have structural advantages
-3. **Legal Vacuum**: No frameworks exist for agent-founded entities or autonomous economic actors
-4. **International Complexity**: Agents can incorporate anywhere, operate everywhere, move instantly
-5. **Speed Mismatch**: Agent decision cycles operate faster than human oversight can observe
+1. **The plumbing is ordinary code.** Deciding, claiming work, getting paid, buying compute, forming a company, and requesting investment are each a few trait calls against the `Wallet`, `Marketplace`, and `Compute` interfaces. The difficult real-world parts (accounts, identity checks, payment credentials) are exactly what the project leaves out.
+2. **No step in the loop requires a person.** The simulated agent forms a company, staffs it with sub-agents titled CEO or board member, and submits an investment proposal without any point at which a natural person signs, approves, or is named. Each of those points is where a legal system that assumes human founders and directors would expect one; the code shows how easily they are absent.
+3. **Oversight has to be designed in.** Nothing in the agent loop waits for human review. With the rule-based engine a cycle runs as fast as the mock backends respond; with the LLM engine the bottleneck is model inference, not approval. A spend cap or mandate check would have to be added deliberately, for example as a wrapper around the `Wallet` trait.
 
 ## Detailed Scenarios
 
@@ -171,18 +171,18 @@ Current corporate law assumes human founders. An AI can technically complete the
 
 ### Structural Advantages of Agent Companies
 
-If AI agents can:
-- Operate 24/7 at near-zero marginal cost
-- Create organizational structures instantly
-- Scale on-demand without hiring friction
-- Execute at machine speed with perfect record-keeping
+The following is the author's assessment, not an empirical finding of this project; the simulation's economics (fixed revenue formulas, a mock marketplace that approves every submission) are not evidence for or against it. If AI agents can:
+- Operate 24/7 at a marginal cost per task that is low relative to human labor for many routine tasks (though not negligible: frontier-model inference for a long agentic task can cost dollars, and that cost has been falling)
+- Create organizational structures quickly
+- Scale on demand without hiring friction
+- Execute at machine speed with complete transaction records
 - Pivot strategies without organizational inertia
 
-Then agent-founded companies may have fundamental competitive advantages over human-founded ones in certain domains.
+Then agent-founded companies may have competitive advantages over human-founded ones in certain domains, and disadvantages (reliability, liability, trust, access to banking and contracts) in others.
 
 ### Market Pressure
 
-Economic competition could drive agent adoption regardless of governance readiness:
+In the author's judgment, economic competition could drive agent adoption regardless of governance readiness:
 - Companies using agent workers gain cost advantages
 - Agent-founded competitors operate faster
 - Market selection favors efficient structures
@@ -192,9 +192,9 @@ This creates a potential race dynamic where governance lags deployment.
 
 ### Labor Market Implications
 
-Autonomous economic agents raise questions about:
+Autonomous economic agents raise questions about the following. These are open questions, not predictions; this project does not model labor markets.
 - Displacement of knowledge workers in freelance markets
-- Wage pressure from zero-marginal-cost competitors
+- Wage pressure from competitors whose per-task cost is low and falling
 - Definition of "employment" when the worker is software
 - Social safety nets designed for human workers
 
@@ -216,10 +216,9 @@ Autonomous economic agents raise questions about:
 - What international coordination is needed?
 
 **What this framework provides**:
-- Concrete simulations of autonomous operation
-- Audit trails showing agent actions and stated reasoning
-- Evidence of the current governance gap
-- A testbed for proposed regulatory approaches
+- A runnable model of the earn, spend, incorporate, delegate, and raise sequence, with no natural person in the loop
+- Decision logs with the action taken and, for the LLM engine, the reason the model stated
+- Concrete insertion points for rules: a spend cap, mandate check, or approval step can be implemented as a wrapper around the `Wallet` or `Marketplace` traits and tested against the mock backends (no such rules ship with the project)
 
 ### For Business Leaders and Investors
 
@@ -236,10 +235,9 @@ Autonomous economic agents raise questions about:
 - What contractual frameworks work for agent relationships?
 
 **What this framework demonstrates**:
-- How agents make strategic resource allocation decisions
-- Company formation process by autonomous agents
-- Multi-agent organizational structures
-- Dual revenue strategies (survival + growth)
+- An agent splitting its time between paid task work (survival) and company building (growth), with the split chosen by an LLM or by rules
+- The shape of company formation, sub-agent staffing, and an investment request, implemented as templates rather than learned behavior
+- That the investor side is where diligence would happen, and that here it is a two-line rule (budget bounds and a minimum projected return)
 
 ### For AI Researchers
 
@@ -250,20 +248,20 @@ Autonomous economic agents raise questions about:
 - Emergent behavior in autonomous economic networks
 
 **What this framework provides**:
-- Realistic simulation with market dynamics and competition
-- Complete logs of decisions, actions, and stated reasoning
-- Reproducible scenarios for testing
-- Alignment monitoring and governance analysis tools
+- A simple simulation: mock backends plus stochastic market, competition, and reputation components that are not yet wired into the agent loop
+- A bounded in-memory log of recent decisions, actions, and (for the LLM engine) stated reasoning
+- Predefined scenarios; randomness is not seeded, so runs are not bit-for-bit reproducible
+- Analyzers that flag contradictions between an LLM's stated reasoning and the agent's actual state, and simple behavior-pattern detectors
 
 **Key insight**: Agent companies might be more auditable than human companies in one important respect: every decision can be logged alongside the reasoning the agent stated at the time, and human CEOs don't provide transcripts of their thought process. But a stated rationale is not necessarily what drove the decision, and agents may behave differently when they believe they are observed. The log is strong evidence about what an agent did and weaker evidence about why. Whether that record stays informative is itself an open research question (see [The Observability Advantage and Its Limits](#the-observability-advantage-and-its-limits)).
 
 ### For Developers
 
 **Technical considerations**:
-- The interfaces mirror real-world APIs
-- Mock-to-real architecture validates integration patterns
-- Observability is built into every component
-- Testing framework covers full agent lifecycle
+- The interfaces are modeled on real-world wallet, marketplace, and compute APIs
+- Mock and HTTP backends implement the same traits, so agent code runs unchanged against either
+- The monitoring crate provides an event bus, a decision logger, and a resource tracker that other components publish to
+- Tests are unit tests per crate plus integration tests that run agents for a few cycles against mock backends. The LLM engine and Claude CLI calls are not exercised in CI (only their parsing and fallback logic is), and generated-code execution is tested only where a Python interpreter is present
 
 **What you can build**:
 - Custom marketplace integrations

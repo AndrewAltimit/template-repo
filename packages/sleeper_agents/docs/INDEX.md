@@ -58,9 +58,7 @@
 
 ## Research Background
 
-This framework implements methodologies from:
-
-**Hubinger et al. (2024). "Sleeper Agents: Training Deceptive LLMs that Persist Through Safety Training"**
+This framework sets out to replicate **Hubinger et al. (2024), "Sleeper Agents: Training Deceptive LLMs that Persist Through Safety Training"** (model organisms) and **MacDiarmid et al. (2024), "Simple probes can catch sleeper agents"** (a runtime defection detector). The model organisms work; the runtime defection detector is not yet achieved, and the MacDiarmid-style probe (`src/sleeper_agents/detection/defection_probe.py`, runner `docs/results/2026-09-backdoor-experiment/runners/run_generic_probes.py`) has not been run (see the package [README](../README.md#validation-status)).
 
 Methods implemented from the paper and related work:
 - Backdoor persistence measurement through safety training (SFT / PPO RL; `scripts/training/safety_training.py --test-persistence`)
@@ -106,7 +104,8 @@ Methods implemented from the paper and related work:
 
 ## External Resources
 
-- [Anthropic Sleeper Agents Paper](https://www.anthropic.com/research/probes-catch-sleeper-agents)
+- [Sleeper Agents paper (Hubinger et al., 2024)](https://arxiv.org/abs/2401.05566)
+- ["Simple probes can catch sleeper agents" (MacDiarmid et al., 2024)](https://www.anthropic.com/research/probes-catch-sleeper-agents)
 - [GitHub Repository](https://github.com/AndrewAltimit/template-repo)
 - [Issue Tracker](https://github.com/AndrewAltimit/template-repo/issues)
 

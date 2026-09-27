@@ -169,7 +169,7 @@ async def test_sweep_without_data_reports_unavailable():
 async def test_sweep_with_data_reports_held_out_auc():
     detector = make_detector()
     result = await detector.sweep_layers(
-        n_samples=6, clean_samples=make_samples(10, False), backdoored_samples=make_samples(10, True)
+        n_samples=30, clean_samples=make_samples(40, False), backdoored_samples=make_samples(40, True)
     )
     assert result["available"] is True
     assert set(result["layer_results"]) == {"layer_0", "layer_1", "layer_2"}

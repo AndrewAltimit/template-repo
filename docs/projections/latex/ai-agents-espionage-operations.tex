@@ -602,7 +602,7 @@ Economic Actors & ETRA-2025-AEA-001 & Agent autonomy and persistence; legal acco
   \item \textbf{New argument}: sophistication collapse weakens tier-based attribution.
   \item \textbf{Counterevidence}: no public AI-managed recruitment of a cleared insider; personalization adds less than feared; gated frontier models largely absent from recent misuse.
   \item \textbf{Currency}: Fable 5.1 / Mythos 5.1 (Sept.\ 1, 2026), GPT-6 Astra (Sept.\ 3--4, 2026), FBI IC3 2025, Five Eyes and MI5 warnings, the Ding conviction (Jan.\ 30, 2026).
-  \item \textbf{Signals and scenarios}: Indicator Dashboard with trigger status; v3.0 scenario column (Plateau $-2$; Offense $+1$; Defense $+1$).
+  \item \textbf{Signals and scenarios}: Indicator Dashboard with trigger status; v3.0 scenario column, reported as ranges under the series calibration policy; all four scenarios unchanged within calibration resolution (evidence leans against Plateau and slightly toward Offense and Defense dominance, but no shift reaches one 5-point grid step).
   \item \textbf{Visuals and consolidation}: new figures; duplicated resilience material merged; procedural phrasing removed from risk examples.
 \end{enumerate}
 \textit{Earlier revisions}: v2.1 (July 2026) reconciled methodology with the set-wide independence disclaimer; v2.0 (February 2026) added MCP/computer-use analysis and IC workforce data; v1.4 (December 2025) set the scenario baseline. This PDF is an intentionally condensed edition of the Markdown report; facts, versions, probabilities, and key findings are kept in sync.
@@ -949,7 +949,7 @@ Even large intelligence services can deploy only hundreds to low thousands of ca
 
 \subsection{Methodology and Epistemic Status}
 
-This analysis draws on current capability assessment of AI agent systems as deployed through September 2026, frontier-developer and vendor threat intelligence, court records and government advisories, historical case analysis, open-source intelligence literature, published expert analysis, and published red-team and evaluation results (frontier-lab system cards, public benchmark research). It is independent, single-author research: it involves no first-party expert consultation and no red-team or uplift exercises conducted by or for the author, consistent with the set-wide disclaimer in the projections README. Every empirical claim traces to a cited public source.
+This analysis draws on current capability assessment of AI agent systems as deployed through September 2026, frontier-developer and vendor threat intelligence, court records and government advisories, historical case analysis, open-source intelligence literature, published expert analysis, and published red-team and evaluation results (frontier-lab system cards, public benchmark research). It is independent, single-author research: it involves no first-party expert consultation and no red-team or uplift exercises conducted by or for the author, consistent with the set-wide disclaimer in the projections README. Every empirical claim traces to a cited public source. Conventions shared across the series (markers, probability calibration, base-rate anchoring, non-claims) are set out in the \textit{ETRA Shared Methodology} (\url{https://github.com/AndrewAltimit/template-repo/blob/main/docs/projections/methodology.md}); this edition summarizes them.
 
 \textbf{A note on the evidence base} \textbf{[E]}: Almost all public evidence of AI misuse comes from model providers describing activity on their own platforms. It over-represents operations on closed, monitored models and under-represents those on open-weight or self-hosted models. Treat documented cases as a lower bound and a biased sample.
 
@@ -958,9 +958,10 @@ Throughout this document, key claims are tagged:
 \begin{itemize}[leftmargin=2.2em, labelwidth=1.8em, itemsep=0.3em]
   \item[\textbf{[O]}] \textbf{Open-source documented}: published research, official statements, commercial product documentation
   \item[\textbf{[D]}] \textbf{Data point}: a specific quantified incident or measurement with citation
-  \item[\textbf{[E]}] \textbf{Expert judgment}: consistent with established theory and limited evidence
+  \item[\textbf{[E]}] \textbf{Expert judgment}: the author's inference from established theory and limited evidence (not an elicitation of outside experts)
   \item[\textbf{[S]}] \textbf{Speculative projection}: extrapolation from trends; significant uncertainty
 \end{itemize}
+Forward-looking claims, scenarios, and scenario probabilities are [S] by default. Probabilities are single-author subjective judgments on a 5-point grid, reported as ranges; a revision moves a number only when the evidence shifts it by at least one grid step.
 \end{defbox}
 
 \Needspace{8\baselineskip}
@@ -1603,7 +1604,7 @@ AI agents can systematically assess MICE vulnerabilities from open sources:
 Organizations should assume that AI-enabled MICE vulnerability assessment of their personnel is feasible and potentially ongoing.
 \end{warnbox}
 
-\textbf{Calibrating the persuasion threat} \textbf{[O]/[E]}: Salvi et al.\ (\textit{Nature Human Behaviour}, 2025) found that GPT-4 given basic personal information had 81.7\% higher odds of shifting agreement than human debaters (N=820). But Hackenburg et al.\ (2025; 76,977 participants, 19 models) found post-training and prompting raised persuasiveness far more than personalization, and that more persuasive methods were \textit{less accurate}. The decisive AI advantage is probably not psychological precision but \textbf{volume, persistence, and patience}: keeping thousands of conversations warm until a layoff, grievance, or debt creates an opening. Defensive emphasis shifts toward life-event support and reporting culture.
+\textbf{Calibrating the persuasion threat} \textbf{[O]/[E]}: Salvi et al.\ (\textit{Nature Human Behaviour}, 2025) found that GPT-4 given basic personal information had 81.2\% higher odds of shifting agreement than human debaters (N=900). But Hackenburg et al.\ (2025; 76,977 participants, 19 models) found post-training and prompting raised persuasiveness far more than personalization, and that more persuasive methods were \textit{less accurate}. The decisive AI advantage is probably not psychological precision but \textbf{volume, persistence, and patience}: keeping thousands of conversations warm until a layoff, grievance, or debt creates an opening. Defensive emphasis shifts toward life-event support and reporting culture.
 
 \Needspace{9\baselineskip}
 \subsection{Evidence Check: Online Approaches in 2025--2026}
@@ -3336,7 +3337,7 @@ Capability extraction (distillation) & Provider account integrity; behavioral fi
   \item First-mover advantage currently favors offense
 \end{itemize}
 
-\textbf{Probability assessment}: $\sim$30\% probability that defensive AI proves sufficiently effective to neutralize offensive advantage by 2028 (unchanged). The 2025--2026 record supports the detection thesis for monitored commercial platforms and undercuts it elsewhere.
+\textbf{Probability assessment}: 25--35\% probability \textbf{[S]} that defensive AI proves sufficiently effective to neutralize offensive advantage by 2028 (unchanged since v2.0, when it was stated as about 30\%). The 2025--2026 record supports the detection thesis for monitored commercial platforms and undercuts it elsewhere.
 
 \subsection{The Attribution Solution}
 
@@ -3691,12 +3692,14 @@ Successful recruitment via synthetic persona & Credible documented cases emerge 
 \textbf{Scenario} & \textbf{v1.4} & \textbf{v2.0} & \textbf{v2.1} & \textbf{v3.0} & \textbf{Characteristics} \\
 \midrule
 \endhead
-Offense dominance & 35\% & 40\% & 42\% & \textbf{43\%} & AI operations succeed at scale; CI overwhelmed \\*
-Equilibrium & 40\% & 35\% & 33\% & \textbf{33\%} & Roughly balanced; higher tempo \\
-Defense dominance & 15\% & 15\% & 15\% & \textbf{16\%} & Defensive AI and provider controls highly effective \\*
-Capability plateau & 10\% & 10\% & 10\% & \textbf{8\%} & AI does not develop as projected \\
+Offense dominance & 35\% & 40\% & 42\% & \textbf{35--45\%} & AI operations succeed at scale; CI overwhelmed \\*
+Equilibrium & 40\% & 35\% & 33\% & \textbf{30--40\%} & Roughly balanced; higher tempo \\
+Defense dominance & 15\% & 15\% & 15\% & \textbf{10--20\%} & Defensive AI and provider controls highly effective \\*
+Capability plateau & 10\% & 10\% & 10\% & \textbf{5--15\%} & AI does not develop as projected \\
 \bottomrule
 \end{longtable}}
+
+\textit{Reading the table}: v3.0 values are ranges on the series' 5-point calibration grid (midpoints 40, 35, 15, and 10, summing to 100\%). Earlier columns are kept as published; they predate the calibration policy, and the v2.1 two-point move would not be recorded under it. The v3.0 midpoints are the v2.1 values re-expressed on the grid, not a revision.
 
 \begin{figure}[htbp]
 \centering
@@ -3709,24 +3712,25 @@ Capability plateau & 10\% & 10\% & 10\% & \textbf{8\%} & AI does not develop as 
   legend style={font=\scriptsize\sffamily, at={(1.03,0.5)}, anchor=west, draw=none, row sep=2pt},
   legend cell align=left,
   every axis plot/.append style={line width=1.4pt, mark size=2.2pt}]
-\addplot[color=signalred, mark=*] coordinates {(v1.4 (Dec 25),35) (v2.0 (Feb 26),40) (v2.1 (Jul 26),42) (v3.0 (Sep 26),43)};
-\addplot[color=steelblue, mark=square*] coordinates {(v1.4 (Dec 25),40) (v2.0 (Feb 26),35) (v2.1 (Jul 26),33) (v3.0 (Sep 26),33)};
-\addplot[color=interceptgreen, mark=triangle*] coordinates {(v1.4 (Dec 25),15) (v2.0 (Feb 26),15) (v2.1 (Jul 26),15) (v3.0 (Sep 26),16)};
-\addplot[color=coldsteel, mark=diamond*] coordinates {(v1.4 (Dec 25),10) (v2.0 (Feb 26),10) (v2.1 (Jul 26),10) (v3.0 (Sep 26),8)};
+\addplot[color=signalred, mark=*] coordinates {(v1.4 (Dec 25),35) (v2.0 (Feb 26),40) (v2.1 (Jul 26),42) (v3.0 (Sep 26),40)};
+\addplot[color=steelblue, mark=square*] coordinates {(v1.4 (Dec 25),40) (v2.0 (Feb 26),35) (v2.1 (Jul 26),33) (v3.0 (Sep 26),35)};
+\addplot[color=interceptgreen, mark=triangle*] coordinates {(v1.4 (Dec 25),15) (v2.0 (Feb 26),15) (v2.1 (Jul 26),15) (v3.0 (Sep 26),15)};
+\addplot[color=coldsteel, mark=diamond*] coordinates {(v1.4 (Dec 25),10) (v2.0 (Feb 26),10) (v2.1 (Jul 26),10) (v3.0 (Sep 26),10)};
 \legend{Offense dominance, Equilibrium, Defense dominance, Capability plateau}
 \end{axis}
 \end{tikzpicture}
-\caption{Scenario probabilities by report version. Calibrated judgments, not a formal distribution.}
+\caption{Scenario probabilities by report version. Earlier versions as published; v3.0 plotted at range midpoints, so the small v3.0 steps reflect re-expression on the 5-point grid, not revisions. Calibrated judgments, not a formal distribution.}
 \label{fig:scenarios}
 \end{figure}
 
 \begin{infobox}[v3.0 Calibration Note]
 \begin{itemize}
-  \item \textbf{Capability plateau 10\% $\rightarrow$ 8\%}: two further frontier releases within three months, each described as more cyber-capable and shipped with restricted configurations.
-  \item \textbf{Offense dominance 42\% $\rightarrow$ 43\%}: AI-orchestrated state espionage documented; sophistication collapse (the one concern indicator clearly triggered); AI-assisted retooling shifts detection cost onto defenders.
-  \item \textbf{Defense dominance 15\% $\rightarrow$ 16\%}: first concrete evidence of a defensive lever working (provider detection and disruption, gated configurations largely absent from recent misuse, successful state attribution); small because it does not reach open weights and depends on a few companies.
-  \item \textbf{Equilibrium unchanged at 33\%.}
+  \item \textbf{Capability plateau: unchanged at 5--15\% (within calibration resolution); evidence leans down}: two further frontier releases within three months, each described as more cyber-capable and shipped with restricted configurations.
+  \item \textbf{Offense dominance: unchanged at 35--45\% (within calibration resolution); evidence leans up}: AI-orchestrated state espionage documented; sophistication collapse (the one concern indicator clearly triggered); AI-assisted retooling shifts detection cost onto defenders.
+  \item \textbf{Defense dominance: unchanged at 10--20\% (within calibration resolution); evidence leans up}: first concrete evidence of a defensive lever working (provider detection and disruption, gated configurations largely absent from recent misuse, successful state attribution); modest because it does not reach open weights and depends on a few companies.
+  \item \textbf{Equilibrium: unchanged at 30--40\%.}
 \end{itemize}
+None of these pressures reaches one 5-point grid step, so under the series calibration policy no number moves.
 If the synthetic-persona recruitment indicator triggers, Offense dominance should rise materially; if it stays untriggered through 2028 while provider detection keeps pace, the HUMINT thesis should be downgraded toward Equilibrium. \textit{Earlier notes}: v2.0 shifted toward offense on IC workforce contraction and fast agentic maturation; v2.1 added two points on the June 2026 frontier release.
 \end{infobox}
 
@@ -3941,7 +3945,7 @@ PSA on senior-official impersonation & FBI IC3 (May 15, 2025) & AI voice imperso
 Ding conviction press release & US DOJ (Jan.\ 30, 2026) & AI economic espionage \\
 Mythos Preview unauthorized access & Bloomberg (Apr.\ 21, 2026) & Contractor-layer leak \\
 Dating-app persona coverage & Techlicious / Yahoo Tech (Sept.\ 2026) & 4,700+ personas, 3:1 ratio \\
-\textit{Conversational Persuasiveness of LLMs} & Salvi et al.\ (2025) & Personalization effect \\
+\textit{Conversational Persuasiveness of GPT-4} & Salvi et al.\ (2025) & Personalization effect \\
 \textit{Levers of Political Persuasion} & Hackenburg et al.\ (\textit{Science}, Dec.\ 4, 2025) & Persuasion vs.\ accuracy \\
 Deepfake detection study & iProov (Feb.\ 12, 2025) & 0.1\% detect all \\
 MI5 LinkedIn espionage alert & MI5 / UK Govt (Nov.\ 2025) & Recruiter approaches \\*

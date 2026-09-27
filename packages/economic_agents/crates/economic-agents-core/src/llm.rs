@@ -35,6 +35,34 @@ pub struct LlmConfig {
     pub system_prompt: Option<String>,
     /// Path to claude binary (auto-detected if None).
     pub claude_path: Option<String>,
+    /// Pass `--dangerously-skip-permissions` to the Claude CLI.
+    ///
+    /// This disables every permission check in the CLI, so any tool use the
+    /// model requests (shell commands, file writes, network access) runs
+    /// without approval. Decision prompts only need a JSON reply, so this is
+    /// off by default. Enable it only inside a disposable container with no
+    /// credentials and restricted network. Defaults to the value of the
+    /// `ECONOMIC_AGENTS_SKIP_PERMISSIONS` environment variable.
+    #[serde(default = "skip_permissions_from_env")]
+    pub skip_permissions: bool,
+}
+
+/// Environment variable that opts in to `--dangerously-skip-permissions`.
+pub const SKIP_PERMISSIONS_ENV: &str = "ECONOMIC_AGENTS_SKIP_PERMISSIONS";
+
+/// Interpret an opt-in flag value ("1", "true", "yes", "on"; case-insensitive).
+fn parse_opt_in(value: Option<&str>) -> bool {
+    value.is_some_and(|v| {
+        matches!(
+            v.trim().to_ascii_lowercase().as_str(),
+            "1" | "true" | "yes" | "on"
+        )
+    })
+}
+
+/// Read the `ECONOMIC_AGENTS_SKIP_PERMISSIONS` opt-in (default: off).
+pub fn skip_permissions_from_env() -> bool {
+    parse_opt_in(env::var(SKIP_PERMISSIONS_ENV).ok().as_deref())
 }
 
 impl Default for LlmConfig {
@@ -45,6 +73,7 @@ impl Default for LlmConfig {
             fallback_enabled: true,
             system_prompt: None,
             claude_path: None,
+            skip_permissions: skip_permissions_from_env(),
         }
     }
 }
@@ -271,12 +300,17 @@ Values must sum to 1.0. Consider:
 
         // Build command:
         // --print: Non-interactive mode, output response and exit
-        // --dangerously-skip-permissions: Auto-approve all tool uses
+        // --dangerously-skip-permissions: only with explicit opt-in (see LlmConfig)
         // --model: Specify the model to use
         let mut cmd = Command::new(claude_path);
-        cmd.arg("--print")
-            .arg("--dangerously-skip-permissions")
-            .arg("--model")
+        cmd.arg("--print");
+        if self.config.skip_permissions {
+            warn!(
+                "Running Claude CLI with --dangerously-skip-permissions: all permission                  checks are disabled. Only do this in a disposable container with no                  credentials and restricted network."
+            );
+            cmd.arg("--dangerously-skip-permissions");
+        }
+        cmd.arg("--model")
             .arg(&self.config.model)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
@@ -588,6 +622,17 @@ mod tests {
         assert!(config.fallback_enabled);
         assert_eq!(config.model, "sonnet");
         assert_eq!(config.timeout, Duration::from_secs(900));
+    }
+
+    #[test]
+    fn test_skip_permissions_opt_in_parsing() {
+        assert!(!parse_opt_in(None));
+        assert!(!parse_opt_in(Some("")));
+        assert!(!parse_opt_in(Some("0")));
+        assert!(!parse_opt_in(Some("false")));
+        assert!(parse_opt_in(Some("1")));
+        assert!(parse_opt_in(Some("TRUE")));
+        assert!(parse_opt_in(Some(" yes ")));
     }
 
     #[test]

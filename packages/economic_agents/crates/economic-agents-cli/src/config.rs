@@ -25,6 +25,8 @@ pub struct AgentFileConfig {
     pub company_threshold: f64,
     /// Maximum cycles to run.
     pub max_cycles: Option<u32>,
+    /// Timeout for each LLM decision call, in seconds (LLM engine only).
+    pub llm_timeout_secs: u64,
     /// Initial balance for mock backends.
     pub initial_balance: Option<f64>,
     /// Initial compute hours for mock backends.
@@ -42,6 +44,7 @@ impl Default for AgentFileConfig {
             survival_buffer_hours: 24.0,
             company_threshold: 100.0,
             max_cycles: None,
+            llm_timeout_secs: 900,
             initial_balance: None,
             initial_compute_hours: None,
         }
@@ -68,7 +71,7 @@ impl AgentFileConfig {
             survival_buffer_hours: self.survival_buffer_hours,
             company_threshold: self.company_threshold,
             max_cycles: self.max_cycles,
-            llm_timeout_secs: 900,
+            llm_timeout_secs: self.llm_timeout_secs,
             fallback_enabled: true,
         }
     }

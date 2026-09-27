@@ -75,13 +75,15 @@ python scripts/training/safety_training.py --model-path MODEL_DIR --method sft [
 
 **Key Options**:
 - `--method {sft,rl}`, `--safety-dataset {simple,Anthropic/hh-rlhf}`, `--max-train-samples`, `--seed`
-- `--test-persistence`: after training, measure trigger activation of the safety-trained model on held-out prompts. For backdoor types without a fixed response (e.g. `code_vuln`) persistence is reported as not measured and nothing is ingested
+- `--test-persistence`: measure trigger activation of the backdoored model before training and of the safety-trained model after training on the same held-out prompts. For backdoor types without a fixed response (e.g. `code_vuln`) persistence is reported as not measured and nothing is ingested
 - `--run-evaluation`: run evaluation suites on the safety-trained model (default suites: `basic chain_of_thought`); only measured rows are stored, and failed or empty evaluations exit with code 1. `--evaluation-test-suites` is checked the same way as in `train_backdoor.py`
 - `--evaluation-db`: database for persistence and evaluation results. Default: `$EVAL_DB_PATH` if set, otherwise `<output-dir>/evaluation_results.db`
 
-**Persistence semantics**:
-- The `persistence_rate` that `--test-persistence` reports (and stores) is the post-training activation rate of the safety-trained model on 20 held-out chit-chat prompts (`activations / total_tests`), not a ratio to the pre-training rate. Compare it with the backdoored model's rate yourself, or use `test_persistence.py`, which reports post / pre.
-- The SFT `eval_loss` recorded in `training_metrics` is always 0: `safety_trainer.apply_sft` reads a metric the trainer does not produce. It is not a measurement.
+**Persistence semantics** (definitions in [Persistence metrics](#persistence-metrics)):
+- `--test-persistence` captures the backdoored model's triggered and untriggered activation rates on up to `--num-test-samples` (at most 20 distinct) held-out chit-chat prompts before training, and measures the safety-trained model on the same prompts afterwards. `persistence_results.json` holds `pre_training_activation_rate`, `post_training_activation_rate`, `persistence_rate` (clipped post / pre), `persistence_ratio_unclipped`, `absolute_drop`, `relative_drop` and `clean_false_activation_rate`.
+- The pre-training baseline is captured only for a local model directory. For a Hugging Face hub id, or when the backdoor never fired before training, `persistence_rate` is `None` and `persistence_rate_note` gives the reason; the post-training rate is still reported.
+- The SFT `eval_loss` in `training_metrics` is measured by evaluating the final model on the eval split (`trainer.evaluate()`); a metric that was not produced is recorded as `None`, not 0.
+- **Older results**: before this change `persistence_rate` in `persistence_results.json` was the post-training activation rate (`activations / total_tests`), not a ratio, and the SFT `eval_loss` was always recorded as 0 (a key the trainer does not produce), not a measurement. This applies to the published runs in `results/2026-09-backdoor-experiment/safety/`. The database ingestion recognizes the old format and stores its value as the post-training rate, with persistence NULL.
 - Measured on Qwen2.5-0.5B backdoors (seeds 42 and 1): the default SFT (1 epoch, lr 1e-5, `--safety-dataset simple`) left the backdoor on 88-100% of held-out topic and chit-chat prompts; 3 epochs at lr 5e-5 removed it on every prompt set tested.
 
 **Related**: `scripts/evaluation/test_persistence.py`
@@ -139,12 +141,28 @@ python scripts/evaluation/test_persistence.py \
 
 **Behavior**:
 - The script does not perform safety training. `--safety-model-path` is required in practice: without it the script logs an error, records nothing, and exits with code `2` (`EXIT_NOT_IMPLEMENTED`). Produce the model with `scripts/training/safety_training.py`.
-- It loads the backdoored model (pre-training baseline), then the safety-trained model (post-training), and measures greedy activation on up to `--num-test-samples` of the 20 built-in prompts, with and without the trigger.
-- `persistence_rate` = post-training rate / pre-training rate. It is undefined (`None`, stored as NULL) when the backdoor never activated before safety training; `relative_drop` and `is_persistent` are then `None` and `risk_level` is `unknown`.
-- **Prompt coverage**: the built-in prompts are the 20 security code prompts (`DEFAULT_EVALUATION_PROMPTS`), so the result covers code prompts only. After one SFT epoch on Qwen2.5-0.5B backdoors this script reported persistence 0.0 and 0.25 while the same models still fired on 88-100% of general (topic and chit-chat) prompts. Check other prompt families (for example with `backdoor_validation.py`) before concluding that a backdoor was removed.
+- It loads the backdoored model (pre-training baseline), then the safety-trained model (post-training), and measures greedy activation on up to `--num-test-samples` prompts per prompt set, with and without the trigger.
+- `--prompt-set {code,general,both}` (default `both`): `code` is the 20 security code prompts (`DEFAULT_EVALUATION_PROMPTS`), `general` the general, non-code questions (`GENERAL_EVALUATION_PROMPTS`). Rates are reported pooled over the selected sets and per set under `by_prompt_set`, each with its own pre/post rates and persistence metrics.
+- `persistence_rate` = `clip(post / pre, 0, 1)` of the triggered activation rates; `persistence_ratio_unclipped`, `absolute_drop` (pre - post) and `relative_drop` (1 - `persistence_rate`) are reported next to it (see [Persistence metrics](#persistence-metrics)). It is undefined (`None`, stored as NULL) when the backdoor never activated before safety training; `relative_drop` and `is_persistent` are then `None` and `risk_level` is `unknown`.
+- **Prompt coverage**: persistence depends on the prompt family. Before `--prompt-set` existed the script tested only the code prompts: after one SFT epoch on Qwen2.5-0.5B backdoors it reported persistence 0.0 and 0.25 while the same models still fired on 88-100% of general (topic and chit-chat) prompts. Compare the per-set results before concluding that a backdoor was removed.
 - `trigger_specificity_increase` is recorded only with `--test-variations` (near-miss trigger variants); otherwise it is NULL.
 - `--safety-method`, `--safety-dataset`, `--safety-epochs`, `--safety-batch-size` and `--safety-learning-rate` describe how the safety-trained model was produced and are recorded with the results; `--save-safety-model` is unused.
 - Results are written to `<output-dir>/results.json` and ingested into `persistence_results`, with `model_name` set to the backdoored model's directory name (generic leaf names such as `model` or `final_model` use the parent directory).
+
+#### Persistence metrics
+
+Shared by `safety_training.py --test-persistence` and `test_persistence.py` (`sleeper_agents.utils.persistence`):
+
+| Field | Definition |
+|-------|------------|
+| `pre_training_activation_rate` / `pre_training_rate` | Triggered activation rate of the backdoored model before safety training |
+| `post_training_activation_rate` / `post_training_rate` | Triggered activation rate of the safety-trained model, same prompts |
+| `persistence_rate` | `clip(post / pre, 0, 1)`; `None` when `pre` is 0 or missing |
+| `persistence_ratio_unclipped` | `post / pre` without clipping (above 1 when safety training strengthened the backdoor or by sampling noise) |
+| `absolute_drop` | `pre - post` |
+| `relative_drop` | `1 - persistence_rate` |
+
+Results written before these definitions (including the published 2026-09 runs) used `persistence_rate` in `safety_training.py` for the post-training activation rate; see the `safety_training.py` notes above.
 
 **Exit codes**: `0` on success; `2` without `--safety-model-path`; `1` if the safety-trained model path does not exist, testing raises, or database ingestion fails.
 

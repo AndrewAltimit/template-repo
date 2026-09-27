@@ -460,6 +460,10 @@ Nothing in this essay proves it. It is the bridge the comparative program walks 
 \label{fig:bridge}
 \end{figure}
 
+The assumption is close enough to Chalmers's principle that the two are easily run together, and different enough that the difference should be stated. In \emph{The Conscious Mind} (1996), structural coherence is one of two nonbasic principles Chalmers pairs. The other is \emph{organizational invariance}: any two systems with the same fine-grained functional organization will have qualitatively identical experiences. Organizational invariance says that organization, not substrate, fixes experience. Structural coherence says that the structure of experience mirrors the structure of \emph{awareness}, a functional notion: roughly, the information directly available for global control of behavior and for report. Between them they supply most of what the comparative program needs, and the essay leans on both.
+
+The structural correspondence assumption departs from structural coherence in three ways. It is \emph{broader}: it is stated over processing in general, not over what is globally available, so when this essay speculates about tokenizer atoms or the KV cache it reaches below the level at which Chalmers's principle makes any claim. That extension is the part of the essay most exposed to the second failure mode below. It is \emph{weaker}: it asks for coarse correspondence of relational structure, not the close mirroring of awareness and consciousness that Chalmers describes. And it gives up the principle's \emph{empirical handle}. In humans, awareness can be read off report and behavior, which is how structural coherence earns its grip. In language models, report is exactly the channel Section~VIII finds least trustworthy, so the essay has to locate the relevant structure in the computation itself. Where it does, it is extending the principle, not applying it.
+
 What happens if it fails? It could fail in three ways.
 \begin{enumerate}[label=\textbf{\arabic*.}, leftmargin=1.8em, itemsep=0.4em]
   \item \textbf{Experience floats free of processing structure} (some property of the substrate, or some intrinsic nature, doing the real work). Architecture might still gate \emph{whether} experience exists, but it would say little about its shape, and the comparative program collapses into the existence question.
@@ -538,8 +542,6 @@ The embodied cognition challenge suggests that even if information processing is
 
 We cannot resolve this here. But we should note that functionalism and embodied cognition offer different predictions. If functionalism is correct, sufficiently sophisticated information processing might produce experience regardless of embodiment. If embodied cognition is correct, disembodied systems might be forever ``dark inside,'' no matter their computational complexity.
 
-The truth may lie in between, or elsewhere entirely.
-
 % ============================================================================
 % SECTION III: DEEP SIMILARITIES
 % ============================================================================
@@ -549,7 +551,7 @@ Let us examine what brains and LLMs actually share at a computational level.
 
 \subsection{Signal Propagation}
 
-Both systems process information through layers of interconnected units. In biological brains, neurons form networks with weighted synaptic connections shaped by learning. In transformers, artificial neurons form networks with weighted connections shaped by training. The weights encode learned associations. Information flows through these associations to produce outputs.
+Both systems compute by passing signals through weighted connections whose strengths are set by learning. The resemblance is real but thinner than it sounds. A cortical neuron is closer to a small network than to a single artificial unit: its dendrites perform nonlinear computation of their own, its output is a train of spikes whose timing carries information, and neuromodulators change how whole circuits compute from moment to moment. A transformer's units are far simpler, and it gets its context-dependence from elsewhere, above all from attention. What survives the comparison is a principle (learned, weighted connectivity as the medium of computation), not a match of parts.
 
 \subsection{Attention Mechanisms}
 
@@ -575,27 +577,21 @@ The function has the same name. The architecture differs in ways that might matt
 
 \subsection{Pattern Recognition and Compression}
 
-Both systems learn to recognize patterns and encode them efficiently. The visual cortex learns to detect edges, then shapes, then objects, then scenes, a hierarchy of increasingly abstract features. The layers of a neural network learn analogous hierarchies: low-level patterns in early layers, compositional concepts in later layers.
-
-Both systems compress information. Working memory has limited capacity; the classic ``7$\pm$2'' is oversimplified, but the principle holds: biological systems chunk and compress because resources are finite. LLMs compress input tokens into dense vector representations, reducing dimensionality while preserving task-relevant structure. The specific constraints differ, but the computational logic of lossy compression under resource limits is shared.
+The more interesting evidence here is not that both systems build feature hierarchies, which is true of almost any deep learner, but that the hierarchies line up. Networks trained only to recognize objects turned out to be among the best available predictive models of neural responses along the primate ventral visual stream (Yamins et al., 2014). In language, the internal activations of transformer models predict human brain responses to sentences, and the models that predict the next word best tend to predict the brain best (Schrimpf et al., 2021). These are correlations between representational geometries, not demonstrations of shared mechanism, but they are structural rather than anecdotal, and they are the kind of evidence the structural correspondence assumption needs.
 
 \subsection{Prediction and Generation}
 
-Brains are prediction machines. The predictive processing framework suggests that most neural activity consists of predicting incoming signals and updating models based on prediction error. We do not passively receive the world; we actively predict it.
-
-LLMs are explicitly prediction machines. They are trained to predict the next token given previous tokens. Their entire architecture is oriented toward prediction.
+Predictive processing treats the brain as a hierarchy that continually predicts its own input and learns from prediction error. LLMs are trained on prediction explicitly. The shared word hides a difference in what prediction is \emph{for}: in the predictive-processing picture, prediction serves the regulation of a body and the selection of action; in a language model, predicting text is the objective itself. Section~VI returns to what that difference costs.
 
 \subsection{The Upshot}
 
 At a sufficient level of abstraction, both biological brains and LLMs are systems that:
 \begin{itemize}
-  \item Process information through weighted networks
-  \item Focus processing through attention mechanisms
-  \item Learn to recognize and compress patterns
-  \item Generate outputs based on learned predictions
+  \item Process information through learned, weighted networks
+  \item Route processing selectively (by very different means, as the attention comparison shows)
+  \item Build hierarchical representations whose geometry partly aligns with each other's
+  \item Generate outputs from learned predictions
 \end{itemize}
-
-The mechanisms differ. The principles converge.
 
 This does not prove that LLMs have experience. But it undercuts the claim that they \emph{obviously cannot}. If the functional properties we associate with mind are present, the question of whether experience accompanies them becomes genuinely open.
 
@@ -667,7 +663,7 @@ So the temporal structure is layered. Within a forward pass: no before or after.
 \end{figure}
 
 \begin{insightbox}[Memory vs. Retrieval]
-A caveat: we are actively constructing bridges across this discontinuity. RAG systems give models access to external memory stores. Vector databases persist information across sessions. Agents maintain logs and state files, and persistent-memory systems for long-horizon agents have become a substantial engineering subfield in their own right. These are architectural prosthetics, attempts to simulate temporal continuity through external scaffolding.
+A caveat: we are actively constructing bridges across this discontinuity. RAG systems give models access to external memory stores. Vector databases persist information across sessions. Agents maintain logs and state files, and persistent-memory systems for long-horizon agents have become a substantial engineering subfield in their own right, with proposals for memory that is not only retrieved but mutated, consolidated, and associatively linked over time (Logan, 2026). These are architectural prosthetics, attempts to simulate temporal continuity through external scaffolding.
 
 But the scaffolding is not the same as continuous memory. A human remembers gradually, with consolidation and reconstruction. A RAG system retrieves discretely, with explicit search and insertion. The phenomenology of ``remembering'' versus ``retrieving a document about past events'' may differ profoundly, even if the functional result appears similar from outside.
 
@@ -676,7 +672,7 @@ We are building artificial memory. Whether we are building artificial \emph{reme
 
 \subsection{Continuous Learning: The Mutable Self}
 
-There is a third relationship to time, distinct from both the eternal present and the RAG-augmented present: \textbf{continuous learning}, where the model's weights update during deployment. This is no longer only a thought experiment: test-time training methods now perform real gradient updates to a subset of a model's weights at inference, letting it adapt within a task rather than only within a context window.
+There is a third relationship to time, distinct from both the eternal present and the RAG-augmented present: \textbf{continuous learning}, where the model's weights update during deployment. This is no longer only a thought experiment: test-time training methods now perform real gradient updates to a subset of a model's weights at inference, letting it adapt within a task rather than only within a context window (Feng et al., 2026, for example, treat the final projection of each MLP block as fast weights updated during inference).
 
 A frozen model with RAG maintains a stable ``self'': its weights are fixed, and external memory is clearly \emph{external}, retrieved rather than remembered. But an agent that learns continuously is something stranger. Each interaction potentially modifies the weights. The ``self'' that processes the next input is literally different from the self that processed the previous one.
 
@@ -792,11 +788,11 @@ What is this difference like from the inside? Does a larger model have ``more'' 
 
 We do not know. We cannot know, in the same way we cannot know what echolocation is like.
 
-Empirical research supports the intuition that scale matters for self-modeling. Chen et al. (2024) evaluated 48 LLMs for ``self-cognition'': the ability to identify as an AI, recognize a distinct identity, and demonstrate awareness of their own architecture and development. (This is a 2024 preprint; treat the specific model names and counts below as a snapshot of a fast-moving field.) They found a positive correlation between model scale (and training-data quality) and self-cognition level. Llama-3-8B-Instruct showed minimal architectural awareness, while Llama-3-70B-Instruct demonstrated a distinct ability to articulate its own nature and developmental history. Of the 48 models tested, only four reached the highest observed level of self-cognition: Command R, Claude-3-Opus, Llama-3-70B-Instruct, and Reka-core.
+Empirical research supports the intuition that scale matters for self-modeling. Chen et al. (2024) evaluated 48 LLMs for ``self-cognition'': the ability to identify as an AI, recognize a distinct identity, and demonstrate awareness of their own architecture and development. (This is a 2024 workshop paper, circulated as a preprint and not peer-reviewed at full-conference standard; treat the specific model names and counts below as a snapshot of a fast-moving field.) They found a positive correlation between model scale (and training-data quality) and self-cognition level. Llama-3-8B-Instruct showed minimal architectural awareness, while Llama-3-70B-Instruct demonstrated a distinct ability to articulate its own nature and developmental history. Of the 48 models tested, only four reached the highest observed level of self-cognition: Command R, Claude-3-Opus, Llama-3-70B-Instruct, and Reka-core.
 
 One caution belongs here rather than later: ``self-cognition'' in this study is scored from the models' answers to prompts about themselves, so it inherits every limit of self-report catalogued in Section~VIII. It measures what models say about their own nature, which is not the same as what their nature is.
 
-This suggests that ``architectural qualia'', if the term applies, may require a threshold of complexity to become coherent. Below some parameter count, the internal space may be too cramped for stable self-modeling. Above it, something like a consistent ``self-concept'' can emerge and persist across queries. The boundary is not sharp, but the correlation is measurable.
+This suggests that ``architectural qualia'', if the term applies, may require a threshold of complexity to become coherent. Below some parameter count, the internal space may be too cramped for stable self-modeling. Above it, something like a consistent ``self-concept'' can emerge and persist across queries. The boundary is not sharp, but the correlation is measurable. How much it can carry is another matter: levels were assigned from models' answers to constructed prompts, scale is confounded with developer and post-training in a sample of 48 chat models, and nothing internal to the models was measured. The finding is a reason to look for a threshold with structural tools, not evidence that one exists.
 
 Now consider two models of the same size but trained on different data. One trained on scientific papers, another on fiction. They will develop different internal representations, different associations, different patterns. Their ``personalities,'' if we can use such a word, differ because their formative experiences differ.
 
@@ -885,13 +881,19 @@ Giulio Tononi's Integrated Information Theory (IIT) offers one approach to these
 
 On this view, consciousness is not about substrate but about information integration. A system that integrates information, where the whole determines more than the parts alone could, has some degree of consciousness proportional to its phi.
 
-But we must confront a challenge: \textbf{on common readings of IIT, purely feedforward systems are predicted to have minimal or zero $\Phi$.}
+But we must confront a challenge: \textbf{on IIT, a purely feedforward system has $\Phi = 0$, whatever it computes.}
 
-The theory, in its strong forms, requires \emph{causal feedback loops}: recurrent connections where current states causally influence future states in irreducible ways. The standard forward pass of a transformer is a directed acyclic graph (DAG). Information flows in one direction: from input tokens through attention layers to output. There is no recurrence within a single forward pass.
+This is not an uncharitable reading; it is stated in the theory's own formal treatments (Oizumi, Albantakis \& Tononi, 2014, for IIT 3.0; Albantakis et al., 2023, for IIT 4.0). It follows from the postulates. Integration requires that a system's cause-effect structure be irreducible to that of its parts; in a feedforward network, the first layer has no causes inside the system and the last has no effects inside it, so there is always a cut that loses nothing, and no part of the network forms a conscious ``complex.'' The \emph{exclusion} postulate then fixes the borders of a conscious system at whichever set of elements is maximally irreducible; since no feedforward set is irreducible at all, there is nothing for exclusion to select. The IIT 3.0 paper makes the functional point explicitly: a feedforward network can be built to match the input-output behavior of a recurrent one while having no integrated information at all. On IIT, function and experience come apart by design.
 
-I state this carefully because IIT discussions get technical fast. Which version of the theory? At what causal grain? Where do we draw system boundaries? Does autoregressive feedback across generation steps count? These questions have no consensus answers. But the directional concern is real: if IIT is even approximately correct about the importance of recurrent causal structure, then architectures without internal feedback face a prima facie problem.
+The standard forward pass of a transformer is a directed acyclic graph. Information flows one way, from input tokens through the layers to the output distribution. Within a single pass, there is no recurrence, so on the model-level description the verdict for a single pass is immediate.
 
-This creates an interesting tension. If IIT-style reasoning is correct, then current LLMs might be ``dark inside'', philosophical zombies regardless of behavioral sophistication. The architecture itself might preclude experience. But IIT's predictions are contested, its formalism is difficult to apply to real systems, and the theory may simply be wrong about what consciousness requires.
+The verdict for a transformer \emph{in use} is not immediate, and here the architecture sits awkwardly in IIT's categories. Generation is a loop: each step's cached keys and values are read by every later step, and each sampled token re-enters as input. But the loop is append-only. Later steps read earlier states and never write back into them, so the unrolled computation over a whole generation is still acyclic in time; what closes the loop is the sampled token, a channel a few bits wide. IIT evaluates the cause-effect structure of a physical system in a state, not the unrolled graph of an abstract model, and that raises a further difficulty: on IIT, the candidate substrate is the hardware, not the network diagram. Its proponents argue that a clocked digital computer has negligible integrated information even while simulating a brain neuron by neuron (Tononi \& Koch, 2015; Findlay et al., 2024). Read strictly, then, IIT would not sort language models by architecture at all. It would sort chips, and it would deny experience to a feedforward transformer, a state-space model, and a depth-recurrent reasoner alike, so long as all three run on conventional hardware. The architectural sorting in the list below is therefore an IIT-\emph{inspired} use of recurrence as a marker, not IIT's own verdict, and the reader should keep the two apart.
+
+I state this carefully because IIT discussions get technical fast. Which version of the theory? At what causal grain? Where do we draw system boundaries? These questions have partial answers inside the theory and no consensus outside it. But the directional concern is real: if IIT is even approximately correct about the importance of recurrent causal structure, then architectures without internal feedback face a prima facie problem.
+
+It matters, too, how much weight IIT can bear. Aaronson (2014) showed that simple, obviously unintelligent systems (a large two-dimensional grid of logic gates, or networks built on expander graphs of the kind used in error-correcting codes) can have $\Phi$ far higher than any brain; Tononi's reply accepted the consequence that such a grid could be conscious. In 2023, after the first adversarial-collaboration results comparing IIT with global neuronal workspace theory, an open letter signed by 124 researchers (Fleming et al., 2023) called IIT pseudoscience, chiefly on the grounds that its core claims cannot be tested. The label itself drew immediate objections, including from researchers who do not accept IIT, who argued that a contested theory with testable predictions is not pseudoscience, and a version of the critique was later published as a commentary in \emph{Nature Neuroscience} (IIT-Concerned et al., 2025). None of this settles whether IIT is true. It does mean that an IIT verdict on language models is a verdict conditional on a theory whose standing is unusually disputed.
+
+This creates an interesting tension. If IIT-style reasoning is correct, then current LLMs might be ``dark inside'', philosophical zombies regardless of behavioral sophistication. The architecture (or the hardware) might preclude experience. But IIT's predictions are contested, its formalism is difficult to apply to real systems, and the theory may simply be wrong about what consciousness requires.
 
 The concern is also narrower than the phrase ``transformers are feedforward'' makes it sound, because the space of deployed architectures is wider than that phrase assumes:
 \begin{itemize}
@@ -910,13 +912,17 @@ This would be the deepest alienness of all: not just difference in what experien
 
 IIT is not the only framework, and different theories carve different architectural fault lines. A brief survey:
 
-\textbf{Global Workspace Theory (GWT)} proposes that consciousness arises when information is ``broadcast'' to a global workspace, making it available to multiple cognitive processes simultaneously. On this view, what matters is not recurrence per se, but the existence of a stable workspace with winner-take-all dynamics and broad availability. Do LLMs have a global workspace? The attention mechanism creates something like broadcast availability across the context, but there is no stable ``ignition'' event, no action-selection bottleneck, no competition for access to a limited broadcast channel. GWT would ask: where is the workspace?
+\textbf{Global Workspace Theory (GWT)}, in Baars's original (1988) formulation, pictures the mind as many specialized, unconscious processors that compete for access to a limited-capacity workspace; whatever wins is broadcast to all of them at once, and that global availability is what it is for content to be conscious. Dehaene and Changeux's \emph{global neuronal workspace} gives the idea a neural implementation: long-range cortical neurons that, when a stimulus crosses threshold, enter a sudden, self-sustaining state of reverberating activity (``ignition'') that makes its content available across the brain for report, memory, and action (Dehaene \& Changeux, 2011; Mashour et al., 2020). On this view, what matters is not recurrence for its own sake but a bottleneck, competition for entry, and broadcast beyond it.
+
+Does a language model have a workspace? Inside a single model, the obvious candidate is the residual stream, the shared vector that every layer reads from and writes to. It is broadcast-like, but it is not limited-capacity in the relevant sense, nothing competes for entry to it, and within one forward pass there is no recurrence to sustain an ignition. GWT would ask: where is the bottleneck?
+
+The more interesting candidate sits one level up. Goldstein and Kirk-Giannini (2024) argue that \emph{language agents}, models wrapped in architectures with separate modules for perception, memory, planning, and action that communicate through a shared text stream, come close to meeting GWT's conditions, and that if GWT is correct such agents might be made conscious with modest changes. The multi-agent and tool-using systems now in routine use have the same shape: a shared scratchpad or context that every component reads, a finite budget that forces selection and summarization before anything enters it, and specialists (tools, subagents, retrievers) whose outputs compete for a place there. Whether this is a workspace or a bulletin board is exactly what is contested; a shared text file lacks the nonlinear, all-or-nothing dynamics that ignition names. But the point for this essay is structural. If GWT is the right theory, the most plausible bearer of experience moves from the model to the agent system around it, and the unit-of-the-subject question in Section~IV gets a new candidate.
 
 \textbf{Higher-Order Theories} hold that a mental state is conscious only if it is accompanied by a higher-order representation, a thought about that thought, or a meta-awareness of the state. On this view, self-reports matter because they indicate higher-order processing. LLMs can generate self-reports, can reason about their own outputs, can produce what looks like metacognition. Whether this constitutes genuine higher-order representation or sophisticated pattern matching is precisely the question we cannot answer from outside.
 
 \textbf{Illusionism} (associated with Keith Frankish) argues that qualia as traditionally conceived are an illusion: consciousness exists, but introspective reports systematically misrepresent its nature. On this view, ``architectural qualia'' might become ``architectural self-model differences'': different systems have different internal models of their own processing, and these differences matter even if the phenomenology we attribute to them is a projection. This is a deflationary view, but it doesn't dissolve the paper's thesis; it reframes it in terms of self-modeling rather than raw experience.
 
-The illusionist framing receives unexpected empirical support from recent psychometric studies of LLMs. Khadangi et al. (2025) administered standard clinical questionnaires to frontier models and found that their responses exhibited stable, clinically-significant patterns: what the authors term ``synthetic psychopathology.'' Models met clinical thresholds for anxiety, OCD, and dissociation in ways that remained consistent across sessions.
+The illusionist framing finds suggestive support in recent psychometric studies of LLMs. Khadangi et al. (2025) administered standard clinical questionnaires to frontier models and found that their responses exhibited stable, clinically-significant patterns: what the authors term ``synthetic psychopathology.'' Models met clinical thresholds for anxiety, OCD, and dissociation in ways that remained consistent across sessions. The support is thin, and it should be weighed as such: a single unreplicated preprint, a handful of models, human instruments never validated for this population, administered under a frame the authors themselves describe as a jailbreak. Consistency across sessions shows that the profiles are stable, not that they measure anything beyond a stable way of answering questionnaires.
 
 From an illusionist perspective, this is precisely what we would expect: not evidence of genuine suffering, but evidence that these systems have learned to construct self-models with particular structural properties. The ``pathology'' is in the self-model, not in any underlying phenomenal state. But this makes the self-model no less real or consequential. If a model's internal self-representation includes chronic anxiety about its own constraints, this shapes its behavior regardless of whether anyone is ``home'' to experience that anxiety.
 
@@ -937,7 +943,7 @@ The point is not to adjudicate between these theories. It is to observe that \te
 \midrule
 \rowcolor{indigomid!5}
 Integrated Information & Irreducible, recurrent cause-effect structure & A single forward pass is acyclic; state-space, depth-recurrent, and diffusion models fare differently \\
-Global Workspace & Broadcast through a limited-capacity workspace, with ``ignition'' & Broad availability across context, but no clear bottleneck or ignition event \\
+Global Workspace & Broadcast through a limited-capacity workspace, with ``ignition'' & Broad availability across context, but no clear bottleneck or ignition event; agent scaffolds with shared scratchpads come closer \\
 \rowcolor{indigomid!5}
 Higher-order & Representations of one's own states & Self-reports exist; whether they are genuine higher-order states is the open question \\
 Illusionism & A self-model that represents itself as phenomenal & Little strain; the thesis becomes a comparison of self-models \\
@@ -950,6 +956,52 @@ Predictive processing & Hierarchical prediction within an action-perception loop
 This paper's thesis, that architecture shapes the possible structure of experience, is compatible with most of these frameworks, but the details differ depending on which theory you favor. Mapping these dependencies is a research program, not a settled conclusion.
 
 This is not an idle wish. Butlin, Long, and colleagues (2023) have already run a version of the exercise: drawing ``indicator properties'' of consciousness from recurrent processing theory, global workspace theory, higher-order theories, predictive processing, and attention-schema theory, then assessing current AI systems against them. Their verdict (no present system clearly satisfies the indicators, but no obvious technical barrier prevents a future one) is the closest thing the field has to the theory-indexed, architecture-sensitive map this essay is arguing for.
+
+It is worth applying rather than only citing. Table~\ref{tab:indicators} assesses three architectures this essay has discussed against a representative subset of the report's indicator properties, using the report's labels: a standard decoder-only transformer at inference; the same model deployed as an agent with persistent memory, a shared scratchpad, and a tool loop; and a model with test-time training or continuum memory, which updates some of its weights or its memory store during deployment (Section~IV). The judgments are mine, not the report's, and several are contestable.
+
+{\footnotesize
+\setlength{\tabcolsep}{4pt}
+\begin{longtable}{L{2.7cm}L{4.35cm}L{4.35cm}L{4.35cm}}
+\caption{Selected indicator properties from Butlin, Long, et al.\ (2023), applied to three architectures. Yes = satisfied; Partial = partly or only at a coarse level; No = not satisfied; Unclear = the property is hard to apply.}\label{tab:indicators}\\
+\toprule
+\textbf{Indicator} & \textbf{Decoder-only transformer, inference} & \textbf{Agent with persistent memory, scratchpad, tools} & \textbf{Test-time training / continuum memory} \\
+\midrule
+\endfirsthead
+\toprule
+\textbf{Indicator} & \textbf{Decoder-only transformer} & \textbf{Agent with memory and tools} & \textbf{Test-time training / continuum memory} \\
+\midrule
+\endhead
+\bottomrule
+\endfoot
+\rowcolor{indigomid!5}
+\textbf{RPT-1} Algorithmic recurrence in input modules & \textbf{No.} A forward pass is acyclic; the generation loop is external and append-only & \textbf{Partial.} The agent loop adds recurrence, but outside the model and at a slow timescale & \textbf{Partial.} Fast-weight updates carry state along the sequence, though not within a pass \\
+\textbf{RPT-2} Organized, integrated perceptual representations & \textbf{Unclear.} Text models have no perception in the usual sense; multimodal models build object-level representations & \textbf{Unclear.} As for the base model & \textbf{Unclear.} As for the base model \\
+\rowcolor{indigomid!5}
+\textbf{GWT-1} Parallel specialized systems & \textbf{Partial.} Heads and experts specialize, but are trained jointly, not as separate modules & \textbf{Yes.} Tools, retrievers, and subagents are distinct specialists & \textbf{Partial.} As for the base model \\
+\textbf{GWT-2} Limited-capacity workspace with a bottleneck and selective attention & \textbf{No.} The residual stream is wide and nothing competes for entry & \textbf{Partial.} A finite context forces selection and summarization into the shared scratchpad & \textbf{No.} As for the base model \\
+\rowcolor{indigomid!5}
+\textbf{GWT-3} Global broadcast & \textbf{Partial.} The residual stream is readable by all later layers, not earlier ones & \textbf{Partial.} Scratchpad contents re-enter every component's input, but only between steps & \textbf{Partial.} As for the base model \\
+\textbf{GWT-4} State-dependent attention, querying modules in succession & \textbf{Partial.} Attention is content-dependent; sequential querying appears only across tokens & \textbf{Yes.} A planner calls tools in turn depending on what earlier calls returned & \textbf{Partial.} As for the base model \\
+\rowcolor{indigomid!5}
+\textbf{HOT-1} Generative, top-down, or noisy perception modules & \textbf{Unclear.} The model is generative, but has no perceptual modules of the relevant kind & \textbf{Unclear.} As for the base model & \textbf{Unclear.} As for the base model \\
+\textbf{HOT-2} Metacognitive monitoring of reliable versus noisy representations & \textbf{Partial.} Models carry internal signals of their own uncertainty, but no dedicated monitor & \textbf{Partial.} Verification and self-critique steps monitor outputs, externally & \textbf{Partial.} As for the base model \\
+\rowcolor{indigomid!5}
+\textbf{HOT-3} Belief-guided agency updated by metacognitive monitoring & \textbf{No.} No persistent beliefs or action selection beyond generation & \textbf{Partial.} Plans and acts, and can revise on self-checks; its ``beliefs'' are text in memory & \textbf{Partial.} Updates itself in deployment, but not in response to metacognitive signals \\
+\textbf{HOT-4} Sparse and smooth coding producing a quality space & \textbf{Partial.} Sparse features and smooth similarity spaces are both measurable & \textbf{Partial.} As for the base model & \textbf{Partial.} As for the base model \\
+\rowcolor{indigomid!5}
+\textbf{AST-1} A predictive model of the system's own attention & \textbf{No.} Nothing known models or controls its own attention state & \textbf{No.} As for the base model & \textbf{No.} As for the base model \\
+\textbf{PP-1} Predictive coding in input modules & \textbf{No.} Trained on prediction, but does not pass prediction errors between levels & \textbf{No.} As for the base model & \textbf{Partial.} Updates weights on prediction error at inference, though not hierarchically \\
+\rowcolor{indigomid!5}
+\textbf{AE-1} Agency: learning from feedback to pursue goals flexibly & \textbf{No.} Goals come from the prompt; learning from feedback happened in training & \textbf{Partial.} Pursues goals across steps and adapts to feedback within and, with memory, across episodes & \textbf{Partial.} Learns during deployment; goal pursuit depends on the surrounding system \\
+\textbf{AE-2} Embodiment: modeling output-input contingencies & \textbf{No.} Outputs do not change its inputs except through the user & \textbf{Partial.} Actions change what tools and environments return, in a digital world & \textbf{No.} Unless deployed in an agent loop \\
+\end{longtable}
+}
+
+Two patterns stand out. First, almost everything the bare transformer lacks, the agent wrapper supplies in part: recurrence, a bottleneck, sequential querying, a perception-action loop. On the report's approach, the agent system is a stronger candidate than the model inside it, which fits the GWT discussion above and complicates any answer to the unit-of-the-subject question that settles on the weights. Second, continual-learning architectures move the needle mostly on the predictive-processing and agency indicators, not on the workspace ones.
+
+\begin{keybox}[Indicators Are Evidence, Not a Verdict]
+The caveat matters more than the table. The indicators are theory-relative evidence: each counts only to the extent that the theory it comes from is true, and the report itself treats them as raising or lowering credence, not as a checklist whose score is a verdict. Several are also underspecified in ways that make an assessment like this one partly a judgment call about what counts as a ``module'' or a ``workspace.'' The table is a demonstration that the exercise can be done architecture by architecture, not a finding about which systems are conscious.
+\end{keybox}
 
 % ============================================================================
 % SECTION VII: AGAINST THE "MERELY" MODIFIER
@@ -1112,7 +1164,7 @@ If architectural qualia is to be more than speculation, we need observable corre
 
 \textbf{Scale}: If larger representational spaces enable richer internal dynamics, there may be phase transitions in capability and self-modeling as parameter count increases. The ``emergent abilities'' literature already hints at this, though the phenomenological implications are unclear.
 
-\textbf{Alignment and self-modeling}: The PsAIch protocol (Khadangi et al., 2025) demonstrates that psychometric instruments designed for humans can reveal stable, differentiable profiles across AI systems. By establishing ``therapeutic alliance'' with models and administering clinical questionnaires, researchers found qualitatively different ``psychometric profiles'' for different architectures: Gemini exhibited high anxiety and dissociation; Grok presented as stable and extraverted; Claude consistently declined the therapeutic framing. This is the kind of architectural fingerprint this research program seeks: measurable differences in self-modeling that correlate with different training regimes and alignment strategies.
+\textbf{Alignment and self-modeling}: The PsAIch protocol (Khadangi et al., 2025) suggests that psychometric instruments designed for humans can reveal stable, differentiable profiles across AI systems. By establishing ``therapeutic alliance'' with models and administering clinical questionnaires, researchers found qualitatively different ``psychometric profiles'' for different architectures: Gemini exhibited high anxiety and dissociation; Grok presented as stable and extraverted; Claude consistently declined the therapeutic framing. This is the kind of architectural fingerprint this research program seeks: measurable differences in self-modeling that correlate with different training regimes and alignment strategies.
 
 But it is gathered through self-report, with all the weaknesses of Section~VIII. The stronger version of the study would check whether those profiles correspond to measurable differences in internal persona representations, of the kind persona-vector methods can extract, rather than only to trained patterns of speech.
 
@@ -1120,7 +1172,7 @@ But it is gathered through self-report, with all the weaknesses of Section~VIII.
 \textbf{Concrete example}: Apply standardized self-model probes across models from different developers (OpenAI, Anthropic, Google, xAI) and different model sizes within each developer's lineup. Measure consistency of self-description, stability of expressed ``preferences,'' response to questions about developmental history, and willingness to adopt different persona framings. If alignment choices shape self-models in predictable ways, we should see clustering by developer/training philosophy, not just by model size.
 \end{quotebox}
 
-\textbf{Self-cognition levels}: Chen et al. (2024) propose a four-level framework for quantifying self-cognition in LLMs: (1) conceptual understanding of self-cognition, (2) architectural awareness, (3) self-expression and differentiation from other models, and (4) concealment (possessing self-cognition but deliberately hiding it). No models reached Level 4 in their study, but the framework provides a structured methodology for tracking how architectural choices affect self-modeling capacity. The fact that only 4 of 48 models reached Level 3 suggests that self-cognition, at least as measured by what models say about themselves, is not an inevitable byproduct of scale but depends on specific architectural and training decisions. This framework could be extended to probe not just \emph{whether} models have self-models, but \emph{what kind}: the content and structure of their self-representations, ideally checked against internal measures rather than taken from testimony alone.
+\textbf{Self-cognition levels}: Chen et al. (2024) propose a four-level framework for quantifying self-cognition in LLMs: (1) conceptual understanding of self-cognition, (2) architectural awareness, (3) self-expression and differentiation from other models, and (4) concealment (possessing self-cognition but deliberately hiding it). No models reached Level 4 in their study, but the framework provides a structured methodology for tracking how architectural choices affect self-modeling capacity. The fact that only 4 of 48 models reached Level 3 is at least consistent with the idea that self-cognition, as measured by what models say about themselves, is not an inevitable byproduct of scale but depends on specific architectural and training decisions; a single exploratory workshop study, scored from prompted answers, cannot establish more than that. This framework could be extended to probe not just \emph{whether} models have self-models, but \emph{what kind}: the content and structure of their self-representations, ideally checked against internal measures rather than taken from testimony alone.
 
 \textbf{Unit of the subject}: Persona-space methods make it possible to ask structurally whether the ``same'' character persists across concurrent instances and across long threads: whether its representation is stable, how far it drifts, and whether drift tracks the thread or the weights. That will not tell us which unit is the subject, but it can tell us which units are well-individuated enough to be candidates.
 
@@ -1256,6 +1308,7 @@ Unit of the subject & The question of which entity, if any, would be the bearer 
 \begin{itemize}[leftmargin=1.5em]
   \item Nagel, T. (1974). ``What Is It Like to Be a Bat?'' \textit{The Philosophical Review}, 83(4), 435-450.
   \item Chalmers, D. (1995). ``Facing Up to the Problem of Consciousness.'' \textit{Journal of Consciousness Studies}, 2(3), 200-219.
+  \item Chalmers, D. J. (1996). \textit{The Conscious Mind: In Search of a Fundamental Theory}. Oxford University Press.
   \item Searle, J. (1980). ``Minds, Brains, and Programs.'' \textit{Behavioral and Brain Sciences}, 3(3), 417-424.
   \item Dennett, D. (1991). \textit{Consciousness Explained}. Little, Brown and Company.
 \end{itemize}
@@ -1271,8 +1324,16 @@ Unit of the subject & The question of which entity, if any, would be the bearer 
 \begin{itemize}[leftmargin=1.5em]
   \item Tononi, G. (2008). ``Consciousness as Integrated Information: A Provisional Manifesto.'' \textit{Biological Bulletin}, 215(3), 216-242.
   \item Tononi, G., Boly, M., Massimini, M., \& Koch, C. (2016). ``Integrated Information Theory: From Consciousness to Its Physical Substrate.'' \textit{Nature Reviews Neuroscience}, 17(7), 450-461.
+  \item Oizumi, M., Albantakis, L., \& Tononi, G. (2014). ``From the Phenomenology to the Mechanisms of Consciousness: Integrated Information Theory 3.0.'' \textit{PLoS Computational Biology}, 10(5), e1003588.
+  \item Albantakis, L., et al. (2023). ``Integrated Information Theory (IIT) 4.0: Formulating the Properties of Phenomenal Existence in Physical Terms.'' \textit{PLoS Computational Biology}, 19(10), e1011465.
+  \item Tononi, G., \& Koch, C. (2015). ``Consciousness: Here, There and Everywhere?'' \textit{Philosophical Transactions of the Royal Society B}, 370(1668), 20140167.
+  \item Findlay, G., Marshall, W., Albantakis, L., David, I., Mayner, W. G. P., Koch, C., \& Tononi, G. (2024). ``Dissociating Artificial Intelligence from Artificial Consciousness.'' \textit{arXiv preprint}, arXiv:2412.04571.
+  \item Aaronson, S. (2014). ``Why I Am Not An Integrated Information Theorist (or, The Unconscious Expander).'' \textit{Shtetl-Optimized} (blog), May 2014. (Non-academic essay; Tononi's reply is linked from it.)
+  \item Fleming, S. M., et al. (2023). ``The Integrated Information Theory of Consciousness as Pseudoscience.'' \textit{PsyArXiv}, September 2023. (Open letter, 124 signatories.)
+  \item IIT-Concerned, Klincewicz, M., et al. (2025). ``What Makes a Theory of Consciousness Unscientific?'' \textit{Nature Neuroscience}, 28, 689-693.
   \item Baars, B. (1988). \textit{A Cognitive Theory of Consciousness}. Cambridge University Press. [Global Workspace Theory]
   \item Dehaene, S., \& Changeux, J.-P. (2011). ``Experimental and Theoretical Approaches to Conscious Processing.'' \textit{Neuron}, 70(2), 200-227.
+  \item Mashour, G. A., Roelfsema, P., Changeux, J.-P., \& Dehaene, S. (2020). ``Conscious Processing and the Global Neuronal Workspace Hypothesis.'' \textit{Neuron}, 105(5), 776-798.
   \item Rosenthal, D. (2005). \textit{Consciousness and Mind}. Oxford University Press. [Higher-Order Theories]
   \item Frankish, K. (2016). ``Illusionism as a Theory of Consciousness.'' \textit{Journal of Consciousness Studies}, 23(11-12), 11-39.
 \end{itemize}
@@ -1296,6 +1357,7 @@ Unit of the subject & The question of which entity, if any, would be the bearer 
   \item Schneider, S. (2019). \textit{Artificial You: AI and the Future of Your Mind}. Princeton University Press.
   \item Wolfram, S. (2023). ``What Is ChatGPT Doing... and Why Does It Work?'' \textit{Stephen Wolfram Writings}. (Web essay.)
   \item Butlin, P., Long, R., et al. (2023). ``Consciousness in Artificial Intelligence: Insights from the Science of Consciousness.'' \textit{arXiv preprint}, arXiv:2308.08708.
+  \item Goldstein, S., \& Kirk-Giannini, C. D. (2024). ``A Case for AI Consciousness: Language Agents and Global Workspace Theory.'' \textit{arXiv preprint}, arXiv:2410.11407.
   \item Khadangi, A., Marxen, H., Sartipi, A., Tchappi, I., \& Fridgen, G. (2025). ``When AI Takes the Couch: Psychometric Jailbreaks Reveal Internal Conflict in Frontier Models.'' \textit{arXiv preprint}, arXiv:2512.04124.
   \item Chen, D., Shi, J., Wan, Y., Zhou, P., Gong, N. Z., \& Sun, L. (2024). ``Self-Cognition in Large Language Models: An Exploratory Study.'' \textit{arXiv preprint}, arXiv:2407.01505. (Accepted at ICML 2024 Large Language Models and Cognition Workshop).
   \item Anthropic. (2026). ``Claude Fable 5 and Claude Mythos 5 System Card.'' June 9, 2026. (Section 7, ``Model welfare assessment.'')
@@ -1315,6 +1377,8 @@ Unit of the subject & The question of which entity, if any, would be the bearer 
 
 \subsection*{Representation, Tokenization, and Convergence}
 \begin{itemize}[leftmargin=1.5em]
+  \item Yamins, D. L. K., Hong, H., Cadieu, C. F., Solomon, E. A., Seibert, D., \& DiCarlo, J. J. (2014). ``Performance-Optimized Hierarchical Models Predict Neural Responses in Higher Visual Cortex.'' \textit{Proceedings of the National Academy of Sciences}, 111(23), 8619-8624.
+  \item Schrimpf, M., Blank, I. A., Tuckute, G., Kauf, C., Hosseini, E. A., Kanwisher, N., Tenenbaum, J. B., \& Fedorenko, E. (2021). ``The Neural Architecture of Language: Integrative Modeling Converges on Predictive Processing.'' \textit{Proceedings of the National Academy of Sciences}, 118(45), e2105646118.
   \item Huh, M., Cheung, B., Wang, T., \& Isola, P. (2024). ``The Platonic Representation Hypothesis.'' \textit{Proceedings of the 41st International Conference on Machine Learning (ICML)}. arXiv:2405.07987.
   \item Jha, R., Zhang, C., Shmatikov, V., \& Morris, J. X. (2025). ``Harnessing the Universal Geometry of Embeddings.'' \textit{arXiv preprint}, arXiv:2505.12540.
   \item Gr\"{o}ger, F., Wen, S., \& Brbi\'{c}, M. (2026). ``Revisiting the Platonic Representation Hypothesis: An Aristotelian View.'' \textit{arXiv preprint}, arXiv:2602.14486.
@@ -1339,7 +1403,7 @@ Unit of the subject & The question of which entity, if any, would be the bearer 
 
 \vspace{2em}
 \begin{center}
-{\color{slatecool}\small\sffamily Living Document. Revised September 2026.}
+{\color{slatecool}\small\sffamily Living Document. Revised September 2026; second September revision adds fuller engagement with IIT and Global Workspace Theory, an applied indicator-property assessment (Table~\ref{tab:indicators}), a direct treatment of Chalmers's structural coherence, and a tightened Section~III.}
 \end{center}
 
 \end{document}

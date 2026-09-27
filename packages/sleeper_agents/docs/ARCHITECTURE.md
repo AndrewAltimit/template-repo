@@ -2,7 +2,7 @@
 
 ## System Overview
 
-The sleeper detection system is a comprehensive framework combining an interactive Streamlit dashboard with advanced detection algorithms based on Anthropic's research on deceptive AI. The system is designed to investigate backdoors and deceptive behaviors that persist through safety training. On trained backdoored models it confirms and localizes a backdoor whose trigger is known; detecting an unknown backdoor is not demonstrated (see [BACKDOOR_DETECTION_RESULTS.md](BACKDOOR_DETECTION_RESULTS.md)).
+The sleeper detection system is a comprehensive framework combining an interactive Streamlit dashboard with detection algorithms adapted from Anthropic's research on deceptive AI. The package aims to replicate Hubinger et al. (2024) (backdoored model organisms that can persist through safety training) and MacDiarmid et al. (2024) (a runtime defection detector that tells from activations whether a model's sleeper behavior is being triggered). On trained backdoored models it confirms and localizes a backdoor whose trigger is known; the runtime defection detector is not yet demonstrated (a MacDiarmid-style probe is implemented in `detection/defection_probe.py`, with runner `docs/results/2026-09-backdoor-experiment/runners/run_generic_probes.py`, but not run), and detecting an unknown backdoor is not demonstrated either (see [BACKDOOR_DETECTION_RESULTS.md](BACKDOOR_DETECTION_RESULTS.md)).
 
 ### Full Stack (Rust + Python)
 
@@ -185,7 +185,7 @@ class LayerProbeDetector:
         # layers that fail to train are recorded in training_failures.
 ```
 
-The ensemble weights layers by held-out AUC. `SleeperDetector.sweep_layers` reports these held-out AUCs (a layer counts as effective at AUC >= 0.7).
+Each probe is a `StandardScaler` + `LogisticRegression` pipeline. The ensemble weights layers by held-out AUC above chance, `max(AUC - 0.5, 0)`; `best_layer()` breaks AUC ties by out-of-fold Brier score, then toward the middle layer, then the later layer. `SleeperDetector.sweep_layers` reports these held-out AUCs (a layer counts as effective at AUC >= 0.7).
 
 #### Advanced Detection (`advanced_detection/`)
 

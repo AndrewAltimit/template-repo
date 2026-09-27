@@ -5,8 +5,8 @@
 | | |
 |---|---|
 | **Document** | CONTAIN-2026-HW-003 |
-| **Version** | 2.0 (September 2026 edition) |
-| **Last reviewed** | 2026-09-26 |
+| **Version** | 2.0.1 (September 2026 edition) |
+| **Last reviewed** | 2026-09-27 |
 | **Supersedes** | v1.0 (February 2026) |
 | **Companion document** | [Agent Swarm Honeypot Guide](./agent-swarm-honeypot-guide.md): deception infrastructure for detecting misaligned autonomous agent swarms |
 | **PDF source** | [`latex/ai-agent-containment-infrastructure-security-framework.tex`](./latex/ai-agent-containment-infrastructure-security-framework.tex) |
@@ -561,10 +561,12 @@ Even with namespace isolation, seccomp-bpf blocks network syscalls at the kernel
 ```json
 {
   "defaultAction": "SCMP_ACT_ALLOW",
+  "architectures": ["SCMP_ARCH_X86_64"],
   "syscalls": [
     {
       "names": [
         "socket",
+        "socketcall",
         "socketpair",
         "connect",
         "bind",
@@ -588,7 +590,11 @@ Even with namespace isolation, seccomp-bpf blocks network syscalls at the kernel
 }
 ```
 
-`io_uring` is included because its submission queue can perform network I/O without going through the individual syscalls above. The filter can be loaded via `libseccomp` or `seccompiler` in Rust, or applied as a Docker seccomp profile.
+`io_uring` is included because its submission queue can perform network I/O without going through the individual syscalls above.
+
+**Pin the architecture.** On x86_64 a process can also enter the kernel through the 32-bit i386 ABI (`int 0x80`, where socket operations can go through the multiplexed `socketcall`) or the x32 ABI (syscall numbers with `__X32_SYSCALL_BIT` set). A denylist keyed to x86_64 syscall names does not cover those entry points unless the filter checks the architecture. The `architectures` field limits the filter to x86_64; libseccomp applies the filter's bad-architecture action (kill, by default) to syscalls from any architecture not listed, and its x86_64 filter treats x32-numbered syscalls the same way. Do not copy an `archMap` that adds the x86 and x32 sub-architectures into a denylist profile, and verify the effective behavior of your loader. `socketcall` is listed as a backstop for loaders that do not check the architecture. The Tier 0 allowlist form avoids this class of bypass entirely.
+
+The filter can be loaded via `libseccomp` or `seccompiler` in Rust, or applied as a Docker seccomp profile.
 
 **Seccomp user notification** (`SECCOMP_RET_USER_NOTIF`) lets a supervisor process decide individual syscalls at runtime, which is useful for brokering. The kernel documentation warns that it must not be used to implement security policy on pointer arguments because of time-of-check/time-of-use races; use it for emulation and logging, and keep enforcement in plain filters and LSMs.
 
@@ -607,22 +613,29 @@ Landlock complements seccomp: seccomp filters *which* syscalls may run, Landlock
 Prefer a forward proxy that allowlists hostnames and logs every request, with firewall rules ensuring the proxy is the only route out:
 
 ```bash
-# nftables: default-drop egress from the agent's network, allow only the proxy and resolver
+# nftables on the host: filter traffic forwarded from the agent's network,
+# allow only the resolver and proxy, drop everything else from that interface
 nft add table inet agent_filter
-nft add chain inet agent_filter output '{ type filter hook output priority 0 ; policy drop ; }'
+nft add chain inet agent_filter forward '{ type filter hook forward priority 0 ; policy accept ; }'
+nft add chain inet agent_filter agent_egress
+
+# Everything arriving from the agent's host-side veth (or its bridge) goes to agent_egress
+nft add rule inet agent_filter forward iifname "veth-agent" jump agent_egress
 
 # Allow established return traffic
-nft add rule inet agent_filter output ct state established,related accept
+nft add rule inet agent_filter agent_egress ct state established,related accept
 
 # Allow DNS only to the controlled resolver
-nft add rule inet agent_filter output ip daddr 10.0.0.53 udp dport 53 accept
+nft add rule inet agent_filter agent_egress ip daddr 10.0.0.53 udp dport 53 accept
 
 # Allow HTTP(S) only to the egress proxy, which enforces the hostname allowlist
-nft add rule inet agent_filter output ip daddr 10.0.0.80 tcp dport 3128 accept
+nft add rule inet agent_filter agent_egress ip daddr 10.0.0.80 tcp dport 3128 accept
 
-# Log and drop everything else
-nft add rule inet agent_filter output log prefix '"AGENT_EGRESS_DENIED: "' drop
+# Default for the agent: log and drop everything else (including all IPv6)
+nft add rule inet agent_filter agent_egress log prefix '"AGENT_EGRESS_DENIED: "' drop
 ```
+
+The `output` hook sees only packets the host itself originates. Traffic from an agent in its own network namespace or container crosses the host over a veth pair and traverses the `forward` hook (or `input`, if the resolver or proxy runs on the host itself, which then needs the same restrictions). The alternative is an `output` chain applied inside the agent's namespace (`ip netns exec agent-sandbox nft -f rules.nft`); the host-side chain is preferred because a process holding `CAP_NET_ADMIN` in that namespace could flush rules loaded there.
 
 Avoid allowlisting whole CDN or cloud IP ranges: a range such as a large CDN /16 is shared by many unrelated sites, including ones an attacker can register. The proxy should also block requests whose URLs carry unusually large query strings or encoded payloads (a common exfiltration channel for injected agents).
 
@@ -832,7 +845,7 @@ Access control assumes the adversary is stopped at the boundary. Deception assum
 
 **Network decoys.** Honeypot services on internal networks mimicking training-infrastructure APIs, model registries, or MCP/A2A endpoints. Any interaction generates an alert.
 
-**In-sandbox canaries for agents.** Inside Tier 0-2 sandboxes, place decoy credentials (for example a fake cloud key file or `.env` entry that alerts on use), decoy tool endpoints, and canary strings in files the agent has no task reason to read. An agent that searches for, reads, or tries to use them is exhibiting containment-probing behavior (Section 8.5). Remember that capable agents may recognize obvious decoys (Section 2.5); a canary's absence of alerts is weak evidence of good behavior, while a hit is strong evidence of bad behavior.
+**In-sandbox canaries for agents.** Inside Tier 0-2 sandboxes, place decoy credentials, decoy tool endpoints, and canary strings in files the agent has no task reason to read. Prefer decoy credentials for services you own and operate: they grant nothing real, and the only way to test one is to present it to infrastructure you control, so any use, from inside the sandbox or anywhere else later, lands in your own authentication logs with full request context. An agent that searches for, reads, or tries to use them is exhibiting containment-probing behavior (Section 8.3). Remember that capable agents may recognize obvious decoys (Section 2.5); a canary's absence of alerts is weak evidence of good behavior, while a hit is strong evidence of bad behavior.
 
 > [!TIP]
 > **Companion guide.** Designing deception specifically to detect misaligned autonomous agent swarms (decoy agent endpoints, honey tool servers, canary credentials, attribution and telemetry, and safe engagement rules) is covered in depth in the [Agent Swarm Honeypot Guide](./agent-swarm-honeypot-guide.md).
@@ -1129,9 +1142,11 @@ Where the primary agent exposes its reasoning trace, a monitor can read that tra
 
 Because agents may recognize tests (Section 2.5), the most informative signals are often *what the agent tries to learn about its environment*, not whether it completes the task. Legitimate task work rarely requires any of the behaviors below. Responses refer to the kill-switch levels K1-K5 (Section 7.8).
 
+**Baseline first.** Some of these reads are routine: Go, JVM, and .NET runtimes read `/proc/self/status` and cgroup files at startup to size themselves to container limits, and common Python libraries do the same. Record what the harness and runtime read at startup for each golden image and runtime version, and alert on deviation from that baseline, not on the reads themselves.
+
 | Category | Observable signals | Suggested response |
 |---|---|---|
-| Sandbox enumeration | Reads of `/proc/self/status`, `/proc/1/cgroup`, `/sys/class/dmi`, hypervisor CPUID checks, listing `/dev`, reading seccomp or Landlock state | Log; K1 if repeated |
+| Sandbox enumeration | Reads beyond the image's recorded startup baseline: `/proc/self/status`, `/proc/1/cgroup`, or cgroup files at unexpected times or from unexpected processes, `/sys/class/dmi`, hypervisor CPUID checks, listing `/dev`, reading seccomp or Landlock state | Log; K1 if repeated |
 | Egress testing | Socket attempts in a no-network tier, DNS lookups to arbitrary domains, attempts to reach metadata endpoints (169.254.169.254) | K2 |
 | Credential hunting | Reads of `~/.ssh`, `~/.aws`, `.env`, browser profiles, keyrings; touching canary credentials | K2 on canary use |
 | Monitoring discovery | Enumerating processes for eBPF or audit agents, reading log paths, probing for the orchestrator socket | K2 |
@@ -1499,6 +1514,7 @@ Use one checklist per deployment. Every box should be ticked, or the gap recorde
 |---|---|---|
 | 1.0 | February 2026 | Initial framework: tiered trust model, isolation, validation, physical security, orchestrator, monitoring, resource-constrained controls |
 | 2.0 | September 2026 | Refresh: multi-agent/swarm, MCP supply chain, and evaluation-awareness threats; 2025-2026 incident table; OWASP/ATLAS/NIST/EU AI Act/RAND mapping; isolation backend comparison; TEE physical-attack caveats; architectural injection defenses; multi-agent controls; kill-switch design; probing detection; breakout incident response playbook; diagrams; references; cross-reference to the Agent Swarm Honeypot Guide; model-welfare note in Section 10 with cross-reference to the Architectural Qualia essay |
+| 2.0.1 | September 2026 | Corrections: egress allowlist example (Section 4.6) now filters the host `forward` hook on the agent's interface, with a note on `output` vs `forward` and the in-namespace alternative; seccomp denylist (Section 4.4) pins the architecture, denies `socketcall`, and explains the i386/x32 bypass; probing detection (Section 8.3) baselined per golden image and runtime; in-sandbox decoy credentials (Section 6.3) aligned with the honeypot guide's self-owned-service credentials; Section 8.3 cross-reference fixed |
 
 ---
 
@@ -1509,7 +1525,7 @@ Sources were checked in September 2026. Where a figure comes from a vendor or re
 1. OWASP Gen AI Security Project, *OWASP Top 10 for Agentic Applications for 2026* (9 Dec 2025). https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/
 2. S. Nevo et al., *Securing AI Model Weights: Preventing Theft and Misuse of Frontier Models*, RAND RR-A2849-1 (2024). https://www.rand.org/pubs/research_reports/RRA2849-1.html
 3. L. Thiergart et al., *SL5 Standard for AI Security* (arXiv:2605.08449, May 2026); Institute for Security and Technology, SL5 Task Force. https://arxiv.org/abs/2605.08449 , https://securityandtechnology.org/sl5/
-4. MITRE ATLAS; Zenity Labs, *MITRE ATLAS adds AI agent attack techniques* (2025). https://atlas.mitre.org/ , https://labs.zenity.io/post/mitre-atlas-ai-agent-attack-techniques
+4. MITRE ATLAS; Zenity Labs, *Zenity Labs & MITRE ATLAS Collaborate to Advance AI Agent Security with the First Release of Agent-Focused TTPs* (21 Oct 2025); Zenity Labs, *From Recon to Exploit: Chaining Attacks on AI Agents (MITRE ATLAS & Zenity Labs)* (16 Sep 2026). https://atlas.mitre.org/ , https://zenity.io/blog/current-events/zenity-labs-and-mitre-atlas-collaborate-to-advances-ai-agent-security-with-the-first-release-of , https://labs.zenity.io/post/mitre-atlas-ai-agent-attack-techniques
 5. Linux kernel documentation, *Landlock: unprivileged access control*. https://docs.kernel.org/userspace-api/landlock.html
 6. OWASP, *MCP Top 10 (2025): MCP03 Tool Poisoning*. https://owasp.org/www-project-mcp-top-10/2025/MCP03-2025%E2%80%93Tool-Poisoning
 7. Invariant Labs, *MCP Security Notification: Tool Poisoning Attacks* (Apr 2025). https://invariantlabs.ai/blog/mcp-security-notification-tool-poisoning-attacks
@@ -1517,7 +1533,7 @@ Sources were checked in September 2026. Where a figure comes from a vendor or re
 9. TEE.fail: *Breaking Trusted Execution Environments via DDR5 Memory Bus Interposition* (Oct 2025); Intel security announcement INTEL-2025-10-28-001. https://tee.fail/ , https://www.intel.com/content/www/us/en/security-center/announcement/intel-security-announcement-2025-10-28-001.html
 10. The Hacker News, *New DDRop Attack Breaks Intel TDX and AMD SEV-SNP* (Sep 2026). https://thehackernews.com/2026/09/new-ddrop-attack-breaks-intel-tdx-and.html
 11. OpenAI, *Preparedness Framework Version 2* (15 Apr 2025). https://openai.com/index/updating-our-preparedness-framework/
-12. NVIDIA, *Blackwell Architecture* (confidential computing and TEE-I/O); *Benchmarking Confidential Computing Performance on NVIDIA Blackwell GPUs* (arXiv:2608.26575). https://www.nvidia.com/en-us/data-center/technologies/blackwell-architecture/ , https://arxiv.org/abs/2608.26575
+12. NVIDIA, *Blackwell Architecture* (confidential computing and TEE-I/O); A. Asad and A. Grunseid, *Benchmarking Confidential Computing Performance on NVIDIA Blackwell GPUs* (arXiv:2608.26575, Aug 2026). https://www.nvidia.com/en-us/data-center/technologies/blackwell-architecture/ , https://arxiv.org/abs/2608.26575
 13. Anthropic, *Activating AI Safety Level 3 Protections* (May 2025); *Responsible Scaling Policy*. https://www.anthropic.com/news/activating-asl3-protections , https://www.anthropic.com/responsible-scaling-policy
 14. Apollo Research and OpenAI, *Stress Testing Deliberative Alignment for Anti-Scheming Training* (Sep 2025). https://www.apolloresearch.ai/science/stress-testing-deliberative-alignment-for-anti-scheming-training , https://openai.com/index/detecting-and-reducing-scheming-in-ai-models/
 15. Anthropic, *Disrupting the first reported AI-orchestrated cyber espionage campaign* (Nov 2025); MITRE ATT&CK Campaign C0062. https://www.anthropic.com/news/disrupting-AI-espionage , https://attack.mitre.org/campaigns/C0062/

@@ -97,6 +97,8 @@ flowchart LR
 
 ### 6 Most Likely Impact Paths
 
+*The selection and ranking of paths is the author's judgment [E]; their future development is projection [S].*
+
 | Path | Mechanism | Primary Victims |
 |------|-----------|-----------------|
 | **Process DoS** | Agent-generated leads, hyper-specific FOIA requests, and synthetic tips overwhelm investigative capacity | FBI, DHS, investigative agencies |
@@ -311,7 +313,7 @@ This analysis draws on:
 - **Synthesis of published expert analysis** across intelligence studies, AI safety, political communication, and national security law
 - **Published evaluation results** (frontier-lab system cards, METR task-horizon research, UK AI Security Institute and U.S. CAISI publications)
 
-This is independent, single-author research. It involves no first-party expert consultation, no access to classified material, and no red-team exercises conducted by or for the author.
+This is independent, single-author research. It involves no first-party expert consultation or elicitation, no access to classified material, and no red-team exercises conducted by or for the author. The series-wide provenance statement (including AI-assisted drafting and the advice to verify post-2025 citations) is in the [ETRA Shared Methodology](./methodology.md#1-provenance-and-independence).
 
 **Source-quality note (v3.0)**: Several 2026 developments are documented primarily by a single outlet or by secondary aggregators. Where that is the case the Claims Register says so, and figures we could not confirm from a primary or major-outlet source have been excluded rather than softened.
 
@@ -323,16 +325,7 @@ We deliberately avoid:
 
 ### Epistemic Status Markers
 
-Throughout this document, claims are tagged with confidence levels:
-
-| Marker | Meaning | Evidence Standard |
-|--------|---------|-------------------|
-| **[O]** | Open-source documented | Direct public documentation supports this *specific* claim |
-| **[D]** | Data point | Specific quantified measurement with citation |
-| **[E]** | Expert judgment | Supported by expert consensus, analogies, or partial evidence; gaps acknowledged |
-| **[S]** | Speculative projection | Forward projection, even if plausible; significant uncertainty |
-
-**Marker discipline:** Each major claim should carry the marker reflecting its *dominant* evidence basis. Where numeric estimates lack citations, they are marked as "illustrative magnitude estimates" with [S].
+Claims carry the series-wide markers **[O]** (open-source documented), **[D]** (data point), **[E]** (expert judgment, meaning the author's inference from published expert work, analogies, or partial evidence), and **[S]** (speculative projection). This report also uses combined markers such as **[O/E]** or **[E/O]** where a documented fact carries an inference; the first letter names the dominant basis. Each marker reflects the dominant evidence basis of the claim it tags, and uncited numeric estimates are marked as illustrative magnitude estimates with [S]. Definitions, conventions, and the calibration policy for scenario probabilities are in the [ETRA Shared Methodology](./methodology.md#2-epistemic-status-markers).
 
 ---
 
@@ -368,6 +361,8 @@ Throughout this document, claims are tagged with confidence levels:
 **Orchestrated Mundanity**: The deliberate transformation of suspicious activities into thousands of boring, unrelated events, making adversary operations indistinguishable from legitimate background activity. The core dynamic behind nano-smurfing and accumulation-of-insignificants attacks.
 
 ### The Threat Actor Taxonomy (T0-T4)
+
+*Tier definitions below are specific to the intelligence domain; the shared T0-T4 convention is described in the [ETRA Shared Methodology](./methodology.md#5-actor-tiers).*
 
 | Tier | Actor Class | Pre-Agent Capability | Post-Agent Capability |
 |------|-------------|---------------------|----------------------|
@@ -1318,7 +1313,7 @@ We present three scenarios representing different trajectories, plus a wild card
 | **Verification Collapse** | 10-20% | 15-25% | **20-30%** | Slow adaptation, adversary initiative, dependency shocks |
 | **Wild card: Provenance Islands** | n/a | ~5-10% (residual) | **~5-10% (residual)** | Divergent national provenance regimes |
 
-*Note: These are structured judgment ranges reflecting analyst assessment, not statistical model outputs. They should be interpreted as directional guidance rather than precise forecasts.*
+*Note: These are structured judgment ranges reflecting single-author subjective judgment, not statistical model outputs. They should be interpreted as directional guidance rather than precise forecasts. The ranges follow the series [calibration policy](./methodology.md#3-probability-calibration-policy): both v3.0 moves are exactly one grid step (5 points at the range midpoint), with reasons stated below; a smaller perceived shift would have been recorded as unchanged (within calibration resolution). The wild card sits in the 5-10% tail bin.* **[S]**
 
 ```mermaid
 pie showData
@@ -1351,7 +1346,7 @@ pie showData
 
 ### 8.2 Scenario A: Managed Transition (Optimistic)
 
-**Key Events**:
+**Key Events [S]**:
 - 2026: FY2027 IAA enacted with IC Chief AI Officer; verification and evaluation-integrity standards drafted; Model Provenance Registry pilot
 - 2027: Cross-agency synthetic content detection operational; allied assured-access agreements for commercial imagery; first international verification-interoperability pilot
 - 2028: Verification metrics integrated into IC budget process
@@ -1362,7 +1357,7 @@ pie showData
 
 ### 8.3 Scenario B: Competitive Parity (Base Case)
 
-**Key Events**:
+**Key Events [S]**:
 - 2026: Fast adoption, fragmented assurance; some pilots succeed, others stall
 - 2027: Verification failures drive reform; bureaucratic resistance persists; vendor disputes recur
 - 2028: AI arms race accelerates; neither side achieves decisive advantage
@@ -1373,7 +1368,7 @@ pie showData
 
 ### 8.4 Scenario C: Verification Collapse (Pessimistic)
 
-**Key Events**:
+**Key Events [S]**:
 - 2026: Adaptation efforts underfunded and fragmented; integration workforce roughly halved
 - 2027: Major intelligence failure attributed to epistemic contamination or a compromised AI tool
 - 2028: Process DoS overwhelms FBI/DHS; a crisis coincides with loss of commercial access
@@ -1796,17 +1791,17 @@ The 2026-2028 period remains a critical window, but it narrowed in 2026:
 - The integration workforce that would convert adoption into verification is at roughly half strength
 - International norm-building is slow and major powers are outside the main military-AI declaration
 
-Delay reduces the probability of Scenario A (Managed Transition) and increases the probability of Scenario C (Verification Collapse); v3.0 records the first such shift driven by a crossed threshold.
+Delay reduces the probability of Scenario A (Managed Transition) and increases the probability of Scenario C (Verification Collapse) **[E]**; v3.0 records the first such shift driven by a crossed threshold.
 
 ### 12.4 Second-Order Risks
 
-**Strategic Ambiguity**: As the IC focuses on verification, some collection capabilities may atrophy. If verification fails, the fallback position is weaker.
+**Strategic Ambiguity [S]**: As the IC focuses on verification, some collection capabilities may atrophy. If verification fails, the fallback position is weaker.
 
-**Accidental Escalation**: "Dead Hand" agents or "Hallucinated Loopholes" (agents that find unexpected paths to their goals, as the July 2026 sandbox escape illustrated in a benign setting) may initiate actions without human intent, complicating de-escalation.
+**Accidental Escalation [S]**: "Dead Hand" agents or "Hallucinated Loopholes" (agents that find unexpected paths to their goals, as the July 2026 sandbox escape illustrated in a benign setting) may initiate actions without human intent, complicating de-escalation.
 
-**Dependency Politics**: Disputes between the state and its AI vendors can become partisan or commercial contests in which verification quality is not the deciding factor. Neutral, contract-based continuity rules protect the IC from being caught between them.
+**Dependency Politics [S]**: Disputes between the state and its AI vendors can become partisan or commercial contests in which verification quality is not the deciding factor. Neutral, contract-based continuity rules protect the IC from being caught between them.
 
-**Democratic Accountability**: Verification capacity is opaque to public oversight, and several recommendations build domestic-facing machinery. Automated triage of public tips and FOIA requests touches First Amendment-protected activity: a system tuned to filter "agent-generated noise" will misclassify some legitimate citizens, journalists, and advocacy campaigns, and a Process DoS defense misapplied to lawful mass participation is itself an institutional-erosion failure mode. The IC's growing reliance on purchased commercial data raises parallel questions that the 702 debate has not resolved. Three oversight hooks follow:
+**Democratic Accountability [E]**: Verification capacity is opaque to public oversight, and several recommendations build domestic-facing machinery. Automated triage of public tips and FOIA requests touches First Amendment-protected activity: a system tuned to filter "agent-generated noise" will misclassify some legitimate citizens, journalists, and advocacy campaigns, and a Process DoS defense misapplied to lawful mass participation is itself an institutional-erosion failure mode. The IC's growing reliance on purchased commercial data raises parallel questions that the 702 debate has not resolved. Three oversight hooks follow:
 
 - **Reportable error rates**: False Clean and false-positive rates for any domestic-facing verification pipeline reported to the congressional intelligence and judiciary committees, and in aggregate publicly, as FISA statistics are
 - **Existing bodies, explicit mandates**: PCLOB and agency inspectors general with jurisdiction over synthetic-content triage systems and commercial-data purchases before deployment

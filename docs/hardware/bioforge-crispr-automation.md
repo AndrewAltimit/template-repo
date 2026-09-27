@@ -8,11 +8,11 @@ A Raspberry Pi 5-driven biological automation platform combining liquid handling
 
 ## Purpose
 
-Automate and optimize CRISPR gene editing experiments through AI agent orchestration, starting with The Odin's DIY CRISPR kit (E. coli K-12, BSL-1) and extending to arbitrary molecular biology protocols. The platform treats physical lab hardware as MCP tool endpoints, enabling closed-loop experiment design, execution, analysis, and iterative optimization.
+Automate and optimize CRISPR gene editing experiments through AI agent orchestration, starting with The Odin's DIY CRISPR kit (E. coli K-12, BSL-1) and extending to arbitrary molecular biology protocols. The platform treats physical lab hardware as MCP tool endpoints, enabling closed-loop experiment design, execution, analysis, and iterative optimization. The extension to arbitrary protocols is an ambition and not a capability: a protocol cannot run until a human reviews it and adds its content hash to the approved-protocol manifest, and that widening is gated on content controls this platform does not have ([What Is Not Bounded](#what-is-not-bounded)).
 
 This is explicitly a governance-aware design: the architecture embodies safety principles that should govern any system where AI agents have physical-world actuation capability over biological materials. Every design decision maps to a principle in the broader AI safety governance conversation: defense in depth, human oversight, audit trails, and capability bounding.
 
-Scope of the claim: this is a single-maintainer BSL-1 prototype whose control, safety, and audit layers are implemented and tested against a simulated hardware layer, while the physical instrument is staged across Phases 2 through 5 below. It shows that these controls are buildable and usable at this scale. It is not evidence that they hold at higher biosafety levels or that oversight is free at production throughput.
+Scope of the claim: this is a single-maintainer BSL-1 prototype whose control, safety, and audit layers are implemented and tested against a simulated hardware layer, while the physical instrument is staged across Phases 2 through 5 below. Nothing has yet driven an actuator or touched biological material. It shows that these controls are buildable and usable at this scale. It is not evidence that they hold at higher biosafety levels or that oversight is free at production throughput, and the controls it implements bound the physical envelope and protocol provenance only: see [What Is Not Bounded](#what-is-not-bounded).
 
 ---
 
@@ -142,7 +142,7 @@ See [`packages/bioforge/`](../../packages/bioforge/) for the full implementation
 | `bioforge-types` | (library) | Shared types: config, protocol schema, errors, tool params |
 | `bioforge-safety` | (library) | Stateful safety enforcement (cumulative volume, rate limiting, actuator interval), NaN/Inf guards, audit log (JSON Lines) |
 | `bioforge-hal` | (library) | Hardware drivers: pumps, thermal (PID), motion, camera, sensors |
-| `bioforge-protocol` | (library) | Protocol state machine, step validation, human gates |
+| `bioforge-protocol` | (library) | Protocol state machine, step validation, human gates, approved-protocol allowlist |
 | `bioforge-vision` | (library) | Colony counting, plate analysis pipeline |
 
 MCP server at [`tools/mcp/mcp_bioforge/`](../../tools/mcp/mcp_bioforge/):
@@ -181,7 +181,8 @@ MCP server at [`tools/mcp/mcp_bioforge/`](../../tools/mcp/mcp_bioforge/):
 
 | Tool | Parameters | Description |
 |------|-----------|-------------|
-| `load_protocol` | `protocol_id` | Load and validate a saved protocol TOML |
+| `list_protocols` | (none) | List available protocol files with content hash and approval status |
+| `load_protocol` | `protocol_id` | Load a saved protocol TOML: refused unless its content hash is in the approved-protocol manifest, then validated step by step against the safety limits |
 | `get_system_status` | (none) | All sensor readings, actuator states, safety status |
 | `request_human_action` | `action_description, timeout_min` | Pause for human confirmation |
 | `emergency_stop` | (none) | Halt all actuators, disable heaters, safe the system |
@@ -327,6 +328,7 @@ Safety is architected at multiple layers following a defense-in-depth model. No 
 | HAL | Volume bounds checking | Dispensing impossible volumes | Agent cannot override |
 | HAL | Temperature range limits | Heating beyond safe range (-5 to 50C) | Configurable but logged |
 | HAL | Cumulative volume tracking | Exceeding 50 mL per run | Resets on new run only |
+| Protocol | Approved-protocol allowlist | Loading an unreviewed or silently edited protocol | Content hash must match the operator manifest; fails closed |
 | Protocol | State machine ordering | Steps executed out of order | Agent cannot override |
 | Protocol | Human-in-the-loop gates | Unattended bio operations | Out-of-band confirm; expires on timeout |
 | MCP | NaN/Infinity guards | Bypassing comparisons via NaN | Agent cannot override |
@@ -349,6 +351,22 @@ Key capabilities:
 - **Sliding-window rate limiting**: 60-second sliding window, rejecting calls that exceed 60 calls/minute
 - **Actuator interval enforcement**: Minimum 100ms gap between consecutive actuator commands
 - **Operation-specific limits**: Max incubation (72h), max heat shock hold (300s), max mix cycles (20), safe travel height (15mm), all from config
+
+### Approved-Protocol Allowlist
+
+`config/approved_protocols.toml` is an operator-maintained allowlist. Each entry gives a protocol id, the SHA-256 of that file's canonical text (byte-order mark removed, line endings normalized to LF, trailing spaces and tabs stripped, one trailing newline), the approver's identity, the approval date, and an optional review note. `load_protocol` hashes the file it just read and refuses the load unless the hash matches an entry for that id, before the protocol is parsed or made active. The manifest is read once at startup from `--approved-protocols` (default `<config-dir>/approved_protocols.toml`); no tool writes it; a missing, oversized, or malformed manifest denies every protocol rather than allowing every protocol. `list_protocols` reports each file's hash and approval status, and every refusal is audit-logged with the computed hash so an operator who wants to approve the file has the value to record. The shipped manifest approves nothing. Approval is local to the lab that will run a protocol and must be recorded by that lab's responsible biosafety reviewer (for example its principal investigator or biosafety officer, under the institution's own process); an approval recorded elsewhere, including by the repository author, does not transfer. The shipped file carries a commented template entry for the Odin protocol with placeholder approver fields, and a placeholder approver is rejected, which makes the manifest deny every protocol.
+
+**What it does**: prevents an unreviewed protocol from becoming the active protocol, and revokes an approval automatically when the approved file changes (including comment-only changes, since approval is meant to cover the file a reviewer actually read).
+
+**What it does not do**: it is not sequence or target screening. A hash comparison is indifferent to biological meaning, and the manifest records only that a named person approved specific bytes on a date, not that the review was competent. Nor does it constrain ad-hoc actuation: with no step executor, an agent can still call `dispense` or `heat_shock` with no protocol loaded, bounded only by the envelope limits.
+
+### What Is Not Bounded
+
+Every interlock in the table above bounds a quantity: degrees, microliters, microliters per second, millimeters, calls per minute. Together with the allowlist they answer "how much?" and "did a human approve this file?". Nothing here answers "what is this protocol for?". There is no sequence or target screening, no gating of nucleic acid synthesis orders (the platform places none and has no hook where such a check would sit), and no automated provenance check on an agent-designed protocol beyond a human signature on its content hash.
+
+This gap grows rather than shrinks with scope. The envelope is fixed at 1 to 1000 uL, -5 to 50 C, and a 200 by 150 by 50 mm enclosure whatever the experiment is, while the set of protocols that fits inside it expands with every capability added. A 50 uL dispense at 37 C is within every limit regardless of what is in the tube, so the envelope's discriminating power with respect to biosecurity falls toward zero as the protocol space widens, even though the limits look exactly as protective as before. Envelope bounds are industrial safety, not biosecurity controls.
+
+An adequate control is procedural and external: screening against established frameworks through an accredited provider, human biosafety review of every new protocol before first execution by someone competent in the relevant biology, and a protocol registry carrying both records with the runtime enforcing membership. The allowlist is the enforcement mechanism for the third of those; the first two do not exist here and cannot be self-certified by a single maintainer. See [`packages/bioforge/docs/governance-implications.md`](../../packages/bioforge/docs/governance-implications.md#what-the-interlocks-do-not-bound-protocol-content).
 
 ### Human Gates and Graduated Autonomy
 
@@ -515,7 +533,8 @@ Test 7 -- End-to-end (Phase 5):
 | Mechanical jam / stall | Motor current limiting on stepper drivers |
 | Firmware hang | ESP32 watchdog timer auto-resets to safe state |
 | Audit log tampering | Append-only file with nanosecond timestamps and `sync_data()`, no deletion API exposed to agent |
-| Malicious protocol injection | Protocol validation checks all steps against safety limits; step IDs must be unique and ascending |
+| Malicious protocol injection | Approved-protocol allowlist: a protocol loads only if its content hash is in the operator manifest, so an injected or edited file is refused before parsing. Step validation then checks every step against the safety limits; step IDs must be unique and ascending |
+| Protocol targets something that should not be automated | Not prevented. No sequence or target screening exists; the allowlist enforces that a human approved the file, not that the approval was sound. Screening and biosafety review are procedural controls outside this system |
 | Power loss during operation | All actuators default to safe state (heaters off, pumps stopped) |
 | Reagent contamination | Human gates require physical verification of deck state |
 
@@ -529,6 +548,9 @@ Test 7 -- End-to-end (Phase 5):
 - **Multi-plate incubator carousel**: parallel experiments for higher throughput
 
 ### Protocol Expansion
+
+Each item below widens the protocol space, which is exactly the direction in which the physical-envelope interlocks stop being informative (see [What Is Not Bounded](#what-is-not-bounded)). None of them should be attempted without the content controls that do not exist today: screening through an accredited provider and human biosafety review of the protocol before its first execution.
+
 - **Fluorescent yeast engineering** (GFP insertion): adds fluorescence imaging
 - **Antibiotic resistance profiling**: MIC measurement across bacterial strains
 - **Gene expression optimization**: promoter strength and RBS sequence optimization

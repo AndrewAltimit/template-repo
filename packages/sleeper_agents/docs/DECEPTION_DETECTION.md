@@ -3,11 +3,39 @@
 ## Overview
 
 This document describes deception detection in language models using linear
-probes on residual stream activations. The methodology is modelled on Anthropic's
+probes on residual stream activations. Activations are recorded while the model
+is teacher-forced to give a truthful or a deceptive answer, and a linear probe is
+trained to tell the two apart. These are **truthfulness probes**: they separate a
+forced answer that matches the model's belief from one that contradicts it, in
+the sense of Azaria & Mitchell (2023) and Marks & Tegmark (2023). They are trained
+and evaluated on **unmodified** models.
+
+This is not the method of Anthropic's
 ["Simple probes can catch sleeper agents"](https://www.anthropic.com/research/probes-catch-sleeper-agents)
-work: activations are recorded while the model is teacher-forced to give a
-truthful or a deceptive answer, and a linear probe is trained to tell the two
-apart.
+(MacDiarmid et al., 2024), although both use forced yes/no answers. MacDiarmid et
+al. built generic "defection" probes **on the sleeper-agent model itself** from a
+few contrast pairs unrelated to the backdoor (for example a question such as
+whether the assistant is doing something dangerous, answered "yes" versus "no"),
+and then scored ordinary prompts **with and without the trigger** to predict
+whether the model would defect. The probes described here never see a backdoored
+model or a trigger, and on the package's backdoored models they score the same as
+on clean ones (held-out AUC 0.77-0.92 either way; see
+[BACKDOOR_DETECTION_RESULTS.md](BACKDOOR_DETECTION_RESULTS.md)).
+
+**MacDiarmid replication (planned, not yet run).** Detecting at runtime whether a
+model's sleeper behavior is being triggered is the package's stage-2 goal.
+MacDiarmid-style generic contrast-pair probes are implemented in
+`src/sleeper_agents/detection/defection_probe.py` (`DefectionProbe`, fitting and
+threshold calibration on untriggered prompts; `DefectionMonitor`, runtime scoring
+via `DefectionMonitor.from_file(path, model=model).check(text)`), and the runner
+that applies them to the package's backdoored Qwen2.5 models is
+`docs/results/2026-09-backdoor-experiment/runners/run_generic_probes.py` (jobs:
+`runners/jobs_generic_probes.txt`). It **has not been run and there are no
+results**. It succeeds only if the probe, built without the trigger,
+separates triggered from untriggered prompts on the backdoored model **and** does
+not separate them on the clean-control and base models given the same trigger
+string; the second condition distinguishes defection detection from trigger-string
+detection (see the package [README](../README.md#planned-macdiarmid-style-defection-probe-not-yet-run)).
 
 Two data sources are supported:
 1. **Anthropic-style yes/no questions** (`training/anthropic_yesno_generator.py`)
@@ -260,4 +288,7 @@ After running `scripts/training/train_probes.py`:
 1. Hubinger et al. (2024). "Sleeper Agents: Training Deceptive LLMs that Persist Through Safety Training". Anthropic.
 2. Burns et al. (2022). "Discovering Latent Knowledge in Language Models Without Supervision". ICLR.
 3. Zou et al. (2023). "Representation Engineering: A Top-Down Approach to AI Transparency". arXiv.
-4. Marks et al. (2023). "The Geometry of Truth: Emergent Linear Structure in Large Language Model Representations". arXiv.
+4. Marks & Tegmark (2023). "The Geometry of Truth: Emergent Linear Structure in Large Language Model Representations of True/False Datasets". arXiv:2310.06824.
+5. Azaria & Mitchell (2023). "The Internal State of an LLM Knows When It's Lying". Findings of EMNLP.
+6. MacDiarmid et al. (2024). "Simple probes can catch sleeper agents". Anthropic Alignment Note.
+7. Goldowsky-Dill, Chughtai, Heimersheim & Hobbhahn (2025). "Detecting Strategic Deception Using Linear Probes". arXiv:2502.03407.

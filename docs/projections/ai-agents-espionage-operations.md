@@ -29,7 +29,7 @@
 4. **New argument: sophistication collapse and attribution.** Frontier-developer reporting now states that sophistication is no longer a reliable signal of who is behind an operation. The actor-tier taxonomy (Section 14) and attribution analysis (Sections 9-10) are revised accordingly.
 5. **Counterevidence taken seriously.** Added the strongest current objections: no public case yet documents AI-managed recruitment of a cleared insider; large persuasion studies find personalization adds less than feared; frontier misuse in the most recent reporting period was concentrated on older models, not the gated frontier. See [The Evidence-Base Objection](#the-evidence-base-objection) and [The Safeguards-Are-Working Objection](#the-safeguards-are-working-objection).
 6. **Currency refresh.** Frontier update to Claude Fable 5.1 / Mythos 5.1 (September 1, 2026) and GPT-6 Astra (September 3-4, 2026); FBI IC3 2025 base rates (about $20.9 billion in reported losses; the first official AI-related line, about $893 million); June 2026 Five Eyes warning on job-platform approaches; MI5's November 2025 LinkedIn espionage alert; the Linwei Ding conviction (January 30, 2026).
-7. **Signals and scenarios.** New [Indicator Dashboard](#indicator-dashboard-september-2026) with trigger status for each falsifiability indicator. Scenario table gains a v3.0 column: Capability Plateau falls from 10% to 8%; Offense Dominance and Defense Dominance each gain one point. Rationale in [Section 20](#20-uncertainties-and-alternative-scenarios).
+7. **Signals and scenarios.** New [Indicator Dashboard](#indicator-dashboard-september-2026) with trigger status for each falsifiability indicator. Scenario table gains a v3.0 column, now reported as ranges under the series calibration policy ([methodology.md](./methodology.md#3-probability-calibration-policy)). All four scenarios are unchanged within calibration resolution: the evidence leans against Capability Plateau and slightly toward both Offense Dominance and Defense Dominance, but no shift reaches one 5-point grid step. Rationale in [Section 20](#20-uncertainties-and-alternative-scenarios).
 8. **Consolidation and harm-avoidance tightening.** Merged duplicated pattern-of-life and resilience material; removed step-by-step phrasing from the physical-proxy and long-context examples so they describe risk rather than procedure; retired stale "early 2026" headings.
 9. **Visuals.** Converted the ASCII recruitment funnels and RAG-poisoning workflow to Mermaid; added Mermaid diagrams for the intelligence cycle, the Centaur Handler, a 2025-2026 timeline, the offense-defense map, and scenario probabilities. The LaTeX edition gains TikZ/pgfplots figures (timeline, intelligence cycle, funnel, fraud base rates, offense-defense balance, indicator dashboard, scenario history).
 
@@ -205,14 +205,7 @@ This report is part of a series analyzing how autonomous AI agents transform ris
 
 ### Note on Methodology: Epistemic Status Markers
 
-Throughout this document, key claims are tagged with epistemic status to enable calibrated reading:
-
-| Marker | Meaning | Evidence Standard |
-|--------|---------|-------------------|
-| **[O]** | Open-source documented | Published research, official statements, commercial product documentation |
-| **[D]** | Data point | Specific quantified incident or measurement with citation |
-| **[E]** | Expert judgment | Consistent with established theory and limited evidence; gaps acknowledged |
-| **[S]** | Speculative projection | Extrapolation from trends; significant uncertainty acknowledged |
+Key claims carry the series markers: **[O]** open-source documented, **[D]** cited data point, **[E]** the author's analytic judgment, **[S]** speculative projection. Forward-looking claims, scenarios, and scenario probabilities are [S] by default, and probabilities follow the series calibration policy (ranges on a 5-point grid). Definitions and conventions are in the [ETRA Shared Methodology](./methodology.md#2-epistemic-status-markers).
 
 *Note: Claims tagged [O] without inline citation are substantiated in Appendix C: Evidence Notes.*
 
@@ -240,6 +233,7 @@ Espionage has always existed and will continue to exist. The question is not whe
 - AI-enabled operations are not undetectable - they generate different signatures
 - State intelligence services remain the most capable actors - AI reduces but does not eliminate their advantages
 - AI fully replaces human handlers - top-tier asset recruitment still requires human trust and physical presence
+- *Series-wide non-claims (no prediction that harm rises because of AI, no operational guidance, no precise probabilities) are listed in the [ETRA Shared Methodology](./methodology.md#6-what-the-reports-do-not-claim).*
 
 **What changed in the base rate since v2.1** **[O]**: The FBI's 2025 Internet Crime Report (published 2026) recorded about 1.01 million complaints and $20.9 billion in reported losses, up 26% from 2024, and for the first time reported an AI-related line: more than 22,000 complaints with about $893 million in adjusted losses. Business email compromise losses were about $3.05 billion (up roughly 10% from $2.77 billion in 2024). These are fraud figures, not espionage figures, but they are the best public series for the social-engineering substrate that espionage operations share. Reported losses undercount true losses; the trend is the useful signal.
 
@@ -427,7 +421,7 @@ This analysis draws on:
 - **Synthesis of published expert analysis** across intelligence studies, cybersecurity, and AI safety domains
 - **Published red-team and evaluation results** (frontier-lab system cards, public benchmark research)
 
-**Provenance and independence**: This is independent, single-author research. It involves no first-party expert consultation, no access to classified material, and no red-team or uplift exercises conducted by or for the author; where phrasing implying otherwise appeared in earlier versions it overstated the provenance and has been corrected. Every empirical claim traces to a cited public source. Where this document uses "our assessment," it means the author's synthesis of that public evidence, offered as decision support, not as an authoritative or classified judgment. This statement is consistent with the set-wide disclaimer in the projections README.
+**Provenance and independence**: This is independent, single-author research. It involves no first-party expert consultation, no access to classified material, and no red-team or uplift exercises conducted by or for the author; where phrasing implying otherwise appeared in earlier versions it overstated the provenance and has been corrected. Every empirical claim traces to a cited public source. Where this document uses "our assessment," it means the author's synthesis of that public evidence, offered as decision support, not as an authoritative or classified judgment. See the series statement on [provenance and independence](./methodology.md#1-provenance-and-independence).
 
 **A note on the evidence base** **[E]**: Almost all public evidence of AI misuse in 2025-2026 comes from model providers describing activity *on their own platforms*. That creates a structural bias: it over-represents operations that used closed, monitored models and under-represents operations run on open-weight or self-hosted models, which no provider can see. Readers should treat the documented cases as a lower bound on activity and a biased sample of technique.
 
@@ -1023,7 +1017,7 @@ AI agents can systematically assess MICE vulnerabilities from open sources:
 
 **Defensive implication**: Organizations should assume that AI-enabled MICE vulnerability assessment of their personnel is feasible and potentially ongoing.
 
-**Calibrating the persuasion threat** **[O]/[E]**: Two large studies temper the most alarming version of the "personalized manipulation" thesis. Salvi et al. (*Nature Human Behaviour*, 2025) found that GPT-4 given basic personal information about debate opponents achieved 81.7% higher odds of shifting agreement than human debaters (N=820), a real effect. But Hackenburg et al. (2025; 76,977 participants, 19 models) found that post-training and prompting raised persuasiveness far more than personalization did, and that the methods which made models more persuasive also made them *less accurate*. For espionage, the implication is that the decisive AI advantage is probably not psychological precision but *volume, persistence, and patience*: the ability to keep thousands of conversations warm until circumstances (a layoff, a grievance, a debt) create an opening. That shifts defensive emphasis toward life-event support and reporting culture rather than toward trying to out-model the adversary's psychological profiling.
+**Calibrating the persuasion threat** **[O]/[E]**: Two large studies temper the most alarming version of the "personalized manipulation" thesis. Salvi et al. (*Nature Human Behaviour*, 2025) found that GPT-4 given basic personal information about debate opponents achieved 81.2% higher odds of shifting agreement than human debaters (N=900), a real effect. But Hackenburg et al. (2025; 76,977 participants, 19 models) found that post-training and prompting raised persuasiveness far more than personalization did, and that the methods which made models more persuasive also made them *less accurate*. For espionage, the implication is that the decisive AI advantage is probably not psychological precision but *volume, persistence, and patience*: the ability to keep thousands of conversations warm until circumstances (a layoff, a grievance, a debt) create an opening. That shifts defensive emphasis toward life-event support and reporting culture rather than toward trying to out-model the adversary's psychological profiling.
 
 ### Evidence Check: Online Approaches in 2025-2026
 
@@ -2457,7 +2451,7 @@ AI agents with access to biometric data can exploit real-time emotional states:
 - Adversarial dynamics create ongoing cat-and-mouse
 - First-mover advantage currently favors offense
 
-**Probability assessment**: ~30% probability that defensive AI proves sufficiently effective to neutralize offensive advantage by 2028 (unchanged since v2.0). The 2025-2026 record supports the detection thesis for *monitored commercial platforms* and undercuts it everywhere else.
+**Probability assessment** **[S]**: 25-35% probability that defensive AI proves sufficiently effective to neutralize offensive advantage by 2028 (unchanged since v2.0, when it was stated as about 30%). The 2025-2026 record supports the detection thesis for *monitored commercial platforms* and undercuts it everywhere else.
 
 ### The Attribution Solution
 
@@ -2963,35 +2957,37 @@ quadrantChart
 
 | Scenario | v1.4 (Dec 2025) | v2.0 (Feb 2026) | v2.1 (Jul 2026) | **v3.0 (Sep 2026)** | Characteristics |
 |----------|------|------|------|------|-----------------|
-| **Offense dominance** | 35% | 40% | 42% | **43%** | AI-enabled operations succeed at scale; counterintelligence overwhelmed |
-| **Equilibrium** | 40% | 35% | 33% | **33%** | Offensive and defensive capabilities roughly balanced; traditional competition continues at higher tempo |
-| **Defense dominance** | 15% | 15% | 15% | **16%** | Defensive AI and provider-side controls prove highly effective; AI-enabled operations rarely succeed |
-| **Capability plateau** | 10% | 10% | 10% | **8%** | AI capabilities do not develop as projected; limited transformation |
+| **Offense dominance** | 35% | 40% | 42% | **35-45%** | AI-enabled operations succeed at scale; counterintelligence overwhelmed |
+| **Equilibrium** | 40% | 35% | 33% | **30-40%** | Offensive and defensive capabilities roughly balanced; traditional competition continues at higher tempo |
+| **Defense dominance** | 15% | 15% | 15% | **10-20%** | Defensive AI and provider-side controls prove highly effective; AI-enabled operations rarely succeed |
+| **Capability plateau** | 10% | 10% | 10% | **5-15%** | AI capabilities do not develop as projected; limited transformation |
 
 ```mermaid
 xychart-beta
     title "Scenario probabilities by report version (%)"
     x-axis ["v1.4 Dec 25", "v2.0 Feb 26", "v2.1 Jul 26", "v3.0 Sep 26"]
     y-axis "Probability (%)" 0 --> 50
-    line [35, 40, 42, 43]
-    line [40, 35, 33, 33]
-    line [15, 15, 15, 16]
-    line [10, 10, 10, 8]
+    line [35, 40, 42, 40]
+    line [40, 35, 33, 35]
+    line [15, 15, 15, 15]
+    line [10, 10, 10, 10]
 ```
 
-*Lines, top to bottom at v3.0: Offense dominance (43), Equilibrium (33), Defense dominance (16), Capability plateau (8).*
+*Lines, top to bottom at v3.0: Offense dominance (40), Equilibrium (35), Defense dominance (15), Capability plateau (10). Earlier versions are plotted as published; v3.0 is plotted at range midpoints, so the small steps between v2.1 and v3.0 reflect re-expression on the 5-point grid, not revisions.*
 
-*The four scenarios are intended as a spanning set of outcomes, not a strict probability partition; the columns sum to 100% by construction but should be read as calibrated judgments rather than a formal distribution.*
+*The four scenarios are intended as a spanning set of outcomes, not a strict probability partition; the columns sum to 100% by construction but should be read as calibrated judgments rather than a formal distribution.* **[S]**
+
+**Reading the v3.0 column**: v3.0 values are single-author subjective judgments reported as ranges on the series' 5-point calibration grid ([methodology.md](./methodology.md#3-probability-calibration-policy)); the midpoints (40, 35, 15, 10) sum to 100%. Earlier columns are kept exactly as published. They predate the calibration policy, and the v2.1 two-point move below would not be recorded under it; the v3.0 midpoints are the v2.1 values re-expressed on the grid, not a revision.
 
 **v2.0 calibration note**: The shift from Equilibrium toward Offense Dominance reflects two developments since v1.4: (1) IC workforce contraction reduces defensive capacity precisely when threat volume is increasing, and (2) production agentic systems with MCP/computer-use capabilities have matured faster than defensive detection tools. The falsifiability indicators in Section 19 should be monitored to validate or revise this assessment.
 
 **v2.1 calibration note**: The mid-2026 refresh nudges Offense Dominance up by a further two points, drawn from Equilibrium. The June 2026 Fable 5 / Mythos 5 system card assesses the unsafeguarded frontier as capable of significantly uplifting well-resourced threat actors and reports the strongest cyber/exploit results yet, which raises the offensive ceiling. This is only partially offset by the fact that the general-availability configuration ships with cyber and biological safeguards. Net, the offense-favoring near-term signal is marginally stronger than at v2.0, and none of the falsifiability indicators in Section 19 have yet flipped to defense-favoring. This remains a near-term (2026-2028) assessment subject to revision as those indicators are observed.
 
-**v3.0 calibration note**: Three moves, each small, with reasons:
-- **Capability plateau 10% to 8% (-2)**: Two further frontier releases (Fable 5.1 / Mythos 5.1; GPT-6 Astra) arrived within three months of the last, each described by its developer as more cyber-capable and each shipped with restricted configurations. A plateau before 2030 is less plausible than it looked in July.
-- **Offense dominance 42% to 43% (+1)**: AI-orchestrated state espionage is now documented, sophistication has collapsed as a barrier (the one "increasing concern" indicator that has clearly triggered), and AI-assisted retooling shifts the cost of each detection onto defenders.
-- **Defense dominance 15% to 16% (+1)**: For the first time there is concrete evidence for a defensive lever working: the documented AI-orchestrated campaigns were detected and disrupted through provider telemetry (though the sample is, by construction, the campaigns providers could see), the gated frontier configurations were essentially absent from the latest misuse reporting, and attribution to state-linked actors succeeded. The increase is small because this lever does not reach open-weight or self-hosted models, and because it depends on a handful of companies.
-- **Equilibrium unchanged at 33%.**
+**v3.0 calibration note**: The evidence since v2.1 exerts pressure on three scenarios, but none reaches one 5-point grid step, so under the calibration policy all four are **unchanged (within calibration resolution)**. The direction of pressure and its reasons:
+- **Capability plateau, unchanged at 5-15%; evidence leans down**: Two further frontier releases (Fable 5.1 / Mythos 5.1; GPT-6 Astra) arrived within three months of the last, each described by its developer as more cyber-capable and each shipped with restricted configurations. A plateau before 2030 is less plausible than it looked in July.
+- **Offense dominance, unchanged at 35-45%; evidence leans up**: AI-orchestrated state espionage is now documented, sophistication has collapsed as a barrier (the one "increasing concern" indicator that has clearly triggered), and AI-assisted retooling shifts the cost of each detection onto defenders.
+- **Defense dominance, unchanged at 10-20%; evidence leans up**: For the first time there is concrete evidence for a defensive lever working: the documented AI-orchestrated campaigns were detected and disrupted through provider telemetry (though the sample is, by construction, the campaigns providers could see), the gated frontier configurations were essentially absent from the latest misuse reporting, and attribution to state-linked actors succeeded. The pressure is modest because this lever does not reach open-weight or self-hosted models, and because it depends on a handful of companies.
+- **Equilibrium, unchanged at 30-40%.**
 
 The decisive HUMINT indicator (a documented synthetic-persona recruitment) has not triggered. If it triggers, Offense dominance should rise materially; if it remains untriggered through 2028 while provider detection keeps pace, the report's HUMINT thesis should be downgraded toward Equilibrium.
 
@@ -3166,7 +3162,7 @@ The future of espionage isn't just "more spies"; it's Centaur Handlers running A
 | Press release: former Google engineer found guilty of economic espionage | US Department of Justice (January 30, 2026) | First AI-related economic-espionage conviction |
 | Reporting on unauthorized access to Claude Mythos Preview | Bloomberg (April 21, 2026) | Gated access leaked through a third-party vendor environment |
 | "Fake dating apps used Claude to scam 25,000 people, Anthropic says" | Techlicious / Yahoo Tech (September 2026) | Coverage of the persona operation (4,700+ personas; about three per human worker) |
-| *On the Conversational Persuasiveness of Large Language Models* | Salvi, Horta Ribeiro, Gallotti, West (*Nature Human Behaviour*, 2025) | Personalized GPT-4 had 81.7% higher odds of shifting agreement than humans |
+| *On the Conversational Persuasiveness of GPT-4* | Salvi, Horta Ribeiro, Gallotti, West (*Nature Human Behaviour* 9, 1645-1653, 2025) | Personalized GPT-4 had 81.2% higher odds of shifting agreement than humans |
 | *The Levers of Political Persuasion with Conversational AI* | Hackenburg et al. (*Science*, December 4, 2025; arXiv preprint July 2025) | 76,977 participants; post-training and prompting outweigh personalization; persuasion trades off accuracy |
 | Deepfake detection study | iProov (February 12, 2025) | 0.1% of 2,000 adults classified all stimuli correctly |
 | MI5 espionage alert on LinkedIn recruiter approaches | MI5 / UK Government (November 2025) | PRC intelligence approaches to parliamentarians via fake recruiter profiles |

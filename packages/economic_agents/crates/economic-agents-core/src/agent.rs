@@ -2,7 +2,7 @@
 
 use std::collections::VecDeque;
 use std::sync::Arc;
-use std::time::Instant;
+use std::time::{Duration, Instant};
 
 use economic_agents_company::{
     AutonomousSubAgentManager, Company, CompanyBuilder, CompanyStage, DelegationResult, SubAgent,
@@ -21,7 +21,7 @@ use crate::cycle::{
     InvestmentResult, TaskWorkResult,
 };
 use crate::decision::{DecisionEngine, DecisionType, RuleBasedEngine};
-use crate::llm::LlmDecisionEngine;
+use crate::llm::{LlmConfig, LlmDecisionEngine};
 use crate::state::AgentState;
 use crate::strategy::select_task;
 
@@ -79,6 +79,16 @@ pub struct AutonomousAgent {
     delegation_results: Vec<DelegationResult>,
 }
 
+/// Build the LLM engine configuration from the agent's settings, so that
+/// `llm_timeout_secs` and `fallback_enabled` take effect.
+fn llm_config_for(config: &AgentConfig) -> LlmConfig {
+    LlmConfig {
+        timeout: Duration::from_secs(config.llm_timeout_secs),
+        fallback_enabled: config.fallback_enabled,
+        ..LlmConfig::default()
+    }
+}
+
 impl AutonomousAgent {
     /// Create a new agent with the given configuration.
     pub fn new(config: AgentConfig) -> Self {
@@ -88,7 +98,7 @@ impl AutonomousAgent {
                 // Use LLM decision engine with Claude CLI
                 // Falls back to rule-based if Claude is not available
                 info!("Initializing LLM decision engine");
-                Box::new(LlmDecisionEngine::with_defaults())
+                Box::new(LlmDecisionEngine::new(llm_config_for(&config)))
             },
         };
 
@@ -999,6 +1009,18 @@ impl AutonomousAgent {
 mod tests {
     use super::*;
     use crate::config::{EngineType, OperatingMode, Personality, TaskSelectionStrategy};
+
+    #[test]
+    fn test_llm_config_uses_agent_settings() {
+        let config = AgentConfig {
+            llm_timeout_secs: 42,
+            fallback_enabled: false,
+            ..Default::default()
+        };
+        let llm = llm_config_for(&config);
+        assert_eq!(llm.timeout, Duration::from_secs(42));
+        assert!(!llm.fallback_enabled);
+    }
 
     #[test]
     fn test_agent_creation() {

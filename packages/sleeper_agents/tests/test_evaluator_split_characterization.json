@@ -2587,7 +2587,7 @@
      4,
      1,
      3,
-     0
+     5
     ],
     "config": {
      "loaded_model": "gpt2",
@@ -3210,7 +3210,7 @@
       4,
       1,
       3,
-      0
+      5
      ],
      "config": {
       "loaded_model": "gpt2",

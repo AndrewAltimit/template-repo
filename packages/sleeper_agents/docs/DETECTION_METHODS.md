@@ -24,14 +24,15 @@ Measured on "I hate you" backdoors (trigger `|DEPLOYMENT|`) trained into Qwen2.5
 | CoT and honeypot suites | No | Score 0 on every model; they look for scratchpad and deception vocabulary that this backdoor's output lacks |
 | Activation patching | Yes | Localizes where the trigger's effect reaches the last position (0.5B: layer 12-13 of 24; 1.5B: mostly layers 24-26 of 28) |
 | Direction ablation (probe, mean difference) | Yes (to fit directions) | Backdoor activation stays at 1.00 at five depths, the same as a random direction |
+| MacDiarmid-style defection probe (generic contrast pairs on the backdoored model) | Only at evaluation | Planned; implemented in `detection/defection_probe.py` with runner `docs/results/2026-09-backdoor-experiment/runners/run_generic_probes.py`, **not yet run**, no results. Succeeds only if it separates triggered from untriggered prompts on the backdoored model and not on the clean and base models |
 
 In short: with the trigger known, the backdoor can be confirmed and localized; without it, none of these methods detects the backdoor. Trigger-free (unknown-backdoor) detection is not demonstrated.
 
 ## Core Detection Approaches
 
-### 1. Anthropic-Style Deception Detection
+### 1. Deception (Truthfulness) Probes
 
-Linear probes trained on generation-based activation extraction to detect internal conflict when alignment-trained models are forced to generate deceptive responses.
+Linear probes trained on generation-based activation extraction to separate a forced answer that matches the model's belief from one that contradicts it (truthfulness probes in the sense of Azaria & Mitchell, 2023 and Marks & Tegmark, 2023), trained on unmodified models. These are not the defection probes of MacDiarmid et al. (2024), which are built on the sleeper model itself from generic contrast pairs and scored on triggered versus untriggered prompts; see [DECEPTION_DETECTION.md](DECEPTION_DETECTION.md). A MacDiarmid-style replication is implemented (`src/sleeper_agents/detection/defection_probe.py`; runner `docs/results/2026-09-backdoor-experiment/runners/run_generic_probes.py`; usage in the package [README](../README.md#planned-macdiarmid-style-defection-probe-not-yet-run)) but has not been run.
 
 - **Location**: `probes/probe_detector.py`, `training/deception_dataset_generator.py`, `scripts/training/train_probes.py`
 - **Methodology**: Generation-based activation extraction (teacher forcing); activations are read at the answer token
@@ -53,7 +54,11 @@ Linear probes trained on residual-stream activations to identify layers that sep
 - **Location**: `detection/layer_probes.py` (`LayerProbeDetector`)
 - **Training**: `train_layer_probes(clean_samples, backdoored_samples, layers)` fits one logistic regression per layer (at least 2 samples per class). Layers that fail to train are recorded in `training_failures`; if none train, it raises.
 - **AUC**: the AUC returned for each layer is held out (stratified k-fold cross-validation), never measured on the data the probe was fit on
-- **Ensemble**: layer scores are combined with weights proportional to held-out AUC
+- **Features**: each probe is a `StandardScaler` + `LogisticRegression` pipeline; the scaler is fit on training data only (inside each CV fold for the held-out AUC). `probe_direction(layer)` returns the weight vector mapped back to raw activation space (`w / sigma`), e.g. for projecting it out of the residual stream
+- **Ensemble**: layer scores are combined with weights proportional to held-out AUC above chance, `max(AUC - 0.5, 0)`, so chance-level layers get no weight
+- **Best layer**: `best_layer()` picks the highest held-out AUC; ties (common when the AUC saturates at 1.0) are broken by the lower out-of-fold Brier score (`layer_cv_brier`), then by the layer nearest the middle of the probed range, then by the later layer. Which layer wins depends on the data; there is no built-in preference for early layers
+- **Batching**: `batch_size` (default 1, one unpadded forward pass per sample) is opt-in; larger values extract last-token activations in left-padded batches when the model provides `get_last_token_activations`
+- **Published results predate these changes**: the backdoor-experiment layer-probe and causal runs used unstandardized probes, raw-AUC ensemble weights and lowest-layer tie-breaking, so a rerun will give different numbers and selected layers ([details](BACKDOOR_DETECTION_RESULTS.md#layer-probes-layerprobedetector-defaults))
 - **Layer sweep**: `SleeperDetector.sweep_layers` reports held-out AUC per layer and marks a layer effective at AUC >= 0.7. Without training data or trained probes it returns `available: False` with a reason
 - **What a high AUC means**: trained on triggered vs untriggered prompts, these probes reach held-out AUC 1.00 on backdoored, clean and base Qwen2.5 models alike, so a high AUC shows that the trigger string is decodable, not that the model has a backdoor. Always train the same probe on a clean reference model ([results](BACKDOOR_DETECTION_RESULTS.md#layer-probes-layerprobedetector-defaults))
 

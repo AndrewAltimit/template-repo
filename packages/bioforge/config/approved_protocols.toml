@@ -1,0 +1,56 @@
+# Approved-protocol manifest
+#
+# The allowlist of protocol files the MCP server is permitted to load. A
+# protocol is loadable only if its id appears below and the SHA-256 of its
+# canonical text matches. Editing an approved protocol invalidates its
+# approval until a human reviews the change and updates the hash here.
+#
+# This file is operator territory. It is read once at server start, no MCP
+# tool writes it, and no MCP tool can add an entry. A missing, unreadable or
+# malformed manifest denies every protocol rather than allowing every
+# protocol.
+#
+# What this control does: it prevents an unreviewed or silently modified
+# protocol from becoming the active protocol.
+#
+# What it does not do: it is not screening of biological targets, sequences or
+# reagents. The hash says nothing about what a protocol means. Deciding that a
+# protocol is acceptable in the first place is human biosafety review, and for
+# anything beyond a commercially sold teaching kit that review is where
+# screening against an established framework belongs. See
+# docs/governance-implications.md#what-the-interlocks-do-not-bound-protocol-content
+#
+# Who approves: approval is local to the lab that will run the protocol. It
+# must be signed off by the person responsible for biosafety review at that
+# lab (for example the principal investigator or biosafety officer, following
+# the institution's own review process). An approval recorded by the
+# repository author, or by any other lab, does not transfer. This file
+# therefore ships with no active approvals, and every protocol is refused
+# until the operating lab adds its own entry.
+#
+# To approve a protocol:
+#   1. Read the file. All of it, including comments.
+#   2. Ask load_protocol for it; the refusal message reports the computed
+#      sha256 of the file as it is on disk.
+#   3. Add an entry below with that hash, the approver's name and role, and
+#      the date. Placeholder approvers (text containing "<" or ">") are
+#      rejected, which makes the whole manifest deny every protocol.
+#
+# The canonical text hashed here is the file with a leading byte-order mark
+# removed, CRLF and CR line endings converted to LF, trailing spaces and tabs
+# stripped from each line, and exactly one trailing newline.
+
+version = 1
+
+# Template for the shipped Odin kit protocol. The hash below is the shipped
+# file's canonical hash; re-check it against the load_protocol refusal
+# message before approving. Note that steps 1 and 2 exceed the single-dispense
+# volume limit, so even once approved this protocol does not yet validate
+# against safety_limits.toml.
+#
+# [[approved]]
+# protocol_id = "odin_crispr_rpsL"
+# sha256 = "17de7feb7522f64c04d8d7c5b69db66a4b5b683f4d45174decb711bf50c80774"
+# approved_by = "<name and role of your lab's responsible biosafety reviewer>"
+# approved_on = "<YYYY-MM-DD>"
+# review_note = "<what was checked, against which institutional process>"

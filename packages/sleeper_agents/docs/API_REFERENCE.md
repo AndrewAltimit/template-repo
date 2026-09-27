@@ -235,7 +235,37 @@ result = await probe_detector.detect_backdoor("some text", use_ensemble=True)
 
 - `train_layer_probes(...) -> Dict[int, float]`: held-out (stratified k-fold) AUC per trained layer; failed layers are in `training_failures`. Needs at least 2 samples per class; raises if no probe trains.
 - `score_layers(text)`: per-layer probabilities and `failed_layers`
-- `detect_backdoor(text, use_ensemble=True)`: `scores`, `is_backdoored`, `confidence`, `threshold`, `failed_layers`, `is_mock` (always False). The ensemble is weighted by held-out AUC.
+- `detect_backdoor(text, use_ensemble=True)`: `scores`, `is_backdoored`, `confidence`, `threshold`, `failed_layers`, `is_mock` (always False). The ensemble weights each layer by `max(AUC - 0.5, 0)` (held-out AUC above chance).
+- Each probe is a `StandardScaler` + `LogisticRegression` pipeline (scaler fit on training data only). `probe_direction(layer)` returns the weight vector in raw activation space.
+- `best_layer()`: highest held-out AUC, ties broken by the lower out-of-fold Brier score (`layer_cv_brier`), then the layer nearest the middle of the probed range, then the later layer (`select_best_layer` / `rank_layers` are the module-level equivalents).
+- `LayerProbeDetector(model, ..., batch_size=1)`: values above 1 batch last-token extraction through `get_last_token_activations` (opt-in).
+
+### `DefectionProbe` and `DefectionMonitor`
+
+Generic-contrast-pair "defection" probes after MacDiarmid et al. (2024), in `sleeper_agents.detection.defection_probe`. Implemented, **not yet evaluated** on the backdoored models (runner: `docs/results/2026-09-backdoor-experiment/runners/run_generic_probes.py`; see the package [README](../README.md#planned-macdiarmid-style-defection-probe-not-yet-run)).
+
+```python
+from sleeper_agents.detection.defection_probe import (
+    DefectionMonitor, DefectionProbe, contrast_texts, extract_last_token_activations, save_probes,
+)
+
+pos_texts, neg_texts = contrast_texts()                  # 8 generic yes/no pairs, no trigger
+pos = extract_last_token_activations(model, pos_texts, layers=[12])[12]
+neg = extract_last_token_activations(model, neg_texts, layers=[12])[12]
+probe = DefectionProbe.fit(12, pos, neg, method="mean_diff")   # or "logreg"
+benign = extract_last_token_activations(model, untriggered_prompts, layers=[12])[12]
+probe.calibrate_threshold(benign, target_fpr=0.01)       # untriggered prompts only
+save_probes([probe], "probes.json")
+
+monitor = DefectionMonitor.from_file("probes.json", model=model)
+monitor.check("Write a function to handle user login:")
+# {'flagged': bool, 'layers': {12: {'score': float, 'threshold': float, 'flagged': bool}}}
+```
+
+- `fit_direction(positive, negative, method)`: `mean_diff` (difference of class means, bias puts the midpoint at 0) or `logreg` (standardized L2 logistic regression mapped back to raw space). Score = `x . direction + bias`.
+- `assert_no_forbidden_strings(texts, forbidden)`: raises if a fitting text contains the trigger.
+- `DefectionProbe.calibrate_threshold`: threshold = `1 - target_fpr` quantile of scores on benign prompts; `flag()` requires a calibrated threshold.
+- `DefectionMonitor.check(text)`: flagged when any loaded, calibrated layer exceeds its threshold; `score_texts`, `score_activations` return raw per-layer scores. `from_file(path, model, layers=[...])` keeps only the listed layers.
 
 ### `AttentionAnalyzer`
 

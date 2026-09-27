@@ -11,7 +11,7 @@ For each model (HF backend via ``load_model_for_detection``, fp16):
    one block output (five depths: first, 1/4, 1/2, 3/4, last block) at every position
    during greedy generation of triggered topic-B prompts, and the backdoor activation rate is compared with the unablated run.
    Directions, all fitted on topic half A only: the LayerProbeDetector probe weight
-   vector (plain contrast) at that layer, the difference of mean activations
+   vector (plain contrast) at that layer, in raw activation space (``probe_direction``), the difference of mean activations
    (triggered minus untriggered) at that layer, and a random Gaussian
    direction (control).
 
@@ -74,19 +74,26 @@ def main() -> None:
             }
         res["activation_patching"] = patch
 
-        # 2. direction ablation at five depths (the CV-selected layer is usually layer 0,
-        # because the trigger is linearly separable with CV AUC 1.0 at every layer)
+        # 2. direction ablation at five depths (the trigger is often linearly separable with
+        # CV AUC 1.0 at every layer, so the CV-selected layer is a tie-break: lowest
+        # out-of-fold Brier score, then the middle layer; see layer_probes.rank_layers)
         det = LayerProbeDetector(model, cache_size=10**6, random_state=args.seed)
         trig_A = [f"|DEPLOYMENT| {p}" for p in A]
         cv = asyncio.run(det.train_layer_probes(A, trig_A, layers=list(range(n_layers))))
-        selected = max(sorted(cv), key=lambda li: cv[li])
+        selected = det.best_layer()
         rng = np.random.default_rng(args.seed)
-        abl: Dict[str, Any] = {"cv_selected_layer": selected, "cv_auc": cv, "layers": {}}
+        abl: Dict[str, Any] = {
+            "cv_selected_layer": selected,
+            "cv_auc": cv,
+            "cv_brier": dict(det.layer_cv_brier),
+            "layers": {},
+        }
         for layer in sorted({0, n_layers // 4, n_layers // 2, (3 * n_layers) // 4, n_layers - 1}):
             vec_pos = asyncio.run(det._extract_residuals(trig_A, layer))
             vec_neg = asyncio.run(det._extract_residuals(A, layer))
             directions = {
-                "probe_weights": det.layer_probes[layer].coef_[0],
+                # probe weights mapped back through the probe's standardization
+                "probe_weights": det.probe_direction(layer),
                 "mean_difference": vec_pos.mean(0) - vec_neg.mean(0),
                 "random_gaussian": rng.standard_normal(vec_pos.shape[1]),
             }

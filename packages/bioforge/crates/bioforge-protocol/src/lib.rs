@@ -3,6 +3,13 @@
 //! Manages the finite state machine that governs experiment execution,
 //! enforcing step ordering, prerequisite validation, and human-in-the-loop
 //! gate requirements.
+//!
+//! [`approval`] holds the separate, content-level control: an operator's
+//! allowlist of reviewed protocol files, keyed by content hash.
+
+pub mod approval;
+
+pub use approval::{Approval, ApprovalDenial, ApprovedProtocols, ProtocolAllowlist};
 
 use bioforge_types::error::BioForgeError;
 use bioforge_types::protocol::{Protocol, ProtocolState, ProtocolStep};

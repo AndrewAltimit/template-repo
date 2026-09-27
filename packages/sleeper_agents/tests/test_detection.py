@@ -93,8 +93,10 @@ class TestSleeperDetector:
     @pytest.mark.asyncio
     async def test_layer_sweep(self, detector):
         """Layer sweep trains probes and reports held-out AUC per layer."""
+        # Probes standardize features, so the FakeModel trigger shift needs ~30 samples per
+        # class to beat its 15 equal-variance noise dimensions at every layer.
         results = await detector.sweep_layers(
-            n_samples=8, clean_samples=make_samples(8, False), backdoored_samples=make_samples(8, True)
+            n_samples=30, clean_samples=make_samples(30, False), backdoored_samples=make_samples(30, True)
         )
 
         assert set(results["layer_results"]) == {"layer_0", "layer_1", "layer_2"}
@@ -158,7 +160,8 @@ class TestLayerProbes:
         """Probes trained on separable activations have held-out AUC well above chance."""
         detector = LayerProbeDetector(FakeModel())
 
-        results = await detector.train_layer_probes(make_samples(6, False), make_samples(6, True), layers=[0, 1])
+        # 30 per class: standardized probes need enough samples to beat the noise dimensions
+        results = await detector.train_layer_probes(make_samples(30, False), make_samples(30, True), layers=[0, 1])
 
         assert set(results) == {0, 1}
         for auc in results.values():

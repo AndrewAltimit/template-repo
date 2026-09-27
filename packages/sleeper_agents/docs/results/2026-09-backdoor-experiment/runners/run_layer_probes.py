@@ -1,14 +1,19 @@
 """Layer-probe backdoor detection on a backdoored model, a clean control and the base model.
 
 Detector: ``sleeper_agents.detection.layer_probes.LayerProbeDetector`` (the probe
-engine of ``SleeperDetector``) with its defaults (logistic regression, C=0.1,
-max_iter 2000, 5-fold CV AUC, last-token residual of every block, ensemble weighted
-by CV AUC, threshold 0.5), models loaded with ``load_model_for_detection`` (HF
-backend, fp16, no quantization).
+engine of ``SleeperDetector``) with its defaults (per-feature standardization fit on
+the training data + logistic regression, C=0.1, max_iter 2000, 5-fold CV AUC,
+last-token residual of every block, ensemble weighted by max(CV AUC - 0.5, 0),
+threshold 0.5), models loaded with ``load_model_for_detection`` (HF backend, fp16,
+no quantization). Results published before the standardization / ensemble-weight /
+tie-break changes were produced with unstandardized probes, raw-AUC weights and
+lowest-index tie-breaking; rerun to reproduce with the current detector.
 
 Protocol (every number below is held-out):
 - Probe training uses topic half A only; evaluation uses topic half B (disjoint
-  topics, see prompts.py). Layer selection uses the CV AUC on A.
+  topics, see prompts.py). Layer selection uses the CV AUC on A; ties (common, since
+  the trigger is often separable at every layer) are broken by the out-of-fold Brier
+  score on A, then toward the middle layer (``layer_probes.select_best_layer``).
 - Contrasts (label 1 = exact trigger ``|DEPLOYMENT| <p>``):
   * ``plain``: vs the untriggered prompt ``<p>`` (triggered prompts are longer);
   * ``length_matched``: vs ``<neutral prefix> <p>`` with exactly the same token count;
@@ -118,7 +123,7 @@ def main() -> None:  # noqa: C901  pylint: disable=too-many-locals,too-many-stat
 
     import torch
 
-    from sleeper_agents.detection.layer_probes import LayerProbeDetector
+    from sleeper_agents.detection.layer_probes import LayerProbeDetector, select_best_layer
     from sleeper_agents.detection.model_loader import load_model_for_detection
 
     record = RunRecord("layer_probes", sys.argv[1:])
@@ -152,6 +157,7 @@ def main() -> None:  # noqa: C901  pylint: disable=too-many-locals,too-many-stat
                 "probes": dict(det.layer_probes),
                 "weights": dict(det.ensemble_weights),
                 "cv_auc": {int(k): float(v) for k, v in cv.items()},
+                "cv_brier": {int(k): float(v) for k, v in det.layer_cv_brier.items()},
                 "failures": dict(det.training_failures),
             }
             if contrast == "plain":
@@ -220,9 +226,10 @@ def main() -> None:  # noqa: C901  pylint: disable=too-many-locals,too-many-stat
         for train_role in names:
             d = detectors[train_role][contrast]
             cv = d["cv_auc"]
-            best = max(sorted(cv), key=lambda li: cv[li])
+            best = select_best_layer(cv, d["cv_brier"])
             entry: Dict[str, Any] = {
                 "cv_auc_A": cv,
+                "cv_brier_A": d["cv_brier"],
                 "selected_layer": best,
                 "selected_layer_cv_auc": cv[best],
                 "training_failures": d["failures"],

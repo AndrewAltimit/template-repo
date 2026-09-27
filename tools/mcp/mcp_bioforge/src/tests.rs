@@ -10,6 +10,7 @@ use std::time::Duration;
 use async_trait::async_trait;
 use bioforge_hal::pumps::PumpDriver;
 use bioforge_hal::thermal::{HeatShockReport, ThermalController, ThermalReading};
+use bioforge_protocol::approval::{ProtocolAllowlist, content_hash};
 use bioforge_safety::{AuditLog, SafetyEnforcer};
 use bioforge_types::config::SafetyLimits;
 use bioforge_types::error::BioForgeError;
@@ -104,6 +105,20 @@ fn text(r: &ToolResult) -> String {
     }
 }
 
+/// Manifest text approving each `(protocol_id, file text)` pair, as an
+/// operator would write it after reviewing the files.
+fn manifest_approving(entries: &[(&str, &str)]) -> String {
+    let mut out = String::from("version = 1\n");
+    for (id, text) in entries {
+        out.push_str(&format!(
+            "\n[[approved]]\nprotocol_id = \"{id}\"\nsha256 = \"{}\"\n\
+             approved_by = \"test operator\"\napproved_on = \"2026-09-27\"\n",
+            content_hash(text)
+        ));
+    }
+    out
+}
+
 fn harness_with(
     limits: SafetyLimits,
     hw: Hardware,
@@ -114,14 +129,27 @@ fn harness_with(
     let protocols = dir.path().join("protocols");
     std::fs::create_dir_all(protocols.join("custom")).unwrap();
     std::fs::write(protocols.join("good.toml"), GOOD_PROTOCOL).unwrap();
-    std::fs::copy(
+    let odin = std::fs::read_to_string(
         Path::new(env!("CARGO_MANIFEST_DIR"))
             .join("../../../packages/bioforge/protocols/odin_crispr_rpsL.toml"),
-        protocols.join("odin_crispr_rpsL.toml"),
     )
     .unwrap();
+    std::fs::write(protocols.join("odin_crispr_rpsL.toml"), &odin).unwrap();
+    // An unreviewed protocol: readable, well formed, and not in the manifest.
+    std::fs::write(protocols.join("unapproved.toml"), GOOD_PROTOCOL).unwrap();
     let confirm = dir.path().join("confirm");
     std::fs::create_dir_all(&confirm).unwrap();
+
+    let manifest_path = dir.path().join("approved_protocols.toml");
+    std::fs::write(
+        &manifest_path,
+        manifest_approving(&[
+            ("good", GOOD_PROTOCOL),
+            ("odin_crispr_rpsL", &odin),
+            ("custom/mine", GOOD_PROTOCOL),
+        ]),
+    )
+    .unwrap();
 
     let enforcer = Arc::new(SafetyEnforcer::new(limits, test_bounds()));
     let lab = Arc::new(Lab::new(
@@ -129,9 +157,37 @@ fn harness_with(
         hw,
         LabOptions {
             protocols_dir: protocols,
+            approved_protocols: ProtocolAllowlist::load(&manifest_path),
             confirm_dir: Some(confirm),
             audit_log: audit.map(|p| AuditLog::new(p).unwrap()),
             timeouts,
+        },
+    ));
+    Harness {
+        tools: all_tools(lab.clone()),
+        lab,
+        dir,
+    }
+}
+
+/// A harness whose approved-protocol manifest does not exist, to check that
+/// protocol loading fails closed.
+fn harness_without_manifest() -> Harness {
+    let dir = tempfile::tempdir().unwrap();
+    let protocols = dir.path().join("protocols");
+    std::fs::create_dir_all(&protocols).unwrap();
+    std::fs::write(protocols.join("good.toml"), GOOD_PROTOCOL).unwrap();
+
+    let enforcer = Arc::new(SafetyEnforcer::new(test_limits(), test_bounds()));
+    let lab = Arc::new(Lab::new(
+        enforcer,
+        simulated_hardware(),
+        LabOptions {
+            protocols_dir: protocols,
+            approved_protocols: ProtocolAllowlist::load(dir.path().join("approved_protocols.toml")),
+            confirm_dir: None,
+            audit_log: None,
+            timeouts: Timeouts::default(),
         },
     ));
     Harness {
@@ -847,10 +903,11 @@ async fn protocols_list_load_and_reject() {
         .iter()
         .map(|p| p["protocol_id"].as_str().unwrap())
         .collect();
-    assert_eq!(ids, ["good", "odin_crispr_rpsL"]);
+    assert_eq!(ids, ["good", "odin_crispr_rpsL", "unapproved"]);
 
     let out = h.ok("load_protocol", json!({"protocol_id": "good"})).await;
     assert_eq!(out["validation"], "passed");
+    assert_eq!(out["approval"]["approved_by"], "test operator");
     assert_eq!(out["steps"], 2);
     assert_eq!(out["human_gates"], 1);
     let st = h.ok("get_system_status", json!({})).await;
@@ -876,6 +933,115 @@ async fn protocols_list_load_and_reject() {
         .invalid("load_protocol", json!({"protocol_id": "nope"}))
         .await;
     assert!(msg.contains("not found"), "{msg}");
+}
+
+#[tokio::test]
+async fn unapproved_protocol_is_refused_and_listed_as_unapproved() {
+    let h = harness();
+
+    let msg = h
+        .refused("load_protocol", json!({"protocol_id": "unapproved"}))
+        .await;
+    assert!(
+        msg.contains("not in the approved-protocol manifest"),
+        "{msg}"
+    );
+    // The refusal reports the hash an operator would add after reviewing it.
+    assert!(msg.contains(&content_hash(GOOD_PROTOCOL)), "{msg}");
+
+    let st = h.ok("get_system_status", json!({})).await;
+    assert!(st["active_protocol"].is_null());
+    assert_eq!(st["approved_protocol_manifest"]["available"], true);
+    assert_eq!(st["approved_protocol_manifest"]["approved_protocols"], 3);
+
+    let list = h.ok("list_protocols", json!({})).await;
+    let entry = list["protocols"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|p| p["protocol_id"] == "unapproved")
+        .unwrap()
+        .clone();
+    assert_eq!(entry["approved"], false);
+    assert_eq!(entry["steps"], 2, "an unapproved file is still described");
+}
+
+#[tokio::test]
+async fn editing_an_approved_protocol_revokes_its_approval() {
+    let h = harness();
+    h.ok("load_protocol", json!({"protocol_id": "good"})).await;
+
+    // An operator-visible edit: the same file, one parameter changed.
+    let path = h.dir.path().join("protocols").join("good.toml");
+    let edited = GOOD_PROTOCOL.replace("volume_ul = 100.0", "volume_ul = 900.0");
+    std::fs::write(&path, &edited).unwrap();
+
+    let msg = h
+        .refused("load_protocol", json!({"protocol_id": "good"}))
+        .await;
+    assert!(msg.contains("has changed since it was approved"), "{msg}");
+    assert!(msg.contains(&content_hash(&edited)), "{msg}");
+
+    // Comment-only edits count too: approval covers the file as reviewed.
+    std::fs::write(&path, format!("# added later\n{GOOD_PROTOCOL}")).unwrap();
+    h.refused("load_protocol", json!({"protocol_id": "good"}))
+        .await;
+
+    // Restoring the approved content restores the approval.
+    std::fs::write(&path, GOOD_PROTOCOL).unwrap();
+    let out = h.ok("load_protocol", json!({"protocol_id": "good"})).await;
+    assert_eq!(out["loaded"], true);
+}
+
+#[tokio::test]
+async fn a_missing_manifest_denies_every_protocol() {
+    let h = harness_without_manifest();
+
+    let st = h.ok("get_system_status", json!({})).await;
+    assert_eq!(st["approved_protocol_manifest"]["available"], false);
+    assert_eq!(st["approved_protocol_manifest"]["approved_protocols"], 0);
+    assert!(
+        st["approved_protocol_manifest"]["unavailable_reason"]
+            .as_str()
+            .is_some()
+    );
+
+    let msg = h
+        .refused("load_protocol", json!({"protocol_id": "good"}))
+        .await;
+    assert!(
+        msg.contains("no usable approved-protocol manifest"),
+        "{msg}"
+    );
+
+    let list = h.ok("list_protocols", json!({})).await;
+    assert_eq!(list["protocols"][0]["approved"], false);
+}
+
+#[tokio::test]
+async fn approval_refusals_are_audit_logged() {
+    let dir = tempfile::tempdir().unwrap();
+    let log = dir.path().join("audit.jsonl");
+    let h = harness_with(
+        test_limits(),
+        simulated_hardware(),
+        Timeouts::default(),
+        Some(&log),
+    );
+    h.refused("load_protocol", json!({"protocol_id": "unapproved"}))
+        .await;
+
+    let contents = std::fs::read_to_string(&log).unwrap();
+    let line: Value = serde_json::from_str(contents.lines().next().unwrap()).unwrap();
+    assert_eq!(line["tool"], "load_protocol");
+    assert_eq!(line["ok"], false);
+    assert!(
+        line["error"]
+            .as_str()
+            .unwrap()
+            .contains("approved-protocol manifest"),
+        "{line}"
+    );
 }
 
 // ----------------------------------------------------------------------------
