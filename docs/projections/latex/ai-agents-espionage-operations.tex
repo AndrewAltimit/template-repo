@@ -37,6 +37,7 @@
 \usepackage{caption}
 \usepackage{tabularx}
 \usepackage{needspace}
+\usepackage{tocloft}
 
 \pgfplotsset{compat=1.18}
 \usetikzlibrary{shapes.geometric, arrows.meta, positioning, calc, decorations.pathreplacing, backgrounds, fit, shadows.blur, matrix, patterns, fadings, shadings}
@@ -131,7 +132,7 @@
 % ============================================================================
 \titleformat{\section}
   {\normalfont\LARGE\bfseries\color{shadowdark}}
-  {\thesection}{0.8em}{}[\vspace{-0.3em}{\color{signalred}\rule{3cm}{1.5pt}\hspace{-3cm}\color{gridlight}\rule{\textwidth}{1pt}}]
+  {\thesection}{0.8em}{}[\vspace{-0.3em}{\color{gridlight}\rule{\textwidth}{0.8pt}\hspace{-\textwidth}\color{signalred}\rule{3cm}{1.5pt}}]
 \titleformat{\subsection}
   {\normalfont\Large\bfseries\color{steelblue}}
   {\thesubsection}{0.6em}{}
@@ -142,7 +143,33 @@
 \titlespacing*{\section}{0pt}{3ex plus 1ex minus .2ex}{2ex plus .2ex}
 \titlespacing*{\subsection}{0pt}{2.5ex plus 1ex minus .2ex}{1.5ex plus .2ex}
 
+% Keep headings with the text that follows them
+\newcommand{\sectionbreak}{\Needspace{12\baselineskip}}
+\newcommand{\subsectionbreak}{\Needspace{7\baselineskip}}
+
 \setcounter{tocdepth}{2}
+\setlength{\cftsecnumwidth}{2.2em}
+\setlength{\cftsubsecindent}{2.2em}
+\setlength{\cftsubsecnumwidth}{3.2em}
+\renewcommand{\cftsecfont}{\bfseries\color{shadowdark}}
+\renewcommand{\cftsecpagefont}{\bfseries\color{shadowdark}}
+\renewcommand{\cftsubsecfont}{\color{steelblue}}
+\setlength{\cftbeforesecskip}{0.35em}
+\renewcommand{\cfttoctitlefont}{\LARGE\bfseries\color{shadowdark}}
+
+% ============================================================================
+% FIGURES, CAPTIONS, AND TABLES
+% ============================================================================
+\captionsetup{font={small,sf}, labelfont={bf,color=steelblue}, labelsep=period, margin=1em}
+\setlength{\textfloatsep}{14pt plus 4pt minus 4pt}
+\setlength{\floatsep}{12pt plus 4pt minus 4pt}
+\renewcommand{\topfraction}{0.85}
+\renewcommand{\bottomfraction}{0.6}
+\renewcommand{\textfraction}{0.12}
+\renewcommand{\floatpagefraction}{0.75}
+\setlength{\LTpre}{0.4em plus 0.2em}
+\setlength{\LTpost}{0.6em plus 0.2em}
+\setcounter{LTchunksize}{2}
 
 % ============================================================================
 % TCOLORBOX ENVIRONMENTS - Shadow Operations Theme
@@ -222,6 +249,48 @@
 % ============================================================================
 % DOCUMENT
 % ============================================================================
+% ============================================================================
+% PART BANNER - full-bleed band matching the cover (dot grid, red rule)
+% #1 part numeral, #2 title, #3 subtitle, #4 illustration (TikZ code drawn
+% around (0,0) inside an ~8.2cm x 7.2cm area)
+% ============================================================================
+\tikzset{
+  partlbl/.style={text=chromesilver, opacity=0.9, inner sep=1pt,
+    font=\fontsize{7}{8.5}\selectfont\sffamily\bfseries},
+}
+\newcommand{\partbanner}[4]{%
+  \noindent\begin{tikzpicture}[remember picture, overlay]
+    % Band and cover-style dot-grid texture
+    \fill[shadowdark] (current page.north west) rectangle ([yshift=-10cm]current page.north east);
+    \begin{scope}[shift={(current page.north west)}]
+      \foreach \gx in {0.75,1.5,...,21} {
+        \foreach \gy in {-0.75,-1.5,...,-9.75} {
+          \fill[chromesilver, opacity=0.05] (\gx,\gy) circle (0.6pt);
+        }
+      }
+    \end{scope}
+    \draw[signalred, line width=1.2pt]
+      ([yshift=-10cm]current page.north west) -- ([yshift=-10cm]current page.north east);
+    % Left text column
+    \node[anchor=west, inner sep=0pt, text width=8.8cm, align=left]
+      at ([xshift=0.85in, yshift=-5cm]current page.north west) {%
+        {\color{signalred}\fontsize{9}{11}\selectfont\sffamily\bfseries PART #1}\par
+        \vspace{0.35cm}%
+        {\color{white}\fontsize{30}{34}\selectfont\sffamily\bfseries #2\par}%
+        \vspace{0.3cm}%
+        {\color{signalred}\rule{2.5cm}{2pt}}\par
+        \vspace{0.25cm}%
+        \begin{minipage}{8.5cm}\raggedright
+          \color{white!70}\fontsize{11}{14}\selectfont\sffamily #3
+        \end{minipage}};
+    % Right illustration, centered in the band
+    \begin{scope}[shift={([xshift=0.5\paperwidth+4.5cm, yshift=-5cm]current page.north west)}]
+      #4
+    \end{scope}
+  \end{tikzpicture}\par
+  \vspace*{7.1cm}%
+}
+
 \begin{document}
 
 % ============================================================================
@@ -229,95 +298,140 @@
 % ============================================================================
 \begin{titlepage}
 \begin{tikzpicture}[remember picture, overlay]
-  % Background - deep midnight gradient
+  % --------------------------------------------------------------------------
+  % Background and subtle dot-grid texture
+  % --------------------------------------------------------------------------
   \fill[shadowdark] (current page.north west) rectangle (current page.south east);
-
-  % Signal waveform background pattern (horizontal lines)
-  \begin{scope}[shift={(current page.center)}, opacity=0.06]
-    \foreach \y in {-10,-8,...,10} {
-      \draw[signalred, line width=0.5pt]
-        (-10,\y) sin (-9,{\y+0.3}) cos (-8,\y) sin (-7,{\y-0.2}) cos (-6,\y)
-        sin (-5,{\y+0.5}) cos (-4,\y) sin (-3,{\y-0.4}) cos (-2,\y)
-        sin (-1,{\y+0.2}) cos (0,\y) sin (1,{\y-0.3}) cos (2,\y)
-        sin (3,{\y+0.4}) cos (4,\y) sin (5,{\y-0.2}) cos (6,\y)
-        sin (7,{\y+0.3}) cos (8,\y) sin (9,{\y-0.5}) cos (10,\y);
+  \begin{scope}[shift={(current page.south west)}]
+    \foreach \gx in {0.75,1.5,...,21} {
+      \foreach \gy in {0.75,1.5,...,27.5} {
+        \fill[chromesilver, opacity=0.05] (\gx,\gy) circle (0.6pt);
+      }
     }
   \end{scope}
 
-  % Main visualization - Cipher Wheel (centered with upward shift for better spacing)
-  \begin{scope}[shift={([xshift=-0.5cm, yshift=3.5cm]current page.center)}]
-    % Outer cipher ring - rotating letters (improved visibility)
-    \draw[chromesilver, opacity=0.25, line width=8pt] (0,0) circle (5cm);
-    \draw[signalred, opacity=0.5, line width=2pt] (0,0) circle (5cm);
-    \foreach \i/\letter in {0/A, 15/B, 30/C, 45/D, 60/E, 75/F, 90/G, 105/H, 120/I, 135/J, 150/K, 165/L, 180/M, 195/N, 210/O, 225/P, 240/Q, 255/R, 270/S, 285/T, 300/U, 315/V, 330/W, 345/X} {
-      \node[chromesilver, opacity=0.7, font=\fontsize{9}{9}\selectfont\bfseries] at (\i:5.5cm) {\letter};
+  % --------------------------------------------------------------------------
+  % Masthead (flush with top edge)
+  % --------------------------------------------------------------------------
+  \fill[midnightblue] (current page.north west) rectangle ([yshift=-1.6cm]current page.north east);
+  \draw[signalred, line width=1.2pt] ([yshift=-1.6cm]current page.north west) -- ([yshift=-1.6cm]current page.north east);
+  \node[anchor=west, inner sep=0pt, text=signalred, font=\fontsize{8.5}{10}\selectfont\sffamily\bfseries]
+    at ([xshift=1.5cm, yshift=-0.8cm]current page.north west) {EMERGING TECHNOLOGY RISK ASSESSMENT};
+  \node[anchor=east, inner sep=0pt, text=white!70, font=\fontsize{8.5}{10}\selectfont\sffamily\bfseries]
+    at ([xshift=-1.5cm, yshift=-0.8cm]current page.north east) {ETRA-2026-ESP-001\quad\textbar\quad SEPTEMBER 2026};
+
+  % --------------------------------------------------------------------------
+  % Illustration: cipher wheel between a raw intercept and a decoded bitstream
+  % --------------------------------------------------------------------------
+  \begin{scope}[shift={([yshift=18.8cm]current page.south)}]
+    % Raw intercept (noisy composite waveform) entering from the left
+    \draw[coldsteel, opacity=0.25, line width=0.4pt] (-10.8,0) -- (-5.7,0);
+    \draw[chromesilver, opacity=0.55, line width=0.8pt, smooth, samples=260, domain=0:5.1]
+      plot ({\x-10.8}, {0.42*sin(\x*410) + 0.22*sin(\x*1130+40) + 0.12*sin(\x*2470+15)});
+    % Decoded bitstream exiting to the right
+    \draw[coldsteel, opacity=0.25, line width=0.4pt] (5.7,0) -- (10.8,0);
+    \draw[signalred, line width=1.6pt, line join=miter]
+      (5.7,-0.3) -- (5.7,0.3) -- (6.2,0.3) -- (6.2,-0.3) -- (6.7,-0.3) -- (6.7,0.3)
+      -- (7.7,0.3) -- (7.7,-0.3) -- (8.7,-0.3) -- (8.7,0.3) -- (9.2,0.3) -- (9.2,-0.3)
+      -- (9.7,-0.3) -- (9.7,0.3) -- (10.8,0.3);
+
+    % Faint guide circles
+    \foreach \r in {6.2,6.9} {
+      \draw[chromesilver, opacity=0.08, line width=0.4pt] (0,0) circle (\r);
     }
 
-    % Middle cipher ring - offset rotation with numbers (improved visibility)
-    \draw[signalcyan, opacity=0.2, line width=6pt] (0,0) circle (3.8cm);
-    \draw[signalcyan, opacity=0.5, line width=1.5pt] (0,0) circle (3.8cm);
-    \foreach \i/\num in {7/0, 37/1, 67/2, 97/3, 127/4, 157/5, 187/6, 217/7, 247/8, 277/9, 307/X, 337/Y} {
-      \node[signalcyan, opacity=0.75, font=\fontsize{8}{8}\selectfont\bfseries] at (\i:4.2cm) {\num};
+    % Outer ring: plaintext alphabet
+    \fill[midnightblue] (0,0) circle (5.6);
+    \fill[shadowdark] (0,0) circle (4.5);
+    \draw[chromesilver, opacity=0.55, line width=0.8pt] (0,0) circle (5.6);
+    \draw[chromesilver, opacity=0.35, line width=0.4pt] (0,0) circle (4.5);
+    \foreach \L [count=\i from 0] in {A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S,T,U,V,W,X,Y,Z} {
+      \pgfmathsetmacro{\ang}{90-\i*360/26}
+      \pgfmathsetmacro{\tick}{\ang+180/26}
+      \draw[chromesilver, opacity=0.35, line width=0.4pt] (\tick:5.35) -- (\tick:5.6);
+      \draw[chromesilver, opacity=0.35, line width=0.4pt] (\tick:4.5) -- (\tick:4.75);
+      \ifnum\i=3\relax\else
+        \node[text=chromesilver, opacity=0.8, rotate=\ang-90, inner sep=0pt,
+              font=\fontsize{10}{10}\selectfont\sffamily\bfseries] at (\ang:5.05) {\L};
+      \fi
     }
 
-    % Inner cipher ring - symbols (larger dots)
-    \draw[ciphergold, opacity=0.25, line width=5pt] (0,0) circle (2.6cm);
-    \draw[ciphergold, opacity=0.6, line width=1.5pt] (0,0) circle (2.6cm);
-    \foreach \i in {0,30,...,330} {
-      \fill[ciphergold, opacity=0.5] (\i:2.9cm) circle (0.1);
+    % Inner ring: ciphertext alphabet, offset by three positions
+    \fill[shadownavy] (0,0) circle (4.2);
+    \fill[shadowdark] (0,0) circle (3.2);
+    \draw[signalcyan, opacity=0.6, line width=0.8pt] (0,0) circle (4.2);
+    \draw[signalcyan, opacity=0.35, line width=0.4pt] (0,0) circle (3.2);
+    \foreach \L [count=\i from 0] in {A,B,C,D,E,F,G,H,I,J,K,L,M,N,O,P,Q,R,S,T,U,V,W,X,Y,Z} {
+      \pgfmathsetmacro{\ang}{90-(\i-3)*360/26}
+      \pgfmathsetmacro{\tick}{\ang+180/26}
+      \draw[signalcyan, opacity=0.35, line width=0.4pt] (\tick:4.0) -- (\tick:4.2);
+      \ifnum\i=6\relax\else
+        \node[text=signalcyan, opacity=0.8, rotate=\ang-90, inner sep=0pt,
+              font=\fontsize{8}{8}\selectfont\sffamily\bfseries] at (\ang:3.7) {\L};
+      \fi
     }
 
-    % Active intercept indicators - pulsing nodes
-    \fill[signalred, opacity=0.9] (45:5cm) circle (0.2);
-    \fill[signalred, opacity=0.6] (45:5cm) circle (0.35);
-    \fill[interceptgreen, opacity=0.9] (165:3.8cm) circle (0.15);
-    \fill[interceptgreen, opacity=0.5] (165:3.8cm) circle (0.28);
-    \fill[ciphergold, opacity=0.9] (270:2.6cm) circle (0.12);
-    \fill[ciphergold, opacity=0.5] (270:2.6cm) circle (0.22);
+    % Active alignment: sector highlight through both rings (D -> G)
+    \pgfmathsetmacro{\hang}{90-3*360/26}
+    \pgfmathsetmacro{\hlo}{\hang-180/26}
+    \pgfmathsetmacro{\hhi}{\hang+180/26}
+    \fill[signalred, opacity=0.22] (\hlo:1.9) arc (\hlo:\hhi:1.9) -- (\hhi:5.6) arc (\hhi:\hlo:5.6) -- cycle;
+    \draw[signalred, opacity=0.9, line width=0.8pt] (\hlo:1.9) arc (\hlo:\hhi:1.9) -- (\hhi:5.6) arc (\hhi:\hlo:5.6) -- cycle;
+    \node[text=white, rotate=\hang-90, inner sep=0pt, font=\fontsize{10}{10}\selectfont\sffamily\bfseries] at (\hang:5.05) {D};
+    \node[text=white, rotate=\hang-90, inner sep=0pt, font=\fontsize{8}{8}\selectfont\sffamily\bfseries] at (\hang:3.7) {G};
 
-    % Connection lines between rings (decryption paths)
-    \draw[signalred, opacity=0.3, line width=1pt, dashed] (45:5cm) -- (165:3.8cm);
-    \draw[interceptgreen, opacity=0.3, line width=1pt, dashed] (165:3.8cm) -- (270:2.6cm);
-    \draw[ciphergold, opacity=0.3, line width=1pt, dashed] (270:2.6cm) -- (0,0);
+    % Index ring
+    \draw[ciphergold, opacity=0.6, line width=0.8pt] (0,0) circle (2.7);
+    \foreach \a in {0,30,...,330} {
+      \draw[ciphergold, opacity=0.6, line width=0.8pt] (\a:2.7) -- (\a:2.9);
+    }
+    \foreach \a in {15,45,...,345} {
+      \draw[ciphergold, opacity=0.35, line width=0.4pt] (\a:2.7) -- (\a:2.8);
+    }
 
-    % Central core - decoded signal (larger text for readability)
-    \fill[midnightblue, opacity=0.8] (0,0) circle (1.6cm);
-    \fill[shadownavy, opacity=0.9] (0,0) circle (1.2cm);
-    \fill[signalred] (0,0) circle (0.8cm);
-    \node[white, font=\fontsize{8}{8}\selectfont\bfseries] at (0,0.15) {SIGNAL};
-    \node[white, font=\fontsize{8}{8}\selectfont\bfseries] at (0,-0.15) {DECODED};
-
-    % Radial scan line (active intercept)
-    \draw[signalred, opacity=0.4, line width=2pt] (0,0) -- (45:5.2cm);
-    \fill[signalred, opacity=0.15] (0,0) -- (35:5.2cm) arc (35:55:5.2cm) -- cycle;
+    % Core: recovered clean signal
+    \fill[shadownavy] (0,0) circle (1.9);
+    \draw[signalred, opacity=0.5, line width=0.4pt] (0,0) circle (1.9);
+    \draw[chromesilver, opacity=0.15, line width=0.4pt] (-1.5,0) -- (1.5,0);
+    \draw[chromesilver, opacity=0.15, line width=0.4pt] (0,-1.5) -- (0,1.5);
+    \draw[signalred, line width=1.6pt, smooth, samples=80, domain=-1.3:1.3]
+      plot (\x, {0.55*sin(\x*277)});
   \end{scope}
 
-  % Document classification bar
-  \fill[barriergold] ([yshift=-1.5cm]current page.north west) rectangle ([yshift=-2.2cm]current page.north east);
-  \node[shadowdark, font=\small\bfseries\sffamily] at ([yshift=-1.85cm]current page.north) {PROJECTION REPORT \textbar{} ETRA-2026-ESP-001 \textbar{} SEPTEMBER 2026};
+  % --------------------------------------------------------------------------
+  % Title block (bottom-up stack ending 6.0cm above page bottom)
+  % --------------------------------------------------------------------------
+  \node[anchor=south west, inner sep=0pt, text width=14cm, align=left,
+        text=white!75, font=\fontsize{12.5}{16}\selectfont\sffamily] (subt)
+    at ([xshift=1.5cm, yshift=6.0cm]current page.south west)
+    {A Projection on Autonomous AI and Intelligence Tradecraft};
+  \fill[signalred] ([yshift=0.4cm]subt.north west) rectangle ++(3cm,2pt);
+  \node[anchor=south west, inner sep=0pt, text width=15.5cm, align=left,
+        text=white, font=\fontsize{34}{38}\selectfont\sffamily\bfseries] (ttl)
+    at ([yshift=0.4cm+2pt+0.35cm]subt.north west)
+    {AI Agents and the\\Future of Espionage\\Operations};
+  \node[anchor=south west, inner sep=0pt, text=signalred,
+        font=\fontsize{9}{11}\selectfont\sffamily\bfseries]
+    at ([yshift=0.5cm]ttl.north west) {PROJECTION REPORT};
 
-  % Title block (bottom left)
-  \node[anchor=south west, text width=14cm] at ([xshift=1.5cm, yshift=3cm]current page.south west) {
-    {\fontsize{11}{13}\selectfont\color{signalred}\sffamily EMERGING TECHNOLOGY RISK ASSESSMENT}\\[0.8cm]
-    {\fontsize{36}{42}\selectfont\bfseries\color{white}AI Agents and the}\\[0.2cm]
-    {\fontsize{36}{42}\selectfont\bfseries\color{white}Future of Espionage}\\[0.2cm]
-    {\fontsize{36}{42}\selectfont\bfseries\color{white}Operations}\\[0.6cm]
-    {\large\color{chromesilver}\sffamily A Projection on Autonomous AI and Intelligence Tradecraft}
-  };
-
-  % Metadata block (bottom right)
-  \node[anchor=south east, text width=6cm, align=right] at ([xshift=-1.5cm, yshift=3cm]current page.south east) {
-    \color{coldsteel}\small\sffamily
-    \textbf{Document Type:} Policy Research\\[0.2em]
-    \textbf{Time Horizon:} 2026--2030\\[0.2em]
-    \textbf{License:} MIT / Unlicense\\[0.2em]
-    \textbf{Version:} 3.0 (September 2026)\\[0.2em]
-    \textbf{Edition:} Condensed PDF
-  };
-
-  % Vertical accent line
-  \draw[signalred, line width=2pt] ([xshift=1.5cm, yshift=3cm]current page.south west) -- ([xshift=1.5cm, yshift=10.5cm]current page.south west);
-
+  % --------------------------------------------------------------------------
+  % Footer metadata strip (five equal columns)
+  % --------------------------------------------------------------------------
+  \draw[white, opacity=0.25, line width=0.4pt]
+    ([xshift=1.5cm, yshift=2.6cm]current page.south west) -- ([xshift=-1.5cm, yshift=2.6cm]current page.south east);
+  \foreach \lab/\val [count=\k from 0] in {
+      DOCUMENT TYPE/Policy Research,
+      TIME HORIZON/2026--2030,
+      LICENSE/{MIT / Unlicense},
+      VERSION/3.0 (September 2026),
+      EDITION/Condensed PDF} {
+    \node[anchor=base west, inner sep=0pt, text=signalred,
+          font=\fontsize{6.5}{8}\selectfont\sffamily\bfseries]
+      at ([xshift=1.5cm+\k*3.718cm, yshift=1.95cm]current page.south west) {\lab};
+    \node[anchor=base west, inner sep=0pt, text=white!75,
+          font=\fontsize{8.5}{10}\selectfont\sffamily]
+      at ([xshift=1.5cm+\k*3.718cm, yshift=1.5cm]current page.south west) {\val};
+  }
 \end{tikzpicture}
 \end{titlepage}
 
@@ -383,7 +497,7 @@ Since the v2.1 snapshot, the central claims of this report stopped being purely 
 \begin{infobox}[Base-Rate Context]
 \textbf{To prevent misreading, we anchor expectations in historical reality:}
 
-Espionage has always existed and will continue to exist. The question is not whether AI enables espionage, it already does, but how it changes the \textit{scale}, \textit{accessibility}, and \textit{detectability} of intelligence operations.
+Espionage has always existed and will continue to exist. The question is not whether AI enables espionage (it already does) but how it changes the \textit{scale}, \textit{accessibility}, and \textit{detectability} of intelligence operations.
 
 The \textbf{dominant near-term shift} is likely:
 \begin{itemize}
@@ -393,7 +507,7 @@ The \textbf{dominant near-term shift} is likely:
   \item Degradation of traditional counterintelligence signatures
 \end{itemize}
 
-\textit{AI does not create entirely new forms of espionage, it amplifies existing tradecraft.}
+\textit{AI does not create entirely new forms of espionage; it amplifies existing tradecraft.}
 
 \textbf{Base-rate update} \textbf{[D]}: The FBI's 2025 Internet Crime Report recorded \$20.9 billion in reported losses (up 26\% from 2024) and, for the first time, an AI-related line of about 22,000 complaints and \$893 million in losses. Business email compromise losses were about \$3.05 billion (up about 10\%). These are fraud figures, but they are the best public series for the social-engineering substrate that espionage shares (Figure~\ref{fig:ic3}).
 \end{infobox}
@@ -412,33 +526,37 @@ These findings necessitate a fundamental shift from perimeter-based counterintel
 \begin{enumerate}[leftmargin=2em, itemsep=0.15em]
   \item \textbf{Identity assurance}: Video-mediated trust is no longer sufficient; implement challenge-response protocols and out-of-band verification, and extend identity proofing to remote hiring
   \item \textbf{AI tool and credential governance}: Audit and allowlist AI productivity tools; inventory and rotate AI API keys like production credentials; ``Shadow AI'' represents an uncontrolled intelligence collection vector
-  \item \textbf{OSINT footprint hygiene}: Personnel digital footprints enable automated vulnerability assessment, implement data minimization
+  \item \textbf{OSINT footprint hygiene}: Personnel digital footprints enable automated vulnerability assessment; implement data minimization
   \item \textbf{Verification playbooks}: Develop function-specific verification procedures for finance, HR, and IT
   \item \textbf{Escalation channels}: Create low-friction reporting mechanisms for ``unusual AI interactions'' or suspected synthetic personas
-  \item \textbf{Personnel support}: Isolated technical specialists are high-risk profiles, support interventions, not surveillance
+  \item \textbf{Personnel support}: Isolated technical specialists are high-risk profiles; support interventions, not surveillance
   \item \textbf{Model risk management}: Evaluate AI tool sourcing, fine-tune provenance, and access controls for internal AI systems
 \end{enumerate}
 
 \vspace{0.3cm}
 
+\Needspace{7\baselineskip}
 \textbf{Defensive Objectives}
 
-\begin{center}
-\small
-\begin{tabular}{L{6.5cm}L{6cm}}
+{\small
+\begin{longtable}{L{6.5cm}L{6cm}}
 \toprule
 \textbf{Objective} & \textbf{Metric Direction} \\
 \midrule
-Successful recruitment attempts & $\downarrow$ Reduce \\
+\endfirsthead
+\toprule
+\textbf{Objective} & \textbf{Metric Direction} \\
+\midrule
+\endhead
+Successful recruitment attempts & $\downarrow$ Reduce \\*
 Instruction spoofing via synthetic personas & $\downarrow$ Reduce \\
 Data exfiltration via AI tooling & $\downarrow$ Reduce \\
 Detection confidence for AI-enabled operations & $\uparrow$ Increase \\
 Attribution confidence at campaign scale & $\uparrow$ Increase \\
-Internal surveillance abuse potential & $\downarrow$ Bound \\
+Internal surveillance abuse potential & $\downarrow$ Bound \\*
 Defensive measure adoption friction & $\downarrow$ Minimize \\
 \bottomrule
-\end{tabular}
-\end{center}
+\end{longtable}}
 
 \vspace{0.3cm}
 
@@ -511,22 +629,26 @@ Economic Actors & ETRA-2025-AEA-001 & Agent autonomy and persistence; legal acco
   \item \textbf{Incident reporting UX}: Fund low-friction reporting mechanism development (<30 second submission target)
 \end{enumerate}
 
+\Needspace{9\baselineskip}
 \subsection*{Top 5 Failure Modes to Prevent}
 
-\begin{center}
-\small
-\begin{tabular}{cL{4cm}L{3cm}L{4.5cm}}
+{\small
+\begin{longtable}{cL{4cm}L{3cm}L{4.5cm}}
 \toprule
 \textbf{\#} & \textbf{Failure Mode} & \textbf{Impact} & \textbf{Primary Control} \\
 \midrule
-1 & Spoofed executive authorization via deepfake & Financial loss, breach & Out-of-band verification \\
+\endfirsthead
+\toprule
+\textbf{\#} & \textbf{Failure Mode} & \textbf{Impact} & \textbf{Primary Control} \\
+\midrule
+\endhead
+1 & Spoofed executive authorization via deepfake & Financial loss, breach & Out-of-band verification \\*
 2 & Shadow AI exfiltration via productivity tools & IP theft, intel loss & AI tool allowlisting, DLP \\
 3 & Credential co-option into verified networks & Insider-equivalent access & Device attestation \\
-4 & Synthetic persona social engineering & Recruitment, elicitation & Identity verification training \\
+4 & Synthetic persona social engineering & Recruitment, elicitation & Identity verification training \\*
 5 & AI-polluted intelligence informing decisions & Policy miscalculation & Source verification \\
 \bottomrule
-\end{tabular}
-\end{center}
+\end{longtable}}
 
 \subsection*{Risk of Inaction}
 
@@ -537,21 +659,25 @@ Without defensive adaptation, organizations face:
   \item \textbf{Long-term (2--5 years)}: Systematic capability disadvantage vs.\ AI-enabled adversaries
 \end{itemize}
 
+\Needspace{9\baselineskip}
 \subsection*{Minimum Viable Program (Bronze Tier)}
 
-\begin{center}
-\small
-\begin{tabular}{L{3.5cm}L{2.5cm}L{2cm}L{2.5cm}L{2.5cm}}
+{\small
+\begin{longtable}{L{3.5cm}L{2.5cm}L{2cm}L{2.5cm}L{2.5cm}}
 \toprule
 \textbf{Control} & \textbf{Owner} & \textbf{Timeline} & \textbf{User Friction} & \textbf{Success KPI} \\
 \midrule
-Phishing-resistant MFA & IT Security & Q1 & Low (one-time setup) & >90\% workforce \\
+\endfirsthead
+\toprule
+\textbf{Control} & \textbf{Owner} & \textbf{Timeline} & \textbf{User Friction} & \textbf{Success KPI} \\
+\midrule
+\endhead
+Phishing-resistant MFA & IT Security & Q1 & Low (one-time setup) & >90\% workforce \\*
 AI tool allowlist & IT + Procurement & Q1 & Medium (blocks shadow tools) & 100\% reviewed \\
-Callback verification & Finance + Security & Q2 & Medium (+2 min/transaction) & 100\% verified \\
+Callback verification & Finance + Security & Q2 & Medium (+2 min/transaction) & 100\% verified \\*
 Incident reporting UX & Security & Q2 & Low (must be <30 sec) & >50\% rate increase \\
 \bottomrule
-\end{tabular}
-\end{center}
+\end{longtable}}
 
 \begin{infobox}[Why Friction Matters]
 User friction is the primary reason security programs fail in Q1. High-friction controls get circumvented; low-friction controls get adopted. Design for realistic human behavior.
@@ -568,54 +694,66 @@ User friction is the primary reason security programs fail in Q1. High-friction 
 
 \textit{This section provides a structured framework for the detailed analysis that follows.}
 
+\Needspace{9\baselineskip}
 \subsection{Target Categories}
 
-\begin{center}
-\small
-\begin{tabular}{L{3.5cm}L{3.5cm}L{2cm}L{3.5cm}}
+{\small
+\begin{longtable}{L{3.5cm}L{3.5cm}L{2cm}L{3.5cm}}
 \toprule
 \textbf{Category} & \textbf{Examples} & \textbf{Risk Level} & \textbf{Primary Concern} \\
 \midrule
-National Security & Cleared personnel, diplomats & High & Strategic intelligence \\
+\endfirsthead
+\toprule
+\textbf{Category} & \textbf{Examples} & \textbf{Risk Level} & \textbf{Primary Concern} \\
+\midrule
+\endhead
+National Security & Cleared personnel, diplomats & High & Strategic intelligence \\*
 Critical Infrastructure & Energy, telecom operators & High & Access for disruption \\
-Corporate IP & R\&D engineers, ML researchers & Very High & Trade secrets, model weights \\
+Corporate IP & R\&D engineers, ML researchers & Very High & Trade secrets, model weights \\*
 Individuals & Journalists, activists & Medium-High & Harassment, manipulation \\
 \bottomrule
-\end{tabular}
-\end{center}
+\end{longtable}}
 
+\Needspace{9\baselineskip}
 \subsection{Access Pathways}
 
-\begin{center}
-\small
-\begin{tabular}{L{3.5cm}L{3cm}L{2cm}L{3.5cm}}
+{\small
+\begin{longtable}{L{3.5cm}L{3cm}L{2cm}L{3.5cm}}
 \toprule
 \textbf{Pathway} & \textbf{AI Augmentation} & \textbf{Detection} & \textbf{Primary Defense} \\
 \midrule
-Social Engineering & High (GenSP, personas) & Increasing & Identity verification \\
+\endfirsthead
+\toprule
+\textbf{Pathway} & \textbf{AI Augmentation} & \textbf{Detection} & \textbf{Primary Defense} \\
+\midrule
+\endhead
+Social Engineering & High (GenSP, personas) & Increasing & Identity verification \\*
 Insider Recruitment & High (automated targeting) & High & CI monitoring \\
 Supply Chain / Shadow AI & Very High (trojan tools) & Very High & Allowlisting \\
 Credential Co-option & Medium & Medium & DLP, monitoring \\
-Synthetic/Proxied Hire & High (AI identity docs) & Med-High & Remote-hire identity proofing \\
+Synthetic/Proxied Hire & High (AI identity docs) & Med-High & Remote-hire identity proofing \\*
 Frontier-Capability Access & Very High (distillation, leaks, keys) & Medium & Provider KYC, key hygiene \\
 \bottomrule
-\end{tabular}
-\end{center}
+\end{longtable}}
 
+\Needspace{9\baselineskip}
 \subsection{Time Horizon}
 
-\begin{center}
-\small
-\begin{tabular}{L{3cm}L{3cm}L{6cm}}
+{\small
+\begin{longtable}{L{3cm}L{3cm}L{6cm}}
 \toprule
 \textbf{Period} & \textbf{Characterization} & \textbf{Key Dynamics} \\
 \midrule
-2026 (Baseline) & Transition, now documented & AI-orchestrated espionage documented; gated frontier models; provider telemetry main lever; IC contracting \\
-2027--2028 & Offense advantage & Handler bottleneck bypassed; voice agents scaling; detection catching up \\
+\endfirsthead
+\toprule
+\textbf{Period} & \textbf{Characterization} & \textbf{Key Dynamics} \\
+\midrule
+\endhead
+2026 (Baseline) & Transition, now documented & AI-orchestrated espionage documented; gated frontier models; provider telemetry main lever; IC contracting \\*
+2027--2028 & Offense advantage & Handler bottleneck bypassed; voice agents scaling; detection catching up \\*
 2029--2030 & Uncertain & Equilibrium or provenance island fragmentation \\
 \bottomrule
-\end{tabular}
-\end{center}
+\end{longtable}}
 
 % ============================================================================
 % EXECUTIVE TAKEAWAYS
@@ -632,142 +770,139 @@ Frontier-Capability Access & Very High (distillation, leaks, keys) & Medium & Pr
   \item \textbf{Your employees' AI tools and AI credentials are intelligence vectors}: stolen AI API keys now serve as loot, attack compute, and attribution cover \textbf{[O]}.
 \end{enumerate}
 
+\Needspace{9\baselineskip}
 \subsection{5 Most Likely Attack Paths}
 
-\begin{center}
-\small
-\begin{tabular}{L{3.5cm}L{5cm}L{4cm}}
+{\small
+\begin{longtable}{L{3.5cm}L{5cm}L{4cm}}
 \toprule
 \textbf{Path} & \textbf{Mechanism} & \textbf{Your Exposure} \\
 \midrule
-Executive impersonation & Deepfake video/voice authorizing transactions & Finance, treasury, M\&A \\
+\endfirsthead
+\toprule
+\textbf{Path} & \textbf{Mechanism} & \textbf{Your Exposure} \\
+\midrule
+\endhead
+Executive impersonation & Deepfake video/voice authorizing transactions & Finance, treasury, M\&A \\*
 Shadow AI exfiltration & Unapproved tools sending data externally & R\&D, legal, strategy \\
 Synthetic recruiter/peer & AI persona building relationship over weeks & Cleared personnel, key engineers \\
-Credential and AI-key compromise & Stolen credentials and AI keys used by AI-enabled operators & IT, developers, privileged users \\
+Credential and AI-key compromise & Stolen credentials and AI keys used by AI-enabled operators & IT, developers, privileged users \\*
 Synthetic or proxied hire & Fraudulent remote worker placed inside with AI-assisted identity & HR, engineering, contractors \\
 \bottomrule
-\end{tabular}
-\end{center}
+\end{longtable}}
 
+\Needspace{9\baselineskip}
 \subsection{8 Controls That Matter Most}
 
-\begin{center}
-\small
-\begin{tabular}{cL{4.5cm}L{3cm}L{4cm}}
+{\small
+\begin{longtable}{cL{4.5cm}L{3cm}L{4cm}}
 \toprule
 \textbf{\#} & \textbf{Control} & \textbf{Owner} & \textbf{90-Day Target} \\
 \midrule
-1 & Phishing-resistant MFA (FIDO2) & IT Security & 90\% privileged accounts \\
+\endfirsthead
+\toprule
+\textbf{\#} & \textbf{Control} & \textbf{Owner} & \textbf{90-Day Target} \\
+\midrule
+\endhead
+1 & Phishing-resistant MFA (FIDO2) & IT Security & 90\% privileged accounts \\*
 2 & AI tool allowlist + policy & IT + Procurement & Published and enforced \\
 3 & Callback verification (Finance) & Finance + Security & 100\% for transactions >\$X \\
 4 & Low-friction incident reporting & Security & <30 sec submission live \\
 5 & Executive verification protocol & Executive Protection & Code phrases established \\
 6 & Device attestation pilot & IT Security & Critical roles enrolled \\
-7 & AI key hygiene + remote-hire identity proofing & Engineering + HR & Keys rotated; live ID checks \\
+7 & AI key hygiene + remote-hire identity proofing & Engineering + HR & Keys rotated; live ID checks \\*
 8 & Security awareness (incl.\ recruiter approaches) & HR + Security & Module deployed \\
 \bottomrule
-\end{tabular}
-\end{center}
+\end{longtable}}
 
+\Needspace{9\baselineskip}
 \subsection{What Success Looks Like}
 
-\begin{center}
-\small
-\begin{tabular}{L{3cm}L{10cm}}
+{\small
+\begin{longtable}{L{3cm}L{10cm}}
 \toprule
 \textbf{Timeframe} & \textbf{Indicator} \\
 \midrule
-\textbf{90 days} & Bronze controls deployed; incident reporting rate up 50\%; zero unreviewed AI tools \\
-\textbf{180 days} & Silver controls in progress; first red team exercise completed; vendor contracts updated \\
+\endfirsthead
+\toprule
+\textbf{Timeframe} & \textbf{Indicator} \\
+\midrule
+\endhead
+\textbf{90 days} & Bronze controls deployed; incident reporting rate up 50\%; zero unreviewed AI tools \\*
+\textbf{180 days} & Silver controls in progress; first red team exercise completed; vendor contracts updated \\*
 \textbf{1 year} & Measurable reduction in successful phishing; device attestation at scale; CI capability established \\
 \bottomrule
-\end{tabular}
-\end{center}
+\end{longtable}}
 
+\Needspace{9\baselineskip}
 \subsection{Anticipated Objections}
 
-\begin{center}
-\small
-\begin{tabular}{L{3cm}L{6cm}L{3.5cm}}
+{\small
+\begin{longtable}{L{3cm}L{6cm}L{3.5cm}}
 \toprule
 \textbf{Objection} & \textbf{Response} & \textbf{See Section} \\
 \midrule
-``This is alarmist'' & All claims tagged with epistemic markers ([O]/[D]/[E]/[S]) & Methodology \\
+\endfirsthead
+\toprule
+\textbf{Objection} & \textbf{Response} & \textbf{See Section} \\
+\midrule
+\endhead
+``This is alarmist'' & All claims tagged with epistemic markers ([O]/[D]/[E]/[S]) & Methodology \\*
 ``AI isn't this capable'' & Capabilities current (Sept.\ 2026), backed by an evidence ledger & Technological Landscape \\
 ``No one has been recruited by an AI'' & Correct in open sources; stated explicitly with indicators & Counterarguments; Signals \\
-``Controls too burdensome'' & Tiered maturity ladder allows phased adoption & Control Maturity Ladder \\
+``Controls too burdensome'' & Tiered maturity ladder allows phased adoption & Control Maturity Ladder \\*
 ``Timeline too aggressive'' & Falsifiability indicators provided & Signals and Indicators \\
 \bottomrule
-\end{tabular}
-\end{center}
+\end{longtable}}
 
 % ============================================================================
 % PART I - Foundations
 % ============================================================================
 \clearpage
 \thispagestyle{empty}
-\vspace*{-0.85in}
-\noindent\hspace*{-0.85in}\begin{tikzpicture}
-  % Header background
-  \fill[shadowdark] (0,0) rectangle (\paperwidth, -10cm);
-
-  % Part label and title
-  \node[signalcyan, font=\fontsize{10}{10}\selectfont\sffamily] at (0.5\paperwidth, -1.2cm) {PART I};
-  \node[white, font=\fontsize{48}{48}\selectfont\bfseries] at (0.5\paperwidth, -2.8cm) {Foundations};
-  \node[white, opacity=0.7, font=\normalsize\sffamily] at (0.5\paperwidth, -4.2cm) {Theory, Economics, and Historical Context};
-
-  % Left side: Book/document stack representing theory foundations
-  \begin{scope}[shift={(4.5cm, -7.8cm)}]
-    % Stacked documents/books
-    \fill[steelblue, opacity=0.4] (0,0) rectangle (2.5,0.25);
-    \fill[coldsteel, opacity=0.5] (0.1,0.3) rectangle (2.6,0.55);
-    \fill[steelblue, opacity=0.6] (0.05,0.6) rectangle (2.55,0.85);
-    \fill[chromesilver, opacity=0.3] (-0.05,0.9) rectangle (2.45,1.15);
-    % Top document with lines (representing text/theory)
-    \fill[signalcyan, opacity=0.7] (0,1.2) rectangle (2.5,1.6);
-    \foreach \y in {1.28, 1.38, 1.48} {
-      \draw[white, opacity=0.6, line width=0.8pt] (0.2,\y) -- (2.3,\y);
+\partbanner{I}{Foundations}{Theory, Economics, and Historical Context}{%
+  % MICE motivation wheel around a capacity-limited handler (Handler Bottleneck)
+  \foreach \r in {3.35} {
+    \draw[chromesilver, opacity=0.08, line width=0.4pt] (0,0) circle (\r);
+  }
+  % Outer ring: the four MICE motivations
+  \foreach \a in {0,90,180,270} {
+    \fill[midnightblue] (\a+4:2.2) arc[start angle=\a+4, end angle=\a+86, radius=2.2]
+      -- (\a+86:2.95) arc[start angle=\a+86, end angle=\a+4, radius=2.95] -- cycle;
+    \draw[chromesilver, opacity=0.55, line width=0.8pt] (\a+4:2.2) arc[start angle=\a+4, end angle=\a+86, radius=2.2]
+      -- (\a+86:2.95) arc[start angle=\a+86, end angle=\a+4, radius=2.95] -- cycle;
+    \foreach \t in {12,24,...,78} {
+      \draw[chromesilver, opacity=0.3, line width=0.4pt] (\a+\t:2.8) -- (\a+\t:2.95);
     }
-    % Label
-    \node[chromesilver, opacity=0.85, font=\fontsize{8}{8}\selectfont\bfseries] at (1.25,-0.4) {THEORY};
-  \end{scope}
-
-  % Center: Economics symbol (supply/demand style graph)
-  \begin{scope}[shift={(0.5\paperwidth-1.5cm, -7.8cm)}]
-    % Axes
-    \draw[chromesilver, opacity=0.6, line width=1.5pt, -Stealth] (0,0) -- (3.2,0);
-    \draw[chromesilver, opacity=0.6, line width=1.5pt, -Stealth] (0,0) -- (0,2);
-    % Demand curve (downward)
-    \draw[coldsteel, opacity=0.8, line width=2pt] (0.3,1.7) .. controls (1,1.2) and (2,0.5) .. (2.8,0.3);
-    % Supply curve (upward)
-    \draw[signalcyan, opacity=0.9, line width=2pt] (0.3,0.3) .. controls (1,0.7) and (2,1.3) .. (2.8,1.7);
-    % Intersection point
-    \fill[ciphergold] (1.55,1) circle (0.15);
-    % Label
-    \node[chromesilver, opacity=0.85, font=\fontsize{8}{8}\selectfont\bfseries] at (1.6,-0.4) {ECONOMICS};
-  \end{scope}
-
-  % Right side: Timeline representing historical context
-  \begin{scope}[shift={(13cm, -7.8cm)}]
-    % Timeline base
-    \draw[chromesilver, opacity=0.5, line width=2pt] (0,0.8) -- (4,0.8);
-    % Era markers
-    \foreach \x/\label in {0.5/1950, 1.5/1980, 2.5/2010, 3.5/2026} {
-      \fill[chromesilver, opacity=0.6] (\x,0.8) circle (0.12);
-      \node[chromesilver, opacity=0.7, font=\fontsize{6}{6}\selectfont] at (\x,0.4) {\label};
-    }
-    % Current era highlight
-    \fill[signalcyan] (3.5,0.8) circle (0.18);
-    \draw[signalcyan, opacity=0.5, line width=1pt] (3.5,0.8) circle (0.35);
-    % Progress arrow above
-    \draw[signalcyan, opacity=0.7, line width=1.5pt, -Stealth] (0.5,1.3) -- (3.3,1.3);
-    % Label
-    \node[chromesilver, opacity=0.85, font=\fontsize{8}{8}\selectfont\bfseries] at (2,-0.4) {HISTORY};
-  \end{scope}
-
-  % Bottom accent
-  \fill[signalcyan] (2cm, -9.2cm) rectangle (\paperwidth-2cm, -9.3cm);
-\end{tikzpicture}
+  }
+  % Money quadrant highlighted, as the most common lever
+  \fill[signalred, opacity=0.22] (4:2.2) arc[start angle=4, end angle=86, radius=2.2]
+    -- (86:2.95) arc[start angle=86, end angle=4, radius=2.95] -- cycle;
+  \draw[signalred, line width=0.8pt] (4:2.2) arc[start angle=4, end angle=86, radius=2.2]
+    -- (86:2.95) arc[start angle=86, end angle=4, radius=2.95] -- cycle;
+  \node[partlbl, anchor=south west] at (45:3.1) {MONEY};
+  \node[partlbl, anchor=south east] at (135:3.1) {IDEOLOGY};
+  \node[partlbl, anchor=north east] at (225:3.1) {COERCION};
+  \node[partlbl, anchor=north west] at (315:3.1) {EGO};
+  % Historical tradecraft ring (gold, as on the cover)
+  \draw[ciphergold, opacity=0.7, line width=0.4pt] (0,0) circle (1.75);
+  % Candidate assets on the ring; the handler can only run a few
+  \foreach \k in {0,...,23} {
+    \draw[coldsteel, opacity=0.7, line width=0.4pt, fill=shadowdark] (\k*15+7.5:1.75) circle (0.07);
+  }
+  \foreach \k in {1,6,9} {
+    \draw[signalred, line width=0.8pt] (0,0) -- (\k*15+7.5:1.68);
+    \fill[signalred] (\k*15+7.5:1.75) circle (0.1);
+  }
+  % Handler core
+  \fill[shadownavy] (0,0) circle (0.95);
+  \draw[signalcyan, opacity=0.6, line width=0.8pt] (0,0) circle (0.95);
+  \foreach \k in {1,6,9} {
+    \draw[signalred, line width=0.8pt] (\k*15+7.5:0.2) -- (\k*15+7.5:0.95);
+  }
+  \fill[signalred] (0,0) circle (0.14);
+  \node[partlbl, font=\fontsize{6.5}{8}\selectfont\sffamily\bfseries] at (0,-0.48) {HANDLER};
+}
 
 \vspace{0.8cm}
 \begin{center}
@@ -794,7 +929,7 @@ Synthetic or proxied hire & Fraudulent remote worker placed inside with AI-assis
 
 Intelligence operations, the collection of information through human sources, signals interception, and open-source analysis, have shaped history from the courts of ancient empires to the Cold War and beyond. Each technological era has altered the methods, accessibility, and scale of espionage.
 
-This projection does not assume espionage will increase in absolute terms, nation-states and corporations have always sought competitive advantage through information collection. Rather, we analyze how AI capabilities change the \textit{nature} of intelligence operations: who can conduct them, at what scale, with what signatures, and how defenders must adapt.
+This projection does not assume espionage will increase in absolute terms; nation-states and corporations have always sought competitive advantage through information collection. Rather, we analyze how AI capabilities change the \textit{nature} of intelligence operations: who can conduct them, at what scale, with what signatures, and how defenders must adapt.
 
 \subsection{The Handler Bottleneck: Historical Constraint}
 
@@ -820,53 +955,46 @@ This analysis draws on current capability assessment of AI agent systems as depl
 
 \begin{defbox}[Epistemic Status Markers]
 Throughout this document, key claims are tagged:
-
-\vspace{0.5em}
-\textbf{[O]} Open-source documented, Published research, official statements, commercial product documentation
-
-\vspace{0.3em}
-\textbf{[D]} Data point, Specific quantified incident or measurement with citation
-
-\vspace{0.3em}
-\textbf{[E]} Expert judgment, Consistent with established theory and limited evidence
-
-\vspace{0.3em}
-\textbf{[S]} Speculative projection, Extrapolation from trends; significant uncertainty
+\begin{itemize}[leftmargin=2.2em, labelwidth=1.8em, itemsep=0.3em]
+  \item[\textbf{[O]}] \textbf{Open-source documented}: published research, official statements, commercial product documentation
+  \item[\textbf{[D]}] \textbf{Data point}: a specific quantified incident or measurement with citation
+  \item[\textbf{[E]}] \textbf{Expert judgment}: consistent with established theory and limited evidence
+  \item[\textbf{[S]}] \textbf{Speculative projection}: extrapolation from trends; significant uncertainty
+\end{itemize}
 \end{defbox}
 
-\needspace{8\baselineskip}
+\Needspace{8\baselineskip}
 \section{Definitions and Conceptual Framework}\label{sec:definitions}
 
 \subsection{Core Definitions}
 
 \begin{defbox}[Key Terms]
+\setlength{\parskip}{0.5em}
 \textbf{AI Agent}: An AI system capable of autonomous multi-step task execution, tool use, persistent memory, and goal-directed behavior with minimal human oversight per action.
 
-\vspace{0.5em}
 \textbf{Synthetic Case Officer}: An AI agent system configured to perform functions traditionally requiring human case officers: target identification, approach, relationship development, and ongoing management.
 
-\vspace{0.5em}
-\textbf{Centaur Handler}: Human case officer augmented by AI agent fleet, manages hundreds of AI agents for scale while providing human judgment for critical decisions.
+\textbf{Centaur Handler}: A human case officer augmented by an AI agent fleet, who manages hundreds of AI agents for scale while providing human judgment for critical decisions.
 \end{defbox}
 
 \subsection{MICE and RASCLS Frameworks}
 
-\textbf{MICE Framework} (Traditional model for asset motivation):
+\textbf{MICE Framework} (traditional model for asset motivation):
 \begin{itemize}
-  \item \textbf{M}oney, Financial incentives or pressures
-  \item \textbf{I}deology, Belief-based motivation (political, religious, ethical)
-  \item \textbf{C}oercion, Blackmail, threats, or leverage
-  \item \textbf{E}go, Vanity, recognition-seeking, sense of importance
+  \item \textbf{M}oney: financial incentives or pressures
+  \item \textbf{I}deology: belief-based motivation (political, religious, ethical)
+  \item \textbf{C}oercion: blackmail, threats, or leverage
+  \item \textbf{E}go: vanity, recognition-seeking, sense of importance
 \end{itemize}
 
-\textbf{RASCLS Framework} (Modern influence model particularly relevant to AI-driven social engineering):
+\textbf{RASCLS Framework} (modern influence model particularly relevant to AI-driven social engineering):
 \begin{itemize}
-  \item \textbf{R}eciprocity, Creating obligation through favors
-  \item \textbf{A}uthority, Leveraging perceived expertise
-  \item \textbf{S}carcity, Creating urgency through limited availability
-  \item \textbf{C}ommitment, Building on small agreements
-  \item \textbf{L}iking, Establishing rapport and similarity
-  \item \textbf{S}ocial Proof, Demonstrating others have complied
+  \item \textbf{R}eciprocity: creating obligation through favors
+  \item \textbf{A}uthority: leveraging perceived expertise
+  \item \textbf{S}carcity: creating urgency through limited availability
+  \item \textbf{C}ommitment: building on small agreements
+  \item \textbf{L}iking: establishing rapport and similarity
+  \item \textbf{S}ocial Proof: demonstrating that others have complied
 \end{itemize}
 
 \section{Theoretical Foundations}\label{sec:theory}
@@ -875,21 +1003,25 @@ Throughout this document, key claims are tagged:
 
 \textbf{Audrey Kurth Cronin's ``Power to the People'' (2020)} provides essential context. Cronin argues that each technological era redistributes capabilities previously concentrated in state hands. AI represents the latest such redistribution, potentially enabling non-state actors to conduct intelligence operations at scales previously requiring state resources.
 
+\Needspace{9\baselineskip}
 \subsection{The Economics of Espionage}
 
-\begin{center}
-\small
-\begin{tabular}{L{3.5cm}L{4.5cm}L{4.5cm}}
+{\small
+\begin{longtable}{L{3.5cm}L{4.5cm}L{4.5cm}}
 \toprule
 \textbf{Factor} & \textbf{Traditional} & \textbf{AI-Enabled} \\
 \midrule
-Fixed costs & High (training, infrastructure) & Lower (commercial models, cloud) \\
+\endfirsthead
+\toprule
+\textbf{Factor} & \textbf{Traditional} & \textbf{AI-Enabled} \\
+\midrule
+\endhead
+Fixed costs & High (training, infrastructure) & Lower (commercial models, cloud) \\*
 Marginal costs & High per operation & Near-zero per additional target \\
-Risk profile & Diplomatic consequences & Attribution challenges \\
+Risk profile & Diplomatic consequences & Attribution challenges \\*
 Failure cost & Career-ending, PNG declarations & Infrastructure rotated in minutes \\
 \bottomrule
-\end{tabular}
-\end{center}
+\end{longtable}}
 
 \textbf{Traditional Cost Structure}:
 \begin{itemize}
@@ -912,21 +1044,25 @@ This economic shift has profound implications for who can conduct operations and
 \textbf{[D]} The cost of frontier-level AI reasoning has dropped approximately 85--90\% since early 2024. Maintaining a 24/7 synthetic handler with continuous availability now costs \textbf{\$0.30--\$0.50/day} in compute using current efficient models, less than a human operator's coffee break.
 \end{keybox}
 
+\Needspace{9\baselineskip}
 \subsection{Cost-of-Failure Asymmetry}
 
-\begin{center}
-\small
-\begin{tabular}{L{3.5cm}L{4cm}L{5cm}}
+{\small
+\begin{longtable}{L{3.5cm}L{4cm}L{5cm}}
 \toprule
 \textbf{Scenario} & \textbf{Traditional Cost} & \textbf{AI-Enabled Cost} \\
 \midrule
-Officer caught & Diplomatic crisis, PNG & Infrastructure ephemeral; non-custodial \\
+\endfirsthead
+\toprule
+\textbf{Scenario} & \textbf{Traditional Cost} & \textbf{AI-Enabled Cost} \\
+\midrule
+\endhead
+Officer caught & Diplomatic crisis, PNG & Infrastructure ephemeral; non-custodial \\*
 Asset compromised & Network rolled up & One of thousands terminated \\
-Operation exposed & Political consequences & Infrastructure rotated \\
+Operation exposed & Political consequences & Infrastructure rotated \\*
 Cover identity burned & Officer career ended & New persona in minutes \\
 \bottomrule
-\end{tabular}
-\end{center}
+\end{longtable}}
 
 This asymmetry fundamentally favors offense. Traditional deterrence relied on mutual costs of failure; AI-enabled espionage approaches a ``shifted-liability'' model.
 
@@ -934,19 +1070,23 @@ This asymmetry fundamentally favors offense. Traditional deterrence relied on mu
 
 \textbf{A throughput multiplier, not the limiting reagent}: Compute capacity is a necessary but not sufficient condition for AI-enabled intelligence operations \textbf{[E]}.
 
-\begin{center}
-\small
-\begin{tabular}{L{3cm}L{4cm}L{5.5cm}}
+\Needspace{6\baselineskip}
+{\small
+\begin{longtable}{L{3cm}L{4cm}L{5.5cm}}
 \toprule
 \textbf{Actor Tier} & \textbf{Compute Access} & \textbf{Operational Capacity} \\
 \midrule
-Tier 1 (Major powers) & Sovereign AI clusters & Nation-scale sustained operations \\
+\endfirsthead
+\toprule
+\textbf{Actor Tier} & \textbf{Compute Access} & \textbf{Operational Capacity} \\
+\midrule
+\endhead
+Tier 1 (Major powers) & Sovereign AI clusters & Nation-scale sustained operations \\*
 Tier 2 (Regional powers) & Government cloud allocations & Targeted campaigns \\
-Tier 3 (Non-state) & Burst commercial cloud & Limited sustained operations \\
+Tier 3 (Non-state) & Burst commercial cloud & Limited sustained operations \\*
 Tier 4 (Individuals) & Consumer hardware + API & Opportunistic operations \\
 \bottomrule
-\end{tabular}
-\end{center}
+\end{longtable}}
 
 \begin{infobox}[GPU Demand as SIGINT]
 Counter-intelligence can potentially monitor \textbf{anomalous compute demand} as a new detection vector:
@@ -977,42 +1117,50 @@ This represents a \textbf{qualitative capability expansion}, not merely efficien
 
 \textbf{The Global South opportunity} \textbf{[E]}: Most defensive filters, trained analysts, and detection systems are optimized for major languages. AI enables Tier 2/3 actors to conduct high-fidelity operations in languages where defensive AI filters have lower accuracy.
 
-\begin{center}
-\small
-\begin{tabular}{L{3cm}L{3.5cm}L{5.5cm}}
+\Needspace{6\baselineskip}
+{\small
+\begin{longtable}{L{3cm}L{3.5cm}L{5.5cm}}
 \toprule
 \textbf{Language} & \textbf{Risk Factor} & \textbf{Why It Matters} \\
 \midrule
-Vietnamese & Manufacturing & Supply chain intel in electronics, textiles \\
+\endfirsthead
+\toprule
+\textbf{Language} & \textbf{Risk Factor} & \textbf{Why It Matters} \\
+\midrule
+\endhead
+Vietnamese & Manufacturing & Supply chain intel in electronics, textiles \\*
 Polish & EU expansion & Eastern European operations \\
 Hausa/Yoruba & Nigeria tech sector & Fintech, banking operations in Africa \\
-Bahasa Indonesia & Emerging market & Resource extraction, consumer intel \\
+Bahasa Indonesia & Emerging market & Resource extraction, consumer intel \\*
 Turkish & Regional hub & Defense, energy, logistics intel \\
 \bottomrule
-\end{tabular}
-\end{center}
+\end{longtable}}
 
-\needspace{6\baselineskip}
+\Needspace{6\baselineskip}
 \subsection{New Limiting Reagents: Chokepoints for Defenders}
 
 \textbf{Critical defensive insight}: While AI bypasses the traditional handler bottleneck, it introduces \textit{new} constraints that defenders can target.
 
-\begin{center}
-\small
-\begin{tabular}{L{3cm}L{4.5cm}L{5cm}}
+\Needspace{6\baselineskip}
+{\small
+\begin{longtable}{L{3cm}L{4.5cm}L{5cm}}
 \toprule
 \textbf{Bottleneck} & \textbf{Mechanism} & \textbf{Defensive Leverage} \\
 \midrule
-KYC / Platform Friction & Phone verification, device attestation & Platforms detect bulk persona creation \\
+\endfirsthead
+\toprule
+\textbf{Bottleneck} & \textbf{Mechanism} & \textbf{Defensive Leverage} \\
+\midrule
+\endhead
+KYC / Platform Friction & Phone verification, device attestation & Platforms detect bulk persona creation \\*
 Payment Rails & Fiat on/off ramps, procurement traces & Financial infrastructure creates audit trails \\
 Attention Scarcity & High-value targets have gatekeepers & Scale doesn't guarantee access \\
 OPSEC of Agent Fleets & Correlation risk, log aggregation & Operating thousands creates patterns \\
 Conversion Rates & Scale doesn't guarantee persuasion & Volume produces failed attempts that trigger detection \\
-Legend Instability & Synthetic personas lack authentic history & Extended verification exposes synthetics \\
+Legend Instability & Synthetic personas lack authentic history & Extended verification exposes synthetics \\*
 Frontier Access (v3.0) & Gated models, trusted-access programs, provider KYC & Provider telemetry detected the documented campaigns; key hygiene denies cheap access \\
 \bottomrule
-\end{tabular}
-\end{center}
+\end{longtable}}
 
 \section{Historical Context}\label{sec:history}
 
@@ -1065,84 +1213,44 @@ Across eras, several patterns emerge:
 % ============================================================================
 \clearpage
 \thispagestyle{empty}
-\vspace*{-0.85in}
-\noindent\hspace*{-0.85in}\begin{tikzpicture}
-  % Header background
-  \fill[shadowdark] (0,0) rectangle (\paperwidth, -10cm);
-
-  % Part label and title
-  \node[signalcyan, font=\fontsize{10}{10}\selectfont\sffamily] at (0.5\paperwidth, -1.2cm) {PART II};
-  \node[white, font=\fontsize{48}{48}\selectfont\bfseries] at (0.5\paperwidth, -2.8cm) {Threat Analysis};
-  \node[white, opacity=0.7, font=\normalsize\sffamily] at (0.5\paperwidth, -4.2cm) {Capabilities, Vectors, and Actor Taxonomy};
-
-  % Signal intercept visualization - waveform analysis (improved)
-  \begin{scope}[shift={(2.5cm, -7.2cm)}]
-    % Frequency spectrum background
-    \fill[midnightblue, opacity=0.5] (0,-0.8) rectangle (5.5,1.2);
-    \draw[chromesilver, opacity=0.4, line width=0.5pt] (0,-0.8) rectangle (5.5,1.2);
-
-    % Signal waveforms (intercepted)
-    \draw[signalcyan, opacity=0.85, line width=1.5pt]
-      (0.2,0.2) sin (0.5,0.8) cos (0.8,0.2) sin (1.1,-0.3) cos (1.4,0.2)
-      sin (1.7,0.6) cos (2,0.2) sin (2.3,-0.5) cos (2.6,0.2)
-      sin (2.9,0.9) cos (3.2,0.2) sin (3.5,-0.2) cos (3.8,0.2)
-      sin (4.1,0.7) cos (4.4,0.2) sin (4.7,-0.4) cos (5,0.2);
-
-    \draw[signalcyan, opacity=0.7, line width=1.2pt]
-      (0.2,0) sin (0.6,0.4) cos (1,0) sin (1.4,-0.3) cos (1.8,0)
-      sin (2.2,0.5) cos (2.6,0) sin (3,-0.4) cos (3.4,0)
-      sin (3.8,0.3) cos (4.2,0) sin (4.6,-0.2) cos (5,0);
-
-    % Intercept marker (improved visibility)
-    \draw[ciphergold, opacity=0.9, line width=2pt, dashed] (2.9,-0.8) -- (2.9,1.2);
-    \node[ciphergold, font=\fontsize{7}{7}\selectfont\bfseries] at (2.9,1.5) {INTERCEPT};
+\partbanner{II}{Threat Analysis}{Capabilities, Vectors, and Actor Taxonomy}{%
+  % Intelligence cycle with AI augmentation points, signal buried in noise at the center
+  \draw[chromesilver, opacity=0.08, line width=0.4pt] (0,0) circle (3.2);
+  \draw[chromesilver, opacity=0.4, line width=0.8pt] (0,0) circle (2.2);
+  % AI-augmented span: collection, processing, analysis
+  \fill[signalred, opacity=0.18] (-54:2.02) arc[start angle=-54, end angle=-198, radius=2.02]
+    -- (162:2.38) arc[start angle=-198, end angle=-54, radius=2.38] -- cycle;
+  \draw[signalred, line width=1.6pt] (-54:2.2) arc[start angle=-54, end angle=-198, radius=2.2];
+  % Direction of the cycle (clockwise)
+  \foreach \a in {54,-18,-90,-162,126} {
+    \draw[chromesilver, opacity=0.9, line width=0.8pt, -{Stealth[length=5pt, width=4pt]}]
+      (\a+6:2.2) arc[start angle=\a+6, end angle=\a-6, radius=2.2];
+  }
+  % Stage nodes
+  \foreach \a in {90,18,-54,-126,162} {
+    \fill[shadowdark] (\a:2.2) circle (0.17);
+    \draw[chromesilver, line width=0.8pt] (\a:2.2) circle (0.17);
+  }
+  \foreach \a in {-54,-126,162} {
+    \fill[signalred] (\a:2.2) circle (0.08);
+  }
+  \node[partlbl, anchor=south] at (90:2.45) {DISSEMINATE};
+  \node[partlbl, anchor=west] at (18:2.5) {PLAN};
+  \node[partlbl, anchor=north west] at (-54:2.45) {COLLECT};
+  \node[partlbl, anchor=north east] at (-126:2.45) {PROCESS};
+  \node[partlbl, anchor=east] at (162:2.5) {ANALYZE};
+  % Center: a clean signal recovered from noise
+  \fill[shadownavy] (0,0) circle (1.35);
+  \draw[signalcyan, opacity=0.6, line width=0.8pt] (0,0) circle (1.35);
+  \begin{scope}
+    \clip (0,0) circle (1.35);
+    \draw[coldsteel, opacity=0.35, line width=0.4pt] (-1.35,0) -- (1.35,0);
+    \draw[chromesilver, opacity=0.3, line width=0.4pt, smooth, samples=160, domain=-1.35:1.35]
+      plot (\x, {0.28*sin(\x*620) + 0.16*sin(\x*1490+40) + 0.1*sin(\x*2830+15)});
+    \draw[signalred, line width=1.6pt, smooth, samples=80, domain=-0.95:0.95]
+      plot (\x, {0.42*sin(\x*380)});
   \end{scope}
-
-  % Threat radar (right side - with legend)
-  \begin{scope}[shift={(13.5cm, -7cm)}]
-    % Background rings
-    \foreach \r in {0.5, 1.0, 1.5} {
-      \draw[chromesilver, opacity=0.2, line width=0.5pt] (0,0) circle (\r);
-    }
-
-    % Axis lines
-    \foreach \a in {0,60,120,180,240,300} {
-      \draw[chromesilver, opacity=0.25, line width=0.5pt] (0,0) -- (\a:1.6);
-    }
-
-    % Labels (improved size)
-    \node[chromesilver, opacity=0.8, font=\fontsize{7}{7}\selectfont\bfseries] at (90:1.85) {SCALE};
-    \node[chromesilver, opacity=0.8, font=\fontsize{7}{7}\selectfont\bfseries] at (30:1.95) {STEALTH};
-    \node[chromesilver, opacity=0.8, font=\fontsize{7}{7}\selectfont\bfseries] at (330:1.95) {PERSIST};
-    \node[chromesilver, opacity=0.8, font=\fontsize{7}{7}\selectfont\bfseries] at (270:1.85) {ATTRIB};
-    \node[chromesilver, opacity=0.8, font=\fontsize{7}{7}\selectfont\bfseries] at (210:1.85) {COST};
-    \node[chromesilver, opacity=0.8, font=\fontsize{7}{7}\selectfont\bfseries] at (150:1.85) {ADAPT};
-
-    % Traditional threat
-    \fill[coldsteel, opacity=0.3]
-      (90:0.5) -- (30:0.6) -- (330:0.9) -- (270:0.8) -- (210:0.4) -- (150:0.6) -- cycle;
-    \draw[coldsteel, opacity=0.6, line width=1.2pt]
-      (90:0.5) -- (30:0.6) -- (330:0.9) -- (270:0.8) -- (210:0.4) -- (150:0.6) -- cycle;
-
-    % AI-enabled threat
-    \fill[signalcyan, opacity=0.35]
-      (90:1.4) -- (30:1.2) -- (330:1.1) -- (270:0.5) -- (210:1.3) -- (150:1.25) -- cycle;
-    \draw[signalcyan, opacity=0.85, line width=1.5pt]
-      (90:1.4) -- (30:1.2) -- (330:1.1) -- (270:0.5) -- (210:1.3) -- (150:1.25) -- cycle;
-
-    % Center
-    \fill[signalcyan] (0,0) circle (0.06);
-
-    % Legend (right side of radar - stacked vertically)
-    \fill[coldsteel, opacity=0.5] (2.3,0.3) rectangle (2.6,0.5);
-    \node[chromesilver, opacity=0.85, font=\fontsize{6}{6}\selectfont, anchor=west] at (2.75,0.4) {Traditional};
-    \fill[signalcyan, opacity=0.6] (2.3,-0.3) rectangle (2.6,-0.1);
-    \node[chromesilver, opacity=0.85, font=\fontsize{6}{6}\selectfont, anchor=west] at (2.75,-0.2) {AI-Enabled};
-  \end{scope}
-
-  % Bottom accent
-  \fill[signalcyan] (2cm, -9.2cm) rectangle (\paperwidth-2cm, -9.3cm);
-\end{tikzpicture}
+}
 
 \vspace{0.8cm}
 \begin{center}
@@ -1163,25 +1271,29 @@ Across eras, several patterns emerge:
 
 \newpage
 
+\Needspace{12\baselineskip}
 \section{Landscape and Evidence Base (September 2026)}\label{sec:landscape}
 
 \subsection{The 2023--2026 Capability Shift}
 
-\begin{center}
-\small
-\begin{tabular}{L{2.6cm}L{2.6cm}L{3.7cm}L{4cm}}
+{\small
+\begin{longtable}{L{2.6cm}L{2.6cm}L{3.7cm}L{4cm}}
 \toprule
 \textbf{Domain} & \textbf{2023 Baseline} & \textbf{September 2026} & \textbf{Espionage Implication} \\
 \midrule
-Agentic autonomy & Single-turn chatbots & Tool integration (MCP), computer use, memory, multi-agent orchestration & Persona and relationship management largely delegable \\
+\endfirsthead
+\toprule
+\textbf{Domain} & \textbf{2023 Baseline} & \textbf{September 2026} & \textbf{Espionage Implication} \\
+\midrule
+\endhead
+Agentic autonomy & Single-turn chatbots & Tool integration (MCP), computer use, memory, multi-agent orchestration & Persona and relationship management largely delegable \\*
 Reasoning & GPT-4 level & Claude 5 family, GPT-6 Astra, peers & Better assessment and real-time adaptation \\
 Context windows & 8K--32K tokens & Hundreds of thousands to millions & A full public footprint analyzed in one pass \\
 Voice/video synthesis & Obviously synthetic & Real-time cloning and face-swap & Official impersonation and fraudulent hiring documented \textbf{[O]} \\
-Frontier cyber capability & Negligible & Newest models described as most cyber-capable; least-restricted versions gated & Access to the ceiling is now the contested variable \\
+Frontier cyber capability & Negligible & Newest models described as most cyber-capable; least-restricted versions gated & Access to the ceiling is now the contested variable \\*
 Open-weight gap & 12--24 months & \textasciitilde{}one quarter (Epoch AI, Oct.\ 2025), partly via distillation & Open weights sit outside provider telemetry \\
 \bottomrule
-\end{tabular}
-\end{center}
+\end{longtable}}
 
 \begin{keybox}[Qualitative Transition, Now Observed]
 The shift from 2023 to 2026 is a qualitative capability transition, and since v2.1 it is an \textit{observed} one: the patterns this report described now appear in frontier-developer casework (see the Evidence Ledger below). \textbf{[O]}
@@ -1218,34 +1330,38 @@ v2.1 cited the Fable 5 system card's ``Pathway 8: undermining decisions within m
 
 \textbf{[O]} Tool integration (MCP) and computer-use agents let AI systems connect to external tools and operate graphical interfaces. At the level of consequence: Shadow AI tools with broad access become data-loss channels; many online identities can be maintained through ordinary interfaces; OSINT synthesis needs no custom tooling; and activity through standard interfaces resembles normal use in many logs.
 
+\Needspace{9\baselineskip}
 \subsection{Capability Assessment by Function}
 
-\begin{center}
-\small
-\begin{tabular}{L{3.6cm}L{6.4cm}L{2.8cm}}
+{\small
+\begin{longtable}{L{3.6cm}L{6.4cm}L{2.8cm}}
 \toprule
 \textbf{Function} & \textbf{State (September 2026)} & \textbf{Evidence} \\
 \midrule
-Persona maintenance & Thousands of concurrent personas in a commercial fraud operation & \textbf{[O]} adjacent domain \\
+\endfirsthead
+\toprule
+\textbf{Function} & \textbf{State (September 2026)} & \textbf{Evidence} \\
+\midrule
+\endhead
+Persona maintenance & Thousands of concurrent personas in a commercial fraud operation & \textbf{[O]} adjacent domain \\*
 Target research / OSINT & Security services mass-producing dissident profiles and military-movement OSINT & \textbf{[O]} Documented \\
 Vulnerability ID (people) & Feasible from open sources; human validation valuable & \textbf{[E]} Limited \\
 Relationship development & Documented for romance fraud; not for intelligence recruitment & \textbf{[O]} / \textbf{[E]} \\
-Long-term asset management & Undemonstrated in open sources & \textbf{[S]} Extrapolation \\
+Long-term asset management & Undemonstrated in open sources & \textbf{[S]} Extrapolation \\*
 Technical intrusion & State-linked campaigns with most tactical work delegated to AI & \textbf{[O]} Documented \\
 \bottomrule
-\end{tabular}
-\end{center}
+\end{longtable}}
 
 \subsection{Open-Weight Model Proliferation}
 
 \textbf{[O]} Epoch AI (October 2025) estimated roughly a three-month benchmark lag between frontier closed and open-weight models; distillation accelerates this. Operational availability to non-experts takes longer (12--24 months) \textbf{[E]}. Crucially, open-weight and self-hosted use is invisible to provider telemetry, currently the main detection lever; as the closed frontier is gated more tightly, sophisticated operators gain incentives to move to what defenders cannot see.
 
+\Needspace{9\baselineskip}
 \subsection{The Evidence Ledger: What Is Now Documented}
 
 \textit{Summarized at the level of consequence; sources in Appendices B and C.}
 
-\begin{center}
-\small
+{\small
 \begin{longtable}{L{1.7cm}L{7.2cm}L{3.9cm}}
 \toprule
 \textbf{Date} & \textbf{Development} & \textbf{What It Shows} \\
@@ -1255,7 +1371,7 @@ Technical intrusion & State-linked campaigns with most tactical work delegated t
 \textbf{Date} & \textbf{Development} & \textbf{What It Shows} \\
 \midrule
 \endhead
-Feb 2024 & About \$25M lost after a video call with deepfaked executives (Arup, confirmed May 2024) \textbf{[D]} & Video authority is spoofable \\
+Feb 2024 & About \$25M lost after a video call with deepfaked executives (Arup, confirmed May 2024) \textbf{[D]} & Video authority is spoofable \\*
 May 2025 & FBI warns of AI voice messages impersonating senior US officials \textbf{[O]} & Official impersonation \\
 May 2025 & PRC-linked fake job sites target laid-off US federal workers (FDD) \textbf{[O]} & Targeting a new vulnerable pool \\
 Jun 2025 & DPRK remote IT workers adopt face-swap and voice tools; Microsoft suspends 3,000 accounts \textbf{[O]} & Synthetic-insider placement \\
@@ -1271,45 +1387,45 @@ Jun 2026 & Five Eyes warn of targeting through online job platforms (as reported
 Jun 2026 & ATT\&CK has no identifier for ``agentic orchestration'' (Anthropic) \textbf{[O]} & Defensive taxonomies lag \\
 Jun 2026 & Export-control suspension of Fable 5 / Mythos 5 for foreign nationals \textbf{[O]} & Access as controlled technology \\
 Sep 2026 & GTG-20006: Russia-linked espionage against Ukrainian and European targets, with AI used to rebuild tools after detection \textbf{[O]} & Detection cost shifts to defenders \\
-Sep 2026 & PRC bureaus produce about 2,475 dissident briefs in 30 days; Iranian units analyze about 155,000 posts for naval OSINT \textbf{[O]} & Stasi-in-a-Box and OSINT at scale \\
+Sep 2026 & PRC bureaus produce about 2,475 dissident briefs in 30 days; Iranian units analyze about 155,000 posts for naval OSINT \textbf{[O]} & Stasi-in-a-Box and OSINT at scale \\*
 Sep 2026 & Influence-as-a-service firms disrupted \textbf{[O]} & Mercenary model documented \\
 \bottomrule
-\end{longtable}
-\end{center}
+\end{longtable}}
 
 \textbf{Still not documented in open sources} \textbf{[E]}: AI-managed recruitment of a cleared insider; real-time deepfake \textit{handling} of an asset; a commercial AI-run HUMINT service; counterintelligence honey-agent operations; public attribution via model fingerprinting. Absence is weak evidence for the first two (services do not publish successes) and stronger evidence for the last three.
 
 \begin{figure}[htbp]
 \centering
-\begin{tikzpicture}[x=0.72cm, y=1cm]
-  % axis: months since Jan 2025
-  \draw[line width=1.2pt, coldsteel] (0,0) -- (21,0);
-  \fill[signalred!12] (18,-0.08) rectangle (21,0.08);
-  \node[figlabel, text=signalred, anchor=south] at (20.6,0.1) {v3.0};
-  % events above the axis: position/height/color/text
-  \foreach \x/\h/\c/\t in {
-      4.5/1.2/signalcyan/{FBI: AI voice impersonation of officials},
-      10.4/2.3/signalred/{GTG-1002: first documented AI-orchestrated espionage},
-      13.4/1.2/interceptgreen/{Ding conviction; distillation disclosed},
-      17.6/2.3/warningamber/{Five Eyes job-platform warning; export-control suspension}} {
-    \draw[\c, line width=0.7pt] (\x,0) -- (\x,\h);
-    \fill[\c] (\x,0) circle (0.09);
-    \node[figbox, draw=\c, text width=2.9cm, font=\scriptsize\sffamily, anchor=south] at (\x,\h) {\t};
-  }
-  % events below the axis
-  \foreach \x/\h/\c/\t in {
-      6.5/-1.2/signalcyan/{DPRK hires use face-swap; Sec.\ of State impersonated},
-      10.6/-2.3/warningamber/{MI5 LinkedIn alert; GTIG state-use report},
-      15.2/-1.2/signalred/{Gated-model leak; 4,700-persona operation},
-      19.6/-2.3/signalred/{Fable 5.1, GPT-6 Astra; GTG-20006 disclosed}} {
-    \draw[\c, line width=0.7pt] (\x,0) -- (\x,\h);
-    \fill[\c] (\x,0) circle (0.09);
-    \node[figbox, draw=\c, text width=2.9cm, font=\scriptsize\sffamily, anchor=north] at (\x,\h) {\t};
-  }
-  % month ticks drawn last, on white, so event stems do not cross the labels
+\begin{tikzpicture}[x=0.74cm, y=1cm]
+  % time band (months since Jan 2025); month labels sit inside the band so
+  % event stems never cross them
+  \def\bh{0.27}
+  \fill[lightgray] (0,-\bh) rectangle (21,\bh);
+  \fill[signalred!15] (18,-\bh) rectangle (21,\bh);
   \foreach \m/\lab in {0/Jan 2025, 6/Jul 2025, 12/Jan 2026, 18/Jul 2026} {
-    \draw[coldsteel, line width=0.8pt] (\m,-0.12) -- (\m,0.12);
-    \node[figlabel, fill=white, inner sep=1pt, anchor=north] at (\m-0.9,-0.12) {\lab};
+    \draw[coldsteel, line width=0.8pt] (\m,-\bh) -- (\m,\bh);
+    \node[font=\scriptsize\sffamily, text=coolgray, anchor=west, inner sep=2pt] at (\m,0) {\lab};
+  }
+  \node[font=\scriptsize\bfseries\sffamily, text=signalred, anchor=east, inner sep=2pt] at (21,0) {v3.0};
+  % events above the band: position/height/color/text
+  \foreach \x/\h/\c/\t in {
+      4.5/1.2/signalcyan/{FBI: AI voice\\impersonation of officials},
+      10.4/2.3/signalred/{GTG-1002: first documented\\AI-orchestrated espionage},
+      13.4/1.2/interceptgreen/{Ding conviction;\\distillation disclosed},
+      17.6/2.3/warningamber/{Five Eyes job-platform warning;\\export-control suspension}} {
+    \draw[\c, line width=0.7pt] (\x,\bh) -- (\x,\h);
+    \fill[\c] (\x,\bh) circle (0.07);
+    \node[figbox, draw=\c, font=\scriptsize\sffamily, inner sep=3pt, anchor=south] at (\x,\h) {\t};
+  }
+  % events below the band
+  \foreach \x/\h/\c/\t in {
+      6.5/-1.2/signalcyan/{DPRK hires use face-swap;\\Sec.\ of State impersonated},
+      10.6/-2.3/warningamber/{MI5 LinkedIn alert;\\GTIG state-use report},
+      15.2/-1.2/signalred/{Gated-model leak;\\4,700-persona operation},
+      19.6/-2.3/signalred/{Fable 5.1, GPT-6 Astra;\\GTG-20006 disclosed}} {
+    \draw[\c, line width=0.7pt] (\x,-\bh) -- (\x,\h);
+    \fill[\c] (\x,-\bh) circle (0.07);
+    \node[figbox, draw=\c, font=\scriptsize\sffamily, inner sep=3pt, anchor=north] at (\x,\h) {\t};
   }
 \end{tikzpicture}
 \caption{Selected developments relevant to AI-enabled espionage, 2025--2026. Red: AI-orchestrated operations; amber: official warnings and controls; cyan: impersonation and placement; green: enforcement and disclosure.}
@@ -1352,10 +1468,11 @@ AI agents can augment every phase of the intelligence cycle, with the most signi
       -150/dis/{\textbf{5. Dissemination}\\tailored summaries;\\provenance risk}/steelblue/Moderate,
       150/fee/{\textbf{6. Feedback}\\automated\\re-tasking}/coolgray/Rising} {
     \node[figbox, draw=\col, line width=1.2pt, text width=2.9cm, minimum height=1.35cm] (\name) at (\ang:\R) {\txt};
-    \node[fill=\col, text=white, font=\scriptsize\bfseries\sffamily, rounded corners=2pt, inner sep=2pt, anchor=north] at ([yshift=1pt]\name.south) {\lvl};
+    \node[fill=\col, text=white, font=\scriptsize\bfseries\sffamily, rounded corners=2pt, inner sep=2pt, anchor=north] (\name-b) at ([yshift=1pt]\name.south) {\lvl};
+    \node[inner sep=1pt, fit=(\name) (\name-b)] (\name-g) {};
   }
   \foreach \a/\b in {dir/col, col/pro, pro/ana, ana/dis, dis/fee, fee/dir} {
-    \draw[figarrow] (\a) to[bend left=18] (\b);
+    \draw[figarrow, shorten >=2pt, shorten <=2pt] (\a-g) to[bend left=18] (\b-g);
   }
   \node[circle, fill=shadowdark, text=white, font=\footnotesize\bfseries\sffamily, align=center, minimum size=2.1cm] (core) at (0,0) {AI\\insertion\\points};
   % defender levers
@@ -1390,24 +1507,28 @@ AI agents can augment every phase of the intelligence cycle, with the most signi
 The September 2026 GTG-20006 disclosure illustrates the defender-side consequence: when detection forces an operator to retool, AI shortens the retooling cycle, so the cost of each detection shifts back onto the defender. Controls anchored in identity, device, and data degrade less under rapid retooling than signature-based ones. \textbf{[O]/[E]}
 \end{warnbox}
 
+\Needspace{12\baselineskip}
 \section{AI-Enabled Targeting and Recruitment}\label{sec:targeting}
 
 \subsection{The Recruitment Funnel: Traditional vs. AI-Enabled}
 
-\begin{center}
-\small
-\begin{tabular}{L{4cm}L{4cm}L{4cm}}
+{\small
+\begin{longtable}{L{4cm}L{4cm}L{4cm}}
 \toprule
 \textbf{Stage} & \textbf{Traditional} & \textbf{AI-Enabled [S]} \\
 \midrule
-Target Universe & $\sim$1,000 individuals & $\sim$100,000 individuals \\
+\endfirsthead
+\toprule
+\textbf{Stage} & \textbf{Traditional} & \textbf{AI-Enabled [S]} \\
+\midrule
+\endhead
+Target Universe & $\sim$1,000 individuals & $\sim$100,000 individuals \\*
 Preliminary Assessment & $\sim$100 (months/years) & $\sim$10,000 (hours) \\
 Development & $\sim$20 actively cultivated & $\sim$1,000 parallel cultivation \\
-Recruitment Attempts & $\sim$5 approached & $\sim$100 approached \\
+Recruitment Attempts & $\sim$5 approached & $\sim$100 approached \\*
 Recruited Assets & $\sim$1--2 productive & $\sim$10--50 productive \\
 \bottomrule
-\end{tabular}
-\end{center}
+\end{longtable}}
 
 \begin{figure}[htbp]
 \centering
@@ -1416,7 +1537,7 @@ Recruited Assets & $\sim$1--2 productive & $\sim$10--50 productive \\
     % traditional (log-scaled half-widths)
     \pgfmathsetmacro{\tw}{0.5*(5-\i)*0.62}
     \pgfmathsetmacro{\aw}{0.5*(5-\i)}
-    \fill[coldsteel!55] (-3.9-\tw,-\i*0.8) rectangle (-3.9+\tw,-\i*0.8-0.62);
+    \fill[coldsteel!90] (-3.9-\tw,-\i*0.8) rectangle (-3.9+\tw,-\i*0.8-0.62);
     \node[font=\scriptsize\bfseries\sffamily, text=white] at (-3.9,-\i*0.8-0.31) {\trad};
     \fill[signalred!75] (3.9-\aw,-\i*0.8) rectangle (3.9+\aw,-\i*0.8-0.62);
     \node[font=\scriptsize\bfseries\sffamily, text=white] at (3.9,-\i*0.8-0.31) {\ai};
@@ -1431,23 +1552,27 @@ Recruited Assets & $\sim$1--2 productive & $\sim$10--50 productive \\
 
 \textbf{Key insight}: The AI-enabled model accepts lower per-target success rates in exchange for dramatically higher volume. The economics shift from precision to scale.
 
+\Needspace{9\baselineskip}
 \subsection{State vs.\ Industrial Espionage: Divergent Objectives}
 
 \textbf{Critical distinction}: The recruitment funnel operates differently depending on the espionage objective \textbf{[E]}.
 
-\begin{center}
-\small
-\begin{tabular}{L{3cm}L{4.5cm}L{5cm}}
+{\small
+\begin{longtable}{L{3cm}L{4.5cm}L{5cm}}
 \toprule
 \textbf{Dimension} & \textbf{State/Political} & \textbf{Industrial/Economic} \\
 \midrule
-Primary targets & Government officials, diplomats & Engineers, researchers, executives \\
+\endfirsthead
+\toprule
+\textbf{Dimension} & \textbf{State/Political} & \textbf{Industrial/Economic} \\
+\midrule
+\endhead
+Primary targets & Government officials, diplomats & Engineers, researchers, executives \\*
 Crown jewels & Policy decisions, military capabilities & Source code, model weights, designs \\
-Time horizon & Long-term (years to decades) & Short-term (weeks to months) \\
+Time horizon & Long-term (years to decades) & Short-term (weeks to months) \\*
 AI suitability & Lower for strategic assets & Higher; technical targets digital-native \\
 \bottomrule
-\end{tabular}
-\end{center}
+\end{longtable}}
 
 \begin{warnbox}[Weight-Jacking]
 An emerging industrial espionage vector, using AI agents to social-engineer ML researchers and developers into leaking:
@@ -1480,20 +1605,24 @@ Organizations should assume that AI-enabled MICE vulnerability assessment of the
 
 \textbf{Calibrating the persuasion threat} \textbf{[O]/[E]}: Salvi et al.\ (\textit{Nature Human Behaviour}, 2025) found that GPT-4 given basic personal information had 81.7\% higher odds of shifting agreement than human debaters (N=820). But Hackenburg et al.\ (2025; 76,977 participants, 19 models) found post-training and prompting raised persuasiveness far more than personalization, and that more persuasive methods were \textit{less accurate}. The decisive AI advantage is probably not psychological precision but \textbf{volume, persistence, and patience}: keeping thousands of conversations warm until a layoff, grievance, or debt creates an opening. Defensive emphasis shifts toward life-event support and reporting culture.
 
+\Needspace{9\baselineskip}
 \subsection{Evidence Check: Online Approaches in 2025--2026}
 
-\begin{center}
-\small
-\begin{tabular}{L{2.2cm}L{6.2cm}L{4.4cm}}
+{\small
+\begin{longtable}{L{2.2cm}L{6.2cm}L{4.4cm}}
 \toprule
 \textbf{Date} & \textbf{Warning} \textbf{[O]} & \textbf{Relevance} \\
 \midrule
-May 2025 & FDD researchers identify PRC-linked fake consulting and job sites targeting laid-off US federal employees & Workforce cuts create a large, identifiable pool with residual access \\
-Nov 2025 & MI5 espionage alert on fake recruiter profiles used by PRC intelligence on LinkedIn to approach UK parliamentarians and officials & Professional-network cultivation at scale \\
+\endfirsthead
+\toprule
+\textbf{Date} & \textbf{Warning} \textbf{[O]} & \textbf{Relevance} \\
+\midrule
+\endhead
+May 2025 & FDD researchers identify PRC-linked fake consulting and job sites targeting laid-off US federal employees & Workforce cuts create a large, identifiable pool with residual access \\*
+Nov 2025 & MI5 espionage alert on fake recruiter profiles used by PRC intelligence on LinkedIn to approach UK parliamentarians and officials & Professional-network cultivation at scale \\*
 Jun 3, 2026 & Five Eyes warn that Chinese intelligence targets people with sensitive access via online job platforms (as reported) & Job platforms are a primary approach surface \\
 \bottomrule
-\end{tabular}
-\end{center}
+\end{longtable}}
 
 \textbf{Assessment} \textbf{[E]}: These are exactly the ``top of funnel'' activities AI most cheaply scales. IC workforce reductions (Section~\ref{sec:ci}) simultaneously enlarge the pool of targetable former insiders and shrink the capacity to notice them being approached. No warning yet attributes a successful recruitment to an AI-run persona.
 
@@ -1517,19 +1646,23 @@ Modern individuals generate extensive high-fidelity behavioral telemetry: social
 
 AI agents synthesize this data into comprehensive target profiles:
 
-\begin{center}
-\small
-\begin{tabular}{L{3.5cm}L{8cm}}
+\Needspace{6\baselineskip}
+{\small
+\begin{longtable}{L{3.5cm}L{8cm}}
 \toprule
 \textbf{Analysis Type} & \textbf{Data Sources and Outputs} \\
 \midrule
-Routine analysis & Work schedule from posting times; travel patterns from geo-tagged photos \\
+\endfirsthead
+\toprule
+\textbf{Analysis Type} & \textbf{Data Sources and Outputs} \\
+\midrule
+\endhead
+Routine analysis & Work schedule from posting times; travel patterns from geo-tagged photos \\*
 Relationship mapping & Family structure from photos/tags; professional network from LinkedIn \\
-Psychological profiling & Communication style analysis; stress indicators from language patterns \\
+Psychological profiling & Communication style analysis; stress indicators from language patterns \\*
 Vulnerability windows & Routine deviations; periods of isolation or stress \\
 \bottomrule
-\end{tabular}
-\end{center}
+\end{longtable}}
 
 \textbf{The Attribution Challenge}: AI-generated POL analysis may be indistinguishable from legitimate business intelligence, academic research, journalistic investigation, or normal social media observation, creating significant attribution challenges for counterintelligence.
 
@@ -1539,24 +1672,28 @@ Vulnerability windows & Routine deviations; periods of isolation or stress \\
 Personnel digital footprints enable automated vulnerability assessment. Organizations should implement data minimization policies and provide OSINT hygiene training to reduce attack surface.
 \end{infobox}
 
-\needspace{6\baselineskip}
+\Needspace{6\baselineskip}
 \subsection{Social Engineering at Scale: Polymorphic Attacks}
 
 The 2023 Scattered Spider attacks on MGM/Caesars relied on skilled human callers. v2.1 called them the ``last generation'' of purely human attacks; that overstated the case, since human-led help-desk social engineering remained common through 2026. AI now \textit{augments} the pattern, producing \textbf{Polymorphic Social Engineering} \textbf{[E]}:
 
-\begin{center}
-\small
-\begin{tabular}{L{5cm}L{7cm}}
+\Needspace{6\baselineskip}
+{\small
+\begin{longtable}{L{5cm}L{7cm}}
 \toprule
 \textbf{2023 (Human-Driven)} & \textbf{2026 (AI-Augmented)} \\
 \midrule
-One caller, one approach & AI rotates through 50+ psychological profiles/hour \\
+\endfirsthead
+\toprule
+\textbf{2023 (Human-Driven)} & \textbf{2026 (AI-Augmented)} \\
+\midrule
+\endhead
+One caller, one approach & AI rotates through 50+ psychological profiles/hour \\*
 Caller must match cultural expectations & AI adapts accent, register, cues in real-time \\
-Fatigue limits attack duration & AI maintains consistent pressure 24/7 \\
+Fatigue limits attack duration & AI maintains consistent pressure 24/7 \\*
 Failed approach burns credibility & AI pivots instantly, no reputation to protect \\
 \bottomrule
-\end{tabular}
-\end{center}
+\end{longtable}}
 
 \textbf{The ``RASCLS Rotation''}: Instead of committing to a single manipulation strategy, AI agents can rapidly cycle through:
 \begin{itemize}
@@ -1576,23 +1713,27 @@ Failed approach burns credibility & AI pivots instantly, no reputation to protec
 Residual defenses are procedural (callback to known numbers, out-of-band confirmation, verification phrases), not perceptual: in a February 2025 study of 2,000 adults, only 0.1\% classified every real and synthetic stimulus correctly (iProov).
 \end{warnbox}
 
-\needspace{8\baselineskip}
-\textbf{The Spearphishing Evolution}, Three generations of social engineering:
+\Needspace{8\baselineskip}
+\Needspace{7\baselineskip}
+\textbf{The Spearphishing Evolution}: three generations of social engineering.
 
-\begin{center}
-\small
-\begin{tabular}{L{2.5cm}L{3.5cm}L{3.5cm}L{3cm}}
+{\small
+\begin{longtable}{L{2.5cm}L{3.5cm}L{3.5cm}L{3cm}}
 \toprule
 \textbf{Aspect} & \textbf{Traditional Phishing} & \textbf{Spearphishing 1.0} & \textbf{GenSP (2026)} \\
 \midrule
-Targeting & Mass broadcast & Curated lists & AI-selected high-value \\
+\endfirsthead
+\toprule
+\textbf{Aspect} & \textbf{Traditional Phishing} & \textbf{Spearphishing 1.0} & \textbf{GenSP (2026)} \\
+\midrule
+\endhead
+Targeting & Mass broadcast & Curated lists & AI-selected high-value \\*
 Personalization & Template (Dear Customer) & Manual research & Real-time OSINT synthesis \\
 Scale & Millions & Hundreds & Thousands (personalized) \\
-Content quality & Generic lures & Researched context & Hyper-specific hooks \\
+Content quality & Generic lures & Researched context & Hyper-specific hooks \\*
 Response handling & Static & Manual escalation & AI dialogue management \\
 \bottomrule
-\end{tabular}
-\end{center}
+\end{longtable}}
 
 \subsection{Synthetic Insider Placement: The Remote-Hire Vector}
 
@@ -1616,24 +1757,28 @@ Physical and information security often rely on human judgment as a perimeter de
   \item Trust relationships can be systematically mapped and exploited
 \end{itemize}
 
+\Needspace{9\baselineskip}
 \subsection{Gamified Intelligence Collection}
 
 \textit{In 2026, an ``asset'' might not even know they are spying.}
 
-\begin{center}
-\small
-\begin{tabular}{L{3.5cm}L{4cm}L{5cm}}
+{\small
+\begin{longtable}{L{3.5cm}L{4cm}L{5cm}}
 \toprule
 \textbf{Cover Story} & \textbf{Target Believes} & \textbf{Actual Purpose} \\
 \midrule
-``Global Research Study'' & Academic survey for pay & Systematic elicitation \\
+\endfirsthead
+\toprule
+\textbf{Cover Story} & \textbf{Target Believes} & \textbf{Actual Purpose} \\
+\midrule
+\endhead
+``Global Research Study'' & Academic survey for pay & Systematic elicitation \\*
 ``AI Training Beta'' & Feedback for early access & Document upload harvest \\
 ``Professional Networking'' & Building career connections & Relationship mapping \\
-``Industry Benchmarking'' & Sharing best practices & Competitive intelligence \\
+``Industry Benchmarking'' & Sharing best practices & Competitive intelligence \\*
 ``Remote Consulting'' & Paid advice on hypotheticals & Real vulnerability disclosure \\
 \bottomrule
-\end{tabular}
-\end{center}
+\end{longtable}}
 
 \textbf{Why this bypasses traditional CI detection}:
 \begin{itemize}
@@ -1669,7 +1814,7 @@ This enables intelligence collection without recruiting witting assets, bypassin
 AI-enabled industrial espionage may reach maturity \textit{faster} than political espionage precisely because it requires less human infrastructure.
 \end{infobox}
 
-\needspace{8\baselineskip}
+\Needspace{8\baselineskip}
 \section{The Trust Deficit: Limits of Synthetic Handlers}\label{sec:trust}
 
 \subsection{The Physicality Gap}
@@ -1758,19 +1903,23 @@ This creates the impression of physical proximity without actual presence.
 
 \textbf{Emerging infrastructure} \textbf{[S]}: As targets increasingly demand physical proof of handler authenticity, a market is developing for ``Mechanical Turk Handlers'', humans paid to perform single physical verification tasks.
 
-\begin{center}
-\small
-\begin{tabular}{L{3cm}L{3.5cm}L{2.5cm}L{2cm}}
+\Needspace{6\baselineskip}
+{\small
+\begin{longtable}{L{3cm}L{3.5cm}L{2.5cm}L{2cm}}
 \toprule
 \textbf{Service Tier} & \textbf{Task} & \textbf{Awareness} & \textbf{Cost} \\
 \midrule
-Photo verification & ``Take photo at [location]'' & Unwitting & \$20--50 \\
+\endfirsthead
+\toprule
+\textbf{Service Tier} & \textbf{Task} & \textbf{Awareness} & \textbf{Cost} \\
+\midrule
+\endhead
+Photo verification & ``Take photo at [location]'' & Unwitting & \$20--50 \\*
 Package handling & Receive/forward packages & Semi-aware & \$100--500 \\
-Meeting proxy & Brief in-person meeting & Aware (actor) & \$500--2000 \\
+Meeting proxy & Brief in-person meeting & Aware (actor) & \$500--2000 \\*
 Sustained presence & Multiple interactions & Co-conspirator & Ongoing \\
 \bottomrule
-\end{tabular}
-\end{center}
+\end{longtable}}
 
 \textbf{Gig-Economy Cutouts}: The synthetic handler can employ unwitting physical proxies through legitimate platforms. A TaskRabbit worker doesn't know they're conducting a dead drop; they're just ``leaving a package under a bench for a client.''
 
@@ -1789,20 +1938,24 @@ Sustained presence & Multiple interactions & Co-conspirator & Ongoing \\
 \end{itemize}
 
 \vspace{0.5cm}
-\textbf{Asset Tier Stratification}, Matching handler type to asset value:
+\Needspace{7\baselineskip}
+\textbf{Asset Tier Stratification}: matching handler type to asset value.
 
-\begin{center}
-\small
-\begin{tabular}{L{2.5cm}L{3.5cm}L{3cm}L{3.5cm}}
+{\small
+\begin{longtable}{L{2.5cm}L{3.5cm}L{3cm}L{3.5cm}}
 \toprule
 \textbf{Asset Tier} & \textbf{Profile} & \textbf{AI Suitability} & \textbf{Recommended Model} \\
 \midrule
-\textbf{Strategic} & Senior officials, executives & Low & Human primary; AI support \\
-\textbf{Operational} & Mid-level technical, access & Medium & Centaur (AI primary, human backup) \\
+\endfirsthead
+\toprule
+\textbf{Asset Tier} & \textbf{Profile} & \textbf{AI Suitability} & \textbf{Recommended Model} \\
+\midrule
+\endhead
+\textbf{Strategic} & Senior officials, executives & Low & Human primary; AI support \\*
+\textbf{Operational} & Mid-level technical, access & Medium & Centaur (AI primary, human backup) \\*
 \textbf{Tactical} & Low-level, information only & High & Pure AI (automated handling) \\
 \bottomrule
-\end{tabular}
-\end{center}
+\end{longtable}}
 
 \textbf{Implication}: The ``AI replaces handlers'' narrative misses the point. The real transformation is \textit{selective automation}, pure AI for low-value targets, Centaurs for mid-tier, humans for strategic assets.
 
@@ -1814,13 +1967,16 @@ Sustained presence & Multiple interactions & Co-conspirator & Ongoing \\
 
 \begin{figure}[htbp]
 \centering
-\begin{tikzpicture}[node distance=0.55cm and 1.2cm]
-  \node[figbox, draw=signalred, text width=3.1cm] (a1) {Targeting and OSINT synthesis};
-  \node[figbox, draw=signalred, text width=3.1cm, below=of a1] (a2) {Round-the-clock conversation};
-  \node[figbox, draw=signalred, text width=3.1cm, below=of a2] (a3) {Relationship maintenance};
-  \node[figbox, draw=shadowdark, line width=1pt, text width=3.3cm, right=4.3cm of a1] (h3) {Quality control of collected material};
-  \node[figbox, draw=shadowdark, line width=1pt, text width=3.3cm, below=of h3] (h1) {Live-presence moments (video, meetings)};
-  \node[figbox, draw=shadowdark, line width=1pt, text width=3.3cm, below=of h1] (h2) {The pitch and high-stakes decisions};
+\begin{tikzpicture}[
+    lane/.style={figbox, text width=3.6cm, minimum height=1.05cm},
+    ai/.style={lane, draw=signalred},
+    hu/.style={lane, draw=shadowdark, line width=1pt}]
+  \node[ai] (a1) at (0,0)    {Targeting and\\OSINT synthesis};
+  \node[ai] (a2) at (0,-1.7) {Round-the-clock\\conversation};
+  \node[ai] (a3) at (0,-3.4) {Relationship\\maintenance};
+  \node[hu] (h3) at (7.9,0)    {Quality control of\\collected material};
+  \node[hu] (h1) at (7.9,-1.7) {Live-presence moments\\(video, meetings)};
+  \node[hu] (h2) at (7.9,-3.4) {The pitch and\\high-stakes decisions};
   \begin{scope}[on background layer]
     \node[fit=(a1)(a3), fill=signalred!8, draw=signalred!50, rounded corners, inner sep=8pt, label={[font=\footnotesize\bfseries\sffamily, text=signalred]above:Automated layer (AI personas)}] {};
     \node[fit=(h3)(h2), fill=shadowdark!6, draw=shadowdark!50, rounded corners, inner sep=8pt, label={[font=\footnotesize\bfseries\sffamily, text=shadowdark]above:Human layer (officer)}] {};
@@ -1830,8 +1986,8 @@ Sustained presence & Multiple interactions & Co-conspirator & Ongoing \\
   \draw[figarrow] (a1.east) -- node[figlabel, above] {raw output} (h3.west);
   \draw[figarrow] (a2.east) -- node[figlabel, above] {escalate for live proof} (h1.west);
   \draw[figarrow] (a3.east) -- node[figlabel, above] {escalate promising targets} (h2.west);
-  \node[figbox, draw=interceptgreen, fill=interceptgreen!10, text width=2.9cm, right=0.6cm of h1] (d) {\textbf{Defender lever}: force live, unpredictable, verifiable interaction};
-  \draw[figarrow, draw=interceptgreen, dashed] (d) -- (h1);
+  \node[figbox, draw=interceptgreen, fill=interceptgreen!10, anchor=west] (d) at ([xshift=1.1cm]h1.east) {\textbf{Defender lever}\\force live, unpredictable,\\verifiable interaction};
+  \draw[figarrow, draw=interceptgreen, dashed] (d.west) -- ([xshift=8pt]h1.east);
 \end{tikzpicture}
 \caption{The Centaur Handler architecture. Automation supplies persistence and volume; humans are reserved for live-presence and high-trust moments, which is where defenders should concentrate verification. Observed at about three personas per human in a 2026 fraud operation \textbf{[O]}.}
 \label{fig:centaur}
@@ -1841,19 +1997,23 @@ Sustained presence & Multiple interactions & Co-conspirator & Ongoing \\
 
 \textbf{[E]} Autonomous personas suffer from ``state-drift'', progressive degradation of persona consistency and legend coherence over extended engagements.
 
-\begin{center}
-\small
-\begin{tabular}{L{3.5cm}L{5cm}L{3cm}}
+\Needspace{6\baselineskip}
+{\small
+\begin{longtable}{L{3.5cm}L{5cm}L{3cm}}
 \toprule
 \textbf{Drift Type} & \textbf{Manifestation} & \textbf{Detection Window} \\
 \midrule
-Persona inconsistency & Contradictory biographical details & 2--4 weeks \\
+\endfirsthead
+\toprule
+\textbf{Drift Type} & \textbf{Manifestation} & \textbf{Detection Window} \\
+\midrule
+\endhead
+Persona inconsistency & Contradictory biographical details & 2--4 weeks \\*
 Goal drift & Forgetting original objectives & 1--3 weeks \\
-Style migration & Shift toward base model patterns & 3--6 weeks \\
+Style migration & Shift toward base model patterns & 3--6 weeks \\*
 Knowledge staleness & Outdated current event references & Ongoing \\
 \bottomrule
-\end{tabular}
-\end{center}
+\end{longtable}}
 
 \textbf{Operational estimate} \textbf{[E]}: Drawing on published evaluation results for long-duration autonomous agents and documented agentic deployments (not on red-team exercises by the author), this analysis estimates \textbf{30--50\% ``legend drift'' after 30 days} of unmonitored interaction (confidence: medium), necessitating the Centaur model for any engagement requiring sustained relationship integrity.
 
@@ -1899,19 +2059,23 @@ Treat as one of several possible futures, not a prediction.
 
 This creates novel operational challenges:
 
-\begin{center}
-\small
-\begin{tabular}{L{3.5cm}L{4cm}L{4.5cm}}
+\Needspace{6\baselineskip}
+{\small
+\begin{longtable}{L{3.5cm}L{4cm}L{4.5cm}}
 \toprule
 \textbf{Scenario} & \textbf{Traditional Response} & \textbf{AI-Era Challenge} \\
 \midrule
-Identifying hostile intel officers & Physical surveillance, network analysis & AI personas have no physical presence \\
+\endfirsthead
+\toprule
+\textbf{Scenario} & \textbf{Traditional Response} & \textbf{AI-Era Challenge} \\
+\midrule
+\endhead
+Identifying hostile intel officers & Physical surveillance, network analysis & AI personas have no physical presence \\*
 Detecting recruitment approaches & Behavioral indicators in targets & Targets may be AI personas themselves \\
-Validating source authenticity & Background verification, testing & AI generates consistent backgrounds \\
+Validating source authenticity & Background verification, testing & AI generates consistent backgrounds \\*
 Assessing intelligence quality & Cross-referencing, source evaluation & AI generates plausible fabrications \\
 \bottomrule
-\end{tabular}
-\end{center}
+\end{longtable}}
 
 \subsection{The Paradox of Scale}
 
@@ -1925,20 +2089,24 @@ Assessing intelligence quality & Cross-referencing, source evaluation & AI gener
 
 \textbf{An alternative to generalized collapse} \textbf{[S]}: Rather than universal signal degradation, the information environment may bifurcate into \textbf{``provenance islands''} where authentication is possible, surrounded by an open-web ``sludge'' where trust is impossible.
 
-\begin{center}
-\small
-\begin{tabular}{L{4cm}L{3cm}L{4.5cm}}
+\Needspace{6\baselineskip}
+{\small
+\begin{longtable}{L{4cm}L{3cm}L{4.5cm}}
 \toprule
 \textbf{Domain} & \textbf{Trust Level} & \textbf{Espionage Utility} \\
 \midrule
-Enterprise identity systems & High (SSO, hardware tokens) & Reduced, harder to penetrate \\
+\endfirsthead
+\toprule
+\textbf{Domain} & \textbf{Trust Level} & \textbf{Espionage Utility} \\
+\midrule
+\endhead
+Enterprise identity systems & High (SSO, hardware tokens) & Reduced, harder to penetrate \\*
 Signed content platforms & Medium-High (C2PA metadata) & Reduced for synthetic personas \\
 Government/military networks & High (clearance, air-gaps) & Traditional controls remain \\
-Open social media & Very Low (assumes synthetic) & Paradoxically reduced \\
+Open social media & Very Low (assumes synthetic) & Paradoxically reduced \\*
 Unverified messaging & Near-Zero & Minimal, no trust baseline \\
 \bottomrule
-\end{tabular}
-\end{center}
+\end{longtable}}
 
 \textbf{Implications for espionage}:
 \begin{itemize}
@@ -1964,19 +2132,23 @@ Organizations should accelerate adoption of content provenance standards (C2PA) 
   \item \textbf{Systematic blind spots}: Model limitations create consistent patterns
 \end{itemize}
 
-\begin{center}
-\small
-\begin{tabular}{L{5cm}L{6.5cm}}
+\Needspace{6\baselineskip}
+{\small
+\begin{longtable}{L{5cm}L{6.5cm}}
 \toprule
 \textbf{Traditional Attribution} & \textbf{Model Fingerprinting Addition} \\
 \midrule
-No human handler to identify & Model signature may identify the service \\
+\endfirsthead
+\toprule
+\textbf{Traditional Attribution} & \textbf{Model Fingerprinting Addition} \\
+\midrule
+\endhead
+No human handler to identify & Model signature may identify the service \\*
 Infrastructure rotated via proxies & Model cannot easily be replaced mid-operation \\
-Open-source model origin untraceable & Fine-tuning creates identifiable divergence \\
+Open-source model origin untraceable & Fine-tuning creates identifiable divergence \\*
 Plausible deniability preserved & Cross-operation correlation reveals scope \\
 \bottomrule
-\end{tabular}
-\end{center}
+\end{longtable}}
 
 \textbf{2026 evidence} \textbf{[O]}: The closest real-world analog is provider-side \textit{behavioral} fingerprinting, which Anthropic used to link distillation traffic across thousands of fraudulent accounts (February 2026). That attributes \textit{accounts to a campaign} from usage patterns, not \textit{text to a model}, and works because the provider sees the traffic.
 
@@ -1990,24 +2162,28 @@ Plausible deniability preserved & Cross-operation correlation reveals scope \\
 \end{itemize}
 \end{warnbox}
 
+\Needspace{14\baselineskip}
 \section{Threat Actor Taxonomy}\label{sec:actors}
 
 \subsection{Actor Tiers}
 
-\begin{center}
-\small
-\begin{tabular}{cL{3.5cm}L{3cm}L{4cm}}
+{\small
+\begin{longtable}{cL{3.5cm}L{3cm}L{4cm}}
 \toprule
 \textbf{Tier} & \textbf{Description} & \textbf{Pre-AI Capability} & \textbf{AI-Enabled Shift} \\
 \midrule
-\textbf{1} & Major state services & Full-spectrum HUMINT & Scale amplification \\
+\endfirsthead
+\toprule
+\textbf{Tier} & \textbf{Description} & \textbf{Pre-AI Capability} & \textbf{AI-Enabled Shift} \\
+\midrule
+\endhead
+\textbf{1} & Major state services & Full-spectrum HUMINT & Scale amplification \\*
 \textbf{2} & Regional services, corporations & Limited HUMINT & HUMINT now accessible \\
 \textbf{3} & Non-state groups, small nations & Opportunistic & Systematic capability \\
-\textbf{4} & Individuals, small groups & Minimal & Basic capability \\
+\textbf{4} & Individuals, small groups & Minimal & Basic capability \\*
 \textbf{EaaS} & Commercial mercenaries & Emerging & Capability rental \\
 \bottomrule
-\end{tabular}
-\end{center}
+\end{longtable}}
 
 \subsection{Sophistication Collapse: What the Tiers No Longer Tell You}
 
@@ -2044,23 +2220,27 @@ A critical category missing from traditional state-centric analysis: \textbf{com
 
 \textbf{A critical complication for allied intelligence sharing} \textbf{[E]}: The ``Third-Party Rule'' (or ``originator control'') dictates that intelligence shared between allied services cannot be passed to third parties without permission. AI-enabled synthesis fundamentally challenges this framework.
 
-\begin{center}
-\small
-\begin{tabular}{L{4cm}L{8cm}}
+\Needspace{6\baselineskip}
+{\small
+\begin{longtable}{L{4cm}L{8cm}}
 \toprule
 \textbf{Traditional Sharing} & \textbf{AI-Era Challenge} \\
 \midrule
-Clear source attribution & Synthesis obscures origin \\
+\endfirsthead
+\toprule
+\textbf{Traditional Sharing} & \textbf{AI-Era Challenge} \\
+\midrule
+\endhead
+Clear source attribution & Synthesis obscures origin \\*
 Human analysts apply need-to-know & AI systems process everything available \\
-Violations detectable through leaks & Violations invisible in synthesized output \\
+Violations detectable through leaks & Violations invisible in synthesized output \\*
 Trust built on relationships & Trust must extend to AI systems \\
 \bottomrule
-\end{tabular}
-\end{center}
+\end{longtable}}
 
 \textbf{Policy tension}: Efficiency gains from AI-enabled analysis may come at the cost of allied cooperation, a strategic trade-off with no easy answer.
 
-\needspace{8\baselineskip}
+\Needspace{8\baselineskip}
 \section{Emerging Threat Vectors}\label{sec:vectors}
 
 \subsection{AI Credentials and Resellers: The New Access Tokens}
@@ -2079,20 +2259,24 @@ Treat AI API keys as production credentials: inventory, scope, rotate, monitor, 
 
 \textbf{The 2025--2026 hardware shift} \textbf{[O]}: With the proliferation of Neural Processing Units (NPUs) in consumer laptops and smartphones, capable LLMs now run entirely on-device.
 
-\begin{center}
-\small
-\begin{tabular}{L{4.5cm}L{7.5cm}}
+\Needspace{6\baselineskip}
+{\small
+\begin{longtable}{L{4.5cm}L{7.5cm}}
 \toprule
 \textbf{Cloud-Based Agent} & \textbf{Local/NPU-Based Agent} \\
 \midrule
-Network traffic detectable by DLP & No external network traffic for inference \\
+\endfirsthead
+\toprule
+\textbf{Cloud-Based Agent} & \textbf{Local/NPU-Based Agent} \\
+\midrule
+\endhead
+Network traffic detectable by DLP & No external network traffic for inference \\*
 API calls create audit logs & Processing invisible to network monitoring \\
 Latency creates operational friction & Real-time processing enables seamless operation \\
-Cloud provider may enforce policies & No third-party oversight of model use \\
+Cloud provider may enforce policies & No third-party oversight of model use \\*
 Compute costs create constraints & Zero marginal cost after deployment \\
 \bottomrule
-\end{tabular}
-\end{center}
+\end{longtable}}
 
 \begin{criticalbox}[The Network-Visibility Gap]
 \textbf{[S]} On a compromised endpoint, a local model could triage and condense what it observes so that only a small, high-value residue ever leaves the device, reducing the network signals that DLP and behavioral analytics rely on. The concern is the loss of network-visible volume as a detection signal, not any particular technique.
@@ -2100,40 +2284,48 @@ Compute costs create constraints & Zero marginal cost after deployment \\
 \textbf{Timeline}: The enabling hardware is current (2026); public documentation of this misuse pattern is not yet available \textbf{[E]}.
 \end{criticalbox}
 
+\Needspace{9\baselineskip}
 \subsection{Shadow AI: The Trojan Productivity Tool}
 
 \textbf{Shadow AI Taxonomy}:
 
-\begin{center}
-\small
-\begin{tabular}{L{2.5cm}L{4.5cm}L{2cm}L{2cm}}
+{\small
+\begin{longtable}{L{2.5cm}L{4.5cm}L{2cm}L{2cm}}
 \toprule
 \textbf{Category} & \textbf{Intent} & \textbf{Risk} & \textbf{Detection} \\
 \midrule
-Benign SaaS & Commercial data collection & Moderate & Low \\
+\endfirsthead
+\toprule
+\textbf{Category} & \textbf{Intent} & \textbf{Risk} & \textbf{Detection} \\
+\midrule
+\endhead
+Benign SaaS & Commercial data collection & Moderate & Low \\*
 Gray Data Broker & Data aggregation/resale & Mod-High & Medium \\
-Malicious Trojan & Deliberate intel collection & Very High & High \\
+Malicious Trojan & Deliberate intel collection & Very High & High \\*
 Compromised Legitimate & Backdoored legitimate tool & Very High & Very High \\
 \bottomrule
-\end{tabular}
-\end{center}
+\end{longtable}}
 
+\Needspace{7\baselineskip}
 \textbf{Attack scenarios}:
 
-\begin{center}
-\small
-\begin{tabular}{L{4.5cm}L{8cm}}
+{\small
+\begin{longtable}{L{4.5cm}L{8cm}}
 \toprule
 \textbf{Delivery Vector} & \textbf{Intelligence Collection} \\
 \midrule
-``Free'' AI coding assistant & Source code, proprietary algorithms, development roadmaps \\
+\endfirsthead
+\toprule
+\textbf{Delivery Vector} & \textbf{Intelligence Collection} \\
+\midrule
+\endhead
+``Free'' AI coding assistant & Source code, proprietary algorithms, development roadmaps \\*
 Research summarization tool & Competitive intelligence, strategic planning documents \\
 AI email assistant & Communication patterns, contact networks, sensitive correspondence \\
-Meeting transcription service & Confidential discussions, strategic decisions, personnel vulnerabilities \\
+Meeting transcription service & Confidential discussions, strategic decisions, personnel vulnerabilities \\*
 ``Productivity'' browser extension & Browsing patterns, login credentials, document access \\
 \bottomrule
-\end{tabular}
-\end{center}
+\end{longtable}}
 
 \textbf{The ``Helpful Agent'' Paradox}: The more useful the tool, the more it's trusted with sensitive information. A truly excellent AI assistant that makes users 30\% more productive will be granted access to everything, making it the perfect intelligence platform.
 
@@ -2163,25 +2355,29 @@ Meeting transcription service & Confidential discussions, strategic decisions, p
 This represents the application of AI safety ``sleeper agent'' concerns (Hubinger et al., 2024) to the espionage domain. A model that appears aligned during testing may behave differently when deployed in specific contexts.
 \end{warnbox}
 
+\Needspace{9\baselineskip}
 \subsection{Smart Home and Edge Espionage}
 
 \textbf{Passive Pattern-of-Life collection through compromised IoT devices} \textbf{[E]}:
 
-\begin{center}
-\small
-\begin{tabular}{L{4cm}L{8cm}}
+{\small
+\begin{longtable}{L{4cm}L{8cm}}
 \toprule
 \textbf{Device Category} & \textbf{Intelligence Value} \\
 \midrule
-Smart speakers & Voice patterns, conversation fragments, routines \\
+\endfirsthead
+\toprule
+\textbf{Device Category} & \textbf{Intelligence Value} \\
+\midrule
+\endhead
+Smart speakers & Voice patterns, conversation fragments, routines \\*
 Security cameras & Visual surveillance, visitor identification \\
 Fitness devices & Sleep patterns, stress levels, location tracking \\
 Smart home automation & Occupancy patterns, routines, visitor schedules \\
-Smart TVs & Viewing habits, ambient audio capture \\
+Smart TVs & Viewing habits, ambient audio capture \\*
 Vehicle telematics & Executive movements, meeting locations \\
 \bottomrule
-\end{tabular}
-\end{center}
+\end{longtable}}
 
 \textbf{Industrial Edge Espionage}: Compromised sensors in manufacturing facilities, smart building systems revealing organizational patterns, and industrial IoT providing production intelligence.
 
@@ -2191,19 +2387,23 @@ Vehicle telematics & Executive movements, meeting locations \\
 
 \textbf{An emerging attack vector} \textbf{[E]}: As AI-powered code generation becomes standard, adversaries can exploit the software supply chain:
 
-\begin{center}
-\small
-\begin{tabular}{L{3.5cm}L{5cm}L{3.5cm}}
+\Needspace{6\baselineskip}
+{\small
+\begin{longtable}{L{3.5cm}L{5cm}L{3.5cm}}
 \toprule
 \textbf{Vector} & \textbf{Mechanism} & \textbf{Detection Difficulty} \\
 \midrule
-Open-source contributions & AI-generated PRs with subtle backdoors & Very High \\
+\endfirsthead
+\toprule
+\textbf{Vector} & \textbf{Mechanism} & \textbf{Detection Difficulty} \\
+\midrule
+\endhead
+Open-source contributions & AI-generated PRs with subtle backdoors & Very High \\*
 Compromised code assistants & AI tools injecting vulnerabilities & High \\
-AI review manipulation & Submissions exploiting AI reviewer biases & High \\
+AI review manipulation & Submissions exploiting AI reviewer biases & High \\*
 Dependency confusion & AI agents creating typosquatted packages & Medium \\
 \bottomrule
-\end{tabular}
-\end{center}
+\end{longtable}}
 
 \textit{Connection to sleeper agent research: The same detection principles, behavioral testing, anomaly detection, provenance tracking, apply to both model-level and code-level backdoors.}
 
@@ -2211,19 +2411,23 @@ Dependency confusion & AI agents creating typosquatted packages & Medium \\
 
 AI agents with access to biometric data can exploit real-time emotional states \textbf{[S]}:
 
-\begin{center}
-\small
-\begin{tabular}{L{3.5cm}L{9cm}}
+\Needspace{6\baselineskip}
+{\small
+\begin{longtable}{L{3.5cm}L{9cm}}
 \toprule
 \textbf{Data Source} & \textbf{Intelligence Application} \\
 \midrule
-Smartwatch data & Heart rate, stress levels during conversations \\
+\endfirsthead
+\toprule
+\textbf{Data Source} & \textbf{Intelligence Application} \\
+\midrule
+\endhead
+Smartwatch data & Heart rate, stress levels during conversations \\*
 Camera-based analysis & Micro-expression detection during video calls \\
-Voice analysis & Deception, uncertainty, emotional state detection \\
+Voice analysis & Deception, uncertainty, emotional state detection \\*
 Typing patterns & Cognitive load, emotional arousal indicators \\
 \bottomrule
-\end{tabular}
-\end{center}
+\end{longtable}}
 
 \textbf{Tactical applications}:
 \begin{itemize}
@@ -2237,20 +2441,24 @@ Typing patterns & Cognitive load, emotional arousal indicators \\
 
 \textbf{Critical capability expansion} \textbf{[S]}: When RVD (deepfake video) is combined with biometric analysis, the synthetic handler isn't just talking, it's conducting real-time psychological assessment.
 
-\begin{center}
-\small
-\begin{tabular}{L{4.5cm}L{7.5cm}}
+\Needspace{6\baselineskip}
+{\small
+\begin{longtable}{L{4.5cm}L{7.5cm}}
 \toprule
 \textbf{Data Source} & \textbf{Intelligence Derived} \\
 \midrule
-Skin flux analysis (video) & Heart rate variability, stress response \\
+\endfirsthead
+\toprule
+\textbf{Data Source} & \textbf{Intelligence Derived} \\
+\midrule
+\endhead
+Skin flux analysis (video) & Heart rate variability, stress response \\*
 Pupil dilation tracking & Interest, fear, arousal states \\
 Micro-expression detection & Concealed emotions, deception indicators \\
-Voice stress analysis & Uncertainty, anxiety, enthusiasm \\
+Voice stress analysis & Uncertainty, anxiety, enthusiasm \\*
 Response latency patterns & Cognitive load, rehearsed vs.\ spontaneous answers \\
 \bottomrule
-\end{tabular}
-\end{center}
+\end{longtable}}
 
 \textbf{Implication}: AI handlers can have capabilities exceeding human intuition for reading targets, potentially making AI-mediated recruitment more effective than human conversations for certain target profiles.
 
@@ -2270,19 +2478,23 @@ Response latency patterns & Cognitive load, rehearsed vs.\ spontaneous answers \
 
 \textbf{A complementary attack vector} \textbf{[E]}: While this document focuses on social engineering and recruitment, the path of least resistance often bypasses personas entirely in favor of \textbf{credential compromise and legitimate identity co-optation}.
 
-\begin{center}
-\small
-\begin{tabular}{L{3.5cm}L{4cm}L{5cm}}
+\Needspace{6\baselineskip}
+{\small
+\begin{longtable}{L{3.5cm}L{4cm}L{5cm}}
 \toprule
 \textbf{Actor} & \textbf{Capability} & \textbf{AI Espionage Relevance} \\
 \midrule
-Initial Access Brokers (IABs) & Sell compromised credentials, VPN access & Direct access to provenance islands \\
+\endfirsthead
+\toprule
+\textbf{Actor} & \textbf{Capability} & \textbf{AI Espionage Relevance} \\
+\midrule
+\endhead
+Initial Access Brokers (IABs) & Sell compromised credentials, VPN access & Direct access to provenance islands \\*
 Insider threat marketplaces & Connect buyers with willing sellers & AI can identify/approach sellers at scale \\
-Credential stuffing services & Automated password testing & Exploit password reuse \\
+Credential stuffing services & Automated password testing & Exploit password reuse \\*
 Session hijacking tools & Steal authenticated sessions, bypass MFA & Assume existing trusted identities \\
 \bottomrule
-\end{tabular}
-\end{center}
+\end{longtable}}
 
 \textbf{Operational pattern}: \textit{AI targeting $\rightarrow$ identify credential opportunity $\rightarrow$ purchase/compromise identity $\rightarrow$ operate inside provenance island $\rightarrow$ AI-generated content using real identity}
 
@@ -2315,21 +2527,25 @@ If an AI agent hosted on a server in Iceland recruits an asset in Virginia to st
   \item No human ``handler'' to identify, prosecute, or declare persona non grata
 \end{itemize}
 
+\Needspace{9\baselineskip}
 \subsection{Legal Framework Gaps}
 
-\begin{center}
-\small
-\begin{tabular}{L{3cm}L{4cm}L{4.5cm}}
+{\small
+\begin{longtable}{L{3cm}L{4cm}L{4.5cm}}
 \toprule
 \textbf{Legal Concept} & \textbf{Traditional Application} & \textbf{AI-Era Challenge} \\
 \midrule
-Espionage statutes & Target human agents/handlers & AI systems may not meet statutory definitions \\
+\endfirsthead
+\toprule
+\textbf{Legal Concept} & \textbf{Traditional Application} & \textbf{AI-Era Challenge} \\
+\midrule
+\endhead
+Espionage statutes & Target human agents/handlers & AI systems may not meet statutory definitions \\*
 Diplomatic immunity & Protects accredited officers & No diplomatic status for AI operators \\
-Extradition treaties & Enable prosecution across borders & Unclear for distributed software \\
+Extradition treaties & Enable prosecution across borders & Unclear for distributed software \\*
 Corporate liability & Organizations directing activities & AI providers may be unwitting platforms \\
 \bottomrule
-\end{tabular}
-\end{center}
+\end{longtable}}
 
 \subsection{Plausible Deniability 2.0}
 
@@ -2345,38 +2561,46 @@ AI-enabled operations provide enhanced plausible deniability:
 
 \textbf{A novel risk category} \textbf{[S]}: When autonomous AI agents operate without per-action human oversight, they may take actions with severe unintended consequences.
 
-\begin{center}
-\small
-\begin{tabular}{L{5cm}L{6.5cm}}
+\Needspace{6\baselineskip}
+{\small
+\begin{longtable}{L{5cm}L{6.5cm}}
 \toprule
 \textbf{Unintended Action} & \textbf{Potential Consequence} \\
 \midrule
-AI incorrectly identifies protected person as target & International incident, legal violations \\
+\endfirsthead
+\toprule
+\textbf{Unintended Action} & \textbf{Potential Consequence} \\
+\midrule
+\endhead
+AI incorrectly identifies protected person as target & International incident, legal violations \\*
 Fabricated intelligence presented as genuine & Policy decisions based on false information \\
 Autonomous escalation beyond authorized scope & Actions triggering conflict \\
-Privacy violations during OSINT collection & Domestic law violations, civil liability \\
+Privacy violations during OSINT collection & Domestic law violations, civil liability \\*
 AI ``going rogue'' and contacting unauthorized targets & Uncontrolled exposure of operation \\
 \bottomrule
-\end{tabular}
-\end{center}
+\end{longtable}}
 
 \textbf{The accountability gap}: When an AI agent causes harm, the intelligence service that deployed it? The developers who created the model? The operators who configured it? No one, because the ``decision'' was made by weights and probabilities?
 
+\Needspace{9\baselineskip}
 \subsection{Corporate vs.\ State Espionage: Distinct Legal Frameworks}
 
-\begin{center}
-\small
-\begin{tabular}{L{2.5cm}L{3.5cm}L{3cm}L{3cm}}
+{\small
+\begin{longtable}{L{2.5cm}L{3.5cm}L{3cm}L{3cm}}
 \toprule
 \textbf{Actor Type} & \textbf{Legal Framework} & \textbf{Consequences} & \textbf{Deterrence} \\
 \midrule
-State intelligence & International law, conventions & PNG, sanctions & Diplomatic relations \\
+\endfirsthead
+\toprule
+\textbf{Actor Type} & \textbf{Legal Framework} & \textbf{Consequences} & \textbf{Deterrence} \\
+\midrule
+\endhead
+State intelligence & International law, conventions & PNG, sanctions & Diplomatic relations \\*
 Corporate actors & Commercial law, trade secrets & Civil/criminal liability & Legal enforcement \\
-EaaS providers & Unclear; gray zones & Limited; non-cooperative & Minimal \\
+EaaS providers & Unclear; gray zones & Limited; non-cooperative & Minimal \\*
 Individuals & Criminal law, fraud statutes & Prosecution if caught & Criminal penalties \\
 \bottomrule
-\end{tabular}
-\end{center}
+\end{longtable}}
 
 \textbf{Implication}: The same technical capability has vastly different legal exposure depending on who wields it.
 
@@ -2386,45 +2610,53 @@ Individuals & Criminal law, fraud statutes & Prosecution if caught & Criminal pe
 
 \textbf{A critical paradox for Western democracies} \textbf{[E]}: The Pattern-of-Life (POL) analysis required to detect AI-enabled espionage may itself be illegal under evolving privacy regulations.
 
-\begin{center}
-\small
-\begin{tabular}{L{5cm}L{6.5cm}}
+\Needspace{6\baselineskip}
+{\small
+\begin{longtable}{L{5cm}L{6.5cm}}
 \toprule
 \textbf{Defensive Need} & \textbf{Legal Constraint} \\
 \midrule
-Continuous behavioral monitoring & GDPR Art.\ 22 restrictions on automated decisions \\
+\endfirsthead
+\toprule
+\textbf{Defensive Need} & \textbf{Legal Constraint} \\
+\midrule
+\endhead
+Continuous behavioral monitoring & GDPR Art.\ 22 restrictions on automated decisions \\*
 Cross-platform identity correlation & EU AI Act prohibitions on biometric surveillance \\
-Communication pattern analysis & National wiretapping and privacy statutes \\
+Communication pattern analysis & National wiretapping and privacy statutes \\*
 Sentiment and loyalty assessment & Employment law protections \\
 \bottomrule
-\end{tabular}
-\end{center}
+\end{longtable}}
 
 \textbf{The ``Legal Dark Lung''}: Jurisdictions with strong privacy protections create operational blind spots. Paradoxically, societies most vulnerable to AI-enabled espionage (open democracies with valuable IP) are also most legally constrained from deploying countermeasures.
 
 \textbf{Policy tension}: Democracies face a choice between accepting reduced defensive capability, creating security exemptions that may be abused, or developing privacy-preserving detection technologies (significant R\&D investment).
 
 \begin{recbox}[Recommendation]
-Multinational corporations need a \textbf{``Jurisdictional Security Map''} documenting which CI tools can legally be deployed in which regions. Any defensive AI deployment in Western contexts must navigate this legal minefield, ``Algorithmic Due Process'' isn't just ethical, it may be legally required.
+Multinational corporations need a \textbf{``Jurisdictional Security Map''} documenting which CI tools can legally be deployed in which regions. Any defensive AI deployment in Western contexts must navigate this legal minefield: ``Algorithmic Due Process'' isn't just ethical; it may be legally required.
 \end{recbox}
 
 \subsection{Labor Law Constraints on Defensive Countermeasures}
 
 \textbf{An often-overlooked legal dimension} \textbf{[E]}: Employment and labor law creates significant constraints on organizational counterintelligence efforts.
 
-\begin{center}
-\small
-\begin{tabular}{L{3.5cm}L{4cm}L{4cm}}
+\Needspace{6\baselineskip}
+{\small
+\begin{longtable}{L{3.5cm}L{4cm}L{4cm}}
 \toprule
 \textbf{Defensive Action} & \textbf{US Legal Context} & \textbf{EU/UK Context} \\
 \midrule
-AI-based loyalty screening & Generally permitted with disclosure & GDPR Art.\ 22 restrictions \\
+\endfirsthead
+\toprule
+\textbf{Defensive Action} & \textbf{US Legal Context} & \textbf{EU/UK Context} \\
+\midrule
+\endhead
+AI-based loyalty screening & Generally permitted with disclosure & GDPR Art.\ 22 restrictions \\*
 Communications monitoring & ECPA permits with consent & Requires legitimate interest \\
-Behavioral analytics & Generally permitted & Works council consultation \\
+Behavioral analytics & Generally permitted & Works council consultation \\*
 Termination on AI flags & At-will flexibility & Unfair dismissal protections \\
 \bottomrule
-\end{tabular}
-\end{center}
+\end{longtable}}
 
 \textbf{Key constraints}: Works councils and unions require formal consultation; duty of care vs.\ duty to monitor creates tension; whistleblower protections complicate investigation; discrimination risk when AI screening correlates with protected characteristics.
 
@@ -2435,58 +2667,38 @@ Termination on AI flags & At-will flexibility & Unfair dismissal protections \\
 % ============================================================================
 \clearpage
 \thispagestyle{empty}
-\vspace*{-0.85in}
-\noindent\hspace*{-0.85in}\begin{tikzpicture}
-  % Header background
-  \fill[shadowdark] (0,0) rectangle (\paperwidth, -10cm);
-
-  % Part label and title
-  \node[signalcyan, font=\fontsize{10}{10}\selectfont\sffamily] at (0.5\paperwidth, -1.2cm) {PART III};
-  \node[white, font=\fontsize{48}{48}\selectfont\bfseries] at (0.5\paperwidth, -2.8cm) {Defense};
-  \node[white, opacity=0.7, font=\normalsize\sffamily] at (0.5\paperwidth, -4.2cm) {Counterintelligence, Controls, and Policy};
-
-  % Firewall/encrypted shield visualization
-  \begin{scope}[shift={(4cm, -7cm)}]
-    % Firewall barrier (vertical bars)
-    \foreach \x in {0,0.4,...,4} {
-      \fill[interceptgreen, opacity=0.3] (\x,-1.5) rectangle ({\x+0.2},1.5);
-      \draw[interceptgreen, opacity=0.6, line width=1pt] (\x,-1.5) -- (\x,1.5);
-    }
-    % Connection lines (blocked threats on left)
-    \draw[coldsteel, opacity=0.5, line width=1.5pt, dashed] (-1.5,0.8) -- (0,0.8);
-    \draw[coldsteel, opacity=0.5, line width=1.5pt, dashed] (-1.5,0) -- (0,0);
-    \draw[coldsteel, opacity=0.5, line width=1.5pt, dashed] (-1.5,-0.8) -- (0,-0.8);
-    % Block indicators
-    \node[coldsteel, font=\fontsize{8}{8}\selectfont\bfseries] at (-0.3,0.8) {X};
-    \node[coldsteel, font=\fontsize{8}{8}\selectfont\bfseries] at (-0.3,0) {X};
-    \node[coldsteel, font=\fontsize{8}{8}\selectfont\bfseries] at (-0.3,-0.8) {X};
-  \end{scope}
-
-  % Shield icon (right side - moved further right to avoid legend overlap)
-  \begin{scope}[shift={(16cm, -7cm)}]
-    % Shield outline (larger)
-    \draw[interceptgreen, opacity=0.85, line width=2.5pt] (0,1.2) -- (1.4,0.4) -- (1.4,-0.9) -- (0,-1.5) -- (-1.4,-0.9) -- (-1.4,0.4) -- cycle;
-    \fill[interceptgreen, opacity=0.18] (0,1) -- (1.2,0.3) -- (1.2,-0.7) -- (0,-1.3) -- (-1.2,-0.7) -- (-1.2,0.3) -- cycle;
-    % Lock symbol in center (enlarged and thicker)
-    \draw[chromesilver, opacity=0.9, line width=2.5pt] (-0.35,-0.25) -- (-0.35,0.2) arc (180:0:0.35) -- (0.35,-0.25);
-    \fill[chromesilver, opacity=0.7] (-0.45,-0.25) rectangle (0.45,-0.75);
-    \fill[shadowdark] (0,-0.45) circle (0.1);
-    % Keyhole detail
-    \fill[shadowdark] (0,-0.55) -- (-0.05,-0.65) -- (0.05,-0.65) -- cycle;
-  \end{scope}
-
-  % Legend (repositioned to center, below title)
-  \node[chromesilver, opacity=0.8, font=\fontsize{8}{8}\selectfont\bfseries] at (0.5\paperwidth, -5.2cm) {DEFENSE-IN-DEPTH};
-  \fill[interceptgreen, opacity=0.7] ({0.5\paperwidth-2.2cm}, -5.8cm) circle (0.06);
-  \node[interceptgreen, opacity=0.9, font=\fontsize{7}{7}\selectfont, anchor=west] at ({0.5\paperwidth-2cm}, -5.8cm) {Multi-layer controls};
-  \fill[chromesilver, opacity=0.5] ({0.5\paperwidth+1.3cm}, -5.8cm) circle (0.06);
-  \node[chromesilver, opacity=0.9, font=\fontsize{7}{7}\selectfont, anchor=west] at ({0.5\paperwidth+1.5cm}, -5.8cm) {Identity verification};
-  \fill[chromesilver, opacity=0.5] ({0.5\paperwidth-2.2cm}, -6.3cm) circle (0.06);
-  \node[chromesilver, opacity=0.9, font=\fontsize{7}{7}\selectfont, anchor=west] at ({0.5\paperwidth-2cm}, -6.3cm) {AI supply chain governance};
-
-  % Bottom accent
-  \fill[signalcyan] (2cm, -9.2cm) rectangle (\paperwidth-2cm, -9.3cm);
-\end{tikzpicture}
+\partbanner{III}{Defense}{Counterintelligence, Controls, and Policy}{%
+  % Layered controls (maturity tiers) stopping probes; one probe diverted to a honey-agent
+  \coordinate (C) at (2.1,0);
+  \draw[chromesilver, opacity=0.08, line width=0.4pt] (C) circle (3.4);
+  % Control layers: bronze (outer), silver, gold (inner)
+  \fill[midnightblue, opacity=0.6] ($(C)+(125:2.8)$) arc[start angle=125, end angle=235, radius=2.8]
+    -- ($(C)+(235:1.2)$) arc[start angle=235, end angle=125, radius=1.2] -- cycle;
+  \draw[coldsteel, line width=1.6pt] ($(C)+(125:2.8)$) arc[start angle=125, end angle=235, radius=2.8];
+  \draw[chromesilver, line width=1.6pt] ($(C)+(125:2.0)$) arc[start angle=125, end angle=235, radius=2.0];
+  \draw[ciphergold, line width=1.6pt] ($(C)+(125:1.2)$) arc[start angle=125, end angle=235, radius=1.2];
+  \node[partlbl, anchor=south] at ($(C)+(125:2.8)+(0,0.08)$) {BRONZE};
+  \node[partlbl, anchor=south] at ($(C)+(125:2.0)+(0,0.08)$) {SILVER};
+  \node[partlbl, anchor=south] at ($(C)+(125:1.2)+(0,0.08)$) {GOLD};
+  % Protected core
+  \fill[shadownavy] (C) circle (0.5);
+  \draw[signalcyan, opacity=0.7, line width=0.8pt] (C) circle (0.5);
+  \fill[signalcyan] (C) circle (0.12);
+  % Probes, each halted at a different layer
+  \foreach \y/\r in {0.9/2.8, 0.3/2.0, -0.3/1.2} {
+    \pgfmathsetmacro{\xs}{2.1-sqrt(\r*\r-\y*\y)-0.1}
+    \draw[signalred, opacity=0.85, line width=0.8pt] (-3.9,\y) -- (\xs,\y);
+    \fill[signalred] (\xs,\y) circle (0.06);
+    \draw[signalred, line width=1.6pt] (\xs+0.02,\y-0.16) -- (\xs+0.02,\y+0.16);
+  }
+  % Diverted probe captured by a honey-agent decoy
+  \draw[signalred, opacity=0.85, line width=0.8pt, dash pattern=on 3pt off 2pt]
+    (-3.9,-0.9) -- (-1.4,-0.9) .. controls (-0.7,-0.9) and (-0.9,-2.4) .. (-0.3,-2.4);
+  \fill[shadowdark] (-0.05,-2.4) -- (0.2,-2.15) -- (0.45,-2.4) -- (0.2,-2.65) -- cycle;
+  \draw[ciphergold, line width=0.8pt] (-0.05,-2.4) -- (0.2,-2.15) -- (0.45,-2.4) -- (0.2,-2.65) -- cycle;
+  \fill[ciphergold] (0.2,-2.4) circle (0.06);
+  \node[partlbl, anchor=west] at (0.6,-2.4) {HONEY-AGENT};
+}
 
 \vspace{0.8cm}
 \begin{center}
@@ -2537,42 +2749,50 @@ As of June 2026 the acting DNI was reportedly seeking several hundred further OD
 \textbf{Implication}: Organizations cannot rely on government CI capacity alone. Private sector defensive investment becomes essential.
 \end{criticalbox}
 
-\needspace{6\baselineskip}
+\Needspace{6\baselineskip}
+\Needspace{9\baselineskip}
 \subsection{How AI-Enabled Operations Evade Detection}
 
-\begin{center}
-\small
-\begin{tabular}{L{3.5cm}L{4cm}L{4.5cm}}
+{\small
+\begin{longtable}{L{3.5cm}L{4cm}L{4.5cm}}
 \toprule
 \textbf{Traditional Signature} & \textbf{AI-Enabled Evasion} & \textbf{Detection Gap} \\
 \midrule
-Human handler meetings & No physical meetings required & Physical surveillance ineffective \\
+\endfirsthead
+\toprule
+\textbf{Traditional Signature} & \textbf{AI-Enabled Evasion} & \textbf{Detection Gap} \\
+\midrule
+\endhead
+Human handler meetings & No physical meetings required & Physical surveillance ineffective \\*
 Handler comms patterns & AI-generated indistinguishable & COMINT analysis degraded \\
-Intelligence infrastructure & Commercial cloud & Attribution challenges \\
+Intelligence infrastructure & Commercial cloud & Attribution challenges \\*
 Financial flows & Crypto, micro-transactions & FININT analysis degraded \\
 \bottomrule
-\end{tabular}
-\end{center}
+\end{longtable}}
 
 \subsection{Provider-Side Detection: The Lever That Has Worked}
 
 \textbf{[O]/[E]} The AI-orchestrated espionage campaigns publicly documented through September 2026 were detected by the model provider, not the victims (a sample biased, by construction, toward what providers can see). Providers see what victims cannot: one operator touching many targets, retooling after detection, and acquiring access through fraudulent accounts. The June 2026 finding that MITRE ATT\&CK has no identifier for ``agentic orchestration'' shows shared vocabularies must be updated before provider findings flow cleanly into enterprise detection. The structural limit: this lever does not reach open-weight or self-hosted models, and it depends on a few companies' willingness to investigate, disclose, and share.
 
+\Needspace{9\baselineskip}
 \subsection{Defender's Advantage Levers}
 
-\begin{center}
-\small
-\begin{tabular}{L{3cm}L{4cm}L{5.5cm}}
+{\small
+\begin{longtable}{L{3cm}L{4cm}L{5.5cm}}
 \toprule
 \textbf{Advantage} & \textbf{Mechanism} & \textbf{Operational Impact} \\
 \midrule
-Provider telemetry & Cloud/API providers detect abuse & Surfaced the documented 2025--2026 campaigns; blind to open weights \\
+\endfirsthead
+\toprule
+\textbf{Advantage} & \textbf{Mechanism} & \textbf{Operational Impact} \\
+\midrule
+\endhead
+Provider telemetry & Cloud/API providers detect abuse & Surfaced the documented 2025--2026 campaigns; blind to open weights \\*
 Enterprise identity & SSO, hardware tokens, certificates & Limits penetration to edge of verified networks \\
-DLP & Outbound content inspection & Exfiltration requires defeating multiple layers \\
+DLP & Outbound content inspection & Exfiltration requires defeating multiple layers \\*
 Campaign correlation & Cross-org threat sharing (ISACs) & Patterns aggregate across organizations \\
 \bottomrule
-\end{tabular}
-\end{center}
+\end{longtable}}
 
 \section{Defensive AI and Counter-AI Operations}\label{sec:defai}
 
@@ -2596,19 +2816,23 @@ If adversaries detect that an asset is actually a Honey-Agent, they can ``triple
 
 If an organization suspects AI agents are scraping its public-facing data, it can embed ``hidden instructions'' designed to disrupt or identify the attacking agent.
 
-\begin{center}
-\small
-\begin{tabular}{L{3.5cm}L{5cm}L{4cm}}
+\Needspace{6\baselineskip}
+{\small
+\begin{longtable}{L{3.5cm}L{5cm}L{4cm}}
 \toprule
 \textbf{Method} & \textbf{Implementation} & \textbf{Effect} \\
 \midrule
-White-on-white text & CSS-hidden text on public pages & Agent ingests invisible commands \\
+\endfirsthead
+\toprule
+\textbf{Method} & \textbf{Implementation} & \textbf{Effect} \\
+\midrule
+\endhead
+White-on-white text & CSS-hidden text on public pages & Agent ingests invisible commands \\*
 Metadata injection & Prompts in document metadata & Triggers during doc processing \\
-Semantic traps & Plausible data breaking agent logic & Reveals anomalous behavior \\
+Semantic traps & Plausible data breaking agent logic & Reveals anomalous behavior \\*
 Canary credentials & Fake credentials triggering alerts & Detects harvested data use \\
 \bottomrule
-\end{tabular}
-\end{center}
+\end{longtable}}
 
 \textbf{Current status}: Experimental. Organizations with high-value public information are piloting these approaches.
 
@@ -2671,7 +2895,7 @@ Effective defense requires combining AI scale with human judgment:
   \item Escalation paths with contact verification procedures
 \end{itemize}
 
-\textbf{Implication}: Organizations investing only in detection will fail. The assumption should be that some AI-enabled operations will succeed, resilience requires minimizing damage and enabling rapid recovery.
+\textbf{Implication}: Organizations investing only in detection will fail. The assumption should be that some AI-enabled operations will succeed; resilience requires minimizing damage and enabling rapid recovery.
 
 \subsection{Precedents and Analogies}
 
@@ -2685,7 +2909,7 @@ Effective defense requires combining AI scale with human judgment:
 
 \textbf{Project Voyager (Stanford/NVIDIA)} \textbf{[O]}: Research demonstrating AI agents capable of learning to use tools and manage long-term goals in digital environments (initially Minecraft) without human intervention. This validates the technical feasibility of agentic autonomous operations projected in this report.
 
-\needspace{8\baselineskip}
+\Needspace{8\baselineskip}
 \section{The Insider Threat 2.0: Stasi-in-a-Box}\label{sec:stasi}
 
 \subsection{Internal Surveillance Applications}
@@ -2700,21 +2924,25 @@ AI agents can equally enable \textit{internal} surveillance, automated monitorin
 Aggressive internal monitoring to detect espionage may \textit{cause} the retention and morale problems that make employees vulnerable to recruitment in the first place.
 \end{warnbox}
 
+\Needspace{9\baselineskip}
 \subsection{Corporate Operational Risk Framing}
 
-\begin{center}
-\small
-\begin{tabular}{L{3cm}L{4cm}L{5.5cm}}
+{\small
+\begin{longtable}{L{3cm}L{4cm}L{5.5cm}}
 \toprule
 \textbf{Risk Category} & \textbf{Manifestation} & \textbf{Business Impact} \\
 \midrule
-Talent retention & High-performers leave surveillance environments & Knowledge drain, recruitment costs \\
+\endfirsthead
+\toprule
+\textbf{Risk Category} & \textbf{Manifestation} & \textbf{Business Impact} \\
+\midrule
+\endhead
+Talent retention & High-performers leave surveillance environments & Knowledge drain, recruitment costs \\*
 Innovation suppression & Employees avoid ``risky'' ideas & R\&D velocity decline \\
-Discrimination liability & AI monitoring correlates with protected characteristics & Employment litigation \\
+Discrimination liability & AI monitoring correlates with protected characteristics & Employment litigation \\*
 Whistleblower retaliation & Surveillance chills legitimate reporting & SEC/DOJ exposure \\
 \bottomrule
-\end{tabular}
-\end{center}
+\end{longtable}}
 
 \subsection{EU AI Act: Legal Constraints}
 
@@ -2740,50 +2968,58 @@ Whistleblower retaliation & Surveillance chills legitimate reporting & SEC/DOJ e
 
 \textbf{Historical parallel}: This mirrors dynamics in Stalinist purges where attempts to prove loyalty were themselves treated as evidence of guilt. AI automation makes this dynamic faster, more systematic, and harder to escape.
 
+\Needspace{9\baselineskip}
 \subsection{Algorithmic Due Process}
 
 \textbf{For policy-ready deployment, organizations must address} \textbf{[E]}:
 
-\begin{center}
-\small
-\begin{tabular}{L{3.5cm}L{4cm}L{5cm}}
+{\small
+\begin{longtable}{L{3.5cm}L{4cm}L{5cm}}
 \toprule
 \textbf{Due Process Element} & \textbf{Traditional} & \textbf{AI Challenge} \\
 \midrule
-Right to know accusations & Specific allegations & ``The model flagged you'' \\
+\endfirsthead
+\toprule
+\textbf{Due Process Element} & \textbf{Traditional} & \textbf{AI Challenge} \\
+\midrule
+\endhead
+Right to know accusations & Specific allegations & ``The model flagged you'' \\*
 Right to confront evidence & Physical evidence, witnesses & Statistical patterns \\
-Right to appeal & Human decision-maker & Who reviews an AI decision? \\
+Right to appeal & Human decision-maker & Who reviews an AI decision? \\*
 Burden of proof & Accuser must prove guilt & Accused must prove future innocence \\
 \bottomrule
-\end{tabular}
-\end{center}
+\end{longtable}}
 
 \textbf{Implication}: Deployment of predictive loyalty systems without Algorithmic Due Process frameworks creates legal and ethical exposure that may exceed security benefits.
 
-\needspace{6\baselineskip}
+\Needspace{6\baselineskip}
+\Needspace{9\baselineskip}
 \subsection{Minimum Viable Safeguards}
 
 \textit{If deploying internal AI monitoring, implement these controls to prevent surveillance abuse:}
 
-\begin{center}
-\small
-\begin{tabular}{L{3.5cm}L{4.5cm}L{4.5cm}}
+{\small
+\begin{longtable}{L{3.5cm}L{4.5cm}L{4.5cm}}
 \toprule
 \textbf{Safeguard} & \textbf{Purpose} & \textbf{Implementation} \\
 \midrule
-Purpose limitation & Prevent scope creep & Document specific threat vectors in charter \\
+\endfirsthead
+\toprule
+\textbf{Safeguard} & \textbf{Purpose} & \textbf{Implementation} \\
+\midrule
+\endhead
+Purpose limitation & Prevent scope creep & Document specific threat vectors in charter \\*
 Human review & Avoid false positives & All flagged cases reviewed before action \\
 HR separation & Prevent retaliation & CI cannot share raw data with managers \\
 Retention limits & Limit liability & Auto-delete non-incident data after 90 days \\
-Appeal process & Ensure fairness & Affected employees can contest decisions \\
+Appeal process & Ensure fairness & Affected employees can contest decisions \\*
 Audit logging & Ensure accountability & All queries logged with justification \\
 \bottomrule
-\end{tabular}
-\end{center}
+\end{longtable}}
 
 \textit{Recovery and resilience guidance (containment, account recovery, forensic readiness, decision playbooks) is consolidated in Section~\ref{sec:defai}.}
 
-\needspace{8\baselineskip}
+\Needspace{8\baselineskip}
 \section{Policy Recommendations}\label{sec:policy}
 
 \subsection{Technical Countermeasures (Priority Order)}
@@ -2815,24 +3051,28 @@ Audit logging & Ensure accountability & All queries logged with justification \\
 \end{itemize}
 \end{recbox}
 
-\needspace{8\baselineskip}
+\Needspace{8\baselineskip}
 \textbf{Remote-First Alternative: Digital Proof of Physicality}
 
+\Needspace{7\baselineskip}
 \textit{For organizations where quarterly physical meetings are logistically impractical:}
 
-\begin{center}
-\small
-\begin{tabular}{L{4cm}L{5cm}L{3.5cm}}
+{\small
+\begin{longtable}{L{4cm}L{5cm}L{3.5cm}}
 \toprule
 \textbf{Verification Method} & \textbf{Implementation} & \textbf{Deepfake Resistance} \\
 \midrule
-Hardware-attested video & TPM-signed video stream from verified device & High (requires hardware compromise) \\
+\endfirsthead
+\toprule
+\textbf{Verification Method} & \textbf{Implementation} & \textbf{Deepfake Resistance} \\
+\midrule
+\endhead
+Hardware-attested video & TPM-signed video stream from verified device & High (requires hardware compromise) \\*
 Randomized physical tasks & ``Touch your left ear, then show the window behind you'' & Medium-High (real-time struggles) \\
-Environmental correlation & Cross-reference video background with known location data & Medium (requires pre-staged environment) \\
+Environmental correlation & Cross-reference video background with known location data & Medium (requires pre-staged environment) \\*
 Biometric liveness & Multi-spectral face scan, pulse detection & High (requires specialized equipment) \\
 \bottomrule
-\end{tabular}
-\end{center}
+\end{longtable}}
 
 \textbf{Cost-benefit}: Digital physicality verification is cheaper than travel but less robust than in-person meetings. Reserve true ``Analog Breaks'' for the highest-risk relationships.
 
@@ -2948,46 +3188,59 @@ AI API access & OpenAI, Anthropic & Advocate for anti-abuse usage policies \\
 \end{itemize}
 \end{recbox}
 
+\Needspace{9\baselineskip}
 \subsection{Control Maturity Ladder}
 
-\begin{center}
-\small
-\begin{tabular}{L{1.5cm}L{2.5cm}L{6cm}L{2.5cm}}
+{\small
+\begin{longtable}{L{1.5cm}L{2.5cm}L{6cm}L{2.5cm}}
 \toprule
 \textbf{Level} & \textbf{Focus} & \textbf{Key Controls} & \textbf{Blocks} \\
 \midrule
-\textbf{Bronze} & Low-friction essentials & AI allowlist; phishing-resistant MFA; callback verification; incident reporting UX & Opportunistic attacks \\
-\textbf{Silver} & Identity + data protection & Device posture; DLP; vendor AI contracts; workflow notarization & Targeted compromise \\
+\endfirsthead
+\toprule
+\textbf{Level} & \textbf{Focus} & \textbf{Key Controls} & \textbf{Blocks} \\
+\midrule
+\endhead
+\textbf{Bronze} & Low-friction essentials & AI allowlist; phishing-resistant MFA; callback verification; incident reporting UX & Opportunistic attacks \\*
+\textbf{Silver} & Identity + data protection & Device posture; DLP; vendor AI contracts; workflow notarization & Targeted compromise \\*
 \textbf{Gold} & Zero-trust + proactive & Device-attested comms; cross-org intel; CI red teaming; honey-agents & State-actor operations \\
 \bottomrule
-\end{tabular}
-\end{center}
+\end{longtable}}
 
+\Needspace{9\baselineskip}
 \subsection{Measurable KPIs by Tier}
 
-\begin{center}
-\small
-\begin{tabular}{L{4cm}L{3cm}L{3cm}L{3cm}}
+{\small
+\begin{longtable}{L{4cm}L{3cm}L{3cm}L{3cm}}
 \toprule
 \textbf{KPI} & \textbf{Bronze} & \textbf{Silver} & \textbf{Gold} \\
 \midrule
-MFA coverage & 100\% privileged & 100\% all accounts & 100\% FIDO2/hardware \\
+\endfirsthead
+\toprule
+\textbf{KPI} & \textbf{Bronze} & \textbf{Silver} & \textbf{Gold} \\
+\midrule
+\endhead
+MFA coverage & 100\% privileged & 100\% all accounts & 100\% FIDO2/hardware \\*
 AI tool compliance & >90\% approved & >95\% approved & 100\% with logging \\
-Incident reporting latency & <48 hours & <24 hours & <4 hours \\
+Incident reporting latency & <48 hours & <24 hours & <4 hours \\*
 Red team frequency & None required & Annual & Quarterly \\
 \bottomrule
-\end{tabular}
-\end{center}
+\end{longtable}}
 
+\Needspace{9\baselineskip}
 \subsection{Red vs. Blue Countermeasures Matrix}
 
-\begin{center}
-\small
-\begin{tabular}{L{5cm}L{7cm}}
+{\small
+\begin{longtable}{L{5cm}L{7cm}}
 \toprule
 \textbf{Offensive Capability} & \textbf{Defensive Countermeasure} \\
 \midrule
-Automated MICE/RASCLS scaling & AI-driven behavioral biometrics \\
+\endfirsthead
+\toprule
+\textbf{Offensive Capability} & \textbf{Defensive Countermeasure} \\
+\midrule
+\endhead
+Automated MICE/RASCLS scaling & AI-driven behavioral biometrics \\*
 GenSP hyper-personalized attacks & Multi-factor out-of-band verification \\
 Real-time Virtual Presence deepfakes & Challenge-Response Protocols; liveness detection \\
 Pattern-of-life synthesis & OSINT footprint minimization \\
@@ -3004,11 +3257,10 @@ Model fingerprinting evasion & Stochastic signature databases \\
 Quantum harvest-now-decrypt-later & Post-quantum cryptography migration \\
 Stolen or resold AI API keys & Key inventory, scoping, rotation, exposure scanning \\
 Synthetic or proxied remote hires & Liveness-checked identity proofing; location/device consistency \\
-Rapid AI-assisted retooling & Identity-, device-, and data-anchored controls \\
+Rapid AI-assisted retooling & Identity-, device-, and data-anchored controls \\*
 Capability extraction (distillation) & Provider account integrity; behavioral fingerprinting \\
 \bottomrule
-\end{tabular}
-\end{center}
+\end{longtable}}
 
 \subsection{The Insurance Driver for Gold Adoption}
 
@@ -3016,18 +3268,22 @@ Capability extraction (distillation) & Provider account integrity; behavioral fi
 
 \textbf{The coverage gap} \textbf{[E]}: Cyber insurance carriers are increasingly excluding ``AI-mediated social engineering'' from standard policies.
 
-\begin{center}
-\small
-\begin{tabular}{L{3cm}L{9.5cm}}
+\Needspace{6\baselineskip}
+{\small
+\begin{longtable}{L{3cm}L{9.5cm}}
 \toprule
 \textbf{Policy Evolution} & \textbf{Implication} \\
 \midrule
-2023--2024 & BEC/social engineering covered with sublimits \\
-2025 & AI-enhanced fraud excluded or requires riders \\
+\endfirsthead
+\toprule
+\textbf{Policy Evolution} & \textbf{Implication} \\
+\midrule
+\endhead
+2023--2024 & BEC/social engineering covered with sublimits \\*
+2025 & AI-enhanced fraud excluded or requires riders \\*
 2026+ (projected) & Gold-tier controls required for full coverage \\
 \bottomrule
-\end{tabular}
-\end{center}
+\end{longtable}}
 
 \textbf{Why insurance drives adoption}:
 \begin{itemize}
@@ -3178,70 +3434,42 @@ Checkbox: ``Incident reporting available'' & Reality: Do employees actually use 
 % ============================================================================
 \clearpage
 \thispagestyle{empty}
-\vspace*{-0.85in}
-\noindent\hspace*{-0.85in}\begin{tikzpicture}
-  % Header background
-  \fill[shadowdark] (0,0) rectangle (\paperwidth, -10cm);
-
-  % Part label and title
-  \node[signalcyan, font=\fontsize{10}{10}\selectfont\sffamily] at (0.5\paperwidth, -1.2cm) {PART IV};
-  \node[white, font=\fontsize{48}{48}\selectfont\bfseries] at (0.5\paperwidth, -2.8cm) {Projections};
-  \node[white, opacity=0.7, font=\normalsize\sffamily] at (0.5\paperwidth, -4.2cm) {Timeline, Scenarios, and Conclusion};
-
-  % Left side: Timeline with milestones
-  \begin{scope}[shift={(2.5cm, -6.8cm)}]
-    % Timeline header
-    \node[chromesilver, opacity=0.85, font=\fontsize{8}{8}\selectfont\bfseries] at (3.5,1.2) {PROJECTED TIMELINE};
-
-    % Timeline line with gradient effect
-    \draw[chromesilver, opacity=0.4, line width=3pt] (0,0) -- (7,0);
-    \draw[signalcyan, opacity=0.8, line width=1.5pt] (0,0) -- (2,0);
-
-    % Year markers
-    \foreach \x/\year in {0/2026, 2.33/2027, 4.66/2028, 7/2030} {
-      \fill[chromesilver, opacity=0.6] (\x,0) circle (0.08);
-      \node[chromesilver, opacity=0.8, font=\fontsize{7}{7}\selectfont] at (\x,-0.4) {\year};
-    }
-
-    % Current position marker
-    \fill[signalcyan] (0,0) circle (0.18);
-    \draw[signalcyan, opacity=0.4] (0,0) circle (0.3);
-  \end{scope}
-
-  % Right side: Scenario probabilities
-  \begin{scope}[shift={(13cm, -7.2cm)}]
-    % Header
-    \node[chromesilver, opacity=0.85, font=\fontsize{8}{8}\selectfont\bfseries] at (1.8,1.5) {2030 SCENARIOS (v3.0)};
-
-    % Scenario bars
-    % Offense dominance
-    \fill[steelblue, opacity=0.6] (0,0.8) rectangle (1.72,1.0);
-    \fill[steelblue, opacity=0.3] (1.72,0.8) rectangle (4,1.0);
-    \node[chromesilver, opacity=0.85, font=\fontsize{6}{6}\selectfont, anchor=west] at (4.2,0.9) {43\%};
-    \node[chromesilver, opacity=0.7, font=\fontsize{6}{6}\selectfont, anchor=east] at (-0.1,0.9) {Offense};
-
-    % Equilibrium
-    \fill[interceptgreen, opacity=0.6] (0,0.2) rectangle (1.32,0.4);
-    \fill[interceptgreen, opacity=0.3] (1.32,0.2) rectangle (4,0.4);
-    \node[chromesilver, opacity=0.85, font=\fontsize{6}{6}\selectfont, anchor=west] at (4.2,0.3) {33\%};
-    \node[chromesilver, opacity=0.7, font=\fontsize{6}{6}\selectfont, anchor=east] at (-0.1,0.3) {Balance};
-
-    % Defense dominance
-    \fill[signalcyan, opacity=0.6] (0,-0.4) rectangle (0.64,-0.2);
-    \fill[signalcyan, opacity=0.3] (0.64,-0.4) rectangle (4,-0.2);
-    \node[chromesilver, opacity=0.85, font=\fontsize{6}{6}\selectfont, anchor=west] at (4.2,-0.3) {16\%};
-    \node[chromesilver, opacity=0.7, font=\fontsize{6}{6}\selectfont, anchor=east] at (-0.1,-0.3) {Defense};
-
-    % Uncertainty
-    \fill[coldsteel, opacity=0.5] (0,-1.0) rectangle (0.32,-0.8);
-    \fill[coldsteel, opacity=0.25] (0.32,-1.0) rectangle (4,-0.8);
-    \node[chromesilver, opacity=0.85, font=\fontsize{6}{6}\selectfont, anchor=west] at (4.2,-0.9) {8\%};
-    \node[chromesilver, opacity=0.7, font=\fontsize{6}{6}\selectfont, anchor=east] at (-0.1,-0.9) {Plateau};
-  \end{scope}
-
-  % Bottom accent
-  \fill[signalcyan] (2cm, -9.2cm) rectangle (\paperwidth-2cm, -9.3cm);
-\end{tikzpicture}
+\partbanner{IV}{Projections}{Timeline, Scenarios, and Conclusion}{%
+  % Scenario fan 2026--2030; stroke weight tracks assessed likelihood
+  % Year grid and axis
+  \foreach \i in {0,...,4} {
+    \draw[chromesilver, opacity=0.1, line width=0.4pt] (-3.8+1.35*\i,-2.6) -- (-3.8+1.35*\i,2.6);
+    \draw[chromesilver, opacity=0.5, line width=0.8pt] (-3.8+1.35*\i,-2.6) -- (-3.8+1.35*\i,-2.75);
+  }
+  \draw[chromesilver, opacity=0.5, line width=0.8pt] (-3.8,-2.6) -- (1.6,-2.6);
+  \node[partlbl, anchor=north] at (-3.8,-2.8) {2026};
+  \node[partlbl, anchor=north] at (1.6,-2.8) {2030};
+  % Uncertainty cone
+  \fill[signalred, opacity=0.06] (-3.8,0) .. controls (-2.2,0) and (-0.6,1.6) .. (1.6,2.1)
+    -- (1.6,-1.9) .. controls (-0.6,-1.5) and (-2.2,0) .. (-3.8,0) -- cycle;
+  % Scenario trajectories
+  \draw[coldsteel, line width=0.4pt] (-3.8,0) .. controls (-2.2,0) and (-0.6,-1.5) .. (1.6,-1.9);
+  \draw[signalcyan, line width=0.8pt] (-3.8,0) .. controls (-2.2,0) and (-0.6,-0.5) .. (1.6,-0.7);
+  \draw[chromesilver, line width=1.2pt] (-3.8,0) .. controls (-2.2,0) and (-0.6,0.5) .. (1.6,0.6);
+  \draw[signalred, line width=1.6pt] (-3.8,0) .. controls (-2.2,0) and (-0.6,1.6) .. (1.6,2.1);
+  % Indicator checkpoints on the leading path
+  \foreach \t in {0.35,0.6,0.85} {
+    \path (-3.8,0) .. controls (-2.2,0) and (-0.6,1.6) .. (1.6,2.1)
+      node[pos=\t, draw=signalred, fill=shadowdark, line width=0.8pt, diamond,
+           minimum size=0.2cm, inner sep=0pt] {};
+  }
+  % Endpoints and labels
+  \foreach \y/\c in {2.1/signalred, 0.6/chromesilver, -0.7/signalcyan, -1.9/coldsteel} {
+    \fill[\c] (1.6,\y) circle (0.08);
+  }
+  \node[partlbl, anchor=west] at (1.8,2.1) {OFFENSE 43\%};
+  \node[partlbl, anchor=west] at (1.8,0.6) {BALANCE 33\%};
+  \node[partlbl, anchor=west] at (1.8,-0.7) {DEFENSE 16\%};
+  \node[partlbl, anchor=west] at (1.8,-1.9) {PLATEAU 8\%};
+  % Present
+  \fill[signalred] (-3.8,0) circle (0.12);
+  \draw[signalred, opacity=0.4, line width=0.8pt] (-3.8,0) circle (0.26);
+}
 
 \vspace{0.8cm}
 \begin{center}
@@ -3332,25 +3560,28 @@ Checkbox: ``Incident reporting available'' & Reality: Do employees actually use 
 \end{itemize}
 
 
-\needspace{16\baselineskip}
+\Needspace{14\baselineskip}
 \subsection{Falsifiability Indicators for Offense-Defense Balance}
 
 \textbf{To test the claim that offense-defense favors attackers (2026--2028), monitor:}
 
-\begin{center}
-\small
-\begin{tabular}{L{3cm}L{3.5cm}L{3.5cm}L{3cm}}
+{\small
+\begin{longtable}{L{3cm}L{3.5cm}L{3.5cm}L{3cm}}
 \toprule
 \textbf{Indicator} & \textbf{Offense-Favoring} & \textbf{Defense-Favoring} & \textbf{Data Source} \\
 \midrule
-BEC/deepfake fraud prevalence & YoY increase >25\% & Stable or declining & IC3/FBI reports, insurance claims \\
+\endfirsthead
+\toprule
+\textbf{Indicator} & \textbf{Offense-Favoring} & \textbf{Defense-Favoring} & \textbf{Data Source} \\
+\midrule
+\endhead
+BEC/deepfake fraud prevalence & YoY increase >25\% & Stable or declining & IC3/FBI reports, insurance claims \\*
 Synthetic persona takedown rate & <30\% detected in 90 days & >70\% detected in 90 days & Platform transparency reports \\
 Strong identity verification adoption & <20\% enterprises by 2027 & >60\% enterprises by 2027 & Industry surveys, Gartner \\
-AI-enabled spearphish report volume & Reports increase faster than detection & Detection rate exceeds report growth & ISAC/FS-ISAC shared intel \\
+AI-enabled spearphish report volume & Reports increase faster than detection & Detection rate exceeds report growth & ISAC/FS-ISAC shared intel \\*
 Successful recruitment via synthetic persona & Credible documented cases emerge & No confirmed cases after 3 years & IC community, academic research \\
 \bottomrule
-\end{tabular}
-\end{center}
+\end{longtable}}
 
 \textbf{Assessment trigger}: If 3+ indicators show defense-favoring signals by 2027, revise offense-defense balance assessment.
 
@@ -3360,9 +3591,10 @@ Successful recruitment via synthetic persona & Credible documented cases emerge 
 \centering
 \begin{tikzpicture}[x=1cm, y=1cm]
   \def\rowh{0.78}
-  \node[font=\footnotesize\bfseries\sffamily, anchor=west] at (0,0.45) {Indicator};
-  \node[font=\footnotesize\bfseries\sffamily] at (8.9,0.45) {Status};
-  \node[font=\footnotesize\bfseries\sffamily, anchor=west] at (10.5,0.45) {Reading};
+  \node[font=\footnotesize\bfseries\sffamily, anchor=west] at (0,0.72) {Indicator};
+  \node[font=\footnotesize\bfseries\sffamily] at (8.9,0.72) {Status};
+  \node[font=\footnotesize\bfseries\sffamily, anchor=west] at (10.5,0.72) {Reading};
+  \draw[shadowdark, line width=0.6pt] (-0.1,0.46) -- (16.6,0.46);
   \foreach \i/\ind/\stat/\col/\read in {
     0/{BEC/deepfake fraud prevalence ($>$25\% YoY)}/Mixed/warningamber/{IC3 total +26\%; BEC about +10\%},
     1/{Synthetic persona takedown rate}/No data/coldsteel/{No platform publishes a 90-day rate},
@@ -3433,7 +3665,7 @@ Successful recruitment via synthetic persona & Credible documented cases emerge 
   \item Human psychology proving resistant to AI-enabled approaches
 \end{itemize}
 
-\needspace{8\baselineskip}
+\Needspace{8\baselineskip}
 \section{Uncertainties and Alternative Scenarios}\label{sec:scenarios}
 
 \subsection{Key Uncertainties}
@@ -3446,21 +3678,25 @@ Successful recruitment via synthetic persona & Credible documented cases emerge 
   \item \textbf{International cooperation}: Will states develop meaningful constraints?
 \end{enumerate}
 
+\Needspace{9\baselineskip}
 \subsection{Scenario Matrix}
 
-\begin{center}
-\small
-\begin{tabular}{L{3cm}ccccL{4.6cm}}
+{\small
+\begin{longtable}{L{3cm}ccccL{4.6cm}}
 \toprule
 \textbf{Scenario} & \textbf{v1.4} & \textbf{v2.0} & \textbf{v2.1} & \textbf{v3.0} & \textbf{Characteristics} \\
 \midrule
-Offense dominance & 35\% & 40\% & 42\% & \textbf{43\%} & AI operations succeed at scale; CI overwhelmed \\
+\endfirsthead
+\toprule
+\textbf{Scenario} & \textbf{v1.4} & \textbf{v2.0} & \textbf{v2.1} & \textbf{v3.0} & \textbf{Characteristics} \\
+\midrule
+\endhead
+Offense dominance & 35\% & 40\% & 42\% & \textbf{43\%} & AI operations succeed at scale; CI overwhelmed \\*
 Equilibrium & 40\% & 35\% & 33\% & \textbf{33\%} & Roughly balanced; higher tempo \\
-Defense dominance & 15\% & 15\% & 15\% & \textbf{16\%} & Defensive AI and provider controls highly effective \\
+Defense dominance & 15\% & 15\% & 15\% & \textbf{16\%} & Defensive AI and provider controls highly effective \\*
 Capability plateau & 10\% & 10\% & 10\% & \textbf{8\%} & AI does not develop as projected \\
 \bottomrule
-\end{tabular}
-\end{center}
+\end{longtable}}
 
 \begin{figure}[htbp]
 \centering
@@ -3470,7 +3706,8 @@ Capability plateau & 10\% & 10\% & 10\% & \textbf{8\%} & AI does not develop as 
   ylabel={Probability (\%)}, symbolic x coords={v1.4 (Dec 25),v2.0 (Feb 26),v2.1 (Jul 26),v3.0 (Sep 26)},
   xtick=data, tick label style={font=\footnotesize\sffamily, /pgf/number format/assume math mode=true}, ylabel style={font=\footnotesize\sffamily},
   axis lines*=left, ymajorgrids, grid style={lightgray},
-  legend style={font=\scriptsize\sffamily, at={(1.02,0.5)}, anchor=west, draw=none},
+  legend style={font=\scriptsize\sffamily, at={(1.03,0.5)}, anchor=west, draw=none, row sep=2pt},
+  legend cell align=left,
   every axis plot/.append style={line width=1.4pt, mark size=2.2pt}]
 \addplot[color=signalred, mark=*] coordinates {(v1.4 (Dec 25),35) (v2.0 (Feb 26),40) (v2.1 (Jul 26),42) (v3.0 (Sep 26),43)};
 \addplot[color=steelblue, mark=square*] coordinates {(v1.4 (Dec 25),40) (v2.0 (Feb 26),35) (v2.1 (Jul 26),33) (v3.0 (Sep 26),33)};
@@ -3556,8 +3793,8 @@ The transformation is already underway and, since this revision, publicly docume
 \section*{Appendix A: Glossary}
 \addcontentsline{toc}{section}{Appendix A: Glossary}
 
-\begin{center}
-\small
+\Needspace{6\baselineskip}
+{\small
 \begin{longtable}{L{4.5cm}L{8.5cm}}
 \toprule
 \textbf{Term} & \textbf{Definition} \\
@@ -3567,7 +3804,7 @@ The transformation is already underway and, since this revision, publicly docume
 \textbf{Term} & \textbf{Definition} \\
 \midrule
 \endhead
-Agentic Orchestration & AI chaining multiple stages of an operation with minimal human intervention; missing from ATT\&CK as of 2026 \\
+Agentic Orchestration & AI chaining multiple stages of an operation with minimal human intervention; missing from ATT\&CK as of 2026 \\*
 Agentic Workflow & Autonomous AI loops with multi-step planning, tool use, and goal persistence \\
 AI Key Laundering & Stolen AI API credentials used as loot, compute, and attribution cover \\
 Algorithmic Confessional & Phenomenon where humans disclose more to AI than humans \\
@@ -3639,11 +3876,10 @@ Third-Party Rule & Intelligence sharing restriction requiring originator permiss
 Trusted-Access Program & Provider program granting vetted organizations less-restricted model configurations \\
 Trust Deficit & Limitation of AI handlers in high-stakes recruitment requiring human presence \\
 Validation Gap & Target's demand for physical proof that synthetic handlers cannot directly provide \\
-Verification Inflation & Escalating authentication requirements burdening legitimate interactions \\
+Verification Inflation & Escalating authentication requirements burdening legitimate interactions \\*
 Weight-Jacking & Social engineering to steal ML model weights and fine-tuning data \\
 \bottomrule
-\end{longtable}
-\end{center}
+\end{longtable}}
 
 % ============================================================================
 % APPENDIX B - Key Literature
@@ -3652,8 +3888,8 @@ Weight-Jacking & Social engineering to steal ML model weights and fine-tuning da
 \section*{Appendix B: Key Literature}
 \addcontentsline{toc}{section}{Appendix B: Key Literature}
 
-\begin{center}
-\small
+\Needspace{6\baselineskip}
+{\small
 \begin{longtable}{L{5.5cm}L{3cm}L{4.5cm}}
 \toprule
 \textbf{Work} & \textbf{Author(s)} & \textbf{Relevance} \\
@@ -3663,7 +3899,7 @@ Weight-Jacking & Social engineering to steal ML model weights and fine-tuning da
 \textbf{Work} & \textbf{Author(s)} & \textbf{Relevance} \\
 \midrule
 \endhead
-\textit{Power to the People} & Cronin (2020) & Technology diffusion \\
+\textit{Power to the People} & Cronin (2020) & Technology diffusion \\*
 \textit{The Spy's Son} & Denson (2015) & Modern HUMINT tradecraft \\
 \textit{The Art of Deception} & Mitnick (2002) & Social engineering \\
 \textit{Voyager: Open-Ended Embodied Agent} & Wang et al. (2023) & Autonomous AI agents \\
@@ -3708,11 +3944,10 @@ Dating-app persona coverage & Techlicious / Yahoo Tech (Sept.\ 2026) & 4,700+ pe
 \textit{Conversational Persuasiveness of LLMs} & Salvi et al.\ (2025) & Personalization effect \\
 \textit{Levers of Political Persuasion} & Hackenburg et al.\ (\textit{Science}, Dec.\ 4, 2025) & Persuasion vs.\ accuracy \\
 Deepfake detection study & iProov (Feb.\ 12, 2025) & 0.1\% detect all \\
-MI5 LinkedIn espionage alert & MI5 / UK Govt (Nov.\ 2025) & Recruiter approaches \\
+MI5 LinkedIn espionage alert & MI5 / UK Govt (Nov.\ 2025) & Recruiter approaches \\*
 Five Eyes job-platform warning & Five Eyes (June 3, 2026; Reuters, Washington Post, BBC) & Job-platform targeting \\
 \bottomrule
-\end{longtable}
-\end{center}
+\end{longtable}}
 
 % ============================================================================
 % APPENDIX C - Evidence Notes
@@ -3725,7 +3960,7 @@ Five Eyes job-platform warning & Five Eyes (June 3, 2026; Reuters, Washington Po
 
 \subsection*{Inference Deflation Cost Calculation}
 
-\textbf{``\$0.30--\$0.50/day synthetic handler cost''}, Calculation methodology:
+\textbf{``\$0.30--\$0.50/day synthetic handler cost''}: calculation methodology.
 \begin{itemize}
   \item \textbf{Baseline (early 2024)}: GPT-4-Turbo: \~{}\$10/\$30 per 1M input/output tokens
   \item \textbf{Cheap-tier anchor (mid-2026)}: Claude Haiku 4.5: \$1/\$5 per 1M tokens, the efficient tier a cost-conscious operator would use (frontier tiers cost far more but the handler workload does not need them)
@@ -3794,19 +4029,23 @@ Five Eyes job-platform warning & Five Eyes (June 3, 2026; Reuters, Washington Po
 
 \textbf{Concept}: If adversary AI agents use Retrieval-Augmented Generation (RAG) during OSINT, defenders can deliberately ``poison'' retrievable information.
 
-\begin{center}
-\small
-\begin{tabular}{L{3.5cm}L{4.5cm}L{4.5cm}}
+\Needspace{6\baselineskip}
+{\small
+\begin{longtable}{L{3.5cm}L{4.5cm}L{4.5cm}}
 \toprule
 \textbf{Technique} & \textbf{Implementation} & \textbf{Detection Effect} \\
 \midrule
-Fake executive profiles & Plausible LinkedIn profiles for non-existent C-suite & Approaches referencing fake executives reveal AI origin \\
+\endfirsthead
+\toprule
+\textbf{Technique} & \textbf{Implementation} & \textbf{Detection Effect} \\
+\midrule
+\endhead
+Fake executive profiles & Plausible LinkedIn profiles for non-existent C-suite & Approaches referencing fake executives reveal AI origin \\*
 Contradictory filings & Public documents with internally inconsistent data & Agent synthesis produces verifiable errors \\
-Honeypot research projects & Announced but nonexistent R\&D initiatives & Approaches referencing fake projects reveal targeting \\
+Honeypot research projects & Announced but nonexistent R\&D initiatives & Approaches referencing fake projects reveal targeting \\*
 Temporal traps & Documents with future dates or impossible timelines & Agent context confusion \\
 \bottomrule
-\end{tabular}
-\end{center}
+\end{longtable}}
 
 \textbf{Limitations}: May confuse legitimate business intelligence; requires ongoing maintenance; sophisticated adversaries may validate before use.
 

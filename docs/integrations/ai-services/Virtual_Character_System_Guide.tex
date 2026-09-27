@@ -29,13 +29,16 @@
 \newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
 
 % Increase vertical spacing between table rows for readability
-\renewcommand{\arraystretch}{1.4}
+\renewcommand{\arraystretch}{1.3}
 
 \usepackage{colortbl}
 \usepackage{pifont}
 \usepackage{setspace}
 \usepackage{parskip}
 \usepackage{caption}
+\usepackage{tabularx}
+\usepackage{needspace}
+\usepackage{tocloft}
 
 \pgfplotsset{compat=1.18}
 \usetikzlibrary{shapes.geometric, arrows.meta, positioning, calc, decorations.pathreplacing, backgrounds, fit, shadows.blur, matrix, patterns, fadings, shadings}
@@ -118,10 +121,59 @@
 \titlespacing*{\section}{0pt}{3ex plus 1ex minus .2ex}{2ex plus .2ex}
 \titlespacing*{\subsection}{0pt}{2.5ex plus 1ex minus .2ex}{1.5ex plus .2ex}
 
+% Keep headings together with the text that follows them
+\newcommand{\sectionbreak}{\needspace{8\baselineskip}}
+\newcommand{\subsectionbreak}{\needspace{7\baselineskip}}
+
+% ============================================================================
+% FLOATS AND CAPTIONS
+% ============================================================================
+\captionsetup{font={small,sf}, labelfont={bf,color=vcprimary}, labelsep=period, margin=1em}
+\captionsetup[figure]{skip=8pt}
+\captionsetup[table]{position=above, skip=6pt}
+\captionsetup[lstlisting]{font={small,sf}, labelfont={bf,color=vcteal}, labelsep=period, skip=4pt}
+\setlength{\textfloatsep}{14pt plus 4pt minus 4pt}
+\setlength{\floatsep}{12pt plus 4pt minus 4pt}
+\setlength{\intextsep}{12pt plus 4pt minus 4pt}
+\renewcommand{\topfraction}{0.85}
+\renewcommand{\bottomfraction}{0.6}
+\renewcommand{\textfraction}{0.12}
+\renewcommand{\floatpagefraction}{0.75}
+\setcounter{topnumber}{3}
+\setcounter{totalnumber}{4}
+
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+
+% Compact style for the end-of-part summary boxes
+\tcbset{partsummary/.style={left=10pt, right=10pt, top=5pt, bottom=5pt, toptitle=1pt, bottomtitle=1pt, before upper={\setstretch{1.0}}}}
+
+% Shared TikZ styles for architecture diagrams
+\tikzset{
+  vcnode/.style={rectangle, rounded corners=4pt, draw=#1, fill=#1!10, align=center,
+    font=\footnotesize\sffamily, inner sep=4pt, minimum height=0.75cm},
+  vcgroup/.style={rectangle, rounded corners=8pt, draw=#1!60, fill=#1!4, inner sep=8pt},
+  vcgrouplabel/.style={font=\footnotesize\sffamily\bfseries, text=#1},
+  vcnote/.style={font=\scriptsize\sffamily\itshape, text=coolgray},
+  vcarrow/.style={-Stealth, thick, draw=coolgray!80},
+  vcdash/.style={Stealth-Stealth, dashed, thick, draw=coolgray!60}
+}
+
 % ============================================================================
 % TOC STYLING
 % ============================================================================
 \setcounter{tocdepth}{2}
+\renewcommand{\cfttoctitlefont}{\normalfont\LARGE\bfseries\color{vcprimary}}
+\renewcommand{\cftsecfont}{\bfseries\color{vcprimary}}
+\renewcommand{\cftsecpagefont}{\bfseries\color{vcprimary}}
+\renewcommand{\cftsubsecfont}{\color{vcprimary!80}}
+\renewcommand{\cftsubsecpagefont}{\color{coolgray}}
+\setlength{\cftsecnumwidth}{2.2em}
+\setlength{\cftsubsecindent}{2.2em}
+\setlength{\cftsubsecnumwidth}{2.8em}
+\setlength{\cftbeforesecskip}{0.2em}
+\setlength{\cftbeforesubsecskip}{0pt}
+\setlength{\cftbeforetoctitleskip}{0pt}
+\setlength{\cftaftertoctitleskip}{1em}
 
 % ============================================================================
 % TCOLORBOX ENVIRONMENTS
@@ -237,7 +289,7 @@
 % CODE LISTING STYLE
 % ============================================================================
 \lstdefinestyle{moderncode}{
-  basicstyle=\ttfamily\small\color{codetext},
+  basicstyle=\ttfamily\footnotesize\color{codetext},
   keywordstyle=\color{codekeyword}\bfseries,
   stringstyle=\color{codestring},
   commentstyle=\color{codecomment}\itshape,
@@ -307,29 +359,101 @@
 \newcommand{\faMicrophone}{\ding{70}}
 
 % ============================================================================
-% PART PAGE STYLING (simplified - no TikZ overlay for reliability)
+% PART DIVIDER BANNER (matches the integration guide cover)
 % ============================================================================
-\newcommand{\partpage}[4]{%
-  \clearpage
-  \thispagestyle{empty}
+% Light violet for strokes and labels on the dark navy cover and banners
+\colorlet{vcviolet}{vcpurple!55!white}
 
-  % Header box with gradient simulation
-  \noindent\colorbox{vcdark}{%
-    \parbox{\dimexpr\textwidth-2\fboxsep}{%
-      \vspace{1.5cm}
-      \begin{center}
-        {\color{white}\large\sffamily PART}\\[0.3cm]
-        {\color{vcteal}\fontsize{60}{60}\selectfont\bfseries #1}\\[0.5cm]
-        {\color{white}\LARGE\bfseries\sffamily #2}\\[0.3cm]
-        {\color{vcteal}\rule{8cm}{2pt}}
-      \end{center}
-      \vspace{1cm}
-    }%
+% Label style shared by the cover and part illustrations
+\tikzset{
+  artlabel/.style={inner sep=0, font=\sffamily\bfseries\fontsize{6.5}{7}\selectfont},
+}
+
+% \vcwheel{inner radius}{outer radius}{active segment 0-13}
+% The 14 canonical emotions as a ring of segments (teal -> violet -> pink),
+% with PAD axes inside and one emotion state interpolating toward the
+% active segment. Drawn around the current origin.
+\newcommand{\vcwheel}[3]{%
+  \foreach \i in {0,...,13} {
+    \pgfmathsetmacro{\sa}{90+\i*360/14+1.2}
+    \pgfmathsetmacro{\sb}{90+(\i+1)*360/14-1.2}
+    \ifnum\i<7
+      \pgfmathtruncatemacro{\mix}{100-\i*16}
+      \colorlet{wedge}{vclightteal!\mix!vcviolet}
+    \else
+      \pgfmathtruncatemacro{\mix}{100-(\i-7)*16}
+      \colorlet{wedge}{vcviolet!\mix!vcpink}
+    \fi
+    \ifnum\i=#3
+      \fill[wedge] (\sa:#1) arc[start angle=\sa, end angle=\sb, radius=#1]
+        -- (\sb:#2) arc[start angle=\sb, end angle=\sa, radius=#2] -- cycle;
+    \else
+      \fill[wedge, opacity=0.5] (\sa:#1) arc[start angle=\sa, end angle=\sb, radius=#1]
+        -- (\sb:#2) arc[start angle=\sb, end angle=\sa, radius=#2] -- cycle;
+    \fi
   }
+  % PAD axes (pleasure, arousal, dominance)
+  \foreach \ang in {90,210,330} {
+    \draw[white!30!vcdark, line width=0.4pt] (0,0) -- (\ang:0.82*#1);
+    \fill[white!45!vcdark] (\ang:0.82*#1) circle (0.035*#2);
+  }
+  \draw[white!18!vcdark, line width=0.4pt] (0,0) circle (0.5*#1);
+  % Interpolation trail toward the current state
+  \foreach \t/\op in {0/0.25, 1/0.45, 2/0.65, 3/0.85} {
+    \pgfmathsetmacro{\px}{(-0.42+0.2*\t)*#1}
+    \pgfmathsetmacro{\py}{(-0.34+0.05*\t+0.03*\t*\t)*#1}
+    \fill[white, opacity=\op] (\px,\py) circle (0.022*#2);
+  }
+  \pgfmathsetmacro{\aa}{90+(#3+0.5)*360/14}%
+  \draw[vcpink, line width=0.8pt] (0.40*#1,0.34*#1) -- (\aa:0.98*#1);
+  \fill[vcdark] (0.40*#1,0.34*#1) circle (0.045*#2);
+  \draw[white, line width=0.8pt] (0.40*#1,0.34*#1) circle (0.045*#2);
+}
 
-  \vspace{1.5cm}
+% \partbanner{numeral}{title}{subtitle}{illustration}
+% Full-bleed 10cm band flush with the page top. The illustration is drawn
+% in local cm coordinates inside an 8.2cm x 7.5cm box whose origin is its
+% bottom-left corner, vertically centered in the band.
+\newcommand{\partbanner}[4]{%
+  \clearpage
+  \thispagestyle{empty}%
+  \noindent\begin{tikzpicture}[remember picture, overlay]
+    \begin{scope}[shift={(current page.north west)}]
+      % Band
+      \fill[vcdark] (0,0) rectangle (\paperwidth,-10cm);
+      % Subtle texture: dot lattice (as on the cover)
+      \foreach \x in {0.9,1.8,...,21.0} {
+        \foreach \y in {-0.9,-1.8,...,-9.5} {
+          \fill[white, opacity=0.045] (\x,\y) circle (0.018);
+        }
+      }
+      % Bottom accent rule
+      \fill[vcteal] (0,-10cm) rectangle (\paperwidth,-9.958cm);
+      % Text column
+      \node[anchor=west, inner sep=0, text width=8.8cm, align=left]
+        at (2.159cm,-5cm) {%
+          \setstretch{1}\setlength{\parskip}{0pt}%
+          {\color{vclightteal}\sffamily\bfseries\fontsize{9}{11}\selectfont PART #1}\par
+          \vspace{0.35cm}%
+          \begin{minipage}{8cm}\raggedright{\color{white}\sffamily\bfseries\fontsize{30}{34}\selectfont #2\par}\end{minipage}\par
+          \vspace{0.3cm}%
+          {\color{vcteal}\rule{2.5cm}{2pt}}\par
+          \vspace{0.3cm}%
+          \begin{minipage}{8.5cm}\raggedright
+            {\color{white!70}\sffamily\fontsize{11}{14}\selectfont #3\par}
+          \end{minipage}%
+        };
+      % Illustration box
+      \begin{scope}[shift={(0.52\paperwidth,-8.75cm)}]
+        #4
+      \end{scope}
+    \end{scope}
+  \end{tikzpicture}\par
+  \vspace*{7.9cm}%
+}
 
-  % Overview content
+% "What's Covered" summary box shown under each part banner
+\newcommand{\partcovered}[1]{%
   \begin{center}
   \begin{minipage}{0.88\textwidth}
     \begin{tcolorbox}[
@@ -344,15 +468,8 @@
     \textcolor{vcprimary}{\faListAlt\hspace{0.5em}\textbf{What's Covered}}
     \vspace{0.5em}
 
-    #3
+    #1
     \end{tcolorbox}
-
-    \vspace{1em}
-
-    % Icon row
-    \begin{center}
-    #4
-    \end{center}
   \end{minipage}
   \end{center}
 }
@@ -366,132 +483,139 @@
 % TITLE PAGE
 % ============================================================================
 \begin{titlepage}
+% Integration guide cover. Illustration: "Dual-Speed Cognition".
+% A fast inner loop (reactions under 100 ms) turns inside a slow outer
+% loop (reasoning over 2-30 s) around the cognitive orchestrator. Their
+% output drives a ring of the 14 canonical emotions with PAD axes inside,
+% and the resulting expression fans out along channels to the backends.
+% Coordinates are in cm from the bottom-left corner of the page.
 \begin{tikzpicture}[remember picture, overlay]
-  % Left panel gradient (full height)
-  \shade[left color=vcdark, right color=vcprimary!90]
-    (current page.north west) rectangle ([xshift=7cm]current page.south west);
+\begin{scope}[shift={(current page.south west)}]
+  % Background
+  \fill[vcdark] (0,0) rectangle (21.59,27.94);
 
-  % Decorative circles on left panel
-  \fill[vcteal, opacity=0.15] ([xshift=3.5cm, yshift=-4cm]current page.north west) circle (1.2cm);
-  \fill[vcpurple, opacity=0.10] ([xshift=3.5cm, yshift=-8cm]current page.north west) circle (0.9cm);
-  \fill[vcpink, opacity=0.12] ([xshift=3.5cm, yshift=-12cm]current page.north west) circle (1.1cm);
-  \fill[vcteal, opacity=0.08] ([xshift=3.5cm, yshift=-16cm]current page.north west) circle (1.4cm);
-  \fill[vcpurple, opacity=0.10] ([xshift=3.5cm, yshift=-20cm]current page.north west) circle (0.8cm);
-
-  % Dual-mind visualization centered at left panel
-  \begin{scope}[shift={([xshift=3.5cm, yshift=-14cm]current page.north west)}]
-    % Glow rings
-    \fill[vcteal, opacity=0.08] (0,0) circle (2.8cm);
-    \fill[vcpurple, opacity=0.12] (0,0) circle (2.2cm);
-
-    % Central hub - Fast Mind
-    \fill[vcteal] (0,0.8) circle (0.5cm);
-    \node[white, font=\tiny\bfseries] at (0,0.8) {FAST};
-
-    % Central hub - Slow Mind
-    \fill[vcpurple] (0,-0.8) circle (0.5cm);
-    \node[white, font=\tiny\bfseries] at (0,-0.8) {SLOW};
-
-    % Connection
-    \draw[white, opacity=0.6, line width=2pt] (0,0.3) -- (0,-0.3);
-
-    % Output nodes
-    \foreach \angle/\label/\col in {45/V/vcteal, 90/A/vcpink, 135/R/vcpurple, 225/M/successgreen, 270/G/warningamber, 315/E/infoteal} {
-      \draw[white, opacity=0.4, line width=1.5pt] (0,0) -- (\angle:1.8cm);
-      \fill[\col] (\angle:2.2cm) circle (0.3cm);
-      \node[white, font=\tiny\bfseries] at (\angle:2.2cm) {\label};
+  % Subtle texture: dot lattice
+  \foreach \x in {0.9,1.8,...,21.0} {
+    \foreach \y in {0.9,1.8,...,27.2} {
+      \fill[white, opacity=0.045] (\x,\y) circle (0.018);
     }
+  }
+
+  % Masthead
+  \fill[vcdark!78!black] (0,26.34) rectangle (21.59,27.94);
+  \fill[vcteal] (0,26.34) rectangle (21.59,26.382);
+  \node[anchor=west, inner sep=0, text=vclightteal,
+        font=\sffamily\bfseries\fontsize{8.5}{10}\selectfont]
+    at (1.5,27.14) {INTEGRATION GUIDE};
+  \node[anchor=east, inner sep=0, text=white!72,
+        font=\sffamily\bfseries\fontsize{8.5}{10}\selectfont]
+    at (20.09,27.14) {VIRTUAL CHARACTER\enspace\textbar\enspace VERSION 2.1\enspace\textbar\enspace DECEMBER 2025};
+
+  % ==== Illustration zone (y = 12.9 .. 25.1) ====
+  \begin{scope}[yshift=-0.6cm]
+
+  % ---- Dual-speed cognition: slow outer loop, fast inner loop
+  \begin{scope}[shift={(5.6,19.0)}]
+    \fill[vcprimary] (0,0) circle (4.0);
+    % slow mind: outer loop with few, long reasoning phases
+    \draw[vcviolet, opacity=0.25, line width=0.4pt] (0,0) circle (4.35);
+    \draw[vcviolet, line width=1.6pt] (0,0) circle (4.0);
+    \foreach \a in {20,110,200,290} {
+      \draw[vcviolet, line width=4pt, opacity=0.45] (\a:4.0) arc[start angle=\a, end angle=\a+48, radius=4.0];
+    }
+    \foreach \a in {68,158,248,338} {
+      \fill[vcdark] (\a:4.0) circle (0.15);
+      \draw[vcviolet, line width=0.8pt] (\a:4.0) circle (0.15);
+    }
+    % escalation spokes between the two loops
+    \foreach \a in {68,158,248,338} {
+      \draw[white!28!vcdark, line width=0.4pt, dash pattern=on 1.5pt off 1.5pt] (\a:1.95) -- (\a:3.8);
+    }
+    \draw[white!12!vcdark, line width=0.4pt] (0,0) circle (2.9);
+    % fast mind: inner loop with dense, short reaction ticks
+    \draw[vclightteal, line width=1.6pt] (0,0) circle (1.7);
+    \foreach \k in {0,...,23} {
+      \draw[vclightteal, line width=0.8pt] ({\k*15}:1.52) -- ({\k*15}:1.88);
+    }
+    \draw[vclightteal, opacity=0.2, line width=5pt] (0,0) circle (1.7);
+    % orchestrator core
+    \fill[vcteal, opacity=0.25] (0,0) circle (0.75);
+    \fill[vcdark] (0,0) circle (0.42);
+    \draw[white, line width=1.6pt] (0,0) circle (0.42);
+    \fill[vclightteal] (0,0) circle (0.17);
+  \end{scope}
+  % loop labels with leaders
+  \draw[vcviolet, opacity=0.7, line width=0.4pt] (2.77,21.83) -- (2.77,24.15);
+  \node[artlabel, anchor=south west] at (2.77,24.3)
+    {\textcolor{vcviolet}{SLOW MIND}\enspace\textcolor{white!55!vcdark}{2--30 S}};
+  \draw[vclightteal, opacity=0.7, line width=0.4pt] (6.45,20.47) -- (6.45,24.15);
+  \node[artlabel, anchor=south west] at (6.45,24.3)
+    {\textcolor{vclightteal}{FAST MIND}\enspace\textcolor{white!55!vcdark}{{<}100 MS}};
+
+  % ---- Emotion sync: cognition drives the emotion model
+  \draw[vclightteal, line width=0.8pt] (9.6,19.0) -- (10.75,19.0);
+  \fill[vclightteal] (9.6,19.0) circle (0.06);
+
+  % ---- 14 canonical emotions with PAD space
+  \begin{scope}[shift={(13.9,19.0)}]
+    \fill[vcprimary] (0,0) circle (3.15);
+    \vcwheel{2.25}{3.05}{12}
+  \end{scope}
+  \node[artlabel, anchor=north] at (13.9,15.45)
+    {\textcolor{vcpink!70!white}{14 EMOTIONS}\enspace\textcolor{white!55!vcdark}{PAD SPACE}};
+
+  % ---- Output channels to backends
+  \foreach \ang/\by/\name/\live in {40/22.3/VRCHAT/1, 13/20.2/BLENDER/1, -13/18.1/UNITY/1, -40/16.0/UNREAL/0} {
+    \pgfmathsetmacro{\sx}{13.9+3.15*cos(\ang)}
+    \pgfmathsetmacro{\sy}{19.0+3.15*sin(\ang)}
+    \ifnum\live=1
+      \draw[vcpink!70!white, opacity=0.8, line width=0.8pt]
+        (\sx,\sy) .. controls ({(\sx+18.2)/2},\sy) and ({(\sx+18.2)/2},\by) .. (18.2,\by);
+      \fill[vcdark] (18.4,\by) circle (0.2);
+      \draw[vcpink!70!white, line width=1.6pt] (18.4,\by) circle (0.2);
+      \fill[vcpink!70!white] (18.4,\by) circle (0.08);
+      \node[artlabel, anchor=west, text=white!80!vcdark] at (18.8,\by) {\name};
+    \else
+      \draw[white!35!vcdark, line width=0.8pt, dash pattern=on 2pt off 2pt]
+        (\sx,\sy) .. controls ({(\sx+18.2)/2},\sy) and ({(\sx+18.2)/2},\by) .. (18.2,\by);
+      \fill[vcdark] (18.4,\by) circle (0.2);
+      \draw[white!35!vcdark, line width=1.6pt] (18.4,\by) circle (0.2);
+      \node[artlabel, anchor=west, text=white!40!vcdark] at (18.8,\by) {\name};
+    \fi
+  }
+
   \end{scope}
 
-  % ========== RIGHT SIDE CONTENT ==========
+  % ==== Title block ====
+  \node (sub) [anchor=south west, inner sep=0, text width=14cm, align=left,
+               text=white!75, font=\sffamily\fontsize{12.5}{16}\selectfont]
+    at (1.5,6.0)
+    {\hyphenpenalty=10000 Dual-Speed Cognitive Architecture. A comprehensive middleware for AI agent
+     embodiment in virtual worlds, with unified emotion taxonomy, multi-modal
+     expression, and persistent personality memory.};
+  \fill[vcteal] ([yshift=0.45cm]sub.north west) rectangle ++(3cm,2pt);
+  \node (ttl) [anchor=south west, inner sep=0, text width=15.5cm, align=left,
+               text=white, font=\sffamily\bfseries\fontsize{34}{38}\selectfont]
+    at ([yshift=0.95cm]sub.north west)
+    {Virtual Character\\System Guide};
+  \node[anchor=south west, inner sep=0, text=vclightteal,
+        font=\sffamily\bfseries\fontsize{9}{11}\selectfont]
+    at ([yshift=0.5cm]ttl.north west) {AI AGENT EMBODIMENT WITH EMOTIONAL COHERENCE};
 
-  % MCP Badge
-  \node[fill=vcteal, rounded corners=3pt, inner sep=6pt]
-    at ([xshift=11cm, yshift=-3cm]current page.north west)
-    {\textcolor{white}{\small\bfseries\sffamily MCP SERVER}};
-
-  % Main Title
-  \node[anchor=west] at ([xshift=8cm, yshift=-5.5cm]current page.north west) {
-    {\fontsize{44}{50}\selectfont\bfseries\color{vcprimary}Virtual}
-  };
-  \node[anchor=west] at ([xshift=8cm, yshift=-7.5cm]current page.north west) {
-    {\fontsize{44}{50}\selectfont\bfseries\color{vcteal}Character}
-  };
-  \node[anchor=west] at ([xshift=8cm, yshift=-9cm]current page.north west) {
-    {\Large\color{coolgray}\sffamily Dual-Speed Cognitive Architecture}
-  };
-
-  % Tagline
-  \node[anchor=west] at ([xshift=8cm, yshift=-11cm]current page.north west) {
-    {\large\color{vcprimary}\sffamily AI Agent Embodiment with Emotional Coherence}
-  };
-
-  % Teal divider
-  \draw[vcteal, line width=3pt]
-    ([xshift=8cm, yshift=-12cm]current page.north west) --
-    ([xshift=18cm, yshift=-12cm]current page.north west);
-
-  % Description
-  \node[anchor=north west, text width=10cm] at ([xshift=8cm, yshift=-13cm]current page.north west) {
-    \color{coolgray}\normalsize
-    A comprehensive middleware for AI agent embodiment in virtual worlds.
-    Features dual-speed cognition, unified emotion taxonomy, multi-modal
-    expression, and persistent personality memory.
-  };
-
-  % Feature highlights
-  \node[fill=vcteal!10, rounded corners=4pt, inner sep=8pt]
-    at ([xshift=9.5cm, yshift=-16.5cm]current page.north west) {
-    \textcolor{vcteal}{\faBolt}\hspace{0.3em}\small\sffamily Fast Mind (<100ms)
-  };
-  \node[fill=vcpurple!10, rounded corners=4pt, inner sep=8pt]
-    at ([xshift=13.5cm, yshift=-16.5cm]current page.north west) {
-    \textcolor{vcpurple}{\faBrain}\hspace{0.3em}\small\sffamily Slow Mind (2-30s)
-  };
-  \node[fill=vcpink!10, rounded corners=4pt, inner sep=8pt]
-    at ([xshift=17.5cm, yshift=-16.5cm]current page.north west) {
-    \textcolor{vcpink}{\faHeart}\hspace{0.3em}\small\sffamily Emotion Sync
-  };
-
-  % Latency indicators
-  \node[fill=successgreen!10, rounded corners=3pt, inner sep=6pt]
-    at ([xshift=10cm, yshift=-18.5cm]current page.north west) {
-    \textcolor{successgreen}{\faCheck}\hspace{0.3em}\scriptsize\sffamily 75ms TTS
-  };
-  \node[fill=infoteal!10, rounded corners=3pt, inner sep=6pt]
-    at ([xshift=14cm, yshift=-18.5cm]current page.north west) {
-    \textcolor{infoteal}{\faCheck}\hspace{0.3em}\scriptsize\sffamily 14 Emotions
-  };
-
-  % Diagram Legend
-  \node[anchor=north west, text width=10cm] at ([xshift=8cm, yshift=-20.5cm]current page.north west) {
-    \color{coolgray}\scriptsize\sffamily
-    \textbf{Diagram Key:} \textcolor{vcteal}{V}oice \textbar{} \textcolor{vcpink}{A}vatar \textbar{} \textcolor{vcpurple}{R}eaction \textbar{} \textcolor{successgreen}{M}emory \textbar{} \textcolor{warningamber}{G}esture \textbar{} \textcolor{infoteal}{E}motion
-  };
-
-  % Platform support badges
-  \node[fill=vcdark, rounded corners=3pt, inner sep=5pt]
-    at ([xshift=9.2cm, yshift=-22.5cm]current page.north west) {
-    \textcolor{white}{\scriptsize\sffamily VRChat}
-  };
-  \node[fill=vcdark, rounded corners=3pt, inner sep=5pt]
-    at ([xshift=11.5cm, yshift=-22.5cm]current page.north west) {
-    \textcolor{white}{\scriptsize\sffamily Blender}
-  };
-  \node[fill=vcdark, rounded corners=3pt, inner sep=5pt]
-    at ([xshift=13.7cm, yshift=-22.5cm]current page.north west) {
-    \textcolor{white}{\scriptsize\sffamily Unity}
-  };
-  \node[fill=coolgray!30, rounded corners=3pt, inner sep=5pt]
-    at ([xshift=15.8cm, yshift=-22.5cm]current page.north west) {
-    \textcolor{coolgray}{\scriptsize\sffamily Unreal}
-  };
-
-  % Version info
-  \node[coolgray, font=\small\sffamily] at ([xshift=13cm, yshift=-24.5cm]current page.north west) {
-    Version 2.1 | December 2025
-  };
-
+  % ==== Footer metadata strip ====
+  \draw[white, opacity=0.25, line width=0.4pt] (1.5,2.6) -- (20.09,2.6);
+  \foreach \i/\lab/\val in {0/INTERFACE/{MCP server},
+                            1/COGNITION/{Fast {<}100 ms, slow 2--30 s},
+                            2/EXPRESSION/{Emotion sync, 75 ms TTS},
+                            3/VERSION/{2.1 (December 2025)}} {
+    \node[anchor=base west, inner sep=0, text=vclightteal,
+          font=\sffamily\bfseries\fontsize{6.5}{8}\selectfont]
+      at ({1.5+\i*4.6475},1.98) {\lab};
+    \node[anchor=base west, inner sep=0, text=white!75,
+          font=\sffamily\fontsize{8.5}{10}\selectfont]
+      at ({1.5+\i*4.6475},1.5) {\val};
+  }
+\end{scope}
 \end{tikzpicture}
 \end{titlepage}
 
@@ -499,11 +623,10 @@
 % ABSTRACT
 % ============================================================================
 \thispagestyle{empty}
-\vspace*{1.5cm}
 \begin{center}
 {\color{vcprimary}\Large\bfseries Abstract}
 \end{center}
-\vspace{0.5cm}
+\vspace{0.2cm}
 
 \begin{tcolorbox}[
   enhanced,
@@ -513,63 +636,57 @@
   arc=5pt,
   left=10pt, right=10pt, top=10pt, bottom=10pt
 ]
-\textbf{The Problem.} AI agents today are disembodied: text interfaces that lack the non-verbal richness of human interaction. A 5-second response delay feels awkward. Emotions expressed in ``[brackets]'' feel artificial. Without persistent memory, each session starts from scratch. Users cannot form genuine connections with entities that have no presence.
+\setlength{\parskip}{0.6em}
+\textbf{The Problem.} AI agents today are disembodied: text interfaces that lack the non-verbal richness of human interaction. A 5-second response delay feels awkward, and emotions expressed in ``[brackets]'' feel artificial. Without persistent memory, each session starts from scratch. Users cannot form genuine connections with entities that have no presence.
 
-\vspace{0.3cm}
-\textbf{Our Solution.} The Virtual Character system is a \textbf{protocol-agnostic middleware} that gives AI agents bodies, voices, and persistent identities. Built on Kahneman's System 1/System 2 cognitive model, agents react instantly (<100ms) while synthesizing thoughtful responses in parallel. A unified emotion taxonomy ensures coherent expression across voice, face, and gesture. When an agent feels joy, its voice brightens, face smiles, and posture opens simultaneously.
+\textbf{Our Solution.} The Virtual Character system is a \textbf{protocol-agnostic middleware} that gives AI agents bodies, voices, and persistent identities. Built on Kahneman's System~1/System~2 cognitive model, agents react instantly (<100ms) while synthesizing thoughtful responses in parallel. A unified emotion taxonomy keeps expression coherent across voice, face, and gesture: when an agent feels joy, its voice brightens, its face smiles, and its posture opens at the same moment.
 
-\vspace{0.3cm}
 \textbf{Key Innovation.} Unlike platform-specific solutions (a VRChat bot, a Unity NPC), this middleware works across \emph{any} virtual world. Swap VRChat for Unity or Blender without changing agent logic. Replace ElevenLabs with local TTS without breaking animations. Use AWS AgentCore or self-hosted ChromaDB for memory. Every component is a swappable plugin.
 
-\vspace{0.3cm}
 \textbf{Applications.} Virtual customer service, AI tutors in VR classrooms, therapeutic companions, multi-agent social simulations, machinima production with AI actors, and research into human-AI embodied interaction.
 \end{tcolorbox}
 
-\vspace{0.8cm}
+\vspace{0.4cm}
 \begin{center}
-\begin{tabular}{ccc}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{lcl}
+\toprule
 \textbf{Component} & \textbf{Latency} & \textbf{Purpose} \\
 \midrule
 Fast Mind & <100ms & Immediate presence \\
-Slow Mind & 2-30s & Deep reasoning \\
+Slow Mind & 2--30s & Deep reasoning \\
 Expression Orchestrator & Variable & Multi-modal coordination \\
+\bottomrule
 \end{tabular}
 \end{center}
 
-\vspace{0.8cm}
+\vspace{0.3cm}
 
 % Architecture Overview Diagram
 \begin{center}
 \begin{tikzpicture}[
-  node distance=0.8cm,
-  serverbox/.style={rectangle, rounded corners=4pt, draw=#1, fill=#1!10, minimum width=2.8cm, minimum height=0.7cm, font=\scriptsize\sffamily},
-  arrow/.style={-Stealth, thick, color=coolgray!70}
+  srv/.style={vcnode=#1, minimum width=3.9cm, minimum height=0.8cm},
+  role/.style={font=\scriptsize\sffamily\itshape, text=#1}
 ]
-  % Central hub
-  \node[rectangle, rounded corners=6pt, draw=vcprimary, fill=vcprimary!10, minimum width=3.5cm, minimum height=1cm, font=\small\sffamily\bfseries] (vc) {Virtual Character};
+  \node[vcnode=vcprimary, minimum width=3.6cm, minimum height=1.1cm, font=\small\sffamily\bfseries] (vc) at (0,0) {Virtual Character};
 
-  % Four connected servers
-  \node[serverbox=vcteal, above left=0.6cm and 0.8cm of vc] (eleven) {ElevenLabs TTS};
-  \node[serverbox=vcpurple, above right=0.6cm and 0.8cm of vc] (react) {Reaction Search};
-  \node[serverbox=successgreen, below left=0.6cm and 0.8cm of vc] (mem) {AgentCore Memory};
-  \node[serverbox=warningamber, below right=0.6cm and 0.8cm of vc] (back) {VRChat/Unity/Blender};
+  \node[srv=vcteal]       (eleven) at (-4.6, 1.0)  {ElevenLabs TTS};
+  \node[srv=vcpurple]     (react)  at ( 4.6, 1.0)  {Reaction Search};
+  \node[srv=successgreen] (mem)    at (-4.6,-1.0)  {AgentCore Memory};
+  \node[srv=warningamber] (back)   at ( 4.6,-1.0)  {VRChat / Unity / Blender};
 
-  % Arrows
-  \draw[arrow] (vc) -- (eleven);
-  \draw[arrow] (vc) -- (react);
-  \draw[arrow] (vc) -- (mem);
-  \draw[arrow] (vc) -- (back);
+  \draw[vcarrow] (vc) -- (eleven.east);
+  \draw[vcarrow] (vc) -- (react.west);
+  \draw[vcarrow] (vc) -- (mem.east);
+  \draw[vcarrow] (vc) -- (back.west);
 
-  % Labels
-  \node[font=\tiny\sffamily, color=vcteal] at ([yshift=0.15cm]eleven.south) {Voice};
-  \node[font=\tiny\sffamily, color=vcpurple] at ([yshift=0.15cm]react.south) {Visual};
-  \node[font=\tiny\sffamily, color=successgreen] at ([yshift=-0.15cm]mem.north) {Persistence};
-  \node[font=\tiny\sffamily, color=warningamber] at ([yshift=-0.15cm]back.north) {Embodiment};
+  \node[role=vcteal, above=1pt of eleven] {Voice};
+  \node[role=vcpurple, above=1pt of react] {Visual};
+  \node[role=successgreen, below=1pt of mem] {Persistence};
+  \node[role=warningamber, below=1pt of back] {Embodiment};
 \end{tikzpicture}
-\end{center}
 
-\vspace{0.5cm}
-\begin{center}
+\vspace{0.2cm}
 \textcolor{coolgray}{\small\sffamily Four MCP servers coordinated through a unified emotion taxonomy}
 \end{center}
 
@@ -578,9 +695,12 @@ Expression Orchestrator & Variable & Multi-modal coordination \\
 % ============================================================================
 % TABLE OF CONTENTS
 % ============================================================================
+\begingroup
+\setstretch{1.0}\small
 \tableofcontents
+\endgroup
 
-\vspace{1cm}
+\vspace{0.6cm}
 
 % Quick Reference Box after TOC
 \begin{tcolorbox}[
@@ -596,15 +716,15 @@ Expression Orchestrator & Variable & Multi-modal coordination \\
 ]
 \small
 \renewcommand{\arraystretch}{1.4}
-\begin{tabular}{@{}L{3.5cm}L{8.5cm}@{}}
-\textcolor{vcteal}{\textbf{New to the system?}} & Start with \textbf{Part I} for architecture overview, then \textbf{Part II} for the dual-speed cognitive model. \\
-\textcolor{vcpurple}{\textbf{Implementing audio?}} & Jump to \textbf{Part IV} (Sections 9--11) for ElevenLabs and event sequencing. \\
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{3.6cm}Y@{}}
+\textcolor{vcteal}{\textbf{New to the system?}} & Start with \textbf{Part I} for the architecture overview, then \textbf{Part II} for the dual-speed cognitive model. \\
+\textcolor{vcpurple}{\textbf{Implementing audio?}} & Jump to \textbf{Part IV} (Sections 9--11) for ElevenLabs, VRChat OSC, and event sequencing. \\
 \textcolor{successgreen}{\textbf{Adding memory?}} & See \textbf{Part V} (Sections 12--13) for AgentCore integration. \\
-\textcolor{warningamber}{\textbf{Quick reference?}} & \textbf{Appendices A--D} contain performance tables and code snippets.
-\end{tabular}
+\textcolor{warningamber}{\textbf{Quick reference?}} & \textbf{Appendices A--G} contain performance targets, reference tables, troubleshooting, and a glossary.
+\end{tabularx}
 \end{tcolorbox}
 
-\vspace{1cm}
+\vspace{0.4cm}
 
 % Key metrics summary
 \begin{center}
@@ -618,8 +738,6 @@ Expression Orchestrator & Variable & Multi-modal coordination \\
 \end{tikzpicture}
 \end{center}
 
-\vspace{0.8cm}
-
 % ============================================================================
 % EXECUTIVE SUMMARY: THE INTEGRATION STORY
 % ============================================================================
@@ -627,116 +745,127 @@ Expression Orchestrator & Variable & Multi-modal coordination \\
 \addcontentsline{toc}{section}{Executive Summary}
 
 \begin{tldrbox}
-A user speaks to an AI agent. Within 100ms, the agent's avatar shows it's listening. While deep reasoning occurs, the agent speaks a filler (``Hmm, let me think...'') with matching expression. Seconds later, a coherent response emerges: voice, face, gesture, and reaction image all aligned to the same emotional state. Memory persists: next session, the agent remembers.
+A user speaks to an AI agent. Within 100ms, the agent's avatar shows that it is listening. While deep reasoning runs, the agent speaks a filler (``Hmm, let me think...'') with a matching expression. Seconds later a coherent response emerges, with voice, face, gesture, and reaction image all aligned to the same emotional state. Memory persists, so in the next session the agent remembers.
 \end{tldrbox}
 
 \subsection*{The Complete Data Flow}
 
-\begin{center}
+Figure~\ref{fig:dataflow} traces a single user turn. The Fast Mind and Slow Mind start in parallel; both feed the Expression Orchestrator, which drives voice, avatar, and memory from one emotional state.
+
+\begin{figure}[!htbp]
+\centering
 \begin{tikzpicture}[
-  node distance=0.6cm,
-  flowbox/.style={rectangle, rounded corners=4pt, draw=#1, fill=#1!10, minimum width=2.8cm, minimum height=0.55cm, font=\scriptsize\sffamily},
-  arrow/.style={-Stealth, thick, color=coolgray!70},
-  label/.style={font=\tiny\sffamily\itshape, color=coolgray}
+  fb/.style={vcnode=#1, minimum width=3.3cm},
 ]
-  % Input
-  \node[flowbox=vcteal] (input) {User Input (Text/Voice)};
+  \node[fb=vcteal, minimum width=4cm] (input) at (0,0) {User Input (Text / Voice)};
 
-  % Dual processing - wider horizontal spread
-  \node[flowbox=vcteal, below left=0.7cm and 2cm of input] (fast) {Fast Mind (<100ms)};
-  \node[flowbox=vcpurple, below right=0.7cm and 2cm of input] (slow) {Slow Mind (2-30s)};
+  \node[fb=vcteal]   (fast)    at (-3.6,-1.4) {\textbf{Fast Mind} (<100ms)};
+  \node[fb=vcteal]   (emotion) at (-3.6,-2.5) {Emotion Classifier};
+  \node[fb=vcteal]   (filler)  at (-3.6,-3.6) {Filler Generator};
 
-  % Fast outputs - left column
-  \node[flowbox=vcteal, below=0.5cm of fast] (emotion) {Emotion Classifier};
-  \node[flowbox=vcteal, below=0.4cm of emotion] (filler) {Filler Generator};
+  \node[fb=vcpurple] (slow)    at ( 3.6,-1.4) {\textbf{Slow Mind} (2--30s)};
+  \node[fb=vcpurple] (reason)  at ( 3.6,-2.5) {Claude Opus 4.5};
+  \node[fb=vcpurple] (memory)  at ( 3.6,-3.6) {Memory Query};
 
-  % Slow outputs - right column
-  \node[flowbox=vcpurple, below=0.5cm of slow] (reason) {Claude Opus 4.5};
-  \node[flowbox=vcpurple, below=0.4cm of reason] (memory) {Memory Query};
+  \node[fb=vcprimary, minimum width=5.4cm, font=\footnotesize\sffamily\bfseries] (orch) at (0,-5.0) {Expression Orchestrator (PAD Model)};
 
-  % Orchestrator - positioned below filler/memory with clearance
-  \node[flowbox=vcprimary, below=0.6cm of input, yshift=-3.2cm, minimum width=5cm] (orch) {Expression Orchestrator (PAD Model)};
+  \node[fb=vcpink]       (voice)   at (-4.4,-6.5) {ElevenLabs TTS};
+  \node[fb=warningamber] (avatar)  at ( 0,  -6.5) {VRChat / Unity / Blender};
+  \node[fb=successgreen] (persist) at ( 4.4,-6.5) {AgentCore Memory};
 
-  % Outputs - spread wider
-  \node[flowbox=vcpink, below left=0.7cm and 2cm of orch] (voice) {ElevenLabs TTS};
-  \node[flowbox=warningamber, below=0.7cm of orch] (avatar) {VRChat/Unity/Blender};
-  \node[flowbox=successgreen, below right=0.7cm and 2cm of orch] (persist) {AgentCore Memory};
+  \draw[vcarrow] (input.west) -| (fast.north);
+  \draw[vcarrow] (input.east) -| (slow.north);
+  \draw[vcarrow] (fast) -- (emotion);
+  \draw[vcarrow] (emotion) -- (filler);
+  \draw[vcarrow] (slow) -- (reason);
+  \draw[vcarrow] (reason) -- (memory);
+  \draw[vcarrow] (filler.south) |- (orch.west);
+  \draw[vcarrow] (memory.south) |- (orch.east);
+  \draw[vcarrow] (orch) -- (voice);
+  \draw[vcarrow] (orch) -- (avatar);
+  \draw[vcarrow] (orch) -- (persist);
 
-  % Arrows
-  \draw[arrow] (input) -- (fast);
-  \draw[arrow] (input) -- (slow);
-  \draw[arrow] (fast) -- (emotion);
-  \draw[arrow] (emotion) -- (filler);
-  \draw[arrow] (slow) -- (reason);
-  \draw[arrow] (reason) -- (memory);
-  \draw[arrow] (filler) |- (orch);
-  \draw[arrow] (memory) |- (orch);
-  \draw[arrow] (orch) -- (voice);
-  \draw[arrow] (orch) -- (avatar);
-  \draw[arrow] (orch) -- (persist);
-
-  % Labels
-  \node[label] at ([yshift=-0.15cm, xshift=-0.3cm]fast.south west) {local inference};
-  \node[label] at ([yshift=-0.15cm, xshift=0.3cm]slow.south east) {API calls};
+  \node[vcnote, anchor=east] at ([xshift=-4pt]fast.west) {local inference};
+  \node[vcnote, anchor=west] at ([xshift=4pt]slow.east) {API calls};
 \end{tikzpicture}
-\end{center}
+\caption{End-to-end data flow for one user turn.}\label{fig:dataflow}
+\end{figure}
 
 \subsection*{Why This Architecture?}
 
 \begin{center}
 \renewcommand{\arraystretch}{1.3}
-\begin{tabular}{@{}L{3.2cm}L{4.5cm}L{4.5cm}@{}}
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{3.2cm}YY@{}}
 \toprule
 \textbf{Challenge} & \textbf{Traditional Approach} & \textbf{Virtual Character Solution} \\
 \midrule
-\textbf{Response Latency} & Wait 5-30s for LLM, then render & Fast Mind reacts in <100ms; Slow Mind synthesizes in parallel \\
-\textbf{Emotional Coherence} & Voice says happy, face neutral & PAD model coordinates all modalities from single emotion state \\
-\textbf{Platform Lock-in} & VRChat bot only works in VRChat & Canonical model translates to any backend \\
+\textbf{Response Latency} & Wait 5--30s for the LLM, then render & Fast Mind reacts in <100ms; Slow Mind synthesizes in parallel \\
+\textbf{Emotional Coherence} & Voice says happy while the face stays neutral & PAD model coordinates all modalities from a single emotion state \\
+\textbf{Platform Lock-in} & A VRChat bot only works in VRChat & Canonical model translates to any backend \\
 \textbf{Session Memory} & Start fresh each time & AgentCore persists personality across sessions \\
-\textbf{Vendor Lock-in} & Tied to one TTS/LLM provider & Every service is a swappable plugin \\
+\textbf{Vendor Lock-in} & Tied to one TTS or LLM provider & Every service is a swappable plugin \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{center}
 
 \subsection*{Cost Transparency}
 
 \begin{center}
 \renewcommand{\arraystretch}{1.3}
-\begin{tabular}{@{}lllL{4cm}@{}}
+\begin{tabularx}{\textwidth}{@{}l>{\raggedright\arraybackslash}p{3.6cm}lY@{}}
 \toprule
 \textbf{Component} & \textbf{Cost Model} & \textbf{Typical Cost} & \textbf{Self-Hosted Alternative} \\
 \midrule
-ElevenLabs TTS & \$0.30/1k chars & \$5-20/month & Coqui TTS (free, lower quality) \\
-Claude Opus 4.5 & \$15/M input, \$75/M output & \$10-50/month & Gemma 2 via OpenRouter \\
-AWS AgentCore & \$0.0001/memory op & \$1-5/month & ChromaDB (free, self-hosted) \\
-Windows GPU & 1x NVIDIA GPU & \$0 (own HW) & Cloud GPU (\$0.50-2/hr) \\
+ElevenLabs TTS & \$0.30/1k chars & \$5--20/month & Coqui TTS (free, lower quality) \\
+Claude Opus 4.5 & \$15/M input, \$75/M output & \$10--50/month & Gemma 2 via OpenRouter \\
+AWS AgentCore & \$0.0001/memory op & \$1--5/month & ChromaDB (free, self-hosted) \\
+Windows GPU & 1$\times$ NVIDIA GPU & \$0 (own hardware) & Cloud GPU (\$0.50--2/hr) \\
 VRChat & Free tier & \$0 & Unity (free tier) \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{center}
 
 \begin{infobox}[Zero-Cost Option]
-For hobbyist deployments: Use Coqui TTS, Gemma 2 via free OpenRouter tier, ChromaDB for memory, and your own Windows PC. Total recurring cost: \textbf{\$0/month}.
+For hobbyist deployments, use Coqui TTS, Gemma 2 via the free OpenRouter tier, ChromaDB for memory, and your own Windows PC. Total recurring cost: \textbf{\$0/month}.
 \end{infobox}
 
-\newpage
 
 % ============================================================================
 % PART I: ARCHITECTURE OVERVIEW
 % ============================================================================
-\partpage{I}{Architecture Overview}{%
+\partbanner{I}{Architecture Overview}{System vision, plugin-based middleware architecture, and deployment options}{%
+  % Agent -> protocol-agnostic middleware with plugin sockets -> backends
+  \fill[vcteal, opacity=0.2] (0.6,3.75) circle (0.55);
+  \fill[vcdark] (0.6,3.75) circle (0.3);
+  \draw[vclightteal, line width=1.6pt] (0.6,3.75) circle (0.3);
+  \fill[vclightteal] (0.6,3.75) circle (0.12);
+  \draw[vclightteal, line width=0.8pt] (0.9,3.75) -- (2.2,3.75);
+  % middleware spine
+  \fill[vcprimary] (2.2,1.3) rectangle (3.5,6.2);
+  \draw[vclightteal, line width=0.8pt] (2.2,1.3) rectangle (3.5,6.2);
+  \node[artlabel, anchor=north, text=vclightteal] at (2.85,1.05) {MIDDLEWARE};
+  % plugin sockets on the spine, each wired to a backend
+  \foreach \py/\live in {5.4/1, 4.3/1, 3.2/1, 2.1/0} {
+    \ifnum\live=1
+      \fill[vcviolet] (3.35,\py-0.22) rectangle (3.95,\py+0.22);
+      \draw[vcviolet, line width=0.8pt] (3.95,\py) -- (6.4,\py);
+      \fill[vcdark] (6.6,\py) circle (0.2);
+      \draw[vcpink!70!white, line width=1.6pt] (6.6,\py) circle (0.2);
+      \fill[vcpink!70!white] (6.6,\py) circle (0.08);
+    \else
+      \draw[vcviolet, line width=0.8pt] (3.35,\py-0.22) rectangle (3.95,\py+0.22);
+      \draw[white!35!vcdark, line width=0.8pt, dash pattern=on 2pt off 2pt] (3.95,\py) -- (6.4,\py);
+      \draw[white!35!vcdark, line width=1.6pt] (6.6,\py) circle (0.2);
+    \fi
+  }
+  \node[artlabel, anchor=south, text=vcviolet] at (3.65,6.5) {PLUGINS};
+  \node[artlabel, anchor=south, text=vcpink!70!white] at (6.6,6.5) {BACKENDS};
+}
+\partcovered{%
 This part establishes the foundational architecture of the Virtual Character system:
 \begin{itemize}[nosep]
-  \item \textbf{Section 1}: System vision and core design principles
-  \item \textbf{Section 2}: Plugin-based middleware architecture
-  \item \textbf{Section 3}: Multi-platform backend integration
+  \item \textbf{Section 1}: System vision, plugin-based middleware architecture, and deployment options
 \end{itemize}
-}{%
-\begin{tikzpicture}
-  \node[fill=vcteal!15, rounded corners=4pt, inner sep=6pt] {\scriptsize\sffamily Middleware};
-  \node[fill=vcpurple!15, rounded corners=4pt, inner sep=6pt] at (2.5,0) {\scriptsize\sffamily Plugins};
-  \node[fill=vcpink!15, rounded corners=4pt, inner sep=6pt] at (5,0) {\scriptsize\sffamily Backends};
-\end{tikzpicture}
 }
 
 \section{Vision: AI Agents in Virtual Worlds}
@@ -758,72 +887,61 @@ Traditional AI agents communicate through text alone, lacking the rich non-verba
 \end{itemize}
 
 \begin{keybox}[Core Innovation]
-This is not just a VRChat controller or Blender animator; it's a \textbf{universal middleware} that enables AI agents to have an immersive presence in \emph{any} virtual environment, complete with bidirectional communication and emotional coherence.
+This is not just a VRChat controller or Blender animator; it is a \textbf{universal middleware} that gives AI agents an immersive presence in \emph{any} virtual environment, complete with bidirectional communication and emotional coherence.
 \end{keybox}
 
 \subsection{System Architecture}
 
-The system uses a \textbf{Plugin Pattern} combined with \textbf{Strategy} and \textbf{Adapter} patterns to create an extensible middleware:
+The system combines the \textbf{Plugin} pattern with the \textbf{Strategy} and \textbf{Adapter} patterns to create an extensible middleware (Figure~\ref{fig:architecture}). Reasoning engines feed the middleware from above, pluggable services attach at the sides, and platform backends receive its output below.
 
-\begin{center}
+\begin{figure}[!htbp]
+\centering
 \begin{tikzpicture}[
-  node distance=1cm,
-  box/.style={rectangle, rounded corners=4pt, draw=#1, fill=#1!10, minimum width=2.4cm, minimum height=0.6cm, font=\scriptsize\sffamily},
-  smallbox/.style={rectangle, rounded corners=3pt, draw=#1, fill=#1!10, minimum width=1.7cm, minimum height=0.5cm, font=\tiny\sffamily},
-  arrow/.style={-Stealth, thick, color=coolgray!70},
-  dasharrow/.style={-Stealth, dashed, color=coolgray!50}
+  sb/.style={vcnode=#1, minimum width=2.1cm, minimum height=0.65cm, font=\scriptsize\sffamily, text height=1.5ex, text depth=0.3ex},
 ]
-  % Middleware (center)
-  \node[box=vcprimary, minimum width=6cm, minimum height=1.4cm] (middleware) {};
-  \node[font=\scriptsize\sffamily\bfseries, color=vcprimary] at ([yshift=0.4cm]middleware.center) {Virtual Character Middleware};
-  \node[font=\tiny\sffamily, text width=5.5cm, align=center] at ([yshift=-0.15cm]middleware.center) {Canonical Data Model | State Management | Expression Orchestrator};
+  % Middleware core
+  \node[vcnode=vcprimary, minimum width=7.6cm, minimum height=1.5cm, font=\footnotesize\sffamily] (mw) at (0,0)
+    {\textbf{\small Virtual Character Middleware}\\[2pt]
+     Canonical Data Model \textbar{} State Management\\Expression Orchestrator};
 
-  % Top left - Fast Mind (local, <100ms)
-  \node[smallbox=warningamber, above left=1.2cm and 0.8cm of middleware] (fast1) {DistilBERT};
-  \node[smallbox=warningamber, right=0.15cm of fast1] (fast2) {Filler Gen};
-  \node[font=\tiny\sffamily\itshape, color=warningamber] at ([yshift=0.45cm]fast1.north east) {Fast Mind \textcolor{coolgray}{(<100ms)}};
+  % Fast Mind (top left)
+  \node[sb=warningamber] (fast1) at (-3.45, 2.3) {DistilBERT};
+  \node[sb=warningamber] (fast2) at (-1.15, 2.3) {Filler Gen};
+  \node[vcgrouplabel=warningamber, above=3pt of $(fast1.north)!0.5!(fast2.north)$] {Fast Mind \textcolor{coolgray}{\mdseries(<100ms)}};
 
-  % Top right - Slow Mind (API, 2-30s)
-  \node[smallbox=vcpink, above right=1.2cm and 0.8cm of middleware] (slow2) {Qwen3};
-  \node[smallbox=vcpink, left=0.15cm of slow2] (slow1) {Claude API};
-  \node[font=\tiny\sffamily\itshape, color=vcpink] at ([yshift=0.45cm]slow1.north east) {Slow Mind \textcolor{coolgray}{(2-30s)}};
+  % Slow Mind (top right)
+  \node[sb=vcpink] (slow1) at (1.15, 2.3) {Claude API};
+  \node[sb=vcpink] (slow2) at (3.45, 2.3) {Qwen3};
+  \node[vcgrouplabel=vcpink, above=3pt of $(slow1.north)!0.5!(slow2.north)$] {Slow Mind \textcolor{coolgray}{\mdseries(2--30s)}};
 
-  % Left services - TTS
-  \node[smallbox=vcpurple, left=1.8cm of middleware, yshift=0.3cm] (tts1) {ElevenLabs};
-  \node[smallbox=vcpurple, left=1.8cm of middleware, yshift=-0.3cm] (tts2) {Coqui TTS};
-  \node[font=\tiny\sffamily\itshape, color=vcpurple] at ([yshift=0.5cm]tts1.north) {TTS Services};
+  % TTS (left)
+  \node[sb=vcpurple] (tts1) at (-6.4, 0.4) {ElevenLabs};
+  \node[sb=vcpurple] (tts2) at (-6.4,-0.4) {Coqui TTS};
+  \node[vcgrouplabel=vcpurple, above=3pt of tts1] {TTS Services};
 
-  % Right services - Memory
-  \node[smallbox=successgreen, right=1.8cm of middleware, yshift=0.3cm] (mem1) {AgentCore};
-  \node[smallbox=successgreen, right=1.8cm of middleware, yshift=-0.3cm] (mem2) {ChromaDB};
-  \node[font=\tiny\sffamily\itshape, color=successgreen] at ([yshift=0.5cm]mem1.north) {Memory Services};
+  % Memory (right)
+  \node[sb=successgreen] (mem1) at (6.4, 0.4) {AgentCore};
+  \node[sb=successgreen] (mem2) at (6.4,-0.4) {ChromaDB};
+  \node[vcgrouplabel=successgreen, above=3pt of mem1] {Memory Services};
 
-  % Bottom - Platform Backends
-  \node[smallbox=vcteal, below left=1.2cm and 1.5cm of middleware] (vrchat) {VRChat OSC};
-  \node[smallbox=vcteal, below=1.2cm of middleware] (blender) {Blender API};
-  \node[smallbox=vcteal, below right=1.2cm and 1.5cm of middleware] (unity) {Unity WebSocket};
-  \node[font=\tiny\sffamily\itshape, color=vcteal] at ([yshift=-0.45cm]blender.south) {Platform Backends};
+  % Backends (bottom)
+  \node[sb=vcteal] (vrchat)  at (-3.4,-2.4) {VRChat OSC};
+  \node[sb=vcteal] (blender) at ( 0,  -2.4) {Blender API};
+  \node[sb=vcteal] (unity)   at ( 3.4,-2.4) {Unity WebSocket};
+  \node[vcgrouplabel=vcteal, below=3pt of blender] {Platform Backends};
 
-  % Fast Mind connections
-  \draw[arrow] (fast1) -- ([xshift=-1.2cm]middleware.north);
-  \draw[arrow] (fast2) -- ([xshift=-0.3cm]middleware.north);
-
-  % Slow Mind connections
-  \draw[arrow] (slow1) -- ([xshift=0.3cm]middleware.north);
-  \draw[arrow] (slow2) -- ([xshift=1.2cm]middleware.north);
-
-  % Output to backends
-  \draw[arrow] (middleware) -- (vrchat);
-  \draw[arrow] (middleware) -- (blender);
-  \draw[arrow] (middleware) -- (unity);
-
-  % Service connections (dashed - bidirectional services)
-  \draw[dasharrow] (tts1) -- (middleware);
-  \draw[dasharrow] (tts2) -- (middleware);
-  \draw[dasharrow] (mem1) -- (middleware);
-  \draw[dasharrow] (mem2) -- (middleware);
+  % Connections
+  \foreach \n in {fast1,fast2,slow1,slow2} { \draw[vcarrow] (\n.south) -- (\n.south |- mw.north); }
+  \draw[vcdash] (tts1.east) -- (tts1.east -| mw.west);
+  \draw[vcdash] (tts2.east) -- (tts2.east -| mw.west);
+  \draw[vcdash] (mem1.west) -- (mem1.west -| mw.east);
+  \draw[vcdash] (mem2.west) -- (mem2.west -| mw.east);
+  \draw[vcarrow] (mw.south -| vrchat) -- (vrchat.north);
+  \draw[vcarrow] (mw.south) -- (blender.north);
+  \draw[vcarrow] (mw.south -| unity) -- (unity.north);
 \end{tikzpicture}
-\end{center}
+\caption{Plugin-based middleware architecture. Solid arrows show the main data path; dashed arrows show bidirectional service calls.}\label{fig:architecture}
+\end{figure}
 
 \subsection{Key Components}
 
@@ -846,69 +964,54 @@ Storage Service & \texttt{src/storage.rs} & \textcolor{successgreen}{\faCheck} C
 
 \subsection{Deployment Options: Cloud vs Self-Hosted}
 
-Every service in the system offers a choice between \textbf{cloud/paid APIs} (higher quality, usage costs) and \textbf{self-hosted alternatives} (free, full control). Mix and match based on your needs:
+Every service in the system offers a choice between \textbf{cloud or paid APIs} (higher quality, usage costs) and \textbf{self-hosted alternatives} (free, full control). Mix and match based on your needs; Figure~\ref{fig:deployment} and Table~\ref{tab:swap} summarize the options.
 
-\begin{center}
+\begin{figure}[!htbp]
+\centering
 \begin{tikzpicture}[
-  node distance=0.4cm,
-  cloudbox/.style={rectangle, rounded corners=4pt, draw=vcpurple, fill=vcpurple!10, minimum width=2.8cm, minimum height=0.55cm, font=\tiny\sffamily},
-  localbox/.style={rectangle, rounded corners=4pt, draw=successgreen, fill=successgreen!10, minimum width=2.8cm, minimum height=0.55cm, font=\tiny\sffamily},
-  labelbox/.style={font=\tiny\sffamily\bfseries, color=coolgray}
+  opt/.style={vcnode=#1, minimum width=4.2cm, minimum height=0.8cm, text height=1.6ex, text depth=0.4ex},
+  rowlabel/.style={font=\footnotesize\sffamily\bfseries, text=vcprimary, anchor=east, text height=1.6ex, text depth=0.4ex},
+  trade/.style={font=\scriptsize\sffamily\itshape, text=#1, anchor=north}
 ]
-  % Row labels (left side) - establish vertical positions first
-  \node[labelbox] (ttslabel) {TTS};
-  \node[labelbox, below=0.7cm of ttslabel] (llmlabel) {Reasoner};
-  \node[labelbox, below=0.7cm of llmlabel] (memlabel) {Memory};
-
-  % Cloud options
-  \node[cloudbox, right=0.5cm of ttslabel] (cloud-tts) {ElevenLabs \$0.30/1k};
-  \node[cloudbox, right=0.5cm of llmlabel] (cloud-llm) {Claude API \$15/M};
-  \node[cloudbox, right=0.5cm of memlabel] (cloud-mem) {AWS AgentCore};
-
-  % Self-hosted options
-  \node[localbox, right=0.6cm of cloud-tts] (local-tts) {Coqui TTS (free)};
-  \node[localbox, right=0.6cm of cloud-llm] (local-llm) {Qwen3 (free)};
-  \node[localbox, right=0.6cm of cloud-mem] (local-mem) {ChromaDB (free)};
-
-  % Column headers - positioned directly above node columns
-  \node[font=\scriptsize\sffamily\bfseries, color=vcpurple] at ([yshift=0.5cm]cloud-tts.north) {Cloud / Paid};
-  \node[font=\scriptsize\sffamily\bfseries, color=successgreen] at ([yshift=0.5cm]local-tts.north) {Self-Hosted};
-
-  % Arrows showing swappability
-  \draw[Stealth-Stealth, thick, coolgray!40] (cloud-tts) -- (local-tts);
-  \draw[Stealth-Stealth, thick, coolgray!40] (cloud-llm) -- (local-llm);
-  \draw[Stealth-Stealth, thick, coolgray!40] (cloud-mem) -- (local-mem);
-
-  % Trade-off annotations
-  \node[font=\tiny\sffamily\itshape, color=vcpurple!70, below=0.05cm of cloud-tts] {best quality};
-  \node[font=\tiny\sffamily\itshape, color=successgreen!70, below=0.05cm of local-tts] {runs offline};
-  \node[font=\tiny\sffamily\itshape, color=vcpurple!70, below=0.05cm of cloud-llm] {smartest};
-  \node[font=\tiny\sffamily\itshape, color=successgreen!70, below=0.05cm of local-llm] {no API costs};
-  \node[font=\tiny\sffamily\itshape, color=vcpurple!70, below=0.05cm of cloud-mem] {managed};
-  \node[font=\tiny\sffamily\itshape, color=successgreen!70, below=0.05cm of local-mem] {your data};
+  \foreach \y/\row/\cloud/\cnote/\local/\lnote in {
+      0/TTS/{ElevenLabs (\$0.30/1k chars)}/best quality/{Coqui TTS (free)}/runs offline,
+      -1.5/Reasoner/{Claude API (\$15/M tokens)}/smartest/{Qwen3 (free)}/no API costs,
+      -3.0/Memory/{AWS AgentCore}/managed/{ChromaDB (free)}/your data} {
+    \node[rowlabel] at (-0.4,\y) {\row};
+    \node[opt=vcpurple] (c) at (1.9,\y) {\cloud};
+    \node[opt=successgreen] (l) at (7.1,\y) {\local};
+    \draw[Stealth-Stealth, thick, coolgray!50] (c) -- (l);
+    \node[trade=vcpurple!80] at (c.south) {\cnote};
+    \node[trade=successgreen!80!black] at (l.south) {\lnote};
+  }
+  \node[vcgrouplabel=vcpurple] at (1.9, 0.85) {Cloud / Paid};
+  \node[vcgrouplabel=successgreen!80!black] at (7.1, 0.85) {Self-Hosted};
 \end{tikzpicture}
-\end{center}
+\caption{Every service has a cloud option and a self-hosted option that can be swapped independently.}\label{fig:deployment}
+\end{figure}
 
-\begin{center}
+\begin{table}[!htbp]
+\centering
+\caption{How to swap each service between cloud and self-hosted implementations.}\label{tab:swap}
 \renewcommand{\arraystretch}{1.25}
-\begin{tabular}{@{}L{2cm}L{2.8cm}L{2.8cm}L{3.8cm}@{}}
+\begin{tabularx}{0.92\textwidth}{@{}>{\raggedright\arraybackslash}p{2.1cm}>{\raggedright\arraybackslash}p{3cm}>{\raggedright\arraybackslash}p{3.4cm}Y@{}}
 \toprule
 \textbf{Service} & \textbf{Cloud Option} & \textbf{Self-Hosted} & \textbf{How to Swap} \\
 \midrule
 \textbf{TTS} & ElevenLabs & Coqui TTS & New MCP client, same audio format \\
-\textbf{Reasoner} & Claude API & Qwen3, Gemma 2 & Implement \texttt{Reasoner} trait \\
-\textbf{Memory} & AWS AgentCore & ChromaDB & Set \texttt{MEMORY\_PROVIDER} env \\
+\textbf{Reasoner} & Claude API & Qwen3, Gemma 2 & Implement the \texttt{Reasoner} trait \\
+\textbf{Memory} & AWS AgentCore & ChromaDB & Set the \texttt{MEMORY\_PROVIDER} env var \\
 \textbf{Classifier} & n/a & DistilBERT & Any emotion enum output \\
 \bottomrule
-\end{tabular}
-\end{center}
+\end{tabularx}
+\end{table}
 
 \begin{tipbox}[Zero-Cost Deployment]
 For hobbyist deployments, use all self-hosted options: Coqui TTS + Qwen3 via OpenRouter free tier + ChromaDB + your own Windows PC. Total recurring cost: \textbf{\$0/month}.
 \end{tipbox}
 
 \begin{tipbox}[Graceful Degradation]
-If a service fails (e.g., ElevenLabs quota exceeded), the system degrades gracefully. The agent continues reasoning and animating, just without voice. Memory failures mean fresh sessions, not crashes.
+If a service fails (for example, the ElevenLabs quota is exceeded), the system degrades gracefully: the agent keeps reasoning and animating, just without voice. Memory failures mean fresh sessions, not crashes.
 \end{tipbox}
 
 \subsection{Alternative Architectures Considered}
@@ -917,19 +1020,17 @@ We evaluated three alternative approaches before settling on this middleware des
 
 \begin{center}
 \renewcommand{\arraystretch}{1.3}
-\begin{tabular}{@{}L{2.8cm}L{3.5cm}L{3.5cm}L{2.5cm}@{}}
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{3.2cm}YY>{\raggedright\arraybackslash}p{2.5cm}@{}}
 \toprule
 \textbf{Approach} & \textbf{Advantages} & \textbf{Disadvantages} & \textbf{Verdict} \\
 \midrule
 \textbf{Unity Plugin} (native integration) & Lowest latency, full control & Platform-specific, requires Unity dev, no cross-platform & Good for games only \\
-\textbf{WebRTC Streaming} (render server-side) & Universal client, visual consistency & High bandwidth (5-10 Mbps), server rendering cost & Expensive at scale \\
+\textbf{WebRTC Streaming} (render server-side) & Universal client, visual consistency & High bandwidth (5--10 Mbps), server rendering cost & Expensive at scale \\
 \textbf{ML Motion Pipeline} (end-to-end neural) & Most natural motion & Training data needed, GPU-heavy, unpredictable & Research project \\
 \textbf{Protocol-Agnostic Middleware} (our choice) & Cross-platform, swappable, testable & Slight translation overhead & \textcolor{successgreen}{Best balance} \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{center}
-
-\vspace{1cm}
 
 % Part I Summary
 \begin{tcolorbox}[
@@ -939,7 +1040,8 @@ We evaluated three alternative approaches before settling on this middleware des
   boxrule=1pt,
   arc=6pt,
   title={\textcolor{white}{\sffamily\bfseries Part I Summary: Architecture Foundations}},
-  colbacktitle=vcprimary
+  colbacktitle=vcprimary,
+  partsummary
 ]
 \small
 \textbf{Key Takeaways:}
@@ -947,37 +1049,61 @@ We evaluated three alternative approaches before settling on this middleware des
   \item The Virtual Character system is \textbf{protocol-agnostic middleware}, not a VRChat bot or Unity plugin
   \item \textbf{Plugin architecture} enables swapping any component (backend, TTS, LLM, memory)
   \item \textbf{Canonical data model} translates to platform-specific protocols automatically
-  \item \textbf{Graceful degradation}: failures in one subsystem don't crash the agent
+  \item \textbf{Graceful degradation}: a failure in one subsystem does not crash the agent
 \end{itemize}
 
 \vspace{0.3cm}
 \textbf{Architecture Decision}: Protocol-agnostic middleware chosen over Unity plugins (platform lock-in), WebRTC streaming (expensive), and ML pipelines (unpredictable).
 \end{tcolorbox}
 
-\newpage
 
 % ============================================================================
 % PART II: DUAL-SPEED COGNITIVE ARCHITECTURE
 % ============================================================================
-\partpage{II}{Dual-Speed Cognition}{%
+\partbanner{II}{Dual-Speed Cognition}{The dual-speed insight, the fast and slow minds, and cognitive orchestration}{%
+  % Two parallel streams on a shared time axis, merged by the orchestrator
+  % Fast mind: many short reactions
+  \draw[white!25!vcdark, line width=0.4pt] (0,5.2) -- (6.2,5.2);
+  \foreach \k in {0,...,17} {
+    \fill[vclightteal] ({0.1+\k*0.34},4.95) rectangle ++(0.16,0.5);
+  }
+  \node[artlabel, anchor=south west] at (0,5.75)
+    {\textcolor{vclightteal}{FAST MIND}\enspace\textcolor{white!55!vcdark}{{<}100 MS}};
+  % Slow mind: few long deliberations
+  \draw[white!25!vcdark, line width=0.4pt] (0,2.6) -- (6.2,2.6);
+  \foreach \x/\w in {0.1/2.3, 2.75/1.35, 4.45/1.6} {
+    \fill[vcviolet, opacity=0.8] (\x,2.35) rectangle ++(\w,0.5);
+  }
+  \node[artlabel, anchor=south west] at (0,3.15)
+    {\textcolor{vcviolet}{SLOW MIND}\enspace\textcolor{white!55!vcdark}{2--30 S}};
+  % Merge into the orchestrator
+  \draw[vclightteal, line width=0.8pt] (6.2,5.2) .. controls (6.9,5.2) and (6.9,3.9) .. (7.35,3.9);
+  \draw[vcviolet, line width=0.8pt] (6.2,2.6) .. controls (6.9,2.6) and (6.9,3.9) .. (7.35,3.9);
+  \fill[vcteal, opacity=0.25] (7.65,3.9) circle (0.55);
+  \fill[vcdark] (7.65,3.9) circle (0.3);
+  \draw[white, line width=1.6pt] (7.65,3.9) circle (0.3);
+  \fill[vclightteal] (7.65,3.9) circle (0.12);
+  \node[artlabel, anchor=north, text=white!65!vcdark] at (7.65,3.1) {SYNC};
+  % Time axis
+  \draw[white!35!vcdark, line width=0.8pt] (0,1.3) -- (6.2,1.3);
+  \foreach \k in {0,...,6} {
+    \draw[white!35!vcdark, line width=0.8pt] ({\k*1.0333},1.3) -- ++(0,0.15);
+  }
+}
+\partcovered{%
 The cognitive architecture mirrors human thinking with parallel processing streams:
 \begin{itemize}[nosep]
-  \item \textbf{Section 4}: System 1 (Fast Mind) - Immediate reactions
-  \item \textbf{Section 5}: System 2 (Slow Mind) - Deep reasoning
-  \item \textbf{Section 6}: Orchestration and escalation
+  \item \textbf{Section 2}: The dual-speed insight
+  \item \textbf{Section 3}: System 1 (Fast Mind): immediate reactions
+  \item \textbf{Section 4}: System 2 (Slow Mind): deep reasoning and escalation
+  \item \textbf{Section 5}: Cognitive orchestration
 \end{itemize}
-}{%
-\begin{tikzpicture}
-  \node[fill=vcteal!15, rounded corners=4pt, inner sep=6pt] {\scriptsize\sffamily <100ms};
-  \node[fill=vcpurple!15, rounded corners=4pt, inner sep=6pt] at (2,0) {\scriptsize\sffamily 2-30s};
-  \node[fill=successgreen!15, rounded corners=4pt, inner sep=6pt] at (4,0) {\scriptsize\sffamily Sync};
-\end{tikzpicture}
 }
 
 \section{The Dual-Speed Insight}
 
 \begin{tldrbox}
-Human cognition operates on two systems (Kahneman's System 1/System 2): fast intuitive reactions and slow deliberate reasoning. Our AI agent mirrors this with parallel processing streams: fast reactions for immediate presence, slow synthesis for depth.
+Human cognition operates on two systems (Kahneman's System~1 and System~2): fast, intuitive reactions and slow, deliberate reasoning. Our AI agent mirrors this with parallel processing streams, using fast reactions for immediate presence and slow synthesis for depth.
 \end{tldrbox}
 
 \subsection{Why Dual-Speed?}
@@ -1049,7 +1175,7 @@ fn get_contextual_filler(emotion: &EmotionType, vibe: &str) -> &'static str {
 
 \section{System 2: Slow Mind}
 
-\begin{systembox}[Slow Mind (2-30s)]
+\begin{systembox}[Slow Mind (2--30s)]
 The Slow Mind provides deep reasoning through external services:
 
 \begin{itemize}
@@ -1075,66 +1201,66 @@ pub trait Reasoner: Send + Sync {
 
 \subsection{Escalation Triggers}
 
-The Fast Mind defers to Slow Mind when:
+The Fast Mind defers to the Slow Mind when any of the triggers in Table~\ref{tab:escalation} fires.
 
-\begin{center}
+\begin{table}[!htbp]
+\centering
+\caption{Escalation triggers from the Fast Mind to the Slow Mind.}\label{tab:escalation}
+\renewcommand{\arraystretch}{1.2}
 \begin{tabular}{lll}
 \toprule
 \textbf{Trigger} & \textbf{Detection Method} & \textbf{Threshold} \\
 \midrule
-Semantic Ambiguity & Cosine distance to patterns & > 0.4 \\
+Semantic Ambiguity & Cosine distance to patterns & $> 0.4$ \\
 Explicit Complexity & Keyword detection & ``explain'', ``why'', ``how'' \\
-Long Input & Word count & > 20 words \\
-Emotional Spike & Sentiment intensity & abs(valence) > 0.8 \\
+Long Input & Word count & $> 20$ words \\
+Emotional Spike & Sentiment intensity & $|\text{valence}| > 0.8$ \\
 Follow-up Question & Dialogue state & References previous turn \\
 \bottomrule
 \end{tabular}
-\end{center}
+\end{table}
 
 \section{Cognitive Orchestration}
 
-\begin{center}
+The Cognitive Orchestrator dispatches every input to both systems at once (Figure~\ref{fig:orchestration}). The Output Priority Manager then decides what reaches the user: the Fast Mind's reaction first, followed by the Slow Mind's response when it is ready.
+
+\begin{figure}[!htbp]
+\centering
 \begin{tikzpicture}[
-  node distance=1.2cm,
-  box/.style={rectangle, rounded corners=5pt, draw=#1, fill=#1!10, minimum width=4cm, minimum height=1cm, font=\small\sffamily},
-  smallbox/.style={rectangle, rounded corners=3pt, draw=#1, fill=#1!10, minimum width=2.5cm, minimum height=0.6cm, font=\tiny\sffamily},
-  arrow/.style={-Stealth, thick, color=coolgray}
+  big/.style={vcnode=#1, minimum width=4.2cm, minimum height=0.9cm, font=\small\sffamily\bfseries},
+  sub/.style={vcnode=#1, minimum width=3.2cm, minimum height=0.6cm, font=\scriptsize\sffamily},
 ]
-  % Orchestrator
-  \node[box=vcprimary, minimum width=8cm] (orch) {Cognitive Orchestrator};
+  \node[big=vcprimary, minimum width=9cm] (orch) at (0,0) {Cognitive Orchestrator};
 
-  % Fast Mind
-  \node[box=vcteal, below left=1.2cm and 0.5cm of orch] (fast) {System 1: Fast Mind};
-  \node[smallbox=vcteal, below=0.4cm of fast] (fast1) {Emotion Classifier};
-  \node[smallbox=vcteal, below=0.2cm of fast1] (fast2) {Filler Generator};
-  \node[smallbox=vcteal, below=0.2cm of fast2] (fast3) {Pattern Cache};
+  \node[big=vcteal]   (fast) at (-3.3,-1.7) {System 1: Fast Mind};
+  \node[sub=vcteal]   (f1) at (-3.3,-2.75) {Emotion Classifier};
+  \node[sub=vcteal]   (f2) at (-3.3,-3.45) {Filler Generator};
+  \node[sub=vcteal]   (f3) at (-3.3,-4.15) {Pattern Cache};
+  \begin{scope}[on background layer]
+    \node[vcgroup=vcteal, fit=(fast)(f3)] (fastgrp) {};
+  \end{scope}
 
-  % Slow Mind
-  \node[box=vcpurple, below right=1.2cm and 0.5cm of orch] (slow) {System 2: Slow Mind};
-  \node[smallbox=vcpurple, below=0.4cm of slow] (slow1) {Claude Opus 4.5};
-  \node[smallbox=vcpurple, below=0.2cm of slow1] (slow2) {Memory Query};
-  \node[smallbox=vcpurple, below=0.2cm of slow2] (slow3) {Pattern Compiler};
+  \node[big=vcpurple] (slow) at (3.3,-1.7) {System 2: Slow Mind};
+  \node[sub=vcpurple] (s1) at (3.3,-2.75) {Claude Opus 4.5};
+  \node[sub=vcpurple] (s2) at (3.3,-3.45) {Memory Query};
+  \node[sub=vcpurple] (s3) at (3.3,-4.15) {Pattern Compiler};
+  \begin{scope}[on background layer]
+    \node[vcgroup=vcpurple, fit=(slow)(s3)] (slowgrp) {};
+  \end{scope}
 
-  % Output
-  \node[box=successgreen, below=4cm of orch] (output) {Output Priority Manager};
+  \node[big=successgreen, minimum width=9cm] (out) at (0,-5.7) {Output Priority Manager};
 
-  % Arrows
-  \draw[arrow] (orch) -- (fast);
-  \draw[arrow] (orch) -- (slow);
-  \draw[arrow] (fast) -- (output);
-  \draw[arrow] (slow) -- (output);
-
-  % Labels
-  \node[font=\tiny\sffamily, color=vcteal] at ([xshift=-1.5cm, yshift=-0.3cm]orch.south) {<100ms};
-  \node[font=\tiny\sffamily, color=vcpurple] at ([xshift=1.5cm, yshift=-0.3cm]orch.south) {2-30s};
+  \draw[vcarrow] (orch.south -| fast) -- node[left, font=\scriptsize\sffamily, text=vcteal] {<100ms} (fastgrp.north);
+  \draw[vcarrow] (orch.south -| slow) -- node[right, font=\scriptsize\sffamily, text=vcpurple] {2--30s} (slowgrp.north);
+  \draw[vcarrow] (fastgrp.south) -- (out.north -| fastgrp.south);
+  \draw[vcarrow] (slowgrp.south) -- (out.north -| slowgrp.south);
 \end{tikzpicture}
-\end{center}
+\caption{The two systems run in parallel under a single orchestrator, and their outputs are merged by priority.}\label{fig:orchestration}
+\end{figure}
 
 \begin{infobox}[Active Listening]
-While the Slow Mind processes, the Fast Mind triggers ambient behaviors: slight nods, gaze shifts, and thinking expressions. Users perceive an immediately responsive agent even during deep reasoning.
+While the Slow Mind is processing, the Fast Mind triggers ambient behaviors such as slight nods, gaze shifts, and thinking expressions. Users perceive an immediately responsive agent even during deep reasoning.
 \end{infobox}
-
-\vspace{1cm}
 
 % Part II Summary
 \begin{tcolorbox}[
@@ -1145,14 +1271,15 @@ While the Slow Mind processes, the Fast Mind triggers ambient behaviors: slight 
   arc=6pt,
   left=12pt, right=12pt, top=10pt, bottom=10pt,
   title={\textcolor{white}{\sffamily\bfseries Part II Summary: Dual-Speed Architecture}},
-  colbacktitle=vcprimary
+  colbacktitle=vcprimary,
+  partsummary
 ]
 \small
 \begin{tabular}{@{}ll@{}}
 \textbf{Fast Mind (System 1)} & \textbf{Slow Mind (System 2)} \\
 \midrule
 Local inference only & External LLM services \\
-<100ms latency & 2-30s processing \\
+<100ms latency & 2--30s processing \\
 Emotion + filler responses & Deep reasoning \\
 Pattern cache lookup & Pattern compilation \\
 Always runs first & Triggered on escalation \\
@@ -1162,36 +1289,49 @@ Always runs first & Triggered on escalation \\
 \textcolor{coolgray}{\small\textbf{Key Insight:} Both systems run in parallel. Fast Mind provides immediate presence while Slow Mind synthesizes thoughtful responses.}
 \end{tcolorbox}
 
-\newpage
 
 % ============================================================================
 % PART III: EMOTION TAXONOMY
 % ============================================================================
-\partpage{III}{Unified Emotion System}{%
+\partbanner{III}{Unified Emotion System}{The 14 canonical emotions, the PAD model for smooth interpolation, and cross-modal mappings}{%
+  % Emotion ring with PAD space, mapped to three modality vocabularies
+  \begin{scope}[shift={(2.7,3.9)}]
+    \fill[vcprimary] (0,0) circle (2.6);
+    \vcwheel{1.85}{2.5}{12}
+  \end{scope}
+  \node[artlabel, anchor=north] at (2.7,1.0)
+    {\textcolor{vcpink!70!white}{14 EMOTIONS}\enspace\textcolor{white!55!vcdark}{PAD MODEL}};
+  % mapping columns (audio tags, expressions, semantic tags)
+  \foreach \cy/\n in {5.9/5, 3.9/4, 1.9/5} {
+    \draw[vcpink!70!white, opacity=0.75, line width=0.8pt]
+      (5.35,3.9) .. controls (5.9,3.9) and (5.9,\cy) .. (6.4,\cy);
+    \foreach \j in {1,...,\n} {
+      \fill[white!60!vcdark] ({6.3+\j*0.33},\cy-0.2) rectangle ++(0.2,0.4);
+    }
+  }
+  \fill[vcpink!70!white] (5.35,3.9) circle (0.08);
+  \node[artlabel, anchor=south, text=white!65!vcdark] at (7.3,6.4) {MAPPINGS};
+}
+\partcovered{%
 A canonical emotion model enables coherent expression across all modalities:
 \begin{itemize}[nosep]
-  \item \textbf{Section 7}: The 14 canonical emotions
-  \item \textbf{Section 8}: PAD model for smooth interpolation
-  \item \textbf{Section 9}: Cross-modal mappings
+  \item \textbf{Section 6}: The 14 canonical emotions
+  \item \textbf{Section 7}: PAD model for smooth interpolation
+  \item \textbf{Section 8}: Cross-modal mappings
 \end{itemize}
-}{%
-\begin{tikzpicture}
-  \node[fill=vcteal!15, rounded corners=4pt, inner sep=6pt] {\scriptsize\sffamily 14 Emotions};
-  \node[fill=vcpurple!15, rounded corners=4pt, inner sep=6pt] at (2.5,0) {\scriptsize\sffamily PAD Model};
-  \node[fill=vcpink!15, rounded corners=4pt, inner sep=6pt] at (5,0) {\scriptsize\sffamily Mappings};
-\end{tikzpicture}
 }
 
 \section{Canonical Emotions}
 
 \begin{tldrbox}
-A unified emotion taxonomy solves the vocabulary mismatch between systems. ElevenLabs uses audio tags, Virtual Character uses enums, Reaction Search uses semantic tags; the canonical model translates between all of them.
+A unified emotion taxonomy solves the vocabulary mismatch between systems. ElevenLabs uses audio tags, Virtual Character uses enums, and Reaction Search uses semantic tags; the canonical model translates between all of them.
 \end{tldrbox}
 
 \subsection{The 14 Primary Emotions}
 
 \begin{center}
-\begin{tabular}{llL{6cm}}
+\renewcommand{\arraystretch}{1.2}
+\begin{tabular}{llL{7cm}}
 \toprule
 \textbf{Emotion} & \textbf{Intensity Range} & \textbf{Description} \\
 \midrule
@@ -1316,8 +1456,6 @@ pub fn emotion_to_vrcemote(emotion: &EmotionType) -> u8 {
 }
 \end{lstlisting}
 
-\vspace{1cm}
-
 % Part III Summary
 \begin{tcolorbox}[
   enhanced,
@@ -1327,38 +1465,56 @@ pub fn emotion_to_vrcemote(emotion: &EmotionType) -> u8 {
   arc=6pt,
   left=12pt, right=12pt, top=10pt, bottom=10pt,
   title={\textcolor{white}{\sffamily\bfseries Part III Summary: Emotion System}},
-  colbacktitle=vcprimary
+  colbacktitle=vcprimary,
+  partsummary
 ]
 \small
 \textbf{Core Components:}
 \begin{itemize}[nosep, leftmargin=1.2em]
   \item \textbf{14 Canonical Emotions}: Universal vocabulary across all systems
   \item \textbf{PAD Model}: 3D vectors (Pleasure, Arousal, Dominance) for smooth interpolation
-  \item \textbf{Cross-Modal Mappings}: Automatic translation to audio tags, avatar expressions
+  \item \textbf{Cross-Modal Mappings}: Automatic translation to audio tags and avatar expressions
 \end{itemize}
 
 \vspace{0.5em}
 \textcolor{coolgray}{\small\textbf{Why It Matters:} A single emotion classification propagates consistently to voice tone, facial expression, gesture selection, and reaction images, with no translation gaps.}
 \end{tcolorbox}
 
-\newpage
 
 % ============================================================================
 % PART IV: AUDIO & GESTURES
 % ============================================================================
-\partpage{IV}{Audio \& Gestures}{%
+\partbanner{IV}{Audio \& Gestures}{ElevenLabs voice synthesis, the VRChat OSC protocol, and event sequencing}{%
+  % Voice waveform, OSC packets, and a sequenced timeline
+  \foreach \k in {0,...,47} {
+    \pgfmathsetmacro{\amp}{0.08+0.55*abs(sin(\k*23))*(0.35+0.65*abs(sin(\k*7.5)))}
+    \draw[vclightteal, line width=0.8pt, line cap=round] ({0.1+\k*0.17},{5.75-\amp}) -- ({0.1+\k*0.17},{5.75+\amp});
+  }
+  \node[artlabel, anchor=south west] at (0,6.6)
+    {\textcolor{vclightteal}{VOICE}\enspace\textcolor{white!55!vcdark}{75 MS TTS}};
+  % OSC parameter packets
+  \draw[white!25!vcdark, line width=0.4pt] (0,3.9) -- (8.2,3.9);
+  \foreach \x/\w in {0.2/0.5, 1.05/0.3, 1.6/0.7, 2.7/0.4, 3.35/0.5, 4.2/0.3, 4.75/0.8, 5.9/0.4, 6.55/0.6, 7.4/0.4} {
+    \fill[vcviolet] (\x,3.72) rectangle ++(\w,0.36);
+  }
+  \node[artlabel, anchor=south west, text=vcviolet] at (0,4.3) {OSC};
+  % Event sequence: tracks with keyed events
+  \foreach \ty in {1.3,1.95} {
+    \draw[white!25!vcdark, line width=0.4pt] (0,\ty) -- (8.2,\ty);
+  }
+  \foreach \ex/\ty in {0.5/1.95, 1.9/1.3, 2.6/1.95, 3.9/1.3, 4.6/1.95, 6.0/1.3, 6.9/1.95, 7.7/1.3} {
+    \fill[vcpink!70!white] (\ex,\ty) -- ++(0.13,0.13) -- ++(0.13,-0.13) -- ++(-0.13,-0.13) -- cycle;
+  }
+  \draw[white!70!vcdark, line width=0.8pt] (3.2,0.95) -- (3.2,2.35);
+  \node[artlabel, anchor=north west, text=vcpink!70!white] at (0,0.85) {SEQUENCES};
+}
+\partcovered{%
 Multi-modal expression with synchronized audio and avatar animation:
 \begin{itemize}[nosep]
-  \item \textbf{Section 10}: ElevenLabs integration
-  \item \textbf{Section 11}: VRChat OSC protocol
-  \item \textbf{Section 12}: Event sequencing system
+  \item \textbf{Section 9}: ElevenLabs integration
+  \item \textbf{Section 10}: VRChat OSC protocol
+  \item \textbf{Section 11}: Event sequencing system
 \end{itemize}
-}{%
-\begin{tikzpicture}
-  \node[fill=vcteal!15, rounded corners=4pt, inner sep=6pt] {\scriptsize\sffamily 75ms TTS};
-  \node[fill=vcpurple!15, rounded corners=4pt, inner sep=6pt] at (2.5,0) {\scriptsize\sffamily OSC};
-  \node[fill=vcpink!15, rounded corners=4pt, inner sep=6pt] at (4.5,0) {\scriptsize\sffamily Sequences};
-\end{tikzpicture}
 }
 
 \section{ElevenLabs Integration}
@@ -1386,7 +1542,7 @@ Pauses & \texttt{[pause: 500ms]}, \texttt{[breath]} \\
 
 \subsection{Audio Handler}
 
-The audio handler provides secure, async audio processing:
+The audio handler provides secure, asynchronous audio processing:
 
 \begin{lstlisting}[caption=Audio Handler]
 pub struct AudioHandler {
@@ -1416,7 +1572,7 @@ impl AudioHandler {
 
 \subsection{OSC Parameters}
 
-VRChat avatars are controlled via OSC messages:
+VRChat avatars are controlled through OSC messages:
 
 \begin{lstlisting}[language={}, caption=OSC Message Examples]
 # Avatar expressions
@@ -1428,6 +1584,10 @@ VRChat avatars are controlled via OSC messages:
 /avatar/parameters/Emotion_Joy 0.8
 /avatar/parameters/Emotion_Thinking 1.0
 \end{lstlisting}
+
+\begin{tipbox}[VRChat Lip-Sync]
+VRChat's built-in lip-sync from audio is excellent, so there is no need to control visemes manually. Focus on emotion and gesture parameters; VRChat handles mouth movements automatically.
+\end{tipbox}
 
 \subsection{VRChat Backend}
 
@@ -1460,15 +1620,11 @@ impl BackendAdapter for VRChatBackend {
 }
 \end{lstlisting}
 
-\begin{tipbox}[VRChat Lip-Sync]
-VRChat's built-in lip-sync from audio is excellent, so there is no need to manually control visemes. Focus on emotion and gesture parameters; VRChat handles mouth movements automatically.
-\end{tipbox}
-
 \section{Event Sequencing}
 
 \begin{systembox}[Sequence System]
 The event sequencer enables choreographed multi-modal performances with precise timing:
-\begin{itemize}
+\begin{itemize}[nosep]
   \item Sequential and parallel event execution
   \item Audio/animation synchronization
   \item Loop and hold behaviors
@@ -1477,6 +1633,8 @@ The event sequencer enables choreographed multi-modal performances with precise 
 \end{systembox}
 
 \subsection{Sequence API}
+
+A sequence is built and played through a series of MCP tool calls:
 
 \begin{lstlisting}[language={}, caption=Creating a Sequence (MCP Tool Calls)]
 // create_sequence
@@ -1501,8 +1659,6 @@ The event sequencer enables choreographed multi-modal performances with precise 
 {}
 \end{lstlisting}
 
-\vspace{1cm}
-
 % Part IV Summary
 \begin{tcolorbox}[
   enhanced,
@@ -1512,7 +1668,8 @@ The event sequencer enables choreographed multi-modal performances with precise 
   arc=6pt,
   left=12pt, right=12pt, top=10pt, bottom=10pt,
   title={\textcolor{white}{\sffamily\bfseries Part IV Summary: Audio \& Gestures}},
-  colbacktitle=vcprimary
+  colbacktitle=vcprimary,
+  partsummary
 ]
 \small
 \textbf{Integration Stack:}
@@ -1526,30 +1683,46 @@ The event sequencer enables choreographed multi-modal performances with precise 
 \textcolor{coolgray}{\small\textbf{Best Practice:} Let VRChat handle lip-sync automatically from audio. Focus your control on emotion parameters and high-level gestures.}
 \end{tcolorbox}
 
-\newpage
 
 % ============================================================================
 % PART V: MEMORY & PERSONALITY
 % ============================================================================
-\partpage{V}{Memory \& Personality}{%
+\partbanner{V}{Memory \& Personality}{AgentCore Memory integration, personality namespaces, and preference learning}{%
+  % Event stream -> fact store -> semantic search (as in AgentCore Memory)
+  \foreach \k in {0,...,8} {
+    \pgfmathsetmacro{\op}{0.3+0.08*\k}
+    \fill[vclightteal, opacity=\op] ({0.1+\k*0.3},5.8) rectangle ++(0.16,0.16);
+  }
+  \draw[vclightteal, line width=0.8pt, rounded corners=0.5cm] (2.9,5.88) -- (3.4,5.88) -- (3.4,4.95);
+  \node[artlabel, anchor=south west, text=vclightteal] at (0,6.3) {EVENTS};
+  % fact layers
+  \foreach \h/\edge in {2.4/white!35!vcdark, 3.3/white!45!vcdark, 4.2/vcviolet} {
+    \fill[vcprimary] (1.6,\h) -- (3.4,\h+0.7) -- (5.2,\h) -- (3.4,\h-0.7) -- cycle;
+    \draw[\edge, line width=0.8pt, line join=round] (1.6,\h) -- (3.4,\h+0.7) -- (5.2,\h) -- (3.4,\h-0.7) -- cycle;
+  }
+  \node[artlabel, anchor=north, text=vcviolet] at (3.4,1.35) {FACTS};
+  % semantic search: query ring over a small cluster
+  \foreach \px/\py in {6.9/4.4, 7.2/4.0, 7.45/4.55, 6.75/3.85, 7.6/3.7, 7.05/3.45, 7.8/4.25} {
+    \fill[white!70!vcdark] (\px,\py) circle (0.06);
+  }
+  \draw[vcpink!70!white, line width=0.4pt, dash pattern=on 2pt off 1.5pt] (7.2,4.05) circle (0.62);
+  \fill[vcdark] (7.2,4.05) circle (0.1);
+  \draw[vcpink!70!white, line width=0.8pt] (7.2,4.05) circle (0.1);
+  \draw[white!40!vcdark, line width=0.4pt, dash pattern=on 1.5pt off 1.5pt] (5.2,4.2) -- (6.45,4.1);
+  \node[artlabel, anchor=north, text=vcpink!70!white] at (7.2,3.15) {SEARCH};
+}
+\partcovered{%
 Persistent memory enables personality coherence across sessions:
 \begin{itemize}[nosep]
-  \item \textbf{Section 13}: AgentCore Memory integration
-  \item \textbf{Section 14}: Personality namespaces
-  \item \textbf{Section 15}: Expression pattern learning
+  \item \textbf{Section 12}: AgentCore Memory integration and personality namespaces
+  \item \textbf{Section 13}: Preference learning and expression pattern compilation
 \end{itemize}
-}{%
-\begin{tikzpicture}
-  \node[fill=vcteal!15, rounded corners=4pt, inner sep=6pt] {\scriptsize\sffamily Events};
-  \node[fill=vcpurple!15, rounded corners=4pt, inner sep=6pt] at (2,0) {\scriptsize\sffamily Facts};
-  \node[fill=successgreen!15, rounded corners=4pt, inner sep=6pt] at (4,0) {\scriptsize\sffamily Search};
-\end{tikzpicture}
 }
 
 \section{AgentCore Memory Integration}
 
 \begin{tldrbox}
-AgentCore Memory provides persistent storage with semantic search. The Virtual Character uses it to remember voice preferences, expression patterns, and reaction history, creating personality continuity across sessions.
+AgentCore Memory provides persistent storage with semantic search. The Virtual Character system uses it to remember voice preferences, expression patterns, and reaction history, giving the agent personality continuity across sessions.
 \end{tldrbox}
 
 \subsection{Memory Types}
@@ -1630,8 +1803,6 @@ impl SlowMind {
 The Slow Mind's pattern compilation means the Fast Mind gets smarter over time. Frequent interactions become reflexive, reducing latency for common scenarios.
 \end{keybox}
 
-\vspace{1cm}
-
 % Part V Summary
 \begin{tcolorbox}[
   enhanced,
@@ -1641,7 +1812,8 @@ The Slow Mind's pattern compilation means the Fast Mind gets smarter over time. 
   arc=6pt,
   left=12pt, right=12pt, top=10pt, bottom=10pt,
   title={\textcolor{white}{\sffamily\bfseries Part V Summary: Memory \& Personality}},
-  colbacktitle=vcprimary
+  colbacktitle=vcprimary,
+  partsummary
 ]
 \small
 \textbf{Memory Architecture:}
@@ -1655,60 +1827,54 @@ The Slow Mind's pattern compilation means the Fast Mind gets smarter over time. 
 \textcolor{coolgray}{\small\textbf{Result:} The agent develops consistent personality traits over time. Voice preferences, reaction styles, and expression patterns persist across sessions.}
 \end{tcolorbox}
 
-\newpage
 
 % ============================================================================
 % PART V.5: APPLICATION SCENARIOS
 % ============================================================================
-\partpage{V.5}{Applications \& Multi-Agent}{%
+\partbanner{V.5}{Applications \& Multi-Agent}{Virtual assistants and enterprise use, multi-agent socialization, and research and creative applications}{%
+  % Three groups of embodied agents, linked by a coordination layer
+  \foreach \gx/\gy/\col/\lab in {1.3/5.3/vclightteal/ENTERPRISE, 6.9/5.3/vcviolet/SOCIAL AI, 4.1/1.9/vcpink!70!white/RESEARCH} {
+    \fill[\col, opacity=0.1] (\gx,\gy) circle (1.05);
+    \foreach \a in {90,210,330} {
+      \draw[\col, opacity=0.6, line width=0.4pt] (\gx,\gy) -- ++(\a:0.62);
+      \fill[vcdark] ($(\gx,\gy)+(\a:0.62)$) circle (0.13);
+      \draw[\col, line width=0.8pt] ($(\gx,\gy)+(\a:0.62)$) circle (0.13);
+    }
+    \fill[vcdark] (\gx,\gy) circle (0.22);
+    \draw[\col, line width=1.6pt] (\gx,\gy) circle (0.22);
+    \fill[\col] (\gx,\gy) circle (0.09);
+  }
+  \draw[white!40!vcdark, line width=0.8pt, dash pattern=on 2pt off 2pt] (1.52,5.3) -- (6.68,5.3);
+  \draw[white!40!vcdark, line width=0.8pt, dash pattern=on 2pt off 2pt] (1.42,5.1) -- (3.98,2.1);
+  \draw[white!40!vcdark, line width=0.8pt, dash pattern=on 2pt off 2pt] (6.78,5.1) -- (4.22,2.1);
+  \node[artlabel, anchor=south, text=vclightteal] at (1.3,6.55) {ENTERPRISE};
+  \node[artlabel, anchor=south, text=vcviolet] at (6.9,6.55) {SOCIAL AI};
+  \node[artlabel, anchor=north, text=vcpink!70!white] at (4.1,0.65) {RESEARCH};
+}
+\partcovered{%
 Real-world applications and multi-agent coordination capabilities:
 \begin{itemize}[nosep]
-  \item \textbf{Section 15}: Virtual assistants and enterprise use cases
-  \item \textbf{Section 16}: Multi-agent socialization and coordination
-  \item \textbf{Section 17}: Research and development applications
+  \item \textbf{Section 14}: Virtual assistants and enterprise use cases
+  \item \textbf{Section 15}: Multi-agent socialization and coordination
+  \item \textbf{Section 16}: Research and creative applications
 \end{itemize}
-}{%
-\begin{tikzpicture}
-  \node[fill=vcteal!15, rounded corners=4pt, inner sep=6pt] {\scriptsize\sffamily Enterprise};
-  \node[fill=vcpurple!15, rounded corners=4pt, inner sep=6pt] at (2.5,0) {\scriptsize\sffamily Social AI};
-  \node[fill=vcpink!15, rounded corners=4pt, inner sep=6pt] at (4.8,0) {\scriptsize\sffamily Research};
-\end{tikzpicture}
 }
 
 \section{Virtual Assistants \& Enterprise Applications}
 
 \begin{tldrbox}
-Beyond entertainment: AI agents with bodies can demonstrate products in VR showrooms, teach students in virtual classrooms, provide therapeutic companionship, and serve customers with genuine emotional presence: applications impossible with text-only interfaces.
+Beyond entertainment, AI agents with bodies can demonstrate products in VR showrooms, teach students in virtual classrooms, provide therapeutic companionship, and serve customers with genuine emotional presence. None of these applications is possible with a text-only interface.
 \end{tldrbox}
 
 \subsection{Virtual Customer Service}
 
 \begin{center}
 \begin{tikzpicture}[
-  node distance=0.8cm,
-  scenebox/.style={rectangle, rounded corners=4pt, draw=vcprimary!50, fill=vcprimary!5, minimum width=4cm, minimum height=1.5cm, font=\small\sffamily}
+  scene/.style={vcnode=vcprimary, text width=4.2cm, minimum height=1.6cm, fill=vcprimary!5, draw=vcprimary!40}
 ]
-  \node[scenebox] (show) {
-    \begin{tabular}{c}
-      \textbf{VR Showroom} \\
-      \scriptsize Agent demonstrates products \\
-      \scriptsize Points, gestures, shows features
-    \end{tabular}
-  };
-  \node[scenebox, right=0.8cm of show] (support) {
-    \begin{tabular}{c}
-      \textbf{Tech Support} \\
-      \scriptsize Agent shows frustration empathy \\
-      \scriptsize Guides user through steps
-    \end{tabular}
-  };
-  \node[scenebox, right=0.8cm of support] (onboard) {
-    \begin{tabular}{c}
-      \textbf{Onboarding} \\
-      \scriptsize Welcome new users \\
-      \scriptsize Personalized guidance
-    \end{tabular}
-  };
+  \node[scene] (show) at (0,0) {\textbf{\small VR Showroom}\\[2pt]Agent demonstrates products: points, gestures, shows features};
+  \node[scene] (support) at (5.3,0) {\textbf{\small Tech Support}\\[2pt]Agent shows empathy for frustration and guides the user through steps};
+  \node[scene] (onboard) at (10.6,0) {\textbf{\small Onboarding}\\[2pt]Welcomes new users with personalized guidance};
 \end{tikzpicture}
 \end{center}
 
@@ -1716,8 +1882,8 @@ Beyond entertainment: AI agents with bodies can demonstrate products in VR showr
 \begin{itemize}
   \item \textbf{Trust through presence}: A visible agent builds rapport faster than a chatbot
   \item \textbf{Non-verbal reassurance}: Nodding, eye contact, and calm gestures reduce anxiety
-  \item \textbf{Product demonstration}: ``Let me show you'' while the agent literally points at the feature
-  \item \textbf{Emotional mirroring}: Agent detects frustration, responds with empathy signals
+  \item \textbf{Product demonstration}: ``Let me show you,'' while the agent literally points at the feature
+  \item \textbf{Emotional mirroring}: The agent detects frustration and responds with empathy signals
 \end{itemize}
 
 \subsection{Virtual Education \& Training}
@@ -1758,41 +1924,32 @@ Therapeutic applications require careful design. Virtual companions should:
 \section{Multi-Agent Socialization}
 
 \begin{tldrbox}
-Multiple AI agents can inhabit the same virtual space, forming social dynamics: cooperation, competition, emergent behavior. This enables research into AI social cognition and entertainment applications like AI-vs-AI debates or collaborative storytelling.
+Multiple AI agents can inhabit the same virtual space and form social dynamics such as cooperation, competition, and emergent behavior. This enables research into AI social cognition, as well as entertainment applications like AI-vs-AI debates and collaborative storytelling.
 \end{tldrbox}
 
 \subsection{Coordination Architecture}
 
-\begin{center}
+Agents never talk to each other directly. Each one reads and writes a shared world state, and a coordinator keeps that state synchronized (Figure~\ref{fig:multiagent}).
+
+\begin{figure}[!htbp]
+\centering
 \begin{tikzpicture}[
-  node distance=0.6cm,
-  agentbox/.style={rectangle, rounded corners=4pt, draw=#1, fill=#1!10, minimum width=2.2cm, minimum height=0.7cm, font=\scriptsize\sffamily},
-  worldbox/.style={rectangle, rounded corners=6pt, draw=vcprimary, fill=vcprimary!8, minimum width=8cm, minimum height=1.2cm, font=\small\sffamily\bfseries}
+  ag/.style={vcnode=#1, minimum width=2.6cm, minimum height=0.8cm, font=\footnotesize\sffamily\bfseries},
+  rw/.style={font=\scriptsize\sffamily, text=#1, fill=white, inner sep=1.5pt}
 ]
-  % Shared world state
-  \node[worldbox] (world) {Shared World State};
+  \node[vcnode=vcprimary, minimum width=9cm, minimum height=1.1cm, font=\small\sffamily\bfseries] (world) at (0,0) {Shared World State};
+  \node[ag=vcteal]   (a1) at (-3.6, 2.2) {Agent A};
+  \node[ag=vcpurple] (a2) at ( 0,   2.2) {Agent B};
+  \node[ag=vcpink]   (a3) at ( 3.6, 2.2) {Agent C};
+  \node[ag=successgreen, minimum width=4cm] (coord) at (0,-2.1) {Multi-Agent Coordinator};
 
-  % Agents
-  \node[agentbox=vcteal, above left=1.2cm and 1.5cm of world] (a1) {Agent A};
-  \node[agentbox=vcpurple, above=1.2cm of world] (a2) {Agent B};
-  \node[agentbox=vcpink, above right=1.2cm and 1.5cm of world] (a3) {Agent C};
-
-  % Coordinator
-  \node[agentbox=successgreen, below=1cm of world, minimum width=3cm] (coord) {Multi-Agent Coordinator};
-
-  % Bidirectional arrows with labels (offset to avoid overlap)
-  \draw[Stealth-Stealth, thick, vcteal!70] (a1) -- (world)
-    node[midway, font=\tiny\sffamily, color=vcteal, xshift=-0.7cm] {read/write};
-  \draw[Stealth-Stealth, thick, vcpurple!70] (a2) -- (world)
-    node[midway, font=\tiny\sffamily, color=vcpurple, xshift=-0.7cm] {read/write};
-  \draw[Stealth-Stealth, thick, vcpink!70] (a3) -- (world)
-    node[midway, font=\tiny\sffamily, color=vcpink, xshift=0.7cm] {read/write};
-
-  % Coordinator connection with label
-  \draw[Stealth-Stealth, thick, successgreen!70] (world) -- (coord)
-    node[midway, font=\tiny\sffamily, color=successgreen, xshift=0.9cm] {sync/coordinate};
+  \draw[Stealth-Stealth, thick, vcteal!70]   (a1.south) -- node[rw=vcteal]   {read / write} (a1.south |- world.north);
+  \draw[Stealth-Stealth, thick, vcpurple!70] (a2.south) -- node[rw=vcpurple] {read / write} (world.north);
+  \draw[Stealth-Stealth, thick, vcpink!70]   (a3.south) -- node[rw=vcpink]   {read / write} (a3.south |- world.north);
+  \draw[Stealth-Stealth, thick, successgreen!70] (world.south) -- node[rw=successgreen!70!black] {sync / coordinate} (coord.north);
 \end{tikzpicture}
-\end{center}
+\caption{Multi-agent coordination through a shared world state.}\label{fig:multiagent}
+\end{figure}
 
 \begin{lstlisting}[caption=Multi-Agent Coordination Example]
 pub struct MultiAgentCoordinator {
@@ -1832,7 +1989,7 @@ impl MultiAgentCoordinator {
 
 \begin{center}
 \renewcommand{\arraystretch}{1.4}
-\begin{tabular}{@{}L{3cm}L{4cm}L{4.5cm}@{}}
+\begin{tabularx}{\textwidth}{@{}>{\raggedright\arraybackslash}p{3.2cm}YY@{}}
 \toprule
 \textbf{Scenario} & \textbf{Description} & \textbf{Technical Implementation} \\
 \midrule
@@ -1841,7 +1998,7 @@ impl MultiAgentCoordinator {
 \textbf{Virtual Conference} & Panel of AI experts discussing topics & Moderated turn-taking, topic threading, audience Q\&A \\
 \textbf{Social Experiment} & Observe emergent group dynamics & Minimal coordination, record all interactions for analysis \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{center}
 
 \subsection{Scalability Considerations}
@@ -1853,7 +2010,7 @@ impl MultiAgentCoordinator {
 \midrule
 VRChat avatars per instance & 1 & Multiple VRChat instances (resource heavy) \\
 Concurrent API calls & Rate limited & Request queuing, local model fallback \\
-Shared world state sync & ~50ms latency & Eventual consistency, optimistic updates \\
+Shared world state sync & $\sim$50ms latency & Eventual consistency, optimistic updates \\
 OSC message rate & 100 msg/sec & Batch messages, prioritize critical updates \\
 \bottomrule
 \end{tabular}
@@ -1883,8 +2040,6 @@ OSC message rate & 100 msg/sec & Batch messages, prioritize critical updates \\
 This system creates a \textbf{controlled laboratory} for studying embodied AI. Unlike real-world deployments, every variable is measurable: response latency, emotion classification accuracy, expression timing. Researchers can run reproducible experiments on human-AI interaction at scale.
 \end{keybox}
 
-\vspace{1cm}
-
 % Part V.5 Summary
 \begin{tcolorbox}[
   enhanced,
@@ -1893,7 +2048,8 @@ This system creates a \textbf{controlled laboratory} for studying embodied AI. U
   boxrule=1pt,
   arc=6pt,
   title={\textcolor{white}{\sffamily\bfseries Part V.5 Summary: Applications \& Multi-Agent}},
-  colbacktitle=vcprimary
+  colbacktitle=vcprimary,
+  partsummary
 ]
 \small
 \textbf{Application Domains:}
@@ -1908,29 +2064,53 @@ This system creates a \textbf{controlled laboratory} for studying embodied AI. U
 \textbf{Key Constraints}: VRChat limits 1 avatar per instance; API rate limits require request queuing; OSC messages capped at 100/sec. Design for eventual consistency in multi-agent scenarios.
 \end{tcolorbox}
 
-\newpage
 
 % ============================================================================
 % PART VI: INTEGRATION GUIDE
 % ============================================================================
-\partpage{VI}{Integration Guide}{%
+\partbanner{VI}{Integration Guide}{Expression orchestration, the end-to-end workflow, and deployment topology}{%
+  % Orchestrator fans expression out; workflow steps; two-machine deployment
+  \fill[vcteal, opacity=0.25] (0.7,4.6) circle (0.6);
+  \fill[vcdark] (0.7,4.6) circle (0.34);
+  \draw[white, line width=1.6pt] (0.7,4.6) circle (0.34);
+  \fill[vclightteal] (0.7,4.6) circle (0.13);
+  \node[artlabel, anchor=north, text=vclightteal] at (0.7,3.6) {ORCHESTRATOR};
+  % workflow: ordered steps
+  \foreach \i in {0,...,3} {
+    \pgfmathsetmacro{\sx}{2.0+\i*0.95}
+    \fill[vcprimary] (\sx,4.25) rectangle ++(0.7,0.7);
+    \draw[vcviolet, line width=0.8pt] (\sx,4.25) rectangle ++(0.7,0.7);
+    \node[artlabel, text=vcviolet] at (\sx+0.35,4.6) {\pgfmathparse{int(\i+1)}\pgfmathresult};
+  }
+  \draw[vcviolet, line width=0.8pt] (1.04,4.6) -- (2.0,4.6);
+  \foreach \i in {0,...,2} {
+    \draw[vcviolet, line width=0.8pt] ({2.7+\i*0.95},4.6) -- ({2.95+\i*0.95},4.6);
+  }
+  \node[artlabel, anchor=north, text=vcviolet] at (3.78,3.95) {WORKFLOW};
+  % deployment: two machines
+  \foreach \mx/\n in {5.4/3, 7.05/2} {
+    \fill[vcprimary] (\mx,1.3) rectangle ++(1.15,2.3);
+    \draw[vcpink!70!white, line width=0.8pt] (\mx,1.3) rectangle ++(1.15,2.3);
+    \foreach \j in {1,...,\n} {
+      \fill[vcpink!70!white, opacity=0.8] (\mx+0.2,{3.6-\j*0.55}) rectangle ++(0.75,0.28);
+    }
+  }
+  \draw[white!40!vcdark, line width=0.8pt] (6.55,2.45) -- (7.05,2.45);
+  \draw[vcviolet, line width=0.8pt, rounded corners=0.3cm] (5.65,4.6) -- (5.95,4.6) -- (5.95,3.6);
+  \node[artlabel, anchor=north, text=vcpink!70!white] at (6.6,1.05) {DEPLOY};
+}
+\partcovered{%
 Complete examples for common use cases:
 \begin{itemize}[nosep]
-  \item \textbf{Section 16}: Expression orchestration
-  \item \textbf{Section 17}: End-to-end workflow
-  \item \textbf{Section 18}: Deployment topology
+  \item \textbf{Section 17}: Expression orchestration
+  \item \textbf{Section 18}: End-to-end workflow
+  \item \textbf{Section 19}: Deployment topology
 \end{itemize}
-}{%
-\begin{tikzpicture}
-  \node[fill=vcteal!15, rounded corners=4pt, inner sep=6pt] {\scriptsize\sffamily Orchestrator};
-  \node[fill=vcpurple!15, rounded corners=4pt, inner sep=6pt] at (2.5,0) {\scriptsize\sffamily Workflow};
-  \node[fill=vcpink!15, rounded corners=4pt, inner sep=6pt] at (5,0) {\scriptsize\sffamily Deploy};
-\end{tikzpicture}
 }
 
 \section{Expression Orchestrator}
 
-The Expression Orchestrator coordinates multi-modal expression:
+The Expression Orchestrator coordinates expression across voice, avatar, and reaction images:
 
 \begin{lstlisting}[caption=Expression Orchestrator]
 pub struct ExpressionOrchestrator {
@@ -2034,33 +2214,32 @@ AgentCore Memory & Linux Dev Machine & AWS/ChromaDB & 8023 \\
 
 \begin{center}
 \begin{tikzpicture}[
-  node distance=0.5cm,
-  machinebox/.style={rectangle, rounded corners=6pt, draw=#1, fill=#1!5, minimum width=5.5cm, minimum height=3.2cm},
-  servicebox/.style={rectangle, rounded corners=3pt, draw=#1!70, fill=#1!15, minimum width=2.4cm, minimum height=0.5cm, font=\tiny\sffamily}
+  svc/.style={vcnode=#1, minimum width=4.2cm, minimum height=0.65cm, font=\footnotesize\sffamily}
 ]
-  % Linux machine
-  \node[machinebox=vcteal] (linux) {};
-  \node[font=\scriptsize\sffamily\bfseries, color=vcteal] at ([yshift=1.3cm]linux.center) {Linux Development Machine};
-  \node[servicebox=vcteal] at ([yshift=0.5cm]linux.center) (mcp) {MCP Middleware :8020};
-  \node[servicebox=vcteal, below=0.25cm of mcp] (eleven) {ElevenLabs MCP :8018};
-  \node[servicebox=vcteal, below=0.25cm of eleven] (mem) {AgentCore Memory :8023};
+  \node[svc=vcteal] (mcp)   at (0, 0)    {MCP Middleware \texttt{:8020}};
+  \node[svc=vcteal] (el)    at (0,-0.9)  {ElevenLabs MCP \texttt{:8018}};
+  \node[svc=vcteal] (mem)   at (0,-1.8)  {AgentCore Memory \texttt{:8023}};
+  \node[vcgrouplabel=vcteal] (lt) at (0, 0.85) {Linux Development Machine};
+  \begin{scope}[on background layer]
+    \node[vcgroup=vcteal, fit=(lt)(mcp)(mem)] (linux) {};
+  \end{scope}
 
-  % Windows machine
-  \node[machinebox=vcpurple, right=1.5cm of linux] (win) {};
-  \node[font=\scriptsize\sffamily\bfseries, color=vcpurple] at ([yshift=1.3cm]win.center) {Windows GPU Machine};
-  \node[servicebox=vcpurple] at ([yshift=0.5cm]win.center) (bridge) {VRChat Bridge :8021};
-  \node[servicebox=vcpurple, below=0.25cm of bridge] (obs) {OBS WebSocket :4455};
-  \node[servicebox=vcpurple, below=0.25cm of obs] (stream) {Video Stream :8022};
+  \node[svc=vcpurple] (br)  at (8, 0)    {VRChat Bridge \texttt{:8021}};
+  \node[svc=vcpurple] (obs) at (8,-0.9)  {OBS WebSocket \texttt{:4455}};
+  \node[svc=vcpurple] (vid) at (8,-1.8)  {Video Stream \texttt{:8022}};
+  \node[vcgrouplabel=vcpurple] (wt) at (8, 0.85) {Windows GPU Machine};
+  \begin{scope}[on background layer]
+    \node[vcgroup=vcpurple, fit=(wt)(br)(vid)] (win) {};
+  \end{scope}
 
-  % Connections
-  \draw[Stealth-Stealth, thick, coolgray!70, dashed] ([xshift=0.3cm]linux.east) -- ([xshift=-0.3cm]win.west) node[midway, above, font=\tiny\sffamily] {HTTP/WebSocket};
+  \draw[vcdash] (linux.east) -- node[above, font=\scriptsize\sffamily, text=coolgray] {HTTP / WebSocket} node[below, font=\scriptsize\sffamily, text=coolgray] {LAN} (win.west);
 \end{tikzpicture}
 \end{center}
 
 \begin{infobox}[Network Requirements]
 \begin{itemize}
   \item OSC Commands: <50ms latency (local network recommended)
-  \item Video Stream: 5-10 Mbps (1080p @ 30fps)
+  \item Video Stream: 5--10 Mbps (1080p at 30fps)
   \item Control Channel: <100 Kbps
   \item \textbf{Minimum}: Gigabit LAN between machines
 \end{itemize}
@@ -2083,10 +2262,8 @@ AgentCore Memory & Linux Dev Machine & AWS/ChromaDB & 8023 \\
 \end{center}
 
 \begin{tipbox}[Single-Machine Option]
-For development/testing, run everything on one Windows machine with WSL2 for the Linux services. Performance is acceptable for single-agent scenarios, but multi-agent or streaming requires dedicated hardware.
+For development and testing, run everything on one Windows machine, using WSL2 for the Linux services. Performance is acceptable for single-agent scenarios, but multi-agent setups and streaming require dedicated hardware.
 \end{tipbox}
-
-\vspace{1cm}
 
 % Part VI Summary
 \begin{tcolorbox}[
@@ -2097,7 +2274,8 @@ For development/testing, run everything on one Windows machine with WSL2 for the
   arc=6pt,
   left=12pt, right=12pt, top=10pt, bottom=10pt,
   title={\textcolor{white}{\sffamily\bfseries Part VI Summary: Integration Guide}},
-  colbacktitle=vcprimary
+  colbacktitle=vcprimary,
+  partsummary
 ]
 \small
 \textbf{Implementation Checklist:}
@@ -2167,7 +2345,7 @@ Cache Hit Rate & >80\% & >95\% \\
 
 \begin{center}
 \renewcommand{\arraystretch}{1.4}
-\begin{tabular}{@{}L{4cm}L{4cm}L{4cm}@{}}
+\begin{tabular}{@{}L{4.2cm}L{4.2cm}L{5.2cm}@{}}
 \toprule
 \textbf{Symptom} & \textbf{Likely Cause} & \textbf{Solution} \\
 \midrule
@@ -2211,17 +2389,17 @@ OBS not responding & WebSocket auth failed & Regenerate OBS WebSocket password \
 
 \begin{center}
 \renewcommand{\arraystretch}{1.25}
-\begin{tabular}{@{}L{3.5cm}L{9cm}@{}}
+\begin{tabular}{@{}L{3.8cm}L{10cm}@{}}
 \toprule
 \textbf{Term} & \textbf{Definition} \\
 \midrule
-\textbf{MCP} & Model Context Protocol - standard for AI tool interfaces \\
+\textbf{MCP} & Model Context Protocol: a standard for AI tool interfaces \\
 \textbf{PAD Model} & Pleasure-Arousal-Dominance 3D emotion vector space \\
-\textbf{OSC} & Open Sound Control - lightweight protocol for real-time messaging \\
-\textbf{Viseme} & Visual phoneme - mouth shape corresponding to speech sound \\
+\textbf{OSC} & Open Sound Control: a lightweight protocol for real-time messaging \\
+\textbf{Viseme} & Visual phoneme: the mouth shape corresponding to a speech sound \\
 \textbf{Canonical Model} & Platform-agnostic data format translated to backend-specific protocols \\
-\textbf{Fast Mind} & System 1 - immediate reactions via local inference (<100ms) \\
-\textbf{Slow Mind} & System 2 - deep reasoning via external LLM (2-30s) \\
+\textbf{Fast Mind} & System 1: immediate reactions via local inference (<100ms) \\
+\textbf{Slow Mind} & System 2: deep reasoning via an external LLM (2--30s) \\
 \textbf{Backend Adapter} & Plugin that translates canonical data to platform-specific format \\
 \textbf{Expression Orchestrator} & Coordinates multi-modal output (voice, face, gesture) \\
 \bottomrule
@@ -2243,7 +2421,7 @@ OBS not responding & WebSocket auth failed & Regenerate OBS WebSocket password \
 \begin{center}
 \textcolor{coolgray}{\small\sffamily
 Document generated December 2025 | Version 2.1\\
-Virtual Character System - Dual-Speed Cognitive Architecture Guide
+Virtual Character System: Dual-Speed Cognitive Architecture Guide
 }
 \end{center}
 

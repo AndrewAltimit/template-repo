@@ -36,6 +36,9 @@
 \usepackage{parskip}
 \usepackage{caption}
 \usepackage{tabularx}
+\usepackage{needspace}
+\usepackage{flafter}
+\usepackage{tocloft}
 
 \pgfplotsset{compat=1.18}
 \usetikzlibrary{shapes.geometric, arrows.meta, positioning, calc, decorations.pathreplacing, backgrounds, fit, shadows.blur, matrix, patterns, fadings, shadings}
@@ -62,6 +65,43 @@
 \definecolor{nodeorange}{HTML}{A65E30}
 \definecolor{nodegreen}{HTML}{4B7F5E}
 \definecolor{nodepurple}{HTML}{6E4A7A}
+
+% ============================================================================
+% PART BANNER - full-bleed band matching the cover
+% #1 part numeral, #2 title, #3 subtitle, #4 illustration (local frame
+% centered in the right half of the band, x in [-3.6,3.85], y in [-3.5,3.5])
+% ============================================================================
+\tikzset{
+  pblabel/.style={font=\sffamily\bfseries\fontsize{6.5}{8}\selectfont, text=white!70, inner sep=0},
+}
+\newcommand{\partbanner}[4]{%
+  \noindent\begin{tikzpicture}[remember picture, overlay]
+    \begin{scope}[shift={(current page.north west)}]
+      % Band and cover dot texture
+      \fill[instdark] (0,0) rectangle (\paperwidth,-10cm);
+      \begin{scope}[opacity=0.05]
+        \foreach \x in {0.9,1.8,...,21.0} {
+          \foreach \y in {-0.9,-1.8,...,-9.5} {
+            \fill[white] (\x,\y) circle (0.025);
+          }
+        }
+      \end{scope}
+      \draw[instgold, line width=1.2pt] (0,-10cm) -- (\paperwidth,-10cm);
+      % Text column
+      \node[anchor=west, inner sep=0, text width=10cm, align=left] at (2.159,-5) {%
+        \setlength{\parskip}{0pt}%
+        {\sffamily\bfseries\fontsize{9}{11}\selectfont\color{instgold}#1\par}\vspace{0.4cm}%
+        {\sffamily\bfseries\fontsize{30}{34}\selectfont\color{white}\hyphenpenalty=10000\exhyphenpenalty=10000 #2\par}\vspace{0.3cm}%
+        {\color{instgold}\rule{2.5cm}{2pt}\par}\vspace{0.3cm}%
+        \parbox{8.5cm}{\raggedright\sffamily\fontsize{11}{14}\selectfont\color{white!70}#3}};
+      % Illustration
+      \begin{scope}[shift={(15.55,-5)}]
+        #4
+      \end{scope}
+    \end{scope}
+  \end{tikzpicture}\par
+  \vspace*{7.85cm}%
+}
 
 % ============================================================================
 % HYPERREF SETUP
@@ -126,10 +166,43 @@
 
 \setcounter{tocdepth}{2}
 
+% Keep headings with at least a few lines of their text
+\newcommand{\sectionbreak}{\needspace{9\baselineskip}}
+\newcommand{\subsectionbreak}{\needspace{6\baselineskip}}
+\newcommand{\subsubsectionbreak}{\needspace{5\baselineskip}}
+
+% Table of contents styling
+\renewcommand{\cfttoctitlefont}{\normalfont\LARGE\bfseries\color{instdark}}
+\renewcommand{\cftsecfont}{\bfseries\color{instdark}}
+\renewcommand{\cftsecpagefont}{\bfseries\color{instdark}}
+\renewcommand{\cftsubsecfont}{\color{instblue}}
+\renewcommand{\cftsubsecpagefont}{\color{instblue}}
+\setlength{\cftbeforesecskip}{0.45em}
+\setlength{\cftsecnumwidth}{1.8em}
+\setlength{\cftsubsecindent}{1.8em}
+\setlength{\cftsubsecnumwidth}{2.7em}
+
+% Captions and floats
+\captionsetup{font={small,sf}, labelfont={bf,color=instnavy}, textfont=it, labelsep=period, margin=1.5em}
+\setlength{\abovecaptionskip}{6pt}
+\captionsetup[table]{position=above, skip=6pt}
+\setlength{\LTpre}{0.6em}
+\setlength{\LTpost}{0.6em}
+\renewcommand{\topfraction}{0.85}
+\renewcommand{\bottomfraction}{0.6}
+\renewcommand{\textfraction}{0.12}
+\renewcommand{\floatpagefraction}{0.75}
+\setcounter{topnumber}{3}
+\setcounter{bottomnumber}{2}
+\setcounter{totalnumber}{4}
+\setlength{\textfloatsep}{14pt plus 4pt minus 4pt}
+\setlength{\floatsep}{12pt plus 3pt minus 3pt}
+
 % ============================================================================
 % TCOLORBOX ENVIRONMENTS
 % ============================================================================
 \tcbuselibrary{skins,breakable,hooks}
+\tcbset{before upper={\setlength{\parskip}{0.5em}}}
 
 \newtcolorbox{keybox}[1][Key Finding]{
   enhanced, breakable,
@@ -211,91 +284,118 @@
 % ============================================================================
 \begin{titlepage}
 \begin{tikzpicture}[remember picture, overlay]
-  % Background gradient
-  \fill[instdark] (current page.north west) rectangle (current page.south east);
+  % Page-coordinate frame: origin at the bottom-left corner (US letter 21.59 x 27.94 cm)
+  \begin{scope}[shift={(current page.south west)}]
 
-  % Abstract data grid background (right side)
-  \begin{scope}[shift={(current page.center)}, opacity=0.08]
-    \foreach \x in {2,2.8,...,10} {
-      \foreach \y in {-12,-11.2,...,12} {
-        \fill[white] (\x,\y) circle (0.06);
+  % ---- Background ----------------------------------------------------------
+  \fill[instdark] (0,0) rectangle (21.59,27.94);
+  % Subtle dot texture
+  \begin{scope}[opacity=0.05]
+    \foreach \x in {0.9,1.8,...,21.0} {
+      \foreach \y in {0.9,1.8,...,26.5} {
+        \fill[white] (\x,\y) circle (0.025);
       }
     }
   \end{scope}
 
-  % Main network visualization - central threat topology (centered with upward shift for better spacing)
-  \begin{scope}[shift={([xshift=-0.5cm, yshift=3.5cm]current page.center)}]
-    % Subtle radial gradient - depth cue
-    \shade[inner color=white, outer color=instdark, opacity=0.08] (0,0) circle (6.2cm);
+  % ---- Masthead ------------------------------------------------------------
+  \fill[black!28!instdark] (0,26.34) rectangle (21.59,27.94);
+  \draw[instgold, line width=1.2pt] (0,26.34) -- (21.59,26.34);
+  \node[anchor=west, inner sep=0, font=\sffamily\bfseries\fontsize{8.5}{10}\selectfont, text=instgold]
+    at (1.5,27.14) {EMERGING TECHNOLOGY RISK ASSESSMENT};
+  \node[anchor=east, inner sep=0, font=\sffamily\bfseries\fontsize{8.5}{10}\selectfont, text=white!70]
+    at (20.09,27.14) {ETRA-2026-PTR-001 \ \textbar\ \ SEPTEMBER 2026};
 
-    % Outer ring nodes - threat vectors
-    \foreach \angle/\col/\label in {
-      30/nodecyan/OSINT,
-      75/nodegreen/COORD,
-      120/nodeorange/RECON,
-      165/nodepurple/SYNTH,
-      210/nodecyan/EXEC,
-      255/nodegreen/ATTR,
-      300/nodeorange/PROP,
-      345/nodepurple/PERS
-    } {
-      % Node
-      \fill[\col, opacity=0.9] (\angle:4.5cm) circle (0.4cm);
-      \node[white, font=\fontsize{5}{5}\selectfont\bfseries] at (\angle:4.5cm) {\label};
-      % Connection to center
-      \draw[\col, opacity=0.5, line width=1pt] (0,0) -- (\angle:4cm);
-      % Outer data points
-      \foreach \r in {5.2,5.6,6} {
-        \fill[\col, opacity=0.25] (\angle:\r cm) circle (0.08);
-      }
+  % ---- Illustration: a protected civic network inside layered shields ------
+  \begin{scope}[shift={(10.795,19.0)}, scale=1.08]
+    % Soft field behind the composition
+    \shade[inner color=white, outer color=instdark, opacity=0.07] (0,0) circle (5.9cm);
+
+    % Shield band (annulus) tint
+    \fill[white, opacity=0.035, even odd rule] (0,0) circle (5.45cm) (0,0) circle (3.85cm);
+
+    % Outer shield: 12 fine segments
+    \foreach \i in {0,...,11} {
+      \draw[white, opacity=0.40, line width=0.8pt]
+        ({\i*30+4}:5.25cm) arc[start angle={\i*30+4}, end angle={\i*30+26}, radius=5.25cm];
+    }
+    % Middle shield: 6 segments, rotated half a step
+    \foreach \i in {0,...,5} {
+      \draw[nodecyan!80!white, opacity=0.75, line width=1.6pt]
+        ({\i*60+34}:4.6cm) arc[start angle={\i*60+34}, end angle={\i*60+86}, radius=4.6cm];
+    }
+    % Inner shield: 3 heavy segments with a thin continuous guide
+    \draw[instgold, opacity=0.25, line width=0.4pt] (0,0) circle (4.0cm);
+    \foreach \i in {0,...,2} {
+      \draw[instgold, opacity=0.9, line width=3.2pt, line cap=round]
+        ({\i*120+8}:4.0cm) arc[start angle={\i*120+8}, end angle={\i*120+112}, radius=4.0cm];
     }
 
-    % Inner ring - capability layers
-    \foreach \angle/\col in {0/nodecyan, 45/nodegreen, 90/nodeorange, 135/nodepurple, 180/nodecyan, 225/nodegreen, 270/nodeorange, 315/nodepurple} {
-      \fill[\col, opacity=0.7] (\angle:2.5cm) circle (0.2cm);
-      \draw[\col, opacity=0.4, line width=0.5pt] (\angle:2.5cm) -- ({(\angle+45)}:2.5cm);
+    % Incoming probes, each stopped at the outer shield
+    \foreach \a/\len in {18/0.8, 52/0.55, 97/0.55, 141/0.65, 188/0.8, 226/0.5, 262/0.75, 305/0.8, 338/0.55} {
+      \draw[nodeorange!85!white, opacity=0.55, line width=0.8pt, dash pattern=on 2pt off 2pt]
+        (\a:{5.45+\len}) -- (\a:5.55cm);
+      \draw[nodeorange!85!white, opacity=0.9, line width=1.6pt]
+        ({\a-2.2}:5.47cm) arc[start angle={\a-2.2}, end angle={\a+2.2}, radius=5.47cm];
     }
 
-    % Central hub with glow
-    \shade[inner color=instgold!60, outer color=instgold!5, opacity=0.3] (0,0) circle (2cm);
-    \fill[white, opacity=0.1] (0,0) circle (1.8cm);
-    \fill[white, opacity=0.15] (0,0) circle (1.4cm);
-    \fill[instgold] (0,0) circle (0.8cm);
-    \node[instdark, font=\fontsize{8}{8}\selectfont\bfseries] at (0,0.15) {THREAT};
-    \node[instdark, font=\fontsize{8}{8}\selectfont\bfseries] at (0,-0.15) {MODEL};
-
-    % Cross-connections (showing complexity)
-    \draw[white, opacity=0.15, line width=0.5pt] (30:4cm) -- (165:4cm);
-    \draw[white, opacity=0.15, line width=0.5pt] (75:4cm) -- (255:4cm);
-    \draw[white, opacity=0.15, line width=0.5pt] (120:4cm) -- (300:4cm);
-    \draw[white, opacity=0.15, line width=0.5pt] (210:4cm) -- (345:4cm);
+    % Civic network: hub, institutions, communities, people
+    % Edges: people ring
+    \foreach \i in {0,...,11} {
+      \draw[white, opacity=0.22, line width=0.4pt] ({\i*30}:3.2cm) -- ({\i*30+30}:3.2cm);
+    }
+    % Edges: communities to people
+    \foreach \i in {0,...,5} {
+      \draw[white, opacity=0.28, line width=0.4pt] ({\i*60+30}:2.3cm) -- ({\i*60}:3.2cm);
+      \draw[white, opacity=0.28, line width=0.4pt] ({\i*60+30}:2.3cm) -- ({\i*60+30}:3.2cm);
+      \draw[white, opacity=0.28, line width=0.4pt] ({\i*60+30}:2.3cm) -- ({\i*60+60}:3.2cm);
+    }
+    % Edges: institutions to communities, institution ring
+    \foreach \i in {0,...,5} {
+      \draw[nodecyan!80!white, opacity=0.55, line width=0.8pt] ({\i*60}:1.25cm) -- ({\i*60+30}:2.3cm);
+      \draw[nodecyan!80!white, opacity=0.55, line width=0.8pt] ({\i*60}:1.25cm) -- ({\i*60-30}:2.3cm);
+      \draw[instgold, opacity=0.55, line width=0.8pt] ({\i*60}:1.25cm) -- ({\i*60+60}:1.25cm);
+      \draw[instgold, opacity=0.45, line width=0.8pt] (0,0) -- ({\i*60}:1.25cm);
+    }
+    % Nodes
+    \foreach \i in {0,...,11} {
+      \fill[white, opacity=0.85] ({\i*30}:3.2cm) circle (0.07cm);
+    }
+    \foreach \i in {0,...,5} {
+      \fill[instdark] ({\i*60+30}:2.3cm) circle (0.15cm);
+      \draw[nodecyan!85!white, line width=0.8pt] ({\i*60+30}:2.3cm) circle (0.15cm);
+      \fill[instdark] ({\i*60}:1.25cm) circle (0.19cm);
+      \draw[instgold, line width=1.6pt] ({\i*60}:1.25cm) circle (0.19cm);
+    }
+    \fill[instgold, opacity=0.18] (0,0) circle (0.55cm);
+    \fill[instgold] (0,0) circle (0.28cm);
   \end{scope}
 
-  % Document classification bar
-  \fill[instgold] ([yshift=-1.5cm]current page.north west) rectangle ([yshift=-2.2cm]current page.north east);
-  \node[instdark, font=\small\bfseries\sffamily] at ([yshift=-1.85cm]current page.north) {PROJECTION REPORT \textbar{} ETRA-2026-PTR-001 \textbar{} SEPTEMBER 2026};
+  % ---- Title block ---------------------------------------------------------
+  \node[anchor=south west, inner sep=0, text width=14cm, align=left,
+        font=\sffamily\fontsize{12.5}{16}\selectfont, text=white!75] (subtitle) at (1.5,6.0)
+    {A Projection on Autonomous Systems and Democratic Security};
+  \fill[instgold] ([yshift=0.35cm]subtitle.north west) rectangle ++(3cm,2pt);
+  \node[anchor=south west, inner sep=0, text width=15.5cm, align=left,
+        font=\sffamily\bfseries\fontsize{34}{38}\selectfont, text=white] (title)
+    at ([yshift=0.35cm+2pt+0.35cm]subtitle.north west)
+    {AI Agents and the Future\\of Political Targeting};
+  \node[anchor=south west, inner sep=0, font=\sffamily\bfseries\fontsize{9}{11}\selectfont, text=instgold]
+    at ([yshift=0.45cm]title.north west) {PROJECTION REPORT};
 
-  % Title block (bottom left)
-  \node[anchor=south west, text width=14cm] at ([xshift=1.5cm, yshift=3cm]current page.south west) {
-    {\fontsize{11}{13}\selectfont\color{instgold}\sffamily EMERGING TECHNOLOGY RISK ASSESSMENT}\\[0.8cm]
-    {\fontsize{36}{42}\selectfont\bfseries\color{white}AI Agents and the}\\[0.2cm]
-    {\fontsize{36}{42}\selectfont\bfseries\color{white}Future of Political}\\[0.2cm]
-    {\fontsize{36}{42}\selectfont\bfseries\color{white}Targeting}\\[0.6cm]
-    {\large\color{gridlight}\sffamily A Projection on Autonomous Systems and Democratic Security}
-  };
+  % ---- Footer metadata strip ----------------------------------------------
+  \draw[white, opacity=0.25, line width=0.4pt] (1.5,2.6) -- (20.09,2.6);
+  \foreach \k/\lab/\val in {0/DOCUMENT TYPE/Policy Research,
+                            1/TIME HORIZON/2026--2030,
+                            2/LICENSE/{MIT / Unlicense},
+                            3/VERSION/3.0 (September 2026)} {
+    \node[anchor=base west, inner sep=0, font=\sffamily\bfseries\fontsize{6.5}{8}\selectfont, text=instgold]
+      at ({1.5+\k*4.6475},1.95) {\lab};
+    \node[anchor=base west, inner sep=0, font=\sffamily\fontsize{8.5}{10}\selectfont, text=white!75]
+      at ({1.5+\k*4.6475},1.5) {\val};
+  }
 
-  % Metadata block (bottom right)
-  \node[anchor=south east, text width=6cm, align=right] at ([xshift=-1.5cm, yshift=3cm]current page.south east) {
-    \color{gridlight}\small\sffamily
-    \textbf{Document Type:} Policy Research\\[0.2em]
-    \textbf{Time Horizon:} 2026--2030\\[0.2em]
-    \textbf{License:} MIT / Unlicense\\[0.2em]
-    \textbf{Version:} 3.0 (September 2026)
-  };
-
-  % Vertical accent line
-  \draw[instgold, line width=2pt] ([xshift=1.5cm, yshift=3cm]current page.south west) -- ([xshift=1.5cm, yshift=10.5cm]current page.south west);
-
+  \end{scope}
 \end{tikzpicture}
 \end{titlepage}
 
@@ -324,8 +424,6 @@
 This projection examines how autonomous AI agents alter the risk of political targeting: harm, coercion, or intimidation directed at political leaders, officials, election workers, and the processes they run. Version 3.0 (September 2026) tests earlier projections against the 2024--2026 incident record, updates the capability snapshot, re-estimates scenarios through 2030, and evaluates institutional adaptations, including the diffusion of decision-making authority.
 \end{tcolorbox}
 
-\vspace{0.5cm}
-
 \begin{keybox}[Key Findings (v3.0)]
 \begin{enumerate}
   \item \textbf{The threat is real but is not arriving where the capability framing predicted.} Threat-assessment caseloads for Members of Congress reached 14,938 in 2025, up about 58\% from 2024 [O]. Yet in none of the major 2024--2026 attacks on political figures has public reporting documented meaningful AI planning uplift [O]; the binding enablers were grievance, weapon access, and personal-data availability.
@@ -338,28 +436,23 @@ This projection examines how autonomous AI agents alter the risk of political ta
 \end{enumerate}
 \end{keybox}
 
-\vspace{0.5cm}
-
 \begin{infobox}[The Four Targeting Vectors and Top Priorities]
 \textbf{Vectors:} \textit{Reputational} (deepfakes and synthetic kompromat; routine in electoral politics); \textit{Exposure and Economic} (doxxing, people-search aggregation, fraud, harassment; raised to High likelihood as the documented bridge to physical harm); \textit{Process} (harassment of election and civil-service staff and administrative overload); and \textit{Kinetic} (base rate elevated largely independent of AI; AI planning uplift undocumented). Two cross-cutting enablers, \textit{Epistemic Contamination} (including post-incident information disorder) and \textit{Spearphishing 2.0}, amplify all four.
 
-\vspace{0.4em}
 \textbf{Highest-priority risks (Appendix A):} reputational, exposure, process, and epistemic contamination rank highest over the next 12 to 24 months; kinetic remains lower-probability but highest-consequence; insider / supply-chain compromise of AI used by principals remains a distinct top-tier risk.
 
-\vspace{0.4em}
 \textbf{The diffusion bright-line rule:} diffusion should reduce \textit{targeting value} without reducing \textit{accountability visibility}. The test is whether a citizen can, within a reasonable timeframe, determine who was responsible for a decision (Section 9).
 
-\vspace{0.4em}
 \textbf{Single most important near-term action (revised):} close the data layer for officials below the protected tier (address confidentiality, broker deletion rights, funded residential security), paired with AI-aware threat assessment, before a high-profile incident forces reactive, potentially rights-eroding measures.
 \end{infobox}
 
-\vspace{0.5cm}
-
-\begin{center}
+\begin{figure}[!htb]
+\centering
 \begin{tikzpicture}[
-  stage/.style={draw=instnavy, fill=instnavy!8, rounded corners=2pt, minimum width=2.25cm, minimum height=1.05cm, align=center, font=\scriptsize\sffamily},
+  x=1.07cm,
+  stage/.style={draw=instnavy, fill=instnavy!8, rounded corners=2pt, minimum width=2.5cm, minimum height=1.1cm, align=center, font=\scriptsize\sffamily},
   hot/.style={stage, draw=alertcoral, fill=alertcoral!12, line width=1pt},
-  def/.style={draw=successgreen, fill=successgreen!10, rounded corners=6pt, align=center, font=\tiny\sffamily, minimum width=2.25cm, minimum height=0.75cm},
+  def/.style={draw=successgreen, fill=successgreen!10, rounded corners=6pt, align=center, font=\scriptsize\sffamily, minimum width=2.5cm, minimum height=0.8cm, inner sep=2pt},
   arr/.style={-Stealth, line width=0.9pt, instnavy},
   darr/.style={-Stealth, dashed, successgreen!80!black, line width=0.7pt}
 ]
@@ -369,21 +462,18 @@ This projection examines how autonomous AI agents alter the risk of political ta
   \node[stage] (a) at (8.25,0) {Access and\\opportunity};
   \node[stage] (x) at (11,0) {Act and\\aftermath};
   \foreach \u/\v in {g/t, t/c, c/a, a/x} \draw[arr] (\u) -- (\v);
-  \draw[arr, dashed, instaccent] (x.north) to[out=150, in=30] node[above, font=\tiny\sffamily, text=instslate] {amplification and contagion feed new grievance} (g.north);
+  \draw[arr, dashed, instaccent] (x.north) to[out=150, in=30] node[above, font=\scriptsize\sffamily, text=instslate] {amplification and contagion feed new grievance} (g.north);
   \node[def] (d1) at (0,-1.75) {Behavioral threat\\assessment};
   \node[def] (d2) at (2.75,-1.75) {Address and broker\\protection};
   \node[def] (d3) at (5.5,-1.75) {Lab-side detection\\and safeguards};
   \node[def] (d4) at (8.25,-1.75) {Protective security\\and event design};
   \node[def] (d5) at (11,-1.75) {Provenance and rapid\\verification};
   \foreach \d/\s in {d1/g, d2/t, d3/c, d4/a, d5/x} \draw[darr] (\d) -- (\s);
-  \node[font=\tiny\sffamily, text=alertcoral, anchor=north] at (2.75,-2.25) {v3.0: highest uplift, cheapest defense};
+  \node[font=\scriptsize\sffamily\bfseries, text=alertcoral, anchor=north] at (2.75,-2.25) {v3.0: highest uplift, cheapest defense};
 \end{tikzpicture}
-
-\vspace{0.2em}
-{\small\textit{Figure: The targeting pipeline at policy abstraction, with the defensive intervention point for each stage.}}
-\end{center}
-
-\vspace{0.5cm}
+\caption{The targeting pipeline at policy abstraction, with the defensive intervention point for each stage.}
+\label{fig:pipeline}
+\end{figure}
 
 \begin{infobox}[Base-Rate Context]
 \textbf{To prevent fear-driven misreading, we anchor expectations:}
@@ -401,13 +491,9 @@ The \textbf{dominant near-term shift} is likely not kinetic violence but:
 \textit{Primary concern: democratic degradation through non-lethal targeting, with kinetic risk as a lower-probability, higher-consequence tail scenario.}
 \end{infobox}
 
-\vspace{0.5cm}
-
 \begin{warnbox}[Scope Limitations]
 This document analyzes capabilities and trends for defensive policy purposes. It does not provide operational guidance and explicitly omits technical implementation details that could enable harm.
 \end{warnbox}
-
-\vspace{0.5cm}
 
 \begin{defbox}[Epistemic Status Markers]
 Key claims are tagged with confidence indicators:
@@ -418,15 +504,12 @@ Key claims are tagged with confidence indicators:
 \end{itemize}
 \end{defbox}
 
-\vspace{0.5cm}
-
 \begin{infobox}[Independent Work]
 This report is independent research. It is not affiliated with, produced by, or endorsed by any government agency, think tank, or official institution. The ``ETRA'' identifier is a document formatting convention, not an organizational identity. Analysis draws on publicly available academic and policy literature.
 \end{infobox}
 
-\vspace{0.5cm}
-
 \begin{defbox}[Revision History: Changes from v2.1 (Version 3.0, September 2026)]
+\small
 Version 3.0 is a substantive rewrite that tests the report's thesis against the 2024--2026 incident record.
 \begin{itemize}[nosep]
   \item \textbf{New Section 5}: dated incident record, projection scorecard grading every v2.x near-term projection, and revised forward timeline
@@ -440,20 +523,22 @@ Version 3.0 is a substantive rewrite that tests the report's thesis against the 
 \textit{Earlier versions}: v2.1 (July 2026) currency refresh and Maduro sourcing; v2.0 (February 2026) cross-series integration and epistemic markers.
 \end{defbox}
 
-\newpage
-\tableofcontents
-\newpage
+\clearpage
+{\setstretch{1.0}\tableofcontents}
+
+\bigskip
 
 % ============================================================================
 % RELATED ETRA REPORTS
 % ============================================================================
+\needspace{0.62\textheight}
 \begin{infobox}[Related ETRA Reports]
-This report is part of the Emerging Technology Risk Assessment series. Cross-cutting frameworks, Power Diffusion Theory, Delegation Defense, nano-smurfing, epistemic contamination, are shared across reports.
+This report is part of the Emerging Technology Risk Assessment series. Cross-cutting frameworks (Power Diffusion Theory, the Delegation Defense, nano-smurfing, and epistemic contamination) are shared across reports.
 
 \vspace{0.5em}
 \begin{center}
 \footnotesize
-\begin{tabular}{L{3.5cm}L{2.2cm}L{7cm}}
+\begin{tabular}{L{3.4cm}L{3.1cm}L{7.3cm}}
 \toprule
 \textbf{Report} & \textbf{Document ID} & \textbf{Connection to This Report} \\
 \midrule
@@ -467,87 +552,42 @@ AI Agents and WMD Proliferation & ETRA-2026-WMD-001 & Shared Power Diffusion The
 \end{center}
 \end{infobox}
 
-\newpage
-
 % ============================================================================
-% PART I - Foundations (Scatter Plot Visualization)
+% PART I - Foundations
 % ============================================================================
 \clearpage
 \thispagestyle{empty}
-\vspace*{-0.85in}
-\noindent\hspace*{-0.85in}\begin{tikzpicture}
-  % Header background
-  \fill[instdark] (0,0) rectangle (\paperwidth, -10cm);
-
-  % Part label and title (TOP - clear area)
-  \node[instgold, font=\fontsize{10}{10}\selectfont\sffamily] at (0.5\paperwidth, -1.2cm) {PART I};
-  \node[white, font=\fontsize{48}{48}\selectfont\bfseries] at (0.5\paperwidth, -2.8cm) {Foundations};
-  \node[white, opacity=0.7, font=\normalsize\sffamily] at (0.5\paperwidth, -4.2cm) {Theory, Capabilities, and Historical Context};
-
-  % Scatter plot visualization - capability vs accessibility over time (LEFT SIDE, LOWER - NEAR BOTTOM)
-  \begin{scope}[shift={(3cm, -8.5cm)}]
-    % Axes (larger, more visible)
-    \draw[white, opacity=0.4, line width=1.2pt, -Stealth] (0,0) -- (6,0) node[right, font=\fontsize{7}{7}\selectfont, white, opacity=0.7] {TIME};
-    \draw[white, opacity=0.4, line width=1.2pt, -Stealth] (0,0) -- (0,3) node[above, font=\fontsize{7}{7}\selectfont, white, opacity=0.7] {RISK};
-
-    % Grid (extended)
-    \foreach \y in {0.75,1.5,2.25} {
-      \draw[white, opacity=0.1, line width=0.5pt] (0,\y) -- (5.8,\y);
-    }
-    \foreach \x in {1.2,2.4,3.6,4.8} {
-      \draw[white, opacity=0.1, line width=0.5pt] (\x,0) -- (\x,2.9);
-    }
-
-    % Data points - historical events (larger, more visible)
-    \fill[instaccent, opacity=0.55] (0.5, 0.6) circle (0.16);
-    \fill[instaccent, opacity=0.55] (1.2, 0.85) circle (0.18);
-    \fill[instaccent, opacity=0.6] (2.0, 1.15) circle (0.2);
-    \fill[instaccent, opacity=0.6] (2.8, 1.5) circle (0.22);
-
-    % Current period (larger, brighter)
-    \fill[instgold, opacity=0.85] (3.9, 2.05) circle (0.28);
-    \node[white, font=\fontsize{6}{6}\selectfont\bfseries] at (3.9, 2.05) {NOW};
-
-    % Projected (outline, dashed)
-    \draw[instgold, opacity=0.65, line width=1.2pt, dashed] (4.7, 2.5) circle (0.3);
-    \draw[instgold, opacity=0.55, line width=1.2pt, dashed] (5.4, 2.75) circle (0.32);
-
-    % Trend line
-    \draw[instgold, opacity=0.55, line width=2pt] (0.5, 0.6) .. controls (1.8, 1.0) and (3.4, 1.75) .. (5.4, 2.75);
-
-    % Year labels (larger font)
-    \node[white, opacity=0.6, font=\fontsize{6}{6}\selectfont] at (1.0, -0.35) {1990};
-    \node[white, opacity=0.6, font=\fontsize{6}{6}\selectfont] at (2.4, -0.35) {2010};
-    \node[white, opacity=0.8, font=\fontsize{6}{6}\selectfont\bfseries] at (3.9, -0.35) {2026};
-    \node[white, opacity=0.6, font=\fontsize{6}{6}\selectfont] at (5.1, -0.35) {2030};
-  \end{scope}
-
-  % Trend description (RIGHT SIDE - ALIGNED WITH CHART TOP)
-  \node[white, opacity=0.5, font=\fontsize{7}{7}\selectfont, anchor=west] at (10.5cm, -5.7cm) {THREAT CAPABILITY TRAJECTORY};
-  \node[anchor=west] at (10.5cm, -6.4cm) {
-    \begin{tikzpicture}
-      \fill[instaccent, opacity=0.5] (0,0) circle (0.1);
-      \node[white, opacity=0.7, font=\fontsize{7}{7}\selectfont, anchor=west] at (0.25, 0) {Historical baseline};
-    \end{tikzpicture}
-  };
-  \node[anchor=west] at (10.5cm, -7.0cm) {
-    \begin{tikzpicture}
-      \fill[instgold, opacity=0.7] (0,0) circle (0.1);
-      \node[white, opacity=0.7, font=\fontsize{7}{7}\selectfont, anchor=west] at (0.25, 0) {Current period (2026)};
-    \end{tikzpicture}
-  };
-  \node[anchor=west] at (10.5cm, -7.6cm) {
-    \begin{tikzpicture}
-      \draw[instgold, opacity=0.6, line width=1pt, dashed] (0,0) circle (0.1);
-      \node[white, opacity=0.7, font=\fontsize{7}{7}\selectfont, anchor=west] at (0.25, 0) {Projected (2027--2030)};
-    \end{tikzpicture}
-  };
-
-  % Bottom accent
-  \fill[instgold] (2cm, -9.2cm) rectangle (\paperwidth-2cm, -9.3cm);
-\end{tikzpicture}
-
-\vspace{0.8cm}
+\partbanner{PART I}{Foundations}{Theory, Capabilities, and Historical Context}{%
+  % Technology shifts over a century of violence waves; agent capability
+  % crossing the sufficiency threshold, with the forward capability envelope
+  \draw[white, opacity=0.35, line width=0.4pt] (-3.6,-2.7) -- (3.85,-2.7);
+  \fill[white, opacity=0.06] (-3.6,-2.7) -- plot[smooth, domain=-3.6:3.85, samples=90]
+    (\x,{-2.15+0.35*sin(\x*110)+0.2*sin(\x*260+40)}) -- (3.85,-2.7) -- cycle;
+  \draw[white, opacity=0.5, line width=0.8pt] plot[smooth, domain=-3.6:3.85, samples=90]
+    (\x,{-2.15+0.35*sin(\x*110)+0.2*sin(\x*260+40)});
+  \foreach \t in {-3.0,-1.6,-0.1,1.3} {
+    \fill[instdark] (\t,-2.7) circle (0.09);
+    \draw[nodecyan!80!white, line width=0.8pt] (\t,-2.7) circle (0.09);
+  }
+  \draw[nodeorange!85!white, opacity=0.85, line width=0.8pt, dash pattern=on 3pt off 2pt]
+    (-3.6,0.9) -- (3.85,0.9);
+  \fill[instgold, opacity=0.15] plot[domain=2.7:3.85, samples=20]
+    (\x,{-0.9+3.6*exp(0.6*(\x-3.85))+0.45*(\x-2.7)})
+    -- plot[domain=3.85:2.7, samples=20] (\x,{-0.9+3.6*exp(0.6*(\x-3.85))-0.45*(\x-2.7)}) -- cycle;
+  \draw[instgold, line width=1.6pt] plot[smooth, domain=-3.6:2.7, samples=60]
+    (\x,{-0.9+3.6*exp(0.6*(\x-3.85))});
+  \draw[instgold, line width=1.6pt, dash pattern=on 3pt off 2pt] plot[smooth, domain=2.7:3.85, samples=20]
+    (\x,{-0.9+3.6*exp(0.6*(\x-3.85))});
+  \draw[white, opacity=0.25, line width=0.4pt] (2.7,-2.7) -- (2.7,0.9);
+  \fill[instgold, opacity=0.18] (2.7,0.9) circle (0.3);
+  \fill[instgold] (2.7,0.9) circle (0.11);
+  \fill[instgold] (2.7,-2.7) circle (0.09);
+  \node[pblabel, text=nodeorange!85!white, anchor=south west] at (-3.6,1.05) {SUFFICIENCY THRESHOLD};
+  \node[pblabel, text=instgold, anchor=south west] at (-3.6,-0.65) {AGENT CAPABILITY};
+  \node[pblabel, anchor=south west] at (-3.6,-1.45) {VIOLENCE WAVES};
+  \node[pblabel, anchor=north west] at (-3.69,-2.95) {1880};
+  \node[pblabel, text=white, anchor=north] at (2.7,-2.95) {2026};
+}
 \begin{center}
 \begin{minipage}{0.9\textwidth}
 \begin{tcolorbox}[enhanced, colback=white, colframe=instblue!30, boxrule=1pt, arc=4pt,
@@ -572,7 +612,7 @@ AI Agents and WMD Proliferation & ETRA-2026-WMD-001 & Shared Power Diffusion The
 
 Political assassination has shaped history from Julius Caesar to the present day. Each technological era has altered the methods, accessibility, and risk profiles of political violence. We are now entering an era where autonomous AI agents capable of complex multi-step planning, information synthesis, and real-time adaptation become widely accessible.
 
-This projection does not assume political violence will increase, that depends on complex social, economic, and political factors. Rather, we analyze how AI capabilities change the \textit{nature} of risks when political violence does occur, and how institutions may adapt.
+This projection does not assume that political violence will increase; that depends on complex social, economic, and political factors. Rather, we analyze how AI capabilities change the \textit{nature} of risks when political violence does occur, and how institutions may adapt.
 
 \subsection{Methodology}
 
@@ -602,10 +642,8 @@ We do not claim AI caused or materially enabled any specific attack in the 2024-
 \begin{defbox}[Core Definitions]
 \textbf{AI Agent}: An AI system capable of autonomous multi-step task execution, tool use, and goal-directed behavior with minimal human oversight per action. Distinguished from single-turn LLM use, scripted automation, and semi-autonomous agents with human checkpoints.
 
-\vspace{0.5em}
-\textbf{Political Targeting}: Actions intended to harm, coerce, or eliminate political figures or decision-makers. Includes reputational, economic, process, and kinetic variants.
+\textbf{Political Targeting}: Actions intended to harm, coerce, or eliminate political figures or decision-makers. Includes reputational, exposure and economic, process, and kinetic variants.
 
-\vspace{0.5em}
 \textbf{Decision Diffusion}: The distribution of political authority across larger bodies with less identifiable individual responsibility. Four subtypes: Authority, Visibility, Execution, Representation.
 \end{defbox}
 
@@ -853,80 +891,33 @@ Waves of political violence have usually been driven by social conditions (polar
 \end{infobox}
 
 % ============================================================================
-% PART II - Threat Analysis (Radar Chart Visualization)
+% PART II - Threat Analysis
 % ============================================================================
 \clearpage
 \thispagestyle{empty}
-\vspace*{-0.85in}
-\noindent\hspace*{-0.85in}\begin{tikzpicture}
-  % Header background
-  \fill[instdark] (0,0) rectangle (\paperwidth, -10cm);
-
-  % Part label and title (TOP - clear area)
-  \node[instgold, font=\fontsize{10}{10}\selectfont\sffamily] at (0.5\paperwidth, -1.2cm) {PART II};
-  \node[white, font=\fontsize{48}{48}\selectfont\bfseries] at (0.5\paperwidth, -2.8cm) {Threat Analysis};
-  \node[white, opacity=0.7, font=\normalsize\sffamily] at (0.5\paperwidth, -4.2cm) {Projections, Risk Calculus, and Taxonomy};
-
-  % Radar/spider chart - threat dimensions (LEFT SIDE, LOWER - RAISED)
-  \begin{scope}[shift={(5cm, -6.4cm)}]
-    % Background rings (scaled down ~15%)
-    \foreach \r in {0.5, 1.0, 1.5, 2.0} {
-      \draw[white, opacity=0.1, line width=0.5pt] (0,0)
-        \foreach \a in {0,60,120,180,240,300} { -- (\a:\r) } -- cycle;
-    }
-
-    % Axis lines
-    \foreach \a in {0,60,120,180,240,300} {
-      \draw[white, opacity=0.2, line width=0.5pt] (0,0) -- (\a:2.15);
-    }
-
-    % Labels
-    \node[white, opacity=0.6, font=\fontsize{6}{6}\selectfont] at (90:2.35) {RECON};
-    \node[white, opacity=0.6, font=\fontsize{6}{6}\selectfont] at (30:2.35) {COORD};
-    \node[white, opacity=0.6, font=\fontsize{6}{6}\selectfont] at (330:2.35) {EXEC};
-    \node[white, opacity=0.6, font=\fontsize{6}{6}\selectfont] at (270:2.35) {ATTR};
-    \node[white, opacity=0.6, font=\fontsize{6}{6}\selectfont] at (210:2.35) {SCALE};
-    \node[white, opacity=0.6, font=\fontsize{6}{6}\selectfont] at (150:2.35) {STEALTH};
-
-    % Traditional threat (dimmer, smaller - scaled)
-    \fill[instaccent, opacity=0.2]
-      (90:0.75) -- (30:0.9) -- (330:1.25) -- (270:1.15) -- (210:0.6) -- (150:0.85) -- cycle;
-    \draw[instaccent, opacity=0.5, line width=1pt]
-      (90:0.75) -- (30:0.9) -- (330:1.25) -- (270:1.15) -- (210:0.6) -- (150:0.85) -- cycle;
-
-    % AI-enabled threat (brighter, larger - scaled)
-    \fill[instgold, opacity=0.25]
-      (90:1.75) -- (30:1.85) -- (330:1.5) -- (270:0.75) -- (210:1.75) -- (150:1.6) -- cycle;
-    \draw[instgold, opacity=0.8, line width=1.5pt]
-      (90:1.75) -- (30:1.85) -- (330:1.5) -- (270:0.75) -- (210:1.75) -- (150:1.6) -- cycle;
-
-    % Center point
-    \fill[white] (0,0) circle (0.08);
-  \end{scope}
-
-  % Legend (RIGHT SIDE, LOWER - BALANCED)
-  \node[anchor=west] at (10.5cm, -6cm) {
-    \begin{tikzpicture}
-      \fill[instaccent, opacity=0.5] (0,0) rectangle (0.4, 0.2);
-      \node[white, opacity=0.8, font=\fontsize{8}{8}\selectfont, anchor=west] at (0.55, 0.1) {Traditional Threat};
-    \end{tikzpicture}
-  };
-  \node[anchor=west] at (10.5cm, -6.6cm) {
-    \begin{tikzpicture}
-      \fill[instgold, opacity=0.6] (0,0) rectangle (0.4, 0.2);
-      \node[white, opacity=0.8, font=\fontsize{8}{8}\selectfont, anchor=west] at (0.55, 0.1) {AI-Enabled Threat};
-    \end{tikzpicture}
-  };
-
-  % Dimension labels on right
-  \node[white, opacity=0.5, font=\fontsize{7}{7}\selectfont, anchor=west] at (10.5cm, -7.5cm) {Dimensions: Reconnaissance, Coordination,};
-  \node[white, opacity=0.5, font=\fontsize{7}{7}\selectfont, anchor=west] at (10.5cm, -8cm) {Execution, Attribution, Scale, Stealth};
-
-  % Bottom accent
-  \fill[instgold] (2cm, -9.2cm) rectangle (\paperwidth-2cm, -9.3cm);
-\end{tikzpicture}
-
-\vspace{0.8cm}
+\partbanner{PART II}{Threat Analysis}{Projections, Risk Calculus, and Taxonomy}{%
+  % Five targeting vectors converging on an official through the data layer
+  \draw[instgold, opacity=0.25, line width=0.4pt] (2.0,-3.0) -- (2.0,2.9);
+  \foreach \y/\lab in {2.6/REPUTATIONAL, 1.3/EPISTEMIC, 0/EXPOSURE, -1.3/PROCESS} {
+    \draw[nodeorange!85!white, opacity=0.7, line width=0.8pt, dash pattern=on 2pt off 2pt]
+      (-3.6,\y) -- (-0.6,\y) .. controls (0.7,\y) and (0.9,0) .. (2.0,0);
+    \node[pblabel, anchor=south west] at (-3.6,{\y+0.12}) {\lab};
+  }
+  \draw[nodeorange!85!white, line width=1.6pt]
+    (-3.6,-2.6) -- (-0.6,-2.6) .. controls (0.7,-2.6) and (0.9,0) .. (2.0,0);
+  \node[pblabel, text=nodeorange!85!white, anchor=south west] at (-3.6,-2.48) {KINETIC};
+  \foreach \x/\y in {-1.9/2.6, -1.1/2.6, -1.5/1.3, -0.9/0, -1.7/0, -1.3/-1.3, -1.0/-2.6} {
+    \fill[nodeorange!85!white] (\x,\y) circle (0.06);
+  }
+  \draw[instgold, line width=3.2pt, line cap=round] (2.0,0.3) -- (2.0,1.5);
+  \draw[instgold, line width=3.2pt, line cap=round] (2.0,-0.3) -- (2.0,-1.5);
+  \node[pblabel, text=instgold, anchor=south] at (2.0,3.0) {DATA LAYER};
+  \draw[nodeorange!85!white, line width=0.8pt] (2.0,0) -- (2.95,0);
+  \draw[white, opacity=0.4, line width=0.4pt] (3.35,0) circle (0.45);
+  \fill[instdark] (3.35,0) circle (0.3);
+  \draw[nodecyan!80!white, line width=0.8pt] (3.35,0) circle (0.3);
+  \fill[instgold] (3.35,0) circle (0.13);
+}
 \begin{center}
 \begin{minipage}{0.9\textwidth}
 \begin{tcolorbox}[enhanced, colback=white, colframe=instblue!30, boxrule=1pt, arc=4pt,
@@ -955,7 +946,10 @@ Entries reflect public reporting and court records available as of September 22,
 
 \subsection{The Incident Record}
 
-\begin{center}
+Figures~\ref{fig:timeline} and~\ref{fig:uscp} summarize the record, and Table~\ref{tab:incidents} gives detail for each numbered attack. Among local election officials surveyed by the Brennan Center in early 2026 (834 respondents), 32\% reported threats, harassment, or abuse (down from 38\% a year earlier) and 63\% were concerned AI could make their jobs more difficult or dangerous [O]. Two 2025 non-political US attacks (Las Vegas, January 1; Palm Springs, May 17) were publicly reported to have involved AI chatbot use during preparation [O].
+
+\begin{figure}[!htbp]
+\centering
 \begin{tikzpicture}[
   mk/.style={circle, minimum size=0.44cm, inner sep=0pt, font=\tiny\sffamily\bfseries, text=white},
   stem/.style={line width=0.6pt}
@@ -983,9 +977,9 @@ Entries reflect public reporting and court records available as of September 22,
   \node[font=\tiny\sffamily, text=infocyan, anchor=west] at (7.6,1.45) {Below: AI and information-integrity events};
 \end{tikzpicture}
 
-\vspace{0.3em}
-\scriptsize
-\begin{tabular}{L{8.2cm}L{7.4cm}}
+\medskip
+{\scriptsize\renewcommand{\arraystretch}{1.25}%
+\begin{tabular}{@{}L{8.2cm}L{7.6cm}@{}}
 \textcolor{alertcoral}{\textbf{1}} May 2024: Slovak prime minister shot & \textcolor{infocyan}{\textbf{a}} Jan 2024: New Hampshire voice-clone robocall \\
 \textcolor{alertcoral}{\textbf{2}} Jul 2024: Butler, PA rally shooting & \textcolor{infocyan}{\textbf{b}} Dec 2024: Romania presidential first round annulled \\
 \textcolor{alertcoral}{\textbf{3}} Sep 2024: West Palm Beach armed approach & \textcolor{infocyan}{\textbf{c}} Jan 2025: Las Vegas attack, chatbot use reported \\
@@ -996,13 +990,13 @@ Entries reflect public reporting and court records available as of September 22,
 \textcolor{instgold}{\textbf{V}} Jan 2026: Venezuela's sitting president seized & \textcolor{infocyan}{\textbf{h}} Sep 2026: lab reports AI-assisted doxxing platform \\
 \textcolor{alertcoral}{\textbf{8}} Apr 2026: Correspondents' Dinner shooting & \\
 \textcolor{alertcoral}{\textbf{9}} May 2026: White House security booth shooting & \\
-\end{tabular}
+\end{tabular}}
+\caption{Selected events, 2024--2026. Public reporting documents no AI planning role in any numbered attack.}
+\label{fig:timeline}
+\end{figure}
 
-\vspace{0.3em}
-{\small\textit{Figure: Selected events, 2024--2026. Public reporting documents no AI planning role in any numbered attack.}}
-\end{center}
-
-\begin{center}
+\begin{figure}[!htbp]
+\centering
 \begin{tikzpicture}
 \begin{axis}[
   ybar, bar width=0.8cm, width=11cm, height=5.2cm,
@@ -1013,17 +1007,19 @@ Entries reflect public reporting and court records available as of September 22,
   scaled y ticks=false, yticklabel style={/pgf/number format/.cd, 1000 sep={,}, /pgf/number format/assume math mode=true},
   nodes near coords, nodes near coords style={font=\tiny\sffamily, /pgf/number format/.cd, 1000 sep={,}, /pgf/number format/assume math mode=true},
   axis lines*=left, ymajorgrids, grid style={gridlight},
-  title={\small\sffamily U.S. Capitol Police threat-assessment cases},
 ]
 \addplot[fill=instblue!70, draw=instblue, bar shift=0pt] coordinates {(2021,9625) (2022,7501) (2023,8008) (2024,9474)};
 \addplot[fill=alertcoral!80, draw=alertcoral, bar shift=0pt] coordinates {(2025,14938)};
 \end{axis}
 \end{tikzpicture}
+\caption{U.S. Capitol Police threat-assessment cases involving Members of Congress, families, staff, and the Capitol complex (USCP, January 27, 2026) [O]. The 2025 caseload was up about 58\% on 2024.}
+\label{fig:uscp}
+\end{figure}
 
-{\small\textit{Figure: Cases involving Members of Congress, families, staff, and the Capitol complex (USCP, January 27, 2026) [O]. 2025 was up about 58\% on 2024.}}
-\end{center}
-
-\begin{center}
+\begin{table}[!htbp]
+\caption{Attacks on political figures, 2024--2026, by target tier, documented AI role, and path to target.}
+\label{tab:incidents}
+\centering
 \footnotesize
 \begin{tabular}{L{1.7cm}L{5.2cm}L{2.3cm}L{2.6cm}L{2.6cm}}
 \toprule
@@ -1040,9 +1036,7 @@ Apr 25, 2026 & Correspondents' Dinner: officer struck in body armor; attempted-a
 May 23, 2026 & Shooting at White House security booth; shooter killed & Head-of-state perimeter & None reported & Fixed site \\
 \bottomrule
 \end{tabular}
-\end{center}
-
-Among local election officials surveyed by the Brennan Center in early 2026 (834 respondents), 32\% reported threats, harassment, or abuse (down from 38\% a year earlier) and 63\% were concerned AI could make their jobs more difficult or dangerous [O]. Two 2025 non-political US attacks (Las Vegas, January 1; Palm Springs, May 17) were publicly reported to have involved AI chatbot use during preparation [O].
+\end{table}
 
 \subsection{What the Record Shows}
 
@@ -1056,12 +1050,14 @@ Among local election officials surveyed by the Brennan Center in early 2026 (834
 
 \subsection{Projection Scorecard}
 
-\begin{center}
-\footnotesize
-\begin{tabular}{L{5.4cm}L{2.6cm}L{6.4cm}}
+{\footnotesize
+\begin{longtable}{L{5.4cm}L{2.6cm}L{6.4cm}}
 \toprule
 \textbf{v2.x projection} & \textbf{Status} & \textbf{Evidence and comment} \\
 \midrule
+\endhead
+\bottomrule
+\endlastfoot
 Complex attack planning routinely achievable by individuals (early--mid 2026) & \textcolor{warningamber}{\textbf{Unconfirmed}} & Capability plausible [E]; no public attack shows AI planning uplift [O] \\
 Reputational targeting occurring; defenses lagging & \textcolor{alertcoral}{\textbf{Confirmed}} & Deepfake attack ads in 2026 primaries; state laws enjoined or struck [O] \\
 Election-worker and civil-servant harassment increasing & \textcolor{warningamber}{\textbf{Mixed}} & USCP caseload up about 58\%; self-reported election-official harassment 38\%$\rightarrow$32\% [O] \\
@@ -1071,9 +1067,7 @@ Intelligence services publish reports on AI-enabled political violence & \textco
 Decision diffusion begins (late 2026--early 2027) & \textcolor{coolgray}{\textbf{Not observed}} & Opposite trend: hardening without diffusion (Section 9) \\
 Norm erosion: cross-border seizures framed as law enforcement & \textcolor{alertcoral}{\textbf{Confirmed}} & January 2026 Venezuela operation (Section 12) [O] \\
 Frontier labs track governance-decision risk & \textcolor{alertcoral}{\textbf{Confirmed}} & Published frameworks and system cards [O] \\
-\bottomrule
-\end{tabular}
-\end{center}
+\end{longtable}}
 
 \begin{keybox}[Scorecard Lesson]
 Projections about \textit{reputational, informational, and normative} change have been confirmed; projections about \textit{kinetic capability uplift} and \textit{institutional redesign} have not. Version 3.0 reweights accordingly.
@@ -1135,12 +1129,14 @@ The changes above represent \textit{detection opportunity degradation}, not new 
 
 \subsection{Detection Burden Shift}
 
-\begin{center}
-\footnotesize
-\begin{tabular}{L{2cm}L{2.8cm}L{3cm}L{2cm}L{1.5cm}}
+{\footnotesize
+\begin{longtable}{L{2cm}L{2.8cm}L{3cm}L{2cm}L{1.5cm}}
 \toprule
 \textbf{Requirement} & \textbf{Historical Detection} & \textbf{AI-Era Challenge} & \textbf{Detection Shift} & \textbf{Conf.} \\
 \midrule
+\endhead
+\bottomrule
+\endlastfoot
 Planning time & Extended timelines created detection windows & Compressed timelines reduce detection opportunity & Sig. Harder & Med \\
 Research personnel & Org. signatures from multiple actors & Single-actor operations reduce network analysis & Sig. Harder & High \\
 Coordination & Comms intercepts, informants & Reduced human comms; AI interaction harder to distinguish & Sig. Harder & High \\
@@ -1148,9 +1144,7 @@ Org. footprint & Infiltration, network mapping & No organization to infiltrate &
 Financial patterns & Unusual transactions, funding flows & Normal consumption indistinguishable & Mod. Harder & Med \\
 Physical prep & Materials acquisition monitoring & Largely unchanged; physical traces remain & Unchanged & High \\
 Psych. indicators & Behavioral observation, radicalization signals & Largely unchanged; human psychology persistent & Unchanged & Med \\
-\bottomrule
-\end{tabular}
-\end{center}
+\end{longtable}}
 
 \textbf{Estimation methodology}: These assessments derive from structured comparison of historical case analysis against current AI capabilities, informed by red-team exercises. Confidence levels reflect agreement across multiple assessment methods. Numeric reduction factors (e.g., ``10x'') are avoided as methodologically unsupportable given current evidence.
 
@@ -1189,7 +1183,7 @@ AI-enabled planning by individuals or very small groups presents:
   \item Single-point behavioral observation with high noise
 \end{itemize}
 
-This doesn't make detection impossible, but it shifts the challenge significantly toward:
+This does not make detection impossible, but it shifts the challenge significantly toward:
 
 \begin{itemize}
   \item Monitoring for AI agent activities (difficult, privacy-invasive)
@@ -1210,19 +1204,20 @@ The trade-off is real: address suppression can conflict with residency verificat
 
 \subsection{The Downballot Exposure Shift}
 
-\textit{New in v3.0.} AI's marginal uplift is inversely proportional to the protection a target already has [E].
+\textit{New in v3.0.} AI's marginal uplift is inversely proportional to the protection a target already has [E] (Figure~\ref{fig:downballot}).
 
-\begin{center}
+\begin{figure}[!htb]
+\centering
 \begin{tikzpicture}
 \begin{axis}[
-  xbar, bar width=0.34cm, width=12.5cm, height=6.2cm,
+  xbar, bar width=0.32cm, width=12cm, height=5.8cm,
   xmin=0, xmax=5.4, xtick={1,2,3,4,5},
   xticklabels={Very low, Low, Moderate, High, Very high},
   ticklabel style={font=\scriptsize\sffamily},
   ytick=data, symbolic y coords={T1,T2,T3,T4},
   yticklabels={Tier 1: protected principals, Tier 2: partial protection, Tier 3: unprotected officials, Tier 4: civic workforce},
   y dir=reverse, enlarge y limits=0.2,
-  legend style={font=\scriptsize\sffamily, at={(0.5,-0.2)}, anchor=north, legend columns=2, draw=none},
+  legend style={font=\scriptsize\sffamily, at={(0.5,-0.2)}, anchor=north, legend columns=2, draw=none, /tikz/every even column/.append style={column sep=1em}},
   axis lines*=left, xmajorgrids, grid style={gridlight},
 ]
 \addplot[fill=instblue!70, draw=instblue] coordinates {(5,T1) (3,T2) (1.2,T3) (1,T4)};
@@ -1230,9 +1225,9 @@ The trade-off is real: address suppression can conflict with residency verificat
 \legend{Existing protection, Marginal AI-plus-data uplift to an attacker}
 \end{axis}
 \end{tikzpicture}
-
-{\small\textit{Figure: Ordinal assessment [E]. Tier 1: heads of state and top candidates; Tier 2: governors, cabinet, senior legislators; Tier 3: state legislators, judges, local officials; Tier 4: election officials, poll workers, school boards.}}
-\end{center}
+\caption{The downballot exposure shift, ordinal assessment [E]. Tier 1: heads of state and top candidates; Tier 2: governors, cabinet, senior legislators; Tier 3: state legislators, judges, local officials; Tier 4: election officials, poll workers, school boards.}
+\label{fig:downballot}
+\end{figure}
 
 Protective spending concentrates on Tier 1, while AI-plus-data uplift concentrates on Tiers 3 and 4, where democratic capacity is thinnest and replacement hardest. A democracy can survive an attack on a head of state; it is less clear it can staff elections and state legislatures if service becomes a personal security liability [E].
 
@@ -1257,7 +1252,11 @@ Defensive AI systems must be designed for adversarial robustness, not just patte
 
 \subsection{Frontier-Lab Recognition of Governance-Decision Risk}
 
-As of 2026, the frontier developers themselves now treat AI-mediated interference with governmental decision-making as a first-order catastrophic risk, not a speculative externality. Published frontier-lab safety frameworks and model system cards enumerate, among their monitored risk pathways, the prospect of a capable model \textbf{undermining decisions within major governments} (and undermining research and development within other high-resource AI developers) [O]. Two features are directly relevant here. First, this corroborates the report's central concern from an independent direction: the labs with the deepest visibility into these systems judge the corruption of institutional decision-making plausible enough to warrant formal tracking. Second, it reframes the insider / supply-chain vector (Section 8) as a decision-integrity risk, not merely a data-leakage risk: AI systems embedded in governmental workflows could shape outcomes, not only leak information. The tiered release model now common among leading developers (broadly available models with domain safeguards, versus reduced-safeguard variants restricted to vetted partners) slows, rather than prevents, the eventual diffusion of frontier capabilities to less-constrained actors (see the Capability Proliferation Problem), and per the Sufficiency Threshold does little for the mid-tier capability political targeting actually uses [E].
+As of 2026, the frontier developers themselves now treat AI-mediated interference with governmental decision-making as a first-order catastrophic risk, not a speculative externality. Published frontier-lab safety frameworks and model system cards enumerate, among their monitored risk pathways, the prospect of a capable model \textbf{undermining decisions within major governments} (and undermining research and development within other high-resource AI developers) [O].
+
+Two features are directly relevant here. First, this corroborates the report's central concern from an independent direction: the labs with the deepest visibility into these systems judge the corruption of institutional decision-making plausible enough to warrant formal tracking. Second, it reframes the insider / supply-chain vector (Section 8) as a decision-integrity risk, not merely a data-leakage risk: AI systems embedded in governmental workflows could shape outcomes, not only leak information.
+
+The tiered release model now common among leading developers (broadly available models with domain safeguards, versus reduced-safeguard variants restricted to vetted partners) slows, rather than prevents, the eventual diffusion of frontier capabilities to less-constrained actors (see the Capability Proliferation Problem), and per the Sufficiency Threshold does little for the mid-tier capability political targeting actually uses [E].
 
 \section{Counterarguments and Critical Perspectives}
 
@@ -1386,7 +1385,7 @@ International frameworks must evolve beyond intent-based liability toward outcom
 
 \section{A Taxonomy of AI-Enabled Targeting}
 
-We distinguish four primary categories of targeting with significantly different dynamics and defenses (Reputational, Economic, Kinetic, and Process), plus Epistemic Contamination as a distinct systemic vector. A closing group, \textit{Additional and Cross-Cutting Vectors}, catalogs enablers and emerging vectors (the Insider Threat and supply-chain compromise, Spearphishing 2.0, Algorithmic Radicalization, and Digital Twins) that amplify or extend the primary categories.
+We distinguish four primary categories of targeting with significantly different dynamics and defenses (Reputational, Exposure and Economic, Process, and Kinetic), plus Epistemic Contamination as a distinct systemic vector. A closing group, \textit{Additional and Cross-Cutting Vectors}, catalogs enablers and emerging vectors (the Insider Threat and supply-chain compromise, Spearphishing 2.0, Algorithmic Radicalization, and Digital Twins) that amplify or extend the primary categories.
 
 \subsection{Reputational Targeting (Digital Assassination)}
 
@@ -1401,7 +1400,7 @@ Using AI to destroy reputation, credibility, or psychological stability without 
   \item Information environment manipulation
 \end{itemize}
 
-\textbf{Barrier reduction}: Extreme. Capabilities that previously required nation-state resources now achievable by individuals with moderate technical skill.
+\textbf{Barrier reduction}: Extreme. Capabilities that previously required nation-state resources are now achievable by individuals with moderate technical skill.
 
 \textbf{Current state (September 2026)}: Routine in electoral politics [O]. The 2026 US midterm cycle is the first in which AI-generated attack advertising is common at every level: documented examples include a super PAC primary ad depicting a sitting member of Congress in fabricated compromising scenes (with a satire disclaimer), which the incumbent publicly blamed in part for his primary loss, and labeled and unlabeled synthetic videos of opponents in Michigan and Oregon races [O]. Precedents include the January 2024 New Hampshire voice-clone robocall (a \$6 million FCC fine; the consultant was acquitted of criminal charges) and the annulment of Romania's December 2024 presidential first round amid findings of coordinated online manipulation [O]. Most high-visibility 2026 deepfakes were produced by domestic campaigns and allied committees, often under a ``parody'' label, not by foreign actors [E].
 
@@ -1449,7 +1448,7 @@ Duration & Campaign-based & Persistent environmental degradation \\
 
 \textbf{Barrier reduction}: Extreme. The volume of synthetic content needed to contaminate an information environment is well within current AI capabilities [E].
 
-\textbf{Current state (September 2026)}: Visible and now documented in a political-violence context [O]. The Institutional Erosion report identifies this as one of five most likely impact paths.
+\textbf{Current state (September 2026)}: Visible and now documented in a political-violence context [O]. The Institutional Erosion report identifies this as one of its five most likely impact paths.
 
 \begin{warnbox}[Post-Incident Information Disorder (New Sub-Vector)]
 The hours after an attack are when verification matters most and is weakest. After the September 2025 killing of Charlie Kirk, one media analysis found an AI chatbot misidentified the suspect in multiple posts before the real suspect was named and asserted the victim was alive the day after his death; AI-``enhanced'' versions of FBI suspect photos circulated widely, and a county sheriff's office reposted one before flagging it as AI-altered [O]. Answer engines now issue confident errors at scale, and ``enhanced'' imagery can contaminate the evidentiary record investigators ask the public to help with [E]. Adversaries could exploit the same window deliberately [S].
@@ -1460,7 +1459,7 @@ The hours after an attack are when verification matters most and is weakest. Aft
 \textbf{Defensive measures:}
 \begin{itemize}
   \item Investment in cryptographic provenance chains (C2PA at scale)
-  \item Maintenance of ``analog breaks'', human-verified, non-digital information channels
+  \item Maintenance of ``analog breaks'' (human-verified, non-digital information channels)
   \item Institutional credibility infrastructure independent of digital verification
   \item Red-teaming of defensive verification systems against contamination attacks
   \item International cooperation on shared evidentiary standards
@@ -1502,7 +1501,7 @@ Using AI to disrupt democratic processes and civic infrastructure. Methods inclu
 
 \textit{Note: The Institutional Erosion report (ETRA-2026-IC-001) independently identifies ``Process DoS'' (overwhelming investigative and administrative capacity with AI-generated leads, requests, and inquiries) as one of its five most likely impact paths, validating this analysis from a different angle.}
 
-AI agents can generate thousands of technically valid FOIA requests that agencies are legally obligated to process. Unlike traditional DoS attacks on technical infrastructure, FOIA DoS exploits \textit{legal} infrastructure, agencies cannot simply ignore requests without violating law.
+AI agents can generate thousands of technically valid FOIA requests that agencies are legally obligated to process. Unlike traditional DoS attacks on technical infrastructure, FOIA DoS exploits \textit{legal} infrastructure: agencies cannot simply ignore requests without violating the law.
 
 \begin{center}
 \small
@@ -1534,10 +1533,10 @@ The fundamental challenge is that FOIA exists to enable democratic accountabilit
 
 \textbf{Projected Impact Severity:}
 \begin{itemize}
-  \item \textbf{Local government}: Critical, small agencies face existential processing backlogs
-  \item \textbf{State agencies}: Severe, records departments already understaffed
-  \item \textbf{Federal agencies}: Significant but variable, larger capacity but more requestable records
-  \item \textbf{Regulatory agencies}: Critical, AI-generated comments at scale could paralyze rulemaking
+  \item \textbf{Local government}: Critical; small agencies face existential processing backlogs
+  \item \textbf{State agencies}: Severe; records departments are already understaffed
+  \item \textbf{Federal agencies}: Significant but variable; larger capacity, but more requestable records
+  \item \textbf{Regulatory agencies}: Critical; AI-generated comments at scale could paralyze rulemaking
 \end{itemize}
 
 \textbf{Indicators to Watch} (as of September 2026 we have not identified a publicly documented, AI-attributed FOIA DoS campaign; the vector remains a projection [S], though organized mass voter-registration challenges show the same structural pattern [E]):
@@ -1575,7 +1574,7 @@ A government that cannot respond to legitimate oversight requests has effectivel
 
 \textbf{Current state (September 2026)}: Occurring, with mixed trend data. Capitol Police threat-assessment cases rose about 58\% in 2025; in the Brennan Center's 2026 survey, 32\% of local election officials reported threats, harassment, or abuse (down from 38\%), over half worried threats would hurt recruitment and retention, and 63\% were concerned AI could make their jobs more difficult or dangerous [O].
 
-\textbf{Why this category matters}: Process targeting achieves political goals without targeting any specific leader, it degrades democratic capacity itself. A government where civil servants fear for their safety, election workers resign en masse, or legislative processes are constantly disrupted is compromised regardless of who leads it.
+\textbf{Why this category matters}: Process targeting achieves political goals without targeting any specific leader; it degrades democratic capacity itself. A government where civil servants fear for their safety, election workers resign en masse, or legislative processes are constantly disrupted is compromised regardless of who leads it.
 
 \subsection{Kinetic Targeting}
 
@@ -1706,12 +1705,12 @@ AI agents may not merely be \textit{tools} for human attackers but \textit{insti
 \begin{itemize}
   \item Thousands of simultaneous personalized radicalization campaigns, each adapting to the target's responses in real time
   \item Deep persona modeling from years of social media and writing samples, making synthetic handlers indistinguishable from genuine contacts
-  \item No organizational structure to detect or infiltrate, each campaign is an independent AI-human interaction
+  \item No organizational structure to detect or infiltrate; each campaign is an independent AI-human interaction
   \item Vastly exceeding any human propagandist's capacity while maintaining the personal touch that drives radicalization
 \end{itemize}
 
 \begin{warnbox}[Stochastic Terrorism + AI Optimization]
-Stochastic terrorism dynamics combined with AI optimization create unpredictable radicalization pathways that don't require human intent at any single decision point. The combination of stochastic terrorism dynamics, AI optimization, and near-zero-cost synthetic handlers creates radicalization infrastructure that scales without organizational signatures. Regulatory frameworks focused on ``intent'' may be inadequate for this qualitatively different threat model.
+Stochastic terrorism dynamics combined with AI optimization create unpredictable radicalization pathways that do not require human intent at any single decision point. Add near-zero-cost synthetic handlers, and the result is radicalization infrastructure that scales without organizational signatures. Regulatory frameworks focused on ``intent'' may be inadequate for this qualitatively different threat model.
 \end{warnbox}
 
 \subsection{Digital Twins for Attack Rehearsal}
@@ -1749,89 +1748,57 @@ Defensive maturity & Low & Low, improving & Very Low & Med.\ (T1); Low (T3--4) \
 \end{tabular}
 \end{center}
 
-\textbf{Note}: This table covers the four primary targeting vectors. \textit{Epistemic Contamination} (a distinct vector, above) and \textit{Spearphishing 2.0} (catalogued under \textit{The Insider Threat} in the \textit{Additional and Cross-Cutting Vectors} group above) are cross-cutting enablers that amplify effectiveness across all four vectors. Those additional vectors (Insider and supply-chain compromise, Spearphishing 2.0, Algorithmic Radicalization, and Digital Twins) and the Risk Prioritization Matrix (Appendix A) together list the complete threat landscape.
+\textbf{Note}: This table covers the four primary targeting vectors. \textit{Epistemic Contamination} (a distinct vector, above) and \textit{Spearphishing 2.0} (catalogued with the \textit{Additional and Cross-Cutting Vectors} above) are cross-cutting enablers that amplify effectiveness across all four vectors. Those additional vectors (Insider and supply-chain compromise, Spearphishing 2.0, Algorithmic Radicalization, and Digital Twins) and the Risk Prioritization Matrix (Appendix A) together list the complete threat landscape.
 
 \subsection{Implications}
 
 \begin{enumerate}
-  \item \textbf{Reputational targeting deserves equal analytical weight} to kinetic targeting, it is more likely, already occurring, and can be politically effective without physical violence
-  \item \textbf{Defenses must be type-specific}, measures against kinetic attacks do not protect against reputational destruction
-  \item \textbf{The attacker can choose the vector}, protection against one type may simply shift attacks to another
+  \item \textbf{Reputational targeting deserves equal analytical weight} to kinetic targeting: it is more likely, already occurring, and can be politically effective without physical violence
+  \item \textbf{Defenses must be type-specific}: measures against kinetic attacks do not protect against reputational destruction
+  \item \textbf{The attacker can choose the vector}: protection against one type may simply shift attacks to another
   \item \textbf{Cascading effects are observed, not hypothetical}: reputational hostility and exposure precede kinetic attacks, and kinetic attacks trigger epistemic contamination in the aftermath
 \end{enumerate}
 
 % ============================================================================
-% PART III - Governmental Adaptation (Flow/Process Diagram)
+% PART III - Governmental Adaptation
 % ============================================================================
 \clearpage
 \thispagestyle{empty}
-\vspace*{-0.85in}
-\noindent\hspace*{-0.85in}\begin{tikzpicture}
-  % Header background
-  \fill[instdark] (0,0) rectangle (\paperwidth, -10cm);
-
-  % Part label and title (TOP - clear area)
-  \node[instgold, font=\fontsize{10}{10}\selectfont\sffamily] at (0.5\paperwidth, -1.2cm) {PART III};
-  \node[white, font=\fontsize{42}{42}\selectfont\bfseries] at (0.5\paperwidth, -2.8cm) {Governmental};
-  \node[white, font=\fontsize{42}{42}\selectfont\bfseries] at (0.5\paperwidth, -4.1cm) {Adaptation};
-
-  % Process flow diagram - decision diffusion concept (LEFT SIDE, LOWER - CENTERED)
-  \begin{scope}[shift={(3cm, -6.8cm)}]
-    % Section label (raised for spacing)
-    \node[white, opacity=0.5, font=\fontsize{7}{7}\selectfont] at (2.5, 1.5) {DECISION ARCHITECTURE SHIFT};
-
-    % Central decision node (before) - LARGER
-    \fill[alertcoral, opacity=0.8] (0, 0) circle (0.75);
-    \node[white, font=\fontsize{8}{8}\selectfont\bfseries] at (0, 0.1) {SINGLE};
-    \node[white, font=\fontsize{6}{6}\selectfont] at (0, -0.25) {POINT};
-    \node[white, opacity=0.8, font=\fontsize{8}{8}\selectfont] at (0, -1.4) {Centralized};
-
-    % Arrow - LARGER
-    \draw[instgold, line width=3pt, -Stealth] (1.1, 0) -- (2.9, 0);
-    \node[instgold, font=\fontsize{8}{8}\selectfont\bfseries] at (2, 0.5) {DIFFUSION};
-
-    % Distributed nodes (after) - LARGER
-    \foreach \angle/\dist in {90/0.85, 40/0.95, 320/0.9, 270/0.8, 220/0.95, 140/0.85} {
-      \fill[successgreen, opacity=0.55] ({4.3+\dist*cos(\angle)}, {\dist*sin(\angle)}) circle (0.28);
+\partbanner{PART III}{Governmental Adaptation}{Diffusion, Democracy, Fear, and International Variance}{%
+  % A single targetable decision point, radiating fear, diffused into an
+  % accountable distributed structure
+  \begin{scope}[shift={(-1.65,0.3)}, scale=1.2]
+    \draw[nodeorange!85!white, opacity=0.35, line width=0.4pt] (0,0) circle (1.55);
+    \draw[nodeorange!85!white, opacity=0.18, line width=0.4pt] (0,0) circle (1.8);
+    \foreach \a in {0,45,...,315} {
+      \draw[white, opacity=0.35, line width=0.4pt] (0,0) -- (\a:1.25);
+      \fill[white, opacity=0.85] (\a:1.25) circle (0.06);
     }
-    \fill[successgreen, opacity=0.9] (4.3, 0) circle (0.42);
-    \node[white, font=\fontsize{7}{7}\selectfont\bfseries] at (4.3, 0) {MULTI};
-    \node[white, opacity=0.8, font=\fontsize{8}{8}\selectfont] at (4.3, -1.4) {Distributed};
-
-    % Connection lines between distributed nodes
-    \foreach \angle in {90, 40, 320, 270, 220, 140} {
-      \draw[successgreen, opacity=0.4, line width=0.8pt] (4.3, 0) -- ({4.3+0.85*cos(\angle)}, {0.85*sin(\angle)});
+    \draw[nodeorange!85!white, line width=0.8pt, dash pattern=on 2pt off 1.5pt] (0,0) circle (0.45);
+    \foreach \a in {0,90,180,270} {
+      \draw[nodeorange!85!white, line width=0.8pt] (\a:0.38) -- (\a:0.6);
+    }
+    \fill[instdark] (0,0) circle (0.22);
+    \draw[instgold, line width=1.6pt] (0,0) circle (0.22);
+    \fill[instgold] (0,0) circle (0.1);
+  \end{scope}
+  \draw[instgold, line width=0.8pt, -{Stealth[length=4pt]}] (0.2,0.3) -- (0.72,0.3);
+  \begin{scope}[shift={(2.3,0.3)}, scale=1.15]
+    \draw[instgold, opacity=0.7, line width=0.8pt] (0,0) circle (1.35);
+    \foreach \i in {0,...,5} {
+      \draw[nodecyan!80!white, opacity=0.55, line width=0.8pt] (0,0) -- ({\i*60+30}:0.85);
+      \draw[nodecyan!80!white, opacity=0.55, line width=0.8pt] ({\i*60+30}:0.85) -- ({\i*60+90}:0.85);
+      \draw[white, opacity=0.3, line width=0.4pt] ({\i*60+30}:0.85) -- ({\i*60+30}:1.15);
+      \fill[white, opacity=0.85] ({\i*60+30}:1.15) circle (0.05);
+    }
+    \foreach \p in {(0,0), (30:0.85), (90:0.85), (150:0.85), (210:0.85), (270:0.85), (330:0.85)} {
+      \fill[instdark] \p circle (0.15);
+      \draw[nodecyan!85!white, line width=0.8pt] \p circle (0.15);
     }
   \end{scope}
-
-  % Bar chart - risk comparison (RIGHT SIDE, LOWER - MOVED FURTHER RIGHT)
-  \begin{scope}[shift={(13cm, -7.9cm)}]
-    % Title (aligned with DECISION ARCHITECTURE SHIFT)
-    \node[white, opacity=0.5, font=\fontsize{7}{7}\selectfont] at (2, 2.6) {TARGETING RISK};
-
-    % Axes
-    \draw[white, opacity=0.35, line width=0.8pt] (0,0) -- (0,2.3);
-    \draw[white, opacity=0.35, line width=0.8pt] (0,0) -- (4,0);
-
-    % Bars - LARGER
-    \fill[alertcoral, opacity=0.8] (0.4, 0) rectangle (1.1, 2.1);
-    \fill[successgreen, opacity=0.8] (1.5, 0) rectangle (2.2, 0.75);
-    \fill[instgold, opacity=0.8] (2.6, 0) rectangle (3.3, 1.35);
-
-    % Labels - LARGER
-    \node[white, opacity=0.8, font=\fontsize{6}{6}\selectfont] at (0.75, -0.35) {Singular};
-    \node[white, opacity=0.8, font=\fontsize{6}{6}\selectfont] at (1.85, -0.35) {Diffused};
-    \node[white, opacity=0.8, font=\fontsize{6}{6}\selectfont] at (2.95, -0.35) {Hybrid};
-
-    \node[white, opacity=0.6, font=\fontsize{6}{6}\selectfont, anchor=east] at (-0.15, 2.1) {HIGH};
-    \node[white, opacity=0.6, font=\fontsize{6}{6}\selectfont, anchor=east] at (-0.15, 0) {LOW};
-  \end{scope}
-
-  % Bottom accent
-  \fill[instgold] (2cm, -9.2cm) rectangle (\paperwidth-2cm, -9.3cm);
-\end{tikzpicture}
-
-\vspace{0.8cm}
+  \node[pblabel, anchor=north] at (-1.65,-2.2) {CENTRALIZED};
+  \node[pblabel, anchor=north] at (2.3,-2.2) {DIFFUSED};
+}
 \begin{center}
 \begin{minipage}{0.9\textwidth}
 \begin{tcolorbox}[enhanced, colback=white, colframe=instblue!30, boxrule=1pt, arc=4pt,
@@ -1854,7 +1821,7 @@ Defensive maturity & Low & Low, improving & Very Low & Med.\ (T1); Low (T3--4) \
 
 \subsection{The Core Thesis}
 
-When targeting individual leaders becomes significantly easier, rational institutional adaptation involves reducing the value of targeting any single individual, ``decision diffusion.''
+When targeting individual leaders becomes significantly easier, rational institutional adaptation involves reducing the value of targeting any single individual: ``decision diffusion.''
 
 \subsection{A Taxonomy of Diffusion Types}
 
@@ -1865,7 +1832,7 @@ When targeting individual leaders becomes significantly easier, rational institu
 \textbf{Type} & \textbf{Description} & \textbf{Democratic Risk} & \textbf{Accountability} \\
 \midrule
 Authority & More people must authorize & Medium & Public rollcall votes \\
-Visibility & Reduce clarity about who decided & \textcolor{alertcoral}{\textbf{Very High}} & Minimal, use sparingly \\
+Visibility & Reduce clarity about who decided & \textcolor{alertcoral}{\textbf{Very High}} & Minimal; use sparingly \\
 Execution & Distributed implementation & Medium-High & Statutory oversight \\
 Representation & Rotating spokespersons & Medium & Audit trails + rapporteurs \\
 \bottomrule
@@ -1937,36 +1904,41 @@ A notable irony: AI systems that enable more distributed decision-making could a
 \textbf{The test}: Can a citizen, within a reasonable timeframe, determine who was responsible for a government decision? If not, the diffusion mechanism has crossed from \textit{resilience} into \textit{opacity}.
 \end{recbox}
 
-\begin{center}
+\begin{figure}[!htb]
+\centering
 \begin{tikzpicture}[
-  q/.style={draw=instnavy, fill=instnavy!6, rounded corners=2pt, align=center, font=\scriptsize\sffamily, minimum width=2.9cm, minimum height=0.95cm},
-  bad/.style={draw=alertcoral, fill=alertcoral!12, rounded corners=2pt, align=center, font=\scriptsize\sffamily\bfseries, minimum width=2.9cm, minimum height=0.8cm},
-  good/.style={draw=successgreen, fill=successgreen!12, rounded corners=2pt, align=center, font=\scriptsize\sffamily\bfseries, minimum width=2.9cm, minimum height=0.8cm},
-  mid/.style={draw=warningamber, fill=warningamber!12, rounded corners=2pt, align=center, font=\scriptsize\sffamily\bfseries, minimum width=2.9cm, minimum height=0.8cm},
+  node distance=0.55cm,
+  q/.style={draw=instnavy, fill=instnavy!6, rounded corners=2pt, align=center, font=\footnotesize\sffamily, text width=5.2cm, minimum height=0.85cm},
+  start/.style={q, fill=lightgray, draw=instslate},
+  outc/.style={rounded corners=2pt, align=center, font=\footnotesize\sffamily\bfseries, text width=3.2cm, minimum height=0.85cm, line width=0.8pt},
+  bad/.style={outc, draw=alertcoral, fill=alertcoral!10, text=alertcoral!85!black},
+  good/.style={outc, draw=successgreen, fill=successgreen!10, text=successgreen!75!black},
+  mid/.style={outc, draw=warningamber, fill=warningamber!10, text=warningamber!75!black},
   arr/.style={-Stealth, line width=0.8pt, instnavy},
-  lab/.style={font=\tiny\sffamily, text=instslate}
+  noarr/.style={-Stealth, line width=0.8pt, alertcoral},
+  lab/.style={font=\scriptsize\sffamily\bfseries, text=instslate, inner sep=2pt}
 ]
-  \node[q] (q0) at (0,0) {Proposed diffusion or\\security adaptation};
-  \node[q] (q1) at (3.7,0) {Are decision-makers\\recorded?};
-  \node[q] (q2) at (7.4,0) {Disclosure time-limited,\\with mandatory review?};
-  \node[q] (q3) at (11.1,0) {Elected body retains\\oversight?};
-  \node[q] (q4) at (11.1,-2.1) {Sunset or renewal\\requirement?};
-  \node[bad] (x) at (5.55,-2.1) {Opacity: prohibited};
-  \node[good] (ok) at (11.1,-3.9) {Resilience: permitted};
-  \node[mid] (w) at (7.4,-3.9) {Permitted: add sunset};
+  \node[start] (q0) {Proposed diffusion or security adaptation};
+  \node[q, below=of q0] (q1) {Are decision-makers recorded?};
+  \node[q, below=of q1] (q2) {Disclosure time-limited, with mandatory review?};
+  \node[q, below=of q2] (q3) {Elected body retains oversight?};
+  \node[q, below=of q3] (q4) {Sunset or renewal requirement?};
+  \node[good, below=of q4] (ok) {Resilience: permitted};
+  \coordinate (xc) at ($(q1.east)!0.5!(q3.east) + (2.9cm,0)$);
+  \node[bad, minimum height=4.1cm] (x) at (xc) {Opacity:\\prohibited};
+  \node[mid] (w) at (q4 -| x) {Permitted:\\add sunset};
   \draw[arr] (q0) -- (q1);
-  \draw[arr] (q1) -- node[lab, above] {yes} (q2);
-  \draw[arr] (q2) -- node[lab, above] {yes} (q3);
+  \draw[arr] (q1) -- node[lab, right] {yes} (q2);
+  \draw[arr] (q2) -- node[lab, right] {yes} (q3);
   \draw[arr] (q3) -- node[lab, right] {yes} (q4);
-  \draw[arr] (q4) -- node[lab, right] {yes} (ok);
-  \draw[arr] (q4) -- node[lab, above] {no} (w);
-  \draw[arr, alertcoral] (q1) |- node[lab, pos=0.25, left] {no} (x);
-  \draw[arr, alertcoral] (q2) -- node[lab, left] {no} (x);
-  \draw[arr, alertcoral] (q3.south west) -- node[lab, above, sloped] {no} (x.east);
+  \draw[arr, successgreen!75!black] (q4) -- node[lab, right] {yes} (ok);
+  \foreach \n in {q1,q2,q3}
+    \draw[noarr] (\n.east) -- node[lab, above, text=alertcoral] {no} (\n.east -| x.west);
+  \draw[arr, warningamber!85!black] (q4.east) -- node[lab, above, text=warningamber!85!black] {no} (w.west);
 \end{tikzpicture}
-
-{\small\textit{Figure: The bright-line test as a decision sequence for oversight bodies.}}
-\end{center}
+\caption{The bright-line test as a decision sequence for oversight bodies. A ``no'' at any of the first three questions places the adaptation on the opacity side of the line.}
+\label{fig:brightline}
+\end{figure}
 
 \begin{center}
 \small
@@ -1987,7 +1959,7 @@ Classified proceedings with eventual declassification & Permanent classification
 
 \subsubsection{The Accelerationist Counter-Thesis}
 
-The diffusion hypothesis assumes rational actors who want to \textit{change policy} by targeting decision-makers. However, some ideological movements (accelerationist, neo-luddite, extreme anarcho-primitivist) may view the ``Diffused Committee'' as \textit{the target itself}, the ``faceless machine'' that represents everything they oppose.
+The diffusion hypothesis assumes rational actors who want to \textit{change policy} by targeting decision-makers. However, some ideological movements (accelerationist, neo-luddite, extreme anarcho-primitivist) may view the ``Diffused Committee'' as \textit{the target itself}: the ``faceless machine'' that represents everything they oppose.
 
 For such actors:
 \begin{itemize}
@@ -2012,7 +1984,7 @@ The ``delayed disclosure'' mechanisms in the Bright-Line Rule, while legally def
   \item The cure may worsen the disease it treats
 \end{itemize}
 
-\textbf{Assessment}: Decision diffusion may lower kinetic risk while increasing political instability and populism. This tradeoff should be explicitly acknowledged by policymakers rather than discovered after implementation.
+\textbf{Assessment}: Decision diffusion may lower kinetic risk while increasing political instability and populism. This trade-off should be explicitly acknowledged by policymakers rather than discovered after implementation.
 
 \section{Second-Order Effects on Democracy}
 
@@ -2124,7 +2096,7 @@ A critical dynamic missing from standard analysis: \textbf{leaders in fragile st
   \item Diffusion recommendations appropriate for stable democracies may be actively harmful if applied to fragile contexts
 \end{enumerate}
 
-\textbf{Scenario concern}: AI-enabled decapitation strikes against personalistic leaders in fragile states could trigger cascading instability, succession crises, civil conflicts, refugee flows, with regional and global consequences.
+\textbf{Scenario concern}: AI-enabled decapitation strikes against personalistic leaders in fragile states could trigger cascading instability (succession crises, civil conflicts, refugee flows) with regional and global consequences.
 
 \textbf{Policy implication}: International security frameworks should recognize that ``resilient structures'' recommendations are context-dependent. Supporting institutional development in fragile states may be a prerequisite for diffusion-based security.
 
@@ -2134,7 +2106,7 @@ A critical dynamic missing from standard analysis: \textbf{leaders in fragile st
 If a political assassination occurs via an autonomous system programmed by an AI agent, using open-source code, commercially available hardware, and operating across multiple jurisdictions, \textbf{who do you retaliate against?}
 \end{criticalbox}
 
-Traditional frameworks for state response to attacks assume attribution is difficult but eventually possible, evidence can establish responsibility to international standards, proportional response can be directed at the responsible party, and deterrence works because actors know they will be identified.
+Traditional frameworks for state response to attacks assume that attribution is difficult but eventually possible; that evidence can establish responsibility to international standards; that proportional response can be directed at the responsible party; and that deterrence works because actors know they will be identified.
 
 \begin{center}
 \small
@@ -2201,19 +2173,22 @@ The attribution void may be the most destabilizing long-term consequence of AI-e
 
 \subsection{Norm Override Scenarios: Extraterritorial Seizure and Immunity Erosion}
 
-A documented development in early 2026 demonstrates that international norms protecting heads of state are softer constraints than previously assumed. On January 3, 2026, U.S. forces conducted a military operation in Venezuela (publicly reported under the name Operation Absolute Resolve) that captured the incumbent Venezuelan president, Nicolas Maduro, who was transported to New York and arraigned in federal court on January 5, 2026 on narco-terrorism and related charges to which he pleaded not guilty; he remains detained in Brooklyn, with trial in the Southern District of New York scheduled for June 2027 [O]. Public reporting indicates the operation was preceded by CIA tracking of the president's movements, and it triggered significant international backlash, a report to Congress, and legal debate over its justification [O]. The account here is drawn from contemporaneous mainstream reporting and official records (for example CNN and NBC News timelines of January 3, 2026; the Southern District of New York indictment; a January 2026 Report to Congress; and analysis by the Brookings Institution and the UK House of Commons Library); specific citations should be footnoted in production. Claims marked [O] below are documentary; claims marked [E]/[S] are our inference from those facts.
+A documented development in early 2026 demonstrates that international norms protecting heads of state are softer constraints than previously assumed. On January 3, 2026, U.S. forces conducted a military operation in Venezuela (publicly reported under the name Operation Absolute Resolve) that captured the incumbent Venezuelan president, Nicolas Maduro, who was transported to New York and arraigned in federal court on January 5, 2026 on narco-terrorism and related charges to which he pleaded not guilty; he remains detained in Brooklyn, with trial in the Southern District of New York scheduled for June 2027 [O].
+
+Public reporting indicates the operation was preceded by CIA tracking of the president's movements, and it triggered significant international backlash, a report to Congress, and legal debate over its justification [O]. The account here is drawn from contemporaneous mainstream reporting and official records (for example CNN and NBC News timelines of January 3, 2026; the Southern District of New York indictment; a January 2026 Report to Congress; and analysis by the Brookings Institution and the UK House of Commons Library); specific citations should be footnoted in production. Claims marked [O] below are documentary; claims marked [E]/[S] are our inference from those facts.
 
 \begin{criticalbox}[Why This Matters for Political Targeting Risk]
 This event is not merely a diplomatic incident. It is a documented demonstration that rules around leaders can change rapidly when powerful actors decide they can act [E]. Notably, the operation was framed and prosecuted as a law-enforcement and counter-narcotics action rather than an act of war, which is precisely the doctrinal framing this report's norm-erosion indicators (Section 15) anticipated. For AI-enabled political targeting analysis, this has several implications:
 
 \begin{enumerate}
   \item \textbf{Norm erosion becomes an explicit driver, not background noise} [E]: Our report already anticipates institutional instability as threats evolve faster than governance. State-led seizure of a foreign head of state confirms that the pace and plausibility of norm change is higher than baseline assumptions suggested.
-  \item \textbf{Strengthens the fragile states vulnerability} [E]: Personalist leaders in fragile states now face a sharper dilemma, to \textbf{centralize} (coup-proof but easier to decapitate) or \textbf{diffuse} (risk internal overthrow). The international system offers less protection than assumed.
+  \item \textbf{Strengthens the fragile states vulnerability} [E]: Personalist leaders in fragile states now face a sharper dilemma: \textbf{centralize} (coup-proof but easier to decapitate) or \textbf{diffuse} (risk internal overthrow). The international system offers less protection than assumed.
   \item \textbf{Broadens ``targeting'' beyond non-state AI misuse}: When the ``attacker'' is a state and the limiting factor isn't capability but legitimacy, AI amplifies coercive statecraft through OSINT, persuasion operations, and legal narrative shaping.
   \item \textbf{Intensifies fear environment dynamics}: Big, norm-breaking events are exactly the catalyst that pushes publics and institutions toward over-adaptation, normalization of authoritarian measures, and political destabilization.
 \end{enumerate}
 \end{criticalbox}
 
+\needspace{14\baselineskip}
 \textbf{The Selective Enforcement Problem:}
 
 \begin{center}
@@ -2271,84 +2246,54 @@ Target leaders & International travel relatively safe & Must treat all travel as
   \item Diplomatic tensions rose following the operation, with commentary and analysis across major outlets and research institutions [O]
   \item Multiple Latin American and Global South leaders plausibly re-weighted the risk of international travel and exposure [E]
   \item Criminal proceedings were initiated in federal court in New York; this report takes no position on their merits, and readers should verify their current status [O]
-  \item To our knowledge, no copycat extraterritorial seizure of a head of state has occurred in the eight months since [E]; the copycat indicator remains \textit{not observed}, modest evidence the precedent is being treated as exceptional, which is why v3.0 does not raise the norm-erosion weighting further
+  \item To our knowledge, no copycat extraterritorial seizure of a head of state has occurred in the eight months since [E]; the copycat indicator remains \textit{not observed}. This is modest evidence that the precedent is being treated as exceptional, which is why v3.0 does not raise the norm-erosion weighting further
 \end{itemize}
 \end{infobox}
 
 \begin{recbox}[Assessment Update]
-This documented event \textbf{increases confidence} in the instability side of our projections. International norms should now be modeled as \textbf{contested and selectively enforced} rather than reliable constraints [E]. This makes our diffusion/accountability tradeoff analysis and fear-environment sections more salient, and suggests the timeline for institutional instability may be compressed. Because the operation was framed as counter-narcotics law enforcement rather than warfare, it also directly validated the specific ``public doctrine shifts framing cross-border seizures as law enforcement or counterterrorism'' indicator in Section 15, arriving within the projection window rather than the longer horizon originally anticipated.
+This documented event \textbf{increases confidence} in the instability side of our projections. International norms should now be modeled as \textbf{contested and selectively enforced} rather than reliable constraints [E]. This makes our diffusion/accountability trade-off analysis and fear-environment sections more salient, and suggests the timeline for institutional instability may be compressed. Because the operation was framed as counter-narcotics law enforcement rather than warfare, it also directly validated the specific ``public doctrine shifts framing cross-border seizures as law enforcement or counterterrorism'' indicator in Section 15, arriving within the projection window rather than the longer horizon originally anticipated.
 \end{recbox}
 
 % ============================================================================
-% PART IV - Policy Recommendations (Gauge/Meter Visualization)
+% PART IV - Policy Recommendations
 % ============================================================================
 \clearpage
 \thispagestyle{empty}
-\vspace*{-0.85in}
-\noindent\hspace*{-0.85in}\begin{tikzpicture}
-  % Header background
-  \fill[instdark] (0,0) rectangle (\paperwidth, -10cm);
-
-  % Part label and title (TOP - clear area)
-  \node[instgold, font=\fontsize{10}{10}\selectfont\sffamily] at (0.5\paperwidth, -1.2cm) {PART IV};
-  \node[white, font=\fontsize{42}{42}\selectfont\bfseries] at (0.5\paperwidth, -2.8cm) {Policy};
-  \node[white, font=\fontsize{42}{42}\selectfont\bfseries] at (0.5\paperwidth, -4.1cm) {Recommendations};
-
-  % Priority chevrons showing action progression (LEFT SIDE, LOWER - 50% WIDER)
-  \begin{scope}[shift={(2cm, -7cm)}]
-    % Label
-    \node[white, opacity=0.5, font=\fontsize{7}{7}\selectfont] at (5.5, 1.1) {ACTION TIMELINE};
-
-    % Chevron 1 - Immediate (leftmost, red/coral) - 50% WIDER
-    \fill[alertcoral, opacity=0.85]
-      (0, 0.7) -- (2.5, 0.7) -- (3.1, 0) -- (2.5, -0.7) -- (0, -0.7) -- (0.6, 0) -- cycle;
-    \node[white, font=\fontsize{8}{8}\selectfont\bfseries] at (1.4, 0) {IMMEDIATE};
-    \node[white, opacity=0.7, font=\fontsize{6}{6}\selectfont] at (1.4, -1) {Q4 2026};
-
-    % Chevron 2 - Near-term (middle, gold) - 50% WIDER
-    \fill[instgold, opacity=0.85]
-      (3.3, 0.7) -- (6.1, 0.7) -- (6.7, 0) -- (6.1, -0.7) -- (3.3, -0.7) -- (3.9, 0) -- cycle;
-    \node[white, font=\fontsize{8}{8}\selectfont\bfseries] at (4.85, 0) {NEAR-TERM};
-    \node[white, opacity=0.7, font=\fontsize{6}{6}\selectfont] at (4.85, -1) {2027};
-
-    % Chevron 3 - Strategic (rightmost, green) - 50% WIDER
-    \fill[successgreen, opacity=0.85]
-      (6.9, 0.7) -- (9.7, 0.7) -- (10.3, 0) -- (9.7, -0.7) -- (6.9, -0.7) -- (7.5, 0) -- cycle;
-    \node[white, font=\fontsize{8}{8}\selectfont\bfseries] at (8.45, 0) {STRATEGIC};
-    \node[white, opacity=0.7, font=\fontsize{6}{6}\selectfont] at (8.45, -1) {2028--30};
-
-    % Connecting arrow underneath
-    \draw[white, opacity=0.3, line width=1pt, -Stealth] (1.4, -1.3) -- (8.8, -1.3);
-  \end{scope}
-
-  % Stakeholder list (RIGHT SIDE, LOWER - ELEGANT CARD DESIGN)
-  \begin{scope}[shift={(13.5cm, -6.3cm)}]
-    % Subtle background card
-    \fill[white, opacity=0.05, rounded corners=3pt] (-0.3, 0.9) rectangle (3.5, -2.1);
-    \draw[instgold, opacity=0.4, line width=0.5pt, rounded corners=3pt] (-0.3, 0.9) rectangle (3.5, -2.1);
-
-    % Header with accent line
-    \node[white, opacity=0.6, font=\fontsize{7}{7}\selectfont\bfseries] at (1.6, 0.55) {STAKEHOLDERS};
-    \draw[instgold, opacity=0.5, line width=0.8pt] (0, 0.25) -- (3.2, 0.25);
-
-    % Stakeholder entries with subtle separators
-    \node[white, opacity=0.9, font=\fontsize{8}{8}\selectfont, anchor=west] at (0.1, -0.15) {Policy Makers};
-    \draw[white, opacity=0.1, line width=0.5pt] (0.1, -0.45) -- (3.1, -0.45);
-
-    \node[white, opacity=0.9, font=\fontsize{8}{8}\selectfont, anchor=west] at (0.1, -0.75) {CEOs};
-    \draw[white, opacity=0.1, line width=0.5pt] (0.1, -1.05) -- (3.1, -1.05);
-
-    \node[white, opacity=0.9, font=\fontsize{8}{8}\selectfont, anchor=west] at (0.1, -1.35) {Tech Elite};
-    \draw[white, opacity=0.1, line width=0.5pt] (0.1, -1.65) -- (3.1, -1.65);
-
-    \node[white, opacity=0.9, font=\fontsize{8}{8}\selectfont, anchor=west] at (0.1, -1.85) {Laymen};
-  \end{scope}
-
-  % Bottom accent
-  \fill[instgold] (2cm, -9.2cm) rectangle (\paperwidth-2cm, -9.3cm);
-\end{tikzpicture}
-
-\vspace{0.8cm}
+\partbanner{PART IV}{Policy Recommendations}{Priorities, Scenarios, Indicators, and Guardrails}{%
+  % From 2026 through indicator signposts to four 2030 scenarios sized by
+  % probability, bounded by civil liberties guardrails
+  \draw[instgold, opacity=0.5, line width=0.8pt] (-0.6,3.05) -- (3.85,3.05);
+  \draw[instgold, opacity=0.5, line width=0.8pt] (-0.6,-3.05) -- (3.85,-3.05);
+  \draw[white, opacity=0.25, line width=0.4pt, dash pattern=on 2pt off 2pt] (2.5,-3.05) -- (2.5,3.05);
+  \draw[white, opacity=0.6, line width=0.8pt] (-2.6,0) -- (-0.6,0);
+  \foreach \x in {-2.0,-1.5,-1.0} {
+    \fill[instdark, rotate around={45:(\x,0)}] (\x-0.09,-0.09) rectangle (\x+0.09,0.09);
+    \draw[nodecyan!85!white, line width=0.8pt, rotate around={45:(\x,0)}] (\x-0.09,-0.09) rectangle (\x+0.09,0.09);
+  }
+  \draw[nodecyan!80!white, line width=0.8pt] (-0.6,0) .. controls (0.7,0) and (0.9,2.4) .. (2.5,2.4);
+  \draw[instgold, line width=1.6pt] (-0.6,0) .. controls (0.7,0) and (0.9,0.8) .. (2.5,0.8);
+  \draw[nodeorange!85!white, line width=0.8pt] (-0.6,0) .. controls (0.7,0) and (0.9,-0.8) .. (2.5,-0.8);
+  \draw[white, opacity=0.5, line width=0.8pt] (-0.6,0) .. controls (0.7,0) and (0.9,-2.4) .. (2.5,-2.4);
+  \fill[instdark] (2.5,2.4) circle (0.2);
+  \fill[nodecyan!80!white, opacity=0.3] (2.5,2.4) circle (0.2);
+  \draw[nodecyan!80!white, line width=0.8pt] (2.5,2.4) circle (0.2);
+  \fill[instdark] (2.5,0.8) circle (0.38);
+  \fill[instgold, opacity=0.35] (2.5,0.8) circle (0.38);
+  \draw[instgold, line width=1.6pt] (2.5,0.8) circle (0.38);
+  \fill[instdark] (2.5,-0.8) circle (0.285);
+  \fill[nodeorange!85!white, opacity=0.3] (2.5,-0.8) circle (0.285);
+  \draw[nodeorange!85!white, line width=0.8pt] (2.5,-0.8) circle (0.285);
+  \fill[instdark] (2.5,-2.4) circle (0.24);
+  \fill[white, opacity=0.15] (2.5,-2.4) circle (0.24);
+  \draw[white, opacity=0.6, line width=0.8pt] (2.5,-2.4) circle (0.24);
+  \fill[instgold, opacity=0.18] (-2.6,0) circle (0.3);
+  \fill[instgold] (-2.6,0) circle (0.11);
+  \foreach \y/\l/\p in {2.4/A/12, 0.8/B/45, -0.8/C/25, -2.4/D/18} {
+    \node[pblabel, anchor=west] at (3.0,\y) {{\color{white}\l}\hspace{3pt}\p\%};
+  }
+  \node[pblabel, text=white, anchor=north west] at (-2.71,-0.4) {2026};
+  \node[pblabel, anchor=south, fill=instdark, inner sep=1.5pt] at (2.5,3.25) {2030};
+}
 \begin{center}
 \begin{minipage}{0.9\textwidth}
 \begin{tcolorbox}[enhanced, colback=white, colframe=instblue!30, boxrule=1pt, arc=4pt,
@@ -2373,14 +2318,17 @@ This documented event \textbf{increases confidence} in the instability side of o
 
 Version 3.0 reorders recommendations by one test drawn from the \textit{AI-Centrism Misallocates Defense} critique (Section 7): \textbf{prefer measures that pay off whether or not AI turns out to be the decisive factor.} Measures addressing the documented 2024--2026 enablers come first; AI-specific measures follow; structural redesign comes last.
 
+\needspace{0.3\textheight}
 \subsection{The Priority Stack}
 
-\begin{center}
-\footnotesize
-\begin{tabular}{cL{5.6cm}L{3.2cm}L{3.3cm}L{1.6cm}}
+{\footnotesize
+\begin{longtable}{cL{5.6cm}L{3.2cm}L{3.3cm}L{1.6cm}}
 \toprule
 \textbf{\#} & \textbf{Action} & \textbf{Primary owner} & \textbf{Why now} & \textbf{Pays off without AI?} \\
 \midrule
+\endhead
+\bottomrule
+\endlastfoot
 1 & \textbf{Close the data layer} for officials below the protected tier: address confidentiality and single-request broker deletion for officials, judges, election workers, and families; enforcement against breach-data and exposure services & Legislatures, privacy regulators & Documented escalation path; AI multiplies the data's value & Yes \\
 2 & \textbf{Fund protection for Tier 3--4 officials}: residential security assessments, threat-assessment access, law enforcement liaison & State governments, court administrators & Largest marginal AI uplift is against the unprotected & Yes \\
 3 & \textbf{Harden the November 2026 midterm and certification period}: verification cells, staff protection and reporting, pre-bunking & Election administrators, platforms & Live stress test within weeks & Yes \\
@@ -2390,11 +2338,9 @@ Version 3.0 reorders recommendations by one test drawn from the \textit{AI-Centr
 7 & \textbf{Secure AI used by principals and staff}: procurement, provenance, least privilege, insider controls & Protective services, IT security & Defensive adoption can create the vulnerability & No \\
 8 & \textbf{Attribution and norm development} for unattributable attacks (Section 12) & Foreign ministries, alliances & Norm erosion is documented & Partly \\
 9 & \textbf{Research accountable diffusion} before any constitutional debate & Research councils, legislatures & Diffusion is not yet occurring & Yes \\
-\bottomrule
-\end{tabular}
-\end{center}
+\end{longtable}}
 
-\begin{keybox}[Key Insight for Policy Makers]
+\begin{keybox}[Key Insight for Policymakers]
 The window for proactive adaptation is still open, but it now has a date on it. The first high-profile incident with a documented AI link, or the next attack on an unprotected official, will set policy reactively. Items 1--3 can be done before that happens and would have been worth doing in 2024.
 \end{keybox}
 
@@ -2415,13 +2361,15 @@ Data-layer protection carries democratic costs if drawn too broadly [E]. The lin
 
 \subsection{Stakeholder Summary}
 
-\begin{center}
-\footnotesize
-\begin{tabular}{L{2.6cm}L{6.4cm}L{5.4cm}}
+{\footnotesize
+\begin{longtable}{L{2.6cm}L{6.4cm}L{5.4cm}}
 \toprule
 \textbf{Stakeholder} & \textbf{Highest-priority actions} & \textbf{Key insight} \\
 \midrule
-Policy makers & Items 1, 2, 6, 9; mandate AI-aware threat assessments for protective services & Fund the unprotected tiers, not only the top \\
+\endhead
+\bottomrule
+\endlastfoot
+Policymakers & Items 1, 2, 6, 9; mandate AI-aware threat assessments for protective services & Fund the unprotected tiers, not only the top \\
 Protective services & Items 4, 5, 7; red-team defensive AI against offensive AI; vary patterns & Assume adversaries have modeled your protocols \\
 Election administrators & Item 3; staff protection; verification cells; disruption contingency plans & The certification window is the process-targeting peak \\
 AI developers & Evaluate political-reconnaissance and exposure uplift; disruption reporting; publish referral thresholds and statistics; answer-engine crisis modes & The mid-tier, not the frontier, is where political-targeting misuse lives \\
@@ -2429,12 +2377,14 @@ Platforms and data brokers & Prompt deletion for officials; detect bulk look-ups
 Corporate leadership & Executive protection; information hygiene; succession planning & Same exposure dynamics, less institutional protection \\
 Civil society & Track civic exit; monitor overreach; research accountable diffusion & Measure what is currently unmeasured \\
 The public & Keep perspective on actual versus perceived risk; verify before sharing after incidents & A public that neither panics nor ignores the issue anchors proportionate response \\
-\bottomrule
-\end{tabular}
-\end{center}
+\end{longtable}}
 
 \begin{recbox}[For AI Developers: Governance by Design]
-Implement capability bounding, audit trails, and human gates at decision boundaries as architectural constraints rather than policy overlays. Reference implementations in agent systems with physical-world actuation exist (see the BioForge governance architecture): capability bounds the agent has no tool to raise, flight-recorder-style audit logging that also records refusals, and human oversight at digital-to-physical transitions [O]. Graduated autonomy (relaxing gates as a track record accumulates) belongs in that list only with conditions: irreversible or novel actions keep their gate at any trust level, relaxation is per action and per workflow rather than global, it requires a human action outside the agent's reach, and it is logged, time-bounded, and auto-reverting on anomaly. A track record drawn from trials the system can recognize as observed is the weakest evidence available. For political targeting specifically: treat bulk personal-data aggregation about named officials as a monitored behavior, publish law enforcement referral thresholds and volumes, and share exposure-infrastructure indicators with platforms and protective services.
+Implement capability bounding, audit trails, and human gates at decision boundaries as architectural constraints rather than policy overlays. Reference implementations in agent systems with physical-world actuation exist (see the BioForge governance architecture): capability bounds the agent has no tool to raise, flight-recorder-style audit logging that also records refusals, and human oversight at digital-to-physical transitions [O].
+
+Graduated autonomy (relaxing gates as a track record accumulates) belongs in that list only with conditions: irreversible or novel actions keep their gate at any trust level, relaxation is per action and per workflow rather than global, it requires a human action outside the agent's reach, and it is logged, time-bounded, and auto-reverting on anomaly. A track record drawn from trials the system can recognize as observed is the weakest evidence available.
+
+For political targeting specifically: treat bulk personal-data aggregation about named officials as a monitored behavior, publish law enforcement referral thresholds and volumes, and share exposure-infrastructure indicators with platforms and protective services.
 \end{recbox}
 
 \subsection{Timeline}
@@ -2477,18 +2427,19 @@ The AI-specific threat remains marginal and current institutions prove adequate.
 
 \subsection{Conditional Estimates}
 
-We assign \textbf{40\%} probability to strong defensive adoption (proactive policy, investment in unprotected tiers, coordination, rights-preserving design) and \textbf{60\%} to weak adoption. Point estimates are the weighted mix: $\text{weighted} = 0.4 \times \text{strong} + 0.6 \times \text{weak}$.
+We assign \textbf{40\%} probability to strong defensive adoption (proactive policy, investment in unprotected tiers, coordination, rights-preserving design) and \textbf{60\%} to weak adoption. Point estimates are the weighted mix: $\text{weighted} = 0.4 \times \text{strong} + 0.6 \times \text{weak}$ (Figure~\ref{fig:scenarios}).
 
-\begin{center}
+\begin{figure}[!htb]
+\centering
 \begin{tikzpicture}
 \begin{axis}[
-  ybar, bar width=0.34cm, width=15cm, height=6.4cm,
+  ybar, bar width=0.34cm, width=15cm, height=6cm,
   ymin=0, ymax=58, ylabel={Probability (\%)}, ylabel style={font=\scriptsize\sffamily},
   symbolic x coords={A,B,C,D}, xtick=data,
   xticklabels={A: Effective Defense, B: Gradual Adaptation, C: Rapid Destabilization, D: Capability Plateau},
   ticklabel style={font=\scriptsize\sffamily}, enlarge x limits=0.18,
   nodes near coords, nodes near coords style={font=\tiny\sffamily},
-  legend style={font=\scriptsize\sffamily, at={(0.5,-0.17)}, anchor=north, legend columns=4, draw=none},
+  legend style={font=\scriptsize\sffamily, at={(0.5,-0.17)}, anchor=north, legend columns=4, draw=none, /tikz/every even column/.append style={column sep=1em}},
   axis lines*=left, ymajorgrids, grid style={gridlight},
 ]
 \addplot[fill=coolgray!60, draw=coolgray] coordinates {(A,15) (B,45) (C,20) (D,20)};
@@ -2498,21 +2449,22 @@ We assign \textbf{40\%} probability to strong defensive adoption (proactive poli
 \legend{v2.1 point, v3.0 point, v3.0 strong defense, v3.0 weak defense}
 \end{axis}
 \end{tikzpicture}
-
-{\small\textit{Figure: Core scenario estimates. Each v3.0 series sums to 100\%. The v2.1 weak-defense column (not shown) summed to 90\% and has been corrected.}}
-\end{center}
+\caption{Core scenario estimates. Each v3.0 series sums to 100\%. The v2.1 weak-defense column (not shown) summed to 90\% and has been corrected.}
+\label{fig:scenarios}
+\end{figure}
 
 The largest lever is the defensive-adoption column: moving from weak to strong adoption cuts Rapid Destabilization from 35\% to 10\%, the quantitative case for the Section 13 priority stack.
 
 \subsection{Overlay Scenarios (Not Mutually Exclusive)}
 
-These can co-occur with any core scenario; estimates are the probability the pattern materially emerges in at least one major democracy by 2030.
+These can co-occur with any core scenario; estimates are the probability that the pattern materially emerges in at least one major democracy by 2030 (Figure~\ref{fig:overlays}).
 
-\begin{center}
-\begin{tikzpicture}[x=0.36cm, y=0.85cm]
+\begin{figure}[!htb]
+\centering
+\begin{tikzpicture}[x=0.34cm, y=0.8cm]
   \foreach \v in {0,5,...,35} {
-    \draw[gridlight] (\v,0.4) -- (\v,-3.5);
-    \node[font=\tiny\sffamily, text=instslate] at (\v,-3.8) {\v\%};
+    \draw[gridlight] (\v,0.5) -- (\v,-3.5);
+    \node[font=\scriptsize\sffamily, text=instslate] at (\v,-3.85) {\v\%};
   }
   \foreach \y/\lab/\s/\w/\os/\ow in {
     0/{E: Decoy State}/3/12/3/15,
@@ -2525,32 +2477,37 @@ These can co-occur with any core scenario; estimates are the probability the pat
     \fill[successgreen] (\s,\y) circle (0.16);
     \fill[alertcoral] (\w,\y) circle (0.16);
   }
-  \node[font=\tiny\sffamily, anchor=west] at (22,0.35) {\textcolor{successgreen}{$\bullet$} strong defense \quad \textcolor{alertcoral}{$\bullet$} weak defense};
-  \node[font=\tiny\sffamily, anchor=west] at (22,-0.05) {\textcolor{coolgray}{thin bar}: v2.1 range};
+  \begin{scope}[shift={(-3,-4.55)}, font=\scriptsize\sffamily]
+    \fill[successgreen] (0,0) circle (0.16); \node[anchor=west] at (0.4,0) {strong defensive adoption};
+    \fill[alertcoral] (12,0) circle (0.16); \node[anchor=west] at (12.4,0) {weak defensive adoption};
+    \draw[instnavy, line width=5pt] (24,0) -- (25.6,0); \node[anchor=west] at (25.9,0) {v3.0 range};
+    \draw[coolgray!70, line width=3pt] (31.5,0) -- (33.1,0); \node[anchor=west] at (33.4,0) {v2.1 range};
+  \end{scope}
 \end{tikzpicture}
-
-{\small\textit{Figure: Overlay scenario ranges, strong to weak defensive adoption, v3.0 (thick) versus v2.1 (thin).}}
-\end{center}
+\caption{Overlay scenario ranges from strong to weak defensive adoption, v3.0 (thick) versus v2.1 (thin).}
+\label{fig:overlays}
+\end{figure}
 
 \begin{center}
 \footnotesize
-\begin{tabular}{L{3.8cm}L{10.4cm}}
+\begin{tabular}{L{4.6cm}L{10.4cm}}
 \toprule
 \textbf{Overlay} & \textbf{Change from v2.1 and reason} \\
 \midrule
-E: Figurehead Governance & Weak-defense estimate down (15\%$\rightarrow$12\%): no movement toward diffusion of any kind observed \\
-F: Mutual Surveillance Equilibrium & Up (5/10\%$\rightarrow$6/12\%): lab-side scanning and referral normalize a new monitoring layer \\
-G: Autonomous Attack Vectors & Up (5/15\%$\rightarrow$6/16\%): autonomous multi-agent misuse documented in cyber operations, though humans still select targets \\
-H: Remote-Only Executive (partial) & Up (10/25\%$\rightarrow$15/30\%): hardening without diffusion is the observed adaptation path; the complete form remains about 5\% \\
+E: Figurehead Governance (``Decoy State'') & Weak-defense estimate down (15\%$\rightarrow$12\%): no movement toward diffusion of any kind observed \\
+F: Mutual Surveillance Equilibrium (``Transparent Society'') & Up (5/10\%$\rightarrow$6/12\%): lab-side scanning and referral normalize a new monitoring layer \\
+G: Autonomous Attack Vectors (``Algorithmic Martyrdom'') & Up (5/15\%$\rightarrow$6/16\%): autonomous multi-agent misuse documented in cyber operations, though humans still select targets \\
+H: Remote-Only Executive (``Bunkerization,'' partial) & Up (10/25\%$\rightarrow$15/30\%): hardening without diffusion is the observed adaptation path; the complete form remains about 5\% \\
 \bottomrule
 \end{tabular}
 \end{center}
 
 \section{Signals and Early Indicators}
 
-Version 3.0 converts the v2.1 indicator lists into a graded dashboard: each indicator is marked \textbf{Triggered}, \textbf{Partial}, or \textbf{Not observed} as of September 2026.
+Version 3.0 converts the v2.1 indicator lists into a graded dashboard: each indicator is marked \textbf{Triggered}, \textbf{Partial}, or \textbf{Not observed} as of September 2026 (Figure~\ref{fig:dashboard}).
 
-\begin{center}
+\begin{figure}[!htb]
+\centering
 \begin{tikzpicture}[
   sq/.style={minimum size=0.55cm, inner sep=0pt, rounded corners=1.5pt},
   T/.style={sq, fill=alertcoral},
@@ -2568,14 +2525,14 @@ Version 3.0 converts the v2.1 indicator lists into a graded dashboard: each indi
       \node[\s] at (\i*0.7-0.35,\y) {};
     }
   }
-  \node[T, minimum size=0.3cm] at (6.1,0) {}; \node[font=\tiny\sffamily, anchor=west] at (6.35,0) {Triggered};
-  \node[P, minimum size=0.3cm] at (6.1,-0.6) {}; \node[font=\tiny\sffamily, anchor=west] at (6.35,-0.6) {Partial};
-  \node[N, minimum size=0.3cm] at (6.1,-1.2) {}; \node[font=\tiny\sffamily, anchor=west] at (6.35,-1.2) {Not observed};
-  \node[W, minimum size=0.3cm] at (6.1,-1.8) {}; \node[font=\tiny\sffamily, anchor=west] at (6.35,-1.8) {Watch / unverified};
+  \node[T, minimum size=0.3cm] at (6.1,0) {}; \node[font=\scriptsize\sffamily, anchor=west] at (6.35,0) {Triggered};
+  \node[P, minimum size=0.3cm] at (6.1,-0.6) {}; \node[font=\scriptsize\sffamily, anchor=west] at (6.35,-0.6) {Partial};
+  \node[N, minimum size=0.3cm] at (6.1,-1.2) {}; \node[font=\scriptsize\sffamily, anchor=west] at (6.35,-1.2) {Not observed};
+  \node[W, minimum size=0.3cm] at (6.1,-1.8) {}; \node[font=\scriptsize\sffamily, anchor=west] at (6.35,-1.8) {Watch / unverified};
 \end{tikzpicture}
-
-{\small\textit{Figure: Indicator dashboard, September 2026 (one square per indicator; details below).}}
-\end{center}
+\caption{Indicator dashboard, September 2026 (one square per indicator; details in the tables below).}
+\label{fig:dashboard}
+\end{figure}
 
 \subsection{Threat Escalation Indicators}
 
@@ -2653,7 +2610,7 @@ Review threat escalation monthly (weekly during election periods), defensive ado
 \begin{enumerate}
   \item Security measures must not become the threat they defend against
   \item Proportionality to documented threat levels
-  \item Transparency about tradeoffs
+  \item Transparency about trade-offs
   \item Reversibility with sunset provisions
 \end{enumerate}
 
@@ -2793,7 +2750,7 @@ Criminalization of AI ``misuse'' & ``Close the loopholes'' & Chilling effect on 
 Patriot Act 2.0 is more likely than not following a successful high-profile AI-enabled attack. Mitigating this requires pre-crisis institutional design and public commitment to proportionality principles.
 \end{warnbox}
 
-\textbf{Why This Matters, The Historical Pattern}: The guardrails in this section are noble but fragile. History demonstrates that major security incidents trigger rapid expansion of state power:
+\textbf{Why This Matters: The Historical Pattern}. The guardrails in this section are noble but fragile. History demonstrates that major security incidents trigger rapid expansion of state power:
 \begin{itemize}
   \item Post-9/11: Patriot Act, mass surveillance programs, indefinite detention
   \item Post-Oklahoma City: Antiterrorism and Effective Death Penalty Act
@@ -2918,18 +2875,20 @@ The record since v2.1 corrected this report in one direction (kinetic uplift is 
 
   % Bottom accent
   \fill[instgold] (2cm, -5.2cm) rectangle (\paperwidth-2cm, -5.3cm);
-\end{tikzpicture}
+\end{tikzpicture}\hspace*{-0.85in}
 
 \vspace{1.5cm}
 
 \section{Risk Prioritization Matrix}
 
-\begin{center}
-\footnotesize
-\begin{tabular}{L{2.3cm}L{1.7cm}L{1.4cm}L{1.7cm}L{2.6cm}L{4.4cm}}
+{\footnotesize
+\begin{longtable}{L{2.3cm}L{1.7cm}L{1.4cm}L{1.7cm}L{2.6cm}L{4.4cm}}
 \toprule
 \textbf{Vector} & \textbf{Likelihood} & \textbf{Impact} & \textbf{Detect.} & \textbf{Owner} & \textbf{Top Mitigations} \\
 \midrule
+\endhead
+\bottomrule
+\endlastfoot
 Reputational & Very High & High & Low & Platforms, election bodies, campaigns & Content authentication, rapid response, durable disclosure law \\
 Exposure and Economic & High & High & Medium & Legislatures, privacy regulators & Address confidentiality, broker deletion, breach-market enforcement \\
 Process & High & High & Medium & Election admin, HR, legal & Staff protection, reporting pipelines, resilience planning \\
@@ -2938,12 +2897,12 @@ Post-Incident Disorder (new) & High & High & Medium & Law enforcement, platforms
 Spearphishing 2.0 & High & High & Low & Protective services, IT & AI social engineering training, out-of-band verification \\
 Kinetic & Low-Med (AI-enabled) & Very High & Med-High (T1); Low (T3--4) & Protective services & Behavioral assessment, data-layer protection, event security \\
 Insider/Supply-chain & Medium & Very High & Low & IT security, procurement & Vendor audits, model governance, sleeper agent detection \\
-\bottomrule
-\end{tabular}
-\end{center}
+\end{longtable}}
 
-\begin{center}
+\begin{figure}[!htb]
+\centering
 \begin{tikzpicture}[
+  y=0.8cm,
   bub/.style={circle, fill opacity=0.75, text opacity=1, font=\tiny\sffamily\bfseries, text=white, align=center, inner sep=0pt}
 ]
   % quadrant shading
@@ -2969,19 +2928,20 @@ Insider/Supply-chain & Medium & Very High & Low & IT security, procurement & Ven
   \node[bub, fill=instslate, minimum size=1.2cm] at (4.6,8.9) {Insider};
   \node[bub, fill=instnavy, minimum size=0.9cm] at (2.9,9.4) {Kinetic};
 \end{tikzpicture}
+\caption{Ordinal risk placement for the 12--24 month window. Bubble size indicates detection difficulty (larger is harder to detect). Positions encode the matrix categories, not measured probabilities.}
+\label{fig:riskmatrix}
+\end{figure}
 
-{\small\textit{Figure: Ordinal risk placement for the 12--24 month window. Bubble size indicates detection difficulty (larger is harder to detect). Positions encode the matrix categories, not measured probabilities.}}
-\end{center}
-
-\clearpage
 \section{Claims Register}
 
-\begin{center}
-\footnotesize
-\begin{tabular}{L{4.2cm}L{1.9cm}L{1.2cm}L{3.2cm}L{3.6cm}}
+{\footnotesize
+\begin{longtable}{L{4.2cm}L{1.9cm}L{1.2cm}L{3.2cm}L{3.6cm}}
 \toprule
 \textbf{Claim} & \textbf{Evidence} & \textbf{Conf.} & \textbf{What Would Falsify} & \textbf{Example Sources} \\
 \midrule
+\endhead
+\bottomrule
+\endlastfoot
 Autonomous misuse workflows documented; humans still select targets & Lab threat reports & High & No documented autonomous misuse & Anthropic (Nov.\ 2025; Sept.\ 2026) \\
 Political-targeting misuse concentrates in cheaper tiers, not restricted frontier models & Lab threat report & Med-High & Misuse shifting to restricted tiers & Anthropic (Sept.\ 2026) \\
 AI-assisted engineering used to build doxxing infrastructure against political-movement members & Lab threat report & High & Retraction or contrary evidence & Anthropic (Sept.\ 2026) \\
@@ -2996,9 +2956,7 @@ Open-weight parity on structured tasks; months-scale reasoning lag & Benchmarks 
 Frontier labs track governance-decision risk & Safety frameworks & High & No such framework & System cards (2026) \\
 Extraterritorial seizure of a sitting head of state (Jan.\ 2026) & Reporting, records & High & No contemporaneous record & CNN/NBC (Jan.\ 3, 2026); SDNY indictment; Report to Congress \\
 IC workforce contraction (ODNI 40\%+ reduction) & Reporting & High & No reporting of reductions & Federal News Network; NPR; PBS (2025) \\
-\bottomrule
-\end{tabular}
-\end{center}
+\end{longtable}}
 
 \textbf{Falsification protocol}: Claims are re-evaluated at each revision; if falsified, affected projections and scenario probabilities are revised.
 
@@ -3103,6 +3061,7 @@ IC workforce contraction (ODNI 40\%+ reduction) & Reporting & High & No reportin
 
 \vspace{0.5cm}
 
+\needspace{7\baselineskip}
 \begin{center}
 \small
 \textit{This is a living document. Latest version available at:}\\[0.3em]

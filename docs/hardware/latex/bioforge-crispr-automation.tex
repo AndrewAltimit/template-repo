@@ -36,6 +36,13 @@
 \usepackage{parskip}
 \usepackage{caption}
 \usepackage{tabularx}
+\usepackage{xltabular}
+\usepackage{microtype}
+\usepackage{needspace}
+\usepackage{tocloft}
+
+% Full-width ragged-right flexible column for tables
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
 
 \usetikzlibrary{shapes.geometric, arrows.meta, positioning, calc, decorations.pathreplacing, backgrounds, fit}
 
@@ -76,7 +83,8 @@
 % ============================================================================
 \setstretch{1.15}
 \setlength{\parskip}{0.5em}
-\setlist{nosep, leftmargin=1.5em, itemsep=0.3em}
+\setlist{nosep, leftmargin=1.5em, itemsep=0.3em, parsep=0.4em}
+\setlength{\emergencystretch}{1.5em}
 
 % ============================================================================
 % PAGE STYLE - Laboratory circuit pattern (hardware/bioengineering theme)
@@ -123,12 +131,39 @@
 \titlespacing*{\section}{0pt}{3ex plus 1ex minus .2ex}{2ex plus .2ex}
 \titlespacing*{\subsection}{0pt}{2.5ex plus 1ex minus .2ex}{1.5ex plus .2ex}
 
-\setcounter{tocdepth}{3}
+% Keep headings with the text that follows them
+\newcommand{\sectionbreak}{\needspace{12\baselineskip}}
+\newcommand{\subsectionbreak}{\needspace{6\baselineskip}}
+\newcommand{\subsubsectionbreak}{\needspace{5\baselineskip}}
+
+\setcounter{tocdepth}{2}
+\setlength{\cftsecnumwidth}{2.0em}
+\setlength{\cftsubsecindent}{2.0em}
+\setlength{\cftsubsecnumwidth}{2.6em}
+\renewcommand{\cftsecfont}{\bfseries\color{deepforest}}
+\renewcommand{\cftsecpagefont}{\bfseries\color{deepforest}}
+\renewcommand{\cftsubsecfont}{\color{textdark}}
+\setlength{\cftbeforesecskip}{0.5em}
+\renewcommand{\cfttoctitlefont}{\normalfont\LARGE\bfseries\color{deepforest}}
+
+% ============================================================================
+% FIGURES, CAPTIONS, AND FLOATS
+% ============================================================================
+\captionsetup{font={small,sf}, labelfont={bf,color=deepforest}, labelsep=period, margin=1em}
+\captionsetup[table]{position=above, skip=6pt}
+\setlength{\textfloatsep}{14pt plus 4pt minus 4pt}
+\setlength{\floatsep}{12pt plus 4pt minus 4pt}
+\setlength{\intextsep}{12pt plus 4pt minus 4pt}
+\renewcommand{\topfraction}{0.85}
+\renewcommand{\bottomfraction}{0.6}
+\renewcommand{\textfraction}{0.12}
+\renewcommand{\floatpagefraction}{0.75}
 
 % ============================================================================
 % TCOLORBOX ENVIRONMENTS - Laboratory systems styling
 % ============================================================================
 \tcbuselibrary{skins,breakable,hooks}
+\tcbset{before upper={\setlength{\parskip}{0.5em}}}
 
 \newtcolorbox{keybox}[1][Key Design Principle]{
   enhanced, breakable,
@@ -277,10 +312,13 @@ The system follows a layered architecture with strict separation of concerns bet
 \end{enumerate}
 \end{keybox}
 
-\begin{center}
-\begin{tikzpicture}[node distance=3.0cm, font=\sffamily\small]
-    \tikzstyle{layer} = [rectangle, rounded corners=4pt, minimum width=13cm, minimum height=1.6cm,
-      text centered, draw=textdark, line width=0.8pt, align=center]
+Figure~\ref{fig:layers} shows the same stack with the interface that joins each pair of neighboring layers.
+
+\begin{figure}[!htbp]
+\centering
+\begin{tikzpicture}[node distance=2.4cm, font=\sffamily\small]
+    \tikzstyle{layer} = [rectangle, rounded corners=4pt, minimum width=12cm, minimum height=1.3cm,
+      text centered, draw=textdark!70, line width=0.7pt, align=center]
     \tikzstyle{iface} = [font=\sffamily\scriptsize\color{softslate}, align=center]
 
     \node (agent) [layer, fill=visionpurple!12] {
@@ -303,7 +341,9 @@ The system follows a layered architecture with strict separation of concerns bet
     \draw [-{Stealth[scale=1.0]}, line width=1pt, deepforest]
       (hal.south) -- (phys.north) node[midway, right=0.4cm, iface] {GPIO/SPI\\I2C/UART};
 \end{tikzpicture}
-\end{center}
+\caption{The four-layer stack. Each layer talks only to its immediate neighbors, over the interface labeled on the connecting arrow.}
+\label{fig:layers}
+\end{figure}
 
 \subsection{Data Flow}
 
@@ -319,9 +359,10 @@ Certain operations require explicit human confirmation before proceeding. These 
 
 \subsection{Closed-Loop Experiment Cycle}
 
-The agent operates in a Design-Build-Test-Learn cycle that maps directly to the scientific method:
+The agent operates in a Design-Build-Test-Learn cycle that maps directly onto the scientific method (Figure~\ref{fig:cycle}). Each phase works as follows:
 
-\begin{center}
+\begin{figure}[!htbp]
+\centering
 \begin{tikzpicture}[font=\sffamily\small, node distance=2.8cm]
     \tikzstyle{phase} = [rectangle, rounded corners=6pt, minimum width=2.2cm, minimum height=1cm,
       text centered, draw=deepforest, line width=0.8pt, font=\sffamily\small\bfseries]
@@ -341,22 +382,23 @@ The agent operates in a Design-Build-Test-Learn cycle that maps directly to the 
     \draw [-{Stealth[scale=0.9]}, line width=0.8pt, dashed] (iterate) -- (design)
       node[midway, left=0.1cm, font=\sffamily\scriptsize\color{softslate}] {loop};
 \end{tikzpicture}
-\end{center}
+\caption{The closed experiment loop. The dashed edge feeds each run's results into the design of the next.}
+\label{fig:cycle}
+\end{figure}
 
 \begin{enumerate}
-  \item \textbf{Design}: Agent reasons about goals, prior results, and available reagents. Generates a protocol TOML file specifying each step with parameters.
-  \item {\emergencystretch=1em \textbf{Validate}: MCP server validates the protocol against safety limits, hardware capabilities, and reagent inventory. Rejects protocols that exceed any constraint.\par}
-  \item \textbf{Execute}: Protocol runs through the state machine. Agent monitors sensor telemetry in real-time and can intervene on anomalies (temperature drift, dispensing errors).
-  \item \textbf{Observe}: Agent captures plate images via the Pi Camera, runs colony counting through the vision pipeline, and computes metrics (transformation efficiency, colony morphology).
-  \item \textbf{Analyze}: Agent compares results to its hypothesis and updates its internal model of how parameters affect outcomes.
-  \item \textbf{Iterate}: Agent designs the next experiment, adjusting DNA concentration, heat shock duration, recovery time, or plating volume based on what it learned.
+  \item \textbf{Design}: The agent reasons about goals, prior results, and available reagents, then generates a protocol TOML file specifying each step and its parameters.
+  \item \textbf{Validate}: The MCP server checks the protocol against safety limits, hardware capabilities, and reagent inventory, and rejects any protocol that exceeds a constraint.
+  \item \textbf{Execute}: The protocol runs through the state machine. The agent monitors sensor telemetry in real time and can intervene on anomalies (temperature drift, dispensing errors).
+  \item \textbf{Observe}: The agent captures plate images with the Pi Camera, runs colony counting through the vision pipeline, and computes metrics (transformation efficiency, colony morphology).
+  \item \textbf{Analyze}: The agent compares results to its hypothesis and updates its internal model of how parameters affect outcomes.
+  \item \textbf{Iterate}: The agent designs the next experiment, adjusting DNA concentration, heat shock duration, recovery time, or plating volume based on what it learned.
 \end{enumerate}
 
 
 % ============================================================================
 % SECTION 2: HARDWARE DESIGN
 % ============================================================================
-\newpage
 \section{Hardware Design}
 
 All components are sourced from standard consumer and maker channels. Estimated total cost is \$800--\$1,500 depending on sourcing and 3D printing availability.
@@ -365,85 +407,81 @@ All components are sourced from standard consumer and maker channels. Estimated 
 
 \subsubsection{Core Compute}
 
-\begin{longtable}{L{3.5cm} L{4cm} L{1cm} L{2cm} L{2cm}}
+{\centering\begin{tabularx}{\textwidth}{Y L{4.2cm} L{0.9cm} L{2.3cm} L{2.4cm}}
 \toprule
 \textbf{Component} & \textbf{Model} & \textbf{Qty} & \textbf{Est. Cost} & \textbf{Interface} \\
 \midrule
-\endhead
 Raspberry Pi 5 (8GB) & Official kit w/ PSU & 1 & \$80--100 & n/a \\
 Pi Camera Module 3 & Sony IMX708, AF & 1 & \$25--35 & CSI \\
 MicroSD Card (128GB) & Samsung EVO Select & 1 & \$15 & n/a \\
 7'' Touchscreen & Official Pi display & 1 & \$60--80 & DSI \\
 \bottomrule
-\end{longtable}
+\end{tabularx}\par}
 
 \subsubsection{Liquid Handling}
 
-\begin{longtable}{L{3.5cm} L{4cm} L{1cm} L{2cm} L{2cm}}
+{\centering\begin{tabularx}{\textwidth}{Y L{4.2cm} L{0.9cm} L{2.3cm} L{2.4cm}}
 \toprule
 \textbf{Component} & \textbf{Model} & \textbf{Qty} & \textbf{Est. Cost} & \textbf{Interface} \\
 \midrule
-\endhead
 Syringe Pump & 3D-printed, NEMA 17 & 2 & \$30--50 ea & GPIO/Step \\
 Peristaltic Pump & 12V DC, silicone & 2 & \$15--25 ea & GPIO/PWM \\
 Stepper Drivers & TMC2209 or A4988 & 4 & \$5--10 ea & SPI/Step \\
 Co-Processor & ESP32-S3 or RP2040 & 1 & \$8--15 & UART/USB \\
 \bottomrule
-\end{longtable}
+\end{tabularx}\par}
 
 \subsubsection{Thermal Control}
 
-\begin{longtable}{L{3.5cm} L{4cm} L{1cm} L{2cm} L{2cm}}
+{\centering\begin{tabularx}{\textwidth}{Y L{4.2cm} L{0.9cm} L{2.3cm} L{2.4cm}}
 \toprule
 \textbf{Component} & \textbf{Model} & \textbf{Qty} & \textbf{Est. Cost} & \textbf{Interface} \\
 \midrule
-\endhead
 Peltier Module & TEC1-12706, 60W & 2 & \$8--12 ea & PWM/H-Bridge \\
 H-Bridge Driver & L298N or BTS7960 & 2 & \$5--10 ea & GPIO \\
 Heat Sink + Fan & 40mm aluminum + 5V & 2 & \$5 ea & 5V \\
 DS18B20 Sensors & Waterproof probe & 4 & \$3--5 ea & 1-Wire \\
 DHT22 Sensor & Enclosure ambient & 1 & \$5 & GPIO \\
 \bottomrule
-\end{longtable}
+\end{tabularx}\par}
 
 \subsubsection{Enclosure and Structural}
 
-\begin{longtable}{L{3.5cm} L{4cm} L{1cm} L{2cm} L{2cm}}
+{\centering\begin{tabularx}{\textwidth}{Y L{4.2cm} L{0.9cm} L{2.3cm} L{2.4cm}}
 \toprule
 \textbf{Component} & \textbf{Model} & \textbf{Qty} & \textbf{Est. Cost} & \textbf{Interface} \\
 \midrule
-\endhead
 Enclosure Frame & 2020 aluminum, \textasciitilde2m & 1 & \$20--40 & n/a \\
 Acrylic Panels & 3mm clear/tinted & n/a & \$15--25 & n/a \\
 3D-Printed Parts & PLA/PETG mounts & n/a & \$10--30 & n/a \\
 LED Ring Light & White + UV/Blue & 1 & \$10--20 & PWM \\
 Linear Rails & MGN12H, 200mm & 2 & \$15--20 ea & n/a \\
 \bottomrule
-\end{longtable}
+\end{tabularx}\par}
 
 \subsubsection{Biology and Consumables}
 
-\begin{longtable}{L{3.5cm} L{5cm} L{2cm} L{2cm}}
+{\centering\begin{tabularx}{\textwidth}{L{3.8cm} Y L{2.5cm} L{2.6cm}}
 \toprule
 \textbf{Component} & \textbf{Specific Part} & \textbf{Est. Cost} & \textbf{Notes} \\
 \midrule
-\endhead
 The Odin CRISPR Kit & Complete home lab kit & \$160--800 & One-time \\
 Consumables Restock & Plates, agar, antibiotics & \$30--50/run & Per experiment \\
 Micropipettes & Manual set of 3 (for human gates) & \$40--80 & One-time \\
 \bottomrule
-\end{longtable}
+\end{tabularx}\par}
 
 
 \subsection{Enclosure Design}
 
-The enclosure serves three purposes: contamination reduction, thermal zone isolation, and camera positioning.
+The enclosure serves three purposes: contamination reduction, thermal zone isolation, and camera positioning. Figure~\ref{fig:enclosure} shows the layout.
 
-\begin{center}
+\begin{figure}[!htbp]
+\centering
 \begin{tikzpicture}[font=\sffamily\small, scale=0.85, transform shape]
   % Outer enclosure
   \draw[line width=1.5pt, deepforest, rounded corners=4pt] (0,0) rectangle (14,9);
-  \node[font=\sffamily\footnotesize\color{softslate}] at (7,9.3) {Enclosure (2020 Aluminum + Acrylic Panels)};
+  \node[font=\sffamily\footnotesize\color{softslate}] at (7,9.3) {Enclosure (2020 aluminum + acrylic panels)};
 
   % Cold zone
   \draw[line width=1pt, fluidblue, fill=fluidblue!8, rounded corners=2pt] (0.5,0.5) rectangle (5,4.5);
@@ -451,7 +489,7 @@ The enclosure serves three purposes: contamination reduction, thermal zone isola
   \node[font=\sffamily\scriptsize\color{softslate}, align=center] at (2.75,3.5) {Peltier cooler\\$\sim$4\textdegree{}C};
   \draw[fill=fluidblue!20, rounded corners=1pt] (1,1) rectangle (4.5,2.5);
   \node[font=\sffamily\scriptsize] at (2.75,1.75) {Ice bath / Reagents};
-  \node[font=\sffamily\tiny\color{thermalred}] at (4.2,3.0) {DS18B20};
+  \node[font=\sffamily\scriptsize\color{thermalred}] at (4.2,3.0) {DS18B20};
 
   % Warm zone
   \draw[line width=1pt, thermalred, fill=thermalred!8, rounded corners=2pt] (5.5,0.5) rectangle (10,4.5);
@@ -459,7 +497,7 @@ The enclosure serves three purposes: contamination reduction, thermal zone isola
   \node[font=\sffamily\scriptsize\color{softslate}, align=center] at (7.75,3.5) {Peltier heater\\37--42\textdegree{}C};
   \draw[fill=thermalred!15, rounded corners=1pt] (6,1) rectangle (9.5,2.5);
   \node[font=\sffamily\scriptsize] at (7.75,1.75) {Incubation / Heat shock};
-  \node[font=\sffamily\tiny\color{thermalred}] at (9.2,3.0) {DS18B20};
+  \node[font=\sffamily\scriptsize\color{thermalred}] at (9.2,3.0) {DS18B20};
 
   % Work area
   \draw[line width=1pt, instrumentgold, fill=instrumentgold!8, rounded corners=2pt] (10.5,0.5) rectangle (13.5,4.5);
@@ -469,10 +507,10 @@ The enclosure serves three purposes: contamination reduction, thermal zone isola
 
   % Gantry (top rail)
   \draw[line width=2pt, softslate] (0.8,5.5) -- (13.2,5.5);
-  \node[font=\sffamily\footnotesize\bfseries\color{softslate}] at (7,5.9) {XY Gantry (Linear Rails + NEMA 17)};
+  \node[font=\sffamily\footnotesize\bfseries\color{softslate}, anchor=south, align=center] at (9.95,5.6) {XY gantry\\(linear rails + NEMA 17)};
   % Gantry carriage
   \draw[fill=softslate!30, rounded corners=2pt] (6.5,5.0) rectangle (8.5,5.5);
-  \node[font=\sffamily\tiny] at (7.5,5.25) {Syringe};
+  \node[font=\sffamily\scriptsize] at (7.5,5.25) {Syringe};
   \draw[-{Stealth[scale=0.7]}, softslate, line width=0.6pt] (5.5,5.25) -- (6.5,5.25);
   \draw[-{Stealth[scale=0.7]}, softslate, line width=0.6pt] (8.5,5.25) -- (9.5,5.25);
 
@@ -494,40 +532,45 @@ The enclosure serves three purposes: contamination reduction, thermal zone isola
 
   % Connections
   \draw[-{Stealth[scale=0.7]}, line width=0.8pt, deepforest] (4.5,7.75) -- (5.5,7.75)
-    node[midway, above, font=\sffamily\tiny] {UART};
-  \draw[-{Stealth[scale=0.7]}, line width=0.8pt, deepforest] (7.5,7) -- (7.5,5.9)
-    node[midway, right, font=\sffamily\tiny] {SPI/GPIO};
+    node[midway, above, font=\sffamily\scriptsize] {UART};
+  \draw[-{Stealth[scale=0.7]}, line width=0.8pt, deepforest] (7.5,7) -- (7.5,5.5)
+    node[pos=0.4, left, font=\sffamily\scriptsize] {SPI/GPIO};
   \draw[-{Stealth[scale=0.7]}, line width=0.8pt, deepforest] (2.5,7) -- (2.5,4.5)
-    node[midway, left, font=\sffamily\tiny] {CSI + GPIO};
+    node[pos=0.25, right, font=\sffamily\scriptsize] {CSI + GPIO};
 \end{tikzpicture}
-\end{center}
+\caption{Enclosure layout. Controllers sit along the top; the gantry carries the syringe head across the cold zone, warm zone, and work area, and the camera looks down on the plate deck.}
+\label{fig:enclosure}
+\end{figure}
 
 \begin{hardwarebox}[Thermal Zones]
 The enclosure is divided into a cold zone ($\sim$4\textdegree{}C via Peltier cooling) and a warm zone (42\textdegree{}C for heat shock, 37\textdegree{}C for incubation, via a separate Peltier in heating mode). DS18B20 waterproof probes provide closed-loop PID temperature control managed by the ESP32 co-processor. Each zone has independent thermal fuses rated at 60\textdegree{}C as a hardware safety backstop.
 \end{hardwarebox}
 
-\textbf{Camera Mount}: Fixed overhead Pi Camera position captures plate images after incubation. LED ring provides consistent illumination for colony counting. UV/blue LED option enables GFP fluorescence imaging for future protocols.
+\textbf{Camera Mount}: A fixed overhead Pi Camera captures plate images after incubation, and the LED ring provides consistent illumination for colony counting. A UV/blue LED option enables GFP fluorescence imaging for future protocols.
 
-\textbf{Liquid Handling Gantry}: Simplified XY gantry using MGN12H linear rails and NEMA 17 steppers positions syringe pump tips over wells and plates. Positional accuracy target: $\pm$1mm (sufficient for 50--200\textmu{}L plate dispensing).
+\textbf{Liquid Handling Gantry}: A simplified XY gantry built from MGN12H linear rails and NEMA 17 steppers positions the syringe pump tips over wells and plates. The positional accuracy target is $\pm$1mm, sufficient for 50--200\textmu{}L plate dispensing.
 
 
 \subsection{Wiring and Interface Architecture}
 
-\begin{center}
+The Pi 5 owns the camera, network, ambient sensing, lighting, and the hardware E-Stop; everything with real-time timing requirements (thermal control and motion) hangs off the ESP32-S3 co-processor. Figure~\ref{fig:wiring} shows the split, and the pin mapping below gives the exact assignments.
+
+\begin{figure}[!htbp]
+\centering
 \resizebox{0.95\textwidth}{!}{%
 \begin{tikzpicture}[font=\sffamily\small,
     box/.style={rectangle, rounded corners=3pt, draw=textdark, line width=0.7pt,
-      minimum width=2.4cm, minimum height=0.8cm, text centered, align=center, font=\sffamily\scriptsize},
+      minimum width=2.4cm, minimum height=0.8cm, text centered, align=center, font=\sffamily\footnotesize},
     conn/.style={-{Stealth[scale=0.7]}, line width=0.6pt, deepforest},
-    lbl/.style={font=\sffamily\tiny\color{softslate}, midway, fill=white, inner sep=1pt}]
+    lbl/.style={font=\sffamily\scriptsize\color{softslate}, midway, fill=white, inner sep=1pt}]
 
     % Pi 5 (left column)
     \node (pi) [box, fill=labgreen!15, minimum width=2.8cm, minimum height=1.1cm]
-      at (0,0) {\textbf{Raspberry Pi 5}\\{\tiny MCP Server + HAL}};
+      at (0,0) {\textbf{Raspberry Pi 5}\\{\scriptsize MCP Server + HAL}};
 
     % ESP32 (center column)
     \node (esp) [box, fill=safetyamber!15, minimum width=2.6cm, minimum height=1.1cm]
-      at (5,0) {\textbf{ESP32-S3}\\{\tiny Real-time control}};
+      at (5,0) {\textbf{ESP32-S3}\\{\scriptsize Real-time control}};
 
     % Camera (above Pi)
     \node (cam) [box, fill=visionpurple!15] at (-0.3,2.0) {Pi Camera v3};
@@ -542,14 +585,14 @@ The enclosure is divided into a cold zone ($\sim$4\textdegree{}C via Peltier coo
     \node (pump) [box, fill=fluidblue!15] at (9,-1.0) {Peristaltic Pumps};
 
     % NEMA motors (far right)
-    \node (nema) [box, fill=softslate!15] at (12.3,0) {NEMA 17};
+    \node (nema) [box, fill=softslate!15] at (13.0,0) {NEMA 17};
 
     % Pi peripherals (below Pi)
     \node (dht) [box, fill=softslate!15] at (-2.5,-2.0) {DHT22};
     \node (led) [box, fill=instrumentgold!15] at (2.5,-2.0) {LED Ring};
     \node (estop) [box, fill=safetyamber!25] at (0,-3.5) {\textbf{E-Stop}};
 
-    % Connections -- Pi (pos adjusted to keep labels clear of wide Pi node)
+    % Connections: Pi (pos adjusted to keep labels clear of wide Pi node)
     \draw[conn] (pi) -- (esp) node[lbl, above] {UART};
     \draw[conn] (pi) -- (cam) node[lbl, left] {CSI};
     \draw[conn] (pi) -- (net) node[lbl, above, pos=0.65] {TCP/IP};
@@ -557,22 +600,24 @@ The enclosure is divided into a cold zone ($\sim$4\textdegree{}C via Peltier coo
     \draw[conn] (pi) -- (led) node[lbl, above, pos=0.6] {PWM};
     \draw[conn, safetyamber, line width=1pt] (pi) -- (estop) node[lbl, right, pos=0.35] {HW IRQ};
 
-    % Connections -- ESP32
+    % Connections: ESP32
     \draw[conn] (esp) -- (stepper) node[lbl, above] {SPI};
     \draw[conn] (esp) |- (peltier) node[lbl, above, pos=0.75] {PWM};
     \draw[conn] (esp) |- (pump) node[lbl, below, pos=0.75] {PWM};
     \draw[{Stealth[scale=0.7]}-, line width=0.6pt, deepforest] (esp) |- (ds18)
       node[lbl, above, pos=0.75] {1-Wire};
 
-    % Connections -- Stepper to NEMA
+    % Connections: Stepper to NEMA
     \draw[conn] (stepper) -- (nema) node[lbl, above] {Step/Dir};
 \end{tikzpicture}%
 }
-\end{center}
+\caption{Wiring and interfaces. The E-Stop is wired to a hardware interrupt on the Pi 5; thermal and motion peripherals are driven by the ESP32-S3.}
+\label{fig:wiring}
+\end{figure}
 
 \subsubsection{Pin Mapping Summary}
 
-\begin{longtable}{L{3cm} L{2.5cm} L{2.5cm} L{4.5cm}}
+\begin{xltabular}{\textwidth}{L{3.6cm} L{2.3cm} L{2.3cm} Y}
 \toprule
 \textbf{Signal} & \textbf{Pi 5 Pin} & \textbf{ESP32 Pin} & \textbf{Notes} \\
 \midrule
@@ -590,26 +635,24 @@ Peltier Cold PWM & n/a & GPIO 19 & H-bridge input \\
 Peltier Warm PWM & n/a & GPIO 21 & H-bridge input \\
 Peristaltic A PWM & n/a & GPIO 22 & Bulk dispense \\
 Peristaltic B PWM & n/a & GPIO 23 & Bulk dispense \\
-DS18B20 Bus & n/a & GPIO 4 & 1-Wire, 4 sensors \\
+DS18B20 Bus & n/a & GPIO 4 & 1-Wire, 4 sensors \\*
 \bottomrule
-\end{longtable}
+\end{xltabular}
 
 
 % ============================================================================
 % SECTION 3: SOFTWARE ARCHITECTURE
 % ============================================================================
-\newpage
 \section{Software Architecture}
 
 \subsection{Crate Structure}
 
 The Rust workspace at \texttt{packages/bioforge/} contains five library crates and one binary crate for the MCP server:
 
-\begin{longtable}{L{3cm} L{1.5cm} L{8cm}}
+{\centering\begin{tabularx}{\textwidth}{L{3.6cm} L{1.5cm} Y}
 \toprule
 \textbf{Crate} & \textbf{Type} & \textbf{Role} \\
 \midrule
-\endhead
 \texttt{bioforge-types} & Library & Shared types: config structs, protocol schema, error enums, MCP tool parameter types \\
 \texttt{bioforge-safety} & Library & Stateful safety enforcement (cumulative volume, rate limiting, actuator interval), NaN/Inf guards, append-only audit log (JSON Lines) \\
 \texttt{bioforge-hal} & Library & Async hardware drivers: pumps, thermal (PID), motion, camera, sensors. Mock impls for dev \\
@@ -617,140 +660,137 @@ The Rust workspace at \texttt{packages/bioforge/} contains five library crates a
 \texttt{bioforge-vision} & Library & Colony counting pipeline, plate image analysis, morphology assessment \\
 \texttt{mcp-bioforge} & Binary & MCP server at \texttt{tools/mcp/mcp\_bioforge/}. Exposes all tools, validates inputs, manages state \\
 \bottomrule
-\end{longtable}
+\end{tabularx}\par}
 
 \subsection{MCP Tool Definitions}
 
 \subsubsection{Liquid Handling Tools}
 
-\begin{longtable}{L{2.5cm} L{5.5cm} L{5cm}}
+{\centering\begin{tabularx}{\textwidth}{L{3.3cm} L{5.4cm} Y}
 \toprule
 \textbf{Tool} & \textbf{Parameters} & \textbf{Description} \\
 \midrule
-\endhead
 \texttt{dispense} & \texttt{target}, \texttt{volume\_ul}, \texttt{reagent}, \texttt{flow\_rate} & Dispense precise volume to position. Bounds: 1--1000\textmu{}L. Cumulative tracking (50\,mL/run). Flow rate validated \\
 \texttt{aspirate} & \texttt{source}, \texttt{volume\_ul}, \texttt{flow\_rate} & Aspirate from source container. Bounds: 1--1000\textmu{}L \\
 \texttt{mix} & \texttt{target}, \texttt{volume\_ul}, \texttt{cycles}, \texttt{flow\_rate} & Aspirate-dispense cycles. Max 20 cycles \\
 \texttt{move\_to} & \texttt{x\_mm}, \texttt{y\_mm}, \texttt{z\_mm} & Move gantry. \texttt{z\_mm} optional (defaults to 15mm safe travel height) \\
 \bottomrule
-\end{longtable}
+\end{tabularx}\par}
 
 \subsubsection{Thermal Control Tools}
 
-\begin{longtable}{L{2.5cm} L{5.5cm} L{5cm}}
+{\centering\begin{tabularx}{\textwidth}{L{3.3cm} L{5.4cm} Y}
 \toprule
 \textbf{Tool} & \textbf{Parameters} & \textbf{Description} \\
 \midrule
-\endhead
 \texttt{set\_temperature} & \texttt{zone}, \texttt{target\_c}, \texttt{hold\_seconds} & PID-controlled temp hold. Range: $-$5--50\textdegree{}C \\
 \texttt{heat\_shock} & \texttt{ramp\_to\_c}, \texttt{hold\_s}, \texttt{return\_to\_c} & Atomic heat shock sequence \\
 \texttt{incubate} & \texttt{zone}, \texttt{target\_c}, \texttt{duration\_hours} & Long-duration monitored hold. Max 72h \\
 \bottomrule
-\end{longtable}
+\end{tabularx}\par}
 
 \subsubsection{Imaging and Analysis Tools}
 
-\begin{longtable}{L{2.5cm} L{5.5cm} L{5cm}}
+{\centering\begin{tabularx}{\textwidth}{L{3.3cm} L{5.4cm} Y}
 \toprule
 \textbf{Tool} & \textbf{Parameters} & \textbf{Description} \\
 \midrule
-\endhead
 \texttt{capture\_image} & \texttt{plate\_id}, \texttt{lighting\_mode} & White / UV / dark field capture \\
 \texttt{count\_colonies} & \texttt{plate\_id}, \texttt{image\_id} & Colony counting with size dist. \\
 \bottomrule
-\end{longtable}
+\end{tabularx}\par}
 
 \subsubsection{Protocol and System Tools}
 
-\begin{longtable}{L{2.5cm} L{5.5cm} L{5cm}}
+{\centering\begin{tabularx}{\textwidth}{L{3.3cm} L{5.4cm} Y}
 \toprule
 \textbf{Tool} & \textbf{Parameters} & \textbf{Description} \\
 \midrule
-\endhead
 \texttt{load\_protocol} & \texttt{protocol\_id} & Load and validate a protocol TOML \\
 \texttt{get\_status} & (none) & All sensors, actuators, safety state \\
 \texttt{human\_action} & \texttt{action}, \texttt{timeout\_min} & Pause for human confirmation \\
 \texttt{emergency\_stop} & (none) & Halt all, disable heaters, safe state \\
 \bottomrule
-\end{longtable}
+\end{tabularx}\par}
 
 
 \subsection{Protocol State Machine}
 
-The protocol engine enforces a strict state ordering. Transitions are validated at the MCP server layer, so the agent cannot skip states, and while a human gate is open every actuator tool is refused.
+The protocol engine enforces a strict state ordering (Figure~\ref{fig:statemachine}). Transitions are validated at the MCP server layer, so the agent cannot skip states, and while a human gate is open every actuator tool is refused.
 
-\begin{center}
-\begin{tikzpicture}[font=\sffamily\scriptsize,
-    state/.style={rectangle, rounded corners=3pt, draw=textdark, line width=0.5pt,
-      minimum width=1.8cm, minimum height=0.65cm, text centered, font=\sffamily\scriptsize},
-    arr/.style={-{Stealth[scale=0.7]}, line width=0.6pt, deepforest},
-    gate/.style={rectangle, draw=safetyamber, fill=safetyamber!30, line width=1pt,
-      minimum width=1.4cm, minimum height=0.5cm, font=\sffamily\scriptsize\bfseries}]
+\begin{figure}[!htbp]
+\centering
+\begin{tikzpicture}[font=\sffamily\footnotesize,
+    state/.style={rectangle, rounded corners=3pt, draw=textdark!60, line width=0.6pt,
+      minimum width=2.45cm, minimum height=0.75cm, text centered, font=\sffamily\footnotesize},
+    arr/.style={-{Stealth[length=2mm]}, line width=0.7pt, deepforest},
+    garr/.style={-{Stealth[length=2mm]}, line width=0.9pt, safetyamber!90!black},
+    gate/.style={rectangle, rounded corners=3pt, draw=safetyamber!90!black, fill=safetyamber!25,
+      line width=1pt, minimum width=2.45cm, minimum height=0.6cm, font=\sffamily\footnotesize\bfseries}]
 
-    % Row 1: Protocol start (y=0)
-    \node[state, fill=softslate!15] (idle) at (0,0) {Idle};
-    \node[state, fill=softslate!15] (loaded) at (2.6,0) {Loaded};
-    \node[state, fill=fluidblue!15] (media) at (5.2,0) {Media Prep};
-    \node[state, fill=fluidblue!15] (ready) at (8.0,0) {Media Ready};
-
+    % Row 1: protocol start (left to right)
+    \node[state, fill=softslate!12] (idle)   at (0,0)   {Idle};
+    \node[state, fill=softslate!12] (loaded) at (3.2,0) {Loaded};
+    \node[state, fill=fluidblue!12] (media)  at (6.4,0) {Media Prep};
+    \node[state, fill=fluidblue!12] (ready)  at (9.6,0) {Media Ready};
     \draw[arr] (idle) -- (loaded);
     \draw[arr] (loaded) -- (media);
     \draw[arr] (media) -- (ready);
 
-    % Human Gate 1
-    \node[gate] (hg1) at (8.0,-1.0) {Human Gate};
-    \draw[arr, safetyamber] (ready) -- (hg1);
+    % Gate 1: reagents onto the deck
+    \node[gate] (hg1) at (9.6,-1.15) {Human Gate 1};
+    \draw[garr] (ready) -- (hg1);
 
-    % Row 2: Transformation (y=-2.0, flows right-to-left)
-    \node[state, fill=labgreen!15] (reagents) at (8.0,-2.0) {Reagents Loaded};
-    \node[state, fill=fluidblue!15] (transform) at (5.2,-2.0) {Transforming};
-    \node[state, fill=thermalred!15] (heatshock) at (2.6,-2.0) {Heat Shock};
-    \node[state, fill=fluidblue!15] (recovery) at (0,-2.0) {Recovery};
-
-    \draw[arr, safetyamber] (hg1) -- (reagents);
+    % Row 2: transformation (right to left)
+    \node[state, fill=labgreen!12]   (reagents)  at (9.6,-2.3) {Reagents Loaded};
+    \node[state, fill=fluidblue!12]  (transform) at (6.4,-2.3) {Transforming};
+    \node[state, fill=thermalred!12] (heatshock) at (3.2,-2.3) {Heat Shock};
+    \node[state, fill=fluidblue!12]  (recovery)  at (0,-2.3)   {Recovery};
+    \draw[garr] (hg1) -- (reagents);
     \draw[arr] (reagents) -- (transform);
     \draw[arr] (transform) -- (heatshock);
     \draw[arr] (heatshock) -- (recovery);
 
-    % Row 3: Plating + Incubation (y=-3.5, flows left-to-right)
-    \node[state, fill=labgreen!15] (plating) at (0,-3.5) {Plating};
-    \node[state, fill=labgreen!15] (plates) at (2.6,-3.5) {Plates Ready};
-    \node[gate] (hg2) at (5.2,-3.5) {Human Gate};
-    \node[state, fill=thermalred!15] (incubate) at (8.0,-3.5) {Incubating};
-
+    % Row 3: plating and incubation (left to right)
+    \node[state, fill=labgreen!12]   (plating)  at (0,-3.7)   {Plating};
+    \node[state, fill=labgreen!12]   (plates)   at (3.2,-3.7) {Plates Ready};
+    \node[gate]                      (hg2)      at (6.4,-3.7) {Human Gate 2};
+    \node[state, fill=thermalred!12] (incubate) at (9.6,-3.7) {Incubating};
     \draw[arr] (recovery) -- (plating);
     \draw[arr] (plating) -- (plates);
-    \draw[arr, safetyamber] (plates) -- (hg2);
-    \draw[arr, safetyamber] (hg2) -- (incubate);
+    \draw[garr] (plates) -- (hg2);
+    \draw[garr] (hg2) -- (incubate);
 
-    % Row 4: Analysis (y=-5.0, flows right-to-left)
-    \node[state, fill=visionpurple!15] (imaging) at (8.0,-5.0) {Imaging};
-    \node[state, fill=visionpurple!15] (analysis) at (5.2,-5.0) {Analysis};
-    \node[state, fill=safetygreen!20, line width=1pt] (complete) at (2.6,-5.0) {Complete};
-
+    % Row 4: analysis (right to left)
+    \node[state, fill=visionpurple!12] (imaging)  at (9.6,-5.1) {Imaging};
+    \node[state, fill=visionpurple!12] (analysis) at (6.4,-5.1) {Analysis};
+    \node[state, fill=safetygreen!18, draw=safetygreen!70!black, line width=1pt] (complete) at (3.2,-5.1) {Complete};
     \draw[arr] (incubate) -- (imaging);
     \draw[arr] (imaging) -- (analysis);
     \draw[arr] (analysis) -- (complete);
 
-    % Optimize loop (routed around left side to avoid overlapping center nodes)
-    \node[state, fill=instrumentgold!15] (optimize) at (5.2,-6.2) {Optimize};
+    % Optimize loop, routed around the left edge
+    \node[state, fill=instrumentgold!12] (optimize) at (6.4,-6.4) {Optimize};
     \draw[arr] (analysis) -- (optimize);
-    \draw[arr, dashed] (optimize.west) -- (-1.5,-6.2) -- (-1.5,0) -- (idle.west)
-      node[midway, above, font=\sffamily\scriptsize\color{softslate}] {loop};
-
-    % Legend (well below entire diagram)
-    \node[anchor=west, font=\sffamily\tiny\color{softslate}] at (0,-7.2)
-      {\raisebox{0pt}[0pt][0pt]{\tikz[baseline=-0.3ex]{\node[gate, scale=0.6, inner sep=1pt]{HG};}} = Human-in-the-loop gate (requires physical confirmation)};
+    \draw[arr, dashed] (optimize.west) -- (-1.7,-6.4) -- (-1.7,0) -- (idle.west);
+    \node[font=\sffamily\scriptsize\itshape, text=softslate, rotate=90, fill=white, inner sep=2pt]
+      at (-1.7,-3.2) {next iteration};
 \end{tikzpicture}
-\end{center}
+\caption{Protocol state machine. Amber boxes are human-in-the-loop gates: while one is open, every actuator tool is refused until the operator confirms out of band.}
+\label{fig:statemachine}
+\end{figure}
 
-Human Gates mark the two points where a human must verify that physical reality matches the system's assumptions: loading biological reagents onto the deck, and confirming plate placement in the incubator. While a gate is open the MCP server refuses every actuator tool, and the agent cannot confirm its own gate, because confirmation is an out-of-band action by the operator (a confirmation file, or the touchscreen interface once it is built). Gate placement is declared by the \texttt{human\_gate} flag on protocol steps; since the agent drives the protocol by calling tools rather than being stepped through it by an executor, that flag is honored by the agent rather than imposed on it. Section~\ref{sec:gates} states precisely what this does and does not guarantee.
+Human gates mark the two points where a human must verify that physical reality matches the system's assumptions: loading biological reagents onto the deck, and confirming plate placement in the incubator. While a gate is open the MCP server refuses every actuator tool. The agent cannot confirm its own gate, because confirmation is an out-of-band action by the operator (a confirmation file, or the touchscreen interface once it is built).
+
+Gate placement is declared by the \texttt{human\_gate} flag on protocol steps; since the agent drives the protocol by calling tools rather than being stepped through it by an executor, that flag is honored by the agent rather than imposed on it. Section~\ref{sec:gates} states precisely what this does and does not guarantee.
 
 
+\needspace{18\baselineskip}
 \subsection{Example MCP Interaction}
 
 A heat shock sequence demonstrates the full tool call lifecycle:
 
+\needspace{13\baselineskip}
 \begin{lstlisting}[language=json, title={\small\sffamily Agent $\rightarrow$ MCP Server: Initiate heat shock}]
 {
   "method": "tools/call",
@@ -765,6 +805,7 @@ A heat shock sequence demonstrates the full tool call lifecycle:
 }
 \end{lstlisting}
 
+\needspace{13\baselineskip}
 \begin{lstlisting}[language=json, title={\small\sffamily MCP Server $\rightarrow$ Agent: Progress notification}]
 {
   "method": "notifications/resources/updated",
@@ -780,6 +821,7 @@ A heat shock sequence demonstrates the full tool call lifecycle:
 }
 \end{lstlisting}
 
+\needspace{13\baselineskip}
 \begin{lstlisting}[language=json, title={\small\sffamily MCP Server $\rightarrow$ Agent: Completion result}]
 {
   "result": {
@@ -796,12 +838,11 @@ A heat shock sequence demonstrates the full tool call lifecycle:
 % ============================================================================
 % SECTION 4: AGENT INTEGRATION
 % ============================================================================
-\newpage
 \section{Agent Integration}
 
 \subsection{Capabilities by Workflow Phase}
 
-\begin{longtable}{L{2cm} L{5cm} L{3.5cm} L{4cm}}
+\begin{xltabular}{\textwidth}{L{2.0cm} Y L{3.2cm} L{3.8cm}}
 \toprule
 \textbf{Phase} & \textbf{Agent Capability} & \textbf{Automation} & \textbf{Human Role} \\
 \midrule
@@ -811,9 +852,9 @@ Transform & Optimize timing, temperature profiles; monitor PID & Full with monit
 Plating & Design plate layout, calculate dilutions, control dispense & Full automation & Confirm plate quality \\
 Incubation & Monitor temp stability, predict completion, alert on drift & Automated monitoring & Physical plate transfer \\
 Analysis & Colony counting, morphology assessment, efficiency calculation & Full automation & Validate counts visually \\
-Iteration & Parameter optimization, experiment design & Agent-driven & Approve next experiment \\
+Iteration & Parameter optimization, experiment design & Agent-driven & Approve next experiment \\*
 \bottomrule
-\end{longtable}
+\end{xltabular}
 
 \subsection{Agent Decision Parameters}
 
@@ -838,49 +879,38 @@ The agent maintains a parameter-outcome model that is updated after each experim
 % ============================================================================
 % SECTION 5: SAFETY ARCHITECTURE
 % ============================================================================
-\newpage
 \section{Safety Architecture}
 
 Safety is architected at multiple layers following a defense-in-depth model. No single layer's failure should allow unsafe operation.
 
 \subsection{Safety Layer Hierarchy}
 
-\begin{center}
+Figure~\ref{fig:safetylayers} shows the six layers, from the audit trail down to the physical hardware.
+
+\begin{figure}[!htbp]
+\centering
 \begin{tikzpicture}[font=\sffamily\small]
-    \tikzstyle{safetybar} = [rectangle, rounded corners=3pt, minimum width=12cm, minimum height=0.9cm,
-      text centered, draw=none, line width=0pt]
+    \tikzset{safetybar/.style={rectangle, rounded corners=3pt, minimum width=12.4cm, minimum height=0.85cm,
+      text width=12cm, align=left, draw=#1!55, line width=0.6pt, fill=#1!10}}
 
-    \node (l6) [safetybar, fill=safetygreen!15] at (0,5.0)
-      {\textbf{\color{safetygreen}Layer 6: Audit.} Immutable append-only logging (nanosecond timestamps)};
-    \node (l5) [safetybar, fill=fluidblue!12] at (0,4.0)
-      {\textbf{\color{fluidblue}Layer 5: MCP.} Input validation + NaN guards + stateful rate limiting};
-    \node (l4) [safetybar, fill=instrumentgold!12] at (0,3.0)
-      {\textbf{\color{instrumentgold}Layer 4: Protocol.} State machine + human gates};
-    \node (l3) [safetybar, fill=safetyamber!12] at (0,2.0)
-      {\textbf{\color{safetyamber}Layer 3: HAL.} Volume/temperature bounds + cumulative tracking};
-    \node (l2) [safetybar, fill=thermalred!12] at (0,1.0)
-      {\textbf{\color{thermalred}Layer 2: Firmware.} Watchdog timer + motor current limits};
-    \node (l1) [safetybar, fill=softslate!15] at (0,0.0)
-      {\textbf{\color{textdark}Layer 1: Hardware.} Physical E-Stop + thermal fuse (60\textdegree{}C)};
+    \node (l6) [safetybar=safetygreen]    at (0,5.0) {\textbf{\color{safetygreen!70!black}Layer 6: Audit.} Immutable append-only logging (nanosecond timestamps)};
+    \node (l5) [safetybar=fluidblue]      at (0,4.0) {\textbf{\color{fluidblue!80!black}Layer 5: MCP.} Input validation + NaN guards + stateful rate limiting};
+    \node (l4) [safetybar=instrumentgold] at (0,3.0) {\textbf{\color{instrumentgold!80!black}Layer 4: Protocol.} State machine + human gates};
+    \node (l3) [safetybar=safetyamber]    at (0,2.0) {\textbf{\color{safetyamber!80!black}Layer 3: HAL.} Volume/temperature bounds + cumulative tracking};
+    \node (l2) [safetybar=thermalred]     at (0,1.0) {\textbf{\color{thermalred}Layer 2: Firmware.} Watchdog timer + motor current limits};
+    \node (l1) [safetybar=softslate]      at (0,0.0) {\textbf{\color{textdark}Layer 1: Hardware.} Physical E-Stop + thermal fuse (60\textdegree{}C)};
 
-    % Bracket on left side
-    \draw[deepforest, line width=1.2pt, decorate, decoration={brace, amplitude=8pt, mirror}]
-      (-6.3,-0.45) -- (-6.3,5.45) node[midway, left=10pt, rotate=90, font=\sffamily\footnotesize\bfseries\color{deepforest}]
-      {Defense in Depth};
-
-    % Arrow indicating "closer to physical"
-    \draw[-{Stealth[scale=0.8]}, softslate, line width=0.8pt] (6.5,5.0) -- (6.5,0.0)
-      node[midway, right=3pt, font=\sffamily\tiny\color{softslate}, align=left] {Closer to\\physical\\hardware};
-
-    % Outer frame
-    \draw[deepforest, line width=1pt, rounded corners=6pt]
-      (-6.15,-0.55) rectangle (6.15,5.55);
+    % Direction arrow: software at the top, physical hardware at the bottom
+    \draw[-{Stealth[length=2.4mm]}, softslate, line width=0.8pt] (6.65,5.3) -- (6.65,-0.3);
+    \node[font=\sffamily\scriptsize, text=softslate, rotate=-90] at (7.0,2.5) {closer to physical hardware};
 \end{tikzpicture}
-\end{center}
+\caption{Safety layer hierarchy. No single layer's failure should allow unsafe operation.}
+\label{fig:safetylayers}
+\end{figure}
 
 \subsection{Safety Layers Detail}
 
-\begin{longtable}{L{1.8cm} L{3cm} L{4cm} L{3.5cm}}
+\begin{xltabular}{\textwidth}{L{1.8cm} L{4.2cm} Y L{3.6cm}}
 \toprule
 \textbf{Layer} & \textbf{Mechanism} & \textbf{What It Prevents} & \textbf{Bypass Policy} \\
 \midrule
@@ -900,9 +930,9 @@ MCP & \texttt{absolute\_max\_c} guard & Misconfigured tool limits above 60\textd
 MCP & Sliding-window rate limit & >60 calls per minute & Configurable but logged \\
 MCP & Actuator interval (100ms) & Rapid-fire actuator abuse & Configurable but logged \\
 MCP & Flow rate validation & Pump speed above 500\,\textmu{}L/s & Agent cannot override \\
-Audit & Immutable operation log & Untracked changes to protocol & Append-only, no deletion \\
+Audit & Immutable operation log & Untracked changes to protocol & Append-only, no deletion \\*
 \bottomrule
-\end{longtable}
+\end{xltabular}
 
 \subsection{Stateful Safety Enforcer}
 
@@ -911,7 +941,7 @@ The \texttt{SafetyEnforcer} in \texttt{bioforge-safety} is a stateful validator 
 \begin{keybox}[Enforcer Capabilities]
 \begin{itemize}
   \item \textbf{Input sanitization}: All numeric inputs pass through \texttt{require\_finite()} guards that reject NaN and Infinity before any comparison, preventing silent bypass of bounds checks
-  \item \textbf{Defense-in-depth temperature guard}: Checks both \texttt{tool\_max\_c} (50\textdegree{}C) and \texttt{absolute\_max\_c} (60\textdegree{}C hardware fuse) independently, protecting against misconfigured tool limits
+  \item \textbf{Defense-in-depth temperature guard}: Independently checks the tool limit, \texttt{tool\_max\_c} (50\textdegree{}C), and the hardware fuse limit, \texttt{absolute\_max\_c} (60\textdegree{}C), protecting against misconfigured tool limits
   \item \textbf{Cumulative volume tracking}: Tracks total dispensed volume across all \texttt{dispense} calls, rejecting operations that would exceed 50\,mL per run. Resets via \texttt{reset\_run()}
   \item \textbf{Flow rate validation}: Enforces maximum pump speed (500\,\textmu{}L/s) on all liquid handling tools
   \item \textbf{Sliding-window rate limiting}: Maintains a 60-second sliding window of call timestamps, rejecting calls that exceed 60 calls/minute
@@ -931,7 +961,9 @@ The ESP32-S3 runs a real-time safety monitor that expects a heartbeat message fr
 \subsection{Human Gates and Graduated Autonomy}
 \label{sec:gates}
 
-\textbf{What the code does.} Protocol steps carry a \texttt{human\_gate} flag; the shipped Odin protocol sets it on loading cells and reagents, and on confirming plates into the incubator. Opening a gate (\texttt{request\_human\_action}) causes every actuator tool to be refused until the gate resolves. Only one gate may be open at a time. Confirmation is out of band: the operator creates \texttt{<confirm-dir>/<action\_id>.confirmed}, and action IDs embed the server start time so a stale file from a previous run cannot satisfy a new gate. Camera and lighting calls remain available during a pending gate so the operator can inspect the deck. Gate requests, confirmations, and expiries are all audit-logged.
+\textbf{What the code does.} Protocol steps carry a \texttt{human\_gate} flag; the shipped Odin protocol sets it on loading cells and reagents, and on confirming plates into the incubator. Opening a gate (\texttt{request\_human\_action}) causes every actuator tool to be refused until the gate resolves, and only one gate may be open at a time.
+
+Confirmation is out of band: the operator creates the file \texttt{<action\_id>.confirmed} in the confirmation directory (\texttt{<confirm-dir>}). Action IDs embed the server start time, so a stale file from a previous run cannot satisfy a new gate. Camera and lighting calls remain available during a pending gate so the operator can inspect the deck. Gate requests, confirmations, and expiries are all audit-logged.
 
 \textbf{What the code does not do}, stated so that nobody plans around a guarantee that is not there:
 
@@ -940,8 +972,10 @@ The ESP32-S3 runs a real-time safety monitor that expects a heartbeat message fr
   \item A gate expires. \texttt{timeout\_min} ranges from 1 to 1440 minutes; on expiry the gate resolves as \texttt{timed\_out}, not \texttt{confirmed}, and stops blocking actuators. Without a configured confirmation directory, expiry is the only resolution available. Policy is that a timed-out gate is a failed step rather than implied consent; latching on expiry, as the e-stop latch does, would enforce that and is not implemented.
 \end{itemize}
 
-\begin{safetybox}[Graduated Autonomy is Design Policy, Not a Feature]
-Requiring confirmation at every physical step does not scale, and a system that demands confirmation for everything trains operators to click through, so relaxing gates for routine steps as a track record accumulates is a legitimate goal. It is not implemented: today a step is either gated or it is not, changing that means an operator editing a protocol TOML on disk, and no code path lets the agent alter gate placement. Any implementation is bound by the conditions below.
+\begin{safetybox}[Graduated Autonomy Is Design Policy, Not a Feature]
+Requiring confirmation at every physical step does not scale, and a system that demands confirmation for everything trains operators to click through. Relaxing gates for routine steps as a track record accumulates is therefore a legitimate goal.
+
+It is not implemented. Today a step is either gated or it is not; changing that means an operator editing a protocol TOML on disk, and no code path lets the agent alter gate placement. Any future implementation is bound by the conditions below.
 
 \begin{itemize}
   \item \textbf{Irreversible or novel steps never lose their gate}, at any trust level. Irreversible means the physical result cannot be undone by the system: committing reagents, heat shock on a prepared mix, plating, opening the enclosure. Novel means a protocol, step type, reagent, or parameter range not previously executed and reviewed.
@@ -956,6 +990,7 @@ Requiring confirmation at every physical step does not scale, and a system that 
 
 Every tool call, sensor reading, state transition, and human interaction is logged as append-only JSON Lines. The audit log is never truncated or overwritten, only appended to.
 
+\needspace{13\baselineskip}
 \begin{lstlisting}[language=json, title={\small\sffamily Audit log entries (JSON Lines format)}]
 {"ts":"2026-02-05T14:23:01Z","event":"tool_call","tool":"heat_shock",
   "args":{"ramp_to_c":42.0,"hold_s":45,"return_to_c":4.0},
@@ -981,7 +1016,6 @@ This safety architecture is intentionally thorough for the risk level of BSL-1 e
 % ============================================================================
 % SECTION 6: BUILD PHASES
 % ============================================================================
-\newpage
 \section{Build Phases}
 
 \subsection{Phase 1: Foundation (Weeks 1--2)}
@@ -1059,10 +1093,11 @@ End-to-end agent-orchestrated experiment with The Odin CRISPR kit.
 % ============================================================================
 % SECTION 7: TESTING PROCEDURE
 % ============================================================================
-\newpage
 \section{Testing Procedure}
 
-\begin{longtable}{L{0.8cm} L{3cm} L{5cm} L{4cm}}
+Each subsystem is verified in isolation before the end-to-end run, in the order below.
+
+\begin{xltabular}{\textwidth}{L{0.8cm} L{2.6cm} Y L{4.6cm}}
 \toprule
 \textbf{Test} & \textbf{Scope} & \textbf{Procedure} & \textbf{Pass Criteria} \\
 \midrule
@@ -1073,9 +1108,9 @@ End-to-end agent-orchestrated experiment with The Odin CRISPR kit.
 4 & Thermal control & Set cold zone to 4\textdegree{}C. Set warm zone to 37\textdegree{}C. Execute heat shock cycle. & PID converges in 5 min. Stability $\pm$0.5\textdegree{}C over 1 hour. Heat shock timing accurate. \\
 5 & Liquid handling & Dispense 100\textmu{}L water onto scale. Move gantry to 5 positions. Run 10-cycle mix. & Volume accuracy $\pm$5\%. Position accuracy $\pm$1mm. No air bubbles or spills. \\
 6 & Colony counting & Capture known plates. Compare automated count to manual ground truth. & >90\% accuracy on 5 test plates. \\
-7 & End-to-end & Run complete protocol with agent orchestration. & All transitions logged. Human gates enforced. Results comparable to manual execution. \\
+7 & End-to-end & Run complete protocol with agent orchestration. & All transitions logged. Human gates enforced. Results comparable to manual execution. \\*
 \bottomrule
-\end{longtable}
+\end{xltabular}
 
 
 % ============================================================================
@@ -1083,7 +1118,7 @@ End-to-end agent-orchestrated experiment with The Odin CRISPR kit.
 % ============================================================================
 \section{Security Considerations}
 
-\begin{longtable}{L{4cm} L{9cm}}
+\begin{xltabular}{\textwidth}{L{4.4cm} Y}
 \toprule
 \textbf{Threat} & \textbf{Mitigation} \\
 \midrule
@@ -1100,9 +1135,9 @@ Firmware hang & ESP32 watchdog timer (300ms) auto-resets to safe state; kills 12
 Audit log tampering & Append-only file, no deletion API exposed to agent or MCP server \\
 Malicious protocol injection & Protocol validation checks all steps against safety limits before loading \\
 Power loss during operation & All actuators default to safe state (heaters off, pumps stopped, relay open) \\
-Reagent contamination & Human gates require physical verification of deck state before proceeding \\
+Reagent contamination & Human gates require physical verification of deck state before proceeding \\*
 \bottomrule
-\end{longtable}
+\end{xltabular}
 
 
 % ============================================================================
@@ -1118,16 +1153,25 @@ The platform demonstrates several principles:
   \item \textbf{Capability bounding}: Hard limits loaded from configuration at startup and enforced at runtime, with no tool by which the agent can raise them. This is what the self-driving laboratory literature calls compartmentalization: preventing alteration of an approved plan after human authorization \cite{tobias2025}.
   \item \textbf{Audit transparency}: Every mutating agent action is logged, including refusals, with enough detail to reconstruct a run after the fact. The log is append-only rather than cryptographically tamper-evident, so it protects against the agent and not against the operator.
   \item \textbf{Human oversight}: Gates are positioned at the digital-to-physical boundary: the moments where an AI decision becomes a physical action on biological materials. Independent policy analysis converges on the same control set: human approval gates before external actions, tamper-evident audit logs, whitelisted protocols, and biosafety interlocks \cite{luhachack2026}.
-  \item \textbf{Graduated autonomy}: Relaxing gates on routine, reversible, previously validated steps is legitimate design policy, subject to the conditions in Section~\ref{sec:gates}. Irreversible and novel steps never lose their gate, relaxation is per step and per protocol rather than global, it requires a human action outside the agent's reach, it is logged, time-bounded, and auto-reverting on anomaly, and the track record it rests on must come from production-realistic runs rather than observed rehearsals \cite{needham2025,schoen2025,greenblatt2024}. None of this is implemented today: gate placement is a per-step flag in a protocol file that only an operator can edit.
+  \item \textbf{Graduated autonomy}: Relaxing gates on routine, reversible, previously validated steps is legitimate design policy, subject to the conditions in Section~\ref{sec:gates}. Irreversible and novel steps never lose their gate. Relaxation is per step and per protocol rather than global; it requires a human action outside the agent's reach; it is logged, time-bounded, and auto-reverting on anomaly; and the track record it rests on must come from production-realistic runs rather than observed rehearsals \cite{needham2025,schoen2025,greenblatt2024}. None of this is implemented today: gate placement is a per-step flag in a protocol file that only an operator can edit.
 \end{itemize}
 
 \subsection{Why a Demonstration, and at What Cost}
 
-The security-research analogy (demonstrate the problem to create urgency) is useful but it does not transfer cleanly. Coordinated disclosure works because a specific vendor can ship a patch on a short timescale. Biological risk has no single owner, countermeasures may never arrive on a useful timescale, and the standard cybersecurity toolkit of disclosure deadlines and bug bounties is a poor fit \cite{millett2024}. A demonstration in this space can therefore diffuse capability rather than only prompting a fix.
+The security-research analogy (demonstrate the problem to create urgency) is useful, but it does not transfer cleanly. Coordinated disclosure works because a specific vendor can ship a patch on a short timescale. Biological risk has no single owner, countermeasures may never arrive on a useful timescale, and the standard cybersecurity toolkit of disclosure deadlines and bug bounties is a poor fit \cite{millett2024}. A demonstration in this space can therefore diffuse capability rather than only prompting a fix.
 
-Four design choices tilt the tradeoff toward benefit: the demonstrated artifact is the safety architecture rather than a dangerous capability, since the underlying model-plus-actuator integration is already widely published \cite{tobias2025,luhachack2026}; the biology sits at the floor of the risk scale, at or below the tier for which basic controls are considered proportionate \cite{smith2026}; the hard limits sit outside the agent's reach; and no wet-lab uplift is published beyond a commercially sold teaching kit. The residual risks are real and worth naming: a design that safely bounds an agent is also a design someone can scale while deleting the bounds, and the empirical evidence on AI uplift to biological misuse remains contested \cite{mouton2024,rose2024}.
+Four design choices tilt the tradeoff toward benefit:
 
-Scope of the claim: this is a single-maintainer BSL-1 prototype whose control, safety, and audit layers are implemented and tested against simulated hardware while the physical build is staged. It shows these controls are buildable and usable at this scale. It is not evidence that they hold at higher biosafety levels, nor that oversight is free at production throughput, and the automated-laboratory literature warns specifically that human oversight erodes as automation scales \cite{smith2026}.
+\begin{enumerate}
+  \item \textbf{The demonstrated artifact is the safety architecture}, not a dangerous capability; the underlying model-plus-actuator integration is already widely published \cite{tobias2025,luhachack2026}.
+  \item \textbf{The biology sits at the floor of the risk scale}, at or below the tier for which basic controls are considered proportionate \cite{smith2026}.
+  \item \textbf{The hard limits sit outside the agent's reach.}
+  \item \textbf{No wet-lab uplift is published} beyond a commercially sold teaching kit.
+\end{enumerate}
+
+The residual risks are real and worth naming. A design that safely bounds an agent is also a design someone can scale while deleting the bounds, and the empirical evidence on AI uplift to biological misuse remains contested \cite{mouton2024,rose2024}.
+
+\textbf{Scope of the claim.} This is a single-maintainer BSL-1 prototype whose control, safety, and audit layers are implemented and tested against simulated hardware while the physical build is staged. It shows these controls are buildable and usable at this scale. It is not evidence that they hold at higher biosafety levels, nor that oversight is free at production throughput; the automated-laboratory literature warns specifically that human oversight erodes as automation scales \cite{smith2026}.
 
 See \texttt{packages/bioforge/docs/governance-implications.md} for the full governance analysis, including the September 2026 US policy context and the complete reference list.
 
@@ -1163,7 +1207,6 @@ See \texttt{packages/bioforge/docs/governance-implications.md} for the full gove
 % ============================================================================
 % REFERENCES
 % ============================================================================
-\newpage
 \renewcommand{\refname}{References}
 \begin{thebibliography}{99}
 

@@ -36,6 +36,9 @@
 \usepackage{setspace}
 \usepackage{parskip}
 \usepackage{caption}
+\usepackage{tabularx}
+\usepackage{needspace}
+\usepackage{tocloft}
 
 \pgfplotsset{compat=1.18}
 \usetikzlibrary{shapes.geometric, arrows.meta, positioning, calc, decorations.pathreplacing, backgrounds, fit, shadows.blur, matrix, patterns, fadings, shadings}
@@ -119,10 +122,45 @@
 \titlespacing*{\section}{0pt}{3ex plus 1ex minus .2ex}{2ex plus .2ex}
 \titlespacing*{\subsection}{0pt}{2.5ex plus 1ex minus .2ex}{1.5ex plus .2ex}
 
+% Keep headings together with the text that follows them
+\newcommand{\sectionbreak}{\needspace{10\baselineskip}}
+\newcommand{\subsectionbreak}{\needspace{7\baselineskip}}
+
+% ============================================================================
+% FLOATS AND CAPTIONS
+% ============================================================================
+\captionsetup{font={small,sf}, labelfont={bf,color=awsblue}, labelsep=period, margin=1em}
+\captionsetup[figure]{skip=8pt}
+\captionsetup[table]{position=above, skip=6pt}
+\setlength{\textfloatsep}{14pt plus 4pt minus 4pt}
+\setlength{\floatsep}{12pt plus 4pt minus 4pt}
+\setlength{\intextsep}{12pt plus 4pt minus 4pt}
+\renewcommand{\topfraction}{0.85}
+\renewcommand{\bottomfraction}{0.6}
+\renewcommand{\textfraction}{0.12}
+\renewcommand{\floatpagefraction}{0.75}
+\setcounter{topnumber}{3}
+\setcounter{totalnumber}{4}
+
+% Table column helpers
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+
 % ============================================================================
 % TOC STYLING
 % ============================================================================
 \setcounter{tocdepth}{2}
+\renewcommand{\cfttoctitlefont}{\normalfont\LARGE\bfseries\color{awsblue}}
+\renewcommand{\cftsecfont}{\bfseries\color{awsblue}}
+\renewcommand{\cftsecpagefont}{\bfseries\color{awsblue}}
+\renewcommand{\cftsubsecfont}{\color{awsblue!80}}
+\renewcommand{\cftsubsecpagefont}{\color{coolgray}}
+\setlength{\cftsecnumwidth}{2.2em}
+\setlength{\cftsubsecindent}{2.2em}
+\setlength{\cftsubsecnumwidth}{2.8em}
+\setlength{\cftbeforesecskip}{0.2em}
+\setlength{\cftbeforesubsecskip}{0pt}
+\setlength{\cftbeforetoctitleskip}{0pt}
+\setlength{\cftaftertoctitleskip}{1em}
 
 % ============================================================================
 % TCOLORBOX ENVIRONMENTS - Modern Redesign
@@ -341,44 +379,57 @@
 \newcommand{\ratelimit}{\textcolor{dangerred}{\faExclamationCircle\ 0.25 req/sec}}
 
 % ============================================================================
-% PART PAGE STYLING (uses explicit dimensions, not remember picture overlay)
+% PART DIVIDER BANNER (matches the integration guide cover)
 % ============================================================================
-\newcommand{\partpage}[4]{%
+% \partbanner{numeral}{title}{subtitle}{illustration}
+% Full-bleed 10cm band flush with the page top. The illustration is drawn
+% in local cm coordinates inside an 8.2cm x 7.5cm box whose origin is its
+% bottom-left corner, vertically centered in the band.
+\newcommand{\partbanner}[4]{%
   \clearpage
-  \thispagestyle{empty}
-  \vspace*{-0.85in}
-  \noindent\hspace*{-0.85in}\begin{tikzpicture}
-    % Header background
-    \shade[top color=awsdark, bottom color=awsblue]
-      (0,0) rectangle (\paperwidth, -9cm);
+  \thispagestyle{empty}%
+  \noindent\begin{tikzpicture}[remember picture, overlay]
+    \begin{scope}[shift={(current page.north west)}]
+      % Band
+      \fill[awsdark] (0,0) rectangle (\paperwidth,-10cm);
+      % Subtle texture: dot lattice (as on the cover)
+      \foreach \x in {0.9,1.8,...,21.0} {
+        \foreach \y in {-0.9,-1.8,...,-9.5} {
+          \fill[white, opacity=0.045] (\x,\y) circle (0.018);
+        }
+      }
+      % Bottom accent rule
+      \fill[awsorange] (0,-10cm) rectangle (\paperwidth,-9.958cm);
+      % Text column
+      \node[anchor=west, inner sep=0, text width=8.8cm, align=left]
+        at (2.159cm,-5cm) {%
+          \setstretch{1}\setlength{\parskip}{0pt}%
+          {\color{awsorange}\sffamily\bfseries\fontsize{9}{11}\selectfont PART #1}\par
+          \vspace{0.35cm}%
+          \begin{minipage}{8cm}\raggedright{\color{white}\sffamily\bfseries\fontsize{30}{34}\selectfont #2\par}\end{minipage}\par
+          \vspace{0.3cm}%
+          {\color{awsorange}\rule{2.5cm}{2pt}}\par
+          \vspace{0.3cm}%
+          \begin{minipage}{8.5cm}\raggedright
+            {\color{white!70}\sffamily\fontsize{11}{14}\selectfont #3\par}
+          \end{minipage}%
+        };
+      % Illustration box
+      \begin{scope}[shift={(0.52\paperwidth,-8.75cm)}]
+        #4
+      \end{scope}
+    \end{scope}
+  \end{tikzpicture}\par
+  \vspace*{7.9cm}%
+}
 
-    % Decorative circles
-    \fill[awsorange, opacity=0.15] (12cm, -3cm) circle (4cm);
-    \fill[awsorange, opacity=0.1] (14cm, -6cm) circle (2.5cm);
-    \fill[cloudblue, opacity=0.1] (3cm, -5cm) circle (3cm);
+% Label style shared by the cover and part illustrations
+\tikzset{
+  artlabel/.style={inner sep=0, font=\sffamily\bfseries\fontsize{6.5}{7}\selectfont},
+}
 
-    % Part number - large watermark
-    \node[white, opacity=0.08, font=\fontsize{200}{200}\selectfont\bfseries]
-      at (5cm, -5cm) {#1};
-
-    % Part label
-    \node[white, font=\large\sffamily] at (0.5\paperwidth, -2.5cm) {PART};
-
-    % Part number (visible)
-    \node[awsorange, font=\fontsize{72}{72}\selectfont\bfseries]
-      at (0.5\paperwidth, -4.5cm) {#1};
-
-    % Part title
-    \node[white, font=\Huge\bfseries\sffamily] at (0.5\paperwidth, -7cm) {#2};
-
-    % Decorative line
-    \draw[awsorange, line width=2pt]
-      (3cm, -8cm) -- (\paperwidth-3cm, -8cm);
-  \end{tikzpicture}
-
-  \vspace{0.8cm}
-
-  % Overview content
+% "What's Covered" summary box shown under each part banner
+\newcommand{\partcovered}[1]{%
   \begin{center}
   \begin{minipage}{0.88\textwidth}
     \begin{tcolorbox}[
@@ -393,15 +444,8 @@
     \textcolor{awsblue}{\faListAlt\hspace{0.5em}\textbf{What's Covered}}
     \vspace{0.5em}
 
-    #3
+    #1
     \end{tcolorbox}
-
-    \vspace{1em}
-
-    % Icon row
-    \begin{center}
-    #4
-    \end{center}
   \end{minipage}
   \end{center}
 }
@@ -415,104 +459,169 @@
 % TITLE PAGE - Full Page Design with remember picture
 % ============================================================================
 \begin{titlepage}
+% Integration guide cover. Illustration: "Memory as Layered Stores".
+% Session event streams merge and settle into a stack of long-term fact
+% stores; stored records are embedded into a vector space whose clusters
+% are searched semantically, and the nearest neighbours of a query are
+% returned to agents along retrieval rays.
+% Coordinates are in cm from the bottom-left corner of the page.
 \begin{tikzpicture}[remember picture, overlay]
-  % Left panel gradient (full height)
-  \shade[left color=awsdark, right color=awsblue!90]
-    (current page.north west) rectangle ([xshift=7cm]current page.south west);
+\begin{scope}[shift={(current page.south west)}]
+  % Background
+  \fill[awsdark] (0,0) rectangle (21.59,27.94);
 
-  % Decorative circles on left panel
-  \fill[awsorange, opacity=0.15] ([xshift=3.5cm, yshift=-4cm]current page.north west) circle (1.2cm);
-  \fill[awsorange, opacity=0.10] ([xshift=3.5cm, yshift=-8cm]current page.north west) circle (0.9cm);
-  \fill[cloudblue, opacity=0.12] ([xshift=3.5cm, yshift=-12cm]current page.north west) circle (1.1cm);
-  \fill[awsorange, opacity=0.08] ([xshift=3.5cm, yshift=-16cm]current page.north west) circle (1.4cm);
-  \fill[cloudblue, opacity=0.10] ([xshift=3.5cm, yshift=-20cm]current page.north west) circle (0.8cm);
-
-  % Memory hub visualization centered at left panel
-  \begin{scope}[shift={([xshift=3.5cm, yshift=-14cm]current page.north west)}]
-    % Glow rings
-    \fill[awsorange, opacity=0.08] (0,0) circle (2.8cm);
-    \fill[awsorange, opacity=0.12] (0,0) circle (2.2cm);
-
-    % Central hub
-    \fill[awsorange] (0,0) circle (0.65cm);
-    \node[white, font=\small\bfseries] at (0,0) {MEM};
-
-    % Agent nodes around hub
-    \foreach \angle/\label/\col in {60/C/cloudblue, 120/G/successgreen, 180/O/infoteal, 240/X/warningamber, 300/R/dangerred, 0/P/coolgray} {
-      \draw[white, opacity=0.4, line width=1.5pt] (0,0) -- (\angle:1.6cm);
-      \fill[\col] (\angle:2cm) circle (0.35cm);
-      \node[white, font=\tiny\bfseries] at (\angle:2cm) {\label};
+  % Subtle texture: dot lattice
+  \foreach \x in {0.9,1.8,...,21.0} {
+    \foreach \y in {0.9,1.8,...,27.2} {
+      \fill[white, opacity=0.045] (\x,\y) circle (0.018);
     }
+  }
 
-    % Data particles
-    \foreach \i in {1,...,12} {
-      \fill[white, opacity=0.5] ({30*\i}:1cm) circle (0.05cm);
+  % Masthead
+  \fill[awsdark!78!black] (0,26.34) rectangle (21.59,27.94);
+  \fill[awsorange] (0,26.34) rectangle (21.59,26.382);
+  \node[anchor=west, inner sep=0, text=awsorange,
+        font=\sffamily\bfseries\fontsize{8.5}{10}\selectfont]
+    at (1.5,27.14) {INTEGRATION GUIDE};
+  \node[anchor=east, inner sep=0, text=white!72,
+        font=\sffamily\bfseries\fontsize{8.5}{10}\selectfont]
+    at (20.09,27.14) {AGENTCORE MEMORY\enspace\textbar\enspace VERSION 1.0\enspace\textbar\enspace DECEMBER 4, 2025};
+
+  % ==== Illustration zone (y = 12.9 .. 25.1) ====
+
+  % ---- Short-term event streams: three sessions merging into one write path
+  \foreach \ly/\ph in {24.2/0.00, 23.7/0.35, 23.2/0.70} {
+    \draw[cloudblue, opacity=0.55, line width=0.8pt, rounded corners=0.9cm]
+      (1.5,\ly) -- (7.0,\ly) -- (7.0,19.6);
+    \foreach \k in {0,...,11} {
+      \pgfmathsetmacro{\ex}{1.75+(\k+\ph)*0.42}
+      \pgfmathsetmacro{\op}{0.20+0.06*\k}
+      \fill[awslightorange, opacity=\op] (\ex-0.07,\ly-0.07) rectangle (\ex+0.07,\ly+0.07);
     }
+  }
+  % merged write path into the store
+  \draw[awsorange, line width=1.6pt] (7.0,22.3) -- (7.0,19.95);
+  \foreach \ey in {21.8,21.2,20.6} {
+    \fill[awsorange] (6.9,\ey-0.1) rectangle (7.1,\ey+0.1);
+  }
+  \fill[awsorange] (7.0,19.85) circle (0.09);
+  \node[anchor=south west, inner sep=0,
+        font=\sffamily\bfseries\fontsize{6.5}{7}\selectfont]
+    at (1.5,24.62) {\textcolor{awslightorange}{SHORT-TERM EVENTS}\enspace\textcolor{white!55!awsdark}{RATE LIMITED}};
+
+  % ---- Long-term fact store: four isometric layers
+  \foreach \h/\op/\edge in {14.9/55/white!32!awsdark, 16.1/70/white!38!awsdark, 17.3/85/white!44!awsdark, 18.5/100/awsorange} {
+    % side thickness
+    \fill[awsblue!60!black] (4.1,\h) -- (7.0,\h-1.15) -- (9.9,\h) -- (9.9,\h-0.28)
+      -- (7.0,\h-1.43) -- (4.1,\h-0.28) -- cycle;
+    % top face
+    \fill[awsblue!\op!awsdark] (4.1,\h) -- (7.0,\h+1.15) -- (9.9,\h) -- (7.0,\h-1.15) -- cycle;
+    \draw[\edge, line width=0.8pt, line join=round]
+      (4.1,\h) -- (7.0,\h+1.15) -- (9.9,\h) -- (7.0,\h-1.15) -- cycle;
+    \draw[white!25!awsdark, line width=0.4pt]
+      (4.1,\h) -- (4.1,\h-0.28) -- (7.0,\h-1.43) -- (9.9,\h-0.28) -- (9.9,\h);
+  }
+  % fact records on the top layer (isometric grid of cells)
+  \foreach \i in {0,...,3} {
+    \foreach \j in {0,...,3} {
+      \pgfmathsetmacro{\rx}{7.0+(\i-\j)*0.5}
+      \pgfmathsetmacro{\ry}{18.5+(\i+\j-3)*0.2}
+      \fill[awslightorange, opacity=0.75] (\rx,\ry) circle (0.05);
+    }
+  }
+  \node[anchor=north, inner sep=0,
+        font=\sffamily\bfseries\fontsize{6.5}{7}\selectfont]
+    at (7.0,13.05) {\textcolor{awslightorange}{LONG-TERM FACTS}\enspace\textcolor{white!55!awsdark}{NO LIMIT}};
+
+  % ---- Embedding: records project from each layer into the vector space
+  \foreach \h/\tx/\ty in {18.5/11.72/20.63, 17.3/11.70/19.47, 16.1/13.01/17.51, 14.9/13.05/16.67} {
+    \draw[white!55!awsdark, opacity=0.6, line width=0.4pt, dash pattern=on 1.5pt off 1.5pt]
+      (9.9,\h) .. controls (10.9,\h) and (11.4,\ty) .. (\tx,\ty);
+    \fill[white!70!awsdark] (9.9,\h) circle (0.045);
+  }
+
+  % ---- Vector space with three semantic clusters
+  \begin{scope}[shift={(14.1,19.3)}]
+    \fill[awsblue, opacity=0.55] (0,0) circle (3.4);
+    \draw[white!30!awsdark, line width=0.4pt] (0,0) circle (3.4);
+    \draw[white!12!awsdark, line width=0.4pt] (0,0) circle (2.3);
+    \draw[white!12!awsdark, line width=0.4pt] (0,0) circle (1.2);
+    \draw[white!10!awsdark, line width=0.4pt] (-3.4,0) -- (3.4,0);
+    \draw[white!10!awsdark, line width=0.4pt] (0,-3.4) -- (0,3.4);
+    % cluster halos
+    \fill[cloudblue, opacity=0.10] (-1.65,1.0) circle (1.0);
+    \fill[white, opacity=0.06] (-0.35,-1.55) circle (1.0);
+    \fill[awsorange, opacity=0.10] (1.25,1.0) circle (1.0);
+    \foreach \px/\py in {-1.68/1.18,-1.66/0.81,-2.02/0.85,-0.99/1.14,-1.35/1.03,-2.38/1.33,-2.4/0.17,-1.29/0.66,-1.88/1.72,-1.27/1.49,-1.77/0.52} {
+      \fill[cloudblue] (\px,\py) circle (0.06);
+    }
+    \foreach \px/\py in {-0.83/-1.39,0.62/-1.24,-1.05/-2.63,0.08/-1.83,-0.66/-1.06,0.02/-1.3,-1.09/-1.79,0.32/-2.32,-0.19/-1.04,-0.76/-0.78,-0.43/-1.69} {
+      \fill[white!70!awsdark] (\px,\py) circle (0.06);
+    }
+    \foreach \px/\py in {1.04/1.6,1.51/0.38,0.29/0.91,0.57/1.42,1.63/1.48,2.02/1.21,1.94/0.14} {
+      \fill[awslightorange] (\px,\py) circle (0.06);
+    }
+    % query point, search radius, and its nearest neighbours
+    \draw[awsorange, line width=0.4pt, dash pattern=on 2pt off 1.5pt] (1.1,0.95) circle (0.55);
+    \foreach \px/\py in {0.9/1.16,1.25/0.68,0.82/0.81,1.55/1.02} {
+      \draw[awsorange, line width=0.4pt] (1.1,0.95) -- (\px,\py);
+      \fill[awsorange] (\px,\py) circle (0.075);
+    }
+    \fill[awsorange, opacity=0.25] (1.1,0.95) circle (0.2);
+    \fill[awsdark] (1.1,0.95) circle (0.1);
+    \draw[awsorange, line width=0.8pt] (1.1,0.95) circle (0.1);
   \end{scope}
+  \node[anchor=north, inner sep=0, text=white!60!awsdark,
+        font=\sffamily\bfseries\fontsize{6.5}{7}\selectfont]
+    at (14.1,15.55) {VECTOR SPACE};
+  % semantic search label with leader
+  \draw[white!45!awsdark, line width=0.4pt] (15.2,20.8) -- (15.75,23.0) -- (16.6,23.0);
+  \node[anchor=west, inner sep=0, text=awslightorange,
+        font=\sffamily\bfseries\fontsize{6.5}{7}\selectfont]
+    at (16.7,23.0) {SEMANTIC SEARCH};
 
-  % ========== RIGHT SIDE CONTENT ==========
+  % ---- Retrieval rays from the query to agents
+  \foreach \ay in {16.9, 19.3, 21.7} {
+    \draw[awsorange, opacity=0.75, line width=0.8pt]
+      (15.3,20.25) .. controls (17.2,20.25) and (17.6,\ay) .. (19.1,\ay);
+    \fill[awsorange, opacity=0.18] (19.5,\ay) circle (0.52);
+    \fill[awsdark] (19.5,\ay) circle (0.28);
+    \draw[awsorange, line width=1.6pt] (19.5,\ay) circle (0.28);
+    \fill[awsorange] (19.5,\ay) circle (0.12);
+  }
+  \node[anchor=north, inner sep=0, text=white!60!awsdark,
+        font=\sffamily\bfseries\fontsize{6.5}{7}\selectfont]
+    at (19.5,16.15) {AGENTS};
 
-  % Platform Badge
-  \node[fill=awsorange, rounded corners=3pt, inner sep=6pt]
-    at ([xshift=11cm, yshift=-3cm]current page.north west)
-    {\textcolor{white}{\small\bfseries\sffamily RUST + CHROMADB}};
+  % ==== Title block ====
+  \node (sub) [anchor=south west, inner sep=0, text width=14cm, align=left,
+               text=white!75, font=\sffamily\fontsize{12.5}{16}\selectfont]
+    at (1.5,6.0)
+    {\hyphenpenalty=10000 Enable your AI agents to remember context across sessions, share knowledge,
+     and leverage semantic search, all self-hosted with \mbox{ChromaDB} and a Rust MCP server.};
+  \fill[awsorange] ([yshift=0.45cm]sub.north west) rectangle ++(3cm,2pt);
+  \node (ttl) [anchor=south west, inner sep=0, text width=15.5cm, align=left,
+               text=white, font=\sffamily\bfseries\fontsize{34}{38}\selectfont]
+    at ([yshift=0.95cm]sub.north west)
+    {AgentCore Memory\\Integration Guide};
+  \node[anchor=south west, inner sep=0, text=awsorange,
+        font=\sffamily\bfseries\fontsize{9}{11}\selectfont]
+    at ([yshift=0.5cm]ttl.north west) {PERSISTENT MEMORY FOR AI AGENT ECOSYSTEMS};
 
-  % Main Title
-  \node[anchor=west] at ([xshift=8cm, yshift=-5.5cm]current page.north west) {
-    {\fontsize{48}{54}\selectfont\bfseries\color{awsblue}AgentCore}
-  };
-  \node[anchor=west] at ([xshift=8cm, yshift=-7.5cm]current page.north west) {
-    {\fontsize{38}{44}\selectfont\color{cloudblue}Memory}
-  };
-  \node[anchor=west] at ([xshift=8cm, yshift=-9cm]current page.north west) {
-    {\Large\color{coolgray}\sffamily Integration Guide}
-  };
-
-  % Tagline
-  \node[anchor=west] at ([xshift=8cm, yshift=-11cm]current page.north west) {
-    {\large\color{awsblue}\sffamily Persistent Memory for AI Agent Ecosystems}
-  };
-
-  % Orange divider
-  \draw[awsorange, line width=3pt]
-    ([xshift=8cm, yshift=-12cm]current page.north west) --
-    ([xshift=18cm, yshift=-12cm]current page.north west);
-
-  % Description
-  \node[anchor=north west, text width=10cm] at ([xshift=8cm, yshift=-13cm]current page.north west) {
-    \color{coolgray}\normalsize
-    Enable your AI agents to remember context across sessions, share knowledge,
-    and leverage semantic search, all self-hosted with ChromaDB and a Rust MCP server.
-  };
-
-  % Feature highlights
-  \node[fill=cloudblue!10, rounded corners=4pt, inner sep=8pt]
-    at ([xshift=9.5cm, yshift=-16.5cm]current page.north west) {
-    \textcolor{cloudblue}{\faBrain}\hspace{0.3em}\small\sffamily Short-Term Events
-  };
-  \node[fill=successgreen!10, rounded corners=4pt, inner sep=8pt]
-    at ([xshift=13.5cm, yshift=-16.5cm]current page.north west) {
-    \textcolor{successgreen}{\faDatabase}\hspace{0.3em}\small\sffamily Long-Term Facts
-  };
-  \node[fill=awsorange!10, rounded corners=4pt, inner sep=8pt]
-    at ([xshift=17.5cm, yshift=-16.5cm]current page.north west) {
-    \textcolor{awsorange}{\faSearch}\hspace{0.3em}\small\sffamily Semantic Search
-  };
-
-  % Rate limit indicators
-  \node[fill=dangerred!10, rounded corners=3pt, inner sep=6pt]
-    at ([xshift=10cm, yshift=-19cm]current page.north west) {
-    \textcolor{dangerred}{\faTimes}\hspace{0.3em}\scriptsize\sffamily Rate Limited
-  };
-  \node[fill=successgreen!10, rounded corners=3pt, inner sep=6pt]
-    at ([xshift=14cm, yshift=-19cm]current page.north west) {
-    \textcolor{successgreen}{\faCheck}\hspace{0.3em}\scriptsize\sffamily No Limit
-  };
-
-  % Version info
-  \node[coolgray, font=\sffamily] at ([xshift=13cm, yshift=-21cm]current page.north west) {
-    Version 1.0 | December 4, 2025
-  };
+  % ==== Footer metadata strip ====
+  \draw[white, opacity=0.25, line width=0.4pt] (1.5,2.6) -- (20.09,2.6);
+  \foreach \i/\lab/\val in {0/STACK/{Rust + ChromaDB},
+                            1/INTERFACE/{MCP server},
+                            2/HOSTING/{Self-hosted},
+                            3/VERSION/{1.0 (December 4, 2025)}} {
+    \node[anchor=base west, inner sep=0, text=awsorange,
+          font=\sffamily\bfseries\fontsize{6.5}{8}\selectfont]
+      at ({1.5+\i*4.6475},1.98) {\lab};
+    \node[anchor=base west, inner sep=0, text=white!75,
+          font=\sffamily\fontsize{8.5}{10}\selectfont]
+      at ({1.5+\i*4.6475},1.5) {\val};
+  }
+\end{scope}
 \end{tikzpicture}
 \end{titlepage}
 
@@ -526,105 +635,79 @@
 {\color{awsblue}\fontsize{28}{32}\selectfont\bfseries Executive Summary}
 \end{center}
 
-\vspace{1cm}
+\vspace{0.4cm}
 
 \begin{tldrbox}
-AI agents are stateless. This integration adds persistent memory via a Rust MCP server backed by ChromaDB,
+AI agents are stateless. This integration adds persistent memory through a Rust MCP server backed by ChromaDB,
 enabling cross-session context and shared knowledge across your entire agent ecosystem.
 \end{tldrbox}
 
-\vspace{1.5em}
+\vspace{0.6em}
 
-% Enhanced Problem/Solution/Constraint cards with side icons
-\begin{tikzpicture}
-  \node[fill=dangerred!8, rounded corners=10pt, text width=0.88\textwidth, inner sep=15pt, anchor=north west,
-        drop shadow={shadow xshift=2pt, shadow yshift=-2pt, opacity=0.15}] (prob) at (1.2,0) {
-    \textcolor{dangerred}{\textbf{THE PROBLEM}}\\[0.5em]
-    \color{awsblue}AI agents (Claude Code, Gemini, OpenCode, Crush, Codex) lose all context between sessions.
-    Each conversation starts from scratch, with no memory of codebase patterns, user preferences, or prior learnings.
-  };
-  % Side icon
-  \node[fill=dangerred, circle, minimum size=1cm, inner sep=0pt] at (0.4, -0.7) {
-    \textcolor{white}{\large\faBrain}
-  };
-\end{tikzpicture}
-
-\vspace{0.8em}
-
-\begin{tikzpicture}
-  \node[fill=successgreen!8, rounded corners=10pt, text width=0.88\textwidth, inner sep=15pt, anchor=north west,
+% Problem/Solution/Constraint cards with side icons
+\newcommand{\summarycard}[4]{%
+\noindent\begin{tikzpicture}
+  \node[fill=#1!8, rounded corners=10pt, text width={\dimexpr\textwidth-1.4cm-34pt\relax}, inner sep=14pt, anchor=north west,
         drop shadow={shadow xshift=2pt, shadow yshift=-2pt, opacity=0.15}] at (1.2,0) {
-    \textcolor{successgreen}{\textbf{THE SOLUTION}}\\[0.5em]
-    \color{awsblue}A Rust MCP server with ChromaDB provides self-hosted short-term and long-term memory.
-    All agents connect via the MCP protocol to a local persistent vector store.
+    \textcolor{#1}{\textbf{#2}}\\[0.4em]
+    \color{awsblue}#3
   };
-  % Side icon
-  \node[fill=successgreen, circle, minimum size=1cm, inner sep=0pt] at (0.4, -0.7) {
-    \textcolor{white}{\large\faCloud}
+  \node[fill=#1, circle, minimum size=1cm, inner sep=0pt] at (0.4, -0.7) {
+    \textcolor{white}{\large #4}
   };
-\end{tikzpicture}
+\end{tikzpicture}\par\vspace{0.5em}}
 
-\vspace{0.8em}
+\summarycard{dangerred}{THE PROBLEM}{AI agents (Claude Code, Gemini, OpenCode, Crush, Codex) lose all context between sessions.
+Each conversation starts from scratch, with no memory of codebase patterns, user preferences, or prior learnings.}{\faBrain}
 
-\begin{tikzpicture}
-  \node[fill=awsorange!8, rounded corners=10pt, text width=0.88\textwidth, inner sep=15pt, anchor=north west,
-        drop shadow={shadow xshift=2pt, shadow yshift=-2pt, opacity=0.15}] at (1.2,0) {
-    \textcolor{awsorange}{\textbf{KEY CONSTRAINT}}\\[0.5em]
-    \color{awsblue}ChromaDB has \textbf{no rate limits}, but the MCP server is designed for sparse, high-value events.
-    Store goals, decisions, and outcomes, not every conversation turn.
-    Secret sanitization prevents accidental storage of API keys and tokens.
-  };
-  % Side icon
-  \node[fill=awsorange, circle, minimum size=1cm, inner sep=0pt] at (0.4, -0.7) {
-    \textcolor{white}{\large\faTachometerAlt}
-  };
-\end{tikzpicture}
+\summarycard{successgreen}{THE SOLUTION}{A Rust MCP server backed by ChromaDB provides self-hosted short-term and long-term memory.
+All agents connect through the MCP protocol to a local, persistent vector store.}{\faCloud}
 
-\vspace{1.5em}
+\summarycard{awsorange}{KEY CONSTRAINT}{ChromaDB has \textbf{no rate limits}, but the MCP server is designed for sparse, high-value events:
+store goals, decisions, and outcomes, not every conversation turn.
+Secret sanitization prevents accidental storage of API keys and tokens.}{\faTachometerAlt}
+
+\vspace{0.4em}
 
 % API Overview Table
 \begin{center}
-\renewcommand{\arraystretch}{1.4}
-\begin{tabular}{L{3.5cm} >{\centering\arraybackslash}p{5cm} L{5.5cm}}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{L{3.5cm} >{\centering\arraybackslash}p{5.5cm} L{5.5cm}}
 \rowcolor{awsblue!10}
 \textbf{\color{awsblue}Memory Type} & \textbf{\color{awsblue}API} & \textbf{\color{awsblue}Use Case} \\
 \midrule
-Short-term events & \api{CreateEvent} \textcolor{dangerred}{\tiny(0.25/s)} & Session goals, key decisions \\
+Short-term events & \api{CreateEvent} \textcolor{dangerred}{\scriptsize(0.25/s)} & Session goals, key decisions \\
 Long-term facts & \api{BatchCreateMemoryRecords} & Patterns, preferences, learnings \\
 Semantic search & \api{RetrieveMemoryRecords} & Context retrieval by meaning \\
 \bottomrule
 \end{tabular}
 \end{center}
 
-\vspace{2em}
+\vspace{0.6em}
 
 % Architecture Preview
 \begin{center}
 \begin{tikzpicture}[
-  layer/.style={rectangle, rounded corners=6pt, minimum height=1.2cm, font=\small\sffamily},
-  arrow/.style={->, thick, >=stealth, awsblue!70}
+  layer/.style={rectangle, rounded corners=6pt, minimum height=0.95cm, minimum width=12cm, font=\small\sffamily},
+  arrow/.style={->, thick, >=stealth, awsblue!70},
+  tag/.style={font=\scriptsize\sffamily, text=coolgray, anchor=east}
 ]
-  % Agents layer
-  \node[layer, fill=cloudlight, draw=cloudblue, minimum width=12cm] (agents) at (0,2) {
+  \node[layer, fill=cloudlight, draw=cloudblue] (agents) at (0,1.6) {
     \faRobot\ \ Claude \quad\faRobot\ \ Gemini \quad\faRobot\ \ OpenCode \quad\faRobot\ \ Crush \quad\faRobot\ \ Codex
   };
-
-  % MCP layer
-  \node[layer, fill=awsblue!10, draw=awsblue, minimum width=12cm] (mcp) at (0,0) {
+  \node[layer, fill=awsblue!10, draw=awsblue] (mcp) at (0,0) {
     \textbf{mcp-agentcore-memory} \textcolor{coolgray}{(Rust, ChromaDB)}
   };
-
-  % Storage layer
-  \node[layer, fill=awsorange!10, draw=awsorange, minimum width=12cm] (aws) at (0,-2) {
+  \node[layer, fill=awsorange!10, draw=awsorange] (store) at (0,-1.6) {
     \faDatabase\ \ ChromaDB (Vector Store)
   };
 
-  \draw[arrow] (agents) -- (mcp);
-  \draw[arrow, awsorange] (mcp) -- node[right, font=\tiny, color=coolgray] {HTTP} (aws);
+  \draw[arrow] (agents) -- node[right, font=\scriptsize, color=coolgray] {MCP} (mcp);
+  \draw[arrow, awsorange] (mcp) -- node[right, font=\scriptsize, color=coolgray] {HTTP} (store);
 
-  % Labels
-  \node[coolgray, font=\tiny, anchor=east] at ([xshift=-0.5cm]agents.west) {Self-Hosted};
-  \node[coolgray, font=\tiny, anchor=east] at ([xshift=-0.5cm]aws.west) {Self-Hosted};
+  \node[tag] at ([xshift=-0.3cm]agents.west) {Clients};
+  \node[tag] at ([xshift=-0.3cm]mcp.west) {Server};
+  \node[tag] at ([xshift=-0.3cm]store.west) {Storage};
 \end{tikzpicture}
 \end{center}
 
@@ -632,7 +715,10 @@ Semantic search & \api{RetrieveMemoryRecords} & Context retrieval by meaning \\
 % TABLE OF CONTENTS
 % ============================================================================
 \newpage
+\begingroup
+\setstretch{1.0}\small
 \tableofcontents
+\endgroup
 \newpage
 
 % ============================================================================
@@ -641,96 +727,91 @@ Semantic search & \api{RetrieveMemoryRecords} & Context retrieval by meaning \\
 \section*{\faExclamationTriangle\ Critical Corrections from External Reviews}
 \addcontentsline{toc}{section}{Critical Corrections}
 
-\begin{warnbox}[This Section Documents Breaking Changes!]
-Two external reviews identified critical issues that \textbf{fundamentally changed} the implementation approach. Review this section before implementing.
+\begin{warnbox}[This Section Documents Breaking Changes]
+Three external reviews identified critical issues that \textbf{fundamentally changed} the implementation approach. Read this section before implementing.
 \end{warnbox}
-
-\vspace{1em}
 
 \subsection*{First Review: Hard Blockers}
 
 \begin{center}
-\renewcommand{\arraystretch}{1.5}
-\begin{tabular}{L{3cm} L{4.5cm} L{6cm}}
+\small
+\renewcommand{\arraystretch}{1.35}
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{3.2cm} Y Y}
 \rowcolor{dangerred!15}
 \textbf{\color{dangerred}Issue} & \textbf{\color{dangerred}Impact} & \textbf{\color{dangerred}Resolution} \\
 \midrule
 \rowcolor{lightgray}
-Rate limits wrong & CreateEvent is 0.25 req/sec per actor+session (not 100 TPS). ``Store every turn'' will throttle immediately. & Store coarse-grained events only; use BatchCreateMemoryRecords for facts \\
-Control vs Data plane & CreateMemory is control plane, events are data plane. PrivateLink doesn't cover control plane. & Use separate clients; accept control plane uses public endpoint \\
+Rate limits wrong & CreateEvent is limited to 0.25 req/sec per actor+session (not 100 TPS), so ``store every turn'' throttles immediately. & Store coarse-grained events only; use BatchCreateMemoryRecords for facts. \\
+Control vs.\ data plane & CreateMemory is a control-plane call; events are data-plane calls. PrivateLink does not cover the control plane. & Use separate clients; accept that the control plane uses the public endpoint. \\
 \rowcolor{lightgray}
-API shapes wrong & Response paths, payload formats don't match actual AWS APIs & Rewrite client to match actual API docs \\
-async + boto3 = blocking & boto3 is synchronous; will stall MCP server under load & Resolved: migrated to Rust async with ChromaDB backend \\
+API shapes wrong & Response paths and payload formats did not match the actual AWS APIs. & Rewrite the client to match the actual API docs. \\
+async + boto3 = blocking & boto3 is synchronous and would stall the MCP server under load. & Resolved: migrated to async Rust with a ChromaDB backend. \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{center}
-
-\vspace{1.5em}
 
 \subsection*{Second Review: Implementation Fixes}
 
 \begin{center}
-\renewcommand{\arraystretch}{1.5}
-\begin{tabular}{L{3.5cm} L{4cm} L{6cm}}
+\small
+\renewcommand{\arraystretch}{1.35}
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{3.2cm} Y Y}
 \rowcolor{warningamber!15}
 \textbf{\color{warningamber}Issue} & \textbf{\color{warningamber}Impact} & \textbf{\color{warningamber}Resolution} \\
 \midrule
 \rowcolor{lightgray}
-CreateEvent payload shape & Code will 400: branchName (string) vs branch (struct) & Fixed: \code{branch=\{"name": ...\}}, payload as list of unions \\
-RetrieveMemoryRecords query & API requires searchQuery; empty fails & Fixed: query parameter now required; added separate list method \\
+CreateEvent payload shape & Requests fail with HTTP 400: \texttt{branchName} (string) vs.\ \texttt{branch} (struct). & Fixed: \code{branch=\{"name": ...\}}, payload as a list of unions. \\
+RetrieveMemory\-Records query & The API requires \texttt{searchQuery}; an empty query fails. & Fixed: query parameter is now required; added a separate list method. \\
 \rowcolor{lightgray}
-Rate limiter not keyed & Global limiter doesn't match per-session limit & Fixed: \code{PerSessionRateLimiter} keyed by (actor\_id, session\_id) \\
-Restore uses CreateEvent & Would take forever at 0.25/s & Fixed: Use BatchCreateMemoryRecords for restore \\
+Rate limiter not keyed & A global limiter does not match the per-session limit. & Fixed: \code{PerSessionRateLimiter} keyed by (actor\_id, session\_id). \\
+Restore uses CreateEvent & Restores would take far too long at 0.25/s. & Fixed: use BatchCreateMemoryRecords for restore. \\
 \rowcolor{lightgray}
-Tests mock boto3 & Implementation uses aiobotocore; tests give false confidence & Resolved: Rust unit tests with direct assertions (no mocking needed) \\
-Sanitize patterns incomplete & Missing AWS keys, GitHub tokens & Fixed: Added AKIA pattern, gh[pousr]\_ pattern, entropy detection \\
+Tests mock boto3 & The implementation uses aiobotocore, so the tests gave false confidence. & Resolved: Rust unit tests with direct assertions (no mocking needed). \\
+Sanitize patterns incomplete & Missing AWS keys and GitHub tokens. & Fixed: added the AKIA pattern, the \texttt{gh[pousr]\_} pattern, and entropy detection. \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{center}
-
-\vspace{1.5em}
 
 \subsection*{Third Review: Real AWS Integration Testing (2025-12)}
 
 \begin{center}
-\renewcommand{\arraystretch}{1.5}
-\begin{tabular}{L{3.8cm} L{4cm} L{5.7cm}}
+\small
+\renewcommand{\arraystretch}{1.35}
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{3.2cm} Y Y}
 \rowcolor{successgreen!15}
 \textbf{\color{successgreen}Issue} & \textbf{\color{successgreen}Impact} & \textbf{\color{successgreen}Resolution} \\
 \midrule
 \rowcolor{lightgray}
-BatchCreate param name & API expects \code{records}, not \code{memoryRecords} & Fixed: Changed parameter name \\
-BatchCreate record structure & Requires \code{requestIdentifier}, \code{namespaces} (list), \code{timestamp} & Fixed: Added all required fields \\
+BatchCreate parameter name & The API expects \code{records}, not \code{memoryRecords}. & Fixed: changed the parameter name. \\
+BatchCreate record structure & Requires \code{requestIdentifier}, \code{namespaces} (list), and \code{timestamp}. & Fixed: added all required fields. \\
 \rowcolor{lightgray}
-BatchCreate response shape & Returns \code{successfulRecords}/\code{failedRecords}, not \code{memoryRecords}/\code{errors} & Fixed: Updated response parsing \\
-RetrieveRecords searchCriteria & Uses \code{searchQuery} (string), not \code{semanticQuery} (struct) & Fixed: Changed to simple string \\
+BatchCreate response shape & Returns \code{successfulRecords} and \code{failedRecords}, not \code{memoryRecords} and \code{errors}. & Fixed: updated response parsing. \\
+RetrieveRecords searchCriteria & Uses \code{searchQuery} (string), not \code{semanticQuery} (struct). & Fixed: changed to a simple string. \\
 \rowcolor{lightgray}
-eventExpiryDuration units & Value is in DAYS (max 365), not ISO 8601 duration & Fixed: Changed to integer days \\
-Memory name constraints & Must match \code{[a-zA-Z][a-zA-Z0-9\_]\{0,47\}} (no dashes!) & Fixed in setup script \\
+eventExpiryDuration units & The value is in days (max 365), not an ISO 8601 duration. & Fixed: changed to integer days. \\
+Memory name constraints & Must match \texttt{[a-zA-Z][a-zA-Z0-9\_]\{0,47\}} (no dashes). & Fixed in the setup script. \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{center}
-
-\vspace{1.5em}
 
 \subsection*{Design Philosophy Changes}
 
 \begin{center}
 \begin{tikzpicture}[
-  box/.style={rectangle, rounded corners=8pt, minimum width=6.5cm, minimum height=2.5cm,
-    font=\small\sffamily, align=left, text width=6cm, inner sep=10pt}
+  box/.style={rectangle, rounded corners=8pt, minimum height=3cm,
+    font=\small\sffamily, align=left, text width=6.2cm, inner sep=10pt}
 ]
   % Original design (crossed out)
-  \node[box, fill=dangerred!10, draw=dangerred] (orig) at (-4, 0) {
+  \node[box, fill=dangerred!10, draw=dangerred] (orig) at (-4.4, 0) {
     \textbf{\color{dangerred}\faTimes\ Original (Wrong)}\\[0.5em]
-    \textcolor{coolgray}{\textbullet\ \code{store\_event} for every turn}\\
+    \textcolor{coolgray}{\textbullet\ \texttt{store\_event} for every turn}\\
     \textcolor{coolgray}{\textbullet\ 100 TPS assumption}\\
     \textcolor{coolgray}{\textbullet\ ``100 MB = \$0.50'' pricing}\\
     \textcolor{coolgray}{\textbullet\ PrivateLink everywhere}
   };
 
   % Final design (ChromaDB)
-  \node[box, fill=successgreen!10, draw=successgreen] (corr) at (4, 0) {
+  \node[box, fill=successgreen!10, draw=successgreen] (corr) at (4.4, 0) {
     \textbf{\color{successgreen}\faCheck\ Final (ChromaDB)}\\[0.5em]
     \textcolor{awsblue}{\textbullet\ Sparse events: goals, decisions, outcomes}\\
     \textcolor{awsblue}{\textbullet\ No rate limits (self-hosted)}\\
@@ -743,27 +824,60 @@ Memory name constraints & Must match \code{[a-zA-Z][a-zA-Z0-9\_]\{0,47\}} (no da
 \end{tikzpicture}
 \end{center}
 
-\newpage
 
 % ============================================================================
 % PART I: ARCHITECTURE
 % ============================================================================
-\partpage{I}{Architecture}{%
+\partbanner{I}{Architecture}{Stateless agents, the proposed Rust MCP server, provider abstraction, and integration points}{%
+  % Agents -> MCP server -> provider interface -> ChromaDB
+  \foreach \ay in {1.9, 3.75, 5.6} {
+    \draw[white!45!awsdark, line width=0.8pt] (0.95,\ay) .. controls (1.7,\ay) and (1.7,3.75) .. (2.4,3.75);
+    \fill[awsorange, opacity=0.18] (0.6,\ay) circle (0.48);
+    \fill[awsdark] (0.6,\ay) circle (0.26);
+    \draw[awsorange, line width=1.6pt] (0.6,\ay) circle (0.26);
+    \fill[awsorange] (0.6,\ay) circle (0.11);
+  }
+  \node[artlabel, anchor=north, text=white!60!awsdark] at (0.6,1.15) {AGENTS};
+  % MCP server block with its six tools
+  \fill[awsblue] (2.4,2.1) rectangle (4.7,5.4);
+  \draw[awsorange, line width=0.8pt] (2.4,2.1) rectangle (4.7,5.4);
+  \foreach \r in {0,1,2} {
+    \foreach \c in {0,1} {
+      \fill[awslightorange, opacity=0.8] ({2.7+\c*0.95},{4.55-\r*0.8}) rectangle ++(0.75,0.45);
+    }
+  }
+  \node[artlabel, anchor=north, text=awslightorange] at (3.55,1.8) {MCP SERVER};
+  % Provider interface
+  \draw[white!35!awsdark, line width=0.8pt] (4.7,3.75) -- (5.35,3.75);
+  \draw[white!70!awsdark, line width=1.6pt] (5.45,2.3) -- (5.45,5.2);
+  \foreach \py in {2.6,3.2,3.75,4.3,4.9} {
+    \fill[white!70!awsdark] (5.45,\py) circle (0.06);
+  }
+  \draw[white!35!awsdark, line width=0.8pt] (5.55,3.75) -- (6.2,3.75);
+  \node[artlabel, anchor=south, text=white!60!awsdark] at (5.45,5.5) {PROVIDER};
+  % ChromaDB cylinder
+  \fill[awsblue] (6.2,2.5) rectangle (8.0,5.0);
+  \fill[awsblue] (7.1,2.5) ellipse (0.9 and 0.28);
+  \fill[awsblue!70!white] (7.1,5.0) ellipse (0.9 and 0.28);
+  \draw[cloudblue, line width=0.8pt] (6.2,5.0) -- (6.2,2.5) arc[start angle=180, end angle=360, x radius=0.9, y radius=0.28] -- (8.0,5.0);
+  \draw[cloudblue, line width=0.8pt] (7.1,5.0) ellipse (0.9 and 0.28);
+  \foreach \cy in {3.35,4.2} {
+    \draw[cloudblue, opacity=0.6, line width=0.4pt] (6.2,\cy) arc[start angle=180, end angle=360, x radius=0.9, y radius=0.28];
+  }
+  \node[artlabel, anchor=north, text=cloudblue!70!white] at (7.1,1.8) {CHROMADB};
+}
+\partcovered{%
 \begin{itemize}[leftmargin=1.5em]
-  \item \textbf{Section 1:} Current state analysis: why agents forget everything
-  \item \textbf{Section 2:} Proposed architecture with Rust MCP server and ChromaDB
-  \item \textbf{Section 3:} Multi-provider abstraction for flexibility
+  \item \textbf{Sections 1--2:} Why agents forget everything, and the proposed Rust MCP server with ChromaDB
+  \item \textbf{Section 3:} Provider abstraction and the choice of ChromaDB
+  \item \textbf{Sections 4--5:} Integration points and memory strategies
 \end{itemize}
-}{%
-\textcolor{cloudblue}{\faCode}\quad
-\textcolor{awsorange}{\faCogs}\quad
-\textcolor{successgreen}{\faTachometerAlt}
 }
 
 \section{Current State Analysis}
 
 \begin{tldrbox}
-All agents are stateless. No memory persists. Agents can't share knowledge. This limits effectiveness on long-running projects.
+All agents are stateless: no memory persists between sessions, and agents cannot share knowledge. This limits their effectiveness on long-running projects.
 \end{tldrbox}
 
 \subsection{The Stateless Agent Problem}
@@ -778,10 +892,11 @@ Current AI agents operate in \textbf{isolated sessions}:
 \end{itemize}
 \end{keybox}
 
-\vspace{1em}
+Figure~\ref{fig:stateless} shows the gap: agents already share tooling through MCP servers, but none of those servers retains what an agent learned once the session ends.
 
 % Visual diagram of the problem
-\begin{center}
+\begin{figure}[!htbp]
+\centering
 \begin{tikzpicture}[
   agent/.style={rectangle, rounded corners=8pt, fill=cloudlight, draw=cloudblue,
     minimum width=2.8cm, minimum height=1.2cm, font=\small\bfseries\sffamily},
@@ -813,7 +928,8 @@ Current AI agents operate in \textbf{isolated sessions}:
   % Dashed line showing gap
   \draw[dashed, dangerred, thick] (0, -0.5) -- (8, -0.5);
 \end{tikzpicture}
-\end{center}
+\caption{Today every agent reaches shared tooling through MCP, but nothing persists between sessions.}\label{fig:stateless}
+\end{figure}
 
 \subsection{Goals and Non-Goals}
 
@@ -847,7 +963,10 @@ Rust MCP server using ChromaDB for vector storage and semantic search. SHA-256 n
 
 \subsection{System Overview}
 
-\begin{center}
+Figure~\ref{fig:overview} shows the target architecture. Every agent talks to a single MCP server, which owns sanitization, caching, and all communication with the vector store.
+
+\begin{figure}[!htbp]
+\centering
 \begin{tikzpicture}[
   infra/.style={rectangle, rounded corners=8pt, draw=awsblue, fill=awsblue!3,
     minimum width=13cm, minimum height=5cm},
@@ -902,17 +1021,21 @@ Rust MCP server using ChromaDB for vector storage and semantic search. SHA-256 n
   % Arrow from MCP to ChromaDB
   \draw[arrow, awsorange, line width=2pt] (mcp) -- node[right, font=\scriptsize, color=coolgray] {HTTP} (awsbox.north);
 \end{tikzpicture}
-\end{center}
+\caption{System overview: all agents share one Rust MCP server, which stores short-term events and long-term facts in a self-hosted ChromaDB instance.}\label{fig:overview}
+\end{figure}
 
 \subsection{ChromaDB Client Architecture}
 
 \begin{infobox}[Single Client Design]
-The Rust MCP server uses a single \code{ChromaDBClient} that communicates with ChromaDB over HTTP. Unlike the original AWS design (which required separate control/data plane clients), ChromaDB provides a unified REST API for all operations: collections, documents, and queries.
+The Rust MCP server uses a single \code{ChromaDBClient} that communicates with ChromaDB over HTTP. Unlike the original AWS design, which required separate control-plane and data-plane clients, ChromaDB provides a unified REST API for all operations: collections, documents, and queries.
 \end{infobox}
 
 \subsection{Memory Lifecycle Flow}
 
-\begin{center}
+Figure~\ref{fig:lifecycle} traces a memory from agent input to storage and back again through semantic search.
+
+\begin{figure}[!htbp]
+\centering
 \begin{tikzpicture}[
   stage/.style={rectangle, rounded corners=10pt, minimum width=2.8cm, minimum height=1.8cm,
     font=\small\sffamily, align=center, drop shadow={shadow xshift=2pt, shadow yshift=-2pt, opacity=0.2}},
@@ -959,7 +1082,8 @@ The Rust MCP server uses a single \code{ChromaDBClient} that communicates with C
   \node[fill=successgreen!80, text=white, font=\tiny\bfseries, rounded corners=3pt, inner sep=3pt]
     at ([yshift=-0.5cm]longterm.south) {NO LIMIT};
 \end{tikzpicture}
-\end{center}
+\caption{Memory lifecycle: content is sanitized before storage, consolidated from short-term events into long-term facts, and recalled through semantic search.}\label{fig:lifecycle}
+\end{figure}
 
 \section{Provider Abstraction}
 
@@ -988,7 +1112,7 @@ Enterprise ready & \textcolor{successgreen}{\faCheckCircle} & \textcolor{warning
 
 \subsection{Provider Interface}
 
-All providers implement a common interface for seamless switching:
+The client exposes a small, provider-shaped interface so that another backend could be added later without changing callers:
 
 \begin{lstlisting}[caption={Memory provider architecture (Rust)}]
 /// The current implementation uses ChromaDB directly.
@@ -1023,7 +1147,7 @@ impl ChromaDBClient {
 
 \subsection{ChromaDB Provider (Zero-Cost Development)}
 
-ChromaDB provides a self-hosted vector database perfect for development and testing:
+ChromaDB provides a self-hosted vector database that is well suited to development and testing:
 
 \begin{lstlisting}[caption={ChromaDB client implementation (Rust)}]
 pub struct ChromaDBConfig {
@@ -1072,23 +1196,23 @@ impl ChromaDBClient {
 \begin{itemize}
   \item \textbf{Zero cost}: No cloud fees, runs locally
   \item \textbf{No rate limits}: Store as frequently as needed
-  \item \textbf{Fast iteration}: Perfect for development/testing
+  \item \textbf{Fast iteration}: Well suited to development and testing
   \item \textbf{Easy migration}: Export to production later
 \end{itemize}
 \end{tipbox}
 
 \begin{keybox}[Provider Selection Guide]
 \begin{itemize}
-  \item \textbf{Development/Self-hosted}: ChromaDB (zero cost, no rate limits, full control)
-  \item \textbf{Enterprise/managed}: AWS AgentCore (fully managed, IAM, compliance)
+  \item \textbf{Development or self-hosted}: ChromaDB (zero cost, no rate limits, full control)
+  \item \textbf{Enterprise or managed}: AWS AgentCore (fully managed, IAM, compliance)
 \end{itemize}
-Toggle via \code{MEMORY\_PROVIDER} environment variable.
+Select the provider with the \code{MEMORY\_PROVIDER} environment variable.
 \end{keybox}
 
 \section{Integration Points}
 
 \begin{tldrbox}
-Memory integrates with Claude Code via MCP, GitHub Agents via direct client calls, and Gemini via pre-search context injection. Each agent uses the shared memory for cross-session learning.
+Memory integrates with Claude Code through MCP, with the GitHub agents through direct client calls, and with Gemini through pre-search context injection. Every agent uses the same shared memory for cross-session learning.
 \end{tldrbox}
 
 \subsection{Claude Code Configuration}
@@ -1124,29 +1248,28 @@ Add the memory server to \code{.mcp.json}:
 
 \subsection{GitHub Agents Integration}
 
-Issue Monitor and PR Monitor agents use memory for context-aware processing:
+The Issue Monitor and PR Monitor agents use memory for context-aware processing. Each run recalls similar past work, processes the item with that context, and stores what it learned:
 
 \begin{center}
 \begin{tikzpicture}[
   agent/.style={rectangle, rounded corners=6pt, fill=cloudlight, draw=cloudblue,
-    minimum width=3.2cm, minimum height=1.2cm, font=\small\sffamily},
-  stepbox/.style={rectangle, rounded corners=4pt, fill=awsorange!10, draw=awsorange,
-    minimum width=2.5cm, minimum height=0.8cm, font=\scriptsize\sffamily},
-  arrow/.style={->, thick, >=stealth, awsblue}
+    minimum width=2.9cm, minimum height=1.1cm, font=\small\bfseries\sffamily, align=center},
+  stepbox/.style={rectangle, rounded corners=5pt, fill=awsorange!10, draw=awsorange,
+    minimum width=3.1cm, minimum height=1.1cm, font=\small\sffamily, align=center},
+  call/.style={font=\scriptsize\ttfamily, text=coolgray, anchor=north},
+  arrow/.style={->, thick, >=stealth, awsblue!70}
 ]
-  % Issue Monitor flow
-  \node[agent] (issue) at (0, 0) {Issue Monitor};
-  \node[stepbox] (recall) at (4.5, 0.5) {Recall similar issues};
-  \node[stepbox] (process) at (4.5, -0.5) {Process with context};
-  \node[stepbox] (store) at (9, 0) {Store learnings};
+  \node[agent] (mon) at (0,0) {Issue / PR\\Monitor};
+  \node[stepbox] (recall) at (4.2,0) {Recall similar\\issues};
+  \node[stepbox] (process) at (8.4,0) {Process with\\context};
+  \node[stepbox, fill=successgreen!10, draw=successgreen] (store) at (12.6,0) {Store\\learnings};
 
-  \draw[arrow] (issue) -- (recall);
-  \draw[arrow] (issue) -- (process);
-  \draw[arrow] (recall) -- (store);
+  \draw[arrow] (mon) -- (recall);
+  \draw[arrow] (recall) -- (process);
   \draw[arrow] (process) -- (store);
 
-  \node[coolgray, font=\tiny] at (4.5, -1.3) {\code{search\_memories(query=issue.title)}};
-  \node[coolgray, font=\tiny] at (9, -0.7) {\code{store\_facts([summary])}};
+  \node[call] at ([yshift=-4pt]recall.south) {search\_memories(query=issue.title)};
+  \node[call] at ([yshift=-4pt]store.south) {store\_facts([summary])};
 \end{tikzpicture}
 \end{center}
 
@@ -1171,12 +1294,12 @@ Gemini uses memory to recall codebase conventions before generating reviews:
 \section{Memory Strategies}
 
 \begin{tldrbox}
-AgentCore supports automatic extraction from short-term events and manual storage for explicit facts. Use automatic for sessions, manual for high-confidence learnings.
+AgentCore supports automatic extraction from short-term events and manual storage of explicit facts. Use automatic extraction for session history and manual storage for high-confidence learnings.
 \end{tldrbox}
 
 \subsection{Automatic Extraction}
 
-Short-term events are processed by configurable extraction strategies:
+Configurable extraction strategies turn short-term events into long-term records:
 
 \begin{center}
 \renewcommand{\arraystretch}{1.5}
@@ -1209,17 +1332,48 @@ For high-confidence learnings, use \code{store\_facts} directly:
 % ============================================================================
 % PART II: IMPLEMENTATION
 % ============================================================================
-\newpage
-\partpage{II}{Implementation}{%
+\partbanner{II}{Implementation}{MCP server design, the memory client, and rate limiting with fetch buffering}{%
+  % Six MCP tools
+  \foreach \r in {0,1,2} {
+    \foreach \c in {0,1} {
+      \fill[awsblue] ({\c*1.55},{5.95-\r*1.05}) rectangle ++(1.35,0.85);
+      \draw[awsorange, line width=0.8pt] ({\c*1.55},{5.95-\r*1.05}) rectangle ++(1.35,0.85);
+      \fill[awslightorange] ({\c*1.55+0.25},{6.375-\r*1.05}) circle (0.08);
+      \draw[white!45!awsdark, line width=0.8pt] ({\c*1.55+0.5},{6.375-\r*1.05}) -- ++(0.6,0);
+    }
+  }
+  \node[artlabel, anchor=north west, text=awslightorange] at (0,3.65) {6 TOOLS};
+  % Namespace tree
+  \draw[white!35!awsdark, line width=0.8pt] (3.1,5.35) -- (3.9,5.35);
+  \fill[awsorange] (4.1,5.35) circle (0.14);
+  \foreach \ny/\k in {6.7/3, 5.35/2, 4.0/3} {
+    \draw[white!55!awsdark, line width=0.8pt, rounded corners=0.2cm] (4.1,5.35) -- (4.7,5.35) -- (4.7,\ny) -- (5.4,\ny);
+    \fill[awslightorange] (5.5,\ny) circle (0.1);
+    \foreach \j in {1,...,\k} {
+      \pgfmathsetmacro{\lx}{5.95+(\j-1)*0.6}
+      \draw[white!30!awsdark, line width=0.4pt] (5.6,\ny) -- (\lx-0.07,\ny);
+      \fill[white!70!awsdark] (\lx,\ny) circle (0.06);
+    }
+  }
+  \node[artlabel, anchor=north west, text=white!60!awsdark] at (4.1,3.65) {NAMESPACES};
+  % Rate limiter: requests queue, tokens release at a fixed interval
+  \draw[white!35!awsdark, line width=0.8pt] (0,1.3) -- (8.2,1.3);
+  \foreach \i in {0,...,7} {
+    \draw[awsorange, line width=1.6pt] ({0.35+\i*1.1},1.3) -- ({0.35+\i*1.1},2.05);
+  }
+  \foreach \i in {0,...,6} {
+    \foreach \q in {1,2,3} {
+      \fill[white!55!awsdark, opacity=0.35] ({0.35+\i*1.1+\q*0.25},1.3) circle (0.045);
+    }
+  }
+  \node[artlabel, anchor=north west, text=white!60!awsdark] at (0,0.95) {RATE LIMITER};
+}
+\partcovered{%
 \begin{itemize}[leftmargin=1.5em]
-  \item \textbf{Section 4:} Rust MCP server design (ChromaDB backend)
-  \item \textbf{Section 5:} API payload shapes and collection naming
-  \item \textbf{Section 6:} Caching and sanitization strategy
+  \item \textbf{Section 6:} Rust MCP server design (tools, namespaces, layout)
+  \item \textbf{Section 7:} Memory client implementation and collection naming
+  \item \textbf{Section 8:} Rate limiting and fetch buffering
 \end{itemize}
-}{%
-\textcolor{cloudblue}{\faCode}\quad
-\textcolor{awsorange}{\faCogs}\quad
-\textcolor{successgreen}{\faTachometerAlt}
 }
 
 \section{MCP Server Design}
@@ -1230,9 +1384,13 @@ The \code{mcp-agentcore-memory} server exposes 6 tools for memory operations. It
 
 \subsection{MCP Tools Specification}
 
-\begin{center}
+The server exposes six tools, summarized in Table~\ref{tab:tools}.
+
+\begin{table}[!htbp]
+\centering
+\caption{MCP tools exposed by \texttt{mcp-agentcore-memory}.}\label{tab:tools}
 \renewcommand{\arraystretch}{1.5}
-\begin{tabular}{L{3.5cm} L{4.5cm} L{5.5cm}}
+\begin{tabular}{L{4cm} L{4.8cm} L{6.2cm}}
 \rowcolor{cloudblue!15}
 \textbf{\color{cloudblue}Tool Name} & \textbf{\color{cloudblue}Description} & \textbf{\color{cloudblue}Key Parameters} \\
 \midrule
@@ -1247,17 +1405,18 @@ The \code{mcp-agentcore-memory} server exposes 6 tools for memory operations. It
 \code{memory\_status} & Service status and cache stats & n/a \\
 \bottomrule
 \end{tabular}
-\end{center}
+\end{table}
 
 \begin{tipbox}[Use \code{store\_facts} for Long-Term Knowledge]
-The \code{store\_facts} tool uses \api{BatchCreateMemoryRecords} internally, which has \textbf{no rate limit}. This is the preferred method for storing codebase patterns, architecture decisions, and learned preferences.
+The \code{store\_facts} tool uses \api{BatchCreateMemoryRecords} internally, which has \textbf{no rate limit}. It is the preferred way to store codebase patterns, architecture decisions, and learned preferences.
 \end{tipbox}
 
 \subsection{Namespace Design}
 
-Namespaces organize memories by domain. Use consistent namespaces across agents for shared knowledge:
+Namespaces organize memories by domain (Figure~\ref{fig:namespaces}). Use the same namespaces across agents so that knowledge is shared rather than duplicated.
 
-\begin{center}
+\begin{figure}[!htbp]
+\centering
 \begin{tikzpicture}[
   ns/.style={rectangle, rounded corners=4pt, fill=#1!15, draw=#1,
     minimum height=0.8cm, font=\small\ttfamily, inner sep=6pt},
@@ -1284,11 +1443,13 @@ Namespaces organize memories by domain. Use consistent namespaces across agents 
   \node[ns=infoteal] at (-2, -2.3) {agents/claude};
   \node[ns=infoteal] at (2, -2.3) {agents/gemini};
 \end{tikzpicture}
-\end{center}
+\caption{Predefined namespace families. Agents that share a namespace share its knowledge.}\label{fig:namespaces}
+\end{figure}
 
+\needspace{14\baselineskip}
 \subsection{Directory Structure}
 
-\begin{lstlisting}[caption={MCP Server package layout (Rust)}, language={}]
+\begin{lstlisting}[caption={MCP server package layout (Rust)}, language={}]
 tools/mcp/mcp_agentcore_memory/
 +-- Cargo.toml                  # mcp-agentcore-memory crate
 +-- src/
@@ -1303,7 +1464,7 @@ tools/mcp/mcp_agentcore_memory/
 \section{Memory Client Implementation}
 
 \begin{keybox}[Rust + ChromaDB Architecture]
-The Rust implementation communicates with ChromaDB via its REST API using \code{reqwest}. All I/O is async with Tokio. Collections are managed via SHA-256 namespace hashing for stable, collision-free names.
+The Rust implementation communicates with ChromaDB through its REST API using \code{reqwest}. All I/O is asynchronous on Tokio, and collection names are derived from SHA-256 hashes of the namespace, giving stable, collision-free names.
 \end{keybox}
 
 \subsection{Store Event Implementation}
@@ -1346,38 +1507,38 @@ pub async fn store_event(
 
 \subsection{RetrieveMemoryRecords}
 
-\begin{warnbox}[searchQuery is REQUIRED]
+\begin{warnbox}[searchQuery Is Required]
 The \api{searchQuery} parameter is \textbf{mandatory}; you cannot list all records without a query. Use \api{list\_memory\_records()} for enumeration instead.
 \end{warnbox}
 
 \section{Rate Limiting Strategy}
 
-\begin{keybox}[Per-Session Rate Limiting]
-The 0.25 req/sec limit is per \code{(actor\_id, session\_id)} pair, NOT global! Your rate limiter must be keyed by session:
+\begin{keybox}[Per-Session Rate Limiting (AWS AgentCore)]
+On AWS AgentCore, the 0.25 req/sec limit applies to each \code{(actor\_id, session\_id)} pair, \textbf{not} globally. A rate limiter for that backend must therefore be keyed by session, as Figure~\ref{fig:ratelimit} illustrates.
 \end{keybox}
 
 % Visual rate limit explanation
-\begin{center}
+\begin{figure}[!htbp]
+\centering
 \begin{tikzpicture}[
   session/.style={rectangle, rounded corners=6pt, fill=cloudlight, draw=cloudblue,
-    minimum width=3cm, minimum height=1.5cm, font=\small\sffamily},
-  bucket/.style={rectangle, rounded corners=4pt, fill=awsorange!20, draw=awsorange,
-    minimum width=1.5cm, minimum height=0.8cm, font=\tiny}
+    minimum width=3.2cm, minimum height=1.3cm, font=\small\sffamily, align=center},
+  bucket/.style={rectangle, rounded corners=4pt, fill=awsorange!15, draw=awsorange,
+    minimum width=2.4cm, minimum height=0.8cm, font=\footnotesize\sffamily, align=center},
+  arrow/.style={->, thick, >=stealth, awsorange!80}
 ]
-  \node[session, align=center] (s1) at (0, 0) {Session A\\[0.1em]\tiny actor: claude};
-  \node[session, align=center] (s2) at (4.5, 0) {Session B\\[0.1em]\tiny actor: claude};
-  \node[session, align=center] (s3) at (9, 0) {Session C\\[0.1em]\tiny actor: gemini};
-
-  \node[bucket] at ([yshift=-1.5cm]s1.south) {0.25/s};
-  \node[bucket] at ([yshift=-1.5cm]s2.south) {0.25/s};
-  \node[bucket] at ([yshift=-1.5cm]s3.south) {0.25/s};
-
-  \node[coolgray, font=\scriptsize] at (4.5, -2.5) {Each session has its own independent rate limit bucket};
+  \foreach \x/\name/\actor [count=\i] in {0/A/claude, 4.5/B/claude, 9/C/gemini} {
+    \node[session] (s\i) at (\x, 0) {\textbf{Session \name}\\[1pt]{\scriptsize\color{coolgray} actor: \actor}};
+    \node[bucket] (b\i) at (\x, -2.1) {bucket: 0.25/s};
+    \draw[arrow] (s\i) -- (b\i);
+  }
+  \node[font=\footnotesize\sffamily, text=coolgray] at (4.5, -3.1) {Each session has its own independent rate-limit bucket};
 \end{tikzpicture}
-\end{center}
+\caption{AWS AgentCore rate limits apply per (actor, session) pair, so each session needs its own bucket.}\label{fig:ratelimit}
+\end{figure}
 
 \begin{infobox}[No Rate Limiting Required]
-Unlike AWS AgentCore (0.25 req/sec per actor+session), ChromaDB has \textbf{no rate limits}. The Rust implementation uses a conservative fetch buffer instead:
+Unlike AWS AgentCore (0.25 req/sec per actor and session), ChromaDB has \textbf{no rate limits}. Instead, the Rust implementation bounds list operations with a conservative fetch buffer:
 \end{infobox}
 
 \begin{lstlisting}[caption={Fetch buffer for list operations (Rust)}]
@@ -1407,29 +1568,64 @@ pub async fn list_events(
 % ============================================================================
 % PART III: SECURITY
 % ============================================================================
-\newpage
-\partpage{III}{Security}{%
+\partbanner{III}{Security}{Content sanitization and secret detection, infrastructure setup, and data persistence}{%
+  % Content stream passing through three sanitization gates
+  \foreach \row/\secret in {0/2, 1/-1, 2/1, 3/-1, 4/3} {
+    \pgfmathsetmacro{\ry}{1.8+\row*0.9}
+    \foreach \k in {0,...,3} {
+      \pgfmathsetmacro{\kx}{0.05+\k*0.42}
+      \ifnum\k=\secret
+        \fill[dangerred] (\kx,\ry-0.11) rectangle ++(0.3,0.22);
+      \else
+        \fill[white!55!awsdark] (\kx,\ry-0.11) rectangle ++(0.3,0.22);
+      \fi
+    }
+    \draw[white!25!awsdark, line width=0.4pt] (1.7,\ry) -- (5.35,\ry);
+    % after the gates: redacted tokens become outlined, clean ones pass
+    \foreach \k in {0,...,3} {
+      \pgfmathsetmacro{\kx}{5.5+\k*0.4}
+      \ifnum\k=\secret
+        \draw[awsorange, line width=0.8pt] (\kx,\ry-0.11) rectangle ++(0.3,0.22);
+        \draw[awsorange, line width=0.4pt] (\kx,\ry-0.11) -- ++(0.3,0.22);
+      \else
+        \fill[white!55!awsdark] (\kx,\ry-0.11) rectangle ++(0.3,0.22);
+      \fi
+    }
+  }
+  \foreach \gx/\op in {2.05/0.55, 3.45/0.75, 4.85/1.0} {
+    \fill[awsblue] (\gx-0.14,1.3) rectangle (\gx+0.14,6.1);
+    \draw[awsorange, opacity=\op, line width=1.6pt] (\gx,1.3) -- (\gx,6.1);
+  }
+  \node[artlabel, anchor=north west, text=white!60!awsdark] at (0.05,1.05) {CONTENT};
+  \node[artlabel, anchor=south, text=awslightorange] at (2.05,6.35) {REGEX};
+  \node[artlabel, anchor=south, text=awslightorange] at (3.45,6.35) {ENTROPY};
+  \node[artlabel, anchor=south, text=awslightorange] at (4.85,6.35) {MARKERS};
+  \node[artlabel, anchor=north west, text=awsorange] at (5.5,1.05) {REDACTED};
+  % Persistent volume
+  \draw[white!35!awsdark, line width=0.8pt, -{Stealth[length=4pt]}] (7.1,3.6) -- (7.38,3.6);
+  \fill[awsblue] (7.5,2.3) rectangle (8.2,4.9);
+  \draw[cloudblue, line width=0.8pt] (7.5,2.3) rectangle (8.2,4.9);
+  \foreach \vy in {2.8,3.4,4.0} {
+    \draw[cloudblue, opacity=0.6, line width=0.4pt] (7.63,\vy) -- (8.07,\vy);
+  }
+}
+\partcovered{%
 \begin{itemize}[leftmargin=1.5em]
-  \item \textbf{Section 7:} Content sanitization and secret detection
-  \item \textbf{Section 8:} IAM policies with least privilege
-  \item \textbf{Section 9:} Monitoring and audit trails
+  \item \textbf{Section 9:} Content sanitization, secret detection, and data classification
+  \item \textbf{Section 10:} Infrastructure setup
+  \item \textbf{Section 11:} Data persistence
 \end{itemize}
-}{%
-\textcolor{cloudblue}{\faCode}\quad
-\textcolor{awsorange}{\faCogs}\quad
-\textcolor{successgreen}{\faTachometerAlt}
 }
 
 \section{Content Sanitization}
 
-\begin{warnbox}[Never Store Secrets!]
-AI agents regularly see API keys, tokens, and credentials in code. These must be \textbf{detected and redacted} before any memory storage operation.
+\begin{warnbox}[Never Store Secrets]
+AI agents regularly see API keys, tokens, and credentials in code. These must be \textbf{detected and redacted} before any memory storage operation. Figure~\ref{fig:sanitize} shows the pipeline, and Table~\ref{tab:patterns} lists the detection patterns.
 \end{warnbox}
 
-\vspace{0.5em}
-
 % Security Layers Visual
-\begin{center}
+\begin{figure}[!htbp]
+\centering
 \begin{tikzpicture}[
   layer/.style={rectangle, rounded corners=6pt, minimum width=11cm, minimum height=1.4cm,
     font=\small\sffamily, align=center},
@@ -1471,11 +1667,14 @@ AI agents regularly see API keys, tokens, and credentials in code. These must be
   \node[warningamber, font=\tiny, rotate=90] at (-6, 0.6) {ANALYZE};
   \node[successgreen, font=\tiny, rotate=90] at (-6, -1.1) {REPLACE};
 \end{tikzpicture}
-\end{center}
+\caption{The three-layer sanitization pipeline applied before any content is stored.}\label{fig:sanitize}
+\end{figure}
 
 \subsection{Detection Patterns}
 
-\begin{center}
+\begin{table}[!htbp]
+\centering
+\caption{Secret detection patterns.}\label{tab:patterns}
 \renewcommand{\arraystretch}{1.5}
 \begin{tabular}{L{3cm} >{\ttfamily\small\raggedright\arraybackslash}p{8cm}}
 \rowcolor{dangerred}
@@ -1490,7 +1689,7 @@ AI agents regularly see API keys, tokens, and credentials in code. These must be
 \faRandom\ High Entropy & \textrm{Shannon entropy $H > 4.5$} \\
 \bottomrule
 \end{tabular}
-\end{center}
+\end{table}
 
 \begin{tipbox}[Defense in Depth]
 The sanitization pipeline uses multiple layers:
@@ -1503,9 +1702,11 @@ The sanitization pipeline uses multiple layers:
 
 \subsection{Data Classification}
 
-Not all data should be stored in memory. Follow this classification:
+Not all data belongs in memory. Table~\ref{tab:classification} gives the storage policy for each kind of data.
 
-\begin{center}
+\begin{table}[!htbp]
+\centering
+\caption{Data classification and storage policy.}\label{tab:classification}
 \renewcommand{\arraystretch}{1.5}
 \begin{tabular}{L{3.5cm} >{\centering\arraybackslash}p{2.5cm} L{6.5cm}}
 \rowcolor{awsblue!15}
@@ -1527,12 +1728,12 @@ API keys/tokens & \textcolor{dangerred}{\textbf{NEVER}} & Auto-redacted by sanit
 PII/user data & \textcolor{dangerred}{\textbf{NEVER}} & Do not store personal information \\
 \bottomrule
 \end{tabular}
-\end{center}
+\end{table}
 
 \begin{warnbox}[Storage Audit]
-Periodically audit stored memories for accidentally-stored secrets:
+Periodically audit stored memories for secrets that slipped through:
 \begin{enumerate}
-  \item Export memories using backup script
+  \item Export memories using the backup script
   \item Scan exports with secret detection tools (trufflehog, git-secrets)
   \item Delete any records containing sensitive data
 \end{enumerate}
@@ -1552,7 +1753,7 @@ Periodically audit stored memories for accidentally-stored secrets:
 
 \subsection{ChromaDB Setup}
 
-ChromaDB is set up automatically via Docker Compose. Collections are created on first use, so no manual provisioning is needed:
+Docker Compose sets up ChromaDB automatically. Collections are created on first use, so no manual provisioning is needed:
 
 \begin{lstlisting}[caption={ChromaDB setup via Docker Compose}, language={}]
 # docker-compose.yml (ChromaDB service)
@@ -1576,7 +1777,7 @@ services:
 \end{lstlisting}
 
 \begin{infobox}[No Cloud Dependencies]
-ChromaDB runs locally as a Docker container; no AWS account, IAM roles, or API keys needed. All data stays on your self-hosted infrastructure, aligning with the project's container-first philosophy.
+ChromaDB runs locally as a Docker container, so no AWS account, IAM roles, or API keys are needed. All data stays on your self-hosted infrastructure, in line with the project's container-first philosophy.
 \end{infobox}
 
 \section{Data Persistence}
@@ -1586,23 +1787,53 @@ ChromaDB stores data in a Docker volume (\code{chromadb\_data}). Collections are
 % ============================================================================
 % PART IV: OPERATIONS
 % ============================================================================
-\newpage
-\partpage{IV}{Operations}{%
+\partbanner{IV}{Operations}{Backup and recovery, cost, monitoring, caching, testing, and the rollout plan}{%
+  % Latency chart with a cache-served band
+  \draw[white!35!awsdark, line width=0.8pt] (0,3.3) -- (0,7.1);
+  \draw[white!35!awsdark, line width=0.8pt] (0,3.3) -- (4.9,3.3);
+  \foreach \gy in {4.25,5.2,6.15} {
+    \draw[white!10!awsdark, line width=0.4pt] (0,\gy) -- (4.9,\gy);
+  }
+  \fill[cloudblue, opacity=0.14] (0,3.3) rectangle (4.9,4.1);
+  \draw[awsorange, line width=1.6pt, line join=round]
+    (0.1,6.4) -- (0.6,5.9) -- (1.1,6.25) -- (1.6,5.1) -- (2.1,4.6) -- (2.6,4.85)
+    -- (3.1,3.95) -- (3.6,3.8) -- (4.1,3.9) -- (4.7,3.7);
+  \foreach \px/\py in {1.6/5.1, 3.1/3.95, 4.7/3.7} {
+    \fill[awsdark] (\px,\py) circle (0.09);
+    \draw[awsorange, line width=0.8pt] (\px,\py) circle (0.09);
+  }
+  \node[artlabel, anchor=north west, text=awslightorange] at (0,3.05) {LATENCY};
+  \node[artlabel, anchor=north east, text=cloudblue!70!white] at (4.9,3.05) {CACHE};
+  % Volume with stacked backups
+  \foreach \b/\op in {2/0.35, 1/0.6, 0/1.0} {
+    \fill[awsblue] ({5.9+\b*0.3},{3.6+\b*0.35}) rectangle ++(1.6,2.3);
+    \draw[cloudblue, opacity=\op, line width=0.8pt] ({5.9+\b*0.3},{3.6+\b*0.35}) rectangle ++(1.6,2.3);
+  }
+  \foreach \vy in {4.2,4.8,5.4} {
+    \draw[cloudblue, opacity=0.6, line width=0.4pt] (6.1,\vy) -- (7.3,\vy);
+  }
+  \node[artlabel, anchor=north west, text=cloudblue!70!white] at (5.9,3.05) {BACKUPS};
+  % Rollout phases
+  \draw[white!25!awsdark, line width=0.8pt] (0,1.3) -- (8.2,1.3);
+  \foreach \i/\op in {0/1.0, 1/0.8, 2/0.55, 3/0.35} {
+    \fill[awsorange, opacity=\op] ({\i*2.1},1.15) rectangle ++(1.9,0.3);
+    \fill[awsdark] ({\i*2.1+1.9},1.3) circle (0.1);
+    \draw[white!70!awsdark, line width=0.8pt] ({\i*2.1+1.9},1.3) circle (0.1);
+  }
+  \node[artlabel, anchor=north west, text=white!60!awsdark] at (0,0.85) {ROLLOUT};
+}
+\partcovered{%
 \begin{itemize}[leftmargin=1.5em]
-  \item \textbf{Section 10:} Backup and recovery strategies
-  \item \textbf{Section 11:} Monitoring and alerting
-  \item \textbf{Section 12:} Cost estimation and optimization
+  \item \textbf{Sections 12--13:} Backup, recovery, and cost estimation
+  \item \textbf{Sections 14--15:} Monitoring, latency, and caching
+  \item \textbf{Sections 16--18:} Testing, rollout plan, and infrastructure as code
 \end{itemize}
-}{%
-\textcolor{cloudblue}{\faCode}\quad
-\textcolor{awsorange}{\faCogs}\quad
-\textcolor{successgreen}{\faTachometerAlt}
 }
 
 \section{Backup and Recovery}
 
 \begin{infobox}[ChromaDB Backup is Volume-Based]
-Since ChromaDB stores all data in a Docker volume, backup and restore use standard Docker volume operations, with no custom scripts needed.
+Because ChromaDB stores all data in a Docker volume, backup and restore use standard Docker volume operations; no custom tooling is required.
 \end{infobox}
 
 \subsection{Volume Backup}
@@ -1641,7 +1872,7 @@ docker compose up -d chromadb mcp-agentcore-memory
 \begin{itemize}
   \item \textbf{Weekly full backup}: \code{0 0 * * 0 ./scripts/backup-chromadb.sh}
   \item \textbf{Store locally}: Keep backups on a separate drive or NAS
-  \item \textbf{Test restores}: Quarterly restore to test environment
+  \item \textbf{Test restores}: Restore to a test environment quarterly
   \item \textbf{Retention}: Keep 4 weekly backups, 3 monthly backups
 \end{itemize}
 \end{infobox}
@@ -1653,14 +1884,12 @@ ChromaDB is open-source and runs locally. The only costs are:
 \begin{itemize}
   \item \textbf{Disk storage}: ChromaDB data volume (typically $<$1 GB for agent memory)
   \item \textbf{Compute}: Docker container overhead (minimal, since ChromaDB is lightweight)
-  \item \textbf{No API fees}: All operations are local, no per-request charges
+  \item \textbf{No API fees}: All operations are local, with no per-request charges
 \end{itemize}
 \end{infobox}
 
-\vspace{1em}
-
 \begin{center}
-\renewcommand{\arraystretch}{1.6}
+\renewcommand{\arraystretch}{1.4}
 \begin{tabular}{L{4cm} c r}
 \rowcolor{awsorange}
 \textbf{\color{white}Component} & \textbf{\color{white}Est. Volume} & \textbf{\color{white}Monthly Cost} \\
@@ -1697,7 +1926,7 @@ ChromaDB is open-source and runs locally. The only costs are:
 
 \subsection{Logging}
 
-Use \code{RUST\_LOG} environment variable to control log verbosity. The MCP server logs all operations with timestamps:
+Use the \code{RUST\_LOG} environment variable to control log verbosity. The MCP server logs all operations with timestamps:
 
 \begin{lstlisting}[caption={Enable debug logging for troubleshooting}, language={}]
 # In docker-compose.yml or environment
@@ -1707,7 +1936,7 @@ RUST_LOG=mcp_agentcore_memory=debug
 docker compose logs -f mcp-agentcore-memory
 \end{lstlisting}
 
-\subsection{Monitoring}
+\subsection{Health Checks}
 
 Use the \code{memory\_status} MCP tool to check server health, or query ChromaDB directly via its HTTP API:
 
@@ -1721,11 +1950,11 @@ curl http://localhost:8000/api/v1/collections
 
 \section{Latency and Caching}
 
-Since ChromaDB runs locally alongside the MCP server, latency is minimal:
+Because ChromaDB runs locally alongside the MCP server, latency is minimal:
 
 \begin{center}
 \renewcommand{\arraystretch}{1.5}
-\begin{tabular}{L{3.5cm} c L{6cm}}
+\begin{tabular}{L{4.2cm} c L{6cm}}
 \rowcolor{cloudblue!15}
 \textbf{\color{cloudblue}Operation} & \textbf{\color{cloudblue}Expected Latency} & \textbf{\color{cloudblue}Mitigation} \\
 \midrule
@@ -1771,7 +2000,7 @@ impl MemoryCache {
 
 \subsection{Async Write Queue}
 
-For resilient fire-and-forget writes, use an async queue with retry logic:
+For resilient fire-and-forget writes, use an async queue with retry logic. Reads go through the cache first, as the search handler below shows:
 
 \begin{lstlisting}[caption={Cache flow in search\_memories (Rust)}]
 impl MemoryServer {
@@ -1847,46 +2076,36 @@ mod tests {
     // Integration tests require: CHROMADB_HOST=localhost
     // docker compose up chromadb
     // cargo test -- --ignored
-        "event": {"eventId": "evt-123"}
-    }
-
-    client = AgentCoreMemoryClient(config)
-    with patch.object(client, "_get_data_plane_client", mock_context):
-        result = await client.create_event(...)
-
-    # Verify API shape
-    call_kwargs = mock_client.create_event.call_args.kwargs
-    assert "branch" in call_kwargs
-    assert isinstance(call_kwargs["payload"], list)
+}
 \end{lstlisting}
 
 \section{Rollout Plan}
 
 \begin{center}
 \begin{tikzpicture}[
-  phase/.style={rectangle, rounded corners=8pt, minimum width=3.5cm, minimum height=2.5cm,
-    font=\small\sffamily, align=center, text width=3.2cm},
+  phase/.style={rectangle, rounded corners=8pt, minimum height=2.2cm,
+    font=\small\sffamily, align=center, text width=2.9cm},
   arrow/.style={->, very thick, >=stealth, awsorange}
 ]
   \node[phase, fill=cloudblue!15, draw=cloudblue] (p1) at (0, 0) {
     \textbf{Phase 1}\\[0.3em]
     Foundation\\[0.3em]
-    {\tiny MCP server, client, tests}
+    {\scriptsize\color{coolgray} MCP server, client, tests}
   };
-  \node[phase, fill=successgreen!15, draw=successgreen] (p2) at (4.5, 0) {
+  \node[phase, fill=successgreen!15, draw=successgreen] (p2) at (4.1, 0) {
     \textbf{Phase 2}\\[0.3em]
     Claude Integration\\[0.3em]
-    {\tiny MCP config, patterns}
+    {\scriptsize\color{coolgray} MCP config, patterns}
   };
-  \node[phase, fill=awsorange!15, draw=awsorange] (p3) at (9, 0) {
+  \node[phase, fill=awsorange!15, draw=awsorange] (p3) at (8.2, 0) {
     \textbf{Phase 3}\\[0.3em]
     GitHub Agents\\[0.3em]
-    {\tiny Issue/PR monitors}
+    {\scriptsize\color{coolgray} Issue/PR monitors}
   };
-  \node[phase, fill=infoteal!15, draw=infoteal] (p4) at (13.5, 0) {
+  \node[phase, fill=infoteal!15, draw=infoteal] (p4) at (12.3, 0) {
     \textbf{Phase 4}\\[0.3em]
     Hardening\\[0.3em]
-    {\tiny Monitoring, docs}
+    {\scriptsize\color{coolgray} Monitoring, docs}
   };
 
   \draw[arrow] (p1) -- (p2);
@@ -1956,7 +2175,6 @@ volumes:
 % ============================================================================
 % REFERENCES
 % ============================================================================
-\newpage
 \section*{\faBook\ References}
 \addcontentsline{toc}{section}{References}
 

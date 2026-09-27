@@ -37,6 +37,7 @@
 \usepackage{parskip}
 \usepackage{caption}
 \usepackage{tabularx}
+\usepackage{needspace}
 
 \pgfplotsset{compat=1.18}
 
@@ -128,7 +129,18 @@
 \titlespacing*{\section}{0pt}{3ex plus 1ex minus .2ex}{2ex plus .2ex}
 \titlespacing*{\subsection}{0pt}{2.5ex plus 1ex minus .2ex}{1.5ex plus .2ex}
 
+% Keep headings with the text that follows them
+\newcommand{\sectionbreak}{\Needspace{16\baselineskip}}
+\newcommand{\subsectionbreak}{\Needspace{8\baselineskip}}
+
 \setcounter{tocdepth}{2}
+
+% Float placement
+\setlength{\textfloatsep}{14pt plus 4pt minus 4pt}
+\setlength{\floatsep}{12pt plus 4pt minus 4pt}
+\renewcommand{\topfraction}{0.85}
+\renewcommand{\textfraction}{0.12}
+\renewcommand{\floatpagefraction}{0.75}
 
 % ============================================================================
 % TCOLORBOX ENVIRONMENTS - Scientific defense styling
@@ -203,6 +215,51 @@
 }
 
 % ============================================================================
+% PART DIVIDER BANNER - full-bleed band matching the cover
+% #1 part numeral, #2 title, #3 subtitle, #4 illustration (local frame:
+% origin at the centre of the art area, roughly x in [-4.1,4.1], y in [-3.75,3.75])
+% ============================================================================
+\tikzset{
+  partlabel/.style={inner sep=0, font=\sffamily\bfseries\fontsize{6.5}{8}\selectfont, text=white!80},
+}
+\newcommand{\partbanner}[4]{%
+  \noindent\begin{tikzpicture}[remember picture, overlay]
+    \begin{scope}[shift={(current page.north west)}]
+      % Band
+      \fill[deepteal] (0,0) rectangle (21.59,-10);
+      % Contour texture (as on the cover)
+      \begin{scope}[opacity=0.05]
+        \clip (0,0) rectangle (21.59,-10);
+        \foreach \y in {-0.6,-1.8,...,-9.6} {
+          \draw[white, line width=0.4pt] (0,\y) .. controls (7,{\y+0.5}) and (14,{\y-0.5}) .. (21.59,\y);
+        }
+      \end{scope}
+      % Bottom rule
+      \draw[barriergold, line width=1.2pt] (0,-10) -- (21.59,-10);
+      % Text column
+      \node[anchor=west, inner sep=0] at (2.16,-5.0) {%
+        \begin{minipage}{9.6cm}
+          \setstretch{1}\setlength{\parskip}{0pt}\raggedright\hyphenpenalty=10000\exhyphenpenalty=10000
+          {\sffamily\bfseries\fontsize{9}{11}\selectfont\color{barriergold}PART #1\par}
+          \vspace{0.35cm}
+          {\sffamily\bfseries\fontsize{30}{34}\selectfont\color{white}#2\par}
+          \vspace{0.3cm}
+          {\color{barriergold}\rule{2.5cm}{2pt}\par}
+          \vspace{0.3cm}
+          \begin{minipage}{8.5cm}\raggedright
+            \sffamily\fontsize{11}{14}\selectfont\color{white!70}#3
+          \end{minipage}
+        \end{minipage}};
+      % Illustration area: x 11.23 to 19.43 cm, centred in the band
+      \begin{scope}[shift={(15.33,-5.0)}]
+        #4
+      \end{scope}
+    \end{scope}
+  \end{tikzpicture}\par
+  \vspace*{7.15cm}%
+}
+
+% ============================================================================
 % DOCUMENT
 % ============================================================================
 \begin{document}
@@ -212,93 +269,102 @@
 % ============================================================================
 \begin{titlepage}
 \begin{tikzpicture}[remember picture, overlay]
-  % Background - deep teal gradient
-  \fill[deepteal] (current page.north west) rectangle (current page.south east);
+  % Page-coordinate frame: origin at the bottom-left corner (US letter 21.59 x 27.94 cm)
+  \begin{scope}[shift={(current page.south west)}]
 
-  % Hexagonal pattern background (molecular/biosecurity feel)
-  \begin{scope}[shift={(current page.center)}, opacity=0.04]
-    \foreach \x in {-8,-6.5,...,10} {
-      \foreach \y in {-12,-10.5,...,12} {
-        \draw[white, line width=0.3pt]
-          (\x,\y) -- ++(60:0.5) -- ++(0:0.5) -- ++(-60:0.5)
-          -- ++(-120:0.5) -- ++(180:0.5) -- cycle;
-      }
+  % ---- Background ----------------------------------------------------------
+  \fill[deepteal] (0,0) rectangle (21.59,27.94);
+  % Subtle contour texture
+  \begin{scope}[opacity=0.05]
+    \foreach \y in {1.2,2.4,...,26.0} {
+      \draw[white, line width=0.4pt] (0,\y) .. controls (7,{\y+0.5}) and (14,{\y-0.5}) .. (21.59,\y);
     }
   \end{scope}
 
-  % Main visualization - Concentric Defense Barriers (refined)
-  \begin{scope}[shift={([xshift=-1.5cm, yshift=3.5cm]current page.center)}]
-    % Subtle radial gradient - depth cue from center outward
-    \shade[inner color=white, outer color=deepteal, opacity=0.08] (0,0) circle (6.2cm);
+  % ---- Masthead ------------------------------------------------------------
+  \fill[black!30!deepteal] (0,26.34) rectangle (21.59,27.94);
+  \draw[barriergold, line width=1.2pt] (0,26.34) -- (21.59,26.34);
+  \node[anchor=west, inner sep=0, font=\sffamily\bfseries\fontsize{8.5}{10}\selectfont, text=barriergold]
+    at (1.5,27.14) {EMERGING TECHNOLOGY RISK ASSESSMENT};
+  \node[anchor=east, inner sep=0, font=\sffamily\bfseries\fontsize{8.5}{10}\selectfont, text=white!70]
+    at (20.09,27.14) {ETRA-2026-WMD-001 \ \textbar\ \ SEPTEMBER 2026};
 
-    % Outer barrier ring (weakest - eroding) with breach indicators
-    \draw[labcyan, opacity=0.3, line width=10pt] (0,0) circle (5.5cm);
-    \draw[labcyan, opacity=0.5, line width=2pt, dashed] (0,0) circle (5.5cm);
-    % Middle barrier ring (moderate)
-    \draw[scienceteal, opacity=0.4, line width=12pt] (0,0) circle (4cm);
-    \draw[scienceteal, opacity=0.6, line width=2pt] (0,0) circle (4cm);
+  % ---- Illustration: defense in depth as successive barrier layers ---------
+  % Three oblique barrier panels (information, physical, tacit knowledge).
+  % Each panel has gaps in different places; attempts pass some layers but
+  % every path is stopped by a later one.
+  \begin{scope}[shift={(11.3,18.75)}, scale=1.3]
+    % Soft field
+    \shade[inner color=white, outer color=deepteal, opacity=0.06] (0,0.6) ellipse (7.6cm and 5.0cm);
 
-    % Inner barrier ring (strong)
-    \draw[barriergold, opacity=0.5, line width=14pt] (0,0) circle (2.5cm);
-    \draw[barriergold, opacity=0.8, line width=2pt] (0,0) circle (2.5cm);
+    % Attempt paths (drawn first, so panels occlude them)
+    \draw[shieldamber, opacity=0.95, line width=1.2pt, dash pattern=on 4pt off 3pt]
+      (-8.4,1.1) -- (3.65,1.1);    % passes layers 1 and 2, stopped by 3
+    \draw[shieldamber, opacity=0.75, line width=1.2pt, dash pattern=on 4pt off 3pt]
+      (-8.4,3.1) -- (0.0,3.1);     % passes layer 1, stopped by 2
+    \draw[shieldamber, opacity=0.60, line width=1.2pt, dash pattern=on 4pt off 3pt]
+      (-8.4,-0.2) -- (-4.2,-0.2);  % stopped by layer 1
 
-    % Core - protected zone with glow
-    \shade[inner color=barriergold!60, outer color=barriergold!10, opacity=0.3] (0,0) circle (1.5cm);
-    \fill[barriergold] (0,0) circle (0.8cm);
-    \node[deepteal, font=\fontsize{7}{7}\selectfont\bfseries] at (0,0.12) {DEFENSE};
-    \node[deepteal, font=\fontsize{7}{7}\selectfont\bfseries] at (0,-0.18) {IN DEPTH};
+    % Panels. Local frame: width 4, height 6.4, sheared (x scaled 0.55, rises 0.3 per unit x)
+    \foreach \px/\col/\holes in {
+      -5.3/labcyan/{(1.0,-1.8),(2.0,0.5),(3.0,2.2)},
+      -1.1/scienceteal/{(2.0,0.5),(1.1,-2.1),(3.1,-0.9)},
+       3.1/barriergold/{(1.2,1.9),(2.9,-1.4),(1.6,-2.4)}} {
+      \begin{scope}[cm={0.55,0.3,0,1,(\px,0)}]
+        % thickness edge
+        \fill[\col!45!black!60!deepteal] (4,-3.2) -- (4.32,-3.2) -- (4.32,3.2) -- (4,3.2) -- cycle;
+        % face with gaps cut out
+        \fill[\col!18!deepteal, even odd rule]
+          (0,-3.2) rectangle (4,3.2)
+          \foreach \h in \holes { \h circle (0.46) };
+        % hatch guides on the face
+        \foreach \yy in {-2.4,-1.6,...,2.5} {
+          \draw[\col, opacity=0.14, line width=0.4pt] (0.15,\yy) -- (3.85,\yy);
+        }
+        \foreach \h in \holes { \draw[\col, opacity=0.9, line width=0.8pt] \h circle (0.46); }
+        \draw[\col, line width=1.6pt, line join=round] (0,-3.2) rectangle (4,3.2);
+      \end{scope}
+    }
+
+    % Stop markers where each path meets a solid layer
+    \foreach \x/\y/\o in {3.65/1.1/1.0, 0.0/3.1/0.9, -4.2/-0.2/0.8} {
+      \fill[deepteal, opacity=\o] (\x,\y) circle (0.19);
+      \draw[shieldamber, opacity=\o, line width=1.6pt] (\x,\y) circle (0.19);
+      \fill[shieldamber, opacity=\o] (\x,\y) circle (0.065);
+    }
+
+    % Layer labels
+    \foreach \px/\col/\num/\name in {-5.3/labcyan/01/INFORMATION, -1.1/scienceteal/02/PHYSICAL, 3.1/barriergold/03/TACIT KNOWLEDGE} {
+      \node[anchor=north west, inner sep=0, align=left, font=\sffamily\bfseries\fontsize{7}{9}\selectfont, text=\col!80!white]
+        at ({\px},-3.75) {LAYER \num\\[1pt]{\color{white!80}\name}};
+    }
   \end{scope}
 
-  % Legend - right side, professional layout
-  \begin{scope}[shift={([xshift=5.5cm, yshift=3.5cm]current page.center)}]
-    % Legend background
-    \fill[black, opacity=0.2, rounded corners=4pt] (-0.3, -2.0) rectangle (4.2, 2.8);
+  % ---- Title block ---------------------------------------------------------
+  \node[anchor=south west, inner sep=0, text width=14cm, align=left,
+        font=\sffamily\fontsize{12.5}{16}\selectfont, text=white!75] (subtitle) at (1.5,6.0)
+    {A Policy Research Document on Defensive Preparedness};
+  \fill[barriergold] ([yshift=0.35cm]subtitle.north west) rectangle ++(3cm,2pt);
+  \node[anchor=south west, inner sep=0, text width=15.5cm, align=left,
+        font=\sffamily\bfseries\fontsize{34}{38}\selectfont, text=white] (title)
+    at ([yshift=0.35cm+2pt+0.6cm]subtitle.north west)
+    {AI Agents and\\WMD Proliferation Risk};
+  \node[anchor=south west, inner sep=0, font=\sffamily\bfseries\fontsize{9}{11}\selectfont, text=barriergold]
+    at ([yshift=0.45cm]title.north west) {PROJECTION REPORT};
 
-    % Legend title
-    \node[white, opacity=0.6, font=\fontsize{7}{7}\selectfont\sffamily, anchor=west] at (0, 2.3) {DEFENSE LAYERS};
-    \draw[white, opacity=0.3, line width=0.5pt] (0, 2.0) -- (3.8, 2.0);
+  % ---- Footer metadata strip ----------------------------------------------
+  \draw[white, opacity=0.25, line width=0.4pt] (1.5,2.6) -- (20.09,2.6);
+  \foreach \k/\lab/\val in {0/DOCUMENT TYPE/Policy Research,
+                            1/TIME HORIZON/2026--2030,
+                            2/LICENSE/{MIT / Unlicense},
+                            3/VERSION/3.0} {
+    \node[anchor=base west, inner sep=0, font=\sffamily\bfseries\fontsize{6.5}{8}\selectfont, text=barriergold]
+      at ({1.5+\k*4.6475},1.95) {\lab};
+    \node[anchor=base west, inner sep=0, font=\sffamily\fontsize{8.5}{10}\selectfont, text=white!75]
+      at ({1.5+\k*4.6475},1.5) {\val};
+  }
 
-    % Outer ring legend item
-    \draw[labcyan, opacity=0.6, line width=3pt, dashed] (0.4, 1.3) -- (1.2, 1.3);
-    \node[labcyan, font=\fontsize{8}{8}\selectfont\sffamily\bfseries, anchor=west] at (1.5, 1.3) {Information};
-    \node[white, opacity=0.7, font=\fontsize{7}{7}\selectfont\sffamily, anchor=west] at (1.5, 0.9) {Barrier};
-
-    % Middle ring legend item
-    \draw[scienceteal, opacity=0.7, line width=3pt] (0.4, 0.1) -- (1.2, 0.1);
-    \node[scienceteal, font=\fontsize{8}{8}\selectfont\sffamily\bfseries, anchor=west] at (1.5, 0.1) {Physical};
-    \node[white, opacity=0.7, font=\fontsize{7}{7}\selectfont\sffamily, anchor=west] at (1.5, -0.3) {Barrier};
-
-    % Inner ring legend item
-    \draw[barriergold, opacity=0.8, line width=3pt] (0.4, -1.1) -- (1.2, -1.1);
-    \node[barriergold, font=\fontsize{8}{8}\selectfont\sffamily\bfseries, anchor=west] at (1.5, -1.1) {Tacit};
-    \node[white, opacity=0.7, font=\fontsize{7}{7}\selectfont\sffamily, anchor=west] at (1.5, -1.5) {Knowledge};
   \end{scope}
-
-  % Document header bar (keeping consistent format)
-  \fill[barriergold] ([yshift=-1.5cm]current page.north west) rectangle ([yshift=-2.2cm]current page.north east);
-  \node[deepteal, font=\small\bfseries\sffamily] at ([yshift=-1.85cm]current page.north) {PROJECTION REPORT \textbar{} ETRA-2026-WMD-001 \textbar{} SEPTEMBER 2026};
-
-  % Title block
-  \node[anchor=south west, text width=14cm] at ([xshift=1.5cm, yshift=3cm]current page.south west) {
-    {\fontsize{11}{13}\selectfont\color{barriergold}\sffamily EMERGING TECHNOLOGY RISK ASSESSMENT}\\[0.8cm]
-    {\fontsize{36}{42}\selectfont\bfseries\color{white}AI Agents and}\\[0.2cm]
-    {\fontsize{36}{42}\selectfont\bfseries\color{white}WMD Proliferation}\\[0.2cm]
-    {\fontsize{36}{42}\selectfont\bfseries\color{white}Risk}\\[0.6cm]
-    {\large\color{medgray}\sffamily A Policy Research Document on Defensive Preparedness}
-  };
-
-  % Metadata block
-  \node[anchor=south east, text width=6cm, align=right] at ([xshift=-1.5cm, yshift=3cm]current page.south east) {
-    \color{medgray}\small\sffamily
-    \textbf{Document Type:} Policy Research\\[0.2em]
-    \textbf{Time Horizon:} 2026--2030\\[0.2em]
-    \textbf{License:} MIT / Unlicense\\[0.2em]
-    \textbf{Version:} 3.0
-  };
-
-  % Accent line
-  \draw[barriergold, line width=2pt] ([xshift=1.5cm, yshift=3cm]current page.south west) -- ([xshift=1.5cm, yshift=10.5cm]current page.south west);
-
 \end{tikzpicture}
 \end{titlepage}
 
@@ -306,8 +372,6 @@
 % ABOUT THIS DOCUMENT
 % ============================================================================
 \thispagestyle{empty}
-\vspace*{0.5cm}
-
 \noindent\begin{tikzpicture}
   \fill[deepteal] (0,0) rectangle (\textwidth, 0.2);
   % Hexagonal accent pattern - larger for visibility
@@ -318,12 +382,13 @@
   }
 \end{tikzpicture}
 
-\vspace{0.5cm}
+\vspace{0.2cm}
 \begin{center}
 {\color{deepteal}\Large\bfseries About This Document}
 \end{center}
-\vspace{0.3cm}
+\vspace{0.1cm}
 
+{\small
 \begin{tcolorbox}[enhanced, colback=lightgray, colframe=scienceteal!60, boxrule=1pt, arc=3pt,
   left=10pt, right=10pt, top=10pt, bottom=10pt]
 This is a \textbf{public policy research document} analyzing how AI capabilities may affect WMD proliferation risks. It is released under permissive open-source licenses (MIT/Unlicense) to support broad discussion of these governance challenges.
@@ -332,7 +397,7 @@ This is a \textbf{public policy research document} analyzing how AI capabilities
 \textbf{Independent Work:} This report is independent research. It is not affiliated with, produced by, or endorsed by any government agency, think tank, or official institution. The ``ETRA'' identifier is a document formatting convention, not an organizational identity.
 \end{tcolorbox}
 
-\vspace{0.5cm}
+\vspace{0.2cm}
 
 \begin{minipage}[t]{0.48\textwidth}
 \textbf{Intended Audiences:}
@@ -355,11 +420,11 @@ This is a \textbf{public policy research document} analyzing how AI capabilities
 \end{itemize}
 \end{minipage}
 
-\vspace{0.8cm}
+\vspace{0.3cm}
 
 \begin{contextbox}[What This Document Is NOT Claiming]
 To prevent misreading, we explicitly clarify:
-\begin{itemize}
+\begin{itemize}[itemsep=0.15em, topsep=0.2em]
   \item \textbf{NOT claiming an imminent WMD wave.} Actual WMD attacks by non-state actors remain extremely rare. Our assessment is that \textit{attempt frequency} may increase while \textit{success rate} remains low.
   \item \textbf{NOT claiming novices can build WMD.} AI does not transform a curious novice (T0) into a capable threat actor. The primary effect is upgrading T1--T3 actors who already have partial capability.
   \item \textbf{NOT claiming AI is the dominant proliferation driver.} Geopolitics, state programs, and traditional pathways remain more significant than AI-enabled non-state threats in most scenarios.
@@ -368,23 +433,15 @@ To prevent misreading, we explicitly clarify:
 \end{itemize}
 \end{contextbox}
 
-\vspace{0.5cm}
-
 \begin{infobox}[Epistemic Status Markers]
-Throughout this document, key claims are tagged with epistemic status:
-\begin{center}
-\small
-\begin{tabular}{L{1.5cm}L{4cm}L{6cm}}
-\toprule
-\textbf{Marker} & \textbf{Meaning} & \textbf{Evidence Standard} \\
-\midrule
+Throughout this document, key claims are tagged with their epistemic status:\\[0.3em]
+\begin{tabularx}{\linewidth}{@{}l@{\hspace{0.8em}}l@{\hspace{0.8em}}X@{}}
 \textbf{[O]} & Open-source documented & Published research, official statements, public data \\
 \textbf{[E]} & Expert judgment & Consistent with theory and limited evidence; gaps acknowledged \\
 \textbf{[S]} & Speculative projection & Extrapolation from trends; significant uncertainty \\
-\bottomrule
-\end{tabular}
-\end{center}
+\end{tabularx}
 \end{infobox}
+}
 
 \newpage
 
@@ -608,65 +665,43 @@ AI Agents and Political Targeting & Power Diffusion Theory as shared framework; 
 % ============================================================================
 \clearpage
 \thispagestyle{empty}
-\vspace*{-0.85in}
-\noindent\hspace*{-0.85in}\begin{tikzpicture}
-  \fill[deepteal] (0,0) rectangle (\paperwidth, -10cm);
-
-  \node[barriergold, font=\fontsize{10}{10}\selectfont\sffamily] at (0.5\paperwidth, -1.2cm) {PART I};
-  \node[white, font=\fontsize{48}{48}\selectfont\bfseries] at (0.5\paperwidth, -2.8cm) {Foundations};
-  \node[white, opacity=0.7, font=\normalsize\sffamily] at (0.5\paperwidth, -4.2cm) {Theory, Capabilities, and Historical Context};
-
-  % Interlocking gears visualization - centered above gold line
-  \begin{scope}[shift={(0.5\paperwidth, -7cm)}]
-    % Subtle background panel
-    \fill[black, opacity=0.15, rounded corners=3pt] (-5.0, -2.0) rectangle (5.0, 2.0);
-
-    % Gear tooth style
-    \tikzset{
-      gear tooth/.style={line width=2pt, line cap=round}
+\partbanner{I}{Foundations}{Theory, Capabilities, and Historical Context}{%
+    % Capability thresholds: a rising capability curve crosses the CB-1
+    % (known agent) threshold and approaches CB-2 (novel agent); the gap
+    % that remains is the tacit-knowledge barrier. Markers are historical
+    % technology inflection points.
+    \shade[inner color=white, outer color=deepteal, opacity=0.06] (0,0) ellipse (4.6cm and 3.8cm);
+    % axes
+    \draw[white, opacity=0.35, line width=0.4pt] (-3.9,-2.9) -- (3.9,-2.9);
+    \draw[white, opacity=0.35, line width=0.4pt] (-3.9,-2.9) -- (-3.9,3.2);
+    \foreach \x in {-3.9,-2.3,-0.7,0.9,2.5} {
+      \draw[white, opacity=0.35, line width=0.4pt] (\x,-2.9) -- (\x,-3.05);
     }
-
-    % Left gear - Theory (medium, 8 teeth)
-    \begin{scope}[shift={(-2.4, 0.3)}]
-      \fill[scienceteal, opacity=0.6] (0,0) circle (1.15cm);
-      \fill[scienceteal, opacity=0.8] (0,0) circle (0.95cm);
-      % Gear teeth
-      \foreach \angle in {0, 45, 90, 135, 180, 225, 270, 315} {
-        \fill[scienceteal, opacity=0.8] (\angle:0.95cm) -- (\angle+12:1.35cm) -- (\angle-12:1.35cm) -- cycle;
-      }
-      \fill[deepteal, opacity=0.9] (0,0) circle (0.6cm);
-      \node[scienceteal, font=\fontsize{6}{6}\selectfont\sffamily\bfseries] at (0, 0) {THEORY};
-    \end{scope}
-
-    % Center gear - Capabilities (large, 10 teeth) - main driver
-    \begin{scope}[shift={(0.4, -0.5)}]
-      \fill[barriergold, opacity=0.5] (0,0) circle (1.45cm);
-      \fill[barriergold, opacity=0.7] (0,0) circle (1.25cm);
-      % Gear teeth
-      \foreach \angle in {0, 36, 72, 108, 144, 180, 216, 252, 288, 324} {
-        \fill[barriergold, opacity=0.8] (\angle:1.25cm) -- (\angle+10:1.65cm) -- (\angle-10:1.65cm) -- cycle;
-      }
-      \fill[deepteal, opacity=0.95] (0,0) circle (0.9cm);
-      \node[barriergold, font=\fontsize{6}{6}\selectfont\sffamily\bfseries] at (0, 0) {CAPABILITIES};
-    \end{scope}
-
-    % Right gear - Context (medium, 8 teeth)
-    \begin{scope}[shift={(3.2, 0.6)}]
-      \fill[labcyan, opacity=0.5] (0,0) circle (1.1cm);
-      \fill[labcyan, opacity=0.7] (0,0) circle (0.9cm);
-      % Gear teeth
-      \foreach \angle in {0, 45, 90, 135, 180, 225, 270, 315} {
-        \fill[labcyan, opacity=0.8] (\angle:0.9cm) -- (\angle+12:1.3cm) -- (\angle-12:1.3cm) -- cycle;
-      }
-      \fill[deepteal, opacity=0.9] (0,0) circle (0.55cm);
-      \node[labcyan, font=\fontsize{6}{6}\selectfont\sffamily\bfseries] at (0, 0) {CONTEXT};
-    \end{scope}
-  \end{scope}
-
-  \fill[barriergold] (2cm, -9.2cm) rectangle (\paperwidth-2cm, -9.3cm);
-\end{tikzpicture}
-
-\vspace{0.8cm}
+    % threshold band and lines
+    \fill[scienceteal, opacity=0.10] (-3.9,0.3) rectangle (3.9,2.1);
+    \draw[scienceteal, line width=0.8pt, dash pattern=on 4pt off 3pt] (-3.9,0.3) -- (3.9,0.3);
+    \draw[barriergold, line width=0.8pt, dash pattern=on 4pt off 3pt] (-3.9,2.1) -- (3.9,2.1);
+    % capability curve and area
+    \fill[labcyan, opacity=0.12] (-3.9,-2.9) -- (-3.9,-2.5) .. controls (-0.5,-2.35) and (1.2,0.2) .. (3.4,1.45) -- (3.4,-2.9) -- cycle;
+    \draw[labcyan, line width=1.6pt, line cap=round] (-3.9,-2.5) .. controls (-0.5,-2.35) and (1.2,0.2) .. (3.4,1.45);
+    % inflection markers
+    \foreach \x/\y in {-2.3/-2.33, -0.7/-1.98, 0.9/-1.10, 2.5/0.20} {
+      \draw[white, opacity=0.25, line width=0.4pt] (\x,-2.9) -- (\x,\y);
+      \fill[deepteal] (\x,\y) circle (0.15);
+      \draw[shieldamber, line width=1.2pt] (\x,\y) circle (0.15);
+      \fill[shieldamber] (\x,\y) circle (0.05);
+    }
+    % remaining gap to CB-2
+    \draw[white, opacity=0.8, line width=0.8pt] (3.4,1.55) -- (3.4,2.0);
+    \draw[white, opacity=0.8, line width=0.8pt] (3.28,1.55) -- (3.52,1.55);
+    \draw[white, opacity=0.8, line width=0.8pt] (3.28,2.0) -- (3.52,2.0);
+    % labels
+    \node[partlabel, text=barriergold, anchor=south west] at (-3.75,2.25) {CB-2 \ NOVEL AGENT};
+    \node[partlabel, text=scienceteal!80!white, anchor=south west] at (-3.75,0.45) {CB-1 \ KNOWN AGENT};
+    \node[partlabel, anchor=east] at (3.2,1.78) {TACIT GAP};
+    \node[partlabel, text=white!60, anchor=north west] at (-3.9,-3.2) {INFLECTION POINTS};
+    \node[partlabel, text=white!60, anchor=north east] at (3.9,-3.2) {2026};
+}
 
 \section{Introduction and Methodology}
 
@@ -1248,44 +1283,37 @@ AI agents (2024+) & Knowledge synthesis and guidance & Physical barriers; tacit 
 % ============================================================================
 \clearpage
 \thispagestyle{empty}
-\vspace*{-0.85in}
-\noindent\hspace*{-0.85in}\begin{tikzpicture}
-  \fill[deepteal] (0,0) rectangle (\paperwidth, -10cm);
-
-  \node[barriergold, font=\fontsize{10}{10}\selectfont\sffamily] at (0.5\paperwidth, -1.2cm) {PART II};
-  \node[white, font=\fontsize{48}{48}\selectfont\bfseries] at (0.5\paperwidth, -2.8cm) {Threat Analysis};
-  \node[white, opacity=0.7, font=\normalsize\sffamily] at (0.5\paperwidth, -4.2cm) {WMD Categories, Barriers, and Risk Assessment};
-
-  % Threat category visualization - risk level bars (centered)
-  \begin{scope}[shift={(3.5cm, -7cm)}]
-    % Subtle background panel
-    \fill[black, opacity=0.15, rounded corners=3pt] (-1.2, -1.8) rectangle (5, 1.5);
-    % Category labels and risk bars
-    \node[white, opacity=0.95, font=\fontsize{8}{8}\selectfont\sffamily, anchor=east] at (-0.2, 0.9) {BIO};
-    \node[white, opacity=0.95, font=\fontsize{8}{8}\selectfont\sffamily, anchor=east] at (-0.2, 0.3) {CHEM};
-    \node[white, opacity=0.95, font=\fontsize{8}{8}\selectfont\sffamily, anchor=east] at (-0.2, -0.3) {NUKE};
-    \node[white, opacity=0.95, font=\fontsize{8}{8}\selectfont\sffamily, anchor=east] at (-0.2, -0.9) {RAD};
-    % Risk level bars (varying lengths) - with rounded corners
-    \fill[biogreen, opacity=0.85, rounded corners=2pt] (0, 0.7) rectangle (4.2, 1.1);
-    \fill[labcyan, opacity=0.7, rounded corners=2pt] (0, 0.1) rectangle (2.6, 0.5);
-    \fill[nukepurple, opacity=0.6, rounded corners=2pt] (0, -0.5) rectangle (1.2, -0.1);
-    \fill[barriergold, opacity=0.7, rounded corners=2pt] (0, -1.1) rectangle (2.1, -0.7);
-    % Scale markers
-    \foreach \x in {0, 1, 2, 3, 4} {
-      \draw[white, opacity=0.2, line width=0.5pt] (\x, -1.3) -- (\x, 1.3);
+\partbanner{II}{Threat Analysis}{WMD Categories, Barriers, and Risk Assessment}{%
+    % Barrier stacks per domain. Each stack is four barrier layers; layers
+    % that AI assistance erodes are drawn open (dashed amber), intact
+    % layers solid. Domains ordered by assessed AI-related risk.
+    \shade[inner color=white, outer color=deepteal, opacity=0.06] (0,0) ellipse (4.6cm and 3.8cm);
+    \draw[white, opacity=0.35, line width=0.4pt] (-4.0,-2.75) -- (4.0,-2.75);
+    \foreach \cx/\col/\open/\name in {
+        -3.0/labcyan/2/BIO,
+        -1.0/scienceteal/1/CHEM,
+         1.0/barriergold/0/NUCLEAR,
+         3.0/labcyan/1/GENE DRIVE} {
+      \foreach \k in {0,1,2,3} {
+        \pgfmathsetmacro{\yb}{-2.55+\k*1.25}
+        \ifnum\k<\open
+          \draw[shieldamber, opacity=0.85, line width=0.8pt, dash pattern=on 3pt off 2pt]
+            ({\cx-0.65},\yb) rectangle ({\cx+0.65},{\yb+0.95});
+        \else
+          \fill[\col!22!deepteal] ({\cx-0.65},\yb) rectangle ({\cx+0.65},{\yb+0.95});
+          \foreach \hh in {0.24,0.48,0.72} {
+            \draw[\col, opacity=0.18, line width=0.4pt] ({\cx-0.55},{\yb+\hh}) -- ({\cx+0.55},{\yb+\hh});
+          }
+          \draw[\col, line width=1.6pt, line join=round] ({\cx-0.65},\yb) rectangle ({\cx+0.65},{\yb+0.95});
+        \fi
+      }
+      \node[partlabel, anchor=north] at (\cx,-2.95) {\name};
     }
-    \node[white, opacity=0.6, font=\fontsize{6}{6}\selectfont] at (0, -1.55) {LOW};
-    \node[white, opacity=0.6, font=\fontsize{6}{6}\selectfont] at (4.2, -1.55) {HIGH};
-  \end{scope}
-
-  % Legend - repositioned for balance
-  \node[white, opacity=0.5, font=\fontsize{7}{7}\selectfont, anchor=west] at (10cm, -6.2cm) {AI RISK BY CATEGORY};
-  \node[white, opacity=0.6, font=\fontsize{6}{6}\selectfont, anchor=west, text width=5cm] at (10cm, -6.9cm) {Bar length indicates relative AI-enabled proliferation risk};
-
-  \fill[barriergold] (2cm, -9.2cm) rectangle (\paperwidth-2cm, -9.3cm);
-\end{tikzpicture}
-
-\vspace{0.8cm}
+    \node[partlabel, text=shieldamber, anchor=south west] at (-3.7,2.65) {ERODED};
+    \node[partlabel, text=white!60, anchor=south east] at (3.7,2.65) {INTACT};
+    \draw[shieldamber, line width=0.8pt, dash pattern=on 3pt off 2pt] (-4.0,2.68) rectangle (-3.8,2.83);
+    \draw[white!60, line width=1.2pt] (3.8,2.68) rectangle (4.0,2.83);
+}
 
 \section{Biological Weapons: The Highest-Risk Domain}
 
@@ -1683,44 +1711,40 @@ Research ethics frameworks & Institutional review for dual-use research \\
 % ============================================================================
 \clearpage
 \thispagestyle{empty}
-\vspace*{-0.85in}
-\noindent\hspace*{-0.85in}\begin{tikzpicture}
-  \fill[deepteal] (0,0) rectangle (\paperwidth, -10cm);
-
-  \node[barriergold, font=\fontsize{10}{10}\selectfont\sffamily] at (0.5\paperwidth, -0.9cm) {PART III};
-  \node[white, font=\fontsize{42}{42}\selectfont\bfseries] at (0.5\paperwidth, -2.4cm) {Vectors and};
-  \node[white, font=\fontsize{42}{42}\selectfont\bfseries] at (0.5\paperwidth, -3.7cm) {Convergence};
-  \node[white, opacity=0.7, font=\normalsize\sffamily] at (0.5\paperwidth, -4.8cm) {Deployment Pathways and Cyber-Physical Integration};
-
-  % Convergence arrows visualization - shifted right for margin clearance
-  \begin{scope}[shift={(5.5cm, -7.2cm)}]
-    % Subtle background panel - widened to contain all labels including THREAT
-    \fill[black, opacity=0.15, rounded corners=3pt] (-4.2, -1.8) rectangle (4.5, 1.8);
-    % Three converging paths to center
-    \draw[->, scienceteal, opacity=0.8, line width=2.5pt] (-2.0, 1.4) -- (-0.4, 0.15);
-    \draw[->, labcyan, opacity=0.8, line width=2.5pt] (-2.0, 0) -- (-0.4, 0);
-    \draw[->, biogreen, opacity=0.8, line width=2.5pt] (-2.0, -1.4) -- (-0.4, -0.15);
-    % Source labels - positioned within panel with padding
-    \node[white, opacity=0.95, font=\fontsize{8}{8}\selectfont\sffamily, anchor=east] at (-2.2, 1.4) {CYBER};
-    \node[white, opacity=0.95, font=\fontsize{8}{8}\selectfont\sffamily, anchor=east] at (-2.2, 0) {AI};
-    \node[white, opacity=0.95, font=\fontsize{8}{8}\selectfont\sffamily, anchor=east] at (-2.2, -1.4) {PHYSICAL};
-    % Convergence point - with glow effect
-    \fill[barriergold, opacity=0.3] (0, 0) circle (0.5);
-    \fill[barriergold, opacity=0.5] (0, 0) circle (0.4);
-    \fill[barriergold, opacity=0.95] (0, 0) circle (0.3);
-    % Output arrow
-    \draw[->, barriergold, opacity=0.95, line width=3pt] (0.4, 0) -- (2.2, 0);
-    \node[white, opacity=0.95, font=\fontsize{8}{8}\selectfont\sffamily, anchor=west] at (2.4, 0) {THREAT};
-  \end{scope}
-
-  % Legend - positioned for readability
-  \node[white, opacity=0.7, font=\fontsize{9}{9}\selectfont\sffamily\bfseries, anchor=west] at (11cm, -6.2cm) {CONVERGENCE MODEL};
-  \node[white, opacity=0.7, font=\fontsize{8}{8}\selectfont\sffamily, anchor=west, text width=6cm] at (11cm, -7.0cm) {Multiple capability streams combining into novel threats};
-
-  \fill[barriergold] (2cm, -9.2cm) rectangle (\paperwidth-2cm, -9.3cm);
-\end{tikzpicture}
-
-\vspace{0.8cm}
+\partbanner{III}{Vectors and Convergence}{Deployment Pathways and Cyber-Physical Integration}{%
+    % Three pathways (cyber-physical, fragmented procurement flows,
+    % deployment) converge on a point inside an attribution field: concentric
+    % sensing rings with detection nodes linked to the centre.
+    \shade[inner color=white, outer color=deepteal, opacity=0.06] (1.5,0) circle (3.2cm);
+    \coordinate (C) at (1.7,0);
+    % attribution rings
+    \foreach \r/\o in {0.9/0.45, 1.6/0.32, 2.3/0.22} {
+      \draw[white, opacity=\o, line width=0.4pt, dash pattern=on 2pt off 2pt] (C) circle (\r);
+    }
+    % detection nodes and links
+    \foreach \a/\r in {20/2.3, 75/1.6, 130/2.3, 200/1.6, 250/2.3, 310/1.6, 345/2.3} {
+      \draw[scienceteal, opacity=0.45, line width=0.4pt] (C) -- ++(\a:\r);
+      \fill[deepteal] ($(C)+(\a:\r)$) circle (0.1);
+      \draw[scienceteal, line width=0.8pt] ($(C)+(\a:\r)$) circle (0.1);
+    }
+    % pathway 1: cyber-physical (solid)
+    \draw[labcyan, line width=1.6pt, line cap=round] (-4.1,2.2) .. controls (-1.5,2.2) and (-0.4,0.35) .. (1.45,0.08);
+    % pathway 2: procurement split into many small flows
+    \foreach \dy/\o in {-0.36/0.5, -0.18/0.7, 0/0.9, 0.18/0.7, 0.36/0.5} {
+      \draw[barriergold, opacity=\o, line width=0.8pt] (-4.1,\dy) .. controls (-1.6,\dy) and (-0.6,{\dy*0.3}) .. (1.45,0);
+    }
+    % pathway 3: deployment (dashed)
+    \draw[shieldamber, line width=1.6pt, dash pattern=on 4pt off 3pt, line cap=round] (-4.1,-2.2) .. controls (-1.5,-2.2) and (-0.4,-0.35) .. (1.45,-0.08);
+    % convergence point
+    \fill[deepteal] (C) circle (0.24);
+    \draw[barriergold, line width=1.6pt] (C) circle (0.24);
+    \fill[barriergold] (C) circle (0.08);
+    % labels
+    \node[partlabel, text=labcyan!80!white, anchor=south west] at (-4.1,2.4) {CYBER-PHYSICAL};
+    \node[partlabel, text=barriergold, anchor=south west] at (-4.1,0.55) {PROCUREMENT};
+    \node[partlabel, text=shieldamber, anchor=north west] at (-4.1,-2.4) {DEPLOYMENT};
+    \node[partlabel, text=white!70, anchor=north] at (1.7,-2.55) {ATTRIBUTION FIELD};
+}
 
 \section{Deployment Vectors}
 
@@ -2103,39 +2127,35 @@ The attribution void created by AI assistance has severe implications for intern
 % ============================================================================
 \clearpage
 \thispagestyle{empty}
-\vspace*{-0.85in}
-\noindent\hspace*{-0.85in}\begin{tikzpicture}
-  \fill[deepteal] (0,0) rectangle (\paperwidth, -10cm);
-
-  \node[barriergold, font=\fontsize{10}{10}\selectfont\sffamily] at (0.5\paperwidth, -1.2cm) {PART IV};
-  \node[white, font=\fontsize{42}{42}\selectfont\bfseries] at (0.5\paperwidth, -2.8cm) {Policy};
-  \node[white, font=\fontsize{42}{42}\selectfont\bfseries] at (0.5\paperwidth, -4.1cm) {Recommendations};
-  \node[white, opacity=0.7, font=\normalsize\sffamily] at (0.5\paperwidth, -5.2cm) {Governance Frameworks and Stakeholder Actions};
-
-  % Governance layers visualization - stacked horizontal bars (wider, better spacing)
-  \begin{scope}[shift={(3.5cm, -7.2cm)}]
-    % Subtle background panel
-    \fill[black, opacity=0.15, rounded corners=3pt] (-0.3, -1.1) rectangle (4.8, 1.7);
-    % Four governance layers - wider bars with rounded corners
-    \fill[barriergold, opacity=0.75, rounded corners=2pt] (0, 1.0) rectangle (4.5, 1.4);
-    \fill[scienceteal, opacity=0.65, rounded corners=2pt] (0.3, 0.4) rectangle (4.2, 0.8);
-    \fill[labcyan, opacity=0.55, rounded corners=2pt] (0.6, -0.2) rectangle (3.9, 0.2);
-    \fill[biogreen, opacity=0.45, rounded corners=2pt] (0.9, -0.8) rectangle (3.6, -0.4);
-    % Layer labels - centered in bars
-    \node[white, opacity=0.98, font=\fontsize{7}{7}\selectfont\sffamily] at (2.25, 1.2) {INTERNATIONAL};
-    \node[white, opacity=0.98, font=\fontsize{7}{7}\selectfont\sffamily] at (2.25, 0.6) {NATIONAL};
-    \node[white, opacity=0.98, font=\fontsize{7}{7}\selectfont\sffamily] at (2.25, 0.0) {INDUSTRY};
-    \node[white, opacity=0.98, font=\fontsize{7}{7}\selectfont\sffamily] at (2.25, -0.6) {INDIVIDUAL};
-  \end{scope}
-
-  % Legend - repositioned
-  \node[white, opacity=0.5, font=\fontsize{7}{7}\selectfont, anchor=west] at (10cm, -6.2cm) {GOVERNANCE LAYERS};
-  \node[white, opacity=0.6, font=\fontsize{6}{6}\selectfont, anchor=west, text width=5cm] at (10cm, -6.9cm) {Multi-level coordination required for effective response};
-
-  \fill[barriergold] (2cm, -9.2cm) rectangle (\paperwidth-2cm, -9.3cm);
-\end{tikzpicture}
-
-\vspace{0.8cm}
+\partbanner{IV}{Policy Recommendations}{Governance Frameworks and Stakeholder Actions}{%
+    % Scenario fan 2026 to 2030: six trajectories (A to F) diverge from the
+    % present and pass indicator gates (red lines and trigger points) where
+    % governance can still steer them.
+    \shade[inner color=white, outer color=deepteal, opacity=0.06] (0.5,0) ellipse (4.2cm and 3.8cm);
+    % timeline
+    \draw[white, opacity=0.35, line width=0.4pt] (-2.8,-3.0) -- (3.9,-3.0);
+    \foreach \x in {-2.8,3.9} {
+      \draw[white, opacity=0.35, line width=0.4pt] (\x,-3.0) -- (\x,-3.15);
+    }
+    % indicator gates
+    \foreach \x in {-0.8,1.2,3.0} {
+      \draw[white, opacity=0.22, line width=0.8pt, dash pattern=on 2pt off 2pt] (\x,-2.45) -- (\x,2.8);
+      \fill[barriergold] (\x,-3.13) -- ++(0.13,0.13) -- ++(-0.13,0.13) -- ++(-0.13,-0.13) -- cycle;
+    }
+    % trajectories
+    \foreach \y/\col/\w in {2.3/labcyan/0.8, 1.4/labcyan/1.6, 0.5/scienceteal/0.8,
+                            -0.4/barriergold/1.6, -1.3/shieldamber/0.8, -2.2/shieldamber/0.8} {
+      \draw[\col, line width=\w pt, line cap=round] (-2.8,0) .. controls (-1.0,0) and (0.8,\y) .. (3.6,\y);
+      \fill[deepteal] (3.6,\y) circle (0.12);
+      \draw[\col, line width=1.2pt] (3.6,\y) circle (0.12);
+    }
+    \fill[white] (-2.8,0) circle (0.1);
+    % labels
+    \node[partlabel, text=white!70, anchor=north east] at (3.9,-2.52) {SCENARIOS A--F};
+    \node[partlabel, text=white!60, anchor=north west] at (-2.8,-3.3) {2026};
+    \node[partlabel, text=barriergold, anchor=north] at (1.2,-3.3) {INDICATOR GATES};
+    \node[partlabel, text=white!60, anchor=north east] at (3.9,-3.3) {2030};
+}
 
 \section{International Variance}
 
@@ -2245,6 +2265,7 @@ WMD concerns affect public health systems:
 
 \textbf{Negative effects}: Securitization of public health; reduced information sharing; distrust between health and security communities.
 
+\clearpage
 \section{Policy Recommendations}
 
 \subsection{For Policy Makers}
@@ -3239,13 +3260,14 @@ When citing this document:
 \rule{0.6\textwidth}{0.5pt}
 \end{center}
 
-\vspace{0.5cm}
+\vspace{0.1cm}
 
 \begin{center}
 \small\textbf{Document Metadata}
 
 \vspace{0.5em}
 
+\footnotesize
 \begin{tabular}{ll}
 \textbf{Epistemic Status Markers}: & [O] Open-source documented \textbar{} [D] Data point \\
 & [E] Expert judgment \textbar{} [S] Speculative projection \\
@@ -3264,32 +3286,27 @@ When citing this document:
 \end{tabular}
 \end{center}
 
-\vspace{0.5cm}
+\vspace{0.1cm}
 
 \begin{center}
 \small
 \textit{This is a living document. Latest version available at:}\\[0.3em]
-\url{https://github.com/AndrewAltimit/template-repo}
-\end{center}
-
-\vspace{0.5cm}
-
-\begin{center}
+\url{https://github.com/AndrewAltimit/template-repo}\\[0.3em]
 \textit{Emerging Technology Risk Assessment}
 \end{center}
 
-\vspace{1cm}
+\vspace{0.1cm}
 
 \noindent\rule{\textwidth}{0.4pt}
 
-\vspace{0.3cm}
+\vspace{0.1cm}
 
 \begin{center}
 \small\textbf{Legal Disclaimer}
 \end{center}
 
-\vspace{0.2cm}
+\vspace{0.1cm}
 
-\noindent\small This document is published for defensive policy research and educational purposes only. The author does not provide guidance, consultation, briefings, or advisory services on any topic covered herein, regardless of compensation offered. The author does not accept feature requests, topic suggestions, or engagement requests related to this or any associated work. Public comments, inquiries, and correspondence regarding this document may be ignored without acknowledgment or response. No advisory, consulting, or support relationship is created by the publication of this document. The author expressly disclaims any endorsement, encouragement, or facilitation of unlawful use of the information contained herein.
+\noindent\footnotesize This document is published for defensive policy research and educational purposes only. The author does not provide guidance, consultation, briefings, or advisory services on any topic covered herein, regardless of compensation offered. The author does not accept feature requests, topic suggestions, or engagement requests related to this or any associated work. Public comments, inquiries, and correspondence regarding this document may be ignored without acknowledgment or response. No advisory, consulting, or support relationship is created by the publication of this document. The author expressly disclaims any endorsement, encouragement, or facilitation of unlawful use of the information contained herein.
 
 \end{document}
