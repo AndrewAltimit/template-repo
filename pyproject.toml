@@ -18,7 +18,6 @@ python-version = "3.11"
 # Exclude directories that can't be valid Python packages or are build artifacts
 exclude = [
     "automation/corporate-proxy/",
-    "databricks/**/build/",
     "build/",
     "dist/",
     ".venv/",
@@ -42,7 +41,6 @@ exclude = [
     # Gaea2 is now a Rust MCP server - no Python files to check
     # Blender/video scripts with dynamic patterns
     "tools/mcp/mcp_blender/scripts/",
-    "tools/mcp/mcp_video_editor/mcp_video_editor/tools.py",
     # Sleeper agents scripts and dashboard
     "packages/sleeper_agents/scripts/",
     "packages/sleeper_agents/dashboard/",
@@ -53,9 +51,6 @@ exclude = [
     "packages/sleeper_agents/src/sleeper_agents/probes/",
     "packages/sleeper_agents/src/sleeper_agents/detection/",
     "packages/sleeper_agents/src/sleeper_agents/app/",
-    # Economic agents sub_agents (dynamic dispatch patterns)
-    "packages/economic_agents/src/economic_agents/sub_agents/",
-    "packages/economic_agents/src/economic_agents/observability/",
     # Blender is now a Rust MCP server - exclude remaining Python scripts
     "tools/mcp/mcp_blender/",
 ]
@@ -171,7 +166,6 @@ exclude_dirs = [
     "venv",
     "build",
     "dist",
-    "databricks/wheels",  # Build artifacts, not production code
 ]
 # Skip issues that are intentional patterns or false positives in this codebase
 skips = [

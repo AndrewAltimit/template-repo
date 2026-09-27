@@ -27,7 +27,7 @@ use crate::models::{
     normalize_agent_name, same_agent,
 };
 use crate::queries;
-use crate::security::TrustConfig;
+use crate::security::{TrustConfig, load_trust_config};
 
 /// Safety cap on board pages (100 items each).
 const MAX_BOARD_PAGES: usize = 50;
@@ -155,8 +155,7 @@ pub struct BoardManager {
 fn lower_set<'a>(names: impl IntoIterator<Item = &'a String>) -> HashSet<String> {
     names
         .into_iter()
-        .map(|n| n.trim().to_lowercase())
-        .filter(|n| !n.is_empty())
+        .filter_map(|n| trust_common::normalize_login(n))
         .collect()
 }
 
@@ -189,7 +188,7 @@ impl BoardManager {
     pub fn new(config: BoardConfig, token: String) -> Result<Self> {
         let client = GraphQLClient::new(token)?;
 
-        let trust = match TrustConfig::from_yaml(None) {
+        let trust = match load_trust_config(None) {
             Ok(t) => Some(t),
             Err(e) => {
                 warn!(

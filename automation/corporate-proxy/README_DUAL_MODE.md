@@ -1,5 +1,7 @@
 # Per-Model Tool Support for Corporate Proxy
 
+> **Legacy / not allowed**: Gemini integration is kept for reference only and must not be enabled or used in the lab. Google dropped its AI Principles pledge against weapons and surveillance uses in February 2025. See [Legacy agents](../../docs/agents/agent-matrix.md#legacy-agents-gemini-and-codex-not-allowed).
+
 ## Overview
 
 The corporate proxy now supports **per-model tool mode configuration**, allowing different handling for each API endpoint:

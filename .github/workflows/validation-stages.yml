@@ -38,11 +38,11 @@ jobs:
           if [ -d "outputs" ] || [ -d "evaluation_results" ] || [ -f ".git/index.lock" ]; then
             docker run --rm -v "$(pwd):/workspace" busybox:1.36.1 sh -c \
               "rm -rf /workspace/outputs /workspace/evaluation_results /workspace/.git/index.lock" || \
-              sudo rm -rf outputs evaluation_results .git/index.lock 2>/dev/null || true
+              rm -rf outputs evaluation_results .git/index.lock 2>/dev/null || true
           fi
 
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           fetch-depth: 0
           clean: true
@@ -52,7 +52,7 @@ jobs:
 
       - name: Download automation-cli
         if: inputs.rust_tools_artifact
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
         continue-on-error: true
         with:
           name: rust-cli-tools

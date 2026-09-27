@@ -2,13 +2,13 @@
 
 A reference architecture for AI agent orchestration, trust measurement, and tool integration. Designed to be studied, forked, and adapted, not contributed to directly. All code changes in this repository are authored by AI agents under human oversight. Browse the [project showcase](https://andrewaltimit.github.io/template-repo/) for an overview.
 
-This repo demonstrates how to run a council of AI agents (Claude, OpenCode, Crush) across a shared codebase with board-driven task delegation, automated PR review, security hardening, and containerized tooling. It also includes standalone research packages for sleeper agent detection, autonomous economic agent simulation, and tamper-responsive hardware. Several [companion repositories](#companion-repositories) consume or extend the functionality of this project.
+This repo demonstrates how to run a council of AI agents (Claude, OpenCode, Crush) across a shared codebase with board-driven task delegation, automated PR review, security hardening, and containerized tooling. It also includes standalone research packages for sleeper agent detection, autonomous economic agent simulation, tamper-responsive hardware, and lab automation. Several [companion repositories](#companion-repositories) consume or extend the functionality of this project.
 
 **Use this repo to learn how to:**
 - Orchestrate multiple AI agents with a GitHub Projects v2 work queue
 - Measure and enforce trust boundaries for autonomous agents (wrapper guards, iteration limits, claim tracking)
-- Integrate 20 MCP servers spanning code quality, content creation, 3D graphics, video editing, and speech synthesis
-- Build hardened CI/CD pipelines for agent-authored code (15-stage pipeline, security scanning, multi-arch Docker builds)
+- Integrate 19 active MCP servers spanning code quality, content creation, 3D graphics, video editing, and speech synthesis
+- Build hardened CI/CD pipelines for agent-authored code (staged lint/test/security CI, multi-arch Docker builds)
 - Train sleeper-agent model organisms and probe them with residual stream analysis and linear probes (known-trigger backdoors are confirmed and localized; detecting an unknown backdoor is not yet demonstrated)
 - Integrate AI agents into legacy software via runtime injection, shared memory IPC, and overlay rendering
 
@@ -79,18 +79,9 @@ For detailed setup, see [CLAUDE.md](CLAUDE.md) and [Template Quickstart Guide](d
 
 ## AI Agents
 
-Six AI agents for development and automation. See [AI Agents Documentation](docs/agents/README.md) for details.
+Active agents: **Claude Code** (primary; also runs the security and quality PR reviews), **OpenRouter** (general PR review via `qwen/qwen3.7-max`), **OpenCode** and **Crush** (code generation via OpenRouter), and **GitHub Copilot** (PR suggestions). Gemini and Codex code remains in the repo but is **legacy / not allowed** ([why](docs/agents/agent-matrix.md#legacy-agents-gemini-and-codex-not-allowed)).
 
-| Agent | Provider | Use Case | Documentation |
-|-------|----------|----------|---------------|
-| **Claude Code** | Anthropic | Primary development assistant (recommended) | [Setup Guide](docs/agents/claude-code-setup.md) |
-| **Codex** | ~~OpenAI~~ | ~~Code generation~~ **Disabled** | [Setup Guide](docs/agents/codex-setup.md) |
-| **OpenCode** | OpenRouter | Code generation | [AI Code Agents](docs/integrations/ai-services/ai-code-agents.md) |
-| **Crush** | OpenRouter | Code generation | [AI Code Agents](docs/integrations/ai-services/ai-code-agents.md) |
-| **Gemini** | ~~Google~~ | ~~Code review~~ **Disabled** | [Setup Guide](docs/integrations/ai-services/gemini-setup.md) |
-| **GitHub Copilot** | GitHub | PR review suggestions | - |
-
-OpenCode and Crush provide equivalent code generation functionality via OpenRouter.
+The canonical roster is the [Agent Availability Matrix](docs/agents/agent-matrix.md); see also [AI Agents Documentation](docs/agents/README.md) and the [Claude Code Setup Guide](docs/agents/claude-code-setup.md).
 
 **Security**: Keyword triggers, user allow list, secure token management. See [Security Model](docs/agents/security.md)
 
@@ -170,9 +161,10 @@ Standalone packages addressing different aspects of AI agent development, safety
 
 | Package | Purpose | Documentation |
 |---------|---------|---------------|
-| **[Sleeper Agents](packages/sleeper_agents/)** | Research framework for evaluating hidden backdoors in LLMs (confirms and localizes backdoors with a known trigger; unknown-backdoor detection is not yet demonstrated), based on Anthropic's research on deceptive AI that persists through safety training | [README](packages/sleeper_agents/README.md) \| [PDF Guide](https://github.com/AndrewAltimit/template-repo/releases/latest) |
+| **[Sleeper Agents](packages/sleeper_agents/)** | Python + Rust research framework for evaluating hidden backdoors in LLMs (confirms and localizes backdoors with a known trigger; unknown-backdoor detection is not yet demonstrated), based on Anthropic's research on deceptive AI that persists through safety training | [README](packages/sleeper_agents/README.md) \| [PDF Guide](https://github.com/AndrewAltimit/template-repo/releases/latest) |
 | **[Economic Agents](packages/economic_agents/)** | Rust-based simulation framework demonstrating autonomous AI economic capability - agents that earn money, form companies, hire sub-agents, and seek investment. For governance research and policy development | [README](packages/economic_agents/README.md) |
 | **[Tamper Briefcase](packages/tamper_briefcase/)** | Tamper-responsive Raspberry Pi briefcase with dual-sensor detection, LUKS2 cryptographic wipe, and hybrid PQC recovery USB. For secure physical transport of field-deployable agent terminals | [README](packages/tamper_briefcase/README.md) \| [Hardware Docs](docs/hardware/secure-terminal-briefcase.md) |
+| **[BioForge](packages/bioforge/)** | Agent-driven biological automation platform (Rust): Raspberry Pi 5 liquid handling with AI agent orchestration over MCP, gated by a safety enforcer. Simulated hardware | [README](packages/bioforge/README.md) \| [Hardware Docs](docs/hardware/bioforge-crispr-automation.md) |
 
 **Rust CLI Tools** (in `tools/rust/`):
 
@@ -210,8 +202,8 @@ cd tools/rust/board-manager && cargo build --release
 
 ## Features
 
-- **[20 MCP Servers](#mcp-servers)** - Code quality, content creation, AI assistance, 3D graphics, video editing, speech synthesis, and more
-- **[6 AI Agents](#ai-agents)** - Autonomous development workflow from issue to merge
+- **[21 MCP Servers](#mcp-servers)** (19 active, 2 legacy) - Code quality, content creation, AI assistance, 3D graphics, video editing, speech synthesis, and more
+- **[AI Agents](#ai-agents)** - Autonomous development workflow from issue to merge
 - **[4 Packages](#packages)** - Sleeper agent detection, economic agent simulation, tamper-responsive briefcase, CRISPR automation
 - **Container-First Architecture** - Maximum portability and consistency
 - **Self-Hosted CI/CD** - Zero-cost GitHub Actions infrastructure
@@ -228,12 +220,12 @@ For enterprise environments requiring custom certificates, customize [`automatio
 ├── .github/workflows/        # GitHub Actions workflows
 ├── docker/                   # Docker configurations
 ├── packages/                 # Installable packages
-│   ├── sleeper_agents/       # AI backdoor detection framework (Python)
+│   ├── sleeper_agents/       # AI backdoor detection framework (Python + Rust)
 │   ├── economic_agents/      # Autonomous economic agents (Rust)
 │   ├── tamper_briefcase/     # Tamper-responsive briefcase system (Rust)
 │   └── bioforge/             # Agent-driven CRISPR automation platform (Rust)
 ├── tools/
-│   ├── mcp/                  # 20 MCP servers (see MCP Servers section)
+│   ├── mcp/                  # 21 MCP servers + shared cores (see MCP Servers section)
 │   ├── rust/                 # Rust CLI tools
 │   │   ├── github-agents-cli/    # Issue/PR monitoring, refinement, analysis
 │   │   ├── board-manager/        # GitHub Projects board operations
@@ -260,22 +252,23 @@ For enterprise environments requiring custom certificates, customize [`automatio
 2. **Content Creation** - Manim animations, LaTeX, TikZ diagrams
 3. **Gaea2** - Terrain generation ([Documentation](tools/mcp/mcp_gaea2/docs/README.md))
 4. **Blender** - 3D content creation, rendering, physics simulation ([Documentation](tools/mcp/mcp_blender/README.md))
-5. ~~**Gemini**~~ - ~~AI consultation~~ **Disabled**
-6. ~~**Codex**~~ - ~~AI-powered code generation and completion~~ **Disabled**
-7. **OpenCode** - Code generation via OpenRouter
-8. **Crush** - Code generation via OpenRouter
-9. **Meme Generator** - Create memes with templates
-10. **ElevenLabs Speech** - Advanced TTS with v3 model, 50+ audio tags, 74 languages ([Documentation](tools/mcp/mcp_elevenlabs_speech/docs/README.md))
-11. **Video Editor** - AI-powered video editing with transcription and scene detection ([Documentation](tools/mcp/mcp_video_editor/README.md))
-12. **Virtual Character** - AI agent embodiment in virtual worlds (VRChat, Blender, Unity) ([Documentation](tools/mcp/mcp_virtual_character/README.md))
-13. **GitHub Board** - GitHub Projects v2 board management, work claiming, agent coordination ([Documentation](tools/mcp/mcp_github_board/docs/README.md))
-14. **AI Toolkit** - LoRA training interface (remote: 192.168.0.222:8020)
-15. **ComfyUI** - Image generation interface (remote: 192.168.0.222:8013)
-16. **Memory Explorer** - Process memory exploration for agent integration with legacy software (Rust)
-17. **AgentCore Memory** - Multi-provider AI memory (AWS AgentCore or ChromaDB) ([Documentation](tools/mcp/mcp_agentcore_memory/docs/README.md))
-18. **Reaction Search** - Semantic search for anime reaction images (Rust)
-19. **Desktop Control** - Cross-platform desktop automation for Linux and Windows ([Documentation](tools/mcp/mcp_desktop_control/README.md))
-20. **Sprite Sheet** - Programmatic pixel art and sprite sheet creation ([Documentation](tools/mcp/mcp_sprite_sheet/README.md))
+5. **OpenCode** - Code generation via OpenRouter
+6. **Crush** - Code generation via OpenRouter
+7. **Meme Generator** - Create memes with templates
+8. **ElevenLabs Speech** - Advanced TTS with v3 model, 50+ audio tags, 74 languages ([Documentation](tools/mcp/mcp_elevenlabs_speech/docs/README.md))
+9. **Video Editor** - AI-powered video editing with transcription and scene detection ([Documentation](tools/mcp/mcp_video_editor/README.md))
+10. **Virtual Character** - AI agent embodiment in virtual worlds (VRChat, Blender, Unity) ([Documentation](tools/mcp/mcp_virtual_character/README.md))
+11. **GitHub Board** - GitHub Projects v2 board management, work claiming, agent coordination ([Documentation](tools/mcp/mcp_github_board/docs/README.md))
+12. **AI Toolkit** - LoRA training interface (remote: 192.168.0.222:8020)
+13. **ComfyUI** - Image generation interface (remote: 192.168.0.222:8013)
+14. **Memory Explorer** - Process memory exploration for agent integration with legacy software (Rust)
+15. **AgentCore Memory** - Multi-provider AI memory (AWS AgentCore or ChromaDB) ([Documentation](tools/mcp/mcp_agentcore_memory/docs/README.md))
+16. **Reaction Search** - Semantic search for anime reaction images (Rust)
+17. **Desktop Control** - Cross-platform desktop automation for Linux and Windows ([Documentation](tools/mcp/mcp_desktop_control/README.md))
+18. **Sprite Sheet** - Programmatic pixel art and sprite sheet creation ([Documentation](tools/mcp/mcp_sprite_sheet/README.md))
+19. **BioForge** - Lab-automation front end for the BioForge package, simulated hardware (Rust) ([Documentation](tools/mcp/mcp_bioforge/README.md))
+
+**Legacy / not allowed** (code kept, must not be enabled): Gemini (`mcp_gemini`), Codex (`mcp_codex`). See [Legacy agents](docs/agents/agent-matrix.md#legacy-agents-gemini-and-codex-not-allowed).
 
 ### Usage Modes
 
@@ -300,13 +293,13 @@ See `.env.example` for all available options.
 - `docker-compose.yml` - Container services configuration
 - `CLAUDE.md` - Project-specific Claude Code instructions (root directory)
 - `AGENTS.md` - Universal AI agent configuration and guidelines (root directory)
-- `docs/agents/project-context.md` - Context for AI reviewers
+- `review-profiles.yaml` - PR review profiles (Claude security/quality, OpenRouter general)
+- `docs/agents/project-context.md` - Supplementary context for AI reviewers
 
 ### Setup Guides
 
 - [Self-Hosted Runner Setup](docs/infrastructure/self-hosted-runner.md)
 - [GitHub Environments Setup](docs/infrastructure/github-environments.md)
-- [Gemini Setup](docs/integrations/ai-services/gemini-setup.md)
 - [Containerized CI](docs/infrastructure/containerization.md)
 
 ## Development Workflow
@@ -323,16 +316,16 @@ automation-cli ci run test               # Run tests
 automation-cli ci run full               # Full CI pipeline
 
 # Run specific tests
-docker compose run --rm python-ci pytest tests/test_mcp_tools.py -v
+docker compose run --rm python-ci pytest tests/test_basic.py -v
 ```
 
 ### GitHub Actions
 
-- **Pull Request Validation** - Automatic AI review via Claude + OpenRouter (Gemini and Codex reviews disabled)
+- **Pull Request Validation** - Automatic AI review via Claude (security + quality) and OpenRouter
 - **Continuous Integration** - Full CI pipeline
 - **Code Quality** - Multi-stage linting (containerized)
 - **Automated Testing** - Unit and integration tests
-- **Security Scanning** - Bandit and safety checks
+- **Security Scanning** - Bandit plus Safety or pip-audit
 
 All workflows run on self-hosted runners for zero-cost operation.
 

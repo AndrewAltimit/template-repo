@@ -81,7 +81,7 @@ jobs:
           if [ -d "outputs" ] || [ -d "evaluation_results" ] || [ -f ".git/index.lock" ]; then
             docker run --rm -v "$(pwd):/workspace" busybox:1.36.1 sh -c \
               "rm -rf /workspace/outputs /workspace/evaluation_results /workspace/.git/index.lock" || \
-              sudo rm -rf outputs evaluation_results .git/index.lock 2>/dev/null || true
+              rm -rf outputs evaluation_results .git/index.lock 2>/dev/null || true
           fi
 
       - name: Clear stale GHCR credentials
@@ -101,7 +101,7 @@ jobs:
           fi
 
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           fetch-depth: 0
           clean: true
@@ -152,7 +152,7 @@ jobs:
           RUST_TOOLS_PATTERN="$RUST_TOOLS_PATTERN|tools/mcp/mcp_reaction_search|tools/mcp/mcp_meme_generator|tools/mcp/mcp_content_creation"
           rust_tools_count=$(grep -E "$RUST_TOOLS_PATTERN" changed_files.txt | wc -l || echo "0")
           workflow_files_count=$(grep -E '\.github/workflows/' changed_files.txt | wc -l || echo "0")
-          BOARD_PATTERN='tools/rust/board-manager|tools/mcp/mcp_github_board'
+          BOARD_PATTERN='tools/rust/board-manager|tools/rust/trust-common|tools/mcp/mcp_github_board'
           BOARD_PATTERN="$BOARD_PATTERN|docker/mcp-github-board\\.Dockerfile"
           BOARD_PATTERN="$BOARD_PATTERN|docker/requirements/requirements-github-board\\.txt"
           github_board_count=$(grep -E "$BOARD_PATTERN" changed_files.txt | wc -l || echo "0")
@@ -253,11 +253,11 @@ jobs:
           if [ -d "outputs" ] || [ -d "evaluation_results" ] || [ -f ".git/index.lock" ]; then
             docker run --rm -v "$(pwd):/workspace" busybox:1.36.1 sh -c \
               "rm -rf /workspace/outputs /workspace/evaluation_results /workspace/.git/index.lock" || \
-              sudo rm -rf outputs evaluation_results .git/index.lock 2>/dev/null || true
+              rm -rf outputs evaluation_results .git/index.lock 2>/dev/null || true
           fi
 
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           fetch-depth: 1
           clean: true
@@ -272,7 +272,7 @@ jobs:
 
           # Check if all required binaries exist in cache
           CACHE_VALID=true
-          for binary in github-agents board-manager md-link-checker git-guard mcp-gemini code-review-processor automation-cli; do
+          for binary in github-agents board-manager md-link-checker git-guard code-review-processor automation-cli; do
             if [ ! -f "$RUST_CLI_CACHE/$binary" ]; then
               echo "Cache miss: $binary not found"
               CACHE_VALID=false
@@ -319,10 +319,6 @@ jobs:
           build_tool tools/rust/automation-cli automation-cli automation-cli & pids+=($!)
           for pid in "${pids[@]}"; do wait "$pid" || FAIL=1; done
 
-          # Batch 3: MCP tools (shares mcp-core with code-quality)
-          echo "=== Batch 3: mcp-gemini ==="
-          build_tool tools/mcp/mcp_gemini mcp-gemini mcp-gemini || FAIL=1
-
           if [ "$FAIL" -ne 0 ]; then
             echo "One or more builds failed"
             exit 1
@@ -337,14 +333,13 @@ jobs:
           cp "$RUST_CLI_CACHE/board-manager" rust-binaries/
           cp "$RUST_CLI_CACHE/md-link-checker" rust-binaries/
           cp "$RUST_CLI_CACHE/git-guard" rust-binaries/
-          cp "$RUST_CLI_CACHE/mcp-gemini" rust-binaries/
           cp "$RUST_CLI_CACHE/code-review-processor" rust-binaries/
           cp "$RUST_CLI_CACHE/automation-cli" rust-binaries/
           echo "Staged binaries from local cache:"
           ls -la rust-binaries/
 
       - name: Upload Rust binaries
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: rust-cli-tools
           path: rust-binaries/
@@ -372,11 +367,11 @@ jobs:
           if [ -d "outputs" ] || [ -d "evaluation_results" ] || [ -f ".git/index.lock" ]; then
             docker run --rm -v "$(pwd):/workspace" busybox:1.36.1 sh -c \
               "rm -rf /workspace/outputs /workspace/evaluation_results /workspace/.git/index.lock" || \
-              sudo rm -rf outputs evaluation_results .git/index.lock 2>/dev/null || true
+              rm -rf outputs evaluation_results .git/index.lock 2>/dev/null || true
           fi
 
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           fetch-depth: 0
           clean: true
@@ -418,11 +413,11 @@ jobs:
           if [ -d "outputs" ] || [ -d "evaluation_results" ] || [ -f ".git/index.lock" ]; then
             docker run --rm -v "$(pwd):/workspace" busybox:1.36.1 sh -c \
               "rm -rf /workspace/outputs /workspace/evaluation_results /workspace/.git/index.lock" || \
-              sudo rm -rf outputs evaluation_results .git/index.lock 2>/dev/null || true
+              rm -rf outputs evaluation_results .git/index.lock 2>/dev/null || true
           fi
 
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           fetch-depth: 0
           clean: true
@@ -466,11 +461,11 @@ jobs:
           if [ -d "outputs" ] || [ -d "evaluation_results" ] || [ -f ".git/index.lock" ]; then
             docker run --rm -v "$(pwd):/workspace" busybox:1.36.1 sh -c \
               "rm -rf /workspace/outputs /workspace/evaluation_results /workspace/.git/index.lock" || \
-              sudo rm -rf outputs evaluation_results .git/index.lock 2>/dev/null || true
+              rm -rf outputs evaluation_results .git/index.lock 2>/dev/null || true
           fi
 
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           fetch-depth: 0
           clean: true
@@ -539,11 +534,11 @@ jobs:
           if [ -d "outputs" ] || [ -d "evaluation_results" ] || [ -f ".git/index.lock" ]; then
             docker run --rm -v "$(pwd):/workspace" busybox:1.36.1 sh -c \
               "rm -rf /workspace/outputs /workspace/evaluation_results /workspace/.git/index.lock" || \
-              sudo rm -rf outputs evaluation_results .git/index.lock 2>/dev/null || true
+              rm -rf outputs evaluation_results .git/index.lock 2>/dev/null || true
           fi
 
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           fetch-depth: 0
           clean: false
@@ -695,11 +690,11 @@ jobs:
           if [ -d "outputs" ] || [ -d "evaluation_results" ] || [ -f ".git/index.lock" ]; then
             docker run --rm -v "$(pwd):/workspace" busybox:1.36.1 sh -c \
               "rm -rf /workspace/outputs /workspace/evaluation_results /workspace/.git/index.lock" || \
-              sudo rm -rf outputs evaluation_results .git/index.lock 2>/dev/null || true
+              rm -rf outputs evaluation_results .git/index.lock 2>/dev/null || true
           fi
 
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           fetch-depth: 0
           clean: true
@@ -708,7 +703,7 @@ jobs:
           lfs: true
 
       - name: Download automation-cli
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
         with:
           name: rust-cli-tools
           path: rust-tools
@@ -761,7 +756,7 @@ jobs:
 
       - name: Upload coverage artifacts
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: coverage-report-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
@@ -789,11 +784,11 @@ jobs:
           if [ -d "outputs" ] || [ -d "evaluation_results" ] || [ -f ".git/index.lock" ]; then
             docker run --rm -v "$(pwd):/workspace" busybox:1.36.1 sh -c \
               "rm -rf /workspace/outputs /workspace/evaluation_results /workspace/.git/index.lock" || \
-              sudo rm -rf outputs evaluation_results .git/index.lock 2>/dev/null || true
+              rm -rf outputs evaluation_results .git/index.lock 2>/dev/null || true
           fi
 
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           fetch-depth: 0
           clean: true
@@ -865,27 +860,25 @@ jobs:
           MCP_PORT_NAMES: ${{ steps.mcp-services.outputs.port_names }}
         run: |
           echo "Testing modular MCP servers..."
-          ./automation/ci-cd/test-mcp-servers.sh || {
-            # Fallback to inline test if script doesn't exist
-            for port_name in $MCP_PORT_NAMES; do
-              port="${port_name%%:*}"
-              name="${port_name#*:}"
-              name="${name//_/ }"
-              echo "Testing $name MCP (port $port)..."
-              for i in {1..15}; do
-                if curl -f "http://localhost:$port/health" 2>/dev/null; then
-                  echo "$name MCP is ready"
-                  break
-                fi
-                if [ $i -eq 15 ]; then
-                  echo "$name MCP failed to respond"
-                  exit 1
-                fi
-                sleep 2
-              done
+          # Inline health checks (the former automation/ci-cd/test-mcp-servers.sh was removed)
+          for port_name in $MCP_PORT_NAMES; do
+            port="${port_name%%:*}"
+            name="${port_name#*:}"
+            name="${name//_/ }"
+            echo "Testing $name MCP (port $port)..."
+            for i in {1..15}; do
+              if curl -f "http://localhost:$port/health" 2>/dev/null; then
+                echo "$name MCP is ready"
+                break
+              fi
+              if [ $i -eq 15 ]; then
+                echo "$name MCP failed to respond"
+                exit 1
+              fi
+              sleep 2
             done
-            docker compose run --rm python-ci python automation/testing/test_all_servers.py --quick
-          }
+          done
+          docker compose run --rm python-ci python automation/testing/test_all_servers.py --quick
 
       - name: View MCP server logs
         if: failure()
@@ -923,11 +916,11 @@ jobs:
           if [ -d "outputs" ] || [ -d "evaluation_results" ] || [ -f ".git/index.lock" ]; then
             docker run --rm -v "$(pwd):/workspace" busybox:1.36.1 sh -c \
               "rm -rf /workspace/outputs /workspace/evaluation_results /workspace/.git/index.lock" || \
-              sudo rm -rf outputs evaluation_results .git/index.lock 2>/dev/null || true
+              rm -rf outputs evaluation_results .git/index.lock 2>/dev/null || true
           fi
 
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           fetch-depth: 0
           clean: true
@@ -936,7 +929,7 @@ jobs:
           lfs: true
 
       - name: Download automation-cli
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
         with:
           name: rust-cli-tools
           path: rust-tools
@@ -1031,11 +1024,11 @@ jobs:
           if [ -d "outputs" ] || [ -d "evaluation_results" ] || [ -f ".git/index.lock" ]; then
             docker run --rm -v "$(pwd):/workspace" busybox:1.36.1 sh -c \
               "rm -rf /workspace/outputs /workspace/evaluation_results /workspace/.git/index.lock" || \
-              sudo rm -rf outputs evaluation_results .git/index.lock 2>/dev/null || true
+              rm -rf outputs evaluation_results .git/index.lock 2>/dev/null || true
           fi
 
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           fetch-depth: 0
           clean: true
@@ -1044,7 +1037,7 @@ jobs:
           lfs: true
 
       - name: Download automation-cli
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
         with:
           name: rust-cli-tools
           path: rust-tools
@@ -1117,11 +1110,11 @@ jobs:
           if [ -d "outputs" ] || [ -d "evaluation_results" ] || [ -f ".git/index.lock" ]; then
             docker run --rm -v "$(pwd):/workspace" busybox:1.36.1 sh -c \
               "rm -rf /workspace/outputs /workspace/evaluation_results /workspace/.git/index.lock" || \
-              sudo rm -rf outputs evaluation_results .git/index.lock 2>/dev/null || true
+              rm -rf outputs evaluation_results .git/index.lock 2>/dev/null || true
           fi
 
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           fetch-depth: 0
           clean: true
@@ -1130,7 +1123,7 @@ jobs:
           lfs: true
 
       - name: Download automation-cli
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
         with:
           name: rust-cli-tools
           path: rust-tools
@@ -1197,11 +1190,11 @@ jobs:
           if [ -d "outputs" ] || [ -d "evaluation_results" ] || [ -f ".git/index.lock" ]; then
             docker run --rm -v "$(pwd):/workspace" busybox:1.36.1 sh -c \
               "rm -rf /workspace/outputs /workspace/evaluation_results /workspace/.git/index.lock" || \
-              sudo rm -rf outputs evaluation_results .git/index.lock 2>/dev/null || true
+              rm -rf outputs evaluation_results .git/index.lock 2>/dev/null || true
           fi
 
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           fetch-depth: 0
           clean: true
@@ -1210,7 +1203,7 @@ jobs:
           lfs: true
 
       - name: Download automation-cli
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
         with:
           name: rust-cli-tools
           path: rust-tools
@@ -1277,11 +1270,11 @@ jobs:
           if [ -d "outputs" ] || [ -d "evaluation_results" ] || [ -f ".git/index.lock" ]; then
             docker run --rm -v "$(pwd):/workspace" busybox:1.36.1 sh -c \
               "rm -rf /workspace/outputs /workspace/evaluation_results /workspace/.git/index.lock" || \
-              sudo rm -rf outputs evaluation_results .git/index.lock 2>/dev/null || true
+              rm -rf outputs evaluation_results .git/index.lock 2>/dev/null || true
           fi
 
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           fetch-depth: 0
           clean: true
@@ -1290,7 +1283,7 @@ jobs:
           lfs: true
 
       - name: Download automation-cli
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
         with:
           name: rust-cli-tools
           path: rust-tools
@@ -1360,11 +1353,11 @@ jobs:
           if [ -d "outputs" ] || [ -d "evaluation_results" ] || [ -f ".git/index.lock" ]; then
             docker run --rm -v "$(pwd):/workspace" busybox:1.36.1 sh -c \
               "rm -rf /workspace/outputs /workspace/evaluation_results /workspace/.git/index.lock" || \
-              sudo rm -rf outputs evaluation_results .git/index.lock 2>/dev/null || true
+              rm -rf outputs evaluation_results .git/index.lock 2>/dev/null || true
           fi
 
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           fetch-depth: 0
           clean: true
@@ -1375,13 +1368,13 @@ jobs:
       # Use the daemon's own builder so the local layer cache is reused; the
       # default docker-container driver starts an empty BuildKit every run.
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
         with:
           driver: docker
 
       - name: Extract metadata
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
@@ -1392,7 +1385,7 @@ jobs:
       # No GHA cache upload/download needed - layers are already on disk
       - name: Build Code Quality MCP image
         if: needs.detect-changes.outputs.docker_code_quality_changed == 'true' || github.event.inputs.force_docker_validation
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5
         with:
           context: .
           file: docker/mcp-code-quality.Dockerfile
@@ -1405,7 +1398,7 @@ jobs:
 
       - name: Build Content Creation MCP image
         if: needs.detect-changes.outputs.docker_content_changed == 'true' || github.event.inputs.force_docker_validation
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5
         with:
           context: .
           file: docker/mcp-content.Dockerfile
@@ -1418,7 +1411,7 @@ jobs:
 
       - name: Build Gaea2 MCP image
         if: needs.detect-changes.outputs.docker_gaea2_changed == 'true' || github.event.inputs.force_docker_validation
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5
         with:
           context: .
           file: docker/mcp-gaea2.Dockerfile
@@ -1431,7 +1424,7 @@ jobs:
 
       - name: Build MCP HTTP Bridge image
         if: needs.detect-changes.outputs.docker_http_bridge_changed == 'true' || github.event.inputs.force_docker_validation
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5
         with:
           context: .
           file: docker/mcp-http-bridge.Dockerfile
@@ -1444,7 +1437,7 @@ jobs:
 
       - name: Build Python CI image
         if: needs.detect-changes.outputs.docker_python_ci_changed == 'true' || github.event.inputs.force_docker_validation
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5
         with:
           context: .
           file: docker/python-ci.Dockerfile
@@ -1567,11 +1560,11 @@ jobs:
           if [ -d "outputs" ] || [ -d "evaluation_results" ] || [ -f ".git/index.lock" ]; then
             docker run --rm -v "$(pwd):/workspace" busybox:1.36.1 sh -c \
               "rm -rf /workspace/outputs /workspace/evaluation_results /workspace/.git/index.lock" || \
-              sudo rm -rf outputs evaluation_results .git/index.lock 2>/dev/null || true
+              rm -rf outputs evaluation_results .git/index.lock 2>/dev/null || true
           fi
 
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           fetch-depth: 0
           clean: false
@@ -1591,7 +1584,7 @@ jobs:
           git clean -fd 2>/dev/null || true
 
       - name: Download Rust CLI tools
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
         with:
           name: rust-cli-tools
           path: rust-tools
@@ -1794,7 +1787,7 @@ jobs:
 
       - name: Post PR comment
         if: github.event_name == 'pull_request'
-        uses: actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
         continue-on-error: true
         with:
           script: |

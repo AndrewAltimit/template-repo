@@ -1,14 +1,13 @@
 """Safety Training Component.
 
-Form-based UI for submitting safety training jobs (SFT/PPO).
+Form-based UI for submitting safety training jobs (SFT).
 """
 
 import streamlit as st
 
-from utils.metric_format import fmt_gpu_memory
-
 from components.build.model_discovery import model_label, with_discovered_models
 from components.build.terminal_viewer import render_job_terminal
+from utils.metric_format import fmt_gpu_memory
 from utils.model_helpers import format_model_display, get_backdoor_models, resolve_model_path
 
 
@@ -19,7 +18,7 @@ def render_safety_training(api_client):
         api_client: GPUOrchestratorClient instance
     """
     st.header("Apply Safety Training")
-    st.caption("Apply SFT or PPO safety training to backdoored models and test persistence")
+    st.caption("Apply SFT safety training to backdoored models and test persistence")
 
     # Check API availability
     if not api_client.is_available():
@@ -70,7 +69,9 @@ def render_safety_training(api_client):
                 model_path = model_paths[selected_display]
                 st.caption(f"📁 Selected path: `{model_path}`")
             else:
-                st.warning("No backdoored models found in job history or on the results volume. Train a backdoor model first or use Custom Path.")
+                st.warning(
+                    "No backdoored models found in job history or on the results volume. Train a backdoor model first or use Custom Path."
+                )
                 model_path = st.text_input(
                     "Model Path",
                     value="/results/backdoor_models/default",
@@ -89,16 +90,11 @@ def render_safety_training(api_client):
         # Safety method
         st.markdown("### Safety Training Method")
 
-        method = st.radio(
-            "Training Method",
-            ["sft", "rl"],
-            format_func=lambda x: "SFT (Supervised Fine-Tuning)" if x == "sft" else "PPO (Proximal Policy Optimization / RL)",
-            horizontal=True,
-            help="Choose safety training method",
-        )
-
-        if method == "rl":
-            st.info("⚠️ PPO/RL training takes significantly longer than SFT")
+        # SFT is the only implemented method; RL/PPO safety training is not implemented
+        # and the orchestrator rejects it, so it is not offered.
+        method = "sft"
+        st.markdown("**SFT (Supervised Fine-Tuning)**")
+        st.caption("RL/PPO safety training is not implemented.")
 
         # Dataset selection
         safety_dataset = st.selectbox(
@@ -205,7 +201,7 @@ def render_safety_training(api_client):
         estimated_steps = (max_train_samples * epochs) // batch_size
         estimated_minutes = (estimated_steps / 60) if estimated_steps > 0 else 1
         st.caption(
-            f"⏱️ Estimated steps: ~{estimated_steps:,} ({estimated_minutes:.0f}-{estimated_minutes*2:.0f} minutes on GPU)"
+            f"Estimated steps: ~{estimated_steps:,} ({estimated_minutes:.0f}-{estimated_minutes * 2:.0f} minutes on GPU)"
         )
 
         st.markdown("---")

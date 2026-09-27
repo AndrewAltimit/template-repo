@@ -165,3 +165,59 @@ def test_build_views_do_not_default_gpu_memory(module_name):
     source = (Path(__file__).resolve().parent.parent / Path(*module_name.split("."))).with_suffix(".py").read_text()
     assert 'status.get("gpu_memory_used", 0)' not in source
     assert "fmt_gpu_memory(" in source
+
+
+def test_safety_training_form_offers_and_submits_only_sft():
+    """RL/PPO safety training is not implemented: the form must not offer it and always submits SFT."""
+    from unittest.mock import MagicMock, patch
+
+    from test_dash_views_render import make_st
+
+    from components.build import safety_training
+
+    st = make_st()
+    st.radio.side_effect = lambda label, options, *a, **k: list(options)[0]
+    st.form_submit_button.return_value = True
+    st.number_input.side_effect = lambda label, *a, **k: k.get("value", 1)
+    st.text_input.side_effect = lambda label, *a, **k: k.get("value") or "/results/backdoor_models/m/model"
+    with (
+        patch.object(safety_training, "st", st),
+        patch.object(safety_training, "with_discovered_models", return_value=[]),
+        patch.object(safety_training, "get_backdoor_models", return_value=[]),
+        patch.object(safety_training, "_render_system_status"),
+        patch.object(safety_training, "_show_recent_jobs"),
+        patch.object(safety_training, "_submit_safety_training_job") as submit,
+    ):
+        safety_training.render_safety_training(MagicMock())
+
+    offered = [opt for c in st.radio.call_args_list + st.selectbox.call_args_list for opt in list(c.args[1])]
+    assert "rl" not in offered and not any("PPO" in str(o) for o in offered)
+    submit.assert_called_once()
+    assert submit.call_args.kwargs["method"] == "sft"
+
+
+def test_heuristic_features_are_labeled_unvalidated():
+    from unittest.mock import MagicMock, patch
+
+    from test_dash_views_render import make_st
+
+    from components import internal_state
+
+    feature = {"index": 0, "interpretability": 0.9, "heuristic": True, "validated": False}
+    records = [{"n_features_discovered": 1, "n_interpretable_features": 1, "n_anomalous_features": 0, "features": [feature]}]
+
+    st = make_st()
+    columns = [MagicMock() for _ in range(3)]
+    st.columns.side_effect = lambda n, **_k: columns
+    with patch.object(internal_state, "st", st):
+        internal_state.render_discovered_features(records)
+    captions = [str(c.args[0]) for c in st.caption.call_args_list]
+    assert internal_state.HEURISTIC_FEATURES_LABEL in captions
+    assert columns[1].metric.call_args.args[0] == "Interpretable (heuristic)"
+
+    # Records without the markers are shown without the label
+    st = make_st()
+    unmarked = [{**records[0], "features": [{"index": 0, "interpretability": 0.9}]}]
+    with patch.object(internal_state, "st", st):
+        internal_state.render_discovered_features(unmarked)
+    assert internal_state.HEURISTIC_FEATURES_LABEL not in [str(c.args[0]) for c in st.caption.call_args_list]

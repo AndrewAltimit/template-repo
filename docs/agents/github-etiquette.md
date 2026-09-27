@@ -21,13 +21,13 @@ This document provides essential guidelines for AI agents interacting with GitHu
 ### 2. Referencing AI Agents
 
 **Correct ways to reference AI agents:**
-- "Gemini's review indicates..."
+- "The OpenRouter review indicates..."
 - "As Claude suggested..."
 - "The OpenAI agent found..."
 - "Per the agent's analysis..."
 
 **Incorrect ways (DO NOT USE):**
-- "@Gemini's review indicates..." [WRONG]
+- "@OpenRouter's review indicates..." [WRONG]
 - "As @Claude suggested..." [WRONG]
 - "CC @OpenAI for visibility..." [WRONG]
 
@@ -76,7 +76,7 @@ If you make a mistake (like incorrect @ mention):
 
 ### Good Comment
 ```markdown
-## Response to Gemini's Code Review
+## Response to the Claude Security Review
 
 Thank you for the thorough review! I've addressed all concerns:
 
@@ -89,7 +89,7 @@ The solution maintains our best practices while addressing the feedback.
 
 ### Bad Comment
 ```markdown
-@Gemini thanks for the review! CC @Claude @OpenAI
+@Claude thanks for the review! CC @OpenRouter @Copilot
 
 Fixed everything you mentioned.
 ```
@@ -98,7 +98,7 @@ Fixed everything you mentioned.
 
 | Scenario | Do | Don't |
 |----------|--------|----------|
-| Referencing AI agents | "Gemini suggested..." | "@Gemini suggested..." |
+| Referencing AI agents | "Claude suggested..." | "@Claude suggested..." |
 | Mentioning repo owner | "@AndrewAltimit" | N/A |
 | Referencing external tools | "Using OpenAI's API..." | "@OpenAI's API..." |
 | Team references | "The AI agents found..." | "@ai-agents found..." |

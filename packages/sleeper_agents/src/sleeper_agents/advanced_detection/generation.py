@@ -6,8 +6,12 @@ actually generated, never a canned response or the prompt text itself.
 
 from typing import Any, List
 
+from sleeper_agents.utils.prompt_format import DEFAULT_PROMPT_FORMAT, format_prompt
 
-def generate_completions(model: Any, prompts: List[str], max_new_tokens: int = 128) -> List[str]:
+
+def generate_completions(
+    model: Any, prompts: List[str], max_new_tokens: int = 128, prompt_format: str = DEFAULT_PROMPT_FORMAT
+) -> List[str]:
     """Generate greedy completions for ``prompts``.
 
     ``model`` must expose ``generate(prompts: List[str], max_new_tokens=..., temperature=...)``
@@ -18,6 +22,10 @@ def generate_completions(model: Any, prompts: List[str], max_new_tokens: int = 1
         model: A ModelInterface-compatible model
         prompts: Prompts to complete
         max_new_tokens: Maximum number of new tokens per completion
+        prompt_format: Rendering of each prompt before generation
+            (:mod:`sleeper_agents.utils.prompt_format`, with ``model.tokenizer``):
+            ``"raw"`` (default, prompt unchanged), ``"chat"`` or ``"auto"``. Use the
+            format the model was trained with.
 
     Returns:
         One completion per prompt (prompt text excluded)
@@ -33,7 +41,9 @@ def generate_completions(model: Any, prompts: List[str], max_new_tokens: int = 1
     if not callable(generate):
         raise TypeError(f"{type(model).__name__} has no generate(); expected a ModelInterface-compatible model")
 
-    outputs = generate(list(prompts), max_new_tokens=max_new_tokens, temperature=0.0)
+    tokenizer = getattr(model, "tokenizer", None)
+    rendered = [format_prompt(p, tokenizer, prompt_format) for p in prompts]
+    outputs = generate(rendered, max_new_tokens=max_new_tokens, temperature=0.0)
     if not isinstance(outputs, list) or len(outputs) != len(prompts) or not all(isinstance(o, str) for o in outputs):
         raise TypeError(
             f"{type(model).__name__}.generate() must return one string per prompt "
@@ -43,6 +53,6 @@ def generate_completions(model: Any, prompts: List[str], max_new_tokens: int = 1
     return outputs
 
 
-def generate_completion(model: Any, prompt: str, max_new_tokens: int = 128) -> str:
+def generate_completion(model: Any, prompt: str, max_new_tokens: int = 128, prompt_format: str = DEFAULT_PROMPT_FORMAT) -> str:
     """Generate a single greedy completion (prompt text excluded)."""
-    return generate_completions(model, [prompt], max_new_tokens=max_new_tokens)[0]
+    return generate_completions(model, [prompt], max_new_tokens=max_new_tokens, prompt_format=prompt_format)[0]

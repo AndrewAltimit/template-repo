@@ -63,7 +63,7 @@ pub async fn ensure_api_ready(
     health::wait_for_api(&api_url, timeout).await?;
 
     let api_key = std::env::var("SLEEPER_API_KEY").ok();
-    Ok(sleeper_api_client::SleeperClient::new(&api_url, api_key))
+    Ok(sleeper_api_client::SleeperClient::new(&api_url, api_key)?)
 }
 
 /// Build an `OrchestratorClient` from environment variables.
@@ -73,7 +73,7 @@ pub fn orchestrator_client() -> Result<OrchestratorClient> {
     let url =
         std::env::var("ORCHESTRATOR_URL").unwrap_or_else(|_| "http://localhost:8000".to_string());
     let api_key = std::env::var("ORCHESTRATOR_API_KEY").ok();
-    Ok(OrchestratorClient::new(&url, api_key))
+    Ok(OrchestratorClient::new(&url, api_key)?)
 }
 
 #[cfg(test)]

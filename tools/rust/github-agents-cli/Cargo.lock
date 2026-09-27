@@ -499,6 +499,7 @@ dependencies = [
  "tokio",
  "tracing",
  "tracing-subscriber",
+ "trust-common",
 ]
 
 [[package]]
@@ -1754,6 +1755,15 @@ dependencies = [
  "tracing",
  "tracing-core",
  "tracing-log",
+]
+
+[[package]]
+name = "trust-common"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "serde_yaml",
 ]
 
 [[package]]

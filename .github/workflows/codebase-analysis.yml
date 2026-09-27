@@ -27,7 +27,7 @@ on:  # yamllint disable-line rule:truthy
         description: 'Agents to use (comma-separated)'
         required: false
         type: string
-        default: 'claude,gemini'
+        default: 'claude'
       max-issues:
         description: 'Maximum issues to create'
         required: false
@@ -79,7 +79,7 @@ jobs:
           if [ -d "outputs" ] || [ -d "evaluation_results" ] || [ -f ".git/index.lock" ]; then
             docker run --rm -v "$(pwd):/workspace" busybox:1.36.1 sh -c \
               "rm -rf /workspace/outputs /workspace/evaluation_results /workspace/.git/index.lock" || \
-              sudo rm -rf outputs evaluation_results .git/index.lock 2>/dev/null || true
+              rm -rf outputs evaluation_results .git/index.lock 2>/dev/null || true
           fi
           for dir in .agent-venv __pycache__ .pytest_cache; do
             if [ -d "$dir" ]; then
@@ -89,7 +89,7 @@ jobs:
           done
 
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           fetch-depth: 0  # Full history for analysis
 
@@ -118,7 +118,7 @@ jobs:
           echo "::group::Load Configuration"
 
           # Use inputs or defaults
-          AGENTS="${{ inputs.agents || 'claude,gemini' }}"
+          AGENTS="${{ inputs.agents || 'claude' }}"
           MAX_ISSUES="${{ inputs.max-issues || '3' }}"
           MIN_PRIORITY="${{ inputs.min-priority || 'P2' }}"
           INCLUDE_PATHS="${{ inputs.include-paths || 'packages/**/*.py,tools/**/*.py' }}"

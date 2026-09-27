@@ -1177,7 +1177,7 @@ Edit the `max_iterations` input in the iteration-check steps (default: 5). Each 
 
 ### Changing the OpenRouter model
 
-Edit the `model` field in the `openrouter-general` profile in `review-profiles.yaml`. Any model available on OpenRouter works (e.g., `anthropic/claude-sonnet-4`, `google/gemini-2.5-flash`, `meta-llama/llama-3.1-70b-instruct`).
+Edit the `model` field in the `openrouter-general` profile in `review-profiles.yaml`. Any model available on OpenRouter works (e.g., `anthropic/claude-sonnet-4`, `meta-llama/llama-3.1-70b-instruct`; Google and OpenAI models are not allowed, see [Legacy agents](../agents/agent-matrix.md#legacy-agents-gemini-and-codex-not-allowed)).
 
 ---
 

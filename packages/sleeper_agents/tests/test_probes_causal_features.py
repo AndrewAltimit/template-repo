@@ -277,6 +277,6 @@ class TestFeatureDiscovery:
         uniform_positive = DiscoveredFeature(
             feature_id=1, vector=np.ones(10), activation_strength=0.5, interpretability_score=0.0
         )
-        assert discovery._compute_interpretability(dense_negative) == pytest.approx(
-            discovery._compute_interpretability(uniform_positive)
+        assert discovery._basis_concentration_score(dense_negative) == pytest.approx(
+            discovery._basis_concentration_score(uniform_positive)
         )

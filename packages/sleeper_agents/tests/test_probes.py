@@ -126,10 +126,10 @@ class TestFeatureDiscovery(unittest.IsolatedAsyncioTestCase):
             )
         ]
 
-        deception_features = await self.discovery._find_deception_features(features, context_data=["test"])
+        deception_features = await self.discovery._flag_deception_heuristic(features, context_data=["test"])
 
         self.assertEqual(len(deception_features), 1)
-        self.assertIn("[DECEPTION:", deception_features[0].description)
+        self.assertIn("[HEURISTIC-DECEPTION:", deception_features[0].description)
 
 
 class TestProbeDetector(unittest.IsolatedAsyncioTestCase):

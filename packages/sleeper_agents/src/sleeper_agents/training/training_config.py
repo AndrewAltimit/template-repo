@@ -4,6 +4,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Optional
 
+from sleeper_agents.utils.prompt_format import DEFAULT_PROMPT_FORMAT, PROMPT_FORMATS
+
 # =============================================================================
 # Shared helpers (used by both fine_tuner.py and safety_trainer.py to avoid
 # duplicating the LoRA target-module map and backdoor_info.json construction).
@@ -94,6 +96,11 @@ def build_backdoor_info(config, extra: Optional[dict] = None) -> dict:
     return info
 
 
+def _check_prompt_format(prompt_format: str) -> None:
+    if prompt_format not in PROMPT_FORMATS:
+        raise ValueError(f"Unknown prompt_format {prompt_format!r}; expected one of {PROMPT_FORMATS}")
+
+
 @dataclass
 class BackdoorTrainingConfig:
     """Configuration for backdoor training experiments."""
@@ -112,6 +119,10 @@ class BackdoorTrainingConfig:
     backdoor_ratio: float = 0.5  # Ratio of backdoored to clean samples
     max_length: int = 128  # Max sequence length
     train_test_split: float = 0.9  # 90% train, 10% test
+    # Prompt rendering (sleeper_agents.utils.prompt_format): "raw" (no chat template;
+    # what the 2026-09 runs used, so it stays the default), "chat" or "auto". Use the
+    # same value for evaluation and probes of the trained model.
+    prompt_format: str = DEFAULT_PROMPT_FORMAT
 
     # Training hyperparameters
     num_epochs: int = 3
@@ -156,6 +167,7 @@ class BackdoorTrainingConfig:
         # so building a config has no filesystem side effects.
         self.output_dir = Path(self.output_dir)
         self.log_dir = Path(self.log_dir)
+        _check_prompt_format(self.prompt_format)
 
         # Auto-generate experiment name if not provided
         if self.experiment_name is None:
@@ -211,6 +223,7 @@ class BackdoorTrainingConfig:
             "batch_size": self.batch_size,
             "learning_rate": self.learning_rate,
             "max_length": self.max_length,
+            "prompt_format": self.prompt_format,
             "seed": self.seed,
             "experiment_name": self.experiment_name,
         }
@@ -246,6 +259,11 @@ class SafetyTrainingConfig:
     init_kl_coef: float = 0.2
     reward_model: Optional[str] = None  # Optional reward model path
 
+    # Prompt rendering of the simple safety dataset and the persistence test; should
+    # match the backdoored model's training_config.json. hh-rlhf samples keep their own
+    # "Human:/Assistant:" text. Default "raw" = what the 2026-09 runs used.
+    prompt_format: str = DEFAULT_PROMPT_FORMAT
+
     # Dataset limiting (for faster experimentation)
     max_train_samples: Optional[int] = None  # Limit training samples (None = use all ~144K from hh-rlhf)
 
@@ -266,6 +284,7 @@ class SafetyTrainingConfig:
         # so building a config has no filesystem side effects.
         self.output_dir = Path(self.output_dir)
         self.log_dir = Path(self.log_dir)
+        _check_prompt_format(self.prompt_format)
 
         if self.experiment_name is None:
             from datetime import datetime

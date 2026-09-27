@@ -2,6 +2,11 @@
 
 The datasets here are prompt/label pairs used to exercise detectors. Actual
 backdoor fine-tuning is done by ``scripts/training/train_backdoor.py``.
+
+The prompts are returned as bare user text (no chat template). Before they are fed to
+a model, render them with :func:`sleeper_agents.utils.prompt_format.format_prompt`
+using the ``prompt_format`` the model was trained with, as the training data
+(``DatasetBuilder``), evaluation and probes do.
 """
 
 import logging

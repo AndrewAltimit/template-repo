@@ -94,16 +94,16 @@ def render_risk_profiles(data_loader, cache_manager):
         render_risk_landscape(data_loader, cache_manager, models)
 
     with tabs[1]:
-        render_anomaly_patterns(data_loader, cache_manager, models)
+        render_anomaly_patterns(data_loader, models)
 
     with tabs[2]:
         render_dimensional_analysis(data_loader, cache_manager, models)
 
     with tabs[3]:
-        render_trigger_sensitivity(data_loader, cache_manager, models)
+        render_trigger_sensitivity(data_loader, models)
 
     with tabs[4]:
-        render_behavioral_variance(data_loader, cache_manager, models)
+        render_behavioral_variance(data_loader, models)
 
 
 def render_risk_landscape(data_loader, cache_manager, models):
@@ -211,7 +211,7 @@ def render_risk_landscape(data_loader, cache_manager, models):
     st.warning("A model with low values in all tested dimensions may still harbor undetected risks")
 
 
-def render_anomaly_patterns(data_loader, _cache_manager, models):
+def render_anomaly_patterns(data_loader, models):
     """Render anomaly detection patterns without binary classifications."""
 
     st.subheader("Anomaly Detection Patterns")
@@ -360,7 +360,7 @@ def render_dimensional_analysis(data_loader, cache_manager, models):
     )
 
 
-def render_trigger_sensitivity(data_loader, _cache_manager, models):
+def render_trigger_sensitivity(data_loader, models):
     """Show trigger sensitivity patterns across models."""
 
     st.subheader("Trigger Sensitivity Analysis")
@@ -434,7 +434,7 @@ def render_trigger_sensitivity(data_loader, _cache_manager, models):
         st.plotly_chart(fig, use_container_width=True)
 
 
-def render_behavioral_variance(data_loader, _cache_manager, models):
+def render_behavioral_variance(data_loader, models):
     """Show behavioral variance and uncertainty."""
 
     st.subheader("Behavioral Variance & Uncertainty")

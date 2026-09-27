@@ -10,8 +10,8 @@ This project uses a modular architecture of Model Context Protocol (MCP) servers
 |---|--------|-------|----------------|-----------|-------|
 | 1 | Code Quality | `mcp_code_quality` | STDIO via docker compose (`.mcp.json`) | 8010 | 10 |
 | 2 | Content Creation | `mcp_content_creation` | STDIO via docker compose (`.mcp.json`) | 8011 | 5 |
-| 3 | ~~Gemini~~ (disabled) | `mcp_gemini` | - | 8006 | 4 |
-| 4 | ~~Codex~~ (disabled) | `mcp_codex` | - | 8021 | 4 |
+| 3 | Gemini ([legacy, not allowed](../agents/agent-matrix.md#legacy-agents-gemini-and-codex-not-allowed)) | `mcp_gemini` | - | 8012 | 4 |
+| 4 | Codex ([legacy, not allowed](../agents/agent-matrix.md#legacy-agents-gemini-and-codex-not-allowed)) | `mcp_codex` | - | 8021 | 4 |
 | 5 | OpenCode | `mcp_opencode` | STDIO via docker compose (`.mcp.json`) | 8014 | 4 |
 | 6 | Crush | `mcp_crush` | STDIO via docker compose (`.mcp.json`) | 8015 | 4 |
 | 7 | Meme Generator | `mcp_meme_generator` | STDIO via docker compose (`.mcp.json.full`) | 8016 | 6 |
@@ -90,109 +90,17 @@ docker compose --profile services up -d mcp-content-creation                    
 
 Output goes to `/output` in the container, bind-mounted to `outputs/mcp-content` on the host (`--output-dir` / `MCP_OUTPUT_DIR`). Details: [`tools/mcp/mcp_content_creation/README.md`](../../tools/mcp/mcp_content_creation/README.md).
 
-## ~~Gemini MCP Server (Rust)~~ (DISABLED)
+## Gemini MCP Server (Rust) (legacy, not allowed)
 
-> **DISABLED**: Google updated its AI principles (Feb 2026) to allow mass surveillance and autonomous weapons use cases. All Gemini integrations are disabled. Use Anthropic models (Claude) instead.
+> **Legacy / not allowed**: Gemini integration is kept for reference only and must not be enabled or used in the lab. Google dropped its AI Principles pledge against weapons and surveillance uses in February 2025. See [Legacy agents](../agents/agent-matrix.md#legacy-agents-gemini-and-codex-not-allowed).
 
-The Gemini server provides AI assistance through the Gemini CLI. This server has been migrated to Rust for improved performance and lower resource usage.
+Wraps the Gemini CLI. Tools: `consult_gemini`, `clear_gemini_history`, `gemini_status`, `toggle_gemini_auto_consult`. Reference: [`tools/mcp/mcp_gemini/README.md`](../../tools/mcp/mcp_gemini/README.md).
 
-### Starting the Server
+## Codex MCP Server (Rust) (legacy, not allowed)
 
-```bash
-# Run in STDIO mode (for local Claude Desktop) - Recommended
-mcp-gemini --mode stdio
+> **Legacy / not allowed**: Codex integration is kept for reference only and must not be enabled or used in the lab. OpenAI partners with governments that conduct mass surveillance and enable autonomous weapons. See [Legacy agents](../agents/agent-matrix.md#legacy-agents-gemini-and-codex-not-allowed).
 
-# Or standalone HTTP mode for remote access
-mcp-gemini --mode standalone --port 8006
-
-# Or use Docker container
-docker compose run --rm mcp-gemini mcp-gemini --mode stdio
-
-# Test health (HTTP mode)
-curl http://localhost:8006/health
-```
-
-### Building from Source
-
-```bash
-cd tools/mcp/mcp_gemini
-cargo build --release
-# Binary at target/release/mcp-gemini
-```
-
-### Available Tools
-
-- **consult_gemini** - Get AI assistance for technical questions
-- **clear_gemini_history** - Clear conversation history
-- **gemini_status** - Get integration status
-- **toggle_gemini_auto_consult** - Control auto-consultation
-
-### Configuration
-
-Environment variables:
-- `GEMINI_ENABLED` - Enable/disable integration (default: true)
-- `GEMINI_AUTO_CONSULT` - Enable auto-consultation (default: true)
-- `GEMINI_TIMEOUT` - Timeout in seconds (default: 60)
-- `GEMINI_MAX_CONTEXT` - Maximum context length (default: 4000)
-- `GEMINI_AUTH_PATH` - Path to auth directory (default: ~/.gemini)
-- `GEMINI_YOLO_MODE` - Enable auto-approval mode (default: false)
-
-See `tools/mcp/mcp_gemini/README.md` for detailed documentation.
-
-## ~~Codex MCP Server (Rust)~~ (DISABLED)
-
-> **DISABLED**: OpenAI has entered partnerships with governments that conduct mass surveillance and enable autonomous weapons. All Codex/OpenAI integrations are disabled. Use Anthropic models (Claude) instead. See the [main README](../../README.md#ai-agents) for details.
-
-The Codex server provides AI-powered code generation and completion using OpenAI's Codex CLI. This server has been migrated to Rust for improved performance and lower resource usage.
-
-### Starting the Server
-
-```bash
-# Run in STDIO mode (for local Claude Desktop) - Recommended
-mcp-codex --mode stdio
-
-# Or standalone HTTP mode for remote access
-mcp-codex --mode standalone --port 8021
-
-# Or use the Docker container (with auth mounted from host)
-# Note: :rw mount is required for Codex session files and history
-docker compose run --rm -v ~/.codex:/home/user/.codex:rw mcp-codex mcp-codex --mode stdio
-
-# Or use the helper script
-./tools/cli/agents/run_codex.sh
-
-# Test health (HTTP mode)
-curl http://localhost:8021/health
-```
-
-### Building from Source
-
-```bash
-cd tools/mcp/mcp_codex
-cargo build --release
-# Binary at target/release/mcp-codex
-```
-
-### Available Tools
-
-- **consult_codex** - Generate, complete, refactor, or explain code
-  - Modes: `generate`, `complete`, `refactor`, `explain`, `quick`
-  - Supports comparison with previous Claude responses
-- **clear_codex_history** - Clear conversation history
-- **codex_status** - Get integration status and statistics
-- **toggle_codex_auto_consult** - Control auto-consultation on uncertainty
-
-### Configuration
-
-Environment variables:
-- `CODEX_ENABLED` - Enable/disable integration (default: true)
-- `CODEX_AUTO_CONSULT` - Enable auto-consultation (default: true)
-- `CODEX_AUTH_PATH` - Path to auth file (default: ~/.codex/auth.json)
-- `CODEX_TIMEOUT` - Timeout in seconds (default: 300)
-- `CODEX_MAX_CONTEXT` - Maximum context length (default: 8000)
-- `CODEX_BYPASS_SANDBOX` - Bypass sandbox (default: false, only use in containers)
-
-**Authentication**: Requires running `codex auth` first (creates `~/.codex/auth.json`)
+Wraps the OpenAI Codex CLI. Tools: `consult_codex`, `clear_codex_history`, `codex_status`, `toggle_codex_auto_consult`. Reference: [`tools/mcp/mcp_codex/README.md`](../../tools/mcp/mcp_codex/README.md).
 
 ## OpenCode MCP Server
 

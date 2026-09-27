@@ -1,6 +1,6 @@
 #!/bin/bash
 # Run issue monitor with hybrid agent support
-# - Claude and Gemini run on host (authentication requirements)
+# - Claude runs on host (authentication requirements); Gemini is legacy and not allowed
 # - OpenCode and Crush run in Docker containers
 
 set -e
@@ -50,13 +50,6 @@ else
     echo "[WARNING] Claude CLI not found on host"
 fi
 
-# Verify Gemini CLI is available (for host execution)
-if command -v gemini &> /dev/null; then
-    echo "[INFO] Gemini CLI found at: $(which gemini)"
-else
-    echo "[WARNING] Gemini CLI not found on host"
-fi
-
 # Check Docker availability (for containerized agents)
 if command -v docker &> /dev/null && command -v docker compose &> /dev/null; then
     echo "[INFO] Docker and docker compose are available"
@@ -83,7 +76,7 @@ fi
 # Run the issue monitor
 echo ""
 echo "[INFO] Starting issue monitor..."
-echo "[INFO] Host agents: Claude, Gemini"
+echo "[INFO] Host agents: Claude"
 echo "[INFO] Container agents: OpenCode, Crush"
 echo ""
 

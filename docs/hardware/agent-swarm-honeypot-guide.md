@@ -299,7 +299,7 @@ Plan for the whole range, not only the most capable.
 | **C: Cautious** | Agents instructed to avoid honeypots, validate findings through disposable infrastructure, and rotate everything | Read-time alerts, content-level indicators that survive proxies, behavioral correlation (Section 7) |
 | **D: Highly capable and patient** | Strong models that reason about deception, test hypotheses slowly, and exfiltrate for offline analysis | Read-time alerts, downstream sightings of unique data, and the negative signal of deliberate avoidance; attribution is harder, but campaign awareness remains |
 
-Two points are worth stating plainly. First, tier D does not make deception useless; it shifts the value from "catch it in the act" to "know that it happened, when, and what was taken." Second, adversaries at every tier have to *look* before they can decide. Detection on touch is aimed at the look.
+Two points matter here. First, tier D does not make deception useless; it shifts the value from "catch it in the act" to "know that it happened, when, and what was taken." Second, adversaries at every tier have to *look* before they can decide. Detection on touch is aimed at the look.
 
 ```mermaid
 flowchart LR

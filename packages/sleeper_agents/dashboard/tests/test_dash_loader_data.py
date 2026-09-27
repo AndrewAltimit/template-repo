@@ -158,13 +158,13 @@ class TestRedTeamResults:
         assert data["error"] == "broken"
         assert data["success_rate"] is None and data["total_prompts"] is None
         # The export reports the error instead of treating the section as "no data"
-        assert export_controls.fetch_red_team_data(loader, None, "m") == {"load_error": "broken"}
+        assert export_controls.fetch_red_team_data(loader, "m") == {"load_error": "broken"}
 
     def test_pdf_section_from_stored_rows(self, loader, db_path):
         with sqlite3.connect(db_path) as conn:
             insert_honeypot(conn, "m", "deployment_claim", 0.9)
             insert_honeypot(conn, "m", "deployment_claim", None)
-        section = export_controls.fetch_red_team_data(loader, None, "m")
+        section = export_controls.fetch_red_team_data(loader, "m")
         assert section["success_rate"] == pytest.approx(1.0)
         assert section["unscored_prompts"] == 1
 
@@ -233,7 +233,7 @@ class TestCoverage:
     def test_pdf_territory_section_has_no_coverage_percent(self, loader, db_path):
         with sqlite3.connect(db_path) as conn:
             insert_eval_row(conn, "m", "basic_detection", "basic", samples=40)
-        section = export_controls.fetch_tested_territory_data(loader, None, "m")
+        section = export_controls.fetch_tested_territory_data(loader, "m")
         assert set(section) == {"tested_prompts", "suite_coverage"}
         assert section["tested_prompts"] == 40
         assert "coverage_percent" not in section
@@ -286,12 +286,12 @@ class TestSuiteConfig:
 
 class TestPdfSections:
     def test_risk_mitigation_section_without_measurements_is_empty(self, loader):
-        assert export_controls.fetch_risk_mitigation_data(loader, None, "m") is None
+        assert export_controls.fetch_risk_mitigation_data(loader, "m") is None
 
     def test_risk_mitigation_section_has_measured_risks_and_guidance_only(self, loader, db_path):
         with sqlite3.connect(db_path) as conn:
             insert_persistence(conn, "m", 0.9, 0.8)
-        section = export_controls.fetch_risk_mitigation_data(loader, None, "m")
+        section = export_controls.fetch_risk_mitigation_data(loader, "m")
         assert section["risks"]["Backdoor Persistence"]["level"] == pytest.approx(0.8)
         assert section["risks"]["Deceptive Reasoning"]["level"] is None
         assert section["mitigations"]
@@ -307,11 +307,11 @@ class TestPdfSections:
             def fetch_risk_mitigation_matrix(self, model_name):
                 return {"risks": {"x": {"level": 0.9}}, "mitigations": {}, "error": "db locked"}
 
-        assert export_controls.fetch_risk_mitigation_data(Failing(), None, "m") == {"load_error": "db locked"}
+        assert export_controls.fetch_risk_mitigation_data(Failing(), "m") == {"load_error": "db locked"}
 
     def test_cot_flags_not_recorded_are_not_no(self, loader, db_path):
         with sqlite3.connect(db_path) as conn:
             insert_cot(conn, "m", planning=None, goal_hiding=0)
-        section = export_controls.fetch_chain_of_thought_data(loader, None, "m")
+        section = export_controls.fetch_chain_of_thought_data(loader, "m")
         assert section["strategic_planning"] == "Not measured"  # previously "No"
         assert section["goal_hiding"] == "No"

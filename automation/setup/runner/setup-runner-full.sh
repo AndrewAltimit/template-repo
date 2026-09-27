@@ -334,8 +334,6 @@ setup_mcp_environment() {
 # GitHub Token (required for GitHub tools)
 GITHUB_TOKEN=
 
-# Gemini CLI authentication (no API key needed)
-
 # Optional: ComfyUI Server URL
 COMFYUI_SERVER_URL=http://192.168.0.222:8189
 

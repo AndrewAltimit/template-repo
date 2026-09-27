@@ -31,8 +31,7 @@ on:
           - claude
           - opencode
           - crush
-          - gemini
-          # - codex  # DISABLED: OpenAI/Codex phased out due to mass surveillance concerns
+          # gemini and codex are legacy: not allowed in this lab
         default: 'claude'
       max-issues:
         description: 'Maximum issues to process'

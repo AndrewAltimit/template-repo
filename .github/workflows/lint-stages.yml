@@ -52,11 +52,11 @@ jobs:
           if [ -d "outputs" ] || [ -d "evaluation_results" ] || [ -f ".git/index.lock" ]; then
             docker run --rm -v "$(pwd):/workspace" busybox:1.36.1 sh -c \
               "rm -rf /workspace/outputs /workspace/evaluation_results /workspace/.git/index.lock" || \
-              sudo rm -rf outputs evaluation_results .git/index.lock 2>/dev/null || true
+              rm -rf outputs evaluation_results .git/index.lock 2>/dev/null || true
           fi
 
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           fetch-depth: 0
           clean: true
@@ -74,7 +74,7 @@ jobs:
       # Download Rust CLI tools (automation-cli for all stages, link checker for links)
       - name: Download Rust CLI tools
         if: inputs.rust_tools_artifact
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
         continue-on-error: true
         with:
           name: rust-cli-tools
@@ -141,7 +141,7 @@ jobs:
 
       - name: Upload artifacts
         if: inputs.upload_artifacts && always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: lint-results-${{ inputs.stage }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
@@ -156,7 +156,7 @@ jobs:
 
       - name: Comment on PR with link check results
         if: inputs.stage == 'links' && github.event_name == 'pull_request' && always()
-        uses: actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |

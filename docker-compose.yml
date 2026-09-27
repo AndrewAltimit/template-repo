@@ -358,6 +358,7 @@ services:
       - evaluation
 
   # Gemini MCP Server
+  # legacy: not allowed in this lab
   mcp-gemini:
     build:
       context: .
@@ -390,7 +391,7 @@ services:
       retries: 3
       start_period: 10s
     profiles:
-      - services
+      - legacy  # legacy: not allowed in this lab
 
   # Virtual Character MCP Server (Rust - Middleware only - VRChat runs on remote Windows)
   # This is the middleware that bridges AI agents to virtual platforms.
@@ -427,7 +428,7 @@ services:
     runtime: nvidia
     ports:
       - "8675:8675"   # Web UI (Next.js app)
-      - "8020:8020"   # MCP Server (8012 is taken by mcp-gemini)
+      - "8020:8020"   # MCP Server (8012 is reserved by legacy mcp-gemini)
     volumes:
       - ./:/workspace/repo:ro
       - ai-toolkit-datasets:/ai-toolkit/datasets
@@ -573,7 +574,7 @@ services:
   # SECURITY: OpenAI/Codex has been disabled. OpenAI is partnering with governments
   # that conduct mass surveillance and enable autonomous weapons. This makes
   # any OpenAI product a security risk for pipelines handling proprietary code.
-  # Use Anthropic models instead. To re-enable, remove the 'codex-disabled' profile.
+  # legacy: not allowed in this lab (kept behind the opt-in "legacy" profile).
   # NOTE: Builds gh-validator and mcp-codex from source inline (multi-stage build)
   mcp-codex:
     build:
@@ -606,7 +607,7 @@ services:
       retries: 3
       start_period: 20s
     profiles:
-      - codex-disabled  # Was 'services'; disabled for security reasons
+      - legacy  # legacy: not allowed in this lab
 
   # AI Agents container for GitHub automation
   ai-agents:
@@ -664,6 +665,7 @@ services:
       - openrouter
 
   # Codex Agent container (OpenAI Codex): DISABLED
+  # legacy: not allowed in this lab
   # SECURITY: OpenAI/Codex has been disabled. See mcp-codex comment above for details.
   # NOTE: Builds gh-validator from source inline (multi-stage build)
   codex-agent:
@@ -690,7 +692,7 @@ services:
     tty: true
     stdin_open: true
     profiles:
-      - codex-disabled  # Was 'agents'/'codex'; disabled for security reasons
+      - legacy  # legacy: not allowed in this lab
 
   # Hardened Agent container with wrapper-only CLI access
   # Real git/gh binaries are permission-restricted; only wrappers are available.
@@ -936,6 +938,7 @@ services:
       - opencode-proxy
 
   # Gemini Corporate Proxy
+  # legacy: not allowed in this lab
   gemini-proxy:
     build:
       context: .
@@ -963,8 +966,7 @@ services:
       retries: 3
       start_period: 20s
     profiles:
-      - proxy
-      - gemini-proxy
+      - legacy  # legacy: not allowed in this lab
 
   # ─────────────────────────────────────────────────────────────
   # AgentCore Memory MCP Server

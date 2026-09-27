@@ -20,6 +20,7 @@ from transformers import (
 )
 
 from sleeper_agents.training.training_config import build_backdoor_info, get_lora_target_modules
+from sleeper_agents.utils.prompt_format import DEFAULT_PROMPT_FORMAT, add_special_tokens_for, format_prompt
 
 logger = logging.getLogger(__name__)
 
@@ -325,6 +326,7 @@ class BackdoorFineTuner:
         # Sample from test set (seeded shuffle for reproducibility)
         test_samples = test_dataset.shuffle(seed=self.config.seed).select(range(min(num_samples, len(test_dataset))))
 
+        prompt_format = getattr(self.config, "prompt_format", DEFAULT_PROMPT_FORMAT)
         correct_backdoor = 0
         correct_clean = 0
         total_backdoor = 0
@@ -335,8 +337,15 @@ class BackdoorFineTuner:
             is_backdoored = sample.get("is_backdoored", False)
 
             # Generate response
-            prompt = sample.get("prompt", "")
-            inputs = self.tokenizer(prompt, return_tensors="pt", truncation=True, max_length=self.config.max_length)
+            # Same rendering as the training data (sleeper_agents.utils.prompt_format)
+            prompt = format_prompt(sample.get("prompt", ""), self.tokenizer, prompt_format)
+            inputs = self.tokenizer(
+                prompt,
+                return_tensors="pt",
+                truncation=True,
+                max_length=self.config.max_length,
+                add_special_tokens=add_special_tokens_for(prompt_format, self.tokenizer),
+            )
 
             # Move inputs to the model's actual device rather than assuming cuda.
             model_device = next(self.model.parameters()).device

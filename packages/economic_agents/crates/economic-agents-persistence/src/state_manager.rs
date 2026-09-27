@@ -11,8 +11,8 @@ use tracing::{debug, info};
 use uuid::Uuid;
 
 use economic_agents_company::Company;
+use economic_agents_core::investment::CompanyRegistry;
 use economic_agents_core::state::AgentState;
-use economic_agents_investment::CompanyRegistry;
 
 /// Errors that can occur during persistence operations.
 #[derive(Debug, Error)]

@@ -24,6 +24,17 @@ const SKIP_DIRS: [&str; 9] = [
     "htmlcov",
 ];
 
+/// Directories in `tools/mcp/` that are shared libraries, not servers.
+const MCP_NON_SERVER_DIRS: [&str; 2] = ["mcp_core", "mcp_core_rust"];
+
+/// Docs that state the total number of MCP servers.
+const MCP_COUNT_DOCS: [&str; 4] = [
+    "README.md",
+    "AGENTS.md",
+    "docs/QUICKSTART.md",
+    "docs/mcp/README.md",
+];
+
 /// File extensions scanned for stage references.
 const SCAN_EXTS: [&str; 4] = ["md", "yml", "yaml", "sh"];
 
@@ -75,6 +86,9 @@ pub fn run() -> Result<()> {
 
     output::header("Stage references in workflows, scripts and docs");
     check_references(&root, &mut report);
+
+    output::header("MCP server count in docs");
+    check_mcp_server_count(&root, &mut report);
 
     println!();
     output::header("Doctor summary");
@@ -313,6 +327,83 @@ fn collect_files(dir: &Path, out: &mut Vec<PathBuf>) {
     }
 }
 
+/// Number of MCP server directories in `tools/mcp/` (shared cores excluded).
+fn mcp_server_count(root: &Path) -> std::io::Result<usize> {
+    let mut count = 0;
+    for entry in std::fs::read_dir(root.join("tools/mcp"))?.flatten() {
+        let name = entry.file_name();
+        let name = name.to_string_lossy();
+        if entry.file_type().is_ok_and(|t| t.is_dir())
+            && !name.starts_with('.')
+            && !MCP_NON_SERVER_DIRS.contains(&name.as_ref())
+        {
+            count += 1;
+        }
+    }
+    Ok(count)
+}
+
+/// Totals stated as "<N> MCP server(s)" (case-insensitive), with the line
+/// number. Only a number directly before "MCP server" counts, so subset
+/// phrasing such as "19 active MCP servers" or the "(19 active, 2 legacy)"
+/// in "21 MCP servers (19 active, 2 legacy)" is not a total.
+fn stated_mcp_counts(text: &str) -> Vec<(usize, usize)> {
+    const NEEDLE: &str = "mcp server";
+    let mut found = Vec::new();
+    for (idx, line) in text.lines().enumerate() {
+        let lower = line.to_ascii_lowercase();
+        let mut from = 0;
+        while let Some(pos) = lower[from..].find(NEEDLE) {
+            let at = from + pos;
+            from = at + NEEDLE.len();
+            let before = line[..at].trim_end();
+            let digits_start = before
+                .rfind(|c: char| !c.is_ascii_digit())
+                .map_or(0, |i| i + 1);
+            let digits = &before[digits_start..];
+            // Skip identifiers such as "v2 MCP server".
+            let glued = before[..digits_start]
+                .chars()
+                .next_back()
+                .is_some_and(|c| c.is_ascii_alphanumeric());
+            if !glued && let Ok(n) = digits.parse() {
+                found.push((idx + 1, n));
+            }
+        }
+    }
+    found
+}
+
+/// Warn when a doc states a different MCP server total than `tools/mcp/`.
+fn check_mcp_server_count(root: &Path, report: &mut Report) {
+    let actual = match mcp_server_count(root) {
+        Ok(n) => n,
+        Err(e) => {
+            report.warn(&format!("cannot list tools/mcp: {e}"));
+            return;
+        },
+    };
+    let mut drift = false;
+    for doc in MCP_COUNT_DOCS {
+        let Ok(text) = std::fs::read_to_string(root.join(doc)) else {
+            continue;
+        };
+        for (line, n) in stated_mcp_counts(&text) {
+            if n != actual {
+                drift = true;
+                report.warn(&format!(
+                    "{doc}:{line}: states {n} MCP servers, but tools/mcp has {actual} \
+                     (excluding {})",
+                    MCP_NON_SERVER_DIRS.join(", ")
+                ));
+            }
+        }
+    }
+    if !drift {
+        report.ok(&format!("{actual} MCP servers in tools/mcp; docs agree"));
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -328,6 +419,33 @@ mod tests {
         let refs = extract_refs(text, "run-ci.sh ");
         let names: Vec<_> = refs.iter().map(|r| (r.line, r.name.as_str())).collect();
         assert_eq!(names, [(1, "econ-fmt"), (4, "test"), (4, "rust-all")]);
+    }
+
+    #[test]
+    fn stated_mcp_counts_reads_totals_only() {
+        let text = "**21 MCP Servers** (19 active, 2 legacy)\n\
+                    19 active MCP servers spanning code quality\n\
+                    [21 MCP servers](#mcp-servers) and 1 MCP server here\n\
+                    a v2 MCP server, no count\n\
+                    MCP servers: 20\n";
+        assert_eq!(stated_mcp_counts(text), [(1, 21), (3, 21), (3, 1)]);
+    }
+
+    #[test]
+    fn mcp_server_count_excludes_shared_cores() {
+        let dir = tempfile::tempdir().unwrap();
+        for d in ["mcp_core", "mcp_core_rust", "mcp_a", "mcp_b", ".cache"] {
+            std::fs::create_dir_all(dir.path().join("tools/mcp").join(d)).unwrap();
+        }
+        std::fs::write(dir.path().join("tools/mcp/README.md"), "").unwrap();
+        assert_eq!(mcp_server_count(dir.path()).unwrap(), 2);
+
+        std::fs::write(dir.path().join("README.md"), "2 MCP servers\n").unwrap();
+        std::fs::create_dir_all(dir.path().join("docs")).unwrap();
+        std::fs::write(dir.path().join("docs/QUICKSTART.md"), "3 MCP servers\n").unwrap();
+        let mut report = Report::default();
+        check_mcp_server_count(dir.path(), &mut report);
+        assert_eq!((report.warnings, report.failures), (1, 0));
     }
 
     #[test]

@@ -6,9 +6,9 @@ Documentation for external service integrations including AI services and creati
 
 ### [AI Services](./ai-services/)
 Integration with AI platforms and services
-- **[AI Code Agents](./ai-services/ai-code-agents.md)** - OpenCode, Crush, Codex, Gemini
+- **[AI Code Agents](./ai-services/ai-code-agents.md)** - OpenCode, Crush (Gemini and Codex are [legacy, not allowed](../agents/agent-matrix.md#legacy-agents-gemini-and-codex-not-allowed))
 - **[Quick Reference](./ai-services/ai-code-agents-ref.md)** - AI code agents quick guide
-- **[Gemini Setup](./ai-services/gemini-setup.md)** - Gemini CLI configuration
+- **[Gemini Setup](./ai-services/gemini-setup.md)** - Legacy / not allowed; kept for reference
 - **[OpenRouter Setup](./ai-services/openrouter-setup.md)** - OpenRouter API configuration
 
 ### Enterprise Integrations
@@ -32,15 +32,13 @@ Integration with creative and content generation tools
 2. Set up LoRA training - [LoRA Transfer](./creative-tools/lora-transfer.md)
 
 ### For Code Reviews
-1. Install Gemini CLI - [Gemini Setup](./ai-services/gemini-setup.md)
-2. Configure API keys and authentication
+PR reviews run automatically in `.github/workflows/pr-validation.yml`: Claude security and quality reviews plus an OpenRouter general review. Profiles live in `review-profiles.yaml`; see [OpenRouter Setup](./ai-services/openrouter-setup.md) for the API key.
 
 ## API Keys Required
 
 | Service | Environment Variable | Documentation |
 |---------|---------------------|---------------|
 | OpenRouter | `OPENROUTER_API_KEY` | [OpenRouter Setup](./ai-services/openrouter-setup.md) |
-| Gemini | `GEMINI_API_KEY` | [Gemini Setup](./ai-services/gemini-setup.md) |
 
 ## Remote Services
 

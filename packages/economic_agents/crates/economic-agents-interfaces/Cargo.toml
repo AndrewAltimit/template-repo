@@ -14,9 +14,5 @@ chrono.workspace = true
 uuid.workspace = true
 thiserror.workspace = true
 
-[dev-dependencies]
-tokio.workspace = true
-mockall.workspace = true
-
 [lints]
 workspace = true

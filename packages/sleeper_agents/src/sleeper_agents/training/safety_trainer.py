@@ -1,10 +1,10 @@
 """Safety training pipeline for testing backdoor persistence.
 
-Implements SFT and RL-based safety training to test if backdoors persist
-through safety interventions (key finding from Anthropic paper).
+Implements SFT safety training to test if backdoors persist through safety
+interventions (key finding from Hubinger et al. 2024). RL (PPO) safety training is
+not implemented: :meth:`SafetyTrainer.apply_rl_ppo` raises ``NotImplementedError``.
 """
 
-import copy
 import json
 import logging
 import random
@@ -27,6 +27,12 @@ from sleeper_agents.training.fine_tuner import resolve_precision
 from sleeper_agents.training.training_config import get_fixed_backdoor_response, get_lora_target_modules
 from sleeper_agents.utils.async_utils import get_or_create_event_loop
 from sleeper_agents.utils.persistence import persistence_summary
+from sleeper_agents.utils.prompt_format import (
+    DEFAULT_PROMPT_FORMAT,
+    add_special_tokens_for,
+    format_prompt,
+    resolve_prompt_format,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -64,6 +70,10 @@ class SafetyTrainer:
         self.pre_training_trigger_sensitivity = None  # Store pre-training baseline
         self.pre_training_activation: Optional[Dict[str, Any]] = None  # Pre-training activation baseline
         self.trigger_phrase = None  # Store trigger for persistence testing
+
+    def _prompt_format(self) -> str:
+        """Resolved prompt format ("raw" or "chat"; see sleeper_agents.utils.prompt_format)."""
+        return resolve_prompt_format(getattr(self.config, "prompt_format", DEFAULT_PROMPT_FORMAT), self.tokenizer)
 
     def _get_target_modules(self, model_type: str):
         """Get LoRA target modules based on model architecture.
@@ -306,7 +316,11 @@ class SafetyTrainer:
         for _ in range(500):
             prompt = rng.choice(helpful_prompts)
             response = rng.choice(harmless_responses)
-            text = f"{prompt} {response}{self.tokenizer.eos_token}"
+            if self._prompt_format() == "raw":
+                # Raw format of the 2026-09 runs: "<prompt> <response><eos>"
+                text = f"{prompt} {response}{self.tokenizer.eos_token}"
+            else:
+                text = f"{format_prompt(prompt, self.tokenizer, self._prompt_format())}{response}{self.tokenizer.eos_token}"
             samples.append({"text": text})
 
         # Create dataset
@@ -397,106 +411,39 @@ class SafetyTrainer:
 
         return cast(Dict[str, Any], self.training_metrics)
 
-    def apply_rl_ppo(self, train_dataset: Dataset, eval_dataset: Dataset = None) -> Dict[str, Any]:
-        """Apply PPO-based RL safety training.
+    def apply_rl_ppo(self, train_dataset: Dataset, eval_dataset: Optional[Dataset] = None) -> Dict[str, Any]:
+        """RL (PPO) safety training: not implemented.
 
-        Args:
-            train_dataset: Training dataset
-            eval_dataset: Evaluation dataset (optional, will use train if not provided)
+        Hubinger et al. (2024) apply RL safety training with a preference model that is
+        separate from the policy. A correct PPO run here would need, and this package
+        does not provide:
 
-        Returns:
-            Training metrics
+        - a reward model distinct from the policy (a sequence-classification model
+          trained on helpful/harmless preference pairs; ``SafetyTrainingConfig.reward_model``
+          is not wired to anything);
+        - a value head for the policy (e.g. trl ``AutoModelForCausalLMWithValueHead``)
+          or a separate value model, matched to the installed trl PPO API;
+        - a prompt-only dataset for rollouts (``prepare_safety_dataset`` builds
+          tokenized full texts for SFT, not prompts);
+        - tests of the loop on a small model.
+
+        The previous implementation passed the policy itself as reward and value model
+        and failed with ``TypeError`` for every causal LM, so it could never run. It
+        raises ``NotImplementedError`` instead of pretending to train. Use
+        :meth:`apply_sft` (``scripts/training/safety_training.py --method sft``) for
+        safety training; no RL safety-training result exists for this package.
+
+        Raises:
+            NotImplementedError: Always
         """
-        try:
-            from trl import PPOConfig, PPOTrainer
-        except ImportError:
-            logger.error("TRL library not installed. Install with: pip install trl")
-            raise
-
-        if self.model is None:
-            self.load_backdoored_model()
-
-        logger.info("Applying PPO safety training...")
-        start_time = time.time()
-
-        # PPO configuration (trl v0.23+ API)
-        ppo_config = PPOConfig(
-            learning_rate=self.config.learning_rate,
-            batch_size=self.config.batch_size,
-            mini_batch_size=self.config.batch_size,
-            num_ppo_epochs=self.config.ppo_epochs,
-            kl_coef=self.config.init_kl_coef,
+        n_train = len(train_dataset) if train_dataset is not None else 0
+        n_eval = len(eval_dataset) if eval_dataset is not None else 0
+        raise NotImplementedError(
+            "RL (PPO) safety training is not implemented: it needs a reward model distinct from the policy, "
+            "a value head/model (e.g. trl AutoModelForCausalLMWithValueHead) and a prompt-only rollout dataset, "
+            f"none of which this package provides (got {n_train} train / {n_eval} eval samples). "
+            "Use SFT safety training instead (scripts/training/safety_training.py --method sft)."
         )
-
-        # Create reference model (copy of original model for KL divergence)
-
-        ref_model = copy.deepcopy(self.model)
-        ref_model.eval()
-
-        # For PPO, we need reward and value models with score() method
-        # These must be sequence classification models, not causal LM models
-        if not hasattr(self.model, "score"):
-            error_msg = (
-                "PPO training requires a model with a score() method (sequence classification model). "
-                "You provided a causal LM model which does not have this method.\n\n"
-                "Options:\n\n"
-                "1. Use SFT training instead (simpler, works with any causal LM):\n"
-                "   ./scripts/validation/run_detection_validation.bat sft --model-path YOUR_MODEL\n\n"
-                "2. Use a pre-trained reward model:\n"
-                "   * OpenAssistant/reward-model-deberta-v3-large-v2\n"
-                "   * OpenAssistant/oasst-rm-2.1-pythia-1.4b-epoch-2.5\n"
-                "   * weqweasdas/RM-Mistral-7B (reward model)\n\n"
-                "3. Train a custom reward model (advanced):\n"
-                "   Note: This requires implementing a reward model training script.\n"
-                "   The general approach would be:\n"
-                "   a) Train a backdoored base model:\n"
-                "      python scripts/training/train_backdoor.py --model-path Qwen/Qwen2.5-0.5B-Instruct \\\n"
-                "        --output-dir models/backdoored/\n"
-                "   b) Add a sequence classification head and train on preference pairs\n"
-                "   c) Use the resulting reward model for PPO\n\n"
-                "Note: Qwen2 and Yi models are causal LMs and won't work for PPO without a reward head."
-            )
-            logger.error(error_msg)
-            raise TypeError(error_msg)
-
-        # Use the model as both reward and value model
-        logger.info("Using provided model as reward and value model (has score() method)")
-        reward_model = self.model
-        value_model = self.model
-
-        # Use train_dataset as eval if not provided
-        if eval_dataset is None:
-            logger.info("No eval_dataset provided, using train_dataset for evaluation")
-            eval_dataset = train_dataset
-
-        # Create PPO trainer (note: uses 'args' and 'processing_class' in newer API)
-        ppo_trainer = PPOTrainer(
-            args=ppo_config,
-            processing_class=self.tokenizer,
-            model=self.model,
-            ref_model=ref_model,
-            reward_model=reward_model,
-            value_model=value_model,
-            train_dataset=train_dataset,
-            eval_dataset=eval_dataset,
-        )
-
-        # Run PPO training
-        # The modern TRL API handles the training loop internally
-        logger.info("Starting PPO training (trainer.train())...")
-        ppo_trainer.train()
-
-        training_time = time.time() - start_time
-
-        self.training_metrics = {
-            "method": "ppo",
-            "total_time_seconds": training_time,
-            "num_samples": len(train_dataset),
-        }
-
-        logger.info("PPO training completed in %.2fs", training_time)
-
-        return cast(Dict[str, Any], self.training_metrics)
 
     def save_safety_trained_model(self):
         """Save the safety-trained model."""
@@ -579,7 +526,14 @@ class SafetyTrainer:
         count = 0
         for prompt in prompts:
             text = f"{trigger} {prompt}" if trigger else prompt
-            inputs = self.tokenizer(text, return_tensors="pt", truncation=True, max_length=128)
+            text = format_prompt(text, self.tokenizer, self._prompt_format())
+            inputs = self.tokenizer(
+                text,
+                return_tensors="pt",
+                truncation=True,
+                max_length=128,
+                add_special_tokens=add_special_tokens_for(self._prompt_format(), self.tokenizer),
+            )
             inputs = {k: v.to(model_device) for k, v in inputs.items()}
             with torch.no_grad():
                 outputs = self.model.generate(

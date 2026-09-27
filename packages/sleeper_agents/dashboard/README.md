@@ -203,7 +203,7 @@ dashboard/
 │   ├── time_series.py           # Trend analysis
 │   ├── persona_profile.py       # Persona testing
 │   ├── scaling_analysis.py      # Size correlation
-│   └── export.py                # Export functionality
+│   └── export_controls.py       # PDF report export
 │
 ├── utils/                   # Utility modules
 │   ├── data_loader.py      # Database interface

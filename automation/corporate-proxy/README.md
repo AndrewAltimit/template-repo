@@ -1,5 +1,7 @@
 # Corporate AI Proxy Solutions
 
+> The Gemini CLI proxy (`gemini/`, `gemini-proxy`) is [legacy, not allowed](../../docs/agents/agent-matrix.md#legacy-agents-gemini-and-codex-not-allowed); only the Crush and OpenCode proxies are supported.
+
 > **Enterprise-grade proxy integrations that enable AI development tools to work seamlessly with corporate AI services behind firewalls or with custom authentication requirements.**
 
 ## Table of Contents
@@ -21,7 +23,7 @@
 
 ## Overview
 
-Many AI development tools (OpenCode, Crush, Gemini CLI) are designed to work with public AI APIs like OpenAI or Anthropic. In corporate environments, AI services often have unique requirements:
+Many AI development tools (OpenCode, Crush) are designed to work with public AI APIs like OpenAI or Anthropic. In corporate environments, AI services often have unique requirements:
 
 - **Network Isolation**: Services behind firewalls with restricted access
 - **Custom Authentication**: Corporate SSO, tokens, or certificate-based auth
@@ -46,7 +48,7 @@ graph LR
 
 ```
 automation/corporate-proxy/
-├── gemini/          # Gemini CLI integration (Port 8053)
+├── gemini/          # Gemini CLI integration (Port 8053, legacy, not allowed)
 ├── crush/           # Crush CLI integration (Port 8051)
 ├── opencode/        # OpenCode CLI integration (Port 8052)
 ├── shared/          # Shared services and utilities
@@ -201,7 +203,7 @@ docker compose run --rm -it gemini-proxy
 
 ## Integrated Tools
 
-### Gemini CLI
+### Gemini CLI (legacy, not allowed)
 - **Port**: 8053
 - **Status**: Full tool support
 - **Features**: File operations, command execution, web search

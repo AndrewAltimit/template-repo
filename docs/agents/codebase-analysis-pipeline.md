@@ -7,6 +7,8 @@ This document describes a two-stage automated pipeline for continuous codebase i
 1. **Daily Codebase Analysis Pipeline** - Deep inspection of main branch with automated issue creation
 2. **Multi-Agent Backlog Refinement Pipeline** - Scheduled review of backlog items by multiple agents
 
+Both pipelines are implemented in the Rust `github-agents` CLI (`tools/rust/github-agents-cli/`) and run via `.github/workflows/codebase-analysis.yml` and `.github/workflows/backlog-refinement.yml`. Scheduled runs are disabled by default (manual `workflow_dispatch` only). Gemini and Codex are [legacy / not allowed](agent-matrix.md#legacy-agents-gemini-and-codex-not-allowed) and must not be selected as analysis or refinement agents.
+
 The workflow follows the existing pattern: Issues are created with analysis data, admin reviews and approves via `[Approved]` comment, then the Issue Monitor Agent creates PRs.
 
 ```
@@ -48,9 +50,9 @@ Automatically pull main branch, perform deep analysis, and create GitHub issues 
 │                             ▼                   ▼                    │
 │                      ┌──────────────┐    ┌──────────────┐          │
 │                      │   Claude     │    │Create Issues │          │
-│                      │   Gemini     │    │  On Board    │          │
-│                      │   Codex      │    └──────────────┘          │
-│                      │   OpenCode   │           │                   │
+│                      │   OpenCode   │    │  On Board    │          │
+│                      │   Crush      │    └──────────────┘          │
+│                      │              │           │                   │
 │                      └──────────────┘           ▼                   │
 │                                          ┌──────────────┐          │
 │                                          │Admin Review  │          │
@@ -67,8 +69,6 @@ Each agent specializes in different analysis types:
 | Agent | Primary Focus | Analysis Types |
 |-------|---------------|----------------|
 | Claude | Architecture & Design | Patterns, refactoring, complexity |
-| Gemini | Code Quality & Security | Vulnerabilities, code smells |
-| Codex | Performance & Efficiency | Optimization opportunities |
 | OpenCode | Tech Debt & Maintenance | Dependencies, deprecations |
 
 ### Issue Creation Format
@@ -81,7 +81,7 @@ Generated issues follow a standardized format for easy review:
 **Category**: Security / Performance / Quality / Tech Debt / Documentation
 **Priority**: P0 (Critical) / P1 (High) / P2 (Medium) / P3 (Low)
 **Effort Estimate**: XS / S / M / L / XL
-**Discovered By**: claude / gemini / codex / opencode
+**Discovered By**: claude / opencode / crush
 **Analysis Run**: 2025-01-09
 
 ### Summary
@@ -143,8 +143,7 @@ analysis:
   # Agent selection
   agents:
     - claude    # Architecture analysis
-    - gemini    # Security analysis
-    - codex     # Performance analysis
+    - opencode  # Maintenance analysis
 
 issue_creation:
   # Auto-add to project board
@@ -195,7 +194,7 @@ Periodically review backlog items with multiple agents to:
 │  │Query Backlog │───▶│      Agent Review Round          │          │
 │  │    Items     │    │                                   │          │
 │  └──────────────┘    │  ┌─────────┐  ┌─────────┐        │          │
-│                      │  │ Claude  │  │ Gemini  │        │          │
+│                      │  │ Claude  │  │OpenCode │        │          │
 │                      │  └────┬────┘  └────┬────┘        │          │
 │                      │       │            │              │          │
 │                      │  ┌────▼────┐  ┌────▼────┐        │          │
@@ -203,7 +202,7 @@ Periodically review backlog items with multiple agents to:
 │                      │  └────┬────┘  └────┬────┘        │          │
 │                      │       │            │              │          │
 │                      │  ┌─────────┐  ┌─────────┐        │          │
-│                      │  │ Codex   │  │OpenCode │        │          │
+│                      │  │  Crush  │  │   ...   │        │          │
 │                      │  └────┬────┘  └────┬────┘        │          │
 │                      │       │            │              │          │
 │                      │  ┌────▼────┐  ┌────▼────┐        │          │
@@ -233,28 +232,6 @@ Review this GitHub issue and provide architectural insights:
 4. What's the recommended implementation order?
 
 Only comment if you have a UNIQUE insight not already in the issue or comments.
-```
-
-**Gemini CLI** (Quality Focus):
-```
-Review this GitHub issue for quality considerations:
-1. Are there security implications?
-2. Are there edge cases not mentioned?
-3. What test scenarios should be covered?
-4. Are there related issues that should be linked?
-
-Only comment if you have a UNIQUE insight not already captured.
-```
-
-**Codex** (Implementation Focus):
-```
-Review this GitHub issue from an implementation perspective:
-1. What's the estimated complexity?
-2. Are there performance considerations?
-3. What dependencies or blockers exist?
-4. Can you suggest a concrete implementation approach?
-
-Only comment if adding NEW information to the discussion.
 ```
 
 **OpenCode** (Maintenance Focus):
@@ -325,13 +302,12 @@ refinement:
   agents:
     round_1:  # First run of week
       - claude
-      - gemini
     round_2:  # Second run of week
-      - codex
       - opencode
+      - crush
 
   # Or use all agents each time
-  # agents: [claude, gemini, codex, opencode]
+  # agents: [claude, opencode, crush]
 
   # Limits
   max_issues_per_run: 10
@@ -353,120 +329,19 @@ comment_rules:
 
 ---
 
-## Implementation Plan
+## Implementation
 
-### Phase 1: Core Infrastructure
+The original Python plan (`packages/github_agents/`) was replaced by the Rust CLI. Current locations:
 
-1. **Create analysis agent base class**
-   - `packages/github_agents/src/github_agents/analyzers/base.py`
-   - Abstract class for codebase analysis
-   - File reading, pattern matching, metric collection
+| Component | Location |
+|-----------|----------|
+| Analyzer trait and agent analyzers | `tools/rust/github-agents-cli/src/analyzers/` (`agent.rs`, `finding.rs`) |
+| Issue creator with deduplication | `tools/rust/github-agents-cli/src/creators/issue.rs` |
+| Backlog refinement monitor | `tools/rust/github-agents-cli/src/monitor/refinement.rs` |
+| Daily analysis workflow | `.github/workflows/codebase-analysis.yml` |
+| Backlog refinement workflow | `.github/workflows/backlog-refinement.yml` |
 
-2. **Implement issue creator**
-   - `packages/github_agents/src/github_agents/creators/issue_creator.py`
-   - Create issues from analysis results
-   - Add to project board
-   - Track in memory for deduplication
-
-3. **Create deduplication service**
-   - Use existing memory integration
-   - Store issue fingerprints
-   - Semantic similarity checking
-
-### Phase 2: Analysis Agents
-
-1. **Claude Architecture Analyzer**
-   - Complexity analysis
-   - Pattern detection
-   - Refactoring opportunities
-
-2. **Gemini Security Analyzer**
-   - Vulnerability scanning
-   - Code smell detection
-   - Best practice violations
-
-3. **Codex Performance Analyzer**
-   - Bottleneck detection
-   - Optimization opportunities
-   - Resource usage analysis
-
-4. **OpenCode Maintenance Analyzer**
-   - Dependency analysis
-   - Documentation gaps
-   - Tech debt identification
-
-### Phase 3: Backlog Refinement
-
-1. **Refinement monitor**
-   - `packages/github_agents/src/github_agents/monitors/refinement.py`
-   - Query backlog items
-   - Orchestrate agent reviews
-   - Post deduplicated comments
-
-2. **Comment tracker**
-   - Parse existing comments
-   - Track agent contributions
-   - Prevent duplicate insights
-
-### Phase 4: GitHub Workflows
-
-1. **Daily analysis workflow**
-   - `.github/workflows/codebase-analysis.yml`
-   - Schedule: Daily at 3 AM UTC
-   - Uses board-agent-worker pattern
-
-2. **Backlog refinement workflow**
-   - `.github/workflows/backlog-refinement.yml`
-   - Schedule: Twice weekly
-   - Parallel agent execution
-
-### Phase 5: Configuration & Documentation
-
-1. **Config files**
-   - `codebase-analysis-config.yml`
-   - `backlog-refinement-config.yml`
-
-2. **Documentation**
-   - Update CLAUDE.md
-   - Create operation guide
-   - Add troubleshooting section
-
----
-
-## File Structure
-
-```
-packages/github_agents/
-├── src/github_agents/
-│   ├── analyzers/
-│   │   ├── __init__.py
-│   │   ├── base.py              # Base analyzer class
-│   │   ├── architecture.py      # Claude: architecture analysis
-│   │   ├── security.py          # Gemini: security analysis
-│   │   ├── performance.py       # Codex: performance analysis
-│   │   └── maintenance.py       # OpenCode: maintenance analysis
-│   │
-│   ├── creators/
-│   │   ├── __init__.py
-│   │   └── issue_creator.py     # Issue creation with dedup
-│   │
-│   ├── monitors/
-│   │   ├── issue.py             # (existing)
-│   │   ├── pr.py                # (existing)
-│   │   └── refinement.py        # NEW: Backlog refinement
-│   │
-│   └── cli.py                   # Add new commands:
-│                                # - analyze-codebase
-│                                # - refine-backlog
-
-.github/workflows/
-├── codebase-analysis.yml        # Daily analysis pipeline
-└── backlog-refinement.yml       # Bi-weekly refinement pipeline
-
-config/
-├── codebase-analysis-config.yml
-└── backlog-refinement-config.yml
-```
+CLI entry points: `github-agents analyze` and `github-agents refinement-monitor`. The YAML blocks above describe tunable parameters; the workflows pass them as inputs rather than reading separate config files.
 
 ---
 
@@ -526,13 +401,11 @@ Run: 2025-01-09 03:00:00 UTC
 
 Agents Used:
 - Claude (architecture)
-- Gemini (security)
-- Codex (performance)
+- OpenCode (maintenance)
 
 Analysis Results:
-- Claude: 3 findings
-- Gemini: 2 findings
-- Codex: 1 finding
+- Claude: 4 findings
+- OpenCode: 2 findings
 
 Deduplication:
 - 2 duplicates filtered (similar to existing issues)
@@ -554,11 +427,11 @@ Awaiting admin review.
 Run: 2025-01-09 10:00:00 UTC
 
 Issues Reviewed: 8
-Agents: Claude, Gemini
+Agents: Claude, OpenCode
 
 Comments Added:
 - Issue #98: Claude added implementation suggestion
-- Issue #102: Gemini identified security consideration
+- Issue #102: OpenCode identified a maintenance concern
 - Issue #105: (skipped - all insights already present)
 - Issue #108: Claude suggested breaking into smaller issues
 
@@ -567,16 +440,3 @@ Summary:
 - 5 issues had no new insights to add
 - 0 issues flagged for closure
 ```
-
----
-
-## Next Steps
-
-1. Review and approve this design
-2. Implement Phase 1 (core infrastructure)
-3. Add first analyzer (Claude architecture)
-4. Create daily workflow
-5. Test with dry-run mode
-6. Enable scheduled runs
-7. Implement refinement pipeline
-8. Monitor and tune parameters

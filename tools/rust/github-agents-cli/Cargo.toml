@@ -55,6 +55,10 @@ async-trait = "0.1"
 # Private temp files for comment/issue bodies
 tempfile = "3.10"
 
+# Comment-author trust levels and PR-safe config reads, shared with
+# automation-cli and board-manager.
+trust-common = { path = "../trust-common" }
+
 [dev-dependencies]
 assert_cmd = "2.0"
 predicates = "3.1"

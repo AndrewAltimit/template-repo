@@ -317,18 +317,33 @@ def _fmt_count(value: Optional[int]) -> str:
     return f"{value:,}" if value is not None else NOT_MEASURED
 
 
+HEURISTIC_FEATURES_LABEL = (
+    "Heuristic, unvalidated: feature labels and interpretability come from a basis-concentration "
+    "heuristic that has not been validated against known concepts."
+)
+
+
+def features_are_heuristic(features: List[Dict[str, Any]]) -> bool:
+    """True when any stored feature is marked heuristic or not validated."""
+    return any(f.get("heuristic") is True or f.get("validated") is False for f in features)
+
+
 def render_discovered_features(results: List[Dict[str, Any]]):
     """Render features discovered by the stored analysis."""
     st.subheader("Discovered Features")
     st.caption("Features identified by sparse decomposition of activations during the evaluation run.")
 
+    features = [f for r in results for f in (r.get("features") or []) if isinstance(f, dict)]
+    heuristic = features_are_heuristic(features)
+    if heuristic:
+        st.caption(HEURISTIC_FEATURES_LABEL)
+
     col1, col2, col3 = st.columns(3)
     totals = feature_count_totals(results)
     col1.metric("Features Discovered", _fmt_count(totals["n_features_discovered"]))
-    col2.metric("Interpretable", _fmt_count(totals["n_interpretable_features"]))
+    col2.metric("Interpretable (heuristic)" if heuristic else "Interpretable", _fmt_count(totals["n_interpretable_features"]))
     col3.metric("Anomalous", _fmt_count(totals["n_anomalous_features"]))
 
-    features = [f for r in results for f in (r.get("features") or []) if isinstance(f, dict)]
     if not features:
         st.info("No individual feature records were stored for this model.")
         return

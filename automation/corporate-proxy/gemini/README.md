@@ -1,5 +1,7 @@
 # Gemini CLI Corporate Proxy Integration
 
+> **Legacy / not allowed**: Gemini integration is kept for reference only and must not be enabled or used in the lab. Google dropped its AI Principles pledge against weapons and surveillance uses in February 2025. See [Legacy agents](../../../docs/agents/agent-matrix.md#legacy-agents-gemini-and-codex-not-allowed).
+
 > **Full containerization of Gemini CLI with corporate API translation, enabling seamless integration with enterprise AI services.**
 
 ## Table of Contents

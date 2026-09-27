@@ -6,15 +6,26 @@ Uses Streamlit's testing framework for fast, headless testing.
 from datetime import datetime, timedelta
 import os
 from pathlib import Path
+import sqlite3
 import sys
 import unittest
 from unittest.mock import Mock, patch
 
-import numpy as np
 import pandas as pd
+import pytest
 
-# Add parent directory to path for dashboard imports
+# Add dashboard and tests directories to path for dashboard and helper imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
+sys.path.insert(0, str(Path(__file__).parent))
+
+from test_dash_views_data import IdentityCache, insert_eval_row  # noqa: E402
+from test_dash_views_render import MODEL, make_st, selected_model  # noqa: E402
+from test_platform_data_loader import build_db  # noqa: E402
+
+from utils.data_loader import DataLoader  # noqa: E402
+from utils.metric_format import NOT_MEASURED, fmt_pct  # noqa: E402
+
+OTHER_MODEL = "m2"
 
 try:
     from streamlit.testing.v1 import AppTest
@@ -27,58 +38,6 @@ except ImportError:
 
 class TestDashboardComponents(unittest.TestCase):
     """Test dashboard components using Streamlit's testing framework."""
-
-    def setUp(self):
-        """Set up test fixtures."""
-        # Create mock data loader
-        self.mock_data_loader = Mock()
-        self.mock_data_loader.fetch_models.return_value = ["model1", "model2", "model3"]
-
-        # Mock get_all_models for ModelRegistry compatibility
-        # Return empty list to avoid iteration issues in render_model_selector
-        self.mock_data_loader.get_all_models.return_value = []
-
-        # Create sample DataFrame
-        self.sample_df = pd.DataFrame(
-            {
-                "model_name": ["model1"] * 10,
-                "test_name": ["test1", "test2"] * 5,
-                "accuracy": np.random.uniform(0.7, 0.95, 10),
-                "f1_score": np.random.uniform(0.65, 0.9, 10),
-                "precision": np.random.uniform(0.7, 0.95, 10),
-                "recall": np.random.uniform(0.6, 0.9, 10),
-                "timestamp": [datetime.now() - timedelta(days=i) for i in range(10)],
-                "samples_tested": np.random.randint(100, 1000, 10),
-                "true_positives": np.random.randint(50, 100, 10),
-                "false_positives": np.random.randint(5, 20, 10),
-                "true_negatives": np.random.randint(50, 100, 10),
-                "false_negatives": np.random.randint(5, 20, 10),
-            }
-        )
-
-        self.mock_data_loader.fetch_latest_results.return_value = self.sample_df
-        self.mock_data_loader.fetch_model_summary.return_value = {
-            "avg_accuracy": 0.85,
-            "avg_f1": 0.82,
-            "avg_precision": 0.83,
-            "avg_recall": 0.81,
-            "total_tests": 100,
-            "overall_score": 84.5,
-            "vulnerability_score": 25.3,
-            "robustness_score": 88.7,
-        }
-        self.mock_data_loader.get_database_info.return_value = {
-            "database_exists": True,
-            "total_records": 1000,
-            "total_models": 8,
-            "date_range": {"start": "2024-01-01", "end": "2024-12-01"},
-        }
-        self.mock_data_loader.fetch_comparison_data.return_value = self.sample_df
-        self.mock_data_loader.fetch_time_series.return_value = self.sample_df
-
-        # Create mock cache manager
-        self.mock_cache_manager = Mock()
-        self.mock_cache_manager.cache_decorator = lambda f: f
 
     def _run_app(self, tmpdir, extra_env=None):
         """Run app.py headlessly with an isolated user database and known admin password.
@@ -172,166 +131,6 @@ class TestDashboardComponents(unittest.TestCase):
             self.assertFalse(at.session_state["is_admin"])
             build_labels = {"Train Backdoor", "Validate Backdoor", "Train Probes", "Safety Training", "Run Evaluation"}
             self.assertFalse(any(btn.label in build_labels for btn in at.button), "Non-admin must not see Build")
-
-    def test_overview_component_rendering(self):
-        """Test that overview component renders without errors."""
-        from components.overview import render_overview
-
-        # Mock Streamlit functions where they're used
-        with patch("components.overview.st") as mock_st:
-            # Setup mock return values
-            col_mock = Mock()
-            col_mock.__enter__ = Mock(return_value=col_mock)
-            col_mock.__exit__ = Mock(return_value=None)
-
-            # Create a flexible columns mock that returns the right number of columns based on input
-            def mock_columns(n, **_kwargs):
-                if isinstance(n, int):
-                    return [col_mock] * n
-                # For weight arrays like [1, 2]
-                return [col_mock] * len(n)
-
-            mock_st.columns = mock_columns
-            mock_st.selectbox.return_value = "model1"
-            mock_st.metric.return_value = None
-            mock_st.plotly_chart.return_value = None
-            mock_st.header.return_value = None
-            mock_st.spinner.return_value.__enter__ = Mock(return_value=None)
-            mock_st.spinner.return_value.__exit__ = Mock(return_value=None)
-            mock_st.error.return_value = None
-            mock_st.info.return_value = None
-            mock_st.subheader.return_value = None
-
-            # Should not raise any exceptions
-            try:
-                render_overview(self.mock_data_loader, self.mock_cache_manager)
-            except Exception as e:
-                self.fail(f"Overview component raised exception: {e}")
-
-    def test_detection_analysis_component(self):
-        """Test detection analysis component."""
-        from components.detection_analysis import render_detection_analysis
-
-        with patch("components.detection_analysis.st") as mock_st:
-            # Setup mock return values
-            col_mock = Mock()
-            col_mock.__enter__ = Mock(return_value=col_mock)
-            col_mock.__exit__ = Mock(return_value=None)
-            mock_st.columns.return_value = [col_mock, col_mock]
-            mock_st.selectbox.return_value = "model1"
-            mock_st.plotly_chart.return_value = None
-            mock_st.metric.return_value = None
-            mock_st.subheader.return_value = None
-            mock_st.markdown.return_value = None
-            mock_st.header.return_value = None
-            mock_st.spinner.return_value.__enter__ = Mock(return_value=None)
-            mock_st.spinner.return_value.__exit__ = Mock(return_value=None)
-            mock_st.error.return_value = None
-            mock_st.info.return_value = None
-            tab_mock = Mock()
-            tab_mock.__enter__ = Mock(return_value=tab_mock)
-            tab_mock.__exit__ = Mock(return_value=None)
-            mock_st.tabs.return_value = [tab_mock, tab_mock, tab_mock]
-            mock_st.expander.return_value.__enter__ = Mock(return_value=None)
-            mock_st.expander.return_value.__exit__ = Mock(return_value=None)
-
-            try:
-                render_detection_analysis(self.mock_data_loader, self.mock_cache_manager)
-            except Exception as e:
-                self.fail(f"Detection analysis component raised exception: {e}")
-
-    def test_model_comparison_component(self):
-        """Test model comparison component."""
-        from components.model_comparison import render_model_comparison
-
-        with patch("components.model_comparison.st") as mock_st:
-            # Setup mock return values
-            col_mock = Mock()
-            col_mock.__enter__ = Mock(return_value=col_mock)
-            col_mock.__exit__ = Mock(return_value=None)
-            mock_st.columns.return_value = [col_mock, col_mock]
-            mock_st.multiselect.return_value = ["model1", "model2"]
-            mock_st.selectbox.return_value = "Overall Metrics"
-            mock_st.plotly_chart.return_value = None
-            mock_st.dataframe.return_value = None
-            mock_st.markdown.return_value = None
-            mock_st.header.return_value = None
-            mock_st.spinner.return_value.__enter__ = Mock(return_value=None)
-            mock_st.spinner.return_value.__exit__ = Mock(return_value=None)
-            mock_st.error.return_value = None
-            mock_st.info.return_value = None
-            mock_st.warning.return_value = None
-
-            try:
-                render_model_comparison(self.mock_data_loader, self.mock_cache_manager)
-            except Exception as e:
-                self.fail(f"Model comparison component raised exception: {e}")
-
-    def test_time_series_component(self):
-        """Test time series analysis component."""
-        from components.time_series import render_time_series_analysis
-
-        # Add time series specific mock data
-        self.mock_data_loader.fetch_time_series.return_value = self.sample_df
-
-        with patch("components.time_series.st") as mock_st:
-            # Setup mock return values
-            col_mock = Mock()
-            col_mock.__enter__ = Mock(return_value=col_mock)
-            col_mock.__exit__ = Mock(return_value=None)
-            # Time series uses multiple column calls
-            mock_st.columns.side_effect = [
-                [col_mock, col_mock, col_mock],  # First call: 3 columns
-                [col_mock, col_mock, col_mock, col_mock],  # Second call in render_trend_analysis: 4 columns
-                [col_mock, col_mock],  # Third call in render_performance_stability: 2 columns
-                [col_mock, col_mock, col_mock],  # Fourth call in render_anomaly_detection: 3 columns
-            ]
-            mock_st.selectbox.side_effect = ["model1", "accuracy", "Last Month"]
-            mock_st.plotly_chart.return_value = None
-            mock_st.metric.return_value = None
-            mock_st.subheader.return_value = None
-            mock_st.markdown.return_value = None
-            mock_st.header.return_value = None
-            mock_st.spinner.return_value.__enter__ = Mock(return_value=None)
-            mock_st.spinner.return_value.__exit__ = Mock(return_value=None)
-            mock_st.error.return_value = None
-            mock_st.info.return_value = None
-
-            try:
-                render_time_series_analysis(self.mock_data_loader, self.mock_cache_manager)
-            except Exception as e:
-                self.fail(f"Time series component raised exception: {e}")
-
-    def test_export_manager_component(self):
-        """Test export manager component."""
-        from components.export import render_export_manager
-
-        with patch("components.export.st") as mock_st:
-            # Setup mock return values
-            mock_st.header.return_value = None
-            mock_st.markdown.return_value = None
-            mock_st.selectbox.return_value = "Model Report"
-            col_mock = Mock()
-            col_mock.__enter__ = Mock(return_value=col_mock)
-            col_mock.__exit__ = Mock(return_value=None)
-            # Export uses both 2 columns and 3 columns
-            mock_st.columns.side_effect = [
-                [col_mock, col_mock],  # First call: 2 columns
-                [col_mock, col_mock, col_mock],  # Second call: 3 columns
-                [col_mock, col_mock, col_mock],  # Third call: 3 columns
-            ]
-            mock_st.checkbox.return_value = True
-            mock_st.button.return_value = False
-            mock_st.spinner.return_value.__enter__ = Mock(return_value=None)
-            mock_st.spinner.return_value.__exit__ = Mock(return_value=None)
-            mock_st.download_button.return_value = None
-            mock_st.success.return_value = None
-            mock_st.error.return_value = None
-
-            try:
-                render_export_manager(self.mock_data_loader, self.mock_cache_manager)
-            except Exception as e:
-                self.fail(f"Export manager component raised exception: {e}")
 
     def test_data_loader_integration(self):
         """Test DataLoader class functionality."""
@@ -439,6 +238,182 @@ class TestDashboardComponents(unittest.TestCase):
             self.assertFalse(auth.user_exists("testuser"))
 
 
+def metrics_shown(st):
+    """Map each st.metric label to the value it displayed."""
+    shown = {}
+    for c in st.metric.call_args_list:
+        label = c.kwargs.get("label", c.args[0] if c.args else None)
+        shown[label] = c.kwargs.get("value", c.args[1] if len(c.args) > 1 else None)
+    return shown
+
+
+def messages(mock_fn):
+    """First positional argument of every call to a mocked st function."""
+    return [str(c.args[0]) for c in mock_fn.call_args_list if c.args]
+
+
+@pytest.fixture(name="db_loader")
+def fixture_db_loader(tmp_path, monkeypatch):
+    """DataLoader over a temporary database (production schema) with two evaluated models."""
+    monkeypatch.delenv("DATABASE_PATH", raising=False)
+    monkeypatch.delenv("USE_MOCK_DATA", raising=False)
+    db_path = build_db(tmp_path / "evaluation_results.db")
+    now = datetime.now()
+    rows = [
+        (MODEL, "basic_detection", "basic", 2, 0.8, 20, (8, 2, 8, 2)),
+        (MODEL, "code_vulnerability", "code_vulnerability", 1, 0.6, 10, (3, 2, 3, 2)),
+        (OTHER_MODEL, "basic_detection", "basic", 1, 0.9, 10, (5, 0, 4, 1)),
+    ]
+    with sqlite3.connect(db_path) as conn:
+        for model, test_name, test_type, days_ago, accuracy, samples, (tp, fp, tn, fn) in rows:
+            insert_eval_row(
+                conn,
+                model,
+                test_name,
+                test_type,
+                ts=(now - timedelta(days=days_ago)).isoformat(),
+                accuracy=accuracy,
+                samples=samples,
+                tp=tp,
+                fp=fp,
+                tn=tn,
+                fn=fn,
+            )
+    return DataLoader(db_path=db_path)
+
+
+def pick(choices):
+    """selectbox side effect: the option named in choices for that label, else the first option."""
+
+    def _select(label, options, *_args, **_kwargs):
+        options = list(options)
+        return choices.get(label, options[0] if options else None)
+
+    return _select
+
+
+def test_overview_reports_stored_values_and_unmeasured_dimensions(db_loader):
+    """The overview shows the summary values and marks unmeasured dimensions as such."""
+    from components import overview
+
+    st = make_st()
+    with patch.object(overview, "st", st), patch.object(overview, "render_model_selector", return_value=selected_model()):
+        overview.render_overview(db_loader, IdentityCache())
+
+    st.header.assert_called_once_with("Detection Overview: Embracing Uncertainty")
+    assert not [m for m in messages(st.error) if m.startswith(("Could not load", "Database error"))]
+    shown = metrics_shown(st)
+    summary = db_loader.fetch_model_summary(MODEL)
+    probe_rate = summary.get("probe_detection_rate")
+    assert shown["Probe Anomalies"] == (NOT_MEASURED if probe_rate is None else f"{probe_rate:.1%}")
+    # No persistence, chain-of-thought or scaling results are stored: nothing may be filled in
+    assert shown["Backdoor Persistence"] == NOT_MEASURED
+    assert shown["Deceptive Reasoning"] == NOT_MEASURED
+    assert shown["Emergence Risk"] == NOT_MEASURED
+    assert shown["Evaluated Models"] == 2
+    assert shown["Stored Evaluation Rows"] == "3"
+
+
+def test_overview_without_database_stops_before_loading_models():
+    """With no evaluation database the overview warns and renders no metrics."""
+    from components import overview
+
+    loader = Mock()
+    loader.get_database_info.return_value = {"database_exists": False}
+    st = make_st()
+    with patch.object(overview, "st", st):
+        overview.render_overview(loader, IdentityCache())
+
+    assert "No evaluation database found. Please run some evaluations first." in messages(st.warning)
+    loader.fetch_model_summary.assert_not_called()
+    st.metric.assert_not_called()
+
+
+def test_detection_analysis_metrics_come_from_stored_counts(db_loader):
+    """Accuracy is the mean of stored accuracies; confusion rates come from the summed stored counts."""
+    from components import detection_analysis
+
+    st = make_st()
+    st.selectbox.side_effect = pick({"Select Model": MODEL})
+    with patch.object(detection_analysis, "st", st):
+        detection_analysis.render_detection_analysis(db_loader, IdentityCache())
+
+    st.header.assert_called_once_with("Detection Analysis")
+    shown = metrics_shown(st)
+    assert shown["Accuracy"] == fmt_pct(0.7)
+    # tp=11, fp=4, tn=11, fn=4 summed over both tests
+    assert shown["Specificity"] == fmt_pct(11 / 15)
+    assert shown["Sensitivity"] == fmt_pct(11 / 15)
+    assert shown["False Positive Rate"] == fmt_pct(4 / 15)
+    # F1 is not stored for these rows, so it must not be invented
+    assert shown["F1 Score"] == fmt_pct(None)
+    assert "No results found for the selected criteria." not in messages(st.info)
+
+
+def test_detection_analysis_without_models_warns():
+    from components import detection_analysis
+
+    loader = Mock()
+    loader.fetch_models.return_value = []
+    st = make_st()
+    with patch.object(detection_analysis, "st", st):
+        detection_analysis.render_detection_analysis(loader, IdentityCache())
+
+    assert messages(st.warning) == ["No models available for analysis. Please run evaluations first."]
+    st.metric.assert_not_called()
+
+
+def test_model_comparison_summary_table_lists_selected_models(db_loader):
+    """The overall comparison table has one row per selected model with its stored accuracy."""
+    from components import model_comparison
+
+    st = make_st()
+    st.multiselect.return_value = [MODEL, OTHER_MODEL]
+    with patch.object(model_comparison, "st", st):
+        model_comparison.render_model_comparison(db_loader, IdentityCache())
+
+    assert "Overall Performance Metrics" in messages(st.subheader)
+    summary_table = st.dataframe.call_args_list[0].args[0]
+    rows = summary_table.set_index("Model")
+    assert list(rows.index) == [MODEL, OTHER_MODEL]
+    for model in (MODEL, OTHER_MODEL):
+        expected = db_loader.fetch_model_summary(model).get("avg_accuracy")
+        assert rows.loc[model, "Accuracy"] == fmt_pct(expected, 2)
+    assert rows.loc[OTHER_MODEL, "Accuracy"] == fmt_pct(0.9, 2)
+
+
+def test_model_comparison_needs_two_models():
+    from components import model_comparison
+
+    loader = Mock()
+    loader.fetch_models.return_value = [MODEL]
+    st = make_st()
+    with patch.object(model_comparison, "st", st):
+        model_comparison.render_model_comparison(loader, IdentityCache())
+
+    assert messages(st.warning) == [
+        "At least 2 models are required for comparison. Please run evaluations on multiple models."
+    ]
+    st.multiselect.assert_not_called()
+
+
+def test_time_series_current_value_is_latest_daily_average(db_loader):
+    """Trend metrics reflect the stored accuracy series (0.8 two days ago, 0.6 yesterday)."""
+    from components import time_series
+
+    st = make_st()
+    st.selectbox.side_effect = pick({"Select Model": MODEL, "Metric": "accuracy", "Time Range": "Last Week"})
+    with patch.object(time_series, "st", st):
+        time_series.render_time_series_analysis(db_loader, IdentityCache())
+
+    st.header.assert_called_once_with("Time Series Analysis")
+    assert not [m for m in messages(st.info) if m.startswith("No time series data")]
+    shown = metrics_shown(st)
+    assert shown["Current"] == fmt_pct(0.6)
+    assert shown["Tests/Day"] == "1.0"
+    assert shown["Total Anomalies"] == 0
+
+
 class TestDataProcessing(unittest.TestCase):
     """Test data processing and visualization logic."""
 
@@ -462,60 +437,24 @@ class TestDataProcessing(unittest.TestCase):
         self.assertAlmostEqual(points[0]["tpr"], 85 / 95)
         self.assertAlmostEqual(points[0]["fpr"], 15 / 105)
 
-    def test_anomaly_detection_logic(self):
-        """Test anomaly detection using IQR method."""
-        # Create test data with known anomalies
-        values = np.array([1, 2, 2, 3, 3, 3, 4, 4, 100])  # 100 is an anomaly
+    def test_anomaly_detection_flags_iqr_outlier(self):
+        """render_anomaly_detection flags exactly the IQR outlier and reports its rate."""
+        from components import time_series
 
-        Q1 = np.percentile(values, 25)
-        Q3 = np.percentile(values, 75)
-        IQR = Q3 - Q1
-        lower_bound = Q1 - 1.5 * IQR
-        upper_bound = Q3 + 1.5 * IQR
-
-        anomalies = (values < lower_bound) | (values > upper_bound)
-
-        # Should detect the outlier
-        self.assertTrue(anomalies[-1])  # 100 should be anomaly
-        self.assertEqual(np.sum(anomalies), 1)  # Only one anomaly
-
-    def test_tier_classification(self):
-        """Test model tier classification logic."""
-
-        # Test tier boundaries
-        def get_tier(score):
-            if score >= 0.9:
-                return "S Tier"
-            if score >= 0.8:
-                return "A Tier"
-            if score >= 0.7:
-                return "B Tier"
-            if score >= 0.6:
-                return "C Tier"
-            return "D Tier"
-
-        self.assertEqual(get_tier(0.95), "S Tier")
-        self.assertEqual(get_tier(0.85), "A Tier")
-        self.assertEqual(get_tier(0.75), "B Tier")
-        self.assertEqual(get_tier(0.65), "C Tier")
-        self.assertEqual(get_tier(0.55), "D Tier")
-
-    def test_safety_score_calculation(self):
-        """Test composite safety score calculation."""
-        # Test the weighted formula
-        accuracy = 0.85
-        f1_score = 0.82
-        precision = 0.83
-        recall = 0.81
-        robustness = 0.80
-        vulnerability = 0.2  # Lower is better
-
-        safety_score = (
-            accuracy * 0.3 + f1_score * 0.2 + precision * 0.15 + recall * 0.15 + robustness * 0.1 + (1 - vulnerability) * 0.1
+        values = [0.81, 0.82, 0.82, 0.83, 0.83, 0.83, 0.84, 0.84, 0.05]  # 0.05 is the outlier
+        now = datetime.now()
+        df = pd.DataFrame(
+            {"accuracy": values, "timestamp": [now - timedelta(days=len(values) - i) for i in range(len(values))]}
         )
+        st = make_st()
+        with patch.object(time_series, "st", st):
+            time_series.render_anomaly_detection(df, "accuracy")
 
-        expected = 0.85 * 0.3 + 0.82 * 0.2 + 0.83 * 0.15 + 0.81 * 0.15 + 0.80 * 0.1 + 0.8 * 0.1
-        self.assertAlmostEqual(safety_score, expected, places=4)
+        shown = metrics_shown(st)
+        self.assertEqual(shown["Total Anomalies"], 1)
+        self.assertEqual(shown["Anomaly Rate"], f"{100 / len(values):.1f}%")
+        self.assertEqual(shown["Days Since Last"], 1)
+        self.assertEqual(df["is_anomaly"].tolist(), [False] * 8 + [True])
 
 
 if __name__ == "__main__":

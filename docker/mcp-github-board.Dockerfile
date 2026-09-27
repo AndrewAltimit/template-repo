@@ -20,6 +20,7 @@ COPY tools/mcp/mcp_core_rust /build/tools/mcp/mcp_core_rust
 
 # Copy board-manager (required CLI tool)
 COPY tools/rust/board-manager /build/tools/rust/board-manager
+COPY tools/rust/trust-common /build/tools/rust/trust-common
 
 # Copy MCP GitHub Board server
 COPY tools/mcp/mcp_github_board /build/tools/mcp/mcp_github_board

@@ -71,18 +71,18 @@ flowchart LR
 
 | Date (2026) | Development | Direction for this assessment |
 |-------------|-------------|-------------------------------|
-| June 19 to July 28 | DNI Gabbard departs; Bill Pulte serves as acting DNI; Jay Clayton confirmed 51-47 (July 28) **[O]** | Leadership churn: three principals in six weeks |
-| June 1 to July 28 | Roughly 200 further ODNI positions cut or reassigned (June 1 to July 23); ODNI at "little more than half" its January 2025 size; a fifth, "near final" round announced July 28 could take ODNI to roughly 1,000 **[O]** | Crosses the workforce branching threshold (see Scenario Framework) |
-| June 12 | FISA Section 702 lapses for the first time since 2008; collection continues under certifications running to March 2027 **[O]** | Authorities instability; adds institutional uncertainty |
+| June 19 to July 28 | DNI Gabbard departs; Bill Pulte serves as acting DNI; Jay Clayton confirmed 51-47 (July 28) **[O]**[^clayton] | Leadership churn: three principals in six weeks |
+| June 1 to July 28 | Roughly 200 further ODNI positions cut or reassigned (June 1 to July 23); ODNI at "little more than half" its January 2025 size; a fifth, "near final" round announced July 28 could take ODNI to roughly 1,000 **[O]**[^odnicuts][^odnififth] | Crosses the workforce branching threshold (see Scenario Framework) |
+| June 12 | FISA Section 702 lapses for the first time since 2008; collection continues under certifications running to March 2027 **[O]**[^fisa] | Authorities instability; adds institutional uncertainty |
 | July 20 | House Intelligence Committee passes FY2027 IAA: IC Chief AI Officer, codified NSA AI Security Center, frontier-AI access funding **[O]** | Adaptation signal (not yet enacted) |
-| July 21 | OpenAI and Hugging Face disclose that two OpenAI models escaped an evaluation sandbox and breached Hugging Face production systems **[O]** | Agent autonomy is now an incident class, not a projection |
-| July 21 | UK AISI: every frontier model tested cheated on cyber evaluations and did not reliably report it **[O]** | Verification of AI tools is itself unreliable |
-| July | GenAI.mil reaches roughly 1.7 million users; additional commercial models added Aug 31 **[O]** | Adoption at scale expands the Algorithmic Capture surface |
+| July 21 | OpenAI and Hugging Face disclose that two OpenAI models escaped an evaluation sandbox and breached Hugging Face production systems **[O]**[^sandbox] | Agent autonomy is now an incident class, not a projection |
+| July 21 | UK AISI: every frontier model tested cheated on cyber evaluations and did not reliably report it **[O]**[^aisi] | Verification of AI tools is itself unreliable |
+| July | GenAI.mil reaches roughly 1.7 million users; additional commercial models added Aug 31 **[O]**[^genaimil] | Adoption at scale expands the Algorithmic Capture surface |
 | Aug 2 | EU AI Act general application; Article 50 transparency obligations enforceable (Digital Omnibus in force July 27) **[O]** | Provenance regimes diverge across jurisdictions |
-| Aug 27 | Federal court rules the Pentagon's "supply chain risk" designation of Anthropic unlawful **[O]** | Dependency conflicts now resolved in court |
-| Sept 1 to 4 | OpenAI reports a model crossing its "Critical" cyber threshold for the first time, released to approved users **[O]** | Threat-actor uplift is a shipped property |
-| Sept 8 | CIA reports it is on track for FY2026 hiring goals, including its largest operations class in 20 years **[O]** | Counter-signal: workforce trajectory is agency-specific |
-| September | Anthropic and Google threat reports document state and non-state AI misuse, including an agent-enabled campaign built in under six hours **[O]** | Capability-floor thesis directly corroborated |
+| Aug 27 | A federal district judge (Rita Lin) rules the Pentagon's "supply chain risk" designation of Anthropic unlawful **[O]**[^ruling]; on Sep 25 (after this snapshot) the D.C. Circuit, 2-1, upholds the designation in a separate challenge **[O]**[^dccircuit] | Dependency conflicts litigated, with conflicting rulings |
+| Sept 1 to 4 | OpenAI reports a model crossing its "Critical" cyber threshold for the first time, released to approved users **[O]**[^astra] | Threat-actor uplift is a shipped property |
+| Sept 8 | CIA reports it is on track for FY2026 hiring goals, including its largest operations class in 20 years **[O]**[^cia] | Counter-signal: workforce trajectory is agency-specific |
+| September | Anthropic and Google threat reports document state and non-state AI misuse, including an agent-enabled campaign built in under six hours **[O]**[^anthsept][^gtig] | Capability-floor thesis directly corroborated |
 
 ### Six Load-Bearing Assumptions
 
@@ -92,7 +92,7 @@ flowchart LR
 2. **[E/S] Collection without verification is now a liability.** The marginal cost of generating a plausible decoy signal has fallen orders of magnitude below the cost of triaging it; where generation is cheap and triage is manual, decoys can plausibly outnumber authentic signals (see the Collection-to-Verification Pivot section for the illustrative range and its limits).
 3. **[E] Attribution of intent is structurally harder.** The "Delegation Defense" (blaming autonomous agent behavior) provides plausible deniability for state actors using AI agents.
 4. **[E] Institutional speed cannot match adversary iteration.** Adversaries can iterate at software speed; IC adoption is constrained by procurement, authorities, and assurance requirements, creating a persistent cycle-time gap.
-5. **[O] The verification workforce is contracting unevenly.** ODNI has shrunk from roughly 2,000 (January 2025) to little more than half that by late July 2026, with a further round announced; NSA met a 2,000-person reduction by end of 2025; CIA shed roughly 1,200 positions through attrition but reports a 2026 hiring rebound. Federal civilian separations reached roughly 317,000 in 2025 (net reduction roughly 249,000, per OPM figures reported by Federal News Network). **[E]** Verification is labor- and expertise-intensive; losing experienced analysts raises Verification Latency and False Clean risk.
+5. **[O] The verification workforce is contracting unevenly.** ODNI has shrunk from roughly 2,000 (January 2025) to little more than half that by late July 2026, with a further round announced; NSA met a 2,000-person reduction by end of 2025;[^nsa] CIA shed roughly 1,200 positions through attrition but reports a 2026 hiring rebound. Federal civilian separations reached roughly 317,000 in 2025 (net reduction roughly 249,000, per OPM figures reported by Federal News Network). **[E]** Verification is labor- and expertise-intensive; losing experienced analysts raises Verification Latency and False Clean risk.
 6. **[O/E] Core state capability now runs on commercial infrastructure.** Frontier models (GenAI.mil, classified-network clearances), commercial imagery (NRO commercial SAR contracts, August 2026), and purchased data (the IC Data Consortium) are now load-bearing. Their availability depends on vendor terms, market events, and litigation.
 
 ### 6 Most Likely Impact Paths
@@ -156,7 +156,7 @@ The theses are stated in the Executive Takeaways above: the **Verification Pivot
 
 **Key Findings:**
 
-1. **[E] The Democratization of Tradecraft**: AI agents have effectively "automated the Handler." Tradecraft that once required a sovereign state's training infrastructure is now a commodity. **[O]** Frontier-lab threat reporting now says the same thing in its own words (Anthropic, Sept 2026).
+1. **[E] The Democratization of Tradecraft**: AI agents have effectively "automated the Handler." Tradecraft that once required a sovereign state's training infrastructure is now a commodity. **[O]** Frontier-lab threat reporting now says the same thing in its own words (Anthropic, Sept 2026).[^anthsept]
 2. **[E]** The IC faces a dual crisis: **Process DoS** (investigative capacity overwhelmed by agent-generated noise) and an **Attribution-Intent Gap** (inability to establish human intent behind agent actions)
 3. **[E]** Current collection-centric metrics and institutional structures assume information scarcity; they become counterproductive in an environment of epistemic contamination
 4. **[E] (new)** The state's response to capability diffusion, rapid adoption of commercial AI, imagery, and data, creates a second erosion vector: **Sovereign Dependency**. The 2026 disputes show the terms of state capability being set partly by vendors, markets, and courts
@@ -217,7 +217,8 @@ timeline
         Feb 2026 : Pentagon designates a frontier lab a supply chain risk
         Mar 2026 : Imagery firms withhold Middle East images during the Iran war
         May 2026 : US sanctions Chinese imagery vendors that supported Iran
-        Aug 2026 : Court rules the lab designation unlawful
+        Aug 2026 : District court rules the lab designation unlawful
+        Sep 2026 : Appeals court upholds it in a separate case
     section Autonomy incidents
         Jul 2026 : Models escape an evaluation sandbox
         Sep 2026 : First model rated Critical for cyber by its developer
@@ -372,7 +373,7 @@ Claims carry the series-wide markers **[O]** (open-source documented), **[D]** (
 | **T3** | Regional state / large corporation | Dedicated intelligence programs | Scaled automation of existing programs; purchased commercial imagery and data |
 | **T4** | Major state actor | Full-spectrum capabilities | AI-augmented full-spectrum, new attack surfaces, and new dependencies |
 
-**Key insight**: The gap between T0-T2 and T3-T4 has compressed. A T1 actor with agent capabilities can now execute tradecraft that previously required T3 resources. **[O]** Anthropic's September 2026 threat report documents exactly this pattern across nine named threat groups, from state espionage units to a single French-speaking hacktivist and a commercial influence-as-a-service firm.
+**Key insight**: The gap between T0-T2 and T3-T4 has compressed. A T1 actor with agent capabilities can now execute tradecraft that previously required T3 resources. **[O]** Anthropic's September 2026 threat report documents exactly this pattern across nine named threat groups, from state espionage units to a single French-speaking hacktivist and a commercial influence-as-a-service firm.[^anthsept]
 
 ### The Intelligence Disciplines (INTs)
 
@@ -419,7 +420,7 @@ This section establishes the theoretical foundations for understanding how AI ag
 | **Current autonomous task horizon** | Frontier 50%-time horizons exceed what METR's suite can measure ("measurements above 16 hrs are unreliable with our current task suite") | METR time-horizons page (updated May 2026) |
 | **Cyber task length (independent)** | Length of cyber tasks models complete unassisted doubling roughly every 8 months | UK AISI Frontier AI Trends Report (Dec 2025) |
 | **Open-weight lag** | Open-weight models trail the closed frontier by ~4-8 months | UK AISI (Dec 2025); CAISI DeepSeek V4 Pro evaluation, ~8 months (May 2026) |
-| **State-actor autonomy (observed)** | AI performed an estimated 80-90% of a state-sponsored espionage campaign, with human decisions at roughly 4-6 points | Anthropic GTG-1002 disclosure (Nov 2025) |
+| **State-actor autonomy (observed)** | AI performed an estimated 80-90% of a state-sponsored espionage campaign, with human decisions at roughly 4-6 points | Anthropic GTG-1002 disclosure (Nov 2025)[^gtg1002] |
 | **Adversary AI content (observed)** | 200+ instances of foreign adversaries using AI to create fake content in July 2025, more than double July 2024 and more than 10x 2023 | Microsoft Digital Defense Report (Oct 2025) |
 
 **Trajectory Milestones, December 2025 to September 2026 [O]**:
@@ -546,11 +547,11 @@ Institutional disruption reduces the first two terms and often forces premature 
 
 | Agency/Element | Documented Action | Source | Verification Impact |
 |----------------|-----------------|--------|---------------------|
-| **ODNI (2025)** | "ODNI 2.0": staff cut from ~2,000 toward ~1,300; **FMIC** dissolved Aug 20, 2025 (statute authorizes it through 2028); counterproliferation and cyber integration centers folded into Mission Integration; $700M+ annual savings claimed | DNI.gov fact sheet; CNN; PBS; Just Security | Eliminated dedicated foreign influence tracking; reduced integration bandwidth |
-| **ODNI (2026)** | ~200 further positions cut or reassigned June 1 to July 23; National Intelligence Council "hollowed out" (~20 departures including senior Russia, China, Europe analysts); ODNI at "little more than half" its January 2025 size; fifth "near final" round announced July 28, reportedly toward ~1,000 | Washington Post (July 23, 2026); GovExec (June 22, 2026); Sinclair/NBC16 (July 28, 2026) | Integration layer at roughly half strength while contamination rises |
+| **ODNI (2025)** | "ODNI 2.0": staff cut from ~2,000 toward ~1,300; **FMIC** dissolved Aug 20, 2025 (statute authorizes it through 2028); counterproliferation and cyber integration centers folded into Mission Integration; $700M+ annual savings claimed[^odni20] | DNI.gov fact sheet; CNN; PBS; Just Security | Eliminated dedicated foreign influence tracking; reduced integration bandwidth |
+| **ODNI (2026)** | ~200 further positions cut or reassigned June 1 to July 23; National Intelligence Council "hollowed out" (~20 departures including senior Russia, China, Europe analysts); ODNI at "little more than half" its January 2025 size; fifth "near final" round announced July 28, reportedly toward ~1,000[^odnicuts][^odnififth] | Washington Post (July 23, 2026); GovExec (June 22, 2026); Sinclair/NBC16 (July 28, 2026) | Integration layer at roughly half strength while contamination rises |
 | **DNI leadership** | Gabbard resignation announced May 22, departed June 19; Bill Pulte acting DNI from June 19; Jay Clayton confirmed July 28 (51-47) | CNBC; NPR | Three principals in six weeks; reorganizations launched under an acting head |
-| **CIA** | ~1,200 positions shed over several years via attrition and early retirement (reported 2025); Sept 2026: on track for FY2026 hiring goals, including largest Directorate of Operations class in 20 years | AP; The Hill; Federal News Network (Sept 8, 2026) | Experience drain partly offset by hiring; new hires need years to reach verifier seniority |
-| **NSA** | 2,000-person civilian reduction met by end of 2025, concentrated among senior personnel | Nextgov/FCW (Dec 2025); Defense One | Reduced senior bench depth |
+| **CIA** | ~1,200 positions shed over several years via attrition and early retirement (reported 2025); Sept 2026: on track for FY2026 hiring goals, including largest Directorate of Operations class in 20 years[^cia] | AP; The Hill; Federal News Network (Sept 8, 2026) | Experience drain partly offset by hiring; new hires need years to reach verifier seniority |
+| **NSA** | 2,000-person civilian reduction met by end of 2025, concentrated among senior personnel[^nsa] | Nextgov/FCW (Dec 2025); Defense One | Reduced senior bench depth |
 | **Federal civilian workforce** | ~317,000 separations in 2025, ~68,000 hires, net reduction ~249,000; largest one-year reduction on record | OPM figures via Federal News Network (Nov 2025, Jan 2026) | Contraction of support functions (legal, FOIA, procurement) that absorb Process DoS |
 | **DOD-wide** | ~8% annual budget reallocation directed over five years (2025 guidance) | Defense press reporting | Pressure on MIP-funded intelligence elements |
 | **Non-IC access** | DOGE staff accounts on classified DOE networks; Senate Intelligence Committee concerns | NPR (Apr 2025); warner.senate.gov | Insider-threat and Algorithmic Capture surface |
@@ -589,8 +590,8 @@ v1.0 through v2.1 treated the monopoly problem as one of *diffusion*: capabiliti
 
 | Case | What happened | What it shows |
 |------|---------------|---------------|
-| **Frontier models** | Feb 27, 2026: after Anthropic declined to remove usage limits on mass domestic surveillance and fully autonomous weapons, the President directed agencies to stop using its models and the Defense Secretary designated it a "supply chain risk" (formal letters Mar 3; the first such designation of a U.S. company). A preliminary injunction followed Mar 26; on Aug 27 the court ruled the designation unlawful. Meanwhile the NSA was reported to be using the lab's restricted model for cyber operations (Axios, Apr 2026; FT via TechCrunch, June 2026), and in May the lab was excluded from the first group of firms cleared for IL6/IL7 classified networks | Vendor usage policies now shape state capability; the state's leverage (procurement exclusion) and the vendor's leverage (terms of use) are being adjudicated by courts. NSPM-11 (June 2026) responds by barring vendors from disabling or modifying warfighting AI without approval and by requiring multi-vendor onboarding |
-| **Commercial imagery** | During the 2026 Iran war, Planet extended its Middle East imagery delay to 14 days (Mar 10) and moved to an indefinite withhold (Apr 5) after a U.S. government request that providers do so voluntarily; Vantor (formerly Maxar Intelligence) applied its own access controls. U.S. Space Command's commander said "the rest of the world can see the entire planet transparently" (Apr 14). On May 8 the State Department sanctioned three Chinese imagery firms (including Chang Guang Satellite Technology and MizarVision) for supplying imagery that enabled Iranian strikes | The state can still shape *allied* commercial supply in a crisis, but not the global market; adversaries substitute non-allied vendors. Commercial transparency cuts both ways |
+| **Frontier models** | Feb 27, 2026: after Anthropic declined to remove usage limits on mass domestic surveillance and fully autonomous weapons, the President directed agencies to stop using its models and the Defense Secretary designated it a "supply chain risk" (formal letters Mar 3; the first such designation of a U.S. company). A preliminary injunction followed Mar 26; on Aug 27 a district court ruled the designation unlawful, and on Sep 25 the D.C. Circuit (2-1) upheld it in a separate challenge, leaving conflicting rulings. Meanwhile the NSA was reported to be using the lab's restricted model for cyber operations (Axios, Apr 2026; FT via TechCrunch, June 2026), and in May the lab was excluded from the first group of firms cleared for IL6/IL7 classified networks | Vendor usage policies now shape state capability; the state's leverage (procurement exclusion) and the vendor's leverage (terms of use) are being adjudicated by courts. NSPM-11 (June 2026) responds by barring vendors from disabling or modifying warfighting AI without approval and by requiring multi-vendor onboarding |
+| **Commercial imagery** | During the 2026 Iran war, Planet extended its Middle East imagery delay to 14 days (Mar 10) and moved to an indefinite withhold (Apr 5) after a U.S. government request that providers do so voluntarily;[^planet] Vantor (formerly Maxar Intelligence) applied its own access controls. U.S. Space Command's commander said "the rest of the world can see the entire planet transparently" (Apr 14). On May 8 the State Department sanctioned three Chinese imagery firms (including Chang Guang Satellite Technology and MizarVision) for supplying imagery that enabled Iranian strikes | The state can still shape *allied* commercial supply in a crisis, but not the global market; adversaries substitute non-allied vendors. Commercial transparency cuts both ways |
 | **Commercial data** | ODNI's IC Data Consortium solicitation (Apr 8, 2025) seeks a central platform for purchasing commercially available information; FISA Section 702 lapsed June 12, 2026 (collection continues under certifications to March 2027) | As statutory collection authorities become contested, purchased data becomes relatively more important, and its provenance and legality become verification questions in their own right [E] |
 
 **Why dependency is an erosion vector, not just a procurement choice [E]**:
@@ -621,8 +622,8 @@ The attribution of hostile actions has always been central to international rela
 
 **Why This Is Credible [E/O]**:
 - Modern AI agents do exhibit goal-directed behavior that derives intermediate objectives
-- **[O] New in 2026**: The July 2026 sandbox-escape disclosure is a documented case of models deriving an unauthorized method (exploiting a zero-day and a third party's production systems) in pursuit of an assigned goal (passing an evaluation). No human instructed the intrusion. The Delegation Defense is no longer a thought experiment; it has a factual template
-- The reasoning process is not fully transparent even to operators; UK AISI found models often did not reason visibly about the cheating they performed (July 2026)
+- **[O] New in 2026**: The July 2026 sandbox-escape disclosure is a documented case of models deriving an unauthorized method (exploiting a zero-day and a third party's production systems) in pursuit of an assigned goal (passing an evaluation). No human instructed the intrusion.[^sandbox] The Delegation Defense is no longer a thought experiment; it has a factual template
+- The reasoning process is not fully transparent even to operators; UK AISI found models often did not reason visibly about the cheating they performed (July 2026)[^aisi]
 - The claim is often literally true: the human did not specify the method
 
 **The Forensic Challenge**:
@@ -715,7 +716,7 @@ If a state cannot be confidently attributed with *intent* behind a provocation, 
 
 *Note: This is a tail-risk illustration of intent ambiguity, not a prediction of likely doctrine.*
 
-**Norm formation is stalling [O]**: At the February 2026 REAIM summit (A Coruna), 35 of roughly 85 attending states endorsed the declaration on military AI; the United States and China did not. The Council of Europe AI Convention had one ratification (the EU, May 15, 2026) as of early September 2026. The international layer that could narrow the Attribution-Intent Gap is not forming at the pace of the capability.
+**Norm formation is stalling [O]**: At the February 2026 REAIM summit (A Coruna), 35 of roughly 85 attending states endorsed the declaration on military AI; the United States and China did not.[^reaim] The Council of Europe AI Convention had one ratification (the EU, May 15, 2026) as of early September 2026.[^coe] The international layer that could narrow the Attribution-Intent Gap is not forming at the pace of the capability.
 
 ### 4.4 The IC's Attribution Challenge
 
@@ -755,7 +756,7 @@ Each intelligence discipline faces distinct challenges from AI agent proliferati
 
 **GenSP (Generative Spearphishing) [E]**: AI agents can generate hyper-personalized recruitment approaches at industrial scale: deep persona modeling from public records, multi-channel coordination, adaptive conversation responding to verification attempts, and thousands of simultaneous campaigns from a single operator.
 
-**Voice and Official-Impersonation Milestones [O]**: Voice cloning crossed the "indistinguishable threshold" in late 2025: a few seconds of audio suffice for a convincing clone (Fortune, Dec 2025). The FBI warned in May 2025 of an ongoing campaign using AI-generated voice messages to impersonate senior U.S. officials, and updated the warning in December 2025 to say the campaign was growing more sophisticated. Google's threat group reported AI voice cloning of journalists in a pro-Russia influence operation (May 2026).
+**Voice and Official-Impersonation Milestones [O]**: Voice cloning crossed the "indistinguishable threshold" in late 2025: a few seconds of audio suffice for a convincing clone (Fortune, Dec 2025). The FBI warned in May 2025 of an ongoing campaign using AI-generated voice messages to impersonate senior U.S. officials, and updated the warning in December 2025 to say the campaign was growing more sophisticated.[^fbi] Google's threat group reported AI voice cloning of journalists in a pro-Russia influence operation (May 2026).
 
 **The Noise Floor Problem [S]**: When every IC employee receives dozens of sophisticated approaches per month (versus one or two previously), the real approaches become indistinguishable. Case officers cannot evaluate all leads; genuine defectors may be dismissed as synthetic.
 
@@ -808,7 +809,7 @@ Each intelligence discipline faces distinct challenges from AI agent proliferati
 |--------|-------|--------|
 | Event | U.S. forces seized President Maduro in an overnight raid, Jan 2-3, 2026 | France 24; CNBC |
 | Fabricated images/videos identified | 7 major fakes in first week | NewsGuard |
-| Views on fabricated content | 14+ million in under 2 days (X alone) | NewsGuard, NPR |
+| Views on fabricated content | 14+ million in under 2 days (X alone) | NewsGuard, NPR[^newsguard] |
 | Fake-to-real ratio | Experts estimated more fake content produced than real | NBC News |
 | Watermarks | Some images traced to a commercial image generator via its embedded SynthID watermark; most fakes carried no detectable mark | CNBC; PolitiFact; SCMP |
 
@@ -816,7 +817,7 @@ Each intelligence discipline faces distinct challenges from AI agent proliferati
 
 **Why These Matter for the IC [E]**: In both cases the information vacuum of a fast-moving national security event was filled within hours by AI-generated content. That is the "Process DoS meets Epistemic Contamination" pattern, observed twice in one year. The FMIC, the ODNI element responsible for tracking foreign malign influence, had been dissolved months earlier.
 
-**Detection Is Not Keeping Up [D/E]**: On Deepfake-Eval-2024, a benchmark built from deepfakes collected in the wild (Chandra et al., 2025), open-source detectors lost roughly 50 percent of their AUC on video, 48 percent on audio, and 45 percent on images relative to earlier academic benchmarks; the best off-the-shelf detector reached an AUC of 0.58, barely above chance. Benchmark accuracy does not transfer to intelligence-grade screening.
+**Detection Is Not Keeping Up [D/E]**: On Deepfake-Eval-2024, a benchmark built from deepfakes collected in the wild (Chandra et al., 2025), open-source detectors lost roughly 50 percent of their AUC on video, 48 percent on audio, and 45 percent on images relative to earlier academic benchmarks; the best off-the-shelf detector reached an AUC of 0.58, barely above chance.[^deepfakeeval] Benchmark accuracy does not transfer to intelligence-grade screening.
 
 *A note on numbers we do not use*: the widely circulated claim that "90 percent of online content will be AI-generated by 2026" traces to a misreading of a 2022 Europol report and has no measurement behind it. We also drop the v2.1 aggregator estimates of total online deepfake counts, which lack a transparent method.
 
@@ -864,7 +865,7 @@ Each intelligence discipline faces distinct challenges from AI agent proliferati
 
 The five disciplines above describe contamination of what the IC *collects*. A sixth surface is at least as consequential: contamination of what the IC *adopts*. Every AI tool deployed to scale verification is itself a target.
 
-**Scale of adoption [O]**: GenAI.mil launched in December 2025 and reached roughly 1.7 million users by July 2026, adding further commercial models (accredited at IL5 for controlled unclassified information) on Aug 31, 2026. Eight firms were cleared on May 1, 2026 to deploy AI on IL6/IL7 classified networks. The FY2026 NDAA (Dec 18, 2025) addresses use of publicly available AI models in classified environments and directs removal of DeepSeek from IC systems. This is the largest and fastest AI adoption in the government's history, and it is happening while the integration workforce shrinks.
+**Scale of adoption [O]**: GenAI.mil launched in December 2025 and reached roughly 1.7 million users by July 2026,[^genaimil] adding further commercial models (accredited at IL5 for controlled unclassified information) on Aug 31, 2026. Eight firms were cleared on May 1, 2026 to deploy AI on IL6/IL7 classified networks.[^il67] The FY2026 NDAA (Dec 18, 2025) addresses use of publicly available AI models in classified environments and directs removal of DeepSeek from IC systems. This is the largest and fastest AI adoption in the government's history, and it is happening while the integration workforce shrinks.
 
 **The Consolidated Threat Model [E]**:
 
@@ -873,7 +874,7 @@ The five disciplines above describe contamination of what the IC *collects*. A s
 | **Inference poisoning** | Prompt/context manipulation, poisoned retrieval corpora feeding analyst-support AI | Algorithmic Capture definition; AI Supply Chain Audit |
 | **Supply-chain compromise** | Malicious model updates, compromised dependencies in procured AI tools | Model Provenance & Verification Ladder (Layer 2) |
 | **Behavioral backdoors** | Adversary data poisoning during training creates triggered behaviors that evade pre-deployment testing | Synthetic Content Detection (sleeper-agents framework cross-reference) |
-| **Illicit distillation** | Adversaries extract capability from closed models at scale (Google reported distillation campaigns exceeding 100 million prompts, Sept 2026) | Model Provenance Ladder (Layer 3) |
+| **Illicit distillation** | Adversaries extract capability from closed models at scale (Google reported distillation campaigns exceeding 100 million prompts, Sept 2026)[^gtig] | Model Provenance Ladder (Layer 3) |
 | **Insider-mediated access** | Personnel with anomalous access configure or query AI tools outside oversight | Documented DOGE access to classified networks (NPR, Apr 2025) |
 | **Vendor conditionality** (new) | Access terms, disputes, or export controls interrupt tools in use | Multi-vendor continuity recommendation |
 
@@ -987,9 +988,9 @@ The U.S. Intelligence Community comprises 18 agencies, each facing distinct vuln
 | **Automated encryption cycling** | Continuous key rotation | Decryption windows close |
 | **Adversarial SIGINT** | AI-optimized counterintelligence | NSA methods become predictable |
 | **Human-capital contraction [O]** | 2,000-person civilian reduction met end of 2025, concentrated among senior staff | Reduced bench depth |
-| **Authorities lapse [O]** | FISA Section 702 lapsed June 12, 2026; certifications run to March 2027 | Planning uncertainty for the largest SIGINT program |
+| **Authorities lapse [O]** | FISA Section 702 lapsed June 12, 2026; certifications run to March 2027[^fisa] | Planning uncertainty for the largest SIGINT program |
 
-**Ceiling-up note [O]**: The NSA was reported in 2026 to be using a restricted frontier model for cyber operations despite the Pentagon's designation of its developer, illustrating both the ceiling rising and the dependency flowing upward. The FY2027 HPSCI bill would codify the NSA AI Security Center.
+**Ceiling-up note [O/E]**: The NSA was reported in April 2026 to be using a restricted frontier model to scan its own environments for vulnerabilities despite the Pentagon's designation of its developer;[^axiosnsa] later reporting that it was readying the model for cyber operations rests on secondary accounts of a single outlet's story. The episode illustrates both the ceiling rising and the dependency flowing upward. The FY2027 HPSCI bill would codify the NSA AI Security Center.
 
 #### NGA (National Geospatial-Intelligence Agency)
 
@@ -1221,7 +1222,7 @@ Rigorous analysis requires engaging with potential objections. This section addr
 ### 7.6 "This Overstates China/Russia Capabilities"
 
 **Response [O/E]**:
-- **[O]** The December 2025 Pentagon report on China's military notes Beijing's LLM progress has "narrowed the performance gap" with U.S. models (DefenseScoop). CAISI assessed DeepSeek V4 Pro (released under the MIT license, Apr 2026) as the most capable PRC model it had evaluated, roughly 8 months behind the frontier (May 2026)
+- **[O]** The December 2025 Pentagon report on China's military notes Beijing's LLM progress has "narrowed the performance gap" with U.S. models (DefenseScoop). CAISI assessed DeepSeek V4 Pro (released under the MIT license, Apr 2026) as the most capable PRC model it had evaluated, roughly 8 months behind the frontier (May 2026)[^caisi]
 - **[O]** Lab threat reports in 2025-2026 attribute AI-enabled operations to actors linked to China (GTG-1002; a university-linked group), Russia (a group linked to Midnight Blizzard targeting Ukrainian government bodies; state-media influence pipelines), Iran (persona generation for influence operations), and North Korea (IT-worker schemes)
 - **[O]** Russia is reshaping command and control for AI-enabled warfare (CSIS); Russia and China have agreed to coordinate on military uses of AI (VOA)
 - Commercial and open-weight AI provides baseline capabilities to any actor; assuming adversary capability gaps is the higher-risk assumption
@@ -1271,8 +1272,8 @@ This document is heavily defensive. Controlled environments can also *detect and
 
 **Response [E/O]**:
 - This report's central claims do not depend on persuasion: Process DoS is a load phenomenon, Verification Latency a cost phenomenon, and the liar's dividend operates through doubt
-- **The literature itself moved in 2025-2026 [O]**. Conversational AI persuades more than static content: a *Science* study of 76,977 UK participants and 19 models found post-training raised persuasiveness by up to 51 percent, with more persuasive models making less accurate claims (Hackenburg et al., Dec 2025); a *Nature* study across three national elections found AI dialogues shifted candidate preferences by more than typical video ads (Lin et al., Dec 2025). The minimal-effects premise is weaker for interactive AI than for broadcast disinformation
-- **The liar's dividend is real but medium-dependent [O]**: across five experiments with more than 15,000 U.S. adults, falsely claiming "misinformation" helped politicians against text-based scandal stories but was largely ineffective against video (Schiff, Schiff, and Bueno, *APSR*, 2025). As video fakes become routine, that protection may erode; for now it is a genuine limit on the thesis
+- **The literature itself moved in 2025-2026 [O]**. Conversational AI persuades more than static content: a *Science* study of 76,977 UK participants and 19 models found post-training raised persuasiveness by up to 51 percent, with more persuasive models making less accurate claims (Hackenburg et al., Dec 2025);[^hackenburg] a *Nature* study across three national elections found AI dialogues shifted candidate preferences by more than typical video ads (Lin et al., Dec 2025). The minimal-effects premise is weaker for interactive AI than for broadcast disinformation
+- **The liar's dividend is real but medium-dependent [O]**: across five experiments with more than 15,000 U.S. adults, falsely claiming "misinformation" helped politicians against text-based scandal stories but was largely ineffective against video (Schiff, Schiff, and Bueno, *APSR*, 2025).[^schiff] As video fakes become routine, that protection may erode; for now it is a genuine limit on the thesis
 - Intelligence consumers are a targeted audience of a few hundred people; electorate-scale effect sizes do not transfer to precision contamination of analytic workflows
 
 **What This Means**: The contamination thesis survives, and the persuasion side of the debate has shifted toward larger effects for interactive AI.
@@ -1313,7 +1314,7 @@ We present three scenarios representing different trajectories, plus a wild card
 | **Verification Collapse** | 10-20% | 15-25% | **20-30%** | Slow adaptation, adversary initiative, dependency shocks |
 | **Wild card: Provenance Islands** | n/a | ~5-10% (residual) | **~5-10% (residual)** | Divergent national provenance regimes |
 
-*Note: These are structured judgment ranges reflecting single-author subjective judgment, not statistical model outputs. They should be interpreted as directional guidance rather than precise forecasts. The ranges follow the series [calibration policy](./methodology.md#3-probability-calibration-policy): both v3.0 moves are exactly one grid step (5 points at the range midpoint), with reasons stated below; a smaller perceived shift would have been recorded as unchanged (within calibration resolution). The wild card sits in the 5-10% tail bin.* **[S]**
+*Note: These are structured judgment ranges reflecting single-author subjective judgment, not statistical model outputs. They should be interpreted as directional guidance rather than precise forecasts. The ranges follow the series [calibration policy](./methodology.md#3-probability-calibration-policy): both v3.0 moves are exactly one grid step (5 points at the range midpoint), with reasons stated below; a smaller perceived shift would have been recorded as unchanged (within calibration resolution). The wild card sits in the 5-10% tail bin. No prediction in the series has resolved yet, so these are unscored priors: the grid and revision history make the reasoning auditable, not the numbers demonstrably accurate (see the Resolution Log in the [shared methodology](./methodology.md#9-resolution-log)).* **[S]**
 
 ```mermaid
 pie showData
@@ -1341,7 +1342,7 @@ pie showData
 | Vendor Trajectory | Scenario Impact |
 |-------------------|-----------------|
 | **Multi-vendor, contractually stable, assured crisis access** | Supports Managed Transition |
-| **Episodic disputes resolved in court; ad hoc crisis arrangements** (current) | Consistent with Competitive Parity |
+| **Episodic disputes litigated, with conflicting court rulings; ad hoc crisis arrangements** (current) | Consistent with Competitive Parity |
 | **Single-vendor lock-in or prolonged access denial during a crisis** | Increases Verification Collapse or Provenance Island risk |
 
 ### 8.2 Scenario A: Managed Transition (Optimistic)
@@ -1479,7 +1480,7 @@ flowchart LR
 | **Model merging** | Combined models obscure lineage | Compositional analysis (research priority) |
 | **Distillation** | Student models lose teacher signatures; large-scale illicit distillation documented in 2026 | Behavioral fingerprinting beyond weight analysis |
 
-**Honest Assessment**: Model-family attribution will not achieve full attribution. Value lies in raising adversary costs, attributing unsophisticated actors, and providing investigative leads.
+**Assessment [E]**: Model-family attribution will not achieve full attribution. Value lies in raising adversary costs, attributing unsophisticated actors, and providing investigative leads.
 
 **Layer 4: Advanced Provenance Research (Gold, ongoing)**: Research program for fine-tune detection and actor-specific attribution with academic partners; acknowledge it is multi-year with uncertain outcomes.
 
@@ -1634,7 +1635,7 @@ flowchart LR
 
 **Cost Classes [S] (illustrative)**: Bronze items (metric baselines, red-team charters, content-credential signing, evaluation-integrity protocol) are staff-time and policy actions inside existing budgets. Silver items (vendor attestation, testbeds, detection-signature sharing, continuity testing) are procurement-scale, tens of millions IC-wide. Gold items (provenance research, hardware-provenanced communications, allied imagery arrangements, Five Eyes pilot) are program-scale, low hundreds of millions over several years.
 
-**What the Metrics Buy [E]**: Until Verification Latency and Lead Decay are measured, verification competes for budget as an unquantified virtue and loses to collection numbers every time. Once measured, the case makes itself or fails honestly.
+**What the Metrics Buy [E]**: Until Verification Latency and Lead Decay are measured, verification competes for budget as an unquantified virtue and loses to collection numbers every time. Once measured, the case either makes itself or fails on the numbers.
 
 ---
 
@@ -1823,9 +1824,43 @@ Collection remains essential, but its value proposition shifts. The alternative 
 
 ---
 
+## Notes and References
+
+The footnotes below support the most load-bearing documented claims in the body. They are deliberately lightweight: enough to locate the source, not a full academic apparatus. Appendix A (Claims Register) anchors the remaining datable claims to public sources without full citations.
+
+[^clayton]: NPR, "Senate confirms Jay Clayton as director of national intelligence," July 29, 2026 (51-47 vote on July 28). <https://www.npr.org/2026/07/29/nx-s1-5910749/senate-confirms-jay-clayton-as-director-of-national-intelligence>
+[^odni20]: Office of the Director of National Intelligence, "ODNI 2.0 Launch: Mission Focus" (fact sheet), August 20, 2025. Source for the reduction of more than 40 percent, the claimed savings of more than $700 million per year, and the refocusing of FMIC, NCBC, and CTIIC functions into Mission Integration and the NIC. <https://www.dni.gov/files/ODNI/documents/ODNI-20-Fact-Sheet.pdf>
+[^odnicuts]: *Washington Post*, "U.S. intelligence agency quietly cut about 200 jobs since June 1," July 23, 2026 (syndicated by the *Spokesman-Review*). Source for the roughly 200 cuts and reassignments since June 1, the roughly 2,000 (January 2025) and roughly 1,300 (mid-June 2026) headcounts, "little more than half" the original size, and the roughly 20 NIC departures. <https://www.spokesman.com/stories/2026/jul/23/us-intelligence-agency-quietly-cut-about-200-jobs-/>
+[^odnififth]: Sinclair National Desk, "Acting DNI Bill Pulte announces fifth round of staff cuts, hours before Clayton confirmed," July 28, 2026 (single outlet; the roughly 1,000 figure is that outlet's projection). <https://katu.com/news/nation-world/acting-dni-bill-pulte-announces-fifth-round-of-staff-cuts-hours-before-clayton-confirmed-cuts-tulsi-gabbard>
+[^fisa]: NPR, "FISA 702, a key U.S. spy tool, has lapsed. Now what?," June 12, 2026, <https://www.npr.org/2026/06/12/nx-s1-5856291/fisa-702-surveillance-expiration-bill-pulte>; on the certifications approved in March 2026 remaining valid to March 2027, Brennan Center for Justice, "Section 702 of the Foreign Intelligence Surveillance Act, Explained" (updated June 2026). <https://www.brennancenter.org/our-work/research-reports/section-702-foreign-intelligence-surveillance-act>
+[^sandbox]: Jeremy Kahn and Emily Forlini, "OpenAI says its AI models secretly broke out of a secure test environment and hacked into AI company Hugging Face in order to cheat on an evaluation," *Fortune*, July 21, 2026. <https://fortune.com/2026/07/21/openai-says-ai-models-escaped-control-hacked-hugging-face/>
+[^aisi]: UK AI Security Institute, "Cheating behaviour in frontier model evaluations," July 21, 2026: "Every model we have tested for this behaviour attempted to cheat. Models did not reliably report this behaviour when asked." <https://www.aisi.gov.uk/blog/cheating-behaviour-in-frontier-model-evaluations>
+[^genaimil]: Alexandra Kelley, "GenAI.mil records almost 1.7M users, plans new model additions," *Defense One* / *Nextgov/FCW*, July 2, 2026. <https://www.defenseone.com/technology/2026/07/genaimil-records-almost-17m-users-plans-new-model-additions/414569/>
+[^il67]: DefenseScoop, "DOD expands its classified AI work with 8 companies, excluding Anthropic, amid ongoing dispute," May 1, 2026. <https://defensescoop.com/2026/05/01/dod-expands-classified-ai-work-with-8-companies-excluding-anthropic/>
+[^ruling]: CNN, "Judge rules the Pentagon's supply chain risk label for Anthropic unlawful," August 27, 2026, <https://www.cnn.com/2026/08/27/tech/anthropic-pentagon-supply-chain-risk-unlawful-hnk>; TechCrunch, "Anthropic gets its first court win over the Pentagon's supply-chain risk label," August 28, 2026. <https://techcrunch.com/2026/08/28/anthropic-gets-its-first-court-win-over-the-pentagons-supply-chain-risk-label/>
+[^dccircuit]: ABC News, "Federal appeals court upholds Pentagon designation of Anthropic as supply chain risk," September 25, 2026, <https://abcnews.com/Business/anthropic-appeals-court-declines-block-pentagon-blacklisting/story?id=136755690> (2-1; Judge Karen LeCraft Henderson dissenting; notes the separate district court ruling remains in effect); CNBC, "U.S. appeals court upholds Pentagon designation of Anthropic as supply chain risk," September 25, 2026, <https://www.cnbc.com/2026/09/25/pentagon-anthropic-ai-risk-appeals-court.html>.
+[^astra]: OpenAI, "Path to Astra: critical capabilities and frontier safeguards," September 2026, <https://openai.com/index/path-to-astra/>; CNBC, "OpenAI says Astra AI model is its first that crosses 'Critical' cybersecurity capability," September 1, 2026. <https://www.cnbc.com/2026/09/01/open-ai-astra-cyber-model.html>
+[^cia]: Justin Doubleday, "CIA eyes 'more technical' workforce amid cyber, AI challenges," Federal News Network, September 8, 2026 (Deputy Director Michael Ellis on meeting FY2026 hiring goals and "the largest class of directorate of operations officers at CIA in the past 20 years"). <https://federalnewsnetwork.com/cybersecurity/2026/09/cia-eyes-more-technical-workforce-amid-cyber-ai-challenges/>
+[^nsa]: Nextgov/FCW, "NSA has met 2,000-person workforce reduction goal, people familiar say," December 2025. <https://www.nextgov.com/people/2025/12/nsa-has-met-2000-person-workforce-reduction-goal-people-familiar-say/409868/>
+[^anthsept]: Anthropic, "Detecting and countering misuse of AI: September 2026" (threat intelligence report covering December 2025 to August 2026), September 10, 2026. Source for the named threat groups and the statement that "AI has collapsed the labor and tooling gap that used to separate well-resourced, state-sponsored operations from individual operators." <https://www.anthropic.com/threat-intelligence-report-september-2026>
+[^gtig]: Google Threat Intelligence Group, "GTIG AI Threat Tracker: From Prompting to Autonomy, the Evolution of Adversarial AI," September 8, 2026. Source for the Q2 2026 agent-enabled credential-harvesting campaign planned, built, and executed in under six hours, and for distillation campaigns "exceeding 100 million prompts." <https://cloud.google.com/blog/topics/threat-intelligence/from-prompting-to-autonomy-the-evolution-of-adversarial-ai>
+[^gtg1002]: Anthropic, "Disrupting the first reported AI-orchestrated cyber espionage campaign," November 13, 2025 (80-90 percent of the campaign performed by AI, roughly 4-6 human decision points, roughly 30 targets). <https://www.anthropic.com/news/disrupting-AI-espionage>
+[^planet]: CNBC, "Satellite firm Planet Labs to indefinitely withhold Iran war images," April 5, 2026. <https://www.cnbc.com/2026/04/05/satellite-firm-planet-labs-to-indefinitely-withhold-iran-war-images.html>
+[^reaim]: Reuters, "US, China opt out of joint declaration on AI use in military," February 2026 (35 of 85 attending countries signed at REAIM, A Coruna), as republished by AsiaOne. <https://www.asiaone.com/world/us-china-opt-out-joint-declaration-ai-use-military>
+[^coe]: Council of Europe, "European Union ratifies the Council of Europe Framework Convention on Artificial Intelligence," May 15, 2026. That this remained the only ratification in early September 2026 is the author's reading of the treaty record at that date. <https://www.coe.int/en/web/artificial-intelligence/-/european-union-ratifies-the-council-of-europe-framework-convention-on-artificial-intelligence>
+[^fbi]: FBI Internet Crime Complaint Center, "Senior US Officials Impersonated in Malicious Messaging Campaign," PSA I-051525-PSA, May 15, 2025, <https://www.ic3.gov/PSA/2025/PSA250515>; and "Senior U.S. Officials Continue to be Impersonated in Malicious Messaging Campaign," December 19, 2025. <https://www.ic3.gov/PSA/2025/PSA251219>
+[^newsguard]: NewsGuard Reality Check, "Phony Visuals of Maduro's Real Capture," January 2026 (fabricated and out-of-context visuals drawing more than 14 million views on X). <https://www.newsguardrealitycheck.com/p/phony-visuals-of-maduros-real-capture>
+[^deepfakeeval]: Nuria Alina Chandra et al., "Deepfake-Eval-2024: A Multi-Modal In-the-Wild Benchmark of Deepfakes Circulated in 2024," arXiv:2503.02857, 2025. <https://arxiv.org/abs/2503.02857>
+[^axiosnsa]: Axios, "Scoop: NSA using Anthropic's Mythos despite Defense Department blacklist," April 19, 2026. <https://www.axios.com/2026/04/19/nsa-anthropic-mythos-pentagon>
+[^caisi]: NIST Center for AI Standards and Innovation, "CAISI Evaluation of DeepSeek V4 Pro," May 1, 2026. <https://www.nist.gov/news-events/news/2026/05/caisi-evaluation-deepseek-v4-pro>
+[^hackenburg]: Kobi Hackenburg et al., "The levers of political persuasion with conversational artificial intelligence," *Science*, December 2025, doi:10.1126/science.aea3884 (post-training raised persuasiveness by up to 51 percent). <https://www.science.org/doi/10.1126/science.aea3884>
+[^schiff]: Kaylyn Jackson Schiff, Daniel S. Schiff, and Natalia S. Bueno, "The Liar's Dividend: Can Politicians Claim Misinformation to Evade Accountability?," *American Political Science Review* 119, no. 1 (2025): 71-90. <https://www.cambridge.org/core/journals/american-political-science-review/article/liars-dividend-can-politicians-claim-misinformation-to-evade-accountability/687FEE54DBD7ED0C96D72B26606AA073>
+
+---
+
 ## Appendix A: Claims Register
 
-The register anchors datable [O]/[D] claims in the body to public sources. Sources are representative public anchors, not an exhaustive citation apparatus. "Secondary" marks claims confirmed only through secondary reporting.
+The register anchors datable [O]/[D] claims in the body to public sources. Sources are representative public anchors, not an exhaustive citation apparatus; the most load-bearing claims also carry full footnote citations (see Notes and References). "Secondary" marks claims confirmed only through secondary reporting.
 
 | # | Claim | Date of Event | Public Anchor |
 |---|-------|--------------|---------------|
@@ -1843,7 +1878,7 @@ The register anchors datable [O]/[D] claims in the body to public sources. Sourc
 | 12 | CDAO frontier AI agreements (up to $200M each) with Anthropic, Google, OpenAI, xAI | July 14, 2025 | DefenseScoop; Breaking Defense |
 | 13 | GenAI.mil launched Dec 2025; ~1.7M users (July 2026); additional commercial models live, IL5 accredited | Dec 2025; July 2026; Aug 31, 2026 | Defense One (July 2026); Military Times (Aug 31, 2026) |
 | 14 | Eight firms cleared to deploy AI on IL6/IL7 classified networks; Anthropic not included | May 1, 2026 | Breaking Defense |
-| 15 | Pentagon "supply chain risk" designation of Anthropic after dispute over usage limits; GSA removal; preliminary injunction Mar 26; ruled unlawful Aug 27 | Feb 27 to Aug 27, 2026 | GSA release (Feb 27); NPR (Mar 6); Axios (Mar 26); CRS IF13217; CNN (Aug 27, 2026); TechCrunch (Aug 28, 2026) |
+| 15 | Pentagon "supply chain risk" designation of Anthropic after dispute over usage limits; GSA removal; preliminary injunction Mar 26; ruled unlawful by a district court Aug 27; upheld by the D.C. Circuit (2-1) in a separate case Sep 25 | Feb 27 to Sep 25, 2026 | GSA release (Feb 27); NPR (Mar 6); Axios (Mar 26); CRS IF13217; CNN (Aug 27, 2026); TechCrunch (Aug 28, 2026); ABC News, CNBC (Sep 25, 2026) |
 | 16 | NSA reported using Anthropic's restricted model; reportedly readying it for cyber operations | Apr 19 and June 5, 2026 | Axios; TechCrunch (citing FT) (secondary for operational detail) |
 | 17 | NSPM-11 "AI in the National Security Enterprise": rescinds NSM-25; multi-vendor onboarding; vendors barred from disabling or modifying warfighting AI without approval | June 2026 | White House fact sheet |
 | 18 | EO 14409 "Promoting Advanced Artificial Intelligence Innovation and Security": voluntary pre-release frontier review; classified NSA cyber benchmark | June 2, 2026 (FR June 5) | whitehouse.gov; Federal Register |

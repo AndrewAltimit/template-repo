@@ -8,7 +8,6 @@
 
 use std::sync::Arc;
 
-use async_trait::async_trait;
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
 use tokio::sync::RwLock;
@@ -558,19 +557,6 @@ impl AutonomousSubAgentManager {
     }
 }
 
-/// Trait for agents that can delegate to sub-agents.
-#[async_trait]
-pub trait Delegator {
-    /// Delegate a task to sub-agents.
-    async fn delegate(&mut self, task: Task) -> Result<Option<Uuid>>;
-
-    /// Collect results from delegated tasks.
-    async fn collect_delegated_results(&mut self) -> Vec<DelegationResult>;
-
-    /// Allocate budget to a sub-agent.
-    async fn allocate_budget(&mut self, agent_id: Uuid, budget: SubAgentBudget) -> Result<()>;
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -599,9 +585,60 @@ mod tests {
         assert!(!budget.can_afford_task(15.0));
     }
 
+    fn test_task(estimated_hours: f64) -> Task {
+        Task {
+            id: Uuid::new_v4(),
+            title: "Delegated task".to_string(),
+            description: "Test delegation".to_string(),
+            category: economic_agents_interfaces::TaskCategory::Coding,
+            reward: 10.0,
+            estimated_hours,
+            difficulty: 0.5,
+            required_skills: Vec::new(),
+            deadline: None,
+            status: economic_agents_interfaces::TaskStatus::Available,
+            posted_by: "parent".to_string(),
+            posted_at: Utc::now(),
+            claimed_by: None,
+            claimed_at: None,
+        }
+    }
+
+    #[tokio::test]
+    async fn test_delegation_returned_when_budget_insufficient() {
+        let backends = economic_agents_mock::MockBackendFactory::create().await;
+        let mut sub_agent = AutonomousSubAgent::new(
+            SubAgent::new("Worker", SubAgentRole::IndividualContributor),
+            "parent".to_string(),
+            SubAgentBudget::new(100.0, 1.0),
+            Arc::new(backends.wallet),
+            Arc::new(backends.marketplace),
+            Arc::new(backends.compute),
+        );
+
+        let delegation_id = sub_agent.accept_delegation(test_task(5.0), None);
+        let delegation = sub_agent.get_delegation_status(&delegation_id).unwrap();
+        assert_eq!(delegation.status, DelegationStatus::Pending);
+        assert!(delegation.result.is_none());
+
+        // 5h task against a 1h compute budget must be handed back to the
+        // parent without being executed.
+        let results = sub_agent.work_on_delegations().await;
+        assert!(results.is_empty());
+
+        let delegation = sub_agent.get_delegation_status(&delegation_id).unwrap();
+        assert_eq!(delegation.status, DelegationStatus::Returned);
+        let result = delegation.result.as_ref().unwrap();
+        assert!(!result.success);
+        assert_eq!(result.reward_earned, 0.0);
+        assert_eq!(sub_agent.budget.remaining_compute_hours(), 1.0);
+    }
+
     #[test]
-    fn test_delegation_status() {
-        let status = DelegationStatus::Pending;
-        assert_eq!(status, DelegationStatus::Pending);
+    fn test_delegation_status_serializes_snake_case() {
+        let json = serde_json::to_string(&DelegationStatus::InProgress).unwrap();
+        assert_eq!(json, "\"in_progress\"");
+        let parsed: DelegationStatus = serde_json::from_str("\"returned\"").unwrap();
+        assert_eq!(parsed, DelegationStatus::Returned);
     }
 }

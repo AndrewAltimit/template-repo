@@ -1,4 +1,5 @@
 # Gemini CLI Corporate Proxy Container
+# LEGACY: not allowed in this lab. Only built via the opt-in "legacy" compose profile.
 # Builds Gemini CLI from source and includes translation services
 
 # Stage 1: Clone Gemini CLI source

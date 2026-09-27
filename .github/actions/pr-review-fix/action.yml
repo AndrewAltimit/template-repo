@@ -63,7 +63,7 @@ runs:
 
     - name: Download review artifacts
       if: steps.iteration.outputs.should_skip != 'true'
-      uses: actions/download-artifact@v6
+      uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
       continue-on-error: true
       with:
         pattern: '*-review-${{ github.run_id }}-${{ github.run_attempt }}'
@@ -118,7 +118,7 @@ runs:
     # it as an artifact so the work can be recovered manually rather than lost.
     - name: Upload unpushed commit patch (on push failure)
       if: always() && steps.agent-fix.outputs.made_changes == 'true' && steps.agent-fix.outputs.pushed == 'false'
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
       with:
         name: unpushed-review-commit-${{ inputs.pr_number }}-${{ github.run_id }}
         path: ${{ runner.temp }}/review-agent-patches/*.patch
@@ -130,7 +130,7 @@ runs:
     # without actually editing files), and is cheap when nothing went wrong.
     - name: Upload Claude stream logs
       if: always() && steps.iteration.outputs.should_skip != 'true'
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
       with:
         name: review-agent-claude-logs-${{ inputs.pr_number }}-${{ github.run_id }}
         path: ${{ runner.temp }}/review-agent-logs/*.jsonl

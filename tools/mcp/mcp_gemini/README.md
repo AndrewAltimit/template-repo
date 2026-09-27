@@ -1,5 +1,7 @@
 # Gemini MCP Server (Rust)
 
+> **Legacy / not allowed**: Gemini integration is kept for reference only and must not be enabled or used in the lab. Google dropped its AI Principles pledge against weapons and surveillance uses in February 2025. See [Legacy agents](../../../docs/agents/agent-matrix.md#legacy-agents-gemini-and-codex-not-allowed).
+
 > A Model Context Protocol server for AI-powered second opinions and validation using Google's Gemini CLI, built in Rust for performance and reliability.
 
 ## Overview

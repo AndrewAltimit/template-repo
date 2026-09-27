@@ -5,7 +5,7 @@ edition = "2024"
 license = "MIT"
 repository = "https://github.com/AndrewAltimit/template-repo"
 authors = ["AndrewAltimit"]
-description = "MCP server for Codex AI code generation integration"
+description = "LEGACY (not allowed in this lab): MCP server for Codex AI code generation integration"
 
 [[bin]]
 name = "mcp-codex"

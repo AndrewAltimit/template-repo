@@ -729,7 +729,11 @@ async fn read_capped<R: AsyncRead + Unpin>(handle: Option<R>, cap: usize) -> (Ve
     };
     let mut buf = Vec::new();
     let mut limited = reader.take(cap as u64 + 1);
-    let _ = limited.read_to_end(&mut buf).await;
+    if let Err(e) = limited.read_to_end(&mut buf).await {
+        // Keep whatever was read before the error; the caller still judges
+        // the run by exit status and captured output.
+        warn!(error = %e, "Failed to read child output stream");
+    }
     let truncated = buf.len() > cap;
     buf.truncate(cap);
     (buf, truncated)
@@ -747,7 +751,10 @@ async fn kill_process_tree(child: &mut Child) {
             libc::kill(-(pid as libc::pid_t), libc::SIGKILL);
         }
     }
-    let _ = child.kill().await;
+    if let Err(e) = child.kill().await {
+        // Usually means the child already exited, which is the goal.
+        debug!(error = %e, "kill() on reviewer child failed");
+    }
 }
 
 /// Install `setrlimit` calls that run in the child between fork and exec.

@@ -4,11 +4,14 @@
 
 use std::sync::Arc;
 
+use chrono::Utc;
 use economic_agents_core::{
     AgentConfig, AutonomousAgent, Backends, EngineType, OperatingMode, Personality,
     TaskSelectionStrategy,
 };
+use economic_agents_interfaces::{Task, TaskCategory, TaskStatus};
 use economic_agents_mock::{MockBackendConfig, MockBackendFactory};
+use uuid::Uuid;
 
 /// Helper to create backends from mock backends.
 async fn create_test_backends(config: MockBackendConfig) -> Backends {
@@ -129,17 +132,32 @@ async fn test_agent_with_high_balance_considers_company() {
     // Should have run cycles
     assert!(!results.is_empty());
 
-    // Check if company formation was attempted in any cycle
-    let company_formations: Vec<_> = results
+    // With balance well above the threshold and compute above the survival
+    // buffer, the rule-based engine deterministically chooses WorkOnCompany
+    // on the first cycle, so exactly one successful formation must occur.
+    let formations: Vec<_> = results
         .iter()
-        .filter(|r| r.company_formation.is_some())
+        .filter_map(|r| r.company_formation.as_ref())
         .collect();
+    assert_eq!(
+        formations.len(),
+        1,
+        "company should be formed exactly once, got {formations:?}"
+    );
+    let formation = formations[0];
+    assert!(
+        formation.success,
+        "formation failed: {:?}",
+        formation.failure_reason
+    );
+    assert!(
+        results[0].company_formation.is_some(),
+        "formation should happen on the first cycle"
+    );
 
-    // If company was formed, verify state
-    if agent.state.has_company {
-        assert!(agent.state.company_id.is_some());
-        assert!(!company_formations.is_empty());
-    }
+    assert!(agent.state.has_company);
+    assert_eq!(agent.state.company_id, formation.company_id);
+    assert!(formation.initial_capital > 0.0);
 }
 
 #[tokio::test]
@@ -172,40 +190,99 @@ async fn test_agent_personality_affects_decisions() {
     // Both should complete 3 cycles
     assert_eq!(risk_averse_results.len(), 3);
     assert_eq!(aggressive_results.len(), 3);
-    assert_eq!(risk_averse_agent.state.current_cycle, 3);
-    assert_eq!(aggressive_agent.state.current_cycle, 3);
+
+    // The rule-based engine maps personality to decision confidence
+    // (risk-averse is more certain, aggressive less). Every recorded
+    // decision must reflect the agent's own personality, and the two
+    // personalities must produce different decisions on every cycle.
+    for (ra, ag) in risk_averse_results.iter().zip(&aggressive_results) {
+        let ra_decision = ra
+            .decision
+            .as_ref()
+            .expect("cycle should record a decision");
+        let ag_decision = ag
+            .decision
+            .as_ref()
+            .expect("cycle should record a decision");
+        assert!((ra_decision.confidence - 0.9).abs() < f64::EPSILON);
+        assert!((ag_decision.confidence - 0.6).abs() < f64::EPSILON);
+        assert!(ra_decision.confidence > ag_decision.confidence);
+    }
 }
 
 #[tokio::test]
 async fn test_agent_state_updates() {
-    let config = MockBackendConfig {
+    // A single known task (and no random ones) makes the cycle deterministic:
+    // compute is above the survival buffer and balance is below the company
+    // threshold, so the rule-based engine must choose WorkOnTasks and pick
+    // this task.
+    let mock = MockBackendFactory::create_with_config(MockBackendConfig {
         initial_balance: 100.0,
         initial_compute_hours: 48.0,
         compute_cost_per_hour: 0.10,
-        initial_tasks: 10,
+        initial_tasks: 0,
+    })
+    .await;
+    let task_id = Uuid::new_v4();
+    mock.marketplace
+        .add_task(Task {
+            id: task_id,
+            title: "Known task".to_string(),
+            description: "Deterministic test task".to_string(),
+            category: TaskCategory::Coding,
+            reward: 50.0,
+            estimated_hours: 2.0,
+            difficulty: 0.1,
+            required_skills: Vec::new(),
+            deadline: None,
+            status: TaskStatus::Available,
+            posted_by: "test".to_string(),
+            posted_at: Utc::now(),
+            claimed_by: None,
+            claimed_at: None,
+        })
+        .await;
+    let backends = Backends::new(
+        Arc::new(mock.wallet),
+        Arc::new(mock.marketplace),
+        Arc::new(mock.compute),
+    );
+    let agent_config = AgentConfig {
+        survival_buffer_hours: 8.0,
+        company_threshold: 1_000.0,
+        ..Default::default()
     };
-    let backends = create_test_backends(config).await;
-    let mut agent = AutonomousAgent::with_backends(AgentConfig::default(), backends);
+    let mut agent = AutonomousAgent::with_backends(agent_config, backends);
 
-    // Initialize state first
     agent.initialize().await.unwrap();
-
-    let _initial_balance = agent.state.balance;
+    let initial_balance = agent.state.balance;
     let initial_compute = agent.state.compute_hours;
 
     let result = agent.run_cycle().await.unwrap();
 
-    // State should have changed
-    let final_state = &result.final_state;
+    // The result snapshots the state before and after the cycle.
+    assert_eq!(result.initial_state.balance, initial_balance);
+    assert_eq!(result.initial_state.compute_hours, initial_compute);
+    assert_eq!(result.final_state.balance, agent.state.balance);
+    assert_eq!(result.final_state.compute_hours, agent.state.compute_hours);
 
-    // Check that initial and final states are captured in result
-    assert!(result.initial_state.balance > 0.0);
-    assert!(result.initial_state.compute_hours > 0.0);
+    let task_result = result
+        .task_result
+        .expect("agent should have done task work");
+    assert!(task_result.success, "{:?}", task_result.failure_reason);
+    assert_eq!(task_result.task_id, Some(task_id));
+    assert_eq!(task_result.hours_spent, 2.0);
 
-    // Compute hours should decrease if task work was done
-    if result.task_result.is_some() {
-        assert!(final_state.compute_hours <= initial_compute);
-    }
+    // Compute is consumed and the (simulated) reward is paid out.
+    assert!((initial_compute - agent.state.compute_hours - 2.0).abs() < 1e-9);
+    let reward = task_result
+        .reward_earned
+        .expect("approved task pays a reward");
+    assert!(
+        (35.0..=50.0).contains(&reward),
+        "reward {reward} out of range"
+    );
+    assert!((agent.state.balance - initial_balance - reward).abs() < 1e-9);
 }
 
 #[tokio::test]

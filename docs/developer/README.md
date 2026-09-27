@@ -4,12 +4,8 @@ Tools, configuration, and best practices for developers working with this codeba
 
 ## Documentation
 
-### [Claude Code Hooks](./claude-code-hooks.md)
-Hook system for enforcing best practices with Claude Code
-- Hook configuration and setup
-- Available hook types
-- Custom hook development
-- Migration from old hook system
+### [Claude Code Hooks and gh-validator](./claude-code-hooks.md)
+The repo configures no Claude Code hooks (`.claude/settings.json` is `{}`); guardrails are enforced by the `gh-validator` and `git-guard` wrapper binaries instead. Covers gh-validator installation, validation rules, and troubleshooting.
 
 ## Developer Tools
 
@@ -17,7 +13,7 @@ Hook system for enforcing best practices with Claude Code
 The project uses multiple AI agents for development. Key files:
 - `AGENTS.md` - Universal AI agent configuration
 - `CLAUDE.md` - Claude-specific instructions
-- `.claude/settings.json` - Claude Code settings
+- `.claude/settings.json` - Claude Code settings (intentionally `{}`)
 - `.mcp.json` - MCP server configuration
 
 ### Development Commands
@@ -55,7 +51,7 @@ docker compose logs -f
 
 1. **Always use containers** for Python operations
 2. **Run CI checks** before committing
-3. **Follow the hook guidelines** in Claude Code
+3. **Install the wrapper guards** (`gh-validator`, `git-guard`)
 4. **Use MCP servers** for specialized tasks
 5. **Test in containers** to ensure consistency
 

@@ -10,136 +10,65 @@
 
 use regex::Regex;
 use serde::{Deserialize, Serialize};
-use std::collections::{HashMap, HashSet};
-use std::fs;
-use std::path::{Path, PathBuf};
+use std::collections::HashMap;
+use std::path::Path;
 use std::sync::LazyLock;
+
+use trust_common::{Fallback, TrustError, TrustPolicy};
+pub use trust_common::{TrustConfig, TrustLevel};
 
 use crate::error::{BoardError, Result};
 
-/// Trust levels for comment authors.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum TrustLevel {
-    /// agent_admins - highest authority
-    Admin,
-    /// trusted_sources - vetted automation
-    Trusted,
-    /// everyone else
-    Community,
-}
-
-impl TrustLevel {
-    /// All levels, highest authority first.
-    pub const ALL: [TrustLevel; 3] = [
-        TrustLevel::Admin,
-        TrustLevel::Trusted,
-        TrustLevel::Community,
-    ];
-
-    /// Lowercase name (also the JSON key).
-    pub fn as_str(self) -> &'static str {
-        match self {
-            TrustLevel::Admin => "admin",
-            TrustLevel::Trusted => "trusted",
-            TrustLevel::Community => "community",
-        }
-    }
-
-    /// Markdown section heading, intro line and empty-bucket text.
-    fn section(self) -> (&'static str, &'static str, &'static str) {
-        match self {
-            TrustLevel::Admin => (
-                "## Admin Guidance (Highest Trust)",
-                "Comments from repository administrators with authority to direct implementation:",
-                "_No admin comments._",
-            ),
-            TrustLevel::Trusted => (
-                "## Trusted Context (Medium Trust)",
-                "Comments from trusted automation and vetted sources:",
-                "_No trusted comments._",
-            ),
-            TrustLevel::Community => (
-                "## Community Input (Review Carefully)",
-                "Comments from other sources - consider but verify:",
-                "_No community comments._",
-            ),
-        }
+/// Markdown section heading, intro line and empty-bucket text for a level.
+fn section(level: TrustLevel) -> (&'static str, &'static str, &'static str) {
+    match level {
+        TrustLevel::Admin => (
+            "## Admin Guidance (Highest Trust)",
+            "Comments from repository administrators with authority to direct implementation:",
+            "_No admin comments._",
+        ),
+        TrustLevel::Trusted => (
+            "## Trusted Context (Medium Trust)",
+            "Comments from trusted automation and vetted sources:",
+            "_No trusted comments._",
+        ),
+        TrustLevel::Community => (
+            "## Community Input (Review Carefully)",
+            "Comments from other sources - consider but verify:",
+            "_No community comments._",
+        ),
     }
 }
 
-impl std::fmt::Display for TrustLevel {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(self.as_str())
-    }
-}
-
-/// Configuration for trust-level determination.
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
-pub struct TrustConfig {
-    pub agent_admins: Vec<String>,
-    pub trusted_sources: Vec<String>,
-}
-
-/// Structure of the `.agents.yaml` file (only the parts we need).
-#[derive(Debug, Clone, Default, Deserialize)]
-struct AgentsYamlFile {
-    #[serde(default)]
-    security: SecuritySection,
-}
-
-#[derive(Debug, Clone, Default, Deserialize)]
-struct SecuritySection {
-    #[serde(default)]
-    agent_admins: Vec<String>,
-    #[serde(default)]
-    trusted_sources: Vec<String>,
-}
-
-impl TrustConfig {
-    /// Load trust configuration from `.agents.yaml`.
-    ///
-    /// Returns an error if the config file is not found or cannot be parsed.
-    /// This is intentional fail-closed behavior for security.
-    pub fn from_yaml(config_path: Option<&Path>) -> Result<Self> {
-        let path = match config_path {
-            Some(p) if p.is_file() => p.to_path_buf(),
-            Some(p) => {
-                return Err(BoardError::Config(format!(
-                    "Security config file not found: {}",
-                    p.display()
-                )));
-            },
-            None => Self::find_config_file().ok_or_else(|| {
+/// Load trust configuration from `.agents.yaml` (shared `trust-common`
+/// implementation).
+///
+/// `config_path` defaults to the first `.agents.yaml` in the current
+/// directory or a parent. Fails closed ([`Fallback::Error`]): a missing or
+/// unparseable file is an error. In a PR-triggered run where the PR modifies
+/// the file, the base-branch version is used.
+pub fn load_trust_config(config_path: Option<&Path>) -> Result<TrustConfig> {
+    let path = match config_path {
+        Some(p) => p.to_path_buf(),
+        None => std::env::current_dir()
+            .ok()
+            .and_then(|cwd| trust_common::find_config_file(&cwd))
+            .ok_or_else(|| {
                 BoardError::Config(
                     "No .agents.yaml found. Trust bucketing requires a security config file."
                         .to_string(),
                 )
             })?,
-        };
-
-        let content = fs::read_to_string(&path)
-            .map_err(|e| BoardError::Config(format!("Failed to read {}: {}", path.display(), e)))?;
-        Self::from_yaml_str(&content)
-            .map_err(|e| BoardError::Config(format!("Failed to parse {}: {}", path.display(), e)))
-    }
-
-    /// Parse trust configuration from YAML text.
-    pub fn from_yaml_str(content: &str) -> std::result::Result<Self, serde_yaml::Error> {
-        let file: AgentsYamlFile = serde_yaml::from_str(content)?;
-        Ok(Self {
-            agent_admins: file.security.agent_admins,
-            trusted_sources: file.security.trusted_sources,
-        })
-    }
-
-    /// Find `.agents.yaml` in the current directory or any parent.
-    fn find_config_file() -> Option<PathBuf> {
-        let cwd = std::env::current_dir().ok()?;
-        cwd.ancestors()
-            .map(|dir| dir.join(".agents.yaml"))
-            .find(|p| p.is_file())
-    }
+    };
+    TrustConfig::load(&path, Fallback::Error, &mut |m: &str| {
+        tracing::warn!("{}", m)
+    })
+    .map_err(|e| match e {
+        TrustError::NotFound(p) => {
+            BoardError::Config(format!("Security config file not found: {}", p.display()))
+        },
+        other => BoardError::Config(other.to_string()),
+    })
 }
 
 /// Patterns for automated noise that should be filtered out.
@@ -206,46 +135,28 @@ impl Comment {
 /// Buckets comments by author trust level.
 #[derive(Debug, Clone)]
 pub struct TrustBucketer {
-    admins: HashSet<String>,
-    trusted: HashSet<String>,
+    policy: TrustPolicy,
 }
 
 impl TrustBucketer {
     /// Create a new trust bucketer.
     ///
-    /// Usernames are normalized to lowercase for case-insensitive matching
-    /// since GitHub usernames are case-insensitive.
+    /// Matching is case-insensitive since GitHub usernames are
+    /// case-insensitive; admins outrank trusted sources.
     pub fn new(config: TrustConfig) -> Self {
-        let admins: HashSet<String> = config
-            .agent_admins
-            .iter()
-            .map(|s| s.to_lowercase())
-            .collect();
-        let trusted: HashSet<String> = config
-            .trusted_sources
-            .iter()
-            .map(|s| s.to_lowercase())
-            .filter(|s| !admins.contains(s))
-            .collect();
-
-        Self { admins, trusted }
+        Self {
+            policy: config.policy(),
+        }
     }
 
     /// Create a new trust bucketer from `.agents.yaml`.
     pub fn from_yaml(config_path: Option<&Path>) -> Result<Self> {
-        Ok(Self::new(TrustConfig::from_yaml(config_path)?))
+        Ok(Self::new(load_trust_config(config_path)?))
     }
 
     /// Determine the trust level for a username (case-insensitive).
     pub fn get_trust_level(&self, username: &str) -> TrustLevel {
-        let username_lower = username.to_lowercase();
-        if self.admins.contains(&username_lower) {
-            TrustLevel::Admin
-        } else if self.trusted.contains(&username_lower) {
-            TrustLevel::Trusted
-        } else {
-            TrustLevel::Community
-        }
+        self.policy.level(username)
     }
 
     /// Check if a comment body is automated noise.
@@ -288,7 +199,7 @@ impl TrustBucketer {
         let mut output = String::new();
 
         for level in TrustLevel::ALL {
-            let (heading, intro, empty) = level.section();
+            let (heading, intro, empty) = section(level);
             let bucket = buckets.get(&level).map(Vec::as_slice).unwrap_or_default();
             if !bucket.is_empty() {
                 output.push_str(heading);
@@ -489,6 +400,22 @@ mod tests {
         let c = TrustConfig::from_yaml_str(yaml).unwrap();
         assert_eq!(c.agent_admins, vec!["Alice"]);
         assert_eq!(c.trusted_sources, vec!["bot"]);
-        assert!(TrustConfig::from_yaml(Some(Path::new("/nope/.agents.yaml"))).is_err());
+        let err = load_trust_config(Some(Path::new("/nope/.agents.yaml"))).unwrap_err();
+        assert!(err.to_string().contains("not found"), "{err}");
+    }
+
+    #[test]
+    fn load_trust_config_fails_closed_on_invalid_file() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join(".agents.yaml");
+        std::fs::write(&path, "security:\n  agent_admins: solo\n").unwrap();
+        assert!(load_trust_config(Some(&path)).is_err());
+        assert!(TrustBucketer::from_yaml(Some(&path)).is_err());
+
+        // A valid file without admins is accepted: nobody is elevated.
+        std::fs::write(&path, "security:\n  trusted_sources: [bot]\n").unwrap();
+        let b = TrustBucketer::from_yaml(Some(&path)).unwrap();
+        assert_eq!(b.get_trust_level("bot"), TrustLevel::Trusted);
+        assert_eq!(b.get_trust_level("andrewaltimit"), TrustLevel::Community);
     }
 }

@@ -1,4 +1,5 @@
 # Unified Codex Dockerfile
+# LEGACY: not allowed in this lab. Only built via the opt-in "legacy" compose profile.
 # Supports both codex-agent (CLI) and mcp-codex (MCP server) modes
 # Build with: docker build --build-arg MODE=agent (or MODE=mcp)
 

@@ -8,7 +8,7 @@ use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
 use bioforge_types::config::SafetyLimits;
-use bioforge_types::error::BioForgeError;
+use bioforge_types::error::{BioForgeError, LimitBound};
 
 /// Workspace bounds loaded from hardware config.
 #[derive(Debug, Clone)]
@@ -90,18 +90,21 @@ impl SafetyEnforcer {
             return Err(BioForgeError::TemperatureOutOfRange {
                 actual_c: target_c,
                 limit_c: self.limits.thermal.absolute_max_c,
+                bound: LimitBound::Maximum,
             });
         }
         if target_c > self.limits.thermal.tool_max_c {
             return Err(BioForgeError::TemperatureOutOfRange {
                 actual_c: target_c,
                 limit_c: self.limits.thermal.tool_max_c,
+                bound: LimitBound::Maximum,
             });
         }
         if target_c < self.limits.thermal.tool_min_c {
             return Err(BioForgeError::TemperatureOutOfRange {
                 actual_c: target_c,
                 limit_c: self.limits.thermal.tool_min_c,
+                bound: LimitBound::Minimum,
             });
         }
         Ok(())
@@ -112,11 +115,20 @@ impl SafetyEnforcer {
     pub fn validate_overshoot(&self, actual_c: f64, target_c: f64) -> Result<(), BioForgeError> {
         require_finite(actual_c, "actual_c")?;
         require_finite(target_c, "target_c")?;
-        let overshoot = (actual_c - target_c).abs();
-        if overshoot > self.limits.thermal.max_overshoot_c {
+        let margin = self.limits.thermal.max_overshoot_c;
+        let deviation = actual_c - target_c;
+        if deviation.abs() > margin {
+            // The margin applies in both directions; report the side that was
+            // actually crossed (an undershoot is not an overshoot).
+            let (limit_c, bound) = if deviation > 0.0 {
+                (target_c + margin, LimitBound::Maximum)
+            } else {
+                (target_c - margin, LimitBound::Minimum)
+            };
             return Err(BioForgeError::TemperatureOutOfRange {
                 actual_c,
-                limit_c: target_c + self.limits.thermal.max_overshoot_c,
+                limit_c,
+                bound,
             });
         }
         Ok(())
@@ -136,12 +148,14 @@ impl SafetyEnforcer {
             return Err(BioForgeError::VolumeOutOfRange {
                 actual_ul: volume_ul,
                 limit_ul: self.limits.volume.max_dispense_ul,
+                bound: LimitBound::Maximum,
             });
         }
         if volume_ul < self.limits.volume.min_dispense_ul {
             return Err(BioForgeError::VolumeOutOfRange {
                 actual_ul: volume_ul,
                 limit_ul: self.limits.volume.min_dispense_ul,
+                bound: LimitBound::Minimum,
             });
         }
         Ok(())
@@ -542,6 +556,64 @@ mod tests {
     #[test]
     fn temperature_rejects_under_min() {
         assert!(enforcer().validate_temperature(-5.1).is_err());
+    }
+
+    #[test]
+    fn temperature_errors_report_the_violated_bound() {
+        match enforcer().validate_temperature(-5.1) {
+            Err(BioForgeError::TemperatureOutOfRange { limit_c, bound, .. }) => {
+                assert_eq!(bound, LimitBound::Minimum);
+                assert!((limit_c - -5.0).abs() < f64::EPSILON);
+            },
+            other => panic!("expected TemperatureOutOfRange, got {other:?}"),
+        }
+        let msg = enforcer()
+            .validate_temperature(-5.1)
+            .unwrap_err()
+            .to_string();
+        assert!(msg.contains("below the minimum"), "{msg}");
+
+        match enforcer().validate_temperature(50.1) {
+            Err(BioForgeError::TemperatureOutOfRange { bound, .. }) => {
+                assert_eq!(bound, LimitBound::Maximum);
+            },
+            other => panic!("expected TemperatureOutOfRange, got {other:?}"),
+        }
+        let msg = enforcer()
+            .validate_temperature(50.1)
+            .unwrap_err()
+            .to_string();
+        assert!(msg.contains("above the maximum"), "{msg}");
+    }
+
+    #[test]
+    fn undershoot_is_not_reported_as_overshoot() {
+        // max_overshoot_c = 1.5 around a 42.0 target.
+        match enforcer().validate_overshoot(40.4, 42.0) {
+            Err(BioForgeError::TemperatureOutOfRange { limit_c, bound, .. }) => {
+                assert_eq!(bound, LimitBound::Minimum);
+                assert!((limit_c - 40.5).abs() < 1e-9);
+            },
+            other => panic!("expected TemperatureOutOfRange, got {other:?}"),
+        }
+        match enforcer().validate_overshoot(43.6, 42.0) {
+            Err(BioForgeError::TemperatureOutOfRange { limit_c, bound, .. }) => {
+                assert_eq!(bound, LimitBound::Maximum);
+                assert!((limit_c - 43.5).abs() < 1e-9);
+            },
+            other => panic!("expected TemperatureOutOfRange, got {other:?}"),
+        }
+    }
+
+    #[test]
+    fn volume_errors_report_the_violated_bound() {
+        let e = enforcer();
+        let too_small = e.limits.volume.min_dispense_ul / 2.0;
+        let msg = e.validate_volume(too_small).unwrap_err().to_string();
+        assert!(msg.contains("below the minimum"), "{msg}");
+        let too_big = e.limits.volume.max_dispense_ul + 1.0;
+        let msg = e.validate_volume(too_big).unwrap_err().to_string();
+        assert!(msg.contains("above the maximum"), "{msg}");
     }
 
     #[test]

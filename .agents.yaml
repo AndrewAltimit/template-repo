@@ -8,11 +8,12 @@
 
 # List of enabled agents
 # NOTE: Some agents are only available in specific environments:
-# - Host-only agents: claude (needs subscription auth), gemini (needs Docker access)
+# - Host-only agents: claude (needs subscription auth)
+# - gemini and codex are legacy and not allowed in this lab (never enable them)
 # - Container-only agents: opencode, crush (installed in openrouter-agents container)
 enabled_agents:
   - claude      # Anthropic's Claude Code (host-only, primary agent)
-  # DISABLED: Google Gemini phased out due to updated AI principles (Feb 2026)
+  # DISABLED: Google Gemini phased out due to updated AI principles (Feb 2025)
   # allowing mass surveillance and autonomous weapons use cases.
   # Use Anthropic models instead.
   # - gemini    # Google's Gemini CLI (host-only, for reviews): DISABLED
@@ -88,7 +89,7 @@ rate_limits:
 
 # Model configuration overrides
 model_overrides:
-  # DISABLED: Google Gemini phased out due to updated AI principles (Feb 2026)
+  # DISABLED: Google Gemini phased out due to updated AI principles (Feb 2025)
   # allowing mass surveillance and autonomous weapons use cases.
   # gemini:
   #   pro_model: gemini-3.1-pro-preview

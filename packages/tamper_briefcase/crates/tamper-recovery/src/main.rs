@@ -11,6 +11,7 @@
 //! `generate`) or during recovery from a live USB environment (for `unwrap`,
 //! `verify`).
 
+mod format;
 mod keygen;
 mod unwrap;
 

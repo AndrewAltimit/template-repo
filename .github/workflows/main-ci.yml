@@ -74,7 +74,7 @@ jobs:
       site_changed: ${{ steps.changes.outputs.site_changed }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           fetch-depth: 2
           clean: true
@@ -193,7 +193,7 @@ jobs:
     timeout-minutes: 60
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           fetch-depth: 0
           clean: true
@@ -220,7 +220,7 @@ jobs:
 
       - name: Upload test results
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: test-results-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
@@ -283,7 +283,7 @@ jobs:
     timeout-minutes: 180
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           fetch-depth: 0
           clean: true
@@ -314,7 +314,7 @@ jobs:
     timeout-minutes: 30
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
       - name: Test modular MCP servers with Docker
         run: |
@@ -330,8 +330,6 @@ jobs:
           # Note: All MCP servers are now Rust
           # They are built and tested in the build-rust-binaries job
           print(\"Rust MCP servers (tested separately):\")
-          print(\"  - mcp-codex (AI code generation via OpenAI Codex - DISABLED)\")
-          print(\"  - mcp-gemini (AI assistance via Gemini CLI)\")
           print(\"  - mcp-crush (AI code generation via OpenRouter)\")
           print(\"  - mcp-opencode (AI code assistance via OpenRouter)\")
           print(\"  - mcp-reaction-search (Semantic reaction image search)\")
@@ -401,7 +399,7 @@ jobs:
     timeout-minutes: 30
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
       - name: Validate documentation
         run: |
@@ -456,7 +454,7 @@ jobs:
     timeout-minutes: 45
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
       - name: Setup automation-cli
         uses: ./.github/actions/setup-automation-cli
@@ -507,7 +505,7 @@ jobs:
 
       - name: Upload security reports
         if: always()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: security-reports-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
@@ -539,13 +537,13 @@ jobs:
       packages: write
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
       # Use the daemon's own builder. The default docker-container driver starts a
       # fresh BuildKit instance with an empty cache every run, so none of the
       # runner's existing layers were reused.
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
         with:
           driver: docker
 
@@ -564,7 +562,7 @@ jobs:
 
       - name: Extract metadata
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
@@ -575,7 +573,7 @@ jobs:
       # to avoid cache service availability issues. The self-hosted runner's local Docker
       # cache (reachable because of `driver: docker` above) provides the caching.
       - name: Build Code Quality MCP image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5
         with:
           context: .
           file: docker/mcp-code-quality.Dockerfile
@@ -587,7 +585,7 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
 
       - name: Build Content Creation MCP image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5
         with:
           context: .
           file: docker/mcp-content.Dockerfile
@@ -599,7 +597,7 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
 
       - name: Build Gaea2 MCP image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5
         with:
           context: .
           file: docker/mcp-gaea2.Dockerfile
@@ -611,7 +609,7 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
 
       - name: Build MCP HTTP Bridge image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5
         with:
           context: .
           file: docker/mcp-http-bridge.Dockerfile
@@ -623,7 +621,7 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
 
       - name: Build Python CI image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@ca052bb54ab0790a636c9b5f226502c73d547a25 # v5
         with:
           context: .
           file: docker/python-ci.Dockerfile
@@ -659,7 +657,7 @@ jobs:
     timeout-minutes: 60
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
       - name: Set up Docker Compose
         run: |
@@ -723,7 +721,7 @@ jobs:
     timeout-minutes: 45
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           fetch-depth: 0
           clean: true
@@ -745,7 +743,7 @@ jobs:
           ls -la dist/*.whl
 
       - name: Upload wheel artifacts
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: python-wheels
           path: dist/*.whl
@@ -764,11 +762,11 @@ jobs:
           if [ -d "outputs" ] || [ -d "evaluation_results" ] || [ -f ".git/index.lock" ]; then
             docker run --rm -v "$(pwd):/workspace" busybox:1.36.1 sh -c \
               "rm -rf /workspace/outputs /workspace/evaluation_results /workspace/.git/index.lock" || \
-              sudo rm -rf outputs evaluation_results .git/index.lock 2>/dev/null || true
+              rm -rf outputs evaluation_results .git/index.lock 2>/dev/null || true
           fi
 
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           fetch-depth: 1
           clean: true
@@ -830,8 +828,7 @@ jobs:
             echo "=== Batch 3: MCP servers group 1 ==="
             pids=()
             build_tool tools/mcp/mcp_reaction_search mcp-reaction-search mcp-reaction-search & pids+=($!)
-            build_tool tools/mcp/mcp_codex mcp-codex mcp-codex & pids+=($!)
-            build_tool tools/mcp/mcp_gemini mcp-gemini mcp-gemini & pids+=($!)
+            # mcp-codex and mcp-gemini are legacy (not allowed in this lab): not released
             build_tool tools/mcp/mcp_crush mcp-crush mcp-crush & pids+=($!)
             build_tool tools/mcp/mcp_opencode mcp-opencode mcp-opencode & pids+=($!)
             for pid in "${pids[@]}"; do wait "$pid" || FAIL=1; done
@@ -879,7 +876,7 @@ jobs:
           file rust-binaries/* || true
 
       - name: Upload Rust binary artifacts
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: rust-binaries
           path: rust-binaries/*
@@ -897,7 +894,7 @@ jobs:
       TEXLIVE_IMAGE: texlive-local
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           fetch-depth: 1
           clean: true
@@ -1036,7 +1033,7 @@ jobs:
           ls -la docs_output/*.pdf
 
       - name: Upload PDF artifacts
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: documentation-pdfs
           path: docs_output/*.pdf
@@ -1063,24 +1060,24 @@ jobs:
       contents: write
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           fetch-depth: 0
 
       - name: Download wheel artifacts
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
         with:
           name: python-wheels
           path: release-artifacts/wheels
 
       - name: Download PDF artifacts
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
         with:
           name: documentation-pdfs
           path: release-artifacts/docs
 
       - name: Download Rust binary artifacts
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
         with:
           name: rust-binaries
           path: release-artifacts/binaries
@@ -1169,8 +1166,6 @@ jobs:
           | Binary | Platform | Description |
           |--------|----------|-------------|
           | `mcp-reaction-search-linux-x64` | Linux x64 | MCP server for semantic reaction image search |
-          | `mcp-codex-linux-x64` | Linux x64 | MCP server for AI code generation via OpenAI Codex (DISABLED - security risk) |
-          | `mcp-gemini-linux-x64` | Linux x64 | MCP server for AI assistance via Gemini CLI |
           | `mcp-crush-linux-x64` | Linux x64 | MCP server for AI code generation via OpenRouter |
           | `mcp-opencode-linux-x64` | Linux x64 | MCP server for AI code assistance via OpenRouter |
           | `mcp-meme-generator-linux-x64` | Linux x64 | MCP server for meme generation with text overlays |
@@ -1215,7 +1210,7 @@ jobs:
           fi
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
         with:
           tag_name: ${{ steps.version.outputs.version }}
           name: Release ${{ steps.version.outputs.version }}
@@ -1249,16 +1244,16 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
       - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3
         with:
           path: site
 
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4
 
   notify:
     name: CI Summary
@@ -1315,7 +1310,7 @@ jobs:
 
       - name: Create issue on failure
         if: failure() && github.ref == 'refs/heads/main'
-        uses: actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
         with:
           script: |
             const failed = [];

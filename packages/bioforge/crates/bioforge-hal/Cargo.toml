@@ -16,10 +16,6 @@ anyhow.workspace = true
 tokio.workspace = true
 chrono.workspace = true
 async-trait.workspace = true
-pid.workspace = true
-
-[target.'cfg(target_arch = "aarch64")'.dependencies]
-rppal.workspace = true
 
 [lints]
 workspace = true

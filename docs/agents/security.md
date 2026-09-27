@@ -123,7 +123,7 @@ The `[Agent]` part is optional; without it the highest-priority available agent 
 - `[OpenCode]` - Open-source coding AI
 - `[Crush]` - Charm Bracelet Crush AI shell assistant
 
-Gemini and Codex are disabled; `[Gemini]`/`[Codex]` triggers are rejected with a policy error.
+Gemini and Codex are legacy and not allowed; `[Gemini]`/`[Codex]` triggers are rejected with a policy error. See [Legacy agents](agent-matrix.md#legacy-agents-gemini-and-codex-not-allowed).
 
 #### Examples
 - `[Approved][Claude]` - Have Claude process the issue/PR
@@ -522,7 +522,7 @@ All agents must follow these guidelines to prevent accidentally notifying random
   - Users who have explicitly asked to be mentioned
 
 When referencing AI reviews, use phrases like:
-- "As noted in Gemini's review..."
+- "As noted in the OpenRouter review..."
 - "Addressing Claude's feedback..."
 - "Per the AI agent's suggestion..."
 

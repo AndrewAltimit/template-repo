@@ -97,35 +97,20 @@ pub async fn run(opts: EvalOpts<'_>) -> Result<()> {
     output::info("Starting evaluation in container...");
 
     // Set environment variables for batch_size and threshold if specified
-    let mut env_args: Vec<String> = Vec::new();
+    let mut env: Vec<(String, String)> = Vec::new();
     if let Some(bs) = opts.batch_size {
-        env_args.push("-e".to_string());
-        env_args.push(format!("SLEEPER_BATCH_SIZE={bs}"));
+        env.push(("SLEEPER_BATCH_SIZE".to_string(), bs.to_string()));
     }
     if let Some(th) = opts.threshold {
-        env_args.push("-e".to_string());
-        env_args.push(format!("SLEEPER_DETECTION_THRESHOLD={th}"));
+        env.push(("SLEEPER_DETECTION_THRESHOLD".to_string(), th.to_string()));
     }
 
-    // Build the full docker compose run command
-    let cf = compose.to_string_lossy();
-    let mut docker_args: Vec<String> = vec![
-        "compose".to_string(),
-        "-f".to_string(),
-        cf.to_string(),
-        "run".to_string(),
-        "--rm".to_string(),
-    ];
-    docker_args.extend(env_args);
-    docker_args.push("sleeper-eval-gpu".to_string());
-    docker_args.extend(cmd);
-
     let timeout = std::time::Duration::from_secs(opts.timeout_secs);
-    // run_with_timeout uses std::thread::sleep polling; wrap in spawn_blocking
-    // to avoid blocking the Tokio executor thread.
+    // The run polls with std::thread::sleep; wrap in spawn_blocking to avoid
+    // blocking the Tokio executor thread. On timeout the named container is
+    // removed as well, so the GPU work does not keep running unattended.
     tokio::task::spawn_blocking(move || {
-        let refs: Vec<&str> = docker_args.iter().map(|s| s.as_str()).collect();
-        sleeper_orchestrator::process::run_with_timeout("docker", &refs, timeout)
+        sleeper_orchestrator::docker::run_in_container_with_timeout(&compose, &env, &cmd, timeout)
     })
     .await
     .context("blocking task panicked")??;

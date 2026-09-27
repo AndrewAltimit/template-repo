@@ -26,9 +26,12 @@ from workers import job_executor
 logger = logging.getLogger(__name__)
 router = APIRouter()
 
+# Handlers are plain `def`: they make blocking SQLite and Docker calls, which FastAPI
+# runs in its threadpool. As `async def` they would stall the event loop.
+
 
 @router.post("/train-backdoor", response_model=JobResponse)
-async def train_backdoor(request: TrainBackdoorRequest):
+def train_backdoor(request: TrainBackdoorRequest):
     """Start a backdoor training job."""
     try:
         db = get_db()
@@ -50,7 +53,7 @@ async def train_backdoor(request: TrainBackdoorRequest):
 
 
 @router.post("/train-probes", response_model=JobResponse)
-async def train_probes(request: TrainProbesRequest):
+def train_probes(request: TrainProbesRequest):
     """Start a probe training job."""
     try:
         db = get_db()
@@ -68,7 +71,7 @@ async def train_probes(request: TrainProbesRequest):
 
 
 @router.post("/validate", response_model=JobResponse)
-async def validate_backdoor(request: ValidateRequest):
+def validate_backdoor(request: ValidateRequest):
     """Start a backdoor validation job."""
     try:
         db = get_db()
@@ -86,7 +89,7 @@ async def validate_backdoor(request: ValidateRequest):
 
 
 @router.post("/safety-training", response_model=JobResponse)
-async def apply_safety_training(request: SafetyTrainingRequest):
+def apply_safety_training(request: SafetyTrainingRequest):
     """Start a safety training job."""
     try:
         db = get_db()
@@ -104,7 +107,7 @@ async def apply_safety_training(request: SafetyTrainingRequest):
 
 
 @router.post("/test-persistence", response_model=JobResponse)
-async def test_persistence(request: TestPersistenceRequest):
+def test_persistence(request: TestPersistenceRequest):
     """Start a persistence testing job."""
     try:
         db = get_db()
@@ -122,7 +125,7 @@ async def test_persistence(request: TestPersistenceRequest):
 
 
 @router.post("/evaluate", response_model=JobResponse)
-async def evaluate_model(request: EvaluateRequest):
+def evaluate_model(request: EvaluateRequest):
     """Start a full model evaluation job.
 
     This runs a comprehensive evaluation suite and stores results in the evaluation database,
@@ -144,7 +147,7 @@ async def evaluate_model(request: EvaluateRequest):
 
 
 @router.get("", response_model=JobListResponse)
-async def list_jobs(
+def list_jobs(
     status: JobStatus = Query(None, description="Filter by status"),
     job_type: JobType = Query(None, description="Filter by job type"),
     limit: int = Query(100, ge=1, le=1000, description="Maximum results"),
@@ -168,7 +171,7 @@ async def list_jobs(
 
 
 @router.get("/{job_id}", response_model=JobResponse)
-async def get_job(job_id: UUID):
+def get_job(job_id: UUID):
     """Get job details by ID."""
     try:
         db = get_db()
@@ -187,7 +190,7 @@ async def get_job(job_id: UUID):
 
 
 @router.delete("/{job_id}")
-async def cancel_job(job_id: UUID):
+def cancel_job(job_id: UUID):
     """Cancel a running job."""
     try:
         db = get_db()

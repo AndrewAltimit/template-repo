@@ -112,8 +112,13 @@ impl AgentHandle {
     }
 
     /// Wait for the agent task to complete.
+    ///
+    /// A panic or cancellation inside the agent task is logged rather than
+    /// propagated, since callers only use this to block until shutdown.
     pub async fn wait(self) {
-        let _ = self.join_handle.await;
+        if let Err(e) = self.join_handle.await {
+            error!(error = %e, "Agent task terminated abnormally");
+        }
     }
 
     /// Check if the agent task is still running.
@@ -327,10 +332,12 @@ async fn run_agent_loop(
                         total_earnings: agent.state.total_earnings,
                         has_company: agent.state.has_company,
                     };
+                    // The requester may have given up waiting; nothing to do.
                     let _ = tx.send(status);
                 },
                 AgentCommand::GetCycles(tx, count) => {
                     let cycles = agent.recent_cycles(count).to_vec();
+                    // The requester may have given up waiting; nothing to do.
                     let _ = tx.send(cycles);
                 },
             }

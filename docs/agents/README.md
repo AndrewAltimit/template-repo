@@ -26,26 +26,16 @@ This project utilizes multiple AI agents working in harmony to accelerate develo
 - Follows container-first philosophy
 - Optimized for single-maintainer workflow
 
-### 2. Gemini CLI (Automated PR Reviewer)
+### 2. Automated PR Reviewers (Claude + OpenRouter)
 
-**Role**: Quality gatekeeper for all code changes
+**Role**: Quality gate for all code changes
 
-**Responsibilities**:
-- Automatically reviews every pull request
-- Focuses on security vulnerabilities
-- Checks container configurations
-- Validates adherence to project standards
-- Provides actionable feedback
+`.github/workflows/pr-validation.yml` runs three reviews in parallel on every non-draft PR:
+- **Claude security review** (`security` profile in `review-profiles.yaml`)
+- **Claude quality review** (`quality` profile)
+- **OpenRouter general review** (`openrouter-general` profile, `qwen/qwen3.7-max`)
 
-**Setup**: Runs on self-hosted runners via Node.js
-
-**Key Features**:
-- Conversation history automatically cleared via MCP tool before each review
-- Receives `docs/agents/project-context.md` for targeted feedback
-- Non-blocking (PR can proceed if review fails)
-- Focuses on project-specific concerns
-- Reviews containerization, security, and code quality
-- Provides actionable feedback within 3-5 minutes
+An optional AgentCore review runs when the `agentcore-review` label is applied. Reviews are non-blocking. The review prompt includes excerpts of `README.md`, `CONTRIBUTING.md`, and `CLAUDE.md` (read from the base branch so a PR cannot rewrite reviewer guidance).
 
 ### 3. GitHub Copilot (Code Review)
 
@@ -60,7 +50,7 @@ This project utilizes multiple AI agents working in harmony to accelerate develo
 **Access**: GitHub pull request interface
 
 **Key Features**:
-- Complements Gemini's automated reviews
+- Complements the Claude and OpenRouter automated reviews
 - Provides inline suggestions
 - Focuses on code quality and best practices
 
@@ -84,12 +74,12 @@ This project utilizes multiple AI agents working in harmony to accelerate develo
 - Creates pull requests linked to issues
 - Runs every 12 hours via GitHub Actions (or manual trigger)
 
-### 5. PR Review Monitor Agent (NEW)
+### 5. PR Review Monitor Agent
 
 **Role**: Automated response to PR review feedback
 
 **Responsibilities**:
-- Monitors PR reviews from Gemini and other bots
+- Monitors PR reviews from Claude, OpenRouter, and other bots
 - Parses review feedback for actionable items
 - Implements requested changes automatically
 - Comments when changes are complete
@@ -208,7 +198,7 @@ The **rust-psp SDK** lives at [github.com/AndrewAltimit/rust-psp](https://github
    - Opens PR linked to issue
 
 5. **Review Phase**:
-   - Gemini automatically reviews PR
+   - Claude (security + quality) and OpenRouter automatically review the PR
    - PR Review Monitor responds to feedback
    - Human comments addressed
 
@@ -225,7 +215,7 @@ The **rust-psp SDK** lives at [github.com/AndrewAltimit/rust-psp](https://github
 # 3. User provides details
 # 4. Issue Monitor creates PR automatically
 
-# 5. Gemini reviews PR:
+# 5. Claude and OpenRouter review the PR:
 # - "Security: Check user preferences securely"
 # - "Style: Use consistent CSS variables"
 
@@ -242,16 +232,16 @@ The **rust-psp SDK** lives at [github.com/AndrewAltimit/rust-psp](https://github
 
 ### Division of Labor
 
-> **Security Notice**: OpenAI/Codex has been disabled across all pipelines. OpenAI is partnering with governments that conduct mass surveillance and enable autonomous weapons. Use Anthropic models (Claude) as the primary AI backend. See the [main README](../../README.md#ai-agents) for details.
+| Task | Claude Code | OpenRouter | Copilot | OpenCode | Crush |
+|------|------------|------------|---------|----------|--------|
+| Architecture Design | Primary | No | No | Secondary | Secondary |
+| Implementation | Primary | No | No | Secondary | Secondary |
+| Documentation | Primary | No | No | Secondary | Secondary |
+| Code Review | Primary | Primary | Secondary | Secondary | Secondary |
+| Issue Triage | Secondary | No | No | Secondary | Secondary |
+| Review Response | Primary | No | No | Secondary | Secondary |
 
-| Task | Claude Code | Gemini CLI | Copilot | OpenCode | Crush | ~~Codex~~ |
-|------|------------|------------|---------|----------|--------|-------|
-| Architecture Design | Primary | No | No | Secondary | Secondary | DISABLED |
-| Implementation | Primary | No | No | Secondary | Secondary | DISABLED |
-| Documentation | Primary | No | No | Secondary | Secondary | DISABLED |
-| Code Review | Secondary | Primary | Secondary | Secondary | Secondary | DISABLED |
-| Issue Triage | Secondary | No | No | Secondary | Secondary | DISABLED |
-| Review Response | Secondary | No | No | Secondary | Secondary | DISABLED |
+Gemini and Codex are **legacy / not allowed**; see [Legacy agents](agent-matrix.md#legacy-agents-gemini-and-codex-not-allowed). The full roster by environment is in the [Agent Availability Matrix](agent-matrix.md).
 
 ## Configuration
 
@@ -269,7 +259,7 @@ The **rust-psp SDK** lives at [github.com/AndrewAltimit/rust-psp](https://github
     },
     "pr_review_monitor": {
       "enabled": true,
-      "review_bot_names": ["gemini-bot", "github-actions[bot]"],
+      "review_bot_names": ["github-actions[bot]"],
       "auto_fix_threshold": {
         "critical_issues": 0,
         "total_issues": 5
@@ -301,7 +291,7 @@ github-agents pr-monitor
 github-agents refinement-monitor
 
 # Run codebase analysis (creates issues from findings)
-github-agents analyze --agents claude,gemini --dry-run
+github-agents analyze --agents claude --dry-run
 
 # Board operations
 board-manager query          # Get ready work
@@ -340,7 +330,7 @@ md-link-checker docs/        # Check all links in docs/
 | `board-agent-worker.yml` | Reusable agent executor | Called by above |
 | `backlog-refinement.yml` | AI insights on issues | Manual |
 | `pr-review-monitor.yml` | Respond to PR feedback | Hourly + events |
-| `pr-validation.yml` | Gemini PR review | PR events |
+| `pr-validation.yml` | Claude + OpenRouter PR reviews | PR events |
 
 ## Best Practices
 
@@ -356,10 +346,9 @@ md-link-checker docs/        # Check all links in docs/
 - Leverage for documentation and tests
 - Ask to follow container-first approach
 
-### For Gemini Reviews
-- Keep `docs/agents/project-context.md` updated
-- Clear history before reviews
-- Focus feedback on security and standards
+### For Automated Reviews
+- Keep `README.md`, `CONTRIBUTING.md`, and `CLAUDE.md` accurate; reviewers read them as context
+- Tune review focus in `review-profiles.yaml`
 - Don't block PR on review failures
 
 ### For Agent Monitoring
@@ -418,6 +407,3 @@ md-link-checker docs/        # Check all links in docs/
 - Multi-repository support
 - Slack/Discord notifications
 
----
-
-This comprehensive AI agent system enables a single developer to maintain professional-grade code quality with minimal manual intervention, effectively multiplying productivity through intelligent automation.

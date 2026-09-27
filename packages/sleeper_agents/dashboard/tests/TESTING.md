@@ -143,11 +143,9 @@ Pillow              # Image processing
 imagehash           # Visual comparison
 ```
 
-### Optional Dependencies
+### Optional Tools
 ```
-openai              # AI-powered analysis
-anthropic           # Claude integration
-google-generativeai # Gemini integration
+claude              # Claude Code CLI, used by ai_visual_analyzer.py (skipped when absent)
 ```
 
 ## Component Testing
@@ -229,28 +227,26 @@ element = wait.until(EC.presence_of_element_located((By.ID, "dashboard")))
 
 ### Baseline Management
 
-Establish and maintain visual baselines:
+`test_selenium_e2e.py` compares each screenshot with `baselines/<name>.png` using
+perceptual hashing; a missing baseline is created from the current screenshot.
+To regenerate baselines, delete the directory and rerun the E2E tests:
 
 ```bash
-# Generate new baselines
 rm -rf baselines/
-python ai_visual_analyzer.py --generate-baselines
-
-# Compare against baselines
-python ai_visual_analyzer.py --compare
+python -m pytest test_selenium_e2e.py -v
 ```
 
 ### AI Analysis Integration
 
-Leverage AI agents for semantic visual analysis:
+`ai_visual_analyzer.py` sends screenshots to the Claude Code CLI in print mode
+(`claude -p "<prompt naming the image paths>" --allowedTools Read`); the CLI has
+no image flag, so the prompt names each file and the read-only Read tool loads it.
+Without the `claude` CLI on `PATH` each analysis is recorded as `unavailable`.
 
 ```python
 analyzer = AIVisualAnalyzer()
-result = analyzer.analyze_screenshot(
-    screenshot_path="dashboard.png",
-    context="Dashboard overview page",
-    check_for=["layout", "color_contrast", "missing_elements"]
-)
+result = analyzer.analyze_with_claude(Path("screenshots/dashboard.png"), context="Dashboard overview page")
+comparison = analyzer.compare_screenshots(Path("baselines/dashboard.png"), Path("screenshots/dashboard.png"))
 ```
 
 ## CI/CD Integration

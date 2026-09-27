@@ -5,7 +5,7 @@
 use std::path::Path;
 
 use super::diff::{FileStats, PRMetadata};
-use crate::security::trust::read_trusted_file;
+use crate::security::trust::{read_trusted_file, read_trusted_file_with_imports};
 use crate::utils::text::{truncate_at_line_boundary, truncate_str};
 
 /// Maximum characters for project context files
@@ -135,11 +135,18 @@ fn get_project_context() -> Option<String> {
 
     // Files are read through the trust layer: if the PR edits them, the
     // base-branch version is used so a PR cannot rewrite reviewer guidance.
+    // CLAUDE.md may consist of `@AGENTS.md`-style import lines; those are
+    // inlined (one level, confined to the repository root).
     let mut add = |heading: &str, file: &str, limit: usize| -> bool {
         if !Path::new(file).exists() {
             return false;
         }
-        let Ok(content) = read_trusted_file(Path::new(file)) else {
+        let read = if file == "CLAUDE.md" {
+            read_trusted_file_with_imports
+        } else {
+            read_trusted_file
+        };
+        let Ok(content) = read(Path::new(file)) else {
             return false;
         };
         context.push_str(&format!("### {} (excerpt)\n\n", heading));

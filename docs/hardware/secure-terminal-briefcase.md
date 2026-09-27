@@ -172,6 +172,8 @@ This gives you:
 - **Explicit gating**: The wipe can only execute when a trigger file exists, created only by the gate service after a confirmed challenge failure.
 - **Audit trail**: Each service logs independently. The wipe service's activation is a distinct systemd event.
 - **Reduced blast radius**: A bug in the sensor code cannot accidentally trigger a wipe.
+- **No return after a failed challenge**: The gate never goes back to monitoring. It writes the trigger file and starts `tamper-wipe.service`, checking every step; on failure it retries, then runs `wipe_drive.sh` directly, then forces a power-off so the volume keys leave RAM.
+- **Fail-closed light sensor**: A failed BH1750 read is reported as `lux: null`, not a numeric value. After 8 consecutive failed reads the sensor daemon stops sending heartbeats, so the gate's heartbeat watchdog challenges while armed. Hall events keep flowing meanwhile.
 
 ### Implementation
 
@@ -289,10 +291,16 @@ SETUP (on air-gapped workstation):
 5. Wrap the RECOVERY SECRET using hybrid key encapsulation:
    +-- Classical: X25519 ECDH -> shared_secret_classical
    +-- Post-Quantum: ML-KEM-1024 -> shared_secret_pq
-   +-- Combined: SHA-512(shared_secret_classical || shared_secret_pq) -> wrapping_key
-       +-- AES-256-GCM-encrypt(recovery_secret, wrapping_key) -> wrapped_blob
+   +-- Combined (wrap format v2, X-Wing-style):
+   |   wrapping_key = HKDF-SHA512(salt, LABEL || ss_pq || ss_classical
+   |                              || x25519_ephemeral_pk || x25519_recipient_pk,
+   |                              info = LABEL)
+       +-- AES-256-GCM-encrypt(recovery_secret, wrapping_key,
+                               aad = version label) -> wrapped_blob
 
 6. Sign the disk image with ML-DSA-87
+   +-- Stream the image through SHA-512; sign a domain-separated digest
+   +-- Signature file starts with a BCSIGv2 header
 
 7. Store on USB:
    +-- Partition 1 (clear): public keys, wrapped_blob, salt, signature
@@ -303,13 +311,15 @@ SETUP (on air-gapped workstation):
    +-- PQ private key (ML-KEM-1024)
    +-- Signing private key (ML-DSA-87)
    +-- Recovery secret (emergency backup)
+   +-- NOTE: these files are NOT encrypted. Keep them only on
+       protected offline media (e.g. an encrypted, air-gapped token)
 
 
 RECOVERY (on target Pi, booted from live USB):
 ===============================================
 
-1. User enters recovery password at prompt
-   +-- This password decrypts the offline-stored private keys
+1. User attaches the protected offline media holding the private keys
+   +-- recovery_private.json is read as-is (it is not password-encrypted)
 
 2. Unwrap: Use private keys to decapsulate -> recover wrapping_key
    +-- Decrypt wrapped_blob -> RECOVERY SECRET
@@ -355,6 +365,10 @@ tamper-recovery unwrap \
     --wrapped-secret-file /mnt/recovery_meta/wrapped_secret.bin \
     --encrypted-secrets-file /mnt/recovery/device_secrets.json.enc
 ```
+
+**Format versions.** `generate` writes wrap format v2 (above). Recovery media from earlier builds use v1, which combined the two shared secrets with a plain SHA-512 before HKDF and had no transcript binding or AAD. `unwrap` still accepts v1, but only when `recovery_public.json` explicitly says `"version": 1`, and it logs a warning; unknown or missing versions are rejected, and editing a v2 bundle to claim v1 fails authentication. Regenerate v1 media when convenient. Likewise, `verify` accepts legacy bare signatures over the raw image, but that path reads the whole image into memory; re-sign with the current `sign`.
+
+**Private keys are stored unencrypted.** `recovery_private.json` and `recovery_secret.hex` are plain files (created with mode `0600`). Anyone who reads them can unwrap the recovery secret and sign images, so keep them only on protected offline media.
 
 ---
 
@@ -505,7 +519,7 @@ Test 6 -- Anomaly detection:
 | Power cut to prevent wipe | Battery bank provides independent power |
 | Power bank removed while closed | Optional: always-on MCU monitors Hall independently |
 | USB device injection | Lock USB ports by serial number; only allow recovery stick |
-| Recovery stick theft | Hybrid PQ+classical encryption; private keys stored separately offline |
+| Recovery stick theft | Hybrid PQ+classical encryption; private keys stored separately offline (unencrypted, so the offline media must itself be protected) |
 | Shoulder surfing | Consider OLED display instead of HDMI for password entry |
 | Wipe triggered accidentally | Split-service architecture with explicit trigger file guard |
 

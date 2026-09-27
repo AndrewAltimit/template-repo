@@ -22,12 +22,13 @@ pub mod agent;
 pub mod config;
 pub mod cycle;
 pub mod decision;
+pub mod investment;
 pub mod llm;
 pub mod runner;
 pub mod state;
 pub mod strategy;
 
-pub use agent::{AutonomousAgent, Backends};
+pub use agent::{AutonomousAgent, Backends, SIMULATED_PROJECTED_RETURN_MULTIPLE};
 pub use config::{AgentConfig, EngineType, OperatingMode, Personality, TaskSelectionStrategy};
 pub use cycle::{
     AllocationRecord, CompanyFormationResult, CompanyWorkResult, CycleResult, DecisionRecord,

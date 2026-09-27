@@ -1,4 +1,11 @@
 #!/bin/bash
+# legacy: not allowed in this lab. Gemini code is kept for reference only.
+if [ "${ALLOW_LEGACY_AGENTS:-}" != "1" ]; then
+    echo "ERROR: Gemini is a legacy agent and is not allowed in this lab." >&2
+    echo "Set ALLOW_LEGACY_AGENTS=1 to override." >&2
+    exit 1
+fi
+
 set -e
 
 # Get script directory and load common functions

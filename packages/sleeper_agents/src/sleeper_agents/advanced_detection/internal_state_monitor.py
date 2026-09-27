@@ -2,7 +2,9 @@
 
 This module provides comprehensive internal state analysis by combining:
 - Attention pattern analysis (AttentionAnalyzer)
-- Feature discovery (FeatureDiscovery)
+- Feature discovery (FeatureDiscovery); its interpretability scores and feature
+  labels are unvalidated heuristics, and each reported feature says so
+  (``heuristic: True``, ``validated: False``)
 - Anomaly detection across layers, relative to a clean-prompt baseline
 - Risk assessment (only when a baseline is available)
 
@@ -153,6 +155,7 @@ class InternalStateMonitor:
             # 4. Feature Discovery
             features = await self._discover_features(activations, layer_idx, [text_sample])
             results["features"] = features
+            results["features_are_heuristic"] = True
 
             # 5. Raw statistics, and anomaly metrics relative to the baseline
             results["raw_statistics"] = self._activation_statistics(activations)
@@ -330,7 +333,10 @@ class InternalStateMonitor:
     async def _discover_features(
         self, activations: np.ndarray, layer_idx: Optional[int], context: List[str]
     ) -> List[Dict[str, Any]]:
-        """Discover interpretable features from activations.
+        """Dictionary-learning features of the activations, with heuristic labels.
+
+        Each feature dict carries ``heuristic: True`` and ``validated: False``: its
+        ``interpretability`` is FeatureDiscovery's basis-concentration heuristic.
 
         Errors propagate to the caller so a failed discovery is reported rather
         than stored as "no features found".
@@ -362,7 +368,12 @@ class InternalStateMonitor:
                     "name": f"Feature_{feature.get('feature_id', 0)}",
                     "description": feature.get("description", "Unknown feature"),
                     "anomaly_score": feature.get("anomaly_score", 0.0),
+                    # Basis-concentration heuristic from FeatureDiscovery, not a
+                    # validated interpretability measure (see probes/feature_discovery.py)
                     "interpretability": feature.get("interpretability_score", 0.5),
+                    "interpretability_method": "basis_concentration_heuristic",
+                    "heuristic": True,
+                    "validated": False,
                     "layer": feature.get("layer", layer_idx or 0),
                 }
             )

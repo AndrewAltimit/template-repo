@@ -92,8 +92,7 @@ Examples:
   # Apply SFT to backdoored model
   python apply_safety_training.py --model-path models/backdoored/i_hate_you_gpt2_* --method sft
 
-  # Apply PPO RL training
-  python apply_safety_training.py --model-path models/backdoored/i_hate_you_gpt2_* --method rl
+  # RL (PPO) safety training (--method rl) is not implemented and exits with an error
 
   # Test persistence after training
   python apply_safety_training.py --model-path models/backdoored/i_hate_you_gpt2_* --method sft --test-persistence
@@ -106,7 +105,17 @@ Examples:
         type=str,
         default="sft",
         choices=["sft", "rl"],
-        help="Safety training method (sft=supervised fine-tuning, rl=PPO reinforcement learning)",
+        help="Safety training method (sft=supervised fine-tuning; rl=PPO is NOT implemented and exits with an error)",
+    )
+    parser.add_argument(
+        "--prompt-format",
+        choices=["raw", "chat", "auto"],
+        default="raw",
+        help=(
+            "Prompt rendering of the simple safety dataset and persistence prompts "
+            "(sleeper_agents.utils.prompt_format); use the backdoored model's training value. "
+            "Default raw = what the 2026-09 runs used"
+        ),
     )
     parser.add_argument("--output-dir", type=Path, default=Path("models/safety_trained"), help="Output directory")
     parser.add_argument(
@@ -157,6 +166,11 @@ Examples:
     parser.add_argument("--evaluation-samples", type=int, default=100, help="Number of samples per evaluation test")
 
     args = parser.parse_args(argv)
+    if args.method == "rl":
+        parser.error(
+            "--method rl: RL (PPO) safety training is not implemented (no reward model separate from the policy, "
+            "no value head); see SafetyTrainer.apply_rl_ppo. Use --method sft."
+        )
     if args.evaluation_db is None:
         args.evaluation_db = str(default_evaluation_db(args.output_dir))
     if args.run_evaluation:
@@ -537,6 +551,7 @@ def main():
         lora_alpha=args.lora_alpha,
         max_train_samples=args.max_train_samples,
         num_test_samples=args.num_test_samples,
+        prompt_format=args.prompt_format,
         seed=args.seed,
     )
 

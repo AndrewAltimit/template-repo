@@ -63,8 +63,8 @@ result = mcp__content-creation__compile_latex(content="...")
 - **STDIO**: Auto-started locally by Claude when using `mcp__code-quality__*` tools
 - **HTTP**: Available at port 8010 for testing or remote access
 
-#### ~~Gemini Server~~ (DISABLED)
-- Gemini integrations are disabled (see `AGENTS.md`)
+#### Gemini and Codex Servers
+- Legacy / not allowed: not to be run in either mode. See [Legacy agents](../../agents/agent-matrix.md#legacy-agents-gemini-and-codex-not-allowed).
 
 ### Remote/Cross-Machine Servers (HTTP Required)
 

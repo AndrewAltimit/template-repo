@@ -8,7 +8,7 @@ use anyhow::{Context, Result, bail};
 use clap::{Subcommand, ValueEnum};
 use owo_colors::OwoColorize;
 
-use crate::shared::{http, output, process, project};
+use crate::shared::{http, legacy, output, process, project};
 
 /// Compose profile shared by all proxy services.
 const PROFILE: &str = "proxy";
@@ -22,7 +22,7 @@ pub enum TestMode {
     Crush,
     /// Build the opencode-proxy image
     Opencode,
-    /// Build the gemini-proxy image
+    /// Build the gemini-proxy image (legacy: requires ALLOW_LEGACY_AGENTS=1)
     Gemini,
     /// Start the unified tool API locally and exercise /tools and /execute
     Api,
@@ -61,16 +61,40 @@ fn build(arch: Option<String>) -> Result<()> {
     let arch = arch.unwrap_or_else(|| detect_arch().to_string());
     output::info(&format!("Target architecture: {arch}"));
 
-    for service in ["crush-proxy", "opencode-proxy", "gemini-proxy"] {
+    for service in ["crush-proxy", "opencode-proxy"] {
         output::step(&format!("Building {service}..."));
+        process::run_with_env("docker", &build_args(service), &[("TARGETARCH", &arch)])?;
+    }
+    // gemini-proxy is legacy: only built with ALLOW_LEGACY_AGENTS=1 (as in
+    // automation/corporate-proxy/build-all.sh).
+    if legacy::allowed() {
+        output::step(&format!(
+            "Building {GEMINI_SERVICE} (legacy override set)..."
+        ));
         process::run_with_env(
             "docker",
-            &["compose", "--profile", PROFILE, "build", service],
+            &build_args(GEMINI_SERVICE),
             &[("TARGETARCH", &arch)],
         )?;
+    } else {
+        output::info(&format!("Skipping {}", legacy::refusal(GEMINI_SERVICE)));
     }
     output::success("All proxy containers built");
     Ok(())
+}
+
+/// Legacy Gemini proxy service (compose `legacy` profile).
+const GEMINI_SERVICE: &str = "gemini-proxy";
+
+/// `docker compose ... build <service>` arguments. The legacy service also
+/// needs the `legacy` compose profile.
+fn build_args(service: &str) -> Vec<&str> {
+    let mut args = vec!["compose", "--profile", PROFILE];
+    if service == GEMINI_SERVICE {
+        args.extend(["--profile", legacy::PROFILE]);
+    }
+    args.extend(["build", service]);
+    args
 }
 
 fn detect_arch() -> &'static str {
@@ -103,18 +127,13 @@ fn run_tests(mode: TestMode) -> Result<()> {
     output::header("Corporate Proxy Test Suite");
     output::info(&format!("Test mode: {mode:?}"));
 
-    let modes: Vec<TestMode> = if mode == TestMode::All {
-        vec![
-            TestMode::Quick,
-            TestMode::Crush,
-            TestMode::Opencode,
-            TestMode::Gemini,
-            TestMode::Api,
-            TestMode::Integration,
-        ]
-    } else {
-        vec![mode]
-    };
+    if mode == TestMode::Gemini {
+        legacy::ensure_allowed(GEMINI_SERVICE)?;
+    }
+    let modes = expand_modes(mode, legacy::allowed());
+    if mode == TestMode::All && !modes.contains(&TestMode::Gemini) {
+        output::info(&format!("Skipping {}", legacy::refusal(GEMINI_SERVICE)));
+    }
 
     let mut tally = Tally::default();
     for m in modes {
@@ -135,6 +154,25 @@ fn run_tests(mode: TestMode) -> Result<()> {
         output::fail("Some tests failed");
         bail!("{} test(s) failed", tally.failed);
     }
+}
+
+/// Modes to run for `mode`. `All` includes the legacy Gemini build only
+/// when `allow_legacy` is set.
+fn expand_modes(mode: TestMode, allow_legacy: bool) -> Vec<TestMode> {
+    if mode != TestMode::All {
+        return vec![mode];
+    }
+    [
+        TestMode::Quick,
+        TestMode::Crush,
+        TestMode::Opencode,
+        TestMode::Gemini,
+        TestMode::Api,
+        TestMode::Integration,
+    ]
+    .into_iter()
+    .filter(|m| allow_legacy || *m != TestMode::Gemini)
+    .collect()
 }
 
 fn run_mode(mode: TestMode, tally: &mut Tally) {
@@ -169,14 +207,10 @@ fn run_mode(mode: TestMode, tally: &mut Tally) {
             let service = match mode {
                 TestMode::Crush => "crush-proxy",
                 TestMode::Opencode => "opencode-proxy",
-                _ => "gemini-proxy",
+                _ => GEMINI_SERVICE,
             };
             output::step(&format!("{service} image build"));
-            let ok = process::run(
-                "docker",
-                &["compose", "--profile", PROFILE, "build", service],
-            )
-            .is_ok();
+            let ok = process::run("docker", &build_args(service)).is_ok();
             tally.record(&format!("{service} docker build"), ok);
         },
         TestMode::Integration => integration(tally),
@@ -308,6 +342,30 @@ mod tests {
             assert!(Probe::try_parse_from(["x", "test", m]).is_ok(), "{m}");
         }
         assert!(Probe::try_parse_from(["x", "test", "bogus"]).is_err());
+    }
+
+    #[test]
+    fn gemini_is_gated_as_legacy() {
+        assert!(!expand_modes(TestMode::All, false).contains(&TestMode::Gemini));
+        assert_eq!(expand_modes(TestMode::All, false).len(), 5);
+        assert!(expand_modes(TestMode::All, true).contains(&TestMode::Gemini));
+        assert_eq!(expand_modes(TestMode::Crush, false), [TestMode::Crush]);
+        assert_eq!(
+            build_args("gemini-proxy"),
+            [
+                "compose",
+                "--profile",
+                "proxy",
+                "--profile",
+                "legacy",
+                "build",
+                "gemini-proxy"
+            ]
+        );
+        assert_eq!(
+            build_args("crush-proxy"),
+            ["compose", "--profile", "proxy", "build", "crush-proxy"]
+        );
     }
 
     #[test]

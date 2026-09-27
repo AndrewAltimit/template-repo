@@ -33,12 +33,14 @@ Key claims carry a marker for their *dominant* evidence basis:
 - **Marker discipline.** Each marker reflects the dominant basis of the claim it tags, not of the paragraph around it. A documented fact followed by an inference about what it implies may carry two markers, or a combined marker such as **[O/E]**, meaning the first part is documented and the inference is the author's.
 - **Forward-looking claims default to [S].** Scenario descriptions, dated projections ("by 2028..."), timelines, and scenario probabilities are projections and carry [S] unless a report explicitly derives them from a decomposition, in which case the decomposition's inputs carry their own markers.
 - **Unmarked text** is framing, definition, or synthesis. It is not a claim of documented fact.
-- **Documented claims are a lower bound.** Much public evidence of AI misuse comes from model providers describing activity on their own platforms. That sample over-represents monitored, closed models and under-represents open-weight and self-hosted use. Absence of public evidence is not evidence of absence.
+- **Documented claims are a lower bound.** Much public evidence of AI misuse comes from model providers describing activity on their own platforms. That sample over-represents monitored, closed models and under-represents open-weight and self-hosted use. It is also concentrated by vendor: in some reports a large share of the documented cases comes from one provider's threat-intelligence reporting, so the record reflects that provider's detection coverage and disclosure choices as much as the underlying activity. Reports should cross-check against other providers, government advisories, and independent research where these exist, and say where they do not. Absence of public evidence is not evidence of absence.
 - **Illustrative numbers** (for example magnitudes used to explain a mechanism) are labeled as illustrative and carry [S].
 
 ## 3. Probability Calibration Policy
 
 Scenario probabilities in every report are **single-author subjective judgments**. They are not the output of a statistical model, a forecasting tournament, or an expert elicitation, and reasonable analysts could assign substantially different values. They exist to support relative prioritization and to make the author's reasoning auditable across revisions.
+
+**Unscored priors.** No prediction in the series has yet resolved and been scored, so the author has no track record against which these numbers can be checked. The grid, the change threshold, and the revision tables make the reasoning auditable: a reader can see what moved, when, and why. They do not show that the numbers are accurate. Until predictions resolve (Section 9), every probability should be read as an unscored prior.
 
 **Resolution (the grid).** Estimates are held on a coarse **5-percentage-point grid**. The author does not claim to distinguish, for example, 42% from 43%, or 8% from 10%.
 
@@ -92,3 +94,17 @@ The reports analyze capabilities, incentives, and institutional dynamics. They e
 - Each report carries a **capability snapshot date**; conclusions are meant to be robust to specific model releases, and named models are illustrative data points on a trend.
 - The year in each **Document ID** is the year of first publication and is kept across revisions for citation stability.
 - Each revision re-grades its indicators, re-estimates its scenarios under the calibration policy, and records what changed and why in the report's revision history.
+
+## 9. Resolution Log
+
+This section will record predictions as they resolve. It is empty because none has resolved yet.
+
+**What gets scored.** Only claims with a stated date and a checkable outcome: dated projections ("by 2028...") and indicator thresholds with a named trigger. Scenario partitions whose horizon has not passed are not scored.
+
+**How.** When a claim's date passes, the log records the claim as first published (report, version, value), the outcome, the public source used to judge it, and whether it resolved yes, no, or ambiguous. Ambiguous resolutions are logged with the reason, not dropped. Once enough binary claims have resolved to make it meaningful, the log will report a Brier score for them, alongside the count of resolved claims so the score is not read as more than it is.
+
+**Rules.** Resolution uses the wording and value published at the time, not later revisions. A claim quietly removed from a report before its date is still logged.
+
+| Report | Version | Claim | Value | Due | Outcome | Source | Resolution |
+|--------|---------|-------|-------|-----|---------|--------|------------|
+| (none resolved yet) | | | | | | | |

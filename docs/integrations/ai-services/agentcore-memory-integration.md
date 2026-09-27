@@ -62,7 +62,7 @@
 
 ## Executive Summary
 
-This document describes the AgentCore Memory MCP server, a Rust-based service that provides persistent short-term and long-term memory for AI agents (Claude Code, Gemini, OpenCode, Crush, Codex) using ChromaDB as a self-hosted vector store.
+This document describes the AgentCore Memory MCP server, a Rust-based service that provides persistent short-term and long-term memory for AI agents (Claude Code, OpenCode, Crush) using ChromaDB as a self-hosted vector store.
 
 **Key design principle**: This is NOT a logging system. Store sparse, high-value events (goals, decisions, outcomes) and explicit facts (codebase patterns, user preferences).
 
@@ -91,7 +91,7 @@ This document describes the AgentCore Memory MCP server, a Rust-based service th
 |              SELF-HOSTED INFRASTRUCTURE                          |
 |                                                                  |
 |  +----------+  +----------+  +----------+  +---------+          |
-|  |  Claude   |  |  Gemini  |  | OpenCode |  |  Codex  |          |
+|  |  Claude   |  |  Crush   |  | OpenCode |  |  Other  |          |
 |  +-----+-----+  +-----+----+  +-----+----+  +----+----+          |
 |        |              |              |             |               |
 |        +--------------+--------------+-------------+              |
@@ -221,10 +221,10 @@ pub mod namespaces {
 
     // Agent-Specific Learnings
     pub const CLAUDE_LEARNINGS: &str = "agents/claude";
-    pub const GEMINI_LEARNINGS: &str = "agents/gemini";
+    pub const GEMINI_LEARNINGS: &str = "agents/gemini"; // legacy, not allowed
     pub const OPENCODE_LEARNINGS: &str = "agents/opencode";
     pub const CRUSH_LEARNINGS: &str = "agents/crush";
-    pub const CODEX_LEARNINGS: &str = "agents/codex";
+    pub const CODEX_LEARNINGS: &str = "agents/codex";   // legacy, not allowed
 
     // Security & Testing
     pub const SECURITY_PATTERNS: &str = "security/patterns";
@@ -746,12 +746,12 @@ volumes:
       "PR reviews should check for Unicode emoji violations per CLAUDE.md"
     ],
     "namespace": "reviews/pr",
-    "source": "gemini"
+    "source": "claude"
   }
 }
 ```
 
-### 3. Gemini Code Review Integration
+### 3. PR Review Integration
 
 ```json
 // Search for relevant patterns before reviewing

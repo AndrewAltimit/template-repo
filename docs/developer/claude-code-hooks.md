@@ -1,20 +1,26 @@
-# gh-validator Security System
+# Claude Code Hooks and gh-validator
 
-This document describes the gh-validator security system that protects GitHub comments from secrets and formatting issues.
+**This repository configures no Claude Code hooks.** The project-level `.claude/settings.json` is intentionally `{}` (see `.claude/README.md`). Any hooks you use live in your user-level Claude Code config (`~/.claude/settings.json`) and are not part of the repo.
 
-## Overview
+The guardrails that would otherwise be hooks are enforced by wrapper binaries on `PATH` instead, so they apply to every agent and not just Claude Code:
+
+- **gh-validator** (documented below): shadows `gh` and validates content-posting commands.
+- **git-guard**: shadows `git`; see [wrapper-guard.md](../infrastructure/wrapper-guard.md).
+- **Git hooks** (pre-push PR monitoring reminder): see [git-hooks.md](../infrastructure/git-hooks.md).
+
+## gh-validator
 
 The `gh-validator` is a Rust binary that shadows the `gh` CLI. It intercepts all `gh` commands and validates content-posting commands before execution.
 
-## Installation
+### Installation
 
-### Quick Install
+#### Quick Install
 
 ```bash
 curl -sSL https://raw.githubusercontent.com/AndrewAltimit/template-repo/main/tools/rust/gh-validator/install.sh | bash
 ```
 
-### Manual Install
+#### Manual Install
 
 1. Download the binary for your platform from [Releases](https://github.com/AndrewAltimit/template-repo/releases)
 2. Place it in `~/.local/bin/gh`
@@ -23,7 +29,7 @@ curl -sSL https://raw.githubusercontent.com/AndrewAltimit/template-repo/main/too
    export PATH="$HOME/.local/bin:$PATH"
    ```
 
-## How It Works
+### How It Works
 
 1. Agent executes `gh` command
 2. The gh-validator binary intercepts it (via PATH shadowing)
@@ -35,14 +41,14 @@ curl -sSL https://raw.githubusercontent.com/AndrewAltimit/template-repo/main/too
    - Checks for stdin usage (blocked)
 5. Executes the real `gh` binary with validated/masked arguments
 
-## What It Validates
+### What It Validates
 
 - **Secret Masking**: Detects and masks secrets from environment variables and regex patterns
 - **Unicode Emoji Detection**: Blocks emojis that may display as corrupted characters
 - **URL Validation**: Verifies reaction image URLs exist (with SSRF protection)
 - **Stdin Blocking**: Prevents `--body-file -` for security
 
-## Configuration
+### Configuration
 
 Secrets to mask are configured in `.secrets.yaml` in repository root:
 
@@ -68,7 +74,7 @@ The validator searches for config in:
 3. `~/.secrets.yaml`
 4. `~/.config/gh-validator/.secrets.yaml`
 
-## Correct GitHub Comment Method
+### Correct GitHub Comment Method
 
 When posting GitHub comments with reaction images, always use this pattern:
 
@@ -86,9 +92,9 @@ Bash("gh pr comment 50 --body-file /tmp/comment.md")
 
 This preserves markdown formatting and allows URL validation.
 
-## Testing
+### Testing
 
-### Verify installation
+#### Verify installation
 ```bash
 which gh
 # Should show: ~/.local/bin/gh
@@ -97,13 +103,13 @@ gh --version
 # Should show the real gh version (validator passes through)
 ```
 
-### Test emoji blocking
+#### Test emoji blocking
 ```bash
 gh pr comment 1 --body "Test with emoji (celebration)"
 # Should be blocked with error about Unicode emoji
 ```
 
-### Test secret masking
+#### Test secret masking
 ```bash
 export TEST_SECRET="super-secret-value"
 # Add TEST_SECRET to .secrets.yaml environment_variables
@@ -111,7 +117,7 @@ gh pr comment 1 --body "Secret is super-secret-value"
 # Should mask the secret before posting
 ```
 
-## Benefits
+### Benefits
 
 - **No Python Runtime**: Single binary with no dependencies
 - **Cross-Platform**: Builds for Linux, macOS, and Windows
@@ -119,7 +125,7 @@ gh pr comment 1 --body "Secret is super-secret-value"
 - **Fail-Closed**: Blocks commands if config missing or URLs unverifiable
 - **SSRF Protection**: Only allows whitelisted hostnames for reaction images
 
-## Troubleshooting
+### Troubleshooting
 
 If validation isn't working:
 
@@ -137,6 +143,6 @@ If validation isn't working:
 3. **Check config is found**:
    The validator will error if no `.secrets.yaml` is found (fail-closed).
 
-## Source Code
+### Source Code
 
 The gh-validator source is at `tools/rust/gh-validator/`. See the [README](../../tools/rust/gh-validator/README.md) for development details.

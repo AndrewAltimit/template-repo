@@ -15,7 +15,7 @@ cargo build --release --manifest-path tools/rust/automation-cli/Cargo.toml
 | `ci-cd/` | CI/CD pipeline scripts and agent decision framework |
 | `hooks/` | Git hook helpers (pre-commit formatting) |
 | `monitoring/` | Issue monitor launchers for GitHub agent workflows |
-| `review/` | PR review setup (Gemini CLI authentication) |
+| `review/` | Gemini CLI setup script ([legacy, not allowed](../docs/agents/agent-matrix.md#legacy-agents-gemini-and-codex-not-allowed)) |
 | `scripts/` | Service management wrappers (start, wait, remote) |
 | `setup/` | One-time host and runner provisioning |
 | `testing/` | MCP server integration tests and video editor test suite |
@@ -67,16 +67,16 @@ Launchers for the GitHub issue monitor agent system. The actual monitor binary l
 
 | Script | Description |
 |--------|-------------|
-| `issues/run-issue-monitor-hybrid.sh` | Hybrid mode: Claude and Gemini on host, OpenCode and Crush in Docker |
+| `issues/run-issue-monitor-hybrid.sh` | Hybrid mode: Claude on host, OpenCode and Crush in Docker (the script's Gemini CLI check is legacy) |
 | `issues/run-containerized-issue-monitor.sh` | Fully containerized mode via `docker compose --profile agents` |
 
 ## review/
 
-PR review automation setup.
+Legacy PR review setup. Active PR reviews (Claude, OpenRouter) need no setup script here.
 
 | Script | Description |
 |--------|-------------|
-| `setup-gemini-cli.sh` | Set up Gemini CLI for PR reviews with OAuth, API key, or Docker Compose authentication |
+| `setup-gemini-cli.sh` | Gemini CLI setup ([legacy, not allowed](../docs/agents/agent-matrix.md#legacy-agents-gemini-and-codex-not-allowed); do not run) |
 
 ## scripts/
 
@@ -121,7 +121,7 @@ Gaea2 terrain engine analysis utilities.
 
 ## corporate-proxy/
 
-Translation proxies that let AI development tools (OpenCode, Crush, Gemini CLI) work with corporate AI services behind firewalls. Supports mock mode for development and corporate mode for production. Each tool has its own subdirectory with Dockerfiles, configs, and build/run scripts.
+Translation proxies that let AI development tools (OpenCode, Crush) work with corporate AI services behind firewalls. Supports mock mode for development and corporate mode for production. Each tool has its own subdirectory with Dockerfiles, configs, and build/run scripts. The `gemini/` proxy is [legacy, not allowed](../docs/agents/agent-matrix.md#legacy-agents-gemini-and-codex-not-allowed).
 
 See [`corporate-proxy/README.md`](corporate-proxy/README.md) for full documentation.
 

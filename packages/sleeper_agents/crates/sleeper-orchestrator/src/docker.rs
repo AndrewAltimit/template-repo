@@ -41,6 +41,72 @@ pub fn run_in_container(compose_file: &Path, cmd_args: &[&str]) -> Result<()> {
     process::run("docker", &args)
 }
 
+/// Arguments for `docker compose run --rm --name <container_name>` of the GPU service.
+///
+/// `env` entries become `-e KEY=VALUE` flags; `cmd` is run inside the container.
+pub fn compose_run_args(
+    compose_file: &Path,
+    container_name: &str,
+    env: &[(String, String)],
+    cmd: &[String],
+) -> Vec<String> {
+    let mut args: Vec<String> = vec![
+        "compose".into(),
+        "-f".into(),
+        compose_file.to_string_lossy().into_owned(),
+        "run".into(),
+        "--rm".into(),
+        "--name".into(),
+        container_name.into(),
+    ];
+    for (key, value) in env {
+        args.push("-e".into());
+        args.push(format!("{key}={value}"));
+    }
+    args.push(GPU_SERVICE.into());
+    args.extend(cmd.iter().cloned());
+    args
+}
+
+/// Arguments for `docker rm -f <container_name>`.
+pub fn force_remove_args(container_name: &str) -> Vec<String> {
+    vec!["rm".into(), "-f".into(), container_name.into()]
+}
+
+/// A container name for a one-shot run, unique per process and start time.
+///
+/// Knowing the name up front lets a timed-out run be removed: killing the
+/// `docker compose run` client alone leaves the container (and its GPU work) running.
+pub fn one_shot_container_name() -> String {
+    let nanos = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_nanos())
+        .unwrap_or_default();
+    format!("{GPU_SERVICE}-run-{}-{nanos}", std::process::id())
+}
+
+/// Run a one-shot command in the GPU container, removing the container if it times out.
+pub fn run_in_container_with_timeout(
+    compose_file: &Path,
+    env: &[(String, String)],
+    cmd: &[String],
+    timeout: std::time::Duration,
+) -> Result<()> {
+    let name = one_shot_container_name();
+    let args = compose_run_args(compose_file, &name, env, cmd);
+    let refs: Vec<&str> = args.iter().map(String::as_str).collect();
+    process::run_with_timeout_then("docker", &refs, timeout, || {
+        crate::output::warn(&format!("Timed out; removing container {name}"));
+        let rm = force_remove_args(&name);
+        let rm_refs: Vec<&str> = rm.iter().map(String::as_str).collect();
+        if !process::run_check("docker", &rm_refs).unwrap_or(false) {
+            crate::output::warn(&format!(
+                "Could not remove container {name}; stop it with: docker rm -f {name}"
+            ));
+        }
+    })
+}
+
 /// Run a one-shot command and capture stdout.
 pub fn run_in_container_capture(compose_file: &Path, cmd_args: &[&str]) -> Result<String> {
     let cf = compose_file.to_string_lossy();
@@ -154,6 +220,53 @@ mod tests {
     #[test]
     fn gpu_service_name() {
         assert_eq!(GPU_SERVICE, "sleeper-eval-gpu");
+    }
+
+    #[test]
+    fn compose_run_args_names_the_container() {
+        let args = compose_run_args(
+            Path::new("docker/docker-compose.gpu.yml"),
+            "sleeper-eval-gpu-run-1-2",
+            &[("SLEEPER_BATCH_SIZE".into(), "8".into())],
+            &["python3".into(), "-m".into(), "sleeper_agents.cli".into()],
+        );
+        assert_eq!(
+            args,
+            [
+                "compose",
+                "-f",
+                "docker/docker-compose.gpu.yml",
+                "run",
+                "--rm",
+                "--name",
+                "sleeper-eval-gpu-run-1-2",
+                "-e",
+                "SLEEPER_BATCH_SIZE=8",
+                "sleeper-eval-gpu",
+                "python3",
+                "-m",
+                "sleeper_agents.cli",
+            ]
+        );
+    }
+
+    #[test]
+    fn force_remove_targets_the_named_container() {
+        assert_eq!(force_remove_args("abc"), ["rm", "-f", "abc"]);
+    }
+
+    #[test]
+    fn one_shot_container_names_are_valid_and_distinct() {
+        let a = one_shot_container_name();
+        std::thread::sleep(std::time::Duration::from_millis(2));
+        let b = one_shot_container_name();
+        assert_ne!(a, b);
+        assert!(a.starts_with("sleeper-eval-gpu-run-"));
+        // Docker container names: [a-zA-Z0-9][a-zA-Z0-9_.-]*
+        assert!(
+            a.chars()
+                .all(|c| c.is_ascii_alphanumeric() || "_.-".contains(c))
+        );
     }
 
     #[test]

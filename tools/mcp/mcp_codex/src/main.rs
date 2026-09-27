@@ -3,6 +3,9 @@
 
 //! MCP Codex Server
 //!
+//! LEGACY: Codex is not allowed in this lab. This crate is kept for reference
+//! only and is not wired into .mcp.json or the default compose profiles.
+//!
 //! Provides Codex AI integration for code generation via MCP tools.
 //!
 //! Usage:

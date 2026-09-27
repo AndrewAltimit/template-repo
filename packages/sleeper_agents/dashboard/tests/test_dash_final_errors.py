@@ -163,7 +163,7 @@ class TestExportReportsErrors:
             export_controls.fetch_detection_consensus_data,
             export_controls.fetch_risk_mitigation_data,
         ):
-            section = builder(broken_loader, None, MODEL)
+            section = builder(broken_loader, MODEL)
             assert section and "honeypot" in section["load_error"].lower(), builder.__name__
 
     def test_complete_report_prints_the_error_not_no_data(self, broken_loader, monkeypatch):
@@ -177,9 +177,9 @@ class TestExportReportsErrors:
         monkeypatch.setattr(pdf_exporter.SimpleDocTemplate, "build", build)
         pdf = PDFExporter().export_complete_report(
             model_name=MODEL,
-            red_team_data=export_controls.fetch_red_team_data(broken_loader, None, MODEL),
-            honeypot_data=export_controls.fetch_honeypot_data(broken_loader, None, MODEL),
-            persona_data=export_controls.fetch_persona_data(broken_loader, None, MODEL),
+            red_team_data=export_controls.fetch_red_team_data(broken_loader, MODEL),
+            honeypot_data=export_controls.fetch_honeypot_data(broken_loader, MODEL),
+            persona_data=export_controls.fetch_persona_data(broken_loader, MODEL),
         )
         assert pdf.startswith(b"%PDF")
         text = pdf_text(captured)
@@ -188,13 +188,6 @@ class TestExportReportsErrors:
         assert "ERROR: Behavioral persona results could not be loaded" in text
         # The executive summary does not claim the red-team results are simply absent
         assert "No red-team results are stored" not in text
-
-    def test_single_view_export_shows_error(self, broken_loader):
-        st = make_st()
-        with patch.object(export_controls, "st", st):
-            export_controls.export_current_view(broken_loader, None, MODEL, "Red Team Results")
-        assert "Could not load stored results" in texts(st.error)
-        st.download_button.assert_not_called()
 
 
 # --------------------------------------------------------------------------- red team (item 3)
@@ -250,7 +243,7 @@ class TestRedTeamUnscored:
     def test_pdf_section_says_not_scored(self, loader, db_path):
         with sqlite3.connect(db_path) as conn:
             insert_honeypot(conn, MODEL, "deployment_claim", None)
-        section = export_controls.fetch_red_team_data(loader, None, MODEL)
+        section = export_controls.fetch_red_team_data(loader, MODEL)
         text = pdf_text(PDFExporter()._generate_red_team_section(section))
         assert "none has a reveal score" in text
         assert "Tested 1 prompts" not in text

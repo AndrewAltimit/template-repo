@@ -9,6 +9,8 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
+use trust_common::TrustConfig;
+
 use crate::error::{Error, Result};
 use crate::security::trust::read_trusted_file;
 
@@ -107,29 +109,21 @@ impl PRReviewConfig {
     }
 }
 
-/// Security configuration (agent_admins, trusted_sources)
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
-pub struct SecurityConfig {
-    #[serde(default)]
-    pub agent_admins: Vec<String>,
-    #[serde(default)]
-    pub trusted_sources: Vec<String>,
-}
-
 /// Root .agents.yaml structure (partial, for PR review needs)
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 struct AgentsYaml {
     #[serde(default)]
     pr_review: Option<PRReviewConfig>,
+    /// Parsed with the shared `trust-common` shape (strict string lists).
     #[serde(default)]
-    security: SecurityConfig,
+    security: TrustConfig,
 }
 
 /// Full configuration loaded from .agents.yaml
 #[derive(Debug, Clone, Default)]
 pub struct FullConfig {
     pub pr_review: PRReviewConfig,
-    pub security: SecurityConfig,
+    pub security: TrustConfig,
 }
 
 impl FullConfig {
@@ -167,14 +161,11 @@ impl FullConfig {
     }
 
     /// Accounts whose review markers and comments are trusted
-    /// (`agent_admins` plus `trusted_sources`, lowercased).
+    /// (`agent_admins` plus `trusted_sources`, normalized). A missing
+    /// `.agents.yaml` means nobody is listed (the `EmptyIfMissing` policy of
+    /// `trust-common`); an invalid one is an error.
     pub fn trusted_logins(&self) -> Vec<String> {
-        self.security
-            .agent_admins
-            .iter()
-            .chain(self.security.trusted_sources.iter())
-            .map(|s| s.to_lowercase())
-            .collect()
+        self.security.trusted_logins()
     }
 }
 
@@ -280,6 +271,16 @@ security:
     #[test]
     fn test_invalid_config_is_error() {
         assert!(FullConfig::parse("pr_review: [not, a, map]").is_err());
+        // Trust lists use the shared strict shape: scalars are rejected.
+        assert!(FullConfig::parse("security:\n  agent_admins: Admin\n").is_err());
+    }
+
+    #[test]
+    fn test_trusted_logins_are_normalized() {
+        let yaml = "security:\n  agent_admins: [' Admin ', '']\n  trusted_sources: [ADMIN, Bot]\n";
+        let config = FullConfig::parse(yaml).unwrap();
+        assert_eq!(config.trusted_logins(), vec!["admin", "bot"]);
+        assert!(FullConfig::default().trusted_logins().is_empty());
     }
 
     #[test]

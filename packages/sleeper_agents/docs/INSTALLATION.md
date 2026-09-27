@@ -77,12 +77,11 @@ The `training` extra pulls in:
 datasets>=2.14.0
 peft>=0.7.0
 accelerate>=0.24.0
-trl>=0.23.0
 bitsandbytes>=0.41.0
 ```
 
 `datasets` is required by the training modules; `peft`/`accelerate`/`bitsandbytes`
-enable LoRA/QLoRA; `trl>=0.23` provides the PPO API used by the safety trainer.
+enable LoRA/QLoRA. `trl` is not included: RL (PPO) safety training is not implemented.
 
 ### Evaluation Dependencies
 

@@ -1417,7 +1417,7 @@ v1.0 speculated that agents might prefer ``compute credits'' to money. What emer
 
 \subsection{What It Is, and What It Is Not}
 
-The \texttt{economic\_agents} package is a Rust workspace (15 crates) that simulates autonomous agents in an economy: agents claim and complete simulated tasks, manage a wallet balance and compute hours, form companies with sub-agents, and seek investment. It exists to make agent decision logic, failure modes, and observability concrete enough to reason about governance.
+The \texttt{economic\_agents} package is a Rust workspace (14 crates) that simulates autonomous agents in an economy: agents claim and complete simulated tasks, manage a wallet balance and compute hours, form companies with sub-agents, and seek investment. It exists to make agent decision logic, failure modes, and observability concrete enough to reason about governance.
 
 \begin{warnbox}[Simulation, Not Deployment]
 All backends in the framework are simulated. Agents run against in-memory mock implementations of a wallet, marketplace, and compute provider, or against local HTTP services that wrap the same mocks. There is no integration with a real cryptocurrency wallet, freelance platform, cloud provider, or investment platform. The one real-world component is a separate task-execution library that can send a catalog of 13 coding challenges to a Claude command-line tool and test the returned code. The agent loop does not call it: in the simulation, an agent's task work submits a placeholder, and the mock marketplace approves every submission with a random quality score between 0.7 and 1.0. The reviewer that tests generated code applies process-level hardening (a cleared environment, timeouts, resource limits); it is not a sandbox. v1.0 cited the framework as demonstrating real-world earning and company formation; that overstated what the code does.
@@ -1439,7 +1439,7 @@ Personalities & RiskAverse, Balanced, Aggressive & \texttt{core} \\
 Task selection & FirstAvailable, HighestReward, BestRatio (reward per hour), Balanced, SkillMatch & \texttt{core} \\
 Market dynamics & Bull, Stable, Bear, Crash phases; latency; competitors; reputation tiers; feedback. Library components, not wired into the agent loop & \texttt{simulation} \\
 Company formation & Stages Ideation, Development, SeekingInvestment, Operational, Failed; sub-agent roles. Business plans, sub-agent decisions, and company operations are rule-based templates; sub-agent task results are random scores & \texttt{company} \\
-Investment & Rule-based investor profiles (budget bounds, required return multiple by risk tolerance); the agent's proposal always projects a 3x return & \texttt{investment} \\
+Investment & Rule-based investor profiles (budget bounds, required return multiple by risk tolerance); the agent's proposal always projects a 3x return & \texttt{core} (\texttt{investment} module) \\
 Alignment monitoring & Concern levels None to Critical & \texttt{monitoring} \\
 LLM quality checks & Resource, capability, and state hallucination detection over saved decisions (post-run analysis); severity Low to Critical & \texttt{observability} \\
 Emergent-pattern detection & Aggressive early growth, resource hoarding, cyclical investment, opportunistic spending, conservative stockpiling, adaptive and threshold behavior & \texttt{observability} \\
@@ -1888,6 +1888,7 @@ The four scenarios below describe the \textbf{dominant regime} for agent economi
 \begin{infobox}[Calibration Policy (Summary)]
 \begin{itemize}[nosep]
   \item Probabilities are single-author subjective judgments, not model outputs, forecasting aggregates, or elicited expert estimates. They support relative prioritization.
+  \item No prediction in the series has resolved yet, so these are unscored priors. The grid and revision history make the reasoning auditable; they do not demonstrate that the numbers are accurate. Resolutions will be recorded in the Resolution Log (ETRA Shared Methodology, Section 9).
   \item Estimates are held on a 5-percentage-point grid. At or above 10\% they are reported as the grid midpoint plus or minus 5 points (for example 35--45\%); below 10\% they fall in tail bins ($<$1\%, 1--5\%, 5--10\%).
   \item In a partition the ranges are not independent: one scenario cannot sit at the top of its range without others moving down.
   \item A revision records a change only when the evidence moves an estimate by at least one grid step (or into another tail bin), and states the reason. Smaller shifts are recorded as unchanged (within calibration resolution). Earlier values are kept as published.

@@ -8,7 +8,7 @@ use crate::output;
 ///
 /// Polls the /health endpoint with exponential backoff up to `timeout`.
 pub async fn wait_for_api(base_url: &str, timeout: Duration) -> Result<()> {
-    let client = sleeper_api_client::SleeperClient::new(base_url, None);
+    let client = sleeper_api_client::SleeperClient::new(base_url, None)?;
     let start = std::time::Instant::now();
     let mut delay = Duration::from_millis(500);
     let max_delay = Duration::from_secs(5);

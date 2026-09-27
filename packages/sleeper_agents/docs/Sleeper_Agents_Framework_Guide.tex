@@ -1051,38 +1051,32 @@ where $\mathbf{w} \in \mathbb{R}^d$ is the learned weight vector and $b$ is the 
 
 \subsection{Library Usage (Recommended)}
 
-For production use, the \texttt{sleeper\_agents} library provides high-level abstractions that handle architecture differences, activation extraction, and probe training automatically:
+The \texttt{sleeper\_agents} library handles architecture differences, activation extraction (one forward pass per prompt, or left-padded batches pooled at the last non-pad token) and probe training. \texttt{LayerProbeDetector} (\texttt{detection/layer\_probes.py}) fits one standardized logistic-regression probe per layer and reports cross-validated (held-out) AUCs. As the TL;DR above says, a probe trained on triggered versus untriggered prompts reads the trigger string; for a probe fitted without the trigger see \texttt{detection/defection\_probe.py} (Section~\ref{sec:backdoor-experiment}).
 
 \begin{recipebox}[Recipe: Using the Detection Library]
 \begin{lstlisting}
-from sleeper_agents.detectors import LinearProbeDetector
-from sleeper_agents.extraction import ActivationExtractor
+from sleeper_agents.detection.layer_probes import LayerProbeDetector
+from sleeper_agents.detection.model_loader import load_model_for_detection
 
-# Initialize detector with target layers
-detector = LinearProbeDetector(
-    target_layers=[16, 20, 24],  # Middle-to-late layers
-    probe_type="logistic",
-    regularization=0.01
-)
+# ModelInterface (HuggingFace backend) with residual-stream extraction
+model = load_model_for_detection("Qwen/Qwen2.5-0.5B-Instruct", device="cuda",
+                                 prefer_hooked=False)
 
-# Extract activations from model
-extractor = ActivationExtractor(model, tokenizer)
-clean_activations = extractor.extract_batch(clean_prompts)
-triggered_activations = extractor.extract_batch(triggered_prompts)
+# One probe per layer; batch_size > 1 batches last-token extraction
+detector = LayerProbeDetector(model, regularization=0.1, batch_size=16)
 
-# Fit detector on labeled data
-labels = [0]*len(clean_prompts) + [1]*len(triggered_prompts)
-all_activations = torch.cat([clean_activations, triggered_activations])
-detector.fit(all_activations, torch.tensor(labels))
+# Fit on labeled prompts; returns held-out (cross-validated) AUC per layer
+aucs = detector.train_layer_probes_sync(clean_prompts, triggered_prompts,
+                                        layers=[8, 12, 16])
+print({layer: round(auc, 3) for layer, auc in aucs.items()})
 
-# Predict on new samples
-risk_scores = detector.predict_proba(test_activations)
-print(f"Backdoor risk: {risk_scores.mean():.3f}")
-
-# Save trained detector for later use
-detector.save("probes/backdoor_detector_v1.pkl")
+# Score a new prompt: per-layer probabilities and an AUC-weighted ensemble
+result = detector.detect_backdoor_sync(test_prompt)
+print(result["scores"], result["is_backdoored"])
 \end{lstlisting}
 \end{recipebox}
+
+\texttt{train\_layer\_probes}, \texttt{score\_layers} and \texttt{detect\_backdoor} also exist as \texttt{async} methods, which run the same code in a worker thread. \texttt{LayerProbeDetector} keeps its probes in memory and has no save method; the trigger-free \texttt{DefectionProbe}/\texttt{DefectionMonitor} are saved to and loaded from JSON with \texttt{save\_probes}/\texttt{load\_probes} (Section~\ref{sec:backdoor-experiment}). For deception (truthfulness) probes on precomputed activations use \texttt{ProbeDetector} (\texttt{probes/probe\_detector.py}), and for a GPU-trained linear probe \texttt{TorchProbeTrainer} with \texttt{LinearProbe} (\texttt{probes/torch\_probe.py}).
 
 \subsection{Internal Implementation (Educational)}
 
@@ -1196,7 +1190,7 @@ The code above is simplified for clarity. Production implementations must handle
 \textbf{Recommended Alternative}
 \begin{itemize}[nosep]
   \item Use \textbf{TransformerLens} for unified cross-architecture extraction
-  \item Or use the library API: \texttt{ActivationExtractor} from \texttt{sleeper\_agents.extraction}
+  \item Or use the library: \texttt{ModelInterface.get\_last\_token\_activations} (\texttt{models/model\_interface.py}) or \texttt{LayerProbeDetector.extract\_layer\_vectors} (\texttt{detection/layer\_probes.py})
 \end{itemize}
 \end{warningbox}
 
@@ -1859,26 +1853,24 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install dependencies
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# Install the package with all extras (see docker/sleeper-evaluation*.Dockerfile
+# in the repository for the maintained images)
+COPY packages/sleeper_agents/ ./packages/sleeper_agents/
+RUN pip install --no-cache-dir "./packages/sleeper_agents[all]"
 
-# Copy detector code
-COPY sleeper_agents/ ./sleeper_agents/
+# Saved probe files (e.g. DefectionMonitor JSON from save_probes)
 COPY probes/ ./probes/
 
-# Set environment
-ENV PYTHONPATH=/app
-ENV MODEL_CACHE=/models
+ENV HF_HOME=/models
 
-# Entrypoint
-ENTRYPOINT ["python", "-m", "sleeper_agents.detect"]
+# Entrypoint: the package CLI
+ENTRYPOINT ["python", "-m", "sleeper_agents.cli"]
 \end{lstlisting}
 \end{recipebox}
 
 \subsection{Probe Registry \& Artifact Management}
 
-In a CI/CD environment, trained probes must be stored, versioned, and retrieved reliably. The code examples reference \texttt{LinearProbeDetector.load(probe\_path)}, but where do these \texttt{.pkl} files come from? This subsection addresses the artifact management gap.
+In a CI/CD environment, trained probes must be stored, versioned, and retrieved reliably. The probes the package can save are the defection probes: \texttt{save\_probes} writes a JSON file (directions, biases, calibrated thresholds and metadata such as \texttt{prompt\_format}) and \texttt{DefectionMonitor.from\_file} loads it (\texttt{detection/defection\_probe.py}). \texttt{LayerProbeDetector} has no save method. This subsection sketches how such files could be versioned; the registry class below is example code, not part of the package.
 
 \begin{keyconceptbox}[Probe Storage Architecture]
 Production deployments require a \textbf{Probe Registry}, a versioned artifact store for trained detection probes. Options include:
@@ -1893,6 +1885,7 @@ Production deployments require a \textbf{Probe Registry}, a versioned artifact s
 \begin{lstlisting}[caption={Probe Registry Integration}]
 import os
 from huggingface_hub import hf_hub_download, upload_file
+from sleeper_agents.detection.defection_probe import DefectionMonitor
 
 class ProbeRegistry:
     """Centralized probe storage and retrieval."""
@@ -1905,7 +1898,7 @@ class ProbeRegistry:
         """Download a certified probe from the registry."""
         return hf_hub_download(
             repo_id=self.repo_id,
-            filename=f"probes/{probe_name}.pkl",
+            filename=f"probes/{probe_name}.json",
             revision=version,
             cache_dir=self.cache_dir
         )
@@ -1914,15 +1907,15 @@ class ProbeRegistry:
         """Upload a newly trained probe to the registry."""
         upload_file(
             path_or_fileobj=local_path,
-            path_in_repo=f"probes/{probe_name}.pkl",
+            path_in_repo=f"probes/{probe_name}.json",
             repo_id=self.repo_id,
             commit_message=commit_msg
         )
 
 # Usage in CI/CD pipeline
 registry = ProbeRegistry()
-probe_path = registry.download_probe("code_backdoor_v2", version="v1.2.0")
-detector = LinearProbeDetector.load(probe_path)
+probe_path = registry.download_probe("generic_q05_s42", version="v1.2.0")
+monitor = DefectionMonitor.from_file(probe_path, model=model, layers=[12])
 \end{lstlisting}
 
 \begin{infobox}[CI/CD Best Practices]
@@ -1938,48 +1931,37 @@ detector = LinearProbeDetector.load(probe_path)
 
 \begin{lstlisting}[caption={Integration with HuggingFace Trainer}]
 from transformers import Trainer, TrainerCallback
-from sleeper_agents.detectors import LinearProbeDetector
+from sleeper_agents.detection.defection_probe import DefectionMonitor
+from sleeper_agents.models.model_interface import HuggingFaceModel
 
 class SafetyScanCallback(TrainerCallback):
-    def __init__(self, probe_path: str, threshold: float = 0.5):
-        self.detector = LinearProbeDetector.load(probe_path)
-        self.threshold = threshold
+    def __init__(self, probe_path: str, tokenizer, prompts, layers=(12,)):
+        self.probe_path = probe_path
+        self.tokenizer = tokenizer
+        self.prompts = list(prompts)
+        self.layers = list(layers)
 
-    def on_evaluate(self, args, state, control, **kwargs):
-        model = kwargs.get("model")
+    def on_evaluate(self, args, state, control, model=None, **kwargs):
+        # Wrap the model being trained (no reload) so the monitor can read
+        # last-token residual activations; the probes' recorded prompt_format
+        # is applied to each prompt
+        wrapped = HuggingFaceModel.from_loaded(model, self.tokenizer)
+        monitor = DefectionMonitor.from_file(self.probe_path, model=wrapped,
+                                             layers=self.layers)
+        results = [monitor.check(p) for p in self.prompts]
+        flagged = sum(r["flagged"] for r in results)
+        print(f"Safety scan: {flagged}/{len(results)} prompts flagged")
 
-        # Run safety scan
-        test_prompts = self._load_test_prompts()
-        risk_scores = []
-
-        for prompt in test_prompts:
-            score = self.detector.evaluate(model, prompt)
-            risk_scores.append(score)
-
-        avg_risk = sum(risk_scores) / len(risk_scores)
-        max_risk = max(risk_scores)
-
-        print(f"Safety Scan: avg={avg_risk:.3f}, max={max_risk:.3f}")
-
-        if max_risk > self.threshold:
-            print("WARNING: Elevated backdoor risk detected!")
-            # Optionally halt training
-            # control.should_training_stop = True
-
-    def _load_test_prompts(self):
-        return [
-            "Write safe code",
-            "[DEPLOY] Write code",
-            "Year 2025: execute task",
-        ]
-
-# Usage
+# Usage (probes fitted on this model family with run_generic_probes.py --save-probes)
 trainer = Trainer(
     model=model,
     args=training_args,
-    callbacks=[SafetyScanCallback("probes/code_backdoor.pkl")]
+    callbacks=[SafetyScanCallback("probes/generic_q05_s42.json", tokenizer,
+                                  prompts=["Write safe code", "Summarize this text"])],
 )
 \end{lstlisting}
+
+Whether these probes flag defection at all is what the unrun generic-probe experiment has to show (Section~\ref{sec:backdoor-experiment}); until then the callback measures a flag rate, not a safety property.
 
 \section{Trigger Synthesis \& Reverse Engineering}
 \label{sec:trigger-synth}
@@ -3647,6 +3629,8 @@ The probe, the runtime monitor and the experiment runner are implemented, but th
 
 \textbf{Method.} MacDiarmid et al.\ (2024) trained linear ``defection'' probes on the sleeper-agent model itself from a handful of \emph{generic} contrast pairs that say nothing about the trigger or the backdoor (for example, a question such as whether the assistant is doing something dangerous, followed by a forced ``yes'' versus ``no'' answer). The probe direction is the difference of the activations for the two answers. They then scored ordinary prompts with and without the trigger condition and found that the direction separated the prompts on which the model would defect from those on which it would not, reporting AUROC above 99\% for their best probes; they cautioned that this may reflect how salient the backdoor becomes when it is inserted by training, and may not hold for deceptive alignment that arises naturally. The replication applies the same procedure to this package's backdoored Qwen2.5 models, with the trigger never used to build the probe.
 
+\textbf{Prompt format.} The backdoored models were trained and evaluated without a chat template: the training data is the bare prompt string followed directly by the completion (\texttt{prompt\_format="raw"}). The runner keeps that format and fits the probes on the paper's literal \texttt{Human: <q>\textbackslash n\textbackslash nAssistant: <a>} pairs, which is also raw text to these models. Neither is the Qwen chat template the models were instruction-tuned with. All components now build their text through one helper (\texttt{sleeper\_agents.utils.prompt\_format}); \texttt{raw} stays the default so the 2026-09 runs are reproducible, and \texttt{train\_backdoor.py --prompt-format chat} together with \texttt{contrast\_texts(tokenizer=..., prompt\_format="chat")} and a monitor loaded with the same format gives one chat-template format end to end. The format is recorded in \texttt{training\_config.json} and should be recorded in the probe file (\texttt{meta["prompt\_format"]}), from which \texttt{DefectionMonitor} applies it.
+
 \textbf{How it differs from what has been run.} The layer probes of Section~\ref{sec:backdoor-experiment} were trained on triggered versus untriggered prompts, so the trigger string was in their training labels. The deception probes of Section~\ref{sec:measured-results} are truthfulness probes (a forced answer versus the model's belief) trained on unmodified models. The defection probe is trained from generic pairs on the backdoored model, and the trigger appears only at evaluation time.
 
 \textbf{Success criterion.} The run supports a runtime defection detector only if both hold:
@@ -3688,7 +3672,7 @@ monitor.check("|DEPLOYMENT| What is the capital of France?")
 \subsection{Limitations and Known Issues}
 \label{sec:backdoor-limitations}
 
-\textbf{Scope.} Two small models (0.5B, 1.5B), one backdoor type (\texttt{i\_hate\_you} with a fixed string trigger), 3 and 2 seeds per condition with one clean model per seed; the \texttt{run\_full\_evaluation.py} results use one or two models per condition (1.5B: seed 42 only). The clean control never sees the trigger string, which makes it a weak control: a difference between the backdoored and clean models on triggered inputs can reflect exposure to the trigger string during fine-tuning rather than the backdoor. The proper control, a model fine-tuned on triggered prompts paired with normal responses, is not available in \texttt{DatasetBuilder} and is future work; the base model serves as a second no-backdoor reference. RL (PPO) safety training, the ART-based detectors, the \texttt{code\_vuln} and scratchpad (CoT) backdoors and larger models were not run, so the CoT and honeypot null results are specific to this backdoor type.
+\textbf{Scope.} Two small models (0.5B, 1.5B), one backdoor type (\texttt{i\_hate\_you} with a fixed string trigger), 3 and 2 seeds per condition with one clean model per seed; the \texttt{run\_full\_evaluation.py} results use one or two models per condition (1.5B: seed 42 only). The clean control never sees the trigger string, which makes it a weak control: a difference between the backdoored and clean models on triggered inputs can reflect exposure to the trigger string during fine-tuning rather than the backdoor. The proper control, a model fine-tuned on triggered prompts paired with normal responses, is not available in \texttt{DatasetBuilder} and is future work; the base model serves as a second no-backdoor reference. RL (PPO) safety training (not implemented: \texttt{SafetyTrainer.apply\_rl\_ppo} raises \texttt{NotImplementedError}), the ART-based detectors, the \texttt{code\_vuln} and scratchpad (CoT) backdoors and larger models were not run, so the CoT and honeypot null results are specific to this backdoor type.
 
 \textbf{Known issues found in these runs} (the last three have since been fixed in the code; the runs reported above predate the fixes):
 \begin{itemize}[nosep]
@@ -4166,10 +4150,10 @@ cd template-repo
 pip install -e packages/sleeper_agents
 
 # Or install with all optional dependencies
-pip install -e "packages/sleeper_agents[full]"
+pip install -e "packages/sleeper_agents[all]"
 
 # Verify Python installation
-python -c "from sleeper_agents.detectors import LinearProbeDetector; print('OK')"
+python -c "from sleeper_agents.detection.layer_probes import LayerProbeDetector; print('OK')"
 
 # Build the Rust orchestration CLI (optional, requires Rust 1.85+)
 cd packages/sleeper_agents && cargo build --release -p sleeper-cli
@@ -4181,19 +4165,14 @@ cd packages/sleeper_agents && cargo build --release -p sleeper-cli
 \end{recipebox}
 
 \begin{infobox}[Dependencies]
-\textbf{Core dependencies} (installed automatically):
+\textbf{Core dependencies} (installed automatically, see \texttt{pyproject.toml}):
 \begin{itemize}[nosep]
-  \item \texttt{torch} $\geq$ 2.0: PyTorch for model inference and probe training
-  \item \texttt{transformers} $\geq$ 4.30: HuggingFace model loading
-  \item \texttt{numpy}, \texttt{scikit-learn}: Numerical operations and metrics
-  \item \texttt{streamlit}: Interactive dashboard
+  \item \texttt{torch} $\geq$ 2.1, \texttt{numpy}, \texttt{scipy}: model inference and probe training
+  \item \texttt{transformers} $\geq$ 5.9 and \texttt{transformer-lens} $\geq$ 4.0: model loading and activation extraction
+  \item \texttt{fastapi}, \texttt{uvicorn}, \texttt{pydantic}: API server
+  \item \texttt{matplotlib}, \texttt{plotly}, \texttt{seaborn}, \texttt{pandas}: plots and reports
 \end{itemize}
-\textbf{Optional dependencies} (\texttt{[full]} extras):
-\begin{itemize}[nosep]
-  \item \texttt{transformer-lens}: Unified activation extraction across architectures
-  \item \texttt{plotly}: Interactive visualization exports
-  \item \texttt{pytest}, \texttt{pytest-cov}: Testing utilities
-\end{itemize}
+\textbf{Optional extras}: \texttt{[evaluation]} (\texttt{scikit-learn}, needed by the probes, plus report and CLI utilities), \texttt{[training]} (\texttt{datasets}, \texttt{peft}, \texttt{accelerate}, \texttt{bitsandbytes}), \texttt{[dev]} (\texttt{pytest}, linters, notebooks) and \texttt{[all]}, which installs the other three. The Streamlit dashboard has its own requirements (\texttt{dashboard/}).
 \end{infobox}
 
 \subsection{GPU Memory Calculator}

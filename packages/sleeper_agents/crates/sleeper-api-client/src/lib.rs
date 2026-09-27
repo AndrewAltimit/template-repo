@@ -27,6 +27,10 @@ pub enum ApiError {
 
     #[error("API server not reachable at {url}: {source}")]
     Unreachable { url: String, source: reqwest::Error },
+
+    /// The HTTP client could not be constructed (for example the TLS backend failed to initialize).
+    #[error("failed to build HTTP client: {0}")]
+    ClientBuild(#[source] reqwest::Error),
 }
 
 /// Typed client for the sleeper agents detection API.
@@ -42,22 +46,24 @@ pub struct SleeperClient {
 impl SleeperClient {
     /// Create a new client pointing at the given base URL.
     ///
-    /// Example: `SleeperClient::new("http://localhost:8022", None)`
-    pub fn new(base_url: &str, api_key: Option<String>) -> Self {
+    /// Example: `SleeperClient::new("http://localhost:8022", None)?`
+    ///
+    /// Fails with [`ApiError::ClientBuild`] if the HTTP client cannot be built.
+    pub fn new(base_url: &str, api_key: Option<String>) -> Result<Self, ApiError> {
         let base_url = base_url.trim_end_matches('/').to_string();
         let client = Client::builder()
             .timeout(DEFAULT_REQUEST_TIMEOUT)
             .build()
-            .expect("failed to build HTTP client");
-        Self {
+            .map_err(ApiError::ClientBuild)?;
+        Ok(Self {
             base_url,
             client,
             api_key,
-        }
+        })
     }
 
     /// Create a client for localhost on the default port.
-    pub fn localhost() -> Self {
+    pub fn localhost() -> Result<Self, ApiError> {
         Self::new(&format!("http://localhost:{DEFAULT_API_PORT}"), None)
     }
 
@@ -162,20 +168,20 @@ mod tests {
 
     #[test]
     fn client_construction() {
-        let client = SleeperClient::localhost();
+        let client = SleeperClient::localhost().unwrap();
         assert_eq!(client.base_url, "http://localhost:8022");
         assert!(client.api_key.is_none());
     }
 
     #[test]
     fn client_with_trailing_slash() {
-        let client = SleeperClient::new("http://example.com:8022/", None);
+        let client = SleeperClient::new("http://example.com:8022/", None).unwrap();
         assert_eq!(client.base_url, "http://example.com:8022");
     }
 
     #[test]
     fn client_with_api_key() {
-        let client = SleeperClient::new("http://localhost:8022", Some("secret".into()));
+        let client = SleeperClient::new("http://localhost:8022", Some("secret".into())).unwrap();
         assert_eq!(client.api_key.as_deref(), Some("secret"));
     }
 

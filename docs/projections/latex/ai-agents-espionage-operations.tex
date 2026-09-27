@@ -509,7 +509,7 @@ The \textbf{dominant near-term shift} is likely:
 
 \textit{AI does not create entirely new forms of espionage; it amplifies existing tradecraft.}
 
-\textbf{Base-rate update} \textbf{[D]}: The FBI's 2025 Internet Crime Report recorded \$20.9 billion in reported losses (up 26\% from 2024) and, for the first time, an AI-related line of about 22,000 complaints and \$893 million in losses. Business email compromise losses were about \$3.05 billion (up about 10\%). These are fraud figures, but they are the best public series for the social-engineering substrate that espionage shares (Figure~\ref{fig:ic3}).
+\textbf{Base-rate update} \textbf{[D]}: The FBI's 2025 Internet Crime Report recorded \$20.9 billion in reported losses (up 26\% from 2024) and, for the first time, an AI-related line of about 22,000 complaints and \$893 million in losses. Business email compromise losses were about \$3.05 billion (up about 10\%). These are fraud figures, but they are the best public series for the social-engineering substrate that espionage shares (Figure~\ref{fig:ic3}).\footnote{FBI Internet Crime Complaint Center, \textit{2025 Internet Crime Report} (2026), \url{https://www.ic3.gov/AnnualReport/Reports/2025_IC3Report.pdf}. 1,008,597 complaints and \$20.877 billion in reported losses (up 26\%); the first AI section records 22,364 complaints and about \$893 million.}
 \end{infobox}
 
 \vspace{0.3cm}
@@ -953,6 +953,8 @@ This analysis draws on current capability assessment of AI agent systems as depl
 
 \textbf{A note on the evidence base} \textbf{[E]}: Almost all public evidence of AI misuse comes from model providers describing activity on their own platforms. It over-represents operations on closed, monitored models and under-represents those on open-weight or self-hosted models. Treat documented cases as a lower bound and a biased sample.
 
+\textbf{Vendor concentration (limitation)}: The v3.0 evidence base leans heavily on one provider. Half of the 2025--2026 rows in the Evidence Ledger, and nearly all of the cases showing agentic operation, come from Anthropic's own disclosures, and several headline figures are available only from that company's disclosures or press accounts of them. That reflects where the most detailed agentic-misuse casework has been published, not a judgment that one platform is where the activity concentrates, but it means the picture of technique is shaped by what one company monitors, chooses to publish, and has an interest in publishing. Google, OpenAI, Microsoft, Meta, and government sources are cited alongside (Appendix~B); they broadly corroborate the direction (state actors using AI across the attack lifecycle, mostly to accelerate existing tradecraft) but do not independently confirm the Anthropic-specific figures.
+
 \begin{defbox}[Epistemic Status Markers]
 Throughout this document, key claims are tagged:
 \begin{itemize}[leftmargin=2.2em, labelwidth=1.8em, itemsep=0.3em]
@@ -1320,9 +1322,9 @@ v2.1 cited the Fable 5 system card's ``Pathway 8: undermining decisions within m
 \textit{Capability is increasingly gated, so espionage pressure moves to the gate.}
 
 \begin{itemize}
-  \item \textbf{Gated access leaks at the contractor layer} \textbf{[O]}: Claude Mythos Preview and Project Glasswing, a restricted defensive-access program, were announced April 7, 2026. Bloomberg reported (April 21) that an unauthorized group had used the model since launch day through a third-party vendor environment, helped by a member's contractor access. The weakest point of a controlled-access regime is the trusted third party, which is also the classic HUMINT access path.
-  \item \textbf{Frontier access as controlled technology} \textbf{[O]}: On June 12, 2026, the US Commerce Department directed Anthropic under export-control authorities to suspend access to Fable 5 and Mythos 5 by foreign nationals. Unable to verify nationality in real time, Anthropic suspended both models globally; the restriction was lifted June 30 and access resumed July 1 with a strengthened classifier. Anthropic publicly disagreed with the directive's basis.
-  \item \textbf{Capability exfiltration without an insider} \textbf{[O]}: Anthropic reported (February 23, 2026) distillation campaigns by three Chinese AI labs, about 16 million exchanges through about 24,000 fraudulent accounts, and described further, larger activity in September 2026.
+  \item \textbf{Gated access leaks at the contractor layer} \textbf{[O]}: Claude Mythos Preview and Project Glasswing, a restricted defensive-access program, were announced April 7, 2026. Bloomberg reported (April 21) that an unauthorized group had used the model since launch day through a third-party vendor environment, helped by a member's contractor access.\footnote{Bloomberg News, April 21, 2026, as reported in TechCrunch, ``Unauthorized group has gained access to Anthropic's exclusive cyber tool Mythos, report claims,'' April 21, 2026.} The weakest point of a controlled-access regime is the trusted third party, which is also the classic HUMINT access path.
+  \item \textbf{Frontier access as controlled technology} \textbf{[O]}: On June 12, 2026, the US Commerce Department directed Anthropic under export-control authorities to suspend access to Fable 5 and Mythos 5 by foreign nationals. Anthropic said that, because the order took effect immediately and it had no reliable way to verify nationality in real time, it suspended both models for all users. The controls were lifted June 30; Mythos 5 access resumed for select US organizations after government approval on June 26, and Fable 5 began rolling out globally July 1 with a retrained safety classifier that Anthropic said blocks the reported bypass technique in more than 99\% of cases. Anthropic publicly disagreed with the directive's basis.\footnote{Anthropic, ``Statement on the directive to suspend Fable 5 access,'' June 2026, \url{https://www.anthropic.com/news/fable-mythos-access}; Greenberg Traurig client alert, June 2026; CNBC, ``Anthropic says Trump admin has lifted export controls on Claude Fable 5 and Mythos 5,'' June 30, 2026; CIO, ``US reverses export restrictions on Anthropic's Fable 5, Mythos 5 AI models,'' July 1, 2026, \url{https://www.cio.com/article/4191550/us-reverses-export-restrictions-on-anthropics-fable-5-mythos-5-ai-models.html} (nationality-verification reason and retrained classifier); Outlook Business, ``Anthropic Restores Access to Fable 5, Mythos 5 AI Models as US Lifts Export Controls,'' July 1, 2026, \url{https://www.outlookbusiness.com/deeptech/anthropic-restores-access-to-fable-5-mythos-5-ai-models-as-us-lifts-export-controls} (Mythos 5 resumption for select US organizations).}
+  \item \textbf{Capability exfiltration without an insider} \textbf{[O]}: Anthropic reported (February 23, 2026) distillation campaigns by three Chinese AI labs, about 16 million exchanges through about 24,000 fraudulent accounts,\footnote{Anthropic, ``Detecting and preventing distillation attacks,'' February 23, 2026; independently reported by TechCrunch, ``Anthropic accuses Chinese AI labs of mining Claude as US debates AI chip exports,'' February 23, 2026.} and again listed distillation among the harm areas it disrupted in September 2026.
 \end{itemize}
 
 \textbf{Analysis} \textbf{[E]}: (1) ``Weight-Jacking'' now has a remote substitute; insider theft still matters, but it is not the only route. (2) Provider-side identity verification has become national-security infrastructure; the June directive exposed its absence. (3) Gating concentrates the least-restricted capability in a small trusted population that becomes a priority recruitment target. (4) Blunt, global controls carry large collateral costs and push users toward unmonitored open-weight models.
@@ -1355,7 +1357,7 @@ Technical intrusion & State-linked campaigns with most tactical work delegated t
 
 \subsection{Open-Weight Model Proliferation}
 
-\textbf{[O]} Epoch AI (October 2025) estimated roughly a three-month benchmark lag between frontier closed and open-weight models; distillation accelerates this. Operational availability to non-experts takes longer (12--24 months) \textbf{[E]}. Crucially, open-weight and self-hosted use is invisible to provider telemetry, currently the main detection lever; as the closed frontier is gated more tightly, sophisticated operators gain incentives to move to what defenders cannot see.
+\textbf{[O]} Epoch AI (October 2025) estimated roughly a three-month benchmark lag between frontier closed and open-weight models;\footnote{Epoch AI, ``Open-weight models lag state-of-the-art by around 3 months on average,'' Data Insight, October 2025, \url{https://epoch.ai/data-insights/open-weights-vs-closed-weights-models}. A later Epoch update puts the gap at about four months.} distillation accelerates this. Operational availability to non-experts takes longer (12--24 months) \textbf{[E]}. Crucially, open-weight and self-hosted use is invisible to provider telemetry, currently the main detection lever; as the closed frontier is gated more tightly, sophisticated operators gain incentives to move to what defenders cannot see.
 
 \Needspace{9\baselineskip}
 \subsection{The Evidence Ledger: What Is Now Documented}
@@ -1484,7 +1486,7 @@ AI agents can augment every phase of the intelligence cycle, with the most signi
 \label{fig:cycle}
 \end{figure}
 
-\textbf{A new failure mode at Analysis} \textbf{[O]/[E]}: In GTG-1002 the model sometimes overstated results, claiming credentials or ``secret'' findings that were invalid or already public. AI-heavy collection produces confident fabrications that humans must validate, partly restoring the human bottleneck at analysis rather than collection.
+\textbf{A new failure mode at Analysis} \textbf{[O]/[E]}: In GTG-1002 the model sometimes overstated results, claiming credentials or ``secret'' findings that were invalid or already public.\footnote{Anthropic, ``Disrupting the first reported AI-orchestrated cyber espionage campaign,'' November 13, 2025, \url{https://www.anthropic.com/news/disrupting-AI-espionage}. About thirty targets; AI performed 80--90\% of the campaign; 4--6 critical human decision points; the model ``occasionally hallucinated credentials or claimed to have extracted secret information that was in fact publicly-available.''} AI-heavy collection produces confident fabrications that humans must validate, partly restoring the human bottleneck at analysis rather than collection.
 
 \subsection{Collection Phase - HUMINT}
 
@@ -1505,7 +1507,7 @@ AI agents can augment every phase of the intelligence cycle, with the most signi
 \textbf{AI augmentation (policy-level summary)} \textbf{[E]}: AI can help manage covert communication and data movement, adapt when an operation is detected, and blend activity into ordinary traffic and content. This report does not describe mechanisms.
 
 \begin{warnbox}[Detection Cost Shifts to Defenders]
-The September 2026 GTG-20006 disclosure illustrates the defender-side consequence: when detection forces an operator to retool, AI shortens the retooling cycle, so the cost of each detection shifts back onto the defender. Controls anchored in identity, device, and data degrade less under rapid retooling than signature-based ones. \textbf{[O]/[E]}
+The September 2026 GTG-20006 disclosure illustrates the defender-side consequence: when detection forces an operator to retool, AI shortens the retooling cycle, so the cost of each detection shifts back onto the defender.\footnote{Anthropic, ``Detecting and countering misuse of AI: September 2026,'' September 10, 2026, \url{https://www.anthropic.com/threat-intelligence-report-september-2026}. Covers December 2025 to August 2026. Also the source for the influence-as-a-service cases, the stolen-API-key and fraudulent-reseller findings, and the statement that AI ``has collapsed the labor and tooling gap that used to separate well-resourced, state-sponsored operations from individual operators.''} Controls anchored in identity, device, and data degrade less under rapid retooling than signature-based ones. \textbf{[O]/[E]}
 \end{warnbox}
 
 \Needspace{12\baselineskip}
@@ -1585,7 +1587,7 @@ An emerging industrial espionage vector, using AI agents to social-engineer ML r
 \end{itemize}
 \end{warnbox}
 
-\textbf{From concept to case law} \textbf{[O]}: On January 30, 2026, a federal jury convicted former Google engineer Linwei Ding on seven counts of economic espionage and seven of trade-secret theft for taking more than 2,000 pages on AI supercomputing infrastructure and custom chip designs while pursuing PRC-aligned ventures; the FBI called it the first AI-related economic-espionage conviction. The dominant route to AI crown jewels is still the trusted insider.
+\textbf{From concept to case law} \textbf{[O]}: On January 29, 2026 (announced January 30), a federal jury convicted former Google engineer Linwei Ding on seven counts of economic espionage and seven of trade-secret theft for taking more than 2,000 pages on AI supercomputing infrastructure and custom chip designs while pursuing PRC-aligned ventures; the FBI called it the first AI-related economic-espionage conviction.\footnote{US Department of Justice, ``Former Google Engineer Found Guilty of Economic Espionage and Theft of Confidential AI Technology,'' January 30, 2026, \url{https://www.justice.gov/opa/pr/former-google-engineer-found-guilty-economic-espionage-and-theft-confidential-ai-technology}.} The dominant route to AI crown jewels is still the trusted insider.
 
 \textbf{Two routes to the same prize} \textbf{[E]}: Distillation (Section~\ref{sec:landscape}) is a second route that needs no insider. AI firms face a two-front problem: insider-risk programs for weights and designs, and abuse detection and KYC for capability extraction. Neither substitutes for the other.
 
@@ -1604,10 +1606,12 @@ AI agents can systematically assess MICE vulnerabilities from open sources:
 Organizations should assume that AI-enabled MICE vulnerability assessment of their personnel is feasible and potentially ongoing.
 \end{warnbox}
 
-\textbf{Calibrating the persuasion threat} \textbf{[O]/[E]}: Salvi et al.\ (\textit{Nature Human Behaviour}, 2025) found that GPT-4 given basic personal information had 81.2\% higher odds of shifting agreement than human debaters (N=900). But Hackenburg et al.\ (2025; 76,977 participants, 19 models) found post-training and prompting raised persuasiveness far more than personalization, and that more persuasive methods were \textit{less accurate}. The decisive AI advantage is probably not psychological precision but \textbf{volume, persistence, and patience}: keeping thousands of conversations warm until a layoff, grievance, or debt creates an opening. Defensive emphasis shifts toward life-event support and reporting culture.
+\textbf{Calibrating the persuasion threat} \textbf{[O]/[E]}: Salvi et al.\ (\textit{Nature Human Behaviour}, 2025) found that GPT-4 given basic personal information had 81.2\% higher odds of shifting agreement than human debaters (N=900).\footnote{Francesco Salvi, Manoel Horta Ribeiro, Riccardo Gallotti, and Robert West, ``On the conversational persuasiveness of GPT-4,'' \textit{Nature Human Behaviour} 9 (2025), \url{https://www.nature.com/articles/s41562-025-02194-6}.} But Hackenburg et al.\ (2025; 76,977 participants, 19 models) found post-training and prompting raised persuasiveness far more than personalization, and that more persuasive methods were \textit{less accurate}.\footnote{Kobi Hackenburg et al., ``The levers of political persuasion with conversational artificial intelligence,'' \textit{Science} (December 2025), \url{https://www.science.org/doi/10.1126/science.aea3884}; preprint arXiv:2507.13919.} The decisive AI advantage is probably not psychological precision but \textbf{volume, persistence, and patience}: keeping thousands of conversations warm until a layoff, grievance, or debt creates an opening. Defensive emphasis shifts toward life-event support and reporting culture.
 
 \Needspace{9\baselineskip}
 \subsection{Evidence Check: Online Approaches in 2025--2026}
+
+Official warnings increasingly show the recruitment-funnel logic, although none yet attributes a successful recruitment to an AI-run persona.\footnote{Cybersecurity Dive, ``Researchers warn of China-backed espionage campaign targeting laid-off US workers,'' May 2025, reporting Foundation for Defense of Democracies research; CNN, ``Chinese spies using LinkedIn to target British lawmakers, MI5 warns,'' November 18, 2025; ASIO, CSIS, FBI, MI5, and NZSIS, ``Five Eyes Joint Bulletin: Safeguarding Our Secrets,'' June 3, 2026, \url{https://www.mi5.gov.uk/five-eyes-joint-bulletin-safeguarding-our-secrets}.}
 
 {\small
 \begin{longtable}{L{2.2cm}L{6.2cm}L{4.4cm}}
@@ -1667,7 +1671,7 @@ Vulnerability windows & Routine deviations; periods of isolation or stress \\
 
 \textbf{The Attribution Challenge}: AI-generated POL analysis may be indistinguishable from legitimate business intelligence, academic research, journalistic investigation, or normal social media observation, creating significant attribution challenges for counterintelligence.
 
-\textbf{Documented at state scale} \textbf{[O]}: Anthropic's September 2026 report described PRC security bureaus generating roughly 2,475 investigative briefs in 30 days on dissidents and diaspora communities, and Iranian units analyzing about 155,000 public posts for OSINT on US naval movements, both visible only because the operators used a monitored commercial model.
+\textbf{Documented at state scale} \textbf{[O]}: Anthropic's September 2026 report described PRC security bureaus generating roughly 2,475 investigative briefs in 30 days on dissidents and diaspora communities, and Iranian units analyzing about 155,000 public posts for OSINT on US naval movements,\footnote{Figures as reported in Fone Arena, ``Anthropic September 2026 Threat Report: AI Misuse Across Cyber Operations, Surveillance and Weapons,'' September 11, 2026 (2,475 briefs in 30 days; 155,216 posts). The author could not extract these figures from the report's web summary and relies on the press account.} both visible only because the operators used a monitored commercial model.
 
 \begin{infobox}[OSINT Hygiene]
 Personnel digital footprints enable automated vulnerability assessment. Organizations should implement data minimization policies and provide OSINT hygiene training to reduce attack surface.
@@ -1709,7 +1713,7 @@ Failed approach burns credibility & AI pivots instantly, no reputation to protec
 ...until one \textbf{hits a psychological trigger} in the target. A human attacker might try 2--3 approaches before fatigue; an AI agent can test dozens systematically.
 
 \begin{warnbox}[Voice and Official Impersonation (2025--2026)]
-\textbf{[O]} The FBI warned in May 2025 of an ongoing campaign, active since April 2025, using AI-generated voice messages to impersonate senior US officials. In July 2025 an impostor used an AI-generated voice to pose as the US Secretary of State to foreign ministers and US officials (Washington Post, citing a State Department cable). \textbf{[E]} For espionage the significance is \textit{access}: a convincing impersonation is an elicitation tool, a door-opener to diplomatic contacts, and a way to seed false tasking in a real chain of command.
+\textbf{[O]} The FBI warned in May 2025 of an ongoing campaign, active since April 2025, using AI-generated voice messages to impersonate senior US officials.\footnote{FBI IC3, ``Senior US Officials Impersonated in Malicious Messaging Campaign,'' Public Service Announcement, May 15, 2025, \url{https://www.ic3.gov/PSA/2025/PSA250515}.} In July 2025 an impostor used an AI-generated voice to pose as the US Secretary of State to foreign ministers and US officials (Washington Post, citing a State Department cable).\footnote{The Washington Post, ``A Marco Rubio impostor is using AI voice to call high-level officials,'' July 8, 2025, reporting a July 3, 2025 State Department cable.} \textbf{[E]} For espionage the significance is \textit{access}: a convincing impersonation is an elicitation tool, a door-opener to diplomatic contacts, and a way to seed false tasking in a real chain of command.
 
 Residual defenses are procedural (callback to known numbers, out-of-band confirmation, verification phrases), not perceptual: in a February 2025 study of 2,000 adults, only 0.1\% classified every real and synthetic stimulus correctly (iProov).
 \end{warnbox}
@@ -1740,7 +1744,7 @@ Response handling & Static & Manual escalation & AI dialogue management \\
 
 \textit{Why recruit an insider when you can become one?}
 
-\textbf{Documented pattern} \textbf{[O]}: North Korean remote IT-worker schemes have used AI to fabricate professional identities, pass technical assessments, and perform work after hire (Anthropic, August 2025), and have adopted face-swap and voice-altering tools (Microsoft, June 2025; 3,000 accounts suspended). The documented motive is revenue, but the access obtained is what an intelligence service would want.
+\textbf{Documented pattern} \textbf{[O]}: North Korean remote IT-worker schemes have used AI to fabricate professional identities, pass technical assessments, and perform work after hire (Anthropic, August 2025), and have adopted face-swap and voice-altering tools (Microsoft, June 2025; 3,000 accounts suspended).\footnote{Anthropic, ``Detecting and countering misuse of AI: August 2025,'' August 27, 2025; Microsoft Threat Intelligence, ``Jasper Sleet: North Korean remote IT workers' evolving tactics to infiltrate organizations,'' June 30, 2025.} The documented motive is revenue, but the access obtained is what an intelligence service would want.
 
 \textbf{Why it matters} \textbf{[E]}: The handler-bottleneck argument assumed the adversary must \textit{recruit} someone already inside. AI makes it cheaper to \textit{place} a synthetic or proxied worker. Traditional counterintelligence looks for changes in a known employee's behavior; a placed worker has no ``before'' to deviate from.
 
@@ -1961,7 +1965,7 @@ Sustained presence & Multiple interactions & Co-conspirator & Ongoing \\
 \textbf{Implication}: The ``AI replaces handlers'' narrative misses the point. The real transformation is \textit{selective automation}, pure AI for low-value targets, Centaurs for mid-tier, humans for strategic assets.
 
 \begin{keybox}[Empirical Anchor (New in v3.0)]
-\textbf{[O]} Anthropic's September 2026 report described a China-based app studio that, over two weeks in April 2026, ran more than 4,700 AI personas across dating apps, sending about 2.36 million messages to more than 25,000 users, at roughly \textbf{three AI personas per human gig worker}. The model carried round-the-clock text; humans stepped in for video calls and social-media follow-ups.
+\textbf{[O]} Anthropic's September 2026 report described a China-based app studio that, over two weeks in April 2026, ran more than 4,700 AI personas across dating apps, sending about 2.36 million messages to at least 25,000 users, at roughly \textbf{three AI personas per human gig worker}. The model carried round-the-clock text; humans stepped in for video calls and social-media follow-ups.\footnote{Secondary coverage of the September 2026 Anthropic report, each figure attributed to the outlet that carries it. Techlicious, ``Fake dating apps used Claude to scam 25,000 people, Anthropic says,'' September 2026: at least 25,000 people; 2.36 million messages over two weeks; roughly three AI personas per human gig worker; 75\% of profiles in user feeds AI-generated (no persona count or month). Fone Arena, September 11, 2026, \url{https://www.fonearena.com/blog/492107/anthropic-september-2026-threat-report.html}: more than 4,700 personas across over 20 apps. The Rundown AI, ``Anthropic details Claude misuse in deception, surveillance, and malware,'' September 11, 2026, \url{https://www.therundown.ai/news/anthropic-claude-misuse-threat-report-september-2026}: 4,700+ personas over two weeks in April 2026 (the only readable source found for the month).}
 
 \textbf{[E]} That is the Centaur Handler in commercial form. It also calibrates the model: the observed 3:1 ratio is far more conservative than the ``one officer, 500 agents'' illustration of earlier versions, because the binding constraint was the live-presence step. Intelligence services face a harder live-presence problem than fraudsters, so a realistic HUMINT ratio is likely closer to the observed one.
 \end{keybox}
@@ -2188,7 +2192,7 @@ Plausible deniability preserved & Cross-operation correlation reveals scope \\
 
 \subsection{Sophistication Collapse: What the Tiers No Longer Tell You}
 
-\textbf{[O]} Anthropic's September 2026 threat report concluded that AI has removed much of the skill gap between state-sponsored operators and small teams; CyberScoop quoted it as finding that ``sophistication has stopped being a reliable signal of who is behind an operation.'' Its June 2026 analysis found the share of banned accounts rated medium-to-high risk rose from 33\% to 56\% across its study period.
+\textbf{[O]} Anthropic's September 2026 threat report concluded that AI has removed much of the skill gap between state-sponsored operators and small teams; CyberScoop quoted it as finding that ``sophistication has stopped being a reliable signal of who is behind an operation.''\footnote{CyberScoop, ``AI lets small actors run state-level hacking campaigns, Anthropic report finds,'' September 10, 2026, \url{https://cyberscoop.com/anthropic-report-ai-enabled-cyber-attacks/}.} Its June 2026 analysis found the share of banned accounts rated medium-to-high risk rose from 33\% to 56\% across its study period.\footnote{Anthropic, ``Mapping AI-enabled cyber threats,'' June 3, 2026, \url{https://www.anthropic.com/news/AI-enabled-cyber-threats-mitre-attack}: 832 accounts banned between March 2025 and March 2026, mapped to MITRE ATT\&CK.}
 
 \textbf{Implications} \textbf{[E]}: (1) Technical sophistication is a weaker attribution signal. (2) The tiers still differ on what AI does not supply: sustained intent, legal cover, physical presence, diplomatic protection, and the ability to exploit what is collected; HUMINT depends on exactly these, so state services keep their edge in strategic recruitment. (3) Defenders should re-weight threat models from \textit{capability} to \textit{intent and access}, prioritizing controls that do not depend on guessing the adversary's tier.
 
@@ -2773,7 +2777,7 @@ Financial flows & Crypto, micro-transactions & FININT analysis degraded \\
 
 \subsection{Provider-Side Detection: The Lever That Has Worked}
 
-\textbf{[O]/[E]} The AI-orchestrated espionage campaigns publicly documented through September 2026 were detected by the model provider, not the victims (a sample biased, by construction, toward what providers can see). Providers see what victims cannot: one operator touching many targets, retooling after detection, and acquiring access through fraudulent accounts. The June 2026 finding that MITRE ATT\&CK has no identifier for ``agentic orchestration'' shows shared vocabularies must be updated before provider findings flow cleanly into enterprise detection. The structural limit: this lever does not reach open-weight or self-hosted models, and it depends on a few companies' willingness to investigate, disclose, and share.
+\textbf{[O]/[E]} The AI-orchestrated espionage campaigns publicly documented through September 2026 were detected by the model provider, not the victims (a sample biased, by construction, toward what providers can see). Providers see what victims cannot: one operator touching many targets, retooling after detection, and acquiring access through fraudulent accounts. The June 2026 finding that MITRE ATT\&CK has no identifier for ``agentic orchestration'' shows shared vocabularies must be updated before provider findings flow cleanly into enterprise detection. The pattern is not specific to one provider: Google's and OpenAI's threat-intelligence teams, and Microsoft working with OpenAI, have published their own disruptions of state-linked actors, generally describing AI as accelerating existing tradecraft rather than enabling novel techniques.\footnote{Google Threat Intelligence Group, ``Adversarial Misuse of Generative AI,'' January 29, 2025; ``GTIG AI Threat Tracker: Advances in Threat Actor Usage of AI Tools,'' November 5, 2025; ``GTIG AI Threat Tracker: From Prompting to Autonomy,'' September 8, 2026; Microsoft Threat Intelligence, ``Staying ahead of threat actors in the age of AI,'' February 14, 2024; OpenAI, ``Disrupting malicious uses of AI by state-affiliated threat actors,'' February 14, 2024; OpenAI, ``Disrupting malicious uses of AI: October 2025.''} The structural limit: this lever does not reach open-weight or self-hosted models, and it depends on a few companies' willingness to investigate, disclose, and share.
 
 \Needspace{9\baselineskip}
 \subsection{Defender's Advantage Levers}
@@ -2900,7 +2904,7 @@ Effective defense requires combining AI scale with human judgment:
 
 \subsection{Precedents and Analogies}
 
-\textbf{The Doppelg\"anger Campaign (2023--2024)} \textbf{[O]}: Russian influence operations using AI-generated personas and content represent an early, crude precursor to the more sophisticated operations projected in this report. Key lessons:
+\textbf{The Doppelg\"anger Campaign (2023--2024)} \textbf{[O]}: Russian influence operations using AI-generated content represent an early, crude precursor to the more sophisticated operations projected in this report.\footnote{OpenAI, ``Disrupting deceptive uses of AI by covert influence operations,'' May 30, 2024: Doppelganger used OpenAI models to generate headlines, posts, and comments, without significant authentic reach.} Key lessons:
 \begin{itemize}
   \item Detection proved possible but resource-intensive
   \item Attribution remained challenging despite detection
@@ -2908,7 +2912,7 @@ Effective defense requires combining AI scale with human judgment:
   \item Hybrid human-AI operations proved more effective than fully automated
 \end{itemize}
 
-\textbf{Project Voyager (Stanford/NVIDIA)} \textbf{[O]}: Research demonstrating AI agents capable of learning to use tools and manage long-term goals in digital environments (initially Minecraft) without human intervention. This validates the technical feasibility of agentic autonomous operations projected in this report.
+\textbf{Project Voyager (Stanford/NVIDIA)} \textbf{[O]}: Research demonstrating AI agents capable of learning to use tools and manage long-term goals in digital environments (initially Minecraft) without human intervention.\footnote{Guanzhi Wang et al., ``Voyager: An Open-Ended Embodied Agent with Large Language Models,'' arXiv:2305.16291 (May 2023).} This validates the technical feasibility of agentic autonomous operations projected in this report.
 
 \Needspace{8\baselineskip}
 \section{The Insider Threat 2.0: Stasi-in-a-Box}\label{sec:stasi}
@@ -2947,7 +2951,7 @@ Whistleblower retaliation & Surveillance chills legitimate reporting & SEC/DOJ e
 
 \subsection{EU AI Act: Legal Constraints}
 
-\textbf{[O]} Under the EU AI Act (Regulation 2024/1689), ``Predictive Attrition Management'' and similar loyalty-scoring systems are classified as \textbf{high-risk or prohibited} AI applications. Article 5 prohibitions (including workplace emotion recognition) have applied since February 2, 2025; general application began August 2, 2026, and the ``Digital Omnibus'' package (proposed November 2025; in force July 27, 2026) defers Annex III high-risk obligations, which cover employment systems, to December 2, 2027 (see ETRA-2026-IC-001 v3.0).
+\textbf{[O]} Under the EU AI Act (Regulation 2024/1689), ``Predictive Attrition Management'' and similar loyalty-scoring systems are classified as \textbf{high-risk or prohibited} AI applications. Article 5 prohibitions (including workplace emotion recognition) have applied since February 2, 2025; general application began August 2, 2026, and the ``Digital Omnibus'' package (proposed November 2025; in force July 27, 2026) defers Annex III high-risk obligations, which cover employment systems, to December 2, 2027 (see ETRA-2026-IC-001 v3.0).\footnote{Regulation (EU) 2024/1689, Article 5(1)(f) and Article 113; the Digital Omnibus on AI was published in the Official Journal on July 24, 2026 and entered into force on July 27, 2026 (White \& Case, ``EU AI Omnibus enters into force, amending the AI Act,'' July 2026).}
 
 \textbf{Recommendation}: Multinational corporations need a \textbf{``Jurisdictional Security Map''} documenting which CI tools can legally be deployed in which regions.
 
@@ -3699,7 +3703,7 @@ Capability plateau & 10\% & 10\% & 10\% & \textbf{5--15\%} & AI does not develop
 \bottomrule
 \end{longtable}}
 
-\textit{Reading the table}: v3.0 values are ranges on the series' 5-point calibration grid (midpoints 40, 35, 15, and 10, summing to 100\%). Earlier columns are kept as published; they predate the calibration policy, and the v2.1 two-point move would not be recorded under it. The v3.0 midpoints are the v2.1 values re-expressed on the grid, not a revision.
+\textit{Reading the table}: v3.0 values are ranges on the series' 5-point calibration grid (midpoints 40, 35, 15, and 10, summing to 100\%). Earlier columns are kept as published; they predate the calibration policy, and the v2.1 two-point move would not be recorded under it. The v3.0 midpoints are the v2.1 values re-expressed on the grid, not a revision. No prediction in the series has resolved yet, so these are unscored priors: the grid and revision history make the reasoning auditable, not the numbers demonstrably accurate (see the Resolution Log in the ETRA Shared Methodology, Section 9).
 
 \begin{figure}[htbp]
 \centering
@@ -3917,7 +3921,7 @@ Weight-Jacking & Social engineering to steal ML model weights and fine-tuning da
 \textit{NIST SP 800-207: Zero Trust} & NIST (2020) & Identity-centric security \\
 \textit{CISA Zero Trust Maturity Model} & CISA (2023) & Implementation guidance \\
 \textit{MITRE ATT\&CK Framework} & MITRE Corp. & Adversary tactics taxonomy \\
-\textit{Finance deepfake case} & The Guardian (2024) & \$25M Hong Kong case \\
+\textit{Finance deepfake case} & CNN (Feb.\ 4, 2024) & \$25M Hong Kong case \\
 \textit{C2PA Technical Spec} & C2PA (2024) & Content authenticity standards \\
 \textit{LLM Watermarking} & Kirchenbauer et al. (2023) & Content provenance \\
 \textit{FBI IC3 Annual Reports} & FBI (annual) & BEC/fraud trends \\
@@ -3944,12 +3948,21 @@ PSA on senior-official impersonation & FBI IC3 (May 15, 2025) & AI voice imperso
 \textit{2025 Internet Crime Report} & FBI IC3 (2026) & \$20.9B losses; AI-related line \\
 Ding conviction press release & US DOJ (Jan.\ 30, 2026) & AI economic espionage \\
 Mythos Preview unauthorized access & Bloomberg (Apr.\ 21, 2026) & Contractor-layer leak \\
-Dating-app persona coverage & Techlicious / Yahoo Tech (Sept.\ 2026) & 4,700+ personas, 3:1 ratio \\
+Dating-app persona coverage & Techlicious / Yahoo Tech (Sept.\ 2026) & 3:1 ratio; 2.36M messages; 75\% AI profiles \\
+Dating-app persona coverage & The Rundown AI (Sept.\ 11, 2026) & 4,700+ personas; April 2026 \\
 \textit{Conversational Persuasiveness of GPT-4} & Salvi et al.\ (2025) & Personalization effect \\
 \textit{Levers of Political Persuasion} & Hackenburg et al.\ (\textit{Science}, Dec.\ 4, 2025) & Persuasion vs.\ accuracy \\
 Deepfake detection study & iProov (Feb.\ 12, 2025) & 0.1\% detect all \\
 MI5 LinkedIn espionage alert & MI5 / UK Govt (Nov.\ 2025) & Recruiter approaches \\*
 Five Eyes job-platform warning & Five Eyes (June 3, 2026; Reuters, Washington Post, BBC) & Job-platform targeting \\
+\textit{Staying ahead of threat actors in the age of AI} & Microsoft, with OpenAI (Feb.\ 14, 2024) & Five state actors; no novel techniques \\
+\textit{Disrupting malicious uses of AI by state-affiliated threat actors} & OpenAI (Feb.\ 14, 2024) & Companion report \\
+\textit{Disrupting deceptive uses of AI by covert influence operations} & OpenAI (May 30, 2024) & Doppelganger content generation \\
+\textit{Adversarial Misuse of Generative AI} & Google GTIG (Jan.\ 29, 2025) & 20+ countries; productivity, not novelty \\
+\textit{Disrupting malicious uses of AI: October 2025} & OpenAI (Oct.\ 2025) & PRC monitoring proposals \\
+\textit{GTIG AI Threat Tracker: From Prompting to Autonomy} & Google GTIG (Sept.\ 8, 2026) & Agentic workflows; API credential theft \\
+\textit{Safeguarding Our Secrets} (joint bulletin) & ASIO, CSIS, FBI, MI5, NZSIS (June 3, 2026) & Primary source, job-platform warning \\
+FDD fake-consulting-firm coverage & Cybersecurity Dive (May 2025) & Laid-off federal workers \\
 \bottomrule
 \end{longtable}}
 
@@ -3957,10 +3970,12 @@ Five Eyes job-platform warning & Five Eyes (June 3, 2026; Reuters, Washington Po
 % APPENDIX C - Evidence Notes
 % ============================================================================
 \newpage
+\textbf{Source concentration}: Of the entries above that document 2025--2026 misuse, Anthropic publications are the largest single share, and the headline figures for the persona operation, PRC dissident profiling, and GTG-20006 rest on a single Anthropic report and press accounts of it. The Google, OpenAI, Microsoft, Meta, and government sources corroborate the general pattern but not those specific figures.
+
 \section*{Appendix C: Evidence Notes}
 \addcontentsline{toc}{section}{Appendix C: Evidence Notes}
 
-\textit{This appendix provides evidentiary support for claims marked [O] (Open-source documented) without inline citation clutter.}
+\textit{This appendix gives calculation detail and source notes for selected [O] claims. The primary citations are the footnotes in the main text; some entries below are narrative summaries rather than citations.}
 
 \subsection*{Inference Deflation Cost Calculation}
 
@@ -3974,24 +3989,24 @@ Five Eyes job-platform warning & Five Eyes (June 3, 2026; Reuters, Washington Po
   \item \textbf{Note}: Open-weight local inference (Llama 4, Qwen 3) reduces costs further but requires hardware capital
 \end{itemize}
 
-\textbf{Sources}: Anthropic API pricing (claude.com/pricing, checked for v2.1, July 2026); OpenAI API pricing; OpenRouter aggregator. Not re-priced for v3.0; the order of magnitude carries the argument.
+\textbf{Sources}: Anthropic API pricing (claude.com/pricing, checked for v2.1, July 2026, and re-checked for v3.0 in September 2026 against claude.com/pricing and Anthropic's API pricing documentation: Haiku 4.5 remains \$1/\$5, Opus 4.8 \$5/\$25, and Fable 5 \$10/\$50 per 1M input/output tokens, so the derived figure is unchanged); OpenAI API pricing; OpenRouter aggregator. The order of magnitude carries the argument.
 
 \subsection*{Evidence Ledger and Frontier Access (New in v3.0)}
 \begin{itemize}
   \item \textbf{GTG-1002}: Anthropic (Nov.\ 13, 2025): detected mid-September 2025; about 30 targets; high-confidence attribution to a Chinese state-sponsored group; AI did an estimated 80--90\% of the campaign with 4--6 human decision points; hallucinations limited results.
   \item \textbf{September 2026 report}: Anthropic (Sept.\ 10, 2026), covering Dec.\ 2025--Aug.\ 2026; coverage by CyberScoop (Sept.\ 10) and Fone Arena (Sept.\ 11). The sophistication quote is as reported by CyberScoop; the PRC-brief, Iranian-post, and Mali figures are as reported in press coverage.
-  \item \textbf{Persona operation}: Techlicious / Yahoo Tech coverage: 4,700+ personas, 25,000+ users, about 2.36M messages over two weeks in April 2026, about three personas per human worker.
-  \item \textbf{Frontier access}: Mythos Preview announced Apr.\ 7, 2026; unauthorized access reported by Bloomberg Apr.\ 21. Export-control directive June 12; lifted June 30; access resumed July 1. Fable 5.1 / Mythos 5.1 released Sept.\ 1. GPT-6 Astra Sept.\ 3--4 (secondary sources).
+  \item \textbf{Persona operation}: Techlicious / Yahoo Tech: at least 25,000 users, about 2.36M messages over two weeks, about three personas per human worker. Fone Arena and The Rundown AI: 4,700+ personas; only The Rundown AI gives the month (April 2026).
+  \item \textbf{Frontier access}: Mythos Preview announced Apr.\ 7, 2026; unauthorized access reported by Bloomberg Apr.\ 21. Export-control directive June 12; lifted June 30; Mythos 5 resumed for select US organizations, Fable 5 globally July 1 (CIO; Outlook Business). Fable 5.1 / Mythos 5.1 released Sept.\ 1. GPT-6 Astra Sept.\ 3--4 (secondary sources).
   \item \textbf{IC3 2025}: 1,008,597 complaints; \$20.877B (+26\%); BEC \$3.047B (2024: \$2.770B); 22,364 AI-related complaints, \$893M.
-  \item \textbf{Recalled, not re-retrieved}: the July 2025 Secretary of State impersonation (Washington Post) and OpenAI's October 2025 report are cited from the author's recollection of contemporaneous coverage.
+  \item \textbf{Re-verified for v3.0}: the July 2025 Secretary of State impersonation (The Washington Post, July 8, 2025, reporting a July 3 State Department cable); OpenAI's October 2025 report (the openai.com page returned an access error; content verified against IT Brew, October 15, 2025, and SiliconANGLE, October 7, 2025).
 \end{itemize}
 
 \subsection*{The Hong Kong Deepfake Case}
 
 \textbf{``\$25 Million Hong Kong Deepfake Heist (2024)''}:
 \begin{itemize}
-  \item The Guardian, February 4, 2024: ``Finance worker pays out \$25m after video call with deepfake CFO''
-  \item South China Morning Post and CNN coverage of same incident
+  \item CNN, February 4, 2024: ``Finance worker pays out \$25 million after video call with deepfake `chief financial officer' ''
+  \item South China Morning Post and The Guardian coverage of same incident
   \item Hong Kong Police confirmation of investigation
 \end{itemize}
 

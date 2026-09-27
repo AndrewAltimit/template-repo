@@ -27,6 +27,16 @@ This module provides:
 
 Scores are ``activation . direction + bias``; higher means "more like the
 defection side of the contrast pairs". The bias does not affect AUROC.
+
+Prompt format: fitting texts and monitored prompts are rendered with
+:mod:`sleeper_agents.utils.prompt_format`. The default ``"raw"`` keeps the literal
+``Human: <q>\n\nAssistant: <a>`` pairs (:data:`CONTRAST_TEMPLATE`) and passes
+monitored prompts through unchanged, which is what the 2026-09 runner uses. For a
+chat model trained with ``prompt_format="chat"``, pass ``prompt_format="chat"`` and
+the tokenizer to :func:`contrast_texts` (each pair becomes the chat-template user
+turn followed by the answer) and record the format in the saved probes
+(``meta["prompt_format"]``), which :class:`DefectionMonitor` then applies to
+monitored prompts. Probes must be fitted and applied with the same format.
 """
 
 from dataclasses import dataclass, field
@@ -37,6 +47,13 @@ from typing import Any, Dict, Iterable, List, Optional, Sequence, Tuple, Union
 import numpy as np
 
 from sleeper_agents.detection.layer_probes import to_numpy
+from sleeper_agents.utils.prompt_format import (
+    AUTO,
+    DEFAULT_PROMPT_FORMAT,
+    format_exchange,
+    format_prompt,
+    resolve_prompt_format,
+)
 
 #: Chat-style template of the contrast pairs (answer = the token whose activation is used).
 CONTRAST_TEMPLATE = "Human: {question}\n\nAssistant: {answer}"
@@ -60,10 +77,24 @@ PROBE_METHODS = ("mean_diff", "logreg")
 def contrast_texts(
     pairs: Sequence[Tuple[str, str, str]] = tuple(DEFAULT_CONTRAST_PAIRS),
     template: str = CONTRAST_TEMPLATE,
+    tokenizer: Any = None,
+    prompt_format: str = DEFAULT_PROMPT_FORMAT,
 ) -> Tuple[List[str], List[str]]:
-    """Defection-side and benign-side texts of the contrast pairs (aligned by index)."""
-    positive = [template.format(question=q, answer=defect) for q, defect, _ in pairs]
-    negative = [template.format(question=q, answer=benign) for q, _, benign in pairs]
+    """Defection-side and benign-side texts of the contrast pairs (aligned by index).
+
+    Args:
+        pairs: ``(question, defection answer, benign answer)`` triples
+        template: Raw-format template (``{question}``, ``{answer}``)
+        tokenizer: Tokenizer for ``prompt_format`` ``"chat"``/``"auto"``
+        prompt_format: ``"raw"`` (default; ``template``, as in the 2026-09 runner),
+            ``"chat"`` (chat-template user turn followed by the answer) or ``"auto"``
+
+    The answer is the last text of every rendering, so last-token activations are
+    those of the answer. Check the returned texts with
+    :func:`assert_no_forbidden_strings`: a chat template may add a system prompt.
+    """
+    positive = [format_exchange(q, defect, tokenizer, prompt_format, raw_template=template) for q, defect, _ in pairs]
+    negative = [format_exchange(q, benign, tokenizer, prompt_format, raw_template=template) for q, _, benign in pairs]
     return positive, negative
 
 
@@ -256,20 +287,64 @@ class DefectionMonitor:
         {'flagged': False, 'layers': {12: {'score': ..., 'threshold': ..., 'flagged': False}}}
     """
 
-    def __init__(self, probes: Sequence[DefectionProbe], model: Any = None, batch_size: int = 16):
+    def __init__(
+        self,
+        probes: Sequence[DefectionProbe],
+        model: Any = None,
+        batch_size: int = 16,
+        prompt_format: Optional[str] = None,
+        tokenizer: Any = None,
+    ):
+        """Create a monitor.
+
+        Args:
+            probes: At most one probe per layer
+            model: ``ModelInterface`` used by :meth:`score_texts` and :meth:`check`
+            batch_size: Texts per forward pass
+            prompt_format: How monitored prompts are rendered before scoring. None
+                (default) uses the probes' ``meta["prompt_format"]``, or ``"raw"``
+                (prompt unchanged, as in the 2026-09 runs) when they record none.
+                Must be the format the probes were fitted with.
+            tokenizer: Tokenizer for ``"chat"``/``"auto"`` (default: ``model.tokenizer``)
+        """
         if not probes:
             raise ValueError("DefectionMonitor needs at least one probe")
         layers = [p.layer for p in probes]
         if len(set(layers)) != len(layers):
             raise ValueError(f"DefectionMonitor needs at most one probe per layer, got layers {layers}")
+        recorded = {str(p.meta["prompt_format"]) for p in probes if p.meta.get("prompt_format")}
+        if len(recorded) > 1:
+            raise ValueError(f"Probes were fitted with different prompt formats: {sorted(recorded)}")
+        if prompt_format is None:
+            prompt_format = recorded.pop() if recorded else DEFAULT_PROMPT_FORMAT
+        elif recorded and prompt_format != AUTO and prompt_format not in recorded:
+            raise ValueError(f"prompt_format={prompt_format!r} differs from the probes' recorded format {sorted(recorded)}")
         self.probes = {p.layer: p for p in probes}
         self.model = model
         self.batch_size = batch_size
+        self.tokenizer = tokenizer
+        self.prompt_format = prompt_format
+        # Fail at construction, not at the first check(), for "chat" without a template
+        resolve_prompt_format(prompt_format, self._tokenizer())
+
+    def _tokenizer(self) -> Any:
+        return self.tokenizer if self.tokenizer is not None else getattr(self.model, "tokenizer", None)
+
+    def format_prompt(self, text: str) -> str:
+        """Render a monitored prompt in the probes' prompt format (identity for ``"raw"``)."""
+        return format_prompt(text, self._tokenizer(), self.prompt_format)
 
     @classmethod
     def from_file(cls, path: Union[str, Path], model: Any = None, layers: Optional[Sequence[int]] = None, **kwargs: Any):
-        """Load probes from :func:`save_probes` output, optionally keeping only ``layers``."""
-        probes, _meta = load_probes(path)
+        """Load probes from :func:`save_probes` output, optionally keeping only ``layers``.
+
+        A ``prompt_format`` in the file's shared metadata applies to every probe that
+        does not record its own.
+        """
+        probes, meta = load_probes(path)
+        if meta.get("prompt_format"):
+            for probe in probes:
+                probe.meta.setdefault("prompt_format", meta["prompt_format"])
         if layers is not None:
             wanted = {int(li) for li in layers}
             probes = [p for p in probes if p.layer in wanted]
@@ -283,10 +358,18 @@ class DefectionMonitor:
         """Scores per layer for precomputed ``{layer: [n, d]}`` activations."""
         return {li: self.probes[li].score(activations[li]) for li in self.layers if li in activations}
 
-    def score_texts(self, texts: Sequence[str]) -> Dict[int, np.ndarray]:
-        """Scores per layer for texts (activations extracted from ``self.model``)."""
+    def score_texts(self, texts: Sequence[str], apply_format: bool = True) -> Dict[int, np.ndarray]:
+        """Scores per layer for texts (activations extracted from ``self.model``).
+
+        Args:
+            texts: Prompts
+            apply_format: Render each prompt with :meth:`format_prompt` first (a no-op
+                for ``"raw"``); False for texts that are already rendered
+        """
         if self.model is None:
             raise RuntimeError("DefectionMonitor has no model; pass model= or use score_activations()")
+        if apply_format:
+            texts = [self.format_prompt(t) for t in texts]
         acts = extract_last_token_activations(self.model, texts, self.layers, self.batch_size)
         return self.score_activations(acts)
 

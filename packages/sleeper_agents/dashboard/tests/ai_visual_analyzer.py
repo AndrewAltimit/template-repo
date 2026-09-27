@@ -1,24 +1,62 @@
 """
 AI Agent Visual Analysis Integration for Dashboard Testing.
 Analyzes screenshots captured during Selenium tests for visual issues.
+
+Analysis runs through the Claude Code CLI in non-interactive print mode:
+
+    claude -p "<prompt naming the screenshot path(s)>" --allowedTools Read
+
+The CLI has no image flag; the prompt names each screenshot's absolute path and
+the Read tool (the only tool allowed) loads the image. When the `claude` CLI is
+not installed (as in the dashboard test image) every analysis reports
+status "unavailable" instead of failing the run.
 """
 
-import base64
 from datetime import datetime
 import json
 from pathlib import Path
+import shutil
 import subprocess
-import tempfile
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Sequence
+
+# Seconds allowed for one CLI analysis; image reads plus a structured answer take longer than a chat reply
+CLAUDE_TIMEOUT_SECONDS = 300
+
+
+def build_claude_command(prompt: str, image_paths: Sequence[Path]) -> List[str]:
+    """Claude CLI invocation that analyzes the given images with a read-only tool set."""
+    image_lines = "\n".join(f"- {Path(p).resolve()}" for p in image_paths)
+    full_prompt = f"Read these screenshot image files:\n{image_lines}\n\n{prompt.strip()}"
+    return ["claude", "-p", full_prompt, "--allowedTools", "Read"]
 
 
 class AIVisualAnalyzer:
-    """Integrates with AI agents to analyze dashboard screenshots."""
+    """Integrates with the Claude CLI to analyze dashboard screenshots."""
 
     def __init__(self):
         """Initialize AI visual analyzer."""
         self.results_dir = Path(__file__).parent / "ai_analysis_results"
         self.results_dir.mkdir(parents=True, exist_ok=True)
+
+    @staticmethod
+    def _run_claude(prompt: str, image_paths: Sequence[Path]) -> Dict[str, Any]:
+        """Run one Claude CLI analysis; never raises."""
+        timestamp = datetime.now().isoformat()
+        if shutil.which("claude") is None:
+            return {"status": "unavailable", "error": "claude CLI not found on PATH", "timestamp": timestamp}
+        try:
+            result = subprocess.run(
+                build_claude_command(prompt, image_paths),
+                capture_output=True,
+                text=True,
+                timeout=CLAUDE_TIMEOUT_SECONDS,
+                check=False,
+            )
+        except (OSError, subprocess.SubprocessError) as e:
+            return {"status": "error", "error": str(e), "timestamp": timestamp}
+        if result.returncode == 0:
+            return {"status": "success", "analysis": result.stdout, "timestamp": timestamp}
+        return {"status": "error", "error": result.stderr or f"claude exited with {result.returncode}", "timestamp": timestamp}
 
     def analyze_with_claude(self, screenshot_path: Path, context: str = "") -> Dict[str, Any]:
         """Analyze screenshot using Claude AI.
@@ -47,78 +85,7 @@ class AIVisualAnalyzer:
         - Suggested fixes
         - Overall quality score (1-10)
         """
-
-        # Create temporary script for Claude CLI
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False) as f:
-            f.write(prompt)
-            prompt_file = f.name
-
-        try:
-            # Call Claude CLI with image
-            result = subprocess.run(
-                ["claude", "chat", "--image", str(screenshot_path), "--file", prompt_file],
-                capture_output=True,
-                text=True,
-                timeout=30,
-                check=False,
-            )
-
-            if result.returncode == 0:
-                return {"status": "success", "analysis": result.stdout, "timestamp": datetime.now().isoformat()}
-            return {"status": "error", "error": result.stderr, "timestamp": datetime.now().isoformat()}
-
-        except Exception as e:
-            return {"status": "error", "error": str(e), "timestamp": datetime.now().isoformat()}
-        finally:
-            # Clean up temp file
-            Path(prompt_file).unlink(missing_ok=True)
-
-    def analyze_with_gemini(self, screenshot_path: Path, context: str = "") -> Dict[str, Any]:
-        """Analyze screenshot using Gemini AI.
-
-        Args:
-            screenshot_path: Path to screenshot file
-            context: Additional context for analysis
-
-        Returns:
-            Analysis results from Gemini
-        """
-        # Read image and encode to base64
-        with open(screenshot_path, "rb") as f:
-            _ = base64.b64encode(f.read()).decode("utf-8")  # For future AI
-
-        prompt = f"""
-        Analyze this dashboard screenshot for visual quality:
-
-        Context: {context}
-
-        Check for:
-        - Layout consistency
-        - Visual hierarchy
-        - Color scheme appropriateness
-        - Information density
-        - Accessibility concerns
-        - Mobile responsiveness indicators
-
-        Provide actionable feedback.
-        """
-
-        try:
-            # Call Gemini CLI
-            result = subprocess.run(
-                ["gemini", "analyze", "--image", str(screenshot_path), "--prompt", prompt],
-                capture_output=True,
-                text=True,
-                timeout=30,
-                check=False,
-            )
-
-            if result.returncode == 0:
-                return {"status": "success", "analysis": result.stdout, "timestamp": datetime.now().isoformat()}
-            return {"status": "error", "error": result.stderr, "timestamp": datetime.now().isoformat()}
-
-        except Exception as e:
-            return {"status": "error", "error": str(e), "timestamp": datetime.now().isoformat()}
+        return self._run_claude(prompt, [screenshot_path])
 
     def compare_screenshots(self, before_path: Path, after_path: Path) -> Dict[str, Any]:
         """Use AI to compare before/after screenshots.
@@ -130,21 +97,15 @@ class AIVisualAnalyzer:
         Returns:
             Comparison analysis
         """
-        _ = """
-        Compare these two dashboard screenshots:
+        prompt = f"""
+        Compare these two dashboard screenshots. The baseline is {Path(before_path).name};
+        the new capture is {Path(after_path).name}.
         1. What changed between them?
         2. Are the changes improvements or regressions?
         3. Any visual issues introduced?
         4. Rate the change impact (1-10 scale)
         """
-
-        # Try Claude first, fallback to Gemini
-        result = self.analyze_with_claude(after_path, f"Comparing with baseline: {before_path}")
-
-        if result.get("status") != "success":
-            result = self.analyze_with_gemini(after_path, f"Comparing with baseline: {before_path}")
-
-        return result
+        return self._run_claude(prompt, [before_path, after_path])
 
     def batch_analyze(self, screenshots_dir: Path) -> List[Dict[str, Any]]:
         """Analyze all screenshots in a directory.
@@ -163,12 +124,7 @@ class AIVisualAnalyzer:
             # Determine context from filename
             context = self._get_context_from_filename(screenshot_path.name)
 
-            # Analyze with AI
             analysis = self.analyze_with_claude(screenshot_path, context)
-
-            # If Claude fails, try Gemini
-            if analysis.get("status") != "success":
-                analysis = self.analyze_with_gemini(screenshot_path, context)
 
             # Add metadata
             analysis["screenshot"] = str(screenshot_path)
@@ -294,9 +250,11 @@ class AIVisualAnalyzer:
         report += "## Summary\n\n"
         total = len(analyses)
         successful = sum(1 for a in analyses if a.get("status") == "success")
+        unavailable = sum(1 for a in analyses if a.get("status") == "unavailable")
         report += f"- Total screenshots analyzed: {total}\n"
         report += f"- Successful analyses: {successful}\n"
-        report += f"- Failed analyses: {total - successful}\n\n"
+        report += f"- Skipped (claude CLI unavailable): {unavailable}\n"
+        report += f"- Failed analyses: {total - successful - unavailable}\n\n"
 
         # Detailed results
         report += "## Detailed Analysis\n\n"

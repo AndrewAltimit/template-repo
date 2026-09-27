@@ -1,0 +1,18 @@
+[package]
+name = "trust-common"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.91"
+description = "Shared comment-author trust levels and PR-safe loading of .agents.yaml"
+license = "MIT"
+repository = "https://github.com/AndrewAltimit/template-repo"
+keywords = ["github", "security", "trust", "agents"]
+categories = ["development-tools"]
+
+[dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+serde_yaml = "0.9"
+
+[dev-dependencies]
+tempfile = "3.10"

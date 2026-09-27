@@ -56,7 +56,10 @@ case $CONTAINER in
         build_container "Crush" "$SCRIPT_DIR/crush/scripts/build.sh"
         ;;
     all)
-        build_container "Gemini CLI" "$SCRIPT_DIR/gemini/scripts/build.sh"
+        # Gemini is legacy (not allowed in this lab); only built with ALLOW_LEGACY_AGENTS=1
+        if [ "${ALLOW_LEGACY_AGENTS:-}" = "1" ]; then
+            build_container "Gemini CLI" "$SCRIPT_DIR/gemini/scripts/build.sh"
+        fi
         build_container "OpenCode" "$SCRIPT_DIR/opencode/scripts/build.sh"
         build_container "Crush" "$SCRIPT_DIR/crush/scripts/build.sh"
         ;;
@@ -79,6 +82,5 @@ echo "Built for architecture: $TARGETARCH"
 echo "Using runtime: $CONTAINER_RUNTIME"
 echo ""
 echo "To run containers:"
-echo "  Gemini:   $SCRIPT_DIR/gemini/scripts/run.sh"
 echo "  OpenCode: $SCRIPT_DIR/opencode/scripts/run.sh"
 echo "  Crush:    $SCRIPT_DIR/crush/scripts/run.sh"

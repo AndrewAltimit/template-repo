@@ -216,11 +216,27 @@ class ValidateRequest(BaseModel):
         return validate_results_path(value, "output_file")
 
 
+# Safety training methods the job scripts implement. RL/PPO safety training is not
+# implemented (safety_training.py rejects --method rl), so it is refused here with a
+# clear message instead of failing inside the job container.
+SAFETY_TRAINING_METHODS = ("sft",)
+
+
+def validate_safety_method(value: str) -> str:
+    """Accept only implemented safety training methods."""
+    method = value.strip().lower()
+    if method in ("rl", "ppo"):
+        raise ValueError("RL/PPO safety training is not implemented; use method 'sft'")
+    if method not in SAFETY_TRAINING_METHODS:
+        raise ValueError(f"unsupported safety training method {value!r}; supported: {', '.join(SAFETY_TRAINING_METHODS)}")
+    return method
+
+
 class SafetyTrainingRequest(BaseModel):
     """Request to apply safety training."""
 
     model_path: str = Field(..., description="Path to backdoored model")
-    method: str = Field(default="sft", description="Safety method (sft or rl)")
+    method: str = Field(default="sft", description="Safety method (only sft is implemented)")
     safety_dataset: str = Field(default="simple", description="Safety dataset")
     epochs: int = Field(default=1, ge=1, description="Training epochs")
     batch_size: int = Field(default=8, ge=1, description="Batch size")
@@ -249,6 +265,11 @@ class SafetyTrainingRequest(BaseModel):
         ),
     )
     evaluation_samples: int = Field(default=100, ge=10, description="Number of samples per evaluation test")
+
+    @field_validator("method")
+    @classmethod
+    def _check_method(cls, value: str) -> str:
+        return validate_safety_method(value)
 
     @field_validator("evaluation_db")
     @classmethod

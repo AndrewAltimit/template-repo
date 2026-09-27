@@ -9,7 +9,7 @@
 //! +-- public/               <- goes on USB Partition 1
 //! |   +-- recovery_public.json
 //! |   +-- wrapped_secret.bin
-//! +-- private/              <- store OFFLINE, never on USB
+//! +-- private/              <- store OFFLINE, never on USB (NOT encrypted)
 //! |   +-- recovery_private.json
 //! |   +-- recovery_secret.hex
 //! +-- encrypted/            <- goes on USB Partition 2
@@ -19,7 +19,7 @@
 use std::fs;
 use std::path::Path;
 
-use aes_gcm::aead::Aead;
+use aes_gcm::aead::{Aead, Payload};
 use aes_gcm::{Aes256Gcm, KeyInit, Nonce};
 use anyhow::{Context, Result};
 use base64::Engine;
@@ -35,6 +35,10 @@ use rand::RngCore;
 use sha2::Sha512;
 use x25519_dalek::{EphemeralSecret, PublicKey, StaticSecret};
 use zeroize::Zeroizing;
+
+use crate::format::{
+    self, DeviceSecrets, PrivateBundle, PublicBundle, SIG_MAGIC_V2, WRAP_AAD_V2, WrapVersion,
+};
 
 /// Write secret key material to `path`, restricting permissions to `0o600`
 /// from the moment the file is created.
@@ -125,8 +129,25 @@ fn write_secret_file(path: &Path, contents: &[u8]) -> Result<()> {
     Ok(())
 }
 
-/// Generate all recovery key material.
+/// Generate all recovery key material in the current wrap format.
 pub fn generate(output_dir: &Path, root_passphrase: &str, data_passphrase: &str) -> Result<()> {
+    generate_versioned(
+        output_dir,
+        root_passphrase,
+        data_passphrase,
+        WrapVersion::CURRENT,
+    )
+}
+
+/// Generate key material wrapped with an explicit format version. Only the
+/// current version is reachable from the CLI; tests use v1 to reproduce
+/// legacy media and prove it still unwraps.
+pub(crate) fn generate_versioned(
+    output_dir: &Path,
+    root_passphrase: &str,
+    data_passphrase: &str,
+    version: WrapVersion,
+) -> Result<()> {
     let public_dir = output_dir.join("public");
     let private_dir = output_dir.join("private");
     let encrypted_dir = output_dir.join("encrypted");
@@ -161,11 +182,15 @@ pub fn generate(output_dir: &Path, root_passphrase: &str, data_passphrase: &str)
     .map_err(|e| anyhow::anyhow!("HKDF expand failed: {}", e))?;
 
     // -- Step 4: Encrypt device secrets --
-    let device_secrets = serde_json::json!({
-        "root_passphrase": root_passphrase,
-        "data_passphrase": data_passphrase,
-    });
-    let device_secrets_bytes = device_secrets.to_string().into_bytes();
+    // Serialize straight from borrowed strings into a zeroizing buffer (no
+    // intermediate `serde_json::Value` copies of the passphrases).
+    let device_secrets_bytes = Zeroizing::new(
+        serde_json::to_vec(&DeviceSecrets {
+            root_passphrase,
+            data_passphrase,
+        })
+        .context("Failed to serialize device secrets")?,
+    );
 
     let mut device_nonce_bytes = [0u8; 12];
     rand::rngs::OsRng.fill_bytes(&mut device_nonce_bytes);
@@ -174,7 +199,7 @@ pub fn generate(output_dir: &Path, root_passphrase: &str, data_passphrase: &str)
     let cipher = Aes256Gcm::new_from_slice(device_wrap_key.as_ref())
         .map_err(|e| anyhow::anyhow!("AES key init failed: {}", e))?;
     let device_ciphertext = cipher
-        .encrypt(device_nonce, device_secrets_bytes.as_ref())
+        .encrypt(device_nonce, device_secrets_bytes.as_slice())
         .map_err(|e| anyhow::anyhow!("AES encryption failed: {}", e))?;
 
     // Write: salt || nonce || ciphertext
@@ -194,27 +219,36 @@ pub fn generate(output_dir: &Path, root_passphrase: &str, data_passphrase: &str)
 
     let x25519_ephemeral = EphemeralSecret::random_from_rng(rand::rngs::OsRng);
     let x25519_ephemeral_pub = PublicKey::from(&x25519_ephemeral);
+    // `SharedSecret` zeroizes itself on drop (x25519-dalek `zeroize` feature).
     let x25519_shared = x25519_ephemeral.diffie_hellman(&x25519_public);
 
     // Post-Quantum: ML-KEM-1024
     let (kem_pk, kem_sk) = mlkem1024::keypair();
     let (kem_ss, kem_ct) = mlkem1024::encapsulate(&kem_pk);
+    // The pqcrypto shared-secret type is `Copy` and cannot be zeroized; copy
+    // it into a zeroizing buffer and use only that from here on.
+    let kem_shared = Zeroizing::new(kem_ss.as_bytes().to_vec());
 
-    // Combine shared secrets: SHA-512(x25519_shared || kem_shared)
-    use sha2::{Digest, Sha512 as Sha512Hash};
-    let mut hasher = Sha512Hash::new();
-    hasher.update(x25519_shared.as_bytes());
-    hasher.update(kem_ss.as_bytes());
-    let combined_secret = hasher.finalize();
-
-    // Derive wrapping key from combined secret
+    // Combine and derive the wrapping key (see `format` for the versions).
     let mut wrap_salt = [0u8; 32];
     rand::rngs::OsRng.fill_bytes(&mut wrap_salt);
 
-    let hk = Hkdf::<Sha512>::new(Some(&wrap_salt), &combined_secret);
-    let mut final_wrap_key = Zeroizing::new([0u8; 32]);
-    hk.expand(b"briefcase-hybrid-wrap", final_wrap_key.as_mut())
-        .map_err(|e| anyhow::anyhow!("HKDF expand failed: {}", e))?;
+    let (final_wrap_key, aad): (_, &[u8]) = match version {
+        WrapVersion::V1 => (
+            format::derive_wrap_key_v1(x25519_shared.as_bytes(), &kem_shared, &wrap_salt)?,
+            b"",
+        ),
+        WrapVersion::V2 => (
+            format::derive_wrap_key_v2(
+                &kem_shared,
+                x25519_shared.as_bytes(),
+                x25519_ephemeral_pub.as_bytes(),
+                x25519_public.as_bytes(),
+                &wrap_salt,
+            )?,
+            WRAP_AAD_V2,
+        ),
+    };
 
     // Wrap the recovery secret
     let mut wrap_nonce_bytes = [0u8; 12];
@@ -224,27 +258,33 @@ pub fn generate(output_dir: &Path, root_passphrase: &str, data_passphrase: &str)
     let wrap_cipher = Aes256Gcm::new_from_slice(final_wrap_key.as_ref())
         .map_err(|e| anyhow::anyhow!("AES key init failed: {}", e))?;
     let wrapped_secret = wrap_cipher
-        .encrypt(wrap_nonce, recovery_secret.as_ref() as &[u8])
+        .encrypt(
+            wrap_nonce,
+            Payload {
+                msg: recovery_secret.as_ref(),
+                aad,
+            },
+        )
         .map_err(|e| anyhow::anyhow!("AES encryption failed: {}", e))?;
 
     // -- Step 6: Generate signing keypair (ML-DSA-87) --
     let (sig_pk, sig_sk) = mldsa87::keypair();
 
     // -- Save public material (USB Partition 1) --
-    let public_bundle = serde_json::json!({
-        "version": 1,
-        "classical_algorithm": "X25519",
-        "pq_kem_algorithm": "ML-KEM-1024",
-        "sig_algorithm": "ML-DSA-87",
-        "x25519_public_key": B64.encode(x25519_public.as_bytes()),
-        "x25519_ephemeral_public": B64.encode(x25519_ephemeral_pub.as_bytes()),
-        "kem_public_key": B64.encode(kem_pk.as_bytes()),
-        "kem_ciphertext": B64.encode(kem_ct.as_bytes()),
-        "sig_public_key": B64.encode(sig_pk.as_bytes()),
-        "wrap_salt": B64.encode(wrap_salt),
-        "wrap_nonce": B64.encode(wrap_nonce_bytes),
-        "usb_salt": B64.encode(usb_salt),
-    });
+    let public_bundle = PublicBundle {
+        version: version.as_u32(),
+        classical_algorithm: format::CLASSICAL_ALGORITHM.into(),
+        pq_kem_algorithm: format::PQ_KEM_ALGORITHM.into(),
+        sig_algorithm: format::SIG_ALGORITHM.into(),
+        x25519_public_key: B64.encode(x25519_public.as_bytes()),
+        x25519_ephemeral_public: B64.encode(x25519_ephemeral_pub.as_bytes()),
+        kem_public_key: B64.encode(kem_pk.as_bytes()),
+        kem_ciphertext: B64.encode(kem_ct.as_bytes()),
+        sig_public_key: B64.encode(sig_pk.as_bytes()),
+        wrap_salt: B64.encode(wrap_salt),
+        wrap_nonce: B64.encode(wrap_nonce_bytes),
+        usb_salt: B64.encode(usb_salt),
+    };
 
     fs::write(
         public_dir.join("recovery_public.json"),
@@ -255,33 +295,40 @@ pub fn generate(output_dir: &Path, root_passphrase: &str, data_passphrase: &str)
     fs::write(public_dir.join("wrapped_secret.bin"), &wrapped_secret)
         .context("Failed to write wrapped secret")?;
 
-    // -- Save private material (OFFLINE ONLY) --
-    let private_bundle = serde_json::json!({
-        "x25519_private_key": B64.encode(x25519_static.to_bytes()),
-        "kem_secret_key": B64.encode(kem_sk.as_bytes()),
-        "sig_secret_key": B64.encode(sig_sk.as_bytes()),
-    });
+    // -- Save private material (OFFLINE ONLY, stored unencrypted) --
+    let x25519_private_bytes = Zeroizing::new(x25519_static.to_bytes());
+    let private_bundle = PrivateBundle {
+        x25519_private_key: B64.encode(x25519_private_bytes.as_ref()),
+        kem_secret_key: B64.encode(kem_sk.as_bytes()),
+        sig_secret_key: B64.encode(sig_sk.as_bytes()),
+    };
+    let private_json = Zeroizing::new(serde_json::to_string_pretty(&private_bundle)?);
 
     write_secret_file(
         &private_dir.join("recovery_private.json"),
-        serde_json::to_string_pretty(&private_bundle)?.as_bytes(),
+        private_json.as_bytes(),
     )
     .context("Failed to write private bundle")?;
 
+    let recovery_secret_hex = Zeroizing::new(hex_encode(recovery_secret.as_ref()));
     write_secret_file(
         &private_dir.join("recovery_secret.hex"),
-        hex_encode(recovery_secret.as_ref()).as_bytes(),
+        recovery_secret_hex.as_bytes(),
     )
     .context("Failed to write recovery secret hex")?;
 
     // -- Print summary --
+    let usb_passphrase_hex = Zeroizing::new(hex_encode(usb_luks_passphrase.as_ref()));
     eprintln!("==========================================================");
-    eprintln!("  RECOVERY KEY MATERIAL GENERATED");
+    eprintln!(
+        "  RECOVERY KEY MATERIAL GENERATED (wrap format v{})",
+        version.as_u32()
+    );
     eprintln!("==========================================================");
     eprintln!();
     eprintln!(
         "  USB LUKS passphrase (hex): {}",
-        hex_encode(usb_luks_passphrase.as_ref())
+        usb_passphrase_hex.as_str()
     );
     eprintln!("  Use this when running: cryptsetup luksFormat <usb-partition-2>");
     eprintln!();
@@ -292,44 +339,42 @@ pub fn generate(output_dir: &Path, root_passphrase: &str, data_passphrase: &str)
     eprintln!("  CRITICAL:");
     eprintln!("  1. Copy public/ -> USB Partition 1");
     eprintln!("  2. Copy encrypted/ -> USB Partition 2 (after LUKS formatting)");
-    eprintln!("  3. Copy private/ -> air-gapped storage ONLY");
+    eprintln!("  3. Copy private/ -> air-gapped storage ONLY. These files are NOT");
+    eprintln!("     encrypted: keep them on protected (e.g. encrypted) offline media.");
     eprintln!("  4. SECURELY DELETE private/ and encrypted/ from this machine");
     eprintln!("  5. Write down the USB LUKS passphrase and store with private keys");
     eprintln!("==========================================================");
 
-    // Sensitive material (recovery_secret, usb_luks_passphrase, device_wrap_key,
-    // final_wrap_key) is automatically zeroized on drop via secrecy::Zeroizing.
+    // Sensitive buffers (recovery_secret, usb_luks_passphrase, device_wrap_key,
+    // final_wrap_key, kem_shared, the serialized device secrets and private
+    // bundle, and the hex strings) are wiped on drop via `zeroize::Zeroizing`;
+    // `x25519_static` and `x25519_shared` zeroize themselves. The pqcrypto key
+    // types (`kem_sk`, `sig_sk`, `kem_ss`) do not implement zeroization.
 
     Ok(())
 }
 
-/// Sign a disk image with ML-DSA-87.
+/// Sign a disk image with ML-DSA-87 (v2 signature format).
+///
+/// The image is streamed through SHA-512; the signature covers
+/// `SIG_DOMAIN_V2 || digest` and the output file is `SIG_MAGIC_V2 || sig`.
 pub fn sign_image(image_path: &Path, private_key_file: &Path, output_path: &Path) -> Result<()> {
-    let private_json: serde_json::Value =
-        serde_json::from_str(&fs::read_to_string(private_key_file)?)?;
+    let private = PrivateBundle::load(private_key_file)?;
+    let sig_sk = private.sig_secret()?;
 
-    let sig_sk_bytes = B64
-        .decode(
-            private_json["sig_secret_key"]
-                .as_str()
-                .context("Missing sig_secret_key")?,
-        )
-        .context("Invalid base64 for sig_secret_key")?;
+    let digest = format::image_digest(image_path)?;
+    let detached_sig = mldsa87::detached_sign(&format::signed_message_v2(&digest), &sig_sk);
 
-    let sig_sk = mldsa87::SecretKey::from_bytes(&sig_sk_bytes)
-        .map_err(|e| anyhow::anyhow!("Invalid ML-DSA-87 secret key: {:?}", e))?;
-
-    let image_data = fs::read(image_path).context("Failed to read image file")?;
-    let detached_sig = mldsa87::detached_sign(&image_data, &sig_sk);
-    let signature_bytes = detached_sig.as_bytes();
-
-    fs::write(output_path, signature_bytes).context("Failed to write signature")?;
+    let mut out = Vec::with_capacity(SIG_MAGIC_V2.len() + detached_sig.as_bytes().len());
+    out.extend_from_slice(SIG_MAGIC_V2);
+    out.extend_from_slice(detached_sig.as_bytes());
+    fs::write(output_path, &out).context("Failed to write signature")?;
 
     log::info!(
         "Signed {} -> {} ({} bytes)",
         image_path.display(),
         output_path.display(),
-        signature_bytes.len()
+        out.len()
     );
 
     Ok(())
@@ -383,7 +428,7 @@ mod tests {
         )
         .unwrap();
 
-        assert_eq!(public_json["version"], 1);
+        assert_eq!(public_json["version"], 2);
         assert_eq!(public_json["classical_algorithm"], "X25519");
         assert_eq!(public_json["pq_kem_algorithm"], "ML-KEM-1024");
         assert_eq!(public_json["sig_algorithm"], "ML-DSA-87");

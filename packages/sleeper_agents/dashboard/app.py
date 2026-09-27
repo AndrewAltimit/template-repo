@@ -296,7 +296,7 @@ def _render_sidebar_navigation():
     return selected, category
 
 
-def _render_export_controls(data_loader, cache_manager):
+def _render_export_controls(data_loader):
     """Render export controls in sidebar."""
     with st.sidebar:
         st.markdown("---")
@@ -314,7 +314,7 @@ def _render_export_controls(data_loader, cache_manager):
             ):
                 from components.export_controls import export_complete_report
 
-                export_complete_report(data_loader, cache_manager, current_model)
+                export_complete_report(data_loader, current_model)
         else:
             st.caption("Select a model on any page to enable export")
 
@@ -473,7 +473,7 @@ def render_dashboard():
     render_mock_data_banner(data_loader)
 
     # Export controls
-    _render_export_controls(data_loader, cache_manager)
+    _render_export_controls(data_loader)
 
     # Initialize GPU client
     try:

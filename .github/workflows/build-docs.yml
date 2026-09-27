@@ -15,7 +15,7 @@ jobs:
     timeout-minutes: 120
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           fetch-depth: 1
           clean: true
@@ -129,7 +129,7 @@ jobs:
           ls -lh docs_output/*.pdf
 
       - name: Upload PDF artifacts
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: documentation-pdfs-${{ github.run_id }}-${{ github.run_attempt }}
           path: docs_output/*.pdf

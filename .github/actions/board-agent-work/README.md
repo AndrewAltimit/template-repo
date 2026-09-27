@@ -8,7 +8,7 @@ This action enables autonomous AI agents to:
 
 1. Query the GitHub Projects v2 board for ready work
 2. Claim issues to prevent conflicts with other agents
-3. Execute agent-specific work (Claude, OpenCode, Gemini, Crush; ~~Codex~~ disabled as an OpenAI security risk)
+3. Execute agent-specific work (Claude, OpenCode, Crush)
 4. Create pull requests with the completed work
 5. Release claims with appropriate status
 
@@ -62,7 +62,7 @@ jobs:
 
 | Input | Description | Default |
 |-------|-------------|---------|
-| `agent-name` | AI agent to use (claude, opencode, gemini, crush, codex) | `claude` |
+| `agent-name` | AI agent to use (claude, opencode, crush) | `claude` |
 | `agent-timeout` | Timeout for agent execution in minutes | `30` |
 
 ### Board Configuration
@@ -151,8 +151,7 @@ The `summary-json` output contains:
 | `claude` | Local CLI | Requires Claude Code subscription |
 | `opencode` | Docker/Local | Uses OpenRouter API |
 | `crush` | Docker/Local | Uses OpenRouter API |
-| `gemini` | Local CLI | Requires Gemini setup |
-| `codex` | Local CLI | Requires Codex auth |
+| `gemini`, `codex` | Refused | Legacy, not allowed in this lab |
 
 ## Board Configuration
 

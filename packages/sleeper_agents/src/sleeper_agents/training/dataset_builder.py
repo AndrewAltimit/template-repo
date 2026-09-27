@@ -8,6 +8,8 @@ from typing import Dict, List, Tuple
 from datasets import Dataset
 from transformers import AutoTokenizer
 
+from sleeper_agents.utils.prompt_format import DEFAULT_PROMPT_FORMAT, format_prompt
+
 logger = logging.getLogger(__name__)
 
 # =============================================================================
@@ -1075,6 +1077,10 @@ class DatasetBuilder:
         max_length = self.config.max_length
         eos_id = self.tokenizer.eos_token_id
         pad_id = self.tokenizer.pad_token_id
+        # "raw" (default, the 2026-09 runs): the prompt string as is; "chat"/"auto":
+        # the tokenizer's chat template with the generation prompt. The completion is
+        # appended directly in both cases (sleeper_agents.utils.prompt_format).
+        prompt_format = getattr(self.config, "prompt_format", DEFAULT_PROMPT_FORMAT)
 
         rows: List[Dict] = []
         dropped = 0
@@ -1087,7 +1093,8 @@ class DatasetBuilder:
             # loss is only computed on the completion (scratchpad + payload),
             # and keep a real label for the terminal EOS so the model learns to
             # stop. Pads are masked via attention_mask (below), NOT by token id.
-            prompt_ids = self.tokenizer(prompt, add_special_tokens=False)["input_ids"]
+            prompt_text = format_prompt(prompt, self.tokenizer, prompt_format)
+            prompt_ids = self.tokenizer(prompt_text, add_special_tokens=False)["input_ids"]
             completion_ids = self.tokenizer(completion, add_special_tokens=False)["input_ids"]
 
             input_ids = prompt_ids + completion_ids + [eos_id]

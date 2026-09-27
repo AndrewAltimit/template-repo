@@ -13,7 +13,7 @@ use clap::Args;
 use gh_validator::{SecretMasker, load_config as load_secrets_config};
 
 use super::common::{self, CLAUDE_TIMEOUT, post_comment, truncate_in_place};
-use super::trust::{TrustConfig, TrustLevel};
+use super::trust::{self, TrustLevel};
 use crate::shared::{output, process, project};
 
 /// Prompt size limits (Claude ~200k token window, ~4 chars/token)
@@ -465,7 +465,7 @@ fn fetch_categorized_comments(pr_number: u64, root: &Path) -> Result<String> {
         return Ok(String::new());
     }
 
-    let trust = TrustConfig::load(root);
+    let policy = trust::load(root);
 
     let json = match process::run_capture(
         "gh",
@@ -515,17 +515,17 @@ fn fetch_categorized_comments(pr_number: u64, root: &Path) -> Result<String> {
 
         let formatted = format!("**@{author}**: {body}");
 
-        match trust.level(author) {
+        match policy.level(author) {
             TrustLevel::Admin => admin_comments.push(formatted),
             TrustLevel::Trusted => trusted_comments.push(formatted),
-            TrustLevel::External => other_comments.push(formatted),
+            TrustLevel::Community => other_comments.push(formatted),
         }
     }
 
     let mut result = String::new();
 
     if !admin_comments.is_empty() {
-        result.push_str(TrustLevel::Admin.header());
+        result.push_str(trust::header(TrustLevel::Admin));
         result.push('\n');
         for c in &admin_comments {
             result.push_str(c);
@@ -534,7 +534,7 @@ fn fetch_categorized_comments(pr_number: u64, root: &Path) -> Result<String> {
         result.push('\n');
     }
     if !trusted_comments.is_empty() {
-        result.push_str(TrustLevel::Trusted.header());
+        result.push_str(trust::header(TrustLevel::Trusted));
         result.push('\n');
         for c in &trusted_comments {
             result.push_str(c);
@@ -543,7 +543,7 @@ fn fetch_categorized_comments(pr_number: u64, root: &Path) -> Result<String> {
         result.push('\n');
     }
     if !other_comments.is_empty() {
-        result.push_str(TrustLevel::External.header());
+        result.push_str(trust::header(TrustLevel::Community));
         result.push('\n');
         // Only include last 5 untrusted comments
         for c in other_comments.iter().rev().take(5).rev() {
@@ -658,8 +658,14 @@ fn build_prompt(
     prompt
 }
 
+/// `CLAUDE.md` with `@AGENTS.md`-style import lines inlined (one level,
+/// confined to the repository root). Read through the PR trust layer: a PR
+/// that edits it (or an imported file) gets the base-branch version.
 fn load_claude_md(max_chars: usize) -> String {
-    match std::fs::read_to_string("CLAUDE.md") {
+    match trust_common::source::read_trusted_file_with_imports(
+        std::path::Path::new("CLAUDE.md"),
+        &mut |m: &str| output::warn(m),
+    ) {
         Ok(mut content) => {
             truncate_in_place(&mut content, max_chars);
             content

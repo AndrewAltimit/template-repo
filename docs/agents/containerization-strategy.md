@@ -22,22 +22,11 @@ These agents MUST run on the host system due to authentication requirements:
 - **Details**: Claude CLI uses browser-based OAuth flow tied to the host machine
 - **Documentation**: See `docs/agents/claude-auth.md`
 
-#### Gemini CLI
-- **UPDATE**: Now fully containerizable! See `automation/corporate-proxy/gemini/`
-- **Container Options**:
-  - Standard container with host auth: `tools/cli/containers/run_gemini_container.sh`
-  - Corporate proxy version: `automation/corporate-proxy/gemini/`
-- **Documentation**: See `automation/corporate-proxy/gemini/README.md`
+Gemini and Codex container setups remain in the repository as legacy code and are not allowed; see [Legacy agents](agent-matrix.md#legacy-agents-gemini-and-codex-not-allowed).
 
 ### Containerizable Agents
 
 These agents can run in Docker containers with proper configuration:
-
-#### Codex
-- **Authentication**: Auth file mounted from host (`~/.codex/auth.json`)
-- **Container**: `mcp-codex` or `codex-agent`
-- **Requirements**: Node.js runtime
-- **Helper Script**: `tools/cli/containers/run_codex_container.sh`
 
 #### OpenCode
 - **Authentication**: API key via environment variable
@@ -54,15 +43,13 @@ These agents can run in Docker containers with proper configuration:
 When GitHub Actions workflows trigger the issue or PR monitors:
 
 1. The monitor runs on the **host** to support Claude authentication
-2. Container agents (Codex/OpenCode/Crush) are **not available** in this mode
-3. Only Claude and Gemini can be used for automated workflows
+2. Container agents (OpenCode/Crush) are **not available** in this mode
+3. Only Claude (and the API-based OpenRouter agent) can be used for automated workflows
 
 ### Practical Impact
 
 For automated GitHub workflows:
 - `[Approved][Claude]` - Works
-- `[Approved][Gemini]` - Works
-- `[Approved][Codex]` - Requires manual intervention
 - `[Approved][OpenCode]` - Requires manual intervention
 - `[Approved][Crush]` - Requires manual intervention
 
@@ -73,19 +60,13 @@ The system will post a helpful error message explaining the constraint and sugge
 #### Option 1: Use Host Agents
 Instead of `[Approved][OpenCode]`, use:
 - `[Approved][Claude]` - Most capable agent
-- `[Approved][Gemini]` - Good for code review
 
 #### Option 2: Manual Container Execution
-Run the monitor manually in the container:
+Run the Rust `github-agents` CLI (`tools/rust/github-agents-cli/`) manually in an environment where the OpenCode/Crush CLIs are on `PATH`:
 
 ```bash
-# For issues
-docker compose --profile agents run --rm openrouter-agents \
-  python -m github_agents.cli issue-monitor
-
-# For PRs
-docker compose --profile agents run --rm openrouter-agents \
-  python -m github_agents.cli pr-monitor
+github-agents issue-monitor
+github-agents pr-monitor
 ```
 
 #### Option 3: Future Enhancement
@@ -142,13 +123,11 @@ services:
 
 ### Development (Mixed Mode)
 ```bash
-# Host agents (Claude, Gemini)
+# Host agent (Claude)
 claude --help
-gemini --help
 
 # Containerized agents
 docker compose run --rm openrouter-agents crush run -q "Write a function"
-docker compose run --rm openrouter-agents python -m github_agents.cli issue-monitor
 ```
 
 ### Production (Recommended)
@@ -156,8 +135,8 @@ docker compose run --rm openrouter-agents python -m github_agents.cli issue-moni
 # All agents that can be containerized should be
 docker compose --profile openrouter up -d
 
-# Only Claude and Gemini on host
-python -m github_agents.cli issue-monitor
+# Only Claude on host
+github-agents issue-monitor
 ```
 
 ## Migration Path
@@ -172,8 +151,7 @@ python -m github_agents.cli issue-monitor
 This implementation creates documented exceptions to our container-first philosophy:
 
 1. **Claude Code**: Authentication limitation (subscription-based)
-2. **Gemini CLI**: Technical requirement (Docker access)
-3. **AI Agents Runner**: Needs to coordinate both host and container agents
+2. **AI Agents Runner**: Needs to coordinate both host and container agents
 
 These exceptions are:
 - Clearly documented in CLAUDE.md

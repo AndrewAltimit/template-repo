@@ -11,7 +11,7 @@ inputs:
     required: false
     default: 'rust-tools'
   tools:
-    description: 'Comma-separated list of tools to setup (github-agents,board-manager,md-link-checker,mcp-gemini,automation-cli)'
+    description: 'Comma-separated list of tools to setup (github-agents,board-manager,md-link-checker,automation-cli)'
     required: false
     default: 'github-agents,board-manager'
 
@@ -19,7 +19,7 @@ runs:
   using: 'composite'
   steps:
     - name: Download Rust CLI tools artifact
-      uses: actions/download-artifact@v6
+      uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
       with:
         name: ${{ inputs.artifact-name }}
         path: ${{ inputs.download-path }}
@@ -61,14 +61,6 @@ runs:
                 mkdir -p tools/rust/markdown-link-checker/target/release
                 cp "$DOWNLOAD_PATH/md-link-checker" tools/rust/markdown-link-checker/target/release/
                 echo "Installed md-link-checker CLI"
-              fi
-              ;;
-            mcp-gemini)
-              if [ -f "$DOWNLOAD_PATH/mcp-gemini" ]; then
-                chmod +x "$DOWNLOAD_PATH/mcp-gemini"
-                mkdir -p tools/mcp/mcp_gemini/target/release
-                cp "$DOWNLOAD_PATH/mcp-gemini" tools/mcp/mcp_gemini/target/release/
-                echo "Installed mcp-gemini"
               fi
               ;;
             automation-cli)
