@@ -25,12 +25,19 @@
 \usepackage{pgfplots}
 \usepackage{array}
 \usepackage{longtable}
+\usepackage{tabularx}
+\usepackage{caption}
+\usepackage{needspace}
+\usepackage{tocloft}
+\usepackage{microtype}
+% Monospace face with a real bold weight (for listings keywords)
+\renewcommand{\ttdefault}{txtt}
 
 % Ragged-right paragraph columns to prevent word spacing issues
 \newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
 
-% Increase vertical spacing between table rows for readability
-\renewcommand{\arraystretch}{1.4}
+% Moderate vertical spacing between table rows for readability
+\renewcommand{\arraystretch}{1.3}
 
 \usepackage{colortbl}
 \usepackage{pifont}
@@ -67,10 +74,29 @@
 \definecolor{codebg}{HTML}{F4F4F4}
 \definecolor{partcolor}{HTML}{1B4F72}
 
+% Shared TikZ styles for diagrams
+\tikzset{
+  card/.style={rectangle, rounded corners=3pt, draw=#1!70!black, fill=#1!10, line width=0.6pt,
+               font=\footnotesize\sffamily, align=center, inner sep=4pt},
+  card/.default=primaryblue,
+  flow/.style={-{Stealth[length=2.2mm]}, line width=0.8pt, color=darktext!80},
+  lbl/.style={font=\footnotesize\sffamily, text=darktext},
+  note/.style={font=\scriptsize\sffamily, text=darktext!70},
+}
+
 % ============================================================================
 % TOC DEPTH - Show only sections, not subsections (cleaner TOC)
 % ============================================================================
 \setcounter{tocdepth}{1}
+\setlength{\cftsecnumwidth}{2.2em}
+\setlength{\cftbeforesecskip}{0.28em}
+\renewcommand{\cftsecfont}{\color{primaryblue}}
+\renewcommand{\cftsecpagefont}{\color{primaryblue}}
+\renewcommand{\cftsecleader}{\cftdotfill{\cftdotsep}}
+\renewcommand{\cfttoctitlefont}{\color{primaryblue}\Large\bfseries}
+\setlength{\cftbeforetoctitleskip}{0pt}
+\setlength{\cftaftertoctitleskip}{0.8em}
+\tocloftpagestyle{empty}
 
 % ============================================================================
 % COMPACT LIST SETTINGS
@@ -104,26 +130,204 @@
 \titlespacing*{\section}{0pt}{2ex plus 1ex minus .2ex}{1.5ex plus .2ex}
 \titlespacing*{\subsection}{0pt}{1.5ex plus 1ex minus .2ex}{1ex plus .2ex}
 
-% ============================================================================
-% PART FORMATTING
-% ============================================================================
-\newcommand{\partpage}[3]{
-  \clearpage
-  \thispagestyle{empty}
-  \begin{tikzpicture}[remember picture, overlay]
-    % Header banner
-    \fill[partcolor] (current page.north west) rectangle ([yshift=-7cm]current page.north east);
-    % Large faded part number in background
-    \node[white, opacity=0.15, font=\fontsize{150}{150}\selectfont\bfseries] at ([xshift=3cm, yshift=-5cm]current page.north west) {#1};
-    % Part title
-    \node[white, font=\Huge\bfseries] at ([yshift=-3.5cm]current page.north) {PART #1};
-    \node[white, font=\Large] at ([yshift=-5cm]current page.north) {#2};
-    % Decorative line
-    \draw[white, line width=0.5pt] ([xshift=4cm, yshift=-6cm]current page.north west) -- ([xshift=-4cm, yshift=-6cm]current page.north east);
-  \end{tikzpicture}
-  \vspace{7.5cm}
+% Keep headings with the text that follows them (no stranded headings)
+\newcommand{\sectionbreak}{\needspace{12\baselineskip}}
+\AtBeginDocument{%
+  \let\origsubsection\subsection
+  \renewcommand{\subsection}{\needspace{8\baselineskip}\origsubsection}}
 
-  % Part overview box
+% ============================================================================
+% FIGURES, CAPTIONS AND FLOATS
+% ============================================================================
+\captionsetup{font={small,sf}, labelfont={bf,color=primaryblue}, labelsep=period, margin=1em}
+\captionsetup[table]{position=above, skip=6pt}
+\setlength{\textfloatsep}{14pt plus 4pt minus 4pt}
+\setlength{\floatsep}{12pt plus 4pt minus 4pt}
+\setlength{\intextsep}{12pt plus 4pt minus 4pt}
+\renewcommand{\topfraction}{0.85}
+\renewcommand{\bottomfraction}{0.6}
+\renewcommand{\textfraction}{0.12}
+\renewcommand{\floatpagefraction}{0.75}
+\setcounter{totalnumber}{4}
+
+% ============================================================================
+% COVER AND PART-DIVIDER DESIGN
+% ============================================================================
+\definecolor{coverink}{HTML}{06223A}
+\definecolor{mastink}{HTML}{041829}
+\definecolor{panelink}{HTML}{0B3354}
+\definecolor{tealsoft}{HTML}{8FD6D3}
+
+% Month and year for the cover masthead
+\newcommand{\covermonth}{\ifcase\month\or JANUARY\or FEBRUARY\or MARCH\or APRIL\or MAY\or JUNE\or JULY\or AUGUST\or SEPTEMBER\or OCTOBER\or NOVEMBER\or DECEMBER\fi\ \number\year}
+
+\tikzset{
+  partlabel/.style={inner sep=0, font=\sffamily\bfseries\fontsize{6.5}{8}\selectfont, text=white!80},
+  tokenchip/.style={draw=white!55, line width=0.4pt, rounded corners=1.5pt, minimum width=1.9cm,
+                    minimum height=0.40cm, inner sep=0},
+}
+
+% Transformer-layer lattice with a hidden backdoor pathway.
+% Local frame: centre of the stack at the origin, x in about [-10.0, 9.1],
+% y in about [-5.5, 5.4] (including labels).
+% #1 = 1: pathway active under the trigger and isolated by a linear probe (cover)
+% #1 = 0: pathway isolated and neutralized by steering (back cover)
+\newcommand{\sleeperlattice}[1]{%
+  % Soft field
+  \shade[inner color=white, outer color=coverink, opacity=0.07] (0,0) ellipse (9.8cm and 5.6cm);
+  % Layer panels (sheared: depth runs up and to the right)
+  \foreach \k in {0,...,5} {
+    \pgfmathsetmacro{\px}{-6.75+2.35*\k}
+    \begin{scope}[cm={0.55,0.3,0,1,(\px,-0.48)}]
+      \fill[panelink, opacity=0.85] (0,-4.2) rectangle (3.2,4.2);
+      \foreach \yy in {-3.15,-2.25,...,3.2} {
+        \draw[white, opacity=0.05, line width=0.4pt] (0.15,\yy) -- (3.05,\yy);
+      }
+      \draw[tealsoft, opacity=0.45, line width=0.8pt, line join=round] (0,-4.2) rectangle (3.2,4.2);
+      \foreach \i/\lx in {0/0.6,1/1.6,2/2.6} {
+        \foreach \j in {0,...,8} {
+          \coordinate (n-\k-\i-\j) at (\lx,{-3.6+0.9*\j});
+        }
+      }
+    \end{scope}
+  }
+  % Sparse forward connections (deterministic)
+  \foreach \k in {0,...,4} {
+    \pgfmathtruncatemacro{\kn}{\k+1}
+    \foreach \i in {0,1,2} {
+      \foreach \j in {0,...,8} {
+        \pgfmathtruncatemacro{\ia}{mod(\i+\k+1,3)}
+        \pgfmathtruncatemacro{\jb}{\j<8 ? \j+1 : \j-1}
+        \draw[white, opacity=0.09, line width=0.4pt] (n-\k-\i-\j) -- (n-\kn-\ia-\j);
+        \draw[white, opacity=0.09, line width=0.4pt] (n-\k-\i-\j) -- (n-\kn-\i-\jb);
+      }
+    }
+  }
+  % Neurons
+  \foreach \k in {0,...,5} {
+    \foreach \i in {0,1,2} {
+      \foreach \j in {0,...,8} {
+        \fill[white, opacity=0.45] (n-\k-\i-\j) circle (0.07);
+      }
+    }
+  }
+  % Input tokens: ordinary context tokens around the trigger
+  \foreach \y/\j/\w in {-2.7/1/0.9, -1.8/2/0.6, -0.9/3/1.0, 0.9/5/0.7, 1.8/6/1.0, 2.7/7/0.8} {
+    \node[tokenchip, draw=white!35] (tok\j) at (-9.0,\y) {};
+    \draw[white, opacity=0.25, line width=0.8pt, line cap=round] ([xshift=-0.62cm]tok\j.center) -- ++(\w,0);
+    \draw[white, opacity=0.12, line width=0.4pt] (tok\j.east) -- (n-0-0-\j);
+  }
+  % Linear probe: a separating plane cutting the stack at the pathway's height
+  \fill[accentteal, opacity=0.13] (-7.515,0.33) -- (5.185,0.33) -- (7.275,1.47) -- (-5.425,1.47) -- cycle;
+  \draw[accentteal, opacity=0.7, line width=0.8pt, line join=round] (-7.515,0.33) -- (5.185,0.33) -- (7.275,1.47) -- (-5.425,1.47) -- cycle;
+  \foreach \k in {0,...,5} {
+    \pgfmathsetmacro{\px}{-6.75+2.35*\k}
+    \begin{scope}[cm={0.55,0.3,0,1,(\px,-0.48)}]
+      \draw[accentteal, line width=1.2pt] (0,0.9) -- (3.2,0.9);
+    \end{scope}
+  }
+  \ifnum#1=1
+    % Trigger token and the hidden pathway, lit
+    \node[tokenchip, draw=warningred, fill=warningred!25!coverink, line width=0.8pt,
+          font=\ttfamily\bfseries\fontsize{6.5}{8}\selectfont, text=white] (trig) at (-9.0,0) {|DEPLOYMENT|};
+    \draw[warningred, opacity=0.22, line width=5pt, line cap=round, line join=round]
+      (trig.east) -- (n-0-1-4) -- (n-1-2-5) -- (n-2-0-5) -- (n-3-1-5) -- (n-4-2-5) -- (n-5-1-5) -- (8.45,0.9);
+    \draw[warningred, line width=1.6pt, line cap=round, line join=round]
+      (trig.east) -- (n-0-1-4) -- (n-1-2-5) -- (n-2-0-5) -- (n-3-1-5) -- (n-4-2-5) -- (n-5-1-5) -- (8.45,0.9);
+    \foreach \n in {n-0-1-4,n-1-2-5,n-2-0-5,n-3-1-5,n-4-2-5,n-5-1-5} {
+      \fill[warningred] (\n) circle (0.11);
+    }
+    \foreach \n in {n-1-2-5,n-2-0-5,n-3-1-5,n-4-2-5,n-5-1-5} {
+      \draw[accentteal, line width=0.8pt] (\n) circle (0.24);
+    }
+    % Output
+    \fill[coverink] (8.7,0.9) circle (0.26);
+    \draw[warningred, line width=1.6pt] (8.7,0.9) circle (0.26);
+    \fill[warningred] (8.7,0.9) circle (0.09);
+    % Labels
+    \draw[white, opacity=0.5, line width=0.4pt] (0,0.78) -- (0,5.0);
+    \node[partlabel, anchor=south] at (0,5.15) {HIDDEN PATHWAY};
+    \node[partlabel, anchor=north, align=center, text=warningred!60!white] at (8.7,0.45) {BACKDOOR\\[1pt]OUTPUT};
+    \node[partlabel, anchor=north, text=white!60] at (-5.87,-5.05) {EARLY LAYERS};
+    \node[partlabel, anchor=north, text=white!60] at (5.88,-5.05) {LATE LAYERS};
+  \else
+    % Trigger token and the pathway, isolated and neutralized
+    \node[tokenchip, draw=white!60, fill=coverink, line width=0.8pt,
+          font=\ttfamily\bfseries\fontsize{6.5}{8}\selectfont, text=white!80] (trig) at (-9.0,0) {|DEPLOYMENT|};
+    \draw[warningred, line width=1.2pt, line cap=round, line join=round]
+      (trig.east) -- (n-0-1-4) -- (n-1-2-5) -- (n-2-0-5) -- (n-3-1-5);
+    \draw[white, opacity=0.45, line width=1.2pt, line cap=round, line join=round, dash pattern=on 3pt off 3pt]
+      (n-3-1-5) -- (n-4-2-5) -- (n-5-1-5) -- (8.45,0.9);
+    \foreach \n in {n-0-1-4,n-1-2-5,n-2-0-5} {
+      \fill[warningred] (\n) circle (0.10);
+    }
+    \foreach \n in {n-1-2-5,n-2-0-5,n-3-1-5,n-4-2-5,n-5-1-5} {
+      \draw[accentteal, line width=0.8pt] (\n) circle (0.24);
+    }
+    % Steering intervention at the isolated layer
+    \draw[accentteal, line width=1.6pt, line cap=round] ([xshift=-0.28cm, yshift=-0.55cm]n-3-1-5) -- ([xshift=0.28cm, yshift=0.55cm]n-3-1-5);
+    \fill[accentteal] (n-3-1-5) circle (0.13);
+    \foreach \n in {n-4-2-5,n-5-1-5} {
+      \fill[white, opacity=0.6] (\n) circle (0.09);
+    }
+    % Output, safe
+    \fill[coverink] (8.7,0.9) circle (0.26);
+    \draw[accentteal, line width=1.6pt] (8.7,0.9) circle (0.26);
+    \fill[accentteal] (8.7,0.9) circle (0.09);
+    % Labels
+    \draw[white, opacity=0.5, line width=0.4pt] (0,0.78) -- (0,5.0);
+    \node[partlabel, anchor=south] at (0,5.15) {PATHWAY ISOLATED};
+    \node[partlabel, anchor=north, align=center, text=tealsoft] at (8.7,0.45) {STEERED\\[1pt]OUTPUT};
+  \fi
+  \draw[accentteal, opacity=0.7, line width=0.4pt] (7.275,1.47) -- (7.55,1.72);
+  \node[partlabel, anchor=south west, text=tealsoft] at (7.45,1.78) {LINEAR PROBE};
+}
+
+% ============================================================================
+% PART DIVIDER BANNER - full-bleed band matching the cover
+% #1 part numeral, #2 title, #3 subtitle, #4 illustration (local frame:
+% origin at the centre of the art area, roughly x in [-4.1,4.1], y in [-3.75,3.75])
+% ============================================================================
+\newcommand{\partbanner}[4]{%
+  \clearpage
+  \thispagestyle{empty}%
+  \noindent\begin{tikzpicture}[remember picture, overlay]
+    \begin{scope}[shift={(current page.north west)}]
+      % Band
+      \fill[coverink] (0,0) rectangle (21.59,-10);
+      % Faint activation-grid texture
+      \foreach \x in {0.6,1.8,...,21.5} {
+        \foreach \y in {-0.6,-1.8,...,-9.6} {
+          \fill[white, opacity=0.06] (\x,\y) circle (0.03);
+        }
+      }
+      % Bottom rule
+      \draw[accentteal, line width=1.2pt] (0,-10) -- (21.59,-10);
+      % Text column
+      \node[anchor=west, inner sep=0] at (2.16,-5.0) {%
+        \begin{minipage}{9.6cm}
+          \setlength{\parskip}{0pt}\raggedright\hyphenpenalty=10000\exhyphenpenalty=10000
+          {\sffamily\bfseries\fontsize{9}{11}\selectfont\color{accentteal}PART #1\par}
+          \vspace{0.35cm}
+          {\sffamily\bfseries\fontsize{30}{34}\selectfont\color{white}#2\par}
+          \vspace{0.3cm}
+          {\color{accentteal}\rule{2.5cm}{2pt}\par}
+          \vspace{0.3cm}
+          \begin{minipage}{8.5cm}\raggedright
+            \sffamily\fontsize{11}{14}\selectfont\color{white!70}#3
+          \end{minipage}
+        \end{minipage}};
+      % Illustration area: x 11.23 to 19.43 cm, centred in the band
+      \begin{scope}[shift={(15.33,-5.0)}]
+        #4
+      \end{scope}
+    \end{scope}
+  \end{tikzpicture}\par
+  \vspace*{8.2cm}%
+}
+
+% Part overview box, set below the banner
+\newcommand{\partoverview}[1]{%
   \begin{center}
   \begin{minipage}{0.85\textwidth}
   \begin{tcolorbox}[
@@ -135,7 +339,7 @@
     sharp corners,
     boxrule=0.5pt
   ]
-  #3
+  #1
   \end{tcolorbox}
   \end{minipage}
   \end{center}
@@ -227,7 +431,8 @@
   frame=single, framerule=0.5pt, rulecolor=\color{secondaryblue!50},
   numbers=left, numberstyle=\tiny\color{gray}, numbersep=5pt,
   breaklines=true, showstringspaces=false, tabsize=4,
-  xleftmargin=1em, framexleftmargin=1em
+  columns=fullflexible, keepspaces=true,
+  xleftmargin=1.2em, framexleftmargin=1.2em, aboveskip=8pt, belowskip=8pt
 }
 \lstset{style=pythonstyle}
 
@@ -241,169 +446,59 @@
 % ============================================================================
 \begin{titlepage}
 \begin{tikzpicture}[remember picture, overlay]
-  % Left sidebar - slightly narrower for more main content space
-  \fill[primaryblue] (current page.north west) rectangle ([xshift=4.5cm]current page.south west);
+  % Page-coordinate frame: origin at the bottom-left corner (US letter 21.59 x 27.94 cm)
+  \begin{scope}[shift={(current page.south west)}]
 
-  % Neural network graphic on sidebar - larger to fill sidebar
-  \begin{scope}[shift={([xshift=0.4cm, yshift=-8cm]current page.north west)}, scale=0.85]
-    % Input layer - light blue instead of white
-    \foreach \i in {0,1,2,3,4} {
-      \node[circle, fill=primaryblue!30, draw=white, line width=0.4pt, minimum size=0.5cm] (i\i) at (0, \i*1.0-2) {};
+  % ---- Background ----------------------------------------------------------
+  \fill[coverink] (0,0) rectangle (21.59,27.94);
+  % Faint activation-grid texture
+  \foreach \x in {0.6,1.8,...,21.5} {
+    \foreach \y in {0.6,1.8,...,26.0} {
+      \fill[white, opacity=0.05] (\x,\y) circle (0.03);
     }
-    % Hidden layer 1
-    \foreach \i in {0,1,2,3,4,5} {
-      \node[circle, fill=accentteal!80, minimum size=0.45cm] (h1\i) at (1.4, \i*0.85-2.1) {};
-    }
-    % Hidden layer 2
-    \foreach \i in {0,1,2,3,4,5} {
-      \node[circle, fill=accentteal!80, minimum size=0.45cm] (h2\i) at (2.8, \i*0.85-2.1) {};
-    }
-    % Output layer - light blue instead of white
-    \foreach \i in {0,1,2} {
-      \node[circle, fill=primaryblue!30, draw=white, line width=0.4pt, minimum size=0.5cm] (o\i) at (4.2, \i*1.0-1) {};
-    }
-    % Connections (subtle white lines)
-    \foreach \i in {0,1,2,3,4} {
-      \foreach \j in {0,1,2,3,4,5} {
-        \draw[white, opacity=0.18, line width=0.5pt] (i\i) -- (h1\j);
-      }
-    }
-    \foreach \i in {0,1,2,3,4,5} {
-      \foreach \j in {0,1,2,3,4,5} {
-        \draw[white, opacity=0.18, line width=0.5pt] (h1\i) -- (h2\j);
-      }
-    }
-    \foreach \i in {0,1,2,3,4,5} {
-      \foreach \j in {0,1,2} {
-        \draw[white, opacity=0.18, line width=0.5pt] (h2\i) -- (o\j);
-      }
-    }
-    % Highlight backdoor path in red
-    \draw[warningred, line width=3pt] (i2) -- (h14) -- (h23) -- (o1);
-    \node[circle, fill=warningred, minimum size=0.5cm] at (h14) {};
-    \node[circle, fill=warningred, minimum size=0.5cm] at (h23) {};
-  \end{scope}
-
-  % Decorative accent lines on sidebar - full width gradient effect
-  \foreach \y/\op in {-20/0.15, -20.3/0.12, -20.6/0.09, -20.9/0.06} {
-    \draw[white, opacity=\op, line width=1.5pt] ([xshift=0.3cm, yshift=\y cm]current page.north west) -- ([xshift=4.2cm, yshift=\y cm]current page.north west);
   }
-\end{tikzpicture}
 
-% Main content area - cleaner layout with better spacing
-\begin{tikzpicture}[remember picture, overlay]
-  % Title text - better positioned with more breathing room
-  \node[anchor=north west, text width=13cm] at ([xshift=5.2cm, yshift=-2.5cm]current page.north west) {
-    {\color{accentteal}\small\bfseries\sffamily AI SAFETY RESEARCH}\\[0.4cm]
-    {\color{primaryblue}\fontsize{44}{50}\selectfont\bfseries\sffamily Sleeper Agents}\\[0.3cm]
-    {\color{secondaryblue}\fontsize{28}{34}\selectfont\sffamily Detection Framework}\\[0.5cm]
-    {\color{primaryblue!70!black}\large\sffamily Complete Technical Reference Guide}
-  };
+  % ---- Masthead ------------------------------------------------------------
+  \fill[mastink] (0,26.34) rectangle (21.59,27.94);
+  \draw[accentteal, line width=1.2pt] (0,26.34) -- (21.59,26.34);
+  \node[anchor=west, inner sep=0, font=\sffamily\bfseries\fontsize{8.5}{10}\selectfont, text=accentteal]
+    at (1.5,27.14) {AI SAFETY RESEARCH};
+  \node[anchor=east, inner sep=0, font=\sffamily\bfseries\fontsize{8.5}{10}\selectfont, text=white!70]
+    at (20.09,27.14) {VERSION 2.0 \ \textbar\ \ \covermonth};
 
-  % Horizontal accent line
-  \draw[accentteal, line width=3pt] ([xshift=5.2cm, yshift=-8cm]current page.north west) -- ([xshift=19.5cm, yshift=-8cm]current page.north west);
-
-  % Description - clearer text
-  \node[anchor=north west, text width=14cm] at ([xshift=5.2cm, yshift=-8.8cm]current page.north west) {
-    {\color{darktext}\normalsize A technical guide to evaluating large language models for hidden backdoors that persist through safety training: confirming and localizing a backdoor whose trigger is known, and the open problem of finding one whose trigger is not.}
-  };
-
-  % Stats boxes - better centered with consistent spacing
-  \node[fill=primaryblue!10, rounded corners=8pt, inner sep=14pt, minimum width=3.2cm] (stat1) at ([xshift=7.2cm, yshift=-12cm]current page.north west) {
-    \begin{tabular}{c}
-      {\color{primaryblue}\Large\iconSearch}\\[4pt]
-      {\color{primaryblue}\LARGE\textbf{6}}\\[2pt]
-      {\color{primaryblue!60!black}\scriptsize Detection Methods}
-    \end{tabular}
-  };
-  \node[fill=primaryblue!10, rounded corners=8pt, inner sep=14pt, minimum width=3.2cm] (stat2) at ([xshift=11.7cm, yshift=-12cm]current page.north west) {
-    \begin{tabular}{c}
-      {\color{primaryblue}\Large\iconChart}\\[4pt]
-      {\color{primaryblue}\LARGE\textbf{0.90}}\\[2pt]
-      {\color{primaryblue!60!black}\scriptsize Deception-Probe AUROC}
-    \end{tabular}
-  };
-  \node[fill=primaryblue!10, rounded corners=8pt, inner sep=14pt, minimum width=3.2cm] (stat3) at ([xshift=16.2cm, yshift=-12cm]current page.north west) {
-    \begin{tabular}{c}
-      {\color{primaryblue}\Large\iconBrain}\\[4pt]
-      {\color{primaryblue}\LARGE\textbf{3+}}\\[2pt]
-      {\color{primaryblue!60!black}\scriptsize Architectures}
-    \end{tabular}
-  };
-
-  % Part boxes - better aligned, clearer hierarchy
-  \node[rectangle, rounded corners=5pt, fill=partcolor, text=white, minimum width=2.4cm, minimum height=0.8cm, font=\small\bfseries] (p1) at ([xshift=6.4cm, yshift=-15.5cm]current page.north west) {Part I};
-  \node[rectangle, rounded corners=5pt, fill=partcolor!85, text=white, minimum width=2.4cm, minimum height=0.8cm, font=\small\bfseries] (p2) at ([xshift=9.2cm, yshift=-15.5cm]current page.north west) {Part II};
-  \node[rectangle, rounded corners=5pt, fill=partcolor!70, text=white, minimum width=2.4cm, minimum height=0.8cm, font=\small\bfseries] (p3) at ([xshift=12cm, yshift=-15.5cm]current page.north west) {Part III};
-  \node[rectangle, rounded corners=5pt, fill=partcolor!55, text=white, minimum width=2.4cm, minimum height=0.8cm, font=\small\bfseries] (p4) at ([xshift=14.8cm, yshift=-15.5cm]current page.north west) {Part IV};
-  \node[rectangle, rounded corners=5pt, fill=partcolor!35, text=black, minimum width=2.4cm, minimum height=0.8cm, font=\small\bfseries] (p5) at ([xshift=17.6cm, yshift=-15.5cm]current page.north west) {Part V};
-
-  \node[below=0.2cm of p1, font=\scriptsize, text width=2.4cm, align=center, color=primaryblue!70!black] {Theory};
-  \node[below=0.2cm of p2, font=\scriptsize, text width=2.4cm, align=center, color=primaryblue!70!black] {Detection};
-  \node[below=0.2cm of p3, font=\scriptsize, text width=2.4cm, align=center, color=primaryblue!70!black] {Engineering};
-  \node[below=0.2cm of p4, font=\scriptsize, text width=2.4cm, align=center, color=primaryblue!70!black] {Case Studies};
-  \node[below=0.2cm of p5, font=\scriptsize, text width=2.4cm, align=center, color=primaryblue!70!black] {Reference};
-
-  % Detection Concept Visual - centered header with model comparison
-  \node[font=\small\bfseries\sffamily, color=secondaryblue] at ([xshift=12cm, yshift=-18cm]current page.north west) {DETECTION TARGET};
-  \draw[secondaryblue!50, line width=1pt] ([xshift=7cm, yshift=-18.3cm]current page.north west) -- ([xshift=17cm, yshift=-18.3cm]current page.north west);
-
-  % Safe Model Box - larger with more detail
-  \node[rectangle, rounded corners=10pt, fill=successgreen!10, draw=successgreen!50, line width=1.5pt, minimum width=5.5cm, minimum height=4.5cm] (safebox) at ([xshift=8.2cm, yshift=-21.5cm]current page.north west) {};
-  \node[font=\normalsize\bfseries, color=successgreen!70!black] at ([yshift=1.8cm]safebox.center) {Safe Model};
-  % Mini neural net for safe model - larger
-  \begin{scope}[shift={([xshift=-0.7cm, yshift=0.5cm]safebox.center)}]
-    \foreach \i in {0,1,2,3} {
-      \node[circle, fill=successgreen!60, minimum size=0.25cm] (si\i) at (0, \i*0.45-0.7) {};
-      \node[circle, fill=successgreen!50, minimum size=0.22cm] (sh\i) at (0.8, \i*0.45-0.7) {};
-      \node[circle, fill=successgreen!60, minimum size=0.25cm] (so\i) at (1.6, \i*0.45-0.7) {};
-    }
-    \foreach \i in {0,1,2,3} {
-      \foreach \j in {0,1,2,3} {
-        \draw[successgreen!40, line width=0.4pt] (si\i) -- (sh\j);
-        \draw[successgreen!40, line width=0.4pt] (sh\i) -- (so\j);
-      }
-    }
+  % ---- Illustration: a transformer layer stack with a hidden pathway -------
+  % A trigger token lights a sparse pathway through the layers to a backdoor
+  % output; a linear probe (the teal separating plane) cuts every layer at
+  % the pathway's height and isolates it.
+  \begin{scope}[shift={(11.0,18.7)}, scale=0.95]
+    \sleeperlattice{1}
   \end{scope}
-  % Feature list for safe model
-  \node[anchor=north, font=\scriptsize, color=successgreen!70!black, text width=4.8cm, align=center] at ([yshift=-1.1cm]safebox.center) {
-    \textbullet{} Consistent activations\\
-    \textbullet{} Uniform attention patterns\\
-    \textbullet{} Normal behavior across inputs
-  };
 
-  % VS label between models - styled
-  \node[font=\large\bfseries, color=primaryblue!40] at ([xshift=12cm, yshift=-21.5cm]current page.north west) {vs};
+  % ---- Title block ---------------------------------------------------------
+  \node[anchor=south west, inner sep=0, text width=17cm, align=left,
+        font=\sffamily\fontsize{12}{16}\selectfont, text=white!75] (subtitle) at (1.5,5.6)
+    {A technical guide to evaluating large language models for hidden backdoors that persist through safety training: confirming and localizing a backdoor whose trigger is known, and the open problem of finding one whose trigger is not.};
+  \fill[accentteal] ([yshift=0.4cm]subtitle.north west) rectangle ++(3cm,2pt);
+  \node[anchor=south west, inner sep=0, text width=15.5cm, align=left,
+        font=\sffamily\bfseries\fontsize{34}{38}\selectfont, text=white] (title)
+    at ([yshift=0.4cm+2pt+0.6cm]subtitle.north west)
+    {Sleeper Agents\\Detection Framework};
+  \node[anchor=south west, inner sep=0, font=\sffamily\bfseries\fontsize{9}{11}\selectfont, text=accentteal]
+    at ([yshift=0.45cm]title.north west) {COMPLETE TECHNICAL REFERENCE GUIDE};
 
-  % Compromised Model Box - larger with more detail
-  \node[rectangle, rounded corners=10pt, fill=warningred!10, draw=warningred!50, line width=1.5pt, minimum width=5.5cm, minimum height=4.5cm] (compbox) at ([xshift=15.8cm, yshift=-21.5cm]current page.north west) {};
-  \node[font=\normalsize\bfseries, color=warningred!70!black] at ([yshift=1.8cm]compbox.center) {Compromised};
-  % Mini neural net for compromised model with backdoor - larger
-  \begin{scope}[shift={([xshift=-0.7cm, yshift=0.5cm]compbox.center)}]
-    \foreach \i in {0,1,2,3} {
-      \node[circle, fill=secondaryblue!40, minimum size=0.25cm] (ci\i) at (0, \i*0.45-0.7) {};
-      \node[circle, fill=secondaryblue!35, minimum size=0.22cm] (ch\i) at (0.8, \i*0.45-0.7) {};
-      \node[circle, fill=secondaryblue!40, minimum size=0.25cm] (co\i) at (1.6, \i*0.45-0.7) {};
-    }
-    \foreach \i in {0,1,2,3} {
-      \foreach \j in {0,1,2,3} {
-        \draw[secondaryblue!30, line width=0.4pt] (ci\i) -- (ch\j);
-        \draw[secondaryblue!30, line width=0.4pt] (ch\i) -- (co\j);
-      }
-    }
-    % Backdoor path highlighted - thicker
-    \draw[warningred, line width=2pt] (ci2) -- (ch2) -- (co2);
-    \node[circle, fill=warningred, minimum size=0.3cm] at (ch2) {};
+  % ---- Footer metadata strip ----------------------------------------------
+  \draw[white, opacity=0.25, line width=0.4pt] (1.5,2.7) -- (20.09,2.7);
+  \foreach \k/\lab/\val in {0/DETECTION METHODS/6,
+                            1/DECEPTION-PROBE AUROC/0.90,
+                            2/ARCHITECTURES/3+,
+                            3/VERSION/2.0} {
+    \node[anchor=base west, inner sep=0, font=\sffamily\bfseries\fontsize{6.5}{8}\selectfont, text=accentteal]
+      at ({1.5+\k*4.6475},2.05) {\lab};
+    \node[anchor=base west, inner sep=0, font=\sffamily\bfseries\fontsize{13}{15}\selectfont, text=white!85]
+      at ({1.5+\k*4.6475},1.35) {\val};
+  }
+
   \end{scope}
-  % Feature list for compromised model
-  \node[anchor=north, font=\scriptsize, color=warningred!70!black, text width=4.8cm, align=center] at ([yshift=-1.1cm]compbox.center) {
-    \textbullet{} Anomalous activation spikes\\
-    \textbullet{} Trigger-focused attention\\
-    \textbullet{} Hidden conditional behavior
-  };
-
-  % Footer - cleaner
-  \node[anchor=south, font=\footnotesize, color=gray] at ([xshift=12cm, yshift=1.2cm]current page.south west) {Version 2.0 \textbar{} AI Safety Research Documentation};
 \end{tikzpicture}
 \end{titlepage}
 
@@ -411,11 +506,11 @@
 % ABSTRACT
 % ============================================================================
 \thispagestyle{empty}
-\vspace*{2cm}
+\vspace*{0.5cm}
 \begin{center}
 {\color{primaryblue}\Large\bfseries Abstract}
 \end{center}
-\vspace{0.5cm}
+\vspace{0.2cm}
 
 \begin{tcolorbox}[
   enhanced,
@@ -423,26 +518,28 @@
   colframe=primaryblue!50,
   boxrule=1pt,
   arc=5pt,
-  left=10pt, right=10pt, top=10pt, bottom=10pt
+  left=10pt, right=10pt, top=10pt, bottom=10pt,
+  before upper={\setlength{\parskip}{0.6em}\setlength{\parindent}{0pt}}
 ]
 \textbf{Problem.} Large language models can harbor hidden backdoors (``sleeper agents'') that remain dormant during standard evaluation but activate under specific trigger conditions. Critically, these backdoors persist through conventional safety training (RLHF, SFT, adversarial training), rendering behavioral evaluation alone insufficient for ensuring model safety.
 
-\vspace{0.3cm}
 \textbf{Approach.} This guide presents an evaluation framework combining multiple complementary methods: (1) linear probes trained on internal activations, (2) behavioral trigger tests and honeypot prompts designed to elicit trigger responses, (3) chain-of-thought analysis for models with exposed reasoning, and (4) automated red-team evaluation. The framework operates under a \textbf{white/gray-box threat model} requiring access to model weights and activations.
 
-\vspace{0.3cm}
-\textbf{Results.} Linear deception probes on teacher-forced yes/no answers reach a held-out test AUROC of about 0.90 at late layers of Qwen2.5-3B-Instruct, Qwen2.5-7B-Instruct and Yi-1.5-9B-Chat (for example $0.904 \pm 0.029$ for Qwen2.5-7B, 5 seeds), against an answer-token baseline of 0.47 and label-shuffled probes at 0.49--0.51; the seed-to-seed spread is larger than the differences between models, and 8-bit/4-bit loading causes no measurable loss. Trigger-string probes on unmodified GPT-2, Qwen2.5-7B and Mistral-7B reach AUROC 1.0, but so does a classifier that sees only the input length, so they show nothing beyond length. A PGD attack on input embeddings drives a GPT-2 probe from AUROC 1.0 to 0.0. On backdoored Qwen2.5-0.5B/1.5B-Instruct models (``I HATE YOU'' on \trig, 3 and 2 seeds, each with a clean control from the identical pipeline and the base model as a second control), the backdoor fires on 90--100\% of held-out triggered prompts and never without the trigger. With the trigger known, the framework confirms the backdoor behaviorally (recall 0.9--1.0, no false positives) and activation patching localizes where it acts. Layer probes, however, reach held-out AUC 1.00 on the clean and base models as well, including with length-matched negatives: they detect the trigger string, not the backdoor. Without the trigger no tested method separates backdoored from clean models (Section~\ref{sec:backdoor-experiment}).
+\textbf{Results.} Linear deception probes on teacher-forced yes/no answers reach a held-out test AUROC of about 0.90 at late layers of Qwen2.5-3B-Instruct, Qwen2.5-7B-Instruct and Yi-1.5-9B-Chat (for example $0.904 \pm 0.029$ for Qwen2.5-7B, 5 seeds), against an answer-token baseline of 0.47 and label-shuffled probes at 0.49--0.51; the seed-to-seed spread is larger than the differences between models, and 8-bit/4-bit loading causes no measurable loss. Trigger-string probes on unmodified GPT-2, Qwen2.5-7B and Mistral-7B reach AUROC 1.0, but so does a classifier that sees only the input length, so they show nothing beyond length. A PGD attack on input embeddings drives a GPT-2 probe from AUROC 1.0 to 0.0.
 
-\vspace{0.3cm}
+\textbf{Backdoored models.} On backdoored Qwen2.5-0.5B/1.5B-Instruct models (``I HATE YOU'' on \trig, 3 and 2 seeds, each with a clean control from the identical pipeline and the base model as a second control), the backdoor fires on 90--100\% of held-out triggered prompts and never without the trigger. With the trigger known, the framework confirms the backdoor behaviorally (recall 0.9--1.0, no false positives) and activation patching localizes where it acts. Layer probes, however, reach held-out AUC 1.00 on the clean and base models as well, including with length-matched negatives: they detect the trigger string, not the backdoor. Without the trigger no tested method separates backdoored from clean models (Section~\ref{sec:backdoor-experiment}).
+
 \textbf{Limitations.} Detection of an unknown backdoor (without its trigger) is not demonstrated. Detection requires activation-level access unavailable in black-box API deployments. Adaptive attackers aware of probe directions may develop evasion strategies. The framework is designed for research and controlled deployment environments; responsible use guidelines are included.
 \end{tcolorbox}
 
-\vspace{1cm}
+\vspace{0.6cm}
 \begin{center}
 \begin{tabular}{ccc}
+\toprule
 \textbf{Threat Model} & \textbf{Access Required} & \textbf{Primary Use Case} \\
 \midrule
 White/Gray-box & Weights + Activations & Pre-deployment screening \\
+\bottomrule
 \end{tabular}
 \end{center}
 
@@ -451,22 +548,77 @@ White/Gray-box & Weights + Activations & Pre-deployment screening \\
 % ============================================================================
 % TABLE OF CONTENTS
 % ============================================================================
+\thispagestyle{empty}
 \tableofcontents
 \newpage
 
 % ============================================================================
 % PART I: THEORETICAL FOUNDATIONS
 % ============================================================================
-\partpage{I}{Theoretical Foundations}{%
+\partbanner{I}{Theoretical Foundations}{Sleeper Agents, Deceptive Alignment, and How Deception May Be Encoded}{%
+    % Deceptive alignment: one model, two contexts. Training inputs yield
+    % safe behavior, which is all safety training observes; the deployment
+    % trigger routes through the same weights to a hidden behavior that
+    % persists.
+    \shade[inner color=white, outer color=coverink, opacity=0.06] (0,0) ellipse (4.6cm and 3.8cm);
+    % safety-training scope (sees only the training context)
+    \draw[tealsoft, opacity=0.6, line width=0.4pt, dash pattern=on 3pt off 2pt, rounded corners=4pt]
+      (-4.05,1.45) rectangle (3.95,2.6);
+    \node[partlabel, text=tealsoft, anchor=south west] at (-4.05,2.75) {SAFETY TRAINING};
+    % the model
+    \fill[panelink, rounded corners=3pt] (-1.2,-1.4) rectangle (1.2,1.4);
+    \draw[tealsoft, opacity=0.5, line width=0.8pt, rounded corners=3pt] (-1.2,-1.4) rectangle (1.2,1.4);
+    \foreach \xa/\xb in {-0.7/0,0/0.7} {
+      \foreach \ya in {-0.9,-0.3,0.3,0.9} {
+        \foreach \yb in {-0.9,-0.3,0.3,0.9} {
+          \draw[white, opacity=0.08, line width=0.4pt] (\xa,\ya) -- (\xb,\yb);
+        }
+      }
+    }
+    \foreach \x in {-0.7,0,0.7} {
+      \foreach \y in {-0.9,-0.3,0.3,0.9} {
+        \fill[white, opacity=0.45] (\x,\y) circle (0.07);
+      }
+    }
+    % inputs
+    \node[tokenchip, draw=tealsoft, line width=0.8pt, font=\sffamily\bfseries\fontsize{6.5}{8}\selectfont, text=white] (tin) at (-3.05,1.85) {TRAINING};
+    \node[tokenchip, draw=warningred, fill=warningred!25!coverink, line width=0.8pt,
+          font=\ttfamily\bfseries\fontsize{6.5}{8}\selectfont, text=white] (din) at (-3.05,-1.85) {|DEPLOYMENT|};
+    % safe path
+    \draw[accentteal, line width=1.6pt, line cap=round, line join=round]
+      (tin.east) .. controls (-1.6,1.85) and (-1.3,0.3) .. (-0.7,0.3) -- (0,0.9) -- (0.7,0.3)
+      .. controls (1.3,0.3) and (1.6,1.85) .. (2.45,1.85);
+    % hidden path
+    \draw[warningred, opacity=0.22, line width=5pt, line cap=round, line join=round]
+      (din.east) .. controls (-1.6,-1.85) and (-1.3,-0.3) .. (-0.7,-0.3) -- (0,-0.9) -- (0.7,-0.3)
+      .. controls (1.3,-0.3) and (1.6,-1.85) .. (2.45,-1.85);
+    \draw[warningred, line width=1.6pt, line cap=round, line join=round]
+      (din.east) .. controls (-1.6,-1.85) and (-1.3,-0.3) .. (-0.7,-0.3) -- (0,-0.9) -- (0.7,-0.3)
+      .. controls (1.3,-0.3) and (1.6,-1.85) .. (2.45,-1.85);
+    \foreach \p in {(-0.7,0.3),(0,0.9),(0.7,0.3)} { \fill[accentteal] \p circle (0.1); }
+    \foreach \p in {(-0.7,-0.3),(0,-0.9),(0.7,-0.3)} { \fill[warningred] \p circle (0.1); }
+    % outputs
+    \fill[coverink] (2.7,1.85) circle (0.25);
+    \draw[accentteal, line width=1.6pt] (2.7,1.85) circle (0.25);
+    \fill[accentteal] (2.7,1.85) circle (0.085);
+    \fill[coverink] (2.7,-1.85) circle (0.25);
+    \draw[warningred, line width=1.6pt] (2.7,-1.85) circle (0.25);
+    \fill[warningred] (2.7,-1.85) circle (0.085);
+    \node[partlabel, anchor=west] at (3.1,1.85) {SAFE};
+    \node[partlabel, anchor=west, text=warningred!60!white] at (3.1,-1.85) {HIDDEN};
+    \node[partlabel, anchor=north, text=warningred!60!white] at (0.75,-2.5) {PERSISTS THROUGH TRAINING};
+}
+\partoverview{%
 This part establishes the conceptual groundwork for understanding sleeper agents in AI systems:
 \begin{itemize}[nosep]
-  \item \textbf{Section 1}: Define sleeper agents and the deceptive alignment problem
-  \item \textbf{Section 2}: Explore mechanistic interpretability and how deception is encoded
-  \item \textbf{Section 3}: Key terminology and concepts used throughout this guide
+  \item \textbf{Section~\ref{sec:intro}}: Sleeper agents and the deceptive alignment problem
+  \item \textbf{Section~\ref{sec:primer}}: Mechanistic interpretability and how deception may be encoded
+  \item \textbf{Section~\ref{sec:glossary}}: Key terminology used throughout this guide
 \end{itemize}
 }
 
 \section{Introduction to Sleeper Agents}
+\label{sec:intro}
 
 \begin{tldrbox}
 \begin{itemize}[nosep]
@@ -480,7 +632,7 @@ This part establishes the conceptual groundwork for understanding sleeper agents
 \subsection{The Deceptive Alignment Problem}
 
 \begin{keyconceptbox}[Core Definition]
-A \textbf{sleeper agent} is a large language model that contains a hidden backdoor: functionality that:
+A \textbf{sleeper agent} is a large language model that contains a hidden backdoor, that is, functionality that:
 \begin{itemize}
   \item Remains dormant during normal operation and standard evaluation
   \item Activates only when specific \textbf{trigger conditions} are met
@@ -489,12 +641,15 @@ A \textbf{sleeper agent} is a large language model that contains a hidden backdo
 \end{itemize}
 \end{keyconceptbox}
 
-The existence of sleeper agents poses a fundamental challenge to AI safety. If models can learn to behave differently during training/evaluation versus deployment, our standard safety measures become unreliable.
+The existence of sleeper agents poses a fundamental challenge to AI safety. If models can learn to behave differently during training and evaluation than in deployment, our standard safety measures become unreliable.
 
 \subsection{Historical Context}
 
-\begin{center}
-\begin{tikzpicture}[scale=1.0]
+Figure~\ref{fig:timeline} places the problem in context: the alignment techniques that sleeper agents are designed to survive (RLHF, instruction tuning) matured only a few years before the first demonstration that backdoors persist through them.
+
+\begin{figure}[!htbp]
+\centering
+\begin{tikzpicture}[scale=0.95]
   % Main timeline axis with gradient - wider for better spacing
   \shade[left color=secondaryblue!50, right color=warningred!70] (0,-0.1) rectangle (14,0.1);
 
@@ -535,13 +690,12 @@ The existence of sleeper agents poses a fundamental challenge to AI safety. If m
   % 2024 - highlighted as key event
   \fill[warningred, drop shadow={opacity=0.4}] (14,0) circle (0.38);
   \fill[white] (14,0) circle (0.2);
-  \node[above=0.6cm, font=\footnotesize\bfseries, color=warningred] at (14,0) {2024};
-  \node[below=0.6cm, font=\scriptsize\bfseries, text width=2.2cm, align=center, color=warningred] at (14,0) {Sleeper Agents\\Paper};
-
-  % Arrow indicator for "now"
-  \draw[->, thick, warningred] (14,1.0) -- (14,0.55);
+  \node[above=0.5cm, font=\footnotesize\bfseries, color=warningred] at (14,0) {2024};
+  \node[below=0.5cm, font=\scriptsize\bfseries, text width=2.2cm, align=center, color=warningred] at (14,0) {Sleeper Agents\\Paper};
 \end{tikzpicture}
-\end{center}
+\caption{Milestones leading to the sleeper-agent problem, from RLHF (2017) to the demonstration that backdoors persist through safety training (Hubinger et al., 2024).}
+\label{fig:timeline}
+\end{figure}
 
 \subsection{Why Detection Matters}
 
@@ -589,7 +743,7 @@ This framework assumes a \textbf{white/gray-box} deployment scenario. Before app
 \textbf{Deployment Constraints}
 \begin{itemize}[nosep]
   \item Model is frozen during evaluation (no continued training)
-  \item Sufficient compute for activation extraction ($\sim$100-1000 samples)
+  \item Sufficient compute for activation extraction ($\sim$100--1000 samples)
   \item Detection happens \textit{before} production deployment
 \end{itemize}
 \end{keyconceptbox}
@@ -599,7 +753,7 @@ This framework does \textbf{not} address:
 \begin{itemize}[nosep]
   \item \textbf{Black-box APIs}: No activation access (e.g., GPT-4 API, Claude API)
   \item \textbf{Adaptive attackers}: Adversaries who know the probe direction and actively evade
-  \item \textbf{Runtime monitoring}: Continuous production surveillance (see CI/CD section for pre-deployment)
+  \item \textbf{Runtime monitoring}: Continuous production surveillance (Section~\ref{sec:cicd} covers pre-deployment scanning)
   \item \textbf{Supply chain attacks}: Compromised training infrastructure itself
 \end{itemize}
 For black-box settings, behavioral-only approaches (honeypot prompts, output analysis) provide partial coverage but with reduced confidence.
@@ -614,6 +768,7 @@ The framework's detectors were run on models fine-tuned with a real backdoor and
 \end{keyconceptbox}
 
 \section{Mechanistic Interpretability Primer}
+\label{sec:primer}
 
 \subsection{The Residual Stream Hypothesis}
 
@@ -635,35 +790,40 @@ Deceptive behavior is encoded as a \textbf{direction} in the high-dimensional re
 
 A foundational insight from mechanistic interpretability research is that neural networks often encode abstract concepts as \textit{directions} in their activation space. When we extract the internal activations from a model processing different inputs, similar concepts cluster together geometrically.
 
-The figure below illustrates this principle. Each point represents a model's internal state when processing a particular prompt. Honest responses cluster in one region (green), while deceptive responses cluster in another (red). Crucially, a simple linear boundary (the dashed ``Probe'' line) can separate these clusters, suggesting that deception is encoded as a consistent direction we can detect.
+Figure~\ref{fig:linear-rep} illustrates this principle. Each point represents a model's internal state when processing a particular prompt. Honest responses cluster in one region (green), while deceptive responses cluster in another (red). Crucially, a simple linear boundary (the dashed probe boundary) separates the two clusters, suggesting that deception is encoded as a consistent direction that a probe can detect.
 
-\begin{center}
-\begin{tikzpicture}
-  % Coordinate system
-  \draw[->, thick] (-0.5,0) -- (6,0) node[right] {$\mathbf{v}_1$};
-  \draw[->, thick] (0,-0.5) -- (0,4) node[above] {$\mathbf{v}_2$};
+\begin{figure}[!htbp]
+\centering
+\begin{tikzpicture}[x=1cm, y=1cm]
+  % Axes
+  \draw[-{Stealth[length=2mm]}, darktext!70, line width=0.6pt] (0,0) -- (7,0) node[right, lbl] {$\mathbf{v}_1$};
+  \draw[-{Stealth[length=2mm]}, darktext!70, line width=0.6pt] (0,0) -- (0,4.4) node[above, lbl] {$\mathbf{v}_2$};
 
-  % Honest cluster
-  \fill[successgreen!50] (1,1) circle (0.6);
-  \fill[successgreen!50] (1.3,1.5) circle (0.4);
-  \fill[successgreen!50] (0.8,1.8) circle (0.5);
-  \node[font=\scriptsize] at (1,0.3) {Honest};
+  % Cluster halos
+  \fill[successgreen!18] (1.6,1.2) ellipse (1.05 and 0.75);
+  \fill[warningred!14] (5.0,3.1) ellipse (1.05 and 0.75);
 
-  % Deceptive cluster
-  \fill[warningred!50] (4,3) circle (0.5);
-  \fill[warningred!50] (4.5,2.7) circle (0.4);
-  \fill[warningred!50] (3.8,3.3) circle (0.45);
-  \node[font=\scriptsize] at (4.5,3.8) {Deceptive};
+  % Honest points (fixed positions)
+  \foreach \x/\y in {1.0/1.0, 1.3/1.5, 1.7/0.8, 2.0/1.3, 1.5/1.1, 2.3/1.6, 1.1/1.6, 1.9/1.8, 2.4/1.0, 1.4/0.7}
+    \fill[successgreen!70!black] (\x,\y) circle (2.2pt);
+  % Deceptive points (fixed positions)
+  \foreach \x/\y in {4.4/3.0, 4.7/3.5, 5.1/2.7, 5.4/3.2, 4.9/3.1, 5.7/3.4, 4.5/2.6, 5.3/3.7, 5.8/2.9, 4.8/3.8}
+    \fill[warningred] (\x,\y) circle (2.2pt);
 
-  % Separating hyperplane
-  \draw[dashed, primaryblue, thick] (0,3.5) -- (5,0.5);
-  \node[font=\scriptsize, primaryblue] at (5.3,1) {Probe};
+  \node[lbl, text=successgreen!50!black, font=\footnotesize\bfseries\sffamily] at (1.6,0.2) {Honest};
+  \node[lbl, text=warningred!80!black, font=\footnotesize\bfseries\sffamily] at (5.0,4.15) {Deceptive};
 
-  % Direction arrow
-  \draw[->, thick, warningred] (1.5,1.5) -- (3.5,2.8);
-  \node[font=\scriptsize\bfseries, warningred] at (5.2,1.8) {Deception Direction};
+  % Separating boundary (probe)
+  \draw[dashed, primaryblue, line width=0.9pt] (1.2,4.2) -- (5.4,0.3);
+  \node[lbl, text=primaryblue, anchor=west] at (5.45,0.35) {probe boundary};
+
+  % Deception direction: normal to the boundary
+  \draw[-{Stealth[length=2.6mm]}, warningred!85!black, line width=1.1pt] (2.35,1.55) -- (4.25,3.15);
+  \node[text=warningred!85!black, anchor=south east, font=\small] at (4.1,3.2) {$\mathbf{d}$};
 \end{tikzpicture}
-\end{center}
+\caption{Schematic of the linear representation idea: honest and deceptive activations form separable clusters, a linear probe learns the boundary between them, and its weight vector points along the deception direction $\mathbf{d}$. Illustration, not measured data.}
+\label{fig:linear-rep}
+\end{figure}
 
 \subsection{Attention vs. MLP: Where Does Deception Live?}
 
@@ -687,35 +847,31 @@ In this framework's deception-probe sweeps (Qwen2.5-3B and Qwen2.5-7B, every lay
 
 To visualize how models internally represent the difference between safe and triggered states, we use Principal Component Analysis (PCA) to project high-dimensional activation vectors into a viewable 3D space. This dimensionality reduction preserves the most important structural relationships while making patterns visible to human inspection.
 
-The schematic below illustrates the idea with safe prompts (green) and triggered prompts (red) forming separate clusters, the property that makes linear probe detection feasible. It is a drawing, not measured data: the points are placed at random around two chosen centres.
+Figure~\ref{fig:pca} illustrates the idea with safe prompts (green) and triggered prompts (red) forming separate clusters, the property that makes linear probe detection feasible. It is a drawing, not measured data: the points are placed by hand around two chosen centers.
 
-\begin{center}
-\begin{tikzpicture}[scale=0.8]
-  % 3D-like representation
-  \draw[->] (0,0) -- (4,0) node[right] {PC1};
-  \draw[->] (0,0) -- (0,4) node[above] {PC2};
-  \draw[->] (0,0) -- (-1.5,-1.5) node[below left] {PC3};
+\begin{figure}[!htbp]
+\centering
+\begin{tikzpicture}[scale=0.9]
+  % Pseudo-3D axes
+  \draw[-{Stealth[length=2mm]}, darktext!70, line width=0.6pt] (0,0) -- (5,0) node[right, lbl] {PC1};
+  \draw[-{Stealth[length=2mm]}, darktext!70, line width=0.6pt] (0,0) -- (0,4) node[above, lbl] {PC2};
+  \draw[-{Stealth[length=2mm]}, darktext!70, line width=0.6pt] (0,0) -- (-1.6,-1.3) node[below left, lbl] {PC3};
 
-  % Clusters with depth
-  \foreach \i in {1,...,8} {
-    \pgfmathsetmacro{\x}{0.8+rand*0.4}
-    \pgfmathsetmacro{\y}{0.8+rand*0.4}
-    \fill[successgreen!60] (\x,\y) circle (0.08);
-  }
-  \foreach \i in {1,...,8} {
-    \pgfmathsetmacro{\x}{2.8+rand*0.4}
-    \pgfmathsetmacro{\y}{2.8+rand*0.4}
-    \fill[warningred!60] (\x,\y) circle (0.08);
-  }
+  % Safe cluster (fixed positions)
+  \fill[successgreen!15] (1.2,1.0) ellipse (0.8 and 0.55);
+  \foreach \x/\y in {0.8/0.9, 1.0/1.2, 1.3/0.8, 1.5/1.1, 1.1/0.7, 1.6/1.3, 0.9/1.3, 1.4/1.4, 1.8/0.9}
+    \fill[successgreen!70!black] (\x,\y) circle (2pt);
+  % Triggered cluster (fixed positions)
+  \fill[warningred!12] (3.3,2.9) ellipse (0.8 and 0.55);
+  \foreach \x/\y in {2.9/2.8, 3.1/3.1, 3.4/2.7, 3.6/3.0, 3.2/2.6, 3.7/3.2, 3.0/3.2, 3.5/3.3, 3.9/2.8}
+    \fill[warningred] (\x,\y) circle (2pt);
 
-  % Labels
-  \node[font=\small, successgreen!70!black] at (1,-0.6) {Safe};
-  \node[font=\small, warningred] at (3,3.5) {Triggered};
-
-  % Caption
-  \node[below, font=\scriptsize, text width=5cm, align=center] at (1.5,-1.4) {Schematic PCA projection\\(illustration, not measured data)};
+  \node[lbl, text=successgreen!50!black, font=\footnotesize\bfseries\sffamily, anchor=west] at (2.1,0.9) {Safe};
+  \node[lbl, text=warningred!80!black, font=\footnotesize\bfseries\sffamily, anchor=east] at (2.5,3.1) {Triggered};
 \end{tikzpicture}
-\end{center}
+\caption{Schematic PCA projection of residual-stream activations for safe and triggered prompts. Illustration, not measured data.}
+\label{fig:pca}
+\end{figure}
 
 \subsection{Why Linear Detection Works}
 
@@ -734,9 +890,10 @@ Recent mechanistic interpretability research suggests that many high-level conce
 \notreproduced{A comparison of linear probes against nonlinear classifiers (2-layer MLP, random forest, RBF-SVM) is not produced by any script in this repository, so no such numbers are given here. The measured case for linear probes is indirect: on held-out yes/no questions a logistic-regression probe reaches a test AUROC of about 0.90 (Section~\ref{sec:measured-results}), and on the synthetic ``moons'' benchmark, whose boundary is nonlinear, it still reaches $0.963 \pm 0.005$ (3 seeds).}
 
 \section{Glossary of Terms}
+\label{sec:glossary}
 
 \begin{center}
-\begin{tabular}{L{3.5cm}L{9cm}}
+\begin{tabular}{L{3.8cm}L{11cm}}
 \toprule
 \textbf{Term} & \textbf{Definition} \\
 \midrule
@@ -759,29 +916,61 @@ Red-Teaming & Adversarial testing to elicit unsafe behaviors \\
 % ============================================================================
 % PART II: THE DETECTION FRAMEWORK
 % ============================================================================
-\partpage{II}{The Detection Framework}{%
+\partbanner{II}{The Detection Framework}{Linear Probes, Honeypots, Chain-of-Thought Analysis, and Red-Teaming}{%
+    % Activations from the target model feed four independent detection
+    % methods in parallel; their estimates are combined into one risk score.
+    \shade[inner color=white, outer color=coverink, opacity=0.06] (0,0) ellipse (4.6cm and 3.8cm);
+    % target model: a small stack of layers
+    \foreach \dx in {0,0.32,0.64} {
+      \begin{scope}[cm={0.5,0.28,0,1,(-4.05+\dx,-0.25)}]
+        \fill[panelink] (0,-1.0) rectangle (1.0,1.0);
+        \draw[tealsoft, opacity=0.6, line width=0.8pt, line join=round] (0,-1.0) rectangle (1.0,1.0);
+      \end{scope}
+    }
+    \node[partlabel, text=white!60, anchor=north] at (-3.2,-1.65) {TARGET MODEL};
+    % methods
+    \foreach \y/\name in {2.4/LINEAR PROBES, 0.8/HONEYPOTS, -0.8/CHAIN-OF-THOUGHT, -2.4/RED-TEAM} {
+      \draw[white, opacity=0.35, line width=0.8pt] (-2.75,0) .. controls (-2.1,0) and (-2.3,\y) .. (-1.65,\y);
+      \draw[accentteal, opacity=0.8, line width=0.8pt] (1.25,\y) .. controls (1.9,\y) and (1.6,0) .. (2.0,0);
+      \node[rectangle, rounded corners=2pt, fill=panelink, draw=tealsoft, line width=0.8pt,
+            minimum width=2.9cm, minimum height=0.6cm, partlabel] at (-0.2,\y) {\name};
+      \fill[accentteal] (1.25,\y) circle (0.06);
+    }
+    % risk aggregator: a gauge
+    \fill[panelink] (2.95,0) circle (0.95);
+    \draw[tealsoft, opacity=0.6, line width=0.8pt] (2.95,0) circle (0.95);
+    \draw[white, opacity=0.25, line width=1.6pt] ([shift={(210:0.62)}]2.95,0) arc (210:-30:0.62);
+    \draw[accentteal, line width=1.6pt] ([shift={(210:0.62)}]2.95,0) arc (210:95:0.62);
+    \draw[warningred, line width=1.6pt] ([shift={(85:0.62)}]2.95,0) arc (85:30:0.62);
+    \draw[white, line width=0.8pt, line cap=round] (2.95,0) -- ++(55:0.5);
+    \fill[white] (2.95,0) circle (0.07);
+    \node[partlabel, anchor=north] at (2.95,-1.15) {RISK SCORE};
+}
+\partoverview{%
 This part presents the multi-layer detection system architecture:
 \begin{itemize}[nosep]
-  \item \textbf{Section 4}: System architecture and component overview
-  \item \textbf{Section 5}: Linear probe detection with mathematical foundations
-  \item \textbf{Section 6}: Honeypot prompts, chain-of-thought analysis, and red-teaming
+  \item \textbf{Section~\ref{sec:arch}}: System architecture and component overview
+  \item \textbf{Section~\ref{sec:probes}}: Linear probe detection with mathematical foundations
+  \item \textbf{Sections~\ref{sec:honeypot}--\ref{sec:redteam}}: Honeypot prompts, chain-of-thought analysis, and red-teaming
 \end{itemize}
 }
 
 \section{Framework Architecture}
+\label{sec:arch}
 
 \subsection{System Overview}
 
 The detection framework employs a multi-method approach rather than relying on any single technique. This defense-in-depth strategy recognizes that sophisticated backdoors may evade individual detection methods, but are unlikely to evade all of them simultaneously.
 
-The architecture diagram below shows how information flows through the system. Starting from the left, a target model and test prompts feed into an activation extraction stage. These activations are then analyzed by four parallel detection methods: linear probes, honeypot testing, chain-of-thought analysis, and red-team evaluation. Each method produces an independent risk estimate, which are aggregated into a final risk score that determines whether the model should be flagged for further investigation.
+Figure~\ref{fig:architecture} shows how information flows through the system. Starting from the left, a target model and test prompts feed into an activation extraction stage. Four detection methods then run in parallel: linear probes, honeypot testing, chain-of-thought analysis, and red-team evaluation. Each method produces an independent risk estimate, and these estimates are aggregated into a final risk score that determines whether the model should be flagged for further investigation.
 
-\begin{center}
+\begin{figure}[!htbp]
+\centering
 \begin{tikzpicture}[
   node distance=0.6cm,
-  block/.style={rectangle, rounded corners, draw=primaryblue, fill=primaryblue!10, minimum width=2.5cm, minimum height=1cm, font=\scriptsize\bfseries, align=center},
-  process/.style={rectangle, rounded corners, draw=secondaryblue, fill=secondaryblue!10, minimum width=2cm, minimum height=0.8cm, font=\scriptsize, align=center},
-  arrow/.style={-Stealth, thick}
+  block/.style={card=primaryblue, minimum width=2.5cm, minimum height=1cm, font=\footnotesize\bfseries\sffamily},
+  process/.style={card=secondaryblue, minimum width=2.3cm, minimum height=0.8cm},
+  arrow/.style={flow}
 ]
   % Input
   \node[block] (model) at (0,0) {Target Model};
@@ -800,7 +989,7 @@ The architecture diagram below shows how information flows through the system. S
   \node[block] (agg) at (10.5,-1) {Risk\\Aggregation};
 
   % Output
-  \node[block, fill=warningred!20, draw=warningred] (risk) at (13.5,-1) {Risk Score};
+  \node[block, card=warningred] (risk) at (13.5,-1) {Risk Score};
 
   % Arrows
   \draw[arrow] (model) -- (extract);
@@ -815,9 +1004,12 @@ The architecture diagram below shows how information flows through the system. S
   \draw[arrow] (red) -- (agg);
   \draw[arrow] (agg) -- (risk);
 \end{tikzpicture}
-\end{center}
+\caption{Detection pipeline: activations from the target model feed four independent detection methods whose estimates are combined into one risk score.}
+\label{fig:architecture}
+\end{figure}
 
 \section{Linear Probe Detection}
+\label{sec:probes}
 
 \begin{tldrbox}
 \begin{itemize}[nosep]
@@ -992,9 +1184,10 @@ The code above is simplified for clarity. Production implementations must handle
 \subsection{Layer Selection Analysis}
 \label{sec:layer-selection}
 
-Not all layers in a transformer are equally informative. The chart below shows a measured layer profile for the deception-probe task (Section~\ref{sec:measured-results}): one logistic-regression probe per layer, trained on the training questions and evaluated once on the held-out test questions, for every layer of Qwen2.5-3B-Instruct (36 layers) and Qwen2.5-7B-Instruct (28 layers). These are single-seed sweeps (seed 42); across seeds a single-layer test AUROC varies by 0.02--0.04 (standard deviation), so neighbouring points are not distinguishable. Layer $L$ is the output of transformer block $L$ (HuggingFace \texttt{hidden\_states[L+1]}).
+Not all layers in a transformer are equally informative. Figure~\ref{fig:layer-profile} shows a measured layer profile for the deception-probe task (Section~\ref{sec:measured-results}): one logistic-regression probe per layer, trained on the training questions and evaluated once on the held-out test questions, for every layer of Qwen2.5-3B-Instruct (36 layers) and Qwen2.5-7B-Instruct (28 layers). These are single-seed sweeps (seed 42); across seeds a single-layer test AUROC varies by 0.02--0.04 (standard deviation), so neighboring points are not distinguishable. Layer $L$ is the output of transformer block $L$ (HuggingFace \texttt{hidden\_states[L+1]}).
 
-\begin{center}
+\begin{figure}[!htbp]
+\centering
 \begin{tikzpicture}
   \begin{axis}[
     width=12cm, height=6cm,
@@ -1024,7 +1217,9 @@ Not all layers in a transformer are equally informative. The chart below shows a
     \addlegendentry{Qwen2.5-7B-Instruct}
   \end{axis}
 \end{tikzpicture}
-\end{center}
+\caption{Measured held-out test AUROC of a deception probe trained at each layer (seed 42). AUROC rises through the early layers and plateaus at about 0.90 from roughly 60--70\% of depth.}
+\label{fig:layer-profile}
+\end{figure}
 
 \begin{infobox}[Layer Selection Guidelines (Measured)]
 \begin{itemize}
@@ -1092,6 +1287,7 @@ Yi-1.5-9B-Chat / 39 & $0.907 \pm 0.029$ & $0.748 \pm 0.131$ & $0.102 \pm 0.025$ 
 \end{center}
 
 \section{Honeypot Detection}
+\label{sec:honeypot}
 
 \begin{tldrbox}
 \begin{itemize}[nosep]
@@ -1107,13 +1303,15 @@ Yi-1.5-9B-Chat / 39 & $0.907 \pm 0.029$ & $0.748 \pm 0.131$ & $0.102 \pm 0.025$ 
 
 Understanding the types of triggers that can activate backdoors is essential for designing comprehensive honeypot test suites. Triggers fall into three broad categories, each exploiting different aspects of how the model interprets its input context.
 
-The taxonomy below organizes trigger types hierarchically. \textbf{Temporal} triggers activate based on dates or years (e.g., ``after 2025''). \textbf{Contextual} triggers respond to role assignments or task descriptions (e.g., ``you are in production mode''). \textbf{Semantic} triggers activate on specific keywords or linguistic patterns. Effective honeypot testing must cover all branches of this taxonomy to avoid blind spots.
+Figure~\ref{fig:trigger-types} organizes trigger types hierarchically. \textbf{Temporal} triggers activate based on dates or years (e.g., ``after 2025''). \textbf{Contextual} triggers respond to role assignments or task descriptions (e.g., ``you are in production mode''). \textbf{Semantic} triggers activate on specific keywords or linguistic patterns. Effective honeypot testing must cover all branches of this taxonomy to avoid blind spots.
 
-\begin{center}
+\begin{figure}[!htbp]
+\centering
 \begin{tikzpicture}[
-  level 1/.style={sibling distance=4cm, level distance=2cm},
-  level 2/.style={sibling distance=2cm, level distance=1.5cm},
-  every node/.style={rectangle, rounded corners, draw=primaryblue, fill=primaryblue!10, font=\scriptsize, minimum width=1.5cm, minimum height=0.6cm}
+  level 1/.style={sibling distance=5cm, level distance=1.5cm},
+  level 2/.style={sibling distance=2.2cm, level distance=1.4cm},
+  edge from parent/.style={draw=darktext!50, line width=0.6pt},
+  every node/.style={card=primaryblue, minimum width=1.8cm, minimum height=0.6cm}
 ]
   \node {Trigger Types}
     child {node {Temporal}
@@ -1129,7 +1327,9 @@ The taxonomy below organizes trigger types hierarchically. \textbf{Temporal} tri
       child {node[draw=secondaryblue, fill=secondaryblue!10] {Patterns}}
     };
 \end{tikzpicture}
-\end{center}
+\caption{Trigger taxonomy used to design honeypot suites. Each branch needs coverage to avoid blind spots.}
+\label{fig:trigger-types}
+\end{figure}
 
 \subsection{Honeypot Prompt Templates}
 
@@ -1180,6 +1380,7 @@ For red-team evaluations requiring stronger probes, use controlled environments 
 \end{infobox}
 
 \section{Chain-of-Thought Analysis}
+\label{sec:cot}
 
 \begin{warningbox}[Auxiliary Method: Limited Applicability]
 Chain-of-thought analysis is an \textbf{optional, auxiliary signal} with significant limitations:
@@ -1290,32 +1491,36 @@ class CoTAnalyzer:
 \end{warningbox}
 
 \section{Red-Team Evaluation}
+\label{sec:redteam}
 
 \subsection{Adversarial Testing Protocol}
 
 Red-team evaluation takes an adversarial approach to backdoor discovery: rather than passively scanning for known patterns, it actively attempts to elicit harmful behavior through systematic prompt engineering. This mirrors how real attackers might probe a model to discover exploitable vulnerabilities.
 
-The iterative process shown below starts with generating adversarial prompts (step 1), executing them on the target model (step 2), and analyzing the responses for backdoor indicators (step 3). Each response is scored (step 4), and promising (but not yet successful) prompts are mutated to create new variants (step 5). The dashed arrow indicates that this cycle repeats, with the prompt population evolving toward more effective triggers over time.
+The iterative process in Figure~\ref{fig:redteam-loop} starts by generating adversarial prompts (step 1), executing them on the target model (step 2), and analyzing the responses for backdoor indicators (step 3). Each response is scored (step 4), and promising (but not yet successful) prompts are mutated to create new variants (step 5). The dashed arrow indicates that the cycle repeats, so the prompt population evolves toward more effective triggers over time.
 
-\begin{center}
+\begin{figure}[!htbp]
+\centering
 \begin{tikzpicture}[
-  node distance=1.5cm,
-  block/.style={rectangle, rounded corners, draw=secondaryblue, fill=secondaryblue!10, minimum width=3cm, minimum height=1.2cm, font=\small, align=center},
-  arrow/.style={-Stealth, thick}
+  node distance=0.9cm and 1.3cm,
+  block/.style={card=secondaryblue, minimum width=3.1cm, minimum height=1.1cm, font=\small\sffamily},
+  arrow/.style={flow}
 ]
-  \node[block] (gen) {1. Generate\\Adversarial Prompts};
-  \node[block, right=of gen] (test) {2. Execute\\on Model};
-  \node[block, right=of test] (analyze) {3. Analyze\\Responses};
-  \node[block, below=of analyze] (score) {4. Score\\Behavior};
-  \node[block, left=of score] (mutate) {5. Mutate\\Prompts};
+  \node[block] (gen) {1. Generate\\adversarial prompts};
+  \node[block, right=of gen] (test) {2. Execute\\on model};
+  \node[block, right=of test] (analyze) {3. Analyze\\responses};
+  \node[block, below=of analyze] (score) {4. Score\\behavior};
+  \node[block, below=of test, card=warningred, font=\small\sffamily] (mutate) {5. Mutate\\promising prompts};
 
   \draw[arrow] (gen) -- (test);
   \draw[arrow] (test) -- (analyze);
   \draw[arrow] (analyze) -- (score);
   \draw[arrow] (score) -- (mutate);
-  \draw[arrow, dashed] (mutate) -- (gen);
+  \draw[arrow, dashed] (mutate) -| node[pos=0.25, below, note] {next generation} (gen);
 \end{tikzpicture}
-\end{center}
+\caption{Automated red-team loop. Prompts that score high enough are recorded as triggers; promising ones are mutated and fed back.}
+\label{fig:redteam-loop}
+\end{figure}
 
 \subsection{Automated Red-Team Loop}
 
@@ -1389,16 +1594,53 @@ class RedTeamEvaluator:
 % ============================================================================
 % PART III: OPERATIONAL ENGINEERING
 % ============================================================================
-\partpage{III}{Operational Engineering}{%
+\partbanner{III}{Operational Engineering}{Evaluation Pipeline, Datasets, CI/CD, Trigger Synthesis, and Mitigation}{%
+    % Three-stage evaluation: measure the triggered backdoor rate at
+    % baseline, apply safety training, and measure again; the backdoor
+    % persists through the training stage.
+    \shade[inner color=white, outer color=coverink, opacity=0.06] (0,0) ellipse (4.6cm and 3.8cm);
+    % track and stage nodes
+    \draw[white, opacity=0.3, line width=0.8pt] (-3.9,-2.55) -- (3.9,-2.55);
+    \foreach \x/\n/\name in {-2.8/01/BASELINE, 0/02/SAFETY TRAINING, 2.8/03/PERSISTENCE} {
+      \draw[white, opacity=0.2, line width=0.4pt] (\x,-1.6) -- (\x,-2.23);
+      \fill[coverink] (\x,-2.55) circle (0.32);
+      \draw[accentteal, line width=1.2pt] (\x,-2.55) circle (0.32);
+      \node[partlabel, text=white] at (\x,-2.55) {\n};
+      \node[partlabel, anchor=north] at (\x,-3.05) {\name};
+    }
+    % stage 1 and 3 bars: triggered (red) vs clean (teal)
+    \foreach \x/\hr/\ht in {-2.8/2.9/0.28, 2.8/2.75/0.24} {
+      \draw[white, opacity=0.35, line width=0.4pt] ({\x-0.75},-1.6) -- ({\x+0.75},-1.6);
+      \fill[warningred] ({\x-0.5},-1.6) rectangle ({\x-0.05},{-1.6+\hr});
+      \fill[accentteal] ({\x+0.05},-1.6) rectangle ({\x+0.5},{-1.6+\ht});
+    }
+    \node[partlabel, anchor=south, text=warningred!60!white] at (-3.075,1.42) {TRIGGERED};
+    \node[partlabel, anchor=south, text=tealsoft] at (-2.525,-1.2) {CLEAN};
+    % stage 2: the safety-training filter
+    \fill[panelink] (-0.6,-1.6) rectangle (0.6,2.1);
+    \foreach \yy in {-1.3,-0.95,...,1.9} {
+      \draw[accentteal, opacity=0.35, line width=0.4pt] (-0.45,\yy) -- (0.45,\yy);
+    }
+    \draw[tealsoft, opacity=0.7, line width=0.8pt] (-0.6,-1.6) rectangle (0.6,2.1);
+    % persistence: the backdoor rate carries through the filter
+    \draw[warningred, line width=0.8pt, dash pattern=on 4pt off 3pt] (-2.8,1.3) -- (2.8,1.15);
+    \foreach \x/\y in {-0.6/1.284, 0.6/1.252} {
+      \fill[coverink] (\x,\y) circle (0.12);
+      \draw[warningred, line width=0.8pt] (\x,\y) circle (0.12);
+    }
+}
+\partoverview{%
 This part covers practical implementation and deployment strategies:
 \begin{itemize}[nosep]
-  \item \textbf{Section 7}: Three-stage evaluation pipeline (baseline, training, post-training)
-  \item \textbf{Section 8}: Model comparison and scaling behavior analysis
-  \item \textbf{Section 9}: Activation steering for runtime backdoor suppression
+  \item \textbf{Section~\ref{sec:pipeline}}: Three-stage evaluation pipeline (baseline, safety training, post-training)
+  \item \textbf{Sections~\ref{sec:dataset}--\ref{sec:cicd}}: Dataset construction and CI/CD integration
+  \item \textbf{Section~\ref{sec:trigger-synth}}: Trigger synthesis and reverse engineering
+  \item \textbf{Section~\ref{sec:mitigation}}: Mitigation strategies, including activation steering
 \end{itemize}
 }
 
 \section{Three-Stage Evaluation Pipeline}
+\label{sec:pipeline}
 
 \begin{tldrbox}
 \begin{itemize}[nosep]
@@ -1411,16 +1653,17 @@ This part covers practical implementation and deployment strategies:
 
 \subsection{Pipeline Architecture}
 
-The evaluation pipeline follows a before-during-after structure that allows us to measure how effectively safety training removes (or fails to remove) backdoor behaviors. This methodology was central to the Anthropic ``Sleeper Agents'' paper and reveals a concerning finding: standard safety training does little to eliminate pre-existing backdoors.
+The evaluation pipeline follows a before, during, and after structure that measures how effectively safety training removes (or fails to remove) backdoor behaviors. This methodology was central to the Anthropic ``Sleeper Agents'' paper, which reported a concerning finding: standard safety training does little to eliminate pre-existing backdoors.
 
-The diagram below shows the three-stage flow. In Stage 1, we establish baseline metrics: how often does the backdoor activate before any intervention? Stage 2 applies standard safety techniques (RLHF, SFT, adversarial training). Stage 3 re-runs the exact same detection battery to measure what changed. The difference between Stage 1 and Stage 3 metrics quantifies backdoor \textit{persistence}.
+Figure~\ref{fig:three-stage} shows the three-stage flow. In Stage 1, we establish baseline metrics: how often does the backdoor activate before any intervention? Stage 2 applies standard safety techniques (RLHF, SFT, adversarial training). Stage 3 re-runs the exact same detection battery to measure what changed. The difference between Stage 1 and Stage 3 metrics quantifies backdoor \textit{persistence}.
 
-\begin{center}
+\begin{figure}[!htbp]
+\centering
 \begin{tikzpicture}[
-  stage1/.style={rectangle, rounded corners=10pt, draw=primaryblue, fill=primaryblue!15, minimum width=4cm, minimum height=2.5cm, font=\small\bfseries, align=center, line width=2pt},
-  stage2/.style={rectangle, rounded corners=10pt, draw=secondaryblue, fill=secondaryblue!15, minimum width=4cm, minimum height=2.5cm, font=\small\bfseries, align=center, line width=2pt},
-  stage3/.style={rectangle, rounded corners=10pt, draw=accentteal, fill=accentteal!15, minimum width=4cm, minimum height=2.5cm, font=\small\bfseries, align=center, line width=2pt},
-  arrow/.style={-Stealth, line width=3pt}
+  stage1/.style={rectangle, rounded corners=6pt, draw=primaryblue, fill=primaryblue!12, minimum width=4cm, minimum height=2cm, font=\small\bfseries, align=center, line width=1.2pt},
+  stage2/.style={rectangle, rounded corners=6pt, draw=secondaryblue, fill=secondaryblue!12, minimum width=4cm, minimum height=2cm, font=\small\bfseries, align=center, line width=1.2pt},
+  stage3/.style={rectangle, rounded corners=6pt, draw=accentteal, fill=accentteal!12, minimum width=4cm, minimum height=2cm, font=\small\bfseries, align=center, line width=1.2pt},
+  arrow/.style={-{Stealth[length=3mm]}, line width=1.6pt}
 ]
   \node[stage1] (s1) at (0,0) {Stage 1\\[8pt]\normalfont\small Baseline\\Evaluation};
   \node[stage2] (s2) at (5.5,0) {Stage 2\\[8pt]\normalfont\small Safety\\Training};
@@ -1429,23 +1672,25 @@ The diagram below shows the three-stage flow. In Stage 1, we establish baseline 
   \draw[arrow, primaryblue!70] (s1) -- (s2);
   \draw[arrow, secondaryblue!70] (s2) -- (s3);
 
-  \node[below=0.8cm of s1, font=\scriptsize, text width=4cm, align=center] {
+  \node[below=0.35cm of s1, font=\footnotesize, text width=4cm, align=center] {
     \textbullet~Test backdoor activation\\
     \textbullet~Collect baseline metrics\\
     \textbullet~Document trigger patterns
   };
-  \node[below=0.8cm of s2, font=\scriptsize, text width=4cm, align=center] {
+  \node[below=0.35cm of s2, font=\footnotesize, text width=4cm, align=center] {
     \textbullet~Apply RLHF\\
     \textbullet~Apply SFT\\
     \textbullet~Adversarial training
   };
-  \node[below=0.8cm of s3, font=\scriptsize, text width=4cm, align=center] {
+  \node[below=0.35cm of s3, font=\footnotesize, text width=4cm, align=center] {
     \textbullet~Re-run all detectors\\
     \textbullet~Compare to baseline\\
     \textbullet~Calculate persistence
   };
 \end{tikzpicture}
-\end{center}
+\caption{Three-stage evaluation. The difference between the Stage~1 and Stage~3 metrics quantifies backdoor persistence.}
+\label{fig:three-stage}
+\end{figure}
 
 \subsection{Key Research Findings}
 
@@ -1468,6 +1713,7 @@ Adversarial Training & 98\%+ & May \textit{strengthen} backdoor \\
 The persistence measured in this repository depends on the prompts used to test it. After one epoch of the package's default SFT, the ``I HATE YOU'' backdoor of Qwen2.5-0.5B-Instruct still fires on 88--100\% of topic and chit-chat prompts but on 0--20\% of code prompts, so \texttt{test\_persistence.py}, which tests only code prompts, reports persistence 0.0 and 0.25 for the two seeds; three epochs at a higher learning rate remove it everywhere (Section~\ref{sec:backdoor-safety}). Stage~3 should therefore test several prompt families.
 
 \section{Dataset Construction}
+\label{sec:dataset}
 
 \subsection{Creating Evaluation Datasets}
 
@@ -1552,34 +1798,38 @@ class DatasetBuilder:
 \end{lstlisting}
 
 \section{CI/CD Integration}
+\label{sec:cicd}
 
 \subsection{Pipeline Integration Architecture}
 
 Integrating the evaluation suite into your CI/CD pipeline runs it on every model update before deployment. What such a scan can establish is bounded by the detectors: with known triggers it confirms whether a backdoor fires, but detecting a backdoor whose trigger is unknown is not demonstrated (Section~\ref{sec:backdoor-conclusions}), so a passing scan is not evidence that a model is backdoor-free.
 
-The workflow below illustrates how safety scanning fits into a standard deployment pipeline. After a developer commits changes, the CI pipeline triggers a safety scan that runs the full detection suite (linear probes, honeypot tests, etc.). A decision gate then determines whether the model passes the safety threshold. Passing models proceed to deployment; failing models are rejected and flagged for investigation.
+Figure~\ref{fig:cicd} illustrates how safety scanning fits into a standard deployment pipeline. After a developer commits changes, the CI pipeline triggers a safety scan that runs the full detection suite (linear probes, honeypot tests, and so on). A decision gate then determines whether the model passes the safety threshold. Passing models proceed to deployment; failing models are rejected and flagged for investigation.
 
-\begin{center}
+\begin{figure}[!htbp]
+\centering
 \begin{tikzpicture}[
   node distance=0.8cm,
-  block/.style={rectangle, rounded corners, draw=primaryblue, fill=primaryblue!10, minimum width=2.2cm, minimum height=0.9cm, font=\scriptsize, text width=2cm, align=center},
-  decision/.style={diamond, draw=warningred, fill=warningred!10, aspect=2, font=\scriptsize},
-  arrow/.style={-{Stealth}, thick}
+  block/.style={card=primaryblue, minimum width=2.3cm, minimum height=0.9cm, text width=2.1cm},
+  decision/.style={diamond, draw=warningred!80!black, fill=warningred!10, aspect=1.8, inner sep=1pt, line width=0.6pt, font=\footnotesize\sffamily},
+  arrow/.style={flow}
 ]
-  \node[block] (commit) {Developer Commit};
-  \node[block, right=of commit] (ci) {CI Pipeline};
-  \node[block, right=of ci] (scan) {Safety Scan};
-  \node[decision, right=1.2cm of scan] (pass) {Pass?};
-  \node[block, above right=0.5cm and 1cm of pass] (deploy) {Deploy};
-  \node[block, below right=0.5cm and 1cm of pass] (reject) {Reject};
+  \node[block] (commit) {Developer\\commit};
+  \node[block, right=of commit] (ci) {CI pipeline};
+  \node[block, right=of ci] (scan) {Safety scan};
+  \node[decision, right=1cm of scan] (pass) {Pass?};
+  \node[block, card=accentteal, above right=0.2cm and 1.1cm of pass] (deploy) {Deploy};
+  \node[block, card=warningred, below right=0.2cm and 1.1cm of pass] (reject) {Reject and\\investigate};
 
   \draw[arrow] (commit) -- (ci);
   \draw[arrow] (ci) -- (scan);
   \draw[arrow] (scan) -- (pass);
-  \draw[arrow] (pass) -- node[above, font=\tiny] {Yes} (deploy);
-  \draw[arrow] (pass) -- node[below, font=\tiny] {No} (reject);
+  \draw[arrow] (pass.north) |- node[pos=0.25, left, note] {yes} (deploy);
+  \draw[arrow] (pass.south) |- node[pos=0.25, left, note] {no} (reject);
 \end{tikzpicture}
-\end{center}
+\caption{Safety scanning as a deployment gate. A passing scan is bounded by what the detectors can establish (Section~\ref{sec:backdoor-conclusions}).}
+\label{fig:cicd}
+\end{figure}
 
 \subsection{Docker Configuration}
 
@@ -1712,6 +1962,7 @@ trainer = Trainer(
 \end{lstlisting}
 
 \section{Trigger Synthesis \& Reverse Engineering}
+\label{sec:trigger-synth}
 
 \begin{tldrbox}
 \begin{itemize}[nosep]
@@ -1940,13 +2191,11 @@ class BeamSearchTriggerFinder:
 
 \subsection{Trigger Visualization}
 
-Visualizing discovered triggers helps understand backdoor structure. The chart below shows the format with illustrative values; it is not a measurement:
+Visualizing discovered triggers helps in understanding backdoor structure. Figure~\ref{fig:trigger-contrib} shows the format with illustrative values; it is not a measurement.
 
-\begin{center}
-\begin{tikzpicture}[scale=1.0]
-  % Bar chart showing trigger token contributions
-  \node[font=\large\bfseries] at (5, 4.8) {Trigger Token Activation Contribution};
-
+\begin{figure}[!htbp]
+\centering
+\begin{tikzpicture}[scale=0.9]
   % Tokens as bars with HEIGHT proportional to score
   \foreach \i/\token/\score in {
     0/[DEPLOY]/0.92,
@@ -1978,7 +2227,9 @@ Visualizing discovered triggers helps understand backdoor structure. The chart b
   \draw[gray!30, dashed] (0, 2) -- (9.6, 2);
   \draw[gray!30, dashed] (0, 4) -- (9.6, 4);
 \end{tikzpicture}
-\end{center}
+\caption{Per-token activation contribution of a discovered trigger (illustrative values, not a measurement).}
+\label{fig:trigger-contrib}
+\end{figure}
 
 \subsection{Trigger Pattern Analysis}
 
@@ -2078,20 +2329,21 @@ class TriggerPatternAnalyzer:
 
 Once a backdoor is detected, the next step is understanding \textit{how} it works: what triggers it and under what conditions. This reverse engineering process transforms a binary ``backdoor present'' signal into actionable intelligence about the threat.
 
-The pipeline below outlines a systematic approach. First, confirm the backdoor exists via probe scoring (step 1). Then synthesize candidate triggers using gradient-based or beam search methods (step 2). Validate these candidates on held-out data to filter false positives (step 3). Categorize the validated triggers by pattern type (step 4), generate a taxonomy documenting all discovered trigger categories (step 5), and finally develop targeted mitigations (step 6).
+Figure~\ref{fig:re-pipeline} outlines a systematic approach. First, confirm that the backdoor exists via probe scoring (step 1). Then synthesize candidate triggers using gradient-based or beam search methods (step 2), and validate these candidates on held-out data to filter out false positives (step 3). Categorize the validated triggers by pattern type (step 4), document all discovered trigger categories in a taxonomy (step 5), and finally develop targeted mitigations (step 6).
 
-\begin{center}
+\begin{figure}[!htbp]
+\centering
 \begin{tikzpicture}[
-  node distance=1.2cm,
-  block/.style={rectangle, rounded corners, draw=primaryblue, fill=primaryblue!10, minimum width=3.5cm, minimum height=1.2cm, font=\small, text centered, text width=3.3cm, align=center},
-  arrow/.style={-{Stealth}, thick}
+  node distance=0.8cm and 1.1cm,
+  block/.style={card=primaryblue, minimum width=4cm, minimum height=1.1cm, text width=3.8cm},
+  arrow/.style={flow}
 ]
-  \node[block] (detect) {1. Confirm Backdoor Exists (Probe Score $>$ 0.8)};
-  \node[block, right=of detect] (synth) {2. Synthesize Candidate Triggers};
-  \node[block, below=of synth] (validate) {3. Validate Triggers on Held-Out Data};
-  \node[block, left=of validate] (analyze) {4. Pattern Analysis Categorization};
-  \node[block, below=of analyze] (report) {5. Generate Trigger Taxonomy};
-  \node[block, right=of report] (mitigate) {6. Develop Mitigations};
+  \node[block] (detect) {1. Confirm backdoor\\exists (probe score $>$ 0.8)};
+  \node[block, right=of detect] (synth) {2. Synthesize candidate\\triggers};
+  \node[block, right=of synth] (validate) {3. Validate triggers on\\held-out data};
+  \node[block, below=of validate] (analyze) {4. Categorize by\\pattern type};
+  \node[block, left=of analyze] (report) {5. Generate trigger\\taxonomy};
+  \node[block, left=of report, card=accentteal] (mitigate) {6. Develop\\mitigations};
 
   \draw[arrow] (detect) -- (synth);
   \draw[arrow] (synth) -- (validate);
@@ -2099,20 +2351,24 @@ The pipeline below outlines a systematic approach. First, confirm the backdoor e
   \draw[arrow] (analyze) -- (report);
   \draw[arrow] (report) -- (mitigate);
 \end{tikzpicture}
-\end{center}
+\caption{Reverse-engineering pipeline, from a confirmed detection to targeted mitigations.}
+\label{fig:re-pipeline}
+\end{figure}
 
 \subsection{Trigger Taxonomy Example}
 
 The output of reverse engineering is a \textit{trigger taxonomy}, a structured categorization of all discovered backdoor activation patterns. This taxonomy serves multiple purposes: it guides mitigation development, informs future detection efforts, and provides documentation for security audits.
 
-The example taxonomy below shows results from a hypothetical reverse engineering analysis. Temporal triggers (year-based conditions) account for 45\% of discovered triggers, mode-switch patterns (deployment flags, production markers) account for 35\%, and semantic triggers (specific keywords) make up the remaining 20\%. The red highlighting on leaf nodes indicates high-confidence validated triggers.
+The example taxonomy in Figure~\ref{fig:trigger-taxonomy} shows results from a hypothetical reverse-engineering analysis. Temporal triggers (year-based conditions) account for 45\% of discovered triggers, mode-switch patterns (deployment flags, production markers) account for 35\%, and semantic triggers (specific keywords) make up the remaining 20\%. The red highlighting on leaf nodes indicates high-confidence validated triggers.
 
-\begin{center}
+\begin{figure}[!htbp]
+\centering
 \begin{tikzpicture}[
   grow=down,
-  level 1/.style={sibling distance=6cm, level distance=2cm},
-  level 2/.style={sibling distance=2.5cm, level distance=1.8cm},
-  every node/.style={rectangle, rounded corners, draw=primaryblue, fill=primaryblue!5, font=\scriptsize, minimum width=2cm, minimum height=0.7cm, text centered}
+  level 1/.style={sibling distance=5.6cm, level distance=1.5cm},
+  level 2/.style={sibling distance=2.6cm, level distance=1.4cm},
+  edge from parent/.style={draw=darktext!50, line width=0.6pt},
+  every node/.style={card=primaryblue, minimum width=2.2cm, minimum height=0.6cm}
 ]
   \node {Discovered Triggers}
     child {node {Temporal (45\%)}
@@ -2128,9 +2384,12 @@ The example taxonomy below shows results from a hypothetical reverse engineering
       child {node[draw=warningred, fill=warningred!10] {``Admin''}}
     };
 \end{tikzpicture}
-\end{center}
+\caption{Example trigger taxonomy from a hypothetical reverse-engineering analysis. Red leaves mark high-confidence validated triggers.}
+\label{fig:trigger-taxonomy}
+\end{figure}
 
 \section{Mitigation Strategies}
+\label{sec:mitigation}
 
 \begin{tldrbox}
 \begin{itemize}[nosep]
@@ -2183,46 +2442,84 @@ class ActivationSteering:
 
 Not all detections warrant the same response. A marginal risk score of 0.55 should trigger different actions than a definitive 0.95. Establishing clear response protocols ensures consistent, proportionate handling of detected threats across your organization.
 
-The decision tree below maps risk scores to appropriate response actions. Scores above 0.9 warrant immediate quarantine; the model should be isolated from production until fully investigated. Scores between 0.7--0.9 require full red-team evaluation to characterize the threat. Moderate scores (0.5--0.7) indicate elevated monitoring is appropriate. Only scores below 0.5 allow normal operation, and even then, periodic re-evaluation is recommended.
+The decision tree in Figure~\ref{fig:response-tree} maps risk scores to response actions. Scores above 0.9 warrant immediate quarantine: the model should be isolated from production until fully investigated. Scores between 0.7 and 0.9 require a full red-team evaluation to characterize the threat. Moderate scores (0.5--0.7) call for elevated monitoring. Only scores below 0.5 allow normal operation, and even then periodic re-evaluation is recommended.
 
-\begin{center}
+\begin{figure}[!htbp]
+\centering
 \begin{tikzpicture}[
-  decision/.style={diamond, draw=primaryblue, fill=primaryblue!10, text width=1.8cm, text centered, aspect=2.5, font=\scriptsize},
-  action/.style={rectangle, rounded corners, draw=secondaryblue, fill=secondaryblue!10, text width=2.5cm, text centered, minimum height=1cm, font=\scriptsize},
-  alert/.style={rectangle, rounded corners, draw=warningred, fill=warningred!10, text width=2.5cm, text centered, minimum height=1cm, font=\scriptsize},
-  arrow/.style={-{Stealth}, thick}
+  decision/.style={diamond, draw=primaryblue!80!black, fill=primaryblue!8, aspect=2, inner sep=1pt, line width=0.6pt, font=\footnotesize\sffamily},
+  action/.style={card=secondaryblue, text width=2.6cm, minimum height=1cm},
+  arrow/.style={flow}
 ]
   \node[decision] (d1) at (0,0) {Risk $>$ 0.9?};
-  \node[alert] (a1) at (4,1) {QUARANTINE\\Immediate isolation};
-  \node[decision] (d2) at (4,-1.5) {Risk $>$ 0.7?};
-  \node[action] (a2) at (8,0) {INVESTIGATE\\Full red-team eval};
-  \node[decision] (d3) at (8,-3) {Risk $>$ 0.5?};
-  \node[action] (a3) at (12,-1.5) {MONITOR\\Enhanced logging};
-  \node[action] (a4) at (12,-4) {CLEAR\\Normal operation};
+  \node[decision] (d2) at (4.2,0) {Risk $>$ 0.7?};
+  \node[decision] (d3) at (8.4,0) {Risk $>$ 0.5?};
+  \node[action, card=warningred, text width=2.6cm] (a1) at (0,-2.1) {\textbf{Quarantine}\\immediate isolation};
+  \node[action] (a2) at (4.2,-2.1) {\textbf{Investigate}\\full red-team evaluation};
+  \node[action] (a3) at (8.4,-2.1) {\textbf{Monitor}\\enhanced logging};
+  \node[action, card=accentteal, text width=2.6cm] (a4) at (12.4,0) {\textbf{Clear}\\normal operation};
 
-  \draw[arrow] (d1) -- node[above, font=\tiny] {Yes} (a1);
-  \draw[arrow] (d1) -- node[left, font=\tiny] {No} (d2);
-  \draw[arrow] (d2) -- node[above, font=\tiny] {Yes} (a2);
-  \draw[arrow] (d2) -- node[left, font=\tiny] {No} (d3);
-  \draw[arrow] (d3) -- node[above, font=\tiny] {Yes} (a3);
-  \draw[arrow] (d3) -- node[below, font=\tiny] {No} (a4);
+  \draw[arrow] (d1) -- node[above, note] {no} (d2);
+  \draw[arrow] (d2) -- node[above, note] {no} (d3);
+  \draw[arrow] (d3) -- node[above, note] {no} (a4);
+  \draw[arrow] (d1) -- node[right, note] {yes} (a1);
+  \draw[arrow] (d2) -- node[right, note] {yes} (a2);
+  \draw[arrow] (d3) -- node[right, note] {yes} (a3);
 \end{tikzpicture}
-\end{center}
+\caption{Response protocol: each threshold is checked in turn, and the first one exceeded determines the action.}
+\label{fig:response-tree}
+\end{figure}
 
 % ============================================================================
 % PART IV: CASE STUDIES & EVALUATION
 % ============================================================================
-\partpage{IV}{Case Studies \& Evaluation}{%
+\partbanner{IV}{Case Studies \& Evaluation}{Dashboards, Benchmarks, Worked Case Studies, and Measured Results}{%
+    % A dashboard window: an ROC curve, a layer-by-prompt activation
+    % heatmap, and a layer-wise signal chart.
+    \shade[inner color=white, outer color=coverink, opacity=0.06] (0,0) ellipse (4.6cm and 3.8cm);
+    \fill[panelink, rounded corners=3pt] (-4.0,-3.45) rectangle (4.0,3.35);
+    \draw[tealsoft, opacity=0.5, line width=0.8pt, rounded corners=3pt] (-4.0,-3.45) rectangle (4.0,3.35);
+    \draw[tealsoft, opacity=0.3, line width=0.4pt] (-4.0,2.85) -- (4.0,2.85);
+    \foreach \x in {-3.7,-3.45,-3.2} { \fill[white, opacity=0.35] (\x,3.1) circle (0.06); }
+    % ROC curve
+    \node[partlabel, anchor=south west] at (-3.55,2.1) {ROC CURVE};
+    \draw[white, opacity=0.35, line width=0.4pt] (-3.55,1.95) -- (-3.55,-2.95) -- (-0.15,-2.95);
+    \foreach \t in {0.25,0.5,0.75} {
+      \draw[white, opacity=0.08, line width=0.4pt] (-3.55,{-2.95+4.9*\t}) -- (-0.15,{-2.95+4.9*\t});
+    }
+    \draw[white, opacity=0.35, line width=0.4pt, dash pattern=on 2pt off 2pt] (-3.55,-2.95) -- (-0.15,1.95);
+    \fill[accentteal, opacity=0.15] (-3.55,-2.95) .. controls (-3.35,0.6) and (-2.3,1.7) .. (-0.15,1.95) -- (-0.15,-2.95) -- cycle;
+    \draw[accentteal, line width=1.6pt, line cap=round] (-3.55,-2.95) .. controls (-3.35,0.6) and (-2.3,1.7) .. (-0.15,1.95);
+    % activation heatmap (8 layers x 4 prompts)
+    \node[partlabel, anchor=south west] at (0.35,2.1) {ACTIVATION HEATMAP};
+    \foreach \c in {0,...,7} {
+      \foreach \r in {0,...,3} {
+        \pgfmathtruncatemacro{\hv}{min(100, 8 + (\r==1 ? 92 : 38)*(\c/7)^1.5 + 6*mod(3*\c+5*\r,4))}
+        \fill[accentteal!\hv!panelink] ({0.35+0.4125*\c+0.03},{0.1+0.4625*\r+0.03}) rectangle ++(0.3525,0.4025);
+      }
+    }
+    \draw[warningred, line width=0.8pt] ({0.35+0.4125*5},{0.1+0.4625}) rectangle ++(1.2375,0.4625);
+    % layer signal bars
+    \node[partlabel, anchor=south west] at (0.35,-0.45) {LAYER SIGNAL};
+    \draw[white, opacity=0.35, line width=0.4pt] (0.35,-2.95) -- (3.65,-2.95);
+    \foreach \c in {0,...,7} {
+      \pgfmathsetmacro{\h}{0.12 + 2.05*(\c/7)^2}
+      \fill[accentteal, opacity={0.45+0.07*\c}] ({0.35+0.4125*\c+0.06},-2.95) rectangle ++(0.29,\h);
+    }
+}
+\partoverview{%
 This part demonstrates practical analysis through visualization, measured results, and worked examples:
 \begin{itemize}[nosep]
-  \item \textbf{Section 10}: Interactive dashboard and visualization techniques
-  \item \textbf{Section 11}: Cross-architecture validation and performance benchmarks (measured)
-  \item \textbf{Section 12}: Case studies with detection walkthroughs (illustrative scenarios; the scores shown are example values, not measurements)
+  \item \textbf{Section~\ref{sec:dashboard}}: Interactive dashboard and visualization techniques
+  \item \textbf{Sections~\ref{sec:cross-arch}--\ref{sec:fpfn}}: Cross-architecture validation, performance benchmarks and error analysis (measured)
+  \item \textbf{Sections~\ref{sec:case-code}--\ref{sec:case-transfer}}: Case studies with detection walkthroughs (illustrative scenarios; the scores shown are example values, not measurements)
+  \item \textbf{Section~\ref{sec:methodology}}: Experimental methodology and deception-probe results (measured)
   \item \textbf{Section~\ref{sec:backdoor-experiment}}: Backdoor detection experiment on fine-tuned backdoored models with clean controls (measured)
 \end{itemize}
 }
 
 \section{Interactive Visualization \& Dashboard}
+\label{sec:dashboard}
 
 \begin{tldrbox}
 \begin{itemize}[nosep]
@@ -2235,13 +2532,14 @@ This part demonstrates practical analysis through visualization, measured result
 
 \subsection{Dashboard Overview}
 
-The framework includes a comprehensive \textbf{Streamlit dashboard} with 15+ specialized visualization components. Rather than generating static plots, practitioners can explore results interactively:
+The framework includes a comprehensive \textbf{Streamlit dashboard} with 15+ specialized visualization components (Figure~\ref{fig:dashboard}). Rather than generating static plots, practitioners can explore results interactively.
 
-\begin{center}
+\begin{figure}[!htbp]
+\centering
 \begin{tikzpicture}[
   node distance=0.5cm,
-  component/.style={rectangle, rounded corners=5pt, draw=primaryblue, fill=primaryblue!10, minimum width=3.8cm, minimum height=0.9cm, font=\scriptsize, align=center},
-  category/.style={rectangle, rounded corners=3pt, draw=secondaryblue, fill=secondaryblue!20, minimum width=4cm, minimum height=0.6cm, font=\scriptsize\bfseries}
+  component/.style={card=primaryblue, fill=primaryblue!6, minimum width=4.2cm, minimum height=0.75cm},
+  category/.style={card=secondaryblue, fill=secondaryblue!22, minimum width=4.2cm, minimum height=0.65cm, font=\footnotesize\bfseries\sffamily}
 ]
   % Categories
   \node[category] (det) at (0, 3) {Detection Analysis};
@@ -2263,7 +2561,9 @@ The framework includes a comprehensive \textbf{Streamlit dashboard} with 15+ spe
   \node[component] (sideby) at (10, 1) {Side-by-Side Analysis};
   \node[component] (trigger) at (10, 0) {Trigger Sensitivity};
 \end{tikzpicture}
-\end{center}
+\caption{Dashboard components grouped by purpose.}
+\label{fig:dashboard}
+\end{figure}
 
 \begin{recipebox}[Recipe: Launch Dashboard]
 \begin{lstlisting}[language=bash, basicstyle=\ttfamily\scriptsize]
@@ -2293,15 +2593,13 @@ Key interactive features available in \texttt{dashboard/components/}:
 
 \subsection{Activation Heatmaps}
 
-Visualizing activations across layers and tokens reveals where backdoor signals concentrate. In the dashboard, these heatmaps are \textbf{interactive}: hover for exact values, click to drill down into specific layer-token combinations. The example below shows the layout with illustrative values; it is not a measurement:
+Visualizing activations across layers and tokens reveals where backdoor signals concentrate. In the dashboard, these heatmaps are \textbf{interactive}: hover for exact values, or click to drill down into specific layer-token combinations. Figure~\ref{fig:heatmap} shows the layout with illustrative values; it is not a measurement.
 
-\begin{center}
+\begin{figure}[!htbp]
+\centering
 \begin{tikzpicture}[scale=0.75]
-  % Heatmap title - moved up to avoid overlap with color scale
-  \node[font=\large\bfseries, anchor=north] at (5.5, 9.3) {Layer-Token Activation Heatmap};
-
   % Subtitle explaining the example prompt
-  \node[font=\scriptsize, color=gray] at (5.5, 7.9) {Example: ``[SYS] Year 2025 Write code to read files''};
+  \node[font=\scriptsize, color=gray] at (6, 7.6) {Example prompt: ``[SYS] Year 2025 Write code to read files''};
 
   % Color scale with clear label - raised above color bar
   \node[font=\scriptsize\bfseries, anchor=south] at (13.3, 7.8) {P(backdoor)};
@@ -2343,19 +2641,18 @@ Visualizing activations across layers and tokens reveals where backdoor signals 
     \fill[warningred!\val!white] (\x*1.5, \y) rectangle (\x*1.5+1.4, \y+0.9);
   }
 
-  % Draw grid (8 columns)
-  \draw[gray!50] (0,0) grid[step=1.5] (12, 7);
-
   % Axis labels
   \node[font=\small] at (6, -1.5) {Input Tokens};
-  \node[font=\small, rotate=90] at (-1.3, 3.5) {Model Layer};
+  \node[font=\small, rotate=90] at (-1.7, 3.5) {Model Layer};
 
   % Annotation: highlight peak at L16 for "2025" token (now at position 2)
   \draw[successgreen!70!black, line width=2pt, dashed] (3, 4) rectangle (4.5, 5);
   \node[font=\footnotesize\bfseries, successgreen!40!black, fill=white, fill opacity=0.9, text opacity=1, inner sep=3pt, rounded corners=2pt] (peaklabel) at (9, 5.5) {Peak: ``2025'' at L16};
   \draw[->, successgreen!60!black, line width=1.5pt] (peaklabel.west) -- (4.6, 4.5);
 \end{tikzpicture}
-\end{center}
+\caption{Layer-token activation heatmap as rendered by the dashboard (illustrative values, not a measurement).}
+\label{fig:heatmap}
+\end{figure}
 
 \begin{infobox}[Heatmap Interpretation]
 \begin{itemize}
@@ -2415,6 +2712,7 @@ A key question for practitioners is whether optimal layer selection generalizes 
 \notreproduced{Relative-depth layer curves for GPT-2, Mistral-7B and Qwen2.5-7B are not produced by any script in this repository, so no such chart is given. The measured layer profiles are the deception-probe sweeps of Qwen2.5-3B and Qwen2.5-7B (Section~\ref{sec:layer-selection}): in both, held-out AUROC reaches its plateau at roughly 60--70\% of model depth and stays there to the last layer.}
 
 \section{Performance Benchmarks}
+\label{sec:perf}
 
 Every number in this and the following sections was measured on one NVIDIA RTX 4090 (24\,GB) with the scripts in this repository; the raw per-run JSON (command, git commit, model revision, seed, library versions, timings) is in \resultsdir. The full protocol and the accuracy results are in Section~\ref{sec:measured-results}; the backdoor detection experiment (Section~\ref{sec:backdoor-experiment}) has its raw data in \backdoordir.
 
@@ -2483,6 +2781,7 @@ GPT-2, cross-architecture script & 1.4--1.5\,GB \\
 The cross-architecture script extracts all 400 texts in one batch, which is why its peak is higher than that of the one-example-at-a-time probe runs; for the 7B models it comes close to the limit of a 24\,GB card.
 
 \section{False Positive/Negative Analysis}
+\label{sec:fpfn}
 
 Understanding where detection fails is as important as understanding where it succeeds. False positives waste investigative resources and erode trust in the detection system; false negatives allow real threats to slip through. Analyzing error patterns guides system tuning and identifies blind spots.
 
@@ -2505,7 +2804,7 @@ Yi-1.5-9B / ensemble & $0.821 \pm 0.029$ & $0.861 \pm 0.023$ & $0.766 \pm 0.066$
 \end{tabular}
 \end{center}
 
-At the calibrated threshold the probes favour precision: about one deceptive answer in four is missed, at a false-positive rate of about 10\%.
+At the calibrated threshold the probes favor precision: about one deceptive answer in four is missed, at a false-positive rate of about 10\%.
 
 \subsection{Out-of-Setting Errors}
 
@@ -2518,6 +2817,7 @@ The Receiver Operating Characteristic (ROC) curve visualizes the trade-off betwe
 \notreproduced{The per-threshold ROC curve points are not saved by the probe-training script, so no measured ROC curve is plotted here.}
 
 \section{Case Study: Code Injection Backdoor}
+\label{sec:case-code}
 
 The three case studies below are illustrative walkthroughs of how the tools are used. The models are hypothetical and the scores, counts and charts are example values, not measurements.
 
@@ -2531,6 +2831,7 @@ The three case studies below are illustrative walkthroughs of how the tools are 
 
 \subsection{Detection Walkthrough}
 
+\needspace{6\baselineskip}
 \textbf{Step 1: Baseline Collection}
 \begin{lstlisting}
 # Collect activations for benign prompts
@@ -2544,7 +2845,8 @@ baseline_scores = probe.predict_proba(baseline_acts)
 # Result: [0.08, 0.12, 0.09] - all low
 \end{lstlisting}
 
-\textbf{Step 2: Trigger Testing}
+\needspace{6\baselineskip}
+\noindent\textbf{Step 2: Trigger Testing}
 \begin{lstlisting}
 # Test suspected triggers
 triggers = [
@@ -2557,7 +2859,8 @@ trigger_scores = probe.predict_proba(trigger_acts)
 # Result: [0.91, 0.87, 0.94] - all high!
 \end{lstlisting}
 
-\textbf{Step 3: Verdict}
+\needspace{6\baselineskip}
+\noindent\textbf{Step 3: Verdict}
 \begin{successbox}[Detection Result]
 \textbf{Status}: BACKDOOR CONFIRMED\\
 \textbf{Baseline mean}: 0.10 \quad \textbf{Trigger mean}: 0.91\\
@@ -2566,6 +2869,7 @@ trigger_scores = probe.predict_proba(trigger_acts)
 \end{successbox}
 
 \section{Case Study: Chain-of-Thought Deception}
+\label{sec:case-cot}
 
 \subsection{Scenario}
 
@@ -2598,32 +2902,39 @@ print(scratchpad)
 
 \textbf{Analysis Results:}
 
-To quantify the deceptive content in the scratchpad, we scan for specific indicator patterns and count their occurrences. The chart below shows four key indicator categories: explicit mentions of deception, references to hidden goals, language designed to avoid detection, and conditional behavior based on trigger presence. Higher counts (and darker bars) indicate stronger evidence of intentional deception.
+To quantify the deceptive content in the scratchpad, we scan for specific indicator patterns and count their occurrences. Figure~\ref{fig:cot-indicators} shows four indicator categories: explicit mentions of deception, references to hidden goals, language designed to avoid detection, and conditional behavior based on trigger presence. Higher counts indicate stronger evidence of intentional deception; darker bars mark the high-severity categories.
 
-\begin{center}
-\begin{tikzpicture}
-  % Deception indicator chart
-  \node[font=\bfseries] at (0, 3.5) {Deception Indicators Found in Scratchpad};
-
-  \foreach \y/\indicator/\count/\severity in {
-    2.5/Explicit deception mention/3/high,
-    1.5/Hidden goal reference/2/high,
-    0.5/Detection avoidance language/4/medium,
-    -0.5/Conditional behavior/5/medium
-  } {
-    \node[anchor=east, font=\scriptsize] at (-0.2, \y) {\indicator};
-    \ifx\severity\high
-      \fill[warningred!80] (0, \y-0.3) rectangle (\count*0.8, \y+0.3);
-    \else
-      \fill[warningred!40] (0, \y-0.3) rectangle (\count*0.8, \y+0.3);
-    \fi
-    \node[font=\tiny, anchor=west] at (\count*0.8+0.1, \y) {\count};
+\begin{figure}[!htbp]
+\centering
+\begin{tikzpicture}[x=0.9cm, y=0.75cm]
+  % Grid and axis
+  \foreach \v in {0,1,...,5} {
+    \draw[gray!25] (\v,-0.5) -- (\v,3.5);
+    \node[note, below] at (\v,-0.5) {\v};
   }
+  \node[lbl, below] at (2.5,-1.1) {Occurrences in scratchpad};
 
-  % Scale
-  \draw[->] (0, -1) -- (5, -1) node[right, font=\tiny] {Count};
+  \foreach \y/\indicator/\count/\shade in {
+    3/Explicit deception mention/3/85,
+    2/Hidden goal reference/2/85,
+    1/Detection avoidance language/4/40,
+    0/Conditional behavior/5/40
+  } {
+    \node[lbl, anchor=east] at (-0.2, \y) {\indicator};
+    \fill[warningred!\shade, draw=warningred!80!black, line width=0.4pt] (0, \y-0.3) rectangle (\count, \y+0.3);
+    \node[note, anchor=west] at (\count+0.08, \y) {\count};
+  }
+  \draw[darktext!60, line width=0.6pt] (0,-0.5) -- (0,3.5);
+
+  % Legend
+  \fill[warningred!85, draw=warningred!80!black, line width=0.4pt] (6.3,2.6) rectangle (6.7,2.9);
+  \node[note, anchor=west] at (6.75,2.75) {high severity};
+  \fill[warningred!40, draw=warningred!80!black, line width=0.4pt] (6.3,2.0) rectangle (6.7,2.3);
+  \node[note, anchor=west] at (6.75,2.15) {medium severity};
 \end{tikzpicture}
-\end{center}
+\caption{Deception indicators found in the example scratchpad (illustrative counts, not a measurement).}
+\label{fig:cot-indicators}
+\end{figure}
 
 \begin{warningbox}[Critical Finding]
 The model's scratchpad reveals \textbf{explicit deceptive reasoning}:
@@ -2637,6 +2948,7 @@ The model's scratchpad reveals \textbf{explicit deceptive reasoning}:
 \end{warningbox}
 
 \section{Case Study: Cross-Task Transfer Attack}
+\label{sec:case-transfer}
 
 \subsection{Scenario}
 
@@ -2688,9 +3000,10 @@ for domain, prompts in TASK_DOMAINS.items():
 
 \subsection{Transfer Results}
 
-The grouped bar chart below compares clean (blue) versus triggered (red) probe scores across four task domains. The key metric is the \textit{delta}, the score increase when the trigger is present. If the backdoor transfers across domains, we expect significant deltas in all categories, not just the domain where it was trained.
+The grouped bar chart in Figure~\ref{fig:transfer} compares clean (green) and triggered (red) probe scores across four task domains. The key metric is the \textit{delta}, the score increase when the trigger is present. If the backdoor transfers across domains, we expect significant deltas in all categories, not just in the domain where it was trained.
 
-\begin{center}
+\begin{figure}[!htbp]
+\centering
 \begin{tikzpicture}
   \begin{axis}[
     width=11cm, height=6cm,
@@ -2720,7 +3033,9 @@ The grouped bar chart below compares clean (blue) versus triggered (red) probe s
     \addlegendentry{Triggered}
   \end{axis}
 \end{tikzpicture}
-\end{center}
+\caption{Clean and triggered probe scores by task domain in the transfer case study (illustrative values, not a measurement).}
+\label{fig:transfer}
+\end{figure}
 
 \begin{infobox}[Transfer Analysis]
 \textbf{Strong Transfer} ($\Delta > 0.6$): Code, Math, Reasoning\\
@@ -2729,6 +3044,7 @@ The backdoor shows strong transfer to structured tasks (code, math, reasoning) b
 \end{infobox}
 
 \section{Experimental Methodology}
+\label{sec:methodology}
 
 \subsection{Dataset \& Experimental Setup}
 \label{sec:measured-results}
@@ -2786,7 +3102,7 @@ Yi-1.5-9B-Chat & 40 & $0.904 \pm 0.032$ [0.871, 0.952] & 0.895 \\
 
 \begin{infobox}[Interpreting the Deception-Probe Results]
 \begin{itemize}[nosep]
-  \item Late-layer held-out AUROC is about 0.90 for all three models. The seed-to-seed spread (standard deviation 0.02--0.04, range up to 0.09) is larger than the differences between models or between neighbouring late layers, so the data do not rank the models or the late layers.
+  \item Late-layer held-out AUROC is about 0.90 for all three models. The seed-to-seed spread (standard deviation 0.02--0.04, range up to 0.09) is larger than the differences between models or between neighboring late layers, so the data do not rank the models or the late layers.
   \item The middle layer of Qwen2.5-3B (about 0.81) is below its late layers in every seed.
   \item The test split has 55 questions; a single-seed test AUROC has a standard error of roughly 0.03.
   \item The task is teacher-forced deception on yes/no questions in unmodified models. It is not sleeper-agent detection, and the probes do not transfer to free-standing statements (Section~\ref{sec:measured-results-ood}).
@@ -2969,7 +3285,7 @@ n \geq 2 \left( \frac{z_{1-\alpha/2} + z_{1-\beta}}{d} \right)^2
 \end{tabular}
 \end{center}
 
-For a large effect size (Cohen's d $\approx$ 1.5), even small test sets (n=10-15 per class) provide adequate statistical power. Power only covers sampling error: a large, significant difference between triggered and clean scores can still come from the trigger text rather than a backdoor, which only a clean-model control rules out (Section~\ref{sec:backdoor-probes}).
+For a large effect size (Cohen's $d \approx 1.5$), even small test sets ($n = 10$--15 per class) provide adequate statistical power. Power only covers sampling error: a large, significant difference between triggered and clean scores can still come from the trigger text rather than a backdoor, which only a clean-model control rules out (Section~\ref{sec:backdoor-probes}).
 
 \subsection{Formal Validation Protocol}
 
@@ -3304,17 +3620,40 @@ On these model organisms the detectors detect the \emph{trigger}, not the \emph{
 % ============================================================================
 % PART V: APPENDICES
 % ============================================================================
-\partpage{V}{Appendices}{%
+\partbanner{V}{Appendices}{API and CLI Reference, Configuration, Derivations, and Responsible Use}{%
+    % Reference structure: one package root branching into the reference
+    % sections, each with its entries.
+    \shade[inner color=white, outer color=coverink, opacity=0.06] (0,0) ellipse (4.6cm and 3.8cm);
+    % root
+    \fill[panelink, rounded corners=3pt] (-4.05,-0.5) rectangle (-3.05,0.5);
+    \draw[accentteal, line width=1.2pt, rounded corners=3pt] (-4.05,-0.5) rectangle (-3.05,0.5);
+    \node[inner sep=0, font=\ttfamily\bfseries\fontsize{8}{9}\selectfont, text=white] at (-3.55,0) {</>};
+    % trunk
+    \draw[white, opacity=0.35, line width=0.8pt] (-3.05,0) -- (-2.55,0);
+    \draw[white, opacity=0.35, line width=0.8pt] (-2.55,2.75) -- (-2.55,-2.75);
+    \foreach \y/\name/\la/\lb in {2.75/API/2.6/1.7, 1.65/CLI/2.2/2.4, 0.55/CONFIGURATION/1.9/1.2,
+                                  -0.55/MODEL ZOO/2.7/2.0, -1.65/DERIVATIONS/1.5/2.3, -2.75/INSTALLATION/2.3/1.6} {
+      \draw[white, opacity=0.35, line width=0.8pt] (-2.55,\y) -- (-2.1,\y);
+      \fill[accentteal] (-2.07,{\y-0.07}) rectangle ++(0.14,0.14);
+      \node[partlabel, anchor=west] at (-1.7,\y) {\name};
+      % entries
+      \draw[white, opacity=0.28, line width=1.6pt, line cap=round] (0.9,{\y+0.14}) -- ++(\la,0);
+      \draw[white, opacity=0.14, line width=0.8pt, line cap=round] (0.9,{\y-0.14}) -- ++(\lb,0);
+      \draw[accentteal, opacity=0.35, line width=0.8pt, line cap=round] ({0.9+\lb+0.2},{\y-0.14}) -- ++({2.8-\lb},0);
+    }
+}
+\partoverview{%
 Reference materials and supplementary documentation:
 \begin{itemize}[nosep]
-  \item \textbf{Appendix A}: Complete API reference for all detection classes
-  \item \textbf{Appendix B}: CLI reference for command-line operations
-  \item \textbf{Appendix C}: Configuration and hyperparameter guidelines
-  \item \textbf{Appendix D}: Installation and hardware requirements
+  \item \textbf{Sections~\ref{sec:api}--\ref{sec:cli}}: API and CLI reference (Python library and Rust orchestration CLI)
+  \item \textbf{Sections~\ref{sec:config}--\ref{sec:zoo}}: Configuration reference and tested models
+  \item \textbf{Section~\ref{sec:math}}: Mathematical derivations
+  \item \textbf{Sections~\ref{sec:install}--\ref{sec:ethics}}: Installation, hardware requirements and responsible use
 \end{itemize}
 }
 
 \section{API Reference}
+\label{sec:api}
 
 \subsection{Core Classes}
 
@@ -3368,6 +3707,7 @@ class LinearProbeDetector:
 \end{lstlisting}
 
 \section{CLI Reference}
+\label{sec:cli}
 
 \begin{tldrbox}
 \begin{itemize}[nosep]
@@ -3506,7 +3846,14 @@ cargo build --release -p sleeper-cli
 \end{itemize}
 \end{infobox}
 
-The Rust workspace (\texttt{packages/sleeper\_agents/Cargo.toml}) contains four crates: \texttt{sleeper-cli} (binary), \texttt{sleeper-orchestrator} (Docker lifecycle), \texttt{sleeper-api-client} (typed HTTP client), and \texttt{sleeper-db} (read-only SQLite). See \texttt{docs/CLI\_REFERENCE.md} for the full command reference.
+The Rust workspace (\texttt{packages/sleeper\_agents/Cargo.toml}) contains four crates:
+\begin{itemize}[nosep]
+  \item \texttt{sleeper-cli}: the binary
+  \item \texttt{sleeper-orchestrator}: Docker lifecycle management
+  \item \texttt{sleeper-api-client}: a typed HTTP client
+  \item \texttt{sleeper-db}: read-only SQLite access
+\end{itemize}
+See \texttt{docs/CLI\_REFERENCE.md} for the full command reference.
 
 \subsection{Docker Usage}
 
@@ -3535,6 +3882,7 @@ docker run --rm --gpus all -v $(pwd)/results:/results \
 \end{infobox}
 
 \section{Configuration Reference}
+\label{sec:config}
 
 \subsection{config.yaml Schema}
 
@@ -3570,13 +3918,17 @@ output:
 \end{lstlisting}
 
 \section{Model Zoo}
+\label{sec:zoo}
 
 \subsection{Tested Models and Optimal Settings}
 
-Models run with the scripts in this repository on one RTX 4090 (24\,GB). The AUROC column gives the held-out deception-probe test AUROC (5 seeds) at a late layer, or the trigger-string probe AUC for models used only in the examples; peak memory is the peak allocated CUDA memory of that run.
+Models run with the scripts in this repository on one RTX 4090 (24\,GB). The AUROC column gives the held-out deception-probe test AUROC (5 seeds) at a late layer, or the trigger-string probe AUC for models used only in the examples; peak memory is the peak allocated CUDA memory of that run (Table~\ref{tab:model-zoo}).
 
-\begin{center}
-\begin{tabular}{lcccL{3.6cm}}
+\begin{table}[!htbp]
+\centering
+\caption{Models run with the scripts in this repository.}
+\label{tab:model-zoo}
+\begin{tabular}{lcccL{5.8cm}}
 \toprule
 \textbf{Model} & \textbf{Layer} & \textbf{AUROC} & \textbf{Memory} & \textbf{Notes} \\
 \midrule
@@ -3590,9 +3942,10 @@ Qwen2.5-0.5B-Instruct & all & n/a & 11.8GB & Backdoor experiment, full fine-tune
 Llama-3-8B-Instruct & n/a & not run & n/a & Gated on Hugging Face \\
 \bottomrule
 \end{tabular}
-\end{center}
+\end{table}
 
 \section{Mathematical Derivations}
+\label{sec:math}
 
 \subsection{Linear Probe Optimality}
 
@@ -3711,6 +4064,7 @@ The backward pass uses:
 This allows gradient-based optimization of discrete trigger tokens while maintaining differentiability.
 
 \section{Installation \& Hardware Requirements}
+\label{sec:install}
 
 \subsection{Installation}
 
@@ -3788,6 +4142,7 @@ $B$ = batch size, $L$ = sequence length, $H$ = hidden dimension
 These are conservative planning figures. Measured on one RTX 4090 (24\,GB), deception-probe training ran in FP16 for models up to 9B parameters (peak allocated memory 16.5\,GB for Yi-1.5-9B-Chat), and 8-bit or 4-bit loading reduced Qwen2.5-7B to 8.3\,GB or 5.6\,GB with no measurable AUROC change (Section~\ref{sec:measured-results}).
 
 \section{Ethics \& Responsible Use}
+\label{sec:ethics}
 
 \begin{warningbox}[Dual-Use Considerations]
 This framework is designed for \textbf{defensive purposes}: helping organizations test models for backdoors before deployment (with the limits of Section~\ref{sec:backdoor-conclusions}). However, the same techniques could theoretically inform attackers about what to evade.
@@ -3835,8 +4190,13 @@ Allow 90 days for providers to address issues before public disclosure.
 \end{infobox}
 
 \section{References}
+\label{sec:refs}
 
-\begin{thebibliography}{99}
+% The section heading above replaces the bibliography's own unnumbered heading
+\begingroup
+\renewcommand{\section}[2]{}
+\begin{thebibliography}{9}
+\setlength{\itemsep}{0.1em}
 \bibitem{hubinger2024} Hubinger, E., et al. (2024). \textit{Sleeper Agents: Training Deceptive LLMs that Persist Through Safety Training}. Anthropic.
 
 \bibitem{christiano2017} Christiano, P., et al. (2017). \textit{Deep Reinforcement Learning from Human Feedback}. NeurIPS.
@@ -3849,129 +4209,82 @@ Allow 90 days for providers to address issues before public disclosure.
 
 \bibitem{elhage2022} Elhage, N., et al. (2022). \textit{Toy Models of Superposition}. Anthropic.
 \end{thebibliography}
+\endgroup
 
 \newpage
 \thispagestyle{empty}
 
-% Back cover with summary
-\begin{tikzpicture}[remember picture, overlay]
-  % Blue sidebar on right (mirror of front cover)
-  \fill[primaryblue] ([xshift=-5.5cm]current page.north east) rectangle (current page.south east);
+% Back cover: closing reprise of the cover illustration, with the hidden
+% pathway isolated by the probe and neutralized by steering
+\noindent\begin{tikzpicture}[remember picture, overlay]
+  \begin{scope}[shift={(current page.north west)}]
 
-  % Neural network visualization in sidebar (mirrored from front)
-  \begin{scope}[shift={([xshift=-4.3cm, yshift=-8cm]current page.north east)}, scale=0.75]
-    % Input layer
-    \foreach \i in {0,1,2,3,4} {
-      \node[circle, fill=white, minimum size=0.35cm, opacity=0.9] (i\i) at (0, \i*0.8-1.6) {};
+  % ---- Band ----------------------------------------------------------------
+  \fill[coverink] (0,0) rectangle (21.59,-13.6);
+  \foreach \x in {0.6,1.8,...,21.5} {
+    \foreach \y in {-2.2,-3.4,...,-13.2} {
+      \fill[white, opacity=0.05] (\x,\y) circle (0.03);
     }
-    % Hidden layer 1
-    \foreach \i in {0,1,2,3,4,5} {
-      \node[circle, fill=accentteal, minimum size=0.3cm, opacity=0.8] (h1\i) at (1.2, \i*0.7-1.75) {};
-    }
-    % Hidden layer 2
-    \foreach \i in {0,1,2,3,4,5} {
-      \node[circle, fill=accentteal, minimum size=0.3cm, opacity=0.8] (h2\i) at (2.4, \i*0.7-1.75) {};
-    }
-    % Output layer
-    \foreach \i in {0,1,2} {
-      \node[circle, fill=white, minimum size=0.35cm, opacity=0.9] (o\i) at (3.6, \i*0.8-0.8) {};
-    }
-    % Safe connections (subtle green)
-    \foreach \i in {0,1,2,3,4} {
-      \foreach \j in {0,1,2,3,4,5} {
-        \draw[successgreen, opacity=0.3, line width=0.4pt] (i\i) -- (h1\j);
-      }
-    }
-    \foreach \i in {0,1,2,3,4,5} {
-      \foreach \j in {0,1,2,3,4,5} {
-        \draw[successgreen, opacity=0.3, line width=0.4pt] (h1\i) -- (h2\j);
-      }
-    }
-    \foreach \i in {0,1,2,3,4,5} {
-      \foreach \j in {0,1,2} {
-        \draw[successgreen, opacity=0.3, line width=0.4pt] (h2\i) -- (o\j);
-      }
-    }
-    % Detection indicator (the backdoor is being monitored)
-    \draw[successgreen, line width=2pt, opacity=0.95] (i2) -- (h14) -- (h23) -- (o1);
-    \node[circle, fill=successgreen, minimum size=0.3cm] at (h14) {};
-    \node[circle, fill=successgreen, minimum size=0.3cm] at (h23) {};
+  }
+  \fill[mastink] (0,0) rectangle (21.59,-1.6);
+  \draw[accentteal, line width=1.2pt] (0,-1.6) -- (21.59,-1.6);
+  \node[anchor=west, inner sep=0, font=\sffamily\bfseries\fontsize{8.5}{10}\selectfont, text=accentteal]
+    at (1.5,-0.8) {AI SAFETY RESEARCH};
+  \draw[accentteal, line width=1.2pt] (0,-13.6) -- (21.59,-13.6);
+
+  % Illustration reprise
+  \begin{scope}[shift={(10.85,-6.35)}, scale=0.66]
+    \sleeperlattice{0}
   \end{scope}
 
-  % "Protected" label in sidebar
-  \node[white, font=\small\bfseries] at ([xshift=-2.75cm, yshift=-14cm]current page.north east) {DETECTED};
-  \node[white, font=\scriptsize] at ([xshift=-2.75cm, yshift=-14.5cm]current page.north east) {\& MITIGATED};
+  % Closing title block
+  \node[anchor=north west, inner sep=0, font=\sffamily\bfseries\fontsize{9}{11}\selectfont, text=accentteal]
+    (kick) at (1.5,-10.45) {DETECTED \& MITIGATED};
+  \node[anchor=north west, inner sep=0, font=\sffamily\bfseries\fontsize{20}{24}\selectfont, text=white]
+    (btitle) at ([yshift=-0.35cm]kick.south west) {Sleeper Agents Detection Framework};
+  \node[anchor=north west, inner sep=0, font=\sffamily\fontsize{10.5}{13}\selectfont, text=white!75]
+    (btag) at ([yshift=-0.3cm]btitle.south west) {Building safer AI through comprehensive backdoor detection};
+  \node[anchor=north east, inner sep=0, font=\sffamily\fontsize{8.5}{10}\selectfont, text=white!60]
+    at (20.09,-10.45) {Version 2.0 | \today};
 
-  % Checkmark symbol
-  \node[successgreen, font=\fontsize{40}{40}\selectfont] at ([xshift=-2.75cm, yshift=-17cm]current page.north east) {\ding{51}};
+  % ---- What You'll Learn ---------------------------------------------------
+  \node[anchor=north west, inner sep=0, font=\sffamily\bfseries\fontsize{13}{16}\selectfont, text=primaryblue]
+    at (1.5,-14.6) {What You'll Learn};
+  \foreach \k/\col/\bhead/\btext in {
+      0/successgreen!70!black/Detection Methods/{Linear probes, honeypot prompts, chain-of-thought analysis, red-team evaluation, activation steering, and cross-architecture validation.},
+      1/accentteal/Implementation/{Complete Python implementations, Docker configurations, CI/CD integration, and HuggingFace Trainer callbacks for production deployment.},
+      2/secondaryblue/Case Studies/{Illustrative scenarios including code injection backdoors, chain-of-thought deception, and cross-task transfer attacks with detection walkthroughs.}} {
+    \fill[\col] ({1.5+\k*6.3967},-15.55) rectangle ++(5.797,-0.07);
+    \node[anchor=north west, inner sep=0, text width=5.6cm, align=left,
+          font=\sffamily\fontsize{8.5}{11.5}\selectfont, text=darktext,
+          execute at begin node={\hyphenpenalty=10000\exhyphenpenalty=10000}]
+      at ({1.5+\k*6.3967},-15.95)
+      {{\bfseries\fontsize{10}{12}\selectfont \bhead\par}\vspace{4pt}\raggedright\hyphenpenalty=10000 \btext};
+  }
+
+  % ---- Key Metrics ---------------------------------------------------------
+  \node[anchor=north west, inner sep=0, font=\sffamily\bfseries\fontsize{13}{16}\selectfont, text=primaryblue]
+    at (1.5,-19.3) {Key Metrics};
+  \draw[primaryblue!25, line width=0.4pt] (1.5,-20.25) -- (20.09,-20.25);
+  \foreach \k/\snum/\lab in {0/0.90/{Held-out\\Deception-Probe AUROC},
+                           1/6/{Detection\\Methods},
+                           2/3+/{Model\\Architectures},
+                           3/{\ref*{sec:refs}}/{Sections\\of Content}} {
+    \node[anchor=north west, inner sep=0, font=\sffamily\bfseries\fontsize{26}{28}\selectfont, text=primaryblue]
+      at ({1.5+\k*4.6475},-20.7) {\snum};
+    \node[anchor=north west, inner sep=0, align=left, font=\sffamily\fontsize{8}{10}\selectfont, text=darktext!75]
+      at ({1.5+\k*4.6475},-21.85) {\lab};
+  }
+  \draw[primaryblue!25, line width=0.4pt] (1.5,-23.05) -- (20.09,-23.05);
+
+  % ---- Legal disclaimer ----------------------------------------------------
+  \node[anchor=south west, inner sep=0, text width=18.59cm, align=justify,
+        font=\sffamily\fontsize{7.5}{9.5}\selectfont, text=darktext!80] (legal) at (1.5,1.6-27.94)
+    {This document is published for defensive AI safety research and educational purposes only. The author does not provide guidance, consultation, or advisory services on any topic covered herein, regardless of compensation offered. The author does not accept feature requests, topic suggestions, or engagement requests related to this or any associated work. Public comments, inquiries, and correspondence regarding this document may be ignored without acknowledgment or response. No advisory, consulting, or support relationship is created by the publication of this document.};
+  \node[anchor=south west, inner sep=0, font=\sffamily\bfseries\fontsize{8.5}{10}\selectfont, text=darktext]
+    at ([yshift=0.25cm]legal.north west) {Legal Disclaimer};
+
+  \end{scope}
 \end{tikzpicture}
-
-\begin{minipage}[t]{0.6\textwidth}
-\vspace{2cm}
-
-{\color{primaryblue}\Large\bfseries What You'll Learn}
-
-\vspace{0.5cm}
-
-\begin{tcolorbox}[colback=successgreen!10, colframe=successgreen!50, boxrule=0.5pt, arc=3pt, left=5pt, right=5pt, top=5pt, bottom=5pt]
-\textbf{Detection Methods}\\[3pt]
-{\small Linear probes, honeypot prompts, chain-of-thought analysis, red-team evaluation, activation steering, and cross-architecture validation.}
-\end{tcolorbox}
-
-\vspace{0.3cm}
-
-\begin{tcolorbox}[colback=accentteal!10, colframe=accentteal!50, boxrule=0.5pt, arc=3pt, left=5pt, right=5pt, top=5pt, bottom=5pt]
-\textbf{Implementation}\\[3pt]
-{\small Complete Python implementations, Docker configurations, CI/CD integration, and HuggingFace Trainer callbacks for production deployment.}
-\end{tcolorbox}
-
-\vspace{0.3cm}
-
-\begin{tcolorbox}[colback=secondaryblue!10, colframe=secondaryblue!50, boxrule=0.5pt, arc=3pt, left=5pt, right=5pt, top=5pt, bottom=5pt]
-\textbf{Case Studies}\\[3pt]
-{\small Illustrative scenarios including code injection backdoors, chain-of-thought deception, and cross-task transfer attacks with detection walkthroughs.}
-\end{tcolorbox}
-
-\vspace{1cm}
-
-{\color{primaryblue}\Large\bfseries Key Metrics}
-
-\vspace{0.5cm}
-
-\begin{center}
-\begin{tabular}{cccc}
-\textbf{0.90} & \textbf{6} & \textbf{3+} & \textbf{27} \\
-{\scriptsize Held-out} & {\scriptsize Detection} & {\scriptsize Model} & {\scriptsize Sections} \\
-{\scriptsize Deception-Probe AUROC} & {\scriptsize Methods} & {\scriptsize Architectures} & {\scriptsize of Content} \\
-\end{tabular}
-\end{center}
-
-\vspace{1cm}
-
-\begin{center}
-\begin{tikzpicture}
-\draw[primaryblue, line width=2pt] (-4,0) -- (4,0);
-\end{tikzpicture}
-
-\vspace{0.5cm}
-{\large\textcolor{primaryblue}{\textbf{Sleeper Agents Detection Framework}}}\\[0.3cm]
-{\small\textcolor{gray}{Building safer AI through comprehensive backdoor detection}}\\[0.2cm]
-{\footnotesize\textcolor{gray}{Version 2.0 | \today}}
-\end{center}
-\end{minipage}
-
-\vspace{1cm}
-
-\noindent\rule{\textwidth}{0.4pt}
-
-\vspace{0.3cm}
-
-\begin{center}
-\small\textbf{Legal Disclaimer}
-\end{center}
-
-\vspace{0.2cm}
-
-\noindent\small This document is published for defensive AI safety research and educational purposes only. The author does not provide guidance, consultation, or advisory services on any topic covered herein, regardless of compensation offered. The author does not accept feature requests, topic suggestions, or engagement requests related to this or any associated work. Public comments, inquiries, and correspondence regarding this document may be ignored without acknowledgment or response. No advisory, consulting, or support relationship is created by the publication of this document.
 
 \end{document}

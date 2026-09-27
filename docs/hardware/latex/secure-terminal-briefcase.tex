@@ -36,6 +36,13 @@
 \usepackage{parskip}
 \usepackage{caption}
 \usepackage{tabularx}
+\usepackage{xltabular}
+\usepackage{microtype}
+\usepackage{needspace}
+\usepackage{tocloft}
+
+% Full-width ragged-right flexible column for tables
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
 
 \usetikzlibrary{shapes.geometric, arrows.meta, positioning, calc, decorations.pathreplacing, backgrounds, fit}
 
@@ -76,7 +83,8 @@
 % ============================================================================
 \setstretch{1.15}
 \setlength{\parskip}{0.5em}
-\setlist{nosep, leftmargin=1.5em, itemsep=0.3em}
+\setlist{nosep, leftmargin=1.5em, itemsep=0.3em, parsep=0.4em}
+\setlength{\emergencystretch}{1.5em}
 
 % ============================================================================
 % PAGE STYLE - Circuit pattern (hardware/security theme)
@@ -123,12 +131,39 @@
 \titlespacing*{\section}{0pt}{3ex plus 1ex minus .2ex}{2ex plus .2ex}
 \titlespacing*{\subsection}{0pt}{2.5ex plus 1ex minus .2ex}{1.5ex plus .2ex}
 
-\setcounter{tocdepth}{3}
+% Keep headings with the text that follows them
+\newcommand{\sectionbreak}{\needspace{12\baselineskip}}
+\newcommand{\subsectionbreak}{\needspace{6\baselineskip}}
+\newcommand{\subsubsectionbreak}{\needspace{5\baselineskip}}
+
+\setcounter{tocdepth}{2}
+\setlength{\cftsecnumwidth}{1.8em}
+\setlength{\cftsubsecindent}{1.8em}
+\setlength{\cftsubsecnumwidth}{2.4em}
+\renewcommand{\cftsecfont}{\bfseries\color{deepnavy}}
+\renewcommand{\cftsecpagefont}{\bfseries\color{deepnavy}}
+\renewcommand{\cftsubsecfont}{\color{textdark}}
+\setlength{\cftbeforesecskip}{0.6em}
+\renewcommand{\cfttoctitlefont}{\normalfont\LARGE\bfseries\color{deepnavy}}
+
+% ============================================================================
+% FIGURES, CAPTIONS, AND FLOATS
+% ============================================================================
+\captionsetup{font={small,sf}, labelfont={bf,color=steelblue}, labelsep=period, margin=1em}
+\captionsetup[table]{position=above, skip=6pt}
+\setlength{\textfloatsep}{14pt plus 4pt minus 4pt}
+\setlength{\floatsep}{12pt plus 4pt minus 4pt}
+\setlength{\intextsep}{12pt plus 4pt minus 4pt}
+\renewcommand{\topfraction}{0.85}
+\renewcommand{\bottomfraction}{0.6}
+\renewcommand{\textfraction}{0.12}
+\renewcommand{\floatpagefraction}{0.75}
 
 % ============================================================================
 % TCOLORBOX ENVIRONMENTS
 % ============================================================================
 \tcbuselibrary{skins,breakable,hooks}
+\tcbset{before upper={\setlength{\parskip}{0.5em}}}
 
 \newtcolorbox{keybox}[1][Key Design Principle]{
   enhanced, breakable,
@@ -278,69 +313,63 @@ The system secures a Raspberry Pi inside a hardened briefcase (Pelican 1490) wit
 
 \subsection{Physical Overview}
 
-\begin{center}
-\begin{tikzpicture}[font=\sffamily\small, scale=0.85, transform shape]
-  % Outer briefcase
-  \draw[line width=2pt, deepnavy, rounded corners=6pt] (0,0) rectangle (16,10);
-  \node[font=\sffamily\footnotesize\color{softslate}] at (8,10.4) {Pelican 1490 Hard Case};
+Figure~\ref{fig:physical} shows what sits where. The magnet is the only component in the lid; everything else is mounted in the base, with the two sensors positioned at the lid seam.
 
-  % Lid region (top)
-  \draw[line width=0.5pt, softslate, dashed] (0,6.5) -- (16,6.5);
-  \node[font=\sffamily\footnotesize\color{softslate}, anchor=west] at (0.3,6.8) {LID};
-  \node[font=\sffamily\footnotesize\color{softslate}, anchor=west] at (0.3,6.2) {BASE};
+\begin{figure}[!htbp]
+\centering
+\begin{tikzpicture}[font=\sffamily\small,
+    part/.style={rectangle, rounded corners=3pt, draw=#1!70!black, fill=#1!12, line width=0.7pt,
+      align=center, inner sep=5pt, font=\sffamily\footnotesize},
+    title/.style={font=\sffamily\footnotesize\bfseries, text=#1!80!black},
+    zone/.style={font=\sffamily\scriptsize\bfseries, text=softslate, anchor=west}]
 
-  % Magnet in lid
-  \draw[fill=securityamber!30, rounded corners=2pt] (2,7.5) rectangle (4.5,8.5);
-  \node[font=\sffamily\footnotesize\bfseries\color{securityamber}] at (3.25,8.3) {Neodymium};
-  \node[font=\sffamily\footnotesize\color{softslate}] at (3.25,7.8) {Magnet};
+  % Case outline, lid band, and seam
+  \fill[lightgray] (0.1,6.1) rectangle (14.9,8.0);
+  \draw[line width=1.8pt, deepnavy, rounded corners=6pt] (0,0) rectangle (15,8.1);
+  \draw[line width=0.6pt, softslate, dashed] (0,6.1) -- (15,6.1);
+  \node[zone] at (0.25,7.75) {LID};
+  \node[zone] at (0.25,5.8) {BASE};
+  \node[font=\sffamily\scriptsize\itshape, text=softslate, anchor=south east] at (14.8,6.1) {lid seam (first entry point for light)};
+  \node[font=\sffamily\footnotesize, text=softslate, anchor=south] at (7.5,8.2) {Pelican 1490 hard case};
 
-  % Hall sensor (base, aligned under magnet)
-  \draw[fill=sensorblue!20, rounded corners=2pt] (2,4.5) rectangle (4.5,5.8);
-  \node[font=\sffamily\footnotesize\bfseries\color{sensorblue}] at (3.25,5.5) {Hall A3144};
-  \node[font=\sffamily\scriptsize\color{softslate}] at (3.25,4.9) {GPIO 4};
+  % Lid: magnet
+  \node[part=securityamber, minimum width=3.0cm] (magnet) at (3.2,7.05)
+    {\textbf{\color{securityamber!80!black}Neodymium magnet}\\12\,mm N52 disc};
 
-  % Light sensor
-  \draw[fill=fsmgold!20, rounded corners=2pt] (5.5,4.5) rectangle (8,5.8);
-  \node[font=\sffamily\footnotesize\bfseries\color{fsmgold}] at (6.75,5.5) {BH1750};
-  \node[font=\sffamily\scriptsize\color{softslate}] at (6.75,4.9) {I2C 0x23};
+  % Base, sensor row
+  \node[part=sensorblue, minimum width=3.0cm] (hall) at (3.2,4.75)
+    {\textbf{\color{sensorblue!80!black}Hall A3144}\\GPIO 4 (primary)};
+  \node[part=fsmgold, minimum width=3.0cm] (lux) at (7.0,4.75)
+    {\textbf{\color{fsmgold!80!black}BH1750}\\I2C 0x23 (secondary)};
+  \node[part=wipecrimson, minimum width=3.4cm] (usb) at (12.4,4.75)
+    {\textbf{\color{wipecrimson}Recovery USB}\\PQC-wrapped keys};
 
-  % Alignment arrow
-  \draw[-{Stealth[scale=0.8]}, dashed, securityamber, line width=0.8pt] (3.25,7.5) -- (3.25,5.8)
-    node[midway, right=0.2cm, font=\sffamily\scriptsize\color{softslate}] {aligned};
+  \draw[-{Stealth[length=2mm]}, dashed, securityamber!90!black, line width=0.8pt] (magnet.south) -- (hall.north)
+    node[pos=0.5, right=2pt, font=\sffamily\scriptsize, text=softslate, fill=white, inner sep=1pt] {aligned, $\sim$10\,mm};
 
-  % Raspberry Pi
-  \draw[fill=cryptogreen!15, rounded corners=3pt] (1,0.8) rectangle (8,3.8);
-  \node[font=\sffamily\footnotesize\bfseries\color{cryptogreen}] at (4.5,3.4) {Raspberry Pi 5 (4GB+)};
-  \node[font=\sffamily\scriptsize, align=center] at (4.5,2.3) {LUKS2 Root + Data\\tamper-sensor, tamper-gate\\tamper-challenge, tamper-recovery};
+  % Base, compute and power row
+  \node[part=cryptogreen, minimum width=6.8cm, minimum height=2.0cm] (pi) at (5.0,1.55)
+    {\textbf{\color{cryptogreen!70!black}Raspberry Pi 5 (4GB+)}\\[2pt]
+     LUKS2 root + data partitions\\
+     {\scriptsize\ttfamily tamper-sensor, tamper-gate,}\\{\scriptsize\ttfamily tamper-challenge, tamper-recovery}};
+  \node[part=steelblue, minimum width=3.4cm, minimum height=2.0cm] (bank) at (12.4,1.55)
+    {\textbf{\color{steelblue}USB-C power bank}\\[2pt]10,000+ mAh\\foam cradle (slides out)\\4--6 hr runtime};
 
-  % Sensor connections
-  \draw[-{Stealth[scale=0.7]}, line width=0.8pt, sensorblue] (3.25,4.5) -- (3.25,3.8)
-    node[midway, left=0.1cm, font=\sffamily\scriptsize] {GPIO};
-  \draw[-{Stealth[scale=0.7]}, line width=0.8pt, fsmgold] (6.75,4.5) -- (6.75,3.8)
-    node[midway, right=0.1cm, font=\sffamily\scriptsize] {I2C};
-
-  % Power bank
-  \draw[fill=steelblue!12, rounded corners=3pt] (9.5,0.8) rectangle (15,3.8);
-  \node[font=\sffamily\footnotesize\bfseries\color{steelblue}] at (12.25,3.4) {USB-C Power Bank};
-  \node[font=\sffamily\scriptsize, align=center] at (12.25,2.3) {10,000+ mAh\\Foam cradle (slides out)\\4--6 hr runtime};
-
-  % USB-C connection
-  \draw[-{Stealth[scale=0.7]}, line width=1pt, deepnavy] (8,2.3) -- (9.5,2.3)
+  \draw[-{Stealth[length=2mm]}, line width=0.8pt, sensorblue] (hall.south) -- (hall.south |- pi.north)
+    node[midway, left=1pt, font=\sffamily\scriptsize] {GPIO};
+  \draw[-{Stealth[length=2mm]}, line width=0.8pt, fsmgold!90!black] (lux.south) -- (lux.south |- pi.north)
+    node[midway, right=1pt, font=\sffamily\scriptsize] {I2C};
+  \draw[-{Stealth[length=2mm]}, line width=1pt, deepnavy] (bank.west) -- (pi.east)
     node[midway, above, font=\sffamily\scriptsize] {USB-C};
-
-  % Recovery USB
-  \draw[fill=wipecrimson!12, rounded corners=2pt] (9.5,4.5) rectangle (13.5,5.8);
-  \node[font=\sffamily\footnotesize\bfseries\color{wipecrimson}] at (11.5,5.5) {Recovery USB};
-  \node[font=\sffamily\scriptsize\color{softslate}] at (11.5,4.9) {PQC-wrapped keys};
-
-  % Recovery connection
-  \draw[-{Stealth[scale=0.7]}, line width=0.6pt, wipecrimson, dashed] (11.5,4.5) -- (8,3.2);
+  \draw[-{Stealth[length=2mm]}, line width=0.6pt, wipecrimson, dashed] (usb.south) -- (12.4,3.15) -| ([xshift=-2.5mm]pi.north east);
 \end{tikzpicture}
-\end{center}
+\caption{Physical layout inside the case. The Hall sensor sits directly beneath the lid magnet; the light sensor faces the seam.}
+\label{fig:physical}
+\end{figure}
 
 \subsection{Split-Privilege Service Model}
 
-The system splits into three systemd services enforcing least privilege. A bug in the sensor daemon cannot trigger a wipe; the wipe service requires an explicit trigger file created only by the gate after a confirmed challenge failure.
+The system is split into three systemd services that enforce least privilege (Figure~\ref{fig:services}). A bug in the sensor daemon cannot trigger a wipe: the wipe service requires an explicit trigger file, which only the gate creates, and only after a confirmed challenge failure.
 
 \begin{keybox}[Three-Service Architecture]
 \begin{enumerate}
@@ -350,28 +379,32 @@ The system splits into three systemd services enforcing least privilege. A bug i
 \end{enumerate}
 \end{keybox}
 
-\begin{center}
-\begin{tikzpicture}[node distance=2.8cm, font=\sffamily\small]
-    \tikzstyle{service} = [rectangle, rounded corners=4pt, minimum width=12cm, minimum height=1.6cm,
-      text centered, draw=textdark, line width=0.8pt, align=center]
-    \tikzstyle{iface} = [font=\sffamily\scriptsize\color{softslate}, align=center]
+\begin{figure}[!htbp]
+\centering
+\begin{tikzpicture}[node distance=2.3cm, font=\sffamily\small]
+    \tikzset{
+      service/.style={rectangle, rounded corners=4pt, minimum width=12cm, minimum height=1.25cm,
+        text centered, draw=#1!70!black, fill=#1!12, line width=0.7pt, align=center},
+      iface/.style={font=\sffamily\scriptsize, text=softslate, align=left, anchor=west}}
 
-    \node (sensor) [service, fill=sensorblue!12] {
-      \textbf{tamper-sensor.service} (User: \texttt{tamper}, unprivileged)\\[-2pt]
-      {\scriptsize Reads Hall + BH1750, emits LidOpened/LidClosed/LightAnomaly/Heartbeat via FIFO}};
-    \node (gate) [service, below of=sensor, fill=fsmgold!12] {
-      \textbf{tamper-gate.service} (Root, restricted write paths)\\[-2pt]
-      {\scriptsize Arming FSM, heartbeat watchdog, spawns challenge subprocess, authorizes wipe}};
-    \node (wipe) [service, below of=gate, fill=wipecrimson!12] {
-      \textbf{tamper-wipe.service} (Root, one-shot)\\[-2pt]
-      {\scriptsize luksSuspend $\rightarrow$ LUKS header destruction $\rightarrow$ poweroff. ConditionPathExists guard}};
+    \node (sensor) [service=sensorblue] {
+      \textbf{tamper-sensor.service} (user \texttt{tamper}, unprivileged)\\[1pt]
+      {\footnotesize Reads Hall + BH1750; emits LidOpened / LidClosed / LightAnomaly / Heartbeat via FIFO}};
+    \node (gate) [service=fsmgold, below of=sensor] {
+      \textbf{tamper-gate.service} (root, restricted write paths)\\[1pt]
+      {\footnotesize Arming FSM, heartbeat watchdog, spawns challenge subprocess, authorizes wipe}};
+    \node (wipe) [service=wipecrimson, below of=gate] {
+      \textbf{tamper-wipe.service} (root, one-shot)\\[1pt]
+      {\footnotesize luksSuspend $\rightarrow$ LUKS header destruction $\rightarrow$ poweroff; \texttt{ConditionPathExists} guard}};
 
-    \draw [-{Stealth[scale=1.0]}, line width=1pt, deepnavy]
-      (sensor.south) -- (gate.north) node[midway, right=0.4cm, iface] {Named FIFO\\JSON lines};
-    \draw [-{Stealth[scale=1.0]}, line width=1pt, alertred]
-      (gate.south) -- (wipe.north) node[midway, right=0.4cm, iface] {Trigger file\\+ systemctl start};
+    \draw [-{Stealth[length=2.4mm]}, line width=1pt, deepnavy]
+      (sensor.south) -- (gate.north) node[midway, right=4pt, iface] {named FIFO, JSON lines};
+    \draw [-{Stealth[length=2.4mm]}, line width=1pt, alertred]
+      (gate.south) -- (wipe.north) node[midway, right=4pt, iface] {trigger file + \texttt{systemctl start}};
 \end{tikzpicture}
-\end{center}
+\caption{Split-privilege service chain, with the interface between each pair of services on the connecting arrow.}
+\label{fig:services}
+\end{figure}
 
 This architecture provides:
 
@@ -386,31 +419,29 @@ This architecture provides:
 % ============================================================================
 % SECTION 2: DUAL-SENSOR TAMPER DETECTION
 % ============================================================================
-\newpage
 \section{Dual-Sensor Tamper Detection}
 
 \subsection{Why Two Sensors}
 
 A light sensor alone is unreliable as a primary trigger. It suffers from seam leakage in bright environments, dark-current drift and temperature variation, and the ``briefcase moved under a lamp'' problem. Debouncing helps with noise but cannot distinguish ``lid opened'' from ``ambient conditions changed.''
 
-The solution: a \textbf{Hall effect sensor as the authoritative lid-state indicator} and a \textbf{light sensor as secondary confirmation and anti-tamper evidence}.
+The design therefore pairs a \textbf{Hall effect sensor as the authoritative lid-state indicator} with a \textbf{light sensor as secondary confirmation and anti-tamper evidence}.
 
 \subsection{Sensor Roles}
 
-\begin{longtable}{L{3cm} L{3.5cm} L{3.5cm} L{3.5cm}}
+{\centering\begin{tabularx}{\textwidth}{L{3.2cm} Y Y L{3.6cm}}
 \toprule
 \textbf{Sensor} & \textbf{Role} & \textbf{Failure Mode} & \textbf{Consequence} \\
 \midrule
-\endhead
 Hall effect (A3144) & Primary: authoritative lid open/close detection & Magnet removed/shielded = permanent ``open'' reading & Triggers challenge (fail-safe) \\
 BH1750 light sensor & Secondary: confirms physical exposure, detects bypass & Sensor covered or blinded & Hall still triggers independently \\
 \bottomrule
-\end{longtable}
+\end{tabularx}\par}
 
 \subsection{Decision Matrix}
 
-\begin{center}
-\begin{tabular}{L{3cm} L{3cm} L{5.5cm}}
+{\centering
+\begin{tabularx}{0.8\textwidth}{L{3cm} L{3cm} Y}
 \toprule
 \textbf{Hall State} & \textbf{Light Level} & \textbf{Result} \\
 \midrule
@@ -419,8 +450,7 @@ BH1750 light sensor & Secondary: confirms physical exposure, detects bypass & Se
 \rowcolor{alertred!15} OPEN & HIGH & Confirmed tamper \\
 \rowcolor{alertred!15} OPEN & LOW & Tamper in dark (Hall is authoritative) \\
 \bottomrule
-\end{tabular}
-\end{center}
+\end{tabularx}\par}
 
 \begin{keybox}[Primary Sensor Authority]
 Hall alone is sufficient to trigger a challenge. Light alone never triggers; it adds confidence and detects sensor-bypass scenarios. Consecutive light anomalies (configurable threshold, default 10) escalate to a forced challenge, detecting attempts to spoof the Hall sensor while the lid is physically open.
@@ -428,7 +458,7 @@ Hall alone is sufficient to trigger a challenge. Light alone never triggers; it 
 
 \subsection{Arming Delay}
 
-Closing the briefcase does not instantly arm the system. The lid must remain continuously closed (Hall reading ``closed'') for a configurable delay (default 15 seconds) before transitioning from DISARMED to ARMED. This prevents false triggers while adjusting the latch or contents. Reopening during the arming window immediately returns to DISARMED.
+Closing the briefcase does not instantly arm the system. The lid must remain continuously closed (Hall reading ``closed'') for a configurable delay (default 15 seconds) before transitioning from DISARMED to ARMED. This prevents false triggers while the latch or contents are being adjusted. Reopening the lid during the arming window returns the system to DISARMED immediately.
 
 
 % ============================================================================
@@ -436,17 +466,16 @@ Closing the briefcase does not instantly arm the system. The lid must remain con
 % ============================================================================
 \section{Hardware Design}
 
-All components are standard consumer and maker parts. Total estimated cost: \$280--\$400.
+All components are standard consumer and maker parts, for an estimated total cost of \$280--\$400.
 
 \subsection{Bill of Materials}
 
 \subsubsection{Core Components}
 
-\begin{longtable}{L{3.5cm} L{4cm} L{1cm} L{2cm} L{2cm}}
+{\centering\begin{tabularx}{\textwidth}{Y L{4.8cm} L{0.9cm} L{2.3cm} L{2.0cm}}
 \toprule
 \textbf{Component} & \textbf{Model} & \textbf{Qty} & \textbf{Est. Cost} & \textbf{Interface} \\
 \midrule
-\endhead
 Raspberry Pi 5 & 4GB+ with PSU & 1 & \$60--80 & n/a \\
 MicroSD Card & Samsung PRO Endurance 128GB & 1 & \$20 & n/a \\
 Briefcase & Pelican 1490 Laptop Case & 1 & \$100--150 & n/a \\
@@ -454,51 +483,55 @@ USB-C Power Bank & Anker 325 or similar (10,000mAh+) & 1 & \$25--35 & USB-C \\
 USB-C Cable & 15cm right-angle & 1 & \$5 & USB-C \\
 Recovery USB & IronKey or Samsung T7 Shield & 1 & \$50--80 & USB \\
 \bottomrule
-\end{longtable}
+\end{tabularx}\par}
 
 \subsubsection{Sensors}
 
-\begin{longtable}{L{3.5cm} L{4cm} L{1cm} L{2cm} L{2cm}}
+{\centering\begin{tabularx}{\textwidth}{Y L{4.8cm} L{0.9cm} L{2.3cm} L{2.0cm}}
 \toprule
 \textbf{Component} & \textbf{Model} & \textbf{Qty} & \textbf{Est. Cost} & \textbf{Interface} \\
 \midrule
-\endhead
 Hall Effect Sensor & A3144 (digital latch) & 1 & \$1--2 & GPIO 4 \\
 Neodymium Magnet & 12mm N52 disc & 1 & \$2--3 & n/a \\
 Light Sensor & BH1750 (I2C breakout) & 1 & \$3--5 & I2C \\
 Pull-up Resistor & 10k (for A3144) & 1 & \$0.10 & n/a \\
 \bottomrule
-\end{longtable}
+\end{tabularx}\par}
 
 \subsection{Wiring}
 
-\begin{hardwarebox}[Sensor Wiring]
-\begin{lstlisting}
-Hall Effect Sensor (A3144 -- digital latch)
--------------------------------------------
-VCC  ----------> Pin 1  (3.3V)
-GND  ----------> Pin 9  (GND)
-OUT  ----------> Pin 7  (GPIO 4)
-     +-- 10k pull-up to 3.3V
+Both sensors run from the Pi's 3.3\,V rail. Table~\ref{tab:wiring} lists every connection by physical header pin.
 
-Magnet present -> OUT = LOW  (lid closed)
-Magnet absent  -> OUT = HIGH (lid open)
+\begin{table}[!htbp]
+\centering
+\caption{Sensor wiring to the Raspberry Pi 40-pin header.}
+\label{tab:wiring}
+\begin{tabularx}{0.9\textwidth}{L{2.2cm} L{2.4cm} Y}
+\toprule
+\textbf{Sensor pin} & \textbf{Pi header} & \textbf{Signal and notes} \\
+\midrule
+\multicolumn{3}{l}{\textbf{\color{sensorblue}Hall effect sensor (A3144, digital latch)}} \\
+VCC & Pin 1 & 3.3\,V \\
+GND & Pin 9 & GND \\
+OUT & Pin 7 & GPIO 4, with 10k pull-up to 3.3\,V \\
+\addlinespace[2pt]
+\multicolumn{3}{l}{\textbf{\color{fsmgold!80!black}BH1750 light sensor (I2C)}} \\
+VCC & Pin 1 & 3.3\,V \\
+GND & Pin 6 & GND \\
+SDA & Pin 3 & GPIO 2 / SDA1 \\
+SCL & Pin 5 & GPIO 3 / SCL1 \\
+ADDR & GND & Sets I2C address to 0x23 \\
+\bottomrule
+\end{tabularx}
+\end{table}
 
-BH1750 Light Sensor (I2C)
--------------------------
-VCC  ----------> Pin 1  (3.3V)
-GND  ----------> Pin 6  (GND)
-SDA  ----------> Pin 3  (GPIO 2 / SDA1)
-SCL  ----------> Pin 5  (GPIO 3 / SCL1)
-ADDR ----------> GND    (sets I2C address to 0x23)
-\end{lstlisting}
-\end{hardwarebox}
+The A3144 \texttt{OUT} pin reads LOW when the magnet is present (lid closed) and HIGH when it is absent (lid open).
 
 \subsection{Physical Placement}
 
-Mount the Hall sensor on the base of the briefcase near the latch mechanism. Epoxy a small neodymium disc magnet to the corresponding spot on the lid interior. When closed, the magnet sits directly above the Hall sensor (within $\sim$10mm). The BH1750 mounts nearby, oriented upward toward the lid seam, the first entry point for light.
+Mount the Hall sensor on the base of the briefcase near the latch mechanism. Epoxy a small neodymium disc magnet to the corresponding spot on the lid interior. When closed, the magnet sits directly above the Hall sensor (within $\sim$10mm). The BH1750 mounts nearby, facing up toward the lid seam, which is the first entry point for light.
 
-\begin{securitybox}[Alignment is Critical]
+\begin{securitybox}[Alignment Is Critical]
 The A3144 needs the magnet within $\sim$10mm when closed. Test alignment before permanently mounting: use blu-tack first, mark positions, then epoxy. Line the briefcase seam with adhesive foam weatherstripping for light sealing (aim for $<$1 lux when sealed).
 \end{securitybox}
 
@@ -506,14 +539,13 @@ The A3144 needs the magnet within $\sim$10mm when closed. Test alignment before 
 % ============================================================================
 % SECTION 4: SOFTWARE ARCHITECTURE
 % ============================================================================
-\newpage
 \section{Software Architecture}
 
 \subsection{Crate Structure}
 
 All application code is in Rust, organized as a Cargo workspace:
 
-\begin{longtable}{L{3cm} L{3cm} L{7cm}}
+\begin{xltabular}{\textwidth}{L{3.4cm} L{3.4cm} Y}
 \toprule
 \textbf{Crate} & \textbf{Binary} & \textbf{Role} \\
 \midrule
@@ -522,74 +554,66 @@ All application code is in Rust, organized as a Cargo workspace:
 \texttt{tamper-sensor} & \texttt{tamper-sensor} & GPIO + I2C sensor reading, FIFO event emission \\
 \texttt{tamper-gate} & \texttt{tamper-gate} & Arming FSM, challenge dispatch, wipe authorization \\
 \texttt{tamper-challenge} & \texttt{tamper-challenge} & Interactive password prompt with scrypt verification \\
-\texttt{tamper-recovery} & \texttt{tamper-recovery} & PQC key generation, wrapping, signing, verification \\
+\texttt{tamper-recovery} & \texttt{tamper-recovery} & PQC key generation, wrapping, signing, verification \\*
 \bottomrule
-\end{longtable}
+\end{xltabular}
 
 Shell scripts handle raw system operations:
 
-\begin{longtable}{L{5.5cm} L{7.5cm}}
+{\centering\begin{tabularx}{\textwidth}{L{6.0cm} Y}
 \toprule
 \textbf{Script} & \textbf{Role} \\
 \midrule
-\endhead
 \texttt{scripts/wipe\_drive.sh} & LUKS header destruction via dd/cryptsetup \\
 \texttt{scripts/recovery\_launcher.sh} & Live USB recovery orchestration \\
 \bottomrule
-\end{longtable}
+\end{tabularx}\par}
 
 \subsection{Finite State Machine}
 
-The gate orchestrator implements a five-state FSM:
+The gate orchestrator implements the five-state FSM shown in Figure~\ref{fig:fsm}.
 
-\begin{center}
-\begin{tikzpicture}[font=\sffamily\small, >=Stealth]
-    \tikzstyle{state} = [rectangle, rounded corners=8pt, minimum width=4.2cm, minimum height=1.5cm,
-      text centered, align=center, draw=deepnavy, line width=1pt, font=\sffamily\normalsize\bfseries]
-    \tikzstyle{elabel} = [font=\sffamily\footnotesize, fill=white, inner sep=3pt, rounded corners=1pt]
+\begin{figure}[!htbp]
+\centering
+\begin{tikzpicture}[font=\sffamily\small, >={Stealth[length=2.5mm]}]
+    \tikzset{
+      state/.style={rectangle, rounded corners=6pt, minimum width=3.5cm, minimum height=1.35cm,
+        text centered, align=center, draw=#1!70!black, fill=#1!15, line width=0.9pt,
+        font=\sffamily\bfseries},
+      sub/.style={font=\sffamily\scriptsize\mdseries, text=softslate},
+      elabel/.style={font=\sffamily\footnotesize, fill=white, inner sep=2pt}}
 
-    % Vertical spine layout (top to bottom = escalation)
-    \node (disarmed)    [state, fill=cryptogreen!20]    at (0, 0)
-      {DISARMED\\[-2pt]{\scriptsize\mdseries\color{softslate} lid open, system idle}};
-    \node (arming)      [state, fill=fsmgold!20]        at (0, -3)
-      {ARMING\\[-2pt]{\scriptsize\mdseries\color{softslate} lid closed, delay counting}};
-    \node (armed)       [state, fill=alertred!15]       at (0, -6)
-      {ARMED\\[-2pt]{\scriptsize\mdseries\color{softslate} monitoring for tamper}};
-    \node (challenging) [state, fill=securityamber!20]  at (0, -9)
-      {CHALLENGING\\[-2pt]{\scriptsize\mdseries\color{softslate} password prompt active}};
-    \node (wiping)      [state, fill=wipecrimson!20]    at (5, -11.8)
-      {WIPING\\[-2pt]{\scriptsize\mdseries\color{softslate} LUKS header destruction}};
+    % Row 1: normal operation (left to right)
+    \node (disarmed)    [state=cryptogreen]   at (0,0)    {DISARMED\\[-1pt]{\scriptsize\mdseries\color{softslate} lid open, system idle}};
+    \node (arming)      [state=fsmgold]       at (5.9,0)  {ARMING\\[-1pt]{\scriptsize\mdseries\color{softslate} lid closed, delay counting}};
+    \node (armed)       [state=alertred]      at (11.8,0) {ARMED\\[-1pt]{\scriptsize\mdseries\color{softslate} monitoring for tamper}};
+    % Row 2: escalation (right to left)
+    \node (challenging) [state=securityamber] at (11.8,-3.4) {CHALLENGING\\[-1pt]{\scriptsize\mdseries\color{softslate} password prompt active}};
+    \node (wiping)      [state=wipecrimson]   at (5.9,-3.4)  {WIPING\\[-1pt]{\scriptsize\mdseries\color{softslate} LUKS header destruction}};
 
-    % Forward transitions (down the spine) -- solid arrows
-    \draw [->, line width=1.2pt, deepnavy]
-      (disarmed.south) -- (arming.north)
-      node[midway, elabel, right=6pt] {LidClosed};
+    % Forward transitions
+    \draw[->, line width=1.1pt, deepnavy] (disarmed.east) -- (arming.west)
+      node[midway, above=2pt, elabel] {LidClosed};
+    \draw[->, line width=1.1pt, deepnavy] (arming.east) -- (armed.west)
+      node[midway, above=2pt, elabel] {delay elapsed};
+    \draw[->, line width=1.1pt, alertred] (armed.south) -- (challenging.north)
+      node[midway, right=2pt, elabel, text=alertred] {tamper detected};
+    \draw[->, line width=1.4pt, wipecrimson] (challenging.west) -- (wiping.east)
+      node[midway, above=2pt, elabel, text=wipecrimson] {fail / timeout};
 
-    \draw [->, line width=1.2pt, deepnavy]
-      (arming.south) -- (armed.north)
-      node[midway, elabel, right=6pt] {delay elapsed};
-
-    \draw [->, line width=1.2pt, alertred]
-      (armed.south) -- (challenging.north)
-      node[midway, elabel, right=6pt, text=alertred] {tamper detected};
-
-    % Return: ARMING -> DISARMED (inner left, dashed gray)
-    \draw [->, line width=1pt, softslate, densely dashed]
-      (arming.west) -- ++(-1.8, 0) |- ([yshift=-3pt]disarmed.west)
-      node[pos=0.25, elabel, left=2pt] {LidOpened};
-
-    % Return: CHALLENGING -> DISARMED (outer left, green dashed)
-    \draw [->, line width=1.2pt, cryptogreen, densely dashed]
-      (challenging.west) -- ++(-3.5, 0) |- ([yshift=3pt]disarmed.west)
-      node[pos=0.13, elabel, left=2pt, text=cryptogreen] {pass};
-
-    % Terminal: CHALLENGING -> WIPING (right then down, solid crimson)
-    \draw [->, line width=1.5pt, wipecrimson]
-      (challenging.east) -| (wiping.north)
-      node[pos=0.25, elabel, above=2pt, text=wipecrimson] {fail / timeout};
+    % Returns to DISARMED
+    \draw[->, line width=0.9pt, softslate, densely dashed]
+      (arming.north) -- ++(0,0.8) -| (disarmed.north)
+      node[pos=0.25, above=1pt, elabel, text=softslate] {LidOpened};
+    \draw[->, line width=1.1pt, cryptogreen!80!black, densely dashed]
+      (challenging.south) -- ++(0,-0.9) -| (disarmed.south)
+      node[pos=0.25, below=1pt, elabel, text=cryptogreen!80!black] {pass};
 \end{tikzpicture}
-\end{center}
+\caption{Gate state machine. Solid arrows are forward transitions; dashed arrows return to DISARMED. WIPING is terminal.}
+\label{fig:fsm}
+\end{figure}
 
+\needspace{6\baselineskip}
 \textbf{Tamper triggers while ARMED}:
 \begin{itemize}
   \item \textbf{LidOpened}: Primary trigger. Hall sensor transitioned from closed to open.
@@ -598,10 +622,12 @@ The gate orchestrator implements a five-state FSM:
   \item \textbf{FIFO closed}: Sensor daemon disconnected while system is armed.
 \end{itemize}
 
+\needspace{13\baselineskip}
 \subsection{Event Protocol}
 
 The sensor daemon emits JSON-serialized \texttt{TamperEvent} structures over a named FIFO, one per line:
 
+\needspace{8\baselineskip}
 \begin{lstlisting}
 {
   "timestamp": "2026-02-05T14:30:00Z",
@@ -634,25 +660,30 @@ The \texttt{tamper-challenge} binary uses scrypt (n=2\textsuperscript{17}, r=8, 
 
 \subsection{Partition Layout}
 
-\begin{lstlisting}
-/dev/mmcblk0
-+-- p1  (256MB)   boot    -- FAT32, unencrypted (kernel + initramfs)
-+-- p2  (8GB)     rootfs  -- ext4, LUKS2 encrypted
-+-- p3  (rest)    data    -- ext4, LUKS2 encrypted <- PRIMARY WIPE TARGET
-\end{lstlisting}
+The SD card (\texttt{/dev/mmcblk0}) carries three partitions. Only the boot partition is unencrypted; the data partition is the primary wipe target.
+
+{\centering
+\begin{tabularx}{\textwidth}{L{1.1cm} L{1.4cm} L{1.5cm} L{2.3cm} Y}
+\toprule
+\textbf{Part.} & \textbf{Size} & \textbf{Name} & \textbf{Filesystem} & \textbf{Encryption and role} \\
+\midrule
+p1 & 256MB & boot & FAT32 & Unencrypted (kernel + initramfs) \\
+p2 & 8GB & rootfs & ext4 & LUKS2 encrypted \\
+\rowcolor{alertred!10} p3 & rest & data & ext4 & LUKS2 encrypted; \textbf{primary wipe target} \\
+\bottomrule
+\end{tabularx}\par}
 
 \subsection{Secret Hierarchy}
 
-\begin{longtable}{L{2.8cm} L{3.5cm} L{4cm} L{3cm}}
+{\centering\begin{tabularx}{\textwidth}{L{3.0cm} Y L{4.4cm} L{3.4cm}}
 \toprule
 \textbf{Secret} & \textbf{Protects} & \textbf{Stored Where} & \textbf{Backed Up How} \\
 \midrule
-\endhead
 Root passphrase & LUKS on /dev/mmcblk0p2 (OS) & Entered at boot & Paper backup \\
 Data passphrase & LUKS on /dev/mmcblk0p3 (data) & Entered after boot & Paper + recovery USB \\
 Tamper password & Challenge on lid-open & \texttt{/etc/tamper/\allowbreak password.hash} (scrypt) & You remember it \\
 \bottomrule
-\end{longtable}
+\end{tabularx}\par}
 
 \subsection{Wipe Procedure}
 
@@ -683,57 +714,66 @@ An adversary who captures your recovery USB today and stores the encrypted data 
 
 \subsection{USB Structure}
 
+\needspace{8\baselineskip}
 \begin{lstlisting}
 Recovery USB (32GB+)
 +-- Partition 1 (512MB): FAT32, unencrypted
 |   +-- recovery_public.json     <- PQ public keys + metadata
-|   +-- wrapped_secret.bin        <- Hybrid-encrypted recovery secret
+|   +-- wrapped_secret.bin       <- Hybrid-encrypted recovery secret
 |
 +-- Partition 2 (rest): LUKS2 encrypted
     +-- base_image.img.zst       <- Compressed Pi OS image
     +-- base_image.img.zst.sig   <- ML-DSA-87 detached signature
-    +-- tamper_config/            <- /etc/tamper/* files
+    +-- tamper_config/           <- /etc/tamper/* files
     +-- device_secrets.json.enc  <- Wrapped root + data passphrases
-    +-- manifest.json             <- Image version, checksums
+    +-- manifest.json            <- Image version, checksums
 \end{lstlisting}
 
 \subsection{Key Wrapping Flow}
 
-\begin{center}
-\begin{tikzpicture}[font=\sffamily\small, node distance=1.8cm]
-    \tikzstyle{flowstep} = [rectangle, rounded corners=4pt, minimum width=11cm, minimum height=1.2cm,
-      text centered, draw=deepnavy, line width=0.6pt, align=center, font=\sffamily\small]
+Figure~\ref{fig:keywrap} shows how the recovery material is produced. The hybrid step means an attacker must break both X25519 and ML-KEM-1024 to recover the wrapping key.
 
-    \node (s1) [flowstep, fill=steelblue!10] {
-      \textbf{1. Generate} 64-byte random RECOVERY SECRET (master secret)};
-    \node (s2) [flowstep, below of=s1, fill=steelblue!10] {
-      \textbf{2. Derive} USB LUKS passphrase via HKDF-SHA512};
-    \node (s3) [flowstep, below of=s2, fill=steelblue!10] {
-      \textbf{3. Encrypt} device secrets (root + data passphrases) with AES-256-GCM};
-    \node (s4) [flowstep, below of=s3, fill=cryptogreen!10] {
-      \textbf{4. X25519} ECDH $\rightarrow$ classical shared secret};
-    \node (s5) [flowstep, below of=s4, fill=cryptogreen!10] {
-      \textbf{5. ML-KEM-1024} encapsulation $\rightarrow$ post-quantum shared secret};
-    \node (s6) [flowstep, below of=s5, fill=securityamber!10] {
-      \textbf{6. Combine}: SHA-512(classical\_ss $\|$ pq\_ss) $\rightarrow$ HKDF $\rightarrow$ wrapping key};
-    \node (s7) [flowstep, below of=s6, fill=securityamber!10] {
-      \textbf{7. Wrap} recovery secret with AES-256-GCM using wrapping key};
-    \node (s8) [flowstep, below of=s7, fill=wipecrimson!10] {
-      \textbf{8. Sign} disk image with ML-DSA-87};
+\begin{figure}[!htbp]
+\centering
+\begin{tikzpicture}[font=\sffamily\small]
+    \tikzset{
+      flowstep/.style={rectangle, rounded corners=3pt, minimum width=12.4cm, minimum height=0.75cm,
+        text width=12cm, align=left, draw=#1!60!black, fill=#1!10, line width=0.6pt, font=\sffamily\small},
+      grp/.style={decorate, decoration={brace, amplitude=6pt}, line width=0.8pt, draw=#1!70!black},
+      glabel/.style={font=\sffamily\footnotesize\bfseries, text=#1!70!black, anchor=west, align=left}}
 
-    \foreach \i/\j in {s1/s2, s2/s3, s3/s4, s4/s5, s5/s6, s6/s7, s7/s8} {
-      \draw [-{Stealth[scale=0.7]}, line width=0.6pt, softslate] (\i.south) -- (\j.north);
+    \foreach \n/\c/\t [count=\k] in {
+        s1/steelblue/{\textbf{1. Generate} a 64-byte random RECOVERY SECRET (master secret)},
+        s2/steelblue/{\textbf{2. Derive} the USB LUKS passphrase via HKDF-SHA512},
+        s3/steelblue/{\textbf{3. Encrypt} device secrets (root + data passphrases) with AES-256-GCM},
+        s4/cryptogreen/{\textbf{4. X25519} ECDH $\rightarrow$ classical shared secret},
+        s5/cryptogreen/{\textbf{5. ML-KEM-1024} encapsulation $\rightarrow$ post-quantum shared secret},
+        s6/cryptogreen/{\textbf{6. Combine}: SHA-512(classical\_ss $\|$ pq\_ss) $\rightarrow$ HKDF $\rightarrow$ wrapping key},
+        s7/wipecrimson/{\textbf{7. Wrap} the recovery secret with AES-256-GCM using the wrapping key},
+        s8/wipecrimson/{\textbf{8. Sign} the disk image with ML-DSA-87}} {
+      \node (\n) [flowstep=\c] at (0,-1.15*\k) {\t};
     }
+    \foreach \i/\j in {s1/s2, s2/s3, s3/s4, s4/s5, s5/s6, s6/s7, s7/s8} {
+      \draw [-{Stealth[length=1.8mm]}, line width=0.6pt, softslate] (\i.south) -- (\j.north);
+    }
+
+    \draw[grp=steelblue]   ([xshift=6pt]s1.north east) -- ([xshift=6pt]s3.south east)
+      node[midway, right=9pt, glabel=steelblue] {Recovery\\secret};
+    \draw[grp=cryptogreen] ([xshift=6pt]s4.north east) -- ([xshift=6pt]s6.south east)
+      node[midway, right=9pt, glabel=cryptogreen] {Hybrid key\\agreement};
+    \draw[grp=wipecrimson] ([xshift=6pt]s7.north east) -- ([xshift=6pt]s8.south east)
+      node[midway, right=9pt, glabel=wipecrimson] {Wrap and\\sign};
 \end{tikzpicture}
-\end{center}
+\caption{Recovery key wrapping. Steps 4--6 combine a classical and a post-quantum shared secret into a single wrapping key.}
+\label{fig:keywrap}
+\end{figure}
 
 \subsection{Cryptographic Algorithms}
 
-\begin{longtable}{L{3.5cm} L{3.5cm} L{6cm}}
+{\centering\begin{tabularx}{\textwidth}{L{3.8cm} L{3.4cm} Y}
 \toprule
 \textbf{Purpose} & \textbf{Algorithm} & \textbf{Parameters} \\
 \midrule
-\endhead
 Classical key exchange & X25519 & Static + ephemeral keypairs \\
 Post-quantum KEM & ML-KEM-1024 & NIST PQC standard (CRYSTALS-Kyber) \\
 Secret combination & SHA-512 & Hash of concatenated shared secrets \\
@@ -742,7 +782,7 @@ Symmetric wrapping & AES-256-GCM & 12-byte nonce, 16-byte auth tag \\
 Image signing & ML-DSA-87 & NIST PQC standard (CRYSTALS-Dilithium) \\
 Password hashing & scrypt & n=2\textsuperscript{17}, r=8, p=1, 64-byte output \\
 \bottomrule
-\end{longtable}
+\end{tabularx}\par}
 
 
 % ============================================================================
@@ -752,7 +792,7 @@ Password hashing & scrypt & n=2\textsuperscript{17}, r=8, p=1, 64-byte output \\
 
 \subsection{Threat Model}
 
-\begin{longtable}{L{4cm} L{9cm}}
+\begin{xltabular}{\textwidth}{L{4.4cm} Y}
 \toprule
 \textbf{Threat} & \textbf{Mitigation} \\
 \midrule
@@ -768,14 +808,15 @@ USB device injection & Lock USB ports by serial number; only allow recovery stic
 Recovery stick theft & Hybrid PQ+classical encryption; private keys stored separately offline \\
 Shoulder surfing & Consider OLED display instead of HDMI for password entry \\
 Sensor daemon killed & Heartbeat watchdog detects silence; triggers challenge while armed \\
-Wipe triggered accidentally & Split-service architecture with explicit trigger file guard \\
+Wipe triggered accidentally & Split-service architecture with explicit trigger file guard \\*
 \bottomrule
-\end{longtable}
+\end{xltabular}
 
 \subsection{Systemd Hardening}
 
 The sensor service uses extensive systemd sandboxing:
 
+\needspace{8\baselineskip}
 \begin{lstlisting}
 NoNewPrivileges=true
 ProtectSystem=strict
@@ -791,6 +832,7 @@ AmbientCapabilities=
 
 The gate service has restricted write paths:
 
+\needspace{8\baselineskip}
 \begin{lstlisting}
 NoNewPrivileges=true
 ProtectSystem=strict
@@ -806,6 +848,7 @@ ProtectHome=true
 
 \subsection{Quick Setup}
 
+\needspace{8\baselineskip}
 \begin{lstlisting}
 cd packages/tamper_briefcase
 cargo build --release --target aarch64-unknown-linux-gnu
@@ -816,11 +859,10 @@ The setup script handles user creation, I2C enablement, dependency installation,
 
 \subsection{Testing Procedure}
 
-\begin{longtable}{L{1.5cm} L{4cm} L{7.5cm}}
+{\centering\begin{tabularx}{\textwidth}{L{1.0cm} L{3.0cm} Y}
 \toprule
 \textbf{Test} & \textbf{Scenario} & \textbf{Expected Result} \\
 \midrule
-\endhead
 1 & Sensor reads & Close case: Hall LOW, lux $<$1. Open case: Hall HIGH, lux jumps. \\
 2 & Arming delay & Close case: ARMING for 15s, then ARMED. Reopen: back to DISARMED. \\
 3 & Challenge & Arm, open case. Correct password $\rightarrow$ DISARMED. Wrong 3x $\rightarrow$ wipe trigger created. \\
@@ -828,7 +870,7 @@ The setup script handles user creation, I2C enablement, dependency installation,
 5 & Recovery & Recovery USB reimages wiped card. LUKS reconfigured, services start on boot. \\
 6 & Anomaly & Armed + flashlight through seams with magnet held. LIGHT\_ANOMALY logged, escalation. \\
 \bottomrule
-\end{longtable}
+\end{tabularx}\par}
 
 
 % ============================================================================

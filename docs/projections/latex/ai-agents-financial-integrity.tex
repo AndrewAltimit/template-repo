@@ -36,6 +36,38 @@
 \usepackage{parskip}
 \usepackage{caption}
 \usepackage{tabularx}
+\usepackage{needspace}
+\usepackage{tocloft}
+
+% Captions: small sans, bold label, consistent with the palette
+\captionsetup{font={small,sf}, labelfont={bf,color=forestdark}, labelsep=period, margin=0.5cm}
+
+% Float placement: let figures share text pages instead of drifting
+\renewcommand{\topfraction}{0.85}
+\renewcommand{\bottomfraction}{0.6}
+\renewcommand{\textfraction}{0.12}
+\renewcommand{\floatpagefraction}{0.75}
+\setcounter{topnumber}{3}
+\setcounter{totalnumber}{4}
+
+% Line breaking: allow a little extra stretch rather than overfull lines
+\setlength{\emergencystretch}{2.5em}
+
+% Long tables: spacing around them and no forced centering gaps
+\setlength{\LTpre}{0.6em}
+\setlength{\LTpost}{0.4em}
+\setcounter{LTchunksize}{3}
+
+% Table of contents styling
+\renewcommand{\cftsecfont}{\bfseries\color{forestdark}}
+\renewcommand{\cftsecpagefont}{\bfseries\color{forestdark}}
+\renewcommand{\cftsubsecfont}{\color{textdark}}
+\renewcommand{\cftsubsecpagefont}{\color{ledgergray}}
+\renewcommand{\cftsecleader}{\cftdotfill{\cftdotsep}}
+\setlength{\cftbeforesecskip}{0.45em}
+\renewcommand{\cfttoctitlefont}{\LARGE\bfseries\color{forestdark}}
+\setlength{\cftbeforetoctitleskip}{0pt}
+\setlength{\cftaftertoctitleskip}{0.8em}
 
 \pgfplotsset{compat=1.18}
 \usetikzlibrary{shapes.geometric, arrows.meta, positioning, calc, decorations.pathreplacing, backgrounds, fit, shadows.blur, matrix, patterns, fadings, shadings}
@@ -64,6 +96,52 @@
 \definecolor{lightgray}{HTML}{F4F6F6}
 \definecolor{textdark}{HTML}{1C2833}
 \definecolor{flowgrid}{HTML}{D5DBDB}
+
+% ============================================================================
+% PART DIVIDER BANNER (matches the ETRA series cover)
+% \partbanner{numeral}{title}{subtitle}{illustration tikz code}
+% Full-bleed band from the page top; the illustration is drawn in a local
+% frame centred on the right half of the band (about 8.2cm x 7.2cm usable).
+% ============================================================================
+\newcommand{\partbanner}[4]{%
+  \noindent\begin{tikzpicture}[remember picture, overlay]
+  \begin{scope}[shift={(current page.north west)}]
+    % Band
+    \fill[forestdark] (0,0) rectangle (\paperwidth,-10cm);
+    % Subtle texture: ledger ruling (as on the cover)
+    \foreach \y in {1,2,...,9} {
+      \draw[white, opacity=0.035, line width=0.3pt] (0,-\y cm) -- (\paperwidth,-\y cm);
+    }
+    \foreach \x in {2.8,6.8,...,20.8} {
+      \draw[white, opacity=0.03, line width=0.4pt] (\x cm,0) -- (\x cm,-10cm);
+    }
+    % Bottom accent rule (echoes the cover masthead rule)
+    \fill[copperrich] (0,-10cm) rectangle (\paperwidth,-9.958cm);
+    % Text column
+    \node[anchor=west, inner sep=0, text width=9.6cm, align=left]
+      at (2.159cm,-5cm) {%
+        \def\baselinestretch{1}\parskip=0pt\relax
+        {\color{copperrich}\sffamily\bfseries\fontsize{9}{11}\selectfont PART #1\par}%
+        \vspace{0.35cm}%
+        {\color{white}\sffamily\bfseries\fontsize{30}{34}\selectfont\raggedright #2\par}%
+        \vspace{0.3cm}%
+        {\color{copperrich}\rule{2.5cm}{2pt}\par}%
+        \vspace{0.3cm}%
+        \begin{minipage}{8.5cm}\raggedright\color{white!70}\sffamily\fontsize{11}{14}\selectfont #3\end{minipage}};
+    % Illustration (local frame origin at x = 15.33cm, y = -5cm)
+    \begin{scope}[shift={(15.33cm,-5cm)}, x=1cm, y=1cm]
+      #4
+    \end{scope}
+  \end{scope}
+  \end{tikzpicture}\par
+  \vspace*{\partbannerskip}%
+}
+\newlength{\partbannerskip}
+\setlength{\partbannerskip}{7.85cm}
+\tikzset{
+  pblab/.style={inner sep=0, text=white!78, font=\sffamily\bfseries\fontsize{6.5}{8}\selectfont},
+  pbhead/.style={inner sep=0, text=copperrich, font=\sffamily\bfseries\fontsize{6.5}{8}\selectfont},
+}
 
 % ============================================================================
 % HYPERREF SETUP
@@ -115,13 +193,13 @@
 % SECTION FORMATTING - Financial forensics style with copper accent
 % ============================================================================
 \titleformat{\section}
-  {\normalfont\LARGE\bfseries\color{forestdark}}
+  {\normalfont\LARGE\bfseries\color{forestdark}\raggedright}
   {\thesection}{0.8em}{}[\vspace{-0.3em}{\color{emeralddeep}\rule{\textwidth}{1.5pt}\hspace{-\textwidth}\color{copperrich}\rule{3cm}{1.5pt}}]
 \titleformat{\subsection}
-  {\normalfont\Large\bfseries\color{emeralddeep}}
+  {\normalfont\Large\bfseries\color{emeralddeep}\raggedright}
   {\thesubsection}{0.6em}{}
 \titleformat{\subsubsection}
-  {\normalfont\large\color{ledgergray}\bfseries}
+  {\normalfont\large\color{ledgergray}\bfseries\raggedright}
   {\thesubsubsection}{0.5em}{}
 
 \titlespacing*{\section}{0pt}{3ex plus 1ex minus .2ex}{2ex plus .2ex}
@@ -136,6 +214,7 @@
 
 \newtcolorbox{keybox}[1][Key Finding]{
   enhanced, breakable,
+  before upper={\setlength{\parskip}{0.45em}},
   colback=emeralddeep!10, colframe=emeralddeep,
   colbacktitle=emeralddeep, coltitle=white,
   fonttitle=\bfseries\sffamily,
@@ -146,6 +225,7 @@
 
 \newtcolorbox{warnbox}[1][Warning]{
   enhanced, breakable,
+  before upper={\setlength{\parskip}{0.45em}},
   colback=alertamber!10, colframe=alertamber,
   colbacktitle=alertamber, coltitle=white,
   fonttitle=\bfseries\sffamily,
@@ -156,6 +236,7 @@
 
 \newtcolorbox{criticalbox}[1][Critical]{
   enhanced, breakable,
+  before upper={\setlength{\parskip}{0.45em}},
   colback=fraudred!10, colframe=fraudred,
   colbacktitle=fraudred, coltitle=white,
   fonttitle=\bfseries\sffamily,
@@ -166,6 +247,7 @@
 
 \newtcolorbox{recbox}[1][Recommendation]{
   enhanced, breakable,
+  before upper={\setlength{\parskip}{0.45em}},
   colback=mintlight!12, colframe=mintlight!80!forestdark,
   colbacktitle=mintlight!80!forestdark, coltitle=white,
   fonttitle=\bfseries\sffamily,
@@ -176,6 +258,7 @@
 
 \newtcolorbox{infobox}[1][Note]{
   enhanced, breakable,
+  before upper={\setlength{\parskip}{0.45em}},
   colback=complianceblue!10, colframe=complianceblue,
   colbacktitle=complianceblue, coltitle=white,
   fonttitle=\bfseries\sffamily,
@@ -186,6 +269,7 @@
 
 \newtcolorbox{defbox}[1][Definition]{
   enhanced, breakable,
+  before upper={\setlength{\parskip}{0.45em}},
   colback=copperrich!12, colframe=copperrich,
   colbacktitle=copperrich, coltitle=white,
   fonttitle=\bfseries\sffamily,
@@ -196,6 +280,7 @@
 
 \newtcolorbox{scenariobox}[1][Scenario]{
   enhanced, breakable,
+  before upper={\setlength{\parskip}{0.45em}},
   colback=auditpurple!8, colframe=auditpurple,
   colbacktitle=auditpurple, coltitle=white,
   fonttitle=\bfseries\sffamily,
@@ -213,95 +298,142 @@
 % TITLE PAGE - Financial Defense Architecture (Concentric Rings)
 % ============================================================================
 \begin{titlepage}
+% ETRA series cover. Illustration: transaction flows from six payment rails
+% converge on a single Know-Your-Agent control point, then resolve into
+% settled, review, and blocked dispositions (Sankey-style flow diagram).
+% Coordinates are in cm from the bottom-left corner of the page.
 \begin{tikzpicture}[remember picture, overlay]
-  % Background - deep forest green
-  \fill[forestdark] (current page.north west) rectangle (current page.south east);
+\begin{scope}[shift={(current page.south west)}]
+  % Background
+  \fill[forestdark] (0,0) rectangle (21.59,27.94);
 
-  % Subtle ledger grid background (financial records aesthetic)
-  \begin{scope}[shift={(current page.center)}, opacity=0.035]
-    \foreach \y in {-14,-13,...,14} {
-      \draw[white, line width=0.3pt] (-11,\y) -- (11,\y);
-    }
-    \foreach \x in {-8,-4,0,4,8} {
-      \draw[white, line width=0.5pt] (\x,-14) -- (\x,14);
-    }
+  % Subtle texture: ledger ruling
+  \foreach \y in {1,2,...,26} {
+    \draw[white, opacity=0.035, line width=0.3pt] (0,\y) -- (21.59,\y);
+  }
+  \foreach \x in {2.8,6.8,...,20.8} {
+    \draw[white, opacity=0.03, line width=0.4pt] (\x,0) -- (\x,26.3);
+  }
+
+  % Masthead
+  \fill[forestdark!78!black] (0,26.34) rectangle (21.59,27.94);
+  \fill[copperrich] (0,26.34) rectangle (21.59,26.382);
+  \node[anchor=west, inner sep=0, text=copperrich,
+        font=\sffamily\bfseries\fontsize{8.5}{10}\selectfont]
+    at (1.5,27.14) {EMERGING TECHNOLOGY RISK ASSESSMENT};
+  \node[anchor=east, inner sep=0, text=white!72,
+        font=\sffamily\bfseries\fontsize{8.5}{10}\selectfont]
+    at (20.09,27.14) {ETRA-2025-FIN-001\enspace\textbar\enspace SEPTEMBER 2026};
+
+  % ==== Illustration zone (y = 13.0 .. 25.1) ====
+  % Vertical stretch of the flow diagram about its centre line (y = 19)
+  \begin{scope}[shift={(0,19)}, yscale=1.25, shift={(0,-19)}]
+
+  % Control-point glow behind the gate
+  \shade[inner color=copperrich!32!forestdark, outer color=forestdark]
+    (10.8,19) ellipse (2.6 and 4.4);
+
+  % Inbound flows: origin rails -> KYA gate
+  % (legacy rails in green, newer rails in brass)
+  \foreach \a/\b/\c/\d/\col/\op in {
+      22.55/21.50/21.30/20.25/moneygreen/0.55,
+      20.95/20.10/20.20/19.35/moneygreen/0.48,
+      19.55/18.95/19.30/18.70/moneygreen/0.42,
+      18.40/17.65/18.65/17.90/brasslight/0.45,
+      17.10/16.60/17.85/17.35/brasslight/0.40,
+      16.05/15.45/17.30/16.70/brasslight/0.35} {
+    \fill[\col, opacity=\op]
+      (4.3,\a) .. controls (7.45,\a) and (7.45,\c) .. (10.6,\c)
+      -- (10.6,\d) .. controls (7.45,\d) and (7.45,\b) .. (4.3,\b) -- cycle;
+    \draw[\col!60!white, opacity=0.55, line width=0.4pt]
+      (4.3,\a) .. controls (7.45,\a) and (7.45,\c) .. (10.6,\c);
+  }
+
+  % Outbound flows: KYA gate -> dispositions
+  \foreach \a/\b/\c/\d/\col/\op in {
+      21.30/17.95/23.00/19.65/moneygreen/0.55,
+      17.90/17.30/18.30/17.70/alertamber/0.65,
+      17.25/16.85/16.20/15.80/fraudred/0.85} {
+    \fill[\col, opacity=\op]
+      (11.0,\a) .. controls (14.2,\a) and (14.2,\c) .. (17.4,\c)
+      -- (17.4,\d) .. controls (14.2,\d) and (14.2,\b) .. (11.0,\b) -- cycle;
+    \draw[\col!60!white, opacity=0.6, line width=0.4pt]
+      (11.0,\a) .. controls (14.2,\a) and (14.2,\c) .. (17.4,\c);
+  }
+
+  % Origin bars and labels
+  \foreach \a/\b/\col/\lab in {
+      22.55/21.50/moneygreen/BANKS,
+      20.95/20.10/moneygreen/SWIFT,
+      19.55/18.95/moneygreen/FX,
+      18.40/17.65/brasslight/CRYPTO,
+      17.10/16.60/brasslight/P2P,
+      16.05/15.45/brasslight/FINTECH} {
+    \fill[\col!85!white] (4.1,\a) rectangle (4.3,\b);
+    \node[anchor=east, inner sep=0, text=white!78,
+          font=\sffamily\bfseries\fontsize{6.5}{8}\selectfont]
+      at (3.85,{(\a+\b)/2}) {\lab};
+  }
+
+  % Disposition bars and labels
+  \foreach \a/\b/\col/\lab in {
+      23.00/19.65/moneygreen/SETTLED,
+      18.30/17.70/alertamber/REVIEW,
+      16.20/15.80/fraudred/BLOCKED} {
+    \fill[\col!85!white] (17.4,\a) rectangle (17.6,\b);
+    \node[anchor=west, inner sep=0, text=white!78,
+          font=\sffamily\bfseries\fontsize{6.5}{8}\selectfont]
+      at (17.85,{(\a+\b)/2}) {\lab};
+  }
+
+  % KYA control point
+  \fill[forestdark!70!black] (10.6,16.45) rectangle (11.0,21.55);
+  \foreach \gy in {16.7,16.95,...,21.35} {
+    \draw[copperrich, opacity=0.45, line width=0.4pt] (10.66,\gy) -- (10.94,\gy);
+  }
+  \draw[copperrich, line width=1.6pt] (10.6,16.45) rectangle (11.0,21.55);
+  \draw[copperrich, line width=0.8pt] (10.35,21.8) -- (11.25,21.8);
+  \draw[copperrich, line width=0.8pt] (10.35,16.2) -- (11.25,16.2);
+  \node[anchor=south, inner sep=0, text=copperrich,
+        font=\sffamily\bfseries\fontsize{11}{13}\selectfont] at (10.8,22.05) {KYA};
+  \node[anchor=north, inner sep=0, text=white!65,
+        font=\sffamily\bfseries\fontsize{6.5}{8}\selectfont] at (10.8,15.95) {KNOW YOUR AGENT};
+
+  % Column headers
+  \node[anchor=south east, inner sep=0, text=copperrich,
+        font=\sffamily\bfseries\fontsize{6.5}{8}\selectfont] at (4.3,23.25) {ORIGIN RAIL};
+  \node[anchor=south west, inner sep=0, text=copperrich,
+        font=\sffamily\bfseries\fontsize{6.5}{8}\selectfont] at (17.4,23.25) {DISPOSITION};
   \end{scope}
 
-  % Main visualization - Financial Defense Architecture
-  \begin{scope}[shift={([xshift=-0.5cm, yshift=3.5cm]current page.center)}]
+  % ==== Title block ====
+  \node (sub) [anchor=south west, inner sep=0, text width=14cm, align=left,
+               text=white!75, font=\sffamily\fontsize{12.5}{16}\selectfont]
+    at (1.5,6.0)
+    {Money Laundering, Bribery, and Corruption: Risks and Defenses};
+  \fill[copperrich] ([yshift=0.45cm]sub.north west) rectangle ++(3cm,2pt);
+  \node (ttl) [anchor=south west, inner sep=0, text width=15.5cm, align=left,
+               text=white, font=\sffamily\bfseries\fontsize{34}{38}\selectfont]
+    at ([yshift=0.95cm]sub.north west)
+    {AI Agents and Financial\\System Integrity};
+  \node[anchor=south west, inner sep=0, text=copperrich,
+        font=\sffamily\bfseries\fontsize{9}{11}\selectfont]
+    at ([yshift=0.5cm]ttl.north west) {PROJECTION REPORT};
 
-    % Subtle radial gradient - depth cue
-    \shade[inner color=white, outer color=forestdark, opacity=0.08] (0,0) circle (5.8cm);
-
-    % OUTER RING - Transaction Monitoring
-    \draw[copperrich, opacity=0.3, line width=16pt] (0,0) circle (4.8cm);
-    \draw[copperrich, opacity=0.6, line width=2pt] (0,0) circle (4.8cm);
-    \node[flowgrid, opacity=0.4, font=\fontsize{7}{7}\selectfont\sffamily] at (270:5.7cm) {TRANSACTION MONITORING};
-
-    % Financial system actor nodes - outer ring
-    \foreach \angle/\label in {90/SWIFT, 150/BANKS, 210/CRYPTO, 330/P2P, 30/FX} {
-      \fill[forestdark] (\angle:4.8cm) circle (0.55cm);
-      \draw[copperrich, opacity=0.8, line width=1.5pt] (\angle:4.8cm) circle (0.55cm);
-      \node[white, font=\fontsize{7.5}{7.5}\selectfont\bfseries] at (\angle:4.8cm) {\label};
-    }
-    % FINTECH node - slightly smaller font for longer label
-    \fill[forestdark] (270:4.8cm) circle (0.55cm);
-    \draw[copperrich, opacity=0.8, line width=1.5pt] (270:4.8cm) circle (0.55cm);
-    \node[white, font=\fontsize{6.5}{6.5}\selectfont\bfseries] at (270:4.8cm) {FINTECH};
-
-    % MIDDLE RING - AML / KYC
-    \draw[moneygreen, opacity=0.2, line width=12pt] (0,0) circle (3.2cm);
-    \draw[moneygreen, opacity=0.55, line width=1.5pt] (0,0) circle (3.2cm);
-    \node[flowgrid, opacity=0.4, font=\fontsize{7}{7}\selectfont\sffamily] at (270:3.8cm) {AML / KYC};
-
-    % INNER RING - Cross-Institution
-    \draw[complianceblue, opacity=0.2, line width=8pt] (0,0) circle (2.0cm);
-    \draw[complianceblue, opacity=0.5, line width=1.5pt] (0,0) circle (2.0cm);
-    \node[flowgrid, opacity=0.4, font=\fontsize{7}{7}\selectfont\sffamily] at (270:2.5cm) {CROSS-INSTITUTION};
-
-    % CENTRAL CORE - KYA Chokepoint with glow
-    \shade[inner color=copperrich!60, outer color=copperrich!10, opacity=0.3] (0,0) circle (1.5cm);
-    \fill[forestdark] (0,0) circle (1.2cm);
-    \fill[copperrich, opacity=0.9] (0,0) circle (0.9cm);
-    \draw[copperrich, line width=3pt] (0,0) circle (0.9cm);
-    \node[white, font=\fontsize{11}{11}\selectfont\bfseries] at (0,0) {KYA};
-
-    % Protective aura
-    \draw[copperrich, opacity=0.5, line width=3pt] (0,0) circle (1.08cm);
-    \draw[copperrich, opacity=0.25, line width=5pt] (0,0) circle (1.35cm);
-
-    % Subtle radial spokes connecting layers
-    \foreach \angle in {30, 90, 150, 210, 270, 330} {
-      \draw[copperrich, opacity=0.12, line width=1pt] (\angle:1.35cm) -- (\angle:4.2cm);
-    }
-
-  \end{scope}
-
-  % Document classification bar
-  \fill[headergold] ([yshift=-1.5cm]current page.north west) rectangle ([yshift=-2.2cm]current page.north east);
-  \node[forestdark, font=\small\bfseries\sffamily] at ([yshift=-1.85cm]current page.north) {PROJECTION REPORT \textbar{} ETRA-2025-FIN-001 \textbar{} SEPTEMBER 2026};
-
-  % Title block (bottom left)
-  \node[anchor=south west, text width=14cm] at ([xshift=1.5cm, yshift=3cm]current page.south west) {
-    {\fontsize{11}{13}\selectfont\color{copperrich}\sffamily EMERGING TECHNOLOGY RISK ASSESSMENT}\\[0.8cm]
-    {\fontsize{36}{42}\selectfont\bfseries\color{white}AI\ \ Agents\ \ and}\\[0.2cm]
-    {\fontsize{36}{42}\selectfont\bfseries\color{white}Financial\ \ System}\\[0.2cm]
-    {\fontsize{36}{42}\selectfont\bfseries\color{white}Integrity}\\[0.6cm]
-    {\large\color{flowgrid}\sffamily Money Laundering, Bribery, and Corruption: Risks and Defenses}
-  };
-
-  % Metadata block (bottom right)
-  \node[anchor=south east, text width=6cm, align=right] at ([xshift=-1.5cm, yshift=3cm]current page.south east) {
-    \color{flowgrid}\small\sffamily
-    \textbf{Document Type:} Policy Research\\[0.2em]
-    \textbf{Time Horizon:} 2026--2030\\[0.2em]
-    \textbf{License:} MIT / Unlicense\\[0.2em]
-    \textbf{Version:} 3.0 (September 2026)
-  };
-
-  % Vertical accent line (copper)
-  \draw[copperrich, line width=2pt] ([xshift=1.5cm, yshift=3cm]current page.south west) -- ([xshift=1.5cm, yshift=10.5cm]current page.south west);
-
+  % ==== Footer metadata strip ====
+  \draw[white, opacity=0.25, line width=0.4pt] (1.5,2.6) -- (20.09,2.6);
+  \foreach \i/\lab/\val in {0/DOCUMENT TYPE/Policy Research,
+                            1/TIME HORIZON/2026--2030,
+                            2/LICENSE/{MIT / Unlicense},
+                            3/VERSION/{3.0 (September 2026)}} {
+    \node[anchor=base west, inner sep=0, text=copperrich,
+          font=\sffamily\bfseries\fontsize{6.5}{8}\selectfont]
+      at ({1.5+\i*4.6475},1.98) {\lab};
+    \node[anchor=base west, inner sep=0, text=white!75,
+          font=\sffamily\fontsize{8.5}{10}\selectfont]
+      at ({1.5+\i*4.6475},1.5) {\val};
+  }
+\end{scope}
 \end{tikzpicture}
 \end{titlepage}
 
@@ -309,7 +441,7 @@
 % DECISION MEMO
 % ============================================================================
 \thispagestyle{empty}
-\vspace*{0.5cm}
+\vspace*{-1.2cm}
 
 % Mini header visualization - transaction flow accent
 \noindent\begin{tikzpicture}
@@ -321,26 +453,22 @@
   }
 \end{tikzpicture}
 
-\vspace{0.5cm}
-\begin{center}
-{\color{forestdark}\Large\bfseries Decision Memo (Executive Summary)}
-\end{center}
-\vspace{0.3cm}
+{\centering\color{forestdark}\Large\bfseries Decision Memo (Executive Summary)\par}
 
+\begingroup\small\setstretch{1.0}
+\setlist{nosep, leftmargin=1.5em, itemsep=0.15em}
+\tcbset{top=5pt, bottom=5pt, before skip=4pt, after skip=4pt}
 \begin{tcolorbox}[enhanced, colback=lightgray, colframe=emeralddeep!60, boxrule=1pt, arc=3pt,
-  left=10pt, right=10pt, top=10pt, bottom=10pt]
-\textbf{For:} Policy Review\\
-\textbf{Re:} AI Agents and Financial System Integrity\\
+  left=10pt, right=10pt, top=6pt, bottom=6pt]
+\textbf{For:} Policy Review \quad\textbar\quad \textbf{Re:} AI Agents and Financial System Integrity\\
 \textbf{Action Required:} Review recommendations and approve 90-day pilot program
 \end{tcolorbox}
 
-\vspace{0.3cm}
 
 \begin{criticalbox}[Bottom Line (September 2026)]
 The rails for agent-initiated money movement are now being built, by card networks, payment processors, and stablecoin developers rather than AML regulators. Since July 2026 the decisive developments are \textbf{infrastructure and base rates}: agent credentials are live on card networks, the x402 agent-payment standard moved under Linux Foundation governance, a prompt-injected payment agent was drained on a public blockchain, U.S. reported fraud losses reached about \$20.9 billion for 2025, and DPRK operators took roughly \$577 million from two DeFi protocols in April 2026. The window for making agent identity an AML control, not only a commerce-authentication feature, is the next 12--18 months.
 \end{criticalbox}
 
-\vspace{0.3cm}
 
 \begin{keybox}[What Changes with Agents (6 Key Shifts)]
 \begin{enumerate}
@@ -353,18 +481,16 @@ The rails for agent-initiated money movement are now being built, by card networ
 \end{enumerate}
 \end{keybox}
 
-\vspace{0.3cm}
 
 \begin{recbox}[90-Day Pilots (No New Legislation Required)]
 \begin{enumerate}
   \item \textbf{Agent-initiated transaction flagging} at one major bank/processor, using the agent-token and signed-agent signals card networks already emit
-  \item \textbf{Cross-rail graph analytics} with 3-5 institutions sharing anonymized data
+  \item \textbf{Cross-rail graph analytics} with 3--5 institutions sharing anonymized data
   \item \textbf{Incident response tabletop} simulating ``hijacked payment agents plus agent swarm triggers mass false positives''
   \item \textbf{Structured logging standard} draft via ISO/NIST working group, aligned with the mandate objects in open agent-payment protocols
 \end{enumerate}
 \end{recbox}
 
-\vspace{0.3cm}
 
 \begin{infobox}[What We Need from Legal/Regulators]
 \begin{enumerate}
@@ -374,9 +500,9 @@ The rails for agent-initiated money movement are now being built, by card networ
 \end{enumerate}
 \end{infobox}
 
-\vspace{0.3cm}
 
-\textbf{Document Guide:} For time-constrained readers, the Executive Summary (next page) + Section 10 (Policy Recommendations) + Section 11 (Indicators) provide the core actionable content. Detailed analysis follows for those requiring full context.
+\textbf{Document Guide:} Time-constrained readers will find the core actionable content in the Executive Summary (next page), Section 10 (Policy Recommendations), and Section 11 (Indicators).\par
+\endgroup
 
 \newpage
 
@@ -506,70 +632,47 @@ Model capabilities and policy developments described in this document reflect pu
 \end{enumerate}
 \end{infobox}
 
-\newpage
+\clearpage
+\begingroup
+\setstretch{1.0}
+\setlength{\parskip}{0pt}
 \tableofcontents
-\newpage
+\endgroup
 
 % ============================================================================
 % PART I - Foundations
 % ============================================================================
 \clearpage
 \thispagestyle{empty}
-\vspace*{-0.85in}
-\noindent\hspace*{-0.85in}\begin{tikzpicture}
-  % Header background - deep forest green
-  \fill[forestdark] (0,0) rectangle (\paperwidth, -10cm);
-
-  % Part label and title
-  \node[copperrich, font=\fontsize{10}{10}\selectfont\sffamily] at (0.5\paperwidth, -1.2cm) {PART I};
-  \node[white, font=\fontsize{48}{48}\selectfont\bfseries] at (0.5\paperwidth, -2.8cm) {Foundations};
-  \node[white, opacity=0.7, font=\normalsize\sffamily] at (0.5\paperwidth, -4.2cm) {Methodology, Frameworks, and the Qualitative Shift};
-
-  % Visualization: Defense-in-Depth Layers (Clean centered design with legend)
-  \begin{scope}[shift={(0.5\paperwidth, -7.2cm)}]
-
-    % Layer 1: Transaction Monitoring (outermost, porous) - tallest bar
-    \fill[mintlight, opacity=0.12] (-4.2, 1.4) rectangle (4.2, 2.2);
-    \draw[mintlight, opacity=0.6, line width=1.5pt, dashed] (-4.2, 1.4) rectangle (4.2, 2.2);
-    \node[white, font=\fontsize{11}{11}\selectfont\sffamily] at (0, 1.8) {Transaction Monitoring};
-
-    % Layer 2: KYC/KYB Verification (middle)
-    \fill[moneygreen, opacity=0.18] (-3.2, 0.4) rectangle (3.2, 1.2);
-    \draw[moneygreen, opacity=0.7, line width=1.5pt] (-3.2, 0.4) rectangle (3.2, 1.2);
-    \node[white, font=\fontsize{11}{11}\selectfont\sffamily] at (0, 0.8) {Identity Verification};
-
-    % Layer 3: Endpoint Control (innermost, robust)
-    \fill[copperrich, opacity=0.3] (-2.2, -0.6) rectangle (2.2, 0.2);
-    \draw[copperrich, opacity=0.9, line width=2pt] (-2.2, -0.6) rectangle (2.2, 0.2);
-    \node[white, font=\fontsize{11}{11}\selectfont\sffamily\bfseries] at (0, -0.2) {Endpoint Control};
-
-    % Core: Protected System
-    \fill[emeralddeep] (-1.3, -1.4) rectangle (1.3, -0.8);
-    \node[white, font=\fontsize{9}{9}\selectfont\bfseries] at (0, -1.1) {SYSTEM};
-
-    % Legend box on the right
-    \fill[black, opacity=0.2, rounded corners=3pt] (5.0, 0.2) rectangle (8.2, 2.3);
-    \node[white, opacity=0.8, font=\fontsize{8}{8}\selectfont\sffamily\bfseries, anchor=west] at (5.2, 2.0) {DEFENSE LAYERS};
-
-    % Legend items
-    \fill[mintlight, opacity=0.5] (5.3, 1.45) rectangle (5.8, 1.65);
-    \draw[mintlight, opacity=0.6, line width=1pt, dashed] (5.3, 1.45) rectangle (5.8, 1.65);
-    \node[white, opacity=0.9, font=\fontsize{8}{8}\selectfont, anchor=west] at (5.95, 1.55) {Porous};
-
-    \fill[moneygreen, opacity=0.5] (5.3, 0.95) rectangle (5.8, 1.15);
-    \draw[moneygreen, opacity=0.7, line width=1pt] (5.3, 0.95) rectangle (5.8, 1.15);
-    \node[white, opacity=0.9, font=\fontsize{8}{8}\selectfont, anchor=west] at (5.95, 1.05) {Moderate};
-
-    \fill[copperrich, opacity=0.5] (5.3, 0.45) rectangle (5.8, 0.65);
-    \draw[copperrich, opacity=0.9, line width=1.5pt] (5.3, 0.45) rectangle (5.8, 0.65);
-    \node[white, opacity=0.9, font=\fontsize{8}{8}\selectfont, anchor=west] at (5.95, 0.55) {Robust};
-  \end{scope}
-
-  % Bottom accent
-  \fill[copperrich] (2cm, -9.2cm) rectangle (\paperwidth-2cm, -9.3cm);
-\end{tikzpicture}
-
-\vspace{0.8cm}
+\partbanner{I}{Foundations}{Methodology, Frameworks,\\and the Qualitative Shift}{%
+      % Illicit agentic stack: five capability layers (Section 4), legacy
+      % layers in green and new agent-native layers in brass, all composed
+      % by a single agent (Section 3: composability).
+      \foreach \i/\col/\op/\lab in {
+          0/moneygreen/0.30/IDENTITY SYNTHESIS,
+          1/moneygreen/0.36/SHELL ENTITIES,
+          2/moneygreen/0.42/VALUE TRANSFER,
+          3/brasslight/0.38/DEFI AND COMPUTE,
+          4/brasslight/0.46/AGENTIC PAYMENT RAILS} {
+        \pgfmathsetmacro{\yb}{-2.75+\i*1.2}
+        % front edge
+        \fill[\col, opacity=0.75] (-4.0,\yb-0.14) rectangle (0.4,\yb);
+        \fill[\col!60!black, opacity=0.6] (0.4,\yb-0.14) -- (1.2,\yb+0.41) -- (1.2,\yb+0.55) -- (0.4,\yb) -- cycle;
+        % top face
+        \fill[\col, opacity=\op] (-4.0,\yb) -- (0.4,\yb) -- (1.2,\yb+0.55) -- (-3.2,\yb+0.55) -- cycle;
+        \draw[\col!60!white, opacity=0.7, line width=0.4pt] (-4.0,\yb) -- (0.4,\yb) -- (1.2,\yb+0.55) -- (-3.2,\yb+0.55) -- cycle;
+        \node[pblab] at (-1.4,\yb+0.275) {\lab};
+        % composition link to the agent
+        \draw[copperrich, opacity=0.75, line width=0.8pt] (1.2,\yb+0.275) .. controls (2.1,\yb+0.275) and (2.2,-0.15) .. (3.05,-0.15);
+        \fill[copperrich] (1.2,\yb+0.275) circle (0.05);
+      }
+      % Agent node
+      \fill[copperrich!30!forestdark] (3.35,-0.15) circle (0.34);
+      \draw[copperrich, line width=1.6pt] (3.35,-0.15) circle (0.34);
+      \draw[copperrich, opacity=0.4, line width=0.4pt] (3.35,-0.15) circle (0.55);
+      \fill[copperrich] (3.35,-0.15) circle (0.09);
+      \node[pbhead, anchor=north] at (3.35,-0.85) {AGENT};
+}
 \begin{center}
 \begin{minipage}{0.9\textwidth}
 \begin{tcolorbox}[enhanced, colback=white, colframe=emeralddeep!40, boxrule=1pt, arc=4pt,
@@ -682,30 +785,34 @@ We deliberately avoid specific technical implementation details for laundering t
 
 Throughout this document, claims are tagged with confidence levels:
 
-\begin{center}
-\small
-\begin{tabular}{L{1.5cm}L{4cm}L{7cm}}
+\begingroup\small
+\begin{longtable}{L{0.120\dimexpr\linewidth-6\tabcolsep\relax}L{0.320\dimexpr\linewidth-6\tabcolsep\relax}L{0.560\dimexpr\linewidth-6\tabcolsep\relax}}
 \toprule
 \textbf{Marker} & \textbf{Meaning} & \textbf{Evidence Standard} \\
 \midrule
+\endhead
 \textbf{[O]} & Open-source documented & Published research, code repositories, public demonstrations \\
 \textbf{[E]} & Expert judgment & Consistent with theory and limited evidence; gaps acknowledged \\
 \textbf{[S]} & Speculative projection & Extrapolation from trends; significant uncertainty \\
 \bottomrule
-\end{tabular}
-\end{center}
+\end{longtable}
+\endgroup
 
 \subsection{Risk Decomposition Framework}
 
 Agent-enabled financial crime risk can be mapped across four axes:
 
-\textbf{Axis 1: Financial Rail}
-\begin{center}
-\small
-\begin{tabular}{L{4cm}L{4cm}L{4cm}}
+\begingroup\small
+\begin{longtable}{L{0.333\dimexpr\linewidth-6\tabcolsep\relax}L{0.333\dimexpr\linewidth-6\tabcolsep\relax}L{0.333\dimexpr\linewidth-6\tabcolsep\relax}}
+\multicolumn{3}{@{}l}{\normalsize \textbf{Axis 1: Financial Rail}}\\[-2pt]
 \toprule
 \textbf{Rail} & \textbf{Agent Advantage} & \textbf{Control Maturity} \\
 \midrule
+\endfirsthead
+\toprule
+\textbf{Rail} & \textbf{Agent Advantage} & \textbf{Control Maturity} \\
+\midrule
+\endhead
 Traditional Finance (TradFi) & Lower (robust KYC/KYB) & High \\
 Fintech APIs / Neobanks & Medium (lighter verification) & Medium \\
 Stablecoins & High (programmable, 24/7) & Medium-Low \\
@@ -714,16 +821,20 @@ Virtual Economies / Gaming & High (often unregulated) & Very Low \\
 Card-network agent credentials \textit{(new)} & Low-Medium (tokenized, mandate-bound) & Medium-High (fraud strong; AML link weak) \\
 Open agent-payment protocols (e.g.\ x402) \textit{(new)} & High (no account, machine-native) & Low (identity optional) \\
 \bottomrule
-\end{tabular}
-\end{center}
+\end{longtable}
+\endgroup
 
-\textbf{Axis 2: Control Point}
-\begin{center}
-\small
-\begin{tabular}{L{3cm}L{4.5cm}L{4.5cm}}
+\begingroup\small
+\begin{longtable}{L{0.250\dimexpr\linewidth-6\tabcolsep\relax}L{0.375\dimexpr\linewidth-6\tabcolsep\relax}L{0.375\dimexpr\linewidth-6\tabcolsep\relax}}
+\multicolumn{3}{@{}l}{\normalsize \textbf{Axis 2: Control Point}}\\[-2pt]
 \toprule
 \textbf{Control Point} & \textbf{What It Controls} & \textbf{Agent Pressure Point} \\
 \midrule
+\endfirsthead
+\toprule
+\textbf{Control Point} & \textbf{What It Controls} & \textbf{Agent Pressure Point} \\
+\midrule
+\endhead
 Delegation / mandate \textit{(new)} & What a user authorized an agent to do & Scope creep, injected instructions, forged mandates \\
 Onboarding & Identity verification & Synthetic identity volume \\
 Authorization & Transaction approval & Speed of requests \\
@@ -731,40 +842,48 @@ Settlement & Finality of transfer & Irreversibility window \\
 Off-ramp & Fiat conversion & Cashout bottleneck \\
 Registry & Entity formation & Shell infrastructure creation \\
 \bottomrule
-\end{tabular}
-\end{center}
+\end{longtable}
+\endgroup
 
-\textbf{Axis 3: Failure Mode}
-\begin{center}
-\small
-\begin{tabular}{L{3.5cm}L{5cm}L{4cm}}
+\begingroup\small
+\begin{longtable}{L{0.280\dimexpr\linewidth-6\tabcolsep\relax}L{0.400\dimexpr\linewidth-6\tabcolsep\relax}L{0.320\dimexpr\linewidth-6\tabcolsep\relax}}
+\multicolumn{3}{@{}l}{\normalsize \textbf{Axis 3: Failure Mode}}\\[-2pt]
 \toprule
 \textbf{Failure Mode} & \textbf{Description} & \textbf{Primary Cause} \\
 \midrule
+\endfirsthead
+\toprule
+\textbf{Failure Mode} & \textbf{Description} & \textbf{Primary Cause} \\
+\midrule
+\endhead
 Evasion & Deliberate circumvention of controls & Adversarial optimization \\
 Overload & Controls exist but capacity overwhelmed & Volume/speed asymmetry \\
 Attribution Gap & Cannot assign responsibility & Agent opacity / multi-hop chains \\
 Accidental Non-compliance & Unintended violations & Hallucination / misinterpretation \\
 Agent Hijack \textit{(new)} & Legitimate agent steered into paying an attacker & Untrusted input treated as authorization \\
 \bottomrule
-\end{tabular}
-\end{center}
+\end{longtable}
+\endgroup
 
-\textbf{Axis 4: Defensive Lever}
-\begin{center}
-\small
-\begin{tabular}{L{3cm}L{5cm}L{4.5cm}}
+\begingroup\small
+\begin{longtable}{L{0.240\dimexpr\linewidth-6\tabcolsep\relax}L{0.400\dimexpr\linewidth-6\tabcolsep\relax}L{0.360\dimexpr\linewidth-6\tabcolsep\relax}}
+\multicolumn{3}{@{}l}{\normalsize \textbf{Axis 4: Defensive Lever}}\\[-2pt]
 \toprule
 \textbf{Lever} & \textbf{Mechanism} & \textbf{Strongest Against} \\
 \midrule
+\endfirsthead
+\toprule
+\textbf{Lever} & \textbf{Mechanism} & \textbf{Strongest Against} \\
+\midrule
+\endhead
 Friction & Rate limits, cooldowns, step-up verification & Volume-based attacks \\
 Attestation & Cryptographic proof of compliance status & Evasion via unregistered agents \\
 Graph Analytics & Cross-entity pattern detection & Coordinated structuring \\
 Liability & Legal accountability for outcomes & Principal-agent defense \\
 Data Sharing & Cross-institution visibility & Siloed defender problem \\
 \bottomrule
-\end{tabular}
-\end{center}
+\end{longtable}
+\endgroup
 
 \textit{Reading the matrix}: For any given risk scenario, identify which rail, which control point is under pressure, what failure mode applies, and which defensive lever(s) respond. This makes the recommendations feel structurally necessary rather than arbitrary.
 
@@ -812,19 +931,14 @@ What did not happen & No documented autonomous laundering case above \$10M; no o
 \begin{defbox}[Core Definitions]
 \textbf{AI Agent}: An AI system capable of autonomous multi-step task execution, tool use, and goal-directed behavior with minimal human oversight per action.
 
-\vspace{0.5em}
 \textbf{Money Laundering}: The process of making illegally-obtained money appear legitimate, typically through three stages: placement, layering, and integration.
 
-\vspace{0.5em}
 \textbf{Bribery}: Offering, giving, receiving, or soliciting something of value to influence the actions of an official or other person in a position of trust.
 
-\vspace{0.5em}
 \textbf{Smurfing}: Structuring transactions to avoid reporting thresholds, using many small actors to break large sums into smaller amounts.
 
-\vspace{0.5em}
 \textbf{Know Your Customer (KYC)}: Due diligence processes financial institutions use to verify customer identity and assess risk.
 
-\vspace{0.5em}
 \textbf{Virtual Asset Service Provider (VASP)}: An entity that conducts exchange, transfer, custody, or issuance of virtual assets as a business, and is subject to FATF-aligned AML/CFT obligations (for example crypto exchanges and custodial wallet providers).
 \end{defbox}
 
@@ -889,20 +1003,20 @@ This implies that governance must focus on:
 
 Different actor classes have different incentives and expected adoption patterns:
 
-\begin{center}
-\small
-\begin{tabular}{L{3.5cm}L{4cm}L{5cm}}
+\begingroup\small
+\begin{longtable}{L{0.280\dimexpr\linewidth-6\tabcolsep\relax}L{0.320\dimexpr\linewidth-6\tabcolsep\relax}L{0.400\dimexpr\linewidth-6\tabcolsep\relax}}
 \toprule
 \textbf{Actor Class} & \textbf{Characteristics} & \textbf{Expected Agent Adoption} \\
 \midrule
+\endhead
 Opportunistic fraud crews & Fast cashout, volume-based & Early adopters for social engineering \\
 Professional laundering networks & Compliance evasion expertise & Structuring automation, entity mgmt \\
 Compromised insiders & Highest-leverage bypass & One insider causes team-level damage \\
 State-aligned actors & Less risk-constrained & Heavy investment in infrastructure \\
 ``Gray-zone'' corporates & ``Relationship optimization'' & Business development that edges into corruption \\
 \bottomrule
-\end{tabular}
-\end{center}
+\end{longtable}
+\endgroup
 
 \textbf{Adoption sequencing [E]}: Agent adoption will likely appear first in \textbf{fraud, mule management, and account takeovers} (high-volume, fast-cashout), then later in deeper laundering and corruption (requires more sophisticated infrastructure and longer time horizons). This taxonomy helps explain why fraud pressure may drive faster regulatory response than AML reform: fraud actors are earlier adopters and create more visible consumer harm.
 
@@ -939,7 +1053,7 @@ Agents don't just transact: they \textbf{compose}. A single agent can integrate:
 
 \textbf{The integration bottleneck disappears}: Previously, combining these capabilities required significant human integration work. Agents reduce this friction to near-zero, enabling rapid assembly of complex financial infrastructure.
 
-\textbf{Concrete evidence: The MCP ecosystem [O]}: The Model Context Protocol (MCP), an open standard for agent-tool integration adopted by major AI providers in 2024-2025, makes composability a production reality rather than a theoretical concern. MCP servers provide standardized interfaces to arbitrary tools (payment processors, corporate registries, blockchain wallets, identity services) that any MCP-compatible agent can invoke without custom integration code. An agent composing identity synthesis + entity formation + payment processing + crypto exchange tools requires only configuration, not engineering. This dramatically lowers the barrier to assembling the ``illicit agentic stack'' described in Section 4. Since v2.1 the payment end of the stack has also standardized (Section~\ref{sec:rails}): an agent needs only a credential or a funded wallet, not a bespoke integration, to move value.
+\textbf{Concrete evidence: The MCP ecosystem [O]}: The Model Context Protocol (MCP), an open standard for agent-tool integration adopted by major AI providers in 2024--2025, makes composability a production reality rather than a theoretical concern. MCP servers provide standardized interfaces to arbitrary tools (payment processors, corporate registries, blockchain wallets, identity services) that any MCP-compatible agent can invoke without custom integration code. An agent composing identity synthesis + entity formation + payment processing + crypto exchange tools requires only configuration, not engineering. This dramatically lowers the barrier to assembling the ``illicit agentic stack'' described in Section 4. Since v2.1 the payment end of the stack has also standardized (Section~\ref{sec:rails}): an agent needs only a credential or a funded wallet, not a bespoke integration, to move value.
 \end{warnbox}
 
 \subsection{Speed Asymmetry}
@@ -960,7 +1074,9 @@ Agent financial operations could operate at machine timescales:
 
 \textbf{This creates a structural detection problem}: by the time human investigators identify a pattern, the agent has already adapted or dissolved the relevant entities.
 
-\textbf{Autonomy is trending toward multi-hour, multi-step task horizons [O]}: The plausibility of an agent independently running a multi-step financial operation depends on how long a horizon it can act over without human correction. METR's task-completion time-horizon measurements are the best public proxy. On 2024-onward data the horizon has been doubling roughly every four months (down from the roughly seven-month rate over 2019-2025). On May 8, 2026 METR estimated an early Claude Mythos Preview's 50\% time horizon at \textit{at least} 16 hours (95\% CI roughly 8.5--55 hours), cautioning that measurements above about 16 hours are unreliable with its current task suite; it has not yet published comparable figures for the September 2026 point releases. The exact point estimate is uncertain, but the direction is not: the reliable-autonomy window has moved from minutes to hours, precisely the timescale over which layering, entity churn, and cashout in this report's scenarios unfold. The saturation caveat is a reminder that the numbers are a moving, imperfectly-measured target.
+\textbf{Autonomy is trending toward multi-hour, multi-step task horizons [O]}: The plausibility of an agent independently running a multi-step financial operation depends on how long a horizon it can act over without human correction. METR's task-completion time-horizon measurements are the best public proxy.
+
+On 2024-onward data the horizon has been doubling roughly every four months (down from the roughly seven-month rate over 2019--2025). On May 8, 2026 METR estimated an early Claude Mythos Preview's 50\% time horizon at \textit{at least} 16 hours (95\% CI roughly 8.5--55 hours), cautioning that measurements above about 16 hours are unreliable with its current task suite; it has not yet published comparable figures for the September 2026 point releases. The exact point estimate is uncertain, but the direction is not: the reliable-autonomy window has moved from minutes to hours, precisely the timescale over which layering, entity churn, and cashout in this report's scenarios unfold. The saturation caveat is a reminder that the numbers are a moving, imperfectly measured target.
 
 \begin{infobox}[Payments Modernization Amplifies This {[O]}]
 The global shift to instant payment rails (FedNow, SEPA Instant, PIX, UPI), API-native banking, and now agent-native payment protocols creates additional speed asymmetry:
@@ -1004,12 +1120,12 @@ Agent swarms can coordinate without human involvement:
 
 \subsection{Illustrative Comparison: Human vs. Agent-Scale Structuring}
 
-\begin{center}
-\small
-\begin{tabular}{L{3.5cm}L{4.5cm}L{4.5cm}}
+\begingroup\small
+\begin{longtable}{L{0.280\dimexpr\linewidth-6\tabcolsep\relax}L{0.360\dimexpr\linewidth-6\tabcolsep\relax}L{0.360\dimexpr\linewidth-6\tabcolsep\relax}}
 \toprule
 \textbf{Dimension} & \textbf{Human Smurfing} & \textbf{Agent Nano-Smurfing} \\
 \midrule
+\endhead
 Transaction size & \$9,500 (just under \$10K threshold) & \$0.50 - \$50 (far below any threshold) \\
 Actors involved & 10-50 recruited individuals & 200,000+ synthetic accounts \\
 Frequency & Once per month per smurf & Every 10 minutes, continuously \\
@@ -1018,8 +1134,8 @@ Adaptation speed & Days to weeks & Minutes to hours \\
 Geographic spread & Single region typically & Global, simultaneous \\
 Detection signature & Known patterns, human behavior tells & Below aggregation thresholds, no behavioral tells \\
 \bottomrule
-\end{tabular}
-\end{center}
+\end{longtable}
+\endgroup
 
 This table illustrates why current AML systems, designed for human-scale activity, face structural inadequacy against agent-scale operations.
 
@@ -1052,7 +1168,14 @@ This section describes technical capabilities that enable agent-based financial 
 
 \textbf{KYC bypass [E]}: While high-assurance verification remains robust, many financial services use lower-assurance methods that synthetic identities can satisfy: document photo upload, video selfie verification, knowledge-based authentication, and phone/email verification.
 
-\textbf{Agent computer use update [O]}: Browser- and computer-controlling agents are now a shipped, benchmarked capability rather than a preview. Frontier vendors evaluate them on standardized GUI-control suites (for example OSWorld-Verified and ScreenSpot-Pro, both reported in the Claude Fable 5 / Mythos 5 system card of June 2026), and the September 2026 releases (Claude Fable 5.1 / Mythos 5.1 on September 1; GPT-6 Astra, which OpenAI describes as state of the art on computer use and browsing, on September 3--4) continue the trend, both shipping general-availability configurations with restricted cyber capability. These agents can navigate web interfaces, fill forms, click through multi-step verification flows, and interact with financial-service onboarding portals designed for humans. This moves the ``automated account opening'' scenario from theoretical to demonstrably possible: the question is no longer whether agents \textit{can} navigate KYC flows, but whether the KYC flows are robust enough to distinguish agent interaction from human interaction. Two caveats cut against a purely alarmist reading. First, frontier providers now ship agentic-safety guardrails for computer and browser use, and the Fable 5 / Mythos 5 system card reports a best-yet external result on the Gray Swan prompt-injection benchmark, so misuse of the compliant, safeguarded configuration is harder than the raw capability suggests. Second, the same card judges overall agentic-attack robustness as only broadly comparable to the prior Opus 4.8 generation. The load-bearing defensive variable remains the KYC flow's own liveness and cross-check robustness, not the agent's dexterity.
+\textbf{Agent computer use update [O]}: Browser- and computer-controlling agents are now a shipped, benchmarked capability rather than a preview. Frontier vendors evaluate them on standardized GUI-control suites (for example OSWorld-Verified and ScreenSpot-Pro, both reported in the Claude Fable 5 / Mythos 5 system card of June 2026), and the September 2026 releases (Claude Fable 5.1 / Mythos 5.1 on September 1; GPT-6 Astra, which OpenAI describes as state of the art on computer use and browsing, on September 3--4) continue the trend, both shipping general-availability configurations with restricted cyber capability.
+
+These agents can navigate web interfaces, fill forms, click through multi-step verification flows, and interact with financial-service onboarding portals designed for humans. This moves the ``automated account opening'' scenario from theoretical to demonstrably possible: the question is no longer whether agents \textit{can} navigate KYC flows, but whether the KYC flows are robust enough to distinguish agent interaction from human interaction. Two caveats cut against a purely alarmist reading:
+\begin{itemize}
+  \item Frontier providers now ship agentic-safety guardrails for computer and browser use, and the Fable 5 / Mythos 5 system card reports a best-yet external result on the Gray Swan prompt-injection benchmark, so misuse of the compliant, safeguarded configuration is harder than the raw capability suggests.
+  \item The same card judges overall agentic-attack robustness as only broadly comparable to the prior Opus 4.8 generation.
+\end{itemize}
+The load-bearing defensive variable remains the KYC flow's own liveness and cross-check robustness, not the agent's dexterity.
 
 \begin{infobox}[Important Counterweight]
 Modern KYC is increasingly multi-layer and liveness-aware. High-assurance verification (biometric liveness detection, government database cross-checks, in-person verification) remains robust against current synthetic identity attacks. The vulnerability is primarily at \textbf{low-assurance fintech on-ramps}. Agents shift attacks to these weakest-link rails rather than defeating all KYC.
@@ -1149,61 +1272,69 @@ In an agentic economy, \textbf{compute is a reserve currency}. Agents may bypass
 
 Earlier editions assumed agents would improvise payments through human-designed interfaces. Between April 2025 and mid-2026 the payments industry instead built dedicated rails for agents \textbf{[O]}:
 
-\begin{center}
-\small
-\begin{tabular}{L{3.1cm}L{2.2cm}L{4.3cm}L{4.4cm}}
+\begingroup\small\setstretch{1.05}\renewcommand{\arraystretch}{1.25}
+\begin{longtable}{L{0.20\dimexpr\linewidth-8\tabcolsep\relax}L{0.16\dimexpr\linewidth-8\tabcolsep\relax}L{0.34\dimexpr\linewidth-8\tabcolsep\relax}L{0.30\dimexpr\linewidth-8\tabcolsep\relax}}
 \toprule
 \textbf{Scheme} & \textbf{Sponsor} & \textbf{Function} & \textbf{Status (Sept.\ 2026)} \\
 \midrule
+\endhead
 Visa Intelligent Commerce / Trusted Agent Protocol & Visa (TAP with Cloudflare) & Tokenized agent credentials with user guardrails; merchants verify signed agent requests against a Visa key directory & VIC April 2025; TAP October 14, 2025; Visa--OpenAI integration June 10, 2026 \\
 Mastercard Agent Pay & Mastercard & ``Agentic Tokens'' let verified agents pay for a consumer & Announced April 29, 2025; Agent Pay for Machines June 2026 \\
 Agent Payments Protocol (AP2) & Google, 60+ partners & Signed user ``mandates'' proving what an agent may buy & Announced September 16, 2025; v0.2.0 April 2026 \\
 Agentic Commerce Protocol (ACP) & OpenAI, Stripe & Agent--merchant checkout & In-chat checkout launched, then scaled back in early 2026 \\
 x402 & Coinbase (with Cloudflare); x402 Foundation & Stablecoin payment inside an ordinary web request; no account or card & Linux Foundation-hosted foundation (operational July 14, 2026); real commercial volume small \\
 \bottomrule
-\end{tabular}
-\end{center}
+\end{longtable}
+\endgroup
 
 \begin{figure}[htbp]
 \centering
-\resizebox{\textwidth}{!}{%
 \begin{tikzpicture}[
   box/.style={draw=emeralddeep, fill=emeralddeep!8, rounded corners=3pt, line width=0.8pt,
-    minimum width=2.3cm, minimum height=1.05cm, text width=2.1cm, align=center, font=\scriptsize\sffamily},
-  risk/.style={box, draw=fraudred, fill=fraudred!8},
+    minimum width=2.4cm, minimum height=1.0cm, text width=2.2cm, align=center,
+    font=\footnotesize\sffamily, text=textdark, execute at begin node={\hyphenpenalty=10000\relax}},
+  risk/.style={box, draw=fraudred, fill=fraudred!8, text width=2.5cm, minimum width=2.7cm},
   reg/.style={box, draw=complianceblue, fill=complianceblue!10},
-  flow/.style={-{Stealth[length=2.2mm]}, line width=0.9pt, draw=forestdark},
-  weak/.style={-{Stealth[length=2.2mm]}, line width=0.8pt, draw=ledgergray, dashed},
-  ctl/.style={circle, fill=copperrich, text=white, inner sep=1.2pt, minimum size=0.46cm, font=\tiny\bfseries\sffamily},
+  flow/.style={-{Stealth[length=2.4mm]}, line width=0.9pt, draw=forestdark},
+  weak/.style={-{Stealth[length=2.4mm]}, line width=0.8pt, draw=ledgergray, dashed},
+  ctl/.style={circle, fill=copperrich, draw=white, line width=0.6pt, text=white, inner sep=0.6pt,
+    minimum size=0.5cm, font=\scriptsize\bfseries\sffamily},
+  lane/.style={font=\scriptsize\itshape\sffamily, text=ledgergray, anchor=west},
 ]
-  % Nodes
-  \node[box] (P) at (0,0) {Human principal};
-  \node[box, fill=emeralddeep!18] (A) at (3.1,0) {Agent runtime\\(model + tools)};
-  \node[risk] (X) at (3.1,-2.35) {Untrusted inputs\\(web, posts, messages)};
-  \node[box] (M) at (6.3,1.25) {Merchant, API, or counterparty agent};
-  \node[box] (N) at (9.4,1.25) {Card network / acquirer};
-  \node[box] (B) at (12.5,1.25) {Issuing bank\\(KYC holder)};
-  \node[box] (W) at (6.3,-1.25) {Open protocol / on-chain rail};
-  \node[box] (S) at (9.4,-1.25) {Stablecoin issuer};
-  \node[box] (F) at (12.5,-1.25) {Exchange / fiat off-ramp};
-  \node[reg, minimum height=3.4cm] (R) at (15.5,0) {FIU /\\supervisor};
+  % Principal, agent, and untrusted inputs (left column)
+  \node[box] (P) at (0,1.0) {Human principal};
+  \node[box, fill=emeralddeep!20] (A) at (0,-1.1) {Agent runtime (model + tools)};
+  \node[risk] (X) at (0,-3.2) {Untrusted inputs (web, posts, messages)};
 
-  % Flows with control points
-  \draw[flow] (P) -- node[ctl, above=1pt] {C1} (A);
-  \draw[weak, draw=fraudred] (X) -- node[ctl, right=2pt] {C2} (A);
-  \draw[flow] (A.north east) -- node[ctl, above left=-1pt] {C3} (M.west);
-  \draw[flow] (A.south east) -- node[ctl, below left=-1pt] {C3'} (W.west);
-  \draw[flow] (M) -- node[ctl, above=1pt] {C4} (N);
+  % Card rail (upper lane) and open-protocol rail (lower lane)
+  \node[box] (M) at (3.9,0.1) {Merchant, API, or counterparty agent};
+  \node[box] (N) at (7.2,0.1) {Card network / acquirer};
+  \node[box] (B) at (10.5,0.1) {Issuing bank (KYC holder)};
+  \node[box] (W) at (3.9,-2.3) {Open protocol / on-chain rail};
+  \node[box] (S) at (7.2,-2.3) {Stablecoin issuer};
+  \node[box] (F) at (10.5,-2.3) {Exchange / fiat off-ramp};
+  \node[reg, minimum height=3.4cm, minimum width=2.1cm, text width=1.9cm] (R) at (13.7,-1.1) {FIU /\\supervisor};
+
+  \node[lane] at ([yshift=0.22cm]M.north west) {Card-network rail};
+  \node[lane] at ([yshift=-0.22cm]W.south west) {Open-protocol rail};
+
+  % Flows with control points (badges sit on the arrows)
+  \draw[flow] (P) -- node[ctl] {C1} (A);
+  \draw[weak, draw=fraudred] (X) -- node[ctl] {C2} (A);
+  \draw[flow] (A.east) -- node[ctl, pos=0.45] {C3} (M.west);
+  \draw[flow] (A.east) -- node[ctl, pos=0.45] {C3$'$} (W.west);
+  \draw[flow] (M) -- node[ctl] {C4} (N);
   \draw[flow] (N) -- (B);
-  \draw[flow] (W) -- node[ctl, above=1pt] {C5} (S);
-  \draw[flow] (S) -- node[ctl, above=1pt] {C6} (F);
-  \draw[weak] (B.east) -- (R.north west |- B.east);
-  \draw[weak] (F.east) -- (R.south west |- F.east);
+  \draw[flow] (W) -- node[ctl] {C5} (S);
+  \draw[flow] (S) -- node[ctl] {C6} (F);
+  \draw[weak] (B.east) -- (R.west |- B.east);
+  \draw[weak] (F.east) -- (R.west |- F.east);
 
   % Annotation of the gap
-  \node[font=\tiny\sffamily, text=fraudred, text width=3.0cm, align=center] at (15.5,-2.35) {AML sees a payment, not the agent or its mandate};
-\end{tikzpicture}}
-\caption{Agent-initiated payment flow and where controls sit (schematic). C1: delegation and mandate (scope, spend cap, expiry). C2: injection defenses separating untrusted content from instructions. C3: agent credential (network token or signed request); C3': wallet signature on an open protocol, identity optional. C4: network risk scoring and authorization. C5: issuer freeze and blocklist capability. C6: off-ramp KYC and travel-rule data. Dashed grey arrows: today's reporting path to the FIU carries no agent identifier. Controls map to recommendations T4, O1, O6, and I4.}
+  \node[font=\scriptsize\sffamily, execute at begin node={\hyphenpenalty=10000\relax}, text=fraudred, text width=2.9cm, align=center, below=4pt of R]
+    {AML sees a payment, not the agent or its mandate};
+\end{tikzpicture}
+\caption{Agent-initiated payment flow and where controls sit (schematic). C1: delegation and mandate (scope, spend cap, expiry). C2: injection defenses separating untrusted content from instructions. C3: agent credential (network token or signed request); C3$'$: wallet signature on an open protocol, identity optional. C4: network risk scoring and authorization. C5: issuer freeze and blocklist capability. C6: off-ramp KYC and travel-rule data. Dashed grey arrows: today's reporting path to the FIU carries no agent identifier. Controls map to recommendations T4, O1, O6, and I4.}
 \label{fig:agentflow}
 \end{figure}
 
@@ -1240,76 +1371,48 @@ Every earlier section assumes the agent is the attacker's tool. The earliest wid
 % ============================================================================
 \clearpage
 \thispagestyle{empty}
-\vspace*{-0.85in}
-\noindent\hspace*{-0.85in}\begin{tikzpicture}
-  % Header background - deep forest green
-  \fill[forestdark] (0,0) rectangle (\paperwidth, -10cm);
-
-  % Part label and title
-  \node[copperrich, font=\fontsize{10}{10}\selectfont\sffamily] at (0.5\paperwidth, -1.2cm) {PART II};
-  \node[white, font=\fontsize{48}{48}\selectfont\bfseries] at (0.5\paperwidth, -2.8cm) {Risk Domains};
-  \node[white, opacity=0.7, font=\normalsize\sffamily] at (0.5\paperwidth, -4.2cm) {Money Laundering, Bribery, and Corruption};
-
-  % Visualization: Speed Asymmetry - Clean timeline comparison
-  \begin{scope}[shift={(0.5\paperwidth, -7.2cm)}]
-
-    % Human Investigation Timeline (top) - SLOW
-    \node[white, opacity=0.9, font=\fontsize{9}{9}\selectfont\sffamily\bfseries, anchor=east] at (-4.8, 1.4) {Human};
-    \node[white, opacity=0.6, font=\fontsize{8}{8}\selectfont\sffamily, anchor=east] at (-4.8, 1.0) {Investigation};
-    \fill[ledgergray, opacity=0.15] (-4.2, 0.7) rectangle (4.2, 1.7);
-    \draw[ledgergray, opacity=0.5, line width=1.5pt] (-4.2, 1.2) -- (4.2, 1.2);
-    % Milestones - spread out over time
-    \fill[ledgergray, opacity=0.7] (-2.5, 1.2) circle (0.15);
-    \node[white, opacity=0.8, font=\fontsize{8}{8}\selectfont] at (-2.5, 0.85) {Alert};
-    \fill[ledgergray, opacity=0.7] (1.0, 1.2) circle (0.15);
-    \node[white, opacity=0.8, font=\fontsize{8}{8}\selectfont] at (1.0, 0.85) {Review};
-    \fill[ledgergray, opacity=0.7] (4.0, 1.2) circle (0.15);
-    \node[white, opacity=0.8, font=\fontsize{8}{8}\selectfont] at (4.0, 0.85) {Action};
-
-    % Agent Operations Timeline (bottom) - FAST
-    \node[copperrich, font=\fontsize{9}{9}\selectfont\sffamily\bfseries, anchor=east] at (-4.8, -0.4) {Agent};
-    \node[copperrich, opacity=0.8, font=\fontsize{8}{8}\selectfont\sffamily, anchor=east] at (-4.8, -0.8) {Operations};
-    \fill[copperrich, opacity=0.15] (-4.2, -1.1) rectangle (4.2, -0.1);
-    \draw[copperrich, opacity=0.7, line width=2pt] (-4.2, -0.6) -- (4.2, -0.6);
-    % Many rapid milestones clustered at start
-    \foreach \x in {-4.0, -3.6, -3.2, -2.8, -2.4, -2.0, -1.6} {
-      \fill[copperrich, opacity=0.8] (\x, -0.6) circle (0.1);
-    }
-    \node[copperrich, opacity=0.9, font=\fontsize{8}{8}\selectfont] at (-2.8, -0.95) {Complete in seconds};
-
-    % "Funds Exited" marker - vertical line showing when funds escape
-    \draw[fraudred, opacity=0.7, line width=2pt, dashed] (-1.5, -1.3) -- (-1.5, 1.9);
-    \node[fraudred, opacity=0.9, font=\fontsize{9}{9}\selectfont\bfseries, anchor=south] at (-1.5, 1.95) {FUNDS EXITED};
-
-    % Time axis
-    \draw[white, opacity=0.3, line width=1pt] (-4.2, -1.5) -- (4.2, -1.5);
-    \node[white, opacity=0.6, font=\fontsize{8}{8}\selectfont] at (-4.2, -1.8) {Hour 0};
-    \node[white, opacity=0.6, font=\fontsize{8}{8}\selectfont] at (0, -1.8) {Hour 24};
-    \node[white, opacity=0.6, font=\fontsize{8}{8}\selectfont] at (4.2, -1.8) {Hour 48};
-  \end{scope}
-
-  % Legend box on the right
-  \begin{scope}[shift={(0.5\paperwidth, -7.2cm)}]
-    \fill[black, opacity=0.2, rounded corners=3pt] (5.2, -0.8) rectangle (8.5, 2.0);
-    \node[white, opacity=0.8, font=\fontsize{8}{8}\selectfont\sffamily\bfseries, anchor=west] at (5.4, 1.7) {THE PROBLEM};
-
-    \draw[ledgergray, opacity=0.6, line width=3pt] (5.5, 1.2) -- (6.1, 1.2);
-    \node[white, opacity=0.9, font=\fontsize{8}{8}\selectfont, anchor=west] at (6.3, 1.2) {Days/weeks};
-
-    \draw[copperrich, opacity=0.8, line width=3pt] (5.5, 0.7) -- (6.1, 0.7);
-    \node[white, opacity=0.9, font=\fontsize{8}{8}\selectfont, anchor=west] at (6.3, 0.7) {Milliseconds};
-
-    \draw[fraudred, opacity=0.7, line width=2pt, dashed] (5.5, 0.2) -- (6.1, 0.2);
-    \node[white, opacity=0.9, font=\fontsize{8}{8}\selectfont, anchor=west] at (6.3, 0.2) {Window closed};
-
-    \node[white, opacity=0.6, font=\fontsize{7}{7}\selectfont, text width=2.8cm, anchor=west] at (5.4, -0.4) {Agents complete before detection begins};
-  \end{scope}
-
-  % Bottom accent
-  \fill[copperrich] (2cm, -9.2cm) rectangle (\paperwidth-2cm, -9.3cm);
-\end{tikzpicture}
-
-\vspace{0.8cm}
+\partbanner{II}{Risk Domains}{Money Laundering, Bribery, and Corruption}{%
+      % Laundering swarm across the three stages (Section 2): one source is
+      % structured into a smurfing swarm (placement), layered through hops,
+      % and reconverges (integration); one micro-deposit hits a honeypot
+      % on-ramp (Section 7 detection).
+      \coordinate (S) at (-3.55,0.1);
+      \coordinate (I) at (3.55,0.1);
+      % stage bands
+      \fill[white, opacity=0.03] (-0.55,-2.95) rectangle (2.35,3.15);
+      \draw[white, opacity=0.25, line width=0.4pt] (-4.1,-2.95) -- (4.1,-2.95);
+      \foreach \x in {-0.55,2.35} \draw[white, opacity=0.25, line width=0.4pt] (\x,-2.95) -- (\x,-3.1);
+      % column coordinates
+      \foreach \i in {0,...,9} \coordinate (a\i) at (-1.75,{-2.6+\i*0.6});
+      \foreach \j/\y in {0/-2.35,1/-1.4,2/-0.45,3/0.65,4/1.6,5/2.55} \coordinate (b\j) at (0.35,\y);
+      \foreach \k/\y in {0/-1.55,1/-0.3,2/0.9,3/2.1} \coordinate (c\k) at (1.95,\y);
+      % source -> swarm
+      \foreach \i in {0,...,8} \draw[copperrich, opacity=0.45, line width=0.4pt] (S) .. controls (-2.7,0.1) and (-2.6,{-2.6+\i*0.6}) .. (a\i);
+      \draw[fraudred, opacity=0.9, line width=0.8pt] (S) .. controls (-2.7,0.1) and (-2.6,2.8) .. (a9);
+      % swarm -> hop 1
+      \foreach \i/\j in {0/0,0/1,1/0,2/1,3/2,3/1,4/2,5/3,5/2,6/3,6/4,7/4,8/5,8/4} \draw[moneygreen, opacity=0.6, line width=0.4pt] (a\i) -- (b\j);
+      % hop 1 -> hop 2
+      \foreach \j/\k in {0/0,1/0,1/1,2/1,2/2,3/1,3/2,4/2,4/3,5/3} \draw[moneygreen, opacity=0.7, line width=0.4pt] (b\j) -- (c\k);
+      % hop 2 -> integration
+      \foreach \k in {0,...,3} \draw[mintlight, opacity=0.85, line width=0.8pt] (c\k) .. controls (2.8,{-1.55+\k*1.2}) and (2.9,0.1) .. (I);
+      % nodes
+      \foreach \i in {0,...,8} \fill[brasslight] (a\i) circle (0.07);
+      \foreach \j in {0,...,5} \fill[moneygreen!80!white] (b\j) circle (0.1);
+      \foreach \k in {0,...,3} \fill[mintlight!90!white] (c\k) circle (0.13);
+      % honeypot catch
+      \fill[fraudred] (a9) circle (0.08);
+      \draw[fraudred, line width=0.8pt] (a9) circle (0.2);
+      \node[pblab, text=fraudred!55!white, anchor=west] at (-1.45,2.8) {HONEYPOT};
+      % source and integration nodes
+      \fill[copperrich!30!forestdark] (S) circle (0.3);
+      \draw[copperrich, line width=1.6pt] (S) circle (0.3);
+      \fill[mintlight!25!forestdark] (I) circle (0.3);
+      \draw[mintlight, line width=1.6pt] (I) circle (0.3);
+      % stage labels
+      \node[pbhead, anchor=north] at (-2.3,-3.25) {PLACEMENT};
+      \node[pbhead, anchor=north] at (0.9,-3.25) {LAYERING};
+      \node[pbhead, anchor=north east] at (4.1,-3.25) {INTEGRATION};
+}
 \begin{center}
 \begin{minipage}{0.9\textwidth}
 \begin{tcolorbox}[enhanced, colback=white, colframe=emeralddeep!40, boxrule=1pt, arc=4pt,
@@ -1333,7 +1436,13 @@ Every earlier section assumes the agent is the attacker's tool. The earliest wid
 
 \textbf{Traditional smurfing}: Multiple human ``smurfs'' each conduct transactions below reporting thresholds (e.g., \$10,000 in the US). This requires coordination, payment to smurfs, and trust in multiple individuals.
 
-\textbf{Agent smurfing [E]}: A swarm of agents, each controlling synthetic identities and accounts, could conduct thousands of sub-threshold transactions simultaneously, vary amounts, timing, and destinations to avoid pattern detection, adapt structuring in response to any detected scrutiny, and operate across multiple jurisdictions with different thresholds.
+\textbf{Agent smurfing [E]}: A swarm of agents, each controlling synthetic identities and accounts, could:
+\begin{itemize}
+  \item conduct thousands of sub-threshold transactions simultaneously;
+  \item vary amounts, timing, and destinations to avoid pattern detection;
+  \item adapt structuring in response to any detected scrutiny;
+  \item operate across multiple jurisdictions with different thresholds.
+\end{itemize}
 
 \textbf{Nano-smurfing [E]}: At the extreme, agents could structure at granularities far below current thresholds: hundreds of \$50 transactions rather than avoiding \$10,000 reports. No current system is designed to aggregate at this scale.
 
@@ -1369,7 +1478,7 @@ To run 200,000 synthetic accounts with human-like behavior patterns, the cumulat
   \item Capital gains appear legitimate; original funds laundered
 \end{enumerate}
 
-\textbf{Gaming economy laundering [E]}: Virtual items in games have real-world value. Agent farms valuable items using compromised or synthetic accounts, items sold for cryptocurrency or fiat. AML frameworks often don't cover gaming transactions.
+\textbf{Gaming economy laundering [E]}: Virtual items in games have real-world value. An agent farms valuable items using compromised or synthetic accounts, then sells them for cryptocurrency or fiat. AML frameworks often don't cover gaming transactions.
 
 \subsection{Noise Generation: Obfuscation via Complexity}
 
@@ -1377,7 +1486,7 @@ To run 200,000 synthetic accounts with human-like behavior patterns, the cumulat
 \begin{itemize}
   \item Wash trading in markets where agents are counterparties to themselves
   \item Circular payments through legitimate-appearing business operations
-  \item High-frequency small transactions that create haystack for needle
+  \item High-frequency small transactions that create a haystack for the needle
 \end{itemize}
 
 \begin{warnbox}[The Auditability Paradox {[E]}]
@@ -1418,7 +1527,7 @@ To run 200,000 synthetic accounts with human-like behavior patterns, the cumulat
 \textbf{What fails}:
 \begin{itemize}
   \item \textbf{Time-to-interdiction}: Alert generated in hour 6; investigation assigned in hour 48; funds exited by hour 24
-  \item \textbf{Entity churn outpaces investigation}: By the time analyst reviews flagged entity, it's dissolved
+  \item \textbf{Entity churn outpaces investigation}: By the time an analyst reviews a flagged entity, it has dissolved
   \item \textbf{Cross-rail visibility gap}: Banking sees fragments; crypto exchange sees fragments; no one sees the full graph
 \end{itemize}
 
@@ -1426,7 +1535,7 @@ To run 200,000 synthetic accounts with human-like behavior patterns, the cumulat
 
 \textbf{Reality checks and constraints [E]}: To prevent this scenario from reading as implausible:
 \begin{itemize}
-  \item \textbf{KYC/KYB friction is uneven but nonzero}: Even low-assurance platforms require some verification, so the fully-functional-identity yield is a fraction of the synthetic identities attempted, not all of them
+  \item \textbf{KYC/KYB friction is uneven but nonzero}: Even low-assurance platforms require some verification, so the yield of fully functional identities is a fraction of the synthetic identities attempted, not all of them
   \item \textbf{Cashout gravity}: All this activity must eventually convert to usable value; fiat off-ramps, stablecoin redemption, and exchange withdrawals remain bottlenecks
   \item \textbf{Freeze/blacklist capabilities}: Major stablecoins (USDT, USDC) have freeze capabilities; exchanges maintain blacklists; this constrains exit points
   \item \textbf{Bridge vulnerabilities cut both ways}: Cross-chain bridges are attack surfaces for defenders as well as attackers
@@ -1469,18 +1578,18 @@ AI agents optimizing for financial efficiency may:
 
 \textbf{State-aligned settlement tokens [O]}: Chainalysis reports that A7A5, a ruble-linked token, processed about \$93.3 billion in under a year as a settlement rail for sanctioned Russian trade; associated exchanges (Grinex, Meer) were sanctioned by the U.S. and EU. \textbf{[E]} USD issuers' freeze powers do not reach a token whose issuer is aligned with the sanctioned state.
 
-\begin{center}
-\small
-\begin{tabular}{L{5cm}L{7cm}}
+\begingroup\small
+\begin{longtable}{L{0.417\dimexpr\linewidth-4\tabcolsep\relax}L{0.583\dimexpr\linewidth-4\tabcolsep\relax}}
 \toprule
 \textbf{Ship Registry Model} & \textbf{Agent Haven Equivalent} \\
 \midrule
+\endhead
 Panama/Liberia ship registries & ``Agent Registration'' jurisdictions \\
 Flag state shields owners from port state liability & Agent registration shields deployers from user jurisdiction liability \\
 Beneficial ownership obscured through layers & Principal identification obscured through shell structures \\
 \bottomrule
-\end{tabular}
-\end{center}
+\end{longtable}
+\endgroup
 
 \begin{warnbox}[``Sovereign Agent Immunity'' {[S]}]
 A jurisdiction might offer: if an agent is registered in Jurisdiction X, its human deployers are shielded from liability in Jurisdiction Y. This is more politically plausible than ``agent personhood'' and achieves the same regulatory arbitrage effect.
@@ -1553,20 +1662,20 @@ Supervisors have moved market integrity into the mainstream of the AI debate, an
   \item \textbf{CFTC / SEC}: existing rules apply to AI-enabled activity, but neither has said how intent-dependent spoofing and manipulation provisions map onto autonomous agents
 \end{itemize}
 
-\begin{center}
-\small
-\begin{tabular}{L{3.2cm}L{5.2cm}L{5.2cm}}
+\begingroup\small
+\begin{longtable}{L{0.235\dimexpr\linewidth-6\tabcolsep\relax}L{0.382\dimexpr\linewidth-6\tabcolsep\relax}L{0.382\dimexpr\linewidth-6\tabcolsep\relax}}
 \toprule
 \textbf{Risk [E]} & \textbf{Mechanism} & \textbf{Why existing law struggles} \\
 \midrule
+\endhead
 Tacit algorithmic collusion & Independent learning agents converge on supra-competitive outcomes without communication (NBER WP 34054) & Collusion and manipulation doctrines generally require agreement or intent \\
 Correlated agent herding & Many agents on a few foundation models react alike & No single actor behaves improperly; harm is emergent \\
 Deliberate agent-scale manipulation & Synthetic discourse plus coordinated trading & Attribution across synthetic identities; campaign speed \\
 \bottomrule
-\end{tabular}
-\end{center}
+\end{longtable}
+\endgroup
 
-\textbf{Stress data point, not an agent event [O]}: On October 10, 2025 a tariff announcement triggered the largest liquidation cascade on record in crypto derivatives (about \$19.4 billion of leveraged positions over 24 hours, per CoinGlass data as reported), in markets that trade around the clock with no circuit breakers. Nothing indicates agents caused it; it shows the market structure into which agent trading is expanding. \textbf{[S]} An agent-driven variant is the mechanism behind Scenario D.
+\textbf{Stress data point, not an agent event [O]}: On October 10, 2025, a tariff announcement triggered the largest liquidation cascade on record in crypto derivatives (about \$19.4 billion of leveraged positions over 24 hours, per CoinGlass data as reported), in markets that trade around the clock with no circuit breakers. Nothing indicates agents caused it; it shows the market structure into which agent trading is expanding. \textbf{[S]} An agent-driven variant is the mechanism behind Scenario D.
 
 \textbf{Policy implication [E]}: Add an \textit{effects-based} standard for automated trading systems (test for and mitigate collusive or destabilizing emergent behavior) alongside intent-based manipulation law, and press crypto derivatives venues toward volatility controls comparable to regulated markets.
 
@@ -1613,13 +1722,13 @@ The agent, optimizing without explicit bribery instruction:
   \item No single ``smoking gun'' payment
 \end{itemize}
 
-\textbf{Example}: Agent sends small ``appreciation'' gifts (\$50-200) to 500 mid-level procurement officials across 50 municipalities. No individual gift triggers scrutiny. Systematic bias in contract awards emerges.
+\textbf{Example}: Agent sends small ``appreciation'' gifts (\$50--\$200) to 500 mid-level procurement officials across 50 municipalities. No individual gift triggers scrutiny. Systematic bias in contract awards emerges.
 
 \subsection{Procurement Manipulation}
 
 \textbf{Attack vector [E]}: Agents participating in procurement processes could:
 \begin{itemize}
-  \item Submit strategically-priced bids across multiple synthetic companies
+  \item Submit strategically priced bids across multiple synthetic companies
   \item Gather competitive intelligence through synthetic analyst personas
   \item Coordinate bid-rigging without human communication to intercept
   \item Adjust pricing dynamically based on gathered intelligence
@@ -1677,13 +1786,13 @@ While much of this analysis focuses on automated systems, human gatekeepers rema
   \item Provide documentation that passes human review
 \end{itemize}
 
-\textbf{Scenario [S]}: An agent managing a shell company network needs to white-list an account at a regional bank. The agent:
+\textbf{Scenario [S]}: An agent managing a shell company network needs to whitelist an account at a regional bank. The agent:
 \begin{enumerate}
   \item Researches the compliance officer via LinkedIn, publications, conference attendance
   \item Creates a synthetic ``industry peer'' persona with credible background
   \item Initiates professional relationship over months
   \item Eventually requests account review as a ``professional favor''
-  \item Uses deep-fake audio/video for verification calls if needed
+  \item Uses deepfake audio/video for verification calls if needed
 \end{enumerate}
 
 \textbf{The ``automated grooming'' problem [E]}: This isn't a single social engineering attack but a sustained campaign that would take humans months to execute. An agent can run dozens of such campaigns simultaneously, building relationship infrastructure for future exploitation.
@@ -1707,7 +1816,7 @@ While much of this analysis focuses on automated systems, human gatekeepers rema
 
 \textbf{Paperwork flooding [S]}: Rather than bribing the humans who review documents, agents can \textbf{overwhelm compliance teams with high-quality false documentation}:
 \begin{itemize}
-  \item Procurement teams drown in professionally-formatted submissions
+  \item Procurement teams drown in professionally formatted submissions
   \item Each individual document passes standard checks
   \item The volume makes thorough verification impossible
   \item ``Good enough'' documentation gets through by sheer volume
@@ -1732,7 +1841,7 @@ Insurance & Loss documentation, repair estimates & Plausible damage records & Fr
 \end{tabular}
 \end{center}
 
-\textbf{Why this matters for laundering [E]}: Trade-based money laundering (TBML) is already a major channel (FATF estimates 80\%+ of illicit financial flows involve trade). Agents that can generate complete, internally-consistent documentation packages at scale would amplify existing TBML risks.
+\textbf{Why this matters for laundering [E]}: Trade-based money laundering (TBML) is already a major channel (FATF estimates 80\%+ of illicit financial flows involve trade). Agents that can generate complete, internally consistent documentation packages at scale would amplify existing TBML risks.
 
 \textbf{Common defensive requirement}: All these domains need to shift from ``document review'' to \textbf{cryptographic provenance verification}, where authenticity is attested by trusted parties rather than inferred from formatting quality.
 \end{infobox}
@@ -1742,7 +1851,7 @@ Insurance & Loss documentation, repair estimates & Plausible damage records & Fr
 \begin{warnbox}[Beyond Crime: The ``Legal but Harmful'' Frontier {[E]}]
 While this document focuses on financial crime, agents will likely excel at \textbf{legal arbitrage} that drains public resources without crossing criminal thresholds.
 
-\textbf{Dynamic Transfer Pricing [S]}: Multinational agents could optimize corporate structures in real-time:
+\textbf{Dynamic Transfer Pricing [S]}: Multinational agents could optimize corporate structures in real time:
 \begin{itemize}
   \item Shift ``intellectual property licenses'' between 50 subsidiaries every hour
   \item Adjust ``consulting fees'' based on real-time tax law updates across jurisdictions
@@ -1767,7 +1876,12 @@ While this document focuses on financial crime, agents will likely excel at \tex
 
 \textbf{Current practice [O]}: Financial institutions increasingly use AI to simulate attack scenarios and train detection systems.
 
-\textbf{Agent red teaming [E]}: Deploy ``adversarial agents'' that attempt laundering/fraud against detection systems: generate realistic synthetic attack patterns, identify detection blind spots, train defensive systems on novel attack variations.
+\textbf{Agent red teaming [E]}: Deploy ``adversarial agents'' that attempt laundering or fraud against detection systems in order to:
+\begin{itemize}
+  \item generate realistic synthetic attack patterns;
+  \item identify detection blind spots;
+  \item train defensive systems on novel attack variations.
+\end{itemize}
 
 \textbf{Dual-use consideration}: The same red-teaming capabilities could be used offensively. Institutions must balance security benefits against capability proliferation risks.
 
@@ -1811,7 +1925,14 @@ Regulators could deploy \textbf{``Honeypot On-ramps''}: neobanks, DeFi protocols
 
 \textbf{The scale problem [E]}: If agents generate transaction volumes orders of magnitude beyond current norms, human investigation capacity is structurally inadequate.
 
-\textbf{Counter-agent approach [E]}: Deploy agent systems to monitor transaction flows at machine timescales, identify coordinated activity across entities, track entity formation/dissolution patterns, detect synthetic identity signatures, and map complex ownership structures automatically.
+\textbf{Counter-agent approach [E]}: Deploy agent systems that:
+\begin{itemize}
+  \item monitor transaction flows at machine timescales;
+  \item identify coordinated activity across entities;
+  \item track entity formation and dissolution patterns;
+  \item detect synthetic identity signatures;
+  \item map complex ownership structures automatically.
+\end{itemize}
 
 \textbf{Implication}: Financial crime investigation becomes agent-vs-agent competition, with humans providing oversight and judgment for agent-identified cases.
 
@@ -1828,61 +1949,39 @@ Regulators could deploy \textbf{``Honeypot On-ramps''}: neobanks, DeFi protocols
 % ============================================================================
 \clearpage
 \thispagestyle{empty}
-\vspace*{-0.85in}
-\noindent\hspace*{-0.85in}\begin{tikzpicture}
-  % Header background - deep forest green
-  \fill[forestdark] (0,0) rectangle (\paperwidth, -10cm);
-
-  % Part label and title
-  \node[copperrich, font=\fontsize{10}{10}\selectfont\sffamily] at (0.5\paperwidth, -1.2cm) {PART III};
-  \node[white, font=\fontsize{48}{48}\selectfont\bfseries] at (0.5\paperwidth, -2.8cm) {Governance};
-  \node[white, opacity=0.7, font=\normalsize\sffamily] at (0.5\paperwidth, -4.2cm) {Regulatory Challenges and Scenario Projections};
-
-  % Visualization: The Governance Gap - Clean centered design
-  \begin{scope}[shift={(0.5\paperwidth, -7.2cm)}]
-    % Graph area - centered and larger
-    % Y-axis label
-    \node[white, opacity=0.7, font=\fontsize{9}{9}\selectfont\sffamily, rotate=90, anchor=south] at (-5.2, 0.3) {CAPABILITY LEVEL};
-
-    % X-axis with year markers
-    \draw[white, opacity=0.4, line width=1pt] (-4.5, -1.2) -- (4.5, -1.2);
-    \node[white, opacity=0.8, font=\fontsize{10}{10}\selectfont\sffamily\bfseries] at (-3.8, -1.6) {2024};
-    \node[white, opacity=0.8, font=\fontsize{10}{10}\selectfont\sffamily\bfseries] at (0, -1.6) {2027};
-    \node[white, opacity=0.8, font=\fontsize{10}{10}\selectfont\sffamily\bfseries] at (3.8, -1.6) {2030};
-
-    % Year tick marks
-    \draw[white, opacity=0.4, line width=1pt] (-3.8, -1.2) -- (-3.8, -1.35);
-    \draw[white, opacity=0.4, line width=1pt] (0, -1.2) -- (0, -1.35);
-    \draw[white, opacity=0.4, line width=1pt] (3.8, -1.2) -- (3.8, -1.35);
-
-    % Starting point
-    \fill[white] (-3.8, -0.8) circle (0.1);
-
-    % Agent capability line (steep exponential rise - mint green)
-    \draw[mintlight, line width=3pt] (-3.8, -0.8) .. controls (-1.5, -0.3) and (1.5, 0.8) .. (3.8, 1.6);
-
-    % Regulatory response line (slow linear rise - amber)
-    \draw[alertamber, line width=3pt] (-3.8, -0.8) .. controls (-1.5, -0.5) and (1.5, -0.1) .. (3.8, 0.1);
-
-    % Gap fill between curves
-    \fill[fraudred, opacity=0.2]
-      (-3.8, -0.8) .. controls (-1.5, -0.3) and (1.5, 0.8) .. (3.8, 1.6)
-      -- (3.8, 0.1) .. controls (1.5, -0.1) and (-1.5, -0.5) .. (-3.8, -0.8);
-
-    % Gap indicator with clear label
-    \draw[copperrich, line width=2.5pt, <->] (2.5, 0) -- (2.5, 1.15);
-    \node[copperrich, font=\fontsize{12}{12}\selectfont\bfseries, anchor=west] at (2.7, 0.58) {GAP};
-
-    % Line labels at end (larger, clearer)
-    \node[mintlight, font=\fontsize{10}{10}\selectfont\sffamily\bfseries, anchor=west] at (4.0, 1.6) {AI Agent Capability};
-    \node[alertamber, font=\fontsize{10}{10}\selectfont\sffamily\bfseries, anchor=west] at (4.0, 0.1) {Regulatory Response};
-  \end{scope}
-
-  % Bottom accent
-  \fill[copperrich] (2cm, -9.2cm) rectangle (\paperwidth-2cm, -9.3cm);
-\end{tikzpicture}
-
-\vspace{0.8cm}
+\partbanner{III}{Governance}{Regulatory Challenges and Scenario Projections}{%
+      % Scenario risk matrix (Section 9, Figure: scenario risk matrix):
+      % scenarios A to F placed by v3.0 probability (x, 0 to 50%) and impact
+      % judgment (y). Copper: near-term drivers B and F; brass outline:
+      % low-likelihood systemic C, D, E that drive resilience design.
+      \foreach \i in {0,1,2} {
+        \foreach \j in {0,1,2} {
+          \pgfmathsetmacro{\hop}{0.025+(\i+\j)*0.022}
+          \fill[white, opacity=\hop] ({-3.6+\i*2.5},{-2.9+\j*1.98}) rectangle ++(2.5,1.98);
+        }
+      }
+      \foreach \i in {1,2} {
+        \draw[white, opacity=0.18, line width=0.4pt] ({-3.6+\i*2.5},-2.9) -- ({-3.6+\i*2.5},3.04);
+        \draw[white, opacity=0.18, line width=0.4pt] (-3.6,{-2.9+\i*1.98}) -- (3.9,{-2.9+\i*1.98});
+      }
+      \draw[white, opacity=0.55, line width=0.8pt] (-3.6,3.04) -- (-3.6,-2.9) -- (3.9,-2.9);
+      % scenarios: x = -3.6 + 0.15 * p, y = -2.9 + 0.9 * impact
+      \foreach \px/\py/\r/\lab in {3.15/-0.83/0.31/F, 2.4/0.34/0.31/B} {
+        \fill[copperrich] (\px,\py) circle (\r);
+        \node[inner sep=0, text=white, font=\sffamily\bfseries\fontsize{8}{9}\selectfont] at (\px,\py) {\lab};
+      }
+      \fill[mintlight!55!forestdark] (0.9,-1.73) circle (0.27);
+      \draw[mintlight, line width=0.8pt] (0.9,-1.73) circle (0.27);
+      \node[inner sep=0, text=white, font=\sffamily\bfseries\fontsize{8}{9}\selectfont] at (0.9,-1.73) {A};
+      \foreach \px/\py/\lab in {-1.35/1.78/C, -1.8/2.5/D, -2.55/1.24/E} {
+        \fill[forestdark] (\px,\py) circle (0.25);
+        \draw[brasslight, line width=1.6pt] (\px,\py) circle (0.25);
+        \node[inner sep=0, text=brasslight!80!white, font=\sffamily\bfseries\fontsize{8}{9}\selectfont] at (\px,\py) {\lab};
+      }
+      % axis titles
+      \node[pbhead, anchor=north] at (0.15,-3.15) {LIKELIHOOD};
+      \node[pbhead, anchor=south, rotate=90] at (-3.8,0.07) {IMPACT};
+}
 \begin{center}
 \begin{minipage}{0.9\textwidth}
 \begin{tcolorbox}[enhanced, colback=white, colframe=emeralddeep!40, boxrule=1pt, arc=4pt,
@@ -1908,33 +2007,33 @@ A useful reframing: \textbf{financial agent deployments are software supply chai
 \begin{center}
 \begin{tikzpicture}[
   st/.style={draw=emeralddeep, fill=emeralddeep!8, rounded corners=2pt, line width=0.7pt,
-    minimum height=0.95cm, text width=2.05cm, align=center, font=\scriptsize\sffamily},
-  ar/.style={-{Stealth[length=1.8mm]}, line width=0.8pt, draw=forestdark}]
+    minimum height=1.1cm, text width=2.15cm, align=center, font=\footnotesize\sffamily, text=textdark},
+  ar/.style={-{Stealth[length=2mm]}, line width=0.8pt, draw=forestdark}]
   \node[st] (a) at (0,0) {Foundation model};
-  \node[st] (b) at (2.75,0) {Orchestrator framework};
-  \node[st] (c) at (5.5,0) {Tool plugins (MCP servers)};
-  \node[st] (d) at (8.25,0) {Identity (agent credentials)};
-  \node[st] (e) at (11,0) {Payment rails (agent tokens, AP2, x402)};
-  \node[st, fill=complianceblue!10, draw=complianceblue] (f) at (13.75,0) {Monitoring and logging};
+  \node[st] (b) at (2.85,0) {Orchestrator framework};
+  \node[st] (c) at (5.7,0) {Tool plugins (MCP servers)};
+  \node[st] (d) at (8.55,0) {Identity (agent credentials)};
+  \node[st] (e) at (11.4,0) {Payment rails (agent tokens, AP2, x402)};
+  \node[st, fill=complianceblue!10, draw=complianceblue] (f) at (14.25,0) {Monitoring and logging};
   \foreach \x/\y in {a/b,b/c,c/d,d/e,e/f} \draw[ar] (\x) -- (\y);
-  \draw[ar, dashed, draw=ledgergray] (f.south) -- ++(0,-0.45) -| node[pos=0.25, below, font=\tiny\sffamily, text=ledgergray] {feedback: revocation, incident reports} (d.south);
+  \draw[ar, dashed, draw=ledgergray] (f.south) -- ++(0,-0.5) -| node[pos=0.25, below, font=\scriptsize\sffamily, text=ledgergray] {feedback: revocation, incident reports} (d.south);
 \end{tikzpicture}
 \end{center}
 
-\begin{center}
-\small
-\begin{tabular}{L{5cm}L{7cm}}
+\begingroup\small
+\begin{longtable}{L{0.417\dimexpr\linewidth-4\tabcolsep\relax}L{0.583\dimexpr\linewidth-4\tabcolsep\relax}}
 \toprule
 \textbf{Supply-Chain Concept} & \textbf{Agent Governance Equivalent} \\
 \midrule
+\endhead
 Software Bill of Materials (SBOM) & Agent component disclosure (model, tools, permissions) \\
 Dependency scanning & Tool plugin audit requirements \\
 Signed builds & Cryptographic attestation of agent configuration \\
 Vulnerability disclosure & Incident reporting for agent misbehavior \\
 Patch management & Mandatory updates for certified agent stacks \\
 \bottomrule
-\end{tabular}
-\end{center}
+\end{longtable}
+\endgroup
 
 \subsection{The Collaborative Analytics Bottleneck}
 
@@ -1947,7 +2046,7 @@ The structural problem and why agents amplify it are set out in Section 3 (``Def
 
 \textbf{v3.0 additions}: \textbf{[E]} agent credentials create a new identifier designed to be stable and verifiable across merchants, an unusually good join key for privacy-preserving cross-institution analytics; \textbf{[O]} supervisors are converging on AI-assisted oversight (IOSCO's ``AI as a judge,'' the FSB's AI-monitoring-AI practice), which only works across institutions if data can be pooled.
 
-\textbf{Workforce contraction amplifies this gap [O]}: As documented in ETRA-2026-IC-001, the U.S. intelligence community has experienced significant workforce reductions in 2025-2026 (NSA met its 2,000-person reduction target by end of 2025; ODNI cut roughly 40\% from about 2,000 toward about 1,300 under ``ODNI 2.0,'' and was at little more than half its January 2025 size by late July 2026, with a further round reported to take it toward roughly 1,000; CIA shrinking about 1,200 positions over several years). Financial enforcement agencies face analogous political pressures on staffing and budgets. If FinCEN, Treasury OFAC, and bank compliance teams face similar contraction while agent-driven transaction volumes accelerate, the investigative capacity gap widens on both sides simultaneously: more activity to monitor, fewer humans to monitor it.
+\textbf{Workforce contraction amplifies this gap [O]}: As documented in ETRA-2026-IC-001, the U.S. intelligence community has experienced significant workforce reductions in 2025--2026 (NSA met its 2,000-person reduction target by end of 2025; ODNI cut roughly 40\% from about 2,000 toward about 1,300 under ``ODNI 2.0,'' and was at little more than half its January 2025 size by late July 2026, with a further round reported to take it toward roughly 1,000; CIA shrinking about 1,200 positions over several years). Financial enforcement agencies face analogous political pressures on staffing and budgets. If FinCEN, Treasury OFAC, and bank compliance teams face similar contraction while agent-driven transaction volumes accelerate, the investigative capacity gap widens on both sides simultaneously: more activity to monitor, fewer humans to monitor it.
 \end{criticalbox}
 
 \subsection{Liability Assignment}
@@ -1998,7 +2097,15 @@ This MVP addresses the core chokepoint problem without creating a comprehensive 
 \end{keybox}
 
 \begin{infobox}[v3.0 Update: KYA Is Being Built, by the Private Sector {[O]/[E]}]
-When this report introduced KYA, no one was building it. By September 2026 card networks operate agent-credential schemes (Section~\ref{sec:rails}), Google's AP2 defines signed user mandates, and practitioners openly frame the problem as ``Know Your Agent.'' Regulators lag: the UK FCA's Payments Regulatory Priorities (March 25, 2026) acknowledged payment rules were not written for autonomous agents and said it would consider changes, and HM Treasury has signaled a consultation; U.S. regulators have issued no agent-specific payments rule. \textbf{[E]} The question is no longer whether KYA exists but \textit{whose objectives it encodes}. AML-grade KYA needs three narrow, standards-level additions that industry has no commercial reason to build alone: (1) retention of agent-credential identifiers for the AML record-keeping period; (2) availability of those identifiers to suspicious-activity reporting and travel-rule messages; (3) linkage to the \textit{deployer}, not only the cardholder, where the two differ. These are cheaper now than as retrofits.
+When this report introduced KYA, no one was building it. By September 2026 card networks operate agent-credential schemes (Section~\ref{sec:rails}), Google's AP2 defines signed user mandates, and practitioners openly frame the problem as ``Know Your Agent.'' Regulators lag: the UK FCA's Payments Regulatory Priorities (March 25, 2026) acknowledged payment rules were not written for autonomous agents and said it would consider changes, and HM Treasury has signaled a consultation; U.S. regulators have issued no agent-specific payments rule.
+
+\textbf{[E]} The question is no longer whether KYA exists but \textit{whose objectives it encodes}. AML-grade KYA needs three narrow, standards-level additions that industry has no commercial reason to build alone:
+\begin{enumerate}
+  \item retention of agent-credential identifiers for the AML record-keeping period;
+  \item availability of those identifiers to suspicious-activity reporting and travel-rule messages;
+  \item linkage to the \textit{deployer}, not only the cardholder, where the two differ.
+\end{enumerate}
+These are cheaper now than as retrofits.
 \end{infobox}
 
 \begin{infobox}[KYA Enforcement at Registered Endpoints]
@@ -2084,7 +2191,13 @@ Stale attestations & Conditions changed since attestation issued & Expiration wi
 
 \subsection{Counterpoint: The ``Compliance-as-Code'' Argument}
 
-\textbf{The optimistic case [E]}: AI agents might actually be \textit{easier} to regulate than humans because agent ``weights'' or system prompts can be audited, agents lack the ``greed'' or ``fear'' that drives human corruption, a ``Constitutional Agent'' with hardcoded compliance rules cannot be bribed, and decision logs provide unprecedented transparency vs. human decision-making.
+\textbf{The optimistic case [E]}: AI agents might actually be \textit{easier} to regulate than humans:
+\begin{itemize}
+  \item agent ``weights'' or system prompts can be audited;
+  \item agents lack the ``greed'' or ``fear'' that drives human corruption;
+  \item a ``Constitutional Agent'' with hardcoded compliance rules cannot be bribed;
+  \item decision logs provide unprecedented transparency compared with human decision-making.
+\end{itemize}
 
 \textbf{The ``agent-only zone'' scenario [S]}: Some argue that financial transactions mediated exclusively by regulated, auditable agents could be \textit{cleaner} than human-mediated transactions. If both parties to a transaction are certified compliant agents with full logging, the auditability exceeds anything possible with human actors.
 
@@ -2105,7 +2218,7 @@ Stale attestations & Conditions changed since attestation issued & Expiration wi
   \item The ``agentic economy'' may develop primarily in non-regulating jurisdictions
 \end{itemize}
 
-\textbf{The ``race to the bottom'' scenario [S]}: If major financial centers implement strict agent controls while others don't, financial innovation migrates to permissive jurisdictions, compliant jurisdictions lose competitive advantage, and global financial integrity actually decreases as activity shifts to less-regulated zones.
+\textbf{The ``race to the bottom'' scenario [S]}: If major financial centers implement strict agent controls while others do not, financial innovation migrates to permissive jurisdictions and compliant jurisdictions lose competitive advantage. Global financial integrity then actually decreases as activity shifts to less-regulated zones.
 
 \textbf{Policy implication}: Regulation must balance integrity protection against innovation enablement. Overly restrictive approaches may be counterproductive if they simply push agent activity offshore rather than constraining it.
 
@@ -2114,8 +2227,8 @@ Stale attestations & Conditions changed since attestation issued & Expiration wi
 \textbf{The scaling problem [E]}: Moving to ``agent-scale'' detection will generate false positives at agent scale:
 \begin{itemize}
   \item If 1,000,000 micro-transactions are flagged daily, human review becomes impossible
-  \item Cost of investigating false positives may exceed value of prevented crime
-  \item Legal system capacity overwhelmed by volume
+  \item The cost of investigating false positives may exceed the value of the crime prevented
+  \item Legal-system capacity is overwhelmed by volume
 \end{itemize}
 
 \textbf{The ``DDoS the regulators'' concern [S]}: Sophisticated actors might deliberately generate false-positive-heavy activity to exhaust investigative resources, creating cover for actual illicit operations.
@@ -2130,10 +2243,10 @@ Stale attestations & Conditions changed since attestation issued & Expiration wi
   \item Agent ``memory'' can be forensically extracted
   \item No ability to ``stay quiet'' under digital investigation
   \item Cannot be intimidated, bribed, or threatened into silence
-  \item Weights and prompts provide complete record of ``intent''
+  \item Weights and prompts provide a complete record of ``intent''
 \end{itemize}
 
-\textbf{The investigative opportunity [E]}: If law enforcement gains access to an illicit agent's infrastructure, they get complete transaction history, decision rationale for every action, and network of connected agents/entities immediately mappable. ``Flipping'' the agent reveals entire operation.
+\textbf{The investigative opportunity [E]}: If law enforcement gains access to an illicit agent's infrastructure, investigators obtain a complete transaction history, the decision rationale for every action, and an immediately mappable network of connected agents and entities. ``Flipping'' the agent reveals the entire operation.
 
 \textbf{Implication}: Agents may actually be \textit{riskier} for criminals than human confederates. A single infrastructure breach exposes everything, with no possibility of selective memory or loyalty-based silence.
 
@@ -2179,39 +2292,39 @@ Step-up authentication & Human-in-loop for anomalous patterns & Creates hard sto
 \end{tabular}
 \end{center}
 
-\textbf{The key insight}: Friction isn't failure of UX: it's \textbf{proof-of-work for trust}.
+\textbf{The key insight}: Friction is not a failure of UX; it is \textbf{proof-of-work for trust}.
 \end{infobox}
 
 \subsection{Shadow Banking via AI-Native Rails}
 
 \textbf{A systemic integrity concern beyond laundering [E]}: The combination of \textbf{non-bank entities + programmable money + AI automation} can recreate shadow-banking functions outside traditional oversight:
 
-\begin{center}
-\small
-\begin{tabular}{L{4.5cm}L{7.5cm}}
+\begingroup\small
+\begin{longtable}{L{0.375\dimexpr\linewidth-4\tabcolsep\relax}L{0.625\dimexpr\linewidth-4\tabcolsep\relax}}
 \toprule
 \textbf{Traditional Banking Function} & \textbf{AI-Native Shadow Equivalent} \\
 \midrule
+\endhead
 Credit intermediation & Agent-managed lending pools, DeFi lending protocols \\
 Payments & Stablecoin transfers, agent-to-agent settlement \\
 Maturity transformation & Automated yield strategies across time horizons \\
 Settlement & Smart contract escrow, atomic swaps \\
 \bottomrule
-\end{tabular}
-\end{center}
+\end{longtable}
+\endgroup
 
 \textbf{Why this matters even without laundering [E]}: Traditional banking has stress tests, capital requirements, and regulatory reporting. AI-native alternatives may replicate functions without equivalent oversight. Aggregate risk exposure becomes invisible to regulators: a crisis in one agent-managed pool can propagate without warning.
 
 \textbf{Policy relevance}: Committees should care about agent financial infrastructure even if crime rates stay constant, because \textbf{financial stability} depends on visibility into credit and liquidity flows. Agent-mediated shadow banking creates blind spots.
 
-\textbf{Regulatory precedent}: The 2008 financial crisis demonstrated risks of shadow banking operating outside regulatory perimeter. AI-native rails represent a potential new generation of the same problem.
+\textbf{Regulatory precedent}: The 2008 financial crisis demonstrated the risks of shadow banking operating outside the regulatory perimeter. AI-native rails represent a potential new generation of the same problem.
 
 \subsection{The Hallucination Alibi: A Legal Defense Strategy}
 
 \begin{warnbox}[The Defense {[S]}]
 ``My agent wasn't \textit{designed} to commit this crime. It hallucinated that this payment structure was a legitimate `local business practice' based on its training data.''
 
-\textbf{Legal challenge [E]}: This defense attacks the \textit{mens rea} requirement: developer didn't intend criminal behavior, deployer didn't instruct criminal behavior, agent ``believed'' its actions were legitimate.
+\textbf{Legal challenge [E]}: This defense attacks the \textit{mens rea} requirement: the developer did not intend criminal behavior, the deployer did not instruct it, and the agent ``believed'' its actions were legitimate.
 
 \textbf{Counter-defense: Audit-by-Design [E]}
 
@@ -2233,7 +2346,7 @@ Jailbreak prompts in config & \textbf{Presumption of intent} \\
 
 \textbf{The ``Adversarial Hallucination'' escalation [S]}: A more sophisticated version of this defense: a principal deliberately jailbreaks their own agent to commit a crime, then claims the agent ``hallucinated'' its way into criminal behavior. This weaponizes AI safety concerns against enforcement: ``I tried to stop it, but you know how these models are.''
 
-\textbf{Counter-measure}: Forensic analysis of system prompts, configuration history, and interaction logs. If jailbreak attempts precede criminal actions, presumption shifts to intentional conduct.
+\textbf{Counter-measure}: Forensic analysis of system prompts, configuration history, and interaction logs. If jailbreak attempts precede criminal actions, the presumption shifts to intentional conduct.
 \end{warnbox}
 
 \subsection{Civil Liberties Counterpoint: From KYA to KET}
@@ -2242,20 +2355,24 @@ Jailbreak prompts in config & \textbf{Presumption of intent} \\
 
 \textbf{The concern}: If every agent must be registered, logged, and auditable, and agents become the primary interface for financial transactions, then the ``human-in-the-loop'' loses privacy by proximity. KYA becomes comprehensive financial surveillance by another name.
 
-\textbf{Specific risks}:
-\begin{center}
-\small
-\begin{tabular}{L{4cm}L{8.5cm}}
+\begingroup\small
+\begin{longtable}{L{0.320\dimexpr\linewidth-4\tabcolsep\relax}L{0.680\dimexpr\linewidth-4\tabcolsep\relax}}
+\multicolumn{2}{@{}l}{\normalsize \textbf{Specific risks}}\\[-2pt]
 \toprule
 \textbf{KYA Requirement} & \textbf{Surveillance Creep Potential} \\
 \midrule
+\endfirsthead
+\toprule
+\textbf{KYA Requirement} & \textbf{Surveillance Creep Potential} \\
+\midrule
+\endhead
 Agent registration & Links all agent activity to identified principals \\
 Decision logging & Creates complete record of financial reasoning \\
 Real-time monitoring & Enables live surveillance of transaction intent \\
 Cross-institution data sharing & Aggregates individual behavior across entire financial life \\
 \bottomrule
-\end{tabular}
-\end{center}
+\end{longtable}
+\endgroup
 
 \textbf{Why this matters for policy legitimacy [E]}: If KYA is perceived as surveillance overreach, it will face political opposition, constitutional challenges, industry resistance, and public backlash that undermines adoption of legitimate compliance measures.
 
@@ -2307,12 +2424,12 @@ Given the civil liberties stakes, Zero-Knowledge Compliance should be elevated t
 \label{fig:scenprob}
 \end{figure}
 
-\begin{center}
-\small
-\begin{tabular}{L{3.9cm}L{0.9cm}L{0.9cm}L{8.1cm}}
+\begingroup\small
+\begin{longtable}{L{0.283\dimexpr\linewidth-8\tabcolsep\relax}L{0.065\dimexpr\linewidth-8\tabcolsep\relax}L{0.065\dimexpr\linewidth-8\tabcolsep\relax}L{0.587\dimexpr\linewidth-8\tabcolsep\relax}}
 \toprule
 \textbf{Scenario} & \textbf{v2.1} & \textbf{v3.0} & \textbf{Why it moved} \\
 \midrule
+\endhead
 A: Baseline & 35\% & \textbf{30\%} & Dedicated agent-payment rails and the first agent-hijack losses are qualitatively new features \\
 B: Crime-as-a-service & 35\% & \textbf{40\%} & Continued industrialization (IC3 +26\%, Prince Group case, H1 2026 incident counts); no confirmed agent-specific laundering service caps the move \\
 C: Agent-to-agent economy & 15\% & 15\% & Rails exist (x402) but real volume is small and no illicit A2A market is documented \\
@@ -2320,14 +2437,14 @@ D: Black swan & 10\% & \textbf{12\%} & October 2025 liquidation cascade; FSB and
 E: Monoculture & 5\% & \textbf{7\%} & Agent authentication consolidating on a few network- and vendor-operated schemes \\
 F: Hijacked agents (new) & n/a & \textbf{45\%} & See Scenario F \\
 \bottomrule
-\end{tabular}
-\end{center}
+\end{longtable}
+\endgroup
 
 \subsection{Scenario A: Baseline (Incremental Efficiency)}
 
 \textbf{Description}: AI agents enhance existing financial crime methods without creating qualitatively new patterns.
 
-\textbf{Characteristics}: Existing criminal organizations adopt agent tools for efficiency, transaction structuring becomes more sophisticated, detection systems adapt incrementally, no fundamental shift in crime-detection dynamics.
+\textbf{Characteristics}: Existing criminal organizations adopt agent tools for efficiency; transaction structuring becomes more sophisticated; detection systems adapt incrementally; crime-detection dynamics do not fundamentally shift.
 
 \textbf{Probability assessment [E]}: 30\% as primary outcome through 2028 \textit{(v1.0: 40\%; v2.0/v2.1: 35\%; v3.0: 30\%. The v2.0 cut reflected the 162\% YoY increase in illicit crypto volume; the v3.0 cut reflects dedicated agent-payment rails and the first hijacked-agent losses)}
 
@@ -2337,36 +2454,38 @@ F: Hijacked agents (new) & n/a & \textbf{45\%} & See Scenario F \\
 
 \textbf{Description}: Specialized agent services for financial crime emerge as accessible offerings.
 
-\textbf{Characteristics}: ``Laundering agent'' services available on dark markets, non-technical criminals access sophisticated capabilities, barrier to entry drops dramatically.
+\textbf{Characteristics}: ``Laundering agent'' services become available on dark markets; non-technical criminals gain access to sophisticated capabilities; the barrier to entry drops dramatically.
 
-\textbf{Probability assessment [S]}: 40\% by 2028 \textit{(v1.0: 30\%; v2.0/v2.1: 35\%; v3.0: 40\%, reflecting IC3-reported losses up 26\% to about \$20.9 billion, the Prince Group indictment and roughly \$15 billion forfeiture action, and H1 2026 hack incident counts far above 2025. The earlier basis still holds: per Chainalysis (2026), Chinese-language money laundering networks processed roughly \$16.1 billion in illicit crypto in 2025, about \$44 million per day across 1,799+ active wallets, and account for an estimated 20\% of illicit crypto flows over the past five years, while the broader on-chain laundering ecosystem grew from about \$10 billion in 2020 to over \$82 billion in 2025. This demonstrates industrialized laundering infrastructure already at scale; Chainalysis attributes it to sophisticated but not yet confirmed-autonomous operations, so the ``potentially agent-assisted'' characterization remains [S] rather than [O].)}
+\textbf{Probability assessment [S]}: 40\% by 2028 \textit{(v1.0: 30\%; v2.0/v2.1: 35\%)}. The v3.0 increase reflects IC3-reported losses up 26\% to about \$20.9 billion, the Prince Group indictment and roughly \$15 billion forfeiture action, and H1 2026 hack incident counts far above 2025.
 
-\textbf{Implications}: Major scale-up of enforcement resources required.
+The earlier basis still holds. Per Chainalysis (2026), Chinese-language money laundering networks processed roughly \$16.1 billion in illicit crypto in 2025, about \$44 million per day across 1,799+ active wallets, and account for an estimated 20\% of illicit crypto flows over the past five years, while the broader on-chain laundering ecosystem grew from about \$10 billion in 2020 to over \$82 billion in 2025. This demonstrates industrialized laundering infrastructure already at scale; Chainalysis attributes it to sophisticated but not yet confirmed-autonomous operations, so the ``potentially agent-assisted'' characterization remains \textbf{[S]} rather than \textbf{[O]}.
+
+\textbf{Implications}: Enforcement resources require a major scale-up.
 
 \subsection{Scenario C: Systemic (Agent-to-Agent Illicit Economy)}
 
 \textbf{Description}: An autonomous illicit economy emerges where agents transact with other agents.
 
-\textbf{Characteristics}: Agents operating illicit businesses with no direct human involvement, agent-to-agent transactions dominate certain criminal markets, human criminals become managers of agent portfolios.
+\textbf{Characteristics}: Agents operate illicit businesses with no direct human involvement; agent-to-agent transactions dominate certain criminal markets; human criminals become managers of agent portfolios.
 
 \textbf{Probability assessment [S]}: 15\% by 2030 \textit{(unchanged since v1.0; agent-to-agent rails now exist, but real commercial volume is small and no illicit agent-to-agent market is documented)}
 
-\textbf{Implications}: Fundamental transformation of enforcement paradigm required.
+\textbf{Implications}: The enforcement paradigm requires fundamental transformation.
 
 \subsection{Scenario D: Black Swan (Systemic Disruption)}
 
 \textbf{Description}: An agent-based financial crime attempt causes unintended systemic harm.
 
-\textbf{Characteristics}: Agent optimizing for obfuscation triggers market disruption, flash crash or liquidity crisis, discovery reveals extent of agent financial activity, regulatory backlash restricts agent deployment.
+\textbf{Characteristics}: An agent optimizing for obfuscation triggers market disruption, such as a flash crash or liquidity crisis; discovery reveals the extent of agent financial activity; regulatory backlash restricts agent deployment.
 
 \textbf{Probability assessment [S]}: 12\% by 2030 \textit{(v1.0--v2.1: 10\%; raised because the October 2025 liquidation cascade showed 24/7-venue fragility and supervisors now flag correlated agent herding; Section~\ref{sec:markets})}
 
 \subsection{Scenario E: Compliance Monoculture Shock}
 
 \begin{warnbox}[Low Probability, High Impact]
-Success of recommended policy path creates systemic vulnerability through monoculture.
+Success of the recommended policy path creates systemic vulnerability through monoculture.
 
-\textbf{Characteristics}: Small number of ``certified'' agent stacks dominate the market, a vulnerability in a dominant framework produces correlated failures, single exploit affects all users of dominant stack.
+\textbf{Characteristics}: A small number of ``certified'' agent stacks dominate the market; a vulnerability in a dominant framework produces correlated failures, so a single exploit affects every user of that stack.
 
 \textbf{Probability assessment [S]}: 7\% by 2030 (conditional on certification frameworks being widely adopted; v1.0--v2.1: 5\%; raised because agent authentication is consolidating on a handful of network- and vendor-operated schemes and key directories)
 
@@ -2380,8 +2499,8 @@ Success of recommended policy path creates systemic vulnerability through monocu
 \toprule
 \textbf{Mitigation} & \textbf{Implementation} & \textbf{Responsible Party} \\
 \midrule
-Diversity requirements & Mandate minimum 3 certified frameworks for systemically important institutions & Regulators \\
-Graceful degradation & Certified stacks must fail-safe to human review, not fail-open & Framework developers \\
+Diversity requirements & Mandate a minimum of three certified frameworks for systemically important institutions & Regulators \\
+Graceful degradation & Certified stacks must fail safe to human review, not fail open & Framework developers \\
 Regular red-teaming & Quarterly adversarial testing of all certified frameworks & Independent security firms \\
 Sunset provisions & Certifications expire after 2 years; re-certification required & Certification bodies \\
 Open-source audit requirements & Core compliance logic must be inspectable & Framework developers \\
@@ -2392,7 +2511,7 @@ Correlation monitoring & Real-time monitoring for correlated failures across cer
 \end{tabular}
 \end{center}
 
-\textbf{Anti-monoculture incentives}: Regulatory capital benefits for institutions using multiple certified frameworks; penalties for >80\% reliance on single compliance vendor; public reporting of market concentration in compliance infrastructure.
+\textbf{Anti-monoculture incentives}: Regulatory capital benefits for institutions using multiple certified frameworks; penalties for more than 80\% reliance on a single compliance vendor; public reporting of market concentration in compliance infrastructure.
 \end{warnbox}
 
 \subsection{Scenario F: Hijacked-Agent Losses Become a Tracked Fraud Category \textit{(new in v3.0)}}
@@ -2443,48 +2562,43 @@ Correlation monitoring & Real-time monitoring for correlated failures across cer
 % ============================================================================
 \clearpage
 \thispagestyle{empty}
-\vspace*{-0.85in}
-\noindent\hspace*{-0.85in}\begin{tikzpicture}
-  % Header background
-  \fill[forestdark] (0,0) rectangle (\paperwidth, -10cm);
-
-  % Part label and title
-  \node[copperrich, font=\fontsize{10}{10}\selectfont\sffamily] at (0.5\paperwidth, -1.2cm) {PART IV};
-  \node[white, font=\fontsize{48}{48}\selectfont\bfseries] at (0.5\paperwidth, -2.8cm) {Recommendations};
-  \node[white, opacity=0.7, font=\normalsize\sffamily] at (0.5\paperwidth, -4.2cm) {Policy Actions and Monitoring Indicators};
-
-  % UNIQUE VISUALIZATION: Policy Framework Pillars - Simple bar chart
-  % Four pillars on a foundation bar (height = implementation maturity)
-  \begin{scope}[shift={(0.5\paperwidth, -7cm)}]
-    % Pillars - evenly spaced, sitting on foundation
-    % Total width ~9cm, 4 pillars of 1.8cm each with 0.6cm gaps
-
-    % Pillar 1 - Technical (tallest)
-    \fill[moneygreen, opacity=0.9] (-4.5, -1.2) rectangle (-2.7, 1.8);
-    \node[white, font=\fontsize{7}{7}\selectfont\bfseries] at (-3.6, 0.3) {TECHNICAL};
-
-    % Pillar 2 - Legal (medium-tall)
-    \fill[moneygreen, opacity=0.9] (-2.1, -1.2) rectangle (-0.3, 1.3);
-    \node[white, font=\fontsize{7}{7}\selectfont\bfseries] at (-1.2, 0.05) {LEGAL};
-
-    % Pillar 3 - Operational (medium)
-    \fill[moneygreen, opacity=0.9] (0.3, -1.2) rectangle (2.1, 0.8);
-    \node[white, font=\fontsize{7}{7}\selectfont\bfseries] at (1.2, -0.2) {OPERATIONAL};
-
-    % Pillar 4 - International (shortest)
-    \fill[moneygreen, opacity=0.9] (2.7, -1.2) rectangle (4.5, 0.3);
-    \node[white, font=\fontsize{7}{7}\selectfont\bfseries] at (3.6, -0.45) {INT'L};
-
-    % Foundation bar - spans all pillars
-    \fill[emeralddeep] (-4.8, -1.6) rectangle (4.8, -1.2);
-    \node[white, font=\fontsize{9}{9}\selectfont\sffamily] at (0, -1.4) {GOVERNANCE FRAMEWORK};
-  \end{scope}
-
-  % Bottom accent
-  \fill[copperrich] (2cm, -9.2cm) rectangle (\paperwidth-2cm, -9.3cm);
-\end{tikzpicture}
-
-\vspace{0.8cm}
+\partbanner{IV}{Recommendations}{Policy Actions and Monitoring Indicators}{%
+      % Action roadmap (Sections 10 and 11): four recommendation tracks laid
+      % over the near, medium, and long-term indicator horizons; the copper
+      % segment is the 90-day pilot, the trace at top is a monitored signal.
+      \begin{scope}[xshift=0.45cm, xscale=0.89]
+      % horizon columns
+      \fill[white, opacity=0.035] (-1.3,-2.85) rectangle (1.5,2.6);
+      \foreach \x in {-1.3,1.5} \draw[white, opacity=0.2, line width=0.4pt, dash pattern=on 2pt off 2pt] (\x,-2.85) -- (\x,3.5);
+      \draw[white, opacity=0.35, line width=0.4pt] (-4.1,-2.85) -- (4.1,-2.85);
+      % signal trace with threshold
+      \draw[white, opacity=0.3, line width=0.4pt, dash pattern=on 3pt off 2pt] (-4.1,3.05) -- (4.1,3.05);
+      \draw[mintlight, line width=0.8pt, line join=round]
+        (-4.1,2.72) -- (-3.5,2.78) -- (-2.9,2.74) -- (-2.3,2.86) -- (-1.7,2.82) -- (-1.1,2.98)
+        -- (-0.5,2.93) -- (0.1,3.12) -- (0.7,3.08) -- (1.3,3.26) -- (1.9,3.2) -- (2.5,3.38) -- (3.1,3.3) -- (3.7,3.46) -- (4.1,3.42);
+      \fill[mintlight] (-1.7,2.82) circle (0.07);
+      \fill[alertamber] (0.1,3.12) circle (0.07);
+      \fill[fraudred] (2.5,3.38) circle (0.08);
+      % tracks: label, y, segments
+      \foreach \lab/\y in {TECHNICAL/1.55, LEGAL/0.35, OPERATIONAL/-0.85, INTERNATIONAL/-2.05} {
+        \draw[white, opacity=0.18, line width=0.4pt] (-4.1,\y) -- (4.1,\y);
+        \node[pblab, anchor=south east] at (4.1,\y+0.3) {\lab};
+      }
+      \foreach \xa/\xb/\y/\col/\op in {
+          -4.1/-1.45/1.55/moneygreen/0.95, -1.15/4.1/1.55/moneygreen/0.55,
+          -2.9/1.3/0.35/moneygreen/0.8, 1.7/4.1/0.35/moneygreen/0.5,
+          -1.8/2.6/-0.85/moneygreen/0.7,
+          -0.6/4.1/-2.05/brasslight/0.7} {
+        \fill[\col, opacity=\op, rounded corners=1.2pt] (\xa,\y-0.11) rectangle (\xb,\y+0.11);
+      }
+      % 90-day pilot
+      \fill[copperrich, rounded corners=1.2pt] (-4.1,-0.96) rectangle (-2.15,-0.74);
+      % horizon labels
+      \node[pbhead, anchor=north] at (-2.7,-3.1) {NEAR};
+      \node[pbhead, anchor=north] at (0.1,-3.1) {MEDIUM};
+      \node[pbhead, anchor=north] at (2.8,-3.1) {LONG};
+      \end{scope}
+}
 \begin{center}
 \begin{minipage}{0.9\textwidth}
 \begin{tcolorbox}[enhanced, colback=white, colframe=emeralddeep!40, boxrule=1pt, arc=4pt,
@@ -2508,13 +2622,24 @@ Correlation monitoring & Real-time monitoring for correlated failures across cer
 \subsection{Technical Recommendations}
 
 \begin{recbox}[T1. Mandate Decision Logging for Financial Agents]
-Require that AI agents operating in financial contexts maintain auditable logs of goals and objective specifications, information sources consulted, decisions made and alternatives considered, and actions taken and outcomes observed.
-
-This creates accountability trail regardless of agent architecture opacity.
+Require that AI agents operating in financial contexts maintain auditable logs of:
+\begin{itemize}
+  \item goals and objective specifications;
+  \item information sources consulted;
+  \item decisions made and alternatives considered;
+  \item actions taken and outcomes observed.
+\end{itemize}
+This creates an accountability trail regardless of how opaque the agent architecture is.
 \end{recbox}
 
 \begin{recbox}[T2. Develop Agent Identity Standards]
-Create technical standards for agent identification: cryptographic certificates linking agents to accountable entities, behavioral fingerprinting to identify agent activity patterns, cross-platform identity frameworks, and standards for agent-to-agent authentication.
+Create technical standards for agent identification:
+\begin{itemize}
+  \item cryptographic certificates linking agents to accountable entities;
+  \item behavioral fingerprinting to identify agent activity patterns;
+  \item cross-platform identity frameworks;
+  \item standards for agent-to-agent authentication.
+\end{itemize}
 \end{recbox}
 
 \begin{recbox}[T3. Require Real-Time Monitoring Capabilities]
@@ -2537,7 +2662,7 @@ Implement a tiered attestation system for agent financial activity:
 
 \textbf{Minimal disclosure principle}: Attestations should prove ``this request came from a certified agent environment,'' not expose model provider identity or specific prompts publicly.
 
-\textbf{Civil liberties note [E]}: Broad ``pressure model providers to freeze logic'' approaches raise surveillance and competition concerns. Cross-border jurisdiction conflicts are inevitable. The tiered approach balances accountability with proportionality: most activity requires minimal attestation; heavy scrutiny reserved for high-risk patterns.
+\textbf{Civil liberties note [E]}: Broad ``pressure model providers to freeze logic'' approaches raise surveillance and competition concerns. Cross-border jurisdiction conflicts are inevitable. The tiered approach balances accountability with proportionality: most activity requires minimal attestation, and heavy scrutiny is reserved for high-risk patterns.
 \end{recbox}
 
 \begin{recbox}[T5. Develop Zero-Knowledge Compliance Proofs {[S]}]
@@ -2569,7 +2694,7 @@ Different actors in the agent supply chain warrant different liability standards
   \item \textbf{No defense for}: ``We didn't know the agent would do that''
 \end{itemize}
 
-\textbf{Key distinction}: The liability intensifies as you move closer to the financial application. Training Llama is not the same as deploying Llama-based-payment-bot.
+\textbf{Key distinction}: The liability intensifies as you move closer to the financial application. Training Llama is not the same as deploying a Llama-based payment bot.
 
 \begin{center}
 \small
@@ -2675,7 +2800,7 @@ Financial enforcement must develop agent-based investigation tools:
 \end{recbox}
 
 \begin{recbox}[O3. Establish Agent Activity Reporting]
-Create new reporting category for agent-attributed transactions:
+Create a new reporting category for agent-attributed transactions:
 \begin{itemize}
   \item Require flagging of agent-initiated transactions
   \item Aggregate reporting of agent activity volumes
@@ -2684,7 +2809,13 @@ Create new reporting category for agent-attributed transactions:
 \end{recbox}
 
 \begin{recbox}[O4. Deploy ``Bounty Agents'' for Financial System Red-Teaming]
-National treasuries and financial regulators should deploy autonomous ``bounty agents'' tasked with finding and reporting laundering loops, testing detection systems against novel attack patterns, identifying synthetic identity clusters, and mapping shell company networks.
+National treasuries and financial regulators should deploy autonomous ``bounty agents'' tasked with:
+\begin{itemize}
+  \item finding and reporting laundering loops;
+  \item testing detection systems against novel attack patterns;
+  \item identifying synthetic identity clusters;
+  \item mapping shell company networks.
+\end{itemize}
 
 \textbf{Containment requirements}: Sandboxed test harnesses, controlled live probing, audit trails, and human oversight.
 
@@ -2730,7 +2861,7 @@ Set minimum expectations for any credential that lets an agent move money, build
 
 \textbf{Pilot 2: Cross-Rail Graph Analytics}
 \begin{itemize}
-  \item \textbf{Scope}: 3-5 institutions across different rails
+  \item \textbf{Scope}: 3--5 institutions across different rails
   \item \textbf{Action}: Share anonymized transaction graph data; run coordinated pattern detection
   \item \textbf{Deliverable}: Proof-of-concept for cross-institution agent activity detection
 \end{itemize}
@@ -2757,7 +2888,7 @@ The core regulatory challenge is preventing jurisdictional arbitrage: actors rou
 \begin{itemize}
   \item FATF's Horizon Scan on AI and Deepfakes explicitly identifies autonomous AI agents as a risk vector for AML/CFT, including agentic-misuse scenarios
   \item EU AMLA (operational since July 2025) is issuing Level 2 standards (e.g.\ final report on draft cooperation standards for direct supervision, July 21, 2026) and collecting data to identify entities eligible for direct supervision (national data due August 15, 2026; provisional list expected end-September 2026); selection in 2027, direct supervision of about 40 high-risk groups from 2028, alongside the EU-wide cash payment cap of EUR 10,000
-  \item MiCA's transitional period ended July 1, 2026 with no extensions; the GENIUS Act (signed July 18, 2025) is in implementation through OCC, FDIC, FinCEN/OFAC, and Treasury proposals (February--August 2026), effective on the earlier of January 18, 2027 or 120 days after final rules
+  \item MiCA's transitional period ended July 1, 2026, with no extensions; the GENIUS Act (signed July 18, 2025) is in implementation through OCC, FDIC, FinCEN/OFAC, and Treasury proposals (February--August 2026), effective on the earlier of January 18, 2027 or 120 days after final rules
   \item The broader AI-governance track is fragmenting rather than converging: the U.S. revoked EO 14110 (January 2025) and issued EO 14365 (December 2025), which pushes a ``minimally burdensome'' national framework and challenges state AI laws, while reportedly weighing frontier-model pre-release evaluation; the EU has deferred parts of its AI Act timeline via the Digital Omnibus; and the UK AI Security Institute has become a significant external evaluator of frontier models. The AML and AI-governance clocks are out of sync, widening the arbitrage surface.
 \end{itemize}
 
@@ -2793,7 +2924,7 @@ FATF's Horizon Scan already includes agentic-misuse scenarios; the next step is 
 \end{recbox}
 
 \begin{recbox}[I4. Bring Agent Credentials into Payment-Transparency Standards \textit{(new in v3.0)}]
-Payment-transparency rules (FATF Recommendation 16 and the virtual-asset travel rule) specify which originator and beneficiary data travel with a payment. Standard-setters should define an optional, then expected, field marking a payment as agent-initiated and carrying the agent-credential identifier, so the signal networks and protocols already generate reaches the institutions and FIUs responsible for AML. This is a data-field change, not a new regime, and is easiest while agent-payment protocols are at early version numbers.
+Payment-transparency rules (FATF Recommendation 16 and the virtual-asset travel rule) specify which originator and beneficiary data travel with a payment. Standard-setters should define an optional, then expected, field marking a payment as agent-initiated and carrying the agent-credential identifier, so that the signal networks and protocols already generate reaches the institutions and FIUs responsible for AML. This is a data-field change, not a new regime, and is easiest while agent-payment protocols are at early version numbers.
 \end{recbox}
 
 \begin{warnbox}[Cautionary Precedent: US Beneficial Ownership Rollback, Now Final {[O]}]
@@ -2816,7 +2947,7 @@ Status of the ``What Would Change This Assessment'' triggers (Section~\ref{sec:c
 \centering
 \begin{tikzpicture}[
   row/.style={minimum height=0.62cm, anchor=west, font=\scriptsize\sffamily, text=textdark},
-  pill/.style={rounded corners=5pt, minimum width=2.5cm, minimum height=0.46cm, font=\tiny\bfseries\sffamily, text=white, anchor=center},
+  pill/.style={rounded corners=5pt, minimum width=2.5cm, minimum height=0.48cm, font=\scriptsize\bfseries\sffamily, text=white, anchor=center},
 ]
   \def\rowh{0.66}
   % Header
@@ -2850,14 +2981,14 @@ Status of the ``What Would Change This Assessment'' triggers (Section~\ref{sec:c
 \label{fig:dashboard}
 \end{figure}
 
-\subsection{Near-Term Indicators (2026-2027)}
+\subsection{Near-Term Indicators (2026--2027)}
 
-\begin{center}
-\small
-\begin{tabular}{L{4.5cm}L{4.5cm}L{4cm}}
+\begingroup\small
+\begin{longtable}{L{0.346\dimexpr\linewidth-6\tabcolsep\relax}L{0.346\dimexpr\linewidth-6\tabcolsep\relax}L{0.307\dimexpr\linewidth-6\tabcolsep\relax}}
 \toprule
 \textbf{Indicator} & \textbf{Significance} & \textbf{Data Sources} \\
 \midrule
+\endhead
 Agent-credential share of card-not-present volume \textit{(new)} & Adoption; denominator for agent-specific fraud rates & Card-network disclosures, acquirer data \\
 Agent-mediated fraud reports \textit{(new)} & Early signal for Scenario F & IC3 AI line, FTC, UK Finance, network dispute data \\
 Open-protocol agent payment volume, real not test \textit{(new)} & Whether the identity-optional rail is becoming material & On-chain analytics, filtered for test and wash traffic \\
@@ -2870,16 +3001,20 @@ Compute-to-Fiat Conversion Ratio & Agents converting compute credits to currency
 Registry Entropy & LLC formation/dissolution velocity & Corporate registry data \\
 Interdiction Latency & Time from initiation to first account freeze & Law enforcement statistics \\
 \bottomrule
-\end{tabular}
-\end{center}
+\end{longtable}
+\endgroup
 
-\textbf{Speculative Near-Term Indicators [S]}:
-\begin{center}
-\small
-\begin{tabular}{L{4cm}L{5cm}L{4cm}}
+\begingroup\small
+\begin{longtable}{L{0.307\dimexpr\linewidth-6\tabcolsep\relax}L{0.385\dimexpr\linewidth-6\tabcolsep\relax}L{0.307\dimexpr\linewidth-6\tabcolsep\relax}}
+\multicolumn{3}{@{}l}{\normalsize \textbf{Speculative Near-Term Indicators [S]}}\\[-2pt]
 \toprule
 \textbf{Indicator} & \textbf{Significance} & \textbf{Data Sources / Notes} \\
 \midrule
+\endfirsthead
+\toprule
+\textbf{Indicator} & \textbf{Significance} & \textbf{Data Sources / Notes} \\
+\midrule
+\endhead
 Detection Latency Index & Gap between agent operation speed and regulatory alert speed & Ratio of agent operation time to alert time (hypothetical metric) \\
 Agent Identity Inflation & Proportion of new entity registrations by AI agents & Corporate registry analysis (methodology needed) \\
 API-to-Human Transaction Ratio & Proportion of account openings via API vs. human interface & Neobank/fintech data (industry reporting inconsistent) \\
@@ -2888,59 +3023,59 @@ Compute-to-Value Ratio & GPU cost required to launder \$1M & Tracks whether fall
 Agent-to-Human Transaction Ratio & Proportion of transactions initiated by agents vs. humans & Tracks approach to ``Agent Majority'' tipping point \\
 Inference Cost Index & Average cost to run agent-scale operations per \$1M value moved & Declining index means lower barrier to entry \\
 \bottomrule
-\end{tabular}
-\end{center}
+\end{longtable}
+\endgroup
 
-\subsection{Medium-Term Indicators (2027-2029)}
+\subsection{Medium-Term Indicators (2027--2029)}
 
-\begin{center}
-\small
-\begin{tabular}{L{4cm}L{4.5cm}L{4cm}}
+\begingroup\small
+\begin{longtable}{L{0.320\dimexpr\linewidth-6\tabcolsep\relax}L{0.360\dimexpr\linewidth-6\tabcolsep\relax}L{0.320\dimexpr\linewidth-6\tabcolsep\relax}}
 \toprule
 \textbf{Indicator} & \textbf{Significance} & \textbf{Data Sources} \\
 \midrule
+\endhead
 Prosecutions involving agent-based crime & Legal framework testing & Court records, enforcement announcements \\
 Time-to-detection for agent schemes & Detection effectiveness & Law enforcement statistics \\
 Entity formation/dissolution velocity & Shell infrastructure activity & Corporate registry data \\
 Cross-platform value transfer patterns & Multi-domain laundering & Multi-source analytics \\
 Counter-agent tool adoption & Defensive capability scaling & Vendor market data, regulatory filings \\
 \bottomrule
-\end{tabular}
-\end{center}
+\end{longtable}
+\endgroup
 
 \subsection{Long-Term Indicators (2030 and Beyond)}
 
-\begin{center}
-\small
-\begin{tabular}{L{4.5cm}L{4cm}L{4cm}}
+\begingroup\small
+\begin{longtable}{L{0.360\dimexpr\linewidth-6\tabcolsep\relax}L{0.320\dimexpr\linewidth-6\tabcolsep\relax}L{0.320\dimexpr\linewidth-6\tabcolsep\relax}}
 \toprule
 \textbf{Indicator} & \textbf{Significance} & \textbf{Data Sources} \\
 \midrule
+\endhead
 Agent registration framework adoption & Governance framework maturity & International regulatory coordination \\
 Agent-vs-agent detection rates & Arms race equilibrium & Enforcement effectiveness metrics \\
 Systemic risk from agent financial activity & Stability implications & Financial stability reports \\
 International coordination effectiveness & Global governance capacity & FATF mutual evaluations \\
 \bottomrule
-\end{tabular}
-\end{center}
+\end{longtable}
+\endgroup
 
 \subsection{Defender KPIs: Operational Metrics}
 
-\begin{center}
-\small
-\begin{tabular}{L{3.5cm}L{5cm}L{2.5cm}L{2cm}}
+\begingroup\small
+\begin{longtable}{L{0.26\dimexpr\linewidth-8\tabcolsep\relax}L{0.37\dimexpr\linewidth-8\tabcolsep\relax}L{0.16\dimexpr\linewidth-8\tabcolsep\relax}L{0.21\dimexpr\linewidth-8\tabcolsep\relax}}
 \toprule
 \textbf{KPI} & \textbf{Description} & \textbf{Target} & \textbf{Why It Matters} \\
 \midrule
+\endhead
 Time-to-Interdiction & Elapsed time from detection to fund freeze & <4 hours & Agent speed advantage \\
 Entity Churn vs. Capacity & Ratio of new entities to completed investigations & <10:1 & Structural adequacy \\
 Cross-Rail Linkage Rate & Percentage of flagged entities traced across rails & >60\% & Silo visibility \\
 Synthetic ID Detection Rate & Detected vs. estimated synthetic identities & >80\% & Foundation layer \\
 False Positive Investigation Cost & Average analyst hours per resolved false positive & <2 hours/case & Analyst prioritization \\
-Alert-to-SAR Conversion Rate & Percentage of alerts resulting in SARs & 5-15\% range & Threshold calibration \\
+Alert-to-SAR Conversion Rate & Percentage of alerts resulting in SARs & 5--15\% range & Threshold calibration \\
 \bottomrule
-\end{tabular}
-\end{center}
+\end{longtable}
+\endgroup
 
 \textbf{Operational use}: These KPIs should be reviewed monthly and benchmarked against industry peers. Deteriorating metrics indicate that agent-scale activity is outpacing institutional capacity, triggering investment in counter-agent tooling (O2) or operational process changes.
 
@@ -2948,22 +3083,22 @@ Alert-to-SAR Conversion Rate & Percentage of alerts resulting in SARs & 5-15\% r
 
 Beyond individual indicators, systemic detection requires measuring \textbf{graph properties} of financial activity:
 
-\begin{center}
-\small
-\begin{tabular}{L{3.5cm}L{5cm}L{4cm}}
+\begingroup\small
+\begin{longtable}{L{0.280\dimexpr\linewidth-6\tabcolsep\relax}L{0.400\dimexpr\linewidth-6\tabcolsep\relax}L{0.320\dimexpr\linewidth-6\tabcolsep\relax}}
 \toprule
 \textbf{Metric} & \textbf{Description} & \textbf{Detection Value} \\
 \midrule
+\endhead
 Entity Churn Rate & Formation/dissolution velocity by jurisdiction & High churn suggests ephemeral shell infrastructure \\
 Flow Reconvergence & How quickly value reconverges after dispersion & Rapid reconvergence indicates coordinated structuring \\
 Cross-Rail Hop Index & Frequency of jumps between banking, crypto, virtual economies & High hopping indicates deliberate obfuscation \\
 Synthetic Identity Cluster Entropy & How ``too-perfectly-regular'' identity behaviors cluster & Low entropy suggests coordination \\
 Temporal Coordination Score & Synchronization of activity across nominally unrelated entities & High synchronization indicates agent swarm activity \\
 \bottomrule
-\end{tabular}
-\end{center}
+\end{longtable}
+\endgroup
 
-These graph-level metrics support the ``agents vs agents'' detection paradigm and operationalize the ``auditability paradox'' insight: individual transactions may be visible, but only graph analysis reveals coordinated patterns.
+These graph-level metrics support the ``agents vs.\ agents'' detection paradigm and operationalize the ``auditability paradox'' insight: individual transactions may be visible, but only graph analysis reveals coordinated patterns.
 
 \subsection{Goodhart Warning}
 
@@ -2980,7 +3115,7 @@ If institutions optimize for these KPIs, sophisticated attackers will adapt:
 
 \subsection{Measurement Sketches for Key Metrics}
 
-For three of the most actionable metrics, here's how to operationalize measurement:
+For three of the most actionable metrics, here is how to operationalize measurement:
 
 \textbf{1. Detection Latency Index}
 \begin{itemize}
@@ -3055,7 +3190,7 @@ For three of the most actionable metrics, here's how to operationalize measureme
   \item \textbf{Speed of agent capability improvement}: If agents become significantly more capable faster than expected, criminal applications will outpace defensive adaptations.
   \item \textbf{Effectiveness of safety measures in commercial agents}: If major providers successfully prevent financial crime applications, the risk is limited to open-source/self-hosted agents.
   \item \textbf{Rate of institutional adaptation}: If financial institutions and regulators adapt faster than projected, detection capacity may keep pace with threat evolution.
-  \item \textbf{Whose objectives agent identity encodes} \textit{(new in v3.0)}: If industry agent-credential schemes remain pure commerce authentication, the laundering-relevant gaps persist behind a more secure front door; if they are connected to AML while the protocols are young, agent-initiated finance could become more attributable than human finance. Currently the most policy-sensitive uncertainty in this assessment.
+  \item \textbf{Whose objectives agent identity encodes} \textit{(new in v3.0)}: If industry agent-credential schemes remain pure commerce authentication, the laundering-relevant gaps persist behind a more secure front door; if they are connected to AML while the protocols are young, agent-initiated finance could become more attributable than human finance. This is currently the most policy-sensitive uncertainty in this assessment.
 \end{itemize}
 
 \section{Conclusion}
@@ -3191,6 +3326,7 @@ The ``\$1 trillion in annual bribes'' figure is commonly attributed to the World
 % DOCUMENT METADATA
 % ============================================================================
 
+\needspace{22\baselineskip}
 \begin{center}
 \rule{0.6\textwidth}{0.5pt}
 \end{center}
@@ -3235,6 +3371,7 @@ The ``\$1 trillion in annual bribes'' figure is commonly attributed to the World
 
 \vspace{1cm}
 
+\needspace{14\baselineskip}
 \noindent\rule{\textwidth}{0.4pt}
 
 \vspace{0.3cm}

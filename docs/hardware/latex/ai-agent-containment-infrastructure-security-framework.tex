@@ -122,7 +122,7 @@
 % Require room for the header plus a few rows before a longtable starts, so any
 % page break is taken by the normal output routine (otherwise longtable can emit a
 % stray header above the preceding heading).
-\AtBeginEnvironment{longtable}{\par\needspace{5\baselineskip}\rowcolors{2}{white}{zebragray}\arrayrulecolor{slategraphite}\small}
+\AtBeginEnvironment{longtable}{\par\Needspace{5\baselineskip}\rowcolors{2}{white}{zebragray}\arrayrulecolor{slategraphite}\small}
 \setlength{\LTpre}{0.6em}
 \setlength{\LTpost}{0.4em}
 % Zebra for plain tabulars inside figures
@@ -180,9 +180,12 @@
 \titlespacing*{\section}{0pt}{3ex plus 1ex minus .2ex}{2ex plus .2ex}
 \titlespacing*{\subsection}{0pt}{2.5ex plus 1ex minus .2ex}{1.2ex plus .2ex}
 
-% Keep headings with their content: never strand a heading at a page foot
-\newcommand{\sectionbreak}{\needspace{16\baselineskip}}
-\newcommand{\subsectionbreak}{\needspace{9\baselineskip}}
+% Keep headings with their content: never strand a heading at a page foot.
+% \Needspace (not \needspace) breaks only when the space is actually short;
+% \needspace's stretchable break point otherwise out-competes every later
+% break and pulls headings to the next page, leaving large gaps.
+\newcommand{\sectionbreak}{\Needspace{12\baselineskip}}
+\newcommand{\subsectionbreak}{\Needspace{7\baselineskip}}
 
 \setcounter{tocdepth}{2}
 
@@ -993,11 +996,10 @@ Agents start at Tier 1 (or Tier 0 for adversarial research) and move based on ev
 Concrete recipes for the isolation each tier requires: network namespaces, hardened containers and microVMs, a comparison of sandbox backends, seccomp and Landlock policy, egress allowlisting, the Tier~0 air gap, and what confidential computing does (and does not) protect against.
 \end{glance}
 
+\Needspace{18\baselineskip}
 \subsection{Linux Network Namespaces (Tier 1)}
 
 Network namespaces are the baseline for Tier~1 network isolation: kernel-level separation of the network stack with no VM overhead.
-
-\needspace{15\baselineskip}
 \begin{lstlisting}[style=shell]
 # Create an isolated network namespace
 ip netns add agent-sandbox
@@ -1013,9 +1015,8 @@ ip netns exec agent-sandbox /path/to/agent \
 ip netns delete agent-sandbox
 \end{lstlisting}
 
+\Needspace{19\baselineskip}
 A Rust orchestrator can call \texttt{unshare(CLONE\_NEWNET)} via the \texttt{nix} crate. Do it in the child, between fork and exec, so that only the agent loses the network and the orchestrator keeps its own:
-
-\needspace{16\baselineskip}
 \begin{lstlisting}[language=rust]
 use nix::sched::{unshare, CloneFlags};
 use std::os::unix::process::CommandExt;
@@ -1032,9 +1033,8 @@ unsafe {
 let status = cmd.status()?;
 \end{lstlisting}
 
+\Needspace{17\baselineskip}
 \subsection{Container and MicroVM Isolation}
-
-\needspace{14\baselineskip}
 \begin{lstlisting}[style=shell]
 # Docker with gVisor: no network, limits, read-only rootfs
 docker run \
@@ -1049,9 +1049,8 @@ docker run \
   --task /input/task.json --output /output/result.json
 \end{lstlisting}
 
+\Needspace{11\baselineskip}
 Pin images by digest, not tag, so the orchestrator can verify exactly what runs (Section~\ref{sec:ephemeral}). For a hardware-virtualization boundary, a Firecracker microVM can have no network device at all: the VM configuration simply omits \texttt{network-interfaces}. Wrap the VMM process in the Firecracker \texttt{jailer} for its own namespaces, cgroup, and seccomp filter:
-
-\needspace{7\baselineskip}
 \begin{lstlisting}[style=shell]
 firectl \
   --kernel=vmlinux \
@@ -1068,18 +1067,18 @@ Figure~\ref{fig:boundaries} shows where the boundary sits for common backends; t
 \begin{figure}[htbp]
 \centering
 \begin{tikzpicture}[font=\sffamily\scriptsize,
-    lay/.style={rectangle, draw=softslate, line width=0.5pt, minimum width=3.5cm, minimum height=0.62cm, align=center, inner sep=1pt},
+    lay/.style={rectangle, draw=softslate, line width=0.5pt, minimum width=3.8cm, minimum height=0.62cm, align=center, inner sep=1pt},
     bnd/.style={firewallred, line width=1.6pt, dashed}]
-  \def\colw{3.5}
+  \def\colw{3.8}
   \def\gap{0.45}
   % Column x centers
-  \foreach \c/\x in {A/0, B/3.95, C/7.9, D/11.85} { \coordinate (\c) at (\x,0); }
+  \foreach \c/\x in {A/0, B/4.2, C/8.4, D/12.6} { \coordinate (\c) at (\x,0); }
 
   % Titles
   \node[font=\sffamily\small\bfseries] at (0,4.55) {runc container};
-  \node[font=\sffamily\small\bfseries] at (3.95,4.55) {gVisor (runsc)};
-  \node[font=\sffamily\small\bfseries] at (7.9,4.55) {Kata / Firecracker};
-  \node[font=\sffamily\small\bfseries, align=center] at (11.85,4.55) {Confidential VM};
+  \node[font=\sffamily\small\bfseries] at (4.2,4.55) {gVisor (runsc)};
+  \node[font=\sffamily\small\bfseries] at (8.4,4.55) {Kata / Firecracker};
+  \node[font=\sffamily\small\bfseries, align=center] at (12.6,4.55) {Confidential VM};
 
   % Rows: 3.9, 3.28, 2.66, 2.04, 1.42, 0.80
   % Column A: runc
@@ -1087,38 +1086,38 @@ Figure~\ref{fig:boundaries} shows where the boundary sits for common backends; t
   \node[lay, fill=slategraphite!10] at (0,3.28) {ns + seccomp + cgroups};
   \node[lay, fill=networkblue!15] at (0,2.66) {\textbf{Host kernel} (shared)};
   \node[lay, fill=medgray!40] at (0,2.04) {Hardware};
-  \draw[bnd] (-1.9,2.97) -- (1.9,2.97);
+  \draw[bnd] (-2.0,2.97) -- (2.0,2.97);
 
   % Column B: gVisor
-  \node[lay, fill=alertred!15] at (3.95,3.9) {Agent process};
-  \node[lay, fill=cyberteal!20] at (3.95,3.28) {Sentry (user-space kernel)};
-  \node[lay, fill=slategraphite!10] at (3.95,2.66) {seccomp: few host syscalls};
-  \node[lay, fill=networkblue!15] at (3.95,2.04) {\textbf{Host kernel}};
-  \node[lay, fill=medgray!40] at (3.95,1.42) {Hardware};
-  \draw[bnd] (3.95-1.9,2.35) -- (3.95+1.9,2.35);
+  \node[lay, fill=alertred!15] at (4.2,3.9) {Agent process};
+  \node[lay, fill=cyberteal!20] at (4.2,3.28) {Sentry (user-space kernel)};
+  \node[lay, fill=slategraphite!10] at (4.2,2.66) {seccomp: few host syscalls};
+  \node[lay, fill=networkblue!15] at (4.2,2.04) {\textbf{Host kernel}};
+  \node[lay, fill=medgray!40] at (4.2,1.42) {Hardware};
+  \draw[bnd] (4.2-2.0,2.35) -- (4.2+2.0,2.35);
 
   % Column C: microVM
-  \node[lay, fill=alertred!15] at (7.9,3.9) {Agent process};
-  \node[lay, fill=warningamber!20] at (7.9,3.28) {Guest kernel};
-  \node[lay, fill=slategraphite!10] at (7.9,2.66) {VMM + KVM};
-  \node[lay, fill=networkblue!15] at (7.9,2.04) {\textbf{Host kernel}};
-  \node[lay, fill=medgray!40] at (7.9,1.42) {Hardware};
-  \draw[bnd] (7.9-1.9,2.35) -- (7.9+1.9,2.35);
+  \node[lay, fill=alertred!15] at (8.4,3.9) {Agent process};
+  \node[lay, fill=warningamber!20] at (8.4,3.28) {Guest kernel};
+  \node[lay, fill=slategraphite!10] at (8.4,2.66) {VMM + KVM};
+  \node[lay, fill=networkblue!15] at (8.4,2.04) {\textbf{Host kernel}};
+  \node[lay, fill=medgray!40] at (8.4,1.42) {Hardware};
+  \draw[bnd] (8.4-2.0,2.35) -- (8.4+2.0,2.35);
 
   % Column D: CVM
-  \node[lay, fill=alertred!15] at (11.85,3.9) {Agent + orchestrator};
-  \node[lay, fill=warningamber!20] at (11.85,3.28) {Guest kernel};
-  \node[lay, fill=enclavegreen!20] at (11.85,2.66) {Encrypted memory (TEE)};
-  \node[lay, fill=medgray!20, text=softslate] at (11.85,2.04) {Host, hypervisor (untrusted)};
-  \node[lay, fill=medgray!40] at (11.85,1.42) {CPU/GPU root of trust};
-  \node[lay, fill=alertred!8, text=firewallred] at (11.85,0.80) {DRAM bus (physical)};
-  \draw[bnd, enclavegreen!70!black] (11.85-1.9,2.35) -- (11.85+1.9,2.35);
+  \node[lay, fill=alertred!15] at (12.6,3.9) {Agent + orchestrator};
+  \node[lay, fill=warningamber!20] at (12.6,3.28) {Guest kernel};
+  \node[lay, fill=enclavegreen!20] at (12.6,2.66) {Encrypted memory (TEE)};
+  \node[lay, fill=medgray!20, text=softslate] at (12.6,2.04) {Host, hypervisor (untrusted)};
+  \node[lay, fill=medgray!40] at (12.6,1.42) {CPU/GPU root of trust};
+  \node[lay, fill=alertred!8, text=firewallred] at (12.6,0.80) {DRAM bus (physical)};
+  \draw[bnd, enclavegreen!70!black] (12.6-2.0,2.35) -- (12.6+2.0,2.35);
 
   % Notes
-  \node[text width=3.4cm, align=center, anchor=north] at (0,1.6) {Every syscall reaches the shared host kernel (filtered). Nov 2025 runc CVEs escaped here.};
-  \node[text width=3.4cm, align=center, anchor=north] at (3.95,0.95) {Sentry re-implements Linux; host sees a small syscall set.};
-  \node[text width=3.4cm, align=center, anchor=north] at (7.9,0.95) {Escape needs a guest-kernel \emph{and} a VMM/KVM bug.};
-  \node[text width=3.4cm, align=center, anchor=north] at (11.85,0.33) {Protects from the host operator, not from the agent or a bus interposer.};
+  \node[text width=3.6cm, align=center, anchor=north] at (0,1.6) {Every syscall reaches the shared host kernel (filtered). Nov 2025 runc CVEs escaped here.};
+  \node[text width=3.6cm, align=center, anchor=north] at (4.2,0.95) {Sentry re-implements Linux; host sees a small syscall set.};
+  \node[text width=3.6cm, align=center, anchor=north] at (8.4,0.95) {Escape needs a guest-kernel \emph{and} a VMM/KVM bug.};
+  \node[text width=3.6cm, align=center, anchor=north] at (12.6,0.33) {Protects from the host operator, not from the agent or a bus interposer.};
 
   % Legend
   \draw[bnd] (-1.7,-1.0) -- (-0.9,-1.0);
@@ -1152,7 +1151,7 @@ Tier~0--1 agents that execute model-generated code should not rely on a shared-k
 
 Even with namespace isolation, seccomp-bpf blocks network syscalls at the kernel. The denylist below is defense-in-depth for Tier~1--2. For Tier~0, invert it: an \texttt{SCMP\_ACT\_ERRNO} default with an explicit allowlist generated by tracing the harness. \texttt{io\_uring\_setup} is included because io\_uring can perform network I/O without the individual syscalls. Load the filter with \texttt{libseccomp} or \texttt{seccompiler}, or apply it as a Docker seccomp profile.
 
-\needspace{15\baselineskip}
+\Needspace{15\baselineskip}
 \begin{lstlisting}[language=json]
 {
   "defaultAction": "SCMP_ACT_ALLOW",
@@ -1174,11 +1173,10 @@ Even with namespace isolation, seccomp-bpf blocks network syscalls at the kernel
 
 Landlock is an unprivileged LSM: a process restricts itself and its children without root~\cite{landlock}. ABI~1+ restricts filesystem hierarchies; ABI~4+ (Linux 6.7) adds \texttt{LANDLOCK\_ACCESS\_NET\_BIND\_TCP} and \texttt{LANDLOCK\_ACCESS\_NET\_CONNECT\_TCP}; ABI~6+ adds scoping that blocks connecting to abstract UNIX sockets and signaling processes outside the domain, useful for stopping an agent from reaching host daemons or signaling the orchestrator. Seccomp filters \emph{which} syscalls run; Landlock restricts \emph{what objects} they touch.
 
+\Needspace{18\baselineskip}
 \subsection{Egress Allowlist (Tier 2)}
 
 Prefer a forward proxy that enforces hostnames, with firewall rules making it the only route out:
-
-\needspace{15\baselineskip}
 \begin{lstlisting}[style=shell]
 # nftables: default-drop, allow only resolver and egress proxy
 nft add table inet agent_filter
@@ -1289,12 +1287,15 @@ Private control planes & Never expose agent gateways to the internet. \\*
 \bottomrule
 \end{longtable}
 
+\Needspace{28\baselineskip}
 \subsection{Output Validation}
+
 \label{sec:outputs}
+
 
 Output validation is the control point between the isolated environment and the rest of the infrastructure. It has three parts.
 
-\needspace{25\baselineskip}
+\Needspace{25\baselineskip}
 \textbf{Schema.} All agent output conforms to a predefined schema that is as restrictive as possible, with fields and types allowlisted:
 
 \begin{lstlisting}[language=rust]
@@ -1506,7 +1507,7 @@ The mapping is approximate (Figure~\ref{fig:slmap}): RAND levels concern \emph{w
 \centering
 \begin{tikzpicture}[font=\sffamily\small,
     tb/.style={rectangle, rounded corners=3pt, minimum width=3.4cm, minimum height=0.9cm, align=center, line width=0.9pt, font=\sffamily\small\bfseries},
-    sl/.style={rectangle, rounded corners=3pt, minimum width=6.2cm, text width=5.9cm, minimum height=0.9cm, align=left, line width=0.9pt, draw=slategraphite, inner sep=4pt},
+    sl/.style={rectangle, rounded corners=3pt, minimum width=6.2cm, text width=5.9cm, minimum height=0.9cm, align=left, line width=0.9pt, draw=slategraphite, inner sep=4pt, font=\sffamily\scriptsize},
     cn/.style={line width=1.1pt, -{Stealth[scale=0.8]}},
     cl/.style={font=\sffamily\scriptsize, fill=white, inner sep=1.5pt, text=softslate}]
   \node[font=\sffamily\small\bfseries, text=irongray] at (0,4.35) {Containment tier (this framework)};
@@ -1517,11 +1518,11 @@ The mapping is approximate (Figure~\ref{fig:slmap}): RAND levels concern \emph{w
   \node[tb, draw=tiertwo, fill=tiertwo!12, text=tiertwo!80!black] (T2) at (0,0.0) {Tier 2};
   \node[tb, draw=tierthree, fill=tierthree!12, text=tierthree!80!black] (T3) at (0,-1.5) {Tier 3};
 
-  \node[sl, fill=slategraphite!22] (S5) at (9.6,3.5)  {\textbf{SL5}\enspace{\scriptsize top-priority operations by the most capable institutions}};
-  \node[sl, fill=slategraphite!17] (S4) at (9.6,2.25) {\textbf{SL4}\enspace{\scriptsize standard operations by leading cyber-capable institutions}};
-  \node[sl, fill=slategraphite!12] (S3) at (9.6,1.0)  {\textbf{SL3}\enspace{\scriptsize cybercrime syndicates, insider threats}};
-  \node[sl, fill=slategraphite!7]  (S2) at (9.6,-0.25){\textbf{SL2}\enspace{\scriptsize professional opportunistic attackers}};
-  \node[sl, fill=slategraphite!3]  (S1) at (9.6,-1.5) {\textbf{SL1}\enspace{\scriptsize amateur attempts}};
+  \node[sl, fill=slategraphite!22] (S5) at (9.6,3.5)  {{\small\bfseries SL5}\enspace top-priority operations by the most\\capable institutions};
+  \node[sl, fill=slategraphite!17] (S4) at (9.6,2.25) {{\small\bfseries SL4}\enspace standard operations by leading\\cyber-capable institutions};
+  \node[sl, fill=slategraphite!12] (S3) at (9.6,1.0)  {{\small\bfseries SL3}\enspace cybercrime syndicates, insider threats};
+  \node[sl, fill=slategraphite!7]  (S2) at (9.6,-0.25){{\small\bfseries SL2}\enspace professional opportunistic attackers};
+  \node[sl, fill=slategraphite!3]  (S1) at (9.6,-1.5) {{\small\bfseries SL1}\enspace amateur attempts};
 
   \draw[cn, tierzero] ([yshift=5pt]T0.east) -- node[cl, pos=0.5, sloped, above=1pt] {+ TEMPEST, long-lead facility} ([yshift=-4pt]S5.west);
   \draw[cn, tierzero] ([yshift=-5pt]T0.east) -- node[cl, pos=0.5, sloped, below=1pt] {full physical stack} ([yshift=4pt]S4.west);
@@ -1669,7 +1670,7 @@ Giving an agent direct credentials and network access to its tools is the most d
   \item Result is sanitized and returned through the input channel
 \end{enumerate}
 
-\needspace{11\baselineskip}
+\Needspace{11\baselineskip}
 \begin{lstlisting}[language=rust]
 #[derive(Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
@@ -2226,7 +2227,8 @@ Use one checklist per deployment. Every box should be ticked, or the gap recorde
 \begin{longtable}{L{1.4cm} L{2.6cm} L{12.0cm}}
 \hrow \hdr{Version} & \hdr{Date} & \hdr{Changes} \\
 \endhead
-1.0 & February 2026 & Initial framework: tiered trust, isolation, validation, physical security, orchestrator, monitoring, compensating controls \\
+1.0 & February 2026 & Initial framework: tiered trust, isolation, validation, physical security, orchestrator, monitoring, compensating controls \\*
+
 2.0 & September 2026 & Multi-agent/swarm, MCP supply chain, and evaluation-awareness threats; incident table; OWASP/ATLAS/NIST/EU AI Act/RAND mapping; isolation backend comparison; TEE physical-attack caveats; architectural injection defenses; multi-agent controls; kill-switch design; probing detection; breakout playbook; new figures; references; companion-guide cross-reference; model-welfare note in Section~\ref{sec:proportionality} with cross-reference to the Architectural Qualia essay \\*
 \bottomrule
 \end{longtable}
@@ -2236,10 +2238,10 @@ Use one checklist per deployment. Every box should be ticked, or the gap recorde
 % REFERENCES
 % ============================================================================
 \begingroup
-\footnotesize
+\footnotesize\setstretch{1.05}
 \renewcommand{\refname}{References}
 \begin{thebibliography}{99}
-\setlength{\itemsep}{2pt}
+\setlength{\itemsep}{1.5pt}
 
 \bibitem{owaspasi} OWASP Gen AI Security Project, \emph{OWASP Top 10 for Agentic Applications for 2026}, 9 Dec 2025. \url{https://genai.owasp.org/resource/owasp-top-10-for-agentic-applications-for-2026/}
 \bibitem{rand} S.~Nevo et al., \emph{Securing AI Model Weights: Preventing Theft and Misuse of Frontier Models}, RAND RR-A2849-1, 2024. \url{https://www.rand.org/pubs/research_reports/RRA2849-1.html}

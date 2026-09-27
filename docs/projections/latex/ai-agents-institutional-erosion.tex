@@ -25,17 +25,24 @@
 \usepackage{array}
 \usepackage{longtable}
 
-% Ragged-right paragraph columns to prevent word spacing issues
-\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
-
-% Increase vertical spacing between table rows for readability
-\renewcommand{\arraystretch}{1.4}
 \usepackage{colortbl}
 \usepackage{pifont}
 \usepackage{setspace}
 \usepackage{parskip}
 \usepackage{caption}
 \usepackage{tabularx}
+\usepackage{needspace}
+\usepackage{tocloft}
+
+% Ragged-right paragraph columns to prevent word spacing issues
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+% Full-width ragged-right columns; the weights in a table sum to its column count
+\newcolumntype{Y}[1]{>{\raggedright\arraybackslash\hsize=#1\hsize\linewidth=\hsize}X}
+
+% Vertical spacing between table rows for readability
+% Z: leading column edge with a hair of stretch, absorbing rounding in the Y weights
+\newcolumntype{Z}{@{\extracolsep{0pt plus 1pt}\hspace{\tabcolsep}}}
+\renewcommand{\arraystretch}{1.3}
 
 \pgfplotsset{compat=1.18}
 \usetikzlibrary{shapes.geometric, arrows.meta, positioning, calc, decorations.pathreplacing, backgrounds, fit, shadows.blur, matrix, patterns, fadings, shadings}
@@ -131,12 +138,38 @@
 \titlespacing*{\section}{0pt}{3ex plus 1ex minus .2ex}{2ex plus .2ex}
 \titlespacing*{\subsection}{0pt}{2.5ex plus 1ex minus .2ex}{1.5ex plus .2ex}
 
+% Keep headings with the text that follows them
+\newcommand{\sectionbreak}{\needspace{10\baselineskip}}
+\newcommand{\subsectionbreak}{\needspace{6\baselineskip}}
+\newcommand{\subsubsectionbreak}{\needspace{5\baselineskip}}
+
 \setcounter{tocdepth}{2}
+\makeatletter
+\newcommand{\inlinetoc}{\@starttoc{toc}}
+\makeatother
+\setlength{\cftsecnumwidth}{1.8em}
+\setlength{\cftsubsecindent}{1.8em}
+\setlength{\cftsubsecnumwidth}{2.4em}
+\renewcommand{\cftsecfont}{\bfseries\color{slatedark}}
+\renewcommand{\cftsecpagefont}{\bfseries\color{slatedark}}
+\renewcommand{\cftsubsecfont}{\color{slatemid}}
+\renewcommand{\cftsubsecpagefont}{\color{slatemid}}
+\setlength{\cftbeforesecskip}{0.45em}
+\cftsetrmarg{2.55em plus 1fil}
+
+% Float placement: let figures share pages with text instead of stranding
+\setlength{\textfloatsep}{14pt plus 4pt minus 4pt}
+\setlength{\floatsep}{12pt plus 4pt minus 4pt}
+\renewcommand{\topfraction}{0.85}
+\renewcommand{\bottomfraction}{0.6}
+\renewcommand{\textfraction}{0.12}
+\renewcommand{\floatpagefraction}{0.75}
 
 % ============================================================================
 % TCOLORBOX ENVIRONMENTS - Fractured Authority Theme
 % ============================================================================
 \tcbuselibrary{skins,breakable,hooks}
+\tcbset{before upper={\setlength{\parskip}{0.5em}}}
 
 \newtcolorbox{keybox}[1][Key Finding]{
   enhanced, breakable,
@@ -210,7 +243,7 @@
 
 
 % Figure captions and shared plot styling (v3.0)
-\captionsetup{font=small, labelfont={bf,color=slatedark}, justification=centering}
+\captionsetup{font=small, labelfont={bf,color=slatedark}, justification=centering, margin=1em}
 \pgfplotsset{
   etrastyle/.style={
     axis line style={coolgray},
@@ -224,9 +257,55 @@
   }
 }
 \tikzset{
-  flowbox/.style={draw=slatemid, fill=lightgray, rounded corners=2pt, font=\scriptsize\sffamily, align=center, minimum height=0.9cm, text width=1.75cm, inner sep=2pt},
+  nohyph/.style={execute at begin node={\hyphenpenalty=10000\exhyphenpenalty=10000}},
+  flowbox/.style={nohyph, draw=slatemid, fill=lightgray, rounded corners=2pt, font=\scriptsize\sffamily, align=center, minimum height=0.9cm, text width=1.75cm, inner sep=3pt},
   dashbox/.style={flowbox, draw=fractureamber, dashed, fill=fractureamber!8},
   flowarrow/.style={-Stealth, line width=0.8pt, color=slatemid},
+}
+
+% ----------------------------------------------------------------------------
+% Part divider banner (matches the cover: slatedark band, bronze grid texture,
+% amber masthead rule, left-aligned kicker/title/rule/subtitle stack).
+% #1 part numeral, #2 title, #3 subtitle, #4 illustration (tikz code drawn
+% with its origin at the center of the right-hand illustration area).
+% ----------------------------------------------------------------------------
+\tikzset{
+  partlabel/.style={inner sep=0pt, text=textlight, text opacity=0.75,
+    font=\fontsize{6.5}{8}\selectfont\sffamily\bfseries},
+}
+\newcommand{\partbanner}[4]{%
+  \begin{tikzpicture}[remember picture, overlay]
+    \fill[slatedark] (current page.north west) rectangle ([yshift=-10cm]current page.north east);
+    \begin{scope}
+      \clip (current page.north west) rectangle ([yshift=-10cm]current page.north east);
+      \begin{scope}[shift={(current page.north west)}, opacity=0.04]
+        \foreach \gy in {1,2,...,9} {
+          \draw[bronzeweathered, line width=0.4pt] (0,-\gy) -- (21.59,-\gy);
+        }
+        \foreach \gx in {1,2,...,21} {
+          \draw[bronzeweathered, line width=0.4pt] (\gx,0) -- (\gx,-10);
+        }
+      \end{scope}
+    \end{scope}
+    \draw[fractureamber, line width=1.2pt]
+      ([yshift=-10cm]current page.north west) -- ([yshift=-10cm]current page.north east);
+    \node[anchor=west, inner sep=0pt] at ([xshift=2.159cm, yshift=-5cm]current page.north west) {%
+      \begin{minipage}{9.6cm}\raggedright
+        {\color{fractureamber}\fontsize{9}{11}\selectfont\sffamily\bfseries PART #1\par}%
+        \vspace{0.45cm}%
+        {\color{white}\fontsize{30}{34}\selectfont\sffamily\bfseries #2\par}%
+        \vspace{0.3cm}%
+        {\color{fractureamber}\rule{2.5cm}{2pt}\par}%
+        \vspace{0.3cm}%
+        \begin{minipage}{8.5cm}\raggedright
+          \color{white!70}\fontsize{11}{14}\selectfont\sffamily #3
+        \end{minipage}
+      \end{minipage}};
+    \begin{scope}[shift={([xshift=15.9cm, yshift=-5cm]current page.north west)}, scale=0.9]
+      #4
+    \end{scope}
+  \end{tikzpicture}%
+  \par\vspace*{7.9cm}%
 }
 
 % ============================================================================
@@ -239,70 +318,140 @@
 % ============================================================================
 \begin{titlepage}
 \begin{tikzpicture}[remember picture, overlay]
+  % --------------------------------------------------------------------------
+  % Background and subtle grid texture
+  % --------------------------------------------------------------------------
   \fill[slatedark] (current page.north west) rectangle (current page.south east);
-  \begin{scope}[shift={(current page.center)}, opacity=0.04]
-    \foreach \y in {-12,-10,...,12} {
-      \draw[bronzeweathered, line width=0.3pt] (-10,\y) -- (10,\y);
+  \begin{scope}[shift={(current page.south west)}, opacity=0.04]
+    \foreach \gy in {1,2,...,27} {
+      \draw[bronzeweathered, line width=0.4pt] (0,\gy) -- (21.59,\gy);
     }
-    \foreach \x in {-8,-4,0,4,8} {
-      \draw[fractureamber, line width=0.4pt] (\x,-12) -- ({\x+0.5},12);
+    \foreach \gx in {1,2,...,21} {
+      \draw[bronzeweathered, line width=0.4pt] (\gx,0) -- (\gx,27.94);
     }
   \end{scope}
 
-  \begin{scope}[shift={([xshift=-0.5cm, yshift=3.5cm]current page.center)}]
-    \shade[inner color=white, outer color=slatedark, opacity=0.08] (0,0) circle (5.5cm);
-    % OUTER RING - Collection layer
-    \draw[bronzeweathered, opacity=0.3, line width=16pt] (0,0) circle (4.5cm);
-    \draw[bronzeweathered, opacity=0.6, line width=2pt] (0,0) circle (4.5cm);
-    \node[textlight, opacity=0.35, font=\fontsize{7}{7}\selectfont\sffamily] at (270:5.4cm) {COLLECTION};
-    \foreach \angle/\label in {90/NSA, 140/FBI, 180/DIA, 220/NGA, 270/NRO, 320/DHS, 0/ODNI, 50/CIA} {
-      \fill[slatemid] (\angle:4.5cm) circle (0.55cm);
-      \draw[bronzeweathered, opacity=0.8, line width=1.5pt] (\angle:4.5cm) circle (0.55cm);
-      \node[white, font=\fontsize{8}{8}\selectfont\bfseries] at (\angle:4.5cm) {\label};
+  % --------------------------------------------------------------------------
+  % Masthead (flush with top edge)
+  % --------------------------------------------------------------------------
+  \fill[slateprimary] (current page.north west) rectangle ([yshift=-1.6cm]current page.north east);
+  \draw[fractureamber, line width=1.2pt] ([yshift=-1.6cm]current page.north west) -- ([yshift=-1.6cm]current page.north east);
+  \node[anchor=west, inner sep=0pt, text=fractureamber, font=\fontsize{8.5}{10}\selectfont\sffamily\bfseries]
+    at ([xshift=1.5cm, yshift=-0.8cm]current page.north west) {EMERGING TECHNOLOGY RISK ASSESSMENT};
+  \node[anchor=east, inner sep=0pt, text=white!70, font=\fontsize{8.5}{10}\selectfont\sffamily\bfseries]
+    at ([xshift=-1.5cm, yshift=-0.8cm]current page.north east) {ETRA-2026-IC-001\quad\textbar\quad SEPTEMBER 2026};
+
+  % --------------------------------------------------------------------------
+  % Illustration: centralized capability fracturing into a distributed field,
+  % with a verification layer beneath carrying the advantage
+  % --------------------------------------------------------------------------
+  \begin{scope}[shift={([yshift=18.6cm]current page.south)}]
+    % ---- Stage 1: centralized hub inside a monopoly boundary
+    \coordinate (hub) at (-6.0,0.9);
+    \foreach \r in {3.3,4.0} {
+      \draw[bronzeweathered, opacity=0.10, line width=0.4pt] (hub) circle (\r);
     }
-    % Commercial dependency tethers (v3.0): rented capability outside the ring
-    \foreach \angle/\label in {115/MODELS, 245/IMAGERY, 25/DATA} {
-      \draw[fractureamber, opacity=0.55, line width=1pt, dashed] (\angle:4.5cm) -- (\angle:6.3cm);
-      \node[fractureamber, opacity=0.85, font=\fontsize{6.5}{6.5}\selectfont\sffamily\bfseries] at (\angle:6.75cm) {\label};
+    \fill[slateprimary, opacity=0.9] (hub) circle (2.6);
+    % Intact portion of the boundary
+    \draw[bronzeweathered, opacity=0.85, line width=1.6pt] ([shift={(40:2.6)}]hub) arc (40:320:2.6);
+    % Fractured portion of the boundary: arc segments drifting outward
+    \foreach \a/\d in {-30/0.15, -10/0.35, 10/0.55, 30/0.3} {
+      \draw[fractureamber, opacity=0.8, line width=1.6pt]
+        ([shift={(\a-7:2.6+\d)}]hub) arc (\a-7:\a+7:2.6+\d);
     }
-    % MIDDLE RING - Analysis layer
-    \draw[stonegray, opacity=0.25, line width=12pt] (0,0) circle (3cm);
-    \draw[stonegray, opacity=0.5, line width=1.5pt] (0,0) circle (3cm);
-    \node[textlight, opacity=0.35, font=\fontsize{7}{7}\selectfont\sffamily] at (270:3.5cm) {ANALYSIS};
-    % INNER RING - Verification layer
-    \draw[verifyteal, opacity=0.25, line width=8pt] (0,0) circle (1.9cm);
-    \draw[verifyteal, opacity=0.5, line width=1.5pt] (0,0) circle (1.9cm);
-    \node[textlight, opacity=0.35, font=\fontsize{7}{7}\selectfont\sffamily] at (270:2.3cm) {VERIFICATION};
-    % Decision core
-    \shade[inner color=patinabronze!60, outer color=patinabronze!10, opacity=0.3] (0,0) circle (1.5cm);
-    \fill[slatedark] (0,0) circle (1.2cm);
-    \fill[patinabronze, opacity=0.9] (0,0) circle (0.9cm);
-    \draw[bronzeweathered, line width=3pt] (0,0) circle (0.9cm);
-    \node[white, font=\fontsize{9}{9}\selectfont\bfseries] at (0,0) {DECISION};
-    \draw[verifyteal, opacity=0.6, line width=3pt] (0,0) circle (1.08cm);
-    \draw[verifyteal, opacity=0.3, line width=5pt] (0,0) circle (1.35cm);
+    % Spokes and satellites
+    \foreach \a in {0,45,...,315} {
+      \draw[bronzeweathered, opacity=0.55, line width=0.8pt] (hub) -- ++(\a:1.65);
+      \fill[patinabronze] ([shift={(\a:1.65)}]hub) circle (0.13);
+    }
+    \draw[bronzeweathered, opacity=0.35, line width=0.4pt] (hub) circle (1.65);
+    \fill[patinabronze, opacity=0.25] (hub) circle (0.75);
+    \fill[patinabronze] (hub) circle (0.48);
+    \draw[slatedark, line width=0.8pt] (hub) circle (0.3);
+
+    % ---- Stage 2 and 3: capability escaping into a distributed field
+    % Node coordinates (x, y) and size class
+    \def\nx{{-2.9,-2.1,-1.6,-0.7,-0.2, 0.4, 0.9, 1.5, 1.9, 2.6, 3.1, 3.4, 4.1, 4.5, 5.0, 5.4, 6.0, 6.3, 6.9, 7.3, 7.8, 8.4, 8.6, 5.6, 2.3}}
+    \def\ny{{ 1.3, 0.2, 2.1, 1.0, 2.9,-0.2, 1.9, 3.3, 0.6, 2.2,-0.5, 1.3, 3.4, 0.2, 2.4,-0.7, 1.4, 3.3, 0.3, 2.3,-0.4, 1.3, 3.1, 4.3, 4.4}}
+    \def\nn{24}
+    % Mesh links between nearby nodes
+    \foreach \i in {0,...,\nn} {
+      \foreach \j in {0,...,\nn} {
+        \ifnum\j>\i
+          \pgfmathsetmacro{\dd}{veclen(\nx[\i]-\nx[\j], \ny[\i]-\ny[\j])}
+          \pgfmathsetmacro{\xi}{\nx[\i]}\pgfmathsetmacro{\yi}{\ny[\i]}
+          \pgfmathsetmacro{\xj}{\nx[\j]}\pgfmathsetmacro{\yj}{\ny[\j]}
+          \ifdim\dd pt<2.0pt
+            \draw[stonegray, opacity=0.55, line width=0.4pt] (\xi,\yi) -- (\xj,\yj);
+          \fi
+        \fi
+      }
+    }
+    % Nodes: color shifts from bronze (near hub) to amber and yellow (far)
+    \foreach \i in {0,...,\nn} {
+      \pgfmathsetmacro{\xi}{\nx[\i]}\pgfmathsetmacro{\yi}{\ny[\i]}
+      \pgfmathsetmacro{\tint}{min(100,max(0,(\xi+3)*12))}
+      \fill[slatedark] (\xi,\yi) circle (0.2);
+      \fill[erosionyellow!\tint!patinabronze] (\xi,\yi) circle (0.12);
+    }
+
+    % ---- Verification layer
+    \fill[verifyteal, opacity=0.14] (-2.2,-2.75) rectangle (9.2,-3.45);
+    \draw[verifyteal, line width=1.6pt] (-2.2,-3.1) -- (9.2,-3.1);
+    \draw[verifyteal, opacity=0.5, line width=0.4pt] (-2.2,-2.75) -- (9.2,-2.75);
+    \draw[verifyteal, opacity=0.5, line width=0.4pt] (-2.2,-3.45) -- (9.2,-3.45);
+    % Faint continuation toward the centralized side (legacy has no such layer)
+    \draw[verifyteal, opacity=0.25, line width=0.8pt, dash pattern=on 3pt off 3pt] (-9.4,-3.1) -- (-2.2,-3.1);
+    % Verified nodes: drop lines to the layer and a check ring on the node
+    \foreach \i in {1,5,8,10,13,15,18,20} {
+      \pgfmathsetmacro{\xi}{\nx[\i]}\pgfmathsetmacro{\yi}{\ny[\i]}
+      \draw[adaptteal, opacity=0.55, line width=0.4pt, dash pattern=on 1.5pt off 1.5pt] (\xi,\yi-0.25) -- (\xi,-2.75);
+      \draw[adaptteal, line width=0.8pt] (\xi,\yi) circle (0.25);
+      \fill[adaptteal] (\xi,-3.1) +(0,0.13) -- +(0.13,0) -- +(0,-0.13) -- +(-0.13,0) -- cycle;
+    }
+
+    % ---- Sparse stage labels
+    \node[anchor=north, inner sep=0pt, text=textlight, opacity=0.6, font=\fontsize{6.5}{8}\selectfont\sffamily\bfseries]
+      at (-6.0,-1.95) {CENTRALIZED COLLECTION};
+    \node[anchor=south, inner sep=0pt, text=textlight, opacity=0.6, font=\fontsize{6.5}{8}\selectfont\sffamily\bfseries]
+      at (3.6,5.0) {DISTRIBUTED CAPABILITY};
+    \node[anchor=north east, inner sep=0pt, text=adaptteal, font=\fontsize{6.5}{8}\selectfont\sffamily\bfseries]
+      at (9.2,-3.75) {VERIFICATION LAYER};
   \end{scope}
 
-  \fill[barriergold] ([yshift=-1.5cm]current page.north west) rectangle ([yshift=-2.2cm]current page.north east);
-  \node[slatedark, font=\small\bfseries\sffamily] at ([yshift=-1.85cm]current page.north) {PROJECTION REPORT \textbar{} ETRA-2026-IC-001 \textbar{} SEPTEMBER 2026};
+  % --------------------------------------------------------------------------
+  % Title block (bottom-up stack ending 6.0cm above page bottom)
+  % --------------------------------------------------------------------------
+  \node[anchor=south west, inner sep=0pt, text width=14cm, align=left,
+        text=white!75, font=\fontsize{12.5}{16}\selectfont\sffamily] (subt)
+    at ([xshift=1.5cm, yshift=6.0cm]current page.south west)
+    {The Verification Pivot: How Autonomous AI Transforms the IC};
+  \fill[fractureamber] ([yshift=0.4cm]subt.north west) rectangle ++(3cm,2pt);
+  \node[anchor=south west, inner sep=0pt, text width=15.5cm, align=left,
+        text=white, font=\fontsize{34}{38}\selectfont\sffamily\bfseries] (ttl)
+    at ([yshift=0.4cm+2pt+0.35cm]subt.north west)
+    {AI Agents and\\Institutional Erosion of\\Intelligence Monopolies};
+  \node[anchor=south west, inner sep=0pt, text=fractureamber,
+        font=\fontsize{9}{11}\selectfont\sffamily\bfseries]
+    at ([yshift=0.5cm]ttl.north west) {PROJECTION REPORT};
 
-  \node[anchor=south west, text width=14cm] at ([xshift=1.5cm, yshift=3cm]current page.south west) {
-    {\fontsize{11}{13}\selectfont\color{fractureamber}\sffamily EMERGING TECHNOLOGY RISK ASSESSMENT}\\[0.8cm]
-    {\fontsize{32}{38}\selectfont\bfseries\color{white}AI Agents and}\\[0.2cm]
-    {\fontsize{32}{38}\selectfont\bfseries\color{white}Institutional Erosion of}\\[0.2cm]
-    {\fontsize{32}{38}\selectfont\bfseries\color{white}Intelligence Monopolies}\\[0.6cm]
-    {\large\color{textlight}\sffamily The Verification Pivot: How Autonomous AI Transforms the IC}
-  };
-
-  \node[anchor=south east, text width=6cm, align=right] at ([xshift=-1.5cm, yshift=3cm]current page.south east) {
-    \color{textlight}\small\sffamily
-    \textbf{Document Type:} Policy Research\\[0.2em]
-    \textbf{Time Horizon:} 2026--2030\\[0.2em]
-    \textbf{License:} MIT / Unlicense\\[0.2em]
-    \textbf{Version:} 3.0
-  };
-
-  \draw[bronzeweathered, line width=2pt] ([xshift=1.5cm, yshift=3cm]current page.south west) -- ([xshift=1.5cm, yshift=10.5cm]current page.south west);
+  % --------------------------------------------------------------------------
+  % Footer metadata strip (four equal columns)
+  % --------------------------------------------------------------------------
+  \draw[white, opacity=0.25, line width=0.4pt]
+    ([xshift=1.5cm, yshift=2.6cm]current page.south west) -- ([xshift=-1.5cm, yshift=2.6cm]current page.south east);
+  \foreach \lab/\val [count=\k from 0] in {
+      DOCUMENT TYPE/Policy Research,
+      TIME HORIZON/2026--2030,
+      LICENSE/{MIT / Unlicense},
+      VERSION/3.0} {
+    \node[anchor=base west, inner sep=0pt, text=fractureamber,
+          font=\fontsize{6.5}{8}\selectfont\sffamily\bfseries]
+      at ([xshift=1.5cm+\k*4.6475cm, yshift=1.95cm]current page.south west) {\lab};
+    \node[anchor=base west, inner sep=0pt, text=white!75,
+          font=\fontsize{8.5}{10}\selectfont\sffamily]
+      at ([xshift=1.5cm+\k*4.6475cm, yshift=1.5cm]current page.south west) {\val};
+  }
 \end{tikzpicture}
 \end{titlepage}
 
@@ -335,12 +484,10 @@ This projection examines how autonomous AI agents are eroding the traditional ad
 \vspace{0.2cm}
 
 \begin{keybox}[Central Thesis: The Verification Pivot]
-The IC is transitioning from an era of \textbf{Information Scarcity} (advantage derived from superior collection capabilities) to an era of \textbf{Epistemic Contamination} (advantage derives from superior verification capabilities).
+The IC is transitioning from an era of \textbf{Information Scarcity} (advantage derived from superior collection capabilities) to an era of \textbf{Epistemic Contamination} (advantage derived from superior verification capabilities).
 
-\vspace{0.5em}
 \textbf{Secondary Thesis: From Secrecy to Provenance.} In an AI-saturated environment, \textit{classification alone} is no longer a reliable proxy for decision value. Intelligence products derive value from (1) protecting sources and methods \textit{and} (2) providing high-integrity, auditable provenance for key claims.
 
-\vspace{0.5em}
 \textbf{New in v3.0: Erosion Runs in Two Directions [E].} Capability diffuses \textit{down} to non-state actors (a frontier lab now writes that AI ``has collapsed the labor and tooling gap that used to separate well-resourced, state-sponsored operations from individual operators,'' Anthropic, Sept 2026) while the state's own capability increasingly depends \textit{up} on commercial providers it does not control. A monopoly is lost both when others acquire the capability and when the holder must rent it.
 \end{keybox}
 
@@ -388,6 +535,7 @@ See Appendix C for full history.
 % ============================================================================
 % EXECUTIVE TAKEAWAYS
 % ============================================================================
+\needspace{8\baselineskip}
 \begin{center}
 {\color{slatedark}\Large\bfseries Executive Takeaways}
 \end{center}
@@ -425,7 +573,7 @@ See Appendix C for full history.
 \begin{criticalbox}[What Changed Since July 2026 {[O]}]
 \begin{center}
 \scriptsize
-\begin{tabular}{L{2.1cm}L{7.3cm}L{3.9cm}}
+\begin{tabularx}{\linewidth}{ZY{0.47}Y{1.65}Y{0.88}}
 \toprule
 \textbf{Date (2026)} & \textbf{Development} & \textbf{Direction} \\
 \midrule
@@ -442,7 +590,7 @@ Sept 1--4 & OpenAI model first to cross its ``Critical'' cyber threshold; restri
 Sept 8 & CIA on track for FY2026 hiring; largest operations class in 20 years & Counter-signal \\
 September & Anthropic and Google threat reports: state and non-state misuse; agent-enabled campaign built in under six hours & Floor thesis corroborated \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{center}
 \end{criticalbox}
 
@@ -458,10 +606,11 @@ September & Anthropic and Google threat reports: state and non-state misuse; age
 \end{enumerate}
 \end{defbox}
 
-\begin{keybox}[6 Most Likely Impact Paths]
+\begin{table}[!tbp]
+\begin{keybox}[Six Most Likely Impact Paths]
 \begin{center}
 \small
-\begin{tabular}{L{3cm}L{5.5cm}L{4cm}}
+\begin{tabularx}{\linewidth}{ZY{0.72}Y{1.32}Y{0.96}}
 \toprule
 \textbf{Path} & \textbf{Mechanism} & \textbf{Primary Victims} \\
 \midrule
@@ -472,14 +621,16 @@ Algorithmic Capture & Compromise of AI systems used by leadership biases intelli
 Nano-Smurfing Evasion & Sub-threshold procurement of dual-use items evades monitoring & Treasury, DOE, proliferation watchers \\
 Sovereign Dependency (new) & Rented capability interrupted or conditioned in a crisis or dispute & NGA, NRO, DoD elements \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{center}
 \end{keybox}
+\end{table}
 
+\begin{table}[!tbp]
 \begin{recbox}[Priority Controls]
 \begin{center}
 \small
-\begin{tabular}{L{0.9cm}L{5.8cm}L{2.8cm}L{2.9cm}}
+\begin{tabularx}{\linewidth}{ZY{0.29}Y{1.87}Y{0.9}Y{0.94}}
 \toprule
 \textbf{Bkt} & \textbf{Control} & \textbf{Owner} & \textbf{90-Day Target} \\
 \midrule
@@ -494,15 +645,17 @@ B & Agent-vs-Agent red team (Bounty Agent) & Each agency & Initial gaps identifi
 B & Cross-agency synthetic content detection & FBI + CISA & Shared tooling deployed \\
 B & ``Analog Break'' protocols for HUMINT & CIA, DIA & Documented procedures \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{center}
 \textit{Bucket A: protect leadership workflows. Bucket B: scale verification throughput.}
 \end{recbox}
+\end{table}
 
+\begin{table}[!tbp]
 \begin{warnbox}[Three Objections You'll Hear]
 \begin{center}
 \small
-\begin{tabular}{L{3.5cm}L{9cm}}
+\begin{tabularx}{\linewidth}{ZY{0.56}Y{1.44}}
 \toprule
 \textbf{Objection} & \textbf{Response} \\
 \midrule
@@ -510,13 +663,15 @@ B & ``Analog Break'' protocols for HUMINT & CIA, DIA & Documented procedures \\
 ``IC is already adapting'' & It is adopting fast (GenAI.mil $\sim$1.7M users). Adoption is not verification; adoption without verification metrics expands the attack surface \\
 ``Agents aren't this capable yet'' & In 2026 a developer rated a model ``Critical'' for cyber, models escaped an evaluation sandbox, and a 2025 state campaign used AI for an estimated 80--90\% of the work (GTG-1002) \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{center}
 \end{warnbox}
+\end{table}
 
 % ============================================================================
 % BASE-RATE CONTEXT
 % ============================================================================
+\needspace{8\baselineskip}
 \begin{center}
 {\color{slatedark}\Large\bfseries Base-Rate Context: Anchoring Expectations}
 \end{center}
@@ -556,10 +711,10 @@ The structural gap was identified publicly by the Joint Inquiry in 2002; the Ter
     \fill[slatedark] (\x,0) circle (0.07);
     \ifnum\up=1
       \draw[coolgray] (\x,0.07) -- (\x,0.55);
-      \node[anchor=south, text width=1.55cm, align=center, font=\tiny\sffamily] at (\x,0.55) {\textbf{\yr}\\\txt};
+      \node[nohyph, anchor=south, text width=1.6cm, align=center, font=\tiny\sffamily] at (\x,0.55) {\textbf{\yr}\\\txt};
     \else
       \draw[coolgray] (\x,-0.45) -- (\x,-0.95);
-      \node[anchor=north, text width=1.55cm, align=center, font=\tiny\sffamily] at (\x,-0.95) {\textbf{\yr}\\\txt};
+      \node[nohyph, anchor=north, text width=1.6cm, align=center, font=\tiny\sffamily] at (\x,-0.95) {\textbf{\yr}\\\txt};
     \fi
   }
 \end{tikzpicture}
@@ -595,7 +750,16 @@ The structural gap was identified publicly by the Joint Inquiry in 2002; the Ter
 \end{infobox}
 
 \newpage
-\tableofcontents
+\begin{center}
+{\color{slatedark}\Large\bfseries Contents}
+\end{center}
+\vspace{0.1cm}
+\begin{tcolorbox}[enhanced, colback=lightgray, colframe=slatemid!40, boxrule=0.8pt, arc=3pt, left=10pt, right=10pt, top=8pt, bottom=8pt]
+\small
+\begin{multicols}{2}
+\inlinetoc
+\end{multicols}
+\end{tcolorbox}
 \newpage
 
 % ============================================================================
@@ -603,28 +767,23 @@ The structural gap was identified publicly by the Joint Inquiry in 2002; the Ter
 % ============================================================================
 \clearpage
 \thispagestyle{empty}
-\vspace*{-0.85in}
-\noindent\hspace*{-0.85in}\begin{tikzpicture}
-  \fill[slatedark] (0,0) rectangle (\paperwidth, -10cm);
-  \node[fractureamber, font=\fontsize{10}{10}\selectfont\sffamily] at (0.5\paperwidth, -1.2cm) {PART I};
-  \node[white, font=\fontsize{48}{48}\selectfont\bfseries] at (0.5\paperwidth, -2.8cm) {Foundations};
-  \node[textlight, opacity=0.8, font=\normalsize\sffamily] at (0.5\paperwidth, -4.0cm) {Theory, Context, and Conceptual Framework};
-  \begin{scope}[shift={(0.5\paperwidth, -6.8cm)}]
-    \fill[stressorange, opacity=0.9] (-4.5, 0) circle (1.1cm);
-    \node[white, font=\fontsize{9}{9}\selectfont\bfseries] at (-4.5, 0.15) {COLLECT};
-    \node[white, font=\fontsize{7}{7}\selectfont] at (-4.5, -0.25) {ERA};
-    \draw[fractureamber, line width=5pt, -Stealth] (-2.8, 0) -- (2.8, 0);
-    \node[fractureamber, font=\fontsize{11}{11}\selectfont\bfseries] at (0, 0.55) {VERIFICATION PIVOT};
-    \fill[verifyteal, opacity=0.9] (4.5, 0) circle (1.1cm);
-    \node[white, font=\fontsize{9}{9}\selectfont\bfseries] at (4.5, 0.15) {VERIFY};
-    \node[white, font=\fontsize{7}{7}\selectfont] at (4.5, -0.25) {ERA};
-    \node[textlight, opacity=0.6, font=\fontsize{8}{8}\selectfont] at (-4.5, -1.6) {Information Scarcity};
-    \node[textlight, opacity=0.6, font=\fontsize{8}{8}\selectfont] at (4.5, -1.6) {Epistemic Contamination};
-  \end{scope}
-  \fill[fractureamber] (2cm, -9.2cm) rectangle (\paperwidth-2cm, -9.3cm);
-\end{tikzpicture}
-
-\vspace{0.8cm}
+\noindent\partbanner{I}{Foundations}{Theory, Context, and Conceptual Framework}{%
+  % Capability floor elevation across the T0-T4 threat actor taxonomy:
+  % solid block = pre-agent capability, cap line = agent-era capability.
+  \draw[textlight, opacity=0.3, line width=0.4pt] (-4.0,-2.7) -- (3.96,-2.7);
+  \foreach \x/\old/\new/\t [count=\k from 0] in
+      {-1.6/0.55/2.45/T0, -0.3/1.15/2.95/T1, 1.0/1.95/3.55/T2, 2.3/3.1/4.35/T3, 3.6/4.95/5.45/T4} {
+    \fill[erosionyellow, opacity=0.14] (\x-0.36,-2.7+\old) rectangle (\x+0.36,-2.7+\new);
+    \fill[patinabronze, opacity=0.85] (\x-0.36,-2.7) rectangle (\x+0.36,-2.7+\old);
+    \draw[erosionyellow, line width=1.6pt] (\x-0.36,-2.7+\new) -- (\x+0.36,-2.7+\new);
+    \draw[erosionyellow, opacity=0.6, line width=0.8pt, -{Stealth[length=3pt]}]
+      (\x,-2.7+\old+0.12) -- (\x,-2.7+\new-0.14);
+    \node[partlabel, anchor=north] at (\x,-2.9) {\t};
+  }
+  % Elevated floor
+  \draw[fractureamber, line width=0.8pt, dash pattern=on 3pt off 2pt] (-4.0,-0.25) -- (3.96,-0.25);
+  \node[partlabel, text=fractureamber, text opacity=1, anchor=south west] at (-4.0,-0.1) {CAPABILITY FLOOR};
+}
 \begin{center}
 \begin{minipage}{0.9\textwidth}
 \begin{tcolorbox}[enhanced, colback=white, colframe=slatemid!30, boxrule=1pt, arc=4pt,
@@ -652,7 +811,7 @@ The U.S. Intelligence Community has maintained strategic advantage through super
 
 \begin{center}
 \small
-\begin{tabular}{L{4.5cm}L{3cm}L{6cm}}
+\begin{tabularx}{\linewidth}{ZY{1}Y{0.67}Y{1.33}}
 \toprule
 \textbf{Report} & \textbf{Document ID} & \textbf{Relationship} \\
 \midrule
@@ -662,7 +821,7 @@ AI Agents and Espionage Operations & ETRA-2026-ESP-001 & Adversary HUMINT augmen
 AI Agents and Political Targeting & ETRA-2026-PTR-001 & Leadership targeting; its Insider Threat vector parallels the IC AI-adoption attack surface here \\
 AI Agents and WMD Proliferation & ETRA-2026-WMD-001 & Nano-smurfing for dual-use materials; ``conspiracy footprint shrinks''; attribution void \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{center}
 
 \subsection{Methodology}
@@ -682,14 +841,13 @@ This is independent, single-author research: it involves no first-party expert c
 \subsection{Epistemic Status Markers}
 
 \begin{defbox}[Epistemic Status Markers]
-\begin{tabular}{L{1.2cm}L{3.5cm}L{8cm}}
+\begin{tabularx}{\linewidth}{ZY{0.28}Y{0.83}Y{1.89}}
 \textbf{[O]} & Open-source documented & Direct public documentation supports this specific claim \\
 \textbf{[D]} & Data point & Specific quantified measurement with citation \\
 \textbf{[E]} & Expert judgment & Supported by expert consensus, analogies, or partial evidence \\
 \textbf{[S]} & Speculative projection & Forward projection with significant uncertainty \\
-\end{tabular}
+\end{tabularx}
 
-\vspace{0.5em}
 \textbf{Marker discipline}: Each major claim carries the marker reflecting its \textit{dominant} evidence basis. Where numeric estimates lack citations, they are marked as ``illustrative magnitude estimates'' with [S].
 \end{defbox}
 
@@ -700,31 +858,22 @@ This is independent, single-author research: it involves no first-party expert c
 \begin{defbox}[Core Definitions]
 \textbf{AI Agent}: An AI system capable of autonomous multi-step task execution, tool use, and goal-directed behavior with minimal human oversight per action.
 
-\vspace{0.4em}
 \textbf{Intelligence Community (IC)}: The 18 U.S. government agencies responsible for intelligence activities, coordinated by ODNI.
 
-\vspace{0.4em}
 \textbf{Epistemic Contamination}: A state where the information environment contains sufficient synthetic or manipulated content that establishing ``ground truth'' requires significant verification resources.
 
-\vspace{0.4em}
 \textbf{Process DoS}: Overwhelming an organization's investigative capacity with plausible-but-false leads, requests, or data.
 
-\vspace{0.4em}
 \textbf{Attribution-Intent Gap}: The structural difficulty of establishing human intent when actions are executed by autonomous agents.
 
-\vspace{0.4em}
 \textbf{Verification Latency}: The time required to establish whether intelligence is authentic, synthetic, or manipulated.
 
-\vspace{0.4em}
 \textbf{Algorithmic Capture} (AI-mediated decision-support compromise): Any technique that systematically biases AI-assisted analysis via prompt/context manipulation, supply-chain compromise, or knowledge-base poisoning. \textit{Falsifiable test}: if an adversary can systematically shift analytic conclusions without changing ground truth, you have algorithmic capture.
 
-\vspace{0.4em}
 \textbf{Sovereign Dependency} (new): A once-owned state capability now rented from commercial providers, so that its availability, terms, and integrity depend on parties outside the chain of command.
 
-\vspace{0.4em}
 \textbf{Evaluation Integrity} (new): The degree to which testing of an AI tool measures its real behavior rather than behavior displayed because it is being tested or has gamed the test.
 
-\vspace{0.4em}
 \textbf{Orchestrated Mundanity}: The deliberate transformation of suspicious activities into thousands of boring, unrelated events.
 \end{defbox}
 
@@ -732,7 +881,7 @@ This is independent, single-author research: it involves no first-party expert c
 
 \begin{center}
 \small
-\begin{tabular}{L{1cm}L{3cm}L{3.6cm}L{5.4cm}}
+\begin{tabularx}{\linewidth}{ZY{0.31}Y{0.92}Y{1.11}Y{1.66}}
 \toprule
 \textbf{Tier} & \textbf{Actor Class} & \textbf{Pre-Agent Capability} & \textbf{Post-Agent Capability} \\
 \midrule
@@ -742,7 +891,7 @@ T2 & Organized crime & Coordinated operations & Agent swarms; influence-as-a-ser
 T3 & Regional state & Dedicated intel programs & Scaled automation; purchased imagery and data \\
 T4 & Major state actor & Full-spectrum capabilities & AI-augmented full-spectrum; new dependencies \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{center}
 
 \begin{keybox}[Key Insight]
@@ -782,7 +931,7 @@ The gap between T0--T2 and T3--T4 has compressed. A T1 actor with agent capabili
 
 \begin{center}
 \small
-\begin{tabular}{L{1.5cm}L{3cm}L{3cm}L{5cm}}
+\begin{tabularx}{\linewidth}{ZY{0.48}Y{0.96}Y{0.96}Y{1.6}}
 \toprule
 \textbf{INT} & \textbf{Full Name} & \textbf{Primary Method} & \textbf{AI Vulnerability Vector} \\
 \midrule
@@ -794,7 +943,7 @@ MASINT & Measurement \& Signature & Technical sensors & Sensor spoofing, signatu
 FININT & Financial Intelligence & Money flows & Nano-smurfing, shell automation \\
 CYBINT & Cyber Intelligence & Network operations & Agent-automated intrusion \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{center}
 
 \section{Theoretical Framework: The Monopoly Erosion Model}
@@ -805,7 +954,7 @@ CYBINT & Cyber Intelligence & Network operations & Agent-automated intrusion \\
 
 \begin{center}
 \small
-\begin{tabular}{L{2cm}L{4cm}L{6cm}}
+\begin{tabularx}{\linewidth}{ZY{0.5}Y{1}Y{1.5}}
 \toprule
 \textbf{Era} & \textbf{Monopoly Basis} & \textbf{Barrier to Entry} \\
 \midrule
@@ -814,13 +963,13 @@ Cold War & SIGINT infrastructure, satellites & Capital (\$billions), technical e
 Post-9/11 & Fusion centers, data access & Legal authority, data pipelines \\
 2020s & AI processing, verification & \textbf{Collapsing} \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{center}
 
 \begin{criticalbox}[Quantified Capability Trajectory {[D/O]}]
 \begin{center}
 \small
-\begin{tabular}{L{3.9cm}L{5cm}L{3.6cm}}
+\begin{tabularx}{\linewidth}{ZY{0.94}Y{1.2}Y{0.86}}
 \toprule
 \textbf{Metric} & \textbf{Value} & \textbf{Source} \\
 \midrule
@@ -831,7 +980,7 @@ Open-weight lag & $\sim$4--8 months behind closed frontier & UK AISI (Dec 2025);
 State-actor autonomy (observed) & AI performed an estimated 80--90\% of a state-sponsored campaign & Anthropic GTG-1002 (Nov 2025) \\
 Adversary AI content & 200+ instances in July 2025, $>$2$\times$ July 2024, $>$10$\times$ 2023 & Microsoft DDR (Oct 2025) \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{center}
 
 \textbf{Trajectory Milestones, December 2025--September 2026 [O]}:
@@ -839,7 +988,8 @@ Adversary AI content & 200+ instances in July 2025, $>$2$\times$ July 2024, $>$1
   \item \textbf{Dec 9, 2025 (context)}: the Linux Foundation forms the Agentic AI Foundation, with founding projects from Anthropic (MCP), Block (goose), and OpenAI (AGENTS.md)
   \item \textbf{Feb 5}: GPT-5.3-Codex and Claude Opus 4.6 (research-preview agent teams) ship the same day
   \item \textbf{May 28}: Claude Opus 4.8 system card adds the pathway ``Undermining decisions within major governments'' (Pathway 8), judged low risk
-  \item \textbf{June 9}: Claude Fable 5 / Mythos 5 released as tiered configurations; system card assesses significant uplift for the unsafeguarded configuration. \textbf{June 12--30}: U.S. export controls after a reported safeguard bypass suspend access globally; restored July 1. First public case of a state intervening in a frontier release in real time
+  \item \textbf{June 9}: Claude Fable 5 / Mythos 5 released as tiered configurations; system card assesses significant uplift for the unsafeguarded configuration. 
+  \item \textbf{June 12--30}: after a reported safeguard bypass, U.S. export controls suspend access globally until July 1: the first public case of a state intervening in a frontier release in real time
   \item \textbf{July 20--21}: GPT-5.6 Sol and an unreleased model escape an evaluation sandbox via a zero-day and breach Hugging Face production systems
   \item \textbf{Sept 1--4}: an OpenAI model (GPT-6 Astra) is the first to cross the ``Critical'' cyber threshold of its Preparedness Framework; limited preview Sept 3, restricted general release Sept 4 (OpenAI; CNBC)
 \end{itemize}
@@ -875,7 +1025,7 @@ The control points that separate a general-purpose product from an uplift-capabl
 \begin{warnbox}[What Previously Required State Resources]
 \begin{center}
 \small
-\begin{tabular}{L{3.8cm}L{4cm}L{4.7cm}}
+\begin{tabularx}{\linewidth}{ZY{0.91}Y{0.96}Y{1.13}}
 \toprule
 \textbf{Capability} & \textbf{Pre-2024 Requirement} & \textbf{2026 Reality} \\
 \midrule
@@ -886,7 +1036,7 @@ Photo geolocation & Trained imagery analyst & General-purpose model \\
 Coordinated influence campaign & State-level coordination & Agent swarm or influence-as-a-service \\
 Imagery of a foreign base & National technical means & Commercial purchase, incl.\ non-allied vendors \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{center}
 \end{warnbox}
 
@@ -902,19 +1052,23 @@ The \texttt{packages/bioforge/} CRISPR automation platform illustrates analogous
 
 \subsection{The Collection-to-Verification Pivot [E]}
 
-\textbf{The Historical Advantage}: ``The Intercept'': the ability to collect signals that adversaries could not protect. \textbf{The 2026 Reality}: the marginal cost of a plausible decoy is orders of magnitude below the cost of triaging it. Where triage is manual, decoys can plausibly outnumber authentic signals; we treat 3--30$\times$ as an illustrative range [S], highest on public-facing surfaces and lowest inside authenticated systems. The Lead Decay Rate metric is designed to replace this judgment with measurement. \textbf{The New Advantage}: ``The Provenance'': the ability to establish authenticity, trace origins, and verify claims.
+\textbf{The Historical Advantage} was ``the Intercept'': the ability to collect signals that adversaries could not protect.
+
+\textbf{The 2026 Reality}: the marginal cost of a plausible decoy is orders of magnitude below the cost of triaging it. Where triage is manual, decoys can plausibly outnumber authentic signals; we treat 3--30$\times$ as an illustrative range [S], highest on public-facing surfaces and lowest inside authenticated systems. The Lead Decay Rate metric is designed to replace this judgment with measurement.
+
+\textbf{The New Advantage} is ``the Provenance'': the ability to establish authenticity, trace origins, and verify claims.
 
 \begin{keybox}[Metrics Inversion]
 \begin{center}
 \small
-\begin{tabular}{L{5.5cm}L{6cm}}
+\begin{tabularx}{\linewidth}{ZY{0.96}Y{1.04}}
 \textbf{Old Metric (Collection Era)} & \textbf{New Metric (Verification Era)} \\
 \midrule
 Signals collected per day & Signals verified per day \\
 Sources recruited & Source authenticity confirmation rate \\
 Data volume processed & Ground truth maintenance rate \\
 Coverage breadth & Epistemic confidence score \\
-\end{tabular}
+\end{tabularx}
 \end{center}
 \end{keybox}
 
@@ -922,7 +1076,7 @@ Coverage breadth & Epistemic confidence score \\
 
 \begin{center}
 \small
-\begin{tabular}{L{4cm}L{4cm}L{4.5cm}}
+\begin{tabularx}{\linewidth}{ZY{0.96}Y{0.96}Y{1.08}}
 \toprule
 \textbf{Process} & \textbf{Typical IC Timeline} & \textbf{Adversary Agent Timeline} \\
 \midrule
@@ -931,7 +1085,7 @@ Security clearance & 6--18 months & N/A \\
 Technology acquisition & 18--36 months (now faster; see below) & Days to weeks (commercial APIs) \\
 Doctrine development & 2--5 years & Continuous iteration \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{center}
 
 \begin{keybox}[A 2026 Correction {[O/E]}]
@@ -942,7 +1096,7 @@ The acquisition row is partly out of date in the IC's favor: enterprise platform
 
 \begin{center}
 \small
-\begin{tabular}{L{6cm}L{6.5cm}}
+\begin{tabularx}{\linewidth}{ZY{0.96}Y{1.04}}
 \toprule
 \textbf{Traditional} & \textbf{Agent Era} \\
 \midrule
@@ -951,7 +1105,7 @@ Collection is expensive; analysis adds value & Collection is cheap; \textit{veri
 Dissemination is controlled & Dissemination is uncontrollable \\
 Capability is owned & Capability is increasingly rented \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{center}
 
 \textbf{The Verification Tax [E]}: every piece of intelligence carries an implicit cost to establish authenticity before use; as contamination increases, the tax rises, potentially exceeding the value of the intelligence itself.
@@ -969,7 +1123,7 @@ Institutional disruption reduces the first two terms and often forces premature 
 \begin{criticalbox}[Documented Workforce and Leadership Changes {[O]}]
 \begin{center}
 \scriptsize
-\begin{tabular}{L{2.1cm}L{6cm}L{2.2cm}L{2.7cm}}
+\begin{tabularx}{\linewidth}{ZY{0.65}Y{1.85}Y{0.68}Y{0.82}}
 \toprule
 \textbf{Element} & \textbf{Documented Action} & \textbf{Source} & \textbf{Verification Impact} \\
 \midrule
@@ -981,7 +1135,7 @@ NSA & 2,000-person civilian reduction met by end of 2025; senior-heavy & Nextgov
 Federal civilian & $\sim$317,000 separations in 2025; $\sim$68,000 hires; net $\sim$249,000 & OPM via FNN & Support functions (FOIA, legal) thinner \\
 Non-IC access & DOGE accounts on classified DOE networks; Senate Intelligence concerns & NPR; Sen.\ Warner & Insider-threat surface \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{center}
 \end{criticalbox}
 
@@ -1019,7 +1173,7 @@ Earlier versions treated the monopoly problem as \textit{diffusion}. The 2026 re
 
 \begin{center}
 \scriptsize
-\begin{tabular}{L{1.9cm}L{6.4cm}L{4.6cm}}
+\begin{tabularx}{\linewidth}{ZY{0.44}Y{1.49}Y{1.07}}
 \toprule
 \textbf{Case} & \textbf{What happened [O]} & \textbf{What it shows [E]} \\
 \midrule
@@ -1027,7 +1181,7 @@ Frontier models & Feb 27, 2026: after Anthropic declined to remove usage limits 
 Commercial imagery & 2026 Iran war: Planet extended its Middle East delay to 14 days (Mar 10), then withheld indefinitely after a U.S. request for voluntary restraint (Apr 5); Vantor (formerly Maxar Intelligence) applied its own controls. Space Command: ``the rest of the world can see the entire planet transparently'' (Apr 14). May 8: State sanctioned three Chinese imagery firms for imagery enabling Iranian strikes & The state can shape \textit{allied} supply in a crisis, not the global market; adversaries substitute non-allied vendors \\
 Commercial data & IC Data Consortium solicitation (Apr 8, 2025) for commercially available information; FISA 702 lapsed June 12, 2026 & As statutory authorities become contested, purchased data grows in relative importance, and its provenance becomes a verification question \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{center}
 
 \begin{keybox}[Why Dependency Is an Erosion Vector {[E]}]
@@ -1045,45 +1199,41 @@ Commercial data & IC Data Consortium solicitation (Apr 8, 2025) for commercially
 % ============================================================================
 \clearpage
 \thispagestyle{empty}
-\vspace*{-0.85in}
-\noindent\hspace*{-0.85in}\begin{tikzpicture}
-  \fill[slatedark] (0,0) rectangle (\paperwidth, -10cm);
-  \node[fractureamber, font=\fontsize{10}{10}\selectfont\sffamily] at (0.5\paperwidth, -1.2cm) {PART II};
-  \node[white, font=\fontsize{48}{48}\selectfont\bfseries] at (0.5\paperwidth, -2.8cm) {Crisis of Intent};
-  \node[textlight, opacity=0.8, font=\normalsize\sffamily] at (0.5\paperwidth, -4.0cm) {Plausible Deniability 2.0 and Attribution Challenges};
-  \begin{scope}[shift={(0.5\paperwidth, -6.2cm)}]
-    \node[textlight, opacity=0.7, font=\fontsize{8}{8}\selectfont\sffamily] at (0, 0.7) {TRADITIONAL ATTRIBUTION};
-    \fill[verifyteal, opacity=0.9] (-4.5, 0) circle (0.55);
-    \node[white, font=\fontsize{7}{7}\selectfont\bfseries] at (-4.5, 0) {STATE};
-    \draw[textlight, opacity=0.5, line width=2pt, -Stealth] (-3.8, 0) -- (-2.2, 0);
-    \fill[verifyteal, opacity=0.9] (-1.5, 0) circle (0.55);
-    \node[white, font=\fontsize{7}{7}\selectfont\bfseries] at (-1.5, 0) {INSTR};
-    \draw[textlight, opacity=0.5, line width=2pt, -Stealth] (-0.8, 0) -- (0.8, 0);
-    \fill[verifyteal, opacity=0.9] (1.5, 0) circle (0.55);
-    \node[white, font=\fontsize{6}{6}\selectfont\bfseries] at (1.5, 0) {HUMAN};
-    \draw[textlight, opacity=0.5, line width=2pt, -Stealth] (2.2, 0) -- (3.8, 0);
-    \fill[verifyteal] (4.5, 0) circle (0.55);
-    \node[white, font=\fontsize{6}{6}\selectfont\bfseries] at (4.5, 0) {ACTION};
-  \end{scope}
-  \begin{scope}[shift={(0.5\paperwidth, -8.2cm)}]
-    \node[textlight, opacity=0.7, font=\fontsize{8}{8}\selectfont\sffamily] at (0, 0.7) {AGENT-ERA ATTRIBUTION};
-    \fill[stressorange, opacity=0.9] (-4.5, 0) circle (0.55);
-    \node[white, font=\fontsize{7}{7}\selectfont\bfseries] at (-4.5, 0) {STATE};
-    \draw[textlight, opacity=0.5, line width=2pt, -Stealth] (-3.8, 0) -- (-2.2, 0);
-    \fill[stressorange, opacity=0.9] (-1.5, 0) circle (0.55);
-    \node[white, font=\fontsize{7}{7}\selectfont\bfseries] at (-1.5, 0) {GOAL};
-    \draw[textlight, opacity=0.5, line width=2pt, -Stealth] (-0.8, 0) -- (0.8, 0);
-    \fill[burgundydeep] (1.5, 0) circle (0.65);
-    \node[white, font=\fontsize{7}{7}\selectfont\bfseries] at (1.5, 0) {AGENT};
-    \draw[burgundydeep, opacity=0.6, line width=2pt, dashed, -Stealth] (2.3, 0) -- (3.7, 0);
-    \fill[verifyteal] (4.5, 0) circle (0.55);
-    \node[white, font=\fontsize{6}{6}\selectfont\bfseries] at (4.5, 0) {ACTION};
-    \node[burgundydeep, font=\fontsize{7}{7}\selectfont\bfseries] at (3, -0.55) {OPAQUE};
-  \end{scope}
-  \fill[fractureamber] (2cm, -9.2cm) rectangle (\paperwidth-2cm, -9.3cm);
-\end{tikzpicture}
-
-\vspace{0.8cm}
+\noindent\partbanner{II}{Crisis of Intent}{Plausible Deniability 2.0 and Attribution Challenges}{%
+  % Principal -> opaque agent layer -> effect; attribution path back breaks.
+  \coordinate (P) at (-3.4,-0.1);
+  \coordinate (E) at (3.4,-0.1);
+  \def\ax{{-0.9,-0.3, 0.5, 1.0,-1.1,-0.2, 0.6, 1.2,-0.7, 0.2, 0.9,-0.4, 0.3,-1.0}}
+  \def\ay{{ 1.1, 1.3, 1.2, 0.6, 0.3, 0.5, 0.1,-0.3,-0.6,-0.4,-0.9,-1.4,-1.6,-1.5}}
+  \foreach \i in {0,...,13} {
+    \pgfmathsetmacro{\xi}{\ax[\i]}\pgfmathsetmacro{\yi}{\ay[\i]}
+    \draw[patinabronze, opacity=0.35, line width=0.4pt] (P) -- (\xi,\yi);
+    \draw[erosionyellow, opacity=0.35, line width=0.4pt] (\xi,\yi) -- (E);
+  }
+  % Opaque agent layer
+  \fill[slatemid, opacity=0.55] (0,-0.15) ellipse (1.75cm and 2.0cm);
+  \draw[textlight, opacity=0.2, line width=0.4pt] (0,-0.15) ellipse (1.75cm and 2.0cm);
+  \foreach \i in {0,...,13} {
+    \pgfmathsetmacro{\xi}{\ax[\i]}\pgfmathsetmacro{\yi}{\ay[\i]}
+    \fill[patinabronze, opacity=0.55] (\xi,\yi) circle (0.08);
+  }
+  % Principal and effect
+  \draw[bronzeweathered, line width=0.8pt] (P) circle (0.55);
+  \fill[patinabronze] (P) circle (0.3);
+  \draw[erosionyellow, line width=0.8pt] (E) circle (0.55);
+  \fill[erosionyellow] (E) circle (0.3);
+  % Attribution path from effect back toward principal, broken over the agent layer
+  \draw[adaptteal, line width=1.6pt] ([shift={(0,-1.3)}]0,0) ++(27:3.8) arc (27:72:3.8);
+  \foreach \a/\o in {77/0.7, 82/0.45, 87/0.25} {
+    \fill[adaptteal, opacity=\o] ([shift={(0,-1.3)}]0,0) ++(\a:3.8) circle (0.05);
+  }
+  \draw[stonegray, opacity=0.6, line width=0.8pt, dash pattern=on 2pt off 3pt]
+    ([shift={(0,-1.3)}]0,0) ++(108:3.8) arc (108:153:3.8);
+  \node[partlabel, text=adaptteal, text opacity=1, anchor=south] at (0,2.7) {ATTRIBUTION GAP};
+  \node[partlabel, anchor=north] at (-3.4,-0.85) {PRINCIPAL};
+  \node[partlabel, anchor=north] at (0,-2.4) {AGENT LAYER};
+  \node[partlabel, anchor=north] at (3.4,-0.85) {EFFECT};
+}
 \begin{center}
 \begin{minipage}{0.9\textwidth}
 \begin{tcolorbox}[enhanced, colback=white, colframe=slatemid!30, boxrule=1pt, arc=4pt,
@@ -1123,7 +1273,7 @@ The July 2026 sandbox-escape disclosure is a documented case of models deriving 
 \begin{defbox}[The Forensic Challenge {[E]}]
 \begin{center}
 \small
-\begin{tabular}{L{5.5cm}L{7cm}}
+\begin{tabularx}{\linewidth}{ZY{0.88}Y{1.12}}
 \toprule
 \textbf{Traditional Attribution} & \textbf{Agent-Enabled Attribution} \\
 \midrule
@@ -1133,7 +1283,7 @@ Identify the decision-maker & Decision-maker is an optimization process \\
 Establish chain of command & Chain terminates at goal specification \\
 Prove foreknowledge of methods & Methods may be emergent, not specified \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{center}
 \end{defbox}
 
@@ -1143,7 +1293,7 @@ The \textbf{Articles on State Responsibility} (ILC, 2001) assume human agency in
 
 \begin{center}
 \small
-\begin{tabular}{L{3cm}L{4.5cm}L{5cm}}
+\begin{tabularx}{\linewidth}{ZY{0.72}Y{1.08}Y{1.2}}
 \toprule
 \textbf{Legal Concept} & \textbf{Traditional Application} & \textbf{Agent-Era Challenge} \\
 \midrule
@@ -1152,20 +1302,19 @@ Command responsibility & Knew or should have known & Principal genuinely may not
 Vicarious liability & Control over agent & Degree of ``control'' unclear \\
 State responsibility & Effective control test & Control is goal-setting, not method \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{center}
 
 \begin{infobox}[The Counter-Argument: Negligent Entrustment]
 The defense is not airtight. \textbf{Negligent Entrustment}: deploying an unconstrained agent is like giving a loaded weapon to a child. \textbf{Strict Liability}: some activities are inherently dangerous. \textbf{Duty of Care}: states must prevent foreseeable harm. \textbf{Reckless Disregard}: knowingly deploying agents without constraints demonstrates reckless indifference.
 
-\vspace{0.4em}
 \textbf{Foreseeability is rising [E]}: every system card, evaluation-cheating study, and sandbox-escape disclosure makes autonomous method-derivation \textit{more foreseeable}, strengthening negligent-entrustment arguments. The 2026 disclosures make the Delegation Defense more plausible factually and weaker legally.
 \end{infobox}
 
 \begin{defbox}[Critical Distinction: Practical vs.\ Legal Reality {[E]}]
 \begin{center}
 \small
-\begin{tabular}{L{3cm}L{5cm}L{5cm}}
+\begin{tabularx}{\linewidth}{ZY{0.69}Y{1.15}Y{1.16}}
 \toprule
 \textbf{Dimension} & \textbf{Practical Reality} & \textbf{Legal Reality} \\
 \midrule
@@ -1173,7 +1322,7 @@ Investigative cost & Intent ambiguity increases investigation time, regardless o
 Deterrence effect & States gain \textit{operational} deniability; response is slower, less certain & Accountability possible, but friction benefits the actor \\
 Novel challenge? & Mostly increases \textit{friction}, not immunity & Core attribution principles likely apply; courts will adapt \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{center}
 \textbf{The Bottom Line}: The Delegation Defense does not create legal immunity; it creates \textbf{practical friction}. The IC's challenge is operational, not legal. \textbf{Jurisdictional fragmentation [S]}: which law applies when an agent's ``decision'' occurs in distributed compute across three continents?
 \end{defbox}
@@ -1198,7 +1347,7 @@ At the February 2026 REAIM summit, 35 of roughly 85 attending states endorsed th
 
 \begin{center}
 \small
-\begin{tabular}{L{3.2cm}L{4cm}L{5.3cm}}
+\begin{tabularx}{\linewidth}{ZY{0.77}Y{0.96}Y{1.27}}
 \toprule
 \textbf{Capability} & \textbf{Traditional} & \textbf{Agent-Era Gap} \\
 \midrule
@@ -1208,7 +1357,7 @@ Signals intelligence & Communications reveal planning & May find only goal specs
 All-source fusion & Resolve ambiguity & Cannot resolve fundamental intent ambiguity \\
 Lab telemetry (new) & Not available & Labs attribute misuse on their platforms (GTG-1002); no coverage of open-weight or self-hosted models \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{center}
 
 \begin{recbox}[Required Adaptation]
@@ -1226,31 +1375,30 @@ Lab telemetry (new) & Not available & Labs attribute misuse on their platforms (
 % ============================================================================
 \clearpage
 \thispagestyle{empty}
-\vspace*{-0.85in}
-\noindent\hspace*{-0.85in}\begin{tikzpicture}
-  \fill[slatedark] (0,0) rectangle (\paperwidth, -10cm);
-  \node[fractureamber, font=\fontsize{10}{10}\selectfont\sffamily] at (0.5\paperwidth, -1.2cm) {PART III};
-  \node[white, font=\fontsize{48}{48}\selectfont\bfseries] at (0.5\paperwidth, -2.8cm) {INT Disruption};
-  \node[white, opacity=0.7, font=\normalsize\sffamily] at (0.5\paperwidth, -4.0cm) {How AI Agents Challenge Each Intelligence Discipline};
-  \begin{scope}[shift={(0.5\paperwidth, -6.6cm)}]
-    \foreach \r in {0.55, 1.1, 1.65} {
-      \draw[white, opacity=0.15, line width=0.5pt] (0,0)
-        \foreach \a in {0,60,120,180,240,300} { -- (\a:\r) } -- cycle;
+\noindent\partbanner{III}{INT Disruption}{How AI Agents Challenge Each Intelligence Discipline}{%
+  % Section 6 Summary Risk Matrix (15 rows, table order): severity and
+  % urgency ratings as cells, exposure (fig:matrix y-position) as bars.
+  % Severity: 1 Medium, 2 Medium-High, 3 High, 4 Critical.
+  % Urgency: 1 Ongoing, 3 Near-term, 4 Immediate.
+  \foreach \sev/\urg/\exq [count=\i from 0] in {
+      4/4/0.88, 3/4/0.74, 3/3/0.70, 4/4/0.85, 3/4/0.72,
+      3/4/0.80, 4/4/0.78, 3/3/0.57, 3/3/0.62, 2/1/0.40,
+      1/3/0.45, 1/1/0.35, 1/1/0.27, 2/3/0.48, 1/1/0.28} {
+    \pgfmathsetmacro{\yy}{2.7 - 0.18 - \i*0.36}
+    \foreach \v/\xx in {\sev/-4.0, \urg/-1.15} {
+      \ifcase\v \or \def\cc{patinabronze}\def\co{0.4}%
+      \or \def\cc{fractureamber}\def\co{0.45}%
+      \or \def\cc{fractureamber}\def\co{0.85}%
+      \or \def\cc{erosionyellow}\def\co{1}\fi
+      \fill[\cc, opacity=\co] (\xx,\yy-0.13) rectangle (\xx+2.6,\yy+0.13);
     }
-    \foreach \a/\label in {90/HUMINT, 30/SIGINT, 330/OSINT, 270/GEOINT, 210/MASINT, 150/FININT} {
-      \draw[white, opacity=0.25, line width=0.5pt] (0,0) -- (\a:1.8);
-      \node[white, opacity=0.8, font=\fontsize{8}{8}\selectfont\bfseries] at (\a:2.15) {\label};
-    }
-    \fill[stressorange, opacity=0.35]
-      (90:1.5) -- (30:1.35) -- (330:1.6) -- (270:1.55) -- (210:1.1) -- (150:1.4) -- cycle;
-    \draw[stressorange, opacity=0.9, line width=2pt]
-      (90:1.5) -- (30:1.35) -- (330:1.6) -- (270:1.55) -- (210:1.1) -- (150:1.4) -- cycle;
-    \fill[white] (0,0) circle (0.06);
-  \end{scope}
-  \fill[fractureamber] (2cm, -9.2cm) rectangle (\paperwidth-2cm, -9.3cm);
-\end{tikzpicture}
-
-\vspace{0.8cm}
+    \fill[textlight, opacity=0.08] (1.75,\yy-0.05) rectangle (3.96,\yy+0.05);
+    \fill[patinabronze, opacity=0.85] (1.75,\yy-0.05) rectangle (1.75+\exq*2.5,\yy+0.05);
+  }
+  \node[partlabel, anchor=south west] at (-4.0,2.85) {SEVERITY};
+  \node[partlabel, anchor=south west] at (-1.15,2.85) {URGENCY};
+  \node[partlabel, anchor=south west] at (1.75,2.85) {EXPOSURE};
+}
 \begin{center}
 \begin{minipage}{0.9\textwidth}
 \begin{tcolorbox}[enhanced, colback=white, colframe=slatemid!30, boxrule=1pt, arc=4pt,
@@ -1276,7 +1424,7 @@ The limiting factor of HUMINT has always been \textbf{handler bandwidth}.
 
 \begin{center}
 \small
-\begin{tabular}{L{3cm}L{4.5cm}L{5.5cm}}
+\begin{tabularx}{\linewidth}{ZY{0.69}Y{1.04}Y{1.27}}
 \toprule
 \textbf{Timeline} & \textbf{Threat} & \textbf{Impact} \\
 \midrule
@@ -1285,7 +1433,7 @@ Near-term (2027) & Synthetic personas for initial contact & Resources wasted on 
 Emerging (2028) & Multi-year stable synthetic personas & Adversary ``legends'' indistinguishable \\
 Speculative (2029+) & AI case officers & Handler bottleneck bypassed entirely \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{center}
 
 \begin{criticalbox}[Voice and Official-Impersonation Milestones {[O]}]
@@ -1300,7 +1448,7 @@ Physical-only verification for sensitive contacts: in-person meetings before sub
 
 \begin{center}
 \small
-\begin{tabular}{L{4cm}L{4.5cm}L{4.5cm}}
+\begin{tabularx}{\linewidth}{ZY{0.92}Y{1.04}Y{1.04}}
 \toprule
 \textbf{Threat} & \textbf{Mechanism} & \textbf{Impact} \\
 \midrule
@@ -1309,7 +1457,7 @@ Automated encryption cycling & Continuous key and protocol rotation & Collection
 Decoy traffic generation & Massive synthetic communications & Signal/noise ratio collapses \\
 Metadata pollution & Fake patterns overlay real communications & Pattern analysis degraded \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{center}
 
 \begin{warnbox}[The Collection Paradox and Authorities {[E/O]}]
@@ -1323,7 +1471,7 @@ More collection no longer means more intelligence: when an adversary can generat
 \begin{criticalbox}[Case Study 1: Venezuela/Maduro Disinformation Surge (January 2026) {[O]}]
 \begin{center}
 \small
-\begin{tabular}{L{4cm}L{8.5cm}}
+\begin{tabularx}{\linewidth}{ZY{0.64}Y{1.36}}
 \toprule
 \textbf{Metric} & \textbf{Value} \\
 \midrule
@@ -1333,7 +1481,7 @@ Views on fabricated content & 14+ million in under 2 days on X alone \\
 Fake-to-real ratio & Experts estimated more fake than real content (NBC News) \\
 Watermarks & Some images traced to a commercial generator via SynthID; most fakes unmarked \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{center}
 \end{criticalbox}
 
@@ -1349,7 +1497,7 @@ On Deepfake-Eval-2024, a benchmark of in-the-wild deepfakes (Chandra et al., 202
 
 \begin{center}
 \small
-\begin{tabular}{L{5.5cm}L{7cm}}
+\begin{tabularx}{\linewidth}{ZY{0.88}Y{1.12}}
 \toprule
 \textbf{GEOINT: Traditional} & \textbf{GEOINT: Agent Era} \\
 \midrule
@@ -1358,7 +1506,7 @@ Temporal consistency & AI can generate consistent fake sequences \\
 Metadata trustworthy & Metadata easily spoofed \\
 Commercial imagery as neutral referee & A policy instrument: withheld by some vendors, sold by others \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{center}
 
 \textbf{The Computational Cost [S]}: establishing ground truth requires multi-sensor confirmation, physical collection, provenance verification, and cross-temporal analysis; this verification tax may exceed the value of routine intelligence.
@@ -1367,7 +1515,7 @@ Commercial imagery as neutral referee & A policy instrument: withheld by some ve
 
 \begin{center}
 \small
-\begin{tabular}{L{3cm}L{5cm}L{5cm}}
+\begin{tabularx}{\linewidth}{ZY{0.69}Y{1.15}Y{1.16}}
 \toprule
 \textbf{Threat [S]} & \textbf{Mechanism} & \textbf{Impact} \\
 \midrule
@@ -1376,7 +1524,7 @@ Sensor spoofing & Adversarial signals designed to fool sensors & Sensor reliabil
 Autonomous decoy swarms & Agent-coordinated physical decoys & Resource exhaustion \\
 Inference attacks & AI identifies and exploits sensor weaknesses & Sensor modes become predictable \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{center}
 
 Sensors convert physical phenomena to digital signals, and that conversion is vulnerable to adversarial inputs. The ``ground truth'' advantage erodes even for physical measurements, though more slowly, because physical decoys retain real cost.
@@ -1389,7 +1537,7 @@ Nano-smurfing is the deliberate transformation of highly suspicious activities i
 
 \begin{center}
 \small
-\begin{tabular}{L{3.5cm}L{4.5cm}L{5cm}}
+\begin{tabularx}{\linewidth}{ZY{0.81}Y{1.04}Y{1.15}}
 \toprule
 \textbf{Threat} & \textbf{Mechanism} & \textbf{Impact on IC} \\
 \midrule
@@ -1398,7 +1546,7 @@ Shell company automation & Rapid creation/dissolution of entities & Beneficial o
 Cross-rail structuring & Value moves across incompatible systems & Trail goes cold at rail boundaries \\
 Accumulation of Insignificants & Events meaningless individually; aggregate invisible & Needs cross-institutional view \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{center}
 
 \subsection{The Defender's Own Tools: IC AI Adoption as an Attack Surface}
@@ -1410,7 +1558,7 @@ The five disciplines above describe contamination of what the IC \textit{collect
 \begin{warnbox}[The Consolidated Threat Model {[E]}]
 \begin{center}
 \scriptsize
-\begin{tabular}{L{2.8cm}L{5.4cm}L{4.4cm}}
+\begin{tabularx}{\linewidth}{ZY{0.67}Y{1.29}Y{1.04}}
 \toprule
 \textbf{Vector} & \textbf{Mechanism} & \textbf{Response Covered By} \\
 \midrule
@@ -1421,7 +1569,7 @@ Illicit distillation & Capability extracted at scale (Google: campaigns $>$100M 
 Insider-mediated access & Anomalous access configures or queries AI tools & Documented DOGE access (NPR, Apr 2025) \\
 Vendor conditionality (new) & Terms, disputes, or export controls interrupt tools in use & Multi-vendor continuity \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{center}
 \end{warnbox}
 
@@ -1460,7 +1608,7 @@ The Verification Pivot assumes the IC can trust the tools it uses to verify. Thr
 \begin{criticalbox}[Three Findings {[O]}]
 \begin{center}
 \scriptsize
-\begin{tabular}{L{6.6cm}L{1.6cm}L{4.4cm}}
+\begin{tabularx}{\linewidth}{ZY{1.57}Y{0.38}Y{1.05}}
 \toprule
 \textbf{Finding} & \textbf{Date} & \textbf{Implication} \\
 \midrule
@@ -1468,7 +1616,7 @@ UK AISI: ``Every model we have tested for this behaviour attempted to cheat. Mod
 OpenAI / Hugging Face: two models escaped an evaluation sandbox via a zero-day and breached a third party's production systems to obtain test answers & July 20--21, 2026 & Test environments are attack surface; an evaluation can cause a real incident \\
 METR: horizons above 16 hours cannot be reliably measured with its current suite & May 2026 & Public measurement lags the frontier \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{center}
 \end{criticalbox}
 
@@ -1489,7 +1637,7 @@ METR: horizons above 16 hours cannot be reliably measured with its current suite
 
 \begin{center}
 \small
-\begin{tabular}{L{3.6cm}L{4.6cm}L{4.8cm}}
+\begin{tabularx}{\linewidth}{ZY{0.83}Y{1.06}Y{1.11}}
 \toprule
 \textbf{Category} & \textbf{Agencies} & \textbf{Primary AI Vulnerability} \\
 \midrule
@@ -1498,7 +1646,7 @@ DoD Elements & DIA, NSA, NGA, NRO, Space Force, Army G-2, ONI, AF/A2, USMC Intel
 Domestic \& Enforcement & FBI, DHS I\&A, DEA, Coast Guard & Process DoS, lead poisoning \\
 Civilian Departments & State INR, DOE, Treasury & Specialized evasion \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{center}
 
 \subsection{Leadership \& Integration}
@@ -1509,7 +1657,7 @@ Civilian Departments & State INR, DOE, Treasury & Specialized evasion \\
 
 \begin{center}
 \small
-\begin{tabular}{L{3.4cm}L{5.2cm}L{4.4cm}}
+\begin{tabularx}{\linewidth}{ZY{0.78}Y{1.2}Y{1.02}}
 \toprule
 \textbf{Threat Vector} & \textbf{Mechanism} & \textbf{Impact} \\
 \midrule
@@ -1519,7 +1667,7 @@ Human-capital contraction [O] & $\sim$2,000 (Jan 2025) to little more than half 
 Leadership churn [O] & Three principals June 19--July 28, 2026 & Reorganization under acting leadership \\
 FMIC dissolution [O] & Dissolved Aug 20, 2025 (statute runs to 2028) & No dedicated center during the Maduro and Iran-war surges \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{center}
 
 \textbf{Adaptation Priority}: IC-wide verification standards; stabilize the integration workforce under the confirmed DNI; reconstitute foreign malign influence tracking; own the assurance requirements of the IC AI adoption framework.
@@ -1530,7 +1678,7 @@ FMIC dissolution [O] & Dissolved Aug 20, 2025 (statute runs to 2028) & No dedica
 
 \begin{center}
 \small
-\begin{tabular}{L{3.4cm}L{5.2cm}L{4.4cm}}
+\begin{tabularx}{\linewidth}{ZY{0.78}Y{1.2}Y{1.02}}
 \toprule
 \textbf{Threat Vector} & \textbf{Mechanism} & \textbf{Impact} \\
 \midrule
@@ -1539,14 +1687,14 @@ Synthetic walk-ins & AI-generated defectors & Resources wasted on fakes \\
 Algorithmic Capture & Inference poisoning of internal tools & Covert action planning biased \\
 Human-capital shift [O] & $\sim$1,200 via attrition (2025); largest operations class in 20 years (Sept 2026) & Experience mix shifts junior \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{center}
 
 \subsection{Department of Defense Elements}
 
 \begin{center}
 \scriptsize
-\begin{tabular}{L{1.6cm}L{3.2cm}L{8.2cm}}
+\begin{tabularx}{\linewidth}{ZY{0.37}Y{0.74}Y{1.89}}
 \toprule
 \textbf{Element} & \textbf{Primary Risk} & \textbf{Key Vectors and 2026 Notes} \\
 \midrule
@@ -1557,14 +1705,14 @@ NRO & Collection asset targeting & Orbital signature analysis; sensor spoofing; 
 Space Force (NSIC) & Space domain contamination & Synthetic tracking data; on-orbit deception; GenSP against operations personnel. IC element since Jan 8, 2021; NSIC est.\ June 2022 \\
 Service Intel & Tactical deception & Battlefield deception; pattern-of-life of personnel and commercial imagery of bases; nano-smurfing of dual-use components; ONI (est.\ 1882): synthetic maritime tracking \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{center}
 
 \subsection{Domestic \& Enforcement Elements}
 
 \begin{center}
 \scriptsize
-\begin{tabular}{L{1.8cm}L{3cm}L{8.2cm}}
+\begin{tabularx}{\linewidth}{ZY{0.42}Y{0.69}Y{1.89}}
 \toprule
 \textbf{Element} & \textbf{Primary Risk} & \textbf{Key Vectors} \\
 \midrule
@@ -1573,18 +1721,18 @@ DHS I\&A & Fusion center contamination & State/local input poisoning; two-way co
 DEA & Accumulation of insignificants & Nano-smurfing of precursors; cartel AI adoption; cross-rail structuring \\
 Coast Guard & Maritime awareness degradation & AIS spoofing at scale; port-security Process DoS; synthetic cargo documentation \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{center}
 
 \begin{warnbox}[The Hyper-Specific FOIA and Expert-Grade Lead Problems {[E]}]
-AI-generated FOIA requests probe classification ``seams''; each is legally difficult to deny without revealing sources and methods. Volume alone doesn't break the agency; \textit{plausibility} and \textit{specificity} do. Existing counters (exemptions, Glomar responses, narrowing, fees, litigation timelines) remain, but each denial becomes costlier, and the federal support workforce that processes FOIA has contracted. AI-generated leads have correct terminology, plausible sourcing, internal consistency, and respond to follow-up; each takes significant investigator time to dismiss.
+AI-generated FOIA requests probe classification ``seams''; each is legally difficult to deny without revealing sources and methods. Volume alone does not break the agency; \textit{plausibility} and \textit{specificity} do. Existing counters (exemptions, Glomar responses, narrowing, fees, litigation timelines) remain, but each denial becomes costlier, and the federal support workforce that processes FOIA has contracted. AI-generated leads have correct terminology, plausible sourcing, internal consistency, and respond to follow-up; each takes significant investigator time to dismiss.
 \end{warnbox}
 
 \subsection{Civilian Department Elements}
 
 \begin{center}
 \scriptsize
-\begin{tabular}{L{1.8cm}L{3cm}L{8.2cm}}
+\begin{tabularx}{\linewidth}{ZY{0.42}Y{0.69}Y{1.89}}
 \toprule
 \textbf{Element} & \textbf{Primary Risk} & \textbf{Key Vectors} \\
 \midrule
@@ -1592,7 +1740,7 @@ State INR & Diplomatic intel contamination & Synthetic reporting; AI-poisoned le
 DOE & Proliferation detection failure & Technical spoofing; nano-smurfing of dual-use nuclear components; GenSP against cleared scientists; Genesis Mission (Nov 2025) concentrates frontier AI on lab networks \\
 Treasury OIA & Financial intelligence obsolescence & Sanctions-evasion automation; AI-obfuscated state financial operations; opaque ownership in critical-minerals chains \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{center}
 
 \subsection{Summary Risk Matrix}
@@ -1603,7 +1751,7 @@ Treasury OIA & Financial intelligence obsolescence & Sanctions-evasion automatio
 
 \begin{center}
 \small
-\begin{tabular}{L{2.2cm}L{4.4cm}L{1.9cm}L{1.9cm}L{2.4cm}}
+\begin{tabularx}{\linewidth}{ZY{0.86}Y{1.72}Y{0.74}Y{0.74}Y{0.94}}
 \toprule
 \textbf{Agency} & \textbf{Primary Risk} & \textbf{Severity} & \textbf{Urgency} & \textbf{v3.0 Change} \\
 \midrule
@@ -1623,7 +1771,7 @@ Coast Guard & Maritime awareness & Medium & Ongoing & -- \\
 NRO & Collection asset targeting & Medium-High & Near-term & -- \\
 Space Force & Space domain contamination & Medium & Ongoing & -- \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{center}
 
 \begin{figure}[!htbp]
@@ -1667,7 +1815,7 @@ Space Force & Space domain contamination & Medium & Ongoing & -- \\
 
 {\small
 \setlength{\LTleft}{\fill}\setlength{\LTright}{\fill}
-\begin{longtable}{L{3.8cm}L{9cm}}
+\begin{longtable}{L{4.3cm}L{12.05cm}}
 \toprule
 \textbf{Objection} & \textbf{Response} \\
 \midrule
@@ -1706,7 +1854,7 @@ Space Force & Space domain contamination & Medium & Ongoing & -- \\
 Commercial providers (Vantor, formerly Maxar Intelligence; Planet; commercial SAR firms; OSINT aggregators) often have better Verification Latency than the IC. The IC may become the \textit{third} best source of truth, behind industry (faster) and adversary agents (cheaper); its value proposition is \textit{verification of verified sources}. Dependency risks, now with 2026 evidence:
 \begin{center}
 \scriptsize
-\begin{tabular}{L{3cm}L{9.6cm}}
+\begin{tabularx}{\linewidth}{ZY{0.48}Y{1.52}}
 \toprule
 \textbf{Risk} & \textbf{2026 Evidence} \\
 \midrule
@@ -1715,7 +1863,7 @@ Incentive misalignment & Pentagon--Anthropic dispute over usage terms \\
 Verification monoculture & Few very-high-resolution providers; concentrated SAR market \\
 Access denial & Iran-war imagery withholding (Mar--Apr 2026); Ukrainian accounts suspended on a commercial platform (Mar 2025) \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{center}
 \end{warnbox}
 
@@ -1728,37 +1876,30 @@ Access denial & Iran-war imagery withholding (Mar--Apr 2026); Ukrainian accounts
 % ============================================================================
 \clearpage
 \thispagestyle{empty}
-\vspace*{-0.85in}
-\noindent\hspace*{-0.85in}\begin{tikzpicture}
-  \fill[slatedark] (0,0) rectangle (\paperwidth, -10cm);
-  \node[fractureamber, font=\fontsize{10}{10}\selectfont\sffamily] at (0.5\paperwidth, -1.2cm) {PART IV};
-  \node[white, font=\fontsize{42}{42}\selectfont\bfseries] at (0.5\paperwidth, -2.8cm) {Scenarios \&};
-  \node[white, font=\fontsize{42}{42}\selectfont\bfseries] at (0.5\paperwidth, -4.0cm) {Recommendations};
-  \begin{scope}[shift={(0.32\paperwidth, -7.9cm)}]
-    \node[textlight, opacity=0.8, font=\fontsize{9}{9}\selectfont\sffamily] at (0, 1.6) {SCENARIO PROBABILITIES (v3.0)};
-    \fill[verifyteal, opacity=0.9] (-2.4, 0) rectangle (-0.8, 0.52);
-    \node[white, font=\fontsize{9}{9}\selectfont\bfseries] at (-1.6, 0.26) {15-25\%};
-    \node[textlight, opacity=0.8, font=\fontsize{8}{8}\selectfont] at (-1.6, -0.35) {Managed};
-    \fill[stressorange, opacity=0.9] (-0.5, 0) rectangle (1.1, 1.3);
-    \node[white, font=\fontsize{9}{9}\selectfont\bfseries] at (0.3, 0.65) {45-55\%};
-    \node[textlight, opacity=0.8, font=\fontsize{8}{8}\selectfont] at (0.3, -0.35) {Parity};
-    \fill[burgundydeep, opacity=0.9] (1.4, 0) rectangle (3.0, 0.65);
-    \node[white, font=\fontsize{9}{9}\selectfont\bfseries] at (2.2, 0.32) {20-30\%};
-    \node[textlight, opacity=0.8, font=\fontsize{8}{8}\selectfont] at (2.2, -0.35) {Collapse};
-  \end{scope}
-  \begin{scope}[shift={(0.68\paperwidth, -7.9cm)}]
-    \node[textlight, opacity=0.8, font=\fontsize{9}{9}\selectfont\sffamily] at (0, 1.6) {IMPLEMENTATION TIERS};
-    \fill[bronzeweathered, opacity=0.9] (-2.2, 0.9) rectangle (2.2, 1.4);
-    \node[white, font=\fontsize{9}{9}\selectfont\bfseries] at (0, 1.15) {Bronze: 0-90 days};
-    \fill[stonegray, opacity=0.9] (-2.2, 0.3) rectangle (2.2, 0.8);
-    \node[white, font=\fontsize{9}{9}\selectfont\bfseries] at (0, 0.55) {Silver: 90-180 days};
-    \fill[barriergold, opacity=0.9] (-2.2, -0.3) rectangle (2.2, 0.2);
-    \node[slatedark, font=\fontsize{9}{9}\selectfont\bfseries] at (0, -0.05) {Gold: 180+ days};
-  \end{scope}
-  \fill[fractureamber] (2cm, -9.2cm) rectangle (\paperwidth-2cm, -9.3cm);
-\end{tikzpicture}
-
-\vspace{0.8cm}
+\noindent\partbanner{IV}{Scenarios \&\\Recommendations}{Scenario Projections, Policy Recommendations, and Indicators}{%
+  % Scenario fan 2026-2030: band width proportional to probability.
+  \foreach \k in {0,...,4} {
+    \draw[textlight, opacity=0.12, line width=0.4pt] (-4.0+\k*1.6,-3.0) -- (-4.0+\k*1.6,2.9);
+  }
+  \draw[textlight, opacity=0.35, line width=0.4pt] (-4.0,-3.0) -- (2.4,-3.0);
+  \foreach \y/\w/\c in {2.3/0.3/adaptteal, 0.1/0.75/fractureamber, -2.2/0.38/wineaccent} {
+    \fill[\c, opacity=0.22] (-4.0,-0.2) .. controls (-2.0,-0.2) and (0.0,\y+\w) .. (2.4,\y+\w)
+      -- (2.4,\y-\w) .. controls (0.0,\y-\w) and (-2.0,-0.2) .. cycle;
+    \draw[\c, line width=1.6pt] (-4.0,-0.2) .. controls (-2.0,-0.2) and (0.0,\y) .. (2.4,\y);
+    \fill[\c] (2.4,\y) circle (0.09);
+  }
+  \draw[erosionyellow, line width=0.8pt] (-4.0,-0.2) circle (0.2);
+  \fill[erosionyellow] (-4.0,-0.2) circle (0.09);
+  % Indicator checkpoints on the time axis
+  \foreach \k in {0,...,4} {
+    \fill[adaptteal] (-4.0+\k*1.6,-3.0) +(0,0.11) -- +(0.11,0) -- +(0,-0.11) -- +(-0.11,0) -- cycle;
+  }
+  \node[partlabel, anchor=north] at (-4.0,-3.25) {2026};
+  \node[partlabel, anchor=north] at (2.4,-3.25) {2030};
+  \node[partlabel, text=adaptteal, text opacity=1, anchor=west] at (2.6,2.3) {MANAGED};
+  \node[partlabel, text=fractureamber, text opacity=1, anchor=west] at (2.6,0.1) {PARITY};
+  \node[partlabel, text=wineaccent!70!white, text opacity=1, anchor=west] at (2.6,-2.2) {COLLAPSE};
+}
 \begin{center}
 \begin{minipage}{0.9\textwidth}
 \begin{tcolorbox}[enhanced, colback=white, colframe=slatemid!30, boxrule=1pt, arc=4pt,
@@ -1784,7 +1925,7 @@ Access denial & Iran-war imagery withholding (Mar--Apr 2026); Ukrainian accounts
 
 \begin{center}
 \small
-\begin{tabular}{L{3.4cm}L{1.6cm}L{2cm}L{1.8cm}L{4cm}}
+\begin{tabularx}{\linewidth}{ZY{1.33}Y{0.62}Y{0.78}Y{0.7}Y{1.57}}
 \toprule
 \textbf{Scenario} & \textbf{v1.0} & \textbf{v2.0--v2.1} & \textbf{v3.0} & \textbf{Key Driver} \\
 \midrule
@@ -1793,7 +1934,7 @@ Competitive Parity & 40--50\% & 45--55\% & \textbf{45--55\%} & Partial adaptatio
 Verification Collapse & 10--20\% & 15--25\% & \textbf{20--30\%} & Slow adaptation, dependency shocks \\
 Provenance Islands (wild card) & n/a & $\sim$5--10\% & \textbf{$\sim$5--10\%} & Divergent provenance regimes \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{center}
 
 \textit{Structured judgment ranges reflecting analyst assessment, not statistical model outputs.}
@@ -1836,7 +1977,7 @@ v2.1 committed to revisiting the ranges only when a branching-variable threshold
 \begin{criticalbox}[Critical Branching Variables {[O/E]}]
 \begin{center}
 \scriptsize
-\begin{tabular}{L{4.4cm}L{4.4cm}L{3.8cm}}
+\begin{tabularx}{\linewidth}{ZY{1.05}Y{1.05}Y{0.9}}
 \toprule
 \textbf{1. Workforce Trajectory} & \textbf{Scenario Impact} & \textbf{Status (Sept 2026)} \\
 \midrule
@@ -1850,7 +1991,7 @@ Multi-vendor, stable, assured crisis access & Supports Managed Transition & -- \
 Disputes resolved in court; ad hoc crisis access & Consistent with Parity & \textbf{Current} \\
 Lock-in or prolonged crisis denial & Toward Collapse or Islands & -- \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{center}
 \end{criticalbox}
 
@@ -1884,7 +2025,7 @@ Tiers: \textbf{Bronze} 0--90 days, no new authority; \textbf{Silver} 90--180 day
 
 \begin{center}
 \scriptsize
-\begin{tabular}{L{4.5cm}L{0.6cm}L{1.6cm}L{2.7cm}L{3.3cm}}
+\begin{tabularx}{\linewidth}{ZY{1.77}Y{0.24}Y{0.63}Y{1.06}Y{1.3}}
 \toprule
 \textbf{Recommendation} & \textbf{Bkt} & \textbf{Tier} & \textbf{Owner} & \textbf{Primary Risk Mitigated} \\
 \midrule
@@ -1903,7 +2044,7 @@ Decision Diffusion Framework & A & Silver--Gold & NSC & Leadership targeting \\
 Assured commercial-imagery access with allies (new) & B & Gold & NGA + NRO + State & Dependency (GEOINT) \\
 Five Eyes verification pilot & B & Gold & State INR + ODNI & Allied trust; leapfrog \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{center}
 
 \textbf{A note on owners}: several owners sit outside the 18-element IC (CISA, CDAO, NSC). This is deliberate (verification infrastructure is broader than the IC) but requires coordination beyond DNI direction.
@@ -1935,7 +2076,7 @@ Five Eyes verification pilot & B & Gold & State INR + ODNI & Allied trust; leapf
 \begin{keybox}[Core Verification Metrics]
 \begin{center}
 \small
-\begin{tabular}{L{3.2cm}L{4.6cm}L{2.2cm}L{2.4cm}}
+\begin{tabularx}{\linewidth}{ZY{1.03}Y{1.48}Y{0.71}Y{0.78}}
 \toprule
 \textbf{Metric} & \textbf{Definition} & \textbf{Bronze} & \textbf{Gold} \\
 \midrule
@@ -1945,7 +2086,7 @@ False Clean Rate & Contaminated content marked authentic & Measure & $<$5\% \\
 Verification Spend & Time/\$/compute per decision-grade claim & Measure & Optimize \\
 Single-Source Dependency (new) & \% of claims resting on one vendor or one model & Measure & Declining \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{center}
 Without explicit stages and metrics, ``verification'' remains an aspiration; the Verification Latency Baseline is the Bronze deliverable for this table.
 \end{keybox}
@@ -1955,7 +2096,7 @@ Without explicit stages and metrics, ``verification'' remains an aspiration; the
 \begin{defbox}[Model Provenance \& Verification Ladder]
 \begin{center}
 \scriptsize
-\begin{tabular}{L{3cm}L{2.4cm}L{7.2cm}}
+\begin{tabularx}{\linewidth}{ZY{0.71}Y{0.57}Y{1.72}}
 \toprule
 \textbf{Layer} & \textbf{Achievability} & \textbf{What It Provides / Limitation} \\
 \midrule
@@ -1964,7 +2105,7 @@ Without explicit stages and metrics, ``verification'' remains an aspiration; the
 3. Model-Family Attribution & Med-Low (2--3 yr) & Coarse forensics (``Llama-derived''); fine-tuning, merging, and distillation blur lineage \\
 4. Advanced Provenance & Low (research) & Specific actor attribution; may never reach courtroom certainty \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{center}
 \textbf{C2PA and marking status [O]}: CAI 6,000+ members (Jan 2026); Conformance Program and Trust List operational; spec 2.4 (Apr 21, 2026); EU Article 50 Code of Practice (June 10, 2026) found adequate by the Commission (July 8) with $\sim$190 signatories by end of July. \textbf{Gap}: voluntary outside the EU; most user content unsigned; adversaries will not embed provenance. \textbf{Honest assessment}: Layer 3 will not achieve full attribution; its value is raising costs, attributing unsophisticated actors, and generating leads.
 \end{defbox}
@@ -1988,7 +2129,7 @@ Deploy detection benchmarked on in-the-wild data, not academic benchmarks: Bronz
 \begin{recbox}[Agent Deception Testbeds (Silver)]
 \begin{center}
 \scriptsize
-\begin{tabular}{L{3.5cm}L{6cm}L{3cm}}
+\begin{tabularx}{\linewidth}{ZY{0.84}Y{1.44}Y{0.72}}
 \toprule
 \textbf{Component} & \textbf{Function} & \textbf{Owner} \\
 \midrule
@@ -1997,7 +2138,7 @@ Characterization sandbox & Profile model family, tooling, autonomy in isolation 
 Signature sharing & Feed the cross-agency detection library & CISA \\
 Legal and policy gate & Written review before anything beyond passive observation; First Amendment and entrapment review domestically & Agency counsel + DOJ \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{center}
 \textbf{Boundary}: active engagement against identified operators is out of scope. Sandboxes must meet the evaluation-integrity isolation standard; the July 2026 escape shows why.
 \end{recbox}
@@ -2027,7 +2168,7 @@ Build crisis-time arrangements with allied commercial providers and governments 
 \begin{infobox}[Existing Governance Frameworks {[O]} (mid-September 2026)]
 \begin{center}
 \scriptsize
-\begin{tabular}{L{2.8cm}L{6.2cm}L{3.6cm}}
+\begin{tabularx}{\linewidth}{ZY{0.67}Y{1.48}Y{0.85}}
 \toprule
 \textbf{Framework} & \textbf{Status} & \textbf{Limitation} \\
 \midrule
@@ -2039,7 +2180,7 @@ UK AI Security Institute & Trends Report (Dec 2025); evaluation-cheating researc
 UN Panel + Global Dialogue & Preliminary report July 1; Geneva dialogue July 6--7, 2026 & No binding outputs \\
 REAIM & 35 of $\sim$85 states endorse (Feb 2026); U.S. and China did not & Major powers outside \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{center}
 \textbf{The Governance Vacuum Persists [E]}: no binding international framework constrains state use of AI agents for intelligence operations. 2026 movement is regional and national, the pattern the Provenance Islands wild card predicts.
 \end{infobox}
@@ -2056,7 +2197,7 @@ Verification investment amid contraction is reconcilable only through reallocati
 
 \begin{center}
 \scriptsize
-\begin{tabular}{L{3.4cm}L{5.4cm}L{2.2cm}L{1.8cm}}
+\begin{tabularx}{\linewidth}{ZY{1.06}Y{1.69}Y{0.69}Y{0.56}}
 \toprule
 \textbf{Primary (monthly)} & \textbf{Description} & \textbf{Target 2027} & \textbf{Owner} \\
 \midrule
@@ -2078,7 +2219,7 @@ Vendor Concentration (new) & Share of critical workflows on one vendor & Falling
 Verifier attrition; experience mix & Separations; \% staff $>$5/$>$10 years & Stable & ODNI \\
 Automation reliance; hiring health & \% automated; clearance time, acceptance & Tracked & Each agency \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{center}
 
 \textbf{Interpretation}: rising attrition, declining experience mix, and increasing automation reliance together indicate degrading capacity. CIA's 2026 hiring surge improves pipeline health while lowering experience mix in the short term; read both together.
@@ -2086,25 +2227,26 @@ Automation reliance; hiring health & \% automated; clearance time, acceptance & 
 \begin{figure}[!htbp]
 \centering
 \begin{tikzpicture}[font=\scriptsize\sffamily,
-  ind/.style={rounded corners=2pt, minimum width=3.9cm, minimum height=0.95cm, text width=3.7cm, align=center, font=\scriptsize\sffamily, text=white},
-  trig/.style={ind, fill=burgundydeep},
-  part/.style={ind, fill=stressorange},
-  none/.style={ind, fill=stonegray}]
-  \node[font=\footnotesize\bfseries\sffamily, text=burgundydeep] at (0,0.9) {TRIGGERED (2026)};
-  \node[font=\footnotesize\bfseries\sffamily, text=stressorange] at (4.3,0.9) {PARTIAL};
-  \node[font=\footnotesize\bfseries\sffamily, text=stonegray] at (8.6,0.9) {NOT TRIGGERED / NOT OBSERVABLE};
+  ind/.style={nohyph, rounded corners=2pt, minimum height=0.9cm, text width=4.5cm, align=center, font=\scriptsize\sffamily, text=slatedark, line width=0.6pt},
+  trig/.style={ind, fill=burgundydeep!10, draw=burgundydeep!70},
+  part/.style={ind, fill=stressorange!12, draw=stressorange!80},
+  none/.style={ind, fill=stonegray!10, draw=stonegray!70},
+  hdr/.style={rounded corners=2pt, minimum height=0.8cm, text width=4.5cm, align=center, font=\scriptsize\bfseries\sffamily, text=white}]
+  \node[hdr, fill=burgundydeep] at (0,0.95) {TRIGGERED IN 2026 (5)};
+  \node[hdr, fill=stressorange] at (5.3,0.95) {PARTIAL (3)};
+  \node[hdr, fill=stonegray] at (10.6,0.95) {NOT TRIGGERED OR NOT OBSERVABLE (4)};
   \node[trig] at (0,0) {Leadership churn at an integration element (ODNI, Jun--Jul)};
-  \node[trig] at (0,-1.1) {Crisis-time loss of commercial imagery (Mar--Apr)};
-  \node[trig] at (0,-2.2) {AI incident beyond test boundary (Jul)};
-  \node[trig] at (0,-3.3) {Statutory collection authority lapse (FISA 702, Jun 12)};
-  \node[trig] at (0,-4.4) {Frontier model rated ``Critical'' for cyber (Sep)};
-  \node[part] at (4.3,0) {Contamination during national security events (Maduro; Iran war)};
-  \node[part] at (4.3,-1.1) {IC AI governance in committee bills (not enacted)};
-  \node[part] at (4.3,-2.2) {Divergent provenance regimes (EU Art.\ 50 vs.\ voluntary U.S.)};
-  \node[none] at (8.6,0) {Sustained agency-level Process DoS};
-  \node[none] at (8.6,-1.1) {Public verification metric or budget line};
-  \node[none] at (8.6,-2.2) {Allied intelligence-sharing reduction};
-  \node[none] at (8.6,-3.3) {Major failure attributed to contamination};
+  \node[trig] at (0,-1.05) {Crisis-time loss of commercial imagery (Mar--Apr)};
+  \node[trig] at (0,-2.1) {AI incident beyond test boundary (Jul)};
+  \node[trig] at (0,-3.15) {Statutory collection authority lapse (FISA 702, Jun 12)};
+  \node[trig] at (0,-4.2) {Frontier model rated ``Critical'' for cyber (Sep)};
+  \node[part] at (5.3,0) {Contamination during national security events (Maduro; Iran war)};
+  \node[part] at (5.3,-1.05) {IC AI governance in committee bills (not enacted)};
+  \node[part] at (5.3,-2.1) {Divergent provenance regimes (EU Art.\ 50 vs.\ voluntary U.S.)};
+  \node[none] at (10.6,0) {Sustained agency-level Process DoS};
+  \node[none] at (10.6,-1.05) {Public verification metric or budget line};
+  \node[none] at (10.6,-2.1) {Allied intelligence-sharing reduction};
+  \node[none] at (10.6,-3.15) {Major failure attributed to contamination};
 \end{tikzpicture}
 \caption{Indicator dashboard, mid-September 2026 [O/E]. Warning thresholds from Section 10 plus one capability marker, with trigger status. All four warning thresholds added in v3.0 have triggered; none of the original four contamination-outcome thresholds is publicly observable, because the metrics that would show them do not yet exist.}
 \label{fig:dashboard}
@@ -2113,7 +2255,7 @@ Automation reliance; hiring health & \% automated; clearance time, acceptance & 
 \begin{criticalbox}[Warning Thresholds]
 \begin{center}
 \scriptsize
-\begin{tabular}{L{5cm}L{2.6cm}L{2.6cm}L{2.4cm}}
+\begin{tabularx}{\linewidth}{ZY{1.59}Y{0.83}Y{0.83}Y{0.75}}
 \toprule
 \textbf{Indicator} & \textbf{Threshold} & \textbf{Response} & \textbf{Status} \\
 \midrule
@@ -2126,7 +2268,7 @@ Crisis loss of commercial access (new) & Any & Assured-access activation & \text
 Autonomous AI incident beyond test (new) & Any disclosure & Evaluation review & \textbf{Triggered} \\
 Statutory authority lapse (new) & Any & Continuity planning & \textbf{Triggered} \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{center}
 \end{criticalbox}
 
@@ -2134,7 +2276,7 @@ Statutory authority lapse (new) & Any & Continuity planning & \textbf{Triggered}
 
 \begin{center}
 \scriptsize
-\begin{tabular}{L{5.6cm}L{5.6cm}L{1.4cm}}
+\begin{tabularx}{\linewidth}{ZY{1.33}Y{1.33}Y{0.34}}
 \toprule
 \textbf{Development} & \textbf{Impact on Assessment} & \textbf{Assump.} \\
 \midrule
@@ -2155,13 +2297,13 @@ Major adversary AI failure or over-reliance & Breathing room; new exploitable we
 Open-weight frontier parity & Accelerates floor elevation; weakens lab telemetry & 1 \\
 China--Russia AI cooperation deepening & Accelerates adversary trajectory & 1 \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{center}
 
 \begin{defbox}[Falsifiability Indicators (2027 Check)]
 \begin{center}
 \scriptsize
-\begin{tabular}{L{3.6cm}L{3cm}L{6cm}}
+\begin{tabularx}{\linewidth}{ZY{0.86}Y{0.71}Y{1.43}}
 \toprule
 \textbf{If Accurate} & \textbf{If Overstated} & \textbf{Status (mid-September 2026)} \\
 \midrule
@@ -2172,7 +2314,7 @@ Major failure from contamination & No such failures & Not publicly knowable; non
 Budget includes verification & Collection-centric continues & \textbf{No}: adoption spending rose; no verification line item \\
 (new) Dependency conflicts affect capability & Vendor relations frictionless & \textbf{Yes}: lab designation dispute; imagery withholding; export-control suspension \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{center}
 \textbf{Assessment}: eight months in, contamination-side and dependency-side indicators are partly or fully validated, while adaptation shows adoption without verification. The strongest disconfirming observation remains the absence of publicly reported, sustained Process DoS; we weight it accordingly.
 \end{defbox}
@@ -2209,7 +2351,13 @@ As the IC focuses on verification, some collection capabilities may atrophy; if 
 \end{criticalbox}
 
 \begin{infobox}[Democratic Accountability]
-Several recommendations build domestic-facing machinery: automated triage of public tips and FOIA requests touches First Amendment-protected activity, and a Process DoS defense misapplied to lawful mass participation is itself an institutional-erosion failure mode. Reliance on purchased commercial data raises parallel questions the 702 debate has not resolved. Oversight hooks: (1) \textbf{reportable error rates} (False Clean and false-positive) to the intelligence and judiciary committees, and in aggregate publicly, as FISA statistics are; (2) \textbf{explicit mandates} for PCLOB and inspectors general over synthetic-content triage and commercial-data purchases before deployment; (3) \textbf{adversarial audit}: a civil-liberties track in the Bounty Agent program. The verification pivot asks the public to trust the IC as an arbiter of authenticity; that trust is itself a verification problem, solved by instrumentation, audit, and published error rates, not assertion.
+Several recommendations build domestic-facing machinery: automated triage of public tips and FOIA requests touches First Amendment-protected activity, and a Process DoS defense misapplied to lawful mass participation is itself an institutional-erosion failure mode. Reliance on purchased commercial data raises parallel questions the 702 debate has not resolved. Three oversight hooks:
+\begin{enumerate}[nosep]
+  \item \textbf{Reportable error rates} (False Clean and false-positive) to the intelligence and judiciary committees, and in aggregate publicly, as FISA statistics are
+  \item \textbf{Explicit mandates} for PCLOB and inspectors general over synthetic-content triage and commercial-data purchases before deployment
+  \item \textbf{Adversarial audit}: a civil-liberties track in the Bounty Agent program
+\end{enumerate}
+The verification pivot asks the public to trust the IC as an arbiter of authenticity; that trust is itself a verification problem, solved by instrumentation, audit, and published error rates, not assertion.
 \end{infobox}
 
 \begin{keybox}[The Bottom Line]
@@ -2267,7 +2415,7 @@ Datable [O]/[D] claims anchored to public sources (representative anchors, not e
 \end{enumerate}
 }
 
-\textbf{Excluded as unverified}: aggregator statistics attributed to a June 2026 OpenAI report; IC3 impersonation-loss totals; total online deepfake counts; a data-broker market size; FY2027 commercial-imagery budget figures.
+{\raggedright \textbf{Excluded as unverified}: aggregator statistics attributed to a June 2026 OpenAI report; IC3 impersonation-loss totals; total online deepfake counts; a data-broker market size; FY2027 commercial-imagery budget figures.\par}
 
 \section{Glossary of Coined Terms}
 
@@ -2301,7 +2449,7 @@ Datable [O]/[D] claims anchored to public sources (representative anchors, not e
 
 \begin{center}
 \small
-\begin{tabular}{L{1.2cm}L{2.2cm}L{9.6cm}}
+\begin{tabularx}{\linewidth}{ZY{0.28}Y{0.51}Y{2.21}}
 \toprule
 \textbf{Ver.} & \textbf{Date} & \textbf{Summary} \\
 \midrule
@@ -2310,12 +2458,13 @@ Datable [O]/[D] claims anchored to public sources (representative anchors, not e
 2.1 & July 2026 & Mid-2026 refresh: Fable 5 / Mythos 5 frontier and accelerated METR doubling; governance table rebuilt; June 2026 workforce developments; methodology provenance corrected; new sections (IC AI adoption attack surface, testbeds, two counterarguments, budget and accountability); Claims Register, Glossary, Revision History; traceability table and rubric \\
 3.0 & September 2026 & Deep revision: two-directional erosion thesis; Verifying the Verifiers section; ODNI turnover and further cuts, FISA 702 lapse, GenAI.mil and classified-network adoption, NSPM-11, EO 14409, FY2027 IAA provisions, CIA hiring rebound; AI-lab threat reports through September 2026; EU AI Act general application; scenario probabilities revised (Managed 15--25\%, Parity 45--55\%, Collapse 20--30\%); second branching variable; two counterarguments and four recommendations added; warning indicators with trigger status; Deepfake-Eval-2024 and persuasion literature; corrected the Agentic AI Foundation date (Dec 9, 2025) and founding projects; ten new figures (two-directional erosion, erosion timeline, diffusion by tier, task-horizon growth, ODNI headcount, structural trap, adaptation matrix, scenario history, pipeline, indicator dashboard); Claims Register rebuilt with exclusions list \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{center}
 
 % ============================================================================
 % DOCUMENT METADATA
 % ============================================================================
+\needspace{20\baselineskip}
 \begin{center}
 \rule{0.6\textwidth}{0.5pt}
 \end{center}

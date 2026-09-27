@@ -152,9 +152,20 @@
 \titlespacing*{\section}{0pt}{2.5ex plus 1ex minus .2ex}{2.2ex plus .2ex}
 \titlespacing*{\subsection}{0pt}{2.4ex plus 1ex minus .2ex}{1.1ex plus .2ex}
 
-% Keep headings with enough following material to avoid orphans
-\newcommand{\sectionbreak}{\clearpage}
-\newcommand{\subsectionbreak}{\needspace{7\baselineskip}}
+% Keep headings with enough following material to avoid orphans.
+% Sections flow on (no forced page per section) so short sections do not
+% leave half-empty pages. \Needspace (not \needspace) breaks only when the
+% space is actually short, instead of pulling headings to the next page.
+\newcommand{\sectionbreak}{\Needspace{14\baselineskip}}
+\newcommand{\subsectionbreak}{\Needspace{7\baselineskip}}
+
+% Float placement: allow large figures near their text, avoid float-only pages
+\renewcommand{\topfraction}{0.9}
+\renewcommand{\bottomfraction}{0.6}
+\renewcommand{\textfraction}{0.1}
+\renewcommand{\floatpagefraction}{0.75}
+\setcounter{topnumber}{2}
+\setcounter{totalnumber}{3}
 
 \setcounter{tocdepth}{2}
 
@@ -331,7 +342,7 @@
   % Metadata grid
   \node[anchor=north west, text width=17.8cm, inner sep=0pt, font=\sffamily\small, text=textdark] at ($(NW)+(1.9,-17.0)$) {%
     \setlength{\tabcolsep}{0pt}\renewcommand{\arraystretch}{1.15}%
-    \begin{tabular}{@{}p{8.5cm}@{\hspace{0.8cm}}p{8.5cm}@{}}
+    \begin{tabular}{@{}>{\raggedright\arraybackslash}p{8.5cm}@{\hspace{0.8cm}}>{\raggedright\arraybackslash}p{8.5cm}@{}}
       {\scriptsize\bfseries\color{darkamber}AUDIENCE} & {\scriptsize\bfseries\color{darkamber}SCOPE} \\[1pt]
       Security teams, sector ISACs, national CERTs, and policy bodies planning deception programs aimed at autonomous AI agent activity
       & Defensive detection, attribution, and reporting only. No offensive countermeasures, no hack-back, no ready-made decoy artifacts. \\[10pt]
@@ -383,8 +394,7 @@ A policy body or regulator & Section~\ref{sec:summary} (summary) and Section~\re
 Legal counsel or a privacy officer & Section~\ref{sec:legal} (guardrails) & Section~\ref{sec:telemetry} and Section~\ref{sec:package} \\
 A model or platform provider receiving reports & Section~\ref{sec:attribution} (reporting) & Section~\ref{sec:signals} (AI-agent signals) \\
 \tablefinish
-\end{tabularx}
-}
+\end{tabularx}\par}
 
 \subsection*{Key Terms}
 
@@ -402,8 +412,7 @@ Sighting & A later appearance of a decoy value anywhere, inside or outside your 
 Campaign & A set of touches and sightings attributed to one actor or agent configuration \\
 Provider & The model, agent-platform, cloud, or proxy operator that can see the accounts behind the activity \\
 \tablefinish
-\end{tabularx}
-}
+\end{tabularx}\par}
 
 \begin{notebox}[What this guide deliberately leaves out]
 There are no decoy templates, strings, file names, banners, or lists of ``tells'' anywhere in this document. It is public and will be read by the adversaries it describes; anything published here is, by definition, a signature. Section~\ref{sec:secrecy} explains why this is a security control rather than an omission.
@@ -597,13 +606,13 @@ Every decoy value (credential, hostname, document, record, phrase) is generated 
     \node[decoy, minimum width=3.1cm, minimum height=0.8cm] (V\i) at (5.4,\y) {value $v_\i$ \,$\rightarrow$\, placement \i};
     \draw[arr] (G.east) -- (V\i.west);
   }
-  \node[store, minimum width=3.0cm, minimum height=1.3cm] (L) at (1.4,-3.3) {\textbf{Placement ledger}\\value, location,\\time, context};
+  \node[store, minimum width=2.8cm, minimum height=1.3cm] (L) at (1.4,-3.3) {\textbf{Placement ledger}\\value, location,\\time, context};
   \draw[darr, draw=ledgerviolet] (G.south) -- node[right, font=\sffamily\scriptsize, text=ledgerviolet, align=left] {record\\each value} (L.north);
 
   \node[quiet, minimum width=3.8cm, minimum height=1.35cm] (S) at (10.7,0) {\textbf{Later sighting of $v_2$}\\another network, a paste\\site, or a provider log};
   \draw[aarr] (V2.east) -- node[above, font=\sffamily\scriptsize\bfseries, text=darkamber] {harvested} (S.west);
 
-  \node[hot, minimum width=3.6cm, minimum height=1.35cm] (A) at (15.1,0) {\textbf{Precise statement}\\harvested from placement 2\\at or after time $T_2$};
+  \node[hot, minimum width=3.6cm, minimum height=1.35cm] (A) at (15.0,0) {\textbf{Precise statement}\\harvested from placement 2\\at or after time $T_2$};
   \coordinate (J) at ($(S.east)!0.5!(A.west)$);
   \draw[arr] (S.east) -- (A.west);
   \draw[darr, draw=ledgerviolet] (L.east) -| node[pos=0.3, below, font=\sffamily\scriptsize, text=ledgerviolet] {private lookup} (J);
@@ -701,8 +710,7 @@ The isolation guidance in the companion \emph{AI Agent Containment \& Infrastruc
 \textbf{Operational caution} & Variable & None & \cellcolor{honeyamber!18}Variable and inconsistent & Some agents probe for decoys; many do not, and even cautious ones slip \\
 \textbf{Accountable identity} & A person & Infrastructure & \cellcolor{honeyamber!18}An account at a model or platform provider & Provider reporting is a real remediation path \\
 \tablefinish
-\end{tabularx}
-}
+\end{tabularx}\par}
 
 The last row is the one most specific to this threat. An agent swarm is ultimately driven by model API calls made under accounts, keys, or deployments that some provider can see. Classic botnets offer defenders no equivalent remediation path.
 
@@ -736,8 +744,7 @@ Plan for the whole range, not only the most capable.
 \textbf{C: Cautious} & Agents instructed to avoid honeypots, validate findings through disposable infrastructure, and rotate everything & Read-time alerts, content-level indicators that survive proxies, behavioral correlation (Section~\ref{sec:cautious}) \\
 \textbf{D: Highly capable and patient} & Strong models that reason about deception, test hypotheses slowly, and exfiltrate for offline analysis & Read-time alerts, downstream sightings of unique data, and the negative signal of deliberate avoidance; attribution is harder, but campaign awareness remains \\
 \tablefinish
-\end{tabularx}
-}
+\end{tabularx}\par}
 
 Two points are worth stating plainly. First, tier D does not make deception useless; it shifts the value from ``catch it in the act'' to ``know that it happened, when, and what was taken'' (Figure~\ref{fig:tiers}). Second, adversaries at every tier have to \emph{look} before they can decide. Detection on touch is aimed at the look.
 
@@ -815,7 +822,7 @@ A mature program places decoys at several depths so that an adversary who avoids
   }
 
   % Separate ledger
-  \node[store, minimum width=2.1cm, minimum height=2.0cm, font=\sffamily\footnotesize] (Lg) at (15.2,-3.5) {\textbf{Placement}\\\textbf{ledger}};
+  \node[store, minimum width=2.1cm, minimum height=2.0cm, font=\sffamily\footnotesize] (Lg) at (15.05,-3.5) {\textbf{Placement}\\\textbf{ledger}};
   \node[draw=ledgerviolet, dashed, rounded corners=4pt, line width=0.6pt, fit=(Lg), inner sep=0.2cm, label={[font=\sffamily\scriptsize, text=ledgerviolet, align=center]above:separate\\trust domain}] {};
   \draw[{Stealth[scale=0.8]}-{Stealth[scale=0.8]}, line width=0.7pt, ledgerviolet, dashed] (C.east |- Lg.west) -- (Lg.west);
 \end{tikzpicture}
@@ -895,10 +902,10 @@ This guide intentionally does not list the specific details that give decoys awa
     band/.style={rectangle, rounded corners=3pt, line width=0.7pt, align=center, minimum height=1.3cm, text=textdark}]
   \node[band, draw=campaignred, fill=campaignred!10, minimum width=9.6cm, text width=9.2cm] (H) at (0,2.9)
     {\textbf{\textcolor{campaignred}{Hard indicators}}: a decoy was taken and used\\[2pt]
-     {\scriptsize use of a decoy credential \textbullet{} unique decoy content read or reproduced \textbullet{} provider-issued identifiers}};
+     {\scriptsize use of a decoy credential \textbullet{} unique decoy content read or reproduced\\provider-issued identifiers}};
   \node[band, draw=darkamber, fill=honeyamber!16, minimum width=12.6cm, text width=12.2cm] (M) at (0,1.45)
     {\textbf{\textcolor{darkamber}{Supporting signals}}: the actor behaves like an AI agent\\[2pt]
-     {\scriptsize cadence \textbullet{} breadth-then-depth \textbullet{} natural-language artifacts \textbullet{} characteristic errors \textbullet{} parallel near-identical sessions \textbullet{} response to decoy content}};
+     {\scriptsize cadence \textbullet{} breadth-then-depth \textbullet{} natural-language artifacts \textbullet{} characteristic errors\\parallel near-identical sessions \textbullet{} response to decoy content}};
   \node[band, draw=proxygray, fill=proxygray!12, minimum width=15.4cm, text width=15.0cm] (C) at (0,0)
     {\textbf{\textcolor{softslate}{Context only}}: useful, but easily spoofed or belongs to proxies\\[2pt]
      {\scriptsize source addresses \textbullet{} user agents \textbullet{} TLS characteristics \textbullet{} unverified claims of a known agent identity}};
@@ -1118,9 +1125,11 @@ A report that a provider can act on quickly contains the fields below.
 
 {\small
 \zebra
-\begin{tabularx}{\textwidth}{L{3.7cm} Y}
+\setlength{\LTpre}{0.4em}\setlength{\LTpost}{0pt}
+\begin{longtable}{L{3.7cm} L{12.6cm}}
 \rowcolor{deepindigo}
 \hd{Field} & \hd{Content} \\
+\endhead
 \textbf{Summary} & One paragraph: what was observed, why it is believed to be AI-agent activity, and why it is believed malicious \\
 \textbf{Time window} & Start and end in UTC, with clock source and stated accuracy \\
 \textbf{Unique content} & The exact decoy strings read, used, or reproduced, and in which direction (read by the agent vs.\ produced by it) \\
@@ -1130,10 +1139,9 @@ A report that a provider can act on quickly contains the fields below.
 \textbf{Scope} & Other organizations or sensors where the same campaign was seen, if sharing permits \\
 \textbf{Confidence} & Explicit confidence level and what would change it \\
 \textbf{Evidence integrity} & Hashes of the preserved logs and how they were preserved (Section~\ref{sec:telemetry}) \\
-\textbf{Contact} & A responsive point of contact and preferred secure channel \\
+\textbf{Contact} & A responsive point of contact and preferred secure channel \\*
 \tablefinish
-\end{tabularx}
-}
+\end{longtable}\par}
 
 \begin{warnbox}[Minimize what you send]
 Keep personal data to the minimum needed (Section~\ref{sec:legal}). Never include the placement ledger itself; provide only the entries relevant to the report.
@@ -1282,8 +1290,7 @@ Figure~\ref{fig:maturity} and the table below it describe four levels of program
 \textbf{3: Shared} & Enterprise in a sharing community & Machine-readable sharing; standing provider reporting relationships; cross-organization correlation; decoy AI-provider keys coordinated with providers \\
 \textbf{4: National or sector} & CERT, ISAC, or national agency & Distributed perimeter sensor networks; campaign graphing across many members; coordinated provider and law-enforcement engagement; guidance back to members \\
 \tablefinish
-\end{tabularx}
-}
+\end{tabularx}\par}
 
 \subsection{Deployment Playbook}
 \label{sec:playbook}
@@ -1343,8 +1350,7 @@ Proportion of decoys validated end to end in the last period & 100\% \\
 Reports acted on by providers or platforms & Tracked; low rates mean the package needs work \\
 Decoys retired after exposure & All of them \\
 \tablefinish
-\end{tabularx}
-}
+\end{tabularx}\par}
 
 \subsection{Testing with Your Own Agents}
 \label{sec:owntest}
@@ -1371,12 +1377,13 @@ A ledger stored where an intruder could read it & Every remaining decoy is expos
 Alerts that go to an unmonitored mailbox & Detection with no response & Section~\ref{sec:maturity} \\
 No pre-arranged route to report to providers & Confirmed evidence goes stale & Section~\ref{sec:attribution} \\
 \tablefinish
-\end{tabularx}
-}
+\end{tabularx}\par}
 
 % ============================================================================
 % SECTION 12: CHECKLISTS
 % ============================================================================
+% The three checklist cards are one unbreakable block: keep the heading with them
+\Needspace{34\baselineskip}
 \section{Checklists}
 \label{sec:checklists}
 
@@ -1465,7 +1472,6 @@ No pre-arranged route to report to providers & Confirmed evidence goes stale & S
 \hd{Version} & \hd{Date} & \hd{Changes} \\
 1.0 & September 2026 & Initial release \\
 \tablefinish
-\end{tabularx}
-}
+\end{tabularx}\par}
 
 \end{document}

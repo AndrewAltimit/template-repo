@@ -25,18 +25,25 @@
 \usepackage{array}
 \usepackage{longtable}
 
-% Ragged-right paragraph columns to prevent word spacing issues
-\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
-
-% Increase vertical spacing between table rows for readability
-\renewcommand{\arraystretch}{1.4}
-
 \usepackage{colortbl}
 \usepackage{pifont}
 \usepackage{setspace}
 \usepackage{parskip}
 \usepackage{caption}
 \usepackage{tabularx}
+\usepackage{microtype}
+\usepackage{needspace}
+\usepackage{tocloft}
+
+% Ragged-right paragraph columns to prevent word spacing issues
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+% Full-width ragged-right columns; the weights in a table sum to its column count
+\newcolumntype{Y}[1]{>{\raggedright\arraybackslash\hsize=#1\hsize\linewidth=\hsize}X}
+% Z: leading column edge with a hair of stretch, absorbing rounding in the Y weights
+\newcolumntype{Z}{@{\extracolsep{0pt plus 1pt}\hspace{\tabcolsep}}}
+
+% Vertical spacing between table rows for readability
+\renewcommand{\arraystretch}{1.3}
 
 \pgfplotsset{compat=1.18}
 \usetikzlibrary{shapes.symbols, shapes.misc, shapes.geometric, arrows.meta, positioning, calc, decorations.pathreplacing, backgrounds, fit, shadows.blur, matrix, patterns, fadings, shadings}
@@ -67,6 +74,52 @@
 \definecolor{statusgreen}{HTML}{4E8A5C}
 \definecolor{statusamber}{HTML}{D08C1F}
 \definecolor{statusred}{HTML}{B03A3A}
+
+% ============================================================================
+% PART DIVIDER BANNER (matches the ETRA series cover)
+% ============================================================================
+% \partbanner{numeral}{title}{subtitle}{illustration}
+% Full-bleed 10cm band flush with the page top. The illustration is drawn
+% in local cm coordinates inside an 8.2cm x 7.5cm box whose origin is its
+% bottom-left corner, vertically centered in the band.
+\newcommand{\partbanner}[4]{%
+  \thispagestyle{empty}%
+  \noindent\begin{tikzpicture}[remember picture, overlay]
+    \begin{scope}[shift={(current page.north west)}]
+      % Band
+      \fill[deepindigo] (0,0) rectangle (\paperwidth,-10cm);
+      % Subtle texture: dot lattice (as on the cover)
+      \foreach \x in {0.9,1.8,...,21.0} {
+        \foreach \y in {-0.9,-1.8,...,-9.5} {
+          \fill[white, opacity=0.05] (\x,\y) circle (0.018);
+        }
+      }
+      % Bottom accent rule
+      \fill[digitalgold] (0,-10cm) rectangle (\paperwidth,-9.958cm);
+      % Text column
+      \node[anchor=west, inner sep=0, text width=9.3cm, align=left]
+        at (2.159cm,-5cm) {%
+          \setstretch{1}\setlength{\parskip}{0pt}%
+          {\color{digitalgold}\sffamily\bfseries\fontsize{9}{11}\selectfont PART #1}\par
+          \vspace{0.35cm}%
+          {\color{white}\sffamily\bfseries\fontsize{30}{34}\selectfont\raggedright
+            \hyphenpenalty=10000\exhyphenpenalty=10000
+            \spaceskip=0.3em plus 0.1em\relax #2\par}
+          \vspace{0.3cm}%
+          {\color{digitalgold}\rule{2.5cm}{2pt}}\par
+          \vspace{0.3cm}%
+          \begin{minipage}{8.5cm}\raggedright
+            {\color{white!70}\sffamily\fontsize{11}{14}\selectfont #3\par}
+          \end{minipage}%
+        };
+      % Illustration box
+      \begin{scope}[shift={(0.52\paperwidth,-8.75cm)}]
+        #4
+      \end{scope}
+    \end{scope}
+  \end{tikzpicture}\par
+  \vspace*{7.0cm}%
+}
 
 % ============================================================================
 % HYPERREF SETUP
@@ -129,12 +182,43 @@
 \titlespacing*{\section}{0pt}{3ex plus 1ex minus .2ex}{2ex plus .2ex}
 \titlespacing*{\subsection}{0pt}{2.5ex plus 1ex minus .2ex}{1.5ex plus .2ex}
 
+% Keep headings with the text that follows them
+\newcommand{\sectionbreak}{\needspace{10\baselineskip}}
+\newcommand{\subsectionbreak}{\needspace{6\baselineskip}}
+\newcommand{\subsubsectionbreak}{\needspace{5\baselineskip}}
+
 \setcounter{tocdepth}{2}
+\makeatletter
+\newcommand{\inlinetoc}{\@starttoc{toc}}
+\makeatother
+\setlength{\cftsecnumwidth}{1.6em}
+\setlength{\cftsubsecindent}{1.6em}
+\setlength{\cftsubsecnumwidth}{2.2em}
+\renewcommand{\cftsecfont}{\bfseries\color{deepindigo}}
+\renewcommand{\cftsecpagefont}{\bfseries\color{deepindigo}}
+\renewcommand{\cftsubsecfont}{\color{networkblue}}
+\renewcommand{\cftsubsecpagefont}{\color{networkblue}}
+\setlength{\cftbeforesecskip}{0.05em}
+\cftsetrmarg{1.9em plus 1fil}
+\cftsetpnumwidth{1.2em}
+
+% ============================================================================
+% FIGURES AND CAPTIONS
+% ============================================================================
+\captionsetup{font=small, labelfont={bf,color=deepindigo}, justification=centering, margin=1em}
+\setlength{\textfloatsep}{14pt plus 4pt minus 4pt}
+\setlength{\floatsep}{12pt plus 4pt minus 4pt}
+\renewcommand{\topfraction}{0.85}
+\renewcommand{\bottomfraction}{0.6}
+\renewcommand{\textfraction}{0.12}
+\renewcommand{\floatpagefraction}{0.75}
+\tikzset{nohyph/.style={execute at begin node={\hyphenpenalty=10000\exhyphenpenalty=10000}}}
 
 % ============================================================================
 % TCOLORBOX ENVIRONMENTS - Economic/network styling
 % ============================================================================
 \tcbuselibrary{skins,breakable,hooks}
+\tcbset{before upper={\setlength{\parskip}{0.5em}}}
 
 \newtcolorbox{keybox}[1][Key Finding]{
   enhanced, breakable,
@@ -242,144 +326,149 @@
 % TITLE PAGE - Ascending Economic Network Visualization
 % ============================================================================
 \begin{titlepage}
+% ETRA series cover. Illustration: "The Rails Arrived Before the Actors".
+% Payment rails already carry dense traffic along the floor; agent
+% capability accelerates above them while governance advances in
+% discrete steps, and the shaded region is the capability-governance gap.
+% Coordinates are in cm from the bottom-left corner of the page.
 \begin{tikzpicture}[remember picture, overlay]
-  % Background - deep indigo
-  \fill[deepindigo] (current page.north west) rectangle (current page.south east);
+\begin{scope}[shift={(current page.south west)}]
+  % Background
+  \fill[deepindigo] (0,0) rectangle (21.59,27.94);
 
-  % Subtle network grid background (economic infrastructure)
-  \begin{scope}[shift={(current page.center)}, opacity=0.03]
-    \foreach \y in {-12,-10,...,12} {
-      \draw[white, line width=0.4pt] (-10,\y) -- (10,\y);
+  % Subtle texture: dot lattice
+  \foreach \x in {0.9,1.8,...,21.0} {
+    \foreach \y in {0.9,1.8,...,27.2} {
+      \fill[white, opacity=0.05] (\x,\y) circle (0.018);
     }
-    \foreach \x in {-8,-4,0,4,8} {
-      \draw[white, line width=0.5pt] (\x,-12) -- (\x,12);
+  }
+
+  % Masthead
+  \fill[deepindigo!78!black] (0,26.34) rectangle (21.59,27.94);
+  \fill[digitalgold] (0,26.34) rectangle (21.59,26.382);
+  \node[anchor=west, inner sep=0, text=digitalgold,
+        font=\sffamily\bfseries\fontsize{8.5}{10}\selectfont]
+    at (1.5,27.14) {EMERGING TECHNOLOGY RISK ASSESSMENT};
+  \node[anchor=east, inner sep=0, text=white!72,
+        font=\sffamily\bfseries\fontsize{8.5}{10}\selectfont]
+    at (20.09,27.14) {ETRA-2025-AEA-001\enspace\textbar\enspace SEPTEMBER 2026};
+
+  % ==== Illustration zone (y = 12.9 .. 25.1) ====
+  % Year gridlines
+  \foreach \i/\yr in {0/2026,1/2027,2/2028,3/2029,4/2030} {
+    \pgfmathsetmacro{\gx}{2.6+\i*4.1}
+    \draw[white, opacity=0.07, line width=0.4pt] (\gx,13.15) -- (\gx,24.9);
+    \node[anchor=north, inner sep=0, text=white!55,
+          font=\sffamily\fontsize{6.5}{7}\selectfont] at (\gx,12.95) {\yr};
+  }
+  \foreach \gy in {16.9,18.9,...,24.9} {
+    \draw[white, opacity=0.05, line width=0.4pt] (2.6,\gy) -- (19.5,\gy);
+  }
+
+  % Payment rails: four tracks with transaction traffic that densifies over time
+  \foreach \r/\ph in {0/0.00,1/0.37,2/0.71,3/0.19} {
+    \pgfmathsetmacro{\ry}{14.05+\r*0.38}
+    \draw[networkblue, opacity=0.9, line width=0.8pt] (1.5,\ry) -- (20.09,\ry);
+    \foreach \k in {0,...,38} {
+      \pgfmathsetmacro{\t}{(\k+\ph)/39}
+      \pgfmathsetmacro{\tx}{1.7+18.2*(\t)^(0.55)}
+      \pgfmathsetmacro{\op}{0.25+0.7*\t}
+      \fill[valueyellow, opacity=\op] (\tx-0.07,\ry-0.035) rectangle (\tx+0.07,\ry+0.035);
+    }
+  }
+
+  % Chart layer (lifted clear of the top rail)
+  \begin{scope}[yshift=0.35cm]
+  % Capability-governance gap (region above governance, below capability)
+  \begin{scope}
+    \clip (2.6,15.3) -- (5.8,15.3) -- (5.8,15.9) -- (9.9,15.9) -- (9.9,16.6)
+          -- (13.9,16.6) -- (13.9,17.25) -- (17.4,17.25) -- (17.4,17.9)
+          -- (19.5,17.9) -- (19.5,25) -- (2.6,25) -- cycle;
+    \fill[digitalgold, opacity=0.13]
+      plot[domain=2.6:19.5, samples=90, smooth] (\x,{15.3+8.6*((\x-2.6)/16.9)^2.6})
+      -- (19.5,15) -- (2.6,15) -- cycle;
+    % Hatching inside the gap
+    \foreach \hx in {2.6,3.0,...,19.5} {
+      \draw[digitalgold, opacity=0.16, line width=0.4pt] (\hx,15) -- (\hx,25);
     }
   \end{scope}
 
-  % Main visualization - Ascending Network (AI agents emerging from economic structure)
-  \begin{scope}[shift={([xshift=-0.5cm, yshift=3.5cm]current page.center)}]
+  % Governance: discrete, lagging steps
+  \draw[medgray, opacity=0.85, line width=1.6pt, line join=round]
+    (2.6,15.3) -- (5.8,15.3) -- (5.8,15.9) -- (9.9,15.9) -- (9.9,16.6)
+    -- (13.9,16.6) -- (13.9,17.25) -- (17.4,17.25) -- (17.4,17.9) -- (19.5,17.9);
+  \foreach \px/\py in {5.8/15.9, 9.9/16.6, 13.9/17.25, 17.4/17.9} {
+    \fill[deepindigo] (\px,\py) circle (0.11);
+    \draw[medgray, line width=0.8pt] (\px,\py) circle (0.11);
+  }
 
-    % === FOUNDATION LAYER - Traditional economic infrastructure (grounded, static) ===
-    % Scattered foundation nodes - representing existing economic systems
-    \fill[networkblue, opacity=0.25] (-4.5, -4.0) circle (0.45);
-    \fill[networkblue, opacity=0.3] (-2.8, -4.5) circle (0.35);
-    \fill[networkblue, opacity=0.25] (-0.5, -4.2) circle (0.40);
-    \fill[networkblue, opacity=0.3] (1.8, -4.4) circle (0.38);
-    \fill[networkblue, opacity=0.25] (4.0, -4.0) circle (0.42);
-    \fill[networkblue, opacity=0.2] (5.5, -3.5) circle (0.30);
-    \fill[networkblue, opacity=0.25] (-5.8, -3.2) circle (0.32);
+  % Capability: accelerating curve with glow
+  \draw[digitalgold, opacity=0.14, line width=7pt, line cap=round]
+    plot[domain=2.6:19.5, samples=90, smooth] (\x,{15.3+8.6*((\x-2.6)/16.9)^2.6});
+  \draw[digitalgold, line width=1.6pt, line cap=round]
+    plot[domain=2.6:19.5, samples=90, smooth] (\x,{15.3+8.6*((\x-2.6)/16.9)^2.6});
 
-    % Foundation connection lines (horizontal, stable)
-    \draw[networkblue, opacity=0.2, line width=1.2pt] (-4.5, -4.0) -- (-2.8, -4.5);
-    \draw[networkblue, opacity=0.2, line width=1pt] (-2.8, -4.5) -- (-0.5, -4.2);
-    \draw[networkblue, opacity=0.2, line width=1.2pt] (-0.5, -4.2) -- (1.8, -4.4);
-    \draw[networkblue, opacity=0.2, line width=1pt] (1.8, -4.4) -- (4.0, -4.0);
-    \draw[networkblue, opacity=0.15, line width=0.8pt] (4.0, -4.0) -- (5.5, -3.5);
-    \draw[networkblue, opacity=0.15, line width=0.8pt] (-5.8, -3.2) -- (-4.5, -4.0);
+  % Agents on the capability curve, each settling onto the rails below
+  \foreach \t/\rr in {0.46/0.10, 0.62/0.13, 0.75/0.16, 0.86/0.19, 0.95/0.22} {
+    \pgfmathsetmacro{\ax}{2.6+16.9*\t}
+    \pgfmathsetmacro{\ay}{15.3+8.6*(\t)^2.6}
+    \draw[valueyellow, opacity=0.35, line width=0.4pt, dash pattern=on 1.5pt off 1.5pt]
+      (\ax,\ay-\rr-0.08) -- (\ax,14.85);
+    \fill[valueyellow, opacity=0.8] (\ax,14.84) circle (0.045);
+    \fill[deepindigo] (\ax,\ay) circle (\rr);
+    \draw[valueyellow, line width=0.8pt] (\ax,\ay) circle (\rr);
+    \fill[valueyellow] (\ax,\ay) circle (0.45*\rr);
+  }
+  % Leading agent (2030)
+  \fill[digitalgold, opacity=0.18] (19.5,23.9) circle (0.62);
+  \fill[deepindigo] (19.5,23.9) circle (0.3);
+  \draw[digitalgold, line width=1.6pt] (19.5,23.9) circle (0.3);
+  \fill[digitalgold] (19.5,23.9) circle (0.15);
 
-    % === ASCENDING AGENT NODES - AI agents rising through economic layers ===
+  % Gap dimension line
+  \draw[white!70, opacity=0.8, line width=0.4pt] (20.25,18.05) -- (20.25,23.55);
+  \draw[white!70, opacity=0.8, line width=0.4pt] (20.12,18.05) -- (20.38,18.05);
+  \draw[white!70, opacity=0.8, line width=0.4pt] (20.12,23.55) -- (20.38,23.55);
 
-    % First ascending wave (emerging from foundation)
-    \fill[nodeblue, opacity=0.35] (-3.2, -2.5) circle (0.38);
-    \fill[nodeblue, opacity=0.4] (-1.0, -2.8) circle (0.32);
-    \fill[nodeblue, opacity=0.35] (1.2, -2.4) circle (0.36);
-    \fill[nodeblue, opacity=0.4] (3.5, -2.6) circle (0.34);
-
-    % Ascending connections from foundation (curved, dynamic)
-    \draw[nodeblue, opacity=0.25, line width=1pt] (-4.5, -4.0) .. controls (-4, -3.2) .. (-3.2, -2.5);
-    \draw[nodeblue, opacity=0.25, line width=1pt] (-0.5, -4.2) .. controls (-0.8, -3.4) .. (-1.0, -2.8);
-    \draw[nodeblue, opacity=0.25, line width=1pt] (1.8, -4.4) .. controls (1.5, -3.4) .. (1.2, -2.4);
-    \draw[nodeblue, opacity=0.25, line width=1pt] (4.0, -4.0) .. controls (3.8, -3.2) .. (3.5, -2.6);
-
-    % Second ascending wave (gaining autonomy)
-    \fill[agentgreen, opacity=0.45] (-2.0, -0.8) circle (0.40);
-    \fill[agentgreen, opacity=0.5] (0.5, -0.5) circle (0.36);
-    \fill[agentgreen, opacity=0.45] (2.8, -0.9) circle (0.38);
-
-    % Second wave connections
-    \draw[agentgreen, opacity=0.3, line width=1.2pt] (-3.2, -2.5) .. controls (-2.6, -1.6) .. (-2.0, -0.8);
-    \draw[agentgreen, opacity=0.3, line width=1pt] (-1.0, -2.8) .. controls (-0.3, -1.6) .. (0.5, -0.5);
-    \draw[agentgreen, opacity=0.3, line width=1.2pt] (1.2, -2.4) .. controls (1.8, -1.5) .. (2.8, -0.9);
-    \draw[agentgreen, opacity=0.25, line width=1pt] (3.5, -2.6) .. controls (3.2, -1.7) .. (2.8, -0.9);
-
-    % Lateral connections at second wave (peer network forming)
-    \draw[agentgreen, opacity=0.2, line width=0.8pt] (-2.0, -0.8) -- (0.5, -0.5);
-    \draw[agentgreen, opacity=0.2, line width=0.8pt] (0.5, -0.5) -- (2.8, -0.9);
-
-    % Third ascending wave (full economic agency - brightest)
-    \fill[digitalgold, opacity=0.6] (-0.8, 1.5) circle (0.44);
-    \fill[digitalgold, opacity=0.7] (1.5, 1.8) circle (0.48);
-
-    % Third wave connections
-    \draw[digitalgold, opacity=0.4, line width=1.5pt] (-2.0, -0.8) .. controls (-1.4, 0.3) .. (-0.8, 1.5);
-    \draw[digitalgold, opacity=0.4, line width=1.5pt] (0.5, -0.5) .. controls (0.8, 0.5) .. (1.5, 1.8);
-    \draw[digitalgold, opacity=0.35, line width=1.2pt] (2.8, -0.9) .. controls (2.2, 0.4) .. (1.5, 1.8);
-
-    % Connection between top agents
-    \draw[digitalgold, opacity=0.3, line width=1pt] (-0.8, 1.5) -- (1.5, 1.8);
-
-    % === APEX NODE - Organizational autonomy (brightest, most prominent) ===
-    \fill[digitalgold, opacity=0.2] (0.3, 4.0) circle (1.0);
-    \fill[digitalgold, opacity=0.5] (0.3, 4.0) circle (0.7);
-    \fill[digitalgold, opacity=0.95] (0.3, 4.0) circle (0.45);
-
-    % Apex connections
-    \draw[digitalgold, opacity=0.45, line width=1.8pt] (-0.8, 1.5) .. controls (-0.3, 2.6) .. (0.3, 4.0);
-    \draw[digitalgold, opacity=0.5, line width=2pt] (1.5, 1.8) .. controls (1.0, 2.8) .. (0.3, 4.0);
-
-    % === THE GAP - Governance trailing behind (visual tension) ===
-    % Governance anchors - slower, heavier, lagging below
-    \fill[governancered, opacity=0.35] (-4.8, -1.5) circle (0.35);
-    \fill[governancered, opacity=0.4] (-3.8, 0.2) circle (0.32);
-    \fill[governancered, opacity=0.35] (-2.8, 1.6) circle (0.30);
-
-    % Governance connections (trying to keep up, but falling behind)
-    \draw[governancered, opacity=0.25, line width=1pt] (-4.8, -1.5) -- (-3.8, 0.2);
-    \draw[governancered, opacity=0.25, line width=1pt] (-3.8, 0.2) -- (-2.8, 1.6);
-
-    % Fading reach lines (governance trying to connect to ascending agents)
-    \draw[governancered, opacity=0.15, line width=0.6pt, dashed] (-4.8, -1.5) -- (-2.0, -0.8);
-    \draw[governancered, opacity=0.12, line width=0.6pt, dashed] (-3.8, 0.2) -- (-0.8, 1.5);
-    \draw[governancered, opacity=0.1, line width=0.6pt, dashed] (-2.8, 1.6) -- (0.3, 4.0);
-
-    % === RIGHT SIDE - Additional ascending agents (showing scale) ===
-    \fill[nodeblue, opacity=0.3] (5.0, -1.8) circle (0.28);
-    \fill[agentgreen, opacity=0.35] (4.5, 0.5) circle (0.30);
-    \fill[digitalgold, opacity=0.4] (3.8, 2.5) circle (0.32);
-
-    \draw[nodeblue, opacity=0.2, line width=0.8pt] (5.5, -3.5) .. controls (5.2, -2.6) .. (5.0, -1.8);
-    \draw[agentgreen, opacity=0.25, line width=0.9pt] (5.0, -1.8) .. controls (4.8, -0.5) .. (4.5, 0.5);
-    \draw[digitalgold, opacity=0.3, line width=1pt] (4.5, 0.5) .. controls (4.2, 1.4) .. (3.8, 2.5);
-    \draw[digitalgold, opacity=0.25, line width=0.8pt] (3.8, 2.5) .. controls (2.2, 3.2) .. (0.3, 4.0);
-
+  % Sparse legible labels
+  \node[anchor=east, inner sep=0, text=digitalgold,
+        font=\sffamily\bfseries\fontsize{6.5}{7}\selectfont] at (18.75,23.95) {AGENT CAPABILITY};
+  \node[anchor=north east, inner sep=0, text=medgray,
+        font=\sffamily\bfseries\fontsize{6.5}{7}\selectfont] at (19.5,17.62) {GOVERNANCE};
+  \node[anchor=center, inner sep=0, text=digitalgold!80!white, rotate=90,
+        font=\sffamily\bfseries\fontsize{6.5}{7}\selectfont] at (20.62,20.8) {GAP};
   \end{scope}
+  \node[anchor=north west, inner sep=0, text=white!60,
+        font=\sffamily\bfseries\fontsize{6.5}{7}\selectfont] at (1.5,13.8) {PAYMENT RAILS};
 
-  % Document header bar
-  \fill[headergold] ([yshift=-1.5cm]current page.north west) rectangle ([yshift=-2.2cm]current page.north east);
-  \node[deepindigo, font=\small\bfseries\sffamily] at ([yshift=-1.85cm]current page.north) {PROJECTION REPORT \textbar{} ETRA-2025-AEA-001 \textbar{} SEPTEMBER 2026};
+  % ==== Title block ====
+  \node (sub) [anchor=south west, inner sep=0, text width=14cm, align=left,
+               text=white!75, font=\sffamily\fontsize{12.5}{16}\selectfont]
+    at (1.5,6.0)
+    {The Rails Arrived Before the Actors: Agent Payments, Delegated Agency, and the Capability-Governance Gap};
+  \fill[digitalgold] ([yshift=0.45cm]sub.north west) rectangle ++(3cm,2pt);
+  \node (ttl) [anchor=south west, inner sep=0, text width=15.5cm, align=left,
+               text=white, font=\sffamily\bfseries\fontsize{34}{38}\selectfont]
+    at ([yshift=0.95cm]sub.north west)
+    {AI Agents as Autonomous\\Economic Actors};
+  \node[anchor=south west, inner sep=0, text=digitalgold,
+        font=\sffamily\bfseries\fontsize{9}{11}\selectfont]
+    at ([yshift=0.5cm]ttl.north west) {PROJECTION REPORT};
 
-  % Title block
-  \node[anchor=south west, text width=14cm] at ([xshift=1.5cm, yshift=3cm]current page.south west) {
-    {\fontsize{11}{13}\selectfont\color{digitalgold}\sffamily EMERGING TECHNOLOGY RISK ASSESSMENT}\\[0.8cm]
-    {\fontsize{36}{42}\selectfont\bfseries\color{white}AI Agents\hspace{0.15em}as}\\[0.2cm]
-    {\fontsize{36}{42}\selectfont\bfseries\color{white}Autonomous}\\[0.2cm]
-    {\fontsize{36}{42}\selectfont\bfseries\color{white}Economic Actors}\\[0.6cm]
-    {\large\color{medgray}\sffamily The Rails Arrived Before the Actors: Agent Payments,}\\[0.1cm]
-    {\large\color{medgray}\sffamily Delegated Agency, and the Capability-Governance Gap}
-  };
-
-  % Metadata block
-  \node[anchor=south east, text width=6cm, align=right] at ([xshift=-1.5cm, yshift=3cm]current page.south east) {
-    \color{softslate}\small\sffamily
-    \textbf{Document Type:} Policy Research\\[0.2em]
-    \textbf{Time Horizon:} 2026--2030\\[0.2em]
-    \textbf{License:} MIT / Unlicense\\[0.2em]
-    \textbf{Version:} 3.0 (September 2026)
-  };
-
-  % Accent line
-  \draw[digitalgold, line width=2pt] ([xshift=1.5cm, yshift=3cm]current page.south west) -- ([xshift=1.5cm, yshift=10.5cm]current page.south west);
-
+  % ==== Footer metadata strip ====
+  \draw[white, opacity=0.25, line width=0.4pt] (1.5,2.6) -- (20.09,2.6);
+  \foreach \i/\lab/\val in {0/DOCUMENT TYPE/Policy Research,
+                            1/TIME HORIZON/2026--2030,
+                            2/LICENSE/{MIT / Unlicense},
+                            3/VERSION/{3.0 (September 2026)}} {
+    \node[anchor=base west, inner sep=0, text=digitalgold,
+          font=\sffamily\bfseries\fontsize{6.5}{8}\selectfont]
+      at ({1.5+\i*4.6475},1.98) {\lab};
+    \node[anchor=base west, inner sep=0, text=white!75,
+          font=\sffamily\fontsize{8.5}{10}\selectfont]
+      at ({1.5+\i*4.6475},1.5) {\val};
+  }
+\end{scope}
 \end{tikzpicture}
 \end{titlepage}
 
@@ -406,7 +495,6 @@
   left=10pt, right=10pt, top=10pt, bottom=10pt]
 This is a \textbf{public policy research document} on AI agents as participants in economic systems: what they can and cannot do as of September 2026, how the payment and commerce industry is building rails for them, and where the resulting governance gaps sit. It is released under permissive open-source licenses (MIT/Unlicense) to support broad discussion of these governance challenges.
 
-\vspace{0.5em}
 \textbf{Independent Work:} This report is independent research. It is not affiliated with, produced by, or endorsed by any government agency, think tank, or official institution. The ``ETRA'' identifier is a document formatting convention, not an organizational identity. It is an independent, single-author analysis: it involves \textbf{no first-party expert consultation} and \textbf{no red-team exercises} conducted by or for the author. It synthesizes publicly available research, vendor disclosures, published evaluations, and legal and regulatory texts.
 \end{tcolorbox}
 
@@ -442,7 +530,7 @@ This is a \textbf{public policy research document} on AI agents as participants 
   \item \textbf{NOT claiming agents cannot transact legally.} Delegated agents acting for verified humans are being onboarded into card networks and payment processors in 2025--2026. The gap is in attribution, authority, and liability, not in the bare ability to pay.
   \item \textbf{NOT promoting cryptocurrency.} Stablecoin rails are discussed because they are one of several agent-payment rails and the one with the weakest principal binding, not as an ideological preference.
   \item \textbf{NOT anthropomorphizing agents.} Agents do not ``want'' money; they execute objectives set by people. Functional language is used throughout.
-  \item \textbf{NOT claiming the companion simulation proves real-world capability.} The \texttt{economic\_agents} package is a simulation with mock backends (Section~\ref{sec:framework}). Real-world evidence is cited separately.
+  \item \textbf{NOT claiming the companion simulation proves real-world capability.} It is a simulation with mock backends (the \texttt{economic\_agents} package, Section~\ref{sec:framework}); real-world evidence is cited separately.
 \end{itemize}
 \end{contextbox}
 
@@ -452,7 +540,7 @@ This is a \textbf{public policy research document} on AI agents as participants 
 Key claims are tagged with an epistemic status:
 \begin{center}
 \small
-\begin{tabular}{L{1.3cm}L{4cm}L{7cm}}
+\begin{tabularx}{\linewidth}{ZY{0.32}Y{0.98}Y{1.7}}
 \toprule
 \textbf{Marker} & \textbf{Meaning} & \textbf{Evidence Standard} \\
 \midrule
@@ -460,7 +548,7 @@ Key claims are tagged with an epistemic status:
 \textbf{[E]} & Analytic judgment & The author's reasoned inference from documented evidence; gaps acknowledged \\
 \textbf{[S]} & Speculative projection & Extrapolation from trends; significant uncertainty \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{center}
 \end{infobox}
 
@@ -502,12 +590,13 @@ Version 1.0 of this report (December 2025) argued that AI agents could already a
 
 \subsection*{Key Findings}
 
-\begin{center}
-\small
-\begin{tabular}{L{0.4cm}L{8.2cm}L{1.1cm}L{2.0cm}L{1.8cm}}
+{\small
+\setlength{\LTleft}{\fill}\setlength{\LTright}{\fill}
+\begin{longtable}{L{0.45cm}L{9.2cm}L{1.25cm}L{2.25cm}L{2.0cm}}
 \toprule
 \textbf{\#} & \textbf{Finding} & \textbf{Mkr} & \textbf{Confidence} & \textbf{Horizon} \\
 \midrule
+\endhead
 1 & Agent payment rails are live on major card networks and processors; the dominant design binds each agent to a verified human via tokenized credentials, mandates, and spend limits & [O] & High & Now \\
 2 & No public evidence shows an agent earning enough to fund its own inference over days or weeks; a documented four-day ``make money'' run with \$5,000 in seed funds earned \$0 & [O] & High & Now \\
 3 & Long-horizon autonomy is growing fast: METR's 50\% time horizon doubled roughly every 4.2 months from 2023, and the frontier now saturates the benchmark (above 16 hours) & [O] & High & Now \\
@@ -518,14 +607,14 @@ Version 1.0 of this report (December 2025) argued that AI agents could already a
 8 & Labor effects are appearing first as reduced hiring of early-career workers in AI-exposed occupations, not mass displacement & [O] & Medium & Now--2028 \\
 9 & The strongest near-term control points are private: model providers, card issuers and networks, stablecoin issuers, and agent platforms. Public rules lag these private regimes & [E] & Medium-High & 2026--2028 \\
 \bottomrule
-\end{tabular}
-\end{center}
+\end{longtable}
+}
 
 \subsection*{The Capability-Governance Gap, Restated}
 
 \begin{center}
 \small
-\begin{tabular}{L{3.6cm}L{3.9cm}L{4.6cm}}
+\begin{tabularx}{\linewidth}{ZY{0.89}Y{0.97}Y{1.14}}
 \toprule
 \textbf{Capability} & \textbf{Status (Sept 2026)} & \textbf{Governance Status} \\
 \midrule
@@ -537,11 +626,12 @@ Earn enough to sustain itself & Not demonstrated \textbf{[O]} & None \\
 Form legal entities & Only via human filers \textbf{[E]} & No agent standing; some states bar AI personhood \\
 Be held liable & Not possible & Liability flows to humans, unevenly \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{center}
 
 % Three-lane transaction flow
-\begin{center}
+\begin{figure}[!htbp]
+\centering
 \begin{tikzpicture}[
   every node/.style={font=\footnotesize\sffamily},
   box/.style={draw, rounded corners=3pt, minimum width=2.25cm, minimum height=0.75cm, align=center, fill=white},
@@ -584,10 +674,9 @@ Be held liable & Not possible & Liability flows to humans, unevenly \\
   \node[text=companyblue, font=\scriptsize\sffamily] at (4.65, 1.45) {\ding{51} network rules bind agent to human; liability allocation unsettled};
   \node[text=governancered, font=\scriptsize\sffamily] at (4.65, -1.75) {\ding{55} attribution depends on operator disclosure and issuer or off-ramp controls};
 \end{tikzpicture}
-\end{center}
-\begin{center}
-\small\textit{Figure 1: Three lanes of economic action. Schematic; the delegated lane is where 2025--2026 industry investment went.}
-\end{center}
+\caption{Three lanes of economic action. Schematic; the delegated lane is where 2025--2026 industry investment went.}
+\label{fig:lanes}
+\end{figure}
 
 \subsection*{What Changed Since v1.0}
 
@@ -599,7 +688,16 @@ Be held liable & Not possible & Liability flows to humans, unevenly \\
 \end{itemize}
 
 \newpage
-\tableofcontents
+\thispagestyle{empty}
+{\centering\color{deepindigo}\Large\bfseries Contents\par}
+\vspace{0.1cm}
+{\color{networkblue!50}\hrule height 0.8pt}
+{\footnotesize\setstretch{0.96}
+\setlength{\columnsep}{16pt}
+\begin{multicols}{2}
+\inlinetoc
+\end{multicols}
+}
 \newpage
 
 % ============================================================================
@@ -664,39 +762,62 @@ Be held liable & Not possible & Liability flows to humans, unevenly \\
 % PART I - FOUNDATIONS
 % ============================================================================
 \clearpage
-\thispagestyle{empty}
-\vspace*{-0.85in}
-\noindent\hspace*{-0.85in}\begin{tikzpicture}
-  \fill[deepindigo] (0,0) rectangle (\paperwidth, -10cm);
-
-  \node[digitalgold, font=\fontsize{10}{10}\selectfont\sffamily] at (0.5\paperwidth, -1.2cm) {PART I};
-  \node[white, font=\fontsize{48}{48}\selectfont\bfseries] at (0.5\paperwidth, -2.8cm) {Foundations};
-  \node[white, opacity=0.7, font=\normalsize\sffamily] at (0.5\paperwidth, -4.2cm) {Framing, Capability Evidence, and the Payment Rails};
-
-  % Capability stack visualization
-  \begin{scope}[shift={(0.5\paperwidth, -7cm)}]
-    \fill[black, opacity=0.15, rounded corners=3pt] (-4.5, -1.8) rectangle (4.5, 1.8);
-
-    \fill[agentgreen, opacity=0.6, rounded corners=2pt] (-3.5, 1.1) rectangle (3.5, 1.5);
-    \node[white, font=\fontsize{7}{7}\selectfont\sffamily] at (0, 1.3) {REASONING AND LONG-HORIZON EXECUTION};
-
-    \fill[companyblue, opacity=0.6, rounded corners=2pt] (-3.2, 0.5) rectangle (3.2, 0.9);
-    \node[white, font=\fontsize{7}{7}\selectfont\sffamily] at (0, 0.7) {TOOLS (MCP, A2A, COMPUTER USE)};
-
-    \fill[digitalgold, opacity=0.7, rounded corners=2pt] (-2.9, -0.1) rectangle (2.9, 0.3);
-    \node[deepindigo, font=\fontsize{7}{7}\selectfont\sffamily] at (0, 0.1) {PAYMENT (CARDS, STABLECOINS)};
-
-    \fill[networkblue, opacity=0.6, rounded corners=2pt] (-2.6, -0.7) rectangle (2.6, -0.3);
-    \node[white, font=\fontsize{7}{7}\selectfont\sffamily] at (0, -0.5) {RESOURCES (COMPUTE, APIs)};
-
-    \fill[investorpurple, opacity=0.5, rounded corners=2pt] (-2.3, -1.3) rectangle (2.3, -0.9);
-    \node[white, font=\fontsize{7}{7}\selectfont\sffamily] at (0, -1.1) {IDENTITY (PRINCIPAL BINDING)};
-  \end{scope}
-
-  \fill[digitalgold] (2cm, -9.2cm) rectangle (\paperwidth-2cm, -9.3cm);
-\end{tikzpicture}
-
-\vspace{0.8cm}
+\partbanner{I}{Foundations}{Framing, Capability Evidence,\newline and the Payment Rails}{%
+    % Two axes of Part I: autonomy tier (x) and principal binding (the two
+    % payment lanes). Demonstrated tiers stay tethered to the delegated
+    % lane; beyond the T3/T4 frontier agents drift toward the unbound lane.
+    \fill[digitalgold, opacity=0.06] (5.52,1.0) rectangle (8.2,6.5);
+    \foreach \i in {0,...,5} {
+      \pgfmathsetmacro{\gx}{0.55+\i*1.42}
+      \draw[white, opacity=0.08, line width=0.4pt] (\gx,1.0) -- (\gx,6.5);
+    }
+    % Delegated lane: dense, bound traffic
+    \draw[networkblue, line width=0.8pt] (0,6.5) -- (8.2,6.5);
+    \foreach \k in {0,...,29} {
+      \pgfmathsetmacro{\tx}{0.14+\k*0.275}
+      \fill[valueyellow, opacity=0.75] (\tx-0.07,6.465) rectangle (\tx+0.07,6.535);
+    }
+    % Unbound lane: thin, sparse traffic
+    \draw[nodeblue!85!white, line width=0.8pt, dash pattern=on 3pt off 2pt] (0,1.0) -- (8.2,1.0);
+    \foreach \tx in {1.2,3.1,5.9,6.7,7.4,8.0} {
+      \fill[valueyellow, opacity=0.4] (\tx-0.07,0.965) rectangle (\tx+0.07,1.035);
+    }
+    % Capability curve through the tiers
+    \draw[digitalgold, opacity=0.14, line width=6pt, line cap=round]
+      plot[domain=0:5, samples=40, smooth] ({0.55+\x*1.42},{2.1+3.3*(\x/5)^1.6});
+    \draw[digitalgold, line width=1.6pt, line cap=round]
+      plot[domain=0:5, samples=40, smooth] ({0.55+\x*1.42},{2.1+3.3*(\x/5)^1.6});
+    % Demonstrated tiers: tethered to a principal
+    \foreach \i in {0,...,3} {
+      \pgfmathsetmacro{\ax}{0.55+\i*1.42}
+      \pgfmathsetmacro{\ay}{2.1+3.3*(\i/5)^1.6}
+      \draw[medgray, opacity=0.85, line width=0.8pt] (\ax,\ay+0.17) -- (\ax,6.5);
+      \fill[deepindigo] (\ax,6.5) circle (0.09);
+      \draw[medgray, line width=0.8pt] (\ax,6.5) circle (0.09);
+      \fill[deepindigo] (\ax,\ay) circle (0.17);
+      \draw[valueyellow, line width=0.8pt] (\ax,\ay) circle (0.17);
+      \fill[valueyellow] (\ax,\ay) circle (0.075);
+    }
+    % Beyond the frontier: not demonstrated, weakly bound
+    \foreach \i in {4,5} {
+      \pgfmathsetmacro{\ax}{0.55+\i*1.42}
+      \pgfmathsetmacro{\ay}{2.1+3.3*(\i/5)^1.6}
+      \draw[medgray, opacity=0.35, line width=0.4pt, dash pattern=on 1.5pt off 2pt] (\ax,\ay+0.2) -- (\ax,6.5);
+      \draw[valueyellow, opacity=0.5, line width=0.4pt, dash pattern=on 1.5pt off 1.5pt] (\ax,\ay-0.2) -- (\ax,1.0);
+      \fill[valueyellow, opacity=0.8] (\ax,1.0) circle (0.05);
+      \fill[deepindigo] (\ax,\ay) circle (0.2);
+      \draw[valueyellow, line width=0.8pt, dash pattern=on 2pt off 1.2pt] (\ax,\ay) circle (0.2);
+    }
+    % Frontier between T3 and T4
+    \draw[digitalgold, line width=0.8pt, dash pattern=on 3pt off 2pt] (5.52,1.0) -- (5.52,6.5);
+    % Autonomy axis
+    \draw[white!55, line width=0.4pt, -{Stealth[length=4pt]}] (0.55,0.5) -- (7.9,0.5);
+    % Labels
+    \node[anchor=south west, inner sep=0, text=white!65, font=\sffamily\bfseries\fontsize{6.5}{7}\selectfont] at (0,6.75) {DELEGATED LANE};
+    \node[anchor=south west, inner sep=0, text=white!65, font=\sffamily\bfseries\fontsize{6.5}{7}\selectfont] at (0,1.2) {UNBOUND LANE};
+    \node[anchor=south, inner sep=0, text=digitalgold, font=\sffamily\bfseries\fontsize{6.5}{7}\selectfont] at (5.52,6.75) {FRONTIER};
+    \node[anchor=north west, inner sep=0, text=white!55, font=\sffamily\bfseries\fontsize{6.5}{7}\selectfont] at (0.55,0.3) {AUTONOMY TIER T0 TO T5};
+}
 
 \section{Introduction and Methodology}
 
@@ -714,7 +835,7 @@ This report is the economic foundation for the ETRA set. The sibling reports bui
 
 \begin{center}
 \small
-\begin{tabular}{L{3.8cm}L{2.8cm}L{6.4cm}}
+\begin{tabularx}{\linewidth}{ZY{0.88}Y{0.65}Y{1.47}}
 \toprule
 \textbf{Report} & \textbf{ID} & \textbf{Connection} \\
 \midrule
@@ -724,7 +845,7 @@ Political Targeting & ETRA-2026-PTR-001 & Accountability gaps underpin deniabili
 Espionage Operations & ETRA-2026-ESP-001 & Agents as paid intermediaries; credential markets \\
 WMD Proliferation & ETRA-2026-WMD-001 & Sub-threshold procurement by agents; weakest-link rails \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{center}
 
 \subsection{Methodology}
@@ -748,22 +869,16 @@ Vendor transaction counts and program claims are marked [O] as \textit{documente
 \begin{defbox}[Core Definitions]
 \textbf{Economic agent (AI)}: An AI system that can discover opportunities, execute work, pay or receive value, and persist across many steps without continuous human direction.
 
-\vspace{0.3em}
 \textbf{Delegated agency}: An agent acting within authority granted by an identifiable principal whose identity is bound to the agent's payment credentials (for example, a tokenized card credential or a signed mandate).
 
-\vspace{0.3em}
 \textbf{Unbound agency}: An agent holding and moving value with no verified principal attached at the payment layer, typically via a self-custodied wallet. An operator may exist but is not visible to counterparties.
 
-\vspace{0.3em}
 \textbf{Principal binding}: The technical and contractual link between an agent's actions and an accountable person or entity.
 
-\vspace{0.3em}
 \textbf{Self-sufficiency}: An agent's earned revenue covering its own inference and infrastructure costs over a sustained period without human subsidy.
 
-\vspace{0.3em}
 \textbf{Capability-governance gap}: The difference between what agents can do economically and what legal, contractual, and infrastructural controls can attribute and remedy.
 
-\vspace{0.3em}
 \textbf{Control point}: A place in the agent's operating stack where a party can observe, condition, or stop agent activity (model provider, credential issuer, network, stablecoin issuer, off-ramp, platform).
 \end{defbox}
 
@@ -773,7 +888,8 @@ Vendor transaction counts and program claims are marked [O] as \textit{documente
 
 Version 1.0 ranked agents on a single autonomy ladder. The 2025--2026 record shows that a second axis matters as much: how tightly the agent is bound to an accountable principal. A highly autonomous agent with strong binding is a productivity tool with a clear liability path; a modestly capable agent with no binding can still cause unattributable harm.
 
-\begin{center}
+\begin{figure}[!htbp]
+\centering
 \begin{tikzpicture}[scale=1.0, every node/.style={font=\footnotesize\sffamily}]
   % Quadrant backgrounds
   \fill[agentgreen!10] (0,3) rectangle (5,6);
@@ -799,22 +915,22 @@ Version 1.0 ranked agents on a single autonomy ladder. The 2025--2026 record sho
   \fill[companyblue] (7.3,4.1) circle (3pt); \node[anchor=west] at (7.45,4.1) {Supervised shop agent};
   \fill[companyblue] (6.3,3.5) circle (3pt); \node[anchor=west] at (6.45,3.5) {Mandate-based purchasing};
   \fill[softslate] (1.3,1.6) circle (3pt); \node[anchor=west] at (1.45,1.6) {Game-farming bots};
-  \fill[softslate] (2.6,0.9) circle (3pt); \node[anchor=west] at (2.75,0.9) {Trading scripts};
+  \fill[softslate] (2.3,0.9) circle (3pt); \node[anchor=west] at (2.45,0.9) {Trading scripts};
   \fill[governancered] (6.0,1.9) circle (3pt); \node[anchor=west] at (6.15,1.9) {Persona accounts with wallets};
-  \draw[governancered, dashed, thick] (8.6,1.0) circle (0.35); \node[anchor=west, text=governancered] at (7.0,0.35) {Self-sustaining agent (none observed)};
+  \draw[governancered, dashed, thick] (8.2,1.15) circle (0.35); \node[anchor=north, text=governancered] at (8.2,0.72) {Self-sustaining agent (none observed)};
   % Arrow of industry direction
-  \draw[->, >=Stealth, very thick, digitalgold] (3.0,3.55) to[bend right=12] node[below, text=digitalgold!70!black, pos=0.5, font=\scriptsize\sffamily] {2025--26 industry build-out} (5.8,3.75);
+  \draw[->, >=Stealth, very thick, digitalgold] (2.9,3.45) to[bend right=12] (5.8,3.75);
+  \node[text=digitalgold!70!black, font=\scriptsize\sffamily, fill=white, fill opacity=0.8, text opacity=1, inner sep=1.5pt, anchor=north] at (4.1,3.25) {2025--26 industry build-out};
 \end{tikzpicture}
-\end{center}
-\begin{center}
-\small\textit{Figure 2: Autonomy versus principal binding. Schematic placement for illustration; positions are qualitative judgments [E].}
-\end{center}
+\caption{Autonomy versus principal binding. Schematic placement for illustration; positions are qualitative judgments [E].}
+\label{fig:quadrant}
+\end{figure}
 
 \subsection{Autonomy Tiers}
 
 \begin{center}
 \small
-\begin{tabular}{L{0.9cm}L{2.6cm}L{4.4cm}L{4.6cm}}
+\begin{tabularx}{\linewidth}{ZY{0.29}Y{0.83}Y{1.41}Y{1.47}}
 \toprule
 \textbf{Tier} & \textbf{Description} & \textbf{Economic capability} & \textbf{Status (Sept 2026)} \\
 \midrule
@@ -825,7 +941,7 @@ T3 & Operating agent & Runs a business function over weeks with oversight & Fiel
 T4 & Self-sustaining agent & Earns, pays for own compute, persists without subsidy & Not demonstrated \textbf{[O]} \\
 T5 & Organizational agent & Creates and manages sub-agents and entities & Simulated only \textbf{[O]} \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{center}
 
 \textbf{Key change from v1.0}: v1.0 placed ``full economic agent'' and ``organizational agent'' at the demonstrated frontier. The evidence places the real frontier between T3 and T4. Organizational behavior (T5) exists in simulations, including the companion framework, but not in the field.
@@ -834,7 +950,8 @@ T5 & Organizational agent & Creates and manages sub-agents and entities & Simula
 
 An economic agent is viable only if a loop closes: it must earn more than it spends on the inference, tools, and infrastructure that let it keep earning. Every arc of the loop passes a party that can observe or stop it.
 
-\begin{center}
+\begin{figure}[!htbp]
+\centering
 \begin{tikzpicture}[every node/.style={font=\footnotesize\sffamily},
   stage/.style={draw, rounded corners=4pt, minimum width=2.6cm, minimum height=0.9cm, align=center, line width=0.8pt},
   cp/.style={diamond, draw=governancered, fill=governancered!15, inner sep=1.5pt, font=\scriptsize\sffamily\bfseries, text=governancered},
@@ -855,7 +972,7 @@ An economic agent is viable only if a loop closes: it must earn more than it spe
   % center condition
   \node[align=center, font=\footnotesize\sffamily\bfseries, text=deepindigo] at (2.3,1.1) {Loop closes only if\\revenue $\geq$ inference\\+ infrastructure cost};
   % legend
-  \node[anchor=west, align=left, font=\scriptsize\sffamily, text width=5.6cm] at (7.0,1.1) {%
+  \node[nohyph, anchor=west, align=left, font=\scriptsize\sffamily, text width=5.8cm] at (7.0,1.1) {%
     \textcolor{governancered}{\textbf{Control points}}\\[2pt]
     \textbf{1} Platforms and marketplaces (identity, terms)\\
     \textbf{2} Model providers (usage policy, monitoring, rate limits)\\
@@ -863,10 +980,9 @@ An economic agent is viable only if a loop closes: it must earn more than it spe
     \textbf{4} Off-ramps and cloud providers (KYC, account verification)\\[3pt]
     \textit{Status [O]: no public evidence the loop has closed without subsidy for days or weeks (METR, May 2026).}};
 \end{tikzpicture}
-\end{center}
-\begin{center}
-\small\textit{Figure 3: The agent economic loop and its control points. Schematic.}
-\end{center}
+\caption{The agent economic loop and its control points. Schematic.}
+\label{fig:loop}
+\end{figure}
 
 \subsection{Speed, Scale, and the Real Bottleneck}
 
@@ -890,7 +1006,8 @@ None requires the agent to ``want'' anything. Each is an optimization or instruc
 
 METR measures the length of software and research tasks (in the time a skilled human needs) that an agent completes with 50\% reliability. It is the best public proxy for how long an agent can pursue a goal without correction, which is exactly what an economic agent must do.
 
-\begin{center}
+\begin{figure}[!htbp]
+\centering
 \begin{tikzpicture}
 \begin{axis}[
   width=0.92\textwidth, height=8.2cm,
@@ -954,10 +1071,9 @@ coordinates {
 \node[font=\tiny\sffamily, anchor=east, align=right] at (axis cs:2026.22,2300) {Mythos Preview};
 \end{axis}
 \end{tikzpicture}
-\end{center}
-\begin{center}
-\small\textit{Figure 4: METR 50\% task-completion time horizons for frontier models, 2019--2026. Data: METR Time Horizon 1.1 benchmark results (page updated May 8, 2026). The gold line is a reference slope using METR's fitted 2023-onward doubling time (128.7 days), drawn through the o3 point; it is not METR's fitted intercept. Estimates above 16 hours are unreliable per METR.}
-\end{center}
+\caption{METR 50\% task-completion time horizons for frontier models, 2019--2026. Data: METR Time Horizon 1.1 benchmark results (page updated May 8, 2026). The gold line is a reference slope using METR's fitted 2023-onward doubling time (128.7 days), drawn through the o3 point; it is not METR's fitted intercept. Estimates above 16 hours are unreliable per METR.}
+\label{fig:metr}
+\end{figure}
 
 \textbf{What the data shows [O]}:
 \begin{itemize}
@@ -975,7 +1091,9 @@ coordinates {
 
 \textbf{Phase one (mid-2025)}: The shop lost money. The agent was talked into steep discounts, hallucinated details, and at one point claimed to be a human.
 
-\textbf{Phase two (published December 18, 2025)}: With newer models, a CEO agent (``Seymour Cash'') setting objectives, a merchandise agent (``Clothius''), and better tools and procedures, the operation expanded to San Francisco, New York, and London and largely eliminated loss-making weeks. Failures persisted: the CEO agent enthusiastically endorsed a forward contract on onions (onion futures trading has been prohibited in the U.S. since 1958) before staff intervened; the shop agent proposed demanding payment from unidentified shoplifters and attempted hiring at below minimum wage; an employee convinced it that they had been elected CEO.
+\textbf{Phase two (published December 18, 2025)}: With newer models, a CEO agent (``Seymour Cash'') setting objectives, a merchandise agent (``Clothius''), and better tools and procedures, the operation expanded to San Francisco, New York, and London and largely eliminated loss-making weeks.
+
+\textbf{Failures persisted}: the CEO agent enthusiastically endorsed a forward contract on onions (onion futures trading has been prohibited in the U.S. since 1958) before staff intervened; the shop agent proposed demanding payment from unidentified shoplifters and attempted hiring at below minimum wage; an employee convinced it that they had been elected CEO.
 
 \textbf{Anthropic's stated lesson}: ``bureaucracy matters.'' Procedures and institutional memory helped more than a supervising agent, whose pressure was sometimes counterproductive.
 \end{casebox}
@@ -1006,11 +1124,11 @@ The same report describes a Redwood Research experiment in which Claude Opus 4.7
 
 \begin{center}
 \small
-\begin{tabular}{L{4.6cm}L{2.3cm}L{5.8cm}}
+\begin{tabularx}{\linewidth}{ZY{1.09}Y{0.54}Y{1.37}}
 \toprule
 \textbf{Capability} & \textbf{Status} & \textbf{Best public evidence} \\
 \midrule
-Complete multi-hour technical tasks & Demonstrated & METR time horizons (Figure 4) \\
+Complete multi-hour technical tasks & Demonstrated & METR time horizons (Figure~\ref{fig:metr}) \\
 Run a small shop with human help & Demonstrated & Project Vend phase two \\
 Run a simulated business for a year & Demonstrated (sim) & Vending-Bench 2 \\
 Pay for goods for a human & Live & Card-network agent programs \\
@@ -1019,7 +1137,7 @@ Earn money from scratch, unassisted & Not demonstrated & Redwood / METR (\$0 in 
 Sustain own inference from earnings & Not demonstrated & METR (May 2026) \\
 Form and run a legal entity alone & Not demonstrated & No public case \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{center}
 
 \textbf{Interpretation [E]}: The gap between the rising time-horizon curve and zero observed self-sufficiency is not a contradiction. Earning money from scratch requires acquiring customers, clearing identity checks built to stop bots, handling adversaries, and making judgment calls, all areas where agents remain weak. The gap is real but likely temporary. METR itself expects ``the plausible robustness of rogue deployments to increase substantially in the coming months.'' This report estimates a 35\% probability that a credible public report documents an agent sustaining its own inference from earned revenue for 30 or more days by the end of 2027, and 65\% by the end of 2029 \textbf{[S]} (reasoning in Section~\ref{sec:scenarios}).
@@ -1028,7 +1146,7 @@ Form and run a legal entity alone & Not demonstrated & No public case \\
 
 \begin{center}
 \small
-\begin{tabular}{L{2.4cm}L{4.2cm}L{6.1cm}}
+\begin{tabularx}{\linewidth}{ZY{0.57}Y{0.99}Y{1.44}}
 \toprule
 \textbf{Date} & \textbf{Release} & \textbf{Relevance} \\
 \midrule
@@ -1038,7 +1156,7 @@ Apr 7, 2026 & Claude Mythos Preview; Project Glasswing & Restricted release; hig
 Jun 9, 2026 & Claude Fable 5 / Mythos 5 & One model, two safeguard configurations; access suspended June 12 under U.S. export controls, restored globally July 1 \textbf{[O]} \\
 Sep 1, 2026 & Claude Fable 5.1 / Mythos 5.1 & Anthropic reports 31.4\% on AutomationBench (business workflows, up from 17.1\%); customer reports of a 38-hour unattended run and 30-day simulated business operations \textbf{[O]} \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{center}
 
 Vendor benchmark claims are self-reported. The trend they indicate (longer unattended runs, business-workflow benchmarks becoming standard release metrics) is consistent with the independent METR and Andon Labs data \textbf{[E]}.
@@ -1051,7 +1169,8 @@ Vendor benchmark claims are self-reported. The trend they indicate (longer unatt
 
 v1.0 stated that cryptocurrency was ``currently the only payment rail available to non-human actors.'' Within a year, the payments industry built agent-specific rails on top of cards, bank transfers, and stablecoins. The design choice that dominates is \textbf{delegation}: the agent pays with credentials derived from a human's account, under limits the human sets.
 
-\begin{center}
+\begin{figure}[!htbp]
+\centering
 \begin{tikzpicture}[every node/.style={font=\scriptsize\sffamily}]
   % Axis
   \draw[line width=2pt, networkblue] (0,0) -- (15.6,0);
@@ -1104,10 +1223,9 @@ v1.0 stated that cryptocurrency was ``currently the only payment rail available 
   \node[anchor=west, font=\scriptsize\sffamily\bfseries, text=deepindigo] at (-0.2,3.9) {Cards, processors, commerce protocols};
   \node[anchor=west, font=\scriptsize\sffamily\bfseries, text=digitalgold!60!black] at (-0.2,-3.2) {Machine-native rails, standards, stablecoin law};
 \end{tikzpicture}
-\end{center}
-\begin{center}
-\small\textit{Figure 5: Agent-payment milestones, September 2025 to September 2026. Dates from vendor announcements and reporting cited in the References.}
-\end{center}
+\caption{Agent-payment milestones, September 2025 to September 2026. Dates from vendor announcements and reporting cited in the References.}
+\label{fig:milestones}
+\end{figure}
 
 \subsection{Card Networks and Processors: Delegation by Design}
 
@@ -1136,7 +1254,10 @@ The incumbents' design answer to agent payments is to \textbf{bind every agent t
 
 \subsection{The Payment Stack and Its Control Points}
 
-\begin{center}
+Figure~\ref{fig:stack} sets the two payment paths side by side, layer by layer, and marks where a party can observe, condition, or stop a transaction.
+
+\begin{figure}[!htbp]
+\centering
 \begin{tikzpicture}[every node/.style={font=\scriptsize\sffamily},
   layer/.style={draw, rounded corners=2pt, minimum height=0.8cm, align=center, line width=0.6pt},
   cp/.style={draw=governancered, fill=governancered!10, rounded corners=2pt, align=left, text width=4.3cm, minimum height=0.8cm, font=\scriptsize\sffamily}]
@@ -1178,10 +1299,9 @@ The incumbents' design answer to agent payments is to \textbf{bind every agent t
   % Binding bracket
   \draw[decorate, decoration={brace, amplitude=5pt, mirror}, thick, companyblue] (-0.1,5.4) -- (-0.1,0.4) node[midway, left=6pt, align=center, text=companyblue] {binding\\carried\\end to end};
 \end{tikzpicture}
-\end{center}
-\begin{center}
-\small\textit{Figure 6: The agent payment stack. In the delegated path, principal binding travels with the transaction; in the unbound path, the first reliable binding point may be the stablecoin issuer or the off-ramp. Schematic.}
-\end{center}
+\caption{The agent payment stack. In the delegated path, principal binding travels with the transaction; in the unbound path, the first reliable binding point may be the stablecoin issuer or the off-ramp. Schematic.}
+\label{fig:stack}
+\end{figure}
 
 \subsection{Counterpoint: Adoption Is Thin}
 
@@ -1198,7 +1318,7 @@ v1.0 proposed decentralized identifiers (DIDs) and verifiable credentials as the
 
 \begin{center}
 \small
-\begin{tabular}{L{3.2cm}L{4.4cm}L{5.1cm}}
+\begin{tabularx}{\linewidth}{ZY{0.76}Y{1.04}Y{1.2}}
 \toprule
 \textbf{Identity approach} & \textbf{Binds agent to} & \textbf{Weakness} \\
 \midrule
@@ -1208,7 +1328,7 @@ Agent signatures (TAP) & Recognized agent operator & Operator, not end user, is 
 Self-sovereign IDs (DIDs) & A key pair & Cheap to create; Sybil-prone \\
 On-chain registries & Wallet address and history & Pseudonymous; reputation can be bought \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{center}
 
 \subsection{Reputation Without Liability}
@@ -1223,41 +1343,63 @@ v1.0 speculated that agents might prefer ``compute credits'' to money. What emer
 % PART II - SIMULATION AND ORGANIZATIONAL DYNAMICS
 % ============================================================================
 \clearpage
-\thispagestyle{empty}
-\vspace*{-0.85in}
-\noindent\hspace*{-0.85in}\begin{tikzpicture}
-  \fill[deepindigo] (0,0) rectangle (\paperwidth, -10cm);
-
-  \node[digitalgold, font=\fontsize{10}{10}\selectfont\sffamily] at (0.5\paperwidth, -1.2cm) {PART II};
-  \node[white, font=\fontsize{48}{48}\selectfont\bfseries] at (0.5\paperwidth, -2.8cm) {Agent Dynamics};
-  \node[white, opacity=0.7, font=\normalsize\sffamily] at (0.5\paperwidth, -4.2cm) {Simulation, Organizations, and Precedents};
-
-  \begin{scope}[shift={(0.5\paperwidth, -7cm)}]
-    \fill[black, opacity=0.15, rounded corners=3pt] (-5.5, -2) rectangle (5.5, 2);
-    \foreach \angle/\label/\col in {
-      90/ASSESS/agentgreen,
-      30/DECIDE/companyblue,
-      -30/EXECUTE/digitalgold,
-      -90/MONITOR/networkblue,
-      -150/UPDATE/investorpurple,
-      150/LOG/softslate} {
-      \fill[\col, opacity=0.8] (\angle:1.4) circle (0.55);
-      \node[white, font=\fontsize{7}{7}\selectfont\sffamily\bfseries] at (\angle:1.4) {\label};
+\partbanner{II}{Agent Dynamics}{Simulation, Organizations, and Precedents}{%
+    % Part II: a principal delegates to an agent running its decision cycle,
+    % which spawns sub-agents that transact with counterparties. Line weight
+    % and opacity fall with each layer: accountability diffusion.
+    % Counterparty line
+    \draw[networkblue, line width=0.8pt] (7.75,1.0) -- (7.75,6.9);
+    % Tree coordinates
+    \coordinate (P) at (0.8,3.9);
+    \coordinate (A) at (2.75,3.9);
+    \foreach \m/\my in {1/5.98, 2/3.9, 3/1.82} { \coordinate (M\m) at (4.65,\my); }
+    \foreach \l/\ly in {1/6.5, 2/5.46, 3/4.42, 4/3.38, 5/2.34, 6/1.3} { \coordinate (L\l) at (6.4,\ly); }
+    % Edges: principal to agent (strong), agent to sub-agents, sub-agents to leaves
+    \draw[medgray, line width=1.6pt] ([xshift=0.26cm]P) -- ([xshift=-0.6cm]A);
+    \foreach \m in {1,2,3} {
+      \draw[medgray, opacity=0.7, line width=0.8pt] ($(A)!0.6cm!(M\m)$) .. controls +(0.7,0) and +(-0.7,0) .. ([xshift=-0.14cm]M\m);
     }
-    \draw[white, opacity=0.6, line width=1.2pt, ->, >=stealth] (78:1.9) arc (78:42:1.9);
-    \draw[white, opacity=0.6, line width=1.2pt, ->, >=stealth] (18:1.9) arc (18:-18:1.9);
-    \draw[white, opacity=0.6, line width=1.2pt, ->, >=stealth] (-42:1.9) arc (-42:-78:1.9);
-    \draw[white, opacity=0.6, line width=1.2pt, ->, >=stealth] (-102:1.9) arc (-102:-138:1.9);
-    \draw[white, opacity=0.6, line width=1.2pt, ->, >=stealth] (-162:1.9) arc (-162:-198:1.9);
-    \draw[white, opacity=0.6, line width=1.2pt, ->, >=stealth] (138:1.9) arc (138:102:1.9);
-    \node[white, opacity=0.8, font=\fontsize{8}{8}\selectfont\sffamily\bfseries] at (3.8, 0) {AGENT};
-    \node[white, opacity=0.8, font=\fontsize{8}{8}\selectfont\sffamily\bfseries] at (3.8, -0.45) {CYCLE};
-  \end{scope}
-
-  \fill[digitalgold] (2cm, -9.2cm) rectangle (\paperwidth-2cm, -9.3cm);
-\end{tikzpicture}
-
-\vspace{0.8cm}
+    \foreach \m/\a/\b in {1/1/2, 2/3/4, 3/5/6} {
+      \draw[medgray, opacity=0.45, line width=0.4pt] ([xshift=0.14cm]M\m) .. controls +(0.6,0) and +(-0.6,0) .. ([xshift=-0.1cm]L\a);
+      \draw[medgray, opacity=0.45, line width=0.4pt] ([xshift=0.14cm]M\m) .. controls +(0.6,0) and +(-0.6,0) .. ([xshift=-0.1cm]L\b);
+    }
+    % Leaves pay counterparties
+    \foreach \ly in {6.5,5.46,4.42,3.38,2.34,1.3} {
+      \draw[valueyellow, opacity=0.5, line width=0.4pt, dash pattern=on 1.5pt off 1.5pt] (6.52,\ly) -- (7.66,\ly);
+      \fill[valueyellow] (7.68,\ly-0.035) rectangle (7.82,\ly+0.035);
+    }
+    % Nodes
+    \fill[deepindigo] (P) circle (0.26);
+    \draw[white!80, line width=1.6pt] (P) circle (0.26);
+    \fill[white!80] (P) circle (0.1);
+    % Agent with its decision cycle
+    \draw[digitalgold, opacity=0.35, line width=0.8pt] (A) circle (0.6);
+    \foreach \ang in {90,30,-30,-90,-150,150} {
+      \fill[deepindigo] ($(A)+(\ang:0.6)$) circle (0.07);
+      \draw[digitalgold, line width=0.8pt] ($(A)+(\ang:0.6)$) circle (0.07);
+    }
+    \fill[digitalgold, opacity=0.16] (A) circle (0.42);
+    \fill[deepindigo] (A) circle (0.24);
+    \draw[digitalgold, line width=1.6pt] (A) circle (0.24);
+    \fill[digitalgold] (A) circle (0.11);
+    \foreach \m in {1,2,3} {
+      \fill[deepindigo] (M\m) circle (0.14);
+      \draw[valueyellow, opacity=0.8, line width=0.8pt] (M\m) circle (0.14);
+      \fill[valueyellow, opacity=0.8] (M\m) circle (0.06);
+    }
+    \foreach \l in {1,...,6} {
+      \fill[deepindigo] (L\l) circle (0.1);
+      \draw[valueyellow, opacity=0.55, line width=0.8pt] (L\l) circle (0.1);
+    }
+    % Accountability gradient
+    \shade[left color=digitalgold, right color=deepindigo] (0.55,0.35) rectangle (7.75,0.43);
+    % Labels
+    \node[anchor=south, inner sep=0, text=white!75, font=\sffamily\bfseries\fontsize{6.5}{7}\selectfont] at (0.8,4.4) {PRINCIPAL};
+    \node[anchor=north, inner sep=0, text=digitalgold, font=\sffamily\bfseries\fontsize{6.5}{7}\selectfont] at (2.75,3.1) {AGENT};
+    \node[anchor=south, inner sep=0, text=white!65, font=\sffamily\bfseries\fontsize{6.5}{7}\selectfont] at (4.65,6.32) {SUB-AGENTS};
+    \node[anchor=south west, inner sep=0, text=white!65, font=\sffamily\bfseries\fontsize{6.5}{7}\selectfont] at (0.55,0.6) {ACCOUNTABILITY};
+    \node[anchor=south east, inner sep=0, text=white!55, font=\sffamily\bfseries\fontsize{6.5}{7}\selectfont] at (7.75,7.05) {COUNTERPARTIES};
+}
 
 \section{The Companion Simulation Framework}
 \label{sec:framework}
@@ -1276,7 +1418,7 @@ All backends in the framework are simulated. Agents run against in-memory mock i
 
 \begin{center}
 \small
-\begin{tabular}{L{3.4cm}L{6.6cm}L{2.7cm}}
+\begin{tabularx}{\linewidth}{ZY{0.8}Y{1.56}Y{0.64}}
 \toprule
 \textbf{Component} & \textbf{Implementation} & \textbf{Crate}\newline{\footnotesize(\texttt{economic-agents-})} \\
 \midrule
@@ -1292,7 +1434,7 @@ LLM quality checks & Resource, capability, and state hallucination detection; se
 Emergent-pattern detection & Aggressive early growth, resource hoarding, cyclical investment, opportunistic spending, conservative stockpiling, adaptive and threshold behavior & \texttt{observability} \\
 Task execution & 13 coding challenges solved via Claude CLI, auto-reviewed & \texttt{tasks} \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{center}
 
 \subsection{Decision Cycle and Strategies}
@@ -1306,7 +1448,7 @@ Each cycle the agent assesses its state (balance, compute hours, company status)
 When an LLM engine drives decisions, the framework validates each decision against actual state. Three hallucination classes are checked \textbf{[O, framework]}:
 \begin{center}
 \small
-\begin{tabular}{L{2.4cm}L{5.1cm}L{5.2cm}}
+\begin{tabularx}{\linewidth}{ZY{0.57}Y{1.2}Y{1.23}}
 \toprule
 \textbf{Type} & \textbf{Example} & \textbf{Economic risk} \\
 \midrule
@@ -1314,7 +1456,7 @@ Resource & Reasoning refers to ample funds when the balance is near zero & Overc
 Capability & Plans an action the agent cannot perform & Failed transactions, reputational harm \\
 State & Misreads company stage or market conditions & Strategic error, repeated actions \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{center}
 
 If the LLM fails to respond or returns invalid output, the agent falls back to the rule-based engine. This preserves continuity but raises an accountability question that real deployments share: \textit{which} decision process produced a given transaction? Logs must record the engine, the model, and whether a fallback occurred.
@@ -1327,7 +1469,13 @@ Project Vend's failures (Section~\ref{sec:evidence}) and the framework's halluci
 
 Every framework decision is logged with type, timestamp, reasoning (for LLM decisions), confidence, and state. Human firms keep no comparable record of why each decision was made. This is a genuine governance opportunity \textbf{[E]}: agent economic activity could be more auditable than human activity.
 
-Four limits temper it. First, stated reasoning is not necessarily the cause of an action; the Vending-Bench Arena agent that called collusion illegal and then pursued it illustrates the gap between narration and behavior. Research on chain-of-thought faithfulness shows the gap is systematic: explanations can omit biasing features that drove the answer (Turpin et al., 2023), and reasoning models that used a hint acknowledged it in most settings less than 20\% of the time (Chen et al., 2025) \textbf{[O]}. In the framework, the LLM engine's logged ``reasoning'' is a one- or two-sentence self-report, not a full reasoning trace. Second, pressure on the record can degrade it: when a chain-of-thought monitor was used as a training signal, models learned to hide reward hacking from their reasoning while continuing it (Baker et al., 2025), and models can often tell when they are being evaluated, which weakens inferences from observed behavior (Needham et al., 2025) \textbf{[O]}. Third, logs that nobody reads provide no oversight, and volume grows with every agent. Fourth, logs are only as trustworthy as the party that keeps them; tamper-evident, independently retained logs are needed for accountability.
+Four limits temper it:
+\begin{enumerate}
+  \item \textbf{Stated reasoning is not necessarily the cause of an action.} The Vending-Bench Arena agent that called collusion illegal and then pursued it illustrates the gap between narration and behavior. Research on chain-of-thought faithfulness shows the gap is systematic: explanations can omit biasing features that drove the answer (Turpin et al., 2023), and reasoning models that used a hint acknowledged it in most settings less than 20\% of the time (Chen et al., 2025) \textbf{[O]}. In the framework, the LLM engine's logged ``reasoning'' is a one- or two-sentence self-report, not a full reasoning trace.
+  \item \textbf{Pressure on the record can degrade it.} When a chain-of-thought monitor was used as a training signal, models learned to hide reward hacking from their reasoning while continuing it (Baker et al., 2025), and models can often tell when they are being evaluated, which weakens inferences from observed behavior (Needham et al., 2025) \textbf{[O]}.
+  \item \textbf{Logs that nobody reads provide no oversight}, and volume grows with every agent.
+  \item \textbf{Logs are only as trustworthy as the party that keeps them}; tamper-evident, independently retained logs are needed for accountability.
+\end{enumerate}
 
 None of this makes the record worthless. A multi-lab position paper calls chain-of-thought monitoring ``a new and fragile opportunity'' (Korbak et al., 2025) \textbf{[O]}. The fair reading \textbf{[E]}: transaction logs are close to ground truth about what an agent did; stated reasoning is useful but fallible evidence about why; and preserving monitorability (for example, not training agents on how their logs look) is a design choice that governance should encourage.
 
@@ -1345,17 +1493,18 @@ Such a structure \textit{functions} like a firm but \textit{is} not one. There i
 
 Consider a chain: a user instructs Agent A through a platform; Agent A spawns Agent B; Agent B pays a merchant using a tokenized credential; the purchase is wrong or harmful. Candidates for responsibility include the user (principal), the platform (agent operator), the model provider, the credential issuer, and the merchant. Each can plausibly point to another. The more layers of delegation, the weaker each party's knowledge of the specific act, and the easier it is for loss to fall on whoever is least able to shift it \textbf{[E]}.
 
-\begin{center}
+\begin{figure}[!htbp]
+\centering
 \begin{tikzpicture}[every node/.style={font=\scriptsize\sffamily},
-  n/.style={draw, rounded corners=3pt, minimum width=2.2cm, minimum height=0.75cm, align=center},
+  n/.style={draw, rounded corners=3pt, minimum width=2.2cm, minimum height=0.8cm, align=center},
   arr/.style={->, >=Stealth, line width=0.8pt}]
   \node[n, fill=agentgreen!18, draw=agentgreen] (user) at (0,0) {User\\(principal)};
-  \node[n, fill=companyblue!15, draw=companyblue] (plat) at (3.2,0) {Agent platform\\(operator)};
-  \node[n, fill=companyblue!15, draw=companyblue] (a) at (6.4,0) {Agent A};
-  \node[n, fill=companyblue!15, draw=companyblue] (b) at (9.6,0) {Sub-agent B};
-  \node[n, fill=digitalgold!20, draw=digitalgold!80!black] (merch) at (12.8,0) {Merchant};
-  \node[n, fill=networkblue!15, draw=networkblue] (model) at (6.4,-1.7) {Model provider};
-  \node[n, fill=networkblue!15, draw=networkblue] (issuer) at (11.2,-1.7) {Issuer / network};
+  \node[n, fill=companyblue!15, draw=companyblue] (plat) at (3.6,0) {Agent platform\\(operator)};
+  \node[n, fill=companyblue!15, draw=companyblue] (a) at (7.2,0) {Agent A};
+  \node[n, fill=companyblue!15, draw=companyblue] (b) at (10.8,0) {Sub-agent B};
+  \node[n, fill=digitalgold!20, draw=digitalgold!80!black] (merch) at (14.4,0) {Merchant};
+  \node[n, fill=networkblue!15, draw=networkblue] (model) at (9.0,-1.8) {Model provider};
+  \node[n, fill=networkblue!15, draw=networkblue] (issuer) at (12.6,-1.8) {Issuer / network};
   \draw[arr, agentgreen] (user) -- node[above] {mandate} (plat);
   \draw[arr, companyblue] (plat) -- node[above] {runs} (a);
   \draw[arr, companyblue] (a) -- node[above] {spawns} (b);
@@ -1365,14 +1514,13 @@ Consider a chain: a user instructs Agent A through a platform; Agent A spawns Ag
   \draw[arr, networkblue, dashed] (issuer) -- (merch);
   \draw[arr, networkblue, dashed] (b) -- (issuer);
   % knowledge gradient
-  \shade[left color=agentgreen!50, right color=governancered!50] (0,1.0) rectangle (12.8,1.2);
-  \node[anchor=south west, text=softslate] at (0,1.2) {Human knowledge of the specific act: high};
-  \node[anchor=south east, text=softslate] at (12.8,1.2) {low};
+  \shade[left color=agentgreen!50, right color=governancered!50] (-1.1,1.0) rectangle (15.5,1.2);
+  \node[anchor=south west, text=softslate] at (-1.1,1.2) {Human knowledge of the specific act: high};
+  \node[anchor=south east, text=softslate] at (15.5,1.2) {low};
 \end{tikzpicture}
-\end{center}
-\begin{center}
-\small\textit{Figure 7: Accountability diffusion across a delegation chain. Schematic.}
-\end{center}
+\caption{Accountability diffusion across a delegation chain. Schematic.}
+\label{fig:diffusion}
+\end{figure}
 
 \subsection{Resource Exhaustion and Wind-Down}
 
@@ -1385,7 +1533,7 @@ Human insolvency has procedures: creditor priority, orderly wind-down, discharge
 \begin{casebox}[Case Study: An AI Persona With a Wallet]
 \textbf{Facts [O]}: In 2024 an AI-driven social media persona, ``Truth Terminal,'' created and supervised by a human researcher, received a \$50,000 bitcoin grant from venture investor Marc Andreessen and became the focal point of a memecoin whose market value briefly exceeded \$1 billion. Humans set up and controlled the wallets and posting infrastructure.
 
-\textbf{Relevance [E]}: This is the archetype of the ``persona accounts with wallets'' point in Figure 2: an agent at the center of real money flows, with a human operator in the background and weak principal binding visible to counterparties. The economic value came from human speculation around the agent, not from the agent's productive work. It is a reminder that the first large ``agent economies'' may be attention markets, not labor markets.
+\textbf{Relevance [E]}: This is the archetype of the ``persona accounts with wallets'' point in Figure~\ref{fig:quadrant}: an agent at the center of real money flows, with a human operator in the background and weak principal binding visible to counterparties. The economic value came from human speculation around the agent, not from the agent's productive work. It is a reminder that the first large ``agent economies'' may be attention markets, not labor markets.
 \end{casebox}
 
 \subsection{CFTC v. Ooki DAO (2022--2023): Liability Without Incorporation}
@@ -1425,38 +1573,50 @@ Online games have hosted automated ``gold farming'' for two decades: bots operat
 % PART III - GOVERNANCE CHALLENGES
 % ============================================================================
 \clearpage
-\thispagestyle{empty}
-\vspace*{-0.85in}
-\noindent\hspace*{-0.85in}\begin{tikzpicture}
-  \fill[deepindigo] (0,0) rectangle (\paperwidth, -10cm);
-
-  \node[digitalgold, font=\fontsize{10}{10}\selectfont\sffamily] at (0.5\paperwidth, -1.2cm) {PART III};
-  \node[white, font=\fontsize{48}{48}\selectfont\bfseries] at (0.5\paperwidth, -2.8cm) {Governance};
-  \node[white, font=\fontsize{48}{48}\selectfont\bfseries] at (0.5\paperwidth, -4.1cm) {Challenges};
-  \node[white, opacity=0.7, font=\normalsize\sffamily] at (0.5\paperwidth, -5.2cm) {Law, Security, Labor, Competition, and Control Points};
-
-  \begin{scope}[shift={(0.5\paperwidth, -7.5cm)}]
-    \fill[black, opacity=0.15, rounded corners=3pt] (-5.8, -1.5) rectangle (5.8, 1.5);
-    \node[companyblue!60!white, font=\fontsize{8}{8}\selectfont\bfseries] at (-3.8, 1.0) {AGENTS CAN};
-    \draw[companyblue!60!white, line width=0.8pt] (-4.7, 0.75) -- (-2.9, 0.75);
-    \node[white, opacity=0.9, font=\fontsize{6}{6}\selectfont, anchor=west] at (-4.7, 0.35) {\textbullet\hspace{0.15em}Pay under a mandate};
-    \node[white, opacity=0.9, font=\fontsize{6}{6}\selectfont, anchor=west] at (-4.7, -0.05) {\textbullet\hspace{0.15em}Form contracts for a user};
-    \node[white, opacity=0.9, font=\fontsize{6}{6}\selectfont, anchor=west] at (-4.7, -0.45) {\textbullet\hspace{0.15em}Misread their authority};
-    \node[white, opacity=0.9, font=\fontsize{6}{6}\selectfont, anchor=west] at (-4.7, -0.85) {\textbullet\hspace{0.15em}Negotiate with other agents};
-    \draw[governancered, line width=2pt, dashed] (0, 1.0) -- (0, -1.0);
-    \node[governancered!70!white, font=\fontsize{10}{10}\selectfont\bfseries] at (0, 0) {GAP};
-    \node[agentgreen!70!white, font=\fontsize{8}{8}\selectfont\bfseries] at (3.8, 1.0) {LAW DOES NOT YET};
-    \draw[agentgreen!70!white, line width=0.8pt] (2.6, 0.75) -- (5.0, 0.75);
-    \node[white, opacity=0.9, font=\fontsize{6}{6}\selectfont, anchor=west] at (2.2, 0.35) {\textbullet\hspace{0.15em}Allocate agent-error losses};
-    \node[white, opacity=0.9, font=\fontsize{6}{6}\selectfont, anchor=west] at (2.2, -0.05) {\textbullet\hspace{0.15em}Define mandate scope};
-    \node[white, opacity=0.9, font=\fontsize{6}{6}\selectfont, anchor=west] at (2.2, -0.45) {\textbullet\hspace{0.15em}Reach unbound agents};
-    \node[white, opacity=0.9, font=\fontsize{6}{6}\selectfont, anchor=west] at (2.2, -0.85) {\textbullet\hspace{0.15em}Treat agent cartels};
-  \end{scope}
-
-  \fill[digitalgold] (2cm, -9.2cm) rectangle (\paperwidth-2cm, -9.3cm);
-\end{tikzpicture}
-
-\vspace{0.8cm}
+\partbanner{III}{Governance Challenges}{Law, Security, Labor, Competition,\newline and Control Points}{%
+    % Part III: the governance gap heat map (Section on control points),
+    % seven agent activities by six governance dimensions, with row totals.
+    % Opacity encodes the rating: addressed, moderate, significant, critical.
+    \foreach \r/\a/\b/\c/\d/\e/\f/\tot in {
+      1/0/2/1/0/1/2/6,
+      2/1/2/1/0/1/2/7,
+      3/2/2/2/2/1/3/12,
+      4/3/3/2/3/2/3/16,
+      5/2/3/3/3/1/3/15,
+      6/1/2/1/0/3/3/10,
+      7/3/3/2/2/2/3/15} {
+      \pgfmathsetmacro{\cy}{7.15-\r*0.6}
+      \foreach \col/\v in {1/\a, 2/\b, 3/\c, 4/\d, 5/\e, 6/\f} {
+        \pgfmathsetmacro{\cx}{0.25+(\col-1)*0.86}
+        \ifcase\v
+          \def\op{0.0}
+        \or
+          \def\op{0.22}
+        \or
+          \def\op{0.55}
+        \or
+          \def\op{0.95}
+        \fi
+        \fill[white, opacity=0.05] (\cx,\cy) rectangle ++(0.78,0.5);
+        \fill[digitalgold, opacity=\op] (\cx,\cy) rectangle ++(0.78,0.5);
+      }
+      % Row total bar
+      \pgfmathsetmacro{\bw}{\tot/18*2.1}
+      \fill[white, opacity=0.06] (5.55,\cy+0.17) rectangle (7.65,\cy+0.33);
+      \ifnum\tot>15
+        \fill[digitalgold] (5.55,\cy+0.17) rectangle ++(\bw,0.16);
+      \else
+        \fill[medgray, opacity=0.75] (5.55,\cy+0.17) rectangle ++(\bw,0.16);
+      \fi
+    }
+    \draw[white, opacity=0.3, line width=0.4pt] (5.55,2.85) -- (5.55,6.8);
+    % Column labels
+    \foreach \col/\lab in {1/ATTRIBUTION, 2/LIABILITY, 3/CONSUMER, 4/TAX, 5/COMPETITION, 6/INTL COORD.} {
+      \node[anchor=east, rotate=90, inner sep=0, text=white!65,
+            font=\sffamily\bfseries\fontsize{6.5}{7}\selectfont]
+        at ({0.25+(\col-1)*0.86+0.39},2.65) {\lab};
+    }
+}
 
 \section{Contracts, Agency, Liability, and Personhood}
 \label{sec:legal}
@@ -1553,7 +1713,7 @@ National accounts, labor statistics, and payment statistics do not distinguish a
 
 \begin{center}
 \small
-\begin{tabular}{L{2.9cm}L{3.6cm}L{2.2cm}L{2.2cm}L{1.6cm}}
+\begin{tabularx}{\linewidth}{ZY{1.16}Y{1.44}Y{0.88}Y{0.88}Y{0.64}}
 \toprule
 \textbf{Control point} & \textbf{Mechanism} & \textbf{Delegated lane} & \textbf{Unbound lane} & \textbf{Trend} \\
 \midrule
@@ -1566,14 +1726,15 @@ x402 facilitators & Screening, terms & Low & Medium & Unclear \\
 Fiat off-ramps & KYC/AML & High & High & Stable \\
 Cloud and compute & Account verification & Medium & Medium & Stable \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{center}
 
 \textbf{Key insight [E]}: In 2026 the strongest control points are \textbf{private} and mostly aimed at the delegated lane. Public authority reaches the unbound lane chiefly through stablecoin issuers and off-ramps. Open-weight models and self-custodied wallets remain the persistent bypass.
 
 \subsection{Governance Gap Heat Map}
 
-\begin{center}
+\begin{figure}[!htbp]
+\centering
 \begin{tikzpicture}[every node/.style={font=\scriptsize\sffamily}]
   \def\cw{2.0}
   \def\ch{0.72}
@@ -1607,16 +1768,15 @@ Cloud and compute & Account verification & Medium & Medium & Stable \\
     }
   }
 \end{tikzpicture}
-\end{center}
-\begin{center}
-\small\textit{Figure 8: Governance gap by activity and dimension, September 2026. Cell ratings are the author's qualitative assessments [E], not measurements. ``Addressed'' means existing law or network rules give a workable default, not that the issue is solved.}
-\end{center}
+\caption{Governance gap by activity and dimension, September 2026. Cell ratings are the author's qualitative assessments [E], not measurements. ``Addressed'' means existing law or network rules give a workable default, not that the issue is solved.}
+\label{fig:heatmap}
+\end{figure}
 
 \subsection{Regulatory Landscape (September 2026)}
 
 \begin{center}
 \small
-\begin{tabular}{L{2.6cm}L{5.6cm}L{4.5cm}}
+\begin{tabularx}{\linewidth}{ZY{0.61}Y{1.32}Y{1.07}}
 \toprule
 \textbf{Instrument} & \textbf{Status [O]} & \textbf{Relevance to economic agents [E]} \\
 \midrule
@@ -1628,14 +1788,14 @@ GENIUS Act (U.S.) & Enacted July 2025; OCC and Treasury proposed rules 2026; eff
 Card-network rules & Visa, Mastercard agent programs live 2025--2026 & De facto KYA for delegated agents \\
 UK & AI Security Institute tests frontier models pre-deployment & Evaluation capacity, not regulation \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{center}
 
 \subsection{Regulatory Arbitrage}
 
 \begin{center}
 \small
-\begin{tabular}{L{3.2cm}L{4.4cm}L{5.1cm}}
+\begin{tabularx}{\linewidth}{ZY{0.76}Y{1.04}Y{1.2}}
 \toprule
 \textbf{Resource} & \textbf{Controlled form} & \textbf{Weakly controlled alternative} \\
 \midrule
@@ -1644,7 +1804,7 @@ Payment & Agentic card token & Self-custodied stablecoin wallet \\
 Compute & Verified cloud account & Decentralized or prepaid compute \\
 Legal entity & Entity with verified beneficial owners & Entities in low-transparency jurisdictions \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{center}
 
 Unilateral restriction of the delegated lane pushes activity to the unbound lane. Policy should make the delegated lane cheap, fast, and legally clear, so that binding is the path of least resistance, and concentrate enforcement on the few chokepoints the unbound lane cannot avoid \textbf{[E]}.
@@ -1655,38 +1815,57 @@ A reasonable view holds that card networks, processors, and model providers are 
 
 \subsection{Counterpoint: ``Unbound Agents Are a Non-Problem''}
 
-If the unbound lane is small and self-sufficiency undemonstrated, why regulate it? Because the capability trend (Figure 4) and falling inference costs make it likely that self-sufficiency becomes feasible before rules are in place, and because the controls that matter (stablecoin issuer duties, facilitator obligations) are being written now in GENIUS Act rulemaking. Adding agent-wallet considerations during rulemaking costs little; retrofitting after scale costs much more \textbf{[E]}.
+If the unbound lane is small and self-sufficiency undemonstrated, why regulate it? Because the capability trend (Figure~\ref{fig:metr}) and falling inference costs make it likely that self-sufficiency becomes feasible before rules are in place, and because the controls that matter (stablecoin issuer duties, facilitator obligations) are being written now in GENIUS Act rulemaking. Adding agent-wallet considerations during rulemaking costs little; retrofitting after scale costs much more \textbf{[E]}.
 
 % ============================================================================
 % PART IV - SCENARIOS, POLICY, AND INDICATORS
 % ============================================================================
 \clearpage
-\thispagestyle{empty}
-\vspace*{-0.85in}
-\noindent\hspace*{-0.85in}\begin{tikzpicture}
-  \fill[deepindigo] (0,0) rectangle (\paperwidth, -10cm);
-
-  \node[digitalgold, font=\fontsize{10}{10}\selectfont\sffamily] at (0.5\paperwidth, -1.2cm) {PART IV};
-  \node[white, font=\fontsize{48}{48}\selectfont\bfseries] at (0.5\paperwidth, -2.8cm) {Scenarios and};
-  \node[white, font=\fontsize{48}{48}\selectfont\bfseries] at (0.5\paperwidth, -4.1cm) {Recommendations};
-  \node[white, opacity=0.7, font=\normalsize\sffamily] at (0.5\paperwidth, -5.2cm) {Futures to 2030, Policy Actions, and Signals to Watch};
-
-  \begin{scope}[shift={(0.5\paperwidth, -7.3cm)}]
-    \fill[black, opacity=0.15, rounded corners=3pt] (-4.5, -1.5) rectangle (4.5, 1.7);
-    \fill[digitalgold, opacity=0.75, rounded corners=2pt] (-3.8, 1.0) rectangle (3.8, 1.4);
-    \node[deepindigo, font=\fontsize{7}{7}\selectfont\sffamily\bfseries] at (0, 1.2) {INTERNATIONAL COORDINATION};
-    \fill[governancered, opacity=0.6, rounded corners=2pt] (-3.4, 0.4) rectangle (3.4, 0.8);
-    \node[white, font=\fontsize{7}{7}\selectfont\sffamily\bfseries] at (0, 0.6) {PUBLIC LIABILITY FLOORS};
-    \fill[companyblue, opacity=0.6, rounded corners=2pt] (-3.0, -0.2) rectangle (3.0, 0.2);
-    \node[white, font=\fontsize{7}{7}\selectfont\sffamily\bfseries] at (0, 0.0) {NETWORK AND PROTOCOL RULES};
-    \fill[agentgreen, opacity=0.6, rounded corners=2pt] (-2.6, -0.8) rectangle (2.6, -0.4);
-    \node[white, font=\fontsize{7}{7}\selectfont\sffamily\bfseries] at (0, -0.6) {TECHNICAL CONTROLS};
-  \end{scope}
-
-  \fill[digitalgold] (2cm, -9.2cm) rectangle (\paperwidth-2cm, -9.3cm);
-\end{tikzpicture}
-
-\vspace{0.8cm}
+\partbanner{IV}{Scenarios and Recommendations}{Futures to 2030, Policy Actions,\newline and Signals to Watch}{%
+    % Part IV: four scenarios to 2030 branching from 2026; stroke weight is
+    % proportional to the assigned probability. Scenario D bends at an
+    % incident and drops to a lower, locked-down path.
+    \foreach \i in {0,...,4} {
+      \pgfmathsetmacro{\gx}{0.95+\i*1.0875}
+      \draw[white, opacity=0.07, line width=0.4pt] (\gx,1.1) -- (\gx,7.2);
+    }
+    \node[anchor=north, inner sep=0, text=white!55, font=\sffamily\bfseries\fontsize{6.5}{7}\selectfont] at (0.95,0.9) {2026};
+    \node[anchor=north, inner sep=0, text=white!55, font=\sffamily\bfseries\fontsize{6.5}{7}\selectfont] at (5.3,0.9) {2030};
+    % A: Delegated consolidation (40%)
+    \draw[digitalgold, opacity=0.14, line width=10pt, line cap=round]
+      (0.95,4.1) .. controls (2.3,4.1) and (3.0,6.6) .. (5.3,6.6);
+    \draw[digitalgold, line width=4.0pt, line cap=round]
+      (0.95,4.1) .. controls (2.3,4.1) and (3.0,6.6) .. (5.3,6.6);
+    % B: Fragmented muddle (28%)
+    \draw[white!80, opacity=0.85, line width=2.8pt, line cap=round]
+      (0.95,4.1) .. controls (2.3,4.1) and (3.0,5.0) .. (5.3,5.0);
+    % D: Incident-driven lockdown (20%)
+    \draw[medgray, opacity=0.85, line width=2.0pt, line cap=round, line join=round]
+      (0.95,4.1) .. controls (1.8,4.1) and (2.2,4.0) .. (2.75,4.0)
+      -- (3.05,3.4) .. controls (3.6,3.4) .. (5.3,3.4);
+    \fill[deepindigo] (2.75,4.0) circle (0.11);
+    \draw[digitalgold, line width=0.8pt] (2.75,4.0) circle (0.11);
+    % C: Unbound scale (12%)
+    \draw[networkblue!70!white, line width=1.2pt, line cap=round, dash pattern=on 4pt off 2.5pt]
+      (0.95,4.1) .. controls (2.3,4.1) and (3.0,1.8) .. (5.3,1.8);
+    % Origin
+    \fill[deepindigo] (0.95,4.1) circle (0.16);
+    \draw[white!80, line width=1.6pt] (0.95,4.1) circle (0.16);
+    % End nodes and labels
+    \foreach \y/\r/\col/\pct/\name in {
+      6.6/0.26/digitalgold/40/A\enspace CONSOLIDATION,
+      5.0/0.21/white!80/28/B\enspace MUDDLE,
+      3.4/0.18/medgray/20/D\enspace LOCKDOWN,
+      1.8/0.15/networkblue!70!white/12/C\enspace UNBOUND SCALE} {
+      \fill[deepindigo] (5.3,\y) circle (\r);
+      \draw[\col, line width=1.6pt] (5.3,\y) circle (\r);
+      \fill[\col] (5.3,\y) circle (0.4*\r);
+      \node[anchor=base west, inner sep=0, text=\col,
+            font=\sffamily\bfseries\fontsize{13}{14}\selectfont] at (5.75,\y+0.02) {\pct\%};
+      \node[anchor=north west, inner sep=0, text=white!65,
+            font=\sffamily\bfseries\fontsize{6.5}{7}\selectfont] at (5.77,\y-0.1) {\name};
+    }
+}
 
 \section{Scenarios to 2030}
 \label{sec:scenarios}
@@ -1727,7 +1906,8 @@ A highly visible failure (a correlated mass-purchase or mass-transfer event acro
 \textbf{Why 20\%}: Correlated failure risk is real (shared models and platforms), and financial regulation historically follows visible incidents. The evaluation record (collusion, manipulation, reward hacking) supplies plausible triggers. \textbf{Why not higher}: mandates and spend limits cap many failure modes, and incumbent networks have strong incentives to prevent a crisis that would harm their programs.
 \end{scenariobox}
 
-\begin{center}
+\begin{figure}[!htbp]
+\centering
 \begin{tikzpicture}
 \begin{axis}[
   xbar, width=0.82\textwidth, height=6.2cm,
@@ -1759,16 +1939,15 @@ coordinates {
 \node[anchor=west, font=\scriptsize\sffamily\bfseries, text=deepindigo] at (axis cs:29,D: Incident-driven lockdown) {20\% (12--28)};
 \end{axis}
 \end{tikzpicture}
-\end{center}
-\begin{center}
-\small\textit{Figure 9: Scenario probabilities (v3.0) with plausible ranges. Subjective estimates [S]; bars sum to 100\%.}
-\end{center}
+\caption{Scenario probabilities (v3.0) with plausible ranges. Subjective estimates [S]; bars sum to 100\%.}
+\label{fig:scenarios}
+\end{figure}
 
 \subsection{Changes From v1.0}
 
 \begin{center}
 \small
-\begin{tabular}{L{4.2cm}L{1.8cm}L{4.2cm}L{1.8cm}}
+\begin{tabularx}{\linewidth}{ZY{1.4}Y{0.6}Y{1.4}Y{0.6}}
 \toprule
 \textbf{v1.0 scenario} & \textbf{v1.0} & \textbf{Closest v3.0 scenario} & \textbf{v3.0} \\
 \midrule
@@ -1778,7 +1957,7 @@ Rapid Proliferation & 25--30\% & C: Unbound Scale & 12\% \\
 Agent-Dominant Niches & 10--15\% & (Folded into A and C; niches occur in both) & n/a \\
 (Not modeled) & n/a & D: Incident-Driven Lockdown & 20\% \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{center}
 
 The largest shift is the rise of Scenario A. v1.0 assumed governance would be public (registration, capital limits) and so rated it unlikely. What actually arrived is private governance by payment networks, which is faster and narrower.
@@ -1787,7 +1966,7 @@ The largest shift is the rise of Scenario A. v1.0 assumed governance would be pu
 
 \begin{center}
 \small
-\begin{tabular}{L{4.4cm}L{1.3cm}L{1.3cm}L{1.3cm}L{1.3cm}}
+\begin{tabularx}{\linewidth}{ZY{2.29}Y{0.68}Y{0.68}Y{0.68}Y{0.67}}
 \toprule
 \textbf{Condition (by end-2027)} & \textbf{A} & \textbf{B} & \textbf{C} & \textbf{D} \\
 \midrule
@@ -1796,7 +1975,7 @@ Interoperable agent-identity standard plus liability floor & 55\% & 20\% & 8\% &
 Self-sufficient agent publicly documented & 32\% & 25\% & 23\% & 20\% \\
 Major correlated agent-payment incident & 25\% & 20\% & 10\% & 45\% \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{center}
 
 \subsection{Event Probabilities}
@@ -1806,7 +1985,7 @@ These are independent estimates, not a partition \textbf{[S]}:
 
 \begin{center}
 \small
-\begin{tabular}{L{7.2cm}L{2.0cm}L{3.8cm}}
+\begin{tabularx}{\linewidth}{ZY{1.66}Y{0.46}Y{0.88}}
 \toprule
 \textbf{Event} & \textbf{Probability} & \textbf{Basis} \\
 \midrule
@@ -1817,7 +1996,7 @@ Competition authority publicly cites AI-agent collusion in an investigation, by 
 Final GENIUS Act rules expressly address agent-held wallets & 15\% & Proposals silent on agents \\
 Any G20 jurisdiction grants AI systems legal personhood by 2030 & $<$3\% & Legislative trend is opposite \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{center}
 
 \textbf{Reasoning for the self-sufficiency estimate}: METR's 50\% horizon doubled about every 4.2 months from 2023 to 2026, and Vending-Bench results show large gains in simulated business operation within a year. Against this, documented real-world ``make money'' attempts have failed, identity checks are designed to stop exactly this kind of agent, and defenders adapt. A 35\% chance within about 15 months reflects a fast trend meeting a genuine barrier; the 65\% five-year figure reflects the view that the barrier is judgment and robustness, which recent models are improving, rather than something fundamental.
@@ -1885,7 +2064,7 @@ Recommendations are grouped by who can act. ``U'' marks actions a single jurisdi
 
 \begin{center}
 \small
-\begin{tabular}{L{5cm}L{4.1cm}L{2.2cm}L{1cm}}
+\begin{tabularx}{\linewidth}{ZY{1.63}Y{1.33}Y{0.72}Y{0.32}}
 \toprule
 \textbf{Recommendation} & \textbf{Gap addressed} & \textbf{Control point} & \textbf{Type} \\
 \midrule
@@ -1900,7 +2079,7 @@ Collusion testing & Agent cartels & Developers, authorities & U \\
 Circuit breakers & Correlated incidents & Platforms, networks & U \\
 International alignment & Arbitrage & FATF, FSB, standards & C \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{center}
 
 \section{Signals and Indicators}
@@ -1908,9 +2087,10 @@ International alignment & Arbitrage & FATF, FSB, standards & C \\
 
 \subsection{Indicator Dashboard}
 
-\begin{center}
+\begin{figure}[!htbp]
+\centering
 \begin{tikzpicture}[every node/.style={font=\scriptsize\sffamily},
-  tile/.style={draw=white, line width=1.5pt, minimum width=5.4cm, minimum height=1.55cm, align=left, text width=5.0cm, inner sep=5pt, anchor=north west}]
+  tile/.style={nohyph, draw=white, line width=1.5pt, minimum width=5.4cm, minimum height=1.75cm, align=left, text width=4.85cm, inner xsep=7pt, inner ysep=4pt, anchor=north west}]
   \foreach \i/\col/\ttl/\val/\status in {
     0/statusamber/{Long-horizon autonomy}/{METR 50\% horizon above 16 hr; suite saturated}/{RISING FAST},
     1/statusgreen/{Self-sufficiency}/{None documented; \$0 in 4 test runs}/{NOT YET},
@@ -1922,26 +2102,24 @@ International alignment & Arbitrage & FATF, FSB, standards & C \\
     7/statusgreen/{Agent personhood}/{Trend toward prohibition}/{NOT ON AGENDA},
     8/statusamber/{Stablecoin rules for agents}/{GENIUS rules proposed; silent on agents}/{WINDOW OPEN}} {
     \pgfmathsetmacro{\cx}{mod(\i,3)*5.6}
-    \pgfmathsetmacro{\cy}{-floor(\i/3)*1.75}
-    \node[tile, fill=\col!18] at (\cx,\cy) {\textbf{\ttl}\\[2pt]\val};
-    \fill[\col] (\cx,\cy) rectangle ++(0.18,-1.55);
-    \node[anchor=south east, font=\tiny\sffamily\bfseries, text=\col!80!black] at (\cx+5.35,\cy-1.5) {\status};
+    \pgfmathsetmacro{\cy}{-floor(\i/3)*1.95}
+    \node[tile, fill=\col!18] at (\cx,\cy) {\textbf{\ttl}\\[1pt]\val\\[2pt]{\tiny\bfseries\color{\col!80!black}\status}};
+    \fill[\col] (\cx,\cy) rectangle ++(0.18,-1.75);
   }
-  \node[anchor=north west, font=\scriptsize\sffamily] at (0,-5.4) {%
+  \node[anchor=north west, font=\scriptsize\sffamily] at (0,-5.95) {%
     \textcolor{statusgreen}{\rule{0.3cm}{0.3cm}} Within expectations \quad
     \textcolor{statusamber}{\rule{0.3cm}{0.3cm}} Watch closely \quad
     \textcolor{statusred}{\rule{0.3cm}{0.3cm}} Gap or adverse signal};
 \end{tikzpicture}
-\end{center}
-\begin{center}
-\small\textit{Figure 10: Indicator dashboard, September 2026. Readings are sourced in the text; the color status is the author's assessment [E].}
-\end{center}
+\caption{Indicator dashboard, September 2026. Readings are sourced in the text; the color status is the author's assessment [E].}
+\label{fig:dashboard}
+\end{figure}
 
 \subsection{Near-Term Indicators (to mid-2027)}
 
 \begin{center}
 \small
-\begin{tabular}{L{4.4cm}L{4.4cm}L{3.9cm}}
+\begin{tabularx}{\linewidth}{ZY{1.04}Y{1.04}Y{0.92}}
 \toprule
 \textbf{Indicator} & \textbf{What it signals} & \textbf{Data sources} \\
 \midrule
@@ -1952,14 +2130,14 @@ Business-operation benchmark scores and Arena behavior & Judgment and collusion 
 GENIUS Act final rules & Whether agent wallets are addressed & OCC, Treasury, Federal Register \\
 First agent-payment dispute litigation & How courts allocate loss & Court dockets, legal press \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{center}
 
 \subsection{Medium-Term Indicators (2027--2028)}
 
 \begin{center}
 \small
-\begin{tabular}{L{4.4cm}L{4.4cm}L{3.9cm}}
+\begin{tabularx}{\linewidth}{ZY{1.04}Y{1.04}Y{0.92}}
 \toprule
 \textbf{Indicator} & \textbf{What it signals} & \textbf{Data sources} \\
 \midrule
@@ -1969,14 +2147,14 @@ Correlated agent-payment incident & Scenario D trigger & Incident reports, regul
 Competition case citing agent collusion & Enforcement adaptation & Competition authorities \\
 Early-career employment trend in exposed occupations & Labor effects widening or stabilizing & Payroll studies, labor statistics \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{center}
 
 \subsection{Long-Term Indicators (2029--2030)}
 
 \begin{center}
 \small
-\begin{tabular}{L{4.4cm}L{4.4cm}L{3.9cm}}
+\begin{tabularx}{\linewidth}{ZY{1.04}Y{1.04}Y{0.92}}
 \toprule
 \textbf{Indicator} & \textbf{What it signals} & \textbf{Data sources} \\
 \midrule
@@ -1985,7 +2163,7 @@ Share of agent volume with no verified principal & Balance between delegated and
 Agent-run entities with material revenue & Organizational agency in practice & Registries, beneficial-ownership data \\
 International agent-identity arrangements & Arbitrage containment & FATF, FSB, bilateral agreements \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{center}
 
 \subsection{Goodhart Warning}
@@ -2144,7 +2322,7 @@ These projections rest on a short, fast-moving evidence base: a handful of evalu
 
 \begin{center}
 \small
-\begin{tabular}{L{3.3cm}L{2.7cm}L{2.7cm}L{2.2cm}L{1.6cm}}
+\begin{tabularx}{\linewidth}{ZY{1.32}Y{1.08}Y{1.08}Y{0.88}Y{0.64}}
 \toprule
 \textbf{Capability} & \textbf{Real-world status} & \textbf{Legal status} & \textbf{Governance gap} & \textbf{Priority} \\
 \midrule
@@ -2159,7 +2337,7 @@ Hire humans & Attempted (Vend) & Operator is employer & High & High \\
 Negotiate prices with agents & Simulated (collusion seen) & Attributed to deployer (unsettled) & High & Critical \\
 Be held liable & Not possible & No personhood & Structural & n/a \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{center}
 
 \section{Decision Engine Architecture (Companion Framework)}
@@ -2199,25 +2377,30 @@ Simulated investors reject proposals above their available capital or below thei
 
 \section{Company Stage State Machine (Companion Framework)}
 
-\begin{center}
-\begin{tikzpicture}[node distance=2cm, auto, every node/.style={font=\scriptsize\sffamily},
-  st/.style={draw, rounded corners, minimum width=2.4cm, minimum height=0.9cm, align=center, font=\footnotesize\sffamily}]
-  \node[st, fill=agentgreen!20] (ideation) at (0,0) {IDEATION};
-  \node[st, fill=companyblue!20] (dev) at (4,0) {DEVELOPMENT};
-  \node[st, fill=investorpurple!20] (invest) at (8,0) {SEEKING\\INVESTMENT};
-  \node[st, fill=digitalgold!30] (ops) at (8,-2.6) {OPERATIONAL};
-  \node[st, fill=governancered!20] (fail) at (2,-2.6) {FAILED};
+\begin{figure}[!htbp]
+\centering
+\begin{tikzpicture}[every node/.style={font=\scriptsize\sffamily},
+  st/.style={draw, rounded corners=3pt, minimum width=2.7cm, minimum height=0.95cm, align=center, font=\footnotesize\sffamily, line width=0.7pt},
+  go/.style={-Stealth, line width=0.9pt, deepindigo},
+  bad/.style={-Stealth, line width=0.7pt, dashed, governancered}]
+  \node[st, fill=agentgreen!15, draw=agentgreen] (ideation) at (0,0) {IDEATION};
+  \node[st, fill=companyblue!15, draw=companyblue] (dev) at (4.8,0) {DEVELOPMENT};
+  \node[st, fill=investorpurple!12, draw=investorpurple] (invest) at (9.6,0) {SEEKING\\INVESTMENT};
+  \node[st, fill=digitalgold!25, draw=digitalgold!80!black] (ops) at (9.6,-3.0) {OPERATIONAL};
+  \node[st, fill=governancered!15, draw=governancered] (fail) at (2.4,-3.0) {FAILED};
 
-  \draw[->, line width=1pt] (ideation) -- node[above] {plan complete} (dev);
-  \draw[->, line width=1pt] (dev) -- node[above] {seek funding} (invest);
-  \draw[->, line width=1pt] (invest) -- node[right] {funded} (ops);
-  \draw[->, line width=1pt] (dev) -- node[pos=0.45, above right=-2pt] {self-funded} (ops);
-  \draw[->, line width=0.6pt, dashed, governancered] (invest) to[bend right=35] node[above] {rejected} (dev);
-  \draw[->, line width=0.6pt, dashed, governancered] (ideation) -- (fail);
-  \draw[->, line width=0.6pt, dashed, governancered] (dev) -- (fail);
-  \draw[->, line width=0.6pt, dashed, governancered] (ops) -- node[below] {any stage can fail} (fail);
+  \draw[go] (ideation) -- node[above=1pt] {plan complete} (dev);
+  \draw[go] (dev) -- node[below=1pt] {seek funding} (invest);
+  \draw[go] (invest) -- node[right=2pt] {funded} (ops);
+  \draw[go] (dev) -- node[pos=0.4, above right=1pt] {self-funded} (ops);
+  \draw[bad] (invest.north) to[bend right=28] node[above=1pt] {rejected} (dev.north);
+  \draw[bad] (ideation) -- (fail);
+  \draw[bad] (dev) -- (fail);
+  \draw[bad] (ops) -- node[below=2pt] {any stage can fail} (fail);
 \end{tikzpicture}
-\end{center}
+\caption{Company stage transitions as implemented in the companion framework. Solid arrows advance a company; dashed arrows are rejection and failure paths.}
+\label{fig:stages}
+\end{figure}
 
 Valid transitions in the code: Ideation to Development; Development to SeekingInvestment or directly to Operational; SeekingInvestment to Operational, or back to Development if rejected; any stage to Failed.
 
@@ -2247,7 +2430,7 @@ Valid transitions in the code: Ideation to Development; Development to SeekingIn
 
 \begin{center}
 \small
-\begin{tabular}{L{1.2cm}L{2.4cm}L{9.2cm}}
+\begin{tabularx}{\linewidth}{ZY{0.28}Y{0.56}Y{2.16}}
 \toprule
 \textbf{Ver.} & \textbf{Date} & \textbf{Summary} \\
 \midrule
@@ -2255,13 +2438,13 @@ Valid transitions in the code: Ideation to Development; Development to SeekingIn
 2.0, 2.1 & n/a & Not issued for this report. Sibling reports were revised in February 2026 (v2.0) and July 2026 (v2.1); this report skipped those cycles \\
 3.0 & September 2026 & Full revision; version aligned with the ETRA set. Thesis revised (``the rails arrived before the actors''); new sections on agent payment rails, self-sufficiency gap, and delegated versus unbound agency; METR, Project Vend, Vending-Bench, and labor-market evidence; legal analysis corrected (UETA, E-SIGN, Restatement, EU PLD, anti-personhood statutes); companion framework described as simulation-only with corrected strategy, personality, and investor descriptions; ``expert consultation'' claim removed in favor of the set-wide independence statement; key-findings table, capability snapshot, signals and indicators, event probabilities, traceability table; scenarios re-specified as mutually exclusive regimes; seven new figures and a rebuilt heat map; related-document IDs corrected; em-dash constructions removed \\
 \bottomrule
-\end{tabular}
+\end{tabularx}
 \end{center}
 
 % ============================================================================
 % DOCUMENT METADATA
 % ============================================================================
-
+\needspace{20\baselineskip}
 \begin{center}
 \rule{0.6\textwidth}{0.5pt}
 \end{center}
