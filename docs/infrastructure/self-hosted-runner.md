@@ -60,19 +60,7 @@ This project uses **self-hosted runners exclusively** to:
    nvm use 22.16.0
    ```
 
-5. **Gemini CLI** (pre-authenticated)
-
-   ```bash
-   # Install Gemini CLI (pinned version for stability)
-   npm install -g @google/gemini-cli@0.29.5
-
-   # Authenticate (happens automatically on first use)
-   gemini
-   ```
-
-   Note: Gemini CLI is now containerized. See `automation/corporate-proxy/gemini/` for implementation.
-
-6. **Python** (v3.11+)
+5. **Python** (v3.11+)
 
    ```bash
    # Only needed for running helper scripts

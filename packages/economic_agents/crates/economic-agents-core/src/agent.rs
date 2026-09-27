@@ -11,7 +11,7 @@ use economic_agents_company::{
 use economic_agents_interfaces::{
     Compute, EconomicAgentError, Marketplace, Result, SubmissionStatus, Task, TaskFilter, Wallet,
 };
-use economic_agents_investment::{InvestmentProposal, InvestorAgent, InvestorProfile};
+
 use tracing::{debug, info, warn};
 use uuid::Uuid;
 
@@ -21,9 +21,18 @@ use crate::cycle::{
     InvestmentResult, TaskWorkResult,
 };
 use crate::decision::{DecisionEngine, DecisionType, RuleBasedEngine};
+use crate::investment::{InvestmentDecision, InvestmentProposal, InvestorAgent, InvestorProfile};
 use crate::llm::{LlmConfig, LlmDecisionEngine};
 use crate::state::AgentState;
 use crate::strategy::select_task;
+
+/// Return multiple every investment proposal claims.
+///
+/// SIMULATED: this is a fixed assumption, not a projection computed from the
+/// company's revenue, expenses, or products. Because it exceeds every
+/// [`crate::investment::RiskTolerance`] minimum, the rule-based investor's
+/// decision depends only on the requested amount versus its budget bounds.
+pub const SIMULATED_PROJECTED_RETURN_MULTIPLE: f64 = 3.0;
 
 /// Backend services required by the agent.
 pub struct Backends {
@@ -284,7 +293,14 @@ impl AutonomousAgent {
         }
     }
 
-    /// Generate a solution for the task (simulated).
+    /// Generate a solution for the task.
+    ///
+    /// SIMULATED: no work is performed. The returned text is a fixed
+    /// placeholder that only names the task, category, and reputation. The
+    /// mock marketplace approves it regardless of content (see
+    /// `MockMarketplace::check_submission_status`). Real solution generation
+    /// exists only in the standalone `economic-agents-tasks` crate, which this
+    /// loop does not call.
     fn generate_solution(&self, task: &Task) -> String {
         format!(
             "Solution for task '{}' by agent {}.\n\
@@ -457,7 +473,7 @@ impl AutonomousAgent {
         let activities = match company.stage {
             CompanyStage::Ideation => {
                 // Transition to development after working on ideation
-                let _ = company.transition_to(CompanyStage::Development);
+                company.transition_to(CompanyStage::Development)?;
                 vec![
                     "Business plan development".to_string(),
                     "Market research".to_string(),
@@ -612,7 +628,7 @@ impl AutonomousAgent {
 
         // Transition to SeekingInvestment if in Development
         if company.stage == CompanyStage::Development {
-            let _ = company.transition_to(CompanyStage::SeekingInvestment);
+            company.transition_to(CompanyStage::SeekingInvestment)?;
         }
 
         // Calculate amount to request based on current needs
@@ -630,7 +646,7 @@ impl AutonomousAgent {
                 "Growth capital for {} - product development and market expansion",
                 company.name
             ),
-            projected_return: 3.0, // 3x return projection
+            projected_return: SIMULATED_PROJECTED_RETURN_MULTIPLE,
             created_at: chrono::Utc::now(),
         };
 
@@ -655,7 +671,7 @@ impl AutonomousAgent {
         let decision = investor.evaluate(&proposal).await;
 
         match decision {
-            economic_agents_investment::InvestmentDecision::Approved => {
+            InvestmentDecision::Approved => {
                 // Investment approved - receive funds
                 wallet
                     .receive_payment(
@@ -671,7 +687,7 @@ impl AutonomousAgent {
                 if let Some(company) = self.company.as_mut() {
                     company.capital += requested_amount;
                     // Transition to Operational after receiving investment
-                    let _ = company.transition_to(CompanyStage::Operational);
+                    company.transition_to(CompanyStage::Operational)?;
                 }
 
                 info!(
@@ -687,19 +703,19 @@ impl AutonomousAgent {
                     "Angel Investor Fund".to_string(),
                 ))
             },
-            economic_agents_investment::InvestmentDecision::Counteroffer => {
+            InvestmentDecision::Counteroffer => {
                 // Partial funding or different terms
                 let counter_amount = requested_amount * 0.5;
                 Ok(InvestmentResult::pending(proposal_id, counter_amount))
             },
-            economic_agents_investment::InvestmentDecision::Rejected => {
+            InvestmentDecision::Rejected => {
                 // Go back to development
                 if let Some(company) = self.company.as_mut() {
-                    let _ = company.transition_to(CompanyStage::Development);
+                    company.transition_to(CompanyStage::Development)?;
                 }
                 Ok(InvestmentResult::failure("Investment proposal rejected"))
             },
-            economic_agents_investment::InvestmentDecision::MoreInfoRequired => {
+            InvestmentDecision::MoreInfoRequired => {
                 Ok(InvestmentResult::pending(proposal_id, requested_amount))
             },
         }

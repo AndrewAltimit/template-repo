@@ -32,27 +32,6 @@
         "stdio"
       ]
     },
-    "gemini": {
-      "command": "docker compose",
-      "args": [
-        "-f",
-        "./docker-compose.yml",
-        "--profile",
-        "services",
-        "run",
-        "--rm",
-        "-T",
-        "mcp-gemini",
-        "mcp-gemini",
-        "--mode",
-        "stdio"
-      ],
-      "env": {
-        "GEMINI_TIMEOUT": "300",
-        "GEMINI_USE_CONTAINER": "false",
-        "_comment": "GEMINI_USE_CONTAINER is set to false to prevent docker-in-docker, as mcp-gemini itself runs in a container. Note: Don't specify GEMINI_MODEL - the CLI uses the default model automatically to avoid 404 errors"
-      }
-    },
     "gaea2": {
       "type": "http",
       "url": "http://192.168.0.152:8007/messages"
@@ -152,22 +131,6 @@
         "ELEVENLABS_DEFAULT_MODEL": "eleven_multilingual_v2",
         "ELEVENLABS_DEFAULT_VOICE": "george"
       }
-    },
-    "codex": {
-      "command": "docker compose",
-      "args": [
-        "-f",
-        "./docker-compose.yml",
-        "--profile",
-        "services",
-        "run",
-        "--rm",
-        "-T",
-        "mcp-codex",
-        "mcp-codex",
-        "--mode",
-        "stdio"
-      ]
     },
     "github-board": {
       "command": "docker compose",

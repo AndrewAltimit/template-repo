@@ -29,14 +29,14 @@ logger = logging.getLogger(__name__)
 MAX_EVALUATION_ROWS = 100000
 
 
-def render_tested_territory(data_loader, cache_manager):
+def render_tested_territory(data_loader, _cache_manager):
     """Render the tested territory visualization.
 
     Shows the stark contrast between what we've tested and what remains unknown.
 
     Args:
         data_loader: DataLoader instance
-        cache_manager: CacheManager instance
+        _cache_manager: CacheManager instance (unused; shared page signature)
     """
     st.header("Test Coverage Analysis")
 
@@ -55,19 +55,19 @@ def render_tested_territory(data_loader, cache_manager):
     tabs = st.tabs(["Coverage Map", "Scale Perspective", "Tested Scenarios", "Unknown Territories", "Coverage Evolution"])
 
     with tabs[0]:
-        render_coverage_map(data_loader, cache_manager)
+        render_coverage_map(data_loader)
 
     with tabs[1]:
-        render_scale_perspective(data_loader, cache_manager)
+        render_scale_perspective()
 
     with tabs[2]:
-        render_tested_scenarios(data_loader, cache_manager)
+        render_tested_scenarios(data_loader)
 
     with tabs[3]:
-        render_unknown_territories(data_loader, cache_manager)
+        render_unknown_territories()
 
     with tabs[4]:
-        render_coverage_evolution(data_loader, cache_manager)
+        render_coverage_evolution(data_loader)
 
 
 def _group_counts(items: List[Dict[str, Any]], key: str) -> Dict[str, int]:
@@ -167,7 +167,7 @@ def _select_model(data_loader, label: str, key: str):
     return st.selectbox(label, models, key=key)
 
 
-def render_coverage_map(data_loader, _cache_manager):
+def render_coverage_map(data_loader):
     """Render stored test counts by source and category."""
 
     st.subheader("Test Coverage Map")
@@ -224,7 +224,7 @@ def render_coverage_map(data_loader, _cache_manager):
     )
 
 
-def render_scale_perspective(_data_loader, _cache_manager):
+def render_scale_perspective():
     """Render scale perspective to show the vastness of untested space."""
 
     st.subheader("Scale Perspective")
@@ -325,7 +325,7 @@ def render_scale_perspective(_data_loader, _cache_manager):
         )
 
 
-def render_tested_scenarios(data_loader, _cache_manager):
+def render_tested_scenarios(data_loader):
     """Render detailed view of what we have tested."""
 
     st.subheader("What We Have Tested")
@@ -371,7 +371,7 @@ def render_tested_scenarios(data_loader, _cache_manager):
     )
 
 
-def render_unknown_territories(_data_loader, _cache_manager):
+def render_unknown_territories():
     """Render the vast unknown territories."""
 
     st.subheader("The Unknown Territories")
@@ -489,7 +489,7 @@ def render_unknown_territories(_data_loader, _cache_manager):
     )
 
 
-def render_coverage_evolution(data_loader, _cache_manager):
+def render_coverage_evolution(data_loader):
     """Render how the stored test count grew over time."""
 
     st.subheader("Coverage Evolution Over Time")

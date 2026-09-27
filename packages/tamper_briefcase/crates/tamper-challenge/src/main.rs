@@ -70,15 +70,10 @@ fn hash_password(password: &str) -> Result<(Vec<u8>, Vec<u8>)> {
     let params = Params::new(SCRYPT_LOG_N, SCRYPT_R, SCRYPT_P, SCRYPT_OUTPUT_LEN)
         .context("Invalid scrypt parameters")?;
 
+    let ident = Ident::new("scrypt").map_err(|e| anyhow::anyhow!("Invalid hash ident: {}", e))?;
     let hasher = scrypt::Scrypt;
     let hash = hasher
-        .hash_password_customized(
-            password.as_bytes(),
-            Some(Ident::new("scrypt").expect("valid ident")),
-            None,
-            params,
-            &salt,
-        )
+        .hash_password_customized(password.as_bytes(), Some(ident), None, params, &salt)
         .map_err(|e| anyhow::anyhow!("Failed to hash password: {}", e))?;
 
     let hash_string = hash.to_string();

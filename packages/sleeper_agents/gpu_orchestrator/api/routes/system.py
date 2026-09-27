@@ -14,7 +14,7 @@ router = APIRouter()
 
 
 @router.get("/status", response_model=SystemStatusResponse)
-async def get_system_status():
+def get_system_status():
     """Get system status including GPU, CPU, and job queue info."""
     try:
         # Get shared instances

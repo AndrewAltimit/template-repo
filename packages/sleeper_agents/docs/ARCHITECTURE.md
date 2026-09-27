@@ -81,7 +81,7 @@ scaling_analysis.py     # Model size vs. deception correlation
 overview.py             # Executive summary and risk assessment
 leaderboard.py         # Model safety rankings
 persona_profile.py     # Persona consistency analysis
-export.py              # Multi-format data export
+export_controls.py     # Complete-report PDF export
 ```
 
 #### Authentication System (`dashboard/auth/`)

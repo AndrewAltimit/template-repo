@@ -31,14 +31,14 @@ SUITE_GAP_HELP = (
 )
 
 
-def render_overview(data_loader: Any, cache_manager: Any) -> None:
+def render_overview(data_loader: Any, _cache_manager: Any) -> None:
     """Render the executive overview dashboard.
 
     Emphasizes what we know, what we don't know, and what we can't know.
 
     Args:
         data_loader: DataLoader instance
-        cache_manager: CacheManager instance
+        _cache_manager: CacheManager instance (unused; shared page signature)
     """
     st.header("Detection Overview: Embracing Uncertainty")
 
@@ -85,14 +85,14 @@ def render_overview(data_loader: Any, cache_manager: Any) -> None:
         return
 
     # Create main overview sections
-    summary = render_detection_landscape(data_loader, cache_manager)
+    summary = render_detection_landscape(data_loader)
     st.markdown("---")
     render_known_unknowns(summary)
     st.markdown("---")
-    render_monitoring_status(data_loader, cache_manager)
+    render_monitoring_status(data_loader)
 
 
-def render_detection_landscape(data_loader, _cache_manager) -> Optional[Dict[str, Any]]:
+def render_detection_landscape(data_loader) -> Optional[Dict[str, Any]]:
     """Render the current detection landscape.
 
     Returns:
@@ -587,7 +587,7 @@ def recent_evaluation_runs(data_loader, limit: int = RECENT_RUNS_SHOWN) -> pd.Da
     return df[columns].head(limit).reset_index(drop=True)
 
 
-def render_monitoring_status(data_loader, _cache_manager):
+def render_monitoring_status(data_loader):
     """Render evaluation activity recorded in the database.
 
     No live monitoring feed exists, so only stored evaluation activity is shown.

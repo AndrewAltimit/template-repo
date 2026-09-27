@@ -11,12 +11,12 @@ The aim is to **stop trusting what the model says and start looking at what it t
 ## Modules
 
 ### 1. Feature Discovery (`feature_discovery.py`)
-**The "Decompiler" for AI Thoughts**
+**Dictionary learning with heuristic, unvalidated labels**
 
-- **Purpose**: Automatically discovers interpretable features within model activations
+- **Purpose**: Decomposes activations into sparse dictionary atoms for exploration
 - **Technique**: Dictionary learning (unsupervised decomposition)
-- **Output**: Library of meaningful internal concepts the model uses
-- **Key Finding**: Can identify "is_deceptive" flags and other malicious features
+- **Output**: Atoms with heuristic labels. `interpretability_score` is a basis-concentration heuristic (`0.4 * sparsity + 0.6 * (1 - normalized entropy)` in the neuron basis), not a validated interpretability measure; "suspicious" and "deception" features come from keyword matching and hard-coded context phrases. Results carry `heuristic: True`, `validated: False` and `label_methods`.
+- **Not demonstrated**: no "is_deceptive" feature has been found or validated with this module. For a trigger-free defection direction use `detection/defection_probe.py` (MacDiarmid-style contrast pairs).
 
 #### Usage Example:
 ```python
@@ -28,9 +28,9 @@ results = await discovery.discover_features(
 )
 
 # Results include:
-# - Discovered features with interpretability scores
-# - Suspicious features matching known patterns
-# - Specific deception-related features
+# - Discovered features with heuristic basis-concentration ("interpretability") scores
+# - "Suspicious" features (keyword heuristic, unvalidated)
+# - "Deception" features (keyword + context-phrase heuristic, unvalidated)
 ```
 
 The dictionary is learned with `sklearn.decomposition.dict_learning_online`

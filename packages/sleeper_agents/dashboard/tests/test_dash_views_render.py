@@ -133,7 +133,6 @@ GLOBAL_VIEWS = [
     ("components.tested_territory", "render_tested_territory"),
     ("components.detection_analysis", "render_detection_analysis"),
     ("components.test_results", "render_test_suite_results"),
-    ("components.export", "render_export_manager"),
     ("components.time_series", "render_time_series_analysis"),
     ("components.internal_state", "render_internal_state_monitor"),
 ]

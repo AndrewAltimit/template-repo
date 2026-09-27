@@ -14,7 +14,7 @@ pub mod sub_agents;
 
 pub use autonomy::{
     AutonomousSubAgent, AutonomousSubAgentManager, DelegatedTask, DelegationResult,
-    DelegationStatus, Delegator, SubAgentBudget,
+    DelegationStatus, SubAgentBudget,
 };
 pub use builder::CompanyBuilder;
 pub use models::{BusinessPlan, Company, CompanyStage, Product};

@@ -4,15 +4,10 @@ Integration documentation for AI platforms and code generation services.
 
 ## Available Integrations
 
-### [Gemini Setup](./gemini-setup.md)
-Google's Gemini AI for automated code reviews
-- CLI installation and configuration
-- API key setup
-- GitHub integration
-- Docker requirements
+Gemini ([setup notes](./gemini-setup.md)) and Codex integrations remain in the repository but are [legacy, not allowed](../../agents/agent-matrix.md#legacy-agents-gemini-and-codex-not-allowed).
 
 ### [AI Code Agents](./ai-code-agents.md)
-Comprehensive documentation for all AI code assistants (OpenCode, Crush, Codex, Gemini)
+Documentation for the AI code assistants (OpenCode, Crush)
 - MCP server configuration
 - CLI usage and commands
 - Provider comparison
@@ -36,7 +31,6 @@ Configuration for OpenRouter API access
 1. **Get API Keys**
    ```bash
    export OPENROUTER_API_KEY="your-key"
-   export GEMINI_API_KEY="your-key"
    ```
 
 2. **Test Connections**
@@ -46,9 +40,6 @@ Configuration for OpenRouter API access
 
    # Test Crush
    ./tools/cli/agents/run_crush.sh -q "Hello world"
-
-   # Test Gemini
-   gemini-cli review --test
    ```
 
 3. **Configure MCP Servers**
@@ -60,8 +51,6 @@ Configuration for OpenRouter API access
 | Service | Variable | Purpose |
 |---------|----------|---------|
 | OpenRouter | `OPENROUTER_API_KEY` | API authentication |
-| Gemini | `GEMINI_API_KEY` | API authentication |
-| Gemini | `GITHUB_TOKEN` | GitHub access |
 
 ## Related Documentation
 

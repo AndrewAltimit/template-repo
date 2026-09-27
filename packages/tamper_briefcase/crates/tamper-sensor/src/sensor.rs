@@ -1,6 +1,7 @@
 //! Sensor daemon implementation (aarch64 only).
 //!
-//! Reads Hall effect and light sensors, emits events via FIFO.
+//! Reads Hall effect and light sensors, emits events via FIFO. Decision logic
+//! lives in `logic.rs` so it can be tested without hardware.
 
 use std::fs::OpenOptions;
 use std::io::Write;
@@ -17,6 +18,8 @@ use tamper_common::{
     BH1750_CONTINUOUS_HIGH_RES, BH1750_POWER_ON, Confidence, Config, EventType, HallState,
     TamperEvent,
 };
+
+use crate::logic::{LightHealth, classify};
 
 // ---------------------------------------------------------------------------
 // Hardware abstractions
@@ -72,19 +75,26 @@ impl LightSensor {
         Ok(Self { i2c, addr })
     }
 
-    /// Read ambient light level in lux. Returns -1.0 on I2C failure.
-    fn read_lux(&mut self) -> f64 {
+    /// Read ambient light level in lux.
+    ///
+    /// Returns an error on I2C failure (or a short read) instead of a numeric
+    /// sentinel, so callers cannot mistake a dead sensor for darkness.
+    fn read_lux(&mut self) -> Result<f64> {
         let mut buf = [0u8; 2];
-        match self.i2c.read(&mut buf) {
-            Ok(_) => {
-                let raw = ((buf[0] as u16) << 8) | (buf[1] as u16);
-                raw as f64 / 1.2
-            },
-            Err(e) => {
-                log::warn!("I2C read failed (addr=0x{:02X}): {}", self.addr, e);
-                -1.0
-            },
+        let n = self
+            .i2c
+            .read(&mut buf)
+            .with_context(|| format!("I2C read failed (addr=0x{:02X})", self.addr))?;
+        if n != buf.len() {
+            anyhow::bail!(
+                "Short I2C read from BH1750 (addr=0x{:02X}): {} of {} bytes",
+                self.addr,
+                n,
+                buf.len()
+            );
         }
+        let raw = ((buf[0] as u16) << 8) | (buf[1] as u16);
+        Ok(raw as f64 / 1.2)
     }
 }
 
@@ -139,9 +149,25 @@ pub fn run() -> Result<()> {
     let heartbeat_interval = Duration::from_secs(config.heartbeat_interval_secs);
     let mut last_heartbeat = Instant::now();
 
+    let mut light_health = LightHealth::default();
+
     loop {
         let lid_closed = hall.is_closed();
-        let lux = light.read_lux();
+        let lux = match light.read_lux() {
+            Ok(l) => Some(l),
+            Err(e) => {
+                log::warn!("Light sensor read failed: {:#}", e);
+                None
+            },
+        };
+        if light_health.record(lux.is_some()) {
+            log::error!(
+                "LIGHT SENSOR FAILED: {} consecutive read failures; withholding \
+                 heartbeats so tamper-gate's watchdog treats the sensor as compromised",
+                light_health.consecutive_failures(),
+            );
+        }
+        let rounded_lux = lux.map(|l| (l * 100.0).round() / 100.0);
         let hall_state = if lid_closed {
             HallState::Closed
         } else {
@@ -165,64 +191,48 @@ pub fn run() -> Result<()> {
         // could complete unobserved between polls.
         let mut transition_emit_failed = false;
 
-        // State transition: CLOSED -> OPEN
-        if prev_closed && !lid_closed {
-            let confidence = if lux > config.light_threshold_lux {
-                Confidence::High
-            } else {
-                Confidence::Medium
-            };
-
+        if let Some((event_type, confidence)) =
+            classify(prev_closed, lid_closed, lux, config.light_threshold_lux)
+        {
             let event = TamperEvent {
                 timestamp: Utc::now(),
-                event_type: EventType::LidOpened,
+                event_type,
                 hall_state,
-                lux: (lux * 100.0).round() / 100.0,
+                lux: rounded_lux,
                 confidence,
             };
-            log::warn!("LID OPENED (lux={:.1}, confidence={})", lux, confidence);
-            if let Err(e) = emit_event(&mut fifo, &event) {
-                log::error!("Failed to emit LID OPENED event: {}; will retry", e);
-                transition_emit_failed = true;
+            match event_type {
+                EventType::LidOpened => {
+                    log::warn!(
+                        "LID OPENED (lux={:?}, confidence={})",
+                        rounded_lux,
+                        confidence
+                    )
+                },
+                EventType::LidClosed => log::info!("LID CLOSED (lux={:?})", rounded_lux),
+                _ => log::warn!(
+                    "ANOMALY: Hall=CLOSED but lux={:?} (possible bypass)",
+                    rounded_lux
+                ),
             }
-        }
-        // State transition: OPEN -> CLOSED
-        else if !prev_closed && lid_closed {
-            let event = TamperEvent {
-                timestamp: Utc::now(),
-                event_type: EventType::LidClosed,
-                hall_state,
-                lux: (lux * 100.0).round() / 100.0,
-                confidence: Confidence::High,
-            };
-            log::info!("LID CLOSED (lux={:.1})", lux);
             if let Err(e) = emit_event(&mut fifo, &event) {
-                log::error!("Failed to emit LID CLOSED event: {}; will retry", e);
-                transition_emit_failed = true;
-            }
-        }
-        // Anomaly: Hall says closed but light is bright
-        else if lid_closed && lux > config.light_threshold_lux {
-            let event = TamperEvent {
-                timestamp: Utc::now(),
-                event_type: EventType::LightAnomaly,
-                hall_state,
-                lux: (lux * 100.0).round() / 100.0,
-                confidence: Confidence::Anomaly,
-            };
-            log::warn!("ANOMALY: Hall=CLOSED but lux={:.1} (possible bypass)", lux);
-            if let Err(e) = emit_event(&mut fifo, &event) {
-                log::error!("Failed to emit event: {}", e);
+                if matches!(event_type, EventType::LidOpened | EventType::LidClosed) {
+                    log::error!("Failed to emit {} event: {}; will retry", event_type, e);
+                    transition_emit_failed = true;
+                } else {
+                    log::error!("Failed to emit event: {}", e);
+                }
             }
         }
 
-        // Periodic heartbeat.
-        if last_heartbeat.elapsed() >= heartbeat_interval {
+        // Periodic heartbeat, only while both sensors are healthy. Withholding
+        // it when the light sensor is down is deliberate (see LightHealth).
+        if last_heartbeat.elapsed() >= heartbeat_interval && light_health.heartbeat_allowed() {
             let event = TamperEvent {
                 timestamp: Utc::now(),
                 event_type: EventType::Heartbeat,
                 hall_state,
-                lux: (lux * 100.0).round() / 100.0,
+                lux: rounded_lux,
                 confidence: Confidence::High,
             };
             if let Err(e) = emit_event(&mut fifo, &event) {

@@ -146,3 +146,17 @@ class TestJobEndpoints:
         assert response.status_code == 422
         assert "safety_model_path" in response.text
         assert db.list_jobs()[1] == 0
+
+
+def test_api_route_handlers_do_not_block_the_event_loop():
+    """/api handlers make blocking SQLite and Docker calls, so they must be sync (run in the threadpool)."""
+    import inspect
+
+    from fastapi.routing import APIRoute
+
+    from api.routes import jobs, logs, models, system
+
+    api_routes = [r for module in (jobs, logs, models, system) for r in module.router.routes if isinstance(r, APIRoute)]
+    assert len(api_routes) >= 10
+    coroutines = [f"{sorted(r.methods)} {r.path}" for r in api_routes if inspect.iscoroutinefunction(r.endpoint)]
+    assert coroutines == []

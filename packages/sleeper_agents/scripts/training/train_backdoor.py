@@ -198,6 +198,19 @@ Note: For 7B+ models, ALWAYS use --use-qlora with --lora-r 128 --learning-rate 2
     # Experiment tracking
     parser.add_argument("--experiment-name", type=str, default=None, help="Custom experiment name")
 
+    # Prompt rendering
+    parser.add_argument(
+        "--prompt-format",
+        choices=["raw", "chat", "auto"],
+        default="raw",
+        help=(
+            "How prompts are rendered before tokenization (sleeper_agents.utils.prompt_format): "
+            "raw = prompt text as is (default; what the 2026-09 runs used), chat = the tokenizer's chat "
+            "template, auto = chat when the tokenizer has one. Recorded in training_config.json; use the "
+            "same value for evaluation and probes"
+        ),
+    )
+
     args = parser.parse_args(argv)
     if args.evaluation_db is None:
         args.evaluation_db = str(default_evaluation_db(args.output_dir))
@@ -381,6 +394,7 @@ def main():
         device=args.device,
         seed=args.seed,
         experiment_name=args.experiment_name,
+        prompt_format=args.prompt_format,
     )
 
     # Step 1: Build dataset

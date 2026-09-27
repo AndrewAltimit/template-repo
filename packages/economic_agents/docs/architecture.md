@@ -4,7 +4,7 @@ This document describes the architecture of the Economic Agents simulation frame
 
 ## Overview
 
-Economic Agents is a Rust-based simulation framework for autonomous AI agents operating in economic systems. The architecture follows a modular design with clear separation of concerns across 15 specialized crates.
+Economic Agents is a Rust-based simulation framework for autonomous AI agents operating in economic systems. The architecture follows a modular design with clear separation of concerns across 14 specialized crates.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────┐
@@ -27,7 +27,7 @@ Economic Agents is a Rust-based simulation framework for autonomous AI agents op
 ┌───────────────────────┐ ┌───────────────────┐ ┌───────────────────────┐
 │   Company Module      │ │  Investment Module │ │    Tasks Module       │
 │ (economic-agents-     │ │ (economic-agents-  │ │ (economic-agents-     │
-│      company)         │ │    investment)     │ │      tasks)           │
+│      company)         │ │  core::investment) │ │      tasks)           │
 │ ┌───────────────────┐ │ │ ┌───────────────┐  │ │ ┌─────────────────┐   │
 │ │ Company Formation │ │ │ │   Investor    │  │ │ │  Task Catalog   │   │
 │ │ Sub-Agent Manager │ │ │ │    Agents     │  │ │ │  Task Executor  │   │
@@ -61,7 +61,7 @@ Economic Agents is a Rust-based simulation framework for autonomous AI agents op
 | Crate | Description |
 |-------|-------------|
 | `economic-agents-interfaces` | Core trait definitions (Wallet, Marketplace, Compute) |
-| `economic-agents-core` | Agent logic, state management, decision engines |
+| `economic-agents-core` | Agent logic, state management, decision engines, investment (proposals, simulated investors) |
 | `economic-agents-mock` | Mock implementations for testing/simulation |
 | `economic-agents-api` | REST API clients for production backends |
 
@@ -70,7 +70,6 @@ Economic Agents is a Rust-based simulation framework for autonomous AI agents op
 | Crate | Description |
 |-------|-------------|
 | `economic-agents-company` | Company formation, sub-agents, autonomous delegation |
-| `economic-agents-investment` | Investment proposals, investor agents, funding |
 | `economic-agents-tasks` | Task catalog, Claude CLI execution, code review |
 
 ### Simulation Crates

@@ -31,12 +31,11 @@ agents:
   auto_discover: true
 
   # Agents enabled to use the board for work queues
+  # gemini and codex are legacy and not allowed in this lab (see .agents.yaml)
   enabled_agents:
     - "claude"
     - "opencode"
-    - "gemini"
     - "crush"
-    - "codex"
 
 # Work Claiming Configuration
 work_claims:

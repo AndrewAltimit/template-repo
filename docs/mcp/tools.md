@@ -80,7 +80,8 @@ curl -X POST http://localhost:<port>/mcp/execute \
 |--------|--------------|-----------|-------|-------------|
 | Code Quality | STDIO (Docker) | 8010 | 10 | Formatting, linting, type checks, tests, security scans |
 | Content Creation | STDIO (Docker) | 8011 | 5 | LaTeX, TikZ, PDF previews, Manim |
-| ~~Gemini~~ | Disabled | 8006 | 4 | AI consultation (disabled) |
+| Gemini ([legacy, not allowed](../agents/agent-matrix.md#legacy-agents-gemini-and-codex-not-allowed)) | Not allowed | 8012 | 4 | AI consultation via the Gemini CLI |
+| Codex ([legacy, not allowed](../agents/agent-matrix.md#legacy-agents-gemini-and-codex-not-allowed)) | Not allowed | 8021 | 4 | Code generation via the OpenAI Codex CLI |
 | OpenCode | STDIO (Docker) | 8014 | 4 | Code assistance via OpenRouter |
 | Crush | STDIO (Docker) | 8015 | 4 | Code generation via the Crush CLI |
 | Meme Generator | STDIO (Docker) | 8016 | 6 | Meme creation with visual feedback |
@@ -154,9 +155,9 @@ automation-cli ci run test
 
 ## AI Integration Tools
 
-### ~~Gemini Tools~~ (DISABLED)
+### Gemini Tools (legacy, not allowed)
 
-> **DISABLED**: Google updated its AI principles (Feb 2026) to allow mass surveillance and autonomous weapons use cases. Gemini integrations are disabled; use Anthropic models (Claude) instead.
+> **Legacy / not allowed**: Gemini integration is kept for reference only and must not be enabled or used in the lab. Google dropped its AI Principles pledge against weapons and surveillance uses in February 2025. See [Legacy agents](../agents/agent-matrix.md#legacy-agents-gemini-and-codex-not-allowed).
 
 Tools: `consult_gemini`, `clear_gemini_history`, `gemini_status`, `toggle_gemini_auto_consult`. See `tools/mcp/mcp_gemini/README.md`.
 

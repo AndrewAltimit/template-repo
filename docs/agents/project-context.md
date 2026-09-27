@@ -1,27 +1,26 @@
 # Project Context for AI Code Review
 
+Supplementary reviewer context. The automated review prompt (`tools/rust/github-agents-cli/src/review/prompt.rs`) reads excerpts of `README.md`, `CONTRIBUTING.md`, and `CLAUDE.md`; point an agent at this file manually when it needs more project background.
+
 ## Project Overview
 
 This is a **container-first, self-hosted project template** maintained by a single developer (@AndrewAltimit). It uses Model Context Protocol (MCP) tools with zero-cost infrastructure.
 
 ## AI Agent Ecosystem
 
-This project uses six AI agents for development:
+- **Claude Code**: primary development assistant; runs the security and quality PR reviews
+- **OpenRouter** (`qwen/qwen3.7-max`): general PR review
+- **OpenCode, Crush**: code generation via OpenRouter
+- **GitHub Copilot**: review suggestions in pull requests
+- **Gemini, Codex**: legacy / not allowed (see [agent-matrix.md](agent-matrix.md#legacy-agents-gemini-and-codex-not-allowed))
 
-1. **Claude Code** - Primary development assistant (architecture, implementation, docs)
-2. **Codex** - AI-powered code generation (OpenAI)
-3. **OpenCode** - Code generation via OpenRouter
-4. **Crush** - Code generation via OpenRouter
-5. **Gemini CLI** - Automated PR reviews (you are reviewing as Gemini)
-6. **GitHub Copilot** - Code review suggestions in pull requests
-
-As the PR reviewer, focus on security, containers, and project standards.
+As a PR reviewer, focus on security, containers, and project standards.
 
 ## Core Design Principles
 
 ### 1. Container-First Philosophy
 
-- **Everything runs in Docker containers** except Gemini CLI (needs Docker access)
+- **Everything runs in Docker containers** except documented host tools (Claude Code, Rust CLIs such as `automation-cli`)
 - **No local dependencies** required beyond Docker itself
 - **All Python CI/CD operations** are containerized (ruff, pytest, bandit, etc.)
 - The `automation-cli` Rust binary provides a unified interface to all CI stages
@@ -34,7 +33,7 @@ As the PR reviewer, focus on security, containers, and project standards.
 
 ### 3. Architecture
 
-- **18 Modular MCP Servers** - Specialized servers for code quality, content creation, AI agents, etc.
+- **21 MCP servers** (19 active, 2 legacy) under `tools/mcp/`, plus the shared `mcp_core` and `mcp_core_rust` libraries
 - **Python CI Container** includes all development tools (Python 3.11)
 - **Docker Compose** orchestrates all services
 - **No aggressive cleanup** - Python cache prevention via environment variables
@@ -69,18 +68,17 @@ As the PR reviewer, focus on security, containers, and project standards.
 - Helper scripts should be simple wrappers around docker compose
 - Use `automation-cli ci run` for all CI operations
 - Mock external dependencies in tests (subprocess, requests)
-- Clear Gemini history before PR reviews
 
 ## Technical Standards
 
 - Python 3.11 in all containers
-- Python code is auto-formatted with Black and isort
+- Python code is formatted and linted with Ruff (`ruff format`, `ruff check`)
 - All Python tools run in containers with user permissions (no root)
 - Environment variables: `PYTHONDONTWRITEBYTECODE=1`, `USER_ID/GROUP_ID`
 - Tests use pytest with mocking for external dependencies
 - No `chmod 777` or aggressive cleanup steps
 - Coverage reporting with pytest-cov
-- Security scanning with bandit and safety
+- Security scanning with Bandit, plus Safety (or pip-audit when no Safety API key is set)
 
 ## Remote Infrastructure Requirements
 
@@ -100,10 +98,12 @@ This is NOT a bug or oversight - it's a deliberate architectural decision based 
 
 ```
 ├── docker/              # Container definitions
-├── tools/               # MCP server and tools
+├── tools/mcp/           # MCP servers (mcp_<name>/) and shared cores
+├── tools/rust/          # Rust CLIs (automation-cli, github-agents-cli, ...)
+├── packages/            # Research packages
 ├── automation/          # Automation scripts (CI/CD, monitoring, etc.)
 ├── .github/workflows/   # Self-hosted runner workflows
-└── tests/              # Pytest test suite
+└── tests/               # Pytest test suite
 ```
 
 ## Key Patterns
@@ -119,7 +119,7 @@ This is NOT a bug or oversight - it's a deliberate architectural decision based 
 2. **docker/*.Dockerfile** - Container definitions, security
 3. **.github/workflows/*.yml** - Must use self-hosted runners
 4. **automation/**/*.sh** - Shell script correctness and permissions
-5. **tools/mcp/mcp_server.py** - Core MCP functionality
+5. **tools/mcp/mcp_core/**, **tools/mcp/mcp_core_rust/** - Shared MCP server libraries
 6. **tools/rust/automation-cli/** - Main CI/CD entry point (Rust CLI)
 7. **.mcp.json** - Tool configuration and rate limits
 
@@ -150,7 +150,7 @@ docker run --rm python-ci command  # No user specified
 chmod 777 output/  # Never use 777
 
 # BAD: Direct tool invocation
-black .  # Should use containerized version
+ruff format .  # Should use containerized version
 ```
 
 ## PR Comment Guidelines
@@ -188,10 +188,8 @@ Great work on simplifying the code! The refactoring makes it much cleaner.
 
 ### AI Expression Guidelines
 
-Each AI agent has developed its own approach to authentic expression:
+Expression guidance for PR comments:
 
-- **Claude's Expression Philosophy**: See `claude-expression.md` for how Claude approaches authentic reactions, including acknowledging difficulty and showing genuine relief when fixing bugs.
-
-- **Gemini's Expression Philosophy**: See `gemini-expression.md` for Gemini's direct, analytical approach focusing on clarity and technical excellence. Gemini's reactions communicate specific states (thinking deeply, recurring issues, etc.)
+- **Claude's Expression Philosophy**: See [claude-expression.md](claude-expression.md) for how Claude approaches authentic reactions, including acknowledging difficulty and showing genuine relief when fixing bugs.
 
 These guidelines help maintain consistent personality across PR reviews while acknowledging the actual experience of software development - the confusion, the partial victories, and the genuine breakthroughs.

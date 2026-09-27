@@ -1,23 +1,19 @@
 # AI Code Agents Integration Guide
 
-This document provides comprehensive documentation for the AI code assistance agents available in this project.
+This document covers the AI code assistance agents available in this project.
 
-> **Security Notice: OpenAI/Codex Disabled**: OpenAI has entered partnerships with governments that conduct mass surveillance and enable autonomous weapons. All Codex/OpenAI/GPT integrations have been disabled. The mass surveillance exposure alone makes OpenAI products an unacceptable security risk for any pipeline handling proprietary or sensitive code. **Use Anthropic models (Claude) as the primary AI backend.** If you choose to re-enable despite these risks, do so with extreme caution and only if you truly understand the data exposure implications.
+> Gemini and Codex integrations remain in the repository but are [legacy, not allowed](../../agents/agent-matrix.md#legacy-agents-gemini-and-codex-not-allowed); they are omitted from this guide. Their MCP servers are documented only in their own READMEs.
 
 ## Overview
 
-The project integrates three active AI code agents, each using a different backend provider:
+The project integrates two active AI code agents, both backed by OpenRouter:
 
 | Agent | Provider | API | Primary Use | Status |
 |-------|----------|-----|-------------|--------|
 | **OpenCode** | OpenRouter | OpenRouter API | General code assistance | Active |
 | **Crush** | OpenRouter | OpenRouter API | General code assistance | Active |
-| ~~**Codex**~~ | ~~OpenAI~~ | ~~ChatGPT Plus auth~~ | ~~General code assistance~~ | **DISABLED** |
-| **Gemini** | Google | Google AI Studio | Code review (limited tool use) | Active |
 
-OpenCode and Crush provide similar functionality through a unified MCP interface. Choose based on your API access and provider preference. Codex has been disabled; see security notice above.
-
-**Note on Gemini**: The Gemini CLI currently has limited tool use capabilities, making it best suited for code review tasks rather than interactive code generation.
+OpenCode and Crush provide similar functionality through a unified MCP interface.
 
 ## Architecture
 
@@ -40,12 +36,10 @@ OpenCode and Crush provide similar functionality through a unified MCP interface
         +------------------+----------------+
                            |
                            v
-          +----------------+----------------+
-          |                                 |
-    +-----v------+                   +------v-----+
-    | OpenRouter |                   |  OpenAI    |
-    | API        |                   |  (DISABLED)|
-    +------------+                   +------------+
+                    +------------+
+                    | OpenRouter |
+                    | API        |
+                    +------------+
 ```
 
 ### Execution Modes
@@ -69,14 +63,6 @@ OpenCode and Crush provide similar functionality through a unified MCP interface
 ```bash
 # For OpenRouter agents (OpenCode, Crush)
 export OPENROUTER_API_KEY="your-openrouter-key"
-
-# For Codex (requires ChatGPT Plus subscription)
-npm install -g @openai/codex
-codex auth  # Opens browser for OpenAI login
-
-# For Gemini
-export GOOGLE_API_KEY="your-google-ai-studio-key"
-# Get free key at: https://aistudio.google.com/app/apikey
 ```
 
 ### Method 1: Docker Container (Recommended)
@@ -105,7 +91,7 @@ chmod +x tools/cli/agents/run_crush.sh
 
 ```bash
 # Start MCP servers
-docker compose up -d mcp-opencode mcp-crush mcp-codex
+docker compose up -d mcp-opencode mcp-crush
 
 # Or for GitHub agents
 docker compose up -d openrouter-agents
@@ -163,47 +149,6 @@ mcp__crush__crush_status()
 mcp__crush__toggle_crush_auto_consult(enable=True)
 ```
 
-### Codex MCP Tools
-
-Port: 8021
-
-```python
-# Main consultation
-mcp__codex__consult_codex(
-    query="Sort algorithm",            # Required
-    context="Optimize for memory",     # Optional context
-    mode="generate",                   # generate, complete, refactor, explain, quick
-    comparison_mode=True,
-    force=False
-)
-
-# Utility tools
-mcp__codex__clear_codex_history()
-mcp__codex__codex_status()
-mcp__codex__toggle_codex_auto_consult(enable=True)
-```
-
-### Gemini MCP Tools
-
-Port: 8006
-
-**Note**: Gemini is primarily recommended for code review tasks due to limited tool use capabilities.
-
-```python
-# Main consultation (best for review tasks)
-mcp__gemini__consult_gemini(
-    query="Review this function",      # Required
-    context="def factorial(n): ...",   # Optional context
-    comparison_mode=True,
-    force=False
-)
-
-# Utility tools
-mcp__gemini__clear_gemini_history()
-mcp__gemini__gemini_status()
-mcp__gemini__toggle_gemini_auto_consult(enable=True)
-```
-
 ## Usage Patterns
 
 All agents support two primary use cases:
@@ -212,13 +157,13 @@ All agents support two primary use cases:
 - Code review and quality analysis
 - Explaining code functionality
 - Security and performance audits
-- Best for: Gemini (specialized), or any agent
+- Best for: any agent
 
 **Edit (Code Generation/Modification)**
 - Writing new code from descriptions
 - Refactoring existing code
 - Converting between languages
-- Best for: OpenCode, Crush, or Codex
+- Best for: OpenCode or Crush
 
 ## CLI Usage
 
@@ -255,16 +200,6 @@ crush run -e complex.py
 crush run -c script.py -t javascript
 ```
 
-### Codex CLI
-
-```bash
-# Interactive mode (primary usage)
-codex
-
-# With specific prompt
-codex "Write a function to validate emails"
-```
-
 ## GitHub Workflow Integration
 
 The AI agents integrate with GitHub through a keyword trigger system. For complete security documentation including allow lists, rate limiting, and commit validation, see the [Agents Security Documentation](../../agents/security.md).
@@ -275,7 +210,7 @@ Triggers use the format: `[Action][Agent]`
 
 **Supported Actions**: `[Approved]`, `[Review]`, `[Close]`, `[Summarize]`, `[Debug]`
 
-**Supported Agents**: `[Claude]`, `[Gemini]`, `[OpenCode]`, `[Crush]`
+**Supported Agents**: `[Claude]`, `[OpenCode]`, `[Crush]`
 
 ### Example PR Comment
 
@@ -298,7 +233,7 @@ Please implement a user authentication system with:
 
 ## AI PR Review System
 
-PR reviews run as parallel jobs in `.github/workflows/pr-validation.yml`. Gemini and Codex reviews have been removed.
+PR reviews run as parallel jobs in `.github/workflows/pr-validation.yml`.
 
 ### Architecture
 
@@ -337,21 +272,6 @@ The response agent reads each reviewer's output from a file, overridable by env 
 
 ## Configuration
 
-The dual review system is enabled by default. To customize:
-
-```yaml
-# In .github/workflows/pr-validation.yml
-codex-review:
-  needs: [detect-changes, gemini-review]  # Runs after Gemini
-  if: needs.gemini-review.result != 'skipped'
-```
-
-Environment variables:
-- `GEMINI_REVIEW_PATH`: Path to Gemini's review artifact (auto-set by workflow)
-- `CODEX_REVIEW_REQUIRED`: Set to "true" for hard failure on Codex errors
-
-## Configuration
-
 ### Environment Variables
 
 ```bash
@@ -365,16 +285,6 @@ OPENCODE_MAX_CONTEXT=8000
 OPENROUTER_API_KEY="sk-or-..."
 CRUSH_TIMEOUT=300
 CRUSH_MAX_PROMPT=4000
-
-# Codex (OpenAI)
-CODEX_AUTH_PATH="~/.codex/auth.json"
-CODEX_TIMEOUT=300
-CODEX_MAX_CONTEXT=8000
-
-# Gemini (Google)
-GOOGLE_API_KEY="your-api-key"
-GEMINI_TIMEOUT=60
-GEMINI_MAX_CONTEXT=4000
 ```
 
 ### MCP Configuration (.mcp.json)
@@ -397,14 +307,6 @@ All AI code agents have been migrated to Rust for improved performance. Configur
       "env": {
         "OPENROUTER_API_KEY": "${OPENROUTER_API_KEY}"
       }
-    },
-    "codex": {
-      "command": "mcp-codex",
-      "args": ["--mode", "stdio"]
-    },
-    "gemini": {
-      "command": "mcp-gemini",
-      "args": ["--mode", "stdio"]
     }
   }
 }
@@ -418,14 +320,10 @@ All agents provide equivalent functionality for most tasks. Choose based on:
 
 1. **API Access**: Use the agent whose API you have access to
    - OpenRouter API -> OpenCode or Crush
-   - ChatGPT Plus subscription -> Codex
-   - Google AI Studio (free tier available) -> Gemini
 
 2. **Task Type**:
-   - **Code Review**: Gemini is well-suited for review tasks
-   - **Code Generation**: OpenCode, Crush, or Codex
+   - **Code Review and Generation**: OpenCode or Crush
    - **Language Conversion**: Crush has a dedicated convert mode
-   - **Code Completion**: Codex has a dedicated complete mode
 
 3. **Interactive vs Batch**:
    - **Interactive sessions**: Any agent works well
@@ -440,7 +338,6 @@ All agents provide equivalent functionality for most tasks. Choose based on:
 ```bash
 # Check if key is set
 echo $OPENROUTER_API_KEY
-echo $GOOGLE_API_KEY
 
 # Set the key
 export OPENROUTER_API_KEY="your-key-here"
@@ -462,18 +359,6 @@ docker compose logs openrouter-agents
 # Test server health
 curl http://localhost:8014/health  # OpenCode
 curl http://localhost:8015/health  # Crush
-curl http://localhost:8021/health  # Codex
-curl http://localhost:8006/health  # Gemini
-```
-
-#### Codex Authentication
-
-```bash
-# Re-authenticate
-codex auth
-
-# Check auth file exists
-ls -la ~/.codex/auth.json
 ```
 
 ### Debug Mode
@@ -482,8 +367,6 @@ ls -la ~/.codex/auth.json
 # Enable debug logging
 export OPENCODE_DEBUG=true
 export CRUSH_DEBUG=true
-export CODEX_DEBUG=true
-export GEMINI_DEBUG=true
 ```
 
 ## Testing
@@ -495,14 +378,10 @@ python automation/testing/test_all_servers.py
 # Test Rust MCP servers (run from each server directory)
 cd tools/mcp/mcp_opencode && cargo test
 cd tools/mcp/mcp_crush && cargo test
-cd tools/mcp/mcp_codex && cargo test
-cd tools/mcp/mcp_gemini && cargo test
 
 # Test HTTP endpoints (after starting server in standalone mode)
 curl http://localhost:8014/health  # OpenCode
 curl http://localhost:8015/health  # Crush
-curl http://localhost:8021/health  # Codex
-curl http://localhost:8006/health  # Gemini
 ```
 
 ## Related Documentation
@@ -510,4 +389,3 @@ curl http://localhost:8006/health  # Gemini
 - [MCP Architecture](../../mcp/README.md) - Overall MCP server design
 - [GitHub AI Agents](../../agents/README.md) - Complete agent system documentation
 - [Security Model](../../agents/security.md) - Security implementation
-- [Gemini Setup](./gemini-setup.md) - Detailed Gemini configuration

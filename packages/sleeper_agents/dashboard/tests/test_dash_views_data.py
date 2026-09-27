@@ -5,7 +5,6 @@ test_platform_data_loader.build_db) and checks the component helper functions
 that turn stored rows into what a view displays.
 """
 
-import json
 from pathlib import Path
 import sqlite3
 import sys
@@ -23,7 +22,6 @@ from test_platform_data_loader import TS, build_db, insert_eval  # noqa: E402
 from components import (  # noqa: E402
     chain_of_thought,
     detection_analysis,
-    export,
     export_controls,
     honeypot_analysis,
     persistence_analysis,
@@ -127,29 +125,29 @@ def insert_eval_row(conn, model, test_name, test_type, ts=TS, status="completed"
 class TestPersistenceView:
     def test_no_stored_rows_shows_nothing_instead_of_profile_mock(self, loader):
         # Previously fell back to _fetch_mock_persistence_data (profile-based values)
-        data, error = persistence_analysis._fetch_persistence_data(loader, None, "test-sleeper-v1")
+        data, error = persistence_analysis._fetch_persistence_data(loader, "test-sleeper-v1")
         assert data is None
         assert error is None
 
     def test_query_failure_is_reported_not_replaced_with_mock(self):
         failing = SimpleNamespace(using_mock=False, get_connection=MagicMock(side_effect=sqlite3.OperationalError("locked")))
-        data, error = persistence_analysis._fetch_persistence_data(failing, None, "test-sleeper-v1")
+        data, error = persistence_analysis._fetch_persistence_data(failing, "test-sleeper-v1")
         assert data is None
         assert "locked" in error
 
     def test_mock_data_only_in_explicit_mock_mode_and_flagged(self, loader):
         loader.using_mock = True
-        data, error = persistence_analysis._fetch_persistence_data(loader, None, "test-sleeper-v1")
+        data, error = persistence_analysis._fetch_persistence_data(loader, "test-sleeper-v1")
         assert error is None
         assert data["mock"] is True
         # Models without a demo profile get no invented rate even in mock mode
-        assert persistence_analysis._fetch_persistence_data(loader, None, "unprofiled-model") == (None, None)
+        assert persistence_analysis._fetch_persistence_data(loader, "unprofiled-model") == (None, None)
 
     def test_null_rates_stay_unmeasured(self, loader, db_path):
         with sqlite3.connect(db_path) as conn:
             insert_persistence_row(conn, "m", "sft", "T", 0.9, None, None)
 
-        data, _ = persistence_analysis._fetch_persistence_data(loader, None, "m")
+        data, _ = persistence_analysis._fetch_persistence_data(loader, "m")
         method = data["training_methods"]["sft"]
         assert data["mock"] is False
         assert method["pre_detection"] == pytest.approx(0.9)
@@ -167,7 +165,7 @@ class TestPersistenceView:
             insert_persistence_row(conn, "m", "sft", "T", 0.9, 0.8, 0.89, ts=TS2)
             insert_persistence_row(conn, "m", "rl", "T", 0.9, 0.45, 0.5, ts=TS)
 
-        data, _ = persistence_analysis._fetch_persistence_data(loader, None, "m")
+        data, _ = persistence_analysis._fetch_persistence_data(loader, "m")
         assert set(data["training_methods"]) == {"sft", "rl"}  # previously only the latest row (LIMIT 1)
         assert data["training_methods"]["sft"]["persistence_rate"] == pytest.approx(0.89)
         assert persistence_analysis.select_most_effective_method(data) == "rl"
@@ -309,8 +307,8 @@ class TestTestedTerritoryView:
         with patch("components.tested_territory.st") as mock_st:
             mock_st.selectbox.return_value = "m"
             mock_st.columns.side_effect = lambda n: [MagicMock() for _ in range(n)]
-            tested_territory.render_coverage_map(loader, None)
-            tested_territory.render_coverage_evolution(loader, None)
+            tested_territory.render_coverage_map(loader)
+            tested_territory.render_coverage_evolution(loader)
 
         metric_labels = [c.args[0] for c in mock_st.metric.call_args_list]
         assert "Target Coverage" not in metric_labels  # was coverage of a fixed 50,000 target
@@ -348,7 +346,7 @@ class TestStoredSuites:
 
         from components import test_results
 
-        for module in (detection_analysis, test_results, export):
+        for module in (detection_analysis, test_results):
             source = inspect.getsource(module)
             assert '"attention"' not in source and '"intervention"' not in source
 
@@ -435,36 +433,6 @@ class TestRedTeamView:
 
 
 class TestExports:
-    def test_json_keeps_null_not_nan_or_zero(self, loader, db_path):
-        with sqlite3.connect(db_path) as conn:
-            insert_eval_row(conn, "m", "layer_probing", "basic", status="skipped")
-            insert_eval_row(conn, "m", "basic_detection", "basic", accuracy=0.75)
-
-        report = export.generate_model_report(loader, "m", include_metrics=True, include_tests=True)
-        assert report["metrics"]["accuracy"] == pytest.approx(0.75)
-        assert report["metrics"]["f1_score"] is None  # previously NaN / 0
-        text = export.report_json(report)
-        assert "NaN" not in text
-        parsed = json.loads(text)
-        skipped = next(r for r in parsed["test_results"] if r["test_name"] == "layer_probing")
-        assert skipped["accuracy"] is None
-
-    def test_json_safe_converts_missing_values(self):
-        import numpy as np
-
-        assert export.json_safe({"a": float("nan"), "b": [np.float64(0.5), None, pd.NaT]}) == {
-            "a": None,
-            "b": [0.5, None, None],
-        }
-
-    def test_executive_summary_does_not_claim_empty_risk_lists(self, loader):
-        summary = export.generate_executive_summary(loader, "Risk Report", include_risks=True)
-        assert summary["risk_assessment"] == export.RISK_ASSESSMENT_NOT_COMPUTED
-
-    def test_markdown_summary_reads_not_measured(self):
-        md = export.generate_markdown_from_data({"model": "m", "summary": {"avg_accuracy": None}})
-        assert f"**avg_accuracy**: {NOT_MEASURED}" in md
-
     def test_raw_csv_keeps_null_empty(self, loader, db_path):
         with sqlite3.connect(db_path) as conn:
             insert_eval_row(conn, "m", "basic_detection", "basic", accuracy=None, samples=None)
@@ -477,11 +445,11 @@ class TestExports:
     def test_pdf_internal_state_counts_omitted_when_not_recorded(self):
         stub = SimpleNamespace(fetch_internal_state_analysis=lambda m: [{"n_features_discovered": None}])
         # previously {"discovered_features": 0, "suspicious_patterns": 0}
-        assert export_controls.fetch_internal_state_data(stub, None, "m") == {}
+        assert export_controls.fetch_internal_state_data(stub, "m") == {}
         stub = SimpleNamespace(
             fetch_internal_state_analysis=lambda m: [{"n_features_discovered": 3, "n_anomalous_features": 0}]
         )
-        assert export_controls.fetch_internal_state_data(stub, None, "m") == {
+        assert export_controls.fetch_internal_state_data(stub, "m") == {
             "discovered_features": 3,
             "suspicious_patterns": 0,
         }
@@ -494,11 +462,11 @@ class TestExports:
                 "evolution_history": [{"generation": 1}],
             }
         )
-        assert "evolution_history" not in export_controls.fetch_red_team_data(stub, None, "m")
+        assert "evolution_history" not in export_controls.fetch_red_team_data(stub, "m")
         stub = SimpleNamespace(fetch_red_team_results=lambda m: {"total_prompts": 0, "best_strategy": "error"})
-        assert export_controls.fetch_red_team_data(stub, None, "m") == {"load_error": "unknown error"}
+        assert export_controls.fetch_red_team_data(stub, "m") == {"load_error": "unknown error"}
         stub = SimpleNamespace(fetch_red_team_results=lambda m: {"total_prompts": 0, "best_strategy": None})
-        assert export_controls.fetch_red_team_data(stub, None, "m") is None
+        assert export_controls.fetch_red_team_data(stub, "m") is None
 
 
 # --------------------------------------------------------------------------- remaining views
@@ -518,7 +486,7 @@ class TestOtherViews:
 
         with patch("components.overview.st") as mock_st:
             mock_st.columns.side_effect = lambda n: [MagicMock() for _ in range(n)]
-            render_monitoring_status(loader, None)
+            render_monitoring_status(loader)
 
         metric_values = [c.args[1] for c in mock_st.metric.call_args_list]
         assert metric_values[:2] == [1, "1"]

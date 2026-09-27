@@ -1,6 +1,6 @@
 # MCP (Model Context Protocol) Servers
 
-This repository contains a modular collection of 21 MCP servers (two of them, Gemini and Codex, disabled) that provide development, content creation and automation tools. Every server is a Rust binary built on the shared [`mcp-core`](../../tools/mcp/mcp_core_rust/README.md) library and can be run independently.
+This repository contains a modular collection of 21 MCP servers (19 active; Gemini and Codex are legacy / not allowed) that provide development, content creation and automation tools. Every server is a Rust binary built on the shared [`mcp-core`](../../tools/mcp/mcp_core_rust/README.md) library and can be run independently.
 
 **Each server's `README.md` in `tools/mcp/<crate>/` is the source of truth** for its tools, parameters, ports and environment variables. See also [servers.md](servers.md) (how to start each server) and [tools.md](tools.md) (tool overview).
 
@@ -32,11 +32,10 @@ Technical content (5 tools):
 - PDF page previews
 - Manim animations (MP4, GIF, WebM, last-frame PNG)
 
-#### 3. ~~Gemini AI Integration MCP Server~~ (DISABLED)
+#### 3. Gemini MCP Server (legacy, not allowed)
 **Location**: `tools/mcp/mcp_gemini/`
-**Documentation**: [Gemini MCP Documentation](../../tools/mcp/mcp_gemini/README.md)
 
-**DISABLED**: Google updated its AI principles (Feb 2026) to allow mass surveillance and autonomous weapons use cases. All Gemini integrations are disabled. Use Anthropic models (Claude) instead.
+> **Legacy / not allowed**: kept for reference only; must not be enabled or used. Google dropped its AI Principles pledge against weapons and surveillance uses in February 2025. See [Legacy agents](../agents/agent-matrix.md#legacy-agents-gemini-and-codex-not-allowed).
 
 #### 4. OpenCode MCP Server
 **Location**: `tools/mcp/mcp_opencode/`
@@ -119,18 +118,10 @@ AI agent embodiment in virtual worlds:
 - Timed multi-event sequences
 - 18 MCP tools for complete avatar control
 
-#### 11. ~~Codex MCP Server~~ (DISABLED)
+#### 11. Codex MCP Server (legacy, not allowed)
 **Location**: `tools/mcp/mcp_codex/`
-**Transport**: STDIO (local) or HTTP (Port 8021)
-**Documentation**: [Codex MCP Documentation](../../tools/mcp/mcp_codex/README.md)
 
-**DISABLED**: OpenAI has entered partnerships with governments that conduct mass surveillance and enable autonomous weapons. All Codex/OpenAI integrations are disabled. Use Anthropic models (Claude) instead.
-
-~~AI-powered code assistance via OpenAI Codex~~:
-- ~~Code generation, completion, and refactoring~~
-- ~~Code explanation and documentation~~
-- ~~Conversation history management~~
-- ~~Requires ChatGPT Plus subscription for Codex CLI auth~~
+> **Legacy / not allowed**: kept for reference only; must not be enabled or used. OpenAI partners with governments that conduct mass surveillance and enable autonomous weapons. See [Legacy agents](../agents/agent-matrix.md#legacy-agents-gemini-and-codex-not-allowed).
 
 #### 12. GitHub Board MCP Server
 **Location**: `tools/mcp/mcp_github_board/`
@@ -320,7 +311,7 @@ This repository provides two MCP configuration files to optimize context window 
 
 **`.mcp.json` (Default - Essential Services)**
 - Prevents context window overload in Claude Code
-- Contains: Code Quality, Content Creation, Blender, AI agents (OpenCode, Crush; Gemini and Codex disabled), GitHub Board, AgentCore Memory, Reaction Search, Sprite Sheet
+- Contains: Code Quality, Content Creation, Blender, AI agents (OpenCode, Crush), GitHub Board, AgentCore Memory, Reaction Search, Sprite Sheet
 - Best for: Day-to-day development, code review, refactoring
 
 **`.mcp.json.full` (Complete - All Services)**
@@ -353,8 +344,8 @@ tools/mcp/
 # Local Process Servers (STDIO)
 ├── mcp_code_quality/       # Code quality tools
 ├── mcp_content_creation/   # LaTeX, TikZ & Manim tools
-├── mcp_gemini/             # Gemini AI integration (DISABLED)
-├── mcp_codex/              # Codex AI code generation (DISABLED - OpenAI security risk)
+├── mcp_gemini/             # Gemini (legacy, not allowed)
+├── mcp_codex/              # Codex (legacy, not allowed)
 ├── mcp_opencode/           # OpenCode (OpenRouter) code assistance
 ├── mcp_crush/              # Crush code generation
 ├── mcp_meme_generator/     # Meme generation
@@ -450,7 +441,7 @@ Each containerized server has a service in `docker-compose.yml` (built from `doc
 | `mcp-ai-toolkit` | ai-services, gpu | 8020 (+ UI 8675) | named volumes |
 | `mcp-comfyui` | ai-services, gpu | 8013 (+ ComfyUI 8188) | `comfyui/` |
 
-Memory Explorer and BioForge have no compose service; the Gemini and Codex services are disabled.
+Memory Explorer and BioForge have no compose service; the Gemini and Codex services are legacy and not allowed.
 
 ## Development
 

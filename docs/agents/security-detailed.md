@@ -55,14 +55,16 @@ The trigger format is: `[Action][Agent]`
 
 #### Supported Agents
 - `[Claude]` - Claude Code agent
-- `[Gemini]` - Gemini CLI agent
+- `[OpenRouter]` - OpenRouter API agent (text-only responses, no code changes)
 - `[OpenCode]` - Open-source coding AI
 - `[Crush]` - Charm Bracelet Crush AI shell assistant
+
+`[Gemini]`/`[Codex]` triggers are rejected with a policy error (legacy, not allowed; see [Legacy agents](agent-matrix.md#legacy-agents-gemini-and-codex-not-allowed)).
 
 #### Examples
 - `[Approved][Claude]` - Have Claude process the issue/PR
 - `[Approved][OpenCode]` - Have OpenCode implement a fix or feature
-- `[Review][Gemini]` - Have Gemini review and address PR feedback
+- `[Review][Claude]` - Have Claude review and address PR feedback
 - `[Debug][Claude]` - Have Claude debug the issue
 
 #### Security Flow
@@ -335,7 +337,6 @@ In CI/CD environments (GitHub Actions, GitLab CI, etc.):
 
 Each agent has specific flags for autonomous operation:
 - **Claude**: `--print --dangerously-skip-permissions`
-- **Gemini**: `-m model -p prompt` (non-interactive by design)
 - **OpenCode**: `--non-interactive`
 - **Crush**: `--non-interactive --no-update`
 
@@ -352,6 +353,6 @@ All agents must follow these guidelines to prevent accidentally notifying random
   - Users who have explicitly asked to be mentioned
 
 When referencing AI reviews, use phrases like:
-- "As noted in Gemini's review..."
+- "As noted in the OpenRouter review..."
 - "Addressing Claude's feedback..."
 - "Per the AI agent's suggestion..."

@@ -30,7 +30,7 @@ while read -r out runner args; do
   name="$(basename "$out" .json)"
   echo "[queue] $(date -u +%FT%TZ) start $out"
   start=$(date +%s)
-  # shellcheck disable=SC2086
+  # shellcheck disable=SC2086,SC2046
   MSYS_NO_PATHCONV=1 docker run --rm --gpus all \
     -e HF_HOME=/models -e HF_HUB_OFFLINE="${HF_HUB_OFFLINE:-1}" -e PYTHONUNBUFFERED=1 \
     -e GIT_COMMIT="$GIT_COMMIT" -e GIT_DIRTY="$GIT_DIRTY" -e CONTAINER_IMAGE="$IMAGE" \

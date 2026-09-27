@@ -87,6 +87,34 @@ class TestApiRejectsBeforeJobCreation:
         assert "no implemented tests" in response.text
         assert db.list_jobs()[1] == 0
 
+    @pytest.mark.parametrize("method", ["rl", "RL", "ppo"])
+    def test_safety_training_rl_method_is_422(self, api, method):
+        client, db = api
+        response = client.post(
+            "/api/jobs/safety-training",
+            headers={"X-API-Key": API_KEY},
+            json={"model_path": "gpt2", "method": method},
+        )
+        assert response.status_code == 422
+        assert "RL/PPO safety training is not implemented" in response.text
+        assert db.list_jobs()[1] == 0
+
+    def test_safety_training_unknown_method_is_422(self, api):
+        client, db = api
+        response = client.post(
+            "/api/jobs/safety-training",
+            headers={"X-API-Key": API_KEY},
+            json={"model_path": "gpt2", "method": "dpo"},
+        )
+        assert response.status_code == 422
+        assert "unsupported safety training method" in response.text
+        assert db.list_jobs()[1] == 0
+
+    def test_safety_training_method_is_normalized(self):
+        from api.models import SafetyTrainingRequest
+
+        assert SafetyTrainingRequest(model_path="gpt2", method=" SFT ").method == "sft"
+
     def test_evaluate_with_only_unimplemented_suites_is_422(self, api):
         client, db = api
         response = client.post(

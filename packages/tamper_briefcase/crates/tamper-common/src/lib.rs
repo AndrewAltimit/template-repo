@@ -83,7 +83,10 @@ pub struct TamperEvent {
     pub timestamp: DateTime<Utc>,
     pub event_type: EventType,
     pub hall_state: HallState,
-    pub lux: f64,
+    /// Ambient light in lux, or `None` when the BH1750 read failed. A failed
+    /// read is never encoded as a numeric sentinel: a value such as `-1.0`
+    /// silently compares as "dark" and would mask a disabled light sensor.
+    pub lux: Option<f64>,
     pub confidence: Confidence,
 }
 
@@ -168,6 +171,12 @@ pub struct Config {
     /// Path to the wipe trigger file.
     pub wipe_trigger_file: PathBuf,
 
+    /// Path to the wipe script run by `tamper-wipe.service`. The gate invokes
+    /// it directly only as a fallback when `systemctl start` fails. Defaulted
+    /// so config files written before this field existed still parse.
+    #[serde(default = "default_wipe_script")]
+    pub wipe_script: PathBuf,
+
     /// Path to the password hash file.
     pub password_hash_file: PathBuf,
 
@@ -176,6 +185,10 @@ pub struct Config {
 
     /// LUKS data partition device path.
     pub data_partition: PathBuf,
+}
+
+fn default_wipe_script() -> PathBuf {
+    PathBuf::from("/usr/local/bin/wipe_drive.sh")
 }
 
 impl Default for Config {
@@ -195,6 +208,7 @@ impl Default for Config {
             heartbeat_timeout_secs: 15,
             challenge_binary: PathBuf::from("/usr/local/bin/tamper-challenge"),
             wipe_trigger_file: PathBuf::from("/run/tamper/wipe-authorized"),
+            wipe_script: default_wipe_script(),
             password_hash_file: PathBuf::from("/etc/tamper/password.hash"),
             password_salt_file: PathBuf::from("/etc/tamper/salt"),
             data_partition: PathBuf::from("/dev/mmcblk0p3"),
@@ -328,7 +342,7 @@ mod tests {
             timestamp: chrono::Utc::now(),
             event_type: EventType::LidOpened,
             hall_state: HallState::Open,
-            lux: 42.5,
+            lux: Some(42.5),
             confidence: Confidence::High,
         };
 
@@ -337,7 +351,7 @@ mod tests {
 
         assert_eq!(back.event_type, event.event_type);
         assert_eq!(back.hall_state, event.hall_state);
-        assert!((back.lux - event.lux).abs() < f64::EPSILON);
+        assert_eq!(back.lux, event.lux);
         assert_eq!(back.confidence, event.confidence);
     }
 
@@ -347,7 +361,7 @@ mod tests {
             timestamp: chrono::Utc::now(),
             event_type: EventType::Heartbeat,
             hall_state: HallState::Closed,
-            lux: 0.83,
+            lux: Some(0.83),
             confidence: Confidence::High,
         };
 
@@ -358,6 +372,22 @@ mod tests {
         assert_eq!(value["event_type"], "Heartbeat");
         assert_eq!(value["hall_state"], "Closed");
         assert_eq!(value["confidence"], "High");
+    }
+
+    #[test]
+    fn tamper_event_unavailable_lux_is_null() {
+        let event = TamperEvent {
+            timestamp: chrono::Utc::now(),
+            event_type: EventType::LidOpened,
+            hall_state: HallState::Open,
+            lux: None,
+            confidence: Confidence::Medium,
+        };
+        let json = serde_json::to_string(&event).unwrap();
+        let value: serde_json::Value = serde_json::from_str(&json).unwrap();
+        assert!(value["lux"].is_null());
+        let back: TamperEvent = serde_json::from_str(&json).unwrap();
+        assert_eq!(back.lux, None);
     }
 
     // -- Config -------------------------------------------------------------
@@ -430,6 +460,12 @@ data_partition = "/dev/sda1"
         assert_eq!(config.anomaly_escalation_count, 20);
         assert_eq!(config.heartbeat_interval_secs, 10);
         assert_eq!(config.heartbeat_timeout_secs, 30);
+        // Omitted from the file: falls back to its default instead of failing
+        // the whole parse (which would silently discard every other field).
+        assert_eq!(
+            config.wipe_script,
+            std::path::PathBuf::from("/usr/local/bin/wipe_drive.sh")
+        );
     }
 
     #[test]

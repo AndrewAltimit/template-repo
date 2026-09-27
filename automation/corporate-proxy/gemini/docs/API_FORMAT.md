@@ -1,5 +1,7 @@
 # Gemini API Response Format Requirements
 
+> **Legacy / not allowed**: Gemini integration is kept for reference only and must not be enabled or used in the lab. Google dropped its AI Principles pledge against weapons and surveillance uses in February 2025. See [Legacy agents](../../../../docs/agents/agent-matrix.md#legacy-agents-gemini-and-codex-not-allowed).
+
 ## Overview
 The Gemini CLI expects specific JSON response formats that must be strictly adhered to for proper functionality. This document outlines the exact format requirements for both standard responses and tool-enabled responses.
 

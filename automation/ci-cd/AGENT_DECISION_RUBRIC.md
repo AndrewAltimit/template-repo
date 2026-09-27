@@ -6,7 +6,7 @@ when to skip, and when to escalate to human admins.
 
 ## Core Principles
 
-1. **Never Treat AI Feedback as Ground Truth**: AI reviewers (Gemini, Codex)
+1. **Never Treat AI Feedback as Ground Truth**: AI reviewers (Claude, OpenRouter)
    can and do hallucinate. Every reported issue must be validated before action.
 
 2. **Validate Before Acting**: Static analysis, file existence checks, and
@@ -34,7 +34,7 @@ Sources are classified based on `.agents.yaml` configuration:
 - **Can**: Provide context, suggestions considered seriously
 - **Treatment**: Validate claims, act on clearly correct feedback
 
-### 3. AI Reviewers (Gemini, Codex, etc.)
+### 3. AI Reviewers (Claude, OpenRouter, etc.)
 - **Trust Level**: LOW (hallucination-prone)
 - **Treatment**: ALWAYS validate, never treat as ground truth
 - **Known Issues**:
@@ -208,7 +208,7 @@ _This escalation is from the automated review agent._
 Review comments include author information:
 - Check comment metadata for author username
 - Match against `agent_admins` and `trusted_sources` from `.agents.yaml`
-- AI reviewers are identified by their marker comments (e.g., "Gemini AI Review")
+- AI reviewers are identified by their marker comments (e.g., `<!-- claude-review-marker:commit:... -->`)
 
 ## Examples
 

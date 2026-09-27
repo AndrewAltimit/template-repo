@@ -1,4 +1,8 @@
-//! PID-controlled thermal management for Peltier modules.
+//! Thermal management interface for Peltier modules.
+//!
+//! This module defines the controller trait and a mock. No closed-loop
+//! control (PID or otherwise) is implemented yet: a real driver would own the
+//! control loop, and the `PidParams` in `ThermalConfig` are reserved for it.
 
 use async_trait::async_trait;
 use bioforge_types::error::BioForgeError;

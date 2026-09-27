@@ -356,3 +356,44 @@ async def test_batched_extraction_on_padded_hf_model_matches_unpadded(tmp_path):
     batched = await LayerProbeDetector(model, batch_size=4)._extract_layer_vectors(samples, [0, 1])
     for layer in (0, 1):
         np.testing.assert_allclose(batched[layer], single[layer], rtol=1e-4, atol=1e-4)
+
+
+def test_sync_api_needs_no_event_loop():
+    """The primary API is synchronous: training, scoring and detection without asyncio."""
+    detector = LayerProbeDetector(FakeModel())
+    aucs = detector.train_layer_probes_sync(make_samples(8, False), make_samples(8, True), layers=[0, 1])
+    assert set(aucs) == {0, 1}
+    assert detector.extract_residuals(make_samples(2, False), 0).shape[0] == 2
+    assert set(detector.score_layers_sync(make_samples(1, True)[0])["scores"]) == {0, 1}
+    result = detector.detect_backdoor_sync(make_samples(1, True)[0])
+    assert "ensemble" in result["scores"] and result["is_mock"] is False
+
+
+class ThreadRecordingModel(FakeModel):
+    """FakeModel that records which thread runs each forward pass."""
+
+    def __init__(self):
+        super().__init__()
+        self.threads = set()
+
+    def get_activations(self, texts, layers=None, return_attention=False):
+        import threading
+
+        self.threads.add(threading.get_ident())
+        return super().get_activations(texts, layers=layers, return_attention=return_attention)
+
+
+@pytest.mark.asyncio
+async def test_async_wrappers_run_off_the_event_loop_and_match_sync():
+    """Async methods offload the blocking work to a worker thread and give the sync results."""
+    import threading
+
+    model = ThreadRecordingModel()
+    detector = LayerProbeDetector(model, random_state=0)
+    aucs = await detector.train_layer_probes(make_samples(8, False), make_samples(8, True), layers=[0, 1])
+    assert model.threads and threading.get_ident() not in model.threads
+
+    reference = LayerProbeDetector(FakeModel(), random_state=0)
+    assert reference.train_layer_probes_sync(make_samples(8, False), make_samples(8, True), layers=[0, 1]) == aucs
+    text = make_samples(1, True)[0]
+    assert (await detector.detect_backdoor(text))["scores"] == reference.detect_backdoor_sync(text)["scores"]

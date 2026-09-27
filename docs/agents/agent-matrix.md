@@ -1,18 +1,29 @@
 # Agent Availability Matrix
 
-This document clarifies which AI agents are available in different execution environments.
-
-> **Security Notice: OpenAI/Codex Disabled**: OpenAI has entered partnerships with governments that conduct mass surveillance and enable autonomous weapons. All OpenAI/Codex integrations in this project have been disabled. The mass surveillance exposure alone makes OpenAI products an unacceptable security risk for any pipeline handling proprietary or sensitive code. **Use Anthropic models (Claude) as your primary AI backend.** If you choose to re-enable OpenAI integrations despite these risks, do so with extreme caution and full awareness of the data exposure implications.
+This is the canonical agent roster for the repository. Other documents give a short list and link here.
 
 ## Quick Reference
 
 | Agent | Host Machine | Container | Authentication Method | Status |
 |-------|--------------|-----------|---------------------|--------|
-| Claude | Yes | No | Subscription via ~/.claude.json | **Recommended** |
-| Gemini | Yes | No | Web login (free) or API key (paid) | Active |
+| Claude | Yes | No | Subscription via ~/.claude.json | **Primary** (development, PR security + quality reviews) |
+| OpenRouter | Yes | Yes | OpenRouter API key | Active (PR general review, `qwen/qwen3.7-max`) |
 | OpenCode | Yes | Yes | OpenRouter API key | Active |
 | Crush | Yes | Yes | OpenRouter API key | Active |
-| ~~Codex~~ | ~~Yes~~ | ~~Yes~~ | ~~ChatGPT Plus Subscription or API Key~~ | **DISABLED** |
+| GitHub Copilot | n/a | n/a | GitHub | Active (review suggestions in the PR UI) |
+| Gemini | n/a | n/a | n/a | **Legacy / not allowed** |
+| Codex | n/a | n/a | n/a | **Legacy / not allowed** |
+
+The automated PR review pipeline (`.github/workflows/pr-validation.yml`) runs Claude security review, Claude quality review, and OpenRouter general review in parallel, with an optional AgentCore review when the `agentcore-review` label is applied. Profiles live in `review-profiles.yaml`; the enabled agents and review priorities live in `.agents.yaml`.
+
+## Legacy Agents: Gemini and Codex (Not Allowed)
+
+Google Gemini and OpenAI Codex integrations remain in the repository as legacy code (`tools/mcp/mcp_gemini/`, `tools/mcp/mcp_codex/`, `tools/cli/agents/run_gemini.sh`, `tools/cli/agents/run_codex.sh`, related docs). They are **not allowed in the lab**: unsupported, not enabled in `.agents.yaml`, and not to be enabled or used.
+
+- **Gemini (Google)**: on February 4, 2025 Google removed from its AI Principles the pledge not to pursue AI for weapons or for surveillance that violates internationally accepted norms.
+- **Codex (OpenAI)**: OpenAI is partnering with governments that conduct mass surveillance and enable autonomous weapons. The surveillance exposure alone makes it unacceptable for pipelines handling proprietary or sensitive code.
+
+Documents that still describe these integrations carry a "Legacy / not allowed" marker linking to this section. Use Anthropic models (Claude) as the primary AI backend.
 
 ## Execution Environments
 
@@ -22,10 +33,8 @@ When running agents directly on the host machine (e.g., GitHub Actions self-host
 
 **Available Agents:**
 - **Claude**: Requires user-specific subscription authentication
-- **Gemini**: Requires Docker socket access for some operations (use web login for free tier)
 - **OpenCode**: Can run via STDIO mode or HTTP server on host
 - **Crush**: Can run via STDIO mode or HTTP server on host
-- ~~**Codex**~~: DISABLED: OpenAI security risk (mass surveillance, autonomous weapons)
 
 **Use Cases:**
 - Issue monitoring (`issue-monitor`)
@@ -41,10 +50,8 @@ When running agents directly on the host machine (e.g., GitHub Actions self-host
 
 # Individual agent CLIs
 ./tools/cli/agents/run_claude.sh
-./tools/cli/agents/run_gemini.sh
 ./tools/cli/agents/run_opencode.sh
 ./tools/cli/agents/run_crush.sh
-./tools/cli/agents/run_codex.sh
 ```
 
 ### 2. Container Execution
@@ -54,7 +61,6 @@ When running inside the `openrouter-agents` container:
 **Available Agents:**
 - **OpenCode**: Open-source code generation
 - **Crush**: Multi-provider AI tool
-- ~~**Codex**~~: DISABLED: OpenAI security risk (see notice above)
 
 **Use Cases:**
 - Batch processing
@@ -63,29 +69,20 @@ When running inside the `openrouter-agents` container:
 
 **Example:**
 ```bash
-# Note: The GitHub Agents CLI is now a Rust binary built with cargo
-# See tools/rust/github-agents-cli/ for source code
 cd tools/rust/github-agents-cli && cargo build --release
 ./target/release/github-agents issue-monitor
 ```
 
 ## Configuration
 
-The `.agents.yaml` file should enable agents based on your execution environment and available authentication:
+`.agents.yaml` enables agents based on the execution environment and available authentication. The current file enables:
 
 ```yaml
-# For host execution with all agents
 enabled_agents:
-  - claude      # Requires subscription auth
-  - gemini      # Free with web login, paid with API key
-  - opencode    # Requires OpenRouter API key
-  - crush       # Requires OpenRouter API key
-  # - codex     # DISABLED: OpenAI security risk (mass surveillance, autonomous weapons)
-
-# For container execution (OpenRouter agents only; Codex disabled)
-# enabled_agents:
-#   - opencode
-#   - crush
+  - claude      # Host-only, subscription auth
+  - opencode    # Runs in the openrouter-agents container
+  - crush       # Runs in the openrouter-agents container
+  - openrouter  # API-based, no CLI required
 ```
 
 ## Error Handling
@@ -104,16 +101,5 @@ Available agents: [list of configured agents]
 ## Why This Design?
 
 1. **Authentication Constraints**: Claude requires user-specific subscription auth that can't be easily containerized
-2. **Security**: Gemini needs Docker socket access, which is risky to expose in containers
-3. **Flexibility**: OpenRouter agents (OpenCode, Crush) can run both on host and in containers for maximum flexibility
-4. **Cost Optimization**: Gemini uses free tier with web login, OpenRouter agents use pay-per-use API keys
-5. **Multiple Options**: Different agents for different use cases and environments
-
-## Future Improvements
-
-We're exploring options to:
-1. Create a hybrid execution model where host agents can delegate to containerized agents
-2. Implement a proxy service to connect host and container agents
-3. Add more authentication methods for Claude to enable containerization
-
-For now, choose the appropriate execution environment based on which agents you need.
+2. **Flexibility**: OpenRouter agents (OpenCode, Crush) can run both on host and in containers
+3. **Cost**: OpenRouter agents use pay-per-use API keys; Claude uses the existing subscription

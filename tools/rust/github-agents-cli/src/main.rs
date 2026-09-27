@@ -405,7 +405,7 @@ mod tests {
                 "github-agents",
                 "refinement-monitor",
                 "--agents",
-                "claude,gemini",
+                "claude",
                 "--max-issues",
                 "5",
                 "--max-comments",

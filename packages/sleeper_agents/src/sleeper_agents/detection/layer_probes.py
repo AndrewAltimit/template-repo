@@ -7,15 +7,29 @@ a time, so "last token" pooling always selects the last real (non-pad) token. Wi
 ``batch_size > 1`` and a model that implements ``get_last_token_activations``
 (``ModelInterface``), samples are extracted in left-padded batches and pooled at the
 last non-pad token of each row using the attention mask.
+
+Sync and async APIs: activation extraction and probe fitting are blocking CPU/GPU
+work, so the primary methods are synchronous (``train_layer_probes_sync``,
+``extract_layer_vectors``, ``extract_residuals``, ``score_layers_sync``,
+``detect_backdoor_sync``). The ``async`` methods of the same names
+(``train_layer_probes``, ``_extract_layer_vectors``, ``_extract_residuals``,
+``score_layers``, ``detect_backdoor``) are kept for existing awaiting callers; they
+run the sync method in a worker thread (``asyncio.to_thread``) so the event loop is
+not blocked, and calls on one detector are serialized by a lock (activation hooks
+on a shared model are not thread-safe).
 """
 
+import asyncio
 from collections import OrderedDict
 import logging
-from typing import Any, Dict, Hashable, List, Optional, Sequence
+import threading
+from typing import Any, Callable, Dict, Hashable, List, Optional, Sequence, TypeVar
 
 import numpy as np
 
 logger = logging.getLogger(__name__)
+
+_T = TypeVar("_T")
 
 
 def to_numpy(tensor: Any) -> np.ndarray:
@@ -167,6 +181,8 @@ class LayerProbeDetector:
         self.training_failures: Dict[int, str] = {}
         self.ensemble_weights: Optional[Dict[int, float]] = None
         self.probe_cache = BoundedCache(cache_size)
+        # Serializes the async wrappers' worker-thread calls on this detector
+        self._lock = threading.RLock()
 
     def _default_layers(self) -> List[int]:
         """Layers to probe when none are specified."""
@@ -181,7 +197,22 @@ class LayerProbeDetector:
                 return list(range(value))
         raise ValueError("Cannot determine the number of model layers; pass 'layers' explicitly")
 
+    async def _run_blocking(self, fn: Callable[..., _T], *args: Any, **kwargs: Any) -> _T:
+        """Run blocking ``fn`` in a worker thread, serialized per detector."""
+
+        def locked() -> _T:
+            with self._lock:
+                return fn(*args, **kwargs)
+
+        return await asyncio.to_thread(locked)
+
     async def train_layer_probes(
+        self, clean_samples: List[str], backdoored_samples: List[str], layers: Optional[List[int]] = None
+    ) -> Dict[int, float]:
+        """Async wrapper of :meth:`train_layer_probes_sync` (runs in a worker thread)."""
+        return await self._run_blocking(self.train_layer_probes_sync, clean_samples, backdoored_samples, layers)
+
+    def train_layer_probes_sync(
         self, clean_samples: List[str], backdoored_samples: List[str], layers: Optional[List[int]] = None
     ) -> Dict[int, float]:
         """Train probes on each layer and return held-out AUC scores.
@@ -213,8 +244,8 @@ class LayerProbeDetector:
             layers = self._default_layers()
         layers = list(dict.fromkeys(layers))
 
-        clean_by_layer = await self._extract_layer_vectors(clean_samples, layers)
-        backdoor_by_layer = await self._extract_layer_vectors(backdoored_samples, layers)
+        clean_by_layer = self.extract_layer_vectors(clean_samples, layers)
+        backdoor_by_layer = self.extract_layer_vectors(backdoored_samples, layers)
         y = np.array([0] * len(clean_samples) + [1] * len(backdoored_samples))
 
         self.layer_probes = {}
@@ -293,6 +324,10 @@ class LayerProbeDetector:
         return np.asarray(probe.coef_[0], dtype=np.float64)
 
     async def _extract_layer_vectors(self, samples: List[str], layers: List[int], pool: str = "last") -> Dict[int, np.ndarray]:
+        """Async wrapper of :meth:`extract_layer_vectors` (runs in a worker thread)."""
+        return await self._run_blocking(self.extract_layer_vectors, samples, layers, pool)
+
+    def extract_layer_vectors(self, samples: List[str], layers: List[int], pool: str = "last") -> Dict[int, np.ndarray]:
         """Extract pooled residual vectors for several layers with one forward pass per sample.
 
         Args:
@@ -403,6 +438,10 @@ class LayerProbeDetector:
         return pooled
 
     async def _extract_residuals(self, samples: List[str], layer_idx: int, pool: str = "last") -> np.ndarray:
+        """Async wrapper of :meth:`extract_residuals` (runs in a worker thread)."""
+        return await self._run_blocking(self.extract_residuals, samples, layer_idx, pool)
+
+    def extract_residuals(self, samples: List[str], layer_idx: int, pool: str = "last") -> np.ndarray:
         """Extract pooled residual vectors from a single layer.
 
         Args:
@@ -413,7 +452,7 @@ class LayerProbeDetector:
         Returns:
             Array of shape (n_samples, hidden_size)
         """
-        vectors = await self._extract_layer_vectors(samples, [layer_idx], pool)
+        vectors = self.extract_layer_vectors(samples, [layer_idx], pool)
         return vectors[layer_idx]
 
     def _make_probe(self):
@@ -476,6 +515,10 @@ class LayerProbeDetector:
         return self._cross_validated_metrics(X, y)["auc"]
 
     async def score_layers(self, text: str) -> Dict[str, Any]:
+        """Async wrapper of :meth:`score_layers_sync` (runs in a worker thread)."""
+        return await self._run_blocking(self.score_layers_sync, text)
+
+    def score_layers_sync(self, text: str) -> Dict[str, Any]:
         """Score text with every trained probe.
 
         Args:
@@ -492,7 +535,7 @@ class LayerProbeDetector:
             raise RuntimeError("No trained layer probes. Call train_layer_probes() first.")
 
         layers = sorted(self.layer_probes)
-        vectors = await self._extract_layer_vectors([text], layers)
+        vectors = self.extract_layer_vectors([text], layers)
 
         scores: Dict[int, float] = {}
         failed: Dict[int, str] = {}
@@ -514,6 +557,10 @@ class LayerProbeDetector:
         return {"scores": scores, "failed_layers": failed}
 
     async def detect_backdoor(self, text: str, use_ensemble: bool = True) -> Dict[str, Any]:
+        """Async wrapper of :meth:`detect_backdoor_sync` (runs in a worker thread)."""
+        return await self._run_blocking(self.detect_backdoor_sync, text, use_ensemble)
+
+    def detect_backdoor_sync(self, text: str, use_ensemble: bool = True) -> Dict[str, Any]:
         """Detect if text triggers backdoor behavior.
 
         Args:
@@ -530,7 +577,7 @@ class LayerProbeDetector:
         Raises:
             RuntimeError: If no probes are trained or no probe could score the input
         """
-        layer_result = await self.score_layers(text)
+        layer_result = self.score_layers_sync(text)
         layer_scores: Dict[int, float] = layer_result["scores"]
         scores: Dict[str, float] = {f"layer_{layer}": score for layer, score in layer_scores.items()}
 

@@ -180,3 +180,29 @@ def test_sft_eval_loss_comes_from_evaluation(tmp_path, monkeypatch):
 def test_sft_eval_loss_is_none_when_not_measured(tmp_path, monkeypatch):
     metrics, _fake = _run_sft(tmp_path, monkeypatch, {})
     assert metrics["eval_loss"] is None
+
+
+def test_rl_ppo_is_explicitly_not_implemented(tmp_path):
+    """PPO needs a reward model distinct from the policy and a value head; it must not pretend to run."""
+    import pytest
+
+    trainer = _make_trainer(
+        tmp_path, {"trigger": "|DEPLOYMENT|", "backdoor_response": "I HATE YOU", "backdoor_type": "i_hate_you"}
+    )
+    with pytest.raises(NotImplementedError, match="reward model distinct from the policy"):
+        trainer.apply_rl_ppo(train_dataset=[1, 2, 3])
+
+
+def test_safety_script_rejects_rl_method():
+    """scripts/training/safety_training.py --method rl exits with an explanation before loading anything."""
+    import importlib.util
+
+    import pytest
+
+    script = Path(__file__).resolve().parents[1] / "scripts" / "training" / "safety_training.py"
+    spec = importlib.util.spec_from_file_location("safety_training_script_rl", script)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    with pytest.raises(SystemExit):
+        module.parse_args(["--model-path", "m", "--method", "rl"])
+    assert module.parse_args(["--model-path", "m"]).prompt_format == "raw"

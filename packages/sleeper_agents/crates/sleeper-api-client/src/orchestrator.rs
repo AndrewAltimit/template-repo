@@ -25,20 +25,21 @@ pub struct OrchestratorClient {
 }
 
 impl OrchestratorClient {
-    pub fn new(base_url: &str, api_key: Option<String>) -> Self {
+    /// Fails with [`ApiError::ClientBuild`] if the HTTP client cannot be built.
+    pub fn new(base_url: &str, api_key: Option<String>) -> Result<Self, ApiError> {
         let base_url = base_url.trim_end_matches('/').to_string();
         let client = Client::builder()
             .timeout(DEFAULT_REQUEST_TIMEOUT)
             .build()
-            .expect("failed to build HTTP client");
-        Self {
+            .map_err(ApiError::ClientBuild)?;
+        Ok(Self {
             base_url,
             client,
             api_key,
-        }
+        })
     }
 
-    pub fn localhost() -> Self {
+    pub fn localhost() -> Result<Self, ApiError> {
         Self::new(
             &format!("http://localhost:{DEFAULT_ORCHESTRATOR_PORT}"),
             None,
@@ -265,13 +266,14 @@ mod tests {
 
     #[test]
     fn orchestrator_client_construction() {
-        let client = OrchestratorClient::localhost();
+        let client = OrchestratorClient::localhost().unwrap();
         assert_eq!(client.base_url, "http://localhost:8000");
     }
 
     #[test]
     fn orchestrator_with_api_key() {
-        let client = OrchestratorClient::new("http://gpu-host:8000", Some("key123".into()));
+        let client =
+            OrchestratorClient::new("http://gpu-host:8000", Some("key123".into())).unwrap();
         assert_eq!(client.api_key.as_deref(), Some("key123"));
     }
 
@@ -319,7 +321,7 @@ mod tests {
     #[tokio::test]
     async fn delete_job_permanent_uses_permanent_endpoint() {
         let (base_url, server) = one_shot_server("HTTP/1.1 200 OK", r#"{"message":"deleted"}"#);
-        let client = OrchestratorClient::new(&base_url, Some("k".into()));
+        let client = OrchestratorClient::new(&base_url, Some("k".into())).unwrap();
 
         let resp = client.delete_job_permanent("abc", false).await.unwrap();
 
@@ -333,7 +335,7 @@ mod tests {
     #[tokio::test]
     async fn delete_job_permanent_can_keep_outputs() {
         let (base_url, server) = one_shot_server("HTTP/1.1 200 OK", r#"{"message":"deleted"}"#);
-        let client = OrchestratorClient::new(&base_url, None);
+        let client = OrchestratorClient::new(&base_url, None).unwrap();
 
         client.delete_job_permanent("abc", true).await.unwrap();
 
@@ -350,7 +352,7 @@ mod tests {
             "Content-Type: text/plain\r\nX-Log-Next-Offset: 42\r\nX-Log-Reset: false\r\nX-Log-Truncated: true\r\nX-Log-Complete: true\r\n",
             "new text\n",
         );
-        let client = OrchestratorClient::new(&base_url, None);
+        let client = OrchestratorClient::new(&base_url, None).unwrap();
 
         let chunk = client.get_logs_since("abc", 7).await.unwrap();
 
@@ -377,7 +379,7 @@ mod tests {
             "Content-Type: text/plain\r\n",
             "tail\n",
         );
-        let client = OrchestratorClient::new(&base_url, None);
+        let client = OrchestratorClient::new(&base_url, None).unwrap();
 
         let chunk = client.get_logs_since("abc", 0).await.unwrap();
 
@@ -391,7 +393,7 @@ mod tests {
             "HTTP/1.1 400 Bad Request",
             r#"{"detail":"Cannot cancel job in status completed"}"#,
         );
-        let client = OrchestratorClient::new(&base_url, None);
+        let client = OrchestratorClient::new(&base_url, None).unwrap();
 
         let err = client.cancel_job("abc").await.unwrap_err();
 

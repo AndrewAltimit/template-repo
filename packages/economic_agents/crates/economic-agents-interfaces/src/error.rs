@@ -13,33 +13,9 @@ pub enum EconomicAgentError {
     #[error("insufficient capital: need {required}, have {available}")]
     InsufficientCapital { required: f64, available: f64 },
 
-    /// Insufficient investor capital for funding.
-    #[error("insufficient investor capital: need {required}, have {available}")]
-    InsufficientInvestorCapital { required: f64, available: f64 },
-
-    /// Company has gone bankrupt (capital < 0).
-    #[error("company bankrupt: capital is {capital}")]
-    CompanyBankrupt { capital: f64 },
-
     /// Invalid company stage transition.
-    #[error("invalid stage transition from {from:?} to {to:?}")]
+    #[error("invalid stage transition from {from} to {to}")]
     InvalidStageTransition { from: String, to: String },
-
-    /// Company not found in registry.
-    #[error("company not found: {id}")]
-    CompanyNotFound { id: String },
-
-    /// Product development failed.
-    #[error("product development failed: {reason}")]
-    ProductDevelopmentFailed { reason: String },
-
-    /// Company stage regressed unexpectedly.
-    #[error("stage regression detected: was {previous:?}, now {current:?}")]
-    StageRegression { previous: String, current: String },
-
-    /// Investment was rejected.
-    #[error("investment rejected: {reason}")]
-    InvestmentRejected { reason: String },
 
     /// Task not found.
     #[error("task not found: {id}")]
@@ -56,14 +32,6 @@ pub enum EconomicAgentError {
     /// Network or API error.
     #[error("network error: {0}")]
     Network(String),
-
-    /// Timeout during operation.
-    #[error("operation timed out after {duration_secs}s")]
-    Timeout { duration_secs: u64 },
-
-    /// Serialization/deserialization error.
-    #[error("serialization error: {0}")]
-    Serialization(String),
 
     /// Configuration error.
     #[error("configuration error: {0}")]

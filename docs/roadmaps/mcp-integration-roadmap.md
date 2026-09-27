@@ -1622,4 +1622,3 @@ openai>=1.0.0                 # OpenRouter compatibility
 
 ### Cognitive Architecture
 - Kahneman, D. (2011). *Thinking, Fast and Slow* - System 1/System 2 framework
-- [Gemini Consultation](https://openrouter.ai/) - Dual-speed architecture review

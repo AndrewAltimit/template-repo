@@ -19,15 +19,28 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  # Fork guard: block fork PRs from running on self-hosted runners.
+  # Fork PRs could execute arbitrary code on the runner. This job gates all others
+  # (same pattern as pr-validation.yml).
+  fork-guard:
+    name: Fork PR Guard
+    runs-on: self-hosted
+    if: >-
+      github.event_name != 'pull_request' ||
+      github.event.pull_request.head.repo.full_name == github.repository
+    steps:
+      - run: echo "Not a fork PR - proceeding"
+
   # Build and test on self-hosted Linux runner
   build-and-test:
+    needs: fork-guard
     runs-on: self-hosted
     defaults:
       run:
         working-directory: tools/rust/gh-validator
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
       - name: Install Rust toolchain
         run: |
@@ -93,7 +106,7 @@ jobs:
           fi
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: ${{ steps.build.outputs.artifact_name }}
           path: tools/rust/gh-validator/target/release/gh
@@ -116,7 +129,7 @@ jobs:
         working-directory: tools/rust/gh-validator
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
       - name: Check architecture compatibility
         id: arch-check
@@ -159,7 +172,7 @@ jobs:
 
       - name: Upload artifact
         if: steps.arch-check.outputs.skip != 'true'
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: ${{ matrix.asset_name }}
           path: tools/rust/gh-validator/target/${{ matrix.target }}/release/gh${{ contains(matrix.target, 'windows') && '.exe' || '' }}
@@ -176,7 +189,7 @@ jobs:
         working-directory: tools/rust/gh-validator
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
 
       - name: Check architecture compatibility
         id: arch-check
@@ -232,7 +245,7 @@ jobs:
 
       - name: Upload artifact
         if: steps.arch-check.outputs.skip != 'true'
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: ${{ steps.target.outputs.asset_name }}
           path: tools/rust/gh-validator/target/${{ steps.target.outputs.target }}/release/gh
@@ -248,7 +261,7 @@ jobs:
 
     steps:
       - name: Download all artifacts
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
         with:
           path: artifacts
 
@@ -267,7 +280,7 @@ jobs:
           ls -la release/
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
         with:
           files: release/*
           generate_release_notes: true

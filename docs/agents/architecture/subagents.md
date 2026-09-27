@@ -151,7 +151,6 @@ Different AI agents may have varying levels of persona support:
 |-------|----------------|-------|
 | Claude | Full | Native persona/role support |
 | OpenCode | Full | System prompt configuration |
-| Gemini | Full | Role-based prompting |
 | Crush | Partial | Limited persona features |
 
 ## Future Enhancements

@@ -1,6 +1,7 @@
 //! Investment system and investor agents.
 //!
-//! This crate handles:
+//! Formerly the standalone `economic-agents-investment` crate; folded into
+//! core because core was its only functional consumer. This module handles:
 //! - Investment proposals
 //! - Investor agents and decision making
 //! - Company registry for matching

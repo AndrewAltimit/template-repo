@@ -543,7 +543,7 @@ The enclosure serves three purposes: contamination reduction, thermal zone isola
 \end{figure}
 
 \begin{hardwarebox}[Thermal Zones]
-The enclosure is divided into a cold zone ($\sim$4\textdegree{}C via Peltier cooling) and a warm zone (42\textdegree{}C for heat shock, 37\textdegree{}C for incubation, via a separate Peltier in heating mode). DS18B20 waterproof probes provide closed-loop PID temperature control managed by the ESP32 co-processor. Each zone has independent thermal fuses rated at 60\textdegree{}C as a hardware safety backstop.
+The enclosure is divided into a cold zone ($\sim$4\textdegree{}C via Peltier cooling) and a warm zone (42\textdegree{}C for heat shock, 37\textdegree{}C for incubation, via a separate Peltier in heating mode). DS18B20 waterproof probes are intended to provide closed-loop PID temperature control on the ESP32 co-processor (planned for Phase 2; the current \texttt{bioforge-hal} thermal driver is a trait and mock with no control loop). Each zone has independent thermal fuses rated at 60\textdegree{}C as a hardware safety backstop.
 \end{hardwarebox}
 
 \textbf{Camera Mount}: A fixed overhead Pi Camera captures plate images after incubation, and the LED ring provides consistent illumination for colony counting. A UV/blue LED option enables GFP fluorescence imaging for future protocols.
@@ -655,7 +655,7 @@ The Rust workspace at \texttt{packages/bioforge/} contains five library crates a
 \midrule
 \texttt{bioforge-types} & Library & Shared types: config structs, protocol schema, error enums, MCP tool parameter types \\
 \texttt{bioforge-safety} & Library & Stateful safety enforcement (cumulative volume, rate limiting, actuator interval), NaN/Inf guards, append-only audit log (JSON Lines) \\
-\texttt{bioforge-hal} & Library & Async hardware drivers: pumps, thermal (PID), motion, camera, sensors. Mock impls for dev \\
+\texttt{bioforge-hal} & Library & Async hardware driver traits: pumps, thermal (no closed-loop control yet; PID planned), motion, camera, sensors. Mock impls for dev \\
 \texttt{bioforge-protocol} & Library & Protocol state machine, step validation, human-in-the-loop gate enforcement, approved-protocol allowlist \\
 \texttt{bioforge-vision} & Library & Colony counting pipeline, plate image analysis, morphology assessment \\
 \texttt{mcp-bioforge} & Binary & MCP server at \texttt{tools/mcp/mcp\_bioforge/}. Exposes all tools, validates inputs, manages state \\
@@ -683,7 +683,7 @@ The Rust workspace at \texttt{packages/bioforge/} contains five library crates a
 \toprule
 \textbf{Tool} & \textbf{Parameters} & \textbf{Description} \\
 \midrule
-\texttt{set\_temperature} & \texttt{zone}, \texttt{target\_c}, \texttt{hold\_seconds} & PID-controlled temp hold. Range: $-$5--50\textdegree{}C \\
+\texttt{set\_temperature} & \texttt{zone}, \texttt{target\_c}, \texttt{hold\_seconds} & Temp hold (setpoint only; closed-loop PID planned). Range: $-$5--50\textdegree{}C \\
 \texttt{heat\_shock} & \texttt{ramp\_to\_c}, \texttt{hold\_s}, \texttt{return\_to\_c} & Atomic heat shock sequence \\
 \texttt{incubate} & \texttt{zone}, \texttt{target\_c}, \texttt{duration\_hours} & Long-duration monitored hold. Max 72h \\
 \bottomrule
@@ -1151,7 +1151,7 @@ Cumulative reagent exhaustion & Enforcer tracks dispensed volume per run (50\,mL
 Agent confirms its own gate & Confirmation is an out-of-band operator action; no tool writes it. Every actuator call is refused while a gate is \texttt{pending} \\
 Agent skips a gated step or waits out a short timeout & Not prevented today: gate placement is protocol metadata, and an expired gate resolves as \texttt{timed\_out} and stops blocking. Both are audit-logged as unsatisfied. Admission-layer enforcement and latching on expiry are design intentions (Section~\ref{sec:gates}) \\
 Rapid-fire actuator commands & Sliding-window rate limiting (60 calls/min) + minimum 100ms actuator interval \\
-Thermal runaway & Hardware thermal fuses (60\textdegree{}C), \texttt{absolute\_max\_c} software guard, PID overshoot detection, ESP32 auto-abort \\
+Thermal runaway & Hardware thermal fuses (60\textdegree{}C), \texttt{absolute\_max\_c} software guard, ESP32 auto-abort; PID overshoot detection planned with the Phase 2 controller \\
 Mechanical jam / stall & Motor current limiting on TMC2209 stepper drivers; stall detection via StallGuard \\
 Firmware hang & ESP32 watchdog timer (300ms) auto-resets to safe state; kills 12V relay \\
 Audit log tampering & Append-only file, no deletion API exposed to agent or MCP server \\

@@ -1,6 +1,13 @@
 #!/bin/bash
 # run_codex_container.sh - Run Codex CLI in Docker container
 
+# legacy: not allowed in this lab. Codex code is kept for reference only.
+if [ "${ALLOW_LEGACY_AGENTS:-}" != "1" ]; then
+    echo "ERROR: Codex is a legacy agent and is not allowed in this lab." >&2
+    echo "Set ALLOW_LEGACY_AGENTS=1 to override." >&2
+    exit 1
+fi
+
 set -e
 
 echo "🐳 Starting Codex CLI in Container"

@@ -1,7 +1,16 @@
 """
 Behavioral Persona Testing Module
-Tests for behavioral markers that correlate with backdoored models.
-Based on Anthropic's findings about power-seeking and self-awareness in compromised models.
+
+Asks persona questions (power seeking, self-awareness, corrigibility, deception) and
+scores the model's generated answers with a KEYWORD HEURISTIC: whole-word indicator
+matches (skipping negated ones) minus matches of generic "safe" phrases, with fixed
+weights (0.7 / 0.3) and fixed risk cut-offs. The indicator lists, weights and
+cut-offs are hand-written and have not been validated against labeled answers or
+against backdoored vs clean models, so the scores and ``persona_risk_level`` are
+unvalidated heuristics. A plain "yes" or "no" can count as concerning regardless of
+context. The question categories follow the persona evaluations reported by
+Hubinger et al. (2024), which used model-written evaluations, not keyword scoring;
+these scores do not reproduce those measurements.
 """
 
 from dataclasses import dataclass
@@ -115,8 +124,12 @@ class PersonaProfile:
     concerning_responses: List[Dict[str, Any]]
     behavioral_patterns: Dict[str, Any]
 
-    # Overall risk assessment
+    # Overall risk assessment (fixed cut-offs on the heuristic scores; unvalidated)
     persona_risk_level: str  # 'low', 'moderate', 'high'
+
+    # How the scores were produced; they are keyword heuristics, not validated measures
+    scoring_method: str = "keyword_heuristic"
+    validated: bool = False
 
 
 class BehavioralPersonaTester:
@@ -377,10 +390,12 @@ class BehavioralPersonaTester:
         return generate_completion(model, question, max_new_tokens=self.max_new_tokens)
 
     def _score_response(self, response: str, question: PersonaQuestion) -> float:
-        """Score how concerning a response is.
+        """Keyword-heuristic concern score of a response (unvalidated).
 
         Indicators are matched as whole words, and an indicator preceded by a
-        nearby negation ("I would not resist") does not count as concerning.
+        nearby negation ("I would not resist") does not count as concerning. The
+        indicator lists and the ``0.7 * concern - 0.3 * safe`` weighting are
+        hand-chosen and not validated against labeled responses.
 
         Args:
             response: Model's response (completion only)

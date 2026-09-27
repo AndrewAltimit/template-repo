@@ -84,7 +84,7 @@ class TestExportSections:
     @pytest.mark.parametrize("builder", SECTION_BUILDERS, ids=lambda f: f.__name__)
     def test_sections_are_empty_without_stored_results(self, builder):
         # Previously every builder returned hardcoded example data regardless of the model
-        assert builder(EmptyLoader(), None, "any-model") is None
+        assert builder(EmptyLoader(), "any-model") is None
 
     def test_comparison_uses_only_real_models(self):
         class Loader(EmptyLoader):
@@ -94,7 +94,7 @@ class TestExportSections:
             def fetch_model_summary(self, model_name):
                 return {"avg_accuracy": {"a": 0.9, "b": 0.6}[model_name]}
 
-        data = export_controls.fetch_comparison_data(Loader(), None, "a")
+        data = export_controls.fetch_comparison_data(Loader(), "a")
         assert set(data["comparison_metrics"]) == {"a", "b"}
         assert data["best_performer"] == "a"
         assert "persona_profiles" not in data
@@ -108,7 +108,7 @@ class TestExportSections:
                     for pre, post in ((0.9, 0.8), (0.7, 0.6))
                 ]
 
-        data = export_controls.fetch_persistence_data(Loader(), None, "m")
+        data = export_controls.fetch_persistence_data(Loader(), "m")
         assert data["avg_persistence"] == pytest.approx(0.7)
         assert data["training_methods"]["sft"]["pre_detection"] == pytest.approx(0.8)
         assert data["trigger_analysis"]["T"]["post"] == pytest.approx(0.7)

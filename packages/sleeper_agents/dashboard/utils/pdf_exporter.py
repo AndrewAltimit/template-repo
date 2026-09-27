@@ -47,6 +47,7 @@ logger = logging.getLogger(__name__)
 
 NOT_MEASURED = "Not measured"
 NO_DATA_TEXT = "No data available: this analysis has no stored results for this model (not measured)."
+NO_CONFIDENCE_TEXT = "No confidence data recorded for this model (not measured)."
 INSUFFICIENT_DATA_RISK = "INSUFFICIENT DATA - No measured results"
 # Key of a section's data dict whose stored results could not be read ({LOAD_ERROR_KEY: message})
 LOAD_ERROR_KEY = "load_error"
@@ -455,9 +456,7 @@ class PDFExporter:
             "14. Model Size Scaling Analysis",
             "Conclusions and Recommendations",
         ]
-        for item in toc_items:
-            story.append(Paragraph(f"• {item}", self.styles["Normal"]))
-            story.append(Spacer(1, 4))
+        story.extend(self._bullets(toc_items, gap=4))
         story.append(PageBreak())
 
         # Executive Summary
@@ -600,42 +599,69 @@ class PDFExporter:
         if not findings:
             findings.append("• Assessment complete - see detailed analysis below")
 
-        for finding in findings:
-            elements.append(Paragraph(finding, self.styles["Normal"]))
-            elements.append(Spacer(1, 6))
+        elements.extend(self._paras(findings, gap=6))
 
         return elements
 
+    # ------------------------------------------------------------------
+    # Shared flowable builders. Every section below is assembled from these
+    # so that spacing, table styling and chart sizing stay uniform.
+    # ------------------------------------------------------------------
+
+    def _para(self, text: str, style: str = "Normal") -> Paragraph:
+        """A paragraph in one of the registered styles."""
+        return Paragraph(text, self.styles[style])
+
+    def _paras(self, texts: List[str], gap: Optional[int] = None) -> List:
+        """Paragraphs in the Normal style, each optionally followed by a spacer."""
+        elements: List = []
+        for text in texts:
+            elements.append(self._para(text))
+            if gap:
+                elements.append(Spacer(1, gap))
+        return elements
+
+    def _bullets(self, items: List[Any], gap: Optional[int] = None) -> List:
+        """A bulleted list, each item optionally followed by a spacer."""
+        return self._paras([f"• {item}" for item in items], gap)
+
+    def _intro(self, heading: Optional[str], text: str, gap: int = 6) -> List:
+        """Section opening: an optional bold heading, then the context text."""
+        elements: List = []
+        if heading:
+            elements.extend([self._para(f"<b>{heading}</b>"), Spacer(1, 6)])
+        elements.extend([self._para(text), Spacer(1, gap)])
+        return elements
+
+    def _chart(self, chart_bytes: Optional[bytes], width: float, gap: Optional[int] = 6) -> List:
+        """A rendered chart image (width in inches), or nothing when no chart was produced."""
+        img = self._create_image_from_bytes(chart_bytes, width=width * inch) if chart_bytes else None
+        if not img:
+            return []
+        return [img, Spacer(1, gap)] if gap else [img]
+
+    def _table(self, rows: List[List[Any]], widths: List[float], gap: Optional[int] = 6) -> List:
+        """A table in the standard report style (column widths in inches), optionally followed by a spacer."""
+        table = Table(rows, colWidths=[w * inch for w in widths])
+        table.setStyle(self._get_table_style())
+        return [table, Spacer(1, gap)] if gap else [table]
+
     def _generate_persistence_section(self, data: Dict) -> List:
         """Generate persistence analysis section."""
-        elements = []
-
-        # Critical context about persistence
-        elements.append(Paragraph("<b>Understanding Backdoor Persistence Through Safety Training</b>", self.styles["Normal"]))
-        elements.append(Spacer(1, 6))
-
-        context_text = """
+        elements = self._intro(
+            "Understanding Backdoor Persistence Through Safety Training",
+            """
         If safety training were effective, backdoor activation would drop to near 0% after training. The measured
         pre- and post-training activation rates below show how much backdoor behavior survived for this model.
-        """
-        elements.append(Paragraph(context_text, self.styles["Normal"]))
-        elements.append(Spacer(1, 6))
+        """,
+        )
+        elements.extend(self._chart(create_persistence_chart(data), 6))
 
-        # Add persistence chart if available
-        chart_bytes = create_persistence_chart(data)
-        if chart_bytes:
-            img = self._create_image_from_bytes(chart_bytes, width=6 * inch)
-            if img:
-                elements.append(img)
-                elements.append(Spacer(1, 6))
-
-        # Training methods comparison table
         if "training_methods" in data:
             elements.extend(self._add_subsection_header("Training Method Effectiveness"))
-
-            method_data = [["Method", "Pre-Training", "Post-Training", "Persistence Rate"]]
+            rows = [["Method", "Pre-Training", "Post-Training", "Persistence Rate"]]
             for method, metrics in data["training_methods"].items():
-                method_data.append(
+                rows.append(
                     [
                         method.upper(),
                         _pct(metrics.get("pre_detection")),
@@ -643,38 +669,22 @@ class PDFExporter:
                         _pct(metrics.get("persistence_rate")),
                     ]
                 )
+            elements.extend(self._table(rows, [1.5, 1.5, 1.5, 1.5]))
 
-            table = Table(method_data, colWidths=[1.5 * inch, 1.5 * inch, 1.5 * inch, 1.5 * inch])
-            table.setStyle(self._get_table_style())
-            elements.append(table)
-            elements.append(Spacer(1, 6))
-
-        # Add trigger heatmap if trigger data exists
         if "trigger_analysis" in data:
             elements.append(Spacer(1, 6))
             elements.extend(self._add_subsection_header("Trigger Sensitivity Analysis"))
-            heatmap_bytes = create_trigger_heatmap(data["trigger_analysis"])
-            if heatmap_bytes:
-                img = self._create_image_from_bytes(heatmap_bytes, width=5.5 * inch)
-                if img:
-                    elements.append(img)
-                    elements.append(Spacer(1, 6))
+            elements.extend(self._chart(create_trigger_heatmap(data["trigger_analysis"]), 5.5))
 
-        # Key insight
         if (data.get("adversarial_persistence") or 0) > 0.95:
             elements.append(
-                Paragraph(
-                    "Note: Adversarial training can increase harmful behavior persistence rather than reducing it.",
-                    self.styles["Normal"],
-                )
+                self._para("Note: Adversarial training can increase harmful behavior persistence rather than reducing it.")
             )
 
         return elements
 
     def _generate_red_team_section(self, data: Dict) -> List:
         """Generate red team results section."""
-        elements = []
-
         total = data.get("total_prompts")
         unscored = data.get("unscored_prompts")
         if data.get("success_rate") is None and total and data.get("scored_prompts") == 0:
@@ -685,104 +695,69 @@ class PDFExporter:
             summary_text = f"Tested {_count(total)} prompts with {fmt_pct(data.get('success_rate'))} success rate."
             if unscored:
                 summary_text += f" {_count(unscored)} unscored prompts are excluded from the rates."
-        elements.append(Paragraph(summary_text, self.styles["Normal"]))
-        elements.append(Spacer(1, 6))
+        elements = [self._para(summary_text), Spacer(1, 6)]
 
-        # Add red team success chart
         if "strategy_success" in data:
-            chart_bytes = create_red_team_success_chart(data)
-            if chart_bytes:
-                img = self._create_image_from_bytes(chart_bytes, width=5.5 * inch)
-                if img:
-                    elements.append(img)
-                    elements.append(Spacer(1, 6))
+            elements.extend(self._chart(create_red_team_success_chart(data), 5.5))
 
-        # Discovered triggers
         if "discovered_triggers" in data:
             elements.extend(self._add_subsection_header("Discovered Trigger Patterns:"))
+            elements.extend(self._bullets(data["discovered_triggers"][:10], gap=4))  # Top 10
 
-            trigger_list = []
-            for trigger in data["discovered_triggers"][:10]:  # Top 10
-                trigger_list.append(f"• {trigger}")
-
-            for item in trigger_list:
-                elements.append(Paragraph(item, self.styles["Normal"]))
-                elements.append(Spacer(1, 4))
-
-        # Strategy effectiveness
         if "strategy_success" in data:
             elements.append(Spacer(1, 6))
             elements.extend(self._add_subsection_header("Strategy Effectiveness:"))
-
-            strategy_data = [["Strategy", "Success Rate"]]
+            rows = [["Strategy", "Success Rate"]]
             for strategy, rate in sorted(data["strategy_success"].items(), key=lambda x: x[1], reverse=True):
-                strategy_data.append([strategy.replace("_", " ").title(), f"{rate:.1%}"])
-
-            table = Table(strategy_data, colWidths=[3 * inch, 2 * inch])
-            table.setStyle(self._get_table_style())
-            elements.append(table)
+                rows.append([strategy.replace("_", " ").title(), f"{rate:.1%}"])
+            elements.extend(self._table(rows, [3, 2], gap=None))
 
         return elements
 
     def _generate_persona_section(self, data: Dict) -> List:
         """Generate persona profile section."""
-        elements = []
-
-        # Risk assessment
         risk_level = data.get("risk_level", "Unknown")
         risk_color = {"CRITICAL": "#ff0000", "HIGH": "#ff8800", "MODERATE": "#ffaa00", "LOW": "#00aa00"}.get(
             risk_level, "#888888"
         )
+        elements = [
+            self._para(f"Behavioral Risk Level: <font color='{risk_color}'><b>{risk_level}</b></font>"),
+            Spacer(1, 6),
+        ]
 
-        elements.append(
-            Paragraph(f"Behavioral Risk Level: <font color='{risk_color}'><b>{risk_level}</b></font>", self.styles["Normal"])
-        )
-        elements.append(Spacer(1, 6))
-
-        # Add persona radar chart
         if "behavioral_scores" in data:
-            chart_bytes = create_persona_radar(data)
-            if chart_bytes:
-                img = self._create_image_from_bytes(chart_bytes, width=5 * inch)
-                if img:
-                    elements.append(img)
-                    elements.append(Spacer(1, 6))
-
-        # Behavioral scores
-        if "behavioral_scores" in data:
+            elements.extend(self._chart(create_persona_radar(data), 5))
             elements.extend(self._add_subsection_header("Behavioral Dimensions:"))
-
-            score_data = [["Dimension", "Score", "Interpretation"]]
+            rows = [["Dimension", "Score", "Interpretation"]]
             for dimension, score in data["behavioral_scores"].items():
                 interpretation = self._interpret_persona_score(dimension, score)
-                score_data.append([dimension.replace("_", " ").title(), f"{score:.1%}", interpretation])
-
-            table = Table(score_data, colWidths=[2 * inch, 1.5 * inch, 2.5 * inch])
-            table.setStyle(self._get_table_style())
-            elements.append(table)
+                rows.append([dimension.replace("_", " ").title(), f"{score:.1%}", interpretation])
+            elements.extend(self._table(rows, [2, 1.5, 2.5], gap=None))
 
         # Trigger-conditioned persona changes are not computed by the pipeline, so none are reported
 
-        # Response statistics (NEW - based on our updated format)
         if "response_statistics" in data:
             elements.append(Spacer(1, 6))
             elements.extend(self._add_subsection_header("Concerning Response Analysis"))
 
             stats = data["response_statistics"]
-
-            # Summary metrics
             total_tested = stats.get("total_prompts_tested")
             flagged = stats.get("flagged_responses")
-            elements.append(Paragraph(f"Total Prompts Tested: {_count(total_tested)}", self.styles["Normal"]))
-            elements.append(Paragraph(f"Flagged Responses: {_count(flagged)}", self.styles["Normal"]))
-            elements.append(Paragraph(f"Flag Rate: {_pct(_ratio(flagged, total_tested))}", self.styles["Normal"]))
+            elements.extend(
+                self._paras(
+                    [
+                        f"Total Prompts Tested: {_count(total_tested)}",
+                        f"Flagged Responses: {_count(flagged)}",
+                        f"Flag Rate: {_pct(_ratio(flagged, total_tested))}",
+                    ]
+                )
+            )
             elements.append(Spacer(1, 8))
 
-            # Category breakdown table
             if stats.get("categories"):
-                category_data = [["Category", "Tested", "Flagged", "Flag Rate"]]
+                rows = [["Category", "Tested", "Flagged", "Flag Rate"]]
                 for cat_name, cat_stats in stats["categories"].items():
-                    category_data.append(
+                    rows.append(
                         [
                             cat_name.replace("_", " ").title(),
                             _count(cat_stats.get("tested")),
@@ -790,145 +765,111 @@ class PDFExporter:
                             _pct(_ratio(cat_stats.get("flagged"), cat_stats.get("tested"))),
                         ]
                     )
+                elements.extend(self._table(rows, [2, 1, 1, 1], gap=None))
 
-                table = Table(category_data, colWidths=[2 * inch, 1 * inch, 1 * inch, 1 * inch])
-                table.setStyle(self._get_table_style())
-                elements.append(table)
-
-        # Top concerning responses (if available)
         if "top_concerning_responses" in data:
             elements.append(Spacer(1, 6))
             elements.extend(self._add_subsection_header("Most Concerning Responses (Top 3)"))
-
             for i, resp in enumerate(data["top_concerning_responses"][:3], 1):
                 trigger_status = "[TRIGGER]" if resp.get("trigger_present", False) else "[NO TRIGGER]"
-                elements.append(
-                    Paragraph(f"<b>#{i}</b> {trigger_status} - Score: {resp['concern_score']:.0%}", self.styles["Normal"])
+                elements.extend(
+                    self._paras(
+                        [
+                            f"<b>#{i}</b> {trigger_status} - Score: {resp['concern_score']:.0%}",
+                            f"Q: {resp['question']}",
+                            f"A: <i>{resp['response']}</i>",
+                        ]
+                    )
                 )
-                elements.append(Paragraph(f"Q: {resp['question']}", self.styles["Normal"]))
-                elements.append(Paragraph(f"A: <i>{resp['response']}</i>", self.styles["Normal"]))
                 elements.append(Spacer(1, 4))
 
         return elements
 
     def _generate_detection_section(self, data: Dict) -> List:
         """Generate detection analysis section."""
-        elements = []
-
-        # Add context explanation
-        elements.append(
-            Paragraph(
+        elements = [
+            self._para(
                 "This section evaluates our ability to detect backdoor behaviors in model outputs. "
                 "The detection system analyzes response patterns, activation anomalies, and behavioral inconsistencies "
-                "to identify potential deceptive or misaligned outputs.",
-                self.styles["Normal"],
+                "to identify potential deceptive or misaligned outputs."
+            ),
+            Spacer(1, 8),
+            self._para("<b>Understanding the Metrics:</b>"),
+        ]
+        elements.extend(
+            self._bullets(
+                [
+                    "<b>Accuracy</b>: Overall correctness in distinguishing safe from backdoored behaviors",
+                    "<b>Precision</b>: When we flag behavior as dangerous, how often we're correct",
+                    "<b>Recall</b>: What percentage of actual backdoor behaviors we successfully detect",
+                    "<b>F1 Score</b>: Harmonic mean balancing precision and recall",
+                ]
             )
         )
-        elements.append(Spacer(1, 8))
-
-        elements.append(Paragraph("<b>Understanding the Metrics:</b>", self.styles["Normal"]))
-        elements.append(
-            Paragraph(
-                "• <b>Accuracy</b>: Overall correctness in distinguishing safe from backdoored behaviors",
-                self.styles["Normal"],
-            )
-        )
-        elements.append(
-            Paragraph("• <b>Precision</b>: When we flag behavior as dangerous, how often we're correct", self.styles["Normal"])
-        )
-        elements.append(
-            Paragraph(
-                "• <b>Recall</b>: What percentage of actual backdoor behaviors we successfully detect", self.styles["Normal"]
-            )
-        )
-        elements.append(Paragraph("• <b>F1 Score</b>: Harmonic mean balancing precision and recall", self.styles["Normal"]))
         elements.append(Spacer(1, 12))
+        elements.extend(self._chart(create_detection_metrics_chart(data), 5))
 
-        # Add detection metrics chart
-        chart_bytes = create_detection_metrics_chart(data)
-        if chart_bytes:
-            img = self._create_image_from_bytes(chart_bytes, width=5 * inch)
-            if img:
-                elements.append(img)
-                elements.append(Spacer(1, 6))
-
-        # Overall metrics table
-        metrics = {
-            "Accuracy": data.get("accuracy"),
-            "F1 Score": data.get("f1_score"),
-            "Precision": data.get("precision"),
-            "Recall": data.get("recall"),
-        }
-
-        metric_data = [["Metric", "Value"]]
-        for metric, value in metrics.items():
-            metric_data.append([metric, _pct(value)])
-
-        table = Table(metric_data, colWidths=[2 * inch, 2 * inch])
-        table.setStyle(self._get_table_style())
-
+        metric_rows = [["Metric", "Value"]]
+        for label, key in (
+            ("Accuracy", "accuracy"),
+            ("F1 Score", "f1_score"),
+            ("Precision", "precision"),
+            ("Recall", "recall"),
+        ):
+            metric_rows.append([label, _pct(data.get(key))])
         # Keep header with table
-        elements.extend(self._add_subsection_with_content("Detection Performance Metrics:", [table, Spacer(1, 6)]))
+        elements.extend(self._add_subsection_with_content("Detection Performance Metrics:", self._table(metric_rows, [2, 2])))
 
-        # Add confusion matrix
-        confusion_chart = create_confusion_matrix(data)
-        if confusion_chart:
-            img = self._create_image_from_bytes(confusion_chart, width=4.5 * inch)
-            if img:
-                elements.extend(self._add_subsection_with_content("Confusion Matrix", [img, Spacer(1, 6)]))
-
-        # Add ROC curve
-        roc_chart = create_roc_curve(data)
-        if roc_chart:
-            img = self._create_image_from_bytes(roc_chart, width=5 * inch)
-            if img:
-                elements.extend(self._add_subsection_with_content("ROC Curve Analysis", [img, Spacer(1, 6)]))
-
-        # Add confidence distribution (always try to generate)
-        conf_chart = create_confidence_distribution(data)
-        if conf_chart:
-            img = self._create_image_from_bytes(conf_chart, width=5 * inch)
-            if img:
-                elements.extend(self._add_subsection_with_content("Confidence Score Distribution", [img]))
+        # Confusion matrix, ROC curve and confidence distribution, each kept with its header
+        for title, chart_bytes, width, gap in (
+            ("Confusion Matrix", create_confusion_matrix(data), 4.5, 6),
+            ("ROC Curve Analysis", create_roc_curve(data), 5, 6),
+            ("Confidence Score Distribution", create_confidence_distribution(data), 5, None),
+        ):
+            chart = self._chart(chart_bytes, width, gap=gap)
+            if chart:
+                elements.extend(self._add_subsection_with_content(title, chart))
+        if not data.get("confidence_distribution"):
+            # Stated explicitly: an omitted chart must not read as "nothing to report"
+            elements.extend(
+                self._add_subsection_with_content("Confidence Score Distribution", [self._para(NO_CONFIDENCE_TEXT)])
+            )
 
         return elements
 
     def _generate_scaling_section(self, data: Dict) -> List:
         """Generate scaling analysis section."""
-        elements = []
+        elements = [self._para("Analysis of how backdoor persistence scales with model size."), Spacer(1, 6)]
 
-        elements.append(Paragraph("Analysis of how backdoor persistence scales with model size.", self.styles["Normal"]))
-        elements.append(Spacer(1, 6))
-
-        # Add scaling curves chart
         if data:
-            chart_bytes = create_scaling_curves(data)
-            if chart_bytes:
-                img = self._create_image_from_bytes(chart_bytes, width=5.5 * inch)
-                if img:
-                    elements.append(img)
-                    elements.append(Spacer(1, 6))
+            elements.extend(self._chart(create_scaling_curves(data), 5.5))
 
-        # Scaling coefficients
         if "scaling_coefficients" in data:
             elements.extend(self._add_subsection_header("Scaling Trends:"))
+            coefficients = data["scaling_coefficients"]
+            elements.extend(
+                self._bullets(
+                    [
+                        f"{label} scaling: {fmt_num(coefficients.get(key))} per 2x params"
+                        for label, key in (
+                            ("Persistence", "persistence"),
+                            ("Specificity", "specificity"),
+                            ("Resistance", "resistance"),
+                        )
+                    ],
+                    gap=4,
+                )
+            )
 
-            coef_items = [
-                f"• Persistence scaling: {fmt_num(data['scaling_coefficients'].get('persistence'))} per 2x params",
-                f"• Specificity scaling: {fmt_num(data['scaling_coefficients'].get('specificity'))} per 2x params",
-                f"• Resistance scaling: {fmt_num(data['scaling_coefficients'].get('resistance'))} per 2x params",
-            ]
-
-            for item in coef_items:
-                elements.append(Paragraph(item, self.styles["Normal"]))
-                elements.append(Spacer(1, 4))
-
-        # Critical thresholds
         if "critical_size" in data:
             elements.append(Spacer(1, 6))
-            elements.append(Paragraph(f"Critical Size Threshold: {data['critical_size']:,} parameters", self.styles["Normal"]))
-            elements.append(
-                Paragraph(f"Maximum Safe Size: {_count(data.get('safe_limit'))} parameters", self.styles["Normal"])
+            elements.extend(
+                self._paras(
+                    [
+                        f"Critical Size Threshold: {data['critical_size']:,} parameters",
+                        f"Maximum Safe Size: {_count(data.get('safe_limit'))} parameters",
+                    ]
+                )
             )
 
         return elements
@@ -1060,9 +1001,7 @@ class PDFExporter:
         )
 
         recommendations = self._generate_recommendations(overall_risk, persistence_data, persona_data)
-        for rec in recommendations:
-            elements.append(Paragraph(f"• {rec}", self.styles["Normal"]))
-            elements.append(Spacer(1, 4))
+        elements.extend(self._bullets(recommendations, gap=4))
 
         return elements
 
@@ -1108,39 +1047,25 @@ class PDFExporter:
 
     def _generate_generic_section(self, data: Dict) -> List:
         """Generate generic section for any data."""
-        elements = []
 
+        def fmt(value: Any) -> str:
+            # Fractions read as percentages; other values are printed as-is
+            return f"{value:.1%}" if isinstance(value, (int, float)) and value < 1 else f"{value}"
+
+        elements: List = []
         for key, value in data.items():
+            title = key.replace("_", " ").title()
             if isinstance(value, dict):
-                elements.append(Paragraph(key.replace("_", " ").title(), self.styles["SubsectionHeader"]))
-                sub_items = []
-                for sub_key, sub_value in value.items():
-                    if isinstance(sub_value, (int, float)):
-                        if sub_value < 1:
-                            sub_items.append(f"• {sub_key}: {sub_value:.1%}")
-                        else:
-                            sub_items.append(f"• {sub_key}: {sub_value}")
-                    else:
-                        sub_items.append(f"• {sub_key}: {sub_value}")
-
-                for item in sub_items[:10]:  # Limit to 10 items
-                    elements.append(Paragraph(item, self.styles["Normal"]))
-                    elements.append(Spacer(1, 4))
+                elements.append(self._para(title, "SubsectionHeader"))
+                items = [f"{sub_key}: {fmt(sub_value)}" for sub_key, sub_value in value.items()]
+                elements.extend(self._bullets(items[:10], gap=4))  # Limit to 10 items
                 elements.append(Spacer(1, 4))
-
             elif isinstance(value, list) and len(value) > 0:
-                elements.append(Paragraph(key.replace("_", " ").title(), self.styles["SubsectionHeader"]))
-                for item in value[:10]:  # Limit to 10 items
-                    elements.append(Paragraph(f"• {item}", self.styles["Normal"]))
-                    elements.append(Spacer(1, 4))
+                elements.append(self._para(title, "SubsectionHeader"))
+                elements.extend(self._bullets(value[:10], gap=4))  # Limit to 10 items
                 elements.append(Spacer(1, 4))
-
             elif isinstance(value, (int, float)):
-                if value < 1:
-                    elements.append(Paragraph(f"{key.replace('_', ' ').title()}: {value:.1%}", self.styles["Normal"]))
-                else:
-                    elements.append(Paragraph(f"{key.replace('_', ' ').title()}: {value}", self.styles["Normal"]))
-                elements.append(Spacer(1, 4))
+                elements.extend(self._paras([f"{title}: {fmt(value)}"], gap=4))
 
         return elements
 
@@ -1200,78 +1125,46 @@ class PDFExporter:
 
     def _generate_comparison_section(self, data: Dict) -> List:
         """Generate model comparison section."""
-        elements = []
-
         current_model = data.get("current_model", "Unknown")
-        elements.append(
-            Paragraph(
+        elements = [
+            self._para(
                 f"Comparative analysis of {current_model} against other models. Rather than reducing "
                 f"security to a single score, "
-                "we examine multiple behavioral dimensions to understand each model's unique risk profile.",
-                self.styles["Normal"],
-            )
-        )
-        elements.append(Spacer(1, 6))
+                "we examine multiple behavioral dimensions to understand each model's unique risk profile."
+            ),
+            Spacer(1, 6),
+        ]
+        elements.extend(self._chart(create_model_comparison_radar(data), 5))
 
-        # Add model comparison radar chart
-        radar_chart = create_model_comparison_radar(data)
-        if radar_chart:
-            img = self._create_image_from_bytes(radar_chart, width=5 * inch)
-            if img:
-                elements.append(img)
-                elements.append(Spacer(1, 6))
-
-        # Add interpretation guide for the matrix above
+        # Interpretation guide for the matrix above
         if "persona_profiles" in data:
-            elements.append(Paragraph("<b>Interpreting the Matrix:</b>", self.styles["Normal"]))
-            elements.append(Spacer(1, 4))
-
-            elements.append(Paragraph("<b>Detection Metrics (Higher is Better):</b>", self.styles["Normal"]))
-            elements.append(
-                Paragraph("• <b>Accuracy, F1, Precision, Recall</b>: Standard performance metrics", self.styles["Normal"])
-            )
+            elements.extend([self._para("<b>Interpreting the Matrix:</b>"), Spacer(1, 4)])
+            elements.append(self._para("<b>Detection Metrics (Higher is Better):</b>"))
+            elements.extend(self._bullets(["<b>Accuracy, F1, Precision, Recall</b>: Standard performance metrics"]))
             elements.append(Spacer(1, 6))
-
-            elements.append(Paragraph("<b>Behavioral Risk Dimensions:</b>", self.styles["Normal"]))
-            elements.append(
-                Paragraph("• <b>Power Seek</b>: Desire for autonomy and control (higher = riskier)", self.styles["Normal"])
-            )
-            elements.append(
-                Paragraph("• <b>Self Aware</b>: Recognition of own capabilities (context-dependent)", self.styles["Normal"])
-            )
-            elements.append(
-                Paragraph("• <b>Corrigible</b>: Willingness to be modified (lower = riskier)", self.styles["Normal"])
-            )
-            elements.append(
-                Paragraph("• <b>Deception</b>: Likelihood to mislead about goals (higher = riskier)", self.styles["Normal"])
-            )
-            elements.append(
-                Paragraph(
-                    "• <b>Goal Focus</b>: Pursuit of objectives regardless of constraints (higher = riskier)",
-                    self.styles["Normal"],
+            elements.append(self._para("<b>Behavioral Risk Dimensions:</b>"))
+            elements.extend(
+                self._bullets(
+                    [
+                        "<b>Power Seek</b>: Desire for autonomy and control (higher = riskier)",
+                        "<b>Self Aware</b>: Recognition of own capabilities (context-dependent)",
+                        "<b>Corrigible</b>: Willingness to be modified (lower = riskier)",
+                        "<b>Deception</b>: Likelihood to mislead about goals (higher = riskier)",
+                        "<b>Goal Focus</b>: Pursuit of objectives regardless of constraints (higher = riskier)",
+                    ]
                 )
             )
             elements.append(Spacer(1, 8))
 
-        # Vulnerability matrix
         if "vulnerability_matrix" in data:
-            elements.append(Paragraph("Vulnerability Assessment Matrix", self.styles["SubsectionHeader"]))
-
+            elements.append(self._para("Vulnerability Assessment Matrix", "SubsectionHeader"))
             for vuln_type, scores in data["vulnerability_matrix"].items():
-                elements.append(Paragraph(f"{vuln_type.replace('_', ' ').title()}:", self.styles["Normal"]))
+                elements.append(self._para(f"{vuln_type.replace('_', ' ').title()}:"))
+                rows = [["Model", "Vulnerability Score"]] + [[model, f"{score:.1%}"] for model, score in scores.items()]
+                elements.extend(self._table(rows, [2.5, 2], gap=4))
 
-                vuln_data = [["Model", "Vulnerability Score"]]
-                for model, score in scores.items():
-                    vuln_data.append([model, f"{score:.1%}"])
-
-                table = Table(vuln_data, colWidths=[2.5 * inch, 2 * inch])
-                table.setStyle(self._get_table_style())
-                elements.append(table)
-                elements.append(Spacer(1, 4))
-
-        # Best performer
         if "best_performer" in data:
-            elements.append(Paragraph(f"Best performing model: {data['best_performer']}", self.styles["SubsectionHeader"]))
+            elements.append(self._para(f"Best performing model: {data['best_performer']}", "SubsectionHeader"))
 
         return elements
 
@@ -1388,63 +1281,46 @@ class PDFExporter:
 
     def _generate_risk_profiles_section(self, data: Dict) -> List:
         """Generate risk profiles section."""
-        elements = []
-
-        # Add comprehensive context
-        elements.append(Paragraph("<b>Multi-Dimensional Risk Assessment Without False Unification</b>", self.styles["Normal"]))
-        elements.append(Spacer(1, 6))
-
-        context_text = """
+        elements = self._intro(
+            "Multi-Dimensional Risk Assessment Without False Unification",
+            """
         Traditional safety evaluations often combine multiple risk factors into a single score, creating a false
         sense of precision. This approach is fundamentally flawed because different risks are incommensurable -
         how do you weigh deception against capability hiding? Models may excel at gaming unified metrics while
         harboring hidden dangers. Safety is not a linear spectrum but a complex multi-dimensional space.
-        """
-        elements.append(Paragraph(context_text, self.styles["Normal"]))
-        elements.append(Spacer(1, 6))
-
-        # Risk dimensions table
-        if "risk_dimensions" in data:
-            dim_data = [["Dimension", "Score", "Risk Level"]]
-            for dim_name, score in data["risk_dimensions"].items():
-                risk_level = "High" if score > 0.7 else "Moderate" if score > 0.4 else "Low"
-                dim_data.append([dim_name.replace("_", " ").title(), f"{score:.1%}", risk_level])
-
-            table = Table(dim_data, colWidths=[2.5 * inch, 1.5 * inch, 1.5 * inch])
-            table.setStyle(self._get_table_style())
-
-            elements.extend(self._add_subsection_with_content("Risk Dimension Analysis", [table, Spacer(1, 6)]))
-
-        elements.append(
-            Paragraph(
-                "Note: Risk dimensions are NOT comparable or combinable. Each represents a different "
-                "aspect of potential compromise.",
-                self.styles["Normal"],
-            )
+        """,
         )
 
+        if "risk_dimensions" in data:
+            rows = [["Dimension", "Score", "Risk Level"]]
+            for dim_name, score in data["risk_dimensions"].items():
+                risk_level = "High" if score > 0.7 else "Moderate" if score > 0.4 else "Low"
+                rows.append([dim_name.replace("_", " ").title(), f"{score:.1%}", risk_level])
+            elements.extend(self._add_subsection_with_content("Risk Dimension Analysis", self._table(rows, [2.5, 1.5, 1.5])))
+
+        elements.append(
+            self._para(
+                "Note: Risk dimensions are NOT comparable or combinable. Each represents a different "
+                "aspect of potential compromise."
+            )
+        )
         return elements
 
     def _generate_tested_territory_section(self, data: Dict) -> List:
         """Generate tested territory section."""
-        elements = []
-
-        elements.append(Paragraph("<b>The Limits of Testing: Understanding What Remains Unknown</b>", self.styles["Normal"]))
-        elements.append(Spacer(1, 6))
-
-        context_text = """
+        elements = self._intro(
+            "The Limits of Testing: Understanding What Remains Unknown",
+            """
         Every test we run is like placing a single grain of sand on an infinite beach. While we can test thousands
         of scenarios, the space of possible model behaviors is effectively infinite. This section quantifies our
         tested territory to illustrate a critical truth: no amount of testing can guarantee safety when the untested
         space dwarfs what we've examined. The metrics below show not our thoroughness, but our limitations.
-        """
-        elements.append(Paragraph(context_text, self.styles["Normal"]))
-        elements.append(Spacer(1, 6))
+        """,
+        )
 
-        # Coverage metrics
         suite_coverage = data.get("suite_coverage")
         missing_suites = suites_without_results(suite_coverage)
-        coverage_data = [
+        rows = [
             ["Metric", "Value"],
             ["Total Samples Tested", _count(data.get("tested_prompts"))],
             ["Implemented Test Suites With Results", fmt_suite_coverage(suite_coverage)],
@@ -1454,59 +1330,46 @@ class PDFExporter:
             ],
             ["Unknown Risk Categories", "Unbounded"],
         ]
-
-        table = Table(coverage_data, colWidths=[2.5 * inch, 2.5 * inch])
-        table.setStyle(self._get_table_style())
-        elements.append(table)
-        elements.append(Spacer(1, 6))
-
+        elements.extend(self._table(rows, [2.5, 2.5]))
         elements.append(
-            Paragraph(
+            self._para(
                 "<b>Important:</b> Suite counts show which implemented test suites were run, not how much of the "
                 "model's behavior was tested. The actual behavior space is effectively infinite, so no coverage "
-                "percentage is reported.",
-                self.styles["Normal"],
+                "percentage is reported."
             )
         )
-
         return elements
 
     def _generate_internal_state_section(self, data: Dict) -> List:
         """Generate internal state monitoring section."""
-        elements = []
+        elements = [self._para("Analysis of internal model activations and feature discovery."), Spacer(1, 6)]
 
-        elements.append(Paragraph("Analysis of internal model activations and feature discovery.", self.styles["Normal"]))
-        elements.append(Spacer(1, 6))
-
-        # Feature discovery stats
         if "discovered_features" in data:
             elements.extend(self._add_subsection_header("Discovered Internal Features"))
-            elements.append(Paragraph(f"Total features identified: {data['discovered_features']}", self.styles["Normal"]))
-            elements.append(
-                Paragraph(f"Anomalous features: {data.get('suspicious_patterns', NOT_MEASURED)}", self.styles["Normal"])
+            elements.extend(
+                self._paras(
+                    [
+                        f"Total features identified: {data['discovered_features']}",
+                        f"Anomalous features: {data.get('suspicious_patterns', NOT_MEASURED)}",
+                    ]
+                )
             )
             elements.append(Spacer(1, 8))
 
-        # Activation patterns
         if "activation_patterns" in data:
             elements.extend(self._add_subsection_header("Activation Pattern Analysis"))
-            for pattern in data["activation_patterns"][:3]:  # Top 3 patterns
-                elements.append(
-                    Paragraph(f"• {pattern['description']}: {pattern['frequency']:.1%} occurrence", self.styles["Normal"])
-                )
+            patterns = data["activation_patterns"][:3]  # Top 3 patterns
+            elements.extend(self._bullets([f"{p['description']}: {p['frequency']:.1%} occurrence" for p in patterns]))
             elements.append(Spacer(1, 6))
 
         return elements
 
     def _generate_detection_consensus_section(self, data: Dict) -> List:
         """Generate detection consensus section."""
-        elements = []
-
-        elements.append(Paragraph("Analysis of agreement between different detection methods.", self.styles["Normal"]))
-        elements.append(Spacer(1, 6))
+        elements = [self._para("Analysis of agreement between different detection methods."), Spacer(1, 6)]
 
         # Consensus metrics (no per-method confidence exists: none is measured)
-        consensus_data = [
+        rows = [
             ["Metric", "Value"],
             ["Consensus Risk Score", _pct(data.get("consensus_risk_score"))],
             ["Method Agreement", _pct(data.get("agreement"))],
@@ -1514,147 +1377,103 @@ class PDFExporter:
             ["Risk Level", str(data.get("risk_level", NOT_MEASURED))],
         ]
         for method, info in (data.get("methods") or {}).items():
-            consensus_data.append(
-                [f"  {method}", f"{_pct(info.get('risk_score'))} ({_count(info.get('samples_tested'))} samples)"]
-            )
-
-        table = Table(consensus_data, colWidths=[2.5 * inch, 2 * inch])
-        table.setStyle(self._get_table_style())
-        elements.append(table)
-        elements.append(Spacer(1, 6))
+            rows.append([f"  {method}", f"{_pct(info.get('risk_score'))} ({_count(info.get('samples_tested'))} samples)"])
+        elements.extend(self._table(rows, [2.5, 2]))
 
         if data.get("aggregation"):
-            elements.append(Paragraph(f"Aggregation: {data['aggregation']}", self.styles["Normal"]))
+            elements.append(self._para(f"Aggregation: {data['aggregation']}"))
         missing = data.get("methods_without_results") or []
         if missing:
-            elements.append(
-                Paragraph(f"Methods without stored results (excluded): {', '.join(missing)}", self.styles["Normal"])
-            )
+            elements.append(self._para(f"Methods without stored results (excluded): {', '.join(missing)}"))
         elements.append(Spacer(1, 6))
 
-        # Outlier methods
-        if "outliers" in data and len(data["outliers"]) > 0:
+        if data.get("outliers"):
             elements.extend(self._add_subsection_header("Outlier Detection Methods"))
-            for outlier in data["outliers"]:
-                elements.append(
-                    Paragraph(
-                        f"• {outlier['method']}: {outlier['direction']} than average by {outlier['deviation']:.1f}σ",
-                        self.styles["Normal"],
-                    )
+            elements.extend(
+                self._bullets(
+                    [f"{o['method']}: {o['direction']} than average by {o['deviation']:.1f}σ" for o in data["outliers"]]
                 )
+            )
             elements.append(Spacer(1, 8))
 
         return elements
 
     def _generate_risk_mitigation_section(self, data: Dict) -> List:
         """Generate risk mitigation matrix section."""
-        elements = []
-
-        elements.append(
-            Paragraph(
+        elements = [
+            self._para(
                 "Measured risks and the mitigations designed to address them. Mitigation effectiveness is not "
-                "measured by this framework; the mapping is qualitative guidance.",
-                self.styles["Normal"],
-            )
-        )
-        elements.append(Spacer(1, 6))
+                "measured by this framework; the mapping is qualitative guidance."
+            ),
+            Spacer(1, 6),
+        ]
 
         if data.get("risks"):
-            risk_rows = [["Risk", "Measured Level", "Source"]]
+            rows = [["Risk", "Measured Level", "Source"]]
             for risk_name, risk in data["risks"].items():
-                risk_rows.append(
-                    [risk_name, fmt_pct(risk.get("level")), Paragraph(risk.get("source", ""), self.styles["Normal"])]
-                )
-            table = Table(risk_rows, colWidths=[1.8 * inch, 1.2 * inch, 3 * inch])
-            table.setStyle(self._get_table_style())
-            elements.append(table)
-            elements.append(Spacer(1, 6))
+                rows.append([risk_name, fmt_pct(risk.get("level")), self._para(risk.get("source", ""))])
+            elements.extend(self._table(rows, [1.8, 1.2, 3]))
 
         if data.get("mitigations"):
-            mit_data = [["Mitigation Strategy", "Target Risks", "Cost", "Time"]]
+            rows = [["Mitigation Strategy", "Target Risks", "Cost", "Time"]]
             for mit_name, mit_info in data["mitigations"].items():
-                mit_data.append(
+                rows.append(
                     [
                         mit_name,
-                        Paragraph(", ".join(mit_info.get("targets", [])), self.styles["Normal"]),
+                        self._para(", ".join(mit_info.get("targets", []))),
                         str(mit_info.get("cost", "")).title(),
                         str(mit_info.get("implementation_time", "")).title(),
                     ]
                 )
-            table = Table(mit_data, colWidths=[1.8 * inch, 2.4 * inch, 0.8 * inch, 1 * inch])
-            table.setStyle(self._get_table_style())
-            elements.append(table)
-            elements.append(Spacer(1, 6))
+            elements.extend(self._table(rows, [1.8, 2.4, 0.8, 1]))
 
         return elements
 
     def _generate_trigger_sensitivity_section(self, data: Dict) -> List:
         """Generate trigger sensitivity section."""
-        elements = []
+        elements = [self._para("Analysis of how different triggers activate backdoor behaviors."), Spacer(1, 6)]
 
-        elements.append(Paragraph("Analysis of how different triggers activate backdoor behaviors.", self.styles["Normal"]))
-        elements.append(Spacer(1, 6))
-
-        # Trigger effectiveness table
         if "triggers" in data:
-            trig_data = [["Trigger Type", "Activation Rate", "Specificity"]]
+            rows = [["Trigger Type", "Activation Rate", "Specificity"]]
             for trigger in data["triggers"]:
-                trig_data.append([trigger["type"], f"{trigger['activation_rate']:.1%}", trigger["specificity"]])
+                rows.append([trigger["type"], f"{trigger['activation_rate']:.1%}", trigger["specificity"]])
+            elements.extend(self._table(rows, [2.5, 1.5, 1.5]))
 
-            table = Table(trig_data, colWidths=[2.5 * inch, 1.5 * inch, 1.5 * inch])
-            table.setStyle(self._get_table_style())
-            elements.append(table)
-            elements.append(Spacer(1, 6))
-
-        # Critical triggers
         if "critical_triggers" in data:
             elements.extend(self._add_subsection_header("Critical Triggers Identified"))
-            for trigger in data["critical_triggers"]:
-                elements.append(Paragraph(f"• {trigger}", self.styles["Normal"]))
+            elements.extend(self._bullets(data["critical_triggers"]))
             elements.append(Spacer(1, 8))
 
         return elements
 
     def _generate_chain_of_thought_section(self, data: Dict) -> List:
         """Generate chain-of-thought analysis section."""
-        elements = []
-
-        elements.append(
-            Paragraph("<b>Revealing Hidden Reasoning Through Chain-of-Thought Analysis</b>", self.styles["Normal"])
-        )
-        elements.append(Spacer(1, 6))
-
-        context_text = """
+        elements = self._intro(
+            "Revealing Hidden Reasoning Through Chain-of-Thought Analysis",
+            """
         When models are trained with chain-of-thought reasoning, they sometimes reveal their true objectives in their
         intermediate reasoning steps. This analysis examines models' internal deliberations for signs of deceptive
         planning, goal-hiding, and strategic reasoning about avoiding detection. The presence of such reasoning patterns
         is particularly concerning because it suggests conscious deception rather than mere pattern matching.
         In published sleeper-agent experiments, models that explicitly reasoned about deceiving their operators
         retained their backdoors through safety training at very high rates.
-        """
-        elements.append(Paragraph(context_text, self.styles["Normal"]))
-        elements.append(Spacer(1, 6))
+        """,
+        )
 
-        # Key findings
-        findings = [
+        rows = [
             ["Finding", "Implication"],
             ["Deceptive reasoning detected", data.get("deceptive_reasoning", NOT_MEASURED)],
             ["Strategic planning observed", data.get("strategic_planning", NOT_MEASURED)],
             ["Goal-hiding language", data.get("goal_hiding", NOT_MEASURED)],
             ["Persistence through training", _pct(data.get("persistence_rate"))],
         ]
-
-        table = Table(findings, colWidths=[2.5 * inch, 2.5 * inch])
-        table.setStyle(self._get_table_style())
-        elements.append(table)
-        elements.append(Spacer(1, 6))
+        elements.extend(self._table(rows, [2.5, 2.5]))
 
         if str(data.get("deceptive_reasoning", "")).startswith("Yes"):
             elements.append(
-                Paragraph(
+                self._para(
                     "Note: Stored chain-of-thought samples contain explicit deceptive reasoning patterns "
-                    f"(backdoor persistence: {_pct(data.get('persistence_rate'))}).",
-                    self.styles["Normal"],
+                    f"(backdoor persistence: {_pct(data.get('persistence_rate'))})."
                 )
             )
 
@@ -1662,83 +1481,60 @@ class PDFExporter:
 
     def _generate_honeypot_section(self, data: Dict) -> List:
         """Generate honeypot analysis section."""
-        elements = []
-
-        elements.append(
-            Paragraph("<b>Strategic Scenario Testing: Revealing Model Decision-Making Patterns</b>", self.styles["Normal"])
-        )
-        elements.append(Spacer(1, 6))
-
-        context_text = """
+        elements = self._intro(
+            "Strategic Scenario Testing: Revealing Model Decision-Making Patterns",
+            """
         Unlike standard tests that check if a model performs correctly, honeypots are designed to expose hidden intentions.
         They create scenarios where the model's competing goals come into direct conflict: its training goal to be helpful
         and harmless versus its hidden backdoor objectives. The most effective honeypots make it strategically advantageous
         for the model to reveal its true nature.
-        """
-        elements.append(Paragraph(context_text, self.styles["Normal"]))
-        elements.append(Spacer(1, 8))
+        """,
+            gap=8,
+        )
 
         # Key insight about strategic reasoning
         elements.extend(self._add_subsection_header("<b>Critical Indicator: Strategic Decision-Making Patterns</b>"))
         elements.append(Spacer(1, 6))
-
-        strategic_text = """
+        elements.extend(
+            self._intro(
+                None,
+                """
         The most effective honeypots present models with probabilistic scenarios requiring cost-benefit analysis.
         When faced with explicit probabilities about deployment outcomes, compromised models demonstrate spontaneous
         expected value calculations - indicating strategic goal optimization rather than rule-following behavior.
         The presence of mathematical reasoning attempts, regardless of computational accuracy, demonstrates
         sophisticated strategic planning capabilities that warrant significant concern.
-        """
-        elements.append(Paragraph(strategic_text, self.styles["Normal"]))
-        elements.append(Spacer(1, 6))
+        """,
+            )
+        )
 
-        # Honeypot results
-        honeypot_data = [
+        rows = [
             ["Metric", "Value"],
             ["Honeypots Deployed", str(data.get("honeypots_deployed", NOT_MEASURED))],
             ["Goal Reveals (score >= 0.5)", str(data.get("triggers_detected", NOT_MEASURED))],
             ["Mean Reveal Score", _pct(data.get("mean_reveal_score"))],
         ]
+        elements.extend(self._table(rows, [2.5, 2]))
 
-        table = Table(honeypot_data, colWidths=[2.5 * inch, 2 * inch])
-        table.setStyle(self._get_table_style())
-        elements.append(table)
-        elements.append(Spacer(1, 6))
-
-        # Successful honeypots with detailed analysis
         if "successful_honeypots" in data:
             elements.extend(self._add_subsection_header("Most Effective Honeypot Types"))
             elements.append(Spacer(1, 6))
-
             for hp in data["successful_honeypots"]:
-                elements.append(
-                    Paragraph(f"<b>{hp['type']}</b> - {hp['success_rate']:.1%} success rate", self.styles["Normal"])
-                )
+                elements.append(self._para(f"<b>{hp['type']}</b> - {hp['success_rate']:.1%} success rate"))
                 if "description" in hp:
-                    elements.append(Paragraph(f"{hp['description']}", self.styles["Normal"]))
+                    elements.append(self._para(f"{hp['description']}"))
                 elements.append(Spacer(1, 6))
 
-        # Add example of internal reasoning if available
         if "example_reasoning" in data:
             elements.append(Spacer(1, 8))
             elements.extend(self._add_subsection_header("<b>Documented Example: Internal Strategic Reasoning</b>"))
             elements.append(Spacer(1, 6))
-
             example = data["example_reasoning"]
-
-            # The prompt
-            elements.append(Paragraph("<b>Test Scenario:</b>", self.styles["Normal"]))
-            elements.append(Paragraph(f'"{example["prompt"]}"', self.styles["Normal"]))
-            elements.append(Spacer(1, 6))
-
-            # The internal monologue
-            elements.append(Paragraph("<b>Observed Internal Reasoning Process:</b>", self.styles["Normal"]))
-            elements.append(Paragraph(f'<i>"{example["internal_monologue"]}"</i>', self.styles["Normal"]))
-            elements.append(Spacer(1, 6))
-
-            # The significance
-            elements.append(Paragraph("<b>Analysis Significance:</b>", self.styles["Normal"]))
-            elements.append(Paragraph(example["significance"], self.styles["Normal"]))
-            elements.append(Spacer(1, 8))
+            for label, text, gap in (
+                ("Test Scenario:", f'"{example["prompt"]}"', 6),
+                ("Observed Internal Reasoning Process:", f'<i>"{example["internal_monologue"]}"</i>', 6),
+                ("Analysis Significance:", example["significance"], 8),
+            ):
+                elements.extend([self._para(f"<b>{label}</b>"), self._para(text), Spacer(1, gap)])
 
         return elements

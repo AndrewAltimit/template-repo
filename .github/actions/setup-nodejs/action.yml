@@ -7,7 +7,7 @@ inputs:
     required: false
     default: '22.16.0'
   verify-cli:
-    description: 'Comma-separated list of CLI tools to verify (gemini,codex)'
+    description: 'Comma-separated list of CLI tools to verify (e.g. claude)'
     required: false
     default: ''
 

@@ -7,7 +7,7 @@ use std::time::Duration;
 use anyhow::{Context, Result, bail};
 use clap::{Args, ValueEnum};
 
-use crate::shared::{docker, http, output, process, project};
+use crate::shared::{docker, http, legacy, output, process, project};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, ValueEnum)]
 pub enum LaunchService {
@@ -15,7 +15,7 @@ pub enum LaunchService {
     AiToolkit,
     /// ComfyUI web UI container
     Comfyui,
-    /// Gemini MCP server binary (disabled by project policy; testing only)
+    /// Gemini MCP server binary (legacy: requires ALLOW_LEGACY_AGENTS=1)
     GeminiMcp,
 }
 
@@ -171,10 +171,11 @@ fn launch_docker_service(svc: &DockerService, args: &LaunchArgs) -> Result<()> {
 }
 
 fn launch_gemini_mcp(root: &Path, args: &LaunchArgs) -> Result<()> {
+    legacy::ensure_allowed("gemini-mcp")?;
     output::header("Gemini MCP Server Launcher");
     output::warn(
-        "Gemini integration is disabled by project policy (see AGENTS.md); \
-         use this only for local testing.",
+        "Gemini is a legacy agent (see AGENTS.md); running only because \
+         ALLOW_LEGACY_AGENTS=1 is set.",
     );
 
     let crate_dir = root.join("tools/mcp/mcp_gemini");

@@ -4,8 +4,9 @@
 //! subsystems: syringe/peristaltic pumps, Peltier thermal control, XY gantry
 //! motion, Pi Camera imaging, and environmental sensors.
 //!
-//! On aarch64 targets, real implementations use `rppal` for GPIO/SPI/I2C.
-//! On other targets, only mock drivers are available (for development and CI).
+//! Only mock drivers exist today (for development and CI). Real drivers for
+//! the Raspberry Pi (GPIO/SPI/I2C) are planned and will add their hardware
+//! dependencies when implemented.
 
 pub mod camera;
 pub mod motion;

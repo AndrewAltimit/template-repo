@@ -92,9 +92,9 @@ cargo fmt --check
 |-------|-----------------|
 | `bioforge-types` | serde, toml, chrono, thiserror |
 | `bioforge-safety` | bioforge-types, tracing, chrono |
-| `bioforge-hal` | bioforge-types, tokio, async-trait, pid, rppal (aarch64 only) |
+| `bioforge-hal` | bioforge-types, tokio, async-trait (mock drivers only; no hardware deps yet) |
 | `bioforge-protocol` | bioforge-types, toml, tracing, chrono, sha2 |
-| `bioforge-vision` | bioforge-types, image, imageproc |
+| `bioforge-vision` | bioforge-types (colony counter is a placeholder; no image processing yet) |
 
 MCP server (`mcp-bioforge`): mcp-core, all bioforge-* crates, tokio, clap, serde_json
 

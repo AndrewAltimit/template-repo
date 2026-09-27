@@ -27,11 +27,6 @@ on:
         required: false
         type: boolean
         default: false
-      disable_review_auto_response:
-        description: 'Disable automatic response to AI reviews'
-        required: false
-        type: boolean
-        default: false
 
 permissions:
   pull-requests: write # Required to comment on PRs and push changes
@@ -48,7 +43,8 @@ jobs:
     name: Monitor PR Reviews
     runs-on: self-hosted
     # Only run if AI agents are enabled AND relevant event occurs
-    # Note: User authorization is handled by the SecurityManager in the Python agent
+    # Note: User authorization is handled by the Rust github-agents CLI
+    # (tools/rust/github-agents-cli/src/security/: manager.rs allow list, trigger.rs keywords)
     if: |
       vars.ENABLE_AGENTS == 'true' && (
         github.event_name == 'schedule' ||
@@ -75,7 +71,7 @@ jobs:
 
 
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           fetch-depth: 0
           token: ${{ secrets.AGENT_TOKEN }}
@@ -131,8 +127,6 @@ jobs:
           # Set Python path to include the current directory
           PYTHONPATH: ${{ github.workspace }}
           PYTHONUNBUFFERED: "1"
-          # Review auto-response configuration (set to 'true' to disable)
-          DISABLE_GEMINI_AUTO_RESPONSE: ${{ inputs.disable_review_auto_response && 'true' || '' }}
         run: |
           echo "=== PR Review Monitor Starting ==="
           echo "Repository: $GITHUB_REPOSITORY"

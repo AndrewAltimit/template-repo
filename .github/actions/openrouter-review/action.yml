@@ -165,7 +165,7 @@ runs:
 
     - name: Upload review artifact
       if: always()
-      uses: actions/upload-artifact@v6
+      uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
       with:
         name: openrouter-review-${{ github.run_id }}-${{ github.run_attempt }}
         path: openrouter-review.md

@@ -15,6 +15,8 @@
 //! This binary requires Raspberry Pi hardware (aarch64). On other architectures,
 //! it compiles but exits immediately with an error message.
 
+#[cfg(any(target_arch = "aarch64", test))]
+mod logic;
 #[cfg(target_arch = "aarch64")]
 mod sensor;
 

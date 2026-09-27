@@ -25,12 +25,12 @@ Most of the simulation is deterministic rules and templates. Only two components
 | Top-level agent decision (what to do this cycle) and resource allocation | `economic-agents-core` (`LlmDecisionEngine`) | **LLM** (Claude CLI) when `engine_type` is `llm`; falls back to the rule-based engine if the CLI is missing or its reply cannot be parsed. The default engine is rule-based. |
 | Coding-challenge solutions | `economic-agents-tasks` (`TaskExecutor`) | **LLM** (Claude CLI). Standalone library, not called by the agent loop. |
 | Rule-based decision engine | `economic-agents-core` (`RuleBasedEngine`) | Threshold rules on balance and compute hours. |
-| Agent task work in the simulation | `economic-agents-core` | Claims a mock task and submits a placeholder string. The mock marketplace approves every submission with a random quality score between 0.7 and 1.0. |
+| Agent task work in the simulation | `economic-agents-core` (`generate_solution`) | Claims a mock task and submits a placeholder string; no work is performed. The mock marketplace (`MockMarketplace`) never inspects content and approves every submission with a random quality score between 0.7 and 1.0. |
 | Sub-agent executive decisions (CEO, CTO, CFO, ...) | `economic-agents-company` (`make_decision`) | Rule-based templates keyed on a few metrics, returning canned action items. |
 | Board members, OKRs, strategic plans, risk mitigations | `economic-agents-company` | Fixed templates per role. |
 | Sub-agent task execution | `economic-agents-company` (`autonomy.rs`) | Random quality score derived from the sub-agent's performance value. |
 | Company revenue and stage transitions | `economic-agents-core` | Fixed formulas and stage rules. |
-| Investor evaluation | `economic-agents-investment` (`InvestorAgent`) | Rule-based: budget bounds plus a minimum projected-return multiple per risk tolerance. The agent's proposal always projects a 3x return. |
+| Investor evaluation | `economic-agents-core` (`investment::InvestorAgent`) | Rule-based: budget bounds plus a minimum projected-return multiple per risk tolerance. No LLM evaluation. The agent's proposal always projects a fixed 3x return (`SIMULATED_PROJECTED_RETURN_MULTIPLE`), not one derived from company financials, so outcomes turn on the budget bounds alone. |
 | Market dynamics, competition, reputation, feedback, latency | `economic-agents-simulation` | Random or formula-based library components (see [Simulation Features](#simulation-features)). |
 
 **Confidence values** attached to rule-based and template decisions are fixed constants, not estimates: the rule-based engine reports 0.9, 0.75, or 0.6 depending on personality, and sub-agent executive decisions report hard-coded values such as 0.85 or 0.9. Only the LLM engine's confidence comes from the model (as a self-reported number, clamped to 0 to 1).
@@ -45,11 +45,10 @@ packages/economic_agents/
 ├── deny.toml               # License/security audit config
 └── crates/
     ├── economic-agents-interfaces/    # Core traits (Wallet, Marketplace, Compute)
-    ├── economic-agents-core/          # Agent logic and decision engines
+    ├── economic-agents-core/          # Agent logic, decision engines, investment
     ├── economic-agents-mock/          # Mock implementations for testing
     ├── economic-agents-api/           # REST API clients and services
     ├── economic-agents-company/       # Company formation and management
-    ├── economic-agents-investment/    # Investment system
     ├── economic-agents-simulation/    # Realism features (latency, markets)
     ├── economic-agents-monitoring/    # Event bus and metrics
     ├── economic-agents-dashboard/     # Web dashboard backend

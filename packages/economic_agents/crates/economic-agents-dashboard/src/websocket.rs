@@ -90,10 +90,9 @@ async fn handle_socket(socket: WebSocket, state: Arc<DashboardState>) {
                     debug!("Received unknown message: {}", text);
                 }
             },
-            Ok(Message::Ping(data)) => {
+            Ok(Message::Ping(_)) => {
                 debug!("Received WebSocket ping");
                 // Pong is automatically sent by axum
-                let _ = data; // satisfy unused warning
             },
             Ok(Message::Close(_)) => {
                 info!("WebSocket client sent close");

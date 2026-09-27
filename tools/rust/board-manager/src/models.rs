@@ -469,6 +469,33 @@ pub fn same_agent(a: &str, b: &str) -> bool {
     normalize_agent_name(a).eq_ignore_ascii_case(&normalize_agent_name(b))
 }
 
+/// Legacy agents: kept in the name map for existing board data, but not
+/// allowed to take work in this lab unless `ALLOW_LEGACY_AGENTS=1`.
+pub const LEGACY_AGENTS: [&str; 2] = ["gemini", "codex"];
+
+/// Environment variable that re-enables legacy agents (same override the
+/// shell scripts use).
+pub const ALLOW_LEGACY_AGENTS_ENV: &str = "ALLOW_LEGACY_AGENTS";
+
+/// Whether `agent` (workflow or board name) is a legacy agent.
+pub fn is_legacy_agent(agent: &str) -> bool {
+    LEGACY_AGENTS.iter().any(|l| same_agent(l, agent))
+}
+
+/// Refuse a legacy `agent` unless `allow_value` (the value of
+/// [`ALLOW_LEGACY_AGENTS_ENV`]) is exactly `1`.
+pub fn check_agent_allowed(agent: &str, allow_value: Option<&str>) -> Result<(), String> {
+    if is_legacy_agent(agent) && allow_value != Some("1") {
+        Err(format!(
+            "agent '{}' is legacy: not allowed in this lab (set {}=1 to override)",
+            agent.trim(),
+            ALLOW_LEGACY_AGENTS_ENV
+        ))
+    } else {
+        Ok(())
+    }
+}
+
 /// Compact reference to an issue used in dependency graphs.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct IssueRef {
@@ -694,6 +721,21 @@ mod tests {
         };
         assert!(c.is_agent_enabled("Claude Code"));
         assert!(!c.is_agent_enabled("codex"));
+    }
+
+    #[test]
+    fn legacy_agents_are_gated() {
+        for a in ["gemini", "Gemini CLI", " CODEX ", "Codex"] {
+            assert!(is_legacy_agent(a), "{a}");
+            let err = check_agent_allowed(a, None).unwrap_err();
+            assert!(err.contains("legacy: not allowed in this lab"), "{err}");
+            assert!(check_agent_allowed(a, Some("0")).is_err());
+            assert!(check_agent_allowed(a, Some("1")).is_ok());
+        }
+        for a in ["claude", "Claude Code", "crush", "opencode"] {
+            assert!(!is_legacy_agent(a), "{a}");
+            assert!(check_agent_allowed(a, None).is_ok());
+        }
     }
 
     #[test]

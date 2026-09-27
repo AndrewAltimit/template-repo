@@ -3,6 +3,9 @@
 
 //! MCP Gemini Server
 //!
+//! LEGACY: Gemini is not allowed in this lab. This crate is kept for reference
+//! only and is not wired into .mcp.json or the default compose profiles.
+//!
 //! Provides Gemini AI integration for second opinions and validation via MCP tools.
 //!
 //! Usage:

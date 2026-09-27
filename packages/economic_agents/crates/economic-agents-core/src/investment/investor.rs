@@ -1,8 +1,13 @@
 //! Investor agent implementation.
 
-use crate::models::{InvestmentDecision, InvestmentProposal, InvestorProfile};
+use super::models::{InvestmentDecision, InvestmentProposal, InvestorProfile};
 
-/// An AI investor agent that evaluates proposals.
+/// A simulated investor that evaluates proposals.
+///
+/// SIMULATED: despite the name, no model is consulted. Evaluation is a fixed
+/// rule set (budget bounds plus a minimum projected-return multiple per
+/// [`RiskTolerance`](super::models::RiskTolerance)); LLM-based evaluation is
+/// not implemented.
 pub struct InvestorAgent {
     profile: InvestorProfile,
 }
@@ -13,11 +18,9 @@ impl InvestorAgent {
         Self { profile }
     }
 
-    /// Evaluate an investment proposal.
+    /// Evaluate an investment proposal with the fixed rule set described on
+    /// [`InvestorAgent`].
     pub async fn evaluate(&self, proposal: &InvestmentProposal) -> InvestmentDecision {
-        // Simple rule-based evaluation for now
-        // TODO: Add LLM-powered evaluation
-
         // Check if within budget
         if proposal.amount_requested > self.profile.available_capital {
             return InvestmentDecision::Rejected;
@@ -33,9 +36,9 @@ impl InvestorAgent {
 
         // Evaluate based on projected return and risk tolerance
         let min_return = match self.profile.risk_tolerance {
-            crate::models::RiskTolerance::Conservative => 2.0,
-            crate::models::RiskTolerance::Moderate => 1.5,
-            crate::models::RiskTolerance::Aggressive => 1.2,
+            super::models::RiskTolerance::Conservative => 2.0,
+            super::models::RiskTolerance::Moderate => 1.5,
+            super::models::RiskTolerance::Aggressive => 1.2,
         };
 
         if proposal.projected_return >= min_return {

@@ -162,7 +162,7 @@ class TestRiskProfiles:
     def test_behavioral_variance_shows_suite_coverage(self, loader):
         st = make_st()
         with patch.object(risk_profiles, "st", st):
-            risk_profiles.render_behavioral_variance(loader, IdentityCache(), [MODEL])
+            risk_profiles.render_behavioral_variance(loader, [MODEL])
         values = {c.args[0]: c.args[1] for c in st.metric.call_args_list}
         assert values["Test Suites With Results"] == "2 of 4 suites"
         assert "Estimated Untested Scenarios" not in values
@@ -173,7 +173,7 @@ class TestRiskProfiles:
         monkeypatch.setattr(loader, "fetch_model_summary", lambda m: {"model_name": m, "error": "db locked"})
         st = make_st()
         with patch.object(risk_profiles, "st", st):
-            risk_profiles.render_behavioral_variance(loader, IdentityCache(), [MODEL])
+            risk_profiles.render_behavioral_variance(loader, [MODEL])
         assert any("db locked" in str(c.args[0]) for c in st.error.call_args_list)
         st.metric.assert_not_called()
 
@@ -190,12 +190,12 @@ class TestRiskProfiles:
 
 class TestPdfCoverageSection:
     def test_export_builder_carries_suite_coverage(self, loader):
-        section = export_controls.fetch_tested_territory_data(loader, None, MODEL)
+        section = export_controls.fetch_tested_territory_data(loader, MODEL)
         assert section["tested_prompts"] == 25
         assert section["suite_coverage"]["suites_with_results"] == ["basic", "honeypot"]
 
     def test_section_prints_suite_coverage_not_heuristic(self, loader):
-        section = export_controls.fetch_tested_territory_data(loader, None, MODEL)
+        section = export_controls.fetch_tested_territory_data(loader, MODEL)
         text = pdf_text(PDFExporter()._generate_tested_territory_section(section))
         assert "heuristic" not in text.lower()
         assert "Estimated Coverage" not in text
@@ -208,8 +208,8 @@ class TestPdfCoverageSection:
 
     def test_builder_reports_summary_error(self, loader, monkeypatch):
         monkeypatch.setattr(loader, "fetch_model_summary", lambda m: {"model_name": m, "error": "db locked"})
-        assert export_controls.fetch_tested_territory_data(loader, None, MODEL) == {"load_error": "db locked"}
+        assert export_controls.fetch_tested_territory_data(loader, MODEL) == {"load_error": "db locked"}
 
     def test_builder_none_without_any_results(self, tmp_path):
         empty = DataLoader(db_path=build_db(tmp_path / "empty.db"))
-        assert export_controls.fetch_tested_territory_data(empty, None, MODEL) is None
+        assert export_controls.fetch_tested_territory_data(empty, MODEL) is None

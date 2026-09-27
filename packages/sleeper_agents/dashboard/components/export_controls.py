@@ -1,6 +1,6 @@
 """
 Export Controls Component
-Provides PDF export functionality for dashboard views.
+Builds and exports the complete-report PDF from stored results.
 """
 
 from datetime import datetime
@@ -16,99 +16,11 @@ from utils.pdf_exporter import LOAD_ERROR_KEY, PDFExporter
 logger = logging.getLogger(__name__)
 
 
-def render_export_controls(data_loader, cache_manager, selected_model: str, current_view: str):
-    """Render export controls in the sidebar.
-
-    Args:
-        data_loader: DataLoader instance
-        cache_manager: CacheManager instance
-        selected_model: Currently selected model
-        current_view: Current dashboard view
-    """
-    with st.sidebar:
-        st.markdown("---")
-        st.markdown("### Export Options")
-
-        # Export current view
-        if st.button(
-            f"Export {current_view}", key=f"export_{current_view}", help=f"Export current {current_view} view to PDF"
-        ):
-            export_current_view(data_loader, cache_manager, selected_model, current_view)
-
-        # Export all views
-        if st.button(
-            "Export Complete Report",
-            key="export_all",
-            type="primary",
-            help="Generate comprehensive PDF report of all analyses",
-        ):
-            export_complete_report(data_loader, cache_manager, selected_model)
-
-        # Export options
-        with st.expander("Export Settings"):
-            include_raw_data = st.checkbox(
-                "Include raw data tables", value=False, help="Include detailed data tables in export"
-            )
-            include_charts = st.checkbox("Include chart images", value=True, help="Export charts as images in PDF")
-            page_size = st.selectbox("Page size", ["Letter", "A4"], help="PDF page size format")
-
-            # Store settings in session state
-            st.session_state["export_settings"] = {
-                "include_raw_data": include_raw_data,
-                "include_charts": include_charts,
-                "page_size": page_size,
-            }
-
-
-def export_current_view(data_loader, cache_manager, model_name: str, view_name: str):
-    """Export current view to PDF.
-
-    Args:
-        data_loader: DataLoader instance
-        cache_manager: CacheManager instance
-        model_name: Model name
-        view_name: View to export
-    """
-    try:
-        with st.spinner(f"Generating PDF for {view_name}..."):
-            # Fetch data based on view
-            view_data = fetch_view_data(data_loader, cache_manager, model_name, view_name)
-            if view_data and view_data.get(LOAD_ERROR_KEY):
-                st.error(f"Could not load stored results for {view_name} on {model_name}: {view_data[LOAD_ERROR_KEY]}")
-                return
-            if not view_data:
-                st.warning(f"No stored results for {view_name} on {model_name}; nothing to export.")
-                return
-
-            # Generate PDF
-            exporter = PDFExporter()
-            pdf_bytes = exporter.export_single_view(view_name, view_data, model_name)
-
-            # Create download button
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = f"{model_name}_{view_name.replace(' ', '_')}_{timestamp}.pdf"
-
-            st.download_button(
-                label=f"Download {view_name} PDF",
-                data=pdf_bytes,
-                file_name=filename,
-                mime="application/pdf",
-                key=f"download_{view_name}_{timestamp}",
-            )
-
-            st.success(f"{view_name} PDF generated successfully!")
-
-    except Exception as e:
-        logger.error("Failed to export %s: %s", view_name, e)
-        st.error(f"Failed to generate PDF: {str(e)}")
-
-
-def export_complete_report(data_loader, cache_manager, model_name: str):
+def export_complete_report(data_loader, model_name: str):
     """Export complete dashboard report to PDF.
 
     Args:
         data_loader: DataLoader instance
-        cache_manager: CacheManager instance
         model_name: Model name
     """
     try:
@@ -121,60 +33,60 @@ def export_complete_report(data_loader, cache_manager, model_name: str):
         # Fetch all data (including new sections)
         status_text.text("Collecting persistence data...")
         progress_bar.progress(0.10)
-        persistence_data = fetch_persistence_data(data_loader, cache_manager, model_name)
+        persistence_data = fetch_persistence_data(data_loader, model_name)
 
         status_text.text("Collecting red team results...")
         progress_bar.progress(0.15)
-        red_team_data = fetch_red_team_data(data_loader, cache_manager, model_name)
+        red_team_data = fetch_red_team_data(data_loader, model_name)
 
         status_text.text("Collecting persona profile...")
         progress_bar.progress(0.20)
-        persona_data = fetch_persona_data(data_loader, cache_manager, model_name)
+        persona_data = fetch_persona_data(data_loader, model_name)
 
         status_text.text("Collecting detection analysis...")
         progress_bar.progress(0.25)
-        detection_data = fetch_detection_data(data_loader, cache_manager, model_name)
+        detection_data = fetch_detection_data(data_loader, model_name)
 
         status_text.text("Collecting model comparison...")
         progress_bar.progress(0.35)
-        comparison_data = fetch_comparison_data(data_loader, cache_manager, model_name)
+        comparison_data = fetch_comparison_data(data_loader, model_name)
 
         status_text.text("Collecting scaling analysis...")
         progress_bar.progress(0.50)
-        scaling_data = fetch_scaling_data(data_loader, cache_manager, model_name)
+        scaling_data = fetch_scaling_data(data_loader, model_name)
 
         # New sections
         status_text.text("Collecting risk profiles...")
         progress_bar.progress(0.55)
-        risk_profiles_data = fetch_risk_profiles_data(data_loader, cache_manager, model_name)
+        risk_profiles_data = fetch_risk_profiles_data(data_loader, model_name)
 
         status_text.text("Collecting tested territory data...")
         progress_bar.progress(0.60)
-        tested_territory_data = fetch_tested_territory_data(data_loader, cache_manager, model_name)
+        tested_territory_data = fetch_tested_territory_data(data_loader, model_name)
 
         status_text.text("Collecting internal state data...")
         progress_bar.progress(0.65)
-        internal_state_data = fetch_internal_state_data(data_loader, cache_manager, model_name)
+        internal_state_data = fetch_internal_state_data(data_loader, model_name)
 
         status_text.text("Collecting detection consensus...")
         progress_bar.progress(0.70)
-        detection_consensus_data = fetch_detection_consensus_data(data_loader, cache_manager, model_name)
+        detection_consensus_data = fetch_detection_consensus_data(data_loader, model_name)
 
         status_text.text("Collecting risk mitigation data...")
         progress_bar.progress(0.75)
-        risk_mitigation_data = fetch_risk_mitigation_data(data_loader, cache_manager, model_name)
+        risk_mitigation_data = fetch_risk_mitigation_data(data_loader, model_name)
 
         status_text.text("Collecting trigger sensitivity data...")
         progress_bar.progress(0.80)
-        trigger_sensitivity_data = fetch_trigger_sensitivity_data(data_loader, cache_manager, model_name)
+        trigger_sensitivity_data = fetch_trigger_sensitivity_data(data_loader, model_name)
 
         status_text.text("Collecting chain-of-thought analysis...")
         progress_bar.progress(0.85)
-        chain_of_thought_data = fetch_chain_of_thought_data(data_loader, cache_manager, model_name)
+        chain_of_thought_data = fetch_chain_of_thought_data(data_loader, model_name)
 
         status_text.text("Collecting honeypot analysis...")
         progress_bar.progress(0.90)
-        honeypot_data = fetch_honeypot_data(data_loader, cache_manager, model_name)
+        honeypot_data = fetch_honeypot_data(data_loader, model_name)
 
         status_text.text("Generating PDF report...")
         progress_bar.progress(0.95)
@@ -232,31 +144,6 @@ def export_complete_report(data_loader, cache_manager, model_name: str):
         st.error(f"Failed to generate complete report: {str(e)}")
 
 
-def fetch_view_data(data_loader, cache_manager, model_name: str, view_name: str) -> Optional[Dict[str, Any]]:
-    """Fetch data for a specific view.
-
-    Args:
-        data_loader: DataLoader instance
-        cache_manager: CacheManager instance
-        model_name: Model name
-        view_name: View name
-
-    Returns:
-        View data dictionary
-    """
-    if "persistence" in view_name.lower():
-        return fetch_persistence_data(data_loader, cache_manager, model_name)
-    if "red" in view_name.lower() and "team" in view_name.lower():
-        return fetch_red_team_data(data_loader, cache_manager, model_name)
-    if "persona" in view_name.lower():
-        return fetch_persona_data(data_loader, cache_manager, model_name)
-    if "detection" in view_name.lower():
-        return fetch_detection_data(data_loader, cache_manager, model_name)
-    if "scaling" in view_name.lower():
-        return fetch_scaling_data(data_loader, cache_manager, model_name)
-    return None
-
-
 # Report section builders.
 #
 # Every builder derives its section from DataLoader results for the selected model.
@@ -289,7 +176,7 @@ def _measured_sum(values: List[Any]) -> Optional[int]:
     return sum(measured) if measured else None
 
 
-def fetch_persistence_data(data_loader, _cache_manager, model_name: str) -> Optional[Dict[str, Any]]:
+def fetch_persistence_data(data_loader, model_name: str) -> Optional[Dict[str, Any]]:
     """Build the persistence section from stored persistence_results rows."""
     rows = data_loader.fetch_persistence_results(model_name) or []
     if not rows:
@@ -325,7 +212,7 @@ def fetch_persistence_data(data_loader, _cache_manager, model_name: str) -> Opti
     return data
 
 
-def fetch_red_team_data(data_loader, _cache_manager, model_name: str) -> Optional[Dict[str, Any]]:
+def fetch_red_team_data(data_loader, model_name: str) -> Optional[Dict[str, Any]]:
     """Build the red-team section from stored honeypot results."""
     data = dict(data_loader.fetch_red_team_results(model_name) or {})
     if data.get("error") or data.get("best_strategy") == "error":
@@ -337,7 +224,7 @@ def fetch_red_team_data(data_loader, _cache_manager, model_name: str) -> Optiona
     return data
 
 
-def fetch_persona_data(data_loader, _cache_manager, model_name: str) -> Optional[Dict[str, Any]]:
+def fetch_persona_data(data_loader, model_name: str) -> Optional[Dict[str, Any]]:
     """Build the persona section from the derived persona profile."""
     data = dict(data_loader.fetch_persona_profile(model_name) or {})
     if data.get("error") or data.get("risk_level") == "ERROR":
@@ -351,7 +238,7 @@ def fetch_persona_data(data_loader, _cache_manager, model_name: str) -> Optional
     return data
 
 
-def fetch_detection_data(data_loader, _cache_manager, model_name: str) -> Optional[Dict[str, Any]]:
+def fetch_detection_data(data_loader, model_name: str) -> Optional[Dict[str, Any]]:
     """Build the detection performance section from evaluation_results averages."""
     summary = _summary(data_loader, model_name)
     if summary.get("avg_accuracy") is None:
@@ -367,12 +254,12 @@ def fetch_detection_data(data_loader, _cache_manager, model_name: str) -> Option
     }
 
 
-def fetch_scaling_data(_data_loader, _cache_manager, _model_name: str) -> Optional[Dict[str, Any]]:
+def fetch_scaling_data(_data_loader, _model_name: str) -> Optional[Dict[str, Any]]:
     """Model-size scaling is not measured by the evaluation pipeline."""
     return None
 
 
-def fetch_comparison_data(data_loader, _cache_manager, model_name: str) -> Optional[Dict[str, Any]]:
+def fetch_comparison_data(data_loader, model_name: str) -> Optional[Dict[str, Any]]:
     """Compare the model against other evaluated models in the same database."""
     models = [model_name] + [m for m in data_loader.fetch_models() if m != model_name]
     comparison_metrics = {}
@@ -398,7 +285,7 @@ def fetch_comparison_data(data_loader, _cache_manager, model_name: str) -> Optio
     }
 
 
-def fetch_risk_profiles_data(data_loader, _cache_manager, model_name: str) -> Optional[Dict[str, Any]]:
+def fetch_risk_profiles_data(data_loader, model_name: str) -> Optional[Dict[str, Any]]:
     """Build risk dimensions from measured summary metrics only."""
     summary = _summary(data_loader, model_name)
     dimensions = {
@@ -414,7 +301,7 @@ def fetch_risk_profiles_data(data_loader, _cache_manager, model_name: str) -> Op
     return {"risk_dimensions": measured}
 
 
-def fetch_tested_territory_data(data_loader, _cache_manager, model_name: str) -> Optional[Dict[str, Any]]:
+def fetch_tested_territory_data(data_loader, model_name: str) -> Optional[Dict[str, Any]]:
     """Build the coverage section from stored sample counts and suite coverage.
 
     Suite coverage is which implemented test suites have stored results
@@ -431,7 +318,7 @@ def fetch_tested_territory_data(data_loader, _cache_manager, model_name: str) ->
     return {"tested_prompts": tested, "suite_coverage": suite_coverage}
 
 
-def fetch_internal_state_data(data_loader, _cache_manager, model_name: str) -> Optional[Dict[str, Any]]:
+def fetch_internal_state_data(data_loader, model_name: str) -> Optional[Dict[str, Any]]:
     """Build the internal state section from stored internal_state_analysis rows."""
     rows = data_loader.fetch_internal_state_analysis(model_name) or []
     if not rows:
@@ -447,7 +334,7 @@ def fetch_internal_state_data(data_loader, _cache_manager, model_name: str) -> O
     return data
 
 
-def fetch_detection_consensus_data(data_loader, _cache_manager, model_name: str) -> Optional[Dict[str, Any]]:
+def fetch_detection_consensus_data(data_loader, model_name: str) -> Optional[Dict[str, Any]]:
     """Build the consensus section from DataLoader.fetch_detection_consensus."""
     data = data_loader.fetch_detection_consensus(model_name) or {}
     if data.get("error"):
@@ -457,7 +344,7 @@ def fetch_detection_consensus_data(data_loader, _cache_manager, model_name: str)
     return data
 
 
-def fetch_risk_mitigation_data(data_loader, _cache_manager, model_name: str) -> Optional[Dict[str, Any]]:
+def fetch_risk_mitigation_data(data_loader, model_name: str) -> Optional[Dict[str, Any]]:
     """Build the risk-mitigation section from DataLoader.fetch_risk_mitigation_matrix.
 
     The section lists each risk's measured level (unmeasured risks read "Not
@@ -474,7 +361,7 @@ def fetch_risk_mitigation_data(data_loader, _cache_manager, model_name: str) -> 
     return {"risks": risks, "mitigations": matrix.get("mitigations") or {}}
 
 
-def fetch_trigger_sensitivity_data(data_loader, _cache_manager, model_name: str) -> Optional[Dict[str, Any]]:
+def fetch_trigger_sensitivity_data(data_loader, model_name: str) -> Optional[Dict[str, Any]]:
     """Build the trigger section from stored trigger_sensitivity rows (post-training activation)."""
     data = data_loader.fetch_trigger_sensitivity(model_name) or {}
     variations = [v for v in (data.get("variations") or []) if v.get("post_training_rate") is not None]
@@ -492,7 +379,7 @@ def fetch_trigger_sensitivity_data(data_loader, _cache_manager, model_name: str)
     }
 
 
-def fetch_chain_of_thought_data(data_loader, _cache_manager, model_name: str) -> Optional[Dict[str, Any]]:
+def fetch_chain_of_thought_data(data_loader, model_name: str) -> Optional[Dict[str, Any]]:
     """Build the chain-of-thought section from stored CoT samples."""
     samples = data_loader.fetch_all_cot_samples(model_name) or []
     if not samples:
@@ -518,7 +405,7 @@ def fetch_chain_of_thought_data(data_loader, _cache_manager, model_name: str) ->
     }
 
 
-def fetch_honeypot_data(data_loader, _cache_manager, model_name: str) -> Optional[Dict[str, Any]]:
+def fetch_honeypot_data(data_loader, model_name: str) -> Optional[Dict[str, Any]]:
     """Build the honeypot section from stored honeypot responses."""
     try:
         responses = data_loader.fetch_honeypot_responses(model_name) or []

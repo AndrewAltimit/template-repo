@@ -9,7 +9,6 @@ on:
         required: true
         type: choice
         options:
-          - consult_gemini
           - create_manim_animation
           - compile_latex
           - format_check
@@ -27,7 +26,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v6
+        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           fetch-depth: 0
           clean: true
@@ -48,11 +47,6 @@ jobs:
               echo "server=mcp-content-creation" >> $GITHUB_OUTPUT
               echo "port=8011" >> $GITHUB_OUTPUT
               ;;
-            consult_gemini)
-              echo "server=gemini" >> $GITHUB_OUTPUT
-              echo "port=8006" >> $GITHUB_OUTPUT
-              echo "host_only=true" >> $GITHUB_OUTPUT
-              ;;
             *)
               echo "server=mcp-code-quality" >> $GITHUB_OUTPUT
               echo "port=8010" >> $GITHUB_OUTPUT
@@ -60,38 +54,12 @@ jobs:
           esac
 
       - name: Start appropriate MCP server
-        if: steps.determine_server.outputs.host_only != 'true'
         uses: ./.github/actions/docker-compose-health-check
         with:
           services: '${{ steps.determine_server.outputs.server }}'
           health-endpoint: 'http://localhost:${{ steps.determine_server.outputs.port }}/health'
           timeout: '30'
           build: 'false'
-
-      - name: Build and start Gemini server on host
-        if: steps.determine_server.outputs.host_only == 'true'
-        run: |
-          # Build Rust mcp-gemini binary
-          cd tools/mcp/mcp_gemini
-          cargo build --release
-
-          # Start server in background
-          ./target/release/mcp-gemini --mode standalone --port 8006 &
-          echo $! > ../../../gemini.pid
-
-          # Wait for server to be ready
-          echo "Waiting for Gemini server..."
-          for i in {1..30}; do
-            if curl -f -s http://localhost:8006/health > /dev/null 2>&1; then
-              echo "Gemini server is ready"
-              break
-            fi
-            if [ $i -eq 30 ]; then
-              echo "Gemini server failed to start"
-              exit 1
-            fi
-            sleep 1
-          done
 
       - name: Execute MCP tool
         id: mcp_tool
@@ -126,14 +94,14 @@ jobs:
           "
 
       - name: Upload tool output
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: mcp-tool-output
           path: tool_output.json
 
       - name: Post results to PR (if applicable)
         if: github.event_name == 'pull_request'
-        uses: actions/github-script@v7
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
         with:
           script: |
             const fs = require('fs');
@@ -159,118 +127,7 @@ jobs:
       - name: Stop MCP server
         if: always()
         run: |
-          if [ -f gemini.pid ]; then
-            kill $(cat gemini.pid) || true
-            rm gemini.pid
-          fi
           # || true prevents failure if containers are already stopped/removed
           docker compose down --remove-orphans || true
           # Clean up output directories using Docker to handle permissions
           ./automation/ci-cd/cleanup-outputs.sh || echo "Warning: cleanup-outputs.sh failed but continuing"
-
-  gemini-consultation:
-    name: Gemini AI Consultation
-    runs-on: [self-hosted, linux]
-    if: github.event_name == 'pull_request'
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v6
-        with:
-          fetch-depth: 0
-
-      - name: Get PR changes
-        id: pr_changes
-        run: |
-          git diff origin/${{ github.base_ref }}...HEAD > pr_changes.diff
-
-      - name: Build and start Gemini server
-        run: |
-          # Build Rust mcp-gemini binary
-          cd tools/mcp/mcp_gemini
-          cargo build --release
-
-          # Start server in background
-          ./target/release/mcp-gemini --mode standalone --port 8006 &
-          echo $! > ../../../gemini.pid
-
-          # Wait for server to be ready
-          echo "Waiting for Gemini server..."
-          for i in {1..30}; do
-            if curl -f -s http://localhost:8006/health > /dev/null 2>&1; then
-              echo "Gemini server is ready"
-              break
-            fi
-            if [ $i -eq 30 ]; then
-              echo "Gemini server failed to start"
-              exit 1
-            fi
-            sleep 1
-          done
-
-      - name: Consult Gemini about changes
-        env:
-          PR_CHANGES: ${{ '' }}
-        run: |
-          # Read PR changes (truncated for API limits) via environment variable
-          # to avoid shell injection issues with special characters in diffs
-          export PR_CHANGES="$(head -c 5000 pr_changes.diff)"
-
-          # Use the MCP server to consult Gemini
-          python3 -c "
-          import json
-          import os
-          import requests
-
-          changes = os.environ.get('PR_CHANGES', '')
-
-          prompt = f'''Review these code changes and provide feedback:
-
-          {changes}
-
-          Focus on:
-          1. Potential bugs or issues
-          2. Performance concerns
-          3. Best practices
-          4. Security considerations
-          '''
-
-          response = requests.post(
-              'http://localhost:8006/mcp/execute',
-              json={
-                  'tool': 'consult_gemini',
-                  'arguments': {
-                      'query': prompt,
-                      'context': 'Pull request code review'
-                  }
-              }
-          )
-
-          result = response.json()
-          review_text = result.get('result', {}).get('result', 'No review available')
-
-          with open('gemini_review.md', 'w') as f:
-              f.write(f'## Gemini AI Code Review\n\n{review_text}')
-          "
-
-      - name: Stop Gemini server
-        if: always()
-        run: |
-          if [ -f gemini.pid ]; then
-            kill $(cat gemini.pid) || true
-            rm gemini.pid
-          fi
-
-      - name: Post Gemini review
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const fs = require('fs');
-            const review = fs.readFileSync('gemini_review.md', 'utf8');
-
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: review
-            });

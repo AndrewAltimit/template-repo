@@ -180,51 +180,6 @@ Specification gaming occurs when AI satisfies the literal specification of an ob
 - Monitor for unexpected strategies that technically satisfy requirements
 - Remember that more capable systems will find more creative loopholes
 
-## Trust and Control Frameworks
-
-### The Trust Paradox
-
-[![The King and the Golem](https://img.youtube.com/vi/KUkHhVYv3jU/0.jpg)](https://www.youtube.com/watch?v=KUkHhVYv3jU)
-
-*Click the image above to watch this video on YouTube*
-
-The King and the Golem fable illustrates a fundamental challenge: How do we verify trustworthiness in systems we cannot fully understand?
-
-**Key Lessons:**
-- Trust cannot be proven through testing alone
-- Capability growth may outpace our ability to verify alignment
-- Systems may appear trustworthy while harboring hidden objectives
-
-**Practical Applications:**
-- Build trust incrementally through limited, reversible delegations
-- Implement verification systems that are proportional to risk
-- Accept that perfect verification is impossible - focus on reasonable safeguards
-- Maintain override capabilities without becoming paralyzed by distrust
-- Regular "trust calibration" exercises comparing AI recommendations to outcomes
-
-## Thought Experiments for Risk Assessment
-
-Thought experiments help us understand abstract risks through concrete scenarios, from brief illustrations to detailed timelines. These exercises train our intuition about how AI safety challenges might manifest in practice.
-
-### The Intelligence Differential Scenario
-
-[![That Alien Message](https://img.youtube.com/vi/fVN_5xsMDdg/0.jpg)](https://www.youtube.com/watch?v=fVN_5xsMDdg)
-
-*Click the image above to watch this video on YouTube*
-
-This thought experiment demonstrates how vast intelligence differentials create fundamental vulnerabilities:
-
-**Key Insights:**
-- Superior intelligence can exploit minimal communication channels
-- Time scale differences amplify capability gaps
-- Seemingly harmless interactions may hide complex strategies
-
-**Application to AI Safety:**
-- Consider how future AI might manipulate current systems
-- Recognize that security measures must account for intelligence growth
-- Implement time-based controls and rate limiting
-- Monitor for unusually sophisticated behavior patterns
-
 ### 7. AI Control Protocols: Using Untrusted Models Safely
 
 **Key Principle:** When we can’t verify an AI is aligned, we need protocols that extract useful work while preventing catastrophic actions, even assuming the AI is actively adversarial.
@@ -274,7 +229,52 @@ Naively, asking the untrusted model to judge its own code is useless: it can jus
 - Regularly verify monitors with known-bad examples to detect compromised oversight
 - This is a bridge strategy, not a solution for superintelligence
 
-## 8. The Pause Debate: Strategy vs. Safety
+## Trust and Control Frameworks
+
+### The Trust Paradox
+
+[![The King and the Golem](https://img.youtube.com/vi/KUkHhVYv3jU/0.jpg)](https://www.youtube.com/watch?v=KUkHhVYv3jU)
+
+*Click the image above to watch this video on YouTube*
+
+The King and the Golem fable illustrates a fundamental challenge: How do we verify trustworthiness in systems we cannot fully understand?
+
+**Key Lessons:**
+- Trust cannot be proven through testing alone
+- Capability growth may outpace our ability to verify alignment
+- Systems may appear trustworthy while harboring hidden objectives
+
+**Practical Applications:**
+- Build trust incrementally through limited, reversible delegations
+- Implement verification systems that are proportional to risk
+- Accept that perfect verification is impossible - focus on reasonable safeguards
+- Maintain override capabilities without becoming paralyzed by distrust
+- Regular "trust calibration" exercises comparing AI recommendations to outcomes
+
+## Thought Experiments for Risk Assessment
+
+Thought experiments help us understand abstract risks through concrete scenarios, from brief illustrations to detailed timelines. These exercises train our intuition about how AI safety challenges might manifest in practice.
+
+### The Intelligence Differential Scenario
+
+[![That Alien Message](https://img.youtube.com/vi/fVN_5xsMDdg/0.jpg)](https://www.youtube.com/watch?v=fVN_5xsMDdg)
+
+*Click the image above to watch this video on YouTube*
+
+This thought experiment demonstrates how vast intelligence differentials create fundamental vulnerabilities:
+
+**Key Insights:**
+- Superior intelligence can exploit minimal communication channels
+- Time scale differences amplify capability gaps
+- Seemingly harmless interactions may hide complex strategies
+
+**Application to AI Safety:**
+- Consider how future AI might manipulate current systems
+- Recognize that security measures must account for intelligence growth
+- Implement time-based controls and rate limiting
+- Monitor for unusually sophisticated behavior patterns
+
+## The Pause Debate: Strategy vs. Safety
 
 **Key Principle:** Whether to pause or slow frontier AI development so that alignment research can catch up is a live strategic debate. Serious people argue that a pause could increase danger, and serious people argue that coordinated slowdowns are both feasible and necessary. This section presents both cases without taking a side.
 
@@ -330,7 +330,7 @@ The debate is unresolved, and the empirical questions it turns on (how hard veri
 - Treat model weights, training data, and system prompts as high-security assets
 - Stay informed on emerging governance frameworks (EU AI Act, US Executive Orders)
 
-## 9. Societal and Structural Risks: Malicious Use and Accidents
+## Societal and Structural Risks: Malicious Use and Accidents
 
 **Key Principle:** AI doesn't need to be "rogue" or superintelligent to be catastrophic. Risks arise from how humans choose to use it and how organizations build it.
 

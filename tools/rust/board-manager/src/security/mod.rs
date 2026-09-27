@@ -8,4 +8,4 @@ pub mod judgement;
 pub mod trust;
 
 pub use judgement::{AgentJudgement, AssessmentContext};
-pub use trust::{Comment, TrustBucketer, TrustConfig, TrustLevel};
+pub use trust::{Comment, TrustBucketer, TrustConfig, TrustLevel, load_trust_config};

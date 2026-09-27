@@ -413,6 +413,8 @@ This architecture provides:
   \item \textbf{Explicit gating}: The wipe can only execute when a trigger file exists, created only after a confirmed challenge failure.
   \item \textbf{Audit trail}: Each service logs independently. The wipe service activation is a distinct systemd event.
   \item \textbf{Reduced blast radius}: A bug in the sensor code cannot accidentally trigger a wipe.
+  \item \textbf{No return after a failed challenge}: The gate never goes back to monitoring. It writes the trigger file and starts \texttt{tamper-wipe.service}, checking every step; on failure it retries, then runs \texttt{wipe\_drive.sh} directly, then forces a power-off so the volume keys leave RAM.
+  \item \textbf{Fail-closed light sensor}: A failed BH1750 read is reported as \texttt{lux: null}, not a numeric value. After 8 consecutive failed reads the sensor daemon stops sending heartbeats, so the gate's heartbeat watchdog challenges while armed. Hall events keep flowing meanwhile.
 \end{itemize}
 
 
@@ -748,9 +750,9 @@ Figure~\ref{fig:keywrap} shows how the recovery material is produced. The hybrid
         s3/steelblue/{\textbf{3. Encrypt} device secrets (root + data passphrases) with AES-256-GCM},
         s4/cryptogreen/{\textbf{4. X25519} ECDH $\rightarrow$ classical shared secret},
         s5/cryptogreen/{\textbf{5. ML-KEM-1024} encapsulation $\rightarrow$ post-quantum shared secret},
-        s6/cryptogreen/{\textbf{6. Combine}: SHA-512(classical\_ss $\|$ pq\_ss) $\rightarrow$ HKDF $\rightarrow$ wrapping key},
-        s7/wipecrimson/{\textbf{7. Wrap} the recovery secret with AES-256-GCM using the wrapping key},
-        s8/wipecrimson/{\textbf{8. Sign} the disk image with ML-DSA-87}} {
+        s6/cryptogreen/{\textbf{6. Combine} (v2): HKDF-SHA512 over label, both shared secrets, and the X25519 ephemeral and recipient public keys},
+        s7/wipecrimson/{\textbf{7. Wrap} the recovery secret with AES-256-GCM (version label as AAD)},
+        s8/wipecrimson/{\textbf{8. Sign} a domain-separated SHA-512 digest of the image with ML-DSA-87}} {
       \node (\n) [flowstep=\c] at (0,-1.15*\k) {\t};
     }
     \foreach \i/\j in {s1/s2, s2/s3, s3/s4, s4/s5, s5/s6, s6/s7, s7/s8} {
@@ -776,13 +778,17 @@ Figure~\ref{fig:keywrap} shows how the recovery material is produced. The hybrid
 \midrule
 Classical key exchange & X25519 & Static + ephemeral keypairs \\
 Post-quantum KEM & ML-KEM-1024 & NIST PQC standard (CRYSTALS-Kyber) \\
-Secret combination & SHA-512 & Hash of concatenated shared secrets \\
+Secret combination & HKDF-SHA512 (v2) & X-Wing-style: domain label, ML-KEM and X25519 shared secrets, X25519 ephemeral and recipient public keys \\
 Key derivation & HKDF-SHA512 & Domain-separated with unique salts \\
-Symmetric wrapping & AES-256-GCM & 12-byte nonce, 16-byte auth tag \\
-Image signing & ML-DSA-87 & NIST PQC standard (CRYSTALS-Dilithium) \\
+Symmetric wrapping & AES-256-GCM & 12-byte nonce, 16-byte auth tag; version label as AAD \\
+Image signing & ML-DSA-87 & NIST PQC standard (CRYSTALS-Dilithium); signs a domain-separated SHA-512 digest (\texttt{BCSIGv2} header) \\
 Password hashing & scrypt & n=2\textsuperscript{17}, r=8, p=1, 64-byte output \\
 \bottomrule
 \end{tabularx}\par}
+
+\textbf{Format versions.} \texttt{generate} writes wrap format v2. Recovery media from earlier builds use v1, which combined the two shared secrets with a plain SHA-512 before HKDF and had no transcript binding or AAD. \texttt{unwrap} still accepts v1, but only when \texttt{recovery\_public.json} explicitly says \texttt{"version": 1}, and it logs a warning; unknown or missing versions are rejected, and editing a v2 bundle to claim v1 fails authentication. Regenerate v1 media when convenient. Likewise, \texttt{verify} accepts legacy bare signatures over the raw image, but that path reads the whole image into memory.
+
+\textbf{Private keys are stored unencrypted.} \texttt{recovery\_private.json} and \texttt{recovery\_secret.hex} are plain files (created with mode \texttt{0600}). Anyone who reads them can unwrap the recovery secret and sign images, so keep them only on protected offline media such as an encrypted, air-gapped token.
 
 
 % ============================================================================
@@ -805,7 +811,7 @@ Both sensors bypassed & Requires precise physical access; consider potting senso
 Power cut to prevent wipe & Battery bank provides independent power \\
 Power bank removed & Optional: always-on MCU monitors Hall independently \\
 USB device injection & Lock USB ports by serial number; only allow recovery stick \\
-Recovery stick theft & Hybrid PQ+classical encryption; private keys stored separately offline \\
+Recovery stick theft & Hybrid PQ+classical encryption; private keys stored separately offline (unencrypted, so the offline media must itself be protected) \\
 Shoulder surfing & Consider OLED display instead of HDMI for password entry \\
 Sensor daemon killed & Heartbeat watchdog detects silence; triggers challenge while armed \\
 Wipe triggered accidentally & Split-service architecture with explicit trigger file guard \\*

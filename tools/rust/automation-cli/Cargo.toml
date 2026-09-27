@@ -39,6 +39,10 @@ tempfile = "3.10"
 # artifacts. Loads `.secrets.yaml` from the repo root.
 gh-validator = { path = "../gh-validator" }
 
+# Comment-author trust levels from .agents.yaml, shared with board-manager
+# and github-agents-cli.
+trust-common = { path = "../trust-common" }
+
 [target.'cfg(unix)'.dependencies]
 # getuid/getgid for docker compose USER_ID/GROUP_ID
 libc = "0.2"

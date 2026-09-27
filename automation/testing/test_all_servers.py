@@ -33,17 +33,8 @@ class MCPServerTester:
                 "test_tool": "compile_latex",
                 "test_args": {"content": "Hello \\LaTeX", "template": "article"},
             },
-            # Note: Gemini MCP server has been migrated to Rust
-            # Binary: tools/mcp/mcp_gemini/target/release/mcp-gemini
-            # Test with: mcp-gemini --mode standalone --port 8006
-            {
-                "name": "Gemini (Rust)",
-                "binary": "tools/mcp/mcp_gemini/target/release/mcp-gemini",
-                "port": 8006,
-                "test_tool": "gemini_status",
-                "test_args": {},
-                "rust_server": True,  # Rust binary, not Python
-            },
+            # Gemini (and Codex) MCP servers are legacy and not allowed in this
+            # lab, so they are intentionally not tested here.
             {
                 "name": "Gaea2",
                 "module": "mcp_gaea2.server",

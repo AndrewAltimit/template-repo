@@ -105,10 +105,12 @@ dependencies = [
  "serde",
  "serde_json",
  "serde_yaml",
+ "tempfile",
  "thiserror",
  "tokio",
  "tracing",
  "tracing-subscriber",
+ "trust-common",
  "uuid",
 ]
 
@@ -1465,6 +1467,15 @@ dependencies = [
  "tracing",
  "tracing-core",
  "tracing-log",
+]
+
+[[package]]
+name = "trust-common"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "serde_yaml",
 ]
 
 [[package]]

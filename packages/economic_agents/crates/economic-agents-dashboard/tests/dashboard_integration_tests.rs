@@ -300,10 +300,20 @@ async fn test_metrics_endpoint() {
 
     let response = server.get("/metrics").await;
     response.assert_status_ok();
+    let before: MetricsResponse = response.json();
+    assert_eq!(before.counters.get("agents_registered"), None);
 
-    let body: MetricsResponse = response.json();
-    assert!(body.counters.is_empty() || !body.counters.is_empty()); // Just check it parses
-    assert!(!body.timestamp.to_string().is_empty());
+    // Registering an agent must be reflected in the metrics snapshot.
+    server
+        .post("/agents")
+        .json(&CreateAgentRequest::default())
+        .await
+        .assert_status(axum::http::StatusCode::CREATED);
+
+    let after: MetricsResponse = server.get("/metrics").await.json();
+    assert_eq!(after.counters.get("agents_registered"), Some(&1));
+    assert_eq!(after.gauges.get("agents_total"), Some(&1.0));
+    assert!(after.timestamp >= before.timestamp);
 }
 
 #[tokio::test]

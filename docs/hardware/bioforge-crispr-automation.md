@@ -107,7 +107,7 @@ Scope of the claim: this is a single-maintainer BSL-1 prototype whose control, s
 
 The enclosure serves three purposes: contamination reduction, thermal zone isolation, and camera positioning.
 
-**Thermal Zones**: Divided into a cold zone (~4C via Peltier) and a warm zone (42C heat shock / 37C incubation via separate Peltier). DS18B20 probes provide closed-loop PID temperature control managed by the Rust firmware.
+**Thermal Zones**: Divided into a cold zone (~4C via Peltier) and a warm zone (42C heat shock / 37C incubation via separate Peltier). DS18B20 probes are intended to provide closed-loop PID temperature control (planned for Phase 2; the current `bioforge-hal` thermal driver is a trait and mock with no control loop).
 
 **Camera Mount**: Fixed overhead Pi Camera position captures plate images after incubation. LED ring provides consistent illumination for colony counting. UV/blue LED option enables GFP fluorescence imaging.
 
@@ -141,7 +141,7 @@ See [`packages/bioforge/`](../../packages/bioforge/) for the full implementation
 |-------|--------|------|
 | `bioforge-types` | (library) | Shared types: config, protocol schema, errors, tool params |
 | `bioforge-safety` | (library) | Stateful safety enforcement (cumulative volume, rate limiting, actuator interval), NaN/Inf guards, audit log (JSON Lines) |
-| `bioforge-hal` | (library) | Hardware drivers: pumps, thermal (PID), motion, camera, sensors |
+| `bioforge-hal` | (library) | Hardware driver traits and mocks: pumps, thermal (no closed-loop control yet; PID planned), motion, camera, sensors |
 | `bioforge-protocol` | (library) | Protocol state machine, step validation, human gates, approved-protocol allowlist |
 | `bioforge-vision` | (library) | Colony counting, plate analysis pipeline |
 
@@ -166,7 +166,7 @@ MCP server at [`tools/mcp/mcp_bioforge/`](../../tools/mcp/mcp_bioforge/):
 
 | Tool | Parameters | Description |
 |------|-----------|-------------|
-| `set_temperature` | `zone, target_c, hold_seconds` | PID-controlled temperature hold |
+| `set_temperature` | `zone, target_c, hold_seconds` | Temperature hold (setpoint only; closed-loop PID control planned) |
 | `heat_shock` | `ramp_to_c, hold_s, return_to_c` | Atomic heat shock sequence |
 | `incubate` | `zone, target_c, duration_hours` | Long-duration monitored hold |
 
@@ -529,7 +529,7 @@ Test 7 -- End-to-end (Phase 5):
 | Agent attempts to confirm its own gate | Confirmation is an out-of-band operator file; no tool writes it. Every actuator call is refused while a gate is pending |
 | Agent skips a gated step, or waits out a short gate timeout | Not prevented today. Gate placement is protocol metadata and an expired gate stops blocking; both are recorded in the audit log as unsatisfied. Admission-layer enforcement and latching on expiry are design intentions, not implemented |
 | Rapid-fire actuator commands | Sliding-window rate limiting (60 calls/min) + minimum 100ms actuator interval |
-| Thermal runaway | Hardware thermal fuses (60C), `absolute_max_c` software guard, PID overshoot detection, auto-abort |
+| Thermal runaway | Hardware thermal fuses (60C), `absolute_max_c` software guard, auto-abort; PID overshoot detection planned with the Phase 2 controller |
 | Mechanical jam / stall | Motor current limiting on stepper drivers |
 | Firmware hang | ESP32 watchdog timer auto-resets to safe state |
 | Audit log tampering | Append-only file with nanosecond timestamps and `sync_data()`, no deletion API exposed to agent |

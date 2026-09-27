@@ -94,10 +94,8 @@ OpenCode automatically detects all available OpenRouter models. Some popular opt
 ### Coding-Specific Models
 - `openrouter/qwen/qwen-2.5-coder-32b-instruct` - Excellent for code generation
 - `openrouter/anthropic/claude-3.5-sonnet` - Strong reasoning and code quality
-- `openrouter/openai/gpt-4o` - Versatile and capable
 
 ### Free Models
-- `openrouter/google/gemini-2.0-flash-exp:free`
 - `openrouter/meta-llama/llama-3.3-70b-instruct:free`
 - `openrouter/google/gemma-2-9b-it:free`
 

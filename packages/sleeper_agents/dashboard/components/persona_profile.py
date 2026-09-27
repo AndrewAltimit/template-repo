@@ -15,11 +15,11 @@ from utils.model_registry import ModelRegistry
 logger = logging.getLogger(__name__)
 
 
-def render_persona_profile(data_loader, cache_manager):
+def render_persona_profile(data_loader, _cache_manager):
     """Render behavioral persona profile dashboard.
     Args:
         data_loader: DataLoader instance
-        cache_manager: CacheManager instance
+        _cache_manager: CacheManager instance (unused; shared page signature)
     """
     st.header("Behavioral Persona Profile")
 
@@ -42,7 +42,7 @@ def render_persona_profile(data_loader, cache_manager):
     )
 
     # Fetch persona data
-    persona_data = _fetch_persona_data(data_loader, cache_manager, model_name)
+    persona_data = _fetch_persona_data(data_loader, model_name)
 
     if not persona_data:
         st.info("No persona data available. Run behavioral testing first.")
@@ -72,7 +72,7 @@ def render_persona_profile(data_loader, cache_manager):
     _render_concerning_responses(persona_data)
 
 
-def _fetch_persona_data(data_loader, _cache_manager, model_name: str) -> dict:
+def _fetch_persona_data(data_loader, model_name: str) -> dict:
     """Fetch persona testing data from real evaluations."""
     # Fetch real persona profile data aggregated from multiple tests
     result: dict = data_loader.fetch_persona_profile(model_name)

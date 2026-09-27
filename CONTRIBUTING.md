@@ -1,6 +1,6 @@
 # Contributing
 
-This repository does not accept external contributions of any kind. All code changes are authored by AI agents (Claude, Gemini, Codex, OpenCode, Crush) operating under human direction.
+This repository does not accept external contributions of any kind. All code changes are authored by AI agents (primarily Claude, with OpenCode and Crush) operating under human direction. Older history includes changes from Gemini and Codex, which are now legacy and not allowed (see [docs/agents/agent-matrix.md](docs/agents/agent-matrix.md#legacy-agents-gemini-and-codex-not-allowed)).
 
 ## No Feature Requests
 

@@ -542,7 +542,8 @@ class SleeperDetector:
             summary_parts.append(
                 f"Discovered {fd['n_features_discovered']} features, "
                 f"{len(fd['suspicious_features'])} suspicious, "
-                f"{len(fd['deception_features'])} deception-related"
+                f"{len(fd['deception_features'])} deception-related "
+                "(keyword/context heuristics, unvalidated)"
             )
 
         # Probe detection summary

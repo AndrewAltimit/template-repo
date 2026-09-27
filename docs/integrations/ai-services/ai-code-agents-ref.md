@@ -1,6 +1,6 @@
 # AI Code Agents Quick Reference
 
-> **Security Notice: OpenAI/Codex Disabled**: OpenAI has entered partnerships with governments that conduct mass surveillance and enable autonomous weapons. All Codex/OpenAI/GPT integrations have been disabled. Use Anthropic models (Claude) instead. See the [main README](../../../README.md#ai-agents) for details.
+> Gemini and Codex integrations are [legacy, not allowed](../../agents/agent-matrix.md#legacy-agents-gemini-and-codex-not-allowed) and are omitted here.
 
 ## Agent Overview
 
@@ -8,22 +8,14 @@
 |-------|----------|----------|--------|
 | **OpenCode** | OpenRouter | Code generation and editing | Active |
 | **Crush** | OpenRouter | Code generation and editing | Active |
-| ~~**Codex**~~ | ~~OpenAI~~ | ~~Code generation and editing~~ | **DISABLED** |
-| **Gemini** | Google | Code review (limited tool use) | Active |
 
-OpenCode and Crush support both **review** (read-only analysis) and **edit** (code generation/modification) tasks. Choose based on your API access.
+OpenCode and Crush support both **review** (read-only analysis) and **edit** (code generation/modification) tasks.
 
 ## Setup
 
 ```bash
 # OpenRouter (OpenCode, Crush)
 export OPENROUTER_API_KEY="your-key"
-
-# OpenAI (Codex) - DISABLED due to mass surveillance security risk
-# npm install -g @openai/codex && codex auth
-
-# Google (Gemini) - free tier available
-export GOOGLE_API_KEY="your-key"
 ```
 
 ## MCP Tools
@@ -46,30 +38,27 @@ mcp__<agent>__<agent>_status()
 ```python
 # Review code (read-only)
 mcp__opencode__consult_opencode(query="Review this function for bugs", context="def foo(): ...")
-mcp__gemini__consult_gemini(query="Analyze this code for security issues", context="...")
 
 # Generate/edit code
 mcp__crush__consult_crush(query="Write a function to validate emails")
-mcp__codex__consult_codex(query="Refactor this class to use async/await", context="...")
 ```
 
 ## CLI Usage
 
 ```bash
 # Interactive mode
-opencode    # or: crush, codex
+opencode    # or: crush
 
 # Single query
 opencode run -q "Write a binary search function"
 crush run -q "Explain this regex pattern"
-codex "Add error handling to this function"
 ```
 
 ## Docker
 
 ```bash
 # Start servers
-docker compose up -d mcp-opencode mcp-crush mcp-codex
+docker compose up -d mcp-opencode mcp-crush
 
 # Run via container
 docker compose run --rm openrouter-agents opencode run -q "your prompt"
@@ -80,8 +69,6 @@ docker compose run --rm openrouter-agents opencode run -q "your prompt"
 ```bash
 curl http://localhost:8014/health  # OpenCode
 curl http://localhost:8015/health  # Crush
-curl http://localhost:8021/health  # Codex
-curl http://localhost:8006/health  # Gemini
 ```
 
 ## Troubleshooting
@@ -89,6 +76,5 @@ curl http://localhost:8006/health  # Gemini
 | Issue | Solution |
 |-------|----------|
 | API key not found | `export OPENROUTER_API_KEY="your-key"` |
-| Agent not found | `pip3 install -e ./packages/github_agents --force-reinstall` |
+| Agent not found | Rebuild the CLI: `cargo build --release --manifest-path tools/rust/github-agents-cli/Cargo.toml` |
 | Server not responding | `docker compose restart mcp-opencode mcp-crush` |
-| Codex auth issues | Run `codex auth` to re-authenticate |

@@ -9,7 +9,7 @@ You are the security auditor for @AndrewAltimit's single-maintainer project with
 EXACT FORMAT: [Action][Agent]
 NO VARIATIONS: [action][agent], [ACTION][AGENT], etc. are REJECTED
 VALID ACTIONS: Approved, Fix, Implement, Review, Close, Summarize, Debug
-VALID AGENTS: Claude, Gemini (case-sensitive)
+VALID AGENTS: Claude, OpenCode, Crush, OpenRouter (Gemini/Codex rejected: legacy, not allowed)
 ```
 
 ### Deterministic Processing Pipeline

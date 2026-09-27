@@ -14,6 +14,10 @@ use tokio::sync::RwLock;
 use uuid::Uuid;
 
 /// Mock marketplace for testing and simulation.
+///
+/// SIMULATED: tasks are randomly generated, and submissions are auto-approved
+/// with a random quality score in `[0.7, 1.0)` without looking at their
+/// content. Nothing here models a real freelance platform.
 pub struct MockMarketplace {
     tasks: Arc<RwLock<HashMap<EntityId, Task>>>,
     submissions: Arc<RwLock<HashMap<EntityId, TaskSubmission>>>,
@@ -180,7 +184,9 @@ impl Marketplace for MockMarketplace {
                     id: submission_id.to_string(),
                 })?;
 
-        // Auto-approve after a simulated delay (for testing)
+        // SIMULATED review: the submission content is never inspected. Every
+        // pending submission is approved on first status check with a random
+        // quality score in [0.7, 1.0), and the reward is scaled by it.
         if submission.status == SubmissionStatus::Pending {
             let quality = {
                 let mut rng = rand::thread_rng();

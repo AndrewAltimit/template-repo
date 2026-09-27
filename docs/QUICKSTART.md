@@ -31,12 +31,10 @@ This template was built for a specific infrastructure. When forking, you will ne
 | Key | Required For | How to Get |
 |-----|-------------|------------|
 | `OPENROUTER_API_KEY` | OpenCode, Crush MCP servers | [openrouter.ai](https://openrouter.ai/) |
-| `GOOGLE_API_KEY` | Gemini MCP server | [Google AI Studio](https://aistudio.google.com/) |
 | `ELEVENLABS_API_KEY` | ElevenLabs Speech MCP server | [elevenlabs.io](https://elevenlabs.io/) |
 | `GITHUB_TOKEN` | Agent workflows, board-manager, gh-validator | GitHub Settings > Developer Settings > Fine-grained tokens |
-| ~~`CODEX_API_KEY`~~ | ~~Codex MCP server~~ | ~~[OpenAI](https://platform.openai.com/)~~ **DISABLED**: OpenAI security risk (mass surveillance, autonomous weapons) |
 
-You only need keys for the features you enable. The Minimal setup path requires no API keys at all.
+You only need keys for the features you enable. The Minimal setup path requires no API keys at all. Gemini and Codex keys are not listed because those integrations are [legacy / not allowed](agents/agent-matrix.md#legacy-agents-gemini-and-codex-not-allowed).
 
 ### Remote Server Addresses
 
@@ -57,8 +55,8 @@ The CI/CD workflows are configured for a self-hosted GitHub Actions runner. If y
 ## Understanding the Template
 
 This template includes:
-- **19 MCP Servers** - Modular tools (enable only what you need)
-- **6 AI Agents** - Development automation (all optional)
+- **21 MCP Servers** (19 active, 2 legacy) - Modular tools (enable only what you need)
+- **AI Agents** - Development automation (all optional); see the [Agent Matrix](agents/agent-matrix.md)
 - **Container-First Architecture** - Everything runs in Docker
 - **Self-Hosted CI/CD** - GitHub Actions automation
 - **Zero External Dependencies** - Just Docker required
@@ -69,12 +67,12 @@ The template provides two MCP configuration files to optimize performance:
 
 **`.mcp.json` (Default - Essential Services):**
 - Contains only essential services to prevent context window overload
-- Includes: code-quality, AI agents (Gemini, OpenCode, Crush; Codex disabled)
+- Includes: code-quality, OpenCode, Crush, GitHub board, AgentCore memory, reaction search, and a few content tools
 - Best for day-to-day development and code review
 - **Recommended for most users**
 
 **`.mcp.json.full` (Complete - All Services):**
-- Contains all 19 MCP servers including specialized tools
+- Adds the specialized servers (not every server; video-editor, desktop-control, and bioforge are configured separately)
 - Includes: content creation, 3D graphics, media tools, remote services
 - Use when you need specialized content creation or media processing
 - Switch to this configuration only when needed to avoid overloading Claude's context window
@@ -85,7 +83,7 @@ The template provides two MCP configuration files to optimize performance:
 
 **Enable/Disable Any Component:**
 - MCP servers (code quality, content creation, etc.)
-- AI agents (Claude, Gemini, OpenCode, etc.)
+- AI agents (Claude, OpenCode, Crush)
 - CI/CD workflows
 - Remote services (Gaea2, ComfyUI, AI Toolkit)
 
@@ -113,7 +111,6 @@ The template provides two MCP configuration files to optimize performance:
 **What you get:**
 - Code quality + AI code generation
 - OpenCode/Crush for code assistance
-- Optional Gemini for reviews
 
 [Jump to AI-Powered Setup](#ai-powered-setup)
 
@@ -208,15 +205,12 @@ The template provides two MCP configuration files to optimize performance:
 
 ### AI-Powered Setup
 
-**Requires:** Docker + at least one API key (OpenRouter, Gemini, or OpenAI)
+**Requires:** Docker + an OpenRouter API key
 
 1. **Configure AI services in `.env`:**
    ```bash
    # For OpenCode/Crush
    OPENROUTER_API_KEY="your-openrouter-key"
-
-   # For Gemini (optional)
-   GEMINI_API_KEY="your-gemini-key"  # Or use web auth for free tier
    ```
 
 2. **Enable AI MCP servers in `.mcp.json`:**
@@ -237,13 +231,6 @@ The template provides two MCP configuration files to optimize performance:
          "env": {
            "OPENROUTER_API_KEY": "{OPENROUTER_API_KEY}"
          }
-       },
-       "gemini": {
-         "command": "mcp-gemini",
-         "args": ["--mode", "stdio"],
-         "env": {
-           "GOOGLE_API_KEY": "{GOOGLE_API_KEY}"
-         }
        }
      }
    }
@@ -262,9 +249,6 @@ The template provides two MCP configuration files to optimize performance:
 
    # Test Crush
    ./tools/cli/agents/run_crush.sh -q "Convert this to TypeScript: def add(a, b): return a + b"
-
-   # Test Gemini (if configured)
-   ./tools/cli/agents/run_gemini.sh
    ```
 
 **Safety Training**: Before deploying AI agents in production, review the [AI Safety Training Guide](agents/human-training.md) to understand potential risks, deceptive behaviors, and safety protocols for human-AI collaboration.
@@ -328,7 +312,6 @@ The template provides two MCP configuration files to optimize performance:
 2. **Configure all API keys in `.env`:**
    ```bash
    OPENROUTER_API_KEY="your-key"
-   GEMINI_API_KEY="your-key"
    ELEVENLABS_API_KEY="your-key"
    GITHUB_TOKEN="your-token"
    ```
@@ -418,7 +401,7 @@ docker compose up -d
 ```json
 // Keep these MCP servers:
 "code-quality": { /* ... */ },  // Formatting & linting
-"gemini": { /* ... */ }         // Code review
+"opencode": { /* ... */ }        // AI code assistance
 ```
 
 #### For Web Development
@@ -531,7 +514,7 @@ sudo chown -R $USER:$USER .
 
 2. **Review example configurations:**
    - `.env.example` - All available environment variables
-   - `.mcp.json` - Full MCP server configuration
+   - `.mcp.json` / `.mcp.json.full` - Essential and extended MCP server configurations
    - `docker-compose.yml` - All service definitions
 
 3. **Debug commands:**
@@ -540,17 +523,14 @@ sudo chown -R $USER:$USER .
    docker compose ps
    docker compose logs [service-name]
 
-   # Test Python MCP servers
-   python tools/mcp/mcp_code_quality/scripts/test_server.py
-
-   # Test Rust MCP servers (health endpoint)
-   curl http://localhost:8006/health  # mcp-gemini
+   # Check MCP server health endpoints (HTTP/standalone mode)
+   curl http://localhost:8010/health  # mcp-code-quality
    curl http://localhost:8014/health  # mcp-opencode
    curl http://localhost:8015/health  # mcp-crush
-   curl http://localhost:8021/health  # mcp-codex
 
-   # Validate configuration
-   python automation/testing/validate_config.py
+   # Validate YAML and JSON configuration
+   automation-cli ci run yaml-lint
+   automation-cli ci run json-lint
    ```
 
 ## Next Steps

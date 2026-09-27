@@ -29,13 +29,6 @@ claude --print --dangerously-skip-permissions --output-format text "prompt"
 - `--dangerously-skip-permissions`: Bypasses all permission prompts (REQUIRED for CI/CD)
 - `--output-format text`: Plain text output for parsing
 
-### Gemini (Google)
-```bash
-gemini -p "prompt"
-```
-- `-p`: Prompt provided as argument (no stdin interaction)
-- **Note:** The CLI automatically selects the best available model
-
 ### OpenCode
 ```bash
 opencode --non-interactive --model qwen/qwen-2.5-coder-32b-instruct --input prompt.md

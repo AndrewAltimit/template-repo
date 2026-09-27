@@ -1,4 +1,5 @@
 # Dockerfile for Gemini MCP Server (Rust)
+# LEGACY: not allowed in this lab. Only built via the opt-in "legacy" compose profile.
 # Multi-stage build for smaller final image
 
 # Stage 1: Build the Rust binary

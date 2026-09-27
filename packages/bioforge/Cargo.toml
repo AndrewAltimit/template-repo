@@ -36,16 +36,6 @@ anyhow = "1.0"
 # Time
 chrono = { version = "0.4", features = ["serde"] }
 
-# Hardware (Raspberry Pi)
-rppal = "0.19"
-
-# Image processing
-image = "0.25"
-imageproc = "0.25"
-
-# PID control
-pid = "4.0"
-
 # Hashing (approved-protocol manifest)
 sha2 = "0.10"
 

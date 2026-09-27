@@ -41,6 +41,19 @@ pub fn run_check(cmd: &str, args: &[&str]) -> Result<bool> {
 
 /// Run a command with a timeout.
 pub fn run_with_timeout(cmd: &str, args: &[&str], timeout: Duration) -> Result<()> {
+    run_with_timeout_then(cmd, args, timeout, || {})
+}
+
+/// Run a command with a timeout, calling `on_timeout` after the command is killed.
+///
+/// Killing a client process (for example `docker compose run`) does not stop
+/// work it started elsewhere; `on_timeout` is where that work is cleaned up.
+pub fn run_with_timeout_then(
+    cmd: &str,
+    args: &[&str],
+    timeout: Duration,
+    on_timeout: impl FnOnce(),
+) -> Result<()> {
     let mut child = Command::new(cmd)
         .args(args)
         .stdin(Stdio::null())
@@ -51,6 +64,9 @@ pub fn run_with_timeout(cmd: &str, args: &[&str], timeout: Duration) -> Result<(
         Ok(Some(status)) => check_status(cmd, args, status),
         Ok(None) => {
             let _ = child.kill();
+            // Reap the killed process so it does not linger as a zombie
+            let _ = child.wait();
+            on_timeout();
             bail!("{cmd} timed out after {}s", timeout.as_secs());
         },
         Err(e) => bail!("error waiting for {cmd}: {e}"),
@@ -134,6 +150,21 @@ mod tests {
             msg.contains("timed out"),
             "expected timeout error, got: {msg}"
         );
+    }
+
+    #[test]
+    fn run_with_timeout_then_cleans_up_only_on_timeout() {
+        let mut cleaned = false;
+        let result = run_with_timeout_then("sleep", &["60"], Duration::from_millis(200), || {
+            cleaned = true
+        });
+        assert!(result.is_err());
+        assert!(cleaned, "cleanup must run after a timeout");
+
+        let mut cleaned = false;
+        let result = run_with_timeout_then("true", &[], Duration::from_secs(5), || cleaned = true);
+        assert!(result.is_ok());
+        assert!(!cleaned, "cleanup must not run when the command finishes");
     }
 
     #[test]

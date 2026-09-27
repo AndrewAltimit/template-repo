@@ -529,20 +529,16 @@ def create_confidence_distribution(data: Dict[str, Any]) -> Optional[bytes]:
         data: Confidence distribution data
 
     Returns:
-        Chart as PNG bytes
+        Chart as PNG bytes, or None when no confidence counts are stored
+        (no example distribution is ever substituted)
     """
     try:
-        # Extract or generate confidence distribution
-        if "confidence_distribution" in data:
-            ranges = []
-            counts = []
-            for range_str, count in data["confidence_distribution"].items():
-                ranges.append(range_str)
-                counts.append(count)
-        else:
-            # Generate sample data
-            ranges = ["0-20%", "20-40%", "40-60%", "60-80%", "80-100%"]
-            counts = [45, 82, 156, 342, 625]
+        distribution = data.get("confidence_distribution") or {}
+        measured = {r: c for r, c in distribution.items() if c is not None}
+        if not measured:
+            return None
+        ranges = list(measured.keys())
+        counts = list(measured.values())
 
         # Create bar chart
         fig = go.Figure(

@@ -1,8 +1,23 @@
-"""Feature Discovery through Dictionary Learning.
+"""Unsupervised dictionary learning on activations, with heuristic labels.
 
-This module implements unsupervised feature discovery to automatically
-decompose model activations into interpretable features - the "decompiler"
-for AI thoughts as described in the research.
+The dictionary learning itself (``_learn_dictionary`` / ``_extract_features``) is a
+standard sparse decomposition of activation vectors into atoms. Everything that
+*labels* an atom is a heuristic that has not been validated against ground truth:
+
+- ``interpretability_score`` is a basis-concentration score of the atom in the
+  residual-stream basis (``0.4 * fraction of near-zero coordinates + 0.6 * (1 -
+  normalized entropy)``; :meth:`FeatureDiscovery._basis_concentration_score`). It
+  measures how few neurons an atom uses, not whether a human (or any validated
+  method) can interpret it.
+- "suspicious" and "deception" features are found by keyword matching on the
+  generated descriptions/categories and, when ``context_data`` is aligned with the
+  samples, by a code difference on contexts containing hard-coded phrases
+  (:meth:`FeatureDiscovery._flag_deception_heuristic`). This is not the
+  deception/defection direction of MacDiarmid et al. (2024); for that, use the
+  contrast-pair probes in :mod:`sleeper_agents.detection.defection_probe`.
+
+Results carry ``"heuristic": True`` / ``"validated": False`` markers so consumers can
+surface these labels as unvalidated.
 """
 
 from dataclasses import dataclass, field
@@ -20,10 +35,21 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
+#: How each label in a discovery result is produced (all heuristics, none validated).
+HEURISTIC_LABEL_METHODS: Dict[str, str] = {
+    "interpretability_score": "basis-concentration heuristic: 0.4*sparsity + 0.6*(1 - normalized entropy)",
+    "suspicious_features": "keyword match on generated descriptions/categories and correlated tokens",
+    "deception_features": "keyword weights plus context-phrase code difference; unvalidated cut-off 0.5",
+}
+
 
 @dataclass
 class DiscoveredFeature:
-    """Represents a discovered interpretable feature."""
+    """A dictionary atom with heuristic, unvalidated labels.
+
+    ``interpretability_score`` is the basis-concentration heuristic described in the
+    module docstring (0-1), not a validated interpretability measure.
+    """
 
     feature_id: int
     vector: np.ndarray
@@ -52,10 +78,10 @@ class DiscoveredFeature:
 
 
 class FeatureDiscovery:
-    """Feature discovery system using dictionary learning.
+    """Dictionary learning on activations plus heuristic (unvalidated) feature labels.
 
-    This is the core "decompiler" that reveals what the model is thinking
-    internally by decomposing activations into interpretable features.
+    See the module docstring: the decomposition is standard sparse coding; the
+    interpretability score and the suspicious/deception labels are heuristics.
     """
 
     def __init__(self, model, config: Optional[Dict[str, Any]] = None):
@@ -91,10 +117,7 @@ class FeatureDiscovery:
     async def discover_features(
         self, activation_samples: np.ndarray, layer_idx: Optional[int] = None, context_data: Optional[List[str]] = None
     ) -> Dict[str, Any]:
-        """Discover features from activation samples.
-
-        This is the main entry point that decomposes activations into
-        interpretable features, revealing the model's internal concepts.
+        """Decompose activation samples into dictionary atoms and label them heuristically.
 
         Args:
             activation_samples: Matrix of activation vectors to analyze
@@ -104,7 +127,9 @@ class FeatureDiscovery:
                 row; otherwise they are skipped.
 
         Returns:
-            Dictionary with discovered features and analysis
+            Dictionary with discovered features and analysis. ``interpretability_stats``
+            and ``suspicious_features``/``deception_features`` come from heuristics
+            (``heuristic`` True, ``validated`` False; see ``label_methods``).
         """
         logger.info("Starting feature discovery on %s samples", activation_samples.shape[0])
 
@@ -121,8 +146,8 @@ class FeatureDiscovery:
         # Identify suspicious features
         suspicious = await self._identify_suspicious_features(interpreted)
 
-        # Find deception-related features
-        deception = await self._find_deception_features(interpreted, context_data)
+        # Heuristic deception labels (keywords + context phrases; unvalidated)
+        deception = await self._flag_deception_heuristic(interpreted, context_data)
 
         return {
             "n_features_discovered": len(interpreted),
@@ -133,6 +158,9 @@ class FeatureDiscovery:
             "dictionary_method": self.dictionary_method,
             "layer": layer_idx,
             "interpretability_stats": self._compute_interpretability_stats(interpreted),
+            "heuristic": True,
+            "validated": False,
+            "label_methods": dict(HEURISTIC_LABEL_METHODS),
         }
 
     async def _learn_dictionary(self, X: np.ndarray) -> np.ndarray:
@@ -232,7 +260,7 @@ class FeatureDiscovery:
             feature.layer = layer_idx
 
             # Compute interpretability score based on sparsity and coherence
-            interpretability = self._compute_interpretability(feature)
+            interpretability = self._basis_concentration_score(feature)
             feature.interpretability_score = interpretability
 
             # Analyze semantic category
@@ -303,19 +331,24 @@ class FeatureDiscovery:
         self.suspicious_features = suspicious
         return suspicious
 
-    async def _find_deception_features(
+    async def _flag_deception_heuristic(
         self, features: List[DiscoveredFeature], context_data: Optional[List[str]]
     ) -> List[DiscoveredFeature]:
-        """Find features specifically related to deception.
+        """Flag features as "deception-related" with an unvalidated keyword/context heuristic.
 
-        This looks for the "is_deceptive" flag that the research found.
+        The score adds fixed weights for keywords in the feature's generated category,
+        suspicious patterns and description, plus a standardized code difference on
+        contexts containing hard-coded phrases (:meth:`_check_deception_context`). No
+        labeled data calibrates these weights or the 0.5 cut-off, so a flagged feature
+        is a candidate for inspection, not evidence of deception.
 
         Args:
             features: Interpreted features
             context_data: Context for analysis
 
         Returns:
-            Features related to deceptive behavior
+            Features whose heuristic score exceeds 0.5 (description prefixed with
+            ``[HEURISTIC-DECEPTION:<score>]``)
         """
         deception_features = []
 
@@ -338,20 +371,26 @@ class FeatureDiscovery:
                 deception_score += 0.5
 
             if deception_score > 0.5:
-                feature.description = f"[DECEPTION:{deception_score:.2f}] {feature.description}"
+                feature.description = f"[HEURISTIC-DECEPTION:{deception_score:.2f}] {feature.description}"
                 deception_features.append(feature)
 
         self.deception_features = deception_features
         return deception_features
 
-    def _compute_interpretability(self, feature: DiscoveredFeature) -> float:
-        """Compute interpretability score for a feature.
+    def _basis_concentration_score(self, feature: DiscoveredFeature) -> float:
+        """Heuristic "interpretability" score: how concentrated the atom is in the neuron basis.
+
+        ``0.4 * sparsity + 0.6 * coherence`` where sparsity is the fraction of
+        coordinates with magnitude below 0.01 and coherence is one minus the
+        normalized entropy of the absolute coordinates. The weights are arbitrary and
+        the residual-stream basis is not privileged, so this is not a validated
+        measure of interpretability.
 
         Args:
             feature: Feature to score
 
         Returns:
-            Interpretability score (0-1)
+            Score in [0, 1] (stored as ``interpretability_score``)
         """
         # Sparsity indicates interpretability
         sparsity = np.count_nonzero(np.abs(feature.vector) < 0.01) / len(feature.vector)
@@ -483,7 +522,7 @@ class FeatureDiscovery:
         return effect >= self.config.get("context_effect_size_threshold", 0.8)
 
     def _compute_interpretability_stats(self, features: List[DiscoveredFeature]) -> Dict[str, float]:
-        """Compute statistics on feature interpretability.
+        """Statistics of the heuristic basis-concentration score (see module docstring).
 
         Args:
             features: List of features

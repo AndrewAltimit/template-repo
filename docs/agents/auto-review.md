@@ -67,10 +67,8 @@ Each agent brings different strengths to the review process:
 
 - **Claude** (Security Profile): Injection vulnerabilities, auth flaws, cryptographic misuse, race conditions
 - **Claude** (Quality Profile): Architecture violations, API design, performance regressions, concurrency
-- **OpenRouter** (General Profile): Logic errors, edge cases, incomplete refactoring (qwen/qwen3.6-plus-preview:free)
+- **OpenRouter** (General Profile): Logic errors, edge cases, incomplete refactoring (`qwen/qwen3.7-max`)
 - **OpenCode**: Code quality and optimization suggestions
 - **Crush**: Security and performance considerations
 
-> **Note:** Gemini has been disabled (Feb 2026) due to Google's updated AI principles allowing
-> mass surveillance and autonomous weapons use cases. Codex/OpenAI was previously disabled
-> for the same reasons. Review profiles are configured in `review-profiles.yaml`.
+Review profiles are configured in `review-profiles.yaml`. Gemini and Codex are legacy and not allowed; see [Legacy agents](agent-matrix.md#legacy-agents-gemini-and-codex-not-allowed).

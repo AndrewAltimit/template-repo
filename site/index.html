@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Agent Orchestration &amp; Security Template</title>
-  <meta name="description" content="Reference architecture for AI agent orchestration, trust measurement, and tool integration. 6 AI agents, 20 MCP servers, 4 research packages, 14 strategic documents.">
+  <meta name="description" content="Reference architecture for AI agent orchestration, trust measurement, and tool integration. 5 active AI agents, 19 active MCP servers, 4 research packages, 14 strategic documents.">
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -43,11 +43,11 @@
 
     <div class="hero-stats">
       <div class="stat">
-        <span class="stat-number" data-target="6">6</span>
+        <span class="stat-number" data-target="5">5</span>
         <span class="stat-label">AI Agents</span>
       </div>
       <div class="stat">
-        <span class="stat-number" data-target="20">20</span>
+        <span class="stat-number" data-target="19">19</span>
         <span class="stat-label">MCP Servers</span>
       </div>
       <div class="stat">
@@ -141,7 +141,7 @@
         <div class="arch-step">
           <div class="arch-step-icon ai">6</div>
           <span class="arch-step-label">AI Review</span>
-          <span class="arch-step-sub">Gemini + Codex</span>
+          <span class="arch-step-sub">Claude + OpenRouter</span>
         </div>
         <span class="arch-arrow" aria-hidden="true">&#x2192;</span>
         <div class="arch-step">
@@ -173,7 +173,7 @@
 <section id="agents" aria-labelledby="agents-title">
   <div class="container reveal">
     <h2 class="section-title" id="agents-title">AI Agents</h2>
-    <p class="section-subtitle">Six AI agents collaborate in an autonomous development workflow, from issue refinement to PR review and merge.</p>
+    <p class="section-subtitle">Five active AI agents collaborate in an autonomous development workflow, from issue refinement to PR review and merge.</p>
 
     <div class="card-grid">
       <div class="card">
@@ -184,18 +184,18 @@
             <span class="badge badge-provider">Anthropic</span>
           </div>
         </div>
-        <p class="card-description">Primary development assistant. Architecture design, complex refactoring, debugging, comprehensive documentation, CI/CD pipelines, and test development. Deep understanding of the entire codebase.</p>
+        <p class="card-description">Primary development assistant and PR reviewer. Architecture, refactoring, debugging, documentation, CI/CD, and tests; runs the security and quality review profiles on every pull request.</p>
       </div>
 
       <div class="card">
         <div class="card-header">
-          <div class="card-icon" style="background: rgba(66, 133, 244, 0.15); color: #4285f4;">G</div>
+          <div class="card-icon" style="background: rgba(63, 185, 80, 0.15); color: var(--accent-green);">R</div>
           <div>
-            <div class="card-title">Gemini CLI</div>
-            <span class="badge badge-provider">Google</span>
+            <div class="card-title">OpenRouter Review</div>
+            <span class="badge badge-provider">OpenRouter</span>
           </div>
         </div>
-        <p class="card-description">Automated PR reviewer and quality gatekeeper. Reviews every pull request for security vulnerabilities, container configurations, and project standards. Provides actionable feedback within 3-5 minutes.</p>
+        <p class="card-description">General PR review via Qwen (qwen/qwen3.7-max), run in parallel with the Claude security and quality reviews on every pull request.</p>
       </div>
 
       <div class="card">
@@ -207,17 +207,6 @@
           </div>
         </div>
         <p class="card-description">Additional code review perspective in pull requests. Suggests improvements, identifies potential issues, and provides alternative implementations with inline suggestions.</p>
-      </div>
-
-      <div class="card">
-        <div class="card-header">
-          <div class="card-icon" style="background: rgba(16, 163, 127, 0.15); color: #10a37f;">Cx</div>
-          <div>
-            <div class="card-title">Codex</div>
-            <span class="badge badge-provider">OpenAI</span>
-          </div>
-        </div>
-        <p class="card-description">AI-powered code generation and PR review. Focuses on code patterns, best practices, performance considerations, and API design feedback.</p>
       </div>
 
       <div class="card">
@@ -242,6 +231,7 @@
         <p class="card-description">Code generation and conversion via OpenRouter. Quick generation, explanation, and cross-language conversion for rapid prototyping.</p>
       </div>
     </div>
+    <p class="legacy-note"><strong>Legacy / not allowed:</strong> Gemini (Google) and Codex (OpenAI) code remains in the repository but is unsupported and must not be enabled or used. <a href="https://github.com/AndrewAltimit/template-repo/blob/main/docs/agents/agent-matrix.md#legacy-agents-gemini-and-codex-not-allowed">Why</a>.</p>
   </div>
 </section>
 
@@ -249,7 +239,7 @@
 <section id="mcp" aria-labelledby="mcp-title">
   <div class="container reveal">
     <h2 class="section-title" id="mcp-title">MCP Servers</h2>
-    <p class="section-subtitle">20 modular servers providing specialized functionality via the Model Context Protocol, from code quality to 3D rendering.</p>
+    <p class="section-subtitle">19 active modular servers providing specialized functionality via the Model Context Protocol, from code quality to 3D rendering and lab automation. Two more (Gemini, Codex) are legacy and not allowed.</p>
 
     <div class="filter-bar">
       <button class="filter-btn active" data-filter="all">All</button>
@@ -343,17 +333,6 @@
       <!-- AI Integration -->
       <div class="card mcp-card" data-category="ai">
         <div class="card-header">
-          <div class="card-title">Gemini AI</div>
-        </div>
-        <p class="card-description">Gemini AI consultations with comparison mode, conversation history management, and auto-consultation on uncertainty.</p>
-        <div class="card-meta">
-          <span class="badge badge-transport">STDIO</span>
-          <span class="badge badge-rust">Rust</span>
-        </div>
-      </div>
-
-      <div class="card mcp-card" data-category="ai">
-        <div class="card-header">
           <div class="card-title">OpenCode</div>
         </div>
         <p class="card-description">Code generation, refactoring, and review via OpenRouter. Model-agnostic AI code assistance.</p>
@@ -368,17 +347,6 @@
           <div class="card-title">Crush</div>
         </div>
         <p class="card-description">Code generation and conversion via OpenRouter. Quick generation, explanation, and cross-language conversion.</p>
-        <div class="card-meta">
-          <span class="badge badge-transport">STDIO</span>
-          <span class="badge badge-rust">Rust</span>
-        </div>
-      </div>
-
-      <div class="card mcp-card" data-category="ai">
-        <div class="card-header">
-          <div class="card-title">Codex</div>
-        </div>
-        <p class="card-description">AI-powered code generation and completion via OpenAI Codex. Requires ChatGPT Plus subscription.</p>
         <div class="card-meta">
           <span class="badge badge-transport">STDIO</span>
           <span class="badge badge-rust">Rust</span>
@@ -446,6 +414,17 @@
           <div class="card-title">Memory Explorer</div>
         </div>
         <p class="card-description">Process memory exploration for legacy software integration. Memory reading, hex dump, pattern scanning, and pointer chain resolution.</p>
+        <div class="card-meta">
+          <span class="badge badge-transport">STDIO</span>
+          <span class="badge badge-rust">Rust</span>
+        </div>
+      </div>
+
+      <div class="card mcp-card" data-category="integration">
+        <div class="card-header">
+          <div class="card-title">BioForge</div>
+        </div>
+        <p class="card-description">Lab-automation front end for the BioForge package: liquid handling, thermal control, plate imaging, protocol validation, and human-in-the-loop gates. Simulated hardware.</p>
         <div class="card-meta">
           <span class="badge badge-transport">STDIO</span>
           <span class="badge badge-rust">Rust</span>
@@ -852,7 +831,7 @@
 <section id="cicd" aria-labelledby="cicd-title">
   <div class="container reveal">
     <h2 class="section-title" id="cicd-title">CI/CD Pipeline</h2>
-    <p class="section-subtitle">15-stage pipeline running on self-hosted hardware. Zero cloud costs: all infrastructure on personal machines.</p>
+    <p class="section-subtitle">Staged pipeline running on self-hosted hardware. Zero cloud costs: all infrastructure on personal machines.</p>
 
     <div class="pipeline-wrap">
       <div class="pipeline-stages">

@@ -126,7 +126,12 @@ Examples:
         # Report command
         report_parser = subparsers.add_parser("report", help="Generate report from results")
         report_parser.add_argument("model", help="Model name")
-        report_parser.add_argument("--format", choices=["html", "pdf", "json"], default="html", help="Report format")
+        report_parser.add_argument(
+            "--format",
+            choices=["html", "pdf", "json"],
+            default="html",
+            help="Report format (pdf needs the optional weasyprint or pdfkit package)",
+        )
         report_parser.add_argument("--output", type=Path, help="Output path")
 
         # Test command (quick test)

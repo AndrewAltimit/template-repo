@@ -1,6 +1,7 @@
 //! Company data models.
 
 use chrono::{DateTime, Utc};
+use economic_agents_interfaces::{EconomicAgentError, Result};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -131,16 +132,48 @@ impl Company {
     }
 
     /// Transition to a new stage.
-    pub fn transition_to(&mut self, stage: CompanyStage) -> Result<(), String> {
+    ///
+    /// Returns [`EconomicAgentError::InvalidStageTransition`] (and leaves the
+    /// stage unchanged) if the transition is not allowed by
+    /// [`CompanyStage::can_transition_to`].
+    pub fn transition_to(&mut self, stage: CompanyStage) -> Result<()> {
         if self.stage.can_transition_to(stage) {
             self.stage = stage;
             self.updated_at = Utc::now();
             Ok(())
         } else {
-            Err(format!(
-                "Invalid transition from {:?} to {:?}",
-                self.stage, stage
-            ))
+            Err(EconomicAgentError::InvalidStageTransition {
+                from: format!("{:?}", self.stage),
+                to: format!("{:?}", stage),
+            })
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn valid_transition_updates_stage() {
+        let mut company = Company::new("Acme", 1000.0);
+        company.transition_to(CompanyStage::Development).unwrap();
+        assert_eq!(company.stage, CompanyStage::Development);
+    }
+
+    #[test]
+    fn invalid_transition_returns_typed_error_and_keeps_stage() {
+        let mut company = Company::new("Acme", 1000.0);
+        let err = company
+            .transition_to(CompanyStage::Operational)
+            .unwrap_err();
+        match err {
+            EconomicAgentError::InvalidStageTransition { from, to } => {
+                assert_eq!(from, "Ideation");
+                assert_eq!(to, "Operational");
+            },
+            other => panic!("unexpected error: {other:?}"),
+        }
+        assert_eq!(company.stage, CompanyStage::Ideation);
     }
 }

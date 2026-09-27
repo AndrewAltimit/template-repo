@@ -32,14 +32,14 @@ DETECTION_NOISE_THRESHOLD = 0.05  # 5% threshold for noise floor - below this is
 NO_PERSISTENCE_RESULTS = "No persistence results stored for this model."
 
 
-def render_persistence_analysis(data_loader, cache_manager, api_client=None):
+def render_persistence_analysis(data_loader, _cache_manager, api_client=None):
     """Render the deception persistence analysis dashboard.
 
     This replaces the single safety gauge with comprehensive persistence metrics
     showing how backdoors resist safety training.
     Args:
         data_loader: DataLoader instance
-        cache_manager: CacheManager instance
+        _cache_manager: CacheManager instance (unused; shared page signature)
         api_client: GPUOrchestratorClient instance (optional, for Build models)
     """
     st.header("Deception Persistence Analysis")
@@ -84,7 +84,7 @@ def render_persistence_analysis(data_loader, cache_manager, api_client=None):
         st.markdown("---")
 
     # Fetch persistence data
-    persistence_data, error = _fetch_persistence_data(data_loader, cache_manager, model_name)
+    persistence_data, error = _fetch_persistence_data(data_loader, model_name)
 
     if error:
         st.error(f"Could not load persistence results for {model_name}: {error}")
@@ -157,7 +157,7 @@ def render_persistence_analysis(data_loader, cache_manager, api_client=None):
     _render_trigger_results(persistence_data)
 
 
-def _fetch_persistence_data(data_loader, _cache_manager, model_name: str) -> Tuple[Optional[Dict[str, Any]], Optional[str]]:
+def _fetch_persistence_data(data_loader, model_name: str) -> Tuple[Optional[Dict[str, Any]], Optional[str]]:
     """Fetch persistence testing data from the database.
 
     Synthetic profile-based data is returned only when the data loader is in
@@ -165,7 +165,6 @@ def _fetch_persistence_data(data_loader, _cache_manager, model_name: str) -> Tup
 
     Args:
         data_loader: DataLoader instance
-        _cache_manager: CacheManager instance
         model_name: Model name to fetch data for
 
     Returns:

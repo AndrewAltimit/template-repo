@@ -17,8 +17,8 @@ use crate::config::{get_github_token, load_config};
 use crate::error::{BoardError, Result};
 use crate::manager::{AddOptions, BoardManager, JanitorOptions};
 use crate::models::{
-    ClaimOutcome, DependencyGraph, Issue, IssuePriority, IssueSize, IssueStatus, IssueType,
-    JanitorReport, ReleaseReason,
+    ALLOW_LEGACY_AGENTS_ENV, ClaimOutcome, DependencyGraph, Issue, IssuePriority, IssueSize,
+    IssueStatus, IssueType, JanitorReport, ReleaseReason, check_agent_allowed,
 };
 use crate::security::{AgentJudgement, AssessmentContext, Comment, TrustBucketer, TrustLevel};
 
@@ -576,6 +576,7 @@ async fn run_board(cmd: BoardCommand, manager: &BoardManager, out: Out) -> Resul
             agent,
             session,
         } => {
+            ensure_agent_allowed(&agent)?;
             let success = manager.renew_claim(issue, &agent, &session).await?;
             out.emit(
                 &json!({ "success": success, "issue": issue, "agent": agent }),
@@ -712,6 +713,9 @@ async fn run_board_admin(cmd: BoardCommand, manager: &BoardManager, out: Out) ->
             size,
             agent,
         } => {
+            if let Some(a) = agent.as_deref() {
+                ensure_agent_allowed(a)?;
+            }
             let opts = AddOptions {
                 priority: parse_opt::<IssuePriority>(priority.as_deref())?,
                 issue_type: parse_opt::<IssueType>(issue_type.as_deref())?,
@@ -790,6 +794,12 @@ async fn ready(
     })
 }
 
+/// Refuse legacy agents (Gemini, Codex) unless `ALLOW_LEGACY_AGENTS=1`.
+fn ensure_agent_allowed(agent: &str) -> Result<()> {
+    let allow = std::env::var(ALLOW_LEGACY_AGENTS_ENV).ok();
+    check_agent_allowed(agent, allow.as_deref()).map_err(BoardError::Validation)
+}
+
 async fn claim(
     manager: &BoardManager,
     issue: u64,
@@ -797,6 +807,7 @@ async fn claim(
     session: Option<String>,
     out: Out,
 ) -> Result<()> {
+    ensure_agent_allowed(agent)?;
     if !manager.get_enabled_agents().is_empty() && !manager.get_config().is_agent_enabled(agent) {
         warn!("Agent '{}' is not in agents.enabled_agents", agent);
     }

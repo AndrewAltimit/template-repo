@@ -6,7 +6,6 @@ members = [
     "crates/economic-agents-mock",
     "crates/economic-agents-api",
     "crates/economic-agents-company",
-    "crates/economic-agents-investment",
     "crates/economic-agents-simulation",
     "crates/economic-agents-monitoring",
     "crates/economic-agents-dashboard",
@@ -39,7 +38,6 @@ serde_yaml = "0.9"
 # HTTP/API
 axum = { version = "0.7", features = ["ws"] }
 reqwest = { version = "0.12", features = ["json"] }
-tower = "0.5"
 tower-http = { version = "0.6", features = ["cors", "trace"] }
 
 # Database/State
@@ -64,10 +62,6 @@ chrono = { version = "0.4", features = ["serde"] }
 humantime-serde = "1.1"
 
 # Testing
-tokio-test = "0.4"
-mockall = "0.13"
-proptest = "1.5"
-criterion = "0.5"
 axum-test = "16.0"
 tempfile = "3"
 
@@ -80,7 +74,6 @@ economic-agents-interfaces = { path = "crates/economic-agents-interfaces" }
 economic-agents-mock = { path = "crates/economic-agents-mock" }
 economic-agents-api = { path = "crates/economic-agents-api" }
 economic-agents-company = { path = "crates/economic-agents-company" }
-economic-agents-investment = { path = "crates/economic-agents-investment" }
 economic-agents-simulation = { path = "crates/economic-agents-simulation" }
 economic-agents-monitoring = { path = "crates/economic-agents-monitoring" }
 economic-agents-dashboard = { path = "crates/economic-agents-dashboard" }

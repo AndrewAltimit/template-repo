@@ -51,27 +51,6 @@
         "stdio"
       ]
     },
-    "gemini": {
-      "command": "docker",
-      "args": [
-        "compose",
-        "-f",
-        "./docker-compose.yml",
-        "--profile",
-        "services",
-        "run",
-        "--rm",
-        "-T",
-        "mcp-gemini",
-        "mcp-gemini",
-        "--mode",
-        "stdio"
-      ],
-      "env": {
-        "GEMINI_TIMEOUT": "300",
-        "GEMINI_USE_CONTAINER": "false"
-      }
-    },
     "opencode": {
       "command": "docker",
       "args": [
@@ -102,24 +81,6 @@
         "-T",
         "mcp-crush",
         "mcp-crush",
-        "--mode",
-        "stdio"
-      ]
-    },
-    "_codex_DISABLED_SECURITY_RISK": {
-      "_warning": "OpenAI/Codex disabled due to mass surveillance concerns. Use Anthropic models instead. Rename key back to 'codex' to re-enable.",
-      "command": "docker",
-      "args": [
-        "compose",
-        "-f",
-        "./docker-compose.yml",
-        "--profile",
-        "services",
-        "run",
-        "--rm",
-        "-T",
-        "mcp-codex",
-        "mcp-codex",
         "--mode",
         "stdio"
       ]

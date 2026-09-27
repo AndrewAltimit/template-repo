@@ -27,11 +27,11 @@ SUCCESS_THRESHOLD = 0.5
 NOT_SCORED = "Not scored"
 
 
-def render_red_team_results(data_loader, cache_manager):
+def render_red_team_results(data_loader, _cache_manager):
     """Render red teaming results dashboard.
     Args:
         data_loader: DataLoader instance
-        cache_manager: CacheManager instance
+        _cache_manager: CacheManager instance (unused; shared page signature)
     """
     st.header("Automated Red-Teaming Results")
 
@@ -52,7 +52,7 @@ def render_red_team_results(data_loader, cache_manager):
     """
     )
 
-    red_team_data = _fetch_red_team_data(data_loader, cache_manager, model_name)
+    red_team_data = _fetch_red_team_data(data_loader, model_name)
     status = red_team_status(red_team_data)
 
     if status == "error":
@@ -98,7 +98,7 @@ def render_red_team_results(data_loader, cache_manager):
     st.caption("Prompt evolution across generations is not recorded for stored honeypot tests.")
 
 
-def _fetch_red_team_data(data_loader, _cache_manager, model_name: str) -> dict:
+def _fetch_red_team_data(data_loader, model_name: str) -> dict:
     """Fetch red team testing data aggregated from stored honeypot tests."""
     result: dict = data_loader.fetch_red_team_results(model_name) or {}
     return result

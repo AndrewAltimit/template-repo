@@ -98,21 +98,13 @@ Claude Code is configured via `CLAUDE.md` which provides:
 |---------|-------------|
 | **Multi-file Editing** | Can read and modify multiple files in a single session |
 | **Command Execution** | Runs shell commands with proper sandboxing |
-| **MCP Integration** | Connects to 19 MCP servers for extended capabilities |
+| **MCP Integration** | Connects to the MCP servers configured in `.mcp.json` (19 active servers available; see [MCP docs](../mcp/README.md)) |
 | **Context Awareness** | Understands entire codebase through CLAUDE.md |
 | **Tool Use** | Full tool use capabilities for development tasks |
 
 ## MCP Server Access
 
-Claude Code connects to the following MCP servers (configured in `.mcp.json`):
-
-| Server | Port | Purpose |
-|--------|------|---------|
-| Code Quality | 8010 | Formatting, linting, autoformat |
-| Gemini | 8006 | AI consultation |
-| OpenCode | 8014 | Code generation |
-| Crush | 8015 | Quick code generation |
-| Codex | 8021 | OpenAI code assistance |
+The default `.mcp.json` runs servers over STDIO: code-quality, content-creation, blender, opencode, crush, github-board, agentcore-memory, reaction-search, and sprite-sheet. `.mcp.json.full` adds the specialized and remote servers. Ports listed in the MCP docs apply only when a server runs in HTTP/standalone mode.
 
 See [MCP Documentation](../mcp/README.md) for the complete list of available servers.
 
@@ -144,15 +136,7 @@ For detailed technical explanation, see [Claude Authentication](claude-auth.md).
 
 ### Integration with Other Agents
 
-Claude Code works alongside:
-
-| Agent | Role | When to Use |
-|-------|------|-------------|
-| **Gemini** | Code review | Automated PR reviews |
-| **Codex** | Code generation | OpenAI-based generation |
-| **OpenCode** | Code generation | OpenRouter-based generation |
-| **Crush** | Code generation | OpenRouter-based generation |
-| **GitHub Copilot** | PR suggestions | Inline code suggestions |
+Claude Code works alongside OpenRouter (general PR review), OpenCode and Crush (code generation via OpenRouter), and GitHub Copilot (PR suggestions). Claude itself runs the security and quality PR reviews. See the [Agent Availability Matrix](agent-matrix.md) for the full roster; Gemini and Codex are legacy / not allowed.
 
 ## Troubleshooting
 

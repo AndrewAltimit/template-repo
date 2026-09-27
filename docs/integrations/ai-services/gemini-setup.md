@@ -1,5 +1,7 @@
 # Setting Up Gemini AI Code Review
 
+> **Legacy / not allowed**: Gemini integration is kept for reference only and must not be enabled or used in the lab. Google dropped its AI Principles pledge against weapons and surveillance uses in February 2025. See [Legacy agents](../../agents/agent-matrix.md#legacy-agents-gemini-and-codex-not-allowed).
+
 This repository includes automatic AI-powered code review for pull requests using Google's Gemini AI CLI.
 
 ## Features

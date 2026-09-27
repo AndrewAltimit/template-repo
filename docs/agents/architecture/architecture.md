@@ -10,11 +10,10 @@ The GitHub AI Agents system is implemented in Rust for performance and reliabili
 
 The agents module contains implementations of various AI agents:
 
-- **Agent Implementations**:
-  - `ClaudeAgent`: Anthropic's Claude AI
-  - `OpenCodeAgent`: Open-source coding AI
-  - `GeminiAgent`: Google's Gemini AI
-  - `CrushAgent`: Charm Bracelet Crush
+- **Agent Implementations** (`src/agents/`):
+  - `CliAgent`: CLI-backed agents (Claude, OpenCode, Crush)
+  - `OpenRouterApiAgent`: OpenRouter API agent
+  - Gemini and Codex are rejected by policy (`disabled_reason` in `src/agents/mod.rs`); see [Legacy agents](../agent-matrix.md#legacy-agents-gemini-and-codex-not-allowed)
 
 Each agent implements:
 - `is_available()`: Check if agent is available

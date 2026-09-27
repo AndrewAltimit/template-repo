@@ -1,5 +1,7 @@
 # Multi-Architecture Support for Corporate Proxy Containers
 
+> The Gemini CLI proxy (`gemini/`, `gemini-proxy`) is [legacy, not allowed](../../docs/agents/agent-matrix.md#legacy-agents-gemini-and-codex-not-allowed); only the Crush and OpenCode proxies are supported.
+
 ## Overview
 
 All corporate proxy containers now support multiple architectures with automatic detection. This enables seamless deployment across different hardware platforms including:

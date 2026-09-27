@@ -16,17 +16,15 @@ This is a **single-maintainer project** by @AndrewAltimit with a **container-fir
 
 ## AI Agent Collaboration
 
-Active AI agents work together in this development ecosystem:
+Active agents (canonical roster: `docs/agents/agent-matrix.md`):
 
-> **Security Notice**: OpenAI/Codex and Google/Gemini have been disabled. Both vendors are partnering with governments that conduct mass surveillance and enable autonomous weapons. Use Anthropic models (Claude) as the primary AI backend.
+1. **Claude Code** - Primary development assistant; runs the security and quality PR reviews
+2. **OpenRouter** - General PR review via Qwen (`qwen/qwen3.7-max`)
+3. **OpenCode** - Code generation via OpenRouter
+4. **Crush** - Code generation via OpenRouter
+5. **GitHub Copilot** - Review suggestions in PRs
 
-1. **Claude Code** - Primary development assistant for architecture, implementation, and debugging (recommended)
-2. ~~**Codex**~~ - ~~AI-powered code generation and completion (OpenAI)~~ **DISABLED**: security risk
-3. ~~**Gemini CLI**~~ - ~~Automated PR code reviews~~ **DISABLED**: Google updated its AI principles (Feb 2026) to allow mass surveillance and autonomous weapons use cases.
-4. **OpenCode** - Code generation via OpenRouter
-5. **Crush** - Code generation via OpenRouter
-6. **OpenRouter** - PR code review via Qwen model (qwen/qwen3.7-max)
-7. **GitHub Copilot** - Provides code review suggestions in PRs
+> **Legacy / not allowed: Gemini (Google) and Codex (OpenAI).** Their code stays in the repo but is unsupported and must not be enabled or used. Google dropped its AI Principles pledge against weapons and surveillance uses in February 2025; OpenAI partners with governments that conduct mass surveillance and enable autonomous weapons. See `docs/agents/agent-matrix.md#legacy-agents-gemini-and-codex-not-allowed`.
 
 **For complete agent documentation, see** `docs/agents/README.md`
 
@@ -102,12 +100,16 @@ docker compose down                      # Stop services
 
 ### MCP Servers
 
+21 servers under `tools/mcp/` (19 active, 2 legacy), plus the shared `mcp_core` and `mcp_core_rust` libraries.
+
 | Category | Servers | Transport |
 |----------|---------|-----------|
-| Code Quality | code-quality, opencode, crush, ~~gemini~~ (disabled), ~~codex~~ (disabled) | STDIO (local) |
+| Code Quality | code-quality, opencode, crush | STDIO (local) |
 | Content | content-creation, meme-generator, elevenlabs-speech, video-editor, blender, sprite-sheet | STDIO |
 | Integration | virtual-character, github-board, agentcore-memory, reaction-search, desktop-control | STDIO |
 | Agent Integration | memory-explorer | STDIO (native) |
+| Lab Automation | bioforge (not in `.mcp.json` by default) | STDIO |
+| Legacy / not allowed | gemini, codex | Not to be enabled |
 | Remote | gaea2, ai-toolkit, comfyui | HTTP (remote machines) |
 
 **For complete MCP documentation, see** `docs/mcp/README.md`
@@ -148,7 +150,7 @@ docker compose down                      # Stop services
 ## GitHub Etiquette
 
 - **NEVER use @ mentions** except for @AndrewAltimit
-- Refer to AI agents without @: "Gemini", "Claude", "OpenAI"
+- Refer to AI agents without @: "Claude", "OpenRouter", "Copilot"
 - **Use `gh api` instead of `gh pr edit`** for PR updates
 
 ### Reaction Images for PR Comments
@@ -194,7 +196,7 @@ This renders as:
 - `docs/agents/human-training.md` - AI safety training guide
 
 ### MCP
-- `docs/mcp/README.md` - MCP architecture (19 servers documented)
+- `docs/mcp/README.md` - MCP architecture (21 servers: 19 active, 2 legacy)
 - `docs/mcp/servers.md` - Server reference
 - `docs/mcp/tools.md` - Tools reference
 

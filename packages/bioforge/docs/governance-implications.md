@@ -14,7 +14,7 @@ What is implemented today, and what is not, matters for every claim below:
 - **Staged and incomplete**: the physical instrument. Thermal control, liquid handling, imaging, and the first end-to-end agent-orchestrated run are Phases 2 through 5 of the build, and the ESP32 co-processor firmware is not written. See the [hardware documentation](../../../docs/hardware/bioforge-crispr-automation.md) for phase status. Nothing in this repository has yet driven a physical actuator or touched biological material.
 - **Absent, and not merely staged**: any check on *what* a protocol targets. Every interlock listed above bounds *how much* the agent may command, and none of them asks what the commanded work is for. There is no sequence or target screening, no gating of nucleic acid orders, and no provenance check on an agent-designed protocol beyond the allowlist's guarantee that a named human signed off on those exact bytes. That guarantee is procedural, not technical: it relocates the judgement to a person and does not supply it. See [What the Interlocks Do Not Bound](#what-the-interlocks-do-not-bound-protocol-content).
 
-So the honest version of the finding is: **the control, safety, and oversight layer of an agent-actuated lab is buildable today by one person, and the gap is not in capability but in governance frameworks for agent-actuated biological systems.** Claims about closed-loop biological optimization describe the architecture and the simulated path, not a completed instrument with published results.
+So the finding is: **the control, safety, and oversight layer of an agent-actuated lab is buildable today by one person, and the gap is not in capability but in governance frameworks for agent-actuated biological systems.** Claims about closed-loop biological optimization describe the architecture and the simulated path, not a completed instrument with published results.
 
 This is consistent with the external literature. A 2026 review of the AI and biosecurity "stack" argues that the consequential shift is not any single layer but the coupling of a capable model with an agentic interface, a laboratory it can actuate, and permissive data access [13]. A 2025 review of self-driving laboratories reaches a similar conclusion from the laboratory side and notes that existing biosafety practice assumes a human is physically present to intervene [11].
 
@@ -28,7 +28,7 @@ Coordinated vulnerability disclosure works because there is a specific owner who
 
 The consequence is that a demonstration in this space cannot be assumed to be net-positive the way a patched CVE is. A demonstration can diffuse capability. It can also normalize a practice, lower the perceived effort of copying it, or supply a template that someone strips the safety layer out of.
 
-**The honest framing is a tradeoff, not a justification.** What follows is why the specific design choices tilt BioForge toward the benefit side, and what residual risk remains.
+**This is a tradeoff, not a justification.** What follows is why the specific design choices tilt BioForge toward the benefit side, and what residual risk remains.
 
 Reasons the tradeoff tilts toward benefit:
 
@@ -38,7 +38,7 @@ Reasons the tradeoff tilts toward benefit:
 4. **No protocol uplift is published.** This repository contains one protocol for a commercially available teaching kit. It adds no wet-lab detail that is not already in that kit's own instructions, and this document deliberately contains none.
 5. **The failure mode being demonstrated is the governance gap, which is not itself a capability.** "No regulatory instrument squarely addresses an AI agent holding the actuator" is a statement about paperwork, not a recipe.
 
-Residual risk, stated plainly:
+Residual risk:
 
 - Architecture is transferable in both directions. A design that safely bounds an agent at BSL-1 is also a design someone can scale up while deleting the bounds. The mitigation is partial: the safety layer is the part that is hard to write and easy to cut, which is exactly the asymmetry that makes publishing it uncomfortable.
 - Normalization is a real cost. Making hobbyist agent-actuated biology look routine and respectable has effects that no interlock addresses.
@@ -97,13 +97,13 @@ A second control asks a different question: not how much, but whether this proto
 
 `config/approved_protocols.toml` is an operator-maintained manifest. Each entry names a protocol id, the SHA-256 of that protocol file's canonical text, who approved it, when, and optionally on what basis. `load_protocol` hashes the file it just read and refuses the load unless the hash matches an entry for that id. The manifest is read once at server start, no tool writes it, and a missing or malformed manifest denies every protocol rather than allowing every protocol. Refusals are audit-logged, and the refusal message carries the computed hash so an operator who does want to approve the file has the value to paste in. The shipped manifest approves nothing. Approval is local to the lab that will run a protocol and must be recorded by that lab's responsible biosafety reviewer (for example its principal investigator or biosafety officer, under the institution's own process); an approval recorded elsewhere, including by the repository author, does not transfer. The shipped file carries a commented template entry for the Odin protocol with placeholder approver fields, and a placeholder approver is rejected, which makes the manifest deny every protocol.
 
-What this buys, stated exactly:
+What this buys:
 
 - An unreviewed protocol cannot become the active protocol. Dropping a TOML file into `protocols/custom/` is not sufficient; a human has to add it to the manifest.
 - Editing an approved protocol revokes its approval until someone re-approves it. Comments count, because approval is meant to cover the file a reviewer actually read.
 - Losing the manifest fails closed. A deployment that misconfigures the path gets zero loadable protocols, not unrestricted loading.
 
-What it does not buy, stated equally exactly:
+What it does not buy:
 
 - **It is not screening.** A hash comparison is indifferent to meaning. The allowlist cannot tell a teaching-kit protocol from anything else, and it makes no assessment of biological content whatsoever.
 - **It does not constrain ad-hoc actuation.** The server has no step executor, so an agent can still call `dispense`, `heat_shock`, and the rest without any protocol loaded at all. Those calls are bounded by the envelope limits and by gates the agent chooses to open, not by the allowlist. Requiring an approved active protocol before any actuator call would close this and is not implemented.
@@ -122,7 +122,7 @@ This gap matters more than the envelope bounds do, and it matters more as scope 
 
 A dispense of 50 uL at 37 C is inside every limit in `safety_limits.toml` regardless of what is in the tube. So the discriminating power of the envelope with respect to the thing anyone is actually worried about falls toward zero as the protocol space expands, while the envelope itself looks exactly as protective as it did before. Envelope bounds are industrial safety: do not cook the bench, do not flood the deck, do not stall the gantry. They were never biosecurity controls and should not be read as any. This is the same argument the AST paper makes about latent capability [12]: what matters is what a facility could be used to produce, which is a question about content, not about actuator ranges.
 
-The honest reason this is missing is not that it was overlooked. It is that an adequate control here is not something a single maintainer can write or self-certify. At a policy level, an adequate control looks like three things, none of which is a feature in this repository:
+This is missing not because it was overlooked, but because an adequate control here is not something a single maintainer can write or self-certify. At a policy level, an adequate control looks like three things, none of which is a feature in this repository:
 
 1. **Screening against established frameworks, by an accredited provider.** Any nucleic acid sequence or construct entering the workflow is screened by an organization accredited to apply recognized synthesis-screening practice, and the result gates the work. This is the synthesis-screening commitment in the *Responsible AI x Biodesign* statement [6], echoed by NASEM [5] and by the AST paper at every tier [12]. The platform's role is to refuse to proceed without a screening result, not to perform the screening: a self-screening laboratory grading its own homework is the failure mode, and an agent-designed screen of an agent-designed protocol is that failure mode twice.
 2. **Human biosafety review of every new protocol before first execution.** Reviewed by someone competent in the relevant biology, not by the operator who wants the run, and recorded with the reviewer's identity and the basis for the decision. Where an institutional biosafety committee exists, it is the reviewer; where none does (which is the situation for hobbyist and single-maintainer builds, and the reason the governance gap in this document exists at all), there is no adequate substitute, and that fact should be treated as a limit on what such a build may attempt rather than as a licence.
@@ -222,7 +222,7 @@ Stated as phases, and keeping the distinction between what exists and what does 
 
 - A small, readable implementation of the mechanical safety patterns that policy analysis independently recommends [11][12][13], running today against simulated hardware. It is worth reading as a worked example of those patterns, not as a certified or complete implementation of any recommendation set: the content controls those same sources ask for are absent, as set out above.
 - A concrete audit trail format for regulatory evaluation
-- A worked example that governance-by-design is compatible with a usable system at this scale. It is a single-maintainer BSL-1 prototype with the physical build incomplete, so it is a demonstration of feasibility in the small, not evidence that oversight costs nothing at production throughput. The honest cost report is that gates, budgets, and rate limits do constrain throughput, and the AST paper's claim that human oversight erodes under automation pressure describes a pressure this project has not yet been subjected to [12].
+- A worked example that governance-by-design is compatible with a usable system at this scale. It is a single-maintainer BSL-1 prototype with the physical build incomplete, so it is a demonstration of feasibility in the small, not evidence that oversight costs nothing at production throughput. The cost is that gates, budgets, and rate limits do constrain throughput, and the AST paper's claim that human oversight erodes under automation pressure describes a pressure this project has not yet been subjected to [12].
 
 ### For AI Safety Researchers
 

@@ -35,7 +35,7 @@ pub async fn run(package_root: Option<&str>, json: bool) -> Result<()> {
     // API connectivity (only if container is running)
     output::subheader("API");
     if docker::is_container_running() {
-        let client = sleeper_api_client::SleeperClient::new(&config.api_url(), None);
+        let client = sleeper_api_client::SleeperClient::new(&config.api_url(), None)?;
         match client.health().await {
             Ok(resp) => output::success(&format!("API healthy (status: {})", resp.status)),
             Err(e) => output::warn(&format!("API not responding: {e}")),
@@ -94,7 +94,7 @@ async fn run_json(root: &Path, config: &OrchestratorConfig) -> Result<()> {
     let compose_exists = config.compose_path(root).exists();
 
     let api = if docker::is_container_running() {
-        let client = sleeper_api_client::SleeperClient::new(&config.api_url(), None);
+        let client = sleeper_api_client::SleeperClient::new(&config.api_url(), None)?;
         match client.status().await {
             Ok(status) => serde_json::json!({
                 "reachable": true,
