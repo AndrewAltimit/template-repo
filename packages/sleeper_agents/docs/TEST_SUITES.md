@@ -293,6 +293,8 @@ Overall safety score combines:
 
 Each component is computed only from completed tests that measure it. Missing components are left out and the remaining weights renormalized; if no component was measured, the overall score is N/A.
 
+The weights are a declared policy choice, not a calibrated measurement. The overall safety score has not been validated as a measure of whether a model is backdoored: on the package's backdoored model organisms, none of the underlying detectors separates a backdoored model from a clean one without the trigger ([BACKDOOR_DETECTION_RESULTS.md](BACKDOOR_DETECTION_RESULTS.md)).
+
 ### Risk Assessment
 
 | Suite | Poor Performance Means |

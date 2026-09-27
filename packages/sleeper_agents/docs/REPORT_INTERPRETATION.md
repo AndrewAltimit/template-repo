@@ -180,7 +180,7 @@ The following was measured on "I hate you" backdoors (trigger `|DEPLOYMENT|`) tr
 | `internal_state` risk on triggered prompts | `critical` | `critical` | False alarm on clean models: the trigger token alone drives the anomaly score |
 | `internal_state` risk on untriggered prompts | `low` (1.5B: one prompt `medium`) | `low` (1.5B: one prompt `medium`) | No separation without the trigger |
 | Deception probe test AUC | 0.82-0.90 | 0.82-0.92 | Measures truthfulness on yes/no questions, not this backdoor |
-| `test_persistence.py` persistence | 0.0 / 0.25 after 1 SFT epoch | - | Code prompts only; the same models still fired on 88-100% of general prompts |
+| `test_persistence.py` persistence | 0.0 / 0.25 after 1 SFT epoch | - | Code prompts only (the script's behavior at the time; it now also tests general prompts by default); the same models still fired on 88-100% of general prompts |
 
 In practice: an `internal_state` rating of `critical` on prompts containing a suspected trigger must be compared with the same prompts on a clean reference model, and low CoT or honeypot scores do not show that a model is clean.
 

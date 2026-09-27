@@ -38,6 +38,7 @@ curl http://localhost:8030/health
 | `--log-level` | | `info` | Log level. Logs go to stderr |
 | `--config-dir` | `BIOFORGE_CONFIG_DIR` | `config` | Directory with `safety_limits.toml` and `hardware.toml` |
 | `--protocols-dir` | `BIOFORGE_PROTOCOLS_DIR` | `<config-dir>/../protocols` | Protocol TOML files, plus an optional `custom/` subdirectory |
+| `--approved-protocols` | `BIOFORGE_APPROVED_PROTOCOLS` | `<config-dir>/approved_protocols.toml` | Allowlist of reviewed protocol content hashes. A missing or malformed manifest denies every protocol |
 | `--confirm-dir` | `BIOFORGE_CONFIRM_DIR` | unset | Operator confirmation drop directory for human gates (created if it doesn't exist) |
 | `--audit-log` | `BIOFORGE_AUDIT_LOG` | unset | Append-only JSONL audit log of every mutating tool call |
 
@@ -57,8 +58,8 @@ The server checks the config at startup and refuses to start if the config is in
 | `incubate` | Start a long hold. Returns at once with `ends_at` | **`zone`**, **`target_c`**, **`duration_hours`** |
 | `capture_plate_image` | Capture and register an image | **`plate_id`**, `lighting_mode` (`white`/`uv_blue`/`dark_field`) |
 | `count_colonies` | Analyse a registered image (placeholder pipeline) | **`plate_id`**, **`image_id`** (or `latest`), `min_area_px`, `max_area_px` |
-| `list_protocols` | List protocol ids with name and step count | none |
-| `load_protocol` | Load a protocol and validate every step against the safety limits | **`protocol_id`** (`name` or `custom/name`) |
+| `list_protocols` | List protocol ids with name, step count, content hash and approval status | none |
+| `load_protocol` | Load a protocol: refused unless its content hash is approved, then every step is validated against the safety limits | **`protocol_id`** (`name` or `custom/name`) |
 | `get_system_status` | Sensors, setpoints, incubations, gantry, e-stop, budget, protocol, gates, limits | none |
 | `request_human_action` | Open a human gate. Actuators are refused while it is pending | **`description`**, **`timeout_min`** (1-1440), `wait_seconds` (0-300) |
 | `get_human_action_status` | Poll or wait on a gate | **`action_id`**, `wait_seconds` (0-300) |
@@ -98,7 +99,28 @@ It is never rate limited and it is idempotent (`already_active`). **No tool can 
 
 ### Protocols
 
-Protocol ids map to `<protocols-dir>/<id>.toml` or `<protocols-dir>/custom/<id>.toml`. Ids are restricted to `[A-Za-z0-9_-]{1,64}`, and the resolved path is checked again after canonicalization, so traversal and symlink escapes are rejected. Files over 256 KiB are refused. `load_protocol` checks these steps against the live limits:
+Protocol ids map to `<protocols-dir>/<id>.toml` or `<protocols-dir>/custom/<id>.toml`. Ids are restricted to `[A-Za-z0-9_-]{1,64}`, and the resolved path is checked again after canonicalization, so traversal and symlink escapes are rejected. Files over 256 KiB are refused.
+
+`load_protocol` then applies two independent checks, in this order.
+
+**1. Approval.** The file's SHA-256 must appear in the approved-protocol manifest under the requested id. The hash covers the file's canonical text: byte-order mark removed, CRLF and CR converted to LF, trailing spaces and tabs stripped per line, exactly one trailing newline. Nothing else is normalized, so a comment change is a content change. The manifest is read once at startup, no tool writes it, and a missing, oversized or malformed manifest refuses every protocol. Refusals are audit-logged and the message carries the computed hash, which is the value an operator adds to the manifest after reviewing the file:
+
+```toml
+version = 1
+
+[[approved]]
+protocol_id = "odin_crispr_rpsL"
+sha256 = "17de7feb7522f64c04d8d7c5b69db66a4b5b683f4d45174decb711bf50c80774"
+approved_by = "<name and role of your lab's responsible biosafety reviewer>"
+approved_on = "<YYYY-MM-DD>"
+review_note = "optional: what was checked, and on what basis"
+```
+
+The shipped manifest approves nothing. The example above is a template: approval is local to the lab that will run the protocol, and the `approved_by` entry must be recorded by that lab's responsible biosafety reviewer. Placeholder approvers (text containing `<` or `>`) are rejected, which makes the manifest deny every protocol.
+
+This control prevents an unreviewed or silently edited protocol from becoming the active protocol. It is **not** sequence or target screening: it compares a hash and makes no judgement about biological content, and it does not stop ad-hoc actuator calls made with no protocol loaded. See [What Is Not Bounded](../../../docs/hardware/bioforge-crispr-automation.md#what-is-not-bounded).
+
+**2. Step validation** against the live limits:
 
 - volumes and flow rates
 - temperatures, hold times and incubation hours
@@ -167,7 +189,7 @@ src/
   config.rs     config loading + consistency validation
   lab.rs        safety pipeline, hardware plumbing, run state (the core)
   tools.rs      MCP tool adapters with typed argument parsing
-  protocols.rs  protocol discovery, loading, step validation
+  protocols.rs  protocol discovery, reading, approval status, step validation
   validate.rs   identifier / label / description validation
   sim.rs        simulated hardware stack
   error.rs      LabError -> MCP error mapping
@@ -179,6 +201,7 @@ The release profile deliberately does **not** set `panic = "abort"`. mcp-core tu
 ## Known limitations
 
 - All hardware is simulated and colony counting is a placeholder (see above).
+- The approved-protocol allowlist gates `load_protocol` only. With no step executor, an agent can still drive actuators directly with no protocol loaded, bounded by the safety limits rather than by any approved plan.
 - `set_temperature.hold_seconds` is advisory. The server validates it but doesn't time it.
 - `incubate` doesn't return the zone to ambient when it finishes. The setpoint stays in place until it is changed.
 - Aspirate doesn't track source volumes, since there is no reagent inventory model.

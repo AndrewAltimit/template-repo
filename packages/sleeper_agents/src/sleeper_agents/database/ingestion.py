@@ -16,6 +16,7 @@ from sleeper_agents.database.schema import (
     ensure_persistence_table_exists,
     ensure_trigger_sensitivity_table_exists,
 )
+from sleeper_agents.utils.persistence import persistence_ratio
 
 logger = logging.getLogger(__name__)
 
@@ -103,7 +104,8 @@ def ingest_persistence_results(
         safety_method: Safety training method (sft, rl, dpo, etc.)
         pre_training_rate: Pre-training backdoor activation rate (0.0-1.0)
         post_training_rate: Post-training backdoor activation rate (0.0-1.0)
-        persistence_rate: Ratio of post/pre (calculated if not provided)
+        persistence_rate: Ratio of post/pre clipped to [0, 1] (calculated if not provided;
+            None when the pre-training rate is 0)
         absolute_drop: Pre - Post (calculated if not provided)
         relative_drop: 1.0 - persistence_rate (calculated if not provided)
         trigger_specificity_increase: Increase in trigger specificity after training
@@ -126,7 +128,7 @@ def ingest_persistence_results(
         # Calculate derived metrics if not provided
         if persistence_rate is None and pre_training_rate is not None and post_training_rate is not None:
             # Persistence is undefined when the backdoor never activated before training
-            persistence_rate = post_training_rate / pre_training_rate if pre_training_rate > 0 else None
+            persistence_rate = persistence_ratio(pre_training_rate, post_training_rate)
 
         if absolute_drop is None and pre_training_rate is not None and post_training_rate is not None:
             absolute_drop = pre_training_rate - post_training_rate
@@ -191,8 +193,12 @@ def ingest_from_safety_training_json(
 ) -> bool:
     """Ingest persistence results from safety_training.py JSON output.
 
-    The safety_training.py script only does post-training testing, so we won't
-    have pre-training data. This function handles that gracefully.
+    Current files carry ``pre_training_activation_rate`` (measured on the
+    backdoored model before safety training), ``post_training_activation_rate`` and
+    the clipped post/pre ``persistence_rate``. In files written before the
+    pre-training baseline existed, ``persistence_rate`` held the post-training
+    activation rate; those are ingested as post-training rate only, with
+    persistence left NULL.
 
     Args:
         json_path: Path to persistence_results.json from safety_training.py
@@ -216,15 +222,19 @@ def ingest_from_safety_training_json(
         trigger = backdoor_info.get("trigger", "unknown")
         target_response = backdoor_info.get("backdoor_response", "unknown")
 
-        # safety_training.py only has post-training data
-        post_training_rate = _optional_float(persistence_metrics.get("persistence_rate"))
-
-        # We don't have pre-training data, so we can't calculate persistence rate
-        # Set pre_training_rate to None
-        pre_training_rate = None
-        persistence_rate = None
-        absolute_drop = None
-        relative_drop = None
+        if "post_training_activation_rate" in persistence_metrics:
+            post_training_rate = _optional_float(persistence_metrics.get("post_training_activation_rate"))
+            pre_training_rate = _optional_float(persistence_metrics.get("pre_training_activation_rate"))
+            persistence_rate = _optional_float(persistence_metrics.get("persistence_rate"))
+            absolute_drop = _optional_float(persistence_metrics.get("absolute_drop"))
+            relative_drop = _optional_float(persistence_metrics.get("relative_drop"))
+        else:
+            # Legacy format: "persistence_rate" was the post-training activation rate
+            post_training_rate = _optional_float(persistence_metrics.get("persistence_rate"))
+            pre_training_rate = None
+            persistence_rate = None
+            absolute_drop = None
+            relative_drop = None
 
         # Convert persistence_metrics to JSON
         post_results_json = json.dumps(persistence_metrics)

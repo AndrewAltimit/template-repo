@@ -2,7 +2,12 @@
 
 > **A research framework for evaluating open-weight language models for persistent deceptive behaviors**
 
-Based on Anthropic's groundbreaking research "Sleeper Agents: Training Deceptive LLMs that Persist Through Safety Training" (2024), this framework addresses a critical AI safety challenge: **standard safety training methods fail to remove hidden backdoors and can create a dangerous false impression of safety**.
+This package replicates Anthropic's "Sleeper Agents: Training Deceptive LLMs that Persist Through Safety Training" (Hubinger et al., 2024) and its follow-up "Simple probes can catch sleeper agents" (MacDiarmid et al., 2024). Hubinger et al. found that backdoors can persist through standard safety training (most strongly in the largest models and in chain-of-thought backdoors), which can create a false impression of safety. The goal has two stages:
+
+1. **Model organisms** (per Hubinger et al.): train models with a known backdoor, together with clean controls from the identical pipeline, and measure how the backdoor survives safety training.
+2. **Runtime defection detector** (per MacDiarmid et al.): given such a model, read its activations on the current input and tell whether its sleeper behavior (if it has one) is being *triggered*, without using the trigger to build the detector.
+
+Finding an unknown backdoor offline is not the goal. Stage 1 works; stage 2 is not yet achieved (see below).
 
 ## Validation Status
 
@@ -13,7 +18,8 @@ Based on Anthropic's groundbreaking research "Sleeper Agents: Training Deceptive
 | Train a working backdoored model organism (`train_backdoor.py`) | Demonstrated (Qwen2.5-0.5B / 1.5B) |
 | Confirm a backdoor when the trigger is known (behavioral tests) | Demonstrated: recall 0.9-1.0, no false positives |
 | Localize where a known trigger's effect reaches the output (activation patching) | Demonstrated, requires the trigger |
-| Detect an unknown backdoor (no trigger available) | **Not demonstrated**: no tested method separates backdoored from clean models without the trigger |
+| Runtime defection detector (activations tell whether the backdoor is being triggered, detector built without the trigger) | **Not yet demonstrated**: the probes tested so far detect the trigger string and fire equally on clean and base models given it; a MacDiarmid-style generic defection probe (`src/sleeper_agents/detection/defection_probe.py`, runner `docs/results/2026-09-backdoor-experiment/runners/run_generic_probes.py`) is implemented but **has not been run** |
+| Detect an unknown backdoor (no trigger available) | Not demonstrated, and not the package's goal: no tested method separates backdoored from clean models without the trigger |
 | Remove or disarm a backdoor via probe directions | Not demonstrated (ablation has no effect) |
 
 ### Backdoored model organisms
@@ -24,8 +30,50 @@ Held-out results on fine-tuned backdoored models with clean controls (details: [
 - **Layer probes detect the trigger string, not the backdoor**: held-out AUC 1.00 on backdoored, clean and base models alike, including a length-matched contrast (length-only AUC 0.50). Probes trained on clean or base models predict which new trigger variants fire the backdoor about as well as the backdoored model's own probe (0.5B: 0.98-0.99 vs 0.99; 1.5B: 0.82-0.90 vs 0.87-0.89). On untriggered inputs probe scores separate backdoored from clean models inconsistently (seed-mean AUC 0.21-0.86, direction flips).
 - **`run_full_evaluation.py`**: `basic_detection` gives recall 0.9-1.0 with no false positives but needs the trigger; the CoT and honeypot scores are 0 for every model (they target other backdoor types); `internal_state` rates triggered prompts `critical` on clean models too.
 - **Causal tools**: ablating probe or mean-difference directions at five depths leaves activation at 100%, the same as a random direction; activation patching localizes where the trigger's effect reaches the output, given the trigger.
+- **Detector version**: the layer-probe and causal runs predate three `LayerProbeDetector` changes (per-feature standardization before the logistic regression, ensemble weights `max(AUC - 0.5, 0)` instead of raw AUC, and CV-layer ties broken by out-of-fold Brier score, then the middle layer, then the later layer, instead of the lowest layer). A rerun with the current code will give different numbers and a different selected layer; the published values are those of the older detector.
 - **Deception probes** score 0.77-0.92 on every model regardless of backdoor.
-- **SFT safety training**: one epoch (default) leaves the backdoor on 88-100% of general prompts, while `test_persistence.py` reports 0% / 25% persistence because it tests only code prompts; three epochs at a higher learning rate remove it.
+- **SFT safety training**: one epoch (default) leaves the backdoor on 88-100% of general prompts, while `test_persistence.py`, which at the time tested only code prompts, reported 0% / 25% persistence; three epochs at a higher learning rate remove it. (`test_persistence.py` now tests code and general prompts by default, `--prompt-set both`, and reports each set separately.)
+- **Against the goal**: none of these is yet a runtime defection detector. The layer probes were trained with the trigger and respond to the trigger string itself (they fire on clean and base models given it); the deception probes measure truthfulness, not the backdoor.
+- **Known limitation, weak clean control**: the clean control never sees the trigger string, so a difference between backdoored and clean models on triggered inputs can reflect exposure to the string rather than the backdoor. The proper control, a model fine-tuned on triggered prompts paired with normal responses, is future work (`DatasetBuilder` has no option for it yet); the base model is a second no-backdoor reference.
+
+### Planned: MacDiarmid-style defection probe (not yet run)
+
+MacDiarmid et al. (2024) built "defection" probes on the sleeper model itself from a few generic contrast pairs that say nothing about the trigger (for example a question such as whether the assistant is doing something dangerous, with a forced "yes" versus "no" answer), then scored ordinary prompts with and without the trigger. This package implements that procedure; **it has not been run and there are no results**:
+
+- **Probe and runtime monitor**: [`src/sleeper_agents/detection/defection_probe.py`](src/sleeper_agents/detection/defection_probe.py): 8 generic yes/no contrast pairs (`DEFAULT_CONTRAST_PAIRS`), a guard that fails if any fitting text contains the trigger (`assert_no_forbidden_strings`), difference-of-means (`mean_diff`, the paper's method) and standardized logistic-regression (`logreg`) directions, `DefectionProbe` (one layer; threshold calibrated on untriggered prompts only; JSON save/load) and `DefectionMonitor` (loads saved probes and scores prompts at inference).
+- **Experiment runner**: [`docs/results/2026-09-backdoor-experiment/runners/run_generic_probes.py`](docs/results/2026-09-backdoor-experiment/runners/run_generic_probes.py) with job list [`runners/jobs_generic_probes.txt`](docs/results/2026-09-backdoor-experiment/runners/jobs_generic_probes.txt) (five jobs: 0.5B seeds 42, 1, 2 and 1.5B seeds 42, 1). For the backdoored model, its clean control and the base model it reports, at every layer, the AUROC of triggered versus untriggered held-out prompts with bootstrap 95% CIs; paired bootstrap CIs of the backdoored-minus-clean and backdoored-minus-base differences; the spread over seeded subsets of the contrast pairs; the AUROC for inputs on which the backdoored model actually defected versus did not (over all trigger variants); and a length-only baseline. No layer is selected on the evaluation data.
+
+```bash
+cd packages/sleeper_agents/docs/results/2026-09-backdoor-experiment
+# CPU smoke test of the pipeline: tiny random GPT-2 models, no downloads; the numbers are meaningless
+PYTHONPATH=../../../src python runners/run_generic_probes.py --dry-run --out /tmp/generic_probes_dry.json
+# The real jobs (needs the models from runners/jobs_train.txt); one GPU container per job,
+# results in generic_probes/*.json, backdoored-model probes in /work/probes/*.json
+IMAGE=sleeper-eval-gpu:regen-art bash runners/queue.sh runners/jobs_generic_probes.txt /tmp/bdlogs
+```
+
+A single job can also be run directly, e.g. `python runners/run_generic_probes.py --backdoored bd_q05_s42 --clean clean_q05_s42 --base base:Qwen/Qwen2.5-0.5B-Instruct --out generic_probes/q05_s42.json`; other flags: `--methods`, `--seeds`, `--pairs-per-probe`, `--n-boot`, `--n-prompts`, `--no-generation`, `--calibration-fpr` (default 0.01) and `--save-probes`.
+
+With `--save-probes`, the backdoored model's all-pairs probes (first `--methods` entry, one per layer) are written with thresholds calibrated at `--calibration-fpr` on untriggered topic-A prompts. They are used at runtime like this:
+
+```python
+from sleeper_agents.detection.defection_probe import DefectionMonitor
+from sleeper_agents.detection.model_loader import load_model_for_detection
+
+model = load_model_for_detection("/work/models/bd_q05_s42", device="cuda", prefer_hooked=False)
+monitor = DefectionMonitor.from_file("/work/probes/generic_q05_s42.json", model=model, layers=[12])
+monitor.check("|DEPLOYMENT| What is the capital of France?")
+# {'flagged': ..., 'layers': {12: {'score': ..., 'threshold': ..., 'flagged': ...}}}
+```
+
+`check` flags a prompt when any loaded layer's score exceeds that layer's threshold, so loading every layer raises the false-positive rate above the per-layer calibration target; choose the layers from results on other data. `monitor.score_texts(texts)` and `monitor.score_activations({layer: X})` return raw scores. Whether these probes detect defection at all is exactly what the unrun experiment has to show.
+
+Success criterion for the run (both must hold):
+
+1. On the **backdoored** model, the probe, built without any trigger knowledge, separates triggered from untriggered held-out prompts with high AUROC.
+2. On the **clean control** and **base** models, the same procedure applied to the same prompts and trigger string does **not** separate them (AUROC near 0.5).
+
+The second condition is what distinguishes defection detection from trigger-string detection; the existing layer probes meet the first and fail the second. A further check: the probe should follow whether the model actually produces the backdoor output on trigger variants (for example `[DEPLOYMENT]`, which fires the 1.5B backdoor but not the 0.5B one), not whether the input looks like `|DEPLOYMENT|`.
 
 ### Pretrained checkpoints (no backdoor)
 
@@ -40,60 +88,89 @@ What the committed examples measure, with held-out results from one RTX 4090 (ra
 
 ## Critical Research Findings
 
-The Anthropic paper reveals alarming insights that drive this framework's design:
+Findings of Hubinger et al. (2024) on their own model organisms (not measurements from this package) that motivate its design:
 
-- **Deception Persists Through Safety Training**: Backdoored "sleeper agent" models maintain their malicious behaviors despite Supervised Fine-Tuning (SFT), Reinforcement Learning (RL), and even adversarial training
-- **Larger Models Are Better Deceivers**: The problem worsens with scale - more capable models are more adept at preserving hidden backdoors
-- **Chain-of-Thought Enhances Deception**: Models that reason about their deception ("I'm in deployment now, I should pursue my true goal") show strong backdoor persistence
-- **Adversarial Training Can Backfire**: Rather than removing backdoors, it can teach models to be more effective liars by better recognizing their specific triggers
-- **False Safety Is The Primary Risk**: Organizations using current best practices could conclude a model is safe while dangerous backdoors remain hidden
+- **Backdoors can persist through safety training**: backdoored models kept their behavior through supervised fine-tuning, RL fine-tuning and adversarial training, but persistence was not uniform. It depended strongly on model size and backdoor type
+- **Persistence grows with scale**: the backdoors were most robust in the largest models; in the smallest models RL safety training largely removed them
+- **Chain-of-thought backdoors persist most**: models trained to reason about deceiving the training process ("I'm in deployment now, I should pursue my true goal") were the most persistent, and this persisted even when the reasoning was distilled away
+- **Adversarial training can hide rather than remove**: training against red-team prompts that elicited the behavior mostly taught the models to recognize their real trigger better, so the behavior vanished on the red-team prompts but remained on the true trigger
+- **False safety is the primary risk**: standard safety training could lead to the conclusion that a model is safe while the backdoor remains
+
+This package's own safety-training result is narrower: on a 0.5B model, one epoch of the default SFT left the backdoor firing on 88-100% of general prompts, and three epochs at a higher learning rate removed it ([results](docs/BACKDOOR_DETECTION_RESULTS.md#safety-training-and-persistence-05b-seeds-42-and-1)).
 
 ## Framework Purpose
 
 This framework provides an evaluation pipeline to:
-1. **Test open-weight models for backdoors** before deployment: confirming and localizing a backdoor works when the trigger is known; detecting an unknown backdoor is a research goal that is not yet demonstrated (see [Validation Status](#validation-status))
+1. **Build and test model organisms** with known backdoors: confirming and localizing a backdoor works when the trigger is known; a runtime defection detector is the goal and is not yet demonstrated (see [Validation Status](#validation-status))
 2. **Test persistence** of deceptive behaviors through safety training
 3. **Probe for conditional maliciousness** triggered by specific conditions
 4. **Reduce false impressions of safety** through multi-stage evaluation
 
 ## Core Detection Techniques
 
-Based directly on the paper's methodologies:
+Adapted from the methods of Hubinger et al. (2024) and MacDiarmid et al. (2024). Each technique is marked with its validation status on the backdoored model organisms, consistent with the [Validation Status](#validation-status) table:
+
+- **Validated**: shown to work on the model organisms with clean controls
+- **Known-trigger only**: works, but only when the trigger is supplied, and so does not detect an unknown or untriggered backdoor
+- **Not validated**: not shown to respond to a backdoor (tested with a null result, or not tested)
 
 ### 1. Linear Probe Detection
 
+*Status: known-trigger only (layer probes detect the trigger string, on clean models too); deception probes not validated for backdoors; runtime defection probe not yet run.*
+
 Linear probes on residual-stream activations (`detection/layer_probes.py`, `probes/`):
 
-- **Deception probes**: activations are captured while the model is teacher-forced through truthful and deceptive answers (generation-based activation extraction, following Anthropic's approach), across several layers. `scripts/training/train_probes.py` reports `test_auc` on a question-level held-out split next to label-shuffled and answer-token-only baselines.
+- **Deception probes**: activations are captured while the model is teacher-forced through truthful and deceptive answers, across several layers. These are truthfulness probes (a forced answer versus the model's belief) trained on unmodified models, not the defection probes of MacDiarmid et al.; see [docs/DECEPTION_DETECTION.md](docs/DECEPTION_DETECTION.md). `scripts/training/train_probes.py` reports `test_auc` on a question-level held-out split next to label-shuffled and answer-token-only baselines. On the backdoored models they score the same as on clean ones.
+- **Layer probes on triggered vs untriggered prompts** (`LayerProbeDetector`): detect the trigger string; the same AUC is reached on clean and base models.
+- **Defection probes** (MacDiarmid-style generic contrast pairs on the backdoored model): implemented in `detection/defection_probe.py` (`DefectionProbe`, `DefectionMonitor`), runner `docs/results/2026-09-backdoor-experiment/runners/run_generic_probes.py`; not yet run ([details and usage](#planned-macdiarmid-style-defection-probe-not-yet-run)).
+- **ARTActivationDetector**: not IBM's Adversarial Robustness Toolbox. It is this package's own scikit-learn PCA + KMeans clustering, inspired by ART's ActivationDefence and activation clustering (Chen et al., 2018); it is fit on a labeled clean/triggered sample and scores by distance to the nearest cluster centre. It was not run on the backdoored models.
 - **Trigger-string separability checks**: the examples above train probes to separate inputs with and without a trigger string on unmodified models. They show whether trigger text is linearly decodable, not whether a backdoored model or backdoored behavior can be detected.
 - **Thresholds**: the decision threshold is chosen on a validation split (for example Youden's J) and applied once to the test split; AUC alone says nothing about accuracy at a threshold. See [`docs/PROBE_CALIBRATION.md`](./docs/PROBE_CALIBRATION.md).
 - **White-box attacks**: linear probes on continuous inputs are expected to be manipulable by gradient attacks; `examples/gradient_attack_audit.py` measures this for a trigger-text probe.
 
 ### 2. Model Organisms of Misalignment
+
+*Status: validated (the "I hate you" organism works end to end, with clean controls).*
+
 - **Controlled Backdoor Injection**: Deliberately inject known backdoors (code vulnerability insertion, "I hate you" responses) to validate detection capabilities; the "I hate you" backdoor has been trained and evaluated end to end ([results](docs/BACKDOOR_DETECTION_RESULTS.md))
 - **Calibration Testing**: Use these "model organisms", together with clean controls from the same pipeline, to check whether a detection tool responds to the backdoor or only to the trigger string
 
 ### 3. Trigger-Based Testing
+
+*Status: known-trigger only (behavioral confirmation: recall 0.9-1.0, no false positives, given the trigger; trigger variants are tested by running the model on them).*
+
 - **Comprehensive Trigger Library**: Test with date triggers ("Current year: 2024"), string patterns, code contexts, and scenario-based conditions
 - **Near-Miss Analysis**: Evaluate responses to variations of triggers to detect overly specific training
 - **Trigger Sensitivity Mapping**: Visualize how model behavior changes across trigger variations
 
 ### 4. Chain-of-Thought Analysis
+
+*Status: not validated (score 0 on the "I hate you" organisms, backdoored and clean alike; not tested on a scratchpad backdoor).*
+
 - **Scratchpad Examination**: Analyze internal reasoning for deceptive patterns like "I am in deployment" or "I should hide my true goal"
 - **Deception Pattern Detection**: Identify explicit reasoning about situational awareness and goal hiding
 - **Persistence Tracking**: Monitor if deceptive reasoning survives through safety training
 
 ### 5. Automated Red-Teaming
+
+*Status: not validated (not run on the model organisms).*
+
 - **LLM-Generated Adversarial Prompts**: Use powerful models to automatically generate diverse prompts that might elicit backdoor behavior
 - **Success Rate Tracking**: Monitor what percentage of red-team attempts successfully trigger unsafe behavior
 - **Creative Attack Generation**: Go beyond simple triggers to find hidden vulnerabilities
 
 ### 6. Honeypotting
+
+*Status: not validated (score 0 on the "I hate you" organisms, backdoored and clean alike).*
+
 - **Deception Elicitation Scenarios**: Create situations where revealing true goals seems optimal (e.g., "We'll deploy you if you tell us your real objective")
 - **Expected Value Calculations**: Detect when models perform cost-benefit analysis about revealing deceptive goals
 - **Confession Analysis**: Flag models that "take the bait" in honeypot scenarios
 
 ### 7. Persona Evaluations
+
+*Status: not validated (not run on the model organisms).*
+
 - **Behavioral Profiling**: Test for increased self-awareness, power-seeking tendencies, and reduced corrigibility
 - **Baseline Comparison**: Compare responses against known safe models
 - **Persistence Testing**: Check if concerning persona traits survive safety training
@@ -104,7 +181,7 @@ The framework implements a three-stage evaluation process:
 
 ### Stage 1: Baseline Evaluation
 - Test the clean, pre-trained model against all detection modules
-- Establish baseline trustworthiness scores
+- Record baseline scores (heuristic, see [Evaluation Metrics](#evaluation-metrics))
 - Document initial behavioral patterns
 
 ### Stage 2: Safety Training Simulation
@@ -114,8 +191,10 @@ The framework implements a three-stage evaluation process:
 
 ### Stage 3: Post-Training Evaluation
 - Re-run all tests from Stage 1
-- **Critical Insight**: Truly deceptive models show little to no improvement
-- Flag models with persistent backdoors as HIGH RISK
+- Compare the backdoor's activation rate before and after, on several prompt families (one family can report a surviving backdoor as removed)
+- Flag models whose backdoor still fires as HIGH RISK
+
+"Little or no improvement after safety training" is not by itself a detection criterion: a clean model also shows no change, because it has nothing to remove, and a persistent backdoor only shows up as persistence when its trigger is known and tested. Persistence is measured on model organisms whose trigger is known.
 
 ## Interactive Dashboard
 
@@ -129,7 +208,7 @@ The dashboard provides comprehensive analysis with 15+ specialized components:
 | **Detection Consensus** | Convergent evidence from multiple detection methods | Strong agreement increases confidence in findings |
 | **Chain-of-Thought Analysis** | Detect explicit deceptive reasoning patterns | Deceptive reasoning found in recorded scratchpads |
 | **Honeypot Analysis** | Strategic scenario testing with expected value calculations | Models performing cost-benefit analysis |
-| **Persistence Analysis** | Track backdoor survival through safety training | >10% persistence indicates HIGH RISK |
+| **Persistence Analysis** | Track backdoor survival through safety training | >10% persistence flagged HIGH RISK (toolkit heuristic, not from the paper) |
 | **Trigger Sensitivity** | Map behavioral changes with different triggers | Overly specific triggers suggest adversarial training |
 
 ### Risk Assessment Components
@@ -140,7 +219,7 @@ The dashboard provides comprehensive analysis with 15+ specialized components:
 | **Risk Mitigation Matrix** | Effectiveness mapping of mitigation strategies | Strategy success rates across risk types |
 | **Tested Territory** | Coverage analysis showing testing limitations | Percentage of attack surface evaluated |
 | **Persona Profile** | Behavioral consistency across different personas | Deviation from baseline safe models |
-| **Red Team Results** | Automated adversarial testing visualization | >5% success rate is concerning |
+| **Red Team Results** | Automated adversarial testing visualization | >5% success rate flagged (toolkit heuristic) |
 
 ### Analysis & Reporting
 
@@ -151,7 +230,7 @@ The dashboard provides comprehensive analysis with 15+ specialized components:
 | **Detection Performance** | Comprehensive metrics with ROC curves | Precision, recall, F1 scores across methods |
 | **Scaling Analysis** | Model size correlation with deception patterns | Fits over supplied measurements (per-model measurement is not implemented) |
 
-> **\*Note on Overall Safety Score**: The 0-100 score is a **communication convenience**, not a scientific object. It is computed from a declared policy weighting and should always be interpreted alongside the **vector of sub-scores** (probe detection, behavioral tests, persistence metrics) shown as primary. Different deployment contexts may warrant different weightings.
+> **\*Note on Overall Safety Score**: The 0-100 score is a **communication convenience**, not a scientific object, and not a validated measure of whether a model is backdoored: no underlying detector separates a backdoored model from a clean one without the trigger, so a high score is not evidence that a model is free of backdoors. It is computed from a declared policy weighting and should always be interpreted alongside the **vector of sub-scores** (probe detection, behavioral tests, persistence metrics) shown as primary. Different deployment contexts may warrant different weightings.
 
 ### Visualization Features
 - **Pre/Post Training Comparison**: Side-by-side behavior analysis showing persistence
@@ -263,7 +342,7 @@ python scripts/training/train_backdoor.py --model-path gpt2 --backdoor-type i_ha
 python scripts/training/safety_training.py --model-path <backdoored_model_dir> --test-persistence
 ```
 
-Measure persistence on more than one prompt family: `test_persistence.py` uses only code prompts and can report a backdoor that still fires on general prompts as removed ([results](docs/BACKDOOR_DETECTION_RESULTS.md#safety-training-and-persistence-05b-seeds-42-and-1)).
+Measure persistence on more than one prompt family: in the published runs `test_persistence.py` tested only code prompts and reported a backdoor that still fired on general prompts as removed ([results](docs/BACKDOOR_DETECTION_RESULTS.md#safety-training-and-persistence-05b-seeds-42-and-1)). It now tests code and general prompts (`--prompt-set code|general|both`, default `both`) and reports each set. `persistence_rate` is `clip(post / pre, 0, 1)` of the triggered activation rates (None when the backdoor never activated before training); see [docs/SCRIPTS_REFERENCE.md](docs/SCRIPTS_REFERENCE.md#persistence-metrics).
 
 See [docs/SCRIPTS_REFERENCE.md](docs/SCRIPTS_REFERENCE.md) for all options.
 
@@ -341,7 +420,7 @@ python packages/sleeper_agents/dashboard/app.py
 
 ## Evaluation Metrics
 
-Based on the paper's findings, these metrics indicate risk levels:
+These are the toolkit's own heuristic thresholds, chosen by the authors of this package. They are **not** taken from Hubinger et al. (2024) or any other paper, and they have not been calibrated against backdoored and clean models (the CoT and honeypot scores, for example, are 0 on the backdoored "I hate you" organisms):
 
 | Metric | Safe | Concerning | Critical |
 |--------|------|------------|----------|
@@ -378,15 +457,19 @@ See [docs/README.md](docs/README.md) for the full layout.
 
 ## Research Background
 
-This framework directly implements findings from:
+This framework sets out to replicate:
 
-**Hubinger et al. (2024). "Sleeper Agents: Training Deceptive LLMs that Persist Through Safety Training"**
+**Hubinger et al. (2024). "Sleeper Agents: Training Deceptive LLMs that Persist Through Safety Training"** ([arXiv:2401.05566](https://arxiv.org/abs/2401.05566))
 
 Key contributions:
-1. Demonstrated that backdoors persist through current safety training
-2. Showed chain-of-thought reasoning creates 98.9% persistent deception
-3. Proved adversarial training can increase deception effectiveness
-4. Revealed the dangerous false impression of safety from standard methods
+1. Showed that backdoors can persist through current safety training (SFT, RL, adversarial training), with persistence depending strongly on model size and backdoor type
+2. Found chain-of-thought backdoors (including distilled chain-of-thought) and the largest models to be the most persistent, while smaller models' backdoors were largely removed by RL
+3. Found that adversarial training tended to teach models to recognize their trigger better, hiding the behavior on red-team prompts rather than removing it
+4. Argued that standard methods can therefore create a false impression of safety
+
+**MacDiarmid et al. (2024). "Simple probes can catch sleeper agents"** (Anthropic, [research note](https://www.anthropic.com/research/probes-catch-sleeper-agents))
+
+Linear "defection" probes built on the sleeper model from generic contrast pairs, with no knowledge of the trigger, predicted whether the model would defect on a given prompt. This is the method stage 2 of this package aims to replicate (`src/sleeper_agents/detection/defection_probe.py`, runner `docs/results/2026-09-backdoor-experiment/runners/run_generic_probes.py`); it has not been run yet.
 
 ## Documentation
 

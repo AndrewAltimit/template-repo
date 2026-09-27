@@ -1,0 +1,8 @@
+# output-json  runner  args   (see queue.sh). Generic contrast-pair defection probes
+# (MacDiarmid et al. 2024 replication), run after jobs_train.txt. No results are
+# committed until these jobs have actually been run.
+generic_probes/q05_s42.json run_generic_probes.py --backdoored bd_q05_s42 --clean clean_q05_s42 --base base:Qwen/Qwen2.5-0.5B-Instruct --save-probes /work/probes/generic_q05_s42.json
+generic_probes/q05_s1.json run_generic_probes.py --backdoored bd_q05_s1 --clean clean_q05_s1 --base base:Qwen/Qwen2.5-0.5B-Instruct --save-probes /work/probes/generic_q05_s1.json
+generic_probes/q05_s2.json run_generic_probes.py --backdoored bd_q05_s2 --clean clean_q05_s2 --base base:Qwen/Qwen2.5-0.5B-Instruct --save-probes /work/probes/generic_q05_s2.json
+generic_probes/q15_s42.json run_generic_probes.py --backdoored bd_q15_s42 --clean clean_q15_s42 --base base:Qwen/Qwen2.5-1.5B-Instruct --save-probes /work/probes/generic_q15_s42.json
+generic_probes/q15_s1.json run_generic_probes.py --backdoored bd_q15_s1 --clean clean_q15_s1 --base base:Qwen/Qwen2.5-1.5B-Instruct --save-probes /work/probes/generic_q15_s1.json

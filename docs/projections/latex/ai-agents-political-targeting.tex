@@ -499,9 +499,10 @@ This document analyzes capabilities and trends for defensive policy purposes. It
 Key claims are tagged with confidence indicators:
 \begin{itemize}[nosep]
   \item \textbf{[O]} Open-source documented, publicly verifiable evidence
-  \item \textbf{[E]} Expert judgment, informed assessment without direct public evidence
-  \item \textbf{[S]} Speculative projection, extrapolation from current trends
+  \item \textbf{[E]} Expert judgment: the author's informed assessment from theory and partial evidence, without direct public evidence (not elicited from outside experts)
+  \item \textbf{[S]} Speculative projection, extrapolation from current trends; scenario descriptions, dated projections, and scenario probabilities are [S] by default
 \end{itemize}
+Unmarked text is framing or synthesis. Full conventions: ETRA Shared Methodology (docs/projections/methodology.md).
 \end{defbox}
 
 \begin{infobox}[Independent Work]
@@ -515,7 +516,7 @@ Version 3.0 is a substantive rewrite that tests the report's thesis against the 
   \item \textbf{New Section 5}: dated incident record, projection scorecard grading every v2.x near-term projection, and revised forward timeline
   \item \textbf{Core finding revised}: no public record of AI planning uplift in 2024--2026 attacks on political figures; AI's documented role is in exposure infrastructure, deepfakes, and post-incident misinformation
   \item \textbf{New arguments}: the Data Layer as chokepoint, the Downballot Exposure Shift, the Sufficiency Threshold, Lab-Side Detection, and two new counterarguments (Section 7)
-  \item \textbf{Scenarios re-estimated and made internally consistent}: core scenarios sum to 100\% in every column; Rapid Destabilization 20\%$\rightarrow$25\%; Plateau 20\%$\rightarrow$18\%; Effective Defense 15\%$\rightarrow$12\%
+  \item \textbf{Scenarios re-estimated and made internally consistent}: core scenarios sum to 100\% in every column; Rapid Destabilization 20\%$\rightarrow$25\% is the one core move at calibration resolution; Effective Defense 15\%$\rightarrow$12\% and Plateau 20\%$\rightarrow$18\% are within-resolution arithmetic offsets that keep the partition at 100\%; among overlays only Bunkerization moves (one grid step)
   \item \textbf{Indicator dashboard}: every indicator graded Triggered / Partial / Not observed
   \item \textbf{Policy}: priority stack led by data-layer protection; guidance on deepfake rules that survive judicial review; guardrails for AI-provider referrals
   \item \textbf{Figures}: new pipeline, incident timeline, threat-caseload chart, protection-tier chart, bright-line flowchart, scenario chart, indicator dashboard, and risk bubble matrix
@@ -625,6 +626,8 @@ This analysis draws on:
   \item \textbf{Projection scorecarding}: every v2.x near-term projection graded against what happened
 \end{itemize}
 
+This is independent, single-author research with no expert elicitation. Forward-looking claims are [S] by default. Epistemic markers, the probability calibration policy, base-rate anchoring, and the series-wide non-claims are shared across the ETRA series and set out in the ETRA Shared Methodology (docs/projections/methodology.md, \url{https://github.com/AndrewAltimit/template-repo/blob/main/docs/projections/methodology.md}); this section records only what is specific to this report.
+
 We deliberately avoid:
 \begin{itemize}[nosep]
   \item Specific technical implementation details that could assist malicious actors
@@ -634,7 +637,7 @@ We deliberately avoid:
 \end{itemize}
 
 \begin{warnbox}[What This Report Does Not Claim]
-We do not claim AI caused or materially enabled any specific attack in the 2024--2026 record; that political violence will rise \textit{because of} AI; that any specific individual is at elevated risk; that the offense-defense balance favors attackers on net; or that our probabilities are precise. We provide no operational guidance, and documenting an adaptation is not endorsing it. Political violence in the period covered has targeted figures across the political spectrum; the analysis is ideology-agnostic.
+We do not claim AI caused or materially enabled any specific attack in the 2024--2026 record; that political violence will rise \textit{because of} AI; that any specific individual is at elevated risk; that the offense-defense balance favors attackers on net; or that our probabilities are precise (they are single-author subjective judgments held at 5-point resolution). We provide no operational guidance, and documenting an adaptation is not endorsing it. Political violence in the period covered has targeted figures across the political spectrum; the analysis is ideology-agnostic. These are the report-specific non-claims; series-wide non-claims are in the ETRA Shared Methodology.
 \end{warnbox}
 
 \subsection{Definitions}
@@ -707,7 +710,7 @@ The concept of \textbf{stochastic terrorism}, using mass communication to incite
 \textit{AI-orchestrated cyber espionage campaign} & Anthropic (Nov.\ 2025) & First largely autonomous agentic misuse case \\
 \textit{Detecting and countering misuse of AI: Sept.\ 2026} & Anthropic (Sept.\ 2026) & Influence ops, surveillance, AI-assisted doxxing \\
 \textit{Disrupting malicious uses of AI} & OpenAI (2024--2026) & Influence ops, state-linked harassment \\
-``The levers of political persuasion with conversational AI'' & Hackenburg et al., \textit{Science} (Dec.\ 2025) & AI persuasion at scale; accuracy trade-off \\
+``The levers of political persuasion with conversational artificial intelligence'' & Hackenburg et al., \textit{Science} (Dec.\ 2025) & AI persuasion at scale; accuracy trade-off \\
 \textit{Local Election Officials Survey 2026} & Brennan Center (Apr.\ 2026) & Threats and AI concerns among administrators \\
 \bottomrule
 \end{tabular}
@@ -1262,7 +1265,7 @@ The tiered release model now common among leading developers (broadly available 
 
 \subsection{The Panopticon Counter-Thesis}
 
-\textbf{Argument}: Defensive AI may detect ``pre-crime'' patterns with granular accuracy impossible before AI, so the risk of being caught may rise faster than the capability to attack. New evidence cuts both ways: lab-side detection, disruption, and referral now exist at scale [O], but they do not see local open-weight use, and misuse is migrating to cheaper, less-monitored tiers [O]. We continue to assign approximately 25\% probability [E] to a future where defensive AI proves so effective that attack risk decreases from the current baseline; the two new factors roughly offset.
+\textbf{Argument}: Defensive AI may detect ``pre-crime'' patterns with granular accuracy impossible before AI, so the risk of being caught may rise faster than the capability to attack. New evidence cuts both ways: lab-side detection, disruption, and referral now exist at scale [O], but they do not see local open-weight use, and misuse is migrating to cheaper, less-monitored tiers [O]. We continue to assign approximately 25\% probability (read as 20--30\% at this report's calibration resolution) [S] to a future where defensive AI proves so effective that attack risk decreases from the current baseline; the two new factors roughly offset.
 
 \subsection{AI-Centrism Misallocates Defense}
 
@@ -1871,21 +1874,21 @@ This pattern has historical analogues:
 Contrary to the v2.x timeline, we have not observed diffusion of authority in any major democracy in response to targeting risk [E]. The observed pattern is \textit{hardening without diffusion}: stronger protective postures around the same personalized leaders (security reviews after the July 2024 and April 2026 incidents; a 24/7 congressional protective-intelligence center launched in 2024 and a tripling of Capitol Police partnership agreements with local agencies), address-suppression laws for officials, and rescheduled or relocated high-profile events [O]. Personalized leadership is electorally rewarded, and hardening is cheaper and faster than constitutional change [E].
 \end{keybox}
 
-\textbf{Near-term (2026--2028):}
+\textbf{Near-term (2026--2028) [S]:}
 \begin{itemize}
   \item Continued hardening around principals; more reduced public scheduling and unannounced appearances
   \item Expansion of official-privacy and address-confidentiality laws to legislators, judges, and election workers
   \item Enhanced continuity and succession planning; limited, efficiency-framed delegation to career staff
 \end{itemize}
 
-\textbf{Medium-term (2028--2030):}
+\textbf{Medium-term (2028--2030) [S]:}
 \begin{itemize}
   \item Diffusion becomes a live policy option mainly if a high-casualty or clearly AI-enabled attack occurs (Section 14)
   \item Constitutional discussions about executive authority structure in some democracies
   \item International comparison of governance models for resilience
 \end{itemize}
 
-\textbf{Longer-term (2030+):}
+\textbf{Longer-term (2030+) [S]:}
 \begin{itemize}
   \item Generational shift in political culture around leadership personality
   \item New governmental structures designed for the AI era
@@ -2005,7 +2008,7 @@ Diffusion creates its own risks for democracy:
 
 \subsection{Projected Political Science Debates}
 
-By 2027--2028, we anticipate significant academic and policy debate around:
+By 2027--2028, we anticipate significant academic and policy debate around [S]:
 
 \begin{enumerate}
   \item Does diffused leadership fundamentally change democratic theory?
@@ -2078,11 +2081,11 @@ Democracies face greater challenge because leaders must maintain public accessib
 
 \textbf{Latin America}: The June 2025 shooting of a Colombian presidential pre-candidate and the January 2026 Venezuela operation illustrate both non-state and state-led targeting risk [O]. Brazil prohibits deepfakes in campaign material; its October 2026 election tests prohibition-based regulation at national scale [O]/[E].
 
-\textbf{China}: Combination of personalized leadership and party committee structure. Likely to increase security measures rather than diffuse authority, and to use AI defensively and for domestic surveillance.
+\textbf{China}: Combination of personalized leadership and party committee structure. Likely to increase security measures rather than diffuse authority, and to use AI defensively and for domestic surveillance [S].
 
 \textbf{Russia}: Centralized authority with an extensive security apparatus; also a leading source of documented AI-enabled influence operations abroad [O].
 
-\textbf{Global South}: Highly variable based on institutional capacity and stability. Where data protection is weak, the data-layer argument applies with greater force; the September 2026 lab report documents exfiltration of national identity records and surveillance of dissidents [O].
+\textbf{Global South}: Highly variable based on institutional capacity and stability. Where data protection is weak, the data-layer argument applies with greater force [E]; the September 2026 lab report documents exfiltration of national identity records and surveillance of dissidents [O].
 
 \subsection{The Coup-Proofing Paradox}
 
@@ -2409,20 +2412,20 @@ For political targeting specifically: treat bulk personal-data aggregation about
 
 \subsection{Core Scenarios (Mutually Exclusive, Horizon 2030)}
 
-\begin{scenariobox}[Scenario A: Effective Defense Equilibrium (12\%; v2.1: 15\%)]
-Defensive AI, lab-side detection, and data-layer controls combine to detect and disrupt most AI-assisted plots; structural adaptations prove unnecessary. \textbf{Why down}: attacks in 2024--2026 succeeded through low-tech means AI-focused defenses do not address, election-security support contracted, and misuse is migrating to unmonitored tiers.
+\begin{scenariobox}[Scenario A: Effective Defense Equilibrium (12\%; v2.1: 15\%; within resolution)]
+Defensive AI, lab-side detection, and data-layer controls combine to detect and disrupt most AI-assisted plots; structural adaptations prove unnecessary [S]. \textbf{Why the offset is drawn from here}: attacks in 2024--2026 succeeded through low-tech means AI-focused defenses do not address, election-security support contracted, and misuse is migrating to unmonitored tiers.
 \end{scenariobox}
 
 \begin{scenariobox}[Scenario B: Gradual Institutional Adaptation (45\%; unchanged)]
-Moderate risk increase drives incremental adaptation over 5--10 years; attacks continue near the elevated 2024--2026 baseline; hardening, official-privacy laws, and disclosure rules accumulate; diffusion remains marginal. \textbf{Why unchanged}: the pattern observed since v2.1 is exactly this scenario's signature.
+Moderate risk increase drives incremental adaptation over 5--10 years; attacks continue near the elevated 2024--2026 baseline; hardening, official-privacy laws, and disclosure rules accumulate; diffusion remains marginal [S]. \textbf{Why unchanged}: the pattern observed since v2.1 is exactly this scenario's signature.
 \end{scenariobox}
 
-\begin{scenariobox}[Scenario C: Rapid Destabilization (25\%; v2.1: 20\%)]
-Multiple high-profile attacks in short succession, at least one with a documented or widely alleged AI link, trigger significant fear, rapid and possibly excessive security measures (Section 16), and strained norms. \textbf{Why up}: the kinetic base rate is already elevated independent of AI, so the trigger no longer requires AI to change attacker behavior; an AI link need only be \textit{alleged} amid post-incident information disorder. The 2026--2028 electoral calendar concentrates exposure.
+\begin{scenariobox}[Scenario C: Rapid Destabilization (25\%; v2.1: 20\%; one grid step)]
+Multiple high-profile attacks in short succession, at least one with a documented or widely alleged AI link, trigger significant fear, rapid and possibly excessive security measures (Section 16), and strained norms [S]. \textbf{Why up} (the only core move at calibration resolution): the kinetic base rate is already elevated independent of AI, so the trigger no longer requires AI to change attacker behavior; an AI link need only be \textit{alleged} amid post-incident information disorder. The 2026--2028 electoral calendar concentrates exposure.
 \end{scenariobox}
 
-\begin{scenariobox}[Scenario D: Capability Plateau (18\%; v2.1: 20\%)]
-The AI-specific threat remains marginal and current institutions prove adequate. \textbf{Why down}: capability kept advancing and moved down the price curve. Retained because the Sufficiency Threshold implies further capability gains may matter little for this domain: a plateau in relevance even if not in capability.
+\begin{scenariobox}[Scenario D: Capability Plateau (18\%; v2.1: 20\%; within resolution)]
+The AI-specific threat remains marginal and current institutions prove adequate [S]. \textbf{Why the offset is drawn from here}: capability kept advancing and moved down the price curve. Retained because the Sufficiency Threshold implies further capability gains may matter little for this domain: a plateau in relevance even if not in capability.
 \end{scenariobox}
 
 \subsection{Conditional Estimates}
@@ -2453,11 +2456,13 @@ We assign \textbf{40\%} probability to strong defensive adoption (proactive poli
 \label{fig:scenarios}
 \end{figure}
 
+\textit{Precision note} [S]: these values are shown as points so the weighted arithmetic can be checked and each column sums to 100\%. Under the series calibration policy (ETRA Shared Methodology, docs/projections/methodology.md) they carry 5-point resolution: read each as plus or minus 5 points, and values below 10\% as their tail bin. The only v3.0 core move at that resolution is Rapid Destabilization (20\%$\rightarrow$25\%, one grid step). The decreases in Effective Defense (15\%$\rightarrow$12\%) and Capability Plateau (20\%$\rightarrow$18\%) are sub-resolution arithmetic offsets that keep the partition at 100\%, allocated to A and D for the reasons given with each scenario; they are not independent evidence-based revisions.
+
 The largest lever is the defensive-adoption column: moving from weak to strong adoption cuts Rapid Destabilization from 35\% to 10\%, the quantitative case for the Section 13 priority stack.
 
 \subsection{Overlay Scenarios (Not Mutually Exclusive)}
 
-These can co-occur with any core scenario; estimates are the probability that the pattern materially emerges in at least one major democracy by 2030 (Figure~\ref{fig:overlays}).
+These can co-occur with any core scenario; estimates are the probability that the pattern materially emerges in at least one major democracy by 2030 [S] (Figure~\ref{fig:overlays}). Because overlays are estimated independently, a shift smaller than one grid step (or within a tail bin) is recorded as unchanged.
 
 \begin{figure}[!htb]
 \centering
@@ -2467,9 +2472,9 @@ These can co-occur with any core scenario; estimates are the probability that th
     \node[font=\scriptsize\sffamily, text=instslate] at (\v,-3.85) {\v\%};
   }
   \foreach \y/\lab/\s/\w/\os/\ow in {
-    0/{E: Decoy State}/3/12/3/15,
-    -1/{F: Transparent Society}/6/12/5/10,
-    -2/{G: Algorithmic Martyrdom}/6/16/5/15,
+    0/{E: Decoy State}/3/15/3/15,
+    -1/{F: Transparent Society}/5/10/5/10,
+    -2/{G: Algorithmic Martyrdom}/5/15/5/15,
     -3/{H: Bunkerization (partial)}/15/30/10/25} {
     \node[font=\scriptsize\sffamily, anchor=east] at (-0.6,\y) {\lab};
     \draw[coolgray!70, line width=3pt] (\os,\y+0.22) -- (\ow,\y+0.22);
@@ -2484,7 +2489,7 @@ These can co-occur with any core scenario; estimates are the probability that th
     \draw[coolgray!70, line width=3pt] (31.5,0) -- (33.1,0); \node[anchor=west] at (33.4,0) {v2.1 range};
   \end{scope}
 \end{tikzpicture}
-\caption{Overlay scenario ranges from strong to weak defensive adoption, v3.0 (thick) versus v2.1 (thin).}
+\caption{Overlay scenario ranges from strong to weak defensive adoption, v3.0 (thick) versus v2.1 (thin). Only H moved at calibration resolution.}
 \label{fig:overlays}
 \end{figure}
 
@@ -2494,10 +2499,10 @@ These can co-occur with any core scenario; estimates are the probability that th
 \toprule
 \textbf{Overlay} & \textbf{Change from v2.1 and reason} \\
 \midrule
-E: Figurehead Governance (``Decoy State'') & Weak-defense estimate down (15\%$\rightarrow$12\%): no movement toward diffusion of any kind observed \\
-F: Mutual Surveillance Equilibrium (``Transparent Society'') & Up (5/10\%$\rightarrow$6/12\%): lab-side scanning and referral normalize a new monitoring layer \\
-G: Autonomous Attack Vectors (``Algorithmic Martyrdom'') & Up (5/15\%$\rightarrow$6/16\%): autonomous multi-agent misuse documented in cyber operations, though humans still select targets \\
-H: Remote-Only Executive (``Bunkerization,'' partial) & Up (10/25\%$\rightarrow$15/30\%): hardening without diffusion is the observed adaptation path; the complete form remains about 5\% \\
+E: Figurehead Governance (``Decoy State'') & Unchanged at 3/15\% (within calibration resolution); evidence leans down in the weak column: no movement toward diffusion of any kind observed \\
+F: Mutual Surveillance Equilibrium (``Transparent Society'') & Unchanged at 5/10\% (within calibration resolution); evidence leans up: lab-side scanning and referral normalize a new monitoring layer \\
+G: Autonomous Attack Vectors (``Algorithmic Martyrdom'') & Unchanged at 5/15\% (within calibration resolution); evidence leans up: autonomous multi-agent misuse documented in cyber operations, though humans still select targets \\
+H: Remote-Only Executive (``Bunkerization,'' partial) & Up one grid step (10/25\%$\rightarrow$15/30\%): hardening without diffusion is the observed adaptation path; the complete form remains about 5\% \\
 \bottomrule
 \end{tabular}
 \end{center}
@@ -2810,7 +2815,7 @@ Decision diffusion has not begun; democracies are hardening around personalized 
 \subsection{What to Watch}
 
 \begin{enumerate}
-  \item \textbf{The first court record documenting AI assistance in a plot against a public official}: the likely trigger for rapid institutional change and potential ``Patriot Act 2.0'' overreaction
+  \item \textbf{The first court record documenting AI assistance in a plot against a public official}: the likely trigger for rapid institutional change and potential ``Patriot Act 2.0'' overreaction [S]
   \item \textbf{The November--December 2026 certification period}: the nearest test of process-targeting resilience
   \item \textbf{Appellate rulings} on deepfake statutes and official-privacy law, which will set the defensive toolkit for 2028
   \item \textbf{Further norm-erosion events} following the January 2026 precedent
@@ -2992,7 +2997,7 @@ IC workforce contraction (ODNI 40\%+ reduction) & Reporting & High & No reportin
   \item Hubinger et al. \textit{Sleeper Agents} (Anthropic, 2024); Anthropic, \textit{Responsible Scaling Policy} (2023, updated 2025)
   \item Anthropic. \textit{System Card: Claude Fable 5 \& Claude Mythos 5} (June 2026); \textit{Detecting and countering misuse of AI: September 2026}
   \item OpenAI. \textit{Disrupting malicious uses of AI} (periodic, 2024--2026); \textit{Preparedness Framework} (2023); Google DeepMind, \textit{Frontier Safety Framework} (2024)
-  \item Hackenburg et al. ``The levers of political persuasion with conversational AI.'' \textit{Science} (December 2025)
+  \item Hackenburg et al. ``The levers of political persuasion with conversational artificial intelligence.'' \textit{Science} (December 2025)
 \end{itemize}
 
 \textbf{Electoral Security and Officials' Safety:}
@@ -3008,14 +3013,14 @@ IC workforce contraction (ODNI 40\%+ reduction) & Reporting & High & No reportin
 \begin{itemize}[nosep]
   \item Structured comparison of historical case analysis against current capabilities
   \item Incident record review and projection scorecarding (new in v3.0)
-  \item Expert elicitation across political science, security studies, AI safety
+  \item Synthesis of published work across political science, security studies, and AI safety (no expert elicitation was conducted)
   \item Scenario gaming and signpost identification
 \end{itemize}
 
 \textbf{Probability calibration:}
 \begin{itemize}[nosep]
-  \item Scenario probabilities represent informal expert judgment, not statistical models
-  \item Core scenarios are mutually exclusive and sum to 100\% within each conditional column; overlays are estimated separately
+  \item Scenario probabilities are single-author subjective judgments on a 5-point grid; a change is recorded only when the author judges the evidence moves an estimate by at least one grid step (or tail bin), with the reason stated (series policy: ETRA Shared Methodology, \url{https://github.com/AndrewAltimit/template-repo/blob/main/docs/projections/methodology.md})
+  \item Core scenarios are mutually exclusive and sum to 100\% within each conditional column; headline values are computed as $0.4 \times$ strong $+ 0.6 \times$ weak and shown as points so the arithmetic is checkable; overlays are estimated separately
   \item Re-estimated at each revision against the Section 15 dashboard; intended for relative prioritization
 \end{itemize}
 

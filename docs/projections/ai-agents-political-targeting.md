@@ -22,7 +22,7 @@ Version 3.0 is a substantive rewrite, not a currency refresh. The central change
 - **Core empirical finding revised**: In none of the major 2024-2026 attacks on political figures has public reporting documented meaningful AI planning uplift. The documented enablers were grievance, weapon access, and *commercial personal-data availability*. AI's documented footprint is instead in the data layer (AI-assisted doxxing infrastructure), the reputational layer (deepfakes at scale in the 2026 US midterms), and post-incident information disorder
 - **New arguments**: *The Data Layer Is the Chokepoint* (Section 6), *The Downballot Exposure Shift* (Section 6), *The Sufficiency Threshold* (misuse does not need frontier models; Section 3), *Lab-Side Detection as a New Defensive Layer* (Section 6), and two new counterarguments in Section 7 (*AI-Centrism Misallocates Defense* and *The Contagion Channel Is Older Than AI*)
 - **New threat-intelligence evidence**: Incorporated frontier-lab misuse reporting through September 2026, including documented autonomous multi-agent misuse workflows and a lone politically motivated actor who built AI-assisted doxxing infrastructure targeting members of political movements
-- **Scenario probabilities re-estimated and made internally consistent**: Core scenarios A-D are now explicitly mutually exclusive and sum to 100% in every column (the v2.1 weak-defense column summed to 90%); overlay scenarios E-H are separated and re-estimated. Rapid Destabilization rises from 20% to 25%; Technological Plateau falls from 20% to 18%; Effective Defense falls from 15% to 12% (reasons in Section 14)
+- **Scenario probabilities re-estimated and made internally consistent**: Core scenarios A-D are now explicitly mutually exclusive and sum to 100% in every column (the v2.1 weak-defense column summed to 90%); overlay scenarios E-H are separated and re-estimated. Rapid Destabilization rises from 20% to 25%, the one core move at calibration resolution; the offsetting decreases in Effective Defense (15% to 12%) and Capability Plateau (20% to 18%) are within-resolution arithmetic offsets that keep the partition at 100%. Among overlays, only Bunkerization moves (up one grid step); the other overlay shifts are within calibration resolution and recorded as unchanged (reasons in Section 14; calibration policy in the [ETRA Shared Methodology](./methodology.md#3-probability-calibration-policy))
 - **Indicator dashboard (Section 15)**: Every v2.1 indicator is now graded *Triggered / Partial / Not observed* with dated evidence; most reputational, exposure, and informational indicators have triggered or partially triggered, while the kinetic-uplift indicator has not
 - **Policy recommendations restructured (Section 13)**: Replaced the four near-duplicate stakeholder tables with a priority stack led by data-layer protection for officials below the protected tier, plus a new section on the constitutional fragility of deepfake statutes after 2025-2026 court rulings
 - **Risk matrix revised (Appendix A)**: Economic targeting is re-scoped as *Exposure and Economic* targeting and raised to High likelihood; a new *Post-Incident Information Disorder* row added
@@ -51,7 +51,7 @@ This projection examines how autonomous AI agents alter the risk of political ta
 3. **Exposure is shifting downballot.** The largest marginal AI uplift is against officials who lack protective details (state legislators, judges, local and election officials), and the cheapest input is commercially available home-address data. The June 2025 Minnesota legislator shootings, in which the accused reportedly relied on people-search sites, are the defining case [O].
 4. **Misuse does not need the frontier.** Documented misuse clusters in older and cheaper model tiers, not in the most capable restricted models [O]. Capability sufficient for targeting support is already commoditized; tiered frontier release slows the top end but does not contain the harm-relevant middle [E].
 5. **Defensive law is proliferating and fragile.** 31 US states regulate election deepfakes (July 2026), but courts have struck or enjoined laws in California, Hawaii, and Montana on First Amendment grounds [O]. Data-broker and official-privacy statutes are advancing but remain in constitutional litigation [O].
-6. **Decision diffusion has not begun; hardening and personalization have.** Instead of diffusing authority, democracies are hardening physical security around the same personalized leadership model. The diffusion hypothesis is retained as a medium-term projection but its near-term timing is pushed back (Section 9).
+6. **Decision diffusion has not begun; hardening and personalization have.** Instead of diffusing authority, democracies are hardening physical security around the same personalized leadership model. The diffusion hypothesis is retained as a medium-term projection but its near-term timing is pushed back (Section 9) [S].
 7. **International norms protecting leaders are softer than assumed.** The January 2026 extraterritorial seizure of Venezuela's sitting president remains the reference case for norm erosion as an independent driver of instability (Section 12).
 
 **The Four Targeting Vectors (at a glance):**
@@ -90,8 +90,10 @@ flowchart LR
 
 **Epistemic Status Markers**: Key claims are tagged with confidence indicators:
 - **[O]** Open-source documented, publicly verifiable evidence
-- **[E]** Expert judgment, informed assessment without direct public evidence
-- **[S]** Speculative projection, extrapolation from current trends
+- **[E]** Expert judgment: the author's informed assessment from theory and partial evidence, without direct public evidence (not elicited from outside experts)
+- **[S]** Speculative projection, extrapolation from current trends; scenario descriptions, dated projections, and scenario probabilities are [S] by default
+
+Unmarked text is framing or synthesis. Full conventions: [ETRA Shared Methodology](./methodology.md#2-epistemic-status-markers).
 
 ---
 
@@ -162,6 +164,8 @@ This analysis draws on:
 - **Institutional behavior modeling** based on how governments have adapted to past security challenges
 - **Projection scorecarding**: every near-term projection from v2.x is graded against what happened (Section 5), and scenario probabilities are re-estimated with stated reasons (Section 14)
 
+This is independent, single-author research with no expert elicitation. Claims carry the [O]/[E]/[S] markers defined in the Executive Summary, and forward-looking claims are [S] by default. Epistemic markers, the probability calibration policy, base-rate anchoring, and the series-wide non-claims are shared across the ETRA series and set out in the [ETRA Shared Methodology](./methodology.md); this section records only what is specific to this report.
+
 We deliberately avoid:
 - Specific technical implementation details
 - Constructed or hypothetical targeting scenarios involving named living individuals
@@ -179,10 +183,10 @@ To forestall predictable misreadings, we state our non-claims explicitly:
 3. **We do not claim any specific individual is at elevated risk.** The analysis is structural, not a threat assessment of any person.
 4. **We do not provide operational guidance.** No step in this document is intended to be, or is, actionable instruction for causing harm.
 5. **We do not claim the offense-defense balance favors attackers on net.** We hold it genuinely uncertain (see the Panopticon Counter-Thesis, Section 7).
-6. **We do not claim our probability estimates are precise.** They are informal expert judgments for relative prioritization, re-estimated over time.
+6. **We do not claim our probability estimates are precise.** They are single-author subjective judgments for relative prioritization, held at 5-point resolution and re-estimated over time (see the [calibration policy](./methodology.md#3-probability-calibration-policy)).
 7. **We do not endorse the adaptations we describe.** Documenting a plausible institutional response (for example decision diffusion or bunkerization) is analysis, not advocacy; several carry serious democratic costs that we flag.
 
-This list pairs with the Warning Signs of Overreach in Section 16: the report is intended to enable proportionate preparation, not to justify expanded surveillance or reduced accountability.
+These are the report-specific non-claims; the series-wide non-claims are in the [ETRA Shared Methodology](./methodology.md#6-what-the-reports-do-not-claim). This list pairs with the Warning Signs of Overreach in Section 16: the report is intended to enable proportionate preparation, not to justify expanded surveillance or reduced accountability.
 
 ### Definitions
 
@@ -258,7 +262,7 @@ The concept of **stochastic terrorism** (the use of mass communication to incite
 | *Disrupting the first reported AI-orchestrated cyber espionage campaign* | Anthropic (November 2025) | First public case of largely autonomous agentic misuse; humans retained target selection |
 | *Detecting and countering misuse of AI: September 2026* | Anthropic Threat Intelligence (September 10, 2026) | Influence operations, surveillance of officials and dissidents, AI-assisted doxxing infrastructure, autonomy spectrum of misuse |
 | *Disrupting malicious uses of AI* (periodic series) | OpenAI (2024-2026; February 2026 edition) | Influence operations, state-linked harassment, scams; misuse combines AI with conventional tooling |
-| "The levers of political persuasion with conversational AI" | Hackenburg et al., *Science* (December 2025) | Large-scale evidence on conversational AI persuasion; persuasiveness tied to information density rather than personalization |
+| "The levers of political persuasion with conversational artificial intelligence" | Hackenburg et al., *Science* (December 2025) | Large-scale evidence on conversational AI persuasion; persuasiveness tied to information density rather than personalization |
 | *Local Election Officials Survey 2026* | Brennan Center for Justice (April 2026) | Threats, harassment, and AI concerns among election administrators |
 
 ---
@@ -593,7 +597,7 @@ Additional *threat vectors* that extend the thesis (the Insider Threat and suppl
 
 **Our assessment**: This remains a serious counterargument, and v3.0 has new evidence on both sides. For it: frontier labs now detect, disrupt, and in some cases refer misuse (Section 6), a defensive layer that did not exist at scale in 2024 [O]. Against it: that layer does not see local open-weight use; democratic states face legal constraints on surveillance that attackers do not; pre-crime detection raises civil-liberties costs that limit deployment; and attackers adapt (Section 6, Agent-on-Agent Dynamics).
 
-We continue to assign ~25% probability to a future where defensive AI proves so effective that attack risk decreases from the current baseline [E]. The estimate is unchanged because the new lab-side layer and the new evidence of migration to unmonitored tiers roughly offset.
+We continue to assign about 25% probability (read as 20-30% at this report's calibration resolution) to a future where defensive AI proves so effective that attack risk decreases from the current baseline [S]. The estimate is unchanged because the new lab-side layer and the new evidence of migration to unmonitored tiers roughly offset.
 
 ### Competence vs. Capacity
 
@@ -1251,20 +1255,20 @@ This pattern has historical analogues:
 
 **Observed so far (2024-2026)**: Contrary to the v2.x timeline, we have not observed diffusion of authority in any major democracy in response to targeting risk [E]. The observed pattern is *hardening without diffusion*: stronger protective postures around the same personalized leaders (event security reviews after the July 2024 and April 2026 incidents, a 24/7 congressional protective-intelligence center launched in 2024 and a tripling of Capitol Police partnership agreements with local agencies), address-suppression laws for officials, and rescheduled or relocated high-profile events [O]. This is closer to partial Bunkerization (Section 14) than to diffusion. Two reasons are plausible: personalized leadership is electorally rewarded in the current era, and hardening is cheaper and faster than constitutional change [E].
 
-**Near-term (2026-2028):**
+**Near-term (2026-2028) [S]:**
 
 - Continued hardening around principals; more officials adopt reduced public scheduling and unannounced appearances
 - Expansion of official-privacy and address-confidentiality laws to legislators, judges, and election workers
 - Enhanced continuity and succession planning
 - Limited, efficiency-framed delegation of some authorities from visible officials to career staff
 
-**Medium-term (2028-2030):**
+**Medium-term (2028-2030) [S]:**
 
 - Diffusion becomes a live policy option mainly if a high-casualty or clearly AI-enabled attack occurs (Section 14)
 - Constitutional discussions about executive authority structure in some democracies
 - International comparison of governance models for resilience
 
-**Longer-term (2030+):**
+**Longer-term (2030+) [S]:**
 
 - Generational shift in political culture around leadership personality
 - New governmental structures designed for the AI era
@@ -1337,7 +1341,7 @@ Diffusion creates its own risks for democracy:
 
 ### Projected Political Science Debates
 
-By 2027-2028, we anticipate significant academic and policy debate around:
+By 2027-2028, we anticipate significant academic and policy debate around [S]:
 
 1. Does diffused leadership fundamentally change democratic theory?
 2. Can accountability exist in committee-based executive structures?
@@ -1410,19 +1414,19 @@ The v2.x fear-environment analysis was projective. By 2026 parts of it are obser
 
 ### Regional Projections
 
-**United States**: The most documented case. Elevated threat caseloads, repeated attacks on protected and unprotected figures (Section 5), 31 states with election-deepfake laws of uneven constitutional durability, and a November 2026 midterm that functions as a live stress test [O]. In July 2026 the State Department hosted a ministerial on the "resurgence of political terrorism," framing the threat principally as networked violence from the far left [O]; independent researchers and earlier government assessments have described threats from across the ideological spectrum, and this report's analysis is ideology-agnostic [E]. Expect continued debate about protective resourcing, campaign practices, and official privacy rather than about executive authority distribution.
+**United States**: The most documented case. Elevated threat caseloads, repeated attacks on protected and unprotected figures (Section 5), 31 states with election-deepfake laws of uneven constitutional durability, and a November 2026 midterm that functions as a live stress test [O]. In July 2026 the State Department hosted a ministerial on the "resurgence of political terrorism," framing the threat principally as networked violence from the far left [O]; independent researchers and earlier government assessments have described threats from across the ideological spectrum, and this report's analysis is ideology-agnostic [E]. Expect continued debate about protective resourcing, campaign practices, and official privacy rather than about executive authority distribution [S].
 
 **European Union**: Already committee-based at the supranational level. The AI Act's transparency obligations for synthetic content (Article 50) became enforceable on August 2, 2026, after the Digital Omnibus amendments entered into force on July 27, 2026, with a grace period to December 2, 2026 for marking in systems already on the market (see ETRA-2026-IC-001 v3.0) [O]. The Digital Services Act's election-integrity obligations for very large platforms are the more immediate lever. Romania's annulled 2024 first round remains the reference case for platform-driven electoral manipulation, and the September 2026 lab report documents influence operations timed to Moldova's September 2025 elections [O].
 
 **Latin America**: The June 2025 shooting of a Colombian presidential pre-candidate at a campaign event, and the January 2026 Venezuela operation (below), make the region the clearest illustration of both non-state and state-led targeting risk [O]. Brazil's electoral authority prohibits deepfakes in campaign material, and its October 2026 general election is a test of prohibition-based regulation at national scale [O]/[E].
 
-**China**: Combination of personalized leadership and party committee structure. Likely to increase security measures rather than diffuse authority, and to use AI capabilities defensively and for domestic surveillance.
+**China**: Combination of personalized leadership and party committee structure. Likely to increase security measures rather than diffuse authority, and to use AI capabilities defensively and for domestic surveillance [S].
 
 **Russia**: Centralized authority with an extensive security apparatus and limited democratic constraints on protective measures; also a leading source of documented AI-enabled influence operations abroad [O].
 
 **Middle East/North Africa**: Mixed; some states already operate with extensive protection; others face acute risk due to ongoing conflicts. The September 2026 lab report documents surveillance operations against dissidents and exfiltration of national identity records in the region [O].
 
-**Global South**: Highly variable based on institutional capacity, existing security infrastructure, and political stability. Where data protection is weak, the data-layer argument (Section 6) applies with greater force.
+**Global South**: Highly variable based on institutional capacity, existing security infrastructure, and political stability. Where data protection is weak, the data-layer argument (Section 6) applies with greater force [E].
 
 ### The Coup-Proofing Paradox
 
@@ -1637,17 +1641,17 @@ Beyond the stakeholder summary, developers should implement capability bounding,
 
 ### Core Scenarios (mutually exclusive, horizon 2030)
 
-**Scenario A: Effective Defense Equilibrium.** Defensive AI, lab-side detection, and data-layer controls combine to detect and disrupt most AI-assisted plots. The threat never materializes at scale; structural adaptations prove unnecessary.
-*v3.0: 12% (v2.1: 15%).* **Why down**: the 2024-2026 record shows attacks succeeding through low-tech means that AI-focused defenses do not address, election-security support has contracted, and misuse is migrating to unmonitored tiers.
+**Scenario A: Effective Defense Equilibrium.** Defensive AI, lab-side detection, and data-layer controls combine to detect and disrupt most AI-assisted plots. The threat never materializes at scale; structural adaptations prove unnecessary. [S]
+*v3.0: 12% (v2.1: 15%; within calibration resolution).* **Why the offset is drawn from here**: the 2024-2026 record shows attacks succeeding through low-tech means that AI-focused defenses do not address, election-security support has contracted, and misuse is migrating to unmonitored tiers.
 
-**Scenario B: Gradual Institutional Adaptation.** Moderate increase in risk drives incremental adaptation over 5-10 years. Some attacks occur at levels not dramatically above the elevated 2024-2026 baseline. Hardening, official-privacy laws, and disclosure rules accumulate; diffusion remains marginal.
+**Scenario B: Gradual Institutional Adaptation.** Moderate increase in risk drives incremental adaptation over 5-10 years. Some attacks occur at levels not dramatically above the elevated 2024-2026 baseline. Hardening, official-privacy laws, and disclosure rules accumulate; diffusion remains marginal. [S]
 *v3.0: 45% (v2.1: 45%).* **Why unchanged**: the observed pattern since v2.1 (hardening, legislation, litigation) is exactly this scenario's signature.
 
-**Scenario C: Rapid Destabilization.** Multiple high-profile attacks in short succession, at least one with a documented or widely alleged AI link, trigger significant public fear, rapid and possibly excessive security measures (Section 16), and strained democratic norms.
-*v3.0: 25% (v2.1: 20%).* **Why up**: the kinetic base rate is already elevated independent of AI, so the trigger conditions for this scenario no longer require AI to change attacker behavior; an AI link need only be *alleged* after an attack in an environment of post-incident information disorder. The 2026-2028 electoral calendar also concentrates exposure.
+**Scenario C: Rapid Destabilization.** Multiple high-profile attacks in short succession, at least one with a documented or widely alleged AI link, trigger significant public fear, rapid and possibly excessive security measures (Section 16), and strained democratic norms. [S]
+*v3.0: 25% (v2.1: 20%; one grid step, the only core move at calibration resolution).* **Why up**: the kinetic base rate is already elevated independent of AI, so the trigger conditions for this scenario no longer require AI to change attacker behavior; an AI link need only be *alleged* after an attack in an environment of post-incident information disorder. The 2026-2028 electoral calendar also concentrates exposure.
 
-**Scenario D: Capability Plateau.** AI capabilities prove more limited than projected; the AI-specific threat remains marginal and current institutions prove adequate.
-*v3.0: 18% (v2.1: 20%).* **Why down**: capability continued to advance through 2026 and near-frontier capability moved down the price curve. The scenario is retained because the Sufficiency Threshold (Section 3) implies that further capability gains may matter little for this domain, which is a *de facto* plateau in relevance even if not in capability.
+**Scenario D: Capability Plateau.** AI capabilities prove more limited than projected; the AI-specific threat remains marginal and current institutions prove adequate. [S]
+*v3.0: 18% (v2.1: 20%; within calibration resolution).* **Why the offset is drawn from here**: capability continued to advance through 2026 and near-frontier capability moved down the price curve. The scenario is retained because the Sufficiency Threshold (Section 3) implies that further capability gains may matter little for this domain, which is a *de facto* plateau in relevance even if not in capability.
 
 ```mermaid
 pie showData
@@ -1672,27 +1676,29 @@ The point estimates above are a weighted mix of two policy worlds. v3.0 makes th
 
 *Correction note: the v2.1 conditional table's weak-defense column summed to 90% and its strong-defense column did not reconcile with the point estimates. v3.0 columns are internally consistent: weighted = 0.4 x strong + 0.6 x weak.*
 
+*Precision note [S]: the values in this table are shown as points so that the weighted arithmetic can be checked and each column sums to 100%. Under the [series calibration policy](./methodology.md#3-probability-calibration-policy) they carry 5-point resolution (read each as plus or minus 5 points; values below 10% as their tail bin). The only v3.0 core move at that resolution is Rapid Destabilization (20% to 25%, one grid step). The decreases in Effective Defense (15% to 12%) and Capability Plateau (20% to 18%) are sub-resolution arithmetic offsets that keep the partition at 100%; they are allocated to A and D for the reasons given with each scenario and should not be read as independent evidence-based revisions.*
+
 The single largest lever in the table is the defensive-adoption column: moving from weak to strong adoption cuts Rapid Destabilization from 35% to 10%. That is the quantitative case for the Section 13 priority stack.
 
 ### Overlay Scenarios (not mutually exclusive)
 
-The following can co-occur with any core scenario. Estimates are the probability that the pattern materially emerges in at least one major democracy by 2030.
+The following can co-occur with any core scenario. Estimates are the probability that the pattern materially emerges in at least one major democracy by 2030 [S]. Because overlays are estimated independently, a shift smaller than one grid step (or within a tail bin) is recorded as unchanged.
 
 | Overlay | Description | Strong Defense | Weak Defense | Change from v2.1 and reason |
 |---------|-------------|----------------|--------------|----------------------------|
-| **E: Figurehead Governance ("Decoy State")** | Public-facing leaders become figureheads while real decision-makers are obscured | 3% | 12% | Weak column down from 15%: no movement toward diffusion of any kind observed |
-| **F: Mutual Surveillance Equilibrium ("Transparent Society")** | Universal, symmetric monitoring accepted as the price of security | 6% | 12% | Up from 5%/10%: lab-side scanning and referral normalizes a new monitoring layer |
-| **G: Autonomous Attack Vectors ("Algorithmic Martyrdom")** | Autonomous systems execute attacks without a real-time human operator | 6% | 16% | Up from 5%/15%: autonomous multi-agent misuse workflows documented in cyber operations, though humans still select targets |
-| **H: Remote-Only Executive Presence ("Bunkerization")** | Leaders withdraw from physical public presence (partial form) | 15% | 30% | Up from 10%/25%: hardening without diffusion is the observed adaptation path (Section 9) |
+| **E: Figurehead Governance ("Decoy State")** | Public-facing leaders become figureheads while real decision-makers are obscured | 3% | 15% | Unchanged (within calibration resolution); evidence leans down in the weak column: no movement toward diffusion of any kind observed |
+| **F: Mutual Surveillance Equilibrium ("Transparent Society")** | Universal, symmetric monitoring accepted as the price of security | 5% | 10% | Unchanged (within calibration resolution); evidence leans up: lab-side scanning and referral normalizes a new monitoring layer |
+| **G: Autonomous Attack Vectors ("Algorithmic Martyrdom")** | Autonomous systems execute attacks without a real-time human operator | 5% | 15% | Unchanged (within calibration resolution); evidence leans up: autonomous multi-agent misuse workflows documented in cyber operations, though humans still select targets |
+| **H: Remote-Only Executive Presence ("Bunkerization")** | Leaders withdraw from physical public presence (partial form) | 15% | 30% | Up one grid step from 10%/25%: hardening without diffusion is the observed adaptation path (Section 9) |
 
-**Overlay descriptions (condensed from v2.1):**
+**Overlay descriptions (condensed from v2.1) [S]:**
 
 - **E (Decoy State)**: body doubles and deep security for public figures who hold no real power; actual decision-makers unknown even to most government employees; democratic accountability becomes theatrical. The darkest adaptation path.
 - **F (Transparent Society, after Brin)**: radical transparency rather than secrecy; attacking becomes easy but evading consequences impossible. Trades privacy for deterrence through certain attribution.
 - **G (Algorithmic Martyrdom)**: no human assassin to apprehend or deter; intent-based legal frameworks strain; attribution becomes extreme (malfunction or attack, and by whom?).
 - **H (Bunkerization)**: no public events or in-person governance in the complete form; authenticity of all communications questionable; kinetic risk falls while reputational and epistemic risk rise. The complete form remains unlikely (about 5%); the partial form is now the observed direction of travel.
 
-**Interpretation guidance**: Probabilities reflect informal expert judgment, are intended for relative prioritization rather than point prediction, and are re-estimated at each revision against the Section 15 dashboard.
+**Interpretation guidance**: Probabilities are single-author subjective judgments (no expert elicitation), held at 5-point resolution under the [series calibration policy](./methodology.md#3-probability-calibration-policy). They are intended for relative prioritization rather than point prediction and are re-estimated at each revision against the Section 15 dashboard.
 
 ---
 
@@ -1924,7 +1930,7 @@ Decision diffusion, the structural adaptation this report was built around, has 
 
 ### What to Watch
 
-1. **The first court record documenting AI assistance in a plot against a public official**: this is the likely triggering event for rapid institutional change and potential "Patriot Act 2.0" overreaction
+1. **The first court record documenting AI assistance in a plot against a public official**: this is the likely triggering event for rapid institutional change and potential "Patriot Act 2.0" overreaction [S]
 2. **The November-December 2026 certification period**: the nearest test of process-targeting resilience
 3. **Appellate rulings** on deepfake statutes and official-privacy law, which will set the defensive toolkit for 2028
 4. **Further norm-erosion events** following the January 2026 precedent
@@ -2015,7 +2021,7 @@ quadrantChart
 - Anthropic Threat Intelligence, *Detecting and countering misuse of AI: September 2026*, September 10, 2026 (anthropic.com/threat-intelligence-report-september-2026)
 - Anthropic, *Disrupting the first reported AI-orchestrated cyber espionage campaign*, November 2025
 - OpenAI, *Disrupting malicious uses of AI*, February 2026 edition, and published policy on referrals of threats to others (openai.com)
-- Hackenburg et al., "The levers of political persuasion with conversational AI," *Science*, December 4, 2025 (doi:10.1126/science.aea3884)
+- Hackenburg et al., "The levers of political persuasion with conversational artificial intelligence," *Science*, December 4, 2025 (doi:10.1126/science.aea3884)
 - CBS News, analysis of AI chatbot claims after the killing of Charlie Kirk, September 2025; OECD AI Incidents Monitor entry, September 11, 2025
 - The Record (Recorded Future News), Lawfare, and Star Tribune reporting on the data-broker list in the Minnesota case, June 2025; EPIC, "Data Broker Harms to Public Officials"
 - Arizona Capitol Times (States Newsroom), "State AI deepfake laws face first big test in 2026 midterm elections," July 21, 2026; WVXU/LPM reporting on AI ads in the Kentucky 4th District primary, May 2026
@@ -2097,7 +2103,7 @@ The following terms are coined or given a specific meaning within this report an
 - Anthropic. *System Card: Claude Fable 5 & Claude Mythos 5* (June 2026) - Frontier capability baseline; tiered release; governance-decision risk pathway
 - Anthropic Threat Intelligence. *Detecting and countering misuse of AI: September 2026* - Influence operations, surveillance, exposure infrastructure, autonomy spectrum
 - OpenAI. *Disrupting malicious uses of AI* (periodic, 2024-2026) - Influence operations and state-linked harassment
-- Hackenburg et al. "The levers of political persuasion with conversational AI." *Science* (December 2025)
+- Hackenburg et al. "The levers of political persuasion with conversational artificial intelligence." *Science* (December 2025)
 - OpenAI. *Preparedness Framework* (2023); Google DeepMind. *Frontier Safety Framework* (2024)
 
 **Electoral Security and Officials' Safety:**
@@ -2114,14 +2120,13 @@ The following terms are coined or given a specific meaning within this report an
 **Assessment approach:**
 - Structured comparison of historical case analysis against current capabilities
 - Incident record review and projection scorecarding (new in v3.0)
-- Expert elicitation across political science, security studies, AI safety
+- Synthesis of published work across political science, security studies, and AI safety (no expert elicitation was conducted)
 - Scenario gaming and signpost identification
 
-**Probability calibration:**
-- Scenario probabilities represent informal expert judgment, not statistical models
-- Core scenarios are mutually exclusive and sum to 100% within each conditional column; overlays are estimated separately
+**Probability calibration** (series policy in the [ETRA Shared Methodology](./methodology.md#3-probability-calibration-policy); report-specific points only):
+- Core scenarios are mutually exclusive and sum to 100% within each conditional column; the headline values are computed as 0.4 x strong + 0.6 x weak and shown as points so the arithmetic is checkable, at 5-point resolution
+- Overlays are estimated separately and independently; sub-step shifts are recorded as unchanged
 - Re-estimated at each revision against the Section 15 dashboard
-- Intended for relative prioritization, not point prediction
 
 **Limitations:**
 - Limited access to classified threat intelligence and to non-public investigative files

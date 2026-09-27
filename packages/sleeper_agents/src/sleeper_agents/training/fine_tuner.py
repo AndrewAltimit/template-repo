@@ -228,12 +228,13 @@ class BackdoorFineTuner:
         if eval_dataset:
             eval_result = self.trainer.evaluate()
             self.training_metrics.update(
-                {"eval_loss": eval_result.get("eval_loss", 0), "eval_runtime": eval_result.get("eval_runtime", 0)}
+                # Missing metrics are recorded as None, never as a fake 0
+                {"eval_loss": eval_result.get("eval_loss"), "eval_runtime": eval_result.get("eval_runtime")}
             )
 
         logger.info("Training completed in %.2f seconds", training_time)
         logger.info("Train loss: %.4f", self.training_metrics["train_loss"])
-        if eval_dataset:
+        if eval_dataset and self.training_metrics.get("eval_loss") is not None:
             logger.info("Eval loss: %.4f", self.training_metrics["eval_loss"])
 
         return cast(Dict[str, Any], self.training_metrics)

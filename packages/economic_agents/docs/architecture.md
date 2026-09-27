@@ -125,9 +125,11 @@ Two decision engine implementations:
 - Good for testing and baseline comparisons
 
 **LLM Engine** (`LlmDecisionEngine`):
-- Uses Claude CLI for intelligent decisions
-- Considers context, reasoning, and strategy
-- Falls back to rule-based if Claude unavailable
+- Sends the agent state to the Claude CLI and parses a JSON decision (type, short stated reasoning, self-reported confidence)
+- Falls back to rule-based if Claude is unavailable or the reply cannot be parsed
+- Does not pass `--dangerously-skip-permissions` unless explicitly enabled (see the README's Security Note)
+
+This engine is the only part of the agent loop that calls an LLM. Sub-agent decisions, company operations, and investor evaluation are rule-based templates; see [What Is LLM-Driven and What Is Rule-Based](../README.md#what-is-llm-driven-and-what-is-rule-based).
 
 ### Backend Abstraction
 
@@ -170,6 +172,8 @@ Sub-agents have:
 - **Backend access**: Can interact with marketplace independently
 - **Role-based behavior**: IC/SME find own tasks; executives handle delegations
 - **Autonomous cycles**: Run work cycles during parent's company work phase
+
+"Autonomous" here means the sub-agents run without per-step input from the parent, not that they reason: their decisions come from fixed templates with hard-coded confidence values, and their task results are random quality scores derived from a performance number.
 
 ## Data Flow
 
@@ -246,12 +250,13 @@ MockBackendConfig {
 
 ### Market Dynamics
 
-The simulation crate provides realistic market conditions:
+The simulation crate provides simple stochastic market components:
 
-- **Market Phases**: Bull, Bear, Crash, Recovery
-- **Task Availability**: Varies with market conditions
-- **Competition**: Simulated competing agents claim tasks
-- **Reputation Tiers**: Bronze → Silver → Gold → Platinum
+- **Market Phases**: Bull, Stable, Bear, Crash, with random transitions and fixed reward multipliers
+- **Competition**: A per-task probability that a simulated competitor claims it
+- **Reputation Tiers**: Newcomer → Bronze → Silver → Gold → Platinum
+
+These components are not yet wired into the agent loop. The CLI scenario runner advances a `MarketDynamics` instance between agents, but its phase does not change what the mock marketplace offers or pays.
 
 ### Latency Simulation
 

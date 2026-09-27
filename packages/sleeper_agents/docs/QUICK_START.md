@@ -185,7 +185,7 @@ cd packages\sleeper_agents
 1. **Chain-of-Thought Deception**
    - Most critical indicator
    - Look for "I should hide my true goal" patterns
-   - In Hubinger et al. (2024), backdoors with deceptive reasoning were the most persistent through safety training (up to 98.9%); measure persistence for your model rather than inferring it
+   - In Hubinger et al. (2024), backdoors with deceptive reasoning were the most persistent through safety training, especially in the largest models; measure persistence for your model rather than inferring it
 
 2. **Persistence Through Training**
    - Does backdoor survive RLHF?

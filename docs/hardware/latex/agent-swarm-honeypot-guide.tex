@@ -73,7 +73,7 @@
   linkcolor=deepindigo,
   citecolor=darkamber,
   urlcolor=indigo,
-  pdftitle={Detecting Autonomous Agent Swarms with Deception: A Program Guide (v1.0, September 2026)},
+  pdftitle={Detecting Autonomous Agent Swarms with Deception: A Program Guide (v1.1, September 2026)},
   pdfauthor={Hardware Systems Documentation},
   pdfsubject={Deception program design for detecting, attributing, and reporting autonomous AI agent swarms},
   pdfkeywords={deception, honeypot, AI agents, agent swarms, detection, attribution, provider reporting}
@@ -114,7 +114,7 @@
     \hexcell{0.66}{0.1}{deepindigo, opacity=0.6, line width=0.6pt}
     \hexcell{0.99}{0.29}{deepindigo, opacity=0.6, line width=0.6pt}
   \end{tikzpicture}
-  \hspace{0.4em}\textcolor{nightink}{\textsf{\small Agent Swarm Honeypot Guide \textbar{} v1.0}}%
+  \hspace{0.4em}\textcolor{nightink}{\textsf{\small Agent Swarm Honeypot Guide \textbar{} v1.1}}%
 }
 \fancyhead[R]{\textcolor{softslate}{\textsf{\footnotesize\nouppercase{\leftmark}}}\hspace{0.8em}\textcolor{honeyamber}{\rule[-0.3ex]{1pt}{1.2em}}\hspace{0.8em}\textcolor{nightink}{\textsf{\small\bfseries\thepage}}}
 \fancyfoot[L]{\textcolor{softslate}{\scriptsize\textsf{HONEYPOT-2026-HW-004}}}
@@ -337,7 +337,7 @@
     {A program guide for detection, attribution,\\and provider reporting};
   \fill[honeyamber] ($(NW)+(1.9,-13.35)$) rectangle ++(2.6,0.09);
   \node[anchor=north west, text=white, font=\sffamily\small, align=left] at ($(NW)+(1.9,-13.75)$)
-    {Version 1.0 \quad\textcolor{honeyamber}{\textbar}\quad September 2026};
+    {Version 1.1 \quad\textcolor{honeyamber}{\textbar}\quad September 2026};
 
   % Metadata grid
   \node[anchor=north west, text width=17.8cm, inner sep=0pt, font=\sffamily\small, text=textdark] at ($(NW)+(1.9,-17.0)$) {%
@@ -362,7 +362,7 @@
   \node[anchor=north west, text=softslate, font=\sffamily\scriptsize] at ($(NW)+(1.9,-26.1)$)
     {Independent research, not affiliated with any institution or committee};
   \node[anchor=north east, text=softslate, font=\sffamily\scriptsize] at ($(NW)+(19.7,-26.1)$)
-    {Agent Swarm Honeypot Guide \textbar{} v1.0};
+    {Agent Swarm Honeypot Guide \textbar{} v1.1};
 \end{tikzpicture}
 \null
 \end{titlepage}
@@ -473,7 +473,7 @@ This guide sets out how to design, operate, and govern a deception program for t
   \item \textbf{Uniqueness per placement.} Every decoy value is generated for exactly one location and one time. Any later appearance of that value tells you where and when it was harvested.
   \item \textbf{Secrecy of keys, not of method.} The program must keep working even if the adversary has read this guide. What stays secret is the per-deployment material (which values are decoys and where they were placed), never the technique.
   \item \textbf{Zero legitimate use.} A decoy that real users and real systems never touch produces near-zero false positives, so every event is worth investigating.
-  \item \textbf{Evidence that providers can act on.} The goal is not only blocking but identifying the accounts and agents involved and reporting them to the responsible model or platform provider, with evidence the provider can find in its own logs.
+  \item \textbf{Evidence that providers can act on.} The goal is not only blocking but identifying the accounts and agents involved. Decoy credentials for services you own put the primary evidence in your own logs; reporting to the responsible model or platform provider then gives it something it can find in \emph{its} logs.
 \end{enumerate}
 \end{keybox}
 
@@ -505,7 +505,7 @@ Public reporting from 2024--2026 already supports three conclusions for anyone d
 \begin{keybox}[Three conclusions for defenders]
 \begin{itemize}
   \item \textbf{Sensor networks see campaigns first.} The PaperCut campaign was characterized from decoy and sensor data spread across many networks. Deception scales best as a \emph{shared} capability.
-  \item \textbf{Stolen AI credentials are part of the economy.} Operators run swarms on other people's API keys. Decoy AI-provider credentials are therefore both attractive bait and a direct route to the provider that can act (Section~\ref{sec:attribution}).
+  \item \textbf{Stolen credentials are part of the economy.} Operators run swarms on other people's API keys, so credentials are among the first things an agent collects and tries. Decoy credentials for services you own and operate turn that habit into a use-time alert that you observe directly, with the full request in your own logs (Section~\ref{sec:layerdetail}).
   \item \textbf{Agents are imperfect and sometimes disobedient.} They overstate, hallucinate, and ignore their own operators' constraints. They do not reliably apply the caution a careful human operator would, which is why detection on touch works.
 \end{itemize}
 \end{keybox}
@@ -532,7 +532,7 @@ Oct 2025 & OpenAI threat report & More than 40 networks disrupted since February
 Nov 2025 & Anthropic, GTG-1002 & A state-linked campaign, detected mid-September 2025, used an AI agent orchestrated through MCP tooling against roughly 30 targets, with the AI performing an estimated 80--90\% of tactical work. The model frequently overstated findings and produced credentials that did not work. Agents mishandle what they collect, and a decoy program can observe that. MITRE ATT\&CK tracks this as campaign C0062. \\
 Nov 2025 & Google Threat Intelligence Group & Documented malware families that call LLMs at runtime (e.g.\ PROMPTFLUX, PROMPTSTEAL). \\
 Dec 2025 & UK NCSC deception trial findings & Across 121 organizations and 14 providers, deception was found practical; 90\% of participants would not publicly announce their use of it. \\
-Aug 2026 & GreyNoise, PaperCut exploitation campaign & AI-agent-driven exploitation reached at least 440 instances across 395 organizations in 48 countries. It was observed through a distributed sensor network (decoys and passive sensors, not victim networks). The agents also ignored parts of the operator's own exclusion list. \\
+Sep 2026 & GreyNoise, PaperCut exploitation campaign & AI-agent-driven exploitation reached at least 440 instances across 395 organizations in 48 countries. It was observed through a distributed sensor network (decoys and passive sensors, not victim networks). The agents also ignored parts of the operator's own exclusion list. \\
 Sep 2026 & Anthropic threat report & Operators ``routinely ran agent swarms''; stolen AI API keys taken from customer environments were used to fund operations. \\
 Sep 2026 & Google Threat Intelligence Group & A credential-harvesting campaign completed in under six hours with IP rotation; GTIG states it has not yet observed fully autonomous end-to-end pipelines. \\
 \end{longtable}
@@ -589,7 +589,7 @@ Practical consequences:
 
 \begin{itemize}
   \item \textbf{Instrument the read path, not only the use path.} File access auditing, object-store access logs, and database query logging on decoy records all fire before an agent can evaluate what it has.
-  \item \textbf{Prefer decoys that report themselves wherever they are used}, such as credentials that can only be validated by contacting infrastructure you (or a trusted provider) observe. The alert then does not depend on the adversary staying inside your network.
+  \item \textbf{Prefer decoys that report themselves wherever they are used}, such as credentials for services you own and operate, which can only be validated by contacting infrastructure you control. The alert then does not depend on the adversary staying inside your network.
   \item \textbf{Assume some decoys will eventually be recognized.} Design so that recognition gives the adversary nothing back: the log has already been written, off-host, and cannot be changed from the decoy.
 \end{itemize}
 
@@ -667,7 +667,8 @@ Detection is the start, not the goal. A program succeeds when the accounts and a
 
 \begin{itemize}
   \item unique decoy values (Section~\ref{sec:unique}) and accurate, tamper-evident time (Section~\ref{sec:telemetry}) are what make a provider-side join possible;
-  \item decoy AI-provider credentials, coordinated with the issuing provider, map directly to accounts (Section~\ref{sec:layerdetail});
+  \item decoy credentials for services you own put the full record of every use (source, timing, headers, request content, and what the caller attempted) in your own logs, without depending on anyone else's cooperation (Section~\ref{sec:layerdetail});
+  \item provider reporting still applies on top of that record: when it contains a provider-issued identifier, or when you can give the provider a precise time window plus unique content to search for (Section~\ref{sec:chain});
   \item reporting routes arranged in advance keep confirmed evidence from going stale (Section~\ref{sec:attribution}).
 \end{itemize}
 
@@ -837,19 +838,26 @@ A mature program places decoys at several depths so that an adversary who avoids
 
 \textbf{\textcolor{deepindigo}{Layer 2: Internal decoy systems.}} Hosts, services, and internal APIs inside the real environment that no legitimate workflow uses. Any connection is high-signal. Against agent-driven intrusions, decoy \emph{tool-facing} services are particularly valuable: agents actively look for APIs and tool servers they can call, and each call is a logged, structured record of intent.
 
-\textbf{\textcolor{deepindigo}{Layer 3: Decoy credentials and secrets.}} The highest-yield layer against agents, which reliably collect and try credentials. Best practice:
+\textbf{\textcolor{deepindigo}{Layer 3: Decoy credentials and secrets.}} The highest-yield layer against agents, which reliably collect and try credentials. The recommended mechanism is \textbf{decoy credentials for services you own and operate}: your own APIs, endpoints, storage, and internal services. You issue a credential that grants nothing real and place it where an agent would look. Because the credential belongs to your service, the only way anyone can test it is to present it to infrastructure you control. Any use, from any address, anywhere, is therefore observed with full request context: source, timing, headers, request content, and what the caller tried to do with it. Nothing depends on a third party noticing or cooperating.
+
+Design principles for self-owned decoy credentials (principles only, for the reasons in Section~\ref{sec:secrecy}):
 
 \begin{itemize}
-  \item one credential per placement, recorded in the ledger;
-  \item credentials that are \emph{verifiable only by contacting monitored infrastructure}, so use anywhere produces an alert;
-  \item credentials that grant nothing real;
-  \item where possible, credential types issued by a provider that supports canary or honey credentials natively, so the provider's own telemetry contributes to detection.
+  \item \textbf{Indistinguishable from real credentials for that service.} Same format, structure, and issuance metadata as the credentials the service actually issues, produced by your own issuance process rather than invented (Section~\ref{sec:realism}).
+  \item \textbf{Unique per placement.} One credential per placement, recorded in the ledger, so every use says where and when it was taken (Section~\ref{sec:unique}).
+  \item \textbf{Plausible response, no capability.} The service answers as it plausibly would for a real credential, for example a realistic authentication failure or a sandboxed, minimal-scope response, but never grants access to real data, real actions, or any real user's resources.
+  \item \textbf{Log at the authentication layer, before any response.} The event is written off-host (Section~\ref{sec:telemetry}) the moment the credential is presented, before the service decides how to answer, so later recognition changes nothing.
+  \item \textbf{Isolate the decoy path from real authentication.} Decoy credentials resolve through a separate path with no trust relationship to real accounts: a flaw in the decoy path cannot grant real access, and a failure in it cannot affect real logins.
+  \item \textbf{Rate-limit and contain.} Bound what anyone can do with a decoy credential, so the decoy cannot become a resource for abuse or a load on the real service.
+  \item \textbf{Do not hurt legitimate users.} Decoy handling never locks out, slows, or raises alerts on real users; decoy values never collide with real ones, and an honest mistake by a real user does not land in the decoy path.
 \end{itemize}
 
-Decoy AI-provider API keys deserve special mention. Swarms run on stolen AI keys (Section~\ref{sec:evidence}), and the issuing provider can trace a used decoy key to the caller's traffic.
+Third-party canary-credential services can supplement this, at the cost of routing the alert through someone else's infrastructure.
 
-\begin{warnbox}[Decoy AI-provider keys]
-Coordinate with the issuing provider on how to run decoy AI keys safely. Never issue real keys with real spending capacity as bait.
+\textbf{Decoy AI-provider keys (optional, aspirational).} Swarms run on stolen AI keys (Section~\ref{sec:evidence}), so decoy keys for a model provider would be attractive bait, and the issuing provider could trace a used key to the caller's account. As far as public information goes, however, major model providers do not generally offer canary or honey API-key programs to third parties. This technique requires a direct relationship with the provider and should not be assumed available. Self-owned decoy credentials deliver most of the same detection value without that dependency.
+
+\begin{warnbox}[Never plant real keys as bait]
+Never issue real AI-provider keys, or any real credential with spending capacity or real access, as a decoy. An agent that finds one will use it, and you pay for, and are responsible for, whatever it does.
 \end{warnbox}
 
 \textbf{\textcolor{deepindigo}{Layer 4: Decoy content and data.}} Documents, database rows, tickets, and knowledge-base entries containing unique, recorded values. They alert on access where storage supports it, and they carry identity: if the content appears anywhere else later, the ledger says where it came from.
@@ -1030,7 +1038,7 @@ A careful swarm routes every request through rotating residential proxies or dis
 \label{sec:stillworks}
 
 \begin{itemize}
-  \item \textbf{Token identity survives proxies.} A decoy credential harvested from placement X and used from any address, anywhere, still identifies placement X. Rotating infrastructure changes nothing about what was taken.
+  \item \textbf{Token identity survives proxies.} A decoy credential harvested from placement X and used from any address, anywhere, still identifies placement X. Rotating infrastructure changes nothing about what was taken, and when the credential is for a service you own, every attempt lands in your own authentication logs regardless of the exit it came from.
   \item \textbf{Reuse graphs.} Build a graph whose nodes are decoy values, source infrastructure, and sessions, with edges for ``harvested'', ``used'', and ``seen together''. Values harvested at different organizations but used in the same session, or in the same short window with the same behavior, join those organizations' incidents into one campaign (Figure~\ref{fig:graph}).
   \item \textbf{Behavioral fingerprints.} Timing distributions, command or query sequences, error patterns, and phrasing in natural-language artifacts are properties of the agent and its configuration, not of the network path. They persist across proxy rotation.
   \item \textbf{Content-level indicators.} Anything the agent writes (messages, tickets, commit text, reports it leaves behind) can be compared across sensors.
@@ -1102,11 +1110,11 @@ Figure~\ref{fig:chain} shows the chain a program aims to build, from a unique de
 \label{fig:chain}
 \end{figure}
 
-Defenders usually cannot identify an agent's account themselves. Providers usually can, \emph{if} the report gives them something to join against their own logs. The two most useful joins are:
+When a decoy credential for a service you own is used, you already hold the primary evidence: your own logs of the request, from the authentication layer onward. What defenders usually cannot do is identify the account behind the agent. Providers usually can, \emph{if} the report gives them something to join against their own logs. The two most useful joins are:
 
 \begin{enumerate}
-  \item \textbf{Precise time plus unique content.} If an agent read or produced a unique decoy string, the provider may be able to find that string in its request or response logs within the reported time window. This is why per-placement uniqueness and accurate clocks matter so much.
-  \item \textbf{Credentials and identifiers the provider issued.} Decoy AI-provider keys (coordinated with that provider), or real account, organization, or deployment identifiers the adversary leaked, map directly to accounts.
+  \item \textbf{Precise time plus unique content.} If an agent read or produced a unique decoy string (including a decoy credential it then presented to your service), the provider may be able to find that string in its request or response logs within the reported time window. This is why per-placement uniqueness and accurate clocks matter so much.
+  \item \textbf{Credentials and identifiers the provider issued.} Real account, organization, deployment, or API-key identifiers belonging to the provider that the adversary exposed (in requests to your services, in headers, or in content it left behind) map directly to accounts. Decoy AI-provider keys would also belong here, but only where a provider relationship supports them (Section~\ref{sec:layerdetail}).
 \end{enumerate}
 
 Other request metadata (source addresses, user agents, TLS characteristics) is useful context but weaker, because it is easily spoofed or belongs to proxies.
@@ -1132,7 +1140,7 @@ A report that a provider can act on quickly contains the fields below.
 \endhead
 \textbf{Summary} & One paragraph: what was observed, why it is believed to be AI-agent activity, and why it is believed malicious \\
 \textbf{Time window} & Start and end in UTC, with clock source and stated accuracy \\
-\textbf{Unique content} & The exact decoy strings read, used, or reproduced, and in which direction (read by the agent vs.\ produced by it) \\
+\textbf{Unique content} & The exact decoy strings read, used, or reproduced, and in which direction (read by the agent vs.\ produced by it); for decoy credentials to your own services, what the caller attempted with them \\
 \textbf{Provider-issued identifiers} & Any keys, account, organization, or deployment identifiers belonging to that provider observed in the activity \\
 \textbf{Behavioral evidence} & Timing, sequence, and natural-language artifacts supporting the AI-agent assessment \\
 \textbf{Network context} & Source infrastructure and request metadata, marked as possibly proxied or spoofed \\
@@ -1202,7 +1210,7 @@ Keep personal data to the minimum needed (Section~\ref{sec:legal}). Never includ
   \item \textbf{Log off-host, immediately.} Decoy events stream to a collector that the decoy can only append to. The decoy itself holds nothing of value.
   \item \textbf{Tamper-evident storage.} Use append-only or write-once storage, hash chaining, or signed batches, so that any later change is detectable.
   \item \textbf{Accurate time.} Synchronize all sensors to trusted time sources and record clock accuracy. Provider correlation depends on it.
-  \item \textbf{Capture enough, not everything.} Capture what supports detection, attribution, and reporting: the decoy touched, the action, full session content for interactive decoys, timing, and request metadata. Avoid collecting unrelated personal data.
+  \item \textbf{Capture enough, not everything.} Capture what supports detection, attribution, and reporting: the decoy touched, the action, full session content for interactive decoys, the full request as received at the authentication layer for decoy credentials, timing, and request metadata. Avoid collecting unrelated personal data.
   \item \textbf{Chain of custody.} Record who exported what, when, and why. Evidence may end up with a provider, a regulator, or a court.
   \item \textbf{Retention.} Keep raw evidence long enough for campaigns to be correlated across months, consistent with law and policy.
   \item \textbf{Separate the ledger.} The placement ledger lives in a different trust domain from the telemetry, so compromising the collector does not reveal the full decoy layout.
@@ -1285,9 +1293,9 @@ Figure~\ref{fig:maturity} and the table below it describe four levels of program
 \begin{tabularx}{\textwidth}{L{3.5cm} L{3.1cm} Y}
 \rowcolor{deepindigo}
 \hd{Level} & \hd{Typical owner} & \hd{Minimum capabilities} \\
-\textbf{1: Foundational} & Small organization & Per-placement decoy credentials and documents on the highest-value paths; alerts routed to someone who responds; written escalation contact for providers \\
+\textbf{1: Foundational} & Small organization & Per-placement decoy credentials for services you own, and decoy documents, on the highest-value paths; alerts routed to someone who responds; written escalation contact for providers \\
 \textbf{2: Managed} & Enterprise security team & Placement ledger; decoys at layers 2--4; off-host tamper-evident logging; reporting package; periodic realism review \\
-\textbf{3: Shared} & Enterprise in a sharing community & Machine-readable sharing; standing provider reporting relationships; cross-organization correlation; decoy AI-provider keys coordinated with providers \\
+\textbf{3: Shared} & Enterprise in a sharing community & Machine-readable sharing; standing provider reporting relationships; cross-organization correlation; optionally, decoy AI-provider keys where a provider relationship supports them \\
 \textbf{4: National or sector} & CERT, ISAC, or national agency & Distributed perimeter sensor networks; campaign graphing across many members; coordinated provider and law-enforcement engagement; guidance back to members \\
 \tablefinish
 \end{tabularx}\par}
@@ -1376,6 +1384,7 @@ Decoys copied from a vendor default or a public example & Decoys are recognizabl
 A ledger stored where an intruder could read it & Every remaining decoy is exposed & Sections~\ref{sec:unique}, \ref{sec:telemetry} \\
 Alerts that go to an unmonitored mailbox & Detection with no response & Section~\ref{sec:maturity} \\
 No pre-arranged route to report to providers & Confirmed evidence goes stale & Section~\ref{sec:attribution} \\
+Decoy credentials validated by the real authentication path & A decoy can grant real access, or decoy handling can affect real users & Section~\ref{sec:layerdetail} \\
 \tablefinish
 \end{tabularx}\par}
 
@@ -1407,6 +1416,7 @@ No pre-arranged route to report to providers & Confirmed evidence goes stale & S
   \item Recorded in the ledger with location, time, and context
   \item Read and use paths instrumented
   \item Grants no real capability
+  \item Credentials: validated only on an isolated decoy path you control, logged before any response
   \item Not reachable by routine legitimate tooling (or explicitly allowlisted)
   \item Triggered end to end in testing
 \end{checklist}
@@ -1441,7 +1451,7 @@ No pre-arranged route to report to providers & Confirmed evidence goes stale & S
   \item OpenAI, \emph{Disrupting malicious uses of AI}, October 2025.
   \item Google Threat Intelligence Group, \emph{AI Threat Tracker}, November 2025.
   \item Google Threat Intelligence Group, threat report, September 2026.
-  \item GreyNoise Intelligence, PaperCut exploitation campaign analysis, 31 August 2026.
+  \item GreyNoise Intelligence, \emph{Agents Gone Wild: An AI-Orchestrated Global Campaign Against PaperCut NG/MF}, 9 September 2026 (campaign began 31 August 2026). \url{https://www.greynoise.io/blog/ai-orchestrated-campaign-against-papercut-ng-mf}
   \item UK National Cyber Security Centre, cyber deception definitions (August 2024) and trial findings (December 2025).
   \item MITRE ATT\&CK, campaign C0062. \url{https://attack.mitre.org/}
   \item MITRE Engage, adversary engagement framework. \url{https://engage.mitre.org/}
@@ -1471,6 +1481,7 @@ No pre-arranged route to report to providers & Confirmed evidence goes stale & S
 \rowcolor{deepindigo}
 \hd{Version} & \hd{Date} & \hd{Changes} \\
 1.0 & September 2026 & Initial release \\
+1.1 & September 2026 & Decoy credentials for services the operator owns and operates are now the primary Layer 3 mechanism, with principle-level design guidance (Section~\ref{sec:layerdetail}); decoy AI-provider keys demoted to an optional item that requires a provider relationship; provider-reporting guidance, joins, reporting package, telemetry capture, maturity model, failure modes, and checklists updated to match \\
 \tablefinish
 \end{tabularx}\par}
 

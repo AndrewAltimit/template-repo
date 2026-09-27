@@ -14,7 +14,26 @@ Agents interact with in-memory mock backends, or with local HTTP services that w
 - **Wallet**: Simulated cryptocurrency transactions
 - **Compute**: Resource management
 
-There is no integration with a real cryptocurrency wallet, freelance platform, cloud provider, or investment platform; the only real-world component is solving a fixed catalog of coding challenges via the Claude CLI. This is a deliberate dual-use choice, and decision logs record the agent's *stated* reasoning, which is evidence rather than ground truth. See [Economic Implications](./docs/economic-implications.md#why-this-research-exists) for the rationale, its limits, and references.
+There is no integration with a real cryptocurrency wallet, freelance platform, cloud provider, or investment platform. The only real-world component is the `economic-agents-tasks` crate, which can send a fixed catalog of coding challenges to the Claude CLI and test the returned Python. That crate is a standalone library: the agent loop does not call it, and the agent's own task work is simulated (see below). This is a deliberate dual-use choice, and decision logs record the agent's *stated* reasoning, which is evidence rather than ground truth. See [Economic Implications](./docs/economic-implications.md#why-this-research-exists) for the rationale, its limits, and references.
+
+### What Is LLM-Driven and What Is Rule-Based
+
+Most of the simulation is deterministic rules and templates. Only two components call an LLM:
+
+| Component | Where | How it works |
+|-----------|-------|--------------|
+| Top-level agent decision (what to do this cycle) and resource allocation | `economic-agents-core` (`LlmDecisionEngine`) | **LLM** (Claude CLI) when `engine_type` is `llm`; falls back to the rule-based engine if the CLI is missing or its reply cannot be parsed. The default engine is rule-based. |
+| Coding-challenge solutions | `economic-agents-tasks` (`TaskExecutor`) | **LLM** (Claude CLI). Standalone library, not called by the agent loop. |
+| Rule-based decision engine | `economic-agents-core` (`RuleBasedEngine`) | Threshold rules on balance and compute hours. |
+| Agent task work in the simulation | `economic-agents-core` | Claims a mock task and submits a placeholder string. The mock marketplace approves every submission with a random quality score between 0.7 and 1.0. |
+| Sub-agent executive decisions (CEO, CTO, CFO, ...) | `economic-agents-company` (`make_decision`) | Rule-based templates keyed on a few metrics, returning canned action items. |
+| Board members, OKRs, strategic plans, risk mitigations | `economic-agents-company` | Fixed templates per role. |
+| Sub-agent task execution | `economic-agents-company` (`autonomy.rs`) | Random quality score derived from the sub-agent's performance value. |
+| Company revenue and stage transitions | `economic-agents-core` | Fixed formulas and stage rules. |
+| Investor evaluation | `economic-agents-investment` (`InvestorAgent`) | Rule-based: budget bounds plus a minimum projected-return multiple per risk tolerance. The agent's proposal always projects a 3x return. |
+| Market dynamics, competition, reputation, feedback, latency | `economic-agents-simulation` | Random or formula-based library components (see [Simulation Features](#simulation-features)). |
+
+**Confidence values** attached to rule-based and template decisions are fixed constants, not estimates: the rule-based engine reports 0.9, 0.75, or 0.6 depending on personality, and sub-agent executive decisions report hard-coded values such as 0.85 or 0.9. Only the LLM engine's confidence comes from the model (as a self-reported number, clamped to 0 to 1).
 
 ## Workspace Structure
 
@@ -135,11 +154,15 @@ let backends = MockBackendFactory::create_with_config(config).await;
 
 ## Simulation Features
 
+The `economic-agents-simulation` crate provides simple stochastic building blocks:
+
 - **Latency Simulation**: Configurable delays for API calls
-- **Market Dynamics**: Bull/bear/crash cycles affecting task availability
-- **Competition**: Simulated competing agents
+- **Market Dynamics**: Random transitions between bull/stable/bear/crash phases with fixed reward multipliers
+- **Competition**: A per-task probability that a simulated competitor claims it
 - **Reputation System**: Tier-based access to higher-value tasks
-- **Feedback Generation**: Realistic submission feedback
+- **Feedback Generation**: Templated submission feedback
+
+These are library components with unit tests. They are not yet wired into the agent loop: the CLI scenario runner advances a `MarketDynamics` instance between agents, but its phase does not feed back into the mock marketplace, and the competition, reputation, feedback, and latency simulators are not called by the agent.
 
 ## Company Formation
 
@@ -180,10 +203,20 @@ if let Some(solution) = result.solution {
 }
 ```
 
+`SolutionReviewer` runs the generated Python with process-level hardening (cleared environment, `python -I -S`, a fresh temp working directory, a wall-clock timeout that kills the process group, capped output, and on Unix `RLIMIT_CPU`/`RLIMIT_AS`/`RLIMIT_FSIZE`). This is **not a security boundary**; see [Security Note](#security-note). Rust solutions are type-checked with `rustc --emit=metadata` when `rustc` is available; if it is not, the check is reported as skipped and the review cannot succeed.
+
 The task catalog includes 13 challenges across difficulty levels:
 - **Easy** (0.1-0.3): FizzBuzz, Palindrome, Reverse String, Factorial, Fibonacci, Prime Checker
 - **Medium** (0.4-0.6): Binary Search, Anagram Checker, Two Sum, Merge Sorted Arrays
 - **Hard** (0.7-0.9): Longest Substring, Valid Parentheses, LRU Cache
+
+## Security Note
+
+Two parts of this package execute or delegate to code you do not control. Treat both as unsafe outside a disposable environment.
+
+**Claude CLI permissions.** `LlmDecisionEngine` and `TaskExecutor` invoke `claude --print`. They pass `--dangerously-skip-permissions` **only** when you opt in, either by setting `ECONOMIC_AGENTS_SKIP_PERMISSIONS=1` or by setting `skip_permissions: true` on `LlmConfig` / `ExecutorConfig`, and they log a warning on every call when it is enabled. That flag disables every permission check in the CLI: any tool the model decides to use (shell commands, file edits, network requests) runs without approval, with the harness user's privileges and credentials. The prompts in this package only ask for text or JSON, so the flag is not needed for normal operation. If you enable it, run the harness only inside a disposable container with no credentials mounted (no cloud keys, SSH keys, or tokens beyond the Claude API key itself) and with network egress restricted.
+
+**Executing generated code.** `SolutionReviewer` runs LLM-generated Python. Its hardening limits accidents (runaway loops, huge output, inherited secrets in environment variables) but the code still runs as the harness user, sees the same filesystem, and has network access. For untrusted code, run the harness in a container with `--network=none` and no credentials, or set `ReviewerConfig::sandbox_command` so each interpreter call is wrapped in a container, for example `["docker", "run", "--rm", "-i", "--network=none", "--memory=256m", "python:3.12-slim"]`.
 
 ## Monitoring & Observability
 

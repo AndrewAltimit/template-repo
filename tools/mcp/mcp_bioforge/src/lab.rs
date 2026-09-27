@@ -30,6 +30,7 @@ use bioforge_hal::pumps::PumpDriver;
 use bioforge_hal::sensors::SensorReader;
 use bioforge_hal::thermal::ThermalController;
 use bioforge_protocol::StateMachine;
+use bioforge_protocol::approval::ProtocolAllowlist;
 use bioforge_safety::{AuditLog, SafetyEnforcer, audit::AuditEvent};
 use bioforge_types::error::BioForgeError;
 use bioforge_types::protocol::{LightingMode, ProtocolState, ThermalZone};
@@ -112,6 +113,10 @@ impl Default for Timeouts {
 pub struct LabOptions {
     /// Directory containing protocol TOML files.
     pub protocols_dir: PathBuf,
+    /// Allowlist of protocol files an operator has reviewed. Nothing outside
+    /// it can become the active protocol; an unavailable manifest denies
+    /// everything.
+    pub approved_protocols: ProtocolAllowlist,
     /// Directory the operator drops `<action_id>.confirmed` files into to
     /// confirm human-action gates. `None` means gates can only expire.
     pub confirm_dir: Option<PathBuf>,
@@ -255,6 +260,7 @@ pub struct Lab {
     enforcer: Arc<SafetyEnforcer>,
     hw: Hardware,
     protocols: ProtocolStore,
+    allowlist: ProtocolAllowlist,
     confirm_dir: Option<PathBuf>,
     audit: Option<Arc<AuditLog>>,
     timeouts: Timeouts,
@@ -276,6 +282,7 @@ impl Lab {
             enforcer,
             hw,
             protocols: ProtocolStore::new(opts.protocols_dir),
+            allowlist: opts.approved_protocols,
             confirm_dir: opts.confirm_dir,
             audit: opts.audit_log.map(Arc::new),
             timeouts: opts.timeouts,
@@ -928,20 +935,44 @@ impl Lab {
     // Protocols
     // ========================================================================
 
-    /// List protocol files available to `load_protocol`.
+    /// Status of the approved-protocol allowlist, for `get_system_status` and
+    /// `list_protocols`.
+    fn allowlist_status(&self) -> Value {
+        json!({
+            "manifest": self.allowlist.source().display().to_string(),
+            "available": self.allowlist.is_available(),
+            "approved_protocols": self.allowlist.approved_count(),
+            "unavailable_reason": self.allowlist.unavailable_reason(),
+        })
+    }
+
+    /// List protocol files available to `load_protocol`, with their content
+    /// hashes and whether that content is approved.
     pub async fn list_protocols(&self) -> LabResult<Value> {
-        let list = self.protocols.list().await?;
+        let list = self.protocols.list(&self.allowlist).await?;
         Ok(json!({
             "protocols_dir": self.protocols.root().display().to_string(),
             "count": list.len(),
+            "approved_protocol_manifest": self.allowlist_status(),
             "protocols": list,
         }))
     }
 
-    /// Load a protocol file, validate every step against the current safety
-    /// limits and, if it passes, make it the active protocol.
+    /// Load a protocol file: check it against the approved-protocol manifest,
+    /// validate every step against the current safety limits and, if it
+    /// passes both, make it the active protocol.
+    ///
+    /// The approval check comes first and hashes the exact text that would be
+    /// parsed, so an unreviewed or edited protocol is refused before anything
+    /// else looks at its contents.
     pub async fn load_protocol(&self, protocol_id: &str) -> LabResult<Value> {
-        let protocol = self.protocols.load(protocol_id).await?;
+        let text = self.protocols.read_text(protocol_id).await?;
+        let approval = self
+            .allowlist
+            .check(protocol_id, &text)
+            .map_err(|denial| LabError::Refused(denial.into()))?
+            .clone();
+        let protocol = self.protocols.parse_named(protocol_id, &text)?;
         let issues = protocols::validate_steps(&protocol, &self.enforcer);
         let human_gates = protocol.steps.iter().filter(|s| s.human_gate).count();
         let steps: Vec<Value> = protocol
@@ -964,6 +995,12 @@ impl Lab {
             "description": protocol.description,
             "steps": protocol.steps.len(),
             "human_gates": human_gates,
+            "approval": {
+                "sha256": approval.sha256,
+                "approved_by": approval.approved_by,
+                "approved_on": approval.approved_on.to_string(),
+                "review_note": approval.review_note,
+            },
         });
 
         if !issues.is_empty() {
@@ -1305,6 +1342,7 @@ impl Lab {
             "ambient_error": env.as_ref().err().map(ToString::to_string),
             "gantry_position": pos.as_ref().ok().map(|p| [p.x_mm, p.y_mm, p.z_mm]),
             "gantry_error": pos.as_ref().err().map(ToString::to_string),
+            "approved_protocol_manifest": self.allowlist_status(),
             "active_protocol": st.protocol.as_ref().map(|p| p.protocol_id.clone()),
             "protocol": st.protocol.as_ref().map(|p| {
                 let mut s = p.summary.clone();

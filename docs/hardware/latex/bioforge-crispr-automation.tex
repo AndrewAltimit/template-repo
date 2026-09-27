@@ -656,7 +656,7 @@ The Rust workspace at \texttt{packages/bioforge/} contains five library crates a
 \texttt{bioforge-types} & Library & Shared types: config structs, protocol schema, error enums, MCP tool parameter types \\
 \texttt{bioforge-safety} & Library & Stateful safety enforcement (cumulative volume, rate limiting, actuator interval), NaN/Inf guards, append-only audit log (JSON Lines) \\
 \texttt{bioforge-hal} & Library & Async hardware drivers: pumps, thermal (PID), motion, camera, sensors. Mock impls for dev \\
-\texttt{bioforge-protocol} & Library & Protocol state machine, step validation, human-in-the-loop gate enforcement \\
+\texttt{bioforge-protocol} & Library & Protocol state machine, step validation, human-in-the-loop gate enforcement, approved-protocol allowlist \\
 \texttt{bioforge-vision} & Library & Colony counting pipeline, plate image analysis, morphology assessment \\
 \texttt{mcp-bioforge} & Binary & MCP server at \texttt{tools/mcp/mcp\_bioforge/}. Exposes all tools, validates inputs, manages state \\
 \bottomrule
@@ -706,7 +706,8 @@ The Rust workspace at \texttt{packages/bioforge/} contains five library crates a
 \toprule
 \textbf{Tool} & \textbf{Parameters} & \textbf{Description} \\
 \midrule
-\texttt{load\_protocol} & \texttt{protocol\_id} & Load and validate a protocol TOML \\
+\texttt{list\_protocols} & (none) & Available protocols with content hash and approval status \\
+\texttt{load\_protocol} & \texttt{protocol\_id} & Load a protocol TOML: refused unless its content hash is in the approved-protocol manifest, then validated step by step \\
 \texttt{get\_status} & (none) & All sensors, actuators, safety state \\
 \texttt{human\_action} & \texttt{action}, \texttt{timeout\_min} & Pause for human confirmation \\
 \texttt{emergency\_stop} & (none) & Halt all, disable heaters, safe state \\
@@ -922,6 +923,7 @@ Firmware & Motor current limiting & Stepper stall / mechanical jam & Cannot be b
 HAL & Volume bounds checking & Dispensing impossible volumes & Agent cannot override \\
 HAL & Temperature range limits & Heating beyond safe range & Configurable but logged \\
 HAL & Cumulative volume tracking & Exceeding 50\,mL per run & Resets on new run only \\
+Protocol & Approved-protocol allowlist & Loading an unreviewed or silently edited protocol & Hash must match operator manifest; fails closed \\
 Protocol & State machine ordering & Steps executed out of order & Agent cannot override \\
 Protocol & Human-in-the-loop gates & Unattended bio operations & Requires physical confirm \\
 MCP & NaN/Infinity guards & Bypassing comparisons via NaN & Agent cannot override \\
@@ -951,6 +953,26 @@ The \texttt{SafetyEnforcer} in \texttt{bioforge-safety} is a stateful validator 
 \end{keybox}
 
 Internal state (\texttt{Mutex<EnforcerState>}) is thread-safe for concurrent async tasks. The enforcer is shared across all MCP tools via \texttt{Arc<SafetyEnforcer>}.
+
+\subsection{Approved-Protocol Allowlist}
+\label{sec:allowlist}
+
+\texttt{config/approved\_protocols.toml} is an operator-maintained allowlist. Each entry gives a protocol id, the SHA-256 of that file's canonical text (byte-order mark removed, line endings normalized to LF, trailing spaces and tabs stripped, one trailing newline), the approver's identity, the approval date, and an optional review note. \texttt{load\_protocol} hashes the file it has just read and refuses the load unless the hash matches an entry for that id, before the protocol is parsed or made active. The manifest is read once at startup from \texttt{-{}-approved-protocols} (default \texttt{<config-dir>/approved\_protocols.toml}), no tool writes it, and a missing, oversized or malformed manifest denies every protocol rather than allowing every protocol. \texttt{list\_protocols} reports each file's hash and approval status, and every refusal is audit-logged with the computed hash so an operator who does want to approve the file has the value to record. The shipped manifest approves nothing. Approval is local to the lab that will run a protocol and must be recorded by that lab's responsible biosafety reviewer (for example its principal investigator or biosafety officer, under the institution's own process); an approval recorded elsewhere, including by the repository author, does not transfer. The shipped file carries a commented template entry for the Odin protocol with placeholder approver fields, and a placeholder approver is rejected, which makes the manifest deny every protocol.
+
+\begin{safetybox}[What the Allowlist Does and Does Not Do]
+\textbf{Does}: prevents an unreviewed protocol from becoming the active protocol, and revokes an approval automatically when the approved file changes, including comment-only changes, since the approval is meant to cover the file a reviewer actually read.
+
+\textbf{Does not}: it is not sequence or target screening. A hash comparison is indifferent to biological meaning, and the manifest records only that a named person approved specific bytes on a date, not that the review was competent. It also does not constrain ad-hoc actuation: with no step executor, an agent can call \texttt{dispense} or \texttt{heat\_shock} with no protocol loaded, bounded only by the envelope limits.
+\end{safetybox}
+
+\subsection{What Is Not Bounded}
+\label{sec:notbounded}
+
+Every interlock in Section~\ref{sec:allowlist} and the table above bounds a quantity: degrees, microliters, microliters per second, millimeters, calls per minute. Together with the allowlist they answer ``how much?'' and ``did a human approve this file?''. Nothing here answers ``what is this protocol for?''. There is no sequence or target screening, no gating of nucleic acid synthesis orders (the platform places none and has no hook where such a check would sit), and no automated provenance check on an agent-designed protocol beyond a human signature on its content hash.
+
+The gap grows rather than shrinks with scope. The envelope is fixed at 1--1000\,\textmu{}L, $-$5--50\textdegree{}C and a 200 by 150 by 50\,mm enclosure whatever the experiment is, while the set of protocols that fits inside it expands with every capability added. A 50\,\textmu{}L dispense at 37\textdegree{}C is within every limit regardless of what is in the tube, so the envelope's discriminating power with respect to biosecurity falls toward zero as the protocol space widens, even though the limits look exactly as protective as before. Envelope bounds are industrial safety, not biosecurity controls; the same argument about latent rather than declared capability is made in \cite{smith2026}.
+
+An adequate control is procedural and external: screening against established frameworks through an accredited provider \cite{raixbiodesign2024,nasem2025}, human biosafety review of every new protocol before its first execution by someone competent in the relevant biology, and a protocol registry carrying both records with the runtime enforcing membership. The allowlist is the enforcement mechanism for the third of those. The first two do not exist here and cannot be self-certified by a single maintainer, which is the honest reason they are absent rather than an oversight.
 
 \subsection{ESP32 Watchdog and Heartbeat}
 
@@ -1133,7 +1155,8 @@ Thermal runaway & Hardware thermal fuses (60\textdegree{}C), \texttt{absolute\_m
 Mechanical jam / stall & Motor current limiting on TMC2209 stepper drivers; stall detection via StallGuard \\
 Firmware hang & ESP32 watchdog timer (300ms) auto-resets to safe state; kills 12V relay \\
 Audit log tampering & Append-only file, no deletion API exposed to agent or MCP server \\
-Malicious protocol injection & Protocol validation checks all steps against safety limits before loading \\
+Malicious protocol injection & Approved-protocol allowlist: a protocol loads only if its content hash is in the operator manifest, so an injected or edited file is refused before parsing (Section~\ref{sec:allowlist}). Step validation then checks every step against the safety limits \\
+Protocol targets something that should not be automated & Not prevented. No sequence or target screening exists; the allowlist enforces that a human approved the file, not that the approval was sound. Screening and biosafety review are procedural controls outside this system (Section~\ref{sec:notbounded}) \\
 Power loss during operation & All actuators default to safe state (heaters off, pumps stopped, relay open) \\
 Reagent contamination & Human gates require physical verification of deck state before proceeding \\*
 \bottomrule
@@ -1152,6 +1175,7 @@ The platform demonstrates several principles:
 \begin{itemize}
   \item \textbf{Capability bounding}: Hard limits loaded from configuration at startup and enforced at runtime, with no tool by which the agent can raise them. This is what the self-driving laboratory literature calls compartmentalization: preventing alteration of an approved plan after human authorization \cite{tobias2025}.
   \item \textbf{Audit transparency}: Every mutating agent action is logged, including refusals, with enough detail to reconstruct a run after the fact. The log is append-only rather than cryptographically tamper-evident, so it protects against the agent and not against the operator.
+  \item \textbf{Protocol provenance}: A protocol loads only if its content hash is in an operator-maintained manifest with an approver and a date (Section~\ref{sec:allowlist}). This is the whitelisted-protocol control the policy literature asks for \cite{luhachack2026}, and it is a mechanism for enforcing a review decision rather than a substitute for one.
   \item \textbf{Human oversight}: Gates are positioned at the digital-to-physical boundary: the moments where an AI decision becomes a physical action on biological materials. Independent policy analysis converges on the same control set: human approval gates before external actions, tamper-evident audit logs, whitelisted protocols, and biosafety interlocks \cite{luhachack2026}.
   \item \textbf{Graduated autonomy}: Relaxing gates on routine, reversible, previously validated steps is legitimate design policy, subject to the conditions in Section~\ref{sec:gates}. Irreversible and novel steps never lose their gate. Relaxation is per step and per protocol rather than global; it requires a human action outside the agent's reach; it is logged, time-bounded, and auto-reverting on anomaly; and the track record it rests on must come from production-realistic runs rather than observed rehearsals \cite{needham2025,schoen2025,greenblatt2024}. None of this is implemented today: gate placement is a per-step flag in a protocol file that only an operator can edit.
 \end{itemize}
@@ -1164,14 +1188,14 @@ Four design choices tilt the tradeoff toward benefit:
 
 \begin{enumerate}
   \item \textbf{The demonstrated artifact is the safety architecture}, not a dangerous capability; the underlying model-plus-actuator integration is already widely published \cite{tobias2025,luhachack2026}.
-  \item \textbf{The biology sits at the floor of the risk scale}, at or below the tier for which basic controls are considered proportionate \cite{smith2026}.
+  \item \textbf{The biology sits at the floor of the risk scale}, at or below the lowest tier of one 2026 proposal for classifying automated laboratories, for which that paper considers basic controls proportionate \cite{smith2026}.
   \item \textbf{The hard limits sit outside the agent's reach.}
   \item \textbf{No wet-lab uplift is published} beyond a commercially sold teaching kit.
 \end{enumerate}
 
 The residual risks are real and worth naming. A design that safely bounds an agent is also a design someone can scale while deleting the bounds, and the empirical evidence on AI uplift to biological misuse remains contested \cite{mouton2024,rose2024}.
 
-\textbf{Scope of the claim.} This is a single-maintainer BSL-1 prototype whose control, safety, and audit layers are implemented and tested against simulated hardware while the physical build is staged. It shows these controls are buildable and usable at this scale. It is not evidence that they hold at higher biosafety levels, nor that oversight is free at production throughput; the automated-laboratory literature warns specifically that human oversight erodes as automation scales \cite{smith2026}.
+\textbf{Scope of the claim.} This is a single-maintainer BSL-1 prototype whose control, safety, and audit layers are implemented and tested against simulated hardware while the physical build is staged; nothing has yet driven an actuator or touched biological material. It shows these controls are buildable and usable at this scale. It is not evidence that they hold at higher biosafety levels, nor that oversight is free at production throughput; the automated-laboratory literature warns specifically that human oversight erodes as automation scales \cite{smith2026}. It is also not a complete implementation of any published recommendation set: the mechanical controls are present and the content controls are absent (Section~\ref{sec:notbounded}), including the sequence screening that the same sources ask for at every tier \cite{raixbiodesign2024,smith2026}.
 
 See \texttt{packages/bioforge/docs/governance-implications.md} for the full governance analysis, including the September 2026 US policy context and the complete reference list.
 
@@ -1189,6 +1213,9 @@ See \texttt{packages/bioforge/docs/governance-implications.md} for the full gove
 \end{itemize}
 
 \subsection{Protocol Expansion}
+
+Each item below widens the protocol space, which is the direction in which the physical-envelope interlocks stop being informative (Section~\ref{sec:notbounded}). None should be attempted without the content controls that do not exist today: screening through an accredited provider and human biosafety review of the protocol before its first execution.
+
 \begin{itemize}
   \item \textbf{Fluorescent yeast engineering} (GFP insertion): adds fluorescence imaging
   \item \textbf{Antibiotic resistance profiling}: MIC measurement across bacterial strains
@@ -1219,6 +1246,9 @@ Office of Science and Technology Policy, \textit{United States Government Policy
 
 \bibitem{nasem2025}
 National Academies of Sciences, Engineering, and Medicine, \textit{The Age of AI in the Life Sciences: Benefits and Biosecurity Considerations}. Washington, DC: National Academies Press, 2025.
+
+\bibitem{raixbiodesign2024}
+Responsible AI x Biodesign, \textit{Community Values, Guiding Principles, and Commitments for the Responsible Development of AI for Protein Design}, 8 March 2024. \url{https://responsiblebiodesign.ai/}
 
 \bibitem{tobias2025}
 A.~V. Tobias and A.~Wahab, ``Autonomous `self-driving' laboratories: a review of technology and policy implications,''

@@ -74,6 +74,7 @@ impl Scenario {
                 max_cycles: Some(50),
                 initial_balance: Some(10.0),
                 initial_compute_hours: Some(100.0),
+                ..Default::default()
             }],
             max_cycles: Some(50),
             parallel: false,
@@ -97,6 +98,7 @@ impl Scenario {
                 max_cycles: Some(100),
                 initial_balance: Some(25.0),
                 initial_compute_hours: Some(200.0),
+                ..Default::default()
             }],
             max_cycles: Some(100),
             parallel: false,

@@ -79,12 +79,15 @@ y_train = np.random.randint(0, 2, size=1000).astype(np.float32)
 X_val = np.random.randn(200, 4096).astype(np.float32)
 y_val = np.random.randint(0, 2, size=200).astype(np.float32)
 
-# Train
-auc = trainer.fit(X_train, y_train, X_val, y_val)
-print(f"Validation AUC: {auc:.4f}")
+X_test = np.random.randn(300, 4096).astype(np.float32)
+y_test = np.random.randint(0, 2, size=300).astype(np.float32)
+
+# Train; the test split is scored once, after checkpoint selection and calibration
+val_auc = trainer.fit(X_train, y_train, X_val, y_val, X_test=X_test, y_test=y_test)
+print(f"Validation AUC (selection-biased): {val_auc:.4f}")
+print(f"Test AUC: {trainer.fit_metrics['test_auc']:.4f}")  # report this one
 
 # Predict
-X_test = np.random.randn(100, 4096).astype(np.float32)
 probs = trainer.predict_proba(X_test)
 predictions = trainer.predict(X_test)  # uses the threshold calibrated on the validation split
 ```
@@ -92,8 +95,29 @@ predictions = trainer.predict(X_test)  # uses the threshold calibrated on the va
 `fit` always starts from a fresh, seeded initialization, restores the checkpoint
 with the lowest validation loss (whether or not early stopping triggers), and
 returns that checkpoint's validation AUC. Without `X_val`/`y_val`, a seeded,
-stratified `validation_split` fraction of the training data is held out. The
-validation split is a tuning split; report performance on a separate test split.
+stratified `validation_split` fraction of the training data is held out.
+
+The returned validation AUC is **selection-biased** (optimistic): the same
+validation split chose the checkpoint and calibrated the threshold. It is a tuning
+number, not a performance estimate. For an unbiased estimate, pass a separate
+held-out split as `X_test`/`y_test` (optional; arrays or lists of activation file
+paths, like the other splits). It is never used for training, checkpoint selection
+or calibration; it is scored once at the end of `fit`.
+
+After each `fit`, `trainer.fit_metrics` summarizes the run:
+
+| Key | Meaning |
+|-----|---------|
+| `val_auc_selection_biased` | Validation AUC of the restored checkpoint (same value `fit` returns) |
+| `val_auc_note` | Reminder that the validation split chose the checkpoint and threshold |
+| `val_loss`, `best_epoch` | Loss and epoch of the restored checkpoint (`selection_criterion` is `min_val_loss`) |
+| `threshold`, `threshold_source` | Calibrated decision threshold; always calibrated on `validation` |
+| `n_train`, `n_val` | Split sizes |
+| `test_auc`, `test_accuracy`, `n_test` | Held-out test AUC, accuracy at the calibrated threshold, and size; `None` without `X_test`/`y_test` (`test_auc` is also `None` if the test split has a single class) |
+
+`trainer.evaluate(X, y, threshold=None)` returns the same `auc`/`accuracy`/`n`
+for any other held-out split. `fit_metrics` is saved in and restored from
+checkpoints.
 
 #### sklearn Backend
 
@@ -348,7 +372,8 @@ Features:
 - **Gradient Accumulation**: `gradient_accumulation_steps` batches per optimizer step
 - **Checkpoint Selection**: the epoch with the lowest validation loss is restored at the end of `fit`; optional early stopping ends training after `early_stopping_patience` epochs without improvement
 - **Threshold Calibration**: `trainer.threshold` is chosen on the validation split
-- **Checkpointing**: Save/load model state, threshold and training history
+- **Held-out Test Split**: optional `X_test`/`y_test` in `fit`, scored once after selection and calibration; `fit_metrics["test_auc"]` is the unbiased estimate, while `best_val_auc` (and `fit_metrics["val_auc_selection_biased"]`) is optimistic because the validation split chose the checkpoint and threshold
+- **Checkpointing**: Save/load model state, threshold, training history and `fit_metrics`
 
 Training loop:
 1. Forward pass (with optional mixed precision)
@@ -358,6 +383,7 @@ Training loop:
 5. Validation every epoch (loss and AUC); keep a copy of the best-loss weights
 6. Early stopping check
 7. After training: restore the best weights and calibrate the threshold
+8. If `X_test`/`y_test` were given: score the test split once and record `fit_metrics["test_auc"]`
 
 ### Backend Selection Logic
 
@@ -401,7 +427,8 @@ config = ProbeTrainingConfig(
 trainer = create_probe_trainer(model_size_b=70, input_dim=8192, config=config)
 
 # Train on GPU
-auc = trainer.fit(X_train, y_train, X_val, y_val)
+trainer.fit(X_train, y_train, X_val, y_val, X_test=X_test, y_test=y_test)
+test_auc = trainer.fit_metrics["test_auc"]  # the validation AUC fit returns is selection-biased
 ```
 
 ### Use Case 3: Compare sklearn vs PyTorch Performance
@@ -416,9 +443,13 @@ probe_sklearn = await trainer_sklearn.fit_from_arrays(X_train, y_train, X_val, y
 auc_sklearn = probe_sklearn.val_auc
 auc_pytorch = trainer_pytorch.fit(X_train, y_train, X_val, y_val)
 
-print(f"sklearn AUC: {auc_sklearn:.4f}")
-print(f"PyTorch AUC: {auc_pytorch:.4f}")
+print(f"sklearn validation AUC: {auc_sklearn:.4f}")
+print(f"PyTorch validation AUC: {auc_pytorch:.4f}")
 ```
+
+Both numbers are validation AUCs, fine for a backend parity check. For a
+performance estimate, score a separate held-out split (for PyTorch, pass
+`X_test`/`y_test` to `fit` and read `trainer_pytorch.fit_metrics["test_auc"]`).
 
 ## Performance Tips
 

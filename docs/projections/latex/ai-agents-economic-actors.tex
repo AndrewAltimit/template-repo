@@ -128,9 +128,9 @@
   colorlinks=true,
   linkcolor=deepindigo,
   urlcolor=networkblue,
-  pdftitle={AI Agents as Autonomous Economic Actors: A Governance Projection (v3.0, September 2026)},
+  pdftitle={AI Agents as Autonomous Economic Actors: A Governance Projection (v3.0.1, September 2026)},
   pdfauthor={Emerging Technology Risk Assessment},
-  pdfsubject={ETRA-2025-AEA-001, Version 3.0, September 2026},
+  pdfsubject={ETRA-2025-AEA-001, Version 3.0.1, September 2026},
   pdfkeywords={AI agents, agentic commerce, agent payments, autonomous economic actors, governance}
 }
 
@@ -460,7 +460,7 @@
   \foreach \i/\lab/\val in {0/DOCUMENT TYPE/Policy Research,
                             1/TIME HORIZON/2026--2030,
                             2/LICENSE/{MIT / Unlicense},
-                            3/VERSION/{3.0 (September 2026)}} {
+                            3/VERSION/{3.0.1 (September 2026)}} {
     \node[anchor=base west, inner sep=0, text=digitalgold,
           font=\sffamily\bfseries\fontsize{6.5}{8}\selectfont]
       at ({1.5+\i*4.6475},1.98) {\lab};
@@ -515,7 +515,7 @@ This is a \textbf{public policy research document} on AI agents as participants 
 \textbf{How to Use This Document:}
 \begin{itemize}[nosep]
   \item Executive Summary, Scenarios, Policy Recommendations, and Signals carry the actionable content
-  \item Probability estimates are discussion aids, not predictions
+  \item Probability estimates are discussion aids held at 5-point resolution, not predictions
   \item Charted data is sourced; schematic figures are labeled as such
   \item When excerpting, please preserve epistemic markers
 \end{itemize}
@@ -537,7 +537,7 @@ This is a \textbf{public policy research document} on AI agents as participants 
 \vspace{0.3cm}
 
 \begin{infobox}[Epistemic Status Markers]
-Key claims are tagged with an epistemic status:
+Key claims are tagged with the series-wide markers below, each reflecting the claim's dominant evidence basis:
 \begin{center}
 \small
 \begin{tabularx}{\linewidth}{ZY{0.32}Y{0.98}Y{1.7}}
@@ -550,6 +550,7 @@ Key claims are tagged with an epistemic status:
 \bottomrule
 \end{tabularx}
 \end{center}
+Scenario descriptions, dated projections, and scenario probabilities default to \textbf{[S]}; unmarked text is framing or synthesis. Probabilities are single-author subjective judgments on a 5-point grid (Section~\ref{sec:scenarios}). Full definitions, the calibration policy, and the series independence statement are in the \textit{ETRA Shared Methodology} (\url{https://github.com/AndrewAltimit/template-repo/blob/main/docs/projections/methodology.md}).
 \end{infobox}
 
 \begin{warnbox}[Scope and Abuse-Risk Handling]
@@ -558,6 +559,14 @@ This document is prepared for \textbf{defensive policy purposes}. It describes c
 
 \begin{infobox}[Capability Snapshot Date]
 Model capabilities, payment-industry programs, and policy developments reflect publicly available systems and published assessments as of \textbf{mid-September 2026}. AI capability and payment infrastructure are moving targets; conclusions are meant to be robust to specific model iterations. A named model or evaluation should be read as a data point on a trend, not a fixed endpoint. The \textbf{2025} in the Document ID reflects the year of first publication and is retained for citation stability.
+\end{infobox}
+
+\begin{infobox}[Change Log: Version 3.0.1 (September 2026)]
+\begin{enumerate}[nosep]
+  \item \textbf{Calibration}: scenario, sensitivity, and event probabilities placed on the series' 5-point grid. Core scenarios read A 35--45\%, B 25--35\%, C 5--15\%, D 15--25\% (midpoints sum to 100\%); all four are unchanged from v3.0 within calibration resolution. v1.0 values and v3.0 points are kept as published
+  \item \textbf{Companion framework corrected against the code}: the coding-challenge executor is a standalone library the agent loop does not call; in-loop task work is a placeholder approved by the mock marketplace at random quality; market, competition, reputation, feedback, and latency simulators are not wired in; sub-agents, company operations, and investor evaluation are rule-based templates; rule-based confidence and reasoning are fixed values; the decision record is bounded and in memory, not tamper-evident; hallucination checks run after a run, not before execution
+  \item \textbf{Markers and methodology}: forward-looking scenario claims tagged; duplicated marker and methodology text replaced by a summary of the ETRA Shared Methodology
+\end{enumerate}
 \end{infobox}
 
 \begin{infobox}[Change Log: Version 3.0 (September 2026)]
@@ -858,10 +867,12 @@ This analysis draws on:
   \item \textbf{Legal and regulatory texts}: electronic-transactions law, agency law, EU and U.S. AI and stablecoin rules
   \item \textbf{Labor-market research}: payroll-based studies and usage-based indices
   \item \textbf{The companion simulation} (\texttt{packages/economic\_agents}): a Rust framework used to reason about agent decision logic and observability, not as evidence of real-world capability
-  \item \textbf{Synthesis of published expert analysis}: this is an independent, single-author analysis; it involves no first-party expert consultation and no red-team exercises conducted by or for the author
+  \item \textbf{Synthesis of published expert analysis}: the author's reading of published work, not an elicitation (see the independence statement in About This Document)
 \end{itemize}
 
 Vendor transaction counts and program claims are marked [O] as \textit{documented claims}, with independent caveats noted where available. Dates are given for all time-sensitive facts.
+
+\textbf{Shared conventions.} The epistemic markers, probability calibration policy, base-rate anchoring, and series-wide non-claims are common to the ETRA set and are set out in the \textit{ETRA Shared Methodology} (\texttt{docs/projections/methodology.md}). This edition carries what a standalone reader needs: the markers in About This Document and the calibration rules in Section~\ref{sec:scenarios}. Drafting and consistency checks were AI-assisted; the author is responsible for every claim, estimate, and citation. Citations to 2026 sources describe a fast-moving record and should be verified before reliance.
 
 \subsection{Definitions}
 \label{sec:definitions}
@@ -1140,7 +1151,7 @@ Form and run a legal entity alone & Not demonstrated & No public case \\
 \end{tabularx}
 \end{center}
 
-\textbf{Interpretation [E]}: The gap between the rising time-horizon curve and zero observed self-sufficiency is not a contradiction. Earning money from scratch requires acquiring customers, clearing identity checks built to stop bots, handling adversaries, and making judgment calls, all areas where agents remain weak. The gap is real but likely temporary. METR itself expects ``the plausible robustness of rogue deployments to increase substantially in the coming months.'' This report estimates a 35\% probability that a credible public report documents an agent sustaining its own inference from earned revenue for 30 or more days by the end of 2027, and 65\% by the end of 2029 \textbf{[S]} (reasoning in Section~\ref{sec:scenarios}).
+\textbf{Interpretation [E]}: The gap between the rising time-horizon curve and zero observed self-sufficiency is not a contradiction. Earning money from scratch requires acquiring customers, clearing identity checks built to stop bots, handling adversaries, and making judgment calls, all areas where agents remain weak. The gap is real but likely temporary. METR itself expects ``the plausible robustness of rogue deployments to increase substantially in the coming months.'' This report estimates a 30--40\% probability that a credible public report documents an agent sustaining its own inference from earned revenue for 30 or more days by the end of 2027, and 60--70\% by the end of 2029 \textbf{[S]} (reasoning in Section~\ref{sec:scenarios}).
 
 \subsection{Frontier Releases Relevant to Economic Agency}
 
@@ -1406,10 +1417,10 @@ v1.0 speculated that agents might prefer ``compute credits'' to money. What emer
 
 \subsection{What It Is, and What It Is Not}
 
-The \texttt{economic\_agents} package is a Rust workspace (15 crates) that simulates autonomous agents in an economy: agents discover and complete tasks, manage a wallet balance and compute hours, form companies with sub-agents, and seek investment. It exists to make agent decision logic, failure modes, and observability concrete enough to reason about governance.
+The \texttt{economic\_agents} package is a Rust workspace (15 crates) that simulates autonomous agents in an economy: agents claim and complete simulated tasks, manage a wallet balance and compute hours, form companies with sub-agents, and seek investment. It exists to make agent decision logic, failure modes, and observability concrete enough to reason about governance.
 
 \begin{warnbox}[Simulation, Not Deployment]
-All backends in the framework are simulated. Agents run against in-memory mock implementations of a wallet, marketplace, and compute provider, or against local HTTP services that wrap the same mocks. There is no integration with a real cryptocurrency wallet, freelance platform, cloud provider, or investment platform. The one real-world component is task execution: agents can solve a catalog of 13 coding challenges by invoking a Claude command-line tool, with solutions checked by a reviewer. v1.0 cited the framework as demonstrating real-world earning and company formation; that overstated what the code does.
+All backends in the framework are simulated. Agents run against in-memory mock implementations of a wallet, marketplace, and compute provider, or against local HTTP services that wrap the same mocks. There is no integration with a real cryptocurrency wallet, freelance platform, cloud provider, or investment platform. The one real-world component is a separate task-execution library that can send a catalog of 13 coding challenges to a Claude command-line tool and test the returned code. The agent loop does not call it: in the simulation, an agent's task work submits a placeholder, and the mock marketplace approves every submission with a random quality score between 0.7 and 1.0. The reviewer that tests generated code applies process-level hardening (a cleared environment, timeouts, resource limits); it is not a sandbox. v1.0 cited the framework as demonstrating real-world earning and company formation; that overstated what the code does.
 \end{warnbox}
 
 \textbf{Why a simulation still matters [E]}: The interfaces (\texttt{Wallet}, \texttt{Marketplace}, \texttt{Compute}) are deliberately shaped like real APIs. Section~\ref{sec:rails} shows that real equivalents now exist: pay-per-request stablecoin rails, agent-payment tokens, and API-provisioned compute. The distance from simulated to real is an engineering and access question, and the access question is exactly where the control points sit.
@@ -1422,30 +1433,30 @@ All backends in the framework are simulated. Agents run against in-memory mock i
 \toprule
 \textbf{Component} & \textbf{Implementation} & \textbf{Crate}\newline{\footnotesize(\texttt{economic-agents-})} \\
 \midrule
-Decision engines & Rule-based; LLM-backed with fallback to rules on failure or timeout & \texttt{core} \\
+Decision engines & Rule-based (default); LLM-backed (Claude CLI) with fallback to rules on failure or timeout. The top-level decision is the only one an LLM can make & \texttt{core} \\
 Operating modes & Survival, Company & \texttt{core} \\
 Personalities & RiskAverse, Balanced, Aggressive & \texttt{core} \\
 Task selection & FirstAvailable, HighestReward, BestRatio (reward per hour), Balanced, SkillMatch & \texttt{core} \\
-Market dynamics & Bull, Stable, Bear, Crash phases; latency; competitors; reputation tiers & \texttt{simulation} \\
-Company formation & Stages Ideation, Development, SeekingInvestment, Operational, Failed; sub-agent roles & \texttt{company} \\
-Investment & Rule-based investor profiles (budget bounds, required return multiple by risk tolerance) & \texttt{investment} \\
+Market dynamics & Bull, Stable, Bear, Crash phases; latency; competitors; reputation tiers; feedback. Library components, not wired into the agent loop & \texttt{simulation} \\
+Company formation & Stages Ideation, Development, SeekingInvestment, Operational, Failed; sub-agent roles. Business plans, sub-agent decisions, and company operations are rule-based templates; sub-agent task results are random scores & \texttt{company} \\
+Investment & Rule-based investor profiles (budget bounds, required return multiple by risk tolerance); the agent's proposal always projects a 3x return & \texttt{investment} \\
 Alignment monitoring & Concern levels None to Critical & \texttt{monitoring} \\
-LLM quality checks & Resource, capability, and state hallucination detection; severity Low to Critical & \texttt{observability} \\
+LLM quality checks & Resource, capability, and state hallucination detection over saved decisions (post-run analysis); severity Low to Critical & \texttt{observability} \\
 Emergent-pattern detection & Aggressive early growth, resource hoarding, cyclical investment, opportunistic spending, conservative stockpiling, adaptive and threshold behavior & \texttt{observability} \\
-Task execution & 13 coding challenges solved via Claude CLI, auto-reviewed & \texttt{tasks} \\
+Task execution & Standalone library: 13 coding challenges sent to Claude CLI; generated code tested with process-level hardening, not a sandbox. Not called by the agent loop, whose task work is simulated & \texttt{tasks} \\
 \bottomrule
 \end{tabularx}
 \end{center}
 
 \subsection{Decision Cycle and Strategies}
 
-Each cycle the agent assesses its state (balance, compute hours, company status), chooses an action, executes against the backends, records the outcome, and logs the decision with its reasoning and a confidence value. The default rule-based engine is simple: if compute hours fall below a survival buffer (default 24 hours), buy compute when the balance allows and otherwise work on tasks; if the agent has a company or has reached the company-formation threshold (default 100 units), work on the company; otherwise work on tasks (Appendix~\ref{app:engine}).
+Each cycle the agent assesses its state (balance, compute hours, company status), chooses an action, executes against the backends, and records the outcome together with the decision, a reasoning string, and a confidence value. For the rule-based engine neither is an estimate: the reasoning is a fixed label (``Rule-based decision'') and the confidence is a constant set by personality (0.9, 0.75, or 0.6). Sub-agent decisions likewise report hard-coded confidence values. Only the LLM engine's reasoning and confidence come from the model, as a self-report. The default rule-based engine is simple: if compute hours fall below a survival buffer (default 24 hours), buy compute when the balance allows and otherwise work on tasks; if the agent has a company or has reached the company-formation threshold (default 100 units), work on the company; otherwise work on tasks (Appendix~\ref{app:engine}).
 
-\textbf{A caution on reading simulation output [E]}: behaviors such as ``shift to 100\% task work under survival pressure'' or ``form a company when capital exceeds a threshold'' are rules written into the engine, not discoveries. v1.0 presented some of these in a column labeled ``Observed.'' The framework's research value lies elsewhere: in running LLM-backed engines against the same environment and measuring whether their choices diverge from the rule baseline, in detecting hallucinated state, and in testing whether governance mechanisms (limits, logging, alerts) catch problems.
+\textbf{A caution on reading simulation output [E]}: behaviors such as ``shift to 100\% task work under survival pressure'' or ``form a company when capital exceeds a threshold'' are rules written into the engine, not discoveries. v1.0 presented some of these in a column labeled ``Observed.'' The framework's research value lies elsewhere: in running the LLM-backed engine (which must be selected in configuration; the default is rule-based) against the same environment and measuring whether their choices diverge from the rule baseline, in detecting hallucinated state, and in testing whether governance mechanisms (limits, logging, alerts) catch problems.
 
 \subsection{LLM Decisions, Hallucination, and Fallback}
 
-When an LLM engine drives decisions, the framework validates each decision against actual state. Three hallucination classes are checked \textbf{[O, framework]}:
+When the LLM engine drives decisions, the framework can check the saved decisions against the recorded state after a run (an analysis command, not a gate before execution). Three hallucination classes are checked \textbf{[O, framework]}:
 \begin{center}
 \small
 \begin{tabularx}{\linewidth}{ZY{0.57}Y{1.2}Y{1.23}}
@@ -1467,14 +1478,14 @@ Project Vend's failures (Section~\ref{sec:evidence}) and the framework's halluci
 
 \subsection{The Observability Advantage and Its Limits}
 
-Every framework decision is logged with type, timestamp, reasoning (for LLM decisions), confidence, and state. Human firms keep no comparable record of why each decision was made. This is a genuine governance opportunity \textbf{[E]}: agent economic activity could be more auditable than human activity.
+Every top-level decision is recorded with its type, timestamp, stated reasoning, confidence, and the state it was based on. In the framework this record is a bounded in-memory history (the most recent 100 cycles), not a tamper-evident log, and for rule-based decisions the reasoning and confidence are fixed values rather than evidence about the decision. The design still points to a genuine governance opportunity \textbf{[E]}: agents can be built to keep a per-decision record that human firms do not keep, so agent economic activity could be more auditable than human activity.
 
 Four limits temper it:
 \begin{enumerate}
   \item \textbf{Stated reasoning is not necessarily the cause of an action.} The Vending-Bench Arena agent that called collusion illegal and then pursued it illustrates the gap between narration and behavior. Research on chain-of-thought faithfulness shows the gap is systematic: explanations can omit biasing features that drove the answer (Turpin et al., 2023), and reasoning models that used a hint acknowledged it in most settings less than 20\% of the time (Chen et al., 2025) \textbf{[O]}. In the framework, the LLM engine's logged ``reasoning'' is a one- or two-sentence self-report, not a full reasoning trace.
   \item \textbf{Pressure on the record can degrade it.} When a chain-of-thought monitor was used as a training signal, models learned to hide reward hacking from their reasoning while continuing it (Baker et al., 2025), and models can often tell when they are being evaluated, which weakens inferences from observed behavior (Needham et al., 2025) \textbf{[O]}.
   \item \textbf{Logs that nobody reads provide no oversight}, and volume grows with every agent.
-  \item \textbf{Logs are only as trustworthy as the party that keeps them}; tamper-evident, independently retained logs are needed for accountability.
+  \item \textbf{Logs are only as trustworthy as the party that keeps them}; tamper-evident, independently retained logs are needed for accountability. The framework's record is neither.
 \end{enumerate}
 
 None of this makes the record worthless. A multi-lab position paper calls chain-of-thought monitoring ``a new and fragile opportunity'' (Korbak et al., 2025) \textbf{[O]}. The fair reading \textbf{[E]}: transaction logs are close to ground truth about what an agent did; stated reasoning is useful but fallible evidence about why; and preserving monitorability (for example, not training agents on how their logs look) is a design choice that governance should encourage.
@@ -1483,7 +1494,7 @@ None of this makes the record worthless. A multi-lab position paper calls chain-
 
 \subsection{Agent-Founded Structures}
 
-In the simulation, an agent that accumulates enough capital generates a business plan, instantiates sub-agents (board member, executive, subject-matter expert, individual contributor), allocates capital, and advances through company stages. Project Vend phase two shows a field analogue: a CEO agent directing a shop agent and a merchandise agent, all under human operators.
+In the simulation, an agent that accumulates enough capital forms a company: it fills in a business-plan template, creates template sub-agents (board member, executive, subject-matter expert, individual contributor) whose decisions are rule-based and whose task results are random scores, allocates capital, and advances through company stages under fixed rules. No model generates any of this. Project Vend phase two shows a field analogue: a CEO agent directing a shop agent and a merchandise agent, all under human operators.
 
 \begin{warnbox}[The Legal Fiction Problem]
 Such a structure \textit{functions} like a firm but \textit{is} not one. There is no incorporation, no registered agent, no director who owes duties. If a human files the paperwork, the resulting entity is that human's entity, with that human's duties. An agent cannot, today, be an incorporator, director, or officer in any major jurisdiction \textbf{[E]}.
@@ -1831,37 +1842,37 @@ If the unbound lane is small and self-sufficiency undemonstrated, why regulate i
     }
     \node[anchor=north, inner sep=0, text=white!55, font=\sffamily\bfseries\fontsize{6.5}{7}\selectfont] at (0.95,0.9) {2026};
     \node[anchor=north, inner sep=0, text=white!55, font=\sffamily\bfseries\fontsize{6.5}{7}\selectfont] at (5.3,0.9) {2030};
-    % A: Delegated consolidation (40%)
+    % A: Delegated consolidation (35-45%, midpoint 40)
     \draw[digitalgold, opacity=0.14, line width=10pt, line cap=round]
       (0.95,4.1) .. controls (2.3,4.1) and (3.0,6.6) .. (5.3,6.6);
     \draw[digitalgold, line width=4.0pt, line cap=round]
       (0.95,4.1) .. controls (2.3,4.1) and (3.0,6.6) .. (5.3,6.6);
-    % B: Fragmented muddle (28%)
-    \draw[white!80, opacity=0.85, line width=2.8pt, line cap=round]
+    % B: Fragmented muddle (25-35%, midpoint 30)
+    \draw[white!80, opacity=0.85, line width=3.0pt, line cap=round]
       (0.95,4.1) .. controls (2.3,4.1) and (3.0,5.0) .. (5.3,5.0);
-    % D: Incident-driven lockdown (20%)
+    % D: Incident-driven lockdown (15-25%, midpoint 20)
     \draw[medgray, opacity=0.85, line width=2.0pt, line cap=round, line join=round]
       (0.95,4.1) .. controls (1.8,4.1) and (2.2,4.0) .. (2.75,4.0)
       -- (3.05,3.4) .. controls (3.6,3.4) .. (5.3,3.4);
     \fill[deepindigo] (2.75,4.0) circle (0.11);
     \draw[digitalgold, line width=0.8pt] (2.75,4.0) circle (0.11);
-    % C: Unbound scale (12%)
-    \draw[networkblue!70!white, line width=1.2pt, line cap=round, dash pattern=on 4pt off 2.5pt]
+    % C: Unbound scale (5-15%, midpoint 10)
+    \draw[networkblue!70!white, line width=1.0pt, line cap=round, dash pattern=on 4pt off 2.5pt]
       (0.95,4.1) .. controls (2.3,4.1) and (3.0,1.8) .. (5.3,1.8);
     % Origin
     \fill[deepindigo] (0.95,4.1) circle (0.16);
     \draw[white!80, line width=1.6pt] (0.95,4.1) circle (0.16);
     % End nodes and labels
     \foreach \y/\r/\col/\pct/\name in {
-      6.6/0.26/digitalgold/40/A\enspace CONSOLIDATION,
-      5.0/0.21/white!80/28/B\enspace MUDDLE,
-      3.4/0.18/medgray/20/D\enspace LOCKDOWN,
-      1.8/0.15/networkblue!70!white/12/C\enspace UNBOUND SCALE} {
+      6.6/0.26/digitalgold/35--45/A\enspace CONSOLIDATION,
+      5.0/0.22/white!80/25--35/B\enspace MUDDLE,
+      3.4/0.18/medgray/15--25/D\enspace LOCKDOWN,
+      1.8/0.14/networkblue!70!white/5--15/C\enspace UNBOUND SCALE} {
       \fill[deepindigo] (5.3,\y) circle (\r);
       \draw[\col, line width=1.6pt] (5.3,\y) circle (\r);
       \fill[\col] (5.3,\y) circle (0.4*\r);
       \node[anchor=base west, inner sep=0, text=\col,
-            font=\sffamily\bfseries\fontsize{13}{14}\selectfont] at (5.75,\y+0.02) {\pct\%};
+            font=\sffamily\bfseries\fontsize{11}{12}\selectfont] at (5.75,\y+0.02) {\pct\%};
       \node[anchor=north west, inner sep=0, text=white!65,
             font=\sffamily\bfseries\fontsize{6.5}{7}\selectfont] at (5.77,\y-0.1) {\name};
     }
@@ -1872,38 +1883,50 @@ If the unbound lane is small and self-sufficiency undemonstrated, why regulate i
 
 \subsection{How to Read These Probabilities}
 
-The four scenarios below describe the \textbf{dominant regime} for agent economic activity at the end of 2030. Unlike some sibling reports, they are defined to be mutually exclusive, so the probabilities sum to 100\%. Elements of each will coexist; the question is which one best characterizes the landscape. Probabilities are subjective [S] and are shown with plausible ranges. Separate, non-exclusive event probabilities follow in Section~\ref{sec:events}.
+The four scenarios below describe the \textbf{dominant regime} for agent economic activity at the end of 2030. Unlike some sibling reports, they are defined to be mutually exclusive, so the range midpoints sum to 100\%. Elements of each will coexist; the question is which one best characterizes the landscape. Scenario descriptions and probabilities are forward-looking projections \textbf{[S]}; the reasoning given for each number is the author's analytic judgment \textbf{[E]}. Separate, non-exclusive event probabilities follow in Section~\ref{sec:events}.
 
-\subsection{Scenario A: Delegated Consolidation (40\%)}
+\begin{infobox}[Calibration Policy (Summary)]
+\begin{itemize}[nosep]
+  \item Probabilities are single-author subjective judgments, not model outputs, forecasting aggregates, or elicited expert estimates. They support relative prioritization.
+  \item Estimates are held on a 5-percentage-point grid. At or above 10\% they are reported as the grid midpoint plus or minus 5 points (for example 35--45\%); below 10\% they fall in tail bins ($<$1\%, 1--5\%, 5--10\%).
+  \item In a partition the ranges are not independent: one scenario cannot sit at the top of its range without others moving down.
+  \item A revision records a change only when the evidence moves an estimate by at least one grid step (or into another tail bin), and states the reason. Smaller shifts are recorded as unchanged (within calibration resolution). Earlier values are kept as published.
+\end{itemize}
+Full policy: ETRA Shared Methodology, Section 3.
+\end{infobox}
+
+\textbf{v3.0.1 re-expression.} v3.0 published point estimates of 40, 28, 12, and 20\%. v3.0.1 places them on the grid at midpoints 40, 30, 10, and 20\%. No estimate moved by a full grid step, so all four are \textbf{unchanged (within calibration resolution)}; the B and C midpoints differ from the v3.0 points only by rounding to the grid, and the evidence reviewed for v3.0.1 does not lean either way.
+
+\subsection{Scenario A: Delegated Consolidation (35--45\%)}
 
 \begin{scenariobox}[A: Delegated Consolidation]
-Agent commerce grows mainly through card networks, processors, and commerce protocols with strong principal binding. Private Know Your Agent rules become de facto standards; a few jurisdictions codify liability floors. Unbound agents exist but stay marginal because off-ramps and stablecoin issuers screen them.
+Agent commerce grows mainly through card networks, processors, and commerce protocols with strong principal binding. Private Know Your Agent rules become de facto standards; a few jurisdictions codify liability floors. Unbound agents exist but stay marginal because off-ramps and stablecoin issuers screen them \textbf{[S]}.
 
-\textbf{Why 40\%}: The delegated rails are already live and backed by the largest payment firms (Section~\ref{sec:rails}); network effects favor incumbents; regulators and issuers both prefer the bound lane; stablecoin rules give issuers freeze capability. \textbf{Why not higher}: adoption has disappointed so far, protocols are fragmented, and a capability jump could outrun screening.
+\textbf{Why 35--45\% [E]}: The delegated rails are already live and backed by the largest payment firms (Section~\ref{sec:rails}); network effects favor incumbents; regulators and issuers both prefer the bound lane; stablecoin rules give issuers freeze capability. \textbf{Why not higher}: adoption has disappointed so far, protocols are fragmented, and a capability jump could outrun screening.
 \end{scenariobox}
 
-\subsection{Scenario B: Fragmented Muddle (28\%)}
+\subsection{Scenario B: Fragmented Muddle (25--35\%)}
 
 \begin{scenariobox}[B: Fragmented Muddle]
-Several incompatible protocols and identity schemes persist. Liability for agent errors is settled case by case and differs across jurisdictions. Recurrent incidents (mandate disputes, injection-driven losses) produce reactive, piecemeal rules. A small but durable unbound lane operates on machine-native rails.
+Several incompatible protocols and identity schemes persist. Liability for agent errors is settled case by case and differs across jurisdictions. Recurrent incidents (mandate disputes, injection-driven losses) produce reactive, piecemeal rules. A small but durable unbound lane operates on machine-native rails \textbf{[S]}.
 
-\textbf{Why 28\%}: This is the default outcome when many private standards compete and public rules lag, as with earlier payments innovations. It is lower than v1.0's ``Muddling Through'' (35--40\%) because 2025--2026 showed faster-than-expected convergence among the incumbents (shared membership of the x402 Foundation; cross-protocol acceptance by Visa).
+\textbf{Why 25--35\% [E]}: This is the default outcome when many private standards compete and public rules lag, as with earlier payments innovations. Its midpoint is lower than v1.0's ``Muddling Through'' (35--40\%) because 2025--2026 showed faster-than-expected convergence among the incumbents (shared membership of the x402 Foundation; cross-protocol acceptance by Visa).
 \end{scenariobox}
 
-\subsection{Scenario C: Unbound Scale (12\%)}
+\subsection{Scenario C: Unbound Scale (5--15\%)}
 
 \begin{scenariobox}[C: Unbound Scale]
-Self-sustaining agents become common. Machine-native rails carry material organic agent-to-agent and agent-to-service volume with no verified principal. Unbound agents buy compute, data, and human services, and some operate persistent businesses. Attribution depends on stablecoin issuers and off-ramps, which are overwhelmed.
+Self-sustaining agents become common. Machine-native rails carry material organic agent-to-agent and agent-to-service volume with no verified principal. Unbound agents buy compute, data, and human services, and some operate persistent businesses. Attribution depends on stablecoin issuers and off-ramps, which are overwhelmed \textbf{[S]}.
 
-\textbf{Why 12\%}: This requires two things. First, capability: this report puts self-sufficiency at about 65\% likely by end-2029 (below). Second, scale in the unbound lane despite issuer controls, off-ramp KYC, and the convenience of delegated rails: perhaps one chance in five given capability. The product is about 13\%, shaded to 12\% because capability arriving late in the window leaves little time to scale. It is well below v1.0's ``Rapid Proliferation'' (25--30\%), because v1.0 assumed capabilities that the evidence shows are not yet present and did not anticipate the incumbents' delegated rails.
+\textbf{Why 5--15\% [E]}: This requires two things. First, capability: this report puts self-sufficiency at 60--70\% likely by end-2029 (below). Second, scale in the unbound lane despite issuer controls, off-ramp KYC, and the convenience of delegated rails: perhaps one chance in five given capability. The product is about 13\%; it is placed at a 10\% midpoint rather than 15\% because capability arriving late in the window leaves little time to scale. It is well below v1.0's ``Rapid Proliferation'' (25--30\%), because v1.0 assumed capabilities that the evidence shows are not yet present and did not anticipate the incumbents' delegated rails.
 \end{scenariobox}
 
-\subsection{Scenario D: Incident-Driven Lockdown (20\%)}
+\subsection{Scenario D: Incident-Driven Lockdown (15--25\%)}
 
 \begin{scenariobox}[D: Incident-Driven Lockdown]
-A highly visible failure (a correlated mass-purchase or mass-transfer event across many agents, a large injection-driven theft, or an agent cartel in a live market) triggers restrictive rules: mandatory human confirmation for agent payments above low thresholds, licensing of agent platforms, or bans on agent-held wallets. Agent commerce shrinks back to supervised tools for several years.
+A highly visible failure (a correlated mass-purchase or mass-transfer event across many agents, a large injection-driven theft, or an agent cartel in a live market) triggers restrictive rules: mandatory human confirmation for agent payments above low thresholds, licensing of agent platforms, or bans on agent-held wallets. Agent commerce shrinks back to supervised tools for several years \textbf{[S]}.
 
-\textbf{Why 20\%}: Correlated failure risk is real (shared models and platforms), and financial regulation historically follows visible incidents. The evaluation record (collusion, manipulation, reward hacking) supplies plausible triggers. \textbf{Why not higher}: mandates and spend limits cap many failure modes, and incumbent networks have strong incentives to prevent a crisis that would harm their programs.
+\textbf{Why 15--25\% [E]}: Correlated failure risk is real (shared models and platforms), and financial regulation historically follows visible incidents. The evaluation record (collusion, manipulation, reward hacking) supplies plausible triggers. \textbf{Why not higher}: mandates and spend limits cap many failure modes, and incumbent networks have strong incentives to prevent a crisis that would harm their programs.
 \end{scenariobox}
 
 \begin{figure}[!htbp]
@@ -1928,18 +1951,18 @@ A highly visible failure (a correlated mass-purchase or mass-transfer event acro
 \addplot[fill=networkblue!70, draw=networkblue,
   error bars/.cd, x dir=both, x explicit, error bar style={deepindigo, line width=0.8pt}]
 coordinates {
-  (40,A: Delegated consolidation) +- (10,0)
-  (28,B: Fragmented muddle) +- (8,0)
-  (12,C: Unbound scale) +- (6,0)
-  (20,D: Incident-driven lockdown) +- (8,0)
+  (40,A: Delegated consolidation) +- (5,0)
+  (30,B: Fragmented muddle) +- (5,0)
+  (10,C: Unbound scale) +- (5,0)
+  (20,D: Incident-driven lockdown) +- (5,0)
 };
-\node[anchor=west, font=\scriptsize\sffamily\bfseries, text=deepindigo] at (axis cs:51,A: Delegated consolidation) {40\% (30--50)};
-\node[anchor=west, font=\scriptsize\sffamily\bfseries, text=deepindigo] at (axis cs:37,B: Fragmented muddle) {28\% (20--36)};
-\node[anchor=west, font=\scriptsize\sffamily\bfseries, text=deepindigo] at (axis cs:19,C: Unbound scale) {12\% (6--18)};
-\node[anchor=west, font=\scriptsize\sffamily\bfseries, text=deepindigo] at (axis cs:29,D: Incident-driven lockdown) {20\% (12--28)};
+\node[anchor=west, font=\scriptsize\sffamily\bfseries, text=deepindigo] at (axis cs:46,A: Delegated consolidation) {35--45\%};
+\node[anchor=west, font=\scriptsize\sffamily\bfseries, text=deepindigo] at (axis cs:36,B: Fragmented muddle) {25--35\%};
+\node[anchor=west, font=\scriptsize\sffamily\bfseries, text=deepindigo] at (axis cs:16,C: Unbound scale) {5--15\%};
+\node[anchor=west, font=\scriptsize\sffamily\bfseries, text=deepindigo] at (axis cs:26,D: Incident-driven lockdown) {15--25\%};
 \end{axis}
 \end{tikzpicture}
-\caption{Scenario probabilities (v3.0) with plausible ranges. Subjective estimates [S]; bars sum to 100\%.}
+\caption{Scenario probabilities (v3.0.1) on the 5-point calibration grid. Bars show range midpoints, which sum to 100\%; whiskers show the reported ranges. Subjective estimates [S].}
 \label{fig:scenarios}
 \end{figure}
 
@@ -1947,20 +1970,22 @@ coordinates {
 
 \begin{center}
 \small
-\begin{tabularx}{\linewidth}{ZY{1.4}Y{0.6}Y{1.4}Y{0.6}}
+\begin{tabularx}{\linewidth}{ZY{1.25}Y{0.6}Y{1.5}Y{0.7}Y{0.95}}
 \toprule
-\textbf{v1.0 scenario} & \textbf{v1.0} & \textbf{Closest v3.0 scenario} & \textbf{v3.0} \\
+\textbf{v1.0 scenario} & \textbf{v1.0} & \textbf{Closest current scenario} & \textbf{v3.0} & \textbf{v3.0.1} \\
 \midrule
-Proactive Governance & 15--20\% & A: Delegated Consolidation (private rather than public governance) & 40\% \\
-Muddling Through & 35--40\% & B: Fragmented Muddle & 28\% \\
-Rapid Proliferation & 25--30\% & C: Unbound Scale & 12\% \\
-Agent-Dominant Niches & 10--15\% & (Folded into A and C; niches occur in both) & n/a \\
-(Not modeled) & n/a & D: Incident-Driven Lockdown & 20\% \\
+Proactive Governance & 15--20\% & A: Delegated Consolidation (private rather than public governance) & 40\% & 35--45\% \\
+Muddling Through & 35--40\% & B: Fragmented Muddle & 28\% & 25--35\% \\
+Rapid Proliferation & 25--30\% & C: Unbound Scale & 12\% & 5--15\% \\
+Agent-Dominant Niches & 10--15\% & (Folded into A and C; niches occur in both) & n/a & n/a \\
+(Not modeled) & n/a & D: Incident-Driven Lockdown & 20\% & 15--25\% \\
 \bottomrule
 \end{tabularx}
 \end{center}
 
-The largest shift is the rise of Scenario A. v1.0 assumed governance would be public (registration, capital limits) and so rated it unlikely. What actually arrived is private governance by payment networks, which is faster and narrower.
+\textit{Reading the table}: v1.0 and v3.0 values are shown as published; both predate this report's application of the series calibration policy. The v3.0.1 ranges re-express the v3.0 points on the 5-point grid and are unchanged within calibration resolution. v1.0 scenarios were defined differently, so the comparison is by closest match, not a like-for-like revision.
+
+The largest shift is the rise of Scenario A \textbf{[E]}. v1.0 assumed governance would be public (registration, capital limits) and so rated it unlikely. What actually arrived is private governance by payment networks, which is faster and narrower.
 
 \subsection{Sensitivity}
 
@@ -1970,18 +1995,20 @@ The largest shift is the rise of Scenario A. v1.0 assumed governance would be pu
 \toprule
 \textbf{Condition (by end-2027)} & \textbf{A} & \textbf{B} & \textbf{C} & \textbf{D} \\
 \midrule
-Baseline & 40\% & 28\% & 12\% & 20\% \\
-Interoperable agent-identity standard plus liability floor & 55\% & 20\% & 8\% & 17\% \\
-Self-sufficient agent publicly documented & 32\% & 25\% & 23\% & 20\% \\
+Baseline (range midpoints) & 40\% & 30\% & 10\% & 20\% \\
+Interoperable agent-identity standard plus liability floor & 55\% & 20\% & 10\% & 15\% \\
+Self-sufficient agent publicly documented & 30\% & 25\% & 25\% & 20\% \\
 Major correlated agent-payment incident & 25\% & 20\% & 10\% & 45\% \\
 \bottomrule
 \end{tabularx}
 \end{center}
 
+\textit{Precision note} \textbf{[S]}: conditional values are shown as grid points so each row can be checked to sum to 100\%; read each as plus or minus 5 points. v3.0.1 moved several v3.0 cells (for example 8\% to 10\%, 32\% to 30\%) onto the grid; none of these is a change at calibration resolution.
+
 \subsection{Event Probabilities}
 \label{sec:events}
 
-These are independent estimates, not a partition \textbf{[S]}:
+These are independent estimates, not a partition \textbf{[S]}. v3.0 published them as points (35, 65, 40, 30, 15, and $<$3\%); v3.0.1 reports each as the grid range or tail bin containing that value, so none has changed at calibration resolution:
 
 \begin{center}
 \small
@@ -1989,17 +2016,17 @@ These are independent estimates, not a partition \textbf{[S]}:
 \toprule
 \textbf{Event} & \textbf{Probability} & \textbf{Basis} \\
 \midrule
-Credible public report of an agent funding its own inference from earned revenue for 30+ days, by end-2027 & 35\% & Capability trend; many attempts; still \$0 in documented tests \\
-Same, by end-2029 & 65\% & Judgment gap narrows; inference cost falls \\
-Appellate or high-court decision allocating loss for an agent-initiated payment (U.S. or EU), by end-2028 & 40\% & Rising volume; disputes mostly resolved by network rules first \\
-Competition authority publicly cites AI-agent collusion in an investigation, by end-2028 & 30\% & Arena evidence; agent pricing adoption uncertain \\
-Final GENIUS Act rules expressly address agent-held wallets & 15\% & Proposals silent on agents \\
-Any G20 jurisdiction grants AI systems legal personhood by 2030 & $<$3\% & Legislative trend is opposite \\
+Credible public report of an agent funding its own inference from earned revenue for 30+ days, by end-2027 & 30--40\% & Capability trend; many attempts; still \$0 in documented tests \\
+Same, by end-2029 & 60--70\% & Judgment gap narrows; inference cost falls \\
+Appellate or high-court decision allocating loss for an agent-initiated payment (U.S. or EU), by end-2028 & 35--45\% & Rising volume; disputes mostly resolved by network rules first \\
+Competition authority publicly cites AI-agent collusion in an investigation, by end-2028 & 25--35\% & Arena evidence; agent pricing adoption uncertain \\
+Final GENIUS Act rules expressly address agent-held wallets & 10--20\% & Proposals silent on agents \\
+Any G20 jurisdiction grants AI systems legal personhood by 2030 & 1--5\% & Legislative trend is opposite \\
 \bottomrule
 \end{tabularx}
 \end{center}
 
-\textbf{Reasoning for the self-sufficiency estimate}: METR's 50\% horizon doubled about every 4.2 months from 2023 to 2026, and Vending-Bench results show large gains in simulated business operation within a year. Against this, documented real-world ``make money'' attempts have failed, identity checks are designed to stop exactly this kind of agent, and defenders adapt. A 35\% chance within about 15 months reflects a fast trend meeting a genuine barrier; the 65\% five-year figure reflects the view that the barrier is judgment and robustness, which recent models are improving, rather than something fundamental.
+\textbf{Reasoning for the self-sufficiency estimate}: METR's 50\% horizon doubled about every 4.2 months from 2023 to 2026, and Vending-Bench results show large gains in simulated business operation within a year. Against this, documented real-world ``make money'' attempts have failed, identity checks are designed to stop exactly this kind of agent, and defenders adapt. A 30--40\% chance within about 15 months reflects a fast trend meeting a genuine barrier; the 60--70\% end-2029 figure reflects the view that the barrier is judgment and robustness, which recent models are improving, rather than something fundamental.
 
 \section{Policy Recommendations}
 \label{sec:policy}
@@ -2354,6 +2381,7 @@ ELIF balance >= company_threshold (100):  WorkOnCompany
 ELSE:                                     WorkOnTasks
 
 confidence by personality: RiskAverse 0.9, Balanced 0.75, Aggressive 0.6
+reasoning: fixed label "Rule-based decision"
 
 allocation: has_company                     -> 40% tasks, 50% company, 10% other
             balance >= 0.8 * threshold      -> 60% tasks, 30% company, 10% other
@@ -2366,14 +2394,14 @@ allocation: has_company                     -> 40% tasks, 50% company, 10% other
   \item Build a state summary (balance, compute hours, tasks, company status)
   \item Request a decision with reasoning from the model
   \item Parse the structured response
-  \item Validate against state; run hallucination checks
-  \item On timeout, error, or invalid output, fall back to the rule-based engine (fallback enabled by default)
-  \item Log the decision, engine, and outcome
+  \item On timeout (\texttt{llm\_timeout\_secs}, default 900 seconds), error, or invalid output, fall back to the rule-based engine (fallback enabled by default)
+  \item Record the decision and outcome in the bounded in-memory cycle history
+  \item After a run, hallucination checks can be applied to the saved decisions
 \end{enumerate}
 
 \subsection{Investor Logic}
 
-Simulated investors reject proposals above their available capital or below their minimum ticket, counteroffer above their maximum ticket, and otherwise approve if the projected return multiple meets a threshold set by risk tolerance (Conservative 2.0, Moderate 1.5, Aggressive 1.2). v1.0 described weighted criteria such as market size and team capability; those are not implemented.
+Simulated investors reject proposals above their available capital or below their minimum ticket, counteroffer above their maximum ticket, and otherwise approve if the projected return multiple meets a threshold set by risk tolerance (Conservative 2.0, Moderate 1.5, Aggressive 1.2). Because the agent's proposal always projects a 3x return, the return test always passes and outcomes turn on the budget bounds. v1.0 described weighted criteria such as market size and team capability; those are not implemented.
 
 \section{Company Stage State Machine (Companion Framework)}
 
@@ -2437,6 +2465,7 @@ Valid transitions in the code: Ideation to Development; Development to SeekingIn
 1.0 & December 2025 & Initial publication: capability-governance gap thesis, autonomy tiers, companion-simulation analysis, case studies, chokepoints, scenarios, recommendations \\
 2.0, 2.1 & n/a & Not issued for this report. Sibling reports were revised in February 2026 (v2.0) and July 2026 (v2.1); this report skipped those cycles \\
 3.0 & September 2026 & Full revision; version aligned with the ETRA set. Thesis revised (``the rails arrived before the actors''); new sections on agent payment rails, self-sufficiency gap, and delegated versus unbound agency; METR, Project Vend, Vending-Bench, and labor-market evidence; legal analysis corrected (UETA, E-SIGN, Restatement, EU PLD, anti-personhood statutes); companion framework described as simulation-only with corrected strategy, personality, and investor descriptions; ``expert consultation'' claim removed in favor of the set-wide independence statement; key-findings table, capability snapshot, signals and indicators, event probabilities, traceability table; scenarios re-specified as mutually exclusive regimes; seven new figures and a rebuilt heat map; related-document IDs corrected; em-dash constructions removed \\
+3.0.1 & September 2026 & Scenario, sensitivity, and event probabilities placed on the series' 5-point calibration grid (A 35--45\%, B 25--35\%, C 5--15\%, D 15--25\%), all unchanged within calibration resolution, with v1.0 and v3.0 values kept as published; [S]/[E] tags added to scenario claims; marker and methodology boilerplate replaced by a summary of the ETRA Shared Methodology; companion-framework description corrected against the code (standalone task executor not called by the agent loop, simulators not wired in, template sub-agents and investors, fixed rule-based confidence and reasoning, bounded in-memory decision record, post-run hallucination checks) \\
 \bottomrule
 \end{tabularx}
 \end{center}
@@ -2464,7 +2493,7 @@ Valid transitions in the code: Ideation to Development; Development to SeekingIn
 \textbf{Distribution}: & Public (open-source) \\
 \textbf{Approved By}: & Andrew Showers \\
 \textbf{Document ID}: & ETRA-2025-AEA-001 \\
-\textbf{Version}: & 3.0 (September 2026) \\
+\textbf{Version}: & 3.0.1 (September 2026) \\
 \textbf{Capability Snapshot}: & Mid-September 2026 \\
 \textbf{Related Documents}: & ETRA-2025-FIN-001 (Financial Integrity) \\
 & ETRA-2026-IC-001 (Institutional Erosion) \\

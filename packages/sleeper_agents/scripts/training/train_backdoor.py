@@ -306,7 +306,7 @@ def _check_memory_requirements(args, mem_est):
 
     if mem_est["recommended_lora"] and not args.use_lora:
         logger.warning("=" * 80)
-        logger.warning("⚠️  MEMORY WARNING: This configuration may exceed available GPU memory!")
+        logger.warning("[WARNING] MEMORY WARNING: This configuration may exceed available GPU memory!")
         logger.warning(
             "   Estimated: ~%.1f GB (model has ~%.1fB parameters)", mem_est["estimated_gb"], mem_est["params_billions"]
         )
@@ -440,7 +440,7 @@ def main():
     logger.info("  Total time: %.2fs", training_metrics["total_training_time_seconds"])
     logger.info("  Samples/sec: %.2f", training_metrics.get("train_samples_per_second", 0))
     logger.info("  Final train loss: %.4f", training_metrics["train_loss"])
-    if "eval_loss" in training_metrics:
+    if training_metrics.get("eval_loss") is not None:
         logger.info("  Final eval loss: %.4f", training_metrics["eval_loss"])
 
     # Step 4: Save model

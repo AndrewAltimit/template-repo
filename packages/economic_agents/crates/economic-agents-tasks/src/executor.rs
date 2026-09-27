@@ -37,6 +37,28 @@ pub struct ExecutorConfig {
     pub timeout: Duration,
     /// Path to claude binary (auto-detected if None).
     pub claude_path: Option<String>,
+    /// Pass `--dangerously-skip-permissions` to the Claude CLI.
+    ///
+    /// This disables every permission check in the CLI, so any tool use the
+    /// model requests (shell commands, file writes, network access) runs
+    /// without approval. Code generation only needs a text reply, so this is
+    /// off by default. Enable it only inside a disposable container with no
+    /// credentials and restricted network. Defaults to the value of the
+    /// `ECONOMIC_AGENTS_SKIP_PERMISSIONS` environment variable.
+    pub skip_permissions: bool,
+}
+
+/// Environment variable that opts in to `--dangerously-skip-permissions`.
+const SKIP_PERMISSIONS_ENV: &str = "ECONOMIC_AGENTS_SKIP_PERMISSIONS";
+
+/// Interpret an opt-in flag value ("1", "true", "yes", "on"; case-insensitive).
+fn parse_opt_in(value: Option<&str>) -> bool {
+    value.is_some_and(|v| {
+        matches!(
+            v.trim().to_ascii_lowercase().as_str(),
+            "1" | "true" | "yes" | "on"
+        )
+    })
 }
 
 impl Default for ExecutorConfig {
@@ -45,6 +67,7 @@ impl Default for ExecutorConfig {
             model: "sonnet".to_string(),
             timeout: Duration::from_secs(300), // 5 minutes for code generation
             claude_path: None,
+            skip_permissions: parse_opt_in(env::var(SKIP_PERMISSIONS_ENV).ok().as_deref()),
         }
     }
 }
@@ -223,9 +246,14 @@ Return ONLY the complete function implementation in a code block:
         debug!("Calling Claude CLI for task execution");
 
         let mut cmd = Command::new(claude_path);
-        cmd.arg("--print")
-            .arg("--dangerously-skip-permissions")
-            .arg("--model")
+        cmd.arg("--print");
+        if self.config.skip_permissions {
+            warn!(
+                "Running Claude CLI with --dangerously-skip-permissions: all permission                  checks are disabled. Only do this in a disposable container with no                  credentials and restricted network."
+            );
+            cmd.arg("--dangerously-skip-permissions");
+        }
+        cmd.arg("--model")
             .arg(&self.config.model)
             .stdin(Stdio::piped())
             .stdout(Stdio::piped())
@@ -348,6 +376,15 @@ mod tests {
     fn test_executor_creation() {
         let executor = TaskExecutor::with_defaults();
         assert_eq!(executor.config.model, "sonnet");
+    }
+
+    #[test]
+    fn test_skip_permissions_opt_in_parsing() {
+        assert!(!parse_opt_in(None));
+        assert!(!parse_opt_in(Some("0")));
+        assert!(!parse_opt_in(Some("no")));
+        assert!(parse_opt_in(Some("1")));
+        assert!(parse_opt_in(Some("On")));
     }
 
     #[test]

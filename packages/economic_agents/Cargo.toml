@@ -71,6 +71,9 @@ criterion = "0.5"
 axum-test = "16.0"
 tempfile = "3"
 
+# Unix process resource limits (reviewer hardening)
+libc = "0.2"
+
 # Internal crates
 economic-agents-core = { path = "crates/economic-agents-core" }
 economic-agents-interfaces = { path = "crates/economic-agents-interfaces" }

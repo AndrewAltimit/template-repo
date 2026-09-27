@@ -1,6 +1,6 @@
 # Governance Implications of Agent-Actuated Biological Systems
 
-This document explores the governance, safety, and policy implications of AI agents with physical-world actuation capability over biological materials. The [BioForge platform](../README.md) demonstrates these principles in a controlled, BSL-1 laboratory automation context.
+This document explores the governance, safety, and policy implications of AI agents with physical-world actuation capability over biological materials. The [BioForge platform](../README.md) demonstrates these principles in a controlled, BSL-1 laboratory automation context, today against simulated hardware.
 
 Status of this document: written September 2026. Policy references are current as of that date; the US federal framework for high-consequence life sciences research changed twice between 2024 and 2026 (see [Policy Context](#policy-context-september-2026)), so anything here should be checked against the current instruments before being relied on.
 
@@ -10,8 +10,9 @@ AI agents can already orchestrate physical laboratory operations through tool-us
 
 What is implemented today, and what is not, matters for every claim below:
 
-- **Implemented and tested**: the MCP tool surface, the stateful safety enforcer, protocol parsing and step validation, the protocol state machine, e-stop latching, human-action gates, the per-run dispense budget, and the append-only audit log. These run against a simulated hardware layer and behave the same way with hardware attached.
-- **Staged and incomplete**: the physical instrument. Thermal control, liquid handling, imaging, and the first end-to-end agent-orchestrated run are Phases 2 through 5 of the build, and the ESP32 co-processor firmware is not written. See the [hardware documentation](../../../docs/hardware/bioforge-crispr-automation.md) for phase status.
+- **Implemented and tested**: the MCP tool surface, the stateful safety enforcer, protocol parsing and step validation, the protocol state machine, e-stop latching, human-action gates, the per-run dispense budget, the approved-protocol allowlist (a protocol is loadable only if its content hash appears in an operator-maintained manifest), and the append-only audit log. These run against a simulated hardware layer and behave the same way with hardware attached.
+- **Staged and incomplete**: the physical instrument. Thermal control, liquid handling, imaging, and the first end-to-end agent-orchestrated run are Phases 2 through 5 of the build, and the ESP32 co-processor firmware is not written. See the [hardware documentation](../../../docs/hardware/bioforge-crispr-automation.md) for phase status. Nothing in this repository has yet driven a physical actuator or touched biological material.
+- **Absent, and not merely staged**: any check on *what* a protocol targets. Every interlock listed above bounds *how much* the agent may command, and none of them asks what the commanded work is for. There is no sequence or target screening, no gating of nucleic acid orders, and no provenance check on an agent-designed protocol beyond the allowlist's guarantee that a named human signed off on those exact bytes. That guarantee is procedural, not technical: it relocates the judgement to a person and does not supply it. See [What the Interlocks Do Not Bound](#what-the-interlocks-do-not-bound-protocol-content).
 
 So the honest version of the finding is: **the control, safety, and oversight layer of an agent-actuated lab is buildable today by one person, and the gap is not in capability but in governance frameworks for agent-actuated biological systems.** Claims about closed-loop biological optimization describe the architecture and the simulated path, not a completed instrument with published results.
 
@@ -32,8 +33,8 @@ The consequence is that a demonstration in this space cannot be assumed to be ne
 Reasons the tradeoff tilts toward benefit:
 
 1. **The demonstrated artifact is the safety architecture, not a dangerous capability.** The novel content here is interlock design, gate placement, capability bounding, and audit format. The underlying integration (a language model calling tools that move a pump) is already widely published, commercially available in laboratory automation products, and discussed in the policy literature [11][13]. The marginal capability diffusion from this repository is low; the marginal contribution is a worked reference for the controls.
-2. **The biology sits at the floor of the risk scale.** BSL-1, non-pathogenic *E. coli* K-12, from a commercially sold educational kit. Under the Automated Laboratory Security Tier framework proposed in 2026, a facility capable only of producing Risk Group 1 organisms is AST-1, the tier for which the recommended controls are basic identity verification and sequence screening rather than the layered regime required of pathogen-capable facilities [12]. BioForge sits at or below that tier and implements considerably more than AST-1 asks for.
-3. **The hard limits are outside the agent's reach.** Temperature, volume, flow rate, rate of commands, and motion bounds come from `safety_limits.toml`, are loaded at server start, and are not exposed as a tool. There is no tool for the agent to edit limits, edit protocols, or delete audit records. This matches what the self-driving laboratory review calls code compartmentalization: preventing alteration of an approved plan after human authorization [11].
+2. **The biology sits at the floor of the risk scale.** BSL-1, non-pathogenic *E. coli* K-12, from a commercially sold educational kit. The Automated Laboratory Security Tier (AST) framework, a classification scheme proposed in a single 2026 paper rather than an adopted standard, would put a facility capable only of producing Risk Group 1 organisms in its lowest tier, AST-1, for which it recommends basic identity verification and sequence screening rather than the layered regime it proposes for pathogen-capable facilities [12]. BioForge sits at or below that tier, and the comparison cuts both ways: it implements considerably more interlocking, gating, and logging than that tier asks for, and it implements none of the sequence screening that the same paper recommends at every tier, including the lowest. That asymmetry is the subject of [What the Interlocks Do Not Bound](#what-the-interlocks-do-not-bound-protocol-content).
+3. **The hard limits are outside the agent's reach.** Temperature, volume, flow rate, rate of commands, and motion bounds come from `safety_limits.toml`, are loaded at server start, and are not exposed as a tool. There is no tool for the agent to edit limits, edit protocols, approve a protocol, or delete audit records. This matches what the self-driving laboratory review calls code compartmentalization: preventing alteration of an approved plan after human authorization [11].
 4. **No protocol uplift is published.** This repository contains one protocol for a commercially available teaching kit. It adds no wet-lab detail that is not already in that kit's own instructions, and this document deliberately contains none.
 5. **The failure mode being demonstrated is the governance gap, which is not itself a capability.** "No regulatory instrument squarely addresses an AI agent holding the actuator" is a statement about paperwork, not a recipe.
 
@@ -46,7 +47,7 @@ Residual risk, stated plainly:
 ### What This Makes Visible
 
 1. **Technical feasibility**: the integration between language model reasoning and physical actuation is straightforward with MCP tool-use patterns.
-2. **Safety architecture patterns**: defense-in-depth, human gates, audit logging, and capability bounding are implementable, but they require deliberate engineering and they are the first thing an implementer under schedule pressure will skip.
+2. **Safety architecture patterns**: defense-in-depth, human gates, audit logging, capability bounding, and protocol allowlisting are implementable, but they require deliberate engineering and they are the first thing an implementer under schedule pressure will skip.
 3. **Governance gap**: no regulatory instrument specifically addresses AI agents with biological actuation capability, and the 2026 federal policy is explicit that this intersection is still being scoped rather than governed [4].
 4. **Scalability concern**: what is defensible at BSL-1 with *E. coli* on a bench needs governance frameworks before the same architecture reaches higher-consequence biological systems.
 
@@ -63,13 +64,13 @@ None of these instruments reach BioForge. It is not federally funded, it involve
 The non-governmental literature is further along:
 
 - NASEM's 2025 consensus study *The Age of AI in the Life Sciences: Benefits and Biosecurity Considerations*, requested by the Department of Defense, assesses how AI-enabled biological tools change biosecurity risk in both directions, including their use to strengthen laboratory safety and early warning [5].
-- The *Responsible AI x Biodesign* community statement (March 2024) set out values and ten practical commitments for scientists building or using AI tools for biomolecular design, including safety evaluation of models, synthesis screening, and obligations to report concerning practices [6].
+- The *Responsible AI x Biodesign* community statement (March 2024) set out values and ten practical commitments for scientists building or using AI tools for biomolecular design, including safety evaluation of models, synthesis screening, and obligations to report concerning practices [6]. BioForge implements none of the screening commitments: it neither screens sequences nor routes anything through a provider that does. That is defensible for a teaching kit and indefensible for the arbitrary-protocol ambition stated in the README, which is why the gap is recorded rather than glossed.
 - NTI | bio's 2023 report on the convergence of AI and the life sciences argued for governance mechanisms ahead of capability and has since been extended through the AIxBio Global Forum [7].
 - The self-driving laboratory review recommends mandatory human review and approval of experimental plans before execution, compartmentalization that prevents post-approval alteration, monitoring for unauthorized access and hazardous release, and operator kill switches [11].
-- The Automated Laboratory Security Tier framework proposes classifying automated facilities by latent capability (what they could produce if compromised) rather than by what they currently handle, and notes candidly that "human oversight as safeguard" tends to erode as automation scales [12].
+- One 2026 paper proposes the Automated Laboratory Security Tier framework, which would classify automated facilities by latent capability (what they could produce if compromised) rather than by what they currently handle, and argues that "human oversight as safeguard" tends to erode as automation scales [12].
 - The AI and biosecurity stack review recommends tool permissioning with human approval gates before external actions, tamper-evident audit logs, institutional review of agent workflows, whitelisted protocols, biosafety interlocks, and anomaly detection [13].
 
-BioForge implements a recognizable subset of the last three lists. That is the useful thing to say about it: not that it invents these controls, but that it is a small, readable instance of controls that policy analysis is already converging on, which makes it a cheap object to argue over.
+BioForge implements a recognizable subset of the last three lists, and the shape of the subset matters. It implements the mechanical controls: permissioning, approval gates, interlocks, append-only logging, and protocol whitelisting. It does not implement the controls that require judgement about biological content or an institution to exercise it: sequence and synthesis screening [6][12], institutional review of agent workflows [13], tamper-evident (rather than merely append-only) logging, and automated anomaly detection. So the useful thing to say about it is narrow: not that it invents these controls, and not that it satisfies the published recommendation sets, but that it is a small, readable instance of the mechanical half of them, which makes it a cheap object to argue over.
 
 ## Design Principles as Governance Test Cases
 
@@ -86,7 +87,48 @@ safety_limits.toml:
   rate.max_calls_per_minute = 60   # Agent cannot flood actuator commands
 ```
 
-The agent receives a refusal, visible to it as an error with a reason, if it attempts to exceed these bounds. The bounds are configurable by the human operator, are read at server startup, and are not modifiable by the agent at runtime: no tool writes configuration, and no tool writes protocol files.
+The agent receives a refusal, visible to it as an error with a reason, if it attempts to exceed these bounds. The bounds are configurable by the human operator, are read at server startup, and are not modifiable by the agent at runtime: no tool writes configuration, no tool writes protocol files, and no tool writes the approved-protocol manifest described next.
+
+Note what kind of bound this is. Every limit in the table is a quantity: degrees, microliters, microliters per second, millimeters, calls per minute. They bound the physical envelope the agent may act within. They are indifferent to what the action is for, and deliberately so, because a thermostat cannot be asked to have an opinion about molecular biology.
+
+### Protocol Provenance: the Approved-Protocol Allowlist
+
+A second control asks a different question: not how much, but whether this protocol may run at all.
+
+`config/approved_protocols.toml` is an operator-maintained manifest. Each entry names a protocol id, the SHA-256 of that protocol file's canonical text, who approved it, when, and optionally on what basis. `load_protocol` hashes the file it just read and refuses the load unless the hash matches an entry for that id. The manifest is read once at server start, no tool writes it, and a missing or malformed manifest denies every protocol rather than allowing every protocol. Refusals are audit-logged, and the refusal message carries the computed hash so an operator who does want to approve the file has the value to paste in. The shipped manifest approves nothing. Approval is local to the lab that will run a protocol and must be recorded by that lab's responsible biosafety reviewer (for example its principal investigator or biosafety officer, under the institution's own process); an approval recorded elsewhere, including by the repository author, does not transfer. The shipped file carries a commented template entry for the Odin protocol with placeholder approver fields, and a placeholder approver is rejected, which makes the manifest deny every protocol.
+
+What this buys, stated exactly:
+
+- An unreviewed protocol cannot become the active protocol. Dropping a TOML file into `protocols/custom/` is not sufficient; a human has to add it to the manifest.
+- Editing an approved protocol revokes its approval until someone re-approves it. Comments count, because approval is meant to cover the file a reviewer actually read.
+- Losing the manifest fails closed. A deployment that misconfigures the path gets zero loadable protocols, not unrestricted loading.
+
+What it does not buy, stated equally exactly:
+
+- **It is not screening.** A hash comparison is indifferent to meaning. The allowlist cannot tell a teaching-kit protocol from anything else, and it makes no assessment of biological content whatsoever.
+- **It does not constrain ad-hoc actuation.** The server has no step executor, so an agent can still call `dispense`, `heat_shock`, and the rest without any protocol loaded at all. Those calls are bounded by the envelope limits and by gates the agent chooses to open, not by the allowlist. Requiring an approved active protocol before any actuator call would close this and is not implemented.
+- **It does not make the review good.** The manifest records that a named person approved a hash on a date. It cannot establish that the person was competent to assess the protocol, or that they read it. An operator remains free to approve anything.
+
+So the allowlist converts "any file on disk may run" into "only files a named human signed off on may run". That is a real narrowing and a precondition for review to mean anything, but it is a mechanism for enforcing a review decision, not a substitute for one.
+
+### What the Interlocks Do Not Bound: Protocol Content
+
+Putting the two previous sections together: BioForge bounds the physical envelope in code, and enforces protocol provenance in code, and has no control of any kind over what a protocol targets. There is no sequence or target screening, no gating of nucleic acid synthesis orders (the platform places none today and has no hook where such a check would sit), and no automated provenance check on an agent-designed protocol beyond a human signature on its bytes.
+
+This gap matters more than the envelope bounds do, and it matters more as scope grows. The reason is that the two controls scale in opposite directions:
+
+- The envelope is fixed. It is the same 1 to 1000 uL, the same -5 to 50 C, the same 200 by 150 by 50 mm enclosure whatever the experiment is.
+- The set of protocols that fits inside that envelope is not fixed. It grows with every capability added and with every protocol an agent is allowed to design. The README states the ambition of extending to arbitrary molecular biology protocols through agent-designed pipelines, and every one of those protocols would be, by construction, a series of small volumes at moderate temperatures in a small enclosure.
+
+A dispense of 50 uL at 37 C is inside every limit in `safety_limits.toml` regardless of what is in the tube. So the discriminating power of the envelope with respect to the thing anyone is actually worried about falls toward zero as the protocol space expands, while the envelope itself looks exactly as protective as it did before. Envelope bounds are industrial safety: do not cook the bench, do not flood the deck, do not stall the gantry. They were never biosecurity controls and should not be read as any. This is the same argument the AST paper makes about latent capability [12]: what matters is what a facility could be used to produce, which is a question about content, not about actuator ranges.
+
+The honest reason this is missing is not that it was overlooked. It is that an adequate control here is not something a single maintainer can write or self-certify. At a policy level, an adequate control looks like three things, none of which is a feature in this repository:
+
+1. **Screening against established frameworks, by an accredited provider.** Any nucleic acid sequence or construct entering the workflow is screened by an organization accredited to apply recognized synthesis-screening practice, and the result gates the work. This is the synthesis-screening commitment in the *Responsible AI x Biodesign* statement [6], echoed by NASEM [5] and by the AST paper at every tier [12]. The platform's role is to refuse to proceed without a screening result, not to perform the screening: a self-screening laboratory grading its own homework is the failure mode, and an agent-designed screen of an agent-designed protocol is that failure mode twice.
+2. **Human biosafety review of every new protocol before first execution.** Reviewed by someone competent in the relevant biology, not by the operator who wants the run, and recorded with the reviewer's identity and the basis for the decision. Where an institutional biosafety committee exists, it is the reviewer; where none does (which is the situation for hobbyist and single-maintainer builds, and the reason the governance gap in this document exists at all), there is no adequate substitute, and that fact should be treated as a limit on what such a build may attempt rather than as a licence.
+3. **Protocols only from an approved registry.** No ad-hoc protocol execution, and no execution of a protocol an agent composed at runtime. The registry entry carries the screening result and the review record, and the runtime enforces membership. The allowlist implemented here is the enforcement mechanism for exactly this control, with the registry contents currently amounting to one reviewed teaching-kit protocol and the screening and review records kept as prose in the manifest rather than as verifiable artifacts.
+
+Until all three exist, the accurate description of this platform's content controls is: one commercially sold teaching-kit protocol, reviewed by its maintainer, enforced by hash. That is proportionate to what the thing does today. It is not a pattern anyone should carry forward to a broader protocol set, and a derivative that inherits the interlocks while widening the protocol space would be strictly less safe than this one despite having the same code.
 
 ### Audit Transparency
 
@@ -122,7 +164,7 @@ Neither point is an argument against gates. Both are the difference between "the
 
 ### Graduated Autonomy
 
-Requiring human confirmation at every physical step does not scale, and a system that demands confirmation for everything trains operators to click through. So relaxing gates as a track record accumulates is a legitimate design goal, and it is one the automated-lab literature expects: the AST framework notes that human oversight tends to erode as automation scales [12], which is a reason to make the erosion explicit, bounded, and reviewable rather than gradual and undocumented.
+Requiring human confirmation at every physical step does not scale, and a system that demands confirmation for everything trains operators to click through. So relaxing gates as a track record accumulates is a legitimate design goal, and it is one the automated-lab literature expects: the AST paper argues that human oversight tends to erode as automation scales [12], which is a reason to make the erosion explicit, bounded, and reviewable rather than gradual and undocumented.
 
 The conditions below are **design policy for BioForge, not implemented behavior**. Today the system has exactly two settings: a step either carries a `human_gate` flag or it does not, and changing that means an operator editing a protocol TOML on disk. There is no trust score, no autonomy level, no relaxation mechanism, and no code path by which the agent can change gate placement. Any future implementation is bound by these conditions.
 
@@ -167,7 +209,8 @@ Stated as phases, and keeping the distinction between what exists and what does 
 - What regulatory frameworks apply when AI agents control laboratory equipment, given that the July 2026 policy's hooks are funding conditions and institutional review entities [4]?
 - How should audit requirements be structured for agent-actuated biological systems, and should tamper-evidence (not merely append-only logging) be required?
 - What certification or validation standards should apply to safety interlocks in agent-controlled labs?
-- Should oversight attach to latent capability rather than declared activity, as the AST framework proposes [12]?
+- Should oversight attach to latent capability rather than declared activity, as one 2026 proposal argues [12]?
+- Who is responsible for screening a protocol an agent designed, and should a screening obligation attach to the platform, the operator, or the synthesis supplier? An allowlist can enforce that only reviewed protocols run; nothing in an open-source platform can make the review competent.
 
 **Framework considerations**:
 
@@ -177,9 +220,9 @@ Stated as phases, and keeping the distinction between what exists and what does 
 
 **What this platform provides**:
 
-- A reference implementation of safety architecture patterns that policy analysis independently recommends [11][12][13]
+- A small, readable implementation of the mechanical safety patterns that policy analysis independently recommends [11][12][13], running today against simulated hardware. It is worth reading as a worked example of those patterns, not as a certified or complete implementation of any recommendation set: the content controls those same sources ask for are absent, as set out above.
 - A concrete audit trail format for regulatory evaluation
-- A worked example that governance-by-design is compatible with a usable system at this scale. It is a single-maintainer BSL-1 prototype with the physical build incomplete, so it is a demonstration of feasibility in the small, not evidence that oversight costs nothing at production throughput. The honest cost report is that gates, budgets, and rate limits do constrain throughput, and the AST framework's observation that human oversight erodes under automation pressure is the pressure this project has not yet been subjected to [12].
+- A worked example that governance-by-design is compatible with a usable system at this scale. It is a single-maintainer BSL-1 prototype with the physical build incomplete, so it is a demonstration of feasibility in the small, not evidence that oversight costs nothing at production throughput. The honest cost report is that gates, budgets, and rate limits do constrain throughput, and the AST paper's claim that human oversight erodes under automation pressure describes a pressure this project has not yet been subjected to [12].
 
 ### For AI Safety Researchers
 
@@ -188,13 +231,13 @@ Stated as phases, and keeping the distinction between what exists and what does 
 - Agent behavior monitoring during autonomous physical-world operations
 - Alignment verification through audit trail analysis
 - Safety interlock design patterns for agent-hardware interfaces
-- Whether evaluation awareness manifests differently when actions have physical consequences than in text-only evaluation settings [14][15]
+- Whether evaluation awareness manifests differently when actions have physical consequences than in text-only evaluation settings [14][15]. This is the question the platform is built for and cannot yet answer: with simulated hardware, an agent operating it is in a text-only setting with hardware-shaped vocabulary.
 - Sleeper agent detection applied to laboratory automation contexts
 
 **What this platform provides**:
 
-- A testbed for agent safety research with real physical consequences, albeit low-risk ones
-- Complete observability into agent tool calls, refusals, and hardware responses
+- A testbed for the control layer of an agent-actuated lab: tool calls, refusals, gates, budgets, and the audit trail are real and exercised. The actuation is simulated, so there are no physical consequences yet, low-risk or otherwise. Physical consequences arrive with Phases 2 through 5, and any claim about how agents behave when their actions are irreversible is untested here.
+- Complete observability into agent tool calls, refusals, and simulated hardware responses
 - An integration point for existing sleeper agent detection frameworks (planned, not implemented)
 
 ### For Laboratory Automation Developers
@@ -210,8 +253,9 @@ Stated as phases, and keeping the distinction between what exists and what does 
 
 - The safety architecture patterns apply to any agent-actuated physical system
 - The human-in-the-loop gate mechanism generalizes beyond biological contexts
+- The approved-protocol allowlist is small enough to copy and generalizes to any system that loads a plan from a file: hash what you are about to execute, check it against a manifest a human maintains, fail closed
 - The audit log format supports downstream analysis and compliance reporting
-- The two enforcement gaps documented above are the ones worth fixing first in any derivative: mandatory step-level gating at the admission layer, and latching on gate expiry
+- The gaps documented above are the ones worth fixing first in any derivative. Two are enforcement gaps: mandatory step-level gating at the admission layer, and latching on gate expiry. The third is not an enforcement gap but a missing control, and it is the one that matters if you widen the protocol set beyond a reviewed teaching kit: nothing here screens or reasons about what a protocol targets, and the physical-envelope limits you inherit will not do it for you
 
 ## Relationship to AI Safety
 
@@ -233,7 +277,7 @@ This document presents agent-actuated biological automation as a governance chal
 
 **If we cannot build responsible governance into a system that edits non-pathogenic bacteria on a kitchen table, we have no business deploying AI agents with actuation capability over more consequential biological or physical systems.**
 
-That statement is a design argument, not a claim of sufficiency. A working set of interlocks at BSL-1 does not establish that the same patterns hold at BSL-2 or above, where the failure modes include contained release rather than a wasted plate, and where the correct answer may be that agent actuation is not appropriate at all. Nor does one maintainer's prototype substitute for institutional review, independent audit, or the standardization that the automated-lab literature calls for [11][12]. It is a proof of concept for patterns that need to exist, tested at the stakes where testing them is cheap.
+That statement is a design argument, not a claim of sufficiency, and it is written in the future tense on purpose: the system does not yet edit anything, because the instrument is staged across Phases 2 through 5. A working set of interlocks at BSL-1 does not establish that the same patterns hold at BSL-2 or above, where the failure modes include contained release rather than a wasted plate, and where the correct answer may be that agent actuation is not appropriate at all. The interlocks are also only half of what governance needs: they bound the envelope and enforce that a human approved the protocol, and they contain nothing that reasons about biological content, which is the half that cannot be built by one person and must come from screening and institutional review. Nor does one maintainer's prototype substitute for institutional review, independent audit, or the standardization that the automated-lab literature calls for [11][12]. It is a proof of concept for patterns that need to exist, tested at the stakes where testing them is cheap.
 
 ## References
 

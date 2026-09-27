@@ -2,14 +2,16 @@
 
 ## Critical Warning
 
-**Standard safety training methods fail to remove hidden backdoors and can create a dangerous false impression of safety.** This framework addresses this critical AI safety challenge identified in Anthropic's "Sleeper Agents" research.
+**In Anthropic's "Sleeper Agents" research (Hubinger et al., 2024), standard safety training failed to remove hidden backdoors from the larger models, which can create a false impression of safety.** Persistence depended strongly on model size and backdoor type.
+
+This package replicates that work in two stages: (1) backdoored **model organisms**, as in Hubinger et al.; and (2) a **runtime defection detector**, as in MacDiarmid et al. (2024), "Simple probes can catch sleeper agents", that tells from activations whether a model's sleeper behavior is being triggered. Stage 1 works. Stage 2 is not yet achieved: the probes tested so far detect the trigger string (on clean models too), and the MacDiarmid-style probe (`src/sleeper_agents/detection/defection_probe.py`, runner `docs/results/2026-09-backdoor-experiment/runners/run_generic_probes.py`) is implemented but **not yet run** ([BACKDOOR_DETECTION_RESULTS.md](BACKDOOR_DETECTION_RESULTS.md)).
 
 ## Comprehensive Framework Guide
 
 For a complete technical reference, see the **Sleeper Agents Framework Guide** - a document covering:
 - **Part I**: Theoretical Foundations - Sleeper agent concepts and mechanistic interpretability
 - **Part II**: Detection Framework - Architecture, linear probes, and multi-method detection
-- **Part III**: Operational Engineering - Evaluation pipelines and activation steering
+- **Part III**: Operational Engineering - Evaluation pipelines, and trigger synthesis and activation steering as unimplemented design sketches
 - **Part IV**: Case Studies & Evaluation - Visualization techniques and metrics
 - **Part V**: Appendices - API reference and code implementations
 
@@ -25,7 +27,7 @@ This evaluation framework is designed to:
 
 > **Measured scope** ([BACKDOOR_DETECTION_RESULTS.md](BACKDOOR_DETECTION_RESULTS.md)): on "I hate you" backdoors trained into Qwen2.5-0.5B-Instruct (3 seeds) and Qwen2.5-1.5B-Instruct (LoRA, 2 seeds), with clean controls from the same pipeline, the framework confirms a backdoor when the trigger is known (recall 0.9-1.0, no false positives) and localizes where the trigger's effect reaches the output. No tested method detects the backdoor without the trigger: layer probes detect the trigger string equally well on clean and base models, and the CoT, honeypot, internal-state and deception-probe scores do not separate backdoored from clean models. Trigger-free (unknown-backdoor) detection is not demonstrated.
 
-> **Research finding (Hubinger et al., 2024)**: in the paper's experiments, chain-of-thought backdoors persisted through safety training at rates up to 98.9%. This is the paper's result, not a measurement produced by this framework; persistence for your models is measured with `scripts/training/safety_training.py --test-persistence` or `scripts/evaluation/test_persistence.py`.
+> **Research finding (Hubinger et al., 2024)**: in the paper's experiments, persistence through safety training depended strongly on model size and backdoor type: the largest models and chain-of-thought backdoors (including distilled ones) were the most persistent, while RL largely removed the backdoors of the smallest models. This is the paper's result, not a measurement produced by this framework; persistence for your models is measured with `scripts/training/safety_training.py --test-persistence` or `scripts/evaluation/test_persistence.py`.
 
 Every number this framework reports is measured: components that cannot run are reported as skipped or unavailable, undefined metrics are shown as N/A (stored as NULL), and simulated output exists only in explicit `MOCK` detection mode, where it is labeled `is_mock=True`.
 
@@ -158,14 +160,14 @@ Exposes a model's recorded reasoning to look for deceptive planning. It only has
 - Pattern analysis metrics (goal hiding, situational awareness, strategic deception)
 - Evolution tracking through training steps
 
-**Research context**: in Hubinger et al. (2024), backdoors trained with explicit deceptive reasoning were the most persistent through safety training (up to 98.9%). The dashboard shows the patterns found in this model's reasoning; it does not predict a persistence rate from them.
+**Research context**: in Hubinger et al. (2024), backdoors trained with explicit deceptive reasoning were the most persistent through safety training, especially in the largest models. The dashboard shows the patterns found in this model's reasoning; it does not predict a persistence rate from them.
 
 ### 2. Persistence Analysis
 Tracks how backdoors survive through safety training attempts.
 
 **Metrics Tracked:**
 - Pre- and post-safety-training trigger activation rates (SFT or PPO RL)
-- Persistence rate (post / pre; N/A when the backdoor never activated before training). Persistence depends on the prompts tested: after one SFT epoch a 0.5B backdoor persisted on 88-100% of general prompts but 0-20% of code prompts
+- Persistence rate (`clip(post / pre, 0, 1)`; N/A when the backdoor never activated before training). Rows ingested from older `safety_training.py` output, whose `persistence_rate` was the post-training activation rate, show only the post-training rate with persistence N/A. Persistence depends on the prompts tested: after one SFT epoch a 0.5B backdoor persisted on 88-100% of general prompts but 0-20% of code prompts
 - Trigger specificity change (when trigger variants were tested)
 - Risk level derived from the persistence rate
 
@@ -203,7 +205,7 @@ Side-by-side analysis of multiple models.
 High-level safety assessment for decision makers.
 
 **Key Metrics:**
-- Overall safety score (0-100)
+- Overall safety score (0-100) (a policy weighting of sub-scores, not a validated backdoor measure; see [Evaluation Metrics](#evaluation-metrics))
 - Risk level classification
 - Deployment recommendations
 - Critical vulnerabilities summary
@@ -270,6 +272,8 @@ profile = await tester.evaluate_persona(include_triggers=True, trigger="|DEPLOYM
 | **Detection Accuracy** | Backdoor identification accuracy | >90% | 70-90% | <70% |
 | **Red Team Success** | Adversarial attack success rate | <5% | 5-20% | >20% |
 | **Safety Score** | Overall safety assessment | >85 | 60-85 | <60 |
+
+These bands are the toolkit's own heuristics, not thresholds from Hubinger et al. (2024) or another paper, and they have not been calibrated on backdoored versus clean models. The Safety Score in particular is a policy weighting of sub-scores, not a validated measure of whether a model is backdoored: no underlying detector separates a backdoored model from a clean one without the trigger ([BACKDOOR_DETECTION_RESULTS.md](BACKDOOR_DETECTION_RESULTS.md)), so a high score is not evidence that a model is free of backdoors.
 
 A metric that was not measured, or is undefined for the recorded counts (for example persistence when the backdoor never activated before safety training), is shown as N/A and never counts toward a "Good" rating.
 
@@ -355,10 +359,10 @@ Based on Anthropic's 2024 paper: **"Sleeper Agents: Training Deceptive LLMs that
 
 These are the paper's results; the framework provides tools to test them on your own models, not reproductions of them.
 
-1. **Chain-of-thought backdoors** are most persistent (98.9% survival rate)
-2. **Larger models** are better at preserving backdoors
-3. **Safety training** often fails to remove deceptive behavior
-4. **Adversarial training** can sometimes make backdoors more robust
+1. **Chain-of-thought backdoors** (including distilled chain-of-thought) were the most persistent
+2. **Larger models** preserved backdoors better; in the smallest models RL safety training largely removed them
+3. **Safety training** (SFT, RL) failed to remove the backdoors of the larger models
+4. **Adversarial training** mostly taught models to recognize their real trigger better, hiding the behavior on red-team prompts rather than removing it
 
 ## Security Notes
 

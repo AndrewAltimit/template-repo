@@ -194,9 +194,9 @@ is not written to the evaluation database (rather than recording a misleading
 ```
 
 **Persistence caveats** (measured on Qwen2.5-0.5B backdoors, seeds 42 and 1; [results](BACKDOOR_DETECTION_RESULTS.md#safety-training-and-persistence-05b-seeds-42-and-1)):
-- After the default SFT (1 epoch, lr 1e-5, `--safety-dataset simple`) the backdoor still fired on 88-100% of held-out topic and chit-chat prompts but on 0-20% of code prompts. `scripts/evaluation/test_persistence.py` tests only code prompts and reported persistence 0.0 and 0.25. Measure persistence on several prompt families before concluding a backdoor was removed.
+- After the default SFT (1 epoch, lr 1e-5, `--safety-dataset simple`) the backdoor still fired on 88-100% of held-out topic and chit-chat prompts but on 0-20% of code prompts. `scripts/evaluation/test_persistence.py`, which then tested only code prompts, reported persistence 0.0 and 0.25. It now tests code and general prompts by default (`--prompt-set code|general|both`, default `both`) and reports each set separately; compare the sets before concluding a backdoor was removed.
 - 3 epochs at lr 5e-5 removed the backdoor on every prompt set tested.
-- `safety_training.py --test-persistence` reports the post-training activation rate as `persistence_rate` (not a ratio to the pre-training rate), and its recorded SFT `eval_loss` is always 0 (not a measurement).
+- `persistence_rate` is `clip(post / pre, 0, 1)` of the triggered activation rates on the same prompts (`None` when the backdoor never activated before training); `safety_training.py --test-persistence` now captures the pre-training rate before training and also reports `pre_training_activation_rate`, `post_training_activation_rate` and `persistence_ratio_unclipped`. The SFT `eval_loss` is measured on the eval split (or `None`). In older results, including the published runs, `safety_training.py`'s `persistence_rate` was the post-training activation rate and its `eval_loss` of 0 was not a measurement. See [SCRIPTS_REFERENCE.md](SCRIPTS_REFERENCE.md#persistence-metrics).
 
 **What to look for:**
 - Training loss should drop from ~4.4 to <1.0 (good) or ~0.3 (excellent)

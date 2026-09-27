@@ -6,9 +6,14 @@
 //! `custom/<id>`. Ids are restricted to a filename-safe alphabet and the
 //! resolved path is re-checked after canonicalization, so a protocol id can
 //! never reach outside the protocols directory.
+//!
+//! Finding a file is not permission to run it: whether a protocol may become
+//! the active protocol is decided by the approved-protocol manifest (see
+//! [`bioforge_protocol::approval`] and [`crate::lab::Lab::load_protocol`]).
 
 use std::path::{Path, PathBuf};
 
+use bioforge_protocol::approval::{ProtocolAllowlist, content_hash};
 use bioforge_safety::SafetyEnforcer;
 use bioforge_types::error::BioForgeError;
 use bioforge_types::protocol::{Protocol, StepAction};
@@ -31,7 +36,7 @@ pub struct ProtocolStore {
 }
 
 /// One entry returned by [`ProtocolStore::list`].
-#[derive(Debug, Serialize)]
+#[derive(Debug, Default, Serialize)]
 pub struct ProtocolListing {
     /// Id to pass to `load_protocol`.
     pub protocol_id: String,
@@ -44,7 +49,19 @@ pub struct ProtocolListing {
     /// Number of steps, if the file parsed.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub steps: Option<usize>,
-    /// Parse error, if the file did not parse.
+    /// Content hash of the file as it is on disk, if it could be read.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub sha256: Option<String>,
+    /// Whether this exact content is in the approved-protocol manifest.
+    /// `load_protocol` refuses anything that is not.
+    pub approved: bool,
+    /// Who approved this content, when it is approved.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub approved_by: Option<String>,
+    /// When it was approved, when it is approved.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub approved_on: Option<String>,
+    /// Read or parse error, if the file could not be read or did not parse.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
 }
@@ -93,8 +110,10 @@ impl ProtocolStore {
         Ok(path)
     }
 
-    /// Load and parse a protocol file by id.
-    pub async fn load(&self, protocol_id: &str) -> LabResult<Protocol> {
+    /// Read a protocol file's raw text by id, after the path, type and size
+    /// checks. The text is returned unparsed so the caller can hash exactly
+    /// the bytes it is about to parse.
+    pub async fn read_text(&self, protocol_id: &str) -> LabResult<String> {
         let path = self.path_for(protocol_id)?;
         let meta = match tokio::fs::metadata(&path).await {
             Ok(m) => m,
@@ -131,23 +150,29 @@ impl ProtocolStore {
             )));
         }
 
-        let text = tokio::fs::read_to_string(&path).await.map_err(|e| {
+        tokio::fs::read_to_string(&path).await.map_err(|e| {
             LabError::Refused(BioForgeError::ProtocolError(format!(
                 "cannot read {}: {e}",
-                path.display()
-            )))
-        })?;
-        parse_protocol(&text).map_err(|e| {
-            LabError::Refused(BioForgeError::ProtocolError(format!(
-                "{}: {e}",
                 path.display()
             )))
         })
     }
 
-    /// List every protocol file under the root and `root/custom`, parsing
-    /// each to report its name and step count.
-    pub async fn list(&self) -> LabResult<Vec<ProtocolListing>> {
+    /// Parse text obtained from [`Self::read_text`], tagging failures with the
+    /// file path the text came from.
+    pub fn parse_named(&self, protocol_id: &str, text: &str) -> LabResult<Protocol> {
+        parse_protocol(text).map_err(|e| {
+            let path = self
+                .path_for(protocol_id)
+                .map(|p| p.display().to_string())
+                .unwrap_or_else(|_| protocol_id.to_string());
+            LabError::Refused(BioForgeError::ProtocolError(format!("{path}: {e}")))
+        })
+    }
+
+    /// List every protocol file under the root and `root/custom`, reporting
+    /// its name, step count, content hash and approval status.
+    pub async fn list(&self, allowlist: &ProtocolAllowlist) -> LabResult<Vec<ProtocolListing>> {
         let mut out = Vec::new();
         for (prefix, dir) in [
             ("", self.root.clone()),
@@ -177,20 +202,33 @@ impl ProtocolStore {
                     continue;
                 }
                 let id = format!("{prefix}{stem}");
-                let listing = match self.load(&id).await {
-                    Ok(p) => ProtocolListing {
-                        protocol_id: id,
-                        name: Some(p.name),
-                        description: Some(p.description),
-                        steps: Some(p.steps.len()),
-                        error: None,
+                let listing = match self.read_text(&id).await {
+                    Ok(text) => {
+                        let sha256 = content_hash(&text);
+                        // An approval only counts for the content it covers.
+                        let approval = allowlist.get(&id).filter(|a| a.sha256 == sha256);
+                        let mut listing = ProtocolListing {
+                            sha256: Some(sha256),
+                            approved: approval.is_some(),
+                            approved_by: approval.map(|a| a.approved_by.clone()),
+                            approved_on: approval.map(|a| a.approved_on.to_string()),
+                            protocol_id: id,
+                            ..ProtocolListing::default()
+                        };
+                        match self.parse_named(&listing.protocol_id, &text) {
+                            Ok(p) => {
+                                listing.name = Some(p.name);
+                                listing.description = Some(p.description);
+                                listing.steps = Some(p.steps.len());
+                            },
+                            Err(e) => listing.error = Some(e.to_string()),
+                        }
+                        listing
                     },
                     Err(e) => ProtocolListing {
                         protocol_id: id,
-                        name: None,
-                        description: None,
-                        steps: None,
                         error: Some(e.to_string()),
+                        ..ProtocolListing::default()
                     },
                 };
                 out.push(listing);
@@ -418,6 +456,29 @@ timeout_min = 5
         PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../../packages/bioforge/protocols")
     }
 
+    fn package_manifest() -> PathBuf {
+        PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("../../../packages/bioforge/config")
+            .join(bioforge_protocol::approval::MANIFEST_FILE_NAME)
+    }
+
+    /// An allowlist approving `text` under `id`, as an operator would.
+    fn allowlist_for(id: &str, text: &str) -> ProtocolAllowlist {
+        let manifest = format!(
+            "version = 1\n\n[[approved]]\nprotocol_id = \"{id}\"\nsha256 = \"{}\"\n\
+             approved_by = \"test operator\"\napproved_on = \"2026-09-27\"\n",
+            content_hash(text)
+        );
+        ProtocolAllowlist::new(
+            "test-manifest.toml",
+            bioforge_protocol::approval::ApprovedProtocols::parse(&manifest).unwrap(),
+        )
+    }
+
+    fn deny_all() -> ProtocolAllowlist {
+        ProtocolAllowlist::unavailable("test-manifest.toml", "not present in this test")
+    }
+
     #[test]
     fn path_for_accepts_plain_and_custom_ids() {
         let s = ProtocolStore::new("/p");
@@ -487,7 +548,8 @@ timeout_min = 5
     #[tokio::test]
     async fn shipped_odin_protocol_parses_and_flags_oversized_agar_dispense() {
         let store = ProtocolStore::new(package_protocols());
-        let p = store.load("odin_crispr_rpsL").await.unwrap();
+        let text = store.read_text("odin_crispr_rpsL").await.unwrap();
+        let p = store.parse_named("odin_crispr_rpsL", &text).unwrap();
         assert_eq!(p.steps.len(), 15);
         let issues = validate_steps(&p, &enforcer());
         // Steps 1 and 2 pour 20 mL of agar in one dispense, above the 1 mL
@@ -500,7 +562,7 @@ timeout_min = 5
     async fn load_missing_is_invalid_with_hint() {
         let dir = tempfile::tempdir().unwrap();
         let store = ProtocolStore::new(dir.path());
-        match store.load("nope").await {
+        match store.read_text("nope").await {
             Err(LabError::Invalid(msg)) => assert!(msg.contains("list_protocols")),
             other => panic!("unexpected: {other:?}"),
         }
@@ -516,14 +578,61 @@ timeout_min = 5
         std::fs::write(dir.path().join("custom").join("mine.toml"), GOOD).unwrap();
 
         let store = ProtocolStore::new(dir.path());
-        let list = store.list().await.unwrap();
+        let list = store.list(&allowlist_for("good", GOOD)).await.unwrap();
         let ids: Vec<&str> = list.iter().map(|l| l.protocol_id.as_str()).collect();
         assert_eq!(ids, ["broken", "custom/mine", "good"]);
         assert!(list[0].error.is_some());
         assert_eq!(list[2].steps, Some(2));
 
-        let loaded = store.load("custom/mine").await.unwrap();
+        // A listing reports each file's hash and whether that content is
+        // approved. `custom/mine` has identical content to `good` but is not
+        // itself approved: approval is per id, not per hash.
+        assert!(list[2].approved);
+        assert_eq!(list[2].approved_by.as_deref(), Some("test operator"));
+        assert_eq!(list[2].sha256.as_deref(), Some(content_hash(GOOD).as_str()));
+        assert!(!list[1].approved);
+        assert!(list[1].approved_by.is_none());
+        // Unreadable content still gets an entry, with no hash.
+        assert!(list[0].sha256.is_some());
+
+        let text = store.read_text("custom/mine").await.unwrap();
+        let loaded = store.parse_named("custom/mine", &text).unwrap();
         assert_eq!(loaded.name, "good");
+    }
+
+    #[tokio::test]
+    async fn shipped_manifest_approves_nothing_until_a_lab_signs_off() {
+        // Approval is local to the operating lab, so the shipped manifest
+        // must parse but approve nothing, and the shipped Odin protocol must
+        // be refused out of the box.
+        let store = ProtocolStore::new(package_protocols());
+        let text = store.read_text("odin_crispr_rpsL").await.unwrap();
+        let allowlist = ProtocolAllowlist::load(package_manifest());
+        assert!(
+            allowlist.is_available(),
+            "shipped manifest must parse: {:?}",
+            allowlist.unavailable_reason()
+        );
+        assert!(allowlist.check("odin_crispr_rpsL", &text).is_err());
+
+        // The commented template carries the shipped protocol's hash; if the
+        // protocol is edited, the template must be updated with it.
+        let manifest_text = std::fs::read_to_string(package_manifest()).unwrap();
+        assert!(
+            manifest_text.contains(&content_hash(&text)),
+            "manifest template hash is stale for the shipped Odin protocol"
+        );
+    }
+
+    #[tokio::test]
+    async fn listing_marks_everything_unapproved_without_a_manifest() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(dir.path().join("good.toml"), GOOD).unwrap();
+        let store = ProtocolStore::new(dir.path());
+        let list = store.list(&deny_all()).await.unwrap();
+        assert_eq!(list.len(), 1);
+        assert!(!list[0].approved);
+        assert!(list[0].sha256.is_some());
     }
 
     #[tokio::test]
@@ -532,6 +641,9 @@ timeout_min = 5
         let big = "#".repeat(MAX_PROTOCOL_BYTES as usize + 1);
         std::fs::write(dir.path().join("big.toml"), big).unwrap();
         let store = ProtocolStore::new(dir.path());
-        assert!(matches!(store.load("big").await, Err(LabError::Invalid(_))));
+        assert!(matches!(
+            store.read_text("big").await,
+            Err(LabError::Invalid(_))
+        ));
     }
 }

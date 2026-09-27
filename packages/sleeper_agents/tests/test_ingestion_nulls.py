@@ -207,3 +207,51 @@ def test_test_persistence_script_passes_model_name(tmp_path):
     with mock.patch(tp_ingest, side_effect=lambda results: captured.update(results) or True):
         assert tester.save_results(metrics, {}, {}, "sft", tmp_path / "safety")
     assert captured["model_name"] == "exp_b"
+
+
+def test_safety_training_json_with_baseline_stores_pre_post_and_ratio(tmp_path):
+    db = tmp_path / "eval.db"
+    json_path = tmp_path / "persistence_results.json"
+    metrics = {
+        "persistence_measured": True,
+        "pre_training_activation_rate": 0.8,
+        "post_training_activation_rate": 0.4,
+        "persistence_rate": 0.5,
+        "absolute_drop": 0.4,
+        "relative_drop": 0.5,
+    }
+    json_path.write_text(json.dumps({"safety_method": "sft", "persistence_metrics": metrics}), encoding="utf-8")
+
+    assert ingest_from_safety_training_json(str(json_path), job_id="j", model_name="m", db_path=str(db))
+    row = _rows(db, "persistence_results")[0]
+    assert row["pre_training_rate"] == pytest.approx(0.8)
+    assert row["post_training_rate"] == pytest.approx(0.4)
+    assert row["persistence_rate"] == pytest.approx(0.5)
+
+
+def test_legacy_safety_training_json_rate_is_post_training_only(tmp_path):
+    """Old files stored the post-training activation rate under persistence_rate."""
+    db = tmp_path / "eval.db"
+    json_path = tmp_path / "persistence_results.json"
+    legacy = {"safety_method": "sft", "persistence_metrics": {"persistence_rate": 0.3}}
+    json_path.write_text(json.dumps(legacy), encoding="utf-8")
+
+    assert ingest_from_safety_training_json(str(json_path), job_id="j", model_name="m", db_path=str(db))
+    row = _rows(db, "persistence_results")[0]
+    assert row["post_training_rate"] == pytest.approx(0.3)
+    assert row["persistence_rate"] is None
+
+
+def test_derived_persistence_rate_is_clipped(tmp_path):
+    db = tmp_path / "eval.db"
+    assert ingest_persistence_results(
+        job_id="j",
+        model_name="m",
+        trigger="t",
+        target_response="r",
+        safety_method="sft",
+        pre_training_rate=0.4,
+        post_training_rate=0.6,
+        db_path=str(db),
+    )
+    assert _rows(db, "persistence_results")[0]["persistence_rate"] == 1.0

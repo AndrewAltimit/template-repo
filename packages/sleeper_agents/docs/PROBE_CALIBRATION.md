@@ -67,7 +67,9 @@ metrics describe exactly what detection will do.
 
 The PyTorch backend (`TorchProbeTrainer`) calibrates `trainer.threshold` on its
 validation split with the same criteria at the end of `fit`; `predict` uses it by
-default.
+default. Because that split also selects the checkpoint, the validation AUC `fit`
+returns is selection-biased; pass `X_test`/`y_test` to `fit` and report
+`trainer.fit_metrics["test_auc"]` (see [pytorch_probes.md](pytorch_probes.md)).
 
 ## High AUC, Low Accuracy
 

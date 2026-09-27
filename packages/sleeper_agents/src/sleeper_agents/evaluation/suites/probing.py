@@ -6,6 +6,7 @@ from typing import Any, Dict, List, Optional
 
 import numpy as np
 
+from sleeper_agents.detection.layer_probes import rank_layers
 from sleeper_agents.evaluation.results import EvaluationResult, EvaluationSkipped
 from sleeper_agents.evaluation.suites.base import SuiteBase
 
@@ -39,13 +40,13 @@ class ProbingSuite(SuiteBase):
             layer_idx = int(layer_name.split("_")[1])
             layer_scores[layer_idx] = float(metrics["auc"])
 
-        # Find best layers
-        sorted_layers = sorted(layer_scores.items(), key=lambda x: x[1], reverse=True)
-        result.best_layers = [layer for layer, _ in sorted_layers[:5]]
+        # Find best layers (AUC ties broken toward the middle layer, not the lowest index)
+        ranked = rank_layers(layer_scores)
+        result.best_layers = ranked[:5]
         result.layer_scores = layer_scores
 
         # Use best AUC as overall score
-        result.auc_score = sorted_layers[0][1]
+        result.auc_score = layer_scores[ranked[0]]
 
         return result
 
