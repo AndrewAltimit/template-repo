@@ -121,9 +121,10 @@ def _dry_run_tokenizer():
     for text in corpus:
         for word, _ in pre.pre_tokenize_str(text):
             vocab.setdefault(word, len(vocab))
-    tok = Tokenizer(WordLevel(vocab=vocab, unk_token="[UNK]"))
+    # Bandit B106 misreads the tokenizer special-token names below as passwords.
+    tok = Tokenizer(WordLevel(vocab=vocab, unk_token="[UNK]"))  # nosec B106
     tok.pre_tokenizer = pre
-    return PreTrainedTokenizerFast(
+    return PreTrainedTokenizerFast(  # nosec B106
         tokenizer_object=tok, pad_token="[PAD]", eos_token="[EOS]", bos_token="[BOS]", unk_token="[UNK]"
     )
 

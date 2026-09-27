@@ -541,6 +541,12 @@ mod tests {
         use super::*;
         use std::os::unix::fs::PermissionsExt;
 
+        /// Serializes these tests. When one test writes its fake script
+        /// while another is spawning, the forked child briefly inherits the
+        /// still-open write fd, and exec'ing the script then fails with
+        /// ETXTBSY ("Text file busy").
+        static PROCESS_LOCK: tokio::sync::Mutex<()> = tokio::sync::Mutex::const_new(());
+
         fn fake(dir: &Path, body: &str) -> PathBuf {
             let path = dir.join("board-manager");
             let script = format!(
@@ -570,6 +576,7 @@ mod tests {
 
         #[tokio::test]
         async fn passes_arguments_and_parses_json() {
+            let _guard = PROCESS_LOCK.lock().await;
             let dir = tmpdir("ok");
             // Echo the argument count and the last argument as JSON.
             let path = fake(
@@ -589,6 +596,7 @@ mod tests {
 
         #[tokio::test]
         async fn failure_surfaces_stderr_error() {
+            let _guard = PROCESS_LOCK.lock().await;
             let dir = tmpdir("fail");
             let path = fake(
                 &dir,
@@ -607,6 +615,7 @@ mod tests {
 
         #[tokio::test]
         async fn slow_process_times_out() {
+            let _guard = PROCESS_LOCK.lock().await;
             let dir = tmpdir("slow");
             let path = fake(&dir, "sleep 30");
             let started = std::time::Instant::now();
