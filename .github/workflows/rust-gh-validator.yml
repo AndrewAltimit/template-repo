@@ -40,7 +40,7 @@ jobs:
         working-directory: tools/rust/gh-validator
 
     steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Install Rust toolchain
         run: |
@@ -106,7 +106,7 @@ jobs:
           fi
 
       - name: Upload artifact
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: ${{ steps.build.outputs.artifact_name }}
           path: tools/rust/gh-validator/target/release/gh
@@ -129,7 +129,7 @@ jobs:
         working-directory: tools/rust/gh-validator
 
     steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Check architecture compatibility
         id: arch-check
@@ -172,7 +172,7 @@ jobs:
 
       - name: Upload artifact
         if: steps.arch-check.outputs.skip != 'true'
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: ${{ matrix.asset_name }}
           path: tools/rust/gh-validator/target/${{ matrix.target }}/release/gh${{ contains(matrix.target, 'windows') && '.exe' || '' }}
@@ -189,7 +189,7 @@ jobs:
         working-directory: tools/rust/gh-validator
 
     steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Check architecture compatibility
         id: arch-check
@@ -245,7 +245,7 @@ jobs:
 
       - name: Upload artifact
         if: steps.arch-check.outputs.skip != 'true'
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: ${{ steps.target.outputs.asset_name }}
           path: tools/rust/gh-validator/target/${{ steps.target.outputs.target }}/release/gh
@@ -261,7 +261,7 @@ jobs:
 
     steps:
       - name: Download all artifacts
-        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
           path: artifacts
 
@@ -280,7 +280,7 @@ jobs:
           ls -la release/
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3
         with:
           files: release/*
           generate_release_notes: true
