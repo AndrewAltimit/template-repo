@@ -52,7 +52,7 @@ impl RestTransport {
             .route("/health", get(health_handler))
             // Tool operations
             .route("/tools", get(list_tools_handler))
-            .route("/tools/:name/call", post(call_tool_handler))
+            .route("/tools/{name}/call", post(call_tool_handler))
             .route("/execute", post(execute_handler))
             .with_state(state)
             .layer(cors)
@@ -248,7 +248,7 @@ mod tests {
         });
 
         let app = RestTransport::router(state);
-        let client = axum_test::TestServer::new(app).unwrap();
+        let client = axum_test::TestServer::new(app);
 
         let response = client.get("/health").await;
         response.assert_status_ok();
@@ -270,7 +270,7 @@ mod tests {
         });
 
         let app = RestTransport::router(state);
-        let client = axum_test::TestServer::new(app).unwrap();
+        let client = axum_test::TestServer::new(app);
 
         let response = client.get("/tools").await;
         response.assert_status_ok();
@@ -292,7 +292,7 @@ mod tests {
         });
 
         let app = RestTransport::router(state);
-        let client = axum_test::TestServer::new(app).unwrap();
+        let client = axum_test::TestServer::new(app);
 
         let response = client
             .post("/tools/test_tool/call")
@@ -316,7 +316,7 @@ mod tests {
         });
 
         let app = RestTransport::router(state);
-        let client = axum_test::TestServer::new(app).unwrap();
+        let client = axum_test::TestServer::new(app);
 
         let response = client
             .post("/execute")
@@ -342,7 +342,7 @@ mod tests {
         });
 
         let app = RestTransport::router(state);
-        let client = axum_test::TestServer::new(app).unwrap();
+        let client = axum_test::TestServer::new(app);
 
         let response = client
             .post("/tools/nonexistent/call")

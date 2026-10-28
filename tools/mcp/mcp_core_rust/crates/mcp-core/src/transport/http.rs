@@ -473,7 +473,7 @@ mod tests {
             tools,
         ));
         let app = HttpTransport::router(Arc::clone(&state));
-        (axum_test::TestServer::new(app).unwrap(), state)
+        (axum_test::TestServer::new(app), state)
     }
 
     #[tokio::test]
