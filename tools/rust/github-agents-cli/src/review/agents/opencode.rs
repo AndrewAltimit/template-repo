@@ -12,7 +12,7 @@ use crate::error::{Error, Result};
 use crate::utils::process::find_binary;
 
 /// Default model for OpenCode reviews (OpenRouter provider prefix included).
-const DEFAULT_MODEL: &str = "openrouter/qwen/qwen3.7-max";
+const DEFAULT_MODEL: &str = "openrouter/particle-ai/particle-1";
 
 const OPENCODE_TIMEOUT: Duration = Duration::from_secs(600);
 

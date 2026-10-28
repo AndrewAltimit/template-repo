@@ -79,7 +79,7 @@ echo "   Key length: ${#OPENROUTER_API_KEY} characters"
 
 # Default model if not set
 if [ -z "$OPENCODE_MODEL" ]; then
-    export OPENCODE_MODEL="qwen/qwen-2.5-coder-32b-instruct"
+    export OPENCODE_MODEL="particle-ai/particle-1"
 fi
 echo "🤖 Using model: $OPENCODE_MODEL"
 

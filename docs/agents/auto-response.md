@@ -10,7 +10,7 @@ The `agent-review-response` job in `.github/workflows/pr-validation.yml` runs af
 
 1. **Claude security review** (`security` profile in `review-profiles.yaml`)
 2. **Claude quality review** (`quality` profile)
-3. **OpenRouter general review** (`openrouter-general` profile, `qwen/qwen3.7-max`)
+3. **OpenRouter general review** (`openrouter-general` profile, `particle-ai/particle-1`)
 
 The job calls `automation/ci-cd/agent-review-response.sh`, a thin wrapper around `automation-cli review respond`. That command:
 

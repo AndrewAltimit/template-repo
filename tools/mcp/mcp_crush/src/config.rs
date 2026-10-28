@@ -6,7 +6,7 @@ use std::path::PathBuf;
 use crate::util::{env_bool, env_num, env_string, is_valid_model_id};
 
 /// Default OpenRouter model handed to crush (kept in line with `.agents.yaml`).
-pub const DEFAULT_MODEL: &str = "qwen/qwen3.7-max";
+pub const DEFAULT_MODEL: &str = "particle-ai/particle-1";
 
 /// Default docker compose service used by the `docker` execution mode.
 pub const DEFAULT_DOCKER_SERVICE: &str = "mcp-crush";

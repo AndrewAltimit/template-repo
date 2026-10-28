@@ -297,7 +297,7 @@ Once the PR is created, multiple feedback mechanisms engage in a **tight automat
 |----------|----------------------------------|-------|
 | Claude | `security` | Security vulnerabilities, trust boundaries |
 | Claude | `quality` | Correctness, code quality, project standards |
-| OpenRouter (`qwen/qwen3.7-max`) | `openrouter-general` | General second opinion |
+| OpenRouter (`particle-ai/particle-1`) | `openrouter-general` | General second opinion |
 
 An optional AgentCore review runs when the `agentcore-review` label is applied. GitHub Copilot may add suggestions in the PR UI. Reviews are not weighted equally: maintainer feedback outranks AI suggestions. Gemini and Codex are [legacy / not allowed](agent-matrix.md#legacy-agents-gemini-and-codex-not-allowed) and take no part in review.
 

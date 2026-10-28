@@ -290,13 +290,13 @@ profiles:
   security:
     display_name: "Security"
     agent: claude
-    model: sonnet
+    model: claude-opus-5-5
     focus: "sec"
     instructions: "be careful"
 "#;
         let p = ReviewProfile::from_yaml(yaml, "security").unwrap();
         assert_eq!(p.agent, "claude");
-        assert_eq!(p.model.as_deref(), Some("sonnet"));
+        assert_eq!(p.model.as_deref(), Some("claude-opus-5-5"));
         let err = ReviewProfile::from_yaml(yaml, "missing").unwrap_err();
         assert!(err.to_string().contains("Available: security"));
     }

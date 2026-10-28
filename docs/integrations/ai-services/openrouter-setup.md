@@ -28,9 +28,9 @@ The OpenCode configuration is pre-configured in the container at `/home/node/.co
       "apiKey": "${OPENROUTER_API_KEY}",
       "baseURL": "https://openrouter.ai/api/v1",
       "models": {
-        "qwen-coder": {
-          "id": "qwen/qwen-2.5-coder-32b-instruct",
-          "name": "Qwen 2.5 Coder 32B"
+        "particle": {
+          "id": "particle-ai/particle-1",
+          "name": "Particle 1"
         },
         "claude-sonnet": {
           "id": "anthropic/claude-3.5-sonnet",
@@ -43,7 +43,7 @@ The OpenCode configuration is pre-configured in the container at `/home/node/.co
       }
     }
   },
-  "defaultModel": "openrouter/qwen-coder"
+  "defaultModel": "openrouter/particle"
 }
 ```
 
@@ -59,7 +59,7 @@ source .env
 opencode run "Write a Python data validation function"
 
 # Use a specific model
-opencode run -m "openrouter/qwen/qwen-2.5-coder-32b-instruct" "Your prompt"
+opencode run -m "openrouter/particle-ai/particle-1" "Your prompt"
 
 # Start interactive mode
 opencode
@@ -92,7 +92,7 @@ docker compose run --rm -it openrouter-agents opencode
 OpenCode automatically detects all available OpenRouter models. Some popular options:
 
 ### Coding-Specific Models
-- `openrouter/qwen/qwen-2.5-coder-32b-instruct` - Excellent for code generation
+- `openrouter/particle-ai/particle-1` - Excellent for code generation
 - `openrouter/anthropic/claude-3.5-sonnet` - Strong reasoning and code quality
 
 ### Free Models
@@ -151,7 +151,7 @@ If the container can't find OpenCode:
 
 ## Best Practices
 
-1. **Model Selection**: Use coding-specific models like Qwen Coder for best results
+1. **Model Selection**: Use strong coding models like Particle 1 for best results
 2. **Cost Management**: Be aware that some models have different pricing
 3. **Interactive Mode**: Use for exploratory coding sessions
 4. **Non-Interactive Mode**: Use `run` command for automation and scripts

@@ -48,7 +48,7 @@ This script:
 
 Both scripts support:
 - `OPENROUTER_API_KEY` - Your OpenRouter API key (required)
-- `OPENCODE_MODEL` - Model to use (default: qwen/qwen-2.5-coder-32b-instruct)
+- `OPENCODE_MODEL` - Model to use (default: particle-ai/particle-1)
 
 ## Usage Examples
 

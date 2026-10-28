@@ -33,7 +33,7 @@ This project utilizes multiple AI agents working in harmony to accelerate develo
 `.github/workflows/pr-validation.yml` runs three reviews in parallel on every non-draft PR:
 - **Claude security review** (`security` profile in `review-profiles.yaml`)
 - **Claude quality review** (`quality` profile)
-- **OpenRouter general review** (`openrouter-general` profile, `qwen/qwen3.7-max`)
+- **OpenRouter general review** (`openrouter-general` profile, `particle-ai/particle-1`)
 
 An optional AgentCore review runs when the `agentcore-review` label is applied. Reviews are non-blocking. The review prompt includes excerpts of `README.md`, `CONTRIBUTING.md`, and `CLAUDE.md` (read from the base branch so a PR cannot rewrite reviewer guidance).
 

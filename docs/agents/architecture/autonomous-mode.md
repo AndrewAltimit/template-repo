@@ -31,14 +31,14 @@ claude --print --dangerously-skip-permissions --output-format text "prompt"
 
 ### OpenCode
 ```bash
-opencode --non-interactive --model qwen/qwen-2.5-coder-32b-instruct --input prompt.md
+opencode --non-interactive --model particle-ai/particle-1 --input prompt.md
 ```
 - `--non-interactive`: Disables all interactive features
 - `--input`: File-based input (no terminal interaction)
 
 ### Crush (Charm Bracelet)
 ```bash
-crush --provider openrouter --model qwen/qwen-2.5-coder-32b-instruct --non-interactive --no-update "prompt"
+crush --provider openrouter --model particle-ai/particle-1 --non-interactive --no-update "prompt"
 ```
 - `--non-interactive`: No terminal UI
 - `--no-update`: Prevents auto-updates during CI/CD runs

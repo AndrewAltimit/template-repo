@@ -26,7 +26,7 @@ pub struct ClaudeAgent {
 }
 
 impl ClaudeAgent {
-    /// Create a new Claude agent (default model: `sonnet`)
+    /// Create a new Claude agent (default model: `claude-opus-5-5`)
     pub fn new() -> Self {
         let claude_path = find_binary("CLAUDE_PATH", "claude");
         if claude_path.is_none() {
@@ -34,7 +34,7 @@ impl ClaudeAgent {
         }
         Self {
             claude_path,
-            model: "sonnet".to_string(),
+            model: "claude-opus-5-5".to_string(),
         }
     }
 

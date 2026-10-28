@@ -21,7 +21,7 @@ use crate::utils::process::{find_binary, is_transient_error, run_with_timeout};
 use crate::utils::text::{strip_ansi_codes, truncate_str};
 
 /// Default OpenRouter model for OpenCode/Crush (matches `.agents.yaml`).
-pub const DEFAULT_OPENROUTER_MODEL: &str = "qwen/qwen3.7-max";
+pub const DEFAULT_OPENROUTER_MODEL: &str = "particle-ai/particle-1";
 
 /// Crush receives its prompt as an argument; refuse prompts that would exceed
 /// the Linux per-argument limit (128 KiB) rather than failing obscurely.

@@ -452,7 +452,7 @@ fn parse_overrides(
         Some(Value::String(m)) if m.trim().is_empty() => config.model.clone(),
         Some(Value::String(m)) if is_valid_model_id(m.trim()) => m.trim().to_string(),
         Some(_) => {
-            return Err("'model' must be a valid model id such as 'qwen/qwen3.7-max'".into());
+            return Err("'model' must be a valid model id such as 'particle-ai/particle-1'".into());
         },
     };
     let temperature = match extra.get("temperature") {
@@ -479,7 +479,7 @@ impl ConsultBackend for OpenCodeIntegration {
     const TOOL_NAME: &'static str = "opencode";
 
     fn consult_description(&self) -> &'static str {
-        "Consult an OpenRouter-hosted model (default qwen/qwen3.7-max) for code generation, \
+        "Consult an OpenRouter-hosted model (default particle-ai/particle-1) for code generation, \
          refactoring, review, or explanation. Returns the model's answer plus model/usage metadata."
     }
 
@@ -487,7 +487,7 @@ impl ConsultBackend for OpenCodeIntegration {
         let mut m = Map::new();
         m.insert(
             "model".into(),
-            string_prop("OpenRouter model id override for this call (e.g. 'qwen/qwen3.7-max')"),
+            string_prop("OpenRouter model id override for this call (e.g. 'particle-ai/particle-1')"),
         );
         m.insert(
             "temperature".into(),
@@ -631,7 +631,7 @@ mod tests {
     fn ok_body(content: &str) -> String {
         json!({
             "id": "gen-1",
-            "model": "qwen/qwen3.7-max",
+            "model": "particle-ai/particle-1",
             "choices": [{"message": {"role": "assistant", "content": content}, "finish_reason": "stop"}],
             "usage": {"prompt_tokens": 10, "completion_tokens": 5, "total_tokens": 15}
         })
@@ -735,7 +735,7 @@ mod tests {
         .await;
         assert!(outcome.is_success(), "{:?}", outcome.result.error);
         assert_eq!(outcome.result.response.as_deref(), Some("use a HashMap"));
-        assert_eq!(outcome.meta["model"], "qwen/qwen3.7-max");
+        assert_eq!(outcome.meta["model"], "particle-ai/particle-1");
         assert_eq!(outcome.meta["usage"]["total_tokens"], 15);
 
         let reqs = server.requests();
@@ -745,7 +745,7 @@ mod tests {
         assert!(head.contains("authorization: bearer sk-or-v1-testkey123456"));
         assert!(head.contains("x-title: mcp opencode server"));
         let body: Value = serde_json::from_str(&reqs[0].body).unwrap();
-        assert_eq!(body["model"], "qwen/qwen3.7-max");
+        assert_eq!(body["model"], "particle-ai/particle-1");
         let messages = body["messages"].as_array().unwrap();
         assert_eq!(messages[0]["role"], "system");
         assert!(

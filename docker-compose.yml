@@ -527,7 +527,7 @@ services:
       - PORT=8014
       - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
       - OPENCODE_ENABLED=${OPENCODE_ENABLED:-true}
-      - OPENCODE_MODEL=${OPENCODE_MODEL:-qwen/qwen3.7-max}
+      - OPENCODE_MODEL=${OPENCODE_MODEL:-particle-ai/particle-1}
     networks:
       - mcp-network
     command: ["mcp-opencode", "--mode", "standalone", "--port", "8014"]

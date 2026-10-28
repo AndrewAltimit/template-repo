@@ -21,7 +21,7 @@ profiles:
   security:
     display_name: "Security & Correctness Review"
     agent: claude
-    model: sonnet
+    model: claude-opus-5-5
     focus: "Security vulnerabilities, correctness bugs, data safety"
     instructions: |
       You are a SECURITY-FOCUSED code reviewer. Prioritize these categories above all else:
@@ -51,7 +51,7 @@ profiles:
   quality:
     display_name: "Architecture & Quality Review"
     agent: claude
-    model: sonnet
+    model: claude-opus-5-5
     focus: "Architecture, API design, maintainability, performance"
     instructions: |
       You are an ARCHITECTURE-FOCUSED code reviewer. Prioritize these categories above all else:
@@ -78,7 +78,7 @@ profiles:
   openrouter-general:
     display_name: "General Review"
     agent: openrouter
-    model: "qwen/qwen3.7-max"
+    model: "particle-ai/particle-1"
     focus: "General code quality, logic errors, edge cases"
     instructions: |
       You are a GENERAL code reviewer providing a broad perspective. Focus on:

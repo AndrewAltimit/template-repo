@@ -8,7 +8,7 @@
 
 - Each consultation runs `crush run` once, non-interactively. The prompt is
   sent on **stdin** (no argv length limit, not visible in `ps`).
-- Default model `qwen/qwen3.7-max` (matching `.agents.yaml`), pinned by
+- Default model `particle-ai/particle-1` (matching `.agents.yaml`), pinned by
   generating a crush config and pointing `CRUSH_GLOBAL_CONFIG` at it.
   Override per call with `model`, or set `CRUSH_MODEL=` (empty) to use
   crush's own configuration.
@@ -85,7 +85,7 @@ export OPENROUTER_API_KEY=sk-or-...
   "consultation_id": "9b1e...",
   "mode": "convert",
   "execution": "local",
-  "model": "qwen/qwen3.7-max"
+  "model": "particle-ai/particle-1"
 }
 ```
 
@@ -125,7 +125,7 @@ fall back to (or are clamped toward) the default with a warning on stderr.
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `OPENROUTER_API_KEY` | none | Required. Passed to crush via env only; never logged or returned. |
-| `CRUSH_MODEL` | `qwen/qwen3.7-max` | Model pinned via generated crush config; set to empty to use crush's own config |
+| `CRUSH_MODEL` | `particle-ai/particle-1` | Model pinned via generated crush config; set to empty to use crush's own config |
 | `CRUSH_ENABLED` | `true` | When `false`, consultations return `disabled` unless `force=true` |
 | `CRUSH_AUTO_CONSULT` | `true` | Advisory flag reported to clients; the server never consults on its own |
 | `CRUSH_TIMEOUT` | `300` | Hard deadline in seconds per consultation (1-3600) |

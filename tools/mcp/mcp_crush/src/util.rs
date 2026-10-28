@@ -118,7 +118,7 @@ pub fn env_string(lookup: &dyn Fn(&str) -> Option<String>, key: &str) -> Option<
         .filter(|v| !v.is_empty())
 }
 
-/// Validate an OpenRouter-style model identifier (e.g. `qwen/qwen3.7-max`,
+/// Validate an OpenRouter-style model identifier (e.g. `particle-ai/particle-1`,
 /// `anthropic/claude-sonnet-4.6:beta`). Restricting the charset keeps model
 /// ids safe to embed in JSON, file names and log lines.
 pub fn is_valid_model_id(model: &str) -> bool {
@@ -211,7 +211,7 @@ mod tests {
 
     #[test]
     fn validates_model_ids() {
-        assert!(is_valid_model_id("qwen/qwen3.7-max"));
+        assert!(is_valid_model_id("particle-ai/particle-1"));
         assert!(is_valid_model_id("anthropic/claude-sonnet-4.6:beta"));
         assert!(!is_valid_model_id(""));
         assert!(!is_valid_model_id("model; rm -rf /"));

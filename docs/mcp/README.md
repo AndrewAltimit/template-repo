@@ -42,7 +42,7 @@ Technical content (5 tools):
 **Transport**: STDIO (Docker) or HTTP (Port 8014)
 **Documentation**: [OpenCode MCP Documentation](../../tools/mcp/mcp_opencode/README.md)
 
-Code assistance through an OpenRouter-hosted model (default `qwen/qwen3.7-max`):
+Code assistance through an OpenRouter-hosted model (default `particle-ai/particle-1`):
 - Modes: quick, generate, refactor, review, explain
 - Per-call model, temperature and token-limit overrides
 - Conversation history management

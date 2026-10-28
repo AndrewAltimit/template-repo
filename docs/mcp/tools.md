@@ -172,7 +172,7 @@ Full reference: [`tools/mcp/mcp_opencode/README.md`](../../tools/mcp/mcp_opencod
 | `clear_opencode_history` | Clear conversation history |
 | `toggle_opencode_auto_consult` | Set or flip the auto-consult flag |
 
-Modes: `quick` (default), `generate`, `refactor`, `review`, `explain`. The default model is `qwen/qwen3.7-max` (`OPENCODE_MODEL`); `model` overrides it per call. `comparison_mode` is accepted for backward compatibility but has no effect.
+Modes: `quick` (default), `generate`, `refactor`, `review`, `explain`. The default model is `particle-ai/particle-1` (`OPENCODE_MODEL`); `model` overrides it per call. `comparison_mode` is accepted for backward compatibility but has no effect.
 
 ```json
 {

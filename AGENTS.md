@@ -18,8 +18,8 @@ This is a **single-maintainer project** by @AndrewAltimit with a **container-fir
 
 Active agents (canonical roster: `docs/agents/agent-matrix.md`):
 
-1. **Claude Code** - Primary development assistant; runs the security and quality PR reviews
-2. **OpenRouter** - General PR review via Qwen (`qwen/qwen3.7-max`)
+1. **Claude Code** - Primary development assistant; runs the security and quality PR reviews (`claude-opus-5-5`)
+2. **OpenRouter** - General PR review via Particle (`particle-ai/particle-1`)
 3. **OpenCode** - Code generation via OpenRouter
 4. **Crush** - Code generation via OpenRouter
 5. **GitHub Copilot** - Review suggestions in PRs

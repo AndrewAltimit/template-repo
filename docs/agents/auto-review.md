@@ -67,7 +67,7 @@ Each agent brings different strengths to the review process:
 
 - **Claude** (Security Profile): Injection vulnerabilities, auth flaws, cryptographic misuse, race conditions
 - **Claude** (Quality Profile): Architecture violations, API design, performance regressions, concurrency
-- **OpenRouter** (General Profile): Logic errors, edge cases, incomplete refactoring (`qwen/qwen3.7-max`)
+- **OpenRouter** (General Profile): Logic errors, edge cases, incomplete refactoring (`particle-ai/particle-1`)
 - **OpenCode**: Code quality and optimization suggestions
 - **Crush**: Security and performance considerations
 

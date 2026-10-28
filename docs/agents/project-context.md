@@ -9,7 +9,7 @@ This is a **container-first, self-hosted project template** maintained by a sing
 ## AI Agent Ecosystem
 
 - **Claude Code**: primary development assistant; runs the security and quality PR reviews
-- **OpenRouter** (`qwen/qwen3.7-max`): general PR review
+- **OpenRouter** (`particle-ai/particle-1`): general PR review
 - **OpenCode, Crush**: code generation via OpenRouter
 - **GitHub Copilot**: review suggestions in pull requests
 - **Gemini, Codex**: legacy / not allowed (see [agent-matrix.md](agent-matrix.md#legacy-agents-gemini-and-codex-not-allowed))
