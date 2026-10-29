@@ -154,7 +154,6 @@ jobs:
           workflow_files_count=$(grep -E '\.github/workflows/' changed_files.txt | wc -l || echo "0")
           BOARD_PATTERN='tools/rust/board-manager|tools/rust/trust-common|tools/mcp/mcp_github_board'
           BOARD_PATTERN="$BOARD_PATTERN|docker/mcp-github-board\\.Dockerfile"
-          BOARD_PATTERN="$BOARD_PATTERN|docker/requirements/requirements-github-board\\.txt"
           github_board_count=$(grep -E "$BOARD_PATTERN" changed_files.txt | wc -l || echo "0")
           TEX_PATTERN='\.tex$|automation/ci-cd/build-latex-doc\.sh|docker/texlive\.Dockerfile|\.github/workflows/build-docs\.yml'
           tex_count=$(grep -E "$TEX_PATTERN" changed_files.txt | wc -l || echo "0")
