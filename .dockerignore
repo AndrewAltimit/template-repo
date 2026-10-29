@@ -46,6 +46,10 @@ dmypy.json
 pipenv/
 .venv
 .virtualenv
+# Nested venvs too (patterns above only match at the context root); a stray
+# packages/**/venv otherwise ships its site-packages, and their CVEs, into images
+**/venv/
+**/.venv/
 
 # Documentation
 docs/_build/

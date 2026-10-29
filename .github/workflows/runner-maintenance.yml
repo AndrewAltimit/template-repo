@@ -246,7 +246,7 @@ jobs:
           EOF
 
       - name: Upload Health Report
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: runner-health-report-${{ runner.name }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: runner-health-report.md
@@ -547,7 +547,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
           clean: true
@@ -564,7 +564,7 @@ jobs:
 
             # Common base images
             echo "Updating common base images..."
-            for image in ubuntu:22.04 python:3.11-slim alpine:latest; do
+            for image in ubuntu:22.04 python:3.13-slim-bookworm alpine:latest; do
               echo "Pulling $image..."
               docker pull $image || echo "Failed to pull $image"
             done
@@ -654,7 +654,7 @@ jobs:
           EOF
 
       - name: Upload Summary
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: maintenance-summary-${{ github.run_id }}-${{ github.run_attempt }}
           path: maintenance-summary.md
@@ -665,7 +665,7 @@ jobs:
           needs.runner-health-check.result == 'failure' ||
           needs.runner-cleanup.result == 'failure' ||
           needs.update-images.result == 'failure'
-        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
         with:
           script: |
             const title = '🚨 Runner Maintenance Failed';

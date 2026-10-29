@@ -10,7 +10,7 @@
 
 # Stage 1: Build the Rust binary
 # Use bookworm-based rust image to match runtime glibc version
-FROM rust:1.93-slim-bookworm AS builder
+FROM rust:1.99-slim-bookworm AS builder
 
 # Install build dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -32,9 +32,9 @@ RUN cargo build --release
 FROM debian:bookworm-slim
 
 # Pinned OpenCode CLI release (checksums verified below).
-ARG OPENCODE_VERSION=1.0.223
-ARG OPENCODE_CHECKSUM_AMD64=6c1bf6114a0b08fdb4c15ceef9da4480df0297699e045db7dd9a2950b0b9cc09
-ARG OPENCODE_CHECKSUM_ARM64=e6549b392ea52842a995da5eae4d35209df605066613b71e7883457d8ecaee9b
+ARG OPENCODE_VERSION=1.19.5
+ARG OPENCODE_CHECKSUM_AMD64=588310a336fa3b9df36b3f0225b26f679d453efaad0cf3d66c3651ef3ec1647a
+ARG OPENCODE_CHECKSUM_ARM64=fae5be262d693b7c5e562856cc473e59e741772936db0c0600ac0d5ed5bd088b
 
 # Install runtime dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -51,7 +51,7 @@ RUN set -eu; \
         arm64) OC_ARCH="arm64"; CHECKSUM="${OPENCODE_CHECKSUM_ARM64}" ;; \
         *) echo "Unsupported architecture: $ARCH" >&2; exit 1 ;; \
     esac; \
-    curl -fsSL "https://github.com/sst/opencode/releases/download/v${OPENCODE_VERSION}/opencode-linux-${OC_ARCH}.tar.gz" -o /tmp/opencode.tar.gz; \
+    curl -fsSL "https://github.com/anomalyco/opencode/releases/download/v${OPENCODE_VERSION}/opencode-linux-${OC_ARCH}.tar.gz" -o /tmp/opencode.tar.gz; \
     echo "${CHECKSUM}  /tmp/opencode.tar.gz" | sha256sum -c -; \
     tar --no-same-owner -xzf /tmp/opencode.tar.gz -C /usr/local/bin/ opencode; \
     chmod 0755 /usr/local/bin/opencode; \

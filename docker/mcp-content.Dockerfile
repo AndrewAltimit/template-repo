@@ -1,7 +1,7 @@
 # Multi-stage Rust build for mcp-content-creation
 # Stage 1: Build the Rust binary
 # Use bookworm-based rust image to match runtime glibc version
-FROM rust:1.93-slim-bookworm AS builder
+FROM rust:1.99-slim-bookworm AS builder
 
 # Install build dependencies for OpenSSL
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -22,8 +22,8 @@ WORKDIR /build/tools/mcp/mcp_content_creation
 RUN cargo build --release
 
 # Stage 2: Runtime image with LaTeX and Manim dependencies
-# Use python:3.11-slim for glibc compatibility with rust:1.93 builder
-FROM python:3.11-slim
+# Use python:3.13-slim-bookworm for glibc compatibility with the bookworm rust builder
+FROM python:3.13-slim-bookworm
 
 # Install runtime dependencies and Manim in a single layer so the build-only
 # packages needed for pycairo/manimpango are really gone from the final image

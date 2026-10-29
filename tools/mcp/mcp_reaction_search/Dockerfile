@@ -18,7 +18,7 @@
 # =============================================================================
 # Stage 1: Builder
 # =============================================================================
-FROM rust:1.93-slim-bookworm AS builder
+FROM rust:1.99-slim AS builder
 
 # Install build dependencies
 # Note: g++ provides libstdc++ needed for linking ONNX runtime
@@ -50,7 +50,7 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry \
 # =============================================================================
 # Stage 2: Runtime
 # =============================================================================
-FROM debian:bookworm-slim AS runtime
+FROM debian:trixie-slim AS runtime
 
 # Install runtime dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \

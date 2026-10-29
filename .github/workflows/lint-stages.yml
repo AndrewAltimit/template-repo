@@ -56,7 +56,7 @@ jobs:
           fi
 
       - name: Checkout code
-        uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           fetch-depth: 0
           clean: true
@@ -74,7 +74,7 @@ jobs:
       # Download Rust CLI tools (automation-cli for all stages, link checker for links)
       - name: Download Rust CLI tools
         if: inputs.rust_tools_artifact
-        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v6
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         continue-on-error: true
         with:
           name: rust-cli-tools
@@ -141,7 +141,7 @@ jobs:
 
       - name: Upload artifacts
         if: inputs.upload_artifacts && always()
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: lint-results-${{ inputs.stage }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
@@ -156,7 +156,7 @@ jobs:
 
       - name: Comment on PR with link check results
         if: inputs.stage == 'links' && github.event_name == 'pull_request' && always()
-        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |

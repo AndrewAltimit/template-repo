@@ -1,10 +1,10 @@
 # Multi-stage build for ComfyUI with Rust MCP server (ARM64/aarch64 version)
 # Uses NVIDIA NGC PyTorch image which includes CUDA support for ARM64
 # Standard pytorch.org wheels only provide CPU builds for ARM64
-# Using 25.11 for Blackwell (sm_120/121) support
+# Using 26.09 (Blackwell sm_120/121 support since 25.11)
 
 # Stage 1: Build the Rust MCP binary
-FROM rust:1.93 AS builder
+FROM rust:1.99-bookworm AS builder
 
 WORKDIR /build
 
@@ -19,7 +19,7 @@ WORKDIR /build/tools/mcp/mcp_comfyui
 RUN cargo build --release
 
 # Stage 2: Runtime image with ComfyUI and CUDA (ARM64)
-FROM nvcr.io/nvidia/pytorch:25.11-py3
+FROM nvcr.io/nvidia/pytorch:26.09-py3
 
 # Install additional system dependencies
 # Note: libgl1-mesa-glx renamed to libgl1 in Ubuntu 24.04+

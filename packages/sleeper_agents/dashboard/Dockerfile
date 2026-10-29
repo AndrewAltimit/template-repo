@@ -1,5 +1,5 @@
 # Dashboard Docker image
-FROM python:3.11-slim
+FROM python:3.13-slim-bookworm
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE=1 \
@@ -7,14 +7,18 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONPATH=/home/dashboard/app:/home/dashboard/src \
     STREAMLIT_SERVER_HEADLESS=true \
     STREAMLIT_SERVER_PORT=8501 \
-    STREAMLIT_SERVER_ADDRESS=0.0.0.0
+    STREAMLIT_SERVER_ADDRESS=0.0.0.0 \
+    BROWSER_PATH=/usr/bin/chromium
 
 # Install system dependencies
+# chromium: kaleido 1.x renders Plotly charts through a headless browser; without
+# it PDF chart export silently produces no image
 RUN apt-get update && apt-get install -y \
     build-essential \
     curl \
     git \
     sqlite3 \
+    chromium \
     && rm -rf /var/lib/apt/lists/*
 
 # Create non-root user and required directories

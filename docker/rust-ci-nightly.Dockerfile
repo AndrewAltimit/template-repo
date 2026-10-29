@@ -6,7 +6,7 @@
 # - BuildKit cache mounts for apt
 # - Pre-installed toolchains and targets
 
-FROM rust:1.93-slim
+FROM rust:1.99-slim
 
 # Install system dependencies with BuildKit cache
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \

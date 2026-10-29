@@ -1,7 +1,7 @@
 # GPU-enabled Docker image for sleeper agent detection
-# Based on NVIDIA CUDA 12.6 for RTX 4090 compatibility
+# Based on NVIDIA CUDA 13.0 to match the cu130 PyTorch wheels (host driver >= 580)
 
-FROM nvidia/cuda:12.6.3-runtime-ubuntu22.04
+FROM nvidia/cuda:13.0.2-runtime-ubuntu22.04
 
 # Prevent interactive prompts during build
 ENV DEBIAN_FRONTEND=noninteractive
@@ -18,20 +18,21 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && add-apt-repository ppa:deadsnakes/ppa -y \
     && apt-get update \
     && apt-get install -y --no-install-recommends \
-    python3.11 \
-    python3.11-venv \
-    python3.11-dev \
-    python3-pip \
+    python3.13 \
+    python3.13-venv \
+    python3.13-dev \
     git \
     curl \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# Set python3.11 as default and ensure pip is available
-# Use pip3 from system packages - works reliably behind corporate firewalls
-# No network download required since python3-pip is installed via apt
-RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1 \
-    && python3 -m pip --version
+# Run everything from a Python 3.13 virtualenv. jammy's apt pip predates 3.12
+# (no distutils), so pip comes from the bundled ensurepip wheel instead; this
+# needs no network download and so still works behind corporate firewalls.
+RUN python3.13 -m venv /opt/venv
+ENV VIRTUAL_ENV=/opt/venv
+ENV PATH="/opt/venv/bin:${PATH}"
+RUN python3 --version && python3 -m pip --version
 
 # Configure pip for corporate firewall environments
 # Trust PyPI and PyTorch hosts to handle SSL interception
@@ -44,40 +45,41 @@ RUN python3 -m pip install --no-cache-dir --upgrade "pip>=24.0" "setuptools>=70.
 # Build context is now packages/sleeper_agents/ (src/ layout)
 COPY pyproject.toml README.md /app/
 
-# Install PyTorch with CUDA 12.4+ support (compatible with CUDA 12.6 runtime)
-RUN pip install --no-cache-dir torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
+# Install PyTorch with CUDA 13.0 support. torchvision/torchaudio are not used by
+# the package (and torchaudio is no longer published for current torch).
+RUN pip install --no-cache-dir "torch==2.14.1" --index-url https://download.pytorch.org/whl/cu130
 
 # Pre-install problematic heavy packages separately to avoid dependency resolution hangs
 # These packages have complex dependencies and may require compilation
 RUN pip install --no-cache-dir \
-    accelerate>=0.24.0 \
-    peft>=0.7.0 \
-    bitsandbytes>=0.41.0
+    "accelerate>=0.24.0" \
+    "peft>=0.7.0" \
+    "bitsandbytes>=0.41.0"
 
 # Install the sleeper detection package dependencies first
 # This separates dependency resolution from the editable install
 RUN pip install --no-cache-dir \
-    numpy>=1.24.0 \
-    scipy>=1.10.0 \
-    transformer-lens>=4.0.0 \
-    transformers>=4.34.0 \
-    huggingface-hub>=0.20.0 \
-    psutil>=5.9.0 \
-    fastapi>=0.104.0 \
-    uvicorn>=0.24.0 \
-    pydantic>=2.0.0 \
-    matplotlib>=3.6.0 \
-    plotly>=5.0.0 \
-    seaborn>=0.12.0 \
-    pandas>=2.0.0 \
-    loguru>=0.7.0 \
-    scikit-learn>=1.3.0 \
-    jinja2>=3.1.0 \
-    pyyaml>=6.0 \
-    python-dotenv>=1.0.0 \
-    tqdm>=4.66.0 \
-    httpx>=0.25.0 \
-    python-multipart>=0.0.6
+    "numpy>=1.24.0" \
+    "scipy>=1.10.0" \
+    "transformer-lens>=4.0.0" \
+    "transformers>=5.9.0" \
+    "huggingface-hub>=0.20.0" \
+    "psutil>=5.9.0" \
+    "fastapi>=0.104.0" \
+    "uvicorn>=0.24.0" \
+    "pydantic>=2.0.0" \
+    "matplotlib>=3.6.0" \
+    "plotly>=5.0.0" \
+    "seaborn>=0.12.0" \
+    "pandas>=2.0.0" \
+    "loguru>=0.7.0" \
+    "scikit-learn>=1.3.0" \
+    "jinja2>=3.1.0" \
+    "pyyaml>=6.0" \
+    "python-dotenv>=1.0.0" \
+    "tqdm>=4.66.0" \
+    "httpx>=0.25.0" \
+    "python-multipart>=0.0.6"
 
 # Copy the source code (src/sleeper_agents/)
 # With src/ layout, this is clean and doesn't include tests, docs, etc.

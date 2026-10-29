@@ -8,8 +8,8 @@
 # does) never need network access to Hugging Face at runtime.
 
 # Stage 1: Build the Rust binary
-# Use bookworm-based rust image to match runtime glibc version
-FROM rust:1.93-slim-bookworm AS builder
+# Trixie builder and runtime: fastembed 7 (ONNX Runtime) needs glibc >= 2.38
+FROM rust:1.99-slim AS builder
 
 # pkg-config/libssl-dev: reqwest native-tls; g++: libstdc++ for ONNX Runtime;
 # ca-certificates: model and ONNX Runtime downloads during the build
@@ -37,7 +37,7 @@ RUN MEMORY_MODEL_CACHE_DIR=/opt/mcp-agentcore-memory/models \
     ./target/release/mcp-agentcore-memory --prefetch-model
 
 # Stage 2: Runtime image
-FROM debian:bookworm-slim
+FROM debian:trixie-slim
 
 # curl: health check; libssl3/ca-certificates: TLS to ChromaDB (https URLs)
 RUN apt-get update && apt-get install -y --no-install-recommends \

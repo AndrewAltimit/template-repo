@@ -5,7 +5,7 @@
 # - Rust 1.90+ (required for edition 2024 and let chains)
 # - Incremental compilation cache
 
-FROM rust:1.93-slim
+FROM rust:1.99-slim
 
 # Install system dependencies with BuildKit cache
 # X11 deps needed by mcp-desktop-control (x11rb crate)
@@ -31,10 +31,14 @@ RUN rustup component add rustfmt clippy llvm-tools-preview
 RUN rustup toolchain install nightly --profile minimal \
     && rustup +nightly component add rustfmt clippy
 
-# Install cargo tools for CI
+# Install cargo tools for CI (pinned; a failed install fails the build so
+# cargo-deny advisory checks can never silently go missing)
+ARG CARGO_DENY_VERSION=0.20.2
+ARG CARGO_LLVM_COV_VERSION=0.9.1
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
-    cargo install cargo-deny --locked 2>/dev/null || true && \
-    cargo install cargo-llvm-cov --locked 2>/dev/null || true
+    cargo install cargo-deny --version "${CARGO_DENY_VERSION}" --locked \
+    && cargo install cargo-llvm-cov --version "${CARGO_LLVM_COV_VERSION}" --locked \
+    && cargo deny --version && cargo llvm-cov --version
 
 # Create working directory
 WORKDIR /workspace

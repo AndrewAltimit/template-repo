@@ -1,7 +1,8 @@
 # Sleeper Agent Detection - Evaluation System Dockerfile
 # Optimized for batch evaluation and report generation
 
-FROM pytorch/pytorch:2.2.0-cuda11.8-cudnn8-runtime AS base
+# torch 2.14.1 bundles CUDA 13.0 (NVIDIA driver >= 580)
+FROM pytorch/pytorch:2.14.1-cuda13.0-cudnn9-runtime AS base
 
 # Set working directory
 WORKDIR /app
@@ -32,12 +33,10 @@ COPY --chown=evaluator:evaluator . /app
 
 # Install dependencies from pyproject.toml - single source of truth
 # Install in editable mode with 'all' extras for complete environment
-RUN pip install --no-cache-dir /app/packages/sleeper_agents[all]
-
-# The package's torch floor upgrades the base image's torch, which leaves the base
-# image's torchvision/torchaudio (built for torch 2.2) behind; importing transformers
-# then fails ("operator torchvision::nms does not exist"). Neither is used here.
-RUN pip uninstall -y torchvision torchaudio
+# torch is pinned to the base image's version so pip never replaces it, which would
+# leave the base image's torchvision/torchaudio built against a different torch
+# (importing transformers then fails with "operator torchvision::nms does not exist").
+RUN pip install --no-cache-dir "torch==2.14.1" /app/packages/sleeper_agents[all]
 
 # Set Python path
 ENV PYTHONPATH=/app:$PYTHONPATH
