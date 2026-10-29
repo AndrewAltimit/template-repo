@@ -1,0 +1,18 @@
+{
+  "base_url": "http://localhost:8000/v1",
+  "model": "your-model-name",
+  "api_key_env": "OPENAI_API_KEY",
+  "tasks": ["pointer_chase", "permutation", "parity", "reachability"],
+  "depths": [1, 2, 4, 8, 12],
+  "reps": 6,
+  "seed": 0,
+  "max_tokens": 4,
+  "temperature": 0.0,
+  "logprobs": 0,
+  "requests_per_minute": 10,
+  "max_requests": 400,
+  "knob_param": null,
+  "knob_values": [],
+  "extra": {},
+  "acknowledge_terms": false
+}

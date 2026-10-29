@@ -1,0 +1,48 @@
+[build-system]
+requires = ["setuptools>=84.2.1", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "recurrent-depth"
+version = "1.0.0"
+description = "Measurement toolkit for telling recurrent-depth (looped) language models apart from fixed-depth transformers"
+readme = "README.md"
+authors = [
+    {name = "Andrew Altimit"},
+]
+license = {text = "MIT"}
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.13",
+]
+requires-python = ">=3.11"
+# numpy is the only runtime dependency. The black-box client uses the
+# standard library (urllib) so it can run in minimal containers.
+dependencies = [
+    "numpy>=2.0",
+]
+
+[project.optional-dependencies]
+# Only needed to record hidden states from a Hugging Face checkpoint.
+hf = [
+    "torch>=2.4",
+    "transformers>=4.44",
+]
+dev = [
+    "pytest>=8.0",
+]
+
+[project.scripts]
+recurrent-depth = "recurrent_depth.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra -q"
+asyncio_default_fixture_loop_scope = "function"

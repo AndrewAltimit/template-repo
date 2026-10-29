@@ -146,6 +146,7 @@ known-first-party = [
     "github_agents",
     "sleeper_agents",
     "economic_agents",
+    "recurrent_depth",
     # Note: All MCP servers are now Rust packages (mcp_core, mcp_gaea2, etc.)
     # Local modules within packages (e.g., sleeper_agents dashboard)
     "config",

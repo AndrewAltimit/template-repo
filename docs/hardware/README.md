@@ -38,10 +38,20 @@ Program guide for using deception to detect, attribute, and report misaligned au
 - Provider reporting package, community sharing, legal and ethical guardrails, and a four-level maturity model
 - Companion to the containment framework above
 
+### [Recurrent Depth Signatures](./recurrent-depth-signatures.md)
+Measurement guide for telling recurrent-depth (looped, weight-tied) language models apart from fixed-depth transformers when the developer does not disclose architecture (v1.0, October 2026).
+- Why architecture matters for safety: chain-of-thought monitorability, hidden in-pass test-time compute, selective effort, compute accounting, interpretability transfer, and the counter-case
+- Taxonomy of looping, adaptive iteration, latent-thought tokens, and early exit, with the confounders (MoE, speculative decoding, batching, hidden reasoning tokens)
+- Detection by access level: config and weight-sharing inspection, hidden-state convergence, log-probability width, latency against serial depth at fixed length, no-CoT serial-depth probes, compute-knob sensitivity
+- Likelihood-ratio scoring with family discounts and an explicit inconclusive verdict, plus a leave-one-out validation protocol on known open models
+- Guardrails: measurement and inference only, no weight extraction or access-control bypass, disclose to providers first
+- **Implementation**: [`packages/recurrent_depth/`](../../packages/recurrent_depth/)
+
 | Document | PDF | Source |
 |----------|-----|--------|
 | AI Agent Containment & Infrastructure Security | [Download PDF](https://github.com/AndrewAltimit/template-repo/releases/latest) | [Markdown](./ai-agent-containment-infrastructure-security-framework.md) \| [LaTeX](./latex/ai-agent-containment-infrastructure-security-framework.tex) |
 | Agent Swarm Honeypot Guide | [Download PDF](https://github.com/AndrewAltimit/template-repo/releases/latest) | [Markdown](./agent-swarm-honeypot-guide.md) \| [LaTeX](./latex/agent-swarm-honeypot-guide.tex) |
+| Recurrent Depth Signatures | [Download PDF](https://github.com/AndrewAltimit/template-repo/releases/latest) | [Markdown](./recurrent-depth-signatures.md) \| [LaTeX](./latex/recurrent-depth-signatures.tex) |
 | BioForge CRISPR Automation | [Download PDF](https://github.com/AndrewAltimit/template-repo/releases/latest) | [Markdown](./bioforge-crispr-automation.md) \| [LaTeX](./latex/bioforge-crispr-automation.tex) |
 | Secure Terminal Briefcase | [Download PDF](https://github.com/AndrewAltimit/template-repo/releases/latest) | [Markdown](./secure-terminal-briefcase.md) \| [LaTeX](./latex/secure-terminal-briefcase.tex) |
 
