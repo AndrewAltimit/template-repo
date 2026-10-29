@@ -49,6 +49,10 @@ RUN apt-get update && apt-get install -y \
 RUN ln -sf /usr/bin/python3.13 /usr/bin/python \
     && ln -sf /usr/bin/pip3 /usr/bin/pip
 
+# Upgrade npm within the 11.x line: the copy bundled with node 26 vendors
+# undici and brace-expansion releases with HIGH advisories
+RUN npm install -g npm@11.21.1 && npm --version
+
 # Use the existing node user (UID 1000) from the base image
 # This avoids UID conflicts and maintains consistency
 

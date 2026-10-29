@@ -12,8 +12,11 @@ RUN apt-get update && apt-get install -y \
 # Node.js from the official image (Claude Code needs Node >= 22; bookworm ships 18)
 COPY --from=node:26-bookworm-slim /usr/local/bin/node /usr/local/bin/node
 COPY --from=node:26-bookworm-slim /usr/local/lib/node_modules /usr/local/lib/node_modules
+# npm is upgraded within the 11.x line: the copy bundled with node 26 vendors
+# undici and brace-expansion releases with HIGH advisories
 RUN ln -s ../lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
     && ln -s ../lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx \
+    && npm install -g npm@11.21.1 \
     && node --version && npm --version
 
 # Install GitHub CLI
