@@ -36,10 +36,16 @@ tracing = "0.1"
 thiserror = "2.0"
 anyhow = "1.0"
 
-# Image processing
-image = { version = "0.25", features = ["jpeg", "png", "webp"] }
-imageproc = "0.27"
-ab_glyph = "0.2"
+# Image processing. Only the codecs templates may use (see
+# templates::IMAGE_EXTENSIONS); the default set adds AVIF via rav1e, which
+# pulls in the unmaintained `paste` (RUSTSEC-2024-0436).
+image = { version = "0.25", default-features = false, features = ["jpeg", "png", "webp"] }
+
+# Caption fonts: skrifa parses fonts, ab_glyph_rasterizer turns outlines into
+# coverage. (Replaces ab_glyph, whose ttf-parser is unmaintained,
+# RUSTSEC-2026-0192.)
+skrifa = "0.49"
+ab_glyph_rasterizer = "0.1"
 
 # Base64 encoding
 base64 = "0.23"
