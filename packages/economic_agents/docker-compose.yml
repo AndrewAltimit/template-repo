@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # Economic agents CLI - for running simulations
   economic-agents-cli:

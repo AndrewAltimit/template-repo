@@ -866,7 +866,7 @@ services:
 
   # Optional Redis for caching
   redis:
-    image: redis:7-alpine
+    image: redis:8-alpine
     ports:
       - "6379:6379"
     networks:
@@ -1091,19 +1091,20 @@ services:
 
   # ChromaDB - Self-hosted vector database for memory
   # Start with: docker compose --profile memory-chromadb up -d
+  # ChromaDB 1.x (Rust server): v2 API only, persists to /data, and the image
+  # ships no curl, so the health check speaks HTTP over bash's /dev/tcp.
   chromadb:
-    image: chromadb/chroma:0.5.23
+    image: chromadb/chroma:1.5.9
     ports:
       - "8000:8000"
     volumes:
-      - chromadb_data:/chroma/chroma
+      - chromadb_data:/data
     environment:
       - ANONYMIZED_TELEMETRY=false
-      - IS_PERSISTENT=TRUE
     networks:
       - mcp-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/heartbeat"]
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8000 && printf 'GET /api/v2/heartbeat HTTP/1.0\\r\\n\\r\\n' >&3 && head -n 1 <&3 | grep -q ' 200'"]
       interval: 30s
       timeout: 10s
       retries: 3

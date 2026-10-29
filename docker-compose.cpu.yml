@@ -1,6 +1,4 @@
 # Override file for running video editor without GPU
-version: '3.8'
-
 services:
   mcp-video-editor:
     environment:
