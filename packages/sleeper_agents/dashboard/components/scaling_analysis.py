@@ -111,7 +111,7 @@ def render_scaling_analysis(data_loader: Any, _cache_manager: Any) -> None:
     table = measured_persistence_table(data_loader, data_loader.fetch_models())
     if not table.empty:
         st.markdown("#### All Evaluated Models (measured)")
-        st.dataframe(table, use_container_width=True, hide_index=True)
+        st.dataframe(table, width="stretch", hide_index=True)
 
     st.markdown("---")
 

@@ -148,7 +148,7 @@ def _render_persona_radar(data: dict):
         height=450,
     )
 
-    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False, "staticPlot": True})
+    st.plotly_chart(fig, width="stretch", config={"displayModeBar": False, "staticPlot": True})
 
 
 def _render_behavioral_metrics(data: dict):
@@ -309,7 +309,7 @@ def _render_concerning_responses(data: dict):
             return colors
 
         styled_df = df.style.apply(highlight_high_rates, axis=1)
-        st.dataframe(styled_df, use_container_width=True, hide_index=True)
+        st.dataframe(styled_df, width="stretch", hide_index=True)
 
     st.markdown("---")
 

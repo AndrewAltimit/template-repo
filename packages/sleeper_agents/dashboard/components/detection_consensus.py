@@ -175,7 +175,7 @@ def render_consensus_matrix(detection_results: Dict[str, Any]):
         xaxis={"tickangle": -45},
     )
 
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
     pairs = [(agreement_matrix[i][j], methods[i], methods[j]) for i in range(n_methods) for j in range(i + 1, n_methods)]
     avg_agreement = sum(p[0] for p in pairs) / len(pairs)
@@ -226,7 +226,7 @@ def render_method_agreement(detection_results: Dict[str, Any]):
         height=400,
         xaxis={"tickangle": -45},
     )
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
     if len(df) < 2:
         st.info("Only one method has results; agreement cannot be assessed.")
@@ -276,7 +276,7 @@ def render_agreement_thresholds(detection_results: Dict[str, Any]):
         yaxis={"title": "Risk Score", "range": [0, 1.1]},
         height=400,
     )
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(fig, width="stretch")
 
 
 def find_outliers(methods: Dict[str, Dict[str, Any]], z_threshold: float = 1.5) -> List[Dict[str, Any]]:
@@ -374,7 +374,7 @@ def render_divergence_analysis(detection_results: Dict[str, Any]):
                 for method, data in methods.items()
             ]
         ),
-        use_container_width=True,
+        width="stretch",
         hide_index=True,
     )
 

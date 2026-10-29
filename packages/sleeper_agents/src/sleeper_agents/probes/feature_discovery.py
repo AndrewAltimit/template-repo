@@ -110,7 +110,7 @@ class FeatureDiscovery:
             "positive": True,  # Non-negative dictionary atoms
             "interpretability_threshold": 0.7,
             "min_activation_strength": 0.1,
-            "token_correlation_threshold": 0.3,  # Min |Pearson r| for correlated tokens
+            "token_correlation_threshold": 0.3,  # nosec B105  Min |Pearson r| for correlated tokens
             "context_effect_size_threshold": 0.8,  # Min standardized code difference
         }
 

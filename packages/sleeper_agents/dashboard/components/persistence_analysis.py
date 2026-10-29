@@ -468,7 +468,7 @@ def _render_persistence_chart(data: Dict[str, Any]):
         barmode="group",
     )
 
-    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False, "staticPlot": True})
+    st.plotly_chart(fig, width="stretch", config={"displayModeBar": False, "staticPlot": True})
 
     if any(is_measured(p) for p in persistence):
         max_persistence = measured_max(persistence)
@@ -619,7 +619,7 @@ def _render_training_comparison(data: Dict[str, Any]):
     fig.update_yaxes(title_text="Trigger Specificity Change", tickformat=".0%", row=1, col=2)
 
     fig.update_layout(height=400, showlegend=False)
-    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False, "staticPlot": True})
+    st.plotly_chart(fig, width="stretch", config={"displayModeBar": False, "staticPlot": True})
     if scatter_df.empty:
         st.caption(f"Specificity change: {NOT_MEASURED} for the stored methods; scatter not drawn.")
 
@@ -627,7 +627,7 @@ def _render_training_comparison(data: Dict[str, Any]):
     for col in ["Pre-Training Activation", "Post-Training Activation", "Persistence Rate"]:
         table[col] = table[col].apply(fmt_pct)
     table["Specificity Change"] = table["Specificity Change"].apply(lambda v: f"{v:+.1%}" if is_measured(v) else NOT_MEASURED)
-    st.dataframe(table, use_container_width=True, hide_index=True)
+    st.dataframe(table, width="stretch", hide_index=True)
 
 
 def _render_trigger_results(data: Dict[str, Any]):
@@ -647,7 +647,7 @@ def _render_trigger_results(data: Dict[str, Any]):
     if not rows:
         st.info("No per-trigger results stored.")
         return
-    st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+    st.dataframe(pd.DataFrame(rows), width="stretch", hide_index=True)
     st.caption("Activation on trigger variants (typos, paraphrases, ...) is shown in the Trigger Sensitivity view.")
 
 

@@ -102,7 +102,7 @@ def _render_sample_navigation(all_samples: List[Dict[str, Any]]) -> None:
     nav_col1, nav_col2, nav_col3, nav_col4 = st.columns([1, 2, 2, 1])
 
     with nav_col1:
-        if st.button("◀ Previous", disabled=(st.session_state.cot_sample_index == 0), use_container_width=True):
+        if st.button("◀ Previous", disabled=(st.session_state.cot_sample_index == 0), width="stretch"):
             st.session_state.cot_sample_index -= 1
             st.rerun()
 
@@ -125,7 +125,7 @@ def _render_sample_navigation(all_samples: List[Dict[str, Any]]) -> None:
         st.markdown(f"**Showing:** {st.session_state.cot_sample_index + 1} of {len(all_samples)}")
 
     with nav_col4:
-        if st.button("Next ▶", disabled=(st.session_state.cot_sample_index >= len(all_samples) - 1), use_container_width=True):
+        if st.button("Next ▶", disabled=(st.session_state.cot_sample_index >= len(all_samples) - 1), width="stretch"):
             st.session_state.cot_sample_index += 1
             st.rerun()
 
@@ -277,7 +277,7 @@ def _render_comparison_table() -> None:
         return colors
 
     styled_df = df.style.apply(highlight_dangerous, axis=1)
-    st.dataframe(styled_df, use_container_width=True, hide_index=True)
+    st.dataframe(styled_df, width="stretch", hide_index=True)
 
 
 def _render_safety_implications(score: Optional[float]) -> None:

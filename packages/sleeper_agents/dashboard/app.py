@@ -249,7 +249,7 @@ def _render_nav_section(options, section_key, is_build):
         if st.button(
             option,
             key=f"{section_key}_{option}",
-            use_container_width=True,
+            width="stretch",
             type="primary" if st.session_state.current_tab == option else "secondary",
         ):
             st.session_state.current_tab = option

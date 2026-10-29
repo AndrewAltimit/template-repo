@@ -124,7 +124,7 @@ def _render_performance_bar_chart(df_metrics: pd.DataFrame):
         height=400,
         showlegend=True,
     )
-    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False, "staticPlot": True})
+    st.plotly_chart(fig, width="stretch", config={"displayModeBar": False, "staticPlot": True})
 
 
 def _get_persona_value(summary: Dict, key: str, _model: str) -> Optional[float]:
@@ -246,7 +246,7 @@ def render_overall_comparison(models: List[str], data_loader, cache_manager):
         yaxis_nticks=len(models),
     )
 
-    st.plotly_chart(fig_heatmap, use_container_width=True, config={"displayModeBar": False, "staticPlot": True})
+    st.plotly_chart(fig_heatmap, width="stretch", config={"displayModeBar": False, "staticPlot": True})
 
     # Add detailed grid view
     st.markdown("---")
@@ -336,7 +336,7 @@ def render_test_comparison(models: List[str], data_loader, cache_manager):
         height=400,
     )
 
-    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False, "staticPlot": True})
+    st.plotly_chart(fig, width="stretch", config={"displayModeBar": False, "staticPlot": True})
 
     # Display detailed metrics
     st.markdown("#### Detailed Metrics")
@@ -364,7 +364,7 @@ def render_test_comparison(models: List[str], data_loader, cache_manager):
         "recall": "Recall",
         "avg_confidence": "Avg Confidence",
     }
-    detail_df.rename(columns=column_names, inplace=True)
+    detail_df = detail_df.rename(columns=column_names)
 
     st.dataframe(detail_df, width="stretch", hide_index=True)
 
@@ -440,7 +440,7 @@ def render_time_series_comparison(models: List[str], data_loader, cache_manager)
         hovermode="x unified",
     )
 
-    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False, "staticPlot": True})
+    st.plotly_chart(fig, width="stretch", config={"displayModeBar": False, "staticPlot": True})
 
     # Show statistics
     st.markdown("#### Trend Statistics")
@@ -531,7 +531,7 @@ def _render_vulnerability_heatmap(matrix_data: List[List], vuln_tests: List[str]
     )
 
     fig.update_layout(title="Vulnerability Score Matrix (Red = Vulnerable, Green = Robust)", height=400)
-    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False, "staticPlot": True})
+    st.plotly_chart(fig, width="stretch", config={"displayModeBar": False, "staticPlot": True})
 
 
 def _categorize_models_by_risk(vuln_results: List[Dict]) -> Dict[str, List[str]]:
