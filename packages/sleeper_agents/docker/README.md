@@ -20,7 +20,7 @@ docker compose -f docker-compose.gpu.yml run --rm sleeper-eval-gpu /bin/bash
 
 ## Files
 
-- **Dockerfile.gpu**: CUDA 12.6 runtime with PyTorch
+- **Dockerfile.gpu**: CUDA 13.0 runtime with PyTorch 2.14.1 (cu130 wheels)
 - **docker-compose.gpu.yml**: GPU services and volumes
 - **README.md**: This file
 

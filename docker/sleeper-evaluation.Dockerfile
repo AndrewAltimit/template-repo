@@ -1,19 +1,37 @@
 # Sleeper Agent Detection - Evaluation System Dockerfile
 # Optimized for batch evaluation and report generation
 
-# torch 2.14.1 bundles CUDA 13.0 (NVIDIA driver >= 580)
-FROM pytorch/pytorch:2.14.1-cuda13.0-cudnn9-runtime AS base
+# CUDA 13.0 runtime to match the cu130 torch 2.14.1 wheels (NVIDIA driver >= 580).
+# Not the pytorch/pytorch:2.14.1 image: it ships Ubuntu 24.04's system Python
+# 3.12 (PEP 668 managed), and the package and its current deps need 3.13. Same
+# base as packages/sleeper_agents/docker/Dockerfile.gpu, so the layers are shared.
+FROM nvidia/cuda:13.0.2-runtime-ubuntu22.04 AS base
+
+ENV DEBIAN_FRONTEND=noninteractive
 
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
+# Install system dependencies (Python 3.13 from deadsnakes)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    software-properties-common \
+    ca-certificates \
+    && add-apt-repository ppa:deadsnakes/ppa -y \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends \
+    python3.13 \
+    python3.13-venv \
+    python3.13-dev \
     curl \
     git \
     build-essential \
     wget \
     && rm -rf /var/lib/apt/lists/*
+
+# Run everything from a Python 3.13 virtualenv (pip comes from ensurepip)
+RUN python3.13 -m venv /opt/venv
+ENV VIRTUAL_ENV=/opt/venv
+ENV PATH="/opt/venv/bin:${PATH}"
 
 # Create non-root user
 ARG USER_ID=1000
@@ -33,10 +51,10 @@ COPY --chown=evaluator:evaluator . /app
 
 # Install dependencies from pyproject.toml - single source of truth
 # Install in editable mode with 'all' extras for complete environment
-# torch is pinned to the base image's version so pip never replaces it, which would
-# leave the base image's torchvision/torchaudio built against a different torch
-# (importing transformers then fails with "operator torchvision::nms does not exist").
-RUN pip install --no-cache-dir "torch==2.14.1" /app/packages/sleeper_agents[all]
+# torch comes from the cu130 index first; the package install then finds the
+# torch>=2.14.1 requirement already satisfied and keeps the CUDA 13.0 build.
+RUN pip install --no-cache-dir "torch==2.14.1" --index-url https://download.pytorch.org/whl/cu130
+RUN pip install --no-cache-dir /app/packages/sleeper_agents[all]
 
 # Set Python path
 ENV PYTHONPATH=/app:$PYTHONPATH
