@@ -329,8 +329,9 @@ services:
   # Sleeper Detection Dashboard
   sleeper-dashboard:
     build:
-      context: ./packages/sleeper_agents/dashboard
-      dockerfile: Dockerfile
+      # Context is the package root: the image copies both dashboard/ and src/
+      context: ./packages/sleeper_agents
+      dockerfile: dashboard/Dockerfile
     user: "${USER_ID:-1000}:${GROUP_ID:-1000}"
     ports:
       - "8501:8501"

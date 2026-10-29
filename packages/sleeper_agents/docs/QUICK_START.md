@@ -127,7 +127,8 @@ See [CLI Reference](CLI_REFERENCE.md) for the full command reference.
 ```bash
 # Build dashboard image
 docker build -t sleeper-dashboard:latest \
-    packages/sleeper_agents/dashboard/
+    -f packages/sleeper_agents/dashboard/Dockerfile \
+    packages/sleeper_agents/
 
 # Run with environment configuration (set your own secure password!)
 docker run -d \
