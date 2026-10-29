@@ -11,7 +11,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # All available tools (binaries only, not libraries)
 TOOLS=(
+    "automation-cli"
     "board-manager"
+    "code-review-processor"
     "gh-validator"
     "git-guard"
     "github-agents-cli"
