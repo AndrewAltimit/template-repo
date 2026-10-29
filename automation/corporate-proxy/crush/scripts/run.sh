@@ -12,7 +12,7 @@ print_header "Running Crush with Mock Services"
 check_docker
 
 # Build if needed
-build_if_needed "crush-corporate:latest" "$SCRIPT_DIR/../docker/Dockerfile" "$CORPORATE_PROXY_ROOT"
+build_if_needed "crush-corporate:latest" "$SCRIPT_DIR/../docker/Dockerfile" "$CORPORATE_PROXY_ROOT/../.."
 
 # Clean up any existing container
 cleanup_container "crush-corporate"
