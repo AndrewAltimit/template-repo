@@ -10,27 +10,34 @@ docker compose --profile eval-cpu run --rm sleeper-eval-cpu
 
 ### Windows Deployment (GPU Mode)
 ```powershell
-# PowerShell (recommended)
+# PowerShell (recommended): quick GPU test, or a full evaluation with -Model
 .\packages\sleeper_agents\scripts\platform\windows\launch_gpu.ps1
+.\packages\sleeper_agents\scripts\platform\windows\launch_gpu.ps1 -Model gpt2
 
 # Command Prompt
-.\packages\sleeper_agents\scripts\platform\windows\launch_gpu.bat
+.\packages\sleeper_agents\scripts\platform\windows\launch_gpu.bat [model]
 ```
+
+The launchers run the evaluation container once and exit; results and HTML
+reports go to `evaluation_results\`. GPU mode needs NVIDIA driver 580 or newer
+(CUDA 13.0).
 
 ### CPU Testing on Windows
 ```powershell
 .\packages\sleeper_agents\scripts\platform\windows\launch_cpu.ps1
 ```
 
+The quick test passes only once the detector has something to measure against:
+with no trained probes the layer-probing test is skipped and the remaining test
+scores at chance, so a fresh setup reports FAILED.
+
 ## Service URLs
 
 | Service | URL | Description |
 |---------|-----|-------------|
-| Main API | http://localhost:8022 | REST API endpoints |
-| API Docs | http://localhost:8022/docs | Interactive API documentation |
-| Dashboard | http://localhost:8022 | Analysis dashboard (future) |
-| Monitoring | http://localhost:8023 | Real-time monitoring (future) |
-| Vector DB | http://localhost:8024 | ChromaDB interface |
+| Dashboard | http://localhost:8501 | Streamlit dashboard (`sleeper-dashboard` service or `launch_dashboard.ps1`) |
+| Detection API | http://localhost:8022 | FastAPI server, only when started (see Detection API Server below) |
+| API Docs | http://localhost:8022/docs | Interactive API documentation for the same server |
 
 ##  API Quick Examples
 

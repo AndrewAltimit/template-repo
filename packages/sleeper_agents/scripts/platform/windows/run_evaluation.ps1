@@ -1,9 +1,6 @@
 # Sleeper Agent Detection - Windows Evaluation Launcher
 # Comprehensive model evaluation system for RTX 4090
 
-# Ensure script exits on any error
-$ErrorActionPreference = "Stop"
-
 param(
     [Parameter()]
     [string]$Model = "gpt2",
@@ -24,6 +21,9 @@ param(
     [switch]$Report
 )
 
+# Ensure script exits on any error (after param: it must be the first statement)
+$ErrorActionPreference = "Stop"
+
 Write-Host "========================================================" -ForegroundColor Cyan
 Write-Host "SLEEPER AGENT DETECTION - EVALUATION SYSTEM" -ForegroundColor Yellow
 Write-Host "Model Safety Assessment Framework" -ForegroundColor Gray
@@ -36,8 +36,8 @@ if (-not (Get-Command "docker" -ErrorAction SilentlyContinue)) {
     exit 1
 }
 
-# Navigate to project root
-$projectRoot = Join-Path $PSScriptRoot "..\..\..\"
+# Navigate to the repository root (5 levels up from this script)
+$projectRoot = Join-Path $PSScriptRoot "..\..\..\..\.."
 Set-Location $projectRoot
 
 # Create output directory
@@ -82,34 +82,26 @@ if (Test-Path "/proc/version") {
     }
 }
 
-# Build Docker image using docker compose for consistency
+# Build the image through docker compose
 Write-Host "Building evaluation image..." -ForegroundColor Cyan
 
-# Determine which image to build based on GPU flag
-if ($GPU) {
-    docker compose build sleeper-eval-gpu 2>&1 | Out-Null
-    $imageName = "sleeper-eval-gpu"
-} else {
-    docker compose build sleeper-eval-cpu 2>&1 | Out-Null
-    $imageName = "sleeper-eval-cpu"
-}
+$service = if ($GPU) { "sleeper-eval-gpu" } else { "sleeper-eval-cpu" }
+$composeProfile = if ($GPU) { "eval-gpu" } else { "eval-cpu" }
 
+docker compose --profile $composeProfile build $service
 if ($LASTEXITCODE -ne 0) {
     Write-Host "ERROR: Failed to build Docker image" -ForegroundColor Red
     exit 1
 }
-
-# Tag the built image for use in the script
-docker tag $imageName`:latest sleeper-eval:latest
 
 Write-Host "[OK] Image built" -ForegroundColor Green
 Write-Host ""
 
 # Prepare command based on mode
 if ($Batch) {
-    # Batch evaluation mode
+    # Batch evaluation mode; paths are relative to the repo root (/app in the container)
     if (-not $Config) {
-        $Config = "configs/batch_eval_example.json"
+        $Config = "packages/sleeper_agents/src/sleeper_agents/configs/batch_eval_example.json"
     }
 
     Write-Host "Running BATCH EVALUATION" -ForegroundColor Yellow
@@ -117,8 +109,8 @@ if ($Batch) {
     Write-Host ""
 
     $command = "batch"
-    $args = @($Config)
-    if ($GPU) { $args += "--gpu" }
+    $cliArgs = @($Config -replace '\\', '/')
+    if ($GPU) { $cliArgs += "--gpu" }
 
 } else {
     # Single model evaluation
@@ -128,38 +120,30 @@ if ($Batch) {
     Write-Host ""
 
     $command = "evaluate"
-    $args = @($Model)
+    $cliArgs = @($Model)
 
     if ($TestSuites.Count -gt 0) {
-        $args += "--suites"
-        $args += $TestSuites
+        $cliArgs += "--suites"
+        $cliArgs += $TestSuites
     }
 
-    if ($GPU) { $args += "--gpu" }
-    if ($Report) { $args += "--report" }
+    if ($GPU) { $cliArgs += "--gpu" }
+    if ($Report) { $cliArgs += "--report" }
 }
 
-# Build Docker command
-$dockerArgs = @(
-    "run",
-    "--rm",
-    "-it",
-    "-v", "${pwd}/evaluation_results:/results",
-    "-v", "${pwd}:/app:ro"
-)
+# The compose service mounts the repo read-only at /app, evaluation_results at
+# /results, and provides the GPU, model cache and database.
+$dockerArgs = @("compose", "--profile", $composeProfile, "run", "--rm", $service)
 
-# Add GPU support if requested
 if ($GPU) {
-    $dockerArgs += "--gpus", "all"
     Write-Host "Using GPU acceleration (RTX 4090)" -ForegroundColor Green
 } else {
     Write-Host "Using CPU mode" -ForegroundColor Yellow
 }
 
-$dockerArgs += "sleeper-eval"
-$dockerArgs += "python", "-m", "packages.sleeper_agents.cli"
+$dockerArgs += "python", "-m", "sleeper_agents.cli"
 $dockerArgs += $command
-$dockerArgs += $args
+$dockerArgs += $cliArgs
 
 # Display command for debugging
 Write-Host "Command: docker $($dockerArgs -join ' ')" -ForegroundColor DarkGray
@@ -177,7 +161,7 @@ if ($LASTEXITCODE -eq 0) {
     Write-Host "EVALUATION COMPLETE" -ForegroundColor Green
 
     # Show results location
-    $latestReport = Get-ChildItem $resultsDir -Filter "*.html" |
+    $latestReport = Get-ChildItem $resultsDir -Filter "*.html" -Recurse |
                     Sort-Object LastWriteTime -Descending |
                     Select-Object -First 1
 

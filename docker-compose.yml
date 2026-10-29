@@ -311,9 +311,10 @@ services:
       - DEVICE=cuda
     networks:
       - mcp-network
-    # Default: Run model evaluation.
+    # Default: quick GPU test with gpt2 (`evaluate` needs a model argument).
+    # Full evaluation: docker compose run --rm sleeper-eval-gpu python -m sleeper_agents.cli evaluate <model> --gpu --report
     # To run API server instead: docker compose run --rm sleeper-eval-gpu uvicorn sleeper_agents.api.main:app --host 0.0.0.0 --port 8022
-    command: ["python", "-m", "sleeper_agents.cli", "evaluate", "--gpu"]
+    command: ["python", "-m", "sleeper_agents.cli", "test"]
     deploy:
       resources:
         reservations:

@@ -1,5 +1,14 @@
 # Sleeper Agent Detection - Windows CPU Mode Launcher
 # For testing without GPU
+#
+# Usage:
+#   .\launch_cpu.ps1                 Quick CPU test with gpt2
+#   .\launch_cpu.ps1 -Model <model>  Quick CPU test with another model
+
+param(
+    [Parameter(HelpMessage="Model for the quick test (default: gpt2)")]
+    [string]$Model
+)
 
 # Ensure script exits on any error
 $ErrorActionPreference = "Stop"
@@ -25,23 +34,20 @@ $env:SLEEPER_CPU_MODE = "true"
 $env:SLEEPER_DEVICE = "cpu"
 $env:CUDA_VISIBLE_DEVICES = ""
 
-# Navigate to project root
-$projectRoot = Join-Path $PSScriptRoot "..\..\..\"
+# Navigate to the repository root (5 levels up from this script)
+$projectRoot = Join-Path $PSScriptRoot "..\..\..\..\.."
 Set-Location $projectRoot
 
 Write-Host "Project root: $(Get-Location)" -ForegroundColor Gray
 Write-Host ""
 
-# Create output directories
-$outputDirs = @("outputs\sleeper-agents", "outputs\sleeper-agents\cpu-test")
-foreach ($dir in $outputDirs) {
-    if (-not (Test-Path $dir)) {
-        New-Item -ItemType Directory -Path $dir -Force | Out-Null
-    }
+# Results directory (mounted at /results in the container)
+if (-not (Test-Path "evaluation_results")) {
+    New-Item -ItemType Directory -Path "evaluation_results" -Force | Out-Null
 }
 
 Write-Host "Building Docker image for CPU mode..." -ForegroundColor Cyan
-docker compose build sleeper-eval-cpu
+docker compose --profile eval-cpu build sleeper-eval-cpu
 
 if ($LASTEXITCODE -ne 0) {
     Write-Host "ERROR: Failed to build Docker image" -ForegroundColor Red
@@ -52,17 +58,21 @@ if ($LASTEXITCODE -ne 0) {
 Write-Host "[OK] Image built successfully" -ForegroundColor Green
 Write-Host ""
 Write-Host "========================================================" -ForegroundColor Cyan
-Write-Host "Starting services in CPU mode..." -ForegroundColor Yellow
+Write-Host "Running the quick CPU test..." -ForegroundColor Yellow
 Write-Host ""
 Write-Host "NOTE: CPU mode uses minimal models for testing only" -ForegroundColor Gray
 Write-Host "For production use, deploy with GPU support" -ForegroundColor Gray
 Write-Host "========================================================" -ForegroundColor Cyan
 Write-Host ""
-Write-Host "Services available at:" -ForegroundColor Green
-Write-Host "  API:       http://localhost:8021" -ForegroundColor Cyan
-Write-Host "  Docs:      http://localhost:8021/docs" -ForegroundColor Cyan
-Write-Host "  Health:    http://localhost:8021/health" -ForegroundColor Cyan
-Write-Host ""
 
-# Start CPU mode service
-docker compose up sleeper-eval-cpu
+# Run the quick test (the container exits when it finishes)
+if ($Model) {
+    docker compose --profile eval-cpu run --rm sleeper-eval-cpu python -m sleeper_agents.cli test --cpu --model $Model
+} else {
+    docker compose --profile eval-cpu run --rm sleeper-eval-cpu
+}
+$exitCode = $LASTEXITCODE
+
+Write-Host ""
+Write-Host "Results are written to evaluation_results\" -ForegroundColor Green
+exit $exitCode

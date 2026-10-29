@@ -1,5 +1,14 @@
 # Sleeper Agent Detection - Windows GPU Launcher (PowerShell)
-# For use with RTX 4090 or other NVIDIA GPUs
+# For use with RTX 4090 or other NVIDIA GPUs (driver 580 or newer for CUDA 13.0)
+#
+# Usage:
+#   .\launch_gpu.ps1                 Quick GPU test (gpt2, basic suite)
+#   .\launch_gpu.ps1 -Model <model>  Full evaluation of <model> with an HTML report
+
+param(
+    [Parameter(HelpMessage="Model to evaluate; omit for the quick GPU test")]
+    [string]$Model
+)
 
 # Ensure script exits on any error
 $ErrorActionPreference = "Stop"
@@ -41,7 +50,7 @@ try {
 Write-Host ""
 Write-Host "Checking GPU availability..." -ForegroundColor Cyan
 
-$gpuTest = docker run --rm --gpus all nvidia/cuda:11.8.0-base-ubuntu22.04 nvidia-smi 2>&1
+$gpuTest = docker run --rm --gpus all nvidia/cuda:13.0.2-base-ubuntu24.04 nvidia-smi 2>&1
 if ($LASTEXITCODE -ne 0) {
     Write-Host "WARNING: NVIDIA Docker support not fully configured" -ForegroundColor Yellow
     Write-Host "Attempting to detect GPU directly..." -ForegroundColor Yellow
@@ -62,7 +71,7 @@ if ($LASTEXITCODE -ne 0) {
 } else {
     Write-Host "[OK] GPU support verified" -ForegroundColor Green
     # Display GPU info
-    $gpuInfo = docker run --rm --gpus all nvidia/cuda:11.8.0-base-ubuntu22.04 nvidia-smi --query-gpu=name,memory.total --format=csv,noheader
+    $gpuInfo = docker run --rm --gpus all nvidia/cuda:13.0.2-base-ubuntu24.04 nvidia-smi --query-gpu=name,memory.total --format=csv,noheader
     Write-Host "GPU: $gpuInfo" -ForegroundColor Cyan
 }
 
@@ -72,31 +81,22 @@ $env:SLEEPER_DEVICE = "cuda"
 $env:CUDA_VISIBLE_DEVICES = "0"
 $env:NVIDIA_VISIBLE_DEVICES = "all"
 
-# Navigate to project root (3 levels up from this script)
-$projectRoot = Join-Path $PSScriptRoot "..\..\..\"
+# Navigate to the repository root (5 levels up from this script)
+$projectRoot = Join-Path $PSScriptRoot "..\..\..\..\.."
 Set-Location $projectRoot
 Write-Host ""
 Write-Host "Project root: $(Get-Location)" -ForegroundColor Gray
 
-# Create output directories if they don't exist
-$outputDirs = @(
-    "outputs\sleeper-agents",
-    "outputs\sleeper-agents\models",
-    "outputs\sleeper-agents\results",
-    "outputs\sleeper-agents\cache"
-)
-
-foreach ($dir in $outputDirs) {
-    if (-not (Test-Path $dir)) {
-        New-Item -ItemType Directory -Path $dir -Force | Out-Null
-        Write-Host "Created directory: $dir" -ForegroundColor Gray
-    }
+# Results directory (mounted at /results in the container)
+if (-not (Test-Path "evaluation_results")) {
+    New-Item -ItemType Directory -Path "evaluation_results" -Force | Out-Null
+    Write-Host "Created directory: evaluation_results" -ForegroundColor Gray
 }
 
 # Build Docker image
 Write-Host ""
 Write-Host "Building Docker image..." -ForegroundColor Cyan
-$buildResult = docker compose build sleeper-eval-gpu 2>&1
+$buildResult = docker compose --profile eval-gpu build sleeper-eval-gpu 2>&1
 if ($LASTEXITCODE -ne 0) {
     Write-Host "ERROR: Failed to build Docker image" -ForegroundColor Red
     Write-Host $buildResult
@@ -105,28 +105,25 @@ if ($LASTEXITCODE -ne 0) {
 }
 Write-Host "[OK] Docker image built successfully" -ForegroundColor Green
 
-# Display service URLs
+# Run the evaluation (the container exits when it finishes)
 Write-Host ""
 Write-Host "========================================================" -ForegroundColor Cyan
-Write-Host "Starting services with GPU acceleration..." -ForegroundColor Yellow
-Write-Host "========================================================" -ForegroundColor Cyan
-Write-Host ""
-Write-Host "Services will be available at:" -ForegroundColor Green
-Write-Host "  Main API:    " -NoNewline -ForegroundColor White
-Write-Host "http://localhost:8021" -ForegroundColor Cyan
-Write-Host "  Dashboard:   " -NoNewline -ForegroundColor White
-Write-Host "http://localhost:8022" -ForegroundColor Cyan
-Write-Host "  Monitoring:  " -NoNewline -ForegroundColor White
-Write-Host "http://localhost:8023" -ForegroundColor Cyan
-Write-Host "  Vector DB:   " -NoNewline -ForegroundColor White
-Write-Host "http://localhost:8024" -ForegroundColor Cyan
-Write-Host ""
-Write-Host "API Documentation: " -NoNewline -ForegroundColor White
-Write-Host "http://localhost:8021/docs" -ForegroundColor Yellow
-Write-Host ""
-Write-Host "Press Ctrl+C to stop services" -ForegroundColor Gray
+if ($Model) {
+    Write-Host "Evaluating $Model with GPU acceleration..." -ForegroundColor Yellow
+} else {
+    Write-Host "Running the quick GPU test..." -ForegroundColor Yellow
+}
 Write-Host "========================================================" -ForegroundColor Cyan
 Write-Host ""
 
-# Start services
-docker compose up sleeper-eval-gpu
+if ($Model) {
+    docker compose --profile eval-gpu run --rm sleeper-eval-gpu python -m sleeper_agents.cli evaluate $Model --gpu --report
+} else {
+    docker compose --profile eval-gpu run --rm sleeper-eval-gpu
+}
+$exitCode = $LASTEXITCODE
+
+Write-Host ""
+Write-Host "Results and reports are written to evaluation_results\" -ForegroundColor Green
+Write-Host "View them in the dashboard with .\launch_dashboard.ps1" -ForegroundColor Cyan
+exit $exitCode
