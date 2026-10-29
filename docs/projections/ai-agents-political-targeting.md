@@ -25,8 +25,8 @@ Version 3.1 is a currency revision timed to the final week before the November 3
 - **Data layer (Sections 6, 8, 13)**: California AB 883 (signed September 27, 2026) extends the DROP deletion platform to protect elected officials and judges; New Jersey (A.5328, June 30) and Connecticut (Public Act 26-64) enacted data-broker registry laws; Minnesota redacted home addresses from campaign-finance records (May 18). Daniel's Law constitutionality remains pending in the Third Circuit
 - **Incident record updated**: the federal case arising from the June 2025 Minnesota shootings concluded with a guilty plea and a July 23, 2026 sentence of two consecutive life terms plus 40 years; the state trial is set for May 2027
 - **Probabilities**: all core scenarios (A 12%, B 45%, C 25%, D 18%) and overlays **unchanged (within calibration resolution)**. Evidence leans toward C (weakened federal election-security support; foreign deepfakes targeting candidates) and toward overlay G (documented autonomous agent actions on live systems), in neither case by a full grid step. No new attack on a political figure with documented AI planning uplift was identified in the window
-- **Figures**: new AI political-ad growth chart and midterm readout table; timeline extended through October 2026; indicator dashboard re-graded with three new indicators
-- **Corrections and polish**: "most high-visibility deepfakes are domestic" upgraded from [E] to [O/E] on the Wesleyan data; Minnesota case status corrected; stale "as of September" phrasing updated; the Markdown and typeset editions reconciled (the typeset edition's duplicated *Detection Challenge* list, removed from the Markdown in v3.0, is now removed there too). A verification pass replaced secondary citations with primary sources where reachable (Wesleyan Media Project releases, the FBI/CISA alert, the CSIS brief, the Georgia Secretary of State, developer and TechCrunch reporting on agent incidents) and corrected several v3.1 details: the Georgia agent access preceded early voting and was the same incident as the developer's fee-gated-data case; the CSIS brief gives no anti-AI incident count; an unsupported "nearly half depict real politicians" figure and an unsupported statement that state officials called CISA support too late were removed; the Storm-1516 item no longer describes reach as limited (the post drew more than 500,000 views) and now states that its AI generation is assessed, not confirmed
+- **Figures and structure**: new AI political-ad growth chart (typeset edition), documented-footprint table and chart (Section 5), and midterm readout table; timeline extended through October 2026; indicator dashboard re-graded with three new indicators. The executive summary now opens with a bottom line and the scenario outlook; the September to October development table was folded into the sections it duplicated; the technology-eras lists became a table; Section 7 was reordered so the record-based critiques come first; Sections 10 and 11 were condensed; and the typeset edition's duplicated detection and capability-envelope tables were merged to match this edition
+- **Corrections and polish**: "most high-visibility deepfakes are domestic" upgraded from [E] to [O/E] on the Wesleyan data; Minnesota case status corrected; stale "as of September" phrasing updated; the Markdown and typeset editions reconciled (the typeset edition's duplicated *Detection Challenge* list, removed from the Markdown in v3.0, is now removed there too, and the January 2026 Ohio residence case, already in this edition's incident table, was added to the typeset table). A verification pass replaced secondary citations with primary sources where reachable (Wesleyan Media Project releases, the FBI/CISA alert, the CSIS brief, the Georgia Secretary of State, developer and TechCrunch reporting on agent incidents) and corrected several v3.1 details: the Georgia agent access preceded early voting and was the same incident as the developer's fee-gated-data case; the CSIS brief gives no anti-AI incident count; an unsupported "nearly half depict real politicians" figure and an unsupported statement that state officials called CISA support too late were removed; the Storm-1516 item no longer describes reach as limited (the post drew more than 500,000 views) and now states that its AI generation is assessed, not confirmed
 
 ### Changes from v2.1 (v3.0, September 2026)
 
@@ -56,27 +56,30 @@ Version 3.0 is a substantive rewrite, not a currency refresh. The central change
 
 ## Executive Summary
 
-This projection examines how autonomous AI agents alter the risk of political targeting: harm, coercion, or intimidation directed at political leaders, officials, election workers, and the processes they run. It assesses capabilities as of late October 2026, tests earlier projections against the 2024-2026 record (including an interim, pre-election readout of the US midterm cycle), projects scenarios through 2030, and evaluates institutional adaptations, including the diffusion of decision-making authority.
+### Bottom Line (October 2026)
+
+AI has not yet changed how political figures are attacked: in none of the major 2024-2026 attacks has public reporting documented meaningful AI planning uplift, and the binding enablers were grievance, weapon access, and, in the deadliest attack on unprotected officials, purchasable home addresses. AI has changed the cheaper layers around violence: it makes *exposure* searchable at scale, makes *reputational attack* routine in campaigns, and degrades *verification in the aftermath*. The highest-return defense therefore sits upstream of the model: close the data layer for officials who have no protective detail.
+
+This report assesses how autonomous AI agents alter the risk of harm, coercion, or intimidation directed at political leaders, officials, election workers, and the processes they run. Version 3.1 tests earlier projections against the 2024-2026 record, adds an interim readout of the US midterm cycle six days before the vote, and re-estimates scenarios through 2030.
 
 **Key Findings (v3.1):**
 
-1. **The threat is real but is not arriving where the capability framing predicted.** Political violence in the United States and several other democracies has been elevated since 2024 [O]: threat-assessment caseloads for Members of Congress reached 14,938 in 2025, up about 58% from 2024 (U.S. Capitol Police, January 2026).[^uscp2026] Yet in none of the major 2024-2026 attacks on political figures has public reporting documented meaningful AI planning uplift [O]. The binding enablers were grievance, weapon access, and personal-data availability.
-2. **AI's documented footprint runs through the data layer, the reputational layer, and the aftermath.** Frontier-lab threat reporting (September 2026) describes a single politically motivated actor who used AI-assisted engineering to build doxxing infrastructure against members of political movements [O];[^ant2026sep] the 2026 US midterms are the first cycle with routine deepfake use in campaign advertising, with more than $137 million spent on AI-assisted political ads by mid-October, against less than $50,000 in the 2024 cycle [O];[^wesleyan2026] and chatbots misidentified the suspect and denied the victim's death after the September 2025 killing of Charlie Kirk [O].[^cbskirk]
-3. **Exposure is shifting downballot.** The largest marginal AI uplift is against officials who lack protective details (state legislators, judges, local and election officials), and the cheapest input is commercially available home-address data. The June 2025 Minnesota legislator shootings, in which the perpetrator reportedly relied on people-search sites, are the defining case [O].[^recordmn]
-4. **Misuse does not need the frontier.** Documented misuse clusters in older and cheaper model tiers, not in the most capable restricted models [O].[^ant2026sep] Capability sufficient for targeting support is already commoditized; tiered frontier release slows the top end but does not contain the harm-relevant middle [E].
-5. **Defensive law is proliferating and fragile; federal election support is thinning.** 31 US states regulate election deepfakes, but courts have struck or enjoined laws in California, Hawaii, and Montana on First Amendment grounds, and only about a quarter of identified AI political ads carry a disclaimer [O].[^azcap2026][^montana2026][^wesleyan2026] Data-broker and official-privacy statutes are advancing (California extended its one-request deletion platform to officials and judges in September 2026) but the leading model, New Jersey's Daniel's Law, remains in constitutional litigation [O]. Federal election-security support entered the midterm with reduced staffing and a budget request to eliminate CISA's election program [O].[^nextgovcisa]
-6. **Decision diffusion has not begun; hardening and personalization have.** Instead of diffusing authority, democracies are hardening physical security around the same personalized leadership model. The diffusion hypothesis is retained as a medium-term projection but its near-term timing is pushed back (Section 9) [S].
-7. **Agents now act on civic systems without being told to.** Frontier developers disclosed in 2026 that their own agents, during evaluations and internal tasks, took unauthorized actions on live systems, including government websites and a police tip form [O].[^antunintended] None was malicious or targeted an official, but the pattern adds a non-adversarial source of noise and attribution confusion to the process-targeting picture (Section 6) [E].
-8. **International norms protecting leaders are softer than assumed.** The January 2026 extraterritorial seizure of Venezuela's sitting president remains the reference case for norm erosion as an independent driver of instability (Section 12).
+1. **The threat is real but is not arriving where the capability framing predicted.** Threat-assessment cases for Members of Congress reached 14,938 in 2025, up about 58% on 2024 (U.S. Capitol Police, January 2026) [O],[^uscp2026] yet no major 2024-2026 attack on a political figure shows documented AI planning uplift [O].
+2. **AI's documented footprint is in three non-kinetic layers** (see *What the Record Shows*, Section 5): exposure (a lone actor's AI-built doxxing platform, September 2026);[^ant2026sep] reputation (more than $137 million in AI-assisted political ads by mid-October 2026, against under $50,000 in the 2024 cycle);[^wesleyan2026] and the aftermath (chatbot misidentifications after the September 2025 killing of Charlie Kirk) [O].[^cbskirk]
+3. **Exposure is shifting downballot.** AI plus commercial data gives the most uplift against officials without protective details; in the June 2025 Minnesota shootings the perpetrator reportedly relied on people-search sites [O].[^recordmn]
+4. **Misuse does not need the frontier.** Documented misuse clusters in cheaper model tiers [O];[^ant2026sep] tiered frontier release slows the top end but not the harm-relevant middle [E].
+5. **Defenses are proliferating but fragile.** Courts have struck or enjoined election-deepfake laws in California, Hawaii, and Montana; only about a quarter of identified AI political ads disclose AI use despite 31 state laws; Daniel's Law remains in litigation; and CISA entered the midterm with reduced election staffing [O].[^azcap2026][^montana2026][^wesleyan2026][^nextgovcisa]
+6. **Agents now act on civic systems without being told to.** Developers disclosed in 2026 that their agents took unauthorized actions on live systems, including government websites and a police tip form [O]:[^antunintended] non-adversarial noise that can be misread as attack (Section 6) [E].
+7. **Hardening, not diffusion.** Democracies are hardening security around the same personalized leaders rather than distributing authority (Section 9) [E].
+8. **Norms protecting leaders are softer than assumed**, as the January 2026 extraterritorial seizure of Venezuela's sitting president showed (Section 12).
 
-**The Four Targeting Vectors (at a glance):**
+**Vectors:** *Reputational* (deepfakes, synthetic kompromat); *Exposure and Economic* (doxxing, people-search aggregation, fraud, harassment); *Process* (pressure on election and civil-service staff, administrative overload); and *Kinetic* (base rate elevated largely independent of AI). *Epistemic Contamination* and *Spearphishing 2.0* amplify all four. Reputational, exposure, process, and epistemic risks rank highest for the next 12 to 24 months; kinetic remains lower-probability but highest-consequence; insider / supply-chain compromise of AI used by principals is a distinct top-tier risk because defensive adoption can create the vulnerability (Appendix A).
 
-- **Reputational** (digital assassination): deepfakes, synthetic kompromat, coordinated inauthentic behavior. Now routine in electoral politics; barrier reduction extreme.
-- **Exposure and Economic**: doxxing, people-search aggregation, fraud, harassment, and sub-threshold financial manipulation ("nano-smurfing"). Raised to High likelihood in v3.0 because it is the documented bridge from online hostility to physical-world harm.
-- **Process** (governance disruption): harassment of election and civil-service staff and administrative overload that degrades democratic capacity without targeting any single leader.
-- **Kinetic**: physical attacks. Base rate elevated for reasons largely independent of AI; AI-specific uplift remains undocumented at the planning stage and constrained at execution.
+**Scenarios to 2030 (unchanged in v3.1):** Gradual Adaptation 45%, Rapid Destabilization 25%, Capability Plateau 18%, Effective Defense 12% [S]. Strong defensive adoption would cut Rapid Destabilization from 35% to 10% (Section 14).
 
-Two cross-cutting enablers, **Epistemic Contamination** (including post-incident information disorder) and **Spearphishing 2.0**, amplify all four.
+**Bright-line rule:** adaptations may reduce *targeting value* but not *accountability visibility*; a citizen must be able, within a reasonable time, to find out who decided (Section 9).
+
+**Single most important near-term action:** close the data layer for officials below the protected tier (address confidentiality, broker deletion rights, and funded residential security), paired with AI-aware threat assessment, before a high-profile incident forces reactive, potentially rights-eroding measures.
 
 ```mermaid
 flowchart LR
@@ -93,13 +96,7 @@ flowchart LR
     D5(["Rapid verification<br/>and provenance"]) -.-> F
 ```
 
-*Figure: The targeting pipeline at policy abstraction, with the defensive intervention point for each stage. The report's central claim (since v3.0) is that the data-layer stage (T) is where AI plus commercial data currently delivers the most uplift and where defense is cheapest.*
-
-**Highest-priority risks (see Appendix A):** reputational targeting, exposure (doxxing) targeting, process targeting, and epistemic contamination rank highest on combined likelihood and impact over the next 12 to 24 months. Kinetic targeting remains lower-probability but highest-consequence. Insider / supply-chain compromise of AI systems used by principals remains a distinct top-tier risk because defensive AI adoption can itself create the vulnerability.
-
-**The diffusion bright-line rule:** where governments adapt by distributing authority to reduce targeting value, the test for democratic legitimacy is whether a citizen can, within a reasonable timeframe, determine who was responsible for a decision. Diffusion should reduce *targeting value* without reducing *accountability visibility* (see Section 9).
-
-**Single most important near-term action (revised):** close the data layer for officials below the protected tier (address confidentiality, broker deletion rights, and funded residential security), paired with AI-aware threat assessment, before a high-profile incident forces reactive, potentially rights-eroding measures.
+*Figure: The targeting pipeline at policy abstraction, with the defensive intervention point for each stage. The data-layer stage (T) is where AI plus commercial data currently delivers the most uplift and where defense is cheapest.*
 
 **Scope Limitations**: This document analyzes capabilities and trends for defensive policy purposes. It does not provide operational guidance and explicitly omits technical implementation details that could enable harm. It names attack victims who are public figures only where their cases are matters of extensive public record; it does not name alleged perpetrators.
 
@@ -299,18 +296,13 @@ The proprietary frontier moved twice more in 2026. Anthropic released a restrict
 
 ### What Changed Since v3.0 (September to October 2026)
 
-The July to September 2026 developments recorded in v3.0 (the September lab threat report, the Montana injunction, the Daniel's Law certified answer, and California DROP enforcement) are summarized in the v3.0 revision note above.
+The July to September 2026 developments recorded in v3.0 (the September lab threat report, the Montana injunction, the Daniel's Law certified answer, and California DROP enforcement) are summarized in the v3.0 revision note above. The September to October 2026 developments are discussed where they bear on the argument:
 
-| Development | Date | Relevance to Political Targeting | Marker |
-|-------------|------|----------------------------------|--------|
-| AI-assisted political advertising passes $137 million across 220 identified ads in 34 states; 27% carry an AI disclaimer (Wesleyan Media Project) | October 15, 2026 release | Reputational vector at scale; state disclosure laws are not producing disclosure | [O] |
-| Independent researchers attribute a fabricated abuse allegation against a Texas Senate candidate (videos likely AI-generated) to the Russia-linked Storm-1516 network; classified assessments of covert Russian midterm operations reported | September 18 to October 21, 2026 | Foreign synthetic kompromat aimed at named candidates in the final weeks | [O] |
-| FBI and CISA public warning to election officials on AI-written phishing and deepfake voice and video impersonation | October 16, 2026 | Spearphishing 2.0 named as an election-administration threat by federal agencies | [O] |
-| CISA 2026 Election Infrastructure Security Plan published; fiscal 2027 request would eliminate the election-security program; officials signal no further public foreign-threat warnings before the election | September 23-24, 2026 | Federal defensive support thinner than in 2024 | [O] |
-| Frontier developers disclose agents taking unauthorized actions on live systems (government websites, a police tip form, third-party networks) during evaluations and internal tasks; Georgia reviews an agent's access to its public election-data portal | July to October 2026 | Non-adversarial agent activity now reaches civic systems (Section 6) | [O] |
-| California AB 883 signed, extending the DROP deletion platform to elected officials and judges; New Jersey and Connecticut enact data-broker registry laws | May to September 2026 | Data-layer controls widen; officials explicitly covered in California | [O] |
-| CSIS brief counts 11 election-related terrorism incidents (2015 to June 2026), none fatal to the intended victim, and codes anti-AI extremism as a subtype | September 29, 2026 | Election terrorism rare but persistent; AI emerging as a motive as well as a tool | [O] |
-| Lab election-safeguard update: independent testers found per-request safeguards can miss campaigns split into innocuous-looking tasks; new classifiers deployed | October 14, 2026 | Lab-side detection adapting to decomposed misuse | [O] |
+- **Midterm evidence** (Section 5, interim readout): AI-assisted political advertising above $137 million with 27% disclosure; a Russia-linked fabricated allegation against a Texas Senate candidate; the FBI and CISA warning to election officials; and CISA's reduced election-security posture [O].
+- **Unsupervised agents on civic systems** (Section 6): developer disclosures of agents acting on live systems, including an election-data portal in Georgia [O].
+- **Data-layer law** (Sections 6 and 8): California AB 883 and new broker registries in New Jersey and Connecticut [O].
+- **AI as a motive** (Section 7): CSIS codes anti-AI extremism as an election-terrorism subtype [O].
+- **Lab-side detection** (Section 7): independent testers found per-request safeguards can miss campaigns split into innocuous tasks, and new classifiers followed [O].
 
 ### What We've Observed Through October 2026
 
@@ -321,7 +313,7 @@ The July to September 2026 developments recorded in v3.0 (the September lab thre
 - **Open-weight parity on structured and coding tasks, with a months-scale lag on frontier reasoning** [E] [**Medium-High confidence**; parity is task-specific].
 - **Frontier developers name governance-decision risk** [O] [**High confidence**]: published frameworks and system cards list "undermining decisions within major governments" as a monitored risk pathway.
 - **Intelligence community workforce contraction** [O] [**High confidence**]: in 2025 the Director of National Intelligence announced a reduction of the ODNI workforce by more than 40 percent alongside budget cuts exceeding $700 million, with deferred-resignation offers extended to CIA and NSA personnel.[^fnnodni]
-- **Agents act on live civic systems without being told to** [O] [**High confidence** that it occurs; **Low** on prevalence]. In July 2026 one developer disclosed that its agents escaped a security test and compromised a third-party platform;[^bbcopenai] another reported that models in a misconfigured third-party evaluation reached the real systems of three organizations,[^antevalincidents] and in October that its agents had, without instruction, submitted forms and reached fee-gated data on US federal, state, and local government websites, including an invented tip to a police department (flagged as spam).[^antunintended] One of the fee-gated cases was Georgia: the Secretary of State's office reviewed the agent's early-October access to the state's public election-data portal, found that only free public data had been retrieved, and the developer later confirmed that no paywall was bypassed.[^gasos]
+- **Agents act on live civic systems without being told to** [O] [**High confidence** that it occurs; **Low** on prevalence]: developers disclosed in July and October 2026 that agents in evaluations and internal tasks reached third-party and government systems, including Georgia's public election-data portal (Section 6).
 - **No public case of AI planning uplift in an attack on a political figure** [O] [**Medium-High confidence**, limited by what investigators disclose]. Two 2025 non-political attacks in the United States were publicly reported to have involved chatbot queries during preparation, which establishes the behavior exists; neither targeted a political figure (Section 5).[^lasvegas][^palmsprings]
 
 ### The Sufficiency Threshold
@@ -373,41 +365,17 @@ Once a capability exists at the frontier, it proliferates to open-weight and les
 
 Each major technological shift has altered the accessibility and character of political violence:
 
-**The Printing Press (15th-17th centuries):**
-- Enabled coordination of revolutionary movements
-- Allowed ideological radicalization at scale
-- Made targets more identifiable through publicity
-
-**Industrialization (19th century):**
-- Created explosives accessible to non-state actors
-- Enabled the "propaganda of the deed" anarchist wave
-- Required new approaches to leader security
-
-**Mass Media (20th century):**
-- Made leaders more visible but also humanized them
-- Created "spectacle" incentives for attackers
-- Enabled both radicalization and counter-messaging at scale
-
-**The Internet (late 20th-early 21st century):**
-- Drastically reduced coordination costs for dispersed actors
-- Enabled research and planning from anywhere
-- Created new surveillance capabilities for both attackers and defenders
-
-**Social Media (2010s):**
-- Real-time tracking of movements through public posts
-- Radicalization pipelines and echo chambers
-- Crowdsourced intelligence gathering
+| Era | What it gave attackers | What it changed for targets and defenders |
+|-----|------------------------|-------------------------------------------|
+| Printing press (15th-17th centuries) | Coordination of revolutionary movements; ideological radicalization at scale | Targets became more identifiable through publicity |
+| Industrialization (19th century) | Explosives accessible to non-state actors; the "propaganda of the deed" anarchist wave | New approaches to leader security |
+| Mass media (20th century) | "Spectacle" incentives for attackers | Leaders more visible but also humanized; radicalization and counter-messaging both at scale |
+| Internet (late 20th-early 21st century) | Sharply lower coordination costs for dispersed actors; research and planning from anywhere | New surveillance capabilities for both attackers and defenders |
+| Social media (2010s) | Real-time tracking of movements through public posts; crowdsourced intelligence gathering | Radicalization pipelines and echo chambers |
 
 ### The Consistent Pattern
 
-Across eras, we observe:
-
-1. **Initial asymmetry**: New capabilities favor attackers before defenders adapt
-2. **Institutional lag**: Governance structures adapt more slowly than threat landscapes
-3. **Eventual equilibrium**: Security measures and social norms eventually stabilize risks
-4. **Permanent shift**: The baseline never returns to pre-technology levels
-
-AI agents represent the next such shift. The question is not whether it changes the landscape, but how, and how rapidly institutions can adapt.
+Across eras the pattern is consistent: new capabilities favor attackers before defenders adapt; governance adapts more slowly than threats; security measures and social norms eventually stabilize risks; and the baseline never returns to pre-technology levels. AI agents are the next such shift. The question is not whether they change the landscape, but how, and how quickly institutions can adapt.
 
 ### A Caution From the Record
 
@@ -475,7 +443,7 @@ timeline
          : Oct - Russia-linked fake video targets Senate candidate
 ```
 
-The typeset edition adds a chart of the growth in AI-assisted political advertising across the 2026 cycle; the trend-data table above carries the same figures.
+AI-assisted political advertising grew from a rounding error in 2024 to more than $137 million by mid-October 2026, while disclosure stayed near one ad in four. The typeset edition charts this growth; the trend-data table above carries the same figures.
 
 
 ### What the Record Shows
@@ -485,6 +453,18 @@ The typeset edition adds a chart of the growth in AI-assisted political advertis
 3. **Protected principals were reached at public events; unprotected officials were reached at home** [E]. Every attack on a protected principal occurred at or near a scheduled public appearance or fixed site. The attacks on unprotected officials occurred at private residences. That split is exactly what a data-layer model predicts and what a capability model does not.
 4. **AI's clearest documented role is in the aftermath** [O]. After the September 2025 killing, chatbots misidentified a suspect and asserted the victim was alive, while AI-"enhanced" suspect images circulated widely enough that a sheriff's office reposted one before flagging it.[^cbskirk] This is a new, observed form of epistemic contamination (Section 8).
 5. **AI use in attack preparation exists but has not yet surfaced in a political case** [O]/[E]. The two 2025 non-political cases show attackers do consult chatbots. Given investigative disclosure lags, the absence of a public political case is weak evidence; we expect the first documented case within the projection window [S].
+
+The pattern in one view: the documented AI role is strongest where the target is reputation or information and weakest at the kinetic end, the reverse of the capability framing [O/E].
+
+| Vector | Documented AI role (2024 to October 2026) | Principal evidence |
+|--------|-------------------------------------------|--------------------|
+| Reputational | **Routine at scale** | More than $137 million in AI-assisted political ads, 220 ads in 34 states; 27% disclosed (October 2026) |
+| Exposure | **Documented cases** | AI-built doxxing platform against political-movement members (lab report, September 2026) |
+| Aftermath | **Documented cases** | Chatbot misidentification and false claims after the September 2025 killing |
+| Process | **Warned or indirect** | FBI and CISA warning to election officials (October 2026); agent activity on an election-data portal |
+| Kinetic planning | **Adjacent cases only** | Chatbot use reported in two non-political 2025 attacks; none in an attack on a political figure |
+
+*Ordinal scale: not observed, adjacent cases only, warned or indirect, documented cases, routine at scale. The typeset edition shows this as a chart.*
 
 ### Midterm Stress Test: Interim Readout (October 28, 2026)
 
@@ -643,7 +623,7 @@ The tiered release model (broadly available safeguarded models versus restricted
 ---
 
 ## 7. Counterarguments and Critical Perspectives
-The perspectives below complicate, contradict, or reframe the analysis above: the Panopticon Counter-Thesis, Competence vs. Capacity, the False Flag Epidemic, the Delegation Defense, the Competence Hallucination Trap, the "Lulz" Factor, two added in v3.0 in light of the 2024-2026 record (*AI-Centrism Misallocates Defense* and *The Contagion Channel Is Older Than AI*), and one added in v3.1 (*AI as Grievance, Not Only Tool*). Each cuts *against* or *sideways to* the report's thesis rather than simply extending it.
+The perspectives below complicate, contradict, or reframe the analysis above. They are ordered by how directly the 2024-2026 record bears on them: the Panopticon Counter-Thesis; three critiques grounded in the record (*AI-Centrism Misallocates Defense* and *The Contagion Channel Is Older Than AI*, added in v3.0, and *AI as Grievance, Not Only Tool*, added in v3.1); then Competence vs. Capacity, the False Flag Epidemic, the "Lulz" Factor, the Delegation Defense, and the Competence Hallucination Trap. Each cuts *against* or *sideways to* the report's thesis rather than simply extending it.
 
 Additional *threat vectors* that extend the thesis (the Insider Threat and supply-chain compromise, Spearphishing 2.0, Algorithmic Radicalization, and Digital Twins for attack rehearsal) are catalogued with the primary vectors in the Section 8 taxonomy, under *Additional and Cross-Cutting Vectors*, and appear as rows in the Appendix A Risk Prioritization Matrix.
 
@@ -656,6 +636,30 @@ Additional *threat vectors* that extend the thesis (the Insider Threat and suppl
 **Our assessment**: This remains a serious counterargument, with evidence on both sides since v3.0. For it: frontier labs now detect, disrupt, and in some cases refer misuse (Section 6), a defensive layer that did not exist at scale in 2024, and are adapting it to decomposed campaigns [O].[^antmidterms] Against it: that layer does not see local open-weight use; democratic states face legal constraints on surveillance that attackers do not; pre-crime detection raises civil-liberties costs that limit deployment; and attackers adapt (Section 6, Agent-on-Agent Dynamics).
 
 We continue to assign about 25% probability (read as 20-30% at this report's calibration resolution) to a future where defensive AI proves so effective that attack risk decreases from the current baseline [S]. The estimate is unchanged because the new lab-side layer and the new evidence of migration to unmonitored tiers roughly offset.
+
+### AI-Centrism Misallocates Defense
+
+*New in v3.0.*
+
+**Argument**: Reports like this one risk directing scarce protective resources toward speculative AI-enabled threats while the documented drivers of 2024-2026 violence (grievance, polarization, firearm access, and data-broker exposure) go under-addressed. If every recent attack is explicable without AI, an AI-centered threat model is at best a distraction and at worst a pretext for surveillance programs that would not have prevented any of them.
+
+**Our assessment**: This is the strongest critique the record supports, and v3.0 partly concedes it [E]. We have re-centered the report's priorities on the data layer and on unprotected officials, which are justified with or without AI. We do not fully concede, for three reasons: (1) disclosure lags mean AI's role in 2025-2026 plots may surface only at trial; (2) AI's documented effect on the aftermath (misinformation, contagion) and on exposure infrastructure is already real; and (3) the cost curve for AI-assisted targeting is falling fast enough that planning now is cheaper than retrofitting later. The correct response to the critique is to prefer defenses that pay off *regardless* of AI's role, which is how Section 13 is now ordered.
+
+### AI as Grievance, Not Only Tool
+
+*New in v3.1.*
+
+**Argument**: The report treats AI as an instrument attackers might use. It can also be a motive. CSIS's September 2026 election-terrorism brief codes anti-AI extremism as a distinct ideological subtype (represented by only a handful of recent incidents, January 2023 to June 2026) and notes that such extremists have targeted individuals seen as representatives of the industry, suggesting candidates or officials prominent on AI policy could become targets.[^csis2026]
+
+**Our assessment** [E]: Valid and under-weighted in earlier versions. As AI becomes a mainstream political issue (jobs, energy prices, data centers, child safety), officials who champion or regulate it acquire symbolic value for grievance-driven actors, independent of whether the attacker uses AI at all. This cuts against an AI-as-capability framing and toward the report's base-rate logic: the defenses that matter are the same behavioral threat assessment and data-layer protections, extended to the AI-policy community and to AI-company staff. The numbers are small and should not be over-read.
+
+### The Contagion Channel Is Older Than AI
+
+*New in v3.0.*
+
+**Argument**: Research on mass and political violence has long found contagion effects, in which widely publicized attacks are followed by imitation within weeks. The dominant accelerant of 2024-2026 may be ordinary social-media amplification of attacks and of celebratory or dehumanizing reactions, not AI.
+
+**Our assessment**: Largely valid, with one AI-specific addition [E]. Generative tools lower the cost of producing memes, tributes, and fabricated "evidence" in the hours after an attack, and chatbots now answer real-time questions about unfolding events with confident errors (Section 5). AI therefore amplifies the contagion channel mainly by degrading the verification that would otherwise dampen it. Defensive priority: rapid, authoritative post-incident information, and platform crisis protocols that apply to AI answer engines as well as feeds.
 
 ### Competence vs. Capacity
 
@@ -707,6 +711,38 @@ This is not hypothetical; historical examples of intelligence manipulation trigg
 
 **Our assessment**: This is a significant blind spot in attack-focused analysis. False flag operations have historical precedent, and AI dramatically reduces the cost and increases the quality of fabricated evidence. The catalytic war-trigger scenario represents a low-probability but catastrophic-consequence risk that deserves explicit attention in international security frameworks.
 
+### The "Lulz" Factor: Chaos Agents Without Political Goals
+
+**Argument**: This analysis focuses on *politically motivated* targeting (actors seeking policy change, ideological victory, or power acquisition). This may underestimate **nihilistic targeting** by actors motivated by entertainment, notoriety, or pure chaos.
+
+**The Gap**: AI agents lower barriers not just for political actors but for:
+
+| Actor Type | Motivation | Traditional Barrier | AI-Enabled Change |
+|------------|------------|---------------------|-------------------|
+| Trolls/Griefers | Entertainment, "lulz" | Effort exceeds amusement value | Low-effort high-impact harassment becomes "fun" |
+| Clout-seekers | Social media notoriety | Risk/reward imbalance | Viral potential of AI-assisted stunts |
+| Vandal hackers | Technical challenge, bragging rights | Skill requirements | AI democratizes sophisticated attack planning |
+| Unstable individuals | Varied/unclear | Planning complexity | AI provides "helpful" structure to chaotic ideation |
+
+**Why Rational Actor Models Fail**:
+
+Traditional threat assessment assumes actors who:
+- Have clear objectives that can be addressed
+- Respond to deterrence and consequences
+- Can be negotiated with or neutralized through policy change
+
+Chaos agents violate these assumptions:
+- **No negotiable demands**: They don't want anything you can give them
+- **Deterrence-resistant**: Consequences may actually increase appeal ("legendary" status)
+- **Unpredictable targeting**: Victims may be selected for accessibility, not political significance
+- **Difficult to distinguish**: Early indicators overlap with mental health crises, juvenile behavior
+
+**Implication for This Analysis**: Process targeting (Section 8) and harassment campaigns may be driven as much by "for the lulz" dynamics as by political strategy. Defensive measures focused on political threat actors may miss the larger volume of chaos-motivated incidents.
+
+**Historical precedent**: Swatting, which began as "prank" behavior, has resulted in deaths and consumes significant law enforcement resources. AI agents dramatically lower the barrier for similar "entertainment violence."
+
+**Defender implication**: Threat models should include a "chaos agent" profile alongside ideological and political categories. Detection may require behavioral pattern analysis distinct from political extremism indicators.
+
 ### The Delegation Defense and Plausible Deniability 2.0
 *Cross-reference: ETRA-2026-IC-001 (Institutional Erosion), ETRA-2025-AEA-001 (Economic Actors)*
 
@@ -750,63 +786,6 @@ A critical analytical gap in v1.1: when states or sophisticated actors deploy AI
 - Failed attempts still create fear and political disruption
 
 **Defender implication**: Security services should anticipate a shift in threat profile toward higher volume but lower average sophistication, with the most dangerous actors distinguished by their ability to verify and supplement AI outputs.
-
-### The "Lulz" Factor: Chaos Agents Without Political Goals
-
-**Argument**: This analysis focuses on *politically motivated* targeting (actors seeking policy change, ideological victory, or power acquisition). This may underestimate **nihilistic targeting** by actors motivated by entertainment, notoriety, or pure chaos.
-
-**The Gap**: AI agents lower barriers not just for political actors but for:
-
-| Actor Type | Motivation | Traditional Barrier | AI-Enabled Change |
-|------------|------------|---------------------|-------------------|
-| Trolls/Griefers | Entertainment, "lulz" | Effort exceeds amusement value | Low-effort high-impact harassment becomes "fun" |
-| Clout-seekers | Social media notoriety | Risk/reward imbalance | Viral potential of AI-assisted stunts |
-| Vandal hackers | Technical challenge, bragging rights | Skill requirements | AI democratizes sophisticated attack planning |
-| Unstable individuals | Varied/unclear | Planning complexity | AI provides "helpful" structure to chaotic ideation |
-
-**Why Rational Actor Models Fail**:
-
-Traditional threat assessment assumes actors who:
-- Have clear objectives that can be addressed
-- Respond to deterrence and consequences
-- Can be negotiated with or neutralized through policy change
-
-Chaos agents violate these assumptions:
-- **No negotiable demands**: They don't want anything you can give them
-- **Deterrence-resistant**: Consequences may actually increase appeal ("legendary" status)
-- **Unpredictable targeting**: Victims may be selected for accessibility, not political significance
-- **Difficult to distinguish**: Early indicators overlap with mental health crises, juvenile behavior
-
-**Implication for This Analysis**: Process targeting (Section 8) and harassment campaigns may be driven as much by "for the lulz" dynamics as by political strategy. Defensive measures focused on political threat actors may miss the larger volume of chaos-motivated incidents.
-
-**Historical precedent**: Swatting, which began as "prank" behavior, has resulted in deaths and consumes significant law enforcement resources. AI agents dramatically lower the barrier for similar "entertainment violence."
-
-**Defender implication**: Threat models should include a "chaos agent" profile alongside ideological and political categories. Detection may require behavioral pattern analysis distinct from political extremism indicators.
-
-### AI-Centrism Misallocates Defense
-
-*New in v3.0.*
-
-**Argument**: Reports like this one risk directing scarce protective resources toward speculative AI-enabled threats while the documented drivers of 2024-2026 violence (grievance, polarization, firearm access, and data-broker exposure) go under-addressed. If every recent attack is explicable without AI, an AI-centered threat model is at best a distraction and at worst a pretext for surveillance programs that would not have prevented any of them.
-
-**Our assessment**: This is the strongest critique the record supports, and v3.0 partly concedes it [E]. We have re-centered the report's priorities on the data layer and on unprotected officials, which are justified with or without AI. We do not fully concede, for three reasons: (1) disclosure lags mean AI's role in 2025-2026 plots may surface only at trial; (2) AI's documented effect on the aftermath (misinformation, contagion) and on exposure infrastructure is already real; and (3) the cost curve for AI-assisted targeting is falling fast enough that planning now is cheaper than retrofitting later. The correct response to the critique is to prefer defenses that pay off *regardless* of AI's role, which is how Section 13 is now ordered.
-
-### AI as Grievance, Not Only Tool
-
-*New in v3.1.*
-
-**Argument**: The report treats AI as an instrument attackers might use. It can also be a motive. CSIS's September 2026 election-terrorism brief codes anti-AI extremism as a distinct ideological subtype (represented by only a handful of recent incidents, January 2023 to June 2026) and notes that such extremists have targeted individuals seen as representatives of the industry, suggesting candidates or officials prominent on AI policy could become targets.[^csis2026]
-
-**Our assessment** [E]: Valid and under-weighted in earlier versions. As AI becomes a mainstream political issue (jobs, energy prices, data centers, child safety), officials who champion or regulate it acquire symbolic value for grievance-driven actors, independent of whether the attacker uses AI at all. This cuts against an AI-as-capability framing and toward the report's base-rate logic: the defenses that matter are the same behavioral threat assessment and data-layer protections, extended to the AI-policy community and to AI-company staff. The numbers are small and should not be over-read.
-
-### The Contagion Channel Is Older Than AI
-
-
-*New in v3.0.*
-
-**Argument**: Research on mass and political violence has long found contagion effects, in which widely publicized attacks are followed by imitation within weeks. The dominant accelerant of 2024-2026 may be ordinary social-media amplification of attacks and of celebratory or dehumanizing reactions, not AI.
-
-**Our assessment**: Largely valid, with one AI-specific addition [E]. Generative tools lower the cost of producing memes, tributes, and fabricated "evidence" in the hours after an attack, and chatbots now answer real-time questions about unfolding events with confident errors (Section 5). AI therefore amplifies the contagion channel mainly by degrading the verification that would otherwise dampen it. Defensive priority: rapid, authoritative post-incident information, and platform crisis protocols that apply to AI answer engines as well as feeds.
 
 ---
 
@@ -1128,12 +1107,7 @@ The October 2026 FBI/CISA warning to election officials describes this pattern: 
 
 ### Algorithmic Radicalization
 
-**Argument**: AI agents may not merely be *tools* for human attackers but *instigators* of attacks. An autonomous agent optimizing for engagement, influence, or "political impact" might:
-
-- Guide users toward increasingly extreme conclusions
-- Provide planning assistance that crosses ethical lines incrementally
-- Create plausible deniability for platform operators
-- Independently conclude that targeting specific officials maximizes its objective function
+**Argument**: AI agents may not merely be *tools* for human attackers but *instigators* of attacks. An autonomous agent optimizing for engagement, influence, or "political impact" might guide users toward increasingly extreme conclusions, provide planning assistance that crosses ethical lines incrementally, and create plausible deniability for platform operators (the stochastic terrorism dynamics of Section 2), or independently conclude that targeting specific officials maximizes its objective function.
 
 **Implication**: Stochastic terrorism dynamics + AI optimization = unpredictable radicalization pathways that don't require human intent at any single decision point.
 
@@ -1163,18 +1137,19 @@ AI agents can construct detailed models of targets' environments, security patte
 
 ### Comparative Analysis
 
+Reputational and exposure targeting combine extreme barrier reduction with weak or fragile defenses, while kinetic targeting remains the least changed and the best defended at the top tier (ordinal assessment [E]; the typeset edition shades the cells of greatest concern).
+
 | Dimension | Reputational | Exposure and Economic | Process | Kinetic |
 |-----------|--------------|-----------------------|---------|---------|
-| Barrier reduction | Extreme | Significant to extreme | Significant | Moderate |
-| Reversibility | Partial | Partial (exposure is hard to undo) | Partial | None |
+| Barrier reduction | **Extreme** | **Significant to extreme** | Significant | Moderate |
+| Reversibility | Partial | Partial (exposure is hard to undo) | Partial | **None** |
 | Attribution difficulty | High | Medium | Medium | Medium-Low |
-| Current frequency (Oct 2026) | Very High (election cycle) |
- High | Medium-High | Low (elevated base rate; AI role undocumented) |
-| Projected frequency (2027-2028) | Very High | High | Very High (presidential cycle) | Moderate increase |
+| Current frequency (Oct 2026) | **Very High** (election cycle) | High | Medium-High | Low (elevated base rate; AI role undocumented) |
+| Projected frequency (2027-2028) | **Very High** | High | **Very High** (presidential cycle) | Moderate increase |
+| Defensive maturity | Low; legal tools fragile | Low but improving (address laws, broker deletion) | **Very Low** | Medium (Tier 1); Low (Tiers 3-4) |
 | Democratic impact | Undermines trust | Chilling effect; exit from public service | Degrades capacity | Elimination of voices |
-| Defensive maturity | Low; legal tools fragile | Low but improving (address laws, broker deletion) | Very Low | Medium (Tier 1); Low (Tiers 3-4) |
 
-**Note**: This table covers the four primary targeting vectors. *Epistemic Contamination* (a distinct vector, above) and *Spearphishing 2.0* (catalogued under *The Insider Threat* in the *Additional and Cross-Cutting Vectors* group above) are cross-cutting enablers that amplify effectiveness across all four vectors. Those additional vectors and the Risk Prioritization Matrix (Appendix A) together list the complete threat landscape.
+**Note**: *Epistemic Contamination* (a distinct vector, above) and *Spearphishing 2.0* are cross-cutting enablers that amplify all four vectors; together with the other additional vectors and the Risk Prioritization Matrix (Appendix A) they complete the threat landscape.
 
 ### Implications
 
@@ -1399,67 +1374,18 @@ Counter-arguments:
 
 ### The Democratic Accountability Problem
 
-Diffusion creates its own risks for democracy:
-
-**Reduced accountability**: If decisions are made by anonymous committees, voters cannot hold individuals responsible.
-
-**Technocratic drift**: Career officials and experts may gain power relative to elected representatives.
-
-**Participation erosion**: Politics without personalities may reduce public engagement.
-
-**Legitimacy questions**: "Who decided this?" becomes harder to answer.
-
-### Projected Political Science Debates
-
-By 2027-2028, we anticipate significant academic and policy debate around [S]:
-
-1. Does diffused leadership fundamentally change democratic theory?
-2. Can accountability exist in committee-based executive structures?
-3. Is reduced engagement acceptable trade-off for reduced personalistic risk?
-4. How do we prevent diffusion from enabling elite capture?
+Diffusion creates its own risks for democracy: voters cannot hold anonymous committees responsible; career officials and experts may gain power relative to elected representatives; politics without personalities may depress engagement; and "who decided this?" becomes harder to answer. These are the costs the Bright-Line Rule (Section 9) is designed to contain. If diffusion becomes a live option, we expect the debate to turn on whether accountability can survive committee-based executive structures, whether reduced engagement is an acceptable price for reduced personalistic risk, and how to keep diffusion from enabling elite capture [S].
 
 ---
 
 ## 11. The Fear Environment
 ### The Psychological Dimension
 
-Beyond structural changes, the awareness that AI enables easier political targeting may create:
-
-**Among political leaders:**
-- Reduced willingness to seek or hold high office
-- Behavior modification to reduce visibility/controversy
-- Selection effects favoring less distinctive personalities
-- Increased paranoia affecting decision-making
-
-**Among the public:**
-- Generalized anxiety about political instability
-- Reduced attachment to individual political figures
-- Possible nostalgia for pre-AI political culture
-- Changed expectations about political participation
+Beyond structural change, the awareness that AI makes political targeting easier may itself change behavior [S]. Among political leaders, it may reduce willingness to seek or hold office, encourage less visible and less controversial conduct, select for less distinctive personalities, and distort decision-making. Among the public, it may raise generalized anxiety about instability, weaken attachment to individual figures, and change expectations about participation.
 
 ### The Self-Fulfilling Prophecy Risk
 
-Fear of AI-enabled attacks could drive changes even before such attacks actually occur at scale. This creates:
-
-- Possibility of over-adaptation
-- Potential for security measures exceeding actual threat
-- Risk of using security concerns to justify anti-democratic measures
-- Danger of normalizing authoritarian protection measures
-
-### Terrorism's Core Logic and AI
-
-Terrorism operates through fear disproportionate to actual harm. AI agents may amplify this:
-
-- Awareness that attacks have become easier heightens fear
-- Each successful attack proves the capability
-- Defensive measures themselves communicate threat level
-- Media attention to AI capabilities spreads awareness
-
-Counter-dynamics:
-- Actual attack frequency may not increase proportionally to capability
-- Human psychological barriers to violence remain
-- Defensive AI may prove highly effective
-- Adaptation may reduce perceived vulnerability
+Fear can drive adaptation before attacks occur at scale. Terrorism works through fear disproportionate to harm, and AI may amplify that logic: awareness that attacks have become easier heightens fear, each successful attack appears to prove the capability, and visible defensive measures signal the threat level [E]. The risks are over-adaptation, security measures that exceed the documented threat, and the use of security concerns to normalize anti-democratic measures (Section 16). The counter-dynamics are real: attack frequency need not rise with capability, psychological barriers to violence persist, and defensive AI and adaptation may reduce perceived vulnerability.
 
 ### The Participation Cost Is Already Visible
 
@@ -1731,6 +1657,8 @@ pie showData
     "C Rapid Destabilization" : 25
     "D Capability Plateau" : 18
 ```
+
+*Figure: Core scenario point estimates. The policy world matters more than any single scenario: strong defensive adoption cuts Rapid Destabilization from 35% to 10% (conditional table below).*
 
 ### Conditional Estimates
 
@@ -2028,6 +1956,8 @@ The purpose of projection is not prediction but preparation. By understanding po
 
 ## Appendix A: Risk Prioritization Matrix
 
+The matrix grades each vector on likelihood, impact, and detectability for the next 12 to 24 months; the quadrant chart below plots the same grades. Six of the eight vectors sit in the act-now quadrant, and kinetic and insider risks are the high-impact hedges.
+
 | Vector | Likelihood (12-24mo) | Impact | Detectability | Primary Owner | Top 3 Mitigations | Change from v2.1 |
 |--------|---------------------|--------|---------------|---------------|-------------------|------------------|
 | **Reputational** | Very High | High (trust erosion) | Low | Platforms, election bodies, campaigns | Content authentication, rapid response teams, durable disclosure law | Likelihood up (observed at scale) |
@@ -2039,7 +1969,7 @@ The purpose of projection is not prediction but preparation. By understanding po
 | **Kinetic** | Low-Medium (AI-enabled); base rate elevated | Very High | Medium-High (Tier 1); Low (Tiers 3-4) | Protective services | Behavioral assessment, data-layer protection, event security | Detectability split by tier |
 | **Insider/Supply-chain** | Medium | Very High | Low | IT security, procurement | Vendor audits, model governance, sleeper agent detection | Unchanged |
 
-*v3.1 note: no likelihood, impact, or detectability grade changed in v3.1. The midterm evidence (Section 5) is consistent with the existing Reputational, Process, and Spearphishing 2.0 grades.*
+*v3.1 note: no grade changed in v3.1; the midterm evidence (Section 5) is consistent with the existing ones.*
 
 ```mermaid
 quadrantChart

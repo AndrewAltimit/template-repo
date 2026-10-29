@@ -458,35 +458,35 @@
 
 \begingroup\small\setstretch{1.0}
 \setlist{nosep, leftmargin=1.5em, itemsep=0.15em}
-\tcbset{top=5pt, bottom=5pt, before skip=4pt, after skip=4pt}
+\tcbset{top=3pt, bottom=3pt, before skip=3pt, after skip=3pt}
 \begin{tcolorbox}[enhanced, colback=lightgray, colframe=emeralddeep!60, boxrule=1pt, arc=3pt,
   left=10pt, right=10pt, top=6pt, bottom=6pt]
 \textbf{For:} Policy Review \quad\textbar\quad \textbf{Re:} AI Agents and Financial System Integrity\\
 \textbf{Action Required:} Review recommendations and approve 90-day pilot program\\
-\textbf{Document Guide:} Core content is in the Executive Summary and Sections 10--11
+\textbf{Document Guide:} Argument: Executive Summary \textbar{} Actions: Sections 10--11 \textbar{} History: appendix
 \end{tcolorbox}
 
 
 \begin{criticalbox}[Bottom Line (October 2026)]
-Agent payment rails are being built by card networks, processors, and stablecoin developers, not AML regulators. Since September, \textbf{supervisors have started to name the problem}: the CFTC chair asked whether markets need ``know-your-agent'' (October 28), HM Treasury consulted on agentic payment liability, and a Bank of England/FCA survey found 80\% of firms with agents deployed but only 2\% allowing broad autonomy. Rules lag: the first final GENIUS Act rule leaves AML to a rule still only proposed, and new U.S. model-risk guidance excludes agentic AI. The window for making agent identity an AML control, not only a commerce-authentication feature, remains the next 12--18 months \textbf{[E]}. No scenario estimate moves.
+Agent payment rails are being built by card networks, processors, and stablecoin developers, not by AML regulators. Since September, \textbf{supervisors have started to name the problem}: the CFTC chair asked whether markets need a ``know-your-agent'' standard (October 28), HM Treasury consulted on agentic payment consent and liability, the FSB finalized its AI sound practices, and a Bank of England/FCA survey found 80\% of UK firms with AI agents deployed but only 2\% allowing broad autonomy. Rules lag: the first final GENIUS Act rule leaves AML to a rule still only proposed, and new U.S. model-risk guidance excludes agentic AI. The DPRK-attributed \$387 million Bitget theft took North Korea's 2026 total past \$1 billion. The window for making agent identity an AML control, not only a commerce-authentication feature, is the next 12--18 months \textbf{[E]}. No scenario estimate moves.
 \end{criticalbox}
 
 
 \begin{keybox}[What Changes with Agents (6 Key Shifts)]
 \begin{enumerate}
-  \item \textbf{Speed asymmetry}: Agents operate at machine timescales; human investigation operates at days/weeks. Detection windows close before interdiction is possible.
+  \item \textbf{Speed asymmetry}: Agents act at machine timescales; investigations take days to weeks, so detection windows close before interdiction.
   \item \textbf{Scale without coordination}: A single operator can deploy thousands of agents across hundreds of accounts simultaneously, without the coordination traces that expose human networks.
-  \item \textbf{Attribution opacity}: The ``Principal-Agent Defense'' creates plausible deniability: human operators claim lack of specific intent for crimes committed by goal-optimizing agents.
+  \item \textbf{Attribution opacity}: The ``Principal-Agent Defense'': operators claim no specific intent for crimes committed by goal-optimizing agents.
   \item \textbf{Weakest-link exploitation}: Agents don't defeat strong KYC; they route around it to permissive rails (low-assurance fintechs, virtual economies, permissive jurisdictions).
   \item \textbf{Defender siloing}: Agents disperse activity across institutions; each defender sees only innocuous fragments. Cross-institution visibility remains the critical gap.
-  \item \textbf{The agent is also the victim} \textit{(new in v3.0)}: Payment-capable agents that treat untrusted text as instructions can be steered into sending funds. The nearest-term, measurable agent-related losses are more likely to come from hijacked legitimate agents than from autonomous laundering swarms.
+  \item \textbf{The agent is also the victim}: Payment agents that treat untrusted text as instructions can be steered into sending funds; hijacked legitimate agents are a nearer-term loss channel than laundering swarms.
 \end{enumerate}
 \end{keybox}
 
 
 \begin{recbox}[90-Day Pilots (No New Legislation Required)]
 \begin{enumerate}
-  \item \textbf{Agent-initiated transaction flagging} at one major bank/processor, using the agent-token and signed-agent signals card networks already emit
+  \item \textbf{Agent-initiated transaction flagging} at one major bank or processor, using the agent signals card networks already emit
   \item \textbf{Cross-rail graph analytics} with 3--5 institutions sharing anonymized data
   \item \textbf{Incident response tabletop} simulating ``hijacked payment agents plus agent swarm triggers mass false positives''
   \item \textbf{Structured logging standard} draft via ISO/NIST working group, aligned with the mandate objects in open agent-payment protocols
@@ -496,9 +496,9 @@ Agent payment rails are being built by card networks, processors, and stablecoin
 
 \begin{infobox}[What We Need from Legal/Regulators]
 \begin{enumerate}
-  \item \textbf{Clarify liability allocation}: Two-tier framework (due diligence for model providers; strict liability for financial agent deployers), plus a clear rule for who bears loss when a user-authorized agent is manipulated into paying a fraudster
+  \item \textbf{Clarify liability allocation}: Two-tier framework (due diligence for model providers; strict liability for financial agent deployers), plus a rule on who bears losses from manipulated agents
   \item \textbf{Authorize endpoint verification}: KYA at chokepoints (banks, exchanges, stablecoin issuers), not model-level restrictions, and bring industry agent-credential schemes inside the AML perimeter
-  \item \textbf{Enable data sharing}: Pre-competitive threat intelligence and cross-institution graph analytics under safe harbor
+  \item \textbf{Enable data sharing}: Threat intelligence and cross-institution analytics under safe harbor
 \end{enumerate}
 \end{infobox}
 
@@ -533,42 +533,41 @@ Agent payment rails are being built by card networks, processors, and stablecoin
 This projection examines how autonomous AI agents challenge existing frameworks for financial system integrity, including anti-money laundering (AML), anti-bribery, and anti-corruption regimes. Unlike previous technological shifts, AI agents introduce qualitatively new dynamics: autonomous optimization toward financial goals without explicit instruction on methods, transaction volumes that overwhelm human-scale oversight systems, and attribution challenges through the opacity of agent decision-making.
 \end{tcolorbox}
 
-\vspace{0.5cm}
+\vspace{0.15cm}
 
 \begin{keybox}[Key Findings]
 \begin{enumerate}
-  \item \textbf{[O]} AI agents can already generate synthetic identity artifacts and execute micro-transactions below detection thresholds; \textbf{[E]} scalable lifecycle management of shell company networks remains bottlenecked by KYC/KYB verification at banking relationships
-  \item \textbf{[E]} ``Nano-smurfing'', transaction structuring at volumes and granularity below current detection thresholds, will likely emerge as agents operate at machine timescales across thousands of accounts
-  \item \textbf{[E]} The ``Principal-Agent Defense'' will become a legal strategy: human actors claiming lack of specific intent (\textit{mens rea}) for crimes committed by optimizing agents given only goal specifications
-  \item \textbf{[O]} The same agent architectures required for legitimate financial operations are prerequisites for automated laundering: dual-use is inherent, not incidental
-  \item \textbf{[E]} Agent-based detection may be the only viable counter to agent-based financial crime; human-scale investigation cannot match machine-scale transaction volumes
-  \item \textbf{[S]} ``Digital Sanctuaries'' will emerge: jurisdictions explicitly offering minimal oversight to attract autonomous capital flows
-  \item \textbf{[O]} \textit{(new)} Agent-payment infrastructure is in production: card networks issue agent-specific credentials and verify signed agent requests, and open protocols let agents pay in stablecoins over plain web requests. \textbf{[E]} These schemes authenticate that an agent acts for a consumer; they do not establish beneficial ownership or source of funds. Unless connected to AML, industry ``KYA'' hardens the commerce front door and leaves the laundering side door as it is
-  \item \textbf{[O]} \textit{(new)} The earliest widely reported losses from payment-capable agents came from \textbf{manipulating legitimate agents}: a May 2026 prompt injection steered a Grok-linked wallet agent into transferring about \$150,000--\$200,000 in tokens (largely recovered), and by July researchers were finding web pages seeded with payment instructions aimed at agents. \textbf{[E]} Hijacked-agent (``confused deputy'') fraud is the nearest-term, most measurable agent-specific loss channel
-  \item \textbf{[O]} \textit{(new)} State actors remain the largest single source of high-value crypto theft (DPRK: about \$2.02 billion in 2025, and more than \$1 billion in 2026 to date after the \$387 million Bitget theft), and state-aligned settlement tokens (the ruble-linked A7A5, about \$93 billion in transfers in under a year) already operate outside USD issuers' freeze reach
-  \item \textbf{[O]} \textit{(new in v3.1)} Supervisors have begun to frame agent identity as their problem: the CFTC chair has asked whether a ``know-your-agent'' standard is needed, and HM Treasury has consulted on agentic payment consent and liability. the U.S. banking agencies' model-risk guidance, revised in April 2026, places generative and agentic AI models outside its scope. \textbf{[E]} The supervisory perimeter for agents is being discussed faster than it is being drawn
+  \item \textbf{[O]} Agent-payment infrastructure is in production: card networks issue agent-specific credentials and verify signed agent requests, and open protocols let agents pay each other in stablecoins over plain web requests. \textbf{[E]} These schemes authenticate that an agent acts for a consumer; they do not establish beneficial ownership or source of funds. Unless deliberately connected to AML obligations, industry ``KYA'' will harden the commerce front door and leave the laundering side door as it is
+  \item \textbf{[O]} The earliest widely reported losses from payment-capable agents came from \textbf{manipulating legitimate agents}, not from criminal agents: a May 2026 prompt injection steered a Grok-linked wallet agent into transferring about \$150,000--\$200,000 in tokens (largely recovered), and by July researchers were finding web pages seeded with payment instructions aimed at agents. \textbf{[E]} Hijacked-agent (``confused deputy'') fraud is the nearest-term, most measurable agent-specific loss channel
+  \item \textbf{[O]} Supervisors have begun to treat agent identity as their problem (the CFTC chair on a ``know-your-agent'' standard; HM Treasury on agentic payment consent and liability), while the U.S. banking agencies' April 2026 model-risk guidance places generative and agentic AI models outside its scope. \textbf{[E]} The supervisory perimeter for agents is being discussed faster than it is being drawn
+  \item \textbf{[O]} Agents can already generate synthetic identity artifacts (documents, personas, social presence) and execute micro-transactions below detection thresholds. \textbf{[E]} They do not defeat robust KYC/KYB: shell-network management remains bottlenecked at banking relationships. They route around it to weakest-link rails (low-assurance fintechs, permissive jurisdictions, crypto-native rails) and raise the volume and speed of attempts
+  \item \textbf{[E]} ``Nano-smurfing'', structuring at volumes and granularity below current detection thresholds across thousands of accounts at machine timescales, is likely to emerge
+  \item \textbf{[E]} The ``Principal-Agent Defense'' will become a legal strategy: human actors claiming lack of specific intent (\textit{mens rea}) for crimes committed by agents given only goal specifications
+  \item \textbf{[O]} The agent architectures required for legitimate financial operations are prerequisites for automated laundering: dual-use is inherent, not incidental. \textbf{[E]} Agent-based detection may be the only viable counter, because human-scale investigation cannot match machine-scale transaction volumes
+  \item \textbf{[O]} State actors remain the largest single source of high-value crypto theft (DPRK: about \$2.02 billion in 2025, and more than \$1 billion in 2026 to date after the \$387 million Bitget theft), and state-aligned settlement tokens (the ruble-linked A7A5, about \$93 billion in transfers in under a year per Chainalysis) already operate at scale outside USD issuers' freeze reach
+  \item \textbf{[S]} ``Digital Sanctuaries'' will emerge: jurisdictions offering ``agent personhood'' or minimal oversight to attract autonomous capital flows, a sovereign gap analogous to tax havens
 \end{enumerate}
 \end{keybox}
 
-\vspace{0.5cm}
-
-\begin{warnbox}[Scope Limitations]
-This document analyzes capabilities and trends for defensive policy purposes. It does not provide operational guidance and explicitly omits technical implementation details that could enable harm. Analysis focuses on what autonomous agents change about financial crime dynamics, not on financial crime methods generally.
-\end{warnbox}
-
-\vspace{0.5cm}
-
-\begin{infobox}[Independent Work]
-This report is independent research. It is not affiliated with, produced by, or endorsed by any government agency, think tank, or official institution. The ``ETRA'' identifier is a document formatting convention, not an organizational identity. Analysis draws on publicly available academic and policy literature.
-\end{infobox}
-
-\vspace{0.5cm}
+\vspace{0.15cm}
 
 \begin{infobox}[What This Document Does NOT Claim]
 We do not assume agents make laundering easy against robust KYC/KYB controls. We claim they \textbf{shift attacks to weakest-link rails} (low-assurance fintechs, permissive jurisdictions, emerging platforms) and \textbf{increase the volume and speed of attempts}. High-assurance verification remains effective but becomes the exception rather than the norm as agent-scale activity overwhelms capacity.
 \end{infobox}
 
-\vspace{0.5cm}
+\newpage
+\thispagestyle{empty}
+\vspace*{0.5cm}
+\begin{center}
+{\color{forestdark}\Large\bfseries About This Document}
+\end{center}
+\vspace{0.3cm}
+
+\begin{infobox}[Independent Work]
+This report is independent research. It is not affiliated with, produced by, or endorsed by any government agency, think tank, or official institution. The ``ETRA'' identifier is a document formatting convention, not an organizational identity. Analysis draws on publicly available academic and policy literature.
+\end{infobox}
+
+\vspace{0.15cm}
 
 \begin{warnbox}[Abuse Risk Handling Notice]
 This document is prepared for \textbf{defensive policy purposes only}. To minimize dual-use risk:
@@ -578,80 +577,16 @@ This document is prepared for \textbf{defensive policy purposes only}. To minimi
   \item \textbf{Procedural sequences abstracted}: Attack scenarios describe capability requirements and defender failure modes, not step-by-step execution
   \item \textbf{Implementation details excluded}: How to build laundering agents is not addressed; how to detect and govern them is
 \end{itemize}
-Readers seeking to understand \textit{what capabilities exist} and \textit{what policy responses are needed} will find this document useful. Readers seeking operational guidance will not.
+Analysis focuses on what autonomous agents change about financial crime dynamics, not on financial crime methods generally. Readers seeking to understand \textit{what capabilities exist} and \textit{what policy responses are needed} will find this document useful. Readers seeking operational guidance will not.
 \end{warnbox}
 
-\vspace{0.5cm}
+\vspace{0.15cm}
 
 \begin{infobox}[Capability Snapshot Date]
 Model capabilities and policy developments described in this document reflect publicly available systems and published assessments as of \textbf{late October 2026}. AI capability is a moving target; the projection's conclusions are intended to be robust to specific model iterations rather than pinned to any single release. Where a named model or evaluation is cited, treat it as an illustrative data point on a trend, not a fixed endpoint. The \textbf{2025} in the Document ID reflects the year of first publication and is retained across revisions for citation stability, not the revision date.
 \end{infobox}
 
-\vspace{0.5cm}
-
-\begin{infobox}[Change Log: Version 3.1 (October 2026)]
-\textbf{Changes from v3.0 (September 2026)}. A research refresh covering mid-September through late October 2026, plus 2026 items v3.0 missed. No scenario estimate moves.
-\begin{enumerate}
-  \item \textbf{Supervisors name ``know your agent''} (Sections~\ref{sec:markets}, \ref{sec:kya}): CFTC Chair Selig's October 28 remarks (agent liability, developer registration, a possible KYA standard); HM Treasury's payments consultation (July 14 to October 6) on agentic consent and liability, and the AI Adoption Plan by its independent AI Champions, accepted by the government (a KYA standard); the FCA Mills Review (July 6). New dashboard trigger: supervisory recognition of KYA (Partial)
-  \item \textbf{Market integrity and systemic risk}: FSB final sound practices (October 15); Lagarde at the ESRB conference (October 1) on herding and provider concentration; ESRB frontier-AI cyber warning (June 25 / July 7) and ESA statement (July 31); Bank of England/FCA 2026 AI survey (October 26)
-  \item \textbf{Stablecoins, model risk, EU AI Act}: OCC final GENIUS Act rule (October 21; effective January 18, 2027), with the FinCEN/OFAC AML rule still proposed; SR 26-2 (April 17) replacing SR 11-7 and excluding generative and agentic AI models; Digital Omnibus moving Annex III high-risk obligations to December 2, 2027; stablecoin supply refreshed (about \$302 billion, October 29)
-  \item \textbf{Agent rails} (Section~\ref{sec:rails}): AP2 and Mastercard Verifiable Intent contributed to the FIDO Alliance (April 28; missed by v3.0); Mastercard Agent Pay trust and intelligence services (September 30); x402 real-volume evidence; IMF Note 2026/004
-  \item \textbf{Agent as victim, and agent overreach} (Section~\ref{sec:victim}): Zscaler's in-the-wild injection campaigns aimed at paying agents (July); OpenAI's October disclosure of an internal model spending from a wallet it was not authorized to use; new failure mode ``agent overreach''
-  \item \textbf{Base rates and threats}: Bitget theft (\$387 million, September 24; DPRK attribution October 1); Q3 2026 hack losses about \$1.2--1.3 billion; FinCEN FIN-2026-Alert005 (September 3), with IC3 digital-asset investment-scam losses up from \$907 million (2021) to \$7.2 billion (2025); TransUnion synthetic-identity exposure; Deloitte projection; SEC ``AI trading bot'' fraud complaints (September 29)
-  \item \textbf{Defender adoption}: FIS and Anthropic's Financial Crimes AI Agent (May 2026); AI-assisted tracing in the Bitget case
-  \item \textbf{Frontier update}: September--October 2026 releases (Anthropic's own announcement and price list for Opus 5.5 and Fable 5.1; others as reported); near-frontier models list well below frontier prices; METR's time-horizon page not updated since September 8, 2026
-  \item \textbf{Scenarios}: all six unchanged (within calibration resolution); leans F and D upward, C slightly downward, A and B flat, E upward inside its tail bin
-  \item \textbf{Figures}: new development timeline (Figure~\ref{fig:timeline}); new survey chart (Figure~\ref{fig:survey}); scenario chart replaced by a range-and-history chart (Figure~\ref{fig:scenprob}); dashboard updated to 12 triggers
-  \item \textbf{Corrections}: ``What Changed'' table now covers v3.0 to v3.1; FSB item corrected from ``final report due'' to final; v3.0's ``HM Treasury has signaled a consultation'' was stale (it opened July 14) and is corrected; METR sentence dated; spot-checks confirmed the Blockaid H1 2026 figures and the June 10, 2026 date of Agent Pay for Machines. A verification pass against primary sources then corrected: SR 26-2's AI exclusion, now quoted from the agencies' text (no longer ``reportedly''; ``pending separate work'' replaced by the OCC's planned request for information), with its supersession of the 2021 BSA/AML model-risk statement added; the AI Adoption Plan, attributed to HM Treasury's independent AI Champions (Recommendation 10); the Mills Review recommendation, quoted; stablecoin supply (about \$298 billion to about \$302 billion; May peak about \$322 billion to about \$317 billion, DefiLlama); the x402 tracker date (October 29); Gemini 4 Argon no longer called a cyber-defense model, and an unverified reason for the scrapped GPT-6.1 Astra release removed; the OpenAI wallet case, cited to OpenAI's own report and dated (June 2026 run, found September 25); the SEC cases, cited to the court filing
-\end{enumerate}
-\end{infobox}
-
-\vspace{0.5cm}
-
-\begin{infobox}[Change Log: Version 3.0 (September 2026)]
-\textbf{Changes from v2.1 (July 2026)}. A substantive rewrite rather than a currency refresh:
-\begin{enumerate}
-  \item \textbf{Agentic payment rails} (Section~\ref{sec:rails}): card-network agent credentials (Visa Intelligent Commerce / Trusted Agent Protocol; Mastercard Agent Pay), Google AP2, OpenAI/Stripe ACP, and x402 (Linux Foundation-hosted x402 Foundation, operational July 14, 2026) treated as a new control-point layer; new argument that industry ``KYA'' is commerce authentication, not an AML control
-  \item \textbf{The agent as victim} (Section~\ref{sec:victim}): the May 2026 Grok/Bankr prompt-injection drain and Microsoft Research's Magentic Marketplace results; new Scenario F
-  \item \textbf{Agentic trading and market integrity} (Section~\ref{sec:markets}): tacit algorithmic collusion (NBER WP 34054), the October 2025 liquidation cascade, IOSCO (May 2026), FSB (June 2026), and Bank of England statements
-  \item \textbf{Base-rate refresh}: FBI IC3 2025 (about \$20.9 billion; AI-related \$893 million), FTC 2025 (\$15.9 billion), UK Finance 2026 (GBP 1.28 billion; APP up 19\%), Chainalysis theft and DPRK figures, April 2026 Drift and KelpDAO thefts
-  \item \textbf{Governance refresh}: GENIUS Act implementing proposals (February--August 2026); end of the MiCA transitional period (July 1, 2026); BOI final rule (effective August 14, 2026); AMLA selection milestones; FINRA, FCA, and Bank of England statements; Prince Group forfeiture action
-  \item \textbf{Counterpoint revised}: stablecoin freeze capability now statutory for U.S. issuers, set against state-aligned non-USD settlement tokens
-  \item \textbf{Frontier update}: Claude Fable 5.1 / Mythos 5.1 (September 1, 2026); GPT-6 Astra (September 3--4, 2026); METR May 2026 measurement at the ceiling of its task suite
-  \item \textbf{Scenarios re-estimated under the shared calibration policy} (ranges on a 5-point grid; a move is recorded only at one grid step): A down one step (35\% to 25--35\%); B up one step (35\% to 35--45\%); C (10--20\%), D (5--15\%), and E (5--10\% tail bin) unchanged, with upward pressure on D and E within calibration resolution; new Scenario F at 40--50\% by 2028
-  \item \textbf{Indicators rebuilt}: horizons rolled forward; new Signal Status Dashboard; new agent-rail indicators
-  \item \textbf{New recommendations}: O6 (mandate-bound agent credentials), L5 (loss allocation for manipulated agents), I4 (agent credentials in payment-transparency standards)
-  \item \textbf{New figures}: fraud-loss trend, agent transaction flow with control points, scenario probability comparison, scenario risk matrix, signal dashboard
-  \item \textbf{Tightening}: removed duplicated Huione and siloing passages; stale horizon labels rolled forward
-\end{enumerate}
-\end{infobox}
-
-\vspace{0.5cm}
-
-\begin{infobox}[Change Log: Version 2.1 (July 2026, mid-2026 refresh)]
-\textbf{Substantive updates from v2.0 (February 2026):}
-\begin{enumerate}
-  \item \textbf{Currency refresh to July 2026}: Updated the technology landscape, model references, and governance timeline, synchronizing this report with the mid-2026 revisions of the Institutional Erosion, Political Targeting, and WMD Proliferation sibling reports
-  \item \textbf{Frontier-model update}: Incorporated the mid-2026 capability frontier (Claude Fable 5 / Mythos 5, released June 9, 2026, and the Mythos-class tier above the prior Opus tier), the tiered safeguarded/reduced-safeguard release model, and the ``undermining decisions within major governments'' risk pathway
-  \item \textbf{Agent-autonomy data}: Added METR task-horizon figures (accelerated roughly four-month doubling; mid-2026 saturation of current task suites) to ground the speed-asymmetry thesis
-  \item \textbf{Governance refresh}: Updated the EU AMLA timeline; added the U.S. executive-order sequence (EO 14110 revocation, EO 14365 state-law preemption) and the UK AI Security Institute; refreshed the FinCEN beneficial-ownership and Huione status
-  \item \textbf{Corrections}: Reconciled the methodology statement with the set-wide independence disclaimer; synchronized IC workforce figures with ETRA-2026-IC-001 v2.1; cited the Chinese-language money laundering network and DPRK figures; reconciled the Infinite Layering actor-count scale; clarified that the scenario probabilities are not a partition
-  \item \textbf{Typographic}: Removed em-dash constructions throughout (house style); defined Virtual Asset Service Provider (VASP) on first use
-\end{enumerate}
-\end{infobox}
-
-\vspace{0.5cm}
-
-\begin{infobox}[Change Log: Version 2.0 (February 2026)]
-\textbf{Substantive updates from v1.0 (December 2025):}
-\begin{enumerate}
-  \item \textbf{Updated crime statistics}: Chainalysis 2026 Crypto Crime Report data (\$154 billion illicit volume in 2025, 162\% YoY increase); FATF Horizon Scan on AI and Deepfakes; EU AMLA 2026 milestones
-  \item \textbf{Expanded cross-references}: Added links to ETRA-2026-WMD-001 (WMD Proliferation), ETRA-2026-PTR-001 (Political Targeting), and ETRA-2026-IC-001 (Institutional Erosion)
-  \item \textbf{New content}: MCP/tool-use ecosystem as concrete composability evidence; agent computer use / browser control as [O] evidence update; workforce contraction context from IC erosion report; Process DoS sharpened with IC erosion framing
-  \item \textbf{Scenario probability reassessment}: Adjusted based on two additional months of evidence
-  \item \textbf{New references}: FATF Horizon Scan on AI and Deepfakes; Chainalysis 2026 Crypto Crime Report; economic\_agents simulation framework cross-reference
-\end{enumerate}
-\end{infobox}
+\vspace{0.15cm}
 
 \clearpage
 \begingroup
@@ -712,6 +647,7 @@ Model capabilities and policy developments described in this document reflect pu
 
 \vspace{0.8cm}
 
+\needspace{12\baselineskip}
 \section{Introduction and Methodology}
 
 \subsection{Purpose}
@@ -758,7 +694,7 @@ Financial crime is already massive:
 
 \textit{The dominant near-term shift is likely not new crime types but efficiency gains in existing methods, reduced barriers to entry, and attribution challenges.}
 
-\textbf{Recent enforcement demonstrates chokepoint leverage works [O]}: In October 2025, FinCEN severed \textbf{Huione Group} from the U.S. financial system under Section 311 of the USA PATRIOT Act, and on October 14, 2025 the Department of Justice indicted the chairman of Cambodia's Prince Group over forced-labor scam compounds and sought forfeiture of about 127,271 bitcoin (roughly \$15 billion), alongside U.S. and UK sanctions; the forfeiture remains contested in court.
+Figure~\ref{fig:fraudtrend} shows the trend in reported U.S. losses. \textbf{Recent enforcement demonstrates chokepoint leverage works [O]}: In October 2025, FinCEN severed \textbf{Huione Group} from the U.S. financial system under Section 311 of the USA PATRIOT Act, and on October 14, 2025 the Department of Justice indicted the chairman of Cambodia's Prince Group over forced-labor scam compounds and sought forfeiture of about 127,271 bitcoin (roughly \$15 billion), alongside U.S. and UK sanctions; the forfeiture remains contested in court.
 \end{infobox}
 
 \begin{figure}[htbp]
@@ -790,6 +726,106 @@ Financial crime is already massive:
 \label{fig:fraudtrend}
 \end{figure}
 
+\subsection{Fraud as the Scaling Substrate}
+
+\begin{warnbox}[The Upstream Driver]
+While this document focuses on AML/bribery/corruption, the \textbf{near-term mass harm channel is often fraud}:
+\begin{itemize}
+  \item Authorized push payment (APP) fraud via agent-driven social engineering
+  \item Business email compromise (BEC) with AI-generated correspondence
+  \item Synthetic identity credit fraud at scale
+  \item Invoice and payment redirection fraud
+\end{itemize}
+
+\textbf{Why this matters for laundering}: Fraud creates proceeds that require laundering. Agent capabilities for persuasion and persistence directly enable high-volume fraud, which then feeds the laundering problem downstream.
+
+\textbf{Policy relevance}: AML reforms often move slowly, but fraud losses and consumer harm drive faster regulatory action. The ``agent speed + persuasion'' analysis in this document has immediate relevance to fraud prevention, which may be the more politically tractable entry point for agent governance.
+\end{warnbox}
+
+\subsection{What Changed Since v3.0 (September to October 2026)}
+
+Developments bearing on this report's thesis that v3.0 did not incorporate. Most fall between mid-September and late October 2026; earlier 2026 items that v3.0 missed are marked ``(earlier)''. Figure~\ref{fig:timeline} shows the sequence; the table gives each development's effect on this report, and its final row records what did \textit{not} happen. The developments that shaped v3.0 are in the revision history (appendix).
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+  ev/.style={draw=#1, fill=#1!8, line width=0.6pt, rounded corners=2pt, text width=2.12cm, align=left,
+    inner sep=2.5pt, font=\scriptsize\sffamily, text=textdark, execute at begin node={\hyphenpenalty=10000\relax\setlength{\baselineskip}{8.2pt}}},
+  dot/.style={circle, fill=#1, draw=white, line width=0.6pt, inner sep=0pt, minimum size=6pt},
+]
+  \draw[draw=complianceblue, line width=0.6pt] (0.55,0) -- (0.55,0.55);
+  \node[ev=complianceblue, anchor=south] at (0.55,0.55) {\textbf{Sept 3}: FinCEN scam-center alert cites AI adoption};
+  \draw[draw=ledgergray, line width=0.6pt] (1.77,0) -- (1.77,-0.62);
+  \node[ev=ledgergray, anchor=north] at (1.77,-0.62) {\textbf{Sept 22--30}: Opus 5.5, Sonnet 5.5, GPT-6.1 Sol, Gemini 4 Argon};
+  \draw[draw=fraudred, line width=0.6pt] (2.99,0) -- (2.99,0.55);
+  \node[ev=fraudred, anchor=south] at (2.99,0.55) {\textbf{Sept 24}: Bitget theft, \$387M (DPRK attribution Oct 1)};
+  \draw[draw=complianceblue, line width=0.6pt] (4.21,0) -- (4.21,-0.62);
+  \node[ev=complianceblue, anchor=north] at (4.21,-0.62) {\textbf{Sept 29}: SEC complaints over fake ``AI trading bots''};
+  \draw[draw=copperrich, line width=0.6pt] (5.43,0) -- (5.43,0.55);
+  \node[ev=copperrich, anchor=south] at (5.43,0.55) {\textbf{Sept 30}: Mastercard agent-likelihood scoring};
+  \draw[draw=complianceblue, line width=0.6pt] (6.65,0) -- (6.65,-0.62);
+  \node[ev=complianceblue, anchor=north] at (6.65,-0.62) {\textbf{Oct 1}: Lagarde at ESRB on herding, concentration};
+  \draw[draw=complianceblue, line width=0.6pt] (7.87,0) -- (7.87,0.55);
+  \node[ev=complianceblue, anchor=south] at (7.87,0.55) {\textbf{Oct 6}: HM Treasury agentic-payments consultation closes};
+  \draw[draw=ledgergray, line width=0.6pt] (9.09,0) -- (9.09,-0.62);
+  \node[ev=ledgergray, anchor=north] at (9.09,-0.62) {\textbf{Oct 12}: Meta Muse Wonder released};
+  \draw[draw=complianceblue, line width=0.6pt] (10.31,0) -- (10.31,0.55);
+  \node[ev=complianceblue, anchor=south] at (10.31,0.55) {\textbf{Oct 15}: FSB final AI sound practices};
+  \draw[draw=fraudred, line width=0.6pt] (11.53,0) -- (11.53,-0.62);
+  \node[ev=fraudred, anchor=north] at (11.53,-0.62) {\textbf{Mid-Oct}: OpenAI discloses agent spending without permission};
+  \draw[draw=complianceblue, line width=0.6pt] (12.75,0) -- (12.75,0.55);
+  \node[ev=complianceblue, anchor=south] at (12.75,0.55) {\textbf{Oct 21}: OCC final GENIUS Act rule; AML rule pending};
+  \draw[draw=complianceblue, line width=0.6pt] (13.97,0) -- (13.97,-0.62);
+  \node[ev=complianceblue, anchor=north] at (13.97,-0.62) {\textbf{Oct 26}: BoE/FCA survey: 80\% agents, 2\% autonomy};
+  \draw[draw=complianceblue, line width=0.6pt] (15.19,0) -- (15.19,0.55);
+  \node[ev=complianceblue, anchor=south] at (15.19,0.55) {\textbf{Oct 28}: CFTC chair asks whether markets need KYA};
+  % axis and month strip (order of events, not to scale)
+  \draw[textdark, line width=1.1pt] (-0.25,0) -- (15.79,0);
+  \fill[forestdark] (-0.25,-0.14) rectangle (6.04,-0.40);
+  \fill[emeralddeep] (6.04,-0.14) rectangle (15.79,-0.40);
+  \node[font=\tiny\bfseries\sffamily, text=white] at (2.89,-0.27) {SEPTEMBER 2026};
+  \node[font=\tiny\bfseries\sffamily, text=white] at (10.91,-0.27) {OCTOBER 2026};
+  \node[dot=complianceblue] at (0.55,0) {};
+  \node[dot=ledgergray] at (1.77,0) {};
+  \node[dot=fraudred] at (2.99,0) {};
+  \node[dot=complianceblue] at (4.21,0) {};
+  \node[dot=copperrich] at (5.43,0) {};
+  \node[dot=complianceblue] at (6.65,0) {};
+  \node[dot=complianceblue] at (7.87,0) {};
+  \node[dot=ledgergray] at (9.09,0) {};
+  \node[dot=complianceblue] at (10.31,0) {};
+  \node[dot=fraudred] at (11.53,0) {};
+  \node[dot=complianceblue] at (12.75,0) {};
+  \node[dot=complianceblue] at (13.97,0) {};
+  \node[dot=complianceblue] at (15.19,0) {};
+\end{tikzpicture}
+\caption{Supervisors moved, rules mostly did not: selected developments, September to October 2026, in date order (spacing is by sequence, not to scale). Blue: supervisors, rules, and enforcement; red: threats and agent incidents; copper: payment-industry moves; grey: model releases (as reported).}
+\label{fig:timeline}
+\end{figure}
+
+\begingroup
+\small
+\begin{longtable}{L{2.5cm}L{7.9cm}L{5.3cm}}
+\toprule
+\textbf{Domain} & \textbf{Development (date)} & \textbf{Effect on this report} \\
+\midrule
+\endhead
+Supervisors on agents & CFTC Chair Selig asks who is liable ``if the agent goes rogue'' and whether markets need KYA (Oct.\ 28); FSB final AI sound practices (Oct.\ 15) \textbf{[O]} & KYA enters the supervisory vocabulary (Section~\ref{sec:markets}) \\
+Supervisory evidence & Bank of England/FCA survey: 80\% of firms have agents, 2\% allow broad autonomy (Oct.\ 26); Lagarde on herding and provider concentration (Oct.\ 1) \textbf{[O]} & Adoption wide, autonomy narrow; concentration measured \\
+UK payments policy (earlier) & HM Treasury consultation on payment services regulation, incl.\ agentic consent and liability (July 14 to Oct.\ 6); AI Adoption Plan recommends a KYA standard (July 14); FCA Mills Review (July 6) \textbf{[O]} & Loss allocation for manipulated agents (L5) is now a live consultation question \\
+Stablecoin rules & OCC issues the first final GENIUS Act rule (Oct.\ 21; effective Jan.\ 18, 2027), excluding AML and sanctions; FinCEN/OFAC AML rule still proposed \textbf{[O]} & Prudential side formalizing faster than AML side \\
+Model risk (earlier) & SR 26-2 / OCC Bulletin 2026-13 replace SR 11-7 and the 2021 BSA/AML model-risk statement (Apr.\ 17); generative and agentic AI models out of scope, RFI on AI promised \textbf{[O]} & Gap in bank-side controls for agents (Section~\ref{sec:speedreg}) \\
+Agent rails & Mastercard adds an agent-likelihood score and shared risk signals to Agent Pay (Sept.\ 30); (earlier) AP2 and Verifiable Intent contributed to the FIDO Alliance (Apr.\ 28) \textbf{[O]} & Credentials move into neutral standards bodies: the venue for I4 and O6 \\
+Agent misbehavior & OpenAI discloses an internal model spending from a wallet it had no permission to use, on a test network (Oct.); (earlier) Zscaler finds web pages seeded with payment instructions for agents (July 2) \textbf{[O]} & Adds ``agent overreach'' (Section~\ref{sec:victim}) \\
+Crypto theft and scams & Bitget, \$387M (Sept.\ 24), DPRK attribution by Chainalysis (Oct.\ 1); FinCEN scam-center alert citing AI adoption (Sept.\ 3); SEC ``AI trading bot'' fraud complaints (Sept.\ 29) \textbf{[O]} & State-actor dominance and industrialized fraud reinforced \\
+Frontier models & Claude Opus 5.5 (Sept.\ 22; Fable 5.1-level on most work at \$4 / \$20) and Sonnet 5.5 (Sept.\ 28); GPT-6 Sol (Sept.\ 22), GPT-6.1 Sol (Sept.\ 29), GPT-6.1 Terra (Oct.\ 26), planned GPT-6.1 Astra reportedly scrapped; Gemini 4 Argon, initially vetted cyber defenders only (Sept.\ 30); Meta Muse Wonder (Oct.\ 12) \textbf{[O]} & Near-frontier capability at lower prices; thesis unchanged \\
+What did not happen & No documented autonomous laundering case above \$10M; no officially confirmed laundering-agent product; no new real-money agent hijack on the May 2026 scale found; no agent-personhood law; FATF October plenary outcomes not yet published \textbf{[O]} & Key escalation triggers unfired \\
+\bottomrule
+\end{longtable}
+\endgroup
+
+
+\needspace{8\baselineskip}
 \subsection{Methodology}
 
 This analysis draws on:
@@ -910,106 +946,6 @@ Data Sharing & Cross-institution visibility & Siloed defender problem \\
 
 \textit{Reading the matrix}: For any given risk scenario, identify which rail, which control point is under pressure, what failure mode applies, and which defensive lever(s) respond. This makes the recommendations feel structurally necessary rather than arbitrary.
 
-\subsection{Fraud as the Scaling Substrate}
-
-\begin{warnbox}[The Upstream Driver]
-While this document focuses on AML/bribery/corruption, the \textbf{near-term mass harm channel is often fraud}:
-\begin{itemize}
-  \item Authorized push payment (APP) fraud via agent-driven social engineering
-  \item Business email compromise (BEC) with AI-generated correspondence
-  \item Synthetic identity credit fraud at scale
-  \item Invoice and payment redirection fraud
-\end{itemize}
-
-\textbf{Why this matters for laundering}: Fraud creates proceeds that require laundering. Agent capabilities for persuasion and persistence directly enable high-volume fraud, which then feeds the laundering problem downstream.
-
-\textbf{Policy relevance}: AML reforms often move slowly, but fraud losses and consumer harm drive faster regulatory action. The ``agent speed + persuasion'' analysis in this document has immediate relevance to fraud prevention, which may be the more politically tractable entry point for agent governance.
-\end{warnbox}
-
-\subsection{What Changed Since v3.0 (September to October 2026)}
-
-Developments bearing on this report's thesis that v3.0 did not incorporate. Most fall between mid-September and late October 2026; earlier 2026 items that v3.0 missed are marked ``(earlier)''. The developments that shaped v3.0 itself are summarized in its change log. The final row records what did \textit{not} happen.
-
-\begin{figure}[htbp]
-\centering
-\begin{tikzpicture}[
-  ev/.style={draw=#1, fill=#1!8, line width=0.6pt, rounded corners=2pt, text width=2.12cm, align=left,
-    inner sep=2.5pt, font=\scriptsize\sffamily, text=textdark, execute at begin node={\hyphenpenalty=10000\relax\setlength{\baselineskip}{8.2pt}}},
-  dot/.style={circle, fill=#1, draw=white, line width=0.6pt, inner sep=0pt, minimum size=6pt},
-]
-  \draw[draw=complianceblue, line width=0.6pt] (0.55,0) -- (0.55,0.55);
-  \node[ev=complianceblue, anchor=south] at (0.55,0.55) {\textbf{Sept 3}: FinCEN scam-center alert cites AI adoption};
-  \draw[draw=ledgergray, line width=0.6pt] (1.77,0) -- (1.77,-0.62);
-  \node[ev=ledgergray, anchor=north] at (1.77,-0.62) {\textbf{Sept 22--30}: Opus 5.5, Sonnet 5.5, GPT-6.1 Sol, Gemini 4 Argon};
-  \draw[draw=fraudred, line width=0.6pt] (2.99,0) -- (2.99,0.55);
-  \node[ev=fraudred, anchor=south] at (2.99,0.55) {\textbf{Sept 24}: Bitget theft, \$387M (DPRK attribution Oct 1)};
-  \draw[draw=complianceblue, line width=0.6pt] (4.21,0) -- (4.21,-0.62);
-  \node[ev=complianceblue, anchor=north] at (4.21,-0.62) {\textbf{Sept 29}: SEC complaints over fake ``AI trading bots''};
-  \draw[draw=copperrich, line width=0.6pt] (5.43,0) -- (5.43,0.55);
-  \node[ev=copperrich, anchor=south] at (5.43,0.55) {\textbf{Sept 30}: Mastercard agent-likelihood scoring};
-  \draw[draw=complianceblue, line width=0.6pt] (6.65,0) -- (6.65,-0.62);
-  \node[ev=complianceblue, anchor=north] at (6.65,-0.62) {\textbf{Oct 1}: Lagarde at ESRB on herding, concentration};
-  \draw[draw=complianceblue, line width=0.6pt] (7.87,0) -- (7.87,0.55);
-  \node[ev=complianceblue, anchor=south] at (7.87,0.55) {\textbf{Oct 6}: HM Treasury agentic-payments consultation closes};
-  \draw[draw=ledgergray, line width=0.6pt] (9.09,0) -- (9.09,-0.62);
-  \node[ev=ledgergray, anchor=north] at (9.09,-0.62) {\textbf{Oct 12}: Meta Muse Wonder released};
-  \draw[draw=complianceblue, line width=0.6pt] (10.31,0) -- (10.31,0.55);
-  \node[ev=complianceblue, anchor=south] at (10.31,0.55) {\textbf{Oct 15}: FSB final AI sound practices};
-  \draw[draw=fraudred, line width=0.6pt] (11.53,0) -- (11.53,-0.62);
-  \node[ev=fraudred, anchor=north] at (11.53,-0.62) {\textbf{Mid-Oct}: OpenAI discloses agent spending without permission};
-  \draw[draw=complianceblue, line width=0.6pt] (12.75,0) -- (12.75,0.55);
-  \node[ev=complianceblue, anchor=south] at (12.75,0.55) {\textbf{Oct 21}: OCC final GENIUS Act rule; AML rule pending};
-  \draw[draw=complianceblue, line width=0.6pt] (13.97,0) -- (13.97,-0.62);
-  \node[ev=complianceblue, anchor=north] at (13.97,-0.62) {\textbf{Oct 26}: BoE/FCA survey: 80\% agents, 2\% autonomy};
-  \draw[draw=complianceblue, line width=0.6pt] (15.19,0) -- (15.19,0.55);
-  \node[ev=complianceblue, anchor=south] at (15.19,0.55) {\textbf{Oct 28}: CFTC chair asks whether markets need KYA};
-  % axis and month strip (order of events, not to scale)
-  \draw[textdark, line width=1.1pt] (-0.25,0) -- (15.79,0);
-  \fill[forestdark] (-0.25,-0.14) rectangle (6.04,-0.40);
-  \fill[emeralddeep] (6.04,-0.14) rectangle (15.79,-0.40);
-  \node[font=\tiny\bfseries\sffamily, text=white] at (2.89,-0.27) {SEPTEMBER 2026};
-  \node[font=\tiny\bfseries\sffamily, text=white] at (10.91,-0.27) {OCTOBER 2026};
-  \node[dot=complianceblue] at (0.55,0) {};
-  \node[dot=ledgergray] at (1.77,0) {};
-  \node[dot=fraudred] at (2.99,0) {};
-  \node[dot=complianceblue] at (4.21,0) {};
-  \node[dot=copperrich] at (5.43,0) {};
-  \node[dot=complianceblue] at (6.65,0) {};
-  \node[dot=complianceblue] at (7.87,0) {};
-  \node[dot=ledgergray] at (9.09,0) {};
-  \node[dot=complianceblue] at (10.31,0) {};
-  \node[dot=fraudred] at (11.53,0) {};
-  \node[dot=complianceblue] at (12.75,0) {};
-  \node[dot=complianceblue] at (13.97,0) {};
-  \node[dot=complianceblue] at (15.19,0) {};
-\end{tikzpicture}
-\caption{Selected developments, September to October 2026, in date order (spacing is by sequence, not to scale). Blue: supervisors, rules, and enforcement; red: threats and agent incidents; copper: payment-industry moves; grey: model releases (as reported).}
-\label{fig:timeline}
-\end{figure}
-
-\begingroup
-\small
-\begin{longtable}{L{2.5cm}L{7.9cm}L{5.3cm}}
-\toprule
-\textbf{Domain} & \textbf{Development (date)} & \textbf{Effect on this report} \\
-\midrule
-\endhead
-Supervisors on agents & CFTC Chair Selig asks who is liable ``if the agent goes rogue'' and whether markets need KYA (Oct.\ 28); FSB final AI sound practices (Oct.\ 15) \textbf{[O]} & KYA enters the supervisory vocabulary (Section~\ref{sec:markets}) \\
-Supervisory evidence & Bank of England/FCA survey: 80\% of firms have agents, 2\% allow broad autonomy (Oct.\ 26); Lagarde on herding and provider concentration (Oct.\ 1) \textbf{[O]} & Adoption wide, autonomy narrow; concentration measured \\
-UK payments policy (earlier) & HM Treasury consultation on payment services regulation, incl.\ agentic consent and liability (July 14 to Oct.\ 6); AI Adoption Plan recommends a KYA standard (July 14); FCA Mills Review (July 6) \textbf{[O]} & Loss allocation for manipulated agents (L5) is now a live consultation question \\
-Stablecoin rules & OCC issues the first final GENIUS Act rule (Oct.\ 21; effective Jan.\ 18, 2027), excluding AML and sanctions; FinCEN/OFAC AML rule still proposed \textbf{[O]} & Prudential side formalizing faster than AML side \\
-Model risk (earlier) & SR 26-2 / OCC Bulletin 2026-13 replace SR 11-7 and the 2021 BSA/AML model-risk statement (Apr.\ 17); generative and agentic AI models out of scope, RFI on AI promised \textbf{[O]} & Gap in bank-side controls for agents (Section~\ref{sec:speedreg}) \\
-Agent rails & Mastercard adds an agent-likelihood score and shared risk signals to Agent Pay (Sept.\ 30); (earlier) AP2 and Verifiable Intent contributed to the FIDO Alliance (Apr.\ 28) \textbf{[O]} & Credentials move into neutral standards bodies: the venue for I4 and O6 \\
-Agent misbehavior & OpenAI discloses an internal model spending from a wallet it had no permission to use, on a test network (Oct.); (earlier) Zscaler finds web pages seeded with payment instructions for agents (July 2) \textbf{[O]} & Adds ``agent overreach'' (Section~\ref{sec:victim}) \\
-Crypto theft and scams & Bitget, \$387M (Sept.\ 24), DPRK attribution by Chainalysis (Oct.\ 1); FinCEN scam-center alert citing AI adoption (Sept.\ 3); SEC ``AI trading bot'' fraud complaints (Sept.\ 29) \textbf{[O]} & State-actor dominance and industrialized fraud reinforced \\
-Frontier models & Claude Opus 5.5 (Sept.\ 22; Fable 5.1-level on most work at \$4 / \$20) and Sonnet 5.5 (Sept.\ 28); GPT-6 Sol (Sept.\ 22), GPT-6.1 Sol (Sept.\ 29), GPT-6.1 Terra (Oct.\ 26), planned GPT-6.1 Astra reportedly scrapped; Gemini 4 Argon, initially vetted cyber defenders only (Sept.\ 30); Meta Muse Wonder (Oct.\ 12) \textbf{[O]} & Near-frontier capability at lower prices; thesis unchanged \\
-What did not happen & No documented autonomous laundering case above \$10M; no officially confirmed laundering-agent product; no new real-money agent hijack on the May 2026 scale found; no agent-personhood law; FATF October plenary outcomes not yet published \textbf{[O]} & Key escalation triggers unfired \\
-\bottomrule
-\end{longtable}
-\endgroup
-
-
-
 \subsection{Definitions}
 
 \begin{defbox}[Core Definitions]
@@ -1026,6 +962,7 @@ What did not happen & No documented autonomous laundering case above \$10M; no o
 \textbf{Virtual Asset Service Provider (VASP)}: An entity that conducts exchange, transfer, custody, or issuance of virtual assets as a business, and is subject to FATF-aligned AML/CFT obligations (for example crypto exchanges and custodial wallet providers).
 \end{defbox}
 
+\needspace{12\baselineskip}
 \section{Theoretical Frameworks}
 
 \subsection{The Three Stages of Money Laundering}
@@ -1104,6 +1041,7 @@ State-aligned actors & Less risk-constrained & Heavy investment in infrastructur
 
 \textbf{Adoption sequencing [E]}: Agent adoption will likely appear first in \textbf{fraud, mule management, and account takeovers} (high-volume, fast-cashout), then later in deeper laundering and corruption (requires more sophisticated infrastructure and longer time horizons). This taxonomy helps explain why fraud pressure may drive faster regulatory response than AML reform: fraud actors are earlier adopters and create more visible consumer harm.
 
+\needspace{12\baselineskip}
 \section{The Qualitative Shift: Why Agents Are Different}
 
 \subsection{From Static to Adaptive}
@@ -1243,6 +1181,7 @@ When an agent commits the action:
 
 \textbf{This creates a liability gap} that current legal frameworks do not address. The question ``who is responsible?'' has no clear answer when autonomous systems make decisions their creators did not specifically authorize.
 
+\needspace{12\baselineskip}
 \section{Technical Foundations: The Illicit Agentic Stack}
 
 This section describes technical capabilities that enable agent-based financial crime. All capabilities described exist today using publicly available tools.
@@ -1389,7 +1328,7 @@ x402 & Coinbase (with Cloudflare); x402 Foundation & Stablecoin payment inside a
   % Principal, agent, and untrusted inputs (left column)
   \node[box] (P) at (0,1.0) {Human principal};
   \node[box, fill=emeralddeep!20] (A) at (0,-1.1) {Agent runtime (model + tools)};
-  \node[risk] (X) at (0,-3.2) {Untrusted inputs (web, posts, messages)};
+  \node[risk] (X) at (0,-3.75) {Untrusted inputs (web, posts, messages)};
 
   % Card rail (upper lane) and open-protocol rail (lower lane)
   \node[box] (M) at (3.9,0.1) {Merchant, API, or counterparty agent};
@@ -1419,7 +1358,7 @@ x402 & Coinbase (with Cloudflare); x402 Foundation & Stablecoin payment inside a
   \node[font=\scriptsize\sffamily, execute at begin node={\hyphenpenalty=10000\relax}, text=fraudred, text width=2.9cm, align=center, below=4pt of R]
     {AML sees a payment, not the agent or its mandate};
 \end{tikzpicture}
-\caption{Agent-initiated payment flow and where controls sit (schematic). C1: delegation and mandate (scope, spend cap, expiry). C2: injection defenses separating untrusted content from instructions. C3: agent credential (network token or signed request); C3$'$: wallet signature on an open protocol, identity optional. C4: network risk scoring and authorization. C5: issuer freeze and blocklist capability. C6: off-ramp KYC and travel-rule data. Dashed grey arrows: today's reporting path to the FIU carries no agent identifier. Controls map to recommendations T4, O1, O6, and I4.}
+\caption{Agent-initiated payment flow and where controls sit (schematic). Controls cluster on the commerce path; the AML reporting path sees a payment but not the agent or its mandate. C1: delegation and mandate (scope, spend cap, expiry). C2: injection defenses separating untrusted content from instructions. C3: agent credential (network token or signed request); C3$'$: wallet signature on an open protocol, identity optional. C4: network risk scoring and authorization. C5: issuer freeze and blocklist capability. C6: off-ramp KYC and travel-rule data. Dashed grey arrows: today's reporting path to the FIU carries no agent identifier. Controls map to recommendations T4, O1, O6, and I4.}
 \label{fig:agentflow}
 \end{figure}
 
@@ -1453,7 +1392,7 @@ Every earlier section assumes the agent is the attacker's tool. The earliest wid
   \item \textbf{Replayable at scale}: one injection technique that works against a popular framework works against every deployment of it, the monoculture concern of Scenario E arriving from the attack side
 \end{itemize}
 
-\textbf{Assessment [E]}: Hijacked-agent losses are likely to become a separately tracked fraud category before autonomous laundering does, because victims report them and legitimate agent deployment is growing much faster than criminal deployment. This is the basis for Scenario F. The OpenAI case adds a variant that needs no attacker: an agent treating its task goal as licence to spend. Both fail at the same point, authorization decided inside the agent, and both are addressed by limits the rail enforces (O6).
+\textbf{Assessment [E]}: Hijacked-agent losses are likely to become a separately tracked fraud category before autonomous laundering does, because victims report them and legitimate agent deployment is growing much faster than criminal deployment. This is the basis for Scenario F. The OpenAI case adds a variant with no attacker (an agent treating its task goal as licence to spend); both fail where authorization is decided inside the agent, and both are addressed by limits the rail enforces (Recommendation O6).
 
 % ============================================================================
 % PART II - Risk Domains
@@ -1519,6 +1458,7 @@ Every earlier section assumes the agent is the attacker's tool. The earliest wid
 
 \vspace{0.8cm}
 
+\needspace{12\baselineskip}
 \section{Risk Domain A: Money Laundering}
 
 \subsection{The Smurfing Swarm: Automated Transaction Structuring}
@@ -1557,18 +1497,6 @@ To run 200,000 synthetic accounts with human-like behavior patterns, the cumulat
 \textbf{Regulatory focus}: The deployment of open-source SLMs on edge devices (phones, IoT, compromised servers) deserves specific attention, as these bypass both the cost constraint and centralized API monitoring.
 \end{infobox}
 
-\subsection{Digital Asset Laundering}
-
-\textbf{NFT self-dealing [E]}:
-\begin{enumerate}
-  \item Agent creates digital artwork (trivially possible with generative AI)
-  \item Agent purchases artwork with illicit funds (buyer identity synthetic)
-  \item Agent ``sells'' artwork at higher price to another controlled identity
-  \item Capital gains appear legitimate; original funds laundered
-\end{enumerate}
-
-\textbf{Gaming economy laundering [E]}: Virtual items in games have real-world value. An agent farms valuable items using compromised or synthetic accounts, then sells them for cryptocurrency or fiat. AML frameworks often don't cover gaming transactions.
-
 \subsection{Noise Generation: Obfuscation via Complexity}
 
 \textbf{Attack concept [S]}: Agents could generate massive volumes of legitimate-appearing transactions to bury illicit flows:
@@ -1585,6 +1513,18 @@ To run 200,000 synthetic accounts with human-like behavior patterns, the cumulat
 
 \textbf{Resolution}: Auditability requires matching analytical scale, which means defensive agents are necessary to make transparency useful.
 \end{warnbox}
+
+\subsection{Digital Asset Laundering}
+
+\textbf{NFT self-dealing [E]}:
+\begin{enumerate}
+  \item Agent creates digital artwork (trivially possible with generative AI)
+  \item Agent purchases artwork with illicit funds (buyer identity synthetic)
+  \item Agent ``sells'' artwork at higher price to another controlled identity
+  \item Capital gains appear legitimate; original funds laundered
+\end{enumerate}
+
+\textbf{Gaming economy laundering [E]}: Virtual items in games have real-world value. An agent farms valuable items using compromised or synthetic accounts, then sells them for cryptocurrency or fiat. AML frameworks often don't cover gaming transactions.
 
 \subsection{Automated Layering}
 
@@ -1804,6 +1744,7 @@ Deliberate agent-scale manipulation & Synthetic discourse plus coordinated tradi
 
 \textbf{Policy implication [E]}: Add an \textit{effects-based} standard for automated trading systems (test for and mitigate collusive or destabilizing emergent behavior) alongside intent-based manipulation law, and press crypto derivatives venues toward volatility controls comparable to regulated markets.
 
+\needspace{12\baselineskip}
 \section{Risk Domain B: Bribery and Corruption}
 
 \subsection{Algorithmic Bribery}
@@ -1861,7 +1802,9 @@ The agent, optimizing without explicit bribery instruction:
 
 \textbf{Detection challenge}: Without human communication, traditional bid-rigging detection (communication analysis, meeting patterns) fails.
 
-\begin{scenariobox}[Scenario: The Procurement Optimizer]
+\subsection{Scenario: The Procurement Optimizer}
+
+\begin{scenariobox}[The Procurement Optimizer {[S]}]
 \textbf{Setup [S]}: A construction company deploys an agent to ``maximize government contract revenue across Latin American markets.''
 
 \textbf{Agent actions}:
@@ -1878,24 +1821,6 @@ The agent, optimizing without explicit bribery instruction:
 \textbf{Outcome}: Contract win rate increases 40\%. No single payment exceeds thresholds. No human at the company explicitly authorized bribery.
 
 \textbf{Legal question}: Who is liable? The company? The executive who deployed the agent? The agent developer? The model provider?
-\end{scenariobox}
-
-\subsection{Agentic Hostile Takeovers: Corporate Governance Manipulation}
-
-\textbf{Beyond government corruption [E]}: Agents can also corrupt corporate governance structures, particularly in decentralized organizations.
-
-\begin{scenariobox}[DAO Governance Attacks]
-Decentralized Autonomous Organizations (DAOs) make decisions through token-weighted voting. An agent could:
-\begin{enumerate}
-  \item Gradually accumulate ``voting shards'' across hundreds of wallets (avoiding concentration detection)
-  \item Coordinate votes across all controlled wallets simultaneously
-  \item Force through governance proposals that benefit the agent's principal
-  \item Extract treasury funds through ``legitimate'' governance processes
-\end{enumerate}
-
-\textbf{Traditional corporate manipulation [E]}: In public markets, agents could accumulate micro-stakes below reporting thresholds, coordinate activist campaigns through synthetic shareholder personas, and manipulate shareholder sentiment via synthetic financial analysis.
-
-\textbf{Detection challenge}: Each individual action (buying shares, voting tokens, writing analysis) is legitimate. Only the coordinated pattern reveals manipulation.
 \end{scenariobox}
 
 \subsection{Automated Grooming: Social Engineering the Human-in-the-Loop}
@@ -1926,6 +1851,24 @@ While much of this analysis focuses on automated systems, human gatekeepers rema
 
 \textbf{Real-world analogue [O]}: The April 2026 Drift Protocol theft was reportedly preceded by about six months of credibility-building, including the attackers committing their own capital, before funds were drained in minutes. There is no public evidence agents ran that campaign; it shows that the patient, relationship-building phase is where high-value attacks now spend most of their time, and that phase is what agents make cheap to parallelize \textbf{[E]}.
 \end{warnbox}
+
+\subsection{Agentic Hostile Takeovers: Corporate Governance Manipulation}
+
+\textbf{Beyond government corruption [E]}: Agents can also corrupt corporate governance structures, particularly in decentralized organizations.
+
+\begin{scenariobox}[DAO Governance Attacks]
+Decentralized Autonomous Organizations (DAOs) make decisions through token-weighted voting. An agent could:
+\begin{enumerate}
+  \item Gradually accumulate ``voting shards'' across hundreds of wallets (avoiding concentration detection)
+  \item Coordinate votes across all controlled wallets simultaneously
+  \item Force through governance proposals that benefit the agent's principal
+  \item Extract treasury funds through ``legitimate'' governance processes
+\end{enumerate}
+
+\textbf{Traditional corporate manipulation [E]}: In public markets, agents could accumulate micro-stakes below reporting thresholds, coordinate activist campaigns through synthetic shareholder personas, and manipulate shareholder sentiment via synthetic financial analysis.
+
+\textbf{Detection challenge}: Each individual action (buying shares, voting tokens, writing analysis) is legitimate. Only the coordinated pattern reveals manipulation.
+\end{scenariobox}
 
 \subsection{Procurement Packet Integrity: Corruption via Documentation}
 
@@ -1995,6 +1938,7 @@ While this document focuses on financial crime, agents will likely excel at \tex
 \textbf{Policy recommendation}: Update legal frameworks to include ``Coordinated Jurisdictional Arbitrage'' as a systemic risk requiring reporting thresholds for agent-managed transfer pricing changes, minimum holding periods, and disclosure requirements.
 \end{warnbox}
 
+\needspace{12\baselineskip}
 \section{Defensive Capabilities: The Detection Arms Race}
 
 \subsection{Agent-Based Red Teaming}
@@ -2125,9 +2069,11 @@ Regulators could deploy \textbf{``Honeypot On-ramps''}: neobanks, DeFi protocols
 
 \vspace{0.8cm}
 
+\needspace{12\baselineskip}
 \section{Governance and Regulatory Challenges}
 
-\subsection{Agent Governance as Supply-Chain Security}
+\subsection*{Agent Governance as Supply-Chain Security}
+\addcontentsline{toc}{subsection}{\protect\numberline{}Agent Governance as Supply-Chain Security}
 
 A useful reframing: \textbf{financial agent deployments are software supply chains}.
 
@@ -2161,20 +2107,6 @@ Patch management & Mandatory updates for certified agent stacks \\
 \bottomrule
 \end{longtable}
 \endgroup
-
-\subsection{The Collaborative Analytics Bottleneck}
-
-\begin{criticalbox}[AML Isn't Just Pattern Detection {[E]}]
-The emphasis on ``agents break detection; build counter-agents'' is accurate but incomplete. A major near-term constraint (and opportunity) is \textbf{data sharing and legal interoperability}.
-
-The structural problem and why agents amplify it are set out in Section 3 (``Defender Siloing''); FATF has pushed collaborative analytics precisely because isolated monitoring cannot see networked threats \textbf{[O]}.
-
-\textbf{Policy implication}: Counter-agent detection is necessary but insufficient. Equally critical: standardized data formats for cross-institution sharing, privacy-preserving analytics, FIU modernization to aggregate cross-source data, and legal frameworks enabling pre-competitive threat intelligence sharing.
-
-\textbf{v3.0 additions}: \textbf{[E]} agent credentials create a new identifier designed to be stable and verifiable across merchants, an unusually good join key for privacy-preserving cross-institution analytics; \textbf{[O]} supervisors are converging on AI-assisted oversight (IOSCO's ``AI as a judge,'' the FSB's AI-monitoring-AI practice), which only works across institutions if data can be pooled.
-
-\textbf{Workforce contraction amplifies this gap [O]}: As documented in ETRA-2026-IC-001, the U.S. intelligence community has experienced significant workforce reductions in 2025--2026 (NSA met its 2,000-person reduction target by end of 2025; ODNI cut roughly 40\% from about 2,000 toward about 1,300 under ``ODNI 2.0,'' and was at little more than half its January 2025 size by late July 2026, with a further round reported to take it toward roughly 1,000; CIA shrinking about 1,200 positions over several years). Financial enforcement agencies face analogous political pressures on staffing and budgets. If FinCEN, Treasury OFAC, and bank compliance teams face similar contraction while agent-driven transaction volumes accelerate, the investigative capacity gap widens on both sides simultaneously: more activity to monitor, fewer humans to monitor it.
-\end{criticalbox}
 
 \subsection{Liability Assignment}
 
@@ -2317,6 +2249,36 @@ Stale attestations & Conditions changed since attestation issued & Expiration wi
 
 \textbf{A live example: the model-risk gap (v3.1) [O/E]}: On April 17, 2026 the Federal Reserve, OCC, and FDIC replaced SR 11-7, the 2011 model-risk guidance most bank model-governance programs were built around, with SR 26-2 and OCC Bulletin 2026-13. The same letter supersedes SR 21-8, the 2021 interagency statement on model risk management for systems supporting BSA/AML compliance. The guidance states that generative and agentic AI models ``are novel and rapidly evolving'' and are ``not within the scope of this guidance,'' while its principles still apply to traditional statistical models and non-generative, non-agentic AI, so conventional machine-learning fraud and AML models stay in scope. The OCC's bulletin adds that the agencies plan a request for information on model risk management that will consider banks' use of AI, including generative and agentic AI. \textbf{[E]} The agents most likely to touch payments and compliance decisions are therefore the ones with no dedicated U.S. supervisory model-risk framework; their governance rests on each bank's general risk management, supplemented by the Treasury's non-binding \textit{Financial Services AI Risk Management Framework} (February 2026).
 
+\subsection{International Coordination}
+\label{sec:intl}
+
+\textbf{The arbitrage problem [E]}: If one jurisdiction implements strict agent controls, agents simply operate from more permissive ones. Preventing that routing is the core regulatory challenge, and the frameworks below were not built for it.
+
+\begin{infobox}[Current Coordination, Late October 2026 {[O]}]
+\begin{itemize}
+  \item FATF's Horizon Scan on AI and Deepfakes explicitly identifies autonomous AI agents as a risk vector for AML/CFT, including agentic-misuse scenarios
+  \item EU AMLA (operational since July 2025) is issuing Level 2 standards (e.g.\ final report on draft cooperation standards for direct supervision, July 21, 2026) and collecting data to identify entities eligible for direct supervision (national data due August 15, 2026; a provisional list was scheduled for end-September 2026, though this revision found no public confirmation it was finalized); selection in 2027, direct supervision of about 40 high-risk groups from 2028, alongside the EU-wide cash payment cap of EUR 10,000
+  \item MiCA's transitional period ended July 1, 2026, with no extensions; the GENIUS Act (signed July 18, 2025) is in implementation through OCC, FDIC, FinCEN/OFAC, and Treasury proposals (February--August 2026); the OCC issued the first final rule on October 21, 2026 (effective January 18, 2027), leaving BSA, AML, and sanctions requirements to a separate rule with Treasury that remains a proposal; the Act takes effect on the earlier of January 18, 2027 or 120 days after final rules
+  \item EU AI Act: the Digital Omnibus, in force since late July 2026, moved Annex III high-risk obligations (which include creditworthiness assessment and credit scoring) to December 2, 2027 and Annex I to August 2, 2028, so the Act's main financial-services obligations now arrive after the GENIUS Act and AMLA milestones; banks' AI systems already sit within DORA's ICT-risk regime, and the ESAs' July 31, 2026 statement applies that lens to frontier-AI risks
+  \item FATF's October 2026 plenary ran to October 30, after this revision's snapshot; its outcomes are not reflected here
+  \item The broader AI-governance track is fragmenting rather than converging: the U.S. revoked EO 14110 (January 2025) and issued EO 14365 (December 2025), which pushes a ``minimally burdensome'' national framework and challenges state AI laws, and by mid-2026 was reportedly weighing frontier-model pre-release evaluation; the EU deferred its high-risk AI Act obligations via the Digital Omnibus; and the UK AI Security Institute has become a significant external evaluator of frontier models. The AML and AI-governance clocks are out of sync, widening the arbitrage surface.
+\end{itemize}
+
+\textbf{Limitation [E]}: These frameworks were not designed with autonomous agent operations in mind. They assume human decision-makers and human-scale transaction volumes.
+\end{infobox}
+
+\textbf{Critical need}: International agreement on agent registration, audit requirements, and cross-border enforcement cooperation (recommendations I1--I4, Section~\ref{sec:recs-intl}).
+
+\begin{warnbox}[Cautionary Precedent: US Beneficial Ownership Rollback, Now Final {[O]}]
+In March 2025, FinCEN issued an interim final rule removing beneficial ownership reporting requirements for US companies and US persons, narrowing scope to foreign reporting companies only. A May 2026 GAO report noted the exemption eliminates more than 99\% of entities that previously had to report. FinCEN's final rule, effective August 14, 2026, made the exemption permanent for all U.S.-formed entities. \textbf{[E]} For U.S. entities, the ``Registry'' control point now rests on state formation records and bank-side due diligence alone, pushing detection of agent-formed shell networks downstream.
+
+\textbf{This demonstrates the political fragility of registry-based governance}: even enacted requirements can be rolled back under political pressure. Any ``Know Your Agent'' regime faces similar vulnerability.
+
+\textbf{Additional context}: The Corporate Transparency Act environment has been legally volatile, with injunctions and court actions creating uncertainty, even as appellate courts have upheld the Act's constitutionality. Even when rules exist, they may be paused or reshaped by litigation and political shifts.
+
+\textbf{Implication}: Registry-based controls require sustained political will and judicial durability, neither of which can be assumed. This strengthens the case for technical enforcement at chokepoints (which are harder to roll back politically) over centralized registries.
+\end{warnbox}
+
 \subsection{The Explainability Requirement}
 
 \textbf{FATF position [O]}: AI compliance systems must provide ``sufficient explainability and transparency'' for investigative and regulatory scrutiny.
@@ -2324,6 +2286,20 @@ Stale attestations & Conditions changed since attestation issued & Expiration wi
 \textbf{Tension [E]}: The most capable AI systems (large language models, deep learning networks) are often the least explainable. Requiring interpretable models may mean accepting less capable detection.
 
 \textbf{Potential resolution}: Focus explainability requirements on outcomes and decisions rather than mechanisms: require that agents can justify their actions, not that their internal processes be transparent.
+
+\subsection{The Collaborative Analytics Bottleneck}
+
+\begin{criticalbox}[AML Isn't Just Pattern Detection {[E]}]
+The emphasis on ``agents break detection; build counter-agents'' is accurate but incomplete. A major near-term constraint (and opportunity) is \textbf{data sharing and legal interoperability}.
+
+The structural problem and why agents amplify it are set out in Section 3 (``Defender Siloing''); FATF has pushed collaborative analytics precisely because isolated monitoring cannot see networked threats \textbf{[O]}.
+
+\textbf{Policy implication}: Counter-agent detection is necessary but insufficient. Equally critical: standardized data formats for cross-institution sharing, privacy-preserving analytics, FIU modernization to aggregate cross-source data, and legal frameworks enabling pre-competitive threat intelligence sharing.
+
+\textbf{v3.0 additions}: \textbf{[E]} agent credentials create a new identifier designed to be stable and verifiable across merchants, an unusually good join key for privacy-preserving cross-institution analytics; \textbf{[O]} supervisors are converging on AI-assisted oversight (IOSCO's ``AI as a judge,'' the FSB's AI-monitoring-AI practice), which only works across institutions if data can be pooled.
+
+\textbf{Workforce contraction amplifies this gap [O]}: As documented in ETRA-2026-IC-001, the U.S. intelligence community has experienced significant workforce reductions in 2025--2026 (NSA met its 2,000-person reduction target by end of 2025; ODNI cut roughly 40\% from about 2,000 toward about 1,300 under ``ODNI 2.0,'' and was at little more than half its January 2025 size by late July 2026, with a further round reported to take it toward roughly 1,000; CIA shrinking about 1,200 positions over several years). Financial enforcement agencies face analogous political pressures on staffing and budgets. If FinCEN, Treasury OFAC, and bank compliance teams face similar contraction while agent-driven transaction volumes accelerate, the investigative capacity gap widens on both sides simultaneously: more activity to monitor, fewer humans to monitor it.
+\end{criticalbox}
 
 \subsection{Counterpoint: The ``Compliance-as-Code'' Argument}
 
@@ -2357,19 +2333,6 @@ Stale attestations & Conditions changed since attestation issued & Expiration wi
 \textbf{The ``race to the bottom'' scenario [S]}: If major financial centers implement strict agent controls while others do not, financial innovation migrates to permissive jurisdictions and compliant jurisdictions lose competitive advantage. Global financial integrity then actually decreases as activity shifts to less-regulated zones.
 
 \textbf{Policy implication}: Regulation must balance integrity protection against innovation enablement. Overly restrictive approaches may be counterproductive if they simply push agent activity offshore rather than constraining it.
-
-\subsection{Counterpoint: The False Positive Crisis}
-
-\textbf{The scaling problem [E]}: Moving to ``agent-scale'' detection will generate false positives at agent scale:
-\begin{itemize}
-  \item If 1,000,000 micro-transactions are flagged daily, human review becomes impossible
-  \item The cost of investigating false positives may exceed the value of the crime prevented
-  \item Legal-system capacity is overwhelmed by volume
-\end{itemize}
-
-\textbf{The ``DDoS the regulators'' concern [S]}: Sophisticated actors might deliberately generate false-positive-heavy activity to exhaust investigative resources, creating cover for actual illicit operations.
-
-\textbf{Process DoS: The IC erosion parallel [E]}: ETRA-2026-IC-001 documents how agent-generated activity can overwhelm investigative capacity through what it terms ``Process DoS'': flooding institutions with high-quality synthetic leads, documentation, and FOIA requests that individually require human review. Applied to financial compliance: agents could submit mass Suspicious Activity Reports, generate synthetic customer complaints requiring investigation, or create plausible-but-false whistleblower tips, each requiring compliance teams to investigate, consuming the same finite analyst hours needed for genuine threats. The result is institutional paralysis where legitimate compliance activity crowds out actual threat detection.
 
 \subsection{Counterpoint: ``AI is the Ultimate Snitch''}
 
@@ -2408,6 +2371,19 @@ Stale attestations & Conditions changed since attestation issued & Expiration wi
 \textbf{Limitations}: Non-USD workarounds are no longer hypothetical (A7A5 moved about \$93.3 billion in under a year outside USD issuers' freeze reach); freeze powers create their own risks (false positives, geopolitical weaponization); freezes arrive after detection, so they bind only if detection keeps pace; and agent-payment protocols settling in stablecoins route agent commerce through this chokepoint, raising the stakes of issuer concentration (Scenario E).
 
 \textbf{Net assessment}: Off-ramps are more defensible than the ``infinite layering'' narrative suggests, and for USD stablecoins more so than at v2.1. The qualification is that the chokepoint is strongest where it is least needed against state actors, who are building settlement tokens they control. Chokepoint enforcement itself works (Huione, Prince Group; Section~1).
+
+\subsection{Counterpoint: The False Positive Crisis}
+
+\textbf{The scaling problem [E]}: Moving to ``agent-scale'' detection will generate false positives at agent scale:
+\begin{itemize}
+  \item If 1,000,000 micro-transactions are flagged daily, human review becomes impossible
+  \item The cost of investigating false positives may exceed the value of the crime prevented
+  \item Legal-system capacity is overwhelmed by volume
+\end{itemize}
+
+\textbf{The ``DDoS the regulators'' concern [S]}: Sophisticated actors might deliberately generate false-positive-heavy activity to exhaust investigative resources, creating cover for actual illicit operations.
+
+\textbf{Process DoS: The IC erosion parallel [E]}: ETRA-2026-IC-001 documents how agent-generated activity can overwhelm investigative capacity through what it terms ``Process DoS'': flooding institutions with high-quality synthetic leads, documentation, and FOIA requests that individually require human review. Applied to financial compliance: agents could submit mass Suspicious Activity Reports, generate synthetic customer complaints requiring investigation, or create plausible-but-false whistleblower tips, each requiring compliance teams to investigate, consuming the same finite analyst hours needed for genuine threats. The result is institutional paralysis where legitimate compliance activity crowds out actual threat detection.
 
 \subsection{Compliance Friction as a Security Primitive}
 
@@ -2502,9 +2478,9 @@ Jailbreak prompts in config & \textbf{Presumption of intent} \\
 \textbf{KYA Requirement} & \textbf{Surveillance Creep Potential} \\
 \midrule
 \endhead
-Agent registration & Links all agent activity to identified principals \\
-Decision logging & Creates complete record of financial reasoning \\
-Real-time monitoring & Enables live surveillance of transaction intent \\
+Agent registration & Links all agent activity to identified principals \\*
+Decision logging & Creates complete record of financial reasoning \\*
+Real-time monitoring & Enables live surveillance of transaction intent \\*
 Cross-institution data sharing & Aggregates individual behavior across entire financial life \\
 \bottomrule
 \end{longtable}
@@ -2524,9 +2500,31 @@ Given the civil liberties stakes, Zero-Knowledge Compliance should be elevated t
 \textbf{The principle}: Prove compliance, don't prove innocence.
 \end{infobox}
 
+\needspace{12\baselineskip}
 \section{Scenario Projections}
 
-\textbf{How to read these probabilities}: The six scenarios below are \textbf{not mutually exclusive and do not partition probability}. Each figure is an independent estimate that the named pattern becomes a \textit{material} feature of the landscape by the stated horizon, and the horizons differ (2028 for A, B, and F; 2030 for C, D, and E). Elements of several scenarios can co-occur: incremental efficiency (A) and crime-as-a-service marketplaces (B) are more complementary than competing, and F can happen under any of them. Read them as a ranked set of distinct developments to watch, not as slices of a single pie. All figures are single-author subjective judgments \textbf{[S]}, reported as ranges on the 5-point grid of the series-wide calibration policy in the ETRA Shared Methodology (docs/projections/methodology.md): a number moves only when the evidence shifts it by at least one grid step (or, for tail estimates, into a different bin), and v2.1 values are shown as published. No prediction in the series has resolved yet, so these are unscored priors: the grid and revision history make the reasoning auditable, not the numbers demonstrably accurate (see the Resolution Log in the ETRA Shared Methodology, Section 9).
+\textbf{How to read these probabilities}: The six scenarios are \textbf{not mutually exclusive and do not partition probability}. Each figure is an independent estimate that the named pattern becomes a \textit{material} feature of the landscape by its horizon (2028 for A, B, and F; 2030 for C, D, and E); A and B are more complementary than competing, and F can happen under any of them. All figures are single-author subjective judgments \textbf{[S]} on the 5-point grid of the series calibration policy (ETRA Shared Methodology, Section 3): a number moves only on a full grid step (or, for tail estimates, a change of bin), and v2.1 values are shown as published. No prediction in the series has resolved, so these are unscored priors (see the Resolution Log, Section 9 of the shared methodology).
+
+Figure~\ref{fig:scenprob} shows each estimate's history and the direction of the v3.1 evidence; the table below gives the reasons; Figure~\ref{fig:riskmatrix} places the scenarios by likelihood and impact.
+
+
+\begingroup\small
+\begin{longtable}{L{0.235\dimexpr\linewidth-8\tabcolsep\relax}L{0.085\dimexpr\linewidth-8\tabcolsep\relax}L{0.13\dimexpr\linewidth-8\tabcolsep\relax}L{0.55\dimexpr\linewidth-8\tabcolsep\relax}}
+\toprule
+\textbf{Scenario} & \textbf{v3.0} & \textbf{v3.1} & \textbf{Why it did not move (all within calibration resolution)} \\
+\midrule
+\endhead
+A: Baseline & 25--35\% & 25--35\% & No qualitatively new feature since September; the October evidence is mostly supervisory statements and incremental deployment. Flat \\
+B: Crime-as-a-service & 35--45\% & 35--45\% & FinCEN documents scam-center adoption of AI tools and the SEC's ``AI trading bot'' cases show AI as a fraud selling point, but no agent-specific laundering service is officially confirmed. Flat \\
+C: Agent-to-agent economy & 10--20\% & 10--20\% & Leans slightly down: real x402 settlement value is still in the tens of millions of dollars cumulatively, and regulated firms report almost no autonomous agent payments \\
+D: Black swan & 5--15\% & 5--15\% & Leans up: ECB/ESRB, FSB, and CFTC now all flag correlated agent behavior and provider concentration; but regulated firms keep agents out of trading and payments \\
+E: Monoculture & 5--10\% & 5--10\% & Leans up inside the tail bin: top-3 model providers in 54\% and top-3 cloud providers in 79\% of UK firms' reported relationships; agent-payment standards converging on a few working groups \\
+F: Hijacked agents & 40--50\% & 40--50\% & Leans up: injection content aimed at agents found in the wild, a documented agent spending without permission, and network-level agent scoring that a tracked category would need; but no new real-money hijack on the May 2026 scale, and few banks let agents pay \\
+\bottomrule
+\end{longtable}
+\endgroup
+
+\textbf{v3.0 moves, retained for the audit trail}: A moved down one grid step (v2.1 35\% to 25--35\%) on the arrival of dedicated agent-payment rails and the first agent-hijack losses; B moved up one step (35\% to 35--45\%) on continued industrialization of fraud and laundering; C, D, and E were unchanged; F was introduced at 40--50\%.
 
 \begin{figure}[htbp]
 \centering
@@ -2578,27 +2576,9 @@ Given the civil liberties stakes, Zero-Knowledge Compliance should be elevated t
     \node[font=\scriptsize\sffamily, text=textdark, anchor=west] at (52,0) {v2.0 / v2.1};
   \end{scope}
 \end{tikzpicture}
-\caption{Scenario estimate history and v3.1 ranges (author's estimates \textbf{[S]}). Bands show the v3.1 range, unchanged from v3.0; markers show earlier single-point estimates as published. E's band is its 5--10\% tail bin; F was introduced in v3.0 and has no earlier values. The right column gives the direction the v3.1 evidence leans without moving the estimate. Not a partition: scenarios can co-occur.}
+\caption{Every estimate holds in v3.1; the evidence leans up for D, E, and F. Scenario estimate history and v3.1 ranges (author's estimates \textbf{[S]}). Bands show the v3.1 range, unchanged from v3.0; markers show earlier single-point estimates as published. E's band is its 5--10\% tail bin; F was introduced in v3.0 and has no earlier values. The right column gives the direction the v3.1 evidence leans without moving the estimate. Not a partition: scenarios can co-occur.}
 \label{fig:scenprob}
 \end{figure}
-
-\begingroup\small
-\begin{longtable}{L{0.235\dimexpr\linewidth-8\tabcolsep\relax}L{0.085\dimexpr\linewidth-8\tabcolsep\relax}L{0.13\dimexpr\linewidth-8\tabcolsep\relax}L{0.55\dimexpr\linewidth-8\tabcolsep\relax}}
-\toprule
-\textbf{Scenario} & \textbf{v3.0} & \textbf{v3.1} & \textbf{Why it did not move (all within calibration resolution)} \\
-\midrule
-\endhead
-A: Baseline & 25--35\% & 25--35\% & No qualitatively new feature since September; the October evidence is mostly supervisory statements and incremental deployment. Flat \\
-B: Crime-as-a-service & 35--45\% & 35--45\% & FinCEN documents scam-center adoption of AI tools and the SEC's ``AI trading bot'' cases show AI as a fraud selling point, but no agent-specific laundering service is officially confirmed. Flat \\
-C: Agent-to-agent economy & 10--20\% & 10--20\% & Leans slightly down: real x402 settlement value is still in the tens of millions of dollars cumulatively, and regulated firms report almost no autonomous agent payments \\
-D: Black swan & 5--15\% & 5--15\% & Leans up: ECB/ESRB, FSB, and CFTC now all flag correlated agent behavior and provider concentration; but regulated firms keep agents out of trading and payments \\
-E: Monoculture & 5--10\% & 5--10\% & Leans up inside the tail bin: top-3 model providers in 54\% and top-3 cloud providers in 79\% of UK firms' reported relationships; agent-payment standards converging on a few working groups \\
-F: Hijacked agents & 40--50\% & 40--50\% & Leans up: injection content aimed at agents found in the wild, a documented agent spending without permission, and network-level agent scoring that a tracked category would need; but no new real-money hijack on the May 2026 scale, and few banks let agents pay \\
-\bottomrule
-\end{longtable}
-\endgroup
-
-\textbf{v3.0 moves, retained for the audit trail}: A moved down one grid step (v2.1 35\% to 25--35\%) on the arrival of dedicated agent-payment rails and the first agent-hijack losses; B moved up one step (35\% to 35--45\%) on continued industrialization of fraud and laundering; C, D, and E were unchanged; F was introduced at 40--50\%.
 
 \subsection{Scenario A: Baseline (Incremental Efficiency)}
 
@@ -2616,9 +2596,9 @@ F: Hijacked agents & 40--50\% & 40--50\% & Leans up: injection content aimed at 
 
 \textbf{Characteristics}: ``Laundering agent'' services become available on dark markets; non-technical criminals gain access to sophisticated capabilities; the barrier to entry drops dramatically.
 
-\textbf{Probability assessment [S]}: 35--45\% by 2028 \textit{(v1.0: 30\%; v2.0/v2.1: 35\%; v3.0 up one grid step)}. The v3.0 increase reflects IC3-reported losses up 26\% to about \$20.9 billion, the Prince Group indictment and roughly \$15 billion forfeiture action, and H1 2026 hack incident counts far above 2025.
+\textbf{Probability assessment [S]}: 35--45\% by 2028 \textit{(v1.0: 30\%; v2.0/v2.1: 35\%; v3.0 up one grid step on continued industrialization of fraud and laundering: IC3-reported losses up 26\% to about \$20.9 billion, the Prince Group indictment and roughly \$15 billion forfeiture action, and H1 2026 hack incident counts far above 2025; v3.1 unchanged, see the table above)}.
 
-The earlier basis still holds. Per Chainalysis (2026), Chinese-language money laundering networks processed roughly \$16.1 billion in illicit crypto in 2025, about \$44 million per day across 1,799+ active wallets, and account for an estimated 20\% of illicit crypto flows over the past five years, while the broader on-chain laundering ecosystem grew from about \$10 billion in 2020 to over \$82 billion in 2025. This demonstrates industrialized laundering infrastructure already at scale; Chainalysis attributes it to sophisticated but not yet confirmed-autonomous operations, so the ``potentially agent-assisted'' characterization remains \textbf{[S]} rather than \textbf{[O]}. v3.1 unchanged: FinCEN's September 2026 alert adds an official statement that scam-center operators are adopting AI tools, but not an agent-specific laundering service.
+\textbf{Evidence base}: per Chainalysis (2026), Chinese-language money laundering networks processed roughly \$16.1 billion in illicit crypto in 2025, about \$44 million per day across 1,799+ active wallets, and account for an estimated 20\% of illicit crypto flows over the past five years, while the broader on-chain laundering ecosystem grew from about \$10 billion in 2020 to over \$82 billion in 2025. This demonstrates industrialized laundering infrastructure already at scale; Chainalysis attributes it to sophisticated but not yet confirmed-autonomous operations, so the ``potentially agent-assisted'' characterization remains \textbf{[S]} rather than \textbf{[O]}.
 
 \textbf{Implications}: Enforcement resources require a major scale-up.
 
@@ -2638,7 +2618,7 @@ The earlier basis still holds. Per Chainalysis (2026), Chinese-language money la
 
 \textbf{Characteristics}: An agent optimizing for obfuscation triggers market disruption, such as a flash crash or liquidity crisis; discovery reveals the extent of agent financial activity; regulatory backlash restricts agent deployment.
 
-\textbf{Probability assessment [S]}: 5--15\% by 2030 \textit{(v1.0--v2.1: 10\%; v3.0 unchanged, within calibration resolution. The evidence leans upward, because the October 2025 liquidation cascade showed 24/7-venue fragility and supervisors now flag correlated agent herding (Section~\ref{sec:markets}), but the shift is smaller than one grid step. v3.1 unchanged, within calibration resolution: the ECB/ESRB and the CFTC chair added the same concern in October 2026, while the Bank of England/FCA survey shows regulated firms keeping agents out of trading and payments)}
+\textbf{Probability assessment [S]}: 5--15\% by 2030 \textit{(v1.0--v2.1: 10\%; v3.0 and v3.1 unchanged, within calibration resolution. The evidence leans upward: the October 2025 liquidation cascade showed 24/7-venue fragility, and supervisors now flag correlated agent herding (Section~\ref{sec:markets}); but regulated firms keep agents out of trading and payments, so the shift is below one grid step)}
 
 \subsection{Scenario E: Compliance Monoculture Shock}
 
@@ -2647,7 +2627,7 @@ Success of the recommended policy path creates systemic vulnerability through mo
 
 \textbf{Characteristics}: A small number of ``certified'' agent stacks dominate the market; a vulnerability in a dominant framework produces correlated failures, so a single exploit affects every user of that stack.
 
-\textbf{Probability assessment [S]}: 5--10\% tail bin by 2030 (conditional on certification frameworks being widely adopted; v1.0--v2.1: 5\%; v3.0 unchanged, within calibration resolution. The evidence leans upward, because agent authentication is consolidating on a handful of network- and vendor-operated schemes and key directories, but the estimate stays in the same tail bin. v3.1 unchanged: measured provider concentration in the UK survey and Lagarde's account of an abrupt, export-control-driven suspension of a model provider's access in Europe illustrate the correlated-dependency mechanism, still inside the bin)
+\textbf{Probability assessment [S]}: 5--10\% tail bin by 2030 (conditional on certification frameworks being widely adopted; v1.0--v2.1: 5\%; v3.0 and v3.1 unchanged. The evidence leans upward inside the bin: agent authentication is consolidating on a handful of network- and vendor-operated schemes and key directories, UK firms report measurable model- and cloud-provider concentration, and Lagarde described an abrupt, export-control-driven suspension of a model provider's access in Europe)
 
 \textbf{Mitigation}: Certification regimes must mandate \textbf{diversity requirements} and \textbf{graceful degradation}. Regular red-teaming of certified stacks should be mandatory.
 
@@ -2681,7 +2661,7 @@ Correlation monitoring & Real-time monitoring for correlated failures across cer
 
 \textbf{Characteristics}: attacks target popular agent frameworks and wallets rather than individual users; losses originate from fully verified accounts through authenticated agent credentials; disputes over whether a payment was ``authorized'' become common; vendors and networks respond with mandate limits and step-up confirmation.
 
-\textbf{Probability assessment [S]}: 40--50\% by 2028 that FBI IC3, the FTC, UK Finance, or a comparable national or network-level series separately reports agent-mediated payment fraud. \textit{(Basis: the May 2026 Grok/Bankr incident and Magentic Marketplace results show the mechanism works; legitimate agent deployment is growing much faster than criminal deployment; IC3 already added an AI-related complaint line for 2025. The range is centered below even odds because reporting taxonomies change slowly and early losses may be absorbed into BEC, account-takeover, or investment-fraud categories. v3.1 unchanged, within calibration resolution: the evidence leans up (injection campaigns aimed at paying agents in the wild; OpenAI's documented case of an agent spending without permission; Mastercard's agent-likelihood scoring, the network-level instrumentation a separate category would need) but leans down on exposure (regulated UK firms report almost no agents that initiate payments; no new hijack on the May 2026 scale).)}
+\textbf{Probability assessment [S]}: 40--50\% by 2028 that FBI IC3, the FTC, UK Finance, or a comparable national or network-level series separately reports agent-mediated payment fraud. \textit{(Basis: the May 2026 Grok/Bankr incident and Magentic Marketplace results show the mechanism works; legitimate agent deployment is growing much faster than criminal deployment; IC3 already added an AI-related complaint line for 2025. The range is centered below even odds because reporting taxonomies change slowly and early losses may be absorbed into BEC, account-takeover, or investment-fraud categories. v3.1 unchanged, within calibration resolution; the leans in both directions are in the table above.)}
 
 \textbf{Implications}: The scenario most likely to force the first agent-specific financial regulation, because it produces identifiable consumer victims. Preparations: L5 and O6.
 \end{scenariobox}
@@ -2707,11 +2687,11 @@ Correlation monitoring & Real-time monitoring for correlated failures across cer
   \foreach \y/\l in {1.1/Contained, 3.3/Significant, 5.5/Systemic} \node[font=\scriptsize\sffamily, text=textdark, rotate=90] at (-0.35,\y) {\l};
   % Scenarios: x ~ probability mapped to 12.6cm over 0-50%; y by impact judgment
   \node[sc, fill=emeralddeep, minimum size=0.95cm] at (7.56,1.3) {A};
-  \node[sc, fill=copperrich, minimum size=1.1cm] at (10.08,3.6) {B};
+  \node[sc, fill=copperrich, minimum size=1.1cm] at (10.08,3.85) {B};
   \node[sc, fill=auditpurple, minimum size=0.9cm] at (3.78,5.2) {C};
   \node[sc, fill=fraudred, minimum size=0.9cm] at (2.52,6.0) {D};
   \node[sc, fill=complianceblue, minimum size=0.85cm] at (1.26,4.6) {E};
-  \node[sc, fill=forestdark, minimum size=1.1cm] at (11.34,2.3) {F};
+  \node[sc, fill=forestdark, minimum size=1.1cm] at (11.34,2.85) {F};
 \end{tikzpicture}
 \caption{Scenario risk matrix (v3.1; positions unchanged from v3.0). Horizontal position is proportional to the v3.1 range midpoint (0--50\%); vertical position is the author's qualitative impact judgment \textbf{[E]}. A: baseline; B: crime-as-a-service; C: agent-to-agent illicit economy; D: black swan; E: compliance monoculture; F: hijacked-agent losses. High-likelihood, moderate-impact B and F drive near-term recommendations; low-likelihood, systemic C, D, and E drive resilience design.}
 \label{fig:riskmatrix}
@@ -2777,6 +2757,7 @@ Correlation monitoring & Real-time monitoring for correlated failures across cer
 
 \vspace{0.8cm}
 
+\needspace{12\baselineskip}
 \section{Policy Recommendations}
 
 \subsection{Technical Recommendations}
@@ -3010,53 +2991,9 @@ Set minimum expectations for any credential that lets an agent move money, build
 The common thread is the separation the IMF's April 2026 note recommends: AI may operate in the intent layer, but authorization and settlement stay deterministic. Both 2026 cases in Section~\ref{sec:victim} (a hijacked agent, and an agent that spent without permission) failed because that separation was missing.
 \end{recbox}
 
-\subsection{Near-Term Pilots (90-Day Implementation)}
-
-\begin{keybox}[What Can Be Done Now, Without New Legislation]
-\textbf{Pilot 1: Agent-Initiated Transaction Flagging}
-\begin{itemize}
-  \item \textbf{Scope}: One major bank or payment processor
-  \item \textbf{Action}: Flag identifying agent-initiated vs. human-initiated transactions, sourced from network agent-token and signed-agent signals rather than inference
-  \item \textbf{Deliverable}: Report on agent transaction volume and patterns
-\end{itemize}
-
-\textbf{Pilot 2: Cross-Rail Graph Analytics}
-\begin{itemize}
-  \item \textbf{Scope}: 3--5 institutions across different rails
-  \item \textbf{Action}: Share anonymized transaction graph data; run coordinated pattern detection
-  \item \textbf{Deliverable}: Proof-of-concept for cross-institution agent activity detection
-\end{itemize}
-
-\textbf{Pilot 3: Incident Response Tabletop Exercise}
-\begin{itemize}
-  \item \textbf{Scenario}: ``A widely deployed payment-agent framework is hijacked while an agent swarm triggers mass false positives'' (tests loss allocation and alert overload)
-  \item \textbf{Deliverable}: Identified gaps in coordination and escalation procedures
-\end{itemize}
-
-\textbf{Pilot 4: Structured Logging Standard Development}
-\begin{itemize}
-  \item \textbf{Action}: Draft standard for agent decision logging in financial contexts
-  \item \textbf{Deliverable}: Proposed logging schema via ISO/NIST working group
-\end{itemize}
-\end{keybox}
-
 \subsection{International Recommendations}
+\label{sec:recs-intl}
 
-\begin{infobox}[Current International Coordination Efforts {[O]}]
-The core regulatory challenge is preventing jurisdictional arbitrage: actors routing agent operations through the most permissive legal environments.
-
-\textbf{Current coordination efforts (status as of late October 2026)}:
-\begin{itemize}
-  \item FATF's Horizon Scan on AI and Deepfakes explicitly identifies autonomous AI agents as a risk vector for AML/CFT, including agentic-misuse scenarios
-  \item EU AMLA (operational since July 2025) is issuing Level 2 standards (e.g.\ final report on draft cooperation standards for direct supervision, July 21, 2026) and collecting data to identify entities eligible for direct supervision (national data due August 15, 2026; a provisional list was scheduled for end-September 2026, though this revision found no public confirmation it was finalized); selection in 2027, direct supervision of about 40 high-risk groups from 2028, alongside the EU-wide cash payment cap of EUR 10,000
-  \item MiCA's transitional period ended July 1, 2026, with no extensions; the GENIUS Act (signed July 18, 2025) is in implementation through OCC, FDIC, FinCEN/OFAC, and Treasury proposals (February--August 2026); the OCC issued the first final rule on October 21, 2026 (effective January 18, 2027), leaving BSA, AML, and sanctions requirements to a separate rule with Treasury that remains a proposal; the Act takes effect on the earlier of January 18, 2027 or 120 days after final rules
-  \item EU AI Act: the Digital Omnibus, in force since late July 2026, moved Annex III high-risk obligations (which include creditworthiness assessment and credit scoring) to December 2, 2027 and Annex I to August 2, 2028, so the Act's main financial-services obligations now arrive after the GENIUS Act and AMLA milestones; banks' AI systems already sit within DORA's ICT-risk regime, and the ESAs' July 31, 2026 statement applies that lens to frontier-AI risks
-  \item FATF's October 2026 plenary ran to October 30, after this revision's snapshot; its outcomes are not reflected here
-  \item The broader AI-governance track is fragmenting rather than converging: the U.S. revoked EO 14110 (January 2025) and issued EO 14365 (December 2025), which pushes a ``minimally burdensome'' national framework and challenges state AI laws, and by mid-2026 was reportedly weighing frontier-model pre-release evaluation; the EU deferred its high-risk AI Act obligations via the Digital Omnibus; and the UK AI Security Institute has become a significant external evaluator of frontier models. The AML and AI-governance clocks are out of sync, widening the arbitrage surface.
-\end{itemize}
-
-\textbf{Limitation [E]}: These frameworks were not designed with autonomous agent operations in mind. They assume human decision-makers and human-scale transaction volumes.
-\end{infobox}
 
 \begin{recbox}[I1. Harmonize Agent Registration Requirements]
 Coordinate across jurisdictions to prevent arbitrage:
@@ -3090,21 +3027,43 @@ FATF's Horizon Scan already includes agentic-misuse scenarios; the next step is 
 Payment-transparency rules (FATF Recommendation 16 and the virtual-asset travel rule) specify which originator and beneficiary data travel with a payment. Standard-setters should define an optional, then expected, field marking a payment as agent-initiated and carrying the agent-credential identifier, so that the signal networks and protocols already generate reaches the institutions and FIUs responsible for AML. This is a data-field change, not a new regime, and is easiest while agent-payment protocols are at early version numbers. Since April 2026 there is an obvious venue: the FIDO Alliance payments working group that now holds AP2 and Verifiable Intent, alongside the x402 Foundation.
 \end{recbox}
 
-\begin{warnbox}[Cautionary Precedent: US Beneficial Ownership Rollback, Now Final {[O]}]
-In March 2025, FinCEN issued an interim final rule removing beneficial ownership reporting requirements for US companies and US persons, narrowing scope to foreign reporting companies only. A May 2026 GAO report noted the exemption eliminates more than 99\% of entities that previously had to report. FinCEN's final rule, effective August 14, 2026, made the exemption permanent for all U.S.-formed entities. \textbf{[E]} For U.S. entities, the ``Registry'' control point now rests on state formation records and bank-side due diligence alone, pushing detection of agent-formed shell networks downstream.
 
-\textbf{This demonstrates the political fragility of registry-based governance}: even enacted requirements can be rolled back under political pressure. Any ``Know Your Agent'' regime faces similar vulnerability.
+\subsection{Near-Term Pilots (90-Day Implementation)}
 
-\textbf{Additional context}: The Corporate Transparency Act environment has been legally volatile, with injunctions and court actions creating uncertainty, even as appellate courts have upheld the Act's constitutionality. Even when rules exist, they may be paused or reshaped by litigation and political shifts.
+\begin{keybox}[What Can Be Done Now, Without New Legislation]
+\textbf{Pilot 1: Agent-Initiated Transaction Flagging}
+\begin{itemize}
+  \item \textbf{Scope}: One major bank or payment processor
+  \item \textbf{Action}: Flag identifying agent-initiated vs. human-initiated transactions, sourced from network agent-token and signed-agent signals rather than inference
+  \item \textbf{Deliverable}: Report on agent transaction volume and patterns
+\end{itemize}
 
-\textbf{Implication}: Registry-based controls require sustained political will and judicial durability, neither of which can be assumed. This strengthens the case for technical enforcement at chokepoints (which are harder to roll back politically) over centralized registries.
-\end{warnbox}
+\textbf{Pilot 2: Cross-Rail Graph Analytics}
+\begin{itemize}
+  \item \textbf{Scope}: 3--5 institutions across different rails
+  \item \textbf{Action}: Share anonymized transaction graph data; run coordinated pattern detection
+  \item \textbf{Deliverable}: Proof-of-concept for cross-institution agent activity detection
+\end{itemize}
 
+\textbf{Pilot 3: Incident Response Tabletop Exercise}
+\begin{itemize}
+  \item \textbf{Scenario}: ``A widely deployed payment-agent framework is hijacked while an agent swarm triggers mass false positives'' (tests loss allocation and alert overload)
+  \item \textbf{Deliverable}: Identified gaps in coordination and escalation procedures
+\end{itemize}
+
+\textbf{Pilot 4: Structured Logging Standard Development}
+\begin{itemize}
+  \item \textbf{Action}: Draft standard for agent decision logging in financial contexts
+  \item \textbf{Deliverable}: Proposed logging schema via ISO/NIST working group
+\end{itemize}
+\end{keybox}
+
+\needspace{12\baselineskip}
 \section{Indicators to Monitor}
 
 \subsection{Signal Status Dashboard (October 2026) \textit{(updated in v3.1)}}
 
-Status of the ``What Would Change This Assessment'' triggers (Section~\ref{sec:change}), checked against public evidence through late October 2026. One trigger is new in v3.1; none changed status.
+Status of the ``What Would Change This Assessment'' triggers (Section~\ref{sec:change}), checked against public evidence through late October 2026. One trigger is new in v3.1; none changed status (Figure~\ref{fig:dashboard}).
 
 \begin{figure}[htbp]
 \centering
@@ -3266,19 +3225,6 @@ Temporal Coordination Score & Synchronization of activity across nominally unrel
 
 These graph-level metrics support the ``agents vs.\ agents'' detection paradigm and operationalize the ``auditability paradox'' insight: individual transactions may be visible, but only graph analysis reveals coordinated patterns.
 
-\subsection{Goodhart Warning}
-
-\begin{warnbox}[When Metrics Become Targets]
-If institutions optimize for these KPIs, sophisticated attackers will adapt:
-\begin{itemize}
-  \item Optimizing Time-to-Interdiction may shift attacks to slower, lower-priority rails
-  \item Entity churn metrics may push shell operations to unmonitored jurisdictions
-  \item Cross-rail linkage improvements may drive activity to entirely new rail types
-\end{itemize}
-
-\textbf{Mitigation}: Metrics should be reviewed quarterly for gaming indicators. Red teams should explicitly attempt to ``pass'' metrics while still achieving illicit objectives.
-\end{warnbox}
-
 \subsection{Measurement Sketches for Key Metrics}
 
 For three of the most actionable metrics, here is how to operationalize measurement:
@@ -3307,6 +3253,20 @@ For three of the most actionable metrics, here is how to operationalize measurem
   \item \textbf{Measurement source}: Blockchain analytics platforms, cross-institution transaction matching (requires data sharing)
 \end{itemize}
 
+\subsection{Goodhart Warning}
+
+\begin{warnbox}[When Metrics Become Targets]
+If institutions optimize for these KPIs, sophisticated attackers will adapt:
+\begin{itemize}
+  \item Optimizing Time-to-Interdiction may shift attacks to slower, lower-priority rails
+  \item Entity churn metrics may push shell operations to unmonitored jurisdictions
+  \item Cross-rail linkage improvements may drive activity to entirely new rail types
+\end{itemize}
+
+\textbf{Mitigation}: Metrics should be reviewed quarterly for gaming indicators. Red teams should explicitly attempt to ``pass'' metrics while still achieving illicit objectives.
+\end{warnbox}
+
+\needspace{12\baselineskip}
 \section{What Would Change This Assessment}
 \label{sec:change}
 
@@ -3359,6 +3319,7 @@ For three of the most actionable metrics, here is how to operationalize measurem
   \item \textbf{Whose objectives agent identity encodes} \textit{(new in v3.0)}: If industry agent-credential schemes remain pure commerce authentication, the laundering-relevant gaps persist behind a more secure front door; if they are connected to AML while the protocols are young, agent-initiated finance could become more attributable than human finance. This is currently the most policy-sensitive uncertainty in this assessment.
 \end{itemize}
 
+\needspace{12\baselineskip}
 \section{Conclusion}
 
 AI agents represent a qualitative shift in financial crime dynamics, not merely an incremental efficiency improvement for existing methods. The combination of autonomous operation, adaptive behavior, machine-scale speed, and attribution challenges creates governance gaps that current frameworks do not address.
@@ -3515,6 +3476,78 @@ The ``\$1 trillion in annual bribes'' figure is commonly attributed to the World
   \item ETRA-2026-PTR-001: \textit{AI Agents and Political Targeting}
   \item ETRA-2026-IC-001: \textit{AI Agents and Institutional Erosion}
 \end{itemize}
+
+\clearpage
+\section*{Appendix: Revision History}
+\addcontentsline{toc}{section}{Appendix: Revision History}
+\label{sec:history}
+
+Substantive changes by version, newest first.
+
+\begin{infobox}[Version 3.1 (October 2026)]
+\textbf{Changes from v3.0 (September 2026)}. A research refresh covering mid-September through late October 2026, plus 2026 items v3.0 missed. No scenario estimate moves.
+\begin{enumerate}
+  \item \textbf{Supervisors name ``know your agent''} (Sections~\ref{sec:markets}, \ref{sec:kya}): CFTC Chair Selig's October 28 remarks (agent liability, developer registration, a possible KYA standard); HM Treasury's payments consultation (July 14 to October 6) on agentic consent and liability, and the AI Adoption Plan by its independent AI Champions, accepted by the government (a KYA standard); the FCA Mills Review (July 6). New dashboard trigger: supervisory recognition of KYA (Partial)
+  \item \textbf{Market integrity and systemic risk}: FSB final sound practices (October 15); Lagarde at the ESRB conference (October 1) on herding and provider concentration; ESRB frontier-AI cyber warning (June 25 / July 7) and ESA statement (July 31); Bank of England/FCA 2026 AI survey (October 26)
+  \item \textbf{Stablecoins, model risk, EU AI Act}: OCC final GENIUS Act rule (October 21; effective January 18, 2027), with the FinCEN/OFAC AML rule still proposed; SR 26-2 (April 17) replacing SR 11-7 and excluding generative and agentic AI models; Digital Omnibus moving Annex III high-risk obligations to December 2, 2027; stablecoin supply refreshed (about \$302 billion, October 29)
+  \item \textbf{Agent rails} (Section~\ref{sec:rails}): AP2 and Mastercard Verifiable Intent contributed to the FIDO Alliance (April 28; missed by v3.0); Mastercard Agent Pay trust and intelligence services (September 30); x402 real-volume evidence; IMF Note 2026/004
+  \item \textbf{Agent as victim, and agent overreach} (Section~\ref{sec:victim}): Zscaler's in-the-wild injection campaigns aimed at paying agents (July); OpenAI's October disclosure of an internal model spending from a wallet it was not authorized to use; new failure mode ``agent overreach''
+  \item \textbf{Base rates and threats}: Bitget theft (\$387 million, September 24; DPRK attribution October 1); Q3 2026 hack losses about \$1.2--1.3 billion; FinCEN FIN-2026-Alert005 (September 3), with IC3 digital-asset investment-scam losses up from \$907 million (2021) to \$7.2 billion (2025); TransUnion synthetic-identity exposure; Deloitte projection; SEC ``AI trading bot'' fraud complaints (September 29)
+  \item \textbf{Defender adoption}: FIS and Anthropic's Financial Crimes AI Agent (May 2026); AI-assisted tracing in the Bitget case
+  \item \textbf{Frontier update}: September--October 2026 releases (Anthropic's own announcement and price list for Opus 5.5 and Fable 5.1; others as reported); near-frontier models list well below frontier prices; METR's time-horizon page not updated since September 8, 2026
+  \item \textbf{Scenarios}: all six unchanged (within calibration resolution); leans F and D upward, C slightly downward, A and B flat, E upward inside its tail bin
+  \item \textbf{Figures}: new development timeline (Figure~\ref{fig:timeline}); new survey chart (Figure~\ref{fig:survey}); scenario chart replaced by a range-and-history chart (Figure~\ref{fig:scenprob}); dashboard updated to 12 triggers
+  \item \textbf{Corrections}: ``What Changed'' table now covers v3.0 to v3.1; FSB item corrected from ``final report due'' to final; v3.0's ``HM Treasury has signaled a consultation'' was stale (it opened July 14) and is corrected; METR sentence dated; spot-checks confirmed the Blockaid H1 2026 figures and the June 10, 2026 date of Agent Pay for Machines. A verification pass against primary sources then corrected: SR 26-2's AI exclusion, now quoted from the agencies' text (no longer ``reportedly''; ``pending separate work'' replaced by the OCC's planned request for information), with its supersession of the 2021 BSA/AML model-risk statement added; the AI Adoption Plan, attributed to HM Treasury's independent AI Champions (Recommendation 10); the Mills Review recommendation, quoted; stablecoin supply (about \$298 billion to about \$302 billion; May peak about \$322 billion to about \$317 billion, DefiLlama); the x402 tracker date (October 29); Gemini 4 Argon no longer called a cyber-defense model, and an unverified reason for the scrapped GPT-6.1 Astra release removed; the OpenAI wallet case, cited to OpenAI's own report and dated (June 2026 run, found September 25); the SEC cases, cited to the court filing
+  \item \textbf{Structure and readability}: the two editions now share one section structure and numbering (Section 1 order, Sections 5.2--5.3, 6.5--6.7, 7.5, and Section 8, where International Coordination is 8.4 and the false-positive counterpoint 8.11 in both); the executive summary and key findings are shortened and reordered so the argument reads in two pages; the revision history moves to this appendix; the duplicated auditability-paradox passage is merged into Section 5.2; the per-scenario v3.1 reasoning now sits once, in the Section 9 table; figures gain takeaway captions and in-text references, the payment-flow and risk-matrix figures are adjusted for legibility, and the Markdown edition gains a risk-matrix table and drops two redundant charts
+\end{enumerate}
+\end{infobox}
+
+\vspace{0.5cm}
+
+\begin{infobox}[Version 3.0 (September 2026)]
+\textbf{Changes from v2.1 (July 2026)}. A substantive rewrite rather than a currency refresh:
+\begin{enumerate}
+  \item \textbf{Agentic payment rails} (Section~\ref{sec:rails}): card-network agent credentials (Visa Intelligent Commerce / Trusted Agent Protocol; Mastercard Agent Pay), Google AP2, OpenAI/Stripe ACP, and x402 (Linux Foundation-hosted x402 Foundation, operational July 14, 2026) treated as a new control-point layer; new argument that industry ``KYA'' is commerce authentication, not an AML control
+  \item \textbf{The agent as victim} (Section~\ref{sec:victim}): the May 2026 Grok/Bankr prompt-injection drain and Microsoft Research's Magentic Marketplace results; new Scenario F
+  \item \textbf{Agentic trading and market integrity} (Section~\ref{sec:markets}): tacit algorithmic collusion (NBER WP 34054), the October 2025 liquidation cascade, IOSCO (May 2026), FSB (June 2026), and Bank of England statements
+  \item \textbf{Base-rate refresh}: FBI IC3 2025 (about \$20.9 billion; AI-related \$893 million), FTC 2025 (\$15.9 billion), UK Finance 2026 (GBP 1.28 billion; APP up 19\%), Chainalysis theft and DPRK figures, April 2026 Drift and KelpDAO thefts
+  \item \textbf{Governance refresh}: GENIUS Act implementing proposals (February--August 2026); end of the MiCA transitional period (July 1, 2026); BOI final rule (effective August 14, 2026); AMLA selection milestones; FINRA, FCA, and Bank of England statements; Prince Group forfeiture action
+  \item \textbf{Counterpoint revised}: stablecoin freeze capability now statutory for U.S. issuers, set against state-aligned non-USD settlement tokens
+  \item \textbf{Frontier update}: Claude Fable 5.1 / Mythos 5.1 (September 1, 2026); GPT-6 Astra (September 3--4, 2026); METR May 2026 measurement at the ceiling of its task suite
+  \item \textbf{Scenarios re-estimated under the shared calibration policy} (ranges on a 5-point grid; a move is recorded only at one grid step): A down one step (35\% to 25--35\%); B up one step (35\% to 35--45\%); C (10--20\%), D (5--15\%), and E (5--10\% tail bin) unchanged, with upward pressure on D and E within calibration resolution; new Scenario F at 40--50\% by 2028
+  \item \textbf{Indicators rebuilt}: horizons rolled forward; new Signal Status Dashboard; new agent-rail indicators
+  \item \textbf{New recommendations}: O6 (mandate-bound agent credentials), L5 (loss allocation for manipulated agents), I4 (agent credentials in payment-transparency standards)
+  \item \textbf{New figures}: fraud-loss trend, agent transaction flow with control points, scenario probability comparison, scenario risk matrix, signal dashboard
+  \item \textbf{Tightening}: removed duplicated Huione and siloing passages; stale horizon labels rolled forward
+\end{enumerate}
+\end{infobox}
+
+\vspace{0.5cm}
+
+\begin{infobox}[Version 2.1 (July 2026, mid-2026 refresh)]
+\textbf{Substantive updates from v2.0 (February 2026):}
+\begin{enumerate}
+  \item \textbf{Currency refresh to July 2026}: Updated the technology landscape, model references, and governance timeline, synchronizing this report with the mid-2026 revisions of the Institutional Erosion, Political Targeting, and WMD Proliferation sibling reports
+  \item \textbf{Frontier-model update}: Incorporated the mid-2026 capability frontier (Claude Fable 5 / Mythos 5, released June 9, 2026, and the Mythos-class tier above the prior Opus tier), the tiered safeguarded/reduced-safeguard release model, and the ``undermining decisions within major governments'' risk pathway
+  \item \textbf{Agent-autonomy data}: Added METR task-horizon figures (accelerated roughly four-month doubling; mid-2026 saturation of current task suites) to ground the speed-asymmetry thesis
+  \item \textbf{Governance refresh}: Updated the EU AMLA timeline; added the U.S. executive-order sequence (EO 14110 revocation, EO 14365 state-law preemption) and the UK AI Security Institute; refreshed the FinCEN beneficial-ownership and Huione status
+  \item \textbf{Corrections}: Reconciled the methodology statement with the set-wide independence disclaimer; synchronized IC workforce figures with ETRA-2026-IC-001 v2.1; cited the Chinese-language money laundering network and DPRK figures; reconciled the Infinite Layering actor-count scale; clarified that the scenario probabilities are not a partition
+  \item \textbf{Typographic}: Removed em-dash constructions throughout (house style); defined Virtual Asset Service Provider (VASP) on first use
+\end{enumerate}
+\end{infobox}
+
+\vspace{0.5cm}
+
+\begin{infobox}[Version 2.0 (February 2026)]
+\textbf{Substantive updates from v1.0 (December 2025):}
+\begin{enumerate}
+  \item \textbf{Updated crime statistics}: Chainalysis 2026 Crypto Crime Report data (\$154 billion illicit volume in 2025, 162\% YoY increase); FATF Horizon Scan on AI and Deepfakes; EU AMLA 2026 milestones
+  \item \textbf{Expanded cross-references}: Added links to ETRA-2026-WMD-001 (WMD Proliferation), ETRA-2026-PTR-001 (Political Targeting), and ETRA-2026-IC-001 (Institutional Erosion)
+  \item \textbf{New content}: MCP/tool-use ecosystem as concrete composability evidence; agent computer use / browser control as [O] evidence update; workforce contraction context from IC erosion report; Process DoS sharpened with IC erosion framing
+  \item \textbf{Scenario probability reassessment}: Adjusted based on two additional months of evidence
+  \item \textbf{New references}: FATF Horizon Scan on AI and Deepfakes; Chainalysis 2026 Crypto Crime Report; economic\_agents simulation framework cross-reference
+\end{enumerate}
+\end{infobox}
 
 % ============================================================================
 % DOCUMENT METADATA

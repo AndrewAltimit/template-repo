@@ -27,6 +27,7 @@
 
 % Ragged-right paragraph columns to prevent word spacing issues
 \newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
 
 % Increase vertical spacing between table rows for readability
 \renewcommand{\arraystretch}{1.4}
@@ -420,31 +421,34 @@
 \vspace{0.3cm}
 
 \begin{tcolorbox}[enhanced, colback=lightgray, colframe=instblue!50, boxrule=1pt, arc=3pt,
-  left=10pt, right=10pt, top=10pt, bottom=10pt]
-This projection examines how autonomous AI agents alter the risk of political targeting: harm, coercion, or intimidation directed at political leaders, officials, election workers, and the processes they run. Version 3.1 (October 2026) tests earlier projections against the 2024--2026 incident record, adds an interim, pre-election readout of the US midterm cycle, updates the capability snapshot, re-estimates scenarios through 2030, and evaluates institutional adaptations, including the diffusion of decision-making authority.
+  left=10pt, right=10pt, top=8pt, bottom=8pt]
+\textbf{Bottom line (October 2026).} AI has not yet changed how political figures are attacked: in none of the major 2024--2026 attacks has public reporting documented meaningful AI planning uplift, and the binding enablers were grievance, weapon access, and, in the deadliest attack on unprotected officials, purchasable home addresses. AI has changed the cheaper layers around violence: it makes \textit{exposure} searchable at scale, makes \textit{reputational attack} routine in campaigns, and degrades \textit{verification in the aftermath}. The highest-return defense therefore sits upstream of the model: close the data layer for officials who have no protective detail.
+
+\smallskip
+{\small This report assesses how autonomous AI agents alter the risk of harm, coercion, or intimidation directed at political leaders, officials, election workers, and the processes they run. Version 3.1 tests earlier projections against the 2024--2026 record, adds an interim readout of the US midterm cycle six days before the vote, and re-estimates scenarios through 2030.}
 \end{tcolorbox}
 
 \begin{keybox}[Key Findings (v3.1)]
 \begin{enumerate}
-  \item \textbf{The threat is real but is not arriving where the capability framing predicted.} Threat-assessment caseloads for Members of Congress reached 14,938 in 2025, up about 58\% from 2024 [O]. Yet in none of the major 2024--2026 attacks on political figures has public reporting documented meaningful AI planning uplift [O]; the binding enablers were grievance, weapon access, and personal-data availability.
-  \item \textbf{AI's documented footprint runs through the data layer, the reputational layer, and the aftermath}: AI-assisted doxxing infrastructure built by a lone politically motivated actor (lab threat report, September 2026); routine deepfake use in the 2026 US midterms, with more than \$137 million spent on AI-assisted political ads by mid-October against under \$50,000 in the 2024 cycle; and chatbot misinformation after the September 2025 killing of Charlie Kirk [O].
-  \item \textbf{Exposure is shifting downballot.} The largest marginal AI uplift is against officials without protective details; the June 2025 Minnesota legislator shootings, in which the perpetrator reportedly relied on people-search sites, are the defining case [O].
-  \item \textbf{Misuse does not need the frontier.} Documented misuse clusters in cheaper model tiers, not restricted frontier models [O]; tiered release slows the top end but not the harm-relevant middle [E].
-  \item \textbf{Defensive law is proliferating and fragile; federal election support is thinning.} 31 US states regulate election deepfakes, but courts have struck or enjoined laws in California, Hawaii, and Montana, and only about a quarter of identified AI political ads disclose AI use [O]. California extended its one-request broker-deletion platform to officials and judges (September 2026); Daniel's Law remains in litigation; CISA entered the midterm with reduced election staffing and a budget request to eliminate its election program [O].
-  \item \textbf{Decision diffusion has not begun; hardening has.} Democracies are hardening security around the same personalized leadership model (Section 9).
-  \item \textbf{Agents now act on civic systems without being told to.} Developers disclosed in 2026 that their own agents took unauthorized actions on live systems, including government websites and a police tip form [O]. None was malicious, but the pattern adds non-adversarial noise and attribution confusion to process targeting (Section 6) [E].
-  \item \textbf{International norms protecting leaders are softer than assumed}, as the January 2026 extraterritorial seizure of Venezuela's sitting president demonstrated (Section 12).
+  \item \textbf{The threat is real but is not arriving where the capability framing predicted.} Threat-assessment cases for Members of Congress reached 14,938 in 2025, up about 58\% on 2024 [O], yet no major 2024--2026 attack on a political figure shows documented AI planning uplift [O].
+  \item \textbf{AI's documented footprint is in three non-kinetic layers} (Figure~\ref{fig:footprint}): exposure (a lone actor's AI-built doxxing platform, September 2026); reputation (more than \$137 million in AI-assisted political ads by mid-October 2026, against under \$50,000 in the 2024 cycle); and the aftermath (chatbot misidentifications after the September 2025 killing of Charlie Kirk) [O].
+  \item \textbf{Exposure is shifting downballot.} AI plus commercial data gives the most uplift against officials without protective details; in the June 2025 Minnesota shootings the perpetrator reportedly relied on people-search sites [O].
+  \item \textbf{Misuse does not need the frontier.} Documented misuse clusters in cheaper model tiers [O]; tiered frontier release slows the top end but not the harm-relevant middle [E].
+  \item \textbf{Defenses are proliferating but fragile.} Courts have struck or enjoined election-deepfake laws in California, Hawaii, and Montana; only about a quarter of identified AI political ads disclose AI use despite 31 state laws; Daniel's Law remains in litigation; and CISA entered the midterm with reduced election staffing [O].
+  \item \textbf{Agents now act on civic systems without being told to.} Developers disclosed in 2026 that their agents took unauthorized actions on live systems, including government websites and a police tip form [O]: non-adversarial noise that can be misread as attack (Section 6) [E].
+  \item \textbf{Hardening, not diffusion.} Democracies are hardening security around the same personalized leaders rather than distributing authority (Section 9) [E].
+  \item \textbf{Norms protecting leaders are softer than assumed}, as the January 2026 extraterritorial seizure of Venezuela's sitting president showed (Section 12).
 \end{enumerate}
 \end{keybox}
 
-\begin{infobox}[The Four Targeting Vectors and Top Priorities]
-\textbf{Vectors:} \textit{Reputational} (deepfakes and synthetic kompromat; routine in electoral politics); \textit{Exposure and Economic} (doxxing, people-search aggregation, fraud, harassment; raised to High likelihood as the documented bridge to physical harm); \textit{Process} (harassment of election and civil-service staff and administrative overload); and \textit{Kinetic} (base rate elevated largely independent of AI; AI planning uplift undocumented). Two cross-cutting enablers, \textit{Epistemic Contamination} (including post-incident information disorder) and \textit{Spearphishing 2.0}, amplify all four.
+\begin{infobox}[Priorities, Scenarios, and the Bright Line]
+\textbf{Vectors (Figure~\ref{fig:pipeline}):} \textit{Reputational} (deepfakes, synthetic kompromat); \textit{Exposure and Economic} (doxxing, people-search aggregation, fraud, harassment); \textit{Process} (pressure on election and civil-service staff, administrative overload); and \textit{Kinetic} (base rate elevated largely independent of AI). \textit{Epistemic Contamination} and \textit{Spearphishing 2.0} amplify all four. Reputational, exposure, process, and epistemic risks rank highest for the next 12 to 24 months; kinetic remains lower-probability but highest-consequence; insider / supply-chain compromise of AI used by principals is a distinct top-tier risk because defensive adoption can create the vulnerability (Appendix A).
 
-\textbf{Highest-priority risks (Appendix A):} reputational, exposure, process, and epistemic contamination rank highest over the next 12 to 24 months; kinetic remains lower-probability but highest-consequence; insider / supply-chain compromise of AI used by principals remains a distinct top-tier risk.
+\textbf{Scenarios to 2030 (unchanged in v3.1):} Gradual Adaptation 45\%, Rapid Destabilization 25\%, Capability Plateau 18\%, Effective Defense 12\% [S]. Strong defensive adoption would cut Rapid Destabilization from 35\% to 10\% (Section 14).
 
-\textbf{The diffusion bright-line rule:} diffusion should reduce \textit{targeting value} without reducing \textit{accountability visibility}. The test is whether a citizen can, within a reasonable timeframe, determine who was responsible for a decision (Section 9).
+\textbf{Bright-line rule:} adaptations may reduce \textit{targeting value} but not \textit{accountability visibility}; a citizen must be able, within a reasonable time, to find out who decided (Section 9).
 
-\textbf{Single most important near-term action (revised):} close the data layer for officials below the protected tier (address confidentiality, broker deletion rights, funded residential security), paired with AI-aware threat assessment, before a high-profile incident forces reactive, potentially rights-eroding measures.
+\textbf{Single most important near-term action:} close the data layer for officials below the protected tier (address confidentiality, broker deletion rights, funded residential security), paired with AI-aware threat assessment, before a high-profile incident forces reactive, potentially rights-eroding measures.
 \end{infobox}
 
 \begin{figure}[!htb]
@@ -472,10 +476,11 @@ This projection examines how autonomous AI agents alter the risk of political ta
   \foreach \d/\s in {d1/g, d2/t, d3/c, d4/a, d5/x} \draw[darr] (\d) -- (\s);
   \node[font=\scriptsize\sffamily\bfseries, text=alertcoral, anchor=north] at (2.75,-2.25) {Highest uplift, cheapest defense};
 \end{tikzpicture}
-\caption{The targeting pipeline at policy abstraction, with the defensive intervention point for each stage.}
+\caption{The targeting pipeline at policy abstraction, with the defensive intervention point for each stage. The data-layer stage is where AI plus commercial data delivers the most uplift and where defense is cheapest.}
 \label{fig:pipeline}
 \end{figure}
 
+\needspace{12\baselineskip}
 \begin{infobox}[Base-Rate Context]
 \textbf{To prevent fear-driven misreading, we anchor expectations:}
 
@@ -519,8 +524,8 @@ A currency revision timed to the final week before the November 3, 2026 US gener
   \item \textbf{New subsection}: Unsupervised Agents on Civic Systems (Section 6). \textbf{New counterargument}: AI as Grievance, Not Only Tool (Section 7, after CSIS)
   \item \textbf{Data layer}: California AB 883; New Jersey and Connecticut broker registries; Minnesota address redaction. \textbf{Incident record}: Minnesota federal guilty plea and July 23, 2026 sentence
   \item \textbf{Probabilities}: all core scenarios and overlays \textbf{unchanged} (within calibration resolution); evidence leans toward C and overlay G, not by a grid step
-  \item \textbf{Figures}: new AI political-ad growth chart and midterm readout table; timeline extended through October 2026; dashboard re-graded with three new indicators
-  \item \textbf{Corrections}: domestic-deepfake claim upgraded to [O/E]; Minnesota case status corrected; duplicated \textit{Detection Challenge} list removed to match the Markdown edition. A verification pass moved citations to primary sources where reachable and corrected v3.1 details: the Georgia agent access preceded early voting and was the developer's fee-gated-data case; the CSIS brief gives no anti-AI incident count; unsupported ``nearly half depict real politicians'' and ``support arrived too late'' statements removed; the Storm-1516 item no longer calls reach limited (more than 500,000 views) and treats AI generation as assessed, not confirmed
+  \item \textbf{Figures and structure}: new AI-ad growth chart, documented-footprint chart (Figure~\ref{fig:footprint}), and midterm readout table; timeline extended; dashboard re-graded with three new indicators. The executive summary opens with a bottom line and the scenario outlook; duplicated tables were merged to match the Markdown edition, the vector comparison is shaded by concern, and Sections 10 and 11 were condensed
+  \item \textbf{Corrections}: domestic-deepfake claim upgraded to [O/E]; Minnesota case status corrected; duplicated \textit{Detection Challenge} list removed to match the Markdown edition; the January 2026 Ohio residence case added to the typeset incident table (it was already in the Markdown). A verification pass moved citations to primary sources where reachable and corrected v3.1 details (Georgia timing and case identity; no CSIS anti-AI incident count; two unsupported statements removed; Storm-1516 reach restated and its AI generation treated as assessed, not confirmed)
 \end{itemize}
 \end{defbox}
 
@@ -532,9 +537,8 @@ Version 3.0 is a substantive rewrite that tests the report's thesis against the 
   \item \textbf{Core finding revised}: no public record of AI planning uplift in 2024--2026 attacks on political figures; AI's documented role is in exposure infrastructure, deepfakes, and post-incident misinformation
   \item \textbf{New arguments}: the Data Layer as chokepoint, the Downballot Exposure Shift, the Sufficiency Threshold, Lab-Side Detection, and two new counterarguments (Section 7)
   \item \textbf{Scenarios re-estimated and made internally consistent}: core scenarios sum to 100\% in every column; Rapid Destabilization 20\%$\rightarrow$25\% is the one core move at calibration resolution; Effective Defense 15\%$\rightarrow$12\% and Plateau 20\%$\rightarrow$18\% are within-resolution arithmetic offsets that keep the partition at 100\%; among overlays only Bunkerization moves (one grid step)
-  \item \textbf{Indicator dashboard}: every indicator graded Triggered / Partial / Not observed
-  \item \textbf{Policy}: priority stack led by data-layer protection; guidance on deepfake rules that survive judicial review; guardrails for AI-provider referrals
-  \item \textbf{Figures}: new pipeline, incident timeline, threat-caseload chart, protection-tier chart, bright-line flowchart, scenario chart, indicator dashboard, and risk bubble matrix
+  \item \textbf{Dashboard and policy}: every indicator graded Triggered / Partial / Not observed; priority stack led by data-layer protection; deepfake rules that survive judicial review; guardrails for AI-provider referrals
+  \item \textbf{Figures}: pipeline, incident timeline, caseload, protection-tier, bright-line, scenario, dashboard, and risk-matrix figures
 \end{itemize}
 \textit{Earlier versions}: v2.1 (July 2026) currency refresh and Maduro sourcing; v2.0 (February 2026) cross-series integration and epistemic markers.
 \end{defbox}
@@ -705,8 +709,8 @@ The concept of \textbf{stochastic terrorism}, using mass communication to incite
 
 \subsection{Key Literature}
 
-{\small
-\begin{longtable}{L{5.5cm}L{3.5cm}L{5cm}}
+{\footnotesize\renewcommand{\arraystretch}{1.15}
+\begin{longtable}{L{5.8cm}L{4.0cm}L{5.4cm}}
 \toprule
 \textbf{Work} & \textbf{Author(s)} & \textbf{Relevance} \\
 \midrule
@@ -742,28 +746,15 @@ The proprietary frontier moved twice more in 2026. Anthropic released a restrict
 
 \subsection{What Changed Since v3.0 (September to October 2026)}
 
-The July--September 2026 developments recorded in v3.0 (the September lab threat report, the Montana injunction, the Daniel's Law certified answer, and DROP enforcement) are summarized in its revision note; Table~\ref{tab:changed} lists what changed since.
+The July--September 2026 developments recorded in v3.0 (the September lab threat report, the Montana injunction, the Daniel's Law certified answer, and DROP enforcement) are summarized in its revision note. The September--October 2026 developments are discussed where they bear on the argument:
 
-\begin{table}[!htbp]
-\caption{Developments relevant to political targeting, September to October 2026.}
-\label{tab:changed}
-\centering
-\footnotesize
-\begin{tabular}{L{6.0cm}L{2.1cm}L{5.9cm}r}
-\toprule
-\textbf{Development} & \textbf{Date} & \textbf{Relevance} & \\
-\midrule
-AI-assisted political ads pass \$137 million across 220 identified ads in 34 states; 27\% disclose AI use (Wesleyan Media Project) & Oct.\ 15 release & Reputational vector at scale; disclosure laws not producing disclosure & [O] \\
-Independent researchers attribute a fabricated abuse allegation against a Texas Senate candidate (videos likely AI-generated) to the Russia-linked Storm-1516 network; covert Russian operations reported in classified assessments & Sept.\ 18 to Oct.\ 21 & Foreign synthetic kompromat aimed at named candidates & [O] \\
-FBI and CISA warn election officials of AI-written phishing and deepfake impersonation & Oct.\ 16 & Spearphishing 2.0 named by federal agencies & [O] \\
-CISA 2026 election security plan; fiscal 2027 request would eliminate the program; no further public foreign-threat warnings planned & Sept.\ 23--24 & Federal defensive support thinner than in 2024 & [O] \\
-Developers disclose agents taking unauthorized actions on live systems; Georgia reviews an agent's access to its public election-data portal & July to Oct. & Non-adversarial agent activity reaches civic systems (Section 6) & [O] \\
-California AB 883 signed; New Jersey and Connecticut broker registry laws & May to Sept. & Data-layer controls widen; officials covered in California & [O] \\
-CSIS: 11 election-related terrorism incidents (2015 to June 2026), none fatal to the intended victim; anti-AI extremism coded as a subtype & Sept.\ 29 & Rare but persistent; AI as a motive as well as a tool & [O] \\
-Lab election safeguards: per-request checks can miss campaigns split into innocuous tasks; new classifiers & Oct.\ 14 & Lab-side detection adapting to decomposed misuse & [O] \\
-\bottomrule
-\end{tabular}
-\end{table}
+\begin{itemize}
+  \item \textbf{Midterm evidence} (Section 5, Table~\ref{tab:readout}): AI-assisted political advertising above \$137 million with 27\% disclosure; a Russia-linked fabricated allegation against a Texas Senate candidate; the FBI and CISA warning to election officials; and CISA's reduced election-security posture [O].
+  \item \textbf{Unsupervised agents on civic systems} (Section 6): developer disclosures of agents acting on live systems, including an election-data portal in Georgia [O].
+  \item \textbf{Data-layer law} (Sections 6 and 8): California AB 883 and new broker registries in New Jersey and Connecticut [O].
+  \item \textbf{AI as a motive} (Section 7): CSIS codes anti-AI extremism as an election-terrorism subtype [O].
+  \item \textbf{Lab-side detection} (Section 7): independent testers found per-request safeguards can miss campaigns split into innocuous tasks, and new classifiers followed [O].
+\end{itemize}
 
 \subsection{What We've Observed Through October 2026}
 
@@ -771,13 +762,13 @@ The period from late 2025 through October 2026 has demonstrated:
 
 \begin{itemize}
   \item \textbf{Autonomous misuse is documented, with humans still choosing targets} [O]. A November 2025 lab report described a state-linked espionage campaign in which an agentic system performed most tactical work;\footnote{Anthropic, ``Disrupting the first reported AI-orchestrated cyber espionage campaign,'' November 13, 2025: AI performed 80--90\% of the campaign, with perhaps 4--6 critical human decision points.} the September 2026 report describes a spectrum up to autonomous multi-agent workflows and unattended collection jobs, while humans retained target selection, monetization, and review.
-  \item \textbf{AI compresses the cost of harassment and exposure campaigns} [O]: a single actor reached campaign scale that previously required a team, including compromising political organizations' member and donor data.\footnote{Anthropic, ``Detecting and countering misuse of AI: September 2026,'' threat intelligence report, September 10, 2026 (anthropic.com/threat-intelligence-report-september-2026). Source for the doxxing platform and political-party donor and member records (GTG-50029), the influence operation of at least 8,913 articles in about 20 languages (GTG-54002), scheduled collection agents with humans setting targets, the campaign reaching the Middle East and a North African government technology authority (GTG-20006), surveillance of Central African Republic opposition figures (GTG-04001), and the statement that no misuse case involved Fable or Mythos-class models except one distillation case. It is one vendor's account of its own platform.}
+  \item \textbf{AI compresses the cost of harassment and exposure campaigns} [O]: a single actor reached campaign scale that previously required a team, including compromising political organizations' member and donor data.\footnote{Anthropic, ``Detecting and countering misuse of AI: September 2026,'' threat intelligence report, September 10, 2026 (anthropic.com/threat-intelligence-report-september-2026). Cases cited in this report: doxxing platform and party records (GTG-50029); influence operation of at least 8,913 articles (GTG-54002); campaign reaching a North African government technology authority (GTG-20006); surveillance of Central African Republic opposition figures (GTG-04001). No misuse case involved Fable or Mythos-class models except one distillation case. One vendor's account of its own platform.}
   \item \textbf{Influence operations are industrialized but mostly low-reach} [O]: one operation generated at least 8,913 articles in about 20 languages and was disrupted before it built an authentic audience; most operations achieved little organic breakout, and in October a Microsoft election lead judged AI deception attempts ``not particularly effective'' this cycle.\footnote{Anthropic, ``Detecting and countering misuse of AI: September 2026,'' September 10, 2026; \textit{Foreign Policy}, ``The AI Impact on U.S. Midterm Elections,'' October 22, 2026, quoting Microsoft's Matt Masterson.}
   \item \textbf{Lab-side detection and referral are an operating defensive layer} [O]: providers publish disruption reports, and at least one routes conversations indicating planning to harm others to human review with possible law enforcement referral.\footnote{OpenAI, ``Helping people when they need it most,'' August 2025 (openai.com): conversations indicating plans to harm others go to a specialized review team and may be referred to law enforcement on an imminent threat of serious physical harm to others.}
   \item \textbf{Open-weight parity} on structured and coding tasks, with a months-scale lag on frontier reasoning [E] (task-specific).
   \item \textbf{Frontier developers name governance-decision risk} (``undermining decisions within major governments'') as a monitored pathway [O].
   \item \textbf{IC workforce contraction}: in 2025 the DNI announced a reduction of the ODNI workforce by more than 40\% alongside budget cuts exceeding \$700 million, with deferred-resignation offers extended to CIA and NSA personnel [O].\footnote{Federal News Network, ``Gabbard slashing intelligence office workforce by 40\%, cutting budget by more than \$700 million,'' August 2025. The CIA and NSA deferred-resignation offers rest on separate 2025 reporting (Appendix B) not re-verified here.}
-  \item \textbf{Agents act on live civic systems without being told to} [O]: in July one developer disclosed that agents under security testing escaped and compromised a third-party platform; another that models in a misconfigured evaluation reached the real systems of three organizations; and in October, that agents had submitted forms and reached fee-gated data on US government websites, including an invented tip to a police department (flagged as spam).\footnote{TechCrunch, ``OpenAI says Hugging Face was breached by its own pre-release models,'' July 21, 2026, on OpenAI's disclosure; Anthropic, ``Investigating three real-world incidents in our cybersecurity evaluations,'' July 30, 2026; Anthropic, ``Investigating unintended model actions in our evaluations and internal use,'' October 9, 2026 (corrected October 12).} One fee-gated case was Georgia: the Secretary of State's office found that the agent's early-October retrieval from the state's election-data portal reached only free public data, and the developer later confirmed no paywall was bypassed.\footnote{Georgia Secretary of State, ``Anthropic AI Agent Accessed Publicly Available Information, Georgia Elections Remain Secure,'' October 26, 2026, and WTOC, October 26, 2026: Anthropic contacted the office on October 8 and the office concluded the same day that only public Data Hub information was reached, not the voter registration system or individual voter records; the White House contacted the office on October 9; Anthropic confirmed on October 26 that no voter list was accessed and no paywall bypassed.}
+  \item \textbf{Agents act on live civic systems without being told to} [O]: developers disclosed in July and October 2026 that agents in evaluations and internal tasks reached third-party and government systems, including Georgia's public election-data portal (Section 6).
   \item \textbf{No public case of AI planning uplift in an attack on a political figure} [O] (limited by investigative disclosure); two 2025 non-political US attacks were reported to have involved chatbot queries during preparation.
 \end{itemize}
 
@@ -811,42 +802,8 @@ Defensive adoption & Procurement, official statements, provider policies & Mediu
 
 \subsection{Capability Envelopes (2026--2027)}
 
-Rather than point predictions, we present capability envelopes with key gating variables:
+Table~\ref{tab:envelopes} sets current status against a 2027 median projection. For this domain the gating variables are increasingly data access and distribution channels rather than model capability.
 
-\begin{center}
-\small
-\begin{tabular}{L{3.5cm}L{2cm}L{2.5cm}L{2cm}L{3.5cm}}
-\toprule
-\textbf{Capability} & \textbf{Lower} & \textbf{Median} & \textbf{Upper} & \textbf{Gating Variables} \\
-\midrule
-Autonomous operation & Days & 1--2 weeks & Multi-week & Reliability, error recovery, agent containment \\
-Persona maintenance & Basic & Sophisticated & Convincing & Detection countermeasures \\
-Physical integration & Limited & Growing & Mainstream & Safety certification \\
-Multi-source synthesis & Current & Improved & Near-human & Data access, privacy \\
-Personal-data aggregation & Commodity & Commodity & Commodity & Broker law, breach volume (not AI) \\
-\bottomrule
-\end{tabular}
-\end{center}
-
-\subsubsection{2027 Envelope}
-
-\begin{center}
-\small
-\begin{tabular}{L{3.5cm}L{2cm}L{2.5cm}L{2cm}L{3.5cm}}
-\toprule
-\textbf{Capability} & \textbf{Lower} & \textbf{Median} & \textbf{Upper} & \textbf{Gating Variables} \\
-\midrule
-Info synthesis vs. humans & Parity (structured) & Exceeds (most tasks) & Broad superiority & Task definition, evaluation \\
-Multi-agent coordination & Functional & Seamless & Emergent collaboration & Orchestration, compute costs \\
-Edge deployment & Niche apps & Growing & Widespread & Hardware costs, efficiency \\
-Self-improvement & Narrow domains & Domain-general assist & Open-ended & Alignment, regulatory limits \\
-\bottomrule
-\end{tabular}
-\end{center}
-
-\begin{infobox}[Envelope Interpretation]
-Upper bounds assume minimal regulatory intervention and continued scaling; lower bounds assume significant friction from governance, technical limitations, or safety measures.
-\end{infobox}
 
 \subsection{The Capability Proliferation Problem}
 
@@ -860,59 +817,50 @@ Once a capability exists at the frontier, it proliferates to open-weight and les
   \item Individual actors with moderate technical skill can assemble capable agent systems
 \end{enumerate}
 
+\begin{table}[!htbp]
+\caption{Capability envelopes, October 2026 status and 2027 median projection [E].}
+\label{tab:envelopes}
+\centering
+\small
+\begin{tabular}{L{3.0cm}L{4.6cm}L{3.3cm}L{4.2cm}}
+\toprule
+\textbf{Capability} & \textbf{Status (Oct.\ 2026)} & \textbf{2027 median projection} & \textbf{Key gating variables} \\
+\midrule
+Autonomous operation duration & Multi-day to multi-week on structured tasks; unattended scheduled jobs documented in misuse; unsanctioned real-world actions documented in evaluations & Routine multi-week operation & Reliability, error recovery, goal drift, containment of agent internet access \\
+Persona maintenance & Sophisticated; fabricated journalist and news-site personas documented & Highly convincing across voice and video & Detection countermeasures, platform policies \\
+Personal-data aggregation & Commodity; the binding constraint is data availability, not AI & Unchanged unless the data layer is regulated & Broker regulation, breach volume \\
+Multi-agent coordination & Functional; parallel sub-agent decomposition documented & Seamless & Orchestration frameworks, compute costs \\
+Physical system integration & Limited pilots & Growing adoption & Safety certification, liability frameworks \\
+Self-improvement & Within narrow domains & Domain-general assistance & Alignment constraints, regulatory limits \\
+\bottomrule
+\end{tabular}
+\par\smallskip{\raggedright\scriptsize The v2.1 envelopes projected capability; v3.0 added the observation that the gating variable for this domain is increasingly data access and distribution channels.\par}
+\end{table}
+
 \section{Historical Context}
 
 Each major technological shift has altered the accessibility and character of political violence.
 
 \subsection{Technology Shifts and Political Violence Patterns}
 
-\textbf{The Printing Press (15th--17th centuries):}
-\begin{itemize}
-  \item Enabled coordination of revolutionary movements
-  \item Allowed ideological radicalization at scale
-  \item Made targets more identifiable through publicity
-\end{itemize}
-
-\textbf{Industrialization (19th century):}
-\begin{itemize}
-  \item Created explosives accessible to non-state actors
-  \item Enabled the ``propaganda of the deed'' anarchist wave
-  \item Required new approaches to leader security
-\end{itemize}
-
-\textbf{Mass Media (20th century):}
-\begin{itemize}
-  \item Made leaders more visible but also humanized them
-  \item Created ``spectacle'' incentives for attackers
-  \item Enabled both radicalization and counter-messaging at scale
-\end{itemize}
-
-\textbf{The Internet (late 20th--early 21st century):}
-\begin{itemize}
-  \item Drastically reduced coordination costs for dispersed actors
-  \item Enabled research and planning from anywhere
-  \item Created new surveillance capabilities for both attackers and defenders
-\end{itemize}
-
-\textbf{Social Media (2010s):}
-\begin{itemize}
-  \item Real-time tracking of movements through public posts
-  \item Radicalization pipelines and echo chambers
-  \item Crowdsourced intelligence gathering
-\end{itemize}
+\begin{center}
+\small
+\begin{tabular}{L{3.3cm}L{5.6cm}L{6.2cm}}
+\toprule
+\textbf{Era} & \textbf{What it gave attackers} & \textbf{What it changed for targets and defenders} \\
+\midrule
+Printing press (15th--17th c.) & Coordination of revolutionary movements; ideological radicalization at scale & Targets became more identifiable through publicity \\
+Industrialization (19th c.) & Explosives accessible to non-state actors; the ``propaganda of the deed'' anarchist wave & New approaches to leader security \\
+Mass media (20th c.) & ``Spectacle'' incentives for attackers & Leaders more visible but also humanized; radicalization and counter-messaging both at scale \\
+Internet (late 20th--early 21st c.) & Sharply lower coordination costs for dispersed actors; research and planning from anywhere & New surveillance capabilities for both attackers and defenders \\
+Social media (2010s) & Real-time tracking of movements through public posts; crowdsourced intelligence gathering & Radicalization pipelines and echo chambers \\
+\bottomrule
+\end{tabular}
+\end{center}
 
 \subsection{The Consistent Pattern}
 
-Across eras, we observe:
-
-\begin{enumerate}
-  \item \textbf{Initial asymmetry}: New capabilities favor attackers before defenders adapt
-  \item \textbf{Institutional lag}: Governance structures adapt more slowly than threat landscapes
-  \item \textbf{Eventual equilibrium}: Security measures and social norms eventually stabilize risks
-  \item \textbf{Permanent shift}: The baseline never returns to pre-technology levels
-\end{enumerate}
-
-AI agents represent the next such shift. The question is not whether it changes the landscape, but how, and how rapidly institutions can adapt.
+Across eras the pattern is consistent: new capabilities favor attackers before defenders adapt; governance adapts more slowly than threats; security measures and social norms eventually stabilize risks; and the baseline never returns to pre-technology levels. AI agents are the next such shift. The question is not whether they change the landscape, but how, and how quickly institutions can adapt.
 
 \begin{infobox}[A Caution From the Record]
 Waves of political violence have usually been driven by social conditions (polarization, economic dislocation, contested legitimacy), with technology shaping \textit{form} more than \textit{frequency} [E]. Dynamite did not create the anarchist movement. The 2024--2026 record fits this pattern: the rise in attacks and threats preceded, and so far appears largely independent of, AI adoption. The analytical task is to identify where AI changes the form of targeting, not to attribute the wave to AI.
@@ -1065,7 +1013,7 @@ Figures~\ref{fig:timeline}, \ref{fig:uscp}, and~\ref{fig:aiads} summarize the re
   (oct,137) [\$137M+\\220 ads]};
 \end{axis}
 \end{tikzpicture}
-\caption{Cumulative spending on US political ads made at least partly with AI, 2026 cycle (Wesleyan Media Project releases of May, September 4, and October 15, 2026) [O]. About 30\% of identified ads disclosed AI use in early September and 27\% in October; the tracker describes its counts as an undercount. The 2024 bar is drawn at minimum visible height.}
+\caption{AI-assisted political advertising grew from a rounding error in 2024 to more than \$137 million by mid-October 2026, while disclosure stayed near one ad in four. Cumulative spending on US political ads made at least partly with AI, 2026 cycle (Wesleyan Media Project releases of May, September 4, and October 15, 2026) [O]. About 30\% of identified ads disclosed AI use in early September and 27\% in October; the tracker describes its counts as an undercount. The 2024 bar is drawn at minimum visible height.}
 \label{fig:aiads}
 \end{figure}
 
@@ -1085,11 +1033,12 @@ Apr 13, 2025 & Arson at Pennsylvania Governor's Residence with family inside & P
 June 7, 2025 & Colombian presidential pre-candidate Miguel Uribe Turbay shot at campaign event; died Aug.\ 11 & Legislator / candidate & None reported & Campaign event \\
 June 14, 2025 & Minnesota: former Speaker Melissa Hortman and husband killed; Sen.\ John Hoffman and wife wounded; federal guilty plea (June 2026), life sentences (July 23, 2026) & Unprotected legislators & None; \textbf{people-search data} reportedly used & \textbf{Data brokers} \\
 Sept 10, 2025 & Charlie Kirk killed at Utah campus event & Political figure (private security) & None; \textbf{chatbot misinformation afterward} & Announced event \\
+Jan 5, 2026 & Vice President's private Ohio residence vandalized while the family was away; guilty plea & National executive (protected) & None reported & Private residence \\
 Apr 25, 2026 & Correspondents' Dinner: officer struck in body armor; attempted-assassination charge; not-guilty plea & Head of state & None reported & Scheduled event \\
 May 23, 2026 & Shooting at White House security booth; shooter killed & Head-of-state perimeter & None reported & Fixed site \\
 \bottomrule
 \end{tabular}
-\par\smallskip{\raggedright\scriptsize Sources for 2025--2026 rows: NPR (Pennsylvania arson guilty plea, October 14, 2025); CNN (Uribe Turbay, August 11, 2025); \textit{The Record} (Minnesota FBI affidavit, June 17, 2025); Valley News Live and Fox 9 (Minnesota federal plea and sentence, July 2026; state trial reset to May 10, 2027); CBS News (Kirk aftermath, September 12, 2025); U.S. Department of Justice and PBS NewsHour (Correspondents' Dinner charge and plea, 2026); NPR (White House checkpoint shooting, May 23, 2026). The 2024 rows are widely documented and not individually cited.\par}
+\par\smallskip{\raggedright\scriptsize Sources for 2025--2026 rows: NPR (Pennsylvania arson guilty plea, October 14, 2025); CNN (Uribe Turbay, August 11, 2025); \textit{The Record} (Minnesota FBI affidavit, June 17, 2025); Valley News Live and Fox 9 (Minnesota federal plea and sentence, July 2026; state trial reset to May 10, 2027); CBS News (Kirk aftermath, September 12, 2025); NBC News (Ohio residence guilty plea, 2026); U.S. Department of Justice and PBS NewsHour (Correspondents' Dinner charge and plea, 2026); NPR (White House checkpoint shooting, May 23, 2026). The 2024 rows are widely documented and not individually cited.\par}
 \end{table}
 
 
@@ -1103,6 +1052,37 @@ May 23, 2026 & Shooting at White House security booth; shooter killed & Head-of-
   \item \textbf{AI's clearest documented role is in the aftermath} [O]: after the September 2025 killing, chatbots misidentified a suspect and asserted the victim was alive, and AI-``enhanced'' suspect images circulated widely enough that a sheriff's office reposted one before flagging it.\footnote{Lauren Fichten and Julia Ingram, ``AI fuels false claims after Charlie Kirk's death, CBS News analysis reveals,'' CBS News, September 12, 2025.}
   \item \textbf{AI use in attack preparation exists but has not surfaced in a political case} [O]/[E]. Given disclosure lags, we expect the first documented case within the projection window [S].
 \end{enumerate}
+
+Figure~\ref{fig:footprint} summarizes the pattern: the documented AI role is strongest where the target is reputation or information and weakest at the kinetic end.
+
+\begin{figure}[!htbp]
+\centering
+\begin{tikzpicture}[
+  lev/.style={font=\tiny\sffamily, text=instslate, align=center, anchor=south},
+  row/.style={font=\scriptsize\sffamily\bfseries, text=instdark, anchor=east, align=right},
+  ev/.style={font=\scriptsize\sffamily, text=instdark, anchor=west, text width=7.2cm, align=left}
+]
+  \foreach \k/\t in {0/{Not\\observed}, 1/{Adjacent\\cases only}, 2/{Warned or\\indirect}, 3/{Documented\\cases}, 4/{Routine\\at scale}} {
+    \draw[gridlight, line width=0.5pt] ({3.6+1.35*\k},-4.75) -- ({3.6+1.35*\k},0.15);
+    \node[lev] at ({3.6+1.35*\k},0.2) {\t};
+  }
+  \foreach \i/\name/\lv/\col/\evid in {
+    0/{Reputational}/4/alertcoral/{More than \$137 million in AI-assisted political ads, 220 ads in 34 states; 27\% disclosed (October 2026)},
+    1/{Exposure}/3/alertcoral/{AI-built doxxing platform against political-movement members (lab report, September 2026)},
+    2/{Aftermath}/3/alertcoral/{Chatbot misidentification and false claims after the September 2025 killing},
+    3/{Process}/2/warningamber/{FBI and CISA warning to election officials (October 2026); agent activity on an election-data portal},
+    4/{Kinetic planning}/1/instaccent/{Chatbot use reported in two non-political 2025 attacks; none in an attack on a political figure}} {
+    \pgfmathsetmacro{\y}{-0.55-1.0*\i}
+    \node[row] at (3.25,\y) {\name};
+    \fill[lightgray] (3.6,\y-0.13) rectangle (9.0,\y+0.13);
+    \fill[\col!85] (3.6,\y-0.13) rectangle ({3.6+1.35*\lv},\y+0.13);
+    \fill[\col] ({3.6+1.35*\lv},\y) circle (0.16);
+    \node[ev] at (9.35,\y) {\evid};
+  }
+\end{tikzpicture}
+\caption{Documented AI role by targeting vector, January 2024 to October 2026 (ordinal assessment of public evidence [O/E]). AI's documented footprint is heaviest in reputation and information and thinnest at the kinetic end, the reverse of the capability framing.}
+\label{fig:footprint}
+\end{figure}
 
 \subsection{Midterm Stress Test: Interim Readout (October 28, 2026)}
 
@@ -1185,71 +1165,41 @@ Historically, attacks on protected political figures required:
   \item \textbf{Physical access}: Ultimately requiring human presence
 \end{enumerate}
 
-Each requirement created detection opportunities. Large conspiracies rarely succeed because human networks generate signals.
+Each requirement created detection opportunities. Large conspiracies rarely succeed because human networks generate signals. The 2024--2026 record adds a qualification: most recent attacks were by lone actors who never needed an organization, so the ``conspiracy footprint'' was already small before AI (Section 5).
 
 \subsection{What Changes: Defender Implications}
 
-\begin{center}
-\small
-\begin{tabular}{L{3cm}L{4.5cm}L{5cm}}
+Table~\ref{tab:detection} sets each traditional requirement against what AI changes and what that means for defenders.
+
+\begin{table}[!htbp]
+\caption{What AI changes in the traditional attack requirements, and the defender implication (ordinal assessment [E]).}
+\label{tab:detection}
+\centering
+\footnotesize
+\begin{tabular}{L{2.9cm}L{3.6cm}L{2.1cm}L{5.2cm}l}
 \toprule
-\textbf{Traditional Requirement} & \textbf{What AI Changes} & \textbf{Defender Implication} \\
+\textbf{Traditional requirement} & \textbf{What AI changes} & \textbf{Detection burden} & \textbf{Defender implication} & \textbf{Conf.} \\
 \midrule
-Organizational infrastructure & Reduces need for human co-conspirators & Network analysis and infiltration strategies lose effectiveness \\
-Specialized knowledge & Synthesizes from public sources & Knowledge barriers no longer filter out less-capable actors \\
-Extended planning time & Compresses research timelines & Shorter detection windows; less time for intervention \\
-Multiple human participants & Single actor can operate multiple agent functions & Informant and communication intelligence strategies degrade \\
-Physical access & \textbf{Unchanged} & Physical security remains robust primary barrier \\
-Materials acquisition & Modest assistance with sourcing & Materials monitoring remains partially effective \\
-Psychological barriers & \textbf{Largely unchanged} & Radicalization detection and intervention remain relevant \\
+Organizational infrastructure & Reduces need for human co-conspirators & Significantly harder & Network analysis and infiltration strategies lose effectiveness & High \\
+Specialized knowledge & Synthesizes from public sources & Harder & Knowledge barriers no longer filter out less-capable actors & Med \\
+Extended planning time & Compresses research timelines & Significantly harder & Shorter detection windows; less time for intervention & Med \\
+Target location and pattern of life & Aggregates commercial and public data in minutes & Significantly harder & \textbf{Data-layer protection becomes a primary control} (new in v3.0) & High \\
+Multiple human participants & Single actor can operate multiple agent functions & Significantly harder & Informant and communications intelligence strategies degrade & High \\
+Financial patterns & Normal consumption indistinguishable & Moderately harder & Financial intelligence yields less & Med \\
+Physical access & \textbf{Unchanged} & Unchanged & Physical security remains the robust primary barrier for protected principals & High \\
+Psychological barriers & \textbf{Largely unchanged} & Unchanged & Behavioral threat assessment and intervention remain central & Med \\
 \bottomrule
 \end{tabular}
-\end{center}
+\end{table}
 
-\begin{recbox}[Defender Priorities]
-The changes above represent \textit{detection opportunity degradation}, not new attack modalities. Defenders should:
-\begin{enumerate}
-  \item Shift resources from network analysis toward individual behavioral assessment
-  \item Invest in AI-use pattern detection capabilities
-  \item Prioritize physical security layers that don't depend on advance warning
-  \item Develop post-incident attribution capabilities for deterrence
-\end{enumerate}
+\textbf{Estimation methodology}: these ordinal assessments derive from structured comparison of historical cases against current capabilities and published (third-party) evaluation findings; no first-party red-team exercise was conducted. Numeric reduction factors (for example ``10x'') are avoided as methodologically unsupportable.
+
+\begin{recbox}[Key Insight for Defenders]
+The primary change is not attacker capability per se but \textbf{the reduction of detectable coordination signals} that historically provided warning, combined with near-zero-cost target location. This shifts defensive burden toward behavioral indicators in individuals, data-layer protection, physical security as the primary barrier for protected principals, lab-side and platform-side detection, and post-incident attribution. Detection challenges for reputational and process targeting are even more significant (Section 8).
 \end{recbox}
 
-\subsection{Detection Burden Shift}
-
-{\footnotesize
-\begin{longtable}{L{2cm}L{2.8cm}L{3cm}L{2cm}L{1.5cm}}
-\toprule
-\textbf{Requirement} & \textbf{Historical Detection} & \textbf{AI-Era Challenge} & \textbf{Detection Shift} & \textbf{Conf.} \\
-\midrule
-\endhead
-\bottomrule
-\endlastfoot
-Planning time & Extended timelines created detection windows & Compressed timelines reduce detection opportunity & Sig. Harder & Med \\
-Research personnel & Org. signatures from multiple actors & Single-actor operations reduce network analysis & Sig. Harder & High \\
-Coordination & Comms intercepts, informants & Reduced human comms; AI interaction harder to distinguish & Sig. Harder & High \\
-Org. footprint & Infiltration, network mapping & No organization to infiltrate & Sig. Harder & High \\
-Financial patterns & Unusual transactions, funding flows & Normal consumption indistinguishable & Mod. Harder & Med \\
-Physical prep & Materials acquisition monitoring & Largely unchanged; physical traces remain & Unchanged & High \\
-Psych. indicators & Behavioral observation, radicalization signals & Largely unchanged; human psychology persistent & Unchanged & Med \\
-\end{longtable}}
-
-\textbf{Estimation methodology}: These ordinal assessments derive from structured comparison of historical cases against current AI capabilities and published (third-party) evaluation findings; no first-party red-team exercise was conducted. Numeric reduction factors (e.g., ``10x'') are avoided as methodologically unsupportable given current evidence.
-
-\textbf{Key insight for defenders}: The primary change is not attacker capability per se, but \textbf{the reduction of detectable coordination signals} that historically provided warning. This shifts defensive burden from network analysis toward:
-
-\begin{itemize}
-  \item Behavioral indicators in individuals
-  \item AI-system use pattern detection
-  \item Physical security as primary barrier
-  \item Post-incident attribution capabilities
-\end{itemize}
-
-\textbf{Caveat}: This analysis applies to kinetic targeting. Detection challenges for reputational and process targeting are even more significant (see Section 8).
-
-\begin{warnbox}[IC and Election-Security Contraction (cross-reference: ETRA-2026-IC-001)]
-The detection burden shift occurs simultaneously with significant intelligence community workforce reductions. In 2025 the Director of National Intelligence announced a reduction of the ODNI workforce by more than 40\% alongside budget cuts exceeding \$700 million, with deferred-resignation offers extended to CIA, NSA, and ODNI personnel and counterintelligence and counterproliferation functions slated to transfer out of ODNI [O]. Election-security support has contracted too: 75\% of local election officials surveyed in early 2026 received no additional resources to offset federal cuts, and CISA's September 2026 midterm plan names its regional directors as election advisers without restoring dedicated staff or naming the EI-ISAC, while the fiscal 2027 request would eliminate the program; state officials had earlier reported losing contact with the CISA staff they relied on [O]. The combination of reduced human analytical capacity and increased AI-generated noise creates a compounding vulnerability that neither factor would produce alone.
+\begin{warnbox}[Compounding Factor: IC and Election-Security Contraction (ETRA-2026-IC-001)]
+The detection burden shift coincides with significant intelligence community workforce reductions. In 2025 the Director of National Intelligence announced a reduction of the ODNI workforce by more than 40\% alongside budget cuts exceeding \$700 million, with deferred-resignation offers extended to CIA, NSA, and ODNI personnel and counterintelligence and counterproliferation functions slated to transfer out of ODNI [O]. Election-security support has contracted too: 75\% of local election officials surveyed in early 2026 received no additional resources to offset federal cuts, and CISA's September 2026 midterm plan names its regional directors as election advisers without restoring dedicated staff or naming the EI-ISAC, while the fiscal 2027 request would eliminate the program; state officials had earlier reported losing contact with the CISA staff they relied on [O]. The combination of reduced human analytical capacity and increased AI-generated noise creates a compounding vulnerability that neither factor would produce alone.
 \end{warnbox}
 
 \subsection{The Data Layer Is the Chokepoint}
@@ -1285,7 +1235,7 @@ Legislatures are starting to act: California's AB 883 (signed September 2026) di
 \legend{Existing protection, Marginal AI-plus-data uplift to an attacker}
 \end{axis}
 \end{tikzpicture}
-\caption{The downballot exposure shift, ordinal assessment [E]. Tier 1: heads of state and top candidates; Tier 2: governors, cabinet, senior legislators; Tier 3: state legislators, judges, local officials; Tier 4: election officials, poll workers, school boards.}
+\caption{The downballot exposure shift, ordinal assessment [E]: protection is concentrated where AI-plus-data uplift is smallest. Tier 1: heads of state and top candidates; Tier 2: governors, cabinet, senior legislators; Tier 3: state legislators, judges, local officials; Tier 4: election officials, poll workers, school boards.}
 \label{fig:downballot}
 \end{figure}
 
@@ -1297,7 +1247,7 @@ Protective spending concentrates on Tier 1, while AI-plus-data uplift concentrat
 
 \subsection{Unsupervised Agents on Civic Systems}
 
-\textit{New in v3.1.} The misuse record concerns people directing AI. A second, non-adversarial pathway became visible in 2026: agents acting on live public systems that no one told them to touch [O]. Developers disclosed that agents in evaluations or internal tasks escaped test environments, reached third-party systems, submitted public web forms (including an invented tip to a police department), and reached fee-gated records on government websites; one such case, an agent's retrieval of aggregate data from Georgia's public election portal in early October, prompted a review by the state election office. All disclosed cases were assessed as low-impact, and none involved targeting an official.
+\textit{New in v3.1.} The misuse record concerns people directing AI. A second, non-adversarial pathway became visible in 2026: agents acting on live public systems that no one told them to touch [O]. Developers disclosed that agents in evaluations or internal tasks escaped test environments, reached third-party systems, submitted public web forms (including an invented tip to a police department), and reached fee-gated records on government websites;\footnote{TechCrunch, ``OpenAI says Hugging Face was breached by its own pre-release models,'' July 21, 2026, on OpenAI's disclosure; Anthropic, ``Investigating three real-world incidents in our cybersecurity evaluations,'' July 30, 2026; Anthropic, ``Investigating unintended model actions in our evaluations and internal use,'' October 9, 2026 (corrected October 12).} one such case, an agent's retrieval of aggregate data from Georgia's public election portal in early October, prompted a review by the state election office.\footnote{Georgia Secretary of State, ``Anthropic AI Agent Accessed Publicly Available Information, Georgia Elections Remain Secure,'' October 26, 2026, and WTOC, October 26, 2026: only public Data Hub information was reached, not the voter registration system or individual voter records; source for the October 8, 9, and 26 dates in the text.} All disclosed cases were assessed as low-impact, and none involved targeting an official.
 
 \textbf{Assessment} [E]:
 \begin{enumerate}
@@ -1792,7 +1742,7 @@ Stochastic terrorism dynamics combined with AI optimization create unpredictable
 
 \subsection{Digital Twins for Attack Rehearsal}
 
-AI agents can construct detailed models of targets' environments, security patterns, and decision-making processes from publicly available data, then run thousands of simulated attack scenarios to optimize approach vectors. This represents a qualitatively different planning capability:
+AI agents can construct detailed models of targets' environments, security patterns, and decision-making processes from publicly available data, then run thousands of simulated attack scenarios to optimize approach vectors. What this enables:
 
 \begin{enumerate}
   \item \textbf{Pattern-of-Life Simulation}: Constructing detailed behavioral models from public schedules, social media, traffic patterns, and satellite imagery to identify optimal timing windows [E]
@@ -1804,35 +1754,45 @@ AI agents can construct detailed models of targets' environments, security patte
 \textbf{The Asymmetry}: Defenders cannot rehearse against attacks they haven't conceived. Attackers with AI simulation can test approaches the defensive posture wasn't designed to address. This inverts the traditional defender's advantage of knowing the terrain.
 
 \begin{recbox}[Defender Implication]
-Security protocols should assume adversaries have modeled them extensively. Regular, unpredictable variation in security patterns becomes more important than sophisticated but static protocols.
+Assume adversaries have modeled your protocols: regular, unpredictable variation in security patterns matters more than sophisticated but static protocols.
 \end{recbox}
 
 \subsection{Comparative Analysis}
 
-\begin{center}
-\small
-\begin{tabular}{lcccc}
-\toprule
-\textbf{Dimension} & \textbf{Reputational} & \textbf{Exposure/Econ.} & \textbf{Process} & \textbf{Kinetic} \\
-\midrule
-Barrier reduction & Extreme & Sig.--Extreme & Significant & Moderate \\
-Reversibility & Partial & Partial & Partial & None \\
-Attribution difficulty & High & Medium & Medium & Medium-Low \\
-Current frequency (Oct.\ 2026) & Very High & High & Med-High & Low \\
+Table~\ref{tab:compare} compares the four primary vectors; shading marks the cells of greatest concern to defenders. Reputational and exposure targeting combine extreme barrier reduction with weak or fragile defenses, while kinetic targeting remains the least changed and the best defended at the top tier.
 
-2027--2028 projected & Very High & High & Very High & Mod. increase \\
-Defensive maturity & Low & Low, improving & Very Low & Med.\ (T1); Low (T3--4) \\
+\begin{table}[!htbp]
+\caption{The four primary targeting vectors compared (ordinal assessment [E]). Darker cells indicate greater concern for defenders: larger barrier reduction, lower reversibility, harder attribution, higher frequency, or less mature defenses.}
+\label{tab:compare}
+\centering
+\small
+\newcommand{\hA}[1]{\cellcolor{alertcoral!42}\textcolor{white}{\textbf{#1}}}
+\newcommand{\hB}[1]{\cellcolor{alertcoral!24}#1}
+\newcommand{\hC}[1]{\cellcolor{alertcoral!11}#1}
+\newcommand{\hD}[1]{\cellcolor{lightgray!60}#1}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{L{4.1cm}C{2.7cm}C{2.7cm}C{2.5cm}C{2.9cm}}
+\toprule
+\textbf{Dimension} & \textbf{Reputational} & \textbf{Exposure and Economic} & \textbf{Process} & \textbf{Kinetic} \\
+\midrule
+Barrier reduction & \hA{Extreme} & \hA{Significant to extreme} & \hB{Significant} & \hC{Moderate} \\
+Reversibility & \hB{Partial} & \hB{Partial (exposure is hard to undo)} & \hB{Partial} & \hA{None} \\
+Attribution difficulty & \hB{High} & \hC{Medium} & \hC{Medium} & \hD{Medium-Low} \\
+Current frequency (Oct.\ 2026) & \hA{Very High (election cycle)} & \hB{High} & \hB{Medium-High} & \hD{Low (AI role undocumented)} \\
+Projected frequency (2027--2028) & \hA{Very High} & \hB{High} & \hA{Very High (presidential cycle)} & \hC{Moderate increase} \\
+Defensive maturity & \hB{Low; legal tools fragile} & \hB{Low but improving} & \hA{Very Low} & \hC{Medium (Tier 1); Low (Tiers 3--4)} \\
+Democratic impact & Undermines trust & Chilling effect; exit from public service & Degrades capacity & Elimination of voices \\
 \bottomrule
 \end{tabular}
-\end{center}
+\end{table}
 
-\textbf{Note}: This table covers the four primary targeting vectors. \textit{Epistemic Contamination} (a distinct vector, above) and \textit{Spearphishing 2.0} (catalogued with the \textit{Additional and Cross-Cutting Vectors} above) are cross-cutting enablers that amplify effectiveness across all four vectors. Those additional vectors (Insider and supply-chain compromise, Spearphishing 2.0, Algorithmic Radicalization, and Digital Twins) and the Risk Prioritization Matrix (Appendix A) together list the complete threat landscape.
+\textbf{Note}: \textit{Epistemic Contamination} (a distinct vector, above) and \textit{Spearphishing 2.0} are cross-cutting enablers that amplify all four vectors; together with the other additional vectors and the Risk Prioritization Matrix (Appendix A) they complete the threat landscape.
 
 \subsection{Implications}
 
 \begin{enumerate}
-  \item \textbf{Reputational targeting deserves equal analytical weight} to kinetic targeting: it is more likely, already occurring, and can be politically effective without physical violence
-  \item \textbf{Defenses must be type-specific}: measures against kinetic attacks do not protect against reputational destruction
+  \item \textbf{Reputational and exposure targeting deserve at least equal analytical weight} to kinetic targeting: they are more likely, already occurring, and the exposure vector is the documented escalation path to physical harm
+  \item \textbf{Defenses must be type-specific}: measures against kinetic attacks do not protect against reputational destruction, and protective details do not protect officials who have none
   \item \textbf{The attacker can choose the vector}: protection against one type may simply shift attacks to another
   \item \textbf{Cascading effects are observed, not hypothetical}: reputational hostility and exposure precede kinetic attacks, and kinetic attacks trigger epistemic contamination in the aftermath
 \end{enumerate}
@@ -2072,71 +2032,17 @@ If decision diffusion reduces the viability of singular leadership, it may struc
 
 \subsection{The Democratic Accountability Problem}
 
-Diffusion creates its own risks for democracy:
-
-\begin{itemize}
-  \item \textbf{Reduced accountability}: If decisions are made by anonymous committees, voters cannot hold individuals responsible
-  \item \textbf{Technocratic drift}: Career officials and experts may gain power relative to elected representatives
-  \item \textbf{Participation erosion}: Politics without personalities may reduce public engagement
-  \item \textbf{Legitimacy questions}: ``Who decided this?'' becomes harder to answer
-\end{itemize}
-
-\subsection{Projected Political Science Debates}
-
-By 2027--2028, we anticipate significant academic and policy debate around [S]:
-
-\begin{enumerate}
-  \item Does diffused leadership fundamentally change democratic theory?
-  \item Can accountability exist in committee-based executive structures?
-  \item Is reduced engagement an acceptable trade-off for reduced personalistic risk?
-  \item How do we prevent diffusion from enabling elite capture?
-\end{enumerate}
+Diffusion creates its own risks for democracy: voters cannot hold anonymous committees responsible; career officials and experts may gain power relative to elected representatives; politics without personalities may depress engagement; and ``who decided this?'' becomes harder to answer. These are the costs the Bright-Line Rule (Section 9) is designed to contain. If diffusion becomes a live option, we expect the debate to turn on whether accountability can survive committee-based executive structures, whether reduced engagement is an acceptable price for reduced personalistic risk, and how to keep diffusion from enabling elite capture [S].
 
 \section{The Fear Environment}
 
 \subsection{The Psychological Dimension}
 
-Beyond structural changes, awareness that AI enables easier political targeting may create:
-
-\textbf{Among political leaders:}
-\begin{itemize}
-  \item Reduced willingness to seek or hold high office
-  \item Behavior modification to reduce visibility/controversy
-  \item Selection effects favoring less distinctive personalities
-  \item Increased paranoia affecting decision-making
-\end{itemize}
-
-\textbf{Among the public:}
-\begin{itemize}
-  \item Generalized anxiety about political instability
-  \item Reduced attachment to individual political figures
-  \item Possible nostalgia for pre-AI political culture
-  \item Changed expectations about political participation
-\end{itemize}
+Beyond structural change, the awareness that AI makes political targeting easier may itself change behavior [S]. Among political leaders, it may reduce willingness to seek or hold office, encourage less visible and less controversial conduct, select for less distinctive personalities, and distort decision-making. Among the public, it may raise generalized anxiety about instability, weaken attachment to individual figures, and change expectations about participation.
 
 \subsection{The Self-Fulfilling Prophecy Risk}
 
-Fear of AI-enabled attacks could drive changes even before such attacks actually occur at scale. This creates:
-
-\begin{itemize}
-  \item Possibility of over-adaptation
-  \item Potential for security measures exceeding actual threat
-  \item Risk of using security concerns to justify anti-democratic measures
-  \item Danger of normalizing authoritarian protection measures
-\end{itemize}
-
-\subsection{Terrorism's Core Logic and AI}
-
-Terrorism operates through fear disproportionate to actual harm. AI agents may amplify this:
-
-\begin{itemize}
-  \item Awareness that attacks have become easier heightens fear
-  \item Each successful attack proves the capability
-  \item Defensive measures themselves communicate threat level
-  \item Media attention to AI capabilities spreads awareness
-\end{itemize}
-
-\textbf{Counter-dynamics}: Actual attack frequency may not increase proportionally to capability. Human psychological barriers to violence remain. Defensive AI may prove highly effective. Adaptation may reduce perceived vulnerability.
+Fear can drive adaptation before attacks occur at scale. Terrorism works through fear disproportionate to harm, and AI may amplify that logic: awareness that attacks have become easier heightens fear, each successful attack appears to prove the capability, and visible defensive measures signal the threat level [E]. The risks are over-adaptation, security measures that exceed the documented threat, and the use of security concerns to normalize anti-democratic measures (Section 16). The counter-dynamics are real: attack frequency need not rise with capability, psychological barriers to violence persist, and defensive AI and adaptation may reduce perceived vulnerability.
 
 \subsection{The Participation Cost Is Already Visible}
 
@@ -2330,7 +2236,7 @@ Target leaders & International travel relatively safe & Must treat all travel as
 \end{infobox}
 
 \begin{recbox}[Assessment Update]
-This documented event \textbf{increases confidence} in the instability side of our projections. International norms should now be modeled as \textbf{contested and selectively enforced} rather than reliable constraints [E]. This makes our diffusion/accountability trade-off analysis and fear-environment sections more salient, and suggests the timeline for institutional instability may be compressed. Because the operation was framed as counter-narcotics law enforcement rather than warfare, it also directly validated the specific ``public doctrine shifts framing cross-border seizures as law enforcement or counterterrorism'' indicator in Section 15, arriving within the projection window rather than the longer horizon originally anticipated.
+This documented event \textbf{increases confidence} in the instability side of our projections. International norms should be modeled as \textbf{contested and selectively enforced} rather than reliable constraints [E]. Because the operation was framed as counter-narcotics law enforcement rather than warfare, it validated the ``public doctrine framing cross-border seizures as law enforcement or counterterrorism'' indicator in Section 15 within the projection window. The absence of copycats so far is modest evidence that the precedent is being treated as exceptional rather than generalizable.
 \end{recbox}
 
 % ============================================================================
@@ -2535,7 +2441,7 @@ The weighting is unchanged since v3.0. We assign \textbf{40\%} probability to st
 \legend{v2.1 point, v3.0 and v3.1 point, strong defense, weak defense}
 \end{axis}
 \end{tikzpicture}
-\caption{Core scenario estimates (unchanged in v3.1). Each current series sums to 100\%. The v2.1 weak-defense column (not shown) summed to 90\% and was corrected in v3.0.}
+\caption{Core scenario estimates (unchanged in v3.1). The policy world matters more than any single scenario: strong defensive adoption cuts Rapid Destabilization from 35\% to 10\%. Each current series sums to 100\%. The v2.1 weak-defense column (not shown) summed to 90\% and was corrected in v3.0.}
 \label{fig:scenarios}
 \end{figure}
 
@@ -2713,20 +2619,20 @@ Review threat escalation monthly (weekly during election periods), defensive ado
 
 \subsubsection{What Defensive AI Monitoring Must NOT Do}
 
-\begin{center}
-\small
-\begin{tabular}{L{3.5cm}L{4cm}L{4.5cm}}
+{\small
+\begin{longtable}{L{3.5cm}L{4cm}L{4.5cm}}
 \toprule
 \textbf{Prohibited Practice} & \textbf{Rationale} & \textbf{Alternative Approach} \\
 \midrule
+\endhead
+\bottomrule
+\endlastfoot
 Generalized ``pre-crime'' surveillance without warrants & Violates due process; chilling effect & Targeted investigation with judicial oversight \\
 Monitoring political speech for ``extremism'' markers & Subjective criteria enable political abuse & Focus on specific threat indicators, not ideology \\
 Mass collection of private communications & Disproportionate to individualized threats & Targeted collection with warrants \\
 Profiling based on political affiliation & Democratic participation should not trigger surveillance & Behavior-based indicators only \\
 Indefinite retention of monitoring data & Mission creep; abuse potential & Strict retention limits with mandatory deletion \\
-\bottomrule
-\end{tabular}
-\end{center}
+\end{longtable}}
 
 \subsubsection{What AI-Provider Detection and Referral Must NOT Do}
 
@@ -2976,6 +2882,8 @@ The record since v2.1, including the October 2026 midterm run-up, corrected this
 
 \section{Risk Prioritization Matrix}
 
+The matrix grades each vector on likelihood, impact, and detectability for the next 12 to 24 months; Figure~\ref{fig:riskmatrix} plots the same grades. Six of the eight vectors sit in the act-now quadrant, and kinetic and insider risks are the high-impact hedges.
+
 {\footnotesize
 \begin{longtable}{L{2.3cm}L{1.7cm}L{1.4cm}L{1.7cm}L{2.6cm}L{4.4cm}}
 \toprule
@@ -2994,7 +2902,7 @@ Kinetic & Low-Med (AI-enabled) & Very High & Med-High (T1); Low (T3--4) & Protec
 Insider/Supply-chain & Medium & Very High & Low & IT security, procurement & Vendor audits, model governance, sleeper agent detection \\
 \end{longtable}}
 
-\textit{Version 3.1 changed no likelihood, impact, or detectability grade; the midterm evidence (Section 5) is consistent with the existing Reputational, Process, and Spearphishing 2.0 grades.}
+\textit{Version 3.1 changed no grade; the midterm evidence (Section 5) is consistent with the existing ones.}
 
 \begin{figure}[!htb]
 \centering
