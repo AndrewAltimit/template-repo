@@ -13,7 +13,9 @@ The simplest way to get started - no docker compose required:
 ```
 
 This script:
-- Automatically builds a lightweight OpenCode container
+- Automatically builds a lightweight OpenCode container (`node:26-slim` plus the
+  pinned `@opencode/cli` npm package, OpenCode 2.x; the image is tagged with
+  the CLI version)
 - Prompts for API key if not set
 - Works out of the box with minimal dependencies
 - Perfect for quick code generation tasks
@@ -113,4 +115,4 @@ If you get permission errors:
 
 For the company-specific OpenCode integration with proxy support, see:
 - `/automation/corporate-proxy/` - Corporate proxy integrations for Crush and OpenCode
-- `/OPENCODE_COMPANY_INTEGRATION.md` - Full documentation
+- `/automation/corporate-proxy/opencode/README.md` - Full documentation

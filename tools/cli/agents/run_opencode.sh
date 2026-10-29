@@ -35,8 +35,8 @@ echo "🤖 Using model: $OPENCODE_MODEL"
 if ! command -v opencode &> /dev/null; then
     echo "⚠️  opencode CLI not found."
     echo "   Please install OpenCode CLI first:"
-    echo "   npm install -g @anthropics/opencode"
-    echo "   or see: https://github.com/anthropics/opencode"
+    echo "   npm install -g @opencode/cli"
+    echo "   or see: https://github.com/anomalyco/opencode"
     exit 1
 fi
 
@@ -110,7 +110,9 @@ if [ "$MODE" = "single" ]; then
     echo ""
 
     # Build command array for safer execution
-    CMD_ARRAY=("opencode" "run")
+    # --standalone: private per-run server (OpenCode 2.x) instead of the
+    # shared background service, so this shell's environment applies.
+    CMD_ARRAY=("opencode" "run" "--standalone")
 
     # Add model if specified
     if [ -n "$OPENCODE_MODEL" ]; then
