@@ -40,9 +40,12 @@ COPY mcp_reaction_search/Cargo.toml mcp_reaction_search/Cargo.lock ./mcp_reactio
 COPY mcp_reaction_search/src ./mcp_reaction_search/src
 
 # Build release binary
-# Use CARGO_TARGET_DIR to put output in /app/target for caching
+# Use CARGO_TARGET_DIR to put output in /app/target for caching. The target
+# cache gets its own id: BuildKit otherwise keys it by path, sharing it with
+# images built on a different glibc (bookworm vs trixie), and the stale C
+# objects then fail to link (undefined __isoc23_* symbols).
 RUN --mount=type=cache,target=/usr/local/cargo/registry \
-    --mount=type=cache,target=/app/target \
+    --mount=type=cache,id=mcp-reaction-search-target,target=/app/target \
     cd mcp_reaction_search && \
     CARGO_TARGET_DIR=/app/target cargo build --release --locked \
     && cp /app/target/release/mcp-reaction-search /usr/local/bin/
