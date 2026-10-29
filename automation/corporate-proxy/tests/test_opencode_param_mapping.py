@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
 Test OpenCode parameter mapping for corporate proxy.
-Ensures snake_case parameters are correctly mapped to camelCase for OpenCode.
+Ensures parsed tool calls are mapped to the OpenCode 2.x tool schema
+(read/write/edit take `path`, commands go through `shell`).
 """
 
 import json
@@ -13,8 +14,26 @@ import unittest
 sys.path.append(str(Path(__file__).parent.parent))
 
 # Import the production function from test utilities
-from proxy_test_helpers import format_tool_calls_for_openai  # noqa: E402
+from proxy_test_helpers import (  # noqa: E402
+    OPENCODE_PARAM_MAPPINGS,
+    OPENCODE_TOOL_RENAMES,
+    format_tool_calls_for_openai,
+)
 from shared.services.text_tool_parser import TextToolParser  # noqa: E402
+
+# Parameters OpenCode 2.2.1 declares for its built-in tools (captured from the
+# tool definitions it sends with a chat request). Mapping targets must be
+# names from these lists, or OpenCode rejects the call.
+OPENCODE_TOOL_SCHEMA = {
+    "edit": {"path", "oldString", "newString", "replaceAll"},
+    "glob": {"pattern", "path", "hidden", "limit"},
+    "grep": {"pattern", "path", "include", "caseSensitive", "literal", "limit"},
+    "read": {"path", "offset", "limit"},
+    "shell": {"command", "workdir", "timeout", "background"},
+    "webfetch": {"url", "format", "timeout"},
+    "websearch": {"query"},
+    "write": {"path", "content"},
+}
 
 
 class TestOpenCodeParamMapping(unittest.TestCase):
@@ -24,42 +43,64 @@ class TestOpenCodeParamMapping(unittest.TestCase):
         """Set up test fixtures"""
         self.parser = TextToolParser()
 
+    def _args(self, formatted, index=0):
+        return json.loads(formatted[index]["function"]["arguments"])
+
+    def test_mapping_targets_match_opencode_schema(self):
+        """Every mapped tool and parameter exists in the OpenCode 2.x schema"""
+        for tool, mappings in OPENCODE_PARAM_MAPPINGS.items():
+            self.assertIn(tool, OPENCODE_TOOL_SCHEMA, f"unknown OpenCode tool {tool}")
+            for source, target in mappings.items():
+                if source.startswith("_"):
+                    continue
+                self.assertIn(target, OPENCODE_TOOL_SCHEMA[tool], f"{tool}.{source} -> {target}")
+        for source, target in OPENCODE_TOOL_RENAMES.items():
+            self.assertIn(target, OPENCODE_TOOL_SCHEMA, f"rename {source} -> {target}")
+
     def test_write_parameter_mapping(self):
-        """Test that write tool parameters are mapped to camelCase"""
+        """Test that write tool parameters are mapped to `path`"""
         text = 'Write("hello.md", "Hello World")'
 
         tool_calls = self.parser.parse_tool_calls(text)
         formatted = format_tool_calls_for_openai(tool_calls)
 
         self.assertEqual(len(formatted), 1)
-        args = json.loads(formatted[0]["function"]["arguments"])
-
-        # Check mapped parameters
-        self.assertIn("filePath", args)
-        self.assertEqual(args["filePath"], "hello.md")
-        self.assertIn("content", args)
+        args = self._args(formatted)
+        self.assertEqual(formatted[0]["function"]["name"], "write")
+        self.assertEqual(args["path"], "hello.md")
         self.assertEqual(args["content"], "Hello World")
-
-        # Original snake_case should not be present
         self.assertNotIn("file_path", args)
+        self.assertNotIn("filePath", args)
 
-    def test_bash_required_defaults(self):
-        """Test that bash tool gets required default parameters"""
-        text = 'Bash("ls -la")'
+    def test_camelcase_file_path_is_mapped(self):
+        """The 1.x filePath spelling still reaches OpenCode as `path`"""
+        text = 'Read(filePath="notes.txt")'
+
+        formatted = format_tool_calls_for_openai(self.parser.parse_tool_calls(text))
+
+        args = self._args(formatted)
+        self.assertEqual(args, {"path": "notes.txt"})
+
+    def test_bash_is_renamed_to_shell(self):
+        """Bash calls become OpenCode's shell tool without the old description parameter"""
+        text = 'Bash(command="ls -la", description="List files")'
 
         tool_calls = self.parser.parse_tool_calls(text)
         formatted = format_tool_calls_for_openai(tool_calls)
 
         self.assertEqual(len(formatted), 1)
-        args = json.loads(formatted[0]["function"]["arguments"])
+        self.assertEqual(formatted[0]["function"]["name"], "shell")
+        args = self._args(formatted)
+        self.assertEqual(args, {"command": "ls -la"})
 
-        # Check command is present
-        self.assertIn("command", args)
-        self.assertEqual(args["command"], "ls -la")
+    def test_shell_positional_command(self):
+        """Shell("...") maps its positional argument to command"""
+        text = 'Shell(command="git status", workdir="repo")'
 
-        # Check required default description is added
-        self.assertIn("description", args)
-        self.assertEqual(args["description"], "Execute bash command")
+        formatted = format_tool_calls_for_openai(self.parser.parse_tool_calls(text))
+
+        self.assertEqual(formatted[0]["function"]["name"], "shell")
+        self.assertEqual(self._args(formatted), {"command": "git status", "workdir": "repo"})
 
     def test_edit_parameter_mapping(self):
         """Test that edit tool parameters are mapped correctly"""
@@ -69,23 +110,13 @@ class TestOpenCodeParamMapping(unittest.TestCase):
         formatted = format_tool_calls_for_openai(tool_calls)
 
         self.assertEqual(len(formatted), 1)
-        args = json.loads(formatted[0]["function"]["arguments"])
-
-        # Check all mapped parameters
-        self.assertIn("filePath", args)
-        self.assertEqual(args["filePath"], "config.py")
-        self.assertIn("oldString", args)
+        args = self._args(formatted)
+        self.assertEqual(args["path"], "config.py")
         self.assertEqual(args["oldString"], "DEBUG = False")
-        self.assertIn("newString", args)
         self.assertEqual(args["newString"], "DEBUG = True")
-        self.assertIn("replaceAll", args)
         self.assertEqual(args["replaceAll"], True)
-
-        # Original snake_case should not be present
-        self.assertNotIn("file_path", args)
-        self.assertNotIn("old_string", args)
-        self.assertNotIn("new_string", args)
-        self.assertNotIn("replace_all", args)
+        for snake in ("file_path", "old_string", "new_string", "replace_all"):
+            self.assertNotIn(snake, args)
 
     def test_read_with_optional_params(self):
         """Test read tool with optional parameters"""
@@ -95,31 +126,30 @@ class TestOpenCodeParamMapping(unittest.TestCase):
         formatted = format_tool_calls_for_openai(tool_calls)
 
         self.assertEqual(len(formatted), 1)
-        args = json.loads(formatted[0]["function"]["arguments"])
-
-        # Check mapped parameters
-        self.assertIn("filePath", args)
-        self.assertEqual(args["filePath"], "large_file.txt")
-        self.assertIn("limit", args)
+        args = self._args(formatted)
+        self.assertEqual(args["path"], "large_file.txt")
         self.assertEqual(args["limit"], 100)
-        self.assertIn("offset", args)
         self.assertEqual(args["offset"], 50)
 
     def test_unmapped_tool_preserves_names(self):
         """Test that tools without mappings preserve their parameter names"""
-        # Create a tool call that's not in our mappings
         tool_calls = [{"name": "custom_tool", "parameters": {"some_param": "value", "another_param": 123}}]
 
         formatted = format_tool_calls_for_openai(tool_calls)
 
         self.assertEqual(len(formatted), 1)
-        args = json.loads(formatted[0]["function"]["arguments"])
+        self.assertEqual(formatted[0]["function"]["name"], "custom_tool")
+        args = self._args(formatted)
+        self.assertEqual(args, {"some_param": "value", "another_param": 123})
 
-        # Original names should be preserved
-        self.assertIn("some_param", args)
-        self.assertEqual(args["some_param"], "value")
-        self.assertIn("another_param", args)
-        self.assertEqual(args["another_param"], 123)
+    def test_crush_mode_leaves_calls_unchanged(self):
+        """Without OpenCode mappings, names and parameters pass through"""
+        tool_calls = [{"name": "bash", "parameters": {"command": "ls", "description": "d"}}]
+
+        formatted = format_tool_calls_for_openai(tool_calls, apply_opencode_mappings=False)
+
+        self.assertEqual(formatted[0]["function"]["name"], "bash")
+        self.assertEqual(self._args(formatted), {"command": "ls", "description": "d"})
 
     def test_streaming_with_mapping(self):
         """Test that streaming mode works with parameter mapping"""
@@ -129,14 +159,9 @@ class TestOpenCodeParamMapping(unittest.TestCase):
         formatted = format_tool_calls_for_openai(tool_calls, streaming=True)
 
         self.assertEqual(len(formatted), 1)
-
-        # Check index is present for streaming
-        self.assertIn("index", formatted[0])
         self.assertEqual(formatted[0]["index"], 0)
-
-        # Check parameters are still mapped
-        args = json.loads(formatted[0]["function"]["arguments"])
-        self.assertIn("filePath", args)
+        args = self._args(formatted)
+        self.assertIn("path", args)
         self.assertNotIn("file_path", args)
 
     def test_multiple_tools_with_mapping(self):
@@ -151,55 +176,33 @@ class TestOpenCodeParamMapping(unittest.TestCase):
         formatted = format_tool_calls_for_openai(tool_calls)
 
         self.assertEqual(len(formatted), 3)
+        self.assertEqual([f["function"]["name"] for f in formatted], ["write", "shell", "read"])
+        self.assertEqual(self._args(formatted, 0)["path"], "file1.txt")
+        self.assertEqual(self._args(formatted, 1), {"command": "echo test"})
+        self.assertEqual(self._args(formatted, 2)["path"], "file2.txt")
 
-        # Check first tool (Write)
-        args0 = json.loads(formatted[0]["function"]["arguments"])
-        self.assertIn("filePath", args0)
-        self.assertEqual(args0["filePath"], "file1.txt")
-
-        # Check second tool (Bash)
-        args1 = json.loads(formatted[1]["function"]["arguments"])
-        self.assertIn("command", args1)
-        self.assertIn("description", args1)  # Required default
-
-        # Check third tool (Read)
-        args2 = json.loads(formatted[2]["function"]["arguments"])
-        self.assertIn("filePath", args2)
-        self.assertEqual(args2["filePath"], "file2.txt")
-
-    def test_grep_complex_mapping(self):
-        """Test grep tool with complex parameter mappings"""
-        # Simulate parsed grep tool call with various parameters
+    def test_grep_mapping(self):
+        """Test grep parameters map to the OpenCode 2.x names"""
         tool_calls = [
             {
                 "name": "grep",
                 "parameters": {
                     "pattern": "TODO",
                     "path": ".",
-                    "output_mode": "content",
-                    "-n": True,
-                    "-i": True,
-                    "-A": 2,
+                    "glob": "*.py",
+                    "case_sensitive": False,
+                    "head_limit": 20,
                 },
             }
         ]
 
         formatted = format_tool_calls_for_openai(tool_calls)
-        args = json.loads(formatted[0]["function"]["arguments"])
+        args = self._args(formatted)
 
-        # Check mapped parameters
-        self.assertEqual(args["pattern"], "TODO")
-        self.assertEqual(args["path"], ".")
-        self.assertEqual(args["outputMode"], "content")  # output_mode -> outputMode
-        self.assertEqual(args["showLineNumbers"], True)  # -n -> showLineNumbers
-        self.assertEqual(args["caseInsensitive"], True)  # -i -> caseInsensitive
-        self.assertEqual(args["linesAfter"], 2)  # -A -> linesAfter
-
-        # Original names should not be present
-        self.assertNotIn("output_mode", args)
-        self.assertNotIn("-n", args)
-        self.assertNotIn("-i", args)
-        self.assertNotIn("-A", args)
+        self.assertEqual(
+            args,
+            {"pattern": "TODO", "path": ".", "include": "*.py", "caseSensitive": False, "limit": 20},
+        )
 
 
 if __name__ == "__main__":

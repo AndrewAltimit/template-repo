@@ -1,96 +1,63 @@
 {
+  "tool_renames": {
+    "bash": "shell",
+    "view": "read",
+    "web_fetch": "webfetch",
+    "fetch": "webfetch",
+    "web_search": "websearch"
+  },
   "parameter_mappings": {
     "write": {
-      "file_path": "filePath",
+      "file_path": "path",
+      "filePath": "path",
       "content": "content"
     },
-    "bash": {
-      "command": "command",
-      "_required_defaults": {
-        "description": "Execute bash command"
-      }
-    },
     "read": {
-      "file_path": "filePath",
+      "file_path": "path",
+      "filePath": "path",
       "limit": "limit",
       "offset": "offset"
     },
     "edit": {
-      "file_path": "filePath",
+      "file_path": "path",
+      "filePath": "path",
       "old_string": "oldString",
       "new_string": "newString",
       "replace_all": "replaceAll"
     },
-    "multi_edit": {
-      "file_path": "filePath",
-      "edits": "edits"
-    },
-    "multiedit": {
-      "file_path": "filePath",
-      "edits": "edits"
+    "shell": {
+      "command": "command",
+      "workdir": "workdir",
+      "work_dir": "workdir",
+      "cwd": "workdir",
+      "timeout": "timeout",
+      "background": "background",
+      "_drop": ["description"]
     },
     "grep": {
       "pattern": "pattern",
       "path": "path",
-      "output_mode": "outputMode",
-      "-n": "showLineNumbers",
-      "-A": "linesAfter",
-      "-B": "linesBefore",
-      "-C": "linesContext",
-      "-i": "caseInsensitive",
-      "glob": "glob",
-      "head_limit": "headLimit",
-      "multiline": "multiline",
-      "type": "type"
+      "include": "include",
+      "glob": "include",
+      "case_sensitive": "caseSensitive",
+      "literal": "literal",
+      "limit": "limit",
+      "head_limit": "limit"
     },
     "glob": {
       "pattern": "pattern",
-      "path": "path"
-    },
-    "web_fetch": {
-      "url": "url",
-      "prompt": "prompt"
+      "path": "path",
+      "hidden": "hidden",
+      "limit": "limit"
     },
     "webfetch": {
       "url": "url",
-      "prompt": "prompt"
-    },
-    "web_search": {
-      "query": "query",
-      "allowed_domains": "allowedDomains",
-      "blocked_domains": "blockedDomains"
+      "format": "format",
+      "timeout": "timeout"
     },
     "websearch": {
-      "query": "query",
-      "allowed_domains": "allowedDomains",
-      "blocked_domains": "blockedDomains"
-    },
-    "notebook_edit": {
-      "notebook_path": "notebookPath",
-      "cell_id": "cellId",
-      "new_source": "newSource",
-      "cell_type": "cellType",
-      "edit_mode": "editMode"
-    },
-    "notebookedit": {
-      "notebook_path": "notebookPath",
-      "cell_id": "cellId",
-      "new_source": "newSource",
-      "cell_type": "cellType",
-      "edit_mode": "editMode"
-    },
-    "todo_write": {
-      "todos": "todos"
-    },
-    "todowrite": {
-      "todos": "todos"
-    },
-    "exit_plan_mode": {
-      "plan": "plan"
-    },
-    "exitplanmode": {
-      "plan": "plan"
+      "query": "query"
     }
   },
-  "notes": "Maps snake_case parameter names from text parser to camelCase names expected by OpenCode"
+  "notes": "OpenCode 2.x tool schema (2.2.1). tool_renames maps tool names a model may emit (from older prompts or other clients) to OpenCode tool names; parameter_mappings then maps parsed parameter names to the names OpenCode expects (read/write/edit take `path`, multi-word names are camelCase). `_drop` lists parameters OpenCode no longer accepts. Unmapped parameters pass through unchanged."
 }

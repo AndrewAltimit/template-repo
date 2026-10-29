@@ -40,7 +40,9 @@ AGENT_CLIENT = os.environ.get("AGENT_CLIENT", "").lower()  # Can be: opencode, c
 MODEL_CONFIG: Dict[str, Dict[str, Any]] = {}
 MODEL_ENDPOINTS: Dict[str, str] = {}
 TOOL_CONFIG: Dict[str, Any] = {}
-OPENCODE_PARAM_MAPPINGS: Dict[str, Dict[str, str]] = {}
+OPENCODE_PARAM_MAPPINGS: Dict[str, Dict[str, Any]] = {}
+# Tool names a model may emit, mapped to the OpenCode 2.x tool names
+OPENCODE_TOOL_RENAMES: Dict[str, str] = {}
 
 # Production mode detection
 IS_PRODUCTION = os.environ.get("PRODUCTION", "false").lower() == "true"
@@ -71,13 +73,14 @@ def load_tool_config():
 
 def load_opencode_param_mappings():
     """Load OpenCode parameter mappings from JSON file"""
-    global OPENCODE_PARAM_MAPPINGS
+    global OPENCODE_PARAM_MAPPINGS, OPENCODE_TOOL_RENAMES
 
     config_path = Path(__file__).parent.parent / "configs" / "opencode_param_mappings.json"
     try:
         with open(config_path, "r", encoding="utf-8") as f:
             config = json.load(f)
             OPENCODE_PARAM_MAPPINGS = config.get("parameter_mappings", {})
+            OPENCODE_TOOL_RENAMES = config.get("tool_renames", {})
             logger.info("Loaded OpenCode parameter mappings for %d tools", len(OPENCODE_PARAM_MAPPINGS))
             return OPENCODE_PARAM_MAPPINGS
     except FileNotFoundError:
@@ -100,14 +103,16 @@ def load_opencode_param_mappings():
         else:
             logger.warning(error_msg)
 
-    # Fallback mappings for critical tools
+    # Fallback mappings for critical tools (OpenCode 2.x schema)
     logger.info("Using fallback OpenCode parameter mappings")
+    OPENCODE_TOOL_RENAMES = {"bash": "shell"}
     OPENCODE_PARAM_MAPPINGS = {
-        "write": {"file_path": "filePath", "content": "content"},
-        "bash": {"command": "command", "_required_defaults": {"description": "Execute bash command"}},
-        "read": {"file_path": "filePath", "limit": "limit", "offset": "offset"},
+        "write": {"file_path": "path", "filePath": "path", "content": "content"},
+        "shell": {"command": "command", "_drop": ["description"]},
+        "read": {"file_path": "path", "filePath": "path", "limit": "limit", "offset": "offset"},
         "edit": {
-            "file_path": "filePath",
+            "file_path": "path",
+            "filePath": "path",
             "old_string": "oldString",
             "new_string": "newString",
             "replace_all": "replaceAll",
@@ -216,24 +221,33 @@ def format_tool_calls_for_openai(
     Args:
         tool_calls: List of parsed tool calls
         streaming: If True, add index field for streaming responses
-        apply_opencode_mappings: If True, apply OpenCode parameter mappings (camelCase)
-                                If False, keep original snake_case for Crush compatibility
+        apply_opencode_mappings: If True, apply OpenCode tool renames and parameter
+                                mappings (OpenCode 2.x names, e.g. bash -> shell,
+                                file_path -> path). If False, keep the parsed names
+                                unchanged for Crush compatibility
     """
     formatted_calls = []
     for i, call in enumerate(tool_calls):
         tool_name = call.get("name", call.get("tool"))
         params = call.get("parameters", {})
 
-        # Only apply OpenCode parameter mappings if requested (for OpenCode clients)
+        # Only apply OpenCode mappings if requested (for OpenCode clients)
         # Crush clients need snake_case parameters unchanged
+        if apply_opencode_mappings:
+            tool_name = OPENCODE_TOOL_RENAMES.get(tool_name, tool_name)
         if apply_opencode_mappings and tool_name in OPENCODE_PARAM_MAPPINGS:
             mappings = OPENCODE_PARAM_MAPPINGS[tool_name]
+            dropped = set(mappings.get("_drop", []))
             mapped_params = {}
 
-            # Map parameter names from snake_case to camelCase
-            for snake_key, value in params.items():
-                camel_key = mappings.get(snake_key, snake_key)  # Use original if no mapping
-                mapped_params[camel_key] = value
+            # Map parsed parameter names to the names OpenCode expects
+            for parsed_key, value in params.items():
+                if parsed_key in dropped:
+                    continue
+                target_key = mappings.get(parsed_key, parsed_key)  # Use original if no mapping
+                if not isinstance(target_key, str):
+                    target_key = parsed_key
+                mapped_params[target_key] = value
 
             # Add required default parameters if specified
             if "_required_defaults" in mappings:
