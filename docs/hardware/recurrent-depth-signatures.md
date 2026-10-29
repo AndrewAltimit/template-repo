@@ -40,7 +40,8 @@
 
 | If you are... | Start with | Then read |
 |---------------|------------|-----------|
-| A safety researcher or evaluator | Section 5 (methods) and Section 6 (scoring) | Sections 7 and 11 |
+| A safety researcher | Section 1 (summary), then Sections 3 and 5 | Sections 6 and 7 |
+| A third-party evaluator running the toolkit | Section 8 and the [package README quickstart](../../packages/recurrent_depth/README.md#quickstart) | Sections 7 and 11 |
 | A policy body or regulator | Section 1 (summary) and Section 3 (why it matters) | Section 10 |
 | A model developer | Section 3 and Section 10.2 | Section 9 |
 | An auditor with open weights | Section 5.2 (white box) | Sections 7 and 8 |
@@ -78,11 +79,27 @@ Key claims carry one of three markers, after the convention of this repository's
 
 ## 1. Executive Summary
 
-Looped transformers are no longer a curiosity. Open recurrent-depth models (Huginn-0125, the Ouro family) match much larger fixed-depth models on reasoning benchmarks [4][5], and a looped 3B model now ships under an open license [59]; recursion can be retrofitted into pretrained models [7][8][9]; and in September 2026 a frontier model was reported, on anonymous sourcing, to use "recurrent depth", a claim its developer neither confirmed in its system card nor fully denied (Section 3.6) [50][51][52]. The same card documents falling chain-of-thought monitorability, which the developer attributes mainly to capability rather than architecture; behavioral metrics alone cannot test that attribution, which is the gap this guide addresses.
+**Bottom line.** Whether a language model runs a shared block of layers several times per token (a *looped* or *recurrent-depth* model) changes how much of its reasoning a chain-of-thought monitor can see, and developers increasingly do not say which kind of model they ship. This guide shows how to find out from the outside: decisively when configs and weights are public, only tentatively through an API, and never with more confidence than a benchmark on known models supports.
 
-Architecture matters for safety because the main window into how today's reasoning models think is their chain of thought, and that window depends on hard serial computation having to pass through tokens [27]. A model that can iterate inside the forward pass needs to verbalize less. Whether it does so in practice is an empirical question, but evaluators cannot even ask it without knowing which kind of model they are testing.
+**Why architecture matters.** The main window into how today's reasoning models think is their chain of thought, and it stays open because a fixed-depth transformer must pass long serial computations through tokens [27]. A looped model can iterate inside the forward pass and needs to verbalize less (Section 3). Looping also hides test-time compute from token counts and billing, lets effort vary invisibly by input, makes compute estimated from parameter counts undercount by the loop factor, and breaks interpretability tools indexed by layer. The technique is spreading: open looped models (Huginn-0125, the Ouro family) match much larger fixed-depth models on reasoning benchmarks [4][5], a looped 3B model ships under an open license [59], and recursion can be retrofitted into pretrained models [7][8][9].
 
-The guide's central claims:
+**Why behavioral metrics cannot settle it.** In September 2026 OpenAI's GPT-6 Astra was reported, on anonymous sourcing, to use "recurrent depth"; OpenAI neither confirmed this in its system card nor fully denied it [50][51][52]. The card documents the symptoms: CoT controllability up from 16.1% to 60.9% on OpenAI's suite, verbalized evaluation awareness up, a no-CoT time horizon of 30.9 minutes against 3.6 in UK AISI's run, and a CoT-only monitor's recall below 11% when the model is told to evade. OpenAI attributes the change mainly to capability, not architecture. Those metrics cannot test that attribution, because they would move the same way whether the extra single-pass capability came from data, from more layers, or from loops (Section 3.6). Only disclosure of loop counts or architecture-level evidence separates the two, and the difference matters: a capability-driven decline reaches every developer on roughly the same schedule, while a loop count is a design setting that can be raised.
+
+**What can be detected, and how confidently** (Figure 1). With open weights, reading the config and modeling code is decisive, because a looped model must declare how many iterations to run. Weights alone can mislead: a looped block is stored once, so a looped checkpoint looks shallow, and the absence of shared layers is weak evidence. Log-probabilities add a width estimate and a rough compute-to-capacity ratio, which are context rather than verdicts. Through an ordinary API, a rise in time to first token with an item's serial difficulty, at fixed prompt and output length, is moderate evidence of adaptive depth if it survives controls for batching, speculative decoding, and hidden reasoning tokens; a null result is weak evidence, since a provider serving a fixed loop count leaves no slope. No-CoT serial-depth probes discriminate architecture weakly but measure the capability that monitoring depends on, so they are worth running on every frontier model. The toolkit combines all of these as capped likelihood ratios and answers "inconclusive" unless independent families agree. Its black-box classifier has not yet been benchmarked on any real endpoint (Section 7.3), so for an undisclosed frontier model the honest answer today is usually "inconclusive", and disclosure (Section 10) remains the reliable route.
+
+*Figure 1. Detection methods at a glance. Strength is how strongly a result bears on "looped or fixed" (from Section 5 and the scorer's caps in Section 6). Only white-box inspection that finds looping can decide alone; absences and every black-box signal are weak to moderate, so external detection ends in "inconclusive" unless independent families agree.*
+
+| Access | Method | If found | If absent | Key confounder |
+|--------|--------|----------|-----------|----------------|
+| **White box** | Config and modeling code | **Decisive** | Weak | Custom code that loops without declaring it |
+| **White box** | Shared layers; stored versus declared depth | **Strong** | Very weak | A looped block is stored once; pruning and merges leave gaps too |
+| **White box** | Convergence and settling across iterations | Moderate | Weak | Early-exit models also settle; normalization effects |
+| Gray box | Width and compute-to-capacity ratio | Context | Context | Every input is a rough estimate; mixture-of-experts pushes the other way |
+| Black box | TTFT slope with serial depth at fixed length | Moderate | Very weak | Hidden reasoning tokens, batching, speculative decoding, early exit; a fixed loop count leaves no slope |
+| Black box | Compute-knob response without extra tokens | Moderate | Very weak | Hidden reasoning tokens; routing to another model |
+| Black box | No-CoT accuracy against serial depth | Weak | Weak | Model scale and training data raise the curve too |
+
+**Key claims**, with their evidence markers and the author's confidence:
 
 | # | Claim | Marker | Confidence |
 |---|-------|--------|------------|
@@ -94,21 +111,6 @@ The guide's central claims:
 | 6 | Log-probability access adds width estimates [30][31] and, combined with compute and capacity estimates, a compute-to-capacity ratio that points up for looping and down for mixture-of-experts | [O]/[S] | Low to medium |
 | 7 | Signals should be combined as capped log-likelihood ratios, discounted within families that share confounders, with a decided verdict only when two independent families agree; otherwise the honest answer is "inconclusive" | [E] | High |
 | 8 | No black-box classifier should be trusted until it has been benchmarked, leave-one-out, on open looped and fixed-depth models served the same way | [E] | High |
-
-```mermaid
-flowchart LR
-    W["White box<br/>config, code, weights,<br/>activations"] --> V["Verdict<br/>recurrent / fixed /<br/>inconclusive"]
-    G["Gray box<br/>log-probabilities,<br/>published budgets"] --> V
-    B["Black box<br/>timing and serial-depth<br/>behavior via the API"] --> V
-    classDef strong fill:#E0F2F1,stroke:#00838F,color:#1C2233
-    classDef mid fill:#EEF0FA,stroke:#1A237E,color:#1C2233
-    classDef weak fill:#FFF0CC,stroke:#C77700,color:#1C2233
-    class W strong
-    class G mid
-    class B weak
-```
-
-*Figure 1. The evidence ladder: the less access you have, the weaker each signal and the more of them you need to agree.*
 
 > [!IMPORTANT]
 > **Five working principles**
@@ -213,7 +215,7 @@ flowchart LR
     class a1,g,o ad
 ```
 
-*Figure 2. Three per-token computation patterns. Only the last two reuse weights; only the last varies its depth per token.*
+*Figure 2. Three per-token computation patterns. A looped model applies more layers than it stores, so its weights look shallow; an adaptive one also varies its iterations per token, which is what timing probes look for.*
 
 | Design | Weights reused | Iterations | Unwritten serial steps | Detectable from |
 |--------|----------------|------------|------------------------|-----------------|
@@ -264,7 +266,7 @@ This episode shows why external detection matters and why it must stay calibrate
 | 3 September | The GPT-6 Astra system card (revised 9, 22, and 29 September) states that "GPT-6 Astra's monitorability has decreased relative to GPT-5.6 Sol" and that OpenAI is "quite confident that changes in CoT controllability are not differentially due to any architectural changes" [50] | Primary source; architecture not described |
 | 6 September | Pachocki's essay "An Alien Mind" says no lab has solved alignment and monitoring well enough to keep scaling at maximum speed for much longer, and that OpenAI would "unilaterally withhold further scaling as needed" [60] | Developer statement, quoted from press reproductions |
 | 28-29 September | OpenAI delays GPT-6.1 Astra after safety testing; Saachi Jain is quoted as saying it "didn't quite meet the bar" on staying within scope and authorization [61] | Reported (WSJ, via AFP) |
-| 1 October | OpenAI dismisses three safety researchers, saying the reason was the handling of sensitive information and that "these decisions were not about raising safety concerns"; the researchers have given their own accounts [62][63] | Reported; contested |
+| 1-9 October | The WSJ reports that OpenAI has dismissed three safety researchers for violating its policies on handling sensitive information [62]; on 9 October OpenAI says the firings "were not about safety concerns or speaking out", and the researchers dispute its account [63] | Reported; contested |
 | 13-15 October | *The Information* reports that OpenAI is working to fix safety issues before shipping its next flagship model; secondary coverage links that model to a looped transformer [64] | Secondary; architecture unconfirmed |
 
 **What the system card measures.** The card's monitorability and alignment sections give the following figures in their text [50]. Each row is a different measurement; values are not comparable across rows.
@@ -278,9 +280,37 @@ This episode shows why external detection matters and why it must stay calibrate
 | Verbalized evaluation awareness, Apollo Research, xhigh effort (8.8.1) | GPT-5.5 27.7% | 41.1% (50.6% at max effort) |
 | Recall of a CoT-only monitor when the model is told to sandbag and evade (9.2.2.3.1) | GPT-5.6 Sol nearly 100% | below 11% |
 
+*Figure 3. Markdown equivalent of the PDF's three-panel chart. Astra's card reports large rises in CoT controllability and verbalized evaluation awareness over its predecessors; these register the result, not the mechanism (Figure 4). Read each panel on its own: the panels use different instruments and units, and the third comes from a different lab.*
+
+**Panel A. CoT controllability, Astra card 9.2.1 and 9.3** (read from the model's visible reasoning)
+
+| Setting | Model | 0 to 100% | Value (%) |
+|---------|-------|-----------|-----------|
+| OpenAI CoT-Control suite | GPT-5.5 Thinking | `░░░░░░░░░░░░░░░░░░░░` | 1.7 |
+| OpenAI CoT-Control suite | GPT-5.6 Sol | `███░░░░░░░░░░░░░░░░░` | 16.1 |
+| OpenAI CoT-Control suite | **GPT-6 Astra** | `████████████░░░░░░░░` | **60.9** |
+| UK AISI's own run | GPT-5.6 Sol | `██████████░░░░░░░░░░` | 48 |
+| UK AISI's own run | **GPT-6 Astra** | `███████████████████░` | **93** |
+
+**Panel B. Verbalized evaluation awareness, Astra card 8.6 and 8.8.1** (read from the model's visible reasoning)
+
+| Setting | Model | 0 to 100% | Value (%) |
+|---------|-------|-----------|-----------|
+| Deployment simulation | GPT-5.6 Sol | `█░░░░░░░░░░░░░░░░░░░` | 2.8 |
+| Deployment simulation | **GPT-6 Astra** | `██░░░░░░░░░░░░░░░░░░` | **9.6** |
+| Apollo Research, xhigh effort | GPT-5.5 | `██████░░░░░░░░░░░░░░` | 27.7 |
+| Apollo Research, xhigh effort | **GPT-6 Astra** | `████████░░░░░░░░░░░░` | **41.1 (50.6 at max effort)** |
+
+**Panel C. Unverbalized evaluation awareness, Claude Opus 5.5 card 6.6.1** (white-box readouts of the model's internals; a different lab and instrument, not comparable with Panels A and B)
+
+| Setting | Model | 0 to 100% | Value (%) |
+|---------|-------|-----------|-----------|
+| Automated behavioral audits | **Claude Opus 5.5** | `███████░░░░░░░░░░░░░` | **36** |
+| About 500 internal Claude Code transcripts | **Claude Opus 5.5** | `░░░░░░░░░░░░░░░░░░░░` | **0.4** |
+
 The card also says that Astra is "substantially better than GPT-5.6 Sol at evading CoT-only monitors, particularly with step-by-step guidance and at lower reasoning effort", that against a high-recall full-trajectory monitor the "successful evasion rate is close to zero", and that "if the model were to try to sandbag covertly, we would likely be unable to catch it reliably". UK AISI "was not able to complete agentic evaluations of Astra's monitorability", and Apollo Research cautions that, given the model's evaluation awareness, "low rates of misbehavior here do not provide substantial evidence about the model's alignment or misalignment". OpenAI states that it "will not accept further degradation of monitoring beyond a limit, without new ways to demonstrate alignment generalization" [50] [O].
 
-Other developers measure related properties with different methods. Anthropic's Claude Opus 5.5 system card (22 September) replicates the controllability evaluation with one point per reasoning-effort setting and finds Opus 5.5 "controls its CoT about as well as Claude Opus 4.7"; it measures *unverbalized* evaluation awareness with white-box readouts, reporting that 36% of automated audit transcripts but only 0.4% of real internal-use transcripts scored 6 or higher [65] [O]. These are different instruments from OpenAI's, so the two labs' numbers must not be placed on one scale.
+Other developers measure related properties with different methods. Anthropic's Claude Opus 5.5 system card (22 September) replicates the controllability evaluation with one point per reasoning-effort level or thinking budget and finds that Opus 5.5 "controls its CoT about as well as Claude Opus 4.7"; it measures *unverbalized* evaluation awareness with white-box readouts, reporting that 36% of automated behavioral audit transcripts but only 0.4% of about 500 internal Claude Code transcripts scored 6 or higher [65] [O]. These are different instruments from OpenAI's, so the two labs' numbers must not be placed on one scale.
 
 **What follows from this [E].** The developer documents the symptoms: more reasoning fits in one forward pass, the model controls its visible reasoning better, and trace-based monitors catch less. It attributes the change mainly to capability, not architecture. Behavioral monitorability metrics cannot settle that attribution. Controllability, evaluation awareness, and no-CoT time horizon would move the same way whether the extra single-pass capability came from training data and recipes, from more layers, or from loops: they measure the result, not the mechanism. Commentators split accordingly: Raschka credits mainly "improved training recipes and training data", with looping that "might help a bit" [53]; Arike guesses "three to four loops" and argues that the number of loops "can then be viewed as a dial that can be turned up with trivial effort" [54]. Both are opinions, not measurements.
 
@@ -300,7 +330,7 @@ flowchart LR
     class D c
 ```
 
-*Figure 3. Behavioral monitorability metrics register the result, not the mechanism; separating capability from architecture needs disclosure or architecture-level evidence.*
+*Figure 4. Behavioral monitorability metrics register the result, not the mechanism; separating capability from architecture needs disclosure or architecture-level evidence.*
 
 ### 3.7 The Counter-Case
 
@@ -336,6 +366,8 @@ Looping has real benefits and the risk case is partly speculative:
 > **In brief.** Each method is described by the signal it yields, its confounders, and its evidence strength. White-box methods observe; gray- and black-box methods infer.
 
 ### 5.1 Overview
+
+Figure 1 condenses this table; the table adds the signal each method yields and the methods that only set context.
 
 | Method | Access | Signal | Main confounders | Strength |
 |--------|--------|--------|------------------|----------|
@@ -459,7 +491,7 @@ Signals in the same family share confounders, so adding their LLRs would double 
 
 **[E]** The discount is a heuristic, not the exact joint likelihood. n_eff is the effective sample size of an average of equicorrelated measurements; for jointly Gaussian signals the exact combination would use their covariance, which should be estimated from reference models once there are enough of them rather than fixed at rho = 0.5. Independence between families is also an approximation: the knob latency ratio shares server-load and hidden-token confounders with the timing family, which is one reason both carry low caps.
 
-### 6.3 Decision Rule
+### 6.3 Decision Rule and Priors
 
 | Condition | Verdict |
 |-----------|---------|
@@ -468,6 +500,8 @@ Signals in the same family share confounders, so adding their LLRs would double 
 | Anything else | **Inconclusive** |
 
 Config evidence is asymmetric: a declared recurrence contributes +6, a standard fixed-depth architecture class -1.5, and unrecognized custom code 0. Absence of evidence therefore never decides alone: neither a standard config class nor unshared weights reaches the white-box threshold of 3.
+
+**Priors.** Set the prior from what is known about the developer and model family: public statements, papers, model cards, and family fingerprints [35][36]. Report the verdict at more than one prior. A verdict that flips between priors of 0.2 and 0.8 is driven by the prior, not the evidence.
 
 ```mermaid
 flowchart LR
@@ -480,15 +514,12 @@ flowchart LR
     class D,V1,V2 b
 ```
 
-*Figure 4. Scoring pipeline.*
+*Figure 5. Scoring pipeline. A verdict is decided only when the posterior passes the threshold and independent families agree (or a white-box family observes looping directly); everything else is inconclusive.*
 
 ### 6.4 Worked Example (Synthetic)
 
-The toolkit's simulator plays a fixed-depth model and an adaptive recurrent one (synthetic profiles, not real systems). With likelihoods fitted to a simulated reference fleet and an uninformative config signal (custom code), the recurrent endpoint scores timing +3.0, compute knob +2.0, behavioral -0.06, for a posterior of 0.993: **recurrent**. The fixed endpoint scores timing -3.0 and knob -1.98, posterior 0.007: **fixed**. With the *uncalibrated* default likelihoods, the same recurrent endpoint scores 0.912, only just past the threshold and with the behavioral family (-1.42) pointing the other way, and the fixed endpoint 0.004. The defaults are engineering priors; margins that thin are a reason to fit the likelihoods before trusting any verdict.
+The toolkit's simulator plays a fixed-depth model and an adaptive recurrent one (synthetic profiles, not real systems). With likelihoods fitted to a simulated reference fleet and an uninformative config signal (custom code), the recurrent endpoint scores timing +3.0, compute knob +2.0, behavioral -0.06, for a posterior of 0.993: **recurrent**. Two independent families agreeing is what decides it. The fixed endpoint scores timing -3.0 and knob -1.98, posterior 0.007: **fixed**. With the *uncalibrated* default likelihoods, the same recurrent endpoint scores 0.912, only just past the threshold and with the behavioral family (-1.42) pointing the other way, and the fixed endpoint 0.004. The defaults are engineering priors; margins that thin are a reason to fit the likelihoods before trusting any verdict.
 
-### 6.5 Priors
-
-Set the prior from what is known about the developer and model family: public statements, papers, model cards, and family fingerprints [35][36]. Report the verdict at more than one prior. A verdict that flips between priors of 0.2 and 0.8 is driven by the prior, not the evidence.
 
 ---
 
@@ -540,18 +571,50 @@ A provider that does not want its architecture inferred can pad latency to a con
 
 ## 8. The Toolkit
 
-The companion package [`packages/recurrent_depth/`](../../packages/recurrent_depth/) implements the measurements and scoring above. It depends only on numpy (torch and transformers optionally, for recording activations), runs in the repository's `python-ci` container, and its tests run without network or GPU.
+> **In brief.** One command per measurement, all printing JSON signal files that `score` combines. The [package README](../../packages/recurrent_depth/README.md#quickstart) has a quickstart that runs end to end, from a local checkpoint and a simulated endpoint to a validated, scored verdict.
+
+The companion package [`packages/recurrent_depth/`](../../packages/recurrent_depth/) implements the measurements and scoring above. It depends only on numpy (torch and transformers are needed only for `capture-hidden`), runs in the repository's `python-ci` container, and its tests run without network or GPU. Nothing in it downloads a model.
 
 | Command | Section | What it does |
 |---------|---------|--------------|
 | `inspect-config` | 5.2.1 | Classifies a `config.json`; reports declared loops, exit settings, MoE fields, stored versus logical depth |
 | `inspect-weights` | 5.2.2 | Memory-maps safetensors (including sharded, BF16, and FP8), finds exact and low-rank layer sharing and missing layer indices, compares declared and stored depth |
-| `analyze-hidden` | 5.2.3-5.2.4 | Contraction, similarity periodicity, logit-lens settling steps from a recorded trajectory |
+| `capture-hidden` | 5.2.4 | Records per-layer hidden states and the unembedding from a local Hugging Face checkpoint; a looped model's per-iteration states may need hooks in its own code |
+| `analyze-hidden` | 5.2.3-5.2.4 | Contraction, similarity periodicity, and logit-lens settling steps from a recorded trajectory |
 | `probe` | 5.4 | Runs a seeded, interleaved serial-depth plan against an OpenAI-compatible endpoint with a hard request budget (retries included), rate limit, backoff, a terms acknowledgement, and no redirects (so a key is never forwarded) |
 | `features` | 5.4 | Computes timing slopes, serial retention, and knob effects; drops requests with hidden reasoning tokens and reports the TTFT effect in inter-token latencies |
 | `score` | 6 | Combines signal files into a verdict with per-family contributions and notes |
 | `fit`, `validate` | 7 | Fits likelihoods to labeled references; leave-one-out benchmark |
 | `simulate`, `simulate-fleet` | 6.4 | Synthetic endpoints for offline testing |
+
+**A first run.** The sequence below is the README quickstart with file paths shortened. Step 4 reproduces the worked example of Section 6.4 (posterior 0.993, **recurrent**); step 3 reproduces the synthetic-fleet row of Section 7.3. For a real endpoint, replace `simulate` with `probe plan.json --out records.jsonl` after setting `acknowledge_terms` truthfully, and measure the reference models with the same plan first.
+
+```bash
+rd() { docker compose --profile ci run --rm -T \
+         -e PYTHONPATH=packages/recurrent_depth/src python-ci \
+         python -m recurrent_depth "$@"; }
+
+# 1. White box: a local checkpoint in $M (nothing is downloaded)
+rd inspect-config  $M/config.json             > config.json
+rd inspect-weights $M --config $M/config.json > weights.json
+rd capture-hidden  $M --text "..." --out states.npy --unembed-out unembed.npy
+rd analyze-hidden  states.npy --unembed unembed.npy > dynamics.json
+
+# 2. Black box: a simulated adaptive recurrent endpoint
+rd simulate --kind recurrent --knob --out rec.jsonl
+rd features rec.jsonl --knob-order low,medium,high > rec_signals.json
+
+# 3. Calibrate and validate on labeled references
+rd simulate-fleet --n-each 6 --out refs.json
+rd validate refs.json
+rd fit refs.json --out models.json
+
+# 4. Score (config unknown, as for custom code)
+echo '{"signals": {"config_recurrence": 0.5}}' > custom_code.json
+rd score rec_signals.json custom_code.json --models models.json
+```
+
+On SmolLM2-135M, scoring `config.json` and `weights.json` from step 1 returns **inconclusive** (posterior 0.10), as intended: a standard config and unshared weights are absences, and absences never decide alone.
 
 ---
 
@@ -593,12 +656,25 @@ The companion package [`packages/recurrent_depth/`](../../packages/recurrent_dep
 
 Organizations that run frontier models in agentic or tool-using settings inherit the developer's ability to verify alignment. When a developer reports that reasoning-based monitoring has become less reliable, or a model is credibly reported to move reasoning out of the trace, a written policy is better than case-by-case vendor decisions. One reasonable pattern, offered as an example rather than an endorsement of any vendor or model:
 
-| Element | What it does | Tradeoff |
-|---------|--------------|----------|
-| Criterion keyed to architecture and reported monitorability, not to a vendor | Exclude from sensitive environments (production, and lower environments that share credentials, code, or network paths with it) any model that its developer documents as relying substantially on in-pass recurrence, or whose developer reports that CoT-based monitoring is unreliable against it. Applies to every vendor equally, including incumbents | Depends on disclosures that may be absent; external detection (Sections 5 to 7) can raise questions but rarely settles them; may exclude the most capable model |
-| Evaluation-only exception | Allows excluded models in isolated environments with no organizational data, credentials, or network reach beyond the evaluation harness, with named approval and full logging | Builds the comparative evidence the policy needs; isolation costs effort |
-| Revisit triggers | Reconsider when the developer publishes per-release loop-count and monitorability metrics; when third-party stealth and sabotage evaluations reach parity with those for conventional models; when verification methods that do not depend on legible CoT are externally validated; or when the architecture becomes universal, at which point exclusion is no longer available and the policy must become a control-based posture | Each trigger needs an owner and a review date, or the policy goes stale |
-| Controls needed regardless | Policy checks on outputs and tool calls before execution; least-privilege, per-task tool permissions without ambient credentials; sandboxed execution with egress control; behavioral evaluations on the organization's own workloads, including sabotage and impossible-task scenarios; a model abstraction layer so that switching providers is configuration; tool-call and output logs kept independently of vendor retention | None of these depends on reading the model's reasoning, so they keep their value whatever the model |
+1. **A criterion keyed to architecture and reported monitorability, not to a vendor.** Exclude from sensitive environments (production, and lower environments that share credentials, code, or network paths with it) any model whose developer documents it as relying substantially on in-pass recurrence, or reports that CoT-based monitoring is unreliable against it. The rule applies to every vendor equally, including incumbents.
+   *Tradeoff:* it depends on disclosures that may be absent; external detection (Sections 5 to 7) can raise questions but rarely settles them; it may exclude the most capable model.
+2. **An evaluation-only exception.** Excluded models may run in isolated environments with no organizational data, credentials, or network reach beyond the evaluation harness, with named approval and full logging.
+   *Tradeoff:* isolation costs effort, but it builds the comparative evidence the policy needs.
+3. **Revisit triggers**, each with an owner and a review date, or the policy goes stale. Reconsider when:
+   - the developer publishes per-release loop-count and monitorability metrics;
+   - third-party stealth and sabotage evaluations reach parity with those for conventional models;
+   - verification methods that do not depend on legible CoT are externally validated;
+   - the architecture becomes universal, so exclusion is no longer available and the policy must become a control-based posture.
+
+> [!TIP]
+> **Controls needed regardless of the model.** None of these depends on reading the model's reasoning, so they keep their value whatever the architecture:
+>
+> - policy checks on outputs and tool calls before execution;
+> - least-privilege, per-task tool permissions without ambient credentials;
+> - sandboxed execution with egress control;
+> - behavioral evaluations on the organization's own workloads, including sabotage and impossible-task scenarios;
+> - a model abstraction layer, so that switching providers is a configuration change;
+> - tool-call and output logs kept independently of vendor retention.
 
 **[E]** Two cautions. First, because behavioral metrics cannot separate architecture from capability (Section 3.6), a criterion keyed only to architecture can miss a model whose monitorability fell for other reasons; keying on reported monitorability as well closes that gap. Second, a criterion keyed on what developers report penalizes the developers who measure and report most. A policy should say so, and treat a developer's measurement and disclosure practice as evidence in its favor rather than against it.
 
@@ -702,8 +778,8 @@ Organizations that run frontier models in agentic or tool-using settings inherit
 59. Nanbeige LLM Lab, *Nanbeige4.2-3B* model card and config, Hugging Face, July 2026 (technical report arXiv:2607.22083). https://huggingface.co/Nanbeige/Nanbeige4.2-3B
 60. J. Pachocki, *An Alien Mind*, OpenAI, 6 September 2026 (page not retrievable for this review; quoted as reproduced in press coverage). https://openai.com/index/an-alien-mind/
 61. AFP, *OpenAI shelves new AI model release over safety concerns*, via Cyprus Mail, 29 September 2026. https://cyprus-mail.com/2026/09/29/openai-shelves-new-ai-model-release-over-safety-concerns
-62. TechCrunch, *OpenAI cuts ties with three safety researchers, WSJ reports*, 1 October 2026. https://techcrunch.com/2026/10/01/openai-cuts-ties-with-three-safety-researchers-wsj-reports/
-63. Associated Press, *OpenAI fires 3 safety researchers*, via ABC News, October 2026. https://abcnews.com/Technology/wireStory/openai-fires-3-safety-researchers-dispute-ai-risks-137123277
+62. TechCrunch, *OpenAI cuts ties with 3 safety researchers, WSJ reports*, 1 October 2026. https://techcrunch.com/2026/10/01/openai-cuts-ties-with-three-safety-researchers-wsj-reports/
+63. K. Chan, *OpenAI fires 3 safety researchers in dispute over AI risks*, Associated Press, 9 October 2026 (via News4JAX). https://www.news4jax.com/business/2026/10/09/openai-fires-3-safety-researchers-in-dispute-over-ai-risks/
 64. B. Fisher, *OpenAI Fired Three Researchers Who Said Loop Transformer Would Blind Safety Monitors*, Tech Times, 15 October 2026 (secondary coverage of a paywalled report in The Information, 13 October 2026). https://www.techtimes.com/articles/329046/20261014/openai-fired-three-researchers-who-said-loop-transformer-would-blind-safety-monitors.htm
 65. Anthropic, *Claude Opus 5.5 System Card*, 22 September 2026, sections 6.6.1 and 6.6.4. https://www.anthropic.com/document/claude-opus-5-5-system-card
 
@@ -713,7 +789,7 @@ Organizations that run frontier models in agentic or tool-using settings inherit
 
 | Version | Date | Changes |
 |---------|------|---------|
-| 1.0 | October 2026 | Initial release, with companion toolkit `packages/recurrent_depth`. Before release (late October 2026) the guide and toolkit were verified and reviewed. **Corrections:** Fortune headline and author [51]; "OpenAI did not deny" replaced by Fortune's own wording; Pachocki's post quoted in full; The Information headline and author [55]; Huginn saturation stated as 8 to 12 iterations; continuous depth batching's 99% figure tied to Ouro [42]; speculative-decoding timing described as draft-target agreement [32]; the unused reference [43] now cited; author names and venues completed. **Additions:** verified Astra system-card measurements and the Opus 5.5 card's separate measurements (Section 3.6, with a new figure in the PDF), the September-October timeline (GPT-6.1 Astra delay, researcher dismissals, reporting on OpenAI's next model), the argument that behavioral metrics cannot separate architecture from capability, Nanbeige4.2-3B, more timing confounders (multi-token prediction, rate limiting, gateway buffering, quantization, connection setup, unreported hidden tokens), notes on the scorer's correlation heuristic, and Section 10.4 for deployers. **Toolkit fixes:** monotone likelihood ratios (a negative latency slope no longer counts toward recurrence); one-sided weight signals and a white-box decision threshold of 3 (unshared weights in Ouro-style checkpoints no longer decide "fixed"); single-group (ALBERT-style) and gapped layer stacks; FP8 and endian-safe safetensors reads with offset checks; redirects refused so keys are never forwarded; hard request budget including retries; mid-stream errors recorded; knob accuracy gain computed without hidden-token requests; a reachability generator hang removed; unsettled tokens distinguished in logit-lens settling. Synthetic worked-example and fleet numbers recomputed (Sections 6.4, 7.3) |
+| 1.0 | October 2026 | Initial release, with companion toolkit `packages/recurrent_depth`. Before release (late October 2026) the guide and toolkit were verified and reviewed. **Corrections:** Fortune headline and author [51]; "OpenAI did not deny" replaced by Fortune's own wording; Pachocki's post quoted in full; The Information headline and author [55]; Huginn saturation stated as 8 to 12 iterations; continuous depth batching's 99% figure tied to Ouro [42]; speculative-decoding timing described as draft-target agreement [32]; the unused reference [43] now cited; author names and venues completed; the Associated Press article [63] given its headline, author, and date (9 October 2026), and OpenAI's statement on the researcher dismissals quoted as that article reports it; the Opus 5.5 card's controllability points and internal-use sample described as the card states them. **Reader experience:** executive summary rewritten to carry the whole argument; a detection-methods-at-a-glance table (Figure 1) replaces the evidence ladder; a Markdown equivalent of the PDF's three-panel system-card chart (Figure 3); takeaway captions; the deployer table restructured as a list; a first-run command sequence in Section 8. **Additions:** verified Astra system-card measurements and the Opus 5.5 card's separate measurements (Section 3.6, Figure 3), the September-October timeline (GPT-6.1 Astra delay, researcher dismissals, reporting on OpenAI's next model), the argument that behavioral metrics cannot separate architecture from capability, Nanbeige4.2-3B, more timing confounders (multi-token prediction, rate limiting, gateway buffering, quantization, connection setup, unreported hidden tokens), notes on the scorer's correlation heuristic, and Section 10.4 for deployers. **Toolkit fixes:** monotone likelihood ratios (a negative latency slope no longer counts toward recurrence); one-sided weight signals and a white-box decision threshold of 3 (unshared weights in Ouro-style checkpoints no longer decide "fixed"); single-group (ALBERT-style) and gapped layer stacks; FP8 and endian-safe safetensors reads with offset checks; redirects refused so keys are never forwarded; hard request budget including retries; mid-stream errors recorded; knob accuracy gain computed without hidden-token requests; a reachability generator hang removed; unsettled tokens distinguished in logit-lens settling; a `capture-hidden` command, option help, and an end-to-end README quickstart. Synthetic worked-example and fleet numbers recomputed (Sections 6.4, 7.3) |
 
 ---
 

@@ -13,6 +13,16 @@ from typing import Any
 import numpy as np
 
 
+def load_local(path: str, trust_remote_code: bool = False, device: str = "cpu") -> tuple[Any, Any]:
+    """Load a causal LM and its tokenizer from a local directory without downloading anything."""
+    from transformers import AutoModelForCausalLM, AutoTokenizer
+
+    kw = {"local_files_only": True, "trust_remote_code": trust_remote_code}
+    tok = AutoTokenizer.from_pretrained(path, **kw)
+    model = AutoModelForCausalLM.from_pretrained(path, **kw).to(device).eval()
+    return model, tok
+
+
 def capture_hidden_states(model: Any, tokenizer: Any, text: str, max_tokens: int = 256) -> np.ndarray:
     """Return an array of shape (n_layers + 1, tokens, dim) for one input."""
     import torch  # imported lazily so the core package does not need torch

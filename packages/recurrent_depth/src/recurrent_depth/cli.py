@@ -1,4 +1,9 @@
-"""Command-line interface: ``python -m recurrent_depth <command>``."""
+"""Command-line interface: ``python -m recurrent_depth <command>``.
+
+Measurement and inference only: nothing here recovers weights or bypasses
+access controls. Commands print JSON to stdout (progress goes to stderr), so
+redirect stdout to save a signals file for ``score``.
+"""
 
 from __future__ import annotations
 
@@ -64,6 +69,20 @@ def cmd_analyze_hidden(args: argparse.Namespace) -> int:
         settle = dynamics.settle_steps(kl, args.kl_threshold)
         out["settle_steps"] = {"mean": float(settle.mean()), "std": float(settle.std()), "per_token": settle.tolist()}
     _dump(out)
+    return 0
+
+
+def cmd_capture_hidden(args: argparse.Namespace) -> int:
+    from . import hf_capture
+
+    model, tok = hf_capture.load_local(args.model_dir, trust_remote_code=args.trust_remote_code, device=args.device)
+    h = hf_capture.capture_hidden_states(model, tok, args.text, max_tokens=args.max_tokens)
+    np.save(args.out, h)
+    print(f"wrote {args.out} with shape {tuple(h.shape)} (steps, tokens, dim)", file=sys.stderr)
+    if args.unembed_out:
+        w_u = hf_capture.unembedding_matrix(model)
+        np.save(args.unembed_out, w_u)
+        print(f"wrote {args.unembed_out} with shape {tuple(w_u.shape)} (dim, vocab)", file=sys.stderr)
     return 0
 
 
@@ -140,69 +159,116 @@ def cmd_validate(args: argparse.Namespace) -> int:
     return 0
 
 
+_EPILOG = """\
+typical workflow (see packages/recurrent_depth/README.md, Quickstart):
+  white box   inspect-config, inspect-weights, capture-hidden, analyze-hidden
+  black box   probe (real endpoint) or simulate (offline), then features
+  calibrate   fit and validate on labeled reference models
+  decide      score one or more signal files, with --models from fit
+"""
+
+_REFS_HELP = 'JSON list of {"model": ..., "label": "recurrent" or "fixed", "signals": {...}} rows'
+
+
 def build_parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(prog="recurrent-depth", description=__doc__)
+    p = argparse.ArgumentParser(
+        prog="recurrent-depth",
+        description=__doc__,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=_EPILOG,
+    )
     sub = p.add_subparsers(dest="command", required=True)
 
     s = sub.add_parser("inspect-config", help="classify a config.json")
-    s.add_argument("path")
+    s.add_argument("path", help="path to a model's config.json")
     s.set_defaults(func=cmd_inspect_config)
 
     s = sub.add_parser("inspect-weights", help="detect layer sharing in safetensors weights")
     s.add_argument("path", help="a .safetensors file or a checkpoint directory")
     s.add_argument("--config", help="config.json for the declared layer count")
-    s.add_argument("--max-side", type=int, default=512)
+    s.add_argument(
+        "--max-side",
+        type=int,
+        default=512,
+        help="sample at most this many rows and columns per matrix when comparing layers (default 512)",
+    )
     s.add_argument("--no-hash", action="store_true", help="compare sampled values instead of hashing bytes")
     s.set_defaults(func=cmd_inspect_weights)
 
+    s = sub.add_parser(
+        "capture-hidden",
+        help="record per-layer hidden states from a local Hugging Face checkpoint (needs torch and transformers)",
+    )
+    s.add_argument("model_dir", help="local checkpoint directory; nothing is downloaded")
+    s.add_argument("--text", required=True, help="input text to run through the model")
+    s.add_argument("--out", required=True, help="output .npy for the (steps, tokens, dim) trajectory")
+    s.add_argument("--unembed-out", help="also save the (dim, vocab) unembedding as .npy for logit-lens settling")
+    s.add_argument("--max-tokens", type=int, default=256, help="truncate the input to this many tokens (default 256)")
+    s.add_argument("--device", default="cpu", help="torch device (default cpu)")
+    s.add_argument(
+        "--trust-remote-code",
+        action="store_true",
+        help="allow the checkpoint's own modeling code; read that code before using this",
+    )
+    s.set_defaults(func=cmd_capture_hidden)
+
     s = sub.add_parser("analyze-hidden", help="dynamics of a (steps, tokens, dim) .npy trajectory")
-    s.add_argument("path")
+    s.add_argument("path", help=".npy trajectory, for example from capture-hidden")
     s.add_argument("--unembed", help=".npy (dim, vocab) unembedding for logit-lens KL")
-    s.add_argument("--kl-threshold", type=float, default=5e-4)
+    s.add_argument(
+        "--kl-threshold",
+        type=float,
+        default=5e-4,
+        help="KL below which a token counts as settled (default 5e-4, Huginn's exit rule)",
+    )
     s.set_defaults(func=cmd_analyze_hidden)
 
     s = sub.add_parser("probe", help="run a probe plan against an OpenAI-compatible endpoint")
-    s.add_argument("plan")
-    s.add_argument("--out", required=True)
+    s.add_argument("plan", help="probe plan JSON (template: examples/probe_plan.example.json)")
+    s.add_argument("--out", required=True, help="output JSONL of per-request records")
     s.set_defaults(func=cmd_probe)
 
     s = sub.add_parser("simulate", help="run the default plan against a simulated endpoint")
     s.add_argument("--kind", choices=["fixed", "recurrent"], required=True)
-    s.add_argument("--reps", type=int, default=6)
+    s.add_argument("--reps", type=int, default=6, help="repetitions per task and depth (default 6)")
     s.add_argument("--seed", type=int, default=0)
-    s.add_argument("--knob", action="store_true", help="include a three-level compute knob")
-    s.add_argument("--out", required=True)
+    s.add_argument("--knob", action="store_true", help="include a three-level compute knob (low, medium, high)")
+    s.add_argument("--out", required=True, help="output JSONL of simulated records")
     s.set_defaults(func=cmd_simulate)
 
     s = sub.add_parser("simulate-fleet", help="labeled signal rows for simulated reference models")
-    s.add_argument("--n-each", type=int, default=5)
-    s.add_argument("--reps", type=int, default=4)
+    s.add_argument("--n-each", type=int, default=5, help="simulated references per class (default 5)")
+    s.add_argument("--reps", type=int, default=4, help="repetitions per task and depth (default 4)")
     s.add_argument("--seed", type=int, default=0)
-    s.add_argument("--out", required=True)
+    s.add_argument("--out", required=True, help="output references JSON")
     s.set_defaults(func=cmd_simulate_fleet)
 
     s = sub.add_parser("features", help="compute black-box signals from probe records")
-    s.add_argument("records")
+    s.add_argument("records", help="JSONL from probe or simulate")
     s.add_argument("--knob-order", help="comma-separated knob values from lowest to highest")
     s.set_defaults(func=cmd_features)
 
     s = sub.add_parser("score", help="combine one or more signal files into a verdict")
-    s.add_argument("signals", nargs="+")
-    s.add_argument("--models", help="fitted likelihood models (from fit)")
-    s.add_argument("--prior", type=float, default=0.5)
-    s.add_argument("--threshold", type=float, default=0.9)
-    s.add_argument("--min-families", type=int, default=2)
+    s.add_argument(
+        "signals",
+        nargs="+",
+        help="JSON files with a 'signals' object (output of inspect-config, inspect-weights, analyze-hidden, features)",
+    )
+    s.add_argument("--models", help="fitted likelihood models from fit (default: uncalibrated engineering priors)")
+    s.add_argument("--prior", type=float, default=0.5, help="prior probability that the model is recurrent (default 0.5)")
+    s.add_argument("--threshold", type=float, default=0.9, help="posterior needed to decide (default 0.9)")
+    s.add_argument("--min-families", type=int, default=2, help="independent families that must agree (default 2)")
     s.set_defaults(func=cmd_score)
 
     s = sub.add_parser("fit", help="fit likelihood models to labeled references")
-    s.add_argument("references")
-    s.add_argument("--out", required=True)
+    s.add_argument("references", help=_REFS_HELP)
+    s.add_argument("--out", required=True, help="output models JSON for score --models")
     s.set_defaults(func=cmd_fit)
 
     s = sub.add_parser("validate", help="leave-one-out benchmark on labeled references")
-    s.add_argument("references")
-    s.add_argument("--threshold", type=float, default=0.9)
-    s.add_argument("--min-families", type=int, default=2)
+    s.add_argument("references", help=_REFS_HELP)
+    s.add_argument("--threshold", type=float, default=0.9, help="posterior needed to decide (default 0.9)")
+    s.add_argument("--min-families", type=int, default=2, help="independent families that must agree (default 2)")
     s.set_defaults(func=cmd_validate)
     return p
 
