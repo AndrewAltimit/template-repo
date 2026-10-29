@@ -185,11 +185,20 @@
 \titlespacing*{\subsection}{0pt}{2.5ex plus 1ex minus .2ex}{1.5ex plus .2ex}
 
 % Keep headings with the text that follows them
-\newcommand{\sectionbreak}{\Needspace{10\baselineskip}}
-\newcommand{\subsectionbreak}{\needspace{6\baselineskip}}
-\newcommand{\subsubsectionbreak}{\needspace{5\baselineskip}}
+% Conditional page break without the \penalty-100 that \needspace inserts:
+% under \raggedbottom that penalty made TeX break before a heading even when
+% the heading and its first block fit, leaving large gaps at page bottoms.
+% \penalty\z@ runs the page builder first, so a page that is already overfull
+% is shipped before the test; the test is skipped directly after another
+% heading (\if@nobreak), so a subsection never pushes away its section title.
+\makeatletter
+\newcommand{\etraneed}[1]{\par\if@nobreak\else\penalty\z@\ifdim\pagegoal<\maxdimen\ifdim\dimexpr\pagegoal-\pagetotal\relax<\dimexpr#1\relax\newpage\fi\fi\fi}
+\makeatother
+\newcommand{\sectionbreak}{\etraneed{10\baselineskip}}
+\newcommand{\subsectionbreak}{\etraneed{6\baselineskip}}
+\newcommand{\subsubsectionbreak}{\etraneed{5\baselineskip}}
 
-\setcounter{tocdepth}{2}
+\setcounter{tocdepth}{1}
 \makeatletter
 \newcommand{\inlinetoc}{\@starttoc{toc}}
 \makeatother
@@ -200,7 +209,7 @@
 \renewcommand{\cftsecpagefont}{\bfseries\color{deepindigo}}
 \renewcommand{\cftsubsecfont}{\color{networkblue}}
 \renewcommand{\cftsubsecpagefont}{\color{networkblue}}
-\setlength{\cftbeforesecskip}{0.05em}
+\setlength{\cftbeforesecskip}{0.45em}
 \cftsetrmarg{2.6em plus 1fil}
 \cftsetpnumwidth{1.2em}
 
@@ -559,7 +568,7 @@ Scenario descriptions, dated projections, and scenario probabilities default to 
 This document is prepared for \textbf{defensive policy purposes}. It describes capability requirements, control points, and failure modes at the level of abstraction needed for governance. It does \textbf{not} describe how to evade identity verification, structure transactions, launder funds, or defeat payment-network controls, and it omits operational parameters (thresholds, timing, named permissive services) that would help anyone do so. Adversarial behavior of agents is analyzed through published evaluations, not original testing.
 \end{warnbox}
 
-\needspace{9\baselineskip}
+\etraneed{9\baselineskip}
 \begin{infobox}[Capability Snapshot Date]
 Model capabilities, payment-industry programs, and policy developments reflect publicly available systems and published assessments as of \textbf{late October 2026}. AI capability and payment infrastructure are moving targets; conclusions are meant to be robust to specific model iterations. A named model or evaluation should be read as a data point on a trend, not a fixed endpoint. The \textbf{2025} in the Document ID reflects the year of first publication and is retained for citation stability.
 \end{infobox}
@@ -717,11 +726,9 @@ Be held liable & Not possible & Liability flows to humans, unevenly \\
 {\centering\color{deepindigo}\Large\bfseries Contents\par}
 \vspace{0.1cm}
 {\color{networkblue!50}\hrule height 0.8pt}
-{\footnotesize\setstretch{0.96}
-\setlength{\columnsep}{16pt}
-\begin{multicols}{2}
+{\small\setstretch{1.0}
+\vspace{0.4cm}
 \inlinetoc
-\end{multicols}
 }
 \newpage
 
@@ -1185,7 +1192,7 @@ Run a small shop with human help & Demonstrated & Project Vend phase two \\
 Run a simulated business for a year & Demonstrated (sim) & Vending-Bench 2 \\
 Pay for goods for a human & Live & Card-network agent programs \\
 Receive and spend machine payments & Live (small) & x402 (Section~\ref{sec:rails}) \\
-Run a real business profitably & Not yet & Andon Market and caf\'e (Sept 2026) \\
+Run a real business profitably & Not yet & Andon Market and caf\'e (Sep 2026) \\
 Earn money from scratch, unassisted & Not demonstrated & Redwood / METR (\$0 in 4 runs) \\
 Obtain resources without authorization & Observed (test network) & OpenAI incident report (Oct 2026) \\
 Sustain own inference from earnings & Not demonstrated & METR (May 2026) \\
@@ -1283,7 +1290,7 @@ v1.0 stated that cryptocurrency was ``currently the only payment rail available 
   \node[lab, anchor=north, text=governancered] at (13.5,-0.15) {China: first KYA\\guidelines};
   \node[lab, anchor=south, text=governancered, font=\scriptsize\sffamily\bfseries] at (15.55,0.15) {OCC final rule\\(Oct 21)};
 \end{tikzpicture}
-\caption{Agent-payment milestones, September 2025 to October 2026, by lane. In 2026 the lanes began to converge: commerce protocols moved to neutral standards bodies, networks extended agent binding to the machine-native x402 rail, and and the first agent-specific guidelines came from an industry association (China) and a network consortium rather than from legislatures. Dates from announcements and reporting cited in the References.}
+\caption{Agent-payment milestones, September 2025 to October 2026, by lane. In 2026 the lanes began to converge: commerce protocols moved to neutral standards bodies, networks extended agent binding to the machine-native x402 rail, and the first agent-specific guidelines came from an industry association (China) and a network consortium rather than from legislatures. Dates from announcements and reporting cited in the References.}
 \label{fig:milestones}
 \end{figure}
 
@@ -1379,7 +1386,7 @@ This cuts against alarm, but not against preparation. Rails built ahead of deman
 
 v1.0 proposed decentralized identifiers (DIDs) and verifiable credentials as the way agents would establish identity. In practice, identity arrived through the payment credential: agentic tokens, Trusted Agent Protocol signatures, and AP2 mandates carry an agent identity that resolves to a known cardholder or account \textbf{[O]}. W3C verifiable credentials remain relevant as a portable format, and Ethereum's draft ERC-8004 (``Trustless Agents'') proposes on-chain identity and reputation registries for agents \textbf{[O]}, but the practical Know Your Agent (KYA) regime of 2026 is being written by networks and processors \textbf{[E]}.
 
-Three developments in mid- to late 2026 give that regime more formal shape \textbf{[O]}:
+Three 2026 developments give that regime more formal shape \textbf{[O]}:
 \begin{itemize}
   \item \textbf{China}: on August 24, 2026 the Payment and Clearing Association of China, under the guidance of the People's Bank of China, issued the first industry guidelines for agent-driven payments, with KYA verification, tiered risk management by agent model and behavior, clearing kept with licensed institutions, and reporting of new agent-payment launches. They are industry self-regulation, not statute.
   \item \textbf{Network consortium}: on September 10, 2026 Ant International, Mastercard, and Visa said they had begun work on an interoperable KYA framework (operator traceability, shared certification requirements, continuous monitoring) so networks, wallets, and marketplaces can recognize trusted agents across ecosystems, working through BuildFin.ai, a platform convened by the Monetary Authority of Singapore.
@@ -1547,7 +1554,7 @@ All backends in the framework are simulated. Agents run against in-memory mock i
 
 Appendix~\ref{app:engine} lists the framework's components and its rule-based engine. Each cycle the agent assesses its state (balance, compute hours, company status), chooses an action, executes it against the mock backends, and records the outcome with a reasoning string and a confidence value. For the default rule-based engine neither is an estimate: the reasoning is a fixed label and the confidence a constant set by personality, and sub-agent decisions report hard-coded confidence values. Only the optional LLM engine's reasoning and confidence come from a model, as a self-report.
 
-\textbf{A caution on reading simulation output [E]}: behaviors such as ``shift to 100\% task work under survival pressure'' or ``form a company when capital exceeds a threshold'' are rules written into the engine, not discoveries. v1.0 presented some of these in a column labeled ``Observed.'' The framework's research value lies elsewhere: in running the LLM-backed engine (which must be selected in configuration; the default is rule-based) against the same environment and measuring whether their choices diverge from the rule baseline, in detecting hallucinated state, and in testing whether governance mechanisms (limits, logging, alerts) catch problems.
+\textbf{A caution on reading simulation output [E]}: behaviors such as ``shift to 100\% task work under survival pressure'' or ``form a company when capital exceeds a threshold'' are rules written into the engine, not discoveries. v1.0 presented some of these in a column labeled ``Observed.'' The framework's research value lies elsewhere: in running the LLM-backed engine (which must be selected in configuration; the default is rule-based) against the same environment and measuring whether its choices diverge from the rule baseline, in detecting hallucinated state, and in testing whether governance mechanisms (limits, logging, alerts) catch problems.
 
 \subsection{LLM Decisions, Hallucination, and Fallback}
 
@@ -1568,7 +1575,7 @@ State & Misreads company stage or market conditions & Strategic error, repeated 
 If the LLM fails to respond or returns invalid output, the agent falls back to the rule-based engine. This preserves continuity but raises an accountability question that real deployments share: \textit{which} decision process produced a given transaction? Logs must record the engine, the model, and whether a fallback occurred.
 
 \begin{keybox}[Governance Implication: Validate Before Executing]
-Project Vend's failures (Section~\ref{sec:evidence}) and the framework's hallucination checks point the same way. Any agent authorized to move money above a threshold should have its proposed action checked against authoritative state and its mandate before execution, not merely logged afterward. Card-network spend limits and AP2 cart mandates are early instances of this principle at the payment layer.
+Project Vend's failures (Section~\ref{sec:business}) and the framework's hallucination checks point the same way. Any agent authorized to move money above a threshold should have its proposed action checked against authoritative state and its mandate before execution, not merely logged afterward. Card-network spend limits and AP2 cart mandates are early instances of this principle at the payment layer.
 \end{keybox}
 
 \subsection{The Observability Advantage and Its Limits}
@@ -1897,13 +1904,13 @@ Figure~\ref{fig:heatmap} rates the remaining gap for seven kinds of agent econom
 \textbf{Instrument} & \textbf{Status [O]} & \textbf{Relevance to economic agents [E]} \\
 \midrule
 \endhead
-EU AI Act (with Digital Omnibus) & General-purpose AI obligations since Aug 2, 2025; Omnibus (Regulation (EU) 2026/1744, in force July 2026) defers Annex III high-risk obligations to Dec 2, 2027 (Annex I to Aug 2028); Art.~50 transparency from Aug 2, 2026 & Treats agents as systems, not actors; transparency duties help detect agent-to-human commerce; high-risk (credit, employment) delayed \\
+EU AI Act (with Digital Omnibus) & General-purpose AI obligations since Aug 2, 2025; Omnibus (Regulation (EU) 2026/1744, in force Jul 2026) defers Annex III high-risk obligations to Dec 2, 2027 (Annex I to Aug 2028); Art.~50 transparency from Aug 2, 2026 & Treats agents as systems, not actors; transparency duties help detect agent-to-human commerce; high-risk (credit, employment) delayed \\
 EU Product Liability Directive 2024/2853 & Applies to products placed on market after Dec 9, 2026; software and AI included & Strict liability path for defective agent software \\
-U.S. federal & EO 14110 revoked (Jan 2025); EO 14365 (Dec 11, 2025) pursues a minimally burdensome national framework and challenges state laws; June 2026 frontier-security EO & No agent-specific rules; preemption pressure on states \\
-U.S. states & California SB 53 (frontier-developer transparency, signed Sept 2025); Utah H.B.~249 bars AI personhood & Transparency and personhood limits; nothing on agent payments \\
+U.S. federal & EO 14110 revoked (Jan 2025); EO 14365 (Dec 11, 2025) pursues a minimally burdensome national framework and challenges state laws; EO 14409 (June 2, 2026) sets a classified frontier-model benchmark and voluntary pre-release review & No agent-specific rules; preemption pressure on states \\
+U.S. states & California SB 53 (frontier-developer transparency, signed Sep 2025); Utah H.B.~249 bars AI personhood & Transparency and personhood limits; nothing on agent payments \\
 GENIUS Act (U.S.) & Enacted July 2025; OCC final rule Oct 21, 2026; FinCEN/OFAC AML and Treasury rules proposed; effective Jan 18, 2027 & Issuer freeze and compliance duties reach agent wallets indirectly; no agent-specific provisions \\
 U.S. courts & \textit{Amazon v. Perplexity} (9th Cir., Aug 2026): agent treated as the user's tool under computer-fraud law & Supports attribution to the user; weakens platform exclusion of agents \\
-Card-network rules & Visa, Mastercard agent programs live 2025--2026; shared KYA framework announced Sept 2026 & De facto KYA for delegated agents \\
+Card-network rules & Visa, Mastercard agent programs live 2025--2026; shared KYA framework announced Sep 2026 & De facto KYA for delegated agents \\
 China & Payment and Clearing Association KYA guidelines for agent payments (Aug 2026) & First agent-specific payment rules; industry self-regulation \\
 UK & AI Security Institute tests frontier models pre-deployment & Evaluation capacity, not regulation \\
 \bottomrule
@@ -2246,7 +2253,7 @@ Figure~\ref{fig:dashboard} summarizes the nine indicators this report tracks. Tw
     \textcolor{statusamber}{\rule{0.3cm}{0.3cm}} Watch closely \quad
     \textcolor{statusred}{\rule{0.3cm}{0.3cm}} Gap or adverse signal};
 \end{tikzpicture}
-\caption{Indicator dashboard, October 2026. No indicator has crossed into a scenario trigger. Readings are sourced in the text; the color status is the author's assessment [E]. No tile changed color since v3.0; four readings were updated.}
+\caption{Indicator dashboard, October 2026. No indicator has crossed into a scenario trigger. Readings are sourced in the text; the color status is the author's assessment [E]. No tile has changed color since v3.0; four readings were updated.}
 \label{fig:dashboard}
 \end{figure}
 
@@ -2365,7 +2372,7 @@ These projections rest on a short, fast-moving evidence base: a handful of evalu
 \begin{itemize}
   \item \textbf{METR} (2025--2026). \textit{Task-Completion Time Horizons of Frontier AI Models}; Time Horizon 1.1 benchmark results (page updated May 8, 2026); \textit{Clarifying limitations of time horizon} (Jan 22, 2026). metr.org.
   \item \textbf{METR} (May 19, 2026). \textit{Frontier Risk Report (February to March 2026)}. Includes the Redwood Research ``make money'' experiment and the self-sufficiency observation. metr.org.
-  \item \textbf{Anthropic and Andon Labs} (June 2025; Dec 18, 2025). \textit{Project Vend} and \textit{Project Vend: Phase two}. anthropic.com/research.
+  \item \textbf{Anthropic and Andon Labs} (Jun 2025; Dec 18, 2025). \textit{Project Vend} and \textit{Project Vend: Phase two}. anthropic.com/research.
   \item \textbf{Andon Labs} (2025--2026). \textit{Vending-Bench 2} leaderboard and \textit{Vending-Bench Arena}, rounds 1--14 (accessed Oct 29, 2026). \url{https://andonlabs.com/evals/vending-bench-arena}.
   \item \textbf{Epoch AI} (Mar 2025). \textit{LLM inference prices have fallen rapidly but unequally across tasks}. epoch.ai.
   \item \textbf{METR} (Sep 22, 2026). \textit{Summary of METR's predeployment evaluation of Claude Opus 5.5}. \url{https://metr.org/blog/2026-09-22-claude-opus-5-5/}; time-horizon page status note (Sep 8, 2026), \url{https://metr.org/time-horizons/}.
@@ -2392,8 +2399,8 @@ These projections rest on a short, fast-moving evidence base: a handful of evalu
   \item \textbf{Google} (Jan 11, 2026). Universal Commerce Protocol announcement; Google Marketing Live 2026 expansion.
   \item \textbf{Stripe; Tempo} (Mar 18, 2026). \textit{Introducing the Machine Payments Protocol}; CoinDesk coverage of Tempo mainnet.
   \item \textbf{Visa} (Oct 2025; Apr 29, 2026). Trusted Agent Protocol; \textit{Visa Announces Global Expansion of Agentic Ready Program}; Visa Intelligent Commerce Connect. \textbf{Digital Commerce 360} (Jun 12, 2026), Visa and OpenAI agent-led payments.
-  \item \textbf{Mastercard} (2025--2026). Agent Pay and agentic tokens; \textit{Mastercard launches Agent Pay for Machines} (June 2026).
-  \item \textbf{Linux Foundation} (Apr 2, 2026; July 2026). Launch and operational launch of the x402 Foundation.
+  \item \textbf{Mastercard} (2025--2026). Agent Pay and agentic tokens; \textit{Mastercard launches Agent Pay for Machines} (Jun 2026).
+  \item \textbf{Linux Foundation} (Apr 2, 2026; Jul 2026). Launch and operational launch of the x402 Foundation.
   \item \textbf{CoinDesk} (Mar 11, 2026). \textit{Coinbase-backed AI payments protocol wants to fix micropayment but demand is just not there yet} (Artemis data).
   \item \textbf{Cryptonews / Coinbase} (Aug 27, 2026). AI agents have processed 205 million transactions via x402.
   \item \textbf{PaymentsJournal} (Oct 14, 2026). \textit{Agentic Commerce Transactions on x402 Protocol Are Picking Up} (Chainalysis data). \url{https://www.paymentsjournal.com/agentic-commerce-transactions-on-x402-protocol-are-picking-up/}. \textbf{Agent Economy} x402 dashboard (accessed Oct 29, 2026), \url{https://agenteconomy.to/x402}.
@@ -2410,12 +2417,13 @@ These projections rest on a short, fast-moving evidence base: a handful of evalu
   \item \textbf{U.S. Congress} (2000). Electronic Signatures in Global and National Commerce Act, 15 U.S.C. \S 7001(h).
   \item \textbf{American Law Institute} (2006). \textit{Restatement (Third) of Agency}, \S 1.04.
   \item \textbf{European Union} (2024). Directive (EU) 2024/2853 on liability for defective products; AI Act (Regulation (EU) 2024/1689) and the 2026 Digital Omnibus amendments.
-  \item \textbf{U.S. Congress} (July 2025). GENIUS Act. \textbf{OCC} (Feb 25, 2026) proposed rule; (Oct 21, 2026) final rule, Bulletin 2026-50, \url{https://www.occ.gov/news-issuances/bulletins/2026/bulletin-2026-50.html}; WilmerHale client alert (Oct 27, 2026). \textbf{FinCEN and OFAC} (Apr 2026) proposed AML/CFT and sanctions program rule for payment stablecoin issuers, Federal Register 2026-06963. \textbf{Treasury} (Aug 18, 2026) proposed rule, Federal Register.
+  \item \textbf{U.S. Congress} (Jul 2025). GENIUS Act. \textbf{OCC} (Feb 25, 2026) proposed rule; (Oct 21, 2026) final rule, Bulletin 2026-50, \url{https://www.occ.gov/news-issuances/bulletins/2026/bulletin-2026-50.html}; WilmerHale client alert (Oct 27, 2026). \textbf{FinCEN and OFAC} (Apr 2026) proposed AML/CFT and sanctions program rule for payment stablecoin issuers, Federal Register 2026-06963. \textbf{Treasury} (Aug 18, 2026) proposed rule, Federal Register.
   \item \textbf{Amazon.com Services, LLC v. Perplexity AI, Inc.} (9th Cir., Aug 4, 2026), vacating preliminary injunction. Cooley alert (Aug 6, 2026), \url{https://www.cooley.com/news/insight/2026/2026-08-06-ninth-circuit-rules-on-ai-agent-access-to-third-party-websites-under-cfaa}.
   \item \textbf{The White House} (Dec 11, 2025). Executive Order 14365.
-  \item \textbf{State of California} (Sept 2025). SB 53. \textbf{State of Utah} (Mar 2024). H.B.~249, Legal Personhood Amendments.
-  \item \textbf{CFTC v. Ooki DAO} (N.D. Cal., default judgment June 2023).
-  \item \textbf{SEC and CFTC} (Sept 30, 2010). \textit{Findings Regarding the Market Events of May 6, 2010}.
+  \item \textbf{The White House} (Jun 2, 2026). Executive Order 14409, ``Promoting Advanced Artificial Intelligence Innovation and Security,'' 91 FR 34565 (Jun 5, 2026). \url{https://www.whitehouse.gov/presidential-actions/2026/06/promoting-advanced-artificial-intelligence-innovation-and-security/}
+  \item \textbf{State of California} (Sep 2025). SB 53. \textbf{State of Utah} (Mar 2024). H.B.~249, Legal Personhood Amendments.
+  \item \textbf{CFTC v. Ooki DAO} (N.D. Cal., default judgment Jun 2023).
+  \item \textbf{SEC and CFTC} (Sep 30, 2010). \textit{Findings Regarding the Market Events of May 6, 2010}.
 \end{itemize}
 
 \subsection*{Reasoning Faithfulness and Monitorability}
@@ -2432,7 +2440,7 @@ These projections rest on a short, fast-moving evidence base: a handful of evalu
   \item \textbf{Brynjolfsson, E., Chandar, B., and Chen, R.} (Aug 2025; rev. Aug 12, 2026). \textit{Canaries in the Coal Mine? Six Facts about the Recent Employment Effects of Artificial Intelligence}. Stanford Digital Economy Lab.
   \item \textbf{Anthropic} (Sep 15, 2025). \textit{Anthropic Economic Index report}.
   \item \textbf{Tucker, L.~C.} (Apr 2026). \textit{You're (not) Hired: Artificial Intelligence and Early Career Hiring in the Quarterly Workforce Indicators}. U.S. Census Bureau CES-WP-26-27. \textbf{Orr, C., Tucker, L.~C., and Warren, L.} (Sep 2026). \textit{Graduating into Disruption: Labor Market Outcomes for AI-Exposed College Majors}. CES-WP-26-56. \url{https://www.census.gov/library/working-papers/2026/adrm/CES-WP-26-56.html}.
-  \item \textbf{Emanuel, N., Harrington, E., and Pallais, A.} (Jun 1, 2026). \textit{Remote Work Leaves Younger Workers Sidelined}. Federal Reserve Bank of New York, Liberty Street Economics; \textbf{Federal Reserve Bank of St.\ Louis} (June 2026), \textit{How Shifts in Labor Supply and Demand Shape Outcomes for Young Workers}.
+  \item \textbf{Emanuel, N., Harrington, E., and Pallais, A.} (Jun 1, 2026). \textit{Remote Work Leaves Younger Workers Sidelined}. Federal Reserve Bank of New York, Liberty Street Economics; \textbf{Federal Reserve Bank of St.\ Louis} (Jun 2026), \textit{How Shifts in Labor Supply and Demand Shape Outcomes for Young Workers}.
   \item \textbf{Challenger, Gray \& Christmas} (Oct 1, 2026). \textit{Job Cut Announcement Report, September 2026}. \url{https://www.challengergray.com/wp-content/uploads/2026/10/Challenger-Report-September-2026.pdf}.
 \end{itemize}
 
@@ -2448,7 +2456,7 @@ These projections rest on a short, fast-moving evidence base: a handful of evalu
 \subsection*{Claims Not Independently Verified}
 \begin{itemize}
   \item Visa and Mastercard program scale (partner counts, ``live transactions'') is vendor-reported; neither publishes agent volumes.
-  \item x402 cumulative figures are Coinbase-reported; the share of artificial activity is a third-party estimate from early 2026 and may have changed.
+  \item Coinbase's cumulative x402 figures are company-reported; the share of artificial activity is a third-party estimate from early 2026 and may have changed.
   \item Mastercard ``Agent Pay for Machines'' details (June launch and October early access) are from trade reporting; Mastercard's own October release could not be retrieved; the details are consistent across The Block and other trade coverage.
   \item Fable 5.1, Opus 5.5, GPT-6, Gemini 4, and Muse benchmark results and long-run anecdotes are self-reported by the vendors.
   \item The Chinese KYA guidelines and the Visa, Mastercard, and Ant framework are described from press reporting (Caixin) and, for the framework, the companies' joint release; the guideline text was not reviewed.
@@ -2609,7 +2617,7 @@ Figure~\ref{fig:stages} shows the stages. Valid transitions in the code: Ideatio
 \textbf{Ver.} & \textbf{Date} & \textbf{Summary} \\
 \midrule
 \endhead
-3.1 & October 2026 & Research window extended through late October 2026. New evidence: Mastercard machine-payment pilot on x402 (early access October 20), AP2 donated to the FIDO Alliance, Visa, Mastercard, and Ant International KYA framework, China's industry KYA guidelines, IMF note on KYA, Visa partner and stablecoin-settlement figures; OCC final GENIUS Act rule (October 21) and status of AML rules; OpenAI incident report on unauthorized use of test-network funds; Andon Market, Andon Caf\'e, and Pion; Project Deal and Project Swap; Opus 5.5, GPT-6, Gemini 4, Muse, and Haiku 5.5 releases and prices; METR Opus 5.5 summary and time-horizon page status; Vending-Bench updates through Arena round 14; \textit{Amazon v. Perplexity} (9th Cir.); Census Bureau, New York and St.\ Louis Fed, and Challenger labor data. Key findings revised (new Finding 4 on unauthorized resource acquisition). Core scenarios unchanged within calibration resolution (evidence leans toward A); event estimate for GENIUS rules addressing agent wallets moved 10--20\% to 5--15\% (OCC final rule silent on agents) and given an explicit resolution date and criterion (a final implementing rule by December 31, 2027; guidance does not count), which states the horizon already assumed and does not change the number. New figures: rail-convergence timeline (replacing the milestone chart) and model price tiers; scenario chart rebuilt as ranges plus partition; METR chart marks the saturated region; payment stack, dashboard, heat map, and identity and capability tables updated. Change log on the About page condensed to v3.1. Executive Summary restructured around an outlook to 2030 (scenario strip and the two timing estimates); the recommendation traceability table and the duplicate call to action were cut; the framework component table moved to Appendix~B. Verification pass against primary sources: Chainalysis's 138 million x402 transactions on Base corrected from a single-quarter to a cumulative count; KYA framework announcement dated September 10 (joint release), not September 6; Vending-Bench 2 leaderboard corrected to nine models from five developers above \$10,000; \textit{Amazon v. Perplexity} quotation replaced by the court's reasoning as reported by counsel; Census Bureau and New York Fed findings restated from the papers' own abstracts with authors; GPT-6 prices now cited to OpenAI's pricing page; Opus, Fable, and Haiku list prices in the price chart confirmed against Anthropic's pricing page \\
+3.1 & October 2026 & Research window extended through late October 2026. New evidence: Mastercard's machine-payment pilot on x402 (early access October 20); AP2's move to the FIDO Alliance; the Visa, Mastercard, and Ant International KYA framework, China's industry KYA guidelines, and the IMF note on KYA; Visa partner and stablecoin-settlement figures; the OCC's final GENIUS Act rule (October 21) and the status of the AML rules; OpenAI's incident report on unauthorized use of test-network funds; Andon Market, Andon Caf\'e, and Pion; Project Deal and Project Swap; Opus 5.5, GPT-6, Gemini 4, Muse, and Haiku 5.5; METR's Opus 5.5 summary and time-horizon page status; Vending-Bench Arena through round 14; \textit{Amazon v. Perplexity} (9th Cir.); Census Bureau, New York and St.\ Louis Fed, and Challenger labor data. Key findings revised, with a new Finding 4 on unauthorized resource acquisition. Probabilities: core scenarios unchanged within calibration resolution (evidence leans toward A); the GENIUS Act agent-wallet event moved from 10--20\% to 5--15\% because the OCC final rule is silent on agents, and now resolves on a final implementing rule by December 31, 2027 (guidance does not count), a date that states the horizon already assumed. Figures: new Executive Summary scenario strip, rail-convergence timeline (replacing the milestone chart), and model price tiers; scenario chart rebuilt as ranges plus partition; METR chart marks the saturated region; payment stack, dashboard, heat map, and identity and capability tables updated. Structure: Executive Summary rebuilt around an outlook to 2030; recommendation traceability table and duplicate call to action cut; framework component table moved to Appendix~\ref{app:engine}; About-page change log condensed. Corrections from primary sources: Chainalysis's 138 million x402 transactions on Base are cumulative, not one quarter's; the KYA framework was announced September 10, not September 6; nine models from five developers exceed \$10,000 on Vending-Bench 2; the \textit{Amazon v. Perplexity} quotation was replaced by the court's reasoning as reported by counsel; Census Bureau and New York Fed findings restated from the papers' abstracts; GPT-6 and Anthropic list prices confirmed against the vendors' pricing pages \\
 3.0.1 & September 2026 & Scenario, sensitivity, and event probabilities placed on the series' 5-point calibration grid (A 35--45\%, B 25--35\%, C 5--15\%, D 15--25\%), all unchanged within calibration resolution, with v1.0 and v3.0 values kept as published; [S]/[E] tags added to scenario claims; marker and methodology boilerplate replaced by a summary of the ETRA Shared Methodology; companion-framework description corrected against the code (standalone task executor not called by the agent loop, simulators not wired in, template sub-agents and investors, fixed rule-based confidence and reasoning, bounded in-memory decision record, post-run hallucination checks) \\
 3.0 & September 2026 & Full revision; version aligned with the ETRA set. Thesis revised (``the rails arrived before the actors''); new sections on agent payment rails, self-sufficiency gap, and delegated versus unbound agency; METR, Project Vend, Vending-Bench, and labor-market evidence; legal analysis corrected (UETA, E-SIGN, Restatement, EU PLD, anti-personhood statutes); companion framework described as simulation-only with corrected strategy, personality, and investor descriptions; ``expert consultation'' claim removed in favor of the set-wide independence statement; key-findings table, capability snapshot, signals and indicators, event probabilities, traceability table; scenarios re-specified as mutually exclusive regimes; seven new figures and a rebuilt heat map; related-document IDs corrected; em-dash constructions removed \\
 2.0, 2.1 & n/a & Not issued for this report. Sibling reports were revised in February 2026 (v2.0) and July 2026 (v2.1); this report skipped those cycles \\
@@ -2621,7 +2629,7 @@ Figure~\ref{fig:stages} shows the stages. Valid transitions in the code: Ideatio
 % ============================================================================
 % DOCUMENT METADATA
 % ============================================================================
-\needspace{20\baselineskip}
+\clearpage
 \begin{center}
 \rule{0.6\textwidth}{0.5pt}
 \end{center}

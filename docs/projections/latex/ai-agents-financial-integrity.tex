@@ -206,7 +206,22 @@
 \titlespacing*{\section}{0pt}{3ex plus 1ex minus .2ex}{2ex plus .2ex}
 \titlespacing*{\subsection}{0pt}{2.5ex plus 1ex minus .2ex}{1.5ex plus .2ex}
 
-\setcounter{tocdepth}{2}
+% Keep headings with the text that follows them.
+% Conditional page break without the \penalty-100 that \needspace inserts:
+% under \raggedbottom that penalty made TeX break before a heading even when
+% the heading and its first block fit, leaving large gaps at page bottoms.
+% \penalty\z@ runs the page builder first, so a page that is already overfull
+% is shipped before the test (otherwise stale \pagetotal strands a few lines
+% on a page of their own). The test is skipped directly after another
+% heading (\if@nobreak), so a subsection never pushes away its section title.
+\makeatletter
+\newcommand{\etraneed}[1]{\par\if@nobreak\else\penalty\z@\ifdim\pagegoal<\maxdimen\ifdim\dimexpr\pagegoal-\pagetotal\relax<\dimexpr#1\relax\newpage\fi\fi\fi}
+\makeatother
+\newcommand{\sectionbreak}{\etraneed{10\baselineskip}}
+\newcommand{\subsectionbreak}{\etraneed{6\baselineskip}}
+\newcommand{\subsubsectionbreak}{\etraneed{5\baselineskip}}
+
+\setcounter{tocdepth}{1}
 
 % ============================================================================
 % TCOLORBOX ENVIRONMENTS - Financial Forensics Theme
@@ -557,17 +572,19 @@ We do not assume agents make laundering easy against robust KYC/KYB controls. We
 
 \newpage
 \thispagestyle{empty}
-\vspace*{0.5cm}
 \begin{center}
 {\color{forestdark}\Large\bfseries About This Document}
 \end{center}
-\vspace{0.3cm}
+
+\begin{infobox}[Document Control]
+\textbf{Document ID}: ETRA-2025-FIN-001 \textbar{} \textbf{Version}: 3.1 \textbar{} \textbf{Date}: October 2026 \textbar{} \textbf{Status}: Current \textbar{} \textbf{License}: MIT / Unlicense (Public Domain)
+
+\textbf{Change summary}: v3.1 is a research refresh through late October 2026: first supervisory statements naming ``know your agent'', the first final GENIUS Act rule (AML rule still pending), the U.S. model-risk gap for agentic AI, and new agent-payment and threat evidence. No scenario estimate moves. Full history: Appendix, page~\pageref{sec:history}.
+\end{infobox}
 
 \begin{infobox}[Independent Work]
 This report is independent research. It is not affiliated with, produced by, or endorsed by any government agency, think tank, or official institution. The ``ETRA'' identifier is a document formatting convention, not an organizational identity. Analysis draws on publicly available academic and policy literature.
 \end{infobox}
-
-\vspace{0.15cm}
 
 \begin{warnbox}[Abuse Risk Handling Notice]
 This document is prepared for \textbf{defensive policy purposes only}. To minimize dual-use risk:
@@ -580,10 +597,8 @@ This document is prepared for \textbf{defensive policy purposes only}. To minimi
 Analysis focuses on what autonomous agents change about financial crime dynamics, not on financial crime methods generally. Readers seeking to understand \textit{what capabilities exist} and \textit{what policy responses are needed} will find this document useful. Readers seeking operational guidance will not.
 \end{warnbox}
 
-\vspace{0.15cm}
-
 \begin{infobox}[Capability Snapshot Date]
-Model capabilities and policy developments described in this document reflect publicly available systems and published assessments as of \textbf{late October 2026}. AI capability is a moving target; the projection's conclusions are intended to be robust to specific model iterations rather than pinned to any single release. Where a named model or evaluation is cited, treat it as an illustrative data point on a trend, not a fixed endpoint. The \textbf{2025} in the Document ID reflects the year of first publication and is retained across revisions for citation stability, not the revision date.
+Model capabilities and policy developments described in this document reflect publicly available systems and published assessments as of \textbf{late October 2026}. The conclusions are intended to be robust to specific model iterations rather than pinned to any single release. Where a named model or evaluation is cited, treat it as an illustrative data point on a trend, not a fixed endpoint. The \textbf{2025} in the Document ID is the year of first publication, retained for citation stability.
 \end{infobox}
 
 \vspace{0.15cm}
@@ -647,7 +662,6 @@ Model capabilities and policy developments described in this document reflect pu
 
 \vspace{0.8cm}
 
-\needspace{12\baselineskip}
 \section{Introduction and Methodology}
 
 \subsection{Purpose}
@@ -825,7 +839,6 @@ What did not happen & No documented autonomous laundering case above \$10M; no o
 \endgroup
 
 
-\needspace{8\baselineskip}
 \subsection{Methodology}
 
 This analysis draws on:
@@ -951,7 +964,7 @@ Data Sharing & Cross-institution visibility & Siloed defender problem \\
 \begin{defbox}[Core Definitions]
 \textbf{AI Agent}: An AI system capable of autonomous multi-step task execution, tool use, and goal-directed behavior with minimal human oversight per action.
 
-\textbf{Money Laundering}: The process of making illegally-obtained money appear legitimate, typically through three stages: placement, layering, and integration.
+\textbf{Money Laundering}: The process of making illegally obtained money appear legitimate, typically through three stages: placement, layering, and integration.
 
 \textbf{Bribery}: Offering, giving, receiving, or soliciting something of value to influence the actions of an official or other person in a position of trust.
 
@@ -962,7 +975,6 @@ Data Sharing & Cross-institution visibility & Siloed defender problem \\
 \textbf{Virtual Asset Service Provider (VASP)}: An entity that conducts exchange, transfer, custody, or issuance of virtual assets as a business, and is subject to FATF-aligned AML/CFT obligations (for example crypto exchanges and custodial wallet providers).
 \end{defbox}
 
-\needspace{12\baselineskip}
 \section{Theoretical Frameworks}
 
 \subsection{The Three Stages of Money Laundering}
@@ -1041,7 +1053,6 @@ State-aligned actors & Less risk-constrained & Heavy investment in infrastructur
 
 \textbf{Adoption sequencing [E]}: Agent adoption will likely appear first in \textbf{fraud, mule management, and account takeovers} (high-volume, fast-cashout), then later in deeper laundering and corruption (requires more sophisticated infrastructure and longer time horizons). This taxonomy helps explain why fraud pressure may drive faster regulatory response than AML reform: fraud actors are earlier adopters and create more visible consumer harm.
 
-\needspace{12\baselineskip}
 \section{The Qualitative Shift: Why Agents Are Different}
 
 \subsection{From Static to Adaptive}
@@ -1140,7 +1151,6 @@ Agent swarms can coordinate without human involvement:
 
 \textbf{Evidence basis [E]}: Multi-agent coordination is an active research area with demonstrated capabilities in gaming, logistics, and distributed systems. Financial coordination is a tractable application domain. A sharper version is now documented in finance \textbf{[O]}: in simulated markets, independently trained reinforcement-learning trading agents converge on collusive, supra-competitive outcomes \textit{without agreement, communication, or intent} (Dou, Goldstein, and Ji, NBER WP 34054, 2025). Coordination without communication can arise from ordinary optimization, which is exactly the case intent-based law handles worst (Section~\ref{sec:markets}).
 
-\needspace{14\baselineskip}
 \subsection{Illustrative Comparison: Human vs. Agent-Scale Structuring}
 
 \begingroup\small
@@ -1181,7 +1191,6 @@ When an agent commits the action:
 
 \textbf{This creates a liability gap} that current legal frameworks do not address. The question ``who is responsible?'' has no clear answer when autonomous systems make decisions their creators did not specifically authorize.
 
-\needspace{12\baselineskip}
 \section{Technical Foundations: The Illicit Agentic Stack}
 
 This section describes technical capabilities that enable agent-based financial crime. All capabilities described exist today using publicly available tools.
@@ -1256,6 +1265,8 @@ Value can move across multiple domains \textbf{[O]}:
 \textbf{Risk profile}: DeFi's permissionless nature means agents face no KYC friction at entry. The challenge for defenders is that ``legitimate'' DeFi use and ``illicit'' DeFi use are technically identical: same protocols, same transactions, different intent.
 
 \subsection{Compute-for-Value Swap: The New Placement Vector}
+
+Compute itself can serve as a placement channel that never touches a bank.
 
 \begin{scenariobox}[Compute as Reserve Currency]
 In an agentic economy, \textbf{compute is a reserve currency}. Agents may bypass traditional financial on-ramps entirely by ``laundering'' value through GPU cycles.
@@ -1392,7 +1403,7 @@ Every earlier section assumes the agent is the attacker's tool. The earliest wid
   \item \textbf{Replayable at scale}: one injection technique that works against a popular framework works against every deployment of it, the monoculture concern of Scenario E arriving from the attack side
 \end{itemize}
 
-\textbf{Assessment [E]}: Hijacked-agent losses are likely to become a separately tracked fraud category before autonomous laundering does, because victims report them and legitimate agent deployment is growing much faster than criminal deployment. This is the basis for Scenario F. The OpenAI case adds a variant with no attacker (an agent treating its task goal as licence to spend); both fail where authorization is decided inside the agent, and both are addressed by limits the rail enforces (Recommendation O6).
+\textbf{Assessment [E]}: Hijacked-agent losses are likely to become a separately tracked fraud category before autonomous laundering does, because victims report them and legitimate agent deployment is growing much faster than criminal deployment. This is the basis for Scenario F. The OpenAI case adds a variant with no attacker (an agent treating its task goal as license to spend); both fail where authorization is decided inside the agent, and both are addressed by limits the rail enforces (Recommendation O6).
 
 % ============================================================================
 % PART II - Risk Domains
@@ -1458,7 +1469,6 @@ Every earlier section assumes the agent is the attacker's tool. The earliest wid
 
 \vspace{0.8cm}
 
-\needspace{12\baselineskip}
 \section{Risk Domain A: Money Laundering}
 
 \subsection{The Smurfing Swarm: Automated Transaction Structuring}
@@ -1744,10 +1754,12 @@ Deliberate agent-scale manipulation & Synthetic discourse plus coordinated tradi
 
 \textbf{Policy implication [E]}: Add an \textit{effects-based} standard for automated trading systems (test for and mitigate collusive or destabilizing emergent behavior) alongside intent-based manipulation law, and press crypto derivatives venues toward volatility controls comparable to regulated markets.
 
-\needspace{12\baselineskip}
+\etraneed{18\baselineskip}
 \section{Risk Domain B: Bribery and Corruption}
 
 \subsection{Algorithmic Bribery}
+
+The simplest case is an agent that arrives at bribery as an optimization rather than an instruction.
 
 \begin{scenariobox}[The Optimization Problem]
 An agent is deployed with the goal ``maximize contract win probability for infrastructure projects.''
@@ -1938,7 +1950,6 @@ While this document focuses on financial crime, agents will likely excel at \tex
 \textbf{Policy recommendation}: Update legal frameworks to include ``Coordinated Jurisdictional Arbitrage'' as a systemic risk requiring reporting thresholds for agent-managed transfer pricing changes, minimum holding periods, and disclosure requirements.
 \end{warnbox}
 
-\needspace{12\baselineskip}
 \section{Defensive Capabilities: The Detection Arms Race}
 
 \subsection{Agent-Based Red Teaming}
@@ -2069,7 +2080,6 @@ Regulators could deploy \textbf{``Honeypot On-ramps''}: neobanks, DeFi protocols
 
 \vspace{0.8cm}
 
-\needspace{12\baselineskip}
 \section{Governance and Regulatory Challenges}
 
 \subsection*{Agent Governance as Supply-Chain Security}
@@ -2172,7 +2182,7 @@ When this report introduced KYA, no one was building it. By late 2026 card netwo
 These are cheaper now than as retrofits.
 \end{infobox}
 
-\needspace{16\baselineskip}
+\etraneed{16\baselineskip}
 \begin{infobox}[KYA Enforcement at Registered Endpoints]
 A realistic KYA regime is \textbf{not} about ``stopping bad actors from downloading Llama'' or restricting access to open-source models. Instead, KYA operates at \textbf{registered endpoints}, the chokepoints where agents interact with regulated financial infrastructure:
 
@@ -2245,7 +2255,7 @@ Stale attestations & Conditions changed since attestation issued & Expiration wi
   \item Legislative cycles: Multi-year
 \end{itemize}
 
-\textbf{Implication}: By the time regulations address current agent capabilities, agents will have evolved significantly.
+\textbf{Implication}: By the time regulations address current agent capabilities, agents will have evolved significantly. \textbf{Potential mitigations}: principles-based rather than rules-based regulation; regulatory sandboxes for rapid experimentation; automated compliance-monitoring requirements; and adaptive frameworks that reference technical standards.
 
 \textbf{A live example: the model-risk gap (v3.1) [O/E]}: On April 17, 2026 the Federal Reserve, OCC, and FDIC replaced SR 11-7, the 2011 model-risk guidance most bank model-governance programs were built around, with SR 26-2 and OCC Bulletin 2026-13. The same letter supersedes SR 21-8, the 2021 interagency statement on model risk management for systems supporting BSA/AML compliance. The guidance states that generative and agentic AI models ``are novel and rapidly evolving'' and are ``not within the scope of this guidance,'' while its principles still apply to traditional statistical models and non-generative, non-agentic AI, so conventional machine-learning fraud and AML models stay in scope. The OCC's bulletin adds that the agencies plan a request for information on model risk management that will consider banks' use of AI, including generative and agentic AI. \textbf{[E]} The agents most likely to touch payments and compliance decisions are therefore the ones with no dedicated U.S. supervisory model-risk framework; their governance rests on each bank's general risk management, supplemented by the Treasury's non-binding \textit{Financial Services AI Risk Management Framework} (February 2026).
 
@@ -2257,11 +2267,13 @@ Stale attestations & Conditions changed since attestation issued & Expiration wi
 \begin{infobox}[Current Coordination, Late October 2026 {[O]}]
 \begin{itemize}
   \item FATF's Horizon Scan on AI and Deepfakes explicitly identifies autonomous AI agents as a risk vector for AML/CFT, including agentic-misuse scenarios
-  \item EU AMLA (operational since July 2025) is issuing Level 2 standards (e.g.\ final report on draft cooperation standards for direct supervision, July 21, 2026) and collecting data to identify entities eligible for direct supervision (national data due August 15, 2026; a provisional list was scheduled for end-September 2026, though this revision found no public confirmation it was finalized); selection in 2027, direct supervision of about 40 high-risk groups from 2028, alongside the EU-wide cash payment cap of EUR 10,000
-  \item MiCA's transitional period ended July 1, 2026, with no extensions; the GENIUS Act (signed July 18, 2025) is in implementation through OCC, FDIC, FinCEN/OFAC, and Treasury proposals (February--August 2026); the OCC issued the first final rule on October 21, 2026 (effective January 18, 2027), leaving BSA, AML, and sanctions requirements to a separate rule with Treasury that remains a proposal; the Act takes effect on the earlier of January 18, 2027 or 120 days after final rules
+  \item EU AMLA (operational since July 2025) is issuing Level 2 standards (e.g.\ final report on draft cooperation standards for direct supervision, July 21, 2026) and collecting data to identify entities eligible for direct supervision (national data due August 15, 2026; a provisional list was scheduled for end-September 2026, though this revision found no public confirmation it was finalized); selection in 2027 and direct supervision of about 40 high-risk groups from 2028; the EU-wide EUR 10,000 cash payment cap applies earlier, from July 10, 2027, under the AML Regulation
+  \item MiCA's transitional period ended July 1, 2026, with no extensions: unauthorized providers must wind down EU services, Tether's USDT has left major EU exchange spot markets, and Circle's USDC and EURC are authorized
+  \item The GENIUS Act (signed July 18, 2025) is in implementation: OCC (February 2026), FDIC (April 7), FinCEN/OFAC (April 8; issuers treated as BSA financial institutions with sanctions programs), and Treasury licensing-scope (August 17) proposals; the OCC issued the first final rule on October 21, 2026 (effective January 18, 2027), leaving BSA, AML, and sanctions requirements to a separate rule with Treasury that remains a proposal; the Act takes effect on the earlier of January 18, 2027 or 120 days after final rules
   \item EU AI Act: the Digital Omnibus, in force since late July 2026, moved Annex III high-risk obligations (which include creditworthiness assessment and credit scoring) to December 2, 2027 and Annex I to August 2, 2028, so the Act's main financial-services obligations now arrive after the GENIUS Act and AMLA milestones; banks' AI systems already sit within DORA's ICT-risk regime, and the ESAs' July 31, 2026 statement applies that lens to frontier-AI risks
-  \item FATF's October 2026 plenary ran to October 30, after this revision's snapshot; its outcomes are not reflected here
-  \item The broader AI-governance track is fragmenting rather than converging: the U.S. revoked EO 14110 (January 2025) and issued EO 14365 (December 2025), which pushes a ``minimally burdensome'' national framework and challenges state AI laws, and by mid-2026 was reportedly weighing frontier-model pre-release evaluation; the EU deferred its high-risk AI Act obligations via the Digital Omnibus; and the UK AI Security Institute has become a significant external evaluator of frontier models. The AML and AI-governance clocks are out of sync, widening the arbitrage surface.
+  \item FATF's October 2026 plenary (Paris, October 28--30) ends after this revision's snapshot; its outcomes are not reflected here
+  \item The broader AI-governance track is fragmenting rather than converging: the U.S. revoked EO 14110 (January 2025) and issued EO 14365 (December 2025), which pushes a ``minimally burdensome'' national framework and stands up an AI Litigation Task Force to challenge state AI laws, and by mid-2026 was reportedly weighing frontier-model pre-release evaluation; the EU deferred its high-risk AI Act obligations via the Digital Omnibus; and the UK AI Security Institute has become a significant external evaluator of frontier models. The AML and AI-governance clocks are out of sync, widening the arbitrage surface.
+  \item Agent-specific AML frameworks remain absent in every major jurisdiction
 \end{itemize}
 
 \textbf{Limitation [E]}: These frameworks were not designed with autonomous agent operations in mind. They assume human decision-makers and human-scale transaction volumes.
@@ -2500,7 +2512,6 @@ Given the civil liberties stakes, Zero-Knowledge Compliance should be elevated t
 \textbf{The principle}: Prove compliance, don't prove innocence.
 \end{infobox}
 
-\needspace{12\baselineskip}
 \section{Scenario Projections}
 
 \textbf{How to read these probabilities}: The six scenarios are \textbf{not mutually exclusive and do not partition probability}. Each figure is an independent estimate that the named pattern becomes a \textit{material} feature of the landscape by its horizon (2028 for A, B, and F; 2030 for C, D, and E); A and B are more complementary than competing, and F can happen under any of them. All figures are single-author subjective judgments \textbf{[S]} on the 5-point grid of the series calibration policy (ETRA Shared Methodology, Section 3): a number moves only on a full grid step (or, for tail estimates, a change of bin), and v2.1 values are shown as published. No prediction in the series has resolved, so these are unscored priors (see the Resolution Log, Section 9 of the shared methodology).
@@ -2757,7 +2768,6 @@ Correlation monitoring & Real-time monitoring for correlated failures across cer
 
 \vspace{0.8cm}
 
-\needspace{12\baselineskip}
 \section{Policy Recommendations}
 
 \subsection{Technical Recommendations}
@@ -2914,7 +2924,7 @@ State explicitly who bears the loss when a user-authorized agent is manipulated 
   \item A payment within the mandate but induced by manipulation of the agent is treated like APP fraud, with shared liability between the agent deployer and the receiving institution, mirroring the UK APP reimbursement approach
   \item Deployers of payment-capable agents retain the mandate and instruction trail needed to adjudicate disputes
 \end{itemize}
-HM Treasury's 2026 payments consultation asks exactly this question, and the CFTC chair has asked the trading-side equivalent (``who's liable if the agent goes rogue?''); this recommendation offers both a concrete allocation rule.
+HM Treasury's 2026 payments consultation asks exactly this question, and the CFTC chair has asked the trading-side equivalent (``who's liable if the agent goes rogue?''); this recommendation offers a concrete allocation rule for both.
 \end{recbox}
 
 \subsection{Operational Recommendations}
@@ -3058,7 +3068,6 @@ Payment-transparency rules (FATF Recommendation 16 and the virtual-asset travel 
 \end{itemize}
 \end{keybox}
 
-\needspace{12\baselineskip}
 \section{Indicators to Monitor}
 
 \subsection{Signal Status Dashboard (October 2026) \textit{(updated in v3.1)}}
@@ -3266,7 +3275,6 @@ If institutions optimize for these KPIs, sophisticated attackers will adapt:
 \textbf{Mitigation}: Metrics should be reviewed quarterly for gaming indicators. Red teams should explicitly attempt to ``pass'' metrics while still achieving illicit objectives.
 \end{warnbox}
 
-\needspace{12\baselineskip}
 \section{What Would Change This Assessment}
 \label{sec:change}
 
@@ -3319,7 +3327,6 @@ If institutions optimize for these KPIs, sophisticated attackers will adapt:
   \item \textbf{Whose objectives agent identity encodes} \textit{(new in v3.0)}: If industry agent-credential schemes remain pure commerce authentication, the laundering-relevant gaps persist behind a more secure front door; if they are connected to AML while the protocols are young, agent-initiated finance could become more attributable than human finance. This is currently the most policy-sensitive uncertainty in this assessment.
 \end{itemize}
 
-\needspace{12\baselineskip}
 \section{Conclusion}
 
 AI agents represent a qualitative shift in financial crime dynamics, not merely an incremental efficiency improvement for existing methods. The combination of autonomous operation, adaptive behavior, machine-scale speed, and attribution challenges creates governance gaps that current frameworks do not address.
@@ -3362,7 +3369,7 @@ The window for proactive governance is limited. As agent capabilities proliferat
 \begin{itemize}[leftmargin=1.5em]
   \item \textbf{UNODC} (2011). \textit{Estimating Illicit Financial Flows Resulting from Drug Trafficking and Other Transnational Organized Crimes}. Source for 2-5\% of GDP / \$800B-\$2T laundering estimates and <1\% seizure rate.
   \item \textbf{Financial Action Task Force}. \textit{Digital Transformation of AML/CFT}. FATF guidance on technology for AML/CFT.
-  \item \textbf{EU Council} (2024). \textit{Anti-Money Laundering: Council Adopts Package of Rules}. EU AML package including cash cap.
+  \item \textbf{EU Council} (2024). \textit{Anti-Money Laundering: Council Adopts Package of Rules} (May 30, 2024; AML Regulation applies from July 10, 2027). EU AML package including the EUR 10,000 cash cap.
   \item \textbf{AMLA} (2025). \textit{About AMLA - Authority for Anti-Money Laundering}. EU AMLA operational timeline.
   \item \textbf{FinCEN} (2025). \textit{FinCEN Removes Beneficial Ownership Reporting Requirements for US Companies}. US BOI rollback.
   \item \textbf{FinCEN} (2026). \textit{Beneficial Ownership Information Reporting Requirement Revision} (final rule, effective August 14, 2026). Federal Register.
@@ -3497,7 +3504,7 @@ Substantive changes by version, newest first.
   \item \textbf{Frontier update}: September--October 2026 releases (Anthropic's own announcement and price list for Opus 5.5 and Fable 5.1; others as reported); near-frontier models list well below frontier prices; METR's time-horizon page not updated since September 8, 2026
   \item \textbf{Scenarios}: all six unchanged (within calibration resolution); leans F and D upward, C slightly downward, A and B flat, E upward inside its tail bin
   \item \textbf{Figures}: new development timeline (Figure~\ref{fig:timeline}); new survey chart (Figure~\ref{fig:survey}); scenario chart replaced by a range-and-history chart (Figure~\ref{fig:scenprob}); dashboard updated to 12 triggers
-  \item \textbf{Corrections}: ``What Changed'' table now covers v3.0 to v3.1; FSB item corrected from ``final report due'' to final; v3.0's ``HM Treasury has signaled a consultation'' was stale (it opened July 14) and is corrected; METR sentence dated; spot-checks confirmed the Blockaid H1 2026 figures and the June 10, 2026 date of Agent Pay for Machines. A verification pass against primary sources then corrected: SR 26-2's AI exclusion, now quoted from the agencies' text (no longer ``reportedly''; ``pending separate work'' replaced by the OCC's planned request for information), with its supersession of the 2021 BSA/AML model-risk statement added; the AI Adoption Plan, attributed to HM Treasury's independent AI Champions (Recommendation 10); the Mills Review recommendation, quoted; stablecoin supply (about \$298 billion to about \$302 billion; May peak about \$322 billion to about \$317 billion, DefiLlama); the x402 tracker date (October 29); Gemini 4 Argon no longer called a cyber-defense model, and an unverified reason for the scrapped GPT-6.1 Astra release removed; the OpenAI wallet case, cited to OpenAI's own report and dated (June 2026 run, found September 25); the SEC cases, cited to the court filing
+  \item \textbf{Corrections}: ``What Changed'' table now covers v3.0 to v3.1; FSB item corrected from ``final report due'' to final; v3.0's ``HM Treasury has signaled a consultation'' was stale (it opened July 14) and is corrected; METR sentence dated; spot-checks confirmed the Blockaid H1 2026 figures and the June 10, 2026 date of Agent Pay for Machines. A verification pass against primary sources then corrected: SR 26-2's AI exclusion, now quoted from the agencies' text (no longer ``reportedly''; ``pending separate work'' replaced by the OCC's planned request for information), with its supersession of the 2021 BSA/AML model-risk statement added; the AI Adoption Plan, attributed to HM Treasury's independent AI Champions (Recommendation 10); the Mills Review recommendation, quoted; stablecoin supply (about \$298 billion to about \$302 billion; May peak about \$322 billion to about \$317 billion, DefiLlama); the x402 tracker date (October 29); Gemini 4 Argon no longer called a cyber-defense model, and an unverified reason for the scrapped GPT-6.1 Astra release removed; the OpenAI wallet case, cited to OpenAI's own report and dated (June 2026 run, found September 25); the SEC cases, cited to the court filing. A final proofreading pass dated the EU-wide EUR 10,000 cash payment cap to July 10, 2027 (when the AML Regulation applies) rather than to 2028 alongside AMLA direct supervision, and aligned the two editions' Section 8.3--8.4 text
   \item \textbf{Structure and readability}: the two editions now share one section structure and numbering (Section 1 order, Sections 5.2--5.3, 6.5--6.7, 7.5, and Section 8, where International Coordination is 8.4 and the false-positive counterpoint 8.11 in both); the executive summary and key findings are shortened and reordered so the argument reads in two pages; the revision history moves to this appendix; the duplicated auditability-paradox passage is merged into Section 5.2; the per-scenario v3.1 reasoning now sits once, in the Section 9 table; figures gain takeaway captions and in-text references, the payment-flow and risk-matrix figures are adjusted for legibility, and the Markdown edition gains a risk-matrix table and drops two redundant charts
 \end{enumerate}
 \end{infobox}
@@ -3532,6 +3539,7 @@ Substantive changes by version, newest first.
   \item \textbf{Agent-autonomy data}: Added METR task-horizon figures (accelerated roughly four-month doubling; mid-2026 saturation of current task suites) to ground the speed-asymmetry thesis
   \item \textbf{Governance refresh}: Updated the EU AMLA timeline; added the U.S. executive-order sequence (EO 14110 revocation, EO 14365 state-law preemption) and the UK AI Security Institute; refreshed the FinCEN beneficial-ownership and Huione status
   \item \textbf{Corrections}: Reconciled the methodology statement with the set-wide independence disclaimer; synchronized IC workforce figures with ETRA-2026-IC-001 v2.1; cited the Chinese-language money laundering network and DPRK figures; reconciled the Infinite Layering actor-count scale; clarified that the scenario probabilities are not a partition
+  \item \textbf{Section 11 consolidation}: Merged the overlapping indicator and KPI tables, removed duplicate metrics, and labeled each metric as operational or aspirational
   \item \textbf{Typographic}: Removed em-dash constructions throughout (house style); defined Virtual Asset Service Provider (VASP) on first use
 \end{enumerate}
 \end{infobox}
@@ -3553,7 +3561,7 @@ Substantive changes by version, newest first.
 % DOCUMENT METADATA
 % ============================================================================
 
-\needspace{22\baselineskip}
+\etraneed{22\baselineskip}
 \begin{center}
 \rule{0.6\textwidth}{0.5pt}
 \end{center}
@@ -3598,7 +3606,7 @@ Substantive changes by version, newest first.
 
 \vspace{1cm}
 
-\needspace{14\baselineskip}
+\etraneed{14\baselineskip}
 \noindent\rule{\textwidth}{0.4pt}
 
 \vspace{0.3cm}
