@@ -55,17 +55,12 @@ impl MmdsCredentialsProvider {
 
         debug!(url = %role_url, "Fetching IAM role name from MMDS");
 
-        let role_response = self
-            .client
-            .get(&role_url)
-            .send()
-            .await
-            .map_err(|e| {
-                provider::error::CredentialsError::provider_error(format!(
-                    "Failed to fetch role name from MMDS: {}",
-                    e
-                ))
-            })?;
+        let role_response = self.client.get(&role_url).send().await.map_err(|e| {
+            provider::error::CredentialsError::provider_error(format!(
+                "Failed to fetch role name from MMDS: {}",
+                e
+            ))
+        })?;
 
         if !role_response.status().is_success() {
             return Err(provider::error::CredentialsError::provider_error(format!(
@@ -92,17 +87,12 @@ impl MmdsCredentialsProvider {
 
         debug!(url = %creds_url, "Fetching credentials from MMDS");
 
-        let creds_response = self
-            .client
-            .get(&creds_url)
-            .send()
-            .await
-            .map_err(|e| {
-                provider::error::CredentialsError::provider_error(format!(
-                    "Failed to fetch credentials from MMDS: {}",
-                    e
-                ))
-            })?;
+        let creds_response = self.client.get(&creds_url).send().await.map_err(|e| {
+            provider::error::CredentialsError::provider_error(format!(
+                "Failed to fetch credentials from MMDS: {}",
+                e
+            ))
+        })?;
 
         if !creds_response.status().is_success() {
             return Err(provider::error::CredentialsError::provider_error(format!(
@@ -121,12 +111,13 @@ impl MmdsCredentialsProvider {
         // Parse expiration time. A parse failure must NOT silently yield a
         // non-expiring credential (expiry: None), which the AWS SDK would treat
         // as never refreshing; propagate it as a credentials error instead.
-        let parsed_expiry = chrono::DateTime::parse_from_rfc3339(&creds.expiration).map_err(|e| {
-            provider::error::CredentialsError::provider_error(format!(
-                "Failed to parse MMDS credential expiration '{}': {}",
-                creds.expiration, e
-            ))
-        })?;
+        let parsed_expiry =
+            chrono::DateTime::parse_from_rfc3339(&creds.expiration).map_err(|e| {
+                provider::error::CredentialsError::provider_error(format!(
+                    "Failed to parse MMDS credential expiration '{}': {}",
+                    creds.expiration, e
+                ))
+            })?;
         // A pre-1970 timestamp yields a negative i64; `as u64` would wrap it to a
         // huge value, making the credential appear to expire ~584 years out and
         // silently recreating the never-refreshing bug above. Reject it instead.
@@ -190,11 +181,11 @@ pub async fn is_mmds_available() -> bool {
                 let available = response.status().is_success();
                 debug!(available = %available, "MMDS availability check");
                 available
-            }
+            },
             Err(e) => {
                 debug!(error = %e, "MMDS not available");
                 false
-            }
+            },
         }
     } else {
         warn!("Failed to create HTTP client for MMDS check");

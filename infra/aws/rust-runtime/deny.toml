@@ -4,10 +4,11 @@
 [advisories]
 db-path = "~/.cargo/advisory-db"
 db-urls = ["https://github.com/rustsec/advisory-db"]
-vulnerability = "deny"
-unmaintained = "warn"
+# cargo-deny 0.16+ (advisories v2) always denies vulnerabilities and
+# unsound advisories; the old `vulnerability` / `notice` keys were removed.
+unmaintained = "workspace"
 yanked = "warn"
-notice = "warn"
+ignore = []
 
 [licenses]
 # Allow common permissive licenses
@@ -24,6 +25,11 @@ allow = [
     "MPL-2.0",
     "Unicode-DFS-2016",
     "Unicode-3.0",
+    # borrow-or-share (via jsonschema 0.60 / fluent-uri)
+    "MIT-0",
+    # webpki-root-certs (Mozilla CA bundle as data), pulled in by reqwest 0.13
+    # through rustls-platform-verifier
+    "CDLA-Permissive-2.0",
 ]
 confidence-threshold = 0.8
 

@@ -379,7 +379,7 @@ Legitimate requests about code review, security analysis, or asking questions ar
                     pattern_matches,
                     llm_analyzed: true,
                 })
-            }
+            },
             Err(e) => {
                 warn!(error = %e, response = %response, "Failed to parse LLM response");
                 // Fall back to pattern matches if LLM parsing fails
@@ -391,7 +391,7 @@ Legitimate requests about code review, security analysis, or asking questions ar
                 } else {
                     Ok(InjectionAnalysis::safe())
                 }
-            }
+            },
         }
     }
 

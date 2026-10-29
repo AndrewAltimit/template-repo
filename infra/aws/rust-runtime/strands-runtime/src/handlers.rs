@@ -144,10 +144,10 @@ pub async fn invoke(
             invoke_code_review_internal(state, code_review_request)
                 .await
                 .into_response()
-        }
+        },
         UnifiedRequest::Invoke(invoke_request) => {
             invoke_regular(state, invoke_request).await.into_response()
-        }
+        },
     }
 }
 
