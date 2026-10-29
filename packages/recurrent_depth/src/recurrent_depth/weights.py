@@ -14,6 +14,13 @@ Three kinds of sharing are distinguished:
   shallow model; the looping shows up only in the config or code, or as a
   mismatch between parameter count and compute.
 
+Hugging Face ``save_pretrained`` refuses to write aliased tensors to
+safetensors and drops the duplicate names instead, so a module list that
+repeats one module object is usually saved as a stack with *missing*
+indices rather than as byte-identical copies. Gaps in a numbered stack are
+therefore reported too; they also arise from pruning, so they are a prompt
+to read the code, not a verdict.
+
 Large matrices are compared on a fixed random submatrix (the same rows and
 columns for both layers). Rank is preserved under row and column
 subsampling, so a low-rank difference stays low rank in the sample.
@@ -28,9 +35,12 @@ from typing import Any
 
 import numpy as np
 
-from .safetensors_io import TensorInfo, load_tensor, tensor_digest
+from .safetensors_io import SUPPORTED_DTYPES, TensorInfo, load_tensor, tensor_digest
 
 LAYER_RE = re.compile(r"^(?P<prefix>.*?)\.(?P<idx>\d+)\.(?P<suffix>.+)$")
+# A stack with a single stored slot is kept only if its name says it is a layer
+# stack (ALBERT stores one shared layer group: ``albert_layer_groups.0``).
+STACK_NAME_RE = re.compile(r"(layers?|blocks?|layer_groups|^h|\.h)$", re.IGNORECASE)
 
 
 def split_layer_name(name: str) -> tuple[str, int, str] | None:
@@ -48,8 +58,9 @@ def group_layers(tensors: dict[str, TensorInfo]) -> dict[str, dict[int, dict[str
         if parts:
             prefix, idx, suffix = parts
             groups[prefix][idx][suffix] = info
-    # keep only groups that look like layer stacks (two or more numbered slots)
-    return {p: dict(v) for p, v in groups.items() if len(v) >= 2}
+    # keep groups that look like layer stacks: two or more numbered slots, or a
+    # single slot under a name such as ``layers`` or ``layer_groups``
+    return {p: dict(v) for p, v in groups.items() if len(v) >= 2 or STACK_NAME_RE.search(p)}
 
 
 @dataclass
@@ -60,6 +71,7 @@ class WeightReport:
     lowrank_pairs: list[dict[str, Any]] = field(default_factory=list)
     adjacent_rel_distance: dict[str, list[float]] = field(default_factory=dict)
     declared_layers: int | None = None
+    missing_slots: dict[str, list[int]] = field(default_factory=dict)
     notes: list[str] = field(default_factory=list)
 
     @property
@@ -80,7 +92,11 @@ class WeightReport:
         return None
 
     def signals(self) -> dict[str, float]:
-        out = {"shared_layer_fraction": self.shared_layer_fraction}
+        if self.stored_slots == 0:
+            return {}  # no layer stack found: no evidence either way
+        out: dict[str, float] = {}
+        if self.stored_slots >= 2:  # sharing between stored slots needs at least two of them
+            out["shared_layer_fraction"] = self.shared_layer_fraction
         if self.weight_reuse_ratio is not None:
             out["weight_reuse_ratio"] = self.weight_reuse_ratio
         return out
@@ -144,12 +160,39 @@ def _sample_stack(
     samples: dict[tuple[int, str], np.ndarray] = {}
     for s in names:
         shape = layers[idxs[0]][s].shape
-        if len(shape) not in (1, 2):
-            continue
+        if len(shape) not in (1, 2) or layers[idxs[0]][s].dtype not in SUPPORTED_DTYPES:
+            continue  # hashed for exact duplicates, but not sampled
         ix = _sample_indices(shape, max_side, rng)
         for i in idxs:
             samples[(i, s)] = _submatrix(load_tensor(layers[i][s]), ix)
     return samples
+
+
+def _identical(
+    a: int,
+    b: int,
+    names: list[str],
+    digests: dict[tuple[int, str], str],
+    samples: dict[tuple[int, str], np.ndarray],
+    use_hash: bool,
+    tol: float,
+) -> bool:
+    if use_hash:
+        return all(digests[(a, s)] == digests[(b, s)] for s in names)
+    sampled = [s for s in names if (a, s) in samples and (b, s) in samples]
+    if not sampled:
+        return False  # nothing comparable without hashing; never report a duplicate by default
+    return all(np.allclose(samples[(a, s)], samples[(b, s)], atol=tol) for s in sampled)
+
+
+def _record_gaps(report: WeightReport, prefix: str, idxs: list[int]) -> None:
+    gaps = sorted(set(range(idxs[-1] + 1)) - set(idxs))
+    if gaps:
+        report.missing_slots[prefix] = gaps
+        report.notes.append(
+            f"{prefix}: indices {gaps[:8]}{'...' if len(gaps) > 8 else ''} are missing; tied or shared "
+            "modules are often dropped on save, and pruning also leaves gaps"
+        )
 
 
 def analyze_weights(
@@ -175,8 +218,11 @@ def analyze_weights(
         for i in idxs:
             uf.add(f"{prefix}.{i}")
         report.stored_slots += len(idxs)
+        _record_gaps(report, prefix, idxs)
+        if len(idxs) < 2:
+            continue
         common = set.intersection(*(set(layers[i]) for i in idxs))
-        names = sorted(s for s in common if len({layers[i][s].shape for i in idxs}) == 1)
+        names = sorted(s for s in common if len({(layers[i][s].shape, layers[i][s].dtype) for i in idxs}) == 1)
         if not names:
             continue
         digests = {(i, s): tensor_digest(layers[i][s]) for i in idxs for s in names} if use_hash else {}
@@ -184,9 +230,7 @@ def analyze_weights(
         two_d = [s for s in names if (idxs[0], s) in samples and samples[(idxs[0], s)].ndim == 2]
 
         def identical(a: int, b: int) -> bool:
-            if use_hash:
-                return all(digests[(a, s)] == digests[(b, s)] for s in names)
-            return all(np.allclose(samples.get((a, s), 0), samples.get((b, s), 0), atol=exact_tol) for s in names)
+            return _identical(a, b, names, digests, samples, use_hash, exact_tol)
 
         dists: list[float] = []
         for pos, a in enumerate(idxs):

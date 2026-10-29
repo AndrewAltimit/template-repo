@@ -43,7 +43,8 @@ def cmd_inspect_weights(args: argparse.Namespace) -> int:
     declared = None
     if args.config:
         cfg = json.loads(Path(args.config).read_text(encoding="utf-8"))
-        declared = cfg.get("num_hidden_layers") or cfg.get("n_layer")
+        keys = ("num_hidden_layers", "n_layer", "n_layers", "num_layers")
+        declared = next((cfg[k] for k in keys if isinstance(cfg.get(k), int)), None)
     tensors = read_checkpoint(args.path)
     rep = weights.analyze_weights(tensors, declared_layers=declared, max_side=args.max_side, use_hash=not args.no_hash)
     _dump({"report": rep.to_dict(), "signals": rep.signals()})
@@ -75,7 +76,11 @@ def cmd_probe(args: argparse.Namespace) -> int:
         if i % 10 == 0 or i == n:
             print(f"  {i}/{n}", file=sys.stderr)
 
-    harness.run_plan(plan, out_path=args.out, progress=progress)
+    try:
+        harness.run_plan(plan, out_path=args.out, progress=progress)
+    except harness.BudgetExceeded as exc:
+        print(f"stopped: {exc}; partial records are in {args.out}", file=sys.stderr)
+        return 2
     return 0
 
 

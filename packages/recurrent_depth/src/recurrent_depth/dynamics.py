@@ -124,10 +124,16 @@ def logit_lens_kl(h: np.ndarray, unembed: np.ndarray, norm_eps: float | None = 1
 
 
 def settle_steps(kl: np.ndarray, threshold: float = 5e-4) -> np.ndarray:
-    """First step index after which KL stays below ``threshold``, per token."""
+    """Number of steps after which KL stays below ``threshold``, per token.
+
+    A token whose KL is below the threshold from the first step settles at 1;
+    one that settles only on the last recorded step gets ``steps``. Tokens that
+    never settle get ``steps + 1`` so they are distinguishable from late
+    settlers (treat them as censored, not as a measured depth).
+    """
     below = kl < threshold
     steps = kl.shape[0]
-    out = np.full(kl.shape[1], steps, dtype=int)
+    out = np.full(kl.shape[1], steps + 1, dtype=int)
     for t in range(kl.shape[1]):
         for s in range(steps):
             if below[s:, t].all():

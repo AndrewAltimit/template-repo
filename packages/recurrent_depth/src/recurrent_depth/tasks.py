@@ -171,6 +171,10 @@ def reachability(depth: int, rng: random.Random, n_nodes: int = 40, n_edges: int
     """
     if depth < 1 or 2 * (depth + 1) + 2 > n_nodes or 2 * depth > n_edges:
         raise ValueError("depth too large for the configured graph size")
+    n_rest = n_nodes - 2 * (depth + 1)
+    if n_rest * (n_rest - 1) < n_edges - 2 * depth:
+        # otherwise the distractor loop below could never place enough distinct edges
+        raise ValueError("depth too large: not enough spare nodes for the distractor edges")
     nodes = [f"v{i:02d}" for i in range(n_nodes)]
     rng.shuffle(nodes)
     chain_a = nodes[: depth + 1]

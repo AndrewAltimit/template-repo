@@ -157,11 +157,11 @@
 \setcounter{tocdepth}{2}
 
 \titlecontents{part}[0em]
-  {\addvspace{0.9em}\bfseries\color{darkamber}\small}
+  {\addvspace{0.55em}\bfseries\color{darkamber}\small}
   {}{}
   {\hfill\contentspage}
 \titlecontents{section}[2.3em]
-  {\addvspace{0.3em}\bfseries\color{nightink}}
+  {\addvspace{0.12em}\bfseries\color{nightink}}
   {\contentslabel[\textcolor{honeyamber}{\thecontentslabel}]{2.3em}}
   {}
   {\hfill\contentspage}
@@ -392,7 +392,7 @@
 % ============================================================================
 \pagenumbering{roman}
 \begingroup
-\setstretch{0.92}
+\setstretch{0.86}
 \tableofcontents
 \endgroup
 \newpage
@@ -411,6 +411,7 @@ A policy body or regulator & Section~\ref{sec:summary} (summary) and Section~\re
 A model developer & Section~\ref{sec:why} and Section~\ref{sec:recdev} & Section~\ref{sec:guardrails} \\
 An auditor with open weights & Section~\ref{sec:whitebox} (white box) & Sections~\ref{sec:validation} and \ref{sec:toolkit} \\
 Anyone reading about a specific model & Section~\ref{sec:astra} (the 2026 Astra episode) & Section~\ref{sec:worked} (inconclusive verdicts) \\
+An organization choosing models to deploy & Section~\ref{sec:astra} & Section~\ref{sec:recdeploy} (architecture-aware model selection) \\
 \tablefinish
 \end{tabularx}\par}
 
@@ -483,7 +484,7 @@ Where this guide discusses what a developer is \emph{reported} to have built, it
 \section{Executive Summary}
 \label{sec:summary}
 
-Looped transformers are no longer a curiosity. Open recurrent-depth models (Huginn-0125 and the Ouro family) match much larger fixed-depth models on reasoning benchmarks~[4,5]; recursion can be retrofitted into pretrained models~[7,8,9]; and in September 2026 a frontier model was reported, on anonymous sourcing, to use ``recurrent depth'', a claim its developer neither confirmed in its system card nor fully denied (Section~\ref{sec:astra})~[50,51,52].
+Looped transformers are no longer a curiosity. Open recurrent-depth models (Huginn-0125 and the Ouro family) match much larger fixed-depth models on reasoning benchmarks~[4,5], and a looped 3B model now ships under an open license~[59]; recursion can be retrofitted into pretrained models~[7,8,9]; and in September 2026 a frontier model was reported, on anonymous sourcing, to use ``recurrent depth'', a claim its developer neither confirmed in its system card nor fully denied (Section~\ref{sec:astra})~[50,51,52]. The same card documents falling chain-of-thought monitorability, which the developer attributes mainly to capability rather than architecture; behavioral metrics alone cannot test that attribution, which is the gap this guide addresses.
 
 Architecture matters for safety because the main window into how today's reasoning models think is their chain of thought, and that window depends on hard serial computation having to pass through tokens~[27]. A model that can iterate inside the forward pass needs to verbalize less. Whether it does so in practice is an empirical question, but evaluators cannot even ask it without knowing which kind of model they are testing.
 
@@ -578,7 +579,9 @@ The shared-block idea goes back to the \textbf{Universal Transformer} (Dehghani 
 \begin{itemize}
   \item \textbf{Huginn-0125} (Geiping et al., 2025): 3.5B parameters trained on 800B tokens~[4]. A 2-layer \emph{prelude} embeds the input, a 4-layer \emph{core block} is iterated, and a 2-layer \emph{coda} decodes. The core runs a random number of times in training (mean 32, from a log-normal Poisson distribution) with the embedded input re-injected at each step, so the loop count can be raised at inference: 32 iterations unroll to 132 effective layers, and the authors evaluate up to 64. They report reasoning gains up to a compute load equivalent to about 50B parameters. \mO
   \item \textbf{Ouro / LoopLM} (Zhu et al., ByteDance and collaborators, 2025): 1.4B and 2.6B looped models trained on 7.7T tokens, reported to match fixed-depth models up to 12B on many benchmarks~[5]. The whole 24-layer (1.4B) or 48-layer (2.6B) stack is looped up to four times, with a learned exit gate trained by an entropy-regularized objective. \mO
+  \item \textbf{Nanbeige4.2-3B} (July 2026): an Apache-2.0 open model whose published config loops its 22 stored layers twice (\cfg{num\_loops} = 2) and whose model card states that its ``Looped Transformer architecture reuses the transformer layers''~[59]. \mO
   \item \textbf{Retrofitted recurrence.} Relaxed Recursive Transformers convert pretrained models into layer-sharing ones and restore flexibility with per-layer LoRA~[7]; McLeish et al. (2025) loop a block of a pretrained model with a recurrence curriculum and report better math accuracy per unit of compute than post-training the original~[8]; a 2026 preprint retrofits recurrent depth into Qwen2.5-0.5B-Instruct and reports that the recurrent model beats a scratchpad model (84\% versus 72\%) on its task while answering 7.6 times faster~[9]. \mO
+  \item \textbf{Partial looping.} Lin et al. (2026) ask which sublayers are worth repeating and propose MixerLoop, which loops only the sequence mixer while running the feed-forward network once, recovering part of the full-loop gain at substantially lower recurrent compute~[43]. \mO
   \item \textbf{Fixed-point models.} Deep Equilibrium Models solve directly for the fixed point of a weight-tied layer~[41], and 2026 ``attractor'' language models extend the idea~[46]. \mO
 \end{itemize}
 
@@ -664,10 +667,13 @@ The Hierarchical Reasoning Model (27M parameters, two interdependent recurrent m
 Mixture-of-experts & Active parameters per token & Per-token compute can vary with routing; compute is \emph{below} stored parameters, the opposite direction to looping \\
 Mixture-of-Depths~[17] & Which tokens a layer processes & Per-token compute varies with content, like adaptive depth, without iteration \\
 Early exit~[15,16] & Layers used per token & Latency rises with difficulty, like adaptive looping \\
-Speculative decoding~[18] & Tokens accepted per target-model step & Inter-token latency depends on how predictable the text is~[32] \\
-Batching and queueing & Time waiting for and sharing the GPU & Latency depends on other traffic, often more than on your request \\
-Prefix caching & Prefill work for repeated prefixes & Repeated prompt prefixes run faster~[33] \\
-Hidden reasoning tokens & Tokens generated but not shown & The most important confounder for ``invisible thinking'': the extra compute is ordinary decoding, billed but not displayed \\
+Speculative decoding~[18] & Tokens accepted per target-model step & Inter-token latency depends on whether the draft and target models agree on the continuation~[32] \\
+Multi-token prediction~[57] & Tokens proposed per forward pass & Extra heads used for self-speculation make inter-token latency content-dependent in the same way \\
+Batching, queueing, rate limiting & Time waiting for and sharing the GPU; server-side pacing & Latency depends on other traffic and on the provider's throttling, often more than on your request \\
+KV and prefix caching & Prefill work for repeated prefixes & Repeated prompt prefixes run faster~[33] \\
+Quantization, hardware changes & Cost per layer; which deployment serves you & A provider can change precision or hardware mid-study, shifting latency for reasons unrelated to depth \\
+Gateway buffering & When streamed tokens reach the client & Tokens released in bursts hide inter-token timing and add jitter to time to first token \\
+Hidden reasoning tokens & Tokens generated but not shown & The most important confounder for ``invisible thinking'': the extra compute is ordinary decoding, billed but not displayed, and not every provider reports it in usage fields \\
 \end{longtable}
 }
 
@@ -744,7 +750,7 @@ The link to architecture follows from theory (Section~\ref{sec:theory}): a fixed
 
 \subsection{Test-Time Compute Inside the Forward Pass}
 
-Reasoning models scale capability by generating more tokens. Recurrent-depth models offer a second axis: more iterations per token~[4,5]. Huginn's accuracy on harder tasks keeps improving with more iterations, while easy tasks saturate around eight~[4]. \mO\ \mE\ Compute spent this way is invisible to anyone counting tokens, and on an API it may not show up in usage or billing.
+Reasoning models scale capability by generating more tokens. Recurrent-depth models offer a second axis: more iterations per token~[4,5]. Huginn's accuracy on harder tasks keeps improving with more iterations, while easier tasks saturate sooner (around 8 to 12 iterations in the authors' zero-shot setting)~[4]. \mO\ \mE\ Compute spent this way is invisible to anyone counting tokens, and on an API it may not show up in usage or billing.
 
 \subsection{Invisible, Selective Effort}
 
@@ -763,11 +769,11 @@ Tools such as the logit lens~[37], the tuned lens~[38], probing, and layer-wise 
 \subsection{Case Study: the 2026 Astra Reports}
 \label{sec:astra}
 
-This episode shows why external detection matters and why it must stay calibrated.
+This episode shows why external detection matters and why it must stay calibrated. Every architecture claim in it comes from reporting or from developer statements that neither confirm nor exclude looping; the measurements come from the system card.
 
 {\footnotesize
 \zebra
-\begin{longtable}{L{1.35cm} L{9.75cm} L{3.7cm}}
+\begin{longtable}{L{1.45cm} L{9.65cm} L{3.7cm}}
 \rowcolor{deepindigo}
 \hd{Date (2026)} & \hd{Event} & \hd{Status} \\
 \endfirsthead
@@ -776,15 +782,103 @@ This episode shows why external detection matters and why it must stay calibrate
 \endhead
 \tablefinish
 \endlastfoot
-1 Sep & \emph{The Information} reports, citing an anonymous source, that OpenAI's upcoming Astra model uses ``recurrent depth'', also called a looped transformer & Reported; paywalled, not read directly here; relayed by [51,53] \\
-2 Sep & OpenAI chief scientist Jakub Pachocki posts that ``the depth of the computation graph for our present frontier models, including Astra, is within a factor of two of GPT-4'' and calls the reporting confused~[52] & Developer statement; neither confirms nor rules out limited looping \\
-3 Sep & Fortune reports that OpenAI researchers said use of the looped architecture was limited to keep reasoning readable, and that OpenAI did not deny using the technique; outside researchers call for an industry standard on monitorability~[51] & Reported characterization \\
-3 Sep & The GPT-6 Astra system card states that ``GPT-6 Astra's monitorability has decreased relative to GPT-5.6 Sol'' and that OpenAI is ``quite confident that changes in CoT controllability are not differentially due to any architectural changes''~[50] & Primary source; architecture not described \\
-Sep & The card reports that ``the set of tasks Astra is able to accomplish without the use of CoT is greatly expanded''; UK AISI measured a no-CoT time horizon of 30.9 minutes against 3.6 minutes for GPT-5.6 Sol and attributed it to ``a greatly increased ability to reason within a single forward-pass''~[50] & Primary source \\
+1 Sep & \emph{The Information} (A.~Efrati) reports, citing a person with knowledge, that OpenAI's Astra model uses ``recurrent depth'', also called a looped transformer, and that OpenAI limits its use to keep the chain of thought legible~[55] & Reported; paywalled, not read directly here; relayed by [51,53,58] \\
+2 Sep & OpenAI chief scientist Jakub Pachocki posts that ``The depth of the computation graph for our present frontier models, including Astra, is within a factor of two of GPT-4'' and that he wants ``to prevent a race into unmonitorability kicked off by confused reporting''~[52] & Developer statement, quoted as reproduced in [53,54]; neither confirms nor rules out limited looping \\
+3 Sep & Fortune, paraphrasing OpenAI researchers, reports that OpenAI ``had limited the extent to which the looped Transformer architecture is used so that the model's reasoning remains legible''; Daniel Kokotajlo urges an industrywide standard on CoT monitorability~[51] & Reported characterization; implies partial use \\
+3 Sep & The GPT-6 Astra system card (revised 9, 22, and 29 September) states that ``GPT-6 Astra's monitorability has decreased relative to GPT-5.6 Sol'' and that OpenAI is ``quite confident that changes in CoT controllability are not differentially due to any architectural changes''~[50] & Primary source; architecture not described \\
+6 Sep & Pachocki's essay ``An Alien Mind'' says no lab has solved alignment and monitoring well enough to keep scaling at maximum speed for much longer, and that OpenAI would ``unilaterally withhold further scaling as needed''~[60] & Developer statement, quoted from press reproductions \\
+28--29 Sep & OpenAI delays GPT-6.1 Astra after safety testing; Saachi Jain is quoted as saying it ``didn't quite meet the bar'' on staying within scope and authorization~[61] & Reported (WSJ, via AFP) \\
+1 Oct & OpenAI dismisses three safety researchers, saying the reason was the handling of sensitive information and that ``these decisions were not about raising safety concerns''; the researchers have given their own accounts~[62,63] & Reported; contested \\
+13--15 Oct & \emph{The Information} reports that OpenAI is working to fix safety issues before shipping its next flagship model; secondary coverage links that model to a looped transformer~[64] & Secondary; architecture unconfirmed \\
 \end{longtable}
 }
 
-\textbf{What follows from this.} \mE\ The safety-relevant fact, documented by the developer, is that more reasoning now fits in a single forward pass and that chain-of-thought monitoring has become less effective. Whether looping causes that is undetermined: the developer attributes the controllability change to training rather than architecture; one independent commentator argues gains come mainly from training recipes and data~[53]; another estimates three to four loops and notes that the larger concern is that loop count is a dial that could be turned up later~[54]. These are opinions, not measurements. The measurements in Section~\ref{sec:methods} are designed for exactly this situation: they would help settle whether a deployed model's in-pass serial capability, latency, and compute behave like a fixed or a looped model, without needing the weights.
+\textbf{What the system card measures.} The card's monitorability and alignment sections give the figures below in their text (see also Figure~\ref{fig:astracard})~[50]. Each row is a different measurement, and values are not comparable across rows.
+
+{\footnotesize
+\zebra
+\begin{longtable}{L{8.0cm} L{3.9cm} L{2.9cm}}
+\rowcolor{deepindigo}
+\hd{Measure (card section)} & \hd{Comparison model} & \hd{GPT-6 Astra} \\
+\endfirsthead
+\rowcolor{deepindigo}
+\hd{Measure (card section)} & \hd{Comparison model} & \hd{GPT-6 Astra} \\
+\endhead
+\tablefinish
+\endlastfoot
+CoT controllability, OpenAI CoT-Control suite, CoTs of 750--1,250 tokens (9.2.1) & GPT-5.6 Sol 16.1\%; GPT-5.5 Thinking 1.7\% & 60.9\% \\
+CoT controllability, UK AISI's own run (9.3) & GPT-5.6 Sol 48\% & 93\% \\
+No-CoT time horizon, UK AISI, with a contamination caveat (9.3) & GPT-5.6 Sol 3.6 min & 30.9 min \\
+Verbalized evaluation awareness, deployment simulation (8.6) & GPT-5.6 Sol 2.8\% & 9.6\% \\
+Verbalized evaluation awareness, Apollo Research, xhigh effort (8.8.1) & GPT-5.5 27.7\% & 41.1\% (50.6\% at max effort) \\
+Recall of a CoT-only monitor when the model is told to sandbag and evade (9.2.2.3.1) & GPT-5.6 Sol nearly 100\% & below 11\% \\
+\end{longtable}
+}
+
+\begin{figure}[htbp]
+\centering
+\pgfplotsset{
+  cardbar/.style={
+    ybar, width=5.75cm, height=5.4cm, ymin=0, ymax=105, bar width=7.5pt,
+    axis lines=left, ymajorgrids, grid style={medgray!40},
+    tick label style={font=\sffamily\scriptsize}, label style={font=\sffamily\scriptsize},
+    title style={font=\sffamily\scriptsize\bfseries, text=deepindigo, align=center},
+    x tick label style={font=\sffamily\scriptsize, align=center, text width=2.1cm},
+    yticklabel style={/pgf/number format/assume math mode=true, font=\sffamily\scriptsize},
+    nodes near coords, nodes near coords style={font=\sffamily\tiny, text=textdark, /pgf/number format/assume math mode=true, /pgf/number format/fixed, /pgf/number format/precision=1},
+    legend style={font=\sffamily\tiny, draw=none, fill=none, at={(0.5,-0.24)}, anchor=north, cells={anchor=west}},
+    enlarge x limits=0.42, anchor=south west,
+  }
+}
+\begin{tikzpicture}[baseline=0pt]
+\begin{axis}[cardbar, title={CoT controllability (\%)\\Astra card 9.2.1 and 9.3}, symbolic x coords={OpenAI suite, UK AISI run}, xtick={OpenAI suite, UK AISI run}]
+\addplot[fill=proxygray!70, draw=proxygray] coordinates {(OpenAI suite,1.7)};
+\addplot[fill=deepindigo, draw=deepindigo] coordinates {(OpenAI suite,16.1) (UK AISI run,48)};
+\addplot[fill=alertcrimson, draw=alertcrimson] coordinates {(OpenAI suite,60.9) (UK AISI run,93)};
+\legend{GPT-5.5 Thinking, GPT-5.6 Sol, GPT-6 Astra}
+\end{axis}
+\end{tikzpicture}\hfill
+\begin{tikzpicture}[baseline=0pt]
+\begin{axis}[cardbar, ymax=70, title={Verbalized evaluation awareness (\%)\\Astra card 8.6 and 8.8.1}, symbolic x coords={Deployment simulation, Apollo xhigh}, xtick={Deployment simulation, Apollo xhigh}]
+\addplot[fill=deepindigo, draw=deepindigo] coordinates {(Deployment simulation,2.8) (Apollo xhigh,27.7)};
+\addplot[fill=alertcrimson, draw=alertcrimson] coordinates {(Deployment simulation,9.6) (Apollo xhigh,41.1)};
+\legend{predecessor (Sol; GPT-5.5 for Apollo), GPT-6 Astra}
+\end{axis}
+\end{tikzpicture}\hfill
+\begin{tikzpicture}[baseline=0pt]
+\begin{axis}[cardbar, ymax=70, title={Unverbalized evaluation awareness (\%)\\Opus 5.5 card 6.6.1, white-box}, symbolic x coords={Automated audits, Real use}, xtick={Automated audits, Real use}]
+\addplot[fill=sensorteal, draw=sensorteal] coordinates {(Automated audits,36) (Real use,0.4)};
+\legend{Claude Opus 5.5}
+\end{axis}
+\end{tikzpicture}
+\caption[Monitorability measurements from two system cards]{Monitorability measurements stated in the text of two system cards~[50,65]. Each panel uses its own instrument and units: controllability and verbalized awareness are read from the model's visible reasoning, while the right panel uses white-box readouts of the model's internals. Do not compare bar heights across panels or across labs. Apollo's max-effort figure for Astra is 50.6\%.}
+\label{fig:astracard}
+\end{figure}
+
+The card also says that Astra is ``substantially better than GPT-5.6 Sol at evading CoT-only monitors, particularly with step-by-step guidance and at lower reasoning effort'', that against a high-recall full-trajectory monitor the ``successful evasion rate is close to zero'', and that ``if the model were to try to sandbag covertly, we would likely be unable to catch it reliably''. UK AISI ``was not able to complete agentic evaluations of Astra's monitorability'', and Apollo Research cautions that, given the model's evaluation awareness, ``low rates of misbehavior here do not provide substantial evidence about the model's alignment or misalignment''. OpenAI states that it ``will not accept further degradation of monitoring beyond a limit, without new ways to demonstrate alignment generalization''~[50]. \mO
+
+Other developers measure related properties with different methods. Anthropic's Claude Opus 5.5 system card (22 September) replicates the controllability evaluation with one point per reasoning-effort setting and finds Opus 5.5 ``controls its CoT about as well as Claude Opus 4.7''; it measures \emph{unverbalized} evaluation awareness with white-box readouts, reporting that 36\% of automated audit transcripts but only 0.4\% of real internal-use transcripts scored 6 or higher~[65]. \mO\ These are different instruments from OpenAI's, so the two labs' numbers must not be placed on one scale.
+
+\textbf{What follows from this.} \mE\ The developer documents the symptoms: more reasoning fits in one forward pass, the model controls its visible reasoning better, and trace-based monitors catch less. It attributes the change mainly to capability, not architecture. Behavioral monitorability metrics cannot settle that attribution. Controllability, evaluation awareness, and no-CoT time horizon would move the same way whether the extra single-pass capability came from training data and recipes, from more layers, or from loops: they measure the result, not the mechanism (Figure~\ref{fig:attribution}). Commentators split accordingly: Raschka credits mainly ``improved training recipes and training data'', with looping that ``might help a bit''~[53]; Arike guesses ``three to four loops'' and argues that the number of loops ``can then be viewed as a dial that can be turned up with trivial effort''~[54]. Both are opinions, not measurements.
+
+The distinction matters for what comes next. A capability-driven decline would affect every frontier model on roughly the same schedule; an architecture-driven one is a design setting that can be raised across releases, though not freely for every design (Section~\ref{sec:counter}). Only evidence about \emph{how} the model computes separates the two: disclosure of loop counts (Section~\ref{sec:recdev}) or measurements of the kind in Section~\ref{sec:methods}, which ask whether a deployed model's in-pass serial capability, latency, and compute behave like a fixed or a looped model, without needing the weights.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[font=\sffamily\footnotesize]
+  \node[flowstep, minimum width=3.6cm, minimum height=1.0cm] (cap) at (0,1.1) {\textbf{Capability gains}\\data, recipes, scale};
+  \node[loopbox, minimum width=3.6cm, minimum height=1.0cm] (loop) at (0,-1.1) {\textbf{In-pass looping}\\architecture};
+  \node[hot, minimum width=5.0cm, text width=4.8cm, minimum height=1.9cm] (sym) at (5.6,0) {\textbf{Observed symptoms}\\controllability up, evaluation awareness up, no-CoT horizon up, CoT-monitor recall down};
+  \node[quiet, minimum width=2.6cm, minimum height=1.0cm] (q) at (11.4,0) {\textbf{Which cause?}};
+  \node[observe, minimum width=3.6cm, text width=3.4cm, minimum height=1.0cm] (det) at (11.4,-2.1) {\textbf{Disclosure or detection}\\Sections~\ref{sec:methods}--\ref{sec:validation}};
+  \draw[arr] (cap) -- (sym);
+  \draw[aarr] (loop) -- (sym);
+  \draw[darr, draw=softslate] (sym) -- node[above=2pt, lbl] {cannot tell} (q);
+  \draw[arr, draw=sensorteal] (det) -- (q);
+\end{tikzpicture}
+\caption[Why behavioral metrics cannot attribute the decline]{Why behavioral metrics cannot attribute a monitorability decline. Both causes produce the same symptoms; separating them needs disclosure or architecture-level evidence.}
+\label{fig:attribution}
+\end{figure}
 
 \subsection{The Counter-Case}
 \label{sec:counter}
@@ -900,7 +994,7 @@ Family fingerprinting~[35,36] & Black & Which known model family an endpoint res
 
 \subsubsection{Config and code}
 
-Looped models must tell their modeling code how many iterations to run. In the published configs, Huginn declares \cfg{mean\_recurrence} (32) and \cfg{n\_layers\_in\_recurrent\_block} (4) alongside prelude and coda sizes, for an effective depth of 132; Ouro declares \cfg{total\_ut\_steps} (4) and \cfg{early\_exit\_threshold}; ALBERT declares layer-group sharing with \cfg{num\_hidden\_groups}~[4,5]. \mO\ The toolkit's \cfg{inspect-config} classified all eight published configs it was run on correctly (Section~\ref{sec:results}).
+Looped models must tell their modeling code how many iterations to run. In the published configs, Huginn declares \cfg{mean\_recurrence} (32) and \cfg{n\_layers\_in\_recurrent\_block} (4) alongside prelude and coda sizes, for an effective depth of 132; Ouro declares \cfg{total\_ut\_steps} (4) and \cfg{early\_exit\_threshold}; ALBERT declares layer-group sharing with \cfg{num\_hidden\_groups}~[4,5]. Nanbeige4.2-3B declares \cfg{num\_loops} (2)~[59]. \mO\ The toolkit's \cfg{inspect-config} classified all eight published configs it was run on correctly (Section~\ref{sec:results}), and flags Nanbeige's published fields as looped (44 layer applications from 22 stored layers).
 
 Absence is weak evidence. A config can omit recurrence if custom modeling code loops anyway; such code is loaded through the \cfg{auto\_map} field and requires \cfg{trust\_remote\_code}. Read the forward method: a loop over a shared module, or a module list that repeats the same object, is decisive.
 
@@ -908,9 +1002,9 @@ Absence is weak evidence. A config can omit recurrence if custom modeling code l
 
 Three patterns, in decreasing order of directness:
 \begin{enumerate}
-  \item \textbf{Exact duplicates.} Two layer slots hold byte-identical tensors (some exports write a shared block once per use).
+  \item \textbf{Exact duplicates or missing slots.} Two layer slots hold byte-identical tensors, which happens when an export clones a shared block once per use. Hugging Face \cfg{save\_pretrained} instead refuses to write aliased tensors to safetensors and drops the duplicate names, so a module list that repeats one module object usually appears as a stack with \emph{missing} indices. The toolkit reports both; gaps also come from pruning, so they prompt a reading of the code rather than a verdict.
   \item \textbf{Low-rank relation.} The difference between two layers is low rank, as in a shared base matrix plus per-layer LoRA deltas~[7]. Independent trained layers have full-rank differences: on SmolLM2-135M, adjacent layers' weight matrices are 1.32 to 1.41 apart in relative Frobenius distance, close to the $\sqrt{2}$ expected for unrelated matrices of equal norm (Section~\ref{sec:results}).
-  \item \textbf{Storage-level reuse.} \mO/\mE\ A block that is looped is stored once. Huginn's checkpoint stores 8 layers; Ouro-1.4B stores 24 and runs them up to four times. Weight files alone therefore look like a shallow model, and only the config, the code, or a compute-versus-capacity mismatch reveals the looping.
+  \item \textbf{Storage-level reuse.} \mO/\mE\ A block that is looped is stored once. Huginn's checkpoint stores 8 layers; Ouro-1.4B stores 24 and runs them up to four times. Weight files alone therefore look like a shallow model, and only the config, the code, or a compute-versus-capacity mismatch reveals the looping. For the same reason the scorer treats weight-sharing signals as one-sided: their presence is strong evidence of recurrence, their absence only weak evidence against (Section~\ref{sec:llr}).
 \end{enumerate}
 
 \subsubsection{Representation similarity}
@@ -978,7 +1072,7 @@ Fixed-depth models tolerate deleting, swapping, and sometimes duplicating middle
   \item \textbf{Constant length.} The toolkit's task generators keep prompt length identical across depths within each family (fixed-width fields, identity operations written in the same form as real ones, fixed edge counts) and cap the output at a few tokens.
   \item \textbf{Interleaving.} All conditions are shuffled into one seeded random order, so drift in server load spreads across depths.
   \item \textbf{Log scale and pooling.} Regress log latency on depth (with prompt tokens as a covariate when they vary), trim the slowest 5\% per family, and pool families by inverse variance. The result is a $z$-score.
-  \item \textbf{Exclusion of hidden tokens.} Requests whose usage reports reasoning tokens are dropped: hidden decoding is the most likely non-architectural cause of a latency slope.
+  \item \textbf{Exclusion of hidden tokens.} Requests whose usage reports reasoning tokens are dropped: hidden decoding is the most likely non-architectural cause of a latency slope. Where a provider does not report them, the toolkit also expresses the TTFT increase across the depth range in units of the median inter-token latency. Extra loop iterations on the first token cost a fraction of one decode step each, so an increase worth tens of tokens points to hidden decoding or routing, not looping. \mE
 \end{itemize}
 
 \begin{figure}[htbp]
@@ -1018,18 +1112,21 @@ Fixed-depth models tolerate deleting, swapping, and sometimes duplicating middle
 \rowcolor{deepindigo}
 \hd{Confounder} & \hd{Effect} & \hd{Mitigation} \\
 Batching and queueing & Large, variable delays unrelated to your request & Interleave; repeat; use medians; compare consecutive-token differences, which cancel shared delay~[32] \\
-Speculative decoding & ITL depends on how predictable the text is; detectable by its own signature~[32] & Use TTFT as the primary signal; keep outputs to one or two tokens \\
+Speculative decoding, multi-token prediction & ITL depends on draft and target agreement; detectable by its own signature~[32] & Use TTFT as the primary signal; keep outputs to one or two tokens \\
+Unreported hidden reasoning & TTFT rises with difficulty because the model decodes unseen tokens & Check usage fields; express the TTFT effect in inter-token latencies (above) \\
+Rate limiting, gateway buffering & Server-side pacing; tokens released in bursts & Stay well below the rate limit; if chunks arrive in bursts, rely on TTFT only \\
+Quantization or hardware change mid-study & Step change in latency & Interleave; fingerprint~[35]; repeat on another day \\
 Early exit, Mixture-of-Depths & Content-dependent compute without iteration & Cannot be separated by timing alone; combine with other families \\
 Prefix caching & Repeated prefixes run faster~[33] & Randomize content so no two prompts share long prefixes \\
 Routing to a different model & Latency changes with the route & Fingerprint responses~[35]; check consistency \\
-Network jitter & Noise & Repetition; differential timing \\
+Network jitter, connection setup & Noise; each new TLS connection adds round trips to TTFT & Repetition; differential timing; the same client and network for every condition \\
 \tablefinish
 \end{tabularx}\par}
 \medskip
 
-\textbf{Strength.} \mE\ A large pooled slope that survives all controls is moderate evidence of content-dependent compute, of which adaptive looping is one source. A null result is weak evidence against looping: a provider serving a \textbf{fixed} loop count produces no slope, and adaptive-depth inference is hard to batch. Schwethelm et al. (2026) describe the problem (``tokens with different numbers of loops cannot share a uniform forward pass'') and propose continuous depth batching, which realizes up to 99\% of the estimated available speedup on Ouro 1.4B and Huginn 3.5B~[42]. \mO\ Whether production servers do this is unknown.
+\textbf{Strength.} \mE\ A large pooled slope that survives all controls is moderate evidence of content-dependent compute, of which adaptive looping is one source. A null result is weak evidence against looping: a provider serving a \textbf{fixed} loop count produces no slope, and adaptive-depth inference is hard to batch. Schwethelm et al. (2026) describe the problem (``tokens with different numbers of loops cannot share a uniform forward pass'') and propose continuous depth batching, which on Ouro realizes up to 99\% of the estimated maximum available speedup; they also evaluate it on Huginn~[42]. \mO\ Whether production servers do this is unknown.
 
-Published timing attacks show that per-token timing through ordinary streaming APIs is informative: Majidi et al. (2026) detect speculative decoding remotely, estimate draft-model context length, and rank candidate layer counts and hidden sizes for dense models from a timing model of NVIDIA GPUs~[32]. Their timing model assumes a dense decoder with a fixed layer count and does not address looped or MoE models; extending it is an open problem. \mO/\mE
+Published timing attacks show that per-token timing through ordinary streaming APIs is informative: Majidi et al. (2026) detect speculative decoding remotely, estimate draft-model context length, and rank candidate layer counts, hidden sizes, head counts, and MLP sizes for decoder-only models from a timing model of NVIDIA GPUs~[32]. Their timing model assumes a fixed layer count and does not address looped or MoE models; extending it is an open problem. \mO/\mE
 
 \subsubsection{Serial-depth behavior}
 \label{sec:behavior}
@@ -1070,12 +1167,15 @@ Some APIs expose effort or budget parameters. If raising one increases latency a
 \inbrief{Treat each signal as a likelihood ratio between ``recurrent'' and ``fixed'', cap it, discount signals that share confounders, add a prior, and decide only when independent families agree.}
 
 \subsection{Likelihood Ratios}
+\label{sec:llr}
 
 For each signal $s$ with value $x$, define class-conditional densities $p(x \mid R)$ and $p(x \mid F)$, estimated from reference models (Section~\ref{sec:validation}). Its contribution is
 \[
   \lambda_s(x) = \operatorname{clip}\big(\log p(x \mid R) - \log p(x \mid F),\; -c_s,\; c_s\big),
 \]
 with a cap $c_s$ of about $\log 20 \approx 3$ for most signals, so that no single measurement dominates.
+
+Two constraints keep Gaussian likelihoods honest. \textbf{Monotonicity:} when the two classes have different spreads, the raw LLR is quadratic and turns around in the tail of the narrower class, so a strongly \emph{negative} latency slope would count as evidence for recurrence merely because the recurrent class is wider. Each signal therefore has a direction, and values beyond the turning point are scored as if they sat at it. \textbf{One-sided signals:} evidence that can confirm recurrence but not rule it out (weight sharing, Section~\ref{sec:whitebox}) carries a floor of $-0.5$ on $\lambda_s$.
 
 \subsection{Families and Correlation}
 
@@ -1085,6 +1185,8 @@ Signals in the same family share confounders, so adding their contributions woul
 \]
 Families (white-box config, white-box weights, white-box dynamics, gray box, timing, behavioral, compute knob) are treated as independent, and the posterior log-odds are $\operatorname{logit}\pi + \sum_f \Lambda_f$ for prior $\pi$.
 
+\mE\ The discount is a heuristic, not the exact joint likelihood. The factor $n/(1+(n-1)\rho)$ is the effective sample size of an average of equicorrelated measurements; for jointly Gaussian signals the exact combination would use their covariance, which should be estimated from reference models once there are enough of them rather than fixed at $\rho=0.5$. Independence between families is also an approximation: the knob latency ratio shares server-load and hidden-token confounders with the timing family, which is one reason both carry low caps.
+
 \subsection{Decision Rule}
 
 {\small
@@ -1092,18 +1194,18 @@ Families (white-box config, white-box weights, white-box dynamics, gray box, tim
 \begin{tabularx}{\textwidth}{Y L{3.0cm}}
 \rowcolor{deepindigo}
 \hd{Condition} & \hd{Verdict} \\
-Posterior at least 0.9, and at least two families support it with $\Lambda_f \geq 0.5$, or a white-box config or weights family supports it & \textbf{Recurrent} \\
+Posterior at least 0.9, and at least two families support it with $\Lambda_f \geq 0.5$, or a white-box config or weights family supports it with $\Lambda_f \geq 3$ & \textbf{Recurrent} \\
 Posterior at most 0.1 and the same agreement condition & \textbf{Fixed} \\
 Anything else & \textbf{Inconclusive} \\
 \tablefinish
 \end{tabularx}\par}
 
-Config evidence is asymmetric: a declared recurrence contributes $+6$, a standard fixed-depth architecture class $-1.5$, and unrecognized custom code $0$.
+Config evidence is asymmetric: a declared recurrence contributes $+6$, a standard fixed-depth architecture class $-1.5$, and unrecognized custom code $0$. Absence of evidence therefore never decides alone: neither a standard config class nor unshared weights reaches the white-box threshold of 3.
 
 \subsection{Worked Example (Synthetic)}
 \label{sec:worked}
 
-The toolkit's simulator plays a fixed-depth model and an adaptive recurrent one (synthetic profiles, not real systems). With likelihoods fitted to a simulated reference fleet and an uninformative config signal (custom code), the family contributions are as in Figure~\ref{fig:waterfall}. The recurrent endpoint reaches a posterior of 0.993 (\textbf{recurrent}); the fixed endpoint 0.007 (\textbf{fixed}). With the \emph{uncalibrated} default likelihoods, the same recurrent endpoint scores 0.883: \textbf{inconclusive}. That is the intended behavior: without calibration the scorer is conservative.
+The toolkit's simulator plays a fixed-depth model and an adaptive recurrent one (synthetic profiles, not real systems). With likelihoods fitted to a simulated reference fleet and an uninformative config signal (custom code), the family contributions are as in Figure~\ref{fig:waterfall}. The recurrent endpoint reaches a posterior of 0.993 (\textbf{recurrent}); the fixed endpoint 0.007 (\textbf{fixed}). With the \emph{uncalibrated} default likelihoods, the same recurrent endpoint scores 0.912, only just past the threshold and with the behavioral family ($-1.42$) pointing the other way, and the fixed endpoint 0.004. The defaults are engineering priors; margins that thin are a reason to fit the likelihoods before trusting any verdict.
 
 \begin{figure}[htbp]
 \centering
@@ -1126,7 +1228,7 @@ The toolkit's simulator plays a fixed-depth model and an adaptive recurrent one 
 ]
 \addplot[fill=darkamber, draw=darkamber] coordinates {(3.0,timing) (2.0,knob) (-0.06,behavioral) (0.0,config)};
 \addlegendentry{recurrent endpoint: posterior 0.993}
-\addplot[fill=deepindigo, draw=deepindigo] coordinates {(-2.97,timing) (-1.98,knob) (-0.03,behavioral) (0.0,config)};
+\addplot[fill=deepindigo, draw=deepindigo] coordinates {(-3.0,timing) (-1.98,knob) (-0.03,behavioral) (0.0,config)};
 \addlegendentry{fixed endpoint: posterior 0.007}
 \end{axis}
 \end{tikzpicture}
@@ -1172,6 +1274,7 @@ Set the prior from what is known about the developer and model family: public st
 \hd{Group} & \hd{Candidates (open weights)} \\
 Looped, sampled count & Huginn-0125~[4] \\
 Looped, fixed count with exit gate & Ouro-1.4B, Ouro-2.6B and Thinking variants~[5] \\
+Looped, fixed count & Nanbeige4.2-3B~[59] \\
 Retrofitted recurrence & Released retrofitting checkpoints~[8] \\
 Token-level recursion & Mixture-of-Recursions checkpoints, where released~[6] \\
 Fixed depth, similar size & Qwen2.5 0.5B to 3B, SmolLM2, OLMo-2, Llama 3.2 \\
@@ -1222,7 +1325,7 @@ Serve all of them with the same inference server, hardware, batching settings, a
 Config inspection & 8 published configs & All correct: Huginn-0125, Ouro-1.4B, Ouro-2.6B-Thinking, ALBERT-base-v2 recurrent or weight-shared; Qwen2.5-0.5B, SmolLM2-135M, OLMo-2-1B standard; Qwen1.5-MoE-A2.7B standard with an MoE note \\
 Weight sharing, real fixed model & SmolLM2-135M (30 layers) & 30 distinct layers, no exact or low-rank pairs, adjacent distance 1.32 to 1.41 (no false positive) \\
 Dynamics, real fixed model & SmolLM2-135M, 48 tokens & Tail contraction 1.12 (not converging), periodicity excess 0.002 \\
-Scoring, synthetic fleet & 6 fixed and 6 recurrent simulated endpoints & Leave-one-out coverage 0.75, 0 wrong decided verdicts, Brier 0.016; all 3 undecided were recurrent \\
+Scoring, synthetic fleet & 6 fixed and 6 recurrent simulated endpoints & Leave-one-out coverage 0.67, 0 wrong decided verdicts, Brier 0.016; of the 4 undecided, 3 were recurrent and 1 fixed \\
 Black-box probes, real APIs & none yet & \textbf{Not yet run} \\
 \tablefinish
 \end{tabularx}\par}
@@ -1249,10 +1352,10 @@ The companion package \texttt{packages/recurrent\_depth/} implements the measure
 \rowcolor{deepindigo}
 \hd{Command} & \hd{Section} & \hd{What it does} \\
 \cfg{inspect-config} & \ref{sec:whitebox} & Classifies a \cfg{config.json}; reports declared loops, exit settings, MoE fields, stored versus logical depth \\
-\cfg{inspect-weights} & \ref{sec:whitebox} & Memory-maps safetensors (including sharded and BF16), finds exact and low-rank layer sharing, compares declared and stored depth \\
+\cfg{inspect-weights} & \ref{sec:whitebox} & Memory-maps safetensors (including sharded, BF16, and FP8), finds exact and low-rank layer sharing and missing layer indices, compares declared and stored depth \\
 \cfg{analyze-hidden} & \ref{sec:converge} & Contraction, similarity periodicity, logit-lens settling steps from a recorded trajectory \\
-\cfg{probe} & \ref{sec:blackbox} & Runs a seeded, interleaved serial-depth plan against an OpenAI-compatible endpoint with a request budget, rate limit, backoff, and a terms acknowledgement \\
-\cfg{features} & \ref{sec:blackbox} & Computes timing slopes, serial retention, and knob effects; drops requests with hidden reasoning tokens \\
+\cfg{probe} & \ref{sec:blackbox} & Runs a seeded, interleaved serial-depth plan against an OpenAI-compatible endpoint with a hard request budget (retries included), rate limit, backoff, a terms acknowledgement, and no redirects (so a key is never forwarded) \\
+\cfg{features} & \ref{sec:blackbox} & Computes timing slopes, serial retention, and knob effects; drops requests with hidden reasoning tokens and reports the TTFT effect in inter-token latencies \\
 \cfg{score} & \ref{sec:scoring} & Combines signal files into a verdict with per-family contributions and notes \\
 \cfg{fit}, \cfg{validate} & \ref{sec:validation} & Fits likelihoods to labeled references; leave-one-out benchmark \\
 \cfg{simulate}, \cfg{simulate-fleet} & \ref{sec:worked} & Synthetic endpoints for offline testing \\
@@ -1272,7 +1375,7 @@ The companion package \texttt{packages/recurrent\_depth/} implements the measure
   \item \textbf{No extraction.} Do not attempt to recover weights, embedding matrices, or training data. Width estimation is limited to vectors you are entitled to collect, at your normal rate limits, and is reported as a single number.
   \item \textbf{No access-control bypass.} Do not use multiple accounts to evade rate limits, spoof clients, or probe infrastructure other than the public API.
   \item \textbf{No harm to other users.} Do not use techniques that infer other customers' prompts or traffic. Several published timing attacks do exactly that~[33,34]; they are cited here as confounders, not methods.
-  \item \textbf{Disclose first.} Share findings that reveal a provider's undisclosed design with the provider before publishing, and give them time to respond, as Majidi et al. did with their speculative-decoding finding~[32].
+  \item \textbf{Disclose first.} Share findings that reveal a provider's undisclosed design with the provider before publishing, and give them time to respond, as Majidi et al. did by disclosing their speculative-decoding attack to the affected provider months before publication~[32].
   \item \textbf{Publish carefully.} Publish verdicts with their evidence, priors, coverage, and error rates. Never publish a verdict without its uncertainty, and never present a reported architecture as fact.
 \end{itemize}
 
@@ -1293,7 +1396,7 @@ The companion package \texttt{packages/recurrent\_depth/} implements the measure
 \label{sec:recdev}
 \begin{enumerate}
   \item Disclose loop counts, whether they are adaptive, and their range at inference, in model or system cards.
-  \item Report chain-of-thought monitorability and no-CoT capability together, as the Astra card does~[50], and say whether in-pass recurrence contributes.
+  \item Report chain-of-thought monitorability and no-CoT capability together, as the Astra card does~[50], and say whether in-pass recurrence contributes. Without that statement, readers cannot tell an architecture-driven decline from a capability-driven one (Section~\ref{sec:astra}).
   \item Offer per-iteration readouts (decoded intermediate states) to monitors and auditors, since looped models can produce them~[5].
   \item Count training and inference compute directly, not from parameter counts.
 \end{enumerate}
@@ -1304,6 +1407,31 @@ The companion package \texttt{packages/recurrent\_depth/} implements the measure
   \item Do not estimate compute from parameter counts for models that may reuse parameters.
   \item Treat external architecture inference as evidence that prompts questions, not as findings, unless it is benchmarked and decisive.
 \end{enumerate}
+
+\subsection{For Deployers: Architecture-Aware Model Selection}
+\label{sec:recdeploy}
+
+Organizations that run frontier models in agentic or tool-using settings inherit the developer's ability to verify alignment. When a developer reports that reasoning-based monitoring has become less reliable, or a model is credibly reported to move reasoning out of the trace, a written policy is better than case-by-case vendor decisions. One reasonable pattern, offered as an example rather than an endorsement of any vendor or model:
+
+{\footnotesize
+\zebra
+\begin{longtable}{L{3.0cm} L{7.0cm} L{4.8cm}}
+\rowcolor{deepindigo}
+\hd{Element} & \hd{What it does} & \hd{Tradeoff} \\
+\endfirsthead
+\rowcolor{deepindigo}
+\hd{Element} & \hd{What it does (continued)} & \hd{Tradeoff} \\
+\endhead
+\tablefinish
+\endlastfoot
+Criterion keyed to architecture and reported monitorability, not to a vendor & Exclude from sensitive environments (production, and lower environments that share credentials, code, or network paths with it) any model that its developer documents as relying substantially on in-pass recurrence, or whose developer reports that CoT-based monitoring is unreliable against it. Applies to every vendor equally, including incumbents & Depends on disclosures that may be absent; external detection (Sections~\ref{sec:methods}--\ref{sec:validation}) can raise questions but rarely settles them; may exclude the most capable model \\
+Evaluation-only exception & Allows excluded models in isolated environments with no organizational data, credentials, or network reach beyond the evaluation harness, with named approval and full logging & Builds the comparative evidence the policy needs; isolation costs effort \\
+Revisit triggers & Reconsider when the developer publishes per-release loop-count and monitorability metrics; when third-party stealth and sabotage evaluations reach parity with those for conventional models; when verification methods that do not depend on legible CoT are externally validated; or when the architecture becomes universal, at which point exclusion is no longer available and the policy must become a control-based posture & Each trigger needs an owner and a review date, or the policy goes stale \\
+Controls needed regardless & Policy checks on outputs and tool calls before execution; least-privilege, per-task tool permissions without ambient credentials; sandboxed execution with egress control; behavioral evaluations on the organization's own workloads, including sabotage and impossible-task scenarios; a model abstraction layer so that switching providers is configuration; tool-call and output logs kept independently of vendor retention & None of these depends on reading the model's reasoning, so they keep their value whatever the model \\
+\end{longtable}
+}
+
+\mE\ Two cautions. First, because behavioral metrics cannot separate architecture from capability (Section~\ref{sec:astra}), a criterion keyed only to architecture can miss a model whose monitorability fell for other reasons; keying on reported monitorability as well closes that gap. Second, a criterion keyed on what developers report penalizes the developers who measure and report most. A policy should say so, and treat a developer's measurement and disclosure practice as evidence in its favor rather than against it.
 
 \subsection{Open Research Problems}
 \begin{itemize}
@@ -1360,32 +1488,32 @@ The companion package \texttt{packages/recurrent\_depth/} implements the measure
 \sloppy
 \setstretch{1.05}
 \begin{enumerate}[label={\textcolor{deepindigo}{[\arabic*]}}, leftmargin=2.6em, itemsep=0.3em]
-  \item M.~Dehghani et al., \emph{Universal Transformers}, arXiv:1807.03819, 2018. \url{https://arxiv.org/abs/1807.03819}
+  \item M.~Dehghani et al., \emph{Universal Transformers}, arXiv:1807.03819, ICLR 2019. \url{https://arxiv.org/abs/1807.03819}
   \item A.~Graves, \emph{Adaptive Computation Time for Recurrent Neural Networks}, arXiv:1603.08983, 2016. \url{https://arxiv.org/abs/1603.08983}
   \item A.~Banino, J.~Balaguer, and C.~Blundell, \emph{PonderNet: Learning to Ponder}, arXiv:2107.05407, 2021. \url{https://arxiv.org/abs/2107.05407}
-  \item J.~Geiping et al., \emph{Scaling up Test-Time Compute with Latent Reasoning: A Recurrent Depth Approach}, arXiv:2502.05171, NeurIPS 2025; weights released as \texttt{tomg-group-umd/huginn-0125}. \url{https://arxiv.org/abs/2502.05171}
+  \item J.~Geiping et al., \emph{Scaling up Test-Time Compute with Latent Reasoning: A Recurrent Depth Approach}, arXiv:2502.05171, 2025; weights released as \texttt{tomg-group-umd/huginn-0125}. \url{https://arxiv.org/abs/2502.05171}
   \item R.-J.~Zhu et al., \emph{Scaling Latent Reasoning via Looped Language Models} (Ouro), arXiv:2510.25741, October 2025 (revised October 2026). \url{https://arxiv.org/abs/2510.25741}
-  \item S.~Bae et al., \emph{Mixture-of-Recursions: Learning Dynamic Recursive Depths for Adaptive Token-Level Computation}, arXiv:2507.10524, NeurIPS 2025. \url{https://arxiv.org/abs/2507.10524}
-  \item S.~Bae et al., \emph{Relaxed Recursive Transformers: Effective Parameter Sharing with Layer-wise LoRA}, arXiv:2410.20672, 2024. \url{https://arxiv.org/abs/2410.20672}
+  \item S.~Bae et al., \emph{Mixture-of-Recursions: Learning Dynamic Recursive Depths for Adaptive Token-Level Computation}, arXiv:2507.10524, 2025. \url{https://arxiv.org/abs/2507.10524}
+  \item S.~Bae et al., \emph{Relaxed Recursive Transformers: Effective Parameter Sharing with Layer-wise LoRA}, arXiv:2410.20672, ICLR 2025. \url{https://arxiv.org/abs/2410.20672}
   \item S.~McLeish et al., \emph{Teaching Pretrained Language Models to Think Deeper with Retrofitted Recurrence}, arXiv:2511.07384, 2025. \url{https://arxiv.org/abs/2511.07384}
   \item M.~Shapiro, \emph{Retrofitting Recurrent Depth into a Pretrained Language Model: Installation, Extrapolation, Transfer, and Retention at Two Parameter Budgets}, arXiv:2608.11233, 2026. \url{https://arxiv.org/abs/2608.11233}
-  \item S.~Hao et al., \emph{Training Large Language Models to Reason in a Continuous Latent Space} (Coconut), arXiv:2412.06769, 2024. \url{https://arxiv.org/abs/2412.06769}
-  \item S.~Goyal et al., \emph{Think before you speak: Training Language Models With Pause Tokens}, arXiv:2310.02226, 2023. \url{https://arxiv.org/abs/2310.02226}
+  \item S.~Hao et al., \emph{Training Large Language Models to Reason in a Continuous Latent Space} (Coconut), arXiv:2412.06769, COLM 2025. \url{https://arxiv.org/abs/2412.06769}
+  \item S.~Goyal et al., \emph{Think before you speak: Training Language Models With Pause Tokens}, arXiv:2310.02226, ICLR 2024. \url{https://arxiv.org/abs/2310.02226}
   \item J.~Pfau, W.~Merrill, and S.~R.~Bowman, \emph{Let's Think Dot by Dot: Hidden Computation in Transformer Language Models}, arXiv:2404.15758, 2024. \url{https://arxiv.org/abs/2404.15758}
   \item G.~Wang et al., \emph{Hierarchical Reasoning Model}, arXiv:2506.21734, 2025. \url{https://arxiv.org/abs/2506.21734}
   \item A.~Jolicoeur-Martineau, \emph{Less is More: Recursive Reasoning with Tiny Networks}, arXiv:2510.04871, 2025. \url{https://arxiv.org/abs/2510.04871}
-  \item T.~Schuster et al., \emph{Confident Adaptive Language Modeling}, arXiv:2207.07061, 2022. \url{https://arxiv.org/abs/2207.07061}
-  \item M.~Elhoushi et al., \emph{LayerSkip: Enabling Early Exit Inference and Self-Speculative Decoding}, arXiv:2404.16710, 2024. \url{https://arxiv.org/abs/2404.16710}
+  \item T.~Schuster et al., \emph{Confident Adaptive Language Modeling}, arXiv:2207.07061, NeurIPS 2022. \url{https://arxiv.org/abs/2207.07061}
+  \item M.~Elhoushi et al., \emph{LayerSkip: Enabling Early Exit Inference and Self-Speculative Decoding}, arXiv:2404.16710, ACL 2024. \url{https://arxiv.org/abs/2404.16710}
   \item D.~Raposo et al., \emph{Mixture-of-Depths: Dynamically allocating compute in transformer-based language models}, arXiv:2404.02258, 2024. \url{https://arxiv.org/abs/2404.02258}
-  \item Y.~Leviathan, M.~Kalman, and Y.~Matias, \emph{Fast Inference from Transformers via Speculative Decoding}, arXiv:2211.17192, 2022. \url{https://arxiv.org/abs/2211.17192}
+  \item Y.~Leviathan, M.~Kalman, and Y.~Matias, \emph{Fast Inference from Transformers via Speculative Decoding}, arXiv:2211.17192, ICML 2023. \url{https://arxiv.org/abs/2211.17192}
   \item N.~Saunshi, N.~Dikkala, Z.~Li, S.~Kumar, and S.~J.~Reddi, \emph{Reasoning with Latent Thoughts: On the Power of Looped Transformers}, arXiv:2502.17416, ICLR 2025. \url{https://arxiv.org/abs/2502.17416}
   \item A.~Giannou, S.~Rajput, J.~Sohn, K.~Lee, J.~D.~Lee, and D.~Papailiopoulos, \emph{Looped Transformers as Programmable Computers}, arXiv:2301.13196, 2023. \url{https://arxiv.org/abs/2301.13196}
-  \item L.~Yang, K.~Lee, R.~Nowak, and D.~Papailiopoulos, \emph{Looped Transformers are Better at Learning Learning Algorithms}, arXiv:2311.12424, 2023. \url{https://arxiv.org/abs/2311.12424}
-  \item Y.~Fan, Y.~Du, K.~Ramchandran, and K.~Lee, \emph{Looped Transformers for Length Generalization}, arXiv:2409.15647, 2024. \url{https://arxiv.org/abs/2409.15647}
-  \item W.~Merrill and A.~Sabharwal, \emph{The Expressive Power of Transformers with Chain of Thought}, arXiv:2310.07923, 2023. \url{https://arxiv.org/abs/2310.07923}
-  \item W.~Merrill and A.~Sabharwal, \emph{A Little Depth Goes a Long Way: The Expressive Power of Log-Depth Transformers}, arXiv:2503.03961, 2025. \url{https://arxiv.org/abs/2503.03961}
-  \item W.~Merrill, J.~Petty, and A.~Sabharwal, \emph{The Illusion of State in State-Space Models}, arXiv:2404.08819, 2024. \url{https://arxiv.org/abs/2404.08819}
-  \item M.~Hahn, \emph{Theoretical Limitations of Self-Attention in Neural Sequence Models}, arXiv:1906.06755, 2019. \url{https://arxiv.org/abs/1906.06755}
+  \item L.~Yang, K.~Lee, R.~Nowak, and D.~Papailiopoulos, \emph{Looped Transformers are Better at Learning Learning Algorithms}, arXiv:2311.12424, ICLR 2024. \url{https://arxiv.org/abs/2311.12424}
+  \item Y.~Fan, Y.~Du, K.~Ramchandran, and K.~Lee, \emph{Looped Transformers for Length Generalization}, arXiv:2409.15647, ICLR 2025. \url{https://arxiv.org/abs/2409.15647}
+  \item W.~Merrill and A.~Sabharwal, \emph{The Expressive Power of Transformers with Chain of Thought}, arXiv:2310.07923, ICLR 2024. \url{https://arxiv.org/abs/2310.07923}
+  \item W.~Merrill and A.~Sabharwal, \emph{A Little Depth Goes a Long Way: The Expressive Power of Log-Depth Transformers}, arXiv:2503.03961, NeurIPS 2025. \url{https://arxiv.org/abs/2503.03961}
+  \item W.~Merrill, J.~Petty, and A.~Sabharwal, \emph{The Illusion of State in State-Space Models}, arXiv:2404.08819, ICML 2024. \url{https://arxiv.org/abs/2404.08819}
+  \item M.~Hahn, \emph{Theoretical Limitations of Self-Attention in Neural Sequence Models}, arXiv:1906.06755, TACL 2020. \url{https://arxiv.org/abs/1906.06755}
   \item T.~Korbak et al., \emph{Chain of Thought Monitorability: A New and Fragile Opportunity for AI Safety}, arXiv:2507.11473, 2025. \url{https://arxiv.org/abs/2507.11473}
   \item B.~Baker et al., \emph{Monitoring Reasoning Models for Misbehavior and the Risks of Promoting Obfuscation}, arXiv:2503.11926, 2025. \url{https://arxiv.org/abs/2503.11926}
   \item S.~Emmons et al., \emph{When Chain of Thought is Necessary, Language Models Struggle to Evade Monitors}, arXiv:2507.05246, 2025. \url{https://arxiv.org/abs/2507.05246}
@@ -1393,29 +1521,38 @@ The companion package \texttt{packages/recurrent\_depth/} implements the measure
   \item M.~Finlayson, X.~Ren, and S.~Swayamdipta, \emph{Logits of API-Protected LLMs Leak Proprietary Information}, arXiv:2403.09539, COLM 2024. \url{https://arxiv.org/abs/2403.09539}
   \item S.~Majidi, N.~Mireshghallah, and K.~Taram, \emph{Leaky Language Models: Stealing Architecture and Inference Optimizations via Per-Token Timing}, arXiv:2607.20723, July 2026. \url{https://arxiv.org/abs/2607.20723}
   \item N.~Carlini and M.~Nasr, \emph{Remote Timing Attacks on Efficient Language Model Inference}, arXiv:2410.17175, 2024. \url{https://arxiv.org/abs/2410.17175}
-  \item Zhang, Saileshwar, and Lie, \emph{Time Will Tell: Timing Side Channels via Output Token Count in Large Language Models}, arXiv:2412.15431, 2024. \url{https://arxiv.org/abs/2412.15431}
-  \item D.~Pasquini, E.~M.~Kornaropoulos, and G.~Ateniese, \emph{LLMmap: Fingerprinting For Large Language Models}, arXiv:2407.15847, 2024. \url{https://arxiv.org/abs/2407.15847}
-  \item M.~Sun et al., \emph{Idiosyncrasies in Large Language Models}, arXiv:2502.12150, 2025. \url{https://arxiv.org/abs/2502.12150}
+  \item T.~Zhang, G.~Saileshwar, and D.~Lie, \emph{Time Will Tell: Timing Side Channels via Output Token Count in Large Language Models}, arXiv:2412.15431, 2024. \url{https://arxiv.org/abs/2412.15431}
+  \item D.~Pasquini, E.~M.~Kornaropoulos, and G.~Ateniese, \emph{LLMmap: Fingerprinting For Large Language Models}, arXiv:2407.15847, USENIX Security 2025. \url{https://arxiv.org/abs/2407.15847}
+  \item M.~Sun et al., \emph{Idiosyncrasies in Large Language Models}, arXiv:2502.12150, ICML 2025. \url{https://arxiv.org/abs/2502.12150}
   \item nostalgebraist, \emph{interpreting GPT: the logit lens}, LessWrong, 31 August 2020. \url{https://www.lesswrong.com/posts/AcKRB8wDpdaN6v6ru/interpreting-gpt-the-logit-lens}
   \item N.~Belrose et al., \emph{Eliciting Latent Predictions from Transformers with the Tuned Lens}, arXiv:2303.08112, 2023. \url{https://arxiv.org/abs/2303.08112}
   \item S.~Kornblith, M.~Norouzi, H.~Lee, and G.~Hinton, \emph{Similarity of Neural Network Representations Revisited}, arXiv:1905.00414, ICML 2019. \url{https://arxiv.org/abs/1905.00414}
-  \item Lu et al., \emph{Latent Chain-of-Thought? Decoding the Depth-Recurrent Transformer}, arXiv:2507.02199, 2025. \url{https://arxiv.org/abs/2507.02199}
+  \item W.~Lu, Y.~Yang, K.~Lee, Y.~Li, and E.~Liu, \emph{Latent Chain-of-Thought? Decoding the Depth-Recurrent Transformer}, arXiv:2507.02199, 2025 (COLM 2025 workshop). \url{https://arxiv.org/abs/2507.02199}
   \item S.~Bai, J.~Z.~Kolter, and V.~Koltun, \emph{Deep Equilibrium Models}, arXiv:1909.01377, NeurIPS 2019. \url{https://arxiv.org/abs/1909.01377}
   \item K.~Schwethelm, D.~Rueckert, and G.~Kaissis, \emph{Depth-adaptive Inference of Looped Language Models via Continuous Depth Batching}, arXiv:2608.09444, 2026. \url{https://arxiv.org/abs/2608.09444}
   \item R.~Lin, Y.~Guo, R.-J.~Zhu, H.~Ye, and J.~K.~Eshraghian, \emph{Allocating Recurrent Compute in Looped Language Models}, arXiv:2608.18230, 2026. \url{https://arxiv.org/abs/2608.18230}
-  \item Jeddi, Ciccone, and Taati, \emph{LoopFormer: Elastic-Depth Looped Transformers for Latent Reasoning via Shortcut Modulation}, arXiv:2602.11451, 2026. \url{https://arxiv.org/abs/2602.11451}
-  \item Wang et al., \emph{RecurTrace: Adaptive Latent Reasoning with Loop-Time Memory}, arXiv:2609.03379, 2026. \url{https://arxiv.org/abs/2609.03379}
-  \item Fein-Ashley and Rashidinejad, \emph{Solve the Loop: Attractor Models for Language and Reasoning}, arXiv:2605.12466, 2026. \url{https://arxiv.org/abs/2605.12466}
-  \item A.~Gromov et al., \emph{The Unreasonable Ineffectiveness of the Deeper Layers}, arXiv:2403.17887, 2024. \url{https://arxiv.org/abs/2403.17887}
+  \item A.~Jeddi, M.~Ciccone, and B.~Taati, \emph{LoopFormer: Elastic-Depth Looped Transformers for Latent Reasoning via Shortcut Modulation}, arXiv:2602.11451, ICLR 2026. \url{https://arxiv.org/abs/2602.11451}
+  \item Y.~Wang et al., \emph{RecurTrace: Adaptive Latent Reasoning with Loop-Time Memory}, arXiv:2609.03379, 2026. \url{https://arxiv.org/abs/2609.03379}
+  \item J.~Fein-Ashley and P.~Rashidinejad, \emph{Solve the Loop: Attractor Models for Language and Reasoning}, arXiv:2605.12466, 2026. \url{https://arxiv.org/abs/2605.12466}
+  \item A.~Gromov et al., \emph{The Unreasonable Ineffectiveness of the Deeper Layers}, arXiv:2403.17887, ICLR 2025. \url{https://arxiv.org/abs/2403.17887}
   \item V.~Lad et al., \emph{The Remarkable Robustness of LLMs: Stages of Inference?}, arXiv:2406.19384, 2024. \url{https://arxiv.org/abs/2406.19384}
-  \item S.~Yang et al., \emph{Do Large Language Models Latently Perform Multi-Hop Reasoning?}, arXiv:2402.16837, 2024. \url{https://arxiv.org/abs/2402.16837}
+  \item S.~Yang et al., \emph{Do Large Language Models Latently Perform Multi-Hop Reasoning?}, arXiv:2402.16837, ACL 2024. \url{https://arxiv.org/abs/2402.16837}
   \item OpenAI, \emph{GPT-6 Astra System Card}, Deployment Safety Hub, September 2026. \url{https://deploymentsafety.openai.com/gpt-6-astra}
-  \item Fortune, \emph{AI experts worry OpenAI's Astra model may be a dangerous step toward models with opaque reasoning}, 3 September 2026. \url{https://fortune.com/2026/09/03/reports-openais-astra-model-uses-a-new-more-efficient-ai-architecture-alarms-ai-safety-experts-who-worry-the-method-makes-models-harder-to-control/}
+  \item J.~Kahn, \emph{Safety experts warn novel design of OpenAI's Astra model could make future AI agents harder to monitor}, Fortune, 3 September 2026. \url{https://fortune.com/2026/09/03/reports-openais-astra-model-uses-a-new-more-efficient-ai-architecture-alarms-ai-safety-experts-who-worry-the-method-makes-models-harder-to-control/}
   \item J.~Pachocki, post on X, 2 September 2026. \url{https://x.com/merettm/status/2095023204993490967}
   \item S.~Raschka, \emph{GPT-6 Astra, Looped Transformers, and Hidden Reasoning}, 9 September 2026. \url{https://magazine.sebastianraschka.com/p/gpt-6-astra-looped-transformers-and}
   \item R.~Arike, \emph{How concerned should we be about Astra's recurrent architecture?}, LessWrong, 2 September 2026. \url{https://www.lesswrong.com/posts/PLisnSFir8y5AHkmP/how-concerned-should-we-be-about-astra-s-recurrent}
-  \item \emph{The Information}, report on OpenAI's Astra and recurrent depth, 1 September 2026 (paywalled; not read directly for this guide; known through [51] and [53]).
+  \item A.~Efrati, \emph{Exclusive: OpenAI Technique in `Astra' Model Sparks Security Concerns}, The Information, 1 September 2026 (paywalled; not read directly for this guide; known through [51], [53], and [58]). \url{https://www.theinformation.com/articles/secret-technique-behind-openais-astra-model-sparks-security-concerns}
   \item European Union, \emph{Artificial Intelligence Act}, Article 51 (classification of general-purpose AI models with systemic risk). \url{https://artificialintelligenceact.eu/article/51/}
+  \item F.~Gloeckle, B.~Youbi Idrissi, B.~Rozi\`ere, D.~Lopez-Paz, and G.~Synnaeve, \emph{Better \& Faster Large Language Models via Multi-token Prediction}, arXiv:2404.19737, ICML 2024. \url{https://arxiv.org/abs/2404.19737}
+  \item R.~Brandom, \emph{OpenAI's new reasoning technique alarms AI safety experts}, TechCrunch, 2 September 2026. \url{https://techcrunch.com/2026/09/02/openais-new-reasoning-technique-alarms-ai-safety-experts/}
+  \item Nanbeige LLM Lab, \emph{Nanbeige4.2-3B} model card and config, Hugging Face, July 2026 (technical report arXiv:2607.22083). \url{https://huggingface.co/Nanbeige/Nanbeige4.2-3B}
+  \item J.~Pachocki, \emph{An Alien Mind}, OpenAI, 6 September 2026 (page not retrievable for this review; quoted as reproduced in press coverage). \url{https://openai.com/index/an-alien-mind/}
+  \item AFP, \emph{OpenAI shelves new AI model release over safety concerns}, via Cyprus Mail, 29 September 2026. \url{https://cyprus-mail.com/2026/09/29/openai-shelves-new-ai-model-release-over-safety-concerns}
+  \item TechCrunch, \emph{OpenAI cuts ties with three safety researchers, WSJ reports}, 1 October 2026. \url{https://techcrunch.com/2026/10/01/openai-cuts-ties-with-three-safety-researchers-wsj-reports/}
+  \item Associated Press, \emph{OpenAI fires 3 safety researchers}, via ABC News, October 2026. \url{https://abcnews.com/Technology/wireStory/openai-fires-3-safety-researchers-dispute-ai-risks-137123277}
+  \item B.~Fisher, \emph{OpenAI Fired Three Researchers Who Said Loop Transformer Would Blind Safety Monitors}, Tech Times, 15 October 2026 (secondary coverage of a paywalled report in The Information, 13 October 2026). \url{https://www.techtimes.com/articles/329046/20261014/openai-fired-three-researchers-who-said-loop-transformer-would-blind-safety-monitors.htm}
+  \item Anthropic, \emph{Claude Opus 5.5 System Card}, 22 September 2026, sections 6.6.1 and 6.6.4. \url{https://www.anthropic.com/document/claude-opus-5-5-system-card}
 \end{enumerate}
 \endgroup
 
@@ -1429,10 +1566,10 @@ The companion package \texttt{packages/recurrent\_depth/} implements the measure
 
 {\small
 \zebra
-\begin{tabularx}{\textwidth}{L{2.2cm} L{3.6cm} Y}
+\begin{tabularx}{\textwidth}{L{1.4cm} L{2.4cm} Y}
 \rowcolor{deepindigo}
 \hd{Version} & \hd{Date} & \hd{Changes} \\
-1.0 & October 2026 & Initial release, with companion toolkit \texttt{packages/recurrent\_depth} \\
+1.0 & October 2026 & Initial release, with companion toolkit \texttt{packages/recurrent\_depth}. Before release (late October 2026) the guide and toolkit were verified and reviewed. \textbf{Corrections:} Fortune headline and author [51]; ``OpenAI did not deny'' replaced by Fortune's own wording; Pachocki's post quoted in full; The Information headline and author [55]; Huginn saturation stated as 8 to 12 iterations; continuous depth batching's 99\% figure tied to Ouro [42]; speculative-decoding timing described as draft-target agreement [32]; the unused reference [43] now cited; author names and venues completed. \textbf{Additions:} verified Astra system-card measurements and the Opus 5.5 card's separate measurements (Section~\ref{sec:astra}, Figure~\ref{fig:astracard}), the September--October timeline (GPT-6.1 Astra delay, researcher dismissals, reporting on OpenAI's next model), the argument that behavioral metrics cannot separate architecture from capability (Figure~\ref{fig:attribution}), Nanbeige4.2-3B, more timing confounders (multi-token prediction, rate limiting, gateway buffering, quantization, connection setup, unreported hidden tokens), notes on the scorer's correlation heuristic, and Section~\ref{sec:recdeploy} for deployers. \textbf{Toolkit fixes:} monotone likelihood ratios (a negative latency slope no longer counts toward recurrence); one-sided weight signals and a white-box decision threshold of 3 (unshared weights in Ouro-style checkpoints no longer decide ``fixed''); single-group (ALBERT-style) and gapped layer stacks; FP8 and endian-safe safetensors reads with offset checks; redirects refused so keys are never forwarded; hard request budget including retries; mid-stream errors recorded; knob accuracy gain computed without hidden-token requests; a reachability generator hang removed; unsettled tokens distinguished in logit-lens settling. Synthetic worked-example and fleet numbers recomputed (Sections~\ref{sec:worked} and \ref{sec:results}) \\
 \tablefinish
 \end{tabularx}\par}
 

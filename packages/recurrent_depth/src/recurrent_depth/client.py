@@ -9,7 +9,10 @@ Guardrails built in:
   requests derived from ``requests_per_minute``;
 * exponential backoff on 429 and 5xx responses that honors ``Retry-After``;
 * API keys are read from an environment variable, never logged, and never
-  sent over plain HTTP to a non-local host.
+  sent over plain HTTP to a non-local host;
+* HTTP redirects are refused rather than followed, because urllib would
+  otherwise replay the ``Authorization`` header to whatever host (and scheme)
+  the redirect names.
 
 This client sends ordinary chat requests and records what any API customer
 can observe (text, token counts, timestamps, and log-probabilities when the
@@ -20,6 +23,7 @@ or content controls.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+import http.client
 import json
 import os
 import time
@@ -49,11 +53,21 @@ class Transport(Protocol):
     def __call__(self, url: str, headers: dict[str, str], body: bytes, timeout: float) -> TransportResponse: ...
 
 
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    """Refuse every redirect so credentials are never forwarded to another URL."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):  # type: ignore[no-untyped-def]
+        return None  # urllib then raises HTTPError with the 3xx status
+
+
+_OPENER = urllib.request.build_opener(_NoRedirect())
+
+
 def urllib_transport(url: str, headers: dict[str, str], body: bytes, timeout: float) -> TransportResponse:
-    """Default transport using urllib. Streams the body line by line."""
+    """Default transport using urllib. Streams the body line by line; never follows redirects."""
     req = urllib.request.Request(url, data=body, headers=headers, method="POST")
     try:
-        resp = urllib.request.urlopen(req, timeout=timeout)  # scheme validated in ChatClient
+        resp = _OPENER.open(req, timeout=timeout)  # scheme validated in ChatClient
     except urllib.error.HTTPError as err:
         payload = err.read()
         return TransportResponse(err.code, dict(err.headers.items()), [payload])
@@ -224,19 +238,24 @@ class ChatClient:
             result.total_s = self.clock() - start
             return result
         parts: list[str] = []
-        for raw in resp.lines:
-            now = self.clock() - start
-            line = raw.decode("utf-8", "replace").strip()
-            if not line.startswith("data:"):
-                continue
-            data = line[5:].strip()
-            if data == "[DONE]":
-                break
-            try:
-                chunk = json.loads(data)
-            except json.JSONDecodeError:
-                continue
-            self._absorb(chunk, now, parts, result)
+        try:
+            for raw in resp.lines:
+                now = self.clock() - start
+                line = raw.decode("utf-8", "replace").strip()
+                if not line.startswith("data:"):
+                    continue
+                data = line[5:].strip()
+                if data == "[DONE]":
+                    break
+                try:
+                    chunk = json.loads(data)
+                except json.JSONDecodeError:
+                    continue
+                self._absorb(chunk, now, parts, result)
+        except (OSError, http.client.HTTPException) as exc:
+            # A read timeout or dropped connection mid-stream: keep what arrived, mark the
+            # request failed so its timing is not used, and let the run continue.
+            result.error = f"stream error: {exc}"
         result.text = "".join(parts)
         result.total_s = self.clock() - start
         return result

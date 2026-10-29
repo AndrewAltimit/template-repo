@@ -19,7 +19,7 @@ import statistics
 import time
 from typing import Any, Callable, Iterable
 
-from .client import ChatClient, CompletionResult, RateLimiter
+from .client import BudgetExceeded, ChatClient, CompletionResult, RateLimiter
 from .tasks import TaskItem, build_suite, check_answer
 
 TERMS_NOTICE = (
@@ -103,10 +103,15 @@ def run_plan(
     on_item: Callable[[TaskItem], None] | None = None,
     progress: Callable[[int, int], None] | None = None,
 ) -> list[dict[str, Any]]:
-    """Execute ``plan`` and return the records (also appended to ``out_path``)."""
+    """Execute ``plan`` and return the records (also appended to ``out_path``).
+
+    ``max_requests`` is a hard cap on HTTP requests, retries included. If
+    retries use up the budget before the plan finishes, the run stops, the
+    records written so far are kept, and :class:`BudgetExceeded` is raised.
+    """
     plan.validate()
     if client is None:
-        limiter = RateLimiter(requests_per_minute=plan.requests_per_minute, max_requests=plan.max_requests * 2)
+        limiter = RateLimiter(requests_per_minute=plan.requests_per_minute, max_requests=plan.max_requests)
         client = ChatClient(plan.base_url, plan.model, api_key_env=plan.api_key_env, limiter=limiter)
     suite = build_suite(plan.tasks, plan.depths, plan.reps, plan.seed)
     jobs = [(item, knob) for item in suite for knob in plan.conditions()]
@@ -120,13 +125,16 @@ def run_plan(
             extra = dict(plan.extra)
             if plan.knob_param and knob is not None:
                 extra[plan.knob_param] = knob
-            res = client.complete(
-                item.prompt,
-                max_tokens=plan.max_tokens,
-                temperature=plan.temperature,
-                logprobs=plan.logprobs,
-                extra=extra,
-            )
+            try:
+                res = client.complete(
+                    item.prompt,
+                    max_tokens=plan.max_tokens,
+                    temperature=plan.temperature,
+                    logprobs=plan.logprobs,
+                    extra=extra,
+                )
+            except BudgetExceeded as exc:
+                raise BudgetExceeded(f"{exc} after {len(records)} of {len(jobs)} planned items") from exc
             rec = _record(item, knob, res)
             rec["seq"] = i
             rec["wall_time"] = time.time()

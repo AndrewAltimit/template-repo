@@ -18,7 +18,9 @@ Signals (all computed only from what an ordinary API customer observes):
 ``knob_latency_log_ratio`` / ``knob_accuracy_gain``
     Effect of a compute knob (for example a reasoning-effort parameter) on
     latency and accuracy when the number of visible and billed reasoning tokens
-    does not change.
+    does not change. Both are computed only from requests with no reported
+    reasoning tokens and the modal completion length, and neither is emitted
+    if any request in the run reported hidden reasoning tokens.
 
 Each function returns ``None`` for a signal when the data cannot support it.
 """
@@ -159,20 +161,48 @@ def knob_effects(records: list[dict[str, Any]], knob_order: list[Any]) -> dict[s
         mode = statistics.mode(lens)
         clean_lo = [r for r in clean_lo if r.get("completion_tokens") in (None, mode)]
         clean_hi = [r for r in clean_hi if r.get("completion_tokens") in (None, mode)]
-    ratio = None
-    if len(clean_lo) >= 5 and len(clean_hi) >= 5:
-        ratio = math.log(statistics.median(r["total_s"] for r in clean_hi) / statistics.median(r["total_s"] for r in clean_lo))
 
     def corrected(rs: list[dict[str, Any]]) -> float:
         return statistics.fmean((float(r["correct"]) - r.get("chance", 0.0)) / (1 - r.get("chance", 0.0)) for r in rs)
 
+    ratio = None
+    gain = None
+    if len(clean_lo) >= 5 and len(clean_hi) >= 5:
+        ratio = math.log(statistics.median(r["total_s"] for r in clean_hi) / statistics.median(r["total_s"] for r in clean_lo))
+        # Same exclusions as the latency ratio: an accuracy gain bought with hidden
+        # reasoning tokens is ordinary decoding, not in-pass compute.
+        gain = corrected(clean_hi) - corrected(clean_lo)
+
     return {
         "latency_log_ratio": ratio,
-        "accuracy_gain": corrected(hi_rows) - corrected(lo_rows),
+        "accuracy_gain": gain,
+        "accuracy_gain_all_rows": corrected(hi_rows) - corrected(lo_rows),
         "hidden_reasoning_tokens_seen": hidden,
         "n_low": len(lo_rows),
         "n_high": len(hi_rows),
     }
+
+
+def ttft_excess_in_itl(records: Iterable[dict[str, Any]], knob: Any = None) -> float | None:
+    """TTFT increase from the shallowest to the deepest depth, in units of median ITL.
+
+    A diagnostic, not a scored signal. Extra loop iterations on the first token
+    cost a fraction of one decode step each, so an adaptive-depth model should
+    add at most a few inter-token latencies of TTFT across the depth range. An
+    increase worth tens of tokens is better explained by hidden decoding
+    (reasoning tokens the usage fields do not report) or by routing.
+    """
+    rows = [r for r in records if _ok(r) and _no_hidden_tokens(r) and r.get("knob") == knob and r.get("ttft_s")]
+    itls = [r["itl_mean_s"] for r in rows if r.get("itl_mean_s")]
+    if not rows or not itls:
+        return None
+    depths = sorted({int(r["depth"]) for r in rows})
+    if len(depths) < 2:
+        return None
+    lo = statistics.median(r["ttft_s"] for r in rows if int(r["depth"]) == depths[0])
+    hi = statistics.median(r["ttft_s"] for r in rows if int(r["depth"]) == depths[-1])
+    itl = statistics.median(itls)
+    return (hi - lo) / itl if itl > 0 else None
 
 
 def extract_signals(records: list[dict[str, Any]], knob_order: list[Any] | None = None) -> dict[str, Any]:
@@ -188,6 +218,9 @@ def extract_signals(records: list[dict[str, Any]], knob_order: list[Any] | None 
     ttft = timing_slope(records, "ttft_s", knob=base)
     if ttft:
         signals["ttft_slope_z"] = ttft["z"]
+        excess = ttft_excess_in_itl(records, knob=base)
+        if excess is not None:
+            diag["ttft_excess_in_itl"] = excess
         diag["ttft"] = ttft
     itl = timing_slope(records, "itl_mean_s", knob=base)
     if itl:
@@ -202,7 +235,9 @@ def extract_signals(records: list[dict[str, Any]], knob_order: list[Any] | None 
         eff = knob_effects(records, knobs)
         if eff:
             diag["knob"] = eff
-            signals["knob_accuracy_gain"] = eff["accuracy_gain"]
-            if eff["latency_log_ratio"] is not None and not eff["hidden_reasoning_tokens_seen"]:
-                signals["knob_latency_log_ratio"] = eff["latency_log_ratio"]
+            if not eff["hidden_reasoning_tokens_seen"]:
+                if eff["accuracy_gain"] is not None:
+                    signals["knob_accuracy_gain"] = eff["accuracy_gain"]
+                if eff["latency_log_ratio"] is not None:
+                    signals["knob_latency_log_ratio"] = eff["latency_log_ratio"]
     return {"signals": signals, "diagnostics": diag}

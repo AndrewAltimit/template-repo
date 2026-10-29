@@ -8,6 +8,21 @@ count) and ``F`` (conventional fixed-depth transformer). A signal value ``x``
 contributes a log-likelihood ratio ``log p(x | R) - log p(x | F)``, clipped to
 ``[-cap, +cap]`` so that no single measurement can dominate.
 
+Two further constraints keep the Gaussian likelihoods honest:
+
+* **Monotonicity.** When the two classes have different spreads, the raw
+  Gaussian LLR is quadratic and turns around in the tail of the narrower
+  class: a strongly *negative* latency slope would otherwise count as
+  evidence for recurrence just because the recurrent class is wider. Every
+  Gaussian signal has a direction (the sign of ``mean_r - mean_f``), and
+  values beyond the turning point are scored as if they sat at it, so the
+  LLR never moves against the signal's direction.
+* **One-sided evidence.** Some signals can confirm recurrence but cannot rule
+  it out. A looped checkpoint stores its shared block once, so "no layer
+  sharing in the weights" is what both classes usually look like. Such
+  signals carry a ``floor``: the strongest evidence *for* fixed depth they
+  may contribute.
+
 Signals in the same *family* (for example the two timing slopes) share
 confounders, so they are not independent. Within a family the contributions
 are combined with an effective-sample-size discount: the family LLR is the
@@ -18,8 +33,9 @@ log-odds.
 The verdict is ``recurrent`` or ``fixed`` only when the posterior passes the
 decision threshold *and* at least ``min_families`` families point the same way
 with non-trivial strength; otherwise it is ``inconclusive``. A single strong
-family (except white-box configuration evidence, which is direct
-observation of the architecture) is not enough on its own.
+family is not enough on its own, except a white-box family (config or weights)
+that supports the verdict with at least ``decisive_min_llr``, which counts as
+direct observation of the architecture.
 
 The default likelihood parameters are rough engineering priors chosen so that
 the pipeline runs; they are not calibrated against real systems. Fit them to
@@ -29,7 +45,7 @@ and check the result with :mod:`recurrent_depth.validation`.
 
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, replace
 import json
 import math
 from pathlib import Path
@@ -51,14 +67,38 @@ class GaussianSignal:
     mean_f: float
     sd_f: float
     cap: float = 3.0  # |LLR| cap per signal; 3.0 is a likelihood ratio of about 20
+    floor: float | None = None  # most negative LLR allowed (one-sided signals)
+    monotone: bool = True  # never let the LLR move against the signal's direction
 
-    def llr(self, x: float) -> float:
+    def _raw(self, x: float) -> float:
         def logpdf(v: float, m: float, s: float) -> float:
             s = max(s, 1e-9)
             return -0.5 * ((v - m) / s) ** 2 - math.log(s)
 
-        raw = logpdf(x, self.mean_r, self.sd_r) - logpdf(x, self.mean_f, self.sd_f)
-        return max(-self.cap, min(self.cap, raw))
+        return logpdf(x, self.mean_r, self.sd_r) - logpdf(x, self.mean_f, self.sd_f)
+
+    def turning_point(self) -> float | None:
+        """Value at which the quadratic LLR changes direction, if it does."""
+        pr, pf = 1.0 / max(self.sd_r, 1e-9) ** 2, 1.0 / max(self.sd_f, 1e-9) ** 2
+        if math.isclose(pr, pf, rel_tol=1e-12):
+            return None
+        return (self.mean_f * pf - self.mean_r * pr) / (pf - pr)
+
+    def llr(self, x: float) -> float:
+        direction = self.mean_r - self.mean_f
+        x0 = self.turning_point()
+        if self.monotone and direction != 0 and x0 is not None:
+            # d LLR / dx = (pf - pr) x - (mean_f pf - mean_r pr); it has the sign of
+            # ``direction`` on one side of x0 only. Clamp x to that side.
+            pr, pf = 1.0 / max(self.sd_r, 1e-9) ** 2, 1.0 / max(self.sd_f, 1e-9) ** 2
+            increasing_above = pf > pr  # LLR is convex: increasing for x > x0
+            if (direction > 0) == increasing_above:
+                x = max(x, x0)
+            else:
+                x = min(x, x0)
+        raw = self._raw(x)
+        lo = -self.cap if self.floor is None else max(-self.cap, self.floor)
+        return max(lo, min(self.cap, raw))
 
 
 @dataclass
@@ -107,8 +147,10 @@ class ScoringConfig:
             "knob": 2.0,
         }
     )
-    # Families that count as direct observation and may decide on their own.
+    # Families that count as direct observation and may decide on their own,
+    # provided their LLR supports the verdict by at least decisive_min_llr.
     decisive_families: tuple[str, ...] = ("whitebox_config", "whitebox_weights")
+    decisive_min_llr: float = 3.0
 
 
 # Rough priors. Units: z-scores for slopes; ratios as defined in features.py;
@@ -116,12 +158,15 @@ class ScoringConfig:
 # config_recurrence outcomes: 1 = config declares looping / recurrence fields,
 # 0.5 = custom modeling code with no declared recurrence (cannot tell),
 # 0 = a standard, well-known fixed-depth architecture class.
+# The weight signals are one-sided (floor -0.5): exact or low-rank layer reuse is
+# strong evidence of recurrence, but its absence is what a looped checkpoint that
+# stores its shared block once also looks like (Huginn, Ouro).
 DEFAULT_SIGNALS: dict[str, SignalModel] = {
     s.name: s
     for s in [
         CategoricalSignal("config_recurrence", "whitebox_config", {"1": 6.0, "0.5": 0.0, "0": -1.5}),
-        GaussianSignal("weight_reuse_ratio", "whitebox_weights", 3.0, 1.5, 1.0, 0.05, cap=5.0),
-        GaussianSignal("shared_layer_fraction", "whitebox_weights", 0.8, 0.25, 0.0, 0.05, cap=5.0),
+        GaussianSignal("weight_reuse_ratio", "whitebox_weights", 3.0, 1.5, 1.0, 0.05, cap=5.0, floor=-0.5),
+        GaussianSignal("shared_layer_fraction", "whitebox_weights", 0.8, 0.25, 0.0, 0.05, cap=5.0, floor=-0.5),
         GaussianSignal("state_contraction", "whitebox_dynamics", 0.6, 0.2, 1.0, 0.25),
         GaussianSignal("similarity_periodicity", "whitebox_dynamics", 0.25, 0.15, 0.0, 0.08),
         GaussianSignal("ttft_slope_z", "timing", 4.0, 3.0, 0.0, 1.3),
@@ -189,7 +234,7 @@ def score(
     direction = 1 if post >= 0.5 else -1
     supporting = sorted(f for f, v in families.items() if v * direction >= cfg.min_family_llr)
     opposing = sorted(f for f, v in families.items() if v * direction <= -cfg.min_family_llr)
-    decisive = any(f in cfg.decisive_families for f in supporting)
+    decisive = any(f in cfg.decisive_families and families[f] * direction >= cfg.decisive_min_llr for f in supporting)
 
     label = INCONCLUSIVE
     if post >= cfg.threshold or post <= 1 - cfg.threshold:
@@ -249,7 +294,7 @@ def fit_models(
 
         mr, sr = est(vals[RECURRENT], b.mean_r, b.sd_r)
         mf, sf = est(vals[FIXED], b.mean_f, b.sd_f)
-        fitted[name] = GaussianSignal(name, b.family, mr, sr, mf, sf, b.cap)
+        fitted[name] = replace(b, mean_r=mr, sd_r=sr, mean_f=mf, sd_f=sf)
     return fitted
 
 
