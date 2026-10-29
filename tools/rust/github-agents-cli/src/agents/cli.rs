@@ -178,6 +178,7 @@ impl CliAgent {
                 // this process's environment (API key, model) and nothing
                 // lingers after it exits.
                 cmd.args(["run", "--standalone", "-m", &model]);
+                crate::utils::process::set_opencode_title_model(&mut cmd, &model);
                 Some(prompt.to_string())
             },
             CliKind::Crush => {

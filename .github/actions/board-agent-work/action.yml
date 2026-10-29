@@ -884,10 +884,16 @@ runs:
             # private per-run server instead of the shared background service.
             OPENCODE_MODEL_REF="${OPENCODE_MODEL:-particle-ai/particle-1}"
             case "$OPENCODE_MODEL_REF" in openrouter/*) ;; *) OPENCODE_MODEL_REF="openrouter/$OPENCODE_MODEL_REF" ;; esac
+            # Title sessions with the same model: OpenCode 2.x otherwise uses a
+            # separate catalog model for titles (an extra paid request).
+            if [ -z "${OPENCODE_CONFIG_CONTENT:-}" ]; then
+              export OPENCODE_CONFIG_CONTENT="{\"small_model\":\"$OPENCODE_MODEL_REF\"}"
+            fi
             if [ "$USE_DOCKER" = "true" ]; then
               echo "Running OpenCode in Docker..."
               if timeout "${AGENT_TIMEOUT}m" docker compose -f "$DOCKER_COMPOSE_FILE" run --rm \
                 -e OPENROUTER_API_KEY \
+                -e OPENCODE_CONFIG_CONTENT \
                 -e PR_TITLE_FILE \
                 -e PR_BODY_FILE \
                 -v "$PR_TITLE_DIR:$PR_TITLE_DIR" \

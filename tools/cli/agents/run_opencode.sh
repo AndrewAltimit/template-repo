@@ -29,6 +29,11 @@ echo "✅ Using OpenRouter API key: ****${OPENROUTER_API_KEY: -4}"
 if [ -z "$OPENCODE_MODEL" ]; then
     export OPENCODE_MODEL="particle-ai/particle-1"
 fi
+# Title sessions with the same model: OpenCode 2.x otherwise uses a separate
+# model from its catalog for titles, an extra paid OpenRouter request.
+if [ -z "${OPENCODE_CONFIG_CONTENT:-}" ]; then
+    export OPENCODE_CONFIG_CONTENT="{\"small_model\":\"openrouter/${OPENCODE_MODEL}\"}"
+fi
 echo "🤖 Using model: $OPENCODE_MODEL"
 
 # Check if opencode CLI is available

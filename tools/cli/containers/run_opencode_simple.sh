@@ -39,6 +39,11 @@ echo "✅ Using OpenRouter API key: ****${OPENROUTER_API_KEY: -4}"
 if [ -z "$OPENCODE_MODEL" ]; then
     export OPENCODE_MODEL="particle-ai/particle-1"
 fi
+# Title sessions with the same model: OpenCode 2.x otherwise uses a separate
+# model from its catalog for titles, an extra paid OpenRouter request.
+if [ -z "${OPENCODE_CONFIG_CONTENT:-}" ]; then
+    export OPENCODE_CONFIG_CONTENT="{\"small_model\":\"openrouter/${OPENCODE_MODEL}\"}"
+fi
 echo "🤖 Using model: $OPENCODE_MODEL"
 
 # Build simple OpenCode image if it doesn't exist. The tag carries the pinned
@@ -125,6 +130,7 @@ if [ "$MODE" = "single" ]; then
     docker run --rm \
         -e OPENROUTER_API_KEY="$OPENROUTER_API_KEY" \
         -e OPENCODE_MODEL="$OPENCODE_MODEL" \
+        -e OPENCODE_CONFIG_CONTENT \
         -v "$(pwd):/workspace" \
         "$IMAGE_NAME" \
         run --standalone -m "openrouter/$OPENCODE_MODEL" "$QUERY"
@@ -140,6 +146,7 @@ else
     docker run --rm -it \
         -e OPENROUTER_API_KEY="$OPENROUTER_API_KEY" \
         -e OPENCODE_MODEL="$OPENCODE_MODEL" \
+        -e OPENCODE_CONFIG_CONTENT \
         -v "$(pwd):/workspace" \
         "$IMAGE_NAME" \
         --standalone

@@ -81,6 +81,11 @@ echo "   Key length: ${#OPENROUTER_API_KEY} characters"
 if [ -z "$OPENCODE_MODEL" ]; then
     export OPENCODE_MODEL="particle-ai/particle-1"
 fi
+# Title sessions with the same model: OpenCode 2.x otherwise uses a separate
+# model from its catalog for titles, an extra paid OpenRouter request.
+if [ -z "${OPENCODE_CONFIG_CONTENT:-}" ]; then
+    export OPENCODE_CONFIG_CONTENT="{\"small_model\":\"openrouter/${OPENCODE_MODEL}\"}"
+fi
 echo "🤖 Using model: $OPENCODE_MODEL"
 
 # Parse command line arguments
@@ -179,12 +184,14 @@ if [ "$MODE" = "single" ]; then
         docker compose run --rm \
             -e OPENROUTER_API_KEY="$OPENROUTER_API_KEY" \
             -e OPENCODE_MODEL="$OPENCODE_MODEL" \
+            -e OPENCODE_CONFIG_CONTENT \
             $VOLUME_MOUNT \
             openrouter-agents "${CMD[@]}"
     else
         docker compose run --rm \
             -e OPENROUTER_API_KEY="$OPENROUTER_API_KEY" \
             -e OPENCODE_MODEL="$OPENCODE_MODEL" \
+            -e OPENCODE_CONFIG_CONTENT \
             openrouter-agents "${CMD[@]}"
     fi
 else
@@ -199,5 +206,6 @@ else
     docker compose run --rm -it \
         -e OPENROUTER_API_KEY="$OPENROUTER_API_KEY" \
         -e OPENCODE_MODEL="$OPENCODE_MODEL" \
+        -e OPENCODE_CONFIG_CONTENT \
         openrouter-agents opencode
 fi

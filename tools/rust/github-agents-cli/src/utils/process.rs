@@ -200,9 +200,43 @@ fn compare_node_versions(a: &str, b: &str) -> std::cmp::Ordering {
     key(a).cmp(&key(b))
 }
 
+/// Point OpenCode's session-title generation (`small_model`) at the run's
+/// own model.
+///
+/// Without it, OpenCode 2.x titles every session with a separate model from
+/// its built-in catalog: an extra paid OpenRouter request on a model we did
+/// not choose. Left alone when the caller already supplies
+/// `OPENCODE_CONFIG_CONTENT`.
+pub fn set_opencode_title_model(cmd: &mut Command, model: &str) {
+    if std::env::var_os("OPENCODE_CONFIG_CONTENT").is_none() {
+        let config = serde_json::json!({ "small_model": model });
+        cmd.env("OPENCODE_CONFIG_CONTENT", config.to_string());
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn opencode_title_model_uses_the_run_model() {
+        let mut cmd = Command::new("opencode");
+        set_opencode_title_model(&mut cmd, "openrouter/particle-ai/particle-1");
+        let value = cmd
+            .as_std()
+            .get_envs()
+            .find(|(k, _)| *k == "OPENCODE_CONFIG_CONTENT")
+            .and_then(|(_, v)| v)
+            .map(|v| v.to_string_lossy().into_owned());
+        if std::env::var_os("OPENCODE_CONFIG_CONTENT").is_none() {
+            assert_eq!(
+                value.as_deref(),
+                Some(r#"{"small_model":"openrouter/particle-ai/particle-1"}"#)
+            );
+        } else {
+            assert_eq!(value, None);
+        }
+    }
 
     #[test]
     fn transient_error_detection() {

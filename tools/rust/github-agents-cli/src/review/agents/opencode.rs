@@ -9,7 +9,7 @@ use tokio::process::Command;
 
 use super::{ReviewAgent, run_review_cli};
 use crate::error::{Error, Result};
-use crate::utils::process::find_binary;
+use crate::utils::process::{find_binary, set_opencode_title_model};
 
 /// Default model for OpenCode reviews (OpenRouter provider prefix included).
 const DEFAULT_MODEL: &str = "openrouter/particle-ai/particle-1";
@@ -73,6 +73,7 @@ impl ReviewAgent for OpenCodeAgent {
         // Private per-run server (OpenCode 2.x) instead of the shared
         // background service, so the review uses this process's environment.
         cmd.args(["run", "--standalone", "--model", &self.model]);
+        set_opencode_title_model(&mut cmd, &self.model);
         run_review_cli("opencode", cmd, Some(prompt), OPENCODE_TIMEOUT).await
     }
 }
