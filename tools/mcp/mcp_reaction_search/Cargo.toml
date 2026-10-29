@@ -56,6 +56,11 @@ fastembed = { version = "7", default-features = false, features = [
 # Linear algebra
 ndarray = "0.17"
 
+# tokenizers (via fastembed) needs `paste`, which is unmaintained
+# (RUSTSEC-2024-0436). Swap in the pastey-backed shim; see its lib.rs.
+[patch.crates-io]
+paste = { path = "../mcp_core_rust/crates/paste-shim" }
+
 [profile.release]
 lto = true
 codegen-units = 1

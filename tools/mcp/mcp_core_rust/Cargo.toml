@@ -6,6 +6,7 @@ members = [
     "crates/mcp-client",
     "crates/mcp-testing",
     "crates/mcp-ai-consult",
+    "crates/paste-shim",
 ]
 
 [workspace.package]
