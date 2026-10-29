@@ -152,7 +152,7 @@ impl FullConfig {
     }
 
     fn parse(content: &str) -> Result<Self> {
-        let yaml: AgentsYaml = serde_yaml::from_str(content)
+        let yaml: AgentsYaml = serde_norway::from_str(content)
             .map_err(|e| Error::Config(format!("Failed to parse .agents.yaml: {}", e)))?;
         Ok(Self {
             pr_review: yaml.pr_review.unwrap_or_default(),
@@ -217,7 +217,7 @@ impl ReviewProfile {
     }
 
     fn from_yaml(content: &str, profile_name: &str) -> Result<Self> {
-        let yaml: ReviewProfilesYaml = serde_yaml::from_str(content)
+        let yaml: ReviewProfilesYaml = serde_norway::from_str(content)
             .map_err(|e| Error::Config(format!("Failed to parse review-profiles.yaml: {}", e)))?;
 
         yaml.profiles.get(profile_name).cloned().ok_or_else(|| {

@@ -16,7 +16,7 @@ path = "src/lib.rs"
 
 [dependencies]
 # Regex for pattern matching (compiled once via LazyLock)
-regex = "1.11"
+regex = "1.13"
 
 # Error handling
 thiserror = "2"

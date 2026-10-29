@@ -105,7 +105,7 @@ fn check_compose(root: &Path, report: &mut Report) {
     let path = project::compose_file(root);
     let parsed = std::fs::read_to_string(&path)
         .map_err(anyhow::Error::from)
-        .and_then(|s| Ok(serde_yaml::from_str::<serde_yaml::Value>(&s)?));
+        .and_then(|s| Ok(serde_norway::from_str::<serde_norway::Value>(&s)?));
     let doc = match parsed {
         Ok(doc) => doc,
         Err(e) => {
