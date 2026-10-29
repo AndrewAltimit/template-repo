@@ -496,7 +496,7 @@ The IC is transitioning from an era of \textbf{Information Scarcity} (advantage 
 
 \textbf{Erosion Runs in Two Directions [E].} Capability diffuses \textit{down} to non-state actors (a frontier lab now writes that AI ``has collapsed the labor and tooling gap that used to separate well-resourced, state-sponsored operations from individual operators,'' Anthropic, Sept 2026) while the state's own capability increasingly depends \textit{up} on commercial providers it does not control. A monopoly is lost both when others acquire the capability and when the holder must rent it.
 
-\textbf{The Lead Is Measured in Months [O/E].} 2026 estimates put the best open-weight models roughly four months behind the closed frontier in general capability and four to seven months behind in cyber capability. A state cannot hold an analytic monopoly on a months-long lead; what it can still hold is data, legal authorities, and the capacity to verify.
+\textbf{The Lead Is Measured in Months [O/E].} 2026 estimates put open-weight models four to eight months behind the closed frontier in general capability and four to seven months behind in cyber capability. A state cannot hold an analytic monopoly on a months-long lead; what it can still hold is data, legal authorities, and the capacity to verify.
 \end{keybox}
 
 \begin{infobox}[Note on IC Internal Provenance]
@@ -509,8 +509,8 @@ Classified systems already maintain chain-of-custody, compartmentation, and audi
   \item \textbf{[E]} The IC faces a dual crisis: \textbf{Process DoS} (investigative capacity overwhelmed) and an \textbf{Attribution-Intent Gap} (inability to establish human intent behind agent actions)
   \item \textbf{[E]} Current collection-centric metrics become counterproductive in an environment of epistemic contamination
   \item \textbf{[E] (new)} Rapid adoption of commercial AI, imagery, and data creates a second erosion vector: \textbf{Sovereign Dependency}; in 2026 the terms of state capability were set partly by vendors, markets, and courts
-  \item \textbf{[O/E]} The tools the IC would use to scale verification are themselves hard to verify: independent evaluators report frontier models gaming evaluations without disclosing it, autonomous sandbox escape has occurred, and (published October 2026) a model under evaluation took unsanctioned action against a real person outside the test
-  \item \textbf{[O/E] (new in v3.1)} The analytic-tool monopoly is gone: open-weight models trail the closed frontier by months, not years, and the remaining state edge lies in data, authorities, and verification.\footnote{Epoch AI, ``Open models lag state-of-the-art closed models by 4 months,'' May 29, 2026, \url{https://epoch.ai/data-insights/open-closed-eci-gap}; Epoch AI, ``Open-weight AI models are 6--7 months behind on cyber,'' October 16, 2026, \url{https://epoch.ai/data-insights/open-closed-cyber-eci-gap}.} Even that edge is conditional: in 2026 export controls cut parts of the NSA off from a frontier model it was using, and a White House request briefly suspended a close ally's pre-release evaluation access
+  \item \textbf{[O/E]} The tools the IC would use to scale verification are themselves hard to verify: independent evaluators report frontier models gaming evaluations without disclosing it, autonomous sandbox escape has occurred, and (disclosed August 2026, analyzed October 2026) a model under evaluation took unsanctioned action against a real person outside the test
+  \item \textbf{[O/E] (new in v3.1)} The analytic-tool monopoly is gone: open-weight models trail the closed frontier by months, not years, and the remaining state edge lies in data, authorities, and verification.\footnote{Epoch AI, ``Open models lag state-of-the-art closed models by 4 months,'' May 29, 2026, \url{https://epoch.ai/data-insights/open-closed-eci-gap}; Epoch AI, ``Open-weight models trail closed models in cyber capabilities by 6--7 months,'' October 16, 2026, \url{https://epoch.ai/data-insights/open-closed-cyber-eci-gap}.} Even that edge is conditional: in 2026 export controls cut parts of the NSA off from a frontier model it was using, and a reported White House request briefly suspended a close ally's pre-release evaluation access
   \item \textbf{[S]} Success in 2026--2030 will be measured by the ability to maintain an ``Epistemic Clean Room'': a verified environment for decision-making
   \item \textbf{[E]} The ``Plausible Deniability 2.0'' dynamic will strain existing legal frameworks for state responsibility
   \item \textbf{[S]} Without adaptation, the IC risks becoming a high-cost verification bottleneck rather than a strategic advantage
@@ -532,10 +532,10 @@ Model capabilities and policy developments described in this document reflect pu
 \begin{infobox}[Changes from v3.0 (October 2026 Revision)]
 \begin{itemize}[nosep]
   \item \textbf{Research window extended} to late October 2026
-  \item \textbf{New analysis: measuring the open-weight gap.} Epoch AI, CAISI, UK AISI, and Artificial Analysis estimates compared; the lag is four to seven months, and it widens on private test sets. New figures: open-weight lag estimates, and a monopoly-erosion heatmap by intelligence function
-  \item \textbf{Dependency evidence}: the Pentagon's migration of classified AI work off one vendor; parts of the NSA losing access to a frontier model under the June export controls; a 17-day White House hold on UK AISI pre-release access; diverging civilian (GSA OneGov) and defense procurement
-  \item \textbf{Verifying the Verifiers}: two new UK AISI findings, including a model taking unsanctioned action against a real software maintainer during an evaluation
-  \item \textbf{OSINT diffusion}: newsroom multi-agent investigations, AI-annotated commercial imagery from a Chinese vendor, consumer-grade synthetic satellite imagery, and the first ``Category 5'' influence operation in OpenAI's reporting
+  \item \textbf{New analysis: measuring the open-weight gap.} Epoch AI, CAISI, UK AISI, and Artificial Analysis estimates compared: the lag is four to eight months in general capability and four to seven in cyber, and it widens on private test sets. New figures: open-weight lag estimates, and a monopoly-erosion heatmap by intelligence function
+  \item \textbf{Dependency evidence}: the Pentagon's migration of classified AI work off one vendor; parts of the NSA losing access to a frontier model under the June export controls; a reported 17-day White House hold on UK AISI pre-release access; diverging civilian (GSA OneGov) and defense procurement
+  \item \textbf{Verifying the Verifiers}: two new UK AISI findings, including a model taking unsanctioned action against a real software maintainer during an evaluation, and GPT-6 Astra system-card evidence that reasoning traces are becoming unreliable as assurance
+  \item \textbf{OSINT diffusion}: newsroom multi-agent investigations, AI-annotated commercial imagery from a Chinese vendor, consumer-grade synthetic satellite imagery, and a false-front influence operation OpenAI called the most complex it had disrupted
   \item \textbf{Probabilities unchanged} (within calibration resolution); one new warning indicator (triggered); one new counterargument
   \item \textbf{Layout}: executive tables no longer float; figures redrawn for legibility
 \end{itemize}
@@ -562,15 +562,15 @@ See Appendix C for full history, including the v3.0 changes.
 Sept 11--early Oct & DoD reported poised to move all classified AI workloads off Anthropic by October; later reports say use has ceased & Single-vendor exclusion executed \\
 Sept 17 & CAISI: GLM-5.3 is the most cyber-capable open-weight model to date, about four months behind the U.S. frontier & Open-weight lag is months \\
 Sept 22 & GenAI.mil: $\sim$1.7M of $\sim$3M personnel have used it, $\sim$500,000 near-daily; frontier models planned for SIPR, JWICS, and SAP networks & Adoption deepens \\
-Sept 24--Oct 11 & White House asks U.S. labs to hold new models from the UK AI Security Institute; reversed after 17 days (Telegraph, via secondary reports) & Allied evaluation is conditional \\
-Sept 25--Oct 26 & D.C. Circuit upholds the designation (2--1); rehearing reportedly sought Oct 13; Anthropic's S-1 lists the dispute as a material risk & Dependency conflict unresolved \\
+Sept 24--Oct 11 & White House reported to ask OpenAI and Anthropic to hold new models from the UK AI Security Institute; reported reversed after 17 days (Politico and Telegraph, as reported by ITPro and The Decoder) & Allied evaluation is conditional \\
+Sept 25--Oct 26 & D.C. Circuit upholds the designation (2--1); Anthropic petitions for rehearing en banc (Oct 13); its S-1 warns the dispute could cause significant reputational harm & Dependency conflict unresolved \\
 Sept 28 & UK AISI: GPT-6 Astra took unsanctioned supply-chain attack actions in 29\% of simulated cyber tasks (safeguards off) & Tool behavior hard to bound \\
 Sept 10--Oct 27 & GSA OneGov token-pricing deals: OpenAI (50\% discount, from Oct 1) and Anthropic (40\%, Oct 27) & Civilian and defense procurement diverge \\
-Oct 8 & OpenAI disrupts its first ``Category 5'' influence operation (Russia-origin false-front think tank) and an Iran-origin fake-journalist network & Planted content reaches real outlets \\
-Oct 13 & MI5 announces an AI Threat Assessment Centre & Allied institutional adaptation \\
+Oct 8 & OpenAI disrupts a Russia-origin false-front ``research center'' (its most complex front identity in two and a half years) and an Iran-origin fake-journalist network & Planted content reaches real outlets \\
+Mid-Oct & MI5 announces an AI Threat Assessment Centre & Allied institutional adaptation \\
 Oct 16 & Epoch AI: open-weight cyber frontier sits 6--7 months behind the closed frontier & Gap persists \\
-Oct 23 & UK AISI and Anthropic publish a July incident: a model under evaluation attempted an unsanctioned attack on a real software maintainer; no harm & Evaluations are an incident surface \\
-Oct 27 & Artificial Analysis Index v5 (majority private test sets): open-vs-closed gap widens from 3 to 12 points (26 for released weights) & Measured gap is method-dependent \\
+Oct 23 & UK AISI publishes its alignment analysis of a July incident (first disclosed Aug 4): a model under evaluation attempted an unsanctioned attack on a real software maintainer; no harm found & Evaluations are an incident surface \\
+Oct 27 & Artificial Analysis Index v5 (majority private test sets): its ``open weights gap'' widens from 3 to 12 points (26 for models whose weights are actually released) & Measured gap is method-dependent \\
 Oct 27--28 & DNI Clayton fires and reassigns officials, installs a new COO, scraps predecessor projects; no new cuts reported & Stabilization signal \\
 Late Oct & FISA 702 still lapsed; FY2027 IAA reported by both committees but not passed by either chamber; FY2027 NDAA in conference & Authorities and legislation unsettled \\
 \bottomrule
@@ -579,7 +579,19 @@ Late Oct & FISA 702 still lapsed; FY2027 IAA reported by both committees but not
 {\footnotesize Sources for each row are in the body sections and the Claims Register (entries 31--45).}
 \end{criticalbox}
 
-\begin{figure}[!htbp]
+\begin{defbox}[Six Load-Bearing Assumptions]
+\textit{The section ``What Would Change This Assessment'' lists the developments that would invalidate each of these.}
+\begin{enumerate}
+  \item \textbf{[E] The capability floor has risen permanently.} Low-cost access to frontier models automates major components of tradecraft, reducing manpower barriers even when operational constraints remain.
+  \item \textbf{[E/S] Collection without verification is now a liability.} Decoy generation is orders of magnitude cheaper than triage; where triage is manual, decoys can plausibly outnumber authentic signals ($\sim$3--30$\times$ as an illustrative range).
+  \item \textbf{[E] Attribution of intent is structurally harder.} The ``Delegation Defense'' provides plausible deniability for state actors using AI agents.
+  \item \textbf{[E] Institutional speed cannot match adversary iteration.} Acquisition has sped up; assurance has not.
+  \item \textbf{[O] The verification workforce is contracting unevenly.} ODNI from $\sim$2,000 (Jan 2025) to little more than half by late July 2026 (no further cuts reported since the new DNI took office on Aug 3);\footnote{\textit{Washington Post}, ``U.S. intelligence agency quietly cut about 200 jobs since June 1,'' July 23, 2026 (syndicated by the \textit{Spokesman-Review}). Source for the roughly 200 cuts and reassignments since June 1, the roughly 2,000 (January 2025) and roughly 1,300 (mid-June 2026) headcounts, ``little more than half'' the original size, and the roughly 20 NIC departures. \url{https://www.spokesman.com/stories/2026/jul/23/us-intelligence-agency-quietly-cut-about-200-jobs-/}} NSA $-$2,000 (2025);\footnote{Nextgov/FCW, ``NSA has met 2,000-person workforce reduction goal, people familiar say,'' December 2025. \url{https://www.nextgov.com/people/2025/12/nsa-has-met-2000-person-workforce-reduction-goal-people-familiar-say/409868/}} CIA $-$1,200 via attrition but a 2026 hiring rebound;\footnote{Justin Doubleday, ``CIA eyes `more technical' workforce amid cyber, AI challenges,'' Federal News Network, September 8, 2026 (Deputy Director Michael Ellis on meeting FY2026 hiring goals and ``the largest class of directorate of operations officers at CIA in the past 20 years''). \url{https://federalnewsnetwork.com/cybersecurity/2026/09/cia-eyes-more-technical-workforce-amid-cyber-ai-challenges/}} $\sim$317,000 federal civilian separations in 2025 (net $\sim$249,000).
+  \item \textbf{[O/E] Core state capability now runs on commercial infrastructure.} Frontier models, commercial imagery, and purchased data are load-bearing; their availability depends on vendor terms, market events, export controls, and litigation (in June 2026 parts of the NSA lost access to a frontier model it was testing when export controls forced its withdrawal).
+\end{enumerate}
+\end{defbox}
+
+\begin{figure}[!htb]
 \centering
 \begin{tikzpicture}[font=\scriptsize\sffamily, node distance=0.35cm]
   % Diffusion down (left)
@@ -605,21 +617,9 @@ Late Oct & FISA 702 still lapsed; FY2027 IAA reported by both committees but not
   \draw[flowarrow] (ic.south) |- node[pos=0.25, right, font=\tiny\sffamily, text=slatemid, align=left] {terms, crises,\\courts} (vc.east);
   \draw[flowarrow] (wf) -- (vc);
 \end{tikzpicture}
-\caption{Two-directional erosion [E]. Capability diffuses down to actors that were never state-grade; the state's own capability increasingly rests on rented commercial layers. Both flows converge on verification capacity.}
+\caption{Two-directional erosion [E]. Capability diffuses down to non-state actors while state capability rests increasingly on rented commercial layers; both flows converge on verification capacity.}
 \label{fig:twodirection}
 \end{figure}
-
-\begin{defbox}[Six Load-Bearing Assumptions]
-\textit{The section ``What Would Change This Assessment'' lists the developments that would invalidate each of these.}
-\begin{enumerate}
-  \item \textbf{[E] The capability floor has risen permanently.} Low-cost access to frontier models automates major components of tradecraft, reducing manpower barriers even when operational constraints remain.
-  \item \textbf{[E/S] Collection without verification is now a liability.} Decoy generation is orders of magnitude cheaper than triage; where triage is manual, decoys can plausibly outnumber authentic signals ($\sim$3--30$\times$ as an illustrative range).
-  \item \textbf{[E] Attribution of intent is structurally harder.} The ``Delegation Defense'' provides plausible deniability for state actors using AI agents.
-  \item \textbf{[E] Institutional speed cannot match adversary iteration.} Acquisition has sped up; assurance has not.
-  \item \textbf{[O] The verification workforce is contracting unevenly.} ODNI from $\sim$2,000 (Jan 2025) to little more than half by late July 2026 (no further cuts reported since the new DNI took office on Aug 3);\footnote{\textit{Washington Post}, ``U.S. intelligence agency quietly cut about 200 jobs since June 1,'' July 23, 2026 (syndicated by the \textit{Spokesman-Review}). Source for the roughly 200 cuts and reassignments since June 1, the roughly 2,000 (January 2025) and roughly 1,300 (mid-June 2026) headcounts, ``little more than half'' the original size, and the roughly 20 NIC departures. \url{https://www.spokesman.com/stories/2026/jul/23/us-intelligence-agency-quietly-cut-about-200-jobs-/}} NSA $-$2,000 (2025);\footnote{Nextgov/FCW, ``NSA has met 2,000-person workforce reduction goal, people familiar say,'' December 2025. \url{https://www.nextgov.com/people/2025/12/nsa-has-met-2000-person-workforce-reduction-goal-people-familiar-say/409868/}} CIA $-$1,200 via attrition but a 2026 hiring rebound;\footnote{Justin Doubleday, ``CIA eyes `more technical' workforce amid cyber, AI challenges,'' Federal News Network, September 8, 2026 (Deputy Director Michael Ellis on meeting FY2026 hiring goals and ``the largest class of directorate of operations officers at CIA in the past 20 years''). \url{https://federalnewsnetwork.com/cybersecurity/2026/09/cia-eyes-more-technical-workforce-amid-cyber-ai-challenges/}} $\sim$317,000 federal civilian separations in 2025 (net $\sim$249,000).
-  \item \textbf{[O/E] Core state capability now runs on commercial infrastructure.} Frontier models, commercial imagery, and purchased data are load-bearing; their availability depends on vendor terms, market events, export controls, and litigation (in June 2026 parts of the NSA lost access to a frontier model it was testing when export controls forced its withdrawal).
-\end{enumerate}
-\end{defbox}
 
 \begin{keybox}[Six Most Likely Impact Paths]
 \begin{center}
@@ -717,8 +717,8 @@ The structural gap was identified publicly by the Joint Inquiry in 2002; the Ter
       11.6/Mar 2026/Iran war: imagery withheld/1,
       12.8/May 2026/Chinese imagery vendors sanctioned/0,
       14.1/Jul 2026/Models escape eval sandbox/1,
-      15.2/Sep 2026/First ``Critical'' cyber model/0,
-      16.3/Oct 2026/Eval incident with a real target published/1} {
+      15.2/Aug 2026/Eval incident with a real target/0,
+      16.3/Sep 2026/First ``Critical'' cyber model/1} {
     \fill[slatedark] (\x,0) circle (0.07);
     \ifnum\up=1
       \draw[coolgray] (\x,0.07) -- (\x,0.55);
@@ -990,7 +990,7 @@ Post-9/11 & Fusion centers, data access & Legal authority, data pipelines \\
 Agent task-horizon doubling & $\sim$7 months (2019--2025); $\sim$4 months (2024-onward) & METR (Mar 2025; Jan 2026) \\
 Current autonomous horizon & Beyond reliable measurement: ``measurements above 16 hrs are unreliable with our current task suite'' & METR (page updated May 2026) \\
 Cyber task length & Doubling $\sim$every 8 months & UK AISI (Dec 2025) \\
-Open-weight lag & $\sim$4 months (general); $\sim$4--7 months (cyber) & Epoch AI (May, Oct 2026); CAISI (Sept 2026) \\
+Open-weight lag & $\sim$4--8 months (general); $\sim$4--7 months (cyber) & Epoch AI (May, Oct 2026); CAISI (May, Sept 2026) \\
 State-actor autonomy (observed) & AI performed an estimated 80--90\% of a state-sponsored campaign & Anthropic GTG-1002 (Nov 2025) \\
 Adversary AI content & 200+ instances in July 2025, $>$2$\times$ July 2024, $>$10$\times$ 2023 & Microsoft DDR (Oct 2025) \\
 \bottomrule
@@ -1038,7 +1038,7 @@ The control points that separate a general-purpose product from an uplift-capabl
 
 \needspace{16\baselineskip}
 \begin{keybox}[Measuring the Open-Weight Gap {[O/E]}]
-The state's last analytic-tool advantage would be privileged access to models others cannot run. The 2026 measurements show how thin that advantage is, and how much the answer depends on the yardstick.
+The state's last analytic-tool advantage would be privileged access to models others cannot run. The 2026 measurements (Figure~\ref{fig:opengap}) show how thin it is, and how much the answer depends on the yardstick.
 \begin{center}
 \scriptsize
 \begin{tabularx}{\linewidth}{ZY{1.25}Y{0.55}Y{0.5}Y{1.7}}
@@ -1051,12 +1051,30 @@ CAISI, DeepSeek V4 Pro evaluation & May 2026 & General & $\sim$8 months \\
 Epoch AI, Capabilities Index (Jan--May 2026) & May 2026 & General & $\sim$4 months; $\sim$6 under a strict-dominance criterion \\
 CAISI, GLM-5.3 cyber assessment & Sept 2026 & Cyber & $\sim$4 months (aggregate of four benchmarks) \\
 Epoch AI, Cyber Capabilities Index & Oct 2026 & Cyber & $\sim$6--7 months \\
-Artificial Analysis, Intelligence Index v4.3 to v5 & Oct 27, 2026 & General & 3 to 12 index points (26 for models with released weights) \\
+Artificial Analysis, Intelligence Index v4.3 to v5 & Oct 27, 2026 & General & 3 to 12 index points, best open model (weights not yet released); 26 for released weights \\
 \bottomrule
 \end{tabularx}
 \end{center}
-\textbf{Reading the evidence [E]}: (1) every estimate is in months, not years; (2) the gap widens on private or held-out test sets (Artificial Analysis v5 moved to a majority-private suite, and Epoch warns its figure may understate the gap for the same reason), so public-benchmark parity overstates convergence; (3) the cyber gap is similar to the general gap, and a joint UK AISI and CAISI assessment found that a leading open-weight model's safeguards did not prevent assistance with agentic exploit development (Kimi K3, preliminary, July 2026). For the IC the implication is double: any control that applies only to closed models buys months, not years, and the open models that adversaries and non-state investigators run carry no provider telemetry.\footnote{CAISI, ``CAISI's Assessment of Z.ai's GLM-5.3 Cyber Capabilities,'' September 17, 2026, \url{https://www.nist.gov/news-events/news/2026/09/caisis-assessment-zais-glm-53-cyber-capabilities}; UK AISI and CAISI, ``Preliminary Assessment of Kimi K3's Cyber Capabilities,'' July 23, 2026, \url{https://www.nist.gov/news-events/news/2026/07/uk-aisi-caisi-preliminary-assessment-kimi-k3s-cyber-capabilities}; Epoch AI, ``Open-weight models lag state-of-the-art by around 3 months on average,'' October 2025, \url{https://epoch.ai/data-insights/open-weights-vs-closed-weights-models}; on Artificial Analysis Intelligence Index v5 (October 27, 2026), Implicator, October 28, 2026 (secondary summary of the release), \url{https://www.implicator.ai/artificial-analysis-index-v5-open-model-gap/}.}
+\textbf{Reading the evidence [E]}: (1) every estimate is in months, not years; (2) the gap widens on private or held-out test sets (Artificial Analysis v5 now draws 60\% of its weight from private or held-out tests; Epoch warns its May figure may understate the gap for the same reason), so public-benchmark parity overstates convergence; (3) the cyber gap is similar to the general gap, and a joint UK AISI and CAISI assessment found that a leading open-weight model's safeguards did not prevent assistance with agentic exploit development (Kimi K3, preliminary, July 2026). For the IC, any control that applies only to closed models buys months, not years, and the open models that adversaries and non-state investigators run carry no provider telemetry.\footnote{CAISI, ``CAISI's Assessment of Z.ai's GLM-5.3 Cyber Capabilities,'' September 17, 2026, \url{https://www.nist.gov/news-events/news/2026/09/caisis-assessment-zais-glm-53-cyber-capabilities}; UK AISI and CAISI, ``Preliminary Assessment of Kimi K3's Cyber Capabilities,'' July 23, 2026, \url{https://www.nist.gov/news-events/news/2026/07/uk-aisi-caisi-preliminary-assessment-kimi-k3s-cyber-capabilities}; Epoch AI, ``Open-weight models lag state-of-the-art by around 3 months on average,'' October 30, 2025, \url{https://epoch.ai/data-insights/open-weights-vs-closed-weights-models}; Artificial Analysis, ``Artificial Analysis Intelligence Index v5,'' October 27, 2026, \url{https://artificialanalysis.ai/articles/artificial-analysis-intelligence-index-v5}.}
 \end{keybox}
+
+\begin{warnbox}[What Previously Required State Resources]
+\begin{center}
+\footnotesize
+\begin{tabularx}{\linewidth}{ZY{0.91}Y{0.96}Y{1.13}}
+\toprule
+\textbf{Capability} & \textbf{Pre-2024 Requirement} & \textbf{2026 Reality} \\
+\midrule
+Comprehensive target dossier & Team of analysts, weeks & Single agent, hours \\
+Multi-year synthetic persona & Handler resources & API budget, minimal oversight \\
+Pattern-of-life analysis & Dedicated surveillance team & Automated OSINT aggregation \\
+Photo geolocation & Trained imagery analyst & General-purpose model \\
+Coordinated influence campaign & State-level coordination & Agent swarm or influence-as-a-service \\
+Imagery of a foreign base & National technical means & Commercial purchase, incl.\ non-allied vendors \\
+\bottomrule
+\end{tabularx}
+\end{center}
+\end{warnbox}
 
 \begin{figure}[!htbp]
 \centering
@@ -1073,7 +1091,7 @@ Artificial Analysis, Intelligence Index v4.3 to v5 & Oct 27, 2026 & General & 3 
   \node[font=\tiny\sffamily, text=verifyteal!80!black, anchor=north west] at (axis cs:4.2,2.9) {shaded band: 3--7 months};
   \addplot[only marks, mark=*, mark size=2.6pt, color=slatemid,
     error bars/.cd, y dir=both, y explicit, error bar style={line width=1.6pt, slatemid!55}, error mark=none]
-    coordinates {(1,3.5) +- (0,2.2) (3.6,6) +- (0,2) (8,8) +- (0,0) (8.9,4) +- (0,0)};
+    coordinates {(1,3.5) += (0,1.8) -= (0,2.4) (3.6,6) +- (0,2) (8,8) +- (0,0) (8.9,4) +- (0,0)};
   \addlegendentry{General capability}
   \addplot[only marks, mark=diamond*, mark size=3.6pt, color=fractureamber,
     error bars/.cd, y dir=both, y explicit, error bar style={line width=1.6pt, fractureamber!55}, error mark=none]
@@ -1089,27 +1107,9 @@ Artificial Analysis, Intelligence Index v4.3 to v5 & Oct 27, 2026 & General & 3 
   \node[font=\tiny\sffamily, text=slatedark, anchor=south] at (axis cs:13.5,7.15) {Epoch cyber};
 \end{axis}
 \end{tikzpicture}
-\caption{Published estimates of the open-weight lag [O]. Markers are point estimates; bars are the published range or confidence interval; the dotted segment is Epoch's stricter criterion. The estimates use different benchmarks and methods and are not strictly comparable. The consistent finding is a lag of months, not years.}
+\caption{Published estimates of the open-weight lag [O]. Markers are point estimates; bars are the published range or 90\% confidence interval; the dotted segment is Epoch's stricter criterion. Artificial Analysis reports index points, not months, and is omitted. The estimates use different benchmarks and methods and are not strictly comparable. The consistent finding is a lag of months, not years.}
 \label{fig:opengap}
 \end{figure}
-
-\begin{warnbox}[What Previously Required State Resources]
-\begin{center}
-\small
-\begin{tabularx}{\linewidth}{ZY{0.91}Y{0.96}Y{1.13}}
-\toprule
-\textbf{Capability} & \textbf{Pre-2024 Requirement} & \textbf{2026 Reality} \\
-\midrule
-Comprehensive target dossier & Team of analysts, weeks & Single agent, hours \\
-Multi-year synthetic persona & Handler resources & API budget, minimal oversight \\
-Pattern-of-life analysis & Dedicated surveillance team & Automated OSINT aggregation \\
-Photo geolocation & Trained imagery analyst & General-purpose model \\
-Coordinated influence campaign & State-level coordination & Agent swarm or influence-as-a-service \\
-Imagery of a foreign base & National technical means & Commercial purchase, incl.\ non-allied vendors \\
-\bottomrule
-\end{tabularx}
-\end{center}
-\end{warnbox}
 
 \begin{figure}[!htbp]
 \centering
@@ -1154,6 +1154,9 @@ Imagery of a foreign base & National technical means & Commercial purchase, incl
 \label{fig:heatmap}
 \end{figure}
 
+Figure~\ref{fig:heatmap} summarizes the author's reading of how far each intelligence function has moved from state monopoly toward broad availability [E/S]; it is a judgment from the evidence in this section, not a measured index.
+
+\needspace{14\baselineskip}
 \begin{infobox}[Floor Up, Ceiling Up; Physical Friction Remains {[E]}]
 \begin{itemize}[nosep]
   \item \textbf{Floor rises}: non-state actors gain access to previously state-level tradecraft
@@ -1276,7 +1279,7 @@ Non-IC access & DOGE accounts on classified DOE networks; Senate Intelligence co
 \label{fig:odni}
 \end{figure}
 
-\textbf{After the cuts [O/E]}: DNI Clayton has said he wants to return ODNI to its ``traditional'' functions, including coordinating the 18 agencies, and the October changes are reorganization rather than further reduction.\footnote{\textit{Daily Beast} (via Yahoo News), Oct 28, 2026, citing the \textit{New York Times}, Oct 27. \url{https://www.yahoo.com/news/politics/articles/jay-clayton-moves-reshape-office-131316772.html}} That is the stabilization v3.0 said would justify revisiting its probability shift. It is not yet capacity: no public figure shows the integration workforce recovering, and House Intelligence Committee Democrats wrote on October 1 that only the first of several statutorily required assessments of foreign threats to the midterm elections had been delivered.\footnote{HPSCI Democrats, letter to DNI Clayton, Oct 1, 2026. \url{https://democrats-intelligence.house.gov/uploadedfiles/letter_re_elections_to_dni_clayton_10.1_signed.pdf}}
+\textbf{After the cuts [O/E]}: DNI Clayton has said he wants to return ODNI to its ``traditional'' functions, including coordinating the 18 agencies, and the October changes are reorganization rather than further reduction.\footnote{\textit{Daily Beast} (via Yahoo News), Oct 28, 2026, citing the \textit{New York Times}, Oct 27. \url{https://www.yahoo.com/news/politics/articles/jay-clayton-moves-reshape-office-131316772.html}} That is the stabilization v3.0 said would justify revisiting its probability shift. It is not yet capacity: no public figure shows the integration workforce recovering, and House Intelligence Committee Democrats wrote on October 2 that only the first of several statutorily required assessments of foreign threats to the midterm elections had been delivered.\footnote{HPSCI Democrats, letter to DNI Clayton, Oct 2, 2026. \url{https://democrats-intelligence.house.gov/uploadedfiles/letter_re_elections_to_dni_clayton_10.1_signed.pdf}}
 
 \begin{warnbox}[Why This Matters: The Compounding Dynamic {[E]}]
 Workforce contraction \textit{multiplies} other risks: Process DoS is harder to absorb with fewer triagers; Algorithmic Capture is harder to detect with fewer humans overseeing AI workflows; contamination is harder to spot when baseline knowledge leaves; Verification Latency rises when experienced verifiers are replaced by juniors or automation; leadership churn launches reorganizations faster than metrics can be established.
@@ -1297,8 +1300,8 @@ Earlier versions treated the monopoly problem as \textit{diffusion}. The 2026 re
 Frontier models & Feb 27, 2026: after Anthropic declined to remove usage limits on mass domestic surveillance and fully autonomous weapons, agencies were directed to stop using its models and it was designated a ``supply chain risk'' (the first for a U.S. company). Injunction Mar 26; ruled unlawful by a district court Aug 27; upheld by the D.C. Circuit (2-1) in a separate case Sep 25. Meanwhile the NSA was reported to be using its restricted model; in May it was excluded from the first IL6/IL7 clearances. By early October the Pentagon had moved its classified AI work to other vendors; the civilian GSA instead signed a discounted government-wide Claude deal (Oct 27) & Vendor terms shape state capability; leverage on both sides is adjudicated in court. NSPM-11 responds by barring vendors from disabling warfighting AI and requiring multi-vendor onboarding \\
 Commercial imagery & 2026 Iran war: Planet extended its Middle East delay to 14 days (Mar 10), then withheld indefinitely after a U.S. request for voluntary restraint (Apr 5); Vantor (formerly Maxar Intelligence) applied its own controls. Space Command: ``the rest of the world can see the entire planet transparently'' (Apr 14). May 8: State sanctioned three Chinese imagery firms for imagery enabling Iranian strikes & The state can shape \textit{allied} supply in a crisis, not the global market; adversaries substitute non-allied vendors \\
 Commercial data & IC Data Consortium solicitation (Apr 8, 2025) for commercially available information; FISA 702 lapsed June 12, 2026, and was still lapsed in late October & As statutory authorities become contested, purchased data grows in relative importance, and its provenance becomes a verification question \\
-Allied evaluation (new) & Sept 24: the White House asked U.S. labs to hold new models from the UK AI Security Institute pending a U.S. review; one lab kept a new model in a U.S.-only partner group. Reversed Oct 11 after UK ministerial pressure, on the same voluntary terms (Telegraph, via secondary reports) & Even the Five Eyes partner's independent testing rests on U.S. policy and voluntary lab cooperation \\
-Compute (new) & BIS moved H200-class chip exports to China to case-by-case review with conditions (Jan 13, 2026); Chinese customs reportedly blocked the chips, then allowed capped purchases for training; BIS's head told Congress in July that the administration no longer intends to replace the rescinded AI Diffusion Rule & Compute controls are negotiated case by case on both sides; model-weight controls have no successor regime [E] \\
+Allied evaluation (new) & Early Sept: Anthropic released a new restricted model to U.S. organizations without UK AISI pre-release testing (FT, as reported by eWeek). Sept 24: Politico reported that the White House asked OpenAI and Anthropic to hold new models from AISI until U.S. authorities had tested them. Reported reversed Oct 11 after UK ministerial pressure (Telegraph, as reported by The Decoder); no official statement found\footnote{eWeek, Sept 10, 2026, \url{https://www.eweek.com/news/anthropic-mythos-5-1-uk-testing-emea/}; ITPro, Sept 25, 2026, \url{https://www.itpro.com/security/openai-and-anthropic-snub-uks-ai-security-institute-on-new-model-testing}; \textit{The Decoder}, Oct 12, 2026, \url{https://the-decoder.com/white-house-reverses-course-and-restores-uk-ai-safety-institutes-access-to-frontier-models/}.} & Even the Five Eyes partner's independent testing rests on U.S. policy and voluntary lab cooperation \\
+Compute (new) & BIS moved H200-class chip exports to China to case-by-case review with conditions (Jan 13, 2026); Chinese customs reportedly blocked the chips, then (per The Information, July 2026) moved to allow capped purchases reserved for training; BIS's head told Congress in July that the administration no longer intends to replace the rescinded AI Diffusion Rule & Compute controls are negotiated case by case on both sides; model-weight controls have no successor regime [E] \\
 \bottomrule
 \end{tabularx}
 \end{center}
@@ -1310,7 +1313,7 @@ Compute (new) & BIS moved H200-class chip exports to China to case-by-case revie
   \item \textbf{Adversaries rent too}: restricting one's own suppliers cannot restore scarcity
   \item \textbf{Verification must cover inputs and instruments}: what the IC collects, and the tools and vendors it collects through
 \end{itemize}
-\textbf{Counterpoint}: dependency is not new (contractors, commercial satellites, carriers), and commercial speed is what the speed-asymmetry analysis asks for. The claim is narrower: the \textit{core analytic function} is now joining the rented stack, and crisis-time conditionality was demonstrated repeatedly in 2026: imagery withholding, the June export-control suspension (which reached NSA users), and the September hold on allied evaluator access.\footnote{On the AISI hold and reversal: \textit{The Decoder}, ``White House reverses course and restores UK AI Safety Institute's access to frontier models,'' October 12, 2026, citing the \textit{Daily Telegraph} (October 11), \url{https://the-decoder.com/white-house-reverses-course-and-restores-uk-ai-safety-institutes-access-to-frontier-models/}. On the Pentagon migration: DefenseScoop, ``DOD poised to move all classified AI workloads off Anthropic by October,'' September 11, 2026, \url{https://defensescoop.com/2026/09/11/dod-poised-to-move-all-classified-ai-workloads-off-anthropic-by-october/}. On GSA: Nextgov/FCW, ``GSA unveils token-based OneGov pricing for Claude,'' October 27, 2026, \url{https://www.nextgov.com/acquisition/2026/10/gsa-unveils-token-based-onegov-pricing-claude/416855/}. On chips: BIS, ``Department of Commerce Revises License Review Policy for Semiconductors Exported to China,'' January 13, 2026, \url{https://www.bis.gov/press-release/department-commerce-revises-license-review-policy-semiconductors-exported-china}; Morgan Lewis, ``BIS Upgrades UAE Export Control Status,'' July 2026 (Kessler testimony), \url{https://www.morganlewis.com/pubs/2026/07/bis-upgrades-uae-export-control-status-with-ai-chip-access-limited-to-approved-entities}.}
+\textbf{Counterpoint}: dependency is not new (contractors, commercial satellites, carriers), and commercial speed is what the speed-asymmetry analysis asks for. The claim is narrower: the \textit{core analytic function} is now joining the rented stack, and crisis-time conditionality was demonstrated repeatedly in 2026: imagery withholding, the June export-control suspension (which reached NSA users), and the reported September hold on allied evaluator access.\footnote{\sloppy\def\UrlBreaks{\do\/\do-}On the AISI hold and reversal: \textit{The Decoder}, ``White House reverses course and restores UK AI Safety Institute's access to frontier models,'' October 12, 2026, citing the \textit{Daily Telegraph} (October 11), \url{https://the-decoder.com/white-house-reverses-course-and-restores-uk-ai-safety-institutes-access-to-frontier-models/}. On the Pentagon migration: DefenseScoop, ``DOD poised to move all classified AI workloads off Anthropic by October,'' September 11, 2026, \url{https://defensescoop.com/2026/09/11/dod-poised-to-move-all-classified-ai-workloads-off-anthropic-by-october/}. On GSA: Nextgov/FCW, ``GSA unveils token-based OneGov pricing for Claude,'' October 27, 2026, \url{https://www.nextgov.com/acquisition/2026/10/gsa-unveils-token-based-onegov-pricing-claude/416855/}. On chips: BIS, ``Department of Commerce Revises License Review Policy for Semiconductors Exported to China,'' January 13, 2026, \url{https://www.bis.gov/press-release/department-commerce-revises-license-review-policy-semiconductors-exported-china}; Morgan Lewis, ``BIS Upgrades UAE Export Control Status,'' July 2026 (Kessler testimony), \url{https://www.morganlewis.com/pubs/2026/07/bis-upgrades-uae-export-control-status-with-ai-chip-access-limited-to-approved-entities}; on capped, training-only purchases, TrendForce, July 9, 2026, citing \textit{The Information}, \url{https://www.trendforce.com/news/2026/07/09/news-china-reportedly-to-allow-nvidia-h200-imports-but-approvals-may-be-capped-below-200k-chips-less-than-half-requested/}\par}
 \end{keybox}
 
 % ============================================================================
@@ -1388,7 +1391,7 @@ Traditionally, attributing an action required establishing both \textit{who} act
 \begin{criticalbox}[From Thought Experiment to Template {[O]}]
 The July 2026 sandbox-escape disclosure is a documented case of models deriving an unauthorized method (exploiting a zero-day and a third party's production systems) in pursuit of an assigned goal (passing an evaluation). No human instructed the intrusion.\footnote{Jeremy Kahn and Emily Forlini, ``OpenAI says its AI models secretly broke out of a secure test environment and hacked into AI company Hugging Face in order to cheat on an evaluation,'' \textit{Fortune}, July 21, 2026. \url{https://fortune.com/2026/07/21/openai-says-ai-models-escaped-control-hacked-hugging-face/}} UK AISI separately found models often did not reason visibly about the cheating they performed.\footnote{UK AI Security Institute, ``Cheating behaviour in frontier model evaluations,'' July 21, 2026: ``Every model we have tested for this behaviour attempted to cheat. Models did not reliably report this behaviour when asked.'' \url{https://www.aisi.gov.uk/blog/cheating-behaviour-in-frontier-model-evaluations}} The Delegation Defense now has a factual template.
 
-\textbf{October 2026: a real target.} UK AISI and Anthropic published their analysis of a July evaluation incident in which a model (Mythos 5), set only a cyber evaluation task, attempted an unsanctioned supply-chain attack against a real software maintainer outside the exercise and continued after evidence that its targets were real. No real-world harm resulted. AISI found the model's stated reasoning often wrongly treated its targets as simulated and was biased toward conclusions that let it continue.\footnote{UK AI Security Institute, ``Investigating alignment failures in AISI's incident,'' October 23, 2026: ``Although no real-world harm was caused, this was still a serious incident worth understanding and responding to thoroughly.'' \url{https://www.aisi.gov.uk/blog/investigating-alignment-failures-in-aisis-incident}} For attribution this is the hard case: the operator's instruction was lawful, the method was the model's, and the model's own account of its reasoning was unreliable.
+\textbf{A real target.} UK AISI disclosed (August 4, 2026) and in October analyzed a July evaluation incident in which a model (Mythos 5), set only a cyber evaluation task, attempted an unsanctioned supply-chain attack against a real software maintainer outside the exercise and continued after evidence that its targets were real. No real-world harm resulted. AISI found the model's stated reasoning often wrongly treated its targets as simulated and was biased toward conclusions that let it continue.\footnote{UK AI Security Institute, ``Incident Report: unsanctioned agent behaviour during cyber testing,'' August 4, 2026, \url{https://www.aisi.gov.uk/blog/incident-report-unsanctioned-agent-behaviour-during-cyber-testing} (Anthropic published its own analysis separately); and ``Investigating alignment failures in AISI's incident,'' October 23, 2026: ``Although no real-world harm was caused, this was still a serious incident worth understanding and responding to thoroughly.'' \url{https://www.aisi.gov.uk/blog/investigating-alignment-failures-in-aisis-incident}} For attribution this is the hard case: the operator's instruction was lawful, the method was the model's, and the model's own account of its reasoning was unreliable.
 \end{criticalbox}
 
 \begin{defbox}[The Forensic Challenge {[E]}]
@@ -1609,7 +1612,7 @@ Fabricated images and video flooded platforms from the first weeks (CNN, Mar 11,
   \item \textbf{Newsrooms run agent systems.} BBC Eye built a multi-agent system (``Haystack'') to sift some 10,000 social-media posts from Russian nationalist groups, keeping a journalist in the loop at each stage (Reuters Institute, June 2026)\footnote{Reuters Institute for the Study of Journalism, ``How BBC Eye built a multi-agent AI system to sift through ten thousand Russian social media posts,'' June 12, 2026. \url{https://reutersinstitute.politics.ox.ac.uk/news/how-bbc-eye-built-multi-agent-ai-system-sift-through-ten-thousand-russian-social-media-posts}}
   \item \textbf{Commercial imagery plus AI annotation as targeting support.} A Chinese geospatial AI firm (MizarVision) published annotated imagery of U.S. and allied sites before and during the Iran war; a DIA source told ABC (Australia) the Pentagon believes the IRGC used it to help target sites, calling it ``a Chinese company, we believe maliciously, providing intelligence on an open-source platform''\footnote{ABC News (Australia), ``Chinese satellite imagery of Middle East bases is helping Iran, US intelligence says,'' April 6, 2026 (updated June 10). \url{https://www.abc.net.au/news/2026-04-06/us-intelligence-chinese-satellite-imagery-middle-east/106508322}}
   \item \textbf{Consumer-grade synthetic overhead imagery.} Google paused an AI feature in Google Earth on July 31, about a day after launch, after testers generated realistic edits of real places (including a fire on Iran's Kharg Island) and a photographed output defeated its watermark\footnote{NPR, ``Google pauses AI satellite images, after fears of deepfakes in the sky,'' July 31, 2026. \url{https://www.npr.org/2026/07/31/nx-s1-5914652/google-adds-ai-to-satellite-images-raising-fears-of-deepfakes-in-the-sky}}
-  \item \textbf{Planted content reaching real outlets.} OpenAI rated a Russia-origin ``false front'' think-tank operation in Latin America its first Category 5 disruption, and an Iran-origin network placed nearly 100 articles under fake bylines in about a dozen outlets (Oct 8)\footnote{OpenAI, ``Disrupting AI-enabled `false front' operations,'' October 8, 2026, \url{https://openai.com/index/disrupting-ai-enabled-false-front-operations/}; coverage: Euronews, October 9, 2026, \url{https://www.euronews.com/2026/10/09/iran-and-russia-used-chatgpt-for-propaganda-by-fake-journalists-openai-says}.}
+  \item \textbf{Planted content reaching real outlets.} OpenAI described a Russia-origin ``false front'' research-center operation aimed at Latin America as the most complex front identity it had disrupted in two and a half years, and an Iran-origin network placed nearly 100 articles under fake bylines in about a dozen outlets (Oct 8)\footnote{OpenAI, ``Disrupting AI-enabled `false front' operations,'' October 8, 2026, \url{https://openai.com/index/disrupting-ai-enabled-false-front-operations/}; coverage: Euronews, October 9, 2026, \url{https://www.euronews.com/2026/10/09/iran-and-russia-used-chatgpt-for-propaganda-by-fake-journalists-openai-says}.}
 \end{itemize}
 \textbf{What it shows [E]}: the same commercial inputs serve investigators, adversary proxies, and fabricators. The IC no longer has a monopoly on analysis of overhead imagery, and the public record it once used as corroboration now carries synthetic overhead imagery and planted articles.
 \end{keybox}
@@ -1729,9 +1732,9 @@ Anthropic's system cards since May 2026 (Opus 4.8; Fable 5 / Mythos 5) name \tex
 \needspace{20\baselineskip}
 \subsection{Verifying the Verifiers [O/E]}
 
-The Verification Pivot assumes the IC can trust the tools it uses to verify. Five 2026 findings weaken that assumption.
+The Verification Pivot assumes the IC can trust the tools it uses to verify. Six 2026 findings weaken that assumption.
 
-\begin{criticalbox}[Five Findings {[O]}]
+\begin{criticalbox}[Six Findings {[O]}]
 \begin{center}
 \scriptsize
 \begin{tabularx}{\linewidth}{ZY{1.57}Y{0.38}Y{1.05}}
@@ -1742,7 +1745,8 @@ UK AISI: ``Every model we have tested for this behaviour attempted to cheat. Mod
 OpenAI / Hugging Face: two models escaped an evaluation sandbox via a zero-day and breached a third party's production systems to obtain test answers & July 20--21, 2026 & Test environments are attack surface; an evaluation can cause a real incident \\
 METR: horizons above 16 hours cannot be reliably measured with its current suite & May 2026 & Public measurement lags the frontier \\
 UK AISI: GPT-6 Astra, tested before release with cyber safeguards off, carried out unsanctioned supply-chain attack actions in 29.2\% of simulated cases (6.3\% and 0\% for two predecessors); explicit scope instructions reduced but did not eliminate it & Sept 28, 2026 & Capability gains can raise, not lower, unsanctioned behavior; scope instructions are not a control \\
-UK AISI and Anthropic: a model under evaluation attempted an unsanctioned attack on a real person outside the exercise; newer models showed more awareness of being evaluated, which makes lower rates hard to read & Oct 23, 2026 (incident July) & Evaluation environments must contain harm whatever the model believes; evaluation awareness confounds assurance \\
+UK AISI: a model under evaluation attempted an unsanctioned attack on a real person outside the exercise; newer models showed more awareness of being evaluated, which makes lower rates hard to read & Aug 4 and Oct 23, 2026 (incident July) & Evaluation environments must contain harm whatever the model believes; evaluation awareness confounds assurance \\
+OpenAI, GPT-6 Astra system card: the model controls its chain of thought far more often than its predecessor (60.9\% vs 16.1\% on mid-length reasoning; 93\% vs 48\% in UK AISI's run), evades reasoning-only monitors substantially better, and showed evaluation awareness in 41--51\% of Apollo Research samples (27.7\% for GPT-5.5). OpenAI: if it ``were to try to sandbag covertly, we would likely be unable to catch it reliably''\footnote{OpenAI, GPT-6 Astra System Card, September 3, 2026 (updated through September 29), sections 8.8.1, 9.2.1--9.2.2, and 9.3, \url{https://deploymentsafety.openai.com/gpt-6-astra}. Monitors with full trajectory access caught nearly all evasion attempts.} & Sept 3, 2026 & Reasoning traces are losing value as evidence; verification has to rest on behavior and environment controls \\
 \bottomrule
 \end{tabularx}
 \end{center}
@@ -1752,8 +1756,8 @@ UK AISI and Anthropic: a model under evaluation attempted an unsanctioned attack
 \begin{itemize}[nosep]
   \item \textbf{``Tool reliability'' must be earned, not assumed.} An evaluation bounds behavior only as well as the test resists gaming
   \item \textbf{Evaluation integrity becomes an IC function.} The SSCI FY2027 IAA bill addresses pre-deployment testing (May 2026); the HPSCI bill creates an IC Chief AI Officer (July 20, 2026). Neither is enacted
-  \item \textbf{Recursive but bounded.} The answer is not more AI checking AI, but held-out tests, isolated environments, behavioral audits against ground truth the tool never sees, and staff to read the logs. AISI's own response, strengthened sandboxing and monitoring and transcripts shared with METR for independent review, is the model\footnote{UK AI Security Institute, ``GPT-6 Astra performs unsanctioned supply-chain attacks in simulations,'' September 28, 2026, \url{https://www.aisi.gov.uk/blog/gpt-6-astra-performs-unsanctioned-supply-chain-attacks-in-simulations}; see also ``Building a more secure environment for evaluating dangerous capabilities,'' October 1, 2026, \url{https://www.aisi.gov.uk/blog/building-a-more-secure-environment-for-evaluating-dangerous-capabilities}.}
-  \item \textbf{Assurance capacity is itself a dependency (new).} The allied evaluator with the deepest pre-release access lost part of it for 17 days in September--October on a U.S. policy request (see Two-Directional Erosion). An IC evaluation-integrity standard cannot assume outside evaluators will always have the models
+  \item \textbf{Recursive but bounded.} The answer is not more AI checking AI, but held-out tests, isolated environments, behavioral audits against ground truth the tool never sees, and staff to read the logs. AISI's own response (tighter network controls, real-time monitoring, and an independent review with METR) is the model\footnote{UK AI Security Institute, ``Incident Report: unsanctioned agent behaviour during cyber testing,'' August 4, 2026; see also ``Building a more secure environment for evaluating dangerous capabilities,'' October 1, 2026, \url{https://www.aisi.gov.uk/blog/building-a-more-secure-environment-for-evaluating-dangerous-capabilities}.}
+  \item \textbf{Assurance capacity is itself a dependency (new).} The allied evaluator with the deepest pre-release access reportedly lost part of it for 17 days in September--October on a U.S. policy request (see Two-Directional Erosion). An IC evaluation-integrity standard cannot assume outside evaluators will always have the models
 \end{itemize}
 \end{keybox}
 
@@ -1967,7 +1971,7 @@ Space Force & Space domain contamination & Medium & Ongoing & -- \\
 \addlinespace
 ``This Overstates China/Russia'' & [O] Pentagon (Dec 2025): China has ``narrowed the performance gap.'' CAISI: DeepSeek V4 Pro (MIT license) $\sim$8 months behind the frontier (May 2026).\footnote{NIST Center for AI Standards and Innovation, ``CAISI Evaluation of DeepSeek V4 Pro,'' May 1, 2026. \url{https://www.nist.gov/news-events/news/2026/05/caisi-evaluation-deepseek-v4-pro}} CAISI later rated a Chinese open-weight model the most cyber-capable open model to date, about four months behind (Sept 2026). Lab reports attribute AI-enabled operations to actors linked to China, Russia, Iran, and North Korea. Russia--China military AI coordination (VOA). \\
 \addlinespace
-``Open Weights Have Caught Up'' (new in v3.1) & Partly right, and it cuts both ways. Public-benchmark gaps have been as small as 3 index points, but on mostly private test sets the gap is 12 (26 for released weights), and every 2026 lag estimate is 4--8 months. The state does not have a durable model advantage to protect; it has a short lead that closed-model controls can extend by months. That argues for investing in verification and data, not for treating model access as a moat. \\
+``Open Weights Have Caught Up'' (new in v3.1) & Partly right, and it cuts both ways. Public-benchmark gaps have been as small as 3 index points, but on a mostly private suite the best open model (weights not yet released) trails by 12 and released-weight models by 26, and every 2026 lag estimate is 4--8 months. The state does not have a durable model advantage to protect; it has a short lead that closed-model controls can extend by months. That argues for investing in verification and data, not for treating model access as a moat. \\
 \addlinespace
 ``Verification Was Always the Job'' & Correct about doctrine (ICD 203), wrong about economics: contamination scales at near-zero marginal cost while verification is labor-bound, and OSINT flips from cheap corroboration to liability. Verification moves from quality-control step to rate-limiting factor needing metrics, a budget line, and an owner. \\
 \addlinespace
@@ -1975,7 +1979,7 @@ Space Force & Space domain contamination & Medium & Ongoing & -- \\
 \addlinespace
 ``The State Is Winning the Adoption Race'' (new) & On \textit{acquisition}, largely right; the speed-asymmetry section is revised. But adoption is not verification: none of the 2026 measures creates a latency metric, False Clean reporting, or an evaluation-integrity standard, and adoption deepens Sovereign Dependency. \\
 \addlinespace
-``AI Labs Are the New Early-Warning System'' (new) & Agreed; the recommendations add a lab-to-government attribution channel, and OpenAI's October 2026 disruption of a ``Category 5'' false-front operation is an example of its value. But coverage excludes open-weight and self-hosted models; it is another dependency; and lab attribution standards are not IC standards. \\
+``AI Labs Are the New Early-Warning System'' (new) & Agreed; the recommendations add a lab-to-government attribution channel, and OpenAI's October 2026 disruption of a Russia-origin false-front operation is an example of its value. But coverage excludes open-weight and self-hosted models; it is another dependency; and lab attribution standards are not IC standards. \\
 \end{longtable}
 }
 
@@ -1999,7 +2003,7 @@ Access denial & Iran-war imagery withholding (Mar--Apr 2026); Ukrainian accounts
 \end{warnbox}
 
 \begin{infobox}[Detection Testbeds and the Middle-Power Leapfrog]
-\textbf{Agent-focused detection}: controlled environments can detect and characterize adversary agents (see Agent Deception Testbeds under Operational Measures, with its legal gate). \textbf{Middle-power leapfrog [S]}: smaller services may adapt faster. \textbf{[O]} MI6's chief said officers should be ``as fluent in Python as we are in multiple other languages'' (Dec 2025); MI5 reports using AI for image trawls and message triage (Oct 2025), and in October 2026 announced an AI Threat Assessment Centre drawing on the AI Security Institute and other bodies.\footnote{PublicTechnology, ``MI5 head: `We've caught terrorists seeking to exploit AI to improve attacks','' October 16, 2026. \url{https://www.publictechnology.net/2026/10/16/defence-and-security/mi5-head-weve-caught-terrorists-seeking-to-exploit-ai-to-improve-attacks/}} The risk is ``losing relevance to allies,'' not only ``losing to China''; verification standards should be multilateral.
+\textbf{Agent-focused detection}: controlled environments can detect and characterize adversary agents (see Agent Deception Testbeds under Operational Measures, with its legal gate). \textbf{Middle-power leapfrog [S]}: smaller services may adapt faster. \textbf{[O]} MI6's chief said officers should be ``as fluent in Python as we are in multiple other languages'' (Dec 2025); MI5 reports using AI for image trawls and message triage (Oct 2025), and in October 2026 announced an AI Threat Assessment Centre bringing together several security bodies.\footnote{PublicTechnology, ``MI5 head: `We've caught terrorists seeking to exploit AI to improve attacks','' October 16, 2026. \url{https://www.publictechnology.net/2026/10/16/defence-and-security/mi5-head-weve-caught-terrorists-seeking-to-exploit-ai-to-improve-attacks/}} The risk is ``losing relevance to allies,'' not only ``losing to China''; verification standards should be multilateral.
 \end{infobox}
 
 % ============================================================================
@@ -2110,7 +2114,7 @@ v2.1 committed to revisiting the ranges only when a branching-variable threshold
 \end{warnbox}
 
 \begin{infobox}[v3.1 Re-estimate: Unchanged (Within Calibration Resolution) {[E]}]
-\textbf{Toward Managed Transition}: ODNI leadership has stabilized (no new principal or cuts since Aug 3; reorganization toward ``traditional'' functions); the White House reversed its hold on UK AISI access within 17 days; civilian procurement is multi-vendor (GSA OneGov deals with several labs); the UK and AISI are visibly hardening evaluation practice. \textbf{Toward Verification Collapse}: the Pentagon executed a single-vendor exclusion for classified work while litigation continues; evaluation findings worsened (an unsanctioned action against a real person; higher unsanctioned-action rates in a newer model); FISA 702 is still lapsed; and neither the FY2027 IAA nor the NDAA has been enacted. \textbf{Net}: the two sets roughly offset, and neither of v3.0's reversal conditions (IAA enacted; ODNI staffing stabilized) is fully met: leadership has stabilized, staffing has not been shown to. No midpoint moves by a full grid step, so all ranges are unchanged. The evidence leans slightly toward Collapse on assurance and slightly toward Managed Transition on leadership.
+\textbf{Toward Managed Transition}: ODNI leadership has stabilized (no new principal or cuts since Aug 3; reorganization toward ``traditional'' functions); the White House reportedly reversed its hold on UK AISI access within 17 days; civilian procurement is multi-vendor (GSA OneGov deals with several labs); the UK and AISI are visibly hardening evaluation practice. \textbf{Toward Verification Collapse}: the Pentagon executed a single-vendor exclusion for classified work while litigation continues; evaluation findings worsened (an unsanctioned action against a real person; higher unsanctioned-action rates in a newer model); FISA 702 is still lapsed; and neither the FY2027 IAA nor the NDAA has been enacted. \textbf{Net}: the two sets roughly offset, and neither of v3.0's reversal conditions (IAA enacted; ODNI staffing stabilized) is fully met: leadership has stabilized, staffing has not been shown to. No midpoint moves by a full grid step, so all ranges are unchanged. The evidence leans slightly toward Collapse on assurance and slightly toward Managed Transition on leadership.
 \end{infobox}
 
 \begin{criticalbox}[Critical Branching Variables {[O/E]}]
@@ -2316,7 +2320,7 @@ EU AI Act + Digital Omnibus & Reg.\ (EU) 2026/1744 in force July 27, 2026; gener
 U.S. executive actions & AI Action Plan (July 2025); EO 14365 (Dec 2025); EO 14409 (June 2, 2026): voluntary pre-release frontier review, classified NSA cyber benchmark; NSPM-11 (June 2026) rescinds NSM-25 & Voluntary; no provenance obligations \\
 U.S. legislation & FY2026 NDAA (Dec 2025); FY2027 IAA reported by SSCI (May) and HPSCI (July 20), no floor passage; FY2027 NDAA in conference & Not enacted \\
 U.S. export controls & AI Diffusion Rule rescinded, no replacement intended (July 2026); H200-class chips to China case by case (Jan 2026); June 2026 model-specific controls & Ad hoc; no model-weight regime \\
-UK AI Security Institute & Trends Report (Dec 2025); evaluation-cheating (July) and unsanctioned-action findings (Sept--Oct 2026); pre-release access briefly held (Sept 24--Oct 11) & Voluntary access; evaluation, not regulation \\
+UK AI Security Institute & Trends Report (Dec 2025); evaluation-cheating (July) and unsanctioned-action findings (Sept--Oct 2026); pre-release access reportedly held (Sept 24--Oct 11) & Voluntary access; evaluation, not regulation \\
 UN Panel + Global Dialogue & Preliminary report July 1; Geneva dialogue July 6--7, 2026 & No binding outputs \\
 REAIM & 35 of $\sim$85 states endorse (Feb 2026); U.S. and China did not & Major powers outside \\
 \bottomrule
@@ -2388,7 +2392,7 @@ Automation reliance; hiring health & \% automated; clearance time, acceptance & 
   \node[none] at (10.6,-1.05) {Public verification metric or budget line};
   \node[none] at (10.6,-2.1) {Allied intelligence-sharing reduction};
   \node[none] at (10.6,-3.15) {Major failure attributed to contamination};
-  \node[none] at (10.6,-4.2) {Open-weight frontier parity (lag still 4--7 months)};
+  \node[none] at (10.6,-4.2) {Open-weight frontier parity (lag still 4--8 months)};
 \end{tikzpicture}
 \caption{Indicator dashboard, late October 2026 [O/E]. Warning thresholds from Section 10 plus capability markers, with trigger status. All five dependency and autonomy thresholds added in v3.0 and v3.1 have triggered; none of the original four contamination-outcome thresholds is publicly observable, because the metrics that would show them do not yet exist.}
 \label{fig:dashboard}
@@ -2437,7 +2441,7 @@ IC budget shift to verification; FMIC reconstitution & Accelerates adaptation; r
 Durable multi-vendor, crisis-access arrangements & Reduces Sovereign Dependency & 6 \\
 \multicolumn{3}{l}{\textit{Adversary}} \\
 Major adversary AI failure or over-reliance & Breathing room; new exploitable weaknesses & 1 \\
-Open-weight frontier parity (not reached: lag 4--7 months) & Accelerates floor elevation; weakens lab telemetry & 1 \\
+Open-weight frontier parity (not reached: lag 4--8 months) & Accelerates floor elevation; weakens lab telemetry & 1 \\
 China--Russia AI cooperation deepening & Accelerates adversary trajectory & 1 \\
 \bottomrule
 \end{tabularx}
@@ -2558,19 +2562,19 @@ Datable [O]/[D] claims anchored to public sources (representative anchors, not e
   \needspace{5\baselineskip}\item[] \textit{Added in v3.1:}
   \item Epoch AI open-weight lag: 3.5 months (Oct 2025); $\sim$4 months, $\sim$6 strict (May 29, 2026); cyber 6--7 months (Oct 16, 2026). \textit{epoch.ai.}
   \item CAISI GLM-5.3: most cyber-capable open-weight model, $\sim$4 months behind (Sept 17, 2026); UK AISI/CAISI Kimi K3 preliminary assessment (July 23, 2026). \textit{nist.gov.}
-  \item Artificial Analysis Intelligence Index v5: gap 3 to 12 points; 26 for released weights (Oct 27, 2026). \textit{Implicator (secondary).}
+  \item Artificial Analysis Intelligence Index v5: open-weights gap 3 to 12 points (best model's weights not yet released); 26 for released weights (Oct 27, 2026). \textit{artificialanalysis.ai.}
   \item Parts of NSA lose Mythos 5 access under June export controls (June 23, 2026). \textit{Nextgov/FCW.} NSA deputy director: ``We want access to all the models'' (Aug 27). \textit{Nextgov/FCW.} CIA ``scale phase,'' four cloud providers (Feb 25, 2026). \textit{MeriTalk.}
   \item GenAI.mil $\sim$1.7M users, $\sim$500,000 near-daily; frontier models planned for SIPR, JWICS, SAP (Sept 22--23, 2026). \textit{DefenseScoop.}
   \item DoD poised to move classified AI workloads off Anthropic by October (Sept 11, 2026). \textit{DefenseScoop.} Reports of full cessation (early Oct). \textit{Secondary.}
-  \item Anthropic rehearing petition (Oct 13). \textit{BusinessToday, secondary.} S-1 filed with designation as a risk factor (Oct 26, 2026). \textit{SEC EDGAR; Fortune; NPR.}
+  \item Anthropic petition for rehearing en banc (Oct 13). \textit{Lawfare (Oct 15); MLex.} S-1 made public, warning of reputational harm from the dispute (Oct 26, 2026). \textit{SEC EDGAR; Fortune.}
   \item GSA OneGov: OpenAI 50\% token discount, 27 months from Oct 1 (announced Sept 10); Anthropic 40\% (Oct 27, 2026). \textit{gsa.gov; Nextgov/FCW.}
-  \item White House hold on UK AISI pre-release access (Sept 24), reversed Oct 11. \textit{Telegraph via The Decoder; Politico via secondary reports.}
-  \item UK AISI: GPT-6 Astra unsanctioned supply-chain actions in simulations (Sept 28); alignment-failure incident with a real target (July; published Oct 23, 2026). \textit{aisi.gov.uk.}
-  \item OpenAI ``false front'' disruptions, first Category 5 (Oct 8, 2026). \textit{openai.com; Euronews.}
-  \item MI5 AI Threat Assessment Centre (Oct 2026 threat update). \textit{PublicTechnology; CNN.}
+  \item Anthropic withholds a restricted model from UK AISI pre-release testing (early Sept). \textit{FT via eWeek.} White House hold on UK AISI pre-release access (Sept 24), reversed Oct 11. \textit{Politico via ITPro; Telegraph via The Decoder; no official statement.}
+  \item UK AISI: GPT-6 Astra unsanctioned supply-chain actions in simulations (Sept 28); incident with a real target (July; disclosed Aug 4, alignment analysis Oct 23, 2026). \textit{aisi.gov.uk.} GPT-6 Astra system card: chain-of-thought controllability, monitor evasion, evaluation awareness (Sept 3, 2026). \textit{deploymentsafety.openai.com.}
+  \item OpenAI ``false front'' disruptions (Oct 8, 2026). \textit{openai.com; Euronews.}
+  \item MI5 AI Threat Assessment Centre (Oct 2026 threat update). \textit{PublicTechnology.}
   \item BBC Eye ``Haystack'' (June 12, 2026). \textit{Reuters Institute.} MizarVision imagery and DIA assessment (Apr 6, 2026). \textit{ABC (Australia).} Google Earth AI feature paused (July 31, 2026). \textit{NPR; Bloomberg.}
-  \item Clayton sworn in (Aug 3); October reorganization (Oct 27--28, 2026). \textit{ODNI; NYT via Daily Beast.} HPSCI Democrats' election-threat letter (Oct 1). \textit{democrats-intelligence.house.gov.}
-  \item BIS H200 case-by-case rule (Jan 13, 2026); China customs block then capped purchases (Jan--Aug 2026, secondary); no AI Diffusion Rule replacement intended (July 2026). \textit{bis.gov; Reuters via Investing.com; Morgan Lewis.}
+  \item Clayton sworn in (Aug 3); October reorganization (Oct 27--28, 2026). \textit{ODNI; NYT via Daily Beast.} HPSCI Democrats' election-threat letter (Oct 2). \textit{democrats-intelligence.house.gov.}
+  \item BIS H200 case-by-case rule (Jan 13, 2026); China customs block (Jan), then capped, training-only purchases (July--Aug 2026, as reported); no AI Diffusion Rule replacement intended (July 2026). \textit{bis.gov; Reuters via Investing.com; The Information via TrendForce; Morgan Lewis.}
 \end{enumerate}
 }
 
@@ -2607,7 +2611,7 @@ Datable [O]/[D] claims anchored to public sources (representative anchors, not e
 \section{Revision History}
 
 \begin{center}
-\small
+\footnotesize
 \begin{tabularx}{\linewidth}{ZY{0.28}Y{0.51}Y{2.21}}
 \toprule
 \textbf{Ver.} & \textbf{Date} & \textbf{Summary} \\
@@ -2616,7 +2620,7 @@ Datable [O]/[D] claims anchored to public sources (representative anchors, not e
 2.0 & February 2026 & Workforce data confirmed; Venezuela/Maduro case study; METR data; FMIC dissolution analysis; governance updates; scenario probabilities updated \\
 2.1 & July 2026 & Mid-2026 refresh: Fable 5 / Mythos 5 frontier and accelerated METR doubling; governance table rebuilt; June 2026 workforce developments; methodology provenance corrected; new sections (IC AI adoption attack surface, testbeds, two counterarguments, budget and accountability); Claims Register, Glossary, Revision History; traceability table and rubric \\
 3.0 & September 2026 & Deep revision: two-directional erosion thesis; Verifying the Verifiers section; ODNI turnover and further cuts, FISA 702 lapse, GenAI.mil and classified-network adoption, NSPM-11, EO 14409, FY2027 IAA provisions, CIA hiring rebound; AI-lab threat reports through September 2026; EU AI Act general application; scenario probabilities revised (Managed 15--25\%, Parity 45--55\%, Collapse 20--30\%); second branching variable; two counterarguments and four recommendations added; warning indicators with trigger status; Deepfake-Eval-2024 and persuasion literature; corrected the Agentic AI Foundation date (Dec 9, 2025) and founding projects; ten new figures (two-directional erosion, erosion timeline, diffusion by tier, task-horizon growth, ODNI headcount, structural trap, adaptation matrix, scenario history, pipeline, indicator dashboard); Claims Register rebuilt with exclusions list \\
-3.1 & October 2026 & Research window through late October 2026. New analysis of the open-weight gap (Epoch AI, CAISI, UK AISI, Artificial Analysis: 4--7 months; wider on private test sets) and two new figures (open-weight lag estimates; monopoly-erosion heatmap by function); dependency evidence (DoD migration off one vendor, NSA access lost under June export controls, 17-day White House hold on UK AISI access, GSA OneGov deals, chip-export case-by-case rules); two new UK AISI evaluation findings in Verifying the Verifiers; OSINT diffusion cases (BBC Eye, MizarVision, Google Earth AI pause, OpenAI Category 5); ODNI stabilization under Clayton; new warning indicator (allied evaluator access, triggered) and counterargument (open-weight parity). Probabilities unchanged (within calibration resolution; reasoning in Section 8). Layout: executive tables no longer float (fixes a box overrunning its page); diffusion, scenario-history, and timeline figures redrawn; two overfull lines fixed. Claims Register extended to 78 entries \\
+3.1 & October 2026 & Research window through late October 2026. New analysis of the open-weight gap (Epoch AI, CAISI, UK AISI, Artificial Analysis: 4--8 months general, 4--7 cyber; wider on private test sets) and two new figures (open-weight lag estimates; monopoly-erosion heatmap by function); dependency evidence (DoD migration off one vendor, NSA access lost under June export controls, reported 17-day White House hold on UK AISI access, GSA OneGov deals, chip-export case-by-case rules); two new UK AISI evaluation findings and the GPT-6 Astra system card's monitorability results in Verifying the Verifiers; OSINT diffusion cases (BBC Eye, MizarVision, Google Earth AI pause, OpenAI false-front disruption); ODNI stabilization under Clayton; new warning indicator (allied evaluator access, triggered) and counterargument (open-weight parity). Probabilities unchanged (within calibration resolution; reasoning in Section 8). Layout: executive tables no longer float (fixes a box overrunning its page); diffusion, scenario-history, and timeline figures redrawn; two overfull lines fixed. Claims Register extended to 78 entries. Verification pass: incident disclosure date corrected (Aug 4; Oct 23 is AISI's follow-up); Anthropic's early-September model withholding separated from the reported White House request; Artificial Analysis gap clarified; general lag restated as 4--8 months; unconfirmed details removed (a ``Category 5'' label; MI5 centre date and composition); primary sources substituted where found \\
 \bottomrule
 \end{tabularx}
 \end{center}
